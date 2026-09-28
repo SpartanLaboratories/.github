@@ -1,0 +1,28 @@
+name: Feature request
+description: A new capability or API change
+labels: ["type: feature"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is missing or awkward today, and in what concrete situation?
+    validations:
+      required: true
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed change
+      description: The desired behavior, API, workflow, or user experience.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and open questions
+      description: Optional — other designs considered or decisions still open.
+  - type: textarea
+    id: downstream
+    attributes:
+      label: Downstream follow-up
+      description: Optional — affected projects, dependencies, or migration work.

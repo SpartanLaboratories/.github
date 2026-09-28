@@ -1,0 +1,39 @@
+name: Tracking issue
+description: A multi-issue initiative, phase, or program of work
+title: "<Initiative name> (tracking)"
+labels: ["type: tracking"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template when one design spans more than one pull request. Add each stage under
+        **Sub-issues** and record external dependencies with GitHub dependency links.
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What does this initiative deliver? Link plans and architecture documents.
+    validations:
+      required: true
+  - type: textarea
+    id: stages
+    attributes:
+      label: Stages
+      description: List sub-issues in intended order, including their dependencies.
+      placeholder: |
+        1. #N: …
+        2. #N: … (depends on #N)
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Cross-initiative dependencies
+      description: Optional — work in other tracking issues that blocks or is blocked by this initiative.
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when
+      description: The measurable exit criterion. Implementation pull requests, not planning pull requests, close the stages.
+    validations:
+      required: true

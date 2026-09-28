@@ -1,0 +1,31 @@
+name: Bug report
+description: A defect in released behavior
+labels: ["type: bug"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The project version, commit, or release in use.
+      placeholder: "1.9.0"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What happens, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Minimal steps, configuration, logs, or code that reproduces the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed fix
+      description: Optional — where the defect might live and how it could be addressed.
