@@ -2,7 +2,9 @@
 
 A snapshot of the Claude Code setup used across Spartan Labs repositories
 (`SpartanLaboratories/*` and `SpartanLabsGaming/*`). It is a copy of the global
-`~/.claude/` directory, kept here for reference and to restore on a new machine.
+`~/.claude/` directory, kept here for reference and to restore on a new machine. It is
+updated whenever `~/.claude/` changes, so the two match (see the "Global Claude config"
+section of `CLAUDE.md`).
 
 | Path            | Source in `~/.claude/`         | Contents                                                        |
 |-----------------|--------------------------------|-----------------------------------------------------------------|
@@ -10,7 +12,7 @@ A snapshot of the Claude Code setup used across Spartan Labs repositories
 | `settings.json` | `settings.json`                | Global settings: permissions, hooks, auto-mode rules            |
 | `hooks/`        | `hooks/`                       | Hook scripts referenced by `settings.json`                      |
 | `agents/`       | `agents/`                      | Custom subagents (planner, architect, manager, qa, …)           |
-| `skills/`       | `skills/`                      | Custom skills (`resolve-issue`, `upgrade`) and installed third-party skills (`firecrawl*`, `vercel-connect`) |
+| `skills/`       | `skills/`                      | Custom skills (`resolve-issue`, `upgrade`) and installed third-party skills (`firecrawl*`, `vercel-connect`, `graphify`) |
 | `commands/`     | root `*.md` prompt files       | Legacy release / update prompt files                            |
 | `memory/<repo>/`| `projects/<path>/memory/`      | Per-project auto-memory, one folder per repository              |
 
@@ -19,7 +21,14 @@ A snapshot of the Claude Code setup used across Spartan Labs repositories
 - Credentials, session state, history and caches (`.credentials.json`, `.claude.json`,
   `history.jsonl`, `sessions/`, …).
 - Anthropic's auto-synced skill bundle (`skills/synced/`).
-- `memory/MyGameServer/deployment-setup.md`, which describes deployment infrastructure.
+- `memory/MyGameServer/deployment-setup.md`, which describes deployment infrastructure, and
+  its index line in `memory/MyGameServer/MEMORY.md`.
+
+## Only in this copy
+
+- `skills/graphify/LICENSE`, `NOTICE` and `LICENSE-MIT`: graphify's license files
+  (Apache-2.0, with earlier portions under MIT), taken from the installed `graphifyy` 0.9.82
+  wheel. Its license requires redistributions to carry them; they are not in `~/.claude/`.
 
 ## Restoring
 

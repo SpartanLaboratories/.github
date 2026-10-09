@@ -43,6 +43,23 @@ accurately describing the project. Create a `README.md` if the repo has none. Ke
 proportional: a bug fix or internal refactor that doesn't change the project's external
 shape needs no README change.
 
+## Global Claude config — keep the `.github` mirror in sync
+
+`SpartanLaboratories/.github` holds a public copy of `~/.claude/` under `claude/`; its
+`claude/README.md` maps each mirrored path to its source. Whenever your work changes anything
+that copy covers — `CLAUDE.md`, `settings.json`, `hooks/`, `agents/`, `skills/` (including
+ones a tool installs, e.g. `graphify`), the root `*.md` prompt files (`commands/`), or a
+project's auto-memory (`memory/<repo>/`; a project without a folder yet gets one) — update
+the copy as part of the same change so it matches `~/.claude/` again.
+
+- Commit straight to `main`; no branch or PR.
+- Leave out everything in the README's "Not included" list. The repo is public: check every
+  change for secrets before pushing.
+- When a third-party skill's license requires redistributions to carry its license files,
+  ship them beside the skill in the copy (e.g. `skills/graphify/LICENSE`, `NOTICE`). These
+  are the only files allowed to exist in the copy but not in `~/.claude/`.
+- Keep `claude/README.md`'s table current when what the copy holds changes.
+
 ## Library Design — Open-Ended by Default
 
 **Scope:** every Spartan Labs repo is in scope. `MyGameTools` (all four modules), `WebTools`
