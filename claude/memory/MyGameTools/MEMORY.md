@@ -1,0 +1,26 @@
+- [Project guidance location](project-guidance-in-aiassistant-rules.md) — coding rules are in .aiassistant/rules/CLAUDE.md, not root
+- [GameServer is a library, no loop](gameserver-is-library-no-loop.md) — don't add game loops/schedulers to GameTools classes
+- [Vertical placement is y-down](vertical-placement-is-y-down.md) — "above" an object = -y (reverses the old y-up note)
+- [Release process](release-process.md) — /feature flow, vanniktech Maven Central publish (user runs it), v-prefixed tags
+- [Version control workflow](version-control-workflow.md) — trunk-based + semi-linear merge + Conventional Commits + PR-per-change; rolled out on MyGameTools (PR #4), applies to all Spartan Labs repos
+- [Project repos and orgs](project-repos-and-orgs.md) — game projects in SpartanLabsGaming (MyGameTools/MyGameServer/GameGraphics), shared libs in SpartanLaboratories (WebTools/GeneralTools); MyGameTools moved 2026-09-03
+- [Documentation audience-reach model](documentation-audience-reach-model.md) — commenting/docs standard codified in global ~/.claude/CLAUDE.md: 4 rings by audience + 2 maturity levels
+- [Testing 5-level hierarchy](testing-5-level-hierarchy.md) — testing standard codified in global ~/.claude/CLAUDE.md: local gating → unit → integration → 4a/4b/4c → UAT
+- [GitHub issue workflow](github-issue-workflow.md) — check known-project repos for issues at chat start; plan a resolution for any new issue; gh is at "C:\Program Files\GitHub CLI\gh.exe"
+- [Merge always allowed](merge-always-allowed.md) — merge green/mergeable PRs without asking (classifier may still block the raw command)
+- [Maven Central namespace](maven-central-namespace.md) — group io.github.spartanlabsgaming; single GameTools artifact ≤3.1.0, then 3 coords (gametools/-core/-net) from 4.0.0 (2026-09-06)
+- [Framework target state & roadmap](framework-target-state.md) — GameTools' intended final scope: RTS+MMO-lite, scalable authoritative netcode, module split, 7-phase roadmap in docs/framework-vision-and-roadmap.md
+- [No downstream consumer issues](no-downstream-consumer-issues.md) — never file GitHub issues against repos that consume the project; don't ask
+- [Manager needs no confirmation](manager-no-confirmation-needed.md) — don't pause to confirm before manager creates branches/commits (still gates on Maven publish + downstream issues)
+- [Planner must check adoption, not just breakage](planner-blast-radius-adoption.md) — when a plan adds a new interface/system, planner must evaluate whether existing classes should refactor to use it, not just confirm they aren't broken; now baked into ~/.claude/agents/planner.md
+- [resolve-issue always plans per-issue](resolve-issue-always-plans-per-issue.md) — never skip planner for an issue just because a parent/epic plan already covers it; baked into ~/.claude/skills/resolve-issue/SKILL.md
+- [Planner verification deltas need approval](planner-verification-deltas-need-approval.md) — when planner verifies an existing issue plan and recommends deltas, ask user before applying
+- [Never guess intent — ask](never-guess-intent-ask.md) — global rule, overrides Auto Mode: ask immediately on any ambiguity of intent; facts are the exception and must be verified independently
+- [Standing directives aren't task requests](standing-directives-are-not-task-requests.md) — a "whenever/always" rule governs future work; don't treat it as authorisation to start that work now
+- [Libraries are open-ended by default](library-design-open-ended.md) — ship core mechanism, leave policy extensible for downstream consumers; codified in global ~/.claude/CLAUDE.md
+- [Spartan brand style](spartan-brand-style.md) — crimson/bronze on ink/parchment + calm per-surface backgrounds for docs/site/README/wiki in both orgs; logos differ per org
+- [On "continue", check newest docs](continue-check-newest-docs.md) — a newer untracked design doc may supersede the working-tree implementation
+- [Prefer Result over nullable](prefer-result-over-nullable.md) — lookups that can miss return Result<T>, not T?; settled convention, don't re-ask
+- [References by section](references-by-section.md) — docs cite §sections/named rows and code by symbol, never line numbers (they drift)
+- [Level 5 deferred](level-5-uat-deferred.md) — don't plan UAT inside feature plans; a discrete Level-5 plan comes later (#133)
+- [Manager attribution instruction](manager-attribution-instruction.md) — always tell manager the attribution rule; it copies the repo's old Co-Authored-By convention otherwise

@@ -1,0 +1,11 @@
+- [WebTools split into three artifacts](project_webtools_split_into_three_artifacts.md) — webtools-udp / -scraping / -browser (each at 1.0.0); combined WebTools retired at 2.0.1a.
+- [API evolution: deprecate, don't force-break](api-evolution-clean-break.md) — @Deprecated migration paths allowed for major reworks; old API goes `internal` later, not deleted. Supersedes the old clean-break-only rule.
+- [webtools-udp 2.0 reliable channel](project_webtools_udp_2_0_reliable_channel.md) — RESOLVED 2026-09-26: 2.0.0 released to Maven Central, Issue #14 closed; #38/#39/#41 deferred follow-ups.
+- [No IDE files](feedback_no_ide_files.md) — never commit or prompt about .idea/ etc.; gitignore + untrack silently, across all projects.
+- [Downstream adoption isn't a closing gate](feedback_downstream_adoption_not_a_closing_gate.md) — close a library issue once its own fix lands; track consumer adoption separately.
+- [Don't raise downstream effects](feedback_dont_raise_downstream_effects.md) — never ask about cross-repo compatibility impact; downstream projects handle their own adoption.
+- [Versioning convention](feedback_versioning_convention.md) — letter suffix = bugfix only; an addition bumps the third number instead.
+- [Delete stale merged branches](feedback_delete_stale_merged_branches.md) — after a PR merges, delete the branch (local + remote); manager agent standing instruction.
+- [/resolve-issue auto-confirm](feedback_resolve_issue_auto_confirm.md) — skip the "shall I proceed" gate; always yes, go straight into the pipeline.
+- [No Claude attribution](feedback_no_claude_attribution.md) — no Co-Authored-By / Claude-Session / "Generated with Claude Code" on commits or PRs; set off in ~/.claude/settings.json.
+- [Confirm before second qa run](feedback_confirm_before_second_qa_run.md) — ask the user before any second qa invocation in /resolve-issue, don't auto-loop even within the skill's one-retry allowance.
