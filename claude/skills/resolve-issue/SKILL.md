@@ -48,7 +48,8 @@ or file/​comment on an issue outside of `manager`.
 Spawn `planner` with the repo-qualified issue reference (`<owner>/<repo>#<n>`)
 and the issue text. It runs a staged pipeline — interview, research,
 architecture, plan drafting — and writes an architecture document plus one
-implementation plan per system under `docs/`.
+implementation plan per system into the issue's folder under `docs/plans/` (see "Planning
+documents — folder layout" in the global `CLAUDE.md`).
 
 **`planner` halts and hands work back to you.** Its report leads with one of
 three shapes; route on it:
