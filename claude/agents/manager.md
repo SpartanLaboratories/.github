@@ -113,8 +113,10 @@ Conform to whatever you find. On top of that, the user's global
   module, dependency, build/run step, protocol, or architecture and `README.md`
   is not already in the change set, update it **in the same commit** as the code
   that changes the surface.
-- A plan/design doc under `docs/` is committed in the **same commit** as the
-  implementation it describes (or its first stage), so history binds the two.
+- A plan/design doc in the issue's `docs/plans/` folder is committed in the **same
+  commit** as the implementation it describes (or its first stage), so history binds the
+  two. Its `research/` files ride with the first plan commit. The reconciled
+  `final-implementation.md` and `impact.md` land in a final `docs:` commit.
 - A version bump is its own `build:` commit.
 
 **Versioning & release** (published libraries — anything on Maven Central etc.)
@@ -157,8 +159,8 @@ Conform to whatever you find. On top of that, the user's global
     short list.
   - **Links to every `.md` file created or materially updated while resolving
     it** — the plan, the implementation/design doc, a UAT doc, an ADR, anything
-    under `docs/`. Link each as
-    `https://github.com/<owner>/<repo>/blob/<default-branch>/docs/<file>.md`
+    under `docs/` (normally the issue's `docs/plans/…/<number>-<slug>/` folder). Link each as
+    `https://github.com/<owner>/<repo>/blob/<default-branch>/<path-to-file>.md`
     (tracks the current version) **and** a permalink pinned to the merge-commit
     SHA. Only link files already on the default branch — that is why the comment
     comes after the merge.

@@ -43,6 +43,45 @@ accurately describing the project. Create a `README.md` if the repo has none. Ke
 proportional: a bug fix or internal refactor that doesn't change the project's external
 shape needs no README change.
 
+## Planning documents — folder layout
+
+Every plan lives under `docs/plans/`, in a folder hierarchy that mirrors the repo's GitHub
+issue hierarchy. Documents that are not plans (roadmaps, protocol specs, decision records,
+asset folders such as `docs/brand/`) stay where they are.
+
+**Hierarchy.** Each issue gets one folder, `<number>-<slug>/`, with a short kebab-case slug
+taken from the issue title (e.g. `49-physics/`). It sits inside its parent tracking issue's
+folder, following the sub-issue chain root-first, e.g.
+`docs/plans/86-phase-1-map-and-space/49-physics/`. An issue with no parent sits directly under
+`docs/plans/`. Find the parent with `gh api graphql -f query='query{repository(owner:"<org>",
+name:"<repo>"){issue(number:<n>){parent{number title}}}}'`. If an issue is re-parented, move
+its folder.
+
+**An issue folder holds only that issue's resolution:**
+- `draft.md`: the draft plan.
+- `architecture.md`: the grand design, when the work has one.
+- `plan.md`, or one `plan-<unit-slug>.md` per unit when the design decomposes into several.
+- `impact.md`: fallout and impact thoughts (adoption, blast radius, follow-ups). The planner
+  writes it while planning and reconciles it once implementation ends.
+- `final-implementation.md`: the final as-built record. It describes what was actually built,
+  every deviation from the plan, and the reasoning for each. The implementer appends each
+  deviation, with its reasoning, the moment it makes it; the planner reconciles the file into
+  the final as-built once implementation ends.
+- `research/<question-slug>.md`: one file per researcher subagent, written by that researcher.
+- `superseded/<name>-<YYYY-MM-DD>.md`: a replaced version of any of the above, with a
+  "superseded by" note at its top.
+- Anything else specific to that one issue's resolution, e.g. a UAT record.
+
+**A tracking issue's folder** holds its own documents (a phase plan, an initiative draft, a
+design spanning several of its sub-issues) loose beside its sub-issue folders.
+
+**Plans need an issue.** Before planning new work that has no issue, ask me to file one. An
+existing plan with no issue sits loose in the tracking folder it belongs to, or directly
+under `docs/plans/` if none.
+
+**Committed.** Everything under `docs/plans/`, research included, is committed with the work
+it plans.
+
 ## Global Claude config — keep the `.github` mirror in sync
 
 `SpartanLaboratories/.github` holds a public copy of `~/.claude/` under `claude/`; its

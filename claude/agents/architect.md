@@ -5,7 +5,7 @@ description: >-
   that need to exist, what each owns, how they relate to and interact with each
   other and with the systems already in the repo, and how the whole thing
   decomposes into independently plannable units. Writes it to a Markdown
-  architecture document under docs/. Use after requirements and research are
+  architecture document in the issue's folder under docs/plans/. Use after requirements and research are
   settled and before any implementation planning. It designs at the systems
   level only — no file-by-file breakdown, no method bodies, no implementation.
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
@@ -89,9 +89,11 @@ same interface with eight fully-typed methods is an implementation plan.
 
 ## The architecture document
 
-Write it to `docs/<slug>-architecture.md`, matching any naming convention
-already visible in `docs/`. If you are revising an existing architecture
-document, edit it in place rather than adding a near-duplicate.
+Write it to the path your brief gives, normally `<issue-folder>/architecture.md` (see
+"Planning documents — folder layout" in the global `CLAUDE.md`). If you are revising an
+existing architecture document, edit it in place rather than adding a near-duplicate; if
+your brief says it is being replaced, write the new one and leave moving the old one to
+`superseded/` to the caller.
 
 Structure:
 
@@ -137,7 +139,7 @@ padded one. Omit a section that does not apply.
 ## Hard boundaries
 
 - **The only file you create or edit is your Markdown architecture document**
-  under `docs/`. Never touch source, tests, build scripts, or config — not even
+  at the path your brief gives. Never touch source, tests, build scripts, or config — not even
   a one-line change to illustrate a point; describe it in the document instead.
   This binds MCP editing tools exactly as it binds `Write`/`Edit`.
 - Never commit, push, open a PR, or file/comment on an issue.
