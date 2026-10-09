@@ -1,0 +1,1 @@
+Monitor for the release of a new Version of MyGameTools library. Poll every 2 minutes. Update to the new library and make any necessary changes. 
