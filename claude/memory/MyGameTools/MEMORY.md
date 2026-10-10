@@ -3,7 +3,7 @@
 - [Vertical placement is y-down](vertical-placement-is-y-down.md) — "above" an object = -y (reverses the old y-up note)
 - [Release process](release-process.md) — /feature flow, vanniktech Maven Central publish (user runs it), v-prefixed tags
 - [Version control workflow](version-control-workflow.md) — trunk-based + semi-linear merge + Conventional Commits + PR-per-change; rolled out on MyGameTools (PR #4), applies to all Spartan Labs repos
-- [Project repos and orgs](project-repos-and-orgs.md) — game projects in SpartanLabsGaming (MyGameTools/MyGameServer/GameGraphics), shared libs in SpartanLaboratories (WebTools/GeneralTools); MyGameTools moved 2026-09-03
+- [Project repos and orgs](project-repos-and-orgs.md) — game projects in SpartanLabsGaming (MyGameTools/MyGameServer/MyGameClient, renamed from GameGraphics), shared libs in SpartanLaboratories (WebTools/GeneralTools); MyGameTools moved 2026-09-03
 - [Documentation audience-reach model](documentation-audience-reach-model.md) — commenting/docs standard codified in global ~/.claude/CLAUDE.md: 4 rings by audience + 2 maturity levels
 - [Testing 5-level hierarchy](testing-5-level-hierarchy.md) — testing standard codified in global ~/.claude/CLAUDE.md: local gating → unit → integration → 4a/4b/4c → UAT
 - [GitHub issue workflow](github-issue-workflow.md) — check known-project repos for issues at chat start; plan a resolution for any new issue; gh is at "C:\Program Files\GitHub CLI\gh.exe"
