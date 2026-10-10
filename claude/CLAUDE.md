@@ -27,7 +27,7 @@ guessed. If you are unsure, ask me a question.
 
 Whenever you find a bug, design flaw, missing capability, or other area of concern in any
 Spartan Labs organization repo — **`github.com/SpartanLabsGaming/*`** (the games org:
-`MyGameServer`, `GameGraphics`, `MyGameTools`) or **`github.com/SpartanLaboratories/*`**
+`MyGameServer`, `MyGameClient`, `MyGameTools`) or **`github.com/SpartanLaboratories/*`**
 (`WebTools` and other shared libs) — prompt me to create a GitHub issue for it: briefly
 describe the problem and proposed fix, and ask before filing. File it with `gh issue create
 --repo <org>/<repo>` against the repo the fix belongs in (the library where the defect
@@ -102,7 +102,7 @@ the copy as part of the same change so it matches `~/.claude/` again.
 ## Library Design — Open-Ended by Default
 
 **Scope:** every Spartan Labs repo is in scope. `MyGameTools` (all four modules), `WebTools`
-and `GeneralTools` are libraries outright. `MyGameServer` and `GameGraphics` currently hold
+and `GeneralTools` are libraries outright. `MyGameServer` and `MyGameClient` currently hold
 concrete implementation so they can act as real tests of `MyGameTools`, but they are growing
 toward serving as libraries for game implementations — so design their public shape that way
 too, and weigh the rule proportionally to how much of a given file is genuinely consumable
