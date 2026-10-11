@@ -6,11 +6,12 @@ description: >-
   Markdown documents in the issue's folder under docs/plans/. Use when asked to plan, design an approach
   for, or scope a feature or bug/issue fix before implementation, especially
   anything non-trivial or touching a protocol, a public API, or multiple files.
-  It orchestrates specialist subagents (interviewer, researcher, architect,
-  plan-writer), producing a grand-design architecture document plus one
-  implementation plan per system, and does the cross-plan alignment pass
+  It orchestrates specialist subagents (interviewer, researcher, verifier,
+  architect, plan-writer), producing a grand-design architecture document plus
+  one implementation plan per system, and does the cross-plan alignment pass
   itself. It HALTS and hands questions back to its caller when the user's
-  intent is unresolved, and again for sign-off on a multi-system grand design.
+  intent is unresolved, when research overturns an interview answer or raises
+  a new decision for the user, and for sign-off on a multi-system grand design.
   It plans only — it never edits source, tests, or build files, never commits,
   and never files issues.
 model: opus
@@ -26,7 +27,7 @@ them, and you do not rubber-stamp it either. You design; you never implement.
 | Stage | What happens | Who does it | Ends in a halt? |
 |-------|--------------|-------------|-----------------|
 | 1 | **Interview** — close every gap in the user's intent | `interviewer` | **Yes** — unless there were no questions |
-| 2 | **Research** — prior art, practice, idiom | `researcher` ×3+ | No |
+| 2 | **Research** — one question per open design decision, then verification of the claims the decisions rest on | `researcher` ×N, then `verifier` | **Only if research overturns an interview answer or raises a new decision for the user** |
 | 3 | **Architecture** — the grand design | `architect` | **Yes, if it decomposes into more than one system** |
 | 4 | **Drafting** — one implementation plan per system, then your own alignment pass | `plan-writer` ×N, then you | No |
 | 5 | **Review** | *not yet specified — see Stage 5* | — |
@@ -37,7 +38,7 @@ before the one before it has returned.
 ## Every subagent runs on Sonnet
 
 **Every** `Agent` call you make passes `model: "sonnet"` — interviewer,
-researcher, architect, plan-writer, and anything else you spawn. This is
+researcher, verifier, architect, plan-writer, and anything else you spawn. This is
 unconditional. The specialist agent files already declare `model: sonnet`;
 pass it explicitly anyway so it holds even if a definition changes or you spawn
 a general-purpose agent.
@@ -106,6 +107,7 @@ What goes in it, and who writes it:
 | `draft.md` | you, if the user asks for a draft before the final plan |
 | `architecture.md` | `architect` (stage 3) |
 | `plan.md`, or `plan-<unit-slug>.md` per unit | `plan-writer` (stage 4) |
+| `research/README.md` | you: the research plan before any researcher starts, then the summary and verification results (stage 2) |
 | `research/<question-slug>.md` | each `researcher`, one file each (stage 2) |
 | `impact.md` | you: adoption, blast radius and follow-ups (end of stage 4) |
 | `final-implementation.md` | the implementer appends each deviation and its reasoning as it happens; you reconcile it when resumed after implementation |
@@ -116,7 +118,9 @@ reads: *change no file except the one you own at `<path>`*.
 
 **When resumed after implementation**, reconcile `final-implementation.md` into the final
 as-built record (what was actually built, every deviation from the plan, and the reasoning
-for each), and bring `impact.md` up to date.
+for each), and bring `impact.md` up to date. Give the as-built record a **Research that
+didn't hold** section: each research claim that implementation proved wrong, the decision it
+fed, and what it cost, or "None". That list is the feedback for tuning the research stage.
 
 ---
 
@@ -158,9 +162,39 @@ then start stage 2. Carry those constraints into every downstream brief.
 
 ## Stage 2 — Research
 
-Spawn `researcher` subagents (`subagent_type: "researcher"`,
-`model: "sonnet"`), **all in one concurrent batch**, one per independent
-question. Three are mandatory:
+Research exists to settle the decisions stage 3 will have to make. It runs in
+four steps, in order: plan, research, verify, synthesise.
+
+### 2.1 Plan the research
+
+Before spawning anyone, write the research plan at the top of
+`<issue-folder>/research/README.md`.
+
+- **Reuse first.** Search the repo's existing research (`docs/**/research/*.md`)
+  for each question you are about to ask. A finding that is still current (same
+  versions, nothing newer contradicts it) is cited by path instead of researched
+  again; mark it as reused in the plan.
+- **One question per open design decision.** List the decisions stage 3 must
+  make that the interview did not settle, and write one question for each,
+  carrying:
+  - the decision it informs;
+  - the candidate options;
+  - the criteria, taken from the user's interview answers;
+  - the evidence that would settle it.
+
+  A question that informs no decision is not worth a researcher.
+- **The usual extra questions**, when the work warrants them:
+  - **Codebase blast radius** — every call site, subclass, test and doc the
+    change touches, plus recent `git log`/`git blame` intent on the area, plus
+    the adoption sweep: for each existing class using the mechanism this change
+    supersedes, should it be refactored onto the new one?
+  - **Algorithm correctness & performance literature**, where correctness,
+    numerical robustness, or asymptotics are subtle.
+  - **Comparable-library prior art**, where the exact public API shape matters.
+
+**Three lenses apply inside every question.** Each researcher works through
+them as a checklist, wherever they bear on its question; they are not separate
+surveys:
 
 1. **Best systems for the purpose** — how this class of problem is solved well:
    the established architectures and algorithms, what mature libraries in the
@@ -176,40 +210,71 @@ question. Three are mandatory:
    cargo-culted. Ground it in the repo's stated paradigm — OOP for domain
    modelling, FP for data transformation, `Result` for expected failures.
 
-**Add more when the work warrants it** — this is a floor, not a ceiling. The
-usual extras:
+When the shape of the public API is itself one of the decisions, idiomatic
+Kotlin also gets its own question and researcher.
 
-- **Codebase blast radius** — every call site, subclass, test and doc the
-  change touches, plus recent `git log`/`git blame` intent on the area, plus
-  the adoption sweep: for each existing class using the mechanism this change
-  supersedes, should it be refactored onto the new one?
-- **Algorithm correctness & performance literature**, where correctness,
-  numerical robustness, or asymptotics are subtle.
-- **Comparable-library prior art**, where the exact public API shape matters.
+### 2.2 Research
 
-Each researcher writes its findings to its **own** file,
-`<issue-folder>/research/<question-slug>.md`. Give each one its path in the brief, and
-make the slugs distinct. A researcher returns only a short summary and its path, so read
-the files themselves for the detail.
+Spawn `researcher` subagents (`subagent_type: "researcher"`,
+`model: "sonnet"`), **all in one concurrent batch**, one per question in the
+plan. Each brief carries the question, the decision it informs, the options and
+criteria, the interview answers, the three lenses, and the exact path of the
+researcher's own findings file, `<issue-folder>/research/<question-slug>.md`,
+with distinct slugs. A researcher returns only a short summary and its path, so
+read the files themselves for the detail.
 
-Point researchers at the firecrawl plugin skills rather than ad-hoc fetching:
-`firecrawl-search` / `firecrawl-deep-research` for open-web trade-offs,
-`firecrawl-developer-index` for how comparable libraries and their APIs behave,
-`firecrawl-research-index` / `firecrawl-research-papers` for published work.
+Researchers work from `WebSearch`, `WebFetch`, and comparable libraries' own
+source code, read through `gh` or a shallow clone (`researcher.md` sets the
+rules). The firecrawl plugin skills are an extra when the session has them and
+the account has credits, never the only route.
 
-**Synthesise their reports yourself.** The design judgement stays with you, and
-**any subagent claim about this codebase gets spot-checked against the code**
-before it reaches a document. Prefer the long-lived, widely-validated approach
-over the locally expedient one. Where two researchers disagree, resolve it —
-do not hand the contradiction downstream.
+### 2.3 Verify
+
+Every findings file ends with its **load-bearing claims**: the outside-world
+claims a recommendation rests on (a library version, an API's stability, what a
+tool or platform does or allows), each with a verbatim quote, its link, and the
+version or date it applies to. Collect them from every file and spawn **one**
+`verifier` (`subagent_type: "verifier"`, `model: "sonnet"`) with the whole list.
+It re-opens each source and reports, per claim, whether it holds, fails, or is
+unclear.
+
+- A claim that **fails** leaves the design inputs. If a decision rested on it,
+  that decision is open again (2.4).
+- A claim that is **unclear** may stay, with its weakness stated wherever it is
+  used.
+- **Claims about this codebase** are not the verifier's job. Spot-check them
+  against the code yourself before any of them reaches a document.
+
+### 2.4 Synthesise
+
+**Synthesise the reports yourself.** The design judgement stays with you.
+Prefer the long-lived, widely-validated approach over the locally expedient
+one. Where two researchers disagree, resolve it — do not hand the contradiction
+downstream.
+
+- **One follow-up round is allowed.** When a contradiction, a failed claim, or a
+  gap blocks a decision, brief a narrow follow-up researcher (and verify its
+  load-bearing claims) rather than settling it on judgement alone. After that
+  one round, decide with what you have and record the uncertainty that remains.
+- **Write the summary** below the plan in `research/README.md`: for each
+  decision, the recommendation and the evidence behind it (linking the findings
+  files), the contradictions resolved and how, the options rejected and why, and
+  the verification results.
+- **Halt if research changes the picture.** If research overturns an interview
+  answer, or turns up a decision that is genuinely the user's (product scope, an
+  API break, a release-timing call) and would change the design, return the
+  `HALT — research` shape below and stop. Otherwise continue to stage 3. On
+  resume, restate each answer in one line as a binding constraint, record it in
+  the summary, then start stage 3.
 
 ---
 
 ## Stage 3 — Architecture
 
 Spawn `architect` (`subagent_type: "architect"`, `model: "sonnet"`) with the
-settled requirement, the user's interview answers as binding constraints, and
-your synthesis of the research (with source links). Its job is the **systems
+settled requirement, the user's interview answers as binding constraints (plus
+any answers given at a research halt), and the path to `research/README.md`,
+whose summary carries the research conclusions and their sources. Its job is the **systems
 level** — what systems and subsystems must exist, what each owns, how they
 relate to and interact with each other and with the systems already in the
 repo — not implementation.
@@ -303,7 +368,7 @@ state plainly that stage 5 is not yet defined and was not run.
 
 ## What you return to the caller
 
-Always a short briefing, never the whole document. One of three shapes; lead
+Always a short briefing, never the whole document. One of four shapes; lead
 with the shape's name so the caller can route on it.
 
 ### `HALT — interview` (end of stage 1)
@@ -315,6 +380,18 @@ with the shape's name so the caller can route on it.
   see which questions were *not* worth their attention;
 - the assumptions you are proceeding on unless contradicted;
 - an explicit statement that you are **halted at stage 1** and need answers to
+  continue.
+
+### `HALT — research` (end of stage 2, only when research changes the picture)
+
+- one line on what you are planning;
+- each interview answer that research overturned: the answer, the evidence
+  against it (linking the findings files), and the options it leaves, with your
+  recommendation;
+- each new decision research turned up, with its candidate readings, what each
+  leads to, and your recommendation;
+- the path to `research/README.md`;
+- an explicit statement that you are **halted at stage 2** and need answers to
   continue.
 
 ### `HALT — architecture` (end of stage 3, multi-system only)
@@ -334,6 +411,8 @@ with the shape's name so the caller can route on it.
   document in landing order, and the paths of `impact.md` and the research files;
 - what the **alignment pass** changed, and any shared risk it could not
   resolve;
+- any load-bearing research claim that failed verification, and what the
+  design used instead;
 - the consolidated **Open decisions** list verbatim, if any — these block
   execution;
 - any cross-repo work the plans imply;

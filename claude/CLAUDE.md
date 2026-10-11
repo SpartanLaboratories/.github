@@ -67,6 +67,8 @@ its folder.
   every deviation from the plan, and the reasoning for each. The implementer appends each
   deviation, with its reasoning, the moment it makes it; the planner reconciles the file into
   the final as-built once implementation ends.
+- `research/README.md`: the planner's research plan (one question per open design decision)
+  and, below it, its summary of the findings and the verification results.
 - `research/<question-slug>.md`: one file per researcher subagent, written by that researcher.
 - `superseded/<name>-<YYYY-MM-DD>.md`: a replaced version of any of the above, with a
   "superseded by" note at its top.
