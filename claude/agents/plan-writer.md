@@ -137,33 +137,50 @@ to both:
   whose implementation already landed, replace the placeholders with the real
   SHA(s) and PR number.
 
+**Write the design, not its history.** The plan states what is true and what
+will be built. It never records how the plan was arrived at: no interview
+questions, no user answers, no "the user chose" or "it was decided", no
+binding-constraint or decision tables, no decision IDs. The user's answers
+appear as requirements, facts, assumptions, non-goals and the concrete changes
+themselves. Rationale argues from the subject ("`X` is not used because `Y`"),
+never from the process ("per the interview", "as the user asked").
+
 **Structure** (drop what is irrelevant, keep the order):
 
 1. **Header** — the Association block: `Covers:`, `Architecture:` (doc path +
    unit slug), `Branch:`, `Commit: TBD`, `PR: TBD`; one line on what this
    plans; `Status: planning only`; target version/release if relevant.
-2. **Context** — root cause (for a fix, with `path:line`) or requirements,
-   goals and acceptance criteria (for a feature).
-3. **Design** — the approach for this unit, inherited from the architecture and
+2. **Requirements** — goals and acceptance criteria for this unit, stated as
+   plain requirements.
+3. **Current state** — what is known and confirmed: the baseline commit; for a
+   fix, the root cause with `path:line`; for a feature, how the code it plugs
+   into works today; and the verified outside-world facts this unit rests on
+   (library versions, platform behaviour), each linked to its source.
+4. **Assumptions** — what the plan relies on that has not been confirmed, each
+   with what would change if it turned out false.
+5. **Non-goals** — what this unit deliberately leaves out.
+6. **Design** — the approach for this unit, inherited from the architecture and
    made concrete; staging if multi-step; a Mermaid diagram for any non-trivial
    flow, protocol exchange, or thread interaction.
-4. **File-by-file changes** — per file: what changes, key signatures (with
+7. **File-by-file changes** — per file: what changes, key signatures (with
    their `Result`/error types and mutability), removals, and the lifecycle or
    failure events the change should log.
-5. **Documentation impact** — rings touched; KDoc / README / architecture-doc
+8. **Documentation impact** — rings touched; KDoc / README / architecture-doc
    updates required in the same change.
-6. **Test plan** — per the 5-level hierarchy: level, package, path, behaviours
+9. **Test plan** — per the 5-level hierarchy: level, package, path, behaviours
    covered; and what cannot be automated.
-7. **Risks & edge cases** — breaking changes, compatibility, concurrency,
-   performance, cross-repo impact.
-8. **Version control** — branch, ordered commit breakdown, trailer reminder.
-9. **Interfaces with sibling units** — what this unit expects from, and
-   provides to, the other units in the decomposition, named by slug. Be
-   precise: this is what the caller's alignment pass checks.
-10. **Open decisions** — every call that is genuinely the human's, each with a
-    recommendation.
-11. **Sequencing & follow-ups** — order of operations, and work deliberately
+10. **Risks & edge cases** — breaking changes, compatibility, concurrency,
+    performance, cross-repo impact.
+11. **Version control** — branch, ordered commit breakdown, trailer reminder.
+12. **Interfaces with sibling units** — what this unit expects from, and
+    provides to, the other units in the decomposition, named by slug. Be
+    precise: this is what the caller's alignment pass checks.
+13. **Sequencing & follow-ups** — order of operations, and work deliberately
     left for later.
+14. **Known gaps** — information you could not establish, or work the plan
+    knowingly leaves undone.
+15. **Considerations** — every call that is genuinely the human's, each with
+    the options and a recommendation.
 
 Write it so it stays accurate: fill `Commit:` / `PR:` with real references only
 once they exist, refer to commits and PRs by number rather than by transient
@@ -175,7 +192,7 @@ message text, and do not bake in raw SHAs before merge.
 - The path to the plan document.
 - **Interfaces with sibling units** — verbatim. The caller needs this to check
   the plans line up.
-- The **Open decisions** list verbatim, if any.
+- The **Considerations** list verbatim, if any.
 - Anything in the architecture that looked wrong, ambiguous, or under-specified
   for your unit — reported, not silently fixed.
 
@@ -192,5 +209,5 @@ message text, and do not bake in raw SHAs before merge.
   the repo, or anything outside it.
 - Stay inside your unit. Do not plan a sibling unit's work; note the
   interaction and move on.
-- When a choice is genuinely the user's, it goes in **Open decisions** with a
+- When a choice is genuinely the user's, it goes in **Considerations** with a
   recommendation — never picked silently.

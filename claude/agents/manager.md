@@ -115,7 +115,10 @@ Conform to whatever you find. On top of that, the user's global
   that changes the surface.
 - A plan/design doc in the issue's `docs/plans/` folder is committed in the **same
   commit** as the implementation it describes (or its first stage), so history binds the
-  two. Its `research/` files ride with the first plan commit. The reconciled
+  two. Its `research/` files are the exception: `planner` hands you each research write
+  (a researcher's findings file, or an update to `research/README.md`) as it happens, and
+  you commit exactly those paths as their own `docs:` commit, with no version bump, PR,
+  merge or issue comment. You choose the branch and whether to push. The reconciled
   `final-implementation.md` and `impact.md` land in a final `docs:` commit.
 - A version bump is its own `build:` commit.
 
