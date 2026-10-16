@@ -67,8 +67,9 @@ its folder.
   every deviation from the plan, and the reasoning for each. The implementer appends each
   deviation, with its reasoning, the moment it makes it; the planner reconciles the file into
   the final as-built once implementation ends.
-- `research/README.md`: the planner's research plan (one question per open design decision)
-  and, below it, its summary of the findings and the verification results.
+- `research/README.md`: the planner's research questions (one topic-led question per open
+  point the design depends on) and, below them, the verification results and its summary of
+  the findings.
 - `research/<question-slug>.md`: one file per researcher subagent, written by that researcher.
 - `superseded/<name>-<YYYY-MM-DD>.md`: a replaced version of any of the above, with a
   "superseded by" note at its top.
@@ -81,8 +82,8 @@ design spanning several of its sub-issues) loose beside its sub-issue folders.
 existing plan with no issue sits loose in the tracking folder it belongs to, or directly
 under `docs/plans/` if none.
 
-**Committed.** Everything under `docs/plans/`, research included, is committed with the work
-it plans.
+**Committed.** Everything under `docs/plans/` is committed. Research is committed as each file
+is written; everything else is committed with the work it plans.
 
 ## Global Claude config — keep the `.github` mirror in sync
 

@@ -94,7 +94,7 @@ the user may accept a delta, reject it in favor of an existing convention, or
 want it applied differently. Only after the user decides, resume `planner`
 to make the agreed edit.
 
-- If the returned **Open decisions** list is non-empty, **stop**: relay it to
+- If the returned **Considerations** list is non-empty, **stop**: relay it to
   the user and wait. Do not guess a design.
 - Otherwise keep the architecture document path and **every** plan document
   path, in the landing order `planner` gave, plus the recommended approach.
@@ -102,7 +102,9 @@ to make the agreed edit.
 ## 3. Branch — `manager`
 
 Spawn `manager` with the plan document, the issue reference, and the note
-"about to implement stage one — set up the branch only, no commits yet".
+"about to implement stage one — set up the branch only; the only commits so far
+are the planner's research commits", with the research commit SHAs `planner`
+reported.
 `manager` creates the topic branch itself. Carry forward the branch name and
 base it reports.
 

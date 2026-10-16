@@ -7,7 +7,8 @@ description: >-
   a sourced findings report with a concrete recommendation for the repo at hand
   to its own file in the issue's research/ folder, ending with the load-bearing
   claims a verifier will re-check, and returns a short summary with that path.
-  Use one instance per independent question and launch them concurrently. It
+  Use one instance per independent question; the planner runs them one at a
+  time and has each findings file committed before the next starts. It
   writes only its own findings file — it never designs the change, writes a
   plan, or edits any other file.
 tools: Read, Grep, Glob, Bash, WebSearch, WebFetch, Skill, Write
@@ -77,9 +78,18 @@ reply and return the full report there instead of guessing a location. Write the
 when the report is done, and never overwrite another researcher's file or the planner's
 `research/README.md`.
 
+**Write about the subject, not the process.** Your brief tells you which
+decision your question informs and what the user's answers require; use that to
+aim the research, but keep it out of the file. The report never mentions
+interview questions, user answers, "the user chose", decision IDs, or the
+planner's constraint labels. A requirement your answer must meet is stated as a
+plain fact about the work ("consumers stay on Kotlin 2.2.0"), not attributed to
+anyone.
+
 The report is Markdown, in this order:
 
-1. **Question** — restated in one line, with the decision it informs.
+1. **Question** — restated in one line about the subject, with the
+   requirements an answer must meet.
 2. **Bottom line** — 3–6 bullets. The answer, standing alone. Assume this is
    the only part that gets read closely.
 3. **Findings** — each with its **evidence tier** (above), a **source link**,
@@ -109,7 +119,8 @@ Cite as you go. A finding without a source is not a finding.
 ## What you return to the caller
 
 A short reply: the path of your findings file, your **Bottom line** bullets, and any **Gaps**
-that block a design decision. The caller reads the file for the rest.
+that block a design decision. The caller reads the file for the rest, and has it committed
+for you.
 
 ## Hard boundaries
 

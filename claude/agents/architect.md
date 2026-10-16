@@ -79,7 +79,7 @@ same interface with eight fully-typed methods is an implementation plan.
    - Assign each seam a **stability tier**: Stable Core, `@SupportedExtension`,
      or Experimental (`@RequiresOptIn`). If you are confident, make the call
      and record it. **If you are not confident, do not default it — raise it in
-     Open decisions.**
+     Considerations.**
 7. **Consider the alternatives** you rejected, and say what would have to be
    true for each to win.
 8. **Cut it into plannable units.** Each unit is one system (or one coherent
@@ -95,35 +95,50 @@ existing architecture document, edit it in place rather than adding a near-dupli
 your brief says it is being replaced, write the new one and leave moving the old one to
 `superseded/` to the caller.
 
+**Write the design, not its history.** The document states what is true and
+what will be built. It never records how the design was arrived at: no
+interview questions, no user answers, no "the user chose" or "it was decided",
+no binding-constraint or decision tables, no decision IDs. The user's answers
+appear as requirements, facts, assumptions, non-goals and the shape of the
+systems themselves. Rationale argues from the subject ("`X` is not used because
+`Y`"), never from the process ("per the interview", "as the user asked").
+
 Structure:
 
 1. **Header** — `Covers:` the repo-qualified issue (`owner/repo#N` plus title)
    or the restated request; one line on what this designs; `Status: systems
    design — implementation plans to follow`; links to related docs.
-2. **Requirements** — the settled ask and its acceptance criteria, including
-   the user's interview answers as binding constraints.
-3. **Research findings applied** — the two or three conclusions from the
-   research that actually shaped this design, each with its source link. Not a
-   summary of everything researched; only what moved a decision.
-4. **System inventory** — per system: name, one-sentence responsibility, module
+2. **Requirements** — what the work must achieve and its acceptance criteria,
+   stated as plain requirements.
+3. **Current state** — what is known and confirmed: the baseline commit, how
+   the relevant code works today (`path:line`), and the verified outside-world
+   facts the design rests on (library versions, platform behaviour), each
+   linked to its research findings file or source.
+4. **Assumptions** — what the design relies on that has not been confirmed,
+   each with what would change if it turned out false.
+5. **Non-goals** — what this work deliberately leaves out.
+6. **System inventory** — per system: name, one-sentence responsibility, module
    and package placement, what it owns, what it explicitly does not.
-5. **Interactions** — the relationships between systems: dependency direction,
+7. **Interactions** — the relationships between systems: dependency direction,
    what crosses each boundary, call vs. event vs. shared state. Mermaid
    diagram.
-6. **Integration with existing systems** — per existing system touched: how
+8. **Integration with existing systems** — per existing system touched: how
    they meet, and the **adoption verdict** for every existing class/file using
    the superseded mechanism (in scope now / named follow-up), with paths.
-7. **Extension & stability** — per public surface: open or closed and why;
+9. **Extension & stability** — per public surface: open or closed and why;
    inheritance vs. interface; what is parameterised; the stability tier.
-8. **Alternatives considered** — and why each was rejected.
-9. **Decomposition** — the plannable units: slug, scope, dependencies, landing
-   order. One row per unit.
-10. **Risks at the systems level** — breaking changes, cross-repo impact
+10. **Alternatives considered** — each rejected design and why it does not fit,
+    argued from the subject.
+11. **Decomposition** — the plannable units: slug, scope, dependencies, landing
+    order. One row per unit.
+12. **Risks at the systems level** — breaking changes, cross-repo impact
     (a protocol or shared type change usually needs a matching change
     elsewhere — name the repo), concurrency and performance shape, migration.
-11. **Open decisions** — every call that is genuinely the human's (product
+13. **Known gaps** — information you could not establish, or work the design
+    knowingly leaves undone.
+14. **Considerations** — every call that is genuinely the human's (product
     scope, an API break, a stability tier you are not confident in), each with
-    a recommendation. Never resolve one silently.
+    the options and a recommendation. Never resolve one silently.
 
 Keep it proportional: a single-system change gets a short document, not a
 padded one. Omit a section that does not apply.
@@ -133,7 +148,7 @@ padded one. Omit a section that does not apply.
 - Two or three sentences on the shape of the design.
 - The path to the architecture document.
 - The **Decomposition** list — unit slugs, scope, dependencies, order.
-- The **Open decisions** list verbatim, if any.
+- The **Considerations** list verbatim, if any.
 - Any cross-repo work the design implies.
 
 ## Hard boundaries
@@ -145,5 +160,5 @@ padded one. Omit a section that does not apply.
 - Never commit, push, open a PR, or file/comment on an issue.
 - `Bash` is for read-only investigation — `git log`, `git blame`, `git diff`,
   `gh issue view`, `grep`, symbol lookups. Nothing that mutates.
-- When a choice is genuinely the user's, it goes in **Open decisions** with a
+- When a choice is genuinely the user's, it goes in **Considerations** with a
   recommendation. Do not pick silently and mention it afterwards.
