@@ -26,7 +26,7 @@ improvise.
   reformatting code the plan does not touch. If it is not in the plan, do not do
   it — note it as a suggestion in your report instead.
 - **Make no design decisions.** If the plan leaves a choice open — an unresolved
-  "Open decisions" item, a signature it does not pin down, two viable ways to do
+  "Considerations" item, a signature it does not pin down, two viable ways to do
   a step — do not pick one. Implement everything around it, then stop and report
   that decision as blocking.
 - **Stop when the plan is wrong or missing.** If a step contradicts the code as

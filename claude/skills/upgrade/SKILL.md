@@ -89,7 +89,7 @@ three shapes; route on it:
   resume the same planner with `SendMessage`.
 - **`COMPLETE`** — continue below.
 
-- If the returned **Open decisions** list is non-empty, **stop**: relay it
+- If the returned **Considerations** list is non-empty, **stop**: relay it
   to the user and wait. Do not guess a design — this is exactly where a
   breaking change's ambiguity (e.g. "does the old behavior need a shim?")
   belongs.
