@@ -57,6 +57,10 @@ folder, following the sub-issue chain root-first, e.g.
 name:"<repo>"){issue(number:<n>){parent{number title}}}}'`. If an issue is re-parented, move
 its folder.
 
+**Folded-in issues.** When one issue is resolved as part of another issue's work, the folded-in
+issue gets its own `<number>-<slug>/` subfolder inside the host issue's folder, as a sub-issue
+would, and its documents go there.
+
 **An issue folder holds only that issue's resolution:**
 - `draft.md`: the draft plan.
 - `architecture.md`: the grand design, when the work has one.
