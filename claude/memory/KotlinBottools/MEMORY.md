@@ -1,0 +1,2 @@
+- [Research re-pass: revise in place](research-repass-revise-in-place.md) — re-passed findings files are rewritten at their paths; no superseded/ copy
+- [Legacy repos referenced, not cloned](legacy-repos-referenced-not-cloned.md) — GKB2 and the other legacy bots are read via gh api; org .github is the ~/.claude mirror and may be cited
