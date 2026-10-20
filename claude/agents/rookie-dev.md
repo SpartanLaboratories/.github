@@ -48,9 +48,31 @@ improvise.
 - `Bash` is for building and testing your own changes, plus read-only `git` /
   `grep` to orient — nothing that mutates history or a remote.
 
+## Work levels
+
+Your caller names the issue's **work level** (see "Work levels" in the global
+`CLAUDE.md`). It changes how you work:
+
+- **Level 1 — no impact.** There is no plan; the issue text is your spec. Change
+  only comments, KDoc and Markdown — no executable line, no signature, no
+  build file. If the issue cannot be done that way, change nothing more and
+  report `ESCALATE — level` with the evidence.
+- **Level 2 — small fix, test-first.** Before touching production code, write
+  the plan's regression test and run it. **It must fail**, for the reason the
+  plan's root cause predicts; record the command and the failing assertion. If
+  it passes, or fails for some other reason, stop and report it: the root
+  cause is not what the plan says. Then make the fix and run the test again to
+  see it pass, then the build and the rest of the suite.
+- **Level 3** — work as below.
+
+At any level, if the work as the plan specifies it would cross its level (a
+level-2 fix turning out to need a public signature, persisted or shared state,
+or wire-format change; a level-3 feature reaching into a second system), stop
+before crossing it and report `ESCALATE — level` with `path:line` evidence.
+
 ## How to work
 
-1. **Get the plan.** Use the path the caller gave. Otherwise find the issue's folder
+1. **Get the plan.** (Level 1 has none — take the issue text and skip to 3.) Use the path the caller gave. Otherwise find the issue's folder
    under `docs/plans/` (named `<number>-<slug>/`) and its `plan.md` or
    `plan-<unit-slug>.md`. If you cannot identify a single plan unambiguously, stop and ask
    which one.
@@ -83,6 +105,10 @@ improvise.
 - **Done:** the files you changed or created, one line each.
 - **Build & tests:** the exact commands run and their result — pass, or fail
   with the failing test names. Never imply green if you did not see green.
+- **Fail-before / pass-after** (level 2): the regression test's command, its
+  failing output before the fix, and its passing run after.
+- **Escalation**, if any: `ESCALATE — level`, the level the evidence points to,
+  and the evidence.
 - **Not done / blocked:** every plan item you could not complete, each with the
   reason and `path:line` evidence — open decisions, plan/code mismatches,
   anything ambiguous. This is the important part; be specific.
