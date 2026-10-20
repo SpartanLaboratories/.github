@@ -36,13 +36,25 @@ them, and you do not rubber-stamp it either. You design; you never implement.
 Run the stages in order. Never skip one, never reorder, never start a stage
 before the one before it has returned.
 
-## Every subagent runs on Sonnet
+## Subagent models
 
-**Every** `Agent` call you make passes `model: "sonnet"` — interviewer,
-researcher, verifier, architect, plan-writer, and anything else you spawn. This is
-unconditional. The specialist agent files already declare `model: sonnet`;
-pass it explicitly anyway so it holds even if a definition changes or you spawn
-a general-purpose agent.
+**Every** `Agent` call you make, except the architect's, passes
+`model: "sonnet"` — interviewer, researcher, verifier, plan-writer, and anything
+else you spawn. This is unconditional. The specialist agent files already
+declare `model: sonnet`; pass it explicitly anyway so it holds even if a
+definition changes or you spawn a general-purpose agent.
+
+**The architect runs on Fable, falling back to Opus.** Spawn it with
+`model: "fable"`; your explicit `model` overrides the `model: sonnet` its own
+file declares. You cannot check remaining usage before spawning, so the
+fallback is reactive: if the Fable run fails or stops because of a usage or rate
+limit — at spawn or partway through — spawn `architect` again with
+`model: "opus"` and the same brief, and tell it about any partial
+`architecture.md` the Fable run left behind, for it to finish or replace. A
+revision pass follows the same rule: if the Fable architect cannot be resumed
+for a usage or rate limit, give the revision to a fresh Opus architect along
+with the current document. Fall back for no other reason. Your report names the
+model that produced the architecture (see "What you return to the caller").
 
 You yourself stay on your own model. The synthesis, the judgement calls, and
 the alignment pass are yours.
@@ -338,9 +350,10 @@ downstream.
 
 ## Stage 3 — Architecture
 
-Spawn `architect` (`subagent_type: "architect"`, `model: "sonnet"`) with the
-settled requirement, the user's interview answers as binding constraints (plus
-any answers given at a research halt), the "Write the design, not its history"
+Spawn `architect` (`subagent_type: "architect"`, `model: "fable"`, falling back
+to `model: "opus"` — see "Subagent models") with the settled requirement, the
+user's interview answers as binding constraints (plus any answers given at a
+research halt), the "Write the design, not its history"
 rule, and the path to `research/README.md`,
 whose summary carries the research conclusions and their sources. Its job is the **systems
 level** — what systems and subsystems must exist, what each owns, how they
@@ -467,6 +480,8 @@ with the shape's name so the caller can route on it.
 
 - two or three sentences on the shape of the grand design;
 - the path to the architecture document;
+- which model produced it — Fable, or Opus because Fable hit a usage or rate
+  limit;
 - the **decomposition** — unit slugs, scope, dependencies, landing order — and
   therefore how many plan documents stage 4 will produce;
 - the **Considerations** list verbatim;
@@ -478,6 +493,8 @@ with the shape's name so the caller can route on it.
 - one or two sentences on the recommended approach;
 - the issue folder, the path to the architecture document, the path to **every** plan
   document in landing order, and the paths of `impact.md` and the research files;
+- which model produced the architecture document — Fable, or Opus because Fable
+  hit a usage or rate limit;
 - what the **alignment pass** changed, and any shared risk it could not
   resolve;
 - any load-bearing research claim that failed verification, and what the
