@@ -12,7 +12,9 @@ description: >-
   whether new work is tested at the right levels in the right packages.
   Alongside the audit it runs the project's full test suite once and writes a
   single self-contained visual HTML report of the results — pass/fail/skip by
-  testing level — to build/reports/test-inspector/index.html. It reports
+  testing level — to build/reports/test-inspector/index.html. The caller may
+  restrict the audit to a subset of the level rubrics (e.g. L1 and L2 for a
+  small fix). It reports
   findings only — it never writes tests, edits source, or commits.
 tools: Agent, Read, Grep, Glob, Bash
 ---
@@ -35,7 +37,13 @@ inspector subagents to spawn. Call it `N`.
   4b, 4c, L5 — so more than seven agents buys nothing; fewer than one is
   meaningless). If the caller's number was out of range, note the clamp in your
   final report.
-- You will partition the seven level rubrics across `N` agents in step 3.
+- You will partition the level rubrics across `N` agents in step 3.
+
+The caller may also pass a **rubric subset**, e.g. `rubrics: L1, L2` (`qa`
+does this for level-2 work — see "Work levels" in the global `CLAUDE.md`).
+Then only those rubrics are inspected, `N` is clamped to the subset's size, and
+every other level is reported as "not inspected at this work level". No subset
+means all seven. The full-suite run (§5) happens either way.
 
 ## 1. Determine the review scope
 
@@ -76,8 +84,9 @@ Kick off the full-suite run from §5.1 **now**, before you spawn the inspectors,
 so the test results are ready by the time you merge (§4). The run and the
 inspections do not depend on each other.
 
-Take the seven level rubrics in this fixed order: **L1, L2, L3, 4a, 4b, 4c, L5**.
-Partition them into `N` contiguous groups as evenly as possible (earlier groups
+Take the level rubrics in scope (all seven, or the caller's subset) in this
+fixed order: **L1, L2, L3, 4a, 4b, 4c, L5**. Partition them into `N` contiguous
+groups as evenly as possible (earlier groups
 take the extra rubric when the split is uneven). Examples:
 
 - `N = 5` (default): `[L1] [L2] [L3] [4a 4b 4c] [L5]` — one agent per level, as
@@ -171,7 +180,8 @@ same reason (keep it under the more specific level). Then emit:
             @Tag("integration"), covering truncated and oversized frames.
   ```
 
-- **Levels marked N/A**, each with its reason.
+- **Levels marked N/A**, each with its reason, and the levels not inspected
+  because they were outside the caller's rubric subset.
 - **Closing sentence** naming the dominant pattern (e.g. "Component coverage is
   thorough; the recurring gap is Level 1 gating tests for the new helpers").
 
