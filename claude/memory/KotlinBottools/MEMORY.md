@@ -1,2 +1,3 @@
 - [Research re-pass: revise in place](research-repass-revise-in-place.md) — re-passed findings files are rewritten at their paths; no superseded/ copy
 - [Legacy repos referenced, not cloned](legacy-repos-referenced-not-cloned.md) — GKB2 and the other legacy bots are read via gh api; org .github is the ~/.claude mirror and may be cited
+- [Issue 1 planning complete](issue-1-planning-complete-state.md) — plan of record on the docs branch; sub-issues #2–#19, MagicBot repo and #1–#8 filed 2026-10-20; owner follow-ups in impact.md §3.1
