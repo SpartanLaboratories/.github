@@ -163,6 +163,28 @@ repository's `CONTRIBUTING.md` says where its version lives and which artifacts 
 | `feat!:` / `BREAKING CHANGE:` | Major release | `1.9.0` → `2.0.0` |
 | `docs` / `chore` / `ci` / `test` / `build` / `refactor` | none — rides the next release | |
 
+### Lettered versions in dependency graphs
+
+Gradle orders a version with an extra non-numeric part *below* the same version without it:
+`1.5.2a` < `1.5.2` (Gradle's "Version ordering" rules). So when a dependency graph asks for both,
+Gradle's conflict resolution picks the plain release and silently drops the bug fix. Three rules
+keep lettered fixes effective:
+
+1. **A library pins a lettered version with `strictly`.** When a Spartan Labs library depends
+   on a lettered version of another Spartan Labs artifact, including a multi-module library's
+   umbrella on its own modules, it declares the pin with Gradle's `strictly`
+   (`version { strictly("1.5.2a") }`). The pin is then carried in the published Gradle Module
+   Metadata, cannot be out-ranked by a plain version elsewhere in a consumer's graph, and a
+   conflict fails the consumer's build instead of downgrading.
+2. **A consumer requests a lettered version with `strictly`** on its side, for the same reason.
+3. **Keep strict pins current.** Gradle warns that `strictly` in a library affects downstream
+   consumers: a graph that asks for a newer version of a strictly pinned module fails to resolve
+   until the library bumps its pin. Bump the pin in the next release after the pinned artifact
+   moves.
+
+A Maven POM carries no `strictly`; a Maven consumer gets the version its own declaration names
+and must request a lettered version explicitly.
+
 ## Releasing
 
 1. All target changes are merged to the default branch and CI is green.
