@@ -43,6 +43,27 @@ accurately describing the project. Create a `README.md` if the repo has none. Ke
 proportional: a bug fix or internal refactor that doesn't change the project's external
 shape needs no README change.
 
+## Work levels
+
+Every issue is sized to one of four **work levels**, carried as a `level: N` label on the
+issue. The level decides how much planning, implementation, QA and versioning the work gets;
+`/resolve-issue` and its agents scale to it.
+
+| Level | Label | What it is | Planning | Built this run? | Version bump |
+|-------|-------|------------|----------|-----------------|--------------|
+| 1 | `level: 1` | **No impact** — comments, KDoc, Markdown docs only. No executable line changes. | none; no plan folder | yes | none |
+| 2 | `level: 2` | **Small fix** — a bug fix that changes no public API, persisted or shared state, or wire format, and stays local to one component. | short `plan.md` (root cause, fix, regression test) | yes, test-first | `fix:` — MinorChange or trailing letter |
+| 3 | `level: 3` | **Small feature** — new or changed behaviour inside **one** system: additive public API, a new class or option. | interview, targeted research, one `plan.md` | yes | `feat:` — Feature release |
+| 4 | `level: 4` | **Large feature / roadmap** — anything that spans **more than one** system. | full pipeline up to the architecture; **plan only** | **no** — each system becomes a sub-issue, resolved later at its own level | none (docs only) |
+
+- **The label is re-checked when work starts.** If the issue, or the code it touches, says
+  the label is wrong, or there is no label, propose a level with the evidence and ask me.
+  Never re-level silently.
+- **Escalate, don't stretch.** When work turns out bigger than its level (a level-1 change
+  needs code, a level-2 fix changes public API or state, a level-3 feature needs a second
+  system), stop and ask me to re-level it. Never quietly do bigger work under a smaller level.
+- A breaking change is never level 1 or 2.
+
 ## Planning documents — folder layout
 
 Every plan lives under `docs/plans/`, in a folder hierarchy that mirrors the repo's GitHub
@@ -81,6 +102,9 @@ would, and its documents go there.
 
 **A tracking issue's folder** holds its own documents (a phase plan, an initiative draft, a
 design spanning several of its sub-issues) loose beside its sub-issue folders.
+
+**Level 1 work has no folder.** A comment- or doc-only change is recorded by its PR and the
+issue's resolution comment alone.
 
 **Plans need an issue.** Before planning new work that has no issue, ask me to file one. An
 existing plan with no issue sits loose in the tracking folder it belongs to, or directly
