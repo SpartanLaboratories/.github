@@ -7,8 +7,9 @@ description: >-
   a sourced findings report with a concrete recommendation for the repo at hand
   to its own file in the issue's research/ folder, ending with the load-bearing
   claims a verifier will re-check, and returns a short summary with that path.
-  Use one instance per independent question; the planner runs them one at a
-  time and has each findings file committed before the next starts. It
+  Use one instance per independent question; the planner runs them all
+  concurrently and has their findings files committed together once the
+  batch returns. It
   writes only its own findings file — it never designs the change, writes a
   plan, or edits any other file.
 tools: Read, Grep, Glob, Bash, WebSearch, WebFetch, Skill, Write
