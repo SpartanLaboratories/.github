@@ -1,0 +1,2 @@
+- [Headless Chrome page checks](headless-chrome-page-checks.md) — render/probe local HTML with Chrome headless, capture console errors and screenshots
+- [Presenter agent & dashboards](presenter-agent-dashboards.md) — why format A2 (HTML+SVG with embedded Structurizr DSL) and Opus were chosen; draft artifact links
