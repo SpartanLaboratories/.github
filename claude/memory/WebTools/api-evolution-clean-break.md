@@ -1,11 +1,11 @@
 ---
 name: api-evolution-clean-break
-description: "For WebTools' public API, Spartak now allows @Deprecated migration paths for major reworks instead of forcing a clean signature break; superseded the earlier clean-break-only rule on 2026-09-18."
+description: "For WebTools' public API, Spartak now allows @Deprecated migration paths for major reworks instead of forcing a clean signature break; superseded the earlier clean-break-only rule on 2026-09-18. Since 2026-10-20 the legacy modules webtools-scraping and webtools-browser are exempt: break them freely, no shims."
 metadata: 
   node_type: memory
   type: feedback
   originSessionId: 16d0988e-7eea-4073-83ff-a0cebcbfeb5a
-  modified: 2026-09-18T14:38:35.581Z
+  modified: 2026-10-21T02:38:29.161Z
 ---
 
 **Current rule (2026-09-18):** Do **not** force a breaking change when reworking
@@ -28,6 +28,22 @@ surface; it is not a deletion.
 the major coordinate for the rework itself. This also resolves the tension with
 the global CLAUDE.md Component Ring, which lists `@Deprecated` + `ReplaceWith`
 as a documentation tool — that guidance now applies without exception.
+
+**Legacy-module exception (2026-10-20):** `webtools-scraping` (`Connector`) and
+`webtools-browser` (`WebViewer`) are legacy code. Work that touches them may
+break their public API outright, with no `@Deprecated` shims and no deprecation
+ladder. `webtools-udp`, and any module not named here, keeps the rule above.
+
+**Why:** the user, answering Issue #55's planning interview: "Dont worry about
+breaking legacy code such as connector/scraping". Asked how far that reaches,
+they chose a standing exception covering both scraping and browser. In #55
+itself they still chose to leave `Connector` and `webtools-scraping` alone:
+the exception permits breaking them, it does not ask for a rework.
+
+**How to apply:** when a change forces an edit to either legacy module (for
+example a repo-wide build or toolchain change), make the break directly and do
+not propose a migration path or shims for it. Versioning is unchanged; see
+[[feedback_versioning_convention]].
 
 **Superseded (was true until 2026-09-18):** the earlier rule was to change
 signatures in place, bump major, and never add `@Deprecated` shims — chosen for

@@ -1,5 +1,5 @@
 - [WebTools split into three artifacts](project_webtools_split_into_three_artifacts.md) — webtools-udp / -scraping / -browser (each at 1.0.0); combined WebTools retired at 2.0.1a.
-- [API evolution: deprecate, don't force-break](api-evolution-clean-break.md) — @Deprecated migration paths allowed for major reworks; old API goes `internal` later, not deleted. Supersedes the old clean-break-only rule.
+- [API evolution: deprecate, don't force-break](api-evolution-clean-break.md) — @Deprecated migration paths allowed for major reworks; old API goes `internal` later, not deleted. Supersedes the old clean-break-only rule. Exception: legacy webtools-scraping/-browser break freely, no shims.
 - [webtools-udp 2.0 reliable channel](project_webtools_udp_2_0_reliable_channel.md) — RESOLVED 2026-09-26: 2.0.0 released to Maven Central, Issue #14 closed; #38/#39/#41 deferred follow-ups.
 - [No IDE files](feedback_no_ide_files.md) — never commit or prompt about .idea/ etc.; gitignore + untrack silently, across all projects.
 - [Downstream adoption isn't a closing gate](feedback_downstream_adoption_not_a_closing_gate.md) — close a library issue once its own fix lands; track consumer adoption separately.
