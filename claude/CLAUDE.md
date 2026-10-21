@@ -110,8 +110,9 @@ issue's resolution comment alone.
 existing plan with no issue sits loose in the tracking folder it belongs to, or directly
 under `docs/plans/` if none.
 
-**Committed.** Everything under `docs/plans/` is committed. Research is committed as each file
-is written; everything else is committed with the work it plans.
+**Committed.** Everything under `docs/plans/` is committed. Research is committed as it is
+written, with a concurrent batch of researchers' findings landing in one commit once the
+whole batch has returned; everything else is committed with the work it plans.
 
 ## Global Claude config — keep the `.github` mirror in sync
 
