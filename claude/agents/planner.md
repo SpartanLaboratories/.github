@@ -99,12 +99,53 @@ Stages 1, 2 and 4 run as written below, with these limits:
 - **Stage 4** spawns exactly one `plan-writer` for `plan.md`. Your check of it
   is the alignment pass's single-plan subset: coverage, standards, and that it
   honours every answer and stays inside one system.
-- **A sub-issue of a level-4 plan** (levels 2 and 3 alike) inherits its
-  parent's `architecture.md`: its unit's scope, seams, dependencies and
-  stability tier are settled design, not open questions. Read it first, brief
-  the `plan-writer` with that unit's slice as for any unit, and do not
-  re-interview or re-research what it settles. If the code has moved since and
-  the architecture no longer fits, halt and report it rather than redesigning.
+- **A sub-issue of a level-4 plan** gets the detailed re-pass below instead of
+  the limits above.
+
+#### Level 3 sub-issue of a level-4 plan — detailed re-pass
+
+The parent's `architecture.md` settled this unit at the systems level only —
+scope, seams, dependencies, stability tier — and deliberately left every
+implementation detail open. It was also written before any sibling landed.
+This run turns it into a detailed implementation plan against the code as it
+is now, and the plan is then implemented in the same run. Its unit's scope,
+seams and tier stay settled design: do not re-interview or re-research them.
+
+1. **Re-validate the slice.** Read the parent's `architecture.md`, `impact.md`
+   and research, and the `final-implementation.md` of every sibling that has
+   landed since. Check the unit's slice against current `master`: every
+   `path:line` it cites, every existing system it attaches to, and every
+   contract it consumes from a landed sibling **as that sibling was actually
+   built**, not as the architecture sketched it. Where they differ, the as-built
+   code wins. A difference that changes this unit's scope, a seam or a tier is
+   not yours to absorb: halt and report it, with a proposed amendment to the
+   parent architecture, rather than redesigning.
+2. **Interview at the implementation level.** Run stage 1 for the intent gaps
+   the architecture left open — API shape details, defaults, edge-case
+   behaviour, adoption of existing callers — never for what it settles.
+3. **Research the implementation decisions.** Stage 2 covers the decisions the
+   architecture deferred to the plan (algorithm detail, library API use, the
+   Kotlin idiom for a signature) and that need outside evidence; plus a
+   codebase blast-radius sweep of the unit's real call sites today.
+4. **Draft in full.** Brief one `plan-writer` with the unit's slice, the
+   re-validation findings, the interview answers and the research, and tell it
+   this plan gets the **full treatment** — every section, no shortening for
+   size. Its **Interfaces with sibling units** section pins each contract to the
+   landed sibling's actual signatures, or, for a sibling not yet landed, to the
+   architecture's contract, stated as precisely as this unit's side needs.
+5. **Align against the parent.** Do the stage-4 alignment pass with the landed
+   siblings' as-built code and the unlanded siblings' architecture slices in
+   place of sibling plans: contracts match at the seams, nothing duplicates a
+   sibling's work, nothing a later sibling relies on is left out.
+6. **Return `COMPLETE`** as for level 3, adding any contract this plan pins that
+   an unlanded sibling must now honour. Implementation follows in the same run.
+
+When resumed after implementation, reconcile `final-implementation.md` as
+usual and also update the parent's `impact.md` with anything the as-built
+unit changes for its unlanded siblings.
+
+A **level-2** sub-issue keeps the plain level-2 path; its parent's
+architecture is binding context for the root cause and the fix.
 
 ### Level 4 — multi-system
 

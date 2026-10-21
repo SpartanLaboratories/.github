@@ -121,7 +121,9 @@ existing plan, edit it in place rather than adding a near-duplicate.
 
 **Proportion.** A small, self-contained unit gets a short plan — omit sections
 that do not apply; do not pad. A protocol/API/multi-file unit gets the full
-treatment.
+treatment. A unit of a level-4 architecture, planned as its own
+sub-issue, always gets the full treatment whatever its size, when your brief
+says so: it has to meet its siblings at the seams.
 
 **Association block (required).** Open the document by tying it unambiguously
 to both:
