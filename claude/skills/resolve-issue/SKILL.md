@@ -8,7 +8,9 @@ description: >-
   level-2 small fix gets a short test-first plan, a level-3 small feature gets
   the interview-research-plan pipeline, and level-4 multi-system work is
   planned to the architecture only and split into sub-issues, with nothing
-  built. The manager agent handles version control autonomously and stops only
+  built. Before landing, the presenter agent updates the repository's system
+  dashboards (docs/dashboards/) to show what was built, or what is planned,
+  as such. The manager agent handles version control autonomously and stops only
   at its gates - a Maven publish, which needs your explicit go-ahead, and any
   downstream-consumer coordination, which it reports rather than files. Use to
   make steady, reviewed progress through the issue backlog one issue at a time.
@@ -35,6 +37,7 @@ skill runs a different pipeline per level:
 | 3. Branch | `manager` | `manager` | `manager` | `manager` |
 | 4. Implement | `rookie-dev` from the issue text | `rookie-dev`, test-first | `rookie-dev` | **skipped** |
 | 5. Check | `qa level:1` | `qa level:2` | `qa level:3` | **skipped** |
+| 5b. Present | **skipped** | `presenter` | `presenter` | `presenter` (planned systems drawn as planned) |
 | 6. Land | `manager`, no bump | `manager`, fix bump | `manager`, feature bump | `manager`, docs PR with `Refs`; sub-issues on approval |
 
 ## 1. Pick and size the issue
@@ -155,7 +158,8 @@ commits so far are the planner's research commits", with the research commit
 SHAs `planner` reported. `manager` creates the topic branch itself. Carry
 forward the branch name and base it reports.
 
-**Level 4:** go straight to step 6.
+**Level 4:** go straight to step 5b (the presenter draws the planned systems),
+then step 6.
 
 ## 4. Implement — `rookie-dev`  (levels 1–3)
 
@@ -189,18 +193,41 @@ and, for level 2, `rookie-dev`'s recorded fail-before/pass-after test run. Keep
 its gate verdict, the test-inspector **Test run** block, the code review, and
 the path to the visual test report.
 
-- **PASS** -> step 6.
+- **PASS** -> step 5b.
 - **CHANGES REQUESTED** -> do **one** remediation pass: `rookie-dev` for a
   code or test gap; `planner` then `rookie-dev` if the plan itself is wrong.
   Re-run `qa` once. If it still fails, stop and hand the user the findings, the
   report path, and the branch as it stands. Never loop more than once.
 
+## 5b. Present — `presenter`  (levels 2–4)
+
+**Level 1 skips this step**: a comment or doc change alters no system.
+
+Spawn `presenter` with the repo path, the issue reference, the **work level**,
+the plan document (levels 2–3) or the architecture document and `impact.md`
+(level 4), `final-implementation.md` if it exists, the diff range to the base
+branch, and the `qa` verdict. It creates or updates the system's dashboard
+under `docs/dashboards/` (its page, its `workspace.dsl`, the `systems.json`
+registry) and refreshes the supersystem and repository pages, drawing the
+system **as built**; at level 4 it draws the architecture's new systems on
+the supersystem page as **planned** and creates no system page. It verifies
+every page in a headless browser and reports the paths, the as-is stamp, any
+divergence from the template and any fact it could not show. It commits
+nothing.
+
+- If it reports `BLOCKED — system unresolved`, **stop** and ask the user
+  which system the work belongs to; resume the same `presenter` with the
+  answer.
+- Keep its **Dashboards** list: `manager` lands those paths with the change
+  set in step 6, and step 7 reports them.
+
 ## 6. Land it — `manager`
 
 Spawn `manager` with the **work level**, the change set, the `qa` verdict (none
 for level 4), the plan or architecture document, every `.md` file created or
-updated this run, this session's commit trailers and PR footer, and **whether
-the user asked for a publish this run**. `manager` carries out the commits, the
+updated this run, the **dashboard paths** `presenter` reported, this session's
+commit trailers and PR footer, and **whether the user asked for a publish this
+run**. `manager` carries out the commits, the
 version bump the level calls for, the PR, the merge, an upstream issue if the
 work exposed one, and the **issue-resolution comment** (steps taken + links to
 any plan/design docs) — autonomously.
@@ -227,6 +254,8 @@ list goes back to the user.
 - The plan or architecture document and any other `.md` files, with their
   merged links.
 - The `qa` verdict, the code review's verdict, and the visual test-report path.
+- The dashboards `presenter` created or updated, with their merged links, and
+  anything it reported as not shown.
 - The commits / PR / merge / issue comment that landed, by reference, and any
   upstream issue `manager` filed.
 - Anything handed back to the user: `rookie-dev` blockers, escalations,

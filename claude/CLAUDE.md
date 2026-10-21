@@ -114,6 +114,31 @@ under `docs/plans/` if none.
 written, with a concurrent batch of researchers' findings landing in one commit once the
 whole batch has returned; everything else is committed with the work it plans.
 
+## System dashboards — `docs/dashboards/`
+
+Every repository keeps visual dashboards of its systems **as they are**, maintained by the
+`presenter` agent at the end of every level 2–4 `/resolve-issue` run (before the change lands,
+so the update rides in the same PR). The `system-dashboard` skill holds the templates, the
+conventions and the checks.
+
+- **One page per system**, `docs/dashboards/<system-slug>/index.html`: its function first
+  (structure, threads, decision paths, sequences, lifecycles), then context (open issues, plans,
+  roadmap) as secondary information. Beside it, `workspace.dsl` — the Structurizr C4 model of
+  the system, embedded verbatim in the page, which renders its C4 views from it.
+- **Supersystem and repository pages** bind systems together and show how they interact:
+  `docs/dashboards/<supersystem-slug>/index.html` for a group of systems, and
+  `docs/dashboards/index.html` for the repository. They are refreshed on every run.
+- **`docs/dashboards/systems.json`** is the registry: every system, its slug, function, code
+  paths, parent, status (`built` | `planned`), version and as-is stamp.
+- **As-is, never as planned.** A page shows the code at the commit it names. Planned systems
+  appear only on supersystem pages, dashed and tagged `Planned` (a level-4 run adds them); a
+  system gets its own page when its implementing issue lands.
+- Pages are self-contained HTML (inline CSS/JS/SVG, no external resources, light and dark),
+  verified in a headless browser before landing. A repository may keep its own template under
+  `docs/dashboards/_template/`; a page may diverge from a template when the system is better
+  shown another way, recorded on the page and in the presenter's report.
+- Dashboards are committed with the work they describe; the README points at `docs/dashboards/`.
+
 ## Global Claude config — keep the `.github` mirror in sync
 
 `SpartanLaboratories/.github` holds a public copy of `~/.claude/` under `claude/`; its

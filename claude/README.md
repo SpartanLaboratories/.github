@@ -11,8 +11,8 @@ section of `CLAUDE.md`).
 | `CLAUDE.md`     | `CLAUDE.md`                    | Global instructions applied to every project                    |
 | `settings.json` | `settings.json`                | Global settings: permissions, hooks, auto-mode rules            |
 | `hooks/`        | `hooks/`                       | Hook scripts referenced by `settings.json`                      |
-| `agents/`       | `agents/`                      | Custom subagents (planner, architect, manager, qa, …)           |
-| `skills/`       | `skills/`                      | Custom skills (`resolve-issue`, `upgrade`) and installed third-party skills (`firecrawl*`, `vercel-connect`, `graphify`) |
+| `agents/`       | `agents/`                      | Custom subagents (planner, architect, manager, qa, presenter, …) |
+| `skills/`       | `skills/`                      | Custom skills (`resolve-issue`, `system-dashboard`, `upgrade`) and installed third-party skills (`firecrawl*`, `vercel-connect`, `graphify`) |
 | `commands/`     | root `*.md` prompt files       | Legacy release / update prompt files                            |
 | `memory/<repo>/`| `projects/<path>/memory/`      | Per-project auto-memory, one folder per repository              |
 
