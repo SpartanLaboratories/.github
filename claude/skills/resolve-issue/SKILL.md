@@ -87,6 +87,14 @@ scales its pipeline to the level (see `planner.md`, "Work levels") and writes
 into the issue's folder under `docs/plans/` (see "Planning documents — folder
 layout" in the global `CLAUDE.md`).
 
+A **level-3 sub-issue of a level-4 plan** gets the planner's detailed re-pass:
+pass the parent issue reference and the path to its `architecture.md`. The
+planner re-validates the unit's slice against the code as it is now, including
+siblings that have landed, and writes a full implementation plan; steps 3–6
+then implement it in the same run as for any level-3 issue. A re-pass that
+finds the parent architecture no longer fits halts with a proposed amendment —
+relay it to the user and wait.
+
 **`planner` halts and hands work back to you.** Its report leads with one of
 these shapes; route on it:
 
