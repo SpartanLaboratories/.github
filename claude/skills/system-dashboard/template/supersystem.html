@@ -521,8 +521,8 @@ function resolveView(v){
    position of the public elements they touch, so most relationships run straight down. Relationships are
    routed orthogonally through lanes in the gaps between bands, so no line crosses a card. */
 const bandOf=id=>{ const t=el(id).tags; return t.includes("Planned")||t.includes("Standalone")?2:t.includes("Internal")?1:0; };
-const BAND_NAMES=["PUBLIC SURFACE","INTERNALS","OUTSIDE THE STACK · PLANNED"];
-function layoutC4(R){
+const BAND_NAMES={component:["PUBLIC SURFACE","INTERNALS","OUTSIDE THE STACK · PLANNED"],container:["SYSTEMS","INTERNAL","PLANNED"],systemContext:["","",""]};
+function layoutC4(R,vtype){
   const W=184,H=118,GX=22,GY=20,PAD=18,LANE=12,LABEL=26;
   const scoped=R.scoped.filter(id=>R.els.includes(id));
   const left=R.els.filter(id=>!scoped.includes(id)&&el(id).type==="person");
@@ -531,7 +531,7 @@ function layoutC4(R){
   const idx0={}; raw[0].forEach((id,i)=>idx0[id]=i);
   const bary=id=>{ const ns=R.rels.filter(r=>r.a===id||r.b===id).map(r=>r.a===id?r.b:r.a).filter(n=>idx0[n]!==undefined).map(n=>idx0[n]); return ns.length?ns.reduce((s,x)=>s+x,0)/ns.length:99; };
   raw[1].sort((p,q)=>bary(p)-bary(q)||scoped.indexOf(p)-scoped.indexOf(q));
-  const bands=[],names=[]; raw.forEach((b,i)=>{ if(b.length){ bands.push(b); names.push(BAND_NAMES[i]); } });
+  const bands=[],names=[]; raw.forEach((b,i)=>{ if(b.length){ bands.push(b); names.push((BAND_NAMES[vtype]||BAND_NAMES.component)[i]); } });
   const bandIndex={}; bands.forEach((b,i)=>b.forEach(id=>bandIndex[id]=i));
   const laneCount=new Array(bands.length+1).fill(0);
   const plans=R.rels.map(r=>{
@@ -647,7 +647,7 @@ function renderC4(vi){
   $("#c4-head").innerHTML=`<span class="lvl">LEVEL ${lv} · ${lname.toUpperCase()}</span><span class="ttl">${esc(s.name)} — ${esc(v.key)}</span><span class="desc">${esc(v.desc||"")}</span><span class="zoom" role="group" aria-label="Zoom"><button data-z="fit">fit</button><button data-z="1">1:1</button></span>`;
   document.querySelectorAll("#c4-head .zoom button").forEach(b=>b.addEventListener("click",()=>{ c4Zoom=b.dataset.z; applyZoom(); }));
   if(v.type==="dynamic"){ c4View.width=renderDynamic(R,svg); c4StepList(); }
-  else { const L=layoutC4(R); c4View.width=L.width; svg.setAttribute("viewBox",`0 0 ${L.width} ${L.height}`); drawFrame(svg,L); drawRoutes(svg,L); R.els.forEach(id=>drawCard(svg,id,L.pos[id]));
+  else { const L=layoutC4(R,v.type); c4View.width=L.width; svg.setAttribute("viewBox",`0 0 ${L.width} ${L.height}`); drawFrame(svg,L); drawRoutes(svg,L); R.els.forEach(id=>drawCard(svg,id,L.pos[id]));
     inspect(`<div class="kicker">C4 · LEVEL ${lv} · ${lname.toUpperCase()}</div><div class="name">${esc(v.key)}</div><div class="vis">${R.els.length} elements · ${R.rels.length} relationships · from workspace.dsl</div><p>${esc(v.desc||"")}</p><p>Hover an element to trace its relationships; click it for its description, technology, tags and what it uses and is used by.</p>`); }
   document.querySelectorAll("#c4-ladder .rung").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===String(vi))));
   $("#dsl-view").hidden=true; $("#c4-canvas").hidden=false; $("#c4-head").hidden=false; $("#c4-key").hidden=false;
