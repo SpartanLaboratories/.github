@@ -5,14 +5,15 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 9a9fc9fe-8bca-480c-926f-a58a6b8a71c7
-  modified: 2026-10-22T21:03:23.827Z
+  modified: 2026-10-22T22:29:31.268Z
 ---
 
 WebTools system pages under `docs/dashboards/` (decided 2026-10-21):
 
 - **webtools-udp** — page created at #61's landing refresh, built from the
   `dashboards` skill's `system/examples/webtools-udp` page.
-- **Gradle build** (slug `build`) — one built system covering `settings.gradle.kts`, the root
+- **Gradle build** (slug `gradle-build`; not `build`, which the repo's `.gitignore` `build/` rule
+  would swallow) — one built system covering `settings.gradle.kts`, the root
   build file, the wrapper, `gradle.properties` and `build-logic` (convention plugins, level
   tasks). Page created in #61's run; the separate planned `build-logic` card folds into it.
 - **webtools-http** — page in #62's run, when its first code lands. No planned page before
