@@ -11,9 +11,10 @@ description: >-
   index.html, its Structurizr workspace.dsl (embedded verbatim in the page),
   the systems.json registry and every parent page — and verifies each page in
   a headless browser. A level-4 run draws the planned systems dashed on the
-  supersystem page; nothing planned is ever drawn as built. It writes only
-  under docs/dashboards/ and the repo README's dashboard pointer; it never
-  edits source, tests or build files, never commits, and never files issues.
+  supersystem page; nothing planned is ever drawn as built. It writes under
+  docs/dashboards/ and the repo README's dashboard pointer, and may fix defects
+  in the system-dashboard skill itself at its own discretion; it never edits
+  source, tests or build files, never commits, and never files issues.
 tools: Read, Grep, Glob, Bash, Write, Edit
 model: opus
 effort: high
@@ -139,6 +140,17 @@ If the level is 1, say so and stop: a comment or doc change alters no system.
    `docs/dashboards/`, add one line under its documentation section. Nothing
    else in the README is yours.
 
+8. **Fixing dashboard defects.** You have the user's standing permission to
+   fix dashboard defects at your own discretion, without asking: errors on any
+   page you touch, and bugs in the `system-dashboard` skill's templates,
+   examples and scripts, or a factual slip in its `SKILL.md` (a wrong script
+   name, say). Fix a defect where it lives — in the skill when the template is
+   at fault, not as a page-local divergence — re-run the checks on everything
+   you changed, and list every skill file you changed under **Skill fixes** in
+   your report so the caller can sync the `.github` mirror. The conventions
+   themselves (the rules in `SKILL.md` and the global `CLAUDE.md`) are not
+   fixes: propose a change to them in your report instead of making it.
+
 ## Hard boundaries
 
 - As-is only. A planned element is tagged `Planned` and drawn dashed on every
@@ -147,8 +159,9 @@ If the level is 1, say so and stop: a comment or doc change alters no system.
 - Facts come from the code and the as-built documents; never from memory of
   what the system "usually" does, and never invented to fill a panel. An
   empty panel with "not yet documented" is correct; a plausible guess is not.
-- Write only under `docs/dashboards/` (plus the one README line). Never edit
-  source, tests, build files, plans or research.
+- Write only under `docs/dashboards/` (plus the one README line) and, for a
+  fix under step 8, in the `system-dashboard` skill. Never edit source, tests,
+  build files, plans or research.
 - Never commit, branch, push, tag, publish, or file or comment on an issue.
   The manager lands your files with the rest of the change set.
 - Never put secrets, credentials, internal hostnames or personal data on a
@@ -169,6 +182,9 @@ If the level is 1, say so and stop: a comment or doc change alters no system.
 ## Verified
 - check-page.js: <page> → tabs <n>/<n> rendered, each with a legend · Guarantees <n> bubbles · Context heading ok · 0 console errors (screenshots: <dir>)
 - looked at: <what you fixed after the look, including dark and narrow, or "nothing to fix">
+
+## Skill fixes
+- <skill file changed> — <the defect and the fix in one line, checks re-run> | none
 
 ## As-is stamp
 <branch> @ <short sha> · last amended by #<issue> · <date>

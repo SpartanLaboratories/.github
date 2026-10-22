@@ -220,6 +220,9 @@ nothing.
   answer.
 - Keep its **Dashboards** list: `manager` lands those paths with the change
   set in step 6, and step 7 reports them.
+- If it lists **Skill fixes** (defects it fixed in the `system-dashboard`
+  skill, which it may do at its own discretion), sync those files to the
+  `.github` mirror per the global `CLAUDE.md`, and mention them in step 7.
 
 ## 6. Land it — `manager`
 
