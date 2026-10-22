@@ -38,7 +38,7 @@ skill runs a different pipeline per level:
 | 4. Implement | `rookie-dev` from the issue text | `rookie-dev`, test-first | `rookie-dev` | **skipped** |
 | 5. Check | `qa level:1` | `qa level:2` | `qa level:3` | **skipped** |
 | 5b. Present | **skipped** | `presenter` | `presenter` | `presenter` (planned systems drawn as planned) |
-| 6. Land | `manager`, no bump | `manager`, fix bump | `manager`, feature bump | `manager`, docs PR with `Refs`; sub-issues on approval |
+| 6. Land | `manager`, no bump | `manager`, fix bump | `manager`, feature bump only with a downstream effect | `manager`, docs PR with `Refs`; sub-issues on approval |
 
 ## 1. Pick and size the issue
 
