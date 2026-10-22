@@ -1,0 +1,60 @@
+{
+  "$comment": "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last full verification. check-page.js --auto and check.js --auto trust a template only while its hash matches.",
+  "templates": {
+    "plan/template/dashboard.html": {
+      "sha256": "156816b19adf5b04c062cee5835aa7b34fe29f06ef8f37bd9239eb824b99097d",
+      "verified": "2026-10-22",
+      "fixtures": [
+        "plan",
+        "tracking",
+        "placeholder"
+      ],
+      "modes": [
+        "light",
+        "--theme dark",
+        "--width 520",
+        "--frame 390"
+      ]
+    },
+    "plan/template/board.html": {
+      "sha256": "f810b2201f2954445805c1a24a26e96e1b78008c95c6f61bc4c89c596a80c17d",
+      "verified": "2026-10-22",
+      "fixtures": [
+        "work-board",
+        "placeholder"
+      ],
+      "modes": [
+        "light",
+        "--theme dark",
+        "--width 520",
+        "--frame 390"
+      ]
+    },
+    "system/template/system.html": {
+      "sha256": "75864b3f739dacde24f823be3da43d26917c4ddfa922a58ac4170877a76719f3",
+      "verified": "2026-10-22",
+      "fixtures": [
+        "placeholder"
+      ],
+      "modes": [
+        "light",
+        "--theme dark",
+        "--width 520",
+        "--frame 390"
+      ]
+    },
+    "system/template/supersystem.html": {
+      "sha256": "d33c94efcf8ca0bfb5a1b2db3417682f55920d6210699f4419d34a2f85767db8",
+      "verified": "2026-10-22",
+      "fixtures": [
+        "placeholder"
+      ],
+      "modes": [
+        "light",
+        "--theme dark",
+        "--width 520",
+        "--frame 390"
+      ]
+    }
+  }
+}

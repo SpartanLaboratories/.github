@@ -19,13 +19,14 @@
     {"slug": "<registry slug>", "name": "<registry name>", "slot": 1, "top": "<the top-level system's name>", "status": "built", "page": "docs/dashboards/<slug>/index.html"}
   ],
   "wip": {
-    "$comment": "step: sizing | interview | research | architecture | plan | branch | implementation | qa | remediation | landing | landed | halted | escalated | cancelled. current: <row-id>.<column> addresses or a column name (gap, considered, verdict, built); at most six. While halted: resume (the step to return to) and waitingOn. qa[].verdict: approved | changes-requested | running. blockers from the tracker's blocked-by links; repo only when another repository's.",
+    "$comment": "step: sizing | interview | research | architecture | plan | branch | implementation | qa | remediation | landing | landed | halted | escalated | cancelled. current: <row-id>.<column> addresses or a column name (gap, considered, verdict, built), the work in progress; at most six. next: on a tracking board only, the id of the next unit in landing order (the first unit row that is pending and not in current), or null when none is left; it is kept so at every landing and every unit start, so the board always names what is coming. While halted: resume (the step to return to) and waitingOn. qa[].verdict: approved | changes-requested | running. blockers from the tracker's blocked-by links; repo only when another repository's.",
     "step": "research",
     "since": "<YYYY-MM-DD or an ISO date-time>",
     "updated": "<ISO date-time of this board update>",
     "detail": "<one line: which stage, which qa pass, what waits on the user>",
     "steps": ["sizing", "interview", "research", "plan", "branch", "implementation", "qa", "remediation", "landing", "landed"],
     "current": ["gap"],
+    "next": null,
     "qa": [
       {"pass": 1, "verdict": "changes-requested", "date": "<YYYY-MM-DD>", "findings": {"documentation": 0, "test": 0, "code": 0}, "note": "<optional>"}
     ],
@@ -73,7 +74,7 @@
         "link": "<plan.md#section-anchor>"
       },
       "asBuilt": {
-        "$comment": "state: pending | as-planned | amended | deviated | dropped | deferred. amended and deviated list changes[]; a change that settles a deferred option carries settles: {option, verdict}. dropped states its reason in summary; deferred names issue.",
+        "$comment": "state: pending | as-planned | amended | deviated | dropped | deferred | complete | landed. amended and deviated list changes[]; a change that settles a deferred option carries settles: {option, verdict}. dropped states its reason in summary; deferred names issue. complete (implemented and qa passed, not merged yet; set by the qa-pass event) and landed (merged; set by the landing refresh) are for a tracking board's unit rows only: a unit goes pending, complete, landed. An issue board's rows keep as-planned, amended, deviated.",
         "state": "pending",
         "summary": "",
         "changes": [{"what": "<what moved>", "why": "<why>", "when": "<the stage or review round>", "ref": "<sha>", "settles": {"option": "<option-id>", "verdict": "accepted"}}],

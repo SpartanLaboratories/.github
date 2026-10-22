@@ -4,13 +4,17 @@
 //   node check.js docs/plans             the work board: board.json and index.html
 //   options: --root <repo> (default: found above the folder, the first one holding docs/plans)
 //            --browser [--out <dir>]     also run system/scripts/check-page.js: light, dark, 520 px and a 390 px frame
+//            --auto [--out <dir>]        the usual mode (GUIDANCE.md §8): the data and the embed as always, then the browser pass
+//                                        only if the page deviates from its template, declared or not, or the template changed
+//                                        since verify/verify-templates.js verified it; a page that is the verified template plus
+//                                        its data gets none
 // Exit 0 when every rule holds, 1 otherwise. Warnings never fail the run.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { registry, headingSlugs, readBlock, findPlans, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
-const STATES = ["pending", "as-planned", "amended", "deviated", "dropped", "deferred"];
+const STATES = ["pending", "as-planned", "amended", "deviated", "dropped", "deferred", "complete", "landed"];
 const VERDICTS = ["accepted", "declined", "partial", "deferred"];
 const GAP_KINDS = ["bug", "missing", "debt", "risk"];
 const COLUMNS = ["gap", "considered", "verdict", "built"];
@@ -138,6 +142,8 @@ function checkPlan(plan, dir, root) {
     checkLink(dir, v.link, `${at}.verdict.link`);
     const bld = r.asBuilt || {}, st = bld.state;
     if (!STATES.includes(st)) fail(`${at}: asBuilt.state must be one of ${STATES.join(", ")}`);
+    // complete and landed are a tracking board's unit-row states (RULES §2); an issue board's rows keep as-planned, amended, deviated.
+    if (["complete", "landed"].includes(st) && !r.unit) fail(`${at}: "${st}" is a unit-row state on a tracking board; an issue board's row is as-planned, amended or deviated`);
     if (plan.status === "planned" && st !== "pending") fail(`${at}: a planned plan has every part pending (found ${st})`);
     if (plan.status === "built" && st === "pending") fail(`${at}: a built plan has no pending part`);
     if (["amended", "deviated"].includes(st) && (!Array.isArray(bld.changes) || !bld.changes.length)) fail(`${at}: an ${st} part lists its changes`);
@@ -189,9 +195,32 @@ function checkPlan(plan, dir, root) {
       if (parts.length === 1) { if (!COLUMNS.includes(parts[0])) fail(`wip.current "${a}" is neither a column nor a <row-id>.<column> address`); }
       else if (parts.length !== 2 || !ids.has(parts[0]) || !COLUMNS.includes(parts[1])) fail(`wip.current "${a}" names no cell`);
     });
+    // The standing rule (RULES §3): a unit that has landed leaves wip.current in the same landing refresh.
+    cur.forEach(a => { const r = rows.find(x => x.id === String(a).split(".")[0]); if (r && r.unit && (r.asBuilt || {}).state === "landed") fail(`wip.current "${a}" names a landed unit; the landing refresh removes it from wip.current`); });
     if (cur.length > MAX_GLOW) fail(`wip.current names ${cur.length} cells; at most ${MAX_GLOW} glow at once`);
     if ((w.step === "landed" || plan.status === "built") && cur.length) warn("a landed board has wip.current set; nothing glows once it has landed");
     if (w.step === "landed" && plan.status !== "built") fail('wip.step is "landed" but status is not "built"');
+    /* wip.next (RULES §3): on a tracking board, always the next unit in landing order — the first unit row, in row order, that is
+       pending and not in wip.current — or null when none is left. It is never also current and never a unit already done. A
+       board written before wip.next existed (no key at all) only warns. */
+    if (!tracking && w.next != null) fail(`wip.next "${w.next}" is set on a board whose kind is not tracking; only a tracking board names a next unit`);
+    if (tracking) {
+      const units = rows.filter(r => r.unit), inCur = r => cur.some(a => String(a).split(".")[0] === r.id);
+      const want = units.find(r => ((r.asBuilt || {}).state || "pending") === "pending" && !inCur(r)) || null;
+      if (w.next != null) {
+        const nx = units.find(r => r.id === w.next);
+        if (typeof w.next !== "string" || !nx) fail(`wip.next ${JSON.stringify(w.next)} names no unit row (it takes a unit row's id)`);
+        else {
+          const st = (nx.asBuilt || {}).state;
+          if (st !== "pending") fail(`wip.next "${w.next}" names a unit whose state is ${st}; the next unit has not started`);
+          if (inCur(nx)) fail(`wip.next "${w.next}" is also in wip.current; when its run starts it moves to wip.current and the following unit becomes next`);
+        }
+      }
+      if (!("next" in w)) { if (want) warn(`wip.next is not recorded; the next unit in landing order is "${want.id}" (#${want.unit.issue})`); }
+      else if ((w.next || null) !== (want ? want.id : null)) fail(want
+        ? `wip.next is ${JSON.stringify(w.next)}, but the next unit in landing order is "${want.id}" (#${want.unit.issue}): the first pending unit not in wip.current`
+        : `wip.next is "${w.next}", but no unit is left that is pending and not in wip.current: it is null`);
+    }
     if (plan.status === "built" && w.step !== "landed") fail('a built plan has wip.step "landed"');
     ["waitsOn", "blocks"].forEach(k => ((w.blockers || {})[k] || []).forEach((x, j) => { if (!posInt(x.issue)) fail(`wip.blockers.${k}[${j}].issue must be an issue number`); }));
   }
@@ -236,9 +265,10 @@ function checkBoard(dir) {
   checkHtml(path.join(dir, "index.html"), "board", b, "work-board");
 }
 
-function browser(page, outDir) {
+const FULL = [[], ["--theme", "dark"], ["--width", "520"], ["--frame", "390"]];
+function browser(page, outDir, modes) {
   const checker = path.resolve(__dirname, "..", "..", "system", "scripts", "check-page.js");
-  [[], ["--theme", "dark"], ["--width", "520"], ["--frame", "390"]].forEach(extra => {
+  (modes || FULL).forEach(extra => {
     const r = cp.spawnSync(process.execPath, [checker, page, "--out", outDir, ...extra], { encoding: "utf8" });
     const label = extra.join(" ") || "light";
     const res = (r.stdout || "").trim().split(/\r?\n/);
@@ -262,7 +292,15 @@ function run(dir, args) {
     checkPlan(plan, dir, root);
     checkHtml(path.join(dir, "dashboard.html"), "plan", plan, "plan-board");
   }
-  if (flag(args, "browser")) browser(path.join(dir, isBoard ? "index.html" : "dashboard.html"), opt(args, "out", path.join(os.tmpdir(), "dashboard-check")));
+  const page = path.join(dir, isBoard ? "index.html" : "dashboard.html"), outDir = opt(args, "out", path.join(os.tmpdir(), "dashboard-check"));
+  if (flag(args, "browser")) browser(page, outDir);
+  else if (flag(args, "auto") && fs.existsSync(page)) {
+    const d = require(path.resolve(__dirname, "..", "..", "system", "scripts", "deviation.js")).deviation(page);
+    // A declared divergence is reported; a difference nobody declared, or an unverified template, is a warning.
+    d.notes.forEach(n => (/^declared divergence/.test(n) ? ok : warn)(`template: ${n}`));
+    if (d.passes === "none") ok(`template: ${path.basename(page)} is the verified template plus its data; browser pass not needed`);
+    else browser(page, outDir, d.passes === "light" ? [[]] : FULL);
+  }
   return report();
 }
 function report() {
@@ -274,7 +312,7 @@ function report() {
 }
 if (require.main === module) {
   const args = process.argv.slice(2), dir = args.find((a, i) => !a.startsWith("--") && !(i > 0 && ["--root", "--out"].includes(args[i - 1])));
-  if (!dir) { console.error("usage: node check.js <plan-folder | docs/plans> [--root <repo>] [--browser] [--out <dir>]"); process.exit(2); }
+  if (!dir) { console.error("usage: node check.js <plan-folder | docs/plans> [--root <repo>] [--auto | --browser] [--out <dir>]"); process.exit(2); }
   process.exit(run(dir, args));
 }
 module.exports = { run };
