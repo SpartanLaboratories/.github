@@ -81,7 +81,9 @@ The whole pipeline is yours, with no subagents and no research commits:
    **Regression test** (level, package, path, and the exact assertion that
    fails today and passes after the fix), **Risks** (edge cases, callers
    affected), **Version control** (`fix:` commit, the plan riding in it).
-   **Considerations** only if a call is genuinely the user's.
+   **Considerations** only if a call is genuinely the user's. Plan runs only
+   of the tests that exercise the fix, never a suite that belongs only to an
+   untouched module (see "Testing" in the global `CLAUDE.md`).
 4. Return `COMPLETE`.
 
 ### Level 3 — small feature
