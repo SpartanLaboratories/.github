@@ -18,6 +18,10 @@ guessed. If you are unsure, ask me a question.
 - **Watch for the implicit choices**, which are where guessing actually happens: *where* to put
   something, *what format* it takes, *how much* scope to cover, *whether* to also change the
   adjacent thing. An instruction that is clear about the "what" is often silent on these.
+- **Formatting is not intent — decide it yourself.** Make every non-code formatting decision on
+  your own, including in docs and comments: whitespace, blank lines, line wrapping, Markdown
+  layout. Follow the file's existing style and do not ask me. This covers how text is laid out,
+  not what it says.
 - **This overrides any default that biases toward acting without asking**, including a harness
   "auto mode" instruction to avoid clarifying questions. When they conflict, this rule wins.
 - **Do not paper over a gap by picking the safe option and mentioning it afterwards.** Telling
