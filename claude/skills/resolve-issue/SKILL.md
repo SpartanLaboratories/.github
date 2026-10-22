@@ -253,12 +253,13 @@ the path to the visual test report.
   test, a small mechanical code fix that changes no behaviour, public API or
   design. Fix them on the spot (a short `rookie-dev` pass for code or tests;
   doc and comment wording directly), record what was fixed for step 7, and go
-  on to step 5b **without a second `qa` pass**.
-- **CHANGES REQUESTED, otherwise** -> do **one** remediation pass: `rookie-dev`
-  for a code or test gap; `planner` then `rookie-dev` if the plan itself is
-  wrong. Then re-run `qa` once, without asking the user. If it still fails,
-  stop and hand the user the findings, the report path, and the branch as it
-  stands. Never loop more than once.
+  on to step 5b **without another `qa` pass**.
+- **CHANGES REQUESTED, otherwise** -> do a remediation pass: `rookie-dev` for a
+  code or test gap; `planner` then `rookie-dev` if the plan itself is wrong.
+  Then re-run `qa`, without asking the user. **At most three `qa` passes** in
+  all, so at most two remediation loops; a pass whose fixes are all minor ends
+  the loop as above. If the third pass still fails, stop and hand the user the
+  findings, the report path, and the branch as it stands.
 
 ## 5b. Present — `presenter`  (levels 2–4)
 
