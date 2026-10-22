@@ -6,8 +6,9 @@
 // only for what it adds to the template:
 //   identical   a plan board or work board that is its template plus the embedded data, byte for byte, of a verified template:
 //               no browser pass (the data and the embed are checked by plan/scripts/check.js)
-//   structure   a system, supersystem or repository page whose template parts (its CSS, its tab set, its renderer script) are the
-//               verified template's: one light pass, for the facts the page fills in (MODEL, panels, legends, Guarantees, Context)
+//   structure   a system, supersystem or repository page whose template parts (its CSS, its tab set, its script before MODEL less
+//               the page-filled lines, its renderer script) are the verified template's: one light pass, for the facts the page
+//               fills in (MODEL, panels, legends, Guarantees, Context)
 //   diverges    anything else — a declared divergence, an undeclared one, a page made from an older template, or a template
 //               changed since it was verified: the full pass (light, dark, 520 px, a 390 px frame)
 // A page declares a divergence with <meta name="template-divergence" content="what and why">, one per divergence, beside the
@@ -63,15 +64,28 @@ function verified(template) {
 /* A plan board or the work board: the page with its data block emptied, against the template with its block emptied. */
 const emptyBlock = (html, id) => norm(html).replace(new RegExp(`(<script type="application/json" id="${id}">)[\\s\\S]*?(</script>)`), "$1\n{}\n$2");
 function firstDiff(a, b) { const x = a.split("\n"), y = b.split("\n"); for (let i = 0; i < Math.max(x.length, y.length); i++) if (x[i] !== y[i]) return i + 1; return 0; }
-/* A system page: the template parts — every <style> block, the tab ids in order, and the renderer (the main script after
-   MODEL's closing "};", without the DEFAULT_INSPECT line, whose text is the page's own). */
-function systemParts(html) {
+/* A system page: the template parts — every <style> block, the tab ids in order, the script before MODEL (from the main
+   <script> to "const MODEL = {": the helpers, and on a supersystem or repository page the Systems renderer) less its page-filled
+   lines, and the renderer (the main script after MODEL's closing "};", without the DEFAULT_INSPECT line, whose text is the
+   page's own).
+   The page-filled lines are the constants a page sets to its own facts: REPO and SRC, and any other const whose line in the
+   template carries a "// presenter:" comment (the template's mark for a line filled per page). They are named from the
+   template and dropped by name from both sides, so a page's own value there, and its own comment on that line, is no difference. */
+const FILLED = ["REPO", "SRC"];
+const constName = l => (l.match(/^\s*const\s+([A-Za-z_$][\w$]*)\s*=/) || [])[1];
+function filledNames(tplHtml) {
+  const pre = systemParts(tplHtml).pre || "";
+  return new Set(pre.split("\n").filter(l => constName(l) && (FILLED.includes(constName(l)) || /\/\/\s*presenter:/.test(l))).map(constName));
+}
+function systemParts(html, filled) {
   const h = norm(html);
   const styles = [...h.matchAll(/<style>([\s\S]*?)<\/style>/g)].map(m => m[1]);
   const tabs = [...h.matchAll(/<button[^>]*role="tab"[^>]*id="([^"]+)"/g)].map(m => m[1]);
   const i = h.indexOf("const MODEL = {"), j = i < 0 ? -1 : h.indexOf("\n};\n", i), k = j < 0 ? -1 : h.indexOf("</script>", j);
+  const s = i < 0 ? -1 : h.lastIndexOf("<script>", i);
+  const pre = s < 0 ? null : h.slice(s + "<script>".length, i).split("\n").filter(l => !(filled && filled.has(constName(l)))).join("\n");
   const renderer = k < 0 ? null : h.slice(j + 4, k).split("\n").filter(l => !/^const DEFAULT_INSPECT=/.test(l)).join("\n");
-  return { styles, tabs, renderer };
+  return { styles, tabs, pre, renderer };
 }
 
 function deviation(page) {
@@ -82,11 +96,12 @@ function deviation(page) {
     const id = TEMPLATES[kind].block, a = emptyBlock(html, id), b = emptyBlock(tpl, id);
     if (a !== b) differs.push(`everything outside its data block (first difference at line ${firstDiff(a, b)}): it is not the template plus its data`);
   } else {
-    const a = systemParts(html), b = systemParts(tpl);
+    const filled = filledNames(tpl), a = systemParts(html, filled), b = systemParts(tpl, filled);
     if (a.styles.join("\0") !== b.styles.join("\0")) differs.push(`its CSS (${a.styles.length} style block${a.styles.length === 1 ? "" : "s"}, the template has ${b.styles.length})`);
     if (a.tabs.join(",") !== b.tabs.join(",")) differs.push(`its tabs (${a.tabs.join(", ")}; the template has ${b.tabs.join(", ")})`);
     if (a.renderer == null) differs.push("its script (no MODEL block found)");
-    else if (a.renderer !== b.renderer) differs.push(`its renderer script (first difference at line ${firstDiff(a.renderer, b.renderer)} after MODEL)`);
+    else if (a.pre !== b.pre) differs.push(`its script before MODEL (first difference at line ${firstDiff(a.pre, b.pre)} of it, the page-filled ${[...filled].join(", ") || "lines"} left out)`);
+    if (a.renderer != null && a.renderer !== b.renderer) differs.push(`its renderer script (first difference at line ${firstDiff(a.renderer, b.renderer)} after MODEL)`);
   }
   let verdict, passes;
   if (!v.ok) { verdict = "diverges"; passes = "full"; }
@@ -102,7 +117,7 @@ function deviation(page) {
   declared.forEach(d => notes.push(`declared divergence: ${d}`));
   if (differs.length && !declared.length) notes.push(TEMPLATES[kind].block
     ? "no divergence is declared: re-render the page from the template (copy it over the page, then embed.js), or declare the divergence with <meta name=\"template-divergence\" content=\"…\">"
-    : "no divergence is declared: bring the page's CSS, tabs and renderer back to the template's, or declare the divergence with <meta name=\"template-divergence\" content=\"…\">");
+    : "no divergence is declared: bring the page's CSS, tabs, script before MODEL and renderer back to the template's, or declare the divergence with <meta name=\"template-divergence\" content=\"…\">");
   return { kind, template, templateVerified: v.ok, declared, differs, verdict, passes, notes, undeclared: differs.length > 0 && !declared.length };
 }
 module.exports = { deviation, kindOf, templateFor, verified, recordFile, sha, norm, TEMPLATES, SKILL };
