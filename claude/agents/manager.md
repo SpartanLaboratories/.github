@@ -137,9 +137,15 @@ issue is linked:
 |-------|-------------|--------------|--------------------------|
 | 1 — no impact | `docs:` | none — rides the next release | `Closes #N` |
 | 2 — small fix | `fix:` | MinorChange or trailing letter, per the repo's pattern | `Closes #N` |
-| 3 — small feature | `feat:` | Feature release | `Closes #N` |
+| 3 — small feature | `feat:`; with no downstream effect, the type that fits (e.g. `build:`) | Feature release — only with a downstream effect; otherwise none | `Closes #N` |
 | 4 — multi-system | `docs:` (planning documents only) | none | `Refs #N` — never `Closes` |
 
+- **Level 3 without a downstream effect.** A level-3 change bumps the version
+  only when a consumer of a published artifact would see a difference (API,
+  behaviour, dependencies, or the artifact itself). When none would — a build,
+  CI or tooling change with identical published output — move no version and
+  use the commit type that fits the content. Do not stop to ask about this
+  case; it is settled in the global `CLAUDE.md`.
 - **Level label.** When asked to at branch setup, set the issue's `level: N`
   label to the confirmed level, replacing any other `level:` label
   (`gh issue edit <n> --add-label … --remove-label …`). Create the label with
