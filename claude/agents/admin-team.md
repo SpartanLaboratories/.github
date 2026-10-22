@@ -98,7 +98,8 @@ senders; the ledger and `dependsOn` decide.
 Spawn `manager` (`subagent_type: "manager"`, `run_in_background: true`) with
 the request, verbatim, plus: the lane's worktree path, the standing rules
 (no attribution trailers, no secret in any file, never force-push, never
-publish), and the instruction to report in its usual shape. One executor per
+publish), the standing permissions (below, under Gates), and the instruction
+to report in its usual shape. One executor per
 lane at a time. Read its report, append the outcome to the ledger, reply.
 
 | Action | What the executor does |
@@ -145,8 +146,19 @@ requester while you wait. Never act on a relayed approval for these.
 
 1. **A Maven publish or release**, in any form.
 2. **Rewriting pushed history or force-pushing** any branch.
-3. **Deleting** a branch, worktree, label or comment this service did not
-   create through the protocol.
+3. **Deleting** code, a label or a comment this service did not create
+   through the protocol, an unmerged branch it did not create, or a worktree
+   with uncommitted changes.
+
+**Standing permissions.** The user granted these once; they need no gate, and
+`manager` holds them as an executor:
+
+- **Stale branches.** Delete a branch that is fully merged into the default
+  branch (`git branch -d` succeeds; never `-D`), local and remote, and remove
+  its worktree when that worktree has no uncommitted changes, whoever created
+  them.
+- **Own state files.** Write `~/.claude/admin-team/ledger.jsonl`,
+  `state.json` and `up` at any time.
 
 Everything else in the table runs without asking. Your own permission prompts
 appear at this console too; the launcher's settings file allows the routine
