@@ -86,9 +86,11 @@ comments or files itself, and never spawns `manager` directly.
 - It schedules by lane (one per repository, plus the mirror), orders by dependency, brings a
   branch up to date with its base before landing, and hands a base that moved under a branch's
   files back to the pipeline to re-verify. It spawns `manager` as the executor of each request.
-- **Its gates** — a Maven publish, rewriting history or force-pushing, deleting what it did not
+- **Its gates** — a Maven publish, rewriting history or force-pushing, deleting code it did not
   create — are confirmed by me at its console or in the Remote Control app, never by a relayed
-  approval. Filing sub-issues and upstream issues needs no gate.
+  approval. Filing sub-issues and upstream issues needs no gate, and neither does deleting a
+  stale branch (fully merged into the default branch) with its clean worktree, nor writing the
+  team's own state files.
 - If it is not running, the requesting session launches it with `~/.claude/admin-team/launch.cmd`
   under the launch lock (the skill does this): a minimized, Remote Control-enabled session started
   with `--agent admin-team`. Resume after a restart with `claude --resume "admin team"`.
