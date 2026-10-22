@@ -30,7 +30,7 @@ workspace "WebTools" "Spartan Laboratories' Kotlin/JVM networking and web toolki
                 quality     = component "LinkQualityTracker" "The probe's RTT and loss estimator (Rtt maths); snapshot exposed as LinkQuality." "internal class" "Internal"
                 timing      = component "Timing rules" "KeepAlive, Liveness and HandshakeProtocol — pure timing and parsing rules." "internal" "Internal"
 
-                // ---- planned, not built (secondary information) ----
+                // ---- planned, not built ----
                 core        = component "Protocol core" "Issue #50: a multiplatform protocol core and a datagram-transport seam for a future web client. Proposed, not built." "proposed" "Planned"
             }
         }
@@ -112,7 +112,7 @@ workspace "WebTools" "Spartan Laboratories' Kotlin/JVM networking and web toolki
             element "External"        { background #999999 color #ffffff }
             element "Container"       { background #438dd5 color #ffffff }
             element "Component"       { background #85bbf0 color #000000 }
-            element "Internal"        { background #c6dcf5 color #000000 border dashed }
+            element "Internal"        { background #c6dcf5 color #000000 border solid }
             element "Standalone"      { background #eeeeee color #000000 border dotted }
             element "Planned"         { background #ffffff color #666666 border dashed opacity 60 }
         }

@@ -125,13 +125,23 @@ Every repository keeps visual dashboards of its systems **as they are**, maintai
 so the update rides in the same PR). The `system-dashboard` skill holds the templates, the
 conventions and the checks.
 
-- **One page per system**, `docs/dashboards/<system-slug>/index.html`: its function first
-  (structure, threads, decision paths, sequences, lifecycles), then context (open issues, plans,
-  roadmap) as secondary information. Beside it, `workspace.dsl` — the Structurizr C4 model of
-  the system, embedded verbatim in the page, which renders its C4 views from it.
+- **One page per system**, `docs/dashboards/<system-slug>/index.html`: its function first, in
+  six core tabs (structure, C4 model, threads, decision path, sequence, lifecycles), then a
+  section headed **Context** (never labelled "secondary"): the roadmap, each item listing the
+  issues mapped to it; the unscheduled issues no roadmap item claims; and the plans. Beside it,
+  `workspace.dsl` — the Structurizr C4 model of the system, embedded verbatim in the page, which
+  renders its C4 views from it.
 - **Supersystem and repository pages** bind systems together and show how they interact:
   `docs/dashboards/<supersystem-slug>/index.html` for a group of systems, and
-  `docs/dashboards/index.html` for the repository. They are refreshed on every run.
+  `docs/dashboards/index.html` for the repository. They carry a Systems tab and the same six
+  core tabs, adapted to their level, and are refreshed on every run.
+- **Tabs.** Optional tabs (the skill lists candidates; others at the presenter's discretion) are
+  added wherever content for them exists. Every tab colours its content by a grouping that suits
+  it and shows a legend for it; Planned is dashed on every tab.
+- **Guarantees.** Every page carries a Guarantees area below the tabs and above Context, made of
+  named sub-bubbles: failure model, extension points, test levels, compatibility & versioning,
+  thread safety, resources to close, and what lands on a consumer's classpath — plus any other
+  that fits. On supersystem and repository pages each sub-bubble covers every system.
 - **`docs/dashboards/systems.json`** is the registry: every system, its slug, function, code
   paths, parent, status (`built` | `planned`), version and as-is stamp.
 - **As-is, never as planned.** A page shows the code at the commit it names. Planned systems
@@ -139,8 +149,10 @@ conventions and the checks.
   system gets its own page when its implementing issue lands.
 - Pages are self-contained HTML (inline CSS/JS/SVG, no external resources, light and dark),
   verified in a headless browser before landing. A repository may keep its own template under
-  `docs/dashboards/_template/`; a page may diverge from a template when the system is better
-  shown another way, recorded on the page and in the presenter's report.
+  `docs/dashboards/_template/`, and a page may diverge from a template when the system is better
+  shown another way. A divergence should primarily add; removing content, a core tab included,
+  needs a strong argument, such as no data for it existing. Either is recorded on the page and
+  in the presenter's report.
 - Dashboards are committed with the work they describe; the README points at `docs/dashboards/`.
 
 ## Global Claude config — keep the `.github` mirror in sync
