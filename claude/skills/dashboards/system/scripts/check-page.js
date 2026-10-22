@@ -18,8 +18,8 @@
 //   node check-page.js <page.html> --auto [--out <dir>]
 //
 // --auto checks only what the page adds to its template (GUIDANCE.md §8; deviation.js): no browser pass for a plan board or work
-// board that is a verified template plus its data; one light pass for a system page whose CSS, tabs and renderer are the verified
-// template's (the facts it fills in); the full pass (light, dark, 520 px, a 390 px frame) for a page that diverges — declared or
+// board that is a verified template plus its data; one light pass for a system page whose CSS, tabs, script before MODEL (less its
+// page-filled lines, REPO and SRC) and renderer are the verified template's (the facts it fills in); the full pass (light, dark, 520 px, a 390 px frame) for a page that diverges — declared or
 // not — or whose template changed since verify/verify-templates.js last verified it.
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const args = process.argv.slice(2);

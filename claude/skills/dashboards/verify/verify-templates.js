@@ -10,6 +10,8 @@
 // The fixtures cover each template's states: the issue board example (landed, every option verdict and as-built state), the
 // tracking fixture (a landed, a complete and an in-progress unit, the unit up next and blocked), the work board fixture (landed,
 // complete, building, next, not started; and its live variant from board.js --live) and each template's own placeholder content.
+// Before the browser passes it tests deviation.js on each system template, without a browser: page-filled lines are no
+// difference; an undeclared change to the script before MODEL is reported, with its warning, and gets the full pass.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { recordFile, sha, norm } = require(path.join(__dirname, "..", "system", "scripts", "deviation.js"));
@@ -37,7 +39,37 @@ const withData = (html, id, json) => {
   const open = `<script type="application/json" id="${id}">`, a = html.indexOf(open), b = html.indexOf("</script>", a + open.length);
   return html.slice(0, a + open.length) + "\n" + json.replace(/<\/script/gi, "<\\/script").trim() + "\n" + html.slice(b);
 };
-let failures = 0;
+/* The comparison check-page.js --auto makes (deviation.js), tested on each system template before any browser pass, with no
+   browser: a copy whose page-filled lines (REPO, SRC) carry a page's own values must not differ; a copy with one undeclared line
+   added to the script before MODEL (where a supersystem or repository page keeps its Systems renderer) must differ there, be
+   reported undeclared and get the full pass; the same copy declaring it must not be reported undeclared. Each copy sits in a
+   scratch repository whose docs/dashboards/_template/ holds the template under test, so deviation.js holds it to that template. */
+const { deviation } = require(path.join(SKILL, "system", "scripts", "deviation.js"));
+let failures = 0, devFailures = 0;
+targets.filter(t => !t.block).forEach(t => {
+  const tpl = norm(fs.readFileSync(t.path, "utf8")), scratch = path.join(out, "deviation-" + path.basename(t.file, ".html"));
+  const tdir = path.join(scratch, "docs", "dashboards", "_template"), pdir = path.join(scratch, "docs", "dashboards", "page");
+  fs.mkdirSync(tdir, { recursive: true }); fs.mkdirSync(pdir, { recursive: true });
+  fs.writeFileSync(path.join(tdir, t.file), tpl);
+  const pre = tpl.lastIndexOf("<script>", tpl.indexOf("const MODEL = {"));
+  const filled = tpl.replace(/^const REPO=.*$/m, 'const REPO="https://github.com/acme/widgets";').replace(/^const SRC=.*$/m, 'const SRC=REPO+"/blob/master/src/";');
+  const added = tpl.slice(0, pre + "<script>".length) + "\nconst UNDECLARED_HELPER=()=>0;" + tpl.slice(pre + "<script>".length);
+  const declared = added.replace("<head>", '<head>\n<meta name="template-divergence" content="a helper before MODEL (deviation self-test)">');
+  const run = (name, html) => { const p = path.join(pdir, name + ".html"); fs.writeFileSync(p, html); return deviation(p); };
+  const f = run("filled", filled), u = run("undeclared", added), d = run("declared", declared), before = x => x.differs.some(s => /script before MODEL/.test(s));
+  const cases = [
+    ["page-filled REPO and SRC are no difference", !f.differs.length, f.differs.join("; ")],
+    ["an undeclared line before MODEL differs there", before(u), u.differs.join("; ") || "no difference found"],
+    ["an undeclared line before MODEL is reported undeclared, with the warning", u.undeclared && u.notes.some(n => /no divergence is declared/.test(n)), u.notes.join(" | ")],
+    ["an undeclared line before MODEL gets the full pass", u.passes === "full", u.passes],
+    ["the same line declared is not reported undeclared", before(d) && !d.undeclared && d.passes === "full", d.notes.join(" | ")],
+  ];
+  const bad = cases.filter(c => !c[1]);
+  console.log(`${bad.length ? "FAILED  " : "checked "} deviation.js on ${t.name}: ${cases.length - bad.length}/${cases.length} cases`);
+  bad.forEach(c => console.log(`  ${c[0]}: ${c[2]}`));
+  if (bad.length) devFailures++;
+});
+
 const today = new Date().toISOString().slice(0, 10);
 targets.forEach(t => {
   const tpl = fs.readFileSync(t.path, "utf8"), results = [];
@@ -65,5 +97,6 @@ targets.forEach(t => {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, JSON.stringify(rec, null, 2) + "\n");
 });
+if (devFailures) console.log(`\ndeviation.js failed its cases on ${devFailures} template(s): fix system/scripts/deviation.js`);
 console.log(failures ? `\n${failures} template(s) failed: not recorded; fix them and run again` : `\nall templates verified; screenshots in ${out}`);
-process.exit(failures ? 1 : 0);
+process.exit(failures || devFailures ? 1 : 0);

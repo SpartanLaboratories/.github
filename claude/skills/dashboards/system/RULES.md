@@ -245,14 +245,20 @@ node scripts/check-page.js docs/dashboards/<slug>/index.html [--tab t-c4] [--out
 
 **`--auto` is the usual mode** (`GUIDANCE.md` §8). The template is verified once, in the skill,
 by `verify/verify-templates.js`; `--auto` compares the page with it (`scripts/deviation.js`): its
-`<style>` blocks, its tab ids in order, and its renderer script (everything after `MODEL`'s
-closing `};`, less the `DEFAULT_INSPECT` line, which is the page's own text). A page whose three
-are the verified template's gets **one light pass**, which checks the facts it fills in. A page
-that differs in any of them — declared with `<meta name="template-divergence">` or not, or made
-from an older template — or whose template changed since it was verified gets the **full pass**:
-light, dark, 520 px and a 390 px frame. An undeclared difference is reported as one to declare or
-undo. The plain form below the embeds runs one pass of the named mode, for looking at a single
-tab.
+`<style>` blocks, its tab ids in order, its script before `MODEL` (from the main `<script>` to
+`const MODEL = {`: the helpers, and on a supersystem or repository page the Systems renderer),
+and its renderer script (everything after `MODEL`'s closing `};`, less the `DEFAULT_INSPECT`
+line, which is the page's own text). The script before `MODEL` is compared less its
+**page-filled lines**: the `REPO` and `SRC` constants, and any other `const` whose line in the
+template carries a `// presenter:` comment, which is how a template marks a line filled per
+page; those lines are left out by name on both sides, so a page's own value there is never a
+difference. A page whose four are the verified template's gets **one light pass**, which checks
+the facts it fills in. A page that differs in any of them — declared with
+`<meta name="template-divergence">` or not, or made from an older template — or whose template
+changed since it was verified gets the **full pass**: light, dark, 520 px and a 390 px frame. An
+undeclared difference is reported as one to declare or undo. `verify/verify-templates.js` tests
+this comparison on each system template before its browser passes. The plain form below the
+embeds runs one pass of the named mode, for looking at a single tab.
 
 `check-page.js` needs a local Chrome or Edge (it searches the usual install paths; set `CHROME=`
 to point at another). It clicks every tab and exits non-zero on a script error, a panel that does
