@@ -14,14 +14,19 @@ description: >-
   at its gates - a Maven publish, which needs your explicit go-ahead, and any
   downstream-consumer coordination, which it reports rather than files. Use to
   make steady, reviewed progress through the issue backlog one issue at a time.
-argument-hint: "[issue-number]"
+  Named on a planned tracking issue (a roadmap or other `type: tracking` issue
+  with sub-issues), it works that issue's sub-issues: the next unblocked one by
+  default, all of them in landing order with `consecutive`, or every unblocked
+  one at once with `concurrent`.
+argument-hint: "[issue-number] [consecutive|concurrent]"
 disable-model-invocation: true
 allowed-tools: Bash(gh issue list *), Bash(gh issue view *), Bash(gh pr list *), Bash(gh repo view *), Bash(git status *), Bash(git log *), Bash(git branch *), Bash(git diff *)
 ---
 
-Work **one** GitHub issue toward resolution using the project's agents. Follow
-the steps in order. Wait for each spawned agent to finish before starting the
-next. All version control runs through the `manager` agent, which acts
+Work **one** GitHub issue toward resolution using the project's agents — or,
+named on a planned tracking issue, its sub-issues (see "Tracking issues and run
+modes"). Follow the steps in order. Within a run, wait for each spawned agent to
+finish before starting the next. All version control runs through the `manager` agent, which acts
 autonomously except at its gates: a **Maven publish** happens only if the user
 explicitly asked this run, a **downstream-consumer issue** is never filed
 (reported instead), and **sub-issues** are filed only once the user approves
@@ -43,8 +48,11 @@ skill runs a different pipeline per level:
 ## 1. Pick and size the issue
 
 - Repo: `gh repo view --json nameWithOwner -q .nameWithOwner`.
-- **Target:** if `$ARGUMENTS` is an issue number, that is the issue. Otherwise
-  list open issues oldest-first —
+- **Target:** `$ARGUMENTS` is an optional issue number and an optional mode
+  word, `consecutive` or `concurrent`. If the number names a **planned
+  tracking issue**, or a mode word is given, see "Tracking issues and run
+  modes" below. If `$ARGUMENTS` is any other issue number, that is the issue.
+  Otherwise list open issues oldest-first —
   `gh issue list --repo <repo> --state open --json number,title,createdAt,labels,url --limit 200 --jq 'sort_by(.createdAt)'`
   — and take the earliest one that is **not** labelled `blocked`, `wontfix`,
   `duplicate`, `question`, or `type: tracking` and, as far as the issue timeline
@@ -68,6 +76,52 @@ skill runs a different pipeline per level:
   user. The confirmed level is the run's level.
 - Check `git status` is clean. If it is not, stop and ask the user to settle
   the working tree first.
+
+## Tracking issues and run modes
+
+A **planned tracking issue** is an open issue labelled `type: tracking` (a
+roadmap or a level-4 plan) that has open sub-issues. A tracking issue with no
+sub-issues yet is not planned: work it as an ordinary issue, at its level.
+
+- **Order.** The landing order comes from the sub-issues' *blocked by* links;
+  ties keep the order of the tracking issue's sub-issue list. A sub-issue is
+  **unblocked** when every issue blocking it is closed. Read both with
+  `gh issue view <n> --json subIssues,blockedBy` (the GraphQL `subIssues` and
+  `blockedBy` connections).
+- **`/resolve-issue <n>`** on a planned tracking issue: run steps 1–7 on its
+  **next** unblocked sub-issue in landing order — one sub-issue, one run.
+- **`/resolve-issue <n> consecutive`**: run steps 1–7 on every open sub-issue in
+  landing order, one after another. Each lands before the next one starts.
+- **`/resolve-issue <n> concurrent`**: start steps 1–7 at once on every open,
+  unblocked sub-issue. Whenever one lands, start every sub-issue it unblocked.
+  Keep going until every sub-issue is done.
+- **A mode word with no number** takes the oldest open planned tracking issue.
+- **Nested plans.** A sub-issue that is itself a planned tracking issue is
+  expanded into its own sub-issues, in the same mode. A sub-issue that turns
+  out to be level 4 is planned as usual; once the user approves its sub-issues
+  and they are filed, they take its place in the chain.
+- **Isolation.** `consecutive` works in the main checkout, one sub-issue at a
+  time. `concurrent` gives each in-flight sub-issue its own git worktree, cut
+  from the current `master` at a short path (Windows' 260-character path limit
+  breaks deep repos under the scratchpad), and passes that path as the repo to
+  every agent of that run. `manager` removes the worktree once the run lands.
+- **Landing one at a time.** Across a concurrent chain, steps 5b and 6 run for
+  one sub-issue at a time. Before step 5b, `manager` brings the run's branch up
+  to date with `master`, so the dashboards and README the previous landing
+  changed merge cleanly.
+- **Halts.** When one run stops for the user — a planner halt, an escalation,
+  a `qa` failure, a `manager` "needs you" item — only what depends on it waits.
+  `consecutive` waits at that sub-issue; `concurrent` keeps running every
+  sub-issue that does not depend on it and starts nothing it blocks until it
+  lands. Ask the user's questions one at a time, each saying which sub-issue
+  it is for.
+- **Per sub-issue,** steps 1–7 apply unchanged, including the level re-check:
+  a label the check disagrees with is still the user's call. Invoking a mode
+  is the user's go-ahead for every run in the chain, so no per-issue
+  "shall I proceed".
+- **Report** each sub-issue's step 7 as it lands. When the chain ends or
+  everything left is waiting on the user, add a chain summary: what landed,
+  what is in flight, what waits and on what, and what remains.
 
 ## Escalation — at any step
 
@@ -274,4 +328,6 @@ list goes back to the user.
 - If the work exposed a defect in a repo the project *consumes* (downstream),
   report it as coordination — do not file it. `manager` files upstream-only.
 
-Do not start a second issue. One issue per `/resolve-issue`.
+Do not start a second issue. One issue per `/resolve-issue` — except in the
+`consecutive` and `concurrent` modes above, which work every sub-issue of one
+planned tracking issue.
