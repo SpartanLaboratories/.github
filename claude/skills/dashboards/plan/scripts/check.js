@@ -79,7 +79,9 @@ function checkPlan(plan, dir, root) {
 
   const systems = Array.isArray(plan.systems) ? plan.systems : [];
   systems.forEach((s, i) => { if (!str(s.slug) || !str(s.name)) fail(`systems[${i}] needs slug and name`); if (s.slot != null && !(Number.isInteger(s.slot) && s.slot >= 0 && s.slot <= 6)) fail(`systems[${i}].slot must be 0 to 6`); });
-  if (systems.length > 6) warn("more than six systems on one board");
+  // Colour groups, not rows (plan/RULES.md §8): a system's parts share their top-level system's slot.
+  const groups = new Set(systems.map(s => s.top || s.name || s.slug));
+  if (groups.size > 6) warn(`more than six colour groups on one board (${groups.size} top-level systems)`);
   const reg = root ? registry(root) : null;
   if (reg) systems.forEach((s, i) => { const r = reg.info(s.slug); if (!r) warn(`systems[${i}] "${s.slug}" is not in docs/dashboards/systems.json`); else if (r.slot !== (s.slot || 0)) warn(`systems[${i}] "${s.slug}" has slot ${s.slot}, the registry gives ${r.slot}: its colour would differ from the system pages'`); });
 
