@@ -5,13 +5,13 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 9a9fc9fe-8bca-480c-926f-a58a6b8a71c7
-  modified: 2026-10-22T02:24:33.022Z
+  modified: 2026-10-22T21:03:23.827Z
 ---
 
 WebTools system pages under `docs/dashboards/` (decided 2026-10-21):
 
-- **webtools-udp** — page created in #61's `/resolve-issue` run, built from the
-  system-dashboard skill's `examples/webtools-udp` page.
+- **webtools-udp** — page created at #61's landing refresh, built from the
+  `dashboards` skill's `system/examples/webtools-udp` page.
 - **Gradle build** (slug `build`) — one built system covering `settings.gradle.kts`, the root
   build file, the wrapper, `gradle.properties` and `build-logic` (convention plugins, level
   tasks). Page created in #61's run; the separate planned `build-logic` card folds into it.
@@ -23,7 +23,8 @@ WebTools system pages under `docs/dashboards/` (decided 2026-10-21):
 **Why:** the user judged the root Gradle build too small for its own page and wanted it in an
 overall build/Gradle dashboard; the legacy modules aren't worth pages until requested.
 
-**How to apply:** when a presenter step runs in WebTools, pass these choices along. Never
+**How to apply:** the presenter creates a system's page only when the admin team's `land`
+request names it, so put these choices in the `land` request's `notes` for WebTools. Never
 create scraping/browser pages on a run's own initiative. The global dashboard rules live in
-`~/.claude/CLAUDE.md` and the `system-dashboard` skill; see also
+`~/.claude/CLAUDE.md` and the `dashboards` skill; see also
 [[api-evolution-clean-break]] for the legacy status of scraping/browser.

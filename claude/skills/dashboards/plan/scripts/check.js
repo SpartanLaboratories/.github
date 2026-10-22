@@ -1,0 +1,278 @@
+#!/usr/bin/env node
+// Check a plan board or the work board against plan/RULES.md §8, then (with --browser) in headless Chrome.
+//   node check.js <plan-folder>          plan.json keeps the rules and dashboard.html embeds it verbatim
+//   node check.js docs/plans             the work board: board.json and index.html
+//   options: --root <repo> (default: found above the folder, the first one holding docs/plans)
+//            --browser [--out <dir>]     also run system/scripts/check-page.js: light, dark, 520 px and a 390 px frame
+// Exit 0 when every rule holds, 1 otherwise. Warnings never fail the run.
+"use strict";
+const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
+const { registry, headingSlugs, readBlock, findPlans, opt, flag } = require("./lib.js");
+
+const STATUS = ["planned", "building", "built", "abandoned"];
+const STATES = ["pending", "as-planned", "amended", "deviated", "dropped", "deferred"];
+const VERDICTS = ["accepted", "declined", "partial", "deferred"];
+const GAP_KINDS = ["bug", "missing", "debt", "risk"];
+const COLUMNS = ["gap", "considered", "verdict", "built"];
+const STEPS = ["sizing", "interview", "research", "architecture", "plan", "branch", "implementation", "qa", "remediation", "landing", "landed", "halted", "escalated", "cancelled"];
+const QA = ["approved", "changes-requested", "running"];
+const DATE = /^\d{4}-\d{2}-\d{2}$/, STAMP = /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
+const ID = /^[a-z0-9][a-z0-9-]*$/, SHA = /^[0-9a-f]{7,40}$/;
+const MAX_GLOW = 6;
+
+const out = { fail: [], warn: [], ok: [] };
+const fail = m => out.fail.push(m), warn = m => out.warn.push(m), ok = m => out.ok.push(m);
+const str = v => typeof v === "string" && v.trim().length > 0;
+const posInt = v => Number.isInteger(v) && v > 0;
+
+/* Template leftovers: a value written <like this>, an <issue>/<slug>/<sha>/<YYYY-MM-DD> token, or a $comment key. */
+function placeholders(v, at, found) {
+  if (typeof v === "string") { if (/^<[^>]*>$/.test(v.trim()) || /<(issue|slug|YYYY-MM-DD|sha|owner\/name)[^>]*>/.test(v)) found.push(at); }
+  else if (Array.isArray(v)) v.forEach((x, i) => placeholders(x, `${at}[${i}]`, found));
+  else if (v && typeof v === "object") Object.keys(v).forEach(k => { if (k === "$comment") found.push(`${at ? at + "." : ""}$comment`); else placeholders(v[k], at ? `${at}.${k}` : k, found); });
+  return found;
+}
+/* No listings (RULES §7): a string over five lines, or a fenced block over five lines, is a code block too long for a board. */
+function listings(v, at, found) {
+  if (typeof v === "string") {
+    const lines = v.split(/\r?\n/);
+    if (lines.length > 5) found.push(`${at} (${lines.length} lines)`);
+    else (v.match(/```[\s\S]*?```/g) || []).forEach(f => { if (f.split(/\r?\n/).length - 2 > 5) found.push(`${at} (fenced block)`); });
+  } else if (Array.isArray(v)) v.forEach((x, i) => listings(x, `${at}[${i}]`, found));
+  else if (v && typeof v === "object") Object.keys(v).forEach(k => listings(v[k], at ? `${at}.${k}` : k, found));
+  return found;
+}
+
+/* A relative link on the board: its file must exist, and its #anchor must be a heading of that Markdown file. */
+function checkLink(dir, ref, at) {
+  if (!str(ref) || /^https?:/.test(ref) || SHA.test(ref) || /^(PR )?#\d+$/i.test(ref) || /^[\w.-]+\/[\w.-]+#\d+$/.test(ref)) return;
+  const m = ref.match(/^([\w./-]+\.(?:md|html|json|kt|kts|dsl|txt)|[\w./-]+\/)(#[\w-]+)?/); if (!m) return;
+  const file = path.resolve(dir, m[1]);
+  if (!fs.existsSync(file)) { warn(`${at}: links ${m[1]}, which does not exist from this folder`); return; }
+  if (m[2] && /\.md$/.test(m[1]) && !headingSlugs(fs.readFileSync(file, "utf8")).has(m[2].slice(1))) warn(`${at}: ${m[1]} has no heading ${m[2]}`);
+}
+
+function checkPlan(plan, dir, root) {
+  const folderName = path.basename(path.resolve(dir));
+  if (plan.schema !== "plan-board/1") fail(`schema must be "plan-board/1" (got ${JSON.stringify(plan.schema)})`);
+  if (!str(plan.repo) || !/^[^/\s<]+\/[^/\s>]+$/.test(plan.repo)) fail("repo must be owner/name");
+  if (!posInt(plan.issue)) fail("issue must be a positive integer");
+  if (!str(plan.slug)) fail("slug is required"); else if (plan.slug !== folderName) fail(`slug "${plan.slug}" must equal the folder name "${folderName}"`);
+  if (posInt(plan.issue) && str(plan.slug) && !plan.slug.startsWith(plan.issue + "-")) fail(`slug must start with "${plan.issue}-"`);
+  if (!str(plan.folder)) warn("folder is not set: the page assumes docs/plans/<slug> for its links to the shared pages");
+  else if (root && plan.folder !== path.relative(root, path.resolve(dir)).replace(/\\/g, "/")) warn(`folder "${plan.folder}" is not this folder's path from the repository root; the page's links to the shared pages will be wrong`);
+  ["title", "function"].forEach(k => { if (!str(plan[k])) fail(`${k} is required`); });
+  if (!STATUS.includes(plan.status)) fail(`status must be one of ${STATUS.join(", ")}`);
+  if (plan.kind != null && !["issue", "tracking"].includes(plan.kind)) fail(`kind must be issue or tracking (got ${JSON.stringify(plan.kind)})`);
+  if (plan.level != null && ![1, 2, 3, 4].includes(plan.level)) fail(`level must be 1 to 4 or null (got ${JSON.stringify(plan.level)})`);
+  const b = plan.baseline || {};
+  if (!str(b.ref) || !str(b.sha) || !str(b.date)) fail("baseline needs ref, sha and date");
+  if (str(b.sha) && !SHA.test(b.sha)) fail(`baseline.sha "${b.sha}" is not a commit sha`);
+  if (str(b.date) && !DATE.test(b.date)) fail(`baseline.date "${b.date}" is not YYYY-MM-DD`);
+  if (plan.status === "built") {
+    const a = plan.asBuilt || {};
+    if (!str(a.sha) || !str(a.date)) fail("a built plan needs asBuilt.sha and asBuilt.date");
+    if (str(a.sha) && !SHA.test(a.sha)) fail(`asBuilt.sha "${a.sha}" is not a commit sha`);
+    if (str(a.date) && !DATE.test(a.date)) fail(`asBuilt.date "${a.date}" is not YYYY-MM-DD`);
+    if (a.merge && !SHA.test(String(a.merge))) fail(`asBuilt.merge "${a.merge}" is not a commit sha`);
+  } else if (plan.status === "planned" && plan.asBuilt) fail("a planned plan has asBuilt: null");
+
+  const systems = Array.isArray(plan.systems) ? plan.systems : [];
+  systems.forEach((s, i) => { if (!str(s.slug) || !str(s.name)) fail(`systems[${i}] needs slug and name`); if (s.slot != null && !(Number.isInteger(s.slot) && s.slot >= 0 && s.slot <= 6)) fail(`systems[${i}].slot must be 0 to 6`); });
+  if (systems.length > 6) warn("more than six systems on one board");
+  const reg = root ? registry(root) : null;
+  if (reg) systems.forEach((s, i) => { const r = reg.info(s.slug); if (!r) warn(`systems[${i}] "${s.slug}" is not in docs/dashboards/systems.json`); else if (r.slot !== (s.slot || 0)) warn(`systems[${i}] "${s.slug}" has slot ${s.slot}, the registry gives ${r.slot}: its colour would differ from the system pages'`); });
+
+  const ms = plan.milestones || [];
+  ms.forEach((m, i) => {
+    if (!COLUMNS.includes(m.column)) fail(`milestones[${i}].column must be one of ${COLUMNS.join(", ")}`);
+    if (!str(m.label)) fail(`milestones[${i}] needs a label`);
+    if (m.date && !DATE.test(m.date)) fail(`milestones[${i}].date "${m.date}" is not YYYY-MM-DD`);
+    checkLink(dir, m.ref, `milestones[${i}].ref`);
+  });
+  const has = c => ms.some(m => m.column === c);
+  (plan.trail || []).forEach((t, i) => { if (t.date && !DATE.test(t.date)) fail(`trail[${i}].date "${t.date}" is not YYYY-MM-DD`); if (t.column && !COLUMNS.includes(t.column)) fail(`trail[${i}].column must be one of ${COLUMNS.join(", ")}`); checkLink(dir, t.ref, `trail[${i}].ref`); });
+
+  const rows = Array.isArray(plan.rows) ? plan.rows : [];
+  const tracking = plan.kind === "tracking";
+  if (!rows.length && plan.status !== "planned") fail("rows is empty: a board past planning has at least one row");
+  /* The columns are written in order (RULES §4): options are required once the Considered column is written, the verdict once
+     the Verdict column is. A planned board between "researched" and "plan-accepted" may hold rows with a gap only. */
+  const wantOptions = plan.status !== "planned" || has("considered") || has("verdict");
+  const wantVerdict = plan.status !== "planned" || has("verdict");
+  if (rows.length) ["gap", "considered", "verdict"].forEach(c => { if (!has(c) && (c === "gap" || (c === "considered" ? wantOptions : wantVerdict))) warn(`no "${c}" milestone: the column header carries no date`); });
+  if (plan.status === "built" && !has("built")) warn('a built plan usually carries a "built" milestone (the merge or the release)');
+  const ids = new Set();
+  const plans = root ? findPlans(root) : [];
+  rows.forEach((r, i) => {
+    const at = `rows[${i}]${r.id ? ` (${r.id})` : ""}`;
+    if (!str(r.id) || !ID.test(r.id)) fail(`${at}: id must be kebab-case`); else if (ids.has(r.id)) fail(`${at}: duplicate id`); else ids.add(r.id);
+    if (!str(r.name)) fail(`${at}: name is required`);
+    if (!str(r.system)) fail(`${at}: system is required`); else if (systems.length && !systems.some(s => s.slug === r.system)) warn(`${at}: system "${r.system}" is not in plan.systems; it falls to the neutral colour`);
+    const g = r.gap || {};
+    if (!str(g.summary)) fail(`${at}: gap.summary is required (the hole, never the fix)`);
+    if (g.kind && !GAP_KINDS.includes(g.kind)) fail(`${at}: gap.kind must be one of ${GAP_KINDS.join(", ")}`);
+    if (!Array.isArray(g.evidence) || !g.evidence.length) warn(`${at}: gap.evidence is empty; cite path:line at the baseline`);
+    checkLink(dir, g.link, `${at}.gap.link`); checkLink(dir, g.source, `${at}.gap.source`);
+    const opts = Array.isArray(r.options) ? r.options : [];
+    if (!opts.length && wantOptions) fail(`${at}: options is empty; record every option weighed, the one taken included`);
+    const oids = new Set(); let chosen = 0;
+    opts.forEach((o, j) => {
+      const oat = `${at}.options[${j}]`;
+      if (!str(o.id) || !ID.test(o.id)) fail(`${oat}: id must be kebab-case`); else if (oids.has(o.id)) fail(`${oat}: duplicate option id`); else oids.add(o.id);
+      if (!str(o.name)) fail(`${oat}: name is required`);
+      if (!VERDICTS.includes(o.verdict)) fail(`${oat}: verdict must be one of ${VERDICTS.join(", ")}`);
+      if (o.verdict === "accepted" || (o.verdict === "partial" && o.chosen === true)) chosen++;
+      if (["declined", "partial", "deferred"].includes(o.verdict) && !str(o.why)) fail(`${oat}: a ${o.verdict} option needs "why"`);
+      checkLink(dir, o.link, `${oat}.link`);
+    });
+    if (opts.length && chosen !== 1) fail(`${at}: exactly one option must be accepted, or partial with "chosen": true (found ${chosen}); for a part left alone, the accepted option is the one that leaves it`);
+    const v = r.verdict || {};
+    if (!str(v.summary) && wantVerdict) fail(`${at}: verdict.summary is required`);
+    if (v.kind && !["build", "leave"].includes(v.kind)) fail(`${at}: verdict.kind must be build or leave`);
+    (v.steps || []).forEach((s, j) => { if (!str(s.what)) fail(`${at}.verdict.steps[${j}]: "what" is required`); checkLink(dir, s.link, `${at}.verdict.steps[${j}].link`); });
+    // A unit row's steps are its sub-issue's plan, not the tracking board's: no warning there.
+    if (str(v.summary) && (v.kind || "build") === "build" && !(v.steps || []).length && !r.unit) warn(`${at}: a build verdict names no steps`);
+    checkLink(dir, v.link, `${at}.verdict.link`);
+    const bld = r.asBuilt || {}, st = bld.state;
+    if (!STATES.includes(st)) fail(`${at}: asBuilt.state must be one of ${STATES.join(", ")}`);
+    if (plan.status === "planned" && st !== "pending") fail(`${at}: a planned plan has every part pending (found ${st})`);
+    if (plan.status === "built" && st === "pending") fail(`${at}: a built plan has no pending part`);
+    if (["amended", "deviated"].includes(st) && (!Array.isArray(bld.changes) || !bld.changes.length)) fail(`${at}: an ${st} part lists its changes`);
+    (bld.changes || []).forEach((c, j) => {
+      const cat = `${at}.asBuilt.changes[${j}]`;
+      if (!str(c.what) || !str(c.why)) fail(`${cat}: "what" and "why" are required`);
+      if (c.settles) {
+        const sid = typeof c.settles === "string" ? c.settles : c.settles.option, sv = typeof c.settles === "object" ? (c.settles.verdict || "accepted") : "accepted";
+        const o = opts.find(x => x.id === sid);
+        if (!o) fail(`${cat}.settles names no option "${sid}"`); else if (o.verdict !== "deferred") fail(`${cat}.settles "${sid}", which was not deferred`);
+        if (!["accepted", "declined", "partial"].includes(sv)) fail(`${cat}.settles.verdict must be accepted, declined or partial`);
+      }
+      if (c.ref && /^[0-9a-f]+$/.test(c.ref) && !SHA.test(c.ref)) fail(`${cat}.ref "${c.ref}" is not a commit sha`);
+    });
+    if (st === "dropped" && !str(bld.summary)) fail(`${at}: a dropped part states why in asBuilt.summary`);
+    if (st === "deferred" && !posInt(bld.issue)) fail(`${at}: a deferred part names the issue it moved to (asBuilt.issue)`);
+    if (st && st !== "pending" && !str(bld.summary)) fail(`${at}: a ${st} part describes what exists in asBuilt.summary`);
+    (bld.commits || []).forEach((c, j) => { if (!SHA.test(String(c))) fail(`${at}.asBuilt.commits[${j}] "${c}" is not a commit sha`); });
+    checkLink(dir, bld.link, `${at}.asBuilt.link`);
+    if (r.unit) {
+      const u = r.unit;
+      if (!tracking) warn(`${at}: a unit row on a board whose kind is not tracking`);
+      if (!posInt(u.issue)) fail(`${at}.unit.issue must be the sub-issue's number`);
+      (u.blockedBy || []).forEach((n, j) => { if (!posInt(n)) fail(`${at}.unit.blockedBy[${j}] must be an issue number`); });
+      // The sub-issue's board, wherever it sits under docs/plans/: if it exists, the row must link it.
+      const boards = posInt(u.issue) ? plans.filter(p => path.basename(p.dir).startsWith(u.issue + "-") && fs.existsSync(path.join(p.dir, "dashboard.html"))) : [];
+      if (boards.length && !str(u.board)) fail(`${at}: #${u.issue} has a board (${boards[0].folder}/dashboard.html) that this unit row does not link (unit.board)`);
+      if (str(u.board)) checkLink(dir, u.board, `${at}.unit.board`);
+      if (str(u.folder)) checkLink(dir, u.folder, `${at}.unit.folder`);
+    }
+  });
+
+  const w = plan.wip;
+  if (!w || typeof w !== "object") warn("wip is missing: the WIP strip has nothing to show");
+  else {
+    if (!STEPS.includes(w.step)) fail(`wip.step must be one of ${STEPS.join(", ")} (got ${JSON.stringify(w.step)})`);
+    (w.steps || []).forEach((s, j) => { if (!STEPS.includes(s)) fail(`wip.steps[${j}] "${s}" is not a step`); });
+    ["since", "updated"].forEach(k => { if (w[k] != null && !STAMP.test(String(w[k]))) fail(`wip.${k} "${w[k]}" is not a date or an ISO date-time`); });
+    if (w.step === "halted") {
+      if (!str(w.waitingOn) && !str(w.detail)) fail("a halted board says what waits on the user (wip.waitingOn)");
+      const since = Date.parse(w.since || w.updated || "");
+      if (since && Date.now() - since > 86400000) warn(`halted since ${w.since || w.updated}: more than a day`);
+    }
+    if (w.resume != null && !STEPS.includes(w.resume)) fail(`wip.resume "${w.resume}" is not a step`);
+    (w.qa || []).forEach((p, j) => { if (!posInt(p.pass)) fail(`wip.qa[${j}].pass must be a pass number`); if (!QA.includes(p.verdict)) fail(`wip.qa[${j}].verdict must be one of ${QA.join(", ")}`); if (p.date && !DATE.test(p.date)) fail(`wip.qa[${j}].date "${p.date}" is not YYYY-MM-DD`); });
+    const cur = Array.isArray(w.current) ? w.current : [];
+    cur.forEach(a => {
+      const parts = String(a).split(".");
+      if (parts.length === 1) { if (!COLUMNS.includes(parts[0])) fail(`wip.current "${a}" is neither a column nor a <row-id>.<column> address`); }
+      else if (parts.length !== 2 || !ids.has(parts[0]) || !COLUMNS.includes(parts[1])) fail(`wip.current "${a}" names no cell`);
+    });
+    if (cur.length > MAX_GLOW) fail(`wip.current names ${cur.length} cells; at most ${MAX_GLOW} glow at once`);
+    if ((w.step === "landed" || plan.status === "built") && cur.length) warn("a landed board has wip.current set; nothing glows once it has landed");
+    if (w.step === "landed" && plan.status !== "built") fail('wip.step is "landed" but status is not "built"');
+    if (plan.status === "built" && w.step !== "landed") fail('a built plan has wip.step "landed"');
+    ["waitsOn", "blocks"].forEach(k => ((w.blockers || {})[k] || []).forEach((x, j) => { if (!posInt(x.issue)) fail(`wip.blockers.${k}[${j}].issue must be an issue number`); }));
+  }
+  (plan.followUps || []).forEach((f, i) => { if (!posInt(f.issue) && !str(f.name)) fail(`followUps[${i}] needs an issue number or, for an unfiled follow-up, a name`); });
+  (plan.documents || []).forEach((d, i) => { if (!str(d.label) && !str(d.path)) fail(`documents[${i}] needs a label or a path`); checkLink(dir, d.path, `documents[${i}].path`); });
+
+  const left = placeholders(plan, "", []);
+  if (left.length) fail(`placeholders left from the template: ${left.slice(0, 8).join(", ")}${left.length > 8 ? ` and ${left.length - 8} more` : ""}`);
+  const lists = listings(plan, "", []);
+  if (lists.length) fail(`code blocks over five lines in the data (the detail belongs in the Markdown, linked): ${lists.slice(0, 6).join(", ")}`);
+  if (!out.fail.length) ok(`plan.json: ${tracking ? "tracking board, " : ""}${rows.length} rows, ${rows.reduce((n, r) => n + (r.options || []).length, 0)} options, status ${plan.status}, step ${(w || {}).step || "—"}`);
+}
+
+function checkHtml(htmlPath, id, data, kindMeta) {
+  if (!fs.existsSync(htmlPath)) { fail(`${path.basename(htmlPath)} is missing (scaffold it from the template)`); return; }
+  const html = fs.readFileSync(htmlPath, "utf8"), body = readBlock(html, id);
+  if (body == null) { fail(`${path.basename(htmlPath)} has no <script type="application/json" id="${id}"> block`); return; }
+  let embedded; try { embedded = JSON.parse(body); } catch (e) { fail("the embedded copy does not parse: " + e.message); return; }
+  if (JSON.stringify(embedded) !== JSON.stringify(data)) fail(`the embedded copy differs from ${id}.json: run embed.js`); else ok(`${path.basename(htmlPath)} embeds ${id}.json verbatim`);
+  if (!html.includes(`<meta name="dashboard" content="${kindMeta}">`)) fail(`${path.basename(htmlPath)} does not declare <meta name="dashboard" content="${kindMeta}">`);
+  const panels = html.match(/<section[^>]*role="tabpanel"[\s\S]*?<\/section>/g) || [];
+  if (!panels.length) fail(`${path.basename(htmlPath)} has no tab panels`);
+  let missing = 0; panels.forEach(p => { const pid = (p.match(/id="([^"]+)"/) || [])[1]; if (!/class="key"/.test(p)) { fail(`tab panel ${pid} has no legend (.key)`); missing++; } });
+  if (panels.length && !missing) ok(`${panels.length} tab panels, each with a legend`);
+  if (kindMeta === "plan-board" && !/<section class="wip"/.test(html)) fail('the page has no WIP strip (<section class="wip">)');
+  if (!/<title>/.test(html)) fail("the page has no <title>");
+  if (/href="#"/.test(html)) fail('the page has a dead href="#" link');
+  if (!/prefers-color-scheme:dark/.test(html)) fail("the page has no dark-mode block");
+  if (/<(script|link|img)[^>]+(src|href)="https?:/i.test(html)) fail("the page loads an external resource");
+  if (Buffer.byteLength(html) > 16 * 1024 * 1024) fail("the page is over 16 MB");
+}
+
+function checkBoard(dir) {
+  const b = JSON.parse(fs.readFileSync(path.join(dir, "board.json"), "utf8"));
+  if (b.schema !== "work-board/1") fail(`board.json schema must be "work-board/1" (got ${JSON.stringify(b.schema)})`);
+  if (!str(b.repo)) fail("board.json needs repo");
+  (b.rows || []).forEach((r, i) => { if (!posInt(r.issue) || !str(r.title)) fail(`rows[${i}] needs issue and title`); if (r.board) checkLink(dir, r.board, `rows[${i}].board`); });
+  const glowing = (b.rows || []).filter(r => r.active).length;
+  if (glowing > MAX_GLOW) warn(`${glowing} runs are active: more than ${MAX_GLOW} rows glow at once`);
+  const left = placeholders(b, "", []); if (left.length) fail(`placeholders left: ${left.slice(0, 8).join(", ")}`);
+  if (!out.fail.length) ok(`board.json: ${(b.rows || []).length} runs, ${(b.roadmap || []).length} roadmap items, ${(b.unscheduled || []).length} unscheduled issues`);
+  checkHtml(path.join(dir, "index.html"), "board", b, "work-board");
+}
+
+function browser(page, outDir) {
+  const checker = path.resolve(__dirname, "..", "..", "system", "scripts", "check-page.js");
+  [[], ["--theme", "dark"], ["--width", "520"], ["--frame", "390"]].forEach(extra => {
+    const r = cp.spawnSync(process.execPath, [checker, page, "--out", outDir, ...extra], { encoding: "utf8" });
+    const label = extra.join(" ") || "light";
+    const res = (r.stdout || "").trim().split(/\r?\n/);
+    if (r.status === 0) ok(`browser (${label}): PASS · ${(res.find(l => l.startsWith("screenshot:")) || "").replace("screenshot: ", "")}`);
+    else fail(`browser (${label}): ${res.filter(l => /FAIL|ERROR|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL/.test(l)).join(" | ") || (r.stderr || "").trim()}`);
+  });
+}
+
+function findRoot(dir, args) {
+  const given = opt(args, "root", null); if (given) return path.resolve(given);
+  for (let d = path.resolve(dir); ; d = path.dirname(d)) { if (fs.existsSync(path.join(d, "docs", "plans"))) return d; if (path.dirname(d) === d) return null; }
+}
+function run(dir, args) {
+  args = args || [];
+  const root = findRoot(dir, args), isBoard = fs.existsSync(path.join(dir, "board.json"));
+  if (isBoard) checkBoard(dir);
+  else {
+    const jsonPath = path.join(dir, "plan.json");
+    if (!fs.existsSync(jsonPath)) { fail(`${jsonPath} is missing`); return report(); }
+    let plan; try { plan = JSON.parse(fs.readFileSync(jsonPath, "utf8")); } catch (e) { fail("plan.json does not parse: " + e.message); return report(); }
+    checkPlan(plan, dir, root);
+    checkHtml(path.join(dir, "dashboard.html"), "plan", plan, "plan-board");
+  }
+  if (flag(args, "browser")) browser(path.join(dir, isBoard ? "index.html" : "dashboard.html"), opt(args, "out", path.join(os.tmpdir(), "dashboard-check")));
+  return report();
+}
+function report() {
+  out.ok.forEach(m => console.log("ok    " + m));
+  out.warn.forEach(m => console.log("warn  " + m));
+  out.fail.forEach(m => console.log("FAIL  " + m));
+  console.log(out.fail.length ? `\n${out.fail.length} failure${out.fail.length === 1 ? "" : "s"}` : "\nall checks pass");
+  return out.fail.length ? 1 : 0;
+}
+if (require.main === module) {
+  const args = process.argv.slice(2), dir = args.find((a, i) => !a.startsWith("--") && !(i > 0 && ["--root", "--out"].includes(args[i - 1])));
+  if (!dir) { console.error("usage: node check.js <plan-folder | docs/plans> [--root <repo>] [--browser] [--out <dir>]"); process.exit(2); }
+  process.exit(run(dir, args));
+}
+module.exports = { run };

@@ -1,0 +1,128 @@
+{
+  "$comment": "The plan board's data model (plan/RULES.md §2-§3). new.js copies this file, fills the header fields, and empties rows, milestones, trail, followUps and documents; every value still written <like this> is a placeholder that check.js refuses. The three rows show the shapes: an issue board's row (all four option verdicts), a Left-for-later row, and a tracking board's unit row (kind tracking only). Delete every $comment.",
+  "schema": "plan-board/1",
+  "repo": "<owner/name>",
+  "issue": 0,
+  "slug": "<issue>-<slug>",
+  "folder": "docs/plans/<issue>-<slug>",
+  "kind": "issue",
+  "level": 3,
+  "title": "<short name of the change>",
+  "issueTitle": "<the issue's title, verbatim>",
+  "function": "<one paragraph: what the issue asked, and what this run does about it>",
+  "status": "planned",
+  "parent": null,
+  "branch": "<the run's branch, once cut>",
+  "baseline": {"ref": "master", "sha": "<sha>", "date": "<YYYY-MM-DD>"},
+  "asBuilt": null,
+  "systems": [
+    {"slug": "<registry slug>", "name": "<registry name>", "slot": 1, "top": "<the top-level system's name>", "status": "built", "page": "docs/dashboards/<slug>/index.html"}
+  ],
+  "wip": {
+    "$comment": "step: sizing | interview | research | architecture | plan | branch | implementation | qa | remediation | landing | landed | halted | escalated | cancelled. current: <row-id>.<column> addresses or a column name (gap, considered, verdict, built); at most six. While halted: resume (the step to return to) and waitingOn. qa[].verdict: approved | changes-requested | running. blockers from the tracker's blocked-by links; repo only when another repository's.",
+    "step": "research",
+    "since": "<YYYY-MM-DD or an ISO date-time>",
+    "updated": "<ISO date-time of this board update>",
+    "detail": "<one line: which stage, which qa pass, what waits on the user>",
+    "steps": ["sizing", "interview", "research", "plan", "branch", "implementation", "qa", "remediation", "landing", "landed"],
+    "current": ["gap"],
+    "qa": [
+      {"pass": 1, "verdict": "changes-requested", "date": "<YYYY-MM-DD>", "findings": {"documentation": 0, "test": 0, "code": 0}, "note": "<optional>"}
+    ],
+    "qaMax": 3,
+    "waitingOn": null,
+    "resume": null,
+    "blockers": {"waitsOn": [], "blocks": [{"issue": 0, "repo": "<owner/name, only for another repository>"}]},
+    "landing": null
+  },
+  "milestones": [
+    {"column": "gap", "label": "Research verified", "date": "<YYYY-MM-DD>", "ref": "research/README.md", "note": "<optional>"}
+  ],
+  "trail": [
+    {"date": "<YYYY-MM-DD>", "column": "gap", "label": "<a dated event: issue opened, research, review round, merge>", "ref": "<sha, PR #n, #n or a relative path>"}
+  ],
+  "rows": [
+    {
+      "id": "<kebab-case, stable: the cell address>",
+      "group": "Code",
+      "name": "<the part a reader could point at>",
+      "system": "<registry slug>",
+      "where": "<path, abbreviated as notes.paths says>",
+      "gap": {
+        "kind": "bug",
+        "summary": "<the hole, never the fix, in two to four lines>",
+        "detail": "",
+        "evidence": ["<path:line — what it shows, at the baseline>"],
+        "source": "<research/README.md §…>",
+        "link": "<research/README.md#heading-anchor: the Markdown section that holds the rest>"
+      },
+      "options": [
+        {"id": "<option-id>", "name": "<the option taken>", "summary": "", "verdict": "accepted", "why": "<why it was taken>", "source": "<architecture.md §…>", "link": "<architecture.md#alternatives-anchor>"},
+        {"id": "<option-id>", "name": "<an option adopted in part>", "summary": "", "verdict": "partial", "chosen": false, "why": "<what was taken and what wasn't>", "source": "<architecture.md §…>"},
+        {"id": "<option-id>", "name": "<an option left open at plan time>", "summary": "", "verdict": "deferred", "why": "<why it was left open; column 4 settles it with a change carrying settles>", "source": "<plan.md §…>"},
+        {"id": "<option-id>", "name": "<an option ruled out>", "summary": "", "verdict": "declined", "why": "<the trade-off that ruled it out>", "wins": "<when it would have been right>", "source": "<architecture.md §…>"}
+      ],
+      "verdict": {
+        "kind": "build",
+        "summary": "<the decision in one or two sentences>",
+        "defense": "<why it beats the options declined>",
+        "steps": [{"id": "<plan's own label>", "what": "<one sentence naming the file and anchor>", "files": ["<path>"], "check": "<the command or observation that proves it>", "link": "<plan.md#step-anchor>"}],
+        "tests": ["<Level n — the class and the claim>"],
+        "risks": ["<a risk and what bounds it>"],
+        "source": "<plan.md §…>",
+        "link": "<plan.md#section-anchor>"
+      },
+      "asBuilt": {
+        "$comment": "state: pending | as-planned | amended | deviated | dropped | deferred. amended and deviated list changes[]; a change that settles a deferred option carries settles: {option, verdict}. dropped states its reason in summary; deferred names issue.",
+        "state": "pending",
+        "summary": "",
+        "changes": [{"what": "<what moved>", "why": "<why>", "when": "<the stage or review round>", "ref": "<sha>", "settles": {"option": "<option-id>", "verdict": "accepted"}}],
+        "files": [],
+        "tests": "",
+        "commits": [],
+        "verified": "",
+        "link": "<final-implementation.md#section-anchor>"
+      }
+    },
+    {
+      "id": "<kebab-case>",
+      "group": "Left for later",
+      "name": "<a scope item the plan deliberately leaves alone>",
+      "system": "<registry slug>",
+      "where": "<path>",
+      "gap": {"kind": "risk", "summary": "<what stays wrong>", "evidence": ["<path:line>"], "source": "<architecture.md §…>"},
+      "options": [
+        {"id": "<option-id>", "name": "<leave it, to the issue that owns it>", "verdict": "accepted", "why": "<why leaving it is right here>"},
+        {"id": "<option-id>", "name": "<fix it here>", "verdict": "declined", "why": "<why not in this change>"}
+      ],
+      "verdict": {"kind": "leave", "summary": "<not changed; what pins the decision>", "defense": "<why>", "steps": [], "tests": [], "risks": [], "source": "<plan.md §…>"},
+      "asBuilt": {"state": "pending"}
+    },
+    {
+      "id": "<unit slug>",
+      "group": "<the unit's group, e.g. its system>",
+      "name": "<the unit's name>",
+      "system": "<registry slug>",
+      "where": "<placement>",
+      "unit": {"n": 1, "slug": "<unit slug>", "issue": 0, "level": 3, "blockedBy": [], "versions": "<versions moved>", "branch": null, "folder": "<NN-slug/ once it exists, else null>", "board": "<NN-slug/dashboard.html once it exists, else null>"},
+      "gap": {"kind": "missing", "summary": "<what the unit's system lacks at the baseline>", "evidence": ["<path:line>"], "source": "<architecture.md §…>", "link": "<architecture.md#anchor>"},
+      "options": [
+        {"id": "<option-id>", "name": "<the architecture's design for the unit>", "verdict": "accepted", "why": "<why>", "source": "<architecture.md §…>"}
+      ],
+      "verdict": {"kind": "build", "summary": "<the unit's scope from the decomposition>", "defense": "<its level and why>", "steps": [], "tests": ["<levels the unit's plan must cover>"], "leaves": ["<what it leaves to other units>"], "risks": [], "source": "<architecture.md §…>", "link": "<architecture.md#decomposition>"},
+      "asBuilt": {"state": "pending", "summary": ""}
+    }
+  ],
+  "roadmap": null,
+  "followUps": [
+    {"issue": 0, "note": "<how it relates>"},
+    {"name": "<an unfiled follow-up's name>", "note": "<what it would do>"}
+  ],
+  "documents": [
+    {"label": "Research", "path": "research/README.md", "note": "<what it holds>"}
+  ],
+  "notes": {
+    "paths": "<how paths are abbreviated on this board>",
+    "corrections": []
+  }
+}
