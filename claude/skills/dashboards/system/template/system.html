@@ -3,12 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>REPO</title>
+<title>system-slug</title>
 <style>
-/* Supersystem / repository page template (system-dashboard skill): the Systems tab first, then the six core tabs adapted to the
-   level (how the systems compose, run, decide, interact and live), the Guarantees bubbles with one row per system, then Context.
-   Draft A2: the C4 model tab is rendered at runtime from the Structurizr DSL embedded below (a verbatim copy of workspace.dsl).
-   Colour plan: --sys-1..6 are the systems' slots (registry order, see sysColour), --ph-1..3 the ordinal phase ramp
+/* Layout: header band → KPI strip → tabbed stage with a sticky side inspector → Guarantees bubbles → Context cards → provenance footer.
+   System page template (dashboards skill, system set: system/RULES.md): the C4 tab is rendered at load from the Structurizr DSL embedded below.
+   Colour plan: --server / --client / --wire are the page's three hue slots (its "sides"), --ph-1..3 the ordinal phase ramp
    (Lifecycles), --good / --warning / --serious / --critical are status (outcomes only, always beside a label). Dashed = planned. */
 :root{
   --bg:#f3f5f8; --surface:#fcfcfd; --surface-2:#eef1f6; --ink:#0e1420; --ink-2:#4a5468; --muted:#7d879a;
@@ -338,76 +337,36 @@ footer{margin-top:28px;font-size:12px;color:var(--muted);border-top:1px solid va
 footer code{color:var(--ink-2)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
-<style>
-/* System colours: one categorical slot per top-level system, in registry order (sysColour below); a child system takes its
-   top-level ancestor's slot, and the seventh top-level system on folds into the neutral --muted. Everything drawn for a system
-   sets --c from its slot, so a system keeps one colour on every tab. Palette slots 7 and 8 stay unused here: violet is the
-   phase ramp, red sits next to critical. */
-:root{--sys-1:#2a78d6;--sys-2:#eb6834;--sys-3:#1baf7a;--sys-4:#eda100;--sys-5:#e87ba4;--sys-6:#008300}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--sys-1:#3987e5;--sys-2:#d95926;--sys-3:#199e70;--sys-4:#c98500;--sys-5:#d55181;--sys-6:#008300}}
-:root[data-theme="dark"]{--sys-1:#3987e5;--sys-2:#d95926;--sys-3:#199e70;--sys-4:#c98500;--sys-5:#d55181;--sys-6:#008300}
-.syscards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
-.syscard{display:block;text-decoration:none;color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0;border-top:3px solid var(--c,var(--muted))}
-.syscard:hover{border-color:var(--ink-2)}
-.syscard.planned{border-style:dashed;opacity:.7}
-.syscard .nm{font:700 15px var(--mono)}
-.syscard .fn{font-size:13px;color:var(--ink-2);margin:4px 0 8px}
-.syscard .meta{display:flex;flex-wrap:wrap;gap:4px}
-.syscard .meta span{font:11px var(--mono);padding:3px 6px;border:1px solid var(--line);border-radius:3px;color:var(--ink-2)}
-.syscard .st{font:700 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.key i.sys{border-color:var(--c);background:color-mix(in srgb,var(--c) 18%,var(--surface))}
-.key i.sbar{border-color:var(--line);border-left:4px solid var(--c)}
-.sw{display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--c,var(--muted));margin-right:6px;vertical-align:-1px}
-/* structure: each system a box in its colour (nesting is composition), its dependencies as arrows */
-.snode{cursor:pointer}
-.snode rect{fill:color-mix(in srgb,var(--c) 12%,var(--surface));stroke:var(--c);stroke-width:1.5}
-.snode.container rect{fill:color-mix(in srgb,var(--c) 5%,var(--surface))}
-.snode.planned{opacity:.6}.snode.planned rect{stroke-dasharray:6 4}
-.snode text{fill:var(--ink);font-family:var(--sans)}
-.snode .t{font:700 12px var(--mono)}
-.snode .s{font-size:10px;fill:var(--ink-2)}
-.snode.sel rect{stroke:var(--on);stroke-width:3}
-.sdep path{stroke:var(--ink-2);stroke-width:1.5;fill:none}
-.sdep.planned{opacity:.6}.sdep.planned path{stroke-dasharray:6 4}
-.sdep text{font-size:9.5px;fill:var(--ink-2);font-family:var(--sans)}
-.sdep .lbg{fill:var(--surface);stroke:none}
-/* threads, lifelines, rows and badges take their system's colour from --c */
-.threads{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
-.thread[data-sys]{border-left-color:var(--c)}
-.thread .k,.key .k{font:10px var(--mono);color:var(--muted)}
-.lh[data-sys] rect{stroke:var(--c);fill:color-mix(in srgb,var(--c) 14%,var(--surface))}
-.badge[data-sys]{border-left:3px solid var(--c)}
-.gtbl{width:100%;border-collapse:collapse;font-size:12px}
-.gtbl th,.gtbl td{text-align:left;padding:5px 4px;border-top:1px solid var(--hair);vertical-align:top}
-.gtbl tbody th{font:600 11.5px var(--mono);color:var(--ink);white-space:nowrap}
-.gtbl thead th{font:600 10px var(--sans);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-top:0}
-.gtbl td.n,.gtbl thead th.n{text-align:right;font-variant-numeric:tabular-nums}
-.gtbl tr.planned{opacity:.6}.gtbl tr.planned>*{border-top-style:dashed}
-.tbl td:first-child{white-space:nowrap}
-</style>
 </head>
 <body>
 <div class="page">
 <header>
-  <!-- presenter: for the repository page the crumbs are just the repo; for a supersystem page link up to ../index.html -->
-  <div class="crumbs">REPO</div>
-  <h1>REPO</h1>
-  <p class="function">One sentence on what this repository (or supersystem) provides, and how its systems divide the work.</p>
+  <!-- presenter: crumbs = the supersystem/repo page this system belongs to; h1 = the system's slug/name;
+       .function = one sentence on what the system does (its primary purpose); chips = facts with their source. -->
+  <div class="crumbs"><a href="../index.html">REPO</a> › system-slug</div>
+  <h1>system-slug</h1>
+  <p class="function">One sentence on what this system does for its consumer, as built.</p>
   <div class="chips">
-    <span class="chip">systems <b id="sys-count">…</b></span>
+    <span class="chip">version <b>x.y.z</b></span>
+    <span class="chip">Kotlin/JVM</span>
     <span class="chip">as-is at <b>branch sha</b> · YYYY-MM-DD</span>
-    <span class="chip">last amended by <a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener"><b>#N</b></a> issue-slug</span>
+    <span class="chip">last amended by <a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener"><b>#N</b></a> issue-slug · sha</span>
     <span class="chip model">C4 model <b>workspace.dsl</b> · <span id="dsl-stats">…</span></span>
   </div>
 </header>
 
-<!-- presenter: the Systems tab, then the six core tabs every page carries, adapted to this level. Each tab colours its content by a
-     grouping that suits it — by system here, in the system's slot colour — and shows a legend (.key); planned is dashed on every
-     tab. Removing a core tab is a divergence that needs a strong argument (e.g. no system calls another, so no cross-system
-     Sequence exists), recorded in the footer. Optional tabs go after Lifecycles. -->
+<section class="kpis" aria-label="Key figures">
+  <!-- presenter: six counted facts, each with its basis in the sub-line. Count them; do not estimate. -->
+  <div class="kpi"><div class="l">Source</div><div class="v">n files</div><div class="s">n lines · package(s)</div></div>
+  <div class="kpi"><div class="l">Types</div><div class="v">n public</div><div class="s">n internal</div></div>
+  <div class="kpi"><div class="l">Threads</div><div class="v">n named</div><div class="s">how they split</div></div>
+  <div class="kpi"><div class="l">Contracts</div><div class="v">n</div><div class="s">interfaces · wire formats · protocols</div></div>
+  <div class="kpi"><div class="l">Tests</div><div class="v">n classes</div><div class="s">across n testing levels</div></div>
+  <div class="kpi"><div class="l">Open issues</div><div class="v">n</div><div class="s">n bugs · n planned · n untyped</div></div>
+</section>
+
 <div class="tabs" role="tablist" aria-label="Views">
-  <button class="tab" role="tab" id="t-systems" aria-controls="p-systems" aria-selected="true">Systems</button>
-  <button class="tab" role="tab" id="t-structure" aria-controls="p-structure" aria-selected="false">Structure</button>
+  <button class="tab" role="tab" id="t-structure" aria-controls="p-structure" aria-selected="true">Structure</button>
   <button class="tab model" role="tab" id="t-c4" aria-controls="p-c4" aria-selected="false">C4 model</button>
   <button class="tab" role="tab" id="t-threads" aria-controls="p-threads" aria-selected="false">Threads</button>
   <button class="tab" role="tab" id="t-datagrams" aria-controls="p-datagrams" aria-selected="false">Decision path</button>
@@ -417,25 +376,19 @@ footer code{color:var(--ink-2)}
 
 <div class="stage">
 <div>
-  <section class="view" role="tabpanel" id="p-systems" aria-labelledby="t-systems">
-    <h2>Systems</h2>
-    <p class="lede">Each card is a system with its own dashboard, in the colour it keeps on every tab of this page. Solid cards are built and reflect the commit they name; dashed cards are planned and have no page yet.</p>
-    <div class="syscards" id="syscards"></div>
-    <!-- generated from the registry: one swatch per top-level system, then built and planned -->
-    <div class="key" id="systems-key"></div>
-  </section>
-
-  <section class="view" role="tabpanel" id="p-structure" aria-labelledby="t-structure" hidden>
-    <h2>How the systems compose and depend on each other</h2>
-    <p class="lede">Each box is a system in its colour; a box inside another is part of that supersystem. Arrows point at what a system depends on. Click a system for its role, its dependencies both ways and its place in the C4 model. <!-- presenter: place the boxes by hand in MODEL.structure; label each arrow with how it depends (api, implementation, a runtime call, a published artifact) --></p>
-    <svg id="svg-structure" viewBox="0 0 1000 330" role="img" aria-label="How the systems compose and depend on each other"></svg>
-    <!-- generated: the systems on the map, then composition, dependency and planned -->
-    <div class="key" id="structure-key"></div>
+  <section class="view" role="tabpanel" id="p-structure" aria-labelledby="t-structure">
+    <h2>Component map</h2>
+    <p class="lede">Nesting is ownership. Filled boxes are public types, outlined boxes internal. Click any box for its role, files and threads — and its place in the C4 model.</p>
+    <svg id="svg-structure" viewBox="0 0 1000 612" role="img" aria-label="Component map of system-slug"></svg>
+    <!-- presenter: the legend names this page's colour groups. side = server | client | wire are the page's three hue slots
+         (blue, orange, aqua) and keep their meaning on every tab; label them for what they are in this system (MODEL.sides
+         holds the same names). Fill = public, outline = internal, dotted = standalone, dashed and faded = planned. -->
+    <div class="key"><span><i class="pub srv"></i>public · side A</span><span><i class="srv"></i>internal · side A</span><span><i class="pub cli"></i>public · side B</span><span><i class="cli"></i>internal · side B</span><span><i class="pub wir"></i>public · shared</span><span><i class="wir"></i>internal · shared</span><span><i class="std"></i>standalone, outside the stack</span><span><i class="pln"></i>planned, not built</span></div>
   </section>
 
   <section class="view" role="tabpanel" id="p-c4" aria-labelledby="t-c4" hidden>
     <h2>C4 model <small style="font:11px var(--mono);color:var(--muted);font-weight:400">rendered from workspace.dsl at load</small></h2>
-    <p class="lede">How the systems relate: the context the repository sits in, the systems as containers, and any flow that crosses them. Parsed from the DSL beside this page every time it opens.</p>
+    <p class="lede">The Structurizr DSL beside this page is the formal model: elements, their relationships, tags and styles. These views are parsed from it every time the page opens — nothing here is drawn by hand, so the model and the dashboard cannot disagree. Step down the ladder to zoom in; hover an element to see what it touches. Structurizr Lite or <code>structurizr-cli</code> render the same file.</p>
     <div class="c4wrap">
       <nav class="ladder" id="c4-ladder" aria-label="C4 levels"></nav>
       <div class="c4main">
@@ -448,121 +401,116 @@ footer code{color:var(--ink-2)}
   </section>
 
   <section class="view" role="tabpanel" id="p-threads" aria-labelledby="t-threads" hidden>
-    <h2>Threads and processes across systems</h2>
-    <p class="lede">Every thread and child process the systems start, one column per system in its colour: when it starts (filled pill = eagerly, outlined = lazily on first use, dotted = only under a condition) and what runs on it. Click one for details. <!-- presenter: one .tside per system that starts anything; one .thread per thread or process, data-t a key of MODEL.threads and data-sys the owning system's slug. A system that starts nothing gets no column; say so in a note when it matters (e.g. "runs on the caller's threads"). --></p>
+    <h2>Thread inventory</h2>
+    <p class="lede">Every thread the system can start, coloured by the side that owns it, when it is created (filled pill = eagerly, outlined = lazily on first use, dotted = only under a condition) and what runs on it. Click a thread for details. <!-- presenter: a core tab. A system with no threads of its own says so here (callers' threads, callbacks it runs on them); removing the tab is a divergence that needs a strong argument, recorded in the footer --></p>
     <div class="threads">
-      <div class="tside"><h3><span class="sw" data-sys="system-alpha"></span>system-alpha</h3>
-        <div class="thread" data-sys="system-alpha" data-t="alpha-worker" tabindex="0" role="button"><span class="n">alpha-worker</span><span class="pill eager">eager</span><span class="r">what runs here</span></div>
+      <div class="tside"><h3>Side A</h3>
+        <!-- presenter: one .thread per thread; data-t must be a key of MODEL.threads; class server|client|wire picks the hue
+             (the side that owns it, as on Structure); pill eager|lazy|cond says when it starts; class planned on a thread
+             the plan adds but the code does not have yet -->
+        <div class="thread server" data-t="main-worker" tabindex="0" role="button"><span class="n">main-worker</span><span class="pill eager">eager</span><span class="r">what runs here</span></div>
       </div>
-      <div class="tside"><h3><span class="sw" data-sys="system-beta"></span>system-beta</h3>
-        <div class="thread" data-sys="system-beta" data-t="beta-io" tabindex="0" role="button"><span class="n">beta-io</span><span class="pill lazy">lazy</span><span class="r">what runs here, once first needed</span></div>
-        <div class="thread" data-sys="system-beta" data-t="beta-helper" tabindex="0" role="button"><span class="n">beta-helper <span class="k">process</span></span><span class="pill cond">if …</span><span class="r">a child process the system spawns, and when</span></div>
-      </div>
-      <div class="tside"><h3><span class="sw" data-sys="system-gamma"></span>system-gamma <small>planned</small></h3>
-        <div class="thread planned" data-sys="system-gamma" data-t="gamma-loop" tabindex="0" role="button"><span class="n">gamma-loop</span><span class="pill planned">planned</span><span class="r">what the plan says it will run (#N)</span></div>
-      </div>
+      <div class="tside"><h3>Side B</h3></div>
     </div>
-    <!-- generated: the systems with a column, then the pill encodings, process and planned -->
-    <div class="key" id="threads-key"></div>
+    <div class="key"><span><i class="bs"></i>side A</span><span><i class="bc"></i>side B</span><span><span class="pill eager">eager</span>created at start-up</span><span><span class="pill lazy">lazy</span>created on first use</span><span><span class="pill cond">if …</span>only under a condition</span><span><span class="pill planned">planned</span>planned, not built</span><span><i class="dot"></i>does the work (table below)</span></div>
+    <h2 style="margin-top:16px">Who sends what</h2>
+    <p class="lede">Which thread performs each kind of outbound work. <!-- presenter: keep or delete --></p>
+    <div class="scroll"><table class="matrix">
+      <thead><tr><th>Work</th><th>Caller's thread</th><th>main-worker</th></tr></thead>
+      <tbody>
+        <tr><td>An example kind of work</td><td><span class="dot"></span></td><td></td></tr>
+      </tbody>
+    </table></div>
   </section>
 
   <section class="view" role="tabpanel" id="p-datagrams" aria-labelledby="t-datagrams" hidden>
-    <h2>Which system does a consumer pick?</h2>
-    <p class="lede">Pick what the consumer needs; the path through the choice lights up and ends at the system to depend on, in its colour. Hexagons are decisions. <!-- presenter: a decision that crosses systems — which module a consumer picks, which system routes a request, which one owns a failure. Name the view after it. MODEL.flows takes the system page's shape; an end with sys:"slug" takes that system's colour, one with lvl a status colour. --></p>
+    <h2>Decision path</h2>
+    <p class="lede">Pick the inputs; the path the system takes lights up. Hexagons are decisions; shaded boxes are where it ends, their stripe coloured by the outcome. <!-- presenter: name the view after the decision the system makes (a dispatch, a routing, an admission) --></p>
     <div class="ctl" id="flow-ctl"></div>
     <p class="outcome" id="outcome"></p>
-    <svg id="svg-flow" viewBox="0 0 980 300" role="img" aria-label="Cross-system decision path"></svg>
-    <!-- generated: shapes, the systems and outcome levels the ends use, lit and faded, planned -->
+    <svg id="svg-flow" viewBox="0 0 980 580" role="img" aria-label="Decision path"></svg>
+    <!-- generated from the flow on screen: its shapes, the outcome levels its ends use (status colours, each with its label), lit and faded, planned -->
     <div class="key" id="flow-key"></div>
   </section>
 
   <section class="view" role="tabpanel" id="p-reliable" aria-labelledby="t-reliable" hidden>
-    <h2>A cross-system interaction</h2>
-    <p class="lede">One interaction that crosses systems, step by step, each lifeline in the colour of the system that owns it. Step through it, or click any message. <!-- presenter: name it after the interaction (a release, a request that spans modules, a plugin call-back) --></p>
+    <h2>Sequence</h2>
+    <p class="lede">The system's defining interaction, step by step. Step through it, or click any message. <!-- presenter: name it after the interaction --></p>
     <div class="ctl">
       <button class="btn" id="seq-prev">‹ prev</button>
       <button class="btn" id="seq-next">next ›</button>
       <button class="btn" id="seq-play" aria-pressed="false">play</button>
       <span id="seq-pos" style="font:12px var(--mono);color:var(--muted)"></span>
     </div>
-    <svg id="svg-seq" viewBox="0 0 1000 300" role="img" aria-label="Cross-system sequence diagram"></svg>
-    <!-- generated: the systems on the lifelines, the consumer and outside parties, the line encodings, planned -->
+    <svg id="svg-seq" viewBox="0 0 1000 600" role="img" aria-label="Sequence diagram"></svg>
+    <!-- generated: the lifeline owners present (their side's hue, as on Structure and Threads), the line encodings, planned -->
     <div class="key" id="seq-key"></div>
   </section>
 
   <section class="view" role="tabpanel" id="p-lifecycles" aria-labelledby="t-lifecycles" hidden>
-    <h2>Lifecycles across systems</h2>
-    <p class="lede">Lifecycles that span systems — from source to a release on Maven Central, each system's version line — coloured by phase. <!-- presenter: cards are examples of shape; keep what the repository has. Phase classes ph1 / ph2 / ph3 are first / middle / last phase; name them in the legend. A row about one system starts with its swatch (<span class="sw" data-sys="slug">). --></p>
+    <h2>Lifecycles and invariants</h2>
+    <p class="lede">Ordered start-up and shutdown, the states a thing can be in, when resources come and go, and the locking or ordering rules — coloured by phase. <!-- presenter: cards below are examples of shape; keep only what the system has. Phase classes: ph1 start / creation, ph2 run / steady state, ph3 stop / teardown — on a card (top rule), a step, a table row or a state box; a card mixing phases marks its rows instead --></p>
     <div class="lgrid">
-      <div class="card"><h3>Source to release <small>the path every module takes</small></h3>
-        <ol class="steps"><li class="ph1">source</li><li class="ph1">compile</li><li class="ph2">level tests</li><li class="ph2">checks</li><li class="ph3">sign</li><li class="ph3">publish</li><li class="ph3">Maven Central</li></ol>
-        <div class="callout ph3"><b>A fact worth a callout</b> — who releases, on what trigger, with its source.</div></div>
-      <div class="card ph3"><h3>Version lines <small>one per system</small></h3>
-        <table class="tbl"><thead><tr><th>System</th><th>Version</th><th>Moves by</th></tr></thead><tbody>
-          <tr><td><span class="sw" data-sys="system-alpha"></span>system-alpha</td><td><code>x.y.z</code></td><td>a letter for a fix, the third number for an addition</td></tr>
-          <tr><td><span class="sw" data-sys="system-beta"></span>system-beta</td><td><code>x.y.z</code></td><td>…</td></tr>
-        </tbody></table></div>
+      <div class="card ph1"><h3>Start-up order <small>what construction or start does, in order</small></h3>
+        <ol class="steps"><li>first</li><li>second</li></ol></div>
+      <div class="card ph3"><h3>Shutdown order <small>every step runs even if an earlier one fails</small></h3>
+        <ol class="steps"><li>first</li><li>second</li><li>third</li></ol>
+        <div class="callout"><b>A fact worth a callout.</b> With its source.</div></div>
+      <div class="card ph2"><h3>Rules</h3>
+        <div class="callout"><b>Lock order</b>, re-entrancy, idempotency, ordering guarantees — one callout each, stated as the code enforces them.</div></div>
     </div>
-    <div class="key"><span><i class="ph1"></i>build</span><span><i class="ph2"></i>verify</span><span><i class="ph3"></i>release</span><span><i class="pln"></i>planned, not built</span></div>
+    <div class="key"><span><i class="ph1"></i>start · creation</span><span><i class="ph2"></i>run · steady state and its rules</span><span><i class="ph3"></i>stop · teardown</span><span><i class="pln"></i>planned, not built</span></div>
   </section>
 </div>
 
 <aside class="inspector" id="inspector" aria-live="polite">
   <h2>Inspector</h2>
-  <div id="insp-body"><p>Select a system, a C4 element, a thread, a decision or a sequence step to see its details here.</p></div>
+  <div id="insp-body"><p>Select a component, C4 element, thread, datagram or sequence step to see its details here.</p></div>
 </aside>
 </div>
 
 <section class="guarantees" aria-label="Guarantees">
-  <!-- presenter: what a consumer can rely on, across the systems of this page: the seven standard bubbles, each covering every
-       system with one row (its swatch and slug, then the fact in a few words, read from that system's page or code); a planned
-       system's row is dashed (class planned) and says only that nothing is built to guarantee yet, with its issue. A fact that cannot be established is a gap (<span class="gap">…</span>), never a
-       guess. Add a bubble where the repository has another guarantee worth stating; removing a standard one is a divergence. -->
+  <!-- presenter: what a consumer can rely on, always visible whatever tab is open, and never a tab. Seven standard bubbles,
+       each a compact titled panel of three to five short lines, every fact read from the code, its KDoc or its build at the
+       commit the header names. A fact that cannot be established is written as a gap (<span class="gap">…</span>), never
+       guessed. Add a bubble where the system has another guarantee worth stating; removing a standard one is a divergence
+       (a strong argument, such as no data for it existing, recorded in the footer). A bubble that colours anything uses the
+       page's colour plan and says what the colour means. Failure model, Extension points and Test levels may also get a full
+       optional tab when they need a diagram this summary cannot hold; the bubble stays. -->
   <h2>Guarantees</h2>
   <div class="bubbles">
     <div class="bubble"><h3>Failure model</h3>
-      <table class="gtbl"><tbody>
-        <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td><code>kotlin.Result</code>; typed failures …; retries …</td></tr>
-        <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td>…</td></tr>
-        <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
-      </tbody></table></div>
+      <!-- presenter: how failures reach a consumer (a kotlin.Result, a typed exception, a callback, only a log line), what the
+           system retries itself and what it surfaces, and what is thrown rather than returned -->
+      <ul><li>Fallible calls return <code>kotlin.Result</code>; typed failures: <code>SomeFailure</code> …</li><li>Thrown, not returned: … (construction, misuse).</li><li>Retried inside: … · surfaced: …</li></ul></div>
     <div class="bubble"><h3>Extension points</h3>
-      <table class="gtbl"><tbody>
-        <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td><code>SeamType</code> <span class="badge">Stable Core</span></td></tr>
-        <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td><code>Port</code> <span class="badge">Experimental · @MarkerName</span></td></tr>
-        <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
-      </tbody></table></div>
+      <!-- presenter: each public seam (open or abstract class, interface, hook, strategy parameter) with its stability tier —
+           Stable Core, Supported Extension (@SupportedExtension) or Experimental (name its @RequiresOptIn marker) -->
+      <ul><li><code>SeamType</code> — what a consumer overrides or supplies <span class="badge">Stable Core</span></li></ul></div>
     <div class="bubble"><h3>Test levels <small>n classes</small></h3>
-      <!-- presenter: test classes per system per level, counted from each system's testing.<level> packages; link the test-inspector report when one exists -->
-      <div class="scroll"><table class="gtbl"><thead><tr><th>System</th><th class="n">L1</th><th class="n">L2</th><th class="n">L3</th><th class="n">L4a</th><th class="n">L4b</th><th class="n">L4c</th><th class="n">L5</th></tr></thead><tbody>
-        <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td></tr>
-        <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td></tr>
-        <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td colspan="7">planned (#N) — no tests yet</td></tr>
-      </tbody></table></div></div>
+      <!-- presenter: test classes per level of the 5-level hierarchy, counted from the testing.<level> packages; one row per level
+           that exists; width = count / max. Link the test-inspector report (build/reports/test-inspector/index.html) when one exists. -->
+      <div class="bars" role="table" aria-label="Test classes per testing level">
+        <span class="lbl">L1 gating</span><span class="trk"><span class="fil" style="width:100%"></span></span><span class="val">n</span>
+      </div>
+      <p>Packages <code>….testing.&lt;level&gt;.…</code>; run one level with <code>./gradlew gatingTest</code>, …</p></div>
     <div class="bubble"><h3>Compatibility &amp; versioning</h3>
-      <table class="gtbl"><tbody>
-        <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td><code>x.y.z</code> · ABI dump checked · deprecate, don't break</td></tr>
-        <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td><code>x.y.z</code> · <span class="gap">not checked</span> · legacy: may break freely</td></tr>
-        <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
-      </tbody></table></div>
+      <!-- presenter: the current version; how versions move here (a trailing letter for a bug fix, the third number for an
+           addition, a major for a break); what the build checks (an ABI dump, where one exists — else say it is not checked);
+           the deprecation policy (deprecate, don't break — or "legacy: may break freely" where that applies); the runtime floor -->
+      <ul><li>Version <code>x.y.z</code> · how it moves …</li><li>Checked: … · deprecation: …</li></ul></div>
     <div class="bubble"><h3>Thread safety</h3>
-      <table class="gtbl"><tbody>
-        <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td>safe to share: … · confined: …</td></tr>
-        <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td>…</td></tr>
-        <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
-      </tbody></table></div>
+      <!-- presenter: which public types are safe to share across threads or coroutines, which are confined, and on which thread
+           each callback runs — as the KDoc and the code state it; an undocumented case is a gap -->
+      <ul><li>Safe to share: …</li><li>Confined: …</li><li>Callbacks run on: …</li></ul></div>
     <div class="bubble"><h3>Resources to close</h3>
-      <table class="gtbl"><tbody>
-        <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td><code>stop()</code> — releases … · skipped: …</td></tr>
-        <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td>nothing to close</td></tr>
-        <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
-      </tbody></table></div>
+      <!-- presenter: what a consumer must close or stop (sockets, threads, files, processes), the member that does it, whether
+           the type is AutoCloseable, and what leaks if they don't -->
+      <ul><li><code>stop()</code> — releases … · skipped: …</li></ul></div>
     <div class="bubble"><h3>On your classpath</h3>
-      <table class="gtbl"><tbody>
-        <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td><code>group:artifact:version</code></td></tr>
-        <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td>…</td></tr>
-        <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
-      </tbody></table></div>
+      <!-- presenter: the api dependencies a consumer inherits, with coordinates and versions, from the build file or the
+           published POM; implementation-only dependencies do not belong here -->
+      <ul><li><code>group:artifact:version</code> — why it is api</li></ul></div>
   </div>
 </section>
 
@@ -570,50 +518,39 @@ footer code{color:var(--ink-2)}
   <h2>Context</h2>
   <div class="cards">
     <div class="card"><h3>Roadmap <small>n items · YYYY-MM-DD</small></h3>
-      <!-- presenter: every roadmap item: a tracking issue with its sub-issues (gh issue view <n> --json subIssues,parent), or an
-           entry in a roadmap document the repository keeps, with the issues it names. Under each, every issue mapped to it:
-           number, title, state, level where known, and the system it touches (a badge with data-sys); planned systems point at
-           their architecture documents. -->
+      <!-- presenter: each roadmap item that claims an issue touching this system. A roadmap item is a tracking issue with its
+           sub-issues (gh issue view <n> --json subIssues,parent), or an entry in a roadmap document the repository keeps, with
+           the issues it names. Under each item, its issues that touch this system: number, title, state and, where a level label
+           exists, level; then how many of its issues touch other systems. No item claims one: say so in a single line. -->
       <ol class="roadmap">
         <li><div class="ri"><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span>Roadmap item title <small>tracking issue</small></span><span class="tags"><span class="badge">open</span><span class="badge">L4</span></span></div>
           <ul class="issues">
-            <li><a href="https://github.com/ORG/REPO/issues/M" target="_blank" rel="noopener">#M</a><span>Issue mapped to the item</span><span class="tags"><span class="badge" data-sys="system-gamma">system-gamma</span><span class="badge">open</span><span class="badge">L3</span></span></li>
-          </ul></li>
+            <li><a href="https://github.com/ORG/REPO/issues/M" target="_blank" rel="noopener">#M</a><span>Issue mapped to the item</span><span class="tags"><span class="badge">open</span><span class="badge">L2</span></span></li>
+          </ul>
+          <p class="more">n more of its issues touch other systems.</p></li>
       </ol></div>
     <div class="card"><h3>Unscheduled issues <small>n open · YYYY-MM-DD</small></h3>
-      <!-- presenter: the open issues no roadmap item claims, each badged with the system it touches -->
-      <ul class="issues"><li><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span>Issue title</span><span class="tags"><span class="badge" data-sys="system-alpha">system-alpha</span><span class="badge bug">bug</span></span></li></ul></div>
+      <!-- presenter: only the open issues touching this system that no roadmap item claims (the open issues from gh issue list,
+           minus every issue the Roadmap card lists); badges: bug (status colour), planned (dashed), the type, and the level where known -->
+      <ul class="issues">
+        <li><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span>Issue title</span><span class="tags"><span class="badge bug">bug</span></span></li>
+      </ul></div>
     <div class="card"><h3>Plans and documents</h3>
-      <ul class="docs"><li><a href="https://github.com/ORG/REPO/blob/main/README.md" target="_blank" rel="noopener">README</a></li><li><code>systems.json</code> — the registry this page is built from</li><li>Plans: #N … (architecture of each planned system)</li></ul></div>
+      <ul class="docs">
+        <li><a href="https://github.com/ORG/REPO/blob/main/docs/…" target="_blank" rel="noopener">architecture document</a> — what it covers (this dashboard's source)</li>
+        <li><code>workspace.dsl</code> — the C4 model beside this page; the C4 tab is rendered from it</li>
+        <li>Plans that shaped the system: #N …</li>
+      </ul></div>
   </div>
 </section>
 
-<footer>Built from <code>docs/dashboards/systems.json</code>, <code>workspace.dsl</code> and the code at <code>branch sha</code>. Code is authoritative on any conflict. Maintained by the presenter agent on each <code>/resolve-issue</code> run.<!-- presenter: list each divergence from the template here, one numbered line each. Adding needs only its line; removing anything — a core tab, a standard Guarantees bubble, a legend entry — carries its strong argument (e.g. no data for it exists). --></footer>
+<footer>Drawn from <code>docs/…architecture.md</code>, <code>workspace.dsl</code> and the code at <code>branch sha</code>. Code is authoritative on any conflict. Maintained by the presenter agent, refreshed when a change to this system lands: structure in the DSL (re-embedded below verbatim), behaviour in this file's <code>MODEL</code>.<!-- presenter: list each divergence from the template here, one numbered line each. Adding (a tab, a bubble, a card, a view) needs only its line; removing anything — a core tab, a standard Guarantees bubble, a legend entry — carries its strong argument (e.g. no data for it exists). --></footer>
 </div>
 
-<!-- A verbatim copy of docs/dashboards/systems.json (scripts/embed.js … systems). -->
-<script type="application/json" id="systems">
-{
-  "repo": "ORG/REPO",
-  "updated": "YYYY-MM-DD",
-  "systems": [
-    {"slug": "system-alpha", "name": "system-alpha", "kind": "system", "parent": null, "status": "built",
-     "function": "What system alpha does, in one sentence.", "paths": ["system-alpha/"], "version": "x.y.z",
-     "asIs": {"ref": "main", "sha": "sha", "date": "YYYY-MM-DD"}, "lastAmended": {"issue": 0, "sha": "sha"},
-     "page": "system-alpha/index.html", "dsl": "system-alpha/workspace.dsl"},
-    {"slug": "system-beta", "name": "system-beta", "kind": "system", "parent": null, "status": "built",
-     "function": "What system beta does.", "paths": ["system-beta/"], "version": "x.y.z",
-     "asIs": {"ref": "main", "sha": "sha", "date": "YYYY-MM-DD"}, "lastAmended": {"issue": 0, "sha": "sha"},
-     "page": "system-beta/index.html", "dsl": "system-beta/workspace.dsl"},
-    {"slug": "system-gamma", "name": "system-gamma", "kind": "system", "parent": null, "status": "planned",
-     "function": "What it will do.", "paths": [], "plannedBy": {"issue": 0, "architecture": "docs/plans/N-slug/architecture.md"}}
-  ]
-}
-</script>
-
-<!-- A verbatim copy of workspace.dsl (scripts/embed.js … dsl). -->
+<!-- The C4 model. A verbatim copy of workspace.dsl: the presenter re-embeds the file here on every run,
+     and the C4 tab is parsed from this text at load, so what the tab shows is what the file says. -->
 <script type="text/plain" id="dsl">
-// <supersystem or repo> — C4 model as code (Structurizr DSL): the systems and how they interact. Source of truth for the page beside it.
+// <system-slug> — C4 model as code (Structurizr DSL). Source of truth for the structure shown on the page beside it.
 // As-is at <repo> <branch> <sha> (<date>), <system> <version>. Code is authoritative on any conflict.
 workspace "REPO" "One sentence on the repository." {
 
@@ -622,14 +559,17 @@ workspace "REPO" "One sentence on the repository." {
     model {
         user = person "Consumer" "Who uses the system and how."
         repo = softwareSystem "REPO" "The repository as a software system." {
-            alpha = container "system-alpha" "What system alpha does." "Kotlin/JVM library · x.y.z"
-            beta  = container "system-beta"  "What system beta does."  "Kotlin/JVM library · x.y.z"
-            // a system the roadmap plans but nothing has built yet — drawn dashed, never as built
-            gamma = container "system-gamma" "Issue #N: what it will do." "proposed" "Planned"
+            sys = container "system-slug" "What the system does, in one sentence." "Kotlin/JVM library · x.y.z" {
+                // ---- public surface ----
+                facade = component "SystemFacade" "The public entry point." "class" "Public"
+                // ---- internals ----
+                core   = component "CoreEngine" "Does the work behind the facade." "internal class" "Internal"
+                // ---- planned, not built (drawn dashed and faded; only Planned is dashed) ----
+                // next = component "Planned part" "Issue #N: …" "proposed" "Planned"
+            }
         }
-        user -> repo.alpha "Uses"
-        repo.alpha -> repo.beta "Depends on"
-        repo.gamma -> repo.beta "Would depend on (planned)"
+        user -> repo.sys.facade "Calls"
+        repo.sys.facade -> repo.sys.core "Delegates to"
     }
 
     views {
@@ -641,9 +581,13 @@ workspace "REPO" "One sentence on the repository." {
             include *
             autoLayout lr
         }
-        dynamic repo "CrossSystemFlow" "A flow that crosses systems, as built." {
-            user -> repo.alpha "request()"
-            repo.alpha -> repo.beta "call()"
+        component repo.sys "Components" "system-slug as built at <sha>." {
+            include *
+            autoLayout tb
+        }
+        dynamic repo.sys "MainFlow" "The main flow, as built." {
+            user -> repo.sys.facade "request()"
+            repo.sys.facade -> repo.sys.core "work()"
             autoLayout lr
         }
         styles {
@@ -662,155 +606,77 @@ workspace "REPO" "One sentence on the repository." {
 
 <script>
 "use strict";
+const REPO="https://github.com/ORG/REPO";
+const SRC=REPO+"/blob/main/<path to the system's source root>/"; // presenter: every d.files entry links under here
 const NS="http://www.w3.org/2000/svg";
 const mk=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;};
 const txt=(p,x,y,lines,cls,anchor,dy)=>{const t=mk("text",{x,y,class:cls||"","text-anchor":anchor||"start"},p);(Array.isArray(lines)?lines:[lines]).forEach((l,i)=>{const s=mk("tspan",{x,dy:i?(dy||12):0},t);s.textContent=l;});return t;};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+const flink=f=>`<a href="${SRC}${f}" target="_blank" rel="noopener">${f}</a>`;
+const ilink=n=>`<a href="${REPO}/issues/${n}" target="_blank" rel="noopener">#${n}</a>`;
 function inspect(html){ $("#insp-body").innerHTML=html; }
 function arrowDefs(svg,id,color){ const d=mk("defs",{},svg); const m=mk("marker",{id,viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"7",markerHeight:"7",orient:"auto-start-reverse"},d); mk("path",{d:"M0,0 L10,5 L0,10 z",fill:color||"var(--ink-2)"},m); const mo=mk("marker",{id:id+"-open",viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"7",markerHeight:"7",orient:"auto-start-reverse"},d); mk("path",{d:"M0,0 L10,5 L0,10",fill:"none",stroke:color||"var(--ink-2)","stroke-width":"1.5"},mo); const mon=mk("marker",{id:id+"-on",viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"7",markerHeight:"7",orient:"auto-start-reverse"},d); mk("path",{d:"M0,0 L10,5 L0,10 z",fill:"var(--on)"},mon); }
 
-/* ---------- Systems (from the embedded registry) ---------- */
-const REG=JSON.parse(document.getElementById("systems").textContent);
-const REPO="https://github.com/"+REG.repo;
-const ilink=n=>`<a href="${REPO}/issues/${n}" target="_blank" rel="noopener">#${n}</a>`;
-const SYSTEMS=REG.systems.filter(s=>s.kind!=="repo");
-$("#sys-count").textContent=`${SYSTEMS.filter(s=>s.status==="built").length} built · ${SYSTEMS.filter(s=>s.status==="planned").length} planned`;
-
-/* ---------- System colours ----------
-   One categorical slot per top-level system (one whose parent is not itself on this page), in registry order; a child takes its
-   top-level ancestor's slot. Six slots: the seventh top-level system on, and any slug the registry does not know, fold into the
-   neutral "other". Every element drawn for a system sets --c from here — paintSystems() does it for hand-written [data-sys]
-   elements — so a system keeps one colour on every tab. */
-const SLOTS=6, bySlug=slug=>SYSTEMS.find(s=>s.slug===slug);
-function sysTop(slug){ let s=bySlug(slug); while(s&&bySlug(s.parent)) s=bySlug(s.parent); return s; }
-const TOPS=SYSTEMS.filter(s=>!bySlug(s.parent));
-function sysColour(slug){ const i=TOPS.indexOf(sysTop(slug)); return i>=0&&i<SLOTS?`var(--sys-${i+1})`:"var(--muted)"; }
-function paintSystems(root){ (root||document).querySelectorAll("[data-sys]").forEach(e=>e.style.setProperty("--c",sysColour(e.dataset.sys))); }
-/* Legend entries for a set of systems: one per top-level system, in slot order, then "other" when any folded. */
-function sysKey(slugs,cls){ const tops=TOPS.filter(t=>slugs.some(s=>sysTop(s)===t)), more=slugs.some(s=>{ const i=TOPS.indexOf(sysTop(s)); return i<0||i>=SLOTS; });
-  return tops.filter(t=>TOPS.indexOf(t)<SLOTS).map(t=>`<span><i class="${cls||"sys"}" style="--c:${sysColour(t.slug)}"></i>${esc(t.name)}</span>`).join("")+(more?`<span><i class="${cls||"sys"}" style="--c:var(--muted)"></i>other systems</span>`:""); }
-
-function renderSystems(){
-  $("#syscards").innerHTML=SYSTEMS.map(s=>{
-    const planned=s.status==="planned";
-    const meta=planned?[`planned by #${(s.plannedBy||{}).issue||"?"}`]:[`v${s.version||"?"}`, s.asIs?`as-is ${s.asIs.ref} ${s.asIs.sha} · ${s.asIs.date}`:"", s.lastAmended?`amended by #${s.lastAmended.issue}`:""].filter(Boolean);
-    const tag=planned?"span":"a", href=planned?"":` href="${esc(s.page||"#")}"`;
-    return `<${tag} class="syscard ${planned?"planned":"built"}"${href} data-slug="${esc(s.slug)}" style="--c:${sysColour(s.slug)}" tabindex="0"><div class="st">${planned?"planned · no page yet":"built"}</div><div class="nm">${esc(s.name)}</div><div class="fn">${esc(s.function||"")}</div><div class="meta">${meta.map(m=>`<span>${esc(m)}</span>`).join("")}</div></${tag}>`;
-  }).join("");
-  document.querySelectorAll(".syscard").forEach(c=>{ const show=()=>{ const s=SYSTEMS.find(x=>x.slug===c.dataset.slug); inspect(`<div class="kicker">SYSTEM · ${s.status.toUpperCase()}</div><div class="name">${esc(s.name)}</div><div class="vis">${esc((s.paths||[]).join(" · ")||"no code paths yet")}</div><p>${esc(s.function||"")}</p><dl>${s.page?`<dt>Dashboard</dt><dd><a href="${esc(s.page)}">${esc(s.page)}</a></dd>`:""}${s.parent?`<dt>Parent</dt><dd>${esc(s.parent)}</dd>`:""}${s.plannedBy?`<dt>Planned by</dt><dd>#${s.plannedBy.issue} · <code>${esc(s.plannedBy.architecture||"")}</code></dd>`:""}</dl>`); }; c.addEventListener("mouseenter",show); c.addEventListener("focus",show); });
-  $("#systems-key").innerHTML=sysKey(SYSTEMS.map(s=>s.slug))+`<span><i></i>built: opens its page</span><span><i class="pln"></i>planned: no page yet</span>`;
-}
-renderSystems();
-paintSystems();
-
 /* =========================================================================
-   MODEL — the hand-placed cross-system views: how the systems compose, the threads and processes they start, a decision that
-   crosses them, an interaction that spans them. The registry and the DSL hold the rest; `c4` maps structure boxes to their
-   DSL elements so the Structure and C4 tabs cross-reference each other.
+   MODEL — the as-built behaviour this page draws (threads, flows, sequence) and the
+   hand-placed component map. Structure also lives in the DSL above; `c4` maps map
+   nodes to their DSL element so the two views cross-reference.
    ========================================================================= */
 const MODEL = {
-  // Names for lifeline owners that are not systems; a lifeline with sys:"slug" takes that system's colour instead.
-  sides:{consumer:"the consumer's code",external:"outside the repository"},
-  // Structure box id → DSL element id.
-  c4:{alpha:"repo.alpha",beta:"repo.beta",gamma:"repo.gamma"},
-  structure:{
-    // A 1000-wide viewBox, `height` tall. Lanes: [text, x, y, anchor]. Notes: {x, y, lines}.
-    // Nodes: sys = the registry slug (its colour); container = a supersystem box its systems sit inside (nesting is composition);
-    // planned = dashed and faded; d = what the inspector shows (role, issues). deps: [from, to, label, planned?] — an arrow from
-    // a system to what it depends on, labelled with how (api, implementation, a runtime call).
-    height:330,
-    lanes:[["BUILT",40,30,"start"],["PLANNED",620,30,"start"]],
-    notes:[{x:40,y:306,lines:["Each box is a system in its colour; a box inside another is part of that supersystem."]}],
+  // The page's colour groups: the three hue slots (server = blue, client = orange, wire = aqua) plus the consumer's own code
+  // and anything outside the system. Name them for what they are here; the inspector and the generated legends use these names,
+  // and a group keeps its hue on every tab.
+  sides:{server:"side A",client:"side B",wire:"shared",consumer:"the consumer's code",external:"outside the system"},
+  // Map node id → DSL element id, so the component map and the C4 tab cross-reference each other.
+  c4:{sys:"repo.sys.facade",core:"repo.sys.core"},
+  structure: {
+    // Lane captions: [text, x, y, anchor]. The map is a 1000×612 viewBox; place nodes by hand — nesting is ownership.
+    lanes:[["SYSTEM",40,44,"start"]],
+    // Free-text notes drawn on the map: {x, y, lines:[...]}.
+    notes:[],
+    // Nodes: side = server | client | wire (hue); vis = pub | int (fill vs outline); container = a box others sit inside;
+    // chip = a small pill (wire tags); kind = "standalone" for a dotted box outside the stack, "planned" for a dashed, faded
+    // box the code does not have yet (name the issue that plans it in d.issues).
+    // d = what the inspector shows: role, vis, files (relative to the source root link below), threads (keys of MODEL.threads), issues.
     nodes:[
-      {id:"alpha",sys:"system-alpha",x:40,y:44,w:260,h:60,t:"system-alpha",s:"what it does · x.y.z",d:{role:"What system alpha is for, in a line.",issues:[]}},
-      {id:"beta",sys:"system-beta",x:40,y:194,w:260,h:60,t:"system-beta",s:"what it does · x.y.z",d:{role:"What system beta is for.",issues:[]}},
-      {id:"gamma",sys:"system-gamma",planned:true,x:620,y:194,w:260,h:60,t:"system-gamma",s:"planned · issue #N",d:{role:"What it will do, per its architecture.",issues:[]}}
-    ],
-    deps:[["alpha","beta","api"],["gamma","beta","would depend on",true]]
+      {id:"sys",side:"server",vis:"pub",container:true,x:40,y:56,w:600,h:220,t:"SystemFacade",s:"public entry point · what it owns",
+        d:{role:"What this type is for and what it owns.",vis:"public · class",files:["SystemFacade.kt"],threads:["main-worker"],issues:[]}},
+      {id:"core",side:"server",vis:"int",x:60,y:110,w:200,h:50,t:"CoreEngine",s:"internal · does the work",
+        d:{role:"What this internal type does.",vis:"internal",files:["CoreEngine.kt"],threads:["main-worker"]}}
+    ]
   },
-  // Threads and processes, keyed by name: sys (owning system's slug), kind ("thread" | "process"), created, runs, note, issues.
+  // Threads: keyed by name; side = server | client | wire (the owning side's hue, as on Structure); created, runs, sends (what it
+  // puts on the wire), note, issues.
   threads:{
-    "alpha-worker":{sys:"system-alpha",kind:"thread",created:"eagerly, at construction",runs:"what runs on it.",note:"",issues:[]},
-    "beta-io":{sys:"system-beta",kind:"thread",created:"lazily, on first use",runs:"what runs on it.",note:""},
-    "beta-helper":{sys:"system-beta",kind:"process",created:"only when …",runs:"what the child process does, and who stops it.",note:""},
-    "gamma-loop":{sys:"system-gamma",kind:"thread",created:"planned — not built",runs:"what the architecture says it will run.",note:"Planned by issue #N.",planned:true}
+    "main-worker":{side:"server",created:"eagerly, at construction",runs:"what runs on this thread.",sends:[],note:"",issues:[]}
   },
-  // Decision paths: the system page's shape (controls, a node grid, edges, rules(state) → {path, outcome, irrelevant}).
-  // An end (k:"t") with sys:"slug" takes that system's colour; one with lvl a status colour; planned:true draws it dashed.
+  // Decision paths: one or more variants, each with its own controls, nodes on a column/row grid, edges with labels, and
+  // rules(state) → {path:[node ids], outcome, irrelevant:[control keys that do not matter for this outcome]}.
+  // Node kinds: p = process, d = decision (hexagon), t = terminal (lvl: DELIVER | WARN | DEBUG | TRACE … drawn as a status
+  // stripe with its label: DELIVER green, WARN orange, any other level grey). planned:true draws a node and its edges dashed.
   flows:[
-    {id:"pick",label:"which system",kicker:"DECISION PATH",runsOn:"",foot:"the consumer's choice, before any code runs",
-     controls:[{key:"need",label:"Consumer needs",def:"a",options:[["a","A"],["b","B"],["c","C"]]},{key:"rt",label:"Runtime",def:"jvm",options:[["jvm","JVM"],["other","other"]]}],
-     names:{a:"needs A",b:"needs B",c:"needs C"},
-     nodes:{IN:{c:0,r:0,k:"p",t:["the consumer","has a need"]},Q:{c:1,r:0,k:"d",t:["which","need?"]},A:{c:2,r:0,k:"t",sys:"system-alpha",t:["depend on","system-alpha"]},
-            RT:{c:2,r:1,k:"d",t:["runtime","the JVM?"]},B:{c:3,r:1,k:"t",sys:"system-beta",t:["depend on","system-beta"]},NONE:{c:3,r:2,k:"t",lvl:"NONE",t:["nothing","here yet"]},
-            C:{c:2,r:3,k:"t",sys:"system-gamma",planned:true,t:["system-gamma","planned · #N"]}},
-     edges:[["IN","Q"],["Q","A","A"],["Q","RT","B"],["RT","B","yes"],["RT","NONE","no"],["Q","C","C"]],
-     rules(s){ const p=["IN","Q"], R=(outcome,irrelevant)=>({path:p,outcome,irrelevant:irrelevant||[]});
-       if(s.need==="a"){ p.push("A"); return R("system-alpha covers it on any runtime.",["rt"]); }
-       if(s.need==="c"){ p.push("C"); return R("Nothing yet: system-gamma would, once its issue lands.",["rt"]); }
-       p.push("RT"); if(s.rt==="jvm"){ p.push("B"); return R("system-beta, on the JVM."); } p.push("NONE"); return R("No system serves B outside the JVM."); }}
+    {id:"main",label:"main",kicker:"DECISION PATH",runsOn:"main-worker",foot:"runs on main-worker",
+     controls:[{key:"input",label:"Input",def:"a",options:[["a","case A"],["b","case B"]]}],
+     names:{a:"case A",b:"case B"},
+     nodes:{IN:{c:0,r:0,k:"p",t:["entry","what arrives"]},Q:{c:1,r:0,k:"d",t:["which","case?"]},A:{c:2,r:0,k:"t",lvl:"DELIVER",t:["outcome A"]},B:{c:2,r:1,k:"t",lvl:"WARN",t:["outcome B"]}},
+     edges:[["IN","Q"],["Q","A","a"],["Q","B","b"]],
+     rules(s){ const p=["IN","Q"]; if(s.input==="a"){ p.push("A"); return {path:p,outcome:"Case A ends here.",irrelevant:[]}; } p.push("B"); return {path:p,outcome:"Case B ends here.",irrelevant:[]}; }}
   ],
-  // The sequence: lifelines {n, sys} (a system's colour) or {n, side} (a key of MODEL.sides), phases, steps — as on a system page.
+  // The sequence: lifelines in order — a name, or {n: name, side: a key of MODEL.sides (its header takes that hue), planned} —
+  // phases [label, firstStep, lastStep], steps {f, t, l (label), n (note), ret (return: dashed, open head), self, planned}.
+  // kicker names the sequence in the inspector.
   sequence:{
     kicker:"SEQUENCE",
-    lifelines:[{n:"consumer",side:"consumer"},{n:"system-alpha",sys:"system-alpha"},{n:"system-beta",sys:"system-beta"}],
-    phases:[["REQUEST",0,3]],
+    lifelines:[{n:"caller",side:"consumer"},{n:"SystemFacade",side:"server"},{n:"CoreEngine",side:"server"}],
+    phases:[["CALL",0,2]],
     steps:[
-      {f:0,t:1,l:"request()",n:"What the consumer asks system alpha for."},
-      {f:1,t:2,l:"call()",n:"What alpha needs from beta to answer — the cross-system hop."},
-      {f:2,t:1,l:"result",ret:true,n:"What beta returns, and what it does not promise."},
-      {f:1,t:0,l:"answer",ret:true,n:"What reaches the consumer."}
+      {f:0,t:1,l:"request()",n:"What the caller asks for."},
+      {f:1,t:2,l:"work()",n:"What the facade delegates."},
+      {f:1,t:0,l:"result",ret:true,n:"What comes back, and what it does not promise."}
     ]
   }
 };
-
-/* ---------- Structure (MODEL.structure) ---------- */
-function renderStructure(){
-  const svg=$("#svg-structure"); if(svg.dataset.done) return; svg.dataset.done="1";
-  const S=MODEL.structure, box=id=>{ const n=S.nodes.find(x=>x.id===id); return [n.x,n.y,n.w,n.h]; };
-  svg.setAttribute("viewBox",`0 0 1000 ${S.height||330}`);
-  arrowDefs(svg,"darr","var(--ink-2)");
-  S.lanes.forEach(([l,x,y,a])=>txt(svg,x,y,l,"lane",a));
-  S.nodes.forEach(n=>{
-    const g=mk("g",{class:`snode${n.container?" container":""}${n.planned?" planned":""}`,tabindex:0,role:"button","data-id":n.id,"aria-label":n.t,style:`--c:${sysColour(n.sys)}`},svg);
-    mk("rect",{x:n.x,y:n.y,width:n.w,height:n.h,rx:6},g); txt(g,n.x+10,n.y+19,n.t,"t"); txt(g,n.x+10,n.y+34,Array.isArray(n.s)?n.s:[n.s],"s");
-    const go=()=>selectNode(n.id); g.addEventListener("click",go); g.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } });
-  });
-  S.deps.forEach(([a,b,label,planned])=>{
-    const A=box(a),B=box(b),[ax,ay]=edgePoint(A,B[0]+B[2]/2,B[1]+B[3]/2),[bx,by]=edgePoint(B,A[0]+A[2]/2,A[1]+A[3]/2), g=mk("g",{class:"sdep"+(planned?" planned":"")},svg);
-    mk("path",{d:`M${ax},${ay} L${bx},${by}`,"marker-end":"url(#darr)"},g);
-    if(label){ const mx=(ax+bx)/2,my=(ay+by)/2,w=label.length*5.4+12; mk("rect",{class:"lbg",x:mx-w/2,y:my-8,width:w,height:15,rx:7},g); txt(g,mx,my+3,label,"","middle"); }
-  });
-  S.notes.forEach(nt=>txt(svg,nt.x,nt.y,nt.lines,"note",null,13));
-  $("#structure-key").innerHTML=sysKey(S.nodes.map(n=>n.sys),"sys")+`<span><i class="ln"></i>depends on, labelled with how</span><span><i style="background:none"></i>a box inside another: part of that supersystem</span><span><i class="pln"></i>planned, not built</span>`;
-}
-function selectNode(id){
-  const S=MODEL.structure, n=S.nodes.find(x=>x.id===id); if(!n) return;
-  document.querySelectorAll("#svg-structure .snode").forEach(g=>g.classList.toggle("sel",g.dataset.id===id));
-  const s=bySlug(n.sys)||{}, d=n.d||{}, nm=k=>esc((S.nodes.find(x=>x.id===k)||{}).t||k);
-  const uses=S.deps.filter(x=>x[0]===id), by=S.deps.filter(x=>x[1]===id);
-  let html=`<div class="kicker">${n.container?"SUPERSYSTEM":"SYSTEM"} · ${esc((s.status||(n.planned?"planned":"")).toUpperCase())}</div><div class="name">${esc(n.t)}</div><div class="vis">${esc((s.paths||[]).join(" · "))}</div><p>${esc(d.role||s.function||"")}</p><dl>`;
-  if(uses.length) html+=`<dt>Depends on</dt><dd>${uses.map(x=>`→ <b>${nm(x[1])}</b>${x[2]?" — "+esc(x[2]):""}`).join("<br>")}</dd>`;
-  if(by.length) html+=`<dt>Used by</dt><dd>${by.map(x=>`← <b>${nm(x[0])}</b>${x[2]?" — "+esc(x[2]):""}`).join("<br>")}</dd>`;
-  if(s.page) html+=`<dt>Dashboard</dt><dd><a href="${esc(s.page)}">${esc(s.page)}</a></dd>`;
-  if(d.issues&&d.issues.length) html+=`<dt>Open issues</dt><dd>${d.issues.map(ilink).join(" · ")}</dd>`;
-  const c4id=MODEL.c4[id]; if(c4id&&el(c4id)) html+=`<dt>In the C4 model</dt><dd><button class="linkbtn" data-c4="${c4id}">${esc(el(c4id).name)} · ${el(c4id).tags.slice(2).map(esc).join(", ")||TYPE_LABEL[el(c4id).type].toLowerCase()} → open</button></dd>`;
-  inspect(html+"</dl>");
-  const b=$("#insp-body .linkbtn[data-c4]"); if(b) b.addEventListener("click",()=>openC4(b.dataset.c4));
-}
-
-/* ---------- Threads and processes ---------- */
-function selectThread(id){
-  const t=MODEL.threads[id]; if(!t) return;
-  document.querySelectorAll(".thread").forEach(x=>x.classList.toggle("sel",x.dataset.t===id));
-  let html=`<div class="kicker">${esc((t.kind||"thread").toUpperCase())} · ${esc(((bySlug(t.sys)||{}).name||t.sys||"").toUpperCase())}${t.planned?" · PLANNED":""}</div><div class="name">${esc(id)}</div><div class="vis">created ${esc(t.created)}</div><p>${esc(t.runs)}</p><dl>`;
-  if(t.note) html+=`<dt>Note</dt><dd>${esc(t.note)}</dd>`;
-  if(t.issues&&t.issues.length) html+=`<dt>Open issues</dt><dd>${t.issues.map(ilink).join(" · ")}</dd>`;
-  inspect(html+"</dl>");
-}
-document.querySelectorAll(".thread").forEach(x=>{ x.addEventListener("click",()=>selectThread(x.dataset.t)); x.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); selectThread(x.dataset.t); } }); });
-$("#threads-key").innerHTML=sysKey([...document.querySelectorAll("#p-threads .thread[data-sys]")].map(x=>x.dataset.sys),"sbar")+`<span><span class="pill eager">eager</span>started at construction</span><span><span class="pill lazy">lazy</span>started on first use</span><span><span class="pill cond">if …</span>only under a condition</span><span><span class="k">process</span>a child process, not a thread</span><span><span class="pill planned">planned</span>planned, not built</span>`;
 
 /* =========================================================================
    C4 — a Structurizr DSL reader for the subset this workspace uses (hierarchical
@@ -1067,14 +933,58 @@ function showDsl(){
   // The legend: one swatch per DSL element style (element kinds, External, Internal, Standalone, Planned), then the line encodings.
   $("#c4-key").innerHTML=C4.styles.filter(s=>s.props.background).map(s=>`<span><i style="background:${esc(s.props.background)};border-style:${esc(s.props.border||"solid")};opacity:${(+s.props.opacity||100)/100}"></i>${esc(s.tag)}</span>`).join("")+`<span><i class="arrow"></i>relationship, labelled with its DSL description</span><span><i class="arrow dashed"></i>to or from a Planned element</span><span><i class="frame"></i>boundary: the view's scope</span>`;
 })();
-function openC4(elementId){ show("t-c4"); const vi=["component","container"].map(t=>C4.views.findIndex(v=>v.type===t&&v.scope!==elementId&&isWithin(elementId,v.scope))).find(i=>i>=0); renderC4(vi!==undefined?vi:0); selectC4(elementId); }
+function openC4(elementId){ show("t-c4"); const vi=C4.views.findIndex(v=>v.type==="component"&&isWithin(elementId,v.scope)); renderC4(vi>=0?vi:0); selectC4(elementId); }
+
+/* ---------- Structure ---------- */
+function renderStructure(){
+  const svg=$("#svg-structure"); if(svg.dataset.done) return; svg.dataset.done="1";
+  mk("rect",{x:430,y:48,width:140,height:400,rx:6,class:"band"},svg);
+  MODEL.structure.lanes.forEach(([l,x,y,a])=>txt(svg,x,y,l,"lane",a));
+  MODEL.structure.nodes.forEach(n=>{
+    const g=mk("g",{class:`node ${n.side} ${n.vis}${n.container?" container":""}${n.chip?" chip":""}${n.kind?" "+n.kind:""}`,tabindex:0,role:"button","data-id":n.id,"aria-label":n.t},svg);
+    mk("rect",{x:n.x,y:n.y,width:n.w,height:n.h,rx:n.chip?17:5},g);
+    const subs=Array.isArray(n.s)?n.s:[n.s];
+    if(n.chip){ txt(g,n.x+n.w/2,n.y+14,n.t,"t","middle"); txt(g,n.x+n.w/2,n.y+26,subs,"s","middle"); }
+    else if(n.container){ txt(g,n.x+10,n.y+18,n.t,"t"); txt(g,n.x+10,n.y+32,subs,"s"); }
+    else { txt(g,n.x+8,n.y+16,n.t,"t"); txt(g,n.x+8,n.y+29,subs,"s",null,11); }
+    const go=()=>selectNode(n.id);
+    g.addEventListener("click",go);
+    g.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } });
+  });
+  MODEL.structure.notes.forEach(nt=>txt(svg,nt.x,nt.y,nt.lines,"note",null,13));
+}
+function selectNode(id){
+  const n=MODEL.structure.nodes.find(x=>x.id===id); if(!n) return;
+  document.querySelectorAll("#svg-structure .node").forEach(g=>g.classList.toggle("sel",g.dataset.id===id));
+  const d=n.d||{}; const sideName=(MODEL.sides||{})[n.side]||n.side||"";
+  let html=`<div class="kicker">${n.chip?"DATAGRAM TAG":"COMPONENT"} · ${sideName.toUpperCase()}</div><div class="name">${esc(n.t)}</div><div class="vis">${esc(d.vis||"")}</div><p>${esc(d.role||"")}</p><dl>`;
+  if(d.files&&d.files.length) html+=`<dt>Source</dt><dd>${d.files.map(flink).join("<br>")}</dd>`;
+  if(d.threads&&d.threads.length) html+=`<dt>Runs on</dt><dd>${d.threads.map(t=>`<span class="tchip ${MODEL.threads[t].side}">${t}</span>`).join("")}</dd>`;
+  if(d.issues&&d.issues.length) html+=`<dt>Open issues</dt><dd>${d.issues.map(ilink).join(" · ")}</dd>`;
+  const c4id=MODEL.c4[id]; if(c4id&&el(c4id)){ const e=el(c4id); html+=`<dt>In the C4 model</dt><dd><button class="linkbtn" data-c4="${c4id}">${esc(e.name)} · ${e.tags.slice(2).map(esc).join(", ")||"component"} → open</button></dd>`; }
+  inspect(html+"</dl>");
+  const b=$("#insp-body .linkbtn[data-c4]"); if(b) b.addEventListener("click",()=>openC4(b.dataset.c4));
+}
+
+/* ---------- Threads ---------- */
+function selectThread(id){
+  const t=MODEL.threads[id]; if(!t) return;
+  document.querySelectorAll(".thread").forEach(x=>x.classList.toggle("sel",x.dataset.t===id));
+  let html=`<div class="kicker">THREAD · ${t.side.toUpperCase()} · DAEMON</div><div class="name">${id}</div><div class="vis">created ${esc(t.created)}</div><p>${esc(t.runs)}</p><dl>`;
+  if(t.sends.length) html+=`<dt>Puts on the wire</dt><dd>${t.sends.map(esc).join("<br>")}</dd>`;
+  if(t.note) html+=`<dt>Note</dt><dd>${esc(t.note)}</dd>`;
+  if(t.issues&&t.issues.length) html+=`<dt>Open issues</dt><dd>${t.issues.map(ilink).join(" · ")}</dd>`;
+  inspect(html+"</dl>");
+}
+document.querySelectorAll(".thread").forEach(x=>{ x.addEventListener("click",()=>selectThread(x.dataset.t)); x.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); selectThread(x.dataset.t); } }); });
 
 /* ---------- Decision path (MODEL.flows) ----------
-   The system page's renderer, with one addition: an end with sys:"slug" is coloured and labelled by that system. */
+   Each flow variant carries its own controls, nodes, edges and a rules(state) function; the page draws the
+   grid, builds the controls, and lights the path the rules return. Nothing here is specific to one system. */
 const CW=138,CH=70,NW=118,NH=50,X0=12,Y0=12;
 const fx=n=>X0+n.c*CW, fy=n=>Y0+n.r*CH;
+// An end's stripe is status-coloured by its level, and always drawn with the level's name beside it.
 const lvlCol=l=>l==="DELIVER"?"var(--good)":l==="WARN"?"var(--serious)":"var(--muted)";
-const endCol=n=>n.sys?sysColour(n.sys):lvlCol(n.lvl), endTag=n=>n.sys?"":(n.lvl||"");
 const flowState={}; let flowVariant=MODEL.flows[0].id;
 const flowOf=()=>MODEL.flows.find(v=>v.id===flowVariant);
 function flowStateFor(v){ if(!flowState[v.id]){ flowState[v.id]={}; v.controls.forEach(c=>flowState[v.id][c.key]=c.def); } return flowState[v.id]; }
@@ -1103,16 +1013,16 @@ function renderFlow(){
     if(n.k==="d") mk("polygon",{points:`${x+12},${y} ${x+NW-12},${y} ${x+NW},${y+NH/2} ${x+NW-12},${y+NH} ${x+12},${y+NH} ${x},${y+NH/2}`},g);
     else mk("rect",{x,y,width:NW,height:NH,rx:n.k==="t"?3:6},g);
     // The stripe's colour goes in style, not the fill attribute: .fnode.t rect would otherwise repaint it surface-grey.
-    if(n.k==="t"){ mk("rect",{x,y,width:4,height:NH,rx:1,class:"stripe",style:`fill:${endCol(n)}`},g); if(endTag(n)) txt(g,x+NW-6,y+10,endTag(n),"lvl","end"); }
+    if(n.k==="t"){ mk("rect",{x,y,width:4,height:NH,rx:1,class:"stripe",style:`fill:${lvlCol(n.lvl)}`},g); if(n.lvl) txt(g,x+NW-6,y+10,n.lvl,"lvl","end"); }
     txt(g,x+NW/2+(n.k==="t"?2:0),y+(n.t.length>1?21:28),n.t,"","middle",12);
   });
   if(F.foot) txt(svg,X0,Y0+(maxR+1)*CH+12,F.foot,"flabel");
   flowKey(F);
   highlightFlow();
 }
-/* The legend for the flow on screen: shapes, then each end colour with the systems or levels that use it, lit and faded, planned. */
+/* The legend for the flow on screen: its shapes, the outcome levels its ends use (grouped by stripe colour), lit and faded, planned. */
 function flowKey(F){
-  const ends=new Map(); Object.values(F.nodes).filter(n=>n.k==="t").forEach(n=>{ const c=endCol(n), l=ends.get(c)||[], name=n.sys?((sysTop(n.sys)||{}).name||n.sys):n.lvl; if(name&&!l.includes(name)) l.push(name); ends.set(c,l); });
+  const ends=new Map(); Object.values(F.nodes).filter(n=>n.k==="t").forEach(n=>{ const c=lvlCol(n.lvl), l=ends.get(c)||[]; if(n.lvl&&!l.includes(n.lvl)) l.push(n.lvl); ends.set(c,l); });
   $("#flow-key").innerHTML=`<span><i class="hex"></i>decision</span><span><i></i>step</span>`+[...ends].map(([c,l])=>`<span><i class="end" style="border-left-color:${c}"></i>ends · ${esc(l.join(" · ")||"outcome")}</span>`).join("")+`<span><i class="ln on"></i>the path these inputs take</span><span><i class="ln off"></i>not taken</span><span><i class="pln"></i>planned, not built</span>`;
 }
 function highlightFlow(){
@@ -1127,8 +1037,7 @@ function highlightFlow(){
   F.controls.forEach(c=>document.querySelectorAll("#seg-"+c.key+" button").forEach(b=>b.setAttribute("aria-disabled",String(irr.has(c.key)))));
 }
 
-/* ---------- Sequence ----------
-   The system page's renderer, with one addition: a lifeline with sys:"slug" takes that system's colour. */
+/* ---------- Sequence ---------- */
 const seq={cur:0,timer:null};
 const lane=l=>typeof l==="string"?{n:l}:l;
 function renderSeq(){
@@ -1137,7 +1046,7 @@ function renderSeq(){
   svg.setAttribute("viewBox",`0 0 1000 ${H}`);
   arrowDefs(svg,"sarr2","var(--ink-2)");
   S.phases.forEach(([label,a,b])=>{ const g=mk("g",{class:"phase"},svg); const y=Y0+a*DY-24, h=(b-a+1)*DY; mk("rect",{x:4,y,width:992,height:h,rx:4},g); txt(g,990,y+11,label,"","end"); });
-  S.lifelines.map(lane).forEach((l,i)=>{ mk("line",{x1:LX(i),y1:40,x2:LX(i),y2:H-4,class:"life"},svg); const a={class:"lh"+(l.side?" "+l.side:"")+(l.planned?" planned":"")}; if(l.sys){ a["data-sys"]=l.sys; a.style=`--c:${sysColour(l.sys)}`; } const g=mk("g",a,svg); mk("rect",{x:LX(i)-64,y:8,width:128,height:28,rx:4},g); txt(g,LX(i),26,l.n,"","middle"); });
+  S.lifelines.map(lane).forEach((l,i)=>{ mk("line",{x1:LX(i),y1:40,x2:LX(i),y2:H-4,class:"life"},svg); const g=mk("g",{class:"lh"+(l.side?" "+l.side:"")+(l.planned?" planned":"")},svg); mk("rect",{x:LX(i)-64,y:8,width:128,height:28,rx:4},g); txt(g,LX(i),26,l.n,"","middle"); });
   S.steps.forEach((s,i)=>{
     const y=Y0+i*DY, g=mk("g",{class:"msg"+(s.ret?" ret":"")+(s.planned?" planned":""),"data-i":i,tabindex:0,role:"button","aria-label":`step ${i+1}: ${s.l}`},svg);
     if(s.self){ const x=LX(s.f); mk("path",{d:`M${x},${y-10} L${x+34},${y-10} L${x+34},${y+8} L${x+2},${y+8}`,"marker-end":"url(#sarr2)"},g); txt(g,x+42,y+2,s.l,""); txt(g,x+42,y-8,`${i+1}`,"num"); }
@@ -1147,10 +1056,10 @@ function renderSeq(){
   seqKey(S);
   gotoStep(0);
 }
-/* The legend for the sequence: the systems on its lifelines, the consumer and outside parties, the line encodings, planned. */
+/* The legend for the sequence: the lifeline owners it shows (each in its side's hue), then the line encodings and planned. */
 function seqKey(S){
-  const L=S.lifelines.map(lane), sw={consumer:"con",external:"ext"}, sides=[...new Set(L.map(l=>l.side).filter(Boolean))];
-  $("#seq-key").innerHTML=sysKey(L.filter(l=>l.sys).map(l=>l.sys),"sys")+sides.map(k=>`<span><i class="${sw[k]||""}"></i>${esc((MODEL.sides||{})[k]||k)}</span>`).join("")+`<span><i class="ln"></i>call or send</span><span><i class="ln dash"></i>return, open head</span>`+(S.phases.length?`<span><i class="band"></i>phase</span>`:"")+`<span><i class="ln dash pln"></i>planned, not built (dashed, faded)</span>`;
+  const sw={server:"pub srv",client:"pub cli",wire:"pub wir",consumer:"con",external:"ext"}, sides=[...new Set(S.lifelines.map(lane).map(l=>l.side).filter(Boolean))];
+  $("#seq-key").innerHTML=sides.map(k=>`<span><i class="${sw[k]||""}"></i>${esc((MODEL.sides||{})[k]||k)}</span>`).join("")+`<span><i class="ln"></i>call or send</span><span><i class="ln dash"></i>return, open head</span>`+(S.phases.length?`<span><i class="band"></i>phase</span>`:"")+`<span><i class="ln dash pln"></i>planned, not built (dashed, faded)</span>`;
 }
 function gotoStep(i){
   const S=MODEL.sequence, L=S.lifelines.map(lane); seq.cur=(i+S.steps.length)%S.steps.length; const s=S.steps[seq.cur];
@@ -1164,25 +1073,26 @@ $("#seq-play").addEventListener("click",e=>{ const b=e.currentTarget; if(seq.tim
 
 /* ---------- Tabs ---------- */
 const tabs=[...document.querySelectorAll(".tab")];
-const DEFAULT_INSPECT={systems:"<p>Hover or focus a system card for its paths, parent and dashboard link.</p>",structure:"<p>Click a system for what it is for, what it depends on and what uses it, and its place in the C4 model.</p>",threads:"<p>Click a thread or process for the system that owns it, when it starts and what runs on it.</p>",lifecycles:"<p>The lifecycle facts are on the cards themselves, each with its source.</p>"};
+const DEFAULT_INSPECT={structure:"<p>Click a component or a datagram tag for its role, source files, threads, open issues and its place in the C4 model.</p>",threads:"<p>Click a thread for when it is created, what runs on it and what it puts on the wire.</p>",lifecycles:"<p>The lifecycle facts are on the cards themselves, each with its source.</p>"};
 function show(id){
   tabs.forEach(t=>{ const on=t.id===id; t.setAttribute("aria-selected",String(on)); document.getElementById(t.getAttribute("aria-controls")).hidden=!on; });
   const name=id.replace("t-","");
   if(name==="structure") renderStructure();
-  if(name==="c4" && !c4View) renderC4(Math.max(0,C4.views.findIndex(v=>v.type==="container")));
+  if(name==="c4" && !c4View) renderC4(C4.views.findIndex(v=>v.type==="component"));
   if(name==="datagrams") renderFlow();
   if(name==="reliable") renderSeq();
   if(name!=="reliable" && seq.timer){ clearInterval(seq.timer); seq.timer=null; $("#seq-play").textContent="play"; $("#seq-play").setAttribute("aria-pressed","false"); }
   // The inspector follows the tab it lands on: its kept selection, else its default text, else a generic hint, never the last
   // tab's. renderFlow() above has already written the Decision path's.
-  const node=$("#svg-structure .snode.sel"), thread=$("#p-threads .thread.sel");
+  const node=$("#svg-structure .node.sel"), thread=$("#p-threads .thread.sel");
   if(name==="structure"&&node) selectNode(node.dataset.id); else if(name==="threads"&&thread) selectThread(thread.dataset.t);
   else if(name==="c4") inspectC4(); else if(name==="reliable") gotoStep(seq.cur);
   else if(name!=="datagrams") inspect(DEFAULT_INSPECT[name]||"<p>Select an item on this tab to see its details here.</p>");
   try{ localStorage.setItem("dash-tab-"+location.pathname,id); }catch(e){}
 }
 tabs.forEach((t,i)=>{ t.addEventListener("click",()=>show(t.id)); t.addEventListener("keydown",e=>{ if(e.key==="ArrowRight"||e.key==="ArrowLeft"){ const j=(i+(e.key==="ArrowRight"?1:tabs.length-1))%tabs.length; tabs[j].focus(); show(tabs[j].id); } }); });
-let start="t-systems"; try{ const s=localStorage.getItem("dash-tab-"+location.pathname); if(s&&document.getElementById(s)) start=s; }catch(e){}
+let start="t-structure";
+try{ const s=localStorage.getItem("dash-tab-"+location.pathname); if(s&&document.getElementById(s)) start=s; }catch(e){}
 const hash=location.hash.replace("#",""); if(hash&&document.getElementById("t-"+hash)) start="t-"+hash;
 show(start);
 </script>
