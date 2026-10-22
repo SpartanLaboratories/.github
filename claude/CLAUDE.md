@@ -202,7 +202,9 @@ ruleset per set, the templates and the checks.
 - Dashboards are committed with the work they describe; the README points at `docs/dashboards/`.
 - **The presenter fixes dashboard defects at its own discretion**, without asking — on any page
   and in the `dashboards` skill's templates, examples and scripts — and reports each skill fix
-  so the `.github` mirror is synced. Changing the conventions themselves stays my call.
+  so the `.github` mirror is synced. Changing the conventions themselves stays my call. When a
+  convention changes, existing dashboards may be brought up to it; the update needs no commit or
+  PR of its own and rides the repository's next commit.
 
 ## Global Claude config — keep the `.github` mirror in sync
 
