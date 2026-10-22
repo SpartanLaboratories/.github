@@ -555,7 +555,8 @@ function layoutC4(R,vtype){
   regionY[bands.length]=y; y+=regionH[bands.length];
   const boundary=R.boundary?{x:bx0,y:PAD,w:innerW,h:y-PAD,label:R.boundary.label}:null;
   const cy0=bands.length?(bandBox[0][0]+bandBox[0][1])/2:y/2;
-  const stack=(ids,x)=>{ const tot=ids.length*H+(ids.length-1)*GY; ids.forEach((id,k)=>pos[id]=[x,Math.max(PAD,cy0-tot/2+k*(H+GY)),W,H]); };
+  // Clamp the column's start once, not each card: a column taller than the band row would otherwise pin several cards to PAD, one on top of another.
+  const stack=(ids,x)=>{ const tot=ids.length*H+(ids.length-1)*GY, y0=Math.max(PAD,cy0-tot/2); ids.forEach((id,k)=>pos[id]=[x,y0+k*(H+GY),W,H]); };
   stack(left,PAD); stack(right,bx0+innerW+2*GX);
   const width=bx0+innerW+(right.length?2*GX+W:0)+PAD;
   const height=Math.max(y+PAD,...Object.values(pos).map(p=>p[1]+p[3]+PAD));
