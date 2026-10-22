@@ -256,9 +256,9 @@ the path to the visual test report.
   on to step 5b **without a second `qa` pass**.
 - **CHANGES REQUESTED, otherwise** -> do **one** remediation pass: `rookie-dev`
   for a code or test gap; `planner` then `rookie-dev` if the plan itself is
-  wrong. Ask the user before re-running `qa`, then re-run it once. If it still
-  fails, stop and hand the user the findings, the report path, and the branch
-  as it stands. Never loop more than once.
+  wrong. Then re-run `qa` once, without asking the user. If it still fails,
+  stop and hand the user the findings, the report path, and the branch as it
+  stands. Never loop more than once.
 
 ## 5b. Present — `presenter`  (levels 2–4)
 
