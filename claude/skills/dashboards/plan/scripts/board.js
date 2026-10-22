@@ -2,13 +2,16 @@
 // Regenerate the repository work board (plan/RULES.md §5): docs/plans/board.json from every plan.json under docs/plans/ plus the
 // tracker (gh: issues, sub-issues, parents, blocked-by), then docs/plans/index.html from template/board.html with board.json
 // embedded verbatim.
-//   node board.js [--root <repo>] [--refresh-template] [--no-gh]
+//   node board.js [--root <repo>] [--ref <branch>] [--refresh-template] [--no-gh]
 // The root is --root, else the current directory. A row's "system" for an issue with no board, and an unscheduled issue's
 // "system", are the presenter's: board.js keeps them from the previous board.json. --refresh-template copies the template over
 // an existing index.html. --no-gh builds from the boards alone (no tracker rows, roadmap or unscheduled issues).
+// --ref names the branch the board reflects (default: the checked-out branch). In a landing refresh the tree is a docs branch cut
+// at the merged commit, so pass the default branch (e.g. --ref master): the board then names the commit it shows, not the branch
+// it was written on.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
-const { repoRoot, flag, registry, findPlans } = require("./lib.js");
+const { repoRoot, flag, opt, registry, findPlans } = require("./lib.js");
 const { embed } = require("./embed.js");
 
 const args = process.argv.slice(2);
@@ -104,7 +107,7 @@ const unscheduled = issues.filter(i => i.state === "OPEN" && !claimed.has(i.numb
   .map(i => ({ issue: i.number, title: i.title, labels: i.labels.map(l => l.name).filter(l => !/^level: /.test(l)), created: i.createdAt.slice(0, 10), system: prevUn(i.number).system || (rows.find(r => r.issue === i.number) || {}).system || null }));
 
 const used = new Set([...rows.map(r => r.system), ...unscheduled.map(u => u.system)].filter(Boolean));
-let tree = {}; try { tree = { ref: sh("git", ["rev-parse", "--abbrev-ref", "HEAD"]).trim(), sha: sh("git", ["rev-parse", "--short", "HEAD"]).trim() }; } catch (e) { /* not a git tree */ }
+let tree = {}; try { tree = { ref: opt(args, "ref", null) || sh("git", ["rev-parse", "--abbrev-ref", "HEAD"]).trim(), sha: sh("git", ["rev-parse", "--short", "HEAD"]).trim() }; } catch (e) { /* not a git tree */ }
 const now = new Date();
 const board = { schema: "work-board/1", repo, generated: now.toISOString().replace(/\.\d+Z$/, "Z"), asOf: now.toISOString().slice(0, 10), tree,
   systems: [...used].map(sysInfo), groups: groups.filter(g => rows.some(r => r.group === g.key)), rows, roadmap, unscheduled };
