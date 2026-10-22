@@ -158,6 +158,9 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .steps-list .check{display:block;font-size:12px;margin-top:2px}
 .steps-list .check::before{content:"check: ";color:var(--muted)}
 a.more{font:11px var(--mono);color:var(--link);text-decoration:none;white-space:nowrap}
+/* A sub-issue's #n opens its board (plan/RULES.md §1); the small GitHub link beside it, where there is room, opens the issue. */
+a.gh{font:10.5px var(--mono);color:var(--muted);text-decoration:none;border-bottom:0!important;white-space:nowrap}
+a.gh:hover{color:var(--link);text-decoration:underline}
 a.more:hover{text-decoration:underline}
 
 /* Legends: every tab, panel and the strip carry one .key listing exactly the encodings drawn there (GUIDANCE.md §2). */
@@ -389,7 +392,7 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
 
   <section class="view" role="tabpanel" id="p-chain" aria-labelledby="t-chain" hidden>
     <h2>Chain: the units in landing order</h2>
-    <p class="lede">Each unit is a sub-issue, planned and built at its own level on its own board. An arrow runs from a unit to the units it blocks; columns are the earliest a unit can start. Click a unit for its row.</p>
+    <p class="lede">Each unit is a sub-issue, planned and built at its own level on its own board. An arrow runs from a unit to the units it blocks; columns are the earliest a unit can start. Click a unit for its row; the inspector links its board, or its GitHub issue while it has none.</p>
     <div class="scroll" id="chain-frame"></div>
     <div class="key" id="chain-key"></div>
   </section>
@@ -1681,7 +1684,17 @@ const TRACKING=PLAN.kind==="tracking";
 const FOLDER=PLAN.folder||("docs/plans/"+(PLAN.slug||""));
 const UP="../".repeat(FOLDER.split("/").filter(Boolean).length);
 const ext=(href,text)=>`<a href="${esc(href)}" target="_blank" rel="noopener">${text}</a>`;
-const ilink=(n,repo)=>ext(`https://github.com/${repo||PLAN.repo}/issues/${n}`,`${repo&&repo!==PLAN.repo?esc(repo.split("/")[1])+"#":"#"}${esc(n)}`);
+/* Links to a sub-issue (plan/RULES.md §1): on a tracking board, every link to a unit's sub-issue opens that sub-issue's own board
+   when it has one (unit.board, which embed.js sets from the folders on disk only when the board's file exists in this tree, as a
+   path relative to this folder), and its GitHub issue otherwise. ilink() routes every #n on the page, so the unit rows, the
+   chain, the strip, the as-built cards, the inspector, the roadmap and any #n in the text all follow it. ghlink() is the small
+   GitHub link set beside a board link where there is room. */
+const SUB_BOARDS=new Map(TRACKING?ROWS.filter(r=>r.unit&&r.unit.issue&&r.unit.board&&!/^[a-z][a-z0-9+.-]*:/i.test(r.unit.board)).map(r=>[String(r.unit.issue),r.unit.board]):[]);
+const subBoard=(n,repo)=>!repo||repo===PLAN.repo?SUB_BOARDS.get(String(n))||null:null;
+const ghUrl=(n,repo)=>`https://github.com/${repo||PLAN.repo}/issues/${n}`;
+const ilabel=(n,repo)=>`${repo&&repo!==PLAN.repo?esc(repo.split("/")[1])+"#":"#"}${esc(n)}`;
+const ilink=(n,repo)=>{ const b=subBoard(n,repo); return b?`<a href="${esc(b)}" title="#${esc(n)}: its plan board">${ilabel(n,repo)}</a>`:ext(ghUrl(n,repo),ilabel(n,repo)); };
+const ghlink=(n,repo)=>subBoard(n,repo)?`<a class="gh" href="${esc(ghUrl(n,repo))}" target="_blank" rel="noopener" title="#${esc(n)} on GitHub" aria-label="#${esc(n)} on GitHub">GitHub ↗</a>`:"";
 const clink=sha=>ext(`${REPO}/commit/${sha}`,`<code>${esc(sha)}</code>`);
 const prlink=n=>ext(`${REPO}/pull/${n}`,`PR #${esc(n)}`);
 /* Plain text with `code` spans, #123 and owner/repo#123 references: escaped, references linked outside code spans only. */
@@ -1815,7 +1828,7 @@ function renderWip(){
   if(TRACKING&&ROWS.some(r=>r.unit)){
     const units=ROWS.filter(r=>r.unit);
     const nComplete=count(units,r=>stateOf(r)==="complete");
-    h+=`<div class="wip-sub">The chain · ${count(units,unitLanded)} of ${units.length} units landed${nComplete?` · ${nComplete} complete, not merged`:""}</div><ol class="chain">${units.map(r=>{ const s=stateOf(r), act=rowActive(r), href=r.unit.board||(r.unit.issue?`${REPO}/issues/${r.unit.issue}`:""); const inner=`${esc(r.unit.n!=null?r.unit.n:"")}${r.unit.issue?` · #${esc(r.unit.issue)}`:""} ${esc(r.unit.slug||r.id)}${s!=="pending"?` ${STATES[s].g}`:""}${isNext(r)?` ${TAG_NEXT}`:""}`; const tag=href?`<a href="${esc(href)}"${/^https?:/.test(href)?' target="_blank" rel="noopener"':""} data-sys="${esc(r.system)}">${inner}</a>`:`<span class="u" data-sys="${esc(r.system)}">${inner}</span>`; return `<li class="${s==="pending"?"pending":"done"}${act&&!LANDED?(HALTED?" held":" glow"):isNext(r)?" upnext":""}">${tag}</li>`; }).join("")}</ol>`;
+    h+=`<div class="wip-sub">The chain · ${count(units,unitLanded)} of ${units.length} units landed${nComplete?` · ${nComplete} complete, not merged`:""}</div><ol class="chain">${units.map(r=>{ const s=stateOf(r), act=rowActive(r), href=r.unit.issue?subBoard(r.unit.issue)||ghUrl(r.unit.issue):""; const inner=`${esc(r.unit.n!=null?r.unit.n:"")}${r.unit.issue?` · #${esc(r.unit.issue)}`:""} ${esc(r.unit.slug||r.id)}${s!=="pending"?` ${STATES[s].g}`:""}${isNext(r)?` ${TAG_NEXT}`:""}`; const tag=href?`<a href="${esc(href)}"${/^https?:/.test(href)?' target="_blank" rel="noopener"':""} data-sys="${esc(r.system)}">${inner}</a>`:`<span class="u" data-sys="${esc(r.system)}">${inner}</span>`; return `<li class="${s==="pending"?"pending":"done"}${act&&!LANDED?(HALTED?" held":" glow"):isNext(r)?" upnext":""}">${tag}</li>`; }).join("")}</ol>`;
     legend.push(sysKey(units.map(r=>r.system)),units.some(r=>stateOf(r)==="pending")?`<span><i class="pln"></i>dashed: unit not built</span>`:"");
     [...new Set(units.map(stateOf))].filter(k=>k!=="pending").forEach(k=>legend.push(`<span>${badge(k)} ${esc(STATES[k].desc)}</span>`));
     const act=units.filter(rowActive); act.forEach(a=>{ h+=`<div class="wip-sub">In progress · unit ${esc(a.unit.n)} · #${esc(a.unit.issue)} · ${esc(a.unit.slug||a.id)}</div>`; });
@@ -1864,7 +1877,7 @@ function renderKpis(){
 
 /* ---------- Timeline board ---------- */
 function unitLinks(r){ const u=r.unit; if(!u) return "";
-  const parts=[u.issue?ilink(u.issue):"",u.level?`L${esc(u.level)}`:"",u.board?`<a href="${esc(u.board)}">board</a>`:u.folder?refHtml(u.folder,"folder"):`<span title="no plan folder yet">no folder yet</span>`];
+  const parts=[u.issue?ilink(u.issue):"",u.level?`L${esc(u.level)}`:"",u.board?`<a href="${esc(u.board)}">board</a>`:u.folder?refHtml(u.folder,"folder"):`<span title="no plan folder yet">no folder yet</span>`,u.issue?ghlink(u.issue):""];
   return `<div class="un">${parts.filter(Boolean).join("")}</div>`; }
 function cellGap(r){ const g=r.gap||{}; return `<div class="cell gap${cellGlow(r.id,"gap")}" role="button" tabindex="0" data-row="${esc(r.id)}" data-col="gap" aria-label="Gap: ${esc(r.name)}"><div class="kick">1 · GAP${g.kind?` <span class="kind">${esc(g.kind)}</span>`:""}</div><div class="sum">${rich(g.summary||"Not yet written.")}</div><div class="meta"><span>${(g.evidence||[]).length} evidence</span>${moreLink(g.link,"research")}</div></div>`; }
 function optButton(r,o){ const {def,word}=optDef(r,o); return `<button class="opt ${def.cls}${def.dash?" dashed":""}" data-row="${esc(r.id)}" data-opt="${esc(o.id)}" aria-label="${esc(word)}: ${esc(o.name)}"><i aria-hidden="true">${def.g}</i><span><span class="vw">${esc(word)}</span><span>${codeOnly(o.name)}</span></span></button>`; }
@@ -1881,7 +1894,7 @@ function grouped(){ const groups=[]; ROWS.forEach(r=>{ const g=r.group||""; let 
   return groups.sort((a,b)=>{ const i=GROUP_ORDER.indexOf(a.name), j=GROUP_ORDER.indexOf(b.name); return (i<0?GROUP_ORDER.length:i)-(j<0?GROUP_ORDER.length:j)||0; }); }
 function renderBoard(){
   $("#timeline-lede").textContent=TRACKING
-    ?"One row per unit of the tracking issue, in landing order, in its system's colour. Gap, considered and verdict come from the architecture; each unit is planned and built on its own board, and its as-built cell reads complete when its qa passes and landed when it merges. A dashed cell is not built yet; a cell with an interior glow is being worked on now; the cell tagged UP NEXT is the next unit in landing order, not started."
+    ?"One row per unit of the tracking issue, in landing order, in its system's colour. Gap, considered and verdict come from the architecture; each unit is planned and built on its own board, and its as-built cell reads complete when its qa passes and landed when it merges. A dashed cell is not built yet; a cell with an interior glow is being worked on now; the cell tagged UP NEXT is the next unit in landing order, not started. A unit's #n opens its own board once it has one, and its GitHub issue until then; GitHub ↗ beside a board link opens the issue."
     :"One row per part of the change, in its system's colour. Read a row left to right: the gap at the baseline, every option weighed with its verdict, the verdict and its defence, and what was built. A dashed cell is not built yet; a glowing cell is being worked on now. Click a cell or an option for its detail; each cell links the Markdown section that holds the rest.";
   const ms=c=>(PLAN.milestones||[]).find(m=>m.column===c);
   let h=`<div class="colhead" aria-hidden="true"></div>`+COLS.map((c,i)=>{ const m=ms(c.key);
@@ -1924,7 +1937,7 @@ function inspectOption(r,o){ if(!o){ inspect(`<div class="kicker">2 · CONSIDERE
 function inspectVerdict(r){ const v=r.verdict||{};
   inspect(`<div class="kicker">3 · VERDICT · ${v.kind==="leave"?"LEAVE AS IS":"BUILD"}</div><div class="name">${esc(r.name)}</div><div class="vis">${whereOf(r)}</div><p class="lead">${rich(v.summary||"")}</p>${v.defense?`<p>${rich(v.defense)}</p>`:""}<dl>${v.steps&&v.steps.length?`<dt>Steps</dt><dd><ol class="steps-list">${v.steps.map(s=>`<li><b>${esc(s.id||"·")}</b><span>${rich(s.what||"")}${s.files&&s.files.length?`<span class="files">${s.files.map(esc).join(" · ")}</span>`:""}${s.check?`<span class="check">${rich(s.check)}</span>`:""}${s.link?` ${moreLink(s.link,"in the plan")}`:""}</span></li>`).join("")}</ol></dd>`:""}${v.tests&&v.tests.length?`<dt>Tests</dt><dd>${list(v.tests)}</dd>`:""}${v.leaves&&v.leaves.length?`<dt>Leaves to other units</dt><dd>${list(v.leaves)}</dd>`:""}${v.risks&&v.risks.length?`<dt>Risks and what bounds them</dt><dd>${list(v.risks)}</dd>`:""}${v.source?`<dt>Source</dt><dd>${refHtml(v.source)}</dd>`:""}${v.link?`<dt>Detail</dt><dd>${refHtml(v.link)}</dd>`:""}</dl>`); }
 function inspectBuilt(r){ const b=r.asBuilt||{}, st=stateOf(r), a=PLAN.asBuilt||{}, u=r.unit;
-  inspect(`<div class="kicker">4 · AS BUILT${a.sha?` · AT ${esc(a.sha).toUpperCase()}`:""}</div><div class="name">${esc(r.name)}</div><div class="vis">${badge(st,st==="deferred"&&b.issue?` → #${esc(b.issue)}`:"")} ${esc(STATES[st].desc)}</div><p class="lead">${rich(b.summary||(st==="pending"?"Not built yet.":""))}</p><dl>${b.changes&&b.changes.length?`<dt>Changes from the verdict</dt><dd><ol>${b.changes.map(c=>`<li><b>${rich(c.what||"")}</b>${c.why?` — ${rich(c.why)}`:""}${c.when||c.ref?`<br><small>${esc(c.when||"")}${c.ref?` · ${refHtml(c.ref)}`:""}</small>`:""}</li>`).join("")}</ol></dd>`:""}${b.files&&b.files.length?`<dt>Files</dt><dd>${b.files.map(f=>`<code>${esc(f)}</code>`).join("<br>")}</dd>`:""}${b.tests?`<dt>Tests</dt><dd>${rich(b.tests)}</dd>`:""}${b.commits&&b.commits.length?`<dt>Commits</dt><dd>${b.commits.map(c=>refHtml(c)).join(" · ")}</dd>`:""}${b.verified?`<dt>Verified</dt><dd>${rich(b.verified)}</dd>`:""}${b.issue?`<dt>Moved to</dt><dd>${ilink(b.issue)}</dd>`:""}${u?`<dt>Unit</dt><dd>${esc(u.n)} · ${esc(u.slug||"")}${u.issue?` · ${ilink(u.issue)}`:""}${u.level?` · level ${esc(u.level)}`:""}${u.blockedBy&&u.blockedBy.length?` · blocked by ${u.blockedBy.map(n=>ilink(n)).join(", ")}`:""}${u.versions?`<br>versions: ${rich(u.versions)}`:""}${u.branch?`<br>branch <code>${esc(u.branch)}</code>`:""}<br>${u.board?`<a href="${esc(u.board)}">its board</a>`:u.folder?refHtml(u.folder,"its folder"):"no plan folder yet"}</dd>`:""}${b.link?`<dt>Detail</dt><dd>${refHtml(b.link)}</dd>`:""}</dl>`); }
+  inspect(`<div class="kicker">4 · AS BUILT${a.sha?` · AT ${esc(a.sha).toUpperCase()}`:""}</div><div class="name">${esc(r.name)}</div><div class="vis">${badge(st,st==="deferred"&&b.issue?` → #${esc(b.issue)}`:"")} ${esc(STATES[st].desc)}</div><p class="lead">${rich(b.summary||(st==="pending"?"Not built yet.":""))}</p><dl>${b.changes&&b.changes.length?`<dt>Changes from the verdict</dt><dd><ol>${b.changes.map(c=>`<li><b>${rich(c.what||"")}</b>${c.why?` — ${rich(c.why)}`:""}${c.when||c.ref?`<br><small>${esc(c.when||"")}${c.ref?` · ${refHtml(c.ref)}`:""}</small>`:""}</li>`).join("")}</ol></dd>`:""}${b.files&&b.files.length?`<dt>Files</dt><dd>${b.files.map(f=>`<code>${esc(f)}</code>`).join("<br>")}</dd>`:""}${b.tests?`<dt>Tests</dt><dd>${rich(b.tests)}</dd>`:""}${b.commits&&b.commits.length?`<dt>Commits</dt><dd>${b.commits.map(c=>refHtml(c)).join(" · ")}</dd>`:""}${b.verified?`<dt>Verified</dt><dd>${rich(b.verified)}</dd>`:""}${b.issue?`<dt>Moved to</dt><dd>${ilink(b.issue)}</dd>`:""}${u?`<dt>Unit</dt><dd>${esc(u.n)} · ${esc(u.slug||"")}${u.issue?` · ${ilink(u.issue)}`:""}${u.level?` · level ${esc(u.level)}`:""}${u.blockedBy&&u.blockedBy.length?` · blocked by ${u.blockedBy.map(n=>ilink(n)).join(", ")}`:""}${u.versions?`<br>versions: ${rich(u.versions)}`:""}${u.branch?`<br>branch <code>${esc(u.branch)}</code>`:""}<br>${u.board?`<a href="${esc(u.board)}">its board</a> · ${ghlink(u.issue)}`:u.folder?refHtml(u.folder,"its folder"):"no plan folder yet"}</dd>`:""}${b.link?`<dt>Detail</dt><dd>${refHtml(b.link)}</dd>`:""}</dl>`); }
 
 /* ---------- Decision log ---------- */
 let decFilter="all";
@@ -1988,7 +2001,7 @@ function renderContext(){
   /* Roadmap: on a tracking board the item is this issue and its units; otherwise the parent tracking issue, if any. */
   const rm=PLAN.roadmap||null;
   if(TRACKING){ const units=ROWS.filter(r=>r.unit);
-    cards.push(`<div class="card"><h3>Roadmap <small>#${esc(PLAN.issue)} · ${units.length} units${WIP.updated?` · ${esc(String(WIP.updated).slice(0,10))}`:""}</small></h3><ul class="issues">${units.map(r=>`<li>${r.unit.issue?ilink(r.unit.issue):"<b>—</b>"}<span>${esc(r.unit.n)} · ${esc(r.name)} · ${badge(stateOf(r))}${isNext(r)?` ${TAG_NEXT}`:""}${r.unit.board?` · <a href="${esc(r.unit.board)}">board</a>`:""}</span></li>`).join("")}</ul></div>`); }
+    cards.push(`<div class="card"><h3>Roadmap <small>#${esc(PLAN.issue)} · ${units.length} units${WIP.updated?` · ${esc(String(WIP.updated).slice(0,10))}`:""}</small></h3><ul class="issues">${units.map(r=>`<li>${r.unit.issue?ilink(r.unit.issue):"<b>—</b>"}<span>${esc(r.unit.n)} · ${esc(r.name)} · ${badge(stateOf(r))}${isNext(r)?` ${TAG_NEXT}`:""}${r.unit.board?` · <a href="${esc(r.unit.board)}">board</a> · ${ghlink(r.unit.issue)}`:""}</span></li>`).join("")}</ul></div>`); }
   else if(rm&&rm.issue) cards.push(`<div class="card"><h3>Roadmap <small>${esc(rm.asOf||"")}</small></h3><ul class="issues"><li>${ilink(rm.issue)}<span>${rich(rm.title||"")}${rm.board?` · <a href="${esc(rm.board)}">tracking board</a>`:""}</span></li>${(rm.items||[]).map(i=>`<li>${ilink(i.issue)}<span>${rich(i.title||"")}${i.state?` · ${esc(i.state)}`:""}${i.issue===PLAN.issue?" · this board":""}</span></li>`).join("")}</ul></div>`);
   else cards.push(`<div class="card"><h3>Roadmap</h3><p class="lede">No roadmap item claims #${esc(PLAN.issue)}: it has no tracking parent. The <a href="${UP}docs/plans/index.html">work board</a> and the <a href="${UP}docs/dashboards/index.html">repository page</a> show the roadmap.</p></div>`);
   const fu=PLAN.followUps||[];

@@ -78,5 +78,43 @@ function findPlans(root) {
   return found;
 }
 
+/* A sub-issue's own board, seen from its tracking board's folder `dir` (plan/RULES.md §1, "Links to a sub-issue"): the unit's
+   folder when it is a relative folder holding dashboard.html, else the folder directly inside the tracking folder named
+   <issue>-<slug> that holds one. Returns { board, folder } as paths relative to `dir` ("61-build-logic/dashboard.html",
+   "61-build-logic/"), or null when no board exists in this tree, so a board link is made only to a file that exists. */
+function subIssueBoard(dir, unit) {
+  if (!unit || !Number.isInteger(unit.issue) || unit.issue <= 0) return null;
+  const f = typeof unit.folder === "string" && unit.folder.trim() && !/^[a-z][a-z0-9+.-]*:/i.test(unit.folder)
+    ? unit.folder.trim().replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/?$/, "/") : null;
+  if (f && fs.existsSync(path.join(dir, f, "dashboard.html"))) return { board: f + "dashboard.html", folder: f };
+  let names = [];
+  try { names = fs.readdirSync(dir, { withFileTypes: true }).filter(d => d.isDirectory() && d.name.startsWith(unit.issue + "-")).map(d => d.name).sort(); } catch (e) { /* no folder */ }
+  const hit = names.find(n => fs.existsSync(path.join(dir, n, "dashboard.html")));
+  return hit ? { board: hit + "/dashboard.html", folder: hit + "/" } : null;
+}
+
+/* Link every unit of a tracking board to its sub-issue's board, from the folders on disk (embed.js runs it before embedding, so
+   nobody writes these links by hand): unit.board becomes the board's relative path when it exists in this tree, and null when
+   it does not (a link to a file that is not there would be dead); unit.folder is filled in when it was unset. Returns one line
+   per change; an issue board, or a tracking board whose links are already right, returns []. */
+function linkSubIssueBoards(plan, dir) {
+  const changes = [];
+  if (!plan || plan.kind !== "tracking") return changes;
+  (plan.rows || []).forEach(r => {
+    const u = r.unit; if (!u || !Number.isInteger(u.issue)) return;
+    const hit = subIssueBoard(dir, u), want = hit ? hit.board : null;
+    if ((u.board || null) !== want && (want || "board" in u)) {
+      changes.push(`#${u.issue}: unit.board ${u.board ? JSON.stringify(u.board) : "unset"} → ${want ? JSON.stringify(want) : "null (no board in this tree)"}`);
+      u.board = want;
+    }
+    if (hit && !u.folder) { u.folder = hit.folder; changes.push(`#${u.issue}: unit.folder unset → "${hit.folder}"`); }
+  });
+  return changes;
+}
+
+/* The marker of a template that routes a sub-issue's links to its board (plan/RULES.md §1): the plan board and the work board
+   both declare this map. A page without it links every #n to GitHub. */
+const SUB_BOARD_MARKER = "const SUB_BOARDS=";
+
 const skillDir = path.resolve(__dirname, "..");
-module.exports = { repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, skillDir };
+module.exports = { repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards, SUB_BOARD_MARKER, skillDir };

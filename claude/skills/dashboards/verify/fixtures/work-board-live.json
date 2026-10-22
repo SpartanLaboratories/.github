@@ -186,7 +186,12 @@
       "level": 2,
       "created": null,
       "parent": 55,
-      "waitsOn": [],
+      "waitsOn": [
+        {
+          "issue": 61,
+          "state": "CLOSED"
+        }
+      ],
       "blocks": [],
       "board": null,
       "folder": "55-http-client-stack/47-java-23-bytecode/",
@@ -432,7 +437,74 @@
       "title": "HTTP client stack for BotTools: suspend transport, outbound-URL guard, response cache, call budget and test fakes",
       "state": "OPEN",
       "board": "55-http-client-stack/dashboard.html",
-      "items": []
+      "items": [
+        {
+          "issue": 61,
+          "title": "Build: move shared configuration into an included `build-logic` build with convention plugins and package-selected level tasks",
+          "state": "CLOSED",
+          "level": 3
+        },
+        {
+          "issue": 47,
+          "title": "Java 11 floor (#47)",
+          "state": "OPEN",
+          "level": 2
+        },
+        {
+          "issue": 62,
+          "title": "webtools-http common core",
+          "state": "OPEN",
+          "level": 3
+        },
+        {
+          "issue": 63,
+          "title": "Published test fixtures",
+          "state": "OPEN",
+          "level": 3
+        },
+        {
+          "issue": 64,
+          "title": "Outbound-URL policy",
+          "state": "OPEN",
+          "level": 3
+        },
+        {
+          "issue": 65,
+          "title": "OkHttp transport",
+          "state": "OPEN",
+          "level": 3
+        },
+        {
+          "issue": 66,
+          "title": "Response cache",
+          "state": "OPEN",
+          "level": 3
+        },
+        {
+          "issue": 67,
+          "title": "Call budget",
+          "state": "OPEN",
+          "level": 3
+        },
+        {
+          "issue": 68,
+          "title": "Call facades",
+          "state": "OPEN",
+          "level": 3
+        },
+        {
+          "issue": 69,
+          "title": "webtools-feeds",
+          "state": "OPEN",
+          "level": 3
+        },
+        {
+          "issue": 70,
+          "title": "HTTP-stack documentation",
+          "state": "OPEN",
+          "level": 1
+        }
+      ]
     }
   ],
   "unscheduled": []
