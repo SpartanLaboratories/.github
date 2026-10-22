@@ -17,10 +17,11 @@
       ]
     },
     "plan/template/board.html": {
-      "sha256": "f810b2201f2954445805c1a24a26e96e1b78008c95c6f61bc4c89c596a80c17d",
+      "sha256": "7d4160b6b6fe11b36765ffbb2569110b9c43ed9625441a2f8b43ebdf3cfa544c",
       "verified": "2026-10-22",
       "fixtures": [
         "work-board",
+        "work-board-live",
         "placeholder"
       ],
       "modes": [
@@ -44,7 +45,7 @@
       ]
     },
     "system/template/supersystem.html": {
-      "sha256": "d33c94efcf8ca0bfb5a1b2db3417682f55920d6210699f4419d34a2f85767db8",
+      "sha256": "d7ca6f1ca85534bc130ae76f961a044db506ff75aacd080c18f537124c380228",
       "verified": "2026-10-22",
       "fixtures": [
         "placeholder"

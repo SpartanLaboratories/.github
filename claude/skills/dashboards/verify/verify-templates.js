@@ -9,7 +9,7 @@
 // change to a template; until then, every page made from that template gets the full pass.
 // The fixtures cover each template's states: the issue board example (landed, every option verdict and as-built state), the
 // tracking fixture (a landed, a complete and an in-progress unit, the unit up next and blocked), the work board fixture (landed,
-// complete, building, next, not started) and each template's own placeholder content.
+// complete, building, next, not started; and its live variant from board.js --live) and each template's own placeholder content.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { recordFile, sha, norm } = require(path.join(__dirname, "..", "system", "scripts", "deviation.js"));
@@ -22,7 +22,7 @@ const sk = p => path.join(SKILL, ...p.split("/"));
 
 /* Each template, the block its data goes in (none for system templates, which carry their own sample content), and its fixtures. */
 const PLAN_FIX = [sk("plan/examples/38-handshake-empty-name/plan.json"), sk("verify/fixtures/tracking.plan.json"), null];
-const BOARD_FIX = [sk("verify/fixtures/work-board.json"), null];
+const BOARD_FIX = [sk("verify/fixtures/work-board.json"), sk("verify/fixtures/work-board-live.json"), null];
 const SETS = [
   { name: "plan/template/dashboard.html", file: "dashboard.html", dir: "docs/plans/_template", block: "plan", fixtures: PLAN_FIX },
   { name: "plan/template/board.html", file: "board.html", dir: "docs/plans/_template", block: "board", fixtures: BOARD_FIX },
