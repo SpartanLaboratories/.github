@@ -293,6 +293,12 @@ ring widens the audience. Apply to all code generation, refactoring, and review.
 Structure tests along these levels. Lower levels run first / most often; higher levels gate
 release.
 
+**Run only the tests that exercise the change.** Never run a test suite that belongs only to a
+module the change leaves untouched — not to check a change, not to take a baseline, not in a
+QA gate. A module whose code is untouched (say, only its build file moved onto shared build
+logic) is proven unaffected by other means, such as identical published output; the tests of a
+module that depends on the changed code do exercise it and still run.
+
 1. **Local Development Gating / Pre-Commit Validation** (active until the WIP is finished)
    - Validate changes locally before integration to catch regressions.
    - Covers new and changed classes/functions in the local workspace, before committing.

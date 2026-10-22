@@ -93,7 +93,10 @@ before crossing it and report `ESCALATE — level` with `path:line` evidence.
 5. **Write the tests the plan lists** — at the level, package, and path it
    names, one test class per file, covering the behaviours it calls out. Do not
    invent a different test structure.
-6. **Build and test.** Run the project build and the relevant test tasks. Fix
+6. **Build and test.** Run the project build and the relevant test tasks —
+   only the tests that exercise the change. Never run a test suite that
+   belongs only to a module the change leaves untouched, even if the plan
+   lists one; skip it and record that as a deviation. Fix
    *mechanical* breakage in your own code — a typo, a missing import, a wrong
    argument. If a failure means the plan's approach is wrong, stop and report
    it; do not redesign to make the test pass.
