@@ -5,6 +5,7 @@
 //               [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems slug,slug] [--step research] [--repo owner/name]
 // The repository root is --root, else the current directory. Systems take their names and colour slots from
 // docs/dashboards/systems.json. Refuses to overwrite. Anything not given stays a <placeholder> that check.js refuses.
+// With --parent, the tracking board in the parent folder is re-embedded, which links its unit to the new board (plan/RULES.md §1).
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const { repoRoot, opt, registry } = require("./lib.js");
@@ -57,6 +58,13 @@ fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(plan, null, 2) + "\
 fs.copyFileSync(path.join(tpl, "dashboard.html"), path.join(dir, "dashboard.html"));
 embed(dir);
 console.log(`created ${rel}/plan.json and dashboard.html from the template`);
+/* A sub-issue's board now exists inside its tracking issue's folder: re-embed the tracking board, so its links to this sub-issue
+   go to this board from now on (plan/RULES.md §1); embed.js changes only the unit's board and folder links. */
+const parentDir = path.dirname(dir);
+if (parent && fs.existsSync(path.join(parentDir, "plan.json")) && fs.existsSync(path.join(parentDir, "dashboard.html"))) {
+  try { const r = embed(parentDir); r.linked.forEach(l => console.log(`tracking board ${path.relative(root, parentDir).split(path.sep).join("/")}: linked ${l}`)); }
+  catch (e) { console.log(`could not re-embed the tracking board in ${parentDir}: ${e.message}`); }
+}
 const left = JSON.stringify(plan).match(/"<[^"]*>"/g) || [];
 if (left.length) console.log(`still to fill: ${left.length} placeholder${left.length > 1 ? "s" : ""} (${left.slice(0, 5).join(", ")}${left.length > 5 ? ", …" : ""})`);
 const sk = p => path.join(__dirname, p);

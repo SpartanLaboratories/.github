@@ -105,7 +105,7 @@
       "name": "<the unit's name>",
       "system": "<registry slug>",
       "where": "<placement>",
-      "unit": {"n": 1, "slug": "<unit slug>", "issue": 0, "level": 3, "blockedBy": [], "versions": "<versions moved>", "branch": null, "folder": "<NN-slug/ once it exists, else null>", "board": "<NN-slug/dashboard.html once it exists, else null>"},
+      "unit": {"n": 1, "slug": "<unit slug>", "issue": 0, "level": 3, "blockedBy": [], "versions": "<versions moved>", "branch": null, "folder": "<NN-slug/ once it exists, else null>", "board": "<set by embed.js: NN-slug/dashboard.html once that board exists in this tree, else null (plan/RULES.md §1)>"},
       "gap": {"kind": "missing", "summary": "<what the unit's system lacks at the baseline>", "evidence": ["<path:line>"], "source": "<architecture.md §…>", "link": "<architecture.md#anchor>"},
       "options": [
         {"id": "<option-id>", "name": "<the architecture's design for the unit>", "verdict": "accepted", "why": "<why>", "source": "<architecture.md §…>"}
