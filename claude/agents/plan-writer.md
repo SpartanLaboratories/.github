@@ -72,6 +72,10 @@ package: `testing.gating`, `testing.component`, `testing.integration`,
 `testing.deterministic`, `testing.e2e`, `testing.nonfunctional`, `testing.uat`.
 One test class per file; JUnit 5 + MockK; mock external calls at level 2. Your
 test plan must place **each** new or changed test at a level *and* a path.
+Plan runs only of the tests that exercise the change: never a run — before or
+after, baseline or check — of a test suite that belongs only to a module the
+change leaves untouched. Prove such a module unaffected by other means (a
+compile, identical published output). See "Testing" in the global `CLAUDE.md`.
 
 ### API evolution
 

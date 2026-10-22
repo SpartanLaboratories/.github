@@ -42,7 +42,7 @@ The level decides which gates run:
 | Gate | Level 1 — no impact | Level 2 — small fix | Level 3 — small feature |
 |------|---------------------|---------------------|-------------------------|
 | documentation-reviewer | yes | yes | yes |
-| test-inspector | no — a **compile check** instead | rubrics **L1, L2** + full suite | all seven rubrics + full suite |
+| test-inspector | no — a **compile check** instead | rubrics **L1, L2** + the change's tests | all seven rubrics + the change's tests |
 | code-reviewer | no | yes | yes |
 
 ## 1. Determine the review scope (once)
@@ -79,7 +79,8 @@ run block. A failed compile is a finding.
 **Levels 2–3:** spawn the `test-inspector` agent (`subagent_type:
 test-inspector`) with the **same** scope from step 1 and **`TEST_N` from step 0
 as its subagent count**. At level 2 pass `rubrics: L1, L2`; at level 3 ask it to
-run all seven per-level inspections. Either way it runs the full test suite and
+run all seven per-level inspections. Either way it runs the tests that exercise
+the change — never a suite that belongs only to an untouched module — and
 returns the consolidated report.
 
 Wait for it to finish. Keep its report verbatim — including its "Test run" block
