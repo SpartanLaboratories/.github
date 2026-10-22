@@ -6,7 +6,8 @@ description: >-
   which show each system as it is at a named commit, and the plan (process)
   dashboards under docs/plans/, which show each issue's gap, the options
   considered, the verdict, the as-built state and the live work-in-progress of
-  its /resolve-issue run, plus the repository work board. GUIDANCE.md holds
+  its /resolve-issue run (on a tracking board, also the unit up next), plus the
+  repository work board. GUIDANCE.md holds
   the rules both sets share (colour coding first); system/RULES.md and
   plan/RULES.md hold each set's own. Load it whenever you create, update,
   review or check any dashboard page, its data file or its registry. The
@@ -27,7 +28,8 @@ Two sets, one presenter, one shared rulebook.
 | Path | What |
 |------|------|
 | `GUIDANCE.md` | The rules shared by both sets: colour coding, legends, planned/pending drawn dashed, themes, self-contained pages, facts, Context, divergence, checks. Read it first, every time. |
-| `system/RULES.md` | The system-board ruleset. `system/template/` (system and supersystem pages, registry), `system/scripts/` (`check-page.js`, `embed.js`), `system/examples/webtools-udp/`. |
+| `system/RULES.md` | The system-board ruleset. `system/template/` (system and supersystem pages, registry), `system/scripts/` (`check-page.js`, `embed.js`, `deviation.js`), `system/examples/webtools-udp/`. |
+| `verify/` | `verify-templates.js`, which verifies every template once (the full browser pass over the fixtures in `verify/fixtures/`) and records its hash in `verified.json`. Pages made from a verified template are checked only where they deviate (`GUIDANCE.md` §8). Run it after every template change. |
 | `plan/RULES.md` | The plan-board ruleset: the data model, the events that update a board, the work board. `plan/template/` (issue page, `plan.json` skeleton, work board), `plan/scripts/` (`new.js`, `embed.js`, `check.js`, `board.js`), `plan/examples/38-handshake-empty-name/`. |
 
 ## Reading order for a job

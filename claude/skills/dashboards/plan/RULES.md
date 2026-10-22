@@ -27,9 +27,19 @@ work board only. A tracking issue (a level-4 plan) gets a board in its own folde
 row per unit**, each row linking to that sub-issue's own board; each sub-issue gets a full
 board in its own folder.
 
-Scripts, from the repo root: `new.js <issue> <slug> …` scaffolds a folder; `embed.js <folder>`
-embeds `plan.json`; `check.js <folder>` enforces this ruleset; `board.js` regenerates
-`docs/plans/board.json` and `index.html`.
+Scripts, from the repo root: `new.js <issue> <slug> …` scaffolds a folder from the template;
+`embed.js <folder>` embeds `plan.json`; `check.js <folder> --auto` enforces this ruleset and
+checks the page against its template (§8); `board.js` regenerates `docs/plans/board.json` and
+`index.html`.
+
+**Made from the template, checked where it deviates** (`GUIDANCE.md` §3, §8). A board is always
+the template plus its `plan.json`, and the work board the template plus `board.json`: `new.js`,
+`board.js`, or a copy of the template and `embed.js`, and nothing else. Writing a board at an
+event is therefore editing `plan.json` and re-embedding. Such a board needs no browser pass:
+`check.js --auto` checks the data, the rules and the embed, confirms the page is the verified
+template plus its data, and runs the browser only when it is not (a declared or undeclared
+divergence, a board left on an older template) or when the template changed since
+`verify/verify-templates.js` verified it.
 
 ## 2. The four columns
 
@@ -52,7 +62,18 @@ under `notes.corrections`; a change of mind goes in column 4, never into column 
 **As-built states:** `pending` (dashed, neutral) · `as-planned` (green) · `amended` (yellow:
 built as decided, plus changes added in implementation or review) · `deviated` (orange: the
 decision itself changed; each difference and the new decision listed) · `dropped` (red, with
-the reason) · `deferred` (neutral, dashed, with the issue it went to).
+the reason) · `deferred` (neutral, dashed, with the issue it went to). A tracking board's
+**unit rows**, and only they, take two more: `complete` (green, outlined: implemented and qa
+passed, not merged yet; the pipeline's `qa-pass` event sets it) and `landed` (green: merged; the
+admin team sets it itself in the landing refresh, with no plan-board event from a pipeline). An
+issue board's rows never take them: they keep `as-planned`, `amended` or `deviated`.
+
+On a tracking board a unit row moves `pending` → `complete` → `landed`: `complete` when its
+sub-issue's run passes qa, `landed` when that sub-issue merges. The detail of what the unit built,
+and how it differs from its own verdict, stays on the sub-issue's board, which the row links; the
+row may still carry `changes[]` where the unit departed from the architecture. A tracking board
+written before these two states marked a landed unit `as-planned`, `amended` or `deviated`; the
+scripts and the page read those as landed.
 
 ## 3. Work in progress
 
@@ -63,17 +84,44 @@ A board is alive while its run is. Its data carries:
   `landed`, `halted`, `escalated`, `cancelled`), with `since` (date-time) and `detail` (one
   line: which stage, which qa pass, what waits on the user);
 - `wip.current` — the cells being worked on, as `<row-id>.<column>` addresses, or a column
-  name while a column is being written; these carry the **glow** (`GUIDANCE.md` §1). During
-  planning the column under construction glows; during implementation the as-built cells of
-  the rows the current stage touches; during qa the whole as-built column lightly; while
-  halted, the glow pauses and a yellow "waiting on the user" strip says for what;
+  name while a column is being written; these carry the **in-progress mark**, the breathing
+  interior glow (`GUIDANCE.md` §1). `wip.current` means a run is actively in progress and
+  nothing else. During planning the column under construction glows; during implementation the
+  as-built cells of the rows the current stage touches; during qa the whole as-built column
+  lightly; while halted, the glow pauses and a yellow "waiting on the user" strip says for what;
+- `wip.next` — on a tracking board only: the id of the **next unit in landing order** — the
+  first unit row, in the board's row order, that is `pending` and not in `wip.current` — or
+  `null` when none is left. A tracking board always names what is coming. It carries the **up-next mark**, the still, mild
+  outer glow and the UP NEXT tag (`GUIDANCE.md` §1), on the unit's as-built cell, its chain
+  entry, its card and its roadmap line; it never glows as in progress, and the work board shows
+  it as "next · not started", never building or active. If the unit's blockers
+  (`unit.blockedBy`) have not all landed, it is still named next and is tagged "blocked by #n"
+  for each one that has not (a blocker that is not a unit on the board counts as not landed on
+  the plan board; the work board also reads the tracker's *blocked by* links, and takes a
+  blocker with no board as landed once its issue is closed). A unit is never in `wip.next` and
+  `wip.current` at once;
 - `wip.qa` — passes so far, each with its verdict and finding counts;
 - `wip.blockers` — issues this run waits on, and runs waiting on it (from *blocked by* links).
 
 The page shows this as a **WIP strip** under the header: the step as a progress line through
-the pipeline's steps, the detail, the qa passes, the blockers, and the last update time. When
-the change lands, `status` becomes `built`, `wip.step` becomes `landed`, the glow stops, and
-the strip shows the landing (PR, merge commit, version).
+the pipeline's steps, the detail, the qa passes, the blockers, and the last update time; on a
+tracking board also the chain of units, the unit in progress and the unit up next. When the
+change lands, `status` becomes `built`, `wip.step` becomes `landed`, the glow stops, and the
+strip shows the landing (PR, merge commit, version).
+
+**Next is the next one up (the standing rule).** `wip.next` is always the next unit in
+landing order, and two moments move it:
+
+- **A sub-issue lands.** The landing refresh, with no event and no request, updates its
+  tracking board: the unit's as-built cell becomes `landed` (with the as-built summary of the
+  landing), the unit leaves `wip.current`, and `wip.next` is recomputed.
+- **A unit's run starts** (its first plan-board event, `sized`). On the tracking board the unit
+  moves from `wip.next` to `wip.current` (`<unit-id>.built`), and the **following** unit in
+  landing order becomes `wip.next` at once.
+
+Recomputing always means the same thing: the first unit row, in row order, that is `pending`
+and not in `wip.current` (so never one that is current, complete, landed, dropped or deferred),
+or `null` when there is none. A unit is never in `wip.next` and `wip.current` at once.
 
 ## 4. Events: what updates a board
 
@@ -84,16 +132,16 @@ issue's branch, so the board's git history is the run's own timeline.
 
 | Event | When | What the presenter writes |
 |-------|------|---------------------------|
-| `sized` | step 1 done (levels 2–4) | the **foundation**: `new.js`; issue, title, level, baseline, systems, status `planned`, `wip.step = interview`/`research`/`plan`; milestones empty; on the work board |
+| `sized` | step 1 done (levels 2–4) | the **foundation**: `new.js`; issue, title, level, baseline, systems, status `planned`, `wip.step = interview`/`research`/`plan`; milestones empty; on the work board. For a sub-issue of a tracking issue, also on the tracking board: its unit moves from `wip.next` to `wip.current`, and the following unit in landing order becomes `wip.next` (§3) |
 | `halted` / `resumed` | a planner halt, a qa stop, a `needs-user` | `wip.step = halted` with what waits on the user; back to the step on resume |
 | `researched` | research verified | the Gap column from `research/README.md` and the findings; the `gap` milestone |
-| `architecture-signed-off` | level 4 sign-off | the Considered column from `architecture.md`; on a tracking board, the unit rows (each `pending` with a one-line progress summary until its sub-issue lands; linked to the sub-issue's board once it exists) |
+| `architecture-signed-off` | level 4 sign-off | the Considered column from `architecture.md`; on a tracking board, the unit rows (each `pending` with a one-line progress summary until its sub-issue lands; linked to the sub-issue's board once it exists), and `wip.next` the first unit (§3) |
 | `plan-accepted` | planner COMPLETE | Considered (if not yet) and Verdict from `plan.md`; the `verdict` milestone; `wip.step = branch` |
 | `branch-cut` | step 3 done | the branch; `wip.step = implementation` |
 | `implementation-stage` | a rookie-dev stage or report | `status = building`; the touched rows' as-built state and summary; each deviation from `final-implementation.md` as a `changes[]` entry; `wip.current` = the next stage's rows |
-| `qa-pass` | a qa verdict | `wip.qa` appended; `wip.step = remediation` or `landing` |
+| `qa-pass` | a qa verdict | `wip.qa` appended; `wip.step = remediation` or `landing`. On an approving pass of a sub-issue's run, its unit row on the tracking board becomes `complete` (it stays in `wip.current` until it lands) |
 | `escalated` | a level escalation | `wip.step = escalated` with the proposed level; the board follows the issue's new level |
-| `landed` | the team has merged | `status = built`; `asBuilt` (sha, date, PR, merge, version); the `built` milestone; every `pending` part resolved; the trail completed; `wip.step = landed`; the work board refreshed |
+| `landed` | the team has merged | never sent by a pipeline: the admin team raises it itself inside the landing refresh (the presenter writes, the executor commits). On the issue's board: `status = built`; `asBuilt` (sha, date, PR, merge, version); the `built` milestone; every `pending` part resolved; the trail completed; `wip.step = landed`. For a sub-issue, on its tracking board, the standing rule (§3): the unit `landed`, out of `wip.current`, `wip.next` recomputed as the next unit in landing order. Then the work board is regenerated |
 | `cancelled` | the run is abandoned | `status = abandoned`, reason in `notes` |
 
 The **work board** (§5) is regenerated only at landings, as part of the landing refresh, and
@@ -104,10 +152,13 @@ its branch. After `landed`, the as-built system pages' Context links are refresh
 
 `docs/plans/index.html`, from `board.json`, generated by `board.js` from every `plan.json`
 under `docs/plans/` plus the tracker's open issues (`gh issue list`, sub-issues, *blocked by*):
-one row per issue that has a board or a `level:` label — its level, status, `wip.step` and
-detail, qa passes, what it waits on, its blockers and what it blocks, its branch, and its
-tracking parent; grouped by tracking issue in landing order, then the rest by age; a glow on
-the rows whose runs are active; the same system colours. Its Context lists the roadmap
+one row per issue that has a board or a `level:` label, and one per unit of a tracking board —
+its level, status, `wip.step` and detail, qa passes, what it waits on, its blockers and what it
+blocks, its branch, and its tracking parent; grouped by tracking issue in landing order, then the
+rest by age; the in-progress mark on the rows whose runs are active; the same system colours. A
+unit reads `complete` once its row is complete (qa passed, not merged) and `landed` once it has
+landed; the unit a tracking board names in `wip.next` reads "next · not started", with the
+up-next mark and a "blocked by #n" tag for each blocker that has not landed, and is never active. Its Context lists the roadmap
 (tracking issues) and the unscheduled issues, like the repository page, and links it.
 
 ## 6. Who does what
@@ -116,7 +167,7 @@ the rows whose runs are active; the same system colours. Its Context lists the r
 |-----|------|
 | the `/resolve-issue` pipeline | sends `plan-board` events with the facts it has (step, verdicts, counts, documents written, what waits on the user); never edits a board |
 | the planner, implementer, qa | write their Markdown as before; the board is read from it |
-| the presenter (admin team service) | writes `plan.json`, re-embeds, checks, fills `board.json`; decides the rows and the summaries from the documents; sets `wip` from the event |
+| the presenter (admin team service) | writes `plan.json`, re-embeds, checks, fills `board.json`; decides the rows and the summaries from the documents; sets `wip` from the event; in a landing refresh, sets the landed state and applies the standing rule (§3) on the tracking board |
 | the admin team's executor | commits the folder on the issue's branch after each event; commits the regenerated work board only in a landing's docs flow |
 
 ## 7. Writing
@@ -137,20 +188,34 @@ plan acceptance carries the Gap column alone); options without exactly one accep
 chosen-partial) verdict; a declined, partial or deferred option without `why`; an amended or
 deviated part without `changes[]`, or a change without `what` and `why`; a dropped part
 without a reason; a deferred part without an issue; a `wip.current` address that names no cell;
-more than six glowing cells; a tracking-board unit row whose sub-issue board exists but is not
+more than six glowing cells; `complete` or `landed` on a row that is not a tracking board's
+unit row; a `wip.next` on a board that is not a tracking board, or one that names no unit row,
+a unit that is not `pending`, or a unit also in `wip.current`; on a tracking board, a recorded
+`wip.next` (`null` included) that is not the next unit in landing order (§3); a landed unit
+still in `wip.current`; a tracking-board unit row whose sub-issue board exists but is not
 linked; a bad date, sha, state, kind, verdict, step or column value; a placeholder left from the
 template; an embedded copy that differs from `plan.json`; a panel without a legend; a dead
-`href="#"`; a code block longer than five lines anywhere in the data.
+`href="#"`; a code block longer than five lines anywhere in the data. With `--auto` or
+`--browser`, a failing browser pass.
+
+With `--auto` it reports the page's standing against its template (`system/scripts/deviation.js`):
+the verified template plus its data (no browser pass), or a divergence (the full browser pass:
+light, dark, 520 px, a 390 px frame).
 
 Warns: a gap without evidence; a build verdict without named steps (unit rows of a tracking
 board are exempt: their steps live in the sub-issue's plan); a row's system not in `systems`;
 more than six colour groups (a system's parts share their parent's slot, so count top-level
-systems, not rows); a missing milestone; a halted board older than a day.
+systems, not rows); a missing milestone; a halted board older than a day; a tracking board that does
+not record `wip.next` at all (written before the rule), with the unit it should name; with
+`--auto`, a page that differs from its template without declaring the divergence (re-render it:
+copy the template over it and `embed.js`), and a template not verified since it changed.
 
 ## 9. Existing plans and the template
 
 Folders written before this format keep their Markdown; a run that reopens one adds a board
 beside it rather than converting it. `plan/examples/38-handshake-empty-name/` is the worked
 example, written after the fact. To change the template, edit `plan/template/dashboard.html`,
-copy it over each page and re-embed: the data lives in `plan.json`, so nothing is lost. Never
-hand-edit a page.
+run `verify/verify-templates.js` once (it verifies the template against the example and the
+fixtures in `verify/fixtures/` and records its hash), then copy it over each page and re-embed:
+the data lives in `plan.json`, so nothing is lost, and each re-rendered board is again the
+verified template plus its data. Never hand-edit a page.
