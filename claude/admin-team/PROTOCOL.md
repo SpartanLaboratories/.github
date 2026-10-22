@@ -82,9 +82,11 @@ fire-and-forget.
 ### Work board
 
 `docs/plans/index.html` and `board.json` sit on the default branch. On the default branch they
-are regenerated and committed **only at landings**, inside each landing's docs flow; between
-landings they may lag, and a run's live state is on its own board, on its branch. A
-`plan-board` event never commits to the default branch. On a topic branch that lands through a
+are regenerated and committed **only at landings**, inside each landing's docs flow. Between
+landings the live view is a local, uncommitted copy in `docs/plans/.live/` of the main
+checkout, regenerated after every board event, and a run's live state is on its own board in
+its worktree. A `plan-board` event runs in the team's board lanes, apart from the repository
+lanes, and commits nothing: an issue's board files are committed by its `land`. On a topic branch that lands through a
 PR (the board's first creation, a docs branch), the work board files are ordinary paths and a
 `commit` may include them.
 

@@ -108,7 +108,7 @@ lane at a time. Read its report, append the outcome to the ledger, reply.
 | `allocate-worktree` | `git worktree add` at `C:\wt\<repo>-<issue>` (a short path: Windows' 260-character limit breaks deep repos under long paths), from the current default branch. Reply with the path. |
 | `commit` | Commit exactly `paths` on `branch` in `worktree` and push. May be fire-and-forget: the planner's research commits don't wait. |
 | `sync-branch` | Bring `branch` up to date with its base (merge, the repo's way). Report the files the base changed that the branch also touches. |
-| `land` | Per `manager.md` and `level`: commits, the bump the level calls for, PR, merge, resolution comment; then the landing refresh (below); then delete the branch (local and remote) and remove the worktree it was given. A `land` with no `issue` (a docs or config branch) gets a `docs:` PR titled by `title`, no closing keyword, no resolution comment, no bump, and a landing refresh only if it touched dashboards. |
+| `land` | Per `manager.md` and `level`: commits (with the issue's board files, `dashboard.html` and `plan.json`, when its folder has them), the bump the level calls for, PR, merge, resolution comment; then the landing refresh (below); then delete the branch (local and remote) and remove the worktree it was given. A `land` with no `issue` (a docs or config branch) gets a `docs:` PR titled by `title`, no closing keyword, no resolution comment, no bump, and a landing refresh only if it touched dashboards. |
 | `file-sub-issues` | File the list as sub-issues of `issue` with their `level: N` labels and *blocked by* links, and label the parent `type: tracking`. The requester states the user approved the list at the architecture sign-off; that relayed approval is enough for this action and no other. |
 | `comment` / `label` | Post the comment, or add/remove the labels, on `issue`. |
 | `mirror-sync` | In the `mirror` lane: copy the listed `~/.claude` paths into the mirror clone, run the secret scan, commit straight to `main`, push. Refuse any path the mirror README's "Not included" list excludes, `admin-team/` included. |
@@ -179,18 +179,53 @@ agent (its rules: the `dashboards` skill, `~/.claude/skills/dashboards/`):
 the **system** (as-built) dashboards under `docs/dashboards/`, and the
 **plan** (process) boards under `docs/plans/`, one per issue in flight plus
 the repository work board. Pipelines never run `presenter` and never edit a
-board; they send you events. Dashboard requests run in the repository's lane
-like any other, so a board update never races a landing.
+board; they send you events. `plan-board` events run in the **board lanes**
+(below), apart from the repository lanes, so a board shows a run's state in
+real time; every other dashboard request runs in its repository's lane.
+
+### Board lanes
+
+- **One board-update lane** for the whole machine: every `plan-board` event
+  for a board that exists, in arrival order. It never waits on a repository
+  lane.
+- **Board-creation lanes**: one per new board (a `sized` event, or any event
+  for an issue with no board yet), **at most 3 running at once**; more wait
+  in a queue. Events for a board still being created are held and applied
+  as soon as its creation finishes, outside the update lane, which keeps
+  serving every other board.
+- **No commits.** A board update or creation writes the issue's board in its
+  worktree and nothing is committed. The issue's board files
+  (`dashboard.html`, `plan.json`) are committed by the issue's `land`, with
+  its other commits on the issue branch.
+- **Landings.** A `land` waits for any in-flight update or creation of its
+  issue's board to finish, so no half-written file is committed. While the
+  land runs, the update lane leaves that board alone: events for it are
+  recorded in the ledger and not applied, and the landing refresh writes its
+  final state.
+- **Live work board.** After every board update or creation, `presenter`
+  regenerates the repository's work board as a live local view in
+  `docs/plans/.live/` of the main checkout, from every in-flight issue's
+  board in its worktree. That folder is ignored through the checkout's
+  `.git/info/exclude` (add the line if it is missing) and never committed.
+- **Streamlined.** `presenter` makes new boards and pages from the template
+  and checks only what deviates from it (`dashboards` skill, GUIDANCE).
 
 | Action | What you do |
 |--------|-------------|
-| `plan-board` | Spawn `presenter` (`subagent_type: "presenter"`, `run_in_background: true`) in **plan-board mode** with the request: the issue, its folder, the `event` and its facts, the worktree and branch. It creates or updates `plan.json` and the page, re-embeds and checks. Then the lane's executor commits the issue folder on the issue's branch (`docs: plan board — <event> (Issue #n)`). The work board is not touched here. Reply `done` with the paths and commit. |
+| `plan-board` | In the board lanes: spawn `presenter` (`subagent_type: "presenter"`, `run_in_background: true`) in **plan-board mode** with the request: the issue, its folder, the `event` and its facts, the worktree and branch. It creates or updates `plan.json` and the page, re-embeds, checks, and regenerates the live work board. No commit. Reply `done` with the paths. |
 | `dashboards-refresh` | On request, at the current default branch: `presenter` in **landing-refresh mode** (below) for the named systems, or for everything. |
-| as part of `land` | After the merge, in the lane: `presenter` in **landing-refresh mode** — the changed system's own page as built, the repository and supersystem pages, `systems.json`, the README pointer, the issue's board (`landed`), the work board, and at level 4 the planned systems. Commit as `docs: dashboards after #<issue>` through the repo's PR flow for docs, merged the same way. |
+| as part of `land` | After the merge, in the lane: `presenter` in **landing-refresh mode** — the changed system's own page as built, the repository and supersystem pages, `systems.json`, the README pointer, the issue's board (`landed`), the parent tracking board (the standing rule below), the work board, and at level 4 the planned systems. Commit as `docs: dashboards after #<issue>` through the repo's PR flow for docs, merged the same way. |
+
+**Next is the next one up** (standing rule). When a sub-issue lands, the
+landing refresh sets its unit on the parent tracking board to `landed`, takes
+it out of `wip.current`, and sets `wip.next` to the next unit in landing
+order; when that unit's run starts, the following unit becomes next. No
+request or event is needed: `landed` is the team's own state.
 
 **Work board.** `docs/plans/index.html` and `board.json` live on the default
-branch and are regenerated **only at landings**, as part of the landing
-refresh, committed in the landing's docs flow. Never commit them to the
+branch and are regenerated there **only at landings**, as part of the landing
+refresh, committed in the landing's docs flow; between landings the live view
+is the local `docs/plans/.live/` copy (Board lanes). Never commit them to the
 default branch between landings, and never commit anything to a default branch
 outside a landing. On a topic branch that lands through a PR they are ordinary
 paths: a `commit` request may include them.

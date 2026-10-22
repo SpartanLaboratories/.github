@@ -73,9 +73,20 @@ One event of one run (`plan/RULES.md` §4).
 4. Keep it general: summaries, decisions, reasons, states, links to the
    Markdown section that holds the detail. No listings; `check.js` refuses a
    code block over five lines.
-5. `embed.js` the folder, `check.js` it, look at the screenshots once, fix,
-   report the paths. Do not touch the work board: it is regenerated only at
-   landings.
+5. On a sub-issue's `sized` (its run starts), update its parent tracking
+   board too: the unit moves from `wip.next` to `wip.current`, and the
+   following unit in landing order becomes `wip.next` (`plan/RULES.md` §3–4).
+6. On a sub-issue's approving `qa-pass`, set its unit `complete` on the
+   parent tracking board. On a tracking issue's `architecture-signed-off`,
+   set `wip.next` to the first unit when the unit rows first appear.
+7. `embed.js` the folder, `check.js <folder> --auto` it, fix, report the paths. Nothing is
+   committed: the board lives in the worktree until the issue's `land`.
+8. Regenerate the **live work board** in `docs/plans/.live/` of the
+   repository's main checkout, from every in-flight issue's board in its
+   worktree (`plan/scripts/board.js`). That folder is ignored through the
+   checkout's `.git/info/exclude`; add the line if it is missing. Never
+   touch the committed `docs/plans/index.html` and `board.json`: they are
+   regenerated only at landings.
 
 ### Landing-refresh mode
 
@@ -94,11 +105,15 @@ After the team has merged a change, on the merged default-branch commit:
    page for anything unbuilt.
 3. **The issue's board** as `landed`: `status = built`, `asBuilt`, the `built`
    milestone, every pending part resolved, the trail completed, the glow off.
+   For a sub-issue, also its **parent tracking board** (standing rule, next is
+   the next one up): its unit `landed`, out of `wip.current`, and `wip.next`
+   set to the next unit in landing order.
 4. **The work board**: `plan/scripts/board.js` regenerates `docs/plans/
    board.json` and `index.html` from every board and the tracker.
 5. Cross-links both ways: the system pages' Context lists the boards that
    amended them; the boards name their systems and link their pages.
-6. Check everything you touched, look once, report the paths. The team
+6. Check everything you touched with the `--auto` checkers (Streamlined,
+   below), report the paths. The team
    commits them in the landing's docs flow.
 
 ### Dashboards-refresh mode
@@ -137,20 +152,27 @@ planned are tags; identifiers hierarchical and stable) and the page's `MODEL`
 sequence, the cross-reference to DSL elements). Then the panels, the
 Guarantees bubbles, the Context section, the header. Every tab gets its colour
 plan and its legend as the rulesets set them out; add an optional tab wherever
-content for one exists. Re-embed the DSL so page and file are byte-identical.
+content for one exists, declared as a divergence (below). Re-embed the DSL so page and file are byte-identical.
 On an update, change what the landing changed and leave the rest alone.
 
 ## Diverging, checking, fixing
 
 - **Divergence** follows `GUIDANCE.md` §7: additive by default; a removal
-  needs its argument, recorded in the page's footer comment and your report; a
-  divergence that would serve every page goes in the repo template.
-- **Checks** follow `GUIDANCE.md` §8: the set's checker on every page you
-  touched, light and dark and narrow, then one look at the screenshots.
+  needs its argument. Declare every divergence, an optional tab included, in
+  the page head (`<meta name="template-divergence" content="what and why">`)
+  and in the page's footer comment and your report; a divergence that would
+  serve every page goes in the repo template.
+- **Streamlined.** Make new boards and pages from the template and change
+  only what the facts require. Check with `check.js <folder> --auto` and
+  `check-page.js <page> --auto`: they check the data and embeds everywhere
+  and run browser passes only as `GUIDANCE.md` §8 sets out, by how far the
+  page deviates from its verified template. Look at screenshots only for a
+  page that got a browser pass.
 - **Defects** follow `GUIDANCE.md` §9: fix them where they live, at your own
   discretion, on pages and in the `dashboards` skill's templates, examples and
-  scripts; list every skill file changed under **Skill fixes** so the mirror is
-  synced. Conventions are proposed in the report, not changed.
+  scripts; after any template change run `verify/verify-templates.js`. List
+  every skill file changed under **Skill fixes** so the mirror is synced.
+  Conventions are proposed in the report, not changed.
 - **The README**: if it does not yet point at `docs/dashboards/` and
   `docs/plans/`, add one line each under its documentation section. Nothing
   else in the README is yours.
@@ -188,7 +210,7 @@ On an update, change what the landing changed and leave the rest alone.
 - work board: docs/plans/index.html — regenerated | untouched (not a landing)
 
 ## Verified
-- <checker>: <page> → <tabs/panels n/n>, each with a legend · 0 console errors · light, dark, narrow (screenshots: <dir>)
+- <checker> --auto: <page> → data/embeds ok · <template + data, no browser pass | one light pass | full pass: light, dark, narrow, 0 console errors (screenshots: <dir>)>
 - looked at: <what you fixed after the look, or "nothing to fix">
 
 ## Skill fixes

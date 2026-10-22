@@ -163,7 +163,10 @@ sends it events):
   the current work in progress; it records the gap, the options considered (accepted green,
   declined red, partial yellow), the verdict and the as-built state, with the cell being worked
   on glowing. It is a general representation with little code; `plan.md` and
-  `final-implementation.md` keep the details beside it.
+  `final-implementation.md` keep the details beside it. Board updates run in real time in the
+  admin team's own board lanes and commit nothing; an issue's board is committed by its
+  landing. The work board on the default branch is updated only at landings; between them its
+  live view is a local, git-ignored copy in `docs/plans/.live/`.
 
 The `dashboards` skill holds the shared guidance (`GUIDANCE.md`, colour coding first), one
 ruleset per set, the templates and the checks.
