@@ -696,11 +696,12 @@ function renderSystems(){
   $("#syscards").innerHTML=SYSTEMS.map(s=>{
     const planned=s.status==="planned";
     const meta=planned?[`planned by #${(s.plannedBy||{}).issue||"?"}`]:[`v${s.version||"?"}`, s.asIs?`as-is ${s.asIs.ref} ${s.asIs.sha} · ${s.asIs.date}`:"", s.lastAmended?`amended by #${s.lastAmended.issue}`:""].filter(Boolean);
-    const tag=planned?"span":"a", href=planned?"":` href="${esc(s.page||"#")}"`;
-    return `<${tag} class="syscard ${planned?"planned":"built"}"${href} data-slug="${esc(s.slug)}" style="--c:${sysColour(s.slug)}" tabindex="0"><div class="st">${planned?"planned · no page yet":"built"}</div><div class="nm">${esc(s.name)}</div><div class="fn">${esc(s.function||"")}</div><div class="meta">${meta.map(m=>`<span>${esc(m)}</span>`).join("")}</div></${tag}>`;
+    // A built system the repository gives no page yet is a card, not a link (never a dead href="#").
+    const linked=!planned&&!!s.page, tag=linked?"a":"span", href=linked?` href="${esc(s.page)}"`:"";
+    return `<${tag} class="syscard ${planned?"planned":"built"}"${href} data-slug="${esc(s.slug)}" style="--c:${sysColour(s.slug)}" tabindex="0"><div class="st">${planned?"planned · no page yet":linked?"built":"built · no page yet"}</div><div class="nm">${esc(s.name)}</div><div class="fn">${esc(s.function||"")}</div><div class="meta">${meta.map(m=>`<span>${esc(m)}</span>`).join("")}</div></${tag}>`;
   }).join("");
   document.querySelectorAll(".syscard").forEach(c=>{ const show=()=>{ const s=SYSTEMS.find(x=>x.slug===c.dataset.slug); inspect(`<div class="kicker">SYSTEM · ${s.status.toUpperCase()}</div><div class="name">${esc(s.name)}</div><div class="vis">${esc((s.paths||[]).join(" · ")||"no code paths yet")}</div><p>${esc(s.function||"")}</p><dl>${s.page?`<dt>Dashboard</dt><dd><a href="${esc(s.page)}">${esc(s.page)}</a></dd>`:""}${s.parent?`<dt>Parent</dt><dd>${esc(s.parent)}</dd>`:""}${s.plannedBy?`<dt>Planned by</dt><dd>#${s.plannedBy.issue} · <code>${esc(s.plannedBy.architecture||"")}</code></dd>`:""}</dl>`); }; c.addEventListener("mouseenter",show); c.addEventListener("focus",show); });
-  $("#systems-key").innerHTML=sysKey(SYSTEMS.map(s=>s.slug))+`<span><i></i>built: opens its page</span><span><i class="pln"></i>planned: no page yet</span>`;
+  $("#systems-key").innerHTML=sysKey(SYSTEMS.map(s=>s.slug))+`<span><i></i>built: opens its page, or says no page yet</span><span><i class="pln"></i>planned: no page yet</span>`;
 }
 renderSystems();
 paintSystems();

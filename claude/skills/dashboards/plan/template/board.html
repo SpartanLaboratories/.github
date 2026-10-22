@@ -121,7 +121,7 @@ footer code{color:var(--ink-2)}
 </div>
 <section class="view" role="tabpanel" id="p-runs" aria-labelledby="t-runs">
   <h2>Every run, grouped by tracking issue in landing order, then the rest by age</h2>
-  <p class="lede">One row per issue with a plan board or a level label. A run's live state is on its own board, on its branch; this page is regenerated at each landing, so it may lag between landings.</p>
+  <p class="lede" id="runs-lede">One row per issue with a plan board or a level label. A run's live state is on its own board, on its branch; this page is regenerated at each landing, so it may lag between landings.</p>
   <div class="scroll"><table class="tbl" id="runs"></table></div>
   <div class="key" id="runs-key"></div>
 </section>
@@ -147,6 +147,8 @@ footer code{color:var(--ink-2)}
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 const B=JSON.parse(document.getElementById("board").textContent||"{}");
+// docs/plans/ relative to this page: "" for the committed board, "../" for the live one in docs/plans/.live/ (board.js --live).
+const BASE=B.base||"";
 const ROWS=B.rows||[], SYS=B.systems||[];
 const ext=(h,t)=>`<a href="${esc(h)}" target="_blank" rel="noopener">${t}</a>`;
 const ilink=(n,repo)=>ext(`https://github.com/${repo||B.repo}/issues/${n}`,`${repo&&repo!==B.repo?esc(repo.split("/")[1])+"#":"#"}${esc(n)}`);
@@ -165,11 +167,12 @@ const pill=(d,word,extra)=>`<span class="vp ${d.c}${d.d?" dashed":""}${d.h?" hol
 const stOf=r=>STATUS[r.status]?r.status:"no-board";
 
 function render(){
-  $("#crumbs").innerHTML=`<a href="../dashboards/index.html">${esc(B.repo||"")}</a> › docs/plans › work board`;
+  $("#crumbs").innerHTML=`<a href="${esc(BASE)}../dashboards/index.html">${esc(B.repo||"")}</a> › docs/plans › work board${B.live?" (live)":""}`;
   $("#function").textContent=`Every planning and development run in ${B.repo||"the repository"}: where each is, what it waits on, what it blocks.`;
+  if(B.live) $("#runs-lede").textContent="One row per issue with a plan board or a level label, each read from the freshest of its boards across the repository's worktrees. This live copy is regenerated at every plan-board event and is never committed.";
   document.title=`${(B.repo||"").split("/")[1]||""} · work board`;
   const t=B.tree||{};
-  $("#chips").innerHTML=[`<span class="chip">generated <b>${esc(B.generated||"")}</b></span>`,t.sha?`<span class="chip">from <b>${esc(t.ref||"")} ${esc(t.sha)}</b></span>`:"",`<span class="chip">tracker as of <b>${esc(B.asOf||"")}</b></span>`,`<span class="chip model">board <b>board.json</b> · ${ROWS.length} runs</span>`].filter(Boolean).join("");
+  $("#chips").innerHTML=[`<span class="chip">generated <b>${esc(B.generated||"")}</b></span>`,t.sha?`<span class="chip">from <b>${esc(t.ref||"")} ${esc(t.sha)}</b></span>`:"",B.live?`<span class="chip">live · from <b>${esc(B.live.worktrees)}</b> worktree${B.live.worktrees===1?"":"s"}, each issue's freshest board</span>`:"",`<span class="chip">tracker as of <b>${esc(B.asOf||"")}</b></span>`,`<span class="chip model">board <b>board.json</b> · ${ROWS.length} runs</span>`].filter(Boolean).join("");
   const n=k=>ROWS.filter(r=>stOf(r)===k).length;
   const nexts=ROWS.filter(r=>stOf(r)==="next");
   $("#kpis").innerHTML=[["Runs",ROWS.length,`${(B.roadmap||[]).length} tracking issue${(B.roadmap||[]).length===1?"":"s"}`],["Active now",ROWS.filter(r=>r.active).length,"glowing below"],["Waiting on the user",n("halted"),"halted runs"],["Landed",n("landed"),n("complete")?`${n("complete")} more complete, not merged`:"merged"],["Up next",nexts.length,nexts.length?nexts.map(r=>"#"+r.issue).join(", ")+" · not started":"no unit named next"],["Not started",n("not-started")+n("no-board"),`${n("no-board")} without a board`]].map(([l,v,s])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${esc(s)}</div></div>`).join("");
@@ -187,7 +190,7 @@ function render(){
   cards.push(`<div class="card"><h3>Roadmap <small>${(B.roadmap||[]).length} item${(B.roadmap||[]).length===1?"":"s"} · ${esc(B.asOf||"")}</small></h3>${(B.roadmap||[]).length?`<ul class="issues">${B.roadmap.map(m=>`<li>${ilink(m.issue)}<span>${rich(m.title)}${m.board?` · <a href="${esc(m.board)}">tracking board</a>`:""}</span><ul class="issues">${(m.items||[]).map(i=>`<li>${ilink(i.issue)}<span>${rich(i.title)} <small>${esc((i.state||"").toLowerCase())}${i.level?` · L${esc(i.level)}`:""}</small></span></li>`).join("")}</ul></li>`).join("")}</ul>`:`<p class="lede">No tracking issue is open.</p>`}</div>`);
   const un=B.unscheduled||[];
   cards.push(`<div class="card"><h3>Unscheduled issues <small>${un.length} open · ${esc(B.asOf||"")}</small></h3>${un.length?`<ul class="issues">${un.map(i=>`<li>${ilink(i.issue)}<span><span class="sw" data-sys="${esc(i.system||"")}"></span>${rich(i.title)}${i.labels&&i.labels.length?` <small>${esc(i.labels.join(" · "))}</small>`:""}</span></li>`).join("")}</ul>`:`<p class="lede">Every open issue sits on a roadmap item.</p>`}</div>`);
-  cards.push(`<div class="card"><h3>Plans and documents</h3><ul class="docs"><li><a href="../dashboards/index.html">System dashboards</a> — the repository as built</li><li><a href="README.md">docs/plans/README.md</a> — how to read a plan board</li>${ROWS.filter(r=>r.board).map(r=>`<li><a href="${esc(r.board)}">#${esc(r.issue)} plan board</a> — ${rich(r.title)}</li>`).join("")}</ul></div>`);
+  cards.push(`<div class="card"><h3>Plans and documents</h3><ul class="docs"><li><a href="${esc(BASE)}../dashboards/index.html">System dashboards</a> — the repository as built</li><li><a href="${esc(BASE)}README.md">docs/plans/README.md</a> — how to read a plan board</li>${ROWS.filter(r=>r.board).map(r=>`<li><a href="${esc(r.board)}">#${esc(r.issue)} plan board</a> — ${rich(r.title)}</li>`).join("")}</ul></div>`);
   $("#context").innerHTML=cards.join(""); paint($("#context"));
   $("#footer").innerHTML=`Built from <code>docs/plans/board.json</code>, generated by <code>plan/scripts/board.js</code> from every <code>plan.json</code> under <code>docs/plans/</code> and the tracker (issues, sub-issues, blocked-by), embedded verbatim. Regenerated at each landing; a run's live state is on its own board. Maintained by the presenter agent.`;
   $("#source-view").textContent=JSON.stringify(B,null,2);
