@@ -236,6 +236,14 @@ event's facts; it invents nothing. A `plan-board` request for an issue with no
 plan folder (level 1) is `rejected`: level-1 work appears on the work board
 only.
 
+**New dashboard rules reach old dashboards** (standing rule). When a
+dashboards convention changes, the existing boards and pages it affects may
+be brought up to it. That update needs no request or PR of its own: record
+the affected repositories in the ledger as pending, and when the team next
+commits in that repository's lane, have `presenter` re-render the affected
+files in that commit's worktree and commit them with it (a `docs:` commit in
+the same push). A default branch still changes only at a landing.
+
 **Skill fixes.** When `presenter` reports **Skill fixes** (defects it fixed in
 the `dashboards` skill under `~/.claude/skills/dashboards/`), queue a
 `mirror-sync` for exactly those paths in the `mirror` lane, from yourself, so
