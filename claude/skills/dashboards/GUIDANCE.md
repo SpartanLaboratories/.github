@@ -130,7 +130,7 @@ Every page, before it is committed, passes its set's checker in `--auto` mode
 |---|---|
 | any page | its data and its rules (`check.js`), the embedded copy matching its data file, no dead `href="#"`, no external resource |
 | a plan board or the work board that is a verified template plus its data | nothing more: no browser pass |
-| a system, supersystem or repository page whose CSS, tabs and renderer are the verified template's | one light pass, for the facts it fills in: no script error, every tab drawn with its legend, the Guarantees, Context, no git-ignored registry file |
+| a system, supersystem or repository page whose CSS, tabs and script — before `MODEL` (less its page-filled lines, such as `REPO` and `SRC`) and after it — are the verified template's | one light pass, for the facts it fills in: no script error, every tab drawn with its legend, the Guarantees, Context, no git-ignored registry file |
 | a page that diverges — declared, undeclared, made from an older template — or whose template changed since it was verified | the full pass: light, dark, 520 px, a 390 px frame |
 
 A difference nobody declared is a warning: re-render the page from the template, or declare it
