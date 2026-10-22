@@ -194,10 +194,17 @@ its gate verdict, the test-inspector **Test run** block, the code review, and
 the path to the visual test report.
 
 - **PASS** -> step 5b.
-- **CHANGES REQUESTED** -> do **one** remediation pass: `rookie-dev` for a
-  code or test gap; `planner` then `rookie-dev` if the plan itself is wrong.
-  Re-run `qa` once. If it still fails, stop and hand the user the findings, the
-  report path, and the branch as it stands. Never loop more than once.
+- **CHANGES REQUESTED, every fix minor** — each is easily made and has no
+  fallout: doc or comment wording, a missing KDoc, a misplaced or misnamed
+  test, a small mechanical code fix that changes no behaviour, public API or
+  design. Fix them on the spot (a short `rookie-dev` pass for code or tests;
+  doc and comment wording directly), record what was fixed for step 7, and go
+  on to step 5b **without a second `qa` pass**.
+- **CHANGES REQUESTED, otherwise** -> do **one** remediation pass: `rookie-dev`
+  for a code or test gap; `planner` then `rookie-dev` if the plan itself is
+  wrong. Ask the user before re-running `qa`, then re-run it once. If it still
+  fails, stop and hand the user the findings, the report path, and the branch
+  as it stands. Never loop more than once.
 
 ## 5b. Present — `presenter`  (levels 2–4)
 
