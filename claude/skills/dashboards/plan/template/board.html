@@ -86,6 +86,9 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .tbl .sub{font-size:11.5px;color:var(--muted);margin-top:2px;font-family:var(--mono)}
 .tbl a{text-decoration:none;border-bottom:1px solid var(--line)}
 .tbl small{color:var(--ink-2)}
+/* A sub-issue's #n opens its board (plan/RULES.md §1, §5); the small GitHub link beside it opens the issue. */
+a.gh{font:10.5px var(--mono);color:var(--muted);text-decoration:none;border-bottom:0!important;white-space:nowrap}
+a.gh:hover{color:var(--link);text-decoration:underline}
 pre.src{margin:0;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:14px;font:12px/1.5 var(--mono);overflow:auto;color:var(--ink);max-height:70vh}
 .context{margin-top:24px}
 .context h2{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 10px}
@@ -121,7 +124,7 @@ footer code{color:var(--ink-2)}
 </div>
 <section class="view" role="tabpanel" id="p-runs" aria-labelledby="t-runs">
   <h2>Every run, grouped by tracking issue in landing order, then the rest by age</h2>
-  <p class="lede" id="runs-lede">One row per issue with a plan board or a level label. A run's live state is on its own board, on its branch; this page is regenerated at each landing, so it may lag between landings.</p>
+  <p class="lede" id="runs-lede">One row per issue with a plan board or a level label. A run's live state is on its own board, on its branch; this page is regenerated at each landing, so it may lag between landings. A sub-issue's #n opens its board once it has one; GitHub ↗ opens the issue.</p>
   <div class="scroll"><table class="tbl" id="runs"></table></div>
   <div class="key" id="runs-key"></div>
 </section>
@@ -151,7 +154,16 @@ const B=JSON.parse(document.getElementById("board").textContent||"{}");
 const BASE=B.base||"";
 const ROWS=B.rows||[], SYS=B.systems||[];
 const ext=(h,t)=>`<a href="${esc(h)}" target="_blank" rel="noopener">${t}</a>`;
-const ilink=(n,repo)=>ext(`https://github.com/${repo||B.repo}/issues/${n}`,`${repo&&repo!==B.repo?esc(repo.split("/")[1])+"#":"#"}${esc(n)}`);
+/* Links to a sub-issue (plan/RULES.md §1, §5): a sub-issue with its own board (a row with a parent and a board; board.js sets
+   "board" only when the board's file exists) is linked to that board wherever this page names it, in the runs, the waits-on and
+   blocks lists, the roadmap and any #n in the text; every other issue links to GitHub. ghlink() is the small GitHub link set
+   beside a board link where there is room. */
+const SUB_BOARDS=new Map(ROWS.filter(r=>r.parent&&r.board).map(r=>[String(r.issue),r.board]));
+const subBoard=(n,repo)=>!repo||repo===B.repo?SUB_BOARDS.get(String(n))||null:null;
+const ghUrl=(n,repo)=>`https://github.com/${repo||B.repo}/issues/${n}`;
+const ilabel=(n,repo)=>`${repo&&repo!==B.repo?esc(repo.split("/")[1])+"#":"#"}${esc(n)}`;
+const ilink=(n,repo)=>{ const b=subBoard(n,repo); return b?`<a href="${esc(b)}" title="#${esc(n)}: its plan board">${ilabel(n,repo)}</a>`:ext(ghUrl(n,repo),ilabel(n,repo)); };
+const ghlink=(n,repo)=>subBoard(n,repo)?`<a class="gh" href="${esc(ghUrl(n,repo))}" target="_blank" rel="noopener" title="#${esc(n)} on GitHub" aria-label="#${esc(n)} on GitHub">GitHub ↗</a>`:"";
 const rich=s=>String(s==null?"":s).split("`").map((p,i)=>i%2?`<code>${esc(p)}</code>`:esc(p).replace(/(^|[\s(>;,])#(\d+)\b/g,(m,a,n)=>a+ilink(n))).join("");
 const sysOf=sl=>SYS.find(s=>s.slug===sl);
 const sysColour=sl=>{ const s=sysOf(sl); return s&&s.slot>=1&&s.slot<=6?`var(--sys-${s.slot})`:"var(--muted)"; };
@@ -169,7 +181,7 @@ const stOf=r=>STATUS[r.status]?r.status:"no-board";
 function render(){
   $("#crumbs").innerHTML=`<a href="${esc(BASE)}../dashboards/index.html">${esc(B.repo||"")}</a> › docs/plans › work board${B.live?" (live)":""}`;
   $("#function").textContent=`Every planning and development run in ${B.repo||"the repository"}: where each is, what it waits on, what it blocks.`;
-  if(B.live) $("#runs-lede").textContent="One row per issue with a plan board or a level label, each read from the freshest of its boards across the repository's worktrees. This live copy is regenerated at every plan-board event and is never committed.";
+  if(B.live) $("#runs-lede").textContent="One row per issue with a plan board or a level label, each read from the freshest of its boards across the repository's worktrees. This live copy is regenerated at every plan-board event and is never committed. A sub-issue's #n opens its board once it has one; GitHub ↗ opens the issue.";
   document.title=`${(B.repo||"").split("/")[1]||""} · work board`;
   const t=B.tree||{};
   $("#chips").innerHTML=[`<span class="chip">generated <b>${esc(B.generated||"")}</b></span>`,t.sha?`<span class="chip">from <b>${esc(t.ref||"")} ${esc(t.sha)}</b></span>`:"",B.live?`<span class="chip">live · from <b>${esc(B.live.worktrees)}</b> worktree${B.live.worktrees===1?"":"s"}, each issue's freshest board</span>`:"",`<span class="chip">tracker as of <b>${esc(B.asOf||"")}</b></span>`,`<span class="chip model">board <b>board.json</b> · ${ROWS.length} runs</span>`].filter(Boolean).join("");
@@ -181,13 +193,13 @@ function render(){
     h+=`<tr class="grp"><th colspan="7">${g.issue?`${ilink(g.issue)} ${rich(g.title)}${g.board?` · <a href="${esc(g.board)}">tracking board</a>`:""}`:esc(g.title)}</th></tr>`;
     rs.forEach(r=>{ const st=stOf(r), qa=r.qa||[];
       const iss=x=>`${ilink(x.issue,x.repo)}${x.state==="CLOSED"?"<small> closed</small>":""}`;
-      h+=`<tr class="run${st==="no-board"||st==="not-started"||st==="next"?" nob":""}" data-sys="${esc(r.system||"")}"><td><span class="t">${ilink(r.issue)} ${rich(r.title)}</span><div class="sub"><span class="sw" data-sys="${esc(r.system||"")}"></span>${esc(r.systemName||"no system recorded")}${r.level?` · L${esc(r.level)}`:""}${r.parent?` · part of #${esc(r.parent)}`:""}</div></td><td>${pill(STATUS[st],"",r.active?" glow":st==="next"?" upnext":"")}${st==="next"?`<div class="tags">${TAG_NEXT}${(r.blockedBy||[]).length?pill(BLOCKED,`blocked by ${r.blockedBy.map(x=>(x.repo?x.repo.split("/")[1]:"")+"#"+x.issue).join(", ")}`):""}</div>`:""}${r.step?`<div class="sub">step ${esc(r.step)}</div>`:""}</td><td>${rich(r.detail||"")}${r.landed?`<div class="sub">${[r.landed.pr?`PR #${esc(r.landed.pr)}`:"",r.landed.version?esc(r.landed.version):"",r.landed.date?esc(r.landed.date):""].filter(Boolean).join(" · ")}</div>`:""}</td><td>${qa.map(p=>{ const d=QA[p.verdict]||QA.running; return pill(d,`${p.pass} ${d.l}`); }).join(" ")}${qa.length&&r.qaMax?`<div class="sub">of at most ${esc(r.qaMax)}</div>`:""}</td><td>${(r.waitsOn||[]).length?`waits on ${r.waitsOn.map(iss).join(", ")}`:""}${(r.blocks||[]).length?`<div>blocks ${r.blocks.map(iss).join(", ")}</div>`:""}</td><td>${r.branch?`<code>${esc(r.branch)}</code>`:""}</td><td>${r.board?`<a href="${esc(r.board)}">board</a>`:r.folder?`<a href="${esc(r.folder)}">folder</a>`:"—"}</td></tr>`; }); });
+      h+=`<tr class="run${st==="no-board"||st==="not-started"||st==="next"?" nob":""}" data-sys="${esc(r.system||"")}"><td><span class="t">${ilink(r.issue)} ${rich(r.title)}</span><div class="sub"><span class="sw" data-sys="${esc(r.system||"")}"></span>${esc(r.systemName||"no system recorded")}${r.level?` · L${esc(r.level)}`:""}${r.parent?` · part of #${esc(r.parent)}`:""}${subBoard(r.issue)?` · ${ghlink(r.issue)}`:""}</div></td><td>${pill(STATUS[st],"",r.active?" glow":st==="next"?" upnext":"")}${st==="next"?`<div class="tags">${TAG_NEXT}${(r.blockedBy||[]).length?pill(BLOCKED,`blocked by ${r.blockedBy.map(x=>(x.repo?x.repo.split("/")[1]:"")+"#"+x.issue).join(", ")}`):""}</div>`:""}${r.step?`<div class="sub">step ${esc(r.step)}</div>`:""}</td><td>${rich(r.detail||"")}${r.landed?`<div class="sub">${[r.landed.pr?`PR #${esc(r.landed.pr)}`:"",r.landed.version?esc(r.landed.version):"",r.landed.date?esc(r.landed.date):""].filter(Boolean).join(" · ")}</div>`:""}</td><td>${qa.map(p=>{ const d=QA[p.verdict]||QA.running; return pill(d,`${p.pass} ${d.l}`); }).join(" ")}${qa.length&&r.qaMax?`<div class="sub">of at most ${esc(r.qaMax)}</div>`:""}</td><td>${(r.waitsOn||[]).length?`waits on ${r.waitsOn.map(iss).join(", ")}`:""}${(r.blocks||[]).length?`<div>blocks ${r.blocks.map(iss).join(", ")}</div>`:""}</td><td>${r.branch?`<code>${esc(r.branch)}</code>`:""}</td><td>${r.board?`<a href="${esc(r.board)}">board</a>`:r.folder?`<a href="${esc(r.folder)}">folder</a>`:"—"}</td></tr>`; }); });
   $("#runs").innerHTML=h+"</tbody>"; paint($("#runs"));
   const tops=new Map(); ROWS.forEach(r=>{ const s=sysOf(r.system), k=s&&s.slot>=1&&s.slot<=6?s.slot:0; if(!tops.has(k)) tops.set(k,{c:sysColour(r.system),n:new Set()}); tops.get(k).n.add(k?(s.top||s.name):"no system colour"); });
   const used=new Set(ROWS.map(stOf)), qv=new Set(ROWS.flatMap(r=>(r.qa||[]).map(p=>p.verdict)));
   $("#runs-key").innerHTML=[...tops.values()].map(v=>`<span><i class="sbar" style="--c:${v.c}"></i>${esc([...v.n].join(", "))}</span>`).join("")+Object.keys(STATUS).filter(k=>used.has(k)).map(k=>`<span>${pill(STATUS[k])}</span>`).join("")+[...qv].filter(v=>QA[v]).map(v=>`<span>${pill(QA[v])} qa pass</span>`).join("")+(ROWS.some(r=>r.active)?`<span><i class="gl"></i>interior glow, breathing: being worked on now</span>`:"")+(used.has("next")?`<span><i class="nx"></i>${TAG_NEXT} still outer glow: the next unit, not started</span>`:"")+(ROWS.some(r=>stOf(r)==="next"&&(r.blockedBy||[]).length)?`<span>${pill(BLOCKED,"blocked by #n")} a blocker of the next unit has not landed</span>`:"")+(used.has("no-board")||used.has("not-started")||used.has("next")?`<span><i class="pln"></i>dashed: not started</span>`:"")+(ROWS.length?"":`<span><i class="pln"></i>no runs recorded yet</span>`);
   const cards=[];
-  cards.push(`<div class="card"><h3>Roadmap <small>${(B.roadmap||[]).length} item${(B.roadmap||[]).length===1?"":"s"} · ${esc(B.asOf||"")}</small></h3>${(B.roadmap||[]).length?`<ul class="issues">${B.roadmap.map(m=>`<li>${ilink(m.issue)}<span>${rich(m.title)}${m.board?` · <a href="${esc(m.board)}">tracking board</a>`:""}</span><ul class="issues">${(m.items||[]).map(i=>`<li>${ilink(i.issue)}<span>${rich(i.title)} <small>${esc((i.state||"").toLowerCase())}${i.level?` · L${esc(i.level)}`:""}</small></span></li>`).join("")}</ul></li>`).join("")}</ul>`:`<p class="lede">No tracking issue is open.</p>`}</div>`);
+  cards.push(`<div class="card"><h3>Roadmap <small>${(B.roadmap||[]).length} item${(B.roadmap||[]).length===1?"":"s"} · ${esc(B.asOf||"")}</small></h3>${(B.roadmap||[]).length?`<ul class="issues">${B.roadmap.map(m=>`<li>${ilink(m.issue)}<span>${rich(m.title)}${m.board?` · <a href="${esc(m.board)}">tracking board</a>`:""}</span><ul class="issues">${(m.items||[]).map(i=>`<li>${ilink(i.issue)}<span>${rich(i.title)} <small>${esc((i.state||"").toLowerCase())}${i.level?` · L${esc(i.level)}`:""}</small>${subBoard(i.issue)?` · ${ghlink(i.issue)}`:""}</span></li>`).join("")}</ul></li>`).join("")}</ul>`:`<p class="lede">No tracking issue is open.</p>`}</div>`);
   const un=B.unscheduled||[];
   cards.push(`<div class="card"><h3>Unscheduled issues <small>${un.length} open · ${esc(B.asOf||"")}</small></h3>${un.length?`<ul class="issues">${un.map(i=>`<li>${ilink(i.issue)}<span><span class="sw" data-sys="${esc(i.system||"")}"></span>${rich(i.title)}${i.labels&&i.labels.length?` <small>${esc(i.labels.join(" · "))}</small>`:""}</span></li>`).join("")}</ul>`:`<p class="lede">Every open issue sits on a roadmap item.</p>`}</div>`);
   cards.push(`<div class="card"><h3>Plans and documents</h3><ul class="docs"><li><a href="${esc(BASE)}../dashboards/index.html">System dashboards</a> — the repository as built</li><li><a href="${esc(BASE)}README.md">docs/plans/README.md</a> — how to read a plan board</li>${ROWS.filter(r=>r.board).map(r=>`<li><a href="${esc(r.board)}">#${esc(r.issue)} plan board</a> — ${rich(r.title)}</li>`).join("")}</ul></div>`);

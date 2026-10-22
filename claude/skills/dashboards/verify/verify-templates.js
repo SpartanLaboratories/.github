@@ -9,9 +9,12 @@
 // change to a template; until then, every page made from that template gets the full pass.
 // The fixtures cover each template's states: the issue board example (landed, every option verdict and as-built state), the
 // tracking fixture (a landed, a complete and an in-progress unit, the unit up next and blocked), the work board fixture (landed,
-// complete, building, next, not started; and its live variant from board.js --live) and each template's own placeholder content.
+// complete, building, next, not started; a sub-issue with a board, linked from its row, the roadmap and a waits-on; and its
+// live variant from board.js --live) and each template's own placeholder content.
 // Before the browser passes it tests deviation.js on each system template, without a browser: page-filled lines are no
-// difference; an undeclared change to the script before MODEL is reported, with its warning, and gets the full pass.
+// difference; an undeclared change to the script before MODEL is reported, with its warning, and gets the full pass. It also
+// tests the sub-issue links on the plan-board template (plan/RULES.md §1), without a browser: embed.js links a unit to its
+// sub-issue's board only when that board exists, and check.js warns on a page older than the rule.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { recordFile, sha, norm } = require(path.join(__dirname, "..", "system", "scripts", "deviation.js"));
@@ -70,6 +73,45 @@ targets.filter(t => !t.block).forEach(t => {
   if (bad.length) devFailures++;
 });
 
+/* Links to a sub-issue (plan/RULES.md §1), tested without a browser on the plan-board template and the tracking fixture, in a
+   scratch repository whose tracking folder holds a stub board for its first unit: embed.js links the unit to the board that
+   exists and unlinks one that does not; check.js passes the template plus its data without the warning, warns when the page is
+   on a template older than the rule (no SUB_BOARDS map) and names the places, and fails a link to a board that is not there. */
+let linkFailures = 0;
+targets.filter(t => t.block === "plan").forEach(t => {
+  const fx = JSON.parse(fs.readFileSync(sk("verify/fixtures/tracking.plan.json"), "utf8")), tpl = fs.readFileSync(t.path, "utf8");
+  const unit = (fx.rows || []).find(r => r.unit && r.unit.board), plain = (fx.rows || []).find(r => r.unit && !r.unit.board);
+  if (!unit) { console.log(`FAILED   sub-issue links on ${t.name}: the tracking fixture has no unit with a board`); linkFailures++; return; }
+  const scratch = path.join(out, "sub-issue-links"), folder = path.join(scratch, ...fx.folder.split("/"));
+  const embedJs = path.join(SKILL, "plan", "scripts", "embed.js"), checkJs = path.join(SKILL, "plan", "scripts", "check.js");
+  const setup = (data, html, stub) => {
+    fs.rmSync(scratch, { recursive: true, force: true }); fs.mkdirSync(folder, { recursive: true });
+    const sub = path.join(folder, path.dirname(unit.unit.board));
+    if (stub) { fs.mkdirSync(sub, { recursive: true }); fs.writeFileSync(path.join(sub, "dashboard.html"), "<!doctype html><title>stub</title>"); }
+    fs.writeFileSync(path.join(folder, "plan.json"), JSON.stringify(data, null, 2) + "\n"); fs.writeFileSync(path.join(folder, "dashboard.html"), html);
+  };
+  const node = (js, ...a) => cp.spawnSync(process.execPath, [js, folder, ...a], { encoding: "utf8" });
+  const data = () => JSON.parse(fs.readFileSync(path.join(folder, "plan.json"), "utf8"));
+  const boardOf = (d, r) => d.rows.find(x => x.id === r.id).unit.board;
+  const warned = r => /has a board .* links #\d+ to its GitHub issue/.test(r.stdout || "");
+  const cases = [];
+  { const d = JSON.parse(JSON.stringify(fx)); delete d.rows.find(x => x.id === unit.id).unit.board; setup(d, tpl, true); node(embedJs);
+    const c = node(checkJs, "--root", scratch);
+    cases.push(["embed.js links a unit to its sub-issue's board when the board exists", boardOf(data(), unit) === unit.unit.board, String(boardOf(data(), unit))]);
+    cases.push(["check.js passes the template plus its data without the warning", c.status === 0 && !warned(c), (c.stdout || "").split(/\r?\n/).filter(l => /^(FAIL|warn)/.test(l)).join(" | ")]); }
+  { setup(fx, tpl.replace("const SUB_BOARDS=", "const SUB_BOARDS_OFF="), true); node(embedJs); const c = node(checkJs, "--root", scratch);
+    cases.push(["check.js warns on a page older than the rule and names the places", warned(c) && /the unit row's label/.test(c.stdout), (c.stdout || "").split(/\r?\n/).filter(l => /^warn/.test(l)).join(" | ") || "no warning"]); }
+  { setup(fx, tpl, false); const c0 = node(checkJs, "--root", scratch);
+    cases.push(["check.js fails a unit linked to a board that does not exist", c0.status === 1 && /names no board in this tree/.test(c0.stdout), (c0.stdout || "").split(/\r?\n/).filter(l => /^FAIL/.test(l)).join(" | ") || "no failure"]);
+    node(embedJs); const c = node(checkJs, "--root", scratch);
+    cases.push(["embed.js unlinks it, and the page keeps the GitHub link", boardOf(data(), unit) === null && c.status === 0, `unit.board ${JSON.stringify(boardOf(data(), unit))}, check exit ${c.status}`]); }
+  if (plain) { setup(fx, tpl, true); node(embedJs); cases.push(["a unit without a board stays unlinked", !boardOf(data(), plain), String(boardOf(data(), plain))]); }
+  const bad = cases.filter(c => !c[1]);
+  console.log(`${bad.length ? "FAILED  " : "checked "} sub-issue links on ${t.name}: ${cases.length - bad.length}/${cases.length} cases`);
+  bad.forEach(c => console.log(`  ${c[0]}: ${c[2]}`));
+  if (bad.length) linkFailures++;
+});
+
 const today = new Date().toISOString().slice(0, 10);
 targets.forEach(t => {
   const tpl = fs.readFileSync(t.path, "utf8"), results = [];
@@ -89,6 +131,7 @@ targets.forEach(t => {
   console.log(`${ok ? "verified" : "FAILED  "} ${t.name}${root ? " (" + path.relative(path.resolve(root), t.path).split(path.sep).join("/") + ")" : ""}: ${results.filter(r => r.pass).length}/${results.length} passes`);
   results.filter(r => !r.pass).forEach(r => console.log(`  ${r.fixture} · ${r.mode}: ${r.bad.join(" | ")}`));
   if (!ok) { failures++; return; }
+  if (t.block === "plan" && linkFailures) { console.log(`  not recorded: the sub-issue link cases failed`); failures++; return; }
   const { file, key } = recordFile(t.path);
   let rec = {}; try { rec = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) { /* first record */ }
   rec.$comment = "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last full verification. check-page.js --auto and check.js --auto trust a template only while its hash matches.";
@@ -99,4 +142,4 @@ targets.forEach(t => {
 });
 if (devFailures) console.log(`\ndeviation.js failed its cases on ${devFailures} template(s): fix system/scripts/deviation.js`);
 console.log(failures ? `\n${failures} template(s) failed: not recorded; fix them and run again` : `\nall templates verified; screenshots in ${out}`);
-process.exit(failures || devFailures ? 1 : 0);
+process.exit(failures || devFailures || linkFailures ? 1 : 0);

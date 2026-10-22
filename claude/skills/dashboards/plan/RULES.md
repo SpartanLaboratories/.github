@@ -27,6 +27,20 @@ work board only. A tracking issue (a level-4 plan) gets a board in its own folde
 row per unit**, each row linking to that sub-issue's own board; each sub-issue gets a full
 board in its own folder.
 
+**Links to a sub-issue.** On a tracking board, every link to a sub-issue it tracks opens **that
+sub-issue's own board** when one exists, and its GitHub issue only while none does: the unit
+row, the chain and the WIP strip, the as-built cards and the inspector, the Context roadmap,
+and any `#n` in the board's text. A board exists when its `dashboard.html` is in the same tree
+as the tracking board, in the sub-issue's folder inside the tracking issue's folder; the link is
+relative to the tracking board's folder, so it is never dead. Where there is room (the unit
+row, the roadmap, the inspector's unit entry) a small **GitHub ↗** link to the issue sits beside
+it. Nobody writes these links by hand: `embed.js` sets each unit's `unit.board` from the folders
+on disk at every embed, fills `unit.folder` when it is unset, and clears a link whose board is
+gone; `new.js --parent` re-embeds the tracking board, so a new sub-issue board is linked at
+once; and the template routes every `#n` of a unit with a board to that board. A sub-issue
+board kept outside its tracking issue's folder is not linked, and `check.js` warns about it.
+The work board applies the same rule to every sub-issue that has a board (§5).
+
 Scripts, from the repo root: `new.js <issue> <slug> …` scaffolds a folder from the template;
 `embed.js <folder>` embeds `plan.json`; `check.js <folder> --auto` enforces this ruleset and
 checks the page against its template (§8); `board.js` regenerates `docs/plans/board.json` and
@@ -132,10 +146,10 @@ issue's branch, so the board's git history is the run's own timeline.
 
 | Event | When | What the presenter writes |
 |-------|------|---------------------------|
-| `sized` | step 1 done (levels 2–4) | the **foundation**: `new.js`; issue, title, level, baseline, systems, status `planned`, `wip.step = interview`/`research`/`plan`; milestones empty; on the work board. For a sub-issue of a tracking issue, also on the tracking board: its unit moves from `wip.next` to `wip.current`, and the following unit in landing order becomes `wip.next` (§3) |
+| `sized` | step 1 done (levels 2–4) | the **foundation**: `new.js`; issue, title, level, baseline, systems, status `planned`, `wip.step = interview`/`research`/`plan`; milestones empty; on the work board. For a sub-issue of a tracking issue, also on the tracking board: its unit moves from `wip.next` to `wip.current`, and the following unit in landing order becomes `wip.next` (§3); `new.js --parent` re-embeds the tracking board, which links the unit to the new board (§1) |
 | `halted` / `resumed` | a planner halt, a qa stop, a `needs-user` | `wip.step = halted` with what waits on the user; back to the step on resume |
 | `researched` | research verified | the Gap column from `research/README.md` and the findings; the `gap` milestone |
-| `architecture-signed-off` | level 4 sign-off | the Considered column from `architecture.md`; on a tracking board, the unit rows (each `pending` with a one-line progress summary until its sub-issue lands; linked to the sub-issue's board once it exists), and `wip.next` the first unit (§3) |
+| `architecture-signed-off` | level 4 sign-off | the Considered column from `architecture.md`; on a tracking board, the unit rows (each `pending` with a one-line progress summary until its sub-issue lands; `embed.js` links it to the sub-issue's board once that board exists, §1), and `wip.next` the first unit (§3) |
 | `plan-accepted` | planner COMPLETE | Considered (if not yet) and Verdict from `plan.md`; the `verdict` milestone; `wip.step = branch` |
 | `branch-cut` | step 3 done | the branch; `wip.step = implementation` |
 | `implementation-stage` | a rookie-dev stage or report | `status = building`; the touched rows' as-built state and summary; each deviation from `final-implementation.md` as a `changes[]` entry; `wip.current` = the next stage's rows |
@@ -159,7 +173,9 @@ rest by age; the in-progress mark on the rows whose runs are active; the same sy
 unit reads `complete` once its row is complete (qa passed, not merged) and `landed` once it has
 landed; the unit a tracking board names in `wip.next` reads "next · not started", with the
 up-next mark and a "blocked by #n" tag for each blocker that has not landed, and is never active. Its Context lists the roadmap
-(tracking issues) and the unscheduled issues, like the repository page, and links it.
+(tracking issues) and the unscheduled issues, like the repository page, and links it. A sub-issue that has a board is linked to
+that board wherever the work board names it (its row, the waits-on and blocks lists, the roadmap, any `#n` in the text), with a
+small GitHub ↗ link beside it in the Issue column and the roadmap (§1); `board.js` sets a row's board only when its file exists.
 
 ## 6. Who does what
 
@@ -192,8 +208,9 @@ more than six glowing cells; `complete` or `landed` on a row that is not a track
 unit row; a `wip.next` on a board that is not a tracking board, or one that names no unit row,
 a unit that is not `pending`, or a unit also in `wip.current`; on a tracking board, a recorded
 `wip.next` (`null` included) that is not the next unit in landing order (§3); a landed unit
-still in `wip.current`; a tracking-board unit row whose sub-issue board exists but is not
-linked; a bad date, sha, state, kind, verdict, step or column value; a placeholder left from the
+still in `wip.current`; a tracking-board unit row whose sub-issue's board exists in this tree
+but is not what its `unit.board` links, or a `unit.board` naming a board that does not exist
+(`embed.js` sets and clears both, §1); a bad date, sha, state, kind, verdict, step or column value; a placeholder left from the
 template; an embedded copy that differs from `plan.json`; a panel without a legend; a dead
 `href="#"`; a code block longer than five lines anywhere in the data. With `--auto` or
 `--browser`, a failing browser pass.
@@ -206,7 +223,11 @@ Warns: a gap without evidence; a build verdict without named steps (unit rows of
 board are exempt: their steps live in the sub-issue's plan); a row's system not in `systems`;
 more than six colour groups (a system's parts share their parent's slot, so count top-level
 systems, not rows); a missing milestone; a halted board older than a day; a tracking board that does
-not record `wip.next` at all (written before the rule), with the unit it should name; with
+not record `wip.next` at all (written before the rule), with the unit it should name; a
+tracking board that links a sub-issue's GitHub page although the sub-issue's board exists (§1),
+naming each place: a page on a template older than the rule, a `unit.board` not re-embedded, or
+a GitHub URL of the sub-issue written in the data; the same on the work board; a sub-issue's
+board kept outside its tracking issue's folder, which the tracking board cannot link; with
 `--auto`, a page that differs from its template without declaring the divergence (re-render it:
 copy the template over it and `embed.js`), and a template not verified since it changed.
 
