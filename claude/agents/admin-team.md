@@ -178,8 +178,10 @@ like any other, so a board update never races a landing.
 
 **Work board.** `docs/plans/index.html` and `board.json` live on the default
 branch and are regenerated **only at landings**, as part of the landing
-refresh, committed in the landing's docs flow. Never commit them between
-landings, and never commit anything to a default branch outside a landing.
+refresh, committed in the landing's docs flow. Never commit them to the
+default branch between landings, and never commit anything to a default branch
+outside a landing. On a topic branch that lands through a PR they are ordinary
+paths: a `commit` request may include them.
 
 **Facts.** `presenter` reads the issue folder's documents in the worktree
 (research, architecture, plan.md, impact.md, final-implementation.md) and the
