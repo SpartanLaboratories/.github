@@ -8,4 +8,5 @@
 - [Delete stale merged branches](feedback_delete_stale_merged_branches.md) — after a PR merges, delete the branch (local + remote); manager agent standing instruction.
 - [/resolve-issue auto-confirm](feedback_resolve_issue_auto_confirm.md) — skip the "shall I proceed" gate; always yes, go straight into the pipeline.
 - [No Claude attribution](feedback_no_claude_attribution.md) — no Co-Authored-By / Claude-Session / "Generated with Claude Code" on commits or PRs; set off in ~/.claude/settings.json.
+- [WebTools dashboard pages](project_webtools_dashboard_pages.md) — udp + Gradle build pages in #61's run; http at #62; scraping/browser only on request.
 - [Confirm before second qa run](feedback_confirm_before_second_qa_run.md) — ask the user before any second qa invocation in /resolve-issue, don't auto-loop even within the skill's one-retry allowance.

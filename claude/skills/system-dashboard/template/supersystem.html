@@ -5,20 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>REPO</title>
 <style>
-/* Supersystem / repository page template (system-dashboard skill): the systems as cards, the C4 views rendered from the embedded DSL, context second.
-   Draft A2: the C4 model tab is rendered at runtime from the Structurizr DSL embedded below (a verbatim copy of workspace.dsl). */
+/* Supersystem / repository page template (system-dashboard skill): the Systems tab first, then the six core tabs adapted to the
+   level (how the systems compose, run, decide, interact and live), the Guarantees bubbles with one row per system, then Context.
+   Draft A2: the C4 model tab is rendered at runtime from the Structurizr DSL embedded below (a verbatim copy of workspace.dsl).
+   Colour plan: --sys-1..6 are the systems' slots (registry order, see sysColour), --ph-1..3 the ordinal phase ramp
+   (Lifecycles), --good / --warning / --serious / --critical are status (outcomes only, always beside a label). Dashed = planned. */
 :root{
   --bg:#f3f5f8; --surface:#fcfcfd; --surface-2:#eef1f6; --ink:#0e1420; --ink-2:#4a5468; --muted:#7d879a;
   --line:#dfe4ec; --hair:rgba(14,20,32,.10);
   --server:#2a78d6; --client:#eb6834; --wire:#1baf7a;
   --server-soft:#e2edfa; --client-soft:#fdeae1; --wire-soft:#ddf4ea;
   --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+  --ph-1:#a49bed; --ph-2:#6250d6; --ph-3:#352a91;
   --on:#0e1420; --dim:.28; --focus:#2a78d6; --rel:#6b7382;
   --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:ui-monospace,"Cascadia Mono",Consolas,"SF Mono",monospace;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--server:#3987e5;--client:#d95926;--wire:#199e70;--server-soft:rgba(57,135,229,.20);--client-soft:rgba(217,89,38,.20);--wire-soft:rgba(25,158,112,.22);--on:#eef1f6;--focus:#3987e5;--rel:#9aa3b2;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--server:#3987e5;--client:#d95926;--wire:#199e70;--server-soft:rgba(57,135,229,.20);--client-soft:rgba(217,89,38,.20);--wire-soft:rgba(25,158,112,.22);--on:#eef1f6;--focus:#3987e5;--rel:#9aa3b2;color-scheme:dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--server:#3987e5;--client:#d95926;--wire:#199e70;--server-soft:rgba(57,135,229,.20);--client-soft:rgba(217,89,38,.20);--wire-soft:rgba(25,158,112,.22);--ph-1:#5546c0;--ph-2:#8a7ee6;--ph-3:#c9c2f7;--on:#eef1f6;--focus:#3987e5;--rel:#9aa3b2;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--server:#3987e5;--client:#d95926;--wire:#199e70;--server-soft:rgba(57,135,229,.20);--client-soft:rgba(217,89,38,.20);--wire-soft:rgba(25,158,112,.22);--ph-1:#5546c0;--ph-2:#8a7ee6;--ph-3:#c9c2f7;--on:#eef1f6;--focus:#3987e5;--rel:#9aa3b2;color-scheme:dark}
 
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans);padding-block:0 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -55,7 +59,8 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .tab:hover{color:var(--ink)}
 .tab.model::after{content:" DSL";font:10px var(--mono);color:var(--muted);vertical-align:super}
 .stage{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start}
-@media (max-width:940px){.stage{grid-template-columns:1fr}.inspector{position:static}}
+@media (max-width:940px){.stage{grid-template-columns:minmax(0,1fr)}.inspector{position:static}}
+.stage>div{min-width:0}
 .view{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px;min-width:0}
 .view svg{display:block;width:100%;height:auto}
 .view h2{font-size:15px;margin:0 0 4px}
@@ -75,11 +80,23 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .linkbtn:hover{border-color:var(--ink)}
 .tchip{display:inline-block;font:11px var(--mono);padding:3px 6px;border:1px solid var(--line);border-radius:3px;margin:2px 4px 0 0;color:var(--ink-2)}
 .tchip.server{border-left:3px solid var(--server)}.tchip.client{border-left:3px solid var(--client)}
+/* Legends. Every tab carries one .key (the C4 tab's is .c4key): its colour grouping, then its line and shape encodings,
+   ending with planned. check-page.js fails a tab without a visible one. */
 .key{display:flex;flex-wrap:wrap;gap:8px 16px;margin:10px 0 0;font-size:12px;color:var(--ink-2)}
 .key span{display:inline-flex;align-items:center;gap:6px}
-.key i{display:inline-block;width:16px;height:11px;border-radius:3px;border:1.5px solid var(--ink-2);background:var(--surface)}
-.key i.pub{background:var(--surface-2)}.key i.std{border-style:dotted}.key i.pln{border-style:dashed;background:none}
+.key i{display:inline-block;width:16px;height:11px;border-radius:3px;border:1.5px solid var(--ink-2);background:var(--surface);flex:none}
+.key i.pub{background:var(--surface-2)}.key i.std{border-style:dotted}.key i.pln{border-style:dashed;background:none;opacity:.6}
 .key i.srv{border-color:var(--server)}.key i.cli{border-color:var(--client)}.key i.wir{border-color:var(--wire)}
+.key i.pub.srv{background:var(--server-soft)}.key i.pub.cli{background:var(--client-soft)}.key i.pub.wir{background:var(--wire-soft)}
+.key i.con{border-color:var(--ink)}.key i.ext{border-color:var(--muted);background:var(--surface-2)}
+.key i.bs{border-left:4px solid var(--server)}.key i.bc{border-left:4px solid var(--client)}.key i.bw{border-left:4px solid var(--wire)}
+.key i.ph1{background:var(--ph-1);border-color:var(--ph-1)}.key i.ph2{background:var(--ph-2);border-color:var(--ph-2)}.key i.ph3{background:var(--ph-3);border-color:var(--ph-3)}
+.key i.ln{width:18px;height:0;border:0;border-top:2px solid var(--ink-2);border-radius:0;background:none}.key i.ln.dash{border-top-style:dashed}.key i.ln.on{border-top:2.5px solid var(--on)}.key i.ln.off{border-top-color:var(--line)}
+.key i.hex{border:0;border-radius:0;background:var(--ink-2);clip-path:polygon(22% 0,78% 0,100% 50%,78% 100%,22% 100%,0 50%)}
+.key i.end{border-radius:1px;border-color:var(--line);border-left-width:4px;background:var(--surface-2)}
+.key i.band{border:0;background:var(--surface-2)}
+.key i.dot{width:10px;height:10px;border:0;border-radius:50%;background:var(--ink)}
+.key .pill{align-self:center}
 
 /* structure svg */
 .band{fill:var(--surface-2)}
@@ -91,7 +108,8 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .node.server rect{stroke:var(--server)}.node.server.pub rect{fill:var(--server-soft)}
 .node.client rect{stroke:var(--client)}.node.client.pub rect{fill:var(--client-soft)}
 .node.wire rect{stroke:var(--wire)}.node.wire.pub rect{fill:var(--wire-soft)}
-.node.standalone rect{stroke:var(--muted);stroke-dasharray:3 3;fill:var(--surface-2)}
+.node.standalone rect{stroke:var(--muted);stroke-dasharray:2 3;fill:var(--surface-2)}
+.node.planned{opacity:.6}.node.planned rect{stroke-dasharray:6 4}
 .node.container rect{fill-opacity:.55}
 .node text{fill:var(--ink);font-family:var(--sans)}
 .node .t{font-weight:700;font-size:10.5px}
@@ -105,21 +123,25 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .fnode{cursor:default}
 .fnode rect,.fnode polygon{fill:var(--surface);stroke:var(--line);stroke-width:1.5}
 .fnode.t rect{fill:var(--surface-2)}
+.fnode rect.stripe,.fnode.on rect.stripe{stroke:none}
 .fnode text{fill:var(--ink);font-size:10.5px;font-family:var(--sans)}
 .fnode .lvl{font-family:var(--mono);font-size:8.5px;fill:var(--muted)}
 .fnode.on rect,.fnode.on polygon{stroke:var(--on);stroke-width:2.5}
 .fnode.off{opacity:var(--dim)}
+.fnode.planned rect,.fnode.planned polygon{stroke-dasharray:6 4}.fnode.planned:not(.off){opacity:.6}
 .fedge{stroke:var(--line);stroke-width:1.5;fill:none}
 .fedge.on{stroke:var(--on);stroke-width:2.5}
 .fedge.off{opacity:var(--dim)}
+.fedge.planned{stroke-dasharray:6 4}
 .flabel{font-size:9.5px;fill:var(--muted);font-family:var(--mono)}
 .flabel.on{fill:var(--ink);font-weight:600}
 .flabel.off{opacity:var(--dim)}
 .outcome{font-size:13px;margin:0 0 10px;padding:8px 10px;border-radius:4px;background:var(--surface-2);border-left:3px solid var(--ink)}
 .outcome code{font-weight:600}
 .ctl{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 10px;align-items:center}
-.ctl label{font-size:11px;color:var(--muted);display:flex;gap:8px;align-items:center;text-transform:uppercase;letter-spacing:.06em}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.ctl label{font-size:11px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px;align-items:center;text-transform:uppercase;letter-spacing:.06em;max-width:100%}
+/* A segmented control wraps onto a second row at phone width rather than pushing the page sideways. */
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:5px;overflow:hidden;max-width:100%}
 .seg button{appearance:none;border:0;background:var(--surface);color:var(--ink-2);font:12px/1 var(--mono);padding:7px 9px;cursor:pointer;border-right:1px solid var(--line)}
 .seg button:last-child{border-right:0}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
@@ -132,6 +154,9 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 /* sequence svg */
 .life{stroke:var(--line);stroke-dasharray:3 4}
 .lh rect{fill:var(--surface-2);stroke:var(--line)}
+.lh.server rect{fill:var(--server-soft);stroke:var(--server)}.lh.client rect{fill:var(--client-soft);stroke:var(--client)}.lh.wire rect{fill:var(--wire-soft);stroke:var(--wire)}
+.lh.consumer rect{fill:var(--surface);stroke:var(--ink)}.lh.external rect{fill:var(--surface-2);stroke:var(--muted)}
+.lh.planned{opacity:.6}.lh.planned rect{stroke-dasharray:6 4}
 .lh text{font-size:10.5px;font-weight:700;fill:var(--ink);font-family:var(--mono)}
 .phase rect{fill:var(--surface-2);opacity:.55}
 .phase text{font-size:9.5px;fill:var(--muted);font-family:var(--mono);letter-spacing:.08em}
@@ -144,6 +169,7 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .msg.cur line,.msg.cur path{stroke:var(--on);stroke-width:2.5}
 .msg.cur text{fill:var(--ink);font-weight:600}
 .msg.future{opacity:.3}
+.msg.planned line,.msg.planned path{stroke-dasharray:6 4}.msg.planned:not(.future){opacity:.6}
 
 /* C4 model tab — rendered from the DSL. A level ladder on the left (C4 is about zooming in), typed element
    cards whose header colour comes from the DSL's styles block, relationships routed orthogonally in lanes,
@@ -174,6 +200,8 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .c4key span{display:inline-flex;align-items:center;gap:6px}
 .c4key i{display:inline-block;width:16px;height:11px;border-radius:3px;border:1.5px solid rgba(0,0,0,.35)}
 .c4key i.arrow{width:18px;height:0;border:0;border-top:1.5px solid var(--rel);border-radius:0}
+.c4key i.arrow.dashed{border-top-style:dashed}
+.c4key i.frame{background:var(--surface-2);border:1.5px dashed var(--muted);border-radius:4px}
 .c4el{cursor:pointer}
 .c4el .card{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
 .c4el .hdr{stroke:none}
@@ -214,12 +242,14 @@ pre.dsl .c{color:var(--muted)} pre.dsl .k{color:var(--server);font-weight:600} p
 @media (max-width:700px){.threads{grid-template-columns:1fr}}
 .tside h3{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 6px}
 .thread{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px 10px;border:1px solid var(--line);border-left-width:4px;border-radius:4px;margin-bottom:6px;background:var(--surface);cursor:pointer;min-width:0}
-.thread.server{border-left-color:var(--server)}.thread.client{border-left-color:var(--client)}
+.thread.server{border-left-color:var(--server)}.thread.client{border-left-color:var(--client)}.thread.wire{border-left-color:var(--wire)}
+.thread.planned{border-style:dashed;opacity:.6}
 .thread .n{font:12px var(--mono);font-weight:600}
 .thread .r{grid-column:1/-1;font-size:12px;color:var(--ink-2)}
 .thread.sel{outline:2px solid var(--on)}
+/* When a thread starts: filled = eagerly, outlined = lazily on first use, dotted = only under a condition. Dashed stays free for planned. */
 .pill{font:10px/1 var(--mono);padding:3px 6px;border-radius:3px;border:1.5px solid var(--ink-2);color:var(--ink-2);align-self:start;white-space:nowrap}
-.pill.lazy{border-style:dashed}.pill.cond{border-style:dotted}
+.pill.eager{background:var(--ink-2);color:var(--surface)}.pill.cond{border-style:dotted}.pill.planned{border-style:dashed;opacity:.6}
 .scroll{overflow-x:auto}
 .matrix{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;min-width:560px}
 .matrix th,.matrix td{padding:6px 8px;border-top:1px solid var(--hair);text-align:center;vertical-align:top}
@@ -239,14 +269,36 @@ pre.dsl .c{color:var(--muted)} pre.dsl .k{color:var(--server);font-weight:600} p
 .steps li::before{content:counter(s) " ";color:var(--muted)}
 .tbl{width:100%;border-collapse:collapse;font-size:12.5px}
 .tbl th,.tbl td{text-align:left;padding:6px 6px;border-top:1px solid var(--hair);vertical-align:top}
+.tbl td{overflow-wrap:anywhere}
 .tbl th{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-.callout{border-left:3px solid var(--wire);padding:8px 10px;background:var(--surface-2);border-radius:4px;font-size:13px;color:var(--ink-2);margin-top:8px}
+/* Phases (the Lifecycles colour plan): .ph1 start / creation, .ph2 run / steady state, .ph3 stop / teardown. A class sets --ph;
+   a card takes it as its top rule, a callout as its left rule, a step or table row as a left mark, a state box as its stroke. */
+.ph1{--ph:var(--ph-1)}.ph2{--ph:var(--ph-2)}.ph3{--ph:var(--ph-3)}
+.card.ph1,.card.ph2,.card.ph3{border-top:3px solid var(--ph)}
+.steps li.ph1,.steps li.ph2,.steps li.ph3{border-left:3px solid var(--ph)}.steps li.planned{border-style:dashed;opacity:.6}
+.tbl tr.ph1>:first-child,.tbl tr.ph2>:first-child,.tbl tr.ph3>:first-child{border-left:3px solid var(--ph)}
+.callout{border-left:3px solid var(--ph,var(--ink-2));padding:8px 10px;background:var(--surface-2);border-radius:4px;font-size:13px;color:var(--ink-2);margin-top:8px}
 .callout b{color:var(--ink)}
 .states text{font-family:var(--mono);font-size:11px;fill:var(--ink)}
 .states .lab{font-family:var(--sans);font-size:9.5px;fill:var(--muted)}
 .states rect{fill:var(--surface-2);stroke:var(--ink-2);stroke-width:1.5}
-.states .start{fill:var(--server-soft);stroke:var(--server)}
+.states rect.ph1,.states rect.ph2,.states rect.ph3{stroke:var(--ph);stroke-width:2;fill:color-mix(in srgb,var(--ph) 14%,var(--surface))}
+.states rect.planned{stroke-dasharray:6 4;opacity:.6}
 .states line,.states path{stroke:var(--ink-2);stroke-width:1.5;fill:none}
+
+/* guarantees — always visible under the tab stage, whatever tab is open; one compact titled bubble per guarantee */
+.guarantees{margin-top:20px}
+.guarantees>h2{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 10px}
+.bubbles{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:10px}
+.bubble{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 12px;min-width:0;font-size:12.5px;color:var(--ink-2)}
+.bubble h3{font-size:12.5px;margin:0 0 6px;color:var(--ink)}
+.bubble h3 small{font-weight:400;color:var(--muted);font-family:var(--mono);font-size:11px}
+.bubble ul{margin:0;padding:0 0 0 15px}
+.bubble li{margin:3px 0}
+.bubble p{margin:6px 0 0}
+.bubble code{color:var(--ink)}
+.bubble .gap{color:var(--muted);font-style:italic}
+.bubble .badge{margin-left:2px}
 
 /* context */
 .context{margin-top:24px}
@@ -260,10 +312,23 @@ pre.dsl .c{color:var(--muted)} pre.dsl .k{color:var(--server);font-weight:600} p
 .badge.bug{border-color:var(--serious)}
 .badge.bug::before{content:"▲ ";color:var(--serious)}
 .badge.planned{border-style:dashed}
+.badge.closed{color:var(--muted)}
+.tags{display:inline-flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
+@media (max-width:520px){.issues li{grid-template-columns:auto 1fr}.issues li>.tags{grid-column:2;justify-content:flex-start}}
+/* roadmap: each item (a tracking issue, or an entry in the repository's roadmap document) with the issues mapped to it */
+.roadmap{list-style:none;margin:0;padding:0;font-size:12.5px}
+.roadmap>li{padding:6px 0;border-top:1px solid var(--hair)}
+.roadmap .ri{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:start}
+.roadmap .ri>span:nth-child(2){font-weight:600;color:var(--ink)}
+.roadmap .ri small{font:400 11px var(--mono);color:var(--muted)}
+.roadmap .ri a{font-family:var(--mono);text-decoration:none;color:var(--ink-2)}
+.roadmap .issues{margin:4px 0 0 14px}
+.roadmap .more{margin:4px 0 0 14px;font-size:12px;color:var(--muted)}
+/* one series (test classes), so one neutral fill: a hue here would read as a side */
 .bars{display:grid;grid-template-columns:auto 1fr auto;gap:5px 10px;align-items:center;font-size:12px}
 .bars .lbl{color:var(--ink-2);font-family:var(--mono);font-size:11.5px}
 .bars .trk{height:10px;background:var(--surface-2);border-radius:2px;overflow:hidden;position:relative}
-.bars .fil{position:absolute;left:0;top:0;height:100%;background:var(--server);border-radius:0 4px 4px 0}
+.bars .fil{position:absolute;left:0;top:0;height:100%;background:var(--ink-2);border-radius:0 4px 4px 0}
 .bars .val{font-variant-numeric:tabular-nums;color:var(--ink)}
 .docs{margin:0;padding:0;list-style:none;font-size:12.5px}
 .docs li{padding:4px 0;border-top:1px solid var(--hair)}
@@ -274,16 +339,51 @@ footer code{color:var(--ink-2)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 <style>
+/* System colours: one categorical slot per top-level system, in registry order (sysColour below); a child system takes its
+   top-level ancestor's slot, and the seventh top-level system on folds into the neutral --muted. Everything drawn for a system
+   sets --c from its slot, so a system keeps one colour on every tab. Palette slots 7 and 8 stay unused here: violet is the
+   phase ramp, red sits next to critical. */
+:root{--sys-1:#2a78d6;--sys-2:#eb6834;--sys-3:#1baf7a;--sys-4:#eda100;--sys-5:#e87ba4;--sys-6:#008300}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--sys-1:#3987e5;--sys-2:#d95926;--sys-3:#199e70;--sys-4:#c98500;--sys-5:#d55181;--sys-6:#008300}}
+:root[data-theme="dark"]{--sys-1:#3987e5;--sys-2:#d95926;--sys-3:#199e70;--sys-4:#c98500;--sys-5:#d55181;--sys-6:#008300}
 .syscards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
-.syscard{display:block;text-decoration:none;color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0;border-top:3px solid var(--server)}
+.syscard{display:block;text-decoration:none;color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0;border-top:3px solid var(--c,var(--muted))}
 .syscard:hover{border-color:var(--ink-2)}
-.syscard.planned{border-style:dashed;border-top-color:var(--muted)}
+.syscard.planned{border-style:dashed;opacity:.7}
 .syscard .nm{font:700 15px var(--mono)}
 .syscard .fn{font-size:13px;color:var(--ink-2);margin:4px 0 8px}
 .syscard .meta{display:flex;flex-wrap:wrap;gap:4px}
 .syscard .meta span{font:11px var(--mono);padding:3px 6px;border:1px solid var(--line);border-radius:3px;color:var(--ink-2)}
 .syscard .st{font:700 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.syscard.planned .st{color:var(--muted)}
+.key i.sys{border-color:var(--c);background:color-mix(in srgb,var(--c) 18%,var(--surface))}
+.key i.sbar{border-color:var(--line);border-left:4px solid var(--c)}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--c,var(--muted));margin-right:6px;vertical-align:-1px}
+/* structure: each system a box in its colour (nesting is composition), its dependencies as arrows */
+.snode{cursor:pointer}
+.snode rect{fill:color-mix(in srgb,var(--c) 12%,var(--surface));stroke:var(--c);stroke-width:1.5}
+.snode.container rect{fill:color-mix(in srgb,var(--c) 5%,var(--surface))}
+.snode.planned{opacity:.6}.snode.planned rect{stroke-dasharray:6 4}
+.snode text{fill:var(--ink);font-family:var(--sans)}
+.snode .t{font:700 12px var(--mono)}
+.snode .s{font-size:10px;fill:var(--ink-2)}
+.snode.sel rect{stroke:var(--on);stroke-width:3}
+.sdep path{stroke:var(--ink-2);stroke-width:1.5;fill:none}
+.sdep.planned{opacity:.6}.sdep.planned path{stroke-dasharray:6 4}
+.sdep text{font-size:9.5px;fill:var(--ink-2);font-family:var(--sans)}
+.sdep .lbg{fill:var(--surface);stroke:none}
+/* threads, lifelines, rows and badges take their system's colour from --c */
+.threads{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.thread[data-sys]{border-left-color:var(--c)}
+.thread .k,.key .k{font:10px var(--mono);color:var(--muted)}
+.lh[data-sys] rect{stroke:var(--c);fill:color-mix(in srgb,var(--c) 14%,var(--surface))}
+.badge[data-sys]{border-left:3px solid var(--c)}
+.gtbl{width:100%;border-collapse:collapse;font-size:12px}
+.gtbl th,.gtbl td{text-align:left;padding:5px 4px;border-top:1px solid var(--hair);vertical-align:top}
+.gtbl tbody th{font:600 11.5px var(--mono);color:var(--ink);white-space:nowrap}
+.gtbl thead th{font:600 10px var(--sans);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-top:0}
+.gtbl td.n,.gtbl thead th.n{text-align:right;font-variant-numeric:tabular-nums}
+.gtbl tr.planned{opacity:.6}.gtbl tr.planned>*{border-top-style:dashed}
+.tbl td:first-child{white-space:nowrap}
 </style>
 </head>
 <body>
@@ -301,17 +401,36 @@ footer code{color:var(--ink-2)}
   </div>
 </header>
 
+<!-- presenter: the Systems tab, then the six core tabs every page carries, adapted to this level. Each tab colours its content by a
+     grouping that suits it — by system here, in the system's slot colour — and shows a legend (.key); planned is dashed on every
+     tab. Removing a core tab is a divergence that needs a strong argument (e.g. no system calls another, so no cross-system
+     Sequence exists), recorded in the footer. Optional tabs go after Lifecycles. -->
 <div class="tabs" role="tablist" aria-label="Views">
   <button class="tab" role="tab" id="t-systems" aria-controls="p-systems" aria-selected="true">Systems</button>
+  <button class="tab" role="tab" id="t-structure" aria-controls="p-structure" aria-selected="false">Structure</button>
   <button class="tab model" role="tab" id="t-c4" aria-controls="p-c4" aria-selected="false">C4 model</button>
+  <button class="tab" role="tab" id="t-threads" aria-controls="p-threads" aria-selected="false">Threads</button>
+  <button class="tab" role="tab" id="t-datagrams" aria-controls="p-datagrams" aria-selected="false">Decision path</button>
+  <button class="tab" role="tab" id="t-reliable" aria-controls="p-reliable" aria-selected="false">Sequence</button>
+  <button class="tab" role="tab" id="t-lifecycles" aria-controls="p-lifecycles" aria-selected="false">Lifecycles</button>
 </div>
 
 <div class="stage">
 <div>
   <section class="view" role="tabpanel" id="p-systems" aria-labelledby="t-systems">
     <h2>Systems</h2>
-    <p class="lede">Each card is a system with its own dashboard. Solid cards are built and reflect the commit they name; dashed cards are planned and have no page yet.</p>
+    <p class="lede">Each card is a system with its own dashboard, in the colour it keeps on every tab of this page. Solid cards are built and reflect the commit they name; dashed cards are planned and have no page yet.</p>
     <div class="syscards" id="syscards"></div>
+    <!-- generated from the registry: one swatch per top-level system, then built and planned -->
+    <div class="key" id="systems-key"></div>
+  </section>
+
+  <section class="view" role="tabpanel" id="p-structure" aria-labelledby="t-structure" hidden>
+    <h2>How the systems compose and depend on each other</h2>
+    <p class="lede">Each box is a system in its colour; a box inside another is part of that supersystem. Arrows point at what a system depends on. Click a system for its role, its dependencies both ways and its place in the C4 model. <!-- presenter: place the boxes by hand in MODEL.structure; label each arrow with how it depends (api, implementation, a runtime call, a published artifact) --></p>
+    <svg id="svg-structure" viewBox="0 0 1000 330" role="img" aria-label="How the systems compose and depend on each other"></svg>
+    <!-- generated: the systems on the map, then composition, dependency and planned -->
+    <div class="key" id="structure-key"></div>
   </section>
 
   <section class="view" role="tabpanel" id="p-c4" aria-labelledby="t-c4" hidden>
@@ -327,28 +446,149 @@ footer code{color:var(--ink-2)}
       </div>
     </div>
   </section>
+
+  <section class="view" role="tabpanel" id="p-threads" aria-labelledby="t-threads" hidden>
+    <h2>Threads and processes across systems</h2>
+    <p class="lede">Every thread and child process the systems start, one column per system in its colour: when it starts (filled pill = eagerly, outlined = lazily on first use, dotted = only under a condition) and what runs on it. Click one for details. <!-- presenter: one .tside per system that starts anything; one .thread per thread or process, data-t a key of MODEL.threads and data-sys the owning system's slug. A system that starts nothing gets no column; say so in a note when it matters (e.g. "runs on the caller's threads"). --></p>
+    <div class="threads">
+      <div class="tside"><h3><span class="sw" data-sys="system-alpha"></span>system-alpha</h3>
+        <div class="thread" data-sys="system-alpha" data-t="alpha-worker" tabindex="0" role="button"><span class="n">alpha-worker</span><span class="pill eager">eager</span><span class="r">what runs here</span></div>
+      </div>
+      <div class="tside"><h3><span class="sw" data-sys="system-beta"></span>system-beta</h3>
+        <div class="thread" data-sys="system-beta" data-t="beta-io" tabindex="0" role="button"><span class="n">beta-io</span><span class="pill lazy">lazy</span><span class="r">what runs here, once first needed</span></div>
+        <div class="thread" data-sys="system-beta" data-t="beta-helper" tabindex="0" role="button"><span class="n">beta-helper <span class="k">process</span></span><span class="pill cond">if …</span><span class="r">a child process the system spawns, and when</span></div>
+      </div>
+      <div class="tside"><h3><span class="sw" data-sys="system-gamma"></span>system-gamma <small>planned</small></h3>
+        <div class="thread planned" data-sys="system-gamma" data-t="gamma-loop" tabindex="0" role="button"><span class="n">gamma-loop</span><span class="pill planned">planned</span><span class="r">what the plan says it will run (#N)</span></div>
+      </div>
+    </div>
+    <!-- generated: the systems with a column, then the pill encodings, process and planned -->
+    <div class="key" id="threads-key"></div>
+  </section>
+
+  <section class="view" role="tabpanel" id="p-datagrams" aria-labelledby="t-datagrams" hidden>
+    <h2>Which system does a consumer pick?</h2>
+    <p class="lede">Pick what the consumer needs; the path through the choice lights up and ends at the system to depend on, in its colour. Hexagons are decisions. <!-- presenter: a decision that crosses systems — which module a consumer picks, which system routes a request, which one owns a failure. Name the view after it. MODEL.flows takes the system page's shape; an end with sys:"slug" takes that system's colour, one with lvl a status colour. --></p>
+    <div class="ctl" id="flow-ctl"></div>
+    <p class="outcome" id="outcome"></p>
+    <svg id="svg-flow" viewBox="0 0 980 300" role="img" aria-label="Cross-system decision path"></svg>
+    <!-- generated: shapes, the systems and outcome levels the ends use, lit and faded, planned -->
+    <div class="key" id="flow-key"></div>
+  </section>
+
+  <section class="view" role="tabpanel" id="p-reliable" aria-labelledby="t-reliable" hidden>
+    <h2>A cross-system interaction</h2>
+    <p class="lede">One interaction that crosses systems, step by step, each lifeline in the colour of the system that owns it. Step through it, or click any message. <!-- presenter: name it after the interaction (a release, a request that spans modules, a plugin call-back) --></p>
+    <div class="ctl">
+      <button class="btn" id="seq-prev">‹ prev</button>
+      <button class="btn" id="seq-next">next ›</button>
+      <button class="btn" id="seq-play" aria-pressed="false">play</button>
+      <span id="seq-pos" style="font:12px var(--mono);color:var(--muted)"></span>
+    </div>
+    <svg id="svg-seq" viewBox="0 0 1000 300" role="img" aria-label="Cross-system sequence diagram"></svg>
+    <!-- generated: the systems on the lifelines, the consumer and outside parties, the line encodings, planned -->
+    <div class="key" id="seq-key"></div>
+  </section>
+
+  <section class="view" role="tabpanel" id="p-lifecycles" aria-labelledby="t-lifecycles" hidden>
+    <h2>Lifecycles across systems</h2>
+    <p class="lede">Lifecycles that span systems — from source to a release on Maven Central, each system's version line — coloured by phase. <!-- presenter: cards are examples of shape; keep what the repository has. Phase classes ph1 / ph2 / ph3 are first / middle / last phase; name them in the legend. A row about one system starts with its swatch (<span class="sw" data-sys="slug">). --></p>
+    <div class="lgrid">
+      <div class="card"><h3>Source to release <small>the path every module takes</small></h3>
+        <ol class="steps"><li class="ph1">source</li><li class="ph1">compile</li><li class="ph2">level tests</li><li class="ph2">checks</li><li class="ph3">sign</li><li class="ph3">publish</li><li class="ph3">Maven Central</li></ol>
+        <div class="callout ph3"><b>A fact worth a callout</b> — who releases, on what trigger, with its source.</div></div>
+      <div class="card ph3"><h3>Version lines <small>one per system</small></h3>
+        <table class="tbl"><thead><tr><th>System</th><th>Version</th><th>Moves by</th></tr></thead><tbody>
+          <tr><td><span class="sw" data-sys="system-alpha"></span>system-alpha</td><td><code>x.y.z</code></td><td>a letter for a fix, the third number for an addition</td></tr>
+          <tr><td><span class="sw" data-sys="system-beta"></span>system-beta</td><td><code>x.y.z</code></td><td>…</td></tr>
+        </tbody></table></div>
+    </div>
+    <div class="key"><span><i class="ph1"></i>build</span><span><i class="ph2"></i>verify</span><span><i class="ph3"></i>release</span><span><i class="pln"></i>planned, not built</span></div>
+  </section>
 </div>
 
 <aside class="inspector" id="inspector" aria-live="polite">
   <h2>Inspector</h2>
-  <div id="insp-body"><p>Select a system or a C4 element to see its details here.</p></div>
+  <div id="insp-body"><p>Select a system, a C4 element, a thread, a decision or a sequence step to see its details here.</p></div>
 </aside>
 </div>
 
-<section class="context">
-  <h2>Context · secondary</h2>
-  <div class="cards">
-    <div class="card"><h3>Roadmap</h3>
-      <!-- presenter: phases / tracking issues, with links; planned systems point at their architecture documents -->
-      <ul class="docs"><li><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N Phase …</a> — what it delivers</li></ul></div>
-    <div class="card"><h3>Open issues by system</h3>
-      <ul class="issues"><li><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span>Issue title</span><span class="badge">system-alpha</span></li></ul></div>
-    <div class="card"><h3>Documents</h3>
-      <ul class="docs"><li><a href="https://github.com/ORG/REPO/blob/main/README.md" target="_blank" rel="noopener">README</a></li><li><code>systems.json</code> — the registry this page is built from</li></ul></div>
+<section class="guarantees" aria-label="Guarantees">
+  <!-- presenter: what a consumer can rely on, across the systems of this page: the seven standard bubbles, each covering every
+       system with one row (its swatch and slug, then the fact in a few words, read from that system's page or code); a planned
+       system's row is dashed (class planned) and says only that nothing is built to guarantee yet, with its issue. A fact that cannot be established is a gap (<span class="gap">…</span>), never a
+       guess. Add a bubble where the repository has another guarantee worth stating; removing a standard one is a divergence. -->
+  <h2>Guarantees</h2>
+  <div class="bubbles">
+    <div class="bubble"><h3>Failure model</h3>
+      <table class="gtbl"><tbody>
+        <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td><code>kotlin.Result</code>; typed failures …; retries …</td></tr>
+        <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td>…</td></tr>
+        <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
+      </tbody></table></div>
+    <div class="bubble"><h3>Extension points</h3>
+      <table class="gtbl"><tbody>
+        <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td><code>SeamType</code> <span class="badge">Stable Core</span></td></tr>
+        <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td><code>Port</code> <span class="badge">Experimental · @MarkerName</span></td></tr>
+        <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
+      </tbody></table></div>
+    <div class="bubble"><h3>Test levels <small>n classes</small></h3>
+      <!-- presenter: test classes per system per level, counted from each system's testing.<level> packages; link the test-inspector report when one exists -->
+      <div class="scroll"><table class="gtbl"><thead><tr><th>System</th><th class="n">L1</th><th class="n">L2</th><th class="n">L3</th><th class="n">L4a</th><th class="n">L4b</th><th class="n">L4c</th><th class="n">L5</th></tr></thead><tbody>
+        <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td></tr>
+        <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td></tr>
+        <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td colspan="7">planned (#N) — no tests yet</td></tr>
+      </tbody></table></div></div>
+    <div class="bubble"><h3>Compatibility &amp; versioning</h3>
+      <table class="gtbl"><tbody>
+        <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td><code>x.y.z</code> · ABI dump checked · deprecate, don't break</td></tr>
+        <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td><code>x.y.z</code> · <span class="gap">not checked</span> · legacy: may break freely</td></tr>
+        <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
+      </tbody></table></div>
+    <div class="bubble"><h3>Thread safety</h3>
+      <table class="gtbl"><tbody>
+        <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td>safe to share: … · confined: …</td></tr>
+        <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td>…</td></tr>
+        <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
+      </tbody></table></div>
+    <div class="bubble"><h3>Resources to close</h3>
+      <table class="gtbl"><tbody>
+        <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td><code>stop()</code> — releases … · skipped: …</td></tr>
+        <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td>nothing to close</td></tr>
+        <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
+      </tbody></table></div>
+    <div class="bubble"><h3>On your classpath</h3>
+      <table class="gtbl"><tbody>
+        <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td><code>group:artifact:version</code></td></tr>
+        <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td>…</td></tr>
+        <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
+      </tbody></table></div>
   </div>
 </section>
 
-<footer>Built from <code>docs/dashboards/systems.json</code>, <code>workspace.dsl</code> and the code at <code>branch sha</code>. Code is authoritative on any conflict. Maintained by the presenter agent on each <code>/resolve-issue</code> run.</footer>
+<section class="context">
+  <h2>Context</h2>
+  <div class="cards">
+    <div class="card"><h3>Roadmap <small>n items · YYYY-MM-DD</small></h3>
+      <!-- presenter: every roadmap item: a tracking issue with its sub-issues (gh issue view <n> --json subIssues,parent), or an
+           entry in a roadmap document the repository keeps, with the issues it names. Under each, every issue mapped to it:
+           number, title, state, level where known, and the system it touches (a badge with data-sys); planned systems point at
+           their architecture documents. -->
+      <ol class="roadmap">
+        <li><div class="ri"><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span>Roadmap item title <small>tracking issue</small></span><span class="tags"><span class="badge">open</span><span class="badge">L4</span></span></div>
+          <ul class="issues">
+            <li><a href="https://github.com/ORG/REPO/issues/M" target="_blank" rel="noopener">#M</a><span>Issue mapped to the item</span><span class="tags"><span class="badge" data-sys="system-gamma">system-gamma</span><span class="badge">open</span><span class="badge">L3</span></span></li>
+          </ul></li>
+      </ol></div>
+    <div class="card"><h3>Unscheduled issues <small>n open · YYYY-MM-DD</small></h3>
+      <!-- presenter: the open issues no roadmap item claims, each badged with the system it touches -->
+      <ul class="issues"><li><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span>Issue title</span><span class="tags"><span class="badge" data-sys="system-alpha">system-alpha</span><span class="badge bug">bug</span></span></li></ul></div>
+    <div class="card"><h3>Plans and documents</h3>
+      <ul class="docs"><li><a href="https://github.com/ORG/REPO/blob/main/README.md" target="_blank" rel="noopener">README</a></li><li><code>systems.json</code> — the registry this page is built from</li><li>Plans: #N … (architecture of each planned system)</li></ul></div>
+  </div>
+</section>
+
+<footer>Built from <code>docs/dashboards/systems.json</code>, <code>workspace.dsl</code> and the code at <code>branch sha</code>. Code is authoritative on any conflict. Maintained by the presenter agent on each <code>/resolve-issue</code> run.<!-- presenter: list each divergence from the template here, one numbered line each. Adding needs only its line; removing anything — a core tab, a standard Guarantees bubble, a legend entry — carries its strong argument (e.g. no data for it exists). --></footer>
 </div>
 
 <!-- A verbatim copy of docs/dashboards/systems.json (scripts/embed.js … systems). -->
@@ -412,7 +652,7 @@ workspace "REPO" "One sentence on the repository." {
             element "External"        { background #999999 color #ffffff }
             element "Container"       { background #438dd5 color #ffffff }
             element "Component"       { background #85bbf0 color #000000 }
-            element "Internal"        { background #c6dcf5 color #000000 border dashed }
+            element "Internal"        { background #c6dcf5 color #000000 }
             element "Standalone"      { background #eeeeee color #000000 border dotted }
             element "Planned"         { background #ffffff color #666666 border dashed opacity 60 }
         }
@@ -428,24 +668,149 @@ const txt=(p,x,y,lines,cls,anchor,dy)=>{const t=mk("text",{x,y,class:cls||"","te
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
 function inspect(html){ $("#insp-body").innerHTML=html; }
-// This page has no component map; the C4 inspector's map link is unused.
-const MODEL={c4:{},structure:{nodes:[]}};
-function selectNode(){}
+function arrowDefs(svg,id,color){ const d=mk("defs",{},svg); const m=mk("marker",{id,viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"7",markerHeight:"7",orient:"auto-start-reverse"},d); mk("path",{d:"M0,0 L10,5 L0,10 z",fill:color||"var(--ink-2)"},m); const mo=mk("marker",{id:id+"-open",viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"7",markerHeight:"7",orient:"auto-start-reverse"},d); mk("path",{d:"M0,0 L10,5 L0,10",fill:"none",stroke:color||"var(--ink-2)","stroke-width":"1.5"},mo); const mon=mk("marker",{id:id+"-on",viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"7",markerHeight:"7",orient:"auto-start-reverse"},d); mk("path",{d:"M0,0 L10,5 L0,10 z",fill:"var(--on)"},mon); }
 
 /* ---------- Systems (from the embedded registry) ---------- */
 const REG=JSON.parse(document.getElementById("systems").textContent);
+const REPO="https://github.com/"+REG.repo;
+const ilink=n=>`<a href="${REPO}/issues/${n}" target="_blank" rel="noopener">#${n}</a>`;
 const SYSTEMS=REG.systems.filter(s=>s.kind!=="repo");
 $("#sys-count").textContent=`${SYSTEMS.filter(s=>s.status==="built").length} built · ${SYSTEMS.filter(s=>s.status==="planned").length} planned`;
+
+/* ---------- System colours ----------
+   One categorical slot per top-level system (one whose parent is not itself on this page), in registry order; a child takes its
+   top-level ancestor's slot. Six slots: the seventh top-level system on, and any slug the registry does not know, fold into the
+   neutral "other". Every element drawn for a system sets --c from here — paintSystems() does it for hand-written [data-sys]
+   elements — so a system keeps one colour on every tab. */
+const SLOTS=6, bySlug=slug=>SYSTEMS.find(s=>s.slug===slug);
+function sysTop(slug){ let s=bySlug(slug); while(s&&bySlug(s.parent)) s=bySlug(s.parent); return s; }
+const TOPS=SYSTEMS.filter(s=>!bySlug(s.parent));
+function sysColour(slug){ const i=TOPS.indexOf(sysTop(slug)); return i>=0&&i<SLOTS?`var(--sys-${i+1})`:"var(--muted)"; }
+function paintSystems(root){ (root||document).querySelectorAll("[data-sys]").forEach(e=>e.style.setProperty("--c",sysColour(e.dataset.sys))); }
+/* Legend entries for a set of systems: one per top-level system, in slot order, then "other" when any folded. */
+function sysKey(slugs,cls){ const tops=TOPS.filter(t=>slugs.some(s=>sysTop(s)===t)), more=slugs.some(s=>{ const i=TOPS.indexOf(sysTop(s)); return i<0||i>=SLOTS; });
+  return tops.filter(t=>TOPS.indexOf(t)<SLOTS).map(t=>`<span><i class="${cls||"sys"}" style="--c:${sysColour(t.slug)}"></i>${esc(t.name)}</span>`).join("")+(more?`<span><i class="${cls||"sys"}" style="--c:var(--muted)"></i>other systems</span>`:""); }
+
 function renderSystems(){
   $("#syscards").innerHTML=SYSTEMS.map(s=>{
     const planned=s.status==="planned";
     const meta=planned?[`planned by #${(s.plannedBy||{}).issue||"?"}`]:[`v${s.version||"?"}`, s.asIs?`as-is ${s.asIs.ref} ${s.asIs.sha} · ${s.asIs.date}`:"", s.lastAmended?`amended by #${s.lastAmended.issue}`:""].filter(Boolean);
     const tag=planned?"span":"a", href=planned?"":` href="${esc(s.page||"#")}"`;
-    return `<${tag} class="syscard ${planned?"planned":"built"}"${href} data-slug="${esc(s.slug)}" tabindex="0"><div class="st">${planned?"planned · no page yet":"built"}</div><div class="nm">${esc(s.name)}</div><div class="fn">${esc(s.function||"")}</div><div class="meta">${meta.map(m=>`<span>${esc(m)}</span>`).join("")}</div></${tag}>`;
+    return `<${tag} class="syscard ${planned?"planned":"built"}"${href} data-slug="${esc(s.slug)}" style="--c:${sysColour(s.slug)}" tabindex="0"><div class="st">${planned?"planned · no page yet":"built"}</div><div class="nm">${esc(s.name)}</div><div class="fn">${esc(s.function||"")}</div><div class="meta">${meta.map(m=>`<span>${esc(m)}</span>`).join("")}</div></${tag}>`;
   }).join("");
   document.querySelectorAll(".syscard").forEach(c=>{ const show=()=>{ const s=SYSTEMS.find(x=>x.slug===c.dataset.slug); inspect(`<div class="kicker">SYSTEM · ${s.status.toUpperCase()}</div><div class="name">${esc(s.name)}</div><div class="vis">${esc((s.paths||[]).join(" · ")||"no code paths yet")}</div><p>${esc(s.function||"")}</p><dl>${s.page?`<dt>Dashboard</dt><dd><a href="${esc(s.page)}">${esc(s.page)}</a></dd>`:""}${s.parent?`<dt>Parent</dt><dd>${esc(s.parent)}</dd>`:""}${s.plannedBy?`<dt>Planned by</dt><dd>#${s.plannedBy.issue} · <code>${esc(s.plannedBy.architecture||"")}</code></dd>`:""}</dl>`); }; c.addEventListener("mouseenter",show); c.addEventListener("focus",show); });
+  $("#systems-key").innerHTML=sysKey(SYSTEMS.map(s=>s.slug))+`<span><i></i>built: opens its page</span><span><i class="pln"></i>planned: no page yet</span>`;
 }
 renderSystems();
+paintSystems();
+
+/* =========================================================================
+   MODEL — the hand-placed cross-system views: how the systems compose, the threads and processes they start, a decision that
+   crosses them, an interaction that spans them. The registry and the DSL hold the rest; `c4` maps structure boxes to their
+   DSL elements so the Structure and C4 tabs cross-reference each other.
+   ========================================================================= */
+const MODEL = {
+  // Names for lifeline owners that are not systems; a lifeline with sys:"slug" takes that system's colour instead.
+  sides:{consumer:"the consumer's code",external:"outside the repository"},
+  // Structure box id → DSL element id.
+  c4:{alpha:"repo.alpha",beta:"repo.beta",gamma:"repo.gamma"},
+  structure:{
+    // A 1000-wide viewBox, `height` tall. Lanes: [text, x, y, anchor]. Notes: {x, y, lines}.
+    // Nodes: sys = the registry slug (its colour); container = a supersystem box its systems sit inside (nesting is composition);
+    // planned = dashed and faded; d = what the inspector shows (role, issues). deps: [from, to, label, planned?] — an arrow from
+    // a system to what it depends on, labelled with how (api, implementation, a runtime call).
+    height:330,
+    lanes:[["BUILT",40,30,"start"],["PLANNED",620,30,"start"]],
+    notes:[{x:40,y:306,lines:["Each box is a system in its colour; a box inside another is part of that supersystem."]}],
+    nodes:[
+      {id:"alpha",sys:"system-alpha",x:40,y:44,w:260,h:60,t:"system-alpha",s:"what it does · x.y.z",d:{role:"What system alpha is for, in a line.",issues:[]}},
+      {id:"beta",sys:"system-beta",x:40,y:194,w:260,h:60,t:"system-beta",s:"what it does · x.y.z",d:{role:"What system beta is for.",issues:[]}},
+      {id:"gamma",sys:"system-gamma",planned:true,x:620,y:194,w:260,h:60,t:"system-gamma",s:"planned · issue #N",d:{role:"What it will do, per its architecture.",issues:[]}}
+    ],
+    deps:[["alpha","beta","api"],["gamma","beta","would depend on",true]]
+  },
+  // Threads and processes, keyed by name: sys (owning system's slug), kind ("thread" | "process"), created, runs, note, issues.
+  threads:{
+    "alpha-worker":{sys:"system-alpha",kind:"thread",created:"eagerly, at construction",runs:"what runs on it.",note:"",issues:[]},
+    "beta-io":{sys:"system-beta",kind:"thread",created:"lazily, on first use",runs:"what runs on it.",note:""},
+    "beta-helper":{sys:"system-beta",kind:"process",created:"only when …",runs:"what the child process does, and who stops it.",note:""},
+    "gamma-loop":{sys:"system-gamma",kind:"thread",created:"planned — not built",runs:"what the architecture says it will run.",note:"Planned by issue #N.",planned:true}
+  },
+  // Decision paths: the system page's shape (controls, a node grid, edges, rules(state) → {path, outcome, irrelevant}).
+  // An end (k:"t") with sys:"slug" takes that system's colour; one with lvl a status colour; planned:true draws it dashed.
+  flows:[
+    {id:"pick",label:"which system",kicker:"DECISION PATH",runsOn:"",foot:"the consumer's choice, before any code runs",
+     controls:[{key:"need",label:"Consumer needs",def:"a",options:[["a","A"],["b","B"],["c","C"]]},{key:"rt",label:"Runtime",def:"jvm",options:[["jvm","JVM"],["other","other"]]}],
+     names:{a:"needs A",b:"needs B",c:"needs C"},
+     nodes:{IN:{c:0,r:0,k:"p",t:["the consumer","has a need"]},Q:{c:1,r:0,k:"d",t:["which","need?"]},A:{c:2,r:0,k:"t",sys:"system-alpha",t:["depend on","system-alpha"]},
+            RT:{c:2,r:1,k:"d",t:["runtime","the JVM?"]},B:{c:3,r:1,k:"t",sys:"system-beta",t:["depend on","system-beta"]},NONE:{c:3,r:2,k:"t",lvl:"NONE",t:["nothing","here yet"]},
+            C:{c:2,r:3,k:"t",sys:"system-gamma",planned:true,t:["system-gamma","planned · #N"]}},
+     edges:[["IN","Q"],["Q","A","A"],["Q","RT","B"],["RT","B","yes"],["RT","NONE","no"],["Q","C","C"]],
+     rules(s){ const p=["IN","Q"], R=(outcome,irrelevant)=>({path:p,outcome,irrelevant:irrelevant||[]});
+       if(s.need==="a"){ p.push("A"); return R("system-alpha covers it on any runtime.",["rt"]); }
+       if(s.need==="c"){ p.push("C"); return R("Nothing yet: system-gamma would, once its issue lands.",["rt"]); }
+       p.push("RT"); if(s.rt==="jvm"){ p.push("B"); return R("system-beta, on the JVM."); } p.push("NONE"); return R("No system serves B outside the JVM."); }}
+  ],
+  // The sequence: lifelines {n, sys} (a system's colour) or {n, side} (a key of MODEL.sides), phases, steps — as on a system page.
+  sequence:{
+    kicker:"SEQUENCE",
+    lifelines:[{n:"consumer",side:"consumer"},{n:"system-alpha",sys:"system-alpha"},{n:"system-beta",sys:"system-beta"}],
+    phases:[["REQUEST",0,3]],
+    steps:[
+      {f:0,t:1,l:"request()",n:"What the consumer asks system alpha for."},
+      {f:1,t:2,l:"call()",n:"What alpha needs from beta to answer — the cross-system hop."},
+      {f:2,t:1,l:"result",ret:true,n:"What beta returns, and what it does not promise."},
+      {f:1,t:0,l:"answer",ret:true,n:"What reaches the consumer."}
+    ]
+  }
+};
+
+/* ---------- Structure (MODEL.structure) ---------- */
+function renderStructure(){
+  const svg=$("#svg-structure"); if(svg.dataset.done) return; svg.dataset.done="1";
+  const S=MODEL.structure, box=id=>{ const n=S.nodes.find(x=>x.id===id); return [n.x,n.y,n.w,n.h]; };
+  svg.setAttribute("viewBox",`0 0 1000 ${S.height||330}`);
+  arrowDefs(svg,"darr","var(--ink-2)");
+  S.lanes.forEach(([l,x,y,a])=>txt(svg,x,y,l,"lane",a));
+  S.nodes.forEach(n=>{
+    const g=mk("g",{class:`snode${n.container?" container":""}${n.planned?" planned":""}`,tabindex:0,role:"button","data-id":n.id,"aria-label":n.t,style:`--c:${sysColour(n.sys)}`},svg);
+    mk("rect",{x:n.x,y:n.y,width:n.w,height:n.h,rx:6},g); txt(g,n.x+10,n.y+19,n.t,"t"); txt(g,n.x+10,n.y+34,Array.isArray(n.s)?n.s:[n.s],"s");
+    const go=()=>selectNode(n.id); g.addEventListener("click",go); g.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } });
+  });
+  S.deps.forEach(([a,b,label,planned])=>{
+    const A=box(a),B=box(b),[ax,ay]=edgePoint(A,B[0]+B[2]/2,B[1]+B[3]/2),[bx,by]=edgePoint(B,A[0]+A[2]/2,A[1]+A[3]/2), g=mk("g",{class:"sdep"+(planned?" planned":"")},svg);
+    mk("path",{d:`M${ax},${ay} L${bx},${by}`,"marker-end":"url(#darr)"},g);
+    if(label){ const mx=(ax+bx)/2,my=(ay+by)/2,w=label.length*5.4+12; mk("rect",{class:"lbg",x:mx-w/2,y:my-8,width:w,height:15,rx:7},g); txt(g,mx,my+3,label,"","middle"); }
+  });
+  S.notes.forEach(nt=>txt(svg,nt.x,nt.y,nt.lines,"note",null,13));
+  $("#structure-key").innerHTML=sysKey(S.nodes.map(n=>n.sys),"sys")+`<span><i class="ln"></i>depends on, labelled with how</span><span><i style="background:none"></i>a box inside another: part of that supersystem</span><span><i class="pln"></i>planned, not built</span>`;
+}
+function selectNode(id){
+  const S=MODEL.structure, n=S.nodes.find(x=>x.id===id); if(!n) return;
+  document.querySelectorAll("#svg-structure .snode").forEach(g=>g.classList.toggle("sel",g.dataset.id===id));
+  const s=bySlug(n.sys)||{}, d=n.d||{}, nm=k=>esc((S.nodes.find(x=>x.id===k)||{}).t||k);
+  const uses=S.deps.filter(x=>x[0]===id), by=S.deps.filter(x=>x[1]===id);
+  let html=`<div class="kicker">${n.container?"SUPERSYSTEM":"SYSTEM"} · ${esc((s.status||(n.planned?"planned":"")).toUpperCase())}</div><div class="name">${esc(n.t)}</div><div class="vis">${esc((s.paths||[]).join(" · "))}</div><p>${esc(d.role||s.function||"")}</p><dl>`;
+  if(uses.length) html+=`<dt>Depends on</dt><dd>${uses.map(x=>`→ <b>${nm(x[1])}</b>${x[2]?" — "+esc(x[2]):""}`).join("<br>")}</dd>`;
+  if(by.length) html+=`<dt>Used by</dt><dd>${by.map(x=>`← <b>${nm(x[0])}</b>${x[2]?" — "+esc(x[2]):""}`).join("<br>")}</dd>`;
+  if(s.page) html+=`<dt>Dashboard</dt><dd><a href="${esc(s.page)}">${esc(s.page)}</a></dd>`;
+  if(d.issues&&d.issues.length) html+=`<dt>Open issues</dt><dd>${d.issues.map(ilink).join(" · ")}</dd>`;
+  const c4id=MODEL.c4[id]; if(c4id&&el(c4id)) html+=`<dt>In the C4 model</dt><dd><button class="linkbtn" data-c4="${c4id}">${esc(el(c4id).name)} · ${el(c4id).tags.slice(2).map(esc).join(", ")||TYPE_LABEL[el(c4id).type].toLowerCase()} → open</button></dd>`;
+  inspect(html+"</dl>");
+  const b=$("#insp-body .linkbtn[data-c4]"); if(b) b.addEventListener("click",()=>openC4(b.dataset.c4));
+}
+
+/* ---------- Threads and processes ---------- */
+function selectThread(id){
+  const t=MODEL.threads[id]; if(!t) return;
+  document.querySelectorAll(".thread").forEach(x=>x.classList.toggle("sel",x.dataset.t===id));
+  let html=`<div class="kicker">${esc((t.kind||"thread").toUpperCase())} · ${esc(((bySlug(t.sys)||{}).name||t.sys||"").toUpperCase())}${t.planned?" · PLANNED":""}</div><div class="name">${esc(id)}</div><div class="vis">created ${esc(t.created)}</div><p>${esc(t.runs)}</p><dl>`;
+  if(t.note) html+=`<dt>Note</dt><dd>${esc(t.note)}</dd>`;
+  if(t.issues&&t.issues.length) html+=`<dt>Open issues</dt><dd>${t.issues.map(ilink).join(" · ")}</dd>`;
+  inspect(html+"</dl>");
+}
+document.querySelectorAll(".thread").forEach(x=>{ x.addEventListener("click",()=>selectThread(x.dataset.t)); x.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); selectThread(x.dataset.t); } }); });
+$("#threads-key").innerHTML=sysKey([...document.querySelectorAll("#p-threads .thread[data-sys]")].map(x=>x.dataset.sys),"sbar")+`<span><span class="pill eager">eager</span>started at construction</span><span><span class="pill lazy">lazy</span>started on first use</span><span><span class="pill cond">if …</span>only under a condition</span><span><span class="k">process</span>a child process, not a thread</span><span><span class="pill planned">planned</span>planned, not built</span>`;
 
 /* =========================================================================
    C4 — a Structurizr DSL reader for the subset this workspace uses (hierarchical
@@ -693,16 +1058,116 @@ function showDsl(){
   const host=$("#c4-ladder"), levels=C4.views.filter(v=>v.type!=="dynamic");
   C4.views.forEach((v,i)=>{ const b=document.createElement("button"); const isLevel=v.type!=="dynamic"; b.className="rung"+(isLevel?" lvl":" sep")+(isLevel&&levels[levels.length-1]===v?" last":""); b.dataset.v=String(i); b.setAttribute("aria-pressed","false"); const [lv,nm]=LEVEL[v.type]; b.innerHTML=`<span class="lv">${lv}</span><span class="nm">${nm}</span><span class="sc">${esc(v.type==="dynamic"?v.key:el(v.scope).name)}</span>`; b.addEventListener("click",()=>renderC4(i)); host.appendChild(b); });
   const d=document.createElement("button"); d.className="rung sep"; d.dataset.v="dsl"; d.setAttribute("aria-pressed","false"); d.innerHTML=`<span class="lv">{ }</span><span class="nm">Source</span><span class="sc">workspace.dsl</span>`; d.addEventListener("click",showDsl); host.appendChild(d);
-  $("#c4-key").innerHTML=C4.styles.filter(s=>s.props.background).map(s=>`<span><i style="background:${esc(s.props.background)};border-style:${esc(s.props.border||"solid")};opacity:${(+s.props.opacity||100)/100}"></i>${esc(s.tag)}</span>`).join("")+`<span><i class="arrow"></i>relationship, labelled with its DSL description</span>`;
+  // The legend: one swatch per DSL element style (element kinds, External, Internal, Standalone, Planned), then the line encodings.
+  $("#c4-key").innerHTML=C4.styles.filter(s=>s.props.background).map(s=>`<span><i style="background:${esc(s.props.background)};border-style:${esc(s.props.border||"solid")};opacity:${(+s.props.opacity||100)/100}"></i>${esc(s.tag)}</span>`).join("")+`<span><i class="arrow"></i>relationship, labelled with its DSL description</span><span><i class="arrow dashed"></i>to or from a Planned element</span><span><i class="frame"></i>boundary: the view's scope</span>`;
 })();
-function openC4(elementId){ show("t-c4"); const vi=C4.views.findIndex(v=>v.type==="component"&&isWithin(elementId,v.scope)); renderC4(vi>=0?vi:0); selectC4(elementId); }
+function openC4(elementId){ show("t-c4"); const vi=["component","container"].map(t=>C4.views.findIndex(v=>v.type===t&&v.scope!==elementId&&isWithin(elementId,v.scope))).find(i=>i>=0); renderC4(vi!==undefined?vi:0); selectC4(elementId); }
+
+/* ---------- Decision path (MODEL.flows) ----------
+   The system page's renderer, with one addition: an end with sys:"slug" is coloured and labelled by that system. */
+const CW=138,CH=70,NW=118,NH=50,X0=12,Y0=12;
+const fx=n=>X0+n.c*CW, fy=n=>Y0+n.r*CH;
+const lvlCol=l=>l==="DELIVER"?"var(--good)":l==="WARN"?"var(--serious)":"var(--muted)";
+const endCol=n=>n.sys?sysColour(n.sys):lvlCol(n.lvl), endTag=n=>n.sys?"":(n.lvl||"");
+const flowState={}; let flowVariant=MODEL.flows[0].id;
+const flowOf=()=>MODEL.flows.find(v=>v.id===flowVariant);
+function flowStateFor(v){ if(!flowState[v.id]){ flowState[v.id]={}; v.controls.forEach(c=>flowState[v.id][c.key]=c.def); } return flowState[v.id]; }
+function seg(label,id,options,current){ return `<label>${esc(label)} <span class="seg" id="${id}">${options.map(([v,l])=>`<button data-v="${esc(v)}" aria-pressed="${String(v===current)}">${esc(l)}</button>`).join("")}</span></label>`; }
+function buildFlowControls(){
+  const v=flowOf(), s=flowStateFor(v), host=$("#flow-ctl");
+  host.innerHTML=(MODEL.flows.length>1?seg("Variant","seg-variant",MODEL.flows.map(f=>[f.id,f.label]),v.id):"")+v.controls.map(c=>seg(c.label,"seg-"+c.key,c.options,s[c.key])).join("");
+  if(MODEL.flows.length>1) document.querySelectorAll("#seg-variant button").forEach(b=>b.addEventListener("click",()=>{ flowVariant=b.dataset.v; renderFlow(); }));
+  v.controls.forEach(c=>document.querySelectorAll("#seg-"+c.key+" button").forEach(b=>b.addEventListener("click",()=>{ s[c.key]=b.dataset.v; document.querySelectorAll("#seg-"+c.key+" button").forEach(x=>x.setAttribute("aria-pressed",String(x===b))); highlightFlow(); })));
+}
+function renderFlow(){
+  const F=flowOf(), svg=$("#svg-flow"); svg.innerHTML=""; buildFlowControls();
+  arrowDefs(svg,"farr","var(--line)");
+  let maxC=0,maxR=0; Object.values(F.nodes).forEach(n=>{ maxC=Math.max(maxC,n.c); maxR=Math.max(maxR,n.r); });
+  svg.setAttribute("viewBox",`0 0 ${X0*2+(maxC+1)*CW} ${Y0+(maxR+1)*CH+22}`);
+  F.edges.forEach(([a,b,label])=>{
+    const A=F.nodes[a],B=F.nodes[b]; let d, lx, ly, anchor="start";
+    if(A.r===B.r){ d=`M${fx(A)+NW},${fy(A)+NH/2} L${fx(B)},${fy(B)+NH/2}`; lx=(fx(A)+NW+fx(B))/2; ly=fy(A)+NH/2-5; anchor="middle"; }
+    else if(A.c===B.c){ d=`M${fx(A)+NW/2},${fy(A)+NH} L${fx(B)+NW/2},${fy(B)}`; lx=fx(A)+NW/2+6; ly=(fy(A)+NH+fy(B))/2+3; }
+    else { const tx=fx(A)+NW+10, ty=fy(B)+NH/2; d=`M${fx(A)+NW},${fy(A)+NH/2} L${tx},${fy(A)+NH/2} L${tx},${ty} L${fx(B)},${ty}`; lx=tx+4; ly=ty-5; }
+    mk("path",{d,class:"fedge"+(A.planned||B.planned?" planned":""),"marker-end":"url(#farr)","data-e":a+">"+b},svg);
+    if(label){ const t=txt(svg,lx,ly,label,"flabel",anchor); t.dataset.e=a+">"+b; }
+  });
+  Object.entries(F.nodes).forEach(([id,n])=>{
+    const x=fx(n),y=fy(n), g=mk("g",{class:"fnode "+n.k+(n.planned?" planned":""),"data-id":id},svg);
+    if(n.k==="d") mk("polygon",{points:`${x+12},${y} ${x+NW-12},${y} ${x+NW},${y+NH/2} ${x+NW-12},${y+NH} ${x+12},${y+NH} ${x},${y+NH/2}`},g);
+    else mk("rect",{x,y,width:NW,height:NH,rx:n.k==="t"?3:6},g);
+    // The stripe's colour goes in style, not the fill attribute: .fnode.t rect would otherwise repaint it surface-grey.
+    if(n.k==="t"){ mk("rect",{x,y,width:4,height:NH,rx:1,class:"stripe",style:`fill:${endCol(n)}`},g); if(endTag(n)) txt(g,x+NW-6,y+10,endTag(n),"lvl","end"); }
+    txt(g,x+NW/2+(n.k==="t"?2:0),y+(n.t.length>1?21:28),n.t,"","middle",12);
+  });
+  if(F.foot) txt(svg,X0,Y0+(maxR+1)*CH+12,F.foot,"flabel");
+  flowKey(F);
+  highlightFlow();
+}
+/* The legend for the flow on screen: shapes, then each end colour with the systems or levels that use it, lit and faded, planned. */
+function flowKey(F){
+  const ends=new Map(); Object.values(F.nodes).filter(n=>n.k==="t").forEach(n=>{ const c=endCol(n), l=ends.get(c)||[], name=n.sys?((sysTop(n.sys)||{}).name||n.sys):n.lvl; if(name&&!l.includes(name)) l.push(name); ends.set(c,l); });
+  $("#flow-key").innerHTML=`<span><i class="hex"></i>decision</span><span><i></i>step</span>`+[...ends].map(([c,l])=>`<span><i class="end" style="border-left-color:${c}"></i>ends · ${esc(l.join(" · ")||"outcome")}</span>`).join("")+`<span><i class="ln on"></i>the path these inputs take</span><span><i class="ln off"></i>not taken</span><span><i class="pln"></i>planned, not built</span>`;
+}
+function highlightFlow(){
+  const F=flowOf(), s=flowStateFor(F), res=F.rules(s), set=new Set(res.path), svg=$("#svg-flow"), irr=new Set(res.irrelevant||[]);
+  svg.querySelectorAll(".fnode").forEach(g=>{ const on=set.has(g.dataset.id); g.classList.toggle("on",on); g.classList.toggle("off",!on); });
+  const onEdges=new Set(); for(let i=0;i<res.path.length-1;i++) onEdges.add(res.path[i]+">"+res.path[i+1]);
+  svg.querySelectorAll(".fedge,.flabel").forEach(x=>{ if(!x.dataset.e) return; const on=onEdges.has(x.dataset.e); x.classList.toggle("on",on); x.classList.toggle("off",!on); if(x.classList.contains("fedge")) x.setAttribute("marker-end",on?"url(#farr-on)":"url(#farr)"); });
+  const first=F.controls[0], title=F.names&&F.names[s[first.key]] ? F.names[s[first.key]] : (first.options.find(o=>o[0]===s[first.key])||[,""])[1];
+  const facts=F.controls.slice(1).filter(c=>!irr.has(c.key)).map(c=>`${c.label.toLowerCase()} ${(c.options.find(o=>o[0]===s[c.key])||[,""])[1]}`);
+  $("#outcome").innerHTML=`<code>${esc(title)}</code>${facts.map(f=>" · "+esc(f)).join("")} → ${esc(res.outcome)}`;
+  inspect(`<div class="kicker">${esc(F.kicker||"PATH")} · ${esc(F.label.toUpperCase())}</div><div class="name">${esc(title)}</div><div class="vis">${F.runsOn?"on "+esc(F.runsOn):""}</div><p>${esc(res.outcome)}</p><dl><dt>Path</dt><dd>${res.path.join(" → ")}</dd></dl>`);
+  F.controls.forEach(c=>document.querySelectorAll("#seg-"+c.key+" button").forEach(b=>b.setAttribute("aria-disabled",String(irr.has(c.key)))));
+}
+
+/* ---------- Sequence ----------
+   The system page's renderer, with one addition: a lifeline with sys:"slug" takes that system's colour. */
+const seq={cur:0,timer:null};
+const lane=l=>typeof l==="string"?{n:l}:l;
+function renderSeq(){
+  const svg=$("#svg-seq"); if(svg.dataset.done) return; svg.dataset.done="1";
+  const S=MODEL.sequence, LX=i=>80+i*140, Y0=70, DY=40, H=Y0+S.steps.length*DY+10;
+  svg.setAttribute("viewBox",`0 0 1000 ${H}`);
+  arrowDefs(svg,"sarr2","var(--ink-2)");
+  S.phases.forEach(([label,a,b])=>{ const g=mk("g",{class:"phase"},svg); const y=Y0+a*DY-24, h=(b-a+1)*DY; mk("rect",{x:4,y,width:992,height:h,rx:4},g); txt(g,990,y+11,label,"","end"); });
+  S.lifelines.map(lane).forEach((l,i)=>{ mk("line",{x1:LX(i),y1:40,x2:LX(i),y2:H-4,class:"life"},svg); const a={class:"lh"+(l.side?" "+l.side:"")+(l.planned?" planned":"")}; if(l.sys){ a["data-sys"]=l.sys; a.style=`--c:${sysColour(l.sys)}`; } const g=mk("g",a,svg); mk("rect",{x:LX(i)-64,y:8,width:128,height:28,rx:4},g); txt(g,LX(i),26,l.n,"","middle"); });
+  S.steps.forEach((s,i)=>{
+    const y=Y0+i*DY, g=mk("g",{class:"msg"+(s.ret?" ret":"")+(s.planned?" planned":""),"data-i":i,tabindex:0,role:"button","aria-label":`step ${i+1}: ${s.l}`},svg);
+    if(s.self){ const x=LX(s.f); mk("path",{d:`M${x},${y-10} L${x+34},${y-10} L${x+34},${y+8} L${x+2},${y+8}`,"marker-end":"url(#sarr2)"},g); txt(g,x+42,y+2,s.l,""); txt(g,x+42,y-8,`${i+1}`,"num"); }
+    else { const a=LX(s.f), b=LX(s.t), dir=b>a?1:-1; mk("line",{x1:a,y1:y,x2:b-dir*2,y2:y,"marker-end":s.ret?"url(#sarr2-open)":"url(#sarr2)"},g); const mx=(a+b)/2, w=s.l.length*5.3+10; mk("rect",{class:"lbg",x:mx-w/2,y:y-17,width:w,height:14,rx:2},g); txt(g,mx,y-6,s.l,"","middle"); txt(g,Math.min(a,b)-8,y+3,`${i+1}`,"num","end"); }
+    g.addEventListener("click",()=>gotoStep(i)); g.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); gotoStep(i); } });
+  });
+  seqKey(S);
+  gotoStep(0);
+}
+/* The legend for the sequence: the systems on its lifelines, the consumer and outside parties, the line encodings, planned. */
+function seqKey(S){
+  const L=S.lifelines.map(lane), sw={consumer:"con",external:"ext"}, sides=[...new Set(L.map(l=>l.side).filter(Boolean))];
+  $("#seq-key").innerHTML=sysKey(L.filter(l=>l.sys).map(l=>l.sys),"sys")+sides.map(k=>`<span><i class="${sw[k]||""}"></i>${esc((MODEL.sides||{})[k]||k)}</span>`).join("")+`<span><i class="ln"></i>call or send</span><span><i class="ln dash"></i>return, open head</span>`+(S.phases.length?`<span><i class="band"></i>phase</span>`:"")+`<span><i class="ln dash pln"></i>planned, not built (dashed, faded)</span>`;
+}
+function gotoStep(i){
+  const S=MODEL.sequence, L=S.lifelines.map(lane); seq.cur=(i+S.steps.length)%S.steps.length; const s=S.steps[seq.cur];
+  document.querySelectorAll("#svg-seq .msg").forEach(g=>{ const k=+g.dataset.i; g.classList.toggle("cur",k===seq.cur); g.classList.toggle("future",k>seq.cur); });
+  $("#seq-pos").textContent=`step ${seq.cur+1} of ${S.steps.length}`;
+  inspect(`<div class="kicker">${esc(S.kicker||"SEQUENCE")} · STEP ${seq.cur+1}${s.planned?" · PLANNED":""}</div><div class="name">${esc(L[s.f].n)} → ${esc(L[s.t].n)}</div><div class="vis">${esc(s.l)}</div><p>${esc(s.n)}</p>`);
+}
+$("#seq-prev").addEventListener("click",()=>gotoStep(seq.cur-1));
+$("#seq-next").addEventListener("click",()=>gotoStep(seq.cur+1));
+$("#seq-play").addEventListener("click",e=>{ const b=e.currentTarget; if(seq.timer){ clearInterval(seq.timer); seq.timer=null; b.textContent="play"; b.setAttribute("aria-pressed","false"); } else { seq.timer=setInterval(()=>gotoStep(seq.cur+1),1600); b.textContent="pause"; b.setAttribute("aria-pressed","true"); } });
 
 /* ---------- Tabs ---------- */
 const tabs=[...document.querySelectorAll(".tab")];
+const DEFAULT_INSPECT={systems:"<p>Hover or focus a system card for its paths, parent and dashboard link.</p>",structure:"<p>Click a system for what it is for, what it depends on and what uses it, and its place in the C4 model.</p>",threads:"<p>Click a thread or process for the system that owns it, when it starts and what runs on it.</p>",lifecycles:"<p>The lifecycle facts are on the cards themselves, each with its source.</p>"};
 function show(id){
   tabs.forEach(t=>{ const on=t.id===id; t.setAttribute("aria-selected",String(on)); document.getElementById(t.getAttribute("aria-controls")).hidden=!on; });
-  if(id==="t-c4" && !c4View) renderC4(Math.max(0,C4.views.findIndex(v=>v.type==="container")));
-  if(id==="t-systems") inspect("<p>Hover or focus a system card for its paths, parent and dashboard link.</p>");
+  const name=id.replace("t-","");
+  if(name==="structure") renderStructure();
+  if(name==="c4" && !c4View) renderC4(Math.max(0,C4.views.findIndex(v=>v.type==="container")));
+  if(name==="datagrams") renderFlow();
+  if(name==="reliable") renderSeq();
+  if(name!=="reliable" && seq.timer){ clearInterval(seq.timer); seq.timer=null; $("#seq-play").textContent="play"; $("#seq-play").setAttribute("aria-pressed","false"); }
+  if(DEFAULT_INSPECT[name]) inspect(DEFAULT_INSPECT[name]);
   try{ localStorage.setItem("dash-tab-"+location.pathname,id); }catch(e){}
 }
 tabs.forEach((t,i)=>{ t.addEventListener("click",()=>show(t.id)); t.addEventListener("keydown",e=>{ if(e.key==="ArrowRight"||e.key==="ArrowLeft"){ const j=(i+(e.key==="ArrowRight"?1:tabs.length-1))%tabs.length; tabs[j].focus(); show(tabs[j].id); } }); });
