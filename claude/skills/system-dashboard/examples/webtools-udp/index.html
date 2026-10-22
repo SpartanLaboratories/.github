@@ -5,20 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>webtools-udp model</title>
 <style>
-/* Layout: header band → KPI strip → tabbed stage with a sticky side inspector → secondary context cards → provenance footer.
-   Draft A2: the C4 model tab is rendered at runtime from the Structurizr DSL embedded below (a verbatim copy of workspace.dsl). */
+/* Layout: header band → KPI strip → tabbed stage with a sticky side inspector → Guarantees bubbles → Context cards → provenance footer.
+   Draft A2: the C4 model tab is rendered at runtime from the Structurizr DSL embedded below (a verbatim copy of workspace.dsl).
+   Colour plan: --server / --client / --wire are the page's three hue slots (its "sides"), --ph-1..3 the ordinal phase ramp
+   (Lifecycles), --good / --warning / --serious / --critical are status (outcomes only, always beside a label). Dashed = planned. */
 :root{
   --bg:#f3f5f8; --surface:#fcfcfd; --surface-2:#eef1f6; --ink:#0e1420; --ink-2:#4a5468; --muted:#7d879a;
   --line:#dfe4ec; --hair:rgba(14,20,32,.10);
   --server:#2a78d6; --client:#eb6834; --wire:#1baf7a;
   --server-soft:#e2edfa; --client-soft:#fdeae1; --wire-soft:#ddf4ea;
   --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+  --ph-1:#a49bed; --ph-2:#6250d6; --ph-3:#352a91;
   --on:#0e1420; --dim:.28; --focus:#2a78d6; --rel:#6b7382;
   --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:ui-monospace,"Cascadia Mono",Consolas,"SF Mono",monospace;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--server:#3987e5;--client:#d95926;--wire:#199e70;--server-soft:rgba(57,135,229,.20);--client-soft:rgba(217,89,38,.20);--wire-soft:rgba(25,158,112,.22);--on:#eef1f6;--focus:#3987e5;--rel:#9aa3b2;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--server:#3987e5;--client:#d95926;--wire:#199e70;--server-soft:rgba(57,135,229,.20);--client-soft:rgba(217,89,38,.20);--wire-soft:rgba(25,158,112,.22);--on:#eef1f6;--focus:#3987e5;--rel:#9aa3b2;color-scheme:dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--server:#3987e5;--client:#d95926;--wire:#199e70;--server-soft:rgba(57,135,229,.20);--client-soft:rgba(217,89,38,.20);--wire-soft:rgba(25,158,112,.22);--ph-1:#5546c0;--ph-2:#8a7ee6;--ph-3:#c9c2f7;--on:#eef1f6;--focus:#3987e5;--rel:#9aa3b2;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--server:#3987e5;--client:#d95926;--wire:#199e70;--server-soft:rgba(57,135,229,.20);--client-soft:rgba(217,89,38,.20);--wire-soft:rgba(25,158,112,.22);--ph-1:#5546c0;--ph-2:#8a7ee6;--ph-3:#c9c2f7;--on:#eef1f6;--focus:#3987e5;--rel:#9aa3b2;color-scheme:dark}
 
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans);padding-block:0 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -55,7 +58,8 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .tab:hover{color:var(--ink)}
 .tab.model::after{content:" DSL";font:10px var(--mono);color:var(--muted);vertical-align:super}
 .stage{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start}
-@media (max-width:940px){.stage{grid-template-columns:1fr}.inspector{position:static}}
+@media (max-width:940px){.stage{grid-template-columns:minmax(0,1fr)}.inspector{position:static}}
+.stage>div{min-width:0}
 .view{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px;min-width:0}
 .view svg{display:block;width:100%;height:auto}
 .view h2{font-size:15px;margin:0 0 4px}
@@ -75,11 +79,23 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .linkbtn:hover{border-color:var(--ink)}
 .tchip{display:inline-block;font:11px var(--mono);padding:3px 6px;border:1px solid var(--line);border-radius:3px;margin:2px 4px 0 0;color:var(--ink-2)}
 .tchip.server{border-left:3px solid var(--server)}.tchip.client{border-left:3px solid var(--client)}
+/* Legends. Every tab carries one .key (the C4 tab's is .c4key): its colour grouping, then its line and shape encodings,
+   ending with planned. check-page.js fails a tab without a visible one. */
 .key{display:flex;flex-wrap:wrap;gap:8px 16px;margin:10px 0 0;font-size:12px;color:var(--ink-2)}
 .key span{display:inline-flex;align-items:center;gap:6px}
-.key i{display:inline-block;width:16px;height:11px;border-radius:3px;border:1.5px solid var(--ink-2);background:var(--surface)}
-.key i.pub{background:var(--surface-2)}.key i.std{border-style:dotted}.key i.pln{border-style:dashed;background:none}
+.key i{display:inline-block;width:16px;height:11px;border-radius:3px;border:1.5px solid var(--ink-2);background:var(--surface);flex:none}
+.key i.pub{background:var(--surface-2)}.key i.std{border-style:dotted}.key i.pln{border-style:dashed;background:none;opacity:.6}
 .key i.srv{border-color:var(--server)}.key i.cli{border-color:var(--client)}.key i.wir{border-color:var(--wire)}
+.key i.pub.srv{background:var(--server-soft)}.key i.pub.cli{background:var(--client-soft)}.key i.pub.wir{background:var(--wire-soft)}
+.key i.con{border-color:var(--ink)}.key i.ext{border-color:var(--muted);background:var(--surface-2)}
+.key i.bs{border-left:4px solid var(--server)}.key i.bc{border-left:4px solid var(--client)}.key i.bw{border-left:4px solid var(--wire)}
+.key i.ph1{background:var(--ph-1);border-color:var(--ph-1)}.key i.ph2{background:var(--ph-2);border-color:var(--ph-2)}.key i.ph3{background:var(--ph-3);border-color:var(--ph-3)}
+.key i.ln{width:18px;height:0;border:0;border-top:2px solid var(--ink-2);border-radius:0;background:none}.key i.ln.dash{border-top-style:dashed}.key i.ln.on{border-top:2.5px solid var(--on)}.key i.ln.off{border-top-color:var(--line)}
+.key i.hex{border:0;border-radius:0;background:var(--ink-2);clip-path:polygon(22% 0,78% 0,100% 50%,78% 100%,22% 100%,0 50%)}
+.key i.end{border-radius:1px;border-color:var(--line);border-left-width:4px;background:var(--surface-2)}
+.key i.band{border:0;background:var(--surface-2)}
+.key i.dot{width:10px;height:10px;border:0;border-radius:50%;background:var(--ink)}
+.key .pill{align-self:center}
 
 /* structure svg */
 .band{fill:var(--surface-2)}
@@ -91,7 +107,8 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .node.server rect{stroke:var(--server)}.node.server.pub rect{fill:var(--server-soft)}
 .node.client rect{stroke:var(--client)}.node.client.pub rect{fill:var(--client-soft)}
 .node.wire rect{stroke:var(--wire)}.node.wire.pub rect{fill:var(--wire-soft)}
-.node.standalone rect{stroke:var(--muted);stroke-dasharray:3 3;fill:var(--surface-2)}
+.node.standalone rect{stroke:var(--muted);stroke-dasharray:2 3;fill:var(--surface-2)}
+.node.planned{opacity:.6}.node.planned rect{stroke-dasharray:6 4}
 .node.container rect{fill-opacity:.55}
 .node text{fill:var(--ink);font-family:var(--sans)}
 .node .t{font-weight:700;font-size:10.5px}
@@ -105,21 +122,25 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .fnode{cursor:default}
 .fnode rect,.fnode polygon{fill:var(--surface);stroke:var(--line);stroke-width:1.5}
 .fnode.t rect{fill:var(--surface-2)}
+.fnode rect.stripe,.fnode.on rect.stripe{stroke:none}
 .fnode text{fill:var(--ink);font-size:10.5px;font-family:var(--sans)}
 .fnode .lvl{font-family:var(--mono);font-size:8.5px;fill:var(--muted)}
 .fnode.on rect,.fnode.on polygon{stroke:var(--on);stroke-width:2.5}
 .fnode.off{opacity:var(--dim)}
+.fnode.planned rect,.fnode.planned polygon{stroke-dasharray:6 4}.fnode.planned:not(.off){opacity:.6}
 .fedge{stroke:var(--line);stroke-width:1.5;fill:none}
 .fedge.on{stroke:var(--on);stroke-width:2.5}
 .fedge.off{opacity:var(--dim)}
+.fedge.planned{stroke-dasharray:6 4}
 .flabel{font-size:9.5px;fill:var(--muted);font-family:var(--mono)}
 .flabel.on{fill:var(--ink);font-weight:600}
 .flabel.off{opacity:var(--dim)}
 .outcome{font-size:13px;margin:0 0 10px;padding:8px 10px;border-radius:4px;background:var(--surface-2);border-left:3px solid var(--ink)}
 .outcome code{font-weight:600}
 .ctl{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 10px;align-items:center}
-.ctl label{font-size:11px;color:var(--muted);display:flex;gap:8px;align-items:center;text-transform:uppercase;letter-spacing:.06em}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.ctl label{font-size:11px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px;align-items:center;text-transform:uppercase;letter-spacing:.06em;max-width:100%}
+/* A segmented control wraps onto a second row at phone width rather than pushing the page sideways. */
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:5px;overflow:hidden;max-width:100%}
 .seg button{appearance:none;border:0;background:var(--surface);color:var(--ink-2);font:12px/1 var(--mono);padding:7px 9px;cursor:pointer;border-right:1px solid var(--line)}
 .seg button:last-child{border-right:0}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
@@ -132,6 +153,9 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 /* sequence svg */
 .life{stroke:var(--line);stroke-dasharray:3 4}
 .lh rect{fill:var(--surface-2);stroke:var(--line)}
+.lh.server rect{fill:var(--server-soft);stroke:var(--server)}.lh.client rect{fill:var(--client-soft);stroke:var(--client)}.lh.wire rect{fill:var(--wire-soft);stroke:var(--wire)}
+.lh.consumer rect{fill:var(--surface);stroke:var(--ink)}.lh.external rect{fill:var(--surface-2);stroke:var(--muted)}
+.lh.planned{opacity:.6}.lh.planned rect{stroke-dasharray:6 4}
 .lh text{font-size:10.5px;font-weight:700;fill:var(--ink);font-family:var(--mono)}
 .phase rect{fill:var(--surface-2);opacity:.55}
 .phase text{font-size:9.5px;fill:var(--muted);font-family:var(--mono);letter-spacing:.08em}
@@ -144,6 +168,7 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .msg.cur line,.msg.cur path{stroke:var(--on);stroke-width:2.5}
 .msg.cur text{fill:var(--ink);font-weight:600}
 .msg.future{opacity:.3}
+.msg.planned line,.msg.planned path{stroke-dasharray:6 4}.msg.planned:not(.future){opacity:.6}
 
 /* C4 model tab — rendered from the DSL. A level ladder on the left (C4 is about zooming in), typed element
    cards whose header colour comes from the DSL's styles block, relationships routed orthogonally in lanes,
@@ -174,6 +199,8 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .c4key span{display:inline-flex;align-items:center;gap:6px}
 .c4key i{display:inline-block;width:16px;height:11px;border-radius:3px;border:1.5px solid rgba(0,0,0,.35)}
 .c4key i.arrow{width:18px;height:0;border:0;border-top:1.5px solid var(--rel);border-radius:0}
+.c4key i.arrow.dashed{border-top-style:dashed}
+.c4key i.frame{background:var(--surface-2);border:1.5px dashed var(--muted);border-radius:4px}
 .c4el{cursor:pointer}
 .c4el .card{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
 .c4el .hdr{stroke:none}
@@ -214,12 +241,14 @@ pre.dsl .c{color:var(--muted)} pre.dsl .k{color:var(--server);font-weight:600} p
 @media (max-width:700px){.threads{grid-template-columns:1fr}}
 .tside h3{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 6px}
 .thread{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px 10px;border:1px solid var(--line);border-left-width:4px;border-radius:4px;margin-bottom:6px;background:var(--surface);cursor:pointer;min-width:0}
-.thread.server{border-left-color:var(--server)}.thread.client{border-left-color:var(--client)}
+.thread.server{border-left-color:var(--server)}.thread.client{border-left-color:var(--client)}.thread.wire{border-left-color:var(--wire)}
+.thread.planned{border-style:dashed;opacity:.6}
 .thread .n{font:12px var(--mono);font-weight:600}
 .thread .r{grid-column:1/-1;font-size:12px;color:var(--ink-2)}
 .thread.sel{outline:2px solid var(--on)}
+/* When a thread starts: filled = eagerly, outlined = lazily on first use, dotted = only under a condition. Dashed stays free for planned. */
 .pill{font:10px/1 var(--mono);padding:3px 6px;border-radius:3px;border:1.5px solid var(--ink-2);color:var(--ink-2);align-self:start;white-space:nowrap}
-.pill.lazy{border-style:dashed}.pill.cond{border-style:dotted}
+.pill.eager{background:var(--ink-2);color:var(--surface)}.pill.cond{border-style:dotted}.pill.planned{border-style:dashed;opacity:.6}
 .scroll{overflow-x:auto}
 .matrix{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;min-width:560px}
 .matrix th,.matrix td{padding:6px 8px;border-top:1px solid var(--hair);text-align:center;vertical-align:top}
@@ -239,14 +268,36 @@ pre.dsl .c{color:var(--muted)} pre.dsl .k{color:var(--server);font-weight:600} p
 .steps li::before{content:counter(s) " ";color:var(--muted)}
 .tbl{width:100%;border-collapse:collapse;font-size:12.5px}
 .tbl th,.tbl td{text-align:left;padding:6px 6px;border-top:1px solid var(--hair);vertical-align:top}
+.tbl td{overflow-wrap:anywhere}
 .tbl th{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-.callout{border-left:3px solid var(--wire);padding:8px 10px;background:var(--surface-2);border-radius:4px;font-size:13px;color:var(--ink-2);margin-top:8px}
+/* Phases (the Lifecycles colour plan): .ph1 start / creation, .ph2 run / steady state, .ph3 stop / teardown. A class sets --ph;
+   a card takes it as its top rule, a callout as its left rule, a step or table row as a left mark, a state box as its stroke. */
+.ph1{--ph:var(--ph-1)}.ph2{--ph:var(--ph-2)}.ph3{--ph:var(--ph-3)}
+.card.ph1,.card.ph2,.card.ph3{border-top:3px solid var(--ph)}
+.steps li.ph1,.steps li.ph2,.steps li.ph3{border-left:3px solid var(--ph)}.steps li.planned{border-style:dashed;opacity:.6}
+.tbl tr.ph1>:first-child,.tbl tr.ph2>:first-child,.tbl tr.ph3>:first-child{border-left:3px solid var(--ph)}
+.callout{border-left:3px solid var(--ph,var(--ink-2));padding:8px 10px;background:var(--surface-2);border-radius:4px;font-size:13px;color:var(--ink-2);margin-top:8px}
 .callout b{color:var(--ink)}
 .states text{font-family:var(--mono);font-size:11px;fill:var(--ink)}
 .states .lab{font-family:var(--sans);font-size:9.5px;fill:var(--muted)}
 .states rect{fill:var(--surface-2);stroke:var(--ink-2);stroke-width:1.5}
-.states .start{fill:var(--server-soft);stroke:var(--server)}
+.states rect.ph1,.states rect.ph2,.states rect.ph3{stroke:var(--ph);stroke-width:2;fill:color-mix(in srgb,var(--ph) 14%,var(--surface))}
+.states rect.planned{stroke-dasharray:6 4;opacity:.6}
 .states line,.states path{stroke:var(--ink-2);stroke-width:1.5;fill:none}
+
+/* guarantees — always visible under the tab stage, whatever tab is open; one compact titled bubble per guarantee */
+.guarantees{margin-top:20px}
+.guarantees>h2{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 10px}
+.bubbles{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:10px}
+.bubble{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 12px;min-width:0;font-size:12.5px;color:var(--ink-2)}
+.bubble h3{font-size:12.5px;margin:0 0 6px;color:var(--ink)}
+.bubble h3 small{font-weight:400;color:var(--muted);font-family:var(--mono);font-size:11px}
+.bubble ul{margin:0;padding:0 0 0 15px}
+.bubble li{margin:3px 0}
+.bubble p{margin:6px 0 0}
+.bubble code{color:var(--ink)}
+.bubble .gap{color:var(--muted);font-style:italic}
+.bubble .badge{margin-left:2px}
 
 /* context */
 .context{margin-top:24px}
@@ -260,10 +311,23 @@ pre.dsl .c{color:var(--muted)} pre.dsl .k{color:var(--server);font-weight:600} p
 .badge.bug{border-color:var(--serious)}
 .badge.bug::before{content:"▲ ";color:var(--serious)}
 .badge.planned{border-style:dashed}
+.badge.closed{color:var(--muted)}
+.tags{display:inline-flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
+@media (max-width:520px){.issues li{grid-template-columns:auto 1fr}.issues li>.tags{grid-column:2;justify-content:flex-start}}
+/* roadmap: each item (a tracking issue, or an entry in the repository's roadmap document) with the issues mapped to it */
+.roadmap{list-style:none;margin:0;padding:0;font-size:12.5px}
+.roadmap>li{padding:6px 0;border-top:1px solid var(--hair)}
+.roadmap .ri{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:start}
+.roadmap .ri>span:nth-child(2){font-weight:600;color:var(--ink)}
+.roadmap .ri small{font:400 11px var(--mono);color:var(--muted)}
+.roadmap .ri a{font-family:var(--mono);text-decoration:none;color:var(--ink-2)}
+.roadmap .issues{margin:4px 0 0 14px}
+.roadmap .more{margin:4px 0 0 14px;font-size:12px;color:var(--muted)}
+/* one series (test classes), so one neutral fill: a hue here would read as a side */
 .bars{display:grid;grid-template-columns:auto 1fr auto;gap:5px 10px;align-items:center;font-size:12px}
 .bars .lbl{color:var(--ink-2);font-family:var(--mono);font-size:11.5px}
 .bars .trk{height:10px;background:var(--surface-2);border-radius:2px;overflow:hidden;position:relative}
-.bars .fil{position:absolute;left:0;top:0;height:100%;background:var(--server);border-radius:0 4px 4px 0}
+.bars .fil{position:absolute;left:0;top:0;height:100%;background:var(--ink-2);border-radius:0 4px 4px 0}
 .bars .val{font-variant-numeric:tabular-nums;color:var(--ink)}
 .docs{margin:0;padding:0;list-style:none;font-size:12.5px}
 .docs li{padding:4px 0;border-top:1px solid var(--hair)}
@@ -334,7 +398,7 @@ footer code{color:var(--ink-2)}
 
   <section class="view" role="tabpanel" id="p-threads" aria-labelledby="t-threads" hidden>
     <h2>Thread inventory</h2>
-    <p class="lede">Eleven threads, every one named, all daemon. Solid pills are created eagerly, dashed lazily on first use, dotted only under a condition. Click a thread for what runs on it.</p>
+    <p class="lede">Eleven threads, every one named, all daemon, coloured by the endpoint that owns them. Filled pills are created eagerly, outlined ones lazily on first use, dotted ones only under a condition. Click a thread for what runs on it.</p>
     <div class="threads">
       <div class="tside"><h3>Server · mcups-*</h3>
         <div class="thread server" data-t="mcups-listener" tabindex="0" role="button"><span class="n">mcups-listener</span><span class="pill eager">eager</span><span class="r">receive · accept() liveness stamp · tag switch · handshake incl. admit / onClientConnect · inline 0x82 replies · reliable ack processing</span></div>
@@ -352,6 +416,7 @@ footer code{color:var(--ink-2)}
         <div class="thread client" data-t="mcupc-retransmit" tabindex="0" role="button"><span class="n">mcupc-retransmit</span><span class="pill lazy">lazy</span><span class="r">the retransmit tick</span></div>
       </div>
     </div>
+    <div class="key"><span><i class="bs"></i>server endpoint · mcups-*</span><span><i class="bc"></i>client endpoint · mcupc-*</span><span><span class="pill eager">eager</span>created eagerly</span><span><span class="pill lazy">lazy</span>created on first use</span><span><span class="pill cond">if …</span>only under a condition</span><span><span class="pill planned">planned</span>planned, not built</span><span><i class="dot"></i>puts it on the wire (table below)</span></div>
     <h2 style="margin-top:16px">Outbound send paths</h2>
     <p class="lede">Which thread puts each kind of datagram on the wire. A reliable message's first transmission runs on the caller's thread; retransmits and standalone acks on the side's own retransmit thread.</p>
     <div class="scroll"><table class="matrix">
@@ -372,15 +437,16 @@ footer code{color:var(--ink-2)}
 
   <section class="view" role="tabpanel" id="p-datagrams" aria-labelledby="t-datagrams" hidden>
     <h2>Inbound datagram path</h2>
-    <p class="lede">Pick what arrives and from whom; the path the listener thread takes lights up. Hexagons are decisions; shaded boxes are where the datagram ends.</p>
+    <p class="lede">Pick what arrives and from whom; the path the listener thread takes lights up. Hexagons are decisions; shaded boxes are where the datagram ends, their stripe coloured by the log level it ends at.</p>
     <div class="ctl" id="flow-ctl"></div>
     <p class="outcome" id="outcome"></p>
     <svg id="svg-flow" viewBox="0 0 980 580" role="img" aria-label="Inbound dispatch flow"></svg>
+    <div class="key" id="flow-key"></div>
   </section>
 
   <section class="view" role="tabpanel" id="p-reliable" aria-labelledby="t-reliable" hidden>
     <h2>The reliable sequence, server side</h2>
-    <p class="lede">A reliable-ordered send, its arrival at the peer's listener, and the 50 ms retransmit tick. Step through it, or click any message. The client mirrors it on mcupc-* threads.</p>
+    <p class="lede">A reliable-ordered send, its arrival at the peer's listener, and the 50 ms retransmit tick, each lifeline in the colour of who owns it. Step through it, or click any message. The client mirrors it on mcupc-* threads.</p>
     <div class="ctl">
       <button class="btn" id="seq-prev">‹ prev</button>
       <button class="btn" id="seq-next">next ›</button>
@@ -388,42 +454,44 @@ footer code{color:var(--ink-2)}
       <span id="seq-pos" style="font:12px var(--mono);color:var(--muted)"></span>
     </div>
     <svg id="svg-seq" viewBox="0 0 1000 600" role="img" aria-label="Reliable channel sequence diagram"></svg>
+    <div class="key" id="seq-key"></div>
   </section>
 
   <section class="view" role="tabpanel" id="p-lifecycles" aria-labelledby="t-lifecycles" hidden>
     <h2>Lifecycles and concurrency</h2>
-    <p class="lede">Ordered shutdowns, the connection states, when a reliable engine comes and goes, and the locking rules.</p>
+    <p class="lede">Ordered shutdowns, the connection states, when a reliable engine comes and goes, and the locking rules — coloured by phase.</p>
     <div class="lgrid">
-      <div class="card"><h3>Server <code>stop()</code> <small>every step runs even if an earlier one fails</small></h3>
+      <div class="card ph3"><h3>Server <code>stop()</code> <small>every step runs even if an earlier one fails</small></h3>
         <ol class="steps"><li>stopNotifying</li><li>terminateAll</li><li>listener join ≤ 1 s</li><li>close socket</li><li>liveness</li><li>keepalive</li><li>probe</li><li>retransmit</li><li>dispatch</li></ol>
         <div class="callout"><b>No <code>onClientDisconnect</code> fires</b> on stop. The 1 s join before the socket closes is open as <a href="https://github.com/SpartanLaboratories/WebTools/issues/48" target="_blank" rel="noopener">#48</a>.</div></div>
-      <div class="card"><h3>Client <code>stop()</code> <small>each step is its own runCatching</small></h3>
+      <div class="card ph3"><h3>Client <code>stop()</code> <small>each step is its own runCatching</small></h3>
         <ol class="steps"><li>stopped = true</li><li>listening = false</li><li>join</li><li>keepalive</li><li>probe</li><li>retransmit</li><li>engine.close()</li><li>close socket</li><li>dispatch</li></ol>
         <div class="callout"><b>No goodbye on the wire.</b> Neither <code>terminate()</code> nor either side's <code>stop()</code> sends the peer anything; wire protocol 2 has no disconnect datagram. A peer learns the other side has gone only through its own idle detection.</div></div>
-      <div class="card"><h3>Connection states</h3>
+      <div class="card ph2"><h3>Connection states</h3>
         <svg class="states" viewBox="0 0 640 190" role="img" aria-label="Connection state transitions">
           <defs><marker id="sarr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--ink-2)"/></marker></defs>
           <line x1="320" y1="4" x2="320" y2="26" marker-end="url(#sarr)"/><text class="lab" x="328" y="16">Iam accepted: admit → register → REGISTERED 2</text>
-          <rect class="start" x="240" y="28" width="160" height="40" rx="5"/><text x="320" y="53" text-anchor="middle">REGISTERED</text>
+          <rect class="ph2" x="240" y="28" width="160" height="40" rx="5"/><text x="320" y="53" text-anchor="middle">REGISTERED</text>
           <path d="M270,68 L120,118" marker-end="url(#sarr)"/><text class="lab" x="150" y="86" text-anchor="middle">a later handshake supersedes</text>
           <line x1="320" y1="68" x2="320" y2="118" marker-end="url(#sarr)"/><text class="lab" x="328" y="98">terminate()</text>
           <path d="M370,68 L520,118" marker-end="url(#sarr)"/><text class="lab" x="490" y="86" text-anchor="middle">idle sweep · mcups-liveness</text>
-          <rect x="40" y="120" width="160" height="40" rx="5"/><text x="120" y="145" text-anchor="middle">SUPERSEDED</text>
-          <rect x="240" y="120" width="160" height="40" rx="5"/><text x="320" y="145" text-anchor="middle">TERMINATED</text>
-          <rect x="440" y="120" width="160" height="40" rx="5"/><text x="520" y="145" text-anchor="middle">TIMEOUT</text>
+          <rect class="ph3" x="40" y="120" width="160" height="40" rx="5"/><text x="120" y="145" text-anchor="middle">SUPERSEDED</text>
+          <rect class="ph3" x="240" y="120" width="160" height="40" rx="5"/><text x="320" y="145" text-anchor="middle">TERMINATED</text>
+          <rect class="ph3" x="440" y="120" width="160" height="40" rx="5"/><text x="520" y="145" text-anchor="middle">TIMEOUT</text>
           <text class="lab" x="520" y="178" text-anchor="middle">notify-only · stays addressable</text>
         </svg></div>
       <div class="card"><h3>Reliable engine: creation and teardown</h3>
         <table class="tbl"><thead><tr><th></th><th>Client</th><th>Server</th></tr></thead><tbody>
-          <tr><td>Created on</td><td>the first reliable <b>send</b>, or the first inbound <code>0xA0</code>/<code>0xA1</code> from <code>serverEndpoint</code> on channel <code>0x00</code> — <b>not</b> on <code>channel(RELIABLE_ORDERED).actuate*</code></td><td>the first send, the first <code>bindReliable</code> (<code>actuate*</code> / <code>startReliable</code>), or the first inbound <code>0xA0</code>/<code>0xA1</code> on channel <code>0x00</code> from a registered origin</td></tr>
-          <tr><td>Never for</td><td colspan="2">a non-zero-channel frame — dropped before the engine is reached</td></tr>
-          <tr><td>Torn down by</td><td colspan="2"><code>terminate()</code>, a supersede, or <code>stop()</code>: the engine closes and every in-flight or buffered message is discarded</td></tr>
+          <tr class="ph1"><td>Created on</td><td>the first reliable <b>send</b>, or the first inbound <code>0xA0</code>/<code>0xA1</code> from <code>serverEndpoint</code> on channel <code>0x00</code> — <b>not</b> on <code>channel(RELIABLE_ORDERED).actuate*</code></td><td>the first send, the first <code>bindReliable</code> (<code>actuate*</code> / <code>startReliable</code>), or the first inbound <code>0xA0</code>/<code>0xA1</code> on channel <code>0x00</code> from a registered origin</td></tr>
+          <tr class="ph1"><td>Never for</td><td colspan="2">a non-zero-channel frame — dropped before the engine is reached</td></tr>
+          <tr class="ph3"><td>Torn down by</td><td colspan="2"><code>terminate()</code>, a supersede, or <code>stop()</code>: the engine closes and every in-flight or buffered message is discarded</td></tr>
         </tbody></table></div>
-      <div class="card"><h3>Concurrency rules</h3>
+      <div class="card ph2"><h3>Concurrency rules</h3>
         <div class="callout"><b>Lock order is engine → buffer</b>, never reversed. <code>ReliableChannelEngine</code> is <code>@Synchronized</code>; three threads contend per connection — the app thread (<code>send</code>), the listener (inbound), the retransmit tick. The 32-per-tick cap bounds how long the tick holds the lock.</div>
         <div class="callout"><b>One dispatch executor per side</b> serialises unreliable <i>and</i> reliable delivery, so head-of-line blocking on the reliable plane also delays unreliable delivery to that connection.</div>
         <div class="callout"><code>reliableEngineFor</code>, <code>reliableEngine()</code> and <code>ensureListening()</code> are <code>@Synchronized</code>; <code>ensureListening()</code> is idempotent.</div></div>
     </div>
+    <div class="key"><span><i class="ph1"></i>start · creation</span><span><i class="ph2"></i>run · the live state and the rules that hold</span><span><i class="ph3"></i>stop · teardown and the disconnect reasons</span><span><i class="pln"></i>planned, not built</span></div>
   </section>
 </div>
 
@@ -433,24 +501,24 @@ footer code{color:var(--ink-2)}
 </aside>
 </div>
 
-<section class="context">
-  <h2>Context · secondary</h2>
-  <div class="cards">
-    <div class="card"><h3>Open issues touching this module <small>11</small></h3>
-      <ul class="issues">
-        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/57" target="_blank" rel="noopener">#57</a><span>Server answers handshakes from unverified source addresses with no rate limit (reflection)</span><span class="badge bug">bug</span></li>
-        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/56" target="_blank" rel="noopener">#56</a><span>Handshake from a registered origin gets REGISTERED 2 even when it names a different client</span><span class="badge bug">bug</span></li>
-        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/54" target="_blank" rel="noopener">#54</a><span>A throwing onClientConnect kills the server's listener thread</span><span class="badge bug">bug</span></li>
-        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/53" target="_blank" rel="noopener">#53</a><span>Server accepts handshake names and credentials containing tabs, CR/LF or other non-space whitespace</span><span class="badge bug">bug</span></li>
-        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/52" target="_blank" rel="noopener">#52</a><span>Client sends malformed or misparsed handshakes for an empty or whitespace-containing name or credential</span><span class="badge bug">bug</span></li>
-        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/50" target="_blank" rel="noopener">#50</a><span>Multiplatform protocol core and a datagram-transport seam for a future web client</span><span class="badge planned">planned system</span></li>
-        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/49" target="_blank" rel="noopener">#49</a><span>Handshake registration orphaned when the REGISTERED send fails</span><span class="badge bug">bug</span></li>
-        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/48" target="_blank" rel="noopener">#48</a><span>MultiConnectionUDPServer.stop() blocks ~1 s joining the listener before closing the socket</span><span class="badge bug">bug</span></li>
-        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/47" target="_blank" rel="noopener">#47</a><span>webtools-udp 2.0.0 ships Java 23 bytecode but README claims JDK 11+</span><span class="badge bug">bug · docs</span></li>
-        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/41" target="_blank" rel="noopener">#41</a><span>Rate-bound the per-datagram-drop WARN logs on server and client</span><span class="badge">untyped</span></li>
-        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/39" target="_blank" rel="noopener">#39</a><span>Client only checks datagram origin on the reliable-channel receive branch</span><span class="badge">untyped</span></li>
+<section class="guarantees" aria-label="Guarantees">
+  <h2>Guarantees</h2>
+  <div class="bubbles">
+    <div class="bubble"><h3>Failure model</h3>
+      <ul>
+        <li>Fallible calls return <code>kotlin.Result</code>. Typed failures: <code>HandshakeRefusedException</code>, <code>IncompatibleProtocolException</code> from <code>handshake()</code>; <code>ReliableWindowFullException</code>, <code>ReliableMessageTooLargeException</code> from a reliable <code>send</code>.</li>
+        <li>Thrown only at construction: <code>SocketException</code> when its port cannot be bound, <code>IllegalArgumentException</code> for a bad parameter.</li>
+        <li>Retried inside: a reliable message, until acked. Not retried: an unreliable datagram; <code>handshake()</code> (4 s timeout — the caller retries).</li>
+        <li>Only logged: a dropped datagram; a throwing <code>admit</code> (the client times out). A throwing <code>onClientConnect</code> kills <code>mcups-listener</code> (<a href="https://github.com/SpartanLaboratories/WebTools/issues/54" target="_blank" rel="noopener">#54</a>).</li>
       </ul></div>
-    <div class="card"><h3>Test classes by level <small>92</small></h3>
+    <div class="bubble"><h3>Extension points</h3>
+      <ul>
+        <li><code>MultiConnectionUDPServer</code>, abstract: <code>onClientConnect</code>, <code>admit</code>, <code>onClientDisconnect</code>; constructor knobs for the receive buffer, idle timeout and reliable cap.</li>
+        <li><code>Connection</code>, <code>UdpChannel</code>: interfaces; of the <code>Connection</code>s, only <code>UDPConnection</code> carries a reliable channel.</li>
+        <li>Open sets that may grow without a major: <code>ReliableSendFailure</code> subtypes; <code>DeliveryMode</code>, <code>DatagramType</code>, <code>DisconnectReason</code> entries — keep an <code>else</code>.</li>
+        <li>All <span class="badge">Stable Core</span>; the module has no <code>@SupportedExtension</code> or <code>@RequiresOptIn</code> marker.</li>
+      </ul></div>
+    <div class="bubble"><h3>Test levels <small>92 classes</small></h3>
       <div class="bars" role="table" aria-label="Test classes per testing level">
         <span class="lbl">L1 gating</span><span class="trk"><span class="fil" style="width:90%"></span></span><span class="val">19</span>
         <span class="lbl">L2 component</span><span class="trk"><span class="fil" style="width:100%"></span></span><span class="val">21</span>
@@ -460,8 +528,62 @@ footer code{color:var(--ink-2)}
         <span class="lbl">L4c non-functional</span><span class="trk"><span class="fil" style="width:52%"></span></span><span class="val">11</span>
         <span class="lbl">L5 UAT</span><span class="trk"><span class="fil" style="width:5%"></span></span><span class="val">1</span>
       </div>
-      <p class="lede" style="margin:10px 0 0">Packages <code>com.spartanlabs.testing.&lt;level&gt;.webtools.udp</code>; run per level with <code>./gradlew gatingTest</code>, <code>componentTest</code>, …</p></div>
-    <div class="card"><h3>Documents and history</h3>
+      <p>Packages <code>com.spartanlabs.testing.&lt;level&gt;.webtools.udp</code>; <code>./gradlew gatingTest</code>, <code>componentTest</code>, … run one level. <a href="../../../build/reports/test-inspector/index.html">Test-inspector report</a>: local build output, not committed (the #38 run).</p></div>
+    <div class="bubble"><h3>Compatibility &amp; versioning</h3>
+      <ul>
+        <li><code>2.0.0a</code>, wire protocol 2: a 1.x peer fails <code>handshake()</code> with <code>IncompatibleProtocolException</code>.</li>
+        <li>A trailing letter for a bug fix (2.0.0 → 2.0.0a, <a href="https://github.com/SpartanLaboratories/WebTools/issues/38" target="_blank" rel="noopener">#38</a>), the third number for an addition, the major for a break.</li>
+        <li>Deprecate, don't break: the eight members deprecated in 2.0.0 (with <code>ReplaceWith</code>) work through 2.x and go at 3.0.0.</li>
+        <li><span class="gap">Not checked: the build keeps no ABI dump.</span> JDK floor: the README says 11+; 2.0.0 ships Java 23 bytecode (<a href="https://github.com/SpartanLaboratories/WebTools/issues/47" target="_blank" rel="noopener">#47</a>).</li>
+      </ul></div>
+    <div class="bubble"><h3>Thread safety</h3>
+      <ul>
+        <li>Any thread: the server's sends (one socket, copy-on-write registry); the client's <code>send</code>, keepalive and probe start/stop, and its idempotent <code>stop()</code>.</li>
+        <li>Shareable values: <code>UdpChannel</code> (stateless), <code>LinkQuality</code> (immutable).</li>
+        <li>Never raced: the client's <code>handshake()</code> — once, before <code>start</code> — and <code>start</code> itself (documented, not enforced).</li>
+        <li>Callbacks: <code>admit</code> and <code>onClientConnect</code> on <code>mcups-listener</code>; handlers and <code>onClientDisconnect</code> on the side's one dispatch thread. <span class="gap">Racing the server's <code>start*</code> and <code>stop()</code>: not documented.</span></li>
+      </ul></div>
+    <div class="bubble"><h3>Resources to close</h3>
+      <ul>
+        <li><code>MultiConnectionUDPServer.stop()</code>: frees port 9998 and the <code>mcups-*</code> threads; single-use. Skipped, the port stays bound and the next server in that JVM fails to bind.</li>
+        <li><code>MultiConnectionUDPClient.stop()</code>: frees its port and <code>mcupc-*</code> threads; idempotent. Neither endpoint is <code>AutoCloseable</code>; <code>UDPSendReceiveServer</code> is, and its <code>close()</code> only logs a failure (<code>shutDown()</code> returns it).</li>
+        <li><code>Connection.terminate()</code>: a timed-out peer stays registered until terminated (<code>TIMEOUT</code> only notifies); it drops the peer's in-flight reliable messages, keepalive and probe.</li>
+        <li>All threads are daemons; nothing goes on the wire at close.</li>
+      </ul></div>
+    <div class="bubble"><h3>On your classpath</h3>
+      <ul>
+        <li><code>org.slf4j:slf4j-api:2.0.13</code> — <code>api</code> in the root build; no backend ships (logback is test-only), so bring one.</li>
+        <li><code>org.jetbrains.kotlin:kotlin-stdlib:2.2.0</code> — from the Kotlin plugin; compile scope in the generated POM.</li>
+        <li>Nothing else.</li>
+      </ul></div>
+  </div>
+</section>
+
+<section class="context">
+  <h2>Context</h2>
+  <div class="cards">
+    <div class="card"><h3>Roadmap <small>1 item · 2026-10-21</small></h3>
+      <ol class="roadmap">
+        <li><div class="ri"><a href="https://github.com/SpartanLaboratories/WebTools/issues/55" target="_blank" rel="noopener">#55</a><span>HTTP client stack for BotTools: suspend transport, outbound-URL guard, response cache, call budget and test fakes <small>tracking issue</small></span><span class="tags"><span class="badge">open</span><span class="badge">L4</span></span></div>
+          <ul class="issues">
+            <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/47" target="_blank" rel="noopener">#47</a><span>webtools-udp 2.0.0 ships Java 23 bytecode but README claims JDK 11+</span><span class="tags"><span class="badge bug">bug · docs</span><span class="badge">open</span><span class="badge">L2</span></span></li>
+          </ul>
+          <p class="more">Its ten other sub-issues — #61 and #62–#70 — belong to the build, webtools-http, webtools-feeds and their docs.</p></li>
+      </ol></div>
+    <div class="card"><h3>Unscheduled issues <small>10 open · 2026-10-21</small></h3>
+      <ul class="issues">
+        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/57" target="_blank" rel="noopener">#57</a><span>Server answers handshakes from unverified source addresses with no rate limit (reflection)</span><span class="tags"><span class="badge bug">bug</span></span></li>
+        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/56" target="_blank" rel="noopener">#56</a><span>Handshake from a registered origin gets REGISTERED 2 even when it names a different client</span><span class="tags"><span class="badge bug">bug</span></span></li>
+        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/54" target="_blank" rel="noopener">#54</a><span>A throwing onClientConnect kills the server's listener thread</span><span class="tags"><span class="badge bug">bug</span></span></li>
+        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/53" target="_blank" rel="noopener">#53</a><span>Server accepts handshake names and credentials containing tabs, CR/LF or other non-space whitespace</span><span class="tags"><span class="badge bug">bug</span></span></li>
+        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/52" target="_blank" rel="noopener">#52</a><span>Client sends malformed or misparsed handshakes for an empty or whitespace-containing name or credential</span><span class="tags"><span class="badge bug">bug</span></span></li>
+        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/50" target="_blank" rel="noopener">#50</a><span>Multiplatform protocol core and a datagram-transport seam for a future web client</span><span class="tags"><span class="badge planned">planned system</span></span></li>
+        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/49" target="_blank" rel="noopener">#49</a><span>Handshake registration orphaned when the REGISTERED send fails</span><span class="tags"><span class="badge bug">bug</span></span></li>
+        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/48" target="_blank" rel="noopener">#48</a><span>MultiConnectionUDPServer.stop() blocks ~1 s joining the listener before closing the socket</span><span class="tags"><span class="badge bug">bug</span></span></li>
+        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/41" target="_blank" rel="noopener">#41</a><span>Rate-bound the per-datagram-drop WARN logs on server and client</span><span class="tags"><span class="badge">untyped</span></span></li>
+        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/39" target="_blank" rel="noopener">#39</a><span>Client only checks datagram origin on the reliable-channel receive branch</span><span class="tags"><span class="badge">untyped</span></span></li>
+      </ul></div>
+    <div class="card"><h3>Plans and documents</h3>
       <ul class="docs">
         <li><a href="https://github.com/SpartanLaboratories/WebTools/blob/master/docs/webtools-udp-architecture.md" target="_blank" rel="noopener">webtools-udp-architecture.md</a> — components, threads, locks, lifecycles, datagram paths (this dashboard's source)</li>
         <li><a href="https://github.com/SpartanLaboratories/WebTools/blob/master/docs/webtools-udp-protocol.md" target="_blank" rel="noopener">webtools-udp-protocol.md</a> — the bytes</li>
@@ -511,7 +633,7 @@ workspace "WebTools" "Spartan Laboratories' Kotlin/JVM networking and web toolki
                 quality     = component "LinkQualityTracker" "The probe's RTT and loss estimator (Rtt maths); snapshot exposed as LinkQuality." "internal class" "Internal"
                 timing      = component "Timing rules" "KeepAlive, Liveness and HandshakeProtocol — pure timing and parsing rules." "internal" "Internal"
 
-                // ---- planned, not built (secondary information) ----
+                // ---- planned, not built ----
                 core        = component "Protocol core" "Issue #50: a multiplatform protocol core and a datagram-transport seam for a future web client. Proposed, not built." "proposed" "Planned"
             }
         }
@@ -593,7 +715,7 @@ workspace "WebTools" "Spartan Laboratories' Kotlin/JVM networking and web toolki
             element "External"        { background #999999 color #ffffff }
             element "Container"       { background #438dd5 color #ffffff }
             element "Component"       { background #85bbf0 color #000000 }
-            element "Internal"        { background #c6dcf5 color #000000 border dashed }
+            element "Internal"        { background #c6dcf5 color #000000 border solid }
             element "Standalone"      { background #eeeeee color #000000 border dotted }
             element "Planned"         { background #ffffff color #666666 border dashed opacity 60 }
         }
@@ -621,6 +743,7 @@ function arrowDefs(svg,id,color){ const d=mk("defs",{},svg); const m=mk("marker"
    nodes to their DSL element so the two views cross-reference.
    ========================================================================= */
 const MODEL = {
+  sides:{server:"server endpoint",client:"client endpoint",wire:"shared",consumer:"the consumer's thread",external:"the peer, outside this process"},
   c4:{srv:"webtools.udp.server",cli:"webtools.udp.client",coord:"webtools.udp.coordinator",regs:"webtools.udp.registry",reg:"webtools.udp.registry",engS:"webtools.udp.engine",engC:"webtools.udp.engine",lqS:"webtools.udp.quality",lqC:"webtools.udp.quality",conn:"webtools.udp.connection",sched:"webtools.udp.scheduler",schedS:"webtools.udp.scheduler",schedC:"webtools.udp.scheduler",codecs:"webtools.udp.wire",rules:"webtools.udp.timing",iface:"webtools.udp.channel",chanimpl:"webtools.udp.channel",sr:"webtools.udp.sendreceive",iam:"webtools.udp.wire",t80:"webtools.udp.wire",t81:"webtools.udp.wire",t82:"webtools.udp.wire",t90:"webtools.udp.wire",tA0:"webtools.udp.wire",tA1:"webtools.udp.wire"},
   structure: {
     lanes:[["SERVER ENDPOINT",40,44,"start"],["CLIENT ENDPOINT",580,44,"start"],["WIRE",500,44,"middle"],["SHARED INTERNALS",40,474,"start"]],
@@ -761,7 +884,8 @@ const MODEL = {
      }}
   ],
   sequence:{
-    lifelines:["app thread","HandshakeCoordinator","ReliableChannelEngine","mcups-listener","mcups-retransmit","mcups-dispatch","peer (UDP)"],
+    kicker:"RELIABLE SEQUENCE",
+    lifelines:[{n:"app thread",side:"consumer"},{n:"HandshakeCoordinator",side:"server"},{n:"ReliableChannelEngine",side:"server"},{n:"mcups-listener",side:"server"},{n:"mcups-retransmit",side:"server"},{n:"mcups-dispatch",side:"server"},{n:"peer (UDP)",side:"external"}],
     phases:[["SEND · app thread",0,4],["RECEIVE · listener → dispatch",5,10],["TICK · every 50 ms",11,12]],
     steps:[
       {f:0,t:1,l:"channel(RELIABLE_ORDERED).send(bytes)",n:"The app thread calls send on the connection's reliable channel. Over reliableMaxMessageBytes → failure(ReliableMessageTooLargeException) and nothing is sent."},
@@ -1027,7 +1151,8 @@ function showDsl(){
   const host=$("#c4-ladder"), levels=C4.views.filter(v=>v.type!=="dynamic");
   C4.views.forEach((v,i)=>{ const b=document.createElement("button"); const isLevel=v.type!=="dynamic"; b.className="rung"+(isLevel?" lvl":" sep")+(isLevel&&levels[levels.length-1]===v?" last":""); b.dataset.v=String(i); b.setAttribute("aria-pressed","false"); const [lv,nm]=LEVEL[v.type]; b.innerHTML=`<span class="lv">${lv}</span><span class="nm">${nm}</span><span class="sc">${esc(v.type==="dynamic"?v.key:el(v.scope).name)}</span>`; b.addEventListener("click",()=>renderC4(i)); host.appendChild(b); });
   const d=document.createElement("button"); d.className="rung sep"; d.dataset.v="dsl"; d.setAttribute("aria-pressed","false"); d.innerHTML=`<span class="lv">{ }</span><span class="nm">Source</span><span class="sc">workspace.dsl</span>`; d.addEventListener("click",showDsl); host.appendChild(d);
-  $("#c4-key").innerHTML=C4.styles.filter(s=>s.props.background).map(s=>`<span><i style="background:${esc(s.props.background)};border-style:${esc(s.props.border||"solid")};opacity:${(+s.props.opacity||100)/100}"></i>${esc(s.tag)}</span>`).join("")+`<span><i class="arrow"></i>relationship, labelled with its DSL description</span>`;
+  // The legend: one swatch per DSL element style (element kinds, External, Internal, Standalone, Planned), then the line encodings.
+  $("#c4-key").innerHTML=C4.styles.filter(s=>s.props.background).map(s=>`<span><i style="background:${esc(s.props.background)};border-style:${esc(s.props.border||"solid")};opacity:${(+s.props.opacity||100)/100}"></i>${esc(s.tag)}</span>`).join("")+`<span><i class="arrow"></i>relationship, labelled with its DSL description</span><span><i class="arrow dashed"></i>to or from a Planned element</span><span><i class="frame"></i>boundary: the view's scope</span>`;
 })();
 function openC4(elementId){ show("t-c4"); const vi=C4.views.findIndex(v=>v.type==="component"&&isWithin(elementId,v.scope)); renderC4(vi>=0?vi:0); selectC4(elementId); }
 
@@ -1052,7 +1177,7 @@ function renderStructure(){
 function selectNode(id){
   const n=MODEL.structure.nodes.find(x=>x.id===id); if(!n) return;
   document.querySelectorAll("#svg-structure .node").forEach(g=>g.classList.toggle("sel",g.dataset.id===id));
-  const d=n.d||{}; const sideName={server:"server endpoint",client:"client endpoint",wire:"shared"}[n.side];
+  const d=n.d||{}; const sideName=(MODEL.sides||{})[n.side]||n.side||"";
   let html=`<div class="kicker">${n.chip?"DATAGRAM TAG":"COMPONENT"} · ${sideName.toUpperCase()}</div><div class="name">${esc(n.t)}</div><div class="vis">${esc(d.vis||"")}</div><p>${esc(d.role||"")}</p><dl>`;
   if(d.files&&d.files.length) html+=`<dt>Source</dt><dd>${d.files.map(flink).join("<br>")}</dd>`;
   if(d.threads&&d.threads.length) html+=`<dt>Runs on</dt><dd>${d.threads.map(t=>`<span class="tchip ${MODEL.threads[t].side}">${t}</span>`).join("")}</dd>`;
@@ -1079,6 +1204,8 @@ document.querySelectorAll(".thread").forEach(x=>{ x.addEventListener("click",()=
    grid, builds the controls, and lights the path the rules return. Nothing here is specific to one system. */
 const CW=138,CH=70,NW=118,NH=50,X0=12,Y0=12;
 const fx=n=>X0+n.c*CW, fy=n=>Y0+n.r*CH;
+// An end's stripe is status-coloured by its level, and always drawn with the level's name beside it.
+const lvlCol=l=>l==="DELIVER"?"var(--good)":l==="WARN"?"var(--serious)":"var(--muted)";
 const flowState={}; let flowVariant=MODEL.flows[0].id;
 const flowOf=()=>MODEL.flows.find(v=>v.id===flowVariant);
 function flowStateFor(v){ if(!flowState[v.id]){ flowState[v.id]={}; v.controls.forEach(c=>flowState[v.id][c.key]=c.def); } return flowState[v.id]; }
@@ -1099,18 +1226,25 @@ function renderFlow(){
     if(A.r===B.r){ d=`M${fx(A)+NW},${fy(A)+NH/2} L${fx(B)},${fy(B)+NH/2}`; lx=(fx(A)+NW+fx(B))/2; ly=fy(A)+NH/2-5; anchor="middle"; }
     else if(A.c===B.c){ d=`M${fx(A)+NW/2},${fy(A)+NH} L${fx(B)+NW/2},${fy(B)}`; lx=fx(A)+NW/2+6; ly=(fy(A)+NH+fy(B))/2+3; }
     else { const tx=fx(A)+NW+10, ty=fy(B)+NH/2; d=`M${fx(A)+NW},${fy(A)+NH/2} L${tx},${fy(A)+NH/2} L${tx},${ty} L${fx(B)},${ty}`; lx=tx+4; ly=ty-5; }
-    mk("path",{d,class:"fedge","marker-end":"url(#farr)","data-e":a+">"+b},svg);
+    mk("path",{d,class:"fedge"+(A.planned||B.planned?" planned":""),"marker-end":"url(#farr)","data-e":a+">"+b},svg);
     if(label){ const t=txt(svg,lx,ly,label,"flabel",anchor); t.dataset.e=a+">"+b; }
   });
   Object.entries(F.nodes).forEach(([id,n])=>{
-    const x=fx(n),y=fy(n), g=mk("g",{class:"fnode "+n.k,"data-id":id},svg);
+    const x=fx(n),y=fy(n), g=mk("g",{class:"fnode "+n.k+(n.planned?" planned":""),"data-id":id},svg);
     if(n.k==="d") mk("polygon",{points:`${x+12},${y} ${x+NW-12},${y} ${x+NW},${y+NH/2} ${x+NW-12},${y+NH} ${x+12},${y+NH} ${x},${y+NH/2}`},g);
     else mk("rect",{x,y,width:NW,height:NH,rx:n.k==="t"?3:6},g);
-    if(n.k==="t"){ const col=n.lvl==="DELIVER"?"var(--good)":n.lvl==="WARN"?"var(--serious)":"var(--muted)"; mk("rect",{x,y,width:4,height:NH,rx:1,fill:col},g); if(n.lvl) txt(g,x+NW-6,y+10,n.lvl,"lvl","end"); }
+    // The stripe's colour goes in style, not the fill attribute: .fnode.t rect would otherwise repaint it surface-grey.
+    if(n.k==="t"){ mk("rect",{x,y,width:4,height:NH,rx:1,class:"stripe",style:`fill:${lvlCol(n.lvl)}`},g); if(n.lvl) txt(g,x+NW-6,y+10,n.lvl,"lvl","end"); }
     txt(g,x+NW/2+(n.k==="t"?2:0),y+(n.t.length>1?21:28),n.t,"","middle",12);
   });
   if(F.foot) txt(svg,X0,Y0+(maxR+1)*CH+12,F.foot,"flabel");
+  flowKey(F);
   highlightFlow();
+}
+/* The legend for the flow on screen: its shapes, the outcome levels its ends use (grouped by stripe colour), lit and faded, planned. */
+function flowKey(F){
+  const ends=new Map(); Object.values(F.nodes).filter(n=>n.k==="t").forEach(n=>{ const c=lvlCol(n.lvl), l=ends.get(c)||[]; if(n.lvl&&!l.includes(n.lvl)) l.push(n.lvl); ends.set(c,l); });
+  $("#flow-key").innerHTML=`<span><i class="hex"></i>decision</span><span><i></i>step</span>`+[...ends].map(([c,l])=>`<span><i class="end" style="border-left-color:${c}"></i>ends · ${esc(l.join(" · ")||"outcome")}</span>`).join("")+`<span><i class="ln on"></i>the path these inputs take</span><span><i class="ln off"></i>not taken</span><span><i class="pln"></i>planned, not built</span>`;
 }
 function highlightFlow(){
   const F=flowOf(), s=flowStateFor(F), res=F.rules(s), set=new Set(res.path), svg=$("#svg-flow"), irr=new Set(res.irrelevant||[]);
@@ -1124,28 +1258,35 @@ function highlightFlow(){
   F.controls.forEach(c=>document.querySelectorAll("#seg-"+c.key+" button").forEach(b=>b.setAttribute("aria-disabled",String(irr.has(c.key)))));
 }
 
-/* ---------- Reliable sequence ---------- */
+/* ---------- Sequence ---------- */
 const seq={cur:0,timer:null};
+const lane=l=>typeof l==="string"?{n:l}:l;
 function renderSeq(){
   const svg=$("#svg-seq"); if(svg.dataset.done) return; svg.dataset.done="1";
   const S=MODEL.sequence, LX=i=>80+i*140, Y0=70, DY=40, H=Y0+S.steps.length*DY+10;
   svg.setAttribute("viewBox",`0 0 1000 ${H}`);
   arrowDefs(svg,"sarr2","var(--ink-2)");
   S.phases.forEach(([label,a,b])=>{ const g=mk("g",{class:"phase"},svg); const y=Y0+a*DY-24, h=(b-a+1)*DY; mk("rect",{x:4,y,width:992,height:h,rx:4},g); txt(g,990,y+11,label,"","end"); });
-  S.lifelines.forEach((name,i)=>{ mk("line",{x1:LX(i),y1:40,x2:LX(i),y2:H-4,class:"life"},svg); const g=mk("g",{class:"lh"},svg); mk("rect",{x:LX(i)-64,y:8,width:128,height:28,rx:4},g); txt(g,LX(i),26,name,"","middle"); });
+  S.lifelines.map(lane).forEach((l,i)=>{ mk("line",{x1:LX(i),y1:40,x2:LX(i),y2:H-4,class:"life"},svg); const g=mk("g",{class:"lh"+(l.side?" "+l.side:"")+(l.planned?" planned":"")},svg); mk("rect",{x:LX(i)-64,y:8,width:128,height:28,rx:4},g); txt(g,LX(i),26,l.n,"","middle"); });
   S.steps.forEach((s,i)=>{
-    const y=Y0+i*DY, g=mk("g",{class:"msg"+(s.ret?" ret":""),"data-i":i,tabindex:0,role:"button","aria-label":`step ${i+1}: ${s.l}`},svg);
+    const y=Y0+i*DY, g=mk("g",{class:"msg"+(s.ret?" ret":"")+(s.planned?" planned":""),"data-i":i,tabindex:0,role:"button","aria-label":`step ${i+1}: ${s.l}`},svg);
     if(s.self){ const x=LX(s.f); mk("path",{d:`M${x},${y-10} L${x+34},${y-10} L${x+34},${y+8} L${x+2},${y+8}`,"marker-end":"url(#sarr2)"},g); txt(g,x+42,y+2,s.l,""); txt(g,x+42,y-8,`${i+1}`,"num"); }
     else { const a=LX(s.f), b=LX(s.t), dir=b>a?1:-1; mk("line",{x1:a,y1:y,x2:b-dir*2,y2:y,"marker-end":s.ret?"url(#sarr2-open)":"url(#sarr2)"},g); const mx=(a+b)/2, w=s.l.length*5.3+10; mk("rect",{class:"lbg",x:mx-w/2,y:y-17,width:w,height:14,rx:2},g); txt(g,mx,y-6,s.l,"","middle"); txt(g,Math.min(a,b)-8,y+3,`${i+1}`,"num","end"); }
     g.addEventListener("click",()=>gotoStep(i)); g.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); gotoStep(i); } });
   });
+  seqKey(S);
   gotoStep(0);
 }
+/* The legend for the sequence: the lifeline owners it shows (each in its side's hue), then the line encodings and planned. */
+function seqKey(S){
+  const sw={server:"pub srv",client:"pub cli",wire:"pub wir",consumer:"con",external:"ext"}, sides=[...new Set(S.lifelines.map(lane).map(l=>l.side).filter(Boolean))];
+  $("#seq-key").innerHTML=sides.map(k=>`<span><i class="${sw[k]||""}"></i>${esc((MODEL.sides||{})[k]||k)}</span>`).join("")+`<span><i class="ln"></i>call or send</span><span><i class="ln dash"></i>return, open head</span>`+(S.phases.length?`<span><i class="band"></i>phase</span>`:"")+`<span><i class="ln dash pln"></i>planned, not built (dashed, faded)</span>`;
+}
 function gotoStep(i){
-  const S=MODEL.sequence; seq.cur=(i+S.steps.length)%S.steps.length; const s=S.steps[seq.cur];
+  const S=MODEL.sequence, L=S.lifelines.map(lane); seq.cur=(i+S.steps.length)%S.steps.length; const s=S.steps[seq.cur];
   document.querySelectorAll("#svg-seq .msg").forEach(g=>{ const k=+g.dataset.i; g.classList.toggle("cur",k===seq.cur); g.classList.toggle("future",k>seq.cur); });
   $("#seq-pos").textContent=`step ${seq.cur+1} of ${S.steps.length}`;
-  inspect(`<div class="kicker">RELIABLE SEQUENCE · STEP ${seq.cur+1}</div><div class="name">${esc(S.lifelines[s.f])} → ${esc(S.lifelines[s.t])}</div><div class="vis">${esc(s.l)}</div><p>${esc(s.n)}</p>`);
+  inspect(`<div class="kicker">${esc(S.kicker||"SEQUENCE")} · STEP ${seq.cur+1}${s.planned?" · PLANNED":""}</div><div class="name">${esc(L[s.f].n)} → ${esc(L[s.t].n)}</div><div class="vis">${esc(s.l)}</div><p>${esc(s.n)}</p>`);
 }
 $("#seq-prev").addEventListener("click",()=>gotoStep(seq.cur-1));
 $("#seq-next").addEventListener("click",()=>gotoStep(seq.cur+1));
