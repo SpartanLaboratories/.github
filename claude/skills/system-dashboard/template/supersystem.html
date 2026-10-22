@@ -1012,12 +1012,18 @@ function renderC4(vi){
   const s=el(v.scope), [lv,lname]=LEVEL[v.type];
   $("#c4-head").innerHTML=`<span class="lvl">LEVEL ${lv} · ${lname.toUpperCase()}</span><span class="ttl">${esc(s.name)} — ${esc(v.key)}</span><span class="desc">${esc(v.desc||"")}</span><span class="zoom" role="group" aria-label="Zoom"><button data-z="fit">fit</button><button data-z="1">1:1</button></span>`;
   document.querySelectorAll("#c4-head .zoom button").forEach(b=>b.addEventListener("click",()=>{ c4Zoom=b.dataset.z; applyZoom(); }));
-  if(v.type==="dynamic"){ c4View.width=renderDynamic(R,svg); c4StepList(); }
-  else { const L=layoutC4(R,v.type); c4View.width=L.width; svg.setAttribute("viewBox",`0 0 ${L.width} ${L.height}`); drawFrame(svg,L); drawRoutes(svg,L); R.els.forEach(id=>drawCard(svg,id,L.pos[id]));
-    inspect(`<div class="kicker">C4 · LEVEL ${lv} · ${lname.toUpperCase()}</div><div class="name">${esc(v.key)}</div><div class="vis">${R.els.length} elements · ${R.rels.length} relationships · from workspace.dsl</div><p>${esc(v.desc||"")}</p><p>Hover an element to trace its relationships; click it for its description, technology, tags and what it uses and is used by.</p>`); }
+  if(v.type==="dynamic") c4View.width=renderDynamic(R,svg);
+  else { const L=layoutC4(R,v.type); c4View.width=L.width; svg.setAttribute("viewBox",`0 0 ${L.width} ${L.height}`); drawFrame(svg,L); drawRoutes(svg,L); R.els.forEach(id=>drawCard(svg,id,L.pos[id])); }
   document.querySelectorAll("#c4-ladder .rung").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===String(vi))));
   $("#dsl-view").hidden=true; $("#c4-canvas").hidden=false; $("#c4-head").hidden=false; $("#c4-key").hidden=false;
-  applyZoom();
+  applyZoom(); inspectC4();
+}
+/* The inspector for what the C4 tab has on screen: the source, else the selected element or dynamic step, else the view itself. */
+function inspectC4(){
+  if(!$("#dsl-view").hidden) return showDsl();
+  const {v,R}=c4View, [lv,lname]=LEVEL[v.type], sel=$("#svg-c4 .c4el.sel"), cur=$("#svg-c4 .c4rel.cur");
+  if(sel) selectC4(sel.dataset.id); else if(cur) selectC4Step(+cur.dataset.num); else if(v.type==="dynamic") c4StepList();
+  else inspect(`<div class="kicker">C4 · LEVEL ${lv} · ${lname.toUpperCase()}</div><div class="name">${esc(v.key)}</div><div class="vis">${R.els.length} elements · ${R.rels.length} relationships · from workspace.dsl</div><p>${esc(v.desc||"")}</p><p>Hover an element to trace its relationships; click it for its description, technology, tags and what it uses and is used by.</p>`);
 }
 function selectC4(id){
   const e=el(id); c4Sel=id;
@@ -1167,7 +1173,12 @@ function show(id){
   if(name==="datagrams") renderFlow();
   if(name==="reliable") renderSeq();
   if(name!=="reliable" && seq.timer){ clearInterval(seq.timer); seq.timer=null; $("#seq-play").textContent="play"; $("#seq-play").setAttribute("aria-pressed","false"); }
-  if(DEFAULT_INSPECT[name]) inspect(DEFAULT_INSPECT[name]);
+  // The inspector follows the tab it lands on: its kept selection, else its default text, else a generic hint, never the last
+  // tab's. renderFlow() above has already written the Decision path's.
+  const node=$("#svg-structure .snode.sel"), thread=$("#p-threads .thread.sel");
+  if(name==="structure"&&node) selectNode(node.dataset.id); else if(name==="threads"&&thread) selectThread(thread.dataset.t);
+  else if(name==="c4") inspectC4(); else if(name==="reliable") gotoStep(seq.cur);
+  else if(name!=="datagrams") inspect(DEFAULT_INSPECT[name]||"<p>Select an item on this tab to see its details here.</p>");
   try{ localStorage.setItem("dash-tab-"+location.pathname,id); }catch(e){}
 }
 tabs.forEach((t,i)=>{ t.addEventListener("click",()=>show(t.id)); t.addEventListener("keydown",e=>{ if(e.key==="ArrowRight"||e.key==="ArrowLeft"){ const j=(i+(e.key==="ArrowRight"?1:tabs.length-1))%tabs.length; tabs[j].focus(); show(tabs[j].id); } }); });

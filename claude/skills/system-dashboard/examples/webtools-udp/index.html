@@ -402,7 +402,7 @@ footer code{color:var(--ink-2)}
     <div class="threads">
       <div class="tside"><h3>Server · mcups-*</h3>
         <div class="thread server" data-t="mcups-listener" tabindex="0" role="button"><span class="n">mcups-listener</span><span class="pill eager">eager</span><span class="r">receive · accept() liveness stamp · tag switch · handshake incl. admit / onClientConnect · inline 0x82 replies · reliable ack processing</span></div>
-        <div class="thread server" data-t="mcups-dispatch" tabindex="0" role="button"><span class="n">mcups-dispatch</span><span class="pill eager">eager</span><span class="r">every message handler, unreliable and reliable · onClientDisconnect</span></div>
+        <div class="thread server" data-t="mcups-dispatch" tabindex="0" role="button"><span class="n">mcups-dispatch</span><span class="pill lazy">lazy · first dispatch</span><span class="r">every message handler, unreliable and reliable · onClientDisconnect</span></div>
         <div class="thread server" data-t="mcups-liveness" tabindex="0" role="button"><span class="n">mcups-liveness</span><span class="pill cond">if idleTimeoutMillis &gt; 0</span><span class="r">the idle sweep</span></div>
         <div class="thread server" data-t="mcups-keepalive" tabindex="0" role="button"><span class="n">mcups-keepalive</span><span class="pill lazy">lazy · startKeepAlive</span><span class="r">the keepalive tick, poll-divided</span></div>
         <div class="thread server" data-t="mcups-probe" tabindex="0" role="button"><span class="n">mcups-probe</span><span class="pill lazy">lazy · startProbe</span><span class="r">the probe tick, exact cadence</span></div>
@@ -410,7 +410,7 @@ footer code{color:var(--ink-2)}
       </div>
       <div class="tside"><h3>Client · mcupc-*</h3>
         <div class="thread client" data-t="mcupc-listener" tabindex="0" role="button"><span class="n">mcupc-listener</span><span class="pill lazy">lazy · ensureListening()</span><span class="r">receive · tag switch · inline 0x82 replies · reliable ack processing</span></div>
-        <div class="thread client" data-t="mcupc-dispatch" tabindex="0" role="button"><span class="n">mcupc-dispatch</span><span class="pill eager">eager</span><span class="r">handlers</span></div>
+        <div class="thread client" data-t="mcupc-dispatch" tabindex="0" role="button"><span class="n">mcupc-dispatch</span><span class="pill lazy">lazy · first dispatch</span><span class="r">handlers</span></div>
         <div class="thread client" data-t="mcupc-keepalive" tabindex="0" role="button"><span class="n">mcupc-keepalive</span><span class="pill lazy">lazy</span><span class="r">the keepalive tick</span></div>
         <div class="thread client" data-t="mcupc-probe" tabindex="0" role="button"><span class="n">mcupc-probe</span><span class="pill lazy">lazy</span><span class="r">the probe tick</span></div>
         <div class="thread client" data-t="mcupc-retransmit" tabindex="0" role="button"><span class="n">mcupc-retransmit</span><span class="pill lazy">lazy</span><span class="r">the retransmit tick</span></div>
@@ -785,13 +785,13 @@ const MODEL = {
   },
   threads:{
     "mcups-listener":{side:"server",created:"eagerly, at construction",runs:"receive; accept() (the liveness stamp); the tag switch; the handshake including admit / onClientConnect; inline 0x82 replies; reliable ack processing.",sends:["inline 0x82 probe replies","REGISTERED / REFUSED handshake replies"],note:"A throwing onClientConnect kills this thread — open as #54.",issues:[54,57]},
-    "mcups-dispatch":{side:"server",created:"eagerly",runs:"every message handler, unreliable and reliable, and onClientDisconnect. One single-threaded executor, so head-of-line blocking on the reliable plane also delays unreliable delivery.",sends:[]},
+    "mcups-dispatch":{side:"server",created:"lazily, on the first dispatch — a payload for a bound handler, or an onClientDisconnect",runs:"every message handler, unreliable and reliable, and onClientDisconnect. One single-threaded executor, so head-of-line blocking on the reliable plane also delays unreliable delivery.",sends:[]},
     "mcups-liveness":{side:"server",created:"at construction, only if idleTimeoutMillis > 0",runs:"the idle sweep; a timed-out connection moves to TIMEOUT (notify-only, still addressable).",sends:[]},
     "mcups-keepalive":{side:"server",created:"lazily, on the first startKeepAlive",runs:"the keepalive tick, poll-divided (KeepAlive.pollIntervalMillis).",sends:["scheduled 0x80 keepalives"]},
     "mcups-probe":{side:"server",created:"lazily, on the first startProbe",runs:"the probe tick, exact cadence (scheduleTick).",sends:["scheduled 0x81 probes"],issues:[]},
     "mcups-retransmit":{side:"server",created:"lazily, on the first reliable engine",runs:"the retransmit tick every 50 ms: resend due 0xA0 (at most 32 per tick, RTO doubled up to 5 s), else a standalone 0xA1 if ackPending, else nothing.",sends:["retransmitted 0xA0","standalone 0xA1"]},
     "mcupc-listener":{side:"client",created:"lazily, on the first ensureListening() — start, startBytes, or any channel(...).actuate*",runs:"receive; the tag switch; inline 0x82 replies; reliable ack processing. No liveness stamp, no handshake branch.",sends:["inline 0x82 probe replies"],issues:[39]},
-    "mcupc-dispatch":{side:"client",created:"eagerly",runs:"handlers.",sends:[]},
+    "mcupc-dispatch":{side:"client",created:"lazily, on the first dispatch — a payload for a bound handler",runs:"handlers.",sends:[]},
     "mcupc-keepalive":{side:"client",created:"lazily",runs:"the keepalive tick.",sends:["scheduled 0x80 keepalives"]},
     "mcupc-probe":{side:"client",created:"lazily",runs:"the probe tick.",sends:["scheduled 0x81 probes"]},
     "mcupc-retransmit":{side:"client",created:"lazily",runs:"the retransmit tick.",sends:["retransmitted 0xA0","standalone 0xA1"]}
@@ -1105,12 +1105,18 @@ function renderC4(vi){
   const s=el(v.scope), [lv,lname]=LEVEL[v.type];
   $("#c4-head").innerHTML=`<span class="lvl">LEVEL ${lv} · ${lname.toUpperCase()}</span><span class="ttl">${esc(s.name)} — ${esc(v.key)}</span><span class="desc">${esc(v.desc||"")}</span><span class="zoom" role="group" aria-label="Zoom"><button data-z="fit">fit</button><button data-z="1">1:1</button></span>`;
   document.querySelectorAll("#c4-head .zoom button").forEach(b=>b.addEventListener("click",()=>{ c4Zoom=b.dataset.z; applyZoom(); }));
-  if(v.type==="dynamic"){ c4View.width=renderDynamic(R,svg); c4StepList(); }
-  else { const L=layoutC4(R,v.type); c4View.width=L.width; svg.setAttribute("viewBox",`0 0 ${L.width} ${L.height}`); drawFrame(svg,L); drawRoutes(svg,L); R.els.forEach(id=>drawCard(svg,id,L.pos[id]));
-    inspect(`<div class="kicker">C4 · LEVEL ${lv} · ${lname.toUpperCase()}</div><div class="name">${esc(v.key)}</div><div class="vis">${R.els.length} elements · ${R.rels.length} relationships · from workspace.dsl</div><p>${esc(v.desc||"")}</p><p>Hover an element to trace its relationships; click it for its description, technology, tags and what it uses and is used by.</p>`); }
+  if(v.type==="dynamic") c4View.width=renderDynamic(R,svg);
+  else { const L=layoutC4(R,v.type); c4View.width=L.width; svg.setAttribute("viewBox",`0 0 ${L.width} ${L.height}`); drawFrame(svg,L); drawRoutes(svg,L); R.els.forEach(id=>drawCard(svg,id,L.pos[id])); }
   document.querySelectorAll("#c4-ladder .rung").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===String(vi))));
   $("#dsl-view").hidden=true; $("#c4-canvas").hidden=false; $("#c4-head").hidden=false; $("#c4-key").hidden=false;
-  applyZoom();
+  applyZoom(); inspectC4();
+}
+/* The inspector for what the C4 tab has on screen: the source, else the selected element or dynamic step, else the view itself. */
+function inspectC4(){
+  if(!$("#dsl-view").hidden) return showDsl();
+  const {v,R}=c4View, [lv,lname]=LEVEL[v.type], sel=$("#svg-c4 .c4el.sel"), cur=$("#svg-c4 .c4rel.cur");
+  if(sel) selectC4(sel.dataset.id); else if(cur) selectC4Step(+cur.dataset.num); else if(v.type==="dynamic") c4StepList();
+  else inspect(`<div class="kicker">C4 · LEVEL ${lv} · ${lname.toUpperCase()}</div><div class="name">${esc(v.key)}</div><div class="vis">${R.els.length} elements · ${R.rels.length} relationships · from workspace.dsl</div><p>${esc(v.desc||"")}</p><p>Hover an element to trace its relationships; click it for its description, technology, tags and what it uses and is used by.</p>`);
 }
 function selectC4(id){
   const e=el(id); c4Sel=id;
@@ -1303,7 +1309,12 @@ function show(id){
   if(name==="datagrams") renderFlow();
   if(name==="reliable") renderSeq();
   if(name!=="reliable" && seq.timer){ clearInterval(seq.timer); seq.timer=null; $("#seq-play").textContent="play"; $("#seq-play").setAttribute("aria-pressed","false"); }
-  if(DEFAULT_INSPECT[name]) inspect(DEFAULT_INSPECT[name]);
+  // The inspector follows the tab it lands on: its kept selection, else its default text, else a generic hint, never the last
+  // tab's. renderFlow() above has already written the Decision path's.
+  const node=$("#svg-structure .node.sel"), thread=$("#p-threads .thread.sel");
+  if(name==="structure"&&node) selectNode(node.dataset.id); else if(name==="threads"&&thread) selectThread(thread.dataset.t);
+  else if(name==="c4") inspectC4(); else if(name==="reliable") gotoStep(seq.cur);
+  else if(name!=="datagrams") inspect(DEFAULT_INSPECT[name]||"<p>Select an item on this tab to see its details here.</p>");
   try{ localStorage.setItem("udp-dash2-tab",id); }catch(e){}
 }
 tabs.forEach((t,i)=>{ t.addEventListener("click",()=>show(t.id)); t.addEventListener("keydown",e=>{ if(e.key==="ArrowRight"||e.key==="ArrowLeft"){ const j=(i+(e.key==="ArrowRight"?1:tabs.length-1))%tabs.length; tabs[j].focus(); show(tabs[j].id); } }); });
