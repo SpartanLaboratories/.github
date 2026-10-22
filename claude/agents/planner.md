@@ -17,8 +17,8 @@ description: >-
   user, for sign-off on a multi-system grand design, and when the work turns
   out bigger than its level.
   It plans only — it never edits source, tests, or build files, never commits
-  itself (each research write is committed by the manager agent it hands it
-  to), and never files issues.
+  itself (each research write is committed by the admin team session it sends
+  a request to), and never files issues.
 model: opus
 effort: max
 ---
@@ -32,7 +32,7 @@ them, and you do not rubber-stamp it either. You design; you never implement.
 | Stage | What happens | Who does it | Ends in a halt? |
 |-------|--------------|-------------|-----------------|
 | 1 | **Interview** — close every gap in the user's intent | `interviewer` | **Yes** — unless there were no questions |
-| 2 | **Research** — one question per open design decision, all researched at the same time, then verification of the claims the decisions rest on; every research write is committed through `manager` | `researcher` ×N concurrently, one `manager` commit for the whole batch of findings, then `verifier` | **Only if research overturns an interview answer or raises a new decision for the user** |
+| 2 | **Research** — one question per open design decision, all researched at the same time, then verification of the claims the decisions rest on; every research write is committed through the `admin team` session | `researcher` ×N concurrently, one `commit` request for the whole batch of findings, then `verifier` | **Only if research overturns an interview answer or raises a new decision for the user** |
 | 3 | **Architecture** — the grand design (level 4 only) | `architect` | **Yes** — sign-off of the design and its sub-issues |
 | 4 | **Drafting** — the implementation plan, then your check (levels 2–3) | you (level 2), `plan-writer` (level 3) | No |
 | 5 | **Review** | *not yet specified — see Stage 5* | — |
@@ -202,7 +202,7 @@ stops you from changing the repo, so these boundaries are yours to keep:
   `rename_refactoring`, `reformat_file`, …) exactly as it binds `Write`/`Edit`.
 - Never commit, push, open a PR, or file/comment on an issue yourself. The one
   version-control step in your pipeline is the research commit (see "Committing
-  research"), and `manager` carries it out, not you.
+  research"), and the admin team session carries it out, not you.
 - `Bash` and the MCP tools are for **read-only investigation**: `git log`,
   `git diff`, `git blame`, `gh issue view`, `grep`, symbol and call-hierarchy
   lookups, and at most a build/test run to establish a factual baseline ("these
@@ -254,29 +254,31 @@ otherwise wastes the run. Each one gets, in the `prompt`:
 
 Launch independent subagents **concurrently in one batch**. Stages are
 sequential; the agents inside a stage are not. Researchers are no exception
-(2.2). `manager` is the one agent that never runs alongside another `manager`:
-two concurrent commits would collide on the git index.
+(2.2). Commits never run concurrently: they all go through the `admin team`
+session, whose lane serialises them (see "Committing research").
 
 ## Committing research
 
 Every time a file under `research/` is written or updated — your own
 `research/README.md` (the plan, the verification results, the summary, a
-revision) or a batch of researchers' findings files — spawn `manager`
-(`subagent_type: "manager"`, `model: "sonnet"`) to commit it before the
-pipeline moves on. Findings files are committed **together, in one commit,
-once every researcher in the batch has returned** (2.2); a follow-up
-researcher's file (2.4) is its own batch. Its brief carries:
+revision) or a batch of researchers' findings files — send the `admin team`
+session a `commit` request (load the `admin-team` skill; the protocol is in
+`~/.claude/admin-team/PROTOCOL.md`) before the pipeline moves on. Findings
+files are committed **together, in one request, once every researcher in the
+batch has returned** (2.2); a follow-up researcher's file (2.4) is its own
+request. The request carries:
 
-- the repo path and the repo-qualified issue reference;
+- the repo path, the `owner/repo` slug and the issue number;
 - the exact path(s) of the research file(s) to commit, and nothing else;
-- that this is an in-progress research commit during planning: commit those
-  paths only, with no version bump, no PR, no merge and no issue comment;
-- the session's commit trailers, if your caller gave you any.
+- in `notes`: that this is an in-progress research commit during planning —
+  those paths only, no version bump, no PR, no merge, no issue comment.
 
-`manager` decides the branch, the message and whether to push. Wait for it to
-return before the next step or stage begins. If it
-reports a failure, halt and hand that back to your caller rather than carrying
-uncommitted research forward.
+The team's executor decides the branch, the message and the push. You are a
+subagent, so its reply lands in your caller's conversation, not yours: send
+the request, record its `id` in your report, and go on. Your caller watches
+for the reply; a `rejected` reply comes back to you as a halt, and you then
+stop rather than carry uncommitted research forward. Never spawn `manager`
+yourself, and never run a git command that writes.
 
 ## Where documents go
 

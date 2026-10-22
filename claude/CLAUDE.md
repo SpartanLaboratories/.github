@@ -73,6 +73,28 @@ issue. The level decides how much planning, implementation, QA and versioning th
   whose published output is identical, moves no version and takes the commit type that fits its
   content (e.g. `build:`).
 
+## Version control — the admin team session
+
+All version control on this machine runs through one long-lived session named **`admin team`**
+(brief: `~/.claude/agents/admin-team.md`; protocol: `~/.claude/admin-team/PROTOCOL.md`). It is
+the single writer for every repository and for the `.github` mirror: commits, branches, pushes,
+PRs, merges, labels, comments, issues, worktrees, the landing refresh of shared dashboards, and
+mirror syncs. Any other session — a `/resolve-issue` run or anything else — sends it requests
+with the `admin-team` skill and acts on its replies; it never commits, pushes, merges, labels,
+comments or files itself, and never spawns `manager` directly.
+
+- It schedules by lane (one per repository, plus the mirror), orders by dependency, brings a
+  branch up to date with its base before landing, and hands a base that moved under a branch's
+  files back to the pipeline to re-verify. It spawns `manager` as the executor of each request.
+- **Its gates** — a Maven publish, rewriting history or force-pushing, deleting what it did not
+  create — are confirmed by me at its console or in the Remote Control app, never by a relayed
+  approval. Filing sub-issues and upstream issues needs no gate.
+- If it is not running, the requesting session launches it with `~/.claude/admin-team/launch.cmd`
+  under the launch lock (the skill does this): a minimized, Remote Control-enabled session started
+  with `--agent admin-team`. Resume after a restart with `claude --resume "admin team"`.
+- Its ledger and state (`~/.claude/admin-team/ledger.jsonl`, `state.json`) are local only and
+  never mirrored.
+
 ## Planning documents — folder layout
 
 Every plan lives under `docs/plans/`, in a folder hierarchy that mirrors the repo's GitHub
@@ -125,10 +147,24 @@ whole batch has returned; everything else is committed with the work it plans.
 
 ## System dashboards — `docs/dashboards/`
 
-Every repository keeps visual dashboards of its systems **as they are**, maintained by the
-`presenter` agent at the end of every level 2–4 `/resolve-issue` run (before the change lands,
-so the update rides in the same PR). The `system-dashboard` skill holds the templates, the
-conventions and the checks.
+Every repository keeps two dashboard sets, both made and maintained by the `presenter` agent
+as a service of the `admin team` session (never by a pipeline step — `/resolve-issue` only
+sends it events):
+
+- **System dashboards** (`docs/dashboards/`): completed work, the current state of each system
+  as it is at a named commit; planning is secondary context. Refreshed by the admin team after
+  every landing: the changed system's page, the repository and supersystem pages,
+  `systems.json`, the README pointer, and at level 4 the planned systems drawn dashed.
+- **Plan boards** (`docs/plans/<issue>-<slug>/dashboard.html` and the work board
+  `docs/plans/index.html`): planning and development process. A board's foundation is created
+  at the start of a level 2–4 `/resolve-issue` run and kept up at every step transition to show
+  the current work in progress; it records the gap, the options considered (accepted green,
+  declined red, partial yellow), the verdict and the as-built state, with the cell being worked
+  on glowing. It is a general representation with little code; `plan.md` and
+  `final-implementation.md` keep the details beside it.
+
+The `dashboards` skill holds the shared guidance (`GUIDANCE.md`, colour coding first), one
+ruleset per set, the templates and the checks.
 
 - **One page per system**, `docs/dashboards/<system-slug>/index.html`: its function first, in
   six core tabs (structure, C4 model, threads, decision path, sequence, lifecycles), then a
@@ -160,8 +196,8 @@ conventions and the checks.
   in the presenter's report.
 - Dashboards are committed with the work they describe; the README points at `docs/dashboards/`.
 - **The presenter fixes dashboard defects at its own discretion**, without asking — on any page
-  and in the `system-dashboard` skill's templates, examples and scripts — and reports each skill
-  fix so the `.github` mirror is synced. Changing the conventions themselves stays my call.
+  and in the `dashboards` skill's templates, examples and scripts — and reports each skill fix
+  so the `.github` mirror is synced. Changing the conventions themselves stays my call.
 
 ## Global Claude config — keep the `.github` mirror in sync
 
@@ -169,8 +205,10 @@ conventions and the checks.
 `claude/README.md` maps each mirrored path to its source. Whenever your work changes anything
 that copy covers — `CLAUDE.md`, `settings.json`, `hooks/`, `agents/`, `skills/` (including
 ones a tool installs, e.g. `graphify`), the root `*.md` prompt files (`commands/`), or a
-project's auto-memory (`memory/<repo>/`; a project without a folder yet gets one) — update
-the copy as part of the same change so it matches `~/.claude/` again.
+project's auto-memory (`memory/<repo>/`; a project without a folder yet gets one) — have the
+copy updated as part of the same change so it matches `~/.claude/` again: send the `admin team`
+session a `mirror-sync` request naming the changed paths (the `admin-team` skill), and it
+copies, scans and pushes.
 
 - Commit straight to `main`; no branch or PR.
 - Leave out everything in the README's "Not included" list. The repo is public: check every

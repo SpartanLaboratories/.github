@@ -1,0 +1,41 @@
+---
+name: dashboards
+description: >-
+  The presenter's rules, templates, scripts and checks for a repository's two
+  dashboard sets: the system (as-built) dashboards under docs/dashboards/,
+  which show each system as it is at a named commit, and the plan (process)
+  dashboards under docs/plans/, which show each issue's gap, the options
+  considered, the verdict, the as-built state and the live work-in-progress of
+  its /resolve-issue run, plus the repository work board. GUIDANCE.md holds
+  the rules both sets share (colour coding first); system/RULES.md and
+  plan/RULES.md hold each set's own. Load it whenever you create, update,
+  review or check any dashboard page, its data file or its registry. The
+  presenter agent uses it as a service of the admin team session.
+---
+
+# Dashboards
+
+Two sets, one presenter, one shared rulebook.
+
+| Set | Where in a repo | Shows | Ruleset |
+|-----|-----------------|-------|---------|
+| **System** (as-built) | `docs/dashboards/` | each system as it is at a named commit; planning is secondary context | `system/RULES.md` |
+| **Plan** (process) | `docs/plans/<issue>-<slug>/dashboard.html`, `docs/plans/index.html` | each issue's gap, options, verdict and as-built state, with the live WIP of its run; the repository work board | `plan/RULES.md` |
+
+## Files
+
+| Path | What |
+|------|------|
+| `GUIDANCE.md` | The rules shared by both sets: colour coding, legends, planned/pending drawn dashed, themes, self-contained pages, facts, Context, divergence, checks. Read it first, every time. |
+| `system/RULES.md` | The system-board ruleset. `system/template/` (system and supersystem pages, registry), `system/scripts/` (`check-page.js`, `embed.js`), `system/examples/webtools-udp/`. |
+| `plan/RULES.md` | The plan-board ruleset: the data model, the events that update a board, the work board. `plan/template/` (issue page, `plan.json` skeleton, work board), `plan/scripts/` (`new.js`, `embed.js`, `check.js`, `board.js`), `plan/examples/38-handshake-empty-name/`. |
+
+## Reading order for a job
+
+1. `GUIDANCE.md`.
+2. The ruleset of the set you are working in.
+3. The repo's own `docs/dashboards/_template/` or `docs/plans/_template/`, if it keeps one.
+4. The page or data file you are changing.
+
+A rule in a ruleset never loosens a rule in `GUIDANCE.md`; where they seem to
+conflict, `GUIDANCE.md` wins and the ruleset is wrong — report it.

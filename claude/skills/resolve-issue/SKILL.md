@@ -26,12 +26,15 @@ allowed-tools: Bash(gh issue list *), Bash(gh issue view *), Bash(gh pr list *),
 Work **one** GitHub issue toward resolution using the project's agents — or,
 named on a planned tracking issue, its sub-issues (see "Tracking issues and run
 modes"). Follow the steps in order. Within a run, wait for each spawned agent to
-finish before starting the next. All version control runs through the `manager` agent, which acts
-autonomously except at its gates: a **Maven publish** happens only if the user
-explicitly asked this run, a **downstream-consumer issue** is never filed
-(reported instead), and **sub-issues** are filed only once the user approves
-the list. You yourself never commit, push, merge, tag, publish, label, or
-file/comment on an issue outside of `manager`.
+finish before starting the next. All version control runs through the
+**`admin team` session**: load the `admin-team` skill and send it requests
+(it launches the team if it is not running). The team's executor acts
+autonomously except at the team's gates — a **Maven publish**, a history
+rewrite, deleting what it did not create — which the user confirms at the
+team's console; a **downstream-consumer issue** is never filed (reported
+instead), and **sub-issues** are filed only from a list the user approved. You
+yourself never commit, push, merge, tag, publish, label, or file/comment on an
+issue, and never spawn `manager`.
 
 The work levels are defined in "Work levels" in the global `CLAUDE.md`. This
 skill runs a different pipeline per level:
@@ -39,11 +42,11 @@ skill runs a different pipeline per level:
 | Step | Level 1 — no impact | Level 2 — small fix | Level 3 — small feature | Level 4 — multi-system |
 |------|---------------------|---------------------|-------------------------|------------------------|
 | 2. Plan | skipped | `planner` (level 2, Sonnet) | `planner` (level 3) | `planner` (level 4) |
-| 3. Branch | `manager` | `manager` | `manager` | `manager` |
+| 3. Branch | `admin team`: `setup-branch` | `admin team`: `setup-branch` | `admin team`: `setup-branch` | `admin team`: `setup-branch` |
 | 4. Implement | `rookie-dev` from the issue text | `rookie-dev`, test-first | `rookie-dev` | **skipped** |
 | 5. Check | `qa level:1` | `qa level:2` | `qa level:3` | **skipped** |
-| 5b. Present | **skipped** | `presenter` | `presenter` | `presenter` (planned systems drawn as planned) |
-| 6. Land | `manager`, no bump | `manager`, fix bump | `manager`, feature bump only with a downstream effect | `manager`, docs PR with `Refs`; sub-issues on approval |
+| 5b. Present | **skipped** | **skipped** — the admin team's landing refresh | **skipped** — the admin team's landing refresh | **skipped** — the landing refresh draws the planned systems |
+| 6. Land | `admin team`: `land`, no bump | `admin team`: `land`, fix bump | `admin team`: `land`, feature bump only with a downstream effect | `admin team`: `land` (docs PR with `Refs`) then `file-sub-issues` |
 
 ## 1. Pick and size the issue
 
@@ -101,14 +104,16 @@ sub-issues yet is not planned: work it as an ordinary issue, at its level.
   out to be level 4 is planned as usual; once the user approves its sub-issues
   and they are filed, they take its place in the chain.
 - **Isolation.** `consecutive` works in the main checkout, one sub-issue at a
-  time. `concurrent` gives each in-flight sub-issue its own git worktree, cut
-  from the current `master` at a short path (Windows' 260-character path limit
-  breaks deep repos under the scratchpad), and passes that path as the repo to
-  every agent of that run. `manager` removes the worktree once the run lands.
-- **Landing one at a time.** Across a concurrent chain, steps 5b and 6 run for
-  one sub-issue at a time. Before step 5b, `manager` brings the run's branch up
-  to date with `master`, so the dashboards and README the previous landing
-  changed merge cleanly.
+  time. `concurrent` gives each in-flight sub-issue its own git worktree: an
+  `allocate-worktree` request to the admin team, whose reply carries the path
+  (a short one — Windows' 260-character path limit breaks deep repos under
+  long paths), passed as the repo to every agent of that run. The team removes
+  the worktree once the run lands.
+- **Landing one at a time** is the admin team's job: its lane lands one
+  change set at a time, brings each branch up to date with `master` first, and
+  refreshes the shared dashboards and README after each merge. A
+  `needs-rework` reply means the base moved under the run's files: re-verify
+  per the skill and resend.
 - **Halts.** When one run stops for the user — a planner halt, an escalation,
   a `qa` failure, a `manager` "needs you" item — only what depends on it waits.
   `consecutive` waits at that sub-issue; `concurrent` keeps running every
@@ -203,17 +208,18 @@ to make the agreed edit.
   document path and the approved sub-issue list (level 4), plus the recommended
   approach.
 
-## 3. Branch — `manager`
+## 3. Branch — `admin team`: `setup-branch`
 
-Spawn `manager` with the issue reference, the **work level**, the plan document
-(if any), and the note "set up the branch only, and set the issue's `level: N`
-label to the confirmed level if it differs", plus — for levels 3–4 — "the only
-commits so far are the planner's research commits", with the research commit
-SHAs `planner` reported. `manager` creates the topic branch itself. Carry
-forward the branch name and base it reports.
+Send the admin team a `setup-branch` request (the `admin-team` skill) with the
+issue reference, the **work level**, the plan document (if any), the note "set
+up the branch only, and set the issue's `level: N` label to the confirmed
+level if it differs", and — for levels 3–4 — the research commit SHAs
+`planner` reported, which are the only commits so far. The team's executor
+creates the topic branch. Carry forward the branch name and base its `done`
+reply reports.
 
-**Level 4:** go straight to step 5b (the presenter draws the planned systems),
-then step 6.
+**Level 4:** go straight to step 6; the landing refresh draws the planned
+systems.
 
 ## 4. Implement — `rookie-dev`  (levels 1–3)
 
@@ -261,55 +267,73 @@ the path to the visual test report.
   the loop as above. If the third pass still fails, stop and hand the user the
   findings, the report path, and the branch as it stands.
 
-## 5b. Present — `presenter`  (levels 2–4)
+## 5b. Present — no pipeline step
 
-**Level 1 skips this step**: a comment or doc change alters no system.
-
-Spawn `presenter` with the repo path, the issue reference, the **work level**,
-the plan document (levels 2–3) or the architecture document and `impact.md`
-(level 4), `final-implementation.md` if it exists, the diff range to the base
-branch, and the `qa` verdict. It creates or updates the system's dashboard
-under `docs/dashboards/` (its page, its `workspace.dsl`, the `systems.json`
-registry) and refreshes the supersystem and repository pages, drawing the
-system **as built**; at level 4 it draws the architecture's new systems on
-the supersystem page as **planned** and creates no system page. It verifies
-every page in a headless browser and reports the paths, the as-is stamp, any
-divergence from the template and any fact it could not show. It commits
-nothing.
+The presenter is not a pipeline step. It runs as a service of the `admin
+team` session: every landing (step 6) ends with its **landing refresh** of the
+system dashboards (the changed system's page, the shared pages, the registry,
+the README pointer; at level 4 the planned systems), and the issue's **plan
+board** is kept up by the `plan-board` events you send at each step transition
+(see "Plan-board events" below). Send nothing here; go on to step 6.
 
 - If it reports `BLOCKED — system unresolved`, **stop** and ask the user
   which system the work belongs to; resume the same `presenter` with the
   answer.
-- Keep its **Dashboards** list: `manager` lands those paths with the change
-  set in step 6, and step 7 reports them.
-- If it lists **Skill fixes** (defects it fixed in the `system-dashboard`
-  skill, which it may do at its own discretion), sync those files to the
-  `.github` mirror per the global `CLAUDE.md`, and mention them in step 7.
+## Plan-board events  (levels 2–4, every run)
 
-## 6. Land it — `manager`
+At each of these moments send the admin team a `plan-board` request (the
+`admin-team` skill; fire-and-forget) with the `event` and the facts you have.
+The presenter keeps the issue's board — `docs/plans/<…>/<issue>-<slug>/dashboard.html`
+— and the repository work board true from it. Level 1 has no plan folder and
+sends none.
 
-Spawn `manager` with the **work level**, the change set, the `qa` verdict (none
-for level 4), the plan or architecture document, every `.md` file created or
-updated this run, the **dashboard paths** `presenter` reported, this session's
-commit trailers and PR footer, and **whether the user asked for a publish this
-run**. `manager` carries out the commits, the
-version bump the level calls for, the PR, the merge, an upstream issue if the
-work exposed one, and the **issue-resolution comment** (steps taken + links to
-any plan/design docs) — autonomously.
+| Moment | `event` | Facts |
+|--------|---------|-------|
+| Step 1 sized (the run's first action after sizing) | `sized` | level, baseline sha, the issue's systems if known, the next step |
+| A planner halt, a `needs-user` reply, a qa stop | `halted` | what waits on the user; then `resumed` with the answer's gist |
+| Research verified | `researched` | the research README path |
+| Level-4 sign-off | `architecture-signed-off` | the architecture path, the approved unit list |
+| Planner COMPLETE | `plan-accepted` | the plan path, impact path |
+| Step 3 done | `branch-cut` | branch, worktree |
+| Each rookie-dev report | `implementation-stage` | the stage, `final-implementation.md` path, deviations |
+| Each qa verdict | `qa-pass` | pass number, verdict, finding counts, report path |
+| An escalation | `escalated` | the proposed level and evidence |
+| The run is abandoned | `cancelled` | the reason |
+
+The team raises `landed` itself inside `land`. When the presenter fixes a
+defect in the `dashboards` skill during any of this, the team syncs those
+files to the `.github` mirror itself; step 7 mentions them if the `done`
+reply lists them.
+
+## 6. Land it — `admin team`: `land`
+
+Send the admin team a `land` request with the **work level**, the change set
+(`paths`), the branch and worktree, the `qa` verdict (`NONE` for level 4), the
+plan or architecture document, every `.md` file created or updated this run,
+and `publish: true` only if **the user asked for a publish this run**. The
+team's executor carries out the commits, the version bump the level calls for,
+the PR, the merge, an upstream issue if the work exposed one, and the
+**issue-resolution comment** (steps taken + links to any plan/design docs);
+then the team runs the presenter's landing refresh (the system dashboards, the
+issue's plan board as `landed`, the work board) and removes the branch and any
+worktree it allocated. Wait for the reply: a
+`needs-rework` means the base moved under the run's files — re-verify and
+resend the same `id` with `attempt + 1`; a `needs-user` means a gate is
+waiting on the user at the team's console.
 
 **Level 4** lands the planning documents only: a `docs:` PR that says
-`Refs #<n>` — never `Closes` — and no version bump. Pass `manager` the
-**user-approved** sub-issue list as well: it files each as a sub-issue of this
-issue with its proposed `level: N` label and its landing-order dependencies as
-*blocked by* links, and labels this issue `type: tracking`. The issue stays
-open. If the user has not approved the list, `manager` files nothing and the
-list goes back to the user.
+`Refs #<n>` — never `Closes` — and no version bump. After the `done` reply,
+send a `file-sub-issues` request with the **user-approved** list: the team
+files each as a sub-issue of this issue with its proposed `level: N` label and
+its landing-order dependencies as *blocked by* links, and labels this issue
+`type: tracking`. The issue stays open. If the user has not approved the list,
+send nothing and the list goes back to the user.
 
-- Relay `manager`'s **Done** list as-is.
-- Surface its **Stopped — needs you** items to the user: a Maven publish (only
-  if a release was intended — give them the exact command) and any
-  downstream-consumer coordination `manager` flagged rather than filed.
-- Do not re-run or second-guess `manager`'s completed steps.
+- Relay the `done` reply's **result** as-is.
+- Surface a `needs-user` reply to the user: a Maven publish (only if a release
+  was intended) waits at the team's console; any downstream-consumer
+  coordination the executor flagged rather than filed is in the result.
+- Do not re-run or second-guess the team's completed steps.
 
 ## 7. Report
 
