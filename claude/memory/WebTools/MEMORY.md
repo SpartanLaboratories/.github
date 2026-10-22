@@ -10,4 +10,4 @@
 - [No Claude attribution](feedback_no_claude_attribution.md) — no Co-Authored-By / Claude-Session / "Generated with Claude Code" on commits or PRs; set off in ~/.claude/settings.json.
 - [webtools-scraping unmaintained](project_webtools_scraping_unmaintained.md) — don't prompt to file its defects (Unirest global state/leak etc.).
 - [WebTools dashboard pages](project_webtools_dashboard_pages.md) — udp + Gradle build pages in #61's run; http at #62; scraping/browser only on request.
-- [Confirm before second qa run](feedback_confirm_before_second_qa_run.md) — ask the user before any second qa invocation in /resolve-issue, don't auto-loop even within the skill's one-retry allowance.
+- [Confirm before second qa run](feedback_confirm_before_second_qa_run.md) — ask the user before any second qa invocation in /resolve-issue, don't auto-loop even within the skill's one-retry allowance. Exception: all-minor fixes → fix on the spot, no second qa.
