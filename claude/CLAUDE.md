@@ -57,7 +57,7 @@ issue. The level decides how much planning, implementation, QA and versioning th
 |-------|-------|------------|----------|-----------------|--------------|
 | 1 | `level: 1` | **No impact** — comments, KDoc, Markdown docs only. No executable line changes. | none; no plan folder | yes | none |
 | 2 | `level: 2` | **Small fix** — a bug fix that changes no public API, persisted or shared state, or wire format, and stays local to one component. | short `plan.md` (root cause, fix, regression test) | yes, test-first | `fix:` — MinorChange or trailing letter |
-| 3 | `level: 3` | **Small feature** — new or changed behaviour inside **one** system: additive public API, a new class or option. | interview, targeted research, one `plan.md` | yes | `feat:` — Feature release |
+| 3 | `level: 3` | **Small feature** — new or changed behaviour inside **one** system: additive public API, a new class or option. | interview, targeted research, one `plan.md` | yes | `feat:` — Feature release, **only with a downstream effect**; otherwise none |
 | 4 | `level: 4` | **Large feature / roadmap** — anything that spans **more than one** system. | full pipeline up to the architecture; **plan only** | **no** — each system becomes a sub-issue, resolved later at its own level | none (docs only) |
 
 - **The label is re-checked when work starts.** If the issue, or the code it touches, says
@@ -67,6 +67,11 @@ issue. The level decides how much planning, implementation, QA and versioning th
   needs code, a level-2 fix changes public API or state, a level-3 feature needs a second
   system), stop and ask me to re-level it. Never quietly do bigger work under a smaller level.
 - A breaking change is never level 1 or 2.
+- **A level-3 bump needs a downstream effect.** A level-3 change bumps the version only when a
+  consumer of a published artifact would see a difference: its API, behaviour, dependencies, or
+  the artifact itself. One with no downstream effect, such as a build, CI or tooling change
+  whose published output is identical, moves no version and takes the commit type that fits its
+  content (e.g. `build:`).
 
 ## Planning documents — folder layout
 
