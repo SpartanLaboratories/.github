@@ -11,8 +11,9 @@ section of `CLAUDE.md`).
 | `CLAUDE.md`     | `CLAUDE.md`                    | Global instructions applied to every project                    |
 | `settings.json` | `settings.json`                | Global settings: permissions, hooks, auto-mode rules            |
 | `hooks/`        | `hooks/`                       | Hook scripts referenced by `settings.json`                      |
-| `agents/`       | `agents/`                      | Custom subagents (planner, architect, manager, qa, presenter, …) |
-| `skills/`       | `skills/`                      | Custom skills (`resolve-issue`, `system-dashboard`, `upgrade`) and installed third-party skills (`firecrawl*`, `vercel-connect`, `graphify`) |
+| `agents/`       | `agents/`                      | Custom subagents (planner, architect, manager, qa, presenter, …) and the `admin-team` session brief |
+| `skills/`       | `skills/`                      | Custom skills (`resolve-issue`, `admin-team`, `dashboards`, `upgrade`) and installed third-party skills (`firecrawl*`, `vercel-connect`, `graphify`) |
+| `admin-team/`   | `admin-team/`                  | The admin team session's protocol, settings file and launcher   |
 | `commands/`     | root `*.md` prompt files       | Legacy release / update prompt files                            |
 | `memory/<repo>/`| `projects/<path>/memory/`      | Per-project auto-memory, one folder per repository              |
 
@@ -21,6 +22,8 @@ section of `CLAUDE.md`).
 - Credentials, session state, history and caches (`.credentials.json`, `.claude.json`,
   `history.jsonl`, `sessions/`, …).
 - Anthropic's auto-synced skill bundle (`skills/synced/`).
+- The admin team session's local state (`admin-team/ledger.jsonl`, `state.json`, `launch.lock`,
+  `up`), which holds machine-local paths, and `proposals/`, working drafts.
 - `memory/MyGameServer/deployment-setup.md`, which describes deployment infrastructure, and
   its index line in `memory/MyGameServer/MEMORY.md`.
 
