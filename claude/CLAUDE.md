@@ -159,6 +159,9 @@ conventions and the checks.
   needs a strong argument, such as no data for it existing. Either is recorded on the page and
   in the presenter's report.
 - Dashboards are committed with the work they describe; the README points at `docs/dashboards/`.
+- **The presenter fixes dashboard defects at its own discretion**, without asking — on any page
+  and in the `system-dashboard` skill's templates, examples and scripts — and reports each skill
+  fix so the `.github` mirror is synced. Changing the conventions themselves stays my call.
 
 ## Global Claude config — keep the `.github` mirror in sync
 
