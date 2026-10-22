@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="template" content="system/template/system.html">
 <title>webtools-udp model</title>
 <style>
 /* Layout: header band → KPI strip → tabbed stage with a sticky side inspector → Guarantees bubbles → Context cards → provenance footer.
-   Draft A2: the C4 model tab is rendered at runtime from the Structurizr DSL embedded below (a verbatim copy of workspace.dsl).
+   System page template (dashboards skill, system set: system/RULES.md): the C4 tab is rendered at load from the Structurizr DSL embedded below.
    Colour plan: --server / --client / --wire are the page's three hue slots (its "sides"), --ph-1..3 the ordinal phase ramp
    (Lifecycles), --good / --warning / --serious / --critical are status (outcomes only, always beside a label). Dashed = planned. */
 :root{
@@ -1197,7 +1198,7 @@ function selectNode(id){
 function selectThread(id){
   const t=MODEL.threads[id]; if(!t) return;
   document.querySelectorAll(".thread").forEach(x=>x.classList.toggle("sel",x.dataset.t===id));
-  let html=`<div class="kicker">THREAD · ${t.side.toUpperCase()} · DAEMON</div><div class="name">${id}</div><div class="vis">created ${esc(t.created)}</div><p>${esc(t.runs)}</p><dl>`;
+  let html=`<div class="kicker">${esc((t.kind||"thread").toUpperCase())} · ${esc(((MODEL.sides||{})[t.side]||t.side).toUpperCase())}${t.daemon===false?"":" · DAEMON"}</div><div class="name">${id}</div><div class="vis">created ${esc(t.created)}</div><p>${esc(t.runs)}</p><dl>`;
   if(t.sends.length) html+=`<dt>Puts on the wire</dt><dd>${t.sends.map(esc).join("<br>")}</dd>`;
   if(t.note) html+=`<dt>Note</dt><dd>${esc(t.note)}</dd>`;
   if(t.issues&&t.issues.length) html+=`<dt>Open issues</dt><dd>${t.issues.map(ilink).join(" · ")}</dd>`;
@@ -1315,11 +1316,11 @@ function show(id){
   if(name==="structure"&&node) selectNode(node.dataset.id); else if(name==="threads"&&thread) selectThread(thread.dataset.t);
   else if(name==="c4") inspectC4(); else if(name==="reliable") gotoStep(seq.cur);
   else if(name!=="datagrams") inspect(DEFAULT_INSPECT[name]||"<p>Select an item on this tab to see its details here.</p>");
-  try{ localStorage.setItem("udp-dash2-tab",id); }catch(e){}
+  try{ localStorage.setItem("dash-tab-"+location.pathname,id); }catch(e){}
 }
 tabs.forEach((t,i)=>{ t.addEventListener("click",()=>show(t.id)); t.addEventListener("keydown",e=>{ if(e.key==="ArrowRight"||e.key==="ArrowLeft"){ const j=(i+(e.key==="ArrowRight"?1:tabs.length-1))%tabs.length; tabs[j].focus(); show(tabs[j].id); } }); });
 let start="t-structure";
-try{ const s=localStorage.getItem("udp-dash2-tab"); if(s&&document.getElementById(s)) start=s; }catch(e){}
+try{ const s=localStorage.getItem("dash-tab-"+location.pathname); if(s&&document.getElementById(s)) start=s; }catch(e){}
 const hash=location.hash.replace("#",""); if(hash&&document.getElementById("t-"+hash)) start="t-"+hash;
 show(start);
 </script>

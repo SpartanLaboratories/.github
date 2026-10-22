@@ -48,7 +48,7 @@ Object.assign(plan, {
   baseline: { ref: "master", sha: opt(args, "baseline", plan.baseline.sha), date: opt(args, "date", plan.baseline.date) },
   asBuilt: null,
   systems: (opt(args, "systems", "") || "").split(",").filter(Boolean).map(s => (reg && reg.info(s)) || { slug: s, name: s, slot: 0, top: s, status: "built", page: null }),
-  wip: { step: opt(args, "step", "research"), since: now, updated: now, detail: "", steps: STEPS_BY_LEVEL[level] || STEPS_BY_LEVEL[3], current: [], qa: [], qaMax: 3, waitingOn: null, resume: null, blockers: { waitsOn: [], blocks: [] }, landing: null },
+  wip: { step: opt(args, "step", "research"), since: now, updated: now, detail: "", steps: STEPS_BY_LEVEL[level] || STEPS_BY_LEVEL[3], current: [], next: null, qa: [], qaMax: 3, waitingOn: null, resume: null, blockers: { waitsOn: [], blocks: [] }, landing: null },
   milestones: [], trail: [], rows: [], roadmap: null, followUps: [], documents: [], notes: {}
 });
 if (plan.parent && !plan.parent.issue) plan.parent = null;
@@ -60,4 +60,4 @@ console.log(`created ${rel}/plan.json and dashboard.html from the template`);
 const left = JSON.stringify(plan).match(/"<[^"]*>"/g) || [];
 if (left.length) console.log(`still to fill: ${left.length} placeholder${left.length > 1 ? "s" : ""} (${left.slice(0, 5).join(", ")}${left.length > 5 ? ", …" : ""})`);
 const sk = p => path.join(__dirname, p);
-console.log(`next: fill plan.json, then node ${sk("embed.js")} ${rel} && node ${sk("check.js")} ${rel} --browser`);
+console.log(`next: fill plan.json, then node ${sk("embed.js")} ${rel} && node ${sk("check.js")} ${rel} --auto`);

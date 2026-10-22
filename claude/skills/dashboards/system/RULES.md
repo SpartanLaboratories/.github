@@ -32,7 +32,9 @@ This set ships, under `skills/dashboards/system/`:
 | `template/systems.json` | The registry's shape, with built and planned examples. |
 | `examples/webtools-udp/` | A complete system page and DSL for WebTools' `webtools-udp` — read it to see every panel, legend and Guarantees bubble filled with real facts. |
 | `scripts/embed.js` | Embeds `workspace.dsl` (block `dsl`) or `systems.json` (block `systems`) verbatim into a page; `--check` verifies. |
-| `scripts/check-page.js` | The browser checker for **every** dashboard page, system and plan alike (§9). |
+| `scripts/check-page.js` | The browser checker for **every** dashboard page, system and plan alike (§9); `--auto` checks only what a page adds to its template. |
+| `scripts/deviation.js` | How far a page deviates from its template (used by `--auto`; not a command). |
+| `../verify/verify-templates.js` | Verifies every template once with the fixtures in `../verify/fixtures/` and records its hash in `../verify/verified.json`; run it after any template change. |
 
 ## 2. The two sources of a system page
 
@@ -206,6 +208,11 @@ append rather than reorder.
    candidates.
 2. Copy `template/system.html` to `docs/dashboards/<slug>/index.html` (or start from the
    repository's `_template/`, or the existing page on an update) and write `workspace.dsl`.
+   **Go off the template** (`GUIDANCE.md` §3): change only what the facts require — the DSL, the
+   `MODEL`, the hand-written panels, the header — and leave the template's CSS, tab set and
+   renderer script as they are. Anything beyond that (an optional tab, a removed core tab, a
+   change to the renderer or CSS) is a divergence: declare it in the head with
+   `<meta name="template-divergence" content="what and why">` and in the footer comment.
 3. Fill the DSL, then the `MODEL`, then the hand-written panels and header, from the code and the
    architecture documents. Re-embed the DSL.
 4. Set each tab's colour plan and legend (§4).
@@ -219,27 +226,51 @@ append rather than reorder.
    sub-issues (`gh issue view <n> --json subIssues,parent`); the repository's roadmap document,
    if it keeps one. Each issue a roadmap item claims goes under that item; the open issues no
    item claims are the unscheduled ones. Link the plan boards that amended the system.
-7. Add an optional tab wherever content for one exists.
+7. Add an optional tab wherever content for one exists (a declared divergence, step 2).
 8. Update the parents: the system's card and its place on every tab of the supersystem and
    repository pages, their Guarantees rows and registry copies; the supersystem DSL if an
    inter-system relationship changed.
-9. Check (§9), look once, fix.
+9. Check (§9) with `--auto`, look once at the screenshots it took, fix.
 10. Report the paths, the as-is stamp, the divergences (with the argument for any removal) and
     the gaps; the admin team commits the files.
 
 ## 9. Checks
 
 ```
-node scripts/check-page.js docs/dashboards/<slug>/index.html [--tab t-c4] [--out <dir>] [--theme dark] [--width 520] [--frame 390]
+node scripts/check-page.js docs/dashboards/<slug>/index.html --auto [--out <dir>]
 node scripts/embed.js docs/dashboards/<slug>/workspace.dsl docs/dashboards/<slug>/index.html dsl --check
 node scripts/embed.js docs/dashboards/systems.json docs/dashboards/index.html systems --check
+node scripts/check-page.js docs/dashboards/<slug>/index.html [--tab t-c4] [--out <dir>] [--theme dark] [--width 520] [--frame 390]
 ```
+
+**`--auto` is the usual mode** (`GUIDANCE.md` §8). The template is verified once, in the skill,
+by `verify/verify-templates.js`; `--auto` compares the page with it (`scripts/deviation.js`): its
+`<style>` blocks, its tab ids in order, and its renderer script (everything after `MODEL`'s
+closing `};`, less the `DEFAULT_INSPECT` line, which is the page's own text). A page whose three
+are the verified template's gets **one light pass**, which checks the facts it fills in. A page
+that differs in any of them — declared with `<meta name="template-divergence">` or not, or made
+from an older template — or whose template changed since it was verified gets the **full pass**:
+light, dark, 520 px and a 390 px frame. An undeclared difference is reported as one to declare or
+undo. The plain form below the embeds runs one pass of the named mode, for looking at a single
+tab.
 
 `check-page.js` needs a local Chrome or Edge (it searches the usual install paths; set `CHROME=`
 to point at another). It clicks every tab and exits non-zero on a script error, a panel that does
 not render, a tab without a visible legend (`.key`, or `.c4key` on the C4 tab), a page without a
 visible Guarantees area holding at least one bubble, a Context section whose heading is not
-exactly "Context", a dead `href="#"` link, or a horizontal page scroll. `--theme dark` sets
+exactly "Context", a dead `href="#"` link, a horizontal page scroll, or a **git-ignored system
+folder**.
+
+**No git-ignored system folder.** On a system, supersystem or repository page, `check-page.js`
+finds the `docs/dashboards/systems.json` the page belongs to and runs `git check-ignore
+--no-index` on the registry itself and on every entry's `page` and `dsl`; it fails (`GIT-IGNORED`,
+with the `.gitignore` rule that matched) when any of them is ignored in its repository, since the
+file would never be committed. A repository `.gitignore` written for build output is the usual
+cause: `build/` swallows `docs/dashboards/build/`. Give the system a slug, and so a folder, that no rule
+ignores (WebTools' `build` became `gradle-build`), or add a negation for the folder. Files are
+tested, not folders, because git reports every path ending in `/` as matched; `--no-index` tests
+the rules alone, so a tracked file under an ignored folder still fails. Outside a git work tree
+the check is skipped with a note. `--theme dark` sets
 `data-theme="dark"`; `--width` sets the window (headless Chrome lays nothing out narrower than
 about 512 px); `--frame <px>` loads the page inside an iframe of that width, the harness for
 real phone widths. It never modifies the page: it writes a wrapper copy and a screenshot, named
