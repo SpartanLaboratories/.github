@@ -646,7 +646,8 @@ const MODEL = {
         d:{role:"What this internal type does.",vis:"internal",files:["CoreEngine.kt"],threads:["main-worker"]}}
     ]
   },
-  // Threads: keyed by name; side = server | client | wire (the owning side's hue, as on Structure); created, runs, sends (what it
+  // Threads: keyed by name; side = server | client | wire (the owning side's hue, as on Structure); kind (default "thread"; e.g.
+  // "process" or "build service"); daemon:false for one that is not a daemon thread (the inspector says DAEMON otherwise); created, runs, sends (what it
   // puts on the wire), note, issues.
   threads:{
     "main-worker":{side:"server",created:"eagerly, at construction",runs:"what runs on this thread.",sends:[],note:"",issues:[]}
@@ -931,7 +932,7 @@ function showDsl(){
   C4.views.forEach((v,i)=>{ const b=document.createElement("button"); const isLevel=v.type!=="dynamic"; b.className="rung"+(isLevel?" lvl":" sep")+(isLevel&&levels[levels.length-1]===v?" last":""); b.dataset.v=String(i); b.setAttribute("aria-pressed","false"); const [lv,nm]=LEVEL[v.type]; b.innerHTML=`<span class="lv">${lv}</span><span class="nm">${nm}</span><span class="sc">${esc(v.type==="dynamic"?v.key:el(v.scope).name)}</span>`; b.addEventListener("click",()=>renderC4(i)); host.appendChild(b); });
   const d=document.createElement("button"); d.className="rung sep"; d.dataset.v="dsl"; d.setAttribute("aria-pressed","false"); d.innerHTML=`<span class="lv">{ }</span><span class="nm">Source</span><span class="sc">workspace.dsl</span>`; d.addEventListener("click",showDsl); host.appendChild(d);
   // The legend: one swatch per DSL element style (element kinds, External, Internal, Standalone, Planned), then the line encodings.
-  $("#c4-key").innerHTML=C4.styles.filter(s=>s.props.background).map(s=>`<span><i style="background:${esc(s.props.background)};border-style:${esc(s.props.border||"solid")};opacity:${(+s.props.opacity||100)/100}"></i>${esc(s.tag)}</span>`).join("")+`<span><i class="arrow"></i>relationship, labelled with its DSL description</span><span><i class="arrow dashed"></i>to or from a Planned element</span><span><i class="frame"></i>boundary: the view's scope</span>`;
+  $("#c4-key").innerHTML=C4.styles.filter(s=>s.props.background&&C4.order.some(id=>el(id).tags.includes(s.tag))).map(s=>`<span><i style="background:${esc(s.props.background)};border-style:${esc(s.props.border||"solid")};opacity:${(+s.props.opacity||100)/100}"></i>${esc(s.tag)}</span>`).join("")+`<span><i class="arrow"></i>relationship, labelled with its DSL description</span><span><i class="arrow dashed"></i>to or from a Planned element</span><span><i class="frame"></i>boundary: the view's scope</span>`;
 })();
 function openC4(elementId){ show("t-c4"); const vi=C4.views.findIndex(v=>v.type==="component"&&isWithin(elementId,v.scope)); renderC4(vi>=0?vi:0); selectC4(elementId); }
 
@@ -970,7 +971,7 @@ function selectNode(id){
 function selectThread(id){
   const t=MODEL.threads[id]; if(!t) return;
   document.querySelectorAll(".thread").forEach(x=>x.classList.toggle("sel",x.dataset.t===id));
-  let html=`<div class="kicker">THREAD · ${t.side.toUpperCase()} · DAEMON</div><div class="name">${id}</div><div class="vis">created ${esc(t.created)}</div><p>${esc(t.runs)}</p><dl>`;
+  let html=`<div class="kicker">${esc((t.kind||"thread").toUpperCase())} · ${esc(((MODEL.sides||{})[t.side]||t.side).toUpperCase())}${t.daemon===false?"":" · DAEMON"}</div><div class="name">${id}</div><div class="vis">created ${esc(t.created)}</div><p>${esc(t.runs)}</p><dl>`;
   if(t.sends.length) html+=`<dt>Puts on the wire</dt><dd>${t.sends.map(esc).join("<br>")}</dd>`;
   if(t.note) html+=`<dt>Note</dt><dd>${esc(t.note)}</dd>`;
   if(t.issues&&t.issues.length) html+=`<dt>Open issues</dt><dd>${t.issues.map(ilink).join(" · ")}</dd>`;
