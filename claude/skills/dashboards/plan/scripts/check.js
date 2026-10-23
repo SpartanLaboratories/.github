@@ -12,6 +12,7 @@
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { levelRefsIn } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
+const { paletteCheck } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js"));
 const { registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
@@ -467,6 +468,10 @@ function checkHtml(htmlPath, id, data, kindMeta) {
   if (!/prefers-color-scheme:dark/.test(html)) fail("the page has no dark-mode block");
   if (/<(script|link|img)[^>]+(src|href)="https?:/i.test(html)) fail("the page loads an external resource");
   if (Buffer.byteLength(html) > 16 * 1024 * 1024) fail("the page is over 16 MB");
+  /* System colours (GUIDANCE.md §1; system/scripts/palette.js): none in a status spectrum, and each slot the shared palette's */
+  const pal = paletteCheck(html);
+  pal.problems.forEach(p => fail(`palette: ${p}`)); pal.warnings.forEach(w => warn(`palette: ${w}`));
+  if (!pal.problems.length) ok(`palette: ${pal.tokens} system-colour tokens, none in a status spectrum`);
   if (kindMeta === "plan-board") issueLinkWarnings(data, path.dirname(htmlPath), html);
   if (kindMeta === "work-board") workBoardLinkWarnings(data, html);
 }
@@ -492,7 +497,7 @@ function browser(page, outDir, modes) {
     const label = extra.join(" ") || "light";
     const res = (r.stdout || "").trim().split(/\r?\n/);
     if (r.status === 0) ok(`browser (${label}): PASS · ${(res.find(l => l.startsWith("screenshot:")) || "").replace("screenshot: ", "")}`);
-    else fail(`browser (${label}): ${res.filter(l => /FAIL|ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL|LEVEL REFERENCE|RAW UTC STAMP|GIT-IGNORED|REGISTRY UNREADABLE/.test(l)).join(" | ") || (r.stderr || "").trim()}`);
+    else fail(`browser (${label}): ${res.filter(l => /FAIL|ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|GIT-IGNORED|REGISTRY UNREADABLE/.test(l)).join(" | ") || (r.stderr || "").trim()}`);
   });
 }
 

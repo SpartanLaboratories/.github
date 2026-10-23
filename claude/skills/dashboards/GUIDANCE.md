@@ -12,9 +12,33 @@ Colour means one thing per page, and the same thing on every page of a repo.
 **Categorical: one colour per system.** Every system in `docs/dashboards/systems.json` owns
 one colour slot, assigned in registry order (six slots; a system's parts inherit its parent's
 colour; a seventh top-level system is never silently grey — re-parent, or add a slot and record
-it). A system keeps that colour on **every page of the repository**: its card and rows on the
-system pages, and its rows on every plan board. A reader who learns the colour once can
-follow the system everywhere.
+it). A system keeps that colour on **every tab of every page**: its card and rows on the system,
+supersystem and repository pages, its rows on every plan board and on the work board. A reader who
+learns the colour once can follow the system everywhere. On a system page the three sides
+(`--server`, `--client`, `--wire`) are slots 1 to 3.
+
+**Status spectra are reserved.** Wherever a view needs two colour schemes and a yellow–orange–red
+or green–yellow–red spectrum fits a status, that spectrum carries the status, and every other
+colour indicator on the view avoids it. The plan boards colour an option's status green, yellow
+and red, and the Impact tab colours compatibility yellow and red (orange where useful), so the
+system palette leaves out green, yellow, orange, amber, red and pink: its six slots are blues, a
+teal, an indigo and purples, the same on every page and in both themes
+(`system/scripts/palette.js` holds them; hex per slot, light / dark):
+
+| Slot | Name | Light | Dark |
+|------|------|-------|------|
+| 1 | blue | `#2a78d6` | `#3987e5` |
+| 2 | purple | `#653184` | `#8a44d8` |
+| 3 | teal | `#0d7680` | `#1f8089` |
+| 4 | indigo | `#1d2660` | `#b4bef5` |
+| 5 | orchid | `#9656aa` | `#a86fb8` |
+| 6 | sky | `#1a9ec7` | `#31b5f4` |
+
+Every slot is at least 3:1 against its theme's card surface, and the slots were chosen for their
+distance from each other in normal vision and under protanopia, deuteranopia and tritanopia, and
+from the accent and the neutrals. A system colour is in a status spectrum when it is chromatic
+(HSL saturation 0.15 or more) and its hue is outside 175°–295°; `check.js` and `check-page.js` fail
+such a slot, and warn on a slot that is not the shared palette's.
 
 **Status: green, yellow, red, with a glyph and a label.** The status tokens (`--good`,
 `--warning`, `--serious`, `--critical`) are reserved for outcomes, and never carry meaning
@@ -29,7 +53,7 @@ its ruleset; the shared scale is:
 | **orange** (`--serious`) | changed course | a `deviated` part (the decision itself changed) |
 | **neutral** (ink/grey) | no outcome yet, or not applicable | a `pending` part; a `deferred` part (with its issue); counts and facts |
 
-**The one exception: compatibility on the Impact tab.** On a plan board's Impact tab, red and
+**The exception: compatibility on the Impact tab.** On a plan board's Impact tab, red and
 yellow mean **compatibility**, not outcomes, because what a reader needs from that tab first is
 whether the change breaks them. **Red** (`--critical`) is a breaking change: a `breaking`
 downstream effect, a `removed` surface, a required adaptation that breaks a consumer that does
@@ -37,9 +61,14 @@ not make it. **Yellow** (`--warning`) is a deprecation or another non-breaking c
 noting: a `deprecated` or `changed` surface, a `behaviour` change, a required adaptation that
 does not break, a lettered or strict-version requirement and the like. Every other entry keeps
 **its system's colour slot**. The cards and their effect, need and API-change badges take these
-colours, always with a glyph and a word; dashed (planned) and solid (as built) read on every one
-of them. Nothing else on that tab is red or yellow: the impact's own "as built, amended" standing
-is drawn neutral there, with its glyph and word. Everywhere else the scale above holds.
+colours, always with a glyph and a word. Nothing else on that tab is red or yellow. Everywhere
+else the scale above holds.
+
+**No planning information on the Impact tab.** The tab shows only the current best-known impact:
+no pill for its standing (planned, as built, amended), no list of changes from the planned impact,
+and one solid card style for every entry, whether the impact is still the plan's or reconciled.
+Nothing on that tab is dashed. The plan-versus-build story stays on the As built tab; the data
+keeps the impact's basis and its changes for the checks (`plan/RULES.md` §2, Impact).
 
 **Work in progress and the next one up: two accent marks.** The accent colour marks two things
 and nothing else, each with its own look and its own legend entry:
@@ -61,8 +90,9 @@ Nothing else animates. At most a handful of elements are in progress at once; if
 glows, nothing is current.
 
 **Line and fill encodings.** Solid = built, done, decided. **Dashed = planned or pending**, on
-every tab of every page, and dashed means nothing else. Dotted = standalone or conditional
-where a ruleset uses it. Filled vs outlined only where the legend says what it means.
+every tab of every page but one, and dashed means nothing else. The exception is a plan board's
+Impact tab, which draws nothing dashed (above). Dotted = standalone or conditional where a
+ruleset uses it. Filled vs outlined only where the legend says what it means.
 
 **Themes.** Every colour is a token on `:root`, redefined for dark mode; status and system
 colours are validated for contrast in both themes (the `dataviz` skill's validator). Dark mode
@@ -180,7 +210,7 @@ Every page, before it is committed, passes its set's checker in `--auto` mode
 
 | The page | Checked |
 |---|---|
-| any page | its data and its rules (`check.js`), the embedded copy matching its data file, no dead `href="#"`, no external resource, no work level in its text (§4) |
+| any page | its data and its rules (`check.js`), the embedded copy matching its data file, no dead `href="#"`, no external resource, no work level in its text (§4), no system colour in a status spectrum (§1) |
 | a plan board or the work board that is a verified template plus its data | nothing more: no browser pass |
 | a system, supersystem or repository page whose CSS, tabs and script — before `MODEL` (less its page-filled lines, such as `REPO` and `SRC`) and after it — are the verified template's | one light pass, for the facts it fills in: no script error, every tab drawn with its legend, the Guarantees, Context, no git-ignored registry file |
 | a page that diverges — declared, undeclared, made from an older template — or whose template changed since it was verified | the full pass: light, dark, 520 px, a 390 px frame, a 1920 x 1080 desktop |

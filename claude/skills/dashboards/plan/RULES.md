@@ -135,7 +135,8 @@ Around them: `basis` (`plan` or `as-built`), a `summary` of two to four lines, `
 statement of why no downstream impact is recorded, or `null`), `changes[]` (each difference from
 the planned impact, as column 4 records them: `what`, `why`, `when`, `ref`), `source` and `link`.
 An entry's `system` is a registry slug from `systems`, or `null` for a party outside the
-repository's systems.
+repository's systems. `basis` and `changes[]` are data for the reconciliation and the checks: the
+tab renders neither (`GUIDANCE.md` §1, no planning information on the Impact tab).
 
 Every entry, a unit's included, may carry `compat` (`compatible` · `notable` · `breaking`), its
 compatibility. It is derived from the entry and the field only **raises** it: a `breaking` effect
@@ -159,14 +160,15 @@ not show, such as a lettered or strict-version requirement; a conversion step or
   entry is a **red** card, a **notable** one a **yellow** card, and a compatible one a card in its
   system's colour (muted for a party outside the repository's systems). A red or yellow card names
   its system in a badge, and carries a `✕ breaking` or `⚠ worth noting` pill where none of its
-  badges already says it. Every card is **dashed** while the impact is the plan's and solid once it
-  is the as-built one, whatever its colour. The effect, need and API-change badges take the same
-  colours (`! breaking`, `✕ removed` red; `~ behaviour change`, `⚠ deprecated`, `~ changed`, a
-  required change that does not break, yellow; a required change that breaks, red); kinds and tiers
-  stay neutral. The impact's own standing is a pill: `… planned impact` (neutral, dashed), `✓ as
-  built` (green: reconciled, no change from the plan) or `+ as built, amended` (neutral on this tab,
-  its glyph and word carrying it: reconciled, its changes listed). The tab's legend lists exactly
-  what it drew.
+  badges already says it. The effect, need and API-change badges take the same colours (`!
+  breaking`, `✕ removed` red; `~ behaviour change`, `⚠ deprecated`, `~ changed`, a required change
+  that does not break, yellow; a required change that breaks, red); kinds and tiers stay neutral.
+  The tab's legend lists exactly what it drew.
+- **No planning information** (`GUIDANCE.md` §1). The tab shows only the current best-known impact:
+  every entry is the same **solid** card, whether the impact is still the plan's or reconciled; no
+  pill tells the planned impact from the as-built one; no list of changes from the planned impact;
+  nothing on the tab is dashed (the no-impact statement and an empty section included). How the
+  build differs from the plan is told on the As built tab, from the rows' `changes[]`.
 - **No recorded impact** (common for a small bug fix) is never a hidden tab: the tab states
   plainly "No downstream impact recorded" with the `none` statement and its source; before plan
   acceptance it says nothing is recorded yet and where it will come from. A change with no
@@ -175,7 +177,7 @@ not show, such as a lettered or strict-version requirement; a conversion step or
   then a **Units** section: one card per unit row, from `impact.units[]` (`unit`: the row id,
   `basis`, `summary`, `release`, `source`, `link`), summarising that unit's own impact and linking
   its board by the number-and-title rule (§1). A unit with no entry shows "not recorded yet",
-  dashed. The presenter writes a unit's entry at its sub-issue's `plan-accepted` event (basis
+  in the same solid card. The presenter writes a unit's entry at its sub-issue's `plan-accepted` event (basis
   `plan`) and reconciles it in its landing refresh (basis `as-built`), from the sub-issue's own
   board and `impact.md`. The initiative's `release.bump` is `none`: a tracking plan moves no
   version itself, and each unit's release is its own.
@@ -432,14 +434,19 @@ an `impact` that is neither `null` nor an object, a bad `basis`, `release.bump`,
 makes it (§2, Impact), an entry without its `who`/`surface`/`what` and `summary`,
 a `changes[]` entry without `what` and `why`, a built board whose impact is still the plan's, a
 planned board whose impact claims `as-built`, `impact.units` on a board that is not a tracking
-board, or an entry that names no unit row or repeats one. With `--auto` or `--browser`, a
-failing browser pass.
+board, or an entry that names no unit row or repeats one; a system colour in a status spectrum
+(`GUIDANCE.md` §1: a `--sys-N` slot, chromatic, with a hue outside 175°–295°, read from the page's
+CSS by `system/scripts/palette.js`). With `--auto` or `--browser`, a failing browser pass, which
+also fails an Impact tab that shows planning information (a dashed element, a planned or as-built
+pill, a list of changes from the planned impact) and a system colour the browser computes in a
+status spectrum.
 
 With `--auto` it reports the page's standing against its template (`system/scripts/deviation.js`):
 the verified template plus its data (no browser pass), or a divergence (the full browser pass:
 light, dark, 520 px, a 390 px frame, a 1920 x 1080 desktop).
 
-Warns: `impact.md` in the folder while the Impact tab is empty (`impact` null, or no entry, no
+Warns: a system slot that is not the shared palette's colour (`GUIDANCE.md` §1), so the system
+would look different here than on the other pages; `impact.md` in the folder while the Impact tab is empty (`impact` null, or no entry, no
 summary and no `none` statement); an `impact.none` that the entries contradict; a release that
 does not fit the work (a change with a downstream effect and no version bump; a change with no
 downstream effect that does not say so in `impact.none`; a bump with no downstream effect; a

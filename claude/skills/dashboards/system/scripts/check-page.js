@@ -9,9 +9,12 @@
 // system page. Exit code 0 when, for every kind: every tab rendered with a visible legend (.key, or .c4key on the C4 tab), the
 // Context section is headed exactly "Context", no link is a dead href="#", the page has no horizontal scroll at the width
 // checked, no more than six elements glow, no work level is shown (levelrefs.js: "level 3", "L3", "level: 2" and the like, in any
-// tab's text or the page's), and no error fired. Then, by kind: a system page has a visible Guarantees area
+// tab's text or the page's), no system colour falls in a status spectrum (palette.js: the --sys-N slots and a system page's
+// --server / --client / --wire, read from the page's CSS and, in the browser, as the theme of the pass computes them), and no
+// error fired. Then, by kind: a system page has a visible Guarantees area
 // (.guarantees holding at least one .bubble) and, when the page sits under a docs/dashboards/ with a systems.json in a git
-// work tree, no registry page or DSL file is git-ignored; a plan board has a visible WIP strip (.wip) with its own legend. --theme sets
+// work tree, no registry page or DSL file is git-ignored; a plan board has a visible WIP strip (.wip) with its own legend, and its
+// Impact tab shows no planning information (no dashed element, no planned / as-built pill, no changes-from-the-plan list). --theme sets
 // data-theme on <html>. --frame loads the page inside an iframe of that width (the harness for real phone widths, below what
 // headless Chrome lays out as a window). The page is loaded from a wrapper copy in the output directory, so the committed file
 // is never modified.
@@ -30,19 +33,27 @@ const VALUED = ["--out", "--tab", "--width", "--height", "--theme", "--frame"];
 const page = args.find((a, i) => !a.startsWith("--") && !(i > 0 && VALUED.includes(args[i - 1])));
 if (!page) { console.error("usage: node check-page.js <page.html> [--auto] [--out <dir>] [--tab <tabId>] [--width n] [--height n] [--theme light|dark] [--frame <px>]"); process.exit(2); }
 
+/* The palette (GUIDANCE.md §1; palette.js), read from the page's CSS without a browser, so it holds on every page whatever its
+   passes: a system colour in a status spectrum fails; a slot that is not the shared palette's value is a warning. */
+const { paletteCheck, ALLOWED_HUES, STATUS_MIN_SAT } = require("./palette.js");
+const palette = fs.existsSync(page) ? paletteCheck(fs.readFileSync(page, "utf8")) : { tokens: 0, problems: [], warnings: [] };
+const paletteLines = () => [`CHECK palette: ${palette.tokens} system-colour tokens${palette.problems.length ? "" : ", none in a status spectrum"}`,
+  ...palette.problems.map(p => "CHECK palette: PALETTE IN STATUS HUE " + p), ...palette.warnings.map(w => "CHECK palette: warning: " + w)];
+
 if (args.includes("--auto")) {
   const { deviation } = require("./deviation.js");
   const d = deviation(page);
+  paletteLines().forEach(l => console.log(l));
   console.log(`CHECK template: ${d.kind} page · ${d.verdict} · ${d.passes === "none" ? "no browser pass" : d.passes === "light" ? "one light pass (the facts it fills in)" : "full pass (light, dark, 520, frame 390, desktop 1920x1080)"}`);
   d.notes.forEach(n => console.log("CHECK template: " + n));
-  if (d.passes === "none") { console.log("PASS"); process.exit(0); }
+  if (d.passes === "none") { console.log(palette.problems.length ? "FAIL: a system colour in a status spectrum" : "PASS"); process.exit(palette.problems.length ? 1 : 0); }
   const rest = args.filter(a => a !== "--auto" && a !== page);
   const modes = d.passes === "light" ? [[]] : [[], ["--theme", "dark"], ["--width", "520"], ["--frame", "390"], ["--width", "1920", "--height", "1080"]];
   let failed = 0;
   modes.forEach(m => {
     const r = cp.spawnSync(process.execPath, [__filename, page, ...rest, ...m], { encoding: "utf8" });
     const lines = (r.stdout || "").trim().split(/\r?\n/), label = m.join(" ") || "light";
-    const bad = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|GIT-IGNORED|FAIL/.test(l));
+    const bad = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|GIT-IGNORED|FAIL/.test(l));
     console.log(`CHECK pass ${label}: ${r.status === 0 ? "PASS" : "FAIL"} · ${(lines.find(l => l.startsWith("screenshot:")) || "").replace("screenshot: ", "")}`);
     bad.forEach(l => console.log("  " + l));
     if (r.status !== 0) failed++;
@@ -87,7 +98,24 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   if(kind==="plan-board"){
     const w=document.querySelector(".wip"), k=w?w.querySelector(".key"):null;
     console.log("CHECK wip strip: "+(shown(w)&&w.textContent.trim()?"shown · step "+(w.dataset.step||"?")+(shown(k)&&k.children.length?" · legend":" · NO LEGEND (the strip needs its own .key)"):"MISSING (a plan board shows a visible .wip strip)"));
+    /* The Impact tab shows the current best-known impact and no planning information (GUIDANCE.md §1; plan/RULES.md §2): nothing
+       on it is dashed, no pill tells the planned impact from the as-built one, and no list of changes from the planned impact. */
+    const ti=document.getElementById("t-impact"), ip=document.getElementById("p-impact");
+    if(ti&&ip){ ti.click();
+      const sides=["Top","Right","Bottom","Left"], dashed=[...ip.querySelectorAll("*")].filter(e=>{ if(!shown(e)) return false; const s=getComputedStyle(e); return sides.some(d=>s["border"+d+"Style"]==="dashed"&&parseFloat(s["border"+d+"Width"])>0)||(s.outlineStyle==="dashed"&&parseFloat(s.outlineWidth)>0); });
+      const pills=[...ip.querySelectorAll(".vp, .chip, .badge")].filter(e=>/^\\W*(planned impact|as built(, amended)?|not recorded)\\s*$/i.test(e.textContent.trim()));
+      const chg=/changes from the planned impact/i.test(ip.innerText);
+      const what=[dashed.length?dashed.length+" dashed element"+(dashed.length>1?"s":"")+" ("+dashed.slice(0,3).map(e=>e.tagName.toLowerCase()+(e.className&&typeof e.className==="string"?"."+e.className.trim().split(/\\s+/).join("."):"")).join(", ")+")":"",pills.length?"a planned / as-built pill ("+pills[0].textContent.trim()+")":"",chg?"a changes-from-the-planned-impact list":""].filter(Boolean);
+      console.log("CHECK impact: "+(what.length?"IMPACT SHOWS PLANNING: "+what.join("; ")+": the tab shows only the current best-known impact, one solid card style":"current impact only, nothing dashed"));
+    }
   }
+  /* System colours (GUIDANCE.md §1; palette.js): no slot in a status spectrum, as the theme of this pass computes them. */
+  const AH=${JSON.stringify(ALLOWED_HUES)}, MS=${STATUS_MIN_SAT}, rs=getComputedStyle(document.documentElement);
+  const rgbOf=v=>{ v=(v||"").trim().toLowerCase(); let m=v.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/); if(m){ const h=m[1].length===3?m[1].split("").map(c=>c+c).join(""):m[1]; return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16)); } m=v.match(/^rgba?\\(\\s*([\\d.]+)\\D+([\\d.]+)\\D+([\\d.]+)/); return m?[m[1],m[2],m[3]].map(Number):null; };
+  const hueBad=v=>{ const c=rgbOf(v); if(!c) return null; const [r,g,b]=c.map(x=>x/255), mx=Math.max(r,g,b), mn=Math.min(r,g,b), l=(mx+mn)/2, d=mx-mn, s=d?d/(1-Math.abs(2*l-1)):0; if(s<MS) return null; let h=mx===r?((g-b)/d)%6:mx===g?(b-r)/d+2:(r-g)/d+4; h*=60; if(h<0) h+=360; return h>=AH[0]&&h<AH[1]?null:Math.round(h); };
+  const toks=[1,2,3,4,5,6].map(n=>"--sys-"+n).concat(["--server","--client","--wire","--server-soft","--client-soft","--wire-soft"]).map(n=>[n,rs.getPropertyValue(n).trim()]).filter(x=>x[1]);
+  const palBad=toks.map(([n,v])=>[n,v,hueBad(v)]).filter(x=>x[2]!=null);
+  console.log("CHECK palette (computed): "+toks.length+" tokens"+(palBad.length?" · PALETTE IN STATUS HUE "+palBad.map(x=>x[0]+" "+x[1]+" (hue "+x[2]+"°)").join(", "):" · none in a status spectrum"));
   const c=document.querySelector(".context > h2"), ct=c?c.textContent.trim():"";
   console.log("CHECK context: "+(ct==="Context"?"headed Context":c?"WRONG HEADING '"+ct+"' (must read Context)":"MISSING (no .context section with an h2)"));
   const dead=document.querySelectorAll('a[href="#"]').length; if(dead) console.log("CHECK links: DEAD href=# x"+dead);
@@ -160,8 +188,9 @@ const r = cp.spawnSync(browser, ["--headless=new", "--disable-gpu", "--no-first-
   "--allow-file-access-from-files", "--virtual-time-budget=6000", `--window-size=${width},${height}`, `--screenshot=${shot}`, url], { encoding: "utf8", timeout: 120000 });
 // Chrome prints console lines as `[...] "message", source: <url> (<line>)`; keep just the message.
 const lines = (r.stderr || "").split(/\r?\n/).filter(l => /CONSOLE|Uncaught/.test(l)).map(l => l.replace(/^.*CONSOLE[^"]*"/, "").replace(/", source:[\s\S]*$/, "").trim());
-const errors = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP/.test(l));
+const errors = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING/.test(l));
 lines.forEach(l => console.log(l));
+paletteLines().forEach(l => { console.log(l); if (/PALETTE IN STATUS HUE/.test(l)) errors.push(l); });
 if (regCheck) { if (regCheck.note) console.log("CHECK " + regCheck.note); regCheck.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); }
 console.log(`screenshot: ${shot}`);
 if (!lines.some(l => l.includes("CHECK done"))) { console.log("FAIL: the probe never completed (page did not load, or scripts aborted before the probe ran)"); process.exit(1); }
