@@ -133,10 +133,12 @@ links to the Markdown section that holds the detail, never listings.
 Around them: `basis` (`plan` or `as-built`), a `summary` of two to four lines, `release`
 (`bump`: `none` · `fix` · `feat` · `major`, the `version`, an optional `note`), `none` (a plain
 statement of why no downstream impact is recorded, or `null`), `changes[]` (each difference from
-the planned impact, as column 4 records them: `what`, `why`, `when`, `ref`), `source` and `link`.
+the planned impact, as column 4 records them: `what`, `why`, `when`, `ref`, and optionally `entry`,
+the entry it changed as `<section>.<index>` such as `api.0`, and `system`), `source` and `link`.
 An entry's `system` is a registry slug from `systems`, or `null` for a party outside the
-repository's systems. `basis` and `changes[]` are data for the reconciliation and the checks: the
-tab renders neither (`GUIDANCE.md` §1, no planning information on the Impact tab).
+repository's systems. `basis` is data for the reconciliation and the checks, and the Impact tab
+renders neither it nor `changes[]` (`GUIDANCE.md` §1, no planning information on the Impact tab):
+**the As built tab shows `changes[]`** (below, "How the impact differed from the plan").
 
 Every entry, a unit's included, may carry `compat` (`compatible` · `notable` · `breaking`), its
 compatibility. It is derived from the entry and the field only **raises** it: a `breaking` effect
@@ -168,24 +170,38 @@ not show, such as a lettered or strict-version requirement; a conversion step or
   every entry is the same **solid** card, whether the impact is still the plan's or reconciled; no
   pill tells the planned impact from the as-built one; no list of changes from the planned impact;
   nothing on the tab is dashed (the no-impact statement and an empty section included). How the
-  build differs from the plan is told on the As built tab, from the rows' `changes[]`.
+  build differs from the plan is told on the As built tab: the rows' `changes[]`, and the impact's.
+- **How the impact differed from the plan: on the As built tab.** Under the row cards, a section
+  **Impact changes from the plan** shows `impact.changes`, one card per difference: its `what` as
+  the title, its `why`, its `when` and `ref`, and, where it names an `entry`, a link that opens that
+  entry's card on the Impact tab, selected (`#impact.<entry>` deep-links it). A card takes its
+  system's colour — its own `system`, else its entry's, muted for the impact as a whole or a party
+  outside the repository's systems — and is solid; no status colour (a change from the planned
+  impact is a record, not an outcome) and never the Impact tab's compatibility red or yellow, which
+  belong to that tab alone. On a tracking board the initiative's changes come first, then each
+  unit's own (`impact.units[].changes`) under the unit's number and title (the pair of §1), linking
+  its unit card on the Impact tab; units reconciled with no change are named in one line. Once the
+  impact is reconciled with no difference the section says "None"; while the impact is still the
+  plan's and nothing changed, it is not drawn. The tab's legend lists the system swatches and the
+  muted bar it drew.
 - **No recorded impact** (common for a small bug fix) is never a hidden tab: the tab states
   plainly "No downstream impact recorded" with the `none` statement and its source; before plan
   acceptance it says nothing is recorded yet and where it will come from. A change with no
   downstream effect moves no version (`release.bump` `none`), and the tab says so explicitly.
 - **Tracking boards** show the initiative's own impact, from the tracking issue's `impact.md`,
   then a **Units** section: one card per unit row, from `impact.units[]` (`unit`: the row id,
-  `basis`, `summary`, `release`, `source`, `link`), summarising that unit's own impact and linking
+  `basis`, `summary`, `release`, `source`, `link`, and `changes[]`, the unit's own differences from
+  its planned impact, written when its entry is reconciled and shown on the As built tab), summarising that unit's own impact and linking
   its board by the number-and-title rule (§1). A unit with no entry shows "not recorded yet",
   in the same solid card. The presenter writes a unit's entry at its sub-issue's `plan-accepted` event (basis
-  `plan`) and reconciles it in its landing refresh (basis `as-built`), from the sub-issue's own
-  board and `impact.md`. The initiative's `release.bump` is `none`: a tracking plan moves no
+  `plan`) and reconciles it in its landing refresh (basis `as-built`, each difference from the unit's
+  planned impact in its `changes[]`), from the sub-issue's own board and `impact.md`. The initiative's `release.bump` is `none`: a tracking plan moves no
   version itself, and each unit's release is its own.
 
 ### The tabs
 
-The board's tabs are **Timeline** (the four columns), **Decisions**, **As built**, **Impact** and
-**Source**; a tracking board adds **Landing Order**. On the Timeline the four phase columns read as
+The board's tabs are **Timeline** (the four columns), **Decisions**, **As built** (column 4's
+cards, then how the impact differed from the plan, §2), **Impact** and **Source**; a tracking board adds **Landing Order**. On the Timeline the four phase columns read as
 columns: each stands on its own neutral band under a strong, sticky head (its number, its name, its
 question, its milestone). The bands are layout, not an encoding: they take no colour of their own,
 so system and status colours keep their meanings, and the legend does not list them; the narrow
@@ -353,7 +369,7 @@ mirror starts at the next one. The presenter checks both boards.
 | `implementation-stage` | a rookie-dev stage or report | `status = building`; the touched rows' as-built state and summary; each deviation from `final-implementation.md` as a `changes[]` entry, and one that changes the impact noted for `impact.changes`; `wip.current` = the next stage's rows |
 | `qa-pass` | a qa verdict | `wip.qa` appended; `wip.step = remediation` or `landing`. On an approving pass of a sub-issue's run, its unit row on the tracking board becomes `complete` (it stays in `wip.current` until it lands) |
 | `escalated` | a level escalation | `wip.step = escalated`; the proposed level is kept as data only (`wip.proposedLevel`, never shown: `GUIDANCE.md` §4); the board follows the issue's new sizing |
-| `landed` | the team has merged | never sent by a pipeline: the admin team raises it itself inside the landing refresh (the presenter writes, the executor commits). On the issue's board: `status = built`; `asBuilt` (sha, date, PR, merge, version); the `built` milestone; every `pending` part resolved; the trail completed; `impact` reconciled from `final-implementation.md` and the reconciled `impact.md`, `basis` `as-built`, each difference from the planned impact in `impact.changes` (§2, Impact); `wip.step = landed`. For a sub-issue, on its tracking board, the standing rule (§3): the unit `landed`, out of `wip.current` (which clears its mirror at the next embed), `wip.next` recomputed as the next unit in landing order; its `impact.units` entry reconciled, `basis` `as-built`. Then the work board is regenerated |
+| `landed` | the team has merged | never sent by a pipeline: the admin team raises it itself inside the landing refresh (the presenter writes, the executor commits). On the issue's board: `status = built`; `asBuilt` (sha, date, PR, merge, version); the `built` milestone; every `pending` part resolved; the trail completed; `impact` reconciled from `final-implementation.md` and the reconciled `impact.md`, `basis` `as-built`, each difference from the planned impact in `impact.changes`, naming the `entry` it changed where there is one (§2, Impact; the As built tab shows them); `wip.step = landed`. For a sub-issue, on its tracking board, the standing rule (§3): the unit `landed`, out of `wip.current` (which clears its mirror at the next embed), `wip.next` recomputed as the next unit in landing order; its `impact.units` entry reconciled, `basis` `as-built`, each difference from the unit's planned impact in its `changes[]`. Then the work board is regenerated |
 | `cancelled` | the run is abandoned | `status = abandoned`, reason in `notes` |
 
 The **work board** (§5) is regenerated only at landings, as part of the landing refresh, and
@@ -432,7 +448,9 @@ text of `plan.json` or `board.json` (`GUIDANCE.md` §4: "level: 2", "L3", "a lev
 an `impact` that is neither `null` nor an object, a bad `basis`, `release.bump`, `kind`,
 `effect`, `need`, `change`, `tier` or `compat`, a `compat` that lowers an entry below what its effect, change or need
 makes it (§2, Impact), an entry without its `who`/`surface`/`what` and `summary`,
-a `changes[]` entry without `what` and `why`, a built board whose impact is still the plan's, a
+a `changes[]` entry (the impact's or a unit entry's) without `what` and `why`, an impact change
+whose `entry` is not `<section>.<index>` or names no entry (the As built tab would link a card
+that is not there), a unit entry's change that names an `entry`, a built board whose impact is still the plan's, a
 planned board whose impact claims `as-built`, `impact.units` on a board that is not a tracking
 board, or an entry that names no unit row or repeats one; a system colour in a status spectrum
 (`GUIDANCE.md` §1: a `--sys-N` slot, chromatic, with a hue outside 175°–295°, read from the page's
@@ -451,7 +469,8 @@ summary and no `none` statement); an `impact.none` that the entries contradict; 
 does not fit the work (a change with a downstream effect and no version bump; a change with no
 downstream effect that does not say so in `impact.none`; a bump with no downstream effect; a
 breaking entry outside a major release, on an issue board; a tracking plan that moves a
-version itself); `impact.changes` before the impact is reconciled; on a tracking board, a unit
+version itself); `impact.changes` before the impact is reconciled, and a unit entry's `changes[]`
+before that entry is; an impact change whose `system` is not in `systems`; on a tracking board, a unit
 whose own board records its impact while `impact.units` has no entry for it, and an entry still
 the plan's once its unit has landed; a page with no Impact tab (a template older than the tab:
 re-render it); a gap without evidence; a build verdict without named steps (unit rows of a tracking

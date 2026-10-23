@@ -1345,7 +1345,15 @@
           "version": null
         },
         "source": "61-build-logic/impact.md",
-        "link": "61-build-logic/impact.md#1-published-artifacts"
+        "link": "61-build-logic/impact.md#1-published-artifacts",
+        "changes": [
+          {
+            "what": "Verification case: the port lock moved into the convention plugin, where the plan kept it in the module's build file.",
+            "why": "Verification case: `tasks.named` at module evaluation broke configuration caching once the convention plugins applied first.",
+            "when": "Stage B",
+            "ref": "61-build-logic/impact.md"
+          }
+        ]
       },
       {
         "unit": "java-floor",

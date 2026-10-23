@@ -67,8 +67,11 @@ else the scale above holds.
 **No planning information on the Impact tab.** The tab shows only the current best-known impact:
 no pill for its standing (planned, as built, amended), no list of changes from the planned impact,
 and one solid card style for every entry, whether the impact is still the plan's or reconciled.
-Nothing on that tab is dashed. The plan-versus-build story stays on the As built tab; the data
-keeps the impact's basis and its changes for the checks (`plan/RULES.md` §2, Impact).
+Nothing on that tab is dashed. The plan-versus-build story stays on the As built tab, and that
+includes the impact's: the As built tab shows how the impact differed from the plan
+(`impact.changes`, and on a tracking board each unit's own), each change a solid card in its
+system's colour linking the Impact card it changed, never in the Impact tab's compatibility red or
+yellow. The data keeps the impact's basis for the checks (`plan/RULES.md` §2, Impact).
 
 **Work in progress and the next one up: two accent marks.** The accent colour marks two things
 and nothing else, each with its own look and its own legend entry:
