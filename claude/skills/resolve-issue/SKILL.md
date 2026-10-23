@@ -10,9 +10,10 @@ description: >-
   planned to the architecture only and split into sub-issues, with nothing
   built. Before landing, the presenter agent updates the repository's system
   dashboards (docs/dashboards/) to show what was built, or what is planned,
-  as such. The manager agent handles version control autonomously and stops only
-  at its gates - a Maven publish, which needs your explicit go-ahead, and any
-  downstream-consumer coordination, which it reports rather than files. Use to
+  as such. The admin team handles version control autonomously, releases every
+  version-bumping landing to Maven Central within its monthly budget, stops only
+  at its gates - a history rewrite, deleting what it did not create - and reports
+  downstream-consumer coordination rather than filing it. Use to
   make steady, reviewed progress through the issue backlog one issue at a time.
   Named on a planned tracking issue (a roadmap or other `type: tracking` issue
   with sub-issues), it works that issue's sub-issues: the next unblocked one by
@@ -29,9 +30,10 @@ modes"). Follow the steps in order. Within a run, wait for each spawned agent to
 finish before starting the next. All version control runs through the
 **`admin team` session**: load the `admin-team` skill and send it requests
 (it launches the team if it is not running). The team's executor acts
-autonomously except at the team's gates — a **Maven publish**, a history
-rewrite, deleting what it did not create — which the user confirms at the
-team's console; a **downstream-consumer issue** is never filed (reported
+autonomously except at the team's gates — a history rewrite, deleting what
+it did not create — which the user confirms at the team's console; a **Maven
+publish** is the team's own decision within its monthly budget, never yours
+to ask for; a **downstream-consumer issue** is never filed (reported
 instead), and **sub-issues** are filed only from a list the user approved. You
 yourself never commit, push, merge, tag, publish, label, or file/comment on an
 issue, and never spawn `manager`.
@@ -310,11 +312,16 @@ reply lists them.
 Send the admin team a `land` request with the **work level**, the change set
 (`paths`), the branch and worktree, the `qa` verdict (`NONE` for level 4), the
 plan or architecture document, every `.md` file created or updated this run,
-and `publish: true` only if **the user asked for a publish this run**. The
+and `publish: true` only if **the user asked for a publish this run** (it lets
+the release use the budget's reserve; every version-bumping landing is
+considered for release regardless). The
 team's executor carries out the commits, the version bump the level calls for,
 the PR, the merge, an upstream issue if the work exposed one, and the
 **issue-resolution comment** (steps taken + links to any plan/design docs);
-then the team runs the presenter's landing refresh (the system dashboards, the
+then its publisher releases a moved published-module version to Maven Central
+when the monthly budget allows (`result.release` in the reply: `published`,
+`deferred`, `failed` or `none`); then the team runs the presenter's landing
+refresh (the system dashboards, the
 issue's plan board as `landed`, the work board) and removes the branch and any
 worktree it allocated. Wait for the reply: a
 `needs-rework` means the base moved under the run's files — re-verify and
@@ -330,9 +337,10 @@ its landing-order dependencies as *blocked by* links, and labels this issue
 send nothing and the list goes back to the user.
 
 - Relay the `done` reply's **result** as-is.
-- Surface a `needs-user` reply to the user: a Maven publish (only if a release
-  was intended) waits at the team's console; any downstream-consumer
-  coordination the executor flagged rather than filed is in the result.
+- Surface a `needs-user` reply to the user: a gate waits at the team's
+  console. A failed publish is put to the user there too (`result.release`).
+  Any downstream-consumer coordination the executor flagged rather than filed
+  is in the result.
 - Do not re-run or second-guess the team's completed steps.
 
 ## 7. Report
@@ -347,9 +355,11 @@ send nothing and the list goes back to the user.
   anything it reported as not shown.
 - The commits / PR / merge / issue comment that landed, by reference, and any
   upstream issue `manager` filed.
+- The release outcome from `result.release`: published (coordinates, tags,
+  release URLs), deferred (reason and the month's usage), failed, or none.
 - Anything handed back to the user: `rookie-dev` blockers, escalations,
   unresolved planner open decisions, and `manager`'s **Stopped — needs you**
-  items (a pending Maven publish, downstream-consumer coordination).
+  items (a failed publish, downstream-consumer coordination).
 - If the work exposed a defect in a repo the project *consumes* (downstream),
   report it as coordination — do not file it. `manager` files upstream-only.
 
