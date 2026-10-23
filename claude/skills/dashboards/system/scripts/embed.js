@@ -9,6 +9,7 @@
 // Line endings are compared, and written, in the page's own convention, so a CRLF working copy (core.autocrlf) checks
 // the same as the LF file in the repository.
 const fs = require("fs");
+require("./cliargs.js").strict(process.argv.slice(2), { usage: "usage: node embed.js <file> <index.html> [block-id] [--check]", flags: ["check"], min: 2, max: 3 });
 const args = process.argv.slice(2), check = args.includes("--check"), [file, page, blockArg] = args.filter(a => a !== "--check");
 const block = blockArg || "dsl";
 if (!file || !page) { console.error("usage: node embed.js <file> <index.html> [block-id] [--check]"); process.exit(2); }

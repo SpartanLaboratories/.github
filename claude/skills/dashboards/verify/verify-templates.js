@@ -25,6 +25,7 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { recordFile, sha, norm } = require(path.join(__dirname, "..", "system", "scripts", "deviation.js"));
 const SKILL = path.resolve(__dirname, "..");
+require(path.join(__dirname, "..", "system", "scripts", "cliargs.js")).strict(process.argv.slice(2), { usage: "usage: node verify/verify-templates.js [--root <repo>] [--out <dir>]", valued: ["root", "out"], max: 0 });
 const args = process.argv.slice(2), opt = (n, d) => { const i = args.indexOf("--" + n); return i >= 0 ? args[i + 1] : d; };
 const out = path.resolve(opt("out", path.join(os.tmpdir(), "dashboards-verify")));
 const checker = path.join(SKILL, "system", "scripts", "check-page.js");
@@ -100,8 +101,8 @@ const browsers = ["C:/Program Files/Google/Chrome/Application/chrome.exe", "C:/P
   "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe", "C:/Program Files/Microsoft/Edge/Application/msedge.exe",
   "/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"];
 const chrome = process.env.CHROME && fs.existsSync(process.env.CHROME) ? process.env.CHROME : browsers.find(b => fs.existsSync(b));
-/* The DOM of a page after its scripts ran, or null without a browser. */
-const dumpDom = (page, hash) => { if (!chrome) return null; const r = cp.spawnSync(chrome, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
+/* The DOM of a page after its scripts ran (in a window of `size`, "w,h", when given), or null without a browser. */
+const dumpDom = (page, hash, size) => { if (!chrome) return null; const r = cp.spawnSync(chrome, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check", ...(size ? [`--window-size=${size}`] : []),
   "--allow-file-access-from-files", "--virtual-time-budget=4000", "--dump-dom", "file:///" + path.resolve(page).replace(/\\/g, "/") + (hash ? "#" + hash : "")], { encoding: "utf8", timeout: 120000, maxBuffer: 64 * 1024 * 1024 });
   return r.stdout || ""; };
 /* The inner HTML of the first element of a DOM dump whose opening tag matches `open` (a regex source), up to its closing tag. */
@@ -147,7 +148,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     cases.push(["a second unit's board is linked once it exists", boardOf(d, plain) === plain.unit.folder + "dashboard.html", String(boardOf(d, plain))]);
     const dom = dumpDom(path.join(folder, "dashboard.html"));
     if (dom != null) {
-      const wip = inner(dom, '<section class="wip"[^>]*>', "section"), inProg = (wip.match(/In progress · unit[\s\S]*?<\/div>/) || [""])[0], next = (wip.match(/Up next · unit[\s\S]*?<\/div>/) || [""])[0];
+      const wip = inner(dom, '<section class="wip[^"]*"[^>]*>', "section"), inProg = (wip.match(/In progress · unit[\s\S]*?<\/div>/) || [""])[0], next = (wip.match(/Up next · unit[\s\S]*?<\/div>/) || [""])[0];
       const nx = d.rows.find(r => r.id === d.wip.next);
       cases.push([`the "In progress" line links #${plain.unit.issue}'s number to GitHub and its name to its board, with no GitHub ↗`, inProg.includes(`/issues/${plain.unit.issue}"`) && inProg.includes(`href="${plain.unit.folder}dashboard.html"`) && !/class="gh"/.test(inProg), inProg.slice(0, 400) || "no In progress line"]);
       /* the unit row (plan/RULES.md §1, "Number and title"): "n. #N Title", the number to GitHub, the title to the board (plain
@@ -194,9 +195,9 @@ targets.filter(t => t.block === "plan").forEach(t => {
     rc.push(["check.js passes the re-embedded tracking board without the warning", c.status === 0 && !/unit\.live/.test(c.stdout), lines(c, /unit\.live|^FAIL/)]);
     const dom = dumpDom(path.join(folder, "dashboard.html"));
     if (dom != null) {
-      const wip = inner(dom, '<section class="wip"[^>]*>', "section"), run = inner(wip, '<div class="unitrun[^"]*">', "div");
+      const wip = inner(dom, '<section class="wip[^"]*"[^>]*>', "section"), run = inner(wip, `<div class="wb unit[^"]*" data-row="${plain.id}">`, "div"), wait = inner(wip, '<div class="wb wait">', "div");
       const cell = (dom.match(new RegExp(`<div class="cell built[^"]*"[^>]*data-row="${plain.id}"[\\s\\S]*?<div class="meta">`)) || [""])[0];
-      rc.push(["the WIP strip shows the unit's run under its \"In progress\" line, waiting on the user", /class="unitrun halted"/.test(wip) && /Waiting on the user: Verification stub/.test(run), run.slice(0, 400) || "no run block"]);
+      rc.push(["the WIP strip shows the unit's run in its own bubble, halted, and what it waits on in the \"Waiting on you\" bubble", new RegExp(`class="wb unit halted" data-row="${plain.id}"`).test(wip) && /waiting on the user/.test(run) && /Verification stub: the user chooses/.test(wait), (run || wip).slice(0, 400) || "no run bubble"]);
       rc.push(["the unit's as-built cell carries the run line, its mark paused", /class="run"/.test(cell) && /waiting on the user/.test(cell) && / held"/.test(cell.slice(0, 200)), cell.slice(0, 500) || "no cell"]);
     } else rc.push(["the rendered tracking board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
     const d = data(); d.wip.current = d.wip.current.filter(a => a.split(".")[0] !== plain.id);
@@ -301,6 +302,120 @@ targets.filter(t => t.block === "plan").forEach(t => {
   report(`the chain's progress on ${t.name}`, cc);
 });
 
+/* The conventions of 2026-10-23, on the plan-board template, rendered through headless Chrome where a page is involved:
+   - test levels are not work levels (GUIDANCE.md §4): levelrefs.js passes "L1 gating" … "L5 UAT", "Level 2 — component" and the C4
+     levels, and still finds the work-level forms;
+   - Impact colours are compatibility first (GUIDANCE.md §1; plan/RULES.md §2): breaking entries red, deprecations and other
+     non-breaking changes worth noting yellow, the rest in their system's colour, the badges alike, dashed while planned; the
+     impact's "as built, amended" standing is no longer yellow there; check.js fails a "compat" that lowers an entry;
+   - the plan-board ledes are one short line;
+   - a tracking board's WIP strip is bubbles (plan/RULES.md §3): the phase, a unit in progress, up next, and "waiting on you" only
+     while something is halted;
+   - merged branches are not shown (§3, "Branches"): a tracking board whose plan has landed and a landed issue board show no
+     branch chip; a tracking board still planning does; a unit's live branch shows;
+   - times show in the viewer's local time (GUIDANCE.md §6): every stamp is a <time> with its UTC value as datetime and title,
+     checked against the UTC source so the result never depends on the machine's zone; check-page.js fails a raw stamp;
+   - the timeline's four columns sit on bands on a desktop window and on none in the narrow layout;
+   - every script refuses an unknown option, and --help prints the usage without touching a file. */
+targets.filter(t => t.block === "plan").forEach(t => {
+  const tpl = fs.readFileSync(t.path, "utf8"), nc = [], sc = path.join(out, "conventions"); fs.mkdirSync(sc, { recursive: true });
+  const render = (name, d, hash, size) => { const f = path.join(sc, name + ".html"); fs.writeFileSync(f, withData(tpl, "plan", JSON.stringify(d, null, 2))); return dumpDom(f, hash, size); };
+  const fx = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x));
+  const sub = fx("verify/fixtures/sub-issue.plan.json"), trk = fx("verify/fixtures/tracking.plan.json"), ex = fx("plan/examples/38-handshake-empty-name/plan.json");
+  const text = h => (h || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+
+  const { levelRefs } = require(path.join(SKILL, "system", "scripts", "levelrefs.js"));
+  const testLabels = ["L1 gating", "L2 component", "L3 integration", "L4a deterministic", "L4b e2e", "L4c non-functional", "L5 UAT", "L3 · integration", "L1 GATING", "L4C NON-FUNCTIONAL", "Level 2 — component", "Level 1 · System Context", "the Level-4c suite", "tests at levels 1 to 4c"];
+  const workForms = ["L3", "a level-3 change", "level: 2", "(#61, level 3)", "escalated to level 4", "the work level"];
+  nc.push(["levelrefs.js passes every test level's and C4 level's label", testLabels.every(s => !levelRefs(s).length), testLabels.filter(s => levelRefs(s).length).join(", ")]);
+  nc.push(["levelrefs.js still finds every work-level form", workForms.every(s => levelRefs(s).length), workForms.filter(s => !levelRefs(s).length).join(", ")]);
+
+  /* check.js on compat: a "compat" that lowers an entry fails; one that raises it passes */
+  { const dir = path.join(sc, "docs", "plans", ex.slug); fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
+    const d = copy(ex); d.folder = `docs/plans/${ex.slug}`; d.impact.api[0] = { ...d.impact.api[0], change: "removed", compat: "notable" };
+    fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(d, null, 2) + "\n"); fs.writeFileSync(path.join(dir, "dashboard.html"), tpl); node(embedJs, dir);
+    const c = node(checkJs, dir, "--root", sc);
+    nc.push(["check.js fails a \"compat\" that lowers a removed surface", c.status === 1 && /compat "notable" lowers an entry that is breaking/.test(c.stdout), lines(c, /^FAIL/) || "no failure"]);
+    d.impact.api[0] = { ...ex.impact.api[0], compat: "breaking" }; fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(d, null, 2) + "\n"); node(embedJs, dir);
+    const c2 = node(checkJs, dir, "--root", sc);
+    nc.push(["check.js takes a \"compat\" that raises an entry, and warns that a breaking entry rides in a major release", c2.status === 0 && /a breaking entry .* rides in a major release/.test(c2.stdout), lines(c2, /^(FAIL|warn)/)]); }
+
+  const dSub = render("sub-impact", sub, "impact");
+  if (dSub == null) nc.push(["the rendered pages (no browser found: set CHROME)", false, "no Chrome or Edge"]);
+  else {
+    const p = inner(dSub, '<section class="view" role="tabpanel" id="p-impact"[^>]*>', "section");
+    const cards = c => p.match(new RegExp(`<div class="bcard icard[^"]*"[^>]*data-compat="${c}"`, "g")) || [];
+    nc.push(["Impact: the breaking entries are red cards (a breaking effect, a required adaptation that breaks, a removed surface, a raised step)", cards("breaking").length === 4 && cards("breaking").every(c => / cmp critical"/.test(c)), cards("breaking").join(" | ") || p.slice(0, 300)]);
+    nc.push(["Impact: deprecations and other non-breaking changes worth noting are yellow cards", cards("notable").length === 3 && cards("notable").every(c => / cmp warning"/.test(c)), cards("notable").join(" | ")]);
+    nc.push(["Impact: every other entry keeps its system's colour", cards("compatible").length === 3 && cards("compatible").every(c => !/ cmp /.test(c)), cards("compatible").join(" | ")]);
+    nc.push(["Impact: the badges take the same colours, with their glyph and word", /class="badge critical"><b aria-hidden="true">!<\/b>breaking/.test(p) && /class="badge critical"><b aria-hidden="true">✕<\/b>removed/.test(p) && /class="badge warning"><b aria-hidden="true">⚠<\/b>deprecated/.test(p) && /class="badge critical"><b aria-hidden="true">!<\/b>required change/.test(p), "badge colours missing"]);
+    nc.push(["Impact: a raised card says why in a pill, and the legend reads red and yellow as compatibility", /<span class="vp warning"><i aria-hidden="true">⚠<\/i>worth noting/.test(p) && /red: breaking/.test(p) && /yellow: worth noting/.test(p), text(inner(p, '<div class="key" id="impact-key">', "div")).slice(0, 300)]);
+    const dT = render("tracking-impact", trk, "impact"), pT = inner(dT, '<section class="view" role="tabpanel" id="p-impact"[^>]*>', "section");
+    nc.push(["Impact: a planned red or yellow card stays dashed", /class="bcard icard planned cmp critical"/.test(pT) && /class="bcard icard planned cmp warning"/.test(pT), "no planned red/yellow card"]);
+    const am = copy(ex); am.impact.changes = [{ what: "Verification case: a change from the planned impact.", why: "Verification case.", when: "landing" }];
+    const pA = inner(render("amended-impact", am, "impact"), '<section class="view" role="tabpanel" id="p-impact"[^>]*>', "section");
+    nc.push(["Impact: the \"as built, amended\" standing is neutral there, so yellow keeps its compatibility meaning", /<span class="vp neutral"><i aria-hidden="true">\+<\/i>as built, amended/.test(pA) && !/vp warning"><i aria-hidden="true">\+/.test(pA), (pA.match(/<span class="vp[^"]*"><i aria-hidden="true">\+<\/i>[^<]*/) || ["none"])[0]]);
+
+    /* the ledes */
+    const lede = (dom, id) => text((dom.match(new RegExp(`<p class="lede" id="${id}">([\\s\\S]*?)</p>`)) || ["", ""])[1]);
+    const dTl = render("tracking-timeline", trk), dEx = render("example-timeline", ex);
+    nc.push(["the Timeline lede is one short line on both kinds of board", lede(dTl, "timeline-lede").length > 0 && lede(dTl, "timeline-lede").length <= 120 && lede(dEx, "timeline-lede").length <= 120, `${lede(dTl, "timeline-lede").length} / ${lede(dEx, "timeline-lede").length} characters`]);
+    const ledes = (dEx.match(/<p class="lede"[^>]*>[\s\S]*?<\/p>/g) || []).map(text).filter(Boolean);
+    nc.push(["every tab's lede is at most one short line", ledes.every(l => l.length <= 130), ledes.filter(l => l.length > 130).join(" | ")]);
+
+    /* the bubbles and the branches */
+    const wip = inner(dTl, '<section class="wip[^"]*"[^>]*>', "section"), chips = inner(dTl, '<div class="chips" id="chips">', "div");
+    nc.push(["a tracking board's WIP strip is bubbles: the phase, the unit in progress, up next, and waiting on you while halted", /class="wb phase"/.test(wip) && /class="wb unit halted"/.test(wip) && /class="wb next upnext"/.test(wip) && /class="wb wait"/.test(wip) && /blocked by/.test(inner(wip, '<div class="wb next upnext"[^>]*>', "div")), wip.slice(0, 300)]);
+    const run = copy(trk), jf = run.rows.find(r => r.unit && r.unit.live); Object.assign(jf.unit.live, { step: "landing", resume: null, waitingOn: null });
+    const wipRun = inner(render("tracking-running", run), '<section class="wip[^"]*"[^>]*>', "section");
+    nc.push(["no \"waiting on you\" bubble while nothing is halted", !/class="wb wait"/.test(wipRun) && /class="wb unit"/.test(wipRun), wipRun.slice(0, 300)]);
+    nc.push(["a tracking board whose plan has landed shows no branch chip; its unit's live branch still shows", !/>branch <b>/.test(chips) && wip.includes(jf.unit.live.branch), text(chips).slice(0, 300)]);
+    const early = copy(trk); Object.assign(early, { status: "planned" }); early.wip = { ...early.wip, step: "architecture", current: ["considered"], next: null }; early.rows.forEach(r => { r.asBuilt = { state: "pending", summary: "" }; delete r.unit.live; });
+    const chipsEarly = inner(render("tracking-planning", early), '<div class="chips" id="chips">', "div");
+    nc.push(["a tracking board still planning shows its branch", chipsEarly.includes(`branch <b>${early.branch}</b>`), text(chipsEarly).slice(0, 300)]);
+    const exB = copy(ex); exB.branch = exB.branch || "fix/issue-38-verification";
+    const chipsEx = inner(render("example-branch", exB), '<div class="chips" id="chips">', "div");
+    nc.push(["a landed issue board shows no branch chip", !/>branch <b>/.test(chipsEx), text(chipsEx).slice(0, 300)]);
+
+    /* local times, checked against the UTC source */
+    const stamp = trk.wip.updated, tm = new RegExp(`<time datetime="${stamp}" title="${stamp} \\(UTC\\)">([^<]+)</time>`).exec(wip);
+    nc.push(["a stamp is shown as a <time> in local time, its UTC value as datetime and title", !!tm && !/\d{4}-\d{2}-\d{2}T/.test(tm[1]), tm ? tm[0] : "no <time> for wip.updated"]);
+    const rawD = copy(trk); rawD.wip.detail = `Verification case: written at ${stamp}.`;
+    const fr = path.join(sc, "raw-stamp.html"); fs.writeFileSync(fr, withData(tpl, "plan", JSON.stringify(rawD, null, 2)));
+    const cr = cp.spawnSync(process.execPath, [checker, fr, "--out", sc], { encoding: "utf8" });
+    nc.push(["check-page.js fails a stamp left raw in the text", cr.status === 1 && /RAW UTC STAMP shown as text/.test(cr.stdout || ""), (cr.stdout || "").split(/\r?\n/).filter(l => /times|FAIL/.test(l)).join(" | ")]);
+
+    /* the column bands */
+    const wide = render("example-wide", ex, "", "1920,1080"), narrow = render("example-narrow", ex, "", "520,900");
+    const bands = dom => (dom.match(/<div class="band"/g) || []).length;
+    nc.push(["the timeline's four columns sit on bands on a desktop window, and on none in the narrow layout", bands(wide) === 4 && bands(narrow) === 0, `${bands(wide)} wide, ${bands(narrow)} narrow`]);
+
+    /* Landing Order (the tab once called Chain): its label, the old #chain link, the graph across the full width, and the inspector
+       under it as bubbles once a unit is selected (a click injected into a scratch copy) */
+    const pick = `<script>window.addEventListener("load",()=>setTimeout(()=>{const g=document.querySelector(".chainsvg .unit[data-row=\\"${jf.id}\\"]");if(g)g.dispatchEvent(new MouseEvent("click",{bubbles:true}));},600));</script>`;
+    const fo = path.join(sc, "landing-order.html"); fs.writeFileSync(fo, withData(tpl, "plan", JSON.stringify(trk, null, 2)).replace("</body>", pick + "</body>"));
+    const dO = dumpDom(fo, "chain", "1920,1080"), tabLabel = (dO.match(/<button class="tab"[^>]*id="t-landing-order"[^>]*>([^<]*)</) || ["", ""])[1];
+    const svgW = +((dO.match(/<svg class="chainsvg" width="(\d+(?:\.\d+)?)"/) || [])[1] || 0), insp = inner(dO, '<aside class="inspector"[^>]*>', "aside");
+    nc.push(["the tab reads \"Landing Order\", and a link to #chain still opens it", tabLabel === "Landing Order" && /<section class="view" role="tabpanel" id="p-landing-order"[^>]*>/.test(dO) && !/id="p-landing-order"[^>]*hidden/.test(dO), `label "${tabLabel}"`]);
+    nc.push(["on a 1920 window the graph spans the content width and the inspector sits under it", svgW > 1500 && /<div class="stage below">/.test(dO), `svg ${svgW}px, stage ${(dO.match(/<div class="stage[^"]*">/) || ["?"])[0]}`]);
+    nc.push(["a selected unit's inspector is bubbles in the inspector's order: what was selected, then each section", /<div class="ibubbles"><div class="ib ib-head">/.test(insp) && (insp.match(/<div class="ib">/g) || []).length >= 2 && /Its run now/.test(insp), insp.slice(0, 300)]);
+  }
+
+  /* strict options: an unknown one fails before any file is touched; --help prints the usage */
+  { const repo = path.join(sc, "cli"), bj = path.join(repo, "docs", "plans", "board.json"); fs.rmSync(repo, { recursive: true, force: true }); fs.mkdirSync(path.dirname(bj), { recursive: true });
+    const sentinel = '{"sentinel":true}\n'; fs.writeFileSync(bj, sentinel);
+    const run = (js, ...a) => cp.spawnSync(process.execPath, [path.join(SKILL, ...js.split("/")), ...a], { encoding: "utf8", cwd: repo });
+    const h = run("plan/scripts/board.js", "--root", repo, "--help"), u = run("plan/scripts/board.js", "--root", repo, "--hepl");
+    nc.push(["board.js --help prints the usage and leaves board.json alone", h.status === 0 && /usage: node board\.js/.test(h.stdout) && fs.readFileSync(bj, "utf8") === sentinel, `exit ${h.status}`]);
+    nc.push(["board.js refuses an unknown option, exit 2, board.json untouched", u.status === 2 && /unknown option --hepl/.test(u.stderr) && fs.readFileSync(bj, "utf8") === sentinel, `exit ${u.status}: ${(u.stderr || "").split(/\r?\n/)[0]}`]);
+    const others = [["plan/scripts/check.js", "x", "--bogus"], ["plan/scripts/embed.js", "x", "--bogus"], ["plan/scripts/new.js", "1", "x", "--bogus"], ["system/scripts/check-page.js", "x.html", "--bogus"], ["system/scripts/embed.js", "a", "b", "--bogus"], ["verify/verify-templates.js", "--bogus"]];
+    const bad = others.filter(([js, ...a]) => { const r = run(js, ...a); return r.status !== 2 || !/unknown option --bogus/.test(r.stderr); });
+    nc.push(["every other script refuses an unknown option with its usage, exit 2", !bad.length, bad.map(b => b[0]).join(", ")]);
+    const helps = ["plan/scripts/check.js", "plan/scripts/embed.js", "plan/scripts/new.js", "system/scripts/check-page.js", "system/scripts/embed.js"].filter(js => { const r = run(js, "-h"); return r.status !== 0 || !/usage:/.test(r.stdout); });
+    nc.push(["every script prints its usage for -h and exits 0", !helps.length, helps.join(", ")]); }
+  report(`this run's conventions on ${t.name}`, nc);
+});
+
 targets.filter(t => t.block === "board").forEach(t => {
   const tpl = fs.readFileSync(t.path, "utf8"), b = JSON.parse(fs.readFileSync(sk("verify/fixtures/work-board.json"), "utf8"));
   const scratch = path.join(out, "issue-links-work-board"), dir = path.join(scratch, "docs", "plans");
@@ -341,7 +456,7 @@ targets.forEach(t => {
     MODES.forEach(m => {
       const r = cp.spawnSync(process.execPath, [checker, page, "--out", dir, ...m], { encoding: "utf8" });
       const lines = (r.stdout || "").split(/\r?\n/);
-      results.push({ fixture: label, mode: m.join(" ") || "light", pass: r.status === 0, bad: lines.filter(l => /FAIL|ERROR|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL|LEVEL REFERENCE/.test(l)) });
+      results.push({ fixture: label, mode: m.join(" ") || "light", pass: r.status === 0, bad: lines.filter(l => /FAIL|ERROR|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL|LEVEL REFERENCE|RAW UTC STAMP/.test(l)) });
     });
   });
   const ok = results.every(r => r.pass);

@@ -396,6 +396,8 @@ footer code{color:var(--ink-2)}
   <p class="function">One sentence on what this repository (or supersystem) provides, and how its systems divide the work.</p>
   <div class="chips">
     <span class="chip">systems <b id="sys-count">…</b></span>
+    <!-- presenter: the as-is chip takes a date as written, or a time as <time datetime="2026-10-23T01:55:00Z">…</time> (UTC), which the
+         page shows in the viewer's local time with the UTC value as its tooltip (GUIDANCE.md §6, "Times") -->
     <span class="chip">as-is at <b>branch sha</b> · YYYY-MM-DD</span>
     <span class="chip">last amended by <a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener"><b>#N</b></a> issue-slug</span>
     <span class="chip model">C4 model <b>workspace.dsl</b> · <span id="dsl-stats">…</span></span>
@@ -534,8 +536,8 @@ footer code{color:var(--ink-2)}
         <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
       </tbody></table></div>
     <div class="bubble"><h3>Test levels <small>n classes</small></h3>
-      <!-- presenter: test classes per system per test level, counted from each system's testing.<level> packages and headed by the package name (gating … uat), never "L1"…"L5", which reads as a work level (GUIDANCE.md §4); link the test-inspector report when one exists -->
-      <div class="scroll"><table class="gtbl"><thead><tr><th>System</th><th class="n">gating</th><th class="n">component</th><th class="n">integration</th><th class="n">deterministic</th><th class="n">e2e</th><th class="n">nonfunctional</th><th class="n">uat</th></tr></thead><tbody>
+      <!-- presenter: test classes per system per test level, counted from each system's testing.<level> packages and headed by its test level and package name ("L1 gating" … "L5 UAT"); test levels are not work levels (GUIDANCE.md §4); link the test-inspector report when one exists -->
+      <div class="scroll"><table class="gtbl"><thead><tr><th>System</th><th class="n">L1 gating</th><th class="n">L2 component</th><th class="n">L3 integration</th><th class="n">L4a deterministic</th><th class="n">L4b e2e</th><th class="n">L4c non-functional</th><th class="n">L5 UAT</th></tr></thead><tbody>
         <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td></tr>
         <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td></tr>
         <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td colspan="7">planned (#N) — no tests yet</td></tr>
@@ -663,6 +665,17 @@ workspace "REPO" "One sentence on the repository." {
 
 <script>
 "use strict";
+/* Times (GUIDANCE.md §6, "Times"): stored as UTC ISO stamps; shown in the viewer's own time zone, with the zone's abbreviation,
+   as a <time> whose datetime and title hold the exact UTC value. A date alone stays a date; a stamp with no zone is shown as written.
+   localizeTimes() formats every <time datetime> the page draws, so a stamp written into hand-made HTML is shown the same way. */
+const STAMP_RE=/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})$/;
+const utcIso=s=>{ const d=new Date(String(s).replace(" ","T")); return isNaN(d)?null:d.toISOString().replace(/\.000Z$/,"Z"); };
+const LOCAL_FMT={day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",timeZoneName:"short"};
+const when=v=>{ const s=String(v==null?"":v).trim(), u=STAMP_RE.test(s)&&utcIso(s); return u?`<time datetime="${u}" title="${u} (UTC)">${esc(new Date(u).toLocaleString(undefined,LOCAL_FMT))}</time>`:esc(s); };
+const day=v=>{ const s=String(v==null?"":v).trim(), u=STAMP_RE.test(s)&&utcIso(s); return u?`<time datetime="${u}" title="${u} (UTC)">${esc(new Date(u).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"}))}</time>`:esc(s); };
+function localizeTimes(root){ (root||document).querySelectorAll("time[datetime]").forEach(t=>{ const u=STAMP_RE.test(t.getAttribute("datetime"))&&utcIso(t.getAttribute("datetime")); if(!u||t.dataset.local) return;
+  t.dataset.local="1"; t.title=`${u} (UTC)`; t.textContent=new Date(u).toLocaleString(undefined,LOCAL_FMT); }); }
+window.addEventListener("DOMContentLoaded",()=>localizeTimes());
 const NS="http://www.w3.org/2000/svg";
 const mk=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;};
 const txt=(p,x,y,lines,cls,anchor,dy)=>{const t=mk("text",{x,y,class:cls||"","text-anchor":anchor||"start"},p);(Array.isArray(lines)?lines:[lines]).forEach((l,i)=>{const s=mk("tspan",{x,dy:i?(dy||12):0},t);s.textContent=l;});return t;};
@@ -695,10 +708,11 @@ function sysKey(slugs,cls){ const tops=TOPS.filter(t=>slugs.some(s=>sysTop(s)===
 function renderSystems(){
   $("#syscards").innerHTML=SYSTEMS.map(s=>{
     const planned=s.status==="planned";
-    const meta=planned?[`planned by #${(s.plannedBy||{}).issue||"?"}`]:[`v${s.version||"?"}`, s.asIs?`as-is ${s.asIs.ref} ${s.asIs.sha} · ${s.asIs.date}`:"", s.lastAmended?`amended by #${s.lastAmended.issue}`:""].filter(Boolean);
+    /* each entry is HTML: escaped text, and the as-is date or time through when() */
+    const meta=planned?[esc(`planned by #${(s.plannedBy||{}).issue||"?"}`)]:[esc(`v${s.version||"?"}`), s.asIs?`as-is ${esc(s.asIs.ref)} ${esc(s.asIs.sha)} · ${when(s.asIs.date)}`:"", s.lastAmended?esc(`amended by #${s.lastAmended.issue}`):""].filter(Boolean);
     // A built system the repository gives no page yet is a card, not a link (never a dead href="#").
     const linked=!planned&&!!s.page, tag=linked?"a":"span", href=linked?` href="${esc(s.page)}"`:"";
-    return `<${tag} class="syscard ${planned?"planned":"built"}"${href} data-slug="${esc(s.slug)}" style="--c:${sysColour(s.slug)}" tabindex="0"><div class="st">${planned?"planned · no page yet":linked?"built":"built · no page yet"}</div><div class="nm">${esc(s.name)}</div><div class="fn">${esc(s.function||"")}</div><div class="meta">${meta.map(m=>`<span>${esc(m)}</span>`).join("")}</div></${tag}>`;
+    return `<${tag} class="syscard ${planned?"planned":"built"}"${href} data-slug="${esc(s.slug)}" style="--c:${sysColour(s.slug)}" tabindex="0"><div class="st">${planned?"planned · no page yet":linked?"built":"built · no page yet"}</div><div class="nm">${esc(s.name)}</div><div class="fn">${esc(s.function||"")}</div><div class="meta">${meta.map(m=>`<span>${m}</span>`).join("")}</div></${tag}>`;
   }).join("");
   document.querySelectorAll(".syscard").forEach(c=>{ const show=()=>{ const s=SYSTEMS.find(x=>x.slug===c.dataset.slug); inspect(`<div class="kicker">SYSTEM · ${s.status.toUpperCase()}</div><div class="name">${esc(s.name)}</div><div class="vis">${esc((s.paths||[]).join(" · ")||"no code paths yet")}</div><p>${esc(s.function||"")}</p><dl>${s.page?`<dt>Dashboard</dt><dd><a href="${esc(s.page)}">${esc(s.page)}</a></dd>`:""}${s.parent?`<dt>Parent</dt><dd>${esc(s.parent)}</dd>`:""}${s.plannedBy?`<dt>Planned by</dt><dd>#${s.plannedBy.issue} · <code>${esc(s.plannedBy.architecture||"")}</code></dd>`:""}</dl>`); }; c.addEventListener("mouseenter",show); c.addEventListener("focus",show); });
   $("#systems-key").innerHTML=sysKey(SYSTEMS.map(s=>s.slug))+`<span><i></i>built: opens its page, or says no page yet</span><span><i class="pln"></i>planned: no page yet</span>`;

@@ -19,10 +19,11 @@
 // when they can, a file URL into a worktree on another drive otherwise; the folder is local only (.git/info/exclude).
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), url = require("url");
-const { repoRoot, flag, opt, registry, findPlans, subIssueBoard } = require("./lib.js");
+const { repoRoot, flag, opt, registry, findPlans, subIssueBoard, shownBranch, unitBranch } = require("./lib.js");
 const { embed } = require("./embed.js");
 
 const args = process.argv.slice(2);
+require("../../system/scripts/cliargs.js").strict(args, { usage: "usage: node board.js [--root <repo>] [--ref <branch>] [--refresh-template] [--no-gh] [--live]\nRegenerates docs/plans/board.json and index.html (with --live, docs/plans/.live/ instead).", valued: ["root", "ref"], flags: ["refresh-template", "no-gh", "live"], max: 0 });
 let root; try { root = repoRoot(args); } catch (e) { console.error(e.message); process.exit(2); }
 const live = flag(args, "live");
 const plansDir = path.join(root, "docs", "plans"), outDir = live ? path.join(plansDir, ".live") : plansDir;
@@ -127,7 +128,7 @@ const rows = [...rowNums].map(n => {
     waitsOn: ((g.blockedBy || {}).nodes || []).map(ref), blocks: ((g.blocking || {}).nodes || []).map(ref) };
   if (b) {
     const w = b.plan.wip || {}, s = b.plan.status;
-    Object.assign(row, { board: fs.existsSync(path.join(b.dir, "dashboard.html")) ? relFromPlans(b.folder + "/dashboard.html", b.root) : null, folder: relFromPlans(b.folder, b.root) + "/", branch: b.plan.branch || null, system: b.plan.kind === "tracking" ? null : ((b.plan.systems || [])[0] || {}).slug || null,
+    Object.assign(row, { board: fs.existsSync(path.join(b.dir, "dashboard.html")) ? relFromPlans(b.folder + "/dashboard.html", b.root) : null, folder: relFromPlans(b.folder, b.root) + "/", branch: shownBranch(b.plan), /* a merged branch is not shown (plan/RULES.md §3, "Branches") */ system: b.plan.kind === "tracking" ? null : ((b.plan.systems || [])[0] || {}).slug || null,
       step: w.step || null, detail: w.step === "halted" ? `Waiting on the user: ${w.waitingOn || w.detail || ""}` : (w.detail || ""), since: w.since || null, updated: w.updated || null, qa: w.qa || [], qaMax: w.qaMax || null,
       status: s === "built" || unitState(u) === "landed" ? "landed" : s === "abandoned" || w.step === "cancelled" ? "abandoned" : w.step === "halted" ? "halted" : w.step === "escalated" ? "escalated" : u && unitState(u) === "complete" ? "complete" : s === "building" ? "building" : "planning",
       landed: s === "built" ? { pr: (b.plan.asBuilt || {}).pr || null, merge: (b.plan.asBuilt || {}).merge || null, version: (b.plan.asBuilt || {}).version || null, date: (b.plan.asBuilt || {}).date || null } : null });
@@ -138,7 +139,7 @@ const rows = [...rowNums].map(n => {
     const w = u.board.plan.wip || {}, cur = (w.current || []).some(a => a.split(".")[0] === u.row.id), st = unitState(u);
     // the unit's board as embed.js resolves it, from the folders on disk: linked only when its file exists (plan/RULES.md §1)
     const sb = subIssueBoard(u.board.dir, u.row.unit);
-    Object.assign(row, { board: sb ? relFromPlans(u.board.folder + "/" + sb.board, u.board.root) : null, folder: u.row.unit.folder && !/^https?:/.test(u.row.unit.folder) ? relFromPlans(u.board.folder + "/" + u.row.unit.folder, u.board.root) + (u.row.unit.folder.endsWith("/") ? "/" : "") : (u.row.unit.folder || null), branch: u.row.unit.branch || null, system: u.row.system,
+    Object.assign(row, { board: sb ? relFromPlans(u.board.folder + "/" + sb.board, u.board.root) : null, folder: u.row.unit.folder && !/^https?:/.test(u.row.unit.folder) ? relFromPlans(u.board.folder + "/" + u.row.unit.folder, u.board.root) + (u.row.unit.folder.endsWith("/") ? "/" : "") : (u.row.unit.folder || null), branch: unitBranch(u.row), system: u.row.system,
       step: cur ? w.step : null, detail: cur ? (w.detail || "") : ((u.row.asBuilt || {}).summary || ""), qa: cur ? (w.qa || []) : [], qaMax: cur ? w.qaMax : null,
       status: LANDED_STATES.has(st) ? "landed" : st === "complete" ? "complete" : st === "dropped" ? "abandoned" : cur ? (w.step === "halted" ? "halted" : "building") : "not-started", landed: null });
     row.active = cur && ACTIVE_STEPS.has(w.step);
