@@ -2,7 +2,7 @@
 // Verify the dashboard templates once, so pages made from them need not be (GUIDANCE.md §8).
 //   node verify/verify-templates.js [--root <repo>] [--out <dir>]
 // Renders each template with its fixtures into a scratch folder and runs system/scripts/check-page.js on every rendering, in
-// light, dark, 520 px and a 390 px frame. When every pass of a template passes, records the template's sha256 in
+// light, dark, 520 px, a 390 px frame and a 1920 x 1080 desktop window. When every pass of a template passes, records the template's sha256 in
 // verify/verified.json (the skill's templates) or in <repo>/docs/{plans,dashboards}/_template/verified.json (a repository's own
 // templates, with --root). check-page.js --auto and plan/scripts/check.js --auto then skip the browser pass for a page that is a
 // verified template plus its data, and give a system page whose structure is the template's one light pass. Run it after every
@@ -17,7 +17,10 @@
 // tests the links to an issue's board (plan/RULES.md §1) on the plan-board and work-board templates: embed.js links a unit, the
 // parent and every other issue a board names to that issue's board only when the board exists, and clears a link whose board is
 // gone; check.js warns on a page older than the rule and fails a dead link; and the rendered pages (headless Chrome, --dump-dom)
-// open the boards from the "part of" chip, the breadcrumb, the WIP strip's unit lines, the "blocked by" tags and the roadmap.
+// open the boards from the "part of" chip, the breadcrumb, the WIP strip's unit lines, the "blocked by" tags and the roadmap. And it
+// tests the units' runs (plan/RULES.md §3): embed.js mirrors a unit's run from its own board into the tracking board, every embed of
+// the sub-issue's board re-embeds the tracking board, check.js warns on a mirror older than the board, and the rendered tracking
+// board shows the run on the WIP strip and in the unit's as-built cell, its mark paused while the run waits on the user.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { recordFile, sha, norm } = require(path.join(__dirname, "..", "system", "scripts", "deviation.js"));
@@ -25,7 +28,8 @@ const SKILL = path.resolve(__dirname, "..");
 const args = process.argv.slice(2), opt = (n, d) => { const i = args.indexOf("--" + n); return i >= 0 ? args[i + 1] : d; };
 const out = path.resolve(opt("out", path.join(os.tmpdir(), "dashboards-verify")));
 const checker = path.join(SKILL, "system", "scripts", "check-page.js");
-const MODES = [[], ["--theme", "dark"], ["--width", "520"], ["--frame", "390"]];
+/* light, dark, the narrowest window headless Chrome lays out, a phone-width frame, and a 16:9 desktop (the wide layout) */
+const MODES = [[], ["--theme", "dark"], ["--width", "520"], ["--frame", "390"], ["--width", "1920", "--height", "1080"]];
 const sk = p => path.join(SKILL, ...p.split("/"));
 
 /* Each template, the block its data goes in (none for system templates, which carry their own sample content), and its fixtures. */
@@ -97,8 +101,8 @@ const browsers = ["C:/Program Files/Google/Chrome/Application/chrome.exe", "C:/P
   "/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"];
 const chrome = process.env.CHROME && fs.existsSync(process.env.CHROME) ? process.env.CHROME : browsers.find(b => fs.existsSync(b));
 /* The DOM of a page after its scripts ran, or null without a browser. */
-const dumpDom = page => { if (!chrome) return null; const r = cp.spawnSync(chrome, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
-  "--allow-file-access-from-files", "--virtual-time-budget=4000", "--dump-dom", "file:///" + path.resolve(page).replace(/\\/g, "/")], { encoding: "utf8", timeout: 120000, maxBuffer: 64 * 1024 * 1024 });
+const dumpDom = (page, hash) => { if (!chrome) return null; const r = cp.spawnSync(chrome, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
+  "--allow-file-access-from-files", "--virtual-time-budget=4000", "--dump-dom", "file:///" + path.resolve(page).replace(/\\/g, "/") + (hash ? "#" + hash : "")], { encoding: "utf8", timeout: 120000, maxBuffer: 64 * 1024 * 1024 });
   return r.stdout || ""; };
 /* The inner HTML of the first element of a DOM dump whose opening tag matches `open` (a regex source), up to its closing tag. */
 const inner = (dom, open, tag) => { const m = new RegExp(open).exec(dom || ""); if (!m) return ""; let depth = 1, i = m.index + m[0].length; const re = new RegExp(`<(/?)${tag}\\b[^>]*>`, "g"); re.lastIndex = i;
@@ -145,11 +149,61 @@ targets.filter(t => t.block === "plan").forEach(t => {
     if (dom != null) {
       const wip = inner(dom, '<section class="wip"[^>]*>', "section"), inProg = (wip.match(/In progress · unit[\s\S]*?<\/div>/) || [""])[0], next = (wip.match(/Up next · unit[\s\S]*?<\/div>/) || [""])[0];
       const nx = d.rows.find(r => r.id === d.wip.next);
-      cases.push([`the "In progress" line opens #${plain.unit.issue}'s board, with GitHub ↗ beside it`, inProg.includes(`href="${plain.unit.folder}dashboard.html"`) && /class="gh"/.test(inProg), inProg.slice(0, 400) || "no In progress line"]);
+      cases.push([`the "In progress" line links #${plain.unit.issue}'s number to GitHub and its name to its board, with no GitHub ↗`, inProg.includes(`/issues/${plain.unit.issue}"`) && inProg.includes(`href="${plain.unit.folder}dashboard.html"`) && !/class="gh"/.test(inProg), inProg.slice(0, 400) || "no In progress line"]);
+      /* the unit row (plan/RULES.md §1, "Number and title"): "n. #N Title", the number to GitHub, the title to the board (plain
+         text while there is none), and no link line under the system */
+      const lab = id => inner(dom, `<div class="rowlab"[^>]*id="row-${id}"[^>]*>`, "div"), nm = id => (lab(id).match(/<div class="nm">([\s\S]*?)<\/div>/) || ["", ""])[1];
+      const withB = nm(plain.id), noB = nm(nx.id), reEsc = x => String(x).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      cases.push([`the unit row reads "${plain.unit.n}. #${plain.unit.issue} ${plain.name}": the number opens GitHub, the title the board`, new RegExp(`^${plain.unit.n}\\. <a href="https://github\\.com/[^"]+/issues/${plain.unit.issue}"[^>]*>#${plain.unit.issue}</a> <a href="${reEsc(plain.unit.folder)}dashboard\\.html"[^>]*>`).test(withB) && !/class="un"/.test(lab(plain.id)), withB.slice(0, 300) || "no unit row"]);
+      cases.push([`a unit with no board keeps its title as plain text ("${nx.unit.n}. #${nx.unit.issue} ${nx.name}")`, new RegExp(`^${nx.unit.n}\\. <a href="https://github\\.com/[^"]+/issues/${nx.unit.issue}"[^>]*>#${nx.unit.issue}</a> [^<]`).test(noB), noB.slice(0, 300) || "no unit row"]);
       cases.push([`the "Up next" line links #${nx.unit.issue} to GitHub (no board) and the "blocked by" tag opens #${plain.unit.issue}'s board`, next.includes(`/issues/${nx.unit.issue}"`) && /blocked by/.test(next) && next.includes(`href="${plain.unit.folder}dashboard.html"`), next.slice(0, 500) || "no Up next line"]);
     } else cases.push(["the rendered tracking board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
   }
   report(`issue links on ${t.name} (tracking board)`, cases);
+
+  /* The units' own runs (plan/RULES.md §3), in the same scratch tracking tree: the unit in progress gets a real board of its own (the
+     template plus a plan.json whose run is at "plan"); embed.js on the tracking board mirrors that run into unit.live; a later event
+     on the sub-issue's board leaves the mirror older, which check.js warns on, on both boards; embed.js on the sub-issue's board
+     re-embeds the tracking board, which then mirrors the new state; the rendered tracking board shows the run under the WIP strip's
+     "In progress" line and in the unit's as-built cell, its mark paused while the run waits on the user; and a mirror on a unit
+     that is no longer in progress is cleared. */
+  { const rc = [], live = () => data().rows.find(x => x.id === plain.id).unit.live;
+    setup(fx, tpl, [unit]);
+    const subDir = path.join(folder, plain.unit.folder), subName = path.basename(subDir);
+    const sub = { schema: "plan-board/1", repo: fx.repo, issue: plain.unit.issue, slug: subName, folder: `${fx.folder}/${subName}`, kind: "issue", level: plain.unit.level,
+      title: plain.name, function: "Verification stub: a unit's own board.", status: "planned", parent: { issue: fx.issue, board: null }, branch: null,
+      baseline: fx.baseline, asBuilt: null, systems: (fx.systems || []).filter(s => s.slug === plain.system),
+      wip: { step: "plan", since: "2026-10-23T00:27:57Z", updated: "2026-10-23T00:27:57Z", detail: "Verification stub: the planner writes `plan.md` now.",
+        steps: ["sizing", "research", "plan", "branch", "implementation", "qa", "remediation", "landing", "landed"], current: ["considered", "verdict"], next: null,
+        qa: [], qaMax: 3, waitingOn: null, resume: null, blockers: { waitsOn: [], blocks: [] }, landing: null },
+      milestones: [], trail: [], rows: [], roadmap: null, followUps: [], documents: [], notes: {} };
+    const writeSub = () => fs.writeFileSync(path.join(subDir, "plan.json"), JSON.stringify(sub, null, 2) + "\n");
+    fs.mkdirSync(subDir, { recursive: true }); writeSub(); fs.writeFileSync(path.join(subDir, "dashboard.html"), tpl);
+    node(embedJs, folder); let L = live();
+    rc.push(["embed.js on the tracking board mirrors the unit's run from its board", !!L && L.step === "plan" && L.updated === sub.wip.updated, JSON.stringify(L)]);
+    let c = node(checkJs, folder, "--root", scratch);
+    rc.push(["check.js is silent on a fresh mirror", c.status === 0 && !/unit\.live/.test(c.stdout), lines(c, /unit\.live|^FAIL/)]);
+    Object.assign(sub.wip, { step: "halted", resume: "plan", updated: "2026-10-23T01:10:00Z", waitingOn: "Verification stub: the user chooses between two designs." }); writeSub();
+    c = node(checkJs, folder, "--root", scratch);
+    rc.push(["check.js warns when the mirror is older than the sub-issue board's wip.updated", /unit\.live .*older than the board's wip\.updated/.test(c.stdout), lines(c, /^warn/) || "no warning"]);
+    const cs = node(checkJs, subDir, "--root", scratch);
+    rc.push(["check.js on the sub-issue's board warns that its parent's mirror lags", /tracking board mirrors this run as of/.test(cs.stdout), lines(cs, /^warn/) || "no warning"]);
+    node(embedJs, subDir); L = live();
+    rc.push(["embed.js on the sub-issue's board re-embeds the tracking board, which mirrors the new state", !!L && L.step === "halted" && L.waitingOn === sub.wip.waitingOn, JSON.stringify(L)]);
+    c = node(checkJs, folder, "--root", scratch);
+    rc.push(["check.js passes the re-embedded tracking board without the warning", c.status === 0 && !/unit\.live/.test(c.stdout), lines(c, /unit\.live|^FAIL/)]);
+    const dom = dumpDom(path.join(folder, "dashboard.html"));
+    if (dom != null) {
+      const wip = inner(dom, '<section class="wip"[^>]*>', "section"), run = inner(wip, '<div class="unitrun[^"]*">', "div");
+      const cell = (dom.match(new RegExp(`<div class="cell built[^"]*"[^>]*data-row="${plain.id}"[\\s\\S]*?<div class="meta">`)) || [""])[0];
+      rc.push(["the WIP strip shows the unit's run under its \"In progress\" line, waiting on the user", /class="unitrun halted"/.test(wip) && /Waiting on the user: Verification stub/.test(run), run.slice(0, 400) || "no run block"]);
+      rc.push(["the unit's as-built cell carries the run line, its mark paused", /class="run"/.test(cell) && /waiting on the user/.test(cell) && / held"/.test(cell.slice(0, 200)), cell.slice(0, 500) || "no cell"]);
+    } else rc.push(["the rendered tracking board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
+    const d = data(); d.wip.current = d.wip.current.filter(a => a.split(".")[0] !== plain.id);
+    fs.writeFileSync(path.join(folder, "plan.json"), JSON.stringify(d, null, 2) + "\n"); node(embedJs, folder);
+    rc.push(["embed.js clears the mirror of a unit that is no longer in progress", live() === undefined, JSON.stringify(live())]);
+    report(`the units' runs on ${t.name} (tracking board)`, rc);
+  }
 
   /* a sub-issue's board inside its parent's folder */
   const sx = JSON.parse(fs.readFileSync(sk("verify/fixtures/sub-issue.plan.json"), "utf8"));
@@ -186,6 +240,65 @@ targets.filter(t => t.block === "plan").forEach(t => {
     node(embedJs, sFolder); const c = node(checkJs, sFolder, "--root", sScratch);
     sc.push(["embed.js clears it, and the chip keeps the GitHub link", sData().parent.board === null && c.status === 0, `parent.board ${JSON.stringify(sData().parent.board)}, check exit ${c.status}`]); }
   report(`issue links on ${t.name} (sub-issue board)`, sc);
+
+  /* The Impact tab (plan/RULES.md §2, "Impact") and the work-level guard (GUIDANCE.md §4), on the rendered pages and in check.js:
+     the example's four sections, as built; the tracking fixture's initiative impact, planned and dashed, and one entry per unit
+     whose title opens the unit's board; a board with no impact recorded says so with its source; a board with no version bump
+     and nothing downstream says so explicitly; check.js warns when impact.md exists but the tab is empty, and fails a board whose
+     text names a work level; check-page.js reports a work level the page shows. */
+  const ic = [], iScratch = path.join(out, "impact"), ex = JSON.parse(fs.readFileSync(sk("plan/examples/38-handshake-empty-name/plan.json"), "utf8"));
+  const page = (name, data) => { const dir = path.join(iScratch, "docs", "plans", name); fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
+    const d = { ...data, slug: name, folder: `docs/plans/${name}` }; fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(d, null, 2) + "\n"); fs.writeFileSync(path.join(dir, "dashboard.html"), tpl); node(embedJs, dir); return dir; };
+  const panel = dom => inner(dom, '<section class="view" role="tabpanel" id="p-impact"[^>]*>', "section");
+  { const dir = page("38-handshake-empty-name", ex), dom = dumpDom(path.join(dir, "dashboard.html"), "impact");
+    if (dom != null) { const p = panel(dom);
+      ic.push(["the example's Impact tab shows its four sections and its as-built basis", ["Downstream effects", "Adaptation requirements", "API changes", "Conversion steps"].every(h => p.includes(h)) && /as built<\/span>/.test(p) && /id="impact-key"[^>]*><span/.test(p), p.slice(0, 300) || "no Impact panel"]);
+    } else ic.push(["the rendered Impact tab (no browser found: set CHROME)", false, "no Chrome or Edge"]);
+    fs.writeFileSync(path.join(dir, "impact.md"), "# Impact\n");
+    const d = JSON.parse(fs.readFileSync(path.join(dir, "plan.json"), "utf8")); d.impact = null; fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(d, null, 2) + "\n"); node(embedJs, dir);
+    const c = node(checkJs, dir, "--root", iScratch);
+    ic.push(["check.js warns when impact.md exists but the Impact tab is empty", /impact\.md exists in this folder, but the Impact tab is empty/.test(c.stdout), lines(c, /^warn/) || "no warning"]);
+    const dom2 = dumpDom(path.join(dir, "dashboard.html"), "impact");
+    if (dom2 != null) ic.push(["a board with no impact recorded shows the tab with the statement and its source", /No downstream impact recorded yet/.test(panel(dom2)) && /Source:/.test(panel(dom2)), panel(dom2).slice(0, 300)]); }
+  { const d = JSON.parse(JSON.stringify(ex)); d.impact = { basis: "as-built", summary: "", none: "Verification case: a change inside one system with no consumer-visible difference.", release: { bump: "none", version: null }, downstream: [], adaptation: [], api: [], conversion: [], changes: [], source: "plan.md" };
+    const dir = page("38-no-bump", d), dom = dumpDom(path.join(dir, "dashboard.html"), "impact");
+    if (dom != null) ic.push(["no version bump and nothing downstream is said explicitly", /No downstream impact recorded\./.test(panel(dom)) && /no version moves/.test(panel(dom)) && !/\blevel\b/i.test(panel(dom).replace(/<[^>]+>/g, "")), panel(dom).slice(0, 400)]); }
+  { const fxT = JSON.parse(fs.readFileSync(sk("verify/fixtures/tracking.plan.json"), "utf8")), dir = path.join(iScratch, ...fxT.folder.split("/")), bu = fxT.rows.find(r => r.unit && r.unit.board);
+    fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true }); stub(path.join(dir, bu.unit.folder));
+    fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(fxT, null, 2) + "\n"); fs.writeFileSync(path.join(dir, "dashboard.html"), tpl); node(embedJs, dir);
+    const dom = dumpDom(path.join(dir, "dashboard.html"), "impact");
+    if (dom != null) { const p = panel(dom);
+      ic.push(["a tracking board shows the initiative's impact, planned and dashed, and a unit entry whose title opens the unit's board", /planned impact/.test(p) && /class="bcard icard planned"/.test(p) && /<h3>Units/.test(p) && p.includes(`/issues/${bu.unit.issue}"`) && p.includes(`href="${bu.unit.board}"`), p.slice(0, 300)]); } }
+  { const d = JSON.parse(JSON.stringify(ex)); d.notes = { ...d.notes, sizing: "Verification case: a level-3 change (#61, level 3), shown as L3." };
+    const dir = page("38-levels", d), c = node(checkJs, dir, "--root", iScratch);
+    ic.push(["check.js fails a board whose text names a work level", c.status === 1 && /shows a work level/.test(c.stdout), lines(c, /^FAIL/) || "no failure"]);
+    const r = cp.spawnSync(process.execPath, [checker, path.join(dir, "dashboard.html"), "--out", iScratch], { encoding: "utf8" });
+    ic.push(["check-page.js reports a work level the page shows", r.status === 1 && /LEVEL REFERENCE/.test(r.stdout || ""), (r.stdout || "").split(/\r?\n/).filter(l => /work levels|FAIL/.test(l)).join(" | ")]); }
+  report(`the Impact tab and the work-level guard on ${t.name}`, ic);
+
+  /* The chain's progress (plan/RULES.md §3): a tracking board's status chip reads the chain, not "building". Rendered from the
+     tracking fixture as it stands (unit 1 landed, unit 2 in progress with its run halted, unit 3 up next and blocked by #47), then
+     with the run at "plan", with no unit started, and with every unit landed; an issue board keeps its status chip. */
+  const cc = [], cScratch = path.join(out, "chain-progress"); fs.mkdirSync(cScratch, { recursive: true });
+  const fxC = JSON.parse(fs.readFileSync(sk("verify/fixtures/tracking.plan.json"), "utf8"));
+  const text = h => (h || "").replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+  const chipOf = (name, d) => { const f = path.join(cScratch, name + ".html"); fs.writeFileSync(f, withData(tpl, "plan", JSON.stringify(d, null, 2))); const dom = dumpDom(f); if (dom == null) return null;
+    const m = /<span class="chip status[^"]*">/.exec(dom); return m ? m[0] + inner(dom, '<span class="chip status[^"]*">', "span") : ""; };
+  const variant = f => { const d = JSON.parse(JSON.stringify(fxC)); f(d); return d; };
+  const c0 = chipOf("as-is", fxC);
+  if (c0 == null) cc.push(["the rendered chain chip (no browser found: set CHROME)", false, "no Chrome or Edge"]);
+  else {
+    cc.push(["a tracking board's chip reads the chain: landed of all, the unit waiting on the user, the unit up next and its blocker", /^chain 1 of 11 landed · #47 waiting on you · #62 up next, blocked by #47$/.test(text(c0)) && /class="cbar"[^>]*><i style="width:9%"/.test(c0) && !/building/.test(text(c0)), text(c0) || "no chip"]);
+    const c1 = chipOf("run-at-plan", variant(d => { d.rows.find(r => r.id === "java-floor").unit.live.step = "plan"; d.rows.find(r => r.id === "java-floor").unit.live.resume = null; }));
+    cc.push(["a unit whose run goes on reads its step from its mirror", /#47 in progress \(plan\)/.test(text(c1)), text(c1)]);
+    const c2 = chipOf("planned", variant(d => { d.status = "planned"; d.rows.forEach(r => { r.asBuilt = { state: "pending", summary: "" }; delete r.unit.live; }); d.wip.step = "landing"; d.wip.current = []; d.wip.next = d.rows[0].id; }));
+    cc.push(["before any unit starts it reads \"planned · M units\"", text(c2) === "chain planned · 11 units", text(c2)]);
+    const c3 = chipOf("all-landed", variant(d => { d.status = "built"; d.asBuilt = { ref: "master", sha: "abcdef1", date: "2026-10-23" }; d.rows.forEach(r => { r.asBuilt = { state: "landed", summary: "Landed." }; delete r.unit.live; }); d.wip.step = "landed"; d.wip.current = []; d.wip.next = null; }));
+    cc.push(["once every unit has landed it reads \"landed · M of M\"", text(c3) === "chain landed · 11 of 11" && /width:100%/.test(c3), text(c3)]);
+    const c4 = chipOf("issue-board", JSON.parse(fs.readFileSync(sk("plan/examples/38-handshake-empty-name/plan.json"), "utf8")));
+    cc.push(["an issue board keeps its status chip", /^status built$/.test(text(c4)), text(c4)]);
+  }
+  report(`the chain's progress on ${t.name}`, cc);
 });
 
 targets.filter(t => t.block === "board").forEach(t => {
@@ -203,10 +316,13 @@ targets.filter(t => t.block === "board").forEach(t => {
   if (dom != null) {
     const grp = (dom.match(/<tr class="grp">[\s\S]*?<\/tr>/) || [""])[0], kpis = inner(dom, '<div class="kpis" id="kpis">', "div");
     const row = (dom.match(new RegExp(`<tr class="run[^"]*"[^>]*><td><span class="t"><a [^>]*>#${next.issue}<[\\s\\S]*?</tr>`)) || [""])[0];
-    cases.push([`the group heading opens #${track.issue}'s board, with GitHub ↗ beside it`, grp.includes(`href="${track.board}"`) && /class="gh"/.test(grp) && !/tracking board<\/a>/.test(grp), grp.slice(0, 400)]);
+    cases.push([`the group heading links #${track.issue}'s number to GitHub and its title to its board, with no GitHub ↗`, grp.includes(`/issues/${track.issue}"`) && grp.includes(`href="${track.board}"`) && !/class="gh"/.test(grp), grp.slice(0, 400)]);
     cases.push([`"part of #${track.issue}" opens its board`, new RegExp(`part of <a href="${track.board.replace(/[.]/g, "\\.")}"`).test(row), row.slice(0, 600)]);
     cases.push([`the "blocked by" tag of #${next.issue} links #${next.blockedBy[0].issue}`, /blocked by <a /.test(row), row.slice(0, 600)]);
     cases.push(["the Up next count links its units", new RegExp(`<a [^>]*>#${next.issue}</a> · not started`).test(kpis), kpis.slice(0, 400)]);
+    /* the tracking issue's state cell shows its chain's progress in place of a bare "building" (plan/RULES.md §3) */
+    const trow = (dom.match(new RegExp(`<tr class="run[^"]*"[^>]*><td><span class="t"><a [^>]*>#${track.issue}</a>[\\s\\S]*?</tr>`)) || [""])[0], cell = (trow.match(/<div class="chainsum">[\s\S]*?<\/div>/) || [""])[0];
+    cases.push([`#${track.issue}'s state cell reads its chain, not "building"`, /1 of 11 landed/.test(cell) && /#47<\/a> in progress \(implementation\)/.test(cell) && /#62<\/a> up next, blocked by <a /.test(cell) && /class="cbar"/.test(cell) && !/>building</.test(trow), cell.slice(0, 500) || trow.slice(0, 500)]);
   } else cases.push(["the rendered work board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
   setup(tpl.replace("const ISSUE_BOARDS=", "const SUB_BOARDS=")); c = node(checkJs, dir, "--root", scratch);
   cases.push([`check.js warns on a template of the sub-issue rule alone and names #${track.issue}'s group heading`, new RegExp(`#${track.issue} has a board .*its group heading`).test(c.stdout), lines(c, /^warn/) || "no warning"]);
@@ -225,7 +341,7 @@ targets.forEach(t => {
     MODES.forEach(m => {
       const r = cp.spawnSync(process.execPath, [checker, page, "--out", dir, ...m], { encoding: "utf8" });
       const lines = (r.stdout || "").split(/\r?\n/);
-      results.push({ fixture: label, mode: m.join(" ") || "light", pass: r.status === 0, bad: lines.filter(l => /FAIL|ERROR|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL/.test(l)) });
+      results.push({ fixture: label, mode: m.join(" ") || "light", pass: r.status === 0, bad: lines.filter(l => /FAIL|ERROR|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL|LEVEL REFERENCE/.test(l)) });
     });
   });
   const ok = results.every(r => r.pass);

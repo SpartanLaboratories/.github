@@ -99,7 +99,6 @@
       "issue": 55,
       "title": "HTTP client stack for BotTools: suspend transport, outbound-URL guard, response cache, call budget and test fakes",
       "state": "OPEN",
-      "level": 4,
       "created": null,
       "parent": null,
       "waitsOn": [],
@@ -117,6 +116,30 @@
       "status": "building",
       "landed": null,
       "active": false,
+      "chain": {
+        "total": 11,
+        "landed": 1,
+        "dropped": 0,
+        "deferred": 0,
+        "planned": false,
+        "done": false,
+        "current": [
+          {
+            "issue": 47,
+            "slug": "java-floor",
+            "step": "implementation"
+          }
+        ],
+        "next": {
+          "issue": 62,
+          "slug": "http-core",
+          "blockedBy": [
+            {
+              "issue": 47
+            }
+          ]
+        }
+      },
       "systemName": "Gradle build, webtools-http, webtools-feeds, WebTools",
       "group": "55",
       "order": 0
@@ -125,7 +148,6 @@
       "issue": 61,
       "title": "Build: move shared configuration into an included `build-logic` build with convention plugins and package-selected level tasks",
       "state": "CLOSED",
-      "level": 3,
       "created": null,
       "parent": 55,
       "waitsOn": [],
@@ -179,7 +201,6 @@
       "issue": 47,
       "title": "Java 11 floor (#47)",
       "state": "OPEN",
-      "level": 2,
       "created": null,
       "parent": 55,
       "waitsOn": [
@@ -208,7 +229,6 @@
       "issue": 62,
       "title": "webtools-http common core",
       "state": "OPEN",
-      "level": 3,
       "created": null,
       "parent": 55,
       "waitsOn": [],
@@ -238,7 +258,6 @@
       "issue": 63,
       "title": "Published test fixtures",
       "state": "OPEN",
-      "level": 3,
       "created": null,
       "parent": 55,
       "waitsOn": [],
@@ -262,7 +281,6 @@
       "issue": 64,
       "title": "Outbound-URL policy",
       "state": "OPEN",
-      "level": 3,
       "created": null,
       "parent": 55,
       "waitsOn": [],
@@ -286,7 +304,6 @@
       "issue": 65,
       "title": "OkHttp transport",
       "state": "OPEN",
-      "level": 3,
       "created": null,
       "parent": 55,
       "waitsOn": [],
@@ -310,7 +327,6 @@
       "issue": 66,
       "title": "Response cache",
       "state": "OPEN",
-      "level": 3,
       "created": null,
       "parent": 55,
       "waitsOn": [],
@@ -334,7 +350,6 @@
       "issue": 67,
       "title": "Call budget",
       "state": "OPEN",
-      "level": 3,
       "created": null,
       "parent": 55,
       "waitsOn": [],
@@ -358,7 +373,6 @@
       "issue": 68,
       "title": "Call facades",
       "state": "OPEN",
-      "level": 3,
       "created": null,
       "parent": 55,
       "waitsOn": [],
@@ -382,7 +396,6 @@
       "issue": 69,
       "title": "webtools-feeds",
       "state": "OPEN",
-      "level": 3,
       "created": null,
       "parent": 55,
       "waitsOn": [],
@@ -406,7 +419,6 @@
       "issue": 70,
       "title": "HTTP-stack documentation",
       "state": "OPEN",
-      "level": 1,
       "created": null,
       "parent": 55,
       "waitsOn": [],
@@ -437,68 +449,57 @@
         {
           "issue": 61,
           "title": "Build: move shared configuration into an included `build-logic` build with convention plugins and package-selected level tasks",
-          "state": "CLOSED",
-          "level": 3
+          "state": "CLOSED"
         },
         {
           "issue": 47,
           "title": "Java 11 floor (#47)",
-          "state": "OPEN",
-          "level": 2
+          "state": "OPEN"
         },
         {
           "issue": 62,
           "title": "webtools-http common core",
-          "state": "OPEN",
-          "level": 3
+          "state": "OPEN"
         },
         {
           "issue": 63,
           "title": "Published test fixtures",
-          "state": "OPEN",
-          "level": 3
+          "state": "OPEN"
         },
         {
           "issue": 64,
           "title": "Outbound-URL policy",
-          "state": "OPEN",
-          "level": 3
+          "state": "OPEN"
         },
         {
           "issue": 65,
           "title": "OkHttp transport",
-          "state": "OPEN",
-          "level": 3
+          "state": "OPEN"
         },
         {
           "issue": 66,
           "title": "Response cache",
-          "state": "OPEN",
-          "level": 3
+          "state": "OPEN"
         },
         {
           "issue": 67,
           "title": "Call budget",
-          "state": "OPEN",
-          "level": 3
+          "state": "OPEN"
         },
         {
           "issue": 68,
           "title": "Call facades",
-          "state": "OPEN",
-          "level": 3
+          "state": "OPEN"
         },
         {
           "issue": 69,
           "title": "webtools-feeds",
-          "state": "OPEN",
-          "level": 3
+          "state": "OPEN"
         },
         {
           "issue": 70,
           "title": "HTTP-stack documentation",
-          "state": "OPEN",
-          "level": 1
+          "state": "OPEN"
         }
       ]
     }
