@@ -51,7 +51,9 @@ function embed(dir, opts) {
 }
 
 if (require.main === module) {
-  const args = process.argv.slice(2), dir = args.find(a => !a.startsWith("--"));
+  const args = process.argv.slice(2);
+  require("../../system/scripts/cliargs.js").strict(args, { usage: "usage: node embed.js <folder> [--check]", flags: ["check"], min: 1, max: 1 });
+  const dir = args.find(a => !a.startsWith("--"));
   if (!dir) { console.error("usage: node embed.js <folder> [--check]"); process.exit(2); }
   try {
     if (args.includes("--check")) { const r = same(dir); console.log(r.same ? `${r.t.html} embeds ${path.basename(r.t.json)} verbatim` : `${r.t.html}: embedded copy DIFFERS from ${path.basename(r.t.json)}${r.reason ? " (" + r.reason + ")" : ""}`); process.exit(r.same ? 0 : 1); }

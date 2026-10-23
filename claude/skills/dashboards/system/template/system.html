@@ -350,6 +350,8 @@ footer code{color:var(--ink-2)}
   <div class="chips">
     <span class="chip">version <b>x.y.z</b></span>
     <span class="chip">Kotlin/JVM</span>
+    <!-- presenter: the as-is chip takes a date as written, or a time as <time datetime="2026-10-23T01:55:00Z">…</time> (UTC), which the
+         page shows in the viewer's local time with the UTC value as its tooltip (GUIDANCE.md §6, "Times") -->
     <span class="chip">as-is at <b>branch sha</b> · YYYY-MM-DD</span>
     <span class="chip">last amended by <a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener"><b>#N</b></a> issue-slug · sha</span>
     <span class="chip model">C4 model <b>workspace.dsl</b> · <span id="dsl-stats">…</span></span>
@@ -490,9 +492,9 @@ footer code{color:var(--ink-2)}
       <ul><li><code>SeamType</code> — what a consumer overrides or supplies <span class="badge">Stable Core</span></li></ul></div>
     <div class="bubble"><h3>Test levels <small>n classes</small></h3>
       <!-- presenter: test classes per level of the 5-level hierarchy, counted from the testing.<level> packages; one row per level
-           that exists, labelled by its package name (gating … uat), never "L1"…"L5" (GUIDANCE.md §4); width = count / max. Link the test-inspector report (build/reports/test-inspector/index.html) when one exists. -->
+           that exists, labelled by its test level and package name ("L1 gating", "L2 component", … "L4a deterministic", … "L5 UAT"); test levels are not work levels (GUIDANCE.md §4); width = count / max. Link the test-inspector report (build/reports/test-inspector/index.html) when one exists. -->
       <div class="bars" role="table" aria-label="Test classes per testing level">
-        <span class="lbl">gating</span><span class="trk"><span class="fil" style="width:100%"></span></span><span class="val">n</span>
+        <span class="lbl">L1 gating</span><span class="trk"><span class="fil" style="width:100%"></span></span><span class="val">n</span>
       </div>
       <p>Packages <code>….testing.&lt;level&gt;.…</code>; run one level with <code>./gradlew gatingTest</code>, …</p></div>
     <div class="bubble"><h3>Compatibility &amp; versioning</h3>
@@ -607,6 +609,17 @@ workspace "REPO" "One sentence on the repository." {
 
 <script>
 "use strict";
+/* Times (GUIDANCE.md §6, "Times"): stored as UTC ISO stamps; shown in the viewer's own time zone, with the zone's abbreviation,
+   as a <time> whose datetime and title hold the exact UTC value. A date alone stays a date; a stamp with no zone is shown as written.
+   localizeTimes() formats every <time datetime> the page draws, so a stamp written into hand-made HTML is shown the same way. */
+const STAMP_RE=/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})$/;
+const utcIso=s=>{ const d=new Date(String(s).replace(" ","T")); return isNaN(d)?null:d.toISOString().replace(/\.000Z$/,"Z"); };
+const LOCAL_FMT={day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",timeZoneName:"short"};
+const when=v=>{ const s=String(v==null?"":v).trim(), u=STAMP_RE.test(s)&&utcIso(s); return u?`<time datetime="${u}" title="${u} (UTC)">${esc(new Date(u).toLocaleString(undefined,LOCAL_FMT))}</time>`:esc(s); };
+const day=v=>{ const s=String(v==null?"":v).trim(), u=STAMP_RE.test(s)&&utcIso(s); return u?`<time datetime="${u}" title="${u} (UTC)">${esc(new Date(u).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"}))}</time>`:esc(s); };
+function localizeTimes(root){ (root||document).querySelectorAll("time[datetime]").forEach(t=>{ const u=STAMP_RE.test(t.getAttribute("datetime"))&&utcIso(t.getAttribute("datetime")); if(!u||t.dataset.local) return;
+  t.dataset.local="1"; t.title=`${u} (UTC)`; t.textContent=new Date(u).toLocaleString(undefined,LOCAL_FMT); }); }
+window.addEventListener("DOMContentLoaded",()=>localizeTimes());
 const REPO="https://github.com/ORG/REPO";
 const SRC=REPO+"/blob/main/<path to the system's source root>/"; // presenter: every d.files entry links under here
 const NS="http://www.w3.org/2000/svg";

@@ -24,6 +24,7 @@
 // not — or whose template changed since verify/verify-templates.js last verified it.
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const args = process.argv.slice(2);
+require("./cliargs.js").strict(args, { usage: "usage: node check-page.js <page.html> [--auto] [--out <dir>] [--tab <tabId>] [--width n] [--height n] [--theme light|dark] [--frame <px>]", valued: ["out", "tab", "width", "height", "theme", "frame"], flags: ["auto"], min: 1, max: 1 });
 const opt = (name, def) => { const i = args.indexOf("--" + name); return i >= 0 ? args[i + 1] : def; };
 const VALUED = ["--out", "--tab", "--width", "--height", "--theme", "--frame"];
 const page = args.find((a, i) => !a.startsWith("--") && !(i > 0 && VALUED.includes(args[i - 1])));
@@ -41,7 +42,7 @@ if (args.includes("--auto")) {
   modes.forEach(m => {
     const r = cp.spawnSync(process.execPath, [__filename, page, ...rest, ...m], { encoding: "utf8" });
     const lines = (r.stdout || "").trim().split(/\r?\n/), label = m.join(" ") || "light";
-    const bad = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|GIT-IGNORED|FAIL/.test(l));
+    const bad = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|GIT-IGNORED|FAIL/.test(l));
     console.log(`CHECK pass ${label}: ${r.status === 0 ? "PASS" : "FAIL"} · ${(lines.find(l => l.startsWith("screenshot:")) || "").replace("screenshot: ", "")}`);
     bad.forEach(l => console.log("  " + l));
     if (r.status !== 0) failed++;
@@ -90,6 +91,15 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   const c=document.querySelector(".context > h2"), ct=c?c.textContent.trim():"";
   console.log("CHECK context: "+(ct==="Context"?"headed Context":c?"WRONG HEADING '"+ct+"' (must read Context)":"MISSING (no .context section with an h2)"));
   const dead=document.querySelectorAll('a[href="#"]').length; if(dead) console.log("CHECK links: DEAD href=# x"+dead);
+  /* Times (GUIDANCE.md §6): shown in the viewer's local time, the exact UTC value kept in the <time>'s datetime and title. Checked
+     against the UTC source, so the result never depends on the machine's time zone: every <time> holding a zoned stamp has it as
+     its title and does not show it raw, and no zoned ISO stamp is left as plain text (code, pre and the Source view excepted). */
+  const ZS=/\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?(Z|[+-]\\d{2}:?\\d{2})/;
+  const times=[...document.querySelectorAll("time[datetime]")].filter(t=>ZS.test(t.getAttribute("datetime")));
+  const badT=times.filter(t=>!(t.title||"").includes(t.getAttribute("datetime"))||ZS.test(t.textContent));
+  const raw=[]; const tw=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement&&n.parentElement.closest("script,style,pre,code,time,#p-source")?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
+  while(tw.nextNode()){ const m=ZS.exec(tw.currentNode.nodeValue); if(m) raw.push(m[0]); }
+  console.log("CHECK times: "+times.length+" local"+(badT.length?" · RAW UTC STAMP in a <time> without its UTC title ("+badT.slice(0,3).map(t=>t.getAttribute("datetime")).join(", ")+")":"")+(raw.length?" · RAW UTC STAMP shown as text ("+raw.slice(0,3).join(", ")+"): render it with when()":""));
   const glow=document.querySelectorAll(".glow").length; console.log("CHECK glow: "+glow+(glow>6?" TOO MANY (at most six elements glow)":""));
   const want=${JSON.stringify(tab)}; const t=want?document.getElementById(want):tabs[0]; if(t) t.click();
   lvScan(document.body.innerText,"page"); console.log("CHECK work levels: "+(lvHits.size?"LEVEL REFERENCE shown ("+[...lvHits].slice(0,6).join("; ")+"): a dashboard never shows a work level":"none shown"));
@@ -150,7 +160,7 @@ const r = cp.spawnSync(browser, ["--headless=new", "--disable-gpu", "--no-first-
   "--allow-file-access-from-files", "--virtual-time-budget=6000", `--window-size=${width},${height}`, `--screenshot=${shot}`, url], { encoding: "utf8", timeout: 120000 });
 // Chrome prints console lines as `[...] "message", source: <url> (<line>)`; keep just the message.
 const lines = (r.stderr || "").split(/\r?\n/).filter(l => /CONSOLE|Uncaught/.test(l)).map(l => l.replace(/^.*CONSOLE[^"]*"/, "").replace(/", source:[\s\S]*$/, "").trim());
-const errors = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE/.test(l));
+const errors = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP/.test(l));
 lines.forEach(l => console.log(l));
 if (regCheck) { if (regCheck.note) console.log("CHECK " + regCheck.note); regCheck.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); }
 console.log(`screenshot: ${shot}`);

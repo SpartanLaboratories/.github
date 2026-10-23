@@ -159,9 +159,10 @@ its build. The seven standard ones:
 - **Extension points** — the public seams with their stability tier (Stable Core / Supported
   Extension / Experimental) and opt-in marker.
 - **Test levels** — test classes per level of the 5-level hierarchy, read from the package
-  layout and labelled by the level's name (gating, component, integration, deterministic, e2e,
-  non-functional, UAT), never "L1"…"L5", which reads as a work level (`GUIDANCE.md` §4); link the
-  test-inspector report if one exists.
+  layout and labelled by the test level and its name ("L1 gating", "L2 component", "L3
+  integration", "L4a deterministic", "L4b e2e", "L4c non-functional", "L5 UAT"); test levels are
+  not work levels and keep their level labels (`GUIDANCE.md` §4); link the test-inspector report
+  if one exists.
 - **Compatibility & versioning** — the current version; how versions move (a trailing letter for
   a bug fix, the third number for an addition); what is checked (an ABI dump where one exists);
   the deprecation policy (deprecate, don't break — or "legacy: may break freely" where that

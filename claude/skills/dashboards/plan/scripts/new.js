@@ -14,6 +14,8 @@ const { repoRoot, opt, registry } = require("./lib.js");
 const { embed } = require("./embed.js");
 
 const args = process.argv.slice(2);
+require("../../system/scripts/cliargs.js").strict(args, { usage: "usage: node new.js <issue> <slug> [--root <repo>] [--parent <folder>] [--kind issue|tracking] [--level n] [--title ...] [--issue-title ...] [--function ...] [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems a,b] [--step <step>] [--repo owner/name]",
+  valued: ["root", "parent", "kind", "level", "title", "issue-title", "function", "baseline", "date", "branch", "systems", "step", "repo"], min: 2, max: 2 });
 const issue = parseInt(args[0], 10), slug = args[1];
 if (!issue || !slug || !/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
   console.error("usage: node new.js <issue> <slug> [--root <repo>] [--parent <folder>] [--kind issue|tracking] [--level n] [--title ...] [--issue-title ...] [--function ...] [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems a,b] [--step <step>] [--repo owner/name]");

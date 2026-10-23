@@ -29,6 +29,18 @@ its ruleset; the shared scale is:
 | **orange** (`--serious`) | changed course | a `deviated` part (the decision itself changed) |
 | **neutral** (ink/grey) | no outcome yet, or not applicable | a `pending` part; a `deferred` part (with its issue); counts and facts |
 
+**The one exception: compatibility on the Impact tab.** On a plan board's Impact tab, red and
+yellow mean **compatibility**, not outcomes, because what a reader needs from that tab first is
+whether the change breaks them. **Red** (`--critical`) is a breaking change: a `breaking`
+downstream effect, a `removed` surface, a required adaptation that breaks a consumer that does
+not make it. **Yellow** (`--warning`) is a deprecation or another non-breaking change worth
+noting: a `deprecated` or `changed` surface, a `behaviour` change, a required adaptation that
+does not break, a lettered or strict-version requirement and the like. Every other entry keeps
+**its system's colour slot**. The cards and their effect, need and API-change badges take these
+colours, always with a glyph and a word; dashed (planned) and solid (as built) read on every one
+of them. Nothing else on that tab is red or yellow: the impact's own "as built, amended" standing
+is drawn neutral there, with its glyph and word. Everywhere else the scale above holds.
+
 **Work in progress and the next one up: two accent marks.** The accent colour marks two things
 and nothing else, each with its own look and its own legend entry:
 
@@ -88,16 +100,19 @@ anything planned is drawn dashed and tagged, and never as built. A plan board's 
 columns are written once and never rewritten to match what happened; the fourth records every
 difference.
 
-**No work levels.** A dashboard never shows an issue's work level: no "level 3", "L3",
+**No work levels.** The rule covers only the **work levels** of the `/resolve-issue` pipeline (level 1
+to 4, the `level: N` label), and nothing else. A dashboard never shows an issue's work level: no "level 3", "L3",
 "level: 2", "a level-3 change" or "escalated to level 4", in a chip, a badge, a column, a chain
 node, a legend, a lede or any text the presenter writes. Say what the work is instead: one
 system, a bug fix, docs only, a tracking issue. The work levels stay in force everywhere else;
 a plan keeps its level as data where a script needs it (`plan.json` `level`, `unit.level`,
 `wip.proposedLevel`), and no page renders those fields, the Source tab included. The test
-levels of the five-level hierarchy and the C4 model's levels are not work levels and are shown
-freely; a test level is labelled by its name or package (gating, component, …), never "L1".
-`plan/scripts/check.js` fails a board whose text names a work level, and the browser pass fails a
-page that shows one (`system/scripts/levelrefs.js` holds the forms).
+levels of the five-level testing hierarchy and the C4 model's levels are not work levels: the rule
+does not touch them, and they keep their level labels — "L1 gating", "L2 component", "L4a
+deterministic", "L5 UAT", "Level 2 — component", "Level 1 · System Context". `plan/scripts/check.js`
+fails a board whose text names a work level, and the browser pass fails a page that shows one
+(`system/scripts/levelrefs.js` holds the forms; it matches work-level forms only, never a test
+level's or a C4 level's label, and never "Level 3" alone).
 
 ## 5. Context, roadmap, work
 
@@ -128,6 +143,16 @@ Each template is checked for this once, in a headless browser, in light and dark
 width (520 px is the narrowest headless Chrome lays out; the real phone width is verified
 through the checker's iframe harness) and on a 1920 x 1080 desktop; a page inherits it from its
 template, and is checked again only where it diverges (§8).
+
+**Times.** The data keeps every time as a UTC ISO stamp (`2026-10-23T01:55:00Z`), as now. A page
+shows each one in the viewer's own time zone, with the zone's abbreviation ("23 Oct 2026, 03:55
+CEST", or the locale's equivalent), as a `<time>` whose `datetime` and `title` hold the exact UTC
+value. This covers every time a page shows: the WIP strip's since and updated, the units' run
+mirrors, the trail, milestones, the work board's generated stamp, and an as-is stamp where it
+carries a time. A date alone stays a date. Hand-written HTML (a system page's header or panels)
+writes a time as `<time datetime="…Z">…</time>` and the page localises it. The checks never depend
+on the machine's time zone: they compare against the UTC source, and the browser pass fails a
+zoned ISO stamp left as plain text outside code and the Source view.
 
 ## 7. Divergence
 

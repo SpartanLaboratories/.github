@@ -1260,5 +1260,99 @@
   },
   "issueBoards": {
     "52": "../52-client-handshake-validation/dashboard.html"
+  },
+  "impact": {
+    "basis": "as-built",
+    "summary": "Verification case: the sub-issue fixture's impact, as built, with one entry of each compatibility colour: breaking (red), worth noting (yellow) and compatible (the system's colour).",
+    "none": null,
+    "release": {
+      "bump": "major",
+      "version": "webtools-udp 3.0.0",
+      "note": "Verification case: the release a breaking change rides in"
+    },
+    "downstream": [
+      {
+        "who": "Verification case: server applications overriding `admit`",
+        "kind": "consumer",
+        "effect": "breaking",
+        "system": "webtools-udp",
+        "summary": "Verification case: the override's signature changes, so an override written for the old one no longer compiles.",
+        "link": null
+      },
+      {
+        "who": "Verification case: library clients",
+        "kind": "consumer",
+        "effect": "behaviour",
+        "system": "webtools-udp",
+        "summary": "Verification case: an empty name fails at once instead of timing out.",
+        "link": null
+      },
+      {
+        "who": "Verification case: operators",
+        "kind": "operator",
+        "effect": "additive",
+        "system": null,
+        "summary": "Verification case: one new WARN line per malformed handshake.",
+        "link": null
+      }
+    ],
+    "adaptation": [
+      {
+        "who": "Verification case: server applications",
+        "need": "required",
+        "compat": "breaking",
+        "system": "webtools-udp",
+        "summary": "Verification case: move each `admit` override to the new signature; an override left as it was breaks the build.",
+        "link": null
+      },
+      {
+        "who": "Verification case: consumers pinning `2.0.0a`",
+        "need": "optional",
+        "compat": "notable",
+        "system": "webtools-udp",
+        "summary": "Verification case: a lettered release orders below `2.0.0`; pin it with `strictly` where the graph also asks for `2.0.0`.",
+        "link": null
+      }
+    ],
+    "api": [
+      {
+        "surface": "Verification case: `MultiConnectionUDPServer.admit(name)`",
+        "change": "removed",
+        "tier": "stable-core",
+        "system": "webtools-udp",
+        "summary": "Verification case: the one-argument form is gone; `admit(name, credential)` replaces it.",
+        "link": null
+      },
+      {
+        "surface": "Verification case: `HandshakeDefect.label`",
+        "change": "deprecated",
+        "tier": "stable-core",
+        "system": "webtools-udp",
+        "summary": "Verification case: deprecated in favour of `HandshakeDefect.code`.",
+        "link": null
+      },
+      {
+        "surface": "Verification case: `REFUSED` reply to a malformed `Iam`",
+        "change": "added",
+        "tier": "stable-core",
+        "system": "webtools-udp",
+        "summary": "Verification case: a new reply on the wire, documented in the protocol doc.",
+        "link": null
+      }
+    ],
+    "conversion": [
+      {
+        "what": "Verification case: move every `admit` override to `admit(name, credential)` before taking `3.0.0`.",
+        "compat": "breaking",
+        "link": null
+      },
+      {
+        "what": "Verification case: replace `HandshakeDefect.label` with `.code`.",
+        "link": null
+      }
+    ],
+    "changes": [],
+    "source": null,
+    "link": null
   }
 }
