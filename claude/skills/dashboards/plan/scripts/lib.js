@@ -112,9 +112,164 @@ function linkSubIssueBoards(plan, dir) {
   return changes;
 }
 
-/* The marker of a template that routes a sub-issue's links to its board (plan/RULES.md §1): the plan board and the work board
-   both declare this map. A page without it links every #n to GitHub. */
+/* The repository root of the tree that holds a folder: the first ancestor with docs/plans, or null. */
+function treeRoot(dir) {
+  for (let d = path.resolve(dir); ; d = path.dirname(d)) { if (fs.existsSync(path.join(d, "docs", "plans"))) return d; if (path.dirname(d) === d) return null; }
+}
+/* Every issue folder under docs/plans/ of a tree that holds a board: { issue, dir } for each <issue>-<slug>/ with a dashboard.html,
+   in name order, parents before their children. */
+function boardFolders(root) {
+  const base = path.join(root, "docs", "plans"), found = [];
+  const walk = dir => {
+    let ents = []; try { ents = fs.readdirSync(dir, { withFileTypes: true }); } catch (e) { return; }
+    ents.sort((a, b) => a.name.localeCompare(b.name)).forEach(d => {
+      if (!d.isDirectory() || d.name.startsWith("_") || d.name.startsWith(".") || d.name === "research" || d.name === "superseded") return;
+      const p = path.join(dir, d.name), m = d.name.match(/^(\d+)-/);
+      if (m && fs.existsSync(path.join(p, "dashboard.html"))) found.push({ issue: parseInt(m[1], 10), dir: p });
+      walk(p);
+    });
+  };
+  if (fs.existsSync(base)) walk(base);
+  return found;
+}
+const boardLink = (from, toDir) => path.relative(path.resolve(from), path.join(toDir, "dashboard.html")).split(path.sep).join("/");
+
+/* The parent tracking issue's board, seen from a sub-issue's board in `dir` (plan/RULES.md §1, "Links to an issue's board"): the
+   enclosing folder, when it is the parent's <issue>-<slug>/ and holds dashboard.html. Returns { board: "../dashboard.html" } or
+   null, so the parent is linked to its board only when that file exists. */
+function parentBoard(dir, parent) {
+  if (!parent || !Number.isInteger(parent.issue) || parent.issue <= 0) return null;
+  const up = path.dirname(path.resolve(dir));
+  return path.basename(up).startsWith(parent.issue + "-") && fs.existsSync(path.join(up, "dashboard.html")) ? { board: "../dashboard.html" } : null;
+}
+
+/* Every issue a plan board names, where the page names it (plan/RULES.md §1): one entry per place, { n, repo, at, how, place,
+   since }. how is "field" (a number the page links: the parent, a unit, a roadmap item, a follow-up, a blocker, a deferred part's
+   issue, an ancestor folder in the breadcrumb), "text" (a #n or an owner/repo#n of its own repo outside `code` spans, in a field
+   the page renders as linked text) or "url" (a GitHub URL of the issue written in the data, which the page links to GitHub
+   whatever the rule). since is the template rule that first linked the place to a board: "sub" for the sub-issue rule (the
+   SUB_BOARDS map: a unit's row, chain, inspector and roadmap entry, and every #n the page links), "issue" for the widened rule
+   (the ISSUE_BOARDS map: the parent, the breadcrumb, the roadmap of an issue board, and the WIP strip's unit lines and "blocked
+   by" tags and the deferred badge, which were plain text before). Names, ids, paths, states, dates and titles are written
+   without links and skipped; "PR #n" is a pull request, never an issue. Approximate by design: it names the places a reader
+   clicks. */
+const ISSUE_UNLINKED = new Set(["$comment", "schema", "repo", "slug", "folder", "kind", "status", "id", "where", "title", "system", "slot", "top", "page", "board",
+  "branch", "step", "steps", "since", "updated", "state", "verdict", "column", "date", "sha", "merge", "version", "pr", "files", "n", "level", "current", "next",
+  "resume", "qa", "qaMax", "pass", "findings", "landing", "chosen", "settles", "when", "issueBoards"]);
+const reEsc = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const UNIT_LANDED = ["landed", "as-planned", "amended", "deviated"];
+function issueRefs(plan) {
+  const out = [];
+  if (!plan || typeof plan !== "object") return out;
+  const repo = plan.repo || "", tracking = plan.kind === "tracking";
+  // plain: the place was plain text, not a link at all, before the widened rule (the WIP strip's unit lines, the "blocked by"
+  // tags, the deferred badge); crumb: the breadcrumb, which linked every ancestor's board whether or not it existed
+  const add = (n, at, place, since, how, r, flags) => { if (Number.isInteger(n) && n > 0 && (!r || r === repo)) out.push({ n, repo: r || null, at, how: how || "field", place, since: since || "issue", ...(flags || {}) }); };
+  /* fields */
+  String(plan.folder || "").split("/").filter(Boolean).slice(2, -1).forEach(s => { const m = s.match(/^(\d+)-/); if (m) add(parseInt(m[1], 10), "folder", "the breadcrumb", "issue", "field", null, { crumb: true }); });
+  if (plan.parent) add(plan.parent.issue, "parent.issue", 'the header\'s "part of" chip', "issue");
+  const rm = plan.roadmap;
+  if (!tracking && rm) { add(rm.issue, "roadmap.issue", "the Context roadmap", "issue"); (rm.items || []).forEach((x, i) => add(x.issue, `roadmap.items[${i}]`, "the Context roadmap", "issue")); }
+  (plan.followUps || []).forEach((f, i) => add(f.issue, `followUps[${i}]`, `followUps[${i}] in Context`, "sub", "field", f.repo));
+  const w = plan.wip || {}, bl = w.blockers || {};
+  ["waitsOn", "blocks"].forEach(k => (bl[k] || []).forEach((x, i) => add(x.issue, `wip.blockers.${k}[${i}]`, `the WIP strip's ${k === "waitsOn" ? "waits on" : "blocks"}`, "sub", "field", x.repo)));
+  const rows = Array.isArray(plan.rows) ? plan.rows : [], units = rows.filter(r => r.unit && Number.isInteger(r.unit.issue));
+  rows.forEach(r => { const b = r.asBuilt || {}; if (!Number.isInteger(b.issue)) return;
+    add(b.issue, `rows(${r.id}).asBuilt.issue`, `the inspector's "moved to" of ${r.id}`, "sub");
+    if (b.state === "deferred") add(b.issue, `rows(${r.id}).asBuilt.issue`, `the "deferred → #${b.issue}" badge of ${r.id}`, "issue", "field", null, { plain: true }); });
+  if (tracking) {
+    const live = !["built", "abandoned"].includes(plan.status) && !["landed", "cancelled"].includes(w.step);
+    const cur = Array.isArray(w.current) ? w.current : [], inCur = r => cur.some(a => String(a).split(".")[0] === r.id);
+    const stateOf = r => (r.asBuilt || {}).state || "pending";
+    units.forEach(r => {
+      const n = r.unit.issue;
+      add(n, `rows(${r.id}).unit.issue`, `the unit row's label (${r.id})`, "sub");
+      add(n, `rows(${r.id}).unit.issue`, "the Context roadmap", "sub");
+      add(n, `rows(${r.id}).unit.issue`, `the inspector's unit entry (${r.id})`, "sub");
+      (r.unit.blockedBy || []).forEach((m, j) => add(m, `rows(${r.id}).unit.blockedBy[${j}]`, `the inspector's "blocked by" of ${r.id}`, "sub"));
+      if (live && inCur(r)) add(n, `rows(${r.id}).unit.issue`, `the WIP strip's "In progress" line`, "issue", "field", null, { plain: true });
+    });
+    const nx = live && w.next ? units.find(r => r.id === w.next && !inCur(r) && stateOf(r) === "pending") : null;
+    if (nx) {
+      add(nx.unit.issue, `rows(${nx.id}).unit.issue`, `the WIP strip's "Up next" line`, "issue", "field", null, { plain: true });
+      (nx.unit.blockedBy || []).filter(m => { const b = units.find(x => x.unit.issue === m); return !(b && UNIT_LANDED.includes(stateOf(b))); })
+        .forEach(m => add(m, `rows(${nx.id}).unit.blockedBy`, `the "blocked by" tags of the unit up next (${nx.id})`, "issue", "field", null, { plain: true }));
+    }
+  }
+  /* text: a tracking board does not render plan.roadmap (it draws its own from the units) */
+  const skipTop = new Set(["asBuilt", "baseline", "parent", "systems", ...(tracking ? ["roadmap"] : [])]);
+  const scan = (v, at, ctx) => {
+    if (typeof v === "string") {
+      if (/\.ref$/.test(at) && /^PR #?\d+$/i.test(v.trim())) return;
+      v.split("`").forEach((x, i) => { if (i % 2) return;
+        const re = /(^|[\s(>;,])(?:(PR )#\d+|([\w.-]+\/[\w.-]+)#(\d+)|#(\d+))\b/g; let m;
+        while ((m = re.exec(x))) { if (m[2]) continue; const n = parseInt(m[4] || m[5], 10); add(n, at, `#${n} in ${at}`, "sub", "text", m[3] || null); } });
+      const ure = new RegExp(`github\\.com/${reEsc(repo)}/issues/(\\d+)\\b`, "g"); let u;
+      while ((u = ure.exec(v))) add(parseInt(u[1], 10), at, `${at} (a GitHub URL written in the data)`, "sub", "url");
+    } else if (Array.isArray(v)) v.forEach((x, i) => scan(x, `${at}[${i}]`, ctx));
+    else if (v && typeof v === "object") Object.keys(v).forEach(k => {
+      if (ISSUE_UNLINKED.has(k) || (at === "" && skipTop.has(k))) return;
+      if (k === "name" && ctx !== "options") return;   // a row's name is plain text; an option's is linked text in the decision log
+      if (k === "label" && ctx !== "trail") return;    // a milestone's or document's label is plain; a trail entry's is linked text
+      scan(v[k], at ? `${at}.${k}` : k, k);
+    });
+  };
+  scan(plan, "", null);
+  return out;
+}
+
+/* The boards of the other issues a plan board names (plan/RULES.md §1): every issue in issueRefs (fields and text) that is neither
+   this issue, nor its parent (parent.board), nor a unit of this tracking board (unit.board), and whose board's dashboard.html is
+   in this tree, anywhere under docs/plans/. Returns { "<n>": "<path relative to dir>" } in issue order; {} outside a tree. */
+function otherBoards(plan, dir) {
+  const root = treeRoot(dir), want = {};
+  if (!root || !plan) return want;
+  const self = path.resolve(dir), par = plan.parent && plan.parent.issue;
+  const units = new Set(plan.kind === "tracking" ? (plan.rows || []).filter(r => r.unit).map(r => r.unit.issue) : []);
+  const named = [...new Set(issueRefs(plan).filter(r => r.how !== "url").map(r => r.n))].sort((a, b) => a - b);
+  if (!named.length) return want;
+  const all = boardFolders(root);
+  named.forEach(n => {
+    if (n === plan.issue || n === par || units.has(n)) return;
+    const hit = all.find(b => b.issue === n && path.resolve(b.dir) !== self);
+    if (hit) want[String(n)] = boardLink(dir, hit.dir);
+  });
+  return want;
+}
+
+/* Link every issue a plan board names to that issue's board, from the folders on disk (embed.js runs it before embedding, so
+   nobody writes these links by hand; plan/RULES.md §1): a tracking board's units (unit.board, linkSubIssueBoards), the parent
+   (parent.board: "../dashboard.html" when the enclosing folder is the parent's and holds its board, else null), and every other
+   issue it names (issueBoards: { "<n>": path }, present only while one is linked). A link is made only to a file that exists, and
+   cleared when the file is gone. Returns one line per change. */
+function linkIssueBoards(plan, dir) {
+  const changes = linkSubIssueBoards(plan, dir);
+  if (!plan) return changes;
+  if (plan.parent && Number.isInteger(plan.parent.issue)) {
+    const hit = parentBoard(dir, plan.parent), want = hit ? hit.board : null;
+    if ((plan.parent.board || null) !== want) {
+      changes.push(`parent #${plan.parent.issue}: parent.board ${plan.parent.board ? JSON.stringify(plan.parent.board) : "unset"} → ${want ? JSON.stringify(want) : "null (the enclosing folder holds no board of #" + plan.parent.issue + ")"}`);
+      plan.parent.board = want;
+    }
+  }
+  const want = otherBoards(plan, dir), have = plan.issueBoards && typeof plan.issueBoards === "object" ? plan.issueBoards : {};
+  if (JSON.stringify(have) !== JSON.stringify(want) || ("issueBoards" in plan && !Object.keys(want).length)) {
+    new Set([...Object.keys(have), ...Object.keys(want)]).forEach(n => { if (have[n] !== want[n]) changes.push(`#${n}: issueBoards ${have[n] ? JSON.stringify(have[n]) : "unset"} → ${want[n] ? JSON.stringify(want[n]) : "removed (no board in this tree)"}`); });
+    if (Object.keys(want).length) plan.issueBoards = want; else delete plan.issueBoards;
+    if (!changes.length) changes.push(Object.keys(want).length ? "issueBoards: put in issue order" : "issueBoards: empty, removed");
+  }
+  return changes;
+}
+
+/* The markers of the templates that route an issue's links to its board (plan/RULES.md §1). SUB_BOARDS: the sub-issue rule (a
+   tracking board's units; on the work board, every sub-issue with a board). ISSUE_BOARDS: the widened rule (every issue the page
+   names that has a board: the parent, the units, every other issue; the WIP strip's unit lines and "blocked by" tags linked). A
+   page with neither links every #n to GitHub. */
 const SUB_BOARD_MARKER = "const SUB_BOARDS=";
+const ISSUE_BOARD_MARKER = "const ISSUE_BOARDS=";
+/* The link rule a page's template implements: 2 the widened rule, 1 the sub-issue rule, 0 neither. */
+const linkRule = html => html.includes(ISSUE_BOARD_MARKER) ? 2 : html.includes(SUB_BOARD_MARKER) ? 1 : 0;
 
 const skillDir = path.resolve(__dirname, "..");
-module.exports = { repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards, SUB_BOARD_MARKER, skillDir };
+module.exports = { repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+  treeRoot, boardFolders, boardLink, parentBoard, issueRefs, otherBoards, linkIssueBoards, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

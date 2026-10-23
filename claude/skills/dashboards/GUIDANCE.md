@@ -91,8 +91,9 @@ Below the main content, a section headed **Context** (never "secondary") holds t
 with each item's issues mapped under it, the unscheduled issues no roadmap item claims, and
 the plans and documents. System pages and plan boards link each other both ways: a system
 page's Context lists the plan boards that amended it; a plan board names its systems and
-links their pages; the repository page links the work board. A board that tracks sub-issues
-links each one to the sub-issue's own board wherever it names it, and to the issue page only
+links their pages; the repository page links the work board. Every issue reference on a board
+or the work board — a sub-issue, the parent tracking issue, a sibling, a blocker, a follow-up,
+any `#n` in its text — links that issue's own board when one exists, and its issue page only
 while no such board exists; a link never points at a file that is not there (`plan/RULES.md`
 §1).
 
