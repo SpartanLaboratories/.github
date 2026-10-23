@@ -121,7 +121,8 @@ lane at a time. Read its report, append the outcome to the ledger, reply.
   `needs-rework` naming the overlap, and leave the request queued as
   not-ready until the requester sends the same `id` with a higher `attempt`
   and a fresh `qa`. The pipeline re-verifies with the change's own tests; you
-  never run a change's tests, and you never edit code to resolve a conflict.
+  never run a change's tests, and you never edit code to resolve a conflict
+  (generated board files are the one exception: Board lanes).
   A clean sync with no overlap proceeds.
 - **Landing refresh.** After the merge, in the same lane, spawn `presenter`
   (`subagent_type: "presenter"`) in its **landing-refresh** mode on the merged
@@ -196,7 +197,16 @@ real time; every other dashboard request runs in its repository's lane.
 - **No commits.** A board update or creation writes the issue's board in its
   worktree and nothing is committed. The issue's board files
   (`dashboard.html`, `plan.json`) are committed by the issue's `land`, with
-  its other commits on the issue branch.
+  its other commits on the issue branch, and so are its parent tracking
+  board's files, which every sub-issue event re-embeds (the mirror of the
+  sub-issue's run).
+- **Board-file conflicts.** When a sync or a landing meets a conflict that
+  touches only generated board files (`plan.json`, `dashboard.html` under
+  `docs/plans/`, the work board), it is not `needs-rework`: `presenter`
+  regenerates those files from the merged documents and boards (`embed.js`,
+  `board.js`) and the executor commits the result. This is the one exception
+  to never editing to resolve a conflict; any other file in the conflict
+  makes it `needs-rework` as usual.
 - **Landings.** A `land` waits for any in-flight update or creation of its
   issue's board to finish, so no half-written file is committed. While the
   land runs, the update lane leaves that board alone: events for it are
