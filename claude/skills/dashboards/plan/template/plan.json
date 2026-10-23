@@ -1,5 +1,5 @@
 {
-  "$comment": "The plan board's data model (plan/RULES.md §2-§3). new.js copies this file, fills the header fields, and empties rows, milestones, trail, followUps and documents; every value still written <like this> is a placeholder that check.js refuses. The three rows show the shapes: an issue board's row (all four option verdicts), a Left-for-later row, and a tracking board's unit row (kind tracking only). Links to other issues' boards are never written by hand: embed.js sets parent.board (on a sub-issue's board, {\"issue\": n, \"board\": \"../dashboard.html\" or null}), each unit's unit.board, and issueBoards ({\"<issue>\": \"<path to its dashboard.html>\"} for every other issue the board names whose board exists in the tree), from the folders on disk (plan/RULES.md §1). Delete every $comment.",
+  "$comment": "The plan board's data model (plan/RULES.md §2-§3). new.js copies this file, fills the header fields, and empties rows, milestones, trail, followUps and documents; every value still written <like this> is a placeholder that check.js refuses. The three rows show the shapes: an issue board's row (all four option verdicts), a Left-for-later row, and a tracking board's unit row (kind tracking only). Links to other issues' boards are never written by hand: embed.js sets parent.board (on a sub-issue's board, {\"issue\": n, \"board\": \"../dashboard.html\" or null}), each unit's unit.board, and issueBoards ({\"<issue>\": \"<path to its dashboard.html>\"} for every other issue the board names whose board exists in the tree), from the folders on disk (plan/RULES.md §1). On a tracking board, embed.js also writes unit.live on each unit in wip.current: a mirror of that sub-issue board's run (its wip step, since, updated, detail, steps, waitingOn, resume, qa, qaMax, and its status and branch), refreshed at every embed of either board and never written by hand (plan/RULES.md §3). level, unit.level and wip.proposedLevel keep the work level as data only, for the scripts: no page shows them, and no text on a board names a work level (GUIDANCE.md §4; check.js fails it). Delete every $comment.",
   "schema": "plan-board/1",
   "repo": "<owner/name>",
   "issue": 0,
@@ -19,7 +19,7 @@
     {"slug": "<registry slug>", "name": "<registry name>", "slot": 1, "top": "<the top-level system's name>", "status": "built", "page": "docs/dashboards/<slug>/index.html"}
   ],
   "wip": {
-    "$comment": "step: sizing | interview | research | architecture | plan | branch | implementation | qa | remediation | landing | landed | halted | escalated | cancelled. current: <row-id>.<column> addresses or a column name (gap, considered, verdict, built), the work in progress; at most six. next: on a tracking board only, the id of the next unit in landing order (the first unit row that is pending and not in current), or null when none is left; it is kept so at every landing and every unit start, so the board always names what is coming. While halted: resume (the step to return to) and waitingOn. qa[].verdict: approved | changes-requested | running. blockers from the tracker's blocked-by links; repo only when another repository's.",
+    "$comment": "step: sizing | interview | research | architecture | plan | branch | implementation | qa | remediation | landing | landed | halted | escalated | cancelled. current: <row-id>.<column> addresses or a column name (gap, considered, verdict, built), the work in progress; at most six. next: on a tracking board only, the id of the next unit in landing order (the first unit row that is pending and not in current), or null when none is left; it is kept so at every landing and every unit start, so the board always names what is coming. On a tracking board, step is the tracking issue's own phase: implementation while its units run (each unit's own step is in its row's unit.live), never a unit's step. While halted: resume (the step to return to) and waitingOn. qa[].verdict: approved | changes-requested | running. blockers from the tracker's blocked-by links; repo only when another repository's.",
     "step": "research",
     "since": "<YYYY-MM-DD or an ISO date-time>",
     "updated": "<ISO date-time of this board update>",
@@ -110,13 +110,38 @@
       "options": [
         {"id": "<option-id>", "name": "<the architecture's design for the unit>", "verdict": "accepted", "why": "<why>", "source": "<architecture.md §…>"}
       ],
-      "verdict": {"kind": "build", "summary": "<the unit's scope from the decomposition>", "defense": "<its level and why>", "steps": [], "tests": ["<levels the unit's plan must cover>"], "leaves": ["<what it leaves to other units>"], "risks": [], "source": "<architecture.md §…>", "link": "<architecture.md#decomposition>"},
+      "verdict": {"kind": "build", "summary": "<the unit's scope from the decomposition>", "defense": "<why the unit is scoped as it is: one system, a bug fix, docs only; never its work level>", "steps": [], "tests": ["<the test levels the unit's plan must cover>"], "leaves": ["<what it leaves to other units>"], "risks": [], "source": "<architecture.md §…>", "link": "<architecture.md#decomposition>"},
       "asBuilt": {"state": "pending", "summary": ""}
     }
   ],
+  "impact": {
+    "$comment": "The Impact tab (plan/RULES.md §2, Impact). new.js sets impact to null; the plan-accepted event writes it from impact.md (and plan.md where it states API or migration facts) with basis plan; the landed event reconciles it from final-implementation.md and the reconciled impact.md with basis as-built, keeping each difference from the planned impact in changes[]. none: a plain statement that no downstream impact is recorded, and why, when that is the case (common at level 2; a level-3 change with release.bump none says so). release.bump: none | fix | feat | major. downstream[].kind: consumer | system | repository | artifact | operator; effect: none | additive | behaviour | breaking. adaptation[].need: none | optional | required. api[].change: added | changed | deprecated | removed; tier: stable-core | supported-extension | experimental | internal | null (not stated). conversion[] is ordered. system: a registry slug in systems, or null for a party outside the repository's systems. units[] (tracking boards only): one entry per unit row id, summarising that unit's own impact; the page links the unit's board. Summaries and links only: no listings.",
+    "basis": "plan",
+    "summary": "<two to four lines: what the change means outside itself>",
+    "none": null,
+    "release": {"bump": "fix", "version": "<artifact version>", "note": "<optional>"},
+    "downstream": [
+      {"who": "<the party affected>", "kind": "consumer", "system": "<registry slug, or null>", "effect": "behaviour", "summary": "<what it sees, before and after>", "link": "<impact.md#section-anchor>"}
+    ],
+    "adaptation": [
+      {"who": "<the party that must adapt>", "system": "<registry slug, or null>", "need": "required", "summary": "<what it must change>", "link": "<impact.md#section-anchor>"}
+    ],
+    "api": [
+      {"surface": "<the public type or member, in `code`>", "system": "<registry slug>", "change": "added", "tier": "stable-core", "summary": "<what moves>", "link": "<plan.md#section-anchor>"}
+    ],
+    "conversion": [
+      {"what": "<one migration step, in order>", "link": "<impact.md#section-anchor>"}
+    ],
+    "units": [
+      {"unit": "<unit row id>", "basis": "plan", "summary": "<the unit's own impact in a sentence or two>", "release": {"bump": "none", "version": null}, "source": "<NN-slug/impact.md>", "link": "<NN-slug/impact.md#section-anchor>"}
+    ],
+    "changes": [{"what": "<what moved from the planned impact>", "why": "<why>", "when": "<the stage or review round>", "ref": "<sha>"}],
+    "source": "impact.md",
+    "link": "<impact.md#section-anchor>"
+  },
   "roadmap": null,
   "followUps": [
-    {"issue": 0, "note": "<how it relates>"},
+    {"issue": 0, "title": "<the issue's title, optional: with it the number opens the GitHub issue and the title its board>", "note": "<how it relates>"},
     {"name": "<an unfiled follow-up's name>", "note": "<what it would do>"}
   ],
   "documents": [
