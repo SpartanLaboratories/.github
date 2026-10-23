@@ -1,5 +1,5 @@
 {
-  "$comment": "The plan board's data model (plan/RULES.md §2-§3). new.js copies this file, fills the header fields, and empties rows, milestones, trail, followUps and documents; every value still written <like this> is a placeholder that check.js refuses. The three rows show the shapes: an issue board's row (all four option verdicts), a Left-for-later row, and a tracking board's unit row (kind tracking only). Delete every $comment.",
+  "$comment": "The plan board's data model (plan/RULES.md §2-§3). new.js copies this file, fills the header fields, and empties rows, milestones, trail, followUps and documents; every value still written <like this> is a placeholder that check.js refuses. The three rows show the shapes: an issue board's row (all four option verdicts), a Left-for-later row, and a tracking board's unit row (kind tracking only). Links to other issues' boards are never written by hand: embed.js sets parent.board (on a sub-issue's board, {\"issue\": n, \"board\": \"../dashboard.html\" or null}), each unit's unit.board, and issueBoards ({\"<issue>\": \"<path to its dashboard.html>\"} for every other issue the board names whose board exists in the tree), from the folders on disk (plan/RULES.md §1). Delete every $comment.",
   "schema": "plan-board/1",
   "repo": "<owner/name>",
   "issue": 0,

@@ -3,11 +3,12 @@
 //   node embed.js <folder>            a plan folder (plan.json → dashboard.html, block "plan")
 //                                     or docs/plans itself (board.json → index.html, block "board")
 //   node embed.js <folder> --check    exit 1 if the embedded copy differs from the data file
-// On a tracking board it first links each unit to its sub-issue's board (unit.board) where that board's dashboard.html exists
-// in this tree, and clears a link to one that does not (plan/RULES.md §1); plan.json is rewritten only when a link changed.
+// On a plan board it first links every issue the board names to that issue's board where its dashboard.html exists in this tree,
+// and clears a link to one that does not (plan/RULES.md §1): a tracking board's units (unit.board), the parent tracking issue
+// (parent.board) and every other issue (issueBoards). plan.json is rewritten only when a link changed.
 "use strict";
 const fs = require("fs"), path = require("path");
-const { readBlock, writeBlock, linkSubIssueBoards } = require("./lib.js");
+const { readBlock, writeBlock, linkIssueBoards } = require("./lib.js");
 
 function target(dir) {
   if (fs.existsSync(path.join(dir, "plan.json"))) return { json: path.join(dir, "plan.json"), html: path.join(dir, "dashboard.html"), id: "plan" };
@@ -21,13 +22,13 @@ function same(dir) {
   const file = JSON.parse(fs.readFileSync(t.json, "utf8"));
   return { t, same: JSON.stringify(embedded) === JSON.stringify(file) };
 }
-/* A tracking board's unit links are resolved from the folders on disk before it is embedded (lib.js linkSubIssueBoards); plan.json
-   is rewritten first, keeping its line endings, so the page still embeds the committed file verbatim. */
+/* A plan board's issue links are resolved from the folders on disk before it is embedded (lib.js linkIssueBoards); plan.json is
+   rewritten first, keeping its line endings, so the page still embeds the committed file verbatim. */
 function embed(dir) {
   const t = target(dir);
   let json = fs.readFileSync(t.json, "utf8");
   const data = JSON.parse(json); // refuse to embed a file that does not parse
-  const linked = t.id === "plan" ? linkSubIssueBoards(data, dir) : [];
+  const linked = t.id === "plan" ? linkIssueBoards(data, dir) : [];
   if (linked.length) { const eol = /\r\n/.test(json) ? "\r\n" : "\n"; json = (JSON.stringify(data, null, 2) + "\n").replace(/\n/g, eol); fs.writeFileSync(t.json, json); }
   fs.writeFileSync(t.html, writeBlock(fs.readFileSync(t.html, "utf8"), t.id, json));
   return { ...t, bytes: Buffer.byteLength(json), linked };
