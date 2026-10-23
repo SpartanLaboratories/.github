@@ -59,6 +59,12 @@ document paths, dashboard paths, the `qa` verdict — because it has none of
 your context. Requests are coarse: one `land` per change set, not one message
 per commit.
 
+Set `publish: true` on a `land` only when the user asked for a publish this
+run: it lets that release use the Maven Central budget's reserve. You never
+ask for a publish otherwise, and never need to: the team's publisher releases
+every version-bumping landing on its own within the budget, and the reply
+says what it did.
+
 A pipeline's steps map to actions like this:
 
 | Pipeline step | Action |
@@ -87,7 +93,7 @@ wait.
 | `reply` | What you do |
 |---------|-------------|
 | `ack` | Note the lane and position. Nothing else. |
-| `done` | Carry `result` forward (SHAs, PR, merge commit, comment link, worktree path). |
+| `done` | Carry `result` forward (SHAs, PR, merge commit, comment link, worktree path). For a `land`, `result.release` says whether the bump was `published` (coordinates, tags, release URLs), `deferred` (reason, usage) or `failed` (the user decides at the team's console); `none` means no published module moved. |
 | `rejected` | Read `reason`. Fix the request and send it with a **new** `id`. If the reason is a rule you cannot meet, stop and tell the user. |
 | `needs-user` | The team is waiting on the user at its own console or in the Remote Control app. Tell the user so, naming the request and what it waits on, and end your turn. |
 | `needs-rework` | The base moved under files your branch touches (`result.overlap`). Re-verify: re-run the change's own tests, and `qa` if the overlap touches code the change altered; fix what breaks; then resend the same `id` with `attempt + 1` and the fresh `qa` verdict. |

@@ -38,17 +38,17 @@
       "Bash(gh issue create:*)",
       "Bash(gh label:*)",
       "Bash(gh api:*)",
-      "Bash(gh repo view:*)"
+      "Bash(gh repo view:*)",
+      "Bash(./gradlew:*)",
+      "Bash(git tag:*)",
+      "Bash(gh release:*)",
+      "Bash(curl:*)"
     ],
     "deny": [
       "Bash(git push --force:*)",
       "Bash(git push -f:*)",
       "Bash(git push --force-with-lease:*)",
-      "Bash(git reset --hard:*)",
-      "Bash(./gradlew publishAndReleaseToMavenCentral:*)",
-      "Bash(./gradlew publishToMavenCentral:*)",
-      "Bash(gradlew publishAndReleaseToMavenCentral:*)",
-      "Bash(gradlew publishToMavenCentral:*)"
+      "Bash(git reset --hard:*)"
     ]
   }
 }

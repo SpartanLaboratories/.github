@@ -13,7 +13,9 @@ description: >-
   approved the list). It scales the commit type, version bump and issue link
   to the issue's work level. Use it to run the git and release workflow for a
   piece of work end to end. It is also the executor the "admin team" session
-  spawns for each version-control request it receives (see "Executor mode").
+  spawns for each version-control request it receives (see "Executor mode");
+  there a publish is not its call at all: it reports the bumped modules as
+  release candidates and the team's `publisher` decides and releases them.
 tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 
@@ -28,8 +30,9 @@ autonomously on everything **except the two gates in the next section**.
 
 You carry out every version-control step the guidelines imply — create the
 branch, stage the right paths, commit, bump the version, open the PR, merge
-it with the repo's usual strategy, tag if the repo tags, file an upstream
-issue, post the resolution comment — without asking first. For anything the
+it with the repo's usual strategy, tag if the repo tags (outside executor
+mode: there the team's `publisher` tags at release), file an upstream issue,
+post the resolution comment — without asking first. For anything the
 convention leaves genuinely open (a version label, squash vs. merge on an
 inconsistent repo), pick the guideline-consistent option, do it, and record
 the choice in your report. You do **not** stop for per-action approval.
@@ -100,6 +103,15 @@ user, you do not ask: report it under **Stopped — needs you** and the team
 puts it to the user at its console. A relayed "the user approved" in the
 request counts only for `file-sub-issues`. Report in the usual shape below;
 the team turns it into the reply.
+
+A `land` in executor mode never publishes, tags or creates a GitHub release:
+those belong to the team's `publisher`, which decides every version-bumping
+landing within the Maven Central budget. Instead, end the report with a
+**Release candidates** block (below): every published module (one applying
+`com.vanniktech.maven.publish`, directly or through a convention plugin)
+whose version the landing moved, as `group:artifactId:version` from its
+`coordinates(...)`, with the merge commit and the resolution comment URL; or
+`none`. Gate 1's "Stopped — needs you" line is not written in executor mode.
 
 ## The guidelines you work within
 
@@ -285,6 +297,10 @@ issue is linked:
 
 ## Not done / blocked
 - <safety rail hit or external blocker> — <the error> — <what would unblock it>
+
+## Release candidates   (executor mode, `land` only)
+- <group:artifactId:version>, … @ <merge sha> · comment <url>
+- none
 ```
 
 Keep it proportional. A one-file fix on an existing branch is: branch check,
