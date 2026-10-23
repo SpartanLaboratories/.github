@@ -315,6 +315,20 @@ const IMP_BASES = ["plan", "as-built"], IMP_BUMPS = ["none", "fix", "feat", "maj
 const IMP_EFFECTS = ["none", "additive", "behaviour", "breaking"], IMP_NEEDS = ["none", "optional", "required"], IMP_CHANGES = ["added", "changed", "deprecated", "removed"];
 const IMP_TIERS = ["stable-core", "supported-extension", "experimental", "internal"];
 const IMP_LISTS = ["downstream", "adaptation", "api", "conversion"];
+/* Compatibility (GUIDANCE.md §1, the Impact tab's exception): an entry's colour is derived from it (a breaking effect or a removed
+   surface is breaking; a behaviour change, a deprecated or changed surface and a required adaptation are worth noting) and may be
+   raised, never lowered, by "compat". The template's compatOf() is the same rule. */
+const IMP_COMPAT = ["compatible", "notable", "breaking"];
+const compatFloor = (k, x) => k === "downstream" ? (x.effect === "breaking" ? "breaking" : x.effect === "behaviour" ? "notable" : "compatible")
+  : k === "api" ? (x.change === "removed" ? "breaking" : ["deprecated", "changed"].includes(x.change) ? "notable" : "compatible")
+  : k === "adaptation" ? (x.need === "required" ? "notable" : "compatible") : "compatible";
+function compatCheck(k, x, at) {
+  const f = compatFloor(k, x);
+  if (x.compat == null) return f;
+  if (!IMP_COMPAT.includes(x.compat)) { fail(`${at}.compat must be one of ${IMP_COMPAT.join(", ")} (got ${JSON.stringify(x.compat)})`); return f; }
+  if (IMP_COMPAT.indexOf(x.compat) < IMP_COMPAT.indexOf(f)) fail(`${at}.compat "${x.compat}" lowers an entry that is ${f === "breaking" ? "breaking" : "worth noting"} by its ${k === "downstream" ? "effect" : k === "api" ? "change" : "need"}: compat may raise an entry's colour, never lower it`);
+  return IMP_COMPAT.indexOf(x.compat) > IMP_COMPAT.indexOf(f) ? x.compat : f;
+}
 function checkImpact(plan, dir, systems, rows, tracking) {
   const I = plan.impact, hasDoc = fs.existsSync(path.join(dir, "impact.md"));
   if (I == null) { if (hasDoc) warn("impact.md exists in this folder, but the Impact tab is empty (impact is null): fill plan.json impact from it (RULES §2, Impact)"); return; }
@@ -325,10 +339,11 @@ function checkImpact(plan, dir, systems, rows, tracking) {
   if (I.none != null && !str(I.none)) fail("impact.none is a plain statement of why no downstream impact is recorded, or null");
   const sysOk = (s, at) => { if (s != null && (!str(s) || (systems.length && !systems.some(x => x.slug === s)))) warn(`${at}.system "${s}" is not in plan.systems; it is drawn as outside the repository's systems (use null for a party outside them)`); };
   const each = (k, f) => { const v = I[k]; if (v == null) return []; if (!Array.isArray(v)) { fail(`impact.${k} must be an array`); return []; } v.forEach((x, i) => { const at = `impact.${k}[${i}]`; if (!x || typeof x !== "object") fail(`${at} must be an object`); else { f(x, at); checkLink(dir, x.link, `${at}.link`); } }); return v; };
-  const ds = each("downstream", (x, at) => { if (!str(x.who) || !str(x.summary)) fail(`${at}: "who" and "summary" are required`); if (x.kind != null && !IMP_KINDS.includes(x.kind)) fail(`${at}.kind must be one of ${IMP_KINDS.join(", ")}`); if (!IMP_EFFECTS.includes(x.effect)) fail(`${at}.effect must be one of ${IMP_EFFECTS.join(", ")}`); sysOk(x.system, at); });
-  const ad = each("adaptation", (x, at) => { if (!str(x.who) || !str(x.summary)) fail(`${at}: "who" and "summary" are required`); if (!IMP_NEEDS.includes(x.need)) fail(`${at}.need must be one of ${IMP_NEEDS.join(", ")}`); sysOk(x.system, at); });
-  const api = each("api", (x, at) => { if (!str(x.surface) || !str(x.summary)) fail(`${at}: "surface" and "summary" are required`); if (!IMP_CHANGES.includes(x.change)) fail(`${at}.change must be one of ${IMP_CHANGES.join(", ")}`); if (x.tier != null && !IMP_TIERS.includes(x.tier)) fail(`${at}.tier must be one of ${IMP_TIERS.join(", ")}, or null when not stated`); sysOk(x.system, at); });
-  const cv = each("conversion", (x, at) => { if (!str(x.what)) fail(`${at}: "what" (the step) is required`); });
+  const breaking = [];
+  const ds = each("downstream", (x, at) => { if (compatCheck("downstream", x, at) === "breaking") breaking.push(at); if (!str(x.who) || !str(x.summary)) fail(`${at}: "who" and "summary" are required`); if (x.kind != null && !IMP_KINDS.includes(x.kind)) fail(`${at}.kind must be one of ${IMP_KINDS.join(", ")}`); if (!IMP_EFFECTS.includes(x.effect)) fail(`${at}.effect must be one of ${IMP_EFFECTS.join(", ")}`); sysOk(x.system, at); });
+  const ad = each("adaptation", (x, at) => { if (compatCheck("adaptation", x, at) === "breaking") breaking.push(at); if (!str(x.who) || !str(x.summary)) fail(`${at}: "who" and "summary" are required`); if (!IMP_NEEDS.includes(x.need)) fail(`${at}.need must be one of ${IMP_NEEDS.join(", ")}`); sysOk(x.system, at); });
+  const api = each("api", (x, at) => { if (compatCheck("api", x, at) === "breaking") breaking.push(at); if (!str(x.surface) || !str(x.summary)) fail(`${at}: "surface" and "summary" are required`); if (!IMP_CHANGES.includes(x.change)) fail(`${at}.change must be one of ${IMP_CHANGES.join(", ")}`); if (x.tier != null && !IMP_TIERS.includes(x.tier)) fail(`${at}.tier must be one of ${IMP_TIERS.join(", ")}, or null when not stated`); sysOk(x.system, at); });
+  const cv = each("conversion", (x, at) => { if (compatCheck("conversion", x, at) === "breaking") breaking.push(at); if (!str(x.what)) fail(`${at}: "what" (the step) is required`); });
   each("changes", (x, at) => { if (!str(x.what) || !str(x.why)) fail(`${at}: "what" and "why" are required`); if (x.ref && /^[0-9a-f]+$/.test(x.ref) && !SHA.test(x.ref)) fail(`${at}.ref "${x.ref}" is not a commit sha`); });
   if (I.changes && I.changes.length && I.basis !== "as-built") warn("impact.changes records differences from the planned impact, which exist only once it is reconciled (basis as-built)");
   const rel = I.release;
@@ -341,7 +356,7 @@ function checkImpact(plan, dir, systems, rows, tracking) {
   if (plan.level === 3 && bump === "none" && effect) warn("a level-3 change with a downstream effect takes a feat: release; release.bump is none");
   if (plan.level === 3 && bump === "none" && !str(I.none)) warn("a level-3 change with no version bump says explicitly that it has no downstream effect (impact.none)");
   if (plan.level === 3 && bump === "feat" && !effect && str(I.none)) warn("a level-3 change bumps only with a downstream effect, but impact.none says it has none");
-  if ((ds.some(x => x.effect === "breaking") || api.some(x => x.change === "removed")) && bump && bump !== "major") warn("a breaking effect or a removed surface rides in a major release; release.bump is " + bump);
+  if (breaking.length && !tracking && bump && bump !== "major") warn(`a breaking entry (${breaking.slice(0, 3).join(", ")}) rides in a major release; release.bump is ${bump}`);
   if (plan.level === 4 && bump && bump !== "none") warn("a level-4 plan moves no version itself (docs only): its units' releases go in impact.units");
   /* units: tracking boards only, one entry per unit row */
   const us = I.units == null ? [] : Array.isArray(I.units) ? I.units : (fail("impact.units must be an array"), []);
@@ -352,6 +367,7 @@ function checkImpact(plan, dir, systems, rows, tracking) {
     if (!r) { fail(`${at}.unit ${JSON.stringify((e || {}).unit)} names no unit row`); return; }
     if (seen.has(e.unit)) fail(`${at}: a second entry for unit "${e.unit}"`); seen.add(e.unit);
     if (!str(e.summary)) fail(`${at}: summary is required`);
+    compatCheck("unit", e, at);
     if (!IMP_BASES.includes(e.basis)) fail(`${at}.basis must be one of ${IMP_BASES.join(", ")}`);
     if (e.release != null && (typeof e.release !== "object" || !IMP_BUMPS.includes(e.release.bump))) fail(`${at}.release.bump must be one of ${IMP_BUMPS.join(", ")}`);
     if (e.basis === "plan" && UNIT_DONE.includes((r.asBuilt || {}).state)) warn(`${at}: unit "${e.unit}" has landed, but its impact entry is still the plan's: reconcile it from the unit's board (basis as-built)`);
@@ -514,7 +530,9 @@ function report() {
   return out.fail.length ? 1 : 0;
 }
 if (require.main === module) {
-  const args = process.argv.slice(2), dir = args.find((a, i) => !a.startsWith("--") && !(i > 0 && ["--root", "--out"].includes(args[i - 1])));
+  const args = process.argv.slice(2);
+  require("../../system/scripts/cliargs.js").strict(args, { usage: "usage: node check.js <plan-folder | docs/plans> [--root <repo>] [--auto | --browser] [--out <dir>]", valued: ["root", "out"], flags: ["auto", "browser"], min: 1, max: 1 });
+  const dir = args.find((a, i) => !a.startsWith("--") && !(i > 0 && ["--root", "--out"].includes(args[i - 1])));
   if (!dir) { console.error("usage: node check.js <plan-folder | docs/plans> [--root <repo>] [--auto | --browser] [--out <dir>]"); process.exit(2); }
   process.exit(run(dir, args));
 }

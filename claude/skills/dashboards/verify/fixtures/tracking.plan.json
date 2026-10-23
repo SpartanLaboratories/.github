@@ -1260,7 +1260,8 @@
         "system": "webtools",
         "need": "optional",
         "summary": "`1.0.0a` orders below `1.0.0`, so a graph that also asks for `1.0.0` keeps the Java 23 build unless it pins with `strictly`. The README and the release note say so.",
-        "link": "impact.md#1-published-artifacts"
+        "link": "impact.md#1-published-artifacts",
+        "compat": "notable"
       },
       {
         "who": "Implementers of an Experimental seam",
@@ -1268,6 +1269,14 @@
         "need": "required",
         "summary": "Implementing, delegating to or subclassing a seam needs `@OptIn(ExperimentalForInheritanceWebToolsApi::class)`; calling and passing it are Stable Core.",
         "link": "architecture.md#9-extension--stability"
+      },
+      {
+        "who": "Verification case: subclasses of an `HttpFailure` leaf",
+        "need": "required",
+        "compat": "breaking",
+        "system": "webtools-http-core",
+        "summary": "Verification case: a leaf that turns final breaks every consumer that extends it unless the consumer moves to the supplied hook first.",
+        "link": null
       }
     ],
     "api": [
@@ -1302,6 +1311,14 @@
         "tier": "stable-core",
         "summary": "Stable Core with source compatibility only: no ABI dump covers the fixtures variant.",
         "link": "architecture.md#9-extension--stability"
+      },
+      {
+        "surface": "Verification case: `LegacyFeedReader`",
+        "change": "deprecated",
+        "tier": "stable-core",
+        "system": "webtools-feeds",
+        "summary": "Verification case: deprecated in favour of `FeedParser`, kept working until the next major release.",
+        "link": null
       }
     ],
     "conversion": [

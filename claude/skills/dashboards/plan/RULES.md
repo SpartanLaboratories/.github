@@ -137,6 +137,15 @@ the planned impact, as column 4 records them: `what`, `why`, `when`, `ref`), `so
 An entry's `system` is a registry slug from `systems`, or `null` for a party outside the
 repository's systems.
 
+Every entry, a unit's included, may carry `compat` (`compatible` · `notable` · `breaking`), its
+compatibility. It is derived from the entry and the field only **raises** it: a `breaking` effect
+and a `removed` surface are breaking; a `behaviour` effect, a `deprecated` or `changed` surface and
+a `required` adaptation are notable (worth noting); everything else is compatible. The presenter
+sets `compat: "breaking"` on a required adaptation that breaks a consumer that does not make it (or
+a changed surface that breaks), and `compat: "notable"` on an entry worth noting that its fields do
+not show, such as a lettered or strict-version requirement; a conversion step or a unit entry takes
+`compat` alone.
+
 - **Sources.** The issue folder's `impact.md`, which the planner writes while planning and
   reconciles once implementation ends; `plan.md` where it states API or migration facts; and
   `final-implementation.md` for the as-built impact.
@@ -146,13 +155,18 @@ repository's systems.
   impact is reconciled. The `landed` event reconciles the sections from `final-implementation.md`
   and the reconciled `impact.md`, sets `basis` `as-built`, and keeps every difference from the
   planned impact in `changes[]`: the planned impact is never silently rewritten.
-- **The look.** Each entry is a card in its system's colour (muted for a party outside the
-  repository's systems), **dashed** while the impact is the plan's and solid once it is the
-  as-built one. Kinds, effects, needs, API changes and tiers are neutral badges with a glyph and a
-  word: they describe, they are not outcomes. The impact's own standing is a status pill: `…
-  planned impact` (neutral, dashed), `✓ as built` (green: reconciled, no change from the plan) or
-  `+ as built, amended` (yellow: reconciled, its changes listed). The tab's legend lists exactly
-  these.
+- **The look: compatibility first** (`GUIDANCE.md` §1, the Impact tab's exception). A **breaking**
+  entry is a **red** card, a **notable** one a **yellow** card, and a compatible one a card in its
+  system's colour (muted for a party outside the repository's systems). A red or yellow card names
+  its system in a badge, and carries a `✕ breaking` or `⚠ worth noting` pill where none of its
+  badges already says it. Every card is **dashed** while the impact is the plan's and solid once it
+  is the as-built one, whatever its colour. The effect, need and API-change badges take the same
+  colours (`! breaking`, `✕ removed` red; `~ behaviour change`, `⚠ deprecated`, `~ changed`, a
+  required change that does not break, yellow; a required change that breaks, red); kinds and tiers
+  stay neutral. The impact's own standing is a pill: `… planned impact` (neutral, dashed), `✓ as
+  built` (green: reconciled, no change from the plan) or `+ as built, amended` (neutral on this tab,
+  its glyph and word carrying it: reconciled, its changes listed). The tab's legend lists exactly
+  what it drew.
 - **No recorded impact** (common for a small bug fix) is never a hidden tab: the tab states
   plainly "No downstream impact recorded" with the `none` statement and its source; before plan
   acceptance it says nothing is recorded yet and where it will come from. A change with no
@@ -165,6 +179,24 @@ repository's systems.
   `plan`) and reconciles it in its landing refresh (basis `as-built`), from the sub-issue's own
   board and `impact.md`. The initiative's `release.bump` is `none`: a tracking plan moves no
   version itself, and each unit's release is its own.
+
+### The tabs
+
+The board's tabs are **Timeline** (the four columns), **Decisions**, **As built**, **Impact** and
+**Source**; a tracking board adds **Landing Order**. On the Timeline the four phase columns read as
+columns: each stands on its own neutral band under a strong, sticky head (its number, its name, its
+question, its milestone). The bands are layout, not an encoding: they take no colour of their own,
+so system and status colours keep their meanings, and the legend does not list them; the narrow
+layout stacks each row and draws none. A tab's lede is at most one short line, and only for what its
+graphic does not show.
+
+**Landing Order** (tracking boards) draws the units as a dependency graph in landing order: a column
+is the earliest a unit can start, an arrow runs from a unit to the units it blocks. The graph spans
+the full width of the content area, and the inspector sits **under it** on this tab, its sections as
+bubbles left to right in the inspector's own order (what was selected first, then one bubble per
+sub-heading; short ones at the end stacked in one column), wrapping on narrower screens and in one
+column on a phone. Every other tab keeps the inspector beside it. The tab was called Chain; a link to
+`#chain` still opens it.
 
 ## 3. Work in progress
 
@@ -201,6 +233,27 @@ tracking board also the chain of units, the unit in progress and the unit up nex
 change lands, `status` becomes `built`, `wip.step` becomes `landed`, the glow stops, and the
 strip shows the landing (PR, merge commit, version).
 
+**A tracking board's strip is a set of bubbles** once it has units: (1) the tracking issue's own
+phase — its step, steps line and detail — with the chain's progress (landed of all, complete, the
+thin green bar) and the chain of units, its blockers and its landing; (2) one bubble per unit in
+progress, with its own run (below): the run pill, its own steps line, its detail, since and
+updated, its qa passes and its branch; (3) the unit up next, with its UP NEXT tag and a "blocked
+by #n" tag for each blocker that has not landed; (4) **waiting on you**, a yellow bubble shown only
+while the tracking issue or a unit's run is halted, saying what each waits on and where it resumes.
+On a phone they stack in that order; up to 1500 px the phase runs across the row with the others
+beside each other under it; on a wide desktop the phase takes two columns and the others sit beside
+it. An issue's number and its title in a bubble are the pair of §1. The legend runs under them all.
+An issue board keeps its single strip: one run, nothing to separate.
+
+**Branches.** A merged branch is not shown. An issue board names its branch (the header chip)
+until it has landed. A tracking board names its own branch, the one its plan was written on, only
+while that plan is in flight; once the plan has landed — the board's `wip.step` (or the step a halt
+or escalation resumes at) is past `landing`, its `status` is `building` or `built`, `wip.landing`
+records the plan's merge, or a unit has started — no header, strip or work-board row shows it. A
+unit's branch shows while its run is live (its mirror's `branch`, `unit.branch`) and stops once the
+unit has landed. The page and `board.js` derive this from the data; nobody clears a branch by hand,
+and the trail keeps every branch's history.
+
 **The units' own runs (tracking boards).** A tracking board reflects the live state of every
 unit in progress. Two things say where the work is, and they never mix:
 
@@ -225,15 +278,15 @@ unit in progress. Two things say where the work is, and they never mix:
   mirror; `embed.js` clears one that is left. The mirror is generated, never merged: where two
   branches changed it, take either side and re-embed.
 
-The page shows the mirror wherever it shows the unit in progress: on the WIP strip, under the
-unit's "In progress" line, as an accent-ruled block with the unit's step, its own steps line, its
-detail and its qa passes (a yellow rule and "waiting on the user" while its run is halted); in the
+The page shows the mirror wherever it shows the unit in progress: on the WIP strip, in the unit's
+own bubble with an accent edge, its step, its own steps line, its detail and its qa passes (a
+yellow edge, and its question in the "waiting on you" bubble, while its run is halted); in the
 unit's as-built cell and its card on the As built tab, as a run line (`▶ run at <step>`, or
 `⏸ waiting on the user` with the step it resumes at, its latest qa pass, and when the board was
 updated); in the inspector's unit entry, in full; on its chain node, in place of its state; and in the Context roadmap. While a unit's run waits on the user its in-progress mark
 pauses to the ring alone, as the whole board's does while the tracking issue itself is halted
-(`GUIDANCE.md` §1). The tracking strip shows the tracking issue's own phase first, then the chain,
-then each unit in progress with its run, then the unit up next.
+(`GUIDANCE.md` §1). The tracking strip's bubbles run in that order: the tracking issue's own phase
+with the chain, each unit in progress with its run, the unit up next, then waiting on you.
 
 **The chain's progress (tracking boards).** A tracking board's `status` stays `building` from its
 first unit's start to its last unit's landing, so its header does not show it. In place of the
@@ -312,7 +365,7 @@ under `docs/plans/` plus the tracker's open issues (`gh issue list`, sub-issues,
 one row per issue that has a board or a `level:` label (the label only decides which issues are
 rows; no level is written to `board.json` or shown), and one per unit of a tracking board —
 its status, `wip.step` and detail, qa passes, what it waits on, its blockers and what it
-blocks, its branch, and its tracking parent; grouped by tracking issue in landing order, then the
+blocks, its branch (never a merged one, §3), and its tracking parent; grouped by tracking issue in landing order, then the
 rest by age; the in-progress mark on the rows whose runs are active; the same system colours. A
 unit reads `complete` once its row is complete (qa passed, not merged) and `landed` once it has
 landed; a tracking issue's own row shows its chain's progress (§3) in its state cell, from
@@ -345,8 +398,8 @@ identifiers in `` `code` `` spans and issues as `#n` (the page links both); a ce
 stands alone in two to four lines, and the detail link goes to the Markdown section that holds
 the rest. No code listings. Numbers only where they decide something. Never a work level
 (`GUIDANCE.md` §4): no "level 3", "L3" or "a level-3 change" anywhere on a board; say what the
-work is (one system, a bug fix, docs only). A test level is named as a test level ("Level 2
-tests", "the gating level").
+work is (one system, a bug fix, docs only). The rule is about work levels only: a test level keeps
+its level label ("Level 2 — component", "L1 gating", "L4a deterministic"), and so does a C4 level.
 
 ## 8. What `check.js` enforces
 
@@ -375,7 +428,8 @@ text of `plan.json` or `board.json` (`GUIDANCE.md` §4: "level: 2", "L3", "a lev
 "(#61, level 3)", "work level", a verdict's defence that opens "Level 3:"; the forms are in
 `system/scripts/levelrefs.js`, and the browser pass applies them to every tab's rendered text);
 an `impact` that is neither `null` nor an object, a bad `basis`, `release.bump`, `kind`,
-`effect`, `need`, `change` or `tier`, an entry without its `who`/`surface`/`what` and `summary`,
+`effect`, `need`, `change`, `tier` or `compat`, a `compat` that lowers an entry below what its effect, change or need
+makes it (§2, Impact), an entry without its `who`/`surface`/`what` and `summary`,
 a `changes[]` entry without `what` and `why`, a built board whose impact is still the plan's, a
 planned board whose impact claims `as-built`, `impact.units` on a board that is not a tracking
 board, or an entry that names no unit row or repeats one. With `--auto` or `--browser`, a
@@ -389,7 +443,7 @@ Warns: `impact.md` in the folder while the Impact tab is empty (`impact` null, o
 summary and no `none` statement); an `impact.none` that the entries contradict; a release that
 does not fit the work (a change with a downstream effect and no version bump; a change with no
 downstream effect that does not say so in `impact.none`; a bump with no downstream effect; a
-breaking effect or a removed surface outside a major release; a tracking plan that moves a
+breaking entry outside a major release, on an issue board; a tracking plan that moves a
 version itself); `impact.changes` before the impact is reconciled; on a tracking board, a unit
 whose own board records its impact while `impact.units` has no entry for it, and an entry still
 the plan's once its unit has landed; a page with no Impact tab (a template older than the tab:

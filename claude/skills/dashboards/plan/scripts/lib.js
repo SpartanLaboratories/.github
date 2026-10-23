@@ -36,10 +36,13 @@ function registry(root) {
 
 /* GitHub's heading anchors (github-slugger): lower case, punctuation dropped, spaces to hyphens, duplicates numbered. */
 function headingSlugs(md) {
-  const seen = {}, out = new Set(); let fence = false;
+  // A fence closes only on a line of the same character, at least as long as its opener, with nothing after it (CommonMark):
+  // a ``` inside a ```` block (a diff of a Markdown file, say) is content, not a close.
+  const seen = {}, out = new Set(); let fence = null;
   md.split(/\r?\n/).forEach(l => {
-    if (/^\s*(```|~~~)/.test(l)) fence = !fence;
-    if (fence) return;
+    const f = l.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+    if (fence) { if (f && f[1][0] === fence[0] && f[1].length >= fence.length && !f[2].trim()) fence = null; return; }
+    if (f && !(f[1][0] === "`" && f[2].includes("`"))) { fence = f[1]; return; }
     const m = l.match(/^(#{1,6})\s+(.*?)\s*#*\s*$/); if (!m) return;
     let s = m[2].replace(/<[^>]+>/g, "").toLowerCase().replace(/[^\p{L}\p{M}\p{N}\p{Pc} -]/gu, "").replace(/ /g, "-");
     const base = s; if (seen[base] != null) { seen[base]++; s = base + "-" + seen[base]; } else seen[base] = 0;
@@ -334,5 +337,22 @@ const ISSUE_BOARD_MARKER = "const ISSUE_BOARDS=";
 const linkRule = html => html.includes(ISSUE_BOARD_MARKER) ? 2 : html.includes(SUB_BOARD_MARKER) ? 1 : 0;
 
 const skillDir = path.resolve(__dirname, "..");
-module.exports = { repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+/* A merged branch is not shown (plan/RULES.md §3, "Branches"), by the same rule as the template's PLAN_LANDED: an issue board's
+   branch once the board has landed, a tracking board's once its own plan has landed (its wip.step, or the step a halt or an
+   escalation resumes at, is past "landing"; its status is building or built; wip.landing records the plan's merge; or a unit has
+   started). The branch a board shows, or null. */
+function shownBranch(plan) {
+  if (!plan || !plan.branch) return null;
+  const w = plan.wip || {}, step = ["halted", "escalated"].includes(w.step) ? (w.resume || w.last || "") : w.step;
+  if (plan.status === "built" || w.step === "landed") return null;
+  if (plan.kind === "tracking") {
+    const cur = (w.current || []).map(a => String(a).split(".")[0]);
+    const started = (plan.rows || []).some(r => r.unit && (((r.asBuilt || {}).state || "pending") !== "pending" || cur.includes(r.id)));
+    if (["building", "built"].includes(plan.status) || ["implementation", "landed"].includes(step) || (w.landing && (w.landing.pr || w.landing.merge)) || started) return null;
+  }
+  return plan.branch;
+}
+/* A unit's branch on the work board: shown until the unit has landed. */
+const unitBranch = row => row && row.unit && row.unit.branch && !UNIT_LANDED.includes((row.asBuilt || {}).state) ? row.unit.branch : null;
+module.exports = { shownBranch, unitBranch, repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, parentFolder, staleUnitRuns, stampMs, treeRoot, boardFolders, boardLink, parentBoard, issueRefs, otherBoards, linkIssueBoards, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

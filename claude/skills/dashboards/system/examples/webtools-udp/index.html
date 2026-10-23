@@ -350,6 +350,8 @@ footer code{color:var(--ink-2)}
     <span class="chip">wire protocol <b>2</b></span>
     <span class="chip">common port <b>9998</b></span>
     <span class="chip">Kotlin/JVM</span>
+    <!-- presenter: the as-is chip takes a date as written, or a time as <time datetime="2026-10-23T01:55:00Z">…</time> (UTC), which the
+         page shows in the viewer's local time with the UTC value as its tooltip (GUIDANCE.md §6, "Times") -->
     <span class="chip">as-is at <b>master 806ce8e</b> · 2026-10-20</span>
     <span class="chip">last amended by <a href="https://github.com/SpartanLaboratories/WebTools/issues/38" target="_blank" rel="noopener"><b>#38</b></a> handshake-empty-name · ca57a57</span>
     <span class="chip model">C4 model <b>workspace.dsl</b> · <span id="dsl-stats">…</span></span>
@@ -521,13 +523,13 @@ footer code{color:var(--ink-2)}
       </ul></div>
     <div class="bubble"><h3>Test levels <small>92 classes</small></h3>
       <div class="bars" role="table" aria-label="Test classes per testing level">
-        <span class="lbl">gating</span><span class="trk"><span class="fil" style="width:90%"></span></span><span class="val">19</span>
-        <span class="lbl">component</span><span class="trk"><span class="fil" style="width:100%"></span></span><span class="val">21</span>
-        <span class="lbl">integration</span><span class="trk"><span class="fil" style="width:95%"></span></span><span class="val">20</span>
-        <span class="lbl">deterministic</span><span class="trk"><span class="fil" style="width:43%"></span></span><span class="val">9</span>
-        <span class="lbl">e2e</span><span class="trk"><span class="fil" style="width:52%"></span></span><span class="val">11</span>
-        <span class="lbl">non-functional</span><span class="trk"><span class="fil" style="width:52%"></span></span><span class="val">11</span>
-        <span class="lbl">UAT</span><span class="trk"><span class="fil" style="width:5%"></span></span><span class="val">1</span>
+        <span class="lbl">L1 gating</span><span class="trk"><span class="fil" style="width:90%"></span></span><span class="val">19</span>
+        <span class="lbl">L2 component</span><span class="trk"><span class="fil" style="width:100%"></span></span><span class="val">21</span>
+        <span class="lbl">L3 integration</span><span class="trk"><span class="fil" style="width:95%"></span></span><span class="val">20</span>
+        <span class="lbl">L4a deterministic</span><span class="trk"><span class="fil" style="width:43%"></span></span><span class="val">9</span>
+        <span class="lbl">L4b e2e</span><span class="trk"><span class="fil" style="width:52%"></span></span><span class="val">11</span>
+        <span class="lbl">L4c non-functional</span><span class="trk"><span class="fil" style="width:52%"></span></span><span class="val">11</span>
+        <span class="lbl">L5 UAT</span><span class="trk"><span class="fil" style="width:5%"></span></span><span class="val">1</span>
       </div>
       <p>Packages <code>com.spartanlabs.testing.&lt;level&gt;.webtools.udp</code>; <code>./gradlew gatingTest</code>, <code>componentTest</code>, … run one level. <span class="gap">No test-inspector report is committed.</span></p></div>
     <div class="bubble"><h3>Compatibility &amp; versioning</h3>
@@ -726,6 +728,17 @@ workspace "WebTools" "Spartan Laboratories' Kotlin/JVM networking and web toolki
 
 <script>
 "use strict";
+/* Times (GUIDANCE.md §6, "Times"): stored as UTC ISO stamps; shown in the viewer's own time zone, with the zone's abbreviation,
+   as a <time> whose datetime and title hold the exact UTC value. A date alone stays a date; a stamp with no zone is shown as written.
+   localizeTimes() formats every <time datetime> the page draws, so a stamp written into hand-made HTML is shown the same way. */
+const STAMP_RE=/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})$/;
+const utcIso=s=>{ const d=new Date(String(s).replace(" ","T")); return isNaN(d)?null:d.toISOString().replace(/\.000Z$/,"Z"); };
+const LOCAL_FMT={day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",timeZoneName:"short"};
+const when=v=>{ const s=String(v==null?"":v).trim(), u=STAMP_RE.test(s)&&utcIso(s); return u?`<time datetime="${u}" title="${u} (UTC)">${esc(new Date(u).toLocaleString(undefined,LOCAL_FMT))}</time>`:esc(s); };
+const day=v=>{ const s=String(v==null?"":v).trim(), u=STAMP_RE.test(s)&&utcIso(s); return u?`<time datetime="${u}" title="${u} (UTC)">${esc(new Date(u).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"}))}</time>`:esc(s); };
+function localizeTimes(root){ (root||document).querySelectorAll("time[datetime]").forEach(t=>{ const u=STAMP_RE.test(t.getAttribute("datetime"))&&utcIso(t.getAttribute("datetime")); if(!u||t.dataset.local) return;
+  t.dataset.local="1"; t.title=`${u} (UTC)`; t.textContent=new Date(u).toLocaleString(undefined,LOCAL_FMT); }); }
+window.addEventListener("DOMContentLoaded",()=>localizeTimes());
 const REPO="https://github.com/SpartanLaboratories/WebTools";
 const SRC=REPO+"/blob/master/webtools-udp/src/main/kotlin/com/spartanlabs/webtools/udp/";
 const NS="http://www.w3.org/2000/svg";
