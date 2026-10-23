@@ -1351,7 +1351,26 @@
         "link": null
       }
     ],
-    "changes": [],
+    "changes": [
+      {
+        "what": "Verification case: the one-argument `admit(name)` was removed in this release instead of deprecated first.",
+        "why": "Verification case: the second review found no consumer outside the repository overriding it, so the deprecation cycle bought nothing.",
+        "when": "Stage D · second review",
+        "ref": "d3807b0",
+        "entry": "api.0"
+      },
+      {
+        "what": "Verification case: operators get one WARN line per malformed handshake, where the plan had none.",
+        "why": "Verification case: the first review asked for a trace of refused lines that carries no payload.",
+        "when": "Stage C · first review",
+        "entry": "downstream.2"
+      },
+      {
+        "what": "Verification case: the release note states the lettered-version pinning, which the planned impact left to the README.",
+        "why": "Verification case: a consumer resolving both `2.0.0` and `2.0.0a` reads the release note first.",
+        "when": "landing"
+      }
+    ],
     "source": null,
     "link": null
   }

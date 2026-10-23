@@ -310,6 +310,10 @@ targets.filter(t => t.block === "plan").forEach(t => {
      non-breaking changes worth noting yellow, the rest in their system's colour, the badges alike; the tab shows no planning
      information: every card solid whatever the basis, no standing pill, no changes-from-the-plan list, and check-page.js fails a
      copy that draws an Impact card dashed; check.js fails a "compat" that lowers an entry;
+   - the As built tab shows how the impact differed from the plan (plan/RULES.md §2, Impact): impact.changes as solid cards in their
+     system's colour, never red or yellow, each linking the Impact card it changed (a deep link opens it selected), a tracking
+     board's unit changes under the unit's number and title, "None" once reconciled unchanged, nothing while still the plan's;
+     check.js fails a change whose "entry" names no Impact entry;
    - system colours stay out of the status spectra (GUIDANCE.md §1; system/scripts/palette.js): every template's slots are the
      shared palette's and none is green, yellow, orange, amber, red or pink; check.js and check-page.js fail a copy with an orange
      slot, check-page.js from the CSS and from the computed colours alike;
@@ -344,6 +348,16 @@ targets.filter(t => t.block === "plan").forEach(t => {
     d.impact.api[0] = { ...ex.impact.api[0], compat: "breaking" }; fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(d, null, 2) + "\n"); node(embedJs, dir);
     const c2 = node(checkJs, dir, "--root", sc);
     nc.push(["check.js takes a \"compat\" that raises an entry, and warns that a breaking entry rides in a major release", c2.status === 0 && /a breaking entry .* rides in a major release/.test(c2.stdout), lines(c2, /^(FAIL|warn)/)]); }
+  /* check.js on impact changes: an "entry" that names no Impact entry fails (the As built card would link nothing); one that names
+     an entry passes; a unit's change carries no entry */
+  { const dir = path.join(sc, "docs", "plans", ex.slug); fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
+    const d = copy(ex); d.folder = `docs/plans/${ex.slug}`; d.impact.changes = [{ what: "Verification case: a change from the planned impact.", why: "Verification case.", when: "landing", entry: `api.${ex.impact.api.length + 5}` }];
+    fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(d, null, 2) + "\n"); fs.writeFileSync(path.join(dir, "dashboard.html"), tpl); node(embedJs, dir);
+    const c = node(checkJs, dir, "--root", sc);
+    nc.push(["check.js fails an impact change whose entry names no Impact entry", c.status === 1 && /entry "api\.\d+" names no entry/.test(c.stdout), lines(c, /^FAIL/) || "no failure"]);
+    d.impact.changes[0].entry = "api.0"; d.impact.changes[0].system = d.systems[0].slug; fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(d, null, 2) + "\n"); node(embedJs, dir);
+    const c2 = node(checkJs, dir, "--root", sc);
+    nc.push(["check.js takes an impact change that names its entry and system", c2.status === 0, lines(c2, /^FAIL/)]); }
 
   const dSub = render("sub-impact", sub, "impact");
   if (dSub == null) nc.push(["the rendered pages (no browser found: set CHROME)", false, "no Chrome or Edge"]);
@@ -360,6 +374,28 @@ targets.filter(t => t.block === "plan").forEach(t => {
     const am = copy(ex); am.impact.changes = [{ what: "Verification case: a change from the planned impact.", why: "Verification case.", when: "landing" }];
     const pA = inner(render("amended-impact", am, "impact"), '<section class="view" role="tabpanel" id="p-impact"[^>]*>', "section");
     nc.push(["Impact: an amended impact shows no standing pill and no list of changes from the plan", !/as built, amended/.test(pA) && !/Changes from the planned impact/.test(pA) && !/Verification case: a change from the planned impact/.test(pA) && /Downstream effects/.test(pA), text(pA).slice(0, 300)]);
+    /* the As built tab shows how the impact differed from the plan (plan/RULES.md §2, Impact; GUIDANCE.md §1): impact.changes as
+       solid cards in their system's colour (muted where none), never in the Impact tab's red or yellow, each linking the Impact card
+       it changed; on a tracking board each unit's own changes under its number and title; "None" once reconciled with no change;
+       nothing while the impact is still the plan's and unchanged. A deep link "#impact.<entry>" opens that card, selected. */
+    const builtImp = dom => inner(dom, '<div id="built-impact">', "div");
+    const bS = builtImp(render("sub-built", sub, "built")), chg = bS.match(/<div class="bcard ichg"[^>]*>/g) || [];
+    nc.push(["As built: the impact's changes from the plan are cards, each linking the Impact card it changed", /Impact changes from the plan/.test(bS) && chg.length === sub.impact.changes.length && /href="#impact\.api\.0"/.test(bS) && /href="#impact\.downstream\.2"/.test(bS), `${chg.length} cards · ${text(bS).slice(0, 200)}`]);
+    nc.push(["As built: an impact change takes its system's colour (its own, else its entry's; muted for none), solid, never red or yellow", chg[0] && chg[0].includes(`data-sys="${sub.impact.api[0].system}"`) && chg.slice(1).every(c => c.includes('data-sys=""')) && !/\b(cmp|badge|vp) (critical|warning|serious)\b/.test(bS) && !/planned/.test(chg.join(" ")), chg.join(" | ")]);
+    const kS = inner(render("sub-built", sub, "built"), '<div class="key" id="built-key">', "div");
+    nc.push(["As built: the legend lists the muted bar for an impact change of no single system", /an impact change of no single system/.test(kS), text(kS).slice(0, 300)]);
+    const bA = builtImp(render("amended-built", am, "built"));
+    nc.push(["As built: an amended impact's change from the plan is listed there", /Verification case: a change from the planned impact/.test(bA), text(bA).slice(0, 200)]);
+    const bE = builtImp(render("example-built", ex, "built"));
+    nc.push(["As built: an impact reconciled with no change says so", /None: the impact as built is the impact the plan recorded/.test(bE) && !/class="bcard ichg"/.test(bE), text(bE).slice(0, 200)]);
+    const pl = copy(ex); pl.status = "building"; pl.impact.basis = "plan"; pl.impact.changes = [];
+    const bP = builtImp(render("planned-built", pl, "built"));
+    nc.push(["As built: nothing is drawn while the impact is the plan's and unchanged", !text(bP), text(bP).slice(0, 200)]);
+    const bu = trk.rows.find(r => r.unit && trk.impact.units.some(e => e.unit === r.id && (e.changes || []).length)), bT = builtImp(render("tracking-built", trk, "built"));
+    nc.push(["As built: a tracking board lists each unit's own impact changes under its number and title, linking its unit card", !!bu && /<h4>Units<\/h4>/.test(bT) && bT.includes(`/issues/${bu.unit.issue}"`) && bT.includes(`href="${bu.unit.board}"`) && bT.includes(`href="#impact.unit.${bu.id}"`), text(bT).slice(0, 300)]);
+    const dDeep = inner(render("sub-deep", sub, "impact.api.0"), '<section class="view" role="tabpanel" id="p-impact"[^>]*>', "section");
+    nc.push(["a deep link to an Impact entry opens the Impact tab with that card selected", /class="bcard icard[^"]*\bsel\b[^"]*"[^>]*data-imp="api\.0"/.test(dDeep), (dDeep.match(/class="bcard icard[^"]*"[^>]*data-imp="api\.0"/) || ["no card"])[0]]);
+
     /* check-page.js fails an Impact tab that shows planning: a copy of the tracking board whose Impact cards are drawn dashed */
     const fd = path.join(sc, "impact-dashed.html"); fs.writeFileSync(fd, withData(tpl, "plan", JSON.stringify(trk, null, 2)).replace("</style>", ".icard{border-style:dashed}</style>"));
     const rd = cp.spawnSync(process.execPath, [checker, fd, "--out", sc], { encoding: "utf8" });
