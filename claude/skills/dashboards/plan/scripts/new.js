@@ -5,7 +5,8 @@
 //               [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems slug,slug] [--step research] [--repo owner/name]
 // The repository root is --root, else the current directory. Systems take their names and colour slots from
 // docs/dashboards/systems.json. Refuses to overwrite. Anything not given stays a <placeholder> that check.js refuses.
-// With --parent, the tracking board in the parent folder is re-embedded, which links its unit to the new board (plan/RULES.md §1).
+// With --parent, the new board links its parent's board (parent.board, set by embed.js only when the parent folder holds one), and
+// the tracking board in the parent folder is re-embedded, which links its unit to the new board (plan/RULES.md §1).
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const { repoRoot, opt, registry } = require("./lib.js");
@@ -44,7 +45,8 @@ Object.assign(plan, {
   issueTitle: opt(args, "issue-title", plan.issueTitle),
   function: opt(args, "function", plan.function),
   status: "planned",
-  parent: parent ? { issue: parseInt(path.basename(parent), 10) || null, board: "../dashboard.html" } : null,
+  // parent.board is set by embed.js below, from the folders on disk: "../dashboard.html" only when the parent folder holds a board
+  parent: parent ? { issue: parseInt(path.basename(parent), 10) || null, board: null } : null,
   branch: opt(args, "branch", null),
   baseline: { ref: "master", sha: opt(args, "baseline", plan.baseline.sha), date: opt(args, "date", plan.baseline.date) },
   asBuilt: null,
@@ -56,8 +58,9 @@ if (plan.parent && !plan.parent.issue) plan.parent = null;
 fs.mkdirSync(dir, { recursive: true });
 fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(plan, null, 2) + "\n");
 fs.copyFileSync(path.join(tpl, "dashboard.html"), path.join(dir, "dashboard.html"));
-embed(dir);
+const own = embed(dir);
 console.log(`created ${rel}/plan.json and dashboard.html from the template`);
+own.linked.forEach(l => console.log(`linked ${l}`));
 /* A sub-issue's board now exists inside its tracking issue's folder: re-embed the tracking board, so its links to this sub-issue
    go to this board from now on (plan/RULES.md §1); embed.js changes only the unit's board and folder links. */
 const parentDir = path.dirname(dir);

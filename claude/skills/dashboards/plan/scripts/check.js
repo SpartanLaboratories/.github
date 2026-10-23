@@ -11,7 +11,7 @@
 // Exit 0 when every rule holds, 1 otherwise. Warnings never fail the run.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
-const { registry, headingSlugs, readBlock, findPlans, subIssueBoard, SUB_BOARD_MARKER, opt, flag } = require("./lib.js");
+const { registry, headingSlugs, readBlock, findPlans, subIssueBoard, parentBoard, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
 const STATES = ["pending", "as-planned", "amended", "deviated", "dropped", "deferred", "complete", "landed"];
@@ -181,6 +181,32 @@ function checkPlan(plan, dir, root) {
     }
   });
 
+  /* The parent's board and the other issues' boards (RULES §1): a link names a board that exists in this tree, or it is dead;
+     embed.js sets and clears both from the folders on disk. A missing link where a board exists is the warning below. */
+  const p = plan.parent;
+  if (p && p.issue != null && !posInt(p.issue)) fail("parent.issue must be the tracking issue's number");
+  if (p && posInt(p.issue)) {
+    const hit = parentBoard(dir, p);
+    if (p.board && !hit) fail(`parent.board ${JSON.stringify(p.board)} names no board of #${p.issue} in this tree (the enclosing folder is not #${p.issue}'s, or holds no dashboard.html), a dead link: run embed.js, which clears it`);
+    else if (p.board && hit && p.board !== hit.board) fail(`parent.board ${JSON.stringify(p.board)} is not #${p.issue}'s board (${hit.board}): run embed.js, which links it`);
+    if (!hit) {
+      const away = plans.filter(x => path.basename(x.dir).startsWith(p.issue + "-") && path.resolve(x.dir) !== path.resolve(dir) && fs.existsSync(path.join(x.dir, "dashboard.html")));
+      if (away.length) warn(`the parent #${p.issue}'s board is at ${away[0].folder}/dashboard.html, but this board's folder is not inside it: the "part of" chip keeps linking the GitHub issue until this folder sits inside #${p.issue}'s`);
+    }
+  }
+  if (plan.issueBoards != null) {
+    if (typeof plan.issueBoards !== "object" || Array.isArray(plan.issueBoards)) fail('issueBoards must be an object { "<issue>": "<path to its dashboard.html>" } (embed.js writes it)');
+    else {
+      const want = otherBoards(plan, dir);
+      Object.keys(plan.issueBoards).forEach(n => {
+        const b = plan.issueBoards[n];
+        if (!/^\d+$/.test(n)) fail(`issueBoards key "${n}" is not an issue number`);
+        else if (!str(b) || !fs.existsSync(path.resolve(dir, b))) fail(`issueBoards["${n}"] ${JSON.stringify(b)} names no board in this tree, a dead link: run embed.js, which clears it`);
+        else if (want[n] !== b) warn(`issueBoards["${n}"] is ${JSON.stringify(b)}, but embed.js would write ${want[n] ? JSON.stringify(want[n]) : "nothing (#" + n + " is not named on this board, or is its parent or a unit)"}: run embed.js`);
+      });
+    }
+  }
+
   const w = plan.wip;
   if (!w || typeof w !== "object") warn("wip is missing: the WIP strip has nothing to show");
   else {
@@ -239,68 +265,72 @@ function checkPlan(plan, dir, root) {
   if (!out.fail.length) ok(`plan.json: ${tracking ? "tracking board, " : ""}${rows.length} rows, ${rows.reduce((n, r) => n + (r.options || []).length, 0)} options, status ${plan.status}, step ${(w || {}).step || "—"}`);
 }
 
-/* Where a plan board's text names issue #n so the page links it (RULES §1): the template links a #n, or an owner/repo#n of its
-   own repo, outside `code` spans in the fields it renders as text (rich, refHtml). Names, ids, paths, states and dates are
-   written without links and skipped; so is what a tracking board does not render (the top-level asBuilt, baseline, parent,
-   systems, roadmap). A GitHub URL of the issue is found anywhere. Approximate by design: it names the places a reader clicks. */
-const reEsc = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const UNLINKED = new Set(["$comment", "schema", "repo", "slug", "folder", "kind", "status", "id", "where", "title", "system", "slot", "top", "page", "board",
-  "branch", "step", "steps", "since", "updated", "state", "verdict", "column", "date", "sha", "merge", "version", "pr", "files", "n", "level", "current", "next",
-  "resume", "qa", "qaMax", "pass", "findings", "landing", "chosen", "settles", "when"]);
-const UNRENDERED_TOP = new Set(["asBuilt", "baseline", "parent", "systems", "roadmap"]);
-function issueMentions(v, at, n, repo, found, ctx) {
-  if (typeof v === "string") {
-    const own = new RegExp(`(^|[\\s(>;,])(${reEsc(repo)})?#${n}\\b`);
-    const isPr = /\.ref$/.test(at) && /^PR #?\d+$/i.test(v.trim());
-    if (!isPr && v.split("`").some((x, i) => i % 2 === 0 && own.test(x))) found.push({ at, how: "text" });
-    if (new RegExp(`github\\.com/${reEsc(repo)}/issues/${n}\\b`).test(v)) found.push({ at, how: "url" });
-  } else if (Array.isArray(v)) v.forEach((x, i) => issueMentions(x, `${at}[${i}]`, n, repo, found, ctx));
-  else if (v && typeof v === "object") Object.keys(v).forEach(k => {
-    if (UNLINKED.has(k) || (at === "" && UNRENDERED_TOP.has(k))) return;
-    if (k === "name" && ctx !== "options") return;   // a row's name is plain text; an option's is linked text in the decision log
-    if (k === "label" && ctx !== "trail") return;    // a milestone's or document's label is plain; a trail entry's is linked text
-    issueMentions(v[k], at ? `${at}.${k}` : k, n, repo, found, k);
-  });
-  return found;
-}
-/* The warning (RULES §8): a tracking board that links a sub-issue's GitHub page although the sub-issue's board exists in this
-   tree. A page on a template older than the rule (no SUB_BOARDS map) links every #n to GitHub; a page on the current template
-   does so for a unit whose unit.board is not the board on disk (embed.js not re-run); a GitHub URL of the sub-issue written in
-   the data links GitHub on any template. Each place is named. */
-function subIssueLinkWarnings(plan, dir, html) {
-  if (plan.kind !== "tracking") return;
-  const rows = plan.rows || [], routes = html.includes(SUB_BOARD_MARKER), repo = plan.repo || "";
-  rows.filter(r => r.unit && posInt(r.unit.issue)).forEach(r => {
-    const n = r.unit.issue, hit = subIssueBoard(dir, r.unit); if (!hit) return;
-    const routed = routes && r.unit.board === hit.board, places = [];
-    if (!routed) {
-      places.push(`the unit row's label (${r.id})`, "the Context roadmap", `the inspector's unit entry (${r.id})`);
-      if (r.unit.board !== hit.board) places.push("the chain in the WIP strip");
-      rows.forEach(x => { if (x.unit && (x.unit.blockedBy || []).includes(n)) places.push(`the inspector's "blocked by" of ${x.id}`); });
-      ["waitsOn", "blocks"].forEach(k => (((plan.wip || {}).blockers || {})[k] || []).forEach(b => { if (b.issue === n && (!b.repo || b.repo === repo)) places.push(`the WIP strip's ${k === "waitsOn" ? "waits on" : "blocks"}`); }));
-      (plan.followUps || []).forEach((f, i) => { if (f.issue === n && (!f.repo || f.repo === repo)) places.push(`followUps[${i}]`); });
-      rows.forEach(x => { if ((x.asBuilt || {}).issue === n) places.push(`the as-built "moved to" of ${x.id}`); });
+/* The warning (RULES §1, §8): an issue the board names has a board in this tree, but the page does not open that board from
+   every place it names the issue. The issue's board is a unit's in this tracking board's folder (unit.board), the parent's in the
+   enclosing folder (parent.board), or any other issue's anywhere under docs/plans/ (issueBoards); the places are lib.js
+   issueRefs'. A place misses the board when the page's template is older than the rule that links it (no ISSUE_BOARDS map: only a
+   unit's row, chain, inspector, roadmap and #n in the text were linked, through SUB_BOARDS; neither map: nothing), when the data
+   field is not the board on disk (embed.js not re-run), or when the data writes the issue as a GitHub URL. One warning per issue,
+   naming each place and the fix. On a template older than the widened rule a second warning names the issue references it leaves
+   as plain text, or links to a board that does not exist, for issues that have no board. */
+function issueLinkWarnings(plan, dir, html) {
+  const rule = linkRule(html), tracking = plan.kind === "tracking", self = path.resolve(dir);
+  const refs = issueRefs(plan).filter(r => r.n !== plan.issue);
+  const units = new Map(tracking ? (plan.rows || []).filter(r => r.unit && posInt(r.unit.issue)).map(r => [r.unit.issue, r]) : []);
+  const par = plan.parent && posInt(plan.parent.issue) ? plan.parent.issue : null;
+  const root = treeRoot(dir), all = root ? boardFolders(root) : [], others = plan.issueBoards && typeof plan.issueBoards === "object" ? plan.issueBoards : {};
+  const plainOld = [];
+  [...new Set(refs.map(r => r.n))].sort((a, b) => a - b).forEach(n => {
+    const mine = refs.filter(r => r.n === n);
+    let kind, hit, has;
+    if (units.has(n)) { kind = "unit"; const h = subIssueBoard(dir, units.get(n).unit); hit = h && h.board; has = units.get(n).unit.board; }
+    else if (n === par) { kind = "parent"; const h = parentBoard(dir, plan.parent); hit = h && h.board; has = plan.parent.board; }
+    else { kind = "other"; const h = all.find(b => b.issue === n && path.resolve(b.dir) !== self); hit = h ? boardLink(dir, h.dir) : null; has = others[String(n)]; }
+    if (!hit) {
+      if (rule < 2) mine.forEach(r => { if (r.plain) plainOld.push(`#${n} in ${r.place} (plain text)`); else if (r.crumb) plainOld.push(`#${n} in the breadcrumb (a link to a board that does not exist)`); });
+      return;
     }
-    issueMentions(plan, "", n, repo, [], null).filter(m => m.how === "url" || !routed)
-      .forEach(m => places.push(m.how === "url" ? `${m.at} (a GitHub URL written in the data)` : `#${n} in ${m.at}`));
-    if (!places.length) return;
-    const fix = !routes ? "the page is on a template older than the rule: re-render it (copy plan/template/dashboard.html over it, then embed.js)"
-      : !routed ? `unit.board is ${r.unit.board ? JSON.stringify(r.unit.board) : "unset"}: run embed.js, which links it`
-      : `write the issue as #${n} in the data, and the page links it to the board`;
-    warn(`#${n} has a board (${hit.board}), but this page links #${n} to its GitHub issue in ${places.length} place${places.length === 1 ? "" : "s"}: ${places.join("; ")}. Fix: ${fix}`);
+    const dataOk = (has || null) === hit, need = r => kind === "unit" && r.since === "sub" ? 1 : 2, places = [];
+    // the breadcrumb of a template older than the widened rule links every ancestor folder's board by its path, which is right
+    // whenever that board exists; on the current template it follows the data like every other place
+    mine.forEach(r => { if (r.crumb ? rule === 2 && !dataOk : r.how === "url" || !dataOk || rule < need(r)) places.push(r.place); });
+    if (kind === "unit" && !dataOk) places.push("the chain in the WIP strip");
+    const uniq = [...new Set(places)];
+    if (!uniq.length) return;
+    const field = kind === "unit" ? "unit.board" : kind === "parent" ? "parent.board" : `issueBoards["${n}"]`;
+    const fixes = [];
+    if (mine.some(r => !r.crumb && rule < need(r))) fixes.push("the page is on a template older than the rule: re-render it (copy plan/template/dashboard.html over it, then embed.js)");
+    if (!dataOk) fixes.push(`${field} is ${has ? JSON.stringify(has) : "unset"}: run embed.js, which links it`);
+    if (mine.some(r => r.how === "url")) fixes.push(`write the issue as #${n} in the data, and the page links it to the board`);
+    warn(`#${n}${kind === "parent" ? " (the parent)" : ""} has a board (${hit}), but this page links #${n} to its GitHub issue, or leaves it as plain text, in ${uniq.length} place${uniq.length === 1 ? "" : "s"}: ${uniq.join("; ")}. Fix: ${fixes.join("; ")}`);
   });
+  if (plainOld.length) { const u = [...new Set(plainOld)]; warn(`this page is on a template older than the widened link rule (plan/RULES.md §1): ${u.length} issue reference${u.length === 1 ? " is" : "s are"} not linked to the issue's GitHub page: ${u.join("; ")}. Fix: re-render it (copy plan/template/dashboard.html over it, then embed.js)`); }
 }
-/* The same on the work board: a sub-issue's row with a board, on a page whose template links every #n to GitHub. */
+/* The same on the work board: an issue with a board (a row with "board"), on a page whose template does not link it there. A
+   template with the SUB_BOARDS map linked a sub-issue's row, roadmap entry, waits-on and blocks, but left the "part of" line,
+   the "blocked by" tags and the Up next count as plain text, and linked a tracking issue to GitHub; one with neither map linked
+   every #n to GitHub. */
 function workBoardLinkWarnings(b, html) {
-  if (html.includes(SUB_BOARD_MARKER)) return;
-  (b.rows || []).filter(r => r.parent && r.board).forEach(r => {
-    const places = ["its row in the Issue column"];
-    (b.roadmap || []).forEach(m => { if ((m.items || []).some(i => i.issue === r.issue)) places.push(`the roadmap under #${m.issue}`); });
-    (b.rows || []).forEach(x => {
-      if ((x.waitsOn || []).some(w => w.issue === r.issue && (!w.repo || w.repo === b.repo))) places.push(`"waits on" in #${x.issue}'s row`);
-      if ((x.blocks || []).some(w => w.issue === r.issue && (!w.repo || w.repo === b.repo))) places.push(`"blocks" in #${x.issue}'s row`);
+  const rule = linkRule(html); if (rule === 2) return;
+  const rows = b.rows || [], same = w => !w.repo || w.repo === b.repo;
+  rows.filter(r => r.board).forEach(r => {
+    const n = r.issue, old = rule === 1 && !!r.parent, places = [];
+    if (!old) {
+      places.push("its row in the Issue column");
+      (b.groups || []).forEach(g => { if (g.issue === n) places.push("its group heading"); });
+      (b.roadmap || []).forEach(m => { if (m.issue === n) places.push("the roadmap"); if ((m.items || []).some(i => i.issue === n)) places.push(`the roadmap under #${m.issue}`); });
+      rows.forEach(x => {
+        if ((x.waitsOn || []).some(w => w.issue === n && same(w))) places.push(`"waits on" in #${x.issue}'s row`);
+        if ((x.blocks || []).some(w => w.issue === n && same(w))) places.push(`"blocks" in #${x.issue}'s row`);
+      });
+    }
+    rows.forEach(x => {
+      if (x.parent === n) places.push(`"part of" in #${x.issue}'s row`);
+      if ((x.blockedBy || []).some(w => w.issue === n && same(w))) places.push(`the "blocked by" tag of #${x.issue}`);
     });
-    warn(`#${r.issue} has a board (${r.board}), but the work board links #${r.issue} to its GitHub issue in ${places.length} place${places.length === 1 ? "" : "s"}: ${places.join("; ")}. Fix: the page is on a template older than the rule; regenerate it with board.js --refresh-template`);
+    if (r.status === "next") places.push("the Up next count");
+    const uniq = [...new Set(places)];
+    if (uniq.length) warn(`#${n} has a board (${r.board}), but the work board links #${n} to its GitHub issue, or leaves it as plain text, in ${uniq.length} place${uniq.length === 1 ? "" : "s"}: ${uniq.join("; ")}. Fix: the page is on a template older than the rule; regenerate it with board.js --refresh-template`);
   });
 }
 
@@ -321,7 +351,7 @@ function checkHtml(htmlPath, id, data, kindMeta) {
   if (!/prefers-color-scheme:dark/.test(html)) fail("the page has no dark-mode block");
   if (/<(script|link|img)[^>]+(src|href)="https?:/i.test(html)) fail("the page loads an external resource");
   if (Buffer.byteLength(html) > 16 * 1024 * 1024) fail("the page is over 16 MB");
-  if (kindMeta === "plan-board") subIssueLinkWarnings(data, path.dirname(htmlPath), html);
+  if (kindMeta === "plan-board") issueLinkWarnings(data, path.dirname(htmlPath), html);
   if (kindMeta === "work-board") workBoardLinkWarnings(data, html);
 }
 

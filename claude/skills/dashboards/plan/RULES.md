@@ -27,19 +27,36 @@ work board only. A tracking issue (a level-4 plan) gets a board in its own folde
 row per unit**, each row linking to that sub-issue's own board; each sub-issue gets a full
 board in its own folder.
 
-**Links to a sub-issue.** On a tracking board, every link to a sub-issue it tracks opens **that
-sub-issue's own board** when one exists, and its GitHub issue only while none does: the unit
-row, the chain and the WIP strip, the as-built cards and the inspector, the Context roadmap,
-and any `#n` in the board's text. A board exists when its `dashboard.html` is in the same tree
-as the tracking board, in the sub-issue's folder inside the tracking issue's folder; the link is
-relative to the tracking board's folder, so it is never dead. Where there is room (the unit
-row, the roadmap, the inspector's unit entry) a small **GitHub ↗** link to the issue sits beside
-it. Nobody writes these links by hand: `embed.js` sets each unit's `unit.board` from the folders
-on disk at every embed, fills `unit.folder` when it is unset, and clears a link whose board is
-gone; `new.js --parent` re-embeds the tracking board, so a new sub-issue board is linked at
-once; and the template routes every `#n` of a unit with a board to that board. A sub-issue
-board kept outside its tracking issue's folder is not linked, and `check.js` warns about it.
-The work board applies the same rule to every sub-issue that has a board (§5).
+**Links to an issue's board.** Every issue reference on a board opens **that issue's own
+board** when one exists, its GitHub issue only while none does, and never a file that is not
+there. It covers every place a board names an issue: on a sub-issue's board, the parent
+tracking issue in the header's "part of" chip, the breadcrumb and the Context roadmap; on a
+tracking board, its units in the unit rows, the chain, the WIP strip's "In progress" and "Up
+next" lines, the "blocked by" tags, the as-built cards, the inspector and the Context roadmap;
+on any board, siblings in the roadmap, follow-ups, blockers, the issue a part was deferred to,
+and any `#n` in the board's text. The board's own `#n` opens its GitHub issue, and `PR #n` its
+pull request. A board exists when its `dashboard.html` is in the same tree; the link is relative
+to the linking board's folder, so it is never dead. Where the boards sit:
+
+- a **unit's** board is in the sub-issue's folder inside the tracking issue's folder; one kept
+  elsewhere is not linked, and `check.js` warns about it;
+- the **parent's** board is the enclosing folder, the parent's own (the folder layout puts a
+  sub-issue's folder inside its tracking issue's); a sub-issue folder kept elsewhere does not link
+  its parent's board, and `check.js` warns about it;
+- **any other** issue's board may be anywhere under `docs/plans/` in the tree.
+
+Where there is room (the "part of" chip, the unit row, the WIP strip's unit lines, the roadmap,
+the follow-ups, the inspector's unit entry) a small **GitHub ↗** link to the issue sits beside
+a board link; the "part of" chip carries no separate board link. Nobody writes these links by
+hand: `embed.js` sets them from the folders on disk at every embed and clears a link whose board
+is gone: each unit's `unit.board` (filling `unit.folder` when it is unset), the parent's
+`parent.board` (`../dashboard.html`, or `null`), and `issueBoards`, a map from every other issue
+the board names to its board's path (present only while one is linked). `new.js --parent`
+embeds the new board, which links its parent's board, and re-embeds the tracking board, so the
+new sub-issue is linked from it at once; any other board that names the new issue picks the
+link up at its own next embed (`check.js` warns on it until then). The template routes every
+`#n` through those three. The work board applies the same rule to every issue that has a board,
+a tracking issue as much as a sub-issue (§5).
 
 Scripts, from the repo root: `new.js <issue> <slug> …` scaffolds a folder from the template;
 `embed.js <folder>` embeds `plan.json`; `check.js <folder> --auto` enforces this ruleset and
@@ -146,7 +163,7 @@ issue's branch, so the board's git history is the run's own timeline.
 
 | Event | When | What the presenter writes |
 |-------|------|---------------------------|
-| `sized` | step 1 done (levels 2–4) | the **foundation**: `new.js`; issue, title, level, baseline, systems, status `planned`, `wip.step = interview`/`research`/`plan`; milestones empty; on the work board. For a sub-issue of a tracking issue, also on the tracking board: its unit moves from `wip.next` to `wip.current`, and the following unit in landing order becomes `wip.next` (§3); `new.js --parent` re-embeds the tracking board, which links the unit to the new board (§1) |
+| `sized` | step 1 done (levels 2–4) | the **foundation**: `new.js`; issue, title, level, baseline, systems, status `planned`, `wip.step = interview`/`research`/`plan`; milestones empty; on the work board. For a sub-issue of a tracking issue, also on the tracking board: its unit moves from `wip.next` to `wip.current`, and the following unit in landing order becomes `wip.next` (§3); `new.js --parent` embeds the new board, whose "part of" chip then opens the tracking board, and re-embeds the tracking board, which links the unit to the new board (§1) |
 | `halted` / `resumed` | a planner halt, a qa stop, a `needs-user` | `wip.step = halted` with what waits on the user; back to the step on resume |
 | `researched` | research verified | the Gap column from `research/README.md` and the findings; the `gap` milestone |
 | `architecture-signed-off` | level 4 sign-off | the Considered column from `architecture.md`; on a tracking board, the unit rows (each `pending` with a one-line progress summary until its sub-issue lands; `embed.js` links it to the sub-issue's board once that board exists, §1), and `wip.next` the first unit (§3) |
@@ -173,9 +190,11 @@ rest by age; the in-progress mark on the rows whose runs are active; the same sy
 unit reads `complete` once its row is complete (qa passed, not merged) and `landed` once it has
 landed; the unit a tracking board names in `wip.next` reads "next · not started", with the
 up-next mark and a "blocked by #n" tag for each blocker that has not landed, and is never active. Its Context lists the roadmap
-(tracking issues) and the unscheduled issues, like the repository page, and links it. A sub-issue that has a board is linked to
-that board wherever the work board names it (its row, the waits-on and blocks lists, the roadmap, any `#n` in the text), with a
-small GitHub ↗ link beside it in the Issue column and the roadmap (§1); `board.js` sets a row's board only when its file exists.
+(tracking issues) and the unscheduled issues, like the repository page, and links it. An issue that has a board, a tracking
+issue as much as a sub-issue, is linked to that board wherever the work board names it (its row, its group heading, the "part of"
+line of its units, the waits-on and blocks lists, the "blocked by" tags, the Up next count, the roadmap, any `#n` in the text),
+with a small GitHub ↗ link beside it in the Issue column, the "part of" line, the group heading and the roadmap (§1); `board.js`
+sets a row's board only when its file exists.
 
 ## 6. Who does what
 
@@ -209,8 +228,10 @@ unit row; a `wip.next` on a board that is not a tracking board, or one that name
 a unit that is not `pending`, or a unit also in `wip.current`; on a tracking board, a recorded
 `wip.next` (`null` included) that is not the next unit in landing order (§3); a landed unit
 still in `wip.current`; a tracking-board unit row whose sub-issue's board exists in this tree
-but is not what its `unit.board` links, or a `unit.board` naming a board that does not exist
-(`embed.js` sets and clears both, §1); a bad date, sha, state, kind, verdict, step or column value; a placeholder left from the
+but is not what its `unit.board` links, or a `unit.board` naming a board that does not exist; a
+`parent.board` that is not the parent's board in the enclosing folder (a dead link, or another
+board); an `issueBoards` entry naming a board that does not exist (`embed.js` sets and clears
+all three, §1); a bad date, sha, state, kind, verdict, step or column value; a placeholder left from the
 template; an embedded copy that differs from `plan.json`; a panel without a legend; a dead
 `href="#"`; a code block longer than five lines anywhere in the data. With `--auto` or
 `--browser`, a failing browser pass.
@@ -223,11 +244,16 @@ Warns: a gap without evidence; a build verdict without named steps (unit rows of
 board are exempt: their steps live in the sub-issue's plan); a row's system not in `systems`;
 more than six colour groups (a system's parts share their parent's slot, so count top-level
 systems, not rows); a missing milestone; a halted board older than a day; a tracking board that does
-not record `wip.next` at all (written before the rule), with the unit it should name; a
-tracking board that links a sub-issue's GitHub page although the sub-issue's board exists (§1),
-naming each place: a page on a template older than the rule, a `unit.board` not re-embedded, or
-a GitHub URL of the sub-issue written in the data; the same on the work board; a sub-issue's
-board kept outside its tracking issue's folder, which the tracking board cannot link; with
+not record `wip.next` at all (written before the rule), with the unit it should name; a board
+that links an issue's GitHub page, or leaves it as plain text, although the issue's board exists
+(§1) — a unit, the parent or any other issue the board names — one warning per issue, naming
+each place and the fix: a page on a template older than the rule (re-render it), a `unit.board`,
+`parent.board` or `issueBoards` entry not re-embedded (run `embed.js`), or a GitHub URL of the
+issue written in the data; on a page older than the rule, the issue references it leaves as
+plain text for issues with no board; the same on the work board; an `issueBoards` entry that
+`embed.js` would no longer write; a sub-issue's board kept outside its tracking issue's folder,
+which the tracking board cannot link, and a sub-issue's folder kept outside its parent's, which
+cannot link the parent's board; with
 `--auto`, a page that differs from its template without declaring the divergence (re-render it:
 copy the template over it and `embed.js`), and a template not verified since it changed.
 

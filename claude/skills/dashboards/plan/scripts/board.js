@@ -11,7 +11,7 @@
 // it was written on. Unit states and the next unit are read as plan/RULES.md §2-§3 set them: a unit row that is complete reads
 // "complete", one that is landed (or as-planned, amended or deviated, on a board written before those states) reads "landed", and
 // the unit a tracking board names in wip.next reads "next", never active, with the blockers that have not landed. A row's "board"
-// is set only when that board's dashboard.html exists, and the page links a sub-issue's #n to it (plan/RULES.md §1, §5).
+// is set only when that board's dashboard.html exists, and the page links that issue's #n to it, a tracking issue's as much as a sub-issue's (plan/RULES.md §1, §5).
 // --live builds the live work board (presenter brief, plan-board mode): run it on the repository's main checkout. It reads the
 // boards of every worktree of the repository (git worktree list; the root first), keeps for each issue the freshest board (the
 // latest wip.updated, else wip.since, else asBuilt.date; the root's on a tie), and writes docs/plans/.live/board.json and
