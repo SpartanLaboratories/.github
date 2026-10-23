@@ -492,7 +492,7 @@ function browser(page, outDir, modes) {
     const label = extra.join(" ") || "light";
     const res = (r.stdout || "").trim().split(/\r?\n/);
     if (r.status === 0) ok(`browser (${label}): PASS · ${(res.find(l => l.startsWith("screenshot:")) || "").replace("screenshot: ", "")}`);
-    else fail(`browser (${label}): ${res.filter(l => /FAIL|ERROR|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL|LEVEL REFERENCE/.test(l)).join(" | ") || (r.stderr || "").trim()}`);
+    else fail(`browser (${label}): ${res.filter(l => /FAIL|ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL|LEVEL REFERENCE|RAW UTC STAMP|GIT-IGNORED|REGISTRY UNREADABLE/.test(l)).join(" | ") || (r.stderr || "").trim()}`);
   });
 }
 
