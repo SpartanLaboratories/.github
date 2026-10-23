@@ -345,7 +345,19 @@ function checkImpact(plan, dir, systems, rows, tracking) {
   const ad = each("adaptation", (x, at) => { if (compatCheck("adaptation", x, at) === "breaking") breaking.push(at); if (!str(x.who) || !str(x.summary)) fail(`${at}: "who" and "summary" are required`); if (!IMP_NEEDS.includes(x.need)) fail(`${at}.need must be one of ${IMP_NEEDS.join(", ")}`); sysOk(x.system, at); });
   const api = each("api", (x, at) => { if (compatCheck("api", x, at) === "breaking") breaking.push(at); if (!str(x.surface) || !str(x.summary)) fail(`${at}: "surface" and "summary" are required`); if (!IMP_CHANGES.includes(x.change)) fail(`${at}.change must be one of ${IMP_CHANGES.join(", ")}`); if (x.tier != null && !IMP_TIERS.includes(x.tier)) fail(`${at}.tier must be one of ${IMP_TIERS.join(", ")}, or null when not stated`); sysOk(x.system, at); });
   const cv = each("conversion", (x, at) => { if (compatCheck("conversion", x, at) === "breaking") breaking.push(at); if (!str(x.what)) fail(`${at}: "what" (the step) is required`); });
-  each("changes", (x, at) => { if (!str(x.what) || !str(x.why)) fail(`${at}: "what" and "why" are required`); if (x.ref && /^[0-9a-f]+$/.test(x.ref) && !SHA.test(x.ref)) fail(`${at}.ref "${x.ref}" is not a commit sha`); });
+  /* impact.changes and impact.units[].changes: the differences from the planned impact, which the As built tab shows (RULES §2,
+     Impact). Each needs what and why; "entry" (optional) names the Impact entry it changed as <section>.<index>, and the As built
+     card links that card, so an entry that names none fails; "system" (optional) is a registry slug, as on the entries. */
+  const lists = { downstream: ds, adaptation: ad, api, conversion: cv };
+  const checkChange = (x, at) => {
+    if (!str(x.what) || !str(x.why)) fail(`${at}: "what" and "why" are required`);
+    if (x.ref && /^[0-9a-f]+$/.test(x.ref) && !SHA.test(x.ref)) fail(`${at}.ref "${x.ref}" is not a commit sha`);
+    if (x.entry != null) { const m = /^(downstream|adaptation|api|conversion)\.(\d+)$/.exec(String(x.entry));
+      if (!m) fail(`${at}.entry ${JSON.stringify(x.entry)} must name an Impact entry as <section>.<index> (${IMP_LISTS.join(", ")}), or be left out`);
+      else if (!lists[m[1]][+m[2]]) fail(`${at}.entry "${x.entry}" names no entry: impact.${m[1]} has ${lists[m[1]].length}; the As built tab would link a card that is not there`); }
+    sysOk(x.system, at);
+  };
+  each("changes", checkChange);
   if (I.changes && I.changes.length && I.basis !== "as-built") warn("impact.changes records differences from the planned impact, which exist only once it is reconciled (basis as-built)");
   const rel = I.release;
   if (rel != null && (typeof rel !== "object" || !IMP_BUMPS.includes(rel.bump))) fail(`impact.release.bump must be one of ${IMP_BUMPS.join(", ")}`);
@@ -371,6 +383,11 @@ function checkImpact(plan, dir, systems, rows, tracking) {
     compatCheck("unit", e, at);
     if (!IMP_BASES.includes(e.basis)) fail(`${at}.basis must be one of ${IMP_BASES.join(", ")}`);
     if (e.release != null && (typeof e.release !== "object" || !IMP_BUMPS.includes(e.release.bump))) fail(`${at}.release.bump must be one of ${IMP_BUMPS.join(", ")}`);
+    if (e.changes != null) { if (!Array.isArray(e.changes)) fail(`${at}.changes must be an array`);
+      else { e.changes.forEach((c, j) => { const cat = `${at}.changes[${j}]`; if (!c || typeof c !== "object") fail(`${cat} must be an object`);
+        else { if (!str(c.what) || !str(c.why)) fail(`${cat}: "what" and "why" are required`); if (c.ref && /^[0-9a-f]+$/.test(c.ref) && !SHA.test(c.ref)) fail(`${cat}.ref "${c.ref}" is not a commit sha`);
+          if (c.entry != null) fail(`${cat}.entry: a unit's change links its unit card, not an entry of the initiative's impact; leave entry out`); } });
+        if (e.changes.length && e.basis !== "as-built") warn(`${at}.changes records differences from unit "${e.unit}"'s planned impact, which exist only once its entry is reconciled (basis as-built)`); } }
     if (e.basis === "plan" && UNIT_DONE.includes((r.asBuilt || {}).state)) warn(`${at}: unit "${e.unit}" has landed, but its impact entry is still the plan's: reconcile it from the unit's board (basis as-built)`);
     checkLink(dir, e.link, `${at}.link`); checkLink(dir, e.source, `${at}.source`);
   });

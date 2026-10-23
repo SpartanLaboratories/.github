@@ -405,6 +405,15 @@ pre.src .k{color:var(--link);font-weight:600} pre.src .s{color:var(--ink-2)}
 .icards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:10px}
 .bcard .bh .nm a{text-decoration:none;border-bottom:1px solid var(--line)}
 .icard .versions{font:11px var(--mono);color:var(--muted);margin-top:4px;overflow-wrap:anywhere}
+.icard.sel{outline:2px solid var(--on);outline-offset:1px}
+/* Impact changes from the plan, on the As built tab (plan/RULES.md §2, "As built"): how the impact differed from the plan, each
+   change in its system's colour (the left bar; muted for the impact as a whole or a party outside the repository's systems), solid,
+   and never in the Impact tab's compatibility red or yellow; each links the Impact card it changed. */
+.bimp{margin-top:18px}
+.bimp h4{font-size:12px;margin:10px 0 6px;color:var(--ink-2)}
+.bcard.ichg{cursor:default}
+.bcard.ichg .bh .nm{font-weight:600}
+.bcard .meta a.goimp{white-space:normal;overflow-wrap:anywhere}
 
 /* Wide desktop (16:9 screens): the page uses most of the window, so the timeline's four columns, the as-built cards and the impact
    cards get room; at 1500 px and below the page keeps its 1280 px measure and the narrow layouts below 940 and 900 px apply. */
@@ -493,10 +502,11 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
   </section>
 
   <section class="view" role="tabpanel" id="p-built" aria-labelledby="t-built" hidden>
-    <h2>As built: what exists, and every change from the verdict</h2>
+    <h2>As built: what exists, and every change from the verdict and the planned impact</h2>
     <p class="lede">The verdict is never edited to match what was built: every difference lives here.</p>
     <div class="ctl" id="built-ctl"></div>
     <div class="bcards" id="built-list"></div>
+    <div id="built-impact"></div>
     <div class="key" id="built-key"></div>
   </section>
 
@@ -1009,15 +1019,57 @@ function renderBuilt(){
     return `<div class="bcard st-${st}${cellGlow(r.id,"built")||(isNext(r)?" upnext":"")}" data-sys="${esc(r.system||"")}" data-row="${esc(r.id)}" tabindex="0" role="button" aria-label="${esc(r.name)}: ${STATES[st].label}${isNext(r)?", up next":""}"><div class="bh"><span class="nm">${r.unit&&r.unit.n!=null?`${esc(r.unit.n)} · `:""}${esc(r.name)}</span>${badge(st,st==="deferred"&&b.issue?` → ${ilink(b.issue)}`:"")}${nextTags(r)}${r.where?`<span class="wh">${esc(r.where)}</span>`:""}</div><p>${rich(b.summary||(st==="pending"?"Not built yet.":""))}</p>${runLine(r)}${b.changes&&b.changes.length?`<ol class="changes">${b.changes.map(c=>`<li><b>${rich(c.what||"")}</b>${c.why?` — ${rich(c.why)}`:""}<small>${esc(c.when||"")}${c.ref?` · ${refHtml(c.ref)}`:""}</small></li>`).join("")}</ol>`:""}<div class="meta">${[b.commits&&b.commits.length?`commits ${b.commits.map(c=>refHtml(c)).join(" ")}`:"",b.files&&b.files.length?`${b.files.length} file${b.files.length>1?"s":""}`:"",b.verified?"verified":"",moreLink(b.link||(r.unit&&(r.unit.board||r.unit.folder)),r.unit?(r.unit.board?"board":"folder"):"record")].filter(Boolean).join(" · ")}</div></div>`; }).join(""):`<p class="lede">No row in this state.</p>`;
   paint($("#built-list"));
   document.querySelectorAll("#built-list .bcard").forEach(c=>{ const go=()=>inspectBuilt(ROWS.find(x=>x.id===c.dataset.row)); c.addEventListener("click",e=>{ if(e.target.closest("a")) return; go(); }); c.addEventListener("keydown",e=>{ if(e.target!==c) return; if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } }); });
+  const IC=impactChanges();
+  $("#built-impact").innerHTML=IC.html; paint($("#built-impact"));
+  document.querySelectorAll("#built-impact a.goimp").forEach(a=>a.addEventListener("click",e=>{ e.preventDefault(); goImpact(a.dataset.imp); }));
   const usedSt=[...new Set(ROWS.map(stateOf))];
-  $("#built-key").innerHTML=sysKey(ROWS.map(r=>r.system))+Object.keys(STATES).filter(k=>usedSt.includes(k)).map(k=>`<span>${badge(k)} ${esc(STATES[k].desc)}</span>`).join("")+(usedSt.some(k=>STATES[k].dash)||!ROWS.length?`<span><i class="pln"></i>dashed card: nothing built</span>`:"")+markKeys(CURRENT.filter(a=>a.endsWith(".built")||a==="built"))+runKeys(rows)+(NEXT_ROW&&(builtFilter==="all"||stateOf(NEXT_ROW)===builtFilter)?KEY_NEXT(NEXT_ROW):"");
+  $("#built-key").innerHTML=sysKey([...new Set([...ROWS.map(r=>r.system),...IC.slugs])])+(IC.muted?`<span><i class="sbar" style="--c:var(--muted)"></i>an impact change of no single system: the impact as a whole, or a party outside this repository's systems</span>`:"")+Object.keys(STATES).filter(k=>usedSt.includes(k)).map(k=>`<span>${badge(k)} ${esc(STATES[k].desc)}</span>`).join("")+(usedSt.some(k=>STATES[k].dash)||!ROWS.length?`<span><i class="pln"></i>dashed card: nothing built</span>`:"")+markKeys(CURRENT.filter(a=>a.endsWith(".built")||a==="built"))+runKeys(rows)+(NEXT_ROW&&(builtFilter==="all"||stateOf(NEXT_ROW)===builtFilter)?KEY_NEXT(NEXT_ROW):"");
 }
+
+/* ---------- Impact changes from the plan, on the As built tab (plan/RULES.md §2, "As built") ----------
+   How the impact differed from the plan, beside the rows' own changes: impact.changes (what, why, when, ref), each linked to the
+   Impact-tab card it changed (its "entry", "<section>.<index>", where it names one), and on a tracking board each unit's own
+   differences (impact.units[].changes), under the unit's number and title (pair(): the number opens GitHub, the title the unit's
+   board) and linked to the unit's card on the Impact tab. Colour: the system's slot (from the change's "system", else its entry's;
+   muted for the impact as a whole or a party outside the repository's systems), one solid card style; no status colour (a change
+   from the planned impact is a record, not an outcome) and never the Impact tab's compatibility red or yellow, which belong to that
+   tab alone (GUIDANCE.md §1). "None" is said only once the impact is reconciled (basis as-built); before that, and with nothing to
+   show, the section is not drawn. */
+function impEntry(ref){ const m=/^(downstream|adaptation|api|conversion)\.(\d+)$/.exec(String(ref==null?"":ref)); if(!m) return null; const x=impItems(m[1])[+m[2]]; return x?{key:m[1],i:+m[2],x}:null; }
+const impChanges=e=>e&&Array.isArray(e.changes)?e.changes.filter(c=>c&&typeof c==="object"):[];
+function impChangeSys(c){ if(c.system&&sysOf(c.system)) return c.system; const e=impEntry(c.entry); return e&&e.key!=="conversion"?impSlug(e.x):""; }
+const goImpLink=(ref,label)=>`<a class="goimp" href="#impact.${esc(ref)}" data-imp="${esc(ref)}" title="Open it on the Impact tab">${label} ›</a>`;
+function impactChanges(){
+  const I=IMPACT; if(!I) return {html:"",slugs:[],muted:false};
+  const own=impChanges(I), reconciled=I.basis==="as-built", slugs=[]; let muted=false, total=own.length;
+  const units=TRACKING?ROWS.filter(r=>r.unit):[], uEntries=new Map((Array.isArray(I.units)?I.units:[]).filter(e=>e&&typeof e==="object").map(e=>[e.unit,e]));
+  const uChanged=units.filter(r=>impChanges(uEntries.get(r.id)).length), uNone=units.filter(r=>{ const e=uEntries.get(r.id); return e&&e.basis==="as-built"&&!impChanges(e).length; });
+  uChanged.forEach(r=>{ total+=impChanges(uEntries.get(r.id)).length; if(sysOf(r.system)) slugs.push(r.system); else muted=true; });
+  if(!own.length&&!reconciled&&!uChanged.length&&!uNone.length) return {html:"",slugs:[],muted:false};
+  const card=c=>{ const slug=impChangeSys(c), e=impEntry(c.entry), S=e&&IMP_SECTIONS.find(s=>s.key===e.key); if(slug) slugs.push(slug); else muted=true;
+    const meta=[c.when?esc(c.when):"",c.ref?refHtml(c.ref):"",e?goImpLink(c.entry,`Impact card: ${esc(S.title)} · ${codeOnly(String(S.head(e.x,e.i)||""))}`):""].filter(Boolean);
+    return `<div class="bcard ichg" data-sys="${esc(slug)}"><div class="bh"><span class="nm">${rich(c.what||"")}</span></div>${c.why?`<p>${rich(c.why)}</p>`:""}${meta.length?`<div class="meta">${meta.join(" · ")}</div>`:""}</div>`; };
+  let h="";
+  const initiative=own.length?`<div class="icards">${own.map(card).join("")}</div>`:reconciled?`<p class="empty">None: the impact as built is the impact the plan recorded.${I.source?` Source ${refHtml(I.source)}.`:""}</p>`:"";
+  if(TRACKING&&initiative) h+=`<h4>The initiative</h4>`;
+  h+=initiative;
+  if(uChanged.length||uNone.length){ h+=TRACKING?`<h4>Units</h4>`:"";
+    if(uChanged.length) h+=`<div class="icards">${uChanged.map(r=>{ const u=r.unit, cs=impChanges(uEntries.get(r.id));
+      return `<div class="bcard ichg" data-sys="${esc(sysOf(r.system)?r.system:"")}" data-row="${esc(r.id)}"><div class="bh"><span class="nm">${esc(u.n)}. ${u.issue?pair(u.issue,r.name):codeOnly(r.name)}</span></div><ol class="changes">${cs.map(c=>`<li><b>${rich(c.what||"")}</b>${c.why?` — ${rich(c.why)}`:""}<small>${esc(c.when||"")}${c.ref?`${c.when?" · ":""}${refHtml(c.ref)}`:""}</small></li>`).join("")}</ol><div class="meta">${goImpLink("unit."+r.id,"Impact card: its unit entry")}</div></div>`; }).join("")}</div>`;
+    if(uNone.length) h+=`<p class="empty">Reconciled with no change from the planned impact: ${uNone.map(r=>`${esc(r.unit.n)}. ${r.unit.issue?pair(r.unit.issue,r.name):codeOnly(r.name)}`).join("; ")}.</p>`; }
+  return {html:`<div class="isec bimp"><h3>Impact changes from the plan <small>${total}</small></h3><p class="q">How the impact differed from the plan; the Impact tab shows it as it now stands.</p>${h}</div>`,slugs,muted};
+}
+/* Opens an entry's card on the Impact tab, selected and in view, with its detail in the inspector; "#impact.<entry>" deep-links it. */
+function goImpact(ref){ if(!$("#t-impact")) return; show("t-impact"); try{ history.replaceState(null,"","#impact."+ref); }catch(e){}
+  const c=[...document.querySelectorAll("#impact-body .icard")].find(x=>x.dataset.imp===ref); if(!c) return;
+  document.querySelectorAll("#impact-body .icard.sel").forEach(x=>x.classList.remove("sel")); c.classList.add("sel");
+  c.scrollIntoView({block:"center"}); c.focus({preventScroll:true}); inspectImpact(ref); }
 
 /* ---------- Impact (plan/RULES.md §2, "Impact") ----------
    From plan.json "impact": written at plan acceptance from impact.md (and plan.md where it states API or migration facts), and
    reconciled at the landing from final-implementation.md and the reconciled impact.md. The tab shows the current best-known impact
-   and no planning information (GUIDANCE.md §1, plan/RULES.md §2): impact.basis and impact.changes stay in the data for check.js
-   and are not rendered here; every entry is one solid card, whatever the basis. Four sections: downstream effects, adaptation
+   and no planning information (GUIDANCE.md §1, plan/RULES.md §2): impact.basis is not rendered, and impact.changes is rendered on
+   the As built tab (impactChanges(), above), never here; every entry is one solid card, whatever the basis. Four sections: downstream effects, adaptation
    requirements, API changes, conversion steps; a tracking board adds one entry per unit (impact.units), linking the unit's board.
    No recorded impact is a plain statement with its source, never a hidden tab. */
 const IMPACT=PLAN.impact&&typeof PLAN.impact==="object"&&!Array.isArray(PLAN.impact)?PLAN.impact:null;
@@ -1066,7 +1118,7 @@ function impUnitCard(r,e){ const u=r.unit, c=compatOf("unit",e), P=compatParts(c
 function renderImpact(){
   const I=IMPACT, units=TRACKING?ROWS.filter(r=>r.unit):[];
   const uEntries=new Map((I&&Array.isArray(I.units)?I.units:[]).map(e=>[e.unit,e]));
-  $("#impact-lede").textContent="The change's impact as best known now. How the build differs from the plan is on the As built tab.";
+  $("#impact-lede").textContent="The change's impact as best known now. How it differed from the plan is on the As built tab.";
   let h="";
   const rel=I&&I.release&&IMP_BUMP[I.release.bump]?I.release:null;
   const head=[rel?`<span class="badge">version · ${esc(IMP_BUMP[rel.bump])}${rel.version?` · ${esc(rel.version)}`:""}</span>`:"",rel&&rel.note?`<span>${rich(rel.note)}</span>`:"",
@@ -1084,7 +1136,7 @@ function renderImpact(){
     h+=`<div class="isec"><h3>${esc(s.title)} <small>${xs.length}</small></h3><p class="q">${esc(s.q)}</p>${xs.length?`<div class="icards">${xs.map((x,i)=>impCard(s.key,x,i)).join("")}</div>`:`<p class="empty">None recorded.</p>`}</div>`; });
   if(TRACKING) h+=`<div class="isec"><h3>Units <small>${count(units,r=>uEntries.has(r.id))} of ${units.length} recorded</small></h3><p class="q">Each unit's own impact in a sentence or two; its board holds the rest.</p>${units.length?`<div class="icards">${units.map(r=>impUnitCard(r,uEntries.get(r.id))).join("")}</div>`:`<p class="empty">No units yet: they appear when the architecture is signed off.</p>`}</div>`;
   $("#impact-body").innerHTML=h; paint($("#impact-body"));
-  document.querySelectorAll("#impact-body .icard").forEach(c=>{ const go=()=>inspectImpact(c.dataset.imp); c.addEventListener("click",e=>{ if(e.target.closest("a")) return; go(); }); c.addEventListener("keydown",e=>{ if(e.target!==c) return; if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } }); });
+  document.querySelectorAll("#impact-body .icard").forEach(c=>{ const go=()=>{ document.querySelectorAll("#impact-body .icard.sel").forEach(x=>x.classList.remove("sel")); c.classList.add("sel"); inspectImpact(c.dataset.imp); }; c.addEventListener("click",e=>{ if(e.target.closest("a")) return; go(); }); c.addEventListener("keydown",e=>{ if(e.target!==c) return; if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } }); });
   /* the legend: exactly what was drawn */
   const slugs=[...IMP_SECTIONS.flatMap(s=>impItems(s.key).map(impSlug)).filter(Boolean),...units.map(r=>r.system)];
   const outside=IMP_SECTIONS.some(s=>impItems(s.key).some(x=>!impSlug(x)));
@@ -1172,7 +1224,7 @@ function renderContext(){
 /* ---------- Tabs and deep links ---------- */
 if(!TRACKING){ const t=$("#t-landing-order"), p=$("#p-landing-order"); if(t) t.remove(); if(p) p.remove(); }
 const tabs=[...document.querySelectorAll(".tab")];
-const DEFAULT_INSPECT={timeline:"<p>Click a cell for its detail: the gap's evidence, an option's reasons, the verdict's steps, tests and risks, or the as-built changes with their reasons. Each cell links the Markdown section that holds the rest.</p>",decisions:"<p>Click a row for the option's full reasons and the options it was weighed against.</p>",built:"<p>Click a card for the row's files, commits, verification and every change from the verdict.</p>",impact:"<p>Click a card for its detail: the party affected or the surface that moves, its system, its tier, and the Markdown section that holds the rest.</p>","landing-order":"<p>Click a unit for its as-built state, its issue and its board or folder, and its run in full.</p>",source:"<p>The committed <code>plan.json</code>. Edit the file, then run <code>plan/scripts/embed.js</code> on the folder.</p>"};
+const DEFAULT_INSPECT={timeline:"<p>Click a cell for its detail: the gap's evidence, an option's reasons, the verdict's steps, tests and risks, or the as-built changes with their reasons. Each cell links the Markdown section that holds the rest.</p>",decisions:"<p>Click a row for the option's full reasons and the options it was weighed against.</p>",built:"<p>Click a card for the row's files, commits, verification and every change from the verdict. Each impact change opens the Impact card it changed.</p>",impact:"<p>Click a card for its detail: the party affected or the surface that moves, its system, its tier, and the Markdown section that holds the rest.</p>","landing-order":"<p>Click a unit for its as-built state, its issue and its board or folder, and its run in full.</p>",source:"<p>The committed <code>plan.json</code>. Edit the file, then run <code>plan/scripts/embed.js</code> on the folder.</p>"};
 let CUR_TAB="";
 function show(id){
   const name0=id.replace("t-",""); CUR_TAB=name0;
@@ -1192,8 +1244,10 @@ tabs.forEach((t,i)=>{ t.addEventListener("click",()=>{ show(t.id); try{ history.
 renderHeader(); renderWip(); renderKpis(); renderBoard(); renderContext();
 const hash=decodeURIComponent(location.hash.replace("#",""));
 let start="t-timeline"; if(hash&&document.getElementById("t-"+hash)) start="t-"+hash; else if(hash==="chain"&&document.getElementById("t-landing-order")) start="t-landing-order"; /* the tab's old name */
+else if(/^impact\./.test(hash)&&document.getElementById("t-impact")) start="t-impact"; /* an Impact card, "#impact.<entry>" */
 show(start);
-if(hash&&hash!=="chain"&&!document.getElementById("t-"+hash)){ const [rowId,col,optId]=hash.split("."); if(ROWS.some(r=>r.id===rowId)){ select(rowId,COLS.some(c=>c.key===col)?col:"gap",optId); const el=document.getElementById("row-"+rowId); if(el) el.scrollIntoView({block:"center"}); } }
+if(/^impact\./.test(hash)) goImpact(hash.slice("impact.".length));
+else if(hash&&hash!=="chain"&&!document.getElementById("t-"+hash)){ const [rowId,col,optId]=hash.split("."); if(ROWS.some(r=>r.id===rowId)){ select(rowId,COLS.some(c=>c.key===col)?col:"gap",optId); const el=document.getElementById("row-"+rowId); if(el) el.scrollIntoView({block:"center"}); } }
 </script>
 </body>
 </html>
