@@ -2,7 +2,7 @@
   "$comment": "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last full verification. check-page.js --auto and check.js --auto trust a template only while its hash matches.",
   "templates": {
     "plan/template/dashboard.html": {
-      "sha256": "c718f3afb2e1bef98f50d24901b66f09e48009acc9ad6350e31de5fcd11df1bf",
+      "sha256": "de072fbdafe8845f2dd6fc1e2329631291341497f256d253fcec437304b7c7bd",
       "verified": "2026-10-23",
       "fixtures": [
         "plan",
@@ -19,7 +19,7 @@
       ]
     },
     "plan/template/board.html": {
-      "sha256": "f38d1a6bc0fedcfe52e7798fefe2373941a8b132b6966733a41614a01570a233",
+      "sha256": "5917a2ccef709e153bdba4cd65eb9875a3a09e5d51df6fcedc9e720b398bf5e5",
       "verified": "2026-10-23",
       "fixtures": [
         "work-board",
@@ -35,7 +35,7 @@
       ]
     },
     "system/template/system.html": {
-      "sha256": "9bb945b231913106bac84fd5556d8fb658f464afde597371f54efe35097041fd",
+      "sha256": "bb7b5fd1a164201401582a03c782add015ea563efeb8ea940c1b509b7de7b729",
       "verified": "2026-10-23",
       "fixtures": [
         "placeholder"
@@ -49,7 +49,7 @@
       ]
     },
     "system/template/supersystem.html": {
-      "sha256": "ceb2a9360cc1eddf732edb2e6ac25910aaba4b2dbed6470a4e0169e275094fb4",
+      "sha256": "348defb341c1cfb23a5af19f75ae9deaa3bc83a458a344db6cc3fa983cbdf003",
       "verified": "2026-10-23",
       "fixtures": [
         "placeholder"

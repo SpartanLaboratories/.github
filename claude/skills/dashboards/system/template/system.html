@@ -13,16 +13,16 @@
 :root{
   --bg:#f3f5f8; --surface:#fcfcfd; --surface-2:#eef1f6; --ink:#0e1420; --ink-2:#4a5468; --muted:#7d879a;
   --line:#dfe4ec; --hair:rgba(14,20,32,.10);
-  --server:#2a78d6; --client:#eb6834; --wire:#1baf7a;
-  --server-soft:#e2edfa; --client-soft:#fdeae1; --wire-soft:#ddf4ea;
+  --server:#2a78d6; --client:#653184; --wire:#0d7680;
+  --server-soft:#e2edfa; --client-soft:#eae3ee; --wire-soft:#deecee;
   --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
   --ph-1:#a49bed; --ph-2:#6250d6; --ph-3:#352a91;
   --on:#0e1420; --dim:.28; --focus:#2a78d6; --rel:#6b7382;
   --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:ui-monospace,"Cascadia Mono",Consolas,"SF Mono",monospace;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--server:#3987e5;--client:#d95926;--wire:#199e70;--server-soft:rgba(57,135,229,.20);--client-soft:rgba(217,89,38,.20);--wire-soft:rgba(25,158,112,.22);--ph-1:#5546c0;--ph-2:#8a7ee6;--ph-3:#c9c2f7;--on:#eef1f6;--focus:#3987e5;--rel:#9aa3b2;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--server:#3987e5;--client:#d95926;--wire:#199e70;--server-soft:rgba(57,135,229,.20);--client-soft:rgba(217,89,38,.20);--wire-soft:rgba(25,158,112,.22);--ph-1:#5546c0;--ph-2:#8a7ee6;--ph-3:#c9c2f7;--on:#eef1f6;--focus:#3987e5;--rel:#9aa3b2;color-scheme:dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--server:#3987e5;--client:#8a44d8;--wire:#1f8089;--server-soft:rgba(57,135,229,.20);--client-soft:rgba(138,68,216,.20);--wire-soft:rgba(31,128,137,.22);--ph-1:#5546c0;--ph-2:#8a7ee6;--ph-3:#c9c2f7;--on:#eef1f6;--focus:#3987e5;--rel:#9aa3b2;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--server:#3987e5;--client:#8a44d8;--wire:#1f8089;--server-soft:rgba(57,135,229,.20);--client-soft:rgba(138,68,216,.20);--wire-soft:rgba(31,128,137,.22);--ph-1:#5546c0;--ph-2:#8a7ee6;--ph-3:#c9c2f7;--on:#eef1f6;--focus:#3987e5;--rel:#9aa3b2;color-scheme:dark}
 
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans);padding-block:0 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -384,7 +384,7 @@ footer code{color:var(--ink-2)}
     <p class="lede">Nesting is ownership. Filled boxes are public types, outlined boxes internal. Click any box for its role, files and threads — and its place in the C4 model.</p>
     <svg id="svg-structure" viewBox="0 0 1000 612" role="img" aria-label="Component map of system-slug"></svg>
     <!-- presenter: the legend names this page's colour groups. side = server | client | wire are the page's three hue slots
-         (blue, orange, aqua) and keep their meaning on every tab; label them for what they are in this system (MODEL.sides
+         (blue, purple, teal: registry slots 1 to 3, never a status hue) and keep their meaning on every tab; label them for what they are in this system (MODEL.sides
          holds the same names). Fill = public, outline = internal, dotted = standalone, dashed and faded = planned. -->
     <div class="key"><span><i class="pub srv"></i>public · side A</span><span><i class="srv"></i>internal · side A</span><span><i class="pub cli"></i>public · side B</span><span><i class="cli"></i>internal · side B</span><span><i class="pub wir"></i>public · shared</span><span><i class="wir"></i>internal · shared</span><span><i class="std"></i>standalone, outside the stack</span><span><i class="pln"></i>planned, not built</span></div>
   </section>
@@ -638,7 +638,7 @@ function arrowDefs(svg,id,color){ const d=mk("defs",{},svg); const m=mk("marker"
    nodes to their DSL element so the two views cross-reference.
    ========================================================================= */
 const MODEL = {
-  // The page's colour groups: the three hue slots (server = blue, client = orange, wire = aqua) plus the consumer's own code
+  // The page's colour groups: the three hue slots (server = blue, client = purple, wire = teal; slots 1 to 3 of the shared palette) plus the consumer's own code
   // and anything outside the system. Name them for what they are here; the inspector and the generated legends use these names,
   // and a group keeps its hue on every tab.
   sides:{server:"side A",client:"side B",wire:"shared",consumer:"the consumer's code",external:"outside the system"},
