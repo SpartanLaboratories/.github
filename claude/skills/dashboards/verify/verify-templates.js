@@ -243,8 +243,9 @@ targets.filter(t => t.block === "plan").forEach(t => {
   report(`issue links on ${t.name} (sub-issue board)`, sc);
 
   /* The Impact tab (plan/RULES.md §2, "Impact") and the work-level guard (GUIDANCE.md §4), on the rendered pages and in check.js:
-     the example's four sections, as built; the tracking fixture's initiative impact, planned and dashed, and one entry per unit
-     whose title opens the unit's board; a board with no impact recorded says so with its source; a board with no version bump
+     the example's four sections, with no planning information (no standing pill, no dashed card, no changes list); the tracking
+     fixture's initiative impact, planned in the data but drawn as solid cards like any other, and one entry per unit whose title
+     opens the unit's board; a board with no impact recorded says so with its source; a board with no version bump
      and nothing downstream says so explicitly; check.js warns when impact.md exists but the tab is empty, and fails a board whose
      text names a work level; check-page.js reports a work level the page shows. */
   const ic = [], iScratch = path.join(out, "impact"), ex = JSON.parse(fs.readFileSync(sk("plan/examples/38-handshake-empty-name/plan.json"), "utf8"));
@@ -253,7 +254,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
   const panel = dom => inner(dom, '<section class="view" role="tabpanel" id="p-impact"[^>]*>', "section");
   { const dir = page("38-handshake-empty-name", ex), dom = dumpDom(path.join(dir, "dashboard.html"), "impact");
     if (dom != null) { const p = panel(dom);
-      ic.push(["the example's Impact tab shows its four sections and its as-built basis", ["Downstream effects", "Adaptation requirements", "API changes", "Conversion steps"].every(h => p.includes(h)) && /as built<\/span>/.test(p) && /id="impact-key"[^>]*><span/.test(p), p.slice(0, 300) || "no Impact panel"]);
+      ic.push(["the example's Impact tab shows its four sections and no planning information", ["Downstream effects", "Adaptation requirements", "API changes", "Conversion steps"].every(h => p.includes(h)) && !/(planned impact|as built(, amended)?)<\/span>/.test(p) && !/icard[^"]*planned/.test(p) && !/Changes from the planned impact/.test(p) && /id="impact-key"[^>]*><span/.test(p), p.slice(0, 300) || "no Impact panel"]);
     } else ic.push(["the rendered Impact tab (no browser found: set CHROME)", false, "no Chrome or Edge"]);
     fs.writeFileSync(path.join(dir, "impact.md"), "# Impact\n");
     const d = JSON.parse(fs.readFileSync(path.join(dir, "plan.json"), "utf8")); d.impact = null; fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(d, null, 2) + "\n"); node(embedJs, dir);
@@ -269,7 +270,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(fxT, null, 2) + "\n"); fs.writeFileSync(path.join(dir, "dashboard.html"), tpl); node(embedJs, dir);
     const dom = dumpDom(path.join(dir, "dashboard.html"), "impact");
     if (dom != null) { const p = panel(dom);
-      ic.push(["a tracking board shows the initiative's impact, planned and dashed, and a unit entry whose title opens the unit's board", /planned impact/.test(p) && /class="bcard icard planned"/.test(p) && /<h3>Units/.test(p) && p.includes(`/issues/${bu.unit.issue}"`) && p.includes(`href="${bu.unit.board}"`), p.slice(0, 300)]); } }
+      ic.push(["a tracking board shows the initiative's planned impact as solid cards with no standing pill, and a unit entry whose title opens the unit's board", !/planned impact/.test(p) && !/icard[^"]*planned/.test(p) && /class="bcard icard"/.test(p) && /<h3>Units/.test(p) && p.includes(`/issues/${bu.unit.issue}"`) && p.includes(`href="${bu.unit.board}"`), p.slice(0, 300)]); } }
   { const d = JSON.parse(JSON.stringify(ex)); d.notes = { ...d.notes, sizing: "Verification case: a level-3 change (#61, level 3), shown as L3." };
     const dir = page("38-levels", d), c = node(checkJs, dir, "--root", iScratch);
     ic.push(["check.js fails a board whose text names a work level", c.status === 1 && /shows a work level/.test(c.stdout), lines(c, /^FAIL/) || "no failure"]);
@@ -306,8 +307,12 @@ targets.filter(t => t.block === "plan").forEach(t => {
    - test levels are not work levels (GUIDANCE.md §4): levelrefs.js passes "L1 gating" … "L5 UAT", "Level 2 — component" and the C4
      levels, and still finds the work-level forms;
    - Impact colours are compatibility first (GUIDANCE.md §1; plan/RULES.md §2): breaking entries red, deprecations and other
-     non-breaking changes worth noting yellow, the rest in their system's colour, the badges alike, dashed while planned; the
-     impact's "as built, amended" standing is no longer yellow there; check.js fails a "compat" that lowers an entry;
+     non-breaking changes worth noting yellow, the rest in their system's colour, the badges alike; the tab shows no planning
+     information: every card solid whatever the basis, no standing pill, no changes-from-the-plan list, and check-page.js fails a
+     copy that draws an Impact card dashed; check.js fails a "compat" that lowers an entry;
+   - system colours stay out of the status spectra (GUIDANCE.md §1; system/scripts/palette.js): every template's slots are the
+     shared palette's and none is green, yellow, orange, amber, red or pink; check.js and check-page.js fail a copy with an orange
+     slot, check-page.js from the CSS and from the computed colours alike;
    - the plan-board ledes are one short line;
    - a tracking board's WIP strip is bubbles (plan/RULES.md §3): the phase, a unit in progress, up next, and "waiting on you" only
      while something is halted;
@@ -351,10 +356,14 @@ targets.filter(t => t.block === "plan").forEach(t => {
     nc.push(["Impact: the badges take the same colours, with their glyph and word", /class="badge critical"><b aria-hidden="true">!<\/b>breaking/.test(p) && /class="badge critical"><b aria-hidden="true">✕<\/b>removed/.test(p) && /class="badge warning"><b aria-hidden="true">⚠<\/b>deprecated/.test(p) && /class="badge critical"><b aria-hidden="true">!<\/b>required change/.test(p), "badge colours missing"]);
     nc.push(["Impact: a raised card says why in a pill, and the legend reads red and yellow as compatibility", /<span class="vp warning"><i aria-hidden="true">⚠<\/i>worth noting/.test(p) && /red: breaking/.test(p) && /yellow: worth noting/.test(p), text(inner(p, '<div class="key" id="impact-key">', "div")).slice(0, 300)]);
     const dT = render("tracking-impact", trk, "impact"), pT = inner(dT, '<section class="view" role="tabpanel" id="p-impact"[^>]*>', "section");
-    nc.push(["Impact: a planned red or yellow card stays dashed", /class="bcard icard planned cmp critical"/.test(pT) && /class="bcard icard planned cmp warning"/.test(pT), "no planned red/yellow card"]);
+    nc.push(["Impact: a red or yellow card on a planned impact is solid, like every card", /class="bcard icard cmp critical"/.test(pT) && /class="bcard icard cmp warning"/.test(pT) && !/icard[^"]*planned/.test(pT), (pT.match(/class="bcard icard[^"]*"/g) || ["no card"]).slice(0, 4).join(" | ")]);
     const am = copy(ex); am.impact.changes = [{ what: "Verification case: a change from the planned impact.", why: "Verification case.", when: "landing" }];
     const pA = inner(render("amended-impact", am, "impact"), '<section class="view" role="tabpanel" id="p-impact"[^>]*>', "section");
-    nc.push(["Impact: the \"as built, amended\" standing is neutral there, so yellow keeps its compatibility meaning", /<span class="vp neutral"><i aria-hidden="true">\+<\/i>as built, amended/.test(pA) && !/vp warning"><i aria-hidden="true">\+/.test(pA), (pA.match(/<span class="vp[^"]*"><i aria-hidden="true">\+<\/i>[^<]*/) || ["none"])[0]]);
+    nc.push(["Impact: an amended impact shows no standing pill and no list of changes from the plan", !/as built, amended/.test(pA) && !/Changes from the planned impact/.test(pA) && !/Verification case: a change from the planned impact/.test(pA) && /Downstream effects/.test(pA), text(pA).slice(0, 300)]);
+    /* check-page.js fails an Impact tab that shows planning: a copy of the tracking board whose Impact cards are drawn dashed */
+    const fd = path.join(sc, "impact-dashed.html"); fs.writeFileSync(fd, withData(tpl, "plan", JSON.stringify(trk, null, 2)).replace("</style>", ".icard{border-style:dashed}</style>"));
+    const rd = cp.spawnSync(process.execPath, [checker, fd, "--out", sc], { encoding: "utf8" });
+    nc.push(["check-page.js fails an Impact tab that draws a card dashed", rd.status === 1 && /IMPACT SHOWS PLANNING/.test(rd.stdout || ""), (rd.stdout || "").split(/\r?\n/).filter(l => /impact|FAIL/.test(l)).join(" | ")]);
 
     /* the ledes */
     const lede = (dom, id) => text((dom.match(new RegExp(`<p class="lede" id="${id}">([\\s\\S]*?)</p>`)) || ["", ""])[1]);
@@ -400,6 +409,23 @@ targets.filter(t => t.block === "plan").forEach(t => {
     nc.push(["on a 1920 window the graph spans the content width and the inspector sits under it", svgW > 1500 && /<div class="stage below">/.test(dO), `svg ${svgW}px, stage ${(dO.match(/<div class="stage[^"]*">/) || ["?"])[0]}`]);
     nc.push(["a selected unit's inspector is bubbles in the inspector's order: what was selected, then each section", /<div class="ibubbles"><div class="ib ib-head">/.test(insp) && (insp.match(/<div class="ib">/g) || []).length >= 2 && /Its run now/.test(insp), insp.slice(0, 300)]);
   }
+
+  /* the palette (GUIDANCE.md §1; system/scripts/palette.js): every template's system colours are the shared palette's and none is in a
+     status spectrum; a copy of the plan template with an orange slot fails check.js and check-page.js (its CSS, and the colour the
+     browser computes) */
+  { const P = require(path.join(SKILL, "system", "scripts", "palette.js"));
+    const res = SETS.map(x => [x.name, P.paletteCheck(fs.readFileSync(sk(x.name), "utf8"))]);
+    nc.push(["every template's system colours are the shared palette's, none in a status spectrum", res.every(([, r]) => r.tokens >= 6 && !r.problems.length && !r.warnings.length), res.filter(([, r]) => r.tokens < 6 || r.problems.length || r.warnings.length).map(([n, r]) => `${n}: ${r.tokens} tokens; ${[...r.problems, ...r.warnings].slice(0, 2).join("; ")}`).join(" | ")]);
+    const allPal = [...P.PALETTE.light, ...P.PALETTE.dark];
+    nc.push(["no slot of the shared palette is in a status spectrum, and every one is distinct", allPal.every(c => !P.inStatusHue(c)) && new Set(P.PALETTE.light).size === P.PALETTE.light.length && new Set(P.PALETTE.dark).size === P.PALETTE.dark.length, allPal.filter(c => P.inStatusHue(c)).join(", ")]);
+    nc.push(["palette.js finds the status hues: orange, amber, green, red, pink", ["#eb6834", "#eda100", "#1baf7a", "#d03b3b", "#e87ba4"].every(c => P.inStatusHue(c)) && !P.inStatusHue("#7d879a"), ["#eb6834", "#eda100", "#1baf7a", "#d03b3b", "#e87ba4"].filter(c => !P.inStatusHue(c)).join(", ")]);
+    const orange = tpl.replace("--sys-2:#653184;", "--sys-2:#eb6834;");
+    const dir = path.join(sc, "docs", "plans", "38-orange-slot"); fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify({ ...ex, slug: "38-orange-slot", folder: "docs/plans/38-orange-slot" }, null, 2) + "\n"); fs.writeFileSync(path.join(dir, "dashboard.html"), orange); node(embedJs, dir);
+    const c = node(checkJs, dir, "--root", sc);
+    nc.push(["check.js fails a page whose system slot is orange", orange !== tpl && c.status === 1 && /palette: --sys-2: #eb6834 is in a status spectrum/.test(c.stdout), lines(c, /palette/) || "no failure"]);
+    const r = cp.spawnSync(process.execPath, [checker, path.join(dir, "dashboard.html"), "--out", sc], { encoding: "utf8" });
+    nc.push(["check-page.js fails it, from the CSS and from the computed colour", r.status === 1 && /CHECK palette: PALETTE IN STATUS HUE --sys-2/.test(r.stdout || "") && /palette \(computed\).*PALETTE IN STATUS HUE --sys-2/.test(r.stdout || ""), (r.stdout || "").split(/\r?\n/).filter(l => /palette/.test(l)).join(" | ")]); }
 
   /* strict options: an unknown one fails before any file is touched; --help prints the usage */
   { const repo = path.join(sc, "cli"), bj = path.join(repo, "docs", "plans", "board.json"); fs.rmSync(repo, { recursive: true, force: true }); fs.mkdirSync(path.dirname(bj), { recursive: true });
@@ -456,7 +482,7 @@ targets.forEach(t => {
     MODES.forEach(m => {
       const r = cp.spawnSync(process.execPath, [checker, page, "--out", dir, ...m], { encoding: "utf8" });
       const lines = (r.stdout || "").split(/\r?\n/);
-      results.push({ fixture: label, mode: m.join(" ") || "light", pass: r.status === 0, bad: lines.filter(l => /FAIL|ERROR|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL|LEVEL REFERENCE|RAW UTC STAMP/.test(l)) });
+      results.push({ fixture: label, mode: m.join(" ") || "light", pass: r.status === 0, bad: lines.filter(l => /FAIL|ERROR|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING/.test(l)) });
     });
   });
   const ok = results.every(r => r.pass);

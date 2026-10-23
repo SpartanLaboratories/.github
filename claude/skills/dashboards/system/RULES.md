@@ -34,6 +34,7 @@ This set ships, under `skills/dashboards/system/`:
 | `scripts/embed.js` | Embeds `workspace.dsl` (block `dsl`) or `systems.json` (block `systems`) verbatim into a page; `--check` verifies. |
 | `scripts/check-page.js` | The browser checker for **every** dashboard page, system and plan alike (§9); `--auto` checks only what a page adds to its template. |
 | `scripts/deviation.js` | How far a page deviates from its template (used by `--auto`; not a command). |
+| `scripts/palette.js` | The shared system palette (six slots, light and dark) and the status-hue rule that `check.js` and `check-page.js` apply (`GUIDANCE.md` §1; not a command). |
 | `../verify/verify-templates.js` | Verifies every template once with the fixtures in `../verify/fixtures/` and records its hash in `../verify/verified.json`; run it after any template change. |
 
 ## 2. The two sources of a system page
@@ -56,8 +57,8 @@ facts.
 
 2. **The page's `MODEL` — behaviour.** A JS object in the page with:
    - `sides`: the names of the page's colour groups — the three hue slots `server`, `client` and
-     `wire` (blue, orange, aqua) plus `consumer` and `external` — which the inspector and the
-     generated legends print;
+     `wire` (blue, purple, teal: slots 1 to 3 of the shared palette, `GUIDANCE.md` §1) plus
+     `consumer` and `external` — which the inspector and the generated legends print;
    - `structure`: the hand-placed component map (lanes, notes, nodes with positions on a
      1000×612 canvas; nesting is ownership; `pub`/`int` and the side are the visual encodings;
      `kind` `standalone` draws a dotted box, `planned` a dashed, faded one; each node's `d` block
@@ -130,14 +131,18 @@ dashed = planned, a legend on every tab). The groupings the system templates use
 | Lifecycles | phase: start · run · stop | phase, named for the lifecycle (build · verify · release) |
 
 - The C4 tab's legend is `.c4key`; every other tab's is `.key`.
-- On a system page the groups are the hue slots `--server`, `--client` and `--wire`; name them in
-  `MODEL.sides` and the Structure legend.
+- On a system page the groups are the hue slots `--server`, `--client` and `--wire` (slots 1 to 3
+  of the shared palette); name them in `MODEL.sides` and the Structure legend.
 - On a supersystem or repository page each top-level system takes a slot `--sys-1` … `--sys-6`
   in registry order (`sysColour(slug)`: a top-level system is one whose parent is not itself a
   system on the page; a child takes its top-level ancestor's slot; a seventh folds into
   neutral), and every hand-written element about a system carries `data-sys="<slug>"` so
   `paintSystems()` colours it. The plan boards use the same slots (`plan/RULES.md`), so a system
   has one colour on both sets.
+- The slots' values are the shared palette's (`GUIDANCE.md` §1, `scripts/palette.js`), and no
+  system colour falls in a status spectrum: no green, yellow, orange, amber, red or pink, since the
+  status tokens carry outcomes (the Decision path's ends) and compatibility. A page never redefines
+  a slot.
 - Further tokens on `:root`: the ordinal phase ramp `--ph-1` … `--ph-3` (classes `.ph1` …
   `.ph3`), used by Lifecycles. A single series (the test-class bars) is neutral ink, not a hue.
 - Nothing built is drawn with a dashed outline: standalone is dotted, a lazily started thread an
@@ -269,8 +274,11 @@ embeds runs one pass of the named mode, for looking at a single tab.
 to point at another). It clicks every tab and exits non-zero on a script error, a panel that does
 not render, a tab without a visible legend (`.key`, or `.c4key` on the C4 tab), a page without a
 visible Guarantees area holding at least one bubble, a Context section whose heading is not
-exactly "Context", a dead `href="#"` link, a horizontal page scroll, or a **git-ignored system
-folder**.
+exactly "Context", a dead `href="#"` link, a horizontal page scroll, a **system colour in a status
+spectrum** (`scripts/palette.js`: a `--sys-N`, `--server`, `--client` or `--wire` token, or its
+`-soft` fill, chromatic with a hue outside 175°–295°, read from the page's CSS on every run,
+`--auto` included, and as the browser computes it in the theme of the pass), or a **git-ignored
+system folder**. A slot that is not the shared palette's value is a warning.
 
 **No git-ignored system folder.** On a system, supersystem or repository page, `check-page.js`
 finds the `docs/dashboards/systems.json` the page belongs to and runs `git check-ignore
