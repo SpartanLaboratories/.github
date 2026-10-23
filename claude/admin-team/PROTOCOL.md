@@ -56,7 +56,7 @@ one fenced ```json block:
 | `plan`, `docs`, `dashboards` | `land` | The plan document; every `.md` created or updated this run; the dashboard paths `presenter` wrote. |
 | `qa` | `land` | `PASS`, or `NONE` for levels that run no qa. |
 | `dependsOn` | optional | Issues that must be closed first, `owner/repo#n`. |
-| `publish` | `land` | `true` only when the user explicitly asked for a publish this run. Still gated at the team's console. |
+| `publish` | `land` | `true` only when the user explicitly asked for a publish this run. Not a gate: the team's publisher releases every version-bumping landing on its own within the Maven Central budget (7 release events per namespace per month); `true` lets this release use the 2 held in reserve, and never passes the cap. |
 | `subIssues` | `file-sub-issues` | The approved list: `[{title, level, blockedBy: [unit numbers], body}]` in landing order. |
 | `body`, `labels` | `comment`, `label` | The comment body (a path to a file, or text); labels to add/remove `{add: [], remove: []}`. |
 | `notes` | optional | Anything the executor should know, in one line. |
@@ -67,6 +67,11 @@ Version control: `setup-branch` · `allocate-worktree` · `commit` · `sync-bran
 `file-sub-issues` · `comment` · `label` · `mirror-sync` · `status` · `cancel`
 
 Dashboards: `plan-board` · `dashboards-refresh`
+
+Publishing has no action: the team raises it itself inside `land` (the release consideration of
+every bump that moved a published module) and at its consideration points (startup, a landing, a
+`status`, the month's rollover or its last 3 days). A `status` reply carries each namespace's budget
+(`used` of 7 this month) and its deferred queue.
 
 What each does is in the agent brief's service tables. `commit` and `plan-board` may be
 fire-and-forget.
@@ -105,7 +110,7 @@ Same shape: one line, then a ```json block.
 |---------|---------|
 | `ack` | Queued. `lane` and `position` (0 = running). |
 | `progress` | Only for long actions; what step it is on. |
-| `done` | Finished. `result` carries SHAs, PR, merge commit, links, worktree path. |
+| `done` | Finished. `result` carries SHAs, PR, merge commit, links, worktree path. For a `land`, `result.release` is `{status, coordinates, deploymentId, tags, releases, reason, used}` with `status` one of `published`, `deferred` (`reason`: `cap-reached`, `reserve-held`), `failed` (the user decides at the team's console) or `none` (no published module moved). |
 | `rejected` | Refused. `reason` names the rule. Fix the request and send a new `id`. |
 | `needs-user` | Waiting on the user at the team's console. `waitingOn` says for what. |
 | `needs-rework` | A `land` whose base moved under its files. `result.overlap` lists them. Re-verify, then resend the same `id` with `attempt + 1` and a fresh `qa`. |

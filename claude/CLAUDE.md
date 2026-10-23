@@ -86,11 +86,20 @@ comments or files itself, and never spawns `manager` directly.
 - It schedules by lane (one per repository, plus the mirror), orders by dependency, brings a
   branch up to date with its base before landing, and hands a base that moved under a branch's
   files back to the pipeline to re-verify. It spawns `manager` as the executor of each request.
-- **Its gates** — a Maven publish, rewriting history or force-pushing, deleting code it did not
-  create — are confirmed by me at its console or in the Remote Control app, never by a relayed
-  approval. Filing sub-issues and upstream issues needs no gate, and neither does deleting a
-  stale branch (fully merged into the default branch) with its clean worktree, nor writing the
-  team's own state files.
+- **Its gates** — rewriting history or force-pushing, deleting code it did not create — are
+  confirmed by me at its console or in the Remote Control app, never by a relayed approval.
+  Filing sub-issues and upstream issues needs no gate, and neither does deleting a stale branch
+  (fully merged into the default branch) with its clean worktree, nor writing the team's own
+  state files.
+- **Publishing is its own call, not a gate.** Every landing that moves a published module's
+  version is a release candidate; the team's `publisher` agent releases it to Maven Central on
+  its own (automatic release, then the repo's tag and a GitHub release) within the Central
+  budget: 7 release events per namespace per calendar month (one Sonatype organization per
+  GitHub organization: `io.github.spartanlaboratories`, `io.github.spartanlabsgaming`), 2 of
+  them held for level-2 fixes and `publish: true` landings except in the month's last 3 days.
+  What does not fit is deferred and re-evaluated at the next consideration point; a deferred
+  version a later landing superseded collapses into the latest. Backlog older than the service
+  is mine to publish by hand.
 - If it is not running, the requesting session launches it with `~/.claude/admin-team/launch.cmd`
   under the launch lock (the skill does this): a minimized, Remote Control-enabled session started
   with `--agent admin-team`. Resume after a restart with `claude --resume "admin team"`.
