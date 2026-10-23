@@ -36,7 +36,10 @@ and nothing else, each with its own look and its own legend entry:
   run on the work board) carries an **interior glow**: a solid accent ring inside its edge, a faint
   accent wash, and an inner glow that breathes in and out (a slow CSS animation, ~2 s). Under
   `prefers-reduced-motion` the inner glow holds still at its middle strength, so the mark stays as
-  distinct without moving. While the run waits on the user it stops to the ring alone.
+  distinct without moving. While the run waits on the user it stops to the ring alone. A
+  tracking board's unit in progress carries its own run's live state, mirrored from its board
+  (`plan/RULES.md` §3), and its mark stops to the ring alone while that unit's run waits on the
+  user, even when the rest of the board works on.
 - **Up next** — the next unit of a tracking issue (`wip.next`), named but not started, carries the
   **mild outer glow** the in-progress mark used to have, held still, plus a static **UP NEXT**
   tag. It never animates and never reads as building or active; a blocker that has not landed
@@ -85,26 +88,46 @@ anything planned is drawn dashed and tagged, and never as built. A plan board's 
 columns are written once and never rewritten to match what happened; the fourth records every
 difference.
 
+**No work levels.** A dashboard never shows an issue's work level: no "level 3", "L3",
+"level: 2", "a level-3 change" or "escalated to level 4", in a chip, a badge, a column, a chain
+node, a legend, a lede or any text the presenter writes. Say what the work is instead: one
+system, a bug fix, docs only, a tracking issue. The work levels stay in force everywhere else;
+a plan keeps its level as data where a script needs it (`plan.json` `level`, `unit.level`,
+`wip.proposedLevel`), and no page renders those fields, the Source tab included. The test
+levels of the five-level hierarchy and the C4 model's levels are not work levels and are shown
+freely; a test level is labelled by its name or package (gating, component, …), never "L1".
+`plan/scripts/check.js` fails a board whose text names a work level, and the browser pass fails a
+page that shows one (`system/scripts/levelrefs.js` holds the forms).
+
 ## 5. Context, roadmap, work
 
 Below the main content, a section headed **Context** (never "secondary") holds the roadmap
 with each item's issues mapped under it, the unscheduled issues no roadmap item claims, and
 the plans and documents. System pages and plan boards link each other both ways: a system
 page's Context lists the plan boards that amended it; a plan board names its systems and
-links their pages; the repository page links the work board. Every issue reference on a board
-or the work board — a sub-issue, the parent tracking issue, a sibling, a blocker, a follow-up,
-any `#n` in its text — links that issue's own board when one exists, and its issue page only
-while no such board exists; a link never points at a file that is not there (`plan/RULES.md`
-§1).
+links their pages; the repository page links the work board.
+
+**An issue's number and its title.** Where an issue's number and its title appear together — a
+unit row, a roadmap item, a work-board row or group heading, the WIP strip's unit lines, the
+inspector's unit entry — they are **two links**: the number opens the GitHub issue, and the
+title opens the issue's own board, or stays plain text while it has none. A tracking board's
+unit row is the example: `1. #61 Shared build logic`, where `#61` opens issue 61 on GitHub and
+"Shared build logic" opens its board. Where **only one link fits** — a bare `#n` in text, a
+chain node, a "blocked by #n" tag, a deferred badge, the "part of #n" chip — the `#n` opens the
+issue's board when one exists and the GitHub issue while none does. A small "GitHub ↗" link
+sits beside such a lone `#n` only where the page offers no other way to reach the issue. A link
+never points at a file that is not there (`plan/RULES.md` §1).
 
 ## 6. Pages are self-contained
 
 Inline CSS, JS and SVG; no external resources; light and dark; no horizontal page scroll at
 phone width (diagrams scroll inside their own frame); every control reachable by keyboard;
-under 16 MB. Each template is checked for this once, in a headless browser, in light and dark
-and at a narrow width (520 px is the narrowest headless Chrome lays out; the real phone width is
-verified through the checker's iframe harness); a page inherits it from its template, and is
-checked again only where it diverges (§8).
+under 16 MB. On a wide desktop screen (over 1500 px) a page uses most of the window rather than a
+fixed measure, so the plan boards' timeline columns get room; prose keeps its own line length.
+Each template is checked for this once, in a headless browser, in light and dark, at a narrow
+width (520 px is the narrowest headless Chrome lays out; the real phone width is verified
+through the checker's iframe harness) and on a 1920 x 1080 desktop; a page inherits it from its
+template, and is checked again only where it diverges (§8).
 
 ## 7. Divergence
 
@@ -122,7 +145,7 @@ When a divergence would serve every page in the repo, it goes in the repo templa
 **The template is verified once, in the skill; a page is checked only where it deviates.** A
 template's own structure, tabs, legends, themes and responsive layout are verified by
 `verify/verify-templates.js`, which renders it with fixtures covering its states, runs the full
-browser pass on each (light, dark, 520 px, a 390 px frame) and records the template's hash in
+browser pass on each (light, dark, 520 px, a 390 px frame, a 1920 x 1080 desktop) and records the template's hash in
 `verify/verified.json` (a repository's `_template/` records its own beside it). Run it after
 every template change; until it has run, a changed template counts as a divergence on every
 page made from it.
@@ -132,10 +155,10 @@ Every page, before it is committed, passes its set's checker in `--auto` mode
 
 | The page | Checked |
 |---|---|
-| any page | its data and its rules (`check.js`), the embedded copy matching its data file, no dead `href="#"`, no external resource |
+| any page | its data and its rules (`check.js`), the embedded copy matching its data file, no dead `href="#"`, no external resource, no work level in its text (§4) |
 | a plan board or the work board that is a verified template plus its data | nothing more: no browser pass |
 | a system, supersystem or repository page whose CSS, tabs and script — before `MODEL` (less its page-filled lines, such as `REPO` and `SRC`) and after it — are the verified template's | one light pass, for the facts it fills in: no script error, every tab drawn with its legend, the Guarantees, Context, no git-ignored registry file |
-| a page that diverges — declared, undeclared, made from an older template — or whose template changed since it was verified | the full pass: light, dark, 520 px, a 390 px frame |
+| a page that diverges — declared, undeclared, made from an older template — or whose template changed since it was verified | the full pass: light, dark, 520 px, a 390 px frame, a 1920 x 1080 desktop |
 
 A difference nobody declared is a warning: re-render the page from the template, or declare it
 (§7). `--browser` (plan) and a plain `check-page.js` run still force a pass when wanted.

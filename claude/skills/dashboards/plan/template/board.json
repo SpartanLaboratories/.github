@@ -4,25 +4,140 @@
   "repo": "<owner/name>",
   "generated": "<ISO date-time>",
   "asOf": "<YYYY-MM-DD>",
-  "tree": {"ref": "<branch>", "sha": "<sha>"},
-  "systems": [{"slug": "<registry slug>", "name": "<name>", "slot": 1, "top": "<top-level system>", "status": "built", "page": null}],
+  "tree": {
+    "ref": "<branch>",
+    "sha": "<sha>"
+  },
+  "systems": [
+    {
+      "slug": "<registry slug>",
+      "name": "<name>",
+      "slot": 1,
+      "top": "<top-level system>",
+      "status": "built",
+      "page": null
+    }
+  ],
   "groups": [
-    {"key": "<tracking issue number>", "issue": 0, "title": "<tracking issue title>", "board": "<NN-slug/dashboard.html>"},
-    {"key": "other", "issue": null, "title": "Other runs, oldest first", "board": null}
+    {
+      "key": "<tracking issue number>",
+      "issue": 0,
+      "title": "<tracking issue title>",
+      "board": "<NN-slug/dashboard.html>"
+    },
+    {
+      "key": "other",
+      "issue": null,
+      "title": "Other runs, oldest first",
+      "board": null
+    }
   ],
   "rows": [
-    {"issue": 0, "title": "<issue title>", "state": "OPEN", "level": 3, "created": "<YYYY-MM-DD>", "parent": null,
-     "waitsOn": [{"issue": 0, "state": "OPEN"}], "blocks": [{"issue": 0, "repo": "<owner/name, only for another repository>", "state": "OPEN"}],
-     "board": "<NN-slug/dashboard.html>", "folder": "<NN-slug/>", "branch": "<branch>", "system": "<registry slug>", "systemName": "<name>",
-     "step": "qa", "detail": "<the board's wip.detail>", "since": null, "updated": null,
-     "qa": [{"pass": 1, "verdict": "changes-requested", "findings": {"documentation": 0, "test": 0, "code": 0}}], "qaMax": 3,
-     "status": "building", "active": true, "landed": null, "group": "<group key>", "order": 0},
-    {"issue": 0, "title": "<the next unit's title>", "state": "OPEN", "level": 3, "created": "<YYYY-MM-DD>", "parent": 0,
-     "waitsOn": [{"issue": 0, "state": "OPEN"}], "blocks": [],
-     "board": null, "folder": null, "branch": null, "system": "<registry slug>", "systemName": "<name>",
-     "step": null, "detail": "", "qa": [], "qaMax": null,
-     "status": "next", "active": false, "next": true, "blockedBy": [{"issue": 0}], "landed": null, "group": "<group key>", "order": 1}
+    {
+      "issue": 0,
+      "title": "<issue title>",
+      "state": "OPEN",
+      "created": "<YYYY-MM-DD>",
+      "parent": null,
+      "waitsOn": [
+        {
+          "issue": 0,
+          "state": "OPEN"
+        }
+      ],
+      "blocks": [
+        {
+          "issue": 0,
+          "repo": "<owner/name, only for another repository>",
+          "state": "OPEN"
+        }
+      ],
+      "board": "<NN-slug/dashboard.html>",
+      "folder": "<NN-slug/>",
+      "branch": "<branch>",
+      "system": "<registry slug>",
+      "systemName": "<name>",
+      "step": "qa",
+      "detail": "<the board's wip.detail>",
+      "since": null,
+      "updated": null,
+      "qa": [
+        {
+          "pass": 1,
+          "verdict": "changes-requested",
+          "findings": {
+            "documentation": 0,
+            "test": 0,
+            "code": 0
+          }
+        }
+      ],
+      "qaMax": 3,
+      "status": "building",
+      "active": true,
+      "landed": null,
+      "group": "<group key>",
+      "order": 0
+    },
+    {
+      "issue": 0,
+      "title": "<the next unit's title>",
+      "state": "OPEN",
+      "created": "<YYYY-MM-DD>",
+      "parent": 0,
+      "waitsOn": [
+        {
+          "issue": 0,
+          "state": "OPEN"
+        }
+      ],
+      "blocks": [],
+      "board": null,
+      "folder": null,
+      "branch": null,
+      "system": "<registry slug>",
+      "systemName": "<name>",
+      "step": null,
+      "detail": "",
+      "qa": [],
+      "qaMax": null,
+      "status": "next",
+      "active": false,
+      "next": true,
+      "blockedBy": [
+        {
+          "issue": 0
+        }
+      ],
+      "landed": null,
+      "group": "<group key>",
+      "order": 1
+    }
   ],
-  "roadmap": [{"issue": 0, "title": "<tracking issue title>", "state": "OPEN", "board": "<NN-slug/dashboard.html>", "items": [{"issue": 0, "title": "<sub-issue title>", "state": "OPEN", "level": 3}]}],
-  "unscheduled": [{"issue": 0, "title": "<issue title>", "labels": ["type: bug"], "created": "<YYYY-MM-DD>", "system": "<registry slug>"}]
+  "roadmap": [
+    {
+      "issue": 0,
+      "title": "<tracking issue title>",
+      "state": "OPEN",
+      "board": "<NN-slug/dashboard.html>",
+      "items": [
+        {
+          "issue": 0,
+          "title": "<sub-issue title>",
+          "state": "OPEN"
+        }
+      ]
+    }
+  ],
+  "unscheduled": [
+    {
+      "issue": 0,
+      "title": "<issue title>",
+      "labels": [
+        "type: bug"
+      ],
+      "created": "<YYYY-MM-DD>",
+      "system": "<registry slug>"
+    }
+  ]
 }

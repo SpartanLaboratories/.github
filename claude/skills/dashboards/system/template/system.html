@@ -490,9 +490,9 @@ footer code{color:var(--ink-2)}
       <ul><li><code>SeamType</code> — what a consumer overrides or supplies <span class="badge">Stable Core</span></li></ul></div>
     <div class="bubble"><h3>Test levels <small>n classes</small></h3>
       <!-- presenter: test classes per level of the 5-level hierarchy, counted from the testing.<level> packages; one row per level
-           that exists; width = count / max. Link the test-inspector report (build/reports/test-inspector/index.html) when one exists. -->
+           that exists, labelled by its package name (gating … uat), never "L1"…"L5" (GUIDANCE.md §4); width = count / max. Link the test-inspector report (build/reports/test-inspector/index.html) when one exists. -->
       <div class="bars" role="table" aria-label="Test classes per testing level">
-        <span class="lbl">L1 gating</span><span class="trk"><span class="fil" style="width:100%"></span></span><span class="val">n</span>
+        <span class="lbl">gating</span><span class="trk"><span class="fil" style="width:100%"></span></span><span class="val">n</span>
       </div>
       <p>Packages <code>….testing.&lt;level&gt;.…</code>; run one level with <code>./gradlew gatingTest</code>, …</p></div>
     <div class="bubble"><h3>Compatibility &amp; versioning</h3>
@@ -521,18 +521,18 @@ footer code{color:var(--ink-2)}
     <div class="card"><h3>Roadmap <small>n items · YYYY-MM-DD</small></h3>
       <!-- presenter: each roadmap item that claims an issue touching this system. A roadmap item is a tracking issue with its
            sub-issues (gh issue view <n> --json subIssues,parent), or an entry in a roadmap document the repository keeps, with
-           the issues it names. Under each item, its issues that touch this system: number, title, state and, where a level label
-           exists, level; then how many of its issues touch other systems. No item claims one: say so in a single line. -->
+           the issues it names. Under each item, its issues that touch this system: number, title and state (never a work level:
+           GUIDANCE.md §4); then how many of its issues touch other systems. No item claims one: say so in a single line. -->
       <ol class="roadmap">
-        <li><div class="ri"><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span>Roadmap item title <small>tracking issue</small></span><span class="tags"><span class="badge">open</span><span class="badge">L4</span></span></div>
+        <li><div class="ri"><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span>Roadmap item title <small>tracking issue</small></span><span class="tags"><span class="badge">open</span></span></div>
           <ul class="issues">
-            <li><a href="https://github.com/ORG/REPO/issues/M" target="_blank" rel="noopener">#M</a><span>Issue mapped to the item</span><span class="tags"><span class="badge">open</span><span class="badge">L2</span></span></li>
+            <li><a href="https://github.com/ORG/REPO/issues/M" target="_blank" rel="noopener">#M</a><span>Issue mapped to the item</span><span class="tags"><span class="badge">open</span></span></li>
           </ul>
           <p class="more">n more of its issues touch other systems.</p></li>
       </ol></div>
     <div class="card"><h3>Unscheduled issues <small>n open · YYYY-MM-DD</small></h3>
       <!-- presenter: only the open issues touching this system that no roadmap item claims (the open issues from gh issue list,
-           minus every issue the Roadmap card lists); badges: bug (status colour), planned (dashed), the type, and the level where known -->
+           minus every issue the Roadmap card lists); badges: bug (status colour), planned (dashed) and the type; never a work level (GUIDANCE.md §4) -->
       <ul class="issues">
         <li><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span>Issue title</span><span class="tags"><span class="badge bug">bug</span></span></li>
       </ul></div>

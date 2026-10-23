@@ -5,10 +5,13 @@
 //   node embed.js <folder> --check    exit 1 if the embedded copy differs from the data file
 // On a plan board it first links every issue the board names to that issue's board where its dashboard.html exists in this tree,
 // and clears a link to one that does not (plan/RULES.md §1): a tracking board's units (unit.board), the parent tracking issue
-// (parent.board) and every other issue (issueBoards). plan.json is rewritten only when a link changed.
+// (parent.board) and every other issue (issueBoards). On a tracking board it also mirrors the live run of each unit in progress
+// from that sub-issue's own plan.json (unit.live, plan/RULES.md §3). plan.json is rewritten only when a link or a mirror changed.
+// A sub-issue's board then re-embeds its parent's tracking board (the enclosing folder, when it holds the parent's plan.json and
+// dashboard.html), so every event of a unit's run reaches the tracking board, not only the first.
 "use strict";
 const fs = require("fs"), path = require("path");
-const { readBlock, writeBlock, linkIssueBoards } = require("./lib.js");
+const { readBlock, writeBlock, linkIssueBoards, parentFolder } = require("./lib.js");
 
 function target(dir) {
   if (fs.existsSync(path.join(dir, "plan.json"))) return { json: path.join(dir, "plan.json"), html: path.join(dir, "dashboard.html"), id: "plan" };
@@ -22,16 +25,29 @@ function same(dir) {
   const file = JSON.parse(fs.readFileSync(t.json, "utf8"));
   return { t, same: JSON.stringify(embedded) === JSON.stringify(file) };
 }
-/* A plan board's issue links are resolved from the folders on disk before it is embedded (lib.js linkIssueBoards); plan.json is
-   rewritten first, keeping its line endings, so the page still embeds the committed file verbatim. */
-function embed(dir) {
+/* A plan board's issue links and its units' runs are resolved from the folders on disk before it is embedded (lib.js
+   linkIssueBoards); plan.json is rewritten first, keeping its line endings, so the page still embeds the committed file verbatim. */
+function embedOne(dir) {
   const t = target(dir);
   let json = fs.readFileSync(t.json, "utf8");
   const data = JSON.parse(json); // refuse to embed a file that does not parse
   const linked = t.id === "plan" ? linkIssueBoards(data, dir) : [];
   if (linked.length) { const eol = /\r\n/.test(json) ? "\r\n" : "\n"; json = (JSON.stringify(data, null, 2) + "\n").replace(/\n/g, eol); fs.writeFileSync(t.json, json); }
   fs.writeFileSync(t.html, writeBlock(fs.readFileSync(t.html, "utf8"), t.id, json));
-  return { ...t, bytes: Buffer.byteLength(json), linked };
+  return { ...t, bytes: Buffer.byteLength(json), linked, data };
+}
+/* Embed a folder; for a sub-issue's board, then re-embed its parent's tracking board, which mirrors this unit's run from the
+   plan.json just written (plan/RULES.md §3-§4). opts.parent === false embeds the folder alone. The result carries parent:
+   { dir, linked } when a parent was re-embedded, or { dir, error } when it could not be. */
+function embed(dir, opts) {
+  const r = embedOne(dir);
+  const up = r.id === "plan" && !(opts && opts.parent === false) ? parentFolder(dir, r.data) : null;
+  if (up && fs.existsSync(path.join(up, "dashboard.html"))) {
+    try { const p = embedOne(up); r.parent = { dir: up, linked: p.linked }; }
+    catch (e) { r.parent = { dir: up, error: e.message }; }
+  }
+  delete r.data;
+  return r;
 }
 
 if (require.main === module) {
@@ -42,6 +58,8 @@ if (require.main === module) {
     const r = embed(dir);
     r.linked.forEach(l => console.log(`linked ${l}`));
     console.log(`embedded ${r.json} into ${r.html} (${r.bytes} bytes)`);
+    if (r.parent && r.parent.error) { console.error(`could not re-embed the parent's tracking board in ${r.parent.dir}: ${r.parent.error}`); process.exit(1); }
+    if (r.parent) { r.parent.linked.forEach(l => console.log(`tracking board ${r.parent.dir}: ${l}`)); console.log(`re-embedded the parent's tracking board in ${r.parent.dir}${r.parent.linked.length ? "" : " (unchanged)"}`); }
   } catch (e) { console.error("embed failed: " + e.message); process.exit(1); }
 }
-module.exports = { embed, same, target };
+module.exports = { embed, embedOne, same, target };

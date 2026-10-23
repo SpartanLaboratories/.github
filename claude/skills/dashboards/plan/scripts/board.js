@@ -14,7 +14,7 @@
 // is set only when that board's dashboard.html exists, and the page links that issue's #n to it, a tracking issue's as much as a sub-issue's (plan/RULES.md §1, §5).
 // --live builds the live work board (presenter brief, plan-board mode): run it on the repository's main checkout. It reads the
 // boards of every worktree of the repository (git worktree list; the root first), keeps for each issue the freshest board (the
-// latest wip.updated, else wip.since, else asBuilt.date; the root's on a tie), and writes docs/plans/.live/board.json and
+// latest wip.updated, else wip.since, else asBuilt.date, or a later unit.live.updated it mirrors; the root's on a tie), and writes docs/plans/.live/board.json and
 // index.html, never the committed docs/plans/board.json and index.html. Its links reach each board where it lives: relative
 // when they can, a file URL into a worktree on another drive otherwise; the folder is local only (.git/info/exclude).
 "use strict";
@@ -40,7 +40,11 @@ const trees = !live ? [root] : (() => {
   let wt = []; try { wt = sh("git", ["worktree", "list", "--porcelain"]).split(/\r?\n/).filter(l => l.startsWith("worktree ")).map(l => path.resolve(l.slice(9))); } catch (e) { /* not a git tree */ }
   return [root, ...wt.filter(t => path.relative(t, root) !== "" && fs.existsSync(path.join(t, "docs", "plans")))];
 })();
-const fresh = b => String((b.plan.wip || {}).updated || (b.plan.wip || {}).since || (b.plan.asBuilt || {}).date || "");
+/* How fresh a board is: its own wip.updated (else since, else asBuilt.date), or, on a tracking board, the latest run it mirrors from
+   a unit in progress (unit.live.updated, plan/RULES.md §3), whichever is later: a re-embed that only refreshed the mirror still
+   makes that copy the freshest. */
+const fresh = b => { const w = b.plan.wip || {};
+  return [String(w.updated || w.since || (b.plan.asBuilt || {}).date || ""), ...(b.plan.rows || []).map(r => String(((r.unit || {}).live || {}).updated || ""))].sort().pop(); };
 const boards = [];
 trees.forEach(t => findPlans(t).forEach(p => {
   const b = { ...p, root: t, plan: JSON.parse(fs.readFileSync(path.join(p.dir, "plan.json"), "utf8")) };
@@ -93,15 +97,32 @@ const landedIssue = (n, other) => {
   if (u) return LANDED_STATES.has(unitState(u));
   const i = issueOf(n); return !!(i && i.state === "CLOSED");
 };
+/* A tracking issue's chain, for its row's state cell (plan/RULES.md §3, "The chain's progress"): units landed of all units (dropped
+   and deferred units counted apart), each unit in progress with its own run's step (from the unit's freshest board, else the
+   tracking board's mirror, unit.live), and the unit up next with the blockers that have not landed. */
+const chainOf = b => {
+  const p = b.plan, w = p.wip || {}, units = (p.rows || []).filter(r => r.unit), st = r => (r.asBuilt || {}).state || "pending";
+  const live = !["built", "abandoned"].includes(p.status) && !["landed", "cancelled"].includes(w.step);
+  const dropped = units.filter(r => st(r) === "dropped").length, deferred = units.filter(r => st(r) === "deferred").length;
+  const counted = units.filter(r => !["dropped", "deferred"].includes(st(r))), landed = counted.filter(r => LANDED_STATES.has(st(r))).length;
+  const cur = live ? units.filter(r => (w.current || []).some(a => String(a).split(".")[0] === r.id)) : [];
+  const current = cur.map(r => { const own = r.unit.issue ? boardOf(r.unit.issue) : null, ow = own ? own.plan.wip || {} : null, L = r.unit.live || {};
+    return { issue: r.unit.issue || null, slug: r.unit.slug || r.id, step: (ow && ow.step) || L.step || null }; });
+  const nx = live && w.next ? units.find(r => r.id === w.next && st(r) === "pending") : null;
+  const next = nx ? { issue: nx.unit.issue || null, slug: nx.unit.slug || nx.id, blockedBy: (nx.unit.blockedBy || []).filter(n => !landedIssue(n)).map(n => ({ issue: n })) } : null;
+  const started = landed > 0 || current.length > 0 || units.some(r => st(r) === "complete");
+  return { total: counted.length, landed, dropped, deferred, planned: !started && p.status !== "built", done: p.status === "built" || (counted.length > 0 && landed === counted.length), current, next };
+};
 
-/* Rows: every issue with a board or a level label */
+/* Rows: every issue with a board or a level label (the label decides which issues are rows; no level is written to board.json,
+   since a dashboard never shows one: GUIDANCE.md §4) */
 /* ...and every unit of a tracking board, so the chain (and its next unit) shows even without a level label or the tracker. */
 const unitNums = boards.filter(b => b.plan.kind === "tracking").flatMap(b => (b.plan.rows || []).filter(r => r.unit && Number.isInteger(r.unit.issue) && r.unit.issue > 0).map(r => r.unit.issue));
 const rowNums = new Set([...boards.map(b => b.plan.issue), ...issues.filter(i => levelOf(i)).map(i => i.number), ...unitNums]);
 const ACTIVE_STEPS = new Set(["sizing", "interview", "research", "architecture", "plan", "branch", "implementation", "qa", "remediation", "landing"]);
 const rows = [...rowNums].map(n => {
   const i = issueOf(n), g = gq[n] || {}, b = boardOf(n), u = unitRow(n), p = prevRow(n);
-  const row = { issue: n, title: (i && i.title) || (b && b.plan.issueTitle) || (b && b.plan.title) || (u && u.row.name) || `#${n}`, state: i ? i.state : ((b && b.plan.status === "built") || (u && LANDED_STATES.has(unitState(u))) ? "CLOSED" : "OPEN"), level: levelOf(i) || (b && b.plan.level) || (u && u.row.unit.level) || null, created: i ? i.createdAt.slice(0, 10) : null,
+  const row = { issue: n, title: (i && i.title) || (b && b.plan.issueTitle) || (b && b.plan.title) || (u && u.row.name) || `#${n}`, state: i ? i.state : ((b && b.plan.status === "built") || (u && LANDED_STATES.has(unitState(u))) ? "CLOSED" : "OPEN"), created: i ? i.createdAt.slice(0, 10) : null,
     parent: (g.parent && g.parent.number) || (b && b.plan.parent && b.plan.parent.issue) || (u && u.board.plan.issue) || null,
     waitsOn: ((g.blockedBy || {}).nodes || []).map(ref), blocks: ((g.blocking || {}).nodes || []).map(ref) };
   if (b) {
@@ -112,6 +133,7 @@ const rows = [...rowNums].map(n => {
       landed: s === "built" ? { pr: (b.plan.asBuilt || {}).pr || null, merge: (b.plan.asBuilt || {}).merge || null, version: (b.plan.asBuilt || {}).version || null, date: (b.plan.asBuilt || {}).date || null } : null });
     row.active = ACTIVE_STEPS.has(w.step) && ["planned", "building"].includes(s);
     if (b.plan.kind === "tracking") row.active = false; // the chain's active unit glows on its own row
+    if (b.plan.kind === "tracking") row.chain = chainOf(b); // the state cell shows the chain's progress, not a bare "building"
   } else if (u) {
     const w = u.board.plan.wip || {}, cur = (w.current || []).some(a => a.split(".")[0] === u.row.id), st = unitState(u);
     // the unit's board as embed.js resolves it, from the folders on disk: linked only when its file exists (plan/RULES.md §1)
@@ -152,7 +174,7 @@ rows.sort((a, b) => groups.findIndex(g => g.key === a.group) - groups.findIndex(
 /* Roadmap and unscheduled issues (Context) */
 const claimed = new Set();
 const roadmap = [...trackingNums].sort((a, b) => a - b).map(t => {
-  const g = groups.find(x => x.issue === t), items = ((gq[t] || {}).subIssues || { nodes: [] }).nodes.map(x => { claimed.add(x.number); return { issue: x.number, title: x.title, state: x.state, level: levelOf(issueOf(x.number)) }; });
+  const g = groups.find(x => x.issue === t), items = ((gq[t] || {}).subIssues || { nodes: [] }).nodes.map(x => { claimed.add(x.number); return { issue: x.number, title: x.title, state: x.state }; });
   claimed.add(t); return { issue: t, title: g.title, state: (issueOf(t) || {}).state || "OPEN", board: g.board, items };
 });
 const unscheduled = issues.filter(i => i.state === "OPEN" && !claimed.has(i.number)).sort((a, b) => b.number - a.number)

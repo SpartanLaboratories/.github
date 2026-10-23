@@ -8,7 +8,8 @@
 // Page kind: <meta name="dashboard" content="plan-board|work-board"> marks a plan board or the work board; anything else is a
 // system page. Exit code 0 when, for every kind: every tab rendered with a visible legend (.key, or .c4key on the C4 tab), the
 // Context section is headed exactly "Context", no link is a dead href="#", the page has no horizontal scroll at the width
-// checked, no more than six elements glow, and no error fired. Then, by kind: a system page has a visible Guarantees area
+// checked, no more than six elements glow, no work level is shown (levelrefs.js: "level 3", "L3", "level: 2" and the like, in any
+// tab's text or the page's), and no error fired. Then, by kind: a system page has a visible Guarantees area
 // (.guarantees holding at least one .bubble) and, when the page sits under a docs/dashboards/ with a systems.json in a git
 // work tree, no registry page or DSL file is git-ignored; a plan board has a visible WIP strip (.wip) with its own legend. --theme sets
 // data-theme on <html>. --frame loads the page inside an iframe of that width (the harness for real phone widths, below what
@@ -19,7 +20,7 @@
 //
 // --auto checks only what the page adds to its template (GUIDANCE.md §8; deviation.js): no browser pass for a plan board or work
 // board that is a verified template plus its data; one light pass for a system page whose CSS, tabs, script before MODEL (less its
-// page-filled lines, REPO and SRC) and renderer are the verified template's (the facts it fills in); the full pass (light, dark, 520 px, a 390 px frame) for a page that diverges — declared or
+// page-filled lines, REPO and SRC) and renderer are the verified template's (the facts it fills in); the full pass (light, dark, 520 px, a 390 px frame, 1920 x 1080 desktop) for a page that diverges — declared or
 // not — or whose template changed since verify/verify-templates.js last verified it.
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const args = process.argv.slice(2);
@@ -31,16 +32,16 @@ if (!page) { console.error("usage: node check-page.js <page.html> [--auto] [--ou
 if (args.includes("--auto")) {
   const { deviation } = require("./deviation.js");
   const d = deviation(page);
-  console.log(`CHECK template: ${d.kind} page · ${d.verdict} · ${d.passes === "none" ? "no browser pass" : d.passes === "light" ? "one light pass (the facts it fills in)" : "full pass (light, dark, 520, frame 390)"}`);
+  console.log(`CHECK template: ${d.kind} page · ${d.verdict} · ${d.passes === "none" ? "no browser pass" : d.passes === "light" ? "one light pass (the facts it fills in)" : "full pass (light, dark, 520, frame 390, desktop 1920x1080)"}`);
   d.notes.forEach(n => console.log("CHECK template: " + n));
   if (d.passes === "none") { console.log("PASS"); process.exit(0); }
   const rest = args.filter(a => a !== "--auto" && a !== page);
-  const modes = d.passes === "light" ? [[]] : [[], ["--theme", "dark"], ["--width", "520"], ["--frame", "390"]];
+  const modes = d.passes === "light" ? [[]] : [[], ["--theme", "dark"], ["--width", "520"], ["--frame", "390"], ["--width", "1920", "--height", "1080"]];
   let failed = 0;
   modes.forEach(m => {
     const r = cp.spawnSync(process.execPath, [__filename, page, ...rest, ...m], { encoding: "utf8" });
     const lines = (r.stdout || "").trim().split(/\r?\n/), label = m.join(" ") || "light";
-    const bad = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|GIT-IGNORED|FAIL/.test(l));
+    const bad = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|GIT-IGNORED|FAIL/.test(l));
     console.log(`CHECK pass ${label}: ${r.status === 0 ? "PASS" : "FAIL"} · ${(lines.find(l => l.startsWith("screenshot:")) || "").replace("screenshot: ", "")}`);
     bad.forEach(l => console.log("  " + l));
     if (r.status !== 0) failed++;
@@ -60,6 +61,7 @@ const browsers = [
   "/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser",
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
 ];
+const { LEVEL_PATTERNS } = require("./levelrefs.js");
 const browser = process.env.CHROME && fs.existsSync(process.env.CHROME) ? process.env.CHROME : browsers.find(b => fs.existsSync(b));
 if (!browser) { console.error("no Chrome/Edge found; set CHROME=<path to binary>"); process.exit(2); }
 
@@ -73,7 +75,10 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   console.log("CHECK kind: "+kind);
   const shown=e=>!!e&&e.offsetParent!==null;
   const tabs=[...document.querySelectorAll('[role="tab"]')]; console.log("CHECK tabs: "+tabs.length);
-  tabs.forEach(t=>{ try{ t.click(); const p=document.getElementById(t.getAttribute("aria-controls")); const vis=p&&!p.hidden&&getComputedStyle(p).display!=="none"; const drawn=p?p.querySelectorAll("svg *, table, .card, .thread, .syscard, .cell, .bcard, .run").length:0; const keys=p?[...p.querySelectorAll(".key, .c4key")].filter(k=>shown(k)&&k.children.length).length:0; console.log("CHECK tab "+t.id+": "+(vis?"visible":"NOT VISIBLE")+" · "+drawn+" drawn nodes · "+(keys?"legend":"NO LEGEND (every tab needs a visible .key)")); }catch(err){ console.log("CHECK tab "+t.id+" threw: "+err.message); } });
+  /* work levels are never shown (levelrefs.js): the text of every tab, then of the whole page, is scanned */
+  const LV=${JSON.stringify(LEVEL_PATTERNS)}.map(([s,f])=>new RegExp(s,f+"g")), lvHits=new Set();
+  const lvScan=(txt,where)=>LV.forEach(re=>{ re.lastIndex=0; let m; while((m=re.exec(txt||""))) lvHits.add(where+": “"+m[0]+"”"); });
+  tabs.forEach(t=>{ try{ t.click(); const p=document.getElementById(t.getAttribute("aria-controls")); if(p) lvScan(p.innerText,"tab "+t.id); const vis=p&&!p.hidden&&getComputedStyle(p).display!=="none"; const drawn=p?p.querySelectorAll("svg *, table, .card, .thread, .syscard, .cell, .bcard, .run").length:0; const keys=p?[...p.querySelectorAll(".key, .c4key")].filter(k=>shown(k)&&k.children.length).length:0; console.log("CHECK tab "+t.id+": "+(vis?"visible":"NOT VISIBLE")+" · "+drawn+" drawn nodes · "+(keys?"legend":"NO LEGEND (every tab needs a visible .key)")); }catch(err){ console.log("CHECK tab "+t.id+" threw: "+err.message); } });
   if(kind==="system"){
     const g=document.querySelector(".guarantees"), b=g?[...g.querySelectorAll(".bubble")].filter(shown).map(x=>(x.querySelector("h3")||{}).firstChild):[];
     console.log("CHECK guarantees: "+(shown(g)&&b.length?b.length+" bubbles · "+b.map(n=>n?n.textContent.trim():"?").join(" · "):"MISSING (no visible .guarantees area with a .bubble)"));
@@ -87,6 +92,7 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   const dead=document.querySelectorAll('a[href="#"]').length; if(dead) console.log("CHECK links: DEAD href=# x"+dead);
   const glow=document.querySelectorAll(".glow").length; console.log("CHECK glow: "+glow+(glow>6?" TOO MANY (at most six elements glow)":""));
   const want=${JSON.stringify(tab)}; const t=want?document.getElementById(want):tabs[0]; if(t) t.click();
+  lvScan(document.body.innerText,"page"); console.log("CHECK work levels: "+(lvHits.size?"LEVEL REFERENCE shown ("+[...lvHits].slice(0,6).join("; ")+"): a dashboard never shows a work level":"none shown"));
   const sw=document.documentElement.scrollWidth, cw=document.documentElement.clientWidth;
   console.log("CHECK width: "+cw+"px"+(sw>cw+1?" · HORIZONTAL SCROLL ("+sw+"px of content)":" · no horizontal scroll"));
   if(want){ const bar=document.querySelector('[role="tablist"]'); if(bar) window.scrollTo(0, bar.getBoundingClientRect().top+window.scrollY-8); }
@@ -144,7 +150,7 @@ const r = cp.spawnSync(browser, ["--headless=new", "--disable-gpu", "--no-first-
   "--allow-file-access-from-files", "--virtual-time-budget=6000", `--window-size=${width},${height}`, `--screenshot=${shot}`, url], { encoding: "utf8", timeout: 120000 });
 // Chrome prints console lines as `[...] "message", source: <url> (<line>)`; keep just the message.
 const lines = (r.stderr || "").split(/\r?\n/).filter(l => /CONSOLE|Uncaught/.test(l)).map(l => l.replace(/^.*CONSOLE[^"]*"/, "").replace(/", source:[\s\S]*$/, "").trim());
-const errors = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL/.test(l));
+const errors = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE/.test(l));
 lines.forEach(l => console.log(l));
 if (regCheck) { if (regCheck.note) console.log("CHECK " + regCheck.note); regCheck.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); }
 console.log(`screenshot: ${shot}`);

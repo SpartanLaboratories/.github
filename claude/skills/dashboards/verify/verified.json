@@ -2,7 +2,7 @@
   "$comment": "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last full verification. check-page.js --auto and check.js --auto trust a template only while its hash matches.",
   "templates": {
     "plan/template/dashboard.html": {
-      "sha256": "1631b15625178e763bd7dfbf9faf827449262235740be2438b9abcff73a50bd6",
+      "sha256": "df0c7103755d1d16b62c9837a1615d2fe5d5dbc23c14bc5c0213a4a0b4409232",
       "verified": "2026-10-23",
       "fixtures": [
         "plan",
@@ -14,11 +14,12 @@
         "light",
         "--theme dark",
         "--width 520",
-        "--frame 390"
+        "--frame 390",
+        "--width 1920 --height 1080"
       ]
     },
     "plan/template/board.html": {
-      "sha256": "8d7db6a3613eaa83ba1c9410682314b0e406768d2b8797cbab95a422c71e60d2",
+      "sha256": "ed39a6db3fdf08a64062cd97d4f1c7089e53adb0a0d71d255c1c30c5cd1c9fc4",
       "verified": "2026-10-23",
       "fixtures": [
         "work-board",
@@ -29,11 +30,12 @@
         "light",
         "--theme dark",
         "--width 520",
-        "--frame 390"
+        "--frame 390",
+        "--width 1920 --height 1080"
       ]
     },
     "system/template/system.html": {
-      "sha256": "75864b3f739dacde24f823be3da43d26917c4ddfa922a58ac4170877a76719f3",
+      "sha256": "0d6b6c9a903d1e83e9896ad1bf3be7434cb29f0eec50675d2ba456ecea41e6eb",
       "verified": "2026-10-23",
       "fixtures": [
         "placeholder"
@@ -42,11 +44,12 @@
         "light",
         "--theme dark",
         "--width 520",
-        "--frame 390"
+        "--frame 390",
+        "--width 1920 --height 1080"
       ]
     },
     "system/template/supersystem.html": {
-      "sha256": "d7ca6f1ca85534bc130ae76f961a044db506ff75aacd080c18f537124c380228",
+      "sha256": "c857a9ac62feeb4aa8f97055a4a6ccbecba75b006c35e3e49def136c847e54f8",
       "verified": "2026-10-23",
       "fixtures": [
         "placeholder"
@@ -55,7 +58,8 @@
         "light",
         "--theme dark",
         "--width 520",
-        "--frame 390"
+        "--frame 390",
+        "--width 1920 --height 1080"
       ]
     }
   }

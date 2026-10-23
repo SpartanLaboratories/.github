@@ -159,7 +159,9 @@ its build. The seven standard ones:
 - **Extension points** — the public seams with their stability tier (Stable Core / Supported
   Extension / Experimental) and opt-in marker.
 - **Test levels** — test classes per level of the 5-level hierarchy, read from the package
-  layout; link the test-inspector report if one exists.
+  layout and labelled by the level's name (gating, component, integration, deterministic, e2e,
+  non-functional, UAT), never "L1"…"L5", which reads as a work level (`GUIDANCE.md` §4); link the
+  test-inspector report if one exists.
 - **Compatibility & versioning** — the current version; how versions move (a trailing letter for
   a bug fix, the third number for an addition); what is checked (an ABI dump where one exists);
   the deprecation policy (deprecate, don't break — or "legacy: may break freely" where that
@@ -179,7 +181,8 @@ row is dashed and says only that nothing is built yet.
 `GUIDANCE.md` §5 sets the section (headed exactly **Context**). On system boards its cards are:
 
 - **Roadmap** — each roadmap item with the issues mapped to it, each issue with its number,
-  title, state and, where known, level. A roadmap item is a tracking issue with its sub-issues,
+  title and state, never its work level (`GUIDANCE.md` §4); the number opens the GitHub issue and
+  the title the issue's plan board where one exists (`GUIDANCE.md` §5). A roadmap item is a tracking issue with its sub-issues,
   or an entry in a roadmap document the repository keeps, with the issues it names. On a system
   page, list the items that claim an issue touching the system, those issues under them, and how
   many of the item's issues touch other systems.
@@ -255,7 +258,8 @@ page; those lines are left out by name on both sides, so a page's own value ther
 difference. A page whose four are the verified template's gets **one light pass**, which checks
 the facts it fills in. A page that differs in any of them — declared with
 `<meta name="template-divergence">` or not, or made from an older template — or whose template
-changed since it was verified gets the **full pass**: light, dark, 520 px and a 390 px frame. An
+changed since it was verified gets the **full pass**: light, dark, 520 px, a 390 px frame and a
+1920 x 1080 desktop. An
 undeclared difference is reported as one to declare or undo. `verify/verify-templates.js` tests
 this comparison on each system template before its browser passes. The plain form below the
 embeds runs one pass of the named mode, for looking at a single tab.

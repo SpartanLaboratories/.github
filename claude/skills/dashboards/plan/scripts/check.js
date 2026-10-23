@@ -3,7 +3,7 @@
 //   node check.js <plan-folder>          plan.json keeps the rules and dashboard.html embeds it verbatim
 //   node check.js docs/plans             the work board: board.json and index.html
 //   options: --root <repo> (default: found above the folder, the first one holding docs/plans)
-//            --browser [--out <dir>]     also run system/scripts/check-page.js: light, dark, 520 px and a 390 px frame
+//            --browser [--out <dir>]     also run system/scripts/check-page.js: light, dark, 520 px, a 390 px frame and 1920 x 1080
 //            --auto [--out <dir>]        the usual mode (GUIDANCE.md §8): the data and the embed as always, then the browser pass
 //                                        only if the page deviates from its template, declared or not, or the template changed
 //                                        since verify/verify-templates.js verified it; a page that is the verified template plus
@@ -11,7 +11,8 @@
 // Exit 0 when every rule holds, 1 otherwise. Warnings never fail the run.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
-const { registry, headingSlugs, readBlock, findPlans, subIssueBoard, parentBoard, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
+const { levelRefsIn } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
+const { registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
 const STATES = ["pending", "as-planned", "amended", "deviated", "dropped", "deferred", "complete", "landed"];
@@ -54,6 +55,15 @@ function checkLink(dir, ref, at) {
   const file = path.resolve(dir, m[1]);
   if (!fs.existsSync(file)) { warn(`${at}: links ${m[1]}, which does not exist from this folder`); return; }
   if (m[2] && /\.md$/.test(m[1]) && !headingSlugs(fs.readFileSync(file, "utf8")).has(m[2].slice(1))) warn(`${at}: ${m[1]} has no heading ${m[2]}`);
+}
+
+/* No work levels on a dashboard (GUIDANCE.md §4): every string the page renders is free of a work-level reference
+   (system/scripts/levelrefs.js). The numeric fields that keep a level as data (level, unit.level, proposedLevel) are not text. */
+function levelFail(data, file) {
+  const hits = levelRefsIn(data, "", []);
+  // a decision's defence written as its work level ("Level 3: one system, additive"), the architecture's usual form
+  (data.rows || []).forEach((r, i) => { const d = (r && r.verdict || {}).defense; if (typeof d === "string" && /^\s*level [1-4]\b(?![a-c])\s*[:.]/i.test(d)) hits.push({ at: `rows[${i}].verdict.defense`, hit: d.slice(0, 9) }); });
+  if (hits.length) fail(`${file} shows a work level, which a dashboard never does: ${hits.slice(0, 6).map(h => `${h.at} ("${h.hit}")`).join(", ")}${hits.length > 6 ? ` and ${hits.length - 6} more` : ""}; say what the work is instead (one system, a bug fix, docs only)`);
 }
 
 function checkPlan(plan, dir, root) {
@@ -178,6 +188,16 @@ function checkPlan(plan, dir, root) {
         if (away.length) warn(`${at}: #${u.issue}'s board is at ${away[0].folder}/dashboard.html, outside this tracking board's folder: the board keeps linking the GitHub issue until the sub-issue's folder sits inside this one`);
       }
       if (str(u.folder)) checkLink(dir, u.folder, `${at}.unit.folder`);
+      // The unit's run, mirrored from its own board by embed.js (RULES §3); its freshness is the warning further down.
+      if (u.live != null) {
+        const L = u.live;
+        if (typeof L !== "object" || Array.isArray(L)) fail(`${at}.unit.live must be the mirror of the sub-issue board's run (embed.js writes it)`);
+        else {
+          if (!STEPS.includes(L.step)) fail(`${at}.unit.live.step must be one of ${STEPS.join(", ")} (got ${JSON.stringify(L.step)})`);
+          ["since", "updated"].forEach(k => { if (L[k] != null && !STAMP.test(String(L[k]))) fail(`${at}.unit.live.${k} "${L[k]}" is not a date or an ISO date-time`); });
+          if (L.resume != null && !STEPS.includes(L.resume)) fail(`${at}.unit.live.resume "${L.resume}" is not a step`);
+        }
+      }
     }
   });
 
@@ -253,17 +273,96 @@ function checkPlan(plan, dir, root) {
         : `wip.next is "${w.next}", but no unit is left that is pending and not in wip.current: it is null`);
     }
     if (plan.status === "built" && w.step !== "landed") fail('a built plan has wip.step "landed"');
+    /* A tracking board's wip.step is the tracking issue's own phase (RULES §3): "implementation" while its units run, never a
+       unit's step, which its unit line shows from the mirror. */
+    if (tracking && ["plan", "branch", "qa", "remediation"].includes(w.step)) warn(`wip.step "${w.step}" is a unit's step; a tracking board's wip.step is its own phase ("implementation" while its units run), and each unit in progress shows its own step from its mirror (unit.live)`);
     ["waitsOn", "blocks"].forEach(k => ((w.blockers || {})[k] || []).forEach((x, j) => { if (!posInt(x.issue)) fail(`wip.blockers.${k}[${j}].issue must be an issue number`); }));
   }
+  /* The units' runs (RULES §3): each unit in progress mirrors its sub-issue board's run; a mirror that lags that board is a warning,
+     fixed by re-embedding (embed.js on the tracking board, or on the sub-issue's board, which re-embeds its parent). */
+  if (tracking) staleUnitRuns(plan, dir).forEach(x => {
+    const at = `rows(${x.row.id}).unit.live (#${x.unit.issue})`, fix = "run embed.js on this folder, or on the sub-issue's, which re-embeds this one";
+    if (x.kind === "older") warn(`${at} mirrors its board's run as of ${x.have.updated}, older than the board's wip.updated ${x.want.updated} (now step ${x.want.step}): ${fix}`);
+    else if (x.kind === "missing") warn(`${at}: the unit is in progress and its board exists, but this board does not mirror its run (now step ${x.want.step}, updated ${x.want.updated}): ${fix}`);
+    else if (x.kind === "differs") warn(`${at} differs from its board's run (step ${x.want.step}, updated ${x.want.updated}) although it is not older: the board changed without a new wip.updated; ${fix}`);
+    else warn(`${at}: a mirror embed.js would clear (${x.inCur ? "no board of the unit in this tree, or this board is not live" : "the unit is not in progress"}): run embed.js on this folder`);
+  });
+  /* On a sub-issue's board: its parent's tracking board, in the enclosing folder, mirrors this run; it lags until re-embedded. */
+  if (!tracking && posInt(plan.issue)) {
+    const up = parentFolder(dir, plan);
+    if (up) { let tp = null; try { tp = JSON.parse(fs.readFileSync(path.join(up, "plan.json"), "utf8")); } catch (e) { /* the parent's own check reports it */ }
+      if (tp) staleUnitRuns(tp, up).filter(x => x.unit.issue === plan.issue && x.kind !== "orphan").forEach(x => warn(`the parent #${tp.issue}'s tracking board mirrors this run ${x.kind === "missing" ? "not at all" : x.kind === "older" ? `as of ${x.have.updated}, older than this board's ${x.want.updated}` : "with other content"}: run embed.js on this folder, which re-embeds it`)); }
+  }
+  checkImpact(plan, dir, systems, rows, tracking);
   (plan.followUps || []).forEach((f, i) => { if (!posInt(f.issue) && !str(f.name)) fail(`followUps[${i}] needs an issue number or, for an unfiled follow-up, a name`); });
   (plan.documents || []).forEach((d, i) => { if (!str(d.label) && !str(d.path)) fail(`documents[${i}] needs a label or a path`); checkLink(dir, d.path, `documents[${i}].path`); });
 
   const left = placeholders(plan, "", []);
   if (left.length) fail(`placeholders left from the template: ${left.slice(0, 8).join(", ")}${left.length > 8 ? ` and ${left.length - 8} more` : ""}`);
+  levelFail(plan, "plan.json");
   const lists = listings(plan, "", []);
   if (lists.length) fail(`code blocks over five lines in the data (the detail belongs in the Markdown, linked): ${lists.slice(0, 6).join(", ")}`);
   if (!out.fail.length) ok(`plan.json: ${tracking ? "tracking board, " : ""}${rows.length} rows, ${rows.reduce((n, r) => n + (r.options || []).length, 0)} options, status ${plan.status}, step ${(w || {}).step || "—"}`);
 }
+
+/* The Impact tab's data (RULES §2, Impact; §8). impact is null until plan acceptance, then an object with basis "plan" (the plan's
+   impact, from impact.md) and, from the landing on, "as-built" (reconciled, each difference from the plan in changes[]). The
+   vocabularies are checked; a built board's impact is the as-built one and a planned board's the plan's. Warnings: impact.md in
+   the folder while the tab is empty; a release that does not fit the level (a level-3 bump needs a downstream effect, and a
+   level-3 change with none says so); a breaking effect or a removed surface without a major release; on a tracking board, a unit
+   whose own board records its impact while this board has no entry for it, or an entry still the plan's once the unit landed. */
+const IMP_BASES = ["plan", "as-built"], IMP_BUMPS = ["none", "fix", "feat", "major"], IMP_KINDS = ["consumer", "system", "repository", "artifact", "operator"];
+const IMP_EFFECTS = ["none", "additive", "behaviour", "breaking"], IMP_NEEDS = ["none", "optional", "required"], IMP_CHANGES = ["added", "changed", "deprecated", "removed"];
+const IMP_TIERS = ["stable-core", "supported-extension", "experimental", "internal"];
+const IMP_LISTS = ["downstream", "adaptation", "api", "conversion"];
+function checkImpact(plan, dir, systems, rows, tracking) {
+  const I = plan.impact, hasDoc = fs.existsSync(path.join(dir, "impact.md"));
+  if (I == null) { if (hasDoc) warn("impact.md exists in this folder, but the Impact tab is empty (impact is null): fill plan.json impact from it (RULES §2, Impact)"); return; }
+  if (typeof I !== "object" || Array.isArray(I)) { fail("impact must be an object (or null until plan acceptance)"); return; }
+  if (!IMP_BASES.includes(I.basis)) fail(`impact.basis must be one of ${IMP_BASES.join(", ")} (got ${JSON.stringify(I.basis)})`);
+  if (plan.status === "built" && I.basis === "plan") fail('a built board\'s impact is the as-built one: the landing reconciles it from final-implementation.md and sets impact.basis "as-built"');
+  if (plan.status === "planned" && I.basis === "as-built") fail('a planned board has nothing built: impact.basis is "plan"');
+  if (I.none != null && !str(I.none)) fail("impact.none is a plain statement of why no downstream impact is recorded, or null");
+  const sysOk = (s, at) => { if (s != null && (!str(s) || (systems.length && !systems.some(x => x.slug === s)))) warn(`${at}.system "${s}" is not in plan.systems; it is drawn as outside the repository's systems (use null for a party outside them)`); };
+  const each = (k, f) => { const v = I[k]; if (v == null) return []; if (!Array.isArray(v)) { fail(`impact.${k} must be an array`); return []; } v.forEach((x, i) => { const at = `impact.${k}[${i}]`; if (!x || typeof x !== "object") fail(`${at} must be an object`); else { f(x, at); checkLink(dir, x.link, `${at}.link`); } }); return v; };
+  const ds = each("downstream", (x, at) => { if (!str(x.who) || !str(x.summary)) fail(`${at}: "who" and "summary" are required`); if (x.kind != null && !IMP_KINDS.includes(x.kind)) fail(`${at}.kind must be one of ${IMP_KINDS.join(", ")}`); if (!IMP_EFFECTS.includes(x.effect)) fail(`${at}.effect must be one of ${IMP_EFFECTS.join(", ")}`); sysOk(x.system, at); });
+  const ad = each("adaptation", (x, at) => { if (!str(x.who) || !str(x.summary)) fail(`${at}: "who" and "summary" are required`); if (!IMP_NEEDS.includes(x.need)) fail(`${at}.need must be one of ${IMP_NEEDS.join(", ")}`); sysOk(x.system, at); });
+  const api = each("api", (x, at) => { if (!str(x.surface) || !str(x.summary)) fail(`${at}: "surface" and "summary" are required`); if (!IMP_CHANGES.includes(x.change)) fail(`${at}.change must be one of ${IMP_CHANGES.join(", ")}`); if (x.tier != null && !IMP_TIERS.includes(x.tier)) fail(`${at}.tier must be one of ${IMP_TIERS.join(", ")}, or null when not stated`); sysOk(x.system, at); });
+  const cv = each("conversion", (x, at) => { if (!str(x.what)) fail(`${at}: "what" (the step) is required`); });
+  each("changes", (x, at) => { if (!str(x.what) || !str(x.why)) fail(`${at}: "what" and "why" are required`); if (x.ref && /^[0-9a-f]+$/.test(x.ref) && !SHA.test(x.ref)) fail(`${at}.ref "${x.ref}" is not a commit sha`); });
+  if (I.changes && I.changes.length && I.basis !== "as-built") warn("impact.changes records differences from the planned impact, which exist only once it is reconciled (basis as-built)");
+  const rel = I.release;
+  if (rel != null && (typeof rel !== "object" || !IMP_BUMPS.includes(rel.bump))) fail(`impact.release.bump must be one of ${IMP_BUMPS.join(", ")}`);
+  checkLink(dir, I.link, "impact.link"); checkLink(dir, I.source, "impact.source");
+  const items = ds.length + ad.length + api.length + cv.length, effect = ds.some(x => x.effect && x.effect !== "none") || api.length || ad.some(x => x.need === "required");
+  if (!items && !str(I.none) && !str(I.summary) && !(I.units || []).length) warn(`the Impact tab is empty: impact records no entry, no summary and no "none" statement${hasDoc ? ", although impact.md exists in this folder: fill it from there" : ""}`);
+  if (str(I.none) && effect) warn("impact.none says no downstream impact is recorded, but the entries record one: keep one of the two");
+  const bump = rel && rel.bump;
+  if (plan.level === 3 && bump === "none" && effect) warn("a level-3 change with a downstream effect takes a feat: release; release.bump is none");
+  if (plan.level === 3 && bump === "none" && !str(I.none)) warn("a level-3 change with no version bump says explicitly that it has no downstream effect (impact.none)");
+  if (plan.level === 3 && bump === "feat" && !effect && str(I.none)) warn("a level-3 change bumps only with a downstream effect, but impact.none says it has none");
+  if ((ds.some(x => x.effect === "breaking") || api.some(x => x.change === "removed")) && bump && bump !== "major") warn("a breaking effect or a removed surface rides in a major release; release.bump is " + bump);
+  if (plan.level === 4 && bump && bump !== "none") warn("a level-4 plan moves no version itself (docs only): its units' releases go in impact.units");
+  /* units: tracking boards only, one entry per unit row */
+  const us = I.units == null ? [] : Array.isArray(I.units) ? I.units : (fail("impact.units must be an array"), []);
+  if (us.length && !tracking) fail("impact.units is for a tracking board's units; an issue board has none");
+  const seen = new Set();
+  us.forEach((e, i) => {
+    const at = `impact.units[${i}]`, r = rows.find(x => x.unit && x.id === (e || {}).unit);
+    if (!r) { fail(`${at}.unit ${JSON.stringify((e || {}).unit)} names no unit row`); return; }
+    if (seen.has(e.unit)) fail(`${at}: a second entry for unit "${e.unit}"`); seen.add(e.unit);
+    if (!str(e.summary)) fail(`${at}: summary is required`);
+    if (!IMP_BASES.includes(e.basis)) fail(`${at}.basis must be one of ${IMP_BASES.join(", ")}`);
+    if (e.release != null && (typeof e.release !== "object" || !IMP_BUMPS.includes(e.release.bump))) fail(`${at}.release.bump must be one of ${IMP_BUMPS.join(", ")}`);
+    if (e.basis === "plan" && UNIT_DONE.includes((r.asBuilt || {}).state)) warn(`${at}: unit "${e.unit}" has landed, but its impact entry is still the plan's: reconcile it from the unit's board (basis as-built)`);
+    checkLink(dir, e.link, `${at}.link`); checkLink(dir, e.source, `${at}.source`);
+  });
+  if (tracking) rows.filter(r => r.unit && !seen.has(r.id)).forEach(r => {
+    const sp = subIssuePlan(dir, r.unit), si = sp && sp.impact;
+    if (si && typeof si === "object" && (str(si.summary) || str(si.none))) warn(`impact.units has no entry for unit "${r.id}" (#${r.unit.issue}), whose own board records its impact: summarise it here`);
+  });
+}
+const UNIT_DONE = ["landed", "as-planned", "amended", "deviated"];
 
 /* The warning (RULES §1, §8): an issue the board names has a board in this tree, but the page does not open that board from
    every place it names the issue. The issue's board is a unit's in this tracking board's folder (unit.board), the parent's in the
@@ -346,6 +445,7 @@ function checkHtml(htmlPath, id, data, kindMeta) {
   let missing = 0; panels.forEach(p => { const pid = (p.match(/id="([^"]+)"/) || [])[1]; if (!/class="key"/.test(p)) { fail(`tab panel ${pid} has no legend (.key)`); missing++; } });
   if (panels.length && !missing) ok(`${panels.length} tab panels, each with a legend`);
   if (kindMeta === "plan-board" && !/<section class="wip"/.test(html)) fail('the page has no WIP strip (<section class="wip">)');
+  if (kindMeta === "plan-board" && !/id="p-impact"/.test(html)) warn("the page has no Impact tab: it is on a template older than the tab (plan/RULES.md §2, Impact); re-render it (copy plan/template/dashboard.html over it, then embed.js)");
   if (!/<title>/.test(html)) fail("the page has no <title>");
   if (/href="#"/.test(html)) fail('the page has a dead href="#" link');
   if (!/prefers-color-scheme:dark/.test(html)) fail("the page has no dark-mode block");
@@ -363,11 +463,12 @@ function checkBoard(dir) {
   const glowing = (b.rows || []).filter(r => r.active).length;
   if (glowing > MAX_GLOW) warn(`${glowing} runs are active: more than ${MAX_GLOW} rows glow at once`);
   const left = placeholders(b, "", []); if (left.length) fail(`placeholders left: ${left.slice(0, 8).join(", ")}`);
+  levelFail(b, "board.json");
   if (!out.fail.length) ok(`board.json: ${(b.rows || []).length} runs, ${(b.roadmap || []).length} roadmap items, ${(b.unscheduled || []).length} unscheduled issues`);
   checkHtml(path.join(dir, "index.html"), "board", b, "work-board");
 }
 
-const FULL = [[], ["--theme", "dark"], ["--width", "520"], ["--frame", "390"]];
+const FULL = [[], ["--theme", "dark"], ["--width", "520"], ["--frame", "390"], ["--width", "1920", "--height", "1080"]];
 function browser(page, outDir, modes) {
   const checker = path.resolve(__dirname, "..", "..", "system", "scripts", "check-page.js");
   (modes || FULL).forEach(extra => {
@@ -375,7 +476,7 @@ function browser(page, outDir, modes) {
     const label = extra.join(" ") || "light";
     const res = (r.stdout || "").trim().split(/\r?\n/);
     if (r.status === 0) ok(`browser (${label}): PASS · ${(res.find(l => l.startsWith("screenshot:")) || "").replace("screenshot: ", "")}`);
-    else fail(`browser (${label}): ${res.filter(l => /FAIL|ERROR|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL/.test(l)).join(" | ") || (r.stderr || "").trim()}`);
+    else fail(`browser (${label}): ${res.filter(l => /FAIL|ERROR|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL|LEVEL REFERENCE/.test(l)).join(" | ") || (r.stderr || "").trim()}`);
   });
 }
 

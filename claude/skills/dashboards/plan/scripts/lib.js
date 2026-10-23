@@ -112,6 +112,67 @@ function linkSubIssueBoards(plan, dir) {
   return changes;
 }
 
+/* The live run of a tracking board's units (plan/RULES.md §3, "The units' own runs"). While a tracking board is live, each unit in
+   its wip.current whose sub-issue has a board in this tree carries unit.live: a mirror of that board's run state, its wip as the
+   pipeline last left it (step, since, updated, detail, steps, waitingOn, resume, qa, qaMax, and proposedLevel while escalated) plus
+   its status and branch. Nobody writes it by hand: embed.js writes it from the sub-issue's plan.json at every embed of the tracking
+   board, and every embed of a sub-issue's board re-embeds its parent's (embed.js), so the mirror follows each event of the unit's
+   run. A unit that is not in progress, or has no board, or a tracking board that has landed or was cancelled, carries none. */
+const trackingLive = plan => !["built", "abandoned"].includes(plan.status) && !["landed", "cancelled"].includes((plan.wip || {}).step);
+function unitRun(sub) {
+  const w = (sub && sub.wip) || {};
+  const run = { step: w.step || null, since: w.since || null, updated: w.updated || w.since || null, detail: w.detail || "",
+    steps: Array.isArray(w.steps) ? w.steps : [], waitingOn: w.waitingOn || null, resume: w.resume || null,
+    qa: Array.isArray(w.qa) ? w.qa : [], qaMax: w.qaMax || null, status: sub.status || null, branch: sub.branch || null };
+  if (w.proposedLevel) run.proposedLevel = w.proposedLevel;
+  return run;
+}
+/* The plan.json of a unit's sub-issue board, seen from the tracking board's folder `dir`, or null (no board, or one that does not
+   parse, or a board of another issue). */
+function subIssuePlan(dir, unit) {
+  const hit = subIssueBoard(dir, unit); if (!hit) return null;
+  try { const p = JSON.parse(fs.readFileSync(path.join(dir, hit.folder, "plan.json"), "utf8")); return p && p.issue === unit.issue ? p : null; } catch (e) { return null; }
+}
+/* What each unit's mirror should be now: [{ row, unit, inCur, want, have }] for every unit row, want null when it carries none. */
+function unitRuns(plan, dir) {
+  if (!plan || plan.kind !== "tracking") return [];
+  const live = trackingLive(plan), cur = Array.isArray((plan.wip || {}).current) ? plan.wip.current : [];
+  return (plan.rows || []).filter(r => r.unit && Number.isInteger(r.unit.issue)).map(r => {
+    const inCur = cur.some(a => String(a).split(".")[0] === r.id), sub = live && inCur ? subIssuePlan(dir, r.unit) : null;
+    return { row: r, unit: r.unit, inCur, want: sub ? unitRun(sub) : null, have: r.unit.live || null };
+  });
+}
+/* The tracking board a sub-issue's board mirrors into (plan/RULES.md §3): the enclosing folder, when it is the parent's
+   <issue>-<slug>/ and holds both plan.json and dashboard.html (parentBoard), else null. */
+function parentFolder(dir, plan) {
+  if (!plan || !plan.parent || !parentBoard(dir, plan.parent)) return null;
+  const up = path.dirname(path.resolve(dir));
+  return fs.existsSync(path.join(up, "plan.json")) ? up : null;
+}
+/* Write each unit's mirror (embed.js runs it before embedding). Returns one line per change. */
+function mirrorUnitRuns(plan, dir) {
+  const changes = [];
+  unitRuns(plan, dir).forEach(x => {
+    if (JSON.stringify(x.have) === JSON.stringify(x.want)) return;
+    if (x.want) { x.unit.live = x.want; changes.push(`#${x.unit.issue}: run mirrored from its board, step ${x.want.step}, updated ${x.want.updated}${x.have ? ` (was step ${x.have.step}, updated ${x.have.updated})` : ""}`); }
+    else if ("live" in x.unit) { delete x.unit.live; changes.push(`#${x.unit.issue}: run mirror cleared (${x.inCur ? "no board of its own in this tree, or the tracking board is not live" : "not in progress"})`); }
+  });
+  return changes;
+}
+const stampMs = s => { const t = Date.parse(String(s || "")); return isNaN(t) ? null : t; };
+/* The mirrors that lag their sub-issue's board (check.js warns on each): "missing" (in progress with a board, no mirror), "older"
+   (unit.live.updated earlier than the board's wip.updated), "differs" (not older, other content), "orphan" (a mirror embed.js
+   would clear). */
+function staleUnitRuns(plan, dir) {
+  return unitRuns(plan, dir).map(x => {
+    if (JSON.stringify(x.have) === JSON.stringify(x.want)) return null;
+    if (!x.want) return { ...x, kind: "orphan" };
+    if (!x.have) return { ...x, kind: "missing" };
+    const h = stampMs(x.have.updated), w = stampMs(x.want.updated);
+    return { ...x, kind: (h != null && w != null ? h < w : String(x.have.updated || "") < String(x.want.updated || "")) ? "older" : "differs" };
+  }).filter(Boolean);
+}
+
 /* The repository root of the tree that holds a folder: the first ancestor with docs/plans, or null. */
 function treeRoot(dir) {
   for (let d = path.resolve(dir); ; d = path.dirname(d)) { if (fs.existsSync(path.join(d, "docs", "plans"))) return d; if (path.dirname(d) === d) return null; }
@@ -245,6 +306,8 @@ function otherBoards(plan, dir) {
 function linkIssueBoards(plan, dir) {
   const changes = linkSubIssueBoards(plan, dir);
   if (!plan) return changes;
+  // the units' runs first (a tracking board): a mirrored detail may name issues, which issueBoards then links
+  changes.push(...mirrorUnitRuns(plan, dir));
   if (plan.parent && Number.isInteger(plan.parent.issue)) {
     const hit = parentBoard(dir, plan.parent), want = hit ? hit.board : null;
     if ((plan.parent.board || null) !== want) {
@@ -272,4 +335,4 @@ const linkRule = html => html.includes(ISSUE_BOARD_MARKER) ? 2 : html.includes(S
 
 const skillDir = path.resolve(__dirname, "..");
 module.exports = { repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
-  treeRoot, boardFolders, boardLink, parentBoard, issueRefs, otherBoards, linkIssueBoards, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };
+  trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, parentFolder, staleUnitRuns, stampMs, treeRoot, boardFolders, boardLink, parentBoard, issueRefs, otherBoards, linkIssueBoards, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

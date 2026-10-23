@@ -534,8 +534,8 @@ footer code{color:var(--ink-2)}
         <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
       </tbody></table></div>
     <div class="bubble"><h3>Test levels <small>n classes</small></h3>
-      <!-- presenter: test classes per system per level, counted from each system's testing.<level> packages; link the test-inspector report when one exists -->
-      <div class="scroll"><table class="gtbl"><thead><tr><th>System</th><th class="n">L1</th><th class="n">L2</th><th class="n">L3</th><th class="n">L4a</th><th class="n">L4b</th><th class="n">L4c</th><th class="n">L5</th></tr></thead><tbody>
+      <!-- presenter: test classes per system per test level, counted from each system's testing.<level> packages and headed by the package name (gating … uat), never "L1"…"L5", which reads as a work level (GUIDANCE.md §4); link the test-inspector report when one exists -->
+      <div class="scroll"><table class="gtbl"><thead><tr><th>System</th><th class="n">gating</th><th class="n">component</th><th class="n">integration</th><th class="n">deterministic</th><th class="n">e2e</th><th class="n">nonfunctional</th><th class="n">uat</th></tr></thead><tbody>
         <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td></tr>
         <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td></tr>
         <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td colspan="7">planned (#N) — no tests yet</td></tr>
@@ -573,12 +573,12 @@ footer code{color:var(--ink-2)}
     <div class="card"><h3>Roadmap <small>n items · YYYY-MM-DD</small></h3>
       <!-- presenter: every roadmap item: a tracking issue with its sub-issues (gh issue view <n> --json subIssues,parent), or an
            entry in a roadmap document the repository keeps, with the issues it names. Under each, every issue mapped to it:
-           number, title, state, level where known, and the system it touches (a badge with data-sys); planned systems point at
+           number, title, state (never a work level: GUIDANCE.md §4) and the system it touches (a badge with data-sys); planned systems point at
            their architecture documents. -->
       <ol class="roadmap">
-        <li><div class="ri"><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span>Roadmap item title <small>tracking issue</small></span><span class="tags"><span class="badge">open</span><span class="badge">L4</span></span></div>
+        <li><div class="ri"><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span>Roadmap item title <small>tracking issue</small></span><span class="tags"><span class="badge">open</span></span></div>
           <ul class="issues">
-            <li><a href="https://github.com/ORG/REPO/issues/M" target="_blank" rel="noopener">#M</a><span>Issue mapped to the item</span><span class="tags"><span class="badge" data-sys="system-gamma">system-gamma</span><span class="badge">open</span><span class="badge">L3</span></span></li>
+            <li><a href="https://github.com/ORG/REPO/issues/M" target="_blank" rel="noopener">#M</a><span>Issue mapped to the item</span><span class="tags"><span class="badge" data-sys="system-gamma">system-gamma</span><span class="badge">open</span></span></li>
           </ul></li>
       </ol></div>
     <div class="card"><h3>Unscheduled issues <small>n open · YYYY-MM-DD</small></h3>

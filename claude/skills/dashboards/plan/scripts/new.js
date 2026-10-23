@@ -6,7 +6,8 @@
 // The repository root is --root, else the current directory. Systems take their names and colour slots from
 // docs/dashboards/systems.json. Refuses to overwrite. Anything not given stays a <placeholder> that check.js refuses.
 // With --parent, the new board links its parent's board (parent.board, set by embed.js only when the parent folder holds one), and
-// the tracking board in the parent folder is re-embedded, which links its unit to the new board (plan/RULES.md §1).
+// embed.js re-embeds the tracking board in the parent folder, which links its unit to the new board (plan/RULES.md §1) and, once
+// the unit is in its wip.current, mirrors the unit's run from the new board (§3). Every later embed.js of this folder does the same.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const { repoRoot, opt, registry } = require("./lib.js");
@@ -33,10 +34,12 @@ const plan = JSON.parse(fs.readFileSync(path.join(tpl, "plan.json"), "utf8"));
 delete plan.$comment;
 const level = opt(args, "level", null), kind = opt(args, "kind", level === "4" ? "tracking" : "issue");
 const now = new Date().toISOString().replace(/\.\d+Z$/, "Z");
+/* A tracking issue (level 4) runs its own steps up to its architecture and the landing of its plan; then "implementation" spans its
+   units' runs, each on its own board, from the first unit's start until the last unit lands, and "landed" follows (plan/RULES.md §3). */
 const STEPS_BY_LEVEL = {
   2: ["sizing", "research", "plan", "branch", "implementation", "qa", "remediation", "landing", "landed"],
   3: ["sizing", "interview", "research", "plan", "branch", "implementation", "qa", "remediation", "landing", "landed"],
-  4: ["sizing", "interview", "research", "architecture", "landing", "landed"]};
+  4: ["sizing", "interview", "research", "architecture", "landing", "implementation", "landed"]};
 Object.assign(plan, {
   repo: repo || plan.repo,
   issue, slug: name, folder: rel, kind,
@@ -52,7 +55,9 @@ Object.assign(plan, {
   asBuilt: null,
   systems: (opt(args, "systems", "") || "").split(",").filter(Boolean).map(s => (reg && reg.info(s)) || { slug: s, name: s, slot: 0, top: s, status: "built", page: null }),
   wip: { step: opt(args, "step", "research"), since: now, updated: now, detail: "", steps: STEPS_BY_LEVEL[level] || STEPS_BY_LEVEL[3], current: [], next: null, qa: [], qaMax: 3, waitingOn: null, resume: null, blockers: { waitsOn: [], blocks: [] }, landing: null },
-  milestones: [], trail: [], rows: [], roadmap: null, followUps: [], documents: [], notes: {}
+  // impact is written at plan acceptance from impact.md and reconciled at the landing (plan/RULES.md §2, Impact); until then the
+  // Impact tab says that nothing is recorded yet
+  milestones: [], trail: [], rows: [], impact: null, roadmap: null, followUps: [], documents: [], notes: {}
 });
 if (plan.parent && !plan.parent.issue) plan.parent = null;
 fs.mkdirSync(dir, { recursive: true });
@@ -61,13 +66,11 @@ fs.copyFileSync(path.join(tpl, "dashboard.html"), path.join(dir, "dashboard.html
 const own = embed(dir);
 console.log(`created ${rel}/plan.json and dashboard.html from the template`);
 own.linked.forEach(l => console.log(`linked ${l}`));
-/* A sub-issue's board now exists inside its tracking issue's folder: re-embed the tracking board, so its links to this sub-issue
-   go to this board from now on (plan/RULES.md §1); embed.js changes only the unit's board and folder links. */
-const parentDir = path.dirname(dir);
-if (parent && fs.existsSync(path.join(parentDir, "plan.json")) && fs.existsSync(path.join(parentDir, "dashboard.html"))) {
-  try { const r = embed(parentDir); r.linked.forEach(l => console.log(`tracking board ${path.relative(root, parentDir).split(path.sep).join("/")}: linked ${l}`)); }
-  catch (e) { console.log(`could not re-embed the tracking board in ${parentDir}: ${e.message}`); }
-}
+/* A sub-issue's board now exists inside its tracking issue's folder: embed() has re-embedded the tracking board, so its links to
+   this sub-issue go to this board from now on (plan/RULES.md §1), and, once the unit is in the tracking board's wip.current, the
+   unit mirrors this board's run (§3). */
+if (own.parent && own.parent.error) console.log(`could not re-embed the tracking board in ${own.parent.dir}: ${own.parent.error}`);
+else if (own.parent) { const tb = path.relative(root, own.parent.dir).split(path.sep).join("/"); own.parent.linked.forEach(l => console.log(`tracking board ${tb}: ${l}`)); console.log(`re-embedded the tracking board ${tb}`); }
 const left = JSON.stringify(plan).match(/"<[^"]*>"/g) || [];
 if (left.length) console.log(`still to fill: ${left.length} placeholder${left.length > 1 ? "s" : ""} (${left.slice(0, 5).join(", ")}${left.length > 5 ? ", …" : ""})`);
 const sk = p => path.join(__dirname, p);

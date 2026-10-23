@@ -27,16 +27,30 @@ work board only. A tracking issue (a level-4 plan) gets a board in its own folde
 row per unit**, each row linking to that sub-issue's own board; each sub-issue gets a full
 board in its own folder.
 
-**Links to an issue's board.** Every issue reference on a board opens **that issue's own
-board** when one exists, its GitHub issue only while none does, and never a file that is not
-there. It covers every place a board names an issue: on a sub-issue's board, the parent
-tracking issue in the header's "part of" chip, the breadcrumb and the Context roadmap; on a
-tracking board, its units in the unit rows, the chain, the WIP strip's "In progress" and "Up
-next" lines, the "blocked by" tags, the as-built cards, the inspector and the Context roadmap;
-on any board, siblings in the roadmap, follow-ups, blockers, the issue a part was deferred to,
-and any `#n` in the board's text. The board's own `#n` opens its GitHub issue, and `PR #n` its
-pull request. A board exists when its `dashboard.html` is in the same tree; the link is relative
-to the linking board's folder, so it is never dead. Where the boards sit:
+**Links to an issue and its board** (`GUIDANCE.md` §5). One general rule, by how many links fit:
+
+- **Number and title together: two links.** Where a board shows an issue's number beside its
+  title, the **number opens the GitHub issue** and the **title opens the issue's own board**, or
+  stays plain text while it has none. The **unit row** of a tracking board is the example. Its
+  title line reads `1. #61 Shared build logic`: the unit's number in landing order, `#61` linking
+  issue 61 on GitHub, and "Shared build logic" linking the sub-issue's board (plain while it has
+  none; `1. Shared build logic` while the unit has no issue yet). Under it stay the unit's path and
+  its system, and nothing else: no link line. The same pair is used by the WIP strip's "In
+  progress" and "Up next" lines (`#47 java-floor`), the inspector's unit entry, the Context
+  roadmap (a tracking board's units, an issue board's roadmap item and its siblings), a
+  follow-up that records a `title`, and the Impact tab's unit entries; on the work board, each
+  row, each group heading, each roadmap item and each unscheduled issue (§5).
+- **Only one link fits: the board first.** A lone `#n` — the header's "part of" chip, the
+  breadcrumb, a chain entry, a "blocked by" tag, the badge of a part deferred to an issue, a
+  follow-up with no title, a blocker, any `#n` in the board's text — opens **that issue's own
+  board** when one exists and its GitHub issue only while none does.
+- **GitHub ↗** — the small link to the GitHub issue — sits beside a lone `#n` that opens a board
+  only where the page offers no other way to reach the issue: the "part of" chip and a follow-up
+  with no title. Wherever the number itself opens GitHub, there is none.
+
+The board's own `#n` opens its GitHub issue, and `PR #n` its pull request. No link points at a
+file that is not there: a board exists when its `dashboard.html` is in the same tree, and the
+link is relative to the linking board's folder, so it is never dead. Where the boards sit:
 
 - a **unit's** board is in the sub-issue's folder inside the tracking issue's folder; one kept
   elsewhere is not linked, and `check.js` warns about it;
@@ -45,17 +59,14 @@ to the linking board's folder, so it is never dead. Where the boards sit:
   its parent's board, and `check.js` warns about it;
 - **any other** issue's board may be anywhere under `docs/plans/` in the tree.
 
-Where there is room (the "part of" chip, the unit row, the WIP strip's unit lines, the roadmap,
-the follow-ups, the inspector's unit entry) a small **GitHub ↗** link to the issue sits beside
-a board link; the "part of" chip carries no separate board link. Nobody writes these links by
-hand: `embed.js` sets them from the folders on disk at every embed and clears a link whose board
+Nobody writes the board links by hand: `embed.js` sets them from the folders on disk at every embed and clears a link whose board
 is gone: each unit's `unit.board` (filling `unit.folder` when it is unset), the parent's
 `parent.board` (`../dashboard.html`, or `null`), and `issueBoards`, a map from every other issue
 the board names to its board's path (present only while one is linked). `new.js --parent`
 embeds the new board, which links its parent's board, and re-embeds the tracking board, so the
 new sub-issue is linked from it at once; any other board that names the new issue picks the
 link up at its own next embed (`check.js` warns on it until then). The template routes every
-`#n` through those three. The work board applies the same rule to every issue that has a board,
+board link through those three. The work board applies the same rule to every issue that has a board,
 a tracking issue as much as a sub-issue (§5).
 
 Scripts, from the repo root: `new.js <issue> <slug> …` scaffolds a folder from the template;
@@ -84,7 +95,7 @@ On a tracking issue's board the rows are its units. Four to twelve rows is usual
 |---|---|---|---|
 | 1 | **Gap** | what was wrong or missing at the baseline, with evidence (`path:line`) and a source in the research | once, after research |
 | 2 | **Considered** | every option weighed, each with a verdict: **accepted** (green), **declined** (red, with the trade-off that ruled it out), **partial** (yellow: adopted in part, with what was taken and what wasn't), **deferred** (yellow until settled: left open at plan time, settled in column 4). Exactly one option per row is accepted or partial-as-chosen. | once, after architecture |
-| 3 | **Verdict** | the decision and its defence in a few sentences; a `build` or `leave` kind; the steps named, not listed (a step is a sentence with a file anchor and its check — the detail is in `plan.md`); tests by level; risks | once, at plan acceptance |
+| 3 | **Verdict** | the decision and its defence in a few sentences (what the work is — one system, a bug fix, docs only — never its work level); a `build` or `leave` kind; the steps named, not listed (a step is a sentence with a file anchor and its check — the detail is in `plan.md`); tests by test level; risks | once, at plan acceptance |
 | 4 | **As built** | the state, a summary of what exists at the as-built commit, and every change from the verdict with `what`, `why`, `when` (the stage or review round) and `ref` (the commit) | kept as the work lands |
 
 Columns 1–3 are written once. A factual error found later is corrected in place and noted
@@ -106,6 +117,55 @@ row may still carry `changes[]` where the unit departed from the architecture. A
 written before these two states marked a landed unit `as-planned`, `amended` or `deviated`; the
 scripts and the page read those as landed.
 
+### Impact
+
+Beside the four columns, a core tab, **Impact**, says what the change means outside itself, from
+`plan.json` `impact`. It is a general representation like the rest of the board: summaries and
+links to the Markdown section that holds the detail, never listings.
+
+| Section | Holds | Each entry |
+|---|---|---|
+| **Downstream effects** | who or what downstream is affected: consumers, other systems and repositories, published artifacts, operators | `who`, `kind` (`consumer` · `system` · `repository` · `artifact` · `operator`), `effect` (`none` · `additive` · `behaviour` · `breaking`), `summary`, `system`, `link` |
+| **Adaptation requirements** | what a consumer or another system must change to adopt it | `who`, `need` (`none` · `optional` · `required`), `summary`, `system`, `link` |
+| **API changes** | public surface added, changed, deprecated or removed, with its stability tier where known | `surface`, `change` (`added` · `changed` · `deprecated` · `removed`), `tier` (`stable-core` · `supported-extension` · `experimental` · `internal`, or `null` when not stated), `summary`, `system`, `link` |
+| **Conversion steps** | the ordered migration steps a consumer follows | `what`, `link` |
+
+Around them: `basis` (`plan` or `as-built`), a `summary` of two to four lines, `release`
+(`bump`: `none` · `fix` · `feat` · `major`, the `version`, an optional `note`), `none` (a plain
+statement of why no downstream impact is recorded, or `null`), `changes[]` (each difference from
+the planned impact, as column 4 records them: `what`, `why`, `when`, `ref`), `source` and `link`.
+An entry's `system` is a registry slug from `systems`, or `null` for a party outside the
+repository's systems.
+
+- **Sources.** The issue folder's `impact.md`, which the planner writes while planning and
+  reconciles once implementation ends; `plan.md` where it states API or migration facts; and
+  `final-implementation.md` for the as-built impact.
+- **When.** `new.js` sets `impact` to `null`. The `plan-accepted` event writes it from
+  `impact.md` and `plan.md`, with `basis` `plan`. A deviation in `final-implementation.md` that
+  changes the impact is noted at its `implementation-stage` event and kept in `changes[]` when the
+  impact is reconciled. The `landed` event reconciles the sections from `final-implementation.md`
+  and the reconciled `impact.md`, sets `basis` `as-built`, and keeps every difference from the
+  planned impact in `changes[]`: the planned impact is never silently rewritten.
+- **The look.** Each entry is a card in its system's colour (muted for a party outside the
+  repository's systems), **dashed** while the impact is the plan's and solid once it is the
+  as-built one. Kinds, effects, needs, API changes and tiers are neutral badges with a glyph and a
+  word: they describe, they are not outcomes. The impact's own standing is a status pill: `…
+  planned impact` (neutral, dashed), `✓ as built` (green: reconciled, no change from the plan) or
+  `+ as built, amended` (yellow: reconciled, its changes listed). The tab's legend lists exactly
+  these.
+- **No recorded impact** (common for a small bug fix) is never a hidden tab: the tab states
+  plainly "No downstream impact recorded" with the `none` statement and its source; before plan
+  acceptance it says nothing is recorded yet and where it will come from. A change with no
+  downstream effect moves no version (`release.bump` `none`), and the tab says so explicitly.
+- **Tracking boards** show the initiative's own impact, from the tracking issue's `impact.md`,
+  then a **Units** section: one card per unit row, from `impact.units[]` (`unit`: the row id,
+  `basis`, `summary`, `release`, `source`, `link`), summarising that unit's own impact and linking
+  its board by the number-and-title rule (§1). A unit with no entry shows "not recorded yet",
+  dashed. The presenter writes a unit's entry at its sub-issue's `plan-accepted` event (basis
+  `plan`) and reconciles it in its landing refresh (basis `as-built`), from the sub-issue's own
+  board and `impact.md`. The initiative's `release.bump` is `none`: a tracking plan moves no
+  version itself, and each unit's release is its own.
+
 ## 3. Work in progress
 
 A board is alive while its run is. Its data carries:
@@ -113,7 +173,8 @@ A board is alive while its run is. Its data carries:
 - `wip.step` — the pipeline step the run is at (`sizing`, `interview`, `research`,
   `architecture`, `plan`, `branch`, `implementation`, `qa`, `remediation`, `landing`,
   `landed`, `halted`, `escalated`, `cancelled`), with `since` (date-time) and `detail` (one
-  line: which stage, which qa pass, what waits on the user);
+  line: which stage, which qa pass, what waits on the user); on a tracking board it is the
+  tracking issue's own phase (below, "The units' own runs");
 - `wip.current` — the cells being worked on, as `<row-id>.<column>` addresses, or a column
   name while a column is being written; these carry the **in-progress mark**, the breathing
   interior glow (`GUIDANCE.md` §1). `wip.current` means a run is actively in progress and
@@ -140,6 +201,62 @@ tracking board also the chain of units, the unit in progress and the unit up nex
 change lands, `status` becomes `built`, `wip.step` becomes `landed`, the glow stops, and the
 strip shows the landing (PR, merge commit, version).
 
+**The units' own runs (tracking boards).** A tracking board reflects the live state of every
+unit in progress. Two things say where the work is, and they never mix:
+
+- **The tracking board's own `wip`** is the tracking issue's phase, never a unit's step. Its
+  steps are `sizing`, `interview`, `research`, `architecture`, `landing` (the plan's own landing)
+  and then `implementation`, which spans its units' runs from the first unit's start until the
+  last unit lands, then `landed`. While any unit runs, `wip.step` stays `implementation`, whatever
+  step each unit is at; `halted`, `escalated` and `cancelled` mean the tracking issue itself (an
+  architecture re-pass, the whole chain stopped), never one unit's halt. `wip.detail` speaks for
+  the chain (which unit landed, which runs, which is next) and is written at the chain's own
+  moments: a unit's start, its approving qa pass, its landing. `wip.qa` stays empty: qa passes
+  belong to the units.
+- **Each unit in progress mirrors its own run**, as `unit.live` on its row: its sub-issue board's
+  `wip` as the pipeline last left it — `step`, `since`, `updated`, `detail`, `steps`, `waitingOn`,
+  `resume`, `qa`, `qaMax`, and `proposedLevel` while escalated — plus that board's `status` and
+  `branch`. Nobody writes it by hand. `embed.js` writes it at every embed of the tracking board,
+  from the `plan.json` of the unit's board in the same tree (the unit's folder inside the tracking
+  folder, §1), for every unit in `wip.current` while the tracking board is live; and every embed of
+  a sub-issue's board re-embeds its parent's tracking board in the enclosing folder, so every event
+  of the unit's run reaches the tracking board, not only `sized`. A unit that is not in progress,
+  that has no board in the tree, or a tracking board that has landed or was cancelled carries no
+  mirror; `embed.js` clears one that is left. The mirror is generated, never merged: where two
+  branches changed it, take either side and re-embed.
+
+The page shows the mirror wherever it shows the unit in progress: on the WIP strip, under the
+unit's "In progress" line, as an accent-ruled block with the unit's step, its own steps line, its
+detail and its qa passes (a yellow rule and "waiting on the user" while its run is halted); in the
+unit's as-built cell and its card on the As built tab, as a run line (`▶ run at <step>`, or
+`⏸ waiting on the user` with the step it resumes at, its latest qa pass, and when the board was
+updated); in the inspector's unit entry, in full; on its chain node, in place of its state; and in the Context roadmap. While a unit's run waits on the user its in-progress mark
+pauses to the ring alone, as the whole board's does while the tracking issue itself is halted
+(`GUIDANCE.md` §1). The tracking strip shows the tracking issue's own phase first, then the chain,
+then each unit in progress with its run, then the unit up next.
+
+**The chain's progress (tracking boards).** A tracking board's `status` stays `building` from its
+first unit's start to its last unit's landing, so its header does not show it. In place of the
+status chip it shows the chain's progress, with a thin green bar of units landed:
+
+> chain **1 of 11 landed** · #47 in progress (plan) · #62 up next, blocked by #47
+
+- **Landed count:** units landed of all units. Units `dropped` or `deferred` are left out of the
+  total and named after it ("· 1 dropped"). A unit written as `as-planned`, `amended` or
+  `deviated` before the `landed` state existed counts as landed.
+- **In progress:** each unit in `wip.current`, with its own run's step from its mirror
+  (`unit.live`), so the chip follows every event of the unit's run. A unit whose run is halted
+  reads "#47 waiting on you"; an escalated one "#47 escalated"; one with no mirror yet "#47 in
+  progress".
+- **Up next:** `wip.next`'s issue, with "blocked by #n" for each blocker that has not landed.
+- **Before any unit starts** (none landed, complete or in progress): "planned · 11 units". **All
+  landed** (or the board built): "landed · 11 of 11". A cancelled tracking issue: "cancelled · n
+  of M landed".
+- Every `#n` here is a lone `#n` (§1): it opens the issue's board when one exists.
+
+An issue board keeps its status chip unchanged. On the work board, a tracking issue's state cell
+shows the same summary in place of a bare "building" (§5).
+
 **Next is the next one up (the standing rule).** `wip.next` is always the next unit in
 landing order, and two moments move it:
 
@@ -148,7 +265,8 @@ landing order, and two moments move it:
   landing), the unit leaves `wip.current`, and `wip.next` is recomputed.
 - **A unit's run starts** (its first plan-board event, `sized`). On the tracking board the unit
   moves from `wip.next` to `wip.current` (`<unit-id>.built`), and the **following** unit in
-  landing order becomes `wip.next` at once.
+  landing order becomes `wip.next` at once; the tracking board's `wip.step` is `implementation`
+  from the first unit's start, and the unit starts mirroring its run (above).
 
 Recomputing always means the same thing: the first unit row, in row order, that is `pending`
 and not in `wip.current` (so never one that is current, complete, landed, dropped or deferred),
@@ -161,18 +279,26 @@ The pipeline never edits a board. At every step transition it sends the admin te
 event's facts, updates `plan.json`, re-embeds, checks, and the team commits the folder on the
 issue's branch, so the board's git history is the run's own timeline.
 
+**Every event of a sub-issue's run reaches its tracking board.** Re-embedding the sub-issue's
+board (`embed.js <folder>`, which every event ends with) re-embeds the parent's tracking board in
+the enclosing folder, which mirrors the unit's run from the `plan.json` just written (§3). So on
+every event below, for a sub-issue, the tracking board changes too: at least `unit.live`, and on
+`sized`, an approving `qa-pass` and `landed`, the unit's row and `wip` as the table says. On
+`sized`, move the unit into the tracking board's `wip.current` before the last embed, or the
+mirror starts at the next one. The presenter checks both boards.
+
 | Event | When | What the presenter writes |
 |-------|------|---------------------------|
-| `sized` | step 1 done (levels 2–4) | the **foundation**: `new.js`; issue, title, level, baseline, systems, status `planned`, `wip.step = interview`/`research`/`plan`; milestones empty; on the work board. For a sub-issue of a tracking issue, also on the tracking board: its unit moves from `wip.next` to `wip.current`, and the following unit in landing order becomes `wip.next` (§3); `new.js --parent` embeds the new board, whose "part of" chip then opens the tracking board, and re-embeds the tracking board, which links the unit to the new board (§1) |
-| `halted` / `resumed` | a planner halt, a qa stop, a `needs-user` | `wip.step = halted` with what waits on the user; back to the step on resume |
+| `sized` | step 1 done (levels 2–4) | the **foundation**: `new.js`; issue, title, level (data only, never shown), baseline, systems, status `planned`, `wip.step = interview`/`research`/`plan`; milestones empty; on the work board. For a sub-issue of a tracking issue, also on the tracking board: its unit moves from `wip.next` to `wip.current`, the following unit in landing order becomes `wip.next`, and `wip.step` is `implementation` (§3); `new.js --parent` embeds the new board, whose "part of" chip then opens the tracking board, and `embed.js` re-embeds the tracking board, which links the unit to the new board (§1) and, once the unit is in `wip.current`, mirrors its run (§3) |
+| `halted` / `resumed` | a planner halt, a qa stop, a `needs-user` | `wip.step = halted` with what waits on the user; back to the step on resume. For a sub-issue, its tracking board's `wip.step` does not change: the unit's mirror carries the halt, and its mark pauses (§3) |
 | `researched` | research verified | the Gap column from `research/README.md` and the findings; the `gap` milestone |
 | `architecture-signed-off` | level 4 sign-off | the Considered column from `architecture.md`; on a tracking board, the unit rows (each `pending` with a one-line progress summary until its sub-issue lands; `embed.js` links it to the sub-issue's board once that board exists, §1), and `wip.next` the first unit (§3) |
-| `plan-accepted` | planner COMPLETE | Considered (if not yet) and Verdict from `plan.md`; the `verdict` milestone; `wip.step = branch` |
+| `plan-accepted` | planner COMPLETE | Considered (if not yet) and Verdict from `plan.md`; the `verdict` milestone; `impact` from `impact.md` (and `plan.md` where it states API or migration facts), `basis` `plan` (§2, Impact); `wip.step = branch`. For a sub-issue, its unit's `impact.units` entry on the tracking board |
 | `branch-cut` | step 3 done | the branch; `wip.step = implementation` |
-| `implementation-stage` | a rookie-dev stage or report | `status = building`; the touched rows' as-built state and summary; each deviation from `final-implementation.md` as a `changes[]` entry; `wip.current` = the next stage's rows |
+| `implementation-stage` | a rookie-dev stage or report | `status = building`; the touched rows' as-built state and summary; each deviation from `final-implementation.md` as a `changes[]` entry, and one that changes the impact noted for `impact.changes`; `wip.current` = the next stage's rows |
 | `qa-pass` | a qa verdict | `wip.qa` appended; `wip.step = remediation` or `landing`. On an approving pass of a sub-issue's run, its unit row on the tracking board becomes `complete` (it stays in `wip.current` until it lands) |
-| `escalated` | a level escalation | `wip.step = escalated` with the proposed level; the board follows the issue's new level |
-| `landed` | the team has merged | never sent by a pipeline: the admin team raises it itself inside the landing refresh (the presenter writes, the executor commits). On the issue's board: `status = built`; `asBuilt` (sha, date, PR, merge, version); the `built` milestone; every `pending` part resolved; the trail completed; `wip.step = landed`. For a sub-issue, on its tracking board, the standing rule (§3): the unit `landed`, out of `wip.current`, `wip.next` recomputed as the next unit in landing order. Then the work board is regenerated |
+| `escalated` | a level escalation | `wip.step = escalated`; the proposed level is kept as data only (`wip.proposedLevel`, never shown: `GUIDANCE.md` §4); the board follows the issue's new sizing |
+| `landed` | the team has merged | never sent by a pipeline: the admin team raises it itself inside the landing refresh (the presenter writes, the executor commits). On the issue's board: `status = built`; `asBuilt` (sha, date, PR, merge, version); the `built` milestone; every `pending` part resolved; the trail completed; `impact` reconciled from `final-implementation.md` and the reconciled `impact.md`, `basis` `as-built`, each difference from the planned impact in `impact.changes` (§2, Impact); `wip.step = landed`. For a sub-issue, on its tracking board, the standing rule (§3): the unit `landed`, out of `wip.current` (which clears its mirror at the next embed), `wip.next` recomputed as the next unit in landing order; its `impact.units` entry reconciled, `basis` `as-built`. Then the work board is regenerated |
 | `cancelled` | the run is abandoned | `status = abandoned`, reason in `notes` |
 
 The **work board** (§5) is regenerated only at landings, as part of the landing refresh, and
@@ -183,17 +309,24 @@ its branch. After `landed`, the as-built system pages' Context links are refresh
 
 `docs/plans/index.html`, from `board.json`, generated by `board.js` from every `plan.json`
 under `docs/plans/` plus the tracker's open issues (`gh issue list`, sub-issues, *blocked by*):
-one row per issue that has a board or a `level:` label, and one per unit of a tracking board —
-its level, status, `wip.step` and detail, qa passes, what it waits on, its blockers and what it
+one row per issue that has a board or a `level:` label (the label only decides which issues are
+rows; no level is written to `board.json` or shown), and one per unit of a tracking board —
+its status, `wip.step` and detail, qa passes, what it waits on, its blockers and what it
 blocks, its branch, and its tracking parent; grouped by tracking issue in landing order, then the
 rest by age; the in-progress mark on the rows whose runs are active; the same system colours. A
 unit reads `complete` once its row is complete (qa passed, not merged) and `landed` once it has
-landed; the unit a tracking board names in `wip.next` reads "next · not started", with the
+landed; a tracking issue's own row shows its chain's progress (§3) in its state cell, from
+`chain` in `board.json` (`total`, `landed`, `dropped`, `deferred`, `planned`, `done`, `current[]`
+with each unit's step from its freshest board, else the mirror, and `next` with its open
+blockers), instead of a bare "building", keeping its pill above it only while the tracking issue
+itself is halted, escalated or cancelled; the unit a tracking board names in `wip.next` reads
+"next · not started", with the
 up-next mark and a "blocked by #n" tag for each blocker that has not landed, and is never active. Its Context lists the roadmap
-(tracking issues) and the unscheduled issues, like the repository page, and links it. An issue that has a board, a tracking
-issue as much as a sub-issue, is linked to that board wherever the work board names it (its row, its group heading, the "part of"
-line of its units, the waits-on and blocks lists, the "blocked by" tags, the Up next count, the roadmap, any `#n` in the text),
-with a small GitHub ↗ link beside it in the Issue column, the "part of" line, the group heading and the roadmap (§1); `board.js`
+(tracking issues) and the unscheduled issues, like the repository page, and links it. Its links follow §1: in each row, each
+group heading, each roadmap item and each unscheduled issue the number opens the GitHub issue and the title opens the issue's
+board, a tracking issue's as much as a sub-issue's (plain text while it has none); a lone `#n` — the "part of" line of a unit, the
+waits-on and blocks lists, the "blocked by" tags, the Up next count, any `#n` in the text — opens the board when one exists and
+GitHub otherwise. There is no separate GitHub ↗ link: every issue with a board has a row whose number opens GitHub. `board.js`
 sets a row's board only when its file exists.
 
 ## 6. Who does what
@@ -202,15 +335,18 @@ sets a row's board only when its file exists.
 |-----|------|
 | the `/resolve-issue` pipeline | sends `plan-board` events with the facts it has (step, verdicts, counts, documents written, what waits on the user); never edits a board |
 | the planner, implementer, qa | write their Markdown as before; the board is read from it |
-| the presenter (admin team service) | writes `plan.json`, re-embeds, checks, fills `board.json`; decides the rows and the summaries from the documents; sets `wip` from the event; in a landing refresh, sets the landed state and applies the standing rule (§3) on the tracking board |
-| the admin team's executor | commits the folder on the issue's branch after each event; commits the regenerated work board only in a landing's docs flow |
+| the presenter (admin team service) | writes `plan.json`, re-embeds, checks, fills `board.json`; decides the rows and the summaries from the documents; sets `wip` from the event; on a sub-issue's event, re-embeds and checks its tracking board too, whose units' runs `embed.js` mirrors (§3; the presenter never writes `unit.live` by hand); in a landing refresh, sets the landed state and applies the standing rule (§3) on the tracking board |
+| the admin team's executor | commits the folder on the issue's branch after each event, with its tracking board's `plan.json` and `dashboard.html` when a sub-issue's event changed them (a mirror conflict between branches is resolved by re-embedding, §3); commits the regenerated work board only in a landing's docs flow |
 
 ## 7. Writing
 
 Sentences, not fragments; present tense in columns 1–3, past tense in column 4; file paths and
 identifiers in `` `code` `` spans and issues as `#n` (the page links both); a cell's summary
 stands alone in two to four lines, and the detail link goes to the Markdown section that holds
-the rest. No code listings. Numbers only where they decide something.
+the rest. No code listings. Numbers only where they decide something. Never a work level
+(`GUIDANCE.md` §4): no "level 3", "L3" or "a level-3 change" anywhere on a board; say what the
+work is (one system, a bug fix, docs only). A test level is named as a test level ("Level 2
+tests", "the gating level").
 
 ## 8. What `check.js` enforces
 
@@ -231,16 +367,33 @@ still in `wip.current`; a tracking-board unit row whose sub-issue's board exists
 but is not what its `unit.board` links, or a `unit.board` naming a board that does not exist; a
 `parent.board` that is not the parent's board in the enclosing folder (a dead link, or another
 board); an `issueBoards` entry naming a board that does not exist (`embed.js` sets and clears
-all three, §1); a bad date, sha, state, kind, verdict, step or column value; a placeholder left from the
+all three, §1); a `unit.live` that is not an object, or carries a bad step, resume step or
+date; a bad date, sha, state, kind, verdict, step or column value; a placeholder left from the
 template; an embedded copy that differs from `plan.json`; a panel without a legend; a dead
-`href="#"`; a code block longer than five lines anywhere in the data. With `--auto` or
-`--browser`, a failing browser pass.
+`href="#"`; a code block longer than five lines anywhere in the data; a work level named in any
+text of `plan.json` or `board.json` (`GUIDANCE.md` §4: "level: 2", "L3", "a level-3 change",
+"(#61, level 3)", "work level", a verdict's defence that opens "Level 3:"; the forms are in
+`system/scripts/levelrefs.js`, and the browser pass applies them to every tab's rendered text);
+an `impact` that is neither `null` nor an object, a bad `basis`, `release.bump`, `kind`,
+`effect`, `need`, `change` or `tier`, an entry without its `who`/`surface`/`what` and `summary`,
+a `changes[]` entry without `what` and `why`, a built board whose impact is still the plan's, a
+planned board whose impact claims `as-built`, `impact.units` on a board that is not a tracking
+board, or an entry that names no unit row or repeats one. With `--auto` or `--browser`, a
+failing browser pass.
 
 With `--auto` it reports the page's standing against its template (`system/scripts/deviation.js`):
 the verified template plus its data (no browser pass), or a divergence (the full browser pass:
-light, dark, 520 px, a 390 px frame).
+light, dark, 520 px, a 390 px frame, a 1920 x 1080 desktop).
 
-Warns: a gap without evidence; a build verdict without named steps (unit rows of a tracking
+Warns: `impact.md` in the folder while the Impact tab is empty (`impact` null, or no entry, no
+summary and no `none` statement); an `impact.none` that the entries contradict; a release that
+does not fit the work (a change with a downstream effect and no version bump; a change with no
+downstream effect that does not say so in `impact.none`; a bump with no downstream effect; a
+breaking effect or a removed surface outside a major release; a tracking plan that moves a
+version itself); `impact.changes` before the impact is reconciled; on a tracking board, a unit
+whose own board records its impact while `impact.units` has no entry for it, and an entry still
+the plan's once its unit has landed; a page with no Impact tab (a template older than the tab:
+re-render it); a gap without evidence; a build verdict without named steps (unit rows of a tracking
 board are exempt: their steps live in the sub-issue's plan); a row's system not in `systems`;
 more than six colour groups (a system's parts share their parent's slot, so count top-level
 systems, not rows); a missing milestone; a halted board older than a day; a tracking board that does
@@ -253,7 +406,12 @@ issue written in the data; on a page older than the rule, the issue references i
 plain text for issues with no board; the same on the work board; an `issueBoards` entry that
 `embed.js` would no longer write; a sub-issue's board kept outside its tracking issue's folder,
 which the tracking board cannot link, and a sub-issue's folder kept outside its parent's, which
-cannot link the parent's board; with
+cannot link the parent's board; on a tracking board, a unit's mirror (`unit.live`, §3) older
+than its sub-issue board's `wip.updated`, missing for a unit in progress whose board exists,
+differing from that board's run without being older, or left where `embed.js` would clear it,
+and a `wip.step` that is a unit's step (`plan`, `branch`, `qa`, `remediation`) rather than the
+tracking issue's own phase; on a sub-issue's board, a parent tracking board whose mirror of this
+run lags (each fixed by `embed.js`, on either board); with
 `--auto`, a page that differs from its template without declaring the divergence (re-render it:
 copy the template over it and `embed.js`), and a template not verified since it changed.
 
