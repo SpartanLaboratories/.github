@@ -155,9 +155,18 @@ came from; on a tracking board's unit row, `architecture.md`'s section for the u
 `"plan.md#42-the-fix"`. The page ends the statement with the reference in parentheses, "(§4.2)": the heading's leading section
 number ("4.2", "A-3"), else the heading itself, or a `label` the statement sets. The text does not repeat it.
 
+- **Before the excerpt: the section number from the anchor.** Until `embed.js` has copied an excerpt (the file is not in the tree yet,
+  or the heading is gone), the label is the section number the anchor names. GitHub's anchor drops a heading number's dots, so
+  `42-the-fix` is §4.2 or §42: when the referenced Markdown is reachable from the board's folder, `embed.js` reads its headings and the
+  heading number wins (the numbered heading whose number, its dots dropped, leads the anchor), written as the statement's `refNumber`
+  `{ref, label, from: "headings"}`; only when the file is not there (or none of its numbered headings fits) is the anchor's leading
+  number taken as it stands, `from: "anchor"`, and **marked**: "(§42?)", with the reason in its title, in the inspector and in the
+  legend of the tab that draws it. The page, which reads no file, marks a reference with neither the same way. Nobody writes
+  `refNumber` by hand; it goes once the excerpt is copied, and `check.js` warns on a marked one.
+
 - **The excerpt.** When `embed.js` writes the board (and `apply-event.js` with it) it copies the referenced section's heading and
   first paragraph into the statement's `excerpt` `{ref, heading, paragraph, hash}` — the paragraph on one line, fenced code and
-  tables skipped, a work level in it elided (`GUIDANCE.md` §4), `hash` a hash of the whole section — once per reference: an
+  tables skipped, a work level in it elided with "…" (`GUIDANCE.md` §4: a quotation is elided, never reworded), `hash` a hash of the whole section — once per reference: an
   excerpt copied for the same `ref` is kept, as column 3 is written once. A plain click on the reference shows that excerpt in the
   inspector, beside the link that opens the section (a modified click follows the link; `#<row>.verdict.s<n>` deep-links it).
   Nobody writes an excerpt by hand.
@@ -192,7 +201,18 @@ full share of the row (a row spanning every track kept the empty tracks from col
 | **Verdicts** | build (solid neutral) · left for later (faded neutral) · not yet written (dashed: pending) |
 | **As built** | every state with its count (pending dashed), then the rows left for later (faded) |
 | **QA passes** | one slot per pass allowed (`wip.qaMax`, three), filled left to right by each pass's result: passed green, minor findings only yellow (every finding minor by severity, or the on-the-spot route), other findings red, the pass running accent; a slot not used empty (solid outline) |
-| **Timeline** (a board that has landed) | no bar yet: the time per phase (plan, build, qa, landing) waits on the colours its phases take |
+| **Timeline** (a board that has landed) | the time per phase, one segment per phase sized by its time, in four **neutral ink shades**, faintest to strongest (`GUIDANCE.md` §1): **plan** = sized → plan accepted (the `verdict` milestone), **build** = plan accepted → the first qa pass, **qa** = the first qa pass → the last, **landing** = the last qa pass → the merge; each phase's legend entry, inside the tile, names it with its time ("plan · 1 day", "qa · same day", "build · 3 h" where both bounds carry a time). A phase whose bound is not recorded, or whose bounds are out of order, is left out of the bar and named in the tile's sub-line with the reason ("plan left out: no sizing recorded"); a phase of no length keeps a sliver, so every phase the legend names is drawn |
+
+**The Timeline tile's bounds** are read from the data, never guessed: *sized* from `plan.sized`, the run's start (`new.js` stamps it at
+the foundation, `apply-event.js` at `sized` on a board laid before its run, and keeps it once set), else, on an issue board written before
+the field, the earliest trail entry that says it was sized; *plan accepted* from the `verdict` milestone's date; a *qa pass* from its
+`wip.qa[].at` (`apply-event.js` stamps the event's time), else its `date`; the *merge* from `asBuilt.date`, else the `built` milestone. Days
+are counted between the bounds' UTC dates; the bar's shares are in hours where both bounds carry a time. A **tracking board** draws its own
+phases, three, over the same ramp (faintest, middle, strongest): **plan** = sized → the architecture signed off (the `considered`
+milestone), **filing** = signed off → the plan's merge (the `verdict` milestone: its units filed as sub-issues, their boards laid, the plan
+landed), **units** = the plan's merge → the last unit's landing (the board's merge); its trail is not read for the sizing, since its units'
+starts are written there too. `plan/scripts/lib.js` `timelinePhases()` and the template's `timelinePhases()` are the one rule; `check.js`
+reports the phases of a landed board and warns on bounds out of order.
 
 **As-built states:** `pending` (dashed, neutral: the work on the row has not started) · `in-progress` (solid, accent: a current
 stage is working on the row) · `partially-built` (solid, strong neutral: a finished stage built part of the row and the next stage
@@ -844,23 +864,35 @@ files it wrote, the check, the live board, the time, and `enrich: yes|no` with `
 
 | The script decides (from the facts) | The presenter adds afterwards (from the documents), when `enrich: yes` |
 |---|---|
-| `wip.step`, `since`, `resume`, `waitingOn` (`halted`, `resumed`, `escalated`, `cancelled`); `wip.current` by the step-to-column map, during research from the questions' rows (`researchGlow()`); `wip.event` and `wip.updated`; `wip.detail` (`facts.detail`, else one line worded from the facts); one trail entry worded from the facts | the board's foundation at `sized` (`new.js`), and a sub-issue's Gap and Considered columns from its parent's documents |
+| `wip.step`, `since`, `resume`, `waitingOn` (`halted`, `resumed`, `escalated`, `cancelled`); `wip.current` by the step-to-column map, during research from the questions' rows (`researchGlow()`); `wip.event` and `wip.updated`; `wip.detail` (`facts.detail`, else one line worded from the facts); one trail entry worded from the facts; at `sized`, `plan.sized`, the run's start, once (§2, "The KPI tiles"); each qa pass's `at`, the event's time | the board's foundation at `sized` (`new.js`), and a sub-issue's Gap and Considered columns from its parent's documents |
 | the research questions and phase (`research-planning`, `research-started`, `research-returned` with its findings in the trail, `verification-started`, `researched` setting them complete) | the Gap column and its milestone (`researched`) |
 | `wip.plan` (writing at the plan step, a re-pass from the parent or after a qa pass) | the Considered column (`architecture-signed-off`, `plan-accepted`), a tracking board's unit rows, the Verdict column, the milestones, the impact |
 | the branch (`branch-cut`); `wip.stages` from `facts.stages`, each keeping the rows the board records for it; the derived As built states `pending`, `in-progress`, `partially-built` (a partially built row only where it has a summary), never an outcome | the rows each stage touches (`plan.md`); at a stage's end its rows' summaries and outcomes (`as-planned`, `amended`, `deviated`), the deviations and impact changes from `final-implementation.md` |
 | `wip.open` from `facts.open` (at an implementation stage or a qa pass; a resolved one recorded in the trail); `wip.interview` questions from `facts.questions` | the interview's answers |
-| `wip.qa` entries (pass, verdict, counts by kind and severity, route), `wip.qaMax`, `wip.remediation` (pass, route, steps: a work level in a step's name is elided, "…", never the step dropped; an `implementation-stage` during remediation — `facts.remediation`, or `facts.step` `remediation` — writes its sub-steps and, when it carries them, the stages too, and its trail entry and note follow the remediation, `facts.stage` first, never "qa next"); the rows the findings touch only from `facts.rows` | the findings' detail: the rows they touch, the pass's note |
+| `wip.qa` entries (pass, verdict, counts by kind and severity, route), `wip.qaMax`, `wip.remediation` (pass, route, steps: a work level in a step's name is reworded away as in any text from the facts, below, and elided "…" only where the rewording leaves one, never the step dropped; an `implementation-stage` during remediation — `facts.remediation`, or `facts.step` `remediation` — writes its sub-steps and, when it carries them, the stages too, and its trail entry and note follow the remediation, `facts.stage` first, never "qa next"); the rows the findings touch only from `facts.rows` | the findings' detail: the rows they touch, the pass's note |
 | the statements' excerpts not copied yet (as `embed.js` copies them) | the statements themselves (§2, "Statements") |
 | on a sub-issue, the standing rule on its tracking board: the unit's start (`sized`), `complete` (an approving qa pass), `landed`, `wip.next`, the chain's `wip.detail` | the unit's summary, its `impact.units` entry and its effect on the initiative's impact |
 | at `landed`, `asBuilt` from the facts, and `status = built` with the step `landed` only once every part is resolved; at `cancelled`, `status = abandoned` and the reason in `notes` | the landing refresh (every part resolved, the trail, the impact reconciled); the cancelled board's closing state |
 | at `landing` (team-raised), the step, the event with its pull request, the detail and the trail entry: everything | nothing |
 | the Tests tab from an event's `facts.tests` (§2, "The Tests tab"; `testslib.js` `mergeTests()`): each class of `added`, `amended` and `relevant` upserted (its test level from its `testLevel`, else its package or path; `stage` the implementation stage reported; `rows` kept to the board's rows), a class kept in the highest list it reached; `ran`, the classes qa ran with their counts, sets each one's latest result (with the qa pass) and puts a class in no list into Relevant; `other` replaces the counts; `drop` removes a class; `base` the ref of the diff | the Tests tab when an implementation stage or a qa verdict carries no `facts.tests`: Added and Amended from the branch's diff against its base, Relevant, Other and the results from the qa report |
 
+**A work level in the facts is reworded, never written** (`GUIDANCE.md` §4; admin-team/dashboards-skill/23). Every text the script takes
+from the facts (the detail, a note, what waits on the user, an interview question and its options, an open point, a qa pass's note, a
+remediation sub-step's name) goes through `system/scripts/levelrefs.js` `scrubLevels()` when it names a work level (an identifier, the
+branch or the version, is never reworded: one that names a work level is left out, the presenter told):
+a scope phrase becomes the unit's scope on a sub-issue's board and the issue's elsewhere ("diff inside level 3" → "diff inside the unit's
+scope"), the level before a noun is elided ("a level-3 change" → "a change", "level-3 re-pass" → "re-pass", the article mended), the
+label is dropped with the punctuation it leaves ("Sized; Label level: 3; research starts" → "Sized; research starts"), "escalated to
+level 4" reads "escalated", "re-levelled" "re-sized", "(#61, level 3)" "(#61)". A text in which a work level would remain is left out.
+Either way the summary says so, with the new wording, and `enrich: yes`: the presenter reads it. Test-level phrases ("L1 per-type
+gating", "Level 4a tests", "the Level 3 pass") are left as they are. A quotation is never reworded: a plan excerpt elides the work level
+with "…" (§2, "Statements"). `system/scripts/apply-state.js` treats a state page's `facts.title` the same way.
+
 `enrich: yes` whenever the event needs the documents — `sized` (always), `researched`, `architecture-signed-off`,
 `plan-accepted`, `branch-cut` without the stages' rows, an `implementation-stage` that finishes a stage, a `qa-pass` with
 findings, `escalated`, `cancelled`, `landed`, an `implementation-stage` that reports a stage done or a qa verdict (not a running pass)
 on an issue board that carries no `facts.tests` (the Tests tab is the presenter's then) — and whenever anything could not be applied (a fact missing, a text
-naming a work level, which is never written, a page left off the template, the live board's folder not in `.git/info/exclude`, a
+naming a work level, which is never written: reworded, its new wording in the summary for the presenter to read, or left out where a work level would remain, a page left off the template, the live board's folder not in `.git/info/exclude`, a
 `facts.tests` class with no name or naming a row not on the board, `facts.tests` on a tracking board); `no` otherwise (`landing`
 included).
 A failed run (exit 1, nothing changed) leaves the whole event to the presenter. `sized` on a folder with no board yet writes nothing
@@ -1002,7 +1034,8 @@ without a verdict summary once the `verdict` milestone exists (a board between r
 plan acceptance carries the Gap column alone); options without exactly one accepted (or
 chosen-partial) verdict; a declined, partial or deferred option without `why`; an amended or
 deviated part without `changes[]`, or a change without `what` and `why`; a dropped part
-without a reason; a deferred part without an issue; a `wip.current` address that names no cell; a `wip.questions` that is not an array of `{question,
+without a reason; a deferred part without an issue; a `sized` or a qa pass's `at` that is not a date or an ISO date-time, and a
+statement's `refNumber` not in its form (`{ref, label: "§n", from: headings | anchor}`, §2); a `wip.current` address that names no cell; a `wip.questions` that is not an array of `{question,
 rows, findings, state}` (a kebab-case slug, row ids, `null` or a path, one of the five states), or names a question twice, or
 whose state and findings disagree (`returned`, `verifying` or `complete` with no findings, `planning` or `researching`
 with findings); a `wip.event` whose name is not one of the events of §4 (`research-planning` and `verification-started`
@@ -1035,8 +1068,8 @@ all three, §1); a `unit.live` that is not an object, or carries a bad step, res
 date; a bad date, sha, state, kind, verdict, step or column value; a placeholder left from the
 template; an embedded copy that differs from `plan.json`; a panel without a legend; a dead
 `href="#"`; a code block longer than five lines anywhere in the data; a work level named in any
-text of `plan.json` or `board.json` (`GUIDANCE.md` §4: "level: 2", "L3", "a level-3 change",
-"(#61, level 3)", "work level", a verdict's defence that opens "Level 3:"; the forms are in
+text of `plan.json` or `board.json` (`GUIDANCE.md` §4: "level: 2", "Label level: 3", "L3", "a level-3 change", "a level-3 re-pass",
+"inside level 3", "(#61, level 3)", "work level", a verdict's defence that opens "Level 3:"; the forms are in
 `system/scripts/levelrefs.js`, and the browser pass applies them to every tab's rendered text);
 an `impact` that is neither `null` nor an object, a bad `basis`, `release.bump`, `kind`,
 `effect`, `need`, `change`, `tier` or `compat`, a `compat` that lowers an entry below what its effect, change or need

@@ -58,6 +58,7 @@ window.dashboardLive&&window.dashboardLive("plan",
       {
         "pass": 1,
         "verdict": "changes-requested",
+        "date": "2026-10-20",
         "findings": {
           "documentation": 10,
           "test": 8
@@ -67,6 +68,7 @@ window.dashboardLive&&window.dashboardLive("plan",
       {
         "pass": 2,
         "verdict": "changes-requested",
+        "date": "2026-10-20",
         "findings": {
           "documentation": 4,
           "test": 1
@@ -2073,6 +2075,7 @@ window.dashboardLive&&window.dashboardLive("plan",
         "when": "re-templating, 2026-10-22"
       }
     ]
-  }
+  },
+  "links": {}
 }
 );

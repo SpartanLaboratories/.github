@@ -108,6 +108,18 @@ const FEATURES = [
   { id: "tests-tab", name: "the Tests tab (Added, Amended, Relevant, Other; by test level, with results and the rows verified)", since: 22, types: ["plan-board"],
     notFor: { system: "a state page shows the code at a commit, not one change's tests (its Guarantees count the test levels)", supersystem: "a state page shows the code at a commit, not one change's tests (its Guarantees count the test levels)", "work-board": "one row per run: each run's tests are on its own board" },
     test: h => { const b = body(h), s = scripts(h); return need(/id="t-tests"/.test(b) && ["added", "amended", "relevant", "other"].every(k => new RegExp(`id="t-tests-${k}"`).test(b)) && /function renderTests\(/.test(s), "no Tests tab with its four sub-tabs (Added, Amended, Relevant, Other)"); } },
+  /* admin-team/dashboards-skill/23 */
+  { id: "timeline-phases", name: "the Timeline tile's bar on a landed board: the time per phase in neutral ink shades, each phase in its legend, a phase with no bound named", since: 23, types: ["plan-board"],
+    notFor: { system: "its tiles are hand-written counted facts: a state page shows no run's phases", supersystem: "no KPI tiles", "work-board": "one row per run and no Timeline tile: each run's phases are on its own board" },
+    test: h => { const s = scripts(h), c = css(h); return need(/function timelinePhases\(/.test(s) && /o\.timeline=key\(/.test(s) && /\.tp-1\{--tp:/.test(c) && /\.tp-4\{--tp:/.test(c), "the Timeline tile draws no bar of its phases (timelinePhases(), the tp shades)"); } },
+  { id: "ref-number", name: "a reference's section number before its excerpt: from its file's headings (refNumber), else its anchor's number marked \"?\"", since: 23, types: ["plan-board"],
+    notFor: { system: "no statements with plan references", supersystem: "no statements with plan references", "work-board": "no statements: one row per run" },
+    test: h => { const s = scripts(h); return need(/const refNumShown=/.test(s) && /refMarked\(/.test(s) && /\.key b\.srefk\{/.test(css(h)), "a reference with no excerpt still reads its whole anchor (\"§ 42-the-fix\"), with no section number from refNumber"); } },
+  { id: "level-phrases", name: "no work level in the page's data, its scope and re-pass phrases included (\"inside level 3\", \"a level-3 re-pass\", \"Label level: 3\")", since: 23, types: ALL,
+    test: h => { const { levelRefs } = require("./levelrefs.js"), hits = [];
+      const walk = v => typeof v === "string" ? levelRefs(v).forEach(x => hits.push(x)) : Array.isArray(v) ? v.forEach(walk) : v && typeof v === "object" ? Object.keys(v).filter(k => k !== "$comment").forEach(k => walk(v[k])) : null;
+      [...h.matchAll(/<script type="(application\/json|text\/plain)"[^>]*>([\s\S]*?)<\/script>/g)].forEach(m => { if (m[1] === "text/plain") walk(m[2]); else { try { walk(JSON.parse(m[2])); } catch (e) { /* the embed checks report a block that does not parse */ } } });
+      return need(!hits.length, `its data names a work level ${hits.slice(0, 3).map(x => JSON.stringify(x)).join(", ")}: reword it (levelrefs.js scrubLevels()), never write it`); } },
 ];
 /* The layout detectors, run in the browser pass (check-page.js's probe), named here so the report and the rules list them. */
 const LAYOUT = [

@@ -88,6 +88,11 @@ five-level testing hierarchy's L1 gating to L5 UAT, as a ramp of neutrals from t
 the levels are an order, not systems or outcomes, so they take neither a system slot nor a status colour, and the class's latest result
 keeps the status scale (passed green, failed red, each with its glyph and word).
 
+**Phases: a neutral ramp.** A landed board's Timeline tile (`plan/RULES.md` §2, "The KPI tiles") draws the time per phase of its run in
+neutral ink shades, faintest for the first phase to strongest for the last (an issue board's plan, build, qa and landing; a tracking
+board's plan, filing and units), each named with its time in the tile's legend: phases are an order, not systems or outcomes, so they
+take neither a system slot nor a status colour.
+
 **Work in progress and the next one up: two accent marks.** The accent colour marks two things
 and nothing else, each with its own look and its own legend entry (the charging arrow, below, is
 the in-progress mark of a connector):
@@ -159,7 +164,8 @@ segmented bar of what its figure counts (by group, verdict, state or qa pass, `p
 colour, a neutral; dashed for what is pending), and **each tile carries the legend of its own bar, inside the tile**, naming exactly the
 segments that bar drew: no legend row is shared under the tiles, so every tile keeps its full share of the row. The
 work board's Runs tile (every run by its state) and its Landed tile (landed, merged, complete, and the closed ones it does not count) carry one
-too, each with its legend inside the tile. A tile that counts one state (the work board's Active, Waiting, Up next, Not started) has
+too, each with its legend inside the tile. A landed board's Timeline tile carries the time per phase (§1, "Phases"), a phase with no
+bound recorded left out of the bar and named in its sub-line. A tile that counts one state (the work board's Active, Waiting, Up next, Not started) has
 nothing to segment and carries none, and so do the system pages' hand-written tiles: they are counted facts written by hand (files,
 types, threads, tests), not states, so there is nothing a bar would divide.
 
@@ -216,7 +222,11 @@ to 4, the `level: N` label), and nothing else. A dashboard never shows an issue'
 node, a legend, a lede or any text the presenter writes. Say what the work is instead: one
 system, a bug fix, docs only, a tracking issue. The work levels stay in force everywhere else;
 a plan keeps its level as data where a script needs it (`plan.json` `level`, `unit.level`,
-`wip.proposedLevel`), and no page renders those fields, the Source tab included. The test
+`wip.proposedLevel`), and no page renders those fields, the Source tab included. A pipeline fact that names one ("inside level 3",
+"a level-3 re-pass", "Label level: 3") is reworded before it is written — the scope phrase becomes the unit's or the issue's scope, the
+level is elided before its noun, the label dropped — and left out only where a work level would remain (`system/scripts/levelrefs.js`
+`scrubLevels()`, which `apply-event.js` and `apply-state.js` run); a quotation (a plan excerpt) elides it with "…" instead, as a quote
+is never reworded. The test
 levels of the five-level testing hierarchy and the C4 model's levels are not work levels: the rule
 does not touch them, and they keep their level labels — "L1 gating", "L2 component", "L4a
 deterministic", "L5 UAT", "Level 2 — component", "Level 1 · System Context". `plan/scripts/check.js`
@@ -357,7 +367,7 @@ indicator present or absent by type, one-line ledes, reduced motion wherever any
 tablist's keys, the state block, the as-is header, the legends of Guarantees and Context, the work-board link, the links from the data,
 the Markdown copies, the progress notes, a tracking board's steps, the KPI bars, the neutral bug badge, the chain, core subsystems, the tiles'
 legends inside each tile, no "board" tag, the title's `#n`, "since" said once by the step panel, the larger charging arrow, the landing
-step, the Tests tab — and
+step, the Tests tab, the Timeline tile's phases, a reference's section number before its excerpt, no work level in the page's data — and
 the browser pass the layout ones (the header's halves, the wide page, the legends shown). A missing feature fails, as `FEATURE MISSING:
 <feature> (template since dashboards-skill/N)`, **through a declared divergence too**: a divergence adds or argues a removal; it never
 excuses a page that lags its template. A landed or cancelled issue board is the exception: it is kept as it landed and never

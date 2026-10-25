@@ -277,6 +277,13 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .key i.segk{width:16px;height:6px;border:0;border-radius:2px;background:var(--sc,var(--ink-2))}
 .key i.segk.good{--sc:var(--good)}.key i.segk.warning{--sc:var(--warning)}.key i.segk.critical{--sc:var(--critical)}.key i.segk.serious{--sc:var(--serious)}.key i.segk.accent{--sc:var(--accent)}.key i.segk.ink{--sc:var(--ink-2)}.key i.segk.neutral{--sc:var(--line)}
 .key i.segk.left{background:var(--muted);opacity:.5}
+/* The Timeline tile of a landed board (plan/RULES.md §2, "The KPI tiles"): one segment per phase, sized by its time, in a neutral ink
+   ramp from the first phase (faintest) to the last (strongest), so it spends no system colour and no status colour (GUIDANCE.md §1); a
+   phase of no length keeps a sliver, so every phase its legend names is drawn. A tracking board's three phases spread over the same ramp. */
+.tp-1{--tp:color-mix(in srgb,var(--ink) 28%,var(--surface))}.tp-2{--tp:color-mix(in srgb,var(--ink) 52%,var(--surface))}.tp-m{--tp:color-mix(in srgb,var(--ink) 64%,var(--surface))}.tp-3{--tp:color-mix(in srgb,var(--ink) 76%,var(--surface))}.tp-4{--tp:var(--ink)}
+.kpi .seg-bar i.tp{background:var(--tp);min-width:4px}.key i.segk.tp{--sc:var(--tp)}
+/* a statement's reference whose section number is read from its link's anchor alone (its file not there to read): "(§42?)" */
+.key b.srefk{font:600 10.5px var(--mono);color:var(--link)}
 .key i.segk.dash{background:none;border:1.5px dashed var(--sc,var(--muted));height:7px}
 .key i.segk.slot{background:none;border:1px solid var(--line);height:7px}
 
@@ -942,11 +949,24 @@ const stmtOk=s=>!!s&&typeof s==="object"&&typeof s.text==="string"&&!!s.text.tri
 const stmtsOf=x=>stmtsRaw(x).filter(stmtOk);
 function statementOutcome(r){ if(!r||r.unit) return null; const ss=stmtsRaw(r.asBuilt).filter(s=>s&&typeof s==="object").map(s=>s.state);
   if(!ss.length||ss.some(s=>!STMT_STATES.includes(s))) return null; return ss.includes("deviated")?"deviated":ss.includes("amended")?"amended":"as-planned"; }
+/* The reference's label: its own label, else its excerpt's heading number (or the heading), else — until embed.js has copied an excerpt
+   — the section number its anchor names (dashboards-skill/23): embed.js reads it from the referenced file's headings (refNumber, from
+   "headings": GitHub's anchor drops the dots, so "42-…" is §4.2 or §42 and the headings decide), and where the file was not there the
+   anchor's leading number stands, marked "?" (from "anchor"); the page, which reads no file, marks it the same way. lib.js refLabel(). */
+const refNumShown=s=>{ const ref=s&&typeof s.ref==="string"?s.ref.trim():"", n=s&&s.refNumber;
+  if(n&&typeof n==="object"&&n.ref===ref&&typeof n.label==="string"&&/^§/.test(n.label)) return {label:n.label,from:n.from==="headings"?"headings":"anchor"};
+  const m=/^(\d+)(?=-|$)/.exec(ref.split("#")[1]||""); return m?{label:"§"+m[1],from:"anchor"}:null; };
+const refOwn=s=>!!(s&&((typeof s.label==="string"&&s.label.trim())||(s.excerpt&&s.excerpt.heading)));
+const refMarked=s=>!!s&&typeof s.ref==="string"&&!refOwn(s)&&(refNumShown(s)||{}).from==="anchor";
 function stmtLabel(s){ if(s&&typeof s.label==="string"&&s.label.trim()) return s.label.trim();
   const h=s&&s.excerpt&&s.excerpt.heading, m=h&&/^((?:\d+\.)*\d+|[A-Z][A-Za-z0-9]?-[A-Za-z0-9]+)\.?(?=\s|$)/.exec(h); if(m) return "§"+m[1];
   if(h) return "§ "+(h.length>32?h.slice(0,31).replace(/\s+\S*$/,"")+"…":h).replace(/`/g,"");
+  const n=refNumShown(s); if(n) return n.label+(n.from==="anchor"?"?":"");
   const a=String((s&&s.ref)||"").split("#")[1]; return a?"§ "+a:"§"; }
-const stmtRef=(s,row,col,i)=>s&&typeof s.ref==="string"&&relLink(s.ref)?` <a class="sref" href="${esc(s.ref)}" data-row="${esc(row)}" data-col="${col}" data-i="${i}" title="${esc(s.excerpt&&s.excerpt.heading?s.excerpt.heading:s.ref)}: click for the section's excerpt">(${esc(stmtLabel(s))})</a>`:"";
+const refMarkNote=s=>{ const n=refNumShown(s)||{label:"§"}, d=n.label.slice(1); return `the section number is read from the link's anchor alone: its file was not there to read, and the anchor drops a heading number's dots, so ${d} may be ${d.length>1?d.split("").join("."):d}`; };
+const stmtRef=(s,row,col,i)=>s&&typeof s.ref==="string"&&relLink(s.ref)?` <a class="sref" href="${esc(s.ref)}" data-row="${esc(row)}" data-col="${col}" data-i="${i}" title="${esc(s.excerpt&&s.excerpt.heading?s.excerpt.heading:s.ref)}${refMarked(s)?` (${esc(refMarkNote(s))})`:""}: click for the section's excerpt">(${esc(stmtLabel(s))})</a>`:"";
+/* the legend entry of a marked reference, where the statements drawn carry one */
+const refKey=list=>list.some(refMarked)?`<span><b class="srefk">(§n?)</b> a section number read from its link alone: the plan file was not there to tell §4.2 from §42</span>`:"";
 /* a cell's, a card's or the inspector's statements: the verdict's, or the as built ones with their marks; "" when the row has none */
 function stmtsHtml(r,col){ const x=col==="verdict"?r.verdict:r.asBuilt, all=stmtsRaw(x), num=((r.verdict||{}).list==="numbered");
   if(!all.some(stmtOk)) return "";
@@ -1413,6 +1433,33 @@ function renderWip(){
 }
 
 /* ---------- KPIs ---------- */
+/* The Timeline tile of a landed board (plan/RULES.md §2, "The KPI tiles"; dashboards-skill/23): the time per phase, a bar of neutral ink
+   shades, faintest to strongest, each phase with its legend entry inside the tile. An issue board's phases: plan (sized → plan accepted,
+   the verdict milestone), build (plan accepted → the first qa pass), qa (the first qa pass → the last), landing (the last qa pass → the
+   merge); a tracking board's own: plan (sized → the architecture signed off, the considered milestone), filing (signed off → the plan's
+   merge, the verdict milestone), units (the plan's merge → the last unit's landing, the board's merge). sized is PLAN.sized, else on an
+   issue board the earliest trail entry that says it was sized; a qa pass's time its at, else its date; the merge asBuilt.date, else the
+   built milestone. A phase with a bound not recorded, or out of order, is left out and named in the sub-line. lib.js timelinePhases(). */
+const okStamp=v=>typeof v==="string"&&/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?Z)?$/.test(v)&&!isNaN(Date.parse(v));
+const TLP_PH={issue:[["plan","sized","accepted"],["build","accepted","qaFirst"],["qa","qaFirst","qaLast"],["landing","qaLast","merged"]],tracking:[["plan","sized","signedOff"],["filing","signedOff","planMerged"],["units","planMerged","merged"]]};
+const TLP_SH={issue:["1","2","3","4"],tracking:["1","m","4"]};
+const TLP_BW={sized:"sizing",accepted:"plan acceptance",qaFirst:"qa pass",qaLast:"qa pass",merged:"merge",signedOff:"architecture sign-off",planMerged:"plan merge"};
+const TLP_DESC={plan:"sized to the plan accepted",build:"the plan accepted to the first qa pass",qa:"the first qa pass to the last",landing:"the last qa pass to the merge",filing:"the architecture signed off to the plan's merge: the units filed, their boards laid",units:"the plan's merge to the last unit's landing"};
+function timelinePhases(P){ const kind=P&&P.kind==="tracking"?"tracking":"issue", out={kind,phases:[],left:[]};
+  const ms=c=>{ const m=(Array.isArray(P.milestones)?P.milestones:[]).find(x=>x&&x.column===c&&okStamp(x.date)); return m?m.date:null; };
+  const trailSized=kind==="tracking"?null:(Array.isArray(P.trail)?P.trail:[]).filter(t=>t&&okStamp(t.date)&&/\bsized\b/i.test(String(t.label||""))).map(t=>t.date).sort()[0]||null;
+  const qa=(P.wip&&Array.isArray(P.wip.qa)?P.wip.qa:[]).map(q=>q&&(okStamp(q.at)?{pass:q.pass,t:q.at}:okStamp(q.date)?{pass:q.pass,t:q.date}:null)).filter(Boolean).sort((a,b)=>(a.pass||0)-(b.pass||0));
+  const B={sized:okStamp(P.sized)?P.sized:trailSized,accepted:ms("verdict"),qaFirst:qa.length?qa[0].t:null,qaLast:qa.length?qa[qa.length-1].t:null,merged:P.asBuilt&&okStamp(P.asBuilt.date)?P.asBuilt.date:ms("built"),signedOff:ms("considered"),planMerged:ms("verdict")};
+  const day=s=>Date.UTC(+s.slice(0,4),+s.slice(5,7)-1,+s.slice(8,10));
+  TLP_PH[kind].forEach(([key,a,b],i)=>{ const from=B[a], to=B[b];
+    if(!from||!to){ out.left.push({key,why:`no ${[...new Set([a,b].filter(x=>!B[x]).map(x=>TLP_BW[x]))].join(" or ")} recorded`}); return; }
+    const days=Math.round((day(to)-day(from))/864e5), timed=from.length>10&&to.length>10, weight=timed?(Date.parse(to)-Date.parse(from))/36e5:days*24;
+    if(days<0||weight<0){ out.left.push({key,why:"its bounds out of order"}); return; }
+    out.phases.push({key,shade:TLP_SH[kind][i],from,to,days,weight,timed}); });
+  return out; }
+const tlDuration=p=>p.timed&&p.weight<24?(p.weight<1?"under an hour":`${Math.round(p.weight)} h`):p.days===0?"same day":`${p.days} day${p.days===1?"":"s"}`;
+function timelineLeftOut(T){ const by=new Map(); (T&&T.left||[]).forEach(x=>{ if(!by.has(x.why)) by.set(x.why,[]); by.get(x.why).push(x.key); });
+  return [...by].map(([why,ks])=>`${ks.join(", ")} left out: ${why}`).join(" · "); }
 function renderKpis(){
   const states=Object.keys(STATES).map(k=>[k,count(ROWS,r=>!leftForLater(r)&&stateOf(r)===k)]), left=count(ROWS,leftForLater);
   /* The As built tile (plan/RULES.md §2): rows built of the rows this issue builds. Built is as-planned, amended or deviated (a
@@ -1440,14 +1487,18 @@ function renderKpis(){
   OPTS.forEach(x=>{ const {def,settled}=optDef(x.row,x.opt), k=settled?"settled-"+(settled.verdict||"accepted"):x.opt.verdict, p=optParts.find(q=>q.k===k)||optParts.find(q=>q.k==="declined"); p.n++; p.cls=def.cls+(def.dash?" dash":""); });
   const qa=WIP.qa||[], qmax=Math.max(qa.length,Number.isInteger(WIP.qaMax)&&WIP.qaMax>0?WIP.qaMax:3);
   const qaParts=[...qa.map(p=>({n:1,cls:QA_RES[qaResult(p)].cls,t:`pass ${p.pass}: ${QA_RES[qaResult(p)].label}`})),...Array.from({length:qmax-qa.length},()=>({n:1,cls:"slot",t:"a pass not used"}))];
-  KPI_DRAWN={rows:gparts,opts:optParts.filter(p=>p.n),verdicts:[vbuild,leave,vopen],states:states.filter(([,n])=>n).map(([k])=>k),left,qa:LANDED?[]:[...new Set(qa.map(qaResult))],slots:!LANDED&&qmax>qa.length};
+  /* the Timeline tile (a landed board): one segment per phase drawn, sized by its time; a phase of no length keeps a sliver, and phases
+     all of no length share the bar alike */
+  const TP=LANDED?timelinePhases(PLAN):null, tpTot=TP?TP.phases.reduce((n,p)=>n+p.weight,0):0;
+  const tpParts=TP?TP.phases.map(p=>({n:tpTot>0?Math.max(p.weight,tpTot*0.04):1,cls:`tp tp-${p.shade}`,t:`${p.key}: ${tlDuration(p)} (${TLP_DESC[p.key]})`})):[];
+  KPI_DRAWN={rows:gparts,opts:optParts.filter(p=>p.n),verdicts:[vbuild,leave,vopen],states:states.filter(([,n])=>n).map(([k])=>k),left,qa:LANDED?[]:[...new Set(qa.map(qaResult))],slots:!LANDED&&qmax>qa.length,timeline:TP?TP.phases:[]};
   const K=kpiKeys();
   $("#kpis").innerHTML=[
     `<div class="kpi"><div class="l">${TRACKING?"Units":"Rows"}</div><div class="v">${ROWS.length}</div><div class="s">${groups.length?`${groups.length} group${groups.length>1?"s":""}: ${groups.map(esc).join(", ")}`:"no rows yet"}</div>${ROWS.length?segBar(gparts,`${TRACKING?"Units":"Rows"} by group: ${gparts.map(p=>p.t).join("; ")}`)+K.rows:""}</div>`,
     `<div class="kpi"><div class="l">Options weighed</div><div class="v">${OPTS.length}</div><div class="s">${["accepted","partial","deferred","declined"].filter(by).map(v=>`${by(v)} ${v}`).join(" · ")||"none yet"}</div>${OPTS.length?segBar(optParts,`Options weighed: ${optParts.filter(p=>p.n).map(p=>`${p.n} ${p.k.replace("settled-","deferred, settled ")}`).join(", ")}`)+K.opts:""}</div>`,
     `<div class="kpi"><div class="l">Verdicts</div>${vbuild+leave?`<div class="v">${vbuild} <small>build</small></div><div class="s">${leave} left for later${vopen?` · ${vopen} not yet written`:""}</div>`:`<div class="v">0${ROWS.length?` <small>of ${ROWS.length}</small>`:""}</div><div class="s">none written yet</div>`}${ROWS.length?segBar([{n:vbuild,cls:"ink",t:`${vbuild} build`},{n:leave,cls:"left",t:`${leave} left for later`},{n:vopen,cls:"dash",t:`${vopen} not yet written`}],`Verdicts: ${vbuild} build, ${leave} left for later, ${vopen} not yet written`)+K.verdicts:""}</div>`,
     `<div class="kpi"><div class="l">As built</div><div class="v">${built} <small>/ ${counted.length} ${TRACKING?"units landed":"rows built"}</small></div><div class="s">${[...states.filter(([,n])=>n).map(([k,n])=>`${n} ${STATES[k].label}`),left?`${left} left for later`:""].filter(Boolean).join(" · ")||"—"}${changes?` · ${changes} changes`:""}</div>${ROWS.length?bar+K.built:""}</div>`,
-    `<div class="kpi"><div class="l">${LANDED?"Timeline":"QA passes"}</div><div class="v">${LANDED?(days==null?"—":days===0?"same day":`${days} day${days===1?"":"s"}`):`${qa.length}${WIP.qaMax?` <small>of at most ${esc(WIP.qaMax)}</small>`:""}`}</div><div class="s">${LANDED?`${b.date?`baseline ${when(b.date)}`:""}${a&&a.date?` → built ${when(a.date)}`:""}`:(qa.length?esc(qa.map(p=>`pass ${p.pass}: ${(QA[p.verdict]||QA.running).label}`).join(" · ")):"no qa pass yet")}</div>${LANDED?"":segBar(qaParts,`QA passes: ${qa.length} of ${qmax} slots used`)+K.qa}</div>`].join("");
+    `<div class="kpi"><div class="l">${LANDED?"Timeline":"QA passes"}</div><div class="v">${LANDED?(days==null?"—":days===0?"same day":`${days} day${days===1?"":"s"}`):`${qa.length}${WIP.qaMax?` <small>of at most ${esc(WIP.qaMax)}</small>`:""}`}</div><div class="s">${LANDED?[`${b.date?`baseline ${when(b.date)}`:""}${a&&a.date?` → built ${when(a.date)}`:""}`,esc(timelineLeftOut(TP))].filter(Boolean).join(" · "):(qa.length?esc(qa.map(p=>`pass ${p.pass}: ${(QA[p.verdict]||QA.running).label}`).join(" · ")):"no qa pass yet")}</div>${LANDED?(tpParts.length?segBar(tpParts,`Timeline: ${TP.phases.map(p=>`${p.key} ${tlDuration(p)}`).join(", ")}${TP.left.length?`; ${timelineLeftOut(TP)}`:""}`)+K.timeline:""):segBar(qaParts,`QA passes: ${qa.length} of ${qmax} slots used`)+K.qa}</div>`].join("");
 }
 /* A qa pass's result on its slot: running (accent), passed (green), changes requested with minor findings only (yellow: every
    finding minor by severity, or fixed on the spot), changes requested with other findings (red). */
@@ -1457,7 +1508,7 @@ function qaResult(p){ if(!p||p.verdict==="running"||!QA[p.verdict]) return "runn
   return (sv.minor>0&&!other)||p.route==="on-the-spot"?"minor":"other"; }
 let KPI_DRAWN=null;
 /* Each tile's legend, inside the tile: exactly the segments its own bar drew (GUIDANCE.md §2; plan/RULES.md §2, "The KPI tiles"). */
-function kpiKeys(){ const D=KPI_DRAWN, o={rows:"",opts:"",verdicts:"",built:"",qa:""}; if(!D) return o;
+function kpiKeys(){ const D=KPI_DRAWN, o={rows:"",opts:"",verdicts:"",built:"",qa:"",timeline:""}; if(!D) return o;
   const k=(cls,word,st)=>`<span><i class="segk ${cls}"${st?` style="background:${st}"`:""}></i>${word}</span>`, key=a=>a.length?`<div class="key">${a.join("")}</div>`:"";
   if(D.rows.length){ const seen=new Map(); D.rows.forEach(p=>{ if(!seen.has(p.c)) seen.set(p.c,new Set()); p.names.forEach(x=>seen.get(p.c).add(x)); });
     o.rows=key([...seen].map(([c,ns])=>k("",esc([...ns].join(", ")),c))); }
@@ -1465,6 +1516,8 @@ function kpiKeys(){ const D=KPI_DRAWN, o={rows:"",opts:"",verdicts:"",built:"",q
   o.verdicts=key([D.verdicts[0]?k("ink","build"):"",D.verdicts[1]?k("left","left for later"):"",D.verdicts[2]?k("dash","not yet written (dashed: pending)"):""].filter(Boolean));
   o.built=key([...D.states.map(s=>k(STATES[s].cls+(STATES[s].dash?" dash":""),`${esc(STATES[s].g)} ${esc(STATES[s].label)}`)),D.left?k("left","left for later"):""].filter(Boolean));
   o.qa=key([...D.qa.map(x=>k(QA_RES[x].cls,`${esc(QA_RES[x].g)} ${esc(QA_RES[x].label)}`)),D.slots?k("slot","a pass not used"):""].filter(Boolean));
+  /* the Timeline tile: each phase drawn, its shade and its time (its bounds in the title) */
+  o.timeline=key((D.timeline||[]).map(p=>`<span title="${esc(TLP_DESC[p.key])}"><i class="segk tp tp-${p.shade}"></i>${esc(p.key)} · ${esc(tlDuration(p))}</span>`));
   return o; }
 
 /* ---------- Timeline board ---------- */
@@ -1521,7 +1574,8 @@ function renderBoard(){
     +markKeys(CURRENT)+runKeys(ROWS)
     +(NEXT_ROW?KEY_NEXT(NEXT_ROW):"")
     +Q_ORDER.filter(x=>[...RROWS.values()].includes(x)).map(KEY_RS).join("")
-    +(CHARGING()&&ROWS.some(r=>!verdictOf(r))?KEY_CHG():"");
+    +(CHARGING()&&ROWS.some(r=>!verdictOf(r))?KEY_CHG():"")
+    +refKey(ROWS.flatMap(r=>[...stmtsOf(r.verdict),...stmtsOf(r.asBuilt)]));
 }
 /* The kind chips the Timeline draws, in its legend: the gap's kind (column 1) and the written verdict's (column 3), each a neutral,
    solid chip (GUIDANCE.md §1: a kind is a fact, not an outcome, and dashed means only planned or pending), listed only when drawn. */
@@ -1557,7 +1611,7 @@ function bindRefs(root){ (root||document).querySelectorAll("a.sref").forEach(a=>
 function inspectRef(rowId,col,i){ const r=ROWS.find(x=>x.id===rowId); if(!r) return; const s=stmtsRaw(col==="verdict"?r.verdict:r.asBuilt)[i]; if(!stmtOk(s)) return;
   INSPECTED={k:"ref",row:rowId,col,i};
   const e=s.excerpt&&typeof s.excerpt==="object"&&s.excerpt.heading?s.excerpt:null, file=String(s.ref||"").split("#")[0], what=/(^|\/)plan(-[\w-]+)?\.md$/.test(file)?"plan":/(^|\/)architecture\.md$/.test(file)?"architecture":/(^|\/)final-implementation\.md$/.test(file)?"as-built record":"document";
-  inspect(`<div class="kicker">${col==="verdict"?"3 · VERDICT":"4 · AS BUILT"} · STATEMENT ${i+1} · ${esc(stmtLabel(s))}</div><div class="name">${esc(r.name)}</div><div class="vis">${col==="built"&&STATES[s.state]?pill(STATES[s.state]):""}${whereOf(r)}</div><p class="lead">${rich(s.text)}</p><dl><dt>The ${what} section it rests on</dt><dd>${e?`<blockquote class="excerpt"><b>${rich(e.heading)}</b>${e.paragraph?`<p>${rich(e.paragraph)}</p>`:"<p>No paragraph under the heading.</p>"}</blockquote>`:`<p>Not copied yet: embed.js copies the section's heading and first paragraph.</p>`}</dd><dt>Open the section</dt><dd>${refHtml(s.ref,`${file} › ${e?e.heading.replace(/`/g,""):String(s.ref).split("#")[1]||""}`)}</dd></dl>`); }
+  inspect(`<div class="kicker">${col==="verdict"?"3 · VERDICT":"4 · AS BUILT"} · STATEMENT ${i+1} · ${esc(stmtLabel(s))}</div><div class="name">${esc(r.name)}</div><div class="vis">${col==="built"&&STATES[s.state]?pill(STATES[s.state]):""}${whereOf(r)}</div><p class="lead">${rich(s.text)}</p><dl><dt>The ${what} section it rests on</dt><dd>${e?`<blockquote class="excerpt"><b>${rich(e.heading)}</b>${e.paragraph?`<p>${rich(e.paragraph)}</p>`:"<p>No paragraph under the heading.</p>"}</blockquote>`:`<p>Not copied yet: embed.js copies the section's heading and first paragraph.${refMarked(s)?` In ${esc(stmtLabel(s))}, ${esc(refMarkNote(s))}.`:""}</p>`}</dd><dt>Open the section</dt><dd>${refHtml(s.ref,`${file} › ${e?e.heading.replace(/`/g,""):String(s.ref).split("#")[1]||""}`)}</dd></dl>`); }
 const whereOf=r=>`<span class="sw" data-sys="${esc(r.system||"")}"></span>${esc(sysName(r.system))}${r.where?` · <code>${esc(r.where)}</code>`:""}`;
 const list=(items,f)=>items&&items.length?`<ul>${items.map(x=>`<li>${f?f(x):rich(x)}</li>`).join("")}</ul>`:"";
 function bindInspector(){ document.querySelectorAll("#insp-body .opt").forEach(b=>b.addEventListener("click",()=>select(b.dataset.row,"considered",b.dataset.opt))); bindRefs($("#insp-body")); paint($("#insp-body")); }
@@ -1606,7 +1660,7 @@ function renderBuilt(){
   $("#built-impact").innerHTML=IC.html; paint($("#built-impact"));
   document.querySelectorAll("#built-impact a.goimp").forEach(a=>a.addEventListener("click",e=>{ e.preventDefault(); goImpact(a.dataset.imp); }));
   const usedSt=[...new Set([...rows.map(stateOf),...rows.flatMap(r=>stmtsOf(r.asBuilt).map(s=>s.state)).filter(k=>STMT_STATES.includes(k))])];
-  $("#built-key").innerHTML=sysKey([...new Set([...ROWS.map(r=>r.system),...IC.slugs])])+(IC.muted?`<span><i class="sbar" style="--c:var(--muted)"></i>an impact change of no single system: the impact as a whole, or a party outside this repository's systems</span>`:"")+(IC.recon?`<span>${pill(RECON[IC.recon.state],"",reconWord(IC.recon))} ${esc(RECON[IC.recon.state].desc)}</span>`:"")+(IC.unrecorded?`<span><i class="pln"></i>dashed line: a landed unit whose effect on the impact is not recorded yet</span>`:"")+Object.keys(STATES).filter(k=>usedSt.includes(k)).map(k=>`<span>${badge(k)} ${esc(STATES[k].desc)}</span>`).join("")+(usedSt.some(k=>STATES[k].dash)||!ROWS.length?`<span><i class="pln"></i>dashed card: nothing built</span>`:"")+markKeys(CURRENT.filter(a=>a.endsWith(".built")||a==="built"))+runKeys(rows)+(NEXT_ROW&&(builtFilter==="all"||stateOf(NEXT_ROW)===builtFilter)?KEY_NEXT(NEXT_ROW):"");
+  $("#built-key").innerHTML=sysKey([...new Set([...ROWS.map(r=>r.system),...IC.slugs])])+(IC.muted?`<span><i class="sbar" style="--c:var(--muted)"></i>an impact change of no single system: the impact as a whole, or a party outside this repository's systems</span>`:"")+(IC.recon?`<span>${pill(RECON[IC.recon.state],"",reconWord(IC.recon))} ${esc(RECON[IC.recon.state].desc)}</span>`:"")+(IC.unrecorded?`<span><i class="pln"></i>dashed line: a landed unit whose effect on the impact is not recorded yet</span>`:"")+Object.keys(STATES).filter(k=>usedSt.includes(k)).map(k=>`<span>${badge(k)} ${esc(STATES[k].desc)}</span>`).join("")+(usedSt.some(k=>STATES[k].dash)||!ROWS.length?`<span><i class="pln"></i>dashed card: nothing built</span>`:"")+markKeys(CURRENT.filter(a=>a.endsWith(".built")||a==="built"))+runKeys(rows)+(NEXT_ROW&&(builtFilter==="all"||stateOf(NEXT_ROW)===builtFilter)?KEY_NEXT(NEXT_ROW):"")+refKey(rows.flatMap(r=>stmtsOf(r.asBuilt)));
 }
 
 /* ---------- Tests (plan/RULES.md §2, "The Tests tab") ----------

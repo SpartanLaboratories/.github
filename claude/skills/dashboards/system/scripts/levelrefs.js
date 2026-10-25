@@ -5,25 +5,39 @@
 // hierarchy alone ("Level 2 — the class and the claim", "tests at levels 1 to 4c", "the Level-4c suite"), which a dashboard
 // shows freely with its level label ("L1 gating", "L2 component", "L4a deterministic", "L5 UAT"), and the C4 model's levels
 // ("Level 1 · System Context"): the rule covers the /resolve-issue pipeline's work levels only. A test level is never followed by
-// a word naming work (change, fix, issue, run, plan …) and never written "level: n"; "L1".."L4" count as a work level only when no
-// test level's name follows ("L3" alone, never "L1 gating"), and "Level 3" alone never counts.
+// a word naming work (change, fix, issue, run, plan, re-pass …) and never written "level: n"; "L1".."L4" count as a work level only
+// when no test level's name follows ("L3" alone, never "L1 gating"), and "Level 3" alone never counts, nor does "Level 4a tests".
+// A scope phrase names a work level too ("inside level 3", "within level 2", "outside level 3": the bounds of a sizing), unless a
+// test level's name or "test" follows it ("inside level 3 integration tests").
 // Used by plan/scripts/check.js (every string of plan.json and board.json) and by check-page.js (the rendered text of every tab).
+// scrubLevels() rewords a pipeline fact that names a work level so that it names none (admin-team/dashboards-skill/23): the scope
+// phrase becomes the unit's or the issue's scope, the level before a noun is elided ("a level-3 re-pass" → "a re-pass"), the label
+// ("Label level: 3") is dropped with its punctuation; apply-event.js and apply-state.js write the reworded text, never the level.
+// A quotation (a plan excerpt, lib.js sectionOf()) keeps its "…" elision instead: a quote is never reworded.
 "use strict";
 /* The test levels' names, matched in any case (a table head may set them in capitals: "L1 GATING") while the "L" itself stays
    case-sensitive: each letter becomes a class of both its cases. */
 const anyCase = w => w.replace(/[a-z]/gi, c => `[${c.toLowerCase()}${c.toUpperCase()}]`);
 const TEST_LEVEL_NAMES = ["gating", "component", "integration", "deterministic", "e2e", "non-?functional", "uat"].map(n => n.includes("?") ? n.split("-?").map(anyCase).join("-?") : anyCase(n)).join("|");
+/* what may follow a test level: its name (after up to two qualifying words, "L1 per-type gating"), or "test(s)" itself */
+const NOT_TEST = `(?!\\s*(?:[·:—–-]\\s*)?(?:[\\w-]+\\s+){0,2}(?:${TEST_LEVEL_NAMES})\\b)`;
+const NOT_TEST_OR_TESTS = `(?!\\s*(?:[·:—–-]\\s*)?(?:[\\w-]+\\s+){0,2}(?:${TEST_LEVEL_NAMES}|${anyCase("tests")}|${anyCase("test")})\\b)`;
+/* the nouns that make "level-3 <noun>" a work level: work, its run and its sizing, never a test's ("pass", "unit" and "review" stay out:
+   "the Level 3 pass", "Level 2 unit tests" are test levels) */
+const WORK_NOUNS = "change|changes|fix|fixes|feature|features|issue|issues|run|runs|work|plan|plans|planner|planners|planning|bump|label|labels|sub-issue|sub-issues|tracking|initiative|roadmap|re-pass|re-passes|repass|repasses|scope|sizing|pipeline|budget|qa";
+const SCOPE_WORDS = "inside|within|outside|beyond";
 const LEVEL_PATTERNS = [
-  ["\\blevel:\\s*[1-4]\\b", "i"],                                                         // the label: "level: 2"
+  ["\\blevel:\\s*[1-4]\\b", "i"],                                                         // the label: "level: 2", "Label level: 3"
   // the short form "L3", unless a test level's name follows ("L1 gating", "L3 · integration"); "L4c" never matches
   // (up to two qualifying words may come between: "L1 per-type gating", "L2 value-type component")
-  [`\\bL[1-4]\\b(?!\\s*(?:[·:—–-]\\s*)?(?:[\\w-]+\\s+){0,2}(?:${TEST_LEVEL_NAMES})\\b)`, ""],
+  [`\\bL[1-4]\\b${NOT_TEST}`, ""],
   ["\\b(?:work|issue|tracking)[- ]levels?\\b", "i"],                                       // "work level", "work-level labels"
-  ["\\blevel[- ][1-4]\\b[- ](?:change|changes|fix|fixes|feature|features|issue|issues|run|runs|work|plan|plans|planner|planners|planning|bump|label|labels|sub-issue|sub-issues|tracking|initiative|roadmap)\\b", "i"],
+  [`\\blevel[- ][1-4]\\b[- ](?:${WORK_NOUNS})\\b`, "i"],                                    // "a level-3 change", "level-3 re-pass"
   ["\\bre-?level(?:led|ed|ing|s)?\\b", "i"],                                               // "re-level", "relevelled"
   ["\\b(?:escalat\\w*|re-?sized?|sized|labelled|labeled) (?:to|as|at) level [1-4]\\b", "i"],  // "escalated to level 3"
   ["\\bat (?:its|their|his|her) own level\\b", "i"],                                       // "planned at its own level"
   ["[(,;]\\s*level [1-4]\\s*[),;:]", "i"],                                                // "(#61, level 3)", "#55, level 2: a bug fix"
+  [`\\b(?:${SCOPE_WORDS})\\s+(?:the\\s+)?level[- ][1-4]\\b${NOT_TEST_OR_TESTS}`, "i"],     // "inside level 3", "within the level-2 bounds"
 ];
 const REGEXES = LEVEL_PATTERNS.map(([s, f]) => new RegExp(s, f + "g"));
 /* Every work-level reference in a text, as the matched strings. */
@@ -41,4 +55,43 @@ function levelRefsIn(v, at, found) {
   else if (v && typeof v === "object") Object.keys(v).forEach(k => { if (k !== "$comment") levelRefsIn(v[k], at ? `${at}.${k}` : k, found); });
   return found;
 }
-module.exports = { LEVEL_PATTERNS, levelRefs, levelRefsIn };
+
+/* A pipeline fact reworded so that it names no work level (GUIDANCE.md §4; plan/RULES.md §4, "The fast path"): the scope phrase
+   ("inside level 3") becomes "inside the unit's scope" (opts.scope: "unit" on a sub-issue's board, else "issue"), the level before a
+   noun is elided ("a level-3 re-pass" → "a re-pass", the article mended: "a level-3 issue" → "an issue"), the label ("Label level: 3",
+   "(level: 2)") is dropped with the punctuation it leaves, "escalated to level 4" reads "escalated", "re-levelled" "re-sized", "the work
+   level" "the sizing", "at its own level" "on its own", "(#61, level 3)" "(#61)", an "L3" before a noun is elided. Test-level phrases are
+   left as they are. Returns the reworded text, or null when a work level is still named after the rewording (the caller drops the text
+   and tells the presenter), or the text itself when it names none. */
+function scrubLevels(text, opts) {
+  if (typeof text !== "string" || !levelRefs(text).length) return text;
+  const scope = `the ${opts && opts.scope === "unit" ? "unit" : opts && typeof opts.scope === "string" && opts.scope.trim() ? opts.scope.trim() : "issue"}'s scope`;
+  let s = text;
+  const cap = /^[A-Z]/.test(s.trim());
+  /* an elision: the article before it mended to the word after it */
+  const elide = (re) => { s = s.replace(re, (m, ...a) => { const off = a[a.length - 2], src = a[a.length - 1], before = src.slice(0, off), after = src.slice(off + m.length);
+    const art = /\b(an?)\s+$/i.exec(before); if (!art) return "";
+    const want = /^\s*[aeiou]/i.test(after) && !/^\s*(?:u[nb]i|use|eu|one)/i.test(after) ? "an" : "a";
+    return art[1].toLowerCase() === want ? "" : `\u0000${want}\u0000`; }); };
+  s = s.replace(new RegExp(`\\b(${SCOPE_WORDS})\\s+(?:the\\s+)?level[- ][1-4]\\b(?:\\s+(?:scope|bounds|limits|work))?${NOT_TEST_OR_TESTS}`, "gi"), (m, w) => `${w} ${scope}`);
+  s = s.replace(/\b(escalat\w*|re-?sized?|sized|labelled|labeled)\s+(?:to|as|at)\s+level\s+[1-4]\b/gi, "$1");
+  s = s.replace(/\bat (its|their|his|her) own level\b/gi, "on $1 own");
+  const resize = (m, e) => `re-siz${!e ? "e" : /^(led|ed)$/i.test(e) ? "ed" : /ing/i.test(e) ? "ing" : "es"}`;
+  s = s.replace(/\bre-?level(led|ed|ing|s)?\s+(?:to|as|at)\s+(?:level\s+)?[1-4]\b/gi, resize);
+  s = s.replace(/\bre-?level(led|ed|ing|s)?\b/gi, resize);
+  s = s.replace(/\b(work|issue|tracking)[- ](levels?)\b/gi, (m, w, l) => /s$/i.test(l) ? "sizings" : "sizing");
+  s = s.replace(/\(\s*(?:the\s+)?(?:label(?:led|ed)?\s+)?level:?\s*[1-4]\s*\)/gi, "");
+  s = s.replace(/\s*[,;]\s*level [1-4]\s*(?=[),;:])/gi, "");
+  s = s.replace(/\(\s*level [1-4]\s*\)/gi, "");
+  s = s.replace(/\b(?:the\s+)?(?:label(?:led|ed)?\s+)?level:\s*[1-4]\b/gi, "");
+  elide(new RegExp(`\\blevel[- ][1-4][- ](?=(?:${WORK_NOUNS})\\b)`, "gi"));
+  elide(new RegExp(`\\bL[1-4]\\b${NOT_TEST}\\s*`, "g"));
+  /* the article markers, then the punctuation and spaces an elision leaves */
+  s = s.replace(/\b(an?)\s+\u0000(an?)\u0000/gi, (m, a, w) => (a[0] === "A" ? w[0].toUpperCase() + w.slice(1) : w) + " ").replace(/\u0000/g, "");
+  s = s.replace(/\(\s*\)/g, "").replace(/\(\s*[,;:]\s*/g, "(").replace(/\s*[,;:]\s*\)/g, ")")
+    .replace(/([.?!])\s+\.(?=\s|$)/g, "$1").replace(/\s*[,;:]\s+(?=[.?!](?:\s|$))/g, "")
+    .replace(/\s+([,;:.)])/g, "$1").replace(/([,;:])(?:\s*[,;:])+/g, "$1").replace(/^\s*[,;:.]\s*/, "").replace(/[,;:]\s*$/, "").replace(/\s{2,}/g, " ").trim();
+  if (cap && /^[a-z]/.test(s)) s = s[0].toUpperCase() + s.slice(1);
+  return s && !levelRefs(s).length ? s : null;
+}
+module.exports = { LEVEL_PATTERNS, levelRefs, levelRefsIn, scrubLevels };

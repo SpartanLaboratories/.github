@@ -50,7 +50,7 @@ function batch(a) {
     const level = Number.isInteger(u.level) ? u.level : null;
     Object.assign(plan, { repo: tp.repo, issue: u.issue, slug: name, folder: rel, kind: "issue", level, title: r.name, issueTitle: u.title || r.name,
       /* a true sentence until the presenter writes the unit's own function from the documents */
-      function: `${r.name}: unit ${u.n != null ? u.n + " " : ""}of #${tp.issue}, its board laid from #${tp.issue}'s architecture. Its own plan is written when its run starts.`, status: "planned", parent: { issue: tp.issue, board: null }, branch: null,
+      function: `${r.name}: unit ${u.n != null ? u.n + " " : ""}of #${tp.issue}, its board laid from #${tp.issue}'s architecture. Its own plan is written when its run starts.`, status: "planned", sized: null /* not started: its sized event stamps it */, parent: { issue: tp.issue, board: null }, branch: null,
       baseline: { ref: (tp.baseline || {}).ref || "master", sha: base, date: opt(a, "date", now.slice(0, 10)) }, asBuilt: null,
       systems: [r.system].filter(Boolean).map(s => (reg && reg.info(s)) || (tp.systems || []).find(x => x && x.slug === s) || { slug: s, name: s, slot: 0, top: s, status: "built", page: null }),
       /* not started: no step, nothing glows, the steps its run will take; "sized" starts it in place (plan/RULES.md §4) */
@@ -96,6 +96,8 @@ Object.assign(plan, {
   issueTitle: opt(args, "issue-title", plan.issueTitle),
   function: opt(args, "function", plan.function),
   status: "planned",
+  // the run's start: the plan phase's first bound on a landed board's Timeline tile (plan/RULES.md §2, "The KPI tiles")
+  sized: now,
   // parent.board is set by embed.js below, from the folders on disk: "../dashboard.html" only when the parent folder holds a board
   parent: parent ? { issue: parseInt(path.basename(parent), 10) || null, board: null } : null,
   branch: opt(args, "branch", null),

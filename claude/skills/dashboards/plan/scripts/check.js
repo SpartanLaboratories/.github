@@ -14,7 +14,7 @@ const fs = require("fs"), path = require("path"), cp = require("child_process"),
 const { levelRefsIn } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
 const { paletteCheck } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js"));
 const { unitTests } = require("./lib.js");
-const { STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
+const { statementRefs: statementRefsOf, okStamp, timelinePhases, tlDuration, timelineLeftOut, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
 const STATES = ["pending", "in-progress", "partially-built", "as-planned", "amended", "deviated", "dropped", "deferred", "complete", "landed"];
@@ -92,6 +92,16 @@ function checkPlan(plan, dir, root) {
     if (str(a.date) && !DATE.test(a.date)) fail(`asBuilt.date "${a.date}" is not YYYY-MM-DD`);
     if (a.merge && !SHA.test(String(a.merge))) fail(`asBuilt.merge "${a.merge}" is not a commit sha`);
   } else if (plan.status === "planned" && plan.asBuilt) fail("a planned plan has asBuilt: null");
+  /* The run's start and the Timeline tile (RULES §2, "The KPI tiles"; dashboards-skill/23): sized is a date or an ISO date-time when set
+     (new.js and apply-event.js stamp it); on a landed board the tile's phases are reported, a phase left out named with its reason, and
+     a phase whose bounds are out of order is a warning: one of its dates is wrong */
+  if (plan.sized != null && !(typeof plan.sized === "string" && /^</.test(plan.sized)) && !okStamp(plan.sized)) fail(`sized ${JSON.stringify(plan.sized)} is not a date or an ISO date-time (the run's start; new.js and apply-event.js stamp it)`);
+  ((plan.wip || {}).qa || []).forEach((q, i) => { if (q && q.at != null && !okStamp(q.at)) fail(`wip.qa[${i}].at ${JSON.stringify(q.at)} is not an ISO date-time`); });
+  if (plan.status === "built" || (plan.wip || {}).step === "landed") {
+    const T = timelinePhases(plan);
+    ok(`timeline: ${T.phases.length ? T.phases.map(p => `${p.key} ${tlDuration(p)}`).join(" · ") : "no phase drawn"}${T.left.length ? ` (${timelineLeftOut(T)})` : ""}`);
+    T.left.filter(x => /out of order/.test(x.why)).forEach(x => warn(`the Timeline tile leaves out ${x.key}: its bounds are out of order (check sized, the milestones' dates, wip.qa[].date and asBuilt.date)`));
+  }
 
   const systems = Array.isArray(plan.systems) ? plan.systems : [];
   systems.forEach((s, i) => { if (!str(s.slug) || !str(s.name)) fail(`systems[${i}] needs slug and name`); if (s.slot != null && !(Number.isInteger(s.slot) && s.slot >= 0 && s.slot <= 6)) fail(`systems[${i}].slot must be 0 to 6`); });
@@ -233,6 +243,10 @@ function checkPlan(plan, dir, root) {
   if (LEGACY.length) warn(`${LEGACY.length === rows.length ? "every verdict is" : `${LEGACY.length} of ${rows.length} verdicts are`} one paragraph (verdict.summary), written before the statements (${LEGACY.slice(0, 6).join(", ")}${LEGACY.length > 6 ? ", …" : ""}): split each into verdict.statements, one decision each with the plan reference it rests on, and the As built cell into one statement per verdict statement (RULES §2, "Statements"; §9)`);
   /* The statements' references (RULES §2, "Statements"): each excerpt copied from the plan section it names, and that section unchanged
      since; a reference to a section that is gone is a warning too (correct the reference, or record it). */
+  /* a reference's section number before its excerpt (RULES §2, "Statements"; dashboards-skill/23): embed.js writes it, { ref, label, from } */
+  statementRefsOf(plan).forEach(x => { const n = x.s.refNumber; if (n == null) return;
+    if (typeof n !== "object" || typeof n.label !== "string" || !/^§\S/.test(n.label) || !["headings", "anchor"].includes(n.from) || typeof n.ref !== "string") fail(`${x.at}.refNumber must be { ref, label: "§n", from: headings | anchor }, written by embed.js (got ${JSON.stringify(n)})`);
+    else if (n.from === "anchor" && n.ref === String(x.s.ref).trim()) warn(`${x.at}: its reference ${n.ref} shows "${n.label}?": the number is read from the anchor alone (${n.label.slice(1)} may be a dotted number, such as ${n.label.slice(1).split("").join(".")}), as its file's headings could not decide it`); });
   excerptDrift(plan, dir).forEach(x => {
     if (x.kind === "gone") warn(`${x.at}: its reference ${x.ref} names no section: ${x.why}; correct the reference (a factual error is corrected in place, under notes.corrections)`);
     else if (x.kind === "missing") warn(`${x.at}: no excerpt of ${x.ref} is copied yet: run embed.js, which copies the section's heading and first paragraph`);
