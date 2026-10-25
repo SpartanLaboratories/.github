@@ -306,6 +306,12 @@ sends none.
 | An escalation | `escalated` | the proposed level and evidence |
 | The run is abandoned | `cancelled` | the reason |
 
+**Progress reviews.** Every agent in this run's tree writes a progress note every 10 minutes
+it runs (its agent file, "Progress review every 10 minutes"):
+`docs/plans/.live/progress/<issue>/<name>.js` in the checkout, git-ignored, deleted when the
+agent finishes. The board's step panel shows the notes live; they need no event. When you
+brief a subagent, give it the issue number so it can name the file.
+
 On **every** event also send `at` (the ISO time the moment happened, so a queued
 event keeps its true time), and `open` whenever an open point is raised or
 resolved: `[{text, raised, ref?, resolved?}]` — e.g. a plan inconsistency the

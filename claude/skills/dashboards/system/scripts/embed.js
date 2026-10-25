@@ -5,7 +5,8 @@
 //   node embed.js <file> <index.html> [block-id]            # embed; block-id defaults to "dsl"
 //   node embed.js <file> <index.html> [block-id] --check    # exit 1 if the embedded copy differs
 //
-// Blocks: id="dsl" holds workspace.dsl (type text/plain); id="systems" holds systems.json (type application/json).
+// Blocks: id="dsl" holds workspace.dsl (type text/plain); id="systems" holds systems.json and id="state" the page's state.json
+// (type application/json; system/RULES.md §2).
 // Line endings are compared, and written, in the page's own convention, so a CRLF working copy (core.autocrlf) checks
 // the same as the LF file in the repository.
 const fs = require("fs");

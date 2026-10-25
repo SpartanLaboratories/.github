@@ -1,0 +1,7 @@
+{
+  "slug": "system-slug",
+  "version": "x.y.z",
+  "asIs": {"ref": "main", "sha": "sha", "date": "YYYY-MM-DD"},
+  "lastAmended": {"issue": 1, "title": "issue-slug", "sha": "sha"},
+  "written": {"sha": "sha"}
+}

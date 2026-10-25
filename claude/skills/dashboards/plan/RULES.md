@@ -844,7 +844,7 @@ board.
 |-----|------|
 | the `/resolve-issue` pipeline | sends `plan-board` events with the facts it has (step, verdicts, counts, documents written, what waits on the user); never edits a board |
 | the planner, implementer, qa | write their Markdown as before; the board is read from it |
-| the admin team | runs the fast path, `apply-event.js`, at every `plan-board` request (§4), and spawns the presenter only when it says `enrich: yes` or fails |
+| the admin team | runs the fast path, `apply-event.js`, at every `plan-board` request (§4), and at an `implementation-stage` (and the landing) also the state pages' data-only path, `system/scripts/apply-state.js` (`system/RULES.md` §10); spawns the presenter only when one says `enrich: yes` or fails |
 | the presenter (admin team service) | enriches what the fast path leaves (§4, "The fast path"); writes `plan.json`, re-embeds, checks, fills `board.json`; decides the rows and the summaries from the documents; sets `wip` from the event; on a sub-issue's event, re-embeds and checks its tracking board too, whose units' runs `embed.js` mirrors (§3; the presenter never writes `unit.live` by hand); in a landing refresh, sets the landed state and applies the standing rule (§3) on the tracking board |
 | the admin team's executor | commits the folder on the issue's branch after each event, with its tracking board's `plan.json` and `dashboard.html` when a sub-issue's event changed them (a mirror conflict between branches is resolved by re-embedding, §3); commits the regenerated work board only in a landing's docs flow |
 

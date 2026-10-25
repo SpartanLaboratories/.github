@@ -43,8 +43,9 @@
 // Verdict and As built cells with their plan excerpts, "closed · duplicate", the column glow, the KPI bars, and the real #62 events the
 // fast path misapplied (a remediation step naming a test level; a remediation report carrying the stages). And the decisions of
 // dashboards-skill/21: the header's two halves and its labelled tags on every type, a tracking board's WIP row in fixed shares (35 / 25 / 40),
-// and the step panel's title alone with its facts as info groups, each a small bubble. A template is recorded only when its
-// browser passes and every case group pass.
+// and the step panel's title alone with its facts as info groups, each a small bubble. And the state pages on a branch, data only
+// (dashboards-skill/25): system/scripts/apply-state.js, the state block, planned from the data, check-page.js --no-browser. A template is
+// recorded only when its browser passes and every case group pass.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { recordFile, sha, norm } = require(path.join(__dirname, "..", "system", "scripts", "deviation.js"));
@@ -1800,6 +1801,139 @@ targets.filter(t => t.block === "plan").forEach(t => {
       hc.push([`B: ${what}'s tags are each a label and its value`, t.length > 0 && t.length === (ch.match(/<span class="chip[^"]*"><span class="ck">/g) || []).length, text(ch).slice(0, 200)]); });
   } catch (e) { hc.push(["the cases run to the end", false, String(e.stack).split(String.fromCharCode(10)).slice(0, 3).join(" ")]); }
   report("the header's two halves and its tags, the tracking strip's fixed shares, the step panel's title and info groups (dashboards-skill/21)", hc);
+}
+
+/* State pages on a branch, data only (system/RULES.md §2 and §10; system/scripts/apply-state.js), in a scratch repository holding a
+   repository page (the supersystem template) and one system page (the system template), each with its state.json and workspace.dsl,
+   and the registry, every page its template plus its data:
+   - the templates: the header's stamp chips are drawn from the state block, the "written at" chip only while the panels lag the stamp;
+     a part tied to a DSL element (MODEL.c4, data-part) or to a planned system (sys, data-part="sys:<slug>") is drawn planned from the
+     data alone, and solid once the data says built;
+   - an implementation stage that marks a DSL part built: systems.json, state.json, the DSL's as-is line and views, the embedded copies
+     restamped "<branch> @ <sha> · not yet landed", the issue as the last amendment, enrich yes; check-page.js --auto --no-browser
+     passing every page; the rendered page showing the stamp and the part solid;
+   - a stage that marks nothing: enrich no; the same request twice: "duplicate", every file byte for byte as the first left it;
+   - "#9" marking the system planned by that issue alone built: its registry status, its DSL element, the Systems card and the rows
+     tied to it solid, enrich yes; a version moved through facts.version; the registry's own layout kept;
+   - the landing restamp: every entry the branch stamped now "<ref> @ <merge>", "landed" gone, the DSL line without "not yet landed";
+   - refusals and rollback: an unknown system (BLOCKED — system unresolved) and a page the check fails, each exit 1 with every file as
+     it was; an event that moves no code skipped; a page on an older template left alone, enrich yes;
+   - check-page.js --no-browser failing a state that disagrees with its registry, a state block that is not its state.json and a part
+     reference that names nothing, and needing --auto;
+   - timing: one request well under five seconds. */
+{ const vc = [], sc = path.join(out, "apply-state"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
+  const tp = name => (targets.find(t => t.name === name) || {}).path, SYS = tp("system/template/system.html"), SUP = tp("system/template/supersystem.html");
+  if (!SYS || !SUP) vc.push(["both system templates are under test", !root, "a repository template set without both system templates skips this group"]);
+  else try {
+    const L = require(path.join(SKILL, "system", "scripts", "statelib.js")), AS = path.join(SKILL, "system", "scripts", "apply-state.js");
+    const sup = fs.readFileSync(SUP, "utf8"), sys = fs.readFileSync(SYS, "utf8"), text = h => (h || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+    const tree = path.join(sc, "tree"), D = path.join(tree, "docs", "dashboards"), A = path.join(D, "system-alpha");
+    const rd = f => fs.readFileSync(path.join(D, f), "utf8"), J = f => JSON.parse(rd(f));
+    const snap = () => { const m = {}; const walk = d => fs.readdirSync(d, { withFileTypes: true }).forEach(e => { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else m[path.relative(tree, p)] = fs.readFileSync(p, "utf8"); }); walk(tree); return m; };
+    const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+    const stamp = { ref: "main", sha: "1111111", date: "2026-10-20" };
+    const stTxt = (slug, version) => L.stateText({ slug, version, asIs: { ...stamp }, lastAmended: { issue: 5, title: "five", sha: "1111111" }, written: { sha: "1111111" } });
+    const build = () => {
+      fs.rmSync(tree, { recursive: true, force: true }); fs.mkdirSync(A, { recursive: true }); fs.mkdirSync(path.join(tree, "docs", "plans", "9-next-part"), { recursive: true });
+      const reg = JSON.parse(L.blockText(sup, "systems")); reg.repo = "acme/widgets";
+      reg.systems.forEach(e => { if (e.status === "built") { e.asIs = { ...stamp }; e.lastAmended = { issue: 5, sha: "1111111" }; } });
+      Object.assign(reg.systems.find(e => e.slug === "system-alpha"), { version: "1.0.0" });
+      Object.assign(reg.systems.find(e => e.slug === "system-beta"), { page: null, dsl: null, version: "2.0.0" });
+      reg.systems.find(e => e.slug === "system-gamma").plannedBy.issue = 9;
+      const regText = "{\n  \"repo\": \"acme/widgets\",\n  \"updated\": \"2026-10-20\",\n  \"systems\": [\n" + reg.systems.map(e => "    " + L.inline(e)).join(",\n") + "\n  ]\n}\n";
+      fs.writeFileSync(path.join(D, "systems.json"), regText);
+      const dsl = L.blockText(sup, "dsl").replace("// As-is at <repo> <branch> <sha> (<date>), <system> <version>.", "// As-is at widgets main 1111111 (2026-10-20), alpha 1.0.0.");
+      fs.writeFileSync(path.join(D, "workspace.dsl"), dsl + "\n"); fs.writeFileSync(path.join(D, "state.json"), stTxt("repo", null));
+      fs.writeFileSync(path.join(D, "index.html"), L.embedInto(L.embedInto(L.embedInto(sup, "systems", regText), "dsl", dsl), "state", stTxt("repo", null)));
+      const sd = L.blockText(sys, "dsl").replace("// As-is at <repo> <branch> <sha> (<date>), <system> <version>.", "// As-is at widgets main 1111111 (2026-10-20), alpha 1.0.0.")
+        .replace(/^\s*\/\/ next = component .*$/m, '                next = component "Planned part" "Issue #9: the next part." "proposed" "Internal,Planned"').replace('"system-slug as built at <sha>."', '"system-alpha as built at main 1111111."');
+      fs.writeFileSync(path.join(A, "workspace.dsl"), sd + "\n"); fs.writeFileSync(path.join(A, "state.json"), stTxt("system-alpha", "1.0.0"));
+      const sh = L.embedInto(L.embedInto(sys, "dsl", sd), "state", stTxt("system-alpha", "1.0.0"))
+        .replace(/c4:\{sys:"repo\.sys\.facade",core:"repo\.sys\.core"\},/, 'c4:{sys:"repo.sys.facade",core:"repo.sys.core",next:"repo.sys.next"},')
+        .replace('d:{role:"What this internal type does.",vis:"internal",files:["CoreEngine.kt"],threads:["main-worker"]}}\n', () => 'd:{role:"What this internal type does.",vis:"internal",files:["CoreEngine.kt"],threads:["main-worker"]}},\n      {id:"next",side:"server",vis:"int",x:300,y:110,w:200,h:50,t:"Planned part",s:"issue #9",d:{role:"The next part.",vis:"internal"}}\n')
+        .replace("<li>second</li></ol></div>", '<li data-part="repo.sys.next">second</li></ol></div>');
+      fs.writeFileSync(path.join(A, "index.html"), sh);
+      fs.writeFileSync(path.join(tree, "docs", "plans", "9-next-part", "plan.json"), JSON.stringify({ issue: 9, systems: ["system-alpha"] }, null, 2) + "\n");
+    };
+    let n = 0;
+    const req = (o, facts) => { const f = path.join(sc, `req-${++n}.json`); fs.writeFileSync(f, "state\n\n```json\n" + JSON.stringify({ v: 1, github: "acme/widgets", issue: 9, branch: "feat/issue-9-next-part", folder: "docs/plans/9-next-part", ...o, facts }, null, 2) + "\n```\n"); return f; };
+    const apply = f => { const t = Date.now(), r = cp.spawnSync(process.execPath, [AS, "--event", f, "--worktree", tree, "--json"], { encoding: "utf8" }); let s; try { s = JSON.parse((r.stdout || "").trim().split(/\r?\n/).pop()); } catch (e) { s = { result: "unparsed", error: (r.stdout || "") + (r.stderr || "") }; } s.status = r.status; s.ms = Date.now() - t; return s; };
+    const nb = p => cp.spawnSync(process.execPath, [checker, p, "--auto", "--no-browser"], { encoding: "utf8" });
+    const stage = (sha, extra) => req({ action: "plan-board", event: "implementation-stage" }, { at: "2026-10-25T12:00:00Z", sha, ...extra });
+    build();
+    vc.push(["a browser renders the pages (set CHROME)", !!chrome, "no Chrome or Edge found"]);
+    const before = snap(), d0 = dumpDom(path.join(A, "index.html"));
+    vc.push(["the system template draws its stamp chips from the state block, and removes the one with nothing to say", d0 == null || /<span class="chip" id="chip-asis">.*?main @ 1111111/.test(d0) && /id="chip-amended">.*?#5<\/b><\/a> five/.test(d0) && !/id="chip-written"/.test(d0), text(inner(d0, '<div class="chips">', "div")).slice(0, 220)]);
+    vc.push(["a structure node mapped to a Planned DSL element, and a data-part, are drawn planned", d0 == null || /<g class="node server int planned"[^>]*data-id="next"/.test(d0) && /<li data-part="repo\.sys\.next" class="planned">/.test(d0), (d0 || "").match(/<g class="node[^"]*"[^>]*data-id="next"/) + ""]);
+    [["the repository page", path.join(D, "index.html")], ["the system page", path.join(A, "index.html")]].forEach(([w, p]) => { const r = nb(p); vc.push([`check-page.js --auto --no-browser passes ${w} as written`, r.status === 0 && /PASS \(no browser\)/.test(r.stdout) && /browser pass deferred/.test(r.stdout), (r.stdout || "").split(/\r?\n/).filter(l => /state|FAIL|PASS/.test(l)).join(" | ")]); });
+
+    /* an implementation stage marking the DSL part built */
+    const s1 = apply(stage("2222222abcdef0", { built: ["system-alpha/workspace.dsl:repo.sys.next"] }));
+    const R1 = J("systems.json"), a1 = R1.systems.find(e => e.slug === "system-alpha"), st1 = J("system-alpha/state.json");
+    const branchStamp = { ref: "feat/issue-9-next-part", sha: "2222222", date: "2026-10-25T12:00:00Z", landed: false };
+    vc.push(["a stage that builds a part: applied, enrich yes (the part's prose is the presenter's)", s1.status === 0 && s1.result === "ok" && s1.enrich === "yes" && s1.why.some(x => /repo\.sys\.next marked built/.test(x)), JSON.stringify([s1.result, s1.enrich, s1.why, s1.error])]);
+    vc.push(["the registry, the state and the repository's own entry are stamped with the branch, not yet landed, the issue as last amendment", same(a1.asIs, branchStamp) && same(R1.systems.find(e => e.slug === "repo").asIs, branchStamp) && same(st1.asIs, branchStamp) && st1.lastAmended.issue === 9 && st1.lastAmended.title === "next-part" && same(st1.written, { sha: "1111111" }) && same(R1.systems.find(e => e.slug === "system-beta").asIs, stamp), JSON.stringify([a1.asIs, st1])]);
+    vc.push(["the registry keeps its own layout: one entry per line", rd("systems.json").split("\n").length === before[path.join("docs", "dashboards", "systems.json")].split("\n").length, rd("systems.json").slice(0, 200)]);
+    vc.push(["the DSL part loses its Planned tag and keeps its built tag; the as-is line and the views name the branch", /next = component "Planned part" "Issue #9: the next part\." "proposed" "Internal"$/m.test(rd("system-alpha/workspace.dsl")) && /^\/\/ As-is at widgets feat\/issue-9-next-part 2222222 \(2026-10-25, not yet landed\)/m.test(rd("system-alpha/workspace.dsl")) && /as built at feat\/issue-9-next-part 2222222\./.test(rd("system-alpha/workspace.dsl")), rd("system-alpha/workspace.dsl").split("\n").filter(l => /next =|As-is|as built/.test(l)).join(" | ")]);
+    vc.push(["every page carries its files verbatim: state, DSL, registry", L.blockText(rd("system-alpha/index.html"), "state") === rd("system-alpha/state.json").trim() && L.blockText(rd("system-alpha/index.html"), "dsl") === rd("system-alpha/workspace.dsl").trim() && L.blockText(rd("index.html"), "systems") === rd("systems.json").trim() && L.blockText(rd("index.html"), "state") === rd("state.json").trim(), "embedded copies"]);
+    vc.push(["its check ran without a browser and passed", /^pass, no browser \(2 pages/.test(s1.check || ""), s1.check]);
+    const d1 = dumpDom(path.join(A, "index.html"));
+    vc.push(["the rendered page: \"as-is at <branch> @ <sha> · not yet landed\", \"written at\" the old commit, the part solid", d1 == null || /id="chip-asis"><span class="ck">as-is at<\/span> <b>feat\/issue-9-next-part @ 2222222<\/b> · not yet landed<\/span>/.test(d1) && /id="chip-written"><span class="ck">written at<\/span> <b>1111111<\/b>/.test(d1) && /<g class="node server int"[^>]*data-id="next"/.test(d1) && /<li data-part="repo\.sys\.next"( class="")?>/.test(d1), text(inner(d1, '<div class="chips">', "div")).slice(0, 260)]);
+    const dr = dumpDom(path.join(D, "index.html"));
+    vc.push(["the repository page: its own stamp, and the Systems card of the touched system, not yet landed", dr == null || /id="chip-asis"><span class="ck">as-is at<\/span> <b>feat\/issue-9-next-part @ 2222222<\/b> · not yet landed/.test(dr) && /data-slug="system-alpha"[\s\S]{0,700}as-is feat\/issue-9-next-part @ 2222222 · not yet landed/.test(dr), text(inner(dr, '<div class="syscards" id="syscards">', "div")).slice(0, 260)]);
+
+    /* the same request twice; a stage that marks nothing */
+    const k1 = snap(), s1b = apply(path.join(sc, `req-${n}.json`));
+    vc.push(["the same request twice: duplicate, every file as the first run left it", s1b.status === 0 && s1b.result === "duplicate" && same(snap(), k1), JSON.stringify([s1b.result, s1b.wrote])]);
+    const s2 = apply(stage("3333333", { systems: ["system-alpha"] }));
+    vc.push(["a stage that marks nothing: restamped, enrich no", s2.status === 0 && s2.result === "ok" && s2.enrich === "no" && J("system-alpha/state.json").asIs.sha === "3333333", JSON.stringify([s2.result, s2.enrich, s2.why])]);
+    vc.push(["one request is well under five seconds", s1.ms < 5000 && s2.ms < 5000, `${s1.ms} ms, ${s2.ms} ms`]);
+
+    /* "#9": the system that issue alone plans, and a version */
+    const s3 = apply(req({ action: "state-pages" }, { at: "2026-10-25T14:00:00Z", sha: "4444444", systems: ["system-alpha"], built: ["#9"], version: { "system-alpha": "1.1.0" } }));
+    const R3 = J("systems.json"), g3 = R3.systems.find(e => e.slug === "system-gamma");
+    vc.push(["\"#9\" marks the system it alone plans built, in the registry and in the DSL, enrich yes", s3.status === 0 && g3.status === "built" && g3.asIs && g3.asIs.sha === "4444444" && /gamma = container "system-gamma" "Issue #N: what it will do\." "proposed"$/m.test(rd("workspace.dsl")) && s3.enrich === "yes" && s3.why.some(x => /system-gamma marked built/.test(x)), JSON.stringify([s3.result, s3.applied, s3.error])]);
+    vc.push(["a version moved through facts.version: registry and state, enrich naming the bubble", R3.systems.find(e => e.slug === "system-alpha").version === "1.1.0" && J("system-alpha/state.json").version === "1.1.0" && s3.why.some(x => /system-alpha moved to 1.1.0/.test(x)), JSON.stringify([J("system-alpha/state.json").version, s3.why])]);
+    const d3 = dumpDom(path.join(D, "index.html"));
+    vc.push(["the repository page draws the system solid: its card and every row tied to it", d3 == null || /class="syscard built"[^>]*data-slug="system-gamma"/.test(d3) && !/<tr data-part="sys:system-gamma" class="planned">/.test(d3) && /<tr data-part="sys:system-gamma"/.test(d3), ((d3 || "").match(/<tr data-part="sys:system-gamma"[^>]*>/g) || []).join(" ")]);
+
+    /* the landing */
+    const s4 = apply(req({ action: "plan-board", event: "landed" }, { at: "2026-10-26T09:00:00Z", merge: "5555555", ref: "main", pr: 12 }));
+    const R4 = J("systems.json"), landedStamp = { ref: "main", sha: "5555555", date: "2026-10-26T09:00:00Z" };
+    vc.push(["the landing restamps every entry the branch stamped at the merge, \"landed\" gone", s4.status === 0 && ["repo", "system-alpha", "system-gamma"].every(s => same(R4.systems.find(e => e.slug === s).asIs, landedStamp)) && same(J("system-alpha/state.json").asIs, landedStamp) && same(R4.systems.find(e => e.slug === "system-beta").asIs, stamp), JSON.stringify([s4.result, s4.error, R4.systems.map(e => e.asIs)])]);
+    vc.push(["the landed DSL line drops \"not yet landed\"", /^\/\/ As-is at widgets main 5555555 \(2026-10-26\),/m.test(rd("system-alpha/workspace.dsl")) && /as built at main 5555555\./.test(rd("system-alpha/workspace.dsl")), rd("system-alpha/workspace.dsl").split("\n")[1]]);
+    vc.push(["at the landing, panels written before the branch's last stamp ask for the presenter", s4.enrich === "yes" && s4.why.some(x => /written at 1111111/.test(x)), JSON.stringify(s4.why)]);
+
+    /* refusals, rollback, skips */
+    build(); const b0 = snap();
+    const s5 = apply(stage("2222222", { systems: ["nope"] }));
+    vc.push(["an unknown system: BLOCKED — system unresolved, exit 1, nothing changed", s5.status === 1 && /BLOCKED — system unresolved: nope/.test(s5.error || "") && same(snap(), b0), s5.error]);
+    fs.writeFileSync(path.join(D, "index.html"), rd("index.html").replace('<tr data-part="sys:system-gamma"><th>', '<tr data-part="sys:nope"><th>')); const b1 = snap();
+    const s6 = apply(stage("2222222", { systems: ["system-alpha"] }));
+    vc.push(["a page the check fails: exit 1, every file put back", s6.status === 1 && /check-page\.js failed/.test(s6.error || "") && /PART UNKNOWN: sys:nope/.test(s6.check || "") && same(snap(), b1), JSON.stringify([s6.error, s6.check, s6.restored])]);
+    build(); const b2 = snap();
+    const s7 = apply(req({ action: "plan-board", event: "qa-pass" }, { at: "2026-10-25T12:00:00Z" }));
+    vc.push(["an event that moves no code is skipped, nothing written", s7.status === 0 && s7.result === "skipped" && same(snap(), b2), JSON.stringify([s7.result, s7.applied])]);
+    const oldPage = fs.readFileSync(path.join(A, "index.html"), "utf8").replace(/<!-- The page's state\.[\s\S]*?<script type="application\/json" id="state">[\s\S]*?<\/script>\n\n/, "");
+    fs.writeFileSync(path.join(A, "index.html"), oldPage);
+    const s8 = apply(stage("2222222", { systems: ["system-alpha"] }));
+    vc.push(["a page on a template older than the state block is left alone, enrich yes", s8.status === 0 && fs.readFileSync(path.join(A, "index.html"), "utf8") === oldPage && s8.why.some(x => /older than the state block/.test(x)), JSON.stringify([s8.result, s8.why])]);
+
+    /* check-page.js --no-browser on the data */
+    build();
+    const regBad = rd("systems.json").replace('"version": "1.0.0"', '"version": "9.9.9"'); fs.writeFileSync(path.join(D, "systems.json"), regBad);
+    let r = nb(path.join(A, "index.html"));
+    vc.push(["--no-browser fails a state that disagrees with its registry", r.status === 1 && /STATE DISAGREES WITH REGISTRY: version is "1\.0\.0" on the page and "9\.9\.9" in systems\.json/.test(r.stdout), (r.stdout || "").split(/\r?\n/).filter(l => /STATE|FAIL/.test(l)).join(" | ")]);
+    build(); fs.writeFileSync(path.join(A, "state.json"), stTxt("system-alpha", "1.0.0").replace("1111111", "1212121"));
+    r = nb(path.join(A, "index.html"));
+    vc.push(["--no-browser fails a state block that is not its state.json", r.status === 1 && /STATE EMBED DIFFERS/.test(r.stdout), (r.stdout || "").split(/\r?\n/).filter(l => /STATE|FAIL/.test(l)).join(" | ")]);
+    build(); fs.writeFileSync(path.join(A, "index.html"), rd("system-alpha/index.html").replace('data-part="repo.sys.next"', 'data-part="repo.sys.gone"'));
+    r = nb(path.join(A, "index.html"));
+    vc.push(["--no-browser fails a part reference that names nothing", r.status === 1 && /PART UNKNOWN: repo\.sys\.gone/.test(r.stdout), (r.stdout || "").split(/\r?\n/).filter(l => /PART|FAIL/.test(l)).join(" | ")]);
+    r = cp.spawnSync(process.execPath, [checker, path.join(A, "index.html"), "--no-browser"], { encoding: "utf8" });
+    vc.push(["--no-browser needs --auto (exit 2)", r.status === 2, (r.stderr || "").trim().split(/\r?\n/).pop()]);
+  } catch (e) { vc.push(["the cases run to the end", false, String(e.stack).split(String.fromCharCode(10)).slice(0, 3).join(" ")]); }
+  report("state pages on a branch, data only: apply-state.js, the state block, planned from the data, check-page.js --no-browser", vc);
 }
 
 const today = new Date().toISOString().slice(0, 10);

@@ -47,6 +47,8 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .chip{font:12px/1 var(--mono);padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink-2);max-width:100%;overflow-wrap:anywhere}
 .chip b{color:var(--ink);font-weight:600}
 .chip a{text-decoration:none;border-bottom:1px solid var(--line)}
+/* a chip drawn from state.json (renderState()) stays hidden on every layout until it is drawn; one with nothing to say is removed */
+.chip[hidden]{display:none!important}
 /* The header's two halves (GUIDANCE.md §6, "The header"): from 940 px the intro (the title, the issue line, the function) fills the
    left half and the tags stand in the right half beside it, each a small card with its label over its value, growing to fill its line, a
    long one across the half (.wide); under 940 px the two stack and the tags wrap as chips, the label before the value. The topbar (the breadcrumb, the
@@ -391,14 +393,13 @@ footer code{color:var(--ink-2)}
   <h1>webtools-udp</h1>
   <p class="function">A multi-connection UDP transport for the JVM: many clients handshake onto one server port, then exchange framed datagrams over unreliable and reliable-ordered channels, with opt-in keepalive, link-quality probing and idle detection.</p>
   <div class="chips">
-    <span class="chip"><span class="ck">version</span> <b>2.0.0a</b></span>
+    <span class="chip" id="chip-version" hidden></span>
     <span class="chip"><span class="ck">wire protocol</span> <b>2</b></span>
     <span class="chip"><span class="ck">common port</span> <b>9998</b></span>
     <span class="chip"><span class="ck">platform</span> <b>Kotlin/JVM</b></span>
-    <!-- presenter: the as-is chip takes a date as written, or a time as <time datetime="2026-10-23T01:55:00Z">…</time> (UTC), which the
-         page shows in the viewer's local time with the UTC value as its tooltip (GUIDANCE.md §6, "Times") -->
-    <span class="chip"><span class="ck">as-is at</span> <b>master 806ce8e</b> · 2026-10-20</span>
-    <span class="chip"><span class="ck">last amended by</span> <a href="https://github.com/SpartanLaboratories/WebTools/issues/38" target="_blank" rel="noopener"><b>#38</b></a> <a data-board="38">handshake-empty-name</a> · ca57a57</span>
+    <span class="chip" id="chip-asis" hidden></span>
+    <span class="chip" id="chip-amended" hidden></span>
+    <span class="chip" id="chip-written" hidden></span>
     <span class="chip model"><span class="ck">C4 model</span> <b>workspace.dsl</b> · <span id="dsl-stats">…</span></span>
   </div>
 </header>
@@ -646,6 +647,18 @@ footer code{color:var(--ink-2)}
 <footer>Corresponds to <code>workspace.dsl</code>. Code is authoritative on any conflict.</footer>
 </div>
 
+<!-- The page's state. A verbatim copy of state.json beside the page (scripts/embed.js state.json index.html state): its stamp, version and
+     last amendment, which apply-state.js restamps on a feature branch and at the landing (system/RULES.md §10). -->
+<script type="application/json" id="state">
+{
+  "slug": "webtools-udp",
+  "version": "2.0.0a",
+  "asIs": {"ref": "master", "sha": "806ce8e", "date": "2026-10-20"},
+  "lastAmended": {"issue": 38, "title": "handshake-empty-name", "sha": "ca57a57"},
+  "written": {"sha": "806ce8e"}
+}
+</script>
+
 <!-- The C4 model. A verbatim copy of workspace.dsl: the presenter re-embeds the file here on every run,
      and the C4 tab is parsed from this text at load, so what the tab shows is what the file says. -->
 <script type="text/plain" id="dsl">
@@ -801,6 +814,9 @@ const flink=f=>`<a href="${SRC}${f}" target="_blank" rel="noopener">${f}</a>`;
    the hand-written ones at load. */
 const BOARDS={"38":"../../../plan/examples/38-handshake-empty-name/dashboard.html"}; // presenter: in the skill, the copy of #38's board beside this example; in WebTools, ../../plans/38-handshake-empty-name/dashboard.html
 const boardOf=n=>Object.prototype.hasOwnProperty.call(BOARDS,String(n))?BOARDS[String(n)]:null;
+/* The page's state (system/RULES.md §2): a verbatim copy of state.json, its stamp, version and last amendment, which apply-state.js
+   restamps on a feature branch and at the landing; renderState() draws the header's chips from it. */
+const STATE=(()=>{ try{ return JSON.parse(document.getElementById("state").textContent)||{}; }catch(e){ return {}; } })();
 const ghIssue=n=>`${REPO}/issues/${n}`;
 const ilink=n=>{ const b=boardOf(n); return b?`<a href="${esc(b)}" title="#${esc(n)}: its plan board">#${esc(n)}</a>`:`<a href="${ghIssue(n)}" target="_blank" rel="noopener">#${esc(n)}</a>`; };
 const pair=(n,title)=>{ const b=boardOf(n); return `<a href="${ghIssue(n)}" target="_blank" rel="noopener">#${esc(n)}</a> ${b?`<a href="${esc(b)}" title="#${esc(n)}: its plan board">${esc(title)}</a>`:esc(title)}`; };
@@ -1025,6 +1041,15 @@ const C4=parseDsl(document.getElementById("dsl").textContent);
 $("#dsl-stats").textContent=`${C4.order.length} elements · ${C4.rels.length} relationships · ${C4.views.length} views`;
 
 const el=id=>C4.elements[id];
+/* Planned, from the data (system/RULES.md §2, "Planned parts"): a part tied to a DSL element — a structure node through MODEL.c4 or its
+   own `part`, a thread, a flow node, a lifeline or a sequence step through `part`, a hand-written element through data-part="<element
+   id>" — is planned while that element carries the Planned tag, so apply-state.js marks it built by editing workspace.dsl alone. A
+   literal kind "planned" or planned:true still draws an untied part dashed. */
+const dslPlanned=id=>!!(id&&el(id)&&el(id).tags.includes("Planned"));
+const isPlanned=x=>!!x&&typeof x==="object"&&(x.planned===true||x.kind==="planned"||dslPlanned(x.part));
+function applyParts(root){ (root||document).querySelectorAll("[data-part]").forEach(e=>e.classList.toggle("planned",dslPlanned(e.dataset.part)));
+  document.querySelectorAll(".thread[data-t]").forEach(e=>{ const t=MODEL.threads[e.dataset.t]; if(t&&t.part) e.classList.toggle("planned",isPlanned(t)); }); }
+applyParts();
 function isWithin(id,scope){ let e=el(id); while(e){ if(e.id===scope) return true; e=el(e.parent); } return false; }
 function topOf(id){ let e=el(id); while(e&&e.parent) e=el(e.parent); return e?e.id:id; }
 function childIn(id,scope){ let e=el(id); while(e){ if(e.parent===scope) return e.id; e=el(e.parent); } return null; }
@@ -1245,7 +1270,8 @@ function renderStructure(){
   mk("rect",{x:430,y:48,width:140,height:400,rx:6,class:"band"},svg);
   MODEL.structure.lanes.forEach(([l,x,y,a])=>txt(svg,x,y,l,"lane",a));
   MODEL.structure.nodes.forEach(n=>{
-    const g=mk("g",{class:`node ${n.side} ${n.vis}${n.container?" container":""}${n.chip?" chip":""}${n.kind?" "+n.kind:""}`,tabindex:0,role:"button","data-id":n.id,"aria-label":n.t},svg);
+    const pl=isPlanned(n)||dslPlanned(MODEL.c4[n.id]);
+    const g=mk("g",{class:`node ${n.side} ${n.vis}${n.container?" container":""}${n.chip?" chip":""}${n.kind&&n.kind!=="planned"?" "+n.kind:""}${pl?" planned":""}`,tabindex:0,role:"button","data-id":n.id,"aria-label":n.t},svg);
     mk("rect",{x:n.x,y:n.y,width:n.w,height:n.h,rx:n.chip?17:5},g);
     const subs=Array.isArray(n.s)?n.s:[n.s];
     if(n.chip){ txt(g,n.x+n.w/2,n.y+14,n.t,"t","middle"); txt(g,n.x+n.w/2,n.y+26,subs,"s","middle"); }
@@ -1309,11 +1335,11 @@ function renderFlow(){
     if(A.r===B.r){ d=`M${fx(A)+NW},${fy(A)+NH/2} L${fx(B)},${fy(B)+NH/2}`; lx=(fx(A)+NW+fx(B))/2; ly=fy(A)+NH/2-5; anchor="middle"; }
     else if(A.c===B.c){ d=`M${fx(A)+NW/2},${fy(A)+NH} L${fx(B)+NW/2},${fy(B)}`; lx=fx(A)+NW/2+6; ly=(fy(A)+NH+fy(B))/2+3; }
     else { const tx=fx(A)+NW+10, ty=fy(B)+NH/2; d=`M${fx(A)+NW},${fy(A)+NH/2} L${tx},${fy(A)+NH/2} L${tx},${ty} L${fx(B)},${ty}`; lx=tx+4; ly=ty-5; }
-    mk("path",{d,class:"fedge"+(A.planned||B.planned?" planned":""),"marker-end":"url(#farr)","data-e":a+">"+b},svg);
+    mk("path",{d,class:"fedge"+(isPlanned(A)||isPlanned(B)?" planned":""),"marker-end":"url(#farr)","data-e":a+">"+b},svg);
     if(label){ const t=txt(svg,lx,ly,label,"flabel",anchor); t.dataset.e=a+">"+b; }
   });
   Object.entries(F.nodes).forEach(([id,n])=>{
-    const x=fx(n),y=fy(n), g=mk("g",{class:"fnode "+n.k+(n.planned?" planned":""),"data-id":id},svg);
+    const x=fx(n),y=fy(n), g=mk("g",{class:"fnode "+n.k+(isPlanned(n)?" planned":""),"data-id":id},svg);
     if(n.k==="d") mk("polygon",{points:`${x+12},${y} ${x+NW-12},${y} ${x+NW},${y+NH/2} ${x+NW-12},${y+NH} ${x+12},${y+NH} ${x},${y+NH/2}`},g);
     else mk("rect",{x,y,width:NW,height:NH,rx:n.k==="t"?3:6},g);
     // The stripe's colour goes in style, not the fill attribute: .fnode.t rect would otherwise repaint it surface-grey.
@@ -1350,9 +1376,9 @@ function renderSeq(){
   svg.setAttribute("viewBox",`0 0 1000 ${H}`);
   arrowDefs(svg,"sarr2","var(--ink-2)");
   S.phases.forEach(([label,a,b])=>{ const g=mk("g",{class:"phase"},svg); const y=Y0+a*DY-24, h=(b-a+1)*DY; mk("rect",{x:4,y,width:992,height:h,rx:4},g); txt(g,990,y+11,label,"","end"); });
-  S.lifelines.map(lane).forEach((l,i)=>{ mk("line",{x1:LX(i),y1:40,x2:LX(i),y2:H-4,class:"life"+(l.planned?" planned":"")},svg); const g=mk("g",{class:"lh"+(l.side?" "+l.side:"")+(l.planned?" planned":"")},svg); mk("rect",{x:LX(i)-64,y:8,width:128,height:28,rx:4},g); txt(g,LX(i),26,l.n,"","middle"); });
+  S.lifelines.map(lane).forEach((l,i)=>{ mk("line",{x1:LX(i),y1:40,x2:LX(i),y2:H-4,class:"life"+(isPlanned(l)?" planned":"")},svg); const g=mk("g",{class:"lh"+(l.side?" "+l.side:"")+(isPlanned(l)?" planned":"")},svg); mk("rect",{x:LX(i)-64,y:8,width:128,height:28,rx:4},g); txt(g,LX(i),26,l.n,"","middle"); });
   S.steps.forEach((s,i)=>{
-    const y=Y0+i*DY, g=mk("g",{class:"msg"+(s.ret?" ret":"")+(s.planned?" planned":""),"data-i":i,tabindex:0,role:"button","aria-label":`step ${i+1}: ${s.l}`},svg);
+    const y=Y0+i*DY, g=mk("g",{class:"msg"+(s.ret?" ret":"")+(isPlanned(s)?" planned":""),"data-i":i,tabindex:0,role:"button","aria-label":`step ${i+1}: ${s.l}`},svg);
     if(s.self){ const x=LX(s.f); mk("path",{d:`M${x},${y-10} L${x+34},${y-10} L${x+34},${y+8} L${x+2},${y+8}`,"marker-end":"url(#sarr2)"},g); txt(g,x+42,y+2,s.l,""); txt(g,x+42,y-8,`${i+1}`,"num"); }
     else { const a=LX(s.f), b=LX(s.t), dir=b>a?1:-1; mk("line",{x1:a,y1:y,x2:b-dir*2,y2:y,"marker-end":s.ret?"url(#sarr2-open)":"url(#sarr2)"},g); const mx=(a+b)/2, w=s.l.length*5.3+10; mk("rect",{class:"lbg",x:mx-w/2,y:y-17,width:w,height:14,rx:2},g); txt(g,mx,y-6,s.l,"","middle"); txt(g,Math.min(a,b)-8,y+3,`${i+1}`,"num","end"); }
     g.addEventListener("click",()=>gotoStep(i)); g.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); gotoStep(i); } });
@@ -1363,17 +1389,31 @@ function renderSeq(){
 /* The legend for the sequence: the lifeline owners it shows (each in its side's hue), then the line encodings and planned. */
 function seqKey(S){
   const sw={server:"pub srv",client:"pub cli",wire:"pub wir",consumer:"con",external:"ext"}, sides=[...new Set(S.lifelines.map(lane).map(l=>l.side).filter(Boolean))];
-  $("#seq-key").innerHTML=sides.map(k=>`<span><i class="${sw[k]||""}"></i>${esc((MODEL.sides||{})[k]||k)}</span>`).join("")+`<span><i class="ln"></i>call or send</span>`+(S.steps.some(s=>s.ret)?`<span><i class="ln ret"></i>return: open head, thin line</span>`:"")+(S.phases.length?`<span><i class="band"></i>phase</span>`:"")+(S.steps.some(s=>s.planned)||S.lifelines.some(l=>l&&l.planned)?`<span><i class="ln dash pln"></i>planned, not built (dashed, faded)</span>`:"");
+  $("#seq-key").innerHTML=sides.map(k=>`<span><i class="${sw[k]||""}"></i>${esc((MODEL.sides||{})[k]||k)}</span>`).join("")+`<span><i class="ln"></i>call or send</span>`+(S.steps.some(s=>s.ret)?`<span><i class="ln ret"></i>return: open head, thin line</span>`:"")+(S.phases.length?`<span><i class="band"></i>phase</span>`:"")+(S.steps.some(isPlanned)||S.lifelines.map(lane).some(isPlanned)?`<span><i class="ln dash pln"></i>planned, not built (dashed, faded)</span>`:"");
 }
 function gotoStep(i){
   const S=MODEL.sequence, L=S.lifelines.map(lane); seq.cur=(i+S.steps.length)%S.steps.length; const s=S.steps[seq.cur];
   document.querySelectorAll("#svg-seq .msg").forEach(g=>{ const k=+g.dataset.i; g.classList.toggle("cur",k===seq.cur); g.classList.toggle("future",k>seq.cur); });
   $("#seq-pos").textContent=`step ${seq.cur+1} of ${S.steps.length}`;
-  inspect(`<div class="kicker">${esc(S.kicker||"SEQUENCE")} · STEP ${seq.cur+1}${s.planned?" · PLANNED":""}</div><div class="name">${esc(L[s.f].n)} → ${esc(L[s.t].n)}</div><div class="vis">${esc(s.l)}</div><p>${esc(s.n)}</p>`);
+  inspect(`<div class="kicker">${esc(S.kicker||"SEQUENCE")} · STEP ${seq.cur+1}${isPlanned(s)?" · PLANNED":""}</div><div class="name">${esc(L[s.f].n)} → ${esc(L[s.t].n)}</div><div class="vis">${esc(s.l)}</div><p>${esc(s.n)}</p>`);
 }
 $("#seq-prev").addEventListener("click",()=>gotoStep(seq.cur-1));
 $("#seq-next").addEventListener("click",()=>gotoStep(seq.cur+1));
 $("#seq-play").addEventListener("click",e=>{ const b=e.currentTarget; if(seq.timer){ clearInterval(seq.timer); seq.timer=null; b.textContent="play"; b.setAttribute("aria-pressed","false"); } else { seq.timer=setInterval(()=>gotoStep(seq.cur+1),1600); b.textContent="pause"; b.setAttribute("aria-pressed","true"); } });
+
+/* ---------- The header's stamps (state.json) ----------
+   The version, the as-is stamp ("<ref> @ <sha> · <date>", or "<branch> @ <sha> · not yet landed" while the page shows a feature branch),
+   the last amendment (its number opens the GitHub issue, its title the plan board: linkIssues() resolves it at load) and, while the
+   panels were written at another commit than the stamp names, "written at <sha>". A chip with nothing to say is removed. */
+function renderState(){
+  const S=STATE||{}, a=S.asIs||{}, la=S.lastAmended||{}, w=S.written||{};
+  const set=(id,html)=>{ const e=document.getElementById(id); if(!e) return; if(!html){ e.remove(); return; } e.hidden=false; e.innerHTML=html; };
+  set("chip-version",S.version?`<span class="ck">version</span> <b>${esc(S.version)}</b>`:"");
+  set("chip-asis",a.sha?`<span class="ck">as-is at</span> <b>${esc(a.ref||"?")} @ ${esc(a.sha)}</b> · ${a.landed===false?"not yet landed":when(a.date)}`:"");
+  set("chip-amended",Number.isInteger(la.issue)&&la.issue>0?`<span class="ck">last amended by</span> <a href="${ghIssue(la.issue)}" target="_blank" rel="noopener"><b>#${la.issue}</b></a>${la.title?` <a data-board="${la.issue}">${esc(la.title)}</a>`:""}${la.sha?` · ${esc(la.sha)}`:""}`:"");
+  set("chip-written",w.sha&&a.sha&&w.sha!==a.sha?`<span class="ck">written at</span> <b>${esc(w.sha)}</b>`:"");
+}
+renderState();
 
 /* ---------- Tabs ---------- */
 const tabs=[...document.querySelectorAll(".tab")];

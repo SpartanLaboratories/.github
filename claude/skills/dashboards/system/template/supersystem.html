@@ -48,6 +48,8 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .chip{font:12px/1 var(--mono);padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink-2);max-width:100%;overflow-wrap:anywhere}
 .chip b{color:var(--ink);font-weight:600}
 .chip a{text-decoration:none;border-bottom:1px solid var(--line)}
+/* a chip drawn from state.json (renderState()) stays hidden on every layout until it is drawn; one with nothing to say is removed */
+.chip[hidden]{display:none!important}
 /* The header's two halves (GUIDANCE.md §6, "The header"): from 940 px the intro (the title, the issue line, the function) fills the
    left half and the tags stand in the right half beside it, each a small card with its label over its value, growing to fill its line, a
    long one across the half (.wide); under 940 px the two stack and the tags wrap as chips, the label before the value. The topbar (the breadcrumb, the
@@ -442,12 +444,13 @@ footer code{color:var(--ink-2)}
   <p class="function">One sentence on what this repository (or supersystem) provides, and how its systems divide the work.</p>
   <div class="chips">
     <span class="chip"><span class="ck">systems</span> <b id="sys-count">…</b></span>
-    <!-- presenter: the as-is chip takes a date as written, or a time as <time datetime="2026-10-23T01:55:00Z">…</time> (UTC), which the
-         page shows in the viewer's local time with the UTC value as its tooltip (GUIDANCE.md §6, "Times") -->
-    <span class="chip"><span class="ck">as-is at</span> <b>branch sha</b> · YYYY-MM-DD</span>
-    <!-- presenter: the number opens the GitHub issue; the slug, written <a data-board="N">, opens the issue's plan board (BOARDS in the
-         script) and is plain text while it has none (GUIDANCE.md §5) -->
-    <span class="chip"><span class="ck">last amended by</span> <a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener"><b>#N</b></a> <a data-board="N">issue-slug</a></span>
+    <!-- presenter: the as-is stamp, the last amendment and the "written at" mark are drawn from state.json (the state block below;
+         system/RULES.md §2): write them there, never here. The as-is stamp reads "<ref> @ <sha> · <date>", or "<branch> @ <sha> · not yet
+         landed" while the page shows a feature branch; a UTC time is shown in the viewer's local time (GUIDANCE.md §6, "Times"). The last
+         amendment's number opens the GitHub issue, its title the issue's plan board (BOARDS in the script; GUIDANCE.md §5). -->
+    <span class="chip" id="chip-asis" hidden></span>
+    <span class="chip" id="chip-amended" hidden></span>
+    <span class="chip" id="chip-written" hidden></span>
     <span class="chip model"><span class="ck">C4 model</span> <b>workspace.dsl</b> · <span id="dsl-stats">…</span></span>
   </div>
 </header>
@@ -501,7 +504,7 @@ footer code{color:var(--ink-2)}
 
   <section class="view" role="tabpanel" id="p-threads" aria-labelledby="t-threads" hidden>
     <h2>Threads and processes across systems</h2>
-    <p class="lede">One column per system that starts a thread or a child process. Click one for details. <!-- presenter: one .tside per system that starts anything; one .thread per thread or process, data-t a key of MODEL.threads and data-sys the owning system's slug. A system that starts nothing gets no column; say so in a note when it matters (e.g. "runs on the caller's threads"). --></p>
+    <p class="lede">One column per system that starts a thread or a child process. Click one for details. <!-- presenter: one .tside per system that starts anything; one .thread per thread or process, data-t a key of MODEL.threads and data-sys the owning system's slug. A thread is drawn planned from the data: while its system (MODEL.threads sys) is planned in the registry, or the DSL element its part names is Planned; never a hand-written class. A system that starts nothing gets no column; say so in a note when it matters (e.g. "runs on the caller's threads"). --></p>
     <div class="threads">
       <div class="tside"><h3><span class="sw" data-sys="system-alpha"></span>system-alpha</h3>
         <div class="thread" data-sys="system-alpha" data-t="alpha-worker" tabindex="0" role="button"><span class="n">alpha-worker</span><span class="pill eager">eager</span><span class="r">what runs here</span></div>
@@ -511,7 +514,7 @@ footer code{color:var(--ink-2)}
         <div class="thread" data-sys="system-beta" data-t="beta-helper" tabindex="0" role="button"><span class="n">beta-helper <span class="k">process</span></span><span class="pill cond">if …</span><span class="r">a child process the system spawns, and when</span></div>
       </div>
       <div class="tside"><h3><span class="sw" data-sys="system-gamma"></span>system-gamma <small>planned</small></h3>
-        <div class="thread planned" data-sys="system-gamma" data-t="gamma-loop" tabindex="0" role="button"><span class="n">gamma-loop</span><span class="pill planned">planned</span><span class="r">what the plan says it will run (#N)</span></div>
+        <div class="thread" data-sys="system-gamma" data-t="gamma-loop" tabindex="0" role="button"><span class="n">gamma-loop</span><span class="pill planned">planned</span><span class="r">what the plan says it will run (#N)</span></div>
       </div>
     </div>
     <!-- generated: the systems with a column, then the pill encodings, process and planned -->
@@ -568,7 +571,8 @@ footer code{color:var(--ink-2)}
 <section class="guarantees" aria-label="Guarantees">
   <!-- presenter: what a consumer can rely on, across the systems of this page: the seven standard bubbles, each covering every
        system with one row (its swatch and slug, then the fact in a few words, read from that system's page or code); a planned
-       system's row is dashed (class planned) and says only that nothing is built to guarantee yet, with its issue. A fact that cannot be established is a gap (<span class="gap">…</span>), never a
+       system's row is tied to it, data-part="sys:<slug>", so it is dashed while the registry says planned, and says only that nothing
+       is built to guarantee yet, with its issue. A fact that cannot be established is a gap (<span class="gap">…</span>), never a
        guess. Add a bubble where the repository has another guarantee worth stating; removing a standard one is a divergence. -->
   <h2>Guarantees</h2>
   <div class="bubbles">
@@ -576,44 +580,44 @@ footer code{color:var(--ink-2)}
       <table class="gtbl"><tbody>
         <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td><code>kotlin.Result</code>; typed failures …; retries …</td></tr>
         <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td>…</td></tr>
-        <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
+        <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
       </tbody></table></div>
     <div class="bubble"><h3>Extension points</h3>
       <table class="gtbl"><tbody>
         <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td><code>SeamType</code> <span class="badge">Stable Core</span></td></tr>
         <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td><code>Port</code> <span class="badge">Experimental · @MarkerName</span></td></tr>
-        <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
+        <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
       </tbody></table></div>
     <div class="bubble"><h3>Test levels <small>n classes</small></h3>
       <!-- presenter: test classes per system per test level, counted from each system's testing.<level> packages and headed by its test level and package name ("L1 gating" … "L5 UAT"); test levels are not work levels (GUIDANCE.md §4); link the test-inspector report when one exists -->
       <div class="scroll"><table class="gtbl"><thead><tr><th>System</th><th class="n">L1 gating</th><th class="n">L2 component</th><th class="n">L3 integration</th><th class="n">L4a deterministic</th><th class="n">L4b e2e</th><th class="n">L4c non-functional</th><th class="n">L5 UAT</th></tr></thead><tbody>
         <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td></tr>
         <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td></tr>
-        <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td colspan="7">planned (#N) — no tests yet</td></tr>
+        <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td colspan="7">planned (#N) — no tests yet</td></tr>
       </tbody></table></div></div>
     <div class="bubble"><h3>Compatibility &amp; versioning</h3>
       <table class="gtbl"><tbody>
         <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td><code>x.y.z</code> · ABI dump checked · deprecate, don't break</td></tr>
         <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td><code>x.y.z</code> · <span class="gap">not checked</span> · legacy: may break freely</td></tr>
-        <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
+        <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
       </tbody></table></div>
     <div class="bubble"><h3>Thread safety</h3>
       <table class="gtbl"><tbody>
         <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td>safe to share: … · confined: …</td></tr>
         <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td>…</td></tr>
-        <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
+        <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
       </tbody></table></div>
     <div class="bubble"><h3>Resources to close</h3>
       <table class="gtbl"><tbody>
         <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td><code>stop()</code> — releases … · skipped: …</td></tr>
         <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td>nothing to close</td></tr>
-        <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
+        <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
       </tbody></table></div>
     <div class="bubble"><h3>On your classpath</h3>
       <table class="gtbl"><tbody>
         <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td><code>group:artifact:version</code></td></tr>
         <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td>…</td></tr>
-        <tr class="planned"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
+        <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
       </tbody></table></div>
   </div>
 </section>
@@ -651,6 +655,10 @@ footer code{color:var(--ink-2)}
   "repo": "ORG/REPO",
   "updated": "YYYY-MM-DD",
   "systems": [
+    {"slug": "repo", "name": "REPO", "kind": "repo", "parent": null, "status": "built",
+     "function": "One sentence on the repository.", "paths": ["."], "version": null,
+     "asIs": {"ref": "main", "sha": "sha", "date": "YYYY-MM-DD"}, "lastAmended": {"issue": 1, "sha": "sha"},
+     "page": "index.html", "dsl": "workspace.dsl"},
     {"slug": "system-alpha", "name": "system-alpha", "kind": "system", "parent": null, "status": "built",
      "function": "What system alpha does, in one sentence.", "paths": ["system-alpha/"], "version": "x.y.z",
      "asIs": {"ref": "main", "sha": "sha", "date": "YYYY-MM-DD"}, "lastAmended": {"issue": 0, "sha": "sha"},
@@ -660,8 +668,21 @@ footer code{color:var(--ink-2)}
      "asIs": {"ref": "main", "sha": "sha", "date": "YYYY-MM-DD"}, "lastAmended": {"issue": 0, "sha": "sha"},
      "page": "system-beta/index.html", "dsl": "system-beta/workspace.dsl"},
     {"slug": "system-gamma", "name": "system-gamma", "kind": "system", "parent": null, "status": "planned",
-     "function": "What it will do.", "paths": [], "plannedBy": {"issue": 0, "architecture": "docs/plans/N-slug/architecture.md"}}
+     "function": "What it will do.", "paths": [], "plannedBy": {"issue": 0, "architecture": "docs/plans/N-slug/architecture.md"},
+     "c4": {"workspace.dsl": "repo.gamma"}}
   ]
+}
+</script>
+
+<!-- The page's state. A verbatim copy of state.json beside the page (scripts/embed.js state.json index.html state): its stamp and last
+     amendment, which apply-state.js restamps on a feature branch and at the landing (system/RULES.md §10). -->
+<script type="application/json" id="state">
+{
+  "slug": "repo",
+  "version": null,
+  "asIs": {"ref": "main", "sha": "sha", "date": "YYYY-MM-DD"},
+  "lastAmended": {"issue": 1, "title": "issue-slug", "sha": "sha"},
+  "written": {"sha": "sha"}
 }
 </script>
 
@@ -748,6 +769,9 @@ const REPO="https://github.com/"+REG.repo;
 const BOARDS={}; // presenter: issue number → its plan board relative to this page, on this one line, e.g. {"38":"../../plans/38-slug/dashboard.html"}
 const boardOf=n=>Object.prototype.hasOwnProperty.call(BOARDS,String(n))?BOARDS[String(n)]:null;
 const ghIssue=n=>`${REPO}/issues/${n}`;
+/* The page's state (system/RULES.md §2): a verbatim copy of state.json, its stamp and last amendment, which apply-state.js restamps on a
+   feature branch and at the landing; renderState() draws the header's chips from it. */
+const STATE=(()=>{ try{ return JSON.parse(document.getElementById("state").textContent)||{}; }catch(e){ return {}; } })();
 const ilink=n=>{ const b=boardOf(n); return b?`<a href="${esc(b)}" title="#${esc(n)}: its plan board">#${esc(n)}</a>`:`<a href="${ghIssue(n)}" target="_blank" rel="noopener">#${esc(n)}</a>`; };
 const pair=(n,title)=>{ const b=boardOf(n); return `<a href="${ghIssue(n)}" target="_blank" rel="noopener">#${esc(n)}</a> ${b?`<a href="${esc(b)}" title="#${esc(n)}: its plan board">${esc(title)}</a>`:esc(title)}`; };
 function linkIssues(root){ const r=root||document;
@@ -766,6 +790,15 @@ const SLOTS=6, bySlug=slug=>SYSTEMS.find(s=>s.slug===slug);
 function sysTop(slug){ let s=bySlug(slug); while(s&&bySlug(s.parent)) s=bySlug(s.parent); return s; }
 const TOPS=SYSTEMS.filter(s=>!bySlug(s.parent));
 function sysColour(slug){ const i=TOPS.indexOf(sysTop(slug)); return i>=0&&i<SLOTS?`var(--sys-${i+1})`:"var(--muted)"; }
+/* Planned, from the data (system/RULES.md §2, "Planned parts"): an item tied to a system (sys:"slug" on a structure box, a thread, a flow's
+   end, a lifeline; data-part="sys:<slug>" on hand-written HTML) is planned while the registry says the system is, so apply-state.js
+   marks it built by editing systems.json alone; one tied to a DSL element (part:"<element id>", data-part="<element id>") while the
+   element carries the Planned tag. A literal planned:true still draws an untied item dashed. */
+const sysPlanned=slug=>{ const s=bySlug(slug); return !!s&&s.status==="planned"; };
+const partPlanned=ref=>typeof ref==="string"&&(ref.startsWith("sys:")?sysPlanned(ref.slice(4)):!!el(ref)&&el(ref).tags.includes("Planned"));
+const isPlanned=x=>!!x&&typeof x==="object"&&(x.planned===true||x.kind==="planned"||partPlanned(x.part)||(!!x.sys&&sysPlanned(x.sys)));
+function applyParts(root){ (root||document).querySelectorAll("[data-part]").forEach(e=>e.classList.toggle("planned",partPlanned(e.dataset.part)));
+  document.querySelectorAll(".thread[data-t]").forEach(e=>{ const t=MODEL.threads[e.dataset.t]; if(t) e.classList.toggle("planned",isPlanned(t)); }); }
 function paintSystems(root){ (root||document).querySelectorAll("[data-sys]").forEach(e=>e.style.setProperty("--c",sysColour(e.dataset.sys))); }
 /* Legend entries for a set of systems: one per top-level system, in slot order, then "other" when any folded. */
 function sysKey(slugs,cls){ const tops=TOPS.filter(t=>slugs.some(s=>sysTop(s)===t)), more=slugs.some(s=>{ const i=TOPS.indexOf(sysTop(s)); return i<0||i>=SLOTS; });
@@ -775,7 +808,7 @@ function renderSystems(){
   $("#syscards").innerHTML=SYSTEMS.map(s=>{
     const planned=s.status==="planned";
     /* each entry is HTML: escaped text, and the as-is date or time through when() */
-    const meta=planned?[(s.plannedBy||{}).issue?`planned by ${ilink(s.plannedBy.issue)}`:"planned"]:[esc(`v${s.version||"?"}`), s.asIs?`as-is ${esc(s.asIs.ref)} ${esc(s.asIs.sha)} · ${when(s.asIs.date)}`:"", s.lastAmended?esc(`amended by #${s.lastAmended.issue}`):""].filter(Boolean);
+    const meta=planned?[(s.plannedBy||{}).issue?`planned by ${ilink(s.plannedBy.issue)}`:"planned"]:[esc(`v${s.version||"?"}`), s.asIs?`as-is ${esc(s.asIs.ref)} @ ${esc(s.asIs.sha)} · ${s.asIs.landed===false?"not yet landed":when(s.asIs.date)}`:"", s.lastAmended?esc(`amended by #${s.lastAmended.issue}`):""].filter(Boolean);
     // A built system the repository gives no page yet is a card, not a link (never a dead href="#").
     const linked=!planned&&!!s.page, tag=linked?"a":"span", href=linked?` href="${esc(s.page)}"`:"";
     return `<${tag} class="syscard ${planned?"planned":"built"}"${href} data-slug="${esc(s.slug)}" style="--c:${sysColour(s.slug)}" tabindex="0"><div class="st">${planned?"planned · no page yet":linked?"built":"built · no page yet"}</div><div class="nm">${esc(s.name)}</div><div class="fn">${esc(s.function||"")}</div><div class="meta">${meta.map(m=>`<span>${m}</span>`).join("")}</div></${tag}>`;
@@ -799,7 +832,7 @@ const MODEL = {
   structure:{
     // A 1000-wide viewBox, `height` tall. Lanes: [text, x, y, anchor]. Notes: {x, y, lines}.
     // Nodes: sys = the registry slug (its colour); container = a supersystem box its systems sit inside (nesting is composition);
-    // planned = dashed and faded; d = what the inspector shows (role, issues). deps: [from, to, label, planned?] — an arrow from
+    // planned (dashed and faded) follows the system's registry status; planned:true only for a box tied to no planned system; d = what the inspector shows (role, issues). deps: [from, to, label, planned?] (planned too when either end is) — an arrow from
     // a system to what it depends on, labelled with how (api, implementation, a runtime call).
     height:330,
     lanes:[["BUILT",40,30,"start"],["PLANNED",620,30,"start"]],
@@ -807,16 +840,16 @@ const MODEL = {
     nodes:[
       {id:"alpha",sys:"system-alpha",x:40,y:44,w:260,h:60,t:"system-alpha",s:"what it does · x.y.z",d:{role:"What system alpha is for, in a line.",issues:[]}},
       {id:"beta",sys:"system-beta",x:40,y:194,w:260,h:60,t:"system-beta",s:"what it does · x.y.z",d:{role:"What system beta is for.",issues:[]}},
-      {id:"gamma",sys:"system-gamma",planned:true,x:620,y:194,w:260,h:60,t:"system-gamma",s:"planned · issue #N",d:{role:"What it will do, per its architecture.",issues:[]}}
+      {id:"gamma",sys:"system-gamma",x:620,y:194,w:260,h:60,t:"system-gamma",s:"planned · issue #N",d:{role:"What it will do, per its architecture.",issues:[]}}
     ],
-    deps:[["alpha","beta","api"],["gamma","beta","would depend on",true]]
+    deps:[["alpha","beta","api"],["gamma","beta","would depend on"]]
   },
   // Threads and processes, keyed by name: sys (owning system's slug), kind ("thread" | "process"), created, runs, note, issues.
   threads:{
     "alpha-worker":{sys:"system-alpha",kind:"thread",created:"eagerly, at construction",runs:"what runs on it.",note:"",issues:[]},
     "beta-io":{sys:"system-beta",kind:"thread",created:"lazily, on first use",runs:"what runs on it.",note:""},
     "beta-helper":{sys:"system-beta",kind:"process",created:"only when …",runs:"what the child process does, and who stops it.",note:""},
-    "gamma-loop":{sys:"system-gamma",kind:"thread",created:"planned — not built",runs:"what the architecture says it will run.",note:"Planned by issue #N.",planned:true}
+    "gamma-loop":{sys:"system-gamma",kind:"thread",created:"planned — not built",runs:"what the architecture says it will run.",note:"Planned by issue #N."}
   },
   // Decision paths: the system page's shape (controls, a node grid, edges, rules(state) → {path, outcome, irrelevant}).
   // An end (k:"t") with sys:"slug" takes that system's colour; one with lvl a status colour; planned:true draws it dashed.
@@ -826,7 +859,7 @@ const MODEL = {
      names:{a:"needs A",b:"needs B",c:"needs C"},
      nodes:{IN:{c:0,r:0,k:"p",t:["the consumer","has a need"]},Q:{c:1,r:0,k:"d",t:["which","need?"]},A:{c:2,r:0,k:"t",sys:"system-alpha",t:["depend on","system-alpha"]},
             RT:{c:2,r:1,k:"d",t:["runtime","the JVM?"]},B:{c:3,r:1,k:"t",sys:"system-beta",t:["depend on","system-beta"]},NONE:{c:3,r:2,k:"t",lvl:"NONE",t:["nothing","here yet"]},
-            C:{c:2,r:3,k:"t",sys:"system-gamma",planned:true,t:["system-gamma","planned · #N"]}},
+            C:{c:2,r:3,k:"t",sys:"system-gamma",t:["system-gamma","planned · #N"]}},
      edges:[["IN","Q"],["Q","A","A"],["Q","RT","B"],["RT","B","yes"],["RT","NONE","no"],["Q","C","C"]],
      rules(s){ const p=["IN","Q"], R=(outcome,irrelevant)=>({path:p,outcome,irrelevant:irrelevant||[]});
        if(s.need==="a"){ p.push("A"); return R("system-alpha covers it on any runtime.",["rt"]); }
@@ -855,11 +888,12 @@ function renderStructure(){
   arrowDefs(svg,"darr","var(--ink-2)");
   S.lanes.forEach(([l,x,y,a])=>txt(svg,x,y,l,"lane",a));
   S.nodes.forEach(n=>{
-    const g=mk("g",{class:`snode${n.container?" container":""}${n.planned?" planned":""}`,tabindex:0,role:"button","data-id":n.id,"aria-label":n.t,style:`--c:${sysColour(n.sys)}`},svg);
+    const g=mk("g",{class:`snode${n.container?" container":""}${isPlanned(n)?" planned":""}`,tabindex:0,role:"button","data-id":n.id,"aria-label":n.t,style:`--c:${sysColour(n.sys)}`},svg);
     mk("rect",{x:n.x,y:n.y,width:n.w,height:n.h,rx:6},g); txt(g,n.x+10,n.y+19,n.t,"t"); txt(g,n.x+10,n.y+34,Array.isArray(n.s)?n.s:[n.s],"s");
     const go=()=>selectNode(n.id); g.addEventListener("click",go); g.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } });
   });
-  S.deps.forEach(([a,b,label,planned])=>{
+  S.deps.forEach(([a,b,label,lit])=>{
+    const planned=!!lit||isPlanned(S.nodes.find(x=>x.id===a))||isPlanned(S.nodes.find(x=>x.id===b));
     const A=box(a),B=box(b),[ax,ay]=edgePoint(A,B[0]+B[2]/2,B[1]+B[3]/2),[bx,by]=edgePoint(B,A[0]+A[2]/2,A[1]+A[3]/2), g=mk("g",{class:"sdep"+(planned?" planned":"")},svg);
     mk("path",{d:`M${ax},${ay} L${bx},${by}`,"marker-end":"url(#darr)"},g);
     if(label){ const mx=(ax+bx)/2,my=(ay+by)/2,w=label.length*5.4+12; mk("rect",{class:"lbg",x:mx-w/2,y:my-8,width:w,height:15,rx:7},g); txt(g,mx,my+3,label,"","middle"); }
@@ -872,7 +906,7 @@ function selectNode(id){
   document.querySelectorAll("#svg-structure .snode").forEach(g=>g.classList.toggle("sel",g.dataset.id===id));
   const s=bySlug(n.sys)||{}, d=n.d||{}, nm=k=>esc((S.nodes.find(x=>x.id===k)||{}).t||k);
   const uses=S.deps.filter(x=>x[0]===id), by=S.deps.filter(x=>x[1]===id);
-  let html=`<div class="kicker">${n.container?"SUPERSYSTEM":"SYSTEM"} · ${esc((s.status||(n.planned?"planned":"")).toUpperCase())}</div><div class="name">${esc(n.t)}</div><div class="vis">${esc((s.paths||[]).join(" · "))}</div><p>${esc(d.role||s.function||"")}</p><dl>`;
+  let html=`<div class="kicker">${n.container?"SUPERSYSTEM":"SYSTEM"} · ${esc((s.status||(isPlanned(n)?"planned":"")).toUpperCase())}</div><div class="name">${esc(n.t)}</div><div class="vis">${esc((s.paths||[]).join(" · "))}</div><p>${esc(d.role||s.function||"")}</p><dl>`;
   if(uses.length) html+=`<dt>Depends on</dt><dd>${uses.map(x=>`→ <b>${nm(x[1])}</b>${x[2]?" — "+esc(x[2]):""}`).join("<br>")}</dd>`;
   if(by.length) html+=`<dt>Used by</dt><dd>${by.map(x=>`← <b>${nm(x[0])}</b>${x[2]?" — "+esc(x[2]):""}`).join("<br>")}</dd>`;
   if(s.page) html+=`<dt>Dashboard</dt><dd><a href="${esc(s.page)}">${esc(s.page)}</a></dd>`;
@@ -886,7 +920,7 @@ function selectNode(id){
 function selectThread(id){
   const t=MODEL.threads[id]; if(!t) return;
   document.querySelectorAll(".thread").forEach(x=>x.classList.toggle("sel",x.dataset.t===id));
-  let html=`<div class="kicker">${esc((t.kind||"thread").toUpperCase())} · ${esc(((bySlug(t.sys)||{}).name||t.sys||"").toUpperCase())}${t.planned?" · PLANNED":""}</div><div class="name">${esc(id)}</div><div class="vis">created ${esc(t.created)}</div><p>${esc(t.runs)}</p><dl>`;
+  let html=`<div class="kicker">${esc((t.kind||"thread").toUpperCase())} · ${esc(((bySlug(t.sys)||{}).name||t.sys||"").toUpperCase())}${isPlanned(t)?" · PLANNED":""}</div><div class="name">${esc(id)}</div><div class="vis">created ${esc(t.created)}</div><p>${esc(t.runs)}</p><dl>`;
   if(t.note) html+=`<dt>Note</dt><dd>${esc(t.note)}</dd>`;
   if(t.issues&&t.issues.length) html+=`<dt>Open issues</dt><dd>${t.issues.map(ilink).join(" · ")}</dd>`;
   inspect(html+"</dl>");
@@ -940,6 +974,7 @@ const C4=parseDsl(document.getElementById("dsl").textContent);
 $("#dsl-stats").textContent=`${C4.order.length} elements · ${C4.rels.length} relationships · ${C4.views.length} views`;
 
 const el=id=>C4.elements[id];
+applyParts();
 function isWithin(id,scope){ let e=el(id); while(e){ if(e.id===scope) return true; e=el(e.parent); } return false; }
 function topOf(id){ let e=el(id); while(e&&e.parent) e=el(e.parent); return e?e.id:id; }
 function childIn(id,scope){ let e=el(id); while(e){ if(e.parent===scope) return e.id; e=el(e.parent); } return null; }
@@ -1180,11 +1215,11 @@ function renderFlow(){
     if(A.r===B.r){ d=`M${fx(A)+NW},${fy(A)+NH/2} L${fx(B)},${fy(B)+NH/2}`; lx=(fx(A)+NW+fx(B))/2; ly=fy(A)+NH/2-5; anchor="middle"; }
     else if(A.c===B.c){ d=`M${fx(A)+NW/2},${fy(A)+NH} L${fx(B)+NW/2},${fy(B)}`; lx=fx(A)+NW/2+6; ly=(fy(A)+NH+fy(B))/2+3; }
     else { const tx=fx(A)+NW+10, ty=fy(B)+NH/2; d=`M${fx(A)+NW},${fy(A)+NH/2} L${tx},${fy(A)+NH/2} L${tx},${ty} L${fx(B)},${ty}`; lx=tx+4; ly=ty-5; }
-    mk("path",{d,class:"fedge"+(A.planned||B.planned?" planned":""),"marker-end":"url(#farr)","data-e":a+">"+b},svg);
+    mk("path",{d,class:"fedge"+(isPlanned(A)||isPlanned(B)?" planned":""),"marker-end":"url(#farr)","data-e":a+">"+b},svg);
     if(label){ const t=txt(svg,lx,ly,label,"flabel",anchor); t.dataset.e=a+">"+b; }
   });
   Object.entries(F.nodes).forEach(([id,n])=>{
-    const x=fx(n),y=fy(n), g=mk("g",{class:"fnode "+n.k+(n.planned?" planned":""),"data-id":id},svg);
+    const x=fx(n),y=fy(n), g=mk("g",{class:"fnode "+n.k+(isPlanned(n)?" planned":""),"data-id":id},svg);
     if(n.k==="d") mk("polygon",{points:`${x+12},${y} ${x+NW-12},${y} ${x+NW},${y+NH/2} ${x+NW-12},${y+NH} ${x+12},${y+NH} ${x},${y+NH/2}`},g);
     else mk("rect",{x,y,width:NW,height:NH,rx:n.k==="t"?3:6},g);
     // The stripe's colour goes in style, not the fill attribute: .fnode.t rect would otherwise repaint it surface-grey.
@@ -1222,9 +1257,9 @@ function renderSeq(){
   svg.setAttribute("viewBox",`0 0 1000 ${H}`);
   arrowDefs(svg,"sarr2","var(--ink-2)");
   S.phases.forEach(([label,a,b])=>{ const g=mk("g",{class:"phase"},svg); const y=Y0+a*DY-24, h=(b-a+1)*DY; mk("rect",{x:4,y,width:992,height:h,rx:4},g); txt(g,990,y+11,label,"","end"); });
-  S.lifelines.map(lane).forEach((l,i)=>{ mk("line",{x1:LX(i),y1:40,x2:LX(i),y2:H-4,class:"life"+(l.planned?" planned":"")},svg); const a={class:"lh"+(l.side?" "+l.side:"")+(l.planned?" planned":"")}; if(l.sys){ a["data-sys"]=l.sys; a.style=`--c:${sysColour(l.sys)}`; } const g=mk("g",a,svg); mk("rect",{x:LX(i)-64,y:8,width:128,height:28,rx:4},g); txt(g,LX(i),26,l.n,"","middle"); });
+  S.lifelines.map(lane).forEach((l,i)=>{ mk("line",{x1:LX(i),y1:40,x2:LX(i),y2:H-4,class:"life"+(isPlanned(l)?" planned":"")},svg); const a={class:"lh"+(l.side?" "+l.side:"")+(isPlanned(l)?" planned":"")}; if(l.sys){ a["data-sys"]=l.sys; a.style=`--c:${sysColour(l.sys)}`; } const g=mk("g",a,svg); mk("rect",{x:LX(i)-64,y:8,width:128,height:28,rx:4},g); txt(g,LX(i),26,l.n,"","middle"); });
   S.steps.forEach((s,i)=>{
-    const y=Y0+i*DY, g=mk("g",{class:"msg"+(s.ret?" ret":"")+(s.planned?" planned":""),"data-i":i,tabindex:0,role:"button","aria-label":`step ${i+1}: ${s.l}`},svg);
+    const y=Y0+i*DY, g=mk("g",{class:"msg"+(s.ret?" ret":"")+(isPlanned(s)?" planned":""),"data-i":i,tabindex:0,role:"button","aria-label":`step ${i+1}: ${s.l}`},svg);
     if(s.self){ const x=LX(s.f); mk("path",{d:`M${x},${y-10} L${x+34},${y-10} L${x+34},${y+8} L${x+2},${y+8}`,"marker-end":"url(#sarr2)"},g); txt(g,x+42,y+2,s.l,""); txt(g,x+42,y-8,`${i+1}`,"num"); }
     else { const a=LX(s.f), b=LX(s.t), dir=b>a?1:-1; mk("line",{x1:a,y1:y,x2:b-dir*2,y2:y,"marker-end":s.ret?"url(#sarr2-open)":"url(#sarr2)"},g); const mx=(a+b)/2, w=s.l.length*5.3+10; mk("rect",{class:"lbg",x:mx-w/2,y:y-17,width:w,height:14,rx:2},g); txt(g,mx,y-6,s.l,"","middle"); txt(g,Math.min(a,b)-8,y+3,`${i+1}`,"num","end"); }
     g.addEventListener("click",()=>gotoStep(i)); g.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); gotoStep(i); } });
@@ -1235,17 +1270,31 @@ function renderSeq(){
 /* The legend for the sequence: the systems on its lifelines, the consumer and outside parties, the line encodings, planned. */
 function seqKey(S){
   const L=S.lifelines.map(lane), sw={consumer:"con",external:"ext"}, sides=[...new Set(L.map(l=>l.side).filter(Boolean))];
-  $("#seq-key").innerHTML=sysKey(L.filter(l=>l.sys).map(l=>l.sys),"sys")+sides.map(k=>`<span><i class="${sw[k]||""}"></i>${esc((MODEL.sides||{})[k]||k)}</span>`).join("")+`<span><i class="ln"></i>call or send</span>`+(S.steps.some(s=>s.ret)?`<span><i class="ln ret"></i>return: open head, thin line</span>`:"")+(S.phases.length?`<span><i class="band"></i>phase</span>`:"")+(S.steps.some(s=>s.planned)||S.lifelines.some(l=>l&&l.planned)?`<span><i class="ln dash pln"></i>planned, not built (dashed, faded)</span>`:"");
+  $("#seq-key").innerHTML=sysKey(L.filter(l=>l.sys).map(l=>l.sys),"sys")+sides.map(k=>`<span><i class="${sw[k]||""}"></i>${esc((MODEL.sides||{})[k]||k)}</span>`).join("")+`<span><i class="ln"></i>call or send</span>`+(S.steps.some(s=>s.ret)?`<span><i class="ln ret"></i>return: open head, thin line</span>`:"")+(S.phases.length?`<span><i class="band"></i>phase</span>`:"")+(S.steps.some(isPlanned)||S.lifelines.map(lane).some(isPlanned)?`<span><i class="ln dash pln"></i>planned, not built (dashed, faded)</span>`:"");
 }
 function gotoStep(i){
   const S=MODEL.sequence, L=S.lifelines.map(lane); seq.cur=(i+S.steps.length)%S.steps.length; const s=S.steps[seq.cur];
   document.querySelectorAll("#svg-seq .msg").forEach(g=>{ const k=+g.dataset.i; g.classList.toggle("cur",k===seq.cur); g.classList.toggle("future",k>seq.cur); });
   $("#seq-pos").textContent=`step ${seq.cur+1} of ${S.steps.length}`;
-  inspect(`<div class="kicker">${esc(S.kicker||"SEQUENCE")} · STEP ${seq.cur+1}${s.planned?" · PLANNED":""}</div><div class="name">${esc(L[s.f].n)} → ${esc(L[s.t].n)}</div><div class="vis">${esc(s.l)}</div><p>${esc(s.n)}</p>`);
+  inspect(`<div class="kicker">${esc(S.kicker||"SEQUENCE")} · STEP ${seq.cur+1}${isPlanned(s)?" · PLANNED":""}</div><div class="name">${esc(L[s.f].n)} → ${esc(L[s.t].n)}</div><div class="vis">${esc(s.l)}</div><p>${esc(s.n)}</p>`);
 }
 $("#seq-prev").addEventListener("click",()=>gotoStep(seq.cur-1));
 $("#seq-next").addEventListener("click",()=>gotoStep(seq.cur+1));
 $("#seq-play").addEventListener("click",e=>{ const b=e.currentTarget; if(seq.timer){ clearInterval(seq.timer); seq.timer=null; b.textContent="play"; b.setAttribute("aria-pressed","false"); } else { seq.timer=setInterval(()=>gotoStep(seq.cur+1),1600); b.textContent="pause"; b.setAttribute("aria-pressed","true"); } });
+
+/* ---------- The header's stamps (state.json) ----------
+   The as-is stamp ("<ref> @ <sha> · <date>", or "<branch> @ <sha> · not yet landed" while the page shows a feature branch), the last
+   amendment (its number opens the GitHub issue, its title the plan board: linkIssues() resolves it at load) and, while the panels were
+   written at another commit than the stamp names, "written at <sha>". A chip with nothing to say is removed. */
+function renderState(){
+  const S=STATE||{}, a=S.asIs||{}, la=S.lastAmended||{}, w=S.written||{};
+  const set=(id,html)=>{ const e=document.getElementById(id); if(!e) return; if(!html){ e.remove(); return; } e.hidden=false; e.innerHTML=html; };
+  set("chip-version",S.version?`<span class="ck">version</span> <b>${esc(S.version)}</b>`:"");
+  set("chip-asis",a.sha?`<span class="ck">as-is at</span> <b>${esc(a.ref||"?")} @ ${esc(a.sha)}</b> · ${a.landed===false?"not yet landed":when(a.date)}`:"");
+  set("chip-amended",Number.isInteger(la.issue)&&la.issue>0?`<span class="ck">last amended by</span> <a href="${ghIssue(la.issue)}" target="_blank" rel="noopener"><b>#${la.issue}</b></a>${la.title?` <a data-board="${la.issue}">${esc(la.title)}</a>`:""}${la.sha?` · ${esc(la.sha)}`:""}`:"");
+  set("chip-written",w.sha&&a.sha&&w.sha!==a.sha?`<span class="ck">written at</span> <b>${esc(w.sha)}</b>`:"");
+}
+renderState();
 
 /* ---------- Tabs ---------- */
 const tabs=[...document.querySelectorAll(".tab")];

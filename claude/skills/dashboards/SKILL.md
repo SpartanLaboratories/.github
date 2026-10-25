@@ -29,7 +29,7 @@ Two sets, one presenter, one shared rulebook.
 | Path | What |
 |------|------|
 | `GUIDANCE.md` | The rules shared by both sets: colour coding, legends, planned/pending drawn dashed, themes, self-contained pages, facts, Context, divergence, checks. Read it first, every time. |
-| `system/RULES.md` | The system-board ruleset. `system/template/` (system and supersystem pages, registry), `system/scripts/` (`check-page.js`, `embed.js`, `deviation.js`, `levelrefs.js`, `palette.js` (the shared system palette and the status-hue rule), and `cliargs.js`, the strict option parser every script uses: an unknown option exits 2 with the usage, `--help` prints it), `system/examples/webtools-udp/`. |
+| `system/RULES.md` | The system-board ruleset. `system/template/` (system and supersystem pages, registry, a page's `state.json`), `system/scripts/` (`check-page.js`, `embed.js`, `deviation.js`, `levelrefs.js`, `palette.js` (the shared system palette and the status-hue rule), `apply-state.js`, the data-only path of a state page, below, with `statelib.js`, and `cliargs.js`, the strict option parser every script uses: an unknown option exits 2 with the usage, `--help` prints it), `system/examples/webtools-udp/`. |
 | `verify/` | `verify-templates.js`, which verifies every template once (the full browser pass over the fixtures in `verify/fixtures/`) and records its hash in `verified.json`. Pages made from a verified template are checked only where they deviate (`GUIDANCE.md` §8). Run it after every template change. |
 | `plan/RULES.md` | The plan-board ruleset: the data model, the events that update a board, the WIP strip and its step panel, the live updates, the work board. `plan/template/` (issue page, `plan.json` skeleton, work board), `plan/scripts/` (`new.js`, `embed.js` (which also writes each page's live sidecar, `plan.js` or `board.js`), `check.js`, `board.js`, and `apply-event.js`, the fast path of a plan-board event, below), `plan/examples/38-handshake-empty-name/`. |
 
@@ -47,6 +47,20 @@ changes on a failure (exit 1). Its summary ends the job when it says `enrich: no
 enriches the board from the folder's documents: the columns (the Verdict and As built cells as lists of statements, each with its
 reference into the plan, `plan/RULES.md` §2), the outcomes, the impact, the foundation at `sized`.
 What the script decides and what the presenter adds is in `plan/RULES.md` §4, "The fast path".
+
+## The data-only path of a state page
+
+At every `implementation-stage` request on a branch, and at the landing, the admin team runs, itself:
+
+    node ~/.claude/skills/dashboards/system/scripts/apply-state.js --event <request.json> --worktree <path> [--repo <owner/repo>]
+
+It stamps the pages of the systems the branch touches and the shared pages (their supersystems, the repository page,
+`systems.json`) "as-is at <branch> @ <sha> · not yet landed" (at the landing, the merge commit on the default branch), marks the
+parts the request names built or planned in the DSL and the registry (every page draws a part planned from that data), re-embeds,
+and checks every page it wrote without a browser pass (`check-page.js --auto --no-browser`), in well under a second on a repository
+like WebTools; nothing changes on a failure (exit 1). Its summary ends the job when it says `enrich: no`; with `enrich: yes` (and
+`why`) the presenter writes what only the code decides: the prose and figures at the new commit, what the pages say of a part now
+built, a page brought onto the template. What the script decides and what the presenter adds is in `system/RULES.md` §10.
 
 ## Reading order for a job
 
