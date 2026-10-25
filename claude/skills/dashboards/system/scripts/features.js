@@ -137,6 +137,22 @@ const FEATURES = [
   { id: "planned-parts-page", name: "a planned supersystem's card linking the page of its built parts (\"its built parts' page\"), never \"no page yet\"", since: 29, types: ["supersystem"],
     notFor: { system: "no Systems tab: it is the page of one system", "plan-board": "its systems tag links a system's page from the files on disk (embed.js), whatever its status", "work-board": "no system cards: it links the repository page and the boards" },
     test: h => need(/its built parts' page/.test(scripts(h)), "the Systems tab says \"no page yet\" on a planned supersystem whose built parts have a page") },
+  /* admin-team/dashboards-skill/30 */
+  { id: "qa-passes-shown", name: "every qa pass a board records and the pass running (qaShown()), each numbered as an ordinal (1st, 2nd, 3rd)", since: 30, types: BOARDS,
+    notFor: { system: "no qa passes: a state page shows the code at a commit, not a run", supersystem: "no qa passes: a state page shows the code at a commit, not a run" },
+    test: h => { const s = scripts(h); return need(/function qaShown\(/.test(s) && /const ordinal=/.test(s) && /\$\{ordinal\(p\.pass\)\}/.test(s), "the qa passes leave out the pass running, or number the passes 1, 2 rather than 1st, 2nd (qaShown(), ordinal())"); } },
+  { id: "dependency-bubbles", name: "each dependency with its build state (blocking, clear, pre-built) and its locality (repo, org, parent org, external), and what an issue holds up (blocks or enables)", since: 30, types: BOARDS,
+    notFor: { system: "a state page is as-is and names no issue above its Context; its Context lists issues open or closed, not their dependencies", supersystem: "a state page is as-is and names no issue above its Context; its Context lists issues open or closed, not their dependencies" },
+    test: (h, k) => { const s = scripts(h), base = /const depBubble=/.test(s) && /const LOC=\{/.test(s) && /const HOLD=\{/.test(s) && /\.loc\.l4\{/.test(css(h));
+      if (k === "work-board") return need(base && /<th>Depends on<\/th><th>Blocks · enables<\/th>/.test(s) && !/<th>Branch<\/th>|<th>Board<\/th>/.test(s) && /branch <code>/.test(s), "the work board keeps its \"Waits on · blocks\", Branch or Board column, or draws no dependency bubbles (depBubble(), HOLD)");
+      return need(base && /depends on <span class="deplist">/.test(s), "the WIP strip and a unit's inspector list \"waits on\" or \"blocked by\" with no dependency bubbles (depBubble(), unitDeps())"); } },
+  /* admin-team/dashboards-skill/31 */
+  { id: "qa-in-place", name: "the decision not to run another qa pass: a small neutral mark beside the pass whose findings were fixed in place (the on-the-spot route, qaShown())", since: 31, types: BOARDS,
+    notFor: { system: "no qa passes: a state page shows the code at a commit, not a run", supersystem: "no qa passes: a state page shows the code at a commit, not a run" },
+    test: h => { const s = scripts(h); return need(s.includes("const inPlaceMark=") && s.includes("inPlace:") && css(h).includes(".qamark{"), "a pass fixed in place with no further pass reads as unfinished: no mark beside it (qaShown() and inPlaceMark(), .qamark)"); } },
+  { id: "runs-larger", name: "the Runs tab's content larger but Now, each run a labelled card under 880 px", since: 31, types: ["work-board"],
+    notFor: { system: "no runs table: its tabs show the code at a commit", supersystem: "no runs table: its tabs show the code at a commit", "plan-board": "no runs table: one run, its rows a timeline grid sized by its own rules (plan/RULES.md §2)" },
+    test: h => { const c = css(h); return need(c.includes(".tbl{font-size:14.5px") && c.includes(".tbl td:nth-child(3){font-size:12.5px}") && c.includes("@media (max-width:879.98px)"), "the Runs tab keeps the small table (12.5 px everywhere) or scrolls it sideways at phone width"); } },
   /* admin-team/dashboards-skill/24 */
   { id: "finished-steps", name: "finished steps on the progress strip clickable: each shows its snapshot (wip.history) in the step panel, or what survives, reconstructed", since: 24, types: ["plan-board"],
     notFor: { system: "no progress strip: a state page shows the code at a commit, not a run's steps", supersystem: "no progress strip: a state page shows the code at a commit, not a run's steps", "work-board": "no progress strip: one row per run, each run's step as text; its steps are on its own board" },

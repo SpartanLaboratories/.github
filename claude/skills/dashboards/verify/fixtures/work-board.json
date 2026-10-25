@@ -162,7 +162,18 @@
       "created": null,
       "parent": 55,
       "waitsOn": [],
-      "blocks": [],
+      "blocks": [
+        {
+          "issue": 47,
+          "state": "OPEN",
+          "hold": "enables"
+        },
+        {
+          "issue": 62,
+          "state": "OPEN",
+          "hold": "enables"
+        }
+      ],
       "board": "55-http-client-stack/61-build-logic/dashboard.html",
       "folder": "55-http-client-stack/61-build-logic/",
       "branch": null,
@@ -222,17 +233,34 @@
       "waitsOn": [
         {
           "issue": 61,
-          "state": "CLOSED"
+          "state": "CLOSED",
+          "build": "clear",
+          "locality": "local-repository"
         }
       ],
-      "blocks": [],
+      "blocks": [
+        {
+          "issue": 62,
+          "state": "OPEN",
+          "hold": "blocks"
+        }
+      ],
       "board": null,
       "folder": "55-http-client-stack/47-java-23-bytecode/",
       "branch": null,
       "system": "gradle-build",
       "step": "implementation",
       "detail": "Verification fixture: unit 1 landed, unit 2 complete and still in progress, unit 3 up next and blocked by #47.",
-      "qa": [],
+      "qa": [
+        {
+          "pass": 1,
+          "verdict": "changes-requested"
+        },
+        {
+          "pass": 2,
+          "verdict": "approved"
+        }
+      ],
       "qaMax": 3,
       "status": "complete",
       "landed": null,
@@ -248,7 +276,20 @@
       "state": "OPEN",
       "created": null,
       "parent": 55,
-      "waitsOn": [],
+      "waitsOn": [
+        {
+          "issue": 61,
+          "state": "CLOSED",
+          "build": "clear",
+          "locality": "local-repository"
+        },
+        {
+          "issue": 47,
+          "state": "OPEN",
+          "build": "blocking",
+          "locality": "local-repository"
+        }
+      ],
       "blocks": [],
       "board": null,
       "folder": null,
@@ -278,7 +319,23 @@
       "state": "OPEN",
       "created": null,
       "parent": 55,
-      "waitsOn": [],
+      "waitsOn": [
+        {
+          "issue": 62,
+          "state": "OPEN",
+          "build": "blocking",
+          "locality": "local-repository"
+        },
+        {
+          "issue": 9,
+          "repo": "SpartanLaboratories/KotlinBottools",
+          "state": "CLOSED",
+          "stateReason": "COMPLETED",
+          "closedAt": "2026-10-01T00:00:00Z",
+          "build": "pre-built",
+          "locality": "local-organization"
+        }
+      ],
       "blocks": [],
       "board": null,
       "folder": null,
@@ -466,7 +523,16 @@
     },
     {
       "parent": null,
-      "waitsOn": [],
+      "waitsOn": [
+        {
+          "issue": 5,
+          "repo": "square/okhttp",
+          "state": "OPEN",
+          "build": null,
+          "locality": "external-square",
+          "why": "the issue belongs to no tracking issue and its dependency is still open"
+        }
+      ],
       "blocks": [],
       "board": null,
       "folder": null,
@@ -494,7 +560,16 @@
     },
     {
       "parent": null,
-      "waitsOn": [],
+      "waitsOn": [
+        {
+          "issue": 3,
+          "repo": "SpartanLabsGaming/MyGameTools",
+          "state": "OPEN",
+          "build": null,
+          "locality": null,
+          "why": "the issue belongs to no tracking issue and its dependency is still open; SpartanLabsGaming/MyGameTools is in SpartanLabsGaming, which is neither SpartanLaboratories own organization nor its parent organization: no locality rule fits"
+        }
+      ],
       "blocks": [],
       "board": null,
       "folder": null,

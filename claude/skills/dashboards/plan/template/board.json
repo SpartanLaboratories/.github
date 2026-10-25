@@ -42,14 +42,17 @@
       "waitsOn": [
         {
           "issue": 0,
-          "state": "OPEN"
+          "state": "OPEN",
+          "build": "blocking",
+          "locality": "local-repository"
         }
       ],
       "blocks": [
         {
           "issue": 0,
           "repo": "<owner/name, only for another repository>",
-          "state": "OPEN"
+          "state": "OPEN",
+          "hold": "blocks"
         }
       ],
       "board": "<NN-slug/dashboard.html>",
@@ -93,7 +96,9 @@
       "waitsOn": [
         {
           "issue": 0,
-          "state": "OPEN"
+          "state": "OPEN",
+          "build": "blocking",
+          "locality": "local-repository"
         }
       ],
       "blocks": [],

@@ -565,6 +565,10 @@ function setRemediation(w, R, applied, enrich, txt) {
      The implementation stages keep at most one current (mergeStages). */
   const next = { pass: R.pass, ...(R.route || old.route ? { route: R.route || old.route } : {}), ...(steps ? { steps } : {}) };
   if (JSON.stringify(next) !== JSON.stringify(w.remediation || null)) { w.remediation = next; applied.push(`wip.remediation pass ${R.pass}${next.route ? " " + next.route : ""}`); }
+  /* the route is recorded on the pass it answers too, so the decision outlives the loop (wip.remediation is cleared once it ends): every
+     page reads the in-place mark from it (lib.js qaInPlace(), dashboards-skill/31). Only a pass that requested changes and records no route. */
+  const qp = next.route && Array.isArray(w.qa) ? w.qa.find(p => p && p.pass === R.pass) : null;
+  if (qp && qp.verdict === "changes-requested" && qp.route == null) { qp.route = next.route; applied.push(`wip.qa pass ${R.pass} route ${next.route}`); }
 }
 /* wip.open from facts.open ([{text, raised?, ref?, resolved?}]): a new point appended, a known one (by its text) marked resolved. `raised`
    names the event or stage that raised it (plan/RULES.md §3): a time given there is not one, and the event's own label is used; `ref` is a

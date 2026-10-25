@@ -203,7 +203,7 @@ full share of the row (a row spanning every track kept the empty tracks from col
 | **Options weighed** | accepted (green) · partial (yellow) · deferred (yellow, dashed: still open) · declined (red), as the Considered column colours them; a deferred option settled in column 4 takes its settled colour |
 | **Verdicts** | build (solid neutral) · left for later (faded neutral) · not yet written (dashed: pending) |
 | **As built** | every state with its count (pending dashed), then the rows left for later (faded) |
-| **QA passes** | one slot per pass allowed (`wip.qaMax`, three), filled left to right by each pass's result: passed green, minor findings only yellow (every finding minor by severity, or the on-the-spot route), other findings red, the pass running accent; a slot not used empty (solid outline) |
+| **QA passes** | one slot per pass allowed (`wip.qaMax`, three), filled left to right by each pass's result: passed green, minor findings only yellow (every finding minor by severity, or the on-the-spot route), other findings red, the pass running accent (the pass running is derived, `lib.js` `qaShown()`, §5: at qa, or the remediation's current "qa pass n" sub-step); a slot not used empty (solid outline); each pass named by its ordinal, "1st pass: changes requested · 2nd pass: in progress", as on the WIP strip's qa pills (dashboards-skill/30); a last pass whose findings are fixed in place with no further pass says so in the sub-line, "1st pass: changes requested, fixed in place · no 2nd pass" (§5, "QA"; dashboards-skill/31) |
 | **Timeline** (a board that has landed) | the time per phase, one segment per phase sized by its time, in four **neutral ink shades**, faintest to strongest (`GUIDANCE.md` §1): **plan** = sized → plan accepted (the `verdict` milestone), **build** = plan accepted → the first qa pass, **qa** = the first qa pass → the last, **landing** = the last qa pass → the merge; each phase's legend entry, inside the tile, names it with its time ("plan · 1 day", "qa · same day", "build · 3 h" where both bounds carry a time). A phase whose bound is not recorded, or whose bounds are out of order, is left out of the bar and named in the tile's sub-line with the reason ("plan left out: no sizing recorded"); a phase of no length keeps a sliver, so every phase the legend names is drawn. **The figure is the sum of the phases the bar draws** (admin-team/dashboards-skill/28), never baseline to built: a phase left out is not summed, and the sub-line names it; the sum reads as a phase does, in hours where every phase drawn carries both times and it is under a day, else in calendar days |
 
 **The Timeline tile's bounds** are read from the data, never guessed: *sized* from `plan.sized`, the run's start (`new.js` stamps it at
@@ -510,8 +510,15 @@ A board is alive while its run is. Its data carries:
 - `wip.qa` — passes so far, each with its verdict, its finding counts by kind (`findings`:
   `documentation`, `test`, `code`), by severity (`severity`, a word to a count: the pipeline sends `minor`, easily made
   with no fallout, and `other`, `{"minor": 3, "other": 1}`; a qa report's own words are kept as it writes them) and the
-  `route` it sends the run on (as `wip.remediation.route`); `wip.qaMax` the most passes the pipeline allows (three);
-- `wip.blockers` — issues this run waits on, and runs waiting on it (from *blocked by* links);
+  `route` it sends the run on (as `wip.remediation.route`; `apply-event.js` records a remediation's route on the pass it answers too,
+  when the pass records none, so the decision outlives the loop); `wip.qaMax` the most passes the pipeline allows (three). A pass
+  never stores `inPlace`: the in-place mark is derived from the route (§5, "QA"), and `check.js` fails a stored one;
+- `wip.blockers` — issues this run waits on, and runs waiting on it (from *blocked by* links); the WIP strip shows them as "depends
+  on", each with its dependency bubble (its `build` and `locality` where the entry records them, else its locality from its `repo`,
+  §5), and "blocks · enables", each `blocks` while the issue is open and `enables` once it has landed. A tracking board's unit inspector
+  shows the unit's `unit.blockedBy` the same way — a unit it depends on is part of the plan, `blocking` until that unit lands, then
+  `clear`, in this repository; an issue that is no unit has no build state drawn, as the board cannot tell when it was built — and the
+  units it holds up, `blocks` or `enables`, with a legend of what it drew (dashboards-skill/30);
 - `wip.history` — the finished steps' snapshots, each step an array of its visits (below, "Finished steps"), frozen by
   `apply-event.js` (and `new.js`'s sizing) and never written by hand.
 
@@ -980,7 +987,7 @@ its branch. After `landed`, the as-built system pages' Context links are refresh
 under `docs/plans/` plus the tracker's open issues (`gh issue list`, sub-issues, *blocked by*):
 one row per issue that has a board or a `level:` label (the label only decides which issues are
 rows; no level is written to `board.json` or shown), and one per unit of a tracking board —
-its status, `wip.step` and detail, qa passes, what it waits on, its blockers and what it
+its status, `wip.step` and detail, qa passes, what it depends on, its blockers and what it
 blocks, its branch (never a merged one, §3), and its tracking parent; grouped by tracking issue in landing order, then the
 rest by age; the in-progress mark on the rows whose runs are active; the same system colours. A
 unit reads `complete` once its row is complete (qa passed, not merged) and `landed` once it has
@@ -1008,6 +1015,51 @@ board, a tracking issue's as much as a sub-issue's (plain text while it has none
 waits-on and blocks lists, the "blocked by" tags, the Up next count, any `#n` in the text — opens the board when one exists and
 GitHub otherwise. There is no separate GitHub ↗ link: every issue with a board has a row whose number opens GitHub. `board.js`
 sets a row's board only when its file exists.
+
+**Its columns** (admin-team/dashboards-skill/30): **Issue** (its number and title, the title the link to its board: there is no
+board or folder column), **State** (the state pill, the reconciliation chip, the pull request, the step, and the row's **branch**
+while it has one: there is no branch column), **Now**, **QA**, **Depends on** and **Blocks · enables**. Every column but **Now** is drawn
+larger (admin-team/dashboards-skill/31): the issue's title, the state with its branch, the qa passes, the dependencies and what the
+row holds up, with their bubbles and pills, scaled up to read comfortably and fill the room, a notch more over 1500 px; **Now** keeps
+its size. Under 880 px each run is a card of its cells, each labelled (State, QA, Now, Depends on, Blocks · enables; empty ones left
+out), two columns from 600 px and one below, so the page never scrolls sideways and nothing scrolls inside the table.
+
+- **QA** lists every pass the row's board records and the pass that is **running**, which `wip.qa` records only once its verdict
+  arrives: while the run is at `qa`, the pass the remediation loop's current sub-step names ("qa pass 2"), else the one after the last
+  recorded; while it is at `remediation`, the pass that loop's current sub-step names; none after an approving pass, past `qaMax`, or
+  once the run has moved on (`lib.js` `qaShown()`, which `board.js` writes into the row; a unit's from its own run, `unit.live`, never
+  the tracking board's own `wip`). Each pass is numbered as an **ordinal**: "✕ 1st · changes requested", "… 2nd · in progress".
+  **The decision not to run another pass** (admin-team/dashboards-skill/31): when the last pass shown requested changes and its route is
+  `on-the-spot` — read from the pass's own `route`, else the remediation loop that answers it (`wip.remediation`), else a frozen
+  remediation visit that answered it (`wip.history.remediation`), and never from a note or the trail — the pass carries a small
+  **neutral mark** beside it, its glyph and words: "✎ fixed in place · no 2nd pass" (the pass after the one it answers), "✎ fixing in
+  place · no 2nd pass" while the run is at `remediation` (or halted to resume there). `lib.js` `qaShown()` derives it (`qaInPlace()`,
+  `inPlace` on the pass, which `board.js` writes into the row), and every place that shows qa passes draws it: this column, a plan board's
+  QA tile and WIP strip, a tracking unit's run line, bubble and inspector. A pass running after it, or an approving one, means no such
+  decision stands. The legend names the mark when it is drawn. A board that records the decision only in prose (a note, the trail)
+  shows no mark until its pass records `route: "on-the-spot"`.
+- **Depends on** lists the row's dependencies — the tracker's *blocked by* links and, for a unit of a tracking board, its
+  `unit.blockedBy` — each with one small bubble of **two states**, which `board.js` derives into `waitsOn[]` and nobody writes:
+  - its **build state** (`build`, `lib.js` `depBuild()`): `blocking` — part of the plan (a unit or a sub-issue of the row's tracking
+    issue) and still open, not landed; `clear` — part of the plan and closed or landed; `pre-built` — not part of the tracking issue,
+    and already built (closed) before the tracking plan started (its board's sizing, else its baseline, else its issue's creation), so
+    the plan relies on it without a unit of its own. Drawn in the status colours with a glyph and a word: blocking yellow (⊘), clear
+    green (✓), pre-built neutral (◼: the plan's outcome does not apply to it);
+  - its **locality** (`locality`, `lib.js` `depLocality()`): `local-repository` (the same repository), `local-organization` (another
+    repository of the same GitHub organization), `local-parent-org` (a repository of the parent organization: SpartanLaboratories is
+    the parent of SpartanLabsGaming, `lib.js` `ORG_PARENT`), `external-<name>` (outside both organizations, named by its owner). Drawn
+    as a chip on a **neutral ramp**, faintest near to full ink far, with a glyph and a word (⌂ repo, ◇ org, △ parent org, ↗ external ·
+    name): an order, not systems or outcomes.
+
+  A dependency neither rule fits — not part of the plan and still open, or closed only after the plan started; a row with no tracking
+  issue whose dependency is open; a parent organization's repository depending on a child's — keeps that state `null` with its reason
+  (`why`): `board.js` reports it at every run and the page draws no state for it, never an invented one.
+- **Blocks · enables** lists the issues the row holds up — the tracker's *blocking* links and the units whose `unit.blockedBy` names it
+  — each with its bubble (`hold`, `lib.js` `holdState()`): `blocks` (yellow, ⊘) while this issue is still open, `enables` (green, →) once
+  it is done (landed, or its issue closed).
+
+The legend names each state, locality and hold it drew. `check.js` holds `build`, `locality` and `hold` to these values, a `null` state
+to its reason, and warns on a `hold` that does not match the row.
 
 **Boardless rows: their state from the tracker.** A row with no board of its own and no tracking
 board's unit row to read (any issue the tracker sizes, whatever its level) takes its state from the

@@ -31,9 +31,13 @@
 // latest wip.updated, else wip.since, else asBuilt.date, or a later unit.live.updated it mirrors; the root's on a tie), and writes docs/plans/.live/board.json and
 // index.html, never the committed docs/plans/board.json and index.html. Its links reach each board where it lives: relative
 // when they can, a file URL into a worktree on another drive otherwise; the folder is local only (.git/info/exclude).
+// A row's qa lists every pass its board records and the pass running (lib.js qaShown(): at qa, or the remediation's current "qa pass n"
+// sub-step); its waitsOn ("Depends on") each dependency with "dep" (blocking, clear, external; pre-built not yet derived) and its blocks
+// ("Blocks · enables") each issue it holds up with "hold" (blocks while this issue is open, enables once it is done), from the tracker's
+// blocked-by links and the tracking boards' unit.blockedBy (plan/RULES.md §5; admin-team/dashboards-skill/30).
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), url = require("url");
-const { repoRoot, flag, opt, registry, findPlans, subIssueBoard, shownBranch, unitBranch, reconciliation, leftForLater, boardlessState, unitInRun } = require("./lib.js");
+const { repoRoot, flag, opt, registry, findPlans, subIssueBoard, shownBranch, unitBranch, reconciliation, leftForLater, boardlessState, unitInRun, qaShown, depBuild, depLocality, holdState } = require("./lib.js");
 /* A closed issue's reason, kept on every row, roadmap item and waits-on/blocks entry that the tracker read: "NOT_PLANNED" reads
    "closed · not planned" and "DUPLICATE" "closed · duplicate" on the page, never landed (plan/RULES.md §5); open issues record none. */
 const reasonOf = x => x && x.state === "CLOSED" && x.stateReason ? { stateReason: x.stateReason } : {};
@@ -97,7 +101,7 @@ const must = (r, what) => { if (r.error) throw new Error(`${what} failed: ${r.er
 const graphJobs = nums => { const jobs = [];
   for (let i = 0; i < nums.length; i += 25) {
     const chunk = nums.slice(i, i + 25);
-    const node = "number title state stateReason repository{nameWithOwner}";
+    const node = "number title state stateReason closedAt repository{nameWithOwner}";
     const q = `query{repository(owner:"${owner}",name:"${name}"){${chunk.map(n => `i${n}:issue(number:${n}){number parent{number} closedByPullRequestsReferences(first:20,includeClosedPrs:true){nodes{number state headRefName}} linkedBranches(first:10){nodes{ref{name}}} subIssues(first:50){nodes{${node}}} blockedBy(first:30){nodes{${node}}} blocking(first:30){nodes{${node}}}}`).join(" ")}}}`;
     jobs.push(["gh", ["api", "graphql", "-f", "query=" + q]]);
   }
@@ -114,7 +118,7 @@ if (FIXTURE && !flag(args, "no-gh")) {
 } else if (!flag(args, "no-gh")) {
   const boardNums = [...new Set(boards.map(b => b.plan.issue))], g1 = graphJobs(boardNums);
   const [il, pl, rb, lb, ...gr1] = shAll([
-    ["gh", ["issue", "list", "--repo", repo, "--state", "all", "--limit", "1000", "--json", "number,title,state,stateReason,labels,createdAt"]],
+    ["gh", ["issue", "list", "--repo", repo, "--state", "all", "--limit", "1000", "--json", "number,title,state,stateReason,labels,createdAt,closedAt"]],
     ["gh", ["pr", "list", "--repo", repo, "--state", "all", "--limit", "1000", "--json", "number,state,headRefName"]],
     ["gh", ["api", "--paginate", `repos/${repo}/branches?per_page=100`, "--jq", ".[].name"]],
     ["git", ["for-each-ref", "--format=%(refname:short)", "refs/heads"]], ...g1]);
@@ -132,7 +136,7 @@ const trackerState = (n, i) => { const g = gq[n] || {};
   return boardlessState(n, i ? i.state : "OPEN", (g.closedByPullRequestsReferences || {}).nodes || [], ((g.linkedBranches || {}).nodes || []).map(x => x && x.ref && x.ref.name).filter(Boolean), prs, branches, i ? i.stateReason : null); };
 const issueOf = n => issues.find(i => i.number === n);
 const levelOf = i => { const l = i && i.labels.find(x => /^level: [1-4]$/.test(x.name)); return l ? parseInt(l.name.slice(7), 10) : null; };
-const ref = x => ({ issue: x.number, repo: x.repository && x.repository.nameWithOwner !== repo ? x.repository.nameWithOwner : undefined, state: x.state, ...reasonOf(x) });
+const ref = x => ({ issue: x.number, repo: x.repository && x.repository.nameWithOwner !== repo ? x.repository.nameWithOwner : undefined, state: x.state, ...reasonOf(x), ...(x.closedAt ? { closedAt: x.closedAt } : {}) });
 /* A system's name and colour slot: the registry's; else, in a repository with no registry entry for it yet, the slot the boards
    themselves give it (plan.json systems), so a row keeps the colour its own board shows (GUIDANCE.md §1); else no colour. */
 const boardSys = slug => { for (const b of boards) { const s = (b.plan.systems || []).find(x => x && x.slug === slug); if (s) return { slug, name: s.name || slug, slot: Number.isInteger(s.slot) ? s.slot : 0, top: s.top || s.name || slug }; } return null; };
@@ -175,6 +179,39 @@ const chainOf = b => {
   return { total: counted.length, landed, dropped, deferred, left, planned: !started && p.status !== "built", done: p.status === "built" || (counted.length > 0 && landed === counted.length), current, next };
 };
 
+/* Depends on, and Blocks · enables (plan/RULES.md §5; admin-team/dashboards-skill/30). A row's dependencies are the tracker's blocked-by
+   links and, for a unit of a tracking board, its unit.blockedBy. Each carries two states, derived here and never by hand: "build"
+   (lib.js depBuild(): blocking or clear when it is part of the row's tracking issue, a unit or a sub-issue, open or closed/landed;
+   pre-built when it is not part of it and was closed before the tracking plan started) and "locality" (lib.js depLocality():
+   local-repository, local-organization, local-parent-org or external-<owner>). A dependency neither rule fits keeps the state null with
+   "why", and board.js reports it (unclassified, below). What a row holds up are the tracker's blocking links and the units whose
+   unit.blockedBy names it; each carries "hold" (lib.js holdState()): "blocks" while this issue is still open, "enables" once it is done
+   (landed, or closed). */
+const doneIssue = (n, x) => x && x.repo ? x.state === "CLOSED" : landedIssue(n) || !!(x && x.state === "CLOSED");
+const unitsBlockedBy = n => boards.filter(b => b.plan.kind === "tracking").flatMap(b => (b.plan.rows || []).filter(r => r.unit && Number.isInteger(r.unit.issue) && (r.unit.blockedBy || []).includes(n)).map(r => r.unit.issue));
+const asRef = m => { const i = issueOf(m); return { issue: m, ...(i ? { state: i.state, ...reasonOf(i), ...(i.closedAt ? { closedAt: i.closedAt } : {}) } : {}) }; };
+/* the tracking issue a row belongs to: itself when it is one, else its parent when that is one; null for a row outside every tracking issue */
+const parentOf = n => { const g = gq[n] || {}, b = boardOf(n), u = unitRow(n); return (g.parent && g.parent.number) || (b && b.plan.parent && b.plan.parent.issue) || (u && u.board.plan.issue) || null; };
+const isTracking = n => !!n && (trackingNums.has(n) || !!(boardOf(n) && boardOf(n).plan.kind === "tracking") || !!(((gq[n] || {}).subIssues || {}).nodes || []).length);
+const trackingOf = n => isTracking(n) ? n : isTracking(parentOf(n)) ? parentOf(n) : null;
+/* the plan of tracking issue t: its units (its board's unit rows) and its sub-issues (the tracker's, in any repository), as repo#n keys */
+const keyOf = (n, r) => `${r || repo}#${n}`;
+const planOf = t => { const tb = boardOf(t), ks = new Set();
+  if (tb) (tb.plan.rows || []).filter(r => r.unit && Number.isInteger(r.unit.issue)).forEach(r => ks.add(keyOf(r.unit.issue)));
+  (((gq[t] || {}).subIssues || {}).nodes || []).forEach(x => ks.add(keyOf(x.number, x.repository && x.repository.nameWithOwner))); return ks; };
+/* when a plan started: its board's sizing, else its baseline, else its issue's creation */
+const planStartOf = n => { const b = boardOf(n), i = issueOf(n); return (b && (b.plan.sized || (b.plan.baseline || {}).date)) || (i && i.createdAt) || null; };
+const unclassified = [];
+const dependsOn = (n, g) => { const u = unitRow(n), tracked = ((g.blockedBy || {}).nodes || []).map(ref);
+  const own = ((u && u.row.unit.blockedBy) || []).filter(m => Number.isInteger(m) && !tracked.some(t => t.issue === m && !t.repo)).map(asRef);
+  const t = trackingOf(n), plan = t ? planOf(t) : new Set(), start = planStartOf(t || n);
+  return [...tracked, ...own].map(x => { const B = depBuild({ inPlan: !!t && x.issue !== t && plan.has(keyOf(x.issue, x.repo)), done: doneIssue(x.issue, x), closedAt: x.closedAt || null, planStart: start, tracking: !!t }), Lc = depLocality(repo, x.repo || repo);
+    const why = [B.why, Lc.why].filter(Boolean); if (why.length) unclassified.push(`#${n} depends on ${x.repo ? x.repo : ""}#${x.issue}: ${why.join("; ")}`);
+    return { ...x, build: B.build, locality: Lc.locality, ...(why.length ? { why: why.join("; ") } : {}) }; }); };
+const holdsUp = (n, g, i) => { const tracked = ((g.blocking || {}).nodes || []).map(ref), hold = holdState(doneIssue(n, i));
+  const own = unitsBlockedBy(n).filter(m => !tracked.some(t => t.issue === m && !t.repo)).map(asRef);
+  return [...tracked, ...own].map(x => ({ ...x, hold })); };
+
 /* Rows: every issue with a board or a level label (the label decides which issues are rows; no level is written to board.json,
    since a dashboard never shows one: GUIDANCE.md §4) */
 /* ...and every unit of a tracking board, so the chain (and its next unit) shows even without a level label or the tracker. */
@@ -185,11 +222,11 @@ const rows = [...rowNums].map(n => {
   const i = issueOf(n), g = gq[n] || {}, b = boardOf(n), u = unitRow(n), p = prevRow(n);
   const row = { issue: n, title: (i && i.title) || (b && b.plan.issueTitle) || (b && b.plan.title) || (u && u.row.name) || `#${n}`, state: i ? i.state : ((b && b.plan.status === "built") || (u && LANDED_STATES.has(unitState(u))) ? "CLOSED" : "OPEN"), ...reasonOf(i), created: i ? i.createdAt.slice(0, 10) : null,
     parent: (g.parent && g.parent.number) || (b && b.plan.parent && b.plan.parent.issue) || (u && u.board.plan.issue) || null,
-    waitsOn: ((g.blockedBy || {}).nodes || []).map(ref), blocks: ((g.blocking || {}).nodes || []).map(ref) };
+    waitsOn: dependsOn(n, g), blocks: holdsUp(n, g, i) };
   if (b) {
     const w = b.plan.wip || {}, s = b.plan.status;
     Object.assign(row, { board: fs.existsSync(path.join(b.dir, "dashboard.html")) ? relFromPlans(b.folder + "/dashboard.html", b.root) : null, folder: relFromPlans(b.folder, b.root) + "/", branch: shownBranch(b.plan), /* a merged branch is not shown (plan/RULES.md §3, "Branches") */ system: b.plan.kind === "tracking" ? null : ((b.plan.systems || [])[0] || {}).slug || null,
-      step: w.step || null, detail: w.step === "halted" ? `Waiting on the user: ${w.waitingOn || w.detail || ""}` : (w.detail || ""), since: w.since || null, updated: w.updated || null, qa: w.qa || [], qaMax: w.qaMax || null,
+      step: w.step || null, detail: w.step === "halted" ? `Waiting on the user: ${w.waitingOn || w.detail || ""}` : (w.detail || ""), since: w.since || null, updated: w.updated || null, qa: qaShown(w) /* every pass recorded, and the one running (lib.js qaShown()) */, qaMax: w.qaMax || null,
       /* a board laid before its run starts (a tracking issue's unit, plan/RULES.md §4) has no step: not started */
       status: s === "built" || unitState(u) === "landed" ? "landed" : s === "abandoned" || w.step === "cancelled" ? "abandoned" : w.step === "halted" ? "halted" : w.step === "escalated" ? "escalated" : u && unitState(u) === "complete" ? "complete" : s === "building" ? "building" : !w.step && s === "planned" ? "not-started" : "planning",
       landed: s === "built" ? { pr: (b.plan.asBuilt || {}).pr || null, merge: (b.plan.asBuilt || {}).merge || null, version: (b.plan.asBuilt || {}).version || null, date: (b.plan.asBuilt || {}).date || null } : null });
@@ -201,13 +238,15 @@ const rows = [...rowNums].map(n => {
     if (b.plan.kind === "tracking") row.active = false; // the chain's active unit glows on its own row
     if (b.plan.kind === "tracking") row.chain = chainOf(b); // the state cell shows the chain's progress, not a bare "building"
   } else if (u) {
-    const w = u.board.plan.wip || {}, cur = unitInRun(w.current, u.row.id), st = unitState(u);
+    /* the unit's run is its own, mirrored on its row (unit.live, plan/RULES.md §3): its step and qa passes, never the tracking board's
+       own wip (whose qa stays empty: qa passes belong to the units) */
+    const w = u.board.plan.wip || {}, cur = unitInRun(w.current, u.row.id), st = unitState(u), L = (u.row.unit && u.row.unit.live) || {};
     // the unit's board as embed.js resolves it, from the folders on disk: linked only when its file exists (plan/RULES.md §1)
     const sb = subIssueBoard(u.board.dir, u.row.unit);
     Object.assign(row, { board: sb ? relFromPlans(u.board.folder + "/" + sb.board, u.board.root) : null, folder: u.row.unit.folder && !/^https?:/.test(u.row.unit.folder) ? relFromPlans(u.board.folder + "/" + u.row.unit.folder, u.board.root) + (u.row.unit.folder.endsWith("/") ? "/" : "") : (u.row.unit.folder || null), branch: unitBranch(u.row), system: u.row.system,
-      step: cur ? w.step : null, detail: cur ? (w.detail || "") : ((u.row.asBuilt || {}).summary || ""), qa: cur ? (w.qa || []) : [], qaMax: cur ? w.qaMax : null,
-      status: LANDED_STATES.has(st) ? "landed" : st === "complete" ? "complete" : st === "dropped" ? "abandoned" : cur ? (w.step === "halted" ? "halted" : "building") : "not-started", landed: null, reconciliation: null /* no board of its own: its impact is on the tracking board */ });
-    row.active = cur && ACTIVE_STEPS.has(w.step);
+      step: cur ? (L.step || w.step) : null, detail: cur ? (L.detail || w.detail || "") : ((u.row.asBuilt || {}).summary || ""), qa: cur ? qaShown(L) : [], qaMax: cur ? (L.qaMax || null) : null,
+      status: LANDED_STATES.has(st) ? "landed" : st === "complete" ? "complete" : st === "dropped" ? "abandoned" : cur ? ((L.step || w.step) === "halted" ? "halted" : "building") : "not-started", landed: null, reconciliation: null /* no board of its own: its impact is on the tracking board */ });
+    row.active = cur && ACTIVE_STEPS.has(L.step || w.step);
   } else {
     /* a boardless row: its state from the tracker (plan/RULES.md §5); its branch shown while it is in progress, never a merged one */
     const ts = trackerState(n, i);
@@ -285,4 +324,5 @@ if (live) {
 }
 console.log(`${live ? `live board, ${trees.length} worktree${trees.length === 1 ? "" : "s"}: ` : ""}board.json: ${rows.length} runs in ${board.groups.length} groups, ${roadmap.length} roadmap items, ${unscheduled.length} unscheduled issues; index.html embedded`);
 const noSys = [...new Set([...rows.filter(r => !r.system && !r.unassigned && !trackingNums.has(r.issue)).map(r => "#" + r.issue), ...unscheduled.filter(u => !u.system && !u.unassigned).map(u => "#" + u.issue)])];
+if (unclassified.length) console.log(`dependencies no state rule fits (left with no build state or locality, never given one): ${unclassified.join(" · ")}`);
 if (noSys.length) console.log(`no system recorded for ${noSys.join(", ")}: set "system" (or "unassigned": true, for no system) on those entries in board.json once, and board.js keeps it`);

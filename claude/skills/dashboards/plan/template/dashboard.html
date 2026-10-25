@@ -381,8 +381,19 @@ a.more:hover{text-decoration:underline}
 /* status pills: the colour is the left bar and a tint; the glyph and the word carry the meaning (never colour alone) */
 .vp{--sc:var(--muted);display:inline-flex;align-items:center;gap:5px;font:600 10.5px/1.2 var(--mono);padding:2px 6px;border-radius:3px;border:1px solid var(--line);border-left:3px solid var(--sc);background:color-mix(in srgb,var(--sc) 14%,var(--surface));color:var(--ink);white-space:nowrap;letter-spacing:.02em}
 .vp i,.key .vp i{font-style:normal;font-weight:700;display:inline;width:auto;height:auto;border:0;border-radius:0;background:none;box-shadow:none}
+/* the decision not to run another qa pass (dashboards-skill/31): a small neutral mark beside the pass, its glyph and words */
+.qamark{display:inline-flex;align-items:center;gap:4px;font:600 10px/1.2 var(--mono);padding:2px 6px;border:1px solid var(--line);border-radius:3px;background:var(--surface);color:var(--ink-2);white-space:nowrap;max-width:100%}
+.qamark i,.key .qamark i{font-style:normal;font-weight:700;display:inline;width:auto;height:auto;border:0;border-radius:0;background:none;box-shadow:none}
 .vp.good{--sc:var(--good)}.vp.warning{--sc:var(--warning)}.vp.serious{--sc:var(--serious)}.vp.critical{--sc:var(--critical)}
 .vp.neutral{--sc:var(--muted);background:var(--surface)}
+/* a dependency's bubble (dashboards-skill/30): its build state, a status pill, and its locality, a neutral ramp from near (faint) to far (ink) */
+.dbub{display:inline-flex;align-items:stretch;white-space:nowrap;vertical-align:middle}
+.dbub>.vp{border-top-right-radius:0;border-bottom-right-radius:0}
+.loc{--lc:var(--muted);display:inline-flex;align-items:center;gap:4px;font:600 10px/1.2 var(--mono);padding:2px 5px;border:1px solid var(--line);border-left:3px solid var(--lc);border-radius:3px;background:var(--surface);color:var(--ink-2);white-space:nowrap}
+.dbub>.vp+.loc{border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-1px}
+.loc i,.key .loc i{font-style:normal;font-weight:700;display:inline;width:auto;height:auto;border:0;background:none;box-shadow:none}
+.loc.l1{--lc:color-mix(in srgb,var(--ink) 22%,var(--surface))}.loc.l2{--lc:color-mix(in srgb,var(--ink) 45%,var(--surface))}.loc.l3{--lc:color-mix(in srgb,var(--ink) 70%,var(--surface))}.loc.l4{--lc:var(--ink)}
+.deplist{display:inline-flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
 /* the two as-built states before the outcomes (plan/RULES.md §2): in progress takes the accent, the work in progress's colour
    (GUIDANCE.md §1); partially built the strong neutral, an outcome not reached yet. Both solid: they are not pending. */
 .vp.accent{--sc:var(--accent)}.vp.ink{--sc:var(--ink-2);background:var(--surface)}
@@ -949,6 +960,54 @@ const OPT={
   deferred:{g:"◌",label:"deferred",cls:"warning", desc:"left open at plan time, settled in column 4",dash:true},
   declined:{g:"✕",label:"declined",cls:"critical",desc:"ruled out, with the trade-off"}};
 const QA={approved:{g:"✓",label:"approved",cls:"good"},"changes-requested":{g:"✕",label:"changes requested",cls:"critical"},running:{g:"…",label:"in progress",cls:"neutral",dash:true}};
+/* The qa passes a run shows (dashboards-skill/30; plan/scripts/lib.js qaShown(), the same rule): every pass wip.qa records and the one
+   running, which wip.qa records only once its verdict arrives: at qa, the pass the remediation's current sub-step names ("qa pass 2"), else
+   the one after the last recorded; at remediation, the pass its current sub-step names. None after an approving pass or past qaMax. W is
+   the board's wip or a unit's run mirror (unit.live). A pass's number reads as an ordinal: 1st, 2nd, 3rd. */
+const ordinal=n=>{ const k=Math.abs(parseInt(n,10)); if(!Number.isFinite(k)) return String(n); const t=k%100,u=k%10; return `${n}${t>=11&&t<=13?"th":u===1?"st":u===2?"nd":u===3?"rd":"th"}`; };
+function qaShown(W){ W=W||{}; const qa=(Array.isArray(W.qa)?W.qa:[]).filter(p=>p&&typeof p==="object").slice().sort((a,b)=>(a.pass||0)-(b.pass||0));
+  if(qa.some(p=>p.verdict==="running")) return qa; const last=qa[qa.length-1]; if(last&&last.verdict==="approved") return qa;
+  const RE=/\bqa pass (\d+)\b/i, M=W.remediation&&typeof W.remediation==="object"?W.remediation:{}, cur=(Array.isArray(M.steps)?M.steps:[]).find(x=>x&&x.state==="current"&&RE.test(String(x.name||"")));
+  const named=cur?parseInt(RE.exec(String(cur.name))[1],10):null, n=W.step==="qa"?(named||(last&&Number.isInteger(last.pass)?last.pass+1:1)):W.step==="remediation"?named:null, max=Number.isInteger(W.qaMax)&&W.qaMax>0?W.qaMax:null;
+  if(n&&(!max||n<=max)&&!qa.some(p=>p.pass===n)&&(!last||!Number.isInteger(last.pass)||n>last.pass)){ qa.push({pass:n,verdict:"running"}); return qa; } return qaInPlace(W,qa); }
+/* The decision not to run another qa pass (admin-team/dashboards-skill/31; plan/scripts/lib.js qaRoute(), qaInPlace(), the same rule): the
+   last pass shown requested changes and its route was on-the-spot (the pass's own route, else the remediation loop answering it, else a
+   frozen remediation visit that answered it; never prose). The pass then carries inPlace, "fixing" while the run is at remediation (or
+   halted to resume there), "fixed" otherwise (always on a landed or stopped board), drawn as a small neutral mark beside the pass, its
+   glyph and words: "✎ fixed in place · no 2nd pass". */
+function qaRoute(W,p){ if(p&&p.route) return p.route; const M=W.remediation&&typeof W.remediation==="object"?W.remediation:null; if(M&&M.route&&(M.pass==null||M.pass===p.pass)) return M.route;
+  const H=W.history&&typeof W.history==="object"&&Array.isArray(W.history.remediation)?W.history.remediation:[], V=H.map(v=>v&&v.remediation).find(R=>R&&R.pass===p.pass&&R.route); return V?V.route:null; }
+function qaInPlace(W,qa,done){ W=W||{}; const last=qa[qa.length-1]; if(!last||last.verdict!=="changes-requested"||qaRoute(W,last)!=="on-the-spot") return qa;
+  const fixing=!done&&(W.step==="remediation"||(W.step==="halted"&&W.resume==="remediation")); return [...qa.slice(0,-1),{...last,route:"on-the-spot",inPlace:fixing?"fixing":"fixed"}]; }
+const INPLACE={g:"✎",desc:{fixed:"the findings were fixed on the spot, and no further qa pass ran",fixing:"the findings are being fixed on the spot; no further qa pass will run"}};
+const inPlaceWords=p=>p&&p.inPlace?`${p.inPlace==="fixing"?"fixing":"fixed"} in place · no ${ordinal((parseInt(p.pass,10)||0)+1)} pass`:"";
+const inPlaceMark=p=>p&&p.inPlace?`<span class="qamark" title="${esc(INPLACE.desc[p.inPlace==="fixing"?"fixing":"fixed"])}"><i aria-hidden="true">${INPLACE.g}</i>${esc(inPlaceWords(p))}</span>`:"";
+/* the legend entries of the marks the passes drew: one per kind, shown as it was drawn */
+const inPlaceKeys=ps=>["fixed","fixing"].map(k=>(ps||[]).find(p=>p&&p.inPlace===k)).filter(Boolean).map(p=>`<span>${inPlaceMark(p)} ${esc(INPLACE.desc[p.inPlace])}</span>`).join("");
+/* A dependency's two states (dashboards-skill/30; plan/RULES.md §5; plan/scripts/lib.js depBuild(), depLocality()). Its build state, in the
+   status colours: blocking (part of the plan, still open), clear (part of the plan, landed or closed), pre-built (not part of the tracking
+   issue, built before its plan started: neutral). Its locality, a neutral ramp from near to far: this repository, this organization, the
+   parent organization (ORG_PARENT), external and its owner. On a tracking board a unit's dependency on another unit is part of the plan,
+   blocking until that unit lands, then clear, in this repository; one on an issue that is no unit has no build state drawn (the board cannot
+   tell when it was built). On the WIP strip an entry of wip.blockers shows the states it records (build, locality), else its locality from
+   its repository. What this issue does to the issues it holds up: blocks while it is open, enables once it is done. */
+const DEP={blocking:{g:"⊘",label:"blocking",cls:"warning",desc:"part of the plan, still open"},clear:{g:"✓",label:"clear",cls:"good",desc:"part of the plan, landed or closed"},"pre-built":{g:"◼",label:"pre-built",cls:"neutral",desc:"not part of the tracking issue: built before its plan started, relied on without a unit of its own"}};
+const LOC={"local-repository":{g:"⌂",label:"repo",s:1,desc:"this repository"},"local-organization":{g:"◇",label:"org",s:2,desc:"another repository of this organization"},"local-parent-org":{g:"△",label:"parent org",s:3,desc:"a repository of the parent organization"},external:{g:"↗",label:"external",s:4,desc:"outside both organizations, named by its owner"}};
+const HOLD={blocks:{g:"⊘",label:"blocks",cls:"warning",desc:"this issue is still open: it holds these issues up"},enables:{g:"→",label:"enables",cls:"good",desc:"this issue is done: these issues can go ahead"}};
+const ORG_PARENT={SpartanLabsGaming:"SpartanLaboratories"};
+function locOf(x){ let l=x&&x.locality; if(l===undefined){ const from=String(PLAN.repo||""), to=x&&x.repo||from, lo=v=>String(v).toLowerCase(), a=from.split("/")[0], o=to.split("/")[0], par=ORG_PARENT[Object.keys(ORG_PARENT).find(k=>lo(k)===lo(a))];
+    const known=new Set([...Object.keys(ORG_PARENT),...Object.values(ORG_PARENT)].map(lo)); l=to===from?"local-repository":lo(a)===lo(o)?"local-organization":par&&lo(par)===lo(o)?"local-parent-org":!known.has(lo(o))?`external-${o}`:null; }
+  return !l?null:String(l).startsWith("external-")?{k:"external",name:String(l).slice(9)}:LOC[l]?{k:l}:null; }
+const locChip=(L,word)=>`<span class="loc l${LOC[L.k].s}"><i aria-hidden="true">${LOC[L.k].g}</i>${esc(word||(L.k==="external"&&L.name?`external · ${L.name}`:LOC[L.k].label))}</span>`;
+const depBubble=x=>{ const d=DEP[x.build], L=locOf(x); return d||L?`<span class="dbub"${x.why?` title="${esc(x.why)}"`:""}>${d?pill(d):""}${L?locChip(L):""}</span>`:""; };
+/* a unit's dependencies and what it holds up, from the unit rows (unit.blockedBy) */
+const unitDeps=r=>(r&&r.unit&&r.unit.blockedBy||[]).map(n=>{ const b=ROWS.find(x=>x.unit&&x.unit.issue===n); return {issue:n,build:b?(unitLanded(b)?"clear":"blocking"):undefined,locality:"local-repository"}; });
+const unitHolds=r=>r&&r.unit&&r.unit.issue?ROWS.filter(x=>x.unit&&(x.unit.blockedBy||[]).includes(r.unit.issue)).map(x=>({issue:x.unit.issue})):[];
+/* the legend entries of the dependency bubbles a view drew */
+function depKeys(deps,holds){ const ks=[], bs=new Set(deps.map(x=>x.build).filter(k=>DEP[k])), ls=new Set(deps.map(locOf).filter(Boolean).map(L=>L.k)), hs=new Set(holds.filter(k=>HOLD[k]));
+  Object.keys(DEP).filter(k=>bs.has(k)).forEach(k=>ks.push(`<span>${pill(DEP[k])} a dependency's build state: ${esc(DEP[k].desc)}</span>`));
+  Object.keys(LOC).filter(k=>ls.has(k)).forEach(k=>ks.push(`<span>${locChip({k},k==="external"?"external · name":"")} a dependency's locality: ${esc(LOC[k].desc)}</span>`));
+  Object.keys(HOLD).filter(k=>hs.has(k)).forEach(k=>ks.push(`<span>${pill(HOLD[k])} ${esc(HOLD[k].desc)}</span>`)); return ks; }
 const STEP_ORDER=["sizing","interview","research","architecture","plan","branch","implementation","qa","remediation","landing","landed"];
 const STEP_SPECIAL={halted:{g:"⏸",label:"Waiting on the user",cls:"halted"},escalated:{g:"⇧",label:"Escalated",cls:"escalated"},cancelled:{g:"✕",label:"Cancelled",cls:"cancelled"},landed:{g:"✓",label:"Landed",cls:"landed"}};
 /* A row's as-built state: the stored one, unless the build is under way (plan/RULES.md §2, "Before the outcome"). While the run is live
@@ -1076,12 +1135,12 @@ function markKeys(addrs){ if(!addrs.length) return ""; const cells=addrs.filter(
 /* A unit's run: its pill, its last qa pass, the run line of its cell and card, its block on the strip, its legend entries. */
 function runPill(L){ const k=runKind(L), d=RUN[k]; return k==="run"?pill(d,"",`run at ${L.step||"?"}`):k==="escalated"?pill(d,"","escalated"):pill(d); }
 const runAt=L=>{ const k=runKind(L); return k==="halted"||k==="escalated"?(L.resume?`<span>at ${esc(L.resume)}</span>`:""):""; };
-const lastQa=L=>(L.qa||[]).length?L.qa[L.qa.length-1]:null;
-const qaPill=p=>{ const d=QA[p.verdict]||QA.running; return pill(d,"",`qa ${p.pass} · ${d.label}`); };
+const lastQa=L=>{ const q=qaShown(L); return q.length?q[q.length-1]:null; };
+const qaPill=p=>{ const d=QA[p.verdict]||QA.running; return pill(d,"",`${ordinal(p.pass)} qa · ${d.label}`)+inPlaceMark(p); };
 function runLine(r){ const L=runOf(r); if(!L) return ""; const q=lastQa(L);
   return `<div class="run">${runPill(L)}${runAt(L)}${q?qaPill(q):""}${L.updated?`<span>updated <span class="nw">${when(L.updated)}</span></span>`:""}</div>`; }
 const runShort=L=>({halted:"⏸ waiting on the user",escalated:"⇧ escalated",cancelled:"✕ run cancelled"}[runKind(L)]||`▶ ${L.step||"?"}`);
-function runBlock(r,still){ const L=runOf(r); if(!L) return ""; const k=runKind(L), held=k==="halted", steps=L.steps&&L.steps.length?L.steps:STEP_ORDER, qa=L.qa||[];
+function runBlock(r,still){ const L=runOf(r); if(!L) return ""; const k=runKind(L), held=k==="halted", steps=L.steps&&L.steps.length?L.steps:STEP_ORDER, qa=qaShown(L);
   let h=`<div class="${still?"":"unitrun"}${held&&!still?" halted":""}">${still?"":`<div class="wip-head"><span>its run · step <b>${esc(L.step||"—")}</b>${L.since?` · since <span class="nw">${when(L.since)}</span>`:""}${L.branch?` · branch <code>${esc(L.branch)}</code>`:""}</span>${L.updated?`<span class="upd">updated ${when(L.updated)}</span>`:""}</div>`}`;
   if(held) h+=`<p class="wip-wait">Waiting on the user: ${rich(L.waitingOn||L.detail||"(not stated)")}</p>`;
   if(k==="escalated") h+=`<p class="wip-wait">Escalated: the run waits while the issue's scope is re-decided.</p>`;
@@ -1095,7 +1154,7 @@ function runKeys(rows){ const Ls=rows.map(runOf).filter(Boolean); if(!Ls.length)
     +(ks.has("halted")?`<span>${pill(RUN.halted)} the unit's run waits on the user</span>`:"")
     +(ks.has("escalated")?`<span>${pill(RUN.escalated)} the unit's scope is being re-decided</span>`:"")
     +(ks.has("cancelled")?`<span>${pill(RUN.cancelled)} the unit's run was abandoned</span>`:"")
-    +[...qv].map(v=>`<span>${pill(QA[v],"",`qa n · ${QA[v].label}`)} the unit's latest qa pass</span>`).join(""); }
+    +[...qv].map(v=>`<span>${pill(QA[v],"",`nth qa · ${QA[v].label}`)} the unit's latest qa pass</span>`).join("")+inPlaceKeys(Ls.map(lastQa)); }
 
 /* ---------- Research: the questions and their states (plan/RULES.md §3) ----------
    wip.questions, each { question, rows, findings, state }: planning, researching, returned (awaiting verification), verifying,
@@ -1493,11 +1552,12 @@ function renderWip(){
   const legend=[];
   /* the board's own facts: its qa passes, its blockers, its landing */
   const facts=[];
-  const qa=WIP.qa||[];
-  if(qa.length) facts.push(`<span><span class="l">qa</span>${qa.map(p=>{ const d=QA[p.verdict]||QA.running, f=p.findings||{}; const n=["documentation","test","code"].filter(k=>f[k]!=null).map(k=>`${f[k]} ${k==="documentation"?"doc":k}`).join(" / "), sv=Object.entries(p.severity||{}).map(([k,c])=>`${c} ${k}`).join(" / "); return `${pill(d,"",`pass ${p.pass} · ${d.label}`)}${n?` <small>${esc(n)}</small>`:""}${sv?` <small>${esc(sv)}</small>`:""}`; }).join(" ")}${WIP.qaMax?` <small>of at most ${esc(WIP.qaMax)}</small>`:""}</span>`);
-  const bl=WIP.blockers||{}, iref=x=>x.repo&&x.repo!==PLAN.repo?ilink(x.issue,x.repo):ilink(x.issue);
-  if((bl.waitsOn||[]).length) facts.push(`<span><span class="l">waits on</span>${bl.waitsOn.map(iref).join(", ")}</span>`);
-  if((bl.blocks||[]).length) facts.push(`<span><span class="l">blocks</span>${bl.blocks.map(iref).join(", ")}</span>`);
+  const qa=LANDED||STOPPED?qaInPlace(WIP,(Array.isArray(WIP.qa)?WIP.qa:[]).filter(p=>p&&typeof p==="object"),true):qaShown(WIP);
+  if(qa.length) facts.push(`<span><span class="l">qa</span>${qa.map(p=>{ const d=QA[p.verdict]||QA.running, f=p.findings||{}; const n=["documentation","test","code"].filter(k=>f[k]!=null).map(k=>`${f[k]} ${k==="documentation"?"doc":k}`).join(" / "), sv=Object.entries(p.severity||{}).map(([k,c])=>`${c} ${k}`).join(" / "); return `${pill(d,"",`${ordinal(p.pass)} pass · ${d.label}`)}${n?` <small>${esc(n)}</small>`:""}${sv?` <small>${esc(sv)}</small>`:""}${p.inPlace?` ${inPlaceMark(p)}`:""}`; }).join(" ")}${WIP.qaMax?` <small>of at most ${esc(WIP.qaMax)}</small>`:""}</span>`);
+  /* what the run depends on, each with its bubble, and what it holds up: blocks while the issue is open, enables once it has landed */
+  const bl=WIP.blockers||{}, iref=x=>x.repo&&x.repo!==PLAN.repo?ilink(x.issue,x.repo):ilink(x.issue), holdK=PLAN.status==="built"?"enables":"blocks";
+  if((bl.waitsOn||[]).length) facts.push(`<span><span class="l">depends on</span><span class="deplist">${bl.waitsOn.map(x=>`<span>${iref(x)} ${depBubble(x)}</span>`).join("")}</span></span>`);
+  if((bl.blocks||[]).length) facts.push(`<span><span class="l">blocks · enables</span><span class="deplist">${bl.blocks.map(x=>`<span>${iref(x)} ${pill(HOLD[holdK])}</span>`).join("")}</span></span>`);
   const a=PLAN.asBuilt||{}, Ld=WIP.landing||{};
   if(LANDED) facts.push(`<span><span class="l">landed</span>${[Ld.pr||a.pr?prlink(Ld.pr||a.pr):"",Ld.merge||a.merge?`merge ${clink(Ld.merge||a.merge)}`:"",Ld.version||a.version?esc(Ld.version||a.version):"",Ld.date||a.date?when(Ld.date||a.date):""].filter(Boolean).join(" · ")}</span>`);
   /* the open research questions, and how many have returned (plan/RULES.md §3) */
@@ -1542,7 +1602,7 @@ function renderWip(){
         if(L.detail) b+=`<p class="wip-detail">${rich(L.detail)}</p>`;
         /* no "since" group while the unit's step panel is drawn beside the bubble (it always is, from its mirror): the panel says it */
         const f=[researchFact(L),L.updated?`<span><span class="l">updated</span><span class="nw">${when(L.updated)}</span></span>`:"",
-          (L.qa||[]).length?`<span><span class="l">qa</span>${L.qa.map(qaPill).join(" ")}${L.qaMax?` <small>of at most ${esc(L.qaMax)}</small>`:""}</span>`:"",
+          qaShown(L).length?`<span><span class="l">qa</span>${qaShown(L).map(qaPill).join(" ")}${L.qaMax?` <small>of at most ${esc(L.qaMax)}</small>`:""}</span>`:"",
           L.branch&&!unitLanded(r)?`<span><span class="l">branch</span><code>${esc(L.branch)}</code></span>`:""].filter(Boolean);
         if(f.length) b+=`<div class="wip-facts">${f.join("")}</div>`;
       }
@@ -1593,10 +1653,11 @@ function renderWip(){
   if(runs.length) legend.push(runKeys(runs));
   if(TRACKING&&!LANDED){ const act=ROWS.filter(r=>r.unit&&rowActive(r)); if(act.some(r=>!PAUSED&&!runPaused(r))) legend.push(KEY_GLOW); if(act.some(r=>PAUSED||runPaused(r))) legend.push(KEY_HELD); }
   if(LANDED) legend.push(`<span>${pill({g:"✓",cls:"good",label:"landed"})} merged; nothing glows</span>`);
-  const qv=[...new Set(qa.map(p=>p.verdict))].filter(v=>QA[v]); qv.forEach(v=>legend.push(`<span>${pill(QA[v])} qa pass verdict</span>`));
+  const qv=[...new Set(qa.map(p=>p.verdict))].filter(v=>QA[v]); qv.forEach(v=>legend.push(`<span>${pill(QA[v])} qa pass verdict</span>`)); legend.push(inPlaceKeys(qa));
+  legend.push(...depKeys(bl.waitsOn||[],(bl.blocks||[]).length?[holdK]:[]));
   /* a unit bubble lists every qa pass of its run; runKeys() named the latest ones, so add the verdicts only earlier passes took */
   const latest=new Set(runs.map(r=>lastQa(runOf(r))).filter(Boolean).map(p=>p.verdict));
-  [...new Set(runs.flatMap(r=>runOf(r).qa||[]).map(p=>p.verdict))].filter(v=>QA[v]&&!latest.has(v)).forEach(v=>legend.push(`<span>${pill(QA[v],"",`qa n · ${QA[v].label}`)} an earlier qa pass of the unit's run</span>`));
+  [...new Set(runs.flatMap(r=>qaShown(runOf(r))).map(p=>p.verdict))].filter(v=>QA[v]&&!latest.has(v)).forEach(v=>legend.push(`<span>${pill(QA[v],"",`nth qa · ${QA[v].label}`)} an earlier qa pass of the unit's run</span>`));
   w.innerHTML=h+`<div class="key">${[...new Set(legend.filter(Boolean))].join("")}</div>`;
   paint(w);
   if(refocus){ const b=refocus[0]==="back"?w.querySelector(".sp-back"):[...w.querySelectorAll(".stepbtn")].find(x=>x.dataset.run===refocus[1]&&x.dataset.step===refocus[2]); if(b) b.focus(); }
@@ -1663,8 +1724,8 @@ function renderKpis(){
     by2.forEach((v,c)=>gparts.push({n:v.n,c,names:[...v.names],t:`${G.name||"rows"}: ${v.n} · ${[...v.names].join(", ")}`})); });
   const optParts=["accepted","partial","deferred","declined","settled-accepted","settled-partial","settled-declined"].map(k=>({k,n:0}));
   OPTS.forEach(x=>{ const {def,settled}=optDef(x.row,x.opt), k=settled?"settled-"+(settled.verdict||"accepted"):x.opt.verdict, p=optParts.find(q=>q.k===k)||optParts.find(q=>q.k==="declined"); p.n++; p.cls=def.cls+(def.dash?" dash":""); });
-  const qa=WIP.qa||[], qmax=Math.max(qa.length,Number.isInteger(WIP.qaMax)&&WIP.qaMax>0?WIP.qaMax:3);
-  const qaParts=[...qa.map(p=>({n:1,cls:QA_RES[qaResult(p)].cls,t:`pass ${p.pass}: ${QA_RES[qaResult(p)].label}`})),...Array.from({length:qmax-qa.length},()=>({n:1,cls:"slot",t:"a pass not used"}))];
+  const qa=LANDED||STOPPED?qaInPlace(WIP,(Array.isArray(WIP.qa)?WIP.qa:[]).filter(p=>p&&typeof p==="object"),true):qaShown(WIP), qmax=Math.max(qa.length,Number.isInteger(WIP.qaMax)&&WIP.qaMax>0?WIP.qaMax:3);
+  const qaParts=[...qa.map(p=>({n:1,cls:QA_RES[qaResult(p)].cls,t:`${ordinal(p.pass)} pass: ${QA_RES[qaResult(p)].label}`})),...Array.from({length:qmax-qa.length},()=>({n:1,cls:"slot",t:"a pass not used"}))];
   /* the Timeline tile (a landed board): one segment per phase drawn, sized by its time; a phase of no length keeps a sliver, and phases
      all of no length share the bar alike */
   const TP=LANDED?timelinePhases(PLAN):null, tpTot=TP?TP.phases.reduce((n,p)=>n+p.weight,0):0;
@@ -1676,7 +1737,7 @@ function renderKpis(){
     `<div class="kpi"><div class="l">Options weighed</div><div class="v">${OPTS.length}</div><div class="s">${["accepted","partial","deferred","declined"].filter(by).map(v=>`${by(v)} ${v}`).join(" · ")||"none yet"}</div>${OPTS.length?segBar(optParts,`Options weighed: ${optParts.filter(p=>p.n).map(p=>`${p.n} ${p.k.replace("settled-","deferred, settled ")}`).join(", ")}`)+K.opts:""}</div>`,
     `<div class="kpi"><div class="l">Verdicts</div>${vbuild+leave?`<div class="v">${vbuild} <small>build</small></div><div class="s">${leave} left for later${vopen?` · ${vopen} not yet written`:""}</div>`:`<div class="v">0${ROWS.length?` <small>of ${ROWS.length}</small>`:""}</div><div class="s">none written yet</div>`}${ROWS.length?segBar([{n:vbuild,cls:"ink",t:`${vbuild} build`},{n:leave,cls:"left",t:`${leave} left for later`},{n:vopen,cls:"dash",t:`${vopen} not yet written`}],`Verdicts: ${vbuild} build, ${leave} left for later, ${vopen} not yet written`)+K.verdicts:""}</div>`,
     `<div class="kpi"><div class="l">As built</div><div class="v">${built} <small>/ ${counted.length} ${TRACKING?"units landed":"rows built"}</small></div><div class="s">${[...states.filter(([,n])=>n).map(([k,n])=>`${n} ${STATES[k].label}`),left?`${left} left for later`:""].filter(Boolean).join(" · ")||"—"}${changes?` · ${changes} changes`:""}</div>${ROWS.length?bar+K.built:""}</div>`,
-    `<div class="kpi"><div class="l">${LANDED?"Timeline":"QA passes"}</div><div class="v">${LANDED?(TP&&TP.phases.length?esc(tlDuration(timelineTotal(TP))):"—"):`${qa.length}${WIP.qaMax?` <small>of at most ${esc(WIP.qaMax)}</small>`:""}`}</div><div class="s">${LANDED?[`${b.date?`baseline ${when(b.date)}`:""}${a&&a.date?` → built ${when(a.date)}`:""}`,esc(timelineLeftOut(TP))].filter(Boolean).join(" · "):(qa.length?esc(qa.map(p=>`pass ${p.pass}: ${(QA[p.verdict]||QA.running).label}`).join(" · ")):"no qa pass yet")}</div>${LANDED?(tpParts.length?segBar(tpParts,`Timeline: ${TP.phases.map(p=>`${p.key} ${tlDuration(p)}`).join(", ")}${TP.left.length?`; ${timelineLeftOut(TP)}`:""}`)+K.timeline:""):segBar(qaParts,`QA passes: ${qa.length} of ${qmax} slots used`)+K.qa}</div>`].join("");
+    `<div class="kpi"><div class="l">${LANDED?"Timeline":"QA passes"}</div><div class="v">${LANDED?(TP&&TP.phases.length?esc(tlDuration(timelineTotal(TP))):"—"):`${qa.length}${WIP.qaMax?` <small>of at most ${esc(WIP.qaMax)}</small>`:""}`}</div><div class="s">${LANDED?[`${b.date?`baseline ${when(b.date)}`:""}${a&&a.date?` → built ${when(a.date)}`:""}`,esc(timelineLeftOut(TP))].filter(Boolean).join(" · "):(qa.length?esc(qa.map(p=>`${ordinal(p.pass)} pass: ${(QA[p.verdict]||QA.running).label}${p.inPlace?`, ${inPlaceWords(p)}`:""}`).join(" · ")):"no qa pass yet")}</div>${LANDED?(tpParts.length?segBar(tpParts,`Timeline: ${TP.phases.map(p=>`${p.key} ${tlDuration(p)}`).join(", ")}${TP.left.length?`; ${timelineLeftOut(TP)}`:""}`)+K.timeline:""):segBar(qaParts,`QA passes: ${qa.length} of ${qmax} slots used`)+K.qa}</div>`].join("");
 }
 /* A qa pass's result on its slot: running (accent), passed (green), changes requested with minor findings only (yellow: every
    finding minor by severity, or fixed on the spot), changes requested with other findings (red). */
@@ -1803,10 +1864,10 @@ function inspectOption(r,o){ if(!o){ inspect(`<div class="kicker">2 · CONSIDERE
 function inspectVerdict(r){ const v=r.verdict||{}, w=verdictOf(r);
   inspect(`<div class="kicker">3 · VERDICT${w?` · ${w==="leave"?"LEAVE AS IS":"BUILD"}`:""}</div><div class="name">${esc(r.name)}</div><div class="vis">${whereOf(r)}</div>${w&&stmtsOf(v).length?stmtsHtml(r,"verdict"):`<p class="lead">${w?rich(v.summary):"Not yet written."}</p>`}${v.defense?`<p>${rich(v.defense)}</p>`:""}<dl>${v.steps&&v.steps.length?`<dt>Steps</dt><dd><ol class="steps-list">${v.steps.map(s=>`<li><b>${esc(s.id||"·")}</b><span>${rich(s.what||"")}${s.files&&s.files.length?`<span class="files">${s.files.map(esc).join(" · ")}</span>`:""}${s.check?`<span class="check">${rich(s.check)}</span>`:""}${s.link?` ${moreLink(s.link,"in the plan")}`:""}</span></li>`).join("")}</ol></dd>`:""}${v.tests&&v.tests.length?`<dt>Tests</dt><dd>${list(v.tests)}</dd>`:""}${v.leaves&&v.leaves.length?`<dt>Leaves to other units</dt><dd>${list(v.leaves)}</dd>`:""}${v.risks&&v.risks.length?`<dt>Risks and what bounds them</dt><dd>${list(v.risks)}</dd>`:""}${v.source?`<dt>Source</dt><dd>${refHtml(v.source)}</dd>`:""}${v.link?`<dt>Detail</dt><dd>${refHtml(v.link)}</dd>`:""}</dl>`); }
 function inspectBuilt(r){ const b=r.asBuilt||{}, st=stateOf(r), a=PLAN.asBuilt||{}, u=r.unit;
-  inspect(`<div class="kicker">4 · AS BUILT${a.sha?` · AT ${esc(a.sha).toUpperCase()}`:""}</div><div class="name">${esc(r.name)}</div><div class="vis">${badge(st,st==="deferred"&&b.issue?` → ${ilink(b.issue)}`:"")} ${esc(STATES[st].desc)}</div>${stmtsOf(b).length?stmtsHtml(r,"built"):`<p class="lead">${rich(b.summary||(st==="pending"?"Not built yet.":""))}</p>`}<dl>${b.changes&&b.changes.length?`<dt>Changes from the verdict</dt><dd><ol>${b.changes.map(c=>`<li><b>${rich(c.what||"")}</b>${c.why?` — ${rich(c.why)}`:""}${c.when||c.ref?`<br><small>${esc(c.when||"")}${c.ref?` · ${refHtml(c.ref)}`:""}</small>`:""}</li>`).join("")}</ol></dd>`:""}${b.files&&b.files.length?`<dt>Files</dt><dd>${b.files.map(f=>`<code>${esc(f)}</code>`).join("<br>")}</dd>`:""}${b.tests?`<dt>Tests</dt><dd>${rich(b.tests)}</dd>`:""}${b.commits&&b.commits.length?`<dt>Commits</dt><dd>${b.commits.map(c=>refHtml(c)).join(" · ")}</dd>`:""}${b.verified?`<dt>Verified</dt><dd>${rich(b.verified)}</dd>`:""}${b.issue?`<dt>Moved to</dt><dd>${ilink(b.issue)}</dd>`:""}${u?`<dt>Unit</dt><dd>${esc(u.n)}. ${u.issue?pair(u.issue,u.slug||r.id):esc(u.slug||"")}${u.blockedBy&&u.blockedBy.length?` · blocked by ${u.blockedBy.map(n=>ilink(n)).join(", ")}`:""}${u.versions?`<br>versions: ${rich(u.versions)}`:""}${u.branch&&!unitLanded(r)?`<br>branch <code>${esc(u.branch)}</code>`:""}${u.board?"":`<br>${u.folder?refHtml(u.folder,"its folder"):"no plan folder yet"}`}</dd>`:""}${runOf(r)?inspectRun(r):""}${b.link?`<dt>Detail</dt><dd>${refHtml(b.link)}</dd>`:""}</dl>`); }
+  inspect(`<div class="kicker">4 · AS BUILT${a.sha?` · AT ${esc(a.sha).toUpperCase()}`:""}</div><div class="name">${esc(r.name)}</div><div class="vis">${badge(st,st==="deferred"&&b.issue?` → ${ilink(b.issue)}`:"")} ${esc(STATES[st].desc)}</div>${stmtsOf(b).length?stmtsHtml(r,"built"):`<p class="lead">${rich(b.summary||(st==="pending"?"Not built yet.":""))}</p>`}<dl>${b.changes&&b.changes.length?`<dt>Changes from the verdict</dt><dd><ol>${b.changes.map(c=>`<li><b>${rich(c.what||"")}</b>${c.why?` — ${rich(c.why)}`:""}${c.when||c.ref?`<br><small>${esc(c.when||"")}${c.ref?` · ${refHtml(c.ref)}`:""}</small>`:""}</li>`).join("")}</ol></dd>`:""}${b.files&&b.files.length?`<dt>Files</dt><dd>${b.files.map(f=>`<code>${esc(f)}</code>`).join("<br>")}</dd>`:""}${b.tests?`<dt>Tests</dt><dd>${rich(b.tests)}</dd>`:""}${b.commits&&b.commits.length?`<dt>Commits</dt><dd>${b.commits.map(c=>refHtml(c)).join(" · ")}</dd>`:""}${b.verified?`<dt>Verified</dt><dd>${rich(b.verified)}</dd>`:""}${b.issue?`<dt>Moved to</dt><dd>${ilink(b.issue)}</dd>`:""}${u?`<dt>Unit</dt><dd>${esc(u.n)}. ${u.issue?pair(u.issue,u.slug||r.id):esc(u.slug||"")}${u.blockedBy&&u.blockedBy.length?`<br>depends on <span class="deplist">${unitDeps(r).map(x=>`<span>${ilink(x.issue)} ${depBubble(x)}</span>`).join("")}</span>`:""}${unitHolds(r).length?`<br>blocks · enables <span class="deplist">${unitHolds(r).map(x=>`<span>${ilink(x.issue)} ${pill(HOLD[unitLanded(r)?"enables":"blocks"])}</span>`).join("")}</span>`:""}${(u.blockedBy||[]).length||unitHolds(r).length?`<div class="key">${depKeys(unitDeps(r),unitHolds(r).length?[unitLanded(r)?"enables":"blocks"]:[]).join("")}</div>`:""}${u.versions?`<br>versions: ${rich(u.versions)}`:""}${u.branch&&!unitLanded(r)?`<br>branch <code>${esc(u.branch)}</code>`:""}${u.board?"":`<br>${u.folder?refHtml(u.folder,"its folder"):"no plan folder yet"}`}</dd>`:""}${runOf(r)?inspectRun(r):""}${b.link?`<dt>Detail</dt><dd>${refHtml(b.link)}</dd>`:""}</dl>`); }
 /* the inspector's entry for a unit's run, from its mirror: the pill, its qa passes, the step, its steps (no mark) and its detail */
 function inspectRun(r){ const L=runOf(r);
-  return `<dt>Its run now · from its board</dt><dd><div class="run">${runPill(L)}${runAt(L)}${(L.qa||[]).map(qaPill).join("")}</div>step <b>${esc(L.step||"—")}</b>${L.since?` since ${when(L.since)}`:""}${L.updated?` · updated ${when(L.updated)}`:""}${L.branch?` · branch <code>${esc(L.branch)}</code>`:""}${runBlock(r,true)}</dd>`; }
+  return `<dt>Its run now · from its board</dt><dd><div class="run">${runPill(L)}${runAt(L)}${qaShown(L).map(qaPill).join("")}</div>step <b>${esc(L.step||"—")}</b>${L.since?` since ${when(L.since)}`:""}${L.updated?` · updated ${when(L.updated)}`:""}${L.branch?` · branch <code>${esc(L.branch)}</code>`:""}${runBlock(r,true)}</dd>`; }
 
 /* ---------- Decision log ---------- */
 let decFilter="all";

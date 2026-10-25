@@ -768,6 +768,89 @@ function boardlessState(n, issueState, closing, linked, prs, branches, stateReas
   if (named.length) return { status: "in-progress", tracker: { branch: named[0], pr: null } };
   return { status: "not-started", tracker: { branch: null, pr: null } };
 }
+/* ---------- QA passes shown, dependencies and what an issue holds up (admin-team/dashboards-skill/30) ----------
+   qaShown(w): the qa passes a run shows (plan/RULES.md §2, "The KPI tiles"; §5): every pass wip.qa records, oldest first, and the pass
+   that is running, which wip.qa does not record until its verdict arrives: { pass, verdict: "running" }. A pass is running while the run
+   is at qa (wip.step "qa"): the one the remediation loop's current sub-step names ("qa pass 2"), else the pass after the last recorded
+   one; or while the run is at remediation and that loop's current sub-step is a qa pass. None runs after an approving pass, past qaMax,
+   or once the run has moved on (landing, landed, halted). w is a board's wip or a unit's run mirror (unit.live: step, qa, qaMax,
+   remediation, history). The plan-board and work-board templates' qaShown() are the same rule, in the page's own runtime. The last pass
+   shown carries inPlace when the run decided to fix its findings in place with no further pass (qaInPlace(), below). */
+const QA_PASS_RE = /\bqa pass (\d+)\b/i;
+function qaShown(w) {
+  w = w || {}; const qa = (Array.isArray(w.qa) ? w.qa : []).filter(p => p && typeof p === "object").slice().sort((a, b) => (a.pass || 0) - (b.pass || 0));
+  if (qa.some(p => p.verdict === "running")) return qa;
+  const last = qa[qa.length - 1]; if (last && last.verdict === "approved") return qa;
+  const M = w.remediation && typeof w.remediation === "object" ? w.remediation : {}, cur = (Array.isArray(M.steps) ? M.steps : []).find(s => s && s.state === "current" && QA_PASS_RE.test(String(s.name || "")));
+  const named = cur ? parseInt(QA_PASS_RE.exec(String(cur.name))[1], 10) : null;
+  const n = w.step === "qa" ? (named || (last && Number.isInteger(last.pass) ? last.pass + 1 : 1)) : w.step === "remediation" ? named : null;
+  const max = Number.isInteger(w.qaMax) && w.qaMax > 0 ? w.qaMax : null;
+  if (n && (!max || n <= max) && !qa.some(p => p.pass === n) && (!last || !Number.isInteger(last.pass) || n > last.pass)) { qa.push({ pass: n, verdict: "running" }); return qa; }
+  return qaInPlace(w, qa);
+}
+/* The decision not to run another qa pass (admin-team/dashboards-skill/31): the last pass shown requested changes and the route it sent
+   the run on is on-the-spot (every fix minor, made on the spot, no new qa pass; plan/RULES.md §2, wip.remediation). The route is read
+   where a board records it, and nowhere else: the pass's own route (wip.qa[].route, apply-event.js at qa-pass), else the remediation loop
+   that answers that pass (wip.remediation.route), else a frozen remediation visit that answered it (wip.history.remediation[].remediation).
+   Never from prose: a note or a trail entry that says so is not read. The pass is then copied with inPlace: "fixing" while the run is at
+   remediation (or halted, to resume there), "fixed" otherwise; every page that shows qa passes draws it as a small neutral mark beside
+   the pass ("fixed in place · no 2nd pass"). A pass running after it, or an approving one, means no such decision stands: no mark. */
+function qaRoute(w, p) {
+  if (p && p.route) return p.route;
+  const M = w.remediation && typeof w.remediation === "object" ? w.remediation : null;
+  if (M && M.route && (M.pass == null || M.pass === p.pass)) return M.route;
+  const H = w.history && typeof w.history === "object" && Array.isArray(w.history.remediation) ? w.history.remediation : [];
+  const V = H.map(v => v && v.remediation).find(R => R && R.pass === p.pass && R.route);
+  return V ? V.route : null;
+}
+function qaInPlace(w, qa) {
+  const last = qa[qa.length - 1];
+  if (!last || last.verdict !== "changes-requested" || qaRoute(w, last) !== "on-the-spot") return qa;
+  const fixing = w.step === "remediation" || (w.step === "halted" && w.resume === "remediation");
+  return [...qa.slice(0, -1), { ...last, route: "on-the-spot", inPlace: fixing ? "fixing" : "fixed" }];
+}
+/* the mark's words: "fixed in place · no 2nd pass", "fixing in place · no 3rd pass" (the pass after the one it answers) */
+const inPlaceWords = p => p && p.inPlace ? `${p.inPlace === "fixing" ? "fixing" : "fixed"} in place · no ${ordinal((parseInt(p.pass, 10) || 0) + 1)} pass` : "";
+/* A qa pass's number as an ordinal: 1st, 2nd, 3rd, 4th, … 11th, 12th, 13th, 21st (the work board's QA cell, a plan board's qa pills). */
+const ordinal = n => { const k = Math.abs(parseInt(n, 10)); if (!Number.isFinite(k)) return String(n); const t = k % 100, u = k % 10; return `${n}${t >= 11 && t <= 13 ? "th" : u === 1 ? "st" : u === 2 ? "nd" : u === 3 ? "rd" : "th"}`; };
+/* A dependency's two states (the work board's "Depends on"; a plan board's "depends on"; a tracking board's units; admin-team/
+   dashboards-skill/30), each derived from the data, never written by hand:
+   - its build state, depBuild(): "blocking" when it is part of the plan (a unit, or a sub-issue, of the row's tracking issue) and still
+     open, not landed; "clear" when it is part of the plan and closed or landed; "pre-built" when it is not part of the tracking issue and
+     was already built (closed) before the tracking plan started, so the plan relies on it without a unit of its own. A dependency that
+     fits none (not part of the plan and still open, or closed only after the plan started; or a row with no tracking issue whose
+     dependency is open) has no build state: { build: null, why }, reported by board.js, never given one;
+   - its locality, depLocality(): "local-repository" (the same repository), "local-organization" (another repository of the same GitHub
+     organization), "local-parent-org" (a repository of the parent organization, ORG_PARENT), "external-<name>" (outside both
+     organizations, named by its owner). A case that fits none (a parent organization's repository depending on a child's) has none:
+     { locality: null, why }, reported, never given one. */
+const DEP_STATES = ["blocking", "clear", "pre-built"];
+/* The two organizations and their relation (the user's: SpartanLaboratories is the parent of SpartanLabsGaming). */
+const ORG_PARENT = { SpartanLabsGaming: "SpartanLaboratories" };
+const LOCALITIES = ["local-repository", "local-organization", "local-parent-org", "external"];
+const ownerOf = repo => String(repo || "").split("/")[0];
+function depLocality(fromRepo, depRepo) {
+  const to = depRepo || fromRepo; if (!to || to === fromRepo) return { locality: "local-repository" };
+  const a = ownerOf(fromRepo), o = ownerOf(to), lower = x => String(x).toLowerCase(), known = new Set([...Object.keys(ORG_PARENT), ...Object.values(ORG_PARENT)].map(lower));
+  if (lower(a) === lower(o)) return { locality: "local-organization" };
+  const parent = ORG_PARENT[Object.keys(ORG_PARENT).find(k => lower(k) === lower(a))]; // GitHub logins compare case-insensitively
+  if (parent && lower(parent) === lower(o)) return { locality: "local-parent-org" };
+  if (!known.has(lower(o))) return { locality: `external-${o}` };
+  return { locality: null, why: `${to} is in ${o}, which is neither ${a}'s own organization nor its parent organization (a parent organization's repository depending on a child's): no locality rule fits` };
+}
+const localityKind = l => !l ? null : String(l).startsWith("external-") ? "external" : l;
+/* inPlan: the dependency is a unit or sub-issue of the row's tracking issue (false when the row has none); done: it has landed or is closed;
+   closedAt, planStart: ISO dates or stamps (either may be unknown). */
+function depBuild({ inPlan, done, closedAt, planStart, tracking }) {
+  if (inPlan) return { build: done ? "clear" : "blocking" };
+  if (!done) return { build: null, why: tracking ? "not part of the tracking issue and still open" : "the issue belongs to no tracking issue and its dependency is still open" };
+  if (closedAt && planStart && String(closedAt).slice(0, 10) > String(planStart).slice(0, 10)) return { build: null, why: `not part of the tracking issue, and closed (${String(closedAt).slice(0, 10)}) only after the plan started (${String(planStart).slice(0, 10)})` };
+  return { build: "pre-built", ...(closedAt && planStart ? {} : { note: "closed; when, relative to the plan's start, is not recorded" }) };
+}
+/* What an issue does to the issues it holds up (the work board's "Blocks · enables"; a plan board's and a tracking board's units'):
+   "blocks" while it is still open, not done; "enables" once it is done (landed, or its issue closed). */
+const HOLD_STATES = ["blocks", "enables"];
+const holdState = done => done ? "enables" : "blocks";
 /* A sub-issue of a signed-off tracking plan (plan/RULES.md §2, columns 1-2; §4, sized): its board's Gap and Considered columns are
    filled at "sized" from the parent's documents, since its research and architecture happened in the parent's run. Returns the
    parent tracking board's { dir, plan } when the enclosing folder holds the parent's board and that board has passed
@@ -1024,5 +1107,5 @@ function timelineTotal(T) { const ps = T && Array.isArray(T.phases) ? T.phases :
 function timelineLeftOut(T) { const by = new Map(); (T && T.left || []).forEach(x => { if (!by.has(x.why)) by.set(x.why, []); by.get(x.why).push(x.key); });
   return [...by].map(([why, ks]) => `${ks.join(", ")} left out: ${why}`).join(" · "); }
 
-module.exports = { filingGlow, unitFiled, unitBoarded, HISTORY_FIELDS, HISTORY_STEPS, STEP_ORDER, shownStep, visitKey, freezeVisit, freezeSteps, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, okStamp, TL_PHASES, TL_SHADES, timelineBounds, timelinePhases, tlDuration, timelineLeftOut, timelineTotal, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+module.exports = { qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, HISTORY_FIELDS, HISTORY_STEPS, STEP_ORDER, shownStep, visitKey, freezeVisit, freezeSteps, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, okStamp, TL_PHASES, TL_SHADES, timelineBounds, timelinePhases, tlDuration, timelineLeftOut, timelineTotal, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, parentFolder, staleUnitRuns, stampMs, treeRoot, boardFolders, boardLink, parentBoard, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };
