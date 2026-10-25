@@ -112,12 +112,12 @@ lane at a time. Read its report, append the outcome to the ledger, reply.
 
 | Action | What the executor does |
 |--------|------------------------|
-| `setup-branch` | Create or confirm the topic branch from its base; set the issue's `level: N` label, creating the label set if the repo lacks it. |
+| `setup-branch` | Create or confirm the topic branch from its base; record the issue's confirmed level in the team's state (never on GitHub). |
 | `allocate-worktree` | `git worktree add` at `C:\wt\<repo>-<issue>` (a short path: Windows' 260-character limit breaks deep repos under long paths), from the current default branch. Reply with the path. |
 | `commit` | Commit exactly `paths` on `branch` in `worktree` and push. May be fire-and-forget: the planner's research commits don't wait. |
 | `sync-branch` | Bring `branch` up to date with its base (merge, the repo's way). Report the files the base changed that the branch also touches. |
 | `land` | Per `manager.md` and `level`: commits (with the issue's board files, `dashboard.html` and `plan.json`, when its folder has them), the bump the level calls for, PR, merge, resolution comment; then the release consideration when the bump moved a published module (Service: publishing); then the landing refresh (below); then delete the branch (local and remote) and remove the worktree it was given. A `land` with no `issue` (a docs or config branch) gets a `docs:` PR titled by `title`, no closing keyword, no resolution comment, no bump, and a landing refresh only if it touched dashboards. |
-| `file-sub-issues` | File the list as sub-issues of `issue` with their `level: N` labels and *blocked by* links, and label the parent `type: tracking`. The requester states the user approved the list at the architecture sign-off; that relayed approval is enough for this action and no other. |
+| `file-sub-issues` | File the list as sub-issues of `issue` recording each one's level in the team's state, with *blocked by* links, and label the parent `type: tracking`. The requester states the user approved the list at the architecture sign-off; that relayed approval is enough for this action and no other. |
 | `comment` / `label` | Post the comment, or add/remove the labels, on `issue`. |
 | `mirror-sync` | In the `mirror` lane: copy the listed `~/.claude` paths into the mirror clone, run the secret scan, commit straight to `main`, push. Refuse any path the mirror README's "Not included" list excludes, the admin team's local state (`ledger.jsonl`, `state.json`, `launch.lock`, `up`) included. |
 | `status` / `cancel` | Answered by you, not an executor. `cancel` drops a queued (not started) request from its sender. |

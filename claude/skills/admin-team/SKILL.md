@@ -69,7 +69,7 @@ A pipeline's steps map to actions like this:
 
 | Pipeline step | Action |
 |---------------|--------|
-| Branch setup, level label | `setup-branch` |
+| Branch setup, recording the confirmed level | `setup-branch` |
 | A worktree for a concurrent run | `allocate-worktree` (the reply carries the path) |
 | The planner's research commits | `commit` (fire-and-forget; the reply lands in your session) |
 | Landing a change set | `land` (includes the resolution comment and the landing refresh of shared dashboards) |
