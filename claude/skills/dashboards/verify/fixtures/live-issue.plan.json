@@ -1,0 +1,694 @@
+{
+  "schema": "plan-board/1",
+  "repo": "SpartanLaboratories/WebTools",
+  "issue": 70,
+  "slug": "70-live-verification",
+  "folder": "docs/plans/70-live-verification",
+  "kind": "issue",
+  "level": null,
+  "title": "Live verification fixture",
+  "issueTitle": "Verification fixture: a run in progress, mid-research",
+  "function": "Verification fixture for the live views: an issue board in the middle of its research, its questions in every state, its Gap and Considered columns filled from a signed-off parent's documents.",
+  "status": "planned",
+  "parent": null,
+  "branch": null,
+  "baseline": {
+    "ref": "master",
+    "sha": "85cfbbe",
+    "date": "2026-10-19"
+  },
+  "asBuilt": null,
+  "systems": [
+    {
+      "slug": "webtools-udp",
+      "name": "webtools-udp",
+      "slot": 1,
+      "top": "webtools-udp",
+      "status": "built",
+      "page": null
+    }
+  ],
+  "wip": {
+    "step": "research",
+    "since": "2026-10-25T08:00:00Z",
+    "updated": "2026-10-25T09:12:00Z",
+    "detail": "Verification fixture: two of four research questions returned; two researchers still out.",
+    "steps": [
+      "sizing",
+      "interview",
+      "research",
+      "plan",
+      "branch",
+      "implementation",
+      "qa",
+      "remediation",
+      "landing",
+      "landed"
+    ],
+    "current": [
+      "validity-rule.considered",
+      "public-kdoc.considered"
+    ],
+    "questions": [
+      {
+        "question": "blast-radius",
+        "rows": [
+          "validity-rule"
+        ],
+        "findings": null,
+        "state": "researching",
+        "started": "2026-10-25T08:40:00Z"
+      },
+      {
+        "question": "refusal-wording",
+        "rows": [
+          "routing",
+          "refusal-reply"
+        ],
+        "findings": "research/refusal-wording.md",
+        "state": "returned",
+        "started": "2026-10-25T08:40:00Z",
+        "returned": "2026-10-25T09:05:00Z"
+      },
+      {
+        "question": "token-splitting",
+        "rows": [
+          "public-kdoc"
+        ],
+        "findings": null,
+        "state": "researching",
+        "started": "2026-10-25T08:40:00Z"
+      },
+      {
+        "question": "prior-art",
+        "rows": [],
+        "findings": "research/prior-art.md",
+        "state": "returned",
+        "started": "2026-10-25T08:40:00Z",
+        "returned": "2026-10-25T09:12:00Z"
+      }
+    ],
+    "research": {
+      "phase": "research",
+      "drafted": 4,
+      "since": {
+        "planning": "2026-10-25T08:05:00Z",
+        "research": "2026-10-25T08:40:00Z"
+      }
+    },
+    "interview": [
+      {
+        "text": "Verification fixture: should an empty name be refused, or trimmed?",
+        "answer": "Refused, with a reason the client can show.",
+        "asked": "2026-10-25T07:30:00Z",
+        "answered": "2026-10-25T07:52:00Z"
+      },
+      {
+        "text": "Verification fixture: does the refusal reply change the wire format?",
+        "answer": "No: it reuses the existing error reply.",
+        "asked": "2026-10-25T07:31:00Z",
+        "answered": "2026-10-25T07:55:00Z"
+      }
+    ],
+    "plan": null,
+    "stages": [],
+    "remediation": null,
+    "event": {
+      "name": "research-returned",
+      "at": "2026-10-25T09:12:00Z",
+      "note": "prior-art"
+    },
+    "next": null,
+    "qa": [],
+    "qaMax": 3,
+    "waitingOn": null,
+    "resume": null,
+    "blockers": {
+      "waitsOn": [],
+      "blocks": []
+    },
+    "landing": null
+  },
+  "milestones": [
+    {
+      "column": "gap",
+      "label": "Research",
+      "date": "2026-10-25",
+      "ref": null,
+      "note": "three questions, three findings files, verification and a summary in seven commits, 77b3786 to 9b1fff7"
+    },
+    {
+      "column": "considered",
+      "label": "Architecture",
+      "date": "2026-10-25",
+      "ref": null,
+      "note": "§9 alternatives, §10 decomposition into one unit in two stages"
+    }
+  ],
+  "trail": [
+    {
+      "date": "2026-10-25",
+      "column": "gap",
+      "label": "Verification fixture: research returned, `refusal-wording`",
+      "ref": "research/refusal-wording.md"
+    },
+    {
+      "date": "2026-10-25",
+      "column": "gap",
+      "label": "Verification fixture: research returned, `prior-art`",
+      "ref": "research/prior-art.md"
+    }
+  ],
+  "rows": [
+    {
+      "id": "validity-rule",
+      "group": "Code",
+      "name": "Handshake line validity rule",
+      "system": "webtools-udp",
+      "where": "main/HandshakeProtocol.kt",
+      "gap": {
+        "kind": "bug",
+        "summary": "`parseHandshake` is `runCatching { require(verb); require(size >= 2); Handshake(tokens[1], tokens.getOrElse(2) { \"\" }) }`: `Iam  x` parses to a handshake named `\"\"`, `Iam bob  tok` to one indistinguishable from `Iam bob`, and a bare `Iam` is a `Result.failure` carrying a stack trace. Absent and present-but-empty slots are conflated, and the handshake's only throw path sits here.",
+        "detail": "The split on a single U+0020 keeps consecutive empty strings, so a run of spaces produces an empty slot. `Result` is the module's type for operational failures; its domain outcomes (`Admission`, `SendOutcome`, `ReceiveOutcome`, `OfferResult`) are sealed types.",
+        "evidence": [
+          "main/HandshakeProtocol.kt:55-59 — `parseHandshake` with `getOrElse(2) { \"\" }`",
+          "main/HandshakeProtocol.kt:68-69, :77 — `extraTokenCount`; verb-only `isHandshake`",
+          "research/malformed-line-handling.md §3.2, §5.A — the sealed-outcome finding and the totality argument"
+        ],
+        "source": null,
+        "link": null
+      },
+      "options": [
+        {
+          "id": "sealed-outcome",
+          "name": "A sealed `HandshakeParse` outcome with a `HandshakeDefect` enum",
+          "summary": "A total `parseHandshake(tokens): HandshakeParse` with three arms, `NotAHandshake`, `Malformed(defect)` and `Valid(handshake)`; the credential slot read with `getOrNull`, so absent (`null`, carried as `\"\"`) and present-but-empty (malformed) are told apart.",
+          "verdict": "accepted",
+          "why": "Fits the module's idiom for domain outcomes, gives the coordinator a compiler-checked exhaustive `when`, carries the defect for the log, and allocates no exception on the path a hostile sender drives. KEEP-0127 reserves `Result` for generic failures.",
+          "source": null,
+          "link": null
+        },
+        {
+          "id": "keep-result",
+          "name": "Keep `Result<Handshake>` and treat every post-recognition failure as malformed",
+          "verdict": "declined",
+          "why": "`runCatching` catches every `Throwable`, so an unrelated bug inside the parse would be answered `REFUSED malformed` instead of surfacing; it carries no defect for the log; it builds a stack-trace-bearing exception per hostile datagram.",
+          "wins": "Only if zero churn in the two existing parse tests mattered more than those points.",
+          "source": null,
+          "link": null
+        },
+        {
+          "id": "typed-exception",
+          "name": "A typed `MalformedHandshakeException` inside `Result`",
+          "verdict": "declined",
+          "why": "The stack-trace cost stays and exhaustiveness is lost: the coordinator would need `exceptionOrNull() as?` plus an `else` for failures it does not know.",
+          "wins": "If the project paradigm forbade sealed outcomes, which it does not (`Admission`, `SendOutcome`).",
+          "source": null,
+          "link": null
+        },
+        {
+          "id": "precheck",
+          "name": "A separate validity check before parsing",
+          "verdict": "declined",
+          "why": "Two copies of the slot logic, a `Result` that can no longer fail, and a check a caller can forget.",
+          "source": null,
+          "link": null
+        },
+        {
+          "id": "split-whitespace",
+          "name": "Split on `\\s+`, the issue's second proposal",
+          "verdict": "declined",
+          "why": "Redefines the wire format and silently turns `Iam bob  tok` into a different valid line. The single-U+0020 split is the contract.",
+          "source": null,
+          "link": null
+        },
+        {
+          "id": "credential-type",
+          "name": "A `String?` credential or a `Credential` sum type in `Handshake`",
+          "verdict": "declined",
+          "why": "The only consumer maps it straight back to `String` for `admit`, and `\"\"` inside a `Handshake` is unambiguous once the slot read rejects present-but-empty.",
+          "source": null,
+          "link": null
+        }
+      ],
+      "verdict": {},
+      "asBuilt": {
+        "state": "pending",
+        "summary": ""
+      }
+    },
+    {
+      "id": "routing",
+      "group": "Code",
+      "name": "Unframed-datagram routing",
+      "system": "webtools-udp",
+      "where": "main/HandshakeCoordinator.kt",
+      "gap": {
+        "kind": "bug",
+        "summary": "`classify` splits the trimmed text twice (`isHandshake(text.split(' ')) -> handleHandshake(origin, text.split(' '))`) and `handleHandshake` parses first and routes a `Result`: a bare `Iam` ends in the listener's stack-trace WARN with no reply; `Iam  x` and `Iam bob  tok` get `REGISTERED 2` from a registered origin and reach `admit` from an unknown one, registering the name `\"\"`.",
+        "detail": "An exception anywhere inside `accept` ends the `mcups-listener` thread (`flatMap` is a plain `fold`; `receiveLoop` has no `try`), so every new path has to be exception-free. The liveness stamp for a registered origin runs before classification and is out of scope.",
+        "evidence": [
+          "main/HandshakeCoordinator.kt:220-232 — the `null`-tag branch; two splits at :227",
+          "main/HandshakeCoordinator.kt:243-293 — `handleHandshake`: parse, extra-token DEBUG, `findByOrigin`, `admit`, supersede, register",
+          "main/MultiConnectionUDPServer.kt:326-340 — `receiveLoop` logs a `Result.failure` with the exception at :336",
+          "main/ResultExtensions.kt:19-20 — `flatMap` does not catch"
+        ],
+        "source": null,
+        "link": null
+      },
+      "options": [
+        {
+          "id": "one-parse-four-way",
+          "name": "One split, one parse, an exhaustive `when` that routes four ways",
+          "summary": "`NotAHandshake` → today's \"sender may be pre-2.0\" WARN; `Malformed` → one WARN and `REFUSED malformed` to any origin, returning the send's `Result`; `Valid` → the extra-token DEBUG, then today's registered-origin retransmit or the untouched `admit`, supersede, register path.",
+          "verdict": "accepted",
+          "why": "One token list per hostile datagram instead of two, no exception allocation, and the compiler checks that every outcome is routed. The malformed arm returns the send's `Result` exactly as the `admit` refusal does, so the listener adds no stack-trace WARN.",
+          "source": null,
+          "link": null
+        },
+        {
+          "id": "silence-registered",
+          "name": "Silence, or `REGISTERED 2`, for a registered origin's malformed line",
+          "summary": "What the research recommended, following DTLS, WireGuard and ENet, which discard a bad first message silently.",
+          "verdict": "declined",
+          "why": "The registered peer and the unknown peer would follow different rules for the same bytes, and `REGISTERED 2` would answer an accept to a line the server defines as malformed. One reply for every malformed line keeps the rule one sentence; the reflection and client-WARN costs are stated in the protocol doc.",
+          "wins": "If a strict 3x anti-amplification bound were adopted as a module requirement; it is not.",
+          "source": null,
+          "link": null
+        },
+        {
+          "id": "require-gate",
+          "name": "Keep `isHandshake` as the gate in `classify` and a `require` on the verb inside `parseHandshake`",
+          "verdict": "declined",
+          "why": "An exception inside `accept` ends the listener thread; a total parse with a `NotAHandshake` arm costs one `when` arm and removes the only throw path.",
+          "wins": "Only once #54's guard existed, and even then the arm is cheaper.",
+          "source": null,
+          "link": null
+        }
+      ],
+      "verdict": {},
+      "asBuilt": {
+        "state": "pending",
+        "summary": ""
+      }
+    },
+    {
+      "id": "refusal-reply",
+      "group": "Code",
+      "name": "The refusal reply",
+      "system": "webtools-udp",
+      "where": "main/HandshakeProtocol.kt · main/HandshakeWireFormat.kt",
+      "gap": {
+        "kind": "missing",
+        "summary": "No reply exists for a malformed line: a bare `Iam` draws nothing and the empty-slot shapes draw an accept. The one reply builder, `HandshakeWireFormat.refusedMessage`, trims and collapses its reason and compiles a `Regex` on every call, the wrong cost on a path the sender paces.",
+        "evidence": [
+          "main/HandshakeWireFormat.kt:117-120 — `refusedMessage` compiles a `Regex` per call at :118",
+          "research/refusal-reply-text.md §6.1, §7 — the text and the amplification arithmetic"
+        ],
+        "source": null,
+        "link": null
+      },
+      "options": [
+        {
+          "id": "refused-malformed",
+          "name": "`REFUSED malformed`: one fixed reason, bytes built once",
+          "summary": "17 bytes, the same for all three shapes, built once through `refusedMessage(\"malformed\")` into an `internal val` beside `REGISTERED_DATAGRAM`; the defect goes to the server log only.",
+          "verdict": "accepted",
+          "why": "A hand-rolled client's author needs a cause; one reason for three shapes gives a prober no oracle; precomputing avoids a `Regex` per hostile datagram. Payload ratio 5.7 on the 3-byte trigger (1.45 on the wire), in the range `admit` refusals already produce: the README's own `invalid credential` example is 5.2.",
+          "source": null,
+          "link": null
+        },
+        {
+          "id": "malformed-handshake",
+          "name": "`REFUSED malformed handshake`",
+          "verdict": "declined",
+          "why": "Repeats \"handshake\" inside the client's own exception message (\"Server refused the handshake: …\") and gives the 3-byte trigger a ratio of 9.",
+          "source": null,
+          "link": null
+        },
+        {
+          "id": "per-slot-reason",
+          "name": "A reason that names the slot",
+          "verdict": "declined",
+          "why": "Three replies instead of one, longer, and an oracle for a prober.",
+          "source": null,
+          "link": null
+        },
+        {
+          "id": "bare-refused",
+          "name": "A bare `REFUSED`",
+          "verdict": "declined",
+          "why": "Leaves the hand-rolled-client author, who is exactly who sends a malformed line, with no cause; SMTP likewise advises against bare codes.",
+          "source": null,
+          "link": null
+        },
+        {
+          "id": "configurable-reason",
+          "name": "A parameterised or configurable reason text",
+          "verdict": "declined",
+          "why": "The reason is informative wire text a third-party client must not branch on, and an application's `admit` may return the same word; making it configurable invites the branching the protocol doc warns against.",
+          "source": null,
+          "link": null
+        }
+      ],
+      "verdict": {},
+      "asBuilt": {
+        "state": "pending",
+        "summary": ""
+      }
+    },
+    {
+      "id": "public-kdoc",
+      "group": "Code",
+      "name": "Public KDoc contracts",
+      "system": "webtools-udp",
+      "where": "main/MultiConnectionUDPServer.kt · main/HandshakeWireFormat.kt",
+      "gap": {
+        "kind": "debt",
+        "summary": "The class and `admit` KDoc of `MultiConnectionUDPServer` and the `REFUSED` section of `HandshakeWireFormat` say that `REFUSED` comes only from `admit` and that the default admits every well-formed `Iam`. After the fix both sentences are false, and `admit`'s input domain (never an empty name; credential `\"\"` only when absent) is stated nowhere.",
+        "evidence": [
+          "main/MultiConnectionUDPServer.kt:15-23, :43-54, :354-386 — class and `admit` KDoc",
+          "main/HandshakeWireFormat.kt:35-39, :52-57 — the `REFUSED` reply section and `REFUSED_REPLY`"
+        ],
+        "source": null,
+        "link": null
+      },
+      "options": [
+        {
+          "id": "restate",
+          "name": "Restate both KDocs: refused before `admit`, whatever the origin's state; `admit` never sees an empty name",
+          "verdict": "accepted",
+          "why": "Documents enforced behaviour; it narrows `admit`'s input domain and is additive for every existing override. Stable Core wording, no signature change. No alternative was weighed: a reader of the public API must not learn the rule from the protocol doc alone.",
+          "source": null,
+          "link": null
+        }
+      ],
+      "verdict": {},
+      "asBuilt": {
+        "state": "pending",
+        "summary": ""
+      }
+    },
+    {
+      "id": "tests",
+      "group": "Tests",
+      "name": "Test coverage, levels 1 to 4c",
+      "system": "webtools-udp",
+      "where": "test/gating · component · integration · deterministic · e2e · nonfunctional",
+      "gap": {
+        "kind": "missing",
+        "summary": "Two tests assert today's silence for a bare `Iam` (`HandshakeCoordinatorTest` \"a nameless Iam fails and registers nothing\"; `MultiConnectionUDPServerTest:248`), two read `parseHandshake` as a `Result` and assert its failure type, and nothing covers the empty-slot shapes, a registered origin's malformed line, the log content or a malformed burst.",
+        "detail": "Baseline counts on 85cfbbe: gating 77, component 223, deterministic 89, integration 110, nonfunctional 62, e2e 33, uat 13.",
+        "evidence": [
+          "test/component/.../HandshakeCoordinatorTest.kt:238-246",
+          "test/integration/.../MultiConnectionUDPServerTest.kt:245-259",
+          "test/deterministic/.../HandshakeProtocolTest.kt:40-43, :55-58; test/gating/.../HandshakeProtocolGatingTest.kt:27-30"
+        ],
+        "source": null,
+        "link": null
+      },
+      "options": [
+        {
+          "id": "levels-1-4c",
+          "name": "Flip the two silence tests; new cases at levels 1, 2, 3, 4a and 4c",
+          "summary": "Nine test steps, T-1 to T-9, with expected counts after Stage A: gating 80, component 234, deterministic 95, integration 114, nonfunctional 63.",
+          "verdict": "accepted",
+          "why": "Each level pins a different claim: the parse table (4a), the routing and the log contract (2), the wire (3), listener survival under a burst (4c).",
+          "source": null,
+          "link": null
+        },
+        {
+          "id": "e2e-4b",
+          "name": "A level-4b case through the library client",
+          "summary": "A library client with an empty name gets a typed `malformed` refusal.",
+          "verdict": "deferred",
+          "why": "Optional in the plan: once #52 makes `handshake(\"\")` fail locally the case stops reaching the server, so every socket-level test of the new branch sends from a raw `DatagramSocket` instead.",
+          "source": null,
+          "link": null
+        },
+        {
+          "id": "uat-l5",
+          "name": "A level-5 UAT step",
+          "verdict": "declined",
+          "why": "The change's observable surface is the wire reply and the server log, which the level-3, 4b and 4c tests exercise end to end over real loopback sockets.",
+          "source": null,
+          "link": null
+        }
+      ],
+      "verdict": {},
+      "asBuilt": {
+        "state": "pending",
+        "summary": ""
+      }
+    },
+    {
+      "id": "test-housekeeping",
+      "group": "Tests",
+      "name": "Test housekeeping",
+      "system": "webtools-udp",
+      "where": "test/component/.../HandshakeCoordinatorTest.kt:577 · test/integration/.../ChannelByteGuardIntegrationTest.kt:25",
+      "gap": {
+        "kind": "debt",
+        "summary": "A string literal at `HandshakeCoordinatorTest.kt:577` holds raw NUL and SOH bytes, so ripgrep (and the `Grep` tool) skips the whole file and a tool that normalises them corrupts the test. The comment at `ChannelByteGuardIntegrationTest.kt:25` points at a stale line range of the raw-socket peer in `FramingNonFunctionalTest.kt` (`:187-215` on 85cfbbe).",
+        "evidence": [
+          "test/component/.../HandshakeCoordinatorTest.kt:577",
+          "test/integration/.../ChannelByteGuardIntegrationTest.kt:25",
+          "research/codebase-blast-radius.md — editing hazards"
+        ],
+        "source": null,
+        "link": null
+      },
+      "options": [
+        {
+          "id": "escapes-first",
+          "name": "Replace the bytes with the escapes `\"\\u0000\\u0001\"` as the first edit to the file; refresh the comment",
+          "verdict": "accepted",
+          "why": "The same string, a searchable file, and no later edit can corrupt the bytes because they are gone before any other edit lands. Verified with `grep -a -c -P '\\x00'` returning 0 and a hunk-limited `git diff`. No alternative was weighed.",
+          "source": null,
+          "link": null
+        }
+      ],
+      "verdict": {},
+      "asBuilt": {
+        "state": "pending",
+        "summary": ""
+      }
+    },
+    {
+      "id": "protocol-doc",
+      "group": "Documents",
+      "name": "Protocol document",
+      "system": "webtools-udp",
+      "where": "docs/webtools-udp-protocol.md §3, §8, §9",
+      "gap": {
+        "kind": "debt",
+        "summary": "§3 carries an \"as-built quirk\" paragraph describing the defect, §8 has the bare-`Iam` row as silence, and 21 of the document's 37 source line references are stale, measured before #40 and the 2.0.0 KDoc pass.",
+        "evidence": [
+          "docs/webtools-udp-protocol.md:58-101 — §3; the quirk paragraph at :74-78",
+          "docs/webtools-udp-protocol.md:315-342 — §8; the bare-`Iam` row at :321",
+          "research/codebase-blast-radius.md §5 — anchors for every reference"
+        ],
+        "source": null,
+        "link": null
+      },
+      "options": [
+        {
+          "id": "stage-b-last",
+          "name": "A separate Stage B after the code is final, recomputing every reference from the inventory's anchors",
+          "verdict": "accepted",
+          "why": "References into the four edited production files can only be computed after Stage A's code and KDoc are final, and a separate commit lets the documentation pass be reviewed on its own.",
+          "source": null,
+          "link": null
+        },
+        {
+          "id": "docs-with-code",
+          "name": "Edit the documents in the same commit as the code",
+          "verdict": "declined",
+          "why": "Line numbers would be guessed, not computed.",
+          "source": null,
+          "link": null
+        }
+      ],
+      "verdict": {},
+      "asBuilt": {
+        "state": "pending",
+        "summary": ""
+      }
+    },
+    {
+      "id": "architecture-doc-readme",
+      "group": "Documents",
+      "name": "Architecture document and README",
+      "system": "webtools-udp",
+      "where": "docs/webtools-udp-architecture.md · README.md",
+      "gap": {
+        "kind": "debt",
+        "summary": "The architecture doc's `:52` reference points at `MultiConnectionUDPServer.kt:254`, which moved, and its handshake node describes the old routing. The README's handshake sections (`:103-135`, `:217-251`) say nothing about a malformed line.",
+        "evidence": [
+          "docs/webtools-udp-architecture.md:52, :111-112",
+          "README.md:103-135, :217-251"
+        ],
+        "source": null,
+        "link": null
+      },
+      "options": [
+        {
+          "id": "reword",
+          "name": "Refresh the reference and reword the node; update the README's message table, the retransmit and credential paragraph, the `admit` paragraph and \"Handshake screening & credentials\"",
+          "verdict": "accepted",
+          "why": "Both are living documents that describe the handshake; the README defines well-formed and links the rule rather than repeating it. No alternative was weighed.",
+          "source": null,
+          "link": null
+        }
+      ],
+      "verdict": {},
+      "asBuilt": {
+        "state": "pending",
+        "summary": ""
+      }
+    },
+    {
+      "id": "release",
+      "group": "Release",
+      "name": "Release: webtools-udp 2.0.0a",
+      "system": "webtools-udp",
+      "where": "webtools-udp/build.gradle.kts:92",
+      "gap": {
+        "kind": "missing",
+        "summary": "The fix changes wire behaviour, so it needs a release; `webtools-udp` is at `2.0.0`. The module's convention for a bugfix is a letter suffix, and the plan's commits must not edit the build file.",
+        "evidence": [
+          "webtools-udp/build.gradle.kts:92 on 85cfbbe — `version = \"2.0.0\"`"
+        ],
+        "source": null,
+        "link": null
+      },
+      "options": [
+        {
+          "id": "own-commit",
+          "name": "The release manager bumps to `2.0.0a` in its own `build:` commit after the plan's commits",
+          "verdict": "accepted",
+          "why": "Keeps the plan's commits free of the build file and leaves the pick to the release manager at landing; the README's install snippet moves with it.",
+          "source": null,
+          "link": null
+        },
+        {
+          "id": "in-plan",
+          "name": "Bump inside the plan's commits",
+          "verdict": "declined",
+          "why": "The plan's commits do not edit `webtools-udp/build.gradle.kts`; the version is the release manager's call.",
+          "source": null,
+          "link": null
+        }
+      ],
+      "verdict": {},
+      "asBuilt": {
+        "state": "pending",
+        "summary": ""
+      }
+    },
+    {
+      "id": "whitespace-in-tokens",
+      "group": "Left for later",
+      "name": "Non-space whitespace inside a token (#53)",
+      "system": "webtools-udp",
+      "where": "main/HandshakeProtocol.kt",
+      "gap": {
+        "kind": "risk",
+        "summary": "`Iam bob<TAB>tok` survives the trim as one token and registers the name `bob<TAB>tok`; a tab, CR/LF or NBSP inside a name or credential reaches the registry and the logs.",
+        "evidence": [
+          "research/README.md § Known gaps",
+          "#53's issue text"
+        ],
+        "source": null,
+        "link": null
+      },
+      "options": [
+        {
+          "id": "leave-to-53",
+          "name": "Leave it to #53, document it as a known gap, pin it with a test",
+          "verdict": "accepted",
+          "why": "#53 settles it together with #52's client-side checks; it widens `HandshakeDefect` and adds checks inside `parseHandshake`, reusing this change's `Malformed` arm, reply constant and log template without change. #53 inherits the rule that every malformed line is refused whatever the origin.",
+          "source": null,
+          "link": null
+        },
+        {
+          "id": "fix-here",
+          "name": "Widen the validity rule now to reject non-space whitespace",
+          "verdict": "declined",
+          "why": "Out of this issue's scope; the client-side half (#52) is not designed yet, and a rule settled in two places would drift.",
+          "source": null,
+          "link": null
+        }
+      ],
+      "verdict": {},
+      "asBuilt": {
+        "state": "pending",
+        "summary": ""
+      }
+    },
+    {
+      "id": "client-validation",
+      "group": "Left for later",
+      "name": "Client-side handshake validation (#52)",
+      "system": "webtools-udp",
+      "where": "main/HandshakeWireFormat.kt:72-73 · main/MultiConnectionUDPClient.kt:302",
+      "gap": {
+        "kind": "risk",
+        "summary": "`handshakeMessage(\"\")` builds `Iam ` unvalidated and `MultiConnectionUDPClient.handshake` sends it inside `runCatching`; a library client can still put a malformed line on the wire and learns of it only from the server.",
+        "evidence": [
+          "main/HandshakeWireFormat.kt:72-73",
+          "main/MultiConnectionUDPClient.kt:302",
+          "architecture.md §7 — adoption verdicts"
+        ],
+        "source": null,
+        "link": null
+      },
+      "options": [
+        {
+          "id": "leave-to-52",
+          "name": "Leave the client to #52; test the new server branch from raw sockets",
+          "verdict": "accepted",
+          "why": "#52 owns the client; once it lands the library client cannot send a malformed line, which is why every socket-level test of the new branch sends from a `DatagramSocket`.",
+          "source": null,
+          "link": null
+        },
+        {
+          "id": "validate-now",
+          "name": "Add the client-side checks in this change",
+          "verdict": "declined",
+          "why": "The issue is the server's rule; #52 is filed and its design will settle both the message builder and `handshake()`.",
+          "source": null,
+          "link": null
+        }
+      ],
+      "verdict": {},
+      "asBuilt": {
+        "state": "pending",
+        "summary": ""
+      }
+    }
+  ],
+  "impact": null,
+  "roadmap": null,
+  "followUps": [],
+  "documents": [
+    {
+      "label": "Research questions and verification",
+      "path": "research/README.md"
+    }
+  ],
+  "notes": {
+    "paths": "Paths under `webtools-udp/src/main/kotlin/com/spartanlabs/webtools/udp/` are abbreviated `main/`; paths under `webtools-udp/src/test/kotlin/com/spartanlabs/testing/` are abbreviated `test/`. Line references are on the baseline 85cfbbe unless a change names a later commit.",
+    "retrofit": "This board was written after the fact, as the worked example for plan boards, from the issue's research, architecture, plan, impact and as-built documents; its dates come from the commits and the pull request. Its qa passes are the two reviews of the change set. A board kept from the start of a run is updated at every step transition, and its WIP strip shows where the run is.",
+    "corrections": [
+      {
+        "what": "The release row's system is `webtools-udp`: `webtools-udp/build.gradle.kts` sits under that module's registry paths, not the Gradle build's.",
+        "when": "re-templating, 2026-10-22"
+      },
+      {
+        "what": "The tests row's as-built register gains the first review's documentation finding 8 (the `Thread.sleep` constant), which the register had missed; the deferred 4b option is marked as settled by the first review's decision.",
+        "when": "re-templating, 2026-10-22"
+      }
+    ]
+  }
+}

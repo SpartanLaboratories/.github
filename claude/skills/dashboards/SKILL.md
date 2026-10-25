@@ -31,7 +31,7 @@ Two sets, one presenter, one shared rulebook.
 | `GUIDANCE.md` | The rules shared by both sets: colour coding, legends, planned/pending drawn dashed, themes, self-contained pages, facts, Context, divergence, checks. Read it first, every time. |
 | `system/RULES.md` | The system-board ruleset. `system/template/` (system and supersystem pages, registry), `system/scripts/` (`check-page.js`, `embed.js`, `deviation.js`, `levelrefs.js`, `palette.js` (the shared system palette and the status-hue rule), and `cliargs.js`, the strict option parser every script uses: an unknown option exits 2 with the usage, `--help` prints it), `system/examples/webtools-udp/`. |
 | `verify/` | `verify-templates.js`, which verifies every template once (the full browser pass over the fixtures in `verify/fixtures/`) and records its hash in `verified.json`. Pages made from a verified template are checked only where they deviate (`GUIDANCE.md` §8). Run it after every template change. |
-| `plan/RULES.md` | The plan-board ruleset: the data model, the events that update a board, the work board. `plan/template/` (issue page, `plan.json` skeleton, work board), `plan/scripts/` (`new.js`, `embed.js`, `check.js`, `board.js`), `plan/examples/38-handshake-empty-name/`. |
+| `plan/RULES.md` | The plan-board ruleset: the data model, the events that update a board, the WIP strip and its step panel, the live updates, the work board. `plan/template/` (issue page, `plan.json` skeleton, work board), `plan/scripts/` (`new.js`, `embed.js` (which also writes each page's live sidecar, `plan.js` or `board.js`), `check.js`, `board.js`), `plan/examples/38-handshake-empty-name/`. |
 
 ## Reading order for a job
 

@@ -6,6 +6,7 @@
 <meta name="dashboard" content="work-board">
 <meta name="template" content="plan/template/board.html">
 <title>Work board</title>
+<script>/* the theme switch's choice (GUIDANCE.md §1, Themes), applied before the first paint; none chosen: the system setting */try{var t=localStorage.getItem("dashboards-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
 <style>
 /* Work board template (dashboards skill, plan set: plan/RULES.md §5; shared rules: GUIDANCE.md). Every /resolve-issue run in the
    repository at once: one row per issue that has a plan board or is sized for a run on the tracker, grouped by tracking issue in landing order,
@@ -13,7 +14,8 @@
    every plan.json under docs/plans/ and the tracker. Never hand-edit a page. Colour plan as on every page: --sys-1..6 are the
    registry slots, identical to the system pages'; status colours only beside a glyph and a word; the accent marks the runs
    being worked on now (an interior glow that breathes) and the next unit up (a mild, still outer glow and an UP NEXT tag);
-   dashed = not started or no board yet. */
+   dashed = not started or no board yet. A row with no board takes its state from the tracker (plan/RULES.md §5, "Boardless rows"):
+   not started (dashed), in progress (a branch or an open pull request; solid, never glowing), merged · awaiting close, landed. */
 :root{
   --bg:#f3f5f8; --surface:#fcfcfd; --surface-2:#eef1f6; --ink:#0e1420; --ink-2:#4a5468; --muted:#7d879a;
   --line:#dfe4ec; --hair:rgba(14,20,32,.10);
@@ -35,6 +37,23 @@ code{font-family:var(--mono);font-size:.92em;overflow-wrap:anywhere}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .crumbs{font-size:12px;color:var(--muted);padding-top:18px}
 .crumbs a{text-decoration:none}
+/* The header's tools, right of the breadcrumb: the live indicator (plan/RULES.md §5, the live view) and the theme switch (GUIDANCE.md
+   §1, Themes). The live dot is ink, never a status or accent colour; it pulses while the live view is changing and holds still after a
+   quiet spell, when the data cannot be read, while no run is active, and under reduced motion. */
+.topbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;padding-top:18px}
+.topbar .crumbs{padding-top:0;min-width:0}
+.tools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-left:auto}
+.livechip{display:inline-flex;align-items:center;gap:6px;font:600 11px/1 var(--mono);letter-spacing:.03em;padding:5px 9px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink-2);white-space:nowrap}
+.livechip:empty{display:none}
+.livechip .ld{width:8px;height:8px;border-radius:50%;background:var(--ink);flex:none}
+.livechip.on{color:var(--ink);border-color:var(--ink-2)}
+.livechip.on.pulse .ld{animation:livepulse 1.6s ease-in-out infinite}
+.livechip.off .ld{background:none;border:1.5px solid var(--muted)}
+.livechip.na .ld{background:var(--muted)}
+@keyframes livepulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.65)}}
+.themebtn{appearance:none;font:600 11px/1 var(--mono);padding:5px 9px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.themebtn:hover{color:var(--ink);border-color:var(--ink-2)}
+@media (prefers-reduced-motion:reduce){.livechip .ld{animation:none!important}}
 h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)}
 .function{color:var(--ink-2);margin:0 0 10px;max-width:78ch;font-size:15px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 6px}
@@ -78,6 +97,9 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 @keyframes glow{0%,100%{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 3px 1px color-mix(in srgb,var(--accent) 35%,transparent)}50%{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 9px 3px color-mix(in srgb,var(--accent) 65%,transparent)}}
 .vp.glow,.glow{animation:glow 2s ease-in-out infinite;background:color-mix(in srgb,var(--accent) 16%,var(--surface));border-color:var(--accent);border-left-color:var(--sc,var(--accent))}
 @media (prefers-reduced-motion:reduce){.vp.glow,.glow{animation:none!important;box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 6px 2px color-mix(in srgb,var(--accent) 50%,transparent)}}
+/* A run that waits on the user, halted or escalated, keeps its in-progress mark stopped to the ring alone (GUIDANCE.md §1): still. */
+.vp.held{box-shadow:inset 0 0 0 2px var(--accent)}
+.key i.hold{border:2px solid var(--accent)}
 .upnext{box-shadow:0 0 0 1.5px color-mix(in srgb,var(--accent) 70%,transparent),0 0 9px 2px color-mix(in srgb,var(--accent) 30%,transparent)}
 .tag-next{display:inline-block;font:700 9.5px/1 var(--mono);letter-spacing:.08em;padding:3px 5px;border-radius:3px;border:1px solid var(--accent);color:var(--accent);background:var(--surface);white-space:nowrap;vertical-align:1px}
 .tags{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;margin-top:4px}
@@ -122,7 +144,7 @@ footer code{color:var(--ink-2)}
 <body>
 <div class="page">
 <header>
-  <div class="crumbs" id="crumbs"></div>
+  <div class="topbar"><div class="crumbs" id="crumbs"></div><div class="tools"><span class="livechip" id="live"></span><button class="themebtn" id="theme" type="button"></button></div></div>
   <h1>Work board</h1>
   <p class="function" id="function"></p>
   <div class="chips" id="chips"></div>
@@ -170,17 +192,20 @@ const day=v=>{ const s=String(v==null?"":v).trim(), u=STAMP_RE.test(s)&&utcIso(s
 function localizeTimes(root){ (root||document).querySelectorAll("time[datetime]").forEach(t=>{ const u=STAMP_RE.test(t.getAttribute("datetime"))&&utcIso(t.getAttribute("datetime")); if(!u||t.dataset.local) return;
   t.dataset.local="1"; t.title=`${u} (UTC)`; t.textContent=new Date(u).toLocaleString(undefined,LOCAL_FMT); }); }
 
-const B=JSON.parse(document.getElementById("board").textContent||"{}");
-// docs/plans/ relative to this page: "" for the committed board, "../" for the live one in docs/plans/.live/ (board.js --live).
-const BASE=B.base||"";
-const ROWS=B.rows||[], SYS=B.systems||[];
+/* board.json and what is derived from it: let, not const, so a live update (dashboardRedraw(), below) redraws the page in place.
+   BASE is docs/plans/ relative to this page: "" for the committed board, "../" for the live one in docs/plans/.live/ (board.js --live). */
+let B=JSON.parse(document.getElementById("board").textContent||"{}");
+let BASE="", ROWS=[], SYS=[];
 const ext=(h,t)=>`<a href="${esc(h)}" target="_blank" rel="noopener">${t}</a>`;
 /* Links to an issue and its board (plan/RULES.md §1, §5; GUIDANCE.md §5). Where an issue's number and its title appear together
    (a row, a group heading, a roadmap item, an unscheduled issue) they are two links, pair(): the number opens the GitHub issue and
    the title opens the issue's board, plain text while it has none. Where only one link fits (the "part of" line, the waits-on and
    blocks lists, the "blocked by" tags, the Up next count, any #n in the text) ilink() opens the board when one exists and the
    GitHub issue otherwise. board.js sets a row's "board" only when the board's file exists. */
-const ISSUE_BOARDS=new Map(ROWS.filter(r=>r.board).map(r=>[String(r.issue),r.board]));
+/* one Map, refilled by derive(): its name is the marker of the widened link rule (lib.js linkRule()) */
+const ISSUE_BOARDS=new Map();
+function derive(){ BASE=B.base||""; ROWS=B.rows||[]; SYS=B.systems||[]; ISSUE_BOARDS.clear(); ROWS.filter(r=>r.board).forEach(r=>ISSUE_BOARDS.set(String(r.issue),r.board)); }
+derive();
 const boardOf=(n,repo)=>!repo||repo===B.repo?ISSUE_BOARDS.get(String(n))||null:null;
 const ghUrl=(n,repo)=>`https://github.com/${repo||B.repo}/issues/${n}`;
 const ilabel=(n,repo)=>`${repo&&repo!==B.repo?esc(repo.split("/")[1])+"#":"#"}${esc(n)}`;
@@ -195,7 +220,9 @@ function paint(root){ (root||document).querySelectorAll("[data-sys]").forEach(e=
 const STATUS={
   landed:{g:"✓",l:"landed",c:"good"}, complete:{g:"☑",l:"complete · not merged",c:"good",h:1}, building:{g:"●",l:"building",c:"neutral"}, planning:{g:"●",l:"planning",c:"neutral"},
   halted:{g:"⏸",l:"waiting on the user",c:"warning"}, escalated:{g:"⇧",l:"escalated",c:"serious"}, abandoned:{g:"✕",l:"cancelled",c:"critical"},
-  next:{g:"→",l:"next · not started",c:"neutral",d:1}, "not-started":{g:"…",l:"not started",c:"neutral",d:1}, "no-board":{g:"–",l:"no board",c:"neutral",d:1}};
+  next:{g:"→",l:"next · not started",c:"neutral",d:1}, "not-started":{g:"…",l:"not started",c:"neutral",d:1},
+  "in-progress":{g:"▸",l:"in progress",c:"neutral",desc:"no board: a branch or an open pull request refers to it"}, merged:{g:"✓",l:"merged · awaiting close",c:"good",desc:"no board: its pull request merged, the issue still open"},
+  "no-board":{g:"–",l:"no board",c:"neutral",d:1}};
 const BLOCKED={g:"⊘",l:"blocked",c:"warning"};
 const TAG_NEXT=`<span class="tag-next">UP NEXT</span>`;
 const QA={approved:{g:"✓",l:"approved",c:"good"},"changes-requested":{g:"✕",l:"changes requested",c:"critical"},running:{g:"…",l:"in progress",c:"neutral",d:1}};
@@ -206,13 +233,16 @@ const stOf=r=>STATUS[r.status]?r.status:"no-board";
    starts; "landed · 11 of 11" once all have landed. A unit whose run waits reads "waiting on you". A halted, escalated or cancelled
    tracking issue keeps its pill above the summary. */
 const unitRunWord=u=>u.step==="halted"?"waiting on you":u.step==="escalated"?"escalated":u.step==="cancelled"?"run cancelled":`in progress${u.step?` (${esc(u.step)})`:""}`;
-function chainText(c){ const extra=[c.dropped?`${c.dropped} dropped`:"",c.deferred?`${c.deferred} deferred`:""].filter(Boolean);
+function chainText(c){ const extra=[c.dropped?`${c.dropped} dropped`:"",c.deferred?`${c.deferred} deferred`:"",c.left?`${c.left} left for later`:""].filter(Boolean);
   if(c.done) return [`<b>landed</b> · ${c.landed} of ${c.total}`,...extra].join(" · ");
   if(c.planned) return [`<b>planned</b> · ${c.total?`${c.total} unit${c.total===1?"":"s"}`:"no units yet"}`,...extra].join(" · ");
   return [`<b>${c.landed} of ${c.total} landed</b>`,...(c.current||[]).map(u=>`${u.issue?ilink(u.issue):esc(u.slug)} ${unitRunWord(u)}`),
     c.next?`${c.next.issue?ilink(c.next.issue):esc(c.next.slug)} up next${(c.next.blockedBy||[]).length?`, blocked by ${c.next.blockedBy.map(x=>ilink(x.issue,x.repo)).join(", ")}`:""}`:"",...extra].filter(Boolean).join(" · "); }
+/* a run that waits on the user, halted or escalated, on a row with a run board (its own, or its tracking board's unit row): its mark
+   stopped to the ring alone, still (GUIDANCE.md §1), never glowing and never only the yellow pill */
+const heldRow=r=>["halted","escalated"].includes(stOf(r))&&!!(r.board||r.parent);
 const chainCell=(r,st)=>{ const c=r.chain, pct=c.total?Math.round(100*c.landed/c.total):0;
-  return `${["halted","escalated","abandoned"].includes(st)?pill(STATUS[st]):""}<div class="chainsum">${chainText(c)}<span class="cbar" role="img" aria-label="${c.landed} of ${c.total} units landed"><i style="width:${pct}%"></i></span></div>`; };
+  return `${["halted","escalated","abandoned"].includes(st)?pill(STATUS[st],"",heldRow(r)?" held":""):""}<div class="chainsum">${chainText(c)}<span class="cbar" role="img" aria-label="${c.landed} of ${c.total} units landed"><i style="width:${pct}%"></i></span></div>`; };
 /* The impact's reconciliation state of a row's board (plan/RULES.md §2, Impact; §5), as board.json carries it: derived by board.js
    (plan/scripts/lib.js reconciliation()), never by this page, and never stored on a board. Planned is dashed, partly reconciled
    yellow (with the units landed of all on a tracking issue), as built green, each with its glyph and word. */
@@ -231,17 +261,17 @@ function render(){
   $("#chips").innerHTML=[`<span class="chip">generated <b>${when(B.generated||"")}</b></span>`,t.sha?`<span class="chip">from <b>${esc(t.ref||"")} ${esc(t.sha)}</b></span>`:"",B.live?`<span class="chip">live · from <b>${esc(B.live.worktrees)}</b> worktree${B.live.worktrees===1?"":"s"}, each issue's freshest board</span>`:"",`<span class="chip">tracker as of <b>${day(B.asOf||"")}</b></span>`,`<span class="chip model">board <b>board.json</b> · ${ROWS.length} runs</span>`].filter(Boolean).join("");
   const n=k=>ROWS.filter(r=>stOf(r)===k).length;
   const nexts=ROWS.filter(r=>stOf(r)==="next");
-  $("#kpis").innerHTML=[["Runs",ROWS.length,`${(B.roadmap||[]).length} tracking issue${(B.roadmap||[]).length===1?"":"s"}`],["Active now",ROWS.filter(r=>r.active).length,"glowing below"],["Waiting on the user",n("halted"),"halted runs"],["Landed",n("landed"),n("complete")?`${n("complete")} more complete, not merged`:"merged"],["Up next",nexts.length,{html:nexts.length?nexts.map(r=>ilink(r.issue)).join(", ")+" · not started":"no unit named next"}],["Not started",n("not-started")+n("no-board"),`${n("no-board")} without a board`]].map(([l,v,s])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s&&s.html!=null?s.html:esc(s)}</div></div>`).join("");
+  $("#kpis").innerHTML=[["Runs",ROWS.length,`${(B.roadmap||[]).length} tracking issue${(B.roadmap||[]).length===1?"":"s"}`],["Active now",ROWS.filter(r=>r.active).length,"glowing below"],["Waiting on the user",n("halted"),"halted runs"],["Landed",n("landed"),[n("complete")?`${n("complete")} more complete, not merged`:"",n("merged")?`${n("merged")} merged, awaiting close`:""].filter(Boolean).join(" · ")||"merged"],["Up next",nexts.length,{html:nexts.length?nexts.map(r=>ilink(r.issue)).join(", ")+" · not started":"no unit named next"}],["Not started",n("not-started")+n("no-board"),(()=>{ const ns=ROWS.filter(r=>["not-started","no-board"].includes(stOf(r))), o=ns.filter(r=>r.tracker||stOf(r)==="no-board").length, u=ns.length-o; return [u?`${u} unit${u===1?"":"s"} of a tracking issue`:"",o?`${o} other issue${o===1?"":"s"}, from the tracker`:""].filter(Boolean).join(" · ")||"none"; })()]].map(([l,v,s])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s&&s.html!=null?s.html:esc(s)}</div></div>`).join("");
   let h=`<thead><tr><th>Issue</th><th>State</th><th>Now</th><th>QA</th><th>Waits on · blocks</th><th>Branch</th><th>Board</th></tr></thead><tbody>`;
   (B.groups||[]).forEach(g=>{ const rs=ROWS.filter(r=>r.group===g.key).sort((a,b)=>a.order-b.order); if(!rs.length) return;
     h+=`<tr class="grp"><th colspan="7">${g.issue?pair(g.issue,g.title):esc(g.title)}</th></tr>`;
     rs.forEach(r=>{ const st=stOf(r), qa=r.qa||[];
       const iss=x=>`${ilink(x.issue,x.repo)}${x.state==="CLOSED"?"<small> closed</small>":""}`;
-      h+=`<tr class="run${st==="no-board"||st==="not-started"||st==="next"?" nob":""}" data-sys="${esc(r.system||"")}"><td><span class="t">${pair(r.issue,r.title)}</span><div class="sub"><span class="sw" data-sys="${esc(r.system||"")}"></span>${esc(r.systemName||"no system recorded")}${r.parent?` · part of ${ilink(r.parent)}`:""}</div></td><td>${r.chain?chainCell(r,st):pill(STATUS[st],"",r.active?" glow":st==="next"?" upnext":"")}${st==="next"?`<div class="tags">${TAG_NEXT}${blockedTag(r)}</div>`:""}${reconTag(r)}${r.step?`<div class="sub">step ${esc(r.step)}</div>`:""}</td><td>${rich(r.detail||"")}${r.landed?`<div class="sub">${[r.landed.pr?`PR #${esc(r.landed.pr)}`:"",r.landed.version?esc(r.landed.version):"",r.landed.date?when(r.landed.date):""].filter(Boolean).join(" · ")}</div>`:""}</td><td>${qa.map(p=>{ const d=QA[p.verdict]||QA.running; return pill(d,`${p.pass} ${d.l}`); }).join(" ")}${qa.length&&r.qaMax?`<div class="sub">of at most ${esc(r.qaMax)}</div>`:""}</td><td>${(r.waitsOn||[]).length?`waits on ${r.waitsOn.map(iss).join(", ")}`:""}${(r.blocks||[]).length?`<div>blocks ${r.blocks.map(iss).join(", ")}</div>`:""}</td><td>${r.branch?`<code>${esc(r.branch)}</code>`:""}</td><td>${r.board?`<a href="${esc(r.board)}">board</a>`:r.folder?`<a href="${esc(r.folder)}">folder</a>`:"—"}</td></tr>`; }); });
+      h+=`<tr class="run${st==="no-board"||st==="not-started"||st==="next"?" nob":""}" data-sys="${esc(r.system||"")}"><td><span class="t">${pair(r.issue,r.title)}</span><div class="sub"><span class="sw" data-sys="${esc(r.system||"")}"></span>${esc(r.systemName||"no system recorded")}${r.parent?` · part of ${ilink(r.parent)}`:""}</div></td><td>${r.chain?chainCell(r,st):pill(STATUS[st],"",r.active?" glow":st==="next"?" upnext":heldRow(r)?" held":"")}${st==="next"?`<div class="tags">${TAG_NEXT}${blockedTag(r)}</div>`:""}${reconTag(r)}${r.tracker&&r.tracker.pr?`<div class="sub">${ext(`https://github.com/${B.repo}/pull/${r.tracker.pr.number}`,`PR #${esc(r.tracker.pr.number)}`)} ${r.tracker.pr.state==="MERGED"?"merged":"open"}</div>`:""}${r.step?`<div class="sub">step ${esc(r.step)}</div>`:""}</td><td>${rich(r.detail||"")}${r.landed?`<div class="sub">${[r.landed.pr?`PR #${esc(r.landed.pr)}`:"",r.landed.version?esc(r.landed.version):"",r.landed.date?when(r.landed.date):""].filter(Boolean).join(" · ")}</div>`:""}</td><td>${qa.map(p=>{ const d=QA[p.verdict]||QA.running; return pill(d,`${p.pass} ${d.l}`); }).join(" ")}${qa.length&&r.qaMax?`<div class="sub">of at most ${esc(r.qaMax)}</div>`:""}</td><td>${(r.waitsOn||[]).length?`waits on ${r.waitsOn.map(iss).join(", ")}`:""}${(r.blocks||[]).length?`<div>blocks ${r.blocks.map(iss).join(", ")}</div>`:""}</td><td>${r.branch?`<code>${esc(r.branch)}</code>`:""}</td><td>${r.board?`<a href="${esc(r.board)}">board</a>`:r.folder?`<a href="${esc(r.folder)}">folder</a>`:"—"}</td></tr>`; }); });
   $("#runs").innerHTML=h+"</tbody>"; paint($("#runs"));
   const tops=new Map(); ROWS.forEach(r=>{ const s=sysOf(r.system), k=s&&s.slot>=1&&s.slot<=6?s.slot:0; if(!tops.has(k)) tops.set(k,{c:sysColour(r.system),n:new Set()}); tops.get(k).n.add(k?(s.top||s.name):"no system colour"); });
   const used=new Set(ROWS.filter(r=>!r.chain||["halted","escalated","abandoned"].includes(stOf(r))).map(stOf)), qv=new Set(ROWS.flatMap(r=>(r.qa||[]).map(p=>p.verdict)));
-  $("#runs-key").innerHTML=[...tops.values()].map(v=>`<span><i class="sbar" style="--c:${v.c}"></i>${esc([...v.n].join(", "))}</span>`).join("")+(ROWS.some(r=>r.chain)?`<span><span class="cbar"><i style="width:40%"></i></span>a tracking issue's chain: units landed of all units, with its units in progress and the unit up next</span>`:"")+Object.keys(STATUS).filter(k=>used.has(k)).map(k=>`<span>${pill(STATUS[k])}</span>`).join("")+[...qv].filter(v=>QA[v]).map(v=>`<span>${pill(QA[v])} qa pass</span>`).join("")+(ROWS.some(r=>r.active)?`<span><i class="gl"></i>interior glow, breathing: being worked on now</span>`:"")+(used.has("next")?`<span><i class="nx"></i>${TAG_NEXT} still outer glow: the next unit, not started</span>`:"")+(ROWS.some(r=>stOf(r)==="next"&&(r.blockedBy||[]).length)?`<span>${pill(BLOCKED,"blocked by #n")} a blocker of the next unit has not landed</span>`:"")+(used.has("no-board")||used.has("not-started")||used.has("next")?`<span><i class="pln"></i>dashed: not started</span>`:"")+Object.keys(RECON).filter(k=>ROWS.some(r=>(reconOf(r)||{}).state===k)).map(k=>`<span>${pill(RECON[k])} ${esc(RECON[k].desc)}</span>`).join("")+(ROWS.length?"":`<span><i class="pln"></i>no runs recorded yet</span>`);
+  $("#runs-key").innerHTML=[...tops.values()].map(v=>`<span><i class="sbar" style="--c:${v.c}"></i>${esc([...v.n].join(", "))}</span>`).join("")+(ROWS.some(r=>r.chain)?`<span><span class="cbar"><i style="width:40%"></i></span>a tracking issue's chain: units landed of all units, with its units in progress and the unit up next</span>`:"")+Object.keys(STATUS).filter(k=>used.has(k)).map(k=>`<span>${pill(STATUS[k])}${STATUS[k].desc?` ${esc(STATUS[k].desc)}`:""}</span>`).join("")+[...qv].filter(v=>QA[v]).map(v=>`<span>${pill(QA[v])} qa pass</span>`).join("")+(ROWS.some(r=>r.active)?`<span><i class="gl"></i>interior glow, breathing: being worked on now</span>`:"")+(ROWS.some(heldRow)?`<span><i class="hold"></i>ring alone, still: being worked on, paused while the run waits on the user</span>`:"")+(used.has("next")?`<span><i class="nx"></i>${TAG_NEXT} still outer glow: the next unit, not started</span>`:"")+(ROWS.some(r=>stOf(r)==="next"&&(r.blockedBy||[]).length)?`<span>${pill(BLOCKED,"blocked by #n")} a blocker of the next unit has not landed</span>`:"")+(used.has("no-board")||used.has("not-started")||used.has("next")?`<span><i class="pln"></i>dashed: not started</span>`:"")+Object.keys(RECON).filter(k=>ROWS.some(r=>(reconOf(r)||{}).state===k)).map(k=>`<span>${pill(RECON[k])} ${esc(RECON[k].desc)}</span>`).join("")+(ROWS.length?"":`<span><i class="pln"></i>no runs recorded yet</span>`);
   const cards=[];
   cards.push(`<div class="card"><h3>Roadmap <small>${(B.roadmap||[]).length} item${(B.roadmap||[]).length===1?"":"s"} · ${day(B.asOf||"")}</small></h3>${(B.roadmap||[]).length?`<ul class="issues">${B.roadmap.map(m=>`<li><span class="nm">${pair(m.issue,m.title)}</span><ul class="issues">${(m.items||[]).map(i=>`<li><span class="nm">${pair(i.issue,i.title)} <small>${esc((i.state||"").toLowerCase())}</small></span></li>`).join("")}</ul></li>`).join("")}</ul>`:`<p class="lede">No tracking issue is open.</p>`}</div>`);
   const un=B.unscheduled||[];
@@ -253,10 +283,60 @@ function render(){
   $("#source-view").textContent=JSON.stringify(B,(k,v)=>k==="level"?undefined:v,2); /* a work level is never shown (GUIDANCE.md §4) */
   $("#source-key").innerHTML=`<span>this copy is replaced on every <code>board.js</code> run</span>`;
 }
+/* ---------- The theme switch (GUIDANCE.md §1, Themes) ----------
+   A light/night toggle in the header. Until it is clicked the page follows the system setting; a click picks the other palette and
+   remembers it (localStorage "dashboards-theme", shared by every dashboard of the same origin) across pages and reloads. It only
+   selects one of the two palettes the page defines: :root[data-theme]. The same code runs on every dashboard type. */
+(function themeSwitch(){ const KEY="dashboards-theme", root=document.documentElement, btn=document.getElementById("theme"), mq=window.matchMedia?matchMedia("(prefers-color-scheme: dark)"):null;
+  if(!btn) return;
+  const chosen=()=>{ try{ const t=localStorage.getItem(KEY); return t==="light"||t==="dark"?t:null; }catch(e){ return null; } };
+  const now=()=>root.dataset.theme==="dark"||root.dataset.theme==="light"?root.dataset.theme:(mq&&mq.matches?"dark":"light");
+  const label=()=>{ const t=now(), word=t==="dark"?"night":"light"; btn.textContent=t==="dark"?"☾ night":"☀ light"; btn.setAttribute("aria-pressed",String(t==="dark"));
+    btn.title=`Theme: ${word}${chosen()?"":", as the system setting"}. Click for ${t==="dark"?"light":"night"}.`; btn.setAttribute("aria-label",`Night theme${chosen()?"":" (follows the system setting until clicked)"}`); };
+  btn.addEventListener("click",()=>{ const t=now()==="dark"?"light":"dark"; root.dataset.theme=t; try{ localStorage.setItem(KEY,t); }catch(e){} label(); });
+  if(mq&&mq.addEventListener) mq.addEventListener("change",label);
+  if(window.MutationObserver) new MutationObserver(label).observe(root,{attributes:true,attributeFilter:["data-theme"]});
+  label(); })();
+
+/* ---------- Live updates (plan/RULES.md §1, "plan.js"; §5, the live view) ----------
+   The live work board (board.js --live, docs/plans/.live/) is regenerated at every board event; embed.js writes board.js beside it,
+   board.json as a script that hands the data to dashboardLive(). While the page is the live view and a local copy, it re-loads that
+   script every LIVE_POLL_MS and redraws in place when the data changed, keeping the scroll position and the tab; dashboardRedraw(data)
+   is the redraw, kept apart so a server push can call it. The committed work board is regenerated only at landings and does not
+   poll: "not live · as of <generated>". The indicator reads "LIVE · updated n s ago" (the dot pulses; the counter restarts at each
+   change), "LIVE · no change for n min" after a quiet spell, "LIVE · data unavailable" when board.js cannot be read. */
+const LIVE_POLL_MS=5000, LIVE_QUIET_MS=5*60000;
+const LIVE_LOCAL=location.protocol==="file:"||/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+const LIVE={json:JSON.stringify(B),last:0,ok:true,got:false,timer:null,tick:null};
+const isLive=()=>!!B.live&&LIVE_LOCAL;
+const ago=ms=>{ const s=Math.max(0,Math.round(ms/1000)); return s<90?`${s} s`:s<5400?`${Math.round(s/60)} min`:`${Math.round(s/3600)} h`; };
+function liveChip(){ const c=$("#live"); if(!c) return;
+  if(!isLive()){ c.className="livechip off"; c.innerHTML=`<span class="ld" aria-hidden="true"></span>not live${B.generated?` · as of ${when(B.generated)}`:""}`; c.title=B.live?"A published copy of the live view: it does not follow the runs.":"The committed work board, regenerated at each landing: each run's live state is on its own board."; return; }
+  if(!LIVE.ok){ c.className="livechip on na"; c.innerHTML=`<span class="ld" aria-hidden="true"></span>LIVE · data unavailable`; c.title="board.js beside this page cannot be read: run board.js --live."; return; }
+  const since=Date.now()-LIVE.last, quiet=since>LIVE_QUIET_MS, any=ROWS.some(r=>r.active);
+  c.className=`livechip on${quiet||!any?"":" pulse"}`;
+  c.innerHTML=quiet?`<span class="ld" aria-hidden="true"></span>LIVE · no change for ${ago(since)}`:`<span class="ld" aria-hidden="true">●</span>LIVE · updated ${ago(since)} ago`;
+  c.title=`Re-read from board.js every ${LIVE_POLL_MS/1000} s${any?"":"; no run is active"}.`; }
+function dashboardRedraw(data){
+  if(!data||typeof data!=="object") return false;
+  const j=JSON.stringify(data); if(j===LIVE.json){ liveChip(); return false; }
+  const keep={x:window.scrollX,y:window.scrollY,tab:(tabs.find(t=>t.getAttribute("aria-selected")==="true")||{}).id||"t-runs"};
+  LIVE.json=j; B=data; derive(); render(); show(keep.tab); window.scrollTo(keep.x,keep.y);
+  LIVE.last=Date.now(); liveChip(); return true; }
+window.dashboardRedraw=dashboardRedraw;
+window.dashboardLive=(id,data)=>{ if(id!=="board") return; LIVE.got=true; dashboardRedraw(data); };
+function poll(){ const sc=document.createElement("script"); LIVE.got=false;
+  sc.src="board.js?t="+Date.now(); sc.onload=()=>{ LIVE.ok=LIVE.got; sc.remove(); liveChip(); }; sc.onerror=()=>{ LIVE.ok=false; sc.remove(); liveChip(); };
+  document.head.appendChild(sc); }
+function startLive(){ const g=Date.parse(String(B.generated||"")); LIVE.last=isNaN(g)?Date.now():Math.min(Date.now(),g); liveChip();
+  if(LIVE.tick==null) LIVE.tick=setInterval(liveChip,1000);
+  if(isLive()&&!LIVE.timer) LIVE.timer=setInterval(poll,LIVE_POLL_MS); }
+
 const tabs=[...document.querySelectorAll(".tab")];
 function show(id){ tabs.forEach(t=>{ const on=t.id===id; t.setAttribute("aria-selected",String(on)); t.tabIndex=on?0:-1; document.getElementById(t.getAttribute("aria-controls")).hidden=!on; }); }
 tabs.forEach((t,i)=>{ t.addEventListener("click",()=>show(t.id)); t.addEventListener("keydown",e=>{ if(e.key==="ArrowRight"||e.key==="ArrowLeft"){ const j=(i+(e.key==="ArrowRight"?1:tabs.length-1))%tabs.length; tabs[j].focus(); show(tabs[j].id); } }); });
 render(); show(location.hash==="#source"?"t-source":"t-runs");
+startLive();
 </script>
 </body>
 </html>

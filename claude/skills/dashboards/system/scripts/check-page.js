@@ -16,7 +16,10 @@
 // (.guarantees holding at least one .bubble) and, when the page sits under a docs/dashboards/ with a systems.json in a git
 // work tree, no registry page or DSL file is git-ignored, and every entry of its BOARDS map (issue number → plan board) names a
 // board file that is there; a plan board has a visible WIP strip (.wip) with its own legend, and its
-// Impact tab shows no planning information (no dashed element, no planned / as-built pill, no changes-from-the-plan list). --theme sets
+// Impact tab shows no planning information (no dashed element, no planned / as-built pill, no changes-from-the-plan list). On every
+// kind, dashed means only planned or pending (GUIDANCE.md §1): a dashed border or SVG stroke on any tab (every C4 view of a system
+// page included) that marks nothing planned or pending fails (DASHED NOT PLANNED), and so does a workspace.dsl element style with
+// "border dashed" on a tag other than Planned, read from the page without a browser. --theme sets
 // data-theme on <html>. --frame loads the page inside an iframe of that width (the harness for real phone widths, below what
 // headless Chrome lays out as a window). The page is loaded from a wrapper copy in the output directory, so the committed file
 // is never modified.
@@ -39,8 +42,13 @@ if (!page) { console.error("usage: node check-page.js <page.html> [--auto] [--ou
    passes: a system colour in a status spectrum fails; a slot that is not the shared palette's value is a warning. */
 const { paletteCheck, ALLOWED_HUES, STATUS_MIN_SAT } = require("./palette.js");
 const palette = fs.existsSync(page) ? paletteCheck(fs.readFileSync(page, "utf8")) : { tokens: 0, problems: [], warnings: [] };
+/* Dashed means only planned (GUIDANCE.md §1): in the embedded workspace.dsl's styles, only the Planned tag may draw a dashed border.
+   Read from the page without a browser, so it holds on every pass, --auto included. */
+const dslDashes = (() => { if (!fs.existsSync(page)) return []; const m = fs.readFileSync(page, "utf8").match(/<script type="text\/plain" id="dsl">([\s\S]*?)<\/script>/); if (!m) return [];
+  return [...m[1].matchAll(/^\s*element\s+"([^"]+)"\s*\{([^}]*)\}/gm)].filter(x => x[1] !== "Planned" && /\bborder\s+dashed\b/.test(x[2])).map(x => "DASHED NOT PLANNED: workspace.dsl styles element \"" + x[1] + "\" with border dashed: only Planned is dashed; draw it solid or dotted"); })();
 const paletteLines = () => [`CHECK palette: ${palette.tokens} system-colour tokens${palette.problems.length ? "" : ", none in a status spectrum"}`,
-  ...palette.problems.map(p => "CHECK palette: PALETTE IN STATUS HUE " + p), ...palette.warnings.map(w => "CHECK palette: warning: " + w)];
+  ...palette.problems.map(p => "CHECK palette: PALETTE IN STATUS HUE " + p), ...palette.warnings.map(w => "CHECK palette: warning: " + w),
+  ...dslDashes.map(p => "CHECK dsl: " + p)];
 
 if (args.includes("--auto")) {
   const { deviation } = require("./deviation.js");
@@ -48,14 +56,14 @@ if (args.includes("--auto")) {
   paletteLines().forEach(l => console.log(l));
   console.log(`CHECK template: ${d.kind} page · ${d.verdict} · ${d.passes === "none" ? "no browser pass" : d.passes === "light" ? "one light pass (the facts it fills in)" : "full pass (light, dark, 520, frame 390, desktop 1920x1080)"}`);
   d.notes.forEach(n => console.log("CHECK template: " + n));
-  if (d.passes === "none") { console.log(palette.problems.length ? "FAIL: a system colour in a status spectrum" : "PASS"); process.exit(palette.problems.length ? 1 : 0); }
+  if (d.passes === "none") { const bad = palette.problems.length || dslDashes.length; console.log(bad ? `FAIL: ${palette.problems.length ? "a system colour in a status spectrum" : "a dashed DSL style that is not Planned"}` : "PASS"); process.exit(bad ? 1 : 0); }
   const rest = args.filter(a => a !== "--auto" && a !== page);
   const modes = d.passes === "light" ? [[]] : [[], ["--theme", "dark"], ["--width", "520"], ["--frame", "390"], ["--width", "1920", "--height", "1080"]];
   let failed = 0;
   modes.forEach(m => {
     const r = cp.spawnSync(process.execPath, [__filename, page, ...rest, ...m], { encoding: "utf8" });
     const lines = (r.stdout || "").trim().split(/\r?\n/), label = m.join(" ") || "light";
-    const bad = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|FOOTER NOT IN ITS FORM|GIT-IGNORED|DEAD BOARD LINK|BOARDS UNREADABLE|FAIL/.test(l));
+    const bad = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM|GIT-IGNORED|DEAD BOARD LINK|BOARDS UNREADABLE|FAIL/.test(l));
     console.log(`CHECK pass ${label}: ${r.status === 0 ? "PASS" : "FAIL"} · ${(lines.find(l => l.startsWith("screenshot:")) || "").replace("screenshot: ", "")}`);
     bad.forEach(l => console.log("  " + l));
     if (r.status !== 0) failed++;
@@ -92,7 +100,19 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   /* work levels are never shown (levelrefs.js): the text of every tab, then of the whole page, is scanned */
   const LV=${JSON.stringify(LEVEL_PATTERNS)}.map(([s,f])=>new RegExp(s,f+"g")), lvHits=new Set();
   const lvScan=(txt,where)=>LV.forEach(re=>{ re.lastIndex=0; let m; while((m=re.exec(txt||""))) lvHits.add(where+": “"+m[0]+"”"); });
-  tabs.forEach(t=>{ try{ t.click(); const p=document.getElementById(t.getAttribute("aria-controls")); if(p) lvScan(p.innerText,"tab "+t.id); const vis=p&&!p.hidden&&getComputedStyle(p).display!=="none"; const drawn=p?p.querySelectorAll("svg *, table, .card, .thread, .syscard, .cell, .bcard, .run").length:0; const keys=p?[...p.querySelectorAll(".key, .c4key")].filter(k=>shown(k)&&k.children.length).length:0; console.log("CHECK tab "+t.id+": "+(vis?"visible":"NOT VISIBLE")+" · "+drawn+" drawn nodes · "+(keys?"legend":"NO LEGEND (every tab needs a visible .key)")); }catch(err){ console.log("CHECK tab "+t.id+" threw: "+err.message); } });
+  /* Dashed means only planned or pending (GUIDANCE.md §1), on every tab of every kind: a dashed border or outline, or a dashed SVG
+     stroke (a dash of 3 px or more; shorter is dotted: standalone or conditional), on an element that is not, and is not inside, one
+     marked planned or pending by the kind's own classes. Diagram furniture (lifelines, returns, boundary frames) is solid. */
+  const PLANNED_SEL=kind==="plan-board"?".planned,.pending,.deferred,.todo,.dashed,.pln,.hollow,.dash,.next,.st-pending,.st-deferred,.pend":kind==="work-board"?".dashed,.pln,.nob":".planned,.dashed,.pln";
+  const dashHits=new Map(), SIDES=["Top","Right","Bottom","Left"], SHAPES=new Set(["line","path","rect","polygon","polyline","circle","ellipse"]);
+  const seen=e=>e.getClientRects().length>0&&getComputedStyle(e).visibility!=="hidden";
+  const clsOf=e=>String(e.getAttribute("class")||"").trim().split(/\\s+/).filter(Boolean).map(c=>"."+c).join("");
+  const nameOf=e=>e.tagName.toLowerCase()+clsOf(e)+(e.parentElement&&clsOf(e.parentElement)?" in "+clsOf(e.parentElement):"");
+  const dashScan=where=>{ document.querySelectorAll("body *").forEach(e=>{ if(e.closest("defs,marker,script,style")||!seen(e)) return; const s=getComputedStyle(e); let dashed=false;
+    if(e instanceof SVGElement){ if(SHAPES.has(e.tagName.toLowerCase())&&s.stroke!=="none"&&s.strokeDasharray&&s.strokeDasharray!=="none") dashed=parseFloat(s.strokeDasharray)>=3; }
+    else dashed=SIDES.some(d=>s["border"+d+"Style"]==="dashed"&&parseFloat(s["border"+d+"Width"])>0)||(s.outlineStyle==="dashed"&&parseFloat(s.outlineWidth)>0);
+    if(dashed&&!e.closest(PLANNED_SEL)){ const k=nameOf(e); if(!dashHits.has(k)) dashHits.set(k,where); } }); };
+  tabs.forEach(t=>{ try{ t.click(); dashScan("tab "+t.id); if(kind==="system"&&t.id==="t-c4"){ const rungs=[...document.querySelectorAll(".rung")]; rungs.forEach((r,i)=>{ r.click(); dashScan("tab t-c4, view "+(i+1)); }); if(rungs[0]) rungs[0].click(); } const p=document.getElementById(t.getAttribute("aria-controls")); if(p) lvScan(p.innerText,"tab "+t.id); const vis=p&&!p.hidden&&getComputedStyle(p).display!=="none"; const drawn=p?p.querySelectorAll("svg *, table, .card, .thread, .syscard, .cell, .bcard, .run").length:0; const keys=p?[...p.querySelectorAll(".key, .c4key")].filter(k=>shown(k)&&k.children.length).length:0; console.log("CHECK tab "+t.id+": "+(vis?"visible":"NOT VISIBLE")+" · "+drawn+" drawn nodes · "+(keys?"legend":"NO LEGEND (every tab needs a visible .key)")); }catch(err){ console.log("CHECK tab "+t.id+" threw: "+err.message); } });
   if(kind==="system"){
     const g=document.querySelector(".guarantees"), b=g?[...g.querySelectorAll(".bubble")].filter(shown).map(x=>(x.querySelector("h3")||{}).firstChild):[];
     console.log("CHECK guarantees: "+(shown(g)&&b.length?b.length+" bubbles · "+b.map(n=>n?n.textContent.trim():"?").join(" · "):"MISSING (no visible .guarantees area with a .bubble)"));
@@ -137,6 +157,7 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   const raw=[]; const tw=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement&&n.parentElement.closest("script,style,pre,code,time,#p-source")?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
   while(tw.nextNode()){ const m=ZS.exec(tw.currentNode.nodeValue); if(m) raw.push(m[0]); }
   console.log("CHECK times: "+times.length+" local"+(badT.length?" · RAW UTC STAMP in a <time> without its UTC title ("+badT.slice(0,3).map(t=>t.getAttribute("datetime")).join(", ")+")":"")+(raw.length?" · RAW UTC STAMP shown as text ("+raw.slice(0,3).join(", ")+"): render it with when()":""));
+  dashScan("page"); console.log("CHECK dashes: "+(dashHits.size?"DASHED NOT PLANNED: "+[...dashHits].slice(0,6).map(([k,w])=>k+" ("+w+")").join("; ")+": dashed means only planned or pending; draw it solid, or mark it planned":"every dashed element is planned or pending"));
   const glow=document.querySelectorAll(".glow").length; console.log("CHECK glow: "+glow+(glow>6?" TOO MANY (at most six elements glow)":""));
   const want=${JSON.stringify(tab)}; const t=want?document.getElementById(want):tabs[0]; if(t) t.click();
   lvScan(document.body.innerText,"page"); console.log("CHECK work levels: "+(lvHits.size?"LEVEL REFERENCE shown ("+[...lvHits].slice(0,6).join("; ")+"): a dashboard never shows a work level":"none shown"));
@@ -200,6 +221,9 @@ const base = path.basename(path.dirname(path.resolve(page))) + "." + path.basena
 const wrapperPath = path.join(out, base + ".check.html");
 const shot = path.join(out, base + (tab ? "." + tab : "") + (theme ? "." + theme : "") + (frame ? ".frame" + frame : width !== 1400 ? "." + width : "") + ".png");
 fs.writeFileSync(wrapperPath, wrapped);
+// A plan board or the work board re-loads its live sidecar (plan.js, board.js) from beside the page while its run is live: the wrapper
+// gets a copy beside it, so the pass sees the page as a reader would; a copy left by another page is removed.
+["plan.js", "board.js"].forEach(f => { const side = path.join(path.dirname(path.resolve(page)), f); const copy = path.join(out, f); if (/<meta name="dashboard" content="(plan-board|work-board)">/.test(src) && fs.existsSync(side)) fs.copyFileSync(side, copy); else if (fs.existsSync(copy)) fs.unlinkSync(copy); });
 let target = wrapperPath;
 if (frame) {
   // The harness: the wrapped page inside an iframe of the phone width.
@@ -212,9 +236,9 @@ const r = cp.spawnSync(browser, ["--headless=new", "--disable-gpu", "--no-first-
   "--allow-file-access-from-files", "--virtual-time-budget=6000", `--window-size=${width},${height}`, `--screenshot=${shot}`, url], { encoding: "utf8", timeout: 120000 });
 // Chrome prints console lines as `[...] "message", source: <url> (<line>)`; keep just the message.
 const lines = (r.stderr || "").split(/\r?\n/).filter(l => /CONSOLE|Uncaught/.test(l)).map(l => l.replace(/^.*CONSOLE[^"]*"/, "").replace(/", source:[\s\S]*$/, "").trim());
-const errors = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|FOOTER NOT IN ITS FORM/.test(l));
+const errors = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM/.test(l));
 lines.forEach(l => console.log(l));
-paletteLines().forEach(l => { console.log(l); if (/PALETTE IN STATUS HUE/.test(l)) errors.push(l); });
+paletteLines().forEach(l => { console.log(l); if (/PALETTE IN STATUS HUE|DASHED NOT PLANNED/.test(l)) errors.push(l); });
 if (regCheck) { if (regCheck.note) console.log("CHECK " + regCheck.note); regCheck.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); }
 if (boardCheck) { if (boardCheck.note) console.log("CHECK " + boardCheck.note); boardCheck.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); }
 console.log(`screenshot: ${shot}`);

@@ -53,7 +53,7 @@ facts.
    elements get new identifiers. The parser covers this subset only — stay inside it (no
    `!include`, no `properties`, no `deployment` views, one element per line, relationships as
    `a -> b "description"`). In the `styles` block only `Planned` has a dashed border;
-   `Standalone` is dotted, `Internal` solid.
+   `Standalone` is dotted, `Internal` solid; `check-page.js` fails a dashed style on any other tag.
 
 2. **The page's `MODEL` — behaviour.** A JS object in the page with:
    - `sides`: the names of the page's colour groups — the three hue slots `server`, `client` and
@@ -91,7 +91,11 @@ board). Hand-written HTML writes the number of a pair as a plain GitHub link and
 at load and leaves a title plain text while its issue has no board. Nobody writes a board's path
 anywhere else on the page.
 The header names the branch and short SHA the page reflects and the issue that last amended the
-system; every count on the page is counted.
+system; every count on the page is counted. The header also carries the **theme switch**
+(`GUIDANCE.md` §1, Themes), a light/night toggle the template's renderer adds right of the
+breadcrumb; the presenter writes nothing for it. A system, supersystem or repository page has **no
+live indicator**: it shows the code at a named commit and has no run to follow (`plan/RULES.md` §3,
+"Live updates").
 
 ## 3. Tabs
 
@@ -163,9 +167,12 @@ dashed = planned, a legend on every tab). The groupings the system templates use
   a slot.
 - Further tokens on `:root`: the ordinal phase ramp `--ph-1` … `--ph-3` (classes `.ph1` …
   `.ph3`), used by Lifecycles. A single series (the test-class bars) is neutral ink, not a hue.
-- Nothing built is drawn with a dashed outline: standalone is dotted, a lazily started thread an
-  outlined pill, the DSL's `Internal` style solid. The other dashes are diagram conventions the
-  legend names: sequence lifelines and return messages, the C4 boundary frame.
+- Nothing built is drawn dashed, and a dash means planned and nothing else (`GUIDANCE.md` §1):
+  standalone is dotted, a lazily started thread an outlined pill, the DSL's `Internal` style solid,
+  and the diagram furniture solid — the sequence's and the C4 dynamic view's lifelines faint and
+  solid, a return message a thin solid line told by its open arrowhead, the C4 boundary frame a
+  faint solid outline. A planned lifeline, message, relationship or element is dashed on every view,
+  the C4 dynamic view's included. `check-page.js` fails any other dash (§9).
 - A planned system appears on supersystem and repository pages only, dashed and faded, naming
   the issue that plans it, never with a page of its own; it gets a page when its implementing
   issue lands.
@@ -298,7 +305,11 @@ embeds runs one pass of the named mode, for looking at a single tab.
 to point at another). It clicks every tab and exits non-zero on a script error, a panel that does
 not render, a tab without a visible legend (`.key`, or `.c4key` on the C4 tab), a page without a
 visible Guarantees area holding at least one bubble, a Context section whose heading is not
-exactly "Context", a dead `href="#"` link, a horizontal page scroll, a **system colour in a status
+exactly "Context", a dead `href="#"` link, a horizontal page scroll, a **dash that marks nothing
+planned** (`DASHED NOT PLANNED`: a dashed border, outline or SVG stroke, a dash of 3 px or more, on an
+element that is not, and is not inside, one classed `planned`, `dashed` or `pln`, on every tab and every
+C4 view; and, without a browser, a `workspace.dsl` element style with `border dashed` on a tag other than
+`Planned`; plan boards and the work board are held to the same rule with their own pending classes), a **system colour in a status
 spectrum** (`scripts/palette.js`: a `--sys-N`, `--server`, `--client` or `--wire` token, or its
 `-soft` fill, chromatic with a hue outside 175°–295°, read from the page's CSS on every run,
 `--auto` included, and as the browser computes it in the theme of the pass), or a **git-ignored

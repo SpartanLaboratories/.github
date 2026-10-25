@@ -92,6 +92,12 @@
       "issue": 55,
       "title": "HTTP client stack for BotTools: suspend transport, outbound-URL guard, response cache, call budget and test fakes",
       "board": "55-http-client-stack/dashboard.html"
+    },
+    {
+      "key": "other",
+      "issue": null,
+      "title": "Other runs, oldest first",
+      "board": null
     }
   ],
   "rows": [
@@ -457,6 +463,155 @@
       "systemName": "WebTools",
       "group": "55",
       "order": 11
+    },
+    {
+      "parent": null,
+      "waitsOn": [],
+      "blocks": [],
+      "board": null,
+      "folder": null,
+      "system": "gradle-build",
+      "step": null,
+      "detail": "",
+      "qa": [],
+      "qaMax": null,
+      "landed": null,
+      "reconciliation": null,
+      "active": false,
+      "systemName": "Gradle build",
+      "group": "other",
+      "issue": 80,
+      "title": "Docs: a boardless issue nothing refers to yet",
+      "state": "OPEN",
+      "created": "2026-10-20",
+      "branch": null,
+      "status": "not-started",
+      "tracker": {
+        "branch": null,
+        "pr": null
+      },
+      "order": 0
+    },
+    {
+      "parent": null,
+      "waitsOn": [],
+      "blocks": [],
+      "board": null,
+      "folder": null,
+      "system": "gradle-build",
+      "step": null,
+      "detail": "",
+      "qa": [],
+      "qaMax": null,
+      "landed": null,
+      "reconciliation": null,
+      "active": false,
+      "systemName": "Gradle build",
+      "group": "other",
+      "issue": 81,
+      "title": "Build: a boardless issue with a branch",
+      "state": "OPEN",
+      "created": "2026-10-21",
+      "branch": "fix/81-port-lock",
+      "status": "in-progress",
+      "tracker": {
+        "branch": "fix/81-port-lock",
+        "pr": null
+      },
+      "order": 1
+    },
+    {
+      "parent": null,
+      "waitsOn": [],
+      "blocks": [],
+      "board": null,
+      "folder": null,
+      "system": "gradle-build",
+      "step": null,
+      "detail": "",
+      "qa": [],
+      "qaMax": null,
+      "landed": null,
+      "reconciliation": null,
+      "active": false,
+      "systemName": "Gradle build",
+      "group": "other",
+      "issue": 82,
+      "title": "Build: a boardless issue with an open pull request",
+      "state": "OPEN",
+      "created": "2026-10-22",
+      "branch": "docs/issue-82-readme",
+      "status": "in-progress",
+      "tracker": {
+        "branch": "docs/issue-82-readme",
+        "pr": {
+          "number": 91,
+          "state": "OPEN"
+        }
+      },
+      "order": 2
+    },
+    {
+      "parent": null,
+      "waitsOn": [],
+      "blocks": [],
+      "board": null,
+      "folder": null,
+      "system": "gradle-build",
+      "step": null,
+      "detail": "",
+      "qa": [],
+      "qaMax": null,
+      "landed": null,
+      "reconciliation": null,
+      "active": false,
+      "systemName": "Gradle build",
+      "group": "other",
+      "issue": 83,
+      "title": "Docs: a boardless issue merged, awaiting close",
+      "state": "OPEN",
+      "created": "2026-10-23",
+      "branch": null,
+      "status": "merged",
+      "tracker": {
+        "branch": null,
+        "pr": {
+          "number": 92,
+          "state": "MERGED"
+        }
+      },
+      "order": 3
+    },
+    {
+      "parent": null,
+      "waitsOn": [],
+      "blocks": [],
+      "board": null,
+      "folder": null,
+      "system": "gradle-build",
+      "step": null,
+      "detail": "",
+      "qa": [],
+      "qaMax": null,
+      "landed": null,
+      "reconciliation": null,
+      "active": false,
+      "systemName": "Gradle build",
+      "group": "other",
+      "issue": 84,
+      "title": "Docs: a boardless issue closed",
+      "state": "CLOSED",
+      "created": "2026-10-24",
+      "branch": null,
+      "status": "landed",
+      "tracker": {
+        "branch": null,
+        "pr": {
+          "number": 93,
+          "state": "MERGED"
+        }
+      },
+      "order": 4
     }
   ],
   "roadmap": [

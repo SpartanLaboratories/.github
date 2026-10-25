@@ -438,6 +438,10 @@ re-run only the missing question.
 the rows actually being researched, so tell the admin team which those are
 (`plan-board` requests, the `admin-team` skill, fire-and-forget):
 
+- **When you start writing the research questions** (stage 2.1, before any
+  researcher): event `research-planning`, with `facts.drafted` (how many
+  questions are drafted so far, `0` at first). The board shows "planning" in
+  its step panel's research timeline; no row glows yet.
 - **When you spawn the batch:** event `research-started`, with
   `facts.researching`: one entry per question, `{question: "<question-slug>",
   rows: ["<row-id>", …]}`. A row id is a row of the issue board's
@@ -447,8 +451,12 @@ the rows actually being researched, so tell the admin team which those are
   Considered column.
 - **As each researcher returns:** event `research-returned`, with
   `facts.returned: {question: "<question-slug>", findings:
-  "<issue-folder>/research/<question-slug>.md"}`. Its rows stop glowing.
+  "<issue-folder>/research/<question-slug>.md"}`. Its rows show "returned,
+  awaiting verification".
+- **When verification starts** (after the batch's findings are committed):
+  event `verification-started`. The researched rows show "verifying".
 - **Once verification is done:** `researched`, as before (sent by your caller).
+  The researched rows show "complete" until the plan is accepted.
 
 A follow-up researcher (2.4) sends its own `research-started` and
 `research-returned`.

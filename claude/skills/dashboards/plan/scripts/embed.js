@@ -9,13 +9,15 @@
 // from that sub-issue's own plan.json (unit.live, plan/RULES.md §3). plan.json is rewritten only when a link or a mirror changed.
 // A sub-issue's board then re-embeds its parent's tracking board (the enclosing folder, when it holds the parent's plan.json and
 // dashboard.html), so every event of a unit's run reaches the tracking board, not only the first.
+// Beside the page it writes the live sidecar (plan/RULES.md §1, "plan.js"): plan.json → plan.js, board.json → board.js, the data
+// file verbatim as a script the page re-loads while its run is live and redraws from. --check also holds the sidecar to the file.
 "use strict";
 const fs = require("fs"), path = require("path");
-const { readBlock, writeBlock, linkIssueBoards, parentFolder } = require("./lib.js");
+const { readBlock, writeBlock, linkIssueBoards, parentFolder, SIDECAR, sidecarText, readSidecar } = require("./lib.js");
 
 function target(dir) {
-  if (fs.existsSync(path.join(dir, "plan.json"))) return { json: path.join(dir, "plan.json"), html: path.join(dir, "dashboard.html"), id: "plan" };
-  if (fs.existsSync(path.join(dir, "board.json"))) return { json: path.join(dir, "board.json"), html: path.join(dir, "index.html"), id: "board" };
+  if (fs.existsSync(path.join(dir, "plan.json"))) return { json: path.join(dir, "plan.json"), html: path.join(dir, "dashboard.html"), js: path.join(dir, SIDECAR.plan), id: "plan" };
+  if (fs.existsSync(path.join(dir, "board.json"))) return { json: path.join(dir, "board.json"), html: path.join(dir, "index.html"), js: path.join(dir, SIDECAR.board), id: "board" };
   throw new Error(`${dir} holds neither plan.json nor board.json`);
 }
 function same(dir) {
@@ -23,7 +25,10 @@ function same(dir) {
   if (body == null) return { t, same: false, reason: `no ${t.id} block` };
   let embedded; try { embedded = JSON.parse(body); } catch (e) { return { t, same: false, reason: "the embedded copy does not parse: " + e.message }; }
   const file = JSON.parse(fs.readFileSync(t.json, "utf8"));
-  return { t, same: JSON.stringify(embedded) === JSON.stringify(file) };
+  if (JSON.stringify(embedded) !== JSON.stringify(file)) return { t, same: false };
+  const side = readSidecar(t.js, t.id);
+  if (side.error) return { t, same: false, reason: `the sidecar ${path.basename(t.js)} is ${side.error}` };
+  return { t, same: JSON.stringify(side.data) === JSON.stringify(file), reason: `the sidecar ${path.basename(t.js)} differs` };
 }
 /* A plan board's issue links and its units' runs are resolved from the folders on disk before it is embedded (lib.js
    linkIssueBoards); plan.json is rewritten first, keeping its line endings, so the page still embeds the committed file verbatim. */
@@ -34,6 +39,7 @@ function embedOne(dir) {
   const linked = t.id === "plan" ? linkIssueBoards(data, dir) : [];
   if (linked.length) { const eol = /\r\n/.test(json) ? "\r\n" : "\n"; json = (JSON.stringify(data, null, 2) + "\n").replace(/\n/g, eol); fs.writeFileSync(t.json, json); }
   fs.writeFileSync(t.html, writeBlock(fs.readFileSync(t.html, "utf8"), t.id, json));
+  fs.writeFileSync(t.js, sidecarText(t.id, json));
   return { ...t, bytes: Buffer.byteLength(json), linked, data };
 }
 /* Embed a folder; for a sub-issue's board, then re-embed its parent's tracking board, which mirrors this unit's run from the
@@ -56,10 +62,10 @@ if (require.main === module) {
   const dir = args.find(a => !a.startsWith("--"));
   if (!dir) { console.error("usage: node embed.js <folder> [--check]"); process.exit(2); }
   try {
-    if (args.includes("--check")) { const r = same(dir); console.log(r.same ? `${r.t.html} embeds ${path.basename(r.t.json)} verbatim` : `${r.t.html}: embedded copy DIFFERS from ${path.basename(r.t.json)}${r.reason ? " (" + r.reason + ")" : ""}`); process.exit(r.same ? 0 : 1); }
+    if (args.includes("--check")) { const r = same(dir); console.log(r.same ? `${r.t.html} embeds ${path.basename(r.t.json)} verbatim, and ${path.basename(r.t.js)} carries it` : `${r.t.html}: embedded copy DIFFERS from ${path.basename(r.t.json)}${r.reason ? " (" + r.reason + ")" : ""}`); process.exit(r.same ? 0 : 1); }
     const r = embed(dir);
     r.linked.forEach(l => console.log(`linked ${l}`));
-    console.log(`embedded ${r.json} into ${r.html} (${r.bytes} bytes)`);
+    console.log(`embedded ${r.json} into ${r.html} (${r.bytes} bytes) and wrote ${path.basename(r.js)} beside it`);
     if (r.parent && r.parent.error) { console.error(`could not re-embed the parent's tracking board in ${r.parent.dir}: ${r.parent.error}`); process.exit(1); }
     if (r.parent) { r.parent.linked.forEach(l => console.log(`tracking board ${r.parent.dir}: ${l}`)); console.log(`re-embedded the parent's tracking board in ${r.parent.dir}${r.parent.linked.length ? "" : " (unchanged)"}`); }
   } catch (e) { console.error("embed failed: " + e.message); process.exit(1); }
