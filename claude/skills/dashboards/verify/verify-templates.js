@@ -316,7 +316,9 @@ targets.filter(t => t.block === "plan").forEach(t => {
    - the As built tab shows how the impact differed from the plan (plan/RULES.md §2, Impact): impact.changes as solid cards in their
      system's colour, never red or yellow, each linking the Impact card it changed (a deep link opens it selected), a tracking
      board's unit changes under the unit's number and title, "None" once reconciled unchanged, nothing while still the plan's;
-     check.js fails a change whose "entry" names no Impact entry;
+     while partly reconciled (basis "plan", changes accumulating as the work lands, a tracking board's as each unit lands) the
+     changes so far with a line saying how far, "None so far" on a tracking board whose landed units changed nothing;
+     check.js fails a change whose "entry" names no Impact entry and does not warn on changes under basis "plan";
    - system colours stay out of the status spectra (GUIDANCE.md §1; system/scripts/palette.js): every template's slots are the
      shared palette's and none is green, yellow, orange, amber, red or pink; check.js and check-page.js fail a copy with an orange
      slot, check-page.js from the CSS and from the computed colours alike;
@@ -360,7 +362,11 @@ targets.filter(t => t.block === "plan").forEach(t => {
     nc.push(["check.js fails an impact change whose entry names no Impact entry", c.status === 1 && /entry "api\.\d+" names no entry/.test(c.stdout), lines(c, /^FAIL/) || "no failure"]);
     d.impact.changes[0].entry = "api.0"; d.impact.changes[0].system = d.systems[0].slug; fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(d, null, 2) + "\n"); node(embedJs, dir);
     const c2 = node(checkJs, dir, "--root", sc);
-    nc.push(["check.js takes an impact change that names its entry and system", c2.status === 0, lines(c2, /^FAIL/)]); }
+    nc.push(["check.js takes an impact change that names its entry and system", c2.status === 0, lines(c2, /^FAIL/)]);
+    /* partly reconciled (plan/RULES.md §2, Impact): changes accumulate while basis is still "plan", and check.js does not warn */
+    d.status = "building"; d.impact.basis = "plan"; fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(d, null, 2) + "\n"); node(embedJs, dir);
+    const c3 = node(checkJs, dir, "--root", sc);
+    nc.push(["check.js takes impact changes while the basis is still the plan's (partly reconciled), with no warning", !/impact\.changes records differences/.test(c3.stdout) && !/^FAIL.*impact/m.test(c3.stdout), lines(c3, /^(FAIL|warn).*impact/) || "no impact warning"]); }
 
   const dSub = render("sub-impact", sub, "impact");
   if (dSub == null) nc.push(["the rendered pages (no browser found: set CHROME)", false, "no Chrome or Edge"]);
@@ -396,6 +402,23 @@ targets.filter(t => t.block === "plan").forEach(t => {
     nc.push(["As built: nothing is drawn while the impact is the plan's and unchanged", !text(bP), text(bP).slice(0, 200)]);
     const bu = trk.rows.find(r => r.unit && trk.impact.units.some(e => e.unit === r.id && (e.changes || []).length)), bT = builtImp(render("tracking-built", trk, "built"));
     nc.push(["As built: a tracking board lists each unit's own impact changes under its number and title, linking its unit card", !!bu && /<h4>Units<\/h4>/.test(bT) && bT.includes(`/issues/${bu.unit.issue}"`) && bT.includes(`href="${bu.unit.board}"`) && bT.includes(`href="#impact.unit.${bu.id}"`), text(bT).slice(0, 300)]);
+    /* partly reconciled (plan/RULES.md §2, Impact): a tracking board's initiative impact accumulates changes as its units land, basis
+       still "plan", and one line says how far it has got; with units landed and no change yet it says "None so far"; an issue
+       board's changes recorded during implementation say so too */
+    const landedN = trk.rows.filter(r => r.unit && ["landed", "as-planned", "amended", "deviated"].includes((r.asBuilt || {}).state)).length, unitsN = trk.rows.filter(r => r.unit && !["dropped", "deferred"].includes((r.asBuilt || {}).state)).length;
+    nc.push(["As built: a tracking board's partly reconciled initiative impact shows its changes so far and how many units have landed", trk.impact.basis === "plan" && trk.impact.changes.length > 0 && /<h4>The initiative<\/h4>/.test(bT) && text(bT).includes(`So far, with ${landedN} of ${unitsN} units landed`) && /href="#impact\.downstream\.1"/.test(bT), text(bT).slice(0, 300)]);
+    const tn = copy(trk); tn.impact.changes = []; const bTn = builtImp(render("tracking-none-so-far", tn, "built"));
+    nc.push(["As built: a tracking board whose landed units changed nothing in the initiative's impact says \"None so far\"", text(bTn).includes(`None so far: the ${landedN} of ${unitsN} units landed changed nothing`), text(bTn).slice(0, 300)]);
+    const pp = copy(am); pp.status = "building"; pp.impact.basis = "plan"; const bPp = builtImp(render("issue-partly", pp, "built"));
+    nc.push(["As built: an issue board's impact changes recorded during implementation are shown, marked as so far", /So far, as implementation recorded them/.test(bPp) && /Verification case: a change from the planned impact/.test(bPp), text(bPp).slice(0, 300)]);
+    /* a halted issue board keeps its detail beside the question it waits on (the tracking strip's rule); with no waitingOn the wait
+       line falls back to the detail, which is then not drawn twice */
+    const strip = dom => inner(dom, '<section class="wip[^"]*" id="wip"[^>]*>', "section");
+    const hb = copy(ex); hb.status = "building"; hb.impact.basis = "plan"; Object.assign(hb.wip, { step: "halted", current: [], landing: null, detail: "Verification case: stage C is written; the reply text is open.", waitingOn: "Verification case: which refusal reply text to send.", resume: "implementation" });
+    const sH = strip(render("issue-halted", hb, ""));
+    nc.push(["WIP: a halted issue board shows its detail beside the question it waits on", /class="wip-wait"[^>]*>Waiting on the user: Verification case: which refusal reply text/.test(sH) && /class="wip-detail"[^>]*>Verification case: stage C is written/.test(sH), text(sH).slice(0, 300)]);
+    const hn = copy(hb); hn.wip.waitingOn = null; const sN = strip(render("issue-halted-nowait", hn, ""));
+    nc.push(["WIP: a halted issue board with no question stated shows its detail once, as the wait line", /Waiting on the user: Verification case: stage C is written/.test(sN) && !/class="wip-detail"/.test(sN), text(sN).slice(0, 300)]);
     const dDeep = inner(render("sub-deep", sub, "impact.api.0"), '<section class="view" role="tabpanel" id="p-impact"[^>]*>', "section");
     nc.push(["a deep link to an Impact entry opens the Impact tab with that card selected", /class="bcard icard[^"]*\bsel\b[^"]*"[^>]*data-imp="api\.0"/.test(dDeep), (dDeep.match(/class="bcard icard[^"]*"[^>]*data-imp="api\.0"/) || ["no card"])[0]]);
 

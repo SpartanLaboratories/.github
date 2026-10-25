@@ -2,7 +2,7 @@
   "$comment": "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last full verification. check-page.js --auto and check.js --auto trust a template only while its hash matches.",
   "templates": {
     "plan/template/dashboard.html": {
-      "sha256": "40620ebde367a36ac37a59c8a4019a2e8ed3d583dd07f9aac530a9454f70d38b",
+      "sha256": "ba7d371be6aab7a2b7969447896dc3ac30381faa0675db9081ccad547fcad95d",
       "verified": "2026-10-25",
       "fixtures": [
         "plan",

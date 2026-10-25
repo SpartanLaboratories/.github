@@ -875,7 +875,8 @@ function renderWip(){
     h=headLine;
     if(HALTED) h+=`<p class="wip-wait">Waiting on the user: ${rich(WIP.waitingOn||WIP.detail||"(not stated)")}</p>`;
     if(st==="escalated") h+=`<p class="wip-wait">Escalated: the run waits while the issue's scope is re-decided.</p>`;
-    h+=own+(WIP.detail&&!HALTED?`<p class="wip-detail">${rich(WIP.detail)}</p>`:"")+factsHtml;
+    /* while halted the wait line shows waitingOn, falling back to the detail: the detail is drawn too unless it is that fallback */
+    h+=own+(WIP.detail&&(!HALTED||WIP.waitingOn)?`<p class="wip-detail">${rich(WIP.detail)}</p>`:"")+factsHtml;
     if(HALTED) legend.push(`<span><i class="wait"></i>yellow strip: waiting on the user</span>`);
   }
   /* the strip's legend: exactly what it drew */
@@ -1033,8 +1034,10 @@ function renderBuilt(){
    board) and linked to the unit's card on the Impact tab. Colour: the system's slot (from the change's "system", else its entry's;
    muted for the impact as a whole or a party outside the repository's systems), one solid card style; no status colour (a change
    from the planned impact is a record, not an outcome) and never the Impact tab's compatibility red or yellow, which belong to that
-   tab alone (GUIDANCE.md §1). "None" is said only once the impact is reconciled (basis as-built); before that, and with nothing to
-   show, the section is not drawn. */
+   tab alone (GUIDANCE.md §1). The changes accumulate as the work lands, while the basis is still "plan" (partly reconciled): on a
+   tracking board each unit's landing adds what it changed in the initiative's impact. "None" is said once the impact is reconciled
+   (basis as-built), and "None so far" on a tracking board with units landed; before that, with nothing to show, the section is not
+   drawn. */
 function impEntry(ref){ const m=/^(downstream|adaptation|api|conversion)\.(\d+)$/.exec(String(ref==null?"":ref)); if(!m) return null; const x=impItems(m[1])[+m[2]]; return x?{key:m[1],i:+m[2],x}:null; }
 const impChanges=e=>e&&Array.isArray(e.changes)?e.changes.filter(c=>c&&typeof c==="object"):[];
 function impChangeSys(c){ if(c.system&&sysOf(c.system)) return c.system; const e=impEntry(c.entry); return e&&e.key!=="conversion"?impSlug(e.x):""; }
@@ -1050,7 +1053,12 @@ function impactChanges(){
     const meta=[c.when?esc(c.when):"",c.ref?refHtml(c.ref):"",e?goImpLink(c.entry,`Impact card: ${esc(S.title)} · ${codeOnly(String(S.head(e.x,e.i)||""))}`):""].filter(Boolean);
     return `<div class="bcard ichg" data-sys="${esc(slug)}"><div class="bh"><span class="nm">${rich(c.what||"")}</span></div>${c.why?`<p>${rich(c.why)}</p>`:""}${meta.length?`<div class="meta">${meta.join(" · ")}</div>`:""}</div>`; };
   let h="";
-  const initiative=own.length?`<div class="icards">${own.map(card).join("")}</div>`:reconciled?`<p class="empty">None: the impact as built is the impact the plan recorded.${I.source?` Source ${refHtml(I.source)}.`:""}</p>`:"";
+  /* Partly reconciled: until the impact is reconciled (basis as-built) its changes accumulate as the work lands — on a tracking board
+     as each unit lands — and one line says how far that has got; a tracking board with units landed and no change yet to the
+     initiative's impact says "None so far". */
+  const CC=TRACKING?chainCounts():null, sofar=CC?`${CC.landed} of ${CC.M} unit${CC.M===1?"":"s"} landed`:"";
+  const partial=reconciled?"":CC?`<p class="q">So far, with ${sofar}; the rest is reconciled as the others land.</p>`:`<p class="q">So far, as implementation recorded them; the landing reconciles the rest.</p>`;
+  const initiative=own.length?`${partial}<div class="icards">${own.map(card).join("")}</div>`:reconciled?`<p class="empty">None: the impact as built is the impact the plan recorded.${I.source?` Source ${refHtml(I.source)}.`:""}</p>`:CC&&CC.landed?`<p class="empty">None so far: the ${sofar} changed nothing in the initiative's impact; the rest is reconciled as the others land.</p>`:"";
   if(TRACKING&&initiative) h+=`<h4>The initiative</h4>`;
   h+=initiative;
   if(uChanged.length||uNone.length){ h+=TRACKING?`<h4>Units</h4>`:"";
@@ -1066,8 +1074,9 @@ function goImpact(ref){ if(!$("#t-impact")) return; show("t-impact"); try{ histo
   c.scrollIntoView({block:"center"}); c.focus({preventScroll:true}); inspectImpact(ref); }
 
 /* ---------- Impact (plan/RULES.md §2, "Impact") ----------
-   From plan.json "impact": written at plan acceptance from impact.md (and plan.md where it states API or migration facts), and
-   reconciled at the landing from final-implementation.md and the reconciled impact.md. The tab shows the current best-known impact
+   From plan.json "impact": written at plan acceptance from impact.md (and plan.md where it states API or migration facts), kept up
+   as the work lands (an implementation stage's deviation, on a tracking board each unit's landing), and reconciled at the landing
+   (a tracking board's at its last unit's) from final-implementation.md and the reconciled impact.md. The tab shows the current best-known impact
    and no planning information (GUIDANCE.md §1, plan/RULES.md §2): impact.basis is not rendered, and impact.changes is rendered on
    the As built tab (impactChanges(), above), never here; every entry is one solid card, whatever the basis. Four sections: downstream effects, adaptation
    requirements, API changes, conversion steps; a tracking board adds one entry per unit (impact.units), linking the unit's board.

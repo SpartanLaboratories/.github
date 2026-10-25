@@ -1367,7 +1367,15 @@
         "link": "impact.md#1-published-artifacts"
       }
     ],
-    "changes": [],
+    "changes": [
+      {
+        "what": "Verification case: the existing artifacts' build moved onto the shared convention plugins, with their published POMs unchanged.",
+        "why": "Verification case: the first unit's landing put the port lock in the convention plugin, so the floor applies through it.",
+        "when": "#61 landing",
+        "entry": "downstream.1",
+        "system": "webtools"
+      }
+    ],
     "source": "impact.md",
     "link": "impact.md#4-downstream-consumers"
   },
