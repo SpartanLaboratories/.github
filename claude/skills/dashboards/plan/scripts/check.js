@@ -14,7 +14,7 @@ const fs = require("fs"), path = require("path"), cp = require("child_process"),
 const { levelRefsIn } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
 const { paletteCheck } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js"));
 const { unitTests } = require("./lib.js");
-const { statementRefs: statementRefsOf, okStamp, timelinePhases, tlDuration, timelineLeftOut, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
+const { HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, timelinePhases, tlDuration, timelineLeftOut, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
 const STATES = ["pending", "in-progress", "partially-built", "as-planned", "amended", "deviated", "dropped", "deferred", "complete", "landed"];
@@ -540,7 +540,56 @@ function checkPanel(plan, w, ids, tracking, dir) {
       v.forEach((x, j) => { const at = `wip.remediation.steps[${j}]`; if (!x || typeof x !== "object" || !(str(x.what) || str(x.name))) fail(`${at} needs "name" (or "what")`); else if (!STAGE_STATES.includes(x.state)) fail(`${at}.state must be one of ${STAGE_STATES.join(", ")}`); });
       if (v.filter(x => x && x.state === "current").length > 1) fail("wip.remediation.steps has more than one \"current\" step"); }
   }
+  checkHistory(plan, w, stampOk);
   if (tracking && ((Array.isArray(w.stages) && w.stages.length) || w.remediation || w.plan)) warn("a tracking board records implementation stages, a plan pass or a remediation: those are its units' runs, each on its own board, not the tracking issue's");
+}
+
+/* wip.history (RULES §3, "Finished steps"; admin-team/dashboards-skill/24): the finished steps' snapshots, each step an array of its
+   visits, oldest first, as apply-event.js froze them: { since, ended, endedBy, to, held, event, detail, open, …the step's own facts
+   (lib.js HISTORY_FIELDS) }. Held to its form: a step a snapshot is kept of, ISO stamps in order, the event that ended it, the step it
+   moved to, each frozen fact in its live field's form. The steps the strip draws finished with no snapshot are reported: the page
+   reconstructs them from the trail, the milestones, the stages and the qa passes. */
+const HIST_COMMON = ["since", "ended", "endedBy", "to", "held", "event", "detail", "open"];
+function checkHistory(plan, w, stampOk) {
+  const H = w.history, posI = v => Number.isInteger(v) && v > 0;
+  if (H != null) {
+    if (typeof H !== "object" || Array.isArray(H)) { fail('wip.history must map each finished step to its visits, { "<step>": [{ "since", "ended", "endedBy", "to", … }] }'); return; }
+    Object.entries(H).forEach(([s, vs]) => { const at = `wip.history.${s}`;
+      if (!HISTORY_STEPS.includes(s)) { fail(`${at}: "${s}" is not a step a snapshot is kept of (${HISTORY_STEPS.join(", ")})`); return; }
+      if (!Array.isArray(vs)) { fail(`${at} must be an array of the step's visits, oldest first`); return; }
+      let prev = null;
+      vs.forEach((V, j) => { const a = `${at}[${j}]`;
+        if (!V || typeof V !== "object" || Array.isArray(V)) { fail(`${a} must be one visit of the step, { since, ended, endedBy, to, … }`); return; }
+        if (!okStamp(V.ended)) fail(`${a}.ended is the ISO date-time the step ended (got ${JSON.stringify(V.ended)})`);
+        if (V.since != null && !okStamp(V.since)) fail(`${a}.since is the ISO date-time the panel's "since" read when it ended, or null (got ${JSON.stringify(V.since)})`);
+        if (okStamp(V.since) && okStamp(V.ended) && Date.parse(V.since) > Date.parse(V.ended)) fail(`${a}: since ${V.since} is after ended ${V.ended}`);
+        if (prev && okStamp(V.ended) && Date.parse(V.ended) < Date.parse(prev)) fail(`${a} ended ${V.ended}, before the visit ahead of it (${prev}): the visits run oldest first`);
+        if (okStamp(V.ended)) prev = V.ended;
+        if (V.endedBy != null && !EVENTS.includes(V.endedBy)) fail(`${a}.endedBy is the event that ended the step, one of ${EVENTS.join(", ")} (got ${JSON.stringify(V.endedBy)})`);
+        if (V.to != null && !STEPS.includes(V.to)) fail(`${a}.to is the step the run moved to (got ${JSON.stringify(V.to)})`);
+        if (V.held != null && typeof V.held !== "boolean") fail(`${a}.held is true when the step ended while the run waited on the user`);
+        if (V.event != null && (typeof V.event !== "object" || !EVENTS.includes(V.event.name))) fail(`${a}.event is the step's last event, { name, at, note } (got ${JSON.stringify(V.event)})`);
+        else if (V.event) stampOk(V.event.at, `${a}.event.at`);
+        if (V.detail != null && !str(V.detail)) fail(`${a}.detail is the step's last detail line, or left out`);
+        if (V.open != null && (!Array.isArray(V.open) || V.open.some(x => !x || !str(x.text)))) fail(`${a}.open is the open points still open when the step ended, each { text, raised, ref }`);
+        const extra = Object.keys(V).filter(k => !HIST_COMMON.includes(k) && !(HISTORY_FIELDS[s] || []).includes(k));
+        if (extra.length) warn(`${a} holds ${extra.map(k => `"${k}"`).join(", ")}, which a snapshot of ${s} does not keep (lib.js HISTORY_FIELDS: ${(HISTORY_FIELDS[s] || []).join(", ") || "none of its own"})`);
+        if (V.interview != null && (!Array.isArray(V.interview) || V.interview.some(q => !q || !str(q.text)))) fail(`${a}.interview is the interview's questions as they stood, each { text, options, answer }`);
+        if (V.research != null && (typeof V.research !== "object" || !R_PHASES.includes(V.research.phase))) fail(`${a}.research is the research phase as it stood, { phase, drafted, since }`);
+        if (V.questions != null && (!Array.isArray(V.questions) || V.questions.some(q => !q || !str(q.question)))) fail(`${a}.questions is the research questions as they stood, each { question, rows, findings, state }`);
+        if (V.plan != null && (typeof V.plan !== "object" || !PLAN_PASSES.includes(V.plan.state))) fail(`${a}.plan is the plan's pass as it stood, { state, from, pass }`);
+        if (V.branch != null && !str(V.branch)) fail(`${a}.branch is the branch the step cut`);
+        if (V.stages != null && (!Array.isArray(V.stages) || V.stages.some(x => !x || !(str(x.id) || str(x.name)) || !STAGE_STATES.includes(x.state)))) fail(`${a}.stages is the stage list as it stood, each { id, name, state, rows }`);
+        if (V.qa != null && (!Array.isArray(V.qa) || V.qa.some(p => !p || !posI(p.pass)))) fail(`${a}.qa is the qa passes of the visit, each { pass, verdict, findings, … }`);
+        if (V.remediation != null && (typeof V.remediation !== "object" || (V.remediation.pass != null && !posI(V.remediation.pass)))) fail(`${a}.remediation is the remediation loop as it stood, { pass, route, steps }`);
+        if (V.units != null && (typeof V.units !== "object" || !Number.isInteger(V.units.done) || !Number.isInteger(V.units.total))) fail(`${a}.units is { done, total }, the units filed (or with a board) when the step ended`);
+      });
+      if (s === "remediation") { const ps = vs.map(V => V && V.remediation && V.remediation.pass).filter(Boolean); if (new Set(ps).size !== ps.length) warn(`${at}: two visits answer the same qa pass (${ps.join(", ")}): each remediation loop answers a pass of its own`); }
+    });
+  }
+  const fin = finishedSteps(w, plan.status), Hs = H && typeof H === "object" && !Array.isArray(H) ? H : {};
+  const kept = fin.filter(s => Array.isArray(Hs[s]) && Hs[s].length), recon = fin.filter(s => !kept.includes(s));
+  if (fin.length) ok(`history: ${kept.length ? kept.map(s => `${s} ${Hs[s].length}`).join(" · ") : "no snapshot"}${recon.length ? ` (reconstructed from the history: ${recon.join(", ")})` : ""}`);
 }
 
 /* The Impact tab's data (RULES §2, Impact; §8). impact is null until plan acceptance, then an object with basis "plan" (the plan's

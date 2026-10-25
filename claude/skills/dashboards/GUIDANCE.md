@@ -367,7 +367,8 @@ indicator present or absent by type, one-line ledes, reduced motion wherever any
 tablist's keys, the state block, the as-is header, the legends of Guarantees and Context, the work-board link, the links from the data,
 the Markdown copies, the progress notes, a tracking board's steps, the KPI bars, the neutral bug badge, the chain, core subsystems, the tiles'
 legends inside each tile, no "board" tag, the title's `#n`, "since" said once by the step panel, the larger charging arrow, the landing
-step, the Tests tab, the Timeline tile's phases, a reference's section number before its excerpt, no work level in the page's data — and
+step, the Tests tab, the Timeline tile's phases, a reference's section number before its excerpt, no work level in the page's data, a
+plan board's finished steps clickable — and
 the browser pass the layout ones (the header's halves, the wide page, the legends shown). A missing feature fails, as `FEATURE MISSING:
 <feature> (template since dashboards-skill/N)`, **through a declared divergence too**: a divergence adds or argues a removal; it never
 excuses a page that lags its template. A landed or cancelled issue board is the exception: it is kept as it landed and never
@@ -410,6 +411,12 @@ other:
 | the live work board | at **every event** (`board.js --live --refresh-template`: it is the template plus its data, never committed) |
 | an issue's board that is in flight, and its tracking board | at **its own events** (`apply-event.js` re-renders a board that is not the verified template plus its data) |
 | a landed issue board | **never**: it is the record of a finished run, kept as it landed |
+
+**Finished steps, clickable** (admin-team/dashboards-skill/24): applied to plan boards and tracking boards (a tracking board for its
+own steps and for each unit in progress through its mirror), where the progress strip is (`plan/RULES.md` §3, "Finished steps"). Not to
+the work board, which has no progress strip — one row per run, its step as text, the run's steps on its own board — and not to system,
+supersystem and repository pages, which show the code at a commit and no run's steps. The highlight of the step shown is an ink ring,
+never the accent (§1).
 
 A **planning-docs landing** — a docs pull request that resolves no issue (a plan folder, a roadmap document) — triggers a small landing
 refresh: the committed work board, and the repository page where the repository has one.

@@ -135,7 +135,57 @@
       ]
     },
     "landing": null,
-    "next": "http-core"
+    "next": "http-core",
+    "history": {
+      "research": [
+        {
+          "since": "2026-10-20T09:00:00Z",
+          "ended": "2026-10-21T10:00:00Z",
+          "endedBy": "researched",
+          "to": "architecture",
+          "event": {
+            "name": "verification-started",
+            "at": "2026-10-21T08:00:00Z"
+          },
+          "detail": "Verification fixture: research verified; the architecture next.",
+          "research": {
+            "phase": "complete",
+            "drafted": 10,
+            "since": {
+              "planning": "2026-10-20T09:00:00Z",
+              "research": "2026-10-20T11:00:00Z",
+              "verification": "2026-10-21T08:00:00Z",
+              "complete": "2026-10-21T10:00:00Z"
+            }
+          }
+        }
+      ],
+      "architecture": [
+        {
+          "since": "2026-10-21T10:00:00Z",
+          "ended": "2026-10-21T15:00:00Z",
+          "endedBy": "architecture-signed-off",
+          "to": "landing",
+          "event": {
+            "name": "researched",
+            "at": "2026-10-21T10:00:00Z"
+          },
+          "detail": "Verification fixture: the architecture weighs the options and decomposes the work."
+        }
+      ],
+      "landing": [
+        {
+          "since": "2026-10-21T15:00:00Z",
+          "ended": "2026-10-22T21:58:56Z",
+          "endedBy": "sized",
+          "to": "implementation",
+          "event": {
+            "name": "architecture-signed-off",
+            "at": "2026-10-21T15:00:00Z"
+          }
+        }
+      ]
+    }
   },
   "milestones": [
     {
@@ -465,7 +515,96 @@
           ],
           "qaMax": 3,
           "status": "building",
-          "branch": "fix/issue-47-java-23-bytecode"
+          "branch": "fix/issue-47-java-23-bytecode",
+          "history": {
+            "plan": [
+              {
+                "since": "2026-10-22T19:00:00Z",
+                "ended": "2026-10-22T20:00:00Z",
+                "endedBy": "plan-accepted",
+                "to": "branch",
+                "event": {
+                  "name": "sized",
+                  "at": "2026-10-22T19:00:00Z"
+                },
+                "plan": {
+                  "state": "re-pass",
+                  "from": "parent",
+                  "since": "2026-10-22T19:00:00Z"
+                }
+              }
+            ],
+            "branch": [
+              {
+                "since": "2026-10-22T20:00:00Z",
+                "ended": "2026-10-22T20:10:00Z",
+                "endedBy": "branch-cut",
+                "to": "implementation",
+                "branch": "fix/issue-47-java-23-bytecode"
+              }
+            ],
+            "implementation": [
+              {
+                "since": "2026-10-22T20:10:00Z",
+                "ended": "2026-10-22T21:40:00Z",
+                "endedBy": "implementation-stage",
+                "to": "qa",
+                "stages": [
+                  {
+                    "id": "S1",
+                    "name": "Verification fixture: the bytecode floor",
+                    "state": "done",
+                    "rows": []
+                  },
+                  {
+                    "id": "S2",
+                    "name": "Verification fixture: the as-built record",
+                    "state": "done",
+                    "rows": []
+                  }
+                ]
+              }
+            ],
+            "qa": [
+              {
+                "since": "2026-10-22T21:40:00Z",
+                "ended": "2026-10-22T22:20:00Z",
+                "endedBy": "qa-pass",
+                "to": "landing",
+                "qa": [
+                  {
+                    "pass": 1,
+                    "verdict": "approved",
+                    "date": "2026-10-22",
+                    "findings": {
+                      "documentation": 0,
+                      "test": 0,
+                      "code": 0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "recon": {
+            "sizing": {
+              "reconstructed": true,
+              "ended": null,
+              "trail": [],
+              "milestones": []
+            },
+            "research": {
+              "reconstructed": true,
+              "ended": "2026-10-22",
+              "trail": [
+                {
+                  "date": "2026-10-22",
+                  "label": "Verification fixture: research verified in the parent's run"
+                }
+              ],
+              "milestones": []
+            }
+          }
         },
         "tests": {
           "base": "master",
