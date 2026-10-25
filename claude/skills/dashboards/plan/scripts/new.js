@@ -10,7 +10,7 @@
 // the unit is in its wip.current, mirrors the unit's run from the new board (§3). Every later embed.js of this folder does the same.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
-const { repoRoot, opt, registry } = require("./lib.js");
+const { repoRoot, opt, registry, signedOffParent } = require("./lib.js");
 const { embed } = require("./embed.js");
 
 const args = process.argv.slice(2);
@@ -73,6 +73,9 @@ own.linked.forEach(l => console.log(`linked ${l}`));
    unit mirrors this board's run (§3). */
 if (own.parent && own.parent.error) console.log(`could not re-embed the tracking board in ${own.parent.dir}: ${own.parent.error}`);
 else if (own.parent) { const tb = path.relative(root, own.parent.dir).split(path.sep).join("/"); own.parent.linked.forEach(l => console.log(`tracking board ${tb}: ${l}`)); console.log(`re-embedded the tracking board ${tb}`); }
+/* A sub-issue of a signed-off tracking plan is never born with empty columns (plan/RULES.md §2, §4, sized): say what to fill now. */
+const sop = signedOffParent(dir, plan);
+if (sop) { const pr = path.relative(root, sop.dir).split(path.sep).join("/"); console.log(`#${plan.parent.issue} is a signed-off tracking plan: fill the Gap and Considered columns now, with the gap and considered milestones, from ${pr}/research/README.md and ${pr}/architecture.md (this unit's row in the decomposition, the alternatives weighed for it)`); }
 const left = JSON.stringify(plan).match(/"<[^"]*>"/g) || [];
 if (left.length) console.log(`still to fill: ${left.length} placeholder${left.length > 1 ? "s" : ""} (${left.slice(0, 5).join(", ")}${left.length > 5 ? ", …" : ""})`);
 const sk = p => path.join(__dirname, p);

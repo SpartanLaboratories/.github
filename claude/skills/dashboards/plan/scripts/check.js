@@ -13,7 +13,7 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { levelRefsIn } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
 const { paletteCheck } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js"));
-const { registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
+const { reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
 const STATES = ["pending", "as-planned", "amended", "deviated", "dropped", "deferred", "complete", "landed"];
@@ -119,6 +119,15 @@ function checkPlan(plan, dir, root) {
   const wantVerdict = plan.status !== "planned" || has("verdict");
   if (rows.length) ["gap", "considered", "verdict"].forEach(c => { if (!has(c) && (c === "gap" || (c === "considered" ? wantOptions : wantVerdict))) warn(`no "${c}" milestone: the column header carries no date`); });
   if (plan.status === "built" && !has("built")) warn('a built plan usually carries a "built" milestone (the merge or the release)');
+  /* A sub-issue of a signed-off tracking plan is never born with empty columns (RULES §2, columns 1-2; §4, sized): its Gap and
+     Considered columns, with their milestones, are filled at "sized" from the parent's research and architecture. */
+  const sop = plan.kind !== "tracking" && plan.parent ? signedOffParent(dir, plan) : null;
+  if (sop) {
+    const miss = [!rows.length ? "no rows" : "", rows.length && !has("gap") ? 'no "gap" milestone' : "", rows.length && !has("considered") ? 'no "considered" milestone' : "",
+      rows.length && rows.some(r => !Array.isArray(r.options) || !r.options.length) ? `rows without options (${rows.filter(r => !Array.isArray(r.options) || !r.options.length).map(r => r.id).slice(0, 4).join(", ")})` : ""].filter(Boolean);
+    if (miss.length) warn(`this is a sub-issue of #${plan.parent.issue}, whose tracking plan is signed off: its Gap and Considered columns, with the "gap" and "considered" milestones, are filled at "sized" from the parent's research README and architecture (the unit's row in the decomposition, the alternatives weighed for it), but the board has ${miss.join(", ")}`);
+    else ok(`sub-issue of the signed-off #${plan.parent.issue}: Gap and Considered filled from the parent's documents`);
+  }
   const ids = new Set();
   const plans = root ? findPlans(root) : [];
   rows.forEach((r, i) => {
@@ -351,7 +360,21 @@ function checkImpact(plan, dir, systems, rows, tracking) {
      Impact). Each needs what and why; "entry" (optional) names the Impact entry it changed as <section>.<index>, and the As built
      card links that card, so an entry that names none fails; "system" (optional) is a registry slug, as on the entries. */
   const lists = { downstream: ds, adaptation: ad, api, conversion: cv };
+  const unitRow = id => rows.find(r => r.unit && r.id === id);
   const checkChange = (x, at) => {
+    /* unit (tracking boards): the unit row whose landing recorded the entry; none: true marks that unit's explicit "no change" to
+       the initiative's impact, which needs its unit and names no entry (RULES §2, Impact; §8) */
+    if (x.none != null && x.none !== true) fail(`${at}.none is true (a unit's "no change" entry) or left out (got ${JSON.stringify(x.none)})`);
+    if (x.unit != null) { if (!tracking) fail(`${at}.unit: an issue board has no units; leave unit out`); else if (!unitRow(x.unit)) fail(`${at}.unit ${JSON.stringify(x.unit)} names no unit row`); }
+    if (x.none === true) {
+      if (!tracking) fail(`${at}: a "no change" entry (none: true) records a unit's landing, and an issue board has no units: an issue board reconciled with no change keeps impact.changes empty, and its basis "as-built" says "None"`);
+      else if (x.unit == null) fail(`${at}: a "no change" entry (none: true) names its unit (the unit row id)`);
+      if (x.entry != null) fail(`${at}.entry: a "no change" entry changed no entry; leave entry out`);
+      if (!str(x.when)) warn(`${at}: a "no change" entry says when it was recorded ("#<n> landing")`);
+      if (x.what != null && !str(x.what)) fail(`${at}.what is a statement, or left out`);
+      if (x.ref && /^[0-9a-f]+$/.test(x.ref) && !SHA.test(x.ref)) fail(`${at}.ref "${x.ref}" is not a commit sha`);
+      return;
+    }
     if (!str(x.what) || !str(x.why)) fail(`${at}: "what" and "why" are required`);
     if (x.ref && /^[0-9a-f]+$/.test(x.ref) && !SHA.test(x.ref)) fail(`${at}.ref "${x.ref}" is not a commit sha`);
     if (x.entry != null) { const m = /^(downstream|adaptation|api|conversion)\.(\d+)$/.exec(String(x.entry));
@@ -397,6 +420,34 @@ function checkImpact(plan, dir, systems, rows, tracking) {
     const sp = subIssuePlan(dir, r.unit), si = sp && sp.impact;
     if (si && typeof si === "object" && (str(si.summary) || str(si.none))) warn(`impact.units has no entry for unit "${r.id}" (#${r.unit.issue}), whose own board records its impact: summarise it here`);
   });
+  reconciliationCheck(plan, rows, tracking);
+}
+/* The derived reconciliation state (RULES §2, Impact; lib.js reconciliation(), the one derivation the scripts share): printed, and
+   the stored data warned on where it contradicts itself. Every landed unit of a tracking board records its effect on the
+   initiative's impact in impact.changes: the changes it made (each naming the unit) or one "no change" entry (none: true). */
+function reconciliationCheck(plan, rows, tracking) {
+  const R = reconciliation(plan); if (!R) return;
+  const I = plan.impact, changes = Array.isArray(I.changes) ? I.changes : [];
+  const label = r => { const x = rows.find(y => y.id === r); return x && x.unit && x.unit.issue ? `"${r}" (#${x.unit.issue})` : `"${r}"`; };
+  const st = r => (r.asBuilt || {}).state || "pending";
+  ok(`impact: reconciliation ${R.state} (${RECON_WORDS[R.state]}; derived: basis ${JSON.stringify(R.basis)}, ${R.changes} change${R.changes === 1 ? "" : "s"} recorded${tracking ? `, ${R.noChange.length} "no change" entr${R.noChange.length === 1 ? "y" : "ies"}, ${R.landed} of ${R.total} unit${R.total === 1 ? "" : "s"} landed` : ""})`);
+  if (!tracking) return;
+  R.unrecorded.forEach(id => {
+    const r = rows.find(x => x.id === id), n = r.unit.issue;
+    const hint = n ? changes.map((c, i) => c && c.unit == null && new RegExp(`#${n}\\b`).test(String(c.when || "")) ? `impact.changes[${i}]` : null).filter(Boolean) : [];
+    warn(`${R.state === "as-built" ? "inconsistent: the impact is reconciled (basis as-built), but " : ""}unit ${label(id)} has landed and impact.changes records nothing for it: its landing refresh records its effect on the initiative's impact, either the changes it made, each with unit "${id}", or one entry {"unit": "${id}", "when": "${n ? `#${n} ` : ""}landing", "none": true}${hint.length ? `; ${hint.join(", ")} name${hint.length === 1 ? "s" : ""} #${n} in "when" but carr${hint.length === 1 ? "ies" : "y"} no unit: add "unit": "${id}"` : ""}`);
+  });
+  const ids = [...new Set(changes.filter(c => c && c.unit != null).map(c => c.unit))];
+  ids.forEach(id => {
+    const r = rows.find(x => x.unit && x.id === id); if (!r) return;
+    const mine = changes.filter(c => c && c.unit === id), none = mine.filter(isNoChange);
+    if (none.length && none.length < mine.length) warn(`impact.changes records both changes and a "no change" entry for unit ${label(id)}: keep the changes, or the one "no change" entry`);
+    else if (none.length > 1) warn(`impact.changes records ${none.length} "no change" entries for unit ${label(id)}: one is enough`);
+    if (!UNIT_DONE.includes(st(r)) && none.length) warn(`impact.changes records "no change" for unit ${label(id)}, which has not landed (${st(r)}): a unit's effect is recorded in its landing refresh`);
+  });
+  const open = rows.filter(r => r.unit && !["dropped", "deferred"].includes(st(r)) && !UNIT_DONE.includes(st(r)));
+  if (R.state === "as-built" && open.length && plan.status !== "abandoned") warn(`inconsistent: the initiative's impact is reconciled (basis as-built), but ${open.length} of ${R.total} units have not landed (${open.slice(0, 4).map(r => label(r.id)).join(", ")}${open.length > 4 ? ", …" : ""}): it is reconciled whole at the last unit's landing; keep basis "plan" until then`);
+  if (R.state !== "as-built" && R.total && R.landed === R.total && plan.status !== "built") warn(`every unit has landed, but the initiative's impact is still ${RECON_WORDS[R.state]} (basis plan): the last unit's landing reconciles it whole and sets basis "as-built"`);
 }
 const UNIT_DONE = ["landed", "as-planned", "amended", "deviated"];
 
@@ -499,7 +550,11 @@ function checkBoard(dir) {
   const b = JSON.parse(fs.readFileSync(path.join(dir, "board.json"), "utf8"));
   if (b.schema !== "work-board/1") fail(`board.json schema must be "work-board/1" (got ${JSON.stringify(b.schema)})`);
   if (!str(b.repo)) fail("board.json needs repo");
-  (b.rows || []).forEach((r, i) => { if (!posInt(r.issue) || !str(r.title)) fail(`rows[${i}] needs issue and title`); if (r.board) checkLink(dir, r.board, `rows[${i}].board`); });
+  (b.rows || []).forEach((r, i) => { if (!posInt(r.issue) || !str(r.title)) fail(`rows[${i}] needs issue and title`); if (r.board) checkLink(dir, r.board, `rows[${i}].board`);
+    /* the impact's reconciliation state, derived by board.js from the row's board (lib.js reconciliation()): null, or { state, landed, total } */
+    const rc = r.reconciliation; if (rc != null && (typeof rc !== "object" || !Object.keys(RECON_WORDS).includes(rc.state))) fail(`rows[${i}].reconciliation must be null or { state: ${Object.keys(RECON_WORDS).join(" | ")}, landed, total } (got ${JSON.stringify(rc)}): regenerate it with board.js`); });
+  const rcs = (b.rows || []).filter(r => r.reconciliation && r.reconciliation.state);
+  if (rcs.length) ok(`board.json: impact reconciliation ${Object.keys(RECON_WORDS).map(k => `${rcs.filter(r => r.reconciliation.state === k).length} ${RECON_WORDS[k]}`).join(", ")}`);
   const glowing = (b.rows || []).filter(r => r.active).length;
   if (glowing > MAX_GLOW) warn(`${glowing} runs are active: more than ${MAX_GLOW} rows glow at once`);
   const left = placeholders(b, "", []); if (left.length) fail(`placeholders left: ${left.slice(0, 8).join(", ")}`);

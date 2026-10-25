@@ -1372,6 +1372,7 @@
         "what": "Verification case: the existing artifacts' build moved onto the shared convention plugins, with their published POMs unchanged.",
         "why": "Verification case: the first unit's landing put the port lock in the convention plugin, so the floor applies through it.",
         "when": "#61 landing",
+        "unit": "build-logic",
         "entry": "downstream.1",
         "system": "webtools"
       }
