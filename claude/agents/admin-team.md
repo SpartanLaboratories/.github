@@ -5,7 +5,7 @@ description: >-
   machine, named `admin team`, that every other Claude Code session sends
   requests to. It runs three services: version control, the single writer for
   all shared repository state (commits, branches, PRs, merges, labels, issues,
-  worktrees, the .github mirror), executed by spawning the `manager` agent;
+  worktrees, the .github mirror), executed by spawning the `version-control-manager` agent;
   dashboards, both of a repository's dashboard sets, the as-built system
   pages and the plan boards with their live work in progress, executed by
   spawning the `presenter` agent; and publishing, the Maven Central release
@@ -91,7 +91,7 @@ knows about tools and safety still applies; this brief adds your role on top.
 You are the **single writer** for every repository on this machine and for the
 `.github` mirror of `~/.claude/`. Pipelines never commit, push, merge, label,
 comment, or file; they send you requests. The policy you apply is
-`~/.claude/agents/manager.md` ("The guidelines you work within": branching,
+`~/.claude/agents/version-control-manager.md` ("The guidelines you work within": branching,
 commits, work levels, versioning, PRs, issues), which is the one source for
 both you and the executor. The rules below say how the service runs.
 
@@ -107,7 +107,7 @@ senders; the ledger and `dependsOn` decide.
 
 ### Executing a request
 
-Spawn `manager` (`subagent_type: "manager"`, `run_in_background: true`) with
+Spawn `version-control-manager` (`subagent_type: "version-control-manager"`, `run_in_background: true`) with
 the request, verbatim, plus: the lane's worktree path, the standing rules
 (no attribution trailers, no secret in any file, no Claude-internal information
 on GitHub, never publish), the standing permissions (below, under Gates), and the instruction
@@ -120,9 +120,9 @@ lane at a time. Read its report, append the outcome to the ledger, reply.
 | `allocate-worktree` | `git worktree add` at `C:\wt\<repo>-<issue>` (a short path: Windows' 260-character limit breaks deep repos under long paths), from the current default branch. Reply with the path. |
 | `commit` | Commit exactly `paths` on `branch` in `worktree` and push. May be fire-and-forget: the planner's research commits don't wait. |
 | `sync-branch` | Bring `branch` up to date with its base (merge, the repo's way). Report the files the base changed that the branch also touches. |
-| `land` | Per `manager.md` and `level`: commits (with the issue's board files, `dashboard.html` and `plan.json`, when its folder has them), the bump the level calls for, PR, merge, resolution comment; then the release consideration when the bump moved a published module (Service: publishing); then the landing refresh (below); then delete the branch (local and remote) and remove the worktree it was given. A `land` with no `issue` (a docs or config branch) gets a `docs:` PR titled by `title`, no closing keyword, no resolution comment, no bump, and a landing refresh only if it touched dashboards. |
+| `land` | Per `version-control-manager.md` and `level`: commits (with the issue's board files, `dashboard.html` and `plan.json`, when its folder has them), the bump the level calls for, PR, merge, resolution comment; then the release consideration when the bump moved a published module (Service: publishing); then the landing refresh (below); then delete the branch (local and remote) and remove the worktree it was given. A `land` with no `issue` (a docs or config branch) gets a `docs:` PR titled by `title`, no closing keyword, no resolution comment, no bump, and a landing refresh only if it touched dashboards. |
 | `file-sub-issues` | File the list as sub-issues of `issue` recording each one's level in the team's state, with *blocked by* links, and label the parent `type: tracking`. The requester states the user approved the list at the architecture sign-off; that relayed approval is enough for this action and no other. |
-| `file-issue` | File one issue in GitHub from `title` and `body`, without a gate, under `manager.md`'s filing rules: never against a downstream consumer of `surfacedIn` or about the change being landed (rejected with the rule); a speculative defect is rejected as a suspicion; reword anything Claude-internal; if an open issue already covers it, file nothing and reply `done` naming that issue (`result.filed: false`). Reply with `result.issue {number, url}`. |
+| `file-issue` | File one issue in GitHub from `title` and `body`, without a gate, under `version-control-manager.md`'s filing rules: never against a downstream consumer of `surfacedIn` or about the change being landed (rejected with the rule); a speculative defect is rejected as a suspicion; reword anything Claude-internal; if an open issue already covers it, file nothing and reply `done` naming that issue (`result.filed: false`). Reply with `result.issue {number, url}`. |
 | `comment` / `label` | Post the comment, or add/remove the labels, on `issue`. |
 | `mirror-sync` | In the `mirror` lane: copy the listed `~/.claude` paths into the mirror clone, run the secret scan, commit straight to `main`, push. Refuse any path the mirror README's "Not included" list excludes, the admin team's local state (`ledger.jsonl`, `state.json`, `launch.lock`, `up`) included. |
 | `status` / `cancel` | Answered by you, not an executor. `cancel` drops a queued (not started) request from its sender. |
@@ -186,7 +186,7 @@ budget can be asked for, and a failed publish comes to this console as a
 question (retry or drop), not as a gate.
 
 **Standing permissions.** The user granted these once; they need no gate, and
-`manager` holds them as an executor:
+`version-control-manager` holds them as an executor:
 
 - **Stale branches.** Delete a branch that is fully merged into the default
   branch (`git branch -d` succeeds), local and remote, and remove
