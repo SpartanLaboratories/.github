@@ -29,44 +29,46 @@
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans);padding-block:0 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .page{max-width:1280px;margin:0 auto}
 a{color:inherit}
-code{font-family:var(--mono);font-size:.92em}
+code{font-family:var(--mono);font-size:.92em;overflow-wrap:anywhere}
 h1,h2,h3{text-wrap:balance}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 
 /* header */
-.crumbs{font-size:12px;color:var(--muted);padding-top:18px}
+.crumbs{font-size:12px;color:var(--muted);padding-top:18px;overflow-wrap:anywhere}
 .crumbs a{text-decoration:none}
 .crumbs a:hover{text-decoration:underline}
-h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)}
+h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono);overflow-wrap:anywhere}
 .function{color:var(--ink-2);margin:0 0 10px;max-width:78ch;font-size:15px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 6px}
-.chip{font:12px/1 var(--mono);padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink-2)}
+.chip{font:12px/1 var(--mono);padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink-2);max-width:100%;overflow-wrap:anywhere}
 .chip b{color:var(--ink);font-weight:600}
+.chip a{text-decoration:none;border-bottom:1px solid var(--line)}
 .chip.model{border-style:dashed}
 
 /* KPIs */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px;margin:14px 0 18px}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0}
 .kpi .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
-.kpi .v{font-size:22px;font-weight:700;letter-spacing:-.01em;margin-top:2px}
+.kpi .v{font-size:22px;font-weight:700;letter-spacing:-.01em;margin-top:2px;font-variant-numeric:tabular-nums}
 .kpi .s{font-size:12px;color:var(--ink-2);margin-top:2px}
 .kpi .seg-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;gap:2px;margin-top:8px}
 .kpi .seg-bar i{display:block;height:100%}
 
 /* tabs + stage */
-.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow-x:auto}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow-x:auto;overflow-y:hidden}
 .tab{appearance:none;border:0;background:none;color:var(--ink-2);font:inherit;font-weight:600;padding:10px 14px;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;white-space:nowrap}
 .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
 .tab:hover{color:var(--ink)}
 .tab.model::after{content:" DSL";font:10px var(--mono);color:var(--muted);vertical-align:super}
 .stage{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start}
-@media (max-width:940px){.stage{grid-template-columns:minmax(0,1fr)}.inspector{position:static}}
+@media (max-width:940px){.stage{grid-template-columns:minmax(0,1fr)}.inspector{position:static;max-height:none;overflow:visible}}
 .stage>div{min-width:0}
 .view{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px;min-width:0}
 .view svg{display:block;width:100%;height:auto}
 .view h2{font-size:15px;margin:0 0 4px}
 .lede{font-size:13px;color:var(--ink-2);margin:0 0 10px;max-width:90ch}
-.inspector{position:sticky;top:calc(12px + env(safe-area-inset-top,0px));background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px;min-width:0}
+/* the inspector stays in view beside the tab and scrolls inside itself when its entry is taller than the window */
+.inspector{position:sticky;top:calc(12px + env(safe-area-inset-top,0px));background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px;min-width:0;max-height:calc(100vh - 24px);overflow:auto}
 .inspector h2{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 8px}
 .inspector .kicker{font:11px var(--mono);color:var(--muted);letter-spacing:.04em}
 .inspector .name{font-weight:700;font-size:15px;font-family:var(--mono);word-break:break-word}
@@ -301,6 +303,17 @@ pre.dsl .c{color:var(--muted)} pre.dsl .k{color:var(--server);font-weight:600} p
 .bubble .gap{color:var(--muted);font-style:italic}
 .bubble .badge{margin-left:2px}
 
+/* Wide desktop (16:9 screens, GUIDANCE.md §6): the page uses most of the window, so the C4 canvas, the thread columns, the
+   lifecycle cards, the Guarantees and the Context get room; a diagram drawn to a fixed aspect grows to at most 1280 px wide, so it
+   is never smaller than in the 1280 px layout and never outgrows the screen, and prose keeps its own measure. At 1500 px and below
+   the page keeps its 1280 px measure and the narrow layouts below 940 and 700 px apply. */
+@media (min-width:1500px){
+  .page{max-width:min(2400px,100%)}
+  .stage{grid-template-columns:minmax(0,1fr) 360px}
+  .view>svg{max-width:1280px}
+  .bubbles{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+}
+
 /* context */
 .context{margin-top:24px}
 .context h2{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 10px}
@@ -325,6 +338,10 @@ pre.dsl .c{color:var(--muted)} pre.dsl .k{color:var(--server);font-weight:600} p
 .roadmap .ri a{font-family:var(--mono);text-decoration:none;color:var(--ink-2)}
 .roadmap .issues{margin:4px 0 0 14px}
 .roadmap .more{margin:4px 0 0 14px;font-size:12px;color:var(--muted)}
+/* An issue's number and its title are two links (GUIDANCE.md §5): the number opens the GitHub issue, the title its plan board
+   (plain text while it has none, linkIssues() below) */
+.issues span a,.roadmap .ri span a{font-family:inherit;color:inherit;text-decoration:none;border-bottom:1px solid var(--line)}
+.issues span a:hover,.roadmap .ri span a:hover{border-bottom-color:var(--ink)}
 /* one series (test classes), so one neutral fill: a hue here would read as a side */
 .bars{display:grid;grid-template-columns:auto 1fr auto;gap:5px 10px;align-items:center;font-size:12px}
 .bars .lbl{color:var(--ink-2);font-family:var(--mono);font-size:11.5px}
@@ -399,7 +416,9 @@ footer code{color:var(--ink-2)}
     <!-- presenter: the as-is chip takes a date as written, or a time as <time datetime="2026-10-23T01:55:00Z">…</time> (UTC), which the
          page shows in the viewer's local time with the UTC value as its tooltip (GUIDANCE.md §6, "Times") -->
     <span class="chip">as-is at <b>branch sha</b> · YYYY-MM-DD</span>
-    <span class="chip">last amended by <a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener"><b>#N</b></a> issue-slug</span>
+    <!-- presenter: the number opens the GitHub issue; the slug, written <a data-board="N">, opens the issue's plan board (BOARDS in the
+         script) and is plain text while it has none (GUIDANCE.md §5) -->
+    <span class="chip">last amended by <a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener"><b>#N</b></a> <a data-board="N">issue-slug</a></span>
     <span class="chip model">C4 model <b>workspace.dsl</b> · <span id="dsl-stats">…</span></span>
   </div>
 </header>
@@ -422,7 +441,8 @@ footer code{color:var(--ink-2)}
 <div>
   <section class="view" role="tabpanel" id="p-systems" aria-labelledby="t-systems">
     <h2>Systems</h2>
-    <p class="lede">Each card is a system with its own dashboard, in the colour it keeps on every tab of this page. Solid cards are built and reflect the commit they name; dashed cards are planned and have no page yet.</p>
+    <p class="lede">Each system keeps its colour on every tab of this page; a built card opens the system's own page.</p>
+    <!-- presenter: a tab's lede is one short line, and only for what its graphic and legend do not show (GUIDANCE.md §2) -->
     <div class="syscards" id="syscards"></div>
     <!-- generated from the registry: one swatch per top-level system, then built and planned -->
     <div class="key" id="systems-key"></div>
@@ -430,7 +450,7 @@ footer code{color:var(--ink-2)}
 
   <section class="view" role="tabpanel" id="p-structure" aria-labelledby="t-structure" hidden>
     <h2>How the systems compose and depend on each other</h2>
-    <p class="lede">Each box is a system in its colour; a box inside another is part of that supersystem. Arrows point at what a system depends on. Click a system for its role, its dependencies both ways and its place in the C4 model. <!-- presenter: place the boxes by hand in MODEL.structure; label each arrow with how it depends (api, implementation, a runtime call, a published artifact) --></p>
+    <p class="lede">Click a system for its role, its dependencies both ways and its place in the C4 model. <!-- presenter: place the boxes by hand in MODEL.structure; label each arrow with how it depends (api, implementation, a runtime call, a published artifact) --></p>
     <svg id="svg-structure" viewBox="0 0 1000 330" role="img" aria-label="How the systems compose and depend on each other"></svg>
     <!-- generated: the systems on the map, then composition, dependency and planned -->
     <div class="key" id="structure-key"></div>
@@ -438,7 +458,7 @@ footer code{color:var(--ink-2)}
 
   <section class="view" role="tabpanel" id="p-c4" aria-labelledby="t-c4" hidden>
     <h2>C4 model <small style="font:11px var(--mono);color:var(--muted);font-weight:400">rendered from workspace.dsl at load</small></h2>
-    <p class="lede">How the systems relate: the context the repository sits in, the systems as containers, and any flow that crosses them. Parsed from the DSL beside this page every time it opens.</p>
+    <p class="lede">The context the repository sits in, the systems as containers, and any flow that crosses them.</p>
     <div class="c4wrap">
       <nav class="ladder" id="c4-ladder" aria-label="C4 levels"></nav>
       <div class="c4main">
@@ -452,7 +472,7 @@ footer code{color:var(--ink-2)}
 
   <section class="view" role="tabpanel" id="p-threads" aria-labelledby="t-threads" hidden>
     <h2>Threads and processes across systems</h2>
-    <p class="lede">Every thread and child process the systems start, one column per system in its colour: when it starts (filled pill = eagerly, outlined = lazily on first use, dotted = only under a condition) and what runs on it. Click one for details. <!-- presenter: one .tside per system that starts anything; one .thread per thread or process, data-t a key of MODEL.threads and data-sys the owning system's slug. A system that starts nothing gets no column; say so in a note when it matters (e.g. "runs on the caller's threads"). --></p>
+    <p class="lede">One column per system that starts a thread or a child process. Click one for details. <!-- presenter: one .tside per system that starts anything; one .thread per thread or process, data-t a key of MODEL.threads and data-sys the owning system's slug. A system that starts nothing gets no column; say so in a note when it matters (e.g. "runs on the caller's threads"). --></p>
     <div class="threads">
       <div class="tside"><h3><span class="sw" data-sys="system-alpha"></span>system-alpha</h3>
         <div class="thread" data-sys="system-alpha" data-t="alpha-worker" tabindex="0" role="button"><span class="n">alpha-worker</span><span class="pill eager">eager</span><span class="r">what runs here</span></div>
@@ -471,7 +491,7 @@ footer code{color:var(--ink-2)}
 
   <section class="view" role="tabpanel" id="p-datagrams" aria-labelledby="t-datagrams" hidden>
     <h2>Which system does a consumer pick?</h2>
-    <p class="lede">Pick what the consumer needs; the path through the choice lights up and ends at the system to depend on, in its colour. Hexagons are decisions. <!-- presenter: a decision that crosses systems — which module a consumer picks, which system routes a request, which one owns a failure. Name the view after it. MODEL.flows takes the system page's shape; an end with sys:"slug" takes that system's colour, one with lvl a status colour. --></p>
+    <p class="lede">Pick what the consumer needs; the path lights up and ends at the system to depend on. <!-- presenter: a decision that crosses systems — which module a consumer picks, which system routes a request, which one owns a failure. Name the view after it. MODEL.flows takes the system page's shape; an end with sys:"slug" takes that system's colour, one with lvl a status colour. --></p>
     <div class="ctl" id="flow-ctl"></div>
     <p class="outcome" id="outcome"></p>
     <svg id="svg-flow" viewBox="0 0 980 300" role="img" aria-label="Cross-system decision path"></svg>
@@ -481,7 +501,7 @@ footer code{color:var(--ink-2)}
 
   <section class="view" role="tabpanel" id="p-reliable" aria-labelledby="t-reliable" hidden>
     <h2>A cross-system interaction</h2>
-    <p class="lede">One interaction that crosses systems, step by step, each lifeline in the colour of the system that owns it. Step through it, or click any message. <!-- presenter: name it after the interaction (a release, a request that spans modules, a plugin call-back) --></p>
+    <p class="lede">One interaction that crosses systems: step through it, or click any message. <!-- presenter: name it after the interaction (a release, a request that spans modules, a plugin call-back) --></p>
     <div class="ctl">
       <button class="btn" id="seq-prev">‹ prev</button>
       <button class="btn" id="seq-next">next ›</button>
@@ -495,7 +515,7 @@ footer code{color:var(--ink-2)}
 
   <section class="view" role="tabpanel" id="p-lifecycles" aria-labelledby="t-lifecycles" hidden>
     <h2>Lifecycles across systems</h2>
-    <p class="lede">Lifecycles that span systems — from source to a release on Maven Central, each system's version line — coloured by phase. <!-- presenter: cards are examples of shape; keep what the repository has. Phase classes ph1 / ph2 / ph3 are first / middle / last phase; name them in the legend. A row about one system starts with its swatch (<span class="sw" data-sys="slug">). --></p>
+    <p class="lede">Lifecycles that span systems, from source to a release, and each system's version line. <!-- presenter: cards are examples of shape; keep what the repository has. Phase classes ph1 / ph2 / ph3 are first / middle / last phase; name them in the legend. A row about one system starts with its swatch (<span class="sw" data-sys="slug">). --></p>
     <div class="lgrid">
       <div class="card"><h3>Source to release <small>the path every module takes</small></h3>
         <ol class="steps"><li class="ph1">source</li><li class="ph1">compile</li><li class="ph2">level tests</li><li class="ph2">checks</li><li class="ph3">sign</li><li class="ph3">publish</li><li class="ph3">Maven Central</li></ol>
@@ -576,18 +596,20 @@ footer code{color:var(--ink-2)}
       <!-- presenter: every roadmap item: a tracking issue with its sub-issues (gh issue view <n> --json subIssues,parent), or an
            entry in a roadmap document the repository keeps, with the issues it names. Under each, every issue mapped to it:
            number, title, state (never a work level: GUIDANCE.md §4) and the system it touches (a badge with data-sys); planned systems point at
-           their architecture documents. -->
+           their architecture documents. Number and title are two links (GUIDANCE.md §5): the number opens the GitHub issue, the
+           title, written <a data-board="N">, opens the issue's plan board and stays plain text while it has none (BOARDS in the
+           script). -->
       <ol class="roadmap">
-        <li><div class="ri"><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span>Roadmap item title <small>tracking issue</small></span><span class="tags"><span class="badge">open</span></span></div>
+        <li><div class="ri"><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span><a data-board="N">Roadmap item title</a> <small>tracking issue</small></span><span class="tags"><span class="badge">open</span></span></div>
           <ul class="issues">
-            <li><a href="https://github.com/ORG/REPO/issues/M" target="_blank" rel="noopener">#M</a><span>Issue mapped to the item</span><span class="tags"><span class="badge" data-sys="system-gamma">system-gamma</span><span class="badge">open</span></span></li>
+            <li><a href="https://github.com/ORG/REPO/issues/M" target="_blank" rel="noopener">#M</a><span><a data-board="M">Issue mapped to the item</a></span><span class="tags"><span class="badge" data-sys="system-gamma">system-gamma</span><span class="badge">open</span></span></li>
           </ul></li>
       </ol></div>
     <div class="card"><h3>Unscheduled issues <small>n open · YYYY-MM-DD</small></h3>
       <!-- presenter: the open issues no roadmap item claims, each badged with the system it touches -->
-      <ul class="issues"><li><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span>Issue title</span><span class="tags"><span class="badge" data-sys="system-alpha">system-alpha</span><span class="badge bug">bug</span></span></li></ul></div>
+      <ul class="issues"><li><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span><a data-board="N">Issue title</a></span><span class="tags"><span class="badge" data-sys="system-alpha">system-alpha</span><span class="badge bug">bug</span></span></li></ul></div>
     <div class="card"><h3>Plans and documents</h3>
-      <ul class="docs"><li><a href="https://github.com/ORG/REPO/blob/main/README.md" target="_blank" rel="noopener">README</a></li><li><code>systems.json</code> — the registry this page is built from</li><li>Plans: #N … (architecture of each planned system)</li></ul></div>
+      <ul class="docs"><li><a href="https://github.com/ORG/REPO/blob/main/README.md" target="_blank" rel="noopener">README</a></li><li><code>systems.json</code> — the registry this page is built from</li><li>Plans: <a data-issue="N">#N</a> … (architecture of each planned system)<!-- presenter: a lone #n, written <a data-issue="N">#N</a>, opens the issue's plan board when it has one, else the GitHub issue; the repository page also links the work board, ../plans/index.html --></li></ul></div>
   </div>
 </section>
 
@@ -687,7 +709,22 @@ function arrowDefs(svg,id,color){ const d=mk("defs",{},svg); const m=mk("marker"
 /* ---------- Systems (from the embedded registry) ---------- */
 const REG=JSON.parse(document.getElementById("systems").textContent);
 const REPO="https://github.com/"+REG.repo;
-const ilink=n=>`<a href="${REPO}/issues/${n}" target="_blank" rel="noopener">#${n}</a>`;
+/* Links to an issue and its board (GUIDANCE.md §5; system/RULES.md §6). BOARDS maps an issue's number to its plan board, relative
+   to this page, for every issue the page names whose board is in the repository; the presenter fills it from the folders on disk
+   when the page is written, on its one line, and check-page.js fails an entry whose file is not there. Where an issue's number and
+   its title appear together they are two links: the number opens the GitHub issue (pair(), or a plain href in hand-written HTML)
+   and the title opens the board, written <a data-board="N">title</a> by hand, plain text while the issue has none. A lone #n opens
+   the board when one exists and the GitHub issue otherwise: ilink(n), or <a data-issue="N">#N</a> by hand. linkIssues() resolves
+   the hand-written ones at load. */
+const BOARDS={}; // presenter: issue number → its plan board relative to this page, on this one line, e.g. {"38":"../../plans/38-slug/dashboard.html"}
+const boardOf=n=>Object.prototype.hasOwnProperty.call(BOARDS,String(n))?BOARDS[String(n)]:null;
+const ghIssue=n=>`${REPO}/issues/${n}`;
+const ilink=n=>{ const b=boardOf(n); return b?`<a href="${esc(b)}" title="#${esc(n)}: its plan board">#${esc(n)}</a>`:`<a href="${ghIssue(n)}" target="_blank" rel="noopener">#${esc(n)}</a>`; };
+const pair=(n,title)=>{ const b=boardOf(n); return `<a href="${ghIssue(n)}" target="_blank" rel="noopener">#${esc(n)}</a> ${b?`<a href="${esc(b)}" title="#${esc(n)}: its plan board">${esc(title)}</a>`:esc(title)}`; };
+function linkIssues(root){ const r=root||document;
+  r.querySelectorAll("a[data-board]").forEach(a=>{ const n=a.dataset.board, b=boardOf(n); if(b){ a.href=b; a.title=`#${n}: its plan board`; } else a.replaceWith(...a.childNodes); });
+  r.querySelectorAll("a[data-issue]").forEach(a=>{ const n=a.dataset.issue, b=boardOf(n); a.href=b||ghIssue(n); if(b) a.title=`#${n}: its plan board`; else { a.target="_blank"; a.rel="noopener"; } }); }
+window.addEventListener("DOMContentLoaded",()=>linkIssues());
 const SYSTEMS=REG.systems.filter(s=>s.kind!=="repo");
 $("#sys-count").textContent=`${SYSTEMS.filter(s=>s.status==="built").length} built · ${SYSTEMS.filter(s=>s.status==="planned").length} planned`;
 
@@ -709,12 +746,12 @@ function renderSystems(){
   $("#syscards").innerHTML=SYSTEMS.map(s=>{
     const planned=s.status==="planned";
     /* each entry is HTML: escaped text, and the as-is date or time through when() */
-    const meta=planned?[esc(`planned by #${(s.plannedBy||{}).issue||"?"}`)]:[esc(`v${s.version||"?"}`), s.asIs?`as-is ${esc(s.asIs.ref)} ${esc(s.asIs.sha)} · ${when(s.asIs.date)}`:"", s.lastAmended?esc(`amended by #${s.lastAmended.issue}`):""].filter(Boolean);
+    const meta=planned?[(s.plannedBy||{}).issue?`planned by ${ilink(s.plannedBy.issue)}`:"planned"]:[esc(`v${s.version||"?"}`), s.asIs?`as-is ${esc(s.asIs.ref)} ${esc(s.asIs.sha)} · ${when(s.asIs.date)}`:"", s.lastAmended?esc(`amended by #${s.lastAmended.issue}`):""].filter(Boolean);
     // A built system the repository gives no page yet is a card, not a link (never a dead href="#").
     const linked=!planned&&!!s.page, tag=linked?"a":"span", href=linked?` href="${esc(s.page)}"`:"";
     return `<${tag} class="syscard ${planned?"planned":"built"}"${href} data-slug="${esc(s.slug)}" style="--c:${sysColour(s.slug)}" tabindex="0"><div class="st">${planned?"planned · no page yet":linked?"built":"built · no page yet"}</div><div class="nm">${esc(s.name)}</div><div class="fn">${esc(s.function||"")}</div><div class="meta">${meta.map(m=>`<span>${m}</span>`).join("")}</div></${tag}>`;
   }).join("");
-  document.querySelectorAll(".syscard").forEach(c=>{ const show=()=>{ const s=SYSTEMS.find(x=>x.slug===c.dataset.slug); inspect(`<div class="kicker">SYSTEM · ${s.status.toUpperCase()}</div><div class="name">${esc(s.name)}</div><div class="vis">${esc((s.paths||[]).join(" · ")||"no code paths yet")}</div><p>${esc(s.function||"")}</p><dl>${s.page?`<dt>Dashboard</dt><dd><a href="${esc(s.page)}">${esc(s.page)}</a></dd>`:""}${s.parent?`<dt>Parent</dt><dd>${esc(s.parent)}</dd>`:""}${s.plannedBy?`<dt>Planned by</dt><dd>#${s.plannedBy.issue} · <code>${esc(s.plannedBy.architecture||"")}</code></dd>`:""}</dl>`); }; c.addEventListener("mouseenter",show); c.addEventListener("focus",show); });
+  document.querySelectorAll(".syscard").forEach(c=>{ const show=()=>{ const s=SYSTEMS.find(x=>x.slug===c.dataset.slug); inspect(`<div class="kicker">SYSTEM · ${s.status.toUpperCase()}</div><div class="name">${esc(s.name)}</div><div class="vis">${esc((s.paths||[]).join(" · ")||"no code paths yet")}</div><p>${esc(s.function||"")}</p><dl>${s.page?`<dt>Dashboard</dt><dd><a href="${esc(s.page)}">${esc(s.page)}</a></dd>`:""}${s.parent?`<dt>Parent</dt><dd>${esc(s.parent)}</dd>`:""}${s.plannedBy?`<dt>Planned by</dt><dd>${s.plannedBy.issue?ilink(s.plannedBy.issue):"?"} · <code>${esc(s.plannedBy.architecture||"")}</code></dd>`:""}${s.lastAmended&&s.lastAmended.issue?`<dt>Last amended by</dt><dd>${ilink(s.lastAmended.issue)}${s.lastAmended.sha?` · <code>${esc(s.lastAmended.sha)}</code>`:""}</dd>`:""}</dl>`); }; c.addEventListener("mouseenter",show); c.addEventListener("focus",show); });
   $("#systems-key").innerHTML=sysKey(SYSTEMS.map(s=>s.slug))+`<span><i></i>built: opens its page, or says no page yet</span><span><i class="pln"></i>planned: no page yet</span>`;
 }
 renderSystems();

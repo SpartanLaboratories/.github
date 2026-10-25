@@ -78,7 +78,10 @@ if (!flag(args, "no-gh")) {
 const issueOf = n => issues.find(i => i.number === n);
 const levelOf = i => { const l = i && i.labels.find(x => /^level: [1-4]$/.test(x.name)); return l ? parseInt(l.name.slice(7), 10) : null; };
 const ref = x => ({ issue: x.number, repo: x.repository && x.repository.nameWithOwner !== repo ? x.repository.nameWithOwner : undefined, state: x.state });
-const sysInfo = slug => slug ? ((reg && reg.info(slug)) || { slug, name: slug, slot: 0, top: slug }) : null;
+/* A system's name and colour slot: the registry's; else, in a repository with no registry entry for it yet, the slot the boards
+   themselves give it (plan.json systems), so a row keeps the colour its own board shows (GUIDANCE.md §1); else no colour. */
+const boardSys = slug => { for (const b of boards) { const s = (b.plan.systems || []).find(x => x && x.slug === slug); if (s) return { slug, name: s.name || slug, slot: Number.isInteger(s.slot) ? s.slot : 0, top: s.top || s.name || slug }; } return null; };
+const sysInfo = slug => slug ? ((reg && reg.info(slug)) || boardSys(slug) || { slug, name: slug, slot: 0, top: slug }) : null;
 
 /* Tracking issues: labelled, with sub-issues, or a tracking board */
 const trackingNums = new Set([...issues.filter(i => i.state === "OPEN" && (i.labels.some(l => l.name === "type: tracking") || ((gq[i.number] || {}).subIssues || { nodes: [] }).nodes.length)).map(i => i.number), ...boards.filter(b => b.plan.kind === "tracking" && b.plan.status !== "built").map(b => b.plan.issue)]);

@@ -20,7 +20,10 @@
 // open the boards from the "part of" chip, the breadcrumb, the WIP strip's unit lines, the "blocked by" tags and the roadmap. And it
 // tests the units' runs (plan/RULES.md §3): embed.js mirrors a unit's run from its own board into the tracking board, every embed of
 // the sub-issue's board re-embeds the tracking board, check.js warns on a mirror older than the board, and the rendered tracking
-// board shows the run on the WIP strip and in the unit's as-built cell, its mark paused while the run waits on the user.
+// board shows the run on the WIP strip and in the unit's as-built cell, its mark paused while the run waits on the user. And it
+// tests the conventions carried across every dashboard type (GUIDANCE.md §11) on the system templates and the work board: one-line
+// ledes, the wide desktop layout, the board links of a system page (BOARDS, data-board, data-issue) and check-page.js's failure
+// on a dead one. A template is recorded only when its browser passes and every case group pass.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { recordFile, sha, norm } = require(path.join(__dirname, "..", "system", "scripts", "deviation.js"));
@@ -506,6 +509,65 @@ targets.filter(t => t.block === "board").forEach(t => {
   report(`issue links on ${t.name}`, cases);
 });
 
+/* The plan-board improvements of 2026-10-22/23 carried to the other dashboard types (GUIDANCE.md §11), rendered through headless
+   Chrome:
+   - every tab's lede is at most one short line (GUIDANCE.md §2), on both system templates and on the work board, committed and live;
+   - the wide desktop layout (GUIDANCE.md §6): on a 1920 x 1080 window a system and a supersystem page use most of the window, the
+     inspector widens to 360 px and a fixed-aspect diagram stops at 1280 px; at 1400 px the page keeps its 1280 px measure;
+   - board links on a system or supersystem page (GUIDANCE.md §5; system/RULES.md §2, §6): with a board for #7 in BOARDS, a title
+     written <a data-board="7"> opens it and a lone <a data-issue="7"> opens it; with none, the title is plain text and a lone #n opens
+     the GitHub issue; the supersystem's planned card and inspector link "planned by #7" through ilink(); check-page.js fails a BOARDS
+     entry whose file is not there, and passes the one that is. */
+targets.filter(t => !t.block || t.block === "board").forEach(t => {
+  const tpl = fs.readFileSync(t.path, "utf8"), cc = [], sc = path.join(out, "conventions-" + path.basename(t.file, ".html"));
+  fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
+  const text = h => (h || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/\s+/g, " ").trim();
+  const write = (name, html) => { const f = path.join(sc, name); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, html); return f; };
+  const ledesOf = dom => (dom.match(/<p class="lede"[^>]*>[\s\S]*?<\/p>/g) || []).map(text).filter(Boolean);
+  if (t.block === "board") {
+    const b = fs.readFileSync(sk("verify/fixtures/work-board.json"), "utf8"), bl = fs.readFileSync(sk("verify/fixtures/work-board-live.json"), "utf8");
+    const d1 = dumpDom(write("board/index.html", withData(tpl, "board", b))), d2 = dumpDom(write("board-live/index.html", withData(tpl, "board", bl)));
+    if (d1 == null) cc.push(["the rendered work board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
+    else {
+      const l = [...ledesOf(d1), ...ledesOf(d2)].filter(x => !/^(No tracking issue is open|Every open issue sits)/.test(x));
+      cc.push(["the work board's Runs lede is one short line, committed and live", l.length >= 2 && l.every(x => x.length <= 130), l.map(x => x.length + ": " + x).join(" | ")]);
+      const docs = inner(d1, '<div class="card"><h3>Plans and documents</h3>', "div"), r = JSON.parse(b).rows.find(x => x.board);
+      cc.push([`the Plans card pairs #${r.issue}: its number opens GitHub, its title its board`, new RegExp(`/issues/${r.issue}"[^>]*>#${r.issue}</a> <a href="${r.board.replace(/[.]/g, "\\.")}"`).test(docs), text(docs).slice(0, 300)]);
+    }
+  } else {
+    const sup = /supersystem/.test(t.file);
+    const probe = `<script>window.addEventListener("load",()=>setTimeout(()=>{const w=s=>{const e=document.querySelector(s);return e?Math.round(e.getBoundingClientRect().width):0;};document.body.dataset.widths=[w(".page"),w("#inspector"),w(".view:not([hidden])>svg")].join(",");},500));</script>`;
+    const pl = dumpDom(write("placeholder/index.html", tpl));
+    if (pl == null) { cc.push(["the rendered template (no browser found: set CHROME)", false, "no Chrome or Edge"]); }
+    else {
+      const l = ledesOf(pl);
+      cc.push(["every tab's lede is at most one short line", l.length >= 6 && l.every(x => x.length <= 130), l.filter(x => x.length > 130).join(" | ") || `${l.length} ledes`]);
+      const tab = sup ? "t-structure" : null, pick = tab ? `<script>window.addEventListener("load",()=>document.getElementById("${tab}").click());</script>` : "";
+      const widths = size => { const d = dumpDom(write(`wide-${size}/index.html`, tpl.replace("</body>", pick + probe + "</body>")), "", size); return ((d || "").match(/data-widths="([\d,]+)"/) || ["", "0,0,0"])[1].split(",").map(Number); };
+      const [pw, iw, sw] = widths("1920,1080"), [pn] = widths("1400,1000");
+      cc.push(["on a 1920 window the page uses most of it, the inspector is 360 px and a fixed-aspect diagram stops at 1280 px", pw > 1800 && iw === 360 && sw > 0 && sw <= 1280, `page ${pw}px, inspector ${iw}px, diagram ${sw}px`]);
+      cc.push(["at 1400 px the page keeps its 1280 px measure", pn > 0 && pn <= 1280, `page ${pn}px`]);
+      /* board links: a stub board for #7 beside the page */
+      const withBoards = tpl.replace(/^const BOARDS=\{\};/m, 'const BOARDS={"7":"boards/7/dashboard.html"};')
+        .replace('<span><a data-board="N">Issue title</a></span>', '<span><a data-board="7">Issue with a board</a></span>')
+        .replace(/(Plans[^<]*<a data-issue=")N(">)#N</, "$17$2#7<")
+        .replace(/("slug": "system-gamma"[\s\S]*?"plannedBy": \{"issue": )0/, "$17");
+      const f = write("links/index.html", withBoards); stub(path.join(sc, "links", "boards", "7"));
+      const noComments = x => (x || "").replace(/<!--[\s\S]*?-->/g, ""), dl = dumpDom(f), ctx = noComments(inner(dl, '<section class="context">', "section"));
+      cc.push(["with a board in BOARDS, the title <a data-board> opens it", /<a data-board="7" href="boards\/7\/dashboard\.html"[^>]*>Issue with a board<\/a>/.test(ctx), (ctx.match(/.{0,120}Issue with a board.{0,20}/) || ["no title"])[0]]);
+      cc.push(["with a board in BOARDS, a lone <a data-issue> opens the board", /<a data-issue="7" href="boards\/7\/dashboard\.html"/.test(ctx), (ctx.match(/<a data-issue="7"[^>]*>/) || ["no lone #7"])[0]]);
+      cc.push(["with no board, a title stays plain text and a lone #n opens the GitHub issue", !/data-board="N"/.test(ctx) && /Issue mapped to the item/.test(ctx) && /<a data-issue="N" href="https:\/\/github\.com\/ORG\/REPO\/issues\/N"/.test(inner(pl, '<section class="context">', "section")), (ctx.match(/.{0,80}Issue mapped to the item.{0,10}/) || ["no title"])[0]]);
+      if (sup) cc.push(["the Systems tab's planned card links \"planned by #7\" to its board", /planned by <a href="boards\/7\/dashboard\.html"/.test(inner(dl, '<div class="syscards" id="syscards">', "div")), text(inner(dl, '<div class="syscards" id="syscards">', "div")).slice(0, 200)]);
+      const ok = cp.spawnSync(process.execPath, [checker, f, "--out", sc], { encoding: "utf8" });
+      cc.push(["check-page.js passes a BOARDS entry whose board is there", ok.status === 0 && /board links: 1 in BOARDS, 0 dead/.test(ok.stdout || ""), (ok.stdout || "").split(/\r?\n/).filter(x => /board links|FAIL/.test(x)).join(" | ")]);
+      const dead = write("dead/index.html", withBoards);
+      const bad = cp.spawnSync(process.execPath, [checker, dead, "--out", sc], { encoding: "utf8" });
+      cc.push(["check-page.js fails a BOARDS entry whose board is not there", bad.status === 1 && /DEAD BOARD LINK: BOARDS\["7"\]/.test(bad.stdout || ""), (bad.stdout || "").split(/\r?\n/).filter(x => /board links|DEAD|FAIL/.test(x)).join(" | ")]);
+    }
+  }
+  report(`the cross-type conventions on ${t.name}`, cc);
+});
+
 const today = new Date().toISOString().slice(0, 10);
 targets.forEach(t => {
   const tpl = fs.readFileSync(t.path, "utf8"), results = [];
@@ -525,7 +587,7 @@ targets.forEach(t => {
   console.log(`${ok ? "verified" : "FAILED  "} ${t.name}${root ? " (" + path.relative(path.resolve(root), t.path).split(path.sep).join("/") + ")" : ""}: ${results.filter(r => r.pass).length}/${results.length} passes`);
   results.filter(r => !r.pass).forEach(r => console.log(`  ${r.fixture} · ${r.mode}: ${r.bad.join(" | ")}`));
   if (!ok) { failures++; return; }
-  if (t.block && linkFailures) { console.log(`  not recorded: the issue link cases failed`); failures++; return; }
+  if (linkFailures) { console.log(`  not recorded: a case group above failed`); failures++; return; }
   const { file, key } = recordFile(t.path);
   let rec = {}; try { rec = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) { /* first record */ }
   rec.$comment = "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last full verification. check-page.js --auto and check.js --auto trust a template only while its hash matches.";

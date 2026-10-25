@@ -3,7 +3,7 @@
   "templates": {
     "plan/template/dashboard.html": {
       "sha256": "40620ebde367a36ac37a59c8a4019a2e8ed3d583dd07f9aac530a9454f70d38b",
-      "verified": "2026-10-23",
+      "verified": "2026-10-25",
       "fixtures": [
         "plan",
         "tracking",
@@ -19,8 +19,8 @@
       ]
     },
     "plan/template/board.html": {
-      "sha256": "5917a2ccef709e153bdba4cd65eb9875a3a09e5d51df6fcedc9e720b398bf5e5",
-      "verified": "2026-10-23",
+      "sha256": "dae12c9812c79bad3adfce4a9a6a94a6c80294895c7cb3ca7ddd17924308d98b",
+      "verified": "2026-10-25",
       "fixtures": [
         "work-board",
         "work-board-live",
@@ -35,8 +35,8 @@
       ]
     },
     "system/template/system.html": {
-      "sha256": "bb7b5fd1a164201401582a03c782add015ea563efeb8ea940c1b509b7de7b729",
-      "verified": "2026-10-23",
+      "sha256": "7d64b053de8a3eda9a7c7ebd8cf2b624769e9b7a4f48039eef6e0cac9340221a",
+      "verified": "2026-10-25",
       "fixtures": [
         "placeholder"
       ],
@@ -49,8 +49,8 @@
       ]
     },
     "system/template/supersystem.html": {
-      "sha256": "348defb341c1cfb23a5af19f75ae9deaa3bc83a458a344db6cc3fa983cbdf003",
-      "verified": "2026-10-23",
+      "sha256": "3844aa7f3603efd8b2c022fdb909a18ffbfd48eeaab9ecd06deca0baed02736e",
+      "verified": "2026-10-25",
       "fixtures": [
         "placeholder"
       ],

@@ -3,7 +3,7 @@
 These rules apply to every dashboard page the presenter makes: a system page, a
 supersystem or repository page, an issue's plan board, the work board. A
 ruleset (`system/RULES.md`, `plan/RULES.md`) adds to them and never loosens
-them.
+them. A change to any of them is weighed for every dashboard type (§11).
 
 ## 1. Colour coding
 
@@ -108,6 +108,11 @@ it uses — the system swatches present, each status colour with its glyph and w
 dotted, the in-progress glow, the up-next mark — and nothing it doesn't. A legend that promises
 an encoding the panel never draws is a defect; so is an encoding with no legend entry.
 
+**Ledes.** The legend says what the encodings mean, so a tab's lede does not: it is at most one
+short line, and only for what the graphic and its legend do not show (what to click, a fact the
+picture cannot carry), or nothing. This holds on every page: the plan boards' tabs, the system,
+supersystem and repository pages' tabs, the work board's.
+
 ## 3. A page is a template plus data
 
 A page is never hand-edited. Its content lives in a data file beside it (`workspace.dsl` and
@@ -166,12 +171,22 @@ issue's board when one exists and the GitHub issue while none does. A small "Git
 sits beside such a lone `#n` only where the page offers no other way to reach the issue. A link
 never points at a file that is not there (`plan/RULES.md` §1).
 
+The rule holds on every page. The plan boards and the work board take their board links from their
+data (`embed.js`, `board.js`); a system, supersystem or repository page takes them from its `BOARDS`
+map, filled when the page is written, and its hand-written HTML marks a title link
+`<a data-board="N">` and a lone `#n` `<a data-issue="N">`, which the page resolves at load
+(`system/RULES.md` §6). Where the page's Context lists an issue's number and its title — the roadmap,
+the unscheduled issues, the header's "last amended by" — they are the two links of this section.
+
 ## 6. Pages are self-contained
 
 Inline CSS, JS and SVG; no external resources; light and dark; no horizontal page scroll at
 phone width (diagrams scroll inside their own frame); every control reachable by keyboard;
-under 16 MB. On a wide desktop screen (over 1500 px) a page uses most of the window rather than a
-fixed measure, so the plan boards' timeline columns get room; prose keeps its own line length.
+under 16 MB. On a wide desktop screen (over 1500 px) every page — system, supersystem and repository
+pages, plan and tracking boards, the work board — uses most of the window rather than a fixed measure,
+so the plan boards' timeline columns, the cards, the Guarantees, the C4 canvas and the tables get room;
+prose keeps its own line length, and a diagram drawn to a fixed aspect grows to at most 1280 px wide,
+so it is never smaller than in the 1280 px layout and never outgrows the screen.
 Each template is checked for this once, in a headless browser, in light and dark, at a narrow
 width (520 px is the narrowest headless Chrome lays out; the real phone width is verified
 through the checker's iframe harness) and on a 1920 x 1080 desktop; a page inherits it from its
@@ -237,3 +252,13 @@ rule that seems wrong is proposed in the report, not changed.
 
 Nothing committed carries a credential, a machine-local path, a user name or personal data.
 Dashboards live in public repositories.
+
+## 11. One change, every dashboard type
+
+Every convention change or improvement made for one dashboard type is considered for every other
+type — system pages, supersystem and repository pages, plan boards, tracking boards and the work
+board — and applied wherever it fits: in this file when it is shared, in each ruleset, template,
+script and check it touches, with `verify/verify-templates.js` run after the template changes. Where
+it does not fit a type, the reason is stated. The presenter's report names, for each change, the
+types it was applied to and the types it was judged not to fit, with the reason, and the pages
+already in repositories that the change would re-render.

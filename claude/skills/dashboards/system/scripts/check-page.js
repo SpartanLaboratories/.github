@@ -13,7 +13,8 @@
 // --server / --client / --wire, read from the page's CSS and, in the browser, as the theme of the pass computes them), and no
 // error fired. Then, by kind: a system page has a visible Guarantees area
 // (.guarantees holding at least one .bubble) and, when the page sits under a docs/dashboards/ with a systems.json in a git
-// work tree, no registry page or DSL file is git-ignored; a plan board has a visible WIP strip (.wip) with its own legend, and its
+// work tree, no registry page or DSL file is git-ignored, and every entry of its BOARDS map (issue number → plan board) names a
+// board file that is there; a plan board has a visible WIP strip (.wip) with its own legend, and its
 // Impact tab shows no planning information (no dashed element, no planned / as-built pill, no changes-from-the-plan list). --theme sets
 // data-theme on <html>. --frame loads the page inside an iframe of that width (the harness for real phone widths, below what
 // headless Chrome lays out as a window). The page is loaded from a wrapper copy in the output directory, so the committed file
@@ -53,7 +54,7 @@ if (args.includes("--auto")) {
   modes.forEach(m => {
     const r = cp.spawnSync(process.execPath, [__filename, page, ...rest, ...m], { encoding: "utf8" });
     const lines = (r.stdout || "").trim().split(/\r?\n/), label = m.join(" ") || "light";
-    const bad = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|GIT-IGNORED|FAIL/.test(l));
+    const bad = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|GIT-IGNORED|DEAD BOARD LINK|BOARDS UNREADABLE|FAIL/.test(l));
     console.log(`CHECK pass ${label}: ${r.status === 0 ? "PASS" : "FAIL"} · ${(lines.find(l => l.startsWith("screenshot:")) || "").replace("screenshot: ", "")}`);
     bad.forEach(l => console.log("  " + l));
     if (r.status !== 0) failed++;
@@ -171,6 +172,21 @@ function registryIgnored() {
 }
 const regCheck = registryIgnored();
 
+// The board links of a system, supersystem or repository page (GUIDANCE.md §5; system/RULES.md §6): its BOARDS map, issue number →
+// plan board relative to the page, filled by the presenter on its one line. A link never points at a file that is not there, so an
+// entry whose file is missing fails (DEAD BOARD LINK), and so does a map that is not plain JSON (keys and paths in double quotes).
+function boardLinks() {
+  if (/<meta name="dashboard" content="(plan-board|work-board)">/.test(src)) return null;
+  const m = src.match(/^const BOARDS=(.*?);\s*(\/\/.*)?$/m);
+  if (!m) return { note: "board links: no BOARDS map (a page on a template older than the board-link rule)", problems: [] };
+  let map; try { map = JSON.parse(m[1]); } catch (e) { return { note: "", problems: [`BOARDS UNREADABLE: const BOARDS=${m[1].slice(0, 80)} is not plain JSON (${e.message})`] }; }
+  const dir = path.dirname(path.resolve(page)), entries = Object.entries(map || {});
+  const problems = entries.filter(([, p]) => typeof p !== "string" || /^[a-z]+:/i.test(p) || !fs.existsSync(path.resolve(dir, p.split("#")[0])))
+    .map(([n, p]) => `DEAD BOARD LINK: BOARDS["${n}"] = ${JSON.stringify(p)} is not a plan board file relative to this page`);
+  return { note: `board links: ${entries.length} in BOARDS, ${problems.length} dead`, problems };
+}
+const boardCheck = boardLinks();
+
 const wrapped =src.includes("</body>") ? src.replace("</body>", probe + "\n</body>") : src + probe;
 const base = path.basename(path.dirname(path.resolve(page))) + "." + path.basename(page, ".html");
 const wrapperPath = path.join(out, base + ".check.html");
@@ -192,6 +208,7 @@ const errors = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGE
 lines.forEach(l => console.log(l));
 paletteLines().forEach(l => { console.log(l); if (/PALETTE IN STATUS HUE/.test(l)) errors.push(l); });
 if (regCheck) { if (regCheck.note) console.log("CHECK " + regCheck.note); regCheck.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); }
+if (boardCheck) { if (boardCheck.note) console.log("CHECK " + boardCheck.note); boardCheck.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); }
 console.log(`screenshot: ${shot}`);
 if (!lines.some(l => l.includes("CHECK done"))) { console.log("FAIL: the probe never completed (page did not load, or scripts aborted before the probe ran)"); process.exit(1); }
 if (errors.length) { console.log(`FAIL: ${errors.length} problem(s)`); process.exit(1); }
