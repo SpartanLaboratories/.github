@@ -2,7 +2,7 @@
   "$comment": "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last full verification. check-page.js --auto and check.js --auto trust a template only while its hash matches.",
   "templates": {
     "plan/template/dashboard.html": {
-      "sha256": "dc84571afc518d57c32f54715da4116f7c0fd7f2f8fcf1704e520a4ed5e9f7d5",
+      "sha256": "2d86258847b9edc6e00f349afc6533d7a5d5838e8506eb1d8f7653c86334e2b3",
       "verified": "2026-10-25",
       "fixtures": [
         "plan",
@@ -17,10 +17,119 @@
         "--width 520",
         "--frame 390",
         "--width 1920 --height 1080"
+      ],
+      "history": [
+        {
+          "sha256": "3f0d0eb39de65ad3544c84dfcf4c6d069b7b7086206ac41a0440c700943da7e7",
+          "verified": "2026-10-22",
+          "file": "dashboard/3f0d0eb39de6.html",
+          "note": "the template as the .github mirror held it at fc75233"
+        },
+        {
+          "sha256": "156816b19adf5b04c062cee5835aa7b34fe29f06ef8f37bd9239eb824b99097d",
+          "verified": "2026-10-22",
+          "file": "dashboard/156816b19adf.html",
+          "note": "the template as the .github mirror held it at 8d75833"
+        },
+        {
+          "sha256": "168298b9c727f1d4098006f9dc36f6824a1c1bf63c86c2cbc05a64d2b493f792",
+          "verified": "2026-10-22",
+          "file": "dashboard/168298b9c727.html",
+          "note": "the template as the .github mirror held it at e145c8d"
+        },
+        {
+          "sha256": "1631b15625178e763bd7dfbf9faf827449262235740be2438b9abcff73a50bd6",
+          "verified": "2026-10-23",
+          "file": "dashboard/1631b1562517.html",
+          "note": "the template as the .github mirror held it at cb0b0ff"
+        },
+        {
+          "sha256": "df0c7103755d1d16b62c9837a1615d2fe5d5dbc23c14bc5c0213a4a0b4409232",
+          "verified": "2026-10-23",
+          "file": "dashboard/df0c7103755d.html",
+          "note": "the template as the .github mirror held it at bfe42d5"
+        },
+        {
+          "sha256": "c718f3afb2e1bef98f50d24901b66f09e48009acc9ad6350e31de5fcd11df1bf",
+          "verified": "2026-10-23",
+          "file": "dashboard/c718f3afb2e1.html",
+          "note": "the template as the .github mirror held it at 5b08542"
+        },
+        {
+          "sha256": "de072fbdafe8845f2dd6fc1e2329631291341497f256d253fcec437304b7c7bd",
+          "verified": "2026-10-23",
+          "file": "dashboard/de072fbdafe8.html",
+          "note": "the template as the .github mirror held it at 9042177"
+        },
+        {
+          "sha256": "40620ebde367a36ac37a59c8a4019a2e8ed3d583dd07f9aac530a9454f70d38b",
+          "verified": "2026-10-23",
+          "file": "dashboard/40620ebde367.html",
+          "note": "the template as the .github mirror held it at bc918b4"
+        },
+        {
+          "sha256": "ba7d371be6aab7a2b7969447896dc3ac30381faa0675db9081ccad547fcad95d",
+          "verified": "2026-10-25",
+          "file": "dashboard/ba7d371be6aa.html",
+          "note": "the template as the .github mirror held it at b2ed279"
+        },
+        {
+          "sha256": "040822453c213972e7bfcd3f1065cdd80960801d20d1dc416dd2c9d396c87499",
+          "verified": "2026-10-25",
+          "file": "dashboard/040822453c21.html",
+          "note": "the template as the .github mirror held it at 1971cc4"
+        },
+        {
+          "sha256": "30711b6bbff71b728c392ea54816b8fa64e789f9ac2d3459f9805a7cc9803cf2",
+          "verified": "2026-10-25",
+          "file": "dashboard/30711b6bbff7.html",
+          "note": "the template as the .github mirror held it at 72d07f0"
+        },
+        {
+          "sha256": "90ca937b5ed45f29e55d350c70cdebc5ac670360382adbeb423a3aa02e627d76",
+          "verified": "2026-10-25",
+          "file": "dashboard/90ca937b5ed4.html",
+          "note": "the template as the .github mirror held it at a3de3ee"
+        },
+        {
+          "sha256": "4796ac06efe2710fb80e9d52a21788a8a19f26d2afe8e3f04932a1ec4c014e26",
+          "verified": "2026-10-25",
+          "file": "dashboard/4796ac06efe2.html",
+          "note": "the template as the .github mirror held it at 5408ea0"
+        },
+        {
+          "sha256": "2480cfe00cd815d0ad77dd8f27e992f3c3c89b6be6fed39d1fd862ba18ba4698",
+          "verified": "2026-10-25",
+          "file": "dashboard/2480cfe00cd8.html",
+          "note": "the template as the .github mirror held it at 736845e"
+        },
+        {
+          "sha256": "a9f46e0c1530dae8032f93ef1876f1cdbe6637f295fb080d3b9908f4f580a5c6",
+          "verified": "2026-10-25",
+          "file": "dashboard/a9f46e0c1530.html",
+          "note": "the template as the .github mirror held it at af26fb7"
+        },
+        {
+          "sha256": "ee564b47eef7c15c60505777523bc5730e6710f40c7093444167c7de27f34989",
+          "verified": "2026-10-25",
+          "file": "dashboard/ee564b47eef7.html",
+          "note": "the template as the .github mirror held it at 19b02be"
+        },
+        {
+          "sha256": "dc84571afc518d57c32f54715da4116f7c0fd7f2f8fcf1704e520a4ed5e9f7d5",
+          "verified": "2026-10-25",
+          "file": "dashboard/dc84571afc51.html",
+          "note": "the template as admin-team/dashboards-skill/25 left it"
+        },
+        {
+          "sha256": "2d86258847b9edc6e00f349afc6533d7a5d5838e8506eb1d8f7653c86334e2b3",
+          "verified": "2026-10-25",
+          "file": "dashboard/2d86258847b9.html"
+        }
       ]
     },
     "plan/template/board.html": {
-      "sha256": "49bf5233c174d675586f8a64b1c01099d17ea3839a69bdee3aa08befcc9e53e3",
+      "sha256": "ce88331c00e792bd6534144e7cb92cc3139daa4881ee73928d02d9f4de2b6259",
       "verified": "2026-10-25",
       "fixtures": [
         "work-board",
@@ -33,10 +142,118 @@
         "--width 520",
         "--frame 390",
         "--width 1920 --height 1080"
+      ],
+      "history": [
+        {
+          "sha256": "a64e05242cb3408383888ea7bf17a68e76202d2d7079f0f0554704c4f900e55a",
+          "verified": "2026-10-22",
+          "file": "board/a64e05242cb3.html",
+          "note": "the template as the .github mirror held it at fc75233"
+        },
+        {
+          "sha256": "f810b2201f2954445805c1a24a26e96e1b78008c95c6f61bc4c89c596a80c17d",
+          "verified": "2026-10-22",
+          "file": "board/f810b2201f29.html",
+          "note": "the template as the .github mirror held it at 8d75833"
+        },
+        {
+          "sha256": "7d4160b6b6fe11b36765ffbb2569110b9c43ed9625441a2f8b43ebdf3cfa544c",
+          "verified": "2026-10-22",
+          "file": "board/7d4160b6b6fe.html",
+          "note": "the template as the .github mirror held it at ca81916"
+        },
+        {
+          "sha256": "4e08facf9a61e42a86729765789f692cd20641e5d0e53773bfb639fc9b485606",
+          "verified": "2026-10-22",
+          "file": "board/4e08facf9a61.html",
+          "note": "the template as the .github mirror held it at e145c8d"
+        },
+        {
+          "sha256": "8d7db6a3613eaa83ba1c9410682314b0e406768d2b8797cbab95a422c71e60d2",
+          "verified": "2026-10-23",
+          "file": "board/8d7db6a3613e.html",
+          "note": "the template as the .github mirror held it at cb0b0ff"
+        },
+        {
+          "sha256": "ed39a6db3fdf08a64062cd97d4f1c7089e53adb0a0d71d255c1c30c5cd1c9fc4",
+          "verified": "2026-10-23",
+          "file": "board/ed39a6db3fdf.html",
+          "note": "the template as the .github mirror held it at bfe42d5"
+        },
+        {
+          "sha256": "f38d1a6bc0fedcfe52e7798fefe2373941a8b132b6966733a41614a01570a233",
+          "verified": "2026-10-23",
+          "file": "board/f38d1a6bc0fe.html",
+          "note": "the template as the .github mirror held it at 5b08542"
+        },
+        {
+          "sha256": "5917a2ccef709e153bdba4cd65eb9875a3a09e5d51df6fcedc9e720b398bf5e5",
+          "verified": "2026-10-23",
+          "file": "board/5917a2ccef70.html",
+          "note": "the template as the .github mirror held it at 9042177"
+        },
+        {
+          "sha256": "dae12c9812c79bad3adfce4a9a6a94a6c80294895c7cb3ca7ddd17924308d98b",
+          "verified": "2026-10-25",
+          "file": "board/dae12c9812c7.html",
+          "note": "the template as the .github mirror held it at 936bb20"
+        },
+        {
+          "sha256": "0cf4347cbd14033697c0058cbf0cb50a4d6420c7dc6ec3d47b3cff06b8d23c38",
+          "verified": "2026-10-25",
+          "file": "board/0cf4347cbd14.html",
+          "note": "the template as the .github mirror held it at 1971cc4"
+        },
+        {
+          "sha256": "759f09637132a3565e7f7cdb9383a35a716f30d2471d88a3a8816ab8b16849bc",
+          "verified": "2026-10-25",
+          "file": "board/759f09637132.html",
+          "note": "the template as the .github mirror held it at 72d07f0"
+        },
+        {
+          "sha256": "dded6b026fcd95ad02a826fb38204ad2d573405762204d5ea20db8708145d431",
+          "verified": "2026-10-25",
+          "file": "board/dded6b026fcd.html",
+          "note": "the template as the .github mirror held it at a3de3ee"
+        },
+        {
+          "sha256": "535a785cfd1caf0a554a148e543524a579c17ad558c1db4c53ea6f7b19fabea8",
+          "verified": "2026-10-25",
+          "file": "board/535a785cfd1c.html",
+          "note": "the template as the .github mirror held it at 736845e"
+        },
+        {
+          "sha256": "310c0eea821fffcb8881e62f127f57890d09ab9712c000db961c67114760ec1e",
+          "verified": "2026-10-25",
+          "file": "board/310c0eea821f.html",
+          "note": "the template as the .github mirror held it at af26fb7"
+        },
+        {
+          "sha256": "16f02537531755d434d907245d93225701da6f124f11cfb32eb017f9b2afaaf7",
+          "verified": "2026-10-25",
+          "file": "board/16f025375317.html",
+          "note": "the template as the .github mirror held it at 19b02be"
+        },
+        {
+          "sha256": "49bf5233c174d675586f8a64b1c01099d17ea3839a69bdee3aa08befcc9e53e3",
+          "verified": "2026-10-25",
+          "file": "board/49bf5233c174.html",
+          "note": "the template as admin-team/dashboards-skill/25 left it"
+        },
+        {
+          "sha256": "8b2363370f2f0ece6d6070b26abbb5ef5fd03aa0fb18c7ed0e702322ff45b1ae",
+          "verified": "2026-10-25",
+          "file": "board/8b2363370f2f.html"
+        },
+        {
+          "sha256": "ce88331c00e792bd6534144e7cb92cc3139daa4881ee73928d02d9f4de2b6259",
+          "verified": "2026-10-25",
+          "file": "board/ce88331c00e7.html"
+        }
       ]
     },
     "system/template/system.html": {
-      "sha256": "cb1c69615c819c1a1b527242061e54d187d9ade0b1347fa92f0498f10b8d9a39",
+      "sha256": "fb27a74989e9db907edc72553cf67f0aa3fef28b5c9dba2a8e118ff9b8c9b122",
       "verified": "2026-10-25",
       "fixtures": [
         "placeholder"
@@ -47,10 +264,89 @@
         "--width 520",
         "--frame 390",
         "--width 1920 --height 1080"
+      ],
+      "history": [
+        {
+          "sha256": "f21fac3fd2fb89b3d765533ad110edf7a21a6b97260ad0d852a24286cb27c168",
+          "verified": "2026-10-22",
+          "file": "system/f21fac3fd2fb.html",
+          "note": "the template as the .github mirror held it at fc75233"
+        },
+        {
+          "sha256": "8aa315f0d6527db3a3d45f3368181418fb23123afb775955ca720d4b409550d9",
+          "verified": "2026-10-22",
+          "file": "system/8aa315f0d652.html",
+          "note": "the template as the .github mirror held it at 96682a5"
+        },
+        {
+          "sha256": "75864b3f739dacde24f823be3da43d26917c4ddfa922a58ac4170877a76719f3",
+          "verified": "2026-10-22",
+          "file": "system/75864b3f739d.html",
+          "note": "the template as the .github mirror held it at 8d75833"
+        },
+        {
+          "sha256": "0d6b6c9a903d1e83e9896ad1bf3be7434cb29f0eec50675d2ba456ecea41e6eb",
+          "verified": "2026-10-23",
+          "file": "system/0d6b6c9a903d.html",
+          "note": "the template as the .github mirror held it at bfe42d5"
+        },
+        {
+          "sha256": "9bb945b231913106bac84fd5556d8fb658f464afde597371f54efe35097041fd",
+          "verified": "2026-10-23",
+          "file": "system/9bb945b23191.html",
+          "note": "the template as the .github mirror held it at 5b08542"
+        },
+        {
+          "sha256": "bb7b5fd1a164201401582a03c782add015ea563efeb8ea940c1b509b7de7b729",
+          "verified": "2026-10-23",
+          "file": "system/bb7b5fd1a164.html",
+          "note": "the template as the .github mirror held it at 9042177"
+        },
+        {
+          "sha256": "7d64b053de8a3eda9a7c7ebd8cf2b624769e9b7a4f48039eef6e0cac9340221a",
+          "verified": "2026-10-25",
+          "file": "system/7d64b053de8a.html",
+          "note": "the template as the .github mirror held it at 936bb20"
+        },
+        {
+          "sha256": "dd5e309c790c4007b4a29eaf27f7bc02c6cd0d4f24333f31377509e3fa1befcf",
+          "verified": "2026-10-25",
+          "file": "system/dd5e309c790c.html",
+          "note": "the template as the .github mirror held it at 72d07f0"
+        },
+        {
+          "sha256": "38571c8715a895107e1112334c30f6f14062fb3bee8f2f994790a69f6a75f55d",
+          "verified": "2026-10-25",
+          "file": "system/38571c8715a8.html",
+          "note": "the template as the .github mirror held it at a3de3ee"
+        },
+        {
+          "sha256": "719a6592abcf78ea16632b10c5a23f57670981033fbfc8090cc29a04944acaa0",
+          "verified": "2026-10-25",
+          "file": "system/719a6592abcf.html",
+          "note": "the template as the .github mirror held it at 736845e"
+        },
+        {
+          "sha256": "13b25108adb3986840bb5793114984aa1a46f0d89b53252d3759ba8a8a91459f",
+          "verified": "2026-10-25",
+          "file": "system/13b25108adb3.html",
+          "note": "the template as the .github mirror held it at e208988"
+        },
+        {
+          "sha256": "cb1c69615c819c1a1b527242061e54d187d9ade0b1347fa92f0498f10b8d9a39",
+          "verified": "2026-10-25",
+          "file": "system/cb1c69615c81.html",
+          "note": "the template as admin-team/dashboards-skill/25 left it"
+        },
+        {
+          "sha256": "fb27a74989e9db907edc72553cf67f0aa3fef28b5c9dba2a8e118ff9b8c9b122",
+          "verified": "2026-10-25",
+          "file": "system/fb27a74989e9.html"
+        }
       ]
     },
     "system/template/supersystem.html": {
-      "sha256": "f9c135b6098dd29432e52c88a80e3fa26431e1ff953e1981b64e595bb5fe0d42",
+      "sha256": "94273edcff045760f57eee10ac0066a2eec3b8008f0859c8cd245599fcbeeb7c",
       "verified": "2026-10-25",
       "fixtures": [
         "placeholder"
@@ -61,6 +357,91 @@
         "--width 520",
         "--frame 390",
         "--width 1920 --height 1080"
+      ],
+      "history": [
+        {
+          "sha256": "03a37618f2b9a8fe3917d8daf384b15088270d2d47f72b7bfe3c97b5482144fb",
+          "verified": "2026-10-22",
+          "file": "supersystem/03a37618f2b9.html",
+          "note": "the template as the .github mirror held it at fc75233"
+        },
+        {
+          "sha256": "f03609a4c480c796efe627ca9dd2bc8de9cdcce291907719c3deb2b15eb24802",
+          "verified": "2026-10-22",
+          "file": "supersystem/f03609a4c480.html",
+          "note": "the template as the .github mirror held it at 96682a5"
+        },
+        {
+          "sha256": "d33c94efcf8ca0bfb5a1b2db3417682f55920d6210699f4419d34a2f85767db8",
+          "verified": "2026-10-22",
+          "file": "supersystem/d33c94efcf8c.html",
+          "note": "the template as the .github mirror held it at 8d75833"
+        },
+        {
+          "sha256": "d7ca6f1ca85534bc130ae76f961a044db506ff75aacd080c18f537124c380228",
+          "verified": "2026-10-22",
+          "file": "supersystem/d7ca6f1ca855.html",
+          "note": "the template as the .github mirror held it at ca81916"
+        },
+        {
+          "sha256": "c857a9ac62feeb4aa8f97055a4a6ccbecba75b006c35e3e49def136c847e54f8",
+          "verified": "2026-10-23",
+          "file": "supersystem/c857a9ac62fe.html",
+          "note": "the template as the .github mirror held it at bfe42d5"
+        },
+        {
+          "sha256": "ceb2a9360cc1eddf732edb2e6ac25910aaba4b2dbed6470a4e0169e275094fb4",
+          "verified": "2026-10-23",
+          "file": "supersystem/ceb2a9360cc1.html",
+          "note": "the template as the .github mirror held it at 5b08542"
+        },
+        {
+          "sha256": "348defb341c1cfb23a5af19f75ae9deaa3bc83a458a344db6cc3fa983cbdf003",
+          "verified": "2026-10-23",
+          "file": "supersystem/348defb341c1.html",
+          "note": "the template as the .github mirror held it at 9042177"
+        },
+        {
+          "sha256": "3844aa7f3603efd8b2c022fdb909a18ffbfd48eeaab9ecd06deca0baed02736e",
+          "verified": "2026-10-25",
+          "file": "supersystem/3844aa7f3603.html",
+          "note": "the template as the .github mirror held it at 936bb20"
+        },
+        {
+          "sha256": "bc67b4c30310e35fd21263f794f99d8d09d1387bf9591d68d97fcf0922880b64",
+          "verified": "2026-10-25",
+          "file": "supersystem/bc67b4c30310.html",
+          "note": "the template as the .github mirror held it at 72d07f0"
+        },
+        {
+          "sha256": "bbd3057f44c0e90050cdefabe482db458a77f38c6fc8d86d30fd71ab0cdd0b6b",
+          "verified": "2026-10-25",
+          "file": "supersystem/bbd3057f44c0.html",
+          "note": "the template as the .github mirror held it at a3de3ee"
+        },
+        {
+          "sha256": "4bfd92c464de925ad5fd22633048e0ac6ee61cf3cd52ec41472b0dc409000241",
+          "verified": "2026-10-25",
+          "file": "supersystem/4bfd92c464de.html",
+          "note": "the template as the .github mirror held it at 736845e"
+        },
+        {
+          "sha256": "1a1739eecb482f9cd58a76ea7bd296af7e7df43170562a05e0790d6a84deed7d",
+          "verified": "2026-10-25",
+          "file": "supersystem/1a1739eecb48.html",
+          "note": "the template as the .github mirror held it at e208988"
+        },
+        {
+          "sha256": "f9c135b6098dd29432e52c88a80e3fa26431e1ff953e1981b64e595bb5fe0d42",
+          "verified": "2026-10-25",
+          "file": "supersystem/f9c135b6098d.html",
+          "note": "the template as admin-team/dashboards-skill/25 left it"
+        },
+        {
+          "sha256": "94273edcff045760f57eee10ac0066a2eec3b8008f0859c8cd245599fcbeeb7c",
+          "verified": "2026-10-25",
+          "file": "supersystem/94273edcff04.html"
+        }
       ]
     }
   }

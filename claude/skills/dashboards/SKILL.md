@@ -29,9 +29,9 @@ Two sets, one presenter, one shared rulebook.
 | Path | What |
 |------|------|
 | `GUIDANCE.md` | The rules shared by both sets: colour coding, legends, planned/pending drawn dashed, themes, self-contained pages, facts, Context, divergence, checks. Read it first, every time. |
-| `system/RULES.md` | The system-board ruleset. `system/template/` (system and supersystem pages, registry, a page's `state.json`), `system/scripts/` (`check-page.js`, `embed.js`, `deviation.js`, `levelrefs.js`, `palette.js` (the shared system palette and the status-hue rule), `apply-state.js`, the data-only path of a state page, below, with `statelib.js`, and `cliargs.js`, the strict option parser every script uses: an unknown option exits 2 with the usage, `--help` prints it), `system/examples/webtools-udp/`. |
-| `verify/` | `verify-templates.js`, which verifies every template once (the full browser pass over the fixtures in `verify/fixtures/`) and records its hash in `verified.json`. Pages made from a verified template are checked only where they deviate (`GUIDANCE.md` §8). Run it after every template change. |
-| `plan/RULES.md` | The plan-board ruleset: the data model, the events that update a board, the WIP strip and its step panel, the live updates, the work board. `plan/template/` (issue page, `plan.json` skeleton, work board), `plan/scripts/` (`new.js`, `embed.js` (which also writes each page's live sidecar, `plan.js` or `board.js`), `check.js`, `board.js`, and `apply-event.js`, the fast path of a plan-board event, below), `plan/examples/38-handshake-empty-name/`. |
+| `system/RULES.md` | The system-board ruleset. `system/template/` (system and supersystem pages, registry, a page's `state.json`), `system/scripts/` (`check-page.js`, `embed.js`, `deviation.js`, `levelrefs.js`, `palette.js` (the shared system palette and the status-hue rule), `apply-state.js`, the data-only path of a state page, below, with `statelib.js`, `features.js` (the per-page feature probes every check runs, `GUIDANCE.md` §8), `splice.js` (brings a state page, or a board with a declared divergence, onto its current template, three ways; the landing refresh runs it), and `cliargs.js`, the strict option parser every script uses: an unknown option exits 2 with the usage, `--help` prints it), `system/examples/webtools-udp/`. |
+| `verify/` | `verify-templates.js`, which verifies every template once (the full browser pass over the fixtures in `verify/fixtures/`, and the case groups, `cases-26.js` among them) and records its hash in `verified.json`, with each verified version kept in `verify/history/` for the splice. Pages made from a verified template are checked only where they deviate (`GUIDANCE.md` §8). Run it after every template change. |
+| `plan/RULES.md` | The plan-board ruleset: the data model, the events that update a board, the WIP strip and its step panel, the live updates, the work board. `plan/template/` (issue page, `plan.json` skeleton, work board), `plan/scripts/` (`new.js`, `embed.js` (which also writes each page's live sidecar, `plan.js` or `board.js`), `check.js`, `board.js`, `mdcopy.js` (the rendered copies of the Markdown a board links, under the git-ignored `docs/plans/.live/docs/`), and `apply-event.js`, the fast path of a plan-board event, below; `new.js --batch` lays a tracking issue's unit boards), `plan/examples/38-handshake-empty-name/`. |
 
 ## The fast path of a plan-board event
 
@@ -60,7 +60,10 @@ parts the request names built or planned in the DSL and the registry (every page
 and checks every page it wrote without a browser pass (`check-page.js --auto --no-browser`), in well under a second on a repository
 like WebTools; nothing changes on a failure (exit 1). Its summary ends the job when it says `enrich: no`; with `enrich: yes` (and
 `why`) the presenter writes what only the code decides: the prose and figures at the new commit, what the pages say of a part now
-built, a page brought onto the template. What the script decides and what the presenter adds is in `system/RULES.md` §10.
+built, a page brought onto the template. Built or planned is the code's: a system (or a part with its own code paths) is built while one of its
+registry paths is present at the stamped commit, a supersystem once every core subsystem is; the facts decide only what has no code paths.
+What it writes on a feature branch rides the branch's next commit in that lane, not held for the landing. A page that lags its template is
+not refused: the summary asks the presenter to splice it. What the script decides and what the presenter adds is in `system/RULES.md` §10.
 
 ## Reading order for a job
 

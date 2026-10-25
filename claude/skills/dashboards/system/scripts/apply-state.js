@@ -15,7 +15,7 @@
 //                planned   or "<dsl path>:<element id>" (paths relative to docs/dashboards), or {dsl, id, tag} / {system}; a DSL element
 //                          marked built loses its Planned tag and takes `tag` when given; "planned" sets the Planned tag back
 //                version   {slug: version}, a version a system's build moved to
-//                title     the issue's slug for the "last amended by" chip (default: the folder's name less its number)
+//                title     the issue's slug for the "last amended by" note (in the Context section) (default: the folder's name less its number)
 //                landed    true for a state-pages request that restamps at a landing (as the landed event does)
 //                enrich    reasons the team already knows the presenter is needed for (passed through)
 // --worktree   the worktree the branch is checked out in; the pages are <worktree>/docs/dashboards/
@@ -24,7 +24,9 @@
 // --json       print the summary as one JSON object instead of key: value lines
 // What it does: stamps every touched system, its supersystem and the repository (registry entry and page) "<branch> @ <sha> · not yet
 // landed" (at a landing, "<ref> @ <merge>", for every entry stamped with the branch), with the issue as the last amendment; applies the
-// built and planned marks to systems.json and to the DSLs (the pages draw a part planned from its DSL element's Planned tag, or from its
+// built and planned marks to systems.json and to the DSLs — the code's first: a system, or a partPaths part, with a code path present at the
+// stamped commit is built, with none present planned; a supersystem once every core subsystem is (statelib.js codeStatus(), system/RULES.md
+// §7); the facts decide only what has no code paths — (the pages draw a part planned from its DSL element's Planned tag, or from its
 // system's registry status: nothing in a page is edited by hand); restamps each DSL's as-is line; re-embeds state.json, workspace.dsl and
 // systems.json into every page that carries them; runs check-page.js --auto --no-browser on every page it wrote. Reads git (HEAD, the
 // commit time) and never writes it. Every file is written through a temporary file and a rename, and on any failure every file it wrote
@@ -168,6 +170,27 @@ async function main() {
   };
   (Array.isArray(facts.built) ? facts.built : []).forEach(x => resolve(x, false));
   (Array.isArray(facts.planned) ? facts.planned : []).forEach(x => resolve(x, true));
+  /* Built or planned is the code's (system/RULES.md §7, §10): a system with code paths is built while one is present at the stamped commit,
+     a part with code paths of its own (partPaths) likewise; a supersystem is built once every core subsystem is. What the code decides
+     overrides a fact that says otherwise; facts.built and facts.planned decide only what has no code paths recorded. */
+  const code = L.codeStatus(reg, ROOT, shaFull), said = new Map(flips);
+  code.systems.forEach((d, slug) => { const e = bySlug(slug);
+    if (said.has(slug) && said.get(slug) !== d.status) S.notes.push(`${slug}: the facts say ${said.get(slug)}, the code says ${d.status} (${d.status === "built" ? "present: " + d.present.join(", ") : "none of " + d.missing.join(", ") + " is in the tree"}): the code decides`);
+    if (d.status !== e.status || said.has(slug)) addEntry(e, d.status === "planned");
+    if (d.status === "built" && d.missing.length) S.enrich.push(`${slug} is built, but its registry paths ${d.missing.join(", ")} are not in the tree: the presenter corrects its paths in systems.json`); });
+  code.parts.forEach(x => { if (!x.dsl) return; const was = elems.find(y => y.dsl === x.dsl && y.id === x.id);
+    if (was && was.planned !== x.planned) S.notes.push(`${x.dsl}:${x.id}: the facts say ${was.planned ? "planned" : "built"}, the code says ${x.planned ? "planned" : "built"}: the code decides`);
+    elems.push({ dsl: x.dsl, id: x.id, planned: x.planned, tag: null, why: "code" }); });
+  /* the supersystems, after their subsystems: built once every core subsystem is built (the flips above included) */
+  const after0 = s => flips.has(s) ? flips.get(s) : code.statusOf(s);
+  reg.systems.filter(e => e.kind === "supersystem").forEach(e => {
+    const kids = reg.systems.filter(c => c.parent === e.slug && c.kind !== "repo"), un = kids.filter(c => typeof c.core !== "boolean"), core = kids.filter(c => c.core === true);
+    const near = touched.has(e.slug) || kids.some(c => touched.has(c.slug) || flips.has(c.slug));
+    if (!kids.length) return;
+    if (un.length) { if (near) S.enrich.push(`${e.slug}: ${un.map(c => c.slug).join(", ")} ${un.length === 1 ? "is" : "are"} not classified core or optional: the presenter records "core" in systems.json from its architecture; its status is left ${e.status}`); return; }
+    if (!core.length) { if (near) S.enrich.push(`${e.slug}: none of its subsystems is core: its status is left ${e.status}`); return; }
+    const st = core.every(c => after0(c.slug) === "built") ? "built" : "planned";
+    if (st !== e.status) addEntry(e, st === "planned"); });
   flips.forEach((_, s) => touched.add(s));
   elems.forEach(x => { const o = dslOwner(x.dsl); if (!o) refuse(`${x.dsl} is no page's workspace.dsl in the registry`); touched.add(o.slug); });
   if (facts.version != null && (typeof facts.version !== "object" || Array.isArray(facts.version))) refuse("facts.version names a version per system: {\"<slug>\": \"<version>\"}");
@@ -239,6 +262,7 @@ async function main() {
           const el = L.dslElements(t).find(y => y.id === x.id);
           if (!el) { S.enrich.push(`${x.id} is not in ${e.dsl}: the presenter adds the part it names`); return; }
           const nt = L.setPlannedTag(t, x.id, x.planned, x.tag ? [x.tag] : []);
+          if (nt == null) return;
           if (nt !== t) { t = nt; S.applied.push(`${e.dsl}: ${x.id} ${x.planned ? "planned" : "built"}`);
             const now = L.dslElements(t).find(y => y.id === x.id), par = now.parent && L.dslElements(t).find(y => y.id === now.parent);
             if (!x.planned) {
@@ -262,7 +286,10 @@ async function main() {
 
   /* check-page.js without a browser on every page in scope, at once */
   const checker = path.join(__dirname, "check-page.js");
-  const cks = await Promise.all(pages.map(p => run(checker, [p, "--auto", "--no-browser"], ROOT)));
+  const cks = await Promise.all(pages.map(p => run(checker, [p, "--auto", "--no-browser", "--features-as-notes"], ROOT)));
+  /* a page that lags its template is no reason to refuse the stamp: its missing features are the presenter's, who splices it onto the
+     template at the landing refresh (system/scripts/splice.js) */
+  cks.forEach((c, i) => { const miss = (c.stdout.match(/^CHECK note: FEATURE MISSING: .*$/gm) || []).length; if (miss) S.enrich.push(`${path.relative(ROOT, pages[i]).split(path.sep).join("/")} lags its template (${miss} feature${miss === 1 ? "" : "s"} missing): the presenter splices it onto the template (system/scripts/splice.js) at the landing refresh`); });
   const bad = cks.map((c, i) => [c, pages[i]]).filter(([c]) => c.status !== 0);
   if (bad.length) { S.check = "FAIL: " + bad.map(([c, p]) => `${path.relative(ROOT, p).split(path.sep).join("/")}: ${(c.stdout.split(/\r?\n/).filter(l => /^CHECK .*[A-Z]{4,} [A-Z]{2,}|^FAIL/.test(l)).slice(0, 4).join(" | ")) || (c.stderr || "").trim().split(/\r?\n/)[0]}`).join(" ; "); throw new Error("check-page.js failed on a page it would write"); }
   const deferred = cks.map(c => (c.stdout.match(/browser pass deferred \(([^)]+)\)/) || [])[1]).filter(Boolean);

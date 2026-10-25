@@ -88,11 +88,11 @@ function readRequest(file) {
   try { return JSON.parse(m[1]); } catch (e) { refuse(`the request's json block does not parse: ${e.message}`); }
 }
 
-const ID = /^[a-z0-9][a-z0-9-]*$/, STEPS = ["sizing", "interview", "research", "architecture", "plan", "branch", "implementation", "qa", "remediation", "landing", "landed", "halted", "escalated", "cancelled"];
+const ID = /^[a-z0-9][a-z0-9-]*$/, STEPS = ["sizing", "interview", "research", "architecture", "sub-issues", "boards", "plan", "branch", "implementation", "qa", "remediation", "landing", "landed", "halted", "escalated", "cancelled"];
 const ROUTES = ["on-the-spot", "rookie-dev", "planner-then-rookie-dev"], SSTATES = ["done", "current", "todo"];
 /* The column a step's trail entry sits in. */
-const STEP_COLUMN = { sizing: "gap", interview: "gap", research: "gap", architecture: "considered", plan: "verdict", branch: "built", implementation: "built", qa: "built", remediation: "built", landing: "built", landed: "built", cancelled: "built" };
-const STEP_WORDS = { sizing: "sizing", interview: "the interview", research: "research", architecture: "the architecture", plan: "the plan", branch: "the branch", implementation: "implementation", qa: "qa", remediation: "remediation", landing: "the landing", landed: "landed" };
+const STEP_COLUMN = { "sub-issues": "considered", boards: "considered", sizing: "gap", interview: "gap", research: "gap", architecture: "considered", plan: "verdict", branch: "built", implementation: "built", qa: "built", remediation: "built", landing: "built", landed: "built", cancelled: "built" };
+const STEP_WORDS = { "sub-issues": "filing the units as sub-issues", boards: "creating the units' boards", sizing: "sizing", interview: "the interview", research: "research", architecture: "the architecture", plan: "the plan", branch: "the branch", implementation: "implementation", qa: "qa", remediation: "remediation", landing: "the landing", landed: "landed" };
 const ROUTE_WORDS = { "on-the-spot": "minor fixes on the spot, then landing with no new qa pass", "rookie-dev": "a remediation pass, then the next qa pass", "planner-then-rookie-dev": "a planner re-pass, then a remediation pass, then the next qa pass" };
 const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 const code = s => "`" + s + "`";
@@ -272,11 +272,43 @@ function applyEvent(orig, ev, facts, req, now) {
     case "architecture-signed-off": {
       if ((w.questions || []).length || w.research) applied.push("wip.questions and wip.research cleared");
       w.questions = []; w.research = null;
-      setStep("landing"); setGlow("landing");
+      /* a tracking board's own steps after its architecture: the units filed as sub-issues, then their boards, then the plan's landing */
+      const next = tracking ? "sub-issues" : "landing";
+      if (tracking) withUnitSteps(w, applied);
+      setStep(next); setGlow(next);
       if (tracking && rows.some(r => r.unit)) { const nx = lib.nextUnit(plan), id = nx ? nx.id : null; if (w.next !== id) { w.next = id; applied.push(`wip.next ${id}`); } }
       enrich.push("architecture-signed-off: the Considered column and, on a tracking board, the unit rows come from architecture.md");
-      detail = detail || "Architecture signed off; the plan lands next.";
+      detail = detail || (tracking ? "Architecture signed off; its units are filed as sub-issues next." : "Architecture signed off; the plan lands next.");
       trail = { column: "considered", label: "Architecture signed off", ref: docRef("architecture.md") };
+      break;
+    }
+    /* team-raised (plan/RULES.md §4): the units filed as sub-issues (facts.units [{unit: <row id>, issue: n}]), then their boards
+       created; each moves the step on once every unit row has its issue, then its board (the counts are read from the rows) */
+    case "sub-issues-filed": {
+      if (!tracking) refuse("sub-issues-filed is a tracking board's event");
+      (Array.isArray(facts.units) ? facts.units : []).forEach(x => { const id = x && (x.unit || x.row || x.id), n = x && x.issue;
+        const r = rows.find(y => y && y.id === id && y.unit); if (!r) { enrich.push(`sub-issues-filed names ${JSON.stringify(id)}, which is no unit row of the board`); return; }
+        if (!Number.isInteger(n) || n <= 0) { enrich.push(`sub-issues-filed gives ${id} no issue number`); return; }
+        if (r.unit.issue !== n) { r.unit.issue = n; applied.push(`${id}: unit.issue #${n}`); } });
+      const units = rows.filter(r => r && r.unit), filed = units.filter(r => Number.isInteger(r.unit.issue) && r.unit.issue > 0).length;
+      if (!units.length) enrich.push("sub-issues-filed: the board has no unit rows yet: the presenter writes them from architecture.md");
+      withUnitSteps(w, applied);
+      const next = units.length && filed === units.length ? "boards" : "sub-issues";
+      setStep(next); setGlow(next);
+      detail = detail || `${filed} of ${plural(units.length, "unit")} filed as sub-issues${next === "boards" ? "; their boards are created next" : ""}.`;
+      trail = { column: "considered", label: `${filed} of ${plural(units.length, "unit")} filed as sub-issues` };
+      break;
+    }
+    case "boards-created": {
+      if (!tracking) refuse("boards-created is a tracking board's event");
+      lib.linkSubIssueBoards(plan, DIR).forEach(x => applied.push(x));
+      const units = rows.filter(r => r && r.unit), made = units.filter(r => typeof r.unit.board === "string" && r.unit.board).length;
+      withUnitSteps(w, applied);
+      const next = units.length && made === units.length ? "landing" : "boards";
+      setStep(next); setGlow(next);
+      if (made < units.length) enrich.push(`${units.length - made} of the units' boards are not in the tree yet`);
+      detail = detail || `${made} of ${plural(units.length, "unit board")} created${next === "landing" ? "; the tracking plan lands next" : ""}.`;
+      trail = { column: "considered", label: `${made} of ${plural(units.length, "unit board")} created` };
       break;
     }
     case "plan-accepted": {
@@ -436,6 +468,13 @@ function applyEvent(orig, ev, facts, req, now) {
 
 /* wip.stages from facts.stages ([{id, name, state}]), each keeping the rows the board records for it (plan.md's stages, written by the
    presenter); at branch-cut a list with no states starts with the first current and the rest to do. */
+/* A tracking board's steps line with its two steps after the architecture (plan/RULES.md §3): inserted when a board written before them lacks them. */
+function withUnitSteps(w, applied) {
+  const st = Array.isArray(w.steps) ? w.steps.slice() : [];
+  if (!st.length || (st.includes("sub-issues") && st.includes("boards"))) return;
+  const at = st.indexOf("architecture"); if (at < 0) return;
+  st.splice(at + 1, 0, ...["sub-issues", "boards"].filter(s => !st.includes(s))); w.steps = st; applied.push("wip.steps: sub-issues and boards after the architecture");
+}
 function mergeStages(w, facts, applied, enrich, first) {
   const have = Array.isArray(w.stages) ? w.stages : [];
   if (!Array.isArray(facts.stages) || !facts.stages.length) {
@@ -643,6 +682,8 @@ async function main() {
       if (lv.status !== 0) throw new Error(`board.js --live failed: ${(lv.stderr || lv.stdout).trim().split(/\r?\n/).slice(-1)[0]}`);
       S.live = `regenerated ${path.relative(main, liveDir).split(path.sep).join("/")}/`;
     }
+    /* the rendered copies of the Markdown the board links (mdcopy.js): a cache of this machine, outside the atomic set */
+    try { const md = require("./mdcopy.js"), c = md.copyBoardDocs(R.plan, DIR); if (c.skipped) S.enrich.push(c.skipped); else if (c.wrote.length) S.wrote.push(`rendered copies: ${c.wrote.length}`); } catch (e) { S.enrich.push("the rendered Markdown copies failed: " + e.message); }
     S.result = "ok";
   }
 }

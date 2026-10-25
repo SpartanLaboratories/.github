@@ -40,6 +40,8 @@ This set ships, under `skills/dashboards/system/`:
 | `scripts/statelib.js` | The state, DSL and registry reading and editing `apply-state.js` writes through and `check-page.js` checks with (not a command). |
 | `scripts/check-page.js` | The browser checker for **every** dashboard page, system and plan alike (§9); `--auto` checks only what a page adds to its template; `--auto --no-browser` runs every check that needs no browser and names the pass it defers. |
 | `scripts/deviation.js` | How far a page deviates from its template (used by `--auto`; not a command). |
+| `scripts/features.js` | The per-page feature probes: one detector per template feature, its skill step and the page types it fits (`GUIDANCE.md` §8, "Features"; not a command). |
+| `scripts/splice.js` | Brings a state page onto its current template: the template's CSS, script before MODEL and renderer carried onto the page, three ways for a declared divergence, the page-filled lines and the page's own content kept, old chips relabelled, a missing state block added (§8). The landing refresh runs it. |
 | `scripts/palette.js` | The shared system palette (six slots, light and dark) and the status-hue rule that `check.js` and `check-page.js` apply (`GUIDANCE.md` §1; not a command). |
 | `../verify/verify-templates.js` | Verifies every template once with the fixtures in `../verify/fixtures/` and records its hash in `../verify/verified.json`; run it after any template change. |
 
@@ -85,8 +87,8 @@ facts.
 
 3. **`state.json` — the stamp.** `{slug, version, asIs {ref, sha, date, landed}, lastAmended {issue, title, sha}, written {sha}}`,
    beside the page and embedded verbatim (`node scripts/embed.js state.json index.html state`; `template/state.json` is its shape).
-   The header's version, as-is, last-amended and "written at" chips are drawn from it: the presenter writes those facts here and
-   never in the chips. `asIs` is the commit the page shows — the default branch's after a landing, or a feature branch's while that
+   The header's version, as-is and "written at" chips are drawn from it, and the last amendment's note in the Context section (the part
+   of the page above Context names no issue, `GUIDANCE.md` §5): the presenter writes those facts here and never in the HTML. `asIs` is the commit the page shows — the default branch's after a landing, or a feature branch's while that
    branch's work is shown on it, `landed: false`, which the chip reads "as-is at <branch> @ <sha> · not yet landed" (§10); the date
    is a date, or a UTC time the page shows in the viewer's zone. `lastAmended.title` is the issue's slug, the link to its plan board.
    `written.sha` is the commit at which the presenter last wrote the page's prose and figures (the function sentence, the KPI tiles,
@@ -105,6 +107,9 @@ facts.
   on a supersystem or repository page `data-part="sys:<slug>"`, and the renderer gives it the class `planned` while the data says so.
 - A planned DSL element names, before `Planned`, the tag it takes once built (`"Internal,Planned"`): marking it built removes
   `Planned`.
+- **Built or planned is the code's** (§7, §10): a system with code paths in the registry is built while one of them is present at the
+  stamped commit; a part with code paths of its own (its entry's `partPaths`) likewise; a supersystem once every core subsystem is.
+  `apply-state.js` writes what the code says, and `check-page.js` fails a page whose drawn status disagrees with it.
 - A literal `kind: "planned"` or `planned: true` still draws an item that no data stands for. `check-page.js` fails a `part` or
   `data-part` that names no element of the page's DSL and no system of its registry (`PART UNKNOWN`).
 
@@ -122,12 +127,17 @@ board). Hand-written HTML writes the number of a pair as a plain GitHub link and
 `<a data-board="N">title</a>`, and a lone `#n` as `<a data-issue="N">#N</a>`; `linkIssues()` resolves both
 at load and leaves a title plain text while its issue has no board. Nobody writes a board's path
 anywhere else on the page.
-The header names the ref and short SHA the page reflects and the issue that last amended the
-system, both drawn from `state.json` (above); every count on the page is counted. Each chip is a tag, its label then its value,
+**The work board** (`GUIDANCE.md` §5): the script's `WORK_BOARD` line, a page-filled line like `BOARDS`, names the committed work board
+relative to the page (`"committed"`, or `null` while `docs/plans/index.html` is not there; `check-page.js` fails a dead one) and the live
+view's marker (`"live"`, `docs/plans/.live/index.js`). A hand-written `<a data-workboard>` opens the live view when its marker loads, else
+the committed board, else stays plain text; the renderer adds a line for it to the Plans and documents card when the page has none.
+The header names the ref and short SHA the page reflects, drawn from `state.json` (above), and no issue: the last amendment is said in the
+Context section; every count on the page is counted. Each chip is a tag, its label then its value,
 `<span class="chip"><span class="ck">version</span> <b>2.0.0a</b></span>` (a bare value such as the platform gets its label,
 "platform"); the template's CSS shows the intro (crumbs, title, function) on the left half of a wide screen and the tags as cards in
 the right half beside it, and stacks them under 940 px (`GUIDANCE.md` §6, "The header"). A page written before the labels keeps its
-chips, which the same CSS lays out alike; the presenter adds the labels when it next writes the header. The header also carries the **theme switch**
+chips, which the same CSS lays out alike, until the splice (§8) relabels them where their content says what they are (a version, the
+as-is stamp, the C4 model, the systems count), removes an old "last amended by" chip and reports any other for the presenter to label. The header also carries the **theme switch**
 (`GUIDANCE.md` §1, Themes), a light/night toggle the template's renderer adds right of the
 breadcrumb; the presenter writes nothing for it. A system, supersystem or repository page has **no
 live indicator**: it shows the code at a named commit and has no run to follow (`plan/RULES.md` §3,
@@ -145,7 +155,7 @@ Threads the threads and processes across systems; Decision path a cross-system d
 which module a consumer picks; Sequence a cross-system interaction; Lifecycles the lifecycles
 that span systems, such as source to release.
 
-A tab's lede is one short line, and only for what its graphic and legend do not show (`GUIDANCE.md` §2):
+The tablist takes Left and Right, Home and End, with one tab in the Tab order (a roving tabindex). A tab's lede is one short line, and only for what its graphic and legend do not show (`GUIDANCE.md` §2):
 what to click, a fact the picture cannot carry. On a wide desktop the page uses most of the window
 (`GUIDANCE.md` §6): the inspector widens to 360 px, the Guarantees run five to a row, and a diagram
 drawn to a fixed aspect (Structure, the decision path, the sequence) grows to at most 1280 px wide; the
@@ -209,9 +219,11 @@ dashed = planned, a legend on every tab). The groupings the system templates use
   solid, a return message a thin solid line told by its open arrowhead, the C4 boundary frame a
   faint solid outline. A planned lifeline, message, relationship or element is dashed on every view,
   the C4 dynamic view's included. `check-page.js` fails any other dash (§9).
-- A planned system appears on supersystem and repository pages only, dashed and faded, naming
-  the issue that plans it, never with a page of its own; it gets a page when its implementing
-  issue lands.
+- A planned system appears on supersystem and repository pages only, dashed and faded, never with a page of its own; it names no issue
+  above the Context section: its Systems card links its plan board by name ("its plan") where one exists, and the issue that plans it is
+  on the Context's roadmap. It gets a page when its implementing issue lands.
+- A supersystem's subsystems are marked **core** (the greater system cannot exist without it) or **optional** on the Systems tab, with
+  their legend entries, as the registry's `core` says (§7); one not classified yet says so.
 
 ## 5. Guarantees
 
@@ -239,7 +251,8 @@ its build. The seven standard ones:
 - **On your classpath** — the `api` dependencies a consumer inherits.
 
 Add a bubble where the system has another guarantee worth stating. A fact that cannot be
-established is said in the bubble as a gap (`.gap`). On repository and supersystem pages each
+established is said in the bubble as a gap (`.gap`). Under the bubbles stands the Guarantees' legend, generated from what they draw (the
+system swatches, a planned row dashed, a gap, the test-level bars' one neutral series, a tier badge): nothing hand-written. On repository and supersystem pages each
 bubble covers every system, one row each (`.gtbl`, the system's swatch first); a planned system's
 row is tied to it (`data-part="sys:<slug>"`), dashed while the registry says planned, and says only that nothing is built yet.
 
@@ -248,10 +261,12 @@ row is tied to it (`data-part="sys:<slug>"`), dashed while the registry says pla
 `GUIDANCE.md` §5 sets the section (headed exactly **Context**). On system boards its cards are:
 
 - **Roadmap** — each roadmap item with the issues mapped to it, each issue with its number,
-  title and state (an issue closed as not planned, `gh issue view <n> --json state,stateReason` `NOT_PLANNED`, reads
-  "closed · not planned", and one closed as a duplicate, `stateReason` `DUPLICATE`, "closed · duplicate", never done or landed, as on the work board, `plan/RULES.md` §5), never its work level (`GUIDANCE.md` §4); the number opens the GitHub issue and
+  title and state, open or closed (the tracker's reason for a closed issue is the plan boards' and the work board's: a type divergence,
+  `GUIDANCE.md` §7), never its work level (`GUIDANCE.md` §4); the number opens the GitHub issue and
   the title the issue's plan board where one exists (`GUIDANCE.md` §5; the title written
-  `<a data-board="N">`, §2 "Board links"). The header's "last amended by" chip is the same pair. A roadmap item is a tracking issue with its sub-issues,
+  `<a data-board="N">`, §2 "Board links"); no GitHub ↗. A tracking issue shows its chain, written `<span class="chainprog"
+  data-landed="n" data-total="m"></span>` (the renderer draws "chain n of m landed" and its bar), from its tracking board. The last
+  amendment, drawn from `state.json`, opens the section as the same pair ("last amended by #n title"). A roadmap item is a tracking issue with its sub-issues,
   or an entry in a roadmap document the repository keeps, with the issues it names. On a system
   page, list the items that claim an issue touching the system, those issues under them, and how
   many of the item's issues touch other systems.
@@ -259,19 +274,30 @@ row is tied to it (`data-part="sys:<slug>"`), dashed while the registry says pla
   those touching the system).
 - **Plans and documents** — the plans that shaped the system and its reference documents. The
   plan boards (`docs/plans/<issue>-<slug>/dashboard.html`) that amended the system are linked
-  here; the repository page also links the work board, `docs/plans/index.html`.
+  here, and the work board (`<a data-workboard>`, live first, §2).
 
-Date both issue lists.
+Date both issue lists. A bug badge is neutral, told by its ▲ and its word. Under the cards stands the Context's legend, generated
+from what they draw (the system badges, the issue's state, the bug badge, a planned badge, the chain bar).
 
 ## 7. The registry
 
 `systems.json` lists every system and supersystem: `slug`, `name`, `kind`
 (`system` | `supersystem` | `repo`), `parent`, `status` (`built` | `planned`), `function`, `paths`,
-`version`, `asIs {ref, sha, date, landed}` (`landed: false` while the stamp is a feature branch's, §10; absent once it is the default
+`version`, `core` (on a subsystem of a supersystem: `true` where the greater system cannot exist without it, `false` where it is
+optional or additive; from the parent's architecture, its decomposition, recorded by the presenter at `architecture-signed-off` or the
+landing refresh; never guessed), `partPaths` (`{"<element id>": ["<code path>", …]}`: a part of the system's page with code paths of its
+own), `asIs {ref, sha, date, landed}` (`landed: false` while the stamp is a feature branch's, §10; absent once it is the default
 branch's), `lastAmended {issue, sha}`, `page`, `dsl`, and for a planned system `plannedBy {issue, architecture}` (and `units`, each
 with its `subIssue`) and `c4`, a map from each DSL that draws it (its path under `docs/dashboards/`) to its element there,
 `{"workspace.dsl": "repo.gamma"}`, which `apply-state.js` marks with it. The supersystem and repository pages embed a verbatim
-copy (`node scripts/embed.js systems.json index.html systems`). Its order sets the colour slots
+copy (`node scripts/embed.js systems.json index.html systems`).
+
+**Status is the code's.** A system's `status` is derived from the system itself: built while one of its `paths` (relative to the
+repository root) is present in the tree at the stamped commit, planned while none is; a system with no `paths` keeps the status it has
+(a planned system's paths are recorded when its architecture names them). A `partPaths` element is built, and loses its `Planned` tag,
+the same way. A **supersystem** is built when every one of its **core** subsystems is built, planned otherwise; its optional ones do not
+count; while a subsystem is not classified (`core` unset), or none is core, the code decides nothing for it and `apply-state.js` asks the
+presenter (`enrich: yes`). There is no partly built state: its page draws each subsystem solid or dashed by that subsystem's own status. Its order sets the colour slots
 for both sets of pages: reordering it recolours every system page and every plan board, so
 append rather than reorder.
 
@@ -281,7 +307,9 @@ append rather than reorder.
    When the system is genuinely unclear, stop: `BLOCKED — system unresolved`, with the
    candidates.
 2. Copy `template/system.html` to `docs/dashboards/<slug>/index.html` (or start from the
-   repository's `_template/`, or the existing page on an update) and write `workspace.dsl`.
+   repository's `_template/`, or the existing page on an update) and write `workspace.dsl`. An existing page is first brought onto the
+   current template with `node scripts/splice.js <page>` (the landing refresh does it for every state page it touches, and the
+   repository and supersystem pages): read its report, settle any conflict it names, fill any new page-filled line it names.
    **Go off the template** (`GUIDANCE.md` §3): change only what the facts require — the DSL, the
    `MODEL`, the hand-written panels, the header — and leave the template's CSS, tab set and
    renderer script as they are. Anything beyond that (an optional tab, a removed core tab, a
@@ -367,7 +395,13 @@ board links and the git-ignore check, and names the browser pass the page would 
 
 **No dead board link.** On a system, supersystem or repository page, `check-page.js` reads the `BOARDS`
 map and fails (`DEAD BOARD LINK`) an entry whose file does not exist relative to the page, and
-(`BOARDS UNREADABLE`) a map that is not plain JSON. A page with no `BOARDS` line (a template older than
+(`BOARDS UNREADABLE`) a map that is not plain JSON. The same holds for `WORK_BOARD`'s committed board and for every relative `href` of the
+page's HTML, when the page sits in a repository's `docs/` (`DEAD LINK`).
+
+**Features and the code.** Every pass, `--auto --no-browser` included, fails a template feature the page lacks (`FEATURE MISSING`,
+`GUIDANCE.md` §8; `--features-as-notes`, which `apply-state.js` passes, prints them as notes instead) and a status the code contradicts
+(`STATUS DISAGREES WITH CODE`: a system or a `partPaths` part against its code paths at the page's stamped commit, a supersystem against
+its core subsystems), and warns on a supersystem's subsystem not classified core or optional (`SUBSYSTEM UNCLASSIFIED`). A page with no `BOARDS` line (a template older than
 the rule) gets a note; re-render it from the template.
 
 **No git-ignored system folder.** On a system, supersystem or repository page, `check-page.js`
@@ -410,11 +444,19 @@ in. It reads `issue`, `branch` and `folder` from the request and these facts, ev
 | `systems` | the registry slugs the branch touches; by default the issue board's `systems` (`<folder>/plan.json`). A slug the registry does not list stops it: `BLOCKED — system unresolved`, nothing written |
 | `sha` | the commit the pages now show (default: the worktree's HEAD); at a landing `merge` (or `sha`), the merge commit |
 | `ref` | at a landing, the default branch the merge is on (required there) |
-| `built`, `planned` | what the stage built (or, rarely, set back to planned): a registry slug; `"#<issue>"`, every system that issue alone plans (`plannedBy.issue`, or every unit's `subIssue`); `"<dsl path>:<element id>"` (paths under `docs/dashboards/`), or `{dsl, id, tag}` to give a component its built tag. A system marked takes its `c4` elements with it (§7) |
+| `built`, `planned` | only for what has no code paths recorded (the code decides the rest, below): what the stage built (or, rarely, set back to planned): a registry slug; `"#<issue>"`, every system that issue alone plans (`plannedBy.issue`, or every unit's `subIssue`); `"<dsl path>:<element id>"` (paths under `docs/dashboards/`), or `{dsl, id, tag}` to give a component its built tag. A system marked takes its `c4` elements with it (§7) |
 | `version` | `{"<slug>": "<version>"}`, a version a system's build moved to |
-| `title` | the issue's slug for the "last amended by" chip (default: the folder's name less its number) |
+| `title` | the issue's slug for the "last amended by" note (in the Context section) (default: the folder's name less its number) |
 | `landed` | `true` on a `state-pages` request that restamps a landing, as the `landed` event does |
 | `enrich` | reasons the team already knows need the presenter, passed through |
+
+**Built or planned, from the code.** At every request it reads the registry's code paths at the stamped commit (git's tree at that commit,
+or the files on disk outside a git work tree): a system with a path present is built, with none present planned, whatever the facts say
+(a fact the code contradicts is noted); a `partPaths` part likewise; then each supersystem, built once every core subsystem is. A system
+whose status changes is touched and stamped. An unclassified subsystem leaves its supersystem's status and asks the presenter.
+
+**Branch state pages ride the next commit** in that lane: what `apply-state.js` writes on a feature branch is committed with the
+branch's next commit (the pipeline's or the board's), not held for the landing; the landing restamps it to the merge.
 
 At a landing it restamps every entry the branch stamped (`asIs.ref` the branch, `landed: false`) and every page of them. An event
 that moves no code (any plan-board event but `implementation-stage` and `landed`) is skipped, and a repository with no

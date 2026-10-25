@@ -31,7 +31,7 @@ workspace "WebTools" "Spartan Laboratories' Kotlin/JVM networking and web toolki
                 timing      = component "Timing rules" "KeepAlive, Liveness and HandshakeProtocol — pure timing and parsing rules." "internal" "Internal"
 
                 // ---- planned, not built ----
-                core        = component "Protocol core" "Issue #50: a multiplatform protocol core and a datagram-transport seam for a future web client. Proposed, not built." "proposed" "Planned"
+                core        = component "Protocol core" "A multiplatform protocol core and a datagram-transport seam for a future web client. Proposed, not built." "proposed" "Planned"
             }
         }
 

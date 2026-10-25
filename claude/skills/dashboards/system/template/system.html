@@ -79,8 +79,6 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .kpi .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
 .kpi .v{font-size:22px;font-weight:700;letter-spacing:-.01em;margin-top:2px;font-variant-numeric:tabular-nums}
 .kpi .s{font-size:12px;color:var(--ink-2);margin-top:2px}
-.kpi .seg-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;gap:2px;margin-top:8px}
-.kpi .seg-bar i{display:block;height:100%}
 
 /* tabs + stage */
 .tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow-x:auto;overflow-y:hidden}
@@ -352,8 +350,19 @@ pre.dsl .c{color:var(--muted)} pre.dsl .k{color:var(--server);font-weight:600} p
 .issues a{font-family:var(--mono);text-decoration:none;color:var(--ink-2)}
 .issues a:hover{color:var(--ink)}
 .badge{font:10px/1 var(--mono);padding:3px 6px;border-radius:3px;border:1px solid var(--line);white-space:nowrap;color:var(--ink-2)}
-.badge.bug{border-color:var(--serious)}
-.badge.bug::before{content:"▲ ";color:var(--serious)}
+/* a bug is a label, not an outcome: neutral, told by its ▲ and its word (no status colour, GUIDANCE.md §1) */
+.badge.bug::before{content:"▲ ";color:var(--ink-2)}
+/* a tracking issue's chain on the roadmap (GUIDANCE.md §5): units landed of all units, with a thin green bar */
+.chainprog{display:inline-flex;align-items:center;gap:6px;font:11px var(--mono);color:var(--ink-2);white-space:nowrap}
+.cbar{display:inline-block;width:60px;height:5px;border-radius:3px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;vertical-align:middle}
+.cbar i{display:block;height:100%;background:var(--good)}
+.key .cbar{width:40px}
+.key i.swk{width:10px;height:10px;border:0;border-radius:2px;background:var(--c,var(--muted))}
+.key i.barsk{height:6px;border:0;border-radius:0 3px 3px 0;background:var(--ink-2)}
+.key i.gapk{border:0;background:none;width:auto;height:auto;font-style:italic;color:var(--muted)}
+.key .badge{align-self:center}
+/* the Guarantees' and the Context's legends (GUIDANCE.md §2), generated from what each section draws */
+.guarantees>.key,.context>.key{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-top:10px}
 .badge.planned{border-style:dashed}
 .badge.closed{color:var(--muted)}
 .tags{display:inline-flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
@@ -381,6 +390,10 @@ pre.dsl .c{color:var(--muted)} pre.dsl .k{color:var(--server);font-weight:600} p
 .docs li{padding:4px 0;border-top:1px solid var(--hair)}
 .docs a{text-decoration:none;border-bottom:1px solid var(--line)}
 .docs a:hover{border-bottom-color:var(--ink)}
+/* the last amendment, said in the Context section (an issue: the part above Context names none) */
+.context .amended{font-size:12.5px;color:var(--ink-2);margin:-4px 0 10px;overflow-wrap:anywhere}
+.context .amended .ck{font:700 10px/1.2 var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+.context .amended a{text-decoration:none;border-bottom:1px solid var(--line)}
 footer{margin-top:28px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
 footer code{color:var(--ink-2)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -399,13 +412,12 @@ footer code{color:var(--ink-2)}
     <!-- presenter: the version, the as-is stamp, the last amendment and the "written at" mark are drawn from state.json (the state block
          below; system/RULES.md §2): write them there, never here. The as-is stamp reads "<ref> @ <sha> · <date>", or "<branch> @ <sha> ·
          not yet landed" on a feature branch; a date is shown as written, a UTC time (2026-10-23T01:55:00Z) in the viewer's local time
-         (GUIDANCE.md §6, "Times"). The last amendment's number opens the GitHub issue, its title the issue's plan board (BOARDS in the
-         script; GUIDANCE.md §5). "written at" shows only while the panels were written at another commit than the stamp names. Every
+         (GUIDANCE.md §6, "Times"). The last amendment is an issue: the renderer says it in the Context section, never here (the
+         part of the page above Context names no issue; system/RULES.md §2). "written at" shows only while the panels were written at another commit than the stamp names. Every
          other chip is hand-written, its label then its value. -->
     <span class="chip" id="chip-version" hidden></span>
     <span class="chip"><span class="ck">platform</span> <b>Kotlin/JVM</b></span>
     <span class="chip" id="chip-asis" hidden></span>
-    <span class="chip" id="chip-amended" hidden></span>
     <span class="chip" id="chip-written" hidden></span>
     <span class="chip model"><span class="ck">C4 model</span> <b>workspace.dsl</b> · <span id="dsl-stats">…</span></span>
   </div>
@@ -584,7 +596,7 @@ footer code{color:var(--ink-2)}
            Number and title are two links (GUIDANCE.md §5): the number opens the GitHub issue, the title, written
            <a data-board="N">, opens the issue's plan board and stays plain text while it has none (BOARDS in the script). -->
       <ol class="roadmap">
-        <li><div class="ri"><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span><a data-board="N">Roadmap item title</a> <small>tracking issue</small></span><span class="tags"><span class="badge">open</span></span></div>
+        <li><div class="ri"><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span><a data-board="N">Roadmap item title</a> <small>tracking issue</small> <span class="chainprog" data-landed="1" data-total="3"></span></span><span class="tags"><span class="badge">open</span></span></div>
           <ul class="issues">
             <li><a href="https://github.com/ORG/REPO/issues/M" target="_blank" rel="noopener">#M</a><span><a data-board="M">Issue mapped to the item</a></span><span class="tags"><span class="badge">open</span></span></li>
           </ul>
@@ -592,7 +604,8 @@ footer code{color:var(--ink-2)}
       </ol></div>
     <div class="card"><h3>Unscheduled issues <small>n open · YYYY-MM-DD</small></h3>
       <!-- presenter: only the open issues touching this system that no roadmap item claims (the open issues from gh issue list,
-           minus every issue the Roadmap card lists); badges: bug (status colour), planned (dashed) and the type; never a work level (GUIDANCE.md §4) -->
+           minus every issue the Roadmap card lists); badges: bug (neutral, with its ▲), planned (dashed) and the type; an issue's state reads open or closed, never the tracker's reason
+           (a type divergence: system/RULES.md §6); never a work level (GUIDANCE.md §4) -->
       <ul class="issues">
         <li><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span><a data-board="N">Issue title</a></span><span class="tags"><span class="badge bug">bug</span></span></li>
       </ul></div>
@@ -602,6 +615,10 @@ footer code{color:var(--ink-2)}
         <li><code>workspace.dsl</code> — the C4 model beside this page; the C4 tab is rendered from it</li>
         <!-- presenter: a lone #n, written <a data-issue="N">#N</a>, opens the issue's plan board when it has one, else the GitHub issue -->
         <li>Plans that shaped the system: <a data-issue="N">#N</a> …</li>
+        <!-- presenter: the work board, written <a data-workboard>, opens the live view on this machine when there is one, else the committed board
+             (WORK_BOARD in the script), else stays plain text; the renderer adds this line when the page has none. A tracking issue's chain on the
+             roadmap is written <span class="chainprog" data-landed="n" data-total="m"></span> -->
+        <li><a data-workboard>Work board</a> — every planning and development run in the repository</li>
       </ul></div>
   </div>
 </section>
@@ -639,7 +656,7 @@ workspace "REPO" "One sentence on the repository." {
                 // ---- internals ----
                 core   = component "CoreEngine" "Does the work behind the facade." "internal class" "Internal"
                 // ---- planned, not built (drawn dashed and faded; only Planned is dashed) ----
-                // next = component "Planned part" "Issue #N: …" "proposed" "Internal,Planned"   (the tag it takes once built, then Planned)
+                // next = component "Planned part" "What it will do, once built." "proposed" "Internal,Planned"   (the tag it takes once built, then Planned)
             }
         }
         user -> repo.sys.facade "Calls"
@@ -708,6 +725,24 @@ const flink=f=>`<a href="${SRC}${f}" target="_blank" rel="noopener">${f}</a>`;
    the hand-written ones at load. */
 const BOARDS={}; // presenter: issue number → its plan board relative to this page, on this one line, e.g. {"38":"../../plans/38-slug/dashboard.html"}
 const boardOf=n=>Object.prototype.hasOwnProperty.call(BOARDS,String(n))?BOARDS[String(n)]:null;
+/* The work board (GUIDANCE.md §5; system/RULES.md §6): "committed" is docs/plans/index.html relative to this page when that file exists
+   (else null: no link to a file that is not there; check-page.js fails a committed path that is missing), and "live" the live view's
+   marker, docs/plans/.live/index.js, which board.js --live writes in each checkout. A link to the work board opens the live view when
+   its marker loads (the board on this machine), else the committed one, else stays plain text: the hand-written
+   <a data-workboard>work board</a>, and the Plans card's line the renderer adds when the page has none. */
+const WORK_BOARD={"committed":null,"live":"../../plans/.live/index.js"}; // presenter: the work board relative to this page, on this one line: {"committed": "../../plans/index.html" or null, "live": "../../plans/.live/index.js"}
+/* A live marker (plan/RULES.md §5): a script in the git-ignored docs/plans/.live/ that sets one key of window.DASHBOARDS_LIVE; cb gets
+   its value, or null when the marker is not there (a published copy, another clone, no live view on this machine). */
+function liveMark(src,key,cb){ if(!src){ cb(null); return; } const sc=document.createElement("script"); sc.src=src+(src.includes("?")?"&":"?")+"t="+Date.now();
+  sc.onload=()=>{ const v=(window.DASHBOARDS_LIVE||{})[key]; sc.remove(); cb(v==null?null:v); }; sc.onerror=()=>{ sc.remove(); cb(null); }; document.head.appendChild(sc); }
+const relTo=(base,href)=>/^[a-z][a-z0-9+.-]*:/i.test(href)||href.startsWith("/")?href:base.replace(/[^/]*$/,"")+href;
+function linkWorkBoard(){ const W=WORK_BOARD&&typeof WORK_BOARD==="object"?WORK_BOARD:{};
+  const docs=[...document.querySelectorAll("section.context .docs")].pop();
+  if(docs&&!document.querySelector("a[data-workboard]")){ const li=document.createElement("li"); li.innerHTML='<a data-workboard>Work board</a> — every planning and development run in the repository'; docs.appendChild(li); }
+  const set=href=>document.querySelectorAll("a[data-workboard]").forEach(a=>{ if(href) a.href=href; else a.removeAttribute("href"); a.title=href&&href===W.committed?"The committed work board, as of the last landing":href?"The live work board on this machine":"No work board in this checkout"; });
+  set(W.committed||null);
+  liveMark(W.live,"board",b=>{ if(b) set(relTo(W.live,b)); }); }
+window.addEventListener("DOMContentLoaded",()=>linkWorkBoard());
 /* The page's state (system/RULES.md §2): a verbatim copy of state.json, its stamp, version and last amendment, which apply-state.js
    restamps on a feature branch and at the landing; renderState() draws the header's chips from it. */
 const STATE=(()=>{ try{ return JSON.parse(document.getElementById("state").textContent)||{}; }catch(e){ return {}; } })();
@@ -735,27 +770,28 @@ const MODEL = {
   c4:{sys:"repo.sys.facade",core:"repo.sys.core"},
   structure: {
     // Lane captions: [text, x, y, anchor]. The map is a 1000×612 viewBox; place nodes by hand — nesting is ownership.
+    // band: [x, y, w, h], an optional neutral band drawn behind a lane (e.g. the wire between two sides); leave it out for none.
     lanes:[["SYSTEM",40,44,"start"]],
     // Free-text notes drawn on the map: {x, y, lines:[...]}.
     notes:[],
     // Nodes: side = server | client | wire (hue); vis = pub | int (fill vs outline); container = a box others sit inside;
     // chip = a small pill (wire tags); kind = "standalone" for a dotted box outside the stack. A box the code does not have yet is
     // drawn dashed and faded while the DSL element MODEL.c4 maps it to (or its own part:"<element id>") carries the Planned tag, so
-    // apply-state.js marks it built in workspace.dsl alone; kind "planned" only for a box tied to no element. Name the issue that
-    // plans it in d.issues.
-    // d = what the inspector shows: role, vis, files (relative to the source root link below), threads (keys of MODEL.threads), issues.
+    // apply-state.js marks it built in workspace.dsl alone; kind "planned" only for a box tied to no element.
+    // d = what the inspector shows: role, vis, files (relative to the source root link below), threads (keys of MODEL.threads). No issue
+    // numbers: the part of the page above Context is as-is (system/RULES.md §2); the issues that plan a part are in the Context section.
     nodes:[
       {id:"sys",side:"server",vis:"pub",container:true,x:40,y:56,w:600,h:220,t:"SystemFacade",s:"public entry point · what it owns",
-        d:{role:"What this type is for and what it owns.",vis:"public · class",files:["SystemFacade.kt"],threads:["main-worker"],issues:[]}},
+        d:{role:"What this type is for and what it owns.",vis:"public · class",files:["SystemFacade.kt"],threads:["main-worker"]}},
       {id:"core",side:"server",vis:"int",x:60,y:110,w:200,h:50,t:"CoreEngine",s:"internal · does the work",
         d:{role:"What this internal type does.",vis:"internal",files:["CoreEngine.kt"],threads:["main-worker"]}}
     ]
   },
   // Threads: keyed by name; side = server | client | wire (the owning side's hue, as on Structure); kind (default "thread"; e.g.
   // "process" or "build service"); daemon:false for one that is not a daemon thread (the inspector says DAEMON otherwise); created, runs, sends (what it
-  // puts on the wire), note, issues, part (a DSL element id: the thread is drawn planned while that element is Planned).
+  // puts on the wire), note, part (a DSL element id: the thread is drawn planned while that element is Planned); no issue numbers.
   threads:{
-    "main-worker":{side:"server",created:"eagerly, at construction",runs:"what runs on this thread.",sends:[],note:"",issues:[]}
+    "main-worker":{side:"server",created:"eagerly, at construction",runs:"what runs on this thread.",sends:[],note:""}
   },
   // Decision paths: one or more variants, each with its own controls, nodes on a column/row grid, edges with labels, and
   // rules(state) → {path:[node ids], outcome, irrelevant:[control keys that do not matter for this outcome]}.
@@ -1058,7 +1094,8 @@ function openC4(elementId){ show("t-c4"); const vi=C4.views.findIndex(v=>v.type=
 /* ---------- Structure ---------- */
 function renderStructure(){
   const svg=$("#svg-structure"); if(svg.dataset.done) return; svg.dataset.done="1";
-  mk("rect",{x:430,y:48,width:140,height:400,rx:6,class:"band"},svg);
+  /* a neutral band behind a lane (the wire between two sides, say), only where MODEL.structure.band asks for one: [x, y, w, h] */
+  const band=MODEL.structure.band; if(Array.isArray(band)&&band.length===4) mk("rect",{x:band[0],y:band[1],width:band[2],height:band[3],rx:6,class:"band"},svg);
   MODEL.structure.lanes.forEach(([l,x,y,a])=>txt(svg,x,y,l,"lane",a));
   MODEL.structure.nodes.forEach(n=>{
     const pl=isPlanned(n)||dslPlanned(MODEL.c4[n.id]);
@@ -1081,7 +1118,6 @@ function selectNode(id){
   let html=`<div class="kicker">${n.chip?"DATAGRAM TAG":"COMPONENT"} · ${sideName.toUpperCase()}</div><div class="name">${esc(n.t)}</div><div class="vis">${esc(d.vis||"")}</div><p>${esc(d.role||"")}</p><dl>`;
   if(d.files&&d.files.length) html+=`<dt>Source</dt><dd>${d.files.map(flink).join("<br>")}</dd>`;
   if(d.threads&&d.threads.length) html+=`<dt>Runs on</dt><dd>${d.threads.map(t=>`<span class="tchip ${MODEL.threads[t].side}">${t}</span>`).join("")}</dd>`;
-  if(d.issues&&d.issues.length) html+=`<dt>Open issues</dt><dd>${d.issues.map(ilink).join(" · ")}</dd>`;
   const c4id=MODEL.c4[id]; if(c4id&&el(c4id)){ const e=el(c4id); html+=`<dt>In the C4 model</dt><dd><button class="linkbtn" data-c4="${c4id}">${esc(e.name)} · ${e.tags.slice(2).map(esc).join(", ")||"component"} → open</button></dd>`; }
   inspect(html+"</dl>");
   const b=$("#insp-body .linkbtn[data-c4]"); if(b) b.addEventListener("click",()=>openC4(b.dataset.c4));
@@ -1094,7 +1130,6 @@ function selectThread(id){
   let html=`<div class="kicker">${esc((t.kind||"thread").toUpperCase())} · ${esc(((MODEL.sides||{})[t.side]||t.side).toUpperCase())}${t.daemon===false?"":" · DAEMON"}</div><div class="name">${id}</div><div class="vis">created ${esc(t.created)}</div><p>${esc(t.runs)}</p><dl>`;
   if(t.sends.length) html+=`<dt>Puts on the wire</dt><dd>${t.sends.map(esc).join("<br>")}</dd>`;
   if(t.note) html+=`<dt>Note</dt><dd>${esc(t.note)}</dd>`;
-  if(t.issues&&t.issues.length) html+=`<dt>Open issues</dt><dd>${t.issues.map(ilink).join(" · ")}</dd>`;
   inspect(html+"</dl>");
 }
 document.querySelectorAll(".thread").forEach(x=>{ x.addEventListener("click",()=>selectThread(x.dataset.t)); x.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); selectThread(x.dataset.t); } }); });
@@ -1192,25 +1227,56 @@ $("#seq-prev").addEventListener("click",()=>gotoStep(seq.cur-1));
 $("#seq-next").addEventListener("click",()=>gotoStep(seq.cur+1));
 $("#seq-play").addEventListener("click",e=>{ const b=e.currentTarget; if(seq.timer){ clearInterval(seq.timer); seq.timer=null; b.textContent="play"; b.setAttribute("aria-pressed","false"); } else { seq.timer=setInterval(()=>gotoStep(seq.cur+1),1600); b.textContent="pause"; b.setAttribute("aria-pressed","true"); } });
 
-/* ---------- The header's stamps (state.json) ----------
-   The version, the as-is stamp ("<ref> @ <sha> · <date>", or "<branch> @ <sha> · not yet landed" while the page shows a feature branch),
-   the last amendment (its number opens the GitHub issue, its title the plan board: linkIssues() resolves it at load) and, while the
-   panels were written at another commit than the stamp names, "written at <sha>". A chip with nothing to say is removed. */
+/* ---------- The stamps (state.json) ----------
+   The header's chips: the version (a system page), the as-is stamp ("<ref> @ <sha> · <date>", or "<branch> @ <sha> · not yet landed" while
+   the page shows a feature branch) and, while the panels were written at another commit than the stamp names, "written at <sha>". A chip
+   with nothing to say is removed. The last amendment names an issue, so it is said in the Context section, never in the header: the page
+   above Context is as-is and names no issue (system/RULES.md §2, §6); its number opens the GitHub issue, its title the plan board
+   (linkIssues() resolves it at load). A header chip for it left by an older template is removed. */
 function renderState(){
   const S=STATE||{}, a=S.asIs||{}, la=S.lastAmended||{}, w=S.written||{};
   const set=(id,html)=>{ const e=document.getElementById(id); if(!e) return; if(!html){ e.remove(); return; } e.hidden=false; e.innerHTML=html; };
   set("chip-version",S.version?`<span class="ck">version</span> <b>${esc(S.version)}</b>`:"");
   set("chip-asis",a.sha?`<span class="ck">as-is at</span> <b>${esc(a.ref||"?")} @ ${esc(a.sha)}</b> · ${a.landed===false?"not yet landed":when(a.date)}`:"");
-  set("chip-amended",Number.isInteger(la.issue)&&la.issue>0?`<span class="ck">last amended by</span> <a href="${ghIssue(la.issue)}" target="_blank" rel="noopener"><b>#${la.issue}</b></a>${la.title?` <a data-board="${la.issue}">${esc(la.title)}</a>`:""}${la.sha?` · ${esc(la.sha)}`:""}`:"");
   set("chip-written",w.sha&&a.sha&&w.sha!==a.sha?`<span class="ck">written at</span> <b>${esc(w.sha)}</b>`:"");
+  const old=document.getElementById("chip-amended"); if(old) old.remove();
+  const ctx=document.querySelector("section.context"); let p=document.getElementById("ctx-amended");
+  if(!p&&ctx){ p=document.createElement("p"); p.className="amended"; p.id="ctx-amended"; const h2=ctx.querySelector(":scope>h2"); if(h2) h2.after(p); else ctx.prepend(p); }
+  if(p){ if(Number.isInteger(la.issue)&&la.issue>0){ p.hidden=false; p.innerHTML=`<span class="ck">last amended by</span> <a href="${ghIssue(la.issue)}" target="_blank" rel="noopener">#${la.issue}</a>${la.title?` <a data-board="${la.issue}">${esc(la.title)}</a>`:""}${la.sha?` · <code>${esc(la.sha)}</code>`:""}`; } else p.remove(); }
 }
 renderState();
 
+/* ---------- The Guarantees' and the Context's legends (GUIDANCE.md §2) ----------
+   Generated from what each section draws, so a hand-written bubble or card needs no legend of its own: the system swatches present, a
+   planned (dashed, faded) row, a gap, the one neutral series of the test-level bars, the badges and their meaning, a tracking issue's
+   chain bar. A section that draws no encoding shows no legend. A tracking issue's chain, written <span class="chainprog"
+   data-landed="n" data-total="m"></span>, is drawn here: "chain n of m landed" and its bar. */
+function sectionKeys(){
+  document.querySelectorAll(".chainprog[data-total]").forEach(e=>{ const n=+e.dataset.landed||0, m=+e.dataset.total||0, pct=m?Math.round(100*n/m):0;
+    e.innerHTML=`chain ${n} of ${m} landed <span class="cbar" role="img" aria-label="${n} of ${m} units landed"><i style="width:${pct}%"></i></span>`; });
+  const put=(sec,id,entries)=>{ if(!sec) return; let k=document.getElementById(id); const html=entries.filter(Boolean).join("");
+    if(!html){ if(k) k.remove(); return; } if(!k){ k=document.createElement("div"); k.className="key"; k.id=id; sec.appendChild(k); } k.innerHTML=html; };
+  const G=document.querySelector("section.guarantees"), C=document.querySelector("section.context"), has=(s,q)=>!!(s&&s.querySelector(q));
+  const swatches=(s,cls)=>typeof sysKey==="function"&&s?sysKey([...new Set([...s.querySelectorAll("[data-sys]")].map(e=>e.dataset.sys))],cls):"";
+  put(G,"guarantees-key",[swatches(G,"swk"),
+    has(G,".bars")?`<span><i class="barsk"></i>test classes per level: one series, one neutral fill</span>`:"",
+    has(G,".planned")?`<span><i class="pln"></i>dashed, faded: about a planned part, nothing built yet</span>`:"",
+    has(G,".gap")?`<span><i class="gapk">gap</i>italic, muted: not established, said as a gap</span>`:"",
+    has(G,".badge")?`<span><span class="badge">tier</span>a fact: a stability tier, a marker, neutral</span>`:""]);
+  const states=C?[...new Set([...C.querySelectorAll(".tags .badge:not(.bug):not(.planned):not([data-sys])")].map(b=>b.textContent.trim()).filter(t=>/^(open|closed)$/.test(t)))]:[];
+  put(C,"context-key",[swatches(C,"sbar"),
+    states.length?`<span>${states.map(s=>`<span class="badge">${esc(s)}</span>`).join(" ")} the issue's state on the tracker</span>`:"",
+    has(C,".badge.bug")?`<span><span class="badge bug">bug</span>labelled a bug on the tracker</span>`:"",
+    has(C,".badge.planned")?`<span><span class="badge planned">planned</span>dashed: planned, not started</span>`:"",
+    has(C,".chainprog")?`<span><span class="cbar"><i style="width:40%"></i></span>a tracking issue's chain: units landed of all units</span>`:""]);
+}
+sectionKeys();
+
 /* ---------- Tabs ---------- */
 const tabs=[...document.querySelectorAll(".tab")];
-const DEFAULT_INSPECT={structure:"<p>Click a component or a datagram tag for its role, source files, threads, open issues and its place in the C4 model.</p>",threads:"<p>Click a thread for when it is created, what runs on it and what it puts on the wire.</p>",lifecycles:"<p>The lifecycle facts are on the cards themselves, each with its source.</p>"};
+const DEFAULT_INSPECT={structure:"<p>Click a component or a datagram tag for its role, source files, threads and its place in the C4 model.</p>",threads:"<p>Click a thread for when it is created, what runs on it and what it puts on the wire.</p>",lifecycles:"<p>The lifecycle facts are on the cards themselves, each with its source.</p>"};
 function show(id){
-  tabs.forEach(t=>{ const on=t.id===id; t.setAttribute("aria-selected",String(on)); document.getElementById(t.getAttribute("aria-controls")).hidden=!on; });
+  tabs.forEach(t=>{ const on=t.id===id; t.setAttribute("aria-selected",String(on)); t.tabIndex=on?0:-1; document.getElementById(t.getAttribute("aria-controls")).hidden=!on; });
   const name=id.replace("t-","");
   if(name==="structure") renderStructure();
   if(name==="c4" && !c4View) renderC4(C4.views.findIndex(v=>v.type==="component"));
@@ -1225,7 +1291,11 @@ function show(id){
   else if(name!=="datagrams") inspect(DEFAULT_INSPECT[name]||"<p>Select an item on this tab to see its details here.</p>");
   try{ localStorage.setItem("dash-tab-"+location.pathname,id); }catch(e){}
 }
-tabs.forEach((t,i)=>{ t.addEventListener("click",()=>show(t.id)); t.addEventListener("keydown",e=>{ if(e.key==="ArrowRight"||e.key==="ArrowLeft"){ const j=(i+(e.key==="ArrowRight"?1:tabs.length-1))%tabs.length; tabs[j].focus(); show(tabs[j].id); } }); });
+tabs.forEach((t,i)=>{ t.addEventListener("click",()=>show(t.id)); });
+/* The tablist's keys (WAI-ARIA tabs; GUIDANCE.md §6): Left and Right move to the previous and next tab, Home and End to the first and the
+   last, each shown at once; only the selected tab is in the Tab order (a roving tabindex), so Tab moves on to the panel. */
+function tabKeys(list,go){ list.forEach((t,i)=>{ t.tabIndex=t.getAttribute("aria-selected")==="true"?0:-1; t.addEventListener("keydown",e=>{ const n=list.length, j={ArrowRight:(i+1)%n,ArrowLeft:(i+n-1)%n,Home:0,End:n-1}[e.key]; if(j==null) return; e.preventDefault(); list[j].focus(); go(list[j].id); }); }); }
+tabKeys(tabs,id=>show(id));
 let start="t-structure";
 try{ const s=localStorage.getItem("dash-tab-"+location.pathname); if(s&&document.getElementById(s)) start=s; }catch(e){}
 const hash=location.hash.replace("#",""); if(hash&&document.getElementById("t-"+hash)) start="t-"+hash;

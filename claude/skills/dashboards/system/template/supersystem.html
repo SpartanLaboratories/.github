@@ -80,8 +80,6 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .kpi .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
 .kpi .v{font-size:22px;font-weight:700;letter-spacing:-.01em;margin-top:2px;font-variant-numeric:tabular-nums}
 .kpi .s{font-size:12px;color:var(--ink-2);margin-top:2px}
-.kpi .seg-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;gap:2px;margin-top:8px}
-.kpi .seg-bar i{display:block;height:100%}
 
 /* tabs + stage */
 .tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow-x:auto;overflow-y:hidden}
@@ -353,8 +351,19 @@ pre.dsl .c{color:var(--muted)} pre.dsl .k{color:var(--server);font-weight:600} p
 .issues a{font-family:var(--mono);text-decoration:none;color:var(--ink-2)}
 .issues a:hover{color:var(--ink)}
 .badge{font:10px/1 var(--mono);padding:3px 6px;border-radius:3px;border:1px solid var(--line);white-space:nowrap;color:var(--ink-2)}
-.badge.bug{border-color:var(--serious)}
-.badge.bug::before{content:"▲ ";color:var(--serious)}
+/* a bug is a label, not an outcome: neutral, told by its ▲ and its word (no status colour, GUIDANCE.md §1) */
+.badge.bug::before{content:"▲ ";color:var(--ink-2)}
+/* a tracking issue's chain on the roadmap (GUIDANCE.md §5): units landed of all units, with a thin green bar */
+.chainprog{display:inline-flex;align-items:center;gap:6px;font:11px var(--mono);color:var(--ink-2);white-space:nowrap}
+.cbar{display:inline-block;width:60px;height:5px;border-radius:3px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;vertical-align:middle}
+.cbar i{display:block;height:100%;background:var(--good)}
+.key .cbar{width:40px}
+.key i.swk{width:10px;height:10px;border:0;border-radius:2px;background:var(--c,var(--muted))}
+.key i.barsk{height:6px;border:0;border-radius:0 3px 3px 0;background:var(--ink-2)}
+.key i.gapk{border:0;background:none;width:auto;height:auto;font-style:italic;color:var(--muted)}
+.key .badge{align-self:center}
+/* the Guarantees' and the Context's legends (GUIDANCE.md §2), generated from what each section draws */
+.guarantees>.key,.context>.key{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-top:10px}
 .badge.planned{border-style:dashed}
 .badge.closed{color:var(--muted)}
 .tags{display:inline-flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
@@ -382,6 +391,10 @@ pre.dsl .c{color:var(--muted)} pre.dsl .k{color:var(--server);font-weight:600} p
 .docs li{padding:4px 0;border-top:1px solid var(--hair)}
 .docs a{text-decoration:none;border-bottom:1px solid var(--line)}
 .docs a:hover{border-bottom-color:var(--ink)}
+/* the last amendment, said in the Context section (an issue: the part above Context names none) */
+.context .amended{font-size:12.5px;color:var(--ink-2);margin:-4px 0 10px;overflow-wrap:anywhere}
+.context .amended .ck{font:700 10px/1.2 var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+.context .amended a{text-decoration:none;border-bottom:1px solid var(--line)}
 footer{margin-top:28px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
 footer code{color:var(--ink-2)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -402,6 +415,7 @@ footer code{color:var(--ink-2)}
 .syscard .fn{font-size:13px;color:var(--ink-2);margin:4px 0 8px}
 .syscard .meta{display:flex;flex-wrap:wrap;gap:4px}
 .syscard .meta span{font:11px var(--mono);padding:3px 6px;border:1px solid var(--line);border-radius:3px;color:var(--ink-2)}
+.syscard .meta .role,.key .role{font:700 10px/1.2 var(--mono);letter-spacing:.04em;color:var(--ink);padding:2px 5px;border:1px solid var(--ink-2);border-radius:3px}
 .syscard .st{font:700 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .key i.sys{border-color:var(--c);background:color-mix(in srgb,var(--c) 18%,var(--surface))}
 .key i.sbar{border-color:var(--line);border-left:4px solid var(--c)}
@@ -447,9 +461,8 @@ footer code{color:var(--ink-2)}
     <!-- presenter: the as-is stamp, the last amendment and the "written at" mark are drawn from state.json (the state block below;
          system/RULES.md §2): write them there, never here. The as-is stamp reads "<ref> @ <sha> · <date>", or "<branch> @ <sha> · not yet
          landed" while the page shows a feature branch; a UTC time is shown in the viewer's local time (GUIDANCE.md §6, "Times"). The last
-         amendment's number opens the GitHub issue, its title the issue's plan board (BOARDS in the script; GUIDANCE.md §5). -->
+         amendment is an issue: the renderer says it in the Context section, never here (the part above Context names no issue). -->
     <span class="chip" id="chip-asis" hidden></span>
-    <span class="chip" id="chip-amended" hidden></span>
     <span class="chip" id="chip-written" hidden></span>
     <span class="chip model"><span class="ck">C4 model</span> <b>workspace.dsl</b> · <span id="dsl-stats">…</span></span>
   </div>
@@ -514,7 +527,7 @@ footer code{color:var(--ink-2)}
         <div class="thread" data-sys="system-beta" data-t="beta-helper" tabindex="0" role="button"><span class="n">beta-helper <span class="k">process</span></span><span class="pill cond">if …</span><span class="r">a child process the system spawns, and when</span></div>
       </div>
       <div class="tside"><h3><span class="sw" data-sys="system-gamma"></span>system-gamma <small>planned</small></h3>
-        <div class="thread" data-sys="system-gamma" data-t="gamma-loop" tabindex="0" role="button"><span class="n">gamma-loop</span><span class="pill planned">planned</span><span class="r">what the plan says it will run (#N)</span></div>
+        <div class="thread" data-sys="system-gamma" data-t="gamma-loop" tabindex="0" role="button"><span class="n">gamma-loop</span><span class="pill planned">planned</span><span class="r">what the plan says it will run</span></div>
       </div>
     </div>
     <!-- generated: the systems with a column, then the pill encodings, process and planned -->
@@ -580,44 +593,44 @@ footer code{color:var(--ink-2)}
       <table class="gtbl"><tbody>
         <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td><code>kotlin.Result</code>; typed failures …; retries …</td></tr>
         <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td>…</td></tr>
-        <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
+        <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned — nothing built yet</td></tr>
       </tbody></table></div>
     <div class="bubble"><h3>Extension points</h3>
       <table class="gtbl"><tbody>
         <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td><code>SeamType</code> <span class="badge">Stable Core</span></td></tr>
         <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td><code>Port</code> <span class="badge">Experimental · @MarkerName</span></td></tr>
-        <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
+        <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned — nothing built yet</td></tr>
       </tbody></table></div>
     <div class="bubble"><h3>Test levels <small>n classes</small></h3>
       <!-- presenter: test classes per system per test level, counted from each system's testing.<level> packages and headed by its test level and package name ("L1 gating" … "L5 UAT"); test levels are not work levels (GUIDANCE.md §4); link the test-inspector report when one exists -->
       <div class="scroll"><table class="gtbl"><thead><tr><th>System</th><th class="n">L1 gating</th><th class="n">L2 component</th><th class="n">L3 integration</th><th class="n">L4a deterministic</th><th class="n">L4b e2e</th><th class="n">L4c non-functional</th><th class="n">L5 UAT</th></tr></thead><tbody>
         <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td></tr>
         <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td></tr>
-        <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td colspan="7">planned (#N) — no tests yet</td></tr>
+        <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td colspan="7">planned — no tests yet</td></tr>
       </tbody></table></div></div>
     <div class="bubble"><h3>Compatibility &amp; versioning</h3>
       <table class="gtbl"><tbody>
         <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td><code>x.y.z</code> · ABI dump checked · deprecate, don't break</td></tr>
         <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td><code>x.y.z</code> · <span class="gap">not checked</span> · legacy: may break freely</td></tr>
-        <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
+        <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned — nothing built yet</td></tr>
       </tbody></table></div>
     <div class="bubble"><h3>Thread safety</h3>
       <table class="gtbl"><tbody>
         <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td>safe to share: … · confined: …</td></tr>
         <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td>…</td></tr>
-        <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
+        <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned — nothing built yet</td></tr>
       </tbody></table></div>
     <div class="bubble"><h3>Resources to close</h3>
       <table class="gtbl"><tbody>
         <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td><code>stop()</code> — releases … · skipped: …</td></tr>
         <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td>nothing to close</td></tr>
-        <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
+        <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned — nothing built yet</td></tr>
       </tbody></table></div>
     <div class="bubble"><h3>On your classpath</h3>
       <table class="gtbl"><tbody>
         <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td><code>group:artifact:version</code></td></tr>
         <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td>…</td></tr>
-        <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned (#N) — nothing built yet</td></tr>
+        <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned — nothing built yet</td></tr>
       </tbody></table></div>
   </div>
 </section>
@@ -633,7 +646,7 @@ footer code{color:var(--ink-2)}
            title, written <a data-board="N">, opens the issue's plan board and stays plain text while it has none (BOARDS in the
            script). -->
       <ol class="roadmap">
-        <li><div class="ri"><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span><a data-board="N">Roadmap item title</a> <small>tracking issue</small></span><span class="tags"><span class="badge">open</span></span></div>
+        <li><div class="ri"><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span><a data-board="N">Roadmap item title</a> <small>tracking issue</small> <span class="chainprog" data-landed="1" data-total="3"></span></span><span class="tags"><span class="badge">open</span></span></div>
           <ul class="issues">
             <li><a href="https://github.com/ORG/REPO/issues/M" target="_blank" rel="noopener">#M</a><span><a data-board="M">Issue mapped to the item</a></span><span class="tags"><span class="badge" data-sys="system-gamma">system-gamma</span><span class="badge">open</span></span></li>
           </ul></li>
@@ -642,7 +655,7 @@ footer code{color:var(--ink-2)}
       <!-- presenter: the open issues no roadmap item claims, each badged with the system it touches -->
       <ul class="issues"><li><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span><a data-board="N">Issue title</a></span><span class="tags"><span class="badge" data-sys="system-alpha">system-alpha</span><span class="badge bug">bug</span></span></li></ul></div>
     <div class="card"><h3>Plans and documents</h3>
-      <ul class="docs"><li><a href="https://github.com/ORG/REPO/blob/main/README.md" target="_blank" rel="noopener">README</a></li><li><code>systems.json</code> — the registry this page is built from</li><li>Plans: <a data-issue="N">#N</a> … (architecture of each planned system)<!-- presenter: a lone #n, written <a data-issue="N">#N</a>, opens the issue's plan board when it has one, else the GitHub issue; the repository page also links the work board, ../plans/index.html --></li></ul></div>
+      <ul class="docs"><li><a href="https://github.com/ORG/REPO/blob/main/README.md" target="_blank" rel="noopener">README</a></li><li><code>systems.json</code> — the registry this page is built from</li><li>Plans: <a data-issue="N">#N</a> … (architecture of each planned system)<!-- presenter: a lone #n, written <a data-issue="N">#N</a>, opens the issue's plan board when it has one, else the GitHub issue --></li><li><a data-workboard>Work board</a> — every planning and development run in the repository<!-- presenter: opens the live view on this machine when there is one, else the committed board (WORK_BOARD in the script), else plain text; a tracking issue's chain on the roadmap is written <span class="chainprog" data-landed="n" data-total="m"></span> --></li></ul></div>
   </div>
 </section>
 
@@ -700,7 +713,7 @@ workspace "REPO" "One sentence on the repository." {
             alpha = container "system-alpha" "What system alpha does." "Kotlin/JVM library · x.y.z"
             beta  = container "system-beta"  "What system beta does."  "Kotlin/JVM library · x.y.z"
             // a system the roadmap plans but nothing has built yet — drawn dashed, never as built
-            gamma = container "system-gamma" "Issue #N: what it will do." "proposed" "Planned"
+            gamma = container "system-gamma" "What it will do." "proposed" "Planned"
         }
         user -> repo.alpha "Uses"
         repo.alpha -> repo.beta "Depends on"
@@ -768,6 +781,24 @@ const REPO="https://github.com/"+REG.repo;
    the hand-written ones at load. */
 const BOARDS={}; // presenter: issue number → its plan board relative to this page, on this one line, e.g. {"38":"../../plans/38-slug/dashboard.html"}
 const boardOf=n=>Object.prototype.hasOwnProperty.call(BOARDS,String(n))?BOARDS[String(n)]:null;
+/* The work board (GUIDANCE.md §5; system/RULES.md §6): "committed" is docs/plans/index.html relative to this page when that file exists
+   (else null: no link to a file that is not there; check-page.js fails a committed path that is missing), and "live" the live view's
+   marker, docs/plans/.live/index.js, which board.js --live writes in each checkout. A link to the work board opens the live view when
+   its marker loads (the board on this machine), else the committed one, else stays plain text: the hand-written
+   <a data-workboard>work board</a>, and the Plans card's line the renderer adds when the page has none. */
+const WORK_BOARD={"committed":null,"live":"../plans/.live/index.js"}; // presenter: the work board relative to this page, on this one line: {"committed": "../plans/index.html" or null, "live": "../plans/.live/index.js"}
+/* A live marker (plan/RULES.md §5): a script in the git-ignored docs/plans/.live/ that sets one key of window.DASHBOARDS_LIVE; cb gets
+   its value, or null when the marker is not there (a published copy, another clone, no live view on this machine). */
+function liveMark(src,key,cb){ if(!src){ cb(null); return; } const sc=document.createElement("script"); sc.src=src+(src.includes("?")?"&":"?")+"t="+Date.now();
+  sc.onload=()=>{ const v=(window.DASHBOARDS_LIVE||{})[key]; sc.remove(); cb(v==null?null:v); }; sc.onerror=()=>{ sc.remove(); cb(null); }; document.head.appendChild(sc); }
+const relTo=(base,href)=>/^[a-z][a-z0-9+.-]*:/i.test(href)||href.startsWith("/")?href:base.replace(/[^/]*$/,"")+href;
+function linkWorkBoard(){ const W=WORK_BOARD&&typeof WORK_BOARD==="object"?WORK_BOARD:{};
+  const docs=[...document.querySelectorAll("section.context .docs")].pop();
+  if(docs&&!document.querySelector("a[data-workboard]")){ const li=document.createElement("li"); li.innerHTML='<a data-workboard>Work board</a> — every planning and development run in the repository'; docs.appendChild(li); }
+  const set=href=>document.querySelectorAll("a[data-workboard]").forEach(a=>{ if(href) a.href=href; else a.removeAttribute("href"); a.title=href&&href===W.committed?"The committed work board, as of the last landing":href?"The live work board on this machine":"No work board in this checkout"; });
+  set(W.committed||null);
+  liveMark(W.live,"board",b=>{ if(b) set(relTo(W.live,b)); }); }
+window.addEventListener("DOMContentLoaded",()=>linkWorkBoard());
 const ghIssue=n=>`${REPO}/issues/${n}`;
 /* The page's state (system/RULES.md §2): a verbatim copy of state.json, its stamp and last amendment, which apply-state.js restamps on a
    feature branch and at the landing; renderState() draws the header's chips from it. */
@@ -808,13 +839,19 @@ function renderSystems(){
   $("#syscards").innerHTML=SYSTEMS.map(s=>{
     const planned=s.status==="planned";
     /* each entry is HTML: escaped text, and the as-is date or time through when() */
-    const meta=planned?[(s.plannedBy||{}).issue?`planned by ${ilink(s.plannedBy.issue)}`:"planned"]:[esc(`v${s.version||"?"}`), s.asIs?`as-is ${esc(s.asIs.ref)} @ ${esc(s.asIs.sha)} · ${s.asIs.landed===false?"not yet landed":when(s.asIs.date)}`:"", s.lastAmended?esc(`amended by #${s.lastAmended.issue}`):""].filter(Boolean);
+    /* no issue numbers above Context (system/RULES.md §2): a planned system links its plan board, where one exists, by that name */
+    const plan=planned&&(s.plannedBy||{}).issue&&boardOf(s.plannedBy.issue);
+    /* a subsystem of a supersystem is core (the greater system cannot exist without it) or optional, as the architecture says (systems.json
+       "core"); a supersystem is built once every core subsystem is (system/RULES.md §7) */
+    const sup=bySlug(s.parent)&&bySlug(s.parent).kind==="supersystem", role=sup?(s.core===true?"core subsystem":s.core===false?"optional subsystem":"subsystem · not classified yet"):"";
+    const meta=(planned?[plan?`planned · <a href="${esc(plan)}">its plan</a>`:"planned"]:[esc(`v${s.version||"?"}`), s.asIs?`as-is ${esc(s.asIs.ref)} @ ${esc(s.asIs.sha)} · ${s.asIs.landed===false?"not yet landed":when(s.asIs.date)}`:""]).concat(role?[`<b class="role">${esc(role)}</b>`]:[]).filter(Boolean);
     // A built system the repository gives no page yet is a card, not a link (never a dead href="#").
     const linked=!planned&&!!s.page, tag=linked?"a":"span", href=linked?` href="${esc(s.page)}"`:"";
     return `<${tag} class="syscard ${planned?"planned":"built"}"${href} data-slug="${esc(s.slug)}" style="--c:${sysColour(s.slug)}" tabindex="0"><div class="st">${planned?"planned · no page yet":linked?"built":"built · no page yet"}</div><div class="nm">${esc(s.name)}</div><div class="fn">${esc(s.function||"")}</div><div class="meta">${meta.map(m=>`<span>${m}</span>`).join("")}</div></${tag}>`;
   }).join("");
-  document.querySelectorAll(".syscard").forEach(c=>{ const show=()=>{ const s=SYSTEMS.find(x=>x.slug===c.dataset.slug); inspect(`<div class="kicker">SYSTEM · ${s.status.toUpperCase()}</div><div class="name">${esc(s.name)}</div><div class="vis">${esc((s.paths||[]).join(" · ")||"no code paths yet")}</div><p>${esc(s.function||"")}</p><dl>${s.page?`<dt>Dashboard</dt><dd><a href="${esc(s.page)}">${esc(s.page)}</a></dd>`:""}${s.parent?`<dt>Parent</dt><dd>${esc(s.parent)}</dd>`:""}${s.plannedBy?`<dt>Planned by</dt><dd>${s.plannedBy.issue?ilink(s.plannedBy.issue):"?"} · <code>${esc(s.plannedBy.architecture||"")}</code></dd>`:""}${s.lastAmended&&s.lastAmended.issue?`<dt>Last amended by</dt><dd>${ilink(s.lastAmended.issue)}${s.lastAmended.sha?` · <code>${esc(s.lastAmended.sha)}</code>`:""}</dd>`:""}</dl>`); }; c.addEventListener("mouseenter",show); c.addEventListener("focus",show); });
-  $("#systems-key").innerHTML=sysKey(SYSTEMS.map(s=>s.slug))+`<span><i></i>built: opens its page, or says no page yet</span><span><i class="pln"></i>planned: no page yet</span>`;
+  document.querySelectorAll(".syscard").forEach(c=>{ const show=()=>{ const s=SYSTEMS.find(x=>x.slug===c.dataset.slug); inspect(`<div class="kicker">SYSTEM · ${s.status.toUpperCase()}</div><div class="name">${esc(s.name)}</div><div class="vis">${esc((s.paths||[]).join(" · ")||"no code paths yet")}</div><p>${esc(s.function||"")}</p><dl>${s.page?`<dt>Dashboard</dt><dd><a href="${esc(s.page)}">${esc(s.page)}</a></dd>`:""}${s.parent?`<dt>Parent</dt><dd>${esc(s.parent)}</dd>`:""}${s.plannedBy?`<dt>Planned in</dt><dd>${s.plannedBy.issue&&boardOf(s.plannedBy.issue)?`<a href="${esc(boardOf(s.plannedBy.issue))}">its plan board</a> · `:""}<code>${esc(s.plannedBy.architecture||"")}</code></dd>`:""}</dl>`); }; c.addEventListener("mouseenter",show); c.addEventListener("focus",show); });
+  const subs=SYSTEMS.filter(s=>bySlug(s.parent)&&bySlug(s.parent).kind==="supersystem");
+  $("#systems-key").innerHTML=sysKey(SYSTEMS.map(s=>s.slug))+`<span><i></i>built: opens its page, or says no page yet</span><span><i class="pln"></i>planned: no page yet</span>`+(subs.some(s=>s.core===true)?`<span><b class="role">core subsystem</b> its supersystem cannot exist without it; built once every core one is</span>`:"")+(subs.some(s=>s.core===false)?`<span><b class="role">optional subsystem</b> additive: its supersystem exists without it</span>`:"")+(subs.some(s=>s.core!==true&&s.core!==false)?`<span><b class="role">subsystem · not classified yet</b> its architecture has not been read for it</span>`:"");
 }
 renderSystems();
 paintSystems();
@@ -838,18 +875,18 @@ const MODEL = {
     lanes:[["BUILT",40,30,"start"],["PLANNED",620,30,"start"]],
     notes:[{x:40,y:306,lines:["Each box is a system in its colour; a box inside another is part of that supersystem."]}],
     nodes:[
-      {id:"alpha",sys:"system-alpha",x:40,y:44,w:260,h:60,t:"system-alpha",s:"what it does · x.y.z",d:{role:"What system alpha is for, in a line.",issues:[]}},
-      {id:"beta",sys:"system-beta",x:40,y:194,w:260,h:60,t:"system-beta",s:"what it does · x.y.z",d:{role:"What system beta is for.",issues:[]}},
-      {id:"gamma",sys:"system-gamma",x:620,y:194,w:260,h:60,t:"system-gamma",s:"planned · issue #N",d:{role:"What it will do, per its architecture.",issues:[]}}
+      {id:"alpha",sys:"system-alpha",x:40,y:44,w:260,h:60,t:"system-alpha",s:"what it does · x.y.z",d:{role:"What system alpha is for, in a line."}},
+      {id:"beta",sys:"system-beta",x:40,y:194,w:260,h:60,t:"system-beta",s:"what it does · x.y.z",d:{role:"What system beta is for."}},
+      {id:"gamma",sys:"system-gamma",x:620,y:194,w:260,h:60,t:"system-gamma",s:"planned · nothing built yet",d:{role:"What it will do, per its architecture."}}
     ],
     deps:[["alpha","beta","api"],["gamma","beta","would depend on"]]
   },
   // Threads and processes, keyed by name: sys (owning system's slug), kind ("thread" | "process"), created, runs, note, issues.
   threads:{
-    "alpha-worker":{sys:"system-alpha",kind:"thread",created:"eagerly, at construction",runs:"what runs on it.",note:"",issues:[]},
+    "alpha-worker":{sys:"system-alpha",kind:"thread",created:"eagerly, at construction",runs:"what runs on it.",note:""},
     "beta-io":{sys:"system-beta",kind:"thread",created:"lazily, on first use",runs:"what runs on it.",note:""},
     "beta-helper":{sys:"system-beta",kind:"process",created:"only when …",runs:"what the child process does, and who stops it.",note:""},
-    "gamma-loop":{sys:"system-gamma",kind:"thread",created:"planned — not built",runs:"what the architecture says it will run.",note:"Planned by issue #N."}
+    "gamma-loop":{sys:"system-gamma",kind:"thread",created:"planned — not built",runs:"what the architecture says it will run.",note:"Planned: its plan is in the Context section."}
   },
   // Decision paths: the system page's shape (controls, a node grid, edges, rules(state) → {path, outcome, irrelevant}).
   // An end (k:"t") with sys:"slug" takes that system's colour; one with lvl a status colour; planned:true draws it dashed.
@@ -859,7 +896,7 @@ const MODEL = {
      names:{a:"needs A",b:"needs B",c:"needs C"},
      nodes:{IN:{c:0,r:0,k:"p",t:["the consumer","has a need"]},Q:{c:1,r:0,k:"d",t:["which","need?"]},A:{c:2,r:0,k:"t",sys:"system-alpha",t:["depend on","system-alpha"]},
             RT:{c:2,r:1,k:"d",t:["runtime","the JVM?"]},B:{c:3,r:1,k:"t",sys:"system-beta",t:["depend on","system-beta"]},NONE:{c:3,r:2,k:"t",lvl:"NONE",t:["nothing","here yet"]},
-            C:{c:2,r:3,k:"t",sys:"system-gamma",t:["system-gamma","planned · #N"]}},
+            C:{c:2,r:3,k:"t",sys:"system-gamma",t:["system-gamma","planned"]}},
      edges:[["IN","Q"],["Q","A","A"],["Q","RT","B"],["RT","B","yes"],["RT","NONE","no"],["Q","C","C"]],
      rules(s){ const p=["IN","Q"], R=(outcome,irrelevant)=>({path:p,outcome,irrelevant:irrelevant||[]});
        if(s.need==="a"){ p.push("A"); return R("system-alpha covers it on any runtime.",["rt"]); }
@@ -910,7 +947,6 @@ function selectNode(id){
   if(uses.length) html+=`<dt>Depends on</dt><dd>${uses.map(x=>`→ <b>${nm(x[1])}</b>${x[2]?" — "+esc(x[2]):""}`).join("<br>")}</dd>`;
   if(by.length) html+=`<dt>Used by</dt><dd>${by.map(x=>`← <b>${nm(x[0])}</b>${x[2]?" — "+esc(x[2]):""}`).join("<br>")}</dd>`;
   if(s.page) html+=`<dt>Dashboard</dt><dd><a href="${esc(s.page)}">${esc(s.page)}</a></dd>`;
-  if(d.issues&&d.issues.length) html+=`<dt>Open issues</dt><dd>${d.issues.map(ilink).join(" · ")}</dd>`;
   const c4id=MODEL.c4[id]; if(c4id&&el(c4id)) html+=`<dt>In the C4 model</dt><dd><button class="linkbtn" data-c4="${c4id}">${esc(el(c4id).name)} · ${el(c4id).tags.slice(2).map(esc).join(", ")||TYPE_LABEL[el(c4id).type].toLowerCase()} → open</button></dd>`;
   inspect(html+"</dl>");
   const b=$("#insp-body .linkbtn[data-c4]"); if(b) b.addEventListener("click",()=>openC4(b.dataset.c4));
@@ -922,7 +958,6 @@ function selectThread(id){
   document.querySelectorAll(".thread").forEach(x=>x.classList.toggle("sel",x.dataset.t===id));
   let html=`<div class="kicker">${esc((t.kind||"thread").toUpperCase())} · ${esc(((bySlug(t.sys)||{}).name||t.sys||"").toUpperCase())}${isPlanned(t)?" · PLANNED":""}</div><div class="name">${esc(id)}</div><div class="vis">created ${esc(t.created)}</div><p>${esc(t.runs)}</p><dl>`;
   if(t.note) html+=`<dt>Note</dt><dd>${esc(t.note)}</dd>`;
-  if(t.issues&&t.issues.length) html+=`<dt>Open issues</dt><dd>${t.issues.map(ilink).join(" · ")}</dd>`;
   inspect(html+"</dl>");
 }
 document.querySelectorAll(".thread").forEach(x=>{ x.addEventListener("click",()=>selectThread(x.dataset.t)); x.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); selectThread(x.dataset.t); } }); });
@@ -1282,25 +1317,56 @@ $("#seq-prev").addEventListener("click",()=>gotoStep(seq.cur-1));
 $("#seq-next").addEventListener("click",()=>gotoStep(seq.cur+1));
 $("#seq-play").addEventListener("click",e=>{ const b=e.currentTarget; if(seq.timer){ clearInterval(seq.timer); seq.timer=null; b.textContent="play"; b.setAttribute("aria-pressed","false"); } else { seq.timer=setInterval(()=>gotoStep(seq.cur+1),1600); b.textContent="pause"; b.setAttribute("aria-pressed","true"); } });
 
-/* ---------- The header's stamps (state.json) ----------
-   The as-is stamp ("<ref> @ <sha> · <date>", or "<branch> @ <sha> · not yet landed" while the page shows a feature branch), the last
-   amendment (its number opens the GitHub issue, its title the plan board: linkIssues() resolves it at load) and, while the panels were
-   written at another commit than the stamp names, "written at <sha>". A chip with nothing to say is removed. */
+/* ---------- The stamps (state.json) ----------
+   The header's chips: the version (a system page), the as-is stamp ("<ref> @ <sha> · <date>", or "<branch> @ <sha> · not yet landed" while
+   the page shows a feature branch) and, while the panels were written at another commit than the stamp names, "written at <sha>". A chip
+   with nothing to say is removed. The last amendment names an issue, so it is said in the Context section, never in the header: the page
+   above Context is as-is and names no issue (system/RULES.md §2, §6); its number opens the GitHub issue, its title the plan board
+   (linkIssues() resolves it at load). A header chip for it left by an older template is removed. */
 function renderState(){
   const S=STATE||{}, a=S.asIs||{}, la=S.lastAmended||{}, w=S.written||{};
   const set=(id,html)=>{ const e=document.getElementById(id); if(!e) return; if(!html){ e.remove(); return; } e.hidden=false; e.innerHTML=html; };
   set("chip-version",S.version?`<span class="ck">version</span> <b>${esc(S.version)}</b>`:"");
   set("chip-asis",a.sha?`<span class="ck">as-is at</span> <b>${esc(a.ref||"?")} @ ${esc(a.sha)}</b> · ${a.landed===false?"not yet landed":when(a.date)}`:"");
-  set("chip-amended",Number.isInteger(la.issue)&&la.issue>0?`<span class="ck">last amended by</span> <a href="${ghIssue(la.issue)}" target="_blank" rel="noopener"><b>#${la.issue}</b></a>${la.title?` <a data-board="${la.issue}">${esc(la.title)}</a>`:""}${la.sha?` · ${esc(la.sha)}`:""}`:"");
   set("chip-written",w.sha&&a.sha&&w.sha!==a.sha?`<span class="ck">written at</span> <b>${esc(w.sha)}</b>`:"");
+  const old=document.getElementById("chip-amended"); if(old) old.remove();
+  const ctx=document.querySelector("section.context"); let p=document.getElementById("ctx-amended");
+  if(!p&&ctx){ p=document.createElement("p"); p.className="amended"; p.id="ctx-amended"; const h2=ctx.querySelector(":scope>h2"); if(h2) h2.after(p); else ctx.prepend(p); }
+  if(p){ if(Number.isInteger(la.issue)&&la.issue>0){ p.hidden=false; p.innerHTML=`<span class="ck">last amended by</span> <a href="${ghIssue(la.issue)}" target="_blank" rel="noopener">#${la.issue}</a>${la.title?` <a data-board="${la.issue}">${esc(la.title)}</a>`:""}${la.sha?` · <code>${esc(la.sha)}</code>`:""}`; } else p.remove(); }
 }
 renderState();
+
+/* ---------- The Guarantees' and the Context's legends (GUIDANCE.md §2) ----------
+   Generated from what each section draws, so a hand-written bubble or card needs no legend of its own: the system swatches present, a
+   planned (dashed, faded) row, a gap, the one neutral series of the test-level bars, the badges and their meaning, a tracking issue's
+   chain bar. A section that draws no encoding shows no legend. A tracking issue's chain, written <span class="chainprog"
+   data-landed="n" data-total="m"></span>, is drawn here: "chain n of m landed" and its bar. */
+function sectionKeys(){
+  document.querySelectorAll(".chainprog[data-total]").forEach(e=>{ const n=+e.dataset.landed||0, m=+e.dataset.total||0, pct=m?Math.round(100*n/m):0;
+    e.innerHTML=`chain ${n} of ${m} landed <span class="cbar" role="img" aria-label="${n} of ${m} units landed"><i style="width:${pct}%"></i></span>`; });
+  const put=(sec,id,entries)=>{ if(!sec) return; let k=document.getElementById(id); const html=entries.filter(Boolean).join("");
+    if(!html){ if(k) k.remove(); return; } if(!k){ k=document.createElement("div"); k.className="key"; k.id=id; sec.appendChild(k); } k.innerHTML=html; };
+  const G=document.querySelector("section.guarantees"), C=document.querySelector("section.context"), has=(s,q)=>!!(s&&s.querySelector(q));
+  const swatches=(s,cls)=>typeof sysKey==="function"&&s?sysKey([...new Set([...s.querySelectorAll("[data-sys]")].map(e=>e.dataset.sys))],cls):"";
+  put(G,"guarantees-key",[swatches(G,"swk"),
+    has(G,".bars")?`<span><i class="barsk"></i>test classes per level: one series, one neutral fill</span>`:"",
+    has(G,".planned")?`<span><i class="pln"></i>dashed, faded: about a planned part, nothing built yet</span>`:"",
+    has(G,".gap")?`<span><i class="gapk">gap</i>italic, muted: not established, said as a gap</span>`:"",
+    has(G,".badge")?`<span><span class="badge">tier</span>a fact: a stability tier, a marker, neutral</span>`:""]);
+  const states=C?[...new Set([...C.querySelectorAll(".tags .badge:not(.bug):not(.planned):not([data-sys])")].map(b=>b.textContent.trim()).filter(t=>/^(open|closed)$/.test(t)))]:[];
+  put(C,"context-key",[swatches(C,"sbar"),
+    states.length?`<span>${states.map(s=>`<span class="badge">${esc(s)}</span>`).join(" ")} the issue's state on the tracker</span>`:"",
+    has(C,".badge.bug")?`<span><span class="badge bug">bug</span>labelled a bug on the tracker</span>`:"",
+    has(C,".badge.planned")?`<span><span class="badge planned">planned</span>dashed: planned, not started</span>`:"",
+    has(C,".chainprog")?`<span><span class="cbar"><i style="width:40%"></i></span>a tracking issue's chain: units landed of all units</span>`:""]);
+}
+sectionKeys();
 
 /* ---------- Tabs ---------- */
 const tabs=[...document.querySelectorAll(".tab")];
 const DEFAULT_INSPECT={systems:"<p>Hover or focus a system card for its paths, parent and dashboard link.</p>",structure:"<p>Click a system for what it is for, what it depends on and what uses it, and its place in the C4 model.</p>",threads:"<p>Click a thread or process for the system that owns it, when it starts and what runs on it.</p>",lifecycles:"<p>The lifecycle facts are on the cards themselves, each with its source.</p>"};
 function show(id){
-  tabs.forEach(t=>{ const on=t.id===id; t.setAttribute("aria-selected",String(on)); document.getElementById(t.getAttribute("aria-controls")).hidden=!on; });
+  tabs.forEach(t=>{ const on=t.id===id; t.setAttribute("aria-selected",String(on)); t.tabIndex=on?0:-1; document.getElementById(t.getAttribute("aria-controls")).hidden=!on; });
   const name=id.replace("t-","");
   if(name==="structure") renderStructure();
   if(name==="c4" && !c4View) renderC4(Math.max(0,C4.views.findIndex(v=>v.type==="container")));
@@ -1315,7 +1381,11 @@ function show(id){
   else if(name!=="datagrams") inspect(DEFAULT_INSPECT[name]||"<p>Select an item on this tab to see its details here.</p>");
   try{ localStorage.setItem("dash-tab-"+location.pathname,id); }catch(e){}
 }
-tabs.forEach((t,i)=>{ t.addEventListener("click",()=>show(t.id)); t.addEventListener("keydown",e=>{ if(e.key==="ArrowRight"||e.key==="ArrowLeft"){ const j=(i+(e.key==="ArrowRight"?1:tabs.length-1))%tabs.length; tabs[j].focus(); show(tabs[j].id); } }); });
+tabs.forEach((t,i)=>{ t.addEventListener("click",()=>show(t.id)); });
+/* The tablist's keys (WAI-ARIA tabs; GUIDANCE.md §6): Left and Right move to the previous and next tab, Home and End to the first and the
+   last, each shown at once; only the selected tab is in the Tab order (a roving tabindex), so Tab moves on to the panel. */
+function tabKeys(list,go){ list.forEach((t,i)=>{ t.tabIndex=t.getAttribute("aria-selected")==="true"?0:-1; t.addEventListener("keydown",e=>{ const n=list.length, j={ArrowRight:(i+1)%n,ArrowLeft:(i+n-1)%n,Home:0,End:n-1}[e.key]; if(j==null) return; e.preventDefault(); list[j].focus(); go(list[j].id); }); }); }
+tabKeys(tabs,id=>show(id));
 let start="t-systems"; try{ const s=localStorage.getItem("dash-tab-"+location.pathname); if(s&&document.getElementById(s)) start=s; }catch(e){}
 const hash=location.hash.replace("#",""); if(hash&&document.getElementById("t-"+hash)) start="t-"+hash;
 show(start);

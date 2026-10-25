@@ -90,6 +90,20 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .kpi .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
 .kpi .v{font-size:22px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
 .kpi .s{font-size:12px;color:var(--ink-2);margin-top:2px}
+/* A tile that counts states carries a segmented bar of them, its legend inside the tile (GUIDANCE.md §2, "Figures"): the Runs and the Landed
+   tiles. A tile that counts one state (active, waiting, up next, not started) has nothing to segment and carries none. */
+.kpi .seg-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;gap:2px;margin-top:8px;background:var(--surface-2)}
+.kpi .seg-bar i{display:block;height:100%;background:var(--ink-2)}
+.seg-bar i.good{background:var(--good)}.seg-bar i.warning{background:var(--warning)}.seg-bar i.serious{background:var(--serious)}.seg-bar i.critical{background:var(--critical)}.seg-bar i.neutral{background:var(--muted)}.seg-bar i.accent{background:var(--accent)}
+.seg-bar i.hollow{background:none!important;border:1.5px solid var(--good)}
+.seg-bar i.pln{background:none!important;border:1.5px dashed var(--muted)}
+.kpi .key{margin-top:6px;gap:4px 10px;font-size:11px}
+.key i.segk{width:14px;height:6px;border:0;border-radius:2px;background:var(--sc,var(--ink-2))}
+.key i.segk.good{--sc:var(--good)}.key i.segk.warning{--sc:var(--warning)}.key i.segk.serious{--sc:var(--serious)}.key i.segk.critical{--sc:var(--critical)}.key i.segk.neutral{--sc:var(--muted)}.key i.segk.accent{--sc:var(--accent)}
+.key i.segk.hollow{background:none;border:1.5px solid var(--good);height:7px}
+.key i.segk.pln{background:none;border:1.5px dashed var(--muted);height:7px}
+/* the Context's legend (GUIDANCE.md §2): the encodings its cards draw */
+.context>.key{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-top:10px}
 .tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow-x:auto;overflow-y:hidden}
 .tab{appearance:none;border:0;background:none;color:var(--ink-2);font:inherit;font-weight:600;padding:10px 14px;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;white-space:nowrap}
 .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
@@ -283,8 +297,23 @@ const reconTag=r=>{ const x=reconOf(r); if(!x) return ""; const d=RECON[x.state]
 /* the "blocked by" tag of the unit up next: each blocker linked like any #n */
 const blockedTag=r=>(r.blockedBy||[]).length?`<span class="vp ${BLOCKED.c}"><i aria-hidden="true">${BLOCKED.g}</i>blocked by ${r.blockedBy.map(x=>ilink(x.issue,x.repo)).join(", ")}</span>`:"";
 
+/* Links to the shared pages (GUIDANCE.md §5; plan/RULES.md §5): board.json "links", set by board.js from the files on disk, each relative
+   to this page, absent while its file is not there (check.js fails one that is dead): the repository page (repoPage) and
+   docs/plans/README.md (readme). A board.json written before the rule carries none: the old paths are used. On this machine, the live
+   view (docs/plans/.live/index.js, board.js --live's marker) and the rendered copy of a Markdown document (docs/plans/.live/docs/index.js)
+   are linked first. */
+let LIVE_WB=null, LIVE_DOCS=null;
+function liveMark(src,key,cb){ if(!src){ cb(null); return; } const sc=document.createElement("script"); sc.src=src+(src.includes("?")?"&":"?")+"t="+Date.now();
+  sc.onload=()=>{ const v=(window.DASHBOARDS_LIVE||{})[key]; sc.remove(); cb(v==null?null:v); }; sc.onerror=()=>{ sc.remove(); cb(null); }; document.head.appendChild(sc); }
+const relTo=(base,href)=>/^[a-z][a-z0-9+.-]*:/i.test(href)||href.startsWith("/")?href:base.replace(/[^/]*$/,"")+href;
+const relLink=b=>typeof b==="string"&&!!b.trim()&&!/^[a-z][a-z0-9+.-]*:/i.test(b)&&!/^[\\/]/.test(b);
+const hasLinks=()=>!!B.links&&typeof B.links==="object"&&!Array.isArray(B.links);
+const sharedLink=k=>hasLinks()?(relLink(B.links[k])?B.links[k]:null):({repoPage:`${BASE}../dashboards/index.html`,readme:`${BASE}README.md`})[k]||null;
+const linkOr=(href,text)=>href?`<a href="${esc(href)}">${text}</a>`:text;
+const docHref=href=>{ if(!href||!LIVE_DOCS||!relLink(href)) return href; const m=/^([^#?]+\.md)(#.*)?$/i.exec(href); if(!m) return href; const rel=B.live?m[1].replace(/^\.\.\//,""):m[1];
+  return LIVE_DOCS.has("docs/plans/"+rel)?`${B.live?"":".live/"}docs/${rel.replace(/\.md$/i,".html")}${m[2]||""}`:href; };
 function render(){
-  $("#crumbs").innerHTML=`<a href="${esc(BASE)}../dashboards/index.html">${esc(B.repo||"")}</a> › docs/plans › work board${B.live?" (live)":""}`;
+  $("#crumbs").innerHTML=`${linkOr(sharedLink("repoPage"),esc(B.repo||""))} › docs/plans › work board${B.live?" (live)":""}`;
   $("#function").textContent=`Every planning and development run in ${B.repo||"the repository"}: where each is, what it waits on, what it blocks.`;
   if(B.live) $("#runs-lede").textContent="Each run read from its freshest board across the worktrees; regenerated at every event, never committed.";
   document.title=`${(B.repo||"").split("/")[1]||""} · work board`;
@@ -294,7 +323,12 @@ function render(){
   $("#chips").innerHTML=[tag("generated",`<b>${when(B.generated||"")}</b>${t.sha?` · from <b>${esc(t.ref||"")} ${esc(t.sha)}</b>`:""}`),B.live?tag("live view",`from <b>${esc(B.live.worktrees)}</b> worktree${B.live.worktrees===1?"":"s"}, each issue's freshest board`):"",tag("tracker as of",`<b>${day(B.asOf||"")}</b>`),tag("board",`<b>board.json</b> · ${ROWS.length} runs`,"model")].filter(Boolean).join("");
   const n=k=>ROWS.filter(r=>stOf(r)===k).length;
   const nexts=ROWS.filter(r=>stOf(r)==="next");
-  $("#kpis").innerHTML=[["Runs",ROWS.length,`${(B.roadmap||[]).length} tracking issue${(B.roadmap||[]).length===1?"":"s"}`],["Active now",ROWS.filter(r=>r.active).length,"glowing below"],["Waiting on the user",n("halted"),"halted runs"],["Landed",n("landed"),[n("complete")?`${n("complete")} more complete, not merged`:"",n("merged")?`${n("merged")} merged, awaiting close`:"",n("not-planned")?`${n("not-planned")} closed as not planned, not counted`:"",n("duplicate")?`${n("duplicate")} closed as duplicates, not counted`:""].filter(Boolean).join(" · ")||"merged"],["Up next",nexts.length,{html:nexts.length?nexts.map(r=>ilink(r.issue)).join(", ")+" · not started":"no unit named next"}],["Not started",n("not-started")+n("no-board"),(()=>{ const ns=ROWS.filter(r=>["not-started","no-board"].includes(stOf(r))), o=ns.filter(r=>r.tracker||stOf(r)==="no-board").length, u=ns.length-o; return [u?`${u} unit${u===1?"":"s"} of a tracking issue`:"",o?`${o} other issue${o===1?"":"s"}, from the tracker`:""].filter(Boolean).join(" · ")||"none"; })()]].map(([l,v,s])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s&&s.html!=null?s.html:esc(s)}</div></div>`).join("");
+  /* the Runs tile's bar: every run by its state; the Landed tile's: landed, complete, merged, and the closed ones not counted */
+  const RUNSEG=[["landed","good","landed"],["merged","good","merged · awaiting close"],["complete","hollow","complete · not merged"],["building","accent","building"],["planning","accent","planning"],["in-progress","accent","in progress, no board"],["halted","warning","waiting on the user"],["escalated","serious","escalated"],["next","pln","next · not started"],["not-started","pln","not started"],["no-board","pln","no board"],["abandoned","critical","cancelled"],["not-planned","neutral","closed · not planned"],["duplicate","neutral","closed · duplicate"]];
+  const segOf=keys=>{ const parts=RUNSEG.filter(([k])=>keys.includes(k)).map(([k,c,l])=>({n:n(k),c,l:`${STATUS[k].g} ${l}`})).filter(p=>p.n);
+    return parts.length?`<div class="seg-bar" role="img" aria-label="${esc(parts.map(p=>`${p.n} ${p.l}`).join(", "))}">${parts.map(p=>`<i class="${p.c}" style="flex:${p.n}" title="${esc(`${p.n} ${p.l}`)}"></i>`).join("")}</div><div class="key">${[...new Map(parts.map(p=>[p.c+p.l,p])).values()].map(p=>`<span><i class="segk ${p.c}"></i>${esc(p.l)}</span>`).join("")}</div>`:""; };
+  const bars={Runs:segOf(RUNSEG.map(x=>x[0])),Landed:segOf(["landed","complete","merged","not-planned","duplicate"])};
+  $("#kpis").innerHTML=[["Runs",ROWS.length,`${(B.roadmap||[]).length} tracking issue${(B.roadmap||[]).length===1?"":"s"}`],["Active now",ROWS.filter(r=>r.active).length,"glowing below"],["Waiting on the user",n("halted"),"halted runs"],["Landed",n("landed"),[n("complete")?`${n("complete")} more complete, not merged`:"",n("merged")?`${n("merged")} merged, awaiting close`:"",n("not-planned")?`${n("not-planned")} closed as not planned, not counted`:"",n("duplicate")?`${n("duplicate")} closed as duplicates, not counted`:""].filter(Boolean).join(" · ")||"merged"],["Up next",nexts.length,{html:nexts.length?nexts.map(r=>ilink(r.issue)).join(", ")+" · not started":"no unit named next"}],["Not started",n("not-started")+n("no-board"),(()=>{ const ns=ROWS.filter(r=>["not-started","no-board"].includes(stOf(r))), o=ns.filter(r=>r.tracker||stOf(r)==="no-board").length, u=ns.length-o; return [u?`${u} unit${u===1?"":"s"} of a tracking issue`:"",o?`${o} other issue${o===1?"":"s"}, from the tracker`:""].filter(Boolean).join(" · ")||"none"; })()]].map(([l,v,s])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s&&s.html!=null?s.html:esc(s)}</div>${bars[l]||""}</div>`).join("");
   let h=`<thead><tr><th>Issue</th><th>State</th><th>Now</th><th>QA</th><th>Waits on · blocks</th><th>Branch</th><th>Board</th></tr></thead><tbody>`;
   (B.groups||[]).forEach(g=>{ const rs=ROWS.filter(r=>r.group===g.key).sort((a,b)=>a.order-b.order); if(!rs.length) return;
     h+=`<tr class="grp"><th colspan="7">${g.issue?pair(g.issue,g.title):esc(g.title)}</th></tr>`;
@@ -309,8 +343,13 @@ function render(){
   cards.push(`<div class="card"><h3>Roadmap <small>${(B.roadmap||[]).length} item${(B.roadmap||[]).length===1?"":"s"} · ${day(B.asOf||"")}</small></h3>${(B.roadmap||[]).length?`<ul class="issues">${B.roadmap.map(m=>`<li><span class="nm">${pair(m.issue,m.title)}</span><ul class="issues">${(m.items||[]).map(i=>`<li><span class="nm">${pair(i.issue,i.title)} <small>${esc(closedWord(i)||(i.state||"").toLowerCase())}</small></span></li>`).join("")}</ul></li>`).join("")}</ul>`:`<p class="lede">No tracking issue is open.</p>`}</div>`);
   const un=B.unscheduled||[];
   cards.push(`<div class="card"><h3>Unscheduled issues <small>${un.length} open · ${day(B.asOf||"")}</small></h3>${un.length?`<ul class="issues">${un.map(i=>`<li><span class="nm"><span class="sw" data-sys="${esc(i.system||"")}"></span>${pair(i.issue,i.title)}${i.labels&&i.labels.length?` <small>${esc(i.labels.join(" · "))}</small>`:""}</span></li>`).join("")}</ul>`:`<p class="lede">Every open issue sits on a roadmap item.</p>`}</div>`);
-  cards.push(`<div class="card"><h3>Plans and documents</h3><ul class="docs"><li><a href="${esc(BASE)}../dashboards/index.html">System dashboards</a> — the repository as built</li><li><a href="${esc(BASE)}README.md">docs/plans/README.md</a> — how to read a plan board</li>${ROWS.filter(r=>r.board).map(r=>`<li>${pair(r.issue,r.title)} — plan board</li>`).join("")}</ul></div>`);
+  cards.push(`<div class="card"><h3>Plans and documents</h3><ul class="docs">${!B.live&&LIVE_WB?`<li><a href="${esc(LIVE_WB)}">The live work board</a> — every run as it is now, on this machine</li>`:""}<li>${linkOr(sharedLink("repoPage"),"System dashboards")} — the repository as built</li><li>${linkOr(docHref(sharedLink("readme")),"docs/plans/README.md")} — how to read a plan board</li>${ROWS.filter(r=>r.board).map(r=>`<li>${pair(r.issue,r.title)} — plan board</li>`).join("")}</ul></div>`);
   $("#context").innerHTML=cards.join(""); paint($("#context"));
+  /* the Context's legend (GUIDANCE.md §2): the system swatches its cards drew, and the muted one of an issue with no system */
+  const sws=[...$("#context").querySelectorAll(".sw[data-sys]")].map(e=>e.dataset.sys), ctops=new Map();
+  sws.forEach(sl=>{ const s=sysOf(sl), k=s&&s.slot>=1&&s.slot<=6?s.slot:0; if(!ctops.has(k)) ctops.set(k,{c:sysColour(sl),n:new Set()}); ctops.get(k).n.add(k?(s.top||s.name):"no system recorded"); });
+  let ck=document.getElementById("context-key"); const kh=[...ctops.values()].map(v=>`<span><i class="sbar" style="--c:${v.c}"></i>${esc([...v.n].join(", "))}</span>`).join("");
+  if(!kh){ if(ck) ck.remove(); } else { if(!ck){ ck=document.createElement("div"); ck.className="key"; ck.id="context-key"; $("#context").parentElement.appendChild(ck); } ck.innerHTML=kh; }
   /* the footer (GUIDANCE.md §3): what the page corresponds to and what is authoritative; nothing more */
   $("#footer").innerHTML=`Corresponds to <code>docs/plans/${B.live?".live/":""}board.json</code>. Code and the Markdown beside this page are authoritative on any conflict.`;
   $("#source-view").textContent=JSON.stringify(B,(k,v)=>k==="level"?undefined:v,2); /* a work level is never shown (GUIDANCE.md §4) */
@@ -367,9 +406,16 @@ function startLive(){ const g=Date.parse(String(B.generated||"")); LIVE.last=isN
 
 const tabs=[...document.querySelectorAll(".tab")];
 function show(id){ tabs.forEach(t=>{ const on=t.id===id; t.setAttribute("aria-selected",String(on)); t.tabIndex=on?0:-1; document.getElementById(t.getAttribute("aria-controls")).hidden=!on; }); }
-tabs.forEach((t,i)=>{ t.addEventListener("click",()=>show(t.id)); t.addEventListener("keydown",e=>{ if(e.key==="ArrowRight"||e.key==="ArrowLeft"){ const j=(i+(e.key==="ArrowRight"?1:tabs.length-1))%tabs.length; tabs[j].focus(); show(tabs[j].id); } }); });
+tabs.forEach((t,i)=>{ t.addEventListener("click",()=>show(t.id)); });
+/* The tablist's keys (WAI-ARIA tabs; GUIDANCE.md §6): Left and Right move to the previous and next tab, Home and End to the first and the
+   last, each shown at once; only the selected tab is in the Tab order (a roving tabindex), so Tab moves on to the panel. */
+function tabKeys(list,go){ list.forEach((t,i)=>{ t.tabIndex=t.getAttribute("aria-selected")==="true"?0:-1; t.addEventListener("keydown",e=>{ const n=list.length, j={ArrowRight:(i+1)%n,ArrowLeft:(i+n-1)%n,Home:0,End:n-1}[e.key]; if(j==null) return; e.preventDefault(); list[j].focus(); go(list[j].id); }); }); }
+tabKeys(tabs,id=>show(id));
 render(); show(location.hash==="#source"?"t-source":"t-runs");
 startLive();
+/* the live views on this machine (above): the committed board names the live one; a Markdown link opens its rendered copy */
+liveMark(`${BASE}.live/index.js`,"board",b=>{ if(b&&!B.live){ LIVE_WB=relTo(`${BASE}.live/index.js`,String(b)); render(); } });
+liveMark(`${BASE}.live/docs/index.js`,"docs",d=>{ if(Array.isArray(d)){ LIVE_DOCS=new Set(d.map(String)); render(); } });
 </script>
 </body>
 </html>

@@ -8,12 +8,63 @@
 // With --parent, the new board links its parent's board (parent.board, set by embed.js only when the parent folder holds one), and
 // embed.js re-embeds the tracking board in the parent folder, which links its unit to the new board (plan/RULES.md §1) and, once
 // the unit is in its wip.current, mirrors the unit's run from the new board (§3). Every later embed.js of this folder does the same.
+//
+//   node new.js --batch <tracking folder> [--root <repo>] [--units id,id] [--baseline <sha>] [--date YYYY-MM-DD]
+// The batch mode (plan/RULES.md §4, "boards-created"): once a tracking plan's units are filed as sub-issues, it lays every unit's board
+// that is not in the tree yet, inside the tracking folder as <issue>-<unit slug>/: a foundation that has not started (status planned, no
+// step, nothing glowing), its title, systems and parent from the unit row. Its Gap and Considered columns are the presenter's, from the
+// tracking issue's documents (research/README.md, architecture.md: the unit's row in the decomposition, the alternatives weighed for
+// it); the tracking board is re-embedded, which links each unit to its new board. --units limits it to those unit rows. A later "sized"
+// event starts the board in place.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
-const { repoRoot, opt, registry, signedOffParent, glowFor } = require("./lib.js");
+const { repoRoot, opt, registry, signedOffParent, glowFor, subIssueBoard } = require("./lib.js");
 const { embed } = require("./embed.js");
 
 const args = process.argv.slice(2);
+/* A tracking issue (level 4) runs its own steps up to its architecture and the landing of its plan; then "implementation" spans its
+   units' runs, each on its own board, from the first unit's start until the last unit lands, and "landed" follows (plan/RULES.md §3). */
+const STEPS_BY_LEVEL = {
+  2: ["sizing", "research", "plan", "branch", "implementation", "qa", "remediation", "landing", "landed"],
+  3: ["sizing", "interview", "research", "plan", "branch", "implementation", "qa", "remediation", "landing", "landed"],
+  4: ["sizing", "interview", "research", "architecture", "sub-issues", "boards", "landing", "implementation", "landed"]};
+if (args.includes("--batch")) { batch(args); process.exit(0); }
+function batch(a) {
+  require("../../system/scripts/cliargs.js").strict(a, { usage: "usage: node new.js --batch <tracking folder> [--root <repo>] [--units id,id] [--baseline <sha>] [--date YYYY-MM-DD]", valued: ["batch", "root", "units", "baseline", "date"], max: 0 });
+  let root; try { root = repoRoot(a); } catch (e) { console.error(e.message); process.exit(2); }
+  const given = opt(a, "batch", ""), tdir = path.resolve(root, given.startsWith("docs/") || given.startsWith("docs\\") ? given : path.join("docs", "plans", given));
+  if (!fs.existsSync(path.join(tdir, "plan.json"))) { console.error(`${given} holds no plan.json: name the tracking issue's folder`); process.exit(2); }
+  const tp = JSON.parse(fs.readFileSync(path.join(tdir, "plan.json"), "utf8"));
+  if (tp.kind !== "tracking") { console.error(`${given} is #${tp.issue}'s board, not a tracking board`); process.exit(2); }
+  const only = (opt(a, "units", "") || "").split(",").filter(Boolean), reg = registry(root), tpl = path.resolve(__dirname, "..", "template");
+  const now = new Date().toISOString().replace(/\.\d+Z$/, "Z"), trel = path.relative(root, tdir).split(path.sep).join("/");
+  let base = opt(a, "baseline", null); if (!base) { try { base = cp.execSync("git rev-parse --short HEAD", { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch (e) { base = (tp.baseline || {}).sha || "<sha>"; } }
+  const made = [], kept = [];
+  (tp.rows || []).filter(r => r && r.unit && (!only.length || only.includes(r.id))).forEach(r => {
+    const u = r.unit;
+    if (!Number.isInteger(u.issue) || u.issue <= 0) { kept.push(`${r.id}: no sub-issue filed yet`); return; }
+    if (subIssueBoard(tdir, u)) { kept.push(`${r.id}: #${u.issue} has a board`); return; }
+    const slug = String(u.slug || r.id).replace(/^\d+-/, ""), name = `${u.issue}-${slug}`, dir = path.join(tdir, name), rel = `${trel}/${name}`;
+    if (fs.existsSync(path.join(dir, "plan.json"))) { kept.push(`${r.id}: ${rel}/plan.json exists`); return; }
+    const plan = JSON.parse(fs.readFileSync(path.join(tpl, "plan.json"), "utf8")); delete plan.$comment;
+    const level = Number.isInteger(u.level) ? u.level : null;
+    Object.assign(plan, { repo: tp.repo, issue: u.issue, slug: name, folder: rel, kind: "issue", level, title: r.name, issueTitle: u.title || r.name,
+      /* a true sentence until the presenter writes the unit's own function from the documents */
+      function: `${r.name}: unit ${u.n != null ? u.n + " " : ""}of #${tp.issue}, its board laid from #${tp.issue}'s architecture. Its own plan is written when its run starts.`, status: "planned", parent: { issue: tp.issue, board: null }, branch: null,
+      baseline: { ref: (tp.baseline || {}).ref || "master", sha: base, date: opt(a, "date", now.slice(0, 10)) }, asBuilt: null,
+      systems: [r.system].filter(Boolean).map(s => (reg && reg.info(s)) || (tp.systems || []).find(x => x && x.slug === s) || { slug: s, name: s, slot: 0, top: s, status: "built", page: null }),
+      /* not started: no step, nothing glows, the steps its run will take; "sized" starts it in place (plan/RULES.md §4) */
+      wip: { step: null, since: now, updated: now, detail: "", steps: STEPS_BY_LEVEL[level] || STEPS_BY_LEVEL[3], current: [], questions: [], research: null, interview: [], plan: null, stages: [], remediation: null, open: [], event: { name: "boards-created", at: now }, next: null, qa: [], qaMax: 3, waitingOn: null, resume: null, blockers: { waitsOn: (u.blockedBy || []).map(n => ({ issue: n })), blocks: [] }, landing: null },
+      milestones: [], trail: [{ date: now.slice(0, 10), column: "gap", label: `Board laid from #${tp.issue}'s architecture; not started` }], rows: [], impact: null, roadmap: null, followUps: [], documents: [], notes: {} });
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(plan, null, 2) + "\n");
+    fs.copyFileSync(path.join(tpl, "dashboard.html"), path.join(dir, "dashboard.html"));
+    embed(dir); made.push(rel);
+  });
+  made.forEach(m => console.log(`laid ${m}: not started; fill its Gap and Considered columns (and its function) from #${tp.issue}'s research/README.md and architecture.md, then embed.js and check.js`));
+  kept.forEach(k => console.log(`left: ${k}`));
+  console.log(`${made.length} board${made.length === 1 ? "" : "s"} laid in ${trel}${made.length ? "; the tracking board is re-embedded and links them" : ""}`);
+}
 require("../../system/scripts/cliargs.js").strict(args, { usage: "usage: node new.js <issue> <slug> [--root <repo>] [--parent <folder>] [--kind issue|tracking] [--level n] [--title ...] [--issue-title ...] [--function ...] [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems a,b] [--step <step>] [--repo owner/name]",
   valued: ["root", "parent", "kind", "level", "title", "issue-title", "function", "baseline", "date", "branch", "systems", "step", "repo"], min: 2, max: 2 });
 const issue = parseInt(args[0], 10), slug = args[1];
@@ -37,12 +88,6 @@ delete plan.$comment;
 const level = opt(args, "level", null), kind = opt(args, "kind", level === "4" ? "tracking" : "issue");
 const now = new Date().toISOString().replace(/\.\d+Z$/, "Z");
 const step = opt(args, "step", "research"); // its wip.current comes from the step-to-column map (plan/RULES.md §3): lib.js glowFor()
-/* A tracking issue (level 4) runs its own steps up to its architecture and the landing of its plan; then "implementation" spans its
-   units' runs, each on its own board, from the first unit's start until the last unit lands, and "landed" follows (plan/RULES.md §3). */
-const STEPS_BY_LEVEL = {
-  2: ["sizing", "research", "plan", "branch", "implementation", "qa", "remediation", "landing", "landed"],
-  3: ["sizing", "interview", "research", "plan", "branch", "implementation", "qa", "remediation", "landing", "landed"],
-  4: ["sizing", "interview", "research", "architecture", "landing", "implementation", "landed"]};
 Object.assign(plan, {
   repo: repo || plan.repo,
   issue, slug: name, folder: rel, kind,
