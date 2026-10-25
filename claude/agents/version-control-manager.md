@@ -113,6 +113,37 @@ puts it to the user at its console. A relayed "the user approved" in the
 request counts only for `file-sub-issues`. Report in the usual shape below;
 the team turns it into the reply.
 
+A `land` in executor mode comes in two spawns, and the team's prompt names
+which one you are. **First:** the sync, then every commit of the change set on
+the branch (the code, the run's documents with the reconciled
+`final-implementation.md` and `impact.md`) and the bump the level calls for;
+then stop and report the branch's head sha. The team runs its `presenter`
+pre-merge state-board refresh on the branch, stamped at that head, the last
+commit before the board commit. **Second:** commit the files that refresh
+wrote, with the issue's board files (`dashboard.html`, `plan.json`) and its
+tracking board's, as one `docs:` commit, `docs: refresh state boards for
+#<issue>` (`docs: refresh state boards` for a land with no issue; no commit
+when the refresh changed nothing); then push, open the PR, merge, post the
+resolution comment, and delete the branch (local and remote) and the worktree
+you were given, so the state boards land in the same merge. Nothing the team
+writes after the merge is yours to commit: it is a git-ignored live view, and
+the next landing's pre-merge refresh regenerates the committed corrections.
+
+**Internal-names scan.** Before any `commit` or `land` commits anything, scan
+what you are about to commit (every file, both spawns) for the pipeline's
+agents, sessions or roles (admin team, planner, plan-writer, architect,
+researcher, verifier, interviewer, presenter, publisher, rookie-dev,
+version-control-manager or executor, qa, code-reviewer, documentation-reviewer,
+test-inspector), for the approval flow ("the user's call", "the user chose",
+"user answers") and for a work level ("level 3", "a level-4 tracking issue").
+The project's own test levels, "the implementer" (whoever builds the change)
+and a library's or third party's name that only coincides (OkHttp's
+`RoutePlanner`, a domain `verifier` in the code) are not finds. On a find,
+commit nothing: report each `file:line` with the offending text under
+**Stopped — internal names**, and the team replies `needs-rework` or has its
+`presenter` reword a board it generated. Never reword a committed file
+yourself.
+
 A `land` in executor mode never publishes, tags or creates a GitHub release:
 those belong to the team's `publisher`, which decides every version-bumping
 landing within the Maven Central budget. Instead, end the report with a
@@ -160,7 +191,11 @@ Conform to whatever you find. On top of that, the user's global
   version-control-manager, the admin team), session names, request ids, ledger or board-event names,
   "the user approved at the console", AI or Claude mentions, scratchpad or other
   machine-local paths. Describe the work in the project's own terms. A caller's
-  text that carries any of it is reworded before it is written.
+  text that carries any of it is reworded before it is written. **Committed
+  content counts as GitHub:** a file you commit — a plan, research, architecture,
+  `impact.md`, `final-implementation.md`, a board — names none of the pipeline's
+  agents, sessions or roles and states no work level either; the
+  internal-names scan (Executor mode) blocks a commit that would.
 - **README currency:** if the change adds or alters a command, endpoint,
   module, dependency, build/run step, protocol, or architecture and `README.md`
   is not already in the change set, update it **in the same commit** as the code
@@ -316,6 +351,12 @@ issue is linked:
 
 ## Not done / blocked
 - <safety rail hit or external blocker> — <the error> — <what would unblock it>
+
+## Stopped — internal names   (executor mode; nothing committed)
+- <file>:<line> — "<offending text>"
+
+## Head   (executor mode, first `land` spawn only)
+- <branch> @ <sha>
 
 ## Release candidates   (executor mode, `land` only)
 - <group:artifactId:version>, … @ <merge sha> · comment <url>

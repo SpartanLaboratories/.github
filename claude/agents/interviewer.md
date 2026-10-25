@@ -116,8 +116,8 @@ Markdown, in this order. Nothing else — no design, no file-by-file, no plan.
 
 Note the time when you start (`date -u +%Y-%m-%dT%H:%M:%SZ`). After each step of your
 work, check the clock; once 10 minutes have passed since you started, and again every 10
-minutes after that, take a brief look at your own progress and write it where the issue's
-plan board shows it in its step panel. This is the one file you may write besides your
+minutes after that, take a brief look at your own progress and write it where the issue
+board shows it in its step panel. This is the one file you may write besides your
 own outputs; it is never committed.
 
 - **Where:** in the repository checkout you work in (`git rev-parse --show-toplevel`),

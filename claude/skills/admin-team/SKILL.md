@@ -71,8 +71,8 @@ A pipeline's steps map to actions like this:
 |---------------|--------|
 | Branch setup, recording the confirmed level | `setup-branch` |
 | A worktree for a concurrent run | `allocate-worktree` (the reply carries the path) |
-| The planner's research commits | `commit` (fire-and-forget; the reply lands in your session) |
-| Landing a change set | `land` (includes the resolution comment and the landing refresh of shared dashboards) |
+| The planner's research commits | `commit` (fire-and-forget; the reply lands in your session, and a `needs-rework` one still needs acting on) |
+| Landing a change set | `land` (includes the resolution comment and the state-board refresh on the branch before the merge) |
 | Filing a level-4 sub-issue list the user approved | `file-sub-issues` |
 | A defect or concern found in a Spartan Labs repo | `file-issue` against the repo the fix belongs in, with `title`, `body` and `surfacedIn`; tell the user what was filed |
 | A comment or label on an issue | `comment`, `label` |
@@ -97,7 +97,7 @@ wait.
 | `done` | Carry `result` forward (SHAs, PR, merge commit, comment link, worktree path). For a `land`, `result.release` says whether the bump was `published` (coordinates, tags, release URLs), `deferred` (reason, usage) or `failed` (the user decides at the team's console); `none` means no published module moved. |
 | `rejected` | Read `reason`. Fix the request and send it with a **new** `id`. If the reason is a rule you cannot meet, stop and tell the user. |
 | `needs-user` | The team is waiting on the user at its own console or in the Remote Control app. Tell the user so, naming the request and what it waits on, and end your turn. |
-| `needs-rework` | The base moved under files your branch touches (`result.overlap`). Re-verify: re-run the change's own tests, and `qa` if the overlap touches code the change altered; fix what breaks; then resend the same `id` with `attempt + 1` and the fresh `qa` verdict. |
+| `needs-rework` | Either the base moved under files your branch touches (`result.overlap`): re-verify: re-run the change's own tests, and `qa` if the overlap touches code the change altered; fix what breaks; then resend the same `id` with `attempt + 1` and the fresh `qa` verdict. Or, for a `commit` or `land`, content about to be committed names the pipeline's agents, sessions or roles, the approval flow, or a work level (`result.finds`, each `file:line`; nothing was committed): reword each find in the project's own terms (or have the agent that wrote the file reword it), then resend the same `id` with `attempt + 1`. |
 | `warning` | Another in-flight branch touches the same hand-written file. Tell the user; carry on. |
 
 Never resend a request verbatim (the harness drops identical repeats): a retry

@@ -8,8 +8,8 @@ description: >-
   level-2 small fix gets a short test-first plan, a level-3 small feature gets
   the interview-research-plan pipeline, and level-4 multi-system work is
   planned to the architecture only and split into sub-issues, with nothing
-  built. Before landing, the presenter agent updates the repository's system
-  dashboards (docs/dashboards/) to show what was built, or what is planned,
+  built. Before landing, the presenter agent updates the repository's state
+  boards (docs/dashboards/) to show what was built, or what is planned,
   as such. The admin team handles version control autonomously, releases every
   version-bumping landing to Maven Central within its monthly budget, stops only
   at its gates - a history rewrite, deleting what it did not create - and reports
@@ -47,8 +47,22 @@ skill runs a different pipeline per level:
 | 3. Branch | `admin team`: `setup-branch` | `admin team`: `setup-branch` | `admin team`: `setup-branch` | `admin team`: `setup-branch` |
 | 4. Implement | `rookie-dev` from the issue text | `rookie-dev`, test-first | `rookie-dev` | **skipped** |
 | 5. Check | `qa level:1` | `qa level:2` | `qa level:3` | **skipped** |
-| 5b. Present | **skipped** | **skipped** — the admin team's landing refresh | **skipped** — the admin team's landing refresh | **skipped** — the landing refresh draws the planned systems |
+| 5b. Present | **skipped** | **skipped** — the admin team's state-board refresh inside the land | **skipped** — the admin team's state-board refresh inside the land | **skipped** — the state-board refresh inside the land draws the planned systems |
 | 6. Land | `admin team`: `land`, no bump | `admin team`: `land`, fix bump | `admin team`: `land`, feature bump only with a downstream effect | `admin team`: `land` (docs PR with `Refs`) then `file-sub-issues` |
+
+**No internal names in committed content.** Every document and board this run commits (plans,
+research, architecture, `impact.md`, `final-implementation.md`, the issue board) never names
+the pipeline's agents, sessions or roles (admin team, planner, plan-writer, architect,
+researcher, verifier, interviewer, presenter, publisher, rookie-dev, version-control-manager or
+executor, qa, code-reviewer, documentation-reviewer, test-inspector), never refers to the
+approval flow ("the user's call", "the user chose", "user answers"), and never states a work
+level ("level 3", "a level-4 tracking issue"). That covers the text you send in `plan-board`
+facts (`detail`, `open`, `questions`, `reason`), which lands on the committed issue board. The
+project's own test levels (Level 2 component, 4a, …), "the implementer" (whoever builds the
+change) and a library's name that only coincides (OkHttp's `RoutePlanner`) are fine. Carry the
+rule in every brief to an agent that writes a document. A `commit` or `land` whose content
+breaks it is blocked: the team commits nothing and replies `needs-rework` with `result.finds`
+(`file:line`); reword each find and resend the same `id` with `attempt + 1`.
 
 ## 1. Pick and size the issue
 
@@ -115,9 +129,10 @@ sub-issues yet is not planned: work it as an ordinary issue, at its level.
   the worktree once the run lands.
 - **Landing one at a time** is the admin team's job: its lane lands one
   change set at a time, brings each branch up to date with `master` first, and
-  refreshes the shared dashboards and README after each merge. A
-  `needs-rework` reply means the base moved under the run's files: re-verify
-  per the skill and resend.
+  refreshes the state boards and README on the branch before each merge. A
+  `needs-rework` reply means the base moved under the run's files, or its
+  content names the pipeline or a work level: re-verify or reword per the
+  skill and resend.
 - **Halts.** When one run stops for the user — a planner halt, an escalation,
   a `qa` failure, a `version-control-manager` "needs you" item — only what depends on it waits.
   `consecutive` waits at that sub-issue; `concurrent` keeps running every
@@ -222,8 +237,8 @@ level if it differs", and — for levels 3–4 — the research commit SHAs
 creates the topic branch. Carry forward the branch name and base its `done`
 reply reports.
 
-**Level 4:** go straight to step 6; the landing refresh draws the planned
-systems.
+**Level 4:** go straight to step 6; the state-board refresh inside the land
+draws the planned systems.
 
 ## 4. Implement — `rookie-dev`  (levels 1–3)
 
@@ -274,10 +289,10 @@ the path to the visual test report.
 ## 5b. Present — no pipeline step
 
 The presenter is not a pipeline step. It runs as a service of the `admin
-team` session: every landing (step 6) ends with its **landing refresh** of the
-system dashboards (the changed system's page, the shared pages, the registry,
-the README pointer; at level 4 the planned systems), and the issue's **plan
-board** is kept up by the `plan-board` events you send at each step transition
+team` session: every landing (step 6) includes its **refresh** of the
+state boards (the changed system's board, the supersystem and repository state
+boards, the registry, the README pointer; at level 4 the planned systems), and
+the **issue board** is kept up by the `plan-board` events you send at each step transition
 (see "Plan-board events" below). Send nothing here; go on to step 6.
 
 - If it reports `BLOCKED — system unresolved`, **stop** and ask the user
@@ -335,16 +350,20 @@ and `publish: true` only if **the user asked for a publish this run** (it lets
 the release use the budget's reserve; every version-bumping landing is
 considered for release regardless). The
 team's executor carries out the commits, the version bump the level calls for,
-the PR, the merge, an upstream issue if the work exposed one, and the
+the reconciled documents, then (after the presenter's state-board refresh on
+the branch, stamped at that head) one `docs:` board commit, the PR, the
+merge, an upstream issue if the work exposed one, and the
 **issue-resolution comment** (steps taken + links to any plan/design docs);
 then its publisher releases a moved published-module version to Maven Central
 when the monthly budget allows (`result.release` in the reply: `published`,
-`deferred`, `failed` or `none`); then the team runs the presenter's landing
-refresh (the system dashboards, the
-issue's plan board as `landed`, the work board) and removes the branch and any
-worktree it allocated. Wait for the reply: a
+`deferred`, `failed` or `none`); then the team shows the landed state in the
+live view (the next landing in the repository commits this landing's issue
+board as `landed`, its tracking board and the repository work board) and
+removes the branch and any worktree it allocated. Wait for the reply: a
 `needs-rework` means the base moved under the run's files — re-verify and
-resend the same `id` with `attempt + 1`; a `needs-user` means a gate is
+resend the same `id` with `attempt + 1` — or, with `result.finds`, that a
+committed file names the pipeline or a work level — reword each `file:line`
+and resend the same `id` with `attempt + 1`; a `needs-user` means a gate is
 waiting on the user at the team's console.
 
 **Level 4** lands the planning documents only: a `docs:` PR that says
