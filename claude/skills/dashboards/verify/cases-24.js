@@ -216,8 +216,8 @@ module.exports = function cases24(X) {
   guard("the feature probe of this run: the template carries it, the template as dashboards-skill/23 left it does not (dashboards-skill/24)", c => {
     const miss = F.probe(T, "plan-board").filter(m => m.id === "finished-steps");
     c.push(["the plan-board template carries \"finished-steps\"", !miss.length, miss.map(F.line).join(" | ")]);
-    const rec = JSON.parse(rd(sk("verify/verified.json"))).templates["plan/template/dashboard.html"], v = rec && rec.history && rec.history.find(x => /dashboards-skill\/23/.test(x.note || ""));
-    const old = v ? rd(sk("verify/history/" + v.file)) : null;
+    /* the recorded version, from verify/history/ or rebuilt from the mirror's git history (system/scripts/history.js) */
+    const old = require(sk("system/scripts/history.js")).readVersion(sk("plan/template/dashboard.html"), x => /dashboards-skill\/23/.test(x.note || ""), { historyRepo: X.historyRepo });
     c.push(["the template as dashboards-skill/23 left it misses it, named with its step", !!old && F.probe(old, "plan-board").some(m => m.id === "finished-steps" && m.since === "dashboards-skill/24"), old ? F.probe(old, "plan-board").map(m => m.id).join(", ") : "no recorded history"]);
     const f = F.FEATURES.find(x => x.id === "finished-steps");
     c.push(["it fits the plan boards only, with the reason for each type it does not", !!f && JSON.stringify(f.types) === '["plan-board"]' && ["system", "supersystem", "work-board"].every(k => f.notFor && /no progress strip/.test(f.notFor[k])), JSON.stringify(f && f.notFor)]);

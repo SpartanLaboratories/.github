@@ -41,7 +41,7 @@ This set ships, under `skills/dashboards/system/`:
 | `scripts/check-page.js` | The browser checker for **every** dashboard page, system and plan alike (§9); `--auto` checks only what a page adds to its template; `--auto --no-browser` runs every check that needs no browser and names the pass it defers. |
 | `scripts/deviation.js` | How far a page deviates from its template (used by `--auto`; not a command). |
 | `scripts/features.js` | The per-page feature probes: one detector per template feature, its skill step and the page types it fits (`GUIDANCE.md` §8, "Features"; not a command). |
-| `scripts/splice.js` | Brings a state page onto its current template: the template's CSS, script before MODEL and renderer carried onto the page, three ways for a declared divergence, the page-filled lines and the page's own content kept, old chips relabelled, a missing state block added (§8). The landing refresh runs it. |
+| `scripts/splice.js` | Brings a state page onto its current template: the template's CSS, script before MODEL and renderer carried onto the page, three ways for a declared divergence, the page-filled lines and the page's own content kept, old chips relabelled, a missing state block added (§8). The landing refresh runs it. Its merge bases come through `scripts/history.js`, which rebuilds a recorded version missing from the local `verify/history/` cache from the `.github` mirror's git history (`--history-repo <clone>`, else `gh api`) and warns on one it cannot find (§8). |
 | `scripts/palette.js` | The shared system palette (six slots, light and dark) and the status-hue rule that `check.js` and `check-page.js` apply (`GUIDANCE.md` §1; not a command). |
 | `../verify/verify-templates.js` | Verifies every template once with the fixtures in `../verify/fixtures/` and records its hash in `../verify/verified.json`; run it after any template change. |
 
@@ -310,6 +310,12 @@ append rather than reorder.
    repository's `_template/`, or the existing page on an update) and write `workspace.dsl`. An existing page is first brought onto the
    current template with `node scripts/splice.js <page>` (the landing refresh does it for every state page it touches, and the
    repository and supersystem pages): read its report, settle any conflict it names, fill any new page-filled line it names.
+   The splice merges from the template versions `verify/verified.json` records; their text is cached in `verify/history/`, which
+   is local and kept out of the `.github` mirror. A version missing from the cache is rebuilt on demand (`scripts/history.js`)
+   from the mirror's git history at `claude/skills/dashboards/<template path>`, from a local clone given with
+   `--history-repo <path>`, else through `gh api`, matched by its recorded LF-normalised sha256 and written back into the cache.
+   A version nothing matches is a `WARNING` in the report (say so in yours); with none left to read, the splice is two-way, the
+   page against the current template alone, so check the parts it replaced.
    **Go off the template** (`GUIDANCE.md` §3): change only what the facts require — the DSL, the
    `MODEL`, the hand-written panels, the header — and leave the template's CSS, tab set and
    renderer script as they are. Anything beyond that (an optional tab, a removed core tab, a

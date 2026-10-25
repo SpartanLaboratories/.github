@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Verify the dashboard templates once, so pages made from them need not be (GUIDANCE.md §8).
-//   node verify/verify-templates.js [--root <repo>] [--out <dir>]
+//   node verify/verify-templates.js [--root <repo>] [--out <dir>] [--history-repo <clone of SpartanLaboratories/.github>]
 // Renders each template with its fixtures into a scratch folder and runs system/scripts/check-page.js on every rendering, in
 // light, dark, 520 px, a 390 px frame and a 1920 x 1080 desktop window. When every pass of a template passes, records the template's sha256 in
 // verify/verified.json (the skill's templates) or in <repo>/docs/{plans,dashboards}/_template/verified.json (a repository's own
@@ -54,15 +54,20 @@
 // phases, the run's start and the qa passes' times, a reference's section number before its excerpt, a work level in the facts reworded
 // and this run's feature probes. And the decisions of dashboards-skill/24 (verify/cases-24.js): the finished steps on a plan board's progress
 // strip clickable, each step's snapshot frozen into wip.history by the fast path (each remediation loop and each qa pass apart), check.js on
-// it, a step with no snapshot reconstructed, a tracking board's unit through its mirror and its own steps, and this run's feature probe. A
+// it, a step with no snapshot reconstructed, a tracking board's unit through its mirror and its own steps, and this run's feature probe. And
+// verify/history/ as a local cache, kept out of the .github mirror (dashboards-skill/27, verify/cases-27.js): a recorded version missing from
+// it rebuilt on demand from the mirror's git history (system/scripts/history.js; the case groups read the old versions through it too, from a
+// local clone with --history-repo, else through gh api), and the splice's warning and two-way fallback when nothing matches. A
 // template is recorded only when its browser passes and every case group pass.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { recordFile, sha, norm } = require(path.join(__dirname, "..", "system", "scripts", "deviation.js"));
 const SKILL = path.resolve(__dirname, "..");
-require(path.join(__dirname, "..", "system", "scripts", "cliargs.js")).strict(process.argv.slice(2), { usage: "usage: node verify/verify-templates.js [--root <repo>] [--out <dir>]", valued: ["root", "out"], max: 0 });
+require(path.join(__dirname, "..", "system", "scripts", "cliargs.js")).strict(process.argv.slice(2), { usage: "usage: node verify/verify-templates.js [--root <repo>] [--out <dir>] [--history-repo <clone of SpartanLaboratories/.github>]", valued: ["root", "out", "history-repo"], max: 0 });
 const args = process.argv.slice(2), opt = (n, d) => { const i = args.indexOf("--" + n); return i >= 0 ? args[i + 1] : d; };
 const out = path.resolve(opt("out", path.join(os.tmpdir(), "dashboards-verify")));
+/* a local clone of the .github mirror, for the case groups that read an old template version missing from verify/history/ (history.js) */
+const historyRepo = opt("history-repo", null);
 const checker = path.join(SKILL, "system", "scripts", "check-page.js");
 /* light, dark, the narrowest window headless Chrome lays out, a phone-width frame, and a 16:9 desktop (the wide layout) */
 const MODES = [[], ["--theme", "dark"], ["--width", "520"], ["--frame", "390"], ["--width", "1920", "--height", "1080"]];
@@ -1967,29 +1972,36 @@ targets.filter(t => t.block === "plan").forEach(t => {
    links only to files that exist and the live view first, the work-board link on the state pages, the tablists' keys, the clean-ups, the
    theme remembered across pages, no issue above Context, the rendered Markdown copies, the tracking issue's unit boards and its two steps,
    the agents' progress notes, built or planned from the code. */
-try { require("./cases-26.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData }).forEach(([what, cases]) => report(what, cases)); }
+try { require("./cases-26.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/26 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The decisions of admin-team/dashboards-skill/22 (verify/cases-22.js): the KPI tiles' legends inside each tile, the larger charging arrow, the
    team-raised landing event, the header (no "board" tag, the title's #n, the issue line, "since" said once), board.js keeping "unassigned"
    from every checkout, the research-planning glow with and without rows, the Tests tab, and this run's feature probes. */
-try { require("./cases-22.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData }).forEach(([what, cases]) => report(what, cases)); }
+try { require("./cases-22.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/22 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The decisions of admin-team/dashboards-skill/23 (verify/cases-23.js): the Timeline tile's bar on a landed board (the time per phase in
    neutral ink shades, a phase with no bound named; a tracking board's own phases), the run's start and the qa passes' times stamped, a
    reference's section number before its excerpt, a work level in the pipeline's facts reworded, and this run's feature probes. */
-try { require("./cases-23.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData }).forEach(([what, cases]) => report(what, cases)); }
+try { require("./cases-23.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/23 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The decisions of admin-team/dashboards-skill/24 (verify/cases-24.js): the finished steps on a plan board's progress strip clickable: the
    snapshots apply-event.js freezes into wip.history (each remediation loop and each qa pass apart; deterministic, idempotent), new.js's sizing,
    the standing rule's on a tracking board, check.js on wip.history, the reconstruction of a step with no snapshot, the template's buttons,
    panel, viewing line and selection across the live redraw, a tracking board's unit and own steps, and this run's feature probe. */
-try { require("./cases-24.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData }).forEach(([what, cases]) => report(what, cases)); }
+try { require("./cases-24.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/24 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
+/* The decisions of admin-team/dashboards-skill/27 (verify/cases-27.js): verify/history/ is a local cache, kept out of the .github mirror; a
+   recorded version missing from it is rebuilt on demand from the mirror's git history (history.js; a fixture clone, and gh api through a
+   stand-in), a damaged copy rebuilt over, and a version nothing matches warned on, the splice two-way when none is left. */
+try { require("./cases-27.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the dashboards-skill/27 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
 const today = new Date().toISOString().slice(0, 10);
+const COMMENT = "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last full verification. check-page.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.";
 targets.forEach(t => {
   const tpl = fs.readFileSync(t.path, "utf8"), results = [];
   t.fixtures.forEach(fx => {
@@ -2012,7 +2024,7 @@ targets.forEach(t => {
   if (linkFailures) { console.log(`  not recorded: a case group above failed`); failures++; return; }
   const { file, key } = recordFile(t.path);
   let rec = {}; try { rec = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) { /* first record */ }
-  rec.$comment = "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last full verification. check-page.js --auto and check.js --auto trust a template only while its hash matches.";
+  rec.$comment = COMMENT;
   rec.templates = rec.templates || {};
   /* the history (system/scripts/splice.js reads it): every verified version of the template, its text kept in history/ beside verified.json,
      so a page made from an older version is spliced three ways from the version it was made from */

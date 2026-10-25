@@ -264,7 +264,8 @@ module.exports = function cases22(X) {
     c.push(["features.js holds this run's seven detectors, tagged dashboards-skill/22", JSON.stringify(mine.map(f => f.id).sort()) === JSON.stringify(ids.slice().sort()), mine.map(f => f.id).join(", ")]);
     c.push(["the plan-board template carries each", !F.probe(T.plan, "plan-board").length, F.probe(T.plan, "plan-board").map(F.line).join(" | ")]);
     c.push(["the work-board template carries each it takes (the tiles' legends, no board tag)", !F.probe(T.work, "work-board").length && F.applicable("work-board").filter(f => f.since === 22).map(f => f.id).sort().join(",") === "kpi-tile-legends,no-model-tag", F.probe(T.work, "work-board").map(F.line).join(" | ")]);
-    const hist = (n, note) => { const r = JSON.parse(rd(sk("verify/verified.json"))).templates[n]; const v = r && r.history && r.history.find(x => new RegExp(note).test(x.note || "")); return v ? rd(sk("verify/history/" + v.file)) : null; };
+    /* a recorded version, from verify/history/ or rebuilt from the mirror's git history (system/scripts/history.js) */
+    const hist = (n, note) => require(sk("system/scripts/history.js")).readVersion(sk(n), x => new RegExp(note).test(x.note || ""), { historyRepo: X.historyRepo });
     const oldP = hist("plan/template/dashboard.html", "dashboards-skill/26"), oldW = hist("plan/template/board.html", "dashboards-skill/26");
     c.push(["the plan-board template as dashboards-skill/26 left it misses all seven", !!oldP && ids.every(id => F.probe(oldP, "plan-board").some(m => m.id === id)), oldP ? F.probe(oldP, "plan-board").map(m => m.id).join(", ") : "no recorded history"]);
     c.push(["the work-board template as dashboards-skill/26 left it misses the board tag's removal", !!oldW && F.probe(oldW, "work-board").some(m => m.id === "no-model-tag") && !F.probe(oldW, "work-board").some(m => m.id === "kpi-tile-legends"), oldW ? F.probe(oldW, "work-board").map(m => m.id).join(", ") : "no recorded history"]);

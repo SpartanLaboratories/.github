@@ -27,7 +27,8 @@ module.exports = function cases26(X) {
     Object.entries(T).forEach(([k, h]) => { const miss = F.probe(h, k); c.push([`the ${k} template carries every feature its type takes (${F.applicable(k).length})`, !miss.length, miss.map(F.line).join(" | ")]); });
     F.FEATURES.forEach(f => c.push([`the detector "${f.id}" names its step and, for each type it does not fit, the reason`, /^\d+$/.test(String(f.since)) && F.TYPES.every(t => f.types.includes(t) || (f.notFor && f.notFor[t])), JSON.stringify({ since: f.since, types: f.types, notFor: f.notFor })]));
     /* the template this run started from lacks this run's features: the probes say so */
-    const hist = n => { const r = JSON.parse(rd(sk("verify/verified.json"))).templates[n]; const v = r && r.history && r.history.find(x => /dashboards-skill\/25/.test(x.note || "")); return v ? rd(sk("verify/history/" + v.file)) : null; };
+    /* a recorded version, from verify/history/ or rebuilt from the mirror's git history (system/scripts/history.js) */
+    const hist = n => require(sk("system/scripts/history.js")).readVersion(sk(n), x => /dashboards-skill\/25/.test(x.note || ""), { historyRepo: X.historyRepo });
     const oldSys = hist("system/template/system.html");
     c.push(["the system template as dashboards-skill/25 left it misses this run's features (tab keys, the as-is header, the legends, the work-board link)", !!oldSys && ["tab-keys", "as-is-header", "guarantees-legend", "context-legend", "workboard-link"].every(id => F.probe(oldSys, "system").some(m => m.id === id)), oldSys ? F.probe(oldSys, "system").map(m => m.id).join(", ") : "no recorded history"]);
     /* check-page.js --auto --no-browser fails a missing feature through a declared divergence; --features-as-notes notes it */
@@ -48,7 +49,8 @@ module.exports = function cases26(X) {
 
   /* 2. the splice */
   { const c = [], SP = sk("system/scripts/splice.js"), tree = path.join(sc, "splice"), D = path.join(tree, "docs", "dashboards");
-    const hist = n => { const r = JSON.parse(rd(sk("verify/verified.json"))).templates[n]; const v = r && r.history && r.history.find(x => /dashboards-skill\/25/.test(x.note || "")); return v ? rd(sk("verify/history/" + v.file)) : null; };
+    /* a recorded version, from verify/history/ or rebuilt from the mirror's git history (system/scripts/history.js) */
+    const hist = n => require(sk("system/scripts/history.js")).readVersion(sk(n), x => /dashboards-skill\/25/.test(x.note || ""), { historyRepo: X.historyRepo });
     const old = hist("system/template/system.html") || T.system;
     const fill = h => h.replace(/^const REPO=.*$/m, 'const REPO="https://github.com/acme/widgets";').replace('<span class="chip"><span class="ck">platform</span> <b>Kotlin/JVM</b></span>', '<span class="chip"><b>v1.2.3</b></span>');
     const a = wr(path.join(D, "alpha", "index.html"), fill(old)), r = run(SP, [a, "--template", SYS]), after = rd(a);
