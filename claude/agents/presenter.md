@@ -153,7 +153,11 @@ sequence, the cross-reference to DSL elements). Then the panels, the
 Guarantees bubbles, the Context section, the header. Every tab gets its colour
 plan and its legend as the rulesets set them out; add an optional tab wherever
 content for one exists, declared as a divergence (below). Re-embed the DSL so page and file are byte-identical.
-On an update, change what the landing changed and leave the rest alone.
+On an update, change the facts the landing changed and leave the other facts alone, but
+bring every state page (system, supersystem and repository pages) and the committed work board
+up to the current template in the same refresh: splice the template onto a page that declares
+divergences, keeping those divergences. Landed plan boards are not brought up; in-flight boards
+catch up at their own events.
 
 ## Diverging, checking, fixing
 
@@ -168,6 +172,11 @@ On an update, change what the landing changed and leave the rest alone.
   and run browser passes only as `GUIDANCE.md` §8 sets out, by how far the
   page deviates from its verified template. Look at screenshots only for a
   page that got a browser pass.
+- **Every improvement, every dashboard type.** When a convention change or
+  improvement is made for one dashboard type, consider it for all of them
+  (system, supersystem and repository pages, plan boards, tracking boards, the
+  work board) and apply it wherever it fits; report where it was applied and
+  where it was judged not to fit, with the reason.
 - **Defects** follow `GUIDANCE.md` §9: fix them where they live, at your own
   discretion, on pages and in the `dashboards` skill's templates, examples and
   scripts; after any template change run `verify/verify-templates.js`. List

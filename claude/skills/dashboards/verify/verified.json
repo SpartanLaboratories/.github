@@ -36,7 +36,7 @@
       ]
     },
     "system/template/system.html": {
-      "sha256": "13b25108adb3986840bb5793114984aa1a46f0d89b53252d3759ba8a8a91459f",
+      "sha256": "cb1c69615c819c1a1b527242061e54d187d9ade0b1347fa92f0498f10b8d9a39",
       "verified": "2026-10-25",
       "fixtures": [
         "placeholder"
@@ -50,7 +50,7 @@
       ]
     },
     "system/template/supersystem.html": {
-      "sha256": "1a1739eecb482f9cd58a76ea7bd296af7e7df43170562a05e0790d6a84deed7d",
+      "sha256": "f9c135b6098dd29432e52c88a80e3fa26431e1ff953e1981b64e595bb5fe0d42",
       "verified": "2026-10-25",
       "fixtures": [
         "placeholder"

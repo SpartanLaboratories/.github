@@ -161,8 +161,8 @@ supersystem and repository pages' tabs, the work board's.
 
 ## 3. A page is a template plus data
 
-A page is never hand-edited. Its content lives in a data file beside it (`workspace.dsl` and
-`systems.json` for system pages; `plan.json` for a plan board; `board.json` for the work
+A page is never hand-edited. Its content lives in a data file beside it (`workspace.dsl`,
+`systems.json` and `state.json` for system pages; `plan.json` for a plan board; `board.json` for the work
 board), embedded **verbatim** into the page by the set's `embed.js`. To change a page, change
 the data and re-embed; to change the look, change the template and re-embed every page that
 uses it. The set's checker fails a page whose embedded copy differs from its data file.
@@ -191,8 +191,9 @@ is not in this form.
 A dashboard tells the truth about a named commit. Facts come from the code, the documents in
 the repo, the issue tracker and the pipeline's own reports — never from memory of what a
 system "usually" does, and never invented to fill a panel. An empty cell that says "not yet
-documented" is correct; a plausible guess is not. A system page shows the code as built;
-anything planned is drawn dashed and tagged, and never as built. A plan board's first three
+documented" is correct; a plausible guess is not. A system page shows the code as built at the commit it names — the
+default branch's, or while a feature branch's work is shown on that branch, the branch's, stamped "not yet landed"
+(`system/RULES.md` §10); anything planned is drawn dashed and tagged, and never as built. A plan board's first three
 columns are written once and never rewritten to match what happened; the fourth records every
 difference.
 

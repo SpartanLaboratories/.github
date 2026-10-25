@@ -30,13 +30,21 @@
 // board that is a verified template plus its data; one light pass for a system page whose CSS, tabs, script before MODEL (less its
 // page-filled lines, REPO and SRC) and renderer are the verified template's (the facts it fills in); the full pass (light, dark, 520 px, a 390 px frame, 1920 x 1080 desktop) for a page that diverges — declared or
 // not — or whose template changed since verify/verify-templates.js last verified it.
+//
+//   node check-page.js <page.html> --auto --no-browser
+//
+// --no-browser runs every check that needs no browser (the palette, the DSL's dashes, the board links, the git-ignore check, and the
+// page's data: its state block, the embedded copies of state.json, workspace.dsl and systems.json, its part references; system/RULES.md
+// §9) and names the browser pass it defers. The data-only path of a state page (apply-state.js, system/RULES.md §10) runs it.
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const args = process.argv.slice(2);
-require("./cliargs.js").strict(args, { usage: "usage: node check-page.js <page.html> [--auto] [--out <dir>] [--tab <tabId>] [--width n] [--height n] [--theme light|dark] [--frame <px>]", valued: ["out", "tab", "width", "height", "theme", "frame"], flags: ["auto"], min: 1, max: 1 });
+const USAGE_LINE = "usage: node check-page.js <page.html> [--auto [--no-browser]] [--out <dir>] [--tab <tabId>] [--width n] [--height n] [--theme light|dark] [--frame <px>]";
+require("./cliargs.js").strict(args, { usage: "usage: node check-page.js <page.html> [--auto [--no-browser]] [--out <dir>] [--tab <tabId>] [--width n] [--height n] [--theme light|dark] [--frame <px>]", valued: ["out", "tab", "width", "height", "theme", "frame"], flags: ["auto", "no-browser"], min: 1, max: 1 });
+if (args.includes("--no-browser") && !args.includes("--auto")) { console.error(USAGE_LINE + "\n(--no-browser goes with --auto: the checks that need no browser, the browser pass deferred)"); process.exit(2); }
 const opt = (name, def) => { const i = args.indexOf("--" + name); return i >= 0 ? args[i + 1] : def; };
 const VALUED = ["--out", "--tab", "--width", "--height", "--theme", "--frame"];
 const page = args.find((a, i) => !a.startsWith("--") && !(i > 0 && VALUED.includes(args[i - 1])));
-if (!page) { console.error("usage: node check-page.js <page.html> [--auto] [--out <dir>] [--tab <tabId>] [--width n] [--height n] [--theme light|dark] [--frame <px>]"); process.exit(2); }
+if (!page) { console.error("usage: node check-page.js <page.html> [--auto [--no-browser]] [--out <dir>] [--tab <tabId>] [--width n] [--height n] [--theme light|dark] [--frame <px>]"); process.exit(2); }
 
 /* The palette (GUIDANCE.md §1; palette.js), read from the page's CSS without a browser, so it holds on every page whatever its
    passes: a system colour in a status spectrum fails; a slot that is not the shared palette's value is a warning. */
@@ -50,20 +58,37 @@ const paletteLines = () => [`CHECK palette: ${palette.tokens} system-colour toke
   ...palette.problems.map(p => "CHECK palette: PALETTE IN STATUS HUE " + p), ...palette.warnings.map(w => "CHECK palette: warning: " + w),
   ...dslDashes.map(p => "CHECK dsl: " + p)];
 
+/* The checks that need no browser, on every pass (--auto and --no-browser included): the registry's git-ignore check, the board links,
+   and the page's data (the state block, the embedded copies of state.json, workspace.dsl and systems.json, the part references). */
+const src = fs.existsSync(page) ? fs.readFileSync(page, "utf8") : "";
+const regCheck = registryIgnored(), boardCheck = boardLinks(), stateCheck = stateChecks();
+const staticChecks = [regCheck, boardCheck, stateCheck].filter(Boolean);
+const staticLines = () => staticChecks.flatMap(c => [...(c.note ? ["CHECK " + c.note] : []), ...(c.notes || []).map(n => "CHECK " + n), ...c.problems.map(p => "CHECK " + p)]);
+const staticProblems = staticChecks.flatMap(c => c.problems);
+
 if (args.includes("--auto")) {
   const { deviation } = require("./deviation.js");
   const d = deviation(page);
   paletteLines().forEach(l => console.log(l));
+  staticLines().forEach(l => console.log(l));
+  if (args.includes("--no-browser")) {
+    /* the data-only path (apply-state.js): every check that needs no browser; the browser pass the page needs is named and left to
+       the presenter's next look (the landing refresh) */
+    const bad = palette.problems.length + dslDashes.length + staticProblems.length;
+    console.log(`CHECK template: ${d.kind} page · ${d.verdict} · browser pass deferred (${d.passes === "none" ? "none needed" : d.passes === "light" ? "one light pass" : "the full pass"})`);
+    d.notes.forEach(n => console.log("CHECK template: " + n));
+    console.log(bad ? `FAIL: ${bad} problem(s) found without a browser` : "PASS (no browser)"); process.exit(bad ? 1 : 0);
+  }
   console.log(`CHECK template: ${d.kind} page · ${d.verdict} · ${d.passes === "none" ? "no browser pass" : d.passes === "light" ? "one light pass (the facts it fills in)" : "full pass (light, dark, 520, frame 390, desktop 1920x1080)"}`);
   d.notes.forEach(n => console.log("CHECK template: " + n));
-  if (d.passes === "none") { const bad = palette.problems.length || dslDashes.length; console.log(bad ? `FAIL: ${palette.problems.length ? "a system colour in a status spectrum" : "a dashed DSL style that is not Planned"}` : "PASS"); process.exit(bad ? 1 : 0); }
+  if (d.passes === "none") { const bad = palette.problems.length || dslDashes.length || staticProblems.length; console.log(bad ? `FAIL: ${palette.problems.length ? "a system colour in a status spectrum" : dslDashes.length ? "a dashed DSL style that is not Planned" : staticProblems[0]}` : "PASS"); process.exit(bad ? 1 : 0); }
   const rest = args.filter(a => a !== "--auto" && a !== page);
   const modes = d.passes === "light" ? [[]] : [[], ["--theme", "dark"], ["--width", "520"], ["--frame", "390"], ["--width", "1920", "--height", "1080"]];
   let failed = 0;
   modes.forEach(m => {
     const r = cp.spawnSync(process.execPath, [__filename, page, ...rest, ...m], { encoding: "utf8" });
     const lines = (r.stdout || "").trim().split(/\r?\n/), label = m.join(" ") || "light";
-    const bad = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM|GIT-IGNORED|DEAD BOARD LINK|BOARDS UNREADABLE|FAIL/.test(l));
+    const bad = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM|GIT-IGNORED|DEAD BOARD LINK|BOARDS UNREADABLE|STATE |EMBED DIFFERS|PART UNKNOWN|FAIL/.test(l));
     console.log(`CHECK pass ${label}: ${r.status === 0 ? "PASS" : "FAIL"} · ${(lines.find(l => l.startsWith("screenshot:")) || "").replace("screenshot: ", "")}`);
     bad.forEach(l => console.log("  " + l));
     if (r.status !== 0) failed++;
@@ -167,7 +192,6 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   console.log("CHECK done");
 },400); });
 </script>`;
-const src = fs.readFileSync(page, "utf8");
 
 // The registry check (system/RULES.md §9): on a system, supersystem or repository page, find the docs/dashboards/systems.json
 // the page belongs to and fail when the registry, or any entry's page or workspace.dsl, is git-ignored in its repository, as a
@@ -199,7 +223,6 @@ function registryIgnored() {
   const problems = hit.map(f => { const v = why.find(l => l.endsWith("\t" + f)); return `GIT-IGNORED: ${files.get(f)} docs/dashboards/${f}${v ? ` (rule ${v.split("\t")[0]})` : ""}: the file would never be committed; rename the folder or add a negation`; });
   return { note: `registry: ${rels.length} paths from systems.json, ${hit.length} git-ignored`, problems };
 }
-const regCheck = registryIgnored();
 
 // The board links of a system, supersystem or repository page (GUIDANCE.md §5; system/RULES.md §6): its BOARDS map, issue number →
 // plan board relative to the page, filled by the presenter on its one line. A link never points at a file that is not there, so an
@@ -214,7 +237,46 @@ function boardLinks() {
     .map(([n, p]) => `DEAD BOARD LINK: BOARDS["${n}"] = ${JSON.stringify(p)} is not a plan board file relative to this page`);
   return { note: `board links: ${entries.length} in BOARDS, ${problems.length} dead`, problems };
 }
-const boardCheck = boardLinks();
+
+// The page's data (system/RULES.md §2, §10): a system, supersystem or repository page renders its stamp from its state block, a verbatim
+// copy of state.json beside it, and its planned parts from its DSL and registry. Fails a state block that is not JSON or not in its form
+// (STATE UNREADABLE, STATE INVALID), one that differs from state.json beside the page (STATE EMBED DIFFERS), a state that names a system
+// the registry does not list or disagrees with its registry entry on the stamp, the last amendment or the version (STATE UNKNOWN SYSTEM,
+// STATE DISAGREES WITH REGISTRY), an embedded workspace.dsl or systems.json that differs from its file (DSL EMBED DIFFERS, REGISTRY EMBED
+// DIFFERS), and a part reference (data-part, part:) that names no element of the DSL and no system of the registry (PART UNKNOWN). A
+// page with no state block, on a template older than it, gets a note.
+function stateChecks() {
+  if (/<meta name="dashboard" content="(plan-board|work-board)">/.test(src) || !src) return null;
+  const L = require("./statelib.js"), { kindOf, templateFor } = require("./deviation.js"), kind = kindOf(src);
+  const notes = [], problems = [], dir = path.dirname(path.resolve(page)), reg = L.findRegistry(page);
+  let R = null; if (reg) { try { R = JSON.parse(fs.readFileSync(reg, "utf8")); } catch (e) { /* the registry check reports it */ } }
+  const st = L.blockText(src, "state");
+  let tplHas = false; try { tplHas = L.blockText(fs.readFileSync(templateFor(page, kind), "utf8"), "state") != null; } catch (e) { /* no template */ }
+  if (st == null) notes.push(`state: no state block${tplHas ? " (a page on a template older than the data-only path: apply-state.js leaves it to the presenter, who brings it onto the template)" : ""}`);
+  else {
+    let s = null; try { s = JSON.parse(st); } catch (e) { problems.push(`STATE UNREADABLE: the state block is not JSON (${e.message})`); }
+    if (s) {
+      L.stateProblems(s).forEach(p => problems.push(`STATE INVALID: ${p}`));
+      const side = path.join(dir, "state.json");
+      if (fs.existsSync(side)) { if (L.norm(fs.readFileSync(side, "utf8")).trim() !== st) problems.push("STATE EMBED DIFFERS: the state block is not state.json beside the page: node embed.js state.json index.html state"); else notes.push(`state: ${s.slug} at ${(s.asIs || {}).ref} @ ${(s.asIs || {}).sha}${(s.asIs || {}).landed === false ? " · not yet landed" : ""}, embedded from state.json`); }
+      else notes.push("state: no state.json beside the page (the template's own sample)");
+      const e = R && Array.isArray(R.systems) ? R.systems.find(x => x.slug === s.slug) : null;
+      if (R && !e) problems.push(`STATE UNKNOWN SYSTEM: the state names ${JSON.stringify(s.slug)}, which docs/dashboards/systems.json does not list`);
+      else if (e) { const d = L.stateVsRegistry(s, e, kind); d.forEach(([f, a, b]) => problems.push(`STATE DISAGREES WITH REGISTRY: ${f} is ${JSON.stringify(a)} on the page and ${JSON.stringify(b)} in systems.json`)); if (!d.length) notes.push(`state: ${s.slug} at ${(s.asIs || {}).ref} @ ${(s.asIs || {}).sha}${(s.asIs || {}).landed === false ? " (not yet landed)" : ""}, as systems.json has it`); }
+    }
+  }
+  const dsl = L.blockText(src, "dsl"), dslFile = path.join(dir, "workspace.dsl");
+  if (dsl != null && fs.existsSync(dslFile) && L.norm(fs.readFileSync(dslFile, "utf8")).trim() !== dsl) problems.push("DSL EMBED DIFFERS: the embedded workspace.dsl is not the file beside the page: node embed.js workspace.dsl index.html dsl");
+  const sys = L.blockText(src, "systems");
+  if (sys != null && reg && L.norm(fs.readFileSync(reg, "utf8")).trim() !== sys) problems.push("REGISTRY EMBED DIFFERS: the embedded systems.json is not docs/dashboards/systems.json: node embed.js <docs/dashboards/systems.json> index.html systems");
+  const ids = new Set(dsl ? L.dslElements(dsl).map(x => x.id) : []);
+  let slugs = new Set(); try { slugs = new Set((JSON.parse(sys || "{}").systems || []).map(x => x.slug)); } catch (e) { /* the embed check reports it */ }
+  L.partRefs(src).forEach(r => {
+    if (r.startsWith("sys:")) { if (kind !== "supersystem") problems.push(`PART UNKNOWN: ${r}: a system page reads no registry; tie the part to an element of its workspace.dsl`); else if (!slugs.has(r.slice(4))) problems.push(`PART UNKNOWN: ${r}: the embedded registry lists no such system`); }
+    else if (!ids.has(r)) problems.push(`PART UNKNOWN: ${r}: the embedded workspace.dsl has no such element`);
+  });
+  return { notes, problems };
+}
 
 const wrapped =src.includes("</body>") ? src.replace("</body>", probe + "\n</body>") : src + probe;
 const base = path.basename(path.dirname(path.resolve(page))) + "." + path.basename(page, ".html");
@@ -241,6 +303,7 @@ lines.forEach(l => console.log(l));
 paletteLines().forEach(l => { console.log(l); if (/PALETTE IN STATUS HUE|DASHED NOT PLANNED/.test(l)) errors.push(l); });
 if (regCheck) { if (regCheck.note) console.log("CHECK " + regCheck.note); regCheck.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); }
 if (boardCheck) { if (boardCheck.note) console.log("CHECK " + boardCheck.note); boardCheck.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); }
+if (stateCheck) { stateCheck.notes.forEach(n => console.log("CHECK " + n)); stateCheck.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); }
 console.log(`screenshot: ${shot}`);
 if (!lines.some(l => l.includes("CHECK done"))) { console.log("FAIL: the probe never completed (page did not load, or scripts aborted before the probe ran)"); process.exit(1); }
 if (errors.length) { console.log(`FAIL: ${errors.length} problem(s)`); process.exit(1); }

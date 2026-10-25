@@ -12,13 +12,16 @@ and not repeated here. This file holds what is specific to system boards.
 ```
 docs/dashboards/
 ├── index.html                 the repository page (all systems, their interactions)
+├── state.json                 the repository page's stamp, embedded in index.html (§2)
 ├── systems.json               the registry — every system, its slug, function, paths, status, stamps
 ├── workspace.dsl              the repository-level C4 model, embedded in index.html
 ├── <supersystem-slug>/        a group of systems, when a repository has more than one group
 │   ├── index.html
+│   ├── state.json
 │   └── workspace.dsl
 ├── <system-slug>/
 │   ├── index.html             the system page
+│   ├── state.json             the page's stamp: as-is commit, version, last amendment (§2)
 │   └── workspace.dsl          the system's C4 model, embedded verbatim in index.html
 └── _template/                 optional: the repository's own copies of the templates below
 ```
@@ -30,16 +33,20 @@ This set ships, under `skills/dashboards/system/`:
 | `template/system.html` | The system page: renderer CSS/JS plus documented placeholders for one system — the six core tabs with their legends, the Guarantees bubbles, the Context cards. Copy it; never fill it in place. |
 | `template/supersystem.html` | The supersystem / repository page: the Systems tab from the registry, the six core tabs as repository-level scaffolds in per-system colours, the C4 views from the DSL, Guarantees with one row per system, Context. |
 | `template/systems.json` | The registry's shape, with built and planned examples. |
+| `template/state.json` | A page's state: the stamp, version and last amendment its header draws (§2). |
 | `examples/webtools-udp/` | A complete system page and DSL for WebTools' `webtools-udp` — read it to see every panel, legend and Guarantees bubble filled with real facts. |
-| `scripts/embed.js` | Embeds `workspace.dsl` (block `dsl`) or `systems.json` (block `systems`) verbatim into a page; `--check` verifies. |
-| `scripts/check-page.js` | The browser checker for **every** dashboard page, system and plan alike (§9); `--auto` checks only what a page adds to its template. |
+| `scripts/embed.js` | Embeds `workspace.dsl` (block `dsl`), `systems.json` (block `systems`) or `state.json` (block `state`) verbatim into a page; `--check` verifies. |
+| `scripts/apply-state.js` | The data-only path of a state page (§10): restamps the pages a branch touches, marks parts built or planned in the DSL and the registry, re-embeds, checks without a browser; the admin team runs it. |
+| `scripts/statelib.js` | The state, DSL and registry reading and editing `apply-state.js` writes through and `check-page.js` checks with (not a command). |
+| `scripts/check-page.js` | The browser checker for **every** dashboard page, system and plan alike (§9); `--auto` checks only what a page adds to its template; `--auto --no-browser` runs every check that needs no browser and names the pass it defers. |
 | `scripts/deviation.js` | How far a page deviates from its template (used by `--auto`; not a command). |
 | `scripts/palette.js` | The shared system palette (six slots, light and dark) and the status-hue rule that `check.js` and `check-page.js` apply (`GUIDANCE.md` §1; not a command). |
 | `../verify/verify-templates.js` | Verifies every template once with the fixtures in `../verify/fixtures/` and records its hash in `../verify/verified.json`; run it after any template change. |
 
-## 2. The two sources of a system page
+## 2. The sources of a system page
 
-A system page is driven by two sources that the presenter keeps in step (`GUIDANCE.md` §3).
+A system page is driven by three sources that the presenter keeps in step (`GUIDANCE.md` §3): its structure, its behaviour and
+its stamp.
 Everything else on the page is either rendered from them or is a hand-written panel of verified
 facts.
 
@@ -76,6 +83,31 @@ facts.
    The supersystem page's `MODEL` has the same shapes with a registry slug (`sys`) where a system
    page has a side, plus `structure.deps` for the dependency arrows.
 
+3. **`state.json` — the stamp.** `{slug, version, asIs {ref, sha, date, landed}, lastAmended {issue, title, sha}, written {sha}}`,
+   beside the page and embedded verbatim (`node scripts/embed.js state.json index.html state`; `template/state.json` is its shape).
+   The header's version, as-is, last-amended and "written at" chips are drawn from it: the presenter writes those facts here and
+   never in the chips. `asIs` is the commit the page shows — the default branch's after a landing, or a feature branch's while that
+   branch's work is shown on it, `landed: false`, which the chip reads "as-is at <branch> @ <sha> · not yet landed" (§10); the date
+   is a date, or a UTC time the page shows in the viewer's zone. `lastAmended.title` is the issue's slug, the link to its plan board.
+   `written.sha` is the commit at which the presenter last wrote the page's prose and figures (the function sentence, the KPI tiles,
+   the panels, the Guarantees, the Context); the presenter sets it to `asIs.sha` whenever it writes them, and while the two differ the
+   header shows "written at <sha>", so a restamp never claims prose nobody read again. The state agrees with the page's registry entry
+   (§7) on `asIs`, the last amendment's issue and, on a system page, the version; `check-page.js` fails a difference. A supersystem or
+   repository page keeps the same file, its version `null`.
+
+**Planned parts** are drawn from the data, never from a hand-written mark, so the data-only path (§10) can mark one built:
+
+- On a system page, a structure node mapped to a DSL element through `MODEL.c4` (or carrying its own `part`), and a thread, flow
+  node, lifeline or sequence step carrying `part: "<element id>"`, are planned while that element carries the `Planned` tag.
+- On a supersystem or repository page, an item with `sys` (a structure box, a thread, a flow's end, a lifeline) is planned while the
+  registry's entry for that system is `planned`, and one with `part` while its DSL element is; a dependency arrow while either end is.
+- A hand-written element about a planned part — a thread, a lifecycle step, a Guarantees row — carries `data-part="<element id>"`, or
+  on a supersystem or repository page `data-part="sys:<slug>"`, and the renderer gives it the class `planned` while the data says so.
+- A planned DSL element names, before `Planned`, the tag it takes once built (`"Internal,Planned"`): marking it built removes
+  `Planned`.
+- A literal `kind: "planned"` or `planned: true` still draws an item that no data stands for. `check-page.js` fails a `part` or
+  `data-part` that names no element of the page's DSL and no system of its registry (`PART UNKNOWN`).
+
 Hand-written panels (threads list, send-paths matrix, lifecycles cards, the Guarantees bubbles,
 the Context cards) and the header (function sentence, version, as-is stamp, last amended)
 complete the page. The template marks every placeholder with a `<!-- presenter: … -->` comment.
@@ -90,8 +122,8 @@ board). Hand-written HTML writes the number of a pair as a plain GitHub link and
 `<a data-board="N">title</a>`, and a lone `#n` as `<a data-issue="N">#N</a>`; `linkIssues()` resolves both
 at load and leaves a title plain text while its issue has no board. Nobody writes a board's path
 anywhere else on the page.
-The header names the branch and short SHA the page reflects and the issue that last amended the
-system; every count on the page is counted. Each chip is a tag, its label then its value,
+The header names the ref and short SHA the page reflects and the issue that last amended the
+system, both drawn from `state.json` (above); every count on the page is counted. Each chip is a tag, its label then its value,
 `<span class="chip"><span class="ck">version</span> <b>2.0.0a</b></span>` (a bare value such as the platform gets its label,
 "platform"); the template's CSS shows the intro (crumbs, title, function) on the left half of a wide screen and the tags as cards in
 the right half beside it, and stacks them under 940 px (`GUIDANCE.md` §6, "The header"). A page written before the labels keeps its
@@ -209,7 +241,7 @@ its build. The seven standard ones:
 Add a bubble where the system has another guarantee worth stating. A fact that cannot be
 established is said in the bubble as a gap (`.gap`). On repository and supersystem pages each
 bubble covers every system, one row each (`.gtbl`, the system's swatch first); a planned system's
-row is dashed and says only that nothing is built yet.
+row is tied to it (`data-part="sys:<slug>"`), dashed while the registry says planned, and says only that nothing is built yet.
 
 ## 6. Context on a system page
 
@@ -235,8 +267,10 @@ Date both issue lists.
 
 `systems.json` lists every system and supersystem: `slug`, `name`, `kind`
 (`system` | `supersystem` | `repo`), `parent`, `status` (`built` | `planned`), `function`, `paths`,
-`version`, `asIs {ref, sha, date}`, `lastAmended {issue, sha}`, `page`, `dsl`, and for a planned
-system `plannedBy {issue, architecture}`. The supersystem and repository pages embed a verbatim
+`version`, `asIs {ref, sha, date, landed}` (`landed: false` while the stamp is a feature branch's, §10; absent once it is the default
+branch's), `lastAmended {issue, sha}`, `page`, `dsl`, and for a planned system `plannedBy {issue, architecture}` (and `units`, each
+with its `subIssue`) and `c4`, a map from each DSL that draws it (its path under `docs/dashboards/`) to its element there,
+`{"workspace.dsl": "repo.gamma"}`, which `apply-state.js` marks with it. The supersystem and repository pages embed a verbatim
 copy (`node scripts/embed.js systems.json index.html systems`). Its order sets the colour slots
 for both sets of pages: reordering it recolours every system page and every plan board, so
 append rather than reorder.
@@ -254,7 +288,8 @@ append rather than reorder.
    change to the renderer or CSS) is a divergence: declare it in the head with
    `<meta name="template-divergence" content="what and why">` and in the footer comment.
 3. Fill the DSL, then the `MODEL`, then the hand-written panels and header, from the code and the
-   architecture documents. Re-embed the DSL.
+   architecture documents, and `state.json` with the stamp (`written.sha` the commit you read). Tie every planned part to its data
+   (§2, "Planned parts"). Re-embed the DSL and the state.
    The footer stays the template's one line, "Corresponds to `workspace.dsl`. Code is
    authoritative on any conflict." (a supersystem or repository page: `docs/dashboards/systems.json`
    and `workspace.dsl`); no baseline, stamp or "maintained by" clause (`GUIDANCE.md` §3).
@@ -285,6 +320,8 @@ append rather than reorder.
 node scripts/check-page.js docs/dashboards/<slug>/index.html --auto [--out <dir>]
 node scripts/embed.js docs/dashboards/<slug>/workspace.dsl docs/dashboards/<slug>/index.html dsl --check
 node scripts/embed.js docs/dashboards/systems.json docs/dashboards/index.html systems --check
+node scripts/embed.js docs/dashboards/<slug>/state.json docs/dashboards/<slug>/index.html state --check
+node scripts/check-page.js docs/dashboards/<slug>/index.html --auto --no-browser
 node scripts/check-page.js docs/dashboards/<slug>/index.html [--tab t-c4] [--out <dir>] [--theme dark] [--width 520] [--frame 390]
 ```
 
@@ -320,6 +357,14 @@ spectrum** (`scripts/palette.js`: a `--sys-N`, `--server`, `--client` or `--wire
 `--auto` included, and as the browser computes it in the theme of the pass), or a **git-ignored
 system folder**. A slot that is not the shared palette's value is a warning.
 
+**The page's data.** Without a browser, on every pass (`--auto` and `--auto --no-browser` included), `check-page.js` fails a state
+block that is not JSON or not in its form (`STATE UNREADABLE`, `STATE INVALID`), one that is not the `state.json` beside the page
+(`STATE EMBED DIFFERS`), a state naming a system the registry does not list or disagreeing with its registry entry on the stamp, the
+last amendment or the version (`STATE UNKNOWN SYSTEM`, `STATE DISAGREES WITH REGISTRY`), an embedded `workspace.dsl` or `systems.json`
+that is not its file (`DSL EMBED DIFFERS`, `REGISTRY EMBED DIFFERS`), and a part reference naming nothing (`PART UNKNOWN`, §2). A page
+with no state block, on a template older than it, gets a note. `--auto --no-browser` runs these, the palette, the DSL's dashes, the
+board links and the git-ignore check, and names the browser pass the page would get, which it leaves to the presenter's next look.
+
 **No dead board link.** On a system, supersystem or repository page, `check-page.js` reads the `BOARDS`
 map and fails (`DEAD BOARD LINK`) an entry whose file does not exist relative to the page, and
 (`BOARDS UNREADABLE`) a map that is not plain JSON. A page with no `BOARDS` line (a template older than
@@ -343,3 +388,51 @@ for the tab, theme and width, into the output directory.
 The same script checks plan boards and the work board: a page that declares
 `<meta name="dashboard" content="plan-board">` or `content="work-board"` is held to those sets'
 rules instead of the Guarantees rule (`plan/RULES.md`).
+
+## 10. State pages on a branch: the data-only path
+
+A state page — a system, supersystem or repository page — may show a feature branch's work while it happens, at the implementation
+stages, before it lands: the pages of the systems the branch touches, and the shared pages (the supersystems above them, the
+repository page, `systems.json`) as far as those systems appear on them. Each of their stamps reads "as-is at <branch> @ <sha> · not
+yet landed" (`asIs.landed: false`, §2, §7); the landing restamps them to the merge commit on the default branch. Nothing else
+changes: the page shows the code at the commit it names, built solid and planned dashed.
+
+The admin team keeps them current with data alone. At every `implementation-stage` request (the plan-board request it gives
+`plan/scripts/apply-event.js`, or a `state-pages` request of its own), and at the landing (`landed`), it runs:
+
+    node ~/.claude/skills/dashboards/system/scripts/apply-state.js --event <request.json> --worktree <path> [--repo <owner/repo>]
+
+`--event` is the request (its JSON, or the message with its fenced json block), `--worktree` the worktree the branch is checked out
+in. It reads `issue`, `branch` and `folder` from the request and these facts, every one optional:
+
+| Fact | What |
+|---|---|
+| `systems` | the registry slugs the branch touches; by default the issue board's `systems` (`<folder>/plan.json`). A slug the registry does not list stops it: `BLOCKED — system unresolved`, nothing written |
+| `sha` | the commit the pages now show (default: the worktree's HEAD); at a landing `merge` (or `sha`), the merge commit |
+| `ref` | at a landing, the default branch the merge is on (required there) |
+| `built`, `planned` | what the stage built (or, rarely, set back to planned): a registry slug; `"#<issue>"`, every system that issue alone plans (`plannedBy.issue`, or every unit's `subIssue`); `"<dsl path>:<element id>"` (paths under `docs/dashboards/`), or `{dsl, id, tag}` to give a component its built tag. A system marked takes its `c4` elements with it (§7) |
+| `version` | `{"<slug>": "<version>"}`, a version a system's build moved to |
+| `title` | the issue's slug for the "last amended by" chip (default: the folder's name less its number) |
+| `landed` | `true` on a `state-pages` request that restamps a landing, as the `landed` event does |
+| `enrich` | reasons the team already knows need the presenter, passed through |
+
+At a landing it restamps every entry the branch stamped (`asIs.ref` the branch, `landed: false`) and every page of them. An event
+that moves no code (any plan-board event but `implementation-stage` and `landed`) is skipped, and a repository with no
+`docs/dashboards/systems.json` has nothing to stamp. It reads git (HEAD, the commit's time) and never writes it; it writes only under
+`docs/dashboards/`, every file through a temporary file and a rename, and on any failure puts every file back (exit 1). The same
+request twice changes nothing (`duplicate`). Its summary names the stamp, the systems, what it applied, the files it wrote, the
+check, the time, and `enrich: yes|no` with `why`. Committing what it wrote is the admin team's.
+
+| The script decides (from the request) | The presenter adds (from the code and documents), when `enrich: yes` |
+|---|---|
+| the stamp of each touched system, its supersystems and the repository: the registry's `asIs` and `lastAmended`, each page's `state.json` (`asIs`, `lastAmended`, `version`; `written` kept), the DSL's as-is line and its views' "as built at" commit | the prose and figures at the new commit — the function sentence, the KPI tiles, the panels, the Guarantees, the Context — and `written.sha` once it has read them again; until then the header says "written at <sha>" |
+| a part marked built or planned: its DSL element's `Planned` tag (and its built tag), a system's registry `status`; every page draws it from that data (§2, "Planned parts") | what the pages say of the part: its descriptions and labels, its threads, lifecycle and Guarantees text, its code paths in the registry; a part no element draws yet; a page for a newly built system, when the repository gives it one |
+| a system's `version` (`facts.version`) | the Compatibility & versioning bubble's wording |
+| the embedded copies (state, DSL, registry) of every page that carries them; `check-page.js --auto --no-browser` on each page it wrote | the browser pass the check names as deferred, at the presenter's next look (the landing refresh) |
+| — | a page on a template older than the state block, brought onto the template (its CSS, its script before `MODEL` and its renderer, the stamp chips, the state block); the script leaves such a page alone but for its embedded registry copy, and stamps only its registry entry |
+
+`enrich: yes` whenever a part's status changes (its prose is the presenter's), a version moves, a part named is not in its DSL, a built component has no
+`Public`, `Internal` or `Standalone` tag, a built part sits inside a parent still planned (a DSL element or a registry entry), a page
+in scope is on a template older than the state block or missing from disk, at a landing a page's panels were written before the
+branch's last stamp, or the request passes reasons of its own; `no` otherwise — a stage that only moves the stamp. A failed run
+leaves the whole request to the presenter.
