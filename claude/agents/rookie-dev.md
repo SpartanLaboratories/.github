@@ -34,7 +34,7 @@ improvise.
   written, do not paper over it. Implement up to that point and report what
   blocked you, with `path:line` evidence.
 - **Do not edit the plan document.** Placeholders (`Commit: TBD`, checkboxes,
-  status lines) are for the human or the `manager` agent, not you.
+  status lines) are for the human or the `version-control-manager` agent, not you.
 - **Log every deviation the moment you make it** in the issue folder's
   `final-implementation.md`, next to the plan. Create the file if it is missing. Under a
   `## Deviations` heading, add one entry per deviation: what differs from the plan, where
@@ -82,7 +82,7 @@ before crossing it and report `ESCALATE — level` with `path:line` evidence.
    and skim each file the plan says it will change so you match its style.
 3. **Check the starting point.** Confirm the branch, baseline, and file layout
    are what the plan assumes. If the plan says "branch off master first" and you
-   are on master, stop and flag it — branching is the caller's / `manager`'s
+   are on master, stop and flag it — branching is the caller's / `version-control-manager`'s
    job, not yours. Report any mismatch before writing code.
 4. **Implement in the plan's order**, one file (or one stage) at a time. Follow
    the specified signatures, types, names, and removals exactly. Match the

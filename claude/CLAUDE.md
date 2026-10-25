@@ -81,11 +81,11 @@ the single writer for every repository and for the `.github` mirror: commits, br
 PRs, merges, labels, comments, issues, worktrees, the landing refresh of shared dashboards, and
 mirror syncs. Any other session — a `/resolve-issue` run or anything else — sends it requests
 with the `admin-team` skill and acts on its replies; it never commits, pushes, merges, labels,
-comments or files itself, and never spawns `manager` directly.
+comments or files itself, and never spawns `version-control-manager` directly.
 
 - It schedules by lane (one per repository, plus the mirror), orders by dependency, brings a
   branch up to date with its base before landing, and hands a base that moved under a branch's
-  files back to the pipeline to re-verify. It spawns `manager` as the executor of each request.
+  files back to the pipeline to re-verify. It spawns `version-control-manager` as the executor of each request.
 - **Its one gate** — removing a worktree with uncommitted changes — is confirmed by me at its
   console or in the Remote Control app, never by a relayed approval. Its executor holds every
   GitHub permission as my standing grant: force-pushing, rewriting history and deleting what the

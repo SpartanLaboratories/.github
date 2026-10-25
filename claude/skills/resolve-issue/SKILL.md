@@ -36,7 +36,7 @@ publish** is the team's own decision within its monthly budget, never yours
 to ask for; a **downstream-consumer issue** is never filed (reported
 instead), and **sub-issues** are filed only from a list the user approved. You
 yourself never commit, push, merge, tag, publish, label, or file/comment on an
-issue, and never spawn `manager`.
+issue, and never spawn `version-control-manager`.
 
 The work levels are defined in "Work levels" in the global `CLAUDE.md`. This
 skill runs a different pipeline per level:
@@ -119,7 +119,7 @@ sub-issues yet is not planned: work it as an ordinary issue, at its level.
   `needs-rework` reply means the base moved under the run's files: re-verify
   per the skill and resend.
 - **Halts.** When one run stops for the user — a planner halt, an escalation,
-  a `qa` failure, a `manager` "needs you" item — only what depends on it waits.
+  a `qa` failure, a `version-control-manager` "needs you" item — only what depends on it waits.
   `consecutive` waits at that sub-issue; `concurrent` keeps running every
   sub-issue that does not depend on it and starts nothing it blocks until it
   lands. Ask the user's questions one at a time, each saying which sub-issue
@@ -373,14 +373,14 @@ send nothing and the list goes back to the user.
 - The dashboards `presenter` created or updated, with their merged links, and
   anything it reported as not shown.
 - The commits / PR / merge / issue comment that landed, by reference, and any
-  upstream issue `manager` filed.
+  upstream issue `version-control-manager` filed.
 - The release outcome from `result.release`: published (coordinates, tags,
   release URLs), deferred (reason and the month's usage), failed, or none.
 - Anything handed back to the user: `rookie-dev` blockers, escalations,
-  unresolved planner open decisions, and `manager`'s **Stopped — needs you**
+  unresolved planner open decisions, and `version-control-manager`'s **Stopped — needs you**
   items (a failed publish, downstream-consumer coordination).
 - If the work exposed a defect in a repo the project *consumes* (downstream),
-  report it as coordination — do not file it. `manager` files upstream-only.
+  report it as coordination — do not file it. `version-control-manager` files upstream-only.
 
 Do not start a second issue. One issue per `/resolve-issue` — except in the
 `consecutive` and `concurrent` modes above, which work every sub-issue of one
