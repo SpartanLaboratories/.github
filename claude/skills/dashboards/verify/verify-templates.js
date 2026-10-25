@@ -48,8 +48,9 @@
 // of dashboards-skill/26 (verify/cases-26.js): the feature probes, the splice and the template history it reads (verified.json "history",
 // verify/history/), the legends of Guarantees and Context, links only to files that exist and the live views first, the tablists' keys, the
 // theme remembered across pages, no issue above Context, the Markdown copies, the unit boards and a tracking board's two steps, the
-// progress notes, built or planned from the code. A template is
-// recorded only when its browser passes and every case group pass.
+// progress notes, built or planned from the code. And the decisions of dashboards-skill/22 (verify/cases-22.js): the KPI tiles' legends
+// inside each tile, the larger charging arrow, the landing event, the header, "unassigned" kept from every checkout, the research-planning
+// glow, the Tests tab and this run's feature probes. A template is recorded only when its browser passes and every case group pass.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { recordFile, sha, norm } = require(path.join(__dirname, "..", "system", "scripts", "deviation.js"));
@@ -672,12 +673,13 @@ targets.filter(t => t.block === "plan").forEach(t => {
   { const d = copy(trk); d.wip.current = [String(unitCur).split(".")[0] + ".verdict"]; const c = put(d, tdir); gc.push(["a tracking board glowing a unit's Verdict in implementation: check.js warns, naming the units in progress", GW.test(c.stdout) && /As built cells of the units in progress/.test(c.stdout), gwLine(c)]); }
   /* new.js: the foundation's wip.current is its step's columns */
   const nroot = path.join(scratch, "new"); fs.mkdirSync(path.join(nroot, "docs", "plans"), { recursive: true });
-  const born = [["research", ["considered"]], ["plan", ["considered", "verdict"]], ["interview", []]].map(([step, want], i) => {
+  /* research: nothing, since a new board has no rows (dashboards-skill/22: research planning on a rowless board glows nothing) */
+  const born = [["research", []], ["plan", ["considered", "verdict"]], ["interview", []]].map(([step, want], i) => {
     const r = cp.spawnSync(process.execPath, [path.join(SKILL, "plan", "scripts", "new.js"), String(900 + i), `glow-${step}`, "--root", nroot, "--step", step, "--level", "3", "--repo", "owner/name"], { encoding: "utf8", cwd: nroot });
     let got = null; try { const pw = JSON.parse(fs.readFileSync(path.join(nroot, "docs", "plans", `${900 + i}-glow-${step}`, "plan.json"), "utf8")).wip; got = Array.isArray(pw.questions) && !pw.questions.length ? pw.current : "no empty wip.questions"; } catch (e) { /* reported below */ }
     return [step, want, got, r.status];
   });
-  gc.push(["new.js lays wip.current from the map (research considered, plan considered and verdict, interview nothing) and wip.questions empty", born.every(([, want, got, s]) => s === 0 && JSON.stringify(got) === JSON.stringify(want)), born.map(([st, w, g, s]) => `${st}: ${JSON.stringify(g)} (want ${JSON.stringify(w)}, exit ${s})`).join("; ")]);
+  gc.push(["new.js lays wip.current from the map (research nothing on its rowless board, plan considered and verdict, interview nothing) and wip.questions empty", born.every(([, want, got, s]) => s === 0 && JSON.stringify(got) === JSON.stringify(want)), born.map(([st, w, g, s]) => `${st}: ${JSON.stringify(g)} (want ${JSON.stringify(w)}, exit ${s})`).join("; ")]);
   report(`the glow follows the step on ${t.name}`, gc);
 });
 
@@ -893,7 +895,8 @@ targets.filter(t => t.block === "plan").forEach(t => {
   const text = h => (h || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
   const click = id => `<script>window.addEventListener("load",()=>setTimeout(()=>{const c=document.querySelector('.cell.verdict[data-row="${id}"]');if(c)c.click();},600));</script>`;
   const render = (name, d, id) => { const f = path.join(sc, name + ".html"); fs.writeFileSync(f, withData(tpl, "plan", JSON.stringify(d, null, 2)).replace("</body>", (id ? click(id) : "") + "</body>")); return dumpDom(f); };
-  const tile = dom => (text(inner(dom, '<div class="kpis" id="kpis">', "div")).match(/Verdicts (.*?) As built/) || ["", "no Verdicts tile"])[1];
+  /* the tile's figures, its own legend left out (each tile carries one since dashboards-skill/22) */
+  const tile = dom => (text(inner(dom, '<div class="kpis" id="kpis">', "div").replace(/<div class="key">[\s\S]*?<\/div>/g, "")).match(/Verdicts (.*?) As built/) || ["", "no Verdicts tile"])[1];
   const vcell = (dom, id) => (dom.match(new RegExp(`<div class="cell verdict[^"]*"[^>]*data-row="${id}"[^>]*><div class="kick">[\\s\\S]*?</div><div class="sum">[\\s\\S]*?</div>`)) || [""])[0];
   const kicker = dom => text((inner(dom, '<aside class="inspector"[^>]*>', "aside").match(/<div class="kicker">([\s\S]*?)<\/div>/) || ["", ""])[1]);
   const unbuilt = d => { d.status = "planned"; d.asBuilt = null; d.impact = null; d.rows.forEach(r => { r.asBuilt = { state: "pending", summary: "" }; delete (r.unit || {}).live; }); d.milestones = (d.milestones || []).filter(m => ["gap", "considered"].includes(m.column)); d.wip = { ...d.wip, step: "plan", current: ["verdict"], landing: null, qa: [] }; return d; };
@@ -978,14 +981,14 @@ targets.filter(t => t.block === "plan").forEach(t => {
   const ptpl = tp("plan/template/dashboard.html");
   if (ptpl) { const tpl = fs.readFileSync(ptpl, "utf8"), ex = J("plan/examples/38-handshake-empty-name/plan.json"), trk = J("verify/fixtures/tracking.plan.json");
     const render = (name, d) => dumpDom(put(name + ".html", withData(tpl, "plan", JSON.stringify(d, null, 2)).replace("</body>", probe([".cell.verdict .kick .kind", ".cell.verdict.leave .kick .kind", "#timeline-key .kind", ".chip.model"]) + "</body>")));
-    const tile = dom => (text(inner(dom, '<div class="kpis" id="kpis">', "div")).match(/As built (.*?) (QA passes|Timeline)/) || ["", "no As built tile"])[1];
+    const tile = dom => (text(inner(dom, '<div class="kpis" id="kpis">', "div").replace(/<div class="key">[\s\S]*?<\/div>/g, "")).match(/As built (.*?) (QA passes|Timeline)/) || ["", "no As built tile"])[1];
     const BUILT = ["as-planned", "amended", "deviated"], LANDED = ["landed", ...BUILT], st = r => (r.asBuilt || {}).state || "pending", { leftForLater } = require(path.join(SKILL, "plan", "scripts", "lib.js"));
     const dE = render("example", ex);
     if (dE == null) dc.push(["the rendered plan board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
     else { const b = borders(dE), key = inner(dE, '<div class="key" id="timeline-key">', "div"), src = inner(dumpDom(path.join(sc, "example.html"), "source"), '<div class="key" id="source-key">', "div");
       dc.push(["the verdict's kind chip is solid, \"leave as is\" included", solid(b[".cell.verdict .kick .kind"]) && solid(b[".cell.verdict.leave .kick .kind"]) && /class="kind">leave as is</.test(dE), JSON.stringify(b)]);
       dc.push(["the Timeline legend names the kind chips it drew, solid: the verdict's (build, leave as is) and the gap's", /<b class="kind">build<\/b> <b class="kind">leave as is<\/b> the verdict's kind: build it, or leave it as is/.test(key) && /<b class="kind">bug<\/b>[\s\S]*? the gap's kind/.test(key) && solid(b["#timeline-key .kind"]), text(key).slice(0, 300)]);
-      dc.push(["the header's model chip is solid, and the Source legend draws no dashed swatch", solid(b[".chip.model"]) && /this copy is replaced on every/.test(src) && !/class="pln"/.test(src), `${JSON.stringify(b[".chip.model"])} · ${src.slice(0, 160)}`]);
+      dc.push(["the header draws no \"board\" tag (dashboards-skill/22: it repeated the tiles), and the Source legend draws no dashed swatch", !(b[".chip.model"] || []).length && !/<span class="ck">board<\/span>/.test(dE) && /this copy is replaced on every/.test(src) && !/class="pln"/.test(src), `${JSON.stringify(b[".chip.model"])} · ${src.slice(0, 160)}`]);
       dc.push(["the example's As built tile reads \"9 / 9 rows built\", its two rows left for later named under it, not counted", tile(dE).startsWith("9 / 9 rows built") && /4 as planned · 5 amended · 2 left for later/.test(tile(dE)) && ex.rows.length === 11, tile(dE)]);
       const v = copy(ex); v.rows[0].asBuilt = { state: "dropped", summary: "Verification case.", reason: "Verification case." }; v.rows[1].asBuilt = { state: "deferred", summary: "Verification case.", issue: 999 };
       const n = v.rows.filter(r => BUILT.includes(st(r)) && !leftForLater(r)).length, m = v.rows.filter(r => !["dropped", "deferred"].includes(st(r)) && !leftForLater(r)).length, tv = tile(render("dropped", v));
@@ -1002,7 +1005,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     const dW = dumpDom(put("work-board/index.html", withData(tpl, "board", JSON.stringify(un, null, 2)).replace("</body>", probe([".chip.model"]) + "</body>")));
     if (dW == null) dc.push(["the rendered work board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
     else { const bw = borders(dW), src = inner(dW, '<div class="key" id="source-key">', "div"), row = (dW.match(/<tr class="run[^"]*"[^>]*><td><span class="t"><a [^>]*>#71<[\s\S]*?<\/tr>/) || [""])[0];
-      dc.push(["the work board's model chip is solid, and its Source legend draws no dashed swatch", solid(bw[".chip.model"]) && /this copy is replaced on every/.test(src) && !/class="pln"/.test(src), `${JSON.stringify(bw[".chip.model"])} · ${src.slice(0, 160)}`]);
+      dc.push(["the work board's header draws no \"board\" tag (dashboards-skill/22), and its Source legend draws no dashed swatch", !(bw[".chip.model"] || []).length && !/<span class="ck">board<\/span>/.test(dW) && /this copy is replaced on every/.test(src) && !/class="pln"/.test(src), `${JSON.stringify(bw[".chip.model"])} · ${src.slice(0, 160)}`]);
       dc.push(["a row recorded \"unassigned\": true reads \"no system\", not \"no system recorded\"", /<\/span>no system<\/div>/.test(row) && !/no system recorded/.test(row), text(row).slice(0, 200)]); }
     const dir = path.join(sc, "tree", "docs", "plans"), chk = d => { fs.rmSync(path.join(sc, "tree"), { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
       (d.rows || []).filter(r => r.board).forEach(r => stub(path.join(dir, path.dirname(r.board))));
@@ -1477,7 +1480,8 @@ targets.filter(t => t.block === "plan").forEach(t => {
       d => d.wip.step === "remediation" && cur(d) === '["routing.built"]' && d.wip.qa[0].route === "rookie-dev" && d.wip.qa[0].severity.other === 1 && d.wip.qa[0].findings.documentation === 2 && d.wip.remediation.pass === 1 && d.wip.qaMax === 3);
     step("issue board", ISSUE, "implementation-stage", { remediation: { pass: 1, route: "rookie-dev", steps: [{ name: "Verification case: the fixes", state: "current" }] } }, false,
       d => d.wip.step === "remediation" && d.wip.remediation.steps[0].state === "current" && cur(d) === '["routing.built"]');
-    step("issue board", ISSUE, "qa-pass", { qa: { pass: 2, verdict: "approved", doc: 0, test: 0, code: 0 } }, false,
+    /* an approving pass carries no facts.tests here: the Tests tab's results are the presenter's (dashboards-skill/22), so it enriches */
+    step("issue board", ISSUE, "qa-pass", { qa: { pass: 2, verdict: "approved", doc: 0, test: 0, code: 0 } }, true,
       d => d.wip.step === "landing" && !d.wip.current.length && d.wip.remediation === null && d.wip.qa.length === 2 && !d.wip.qa[1].route);
     step("issue board, parts unresolved", ISSUE, "landed", { merge: "abcdef1", pr: 99, date: "2026-10-25" }, true, d => d.wip.step === "landing" && d.status === "building" && d.asBuilt.sha === "abcdef1" && d.asBuilt.pr === 99);
     edit(ISSUE, d => { d.rows.forEach(r => { r.asBuilt = { state: "as-planned", summary: "Verification case: built as decided." }; }); });
@@ -1506,7 +1510,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
       return t.wip.current.includes("http-core.built") && t.wip.next === "test-support" && r.unit.live && r.unit.live.step === "research" && /#62 in progress/.test(t.wip.detail); });
     step("sub-issue", SUB, "research-started", { researching: [{ question: "blast-radius", rows: ["validity-rule"] }] }, false, () => read(TRACK).rows.find(x => x.id === "http-core").unit.live.event.name === "research-started");
     edit(SUB, d => { d.wip.step = "qa"; d.wip.current = ["built"]; d.wip.questions = []; d.wip.research = null; d.status = "building"; d.rows.forEach(r => { r.verdict = { kind: "build", summary: "Verification case: written.", steps: [{ id: "A", what: "x" }] }; r.asBuilt = { state: "as-planned", summary: "Verification case: built." }; }); });
-    step("sub-issue", SUB, "qa-pass", { qa: { pass: 1, verdict: "approved", doc: 0, test: 0, code: 0 } }, false, () => { const t = read(TRACK); return t.rows.find(x => x.id === "http-core").asBuilt.state === "complete" && t.wip.current.includes("http-core.built") && /#62 complete/.test(t.wip.detail); });
+    step("sub-issue", SUB, "qa-pass", { qa: { pass: 1, verdict: "approved", doc: 0, test: 0, code: 0 } }, true, () => { const t = read(TRACK); return t.rows.find(x => x.id === "http-core").asBuilt.state === "complete" && t.wip.current.includes("http-core.built") && /#62 complete/.test(t.wip.detail); });
     /* sized with no board: nothing to apply; the presenter lays the foundation */
     { const before = files(), r = ev("docs/plans/71-not-yet", "sized", { step: "research" });
       ac.push(["sized with no board: exit 0, no-board, enrich yes, no file written", r.status === 0 && r.s.result === "no-board" && r.s.enrich === "yes" && !changed(before, files()).length && !fs.existsSync(path.join(plans, "71-not-yet")), `${r.status} · ${r.s.result}`]); }
@@ -1632,21 +1636,23 @@ targets.filter(t => t.block === "plan").forEach(t => {
       ["ex", "sub"].forEach(k => { const r = light(k); kc.push([`A: the ${k} rendering passes check-page.js`, r.status === 0, lines(r, /FAIL|DASHED|ERROR|NO LEGEND/)]); });
       /* F. the KPI bars and their legend */
       const K = kpis(dE), bars = K.match(/<div class="seg-bar"/g) || [];
-      kc.push(["F: every tile but a landed board's Timeline carries a segmented bar, with the tiles' legend under them", bars.length === 4 && /id="kpi-key"/.test(K) && /Rows<\/span>/.test(K) && /OPTIONS|Options<\/span>/.test(K) && /Verdicts<\/span>/.test(K) && /As built<\/span>/.test(K), `${bars.length} bars · ${text(inner(K, '<div class="key kpikey" id="kpi-key">', "div")).slice(0, 200)}`]);
+      const tiles = K.split('<div class="kpi">').slice(1), keyed = tiles.filter(t => /<div class="seg-bar"/.test(t) && /<\/div><div class="key">/.test(t));
+      kc.push(["F: every tile but a landed board's Timeline carries a segmented bar and, inside the tile, its legend (dashboards-skill/22: no shared row)", bars.length === 4 && keyed.length === 4 && !/kpi-key|kpikey/.test(K), `${bars.length} bars · ${keyed.length} tile legends`]);
       const rowsBar = inner(K, '<div class="seg-bar" role="img" aria-label="Rows by group', "div");
       kc.push(["F: Rows: one segment per group, in its system's colour", (rowsBar.match(/<i /g) || []).length === 5 && /background:var\(--sys-1\)/.test(rowsBar), (rowsBar.match(/<i /g) || []).length + " segments"]);
       const optBar = inner(K, '<div class="seg-bar" role="img" aria-label="Options weighed', "div");
-      kc.push(["F: Options weighed: accepted green, declined red, a deferred option settled in column 4 in its settled colour", /class="good"/.test(optBar) && /class="critical"/.test(optBar) && /deferred → accepted/.test(text(inner(K, '<div class="key kpikey" id="kpi-key">', "div"))), optBar.slice(0, 200)]);
+      kc.push(["F: Options weighed: accepted green, declined red, a deferred option settled in column 4 in its settled colour", /class="good"/.test(optBar) && /class="critical"/.test(optBar) && /deferred → accepted/.test(text((K.split('<div class="kpi">').find(t => /Options weighed/.test(t)) || ""))), optBar.slice(0, 200)]);
       const V = copy(LIVE); V.status = "building"; Object.assign(V.wip, { step: "qa", current: ["built"], questions: [], research: null, qa: [{ pass: 1, verdict: "changes-requested", findings: { documentation: 2 }, severity: { minor: 2 }, route: "on-the-spot" }, { pass: 2, verdict: "running" }] });
       V.rows.forEach((r, i) => { if (i < 3) r.verdict = { kind: i === 2 ? "leave" : "build", statements: [{ text: "Verification case: one decision.", ref: "plan.md#5-design" }], steps: [{ id: "A", what: "x" }] }; });
       const dV = render("qa-col", V, "", "1400,1400"), KV = kpis(dV), qaBar = inner(KV, '<div class="seg-bar" role="img" aria-label="QA passes', "div");
       kc.push(["F: QA passes: one slot per pass allowed, filled by result: minor findings only yellow, the running pass accent, the unused slot empty", (qaBar.match(/<i /g) || []).length === 3 && /class="warning"[\s\S]*class="accent"[\s\S]*class="slot"/.test(qaBar) && /minor findings only/.test(KV) && /a pass not used/.test(KV), qaBar.slice(0, 260)]);
-      kc.push(["F: Verdicts: build solid, left for later faded, not yet written dashed", /aria-label="Verdicts: 2 build, 1 left for later, 8 not yet written"[^>]*><i class="ink"[^>]*><\/i><i class="left"[^>]*><\/i><i class="dash"/.test(KV), text(inner(KV, '<div class="key kpikey" id="kpi-key">', "div")).slice(0, 200)]);
+      kc.push(["F: Verdicts: build solid, left for later faded, not yet written dashed", /aria-label="Verdicts: 2 build, 1 left for later, 8 not yet written"[^>]*><i class="ink"[^>]*><\/i><i class="left"[^>]*><\/i><i class="dash"/.test(KV), text((KV.split('<div class="kpi">').find(t => /Verdicts/.test(t)) || "")).slice(0, 200)]);
       const V2 = copy(V); V2.wip.qa = [{ pass: 1, verdict: "changes-requested", findings: { code: 1 }, severity: { minor: 1, other: 1 }, route: "rookie-dev" }, { pass: 2, verdict: "approved" }]; V2.wip.step = "landing"; V2.wip.current = [];
       const qb2 = inner(kpis(render("qa-other", V2)), '<div class="seg-bar" role="img" aria-label="QA passes', "div");
       kc.push(["F: QA passes: other findings red, a passed pass green", /class="critical"[\s\S]*class="good"[\s\S]*class="slot"/.test(qb2), qb2.slice(0, 200)]);
       const dT = render("trk", TRK), KT = kpis(dT);
-      kc.push(["F: a tracking board's Units bar names the top-level systems in its legend", /aria-label="Units by group/.test(KT) && /webtools-http<\/span>/.test(KT) && !/published test fixtures/.test(text(inner(KT, '<div class="key kpikey" id="kpi-key">', "div"))), text(inner(KT, '<div class="key kpikey" id="kpi-key">', "div")).slice(0, 220)]);
+      const uTile = KT.split('<div class="kpi">').find(t => /Units by group/.test(t)) || "";
+      kc.push(["F: a tracking board's Units bar names the top-level systems in its legend", /aria-label="Units by group/.test(uTile) && /webtools-http<\/span>/.test(uTile) && !/published test fixtures/.test(text(uTile)), text(uTile).slice(0, 220)]);
       /* E. the column glow */
       const bands = (dV.match(/<div class="band[^"]*"/g) || []);
       kc.push(["E: a column address glows the column itself: its band glows and its head is washed, no cell of it glows", bands.filter(x => / glow-soft/.test(x)).length === 1 && /<div class="colhead phase colon" data-col="built">/.test(dV) && !/<div class="cell built[^"]*\b(glow|glow-soft|held)\b/.test(dV) && /<div class="cell built[^"]* colglow"/.test(dV), bands.join(" ")]);
@@ -1763,7 +1769,8 @@ targets.filter(t => t.block === "plan").forEach(t => {
     const chipsI = inner(dI, '<div class="chips" id="chips">', "div"), il = inner(dI, '<p class="issueline" id="issueline">', "p");
     const tagsI = chipsI.match(/<span class="chip[^"]*">/g) || [], cksI = chipsI.match(/<span class="chip[^"]*"><span class="ck">/g) || [];
     hc.push(["B: every tag is its label and its value", tagsI.length > 0 && tagsI.length === cksI.length, `${cksI.length} of ${tagsI.length} labelled`]);
-    hc.push(["B: the board's own #n is in the intro's issue line, opening its GitHub issue beside the issue's title; no issue chip", il.includes(`href="https://github.com/${LIVE.repo}/issues/${LIVE.issue}"`) && text(il).includes(LIVE.issueTitle) && !/<span class="ck">issue<\/span>/.test(chipsI) && !/<span class="chip">issue /.test(chipsI), text(il)]);
+    const h1I = inner(dI, '<h1 id="h1">', "h1");
+    hc.push(["B: the board's own #n is the title's link to its GitHub issue, the issue line the issue's GitHub title alone (dashboards-skill/22); no issue chip", h1I.includes(`href="https://github.com/${LIVE.repo}/issues/${LIVE.issue}"`) && text(il) === LIVE.issueTitle && !/github\.com/.test(il) && !/<span class="ck">issue<\/span>/.test(chipsI) && !/<span class="chip">issue /.test(chipsI), text(h1I) + " | " + text(il)]);
     hc.push(["B: the systems are one tag, each system with its swatch", (chipsI.match(/<span class="ck">systems?<\/span>/g) || []).length === 1 && /<span class="sysl"><span class="sw" data-sys=/.test(chipsI) && !/<span class="chip" data-sys=/.test(chipsI), text(chipsI).slice(0, 300)]);
     /* A, B, C, E: a tracking board, its unit halted (phase, unit, its panel, waiting on you) */
     const fT = plan("tracking", TRK), dT = wide(fT), RT = rects(dT), nT = rects(narrow(fT)), chipsT = inner(dT, '<div class="chips" id="chips">', "div");
@@ -1950,6 +1957,12 @@ targets.filter(t => t.block === "plan").forEach(t => {
    the agents' progress notes, built or planned from the code. */
 try { require("./cases-26.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/26 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
+/* The decisions of admin-team/dashboards-skill/22 (verify/cases-22.js): the KPI tiles' legends inside each tile, the larger charging arrow, the
+   team-raised landing event, the header (no "board" tag, the title's #n, the issue line, "since" said once), board.js keeping "unassigned"
+   from every checkout, the research-planning glow with and without rows, the Tests tab, and this run's feature probes. */
+try { require("./cases-22.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the dashboards-skill/22 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 const today = new Date().toISOString().slice(0, 10);
 targets.forEach(t => {

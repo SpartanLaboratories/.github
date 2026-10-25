@@ -2,7 +2,7 @@
   "$comment": "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last full verification. check-page.js --auto and check.js --auto trust a template only while its hash matches.",
   "templates": {
     "plan/template/dashboard.html": {
-      "sha256": "2d86258847b9edc6e00f349afc6533d7a5d5838e8506eb1d8f7653c86334e2b3",
+      "sha256": "3099bd3d4968744f9c2d93328f273724f648ea142f845d3225579f41ff010aa0",
       "verified": "2026-10-25",
       "fixtures": [
         "plan",
@@ -124,12 +124,25 @@
         {
           "sha256": "2d86258847b9edc6e00f349afc6533d7a5d5838e8506eb1d8f7653c86334e2b3",
           "verified": "2026-10-25",
-          "file": "dashboard/2d86258847b9.html"
+          "file": "dashboard/2d86258847b9.html",
+          "note": "the template as admin-team/dashboards-skill/26 left it"
+        },
+        {
+          "sha256": "12a332c9f74e14e213898bfe2f69e4aae7edf76d66d152982e45234773d2af32",
+          "verified": "2026-10-25",
+          "file": "dashboard/12a332c9f74e.html",
+          "note": "an intermediate of admin-team/dashboards-skill/22 (verified, then superseded within the run; kept for a page re-rendered from it meanwhile)"
+        },
+        {
+          "sha256": "3099bd3d4968744f9c2d93328f273724f648ea142f845d3225579f41ff010aa0",
+          "verified": "2026-10-25",
+          "file": "dashboard/3099bd3d4968.html",
+          "note": "the template as admin-team/dashboards-skill/22 left it"
         }
       ]
     },
     "plan/template/board.html": {
-      "sha256": "ce88331c00e792bd6534144e7cb92cc3139daa4881ee73928d02d9f4de2b6259",
+      "sha256": "3697606b498575c18f735f6abf3ce70c2995ab6720d143bffb1976dfe97798c4",
       "verified": "2026-10-25",
       "fixtures": [
         "work-board",
@@ -248,7 +261,14 @@
         {
           "sha256": "ce88331c00e792bd6534144e7cb92cc3139daa4881ee73928d02d9f4de2b6259",
           "verified": "2026-10-25",
-          "file": "board/ce88331c00e7.html"
+          "file": "board/ce88331c00e7.html",
+          "note": "the template as admin-team/dashboards-skill/26 left it"
+        },
+        {
+          "sha256": "3697606b498575c18f735f6abf3ce70c2995ab6720d143bffb1976dfe97798c4",
+          "verified": "2026-10-25",
+          "file": "board/3697606b4985.html",
+          "note": "the template as admin-team/dashboards-skill/22 left it"
         }
       ]
     },
@@ -341,7 +361,8 @@
         {
           "sha256": "fb27a74989e9db907edc72553cf67f0aa3fef28b5c9dba2a8e118ff9b8c9b122",
           "verified": "2026-10-25",
-          "file": "system/fb27a74989e9.html"
+          "file": "system/fb27a74989e9.html",
+          "note": "the template as admin-team/dashboards-skill/26 left it"
         }
       ]
     },
@@ -440,7 +461,8 @@
         {
           "sha256": "94273edcff045760f57eee10ac0066a2eec3b8008f0859c8cd245599fcbeeb7c",
           "verified": "2026-10-25",
-          "file": "supersystem/94273edcff04.html"
+          "file": "supersystem/94273edcff04.html",
+          "note": "the template as admin-team/dashboards-skill/26 left it"
         }
       ]
     }

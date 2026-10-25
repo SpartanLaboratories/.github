@@ -47,20 +47,25 @@ const plansDir = path.join(root, "docs", "plans"), outDir = live ? path.join(pla
 const jsonPath = path.join(outDir, "board.json"), htmlPath = path.join(outDir, "index.html");
 const reg = registry(root);
 const sh = (cmd, a) => cp.execFileSync(cmd, a, { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] });
-/* The presenter's decisions (a row's or an unscheduled issue's system, or "unassigned"): from the board this run writes, then from
-   the other of the committed and the live board, so one recorded between landings on the live board reaches the next landing's. */
+/* Every checkout of the repository (git worktree list: the main checkout and its worktrees, from whichever of them this runs in), or none
+   outside a git tree. */
+const checkouts = (() => { try { return sh("git", ["worktree", "list", "--porcelain"]).split(/\r?\n/).filter(l => l.startsWith("worktree ")).map(l => path.resolve(l.slice(9))); } catch (e) { return []; } })();
+/* The presenter's decisions (a row's or an unscheduled issue's system, or "unassigned": true, plan/RULES.md §5): read from every board this
+   run knows and never dropped: the board it writes, then this checkout's committed and live boards, then every other checkout's live and
+   committed boards, so a decision recorded on any of them carries over whichever checkout regenerates the board (a worktree's committed
+   board.json may predate it). An entry is looked up among the rows and the unscheduled issues alike; the first decision found wins. */
 const readJson = p => { try { return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, "utf8")) : {}; } catch (e) { return {}; } };
-const prevs = [...new Set([jsonPath, path.join(plansDir, "board.json"), path.join(plansDir, ".live", "board.json")])].map(readJson);
+const prevFiles = [jsonPath, path.join(plansDir, "board.json"), path.join(plansDir, ".live", "board.json"),
+  ...checkouts.filter(t => path.relative(t, root) !== "").flatMap(t => [path.join(t, "docs", "plans", ".live", "board.json"), path.join(t, "docs", "plans", "board.json")])];
+const prevs = [...new Set(prevFiles.map(p => path.resolve(p)))].map(readJson);
 const decided = x => !!(x && (x.system || x.unassigned === true));
-const prevOf = key => n => { const all = prevs.map(p => (p[key] || []).find(r => r.issue === n)).filter(Boolean); return all.find(decided) || all[0] || {}; };
+const prevOf = key => n => { const other = key === "rows" ? "unscheduled" : "rows", pick = k => prevs.map(p => (Array.isArray(p[k]) ? p[k] : []).find(r => r && r.issue === n)).filter(Boolean);
+  const all = pick(key), alt = pick(other); return all.find(decided) || alt.find(decided) || all[0] || {}; };
 const prevRow = prevOf("rows"), prevUn = prevOf("unscheduled");
 
 /* Boards */
 /* The trees whose boards count: the root alone, or with --live every worktree of the repository, the root first. */
-const trees = !live ? [root] : (() => {
-  let wt = []; try { wt = sh("git", ["worktree", "list", "--porcelain"]).split(/\r?\n/).filter(l => l.startsWith("worktree ")).map(l => path.resolve(l.slice(9))); } catch (e) { /* not a git tree */ }
-  return [root, ...wt.filter(t => path.relative(t, root) !== "" && fs.existsSync(path.join(t, "docs", "plans")))];
-})();
+const trees = !live ? [root] : [root, ...checkouts.filter(t => path.relative(t, root) !== "" && fs.existsSync(path.join(t, "docs", "plans")))];
 /* How fresh a board is: its own wip.updated (else since, else asBuilt.date), or, on a tracking board, the latest run it mirrors from
    a unit in progress (unit.live.updated, plan/RULES.md §3), whichever is later: a re-embed that only refreshed the mirror still
    makes that copy the freshest. */
@@ -102,7 +107,11 @@ let issues = [], gq = {};
 /* Pull requests and branches, for the boardless rows (plan/RULES.md §5): every pull request with its head branch, and every branch
    on the remote and in the local repository (the root's refs; with --live, every worktree shares them). */
 let prs = [], branches = [];
-if (!flag(args, "no-gh")) {
+const FIXTURE = process.env.DASHBOARDS_TRACKER_FIXTURE;
+if (FIXTURE && !flag(args, "no-gh")) {
+  /* the tracker read from a file, for the skill's own verification (verify/verify-templates.js): { issues, prs, branches, graph: { <n>: … } } */
+  const T = JSON.parse(fs.readFileSync(FIXTURE, "utf8")); issues = T.issues || []; prs = T.prs || []; branches = T.branches || []; gq = T.graph || {};
+} else if (!flag(args, "no-gh")) {
   const boardNums = [...new Set(boards.map(b => b.plan.issue))], g1 = graphJobs(boardNums);
   const [il, pl, rb, lb, ...gr1] = shAll([
     ["gh", ["issue", "list", "--repo", repo, "--state", "all", "--limit", "1000", "--json", "number,title,state,stateReason,labels,createdAt"]],

@@ -243,7 +243,43 @@
         "versions": "none: published POMs and metadata identical",
         "branch": "feat/issue-61-build-logic",
         "folder": "61-build-logic/",
-        "board": "61-build-logic/dashboard.html"
+        "board": "61-build-logic/dashboard.html",
+        "tests": {
+          "base": "master",
+          "updated": "2026-10-18T09:00:00Z",
+          "added": [
+            {
+              "class": "com.spartanlabs.testing.gating.build.ConventionPluginGatingTest",
+              "module": "build-logic",
+              "testLevel": "1",
+              "path": "build-logic/src/test/kotlin/com/spartanlabs/testing/gating/build/ConventionPluginGatingTest.kt",
+              "tests": 4,
+              "rows": [
+                "convention-plugin"
+              ],
+              "stage": "S1",
+              "result": {
+                "state": "passed",
+                "passed": 4,
+                "pass": 1,
+                "at": "2026-10-18T08:00:00Z"
+              }
+            }
+          ],
+          "amended": [],
+          "relevant": [],
+          "other": {
+            "byModule": {
+              "webtools-udp": {
+                "1": 9,
+                "2": 31
+              }
+            }
+          },
+          "rowNames": {
+            "convention-plugin": "The convention plugin"
+          }
+        }
       },
       "gap": {
         "kind": "debt",
@@ -430,6 +466,43 @@
           "qaMax": 3,
           "status": "building",
           "branch": "fix/issue-47-java-23-bytecode"
+        },
+        "tests": {
+          "base": "master",
+          "updated": "2026-10-22T09:00:00Z",
+          "added": [],
+          "amended": [
+            {
+              "class": "com.spartanlabs.testing.component.http.HttpClientFloorTest",
+              "module": "webtools-http",
+              "testLevel": "2",
+              "path": "webtools-http/src/test/kotlin/com/spartanlabs/testing/component/http/HttpClientFloorTest.kt",
+              "tests": 7,
+              "rows": [
+                "toolchain"
+              ],
+              "stage": "S2",
+              "result": {
+                "state": "failed",
+                "passed": 6,
+                "failed": 1,
+                "pass": 1,
+                "at": "2026-10-22T08:00:00Z"
+              }
+            }
+          ],
+          "relevant": [
+            {
+              "class": "com.spartanlabs.testing.integration.http.HttpRoundTripTest",
+              "module": "webtools-http",
+              "testLevel": "3",
+              "path": "webtools-http/src/test/kotlin/com/spartanlabs/testing/integration/http/HttpRoundTripTest.kt",
+              "tests": 5
+            }
+          ],
+          "rowNames": {
+            "toolchain": "The Java toolchain"
+          }
         }
       },
       "gap": {

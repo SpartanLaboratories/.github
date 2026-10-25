@@ -30,7 +30,7 @@
     }
   ],
   "wip": {
-    "$comment": "step: sizing | interview | research | architecture | plan | branch | implementation | qa | remediation | landing | landed | halted | escalated | cancelled. current: <row-id>.<column> addresses or a column name (gap, considered, verdict, built), the work in progress, exactly the cells being worked on however many (no count limit); it follows step by the step-to-column map (plan/RULES.md §3): interview the cell the question concerns or nothing, research the <row-id>.considered cells of the rows the questions being researched or verified name , between the last return and the verification the returned questions' rows (the whole considered column only while the rows are unknown: no question recorded, none researching, verifying or returned, a glowing question naming no row, or a board with no rows), architecture considered, plan (writing or verifying a plan) considered and verdict, implementation and remediation the touched rows <row-id>.built (a tracking board: its units in progress), and the whole As built column, built, for an implementation stage that touches no rows (such as the as-built record) or while no stage is current, qa built, sizing, branch, landing, landed and cancelled nothing; halted and escalated keep the glow of the step in resume, held still. A column address (gap, considered, verdict, built) is drawn as one glow on the column itself, its band and head (on the As built tab, round the cards; on a phone, where no columns are drawn, on each of its cells), never each row's cell lit; a <row-id>.<column> address lights its cell. next: on a tracking board only, the id of the next unit in landing order (the first unit row that is pending, not in current and not left for later: a unit whose verdict is kind leave is skipped), or null when none is left; it is kept so at every landing and every unit start, so the board always names what is coming. On a tracking board, step is the tracking issue's own phase: implementation while its units run (each unit's own step is in its row's unit.live), never a unit's step. While halted: resume (the step to return to) and waitingOn. The step panel's facts (plan/RULES.md §3, \"The step panel\"), each optional: event, the last event {name, at, note}; interview, the interview's questions {text, options: the options it offers (from the halted event's facts.questions), answer: null while it waits, asked, answered}; research {phase: planning | research | verification | complete, drafted: the questions drafted so far, since: {<phase>: when it began}}; questions, the research questions {question: <slug>, rows: [<row-id>], findings: null until it returns, then the findings path, state: planning | researching | returned | verifying | complete, started, returned}, written by research-started, research-returned, verification-started and researched, kept complete until plan-accepted (on a tracking board, architecture-signed-off), which clears them with research; plan {state: writing | re-pass, from: parent | qa | existing (a re-pass's source: the parent's plan, a qa pass, or an existing plan verified against the base), pass: the qa pass a re-pass answers, against: the ref an existing plan is verified against (e.g. main), since}; stages, the implementation stages of plan.md {id, name, state: done | current | todo, rows}; open, the run's open points {text, raised: the event or stage that raised it, ref: a link (optional), resolved: how it was settled, left out while open}, listed in the step panel until resolved, then kept in the trail; remediation {pass: the qa pass it answers, route: on-the-spot | rookie-dev | planner-then-rookie-dev, steps: [{name, state}] (what is the older name of name)}. qa[].verdict: approved | changes-requested | running; qa[].findings counts by kind, qa[].severity by severity (minor: easily made, no fallout; other), qa[].route the route step 5 takes from them; qaMax the most passes (3). blockers from the tracker's blocked-by links; repo only when another repository's.",
+    "$comment": "step: sizing | interview | research | architecture | plan | branch | implementation | qa | remediation | landing | landed | halted | escalated | cancelled. current: <row-id>.<column> addresses or a column name (gap, considered, verdict, built), the work in progress, exactly the cells being worked on however many (no count limit); it follows step by the step-to-column map (plan/RULES.md §3): interview the cell the question concerns or nothing, research the <row-id>.considered cells of the rows the questions being researched or verified name , between the last return and the verification the returned questions' rows (the whole considered column only while the rows are unknown: no question recorded, none researching, verifying or returned, a glowing question naming no row, or a board with no rows once questions are recorded; during research planning, with no question recorded yet, considered on a board with rows and nothing on a board with none), architecture considered, plan (writing or verifying a plan) considered and verdict, implementation and remediation the touched rows <row-id>.built (a tracking board: its units in progress), and the whole As built column, built, for an implementation stage that touches no rows (such as the as-built record) or while no stage is current, qa built, sizing, branch, landing, landed and cancelled nothing; halted and escalated keep the glow of the step in resume, held still. A column address (gap, considered, verdict, built) is drawn as one glow on the column itself, its band and head (on the As built tab, round the cards; on a phone, where no columns are drawn, on each of its cells), never each row's cell lit; a <row-id>.<column> address lights its cell. next: on a tracking board only, the id of the next unit in landing order (the first unit row that is pending, not in current and not left for later: a unit whose verdict is kind leave is skipped), or null when none is left; it is kept so at every landing and every unit start, so the board always names what is coming. On a tracking board, step is the tracking issue's own phase: implementation while its units run (each unit's own step is in its row's unit.live), never a unit's step. While halted: resume (the step to return to) and waitingOn. The step panel's facts (plan/RULES.md §3, \"The step panel\"), each optional: event, the last event {name, at, note}; interview, the interview's questions {text, options: the options it offers (from the halted event's facts.questions), answer: null while it waits, asked, answered}; research {phase: planning | research | verification | complete, drafted: the questions drafted so far, since: {<phase>: when it began}}; questions, the research questions {question: <slug>, rows: [<row-id>], findings: null until it returns, then the findings path, state: planning | researching | returned | verifying | complete, started, returned}, written by research-started, research-returned, verification-started and researched, kept complete until plan-accepted (on a tracking board, architecture-signed-off), which clears them with research; plan {state: writing | re-pass, from: parent | qa | existing (a re-pass's source: the parent's plan, a qa pass, or an existing plan verified against the base), pass: the qa pass a re-pass answers, against: the ref an existing plan is verified against (e.g. main), since}; stages, the implementation stages of plan.md {id, name, state: done | current | todo, rows}; open, the run's open points {text, raised: the event or stage that raised it, ref: a link (optional), resolved: how it was settled, left out while open}, listed in the step panel until resolved, then kept in the trail; remediation {pass: the qa pass it answers, route: on-the-spot | rookie-dev | planner-then-rookie-dev, steps: [{name, state}] (what is the older name of name)}. qa[].verdict: approved | changes-requested | running; qa[].findings counts by kind, qa[].severity by severity (minor: easily made, no fallout; other), qa[].route the route step 5 takes from them; qaMax the most passes (3). blockers from the tracker's blocked-by links; repo only when another repository's.",
     "step": "research",
     "since": "<YYYY-MM-DD or an ISO date-time>",
     "updated": "<ISO date-time of this board update>",
@@ -452,6 +452,45 @@
     ],
     "source": "impact.md",
     "link": "<impact.md#section-anchor>"
+  },
+  "tests": {
+    "$comment": "The Tests tab (plan/RULES.md §2, \"The Tests tab\"); absent or null until a class is recorded, and never on a tracking board (embed.js mirrors each unit's into its row as unit.tests). base: the ref the branch's diff is taken against; updated: the last change. added: the test classes new on the branch; amended: the existing classes the branch changed (both from the diff, growing with each implementation stage); relevant: unchanged existing classes that exercise the new code anyway (what qa's test-inspector ran, less added and amended; with each qa pass). A class is in one list only, added before amended before relevant. Each class: class (its name, fully qualified where it has a package), module, testLevel (1 | 2 | 3 | 4a | 4b | 4c | 5, the five-level testing hierarchy's: a test level, never a work level; absent when its package or path names its level folder, testing.<segment>), path, tests (its test count), rows (the ids of the board rows it verifies), stage (the implementation stage that last added or changed it), result {state: passed | failed | skipped | not-run, passed, failed, skipped, pass (the qa pass), at}. other: {byModule: {<module>: {<test level, or none>: <classes> | {classes, tests}}}}, counts only: never run for this change. apply-event.js writes it from an event's facts.tests (testslib.js mergeTests()); otherwise the presenter fills it from the diff and the qa report.",
+    "base": "<the ref of the diff, e.g. master>",
+    "updated": "<ISO date-time>",
+    "added": [
+      {
+        "class": "<com.example.testing.component.module.ClassNameTest>",
+        "module": "<module>",
+        "testLevel": "2",
+        "path": "<module/src/test/kotlin/com/example/testing/component/module/ClassNameTest.kt>",
+        "tests": 0,
+        "rows": [
+          "<row-id>"
+        ],
+        "stage": "<S1>",
+        "result": {
+          "state": "passed",
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "pass": 1,
+          "at": "<ISO date-time>"
+        }
+      }
+    ],
+    "amended": [],
+    "relevant": [],
+    "other": {
+      "byModule": {
+        "<module>": {
+          "1": 0,
+          "2": {
+            "classes": 0,
+            "tests": 0
+          }
+        }
+      }
+    }
   },
   "roadmap": null,
   "followUps": [

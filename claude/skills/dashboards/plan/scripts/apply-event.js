@@ -27,7 +27,7 @@
 "use strict";
 const T0 = Date.now();
 const fs = require("fs"), path = require("path"), cp = require("child_process");
-const lib = require("./lib.js");
+const lib = require("./lib.js"), TL = require("./testslib.js");
 const dev = require(path.resolve(__dirname, "..", "..", "system", "scripts", "deviation.js"));
 const { levelRefs } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
 
@@ -137,6 +137,8 @@ function applyEvent(orig, ev, facts, req, now) {
     if (step === "remediation" && !tracking && g.length === 1 && g[0] === "built") enrich.push("the rows the qa findings touch are not known from the facts: the whole As built column glows until the presenter names them");
   };
   let detail = txt(facts.detail, "detail"), note = txt(facts.note, "note"), trail = null, parentOp = null;
+  /* the Tests tab is due an update when a stage is reported done or a qa pass returns its verdict (plan/RULES.md §2, "The Tests tab") */
+  let testsDue = false;
   const research = () => (w.research = w.research && typeof w.research === "object" ? w.research : { phase: null, drafted: 0, since: {} });
   const setPhase = ph => { const r = research(); r.since = r.since && typeof r.since === "object" ? r.since : {}; if (r.phase !== ph) { r.phase = ph; r.since[ph] = now; applied.push(`wip.research.phase ${ph}`); } };
   const qs = () => (w.questions = Array.isArray(w.questions) ? w.questions : []);
@@ -356,6 +358,7 @@ function applyEvent(orig, ev, facts, req, now) {
         r.asBuilt = { ...(r.asBuilt || {}), state: s }; applied.push(`${r.id} ${s}`);
       });
       const touched = [...new Set(done.flatMap(x => x.rows || []))].filter(id => ids.has(id));
+      testsDue = done.length > 0;
       if (done.length) enrich.push(`stage${done.length > 1 ? "s" : ""} ${done.map(x => x.id).join(", ")} done: the summaries and outcomes of ${touched.length ? touched.join(", ") : "the rows they touch"}, and any deviation from final-implementation.md, come from the documents`);
       const allDone = st.length > 0 && st.every(x => x.state === "done");
       const step = facts.step && STEPS.includes(facts.step) ? facts.step : remed ? "remediation" : allDone ? "qa" : "implementation";
@@ -380,6 +383,7 @@ function applyEvent(orig, ev, facts, req, now) {
       const severity = {}; if (Q.severity && typeof Q.severity === "object") Object.keys(Q.severity).forEach(k => { if (Number.isInteger(Q.severity[k]) && Q.severity[k] >= 0) severity[k] = Q.severity[k]; });
       const route = Q.route || (facts.remediation || {}).route || null;
       if (route && !ROUTES.includes(route)) refuse(`facts.qa.route ${JSON.stringify(route)} is not one of ${ROUTES.join(", ")}`);
+      testsDue = verdict !== "running";
       const entry = { pass: Q.pass, verdict, date: today, findings, ...(Object.keys(severity).length ? { severity } : {}), ...(verdict === "changes-requested" && route ? { route } : {}) };
       const qn = txt(Q.note, "qa.note"); if (qn) entry.note = qn;
       w.qa = Array.isArray(w.qa) ? w.qa : []; const k = w.qa.findIndex(x => x && x.pass === Q.pass);
@@ -430,6 +434,17 @@ function applyEvent(orig, ev, facts, req, now) {
       trail = { column: "built", label: `Cancelled${reason ? ": " + reason : ""}` };
       break;
     }
+    /* team-raised (plan/RULES.md §4): the admin team has accepted the land and is about to merge; "landed" follows after the merge */
+    case "landing": {
+      if (["built", "abandoned"].includes(plan.status) || ["landed", "cancelled"].includes(w.step)) refuse(`landing: the board has ${plan.status === "abandoned" || w.step === "cancelled" ? "been cancelled" : "landed"} already`);
+      if (stopped(w.step)) { w.resume = null; w.waitingOn = null; applied.push("wip.resume and wip.waitingOn cleared"); }
+      setStep("landing"); setGlow("landing");
+      const pr = Number.isInteger(facts.pr) && facts.pr > 0 ? facts.pr : null;
+      note = note || `accepted by the admin team${pr ? ", PR #" + pr : ""}`;
+      detail = detail || `Landing: the admin team merges it${pr ? " in PR #" + pr : ""}.`;
+      trail = { column: "built", label: `Landing: the admin team merges it${pr ? " in PR #" + pr : ""}`, ...(pr ? { ref: `PR #${pr}` } : {}) };
+      break;
+    }
     case "landed": {
       const A = plan.asBuilt && typeof plan.asBuilt === "object" ? plan.asBuilt : {};
       const sha = [facts.sha, facts.merge].find(s => typeof s === "string" && /^[0-9a-f]{7,40}$/.test(s)), pr = Number.isInteger(facts.pr) ? facts.pr : null;
@@ -451,6 +466,15 @@ function applyEvent(orig, ev, facts, req, now) {
     }
     default: refuse(`unknown event ${JSON.stringify(ev)}`);
   }
+  /* The Tests tab (plan/RULES.md §2, "The Tests tab"): an event that carries facts.tests has it applied (testslib.js mergeTests()); an
+     implementation stage or a qa verdict without one leaves the tab to the presenter, from the branch's diff and the qa report */
+  if (facts.tests != null) {
+    if (tracking) enrich.push("facts.tests on a tracking board: its units' boards record the tests (the presenter writes them there)");
+    else { const qp = ev === "qa-pass" && facts.qa && Number.isInteger(facts.qa.pass) ? facts.qa.pass : null;
+      const r = TL.mergeTests(plan, facts.tests, { now, pass: qp, stage: ev === "implementation-stage" && typeof facts.stage === "string" && facts.stage.trim() ? facts.stage.trim() : null, ids });
+      applied.push(...r.applied); enrich.push(...r.notes.map(n => "tests: " + n)); }
+  } else if (!tracking && testsDue)
+    enrich.push(`the Tests tab: the event carries no facts.tests; ${ev === "qa-pass" ? "Relevant, Other and the results come from the qa report" : "Added and Amended come from the branch's diff against its base"}`);
   if (detail !== w.detail) { w.detail = detail; applied.push("wip.detail"); }
   const evRec = { name: ev, at: now, ...(note ? { note } : {}) };
   w.event = evRec; w.updated = now;

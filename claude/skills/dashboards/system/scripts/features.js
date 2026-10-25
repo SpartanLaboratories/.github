@@ -85,6 +85,29 @@ const FEATURES = [
   { id: "core-subsystems", name: "a supersystem's subsystems marked core or optional", since: 26, types: ["supersystem"],
     notFor: { system: "it draws no subsystems' roles", "plan-board": "no Systems tab", "work-board": "no Systems tab" },
     test: h => need(/core subsystem/.test(scripts(h)), "the Systems tab does not mark core and optional subsystems") },
+  /* admin-team/dashboards-skill/22 */
+  { id: "kpi-tile-legends", name: "each KPI tile's legend inside the tile, no shared legend row under the tiles", since: 22, types: BOARDS,
+    notFor: { system: "its tiles are hand-written counted facts with no bar, so no legend", supersystem: "no KPI tiles" },
+    test: (h, k) => k === "plan-board" ? need(/function kpiKeys\(/.test(scripts(h)) && !/kpikey|kpi-key/.test(h), /kpikey|kpi-key/.test(h) ? "the tiles still share one legend row (kpi-key)" : "no tile carries its own legend (kpiKeys())")
+      : need(/\.kpi \.key\{/.test(css(h)), "the tiles carry no legend of their own (.kpi .key)") },
+  { id: "no-model-tag", name: "no \"board\" tag in the header (it repeated the KPI tiles; the source is in the footer and the Source tab)", since: 22, types: BOARDS,
+    notFor: { system: "its C4 model tag names the DSL the page renders, with counts no tile repeats", supersystem: "its C4 model tag names the DSL the page renders, with counts no tile repeats" },
+    test: h => need(!/tag\("board",/.test(scripts(h)), "the header still draws the \"board\" tag") },
+  { id: "title-issue-link", name: "the title's #n is the GitHub issue's link; the issue line the issue's GitHub title alone", since: 22, types: ["plan-board"],
+    notFor: { system: "no issue of its own: a state page names no issue above its Context", supersystem: "no issue of its own: a state page names no issue above its Context", "work-board": "no issue of its own" },
+    test: h => need(/class=\\?"ghn\\?"/.test(scripts(h)) && !/GitHub issue \$\{ext\(/.test(scripts(h)), "the title's #n is not a link, or the issue line still repeats it (\"GitHub issue #n\")") },
+  { id: "panel-since-once", name: "\"since\" said once: by the step panel, not by the strip's head line or the unit bubble beside it", since: 22, types: ["plan-board"],
+    notFor: { system: "no step panel", supersystem: "no step panel", "work-board": "no step panel: one row per run" },
+    test: h => need(/ownPanelShown/.test(scripts(h)), "the strip's head line repeats the step panel's \"since\"") },
+  { id: "charging-arrow-large", name: "the larger charging arrow (22 px, reaching over both cells' edges)", since: 22, types: ["plan-board"],
+    notFor: { system: "no Timeline columns", supersystem: "no Timeline columns", "work-board": "no Timeline columns: one row per run" },
+    test: h => need(/\.cell\.verdict\.charging::before\{[^}]*height:22px/.test(css(h)), "the charging arrow is the small one (12 px)") },
+  { id: "landing-event", name: "the landing step panel names the team-raised landing (the admin team merging it)", since: 22, types: ["plan-board"],
+    notFor: { system: "no run steps", supersystem: "no run steps", "work-board": "it shows each run's step and detail as text" },
+    test: h => need(/admin team has accepted the land/.test(scripts(h)), "the landing step panel does not read the landing event") },
+  { id: "tests-tab", name: "the Tests tab (Added, Amended, Relevant, Other; by test level, with results and the rows verified)", since: 22, types: ["plan-board"],
+    notFor: { system: "a state page shows the code at a commit, not one change's tests (its Guarantees count the test levels)", supersystem: "a state page shows the code at a commit, not one change's tests (its Guarantees count the test levels)", "work-board": "one row per run: each run's tests are on its own board" },
+    test: h => { const b = body(h), s = scripts(h); return need(/id="t-tests"/.test(b) && ["added", "amended", "relevant", "other"].every(k => new RegExp(`id="t-tests-${k}"`).test(b)) && /function renderTests\(/.test(s), "no Tests tab with its four sub-tabs (Added, Amended, Relevant, Other)"); } },
 ];
 /* The layout detectors, run in the browser pass (check-page.js's probe), named here so the report and the rules list them. */
 const LAYOUT = [
