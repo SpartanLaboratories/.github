@@ -101,7 +101,7 @@ On a tracking issue's board the rows are its units. Four to twelve rows is usual
 |---|---|---|---|
 | 1 | **Gap** | what was wrong or missing at the baseline, with evidence (`path:line`) and a source in the research | once, after research; for a sub-issue of a signed-off tracking plan, at `sized`, from the parent's research and architecture (its unit row in the decomposition, the current-state section) |
 | 2 | **Considered** | every option weighed, each with a verdict: **accepted** (green), **declined** (red, with the trade-off that ruled it out), **partial** (yellow: adopted in part, with what was taken and what wasn't), **deferred** (yellow until settled: left open at plan time, settled in column 4). Exactly one option per row is accepted or partial-as-chosen. | once, after architecture; for a sub-issue of a signed-off tracking plan, at `sized`, the options the parent's architecture weighed for this unit (its alternatives-considered and per-unit design sections), to which the unit's own plan adds at `plan-accepted` |
-| 3 | **Verdict** | the decision and its defence in a few sentences (what the work is — one system, a bug fix, docs only — never its work level); a `build` or `leave` kind; the steps named, not listed (a step is a sentence with a file anchor and its check — the detail is in `plan.md`); tests by test level; risks | once, at plan acceptance |
+| 3 | **Verdict** | the decision and its defence in a few sentences (what the work is — one system, a bug fix, docs only — never its work level); a `build` or `leave` kind (a neutral, solid chip, "build" or "leave as is", which the Timeline legend names: a decision, not an outcome, and never dashed, `GUIDANCE.md` §1); the steps named, not listed (a step is a sentence with a file anchor and its check — the detail is in `plan.md`); tests by test level; risks | once, at plan acceptance |
 | 4 | **As built** | the state, a summary of what exists at the as-built commit, and every change from the verdict with `what`, `why`, `when` (the stage or review round) and `ref` (the commit) | kept as the work lands |
 
 Columns 1–3 are written once. A factual error found later is corrected in place and noted
@@ -122,6 +122,12 @@ and how it differs from its own verdict, stays on the sub-issue's board, which t
 row may still carry `changes[]` where the unit departed from the architecture. A tracking board
 written before these two states marked a landed unit `as-planned`, `amended` or `deviated`; the
 scripts and the page read those as landed.
+
+**The As built tile** in the header counts what is **built**: "N / M rows built", N the rows
+`as-planned`, `amended` or `deviated`, M every row less the `dropped` and `deferred` ones, which are
+neither built here nor counted in the total, as the chain's progress counts them (§3). The line under
+the figure names every state with its count, dropped and deferred included. A tracking board's tile
+reads "N / M units landed", counted the same way.
 
 ### Impact
 
@@ -452,6 +458,14 @@ waits-on and blocks lists, the "blocked by" tags, the Up next count, any `#n` in
 GitHub otherwise. There is no separate GitHub ↗ link: every issue with a board has a row whose number opens GitHub. `board.js`
 sets a row's board only when its file exists.
 
+**A row's system, and "no system".** A row's `system` for an issue with no board, and an unscheduled
+issue's `system`, are the presenter's: recorded once in `board.json`, and kept by `board.js` from the
+previous board (the one it writes, then the other of the committed and the live board). Where the user
+has decided that an entry belongs to no system (a docs-only issue that changes only a planning record,
+say), the entry records `"unassigned": true` with `system` `null`, the record of that decision:
+`board.js` keeps it, the row reads "no system" with the muted swatch, and the entry is no longer
+reported as missing a system. An entry with neither is reported at every `board.js` run until one is recorded.
+
 ## 6. Who does what
 
 | Who | Does |
@@ -506,7 +520,8 @@ whose `entry` is not `<section>.<index>` or names no entry (the As built tab wou
 that is not there), a unit entry's change that names an `entry`, an impact change's `unit` on an
 issue board or naming no unit row, a `none` that is not `true`, a no-change entry (`none: true`) on
 an issue board, without its `unit` or naming an `entry`, a work-board row's `reconciliation` that is
-neither `null` nor one of the three states, a built board whose impact is still the plan's, a
+neither `null` nor one of the three states, a work-board row's or unscheduled issue's `unassigned` that is
+not `true` or sits beside a `system` (§5), a built board whose impact is still the plan's, a
 planned board whose impact claims `as-built`, `impact.units` on a board that is not a tracking
 board, or an entry that names no unit row or repeats one; a system colour in a status spectrum
 (`GUIDANCE.md` §1: a `--sys-N` slot, chromatic, with a hue outside 175°–295°, read from the page's
