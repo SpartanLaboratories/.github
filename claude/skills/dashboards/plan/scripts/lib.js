@@ -219,7 +219,7 @@ function parentBoard(dir, parent) {
    clicks. */
 const ISSUE_UNLINKED = new Set(["$comment", "schema", "repo", "slug", "folder", "kind", "status", "id", "where", "title", "system", "slot", "top", "page", "board",
   "branch", "step", "steps", "since", "updated", "state", "verdict", "column", "date", "sha", "merge", "version", "pr", "files", "n", "level", "current", "next",
-  "resume", "qa", "qaMax", "pass", "findings", "landing", "chosen", "settles", "when", "issueBoards"]);
+  "resume", "qa", "qaMax", "pass", "findings", "question", "questions", "landing", "chosen", "settles", "when", "issueBoards"]);
 const reEsc = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const UNIT_LANDED = ["landed", "as-planned", "amended", "deviated"];
 function issueRefs(plan) {
@@ -393,5 +393,84 @@ function signedOffParent(dir, plan) {
 }
 /* The words for a state, shared by check.js and the work board's data. */
 const RECON_WORDS = { planned: "planned", partial: "partly reconciled", "as-built": "as built" };
-module.exports = { reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+/* The step-to-column map (plan/RULES.md §3, "The glow follows the step"): what wip.current holds at each wip.step, written once
+   for the scripts (check.js warns on a board that does not keep it; new.js lays the foundation's wip.current from it).
+     none     nothing glows                                  sizing, branch, landing, landed, cancelled
+     cells    the cell the question concerns, or nothing      interview (<row-id>.<column> addresses only, no whole column)
+     research the Considered cells of the rows the research  research (researchGlow below: the open questions' rows, the whole
+              questions name                                  Considered column as the fallback)
+     columns  exactly these columns                           architecture: considered; plan: considered, verdict; qa: built
+     built    the As built cells of the rows the stage, or    implementation, remediation (<row-id>.built addresses; at least one on
+              the findings, touch                             an issue board; on a tracking board the units in progress, or none)
+   halted and escalated keep the glow of the step they stopped in (wip.resume), drawn as a still ring. */
+const GLOW_MAP = {
+  sizing: { kind: "none" }, interview: { kind: "cells" }, research: { kind: "research" },
+  architecture: { kind: "columns", cols: ["considered"] }, plan: { kind: "columns", cols: ["considered", "verdict"] }, branch: { kind: "none" },
+  implementation: { kind: "built" }, qa: { kind: "columns", cols: ["built"] }, remediation: { kind: "built" },
+  landing: { kind: "none" }, landed: { kind: "none" }, cancelled: { kind: "none" }
+};
+const COLUMN_NAMES = { gap: "Gap", considered: "Considered", verdict: "Verdict", built: "As built" };
+/* Research glows the rows being researched (plan/RULES.md §3, "Research: the rows being researched"). wip.questions records the
+   research questions of the run, each { question: "<slug>", rows: ["<row-id>", …], findings: null | "<path>" } (findings null:
+   still open), from the research-started and research-returned events; researched clears it. While a question is open, the
+   Considered cells of the rows the open questions name glow (their union); once every question has returned, the verification
+   runs until researched, and RESEARCH_VERIFY_GLOW says what glows then: "rows" (the default: every question's rows again) or
+   "column" (the whole Considered column). The whole Considered column glows instead (the fallback) when no question is recorded
+   yet, when a question in the set names no row (rows [], or only ids that are not rows of the board), when the board has no rows,
+   and when the cells would be more than six. Returns { current, phase, fallback }. */
+const RESEARCH_VERIFY_GLOW = "rows";
+const MAX_GLOW_CELLS = 6;
+function researchGlow(plan) {
+  const w = (plan && plan.wip) || {}, rows = Array.isArray(plan && plan.rows) ? plan.rows : [], ids = new Set(rows.map(r => r && r.id));
+  const qs = Array.isArray(w.questions) ? w.questions.filter(q => q && typeof q === "object") : [];
+  const open = qs.filter(q => q.findings == null), phase = !qs.length ? "none" : open.length ? "open" : "verifying";
+  const column = (fallback) => ({ current: ["considered"], phase, fallback });
+  if (phase === "none") return column("no research question is recorded yet");
+  if (phase === "verifying" && RESEARCH_VERIFY_GLOW === "column") return column(null);
+  if (!rows.length) return column("the board has no rows yet");
+  const set = phase === "open" ? open : qs, cells = new Set();
+  for (const q of set) {
+    const own = (Array.isArray(q.rows) ? q.rows : []).map(String).filter(id => ids.has(id));
+    if (!own.length) return column(`question "${q.question}" names no row of the board`);
+    own.forEach(id => cells.add(id + ".considered"));
+  }
+  if (cells.size > MAX_GLOW_CELLS) return column(`${cells.size} cells would glow, more than ${MAX_GLOW_CELLS}`);
+  return { current: rows.map(r => r.id + ".considered").filter(a => cells.has(a)), phase, fallback: null };
+}
+/* The wip.current a step starts with when nothing more is known (new.js): its columns, else nothing; research, the whole
+   Considered column until a question is recorded. */
+const glowFor = step => { const m = GLOW_MAP[step]; return m && m.kind === "columns" ? m.cols.slice() : m && m.kind === "research" ? ["considered"] : []; };
+/* The map, applied to a board: null when wip.current keeps it (or it cannot be judged: a halt with no wip.resume, a board that
+   has landed or was abandoned, whose glow is off anyway), else { step, via, want, bad }: the step judged (wip.resume for a halted
+   or escalated board, named in via), the columns the map gives it in words, and the addresses (or the absence) that break it. */
+function glowMismatch(plan) {
+  const w = (plan && plan.wip) || {}, cur = Array.isArray(w.current) ? w.current.map(String) : [];
+  if (plan.status === "built" || plan.status === "abandoned" || w.step === "landed") return null;
+  const via = ["halted", "escalated"].includes(w.step) ? w.step : null, step = via ? w.resume : w.step;
+  const m = GLOW_MAP[step]; if (!m) return null;
+  const tracking = plan.kind === "tracking", rows = Array.isArray(plan.rows) ? plan.rows : [];
+  const unitRow = id => rows.some(r => r && r.id === id && r.unit);
+  const cols = m.kind === "columns" ? m.cols : [], words = cs => cs.map(c => `${COLUMN_NAMES[c]} (${JSON.stringify(c)})`).join(" and ");
+  let want, bad = [];
+  if (m.kind === "none") { want = "nothing"; bad = cur; }
+  else if (m.kind === "research") {
+    const g = researchGlow(plan), want0 = g.current;
+    want = (g.fallback || want0[0] === "considered" ? `the whole Considered column, as ["considered"]${g.fallback ? ` (the fallback: ${g.fallback})` : " (the verification, RESEARCH_VERIFY_GLOW \"column\")"}` : `the Considered cells of the rows the ${g.phase === "open" ? "open research questions name" : "research questions named (the verification)"}, as ${JSON.stringify(want0)}`);
+    bad = cur.filter(a => !want0.includes(a)).map(a => a.endsWith(".considered") && want0[0] !== "considered" ? `${a} (no open question names its row)` : a);
+    const miss = want0.filter(a => !cur.includes(a)); if (miss.length) bad.push(`${miss.join(", ")} missing`);
+  }
+  else if (m.kind === "cells") { want = "the cell the question concerns (<row-id>.<column>), or nothing"; bad = cur.filter(a => a.split(".").length !== 2); }
+  else if (m.kind === "columns") {
+    want = `the ${words(cols)} column${cols.length > 1 ? "s" : ""}, as ${JSON.stringify(cols)}`; bad = cur.filter(a => !cols.includes(a));
+    const miss = cols.filter(c => !cur.includes(c)); if (!bad.length && miss.length) bad = [`${miss.join(", ")} missing`];
+  } else {
+    want = tracking ? "the As built cells of the units in progress (<unit-id>.built), or nothing between units"
+      : `the As built cells of the rows the ${step === "remediation" ? "qa findings touch" : "stage touches"} (<row-id>.built)`;
+    bad = cur.filter(a => { const p = a.split("."); return p.length !== 2 || p[1] !== "built" || (tracking && !unitRow(p[0])); });
+    if (!bad.length && !cur.length && !tracking) bad = ["no As built cell named"];
+  }
+  return bad.length ? { step, via, want, bad } : null;
+}
+
+module.exports = { GLOW_MAP, glowFor, glowMismatch, researchGlow, RESEARCH_VERIFY_GLOW, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, parentFolder, staleUnitRuns, stampMs, treeRoot, boardFolders, boardLink, parentBoard, issueRefs, otherBoards, linkIssueBoards, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

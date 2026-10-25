@@ -279,9 +279,11 @@ A board is alive while its run is. Its data carries:
 - `wip.current` — the cells being worked on, as `<row-id>.<column>` addresses, or a column
   name while a column is being written; these carry the **in-progress mark**, the breathing
   interior glow (`GUIDANCE.md` §1). `wip.current` means a run is actively in progress and
-  nothing else. During planning the column under construction glows; during implementation the
-  as-built cells of the rows the current stage touches; during qa the whole as-built column
-  lightly; while halted, the glow pauses and a yellow "waiting on the user" strip says for what;
+  nothing else. What it holds **follows `wip.step`**, by the step-to-column map below: during
+  research the Considered cells of the rows being researched; while a plan is written or verified, Considered and Verdict;
+  during implementation the As built cells of the rows the current stage touches; during qa the
+  whole As built column lightly; while halted, the glow of the step it halted in holds still as a
+  ring, and a yellow "waiting on the user" strip says for what;
 - `wip.next` — on a tracking board only: the id of the **next unit in landing order** — the
   first unit row, in the board's row order, that is `pending` and not in `wip.current` — or
   `null` when none is left. A tracking board always names what is coming. It carries the **up-next mark**, the still, mild
@@ -293,8 +295,54 @@ A board is alive while its run is. Its data carries:
   the plan board; the work board also reads the tracker's *blocked by* links, and takes a
   blocker with no board as landed once its issue is closed). A unit is never in `wip.next` and
   `wip.current` at once;
+- `wip.questions` — the run's research questions while it researches, each `{question, rows,
+  findings}`: the question's slug, the ids of the rows it concerns (`[]` when it names none), and
+  `findings`, `null` while the question is open and its findings file once it has returned. The
+  `research-started` event adds questions, `research-returned` closes one, `researched` clears the
+  list (the trail keeps each findings file); from it the research glow is computed (below);
 - `wip.qa` — passes so far, each with its verdict and finding counts;
 - `wip.blockers` — issues this run waits on, and runs waiting on it (from *blocked by* links).
+
+**The glow follows the step: the step-to-column map.** Every `wip.step` gives `wip.current`
+one shape, on an issue board, a sub-issue's board and a tracking board alike; the presenter sets
+`wip.current` from it at every event that moves the step, and during research at every event that opens or closes a question (§4), and `check.js` warns on a board
+that does not keep it (§8). The map is written once for the scripts, as `GLOW_MAP` in
+`plan/scripts/lib.js`, which `check.js` and `new.js` use.
+
+| `wip.step` | `wip.current` — what glows |
+|---|---|
+| `sizing` | nothing: the board is laid at `sized`, which moves the step on |
+| `interview` | the cell the question concerns, as `<row-id>.<column>`, or nothing; never a whole column |
+| `research` | the Considered cells of the rows being researched, `<row-id>.considered` (below, "Research: the rows being researched"); the whole Considered column, `considered`, as the fallback |
+| `architecture` | `considered`: the architecture weighs the options (a tracking board's units appear at its sign-off) |
+| `plan` | `considered` and `verdict`, both while the plan is written and while an existing plan is verified (a planner re-pass over a plan already written, which runs at this step) |
+| `branch` | nothing: the Verdict is written and the build has not started |
+| `implementation` | the As built cells of the rows the current stage touches, as `<row-id>.built`, at least one; on a tracking board, the As built cells of its units in progress (`<unit-id>.built`), or nothing between a unit's landing and the next unit's start |
+| `qa` | `built`: the whole As built column, lightly |
+| `remediation` | the As built cells of the rows the qa findings touch, as `<row-id>.built`, at least one |
+| `landing` | nothing: qa has approved and the merge is the admin team's (on a tracking board, its plan's own landing) |
+| `landed`, `cancelled` | nothing: the glow is off |
+| `halted` | the glow of the step it halted in (`wip.resume`), unchanged, drawn as a still ring |
+| `escalated` | the glow of the step it escalated from (`wip.resume`), unchanged, drawn as a still ring: the run waits on the user's re-sizing, as a halt does |
+
+**Research: the rows being researched.** During `research`, `wip.current` is the union of the
+`<row-id>.considered` cells of the rows the **open** questions in `wip.questions` name: a
+`research-started` event lights its questions' rows, and a `research-returned` event puts out the
+rows of the question that returned, except a row another still-open question names, which keeps
+glowing. Once every question has returned, the **verification** runs (until `researched`), and the
+Considered cells of every question's rows glow again. That is the default, pending the user's
+answer; the alternative is the whole Considered column during the verification, switched by
+`RESEARCH_VERIFY_GLOW` in `plan/scripts/lib.js` (`"rows"`, the default, or `"column"`) and this
+paragraph together. **The fallback** is the whole Considered column, `considered`: while no
+question is recorded yet (a board laid at `sized` with the step at `research`), when a question
+in the set names no row (`rows: []`, or only ids that are not rows of the board), when the board
+has no rows, and when the cells would be more than six (the glow cap). A halt during research
+keeps that glow, held still. The rule is written once, `researchGlow()` in `plan/scripts/lib.js`,
+which `check.js` applies; the page draws whatever `wip.current` names.
+
+A tracking board's own steps are its phase (below, "The units' own runs"), and the map reads
+them the same way; each unit in progress glows on its own board by its own run's step, and on
+the tracking board only as its unit's As built cell.
 
 The page shows this as a **WIP strip** under the header: the step as a progress line through
 the pipeline's steps, the detail, the qa passes, the blockers, and the last update time; on a
@@ -411,17 +459,19 @@ mirror starts at the next one. The presenter checks both boards.
 
 | Event | When | What the presenter writes |
 |-------|------|---------------------------|
-| `sized` | step 1 done (levels 2–4) | the **foundation**: `new.js`; issue, title, level (data only, never shown), baseline, systems, status `planned`, `wip.step = interview`/`research`/`plan`; milestones empty; on the work board. For a sub-issue of a tracking issue whose parent board has passed `architecture-signed-off`, the Gap and Considered columns are filled at once from the parent's documents, with the `gap` and `considered` milestones: the gap from the parent's research README and architecture (the unit's row in the decomposition, the current-state section it rests on), the options from the alternatives the architecture weighed for this unit and the design decisions of its section, each with the verdict the architecture gave; a board of such a sub-issue is never born with empty columns, since its research and architecture happened in the parent's run. Also on the tracking board: its unit moves from `wip.next` to `wip.current`, the following unit in landing order becomes `wip.next`, and `wip.step` is `implementation` (§3); `new.js --parent` embeds the new board, whose "part of" chip then opens the tracking board, and `embed.js` re-embeds the tracking board, which links the unit to the new board (§1) and, once the unit is in `wip.current`, mirrors its run (§3) |
-| `halted` / `resumed` | a planner halt, a qa stop, a `needs-user` | `wip.step = halted` with what waits on the user; back to the step on resume. For a sub-issue, its tracking board's `wip.step` does not change: the unit's mirror carries the halt, and its mark pauses (§3) |
-| `researched` | research verified | the Gap column from `research/README.md` and the findings; the `gap` milestone |
-| `architecture-signed-off` | level 4 sign-off | the Considered column from `architecture.md`; on a tracking board, the unit rows (each `pending` with a one-line progress summary until its sub-issue lands; `embed.js` links it to the sub-issue's board once that board exists, §1), and `wip.next` the first unit (§3) |
-| `plan-accepted` | planner COMPLETE | Considered (if not yet) and Verdict from `plan.md`; the `verdict` milestone; `impact` from `impact.md` (and `plan.md` where it states API or migration facts), `basis` `plan` (§2, Impact); `wip.step = branch`. For a sub-issue, its unit's `impact.units` entry on the tracking board |
-| `branch-cut` | step 3 done | the branch; `wip.step = implementation` |
-| `implementation-stage` | a rookie-dev stage or report | `status = building`; the touched rows' as-built state and summary; each deviation from `final-implementation.md` as a `changes[]` entry, and one that changes the impact added to `impact.changes` with the entry it changed (`basis` stays `plan`: partly reconciled, §2, Impact); `wip.current` = the next stage's rows |
-| `qa-pass` | a qa verdict | `wip.qa` appended; `wip.step = remediation` or `landing`. On an approving pass of a sub-issue's run, its unit row on the tracking board becomes `complete` (it stays in `wip.current` until it lands) |
-| `escalated` | a level escalation | `wip.step = escalated`; the proposed level is kept as data only (`wip.proposedLevel`, never shown: `GUIDANCE.md` §4); the board follows the issue's new sizing |
-| `landed` | the team has merged | never sent by a pipeline: the admin team raises it itself inside the landing refresh (the presenter writes, the executor commits). On the issue's board: `status = built`; `asBuilt` (sha, date, PR, merge, version); the `built` milestone; every `pending` part resolved; the trail completed; `impact` reconciled from `final-implementation.md` and the reconciled `impact.md`, `basis` `as-built`, each difference from the planned impact in `impact.changes`, naming the `entry` it changed where there is one (§2, Impact; the As built tab shows them); `wip.step = landed`. For a sub-issue, on its tracking board, the standing rule (§3): the unit `landed`, out of `wip.current` (which clears its mirror at the next embed), `wip.next` recomputed as the next unit in landing order; its `impact.units` entry reconciled, `basis` `as-built`, each difference from the unit's planned impact in its `changes[]`; its effect on the initiative's impact recorded in the tracking board's `impact.changes`, always: each difference its landing makes, with `unit` set to the unit's row id, or one no-change entry `{unit, when, none: true}` when it changed nothing; that `basis` stays `plan` until the last unit lands and becomes `as-built` with it (§2, Impact). Then the work board is regenerated |
-| `cancelled` | the run is abandoned | `status = abandoned`, reason in `notes` |
+| `sized` | step 1 done (levels 2–4) | the **foundation**: `new.js`; issue, title, level (data only, never shown), baseline, systems, status `planned`, `wip.step = interview`/`research`/`plan`, and `wip.current` from that step's row of the map (§3): nothing or the cell the interview's question concerns, `considered` for research (the whole column, until `research-started` names its questions), `considered` and `verdict` for a plan (`new.js` lays the columns; a cell is the presenter's to name); milestones empty; on the work board. For a sub-issue of a tracking issue whose parent board has passed `architecture-signed-off`, the Gap and Considered columns are filled at once from the parent's documents, with the `gap` and `considered` milestones: the gap from the parent's research README and architecture (the unit's row in the decomposition, the current-state section it rests on), the options from the alternatives the architecture weighed for this unit and the design decisions of its section, each with the verdict the architecture gave; a board of such a sub-issue is never born with empty columns, since its research and architecture happened in the parent's run. Also on the tracking board: its unit moves from `wip.next` to `wip.current` (`<unit-id>.built`), the following unit in landing order becomes `wip.next`, and `wip.step` is `implementation` (§3); `new.js --parent` embeds the new board, whose "part of" chip then opens the tracking board, and `embed.js` re-embeds the tracking board, which links the unit to the new board (§1) and, once the unit is in `wip.current`, mirrors its run (§3) |
+| `halted` / `resumed` | a planner halt, a qa stop, a `needs-user` | `wip.step = halted` with what waits on the user, and `wip.resume` the step it halted in; `wip.current` stays as that step left it, and the page holds its glow still as a ring (§3); on resume, back to the step, with the glow that step's row of the map gives (a resumed plan verification: `considered` and `verdict`). For a sub-issue, its tracking board's `wip.step` does not change: the unit's mirror carries the halt, and its mark pauses (§3) |
+| `research-started` | the planner sends its research questions out (`facts.researching: [{question, rows}]`) | each question appended to `wip.questions` with `findings: null` (and `started`, the event's time); `wip.step = research`; `wip.current` the union of the `<row-id>.considered` cells of every open question's rows, or the whole Considered column by the fallback (§3, "Research: the rows being researched") |
+| `research-returned` | a researcher returns (`facts.returned: {question, findings}`) | that question's `findings` set to the findings path (and `returned`, the event's time); a trail entry for the findings (`column` `gap`, a label naming the question, `ref` the findings path); `wip.current` recomputed: the question's rows stop glowing unless another open question names them, and once every question has returned the verification glows every question's rows again (§3) |
+| `researched` | research verified | the Gap column from `research/README.md` and the findings; the `gap` milestone; `wip.questions` cleared (research has ended; the trail keeps the findings); `wip.step` the step the event's facts name next (`architecture` on a tracking issue, else `plan`) and `wip.current` from the map: `considered`, or `considered` and `verdict` (§3) |
+| `architecture-signed-off` | level 4 sign-off | the Considered column from `architecture.md`; on a tracking board, the unit rows (each `pending` with a one-line progress summary until its sub-issue lands; `embed.js` links it to the sub-issue's board once that board exists, §1), and `wip.next` the first unit (§3); `wip.step = landing` (the plan's own landing) and `wip.current` empty |
+| `plan-accepted` | planner COMPLETE | Considered (if not yet) and Verdict from `plan.md`; the `verdict` milestone; `impact` from `impact.md` (and `plan.md` where it states API or migration facts), `basis` `plan` (§2, Impact); `wip.step = branch` and `wip.current` empty (§3: nothing glows between the Verdict and the build). For a sub-issue, its unit's `impact.units` entry on the tracking board |
+| `branch-cut` | step 3 done | the branch; `wip.step = implementation`; `wip.current` the As built cells of the rows the first stage of `plan.md` touches (`<row-id>.built`) |
+| `implementation-stage` | a rookie-dev stage or report | `status = building`; the touched rows' as-built state and summary; each deviation from `final-implementation.md` as a `changes[]` entry, and one that changes the impact added to `impact.changes` with the entry it changed (`basis` stays `plan`: partly reconciled, §2, Impact); `wip.current` = the As built cells of the rows the next stage touches (`<row-id>.built`); once the last stage is reported and the run moves to qa, `wip.step = qa` and `wip.current` `built` (§3) |
+| `qa-pass` | a qa verdict | `wip.qa` appended; `wip.step = remediation`, with `wip.current` the As built cells of the rows the findings touch, or `landing`, with `wip.current` empty (§3). On an approving pass of a sub-issue's run, its unit row on the tracking board becomes `complete` (it stays in `wip.current` until it lands) |
+| `escalated` | a level escalation | `wip.step = escalated`, `wip.resume` the step it escalated from, and `wip.current` unchanged, its glow held still as a ring (§3); the proposed level is kept as data only (`wip.proposedLevel`, never shown: `GUIDANCE.md` §4); the board follows the issue's new sizing |
+| `landed` | the team has merged | never sent by a pipeline: the admin team raises it itself inside the landing refresh (the presenter writes, the executor commits). On the issue's board: `status = built`; `asBuilt` (sha, date, PR, merge, version); the `built` milestone; every `pending` part resolved; the trail completed; `impact` reconciled from `final-implementation.md` and the reconciled `impact.md`, `basis` `as-built`, each difference from the planned impact in `impact.changes`, naming the `entry` it changed where there is one (§2, Impact; the As built tab shows them); `wip.step = landed` and `wip.current` empty. For a sub-issue, on its tracking board, the standing rule (§3): the unit `landed`, out of `wip.current` (which clears its mirror at the next embed), `wip.next` recomputed as the next unit in landing order; its `impact.units` entry reconciled, `basis` `as-built`, each difference from the unit's planned impact in its `changes[]`; its effect on the initiative's impact recorded in the tracking board's `impact.changes`, always: each difference its landing makes, with `unit` set to the unit's row id, or one no-change entry `{unit, when, none: true}` when it changed nothing; that `basis` stays `plan` until the last unit lands and becomes `as-built` with it (§2, Impact). Then the work board is regenerated |
+| `cancelled` | the run is abandoned | `status = abandoned`, reason in `notes`; `wip.step = cancelled` and `wip.current` empty |
 
 The **work board** (§5) is regenerated only at landings, as part of the landing refresh, and
 committed with it; between landings it may lag, and a run's live state is on its own board, on
@@ -495,7 +545,8 @@ without a verdict summary once the `verdict` milestone exists (a board between r
 plan acceptance carries the Gap column alone); options without exactly one accepted (or
 chosen-partial) verdict; a declined, partial or deferred option without `why`; an amended or
 deviated part without `changes[]`, or a change without `what` and `why`; a dropped part
-without a reason; a deferred part without an issue; a `wip.current` address that names no cell;
+without a reason; a deferred part without an issue; a `wip.current` address that names no cell; a `wip.questions` that is not an array of `{question,
+rows, findings}` (a kebab-case slug, row ids, `null` or a path), or names a question twice;
 more than six glowing cells; `complete` or `landed` on a row that is not a tracking board's
 unit row; a `wip.next` on a board that is not a tracking board, or one that names no unit row,
 a unit that is not `pending`, or a unit also in `wip.current`; on a tracking board, a recorded
@@ -558,7 +609,13 @@ the plan's once its unit has landed; a page with no Impact tab (a template older
 re-render it); a gap without evidence; a build verdict without named steps (unit rows of a tracking
 board are exempt: their steps live in the sub-issue's plan); a row's system not in `systems`;
 more than six colour groups (a system's parts share their parent's slot, so count top-level
-systems, not rows); a missing milestone; a halted board older than a day; a tracking board that does
+systems, not rows); a missing milestone; a `wip.current` that does not match `wip.step`'s row of
+the step-to-column map (§3) — a halted or escalated board's by `wip.resume`'s row, a board that has
+landed or was abandoned not at all; during research, a cell outside the open questions' rows, or one
+of their cells missing (`lib.js` `researchGlow()`, with its fallback) — naming the columns the map
+gives and the addresses off it; a research question naming an id that is not a row of the board; a
+returned question whose findings file no trail entry names; `wip.questions` still recorded once the
+run is past research; a halted board older than a day; a tracking board that does
 not record `wip.next` at all (written before the rule), with the unit it should name; a board
 that links an issue's GitHub page, or leaves it as plain text, although the issue's board exists
 (§1) — a unit, the parent or any other issue the board names — one warning per issue, naming

@@ -209,6 +209,12 @@ targets.filter(t => t.block === "plan").forEach(t => {
       const cell = (dom.match(new RegExp(`<div class="cell built[^"]*"[^>]*data-row="${plain.id}"[\\s\\S]*?<div class="meta">`)) || [""])[0];
       rc.push(["the WIP strip shows the unit's run in its own bubble, halted, and what it waits on in the \"Waiting on you\" bubble", new RegExp(`class="wb unit halted" data-row="${plain.id}"`).test(wip) && /waiting on the user/.test(run) && /Verification stub: the user chooses/.test(wait), (run || wip).slice(0, 400) || "no run bubble"]);
       rc.push(["the unit's as-built cell carries the run line, its mark paused", /class="run"/.test(cell) && /waiting on the user/.test(cell) && / held"/.test(cell.slice(0, 200)), cell.slice(0, 500) || "no cell"]);
+      /* an escalated unit run waits on the user too: its mark pauses to the ring alone, as a halt's does (GUIDANCE.md §1; plan/RULES.md
+         §3, the glow follows the step), on its as-built cell and on its bubble's current step */
+      Object.assign(sub.wip, { step: "escalated", resume: "plan", updated: "2026-10-23T01:20:00Z", waitingOn: null }); writeSub(); node(embedJs, subDir);
+      const domE = dumpDom(path.join(folder, "dashboard.html")) || "", wipE = inner(domE, '<section class="wip[^"]*"[^>]*>', "section"), runE = inner(wipE, `<div class="wb unit[^"]*" data-row="${plain.id}">`, "div");
+      const cellE = ((domE.match(new RegExp(`<div class="cell built[^"]*"[^>]*data-row="${plain.id}"`)) || [""])[0]);
+      rc.push(["an escalated unit run pauses its mark too: the ring alone on its as-built cell and on its current step", / held"/.test(cellE) && !/ glow"/.test(cellE) && /class="cur held"/.test(runE) && !/class="cur glow"/.test(runE), `${cellE} · ${(runE.match(/<li class="cur[^"]*"/) || ["no current step"])[0]}`]);
     } else rc.push(["the rendered tracking board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
     const d = data(); d.wip.current = d.wip.current.filter(a => a.split(".")[0] !== plain.id);
     fs.writeFileSync(path.join(folder, "plan.json"), JSON.stringify(d, null, 2) + "\n"); node(embedJs, folder);
@@ -532,7 +538,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     title: u.name, function: "Verification case: a unit's board at sized, its research and architecture done in the parent's run.", status: "planned",
     parent: { issue: trk.issue, board: null }, branch: null, baseline: trk.baseline, asBuilt: null, systems: (trk.systems || []).filter(s => s.slug === u.system),
     wip: { step: "plan", since: "2026-10-25T07:00:00Z", updated: "2026-10-25T07:00:00Z", detail: "Verification case: the planner writes `plan.md` now.", steps: ["sizing", "interview", "research", "plan", "branch", "implementation", "qa", "remediation", "landing", "landed"],
-      current: ["verdict"], next: null, qa: [], qaMax: 3, waitingOn: null, resume: null, blockers: { waitsOn: [], blocks: [] }, landing: null },
+      current: ["considered", "verdict"], next: null, qa: [], qaMax: 3, waitingOn: null, resume: null, blockers: { waitsOn: [], blocks: [] }, landing: null },
     milestones, trail: [], rows, impact: null, roadmap: null, followUps: [], documents: [], notes: {} });
   const filledRows = ex.rows.slice(0, 2).map(r => ({ id: r.id, name: r.name, group: r.group, system: u.system, where: r.where, gap: { ...r.gap, link: null, source: null },
     options: r.options.map(o => ({ ...o, link: null, source: null })), verdict: {}, asBuilt: { state: "pending", summary: "" } }));
@@ -553,6 +559,86 @@ targets.filter(t => t.block === "plan").forEach(t => {
   const n = cp.spawnSync(process.execPath, [path.join(SKILL, "plan", "scripts", "new.js"), String(u.unit.issue), "verification-unit", "--root", scratch, "--parent", trk.folder.split("/").slice(2).join("/"), "--level", "3", "--repo", trk.repo], { encoding: "utf8", cwd: scratch });
   zc.push(["new.js --parent under a signed-off tracking plan says to fill Gap and Considered from the parent's documents", n.status === 0 && /is a signed-off tracking plan: fill the Gap and Considered columns now/.test(n.stdout), (n.stdout || n.stderr || "").split(/\r?\n/).slice(0, 3).join(" | ")]);
   report(`a sub-issue born at sized under a signed-off tracking plan, on ${t.name}`, zc);
+});
+
+/* The glow follows the step (plan/RULES.md §3, the step-to-column map; lib.js GLOW_MAP). check.js keeps quiet on a board whose
+   wip.current is its step's row of the map and warns, naming the step's columns, on one that is not: an issue board at every step,
+   a halted and an escalated board judged by wip.resume, a landed board not at all, and a tracking board in implementation (its
+   units in progress, or nothing between units). new.js lays the foundation's wip.current from the map. The rendered page holds an
+   escalated board's glow still, the ring alone, as a halted one's, and lets a running one breathe. */
+targets.filter(t => t.block === "plan").forEach(t => {
+  const tpl = fs.readFileSync(t.path, "utf8"), gc = [], scratch = path.join(out, "glow-map"); fs.rmSync(scratch, { recursive: true, force: true });
+  const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x));
+  const ex = J("plan/examples/38-handshake-empty-name/plan.json"), trk = J("verify/fixtures/tracking.plan.json");
+  const GW = /^warn {2}wip\.current .* does not match wip\.step/m, gwLine = r => lines(r, /does not match wip\.step|keeps the step-to-column map/) || "no glow line";
+  const put = (d, dir) => { fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(d, null, 2) + "\n"); fs.writeFileSync(path.join(dir, "dashboard.html"), tpl); node(embedJs, dir); return node(checkJs, dir, "--root", scratch); };
+  const edir = path.join(scratch, "docs", "plans", ex.slug);
+  const at = (step, current, resume) => { const d = copy(ex); d.folder = `docs/plans/${ex.slug}`; d.status = "building"; Object.assign(d.wip, { step, current, resume: resume || null, landing: null, waitingOn: step === "halted" ? "Verification case: a question for the user." : null }); return d; };
+  const [r0, r1, r2] = ex.rows.map(r => r.id), C = id => id + ".considered";
+  /* research: the rows being researched (wip.questions; lib.js researchGlow()), with the fallback to the whole Considered column */
+  const Q = (question, rows, findings) => ({ question, rows, findings: findings || null });
+  const rq = (cur, questions, o) => { o = o || {}; const d = at(o.step || "research", cur, o.resume); d.wip.questions = questions;
+    d.trail = [...(d.trail || []), ...questions.filter(q => q.findings && !o.noTrail).map(q => ({ date: "2026-10-25", column: "gap", label: `Verification case: research returned, ${q.question}`, ref: q.findings }))]; return d; };
+  [ // [what, board, warns? (true: the glow warning; a word: another warning, the glow quiet), what the warning must name]
+    ["research with open questions glows their rows' Considered cells: quiet", rq([C(r0), C(r1)], [Q("q-one", [r0, r1]), Q("q-two", [r1])]), false],
+    ["research with open questions glowing the whole column: warns", rq(["considered"], [Q("q-one", [r0, r1])]), true, /Considered cells of the rows the open research questions name/],
+    ["research glowing a row no open question names: warns, naming it", rq([C(r0), C(r2)], [Q("q-one", [r0])]), true, /\.considered \(no open question names its row\)/],
+    ["a returned question's rows stop glowing, a row another open question names keeps glowing: quiet", rq([C(r1), C(r2)], [Q("q-one", [r0, r1], "research/q-one.md"), Q("q-two", [r1, r2])]), false],
+    ["a returned question's row left glowing: warns", rq([C(r0), C(r1), C(r2)], [Q("q-one", [r0, r1], "research/q-one.md"), Q("q-two", [r1, r2])]), true, /no open question names its row/],
+    ["the verification (every question returned) glows every question's rows again: quiet", rq([C(r0), C(r1), C(r2)], [Q("q-one", [r0, r1], "research/q-one.md"), Q("q-two", [r2], "research/q-two.md")]), false],
+    ["a question naming no row falls back to the whole Considered column: quiet", rq(["considered"], [Q("q-one", [r0]), Q("q-none", [])]), false],
+    ["more than six cells fall back to the whole Considered column: quiet", rq(["considered"], [Q("q-wide", ex.rows.slice(0, 7).map(r => r.id))]), false],
+    ["a halt during research keeps the research glow: quiet", rq([C(r0)], [Q("q-one", [r0])], { step: "halted", resume: "research" }), false],
+    ["a returned question whose findings the trail does not record: warns", rq([C(r1)], [Q("q-one", [r0], "research/q-one.md"), Q("q-two", [r1])], { noTrail: true }), "trail", /the trail records no entry with that ref/],
+    ["questions left once the run is past research: warns", rq(["considered", "verdict"], [Q("q-one", [r0], "research/q-one.md")], { step: "plan" }), "past", /the researched event ends research and clears it/],
+    ["a question naming an id that is not a row: warns", rq([C(r0)], [Q("q-one", [r0, "no-such-row"])]), "row", /names "no-such-row", which is not a row of this board/]
+  ].forEach(([what, d, warns, names]) => {
+    const c = put(d, edir), w = GW.test(c.stdout);
+    gc.push([what, warns === true ? w && names.test(c.stdout) : warns ? !w && names.test(c.stdout) : !w && /keeps the step-to-column map/.test(c.stdout), lines(c, /does not match wip\.step|keeps the step-to-column map|wip\.questions/) || "no glow line"]);
+  });
+  { const c = put(rq([C(r0)], [Q("q-one", [r0]), Q("q-one", "r0")]), edir);
+    gc.push(["check.js fails a malformed wip.questions (a question twice, rows not an array)", c.status === 1 && /a second entry for question "q-one"/.test(c.stdout) && /rows must be an array of row ids/.test(c.stdout), lines(c, /^FAIL/) || "no failure"]); }
+  [ // [step, wip.current, wip.resume, warns?, what the warning must name]
+    ["sizing", [], null, false], ["sizing", ["gap"], null, true, /map glows nothing/],
+    ["interview", [], null, false], ["interview", [`${r0}.gap`], null, false], ["interview", ["verdict"], null, true, /the cell the question concerns/],
+    ["research", ["considered"], null, false], ["research", ["gap"], null, true, /whole Considered column, as \["considered"\] \(the fallback: no research question is recorded yet\)/],
+    ["architecture", ["considered"], null, false],
+    ["plan", ["considered", "verdict"], null, false], ["plan", ["verdict"], null, true, /considered missing/],
+    ["branch", [], null, false], ["branch", ["verdict"], null, true, /map glows nothing/],
+    ["implementation", [`${r0}.built`, `${r1}.built`], null, false], ["implementation", [`${r0}.verdict`], null, true, /As built cells of the rows the stage touches/], ["implementation", [], null, true, /no As built cell named/],
+    ["qa", ["built"], null, false], ["qa", [`${r1}.built`], null, true, /As built \("built"\) column/],
+    ["remediation", [`${r1}.built`], null, false], ["remediation", ["built"], null, true, /qa findings touch/],
+    ["landing", [], null, false], ["landing", ["built"], null, true, /map glows nothing/],
+    ["halted", ["considered", "verdict"], "plan", false], ["halted", ["built"], "plan", true, /stopped in "plan", wip\.resume/],
+    ["escalated", [`${r0}.built`], "implementation", false], ["escalated", ["considered"], "implementation", true, /stopped in "implementation"/]
+  ].forEach(([step, cur, resume, warns, names]) => {
+    const c = put(at(step, cur, resume), edir), w = GW.test(c.stdout);
+    gc.push([`${step}${resume ? ` (resume ${resume})` : ""} with ${JSON.stringify(cur)}: check.js ${warns ? "warns" : "keeps quiet"}`, warns ? w && names.test(c.stdout) : !w && /keeps the step-to-column map/.test(c.stdout), gwLine(c)]);
+  });
+  { const c = put(copy(ex), edir); gc.push(["a landed board: no glow warning (its glow is off)", !GW.test(c.stdout), gwLine(c)]); }
+  /* the rendered page: an escalated board holds its glow still, as a halted one does; a running one breathes */
+  const cellCls = dom => ((dom || "").match(new RegExp(`<div class="cell built[^"]*"[^>]*data-row="${r0}"`)) || [""])[0];
+  const stepCls = dom => ((inner(dom || "", '<section class="wip[^"]*"[^>]*>', "section").match(/<li class="cur[^"]*"/)) || [""])[0];
+  if (chrome) {
+    put(at("escalated", [`${r0}.built`], "implementation"), edir); const dE = dumpDom(path.join(edir, "dashboard.html"));
+    gc.push(["an escalated board's glow is the ring alone, on its cell and its current step", / held"/.test(cellCls(dE)) && !/ glow"/.test(cellCls(dE)) && /cur held"/.test(stepCls(dE)), `${cellCls(dE)} · ${stepCls(dE)}`]);
+    put(at("implementation", [`${r0}.built`]), edir); const dI = dumpDom(path.join(edir, "dashboard.html"));
+    gc.push(["a running board's glow breathes, on its cell and its current step", / glow"/.test(cellCls(dI)) && /cur glow"/.test(stepCls(dI)), `${cellCls(dI)} · ${stepCls(dI)}`]);
+  } else gc.push(["the rendered glow (no browser found: set CHROME)", false, "no Chrome or Edge"]);
+  /* a tracking board: its units in progress, or nothing between units; never a unit's other cell */
+  const tdir = path.join(scratch, ...trk.folder.split("/")), unitCur = (trk.wip.current || [])[0];
+  { const c = put(copy(trk), tdir); gc.push([`a tracking board in implementation with its unit in progress (${JSON.stringify(trk.wip.current)}): check.js keeps quiet`, !GW.test(c.stdout) && /keeps the step-to-column map/.test(c.stdout), gwLine(c)]); }
+  { const d = copy(trk); d.wip.current = []; const c = put(d, tdir); gc.push(["a tracking board in implementation between units (nothing in progress): check.js keeps quiet", !GW.test(c.stdout), gwLine(c)]); }
+  { const d = copy(trk); d.wip.current = [String(unitCur).split(".")[0] + ".verdict"]; const c = put(d, tdir); gc.push(["a tracking board glowing a unit's Verdict in implementation: check.js warns, naming the units in progress", GW.test(c.stdout) && /As built cells of the units in progress/.test(c.stdout), gwLine(c)]); }
+  /* new.js: the foundation's wip.current is its step's columns */
+  const nroot = path.join(scratch, "new"); fs.mkdirSync(path.join(nroot, "docs", "plans"), { recursive: true });
+  const born = [["research", ["considered"]], ["plan", ["considered", "verdict"]], ["interview", []]].map(([step, want], i) => {
+    const r = cp.spawnSync(process.execPath, [path.join(SKILL, "plan", "scripts", "new.js"), String(900 + i), `glow-${step}`, "--root", nroot, "--step", step, "--level", "3", "--repo", "owner/name"], { encoding: "utf8", cwd: nroot });
+    let got = null; try { const pw = JSON.parse(fs.readFileSync(path.join(nroot, "docs", "plans", `${900 + i}-glow-${step}`, "plan.json"), "utf8")).wip; got = Array.isArray(pw.questions) && !pw.questions.length ? pw.current : "no empty wip.questions"; } catch (e) { /* reported below */ }
+    return [step, want, got, r.status];
+  });
+  gc.push(["new.js lays wip.current from the map (research considered, plan considered and verdict, interview nothing) and wip.questions empty", born.every(([, want, got, s]) => s === 0 && JSON.stringify(got) === JSON.stringify(want)), born.map(([st, w, g, s]) => `${st}: ${JSON.stringify(g)} (want ${JSON.stringify(w)}, exit ${s})`).join("; ")]);
+  report(`the glow follows the step on ${t.name}`, gc);
 });
 
 /* The impact's reconciliation state (plan/RULES.md §2, Impact; §5; §8), derived and never stored, in each runtime that derives or
