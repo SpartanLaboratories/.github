@@ -405,6 +405,20 @@ pre.src .k{color:var(--link);font-weight:600} pre.src .s{color:var(--ink-2)}
 .icards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:10px}
 .bcard .bh .nm a{text-decoration:none;border-bottom:1px solid var(--line)}
 .icard .versions{font:11px var(--mono);color:var(--muted);margin-top:4px;overflow-wrap:anywhere}
+.icard.sel{outline:2px solid var(--on);outline-offset:1px}
+/* Impact changes from the plan, on the As built tab (plan/RULES.md §2, "As built"): how the impact differed from the plan, each
+   change in its system's colour (the left bar; muted for the impact as a whole or a party outside the repository's systems), solid,
+   and never in the Impact tab's compatibility red or yellow; each links the Impact card it changed. */
+.bimp{margin-top:18px}
+.bimp h4{font-size:12px;margin:10px 0 6px;color:var(--ink-2)}
+/* the reconciliation chip (plan/RULES.md §2, Impact: derived, never stored) beside the line saying how far it has got; a landed unit
+   whose effect on the impact is not recorded yet is drawn dashed, as pending */
+.bimp .q.recon{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.isec .empty+.empty{margin-top:6px}
+.isec .empty.pend{border-style:dashed}
+.bcard.ichg{cursor:default}
+.bcard.ichg .bh .nm{font-weight:600}
+.bcard .meta a.goimp{white-space:normal;overflow-wrap:anywhere}
 
 /* Wide desktop (16:9 screens): the page uses most of the window, so the timeline's four columns, the as-built cards and the impact
    cards get room; at 1500 px and below the page keeps its 1280 px measure and the narrow layouts below 940 and 900 px apply. */
@@ -493,10 +507,11 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
   </section>
 
   <section class="view" role="tabpanel" id="p-built" aria-labelledby="t-built" hidden>
-    <h2>As built: what exists, and every change from the verdict</h2>
+    <h2>As built: what exists, and every change from the verdict and the planned impact</h2>
     <p class="lede">The verdict is never edited to match what was built: every difference lives here.</p>
     <div class="ctl" id="built-ctl"></div>
     <div class="bcards" id="built-list"></div>
+    <div id="built-impact"></div>
     <div class="key" id="built-key"></div>
   </section>
 
@@ -542,6 +557,7 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
 
 <!-- A verbatim copy of plan.json (plan/scripts/embed.js). Do not edit here: edit plan.json and re-embed. -->
 <script type="application/json" id="plan">
+
 {
   "schema": "plan-board/1",
   "repo": "SpartanLaboratories/WebTools",
@@ -2014,6 +2030,9 @@ const QA={approved:{g:"✓",label:"approved",cls:"good"},"changes-requested":{g:
 const STEP_ORDER=["sizing","interview","research","architecture","plan","branch","implementation","qa","remediation","landing","landed"];
 const STEP_SPECIAL={halted:{g:"⏸",label:"Waiting on the user",cls:"halted"},escalated:{g:"⇧",label:"Escalated",cls:"escalated"},cancelled:{g:"✕",label:"Cancelled",cls:"cancelled"},landed:{g:"✓",label:"Landed",cls:"landed"}};
 const stateOf=r=>(r.asBuilt&&STATES[r.asBuilt.state])?r.asBuilt.state:"pending";
+/* A row's verdict kind once its verdict is written (a summary, as check.js reads it): "leave" or "build" (the default kind); null
+   while column 3 is not yet written, which is neither build nor leave and is counted, labelled and inspected as such */
+const verdictOf=r=>{ const v=r.verdict||{}; return typeof v.summary==="string"&&v.summary.trim()?(v.kind==="leave"?"leave":"build"):null; };
 const pill=(def,extra,word)=>`<span class="vp ${def.cls}${def.dash?" dashed":""}${def.hollow?" hollow":""}"><i aria-hidden="true">${def.g}</i>${esc(word||def.label)}${extra||""}</span>`;
 const badge=(st,extra)=>pill(STATES[st]||STATES.pending,extra);
 /* An option's effective verdict: a deferred option settled by an as-built change takes the settlement's colour. */
@@ -2223,7 +2242,8 @@ function renderWip(){
     h=headLine;
     if(HALTED) h+=`<p class="wip-wait">Waiting on the user: ${rich(WIP.waitingOn||WIP.detail||"(not stated)")}</p>`;
     if(st==="escalated") h+=`<p class="wip-wait">Escalated: the run waits while the issue's scope is re-decided.</p>`;
-    h+=own+(WIP.detail&&!HALTED?`<p class="wip-detail">${rich(WIP.detail)}</p>`:"")+factsHtml;
+    /* while halted the wait line shows waitingOn, falling back to the detail: the detail is drawn too unless it is that fallback */
+    h+=own+(WIP.detail&&(!HALTED||WIP.waitingOn)?`<p class="wip-detail">${rich(WIP.detail)}</p>`:"")+factsHtml;
     if(HALTED) legend.push(`<span><i class="wait"></i>yellow strip: waiting on the user</span>`);
   }
   /* the strip's legend: exactly what it drew */
@@ -2249,7 +2269,7 @@ function renderKpis(){
   const built=TRACKING?count(ROWS,unitLanded):count(ROWS,r=>!["pending","deferred"].includes(stateOf(r)));
   const groups=[...new Set(ROWS.map(r=>r.group).filter(Boolean))];
   const by=v=>count(OPTS,x=>x.opt.verdict===v);
-  const leave=count(ROWS,r=>(r.verdict||{}).kind==="leave");
+  const vbuild=count(ROWS,r=>verdictOf(r)==="build"), leave=count(ROWS,r=>verdictOf(r)==="leave"), vopen=ROWS.length-vbuild-leave;
   const changes=ROWS.reduce((n,r)=>n+((r.asBuilt||{}).changes||[]).length,0);
   const b=PLAN.baseline||{}, a=PLAN.asBuilt;
   const days=(a&&a.date&&b.date)?Math.round((Date.parse(a.date)-Date.parse(b.date))/86400000):null;
@@ -2258,7 +2278,7 @@ function renderKpis(){
   $("#kpis").innerHTML=[
     `<div class="kpi"><div class="l">${TRACKING?"Units":"Rows"}</div><div class="v">${ROWS.length}</div><div class="s">${groups.length?`${groups.length} group${groups.length>1?"s":""}: ${groups.map(esc).join(", ")}`:"no rows yet"}</div></div>`,
     `<div class="kpi"><div class="l">Options weighed</div><div class="v">${OPTS.length}</div><div class="s">${["accepted","partial","deferred","declined"].filter(by).map(v=>`${by(v)} ${v}`).join(" · ")||"none yet"}</div></div>`,
-    `<div class="kpi"><div class="l">Verdicts</div><div class="v">${ROWS.length-leave} <small>build</small></div><div class="s">${leave} left for later</div></div>`,
+    `<div class="kpi"><div class="l">Verdicts</div>${vbuild+leave?`<div class="v">${vbuild} <small>build</small></div><div class="s">${leave} left for later${vopen?` · ${vopen} not yet written`:""}</div>`:`<div class="v">0${ROWS.length?` <small>of ${ROWS.length}</small>`:""}</div><div class="s">none written yet</div>`}</div>`,
     `<div class="kpi"><div class="l">As built</div><div class="v">${built} <small>/ ${ROWS.length} ${TRACKING?"units landed":"rows"}</small></div><div class="s">${states.filter(([,n])=>n).map(([k,n])=>`${n} ${STATES[k].label}`).join(" · ")||"—"}${changes?` · ${changes} changes`:""}</div>${ROWS.length?bar:""}</div>`,
     `<div class="kpi"><div class="l">${LANDED?"Timeline":"QA passes"}</div><div class="v">${LANDED?(days==null?"—":days===0?"same day":`${days} day${days===1?"":"s"}`):`${qa.length}${WIP.qaMax?` <small>of at most ${esc(WIP.qaMax)}</small>`:""}`}</div><div class="s">${LANDED?`${b.date?`baseline ${when(b.date)}`:""}${a&&a.date?` → built ${when(a.date)}`:""}`:(qa.length?esc(qa.map(p=>`pass ${p.pass}: ${(QA[p.verdict]||QA.running).label}`).join(" · ")):"no qa pass yet")}</div></div>`].join("");
 }
@@ -2273,7 +2293,7 @@ function cellGap(r){ const g=r.gap||{}; return `<div class="cell gap${cellGlow(r
 function optButton(r,o){ const {def,word}=optDef(r,o); return `<button class="opt ${def.cls}${def.dash?" dashed":""}" data-row="${esc(r.id)}" data-opt="${esc(o.id)}" aria-label="${esc(word)}: ${esc(o.name)}"><i aria-hidden="true">${def.g}</i><span><span class="vw">${esc(word)}</span><span>${codeOnly(o.name)}</span></span></button>`; }
 function cellConsidered(r){ const os=r.options||[]; const acc=os.find(o=>o.verdict==="accepted"||(o.verdict==="partial"&&o.chosen))||os[0]||{};
   return `<div class="cell considered${cellGlow(r.id,"considered")}" role="group" data-row="${esc(r.id)}" data-col="considered" aria-label="Considered: ${esc(r.name)}"><div class="kick">2 · CONSIDERED <span class="kind">${os.length}</span></div>${os.length?`<ul class="opts">${os.map(o=>`<li>${optButton(r,o)}</li>`).join("")}</ul>`:`<div class="sum">Not yet written.</div>`}${acc.link?`<div class="meta">${moreLink(acc.link,"alternatives")}</div>`:""}</div>`; }
-function cellVerdict(r){ const v=r.verdict||{}, leave=v.kind==="leave"; return `<div class="cell verdict${leave?" leave":""}${cellGlow(r.id,"verdict")}" role="button" tabindex="0" data-row="${esc(r.id)}" data-col="verdict" aria-label="Verdict: ${esc(r.name)}"><div class="kick">3 · VERDICT <span class="kind">${leave?"leave as is":"build"}</span></div><div class="sum">${rich(v.summary||"Not yet written.")}</div><div class="meta"><span>${(v.steps||[]).length} steps · ${(v.tests||[]).length} tests · ${(v.risks||[]).length} risks</span>${moreLink(v.link,"plan")}</div></div>`; }
+function cellVerdict(r){ const v=r.verdict||{}, w=verdictOf(r), leave=w==="leave"; return `<div class="cell verdict${leave?" leave":""}${cellGlow(r.id,"verdict")}" role="button" tabindex="0" data-row="${esc(r.id)}" data-col="verdict" aria-label="Verdict: ${esc(r.name)}${w?"":", not yet written"}"><div class="kick">3 · VERDICT${w?` <span class="kind">${leave?"leave as is":"build"}</span>`:""}</div><div class="sum">${rich(v.summary||"Not yet written.")}</div><div class="meta"><span>${(v.steps||[]).length} steps · ${(v.tests||[]).length} tests · ${(v.risks||[]).length} risks</span>${moreLink(v.link,"plan")}</div></div>`; }
 function cellBuilt(r){ const st=stateOf(r), b=r.asBuilt||{}, S=STATES[st]; const extra=st==="deferred"&&b.issue?` → ${ilink(b.issue)}`:"";
   const link=b.link||(r.unit&&(r.unit.board||r.unit.folder))||"";
   return `<div class="cell built ${S.cls}${st==="pending"?" pending":""}${st==="deferred"?" deferred":""}${cellGlow(r.id,"built")||(isNext(r)?" upnext":"")}" role="button" tabindex="0" data-row="${esc(r.id)}" data-col="built" aria-label="As built: ${esc(r.name)}, ${S.label}${isNext(r)?", up next":""}${runOf(r)?`, its run: ${esc(runShort(runOf(r)).slice(2))}`:""}"><div class="kick">4 · AS BUILT ${badge(st,extra)}${nextTags(r)}</div><div class="sum">${rich(b.summary||(st==="pending"?"Not built yet.":""))}</div>${runLine(r)}<div class="meta"><span>${(b.changes||[]).length} changes · ${(b.commits||[]).length} commits</span>${moreLink(link,r.unit?(r.unit.board?"board":"folder"):"record")}</div></div>`; }
@@ -2334,8 +2354,8 @@ function inspectOption(r,o){ if(!o){ inspect(`<div class="kicker">2 · CONSIDERE
   const others=(r.options||[]).filter(x=>x!==o), {def,word,settled}=optDef(r,o);
   const whyLabel={accepted:"Why it was taken",partial:"What was taken, and what wasn't",deferred:"Why it was left open",declined:"Why it was declined"}[o.verdict]||"Why";
   inspect(`<div class="kicker">2 · CONSIDERED</div><div class="name">${codeOnly(o.name)}</div><div class="vis">${pill(def,"",word)} ${esc(r.name)}</div>${o.summary?`<p class="lead">${rich(o.summary)}</p>`:""}<dl>${o.why?`<dt>${whyLabel}</dt><dd>${rich(o.why)}</dd>`:""}${settled?`<dt>Settled in column 4</dt><dd>${rich(settled.change.what)}${settled.change.why?` — ${rich(settled.change.why)}`:""}${settled.change.ref?` · ${refHtml(settled.change.ref)}`:""}</dd>`:""}${o.wins?`<dt>Would have won if</dt><dd>${rich(o.wins)}</dd>`:""}${o.source?`<dt>Source</dt><dd>${refHtml(o.source)}</dd>`:""}${o.link?`<dt>Detail</dt><dd>${refHtml(o.link)}</dd>`:""}${others.length?`<dt>Weighed against</dt><dd><ul class="opts">${others.map(x=>`<li>${optButton(r,x)}</li>`).join("")}</ul></dd>`:""}</dl>`); }
-function inspectVerdict(r){ const v=r.verdict||{};
-  inspect(`<div class="kicker">3 · VERDICT · ${v.kind==="leave"?"LEAVE AS IS":"BUILD"}</div><div class="name">${esc(r.name)}</div><div class="vis">${whereOf(r)}</div><p class="lead">${rich(v.summary||"")}</p>${v.defense?`<p>${rich(v.defense)}</p>`:""}<dl>${v.steps&&v.steps.length?`<dt>Steps</dt><dd><ol class="steps-list">${v.steps.map(s=>`<li><b>${esc(s.id||"·")}</b><span>${rich(s.what||"")}${s.files&&s.files.length?`<span class="files">${s.files.map(esc).join(" · ")}</span>`:""}${s.check?`<span class="check">${rich(s.check)}</span>`:""}${s.link?` ${moreLink(s.link,"in the plan")}`:""}</span></li>`).join("")}</ol></dd>`:""}${v.tests&&v.tests.length?`<dt>Tests</dt><dd>${list(v.tests)}</dd>`:""}${v.leaves&&v.leaves.length?`<dt>Leaves to other units</dt><dd>${list(v.leaves)}</dd>`:""}${v.risks&&v.risks.length?`<dt>Risks and what bounds them</dt><dd>${list(v.risks)}</dd>`:""}${v.source?`<dt>Source</dt><dd>${refHtml(v.source)}</dd>`:""}${v.link?`<dt>Detail</dt><dd>${refHtml(v.link)}</dd>`:""}</dl>`); }
+function inspectVerdict(r){ const v=r.verdict||{}, w=verdictOf(r);
+  inspect(`<div class="kicker">3 · VERDICT${w?` · ${w==="leave"?"LEAVE AS IS":"BUILD"}`:""}</div><div class="name">${esc(r.name)}</div><div class="vis">${whereOf(r)}</div><p class="lead">${w?rich(v.summary):"Not yet written."}</p>${v.defense?`<p>${rich(v.defense)}</p>`:""}<dl>${v.steps&&v.steps.length?`<dt>Steps</dt><dd><ol class="steps-list">${v.steps.map(s=>`<li><b>${esc(s.id||"·")}</b><span>${rich(s.what||"")}${s.files&&s.files.length?`<span class="files">${s.files.map(esc).join(" · ")}</span>`:""}${s.check?`<span class="check">${rich(s.check)}</span>`:""}${s.link?` ${moreLink(s.link,"in the plan")}`:""}</span></li>`).join("")}</ol></dd>`:""}${v.tests&&v.tests.length?`<dt>Tests</dt><dd>${list(v.tests)}</dd>`:""}${v.leaves&&v.leaves.length?`<dt>Leaves to other units</dt><dd>${list(v.leaves)}</dd>`:""}${v.risks&&v.risks.length?`<dt>Risks and what bounds them</dt><dd>${list(v.risks)}</dd>`:""}${v.source?`<dt>Source</dt><dd>${refHtml(v.source)}</dd>`:""}${v.link?`<dt>Detail</dt><dd>${refHtml(v.link)}</dd>`:""}</dl>`); }
 function inspectBuilt(r){ const b=r.asBuilt||{}, st=stateOf(r), a=PLAN.asBuilt||{}, u=r.unit;
   inspect(`<div class="kicker">4 · AS BUILT${a.sha?` · AT ${esc(a.sha).toUpperCase()}`:""}</div><div class="name">${esc(r.name)}</div><div class="vis">${badge(st,st==="deferred"&&b.issue?` → ${ilink(b.issue)}`:"")} ${esc(STATES[st].desc)}</div><p class="lead">${rich(b.summary||(st==="pending"?"Not built yet.":""))}</p><dl>${b.changes&&b.changes.length?`<dt>Changes from the verdict</dt><dd><ol>${b.changes.map(c=>`<li><b>${rich(c.what||"")}</b>${c.why?` — ${rich(c.why)}`:""}${c.when||c.ref?`<br><small>${esc(c.when||"")}${c.ref?` · ${refHtml(c.ref)}`:""}</small>`:""}</li>`).join("")}</ol></dd>`:""}${b.files&&b.files.length?`<dt>Files</dt><dd>${b.files.map(f=>`<code>${esc(f)}</code>`).join("<br>")}</dd>`:""}${b.tests?`<dt>Tests</dt><dd>${rich(b.tests)}</dd>`:""}${b.commits&&b.commits.length?`<dt>Commits</dt><dd>${b.commits.map(c=>refHtml(c)).join(" · ")}</dd>`:""}${b.verified?`<dt>Verified</dt><dd>${rich(b.verified)}</dd>`:""}${b.issue?`<dt>Moved to</dt><dd>${ilink(b.issue)}</dd>`:""}${u?`<dt>Unit</dt><dd>${esc(u.n)}. ${u.issue?pair(u.issue,u.slug||r.id):esc(u.slug||"")}${u.blockedBy&&u.blockedBy.length?` · blocked by ${u.blockedBy.map(n=>ilink(n)).join(", ")}`:""}${u.versions?`<br>versions: ${rich(u.versions)}`:""}${u.branch&&!unitLanded(r)?`<br>branch <code>${esc(u.branch)}</code>`:""}${u.board?"":`<br>${u.folder?refHtml(u.folder,"its folder"):"no plan folder yet"}`}</dd>`:""}${runOf(r)?inspectRun(r):""}${b.link?`<dt>Detail</dt><dd>${refHtml(b.link)}</dd>`:""}</dl>`); }
 /* the inspector's entry for a unit's run, from its mirror: the pill, its qa passes, the step, its steps (no mark) and its detail */
@@ -2367,15 +2387,86 @@ function renderBuilt(){
     return `<div class="bcard st-${st}${cellGlow(r.id,"built")||(isNext(r)?" upnext":"")}" data-sys="${esc(r.system||"")}" data-row="${esc(r.id)}" tabindex="0" role="button" aria-label="${esc(r.name)}: ${STATES[st].label}${isNext(r)?", up next":""}"><div class="bh"><span class="nm">${r.unit&&r.unit.n!=null?`${esc(r.unit.n)} · `:""}${esc(r.name)}</span>${badge(st,st==="deferred"&&b.issue?` → ${ilink(b.issue)}`:"")}${nextTags(r)}${r.where?`<span class="wh">${esc(r.where)}</span>`:""}</div><p>${rich(b.summary||(st==="pending"?"Not built yet.":""))}</p>${runLine(r)}${b.changes&&b.changes.length?`<ol class="changes">${b.changes.map(c=>`<li><b>${rich(c.what||"")}</b>${c.why?` — ${rich(c.why)}`:""}<small>${esc(c.when||"")}${c.ref?` · ${refHtml(c.ref)}`:""}</small></li>`).join("")}</ol>`:""}<div class="meta">${[b.commits&&b.commits.length?`commits ${b.commits.map(c=>refHtml(c)).join(" ")}`:"",b.files&&b.files.length?`${b.files.length} file${b.files.length>1?"s":""}`:"",b.verified?"verified":"",moreLink(b.link||(r.unit&&(r.unit.board||r.unit.folder)),r.unit?(r.unit.board?"board":"folder"):"record")].filter(Boolean).join(" · ")}</div></div>`; }).join(""):`<p class="lede">No row in this state.</p>`;
   paint($("#built-list"));
   document.querySelectorAll("#built-list .bcard").forEach(c=>{ const go=()=>inspectBuilt(ROWS.find(x=>x.id===c.dataset.row)); c.addEventListener("click",e=>{ if(e.target.closest("a")) return; go(); }); c.addEventListener("keydown",e=>{ if(e.target!==c) return; if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } }); });
+  const IC=impactChanges();
+  $("#built-impact").innerHTML=IC.html; paint($("#built-impact"));
+  document.querySelectorAll("#built-impact a.goimp").forEach(a=>a.addEventListener("click",e=>{ e.preventDefault(); goImpact(a.dataset.imp); }));
   const usedSt=[...new Set(ROWS.map(stateOf))];
-  $("#built-key").innerHTML=sysKey(ROWS.map(r=>r.system))+Object.keys(STATES).filter(k=>usedSt.includes(k)).map(k=>`<span>${badge(k)} ${esc(STATES[k].desc)}</span>`).join("")+(usedSt.some(k=>STATES[k].dash)||!ROWS.length?`<span><i class="pln"></i>dashed card: nothing built</span>`:"")+markKeys(CURRENT.filter(a=>a.endsWith(".built")||a==="built"))+runKeys(rows)+(NEXT_ROW&&(builtFilter==="all"||stateOf(NEXT_ROW)===builtFilter)?KEY_NEXT(NEXT_ROW):"");
+  $("#built-key").innerHTML=sysKey([...new Set([...ROWS.map(r=>r.system),...IC.slugs])])+(IC.muted?`<span><i class="sbar" style="--c:var(--muted)"></i>an impact change of no single system: the impact as a whole, or a party outside this repository's systems</span>`:"")+(IC.recon?`<span>${pill(RECON[IC.recon.state],"",reconWord(IC.recon))} ${esc(RECON[IC.recon.state].desc)}</span>`:"")+(IC.unrecorded?`<span><i class="pln"></i>dashed line: a landed unit whose effect on the impact is not recorded yet</span>`:"")+Object.keys(STATES).filter(k=>usedSt.includes(k)).map(k=>`<span>${badge(k)} ${esc(STATES[k].desc)}</span>`).join("")+(usedSt.some(k=>STATES[k].dash)||!ROWS.length?`<span><i class="pln"></i>dashed card: nothing built</span>`:"")+markKeys(CURRENT.filter(a=>a.endsWith(".built")||a==="built"))+runKeys(rows)+(NEXT_ROW&&(builtFilter==="all"||stateOf(NEXT_ROW)===builtFilter)?KEY_NEXT(NEXT_ROW):"");
 }
 
+/* ---------- Impact changes from the plan, on the As built tab (plan/RULES.md §2, "As built") ----------
+   How the impact differed from the plan, beside the rows' own changes: impact.changes (what, why, when, ref), each linked to the
+   Impact-tab card it changed (its "entry", "<section>.<index>", where it names one), and on a tracking board each unit's own
+   differences (impact.units[].changes), under the unit's number and title (pair(): the number opens GitHub, the title the unit's
+   board) and linked to the unit's card on the Impact tab. Colour: the system's slot (from the change's "system", else its entry's;
+   muted for the impact as a whole or a party outside the repository's systems), one solid card style; no status colour on a change
+   (a change from the planned impact is a record, not an outcome) and never the Impact tab's compatibility red or yellow, which belong
+   to that tab alone (GUIDANCE.md §1). Over them, the reconciliation chip: the state reconciliationOf() derives (planned, dashed;
+   partly reconciled, yellow, with n of M units landed on a tracking board; as built, green), with a line saying how far it has got.
+   On a tracking board every landed unit records its effect on the initiative's impact at its landing: the changes it made (each with
+   "unit") or one "no change" entry (none: true). "None so far" is said only from those recorded "no change" entries, never inferred
+   from absence; a landed unit with neither is named as not recorded yet, dashed. "None" is said once the impact is reconciled with
+   no change. */
+function impEntry(ref){ const m=/^(downstream|adaptation|api|conversion)\.(\d+)$/.exec(String(ref==null?"":ref)); if(!m) return null; const x=impItems(m[1])[+m[2]]; return x?{key:m[1],i:+m[2],x}:null; }
+const impChanges=e=>e&&Array.isArray(e.changes)?e.changes.filter(c=>c&&typeof c==="object"):[];
+const isNoChange=c=>!!c&&typeof c==="object"&&c.none===true;
+function impChangeSys(c){ if(c.system&&sysOf(c.system)) return c.system; const e=impEntry(c.entry); return e&&e.key!=="conversion"?impSlug(e.x):""; }
+const goImpLink=(ref,label)=>`<a class="goimp" href="#impact.${esc(ref)}" data-imp="${esc(ref)}" title="Open it on the Impact tab">${label} ›</a>`;
+/* The impact's reconciliation state (plan/RULES.md §2, Impact), derived here and nowhere else on the page, by the rule the scripts
+   share (plan/scripts/lib.js reconciliation()): impact.basis stores "plan" or "as-built" and nothing more. "as-built" when the basis
+   is; "partial" (partly reconciled) when the basis is "plan" and an impact.changes entry is recorded or, on a tracking board, a unit
+   has landed; "planned" otherwise. null while the board records no impact. landed and total count the units as the chain's progress
+   does (dropped and deferred apart); unrecorded are the landed units no impact.changes entry names; noChange the units with a
+   recorded "no change" entry. */
+function reconciliationOf(){ const I=IMPACT; if(!I) return null;
+  const counted=TRACKING?ROWS.filter(r=>r.unit&&!["dropped","deferred"].includes(stateOf(r))):[], landed=counted.filter(unitLanded), cs=impChanges(I);
+  const state=I.basis==="as-built"?"as-built":cs.length||landed.length?"partial":"planned";
+  return {state,landed:landed.length,total:counted.length,unrecorded:TRACKING?landed.filter(r=>!cs.some(c=>c.unit===r.id)):[],
+    noChange:TRACKING?counted.filter(r=>cs.some(c=>isNoChange(c)&&c.unit===r.id)):[]}; }
+const RECON={
+  planned:{g:"…",label:"planned",cls:"neutral",dash:true,desc:"impact planned: the plan's, nothing reconciled yet"},
+  partial:{g:"◐",label:"partly reconciled",cls:"warning",desc:"impact partly reconciled: changes recorded as the work lands"},
+  "as-built":{g:"✓",label:"as built",cls:"good",desc:"impact as built: reconciled with the build"}};
+const reconWord=R=>R.state==="partial"&&TRACKING?`${RECON.partial.label} · ${R.landed} of ${R.total} unit${R.total===1?"":"s"}`:RECON[R.state].label;
+function impactChanges(){
+  const I=IMPACT, R=reconciliationOf(); if(!I||!R) return {html:"",slugs:[],muted:false,recon:null,unrecorded:false};
+  const own=impChanges(I).filter(c=>!isNoChange(c)), reconciled=R.state==="as-built", slugs=[]; let muted=false, total=own.length;
+  const units=TRACKING?ROWS.filter(r=>r.unit):[], uEntries=new Map((Array.isArray(I.units)?I.units:[]).filter(e=>e&&typeof e==="object").map(e=>[e.unit,e]));
+  const uChanged=units.filter(r=>impChanges(uEntries.get(r.id)).length), uNone=units.filter(r=>{ const e=uEntries.get(r.id); return e&&e.basis==="as-built"&&!impChanges(e).length; });
+  uChanged.forEach(r=>{ total+=impChanges(uEntries.get(r.id)).length; if(sysOf(r.system)) slugs.push(r.system); else muted=true; });
+  const unitName=r=>`${esc(r.unit.n)}. ${r.unit.issue?pair(r.unit.issue,r.name):codeOnly(r.name)}`;
+  const card=c=>{ const slug=impChangeSys(c), e=impEntry(c.entry), S=e&&IMP_SECTIONS.find(s=>s.key===e.key), u=TRACKING&&c.unit!=null?units.find(r=>r.id===c.unit):null; if(slug) slugs.push(slug); else muted=true;
+    const meta=[u?unitName(u):"",c.when?esc(c.when):"",c.ref?refHtml(c.ref):"",e?goImpLink(c.entry,`Impact card: ${esc(S.title)} · ${codeOnly(String(S.head(e.x,e.i)||""))}`):""].filter(Boolean);
+    return `<div class="bcard ichg" data-sys="${esc(slug)}"><div class="bh"><span class="nm">${rich(c.what||"")}</span></div>${c.why?`<p>${rich(c.why)}</p>`:""}${meta.length?`<div class="meta">${meta.join(" · ")}</div>`:""}</div>`; };
+  /* the chip, with the line saying how far the reconciliation has got */
+  const line=reconciled?"Reconciled with the build.":R.state==="planned"?"Nothing reconciled yet: changes are recorded here as the work lands.":TRACKING?`So far, with ${R.landed} of ${R.total} unit${R.total===1?"":"s"} landed; the rest is reconciled as the others land.`:"So far, as implementation recorded them; the landing reconciles the rest.";
+  let h=`<p class="q recon">${pill(RECON[R.state],"",reconWord(R))} ${esc(line)}</p>`;
+  /* the initiative's own changes (on an issue board, the impact's), then the units' recorded "no change" and the landed units with no record */
+  const noneLine=R.noChange.length?`${R.noChange.map(unitName).join("; ")} recorded no change to the initiative's impact`:"";
+  let initiative=own.length?`<div class="icards">${own.map(card).join("")}</div>`:reconciled?`<p class="empty">None: the impact as built is the impact the plan recorded.${I.source?` Source ${refHtml(I.source)}.`:""}</p>`:"";
+  if(!own.length&&!reconciled&&R.noChange.length&&!R.unrecorded.length) initiative+=`<p class="empty">None so far: ${noneLine}.</p>`;
+  else if(R.noChange.length) initiative+=`<p class="empty">No change: ${noneLine}.</p>`;
+  if(R.unrecorded.length) initiative+=`<p class="empty pend">Not recorded yet: ${R.unrecorded.map(unitName).join("; ")} ${R.unrecorded.length===1?"has":"have"} landed, and ${R.unrecorded.length===1?"its":"their"} effect on the initiative's impact is not recorded.</p>`;
+  if(TRACKING&&initiative) h+=`<h4>The initiative</h4>`;
+  h+=initiative;
+  if(uChanged.length||uNone.length){ h+=TRACKING?`<h4>Units</h4>`:"";
+    if(uChanged.length) h+=`<div class="icards">${uChanged.map(r=>{ const cs=impChanges(uEntries.get(r.id));
+      return `<div class="bcard ichg" data-sys="${esc(sysOf(r.system)?r.system:"")}" data-row="${esc(r.id)}"><div class="bh"><span class="nm">${unitName(r)}</span></div><ol class="changes">${cs.map(c=>`<li><b>${rich(c.what||"")}</b>${c.why?` — ${rich(c.why)}`:""}<small>${esc(c.when||"")}${c.ref?`${c.when?" · ":""}${refHtml(c.ref)}`:""}</small></li>`).join("")}</ol><div class="meta">${goImpLink("unit."+r.id,"Impact card: its unit entry")}</div></div>`; }).join("")}</div>`;
+    if(uNone.length) h+=`<p class="empty">Reconciled with no change from the planned impact: ${uNone.map(unitName).join("; ")}.</p>`; }
+  return {html:`<div class="isec bimp"><h3>Impact changes from the plan <small>${total}</small></h3><p class="q">How the impact differed from the plan; the Impact tab shows it as it now stands.</p>${h}</div>`,slugs,muted,recon:R,unrecorded:R.unrecorded.length>0};
+}
+/* Opens an entry's card on the Impact tab, selected and in view, with its detail in the inspector; "#impact.<entry>" deep-links it. */
+function goImpact(ref){ if(!$("#t-impact")) return; show("t-impact"); try{ history.replaceState(null,"","#impact."+ref); }catch(e){}
+  const c=[...document.querySelectorAll("#impact-body .icard")].find(x=>x.dataset.imp===ref); if(!c) return;
+  document.querySelectorAll("#impact-body .icard.sel").forEach(x=>x.classList.remove("sel")); c.classList.add("sel");
+  c.scrollIntoView({block:"center"}); c.focus({preventScroll:true}); inspectImpact(ref); }
+
 /* ---------- Impact (plan/RULES.md §2, "Impact") ----------
-   From plan.json "impact": written at plan acceptance from impact.md (and plan.md where it states API or migration facts), and
-   reconciled at the landing from final-implementation.md and the reconciled impact.md. The tab shows the current best-known impact
-   and no planning information (GUIDANCE.md §1, plan/RULES.md §2): impact.basis and impact.changes stay in the data for check.js
-   and are not rendered here; every entry is one solid card, whatever the basis. Four sections: downstream effects, adaptation
+   From plan.json "impact": written at plan acceptance from impact.md (and plan.md where it states API or migration facts), kept up
+   as the work lands (an implementation stage's deviation, on a tracking board each unit's landing), and reconciled at the landing
+   (a tracking board's at its last unit's) from final-implementation.md and the reconciled impact.md. The tab shows the current best-known impact
+   and no planning information (GUIDANCE.md §1, plan/RULES.md §2): impact.basis is not rendered, and impact.changes is rendered on
+   the As built tab (impactChanges(), above), never here; every entry is one solid card, whatever the basis. Four sections: downstream effects, adaptation
    requirements, API changes, conversion steps; a tracking board adds one entry per unit (impact.units), linking the unit's board.
    No recorded impact is a plain statement with its source, never a hidden tab. */
 const IMPACT=PLAN.impact&&typeof PLAN.impact==="object"&&!Array.isArray(PLAN.impact)?PLAN.impact:null;
@@ -2424,7 +2515,7 @@ function impUnitCard(r,e){ const u=r.unit, c=compatOf("unit",e), P=compatParts(c
 function renderImpact(){
   const I=IMPACT, units=TRACKING?ROWS.filter(r=>r.unit):[];
   const uEntries=new Map((I&&Array.isArray(I.units)?I.units:[]).map(e=>[e.unit,e]));
-  $("#impact-lede").textContent="The change's impact as best known now. How the build differs from the plan is on the As built tab.";
+  $("#impact-lede").textContent="The change's impact as best known now. How it differed from the plan is on the As built tab.";
   let h="";
   const rel=I&&I.release&&IMP_BUMP[I.release.bump]?I.release:null;
   const head=[rel?`<span class="badge">version · ${esc(IMP_BUMP[rel.bump])}${rel.version?` · ${esc(rel.version)}`:""}</span>`:"",rel&&rel.note?`<span>${rich(rel.note)}</span>`:"",
@@ -2442,7 +2533,7 @@ function renderImpact(){
     h+=`<div class="isec"><h3>${esc(s.title)} <small>${xs.length}</small></h3><p class="q">${esc(s.q)}</p>${xs.length?`<div class="icards">${xs.map((x,i)=>impCard(s.key,x,i)).join("")}</div>`:`<p class="empty">None recorded.</p>`}</div>`; });
   if(TRACKING) h+=`<div class="isec"><h3>Units <small>${count(units,r=>uEntries.has(r.id))} of ${units.length} recorded</small></h3><p class="q">Each unit's own impact in a sentence or two; its board holds the rest.</p>${units.length?`<div class="icards">${units.map(r=>impUnitCard(r,uEntries.get(r.id))).join("")}</div>`:`<p class="empty">No units yet: they appear when the architecture is signed off.</p>`}</div>`;
   $("#impact-body").innerHTML=h; paint($("#impact-body"));
-  document.querySelectorAll("#impact-body .icard").forEach(c=>{ const go=()=>inspectImpact(c.dataset.imp); c.addEventListener("click",e=>{ if(e.target.closest("a")) return; go(); }); c.addEventListener("keydown",e=>{ if(e.target!==c) return; if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } }); });
+  document.querySelectorAll("#impact-body .icard").forEach(c=>{ const go=()=>{ document.querySelectorAll("#impact-body .icard.sel").forEach(x=>x.classList.remove("sel")); c.classList.add("sel"); inspectImpact(c.dataset.imp); }; c.addEventListener("click",e=>{ if(e.target.closest("a")) return; go(); }); c.addEventListener("keydown",e=>{ if(e.target!==c) return; if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } }); });
   /* the legend: exactly what was drawn */
   const slugs=[...IMP_SECTIONS.flatMap(s=>impItems(s.key).map(impSlug)).filter(Boolean),...units.map(r=>r.system)];
   const outside=IMP_SECTIONS.some(s=>impItems(s.key).some(x=>!impSlug(x)));
@@ -2523,14 +2614,14 @@ function renderContext(){
   const notes=PLAN.notes||{}; const nk=Object.keys(notes).filter(k=>notes[k]&&(!Array.isArray(notes[k])||notes[k].length));
   if(nk.length) cards.push(`<div class="card notes"><h3>Notes</h3>${nk.map(k=>Array.isArray(notes[k])?`<p><b>${esc(k)}.</b></p><ul>${notes[k].map(x=>`<li>${typeof x==="string"?rich(x):`${rich(x.what||"")}${x.when?` <small>(${esc(x.when)})</small>`:""}`}</li>`).join("")}</ul>`:`<p><b>${esc(k)}.</b> ${rich(notes[k])}</p>`).join("")}</div>`);
   $("#context").innerHTML=cards.join(""); paint($("#context"));
-  const b=PLAN.baseline||{}, a=PLAN.asBuilt;
-  $("#footer").innerHTML=`Built from <code>${esc(FOLDER)}/plan.json</code>, embedded verbatim, against the baseline <code>${esc(b.ref||"")} ${esc(b.sha||"")}</code>${b.date?` (${when(b.date)})`:""}. ${a?`The as-built column reflects <code>${esc(a.ref||"")} ${esc(a.sha||"")}</code>${a.date?` (${when(a.date)})`:""}${a.pr?`, merged through ${prlink(a.pr)}`:""}.`:"Nothing has landed yet."} Code and the Markdown beside this page are authoritative on any conflict. Columns 1 to 3 are written once; column 4 records every difference. Maintained by the presenter agent at each event of the issue's <code>/resolve-issue</code> run.`;
+  /* the footer (GUIDANCE.md §3): what the page corresponds to, what is authoritative, and the columns' rule; nothing more */
+  $("#footer").innerHTML=`Corresponds to <code>${esc(FOLDER)}/plan.json</code>. Code and the Markdown beside this page are authoritative on any conflict. Columns 1 to 3 are written once; column 4 records every difference.`;
 }
 
 /* ---------- Tabs and deep links ---------- */
 if(!TRACKING){ const t=$("#t-landing-order"), p=$("#p-landing-order"); if(t) t.remove(); if(p) p.remove(); }
 const tabs=[...document.querySelectorAll(".tab")];
-const DEFAULT_INSPECT={timeline:"<p>Click a cell for its detail: the gap's evidence, an option's reasons, the verdict's steps, tests and risks, or the as-built changes with their reasons. Each cell links the Markdown section that holds the rest.</p>",decisions:"<p>Click a row for the option's full reasons and the options it was weighed against.</p>",built:"<p>Click a card for the row's files, commits, verification and every change from the verdict.</p>",impact:"<p>Click a card for its detail: the party affected or the surface that moves, its system, its tier, and the Markdown section that holds the rest.</p>","landing-order":"<p>Click a unit for its as-built state, its issue and its board or folder, and its run in full.</p>",source:"<p>The committed <code>plan.json</code>. Edit the file, then run <code>plan/scripts/embed.js</code> on the folder.</p>"};
+const DEFAULT_INSPECT={timeline:"<p>Click a cell for its detail: the gap's evidence, an option's reasons, the verdict's steps, tests and risks, or the as-built changes with their reasons. Each cell links the Markdown section that holds the rest.</p>",decisions:"<p>Click a row for the option's full reasons and the options it was weighed against.</p>",built:"<p>Click a card for the row's files, commits, verification and every change from the verdict. Each impact change opens the Impact card it changed.</p>",impact:"<p>Click a card for its detail: the party affected or the surface that moves, its system, its tier, and the Markdown section that holds the rest.</p>","landing-order":"<p>Click a unit for its as-built state, its issue and its board or folder, and its run in full.</p>",source:"<p>The committed <code>plan.json</code>. Edit the file, then run <code>plan/scripts/embed.js</code> on the folder.</p>"};
 let CUR_TAB="";
 function show(id){
   const name0=id.replace("t-",""); CUR_TAB=name0;
@@ -2550,8 +2641,10 @@ tabs.forEach((t,i)=>{ t.addEventListener("click",()=>{ show(t.id); try{ history.
 renderHeader(); renderWip(); renderKpis(); renderBoard(); renderContext();
 const hash=decodeURIComponent(location.hash.replace("#",""));
 let start="t-timeline"; if(hash&&document.getElementById("t-"+hash)) start="t-"+hash; else if(hash==="chain"&&document.getElementById("t-landing-order")) start="t-landing-order"; /* the tab's old name */
+else if(/^impact\./.test(hash)&&document.getElementById("t-impact")) start="t-impact"; /* an Impact card, "#impact.<entry>" */
 show(start);
-if(hash&&hash!=="chain"&&!document.getElementById("t-"+hash)){ const [rowId,col,optId]=hash.split("."); if(ROWS.some(r=>r.id===rowId)){ select(rowId,COLS.some(c=>c.key===col)?col:"gap",optId); const el=document.getElementById("row-"+rowId); if(el) el.scrollIntoView({block:"center"}); } }
+if(/^impact\./.test(hash)) goImpact(hash.slice("impact.".length));
+else if(hash&&hash!=="chain"&&!document.getElementById("t-"+hash)){ const [rowId,col,optId]=hash.split("."); if(ROWS.some(r=>r.id===rowId)){ select(rowId,COLS.some(c=>c.key===col)?col:"gap",optId); const el=document.getElementById("row-"+rowId); if(el) el.scrollIntoView({block:"center"}); } }
 </script>
 </body>
 </html>

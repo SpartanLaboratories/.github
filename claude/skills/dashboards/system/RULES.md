@@ -243,6 +243,9 @@ append rather than reorder.
    `<meta name="template-divergence" content="what and why">` and in the footer comment.
 3. Fill the DSL, then the `MODEL`, then the hand-written panels and header, from the code and the
    architecture documents. Re-embed the DSL.
+   The footer stays the template's one line, "Corresponds to `workspace.dsl`. Code is
+   authoritative on any conflict." (a supersystem or repository page: `docs/dashboards/systems.json`
+   and `workspace.dsl`); no baseline, stamp or "maintained by" clause (`GUIDANCE.md` §3).
 4. Set each tab's colour plan and legend (§4).
 5. Fill the Guarantees bubbles from the code: the `Result` and exception types and what retries;
    the public open and abstract types and interfaces, with their tier and opt-in markers; the
