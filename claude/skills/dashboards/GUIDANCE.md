@@ -136,6 +136,18 @@ else it changes is a divergence (§7). A plan board or the work board is its tem
 data, byte for byte (`new.js`, `board.js`, or a copy and `embed.js`). A system page keeps the
 template's CSS, tab set and renderer script.
 
+**The footer.** Every page ends with one line: "Corresponds to `<source>`." and the authority sentence,
+and nothing more. The source is the data file the page renders from: a plan board's
+`<folder>/plan.json`, the work board's `docs/plans/board.json` (`docs/plans/.live/board.json` for the
+live view), a system page's `workspace.dsl`, a supersystem or repository page's
+`docs/dashboards/systems.json` and `workspace.dsl`. The authority sentence is "Code and the Markdown
+beside this page are authoritative on any conflict." on a plan board and the work board, and "Code is
+authoritative on any conflict." on a system, supersystem or repository page. A plan or tracking board
+adds "Columns 1 to 3 are written once; column 4 records every difference."; no other page has columns.
+No baseline, landed-state or "maintained by" clause: the header and the WIP strip carry the stamps. A
+system page's divergence list stays in the footer's comment (§7). `check-page.js` fails a footer that
+is not in this form.
+
 ## 4. Facts
 
 A dashboard tells the truth about a named commit. Facts come from the code, the documents in

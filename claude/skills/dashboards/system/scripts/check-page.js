@@ -7,7 +7,8 @@
 //
 // Page kind: <meta name="dashboard" content="plan-board|work-board"> marks a plan board or the work board; anything else is a
 // system page. Exit code 0 when, for every kind: every tab rendered with a visible legend (.key, or .c4key on the C4 tab), the
-// Context section is headed exactly "Context", no link is a dead href="#", the page has no horizontal scroll at the width
+// Context section is headed exactly "Context", the footer is "Corresponds to <source>." and its authority sentence (GUIDANCE.md
+// §3), no link is a dead href="#", the page has no horizontal scroll at the width
 // checked, no more than six elements glow, no work level is shown (levelrefs.js: "level 3", "L3", "level: 2" and the like, in any
 // tab's text or the page's), no system colour falls in a status spectrum (palette.js: the --sys-N slots and a system page's
 // --server / --client / --wire, read from the page's CSS and, in the browser, as the theme of the pass computes them), and no
@@ -54,7 +55,7 @@ if (args.includes("--auto")) {
   modes.forEach(m => {
     const r = cp.spawnSync(process.execPath, [__filename, page, ...rest, ...m], { encoding: "utf8" });
     const lines = (r.stdout || "").trim().split(/\r?\n/), label = m.join(" ") || "light";
-    const bad = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|GIT-IGNORED|DEAD BOARD LINK|BOARDS UNREADABLE|FAIL/.test(l));
+    const bad = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|FOOTER NOT IN ITS FORM|GIT-IGNORED|DEAD BOARD LINK|BOARDS UNREADABLE|FAIL/.test(l));
     console.log(`CHECK pass ${label}: ${r.status === 0 ? "PASS" : "FAIL"} · ${(lines.find(l => l.startsWith("screenshot:")) || "").replace("screenshot: ", "")}`);
     bad.forEach(l => console.log("  " + l));
     if (r.status !== 0) failed++;
@@ -119,6 +120,13 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   console.log("CHECK palette (computed): "+toks.length+" tokens"+(palBad.length?" · PALETTE IN STATUS HUE "+palBad.map(x=>x[0]+" "+x[1]+" (hue "+x[2]+"°)").join(", "):" · none in a status spectrum"));
   const c=document.querySelector(".context > h2"), ct=c?c.textContent.trim():"";
   console.log("CHECK context: "+(ct==="Context"?"headed Context":c?"WRONG HEADING '"+ct+"' (must read Context)":"MISSING (no .context section with an h2)"));
+  /* The footer (GUIDANCE.md §3): "Corresponds to <source>." and the authority sentence (a plan board's columns sentence after it),
+     nothing more: no baseline, landed state or "maintained by" clause. A system, supersystem or repository page names code alone. */
+  const ft=document.querySelector("footer"), ftx=ft?ft.textContent.replace(/\\s+/g," ").trim():"";
+  const AUTH=kind==="system"?"Code is authoritative on any conflict.":"Code and the Markdown beside this page are authoritative on any conflict.";
+  const COLS=kind==="plan-board"?" Columns 1 to 3 are written once; column 4 records every difference.":"";
+  const ftOk=ftx.startsWith("Corresponds to ")&&ftx.length>("Corresponds to . "+AUTH+COLS).length&&ftx.endsWith(". "+AUTH+COLS)&&ftx.split(AUTH).length===2&&!/Maintained by|embedded verbatim|against the baseline|Built from|Drawn from|Nothing has landed/.test(ftx);
+  console.log("CHECK footer: "+(ftOk?"trimmed: "+ftx:"FOOTER NOT IN ITS FORM ("+(ftx?JSON.stringify(ftx.slice(0,160)):"no footer")+"): it reads Corresponds to <source>. "+AUTH+COLS));
   const dead=document.querySelectorAll('a[href="#"]').length; if(dead) console.log("CHECK links: DEAD href=# x"+dead);
   /* Times (GUIDANCE.md §6): shown in the viewer's local time, the exact UTC value kept in the <time>'s datetime and title. Checked
      against the UTC source, so the result never depends on the machine's time zone: every <time> holding a zoned stamp has it as
@@ -204,7 +212,7 @@ const r = cp.spawnSync(browser, ["--headless=new", "--disable-gpu", "--no-first-
   "--allow-file-access-from-files", "--virtual-time-budget=6000", `--window-size=${width},${height}`, `--screenshot=${shot}`, url], { encoding: "utf8", timeout: 120000 });
 // Chrome prints console lines as `[...] "message", source: <url> (<line>)`; keep just the message.
 const lines = (r.stderr || "").split(/\r?\n/).filter(l => /CONSOLE|Uncaught/.test(l)).map(l => l.replace(/^.*CONSOLE[^"]*"/, "").replace(/", source:[\s\S]*$/, "").trim());
-const errors = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING/.test(l));
+const errors = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|FOOTER NOT IN ITS FORM/.test(l));
 lines.forEach(l => console.log(l));
 paletteLines().forEach(l => { console.log(l); if (/PALETTE IN STATUS HUE/.test(l)) errors.push(l); });
 if (regCheck) { if (regCheck.note) console.log("CHECK " + regCheck.note); regCheck.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); }

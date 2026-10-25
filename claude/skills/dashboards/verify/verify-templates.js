@@ -25,7 +25,9 @@
 // ledes, the wide desktop layout, the board links of a system page (BOARDS, data-board, data-issue) and check-page.js's failure
 // on a dead one. And it tests the impact's reconciliation state (plan/RULES.md §2, Impact): derived, never stored, the same in lib.js,
 // the plan-board template's chip, check.js and board.json, and the per-unit "no change" entry. And a sub-issue's board born at "sized" under a
-// signed-off tracking plan, its Gap and Considered filled from the parent's documents (plan/RULES.md §4). A template is recorded only when its
+// signed-off tracking plan, its Gap and Considered filled from the parent's documents (plan/RULES.md §4). And the Verdicts tile and column,
+// which count and label only written verdicts (a board with rows and none, a board with mixed, a tracking board), and the footer on
+// every dashboard type (GUIDANCE.md §3), with check-page.js failing the old form. A template is recorded only when its
 // browser passes and every case group pass.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
@@ -747,6 +749,85 @@ targets.filter(t => !t.block || t.block === "board").forEach(t => {
   report(`the cross-type conventions on ${t.name}`, cc);
 });
 
+/* The Verdicts tile and the Verdict column count only verdicts that are written (plan/RULES.md §2: column 3 is written once, at
+   plan acceptance; a verdict is written once it has a summary, as check.js reads it). Rendered through headless Chrome:
+   - a board with rows and no verdict yet (rows whose verdict is {} and rows that carry only a kind, the WebTools #62 shape): the
+     tile reads "0 of N · none written yet" and never "build"; no verdict cell shows a kind; the inspector names no kind;
+   - a board with mixed verdicts (written build and leave, unwritten build and leave kinds): the tile counts the written ones and
+     says how many are not yet written; written cells keep their kind, unwritten ones show none;
+   - a tracking board with some unit verdicts unwritten counts the same way;
+   - the example, every verdict written, names no unwritten count. */
+targets.filter(t => t.block === "plan").forEach(t => {
+  const tpl = fs.readFileSync(t.path, "utf8"), vc = [], sc = path.join(out, "verdicts"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
+  const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x));
+  const ex = J("plan/examples/38-handshake-empty-name/plan.json"), trk = J("verify/fixtures/tracking.plan.json");
+  const text = h => (h || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+  const click = id => `<script>window.addEventListener("load",()=>setTimeout(()=>{const c=document.querySelector('.cell.verdict[data-row="${id}"]');if(c)c.click();},600));</script>`;
+  const render = (name, d, id) => { const f = path.join(sc, name + ".html"); fs.writeFileSync(f, withData(tpl, "plan", JSON.stringify(d, null, 2)).replace("</body>", (id ? click(id) : "") + "</body>")); return dumpDom(f); };
+  const tile = dom => (text(inner(dom, '<div class="kpis" id="kpis">', "div")).match(/Verdicts (.*?) As built/) || ["", "no Verdicts tile"])[1];
+  const vcell = (dom, id) => (dom.match(new RegExp(`<div class="cell verdict[^"]*"[^>]*data-row="${id}"[^>]*><div class="kick">[\\s\\S]*?</div><div class="sum">[\\s\\S]*?</div>`)) || [""])[0];
+  const kicker = dom => text((inner(dom, '<aside class="inspector"[^>]*>', "aside").match(/<div class="kicker">([\s\S]*?)<\/div>/) || ["", ""])[1]);
+  const unbuilt = d => { d.status = "planned"; d.asBuilt = null; d.impact = null; d.rows.forEach(r => { r.asBuilt = { state: "pending", summary: "" }; delete (r.unit || {}).live; }); d.milestones = (d.milestones || []).filter(m => ["gap", "considered"].includes(m.column)); d.wip = { ...d.wip, step: "plan", current: ["verdict"], landing: null, qa: [] }; return d; };
+  /* no verdict yet: half the rows carry an empty verdict, half a bare kind */
+  const none = unbuilt(copy(ex)); none.rows.forEach((r, i) => { r.verdict = i % 2 ? { kind: i % 4 === 1 ? "leave" : "build" } : {}; });
+  const dN = render("no-verdicts", none, none.rows[1].id);
+  if (dN == null) vc.push(["the rendered Verdicts tile (no browser found: set CHROME)", false, "no Chrome or Edge"]);
+  else {
+    vc.push([`a board with ${none.rows.length} rows and no verdict yet reads "0 of ${none.rows.length} · none written yet", never "build"`, tile(dN) === `0 of ${none.rows.length} none written yet`, tile(dN)]);
+    const cells = none.rows.map(r => vcell(dN, r.id));
+    vc.push(["no unwritten verdict cell shows a kind, and each says it is not yet written", cells.every(c => c && !/class="kind"/.test(c) && /Not yet written\./.test(c)), cells.filter(c => !c || /class="kind"/.test(c)).map(c => text(c).slice(0, 80)).join(" | ") || "cells missing"]);
+    vc.push(["the inspector of an unwritten verdict (a bare kind) names no kind", kicker(dN) === "3 · VERDICT" && /Not yet written\./.test(inner(dN, '<aside class="inspector"[^>]*>', "aside")), kicker(dN) || "no inspector"]);
+    /* mixed: the first row's verdict emptied, the second a bare build kind, the last a bare leave kind (an unwritten leave) */
+    const mix = unbuilt(copy(ex)), last = mix.rows.length - 1;
+    mix.rows[0].verdict = {}; mix.rows[1].verdict = { kind: "build", summary: "" }; mix.rows[last].verdict = { kind: "leave", summary: " " };
+    const W = r => typeof (r.verdict || {}).summary === "string" && r.verdict.summary.trim(), wb = mix.rows.filter(r => W(r) && r.verdict.kind !== "leave").length, wl = mix.rows.filter(r => W(r) && r.verdict.kind === "leave").length, wo = mix.rows.length - wb - wl;
+    const dM = render("mixed-verdicts", mix, mix.rows[0].id), leaveRow = mix.rows.find(r => W(r) && r.verdict.kind === "leave");
+    vc.push([`a board with mixed verdicts counts the written ones: "${wb} build · ${wl} left for later · ${wo} not yet written"`, tile(dM) === `${wb} build ${wl} left for later · ${wo} not yet written`, tile(dM)]);
+    vc.push(["written cells keep their kind (build, leave as is); unwritten ones, a bare leave kind included, show none", /class="kind">build</.test(vcell(dM, mix.rows[2].id)) && /class="kind">leave as is</.test(vcell(dM, leaveRow.id)) && [0, 1, last].every(i => !/class="kind"/.test(vcell(dM, mix.rows[i].id))) && !/cell verdict leave/.test(vcell(dM, mix.rows[last].id)), [0, 1, 2, last].map(i => `${mix.rows[i].id}: ${text(vcell(dM, mix.rows[i].id)).slice(0, 40)}`).join(" | ")]);
+    vc.push(["the inspector of an emptied verdict names no kind", kicker(dM) === "3 · VERDICT", kicker(dM) || "no inspector"]);
+    const tm = unbuilt(copy(trk)); tm.rows.slice(0, 5).forEach(r => { r.verdict = {}; });
+    const tb = tm.rows.filter(r => (r.verdict || {}).summary).length, tT = tile(render("tracking-verdicts", tm));
+    vc.push([`a tracking board with five unit verdicts unwritten reads "${tb} build · 0 left for later · 5 not yet written"`, tT === `${tb} build 0 left for later · 5 not yet written`, tT]);
+    const tE = tile(render("example-verdicts", ex));
+    vc.push(["the example, every verdict written, names no unwritten count", tE === "9 build 2 left for later", tE]);
+  }
+  report(`the Verdicts tile and column on ${t.name}`, vc);
+});
+
+/* The footer (GUIDANCE.md §3), on every dashboard type: "Corresponds to <source>." and the authority sentence, a plan or tracking
+   board's columns sentence after it, and nothing more — read from the rendered plan boards and work boards and from the system
+   templates and example; check-page.js fails a footer in the old form on a system page and on a plan board. */
+{ const fc = [], sc = path.join(out, "footer"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
+  const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), tp = name => (targets.find(t => t.name === name) || {}).path;
+  const ftext = html => (inner(html, "<footer[^>]*>", "footer") || "").replace(/<!--[\s\S]*?-->/g, "").replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/\s+/g, " ").trim();
+  const MD = "Code and the Markdown beside this page are authoritative on any conflict.", CODE = "Code is authoritative on any conflict.", COLS = "Columns 1 to 3 are written once; column 4 records every difference.";
+  const put = (name, html) => { const f = path.join(sc, name); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, html); return f; };
+  const checkFails = f => { const r = cp.spawnSync(process.execPath, [checker, f, "--out", sc], { encoding: "utf8" }); return [r.status === 1 && /FOOTER NOT IN ITS FORM/.test(r.stdout || ""), (r.stdout || "").split(/\r?\n/).filter(l => /footer|FAIL/.test(l)).join(" | ")]; };
+  const ptpl = tp("plan/template/dashboard.html");
+  if (ptpl) { const tpl = fs.readFileSync(ptpl, "utf8");
+    [["an issue board", J("plan/examples/38-handshake-empty-name/plan.json")], ["a tracking board", J("verify/fixtures/tracking.plan.json")], ["a sub-issue board", J("verify/fixtures/sub-issue.plan.json")]].forEach(([what, d], i) => {
+      const dom = dumpDom(put(`plan-${i}.html`, withData(tpl, "plan", JSON.stringify(d, null, 2)))), want = `Corresponds to ${d.folder}/plan.json. ${MD} ${COLS}`;
+      fc.push([`${what}'s footer reads "${want}"`, dom != null && ftext(dom) === want, dom == null ? "no Chrome or Edge" : ftext(dom)]); });
+    const old = tpl.replace(/\$\("#footer"\)\.innerHTML=`Corresponds to [^`]*`;/, () => '$("#footer").innerHTML=`Built from <code>${esc(FOLDER)}/plan.json</code>, embedded verbatim, against the baseline <code>master</code>. Nothing has landed yet. ' + MD + " " + COLS + ' Maintained by the presenter agent.`;');
+    const [okP, outP] = checkFails(put("plan-old.html", withData(old, "plan", fs.readFileSync(sk("plan/examples/38-handshake-empty-name/plan.json"), "utf8"))));
+    fc.push(["check-page.js fails a plan board whose footer is the old form", old !== tpl && okP, outP || "no failure"]); }
+  const btpl = tp("plan/template/board.html");
+  if (btpl) { const tpl = fs.readFileSync(btpl, "utf8");
+    [["the work board", "verify/fixtures/work-board.json", "docs/plans/board.json"], ["the live work board", "verify/fixtures/work-board-live.json", "docs/plans/.live/board.json"]].forEach(([what, fx, src], i) => {
+      const dom = dumpDom(put(`board-${i}/index.html`, withData(tpl, "board", fs.readFileSync(sk(fx), "utf8")))), want = `Corresponds to ${src}. ${MD}`;
+      fc.push([`${what}'s footer reads "${want}"`, dom != null && ftext(dom) === want, dom == null ? "no Chrome or Edge" : ftext(dom)]); }); }
+  [["system/template/system.html", "a system page", `Corresponds to workspace.dsl. ${CODE}`], ["system/template/supersystem.html", "a supersystem or repository page", `Corresponds to docs/dashboards/systems.json and workspace.dsl. ${CODE}`]].forEach(([name, what, want]) => {
+    const p = tp(name); if (!p) return; const html = fs.readFileSync(p, "utf8");
+    fc.push([`${what}'s footer reads "${want}", its divergence comment kept`, ftext(html) === want && /<footer>[\s\S]*?<!-- presenter: list each divergence/.test(html), ftext(html)]);
+    if (name === "system/template/system.html") {
+      const old = html.replace("<footer>Corresponds to <code>workspace.dsl</code>. ", "<footer>Drawn from <code>workspace.dsl</code> and the code at <code>master abc1234</code>. ").replace(`${CODE}<!--`, () => `${CODE} Maintained by the presenter agent.<!--`);
+      const [okS, outS] = checkFails(put("system-old/index.html", old));
+      fc.push(["check-page.js fails a system page whose footer is the old form", old !== html && okS, outS || "no failure"]); } });
+  if (!root) { const exs = fs.readFileSync(sk("system/examples/webtools-udp/index.html"), "utf8");
+    fc.push(["the system example's footer is the trimmed form", ftext(exs) === `Corresponds to workspace.dsl. ${CODE}`, ftext(exs)]); }
+  report("the footer on every dashboard type", fc);
+}
+
 const today = new Date().toISOString().slice(0, 10);
 targets.forEach(t => {
   const tpl = fs.readFileSync(t.path, "utf8"), results = [];
@@ -759,7 +840,7 @@ targets.forEach(t => {
     MODES.forEach(m => {
       const r = cp.spawnSync(process.execPath, [checker, page, "--out", dir, ...m], { encoding: "utf8" });
       const lines = (r.stdout || "").split(/\r?\n/);
-      results.push({ fixture: label, mode: m.join(" ") || "light", pass: r.status === 0, bad: lines.filter(l => /FAIL|ERROR|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING/.test(l)) });
+      results.push({ fixture: label, mode: m.join(" ") || "light", pass: r.status === 0, bad: lines.filter(l => /FAIL|ERROR|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|FOOTER NOT IN ITS FORM/.test(l)) });
     });
   });
   const ok = results.every(r => r.pass);
