@@ -485,7 +485,9 @@ function applyEvent(orig, ev, facts, req, now) {
       else { setStep("landing"); setGlow("landing"); enrich.push(open.length ? `landed: ${open.map(r => r.id).join(", ")} still to resolve before the board is built (it stays at the landing until then)` : "landed: asBuilt has no sha yet"); }
       enrich.push("landed: the landing refresh resolves every part, completes the trail and reconciles the impact");
       detail = detail || `Landed${pr ? " in PR #" + pr : ""}.`;
-      trail = { column: "built", label: `Landed${pr ? " in PR #" + pr : ""}${sha ? ", merge " + sha.slice(0, 7) : ""}`, ...(pr ? { ref: `PR #${pr}` } : {}) };
+      /* the merge commit names the merge: facts.merge when given (facts.sha may be the branch's last commit), else the one sha given */
+      const mergeSha = next.merge || sha;
+      trail = { column: "built", label: `Landed${pr ? " in PR #" + pr : ""}${mergeSha ? ", merge " + mergeSha.slice(0, 7) : ""}`, ...(pr ? { ref: `PR #${pr}` } : {}) };
       if (plan.parent) parentOp = { kind: "landed" };
       break;
     }

@@ -218,10 +218,15 @@ async function main() {
 
   /* the registry */
   const edits = {};
+  /* A planned supersystem whose page shows its built parts (dashboards-skill/29: "built in part") is stamped with them: the page names the
+     supersystem in its state, and a touched part that is built and shares the page restamps it, as the page now shows that part's code. */
+  const statusNow = c => flips.get(c.slug) || c.status;
+  const builtInPart = (e, systems) => e.kind === "supersystem" && typeof e.page === "string" && !!e.page
+    && systems.some(c => c.slug !== e.slug && c.page === e.page && touched.has(c.slug) && statusNow(c) === "built");
   for (const slug of scope) {
     const e = bySlug(slug), f = {}, flip = flips.get(slug), status = flip || e.status;
     if (flip && flip !== e.status) { f.status = flip; S.applied.push(`${slug} ${flip}`); }
-    if (status === "planned") { if (touched.has(slug) && !flip) S.notes.push(`${slug} is planned: nothing built to stamp`); if (Object.keys(f).length) edits[slug] = f; continue; }
+    if (status === "planned" && !builtInPart(e, reg.systems)) { if (touched.has(slug) && !flip) S.notes.push(`${slug} is planned: nothing built to stamp`); if (Object.keys(f).length) edits[slug] = f; continue; }
     if (JSON.stringify(e.asIs || null) !== JSON.stringify(asIs)) f.asIs = asIs;
     if (S.issue != null) { const la = { issue: S.issue, sha, ...(e.lastAmended && e.lastAmended.issue === S.issue && e.lastAmended.note ? { note: e.lastAmended.note } : {}) }; if (JSON.stringify(e.lastAmended || null) !== JSON.stringify(la)) f.lastAmended = la; }
     const v = (facts.version || {})[slug]; if (v != null && v !== e.version) { f.version = String(v); S.applied.push(`${slug} version ${v}`); S.enrich.push(`${slug} moved to ${v}: the Compatibility & versioning bubble says it in the presenter's words`); }
@@ -252,7 +257,7 @@ async function main() {
   let slugUsed = false;
   for (const e of R.systems.filter(x => typeof x.page === "string" && x.page)) {
     const file = path.join(DASH, ...e.page.split("/")), rel = path.relative(ROOT, file).split(path.sep).join("/");
-    const inScope = scope.has(e.slug) && e.status !== "planned";
+    const inScope = scope.has(e.slug) && (e.status !== "planned" || builtInPart(e, R.systems));
     if (!fs.existsSync(file)) { if (inScope) S.enrich.push(`${rel} is in the registry but not on disk: the presenter writes it`); continue; }
     const pg = readText(file); let html = pg.text, wrote = false;
     const hasState = L.blockText(html, "state") != null, hasSystems = L.blockText(html, "systems") != null;
@@ -266,7 +271,14 @@ async function main() {
       const stFile = path.join(path.dirname(file), "state.json"), had = fs.existsSync(stFile);
       const st0 = had ? readText(stFile) : { text: L.blockText(html, "state"), eol: pg.eol };
       let s; try { s = JSON.parse(st0.text); } catch (x) { refuse(`${rel}'s state does not parse: ${x.message}`); }
-      if (s.slug !== e.slug) refuse(`${rel}'s state names ${s.slug}, the registry ${e.slug}`);
+      /* a page several registry entries share (a system page that carries its parts, a supersystem's page for its built parts) names one
+         of them, its owner, in its state: the page is stamped when the owner's entry is reached, never under a part's slug */
+      if (s.slug !== e.slug) {
+        const owner = R.systems.find(x => x.slug === s.slug && x.page === e.page);
+        if (!owner) refuse(`${rel}'s state names ${s.slug}, the registry ${e.slug}`);
+        if (!scope.has(owner.slug) || !(owner.status !== "planned" || builtInPart(owner, R.systems))) S.notes.push(`${rel} shows ${e.slug}, but its state names ${owner.slug}, which is not stamped here`);
+        continue;
+      }
       const old = s.asIs || {}, la = s.lastAmended || {};
       if (!s.written && old.sha) s.written = { sha: old.sha };
       s.asIs = asIs;

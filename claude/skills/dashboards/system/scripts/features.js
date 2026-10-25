@@ -50,10 +50,16 @@ const FEATURES = [
     test: h => { const s = scripts(h); return need(/Home:0/.test(s) && /End:n-1/.test(s) && /\.tabIndex=on\?0:-1/.test(s), "the tablist handles no Home/End, or keeps no roving tabindex (tabKeys())"); } },
   { id: "state-block", name: "the state block (the stamp drawn from state.json)", since: 25, types: STATE,
     notFor: { "plan-board": "its stamps are its data's (plan.json)", "work-board": "its stamps are its data's (board.json)" },
-    test: h => need(/<script type="application\/json" id="state">/.test(h), "no <script type=\"application/json\" id=\"state\"> block") },
+    /* the block, and the header's as-is chip drawn from it (a hand-written stamp is never restamped) */
+    test: h => { const hd = (/<header>([\s\S]*?)<\/header>/.exec(body(h)) || [, ""])[1], st = /<script type="application\/json" id="state">/.test(h);
+      return need(st && /id="chip-asis"/.test(hd), st ? "the header's as-is chip is hand-written, not drawn from state.json (no id=\"chip-asis\")" : "no <script type=\"application/json\" id=\"state\"> block"); } },
   { id: "as-is-header", name: "an as-is part that names no issue: the last amendment said in the Context section", since: 26, types: STATE,
     notFor: { "plan-board": "a board is the record of one issue", "work-board": "it lists the issues" },
-    test: h => need(!/id="chip-amended"/.test(body(h)) && /ctx-amended/.test(scripts(h)), /id="chip-amended"/.test(body(h)) ? "the header still carries the \"last amended by\" chip" : "the renderer does not say the last amendment in the Context section") },
+    /* the header names no issue: no "last amended by" chip, the template's old placeholder or one written by hand, and no issue link
+       (a GitHub issue, a data-board or a data-issue mark) */
+    test: h => { const hd = (/<header>([\s\S]*?)<\/header>/.exec(body(h)) || [, ""])[1];
+      const amended = /id="chip-amended"/.test(hd) || /<span class="ck">\s*last amended/i.test(hd), issue = /\/issues\/\d+|data-board=|data-issue=/.test(hd);
+      return need(!amended && !issue && /ctx-amended/.test(scripts(h)), amended ? "the header still carries a \"last amended by\" chip" : issue ? "the header names an issue (an issue link, data-board or data-issue)" : "the renderer does not say the last amendment in the Context section"); } },
   { id: "guarantees-legend", name: "the Guarantees' legend (what its bubbles draw: swatches, planned rows, gaps)", since: 26, types: STATE,
     notFor: { "plan-board": "no Guarantees section", "work-board": "no Guarantees section" },
     test: h => need(/guarantees-key/.test(scripts(h)), "the renderer draws no Guarantees legend (sectionKeys())") },
