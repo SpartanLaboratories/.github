@@ -1,28 +1,24 @@
 ---
 name: upgrade
 description: >-
-  Bump one named dependency of the current repo to its latest available
-  version and adapt the codebase to any breaking change, using the same
-  planner -> rookie-dev -> qa pipeline as resolve-issue, with the version-control-manager
-  agent handling version control (branch, commits, PR, merge, resolution
-  comment) autonomously and stopping only at its two gates - a Maven
-  publish, which needs your explicit go-ahead, and any downstream-consumer
-  coordination, which it reports rather than files. Use to bring one
-  dependency current in a reviewed, tested step instead of a blind version
-  bump.
+  Bring one named dependency of the current repo to its latest available
+  version through the issue backlog: find the pinned and the latest version,
+  what changed between them (breaking changes called out) and where the repo
+  uses the library, file an upgrade issue with those facts through the admin
+  team, then work that issue with /resolve-issue, which sizes, plans, builds,
+  checks and lands it. Use to bring one dependency current in a reviewed,
+  tested step instead of a blind version bump.
 argument-hint: "<library-name>"
 disable-model-invocation: true
-allowed-tools: Bash(gh issue list *), Bash(gh issue view *), Bash(gh pr list *), Bash(gh repo view *), Bash(gh api *), Bash(git status *), Bash(git log *), Bash(git branch *), Bash(curl *), Bash(npm view *), Bash(npm info *), Bash(pip index *), Bash(cargo search *), Bash(go list *)
+allowed-tools: Bash(gh issue list *), Bash(gh issue view *), Bash(gh pr list *), Bash(gh repo view *), Bash(gh api *), Bash(git status *), Bash(git log *), Bash(git branch *), Bash(git diff *), Bash(curl *), Bash(npm view *), Bash(npm info *), Bash(pip index *), Bash(cargo search *), Bash(go list *)
 ---
 
-Bring **one** named dependency to its latest available version using the
-project's agents. Follow the steps in order. Wait for each spawned agent to
-finish before starting the next. All version control runs through the
-`version-control-manager` agent, which acts autonomously except at its two gates: a **Maven
-publish** happens only if the user explicitly asked this run, and a
-**downstream-consumer issue** is never filed (reported instead). You
-yourself never commit, push, merge, tag, publish, or file/comment on an
-issue outside of `version-control-manager`.
+Bring **one** named dependency to its latest available version. An upgrade is
+ordinary backlog work: this skill gathers the facts, files an issue for the
+upgrade, then works that issue with `/resolve-issue`. You never commit, push,
+branch, merge, label, comment or file yourself: the issue is filed, and
+everything after it lands, through the `admin team` session (the `admin-team`
+skill).
 
 ## 1. Pick the library
 
@@ -59,101 +55,48 @@ issue outside of `version-control-manager`.
   change** the notes call out (API removals/renames, protocol/behavior
   changes, minimum-version bumps).
 - Grep this repo's source (not just the manifest) for uses of the library's
-  API, so the plan step has real call sites to reason about, not just the
+  API, so the issue carries real call sites to plan against, not just the
   version string.
 - Tell the user: the library, current -> latest version, and a one-line
-  summary of what changed, calling out any breaking change found — and
-  **confirm before proceeding** — this run creates branches and commits.
-- Check `git status` is clean. If it is not, stop and ask the user to settle
-  the working tree first.
+  summary of what changed, calling out any breaking change found.
 
-## 2. Plan — `planner`
+## 2. File the upgrade issue
 
-Spawn `planner` with: the library name, current and target version, the
-collected changelog / breaking-change notes, and the call sites found in
-step 1. Ask it to plan the dependency bump itself, any required call-site
-changes, test impact, and whether the README needs updating (per the repo's
-README-currency rule).
+Load the `admin-team` skill and send it a `file-issue` request:
 
-**`planner` halts and hands work back to you.** Its report leads with one of
-three shapes; route on it:
+- `github` and `surfacedIn`: this repo's `owner/repo`.
+- `title`: `Upgrade <library> from <current> to <latest>`.
+- `body`, in the project's own terms — the issue is on GitHub, so it names no
+  work level, agent, pipeline or session:
+  - where the library is pinned (the manifest paths) and the current and
+    target versions;
+  - what changed between them, each point with its source (release notes,
+    changelog, tag diff or commit list, by URL), every breaking change called
+    out;
+  - the call sites in this repo (files, and the API each uses);
+  - the proposed fix: bump the pin and adapt the call sites to any breaking
+    change, with tests.
 
-- **`HALT — interview`** — it has questions about the user's intent. Relay
-  them **verbatim**, with the recommendations attached, and wait. Never answer
-  on the user's behalf. Once the user answers, **resume the same planner**
-  with `SendMessage` (its context is intact) carrying the answers — do not
-  spawn a fresh `planner`.
-- **`HALT — architecture`** — the work decomposes into more than one system
-  and needs sign-off before the plans get written. Relay the architecture
-  document path and the decomposition, wait for approval or changes, then
-  resume the same planner with `SendMessage`.
-- **`COMPLETE`** — continue below.
+Wait for the reply:
 
-- If the returned **Considerations** list is non-empty, **stop**: relay it
-  to the user and wait. Do not guess a design — this is exactly where a
-  breaking change's ambiguity (e.g. "does the old behavior need a shim?")
-  belongs.
-- Otherwise keep the architecture document path and **every** plan document
-  path, in the landing order `planner` gave, plus the recommended approach.
+- `done`, `result.filed: true` — the issue is new. Tell the user its number
+  and link.
+- `done`, `result.filed: false` — an open issue already covers the upgrade.
+  Tell the user, and work that issue.
+- `rejected` — tell the user the reason and stop.
 
-## 3. Branch — `version-control-manager`
+## 3. Work it — `/resolve-issue`
 
-Spawn `version-control-manager` with the plan document, the library name and target
-version, and the note "about to implement the upgrade — set up the branch
-only, no commits yet". `version-control-manager` creates the topic branch itself. Carry
-forward the branch name and base it reports.
+`/resolve-issue` cannot be invoked by the model, so read
+`~/.claude/skills/resolve-issue/SKILL.md` and follow it as if it had been run
+as `/resolve-issue <number>`, from its first step to its report. It sizes the
+issue, plans the bump and the call-site changes from the issue's body,
+implements, runs `qa` and lands the change through the admin team. Every rule
+in it applies unchanged; this skill adds nothing to it.
 
-## 4. Implement — `rookie-dev`
+## 4. Report
 
-Spawn `rookie-dev` with the plan document path and "implement it on the
-current branch; commit nothing". If `planner` produced **several** plan
-documents, work them in the landing order it gave — one `rookie-dev` per
-plan, each waiting for the previous — passing the architecture document
-path alongside for context.
-
-- If its report has a **Not done / blocked** list, **stop**: relay it and
-  offer the user either one `planner` re-pass to resolve the gap or to hand
-  back as is. Do not fill in the missing design yourself.
-
-## 5. Check — `qa`
-
-Spawn `qa` over the change set (`git diff <base-branch>...HEAD` plus
-untracked files). Keep its gate verdict, the test-inspector **Test run**
-block, and the path to the visual test report.
-
-- **PASS** -> step 6.
-- **CHANGES REQUESTED** -> do **one** remediation pass: `rookie-dev` for a
-  code or test gap; `planner` then `rookie-dev` if the plan itself is
-  wrong. Re-run `qa` once. If it still fails, stop and hand the user the
-  findings, the report path, and the branch as it stands. Never loop more
-  than once.
-
-## 6. Land it — `version-control-manager`
-
-Spawn `version-control-manager` with the QA'd change set, the `qa` verdict, the plan
-document, every `.md` file created or updated this run, this session's
-commit trailers and PR footer, and **whether the user asked for a publish
-this run**. `version-control-manager` carries out the commits, the version bump, the PR,
-the merge, and — if an open issue in this repo tracked the upgrade — the
-resolution comment on it. If no such issue exists, it merges with an
-ordinary PR description; there is nothing to close.
-
-- Relay `version-control-manager`'s **Done** list as-is.
-- Surface its **Stopped — needs you** items to the user: a Maven publish
-  (only if a release was intended — give them the exact command) and any
-  downstream-consumer coordination `version-control-manager` flagged rather than filed.
-- Do not re-run or second-guess `version-control-manager`'s completed steps.
-
-## 7. Report
-
-- The library, old and new version, and whether the upgrade landed clean or
-  needed call-site changes — summarize what changed in the codebase.
-- The plan document and any other `.md` files, with their merged links.
-- The `qa` verdict and the visual test-report path.
-- The commits / PR / merge that landed, by reference, and any issue comment
-  or upstream issue `version-control-manager` filed or flagged.
-- Anything handed back to the user: `rookie-dev` blockers, unresolved
-  planner open decisions, and `version-control-manager`'s **Stopped — needs you** items (a
-  pending Maven publish, downstream-consumer coordination).
+Lead with the library and its old and new version, then give `/resolve-issue`'s
+report as it stands.
 
 Do not start a second upgrade. One dependency per `/upgrade`.
