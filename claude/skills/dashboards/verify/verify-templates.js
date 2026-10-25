@@ -33,7 +33,11 @@
 // of 2026-10-25: no dash but planned or pending (lifelines, returns and C4 frames solid; check-page.js's DASHED NOT PLANNED, every C4
 // view included), rows left for later out of the As built count, and boardless work-board rows taking their state from the tracker. And the decisions of
 // dashboards-skill/17: the step panel beside the WIP strip, research-state rings, the charging arrow, the strip's open research questions, the
-// work board's still ring, live updates through the plan.js and board.js sidecars, and the theme switch on every type. A template is recorded only when its
+// work board's still ring, live updates through the plan.js and board.js sidecars, and the theme switch on every type. And the decisions of
+// dashboards-skill/18: no glow cap (the exact cells; the returned questions' rows before the verification), "closed · not planned" on the work
+// board, wip.next skipping units left for later, release.unreleased, the plan verification re-pass, the richer event facts (interview options,
+// qa severity and route, the remediation's route), the as-built states before the outcome (in progress, partially built) and open points
+// (wip.open). A template is recorded only when its
 // browser passes and every case group pass.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
@@ -596,10 +600,11 @@ targets.filter(t => t.block === "plan").forEach(t => {
     ["a returned question's rows stop glowing, a row another open question names keeps glowing: quiet", rq([C(r1), C(r2)], [Q("q-one", [r0, r1], "research/q-one.md"), Q("q-two", [r1, r2])]), false],
     ["a returned question's row left glowing: warns", rq([C(r0), C(r1), C(r2)], [Q("q-one", [r0, r1], "research/q-one.md"), Q("q-two", [r1, r2])]), true, /no question being researched or verified names its row/],
     ["the verification (verification-started: every question verifying) glows every question's rows again: quiet", rq([C(r0), C(r1), C(r2)], [Q("q-one", [r0, r1], "research/q-one.md", "verifying"), Q("q-two", [r2], "research/q-two.md", "verifying")]), false],
-    ["every question returned, the verification not started: the whole Considered column (the fallback): quiet", rq(["considered"], [Q("q-one", [r0, r1], "research/q-one.md", "returned"), Q("q-two", [r2], "research/q-two.md", "returned")]), false],
-    ["every question returned, its rows still glowing: warns", rq([C(r0), C(r1), C(r2)], [Q("q-one", [r0, r1], "research/q-one.md", "returned"), Q("q-two", [r2], "research/q-two.md", "returned")]), true, /fallback: no question is being researched or verified/],
+    ["every question returned, the verification not started: the returned questions' rows glow: quiet", rq([C(r0), C(r1), C(r2)], [Q("q-one", [r0, r1], "research/q-one.md", "returned"), Q("q-two", [r2], "research/q-two.md", "returned")]), false],
+    ["every question returned, the whole Considered column glowing instead: warns", rq(["considered"], [Q("q-one", [r0, r1], "research/q-one.md", "returned"), Q("q-two", [r2], "research/q-two.md", "returned")]), true, /Considered cells of the rows the returned questions awaiting verification name/],
     ["a question naming no row falls back to the whole Considered column: quiet", rq(["considered"], [Q("q-one", [r0]), Q("q-none", [])]), false],
-    ["more than six cells fall back to the whole Considered column: quiet", rq(["considered"], [Q("q-wide", ex.rows.slice(0, 7).map(r => r.id))]), false],
+    ["seven cells glow exactly, with no count limit and no fallback: quiet", rq(ex.rows.slice(0, 7).map(r => C(r.id)), [Q("q-wide", ex.rows.slice(0, 7).map(r => r.id), null, "researching")]), false],
+    ["seven cells collapsed to the whole Considered column: warns", rq(["considered"], [Q("q-wide", ex.rows.slice(0, 7).map(r => r.id), null, "researching")]), true, /Considered cells of the rows the questions being researched or verified name/],
     ["a halt during research keeps the research glow: quiet", rq([C(r0)], [Q("q-one", [r0])], { step: "halted", resume: "research" }), false],
     ["a returned question whose findings the trail does not record: warns", rq([C(r1)], [Q("q-one", [r0], "research/q-one.md"), Q("q-two", [r1])], { noTrail: true }), "trail", /the trail records no entry with that ref/],
     ["questions not complete once the run is past research: warns", rq(["considered", "verdict"], [Q("q-one", [r0], "research/q-one.md")], { step: "plan" }), "past", /researched sets every question complete/],
@@ -1069,7 +1074,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     const chk = d => { fs.rmSync(path.join(sc, "tree"), { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true }); (d.rows || []).filter(r => r.board).forEach(r => stub(path.join(dir, path.dirname(r.board))));
       fs.writeFileSync(path.join(dir, "board.json"), JSON.stringify(d, null, 2) + "\n"); fs.writeFileSync(path.join(dir, "index.html"), tpl); node(embedJs, dir); return node(checkJs, dir, "--root", path.join(sc, "tree")); };
     const c0 = chk(wb);
-    xc.push(["check.js passes the fixture's five boardless rows, one per state", c0.status === 0 && /5 boardless rows, state from the tracker: 1 not-started, 2 in-progress, 1 merged, 1 landed/.test(c0.stdout), lines(c0, /boardless|FAIL/)]);
+    xc.push(["check.js passes the fixture's six boardless rows, one per state", c0.status === 0 && /6 boardless rows, state from the tracker: 1 not-started, 2 in-progress, 1 merged, 1 landed, 1 not-planned/.test(c0.stdout), lines(c0, /boardless|FAIL/)]);
     const bad = (what, f, re) => { const d = copy(wb); f(d.rows.find(r => r.issue === 80), d.rows.find(r => r.issue === 83), d); const r = chk(d); xc.push([`check.js fails ${what}`, r.status === 1 && re.test(r.stdout), lines(r, /^FAIL/)]); };
     bad("a not-started row a branch refers to", r => { r.tracker.branch = "fix/80-x"; }, /status "not-started" does not match/);
     bad("a landed row whose issue is open", r => { r.status = "landed"; }, /landed means the issue is closed/);
@@ -1244,6 +1249,129 @@ targets.filter(t => t.block === "plan").forEach(t => {
       lc.push([`G: ${what}: the theme switch follows the system setting until clicked, then picks the other palette and remembers it`, /^none\/☀ light\|dark\/dark\/☾ night\|light\/light$/.test(got) && /<head>[\s\S]*?localStorage\.getItem\("dashboards-theme"\)[\s\S]*?<\/head>/.test(html), got || "no probe result"]); });
   } else lc.push(["the theme switch (no browser found: set CHROME)", false, "no Chrome or Edge"]);
   report("the step panel, research rings, the charging arrow, live updates and the theme switch (dashboards-skill/17)", lc);
+}
+
+/* The decisions of dashboards-skill/18 (2026-10-25), on every dashboard type they fit (GUIDANCE.md §11):
+   1. no glow cap: the exact cells being worked on glow however many (check.js and check-page.js set no count limit); between the last
+      research-returned and verification-started the returned questions' rows glow (the glow-map cases above);
+   2. a boardless work-board row closed as not planned reads "closed · not planned", never landed (lib.js boardlessState(), check.js,
+      the rendered row, its legend entry, the Landed count, a roadmap item and a waits-on entry);
+   3. a tracking board's wip.next skips a unit left for later (lib.js nextUnit(), check.js, the page);
+   4. release.unreleased: a new artifact with no release quiets check.js's two release warnings, is held to its form, and the Impact
+      tab says "new, unreleased";
+   5. the plan step's re-pass verifying an existing plan (from "existing", against a ref) in the step panel, and check.js on it;
+   6. the richer event facts: an interview question's options, a qa pass's severity (minor, other) and route, a remediation's route and
+      its sub-steps by name, each in the step panel, and check.js on their forms;
+   7. the as-built states before the outcome: in progress (a current stage) and partially built (a done stage, a later one to come),
+      derived from wip.stages, solid, each with its legend entry; a unit whose run is under way reads in progress; check.js on them;
+   8. open points (wip.open): listed in the step panel until resolved, mirrored for a unit, and check.js on their form. */
+{ const yc = [], sc = path.join(out, "decisions-18"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
+  const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x)), tp = name => (targets.find(t => t.name === name) || {}).path;
+  const text = h => (h || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/\s+/g, " ").trim();
+  const lib = require(path.join(SKILL, "plan", "scripts", "lib.js"));
+  const ptpl = tp("plan/template/dashboard.html"), btpl = tp("plan/template/board.html"), PT = ptpl ? fs.readFileSync(ptpl, "utf8") : "", BT = btpl ? fs.readFileSync(btpl, "utf8") : "";
+  const LIVE = J("verify/fixtures/live-issue.plan.json"), EX = J("plan/examples/38-handshake-empty-name/plan.json"), TRK = J("verify/fixtures/tracking.plan.json"), ids = LIVE.rows.map(r => r.id);
+  const tree = path.join(sc, "tree");
+  /* check.js on a board written into a scratch repository (embed.js first, as at every event) */
+  const chk = d => { const dir = path.join(tree, ...String(d.folder || `docs/plans/${d.slug}`).split("/")); fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(d, null, 2) + "\n"); fs.writeFileSync(path.join(dir, "dashboard.html"), PT); node(embedJs, dir); return node(checkJs, dir, "--root", tree); };
+  const render = (name, d, hash) => { const dir = path.join(sc, name); fs.mkdirSync(dir, { recursive: true }); const f = path.join(dir, "dashboard.html");
+    fs.writeFileSync(f, withData(PT, "plan", JSON.stringify(d, null, 2))); fs.writeFileSync(path.join(dir, "plan.js"), lib.sidecarText("plan", JSON.stringify(d, null, 2))); return dumpDom(f, hash || ""); };
+  const light = name => cp.spawnSync(process.execPath, [checker, path.join(sc, name, "dashboard.html"), "--out", path.join(sc, name)], { encoding: "utf8" });
+  const strip = dom => inner(dom, '<section class="wip[^"]*" id="wip"[^>]*>', "section"), panel = dom => inner(strip(dom), '<div class="sp[^"]*"[^>]*>', "div");
+  const cellOf = (dom, col, id) => inner(dom || "", `<div class="cell ${col}[^"]*"[^>]*data-row="${id}"[^>]*>`, "div"), cellTag = (dom, col, id) => ((dom || "").match(new RegExp(`<div class="cell ${col}[^"]*"[^>]*data-row="${id}"`)) || [""])[0];
+  const live = f => { const d = copy(LIVE); f(d, d.wip); return d; };
+  const built = d => { d.status = "building"; d.wip.questions = []; d.wip.research = null; d.rows.forEach(r => { r.verdict = { kind: "build", summary: "Verification case: written.", steps: [{ id: "A", what: "x" }] }; }); };
+  /* 1. no glow cap */
+  { const d = live((d, w) => { built(d); w.step = "implementation"; w.current = ids.map(id => id + ".built"); w.stages = [{ id: "A", name: "Everything at once", state: "current", rows: ids.slice() }]; });
+    const c = chk(d);
+    yc.push([`1: ${ids.length} exact As built cells glowing: check.js passes, quiet on the glow, no count limit`, c.status === 0 && /keeps the step-to-column map at "implementation"/.test(c.stdout) && !/glow at once|rows glow/.test(c.stdout), lines(c, /glow|^FAIL/) || "nothing"]);
+    if (chrome) { const dom = render("glow-all", d), n = (dom.match(/<div class="cell built[^"]* glow[ "]/g) || []).length, r = light("glow-all");
+      yc.push([`1: the page draws all ${ids.length} glowing cells, and check-page.js counts them with no limit`, n === ids.length && r.status === 0 && new RegExp(`CHECK glow: \\d+$`, "m").test(r.stdout) && !/TOO MANY/.test(r.stdout), `${n} drawn · ${lines(r, /CHECK glow|FAIL/)}`]); } }
+  { const g = lib.researchGlow(live((d, w) => { w.questions = [{ question: "q-one", rows: [ids[0], ids[1]], findings: "research/q-one.md", state: "returned" }, { question: "q-two", rows: [ids[2]], findings: "research/q-two.md", state: "returned" }]; }));
+    yc.push(["1: lib.js researchGlow(): every question returned, the verification not started: the returned questions' rows, no fallback", !g.fallback && g.phase === "waiting" && JSON.stringify(g.current) === JSON.stringify(ids.slice(0, 3).map(id => id + ".considered")), JSON.stringify(g)]); }
+  /* 2. closed as not planned */
+  const B = lib.boardlessState;
+  yc.push(["2: boardlessState(): closed as not planned reads not-planned; closed as completed, landed", B(86, "CLOSED", [], [], [], [], "NOT_PLANNED").status === "not-planned" && B(86, "CLOSED", [], [], [], [], "COMPLETED").status === "landed" && B(86, "OPEN", [], [], [], [], null).status === "not-started", "rule"]);
+  if (btpl) { const wb = J("verify/fixtures/work-board.json"), dir = path.join(sc, "wtree", "docs", "plans");
+    const wchk = d => { fs.rmSync(path.join(sc, "wtree"), { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true }); (d.rows || []).filter(r => r.board).forEach(r => stub(path.join(dir, path.dirname(r.board))));
+      fs.writeFileSync(path.join(dir, "board.json"), JSON.stringify(d, null, 2) + "\n"); fs.writeFileSync(path.join(dir, "index.html"), BT); node(embedJs, dir); return node(checkJs, dir, "--root", path.join(sc, "wtree")); };
+    const bad = (what, f, re) => { const d = copy(wb); f(d.rows.find(r => r.issue === 85), d.rows.find(r => r.issue === 84)); const r = wchk(d); yc.push([`2: check.js fails ${what}`, r.status === 1 && re.test(r.stdout), lines(r, /^FAIL/)]); };
+    bad("a row closed as not planned that reads landed", r => { r.status = "landed"; }, /closed as not planned: the row reads "not-planned"/);
+    bad("a not-planned row without the tracker's NOT_PLANNED", r => { delete r.stateReason; }, /not-planned needs the tracker's stateReason NOT_PLANNED/);
+    bad("a not-planned row whose issue is open", r => { r.state = "OPEN"; delete r.stateReason; }, /not-planned means the issue is closed as not planned/);
+    if (chrome) { const w2 = copy(wb), it = (w2.roadmap[0].items || [])[3]; it.state = "CLOSED"; it.stateReason = "NOT_PLANNED"; const r80 = w2.rows.find(r => r.issue === 80); r80.waitsOn = [{ issue: 85, state: "CLOSED", stateReason: "NOT_PLANNED" }];
+      const f = path.join(sc, "wb", "index.html"); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, withData(BT, "board", JSON.stringify(w2, null, 2)));
+      const dW = dumpDom(f), row = n => (dW.match(new RegExp(`<tr class="run[^"]*"[^>]*><td><span class="t"><a [^>]*>#${n}<[\\s\\S]*?</tr>`)) || [""])[0], key = inner(dW, '<div class="key" id="runs-key">', "div");
+      yc.push(["2: the work board: the row closed as not planned reads \"closed · not planned\", solid and neutral, not glowing", /^<tr class="run"/.test(row(85)) && /vp neutral"><i aria-hidden="true">⊖<\/i>closed · not planned/.test(row(85)) && !/glow|landed/.test(row(85).replace(/<a [^>]*>[^<]*<\/a>/g, "")), text(row(85)).slice(0, 120)]);
+      yc.push(["2: its legend entry, and the Landed tile counts it apart", /closed · not planned<\/span> no board: closed on the tracker as not planned/.test(key) && /1 closed as not planned, not counted/.test(text(inner(dW, '<div class="kpis" id="kpis">', "div"))), text(key).slice(0, 300)]);
+      yc.push(["2: a roadmap item and a waits-on entry closed as not planned say so", /<small>closed · not planned<\/small>/.test(dW) && /#85<\/a>[^<]*<small> closed · not planned<\/small>/.test(row(80)), text(row(80)).slice(0, 160)]);
+      const r = cp.spawnSync(process.execPath, [checker, f, "--out", path.dirname(f)], { encoding: "utf8" });
+      yc.push(["2: the work board with the row passes check-page.js", r.status === 0, lines(r, /FAIL|ERROR|DASHED|NO LEGEND/)]); } }
+  if (chrome) { const s = copy(J("verify/fixtures/sub-issue.plan.json")); const it = s.roadmap.items[2]; it.state = "closed"; it.stateReason = "NOT_PLANNED";
+    const dom = render("roadmap-np", s); yc.push(["2: a plan board's roadmap item closed as not planned reads \"closed · not planned\"", /closed · not planned/.test(text(dom)), "context"]); }
+  /* 3. wip.next skips a unit left for later */
+  { const tk = copy(TRK), nx = tk.rows.find(r => r.id === tk.wip.next); nx.verdict = { ...(nx.verdict || {}), kind: "leave", summary: "Verification case: this unit is left as is." };
+    const want = lib.nextUnit(tk), c1 = chk(tk);
+    yc.push(["3: lib.js nextUnit() skips the unit left for later", !!want && want.id !== nx.id && !lib.leftForLater(want), want ? want.id : "null"]);
+    yc.push(["3: check.js fails a wip.next that names a unit left for later, naming the next one", c1.status === 1 && /names a unit left for later/.test(c1.stdout) && new RegExp(`next unit in landing order is "${want.id}"`).test(c1.stdout), lines(c1, /wip\.next/)]);
+    const tk2 = copy(tk); tk2.wip.next = want.id; const c2 = chk(tk2);
+    yc.push(["3: with wip.next on the following unit check.js says nothing about it", !/wip\.next/.test(lines(c2, /^(FAIL|warn)/)), lines(c2, /wip\.next/) || "quiet"]);
+    if (chrome) { const dom = render("next-leave", tk); yc.push(["3: the page never tags a unit left for later UP NEXT", !/UP NEXT/.test(cellOf(dom, "built", nx.id)), text(cellOf(dom, "built", nx.id)).slice(0, 120)]); } }
+  /* 4. release.unreleased */
+  { const base = m => { const d = copy(EX); d.level = 3; d.impact = { basis: "as-built", summary: "Verification case: a new module.", none: null, release: { bump: "none", version: null, ...(m || {}) },
+      downstream: [{ who: "`acme:widgets-new` (new artifact)", kind: "artifact", effect: "additive", summary: "Verification case: a new artifact with no release yet.", system: d.systems[0].slug }], adaptation: [], api: [], conversion: [], changes: [], source: "impact.md" }; return d; };
+    const c0 = chk(base()), c1 = chk(base({ unreleased: true })), c2 = chk(base({ unreleased: true, bump: "feat" })), d3 = base({ unreleased: true }); d3.impact.downstream[0].kind = "consumer"; const c3 = chk(d3), c4 = chk(base({ unreleased: "yes" }));
+    yc.push(["4: without the mark a new artifact with no bump draws both release warnings", /takes a feat: release/.test(c0.stdout) && /says explicitly that it has no downstream effect/.test(c0.stdout), lines(c0, /release|feat/)]);
+    yc.push(["4: release.unreleased: true quiets both, and check.js says why", !/takes a feat: release|says explicitly that it has no downstream effect/.test(c1.stdout) && /release\.unreleased — the artifact is new and unreleased/.test(c1.stdout), lines(c1, /release|feat/)]);
+    yc.push(["4: the mark with a bump, or with no artifact entry, warns; a mark that is not true fails", /keep bump "none"/.test(c2.stdout) && /no downstream entry of kind artifact/.test(c3.stdout) && c4.status === 1 && /release\.unreleased is true/.test(c4.stdout), [lines(c2, /unreleased/), lines(c3, /unreleased/), lines(c4, /^FAIL/)].join(" || ")]);
+    if (chrome) { const dom = render("unreleased", base({ unreleased: true }), "impact"), body = inner(dom, '<div[^>]*id="impact-body"[^>]*>', "div"), r = light("unreleased");
+      yc.push(["4: the Impact tab's version badge says new, unreleased, and its legend says what it means; check-page.js passes it", /version · no version moves · new, unreleased: its first release is its own/.test(text(body)) && /new, unreleased: the artifact has no release yet/.test(text(inner(dom, '<div class="key" id="impact-key">', "div"))) && r.status === 0, text(body).slice(0, 200) + " · " + lines(r, /FAIL|IMPACT/)]); } }
+  /* 5-8. the step panel's new facts */
+  const V = {
+    existing: live((d, w) => { w.step = "halted"; w.resume = "plan"; w.waitingOn = "Verification case: accept the verification's deltas."; w.current = ["considered", "verdict"]; w.questions = []; w.research = null; w.plan = { state: "re-pass", from: "existing", against: "main" }; }),
+    interview: live((d, w) => { w.step = "interview"; w.current = []; w.questions = []; w.research = null; w.interview[1] = { text: "Verification case: which reply?", options: ["Refuse with a reason", "Trim and accept"], answer: null, asked: "2026-10-25T07:31:00Z" }; }),
+    qa: live((d, w) => { built(d); w.step = "remediation"; w.current = [ids[0] + ".built"]; w.qa = [{ pass: 1, verdict: "changes-requested", findings: { documentation: 2, test: 1, code: 1 }, severity: { minor: 3, other: 1 }, route: "planner-then-rookie-dev" }]; w.remediation = { pass: 1, route: "planner-then-rookie-dev" }; }),
+    spot: live((d, w) => { built(d); w.step = "remediation"; w.current = [ids[0] + ".built"]; w.qa = [{ pass: 1, verdict: "changes-requested", findings: { documentation: 2 }, severity: { minor: 2 }, route: "on-the-spot" }]; w.remediation = { pass: 1, route: "on-the-spot", steps: [{ name: "Verification case: the wording fixes", state: "current" }] }; }),
+    staged: live((d, w) => { built(d); w.step = "implementation"; d.rows[0].asBuilt = { state: "as-planned", summary: "Verification case: built in A." }; d.rows[1].asBuilt = { state: "pending", summary: "Verification case: A built the rule; C builds the reply." };
+      w.stages = [{ id: "A", name: "The rule", state: "done", rows: [ids[0], ids[1]] }, { id: "B", name: "Routing", state: "current", rows: [ids[2]] }, { id: "C", name: "The reply", state: "todo", rows: [ids[1], ids[3]] }]; w.current = [ids[2] + ".built"];
+      w.open = [{ text: "Verification case: the plan's media-type rows disagree with its grammar.", raised: "implementation-stage A", ref: "plan.md" }, { text: "Verification case: settled earlier.", raised: "implementation-stage A", resolved: "The planner corrected plan.md." }]; })
+  };
+  const D = chrome ? Object.fromEntries(Object.keys(V).map(k => [k, render("v-" + k, V[k])])) : {};
+  if (chrome) {
+    const pE = panel(D.existing);
+    yc.push(["5: a plan verification: the re-pass verifying the existing plan against main, held still while halted", /re-pass verifying the existing plan against main/.test(text(pE)) && /verifies the plan already written against main as it stands now/.test(text(pE)) && /class="cur held"/.test(pE), text(pE).slice(0, 260)]);
+    const pI = panel(D.interview);
+    yc.push(["6: an interview question lists its options", /<ul class="sp-opts"><li>Refuse with a reason<\/li><li>Trim and accept<\/li><\/ul>/.test(pI), text(pI).slice(0, 260)]);
+    const pQ = panel(D.qa), pS = panel(D.spot);
+    yc.push(["6: a qa pass shows its severity (minor, other) and its route; a planner-then-rookie-dev remediation lists its loop", /by severity: 3 minor · 1 other/.test(pQ) && /route: a remediation pass: a planner re-pass, then rookie-dev, then the next qa pass/.test(text(pQ)) && /Planner re-pass for qa pass 1/.test(pQ) && /rookie-dev fixes/.test(pQ) && /qa pass 2/.test(pQ), text(pQ).slice(0, 400)]);
+    yc.push(["6: an on-the-spot remediation: its sub-steps by name, next landing with no new qa pass", /Verification case: the wording fixes · in progress/.test(text(pS)) && /next: landing \(no new qa pass\)/.test(text(pS)) && /fixed on the spot, no new qa pass/.test(text(pS)), text(pS).slice(0, 300)]);
+    const dS = D.staged, st = id => (cellOf(dS, "built", id).match(/<span class="vp ([^"]*)"><i aria-hidden="true">([^<]*)<\/i>([^<]*)/) || []).slice(1).join("|");
+    yc.push(["7: the stages decide the state: a done row as planned, one with a stage to come partially built, the current one in progress, one only to come pending", st(ids[0]) === "good|✓|as planned" && st(ids[1]) === "ink|◑|partially built" && st(ids[2]) === "accent|▶|in progress" && st(ids[3]) === "neutral dashed|…|pending", [0, 1, 2, 3].map(i => st(ids[i])).join(" ; ")]);
+    yc.push(["7: in progress and partially built are solid, each with its legend entry; the tile does not count them built", !/dashed/.test(cellTag(dS, "built", ids[1])) && !/dashed/.test(cellTag(dS, "built", ids[2])) && /in progress<\/span> being built: a current stage works on it/.test(inner(dS, '<div class="key" id="timeline-key">', "div")) && /partially built<\/span> a finished stage built part of it/.test(inner(dS, '<div class="key" id="timeline-key">', "div")) && /^1 \/ /.test((text(inner(dS, '<div class="kpis" id="kpis">', "div")).match(/As built (.*?) (QA passes|Timeline)/) || ["", ""])[1]), text(inner(dS, '<div class="kpis" id="kpis">', "div")).slice(0, 200)]);
+    yc.push(["7: lib.js builtState() agrees with the page", lib.builtState(V.staged, V.staged.rows[1]) === "partially-built" && lib.builtState(V.staged, V.staged.rows[2]) === "in-progress" && lib.builtState(V.staged, V.staged.rows[3]) === "pending" && lib.builtState(V.staged, V.staged.rows[0]) === "as-planned", "rule"]);
+    const pO = panel(dS);
+    yc.push(["8: the open points still open are listed in the step panel with where they were raised; a resolved one is not", /1 open point/.test(text(pO)) && /the plan's media-type rows disagree/.test(text(pO)) && /raised at implementation-stage A/.test(text(pO)) && !/settled earlier/.test(pO) && /an open point raised during the run/.test(strip(dS)), text(inner(pO, '<div class="sp-open">', "div")).slice(0, 200)]);
+    ["existing", "qa", "staged"].forEach(k => { const r = light("v-" + k); yc.push([`the ${k} variant passes check-page.js`, r.status === 0, lines(r, /FAIL|DASHED|ERROR|NO LEGEND/)]); });
+    const tk = copy(TRK); tk.wip.current = [...tk.wip.current, "http-core.built"]; tk.wip.next = lib.nextUnit(tk).id; const dT = render("unit-running", tk), hc = tk.rows.find(r => r.id === "http-core");
+    yc.push(["7: a tracking board's unit whose run is under way reads in progress; lib.js agrees", /▶<\/i>in progress/.test(cellOf(dT, "built", "http-core")) && lib.builtState(tk, hc) === "in-progress", text(cellOf(dT, "built", "http-core")).slice(0, 120)]);
+  } else yc.push(["the rendered boards (no browser found: set CHROME)", false, "no Chrome or Edge"]);
+  /* check.js on the new facts' forms */
+  { const bad = copy(V.qa); bad.wip.qa[0].route = "fast"; bad.wip.remediation.route = "later"; bad.wip.interview = [{ text: "x", options: [""] }]; bad.wip.plan = { state: "writing", against: "main" }; bad.wip.open = [{ text: "an open point" }];
+    const c = chk(bad);
+    yc.push(["6, 8: check.js fails a bad route, an empty option, against on a writing pass, an open point without raised", c.status === 1 && /wip\.qa\[0\]\.route must be one of/.test(c.stdout) && /wip\.remediation\.route must be one of/.test(c.stdout) && /options must be an array/.test(c.stdout) && /wip\.plan\.against names the ref/.test(c.stdout) && /wip\.open\[0\]\.raised names the event or stage/.test(c.stdout), lines(c, /^FAIL/)]);
+    const okc = chk(V.qa); yc.push(["6: check.js takes the qa pass's severity and route and the remediation's route", !/route|severity/.test(lines(okc, /^(FAIL|warn)/)), lines(okc, /^(FAIL|warn)/) || "clean"]);
+    const ex2 = chk(V.existing); yc.push(["5: check.js takes a re-pass from existing against main", !/wip\.plan/.test(lines(ex2, /^(FAIL|warn)/)), lines(ex2, /wip\.plan/) || "clean"]); }
+  { const s1 = copy(V.staged); s1.rows[1].asBuilt = { state: "as-planned", summary: "x" }; s1.rows[2].asBuilt = { state: "partially-built", summary: "" }; s1.rows[4].asBuilt = { state: "in-progress" };
+    const c = chk(s1);
+    yc.push(["7: check.js fails a partially built row with no summary, and warns on an outcome a later stage contradicts and an in-progress no stage bears out", c.status === 1 && /says in asBuilt\.summary what is built and what is left/.test(c.stdout) && /its outcome applies once its last stage is done/.test(c.stdout) && /no stage of wip\.stages that touches the row is current or still to come/.test(c.stdout), lines(c, /asBuilt|FAIL/)]);
+    const tk = copy(TRK), u = tk.rows.find(r => r.id === "http-core"); u.asBuilt = { state: "partially-built", summary: "x" }; const ct = chk(tk);
+    yc.push(["7: check.js fails a partially built unit row: a unit lands whole", ct.status === 1 && /a unit lands whole/.test(ct.stdout), lines(ct, /^FAIL/)]);
+    const s2 = copy(V.staged); s2.wip.open[1].resolved = "settled"; const c2 = chk(s2);
+    yc.push(["8: check.js warns on a resolved open point the trail does not record", /is resolved, but the trail records no entry for it/.test(c2.stdout), lines(c2, /open/)]);
+    const run = lib.unitRun({ status: "building", wip: { step: "implementation", open: V.staged.wip.open }, rows: [] });
+    yc.push(["8: a unit's mirror carries its open points (lib.js panelFacts())", Array.isArray(run.open) && run.open.length === 2, JSON.stringify(run.open || null).slice(0, 80)]); }
+  report("no glow cap, closed as not planned, next skips left for later, unreleased artifacts, plan verification, the richer event facts, the as-built states before the outcome, open points (dashboards-skill/18)", yc);
 }
 
 const today = new Date().toISOString().slice(0, 10);

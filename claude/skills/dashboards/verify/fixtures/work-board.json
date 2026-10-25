@@ -612,6 +612,35 @@
         }
       },
       "order": 4
+    },
+    {
+      "parent": null,
+      "waitsOn": [],
+      "blocks": [],
+      "board": null,
+      "folder": null,
+      "system": "gradle-build",
+      "step": null,
+      "detail": "",
+      "qa": [],
+      "qaMax": null,
+      "landed": null,
+      "reconciliation": null,
+      "active": false,
+      "systemName": "Gradle build",
+      "group": "other",
+      "issue": 85,
+      "title": "Docs: a boardless issue closed as not planned",
+      "state": "CLOSED",
+      "created": "2026-10-24",
+      "branch": null,
+      "status": "not-planned",
+      "tracker": {
+        "branch": null,
+        "pr": null
+      },
+      "order": 5,
+      "stateReason": "NOT_PLANNED"
     }
   ],
   "roadmap": [

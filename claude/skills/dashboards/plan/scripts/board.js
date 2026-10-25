@@ -18,7 +18,8 @@
 // A row with a board carries "reconciliation", its impact's reconciliation state as lib.js reconciliation() derives it (planned,
 // partial or as-built, with landed and total units on a tracking board), or null while the board records no impact (plan/RULES.md §2, §5).
 // A row with no board of its own and no tracking board's unit row to read (a boardless row: any issue the tracker sizes, whatever
-// its level) takes its state from the tracker (plan/RULES.md §5, "Boardless rows"): closed, "landed"; open with a pull request
+// its level) takes its state from the tracker (plan/RULES.md §5, "Boardless rows"): closed as not planned, "not-planned" ("closed ·
+// not planned", never landed); closed otherwise, "landed"; open with a pull request
 // that refers to it merged, "merged" (awaiting close); open with an open pull request or a branch that refers to it, "in-progress"
 // (solid, never active: there is no run board to mirror); otherwise "not-started". A pull request refers to an issue when GitHub
 // links it as closing the issue (closedByPullRequestsReferences) or its head branch names the issue; a branch refers to it when
@@ -32,6 +33,9 @@
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), url = require("url");
 const { repoRoot, flag, opt, registry, findPlans, subIssueBoard, shownBranch, unitBranch, reconciliation, leftForLater, boardlessState } = require("./lib.js");
+/* A closed issue's reason, kept on every row, roadmap item and waits-on/blocks entry that the tracker read: "NOT_PLANNED" reads
+   "closed · not planned" on the page, never landed (plan/RULES.md §5); open issues and the other reasons record none. */
+const reasonOf = x => x && x.state === "CLOSED" && x.stateReason ? { stateReason: x.stateReason } : {};
 const { embed } = require("./embed.js");
 
 const args = process.argv.slice(2);
@@ -79,12 +83,12 @@ const [owner, name] = repo.split("/");
 /* Tracker */
 let issues = [], gq = {};
 if (!flag(args, "no-gh")) {
-  issues = JSON.parse(sh("gh", ["issue", "list", "--repo", repo, "--state", "all", "--limit", "1000", "--json", "number,title,state,labels,createdAt"]));
+  issues = JSON.parse(sh("gh", ["issue", "list", "--repo", repo, "--state", "all", "--limit", "1000", "--json", "number,title,state,stateReason,labels,createdAt"]));
   const want = new Set([...issues.filter(i => i.state === "OPEN").map(i => i.number), ...boards.map(b => b.plan.issue)]);
   const nums = [...want];
   for (let i = 0; i < nums.length; i += 25) {
     const chunk = nums.slice(i, i + 25);
-    const node = "number title state repository{nameWithOwner}";
+    const node = "number title state stateReason repository{nameWithOwner}";
     const q = `query{repository(owner:"${owner}",name:"${name}"){${chunk.map(n => `i${n}:issue(number:${n}){number parent{number} closedByPullRequestsReferences(first:20,includeClosedPrs:true){nodes{number state headRefName}} linkedBranches(first:10){nodes{ref{name}}} subIssues(first:50){nodes{${node}}} blockedBy(first:30){nodes{${node}}} blocking(first:30){nodes{${node}}}}`).join(" ")}}}`;
     const r = JSON.parse(sh("gh", ["api", "graphql", "-f", "query=" + q]));
     Object.values(r.data.repository).forEach(x => { if (x) gq[x.number] = x; });
@@ -101,10 +105,10 @@ if (!flag(args, "no-gh")) {
 }
 /* The tracker's state of a boardless row (plan/RULES.md §5, "Boardless rows"): lib.js boardlessState(). */
 const trackerState = (n, i) => { const g = gq[n] || {};
-  return boardlessState(n, i ? i.state : "OPEN", (g.closedByPullRequestsReferences || {}).nodes || [], ((g.linkedBranches || {}).nodes || []).map(x => x && x.ref && x.ref.name).filter(Boolean), prs, branches); };
+  return boardlessState(n, i ? i.state : "OPEN", (g.closedByPullRequestsReferences || {}).nodes || [], ((g.linkedBranches || {}).nodes || []).map(x => x && x.ref && x.ref.name).filter(Boolean), prs, branches, i ? i.stateReason : null); };
 const issueOf = n => issues.find(i => i.number === n);
 const levelOf = i => { const l = i && i.labels.find(x => /^level: [1-4]$/.test(x.name)); return l ? parseInt(l.name.slice(7), 10) : null; };
-const ref = x => ({ issue: x.number, repo: x.repository && x.repository.nameWithOwner !== repo ? x.repository.nameWithOwner : undefined, state: x.state });
+const ref = x => ({ issue: x.number, repo: x.repository && x.repository.nameWithOwner !== repo ? x.repository.nameWithOwner : undefined, state: x.state, ...reasonOf(x) });
 /* A system's name and colour slot: the registry's; else, in a repository with no registry entry for it yet, the slot the boards
    themselves give it (plan.json systems), so a row keeps the colour its own board shows (GUIDANCE.md §1); else no colour. */
 const boardSys = slug => { for (const b of boards) { const s = (b.plan.systems || []).find(x => x && x.slug === slug); if (s) return { slug, name: s.name || slug, slot: Number.isInteger(s.slot) ? s.slot : 0, top: s.top || s.name || slug }; } return null; };
@@ -119,8 +123,9 @@ const LANDED_STATES = new Set(["landed", "as-planned", "amended", "deviated"]);
 const unitState = u => (u && u.row.asBuilt && u.row.asBuilt.state) || "pending";
 /* The next unit of each live tracking board (wip.next, plan/RULES.md §3), by issue number. */
 const nextUnits = new Map();
-boards.forEach(b => { if (b.plan.kind !== "tracking" || b.plan.status === "built") return; const id = (b.plan.wip || {}).next; const r = id && (b.plan.rows || []).find(x => x.id === id && x.unit && x.unit.issue); if (r) nextUnits.set(r.unit.issue, { board: b, row: r }); });
-/* Whether an issue has landed: its own board is built, or its unit row has landed; an issue on no board reads the tracker. */
+boards.forEach(b => { if (b.plan.kind !== "tracking" || b.plan.status === "built") return; const id = (b.plan.wip || {}).next; const r = id && (b.plan.rows || []).find(x => x.id === id && x.unit && x.unit.issue && !leftForLater(x)); if (r) nextUnits.set(r.unit.issue, { board: b, row: r }); });
+/* Whether an issue has landed: its own board is built, or its unit row has landed; an issue on no board reads the tracker. For a
+   blocker this means "no longer blocks": an issue closed as not planned no longer blocks either, though its own row never reads landed. */
 const landedIssue = (n, other) => {
   if (other) return other.state === "CLOSED";
   const b = boardOf(n), u = unitRow(n);
@@ -139,7 +144,7 @@ const chainOf = b => {
   const cur = live ? units.filter(r => (w.current || []).some(a => String(a).split(".")[0] === r.id)) : [];
   const current = cur.map(r => { const own = r.unit.issue ? boardOf(r.unit.issue) : null, ow = own ? own.plan.wip || {} : null, L = r.unit.live || {};
     return { issue: r.unit.issue || null, slug: r.unit.slug || r.id, step: (ow && ow.step) || L.step || null }; });
-  const nx = live && w.next ? units.find(r => r.id === w.next && st(r) === "pending") : null;
+  const nx = live && w.next ? units.find(r => r.id === w.next && st(r) === "pending" && !leftForLater(r)) : null;
   const next = nx ? { issue: nx.unit.issue || null, slug: nx.unit.slug || nx.id, blockedBy: (nx.unit.blockedBy || []).filter(n => !landedIssue(n)).map(n => ({ issue: n })) } : null;
   const started = landed > 0 || current.length > 0 || units.some(r => st(r) === "complete");
   return { total: counted.length, landed, dropped, deferred, left, planned: !started && p.status !== "built", done: p.status === "built" || (counted.length > 0 && landed === counted.length), current, next };
@@ -153,7 +158,7 @@ const rowNums = new Set([...boards.map(b => b.plan.issue), ...issues.filter(i =>
 const ACTIVE_STEPS = new Set(["sizing", "interview", "research", "architecture", "plan", "branch", "implementation", "qa", "remediation", "landing"]);
 const rows = [...rowNums].map(n => {
   const i = issueOf(n), g = gq[n] || {}, b = boardOf(n), u = unitRow(n), p = prevRow(n);
-  const row = { issue: n, title: (i && i.title) || (b && b.plan.issueTitle) || (b && b.plan.title) || (u && u.row.name) || `#${n}`, state: i ? i.state : ((b && b.plan.status === "built") || (u && LANDED_STATES.has(unitState(u))) ? "CLOSED" : "OPEN"), created: i ? i.createdAt.slice(0, 10) : null,
+  const row = { issue: n, title: (i && i.title) || (b && b.plan.issueTitle) || (b && b.plan.title) || (u && u.row.name) || `#${n}`, state: i ? i.state : ((b && b.plan.status === "built") || (u && LANDED_STATES.has(unitState(u))) ? "CLOSED" : "OPEN"), ...reasonOf(i), created: i ? i.createdAt.slice(0, 10) : null,
     parent: (g.parent && g.parent.number) || (b && b.plan.parent && b.plan.parent.issue) || (u && u.board.plan.issue) || null,
     waitsOn: ((g.blockedBy || {}).nodes || []).map(ref), blocks: ((g.blocking || {}).nodes || []).map(ref) };
   if (b) {
@@ -213,7 +218,7 @@ rows.sort((a, b) => groups.findIndex(g => g.key === a.group) - groups.findIndex(
 /* Roadmap and unscheduled issues (Context) */
 const claimed = new Set();
 const roadmap = [...trackingNums].sort((a, b) => a - b).map(t => {
-  const g = groups.find(x => x.issue === t), items = ((gq[t] || {}).subIssues || { nodes: [] }).nodes.map(x => { claimed.add(x.number); return { issue: x.number, title: x.title, state: x.state }; });
+  const g = groups.find(x => x.issue === t), items = ((gq[t] || {}).subIssues || { nodes: [] }).nodes.map(x => { claimed.add(x.number); return { issue: x.number, title: x.title, state: x.state, ...reasonOf(x) }; });
   claimed.add(t); return { issue: t, title: g.title, state: (issueOf(t) || {}).state || "OPEN", board: g.board, items };
 });
 const unscheduled = issues.filter(i => i.state === "OPEN" && !claimed.has(i.number)).sort((a, b) => b.number - a.number)
