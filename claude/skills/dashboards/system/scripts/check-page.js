@@ -9,7 +9,7 @@
 // system page. Exit code 0 when, for every kind: every tab rendered with a visible legend (.key, or .c4key on the C4 tab), the
 // Context section is headed exactly "Context", the footer is "Corresponds to <source>." and its authority sentence (GUIDANCE.md
 // §3), no link is a dead href="#", the page has no horizontal scroll at the width
-// checked, no more than six elements glow, no work level is shown (levelrefs.js: "level 3", "L3", "level: 2" and the like, in any
+// checked, no work level is shown (levelrefs.js: "level 3", "L3", "level: 2" and the like, in any
 // tab's text or the page's), no system colour falls in a status spectrum (palette.js: the --sys-N slots and a system page's
 // --server / --client / --wire, read from the page's CSS and, in the browser, as the theme of the pass computes them), and no
 // error fired. Then, by kind: a system page has a visible Guarantees area
@@ -158,7 +158,7 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   while(tw.nextNode()){ const m=ZS.exec(tw.currentNode.nodeValue); if(m) raw.push(m[0]); }
   console.log("CHECK times: "+times.length+" local"+(badT.length?" · RAW UTC STAMP in a <time> without its UTC title ("+badT.slice(0,3).map(t=>t.getAttribute("datetime")).join(", ")+")":"")+(raw.length?" · RAW UTC STAMP shown as text ("+raw.slice(0,3).join(", ")+"): render it with when()":""));
   dashScan("page"); console.log("CHECK dashes: "+(dashHits.size?"DASHED NOT PLANNED: "+[...dashHits].slice(0,6).map(([k,w])=>k+" ("+w+")").join("; ")+": dashed means only planned or pending; draw it solid, or mark it planned":"every dashed element is planned or pending"));
-  const glow=document.querySelectorAll(".glow").length; console.log("CHECK glow: "+glow+(glow>6?" TOO MANY (at most six elements glow)":""));
+  const glow=document.querySelectorAll(".glow").length; console.log("CHECK glow: "+glow); /* reported, never limited: the glow names exactly what is being worked on (plan/RULES.md §3) */
   const want=${JSON.stringify(tab)}; const t=want?document.getElementById(want):tabs[0]; if(t) t.click();
   lvScan(document.body.innerText,"page"); console.log("CHECK work levels: "+(lvHits.size?"LEVEL REFERENCE shown ("+[...lvHits].slice(0,6).join("; ")+"): a dashboard never shows a work level":"none shown"));
   const sw=document.documentElement.scrollWidth, cw=document.documentElement.clientWidth;

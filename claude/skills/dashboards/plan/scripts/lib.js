@@ -136,7 +136,7 @@ function unitRun(sub) {
    the run): the last event, the interview's questions, the research phase and questions, the plan's pass, the implementation
    stages, the remediation's sub-steps; at the plan step the verdicts written of the rows, in implementation and remediation the
    deviations recorded (the rows' as-built changes); and rowNames, the names of the rows the questions and stages name. */
-const PANEL_FIELDS = ["event", "interview", "research", "questions", "plan", "stages", "remediation"];
+const PANEL_FIELDS = ["event", "interview", "research", "questions", "plan", "stages", "remediation", "open"];
 function panelFacts(sub) {
   const w = (sub && sub.wip) || {}, out = {}, has = v => Array.isArray(v) ? v.length > 0 : v != null && typeof v === "object";
   PANEL_FIELDS.forEach(k => { if (has(w[k])) out[k] = w[k]; });
@@ -407,27 +407,31 @@ function reconciliation(plan) {
 }
 /* Boardless rows on the work board (plan/RULES.md §5, "Boardless rows"): a row with no board of its own and no tracking board's unit
    row to read takes its state from the tracker. BOARDLESS_STATES are the four it can take, in this order of precedence:
-   - "landed": the issue is closed;
+   - "not-planned": the issue is closed as not planned (GitHub's stateReason NOT_PLANNED): "closed · not planned", never landed;
+   - "landed": the issue is closed otherwise (completed, or no reason recorded);
    - "in-progress": open, and an open pull request refers to it (solid, never active: there is no run board to mirror);
    - "merged": open, and a pull request that refers to it has merged (awaiting close);
    - "in-progress": open, and a branch refers to it (a branch whose pull request has merged counts only as that merge);
    - "not-started": open, and nothing refers to it (dashed, pending).
    A pull request refers to issue n when GitHub links it as closing the issue (closing: closedByPullRequestsReferences nodes) or its
    head branch names the issue; a branch when GitHub links it to the issue (linked: linkedBranches names) or its name names the issue
-   (namesIssue). Returns { status, tracker: { branch, pr: { number, state } | null } }; board.js writes both on the row, and check.js
-   holds the row to them. */
-const BOARDLESS_STATES = ["not-started", "in-progress", "merged", "landed"];
+   (namesIssue). stateReason is the tracker's reason for a closed issue (COMPLETED, NOT_PLANNED, …; null or absent when open or not
+   read). Returns { status, tracker: { branch, pr: { number, state } | null } }; board.js writes both on the row, with stateReason,
+   and check.js holds the row to them. */
+const BOARDLESS_STATES = ["not-started", "in-progress", "merged", "landed", "not-planned"];
+const closedNotPlanned = (state, reason) => state === "CLOSED" && reason === "NOT_PLANNED";
 /* Whether a branch name names issue n: "issue-62" or "issue/62" anywhere, or the number at the start of a path segment followed by
    "-", "_", "/" or the end ("62-http-core", "fix/62", "feature/3-g1-build-skeleton"); never a number inside a word or a version
    ("v62", "1.62", "g1"). */
 const namesIssue = (branch, n) => new RegExp(`(^|/)(issue[-/])?${n}([-_/]|$)|[-_]issue-${n}([-_/]|$)`, "i").test(String(branch || ""));
-function boardlessState(n, issueState, closing, linked, prs, branches) {
+function boardlessState(n, issueState, closing, linked, prs, branches, stateReason) {
   const byHead = (prs || []).filter(p => namesIssue(p.headRefName, n)), cl = (closing || []).filter(p => p && p.number);
   const all = [...cl, ...byHead.filter(p => !cl.some(c => c.number === p.number))];
   const open = all.filter(p => p.state === "OPEN").sort((a, b) => b.number - a.number), merged = all.filter(p => p.state === "MERGED").sort((a, b) => b.number - a.number);
   const mergedHeads = new Set(merged.map(p => p.headRefName).filter(Boolean));
   const named = [...new Set([...(linked || []), ...(branches || []).filter(b => namesIssue(b, n))])].filter(b => !mergedHeads.has(b));
   const pr = p => ({ number: p.number, state: p.state });
+  if (closedNotPlanned(issueState, stateReason)) return { status: "not-planned", tracker: { branch: null, pr: merged[0] ? pr(merged[0]) : null } };
   if (issueState === "CLOSED") return { status: "landed", tracker: { branch: null, pr: merged[0] ? pr(merged[0]) : null } };
   if (open.length) return { status: "in-progress", tracker: { branch: open[0].headRefName || null, pr: pr(open[0]) } };
   if (merged.length) return { status: "merged", tracker: { branch: null, pr: pr(merged[0]) } };
@@ -487,21 +491,24 @@ function researchRows(plan) {
   return out;
 }
 /* Research glows the rows being researched or verified (plan/RULES.md §3, "Research: the rows being researched"): the union of the
-   Considered cells of the rows the questions "researching" or "verifying" name. A returned question's rows stop glowing (they wait
-   for the verification), unless another active question names them. The whole Considered column glows instead (the fallback) while
-   no question is recorded yet (research-planning: the questions are being drafted), while none is being researched or verified (all
-   returned, the verification not started), when an active question names no row (rows [], or only ids that are not rows of the
-   board), when the board has no rows, and when the cells would be more than six. Returns { current, phase, fallback }, phase
-   "none" (no question), "open" (a question researching), "verifying" (a question verifying, none researching) or "waiting". */
-const MAX_GLOW_CELLS = 6;
+   Considered cells of the rows the questions "researching" or "verifying" name, however many. A returned question's rows stop glowing
+   (they wait for the verification), unless another active question names them. Between the last research-returned and
+   verification-started (no question researching or verifying, some returned) the returned questions' rows glow: the planner is on
+   them next. The whole Considered column glows instead (the fallback) only while the rows are unknown: no question is recorded yet
+   (research-planning: the questions are being drafted), none is researching, verifying or returned, a glowing question names no row
+   (rows [], or only ids that are not rows of the board), or the board has no rows. There is no count limit: the glow names exactly
+   the cells being worked on. Returns { current, phase, fallback }, phase "none" (no question), "open" (a question researching),
+   "verifying" (a question verifying, none researching) or "waiting" (none researching or verifying). */
 function researchGlow(plan) {
   const w = (plan && plan.wip) || {}, rows = Array.isArray(plan && plan.rows) ? plan.rows : [], ids = new Set(rows.map(r => r && r.id));
   const qs = Array.isArray(w.questions) ? w.questions.filter(q => q && typeof q === "object") : [];
-  const active = qs.filter(q => ["researching", "verifying"].includes(qState(q)));
-  const phase = !qs.length ? "none" : active.some(q => qState(q) === "researching") ? "open" : active.length ? "verifying" : "waiting";
+  const busy = qs.filter(q => ["researching", "verifying"].includes(qState(q)));
+  const phase = !qs.length ? "none" : busy.some(q => qState(q) === "researching") ? "open" : busy.length ? "verifying" : "waiting";
+  /* the questions whose rows glow: the ones being researched or verified, or, while none is, the returned ones awaiting verification */
+  const active = busy.length ? busy : qs.filter(q => qState(q) === "returned");
   const column = (fallback) => ({ current: ["considered"], phase, fallback });
   if (phase === "none") return column("no research question is recorded yet");
-  if (phase === "waiting") return column("no question is being researched or verified");
+  if (!active.length) return column("no question is being researched, verified or awaiting verification");
   if (!rows.length) return column("the board has no rows yet");
   const cells = new Set();
   for (const q of active) {
@@ -509,12 +516,39 @@ function researchGlow(plan) {
     if (!own.length) return column(`question "${q.question}" names no row of the board`);
     own.forEach(id => cells.add(id + ".considered"));
   }
-  if (cells.size > MAX_GLOW_CELLS) return column(`${cells.size} cells would glow, more than ${MAX_GLOW_CELLS}`);
   return { current: rows.map(r => r.id + ".considered").filter(a => cells.has(a)), phase, fallback: null };
 }
 /* The plan-board events (plan/RULES.md §4), as wip.event.name records the last one a board took. */
 const EVENTS = ["sized", "halted", "resumed", "research-planning", "research-started", "research-returned", "verification-started", "researched",
   "architecture-signed-off", "plan-accepted", "branch-cut", "implementation-stage", "qa-pass", "escalated", "landed", "cancelled"];
+/* A row's as-built state before its outcome (plan/RULES.md §2, "Before the outcome"): derived from the implementation stages while the
+   run is live. On an issue board, for a row wip.stages touches: "in-progress" when a current stage touches it, "partially-built" when a
+   done stage touched it and a later stage still to come touches it, "pending" when only stages to come touch it; null otherwise (no
+   stage touches it, or its last stage is done: its stored state, the outcome, applies). On a tracking board, a unit in wip.current whose
+   row is pending is "in-progress" (its run is under way); a unit lands whole, so it is never partially built. Dropped, deferred,
+   complete and landed rows, and a board that has landed or was cancelled, derive nothing. builtState() is the state the page shows:
+   the derived one, else the stored one. The plan-board template's stagedState() and stateOf() are the same rule. */
+const BUILDING_STATES = ["in-progress", "partially-built"];
+function stagedState(plan, row) {
+  const w = (plan && plan.wip) || {}, st = ((row && row.asBuilt) || {}).state || "pending";
+  if (!row || plan.status === "built" || plan.status === "abandoned" || ["landed", "cancelled"].includes(w.step)) return null;
+  if (["dropped", "deferred", "complete", "landed"].includes(st)) return null;
+  if (plan.kind === "tracking") return row.unit && st === "pending" && (Array.isArray(w.current) ? w.current : []).some(a => String(a).split(".")[0] === row.id) ? "in-progress" : null;
+  const sg = (Array.isArray(w.stages) ? w.stages : []).filter(x => x && Array.isArray(x.rows) && x.rows.includes(row.id));
+  if (!sg.length) return null;
+  if (sg.some(x => x.state === "current")) return "in-progress";
+  const done = sg.some(x => x.state === "done"), todo = sg.some(x => x.state !== "done");
+  return done && todo ? "partially-built" : !done ? "pending" : null;
+}
+const builtState = (plan, row) => stagedState(plan, row) || ((row && row.asBuilt) || {}).state || "pending";
+/* The next unit in landing order (plan/RULES.md §3, "Next is the next one up"): the first unit row, in row order, that is pending, not
+   in wip.current and not left for later (a unit whose written verdict leaves it as is, leftForLater()), or null when none is left.
+   check.js holds wip.next to it; board.js and the template never name another. */
+function nextUnit(plan) {
+  if (!plan || plan.kind !== "tracking") return null;
+  const cur = Array.isArray((plan.wip || {}).current) ? plan.wip.current : [];
+  return (plan.rows || []).find(r => r && r.unit && ((r.asBuilt || {}).state || "pending") === "pending" && !cur.some(a => String(a).split(".")[0] === r.id) && !leftForLater(r)) || null;
+}
 /* The live sidecar (plan/RULES.md §1, "plan.js"): the data file as a script beside the page, which the page re-loads while its run
    is live and redraws from (the template's dashboardLive()). Its text is the data file verbatim between a fixed head and tail, so
    check.js reads it back and compares it with the data file. plan.json → plan.js; the work board's board.json → board.js. */
@@ -547,8 +581,9 @@ function glowMismatch(plan) {
   if (m.kind === "none") { want = "nothing"; bad = cur; }
   else if (m.kind === "research") {
     const g = researchGlow(plan), want0 = g.current;
-    want = g.fallback ? `the whole Considered column, as ["considered"] (the fallback: ${g.fallback})` : `the Considered cells of the rows the questions being researched or verified name, as ${JSON.stringify(want0)}`;
-    bad = cur.filter(a => !want0.includes(a)).map(a => a.endsWith(".considered") && want0[0] !== "considered" ? `${a} (no question being researched or verified names its row)` : a);
+    const who = g.phase === "waiting" ? "the returned questions awaiting verification" : "the questions being researched or verified";
+    want = g.fallback ? `the whole Considered column, as ["considered"] (the fallback: ${g.fallback})` : `the Considered cells of the rows ${who} name, as ${JSON.stringify(want0)}`;
+    bad = cur.filter(a => !want0.includes(a)).map(a => a.endsWith(".considered") && want0[0] !== "considered" ? `${a} (${g.phase === "waiting" ? "no returned question" : "no question being researched or verified"} names its row)` : a);
     const miss = want0.filter(a => !cur.includes(a)); if (miss.length) bad.push(`${miss.join(", ")} missing`);
   }
   else if (m.kind === "cells") { want = "the cell the question concerns (<row-id>.<column>), or nothing"; bad = cur.filter(a => a.split(".").length !== 2); }
@@ -564,5 +599,5 @@ function glowMismatch(plan) {
   return bad.length ? { step, via, want, bad } : null;
 }
 
-module.exports = { leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+module.exports = { BUILDING_STATES, stagedState, builtState, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, parentFolder, staleUnitRuns, stampMs, treeRoot, boardFolders, boardLink, parentBoard, issueRefs, otherBoards, linkIssueBoards, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

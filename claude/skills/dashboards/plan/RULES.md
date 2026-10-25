@@ -121,7 +121,9 @@ On a tracking issue's board the rows are its units. Four to twelve rows is usual
 Columns 1–3 are written once. A factual error found later is corrected in place and noted
 under `notes.corrections`; a change of mind goes in column 4, never into column 3.
 
-**As-built states:** `pending` (dashed, neutral) · `as-planned` (green) · `amended` (yellow:
+**As-built states:** `pending` (dashed, neutral: the work on the row has not started) · `in-progress` (solid, accent: a current
+stage is working on the row) · `partially-built` (solid, strong neutral: a finished stage built part of the row and the next stage
+that works on it has not started) · `as-planned` (green) · `amended` (yellow:
 built as decided, plus changes added in implementation or review) · `deviated` (orange: the
 decision itself changed; each difference and the new decision listed) · `dropped` (red, with
 the reason) · `deferred` (neutral, dashed, with the issue it went to). A tracking board's
@@ -130,7 +132,19 @@ passed, not merged yet; the pipeline's `qa-pass` event sets it) and `landed` (gr
 admin team sets it itself in the landing refresh, with no plan-board event from a pipeline). An
 issue board's rows never take them: they keep `as-planned`, `amended` or `deviated`.
 
-On a tracking board a unit row moves `pending` → `complete` → `landed`: `complete` when its
+**Before the outcome.** While the run is live, the implementation stages (`wip.stages`) decide a row's state until its last stage
+is done: a row a `current` stage touches is `in-progress`; a row a `done` stage touched and a later stage still to come touches is
+`partially-built` (#62's `request-response` after S2, its URL handling waiting for S3, read so before S3 started); a row only stages
+to come touch is `pending`. Its outcome (`as-planned`, `amended`, `deviated`) applies once the last stage that touches it is done,
+and a row no stage touches keeps its stored state. The summary of a partially built row says what is built and what is left. The
+page derives the state from the stages, so a stored `pending` needs no rewrite at each stage (`plan/scripts/lib.js` `stagedState()`
+and `builtState()`, and the template's `stagedState()`, are the one rule); the presenter writes `partially-built` with its summary at
+the stage that leaves the row part-built, and the outcome at its last stage. Both states are solid, never dashed: they are not
+pending. Neither is built in the As built tile's count: they count in M, not N. On a tracking board a unit whose run is under way
+(in `wip.current`) reads `in-progress`; a unit lands whole, in one merge, so it is never `partially-built` (its own board's rows say
+what is built).
+
+On a tracking board a unit row moves `pending` → `in-progress` → `complete` → `landed`: `complete` when its
 sub-issue's run passes qa, `landed` when that sub-issue merges. The detail of what the unit built,
 and how it differs from its own verdict, stays on the sub-issue's board, which the row links; the
 row may still carry `changes[]` where the unit departed from the architecture. A tracking board
@@ -164,7 +178,7 @@ links to the Markdown section that holds the detail, never listings.
 
 Around them: `basis` (`plan` until the impact is reconciled, `as-built` once it is: two values,
 and never a third), a `summary` of two to four lines, `release`
-(`bump`: `none` · `fix` · `feat` · `major`, the `version`, an optional `note`), `none` (a plain
+(`bump`: `none` · `fix` · `feat` · `major`, the `version`, an optional `note`, and `unreleased: true` where the change's downstream effect lands on a **new artifact that has never been released**: no existing version moves, so `bump` is `none`, and the artifact's first release is its own; the artifact is recorded as a downstream entry of kind `artifact`, and the Impact tab's version badge says "new, unreleased". A unit entry's `release` takes the same mark), `none` (a plain
 statement of why no downstream impact is recorded, or `null`), `changes[]` (each difference from
 the planned impact, as column 4 records them: `what`, `why`, `when`, `ref`, and optionally `entry`,
 the entry it changed as `<section>.<index>` such as `api.0`, and `system`; on a tracking board also
@@ -245,7 +259,8 @@ not show, such as a lettered or strict-version requirement; a conversion step or
 - **No recorded impact** (common for a small bug fix) is never a hidden tab: the tab states
   plainly "No downstream impact recorded" with the `none` statement and its source; before plan
   acceptance it says nothing is recorded yet and where it will come from. A change with no
-  downstream effect moves no version (`release.bump` `none`), and the tab says so explicitly.
+  downstream effect moves no version (`release.bump` `none`), and the tab says so explicitly. A change whose effect lands only
+  on a new, unreleased artifact moves no version either; it carries `release.unreleased: true` instead of a `none` statement.
 - **Tracking boards** show the initiative's own impact, from the tracking issue's `impact.md`,
   then a **Units** section: one card per unit row, from `impact.units[]` (`unit`: the row id,
   `basis`, `summary`, `release`, `source`, `link`, and `changes[]`, the unit's own differences from
@@ -296,8 +311,8 @@ A board is alive while its run is. Its data carries:
   `landed`, `halted`, `escalated`, `cancelled`), with `since` (date-time) and `detail` (one
   line: which stage, which qa pass, what waits on the user); on a tracking board it is the
   tracking issue's own phase (below, "The units' own runs");
-- `wip.current` — the cells being worked on, as `<row-id>.<column>` addresses, or a column
-  name while a column is being written; these carry the **in-progress mark**, the breathing
+- `wip.current` — the cells being worked on, as `<row-id>.<column>` addresses, **exactly the cells being worked on,
+  however many** (there is no count limit), or a column name only while the rows are unknown; these carry the **in-progress mark**, the breathing
   interior glow (`GUIDANCE.md` §1). `wip.current` means a run is actively in progress and
   nothing else. What it holds **follows `wip.step`**, by the step-to-column map below: during
   research the Considered cells of the rows being researched; while a plan is written or verified, Considered and Verdict;
@@ -305,7 +320,8 @@ A board is alive while its run is. Its data carries:
   whole As built column lightly; while halted, the glow of the step it halted in holds still as a
   ring, and a yellow "waiting on the user" strip says for what;
 - `wip.next` — on a tracking board only: the id of the **next unit in landing order** — the
-  first unit row, in the board's row order, that is `pending` and not in `wip.current` — or
+  first unit row, in the board's row order, that is `pending`, not in `wip.current` and not left for later (its written
+  verdict is `leave`, §2: a unit left as is is never next) — or
   `null` when none is left. A tracking board always names what is coming. It carries the **up-next mark**, the still, mild
   outer glow and the UP NEXT tag (`GUIDANCE.md` §1), on the unit's as-built cell, its chain
   entry, its card and its roadmap line; it never glows as in progress, and the work board shows
@@ -327,23 +343,34 @@ A board is alive while its run is. Its data carries:
   are being drafted, `drafted` counting them), `research` (a batch is out), `verification` or
   `complete`, and `since` the time each phase began; written by `research-planning`,
   `research-started`, `verification-started` and `researched`, cleared with the questions;
-- `wip.interview` — the interview's questions, each `{text, answer, asked, answered}`, `answer`
+- `wip.interview` — the interview's questions, each `{text, options, answer, asked, answered}`, `options` the options the
+  question offers (from the `halted` event's `facts.questions`, each a short string; left out when it offers none), `answer`
   `null` while the question waits on the user;
-- `wip.plan` — the plan step's pass, `{state, from, pass, since}`: `writing`, or `re-pass` with
-  `from` `parent` (a sub-issue verifying the plan its parent's architecture gave it) or `qa` (a
-  re-pass answering qa pass `pass`);
+- `wip.plan` — the plan step's pass, `{state, from, pass, against, since}`: `writing`, or `re-pass` with
+  `from` `parent` (a sub-issue verifying the plan its parent's architecture gave it), `qa` (a
+  re-pass answering qa pass `pass`, the planner leg of a `planner-then-rookie-dev` remediation) or `existing` (the planner
+  verifying a plan already written, in an earlier run or before a halt, against the base as it stands now; `against` names
+  that ref, e.g. `main`);
 - `wip.stages` — the implementation stages of `plan.md`, each `{id, name, state, rows}`, `state`
   `done` · `current` · `todo` (at most one current), `rows` the rows the stage touches;
-- `wip.remediation` — `{pass, steps}`: the qa pass whose findings it answers, and its sub-steps,
-  each `{what, state}` as the stages;
+- `wip.remediation` — `{pass, route, steps}`: the qa pass whose findings it answers, the route `/resolve-issue` step 5
+  takes from them (`on-the-spot`: every fix minor, made on the spot, no new qa pass; `rookie-dev`: a remediation pass, then
+  the next qa pass; `planner-then-rookie-dev`: a planner re-pass, then rookie-dev, then the next qa pass), and its
+  sub-steps, each `{name, state}` as the stages (`what`, the older name, is read the same);
 - `wip.event` — the last event the board took, `{name, at, note}` (§4);
+- `wip.open` — the run's **open points**, each `{text, raised, ref, resolved}`: a point raised during the run that someone
+  must settle, such as a plan inconsistency the implementer raised for the planner; `raised` the event or stage that raised it
+  ("implementation-stage S2"), `ref` an optional link to where it is recorded, `resolved` how it was settled (a sentence, or
+  `true`), left out while it is open. The step panel lists the open ones at every step; once resolved the presenter records it
+  in the trail (a label quoting it, or its `ref`) and may drop it from the list;
 - `wip.qa` — passes so far, each with its verdict, its finding counts by kind (`findings`:
-  `documentation`, `test`, `code`) and, where the qa report states them, by severity (`severity`, a
-  word to a count, as the report writes it: `{"major": 2, "minor": 5}`);
+  `documentation`, `test`, `code`), by severity (`severity`, a word to a count: the pipeline sends `minor`, easily made
+  with no fallout, and `other`, `{"minor": 3, "other": 1}`; a qa report's own words are kept as it writes them) and the
+  `route` it sends the run on (as `wip.remediation.route`); `wip.qaMax` the most passes the pipeline allows (three);
 - `wip.blockers` — issues this run waits on, and runs waiting on it (from *blocked by* links).
 
 The fields of the step panel (`interview`, `research`, `questions`, `plan`, `stages`, `remediation`,
-`event`) are optional and written from the event's facts and the folder's documents, never guessed;
+`event`, `open`) are optional and written from the event's facts and the folder's documents, never guessed;
 a step with nothing recorded says so on the panel.
 
 **The glow follows the step: the step-to-column map.** Every `wip.step` gives `wip.current`
@@ -372,15 +399,14 @@ that does not keep it (§8). The map is written once for the scripts, as `GLOW_M
 `<row-id>.considered` cells of the rows the questions **being researched or verified** name (state
 `researching` or `verifying`): a `research-started` event lights its questions' rows, a
 `research-returned` event puts out the rows of the question that returned (they wait for the
-verification), except a row another active question names, which keeps glowing, and
-`verification-started` lights every returned question's rows again while they are verified. This
-replaces the interim `RESEARCH_VERIFY_GLOW` switch: the verification glows its rows. **The fallback**
-is the whole Considered column, `considered`: while no question is recorded yet (`research-planning`:
-the questions are being drafted, or a board laid at `sized` with the step at `research`), while none
-is being researched or verified (every question returned, the verification not started), when an
-active question names no row (`rows: []`, or only ids that are not rows of the board), when the board
-has no rows, and when the cells would be more than six (the glow cap). A halt during research keeps
-that glow, held still. The rule is written once, `researchGlow()` in `plan/scripts/lib.js`, which
+verification), except a row another active question names, which keeps glowing; once the last
+question has returned and until `verification-started`, the returned questions' rows glow (the planner is on them
+next); and `verification-started` keeps every returned question's rows lit while they are verified. The
+glow is exact: every such cell glows, however many. **The fallback** is the whole Considered column, `considered`, and
+only while the rows are unknown: while no question is recorded yet (`research-planning`: the questions are being
+drafted, or a board laid at `sized` with the step at `research`), while no question is researching, verifying or
+returned, when a glowing question names no row (`rows: []`, or only ids that are not rows of the board), and when the
+board has no rows. A halt during research keeps that glow, held still. The rule is written once, `researchGlow()` in `plan/scripts/lib.js`, which
 `check.js` applies; the page draws whatever `wip.current` names.
 
 **Research: the questions and their states.** Each question carries its `state`, and each row the
@@ -418,16 +444,17 @@ events, the documents, the trail), never guessed; each step's panel shows:
 
 | Step | The panel |
 |---|---|
-| `interview` | the interview's questions (`wip.interview`), each answered (its answer's gist) or waiting on the user, and the count ("1 of 2 answered · 1 waiting") |
+| `interview` | the interview's questions (`wip.interview`), each with the options it offers, answered (its answer's gist) or waiting on the user, and the count ("1 of 2 answered · 1 waiting") |
 | `research` | the research timeline **planning → research → verification** (done, current, to come, with when each began), "n questions drafted" while planning, then each question with its state pill, the rows it bears on, when it was sent or returned and its findings link, and the count returned. This timeline lives only here, not in the Considered column's head |
 | `architecture` | what the step does, and the options weighed so far |
-| `plan` | **plan writing → plan accepted**, or a **re-pass** (from the parent's plan, for a sub-issue; after qa pass n) in place of the writing; the verdicts written of the rows, and the rows still to write; the plan's link |
+| `plan` | **plan writing → plan accepted**, or a **re-pass** (from the parent's plan, for a sub-issue; after qa pass n, with the rookie-dev fixes and the next qa pass to follow; verifying the existing plan against its base, e.g. `main`) in place of the writing; the verdicts written of the rows, and the rows still to write; the plan's link |
 | `branch` | the plan accepted, the branch to cut |
 | `implementation` | the stages of `plan.md` (`wip.stages`), done, current and to come, with the rows each touches; the deviations recorded so far |
-| `qa` | each pass apart: its number, its verdict, its finding counts by kind and by severity, its note; the pass running; the most passes allowed |
-| `remediation` | the qa pass it answers, and its sub-steps (`wip.remediation.steps`; while none is recorded, the pipeline's loop: the fixes, then the next qa pass) |
+| `qa` | each pass apart: its number, its verdict, its finding counts by kind and by severity (minor and other), the route it sent the run on, its note; the pass running; the most passes allowed |
+| `remediation` | the qa pass it answers, its route, and its sub-steps (`wip.remediation.steps`; while none is recorded, the route's loop: minor fixes on the spot, then landing with no new qa pass; rookie-dev's fixes, then the next qa pass; a planner re-pass, rookie-dev's fixes, then the next qa pass; and with no route the pipeline's loop) |
 | `landing` | qa's approval, the merge the admin team's |
 | `halted`, `escalated` | what it waits on (the question, or the re-sizing), and the panel of the step it stopped in, **held still** (no breathing dot) |
+| every step | the open points still open (`wip.open`), each with where it was raised and its link |
 
 Every panel names the last event (`wip.event`), since when the run is at its step, and the step that
 follows. **What it adds beyond the list above**, from the same facts: the last event and its time;
@@ -563,9 +590,9 @@ landing order, and two moments move it:
   landing order becomes `wip.next` at once; the tracking board's `wip.step` is `implementation`
   from the first unit's start, and the unit starts mirroring its run (above).
 
-Recomputing always means the same thing: the first unit row, in row order, that is `pending`
-and not in `wip.current` (so never one that is current, complete, landed, dropped or deferred),
-or `null` when there is none. A unit is never in `wip.next` and `wip.current` at once.
+Recomputing always means the same thing: the first unit row, in row order, that is `pending`,
+not in `wip.current` and not left for later (so never one that is current, complete, landed, dropped, deferred, or
+left as is by its verdict), or `null` when there is none (`lib.js` `nextUnit()`). A unit is never in `wip.next` and `wip.current` at once.
 
 ## 4. Events: what updates a board
 
@@ -585,11 +612,16 @@ mirror starts at the next one. The presenter checks both boards.
 **Every event records itself and keeps the step panel true** (§3, "The step panel"): `wip.event` is
 set to `{name, at}` (the event and its time, and a `note` where one helps, such as the question that
 returned), and the panel's facts the event carries are written: an interview question asked or
-answered into `wip.interview` (from `sized`, `halted` and `resumed` while the step is `interview`),
+answered into `wip.interview` (from `sized`, `halted` and `resumed` while the step is `interview`; `halted`'s
+`facts.questions` gives each question's text and its options),
 the research phase and questions (below), the plan's pass into `wip.plan` (`writing` when the plan
-step starts; a `re-pass` from the parent's plan at a sub-issue's `sized`, after qa pass n when a
-remediation sends the run back to the planner), the stages of `plan.md` into `wip.stages` at
-`branch-cut`, the remediation's sub-steps into `wip.remediation`. Every embed writes the board's
+step starts; a `re-pass` from the parent's plan at a sub-issue's `sized`; after qa pass n when a
+remediation's route is `planner-then-rookie-dev`, the step `plan` while the planner re-passes and `remediation` again
+for rookie-dev's fixes; from `existing`, with `against`, when the facts say the planner verifies a plan already written
+against its base), the stages of `plan.md` into `wip.stages` at
+`branch-cut`, and at each `implementation-stage` from its `facts.stages` (every stage's id, name and state), the
+remediation's pass, route and sub-steps into `wip.remediation` from `facts.remediation`, and each qa pass's counts by
+kind and severity and its route into `wip.qa` from `qa-pass`. Every embed writes the board's
 `plan.js` beside it (§1).
 
 | Event | When | What the presenter writes |
@@ -598,14 +630,14 @@ remediation sends the run back to the planner), the stages of `plan.md` into `wi
 | `halted` / `resumed` | a planner halt, a qa stop, a `needs-user` | `wip.step = halted` with what waits on the user, and `wip.resume` the step it halted in; `wip.current` stays as that step left it, and the page holds its glow still as a ring (§3); on resume, back to the step, with the glow that step's row of the map gives (a resumed plan verification: `considered` and `verdict`). For a sub-issue, its tracking board's `wip.step` does not change: the unit's mirror carries the halt, and its mark pauses (§3) |
 | `research-planning` | the planner starts writing its research questions (`facts.drafted`, the questions drafted so far, `0` at first) | `wip.research` `{phase: "planning", drafted, since: {planning}}`; `wip.step = research`; `wip.current` the whole Considered column (the fallback: no question is recorded yet); no row rings: the step panel shows the planning and "n questions drafted" (§3) |
 | `research-started` | the planner sends its research questions out (`facts.researching: [{question, rows}]`) | each question appended to `wip.questions` with `findings: null`, `state: "researching"` and `started`, the event's time; `wip.research.phase = research` (its `since`); `wip.step = research`; `wip.current` the union of the `<row-id>.considered` cells of the rows the questions being researched or verified name, or the whole Considered column by the fallback (§3, "Research: the rows being researched"). A follow-up researcher's `research-started` adds its question the same way, whatever the phase |
-| `research-returned` | a researcher returns (`facts.returned: {question, findings}`) | that question's `findings` set to the findings path, its `state` `returned` (orange, with a check: awaiting verification) and `returned`, the event's time; a trail entry for the findings (`column` `gap`, a label naming the question, `ref` the findings path); `wip.current` recomputed: the question's rows stop glowing unless another active question names them, and the whole Considered column while every question has returned and the verification has not started (§3) |
+| `research-returned` | a researcher returns (`facts.returned: {question, findings}`) | that question's `findings` set to the findings path, its `state` `returned` (orange, with a check: awaiting verification) and `returned`, the event's time; a trail entry for the findings (`column` `gap`, a label naming the question, `ref` the findings path); `wip.current` recomputed: the question's rows stop glowing unless another active question names them, and once every question has returned, until the verification starts, the returned questions' rows (§3) |
 | `verification-started` | the planner starts verifying the batch's findings (after they are committed) | every `returned` question's `state` `verifying` (yellow); `wip.research.phase = verification` (its `since`); `wip.current` the Considered cells of the verifying questions' rows, or the whole column by the fallback (§3) |
 | `researched` | research verified | the Gap column from `research/README.md` and the findings; the `gap` milestone; every question's `state` `complete` (green) and `wip.research.phase = complete`: the questions stay, their rows ringed green, until the plan is accepted (the trail keeps the findings); `wip.step` the step the event's facts name next (`architecture` on a tracking issue, else `plan`), `wip.plan` `{state: "writing"}` at the plan step, and `wip.current` from the map: `considered`, or `considered` and `verdict` (§3) |
 | `architecture-signed-off` | level 4 sign-off | the Considered column from `architecture.md`; on a tracking board, the unit rows (each `pending` with a one-line progress summary until its sub-issue lands; `embed.js` links it to the sub-issue's board once that board exists, §1), and `wip.next` the first unit (§3); `wip.questions` and `wip.research` cleared (the tracking issue has no plan step); `wip.step = landing` (the plan's own landing) and `wip.current` empty |
 | `plan-accepted` | planner COMPLETE | Considered (if not yet) and Verdict from `plan.md`; the `verdict` milestone; `impact` from `impact.md` (and `plan.md` where it states API or migration facts), `basis` `plan` (§2, Impact); `wip.questions`, `wip.research` and `wip.plan` cleared (the green rings end here); `wip.step = branch` and `wip.current` empty (§3: nothing glows between the Verdict and the build). For a sub-issue, its unit's `impact.units` entry on the tracking board |
 | `branch-cut` | step 3 done | the branch; `wip.stages` from `plan.md`'s stages (the first `current`, the rest `todo`, each with the rows it touches); `wip.step = implementation`; `wip.current` the As built cells of the rows the first stage of `plan.md` touches (`<row-id>.built`) |
-| `implementation-stage` | a rookie-dev stage or report | `status = building`; the touched rows' as-built state and summary; each deviation from `final-implementation.md` as a `changes[]` entry, and one that changes the impact added to `impact.changes` with the entry it changed (`basis` stays `plan`: partly reconciled, §2, Impact); the reported stage `done` in `wip.stages` and the next `current`; `wip.current` = the As built cells of the rows the next stage touches (`<row-id>.built`); once the last stage is reported and the run moves to qa, `wip.step = qa` and `wip.current` `built` (§3) |
-| `qa-pass` | a qa verdict | `wip.qa` appended (its counts by kind from the facts, and by severity where the qa report states them); `wip.step = remediation`, with `wip.remediation` `{pass, steps}` (the fixes, then the next qa pass, as the pipeline runs them) and `wip.current` the As built cells of the rows the findings touch, or `landing`, with `wip.current` empty (§3). On an approving pass of a sub-issue's run, its unit row on the tracking board becomes `complete` (it stays in `wip.current` until it lands) |
+| `implementation-stage` | a rookie-dev stage or report | `status = building`; the touched rows' as-built state and summary (`partially-built`, saying what is built and what is left, for a row a later stage still works on; its outcome once its last stage is done; §2, "Before the outcome"); an open point the report raises appended to `wip.open`, and one it settles marked `resolved` and recorded in the trail; each deviation from `final-implementation.md` as a `changes[]` entry, and one that changes the impact added to `impact.changes` with the entry it changed (`basis` stays `plan`: partly reconciled, §2, Impact); the reported stage `done` in `wip.stages` and the next `current`; `wip.current` = the As built cells of the rows the next stage touches (`<row-id>.built`); once the last stage is reported and the run moves to qa, `wip.step = qa` and `wip.current` `built` (§3) |
+| `qa-pass` | a qa verdict | `wip.qa` appended (its counts by kind and by severity, `minor` and `other`, from the facts, and the `route` step 5 takes from them), `wip.qaMax` 3; `wip.step = remediation`, with `wip.remediation` `{pass, route, steps}` (the route's sub-steps as the pipeline runs them: on the spot, minor fixes then landing with no new qa pass; else the fixes, a planner re-pass first on `planner-then-rookie-dev`, then the next qa pass) and `wip.current` the As built cells of the rows the findings touch, or `landing`, with `wip.current` empty (§3). On an approving pass of a sub-issue's run, its unit row on the tracking board becomes `complete` (it stays in `wip.current` until it lands) |
 | `escalated` | a level escalation | `wip.step = escalated`, `wip.resume` the step it escalated from, and `wip.current` unchanged, its glow held still as a ring (§3); the proposed level is kept as data only (`wip.proposedLevel`, never shown: `GUIDANCE.md` §4); the board follows the issue's new sizing |
 | `landed` | the team has merged | never sent by a pipeline: the admin team raises it itself inside the landing refresh (the presenter writes, the executor commits). On the issue's board: `status = built`; `asBuilt` (sha, date, PR, merge, version); the `built` milestone; every `pending` part resolved; the trail completed; `impact` reconciled from `final-implementation.md` and the reconciled `impact.md`, `basis` `as-built`, each difference from the planned impact in `impact.changes`, naming the `entry` it changed where there is one (§2, Impact; the As built tab shows them); `wip.step = landed` and `wip.current` empty. For a sub-issue, on its tracking board, the standing rule (§3): the unit `landed`, out of `wip.current` (which clears its mirror at the next embed), `wip.next` recomputed as the next unit in landing order; its `impact.units` entry reconciled, `basis` `as-built`, each difference from the unit's planned impact in its `changes[]`; its effect on the initiative's impact recorded in the tracking board's `impact.changes`, always: each difference its landing makes, with `unit` set to the unit's row id, or one no-change entry `{unit, when, none: true}` when it changed nothing; that `basis` stays `plan` until the last unit lands and becomes `as-built` with it (§2, Impact). Then the work board is regenerated |
 | `cancelled` | the run is abandoned | `status = abandoned`, reason in `notes`; `wip.step = cancelled` and `wip.current` empty |
@@ -655,7 +687,8 @@ tracker, which `board.js` reads at every run (`lib.js` `boardlessState()`), in t
 
 | The tracker shows | State | Drawn |
 |---|---|---|
-| the issue closed | `landed` | solid, green, "✓ landed" |
+| the issue closed as not planned (`stateReason` `NOT_PLANNED`) | `not-planned` | solid, neutral, "⊖ closed · not planned": never landed, and not counted with the landed runs |
+| the issue closed otherwise | `landed` | solid, green, "✓ landed" |
 | open, and an open pull request refers to it | `in-progress` | solid, neutral, "▸ in progress", no glow: there is no run board to mirror |
 | open, and a pull request that refers to it has merged | `merged` | solid, green, "✓ merged · awaiting close" |
 | open, and a branch refers to it | `in-progress` | as above |
@@ -665,9 +698,11 @@ A pull request refers to an issue when GitHub links it as closing the issue, or 
 the issue; a branch refers to it when GitHub links it to the issue, or its name names the issue
 (`issue-62` or `issue/62` anywhere, or the number at the start of a path segment: `62-http-core`,
 `fix/62`; never a number inside a word or a version). A branch whose pull request has merged counts only
-as that merge. The row records what was read as `tracker` (`{branch, pr: {number, state}}`), shows its
+as that merge. The row records what was read as `tracker` (`{branch, pr: {number, state}}`) and, for a closed issue, its `stateReason`, shows its
 pull request under the state ("PR #91 open") and its branch while it is in progress, never a merged one
-(§3, "Branches"). The legend names each of these states it drew, with where it came from. A unit row of
+(§3, "Branches"). The legend names each of these states it drew, with where it came from. The same words mark an issue
+closed as not planned wherever the work board lists one: a roadmap item, a waits-on or blocks entry ("closed · not
+planned", beside "closed" for the rest). A unit row of
 a tracking board keeps the state its tracking board gives it.
 
 **A row's system, and "no system".** A row's `system` for an issue with no board, and an unscheduled
@@ -723,11 +758,15 @@ with findings); a `wip.event` whose name is not one of the events of §4 (`resea
 included); a `wip.research` whose phase is not `planning`, `research`, `verification` or `complete`, or whose `drafted` is not
 a count; a `wip.interview` question with no text; a `wip.plan` that is not `writing` or a `re-pass` naming where it comes
 from (`parent`, or `qa` with its pass); a `wip.stages` or `wip.remediation.steps` entry without its name or state, or two
-current; a qa pass's `findings` or `severity` that is not a word-to-count map; a `plan.js` (the work board's `board.js`)
+current; a `wip.open` entry without its text or `raised`, or with a `resolved` that is neither `true` nor a sentence; a
+`partially-built` unit row, or a partially built row without a summary; an `in-progress` or `partially-built` row on a built
+board; a `wip.interview` question's `options` that is not an array of strings; a `wip.qa` pass's or `wip.remediation`'s
+`route` that is not `on-the-spot`, `rookie-dev` or `planner-then-rookie-dev`; a `wip.plan.against` that is not a ref or sits
+on a pass that is not a re-pass from `existing`; a qa pass's `findings` or `severity` that is not a word-to-count map; a `plan.js` (the work board's `board.js`)
 that differs from its data file or is not in its form (§1);
-more than six glowing cells; `complete` or `landed` on a row that is not a tracking board's
+`complete` or `landed` on a row that is not a tracking board's
 unit row; a `wip.next` on a board that is not a tracking board, or one that names no unit row,
-a unit that is not `pending`, or a unit also in `wip.current`; on a tracking board, a recorded
+a unit that is not `pending`, a unit left for later, or a unit also in `wip.current`; on a tracking board, a recorded
 `wip.next` (`null` included) that is not the next unit in landing order (§3); a landed unit
 still in `wip.current`; a tracking-board unit row whose sub-issue's board exists in this tree
 but is not what its `unit.board` links, or a `unit.board` naming a board that does not exist; a
@@ -747,12 +786,12 @@ a `changes[]` entry (the impact's or a unit entry's) without `what` and `why` (a
 excepted), an impact change
 whose `entry` is not `<section>.<index>` or names no entry (the As built tab would link a card
 that is not there), a unit entry's change that names an `entry`, an impact change's `unit` on an
-issue board or naming no unit row, a `none` that is not `true`, a no-change entry (`none: true`) on
+issue board or naming no unit row, a `none` that is not `true`, a `release.unreleased` that is not `true`, a no-change entry (`none: true`) on
 an issue board, without its `unit` or naming an `entry`, a work-board row's `reconciliation` that is
 neither `null` nor one of the three states, a work-board row's or unscheduled issue's `unassigned` that is
 not `true` or sits beside a `system` (§5), a work-board row's `status` the page does not draw, a
 boardless row (one with `tracker`) whose state does not match what its `tracker` and issue state recorded
-(§5, "Boardless rows": landed only when closed, merged only with a merged pull request, in progress only
+(§5, "Boardless rows": not planned only when closed as not planned, landed only when closed otherwise, merged only with a merged pull request, in progress only
 with an open pull request or a branch, not started only with neither), that glows, that has a board, or
 that shows a branch once merged or landed, and a tracker state on a row without `tracker`, a built board whose impact is still the plan's, a
 planned board whose impact claims `as-built`, `impact.units` on a board that is not a tracking
@@ -771,7 +810,9 @@ Warns: a system slot that is not the shared palette's colour (`GUIDANCE.md` §1)
 would look different here than on the other pages; `impact.md` in the folder while the Impact tab is empty (`impact` null, or no entry, no
 summary and no `none` statement); an `impact.none` that the entries contradict; a release that
 does not fit the work (a change with a downstream effect and no version bump; a change with no
-downstream effect that does not say so in `impact.none`; a bump with no downstream effect; a
+downstream effect that does not say so in `impact.none` — both quiet where `release.unreleased` marks a new, unreleased
+artifact; a `release.unreleased` beside a bump other than `none`, or with no downstream entry of kind `artifact`; a bump with
+no downstream effect; a
 breaking entry outside a major release, on an issue board; a tracking plan that moves a
 version itself); a unit entry's `changes[]` before that entry is reconciled (`impact.changes`
 under `basis` `plan` is not warned about: they accumulate as the work lands, §2); an impact change whose `system` is not in `systems`; a
@@ -800,7 +841,9 @@ returned question whose findings file no trail entry names; a question that reco
 before the states: it reads from its findings); questions that are not all complete once the run is past
 research, and any still recorded once the plan is accepted (on a tracking board, the architecture
 signed off); every question complete while the run is still at research; a research phase its
-questions contradict; a tracking board that records stages, a plan pass or a remediation (its units'
+questions contradict; a qa pass that records a route without requesting changes; a stored `in-progress` or `partially-built`
+that no current or later stage (a unit: `wip.current`) bears out, a stored outcome while a stage still works on the row, and a
+row the stages make partially built with no summary; a resolved open point the trail does not record; a tracking board that records stages, a plan pass or a remediation (its units'
 runs hold those); a missing `plan.js` (a board embedded before the sidecar: run `embed.js`); a halted
 board older than a day; a tracking board that does
 not record `wip.next` at all (written before the rule), with the unit it should name; a board

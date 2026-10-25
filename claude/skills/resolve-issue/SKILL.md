@@ -292,7 +292,7 @@ sends none.
 | Moment | `event` | Facts |
 |--------|---------|-------|
 | Step 1 sized (the run's first action after sizing) | `sized` | level, baseline sha, the issue's systems if known, the next step |
-| A planner halt, a `needs-user` reply, a qa stop | `halted` | what waits on the user; then `resumed` with the answer's gist |
+| A planner halt, a `needs-user` reply, a qa stop | `halted` | what waits on the user; for interview questions, `questions`: each question's text (and its options, if any); then `resumed` with the answer's gist |
 | Research questions being drafted (sent by the planner itself) | `research-planning` | `drafted`: questions drafted so far |
 | A research batch spawned (sent by the planner itself) | `research-started` | `researching`: per question, its slug and the board row ids it bears on (`[]` for none) |
 | A researcher returned (sent by the planner itself) | `research-returned` | `returned`: the question slug and its findings path |
@@ -301,8 +301,8 @@ sends none.
 | Level-4 sign-off | `architecture-signed-off` | the architecture path, the approved unit list |
 | Planner COMPLETE | `plan-accepted` | the plan path, impact path |
 | Step 3 done | `branch-cut` | branch, worktree |
-| Each rookie-dev report | `implementation-stage` | the stage, `final-implementation.md` path, deviations |
-| Each qa verdict | `qa-pass` | pass number, verdict, finding counts, report path |
+| Each rookie-dev report | `implementation-stage` | the stage, `stages`: every stage's id and name with its state (`done`, `current`, `todo`), `final-implementation.md` path, deviations; during a remediation loop also `remediation`: the qa pass it answers, the route (`on-the-spot` / `rookie-dev` / `planner-then-rookie-dev`) and its sub-steps with their state |
+| Each qa verdict | `qa-pass` | pass number, verdict, finding counts by kind (doc, test, code) and by `severity` (`minor` — easily made, no fallout — and `other`), the route step 5 takes from them, report path |
 | An escalation | `escalated` | the proposed level and evidence |
 | The run is abandoned | `cancelled` | the reason |
 

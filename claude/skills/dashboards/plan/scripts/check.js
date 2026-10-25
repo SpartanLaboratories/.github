@@ -13,10 +13,10 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { levelRefsIn } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
 const { paletteCheck } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js"));
-const { BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
+const { BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
-const STATES = ["pending", "as-planned", "amended", "deviated", "dropped", "deferred", "complete", "landed"];
+const STATES = ["pending", "in-progress", "partially-built", "as-planned", "amended", "deviated", "dropped", "deferred", "complete", "landed"];
 const VERDICTS = ["accepted", "declined", "partial", "deferred"];
 const GAP_KINDS = ["bug", "missing", "debt", "risk"];
 const COLUMNS = ["gap", "considered", "verdict", "built"];
@@ -24,7 +24,6 @@ const STEPS = ["sizing", "interview", "research", "architecture", "plan", "branc
 const QA = ["approved", "changes-requested", "running"];
 const DATE = /^\d{4}-\d{2}-\d{2}$/, STAMP = /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
 const ID = /^[a-z0-9][a-z0-9-]*$/, SHA = /^[0-9a-f]{7,40}$/;
-const MAX_GLOW = 6;
 
 const out = { fail: [], warn: [], ok: [] };
 const fail = m => out.fail.push(m), warn = m => out.warn.push(m), ok = m => out.ok.push(m);
@@ -164,8 +163,16 @@ function checkPlan(plan, dir, root) {
     if (!STATES.includes(st)) fail(`${at}: asBuilt.state must be one of ${STATES.join(", ")}`);
     // complete and landed are a tracking board's unit-row states (RULES §2); an issue board's rows keep as-planned, amended, deviated.
     if (["complete", "landed"].includes(st) && !r.unit) fail(`${at}: "${st}" is a unit-row state on a tracking board; an issue board's row is as-planned, amended or deviated`);
-    if (plan.status === "planned" && st !== "pending") fail(`${at}: a planned plan has every part pending (found ${st})`);
-    if (plan.status === "built" && st === "pending") fail(`${at}: a built plan has no pending part`);
+    if (plan.status === "planned" && st !== "pending" && !BUILDING_STATES.includes(st)) fail(`${at}: a planned plan has every part pending, or being built (found ${st})`);
+    if (plan.status === "built" && (st === "pending" || BUILDING_STATES.includes(st))) fail(`${at}: a built plan has no ${st === "pending" ? "pending" : st} part`);
+    /* before the outcome (RULES §2): in progress while a current stage works on the row, partially built while a later stage is still to
+       come; a unit lands whole, so it is never partially built */
+    if (st === "partially-built" && r.unit) fail(`${at}: a unit lands whole, in one merge: it is never partially built (its own board's rows say what is built)`);
+    if (st === "partially-built" && !str(bld.summary)) fail(`${at}: a partially built part says in asBuilt.summary what is built and what is left`);
+    { const want = stagedState(plan, r), shown = want || st;
+      if (BUILDING_STATES.includes(st) && !want && !["built", "abandoned"].includes(plan.status)) warn(`${at}: asBuilt.state is "${st}", but ${r.unit ? "the unit is not in wip.current" : "no stage of wip.stages that touches the row is current or still to come"}: once its last stage is done its outcome applies (as-planned, amended or deviated)`);
+      else if (want && st !== "pending" && want !== st) warn(`${at}: asBuilt.state is "${st}", but ${r.unit ? "the unit's run is under way (it is in wip.current)" : "wip.stages make it"} "${want}"${["as-planned", "amended", "deviated"].includes(st) ? ": its outcome applies once its last stage is done" : ""}; the page shows "${shown}"`);
+      if (shown === "partially-built" && st !== "partially-built" && !str(bld.summary)) warn(`${at} is partially built (wip.stages: a done stage touched it, a later one is still to come), but asBuilt.summary is empty: say what is built and what is left`); }
     if (["amended", "deviated"].includes(st) && (!Array.isArray(bld.changes) || !bld.changes.length)) fail(`${at}: an ${st} part lists its changes`);
     (bld.changes || []).forEach((c, j) => {
       const cat = `${at}.asBuilt.changes[${j}]`;
@@ -180,7 +187,7 @@ function checkPlan(plan, dir, root) {
     });
     if (st === "dropped" && !str(bld.summary)) fail(`${at}: a dropped part states why in asBuilt.summary`);
     if (st === "deferred" && !posInt(bld.issue)) fail(`${at}: a deferred part names the issue it moved to (asBuilt.issue)`);
-    if (st && st !== "pending" && !str(bld.summary)) fail(`${at}: a ${st} part describes what exists in asBuilt.summary`);
+    if (st && st !== "pending" && st !== "in-progress" && !str(bld.summary)) fail(`${at}: a ${st} part describes what exists in asBuilt.summary`);
     (bld.commits || []).forEach((c, j) => { if (!SHA.test(String(c))) fail(`${at}.asBuilt.commits[${j}] "${c}" is not a commit sha`); });
     checkLink(dir, bld.link, `${at}.asBuilt.link`);
     if (r.unit) {
@@ -251,6 +258,8 @@ function checkPlan(plan, dir, root) {
     if (w.resume != null && !STEPS.includes(w.resume)) fail(`wip.resume "${w.resume}" is not a step`);
     (w.qa || []).forEach((p, j) => { if (!posInt(p.pass)) fail(`wip.qa[${j}].pass must be a pass number`); if (!QA.includes(p.verdict)) fail(`wip.qa[${j}].verdict must be one of ${QA.join(", ")}`); if (p.date && !DATE.test(p.date)) fail(`wip.qa[${j}].date "${p.date}" is not YYYY-MM-DD`);
       /* finding counts: by kind (findings: documentation, test, code) and, where the qa report states it, by severity (severity: {"<word>": n}) */
+      if (p.route != null && !ROUTES.includes(p.route)) fail(`wip.qa[${j}].route must be one of ${ROUTES.join(", ")} (got ${JSON.stringify(p.route)})`);
+      else if (p.route != null && p.verdict !== "changes-requested") warn(`wip.qa[${j}] (pass ${p.pass}) records a route (${p.route}) but its verdict is ${p.verdict}: a route answers requested changes`);
       ["findings", "severity"].forEach(k => { const f = p[k]; if (f == null) return; if (typeof f !== "object" || Array.isArray(f) || Object.entries(f).some(([n, c]) => !/^[a-z][a-z-]*$/.test(n) || !(Number.isInteger(c) && c >= 0))) fail(`wip.qa[${j}].${k} must map a lower-case word to a count, e.g. {"major": 2, "minor": 3} (got ${JSON.stringify(f)})`); }); });
     const cur = Array.isArray(w.current) ? w.current : [];
     cur.forEach(a => {
@@ -260,7 +269,8 @@ function checkPlan(plan, dir, root) {
     });
     // The standing rule (RULES §3): a unit that has landed leaves wip.current in the same landing refresh.
     cur.forEach(a => { const r = rows.find(x => x.id === String(a).split(".")[0]); if (r && r.unit && (r.asBuilt || {}).state === "landed") fail(`wip.current "${a}" names a landed unit; the landing refresh removes it from wip.current`); });
-    if (cur.length > MAX_GLOW) fail(`wip.current names ${cur.length} cells; at most ${MAX_GLOW} glow at once`);
+    /* no count limit (plan/RULES.md §3): the glow names exactly the cells being worked on, however many; the step-to-column map below
+       is the only check on what glows */
     if ((w.step === "landed" || plan.status === "built") && cur.length) warn("a landed board has wip.current set; nothing glows once it has landed");
     if (w.step === "landed" && plan.status !== "built") fail('wip.step is "landed" but status is not "built"');
     /* The glow follows the step (RULES §3, the step-to-column map; lib.js GLOW_MAP): wip.current holds what wip.step's row of the
@@ -301,16 +311,17 @@ function checkPlan(plan, dir, root) {
       }
     }
     /* The step panel's facts (RULES §3, "The step panel"): each optional, each written from an event's facts or the folder's documents. */
-    checkPanel(plan, w, ids, tracking);
+    checkPanel(plan, w, ids, tracking, dir);
     if (gm) warn(`wip.current ${JSON.stringify(cur)} does not match wip.step "${w.step}"${gm.via ? ` (it stopped in "${gm.step}", wip.resume, and keeps that step's glow as a still ring)` : ""}: at "${gm.step}" the map glows ${gm.want}; off the map: ${gm.bad.join(", ")} (plan/RULES.md §3, the glow follows the step)`);
     else if (!["built", "abandoned"].includes(plan.status) && w.step !== "landed" && !(["halted", "escalated"].includes(w.step) && !w.resume)) ok(`wip.current keeps the step-to-column map at "${w.step}"${["halted", "escalated"].includes(w.step) ? ` (the glow of "${w.resume}", the step it stopped in, held still)` : ""}`);
     /* wip.next (RULES §3): on a tracking board, always the next unit in landing order — the first unit row, in row order, that is
-       pending and not in wip.current — or null when none is left. It is never also current and never a unit already done. A
-       board written before wip.next existed (no key at all) only warns. */
+       pending, not in wip.current and not left for later (lib.js nextUnit()) — or null when none is left. It is never also current,
+       never a unit already done and never one whose verdict leaves it as is. A board written before wip.next existed (no key at all)
+       only warns. */
     if (!tracking && w.next != null) fail(`wip.next "${w.next}" is set on a board whose kind is not tracking; only a tracking board names a next unit`);
     if (tracking) {
       const units = rows.filter(r => r.unit), inCur = r => cur.some(a => String(a).split(".")[0] === r.id);
-      const want = units.find(r => ((r.asBuilt || {}).state || "pending") === "pending" && !inCur(r)) || null;
+      const want = nextUnit(plan);
       if (w.next != null) {
         const nx = units.find(r => r.id === w.next);
         if (typeof w.next !== "string" || !nx) fail(`wip.next ${JSON.stringify(w.next)} names no unit row (it takes a unit row's id)`);
@@ -318,12 +329,13 @@ function checkPlan(plan, dir, root) {
           const st = (nx.asBuilt || {}).state;
           if (st !== "pending") fail(`wip.next "${w.next}" names a unit whose state is ${st}; the next unit has not started`);
           if (inCur(nx)) fail(`wip.next "${w.next}" is also in wip.current; when its run starts it moves to wip.current and the following unit becomes next`);
+          if (st === "pending" && leftForLater(nx)) fail(`wip.next "${w.next}" names a unit left for later (its verdict leaves it as is): the next unit skips it`);
         }
       }
       if (!("next" in w)) { if (want) warn(`wip.next is not recorded; the next unit in landing order is "${want.id}" (#${want.unit.issue})`); }
       else if ((w.next || null) !== (want ? want.id : null)) fail(want
-        ? `wip.next is ${JSON.stringify(w.next)}, but the next unit in landing order is "${want.id}" (#${want.unit.issue}): the first pending unit not in wip.current`
-        : `wip.next is "${w.next}", but no unit is left that is pending and not in wip.current: it is null`);
+        ? `wip.next is ${JSON.stringify(w.next)}, but the next unit in landing order is "${want.id}" (#${want.unit.issue}): the first pending unit not in wip.current and not left for later`
+        : `wip.next is "${w.next}", but no unit is left that is pending, not in wip.current and not left for later: it is null`);
     }
     if (plan.status === "built" && w.step !== "landed") fail('a built plan has wip.step "landed"');
     /* A tracking board's wip.step is the tracking issue's own phase (RULES §3): "implementation" while its units run, never a
@@ -360,8 +372,11 @@ function checkPlan(plan, dir, root) {
 
 /* The step panel's facts (RULES §3, "The step panel"; §4): the last event (wip.event), the interview's questions, the research phase,
    the plan's pass, the implementation stages and the remediation's sub-steps. Each is optional; a value written is held to its form. */
-const STAGE_STATES = ["done", "current", "todo"], PLAN_PASSES = ["writing", "re-pass"], REPASS_FROM = ["parent", "qa"];
-function checkPanel(plan, w, ids, tracking) {
+const STAGE_STATES = ["done", "current", "todo"], PLAN_PASSES = ["writing", "re-pass"], REPASS_FROM = ["parent", "qa", "existing"];
+/* the route /resolve-issue step 5 takes from a qa pass's findings (wip.qa[].route, wip.remediation.route): minor fixes on the spot with
+   no new qa pass, a rookie-dev remediation pass, or a planner re-pass then rookie-dev */
+const ROUTES = ["on-the-spot", "rookie-dev", "planner-then-rookie-dev"];
+function checkPanel(plan, w, ids, tracking, dir) {
   const stampOk = (v, at) => { if (v != null && !STAMP.test(String(v))) fail(`${at} "${v}" is not a date or an ISO date-time`); };
   const ev = w.event;
   if (ev != null) { if (typeof ev !== "object" || Array.isArray(ev) || !EVENTS.includes(ev.name)) fail(`wip.event must be { name, at, note }, name one of ${EVENTS.join(", ")} (got ${JSON.stringify(ev)})`); else stampOk(ev.at, "wip.event.at"); }
@@ -369,7 +384,9 @@ function checkPanel(plan, w, ids, tracking) {
     if (!Array.isArray(w.interview)) fail("wip.interview must be an array of the interview's questions, each { \"text\": \"…\", \"answer\": null | \"…\" }");
     else w.interview.forEach((q, j) => { const at = `wip.interview[${j}]`;
       if (!q || typeof q !== "object" || !str(q.text)) fail(`${at} needs its text (the question asked)`);
-      else { if (q.answer != null && !str(q.answer)) fail(`${at}.answer is the answer's gist, or null while the question waits`); stampOk(q.asked, at + ".asked"); stampOk(q.answered, at + ".answered"); } });
+      else { if (q.answer != null && !str(q.answer)) fail(`${at}.answer is the answer's gist, or null while the question waits`); stampOk(q.asked, at + ".asked"); stampOk(q.answered, at + ".answered");
+        /* the options the question offers, from the halted event's facts.questions, each a short statement */
+        if (q.options != null && (!Array.isArray(q.options) || q.options.some(o => !str(o)))) fail(`${at}.options must be an array of the options the question offers, each a non-empty string (got ${JSON.stringify(q.options)})`); } });
   }
   const R = w.research;
   if (R != null) {
@@ -387,7 +404,8 @@ function checkPanel(plan, w, ids, tracking) {
   if (w.plan != null) {
     const P = w.plan;
     if (typeof P !== "object" || Array.isArray(P) || !PLAN_PASSES.includes(P.state)) fail(`wip.plan must be { state, from, pass }, state one of ${PLAN_PASSES.join(", ")} (got ${JSON.stringify(P)})`);
-    else { if (P.state === "re-pass" && !REPASS_FROM.includes(P.from)) fail(`a re-pass names where it comes from: wip.plan.from is ${REPASS_FROM.join(" or ")} (the parent's plan, or a qa pass)`);
+    else { if (P.state === "re-pass" && !REPASS_FROM.includes(P.from)) fail(`a re-pass names where it comes from: wip.plan.from is ${REPASS_FROM.join(", ")} (the parent's plan, a qa pass, or an existing plan verified against the base)`);
+      if (P.against != null && (!str(P.against) || P.from !== "existing")) fail(`wip.plan.against names the ref an existing plan is verified against (a re-pass from "existing"), e.g. "main" (got ${JSON.stringify(P.against)} on a ${P.state}${P.from ? " from " + P.from : ""})`);
       if (P.from === "qa" && !posInt(P.pass)) fail("a re-pass after qa names the qa pass it answers: wip.plan.pass"); stampOk(P.since, "wip.plan.since"); }
   }
   if (w.stages != null) {
@@ -399,12 +417,24 @@ function checkPanel(plan, w, ids, tracking) {
         (Array.isArray(x.rows) ? x.rows : []).forEach(r => { if (!ids.has(r)) warn(`${at} names row "${r}", which is not a row of this board`); }); });
       if (w.stages.filter(x => x && x.state === "current").length > 1) fail("wip.stages has more than one \"current\" stage"); }
   }
+  /* wip.open (RULES §3): the open points raised during the run, each { text, raised, ref, resolved }: shown in the step panel until
+     resolved, then kept in the trail */
+  if (w.open != null) {
+    if (!Array.isArray(w.open)) fail('wip.open must be an array of open points, each { "text": "…", "raised": "<event or stage>", "ref": "<link>", "resolved": "<how>" }');
+    else w.open.forEach((x, j) => { const at = `wip.open[${j}]`;
+      if (!x || typeof x !== "object" || Array.isArray(x) || !str(x.text)) { fail(`${at} needs its text (the open point)`); return; }
+      if (!str(x.raised)) fail(`${at}.raised names the event or stage that raised it (e.g. "implementation-stage S2")`);
+      if (x.ref != null) { if (!str(x.ref)) fail(`${at}.ref is a link to where the point is recorded, or left out`); else checkLink(dir, x.ref, `${at}.ref`); }
+      if (x.resolved != null && x.resolved !== true && !str(x.resolved)) fail(`${at}.resolved is how it was resolved (a sentence, or true), or left out while it is open`);
+      if (x.resolved && !(plan.trail || []).some(t => t && typeof t.label === "string" && (t.label.includes(x.text.slice(0, 40)) || (x.ref && t.ref === x.ref)))) warn(`${at} is resolved, but the trail records no entry for it (a label quoting its text, or its ref): the trail keeps a resolved open point`); });
+  }
   if (w.remediation != null) {
     const M = w.remediation;
     if (typeof M !== "object" || Array.isArray(M)) fail("wip.remediation must be { pass, steps: [{ what, state }] }");
     else { if (M.pass != null && !posInt(M.pass)) fail("wip.remediation.pass is the qa pass whose findings it answers");
+      if (M.route != null && !ROUTES.includes(M.route)) fail(`wip.remediation.route must be one of ${ROUTES.join(", ")} (got ${JSON.stringify(M.route)})`);
       const v = M.steps == null ? [] : Array.isArray(M.steps) ? M.steps : (fail("wip.remediation.steps must be an array"), []);
-      v.forEach((x, j) => { const at = `wip.remediation.steps[${j}]`; if (!x || typeof x !== "object" || !str(x.what)) fail(`${at} needs "what"`); else if (!STAGE_STATES.includes(x.state)) fail(`${at}.state must be one of ${STAGE_STATES.join(", ")}`); });
+      v.forEach((x, j) => { const at = `wip.remediation.steps[${j}]`; if (!x || typeof x !== "object" || !(str(x.what) || str(x.name))) fail(`${at} needs "name" (or "what")`); else if (!STAGE_STATES.includes(x.state)) fail(`${at}.state must be one of ${STAGE_STATES.join(", ")}`); });
       if (v.filter(x => x && x.state === "current").length > 1) fail("wip.remediation.steps has more than one \"current\" step"); }
   }
   if (tracking && ((Array.isArray(w.stages) && w.stages.length) || w.remediation || w.plan)) warn("a tracking board records implementation stages, a plan pass or a remediation: those are its units' runs, each on its own board, not the tracking issue's");
@@ -486,8 +516,16 @@ function checkImpact(plan, dir, systems, rows, tracking) {
   if (!items && !str(I.none) && !str(I.summary) && !(I.units || []).length) warn(`the Impact tab is empty: impact records no entry, no summary and no "none" statement${hasDoc ? ", although impact.md exists in this folder: fill it from there" : ""}`);
   if (str(I.none) && effect) warn("impact.none says no downstream impact is recorded, but the entries record one: keep one of the two");
   const bump = rel && rel.bump;
-  if (plan.level === 3 && bump === "none" && effect) warn("a level-3 change with a downstream effect takes a feat: release; release.bump is none");
-  if (plan.level === 3 && bump === "none" && !str(I.none)) warn("a level-3 change with no version bump says explicitly that it has no downstream effect (impact.none)");
+  /* release.unreleased (RULES §2, Impact): the change's downstream effect lands on a new artifact that has never been released, so no
+     existing version moves and its first release is its own. It quiets the two release warnings below for that case, and is held to
+     its form: true, with no bump, and the new artifact recorded as a downstream entry of kind artifact. */
+  const unrel = !!rel && typeof rel === "object" && rel.unreleased === true;
+  if (rel && typeof rel === "object" && rel.unreleased != null && rel.unreleased !== true) fail(`impact.release.unreleased is true (the artifact is new and unreleased) or left out (got ${JSON.stringify(rel.unreleased)})`);
+  if (unrel && bump && bump !== "none") warn(`impact.release.unreleased says the artifact is new and unreleased, so no existing version moves, but release.bump is ${bump}: keep bump "none" (its first release is its own), or drop the mark`);
+  if (unrel && !ds.some(x => x.kind === "artifact")) warn("impact.release.unreleased marks a new, unreleased artifact, but no downstream entry of kind artifact records it: add one (who: the artifact, effect additive)");
+  if (unrel) ok("impact: release.unreleased — the artifact is new and unreleased; no existing version moves (the release warnings are quiet)");
+  if (plan.level === 3 && bump === "none" && effect && !unrel) warn("a level-3 change with a downstream effect takes a feat: release; release.bump is none (a new artifact that has never been released: mark it with impact.release.unreleased: true)");
+  if (plan.level === 3 && bump === "none" && !str(I.none) && !unrel) warn("a level-3 change with no version bump says explicitly that it has no downstream effect (impact.none), or marks a new, unreleased artifact (impact.release.unreleased: true)");
   if (plan.level === 3 && bump === "feat" && !effect && str(I.none)) warn("a level-3 change bumps only with a downstream effect, but impact.none says it has none");
   if (breaking.length && !tracking && bump && bump !== "major") warn(`a breaking entry (${breaking.slice(0, 3).join(", ")}) rides in a major release; release.bump is ${bump}`);
   if (plan.level === 4 && bump && bump !== "none") warn("a level-4 plan moves no version itself (docs only): its units' releases go in impact.units");
@@ -503,6 +541,8 @@ function checkImpact(plan, dir, systems, rows, tracking) {
     compatCheck("unit", e, at);
     if (!IMP_BASES.includes(e.basis)) fail(`${at}.basis must be one of ${IMP_BASES.join(", ")}`);
     if (e.release != null && (typeof e.release !== "object" || !IMP_BUMPS.includes(e.release.bump))) fail(`${at}.release.bump must be one of ${IMP_BUMPS.join(", ")}`);
+    else if (e.release != null && e.release.unreleased != null && e.release.unreleased !== true) fail(`${at}.release.unreleased is true (the unit's artifact is new and unreleased) or left out`);
+    else if (e.release != null && e.release.unreleased === true && e.release.bump !== "none") warn(`${at}.release.unreleased marks a new, unreleased artifact, but its bump is ${e.release.bump}: keep bump "none"`);
     if (e.changes != null) { if (!Array.isArray(e.changes)) fail(`${at}.changes must be an array`);
       else { e.changes.forEach((c, j) => { const cat = `${at}.changes[${j}]`; if (!c || typeof c !== "object") fail(`${cat} must be an object`);
         else { if (!str(c.what) || !str(c.why)) fail(`${cat}: "what" and "why" are required`); if (c.ref && /^[0-9a-f]+$/.test(c.ref) && !SHA.test(c.ref)) fail(`${cat}.ref "${c.ref}" is not a commit sha`);
@@ -669,13 +709,14 @@ function checkBoard(dir) {
     if (r.board) fail(at + ': a row with a board takes its state from the board, not the tracker; leave "tracker" out');
     if (!BOARDLESS_STATES.includes(r.status)) { fail(at + ": a boardless row is " + BOARDLESS_STATES.join(", ") + " (got " + JSON.stringify(r.status) + ")"); return; }
     if (r.active) fail(at + ": a boardless row never glows: it has no run board to mirror");
-    const closed = r.state === "CLOSED", why = {
-      landed: closed ? null : "landed means the issue is closed",
+    const closed = r.state === "CLOSED", np = closed && r.stateReason === "NOT_PLANNED", why = {
+      landed: !closed ? "landed means the issue is closed" : np ? 'the issue was closed as not planned: the row reads "not-planned" (closed · not planned), never landed' : null,
+      "not-planned": !closed ? "not-planned means the issue is closed as not planned" : !np ? `not-planned needs the tracker's stateReason NOT_PLANNED (got ${JSON.stringify(r.stateReason == null ? null : r.stateReason)})` : null,
       merged: closed ? "a closed issue has landed" : !pr || pr.state !== "MERGED" ? "merged needs the merged pull request (tracker.pr, state MERGED)" : null,
       "in-progress": closed ? "a closed issue has landed" : pr ? (pr.state !== "OPEN" ? "in progress with a pull request needs an open one" : null) : !t.branch ? "in progress needs a branch or an open pull request that refers to the issue" : null,
       "not-started": closed ? "a closed issue has landed" : pr || t.branch ? "not started means no branch or pull request refers to the issue" : null }[r.status];
-    if (why) fail(at + ': status "' + r.status + '" does not match what the tracker recorded (state ' + r.state + ", branch " + JSON.stringify(t.branch) + ", pr " + JSON.stringify(pr) + "): " + why);
-    if (["merged", "landed"].includes(r.status) && r.branch) fail(at + ': a merged branch is not shown (plan/RULES.md §3, "Branches"): branch is null once the row is ' + r.status);
+    if (why) fail(at + ': status "' + r.status + '" does not match what the tracker recorded (state ' + r.state + (r.stateReason ? " " + r.stateReason : "") + ", branch " + JSON.stringify(t.branch) + ", pr " + JSON.stringify(pr) + "): " + why);
+    if (["merged", "landed", "not-planned"].includes(r.status) && r.branch) fail(at + ': a merged branch is not shown (plan/RULES.md §3, "Branches"): branch is null once the row is ' + r.status);
   });
   const bl = (b.rows || []).filter(r => r.tracker !== undefined);
   if (bl.length) ok("board.json: " + bl.length + " boardless row" + (bl.length === 1 ? "" : "s") + ", state from the tracker: " + BOARDLESS_STATES.map(k => bl.filter(r => r.status === k).length + " " + k).join(", "));
@@ -683,8 +724,6 @@ function checkBoard(dir) {
   [["rows", b.rows], ["unscheduled", b.unscheduled]].forEach(([k, xs]) => (xs || []).forEach((r, i) => { if (r.unassigned !== undefined && (r.unassigned !== true || r.system)) fail(`${k}[${i}].unassigned must be true, with "system" null (got unassigned ${JSON.stringify(r.unassigned)}, system ${JSON.stringify(r.system)})`); }));
   const rcs = (b.rows || []).filter(r => r.reconciliation && r.reconciliation.state);
   if (rcs.length) ok(`board.json: impact reconciliation ${Object.keys(RECON_WORDS).map(k => `${rcs.filter(r => r.reconciliation.state === k).length} ${RECON_WORDS[k]}`).join(", ")}`);
-  const glowing = (b.rows || []).filter(r => r.active).length;
-  if (glowing > MAX_GLOW) warn(`${glowing} runs are active: more than ${MAX_GLOW} rows glow at once`);
   const left = placeholders(b, "", []); if (left.length) fail(`placeholders left: ${left.slice(0, 8).join(", ")}`);
   levelFail(b, "board.json");
   if (!out.fail.length) ok(`board.json: ${(b.rows || []).length} runs, ${(b.roadmap || []).length} roadmap items, ${(b.unscheduled || []).length} unscheduled issues`);

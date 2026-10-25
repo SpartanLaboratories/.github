@@ -51,6 +51,8 @@ its ruleset; the shared scale is:
 | **yellow** (`--warning`) | in between: partly adopted, amended, waiting | a `partial` option; an `amended` part; an option left `deferred` at plan time; a halt waiting on the user; an impact partly reconciled |
 | **red** (`--critical`) | declined, dropped, failing | a `declined` option; a `dropped` part; a failing gate |
 | **orange** (`--serious`) | changed course | a `deviated` part (the decision itself changed) |
+| **accent** (`--accent`) | being worked on: the in-progress mark | an `in-progress` part (a current stage builds it; a unit whose run is under way), solid, beside the glow |
+| **strong neutral** (`--ink-2`, solid) | partly done, no outcome yet | a `partially-built` part: a finished stage built part of it, a later stage builds the rest |
 | **neutral** (ink/grey) | no outcome yet, or not applicable | a `pending` part; a `deferred` part (with its issue); an impact still planned (dashed); counts and facts |
 
 **The exception: compatibility on the Impact tab.** On a plan board's Impact tab, red and
@@ -86,7 +88,7 @@ and nothing else, each with its own look and its own legend entry (the charging 
 the in-progress mark of a connector):
 
 - **In progress** — the thing currently being worked on (a plan board's `wip.current`, an active
-  run on the work board) carries an **interior glow**: a solid accent ring inside its edge, a faint
+  run on the work board; on a plan board its as-built pill reads `▶ in progress` in the accent, solid) carries an **interior glow**: a solid accent ring inside its edge, a faint
   accent wash, and an inner glow that breathes in and out (a slow CSS animation, ~2 s). Under
   `prefers-reduced-motion` the inner glow holds still at its middle strength, so the mark stays as
   distinct without moving. While the run waits on the user it stops to the ring alone. A
@@ -104,8 +106,9 @@ step is writing, a battery of accent segments filling left to right (held still,
 run waits on the user and under `prefers-reduced-motion`); and the **live indicator**'s dot in the
 header of a plan board or the live work board, ink, never a status or accent colour, which pulses
 while the view is live and changing and holds still after a quiet spell, while the run waits on the
-user, when its data cannot be read and under `prefers-reduced-motion`. Nothing else animates. At
-most a handful of elements are in progress at once; if everything glows, nothing is current.
+user, when its data cannot be read and under `prefers-reduced-motion`. Nothing else animates. The
+in-progress mark is exact: it marks every cell being worked on, however many, and nothing else; a whole column glows
+only while the rows being worked on are unknown (`plan/RULES.md` §3). No check limits how many glow.
 
 **Research state: the research scale.** On a plan board, a row the run's research questions name
 carries a **ring** (its Considered cell's border, never a fill) in a status spectrum of its own, from

@@ -181,6 +181,9 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .sp-list li.todo .q{color:var(--muted)}
 .sp-list li.cur .dot{background:var(--accent);border-color:var(--accent);animation:glowdot 2s ease-in-out infinite}
 .sp-list li.cur .q{font-weight:600}
+/* an interview question's options, under its text */
+.sp-opts{margin:3px 0 0;padding-left:16px;font-weight:400;color:var(--ink-2)}
+.sp-opts li{margin:1px 0}
 .sp.sp-held .sp-list li.cur .dot{animation:none;box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
 .sp-pass{border:1px solid var(--line);border-left:4px solid var(--sc,var(--line));border-radius:5px;padding:6px 10px;margin:6px 0 0}
 .sp-pass.good{--sc:var(--good)}.sp-pass.critical{--sc:var(--critical)}
@@ -223,7 +226,7 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .kpi .s{font-size:12px;color:var(--ink-2);margin-top:2px}
 .kpi .seg-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;gap:2px;margin-top:8px;background:var(--surface-2)}
 .kpi .seg-bar i{display:block;height:100%;background:var(--ink-2)}
-.seg-bar i.good{background:var(--good)}.seg-bar i.warning{background:var(--warning)}.seg-bar i.serious{background:var(--serious)}.seg-bar i.critical{background:var(--critical)}.seg-bar i.neutral{background:var(--line)}.seg-bar i.left{background:var(--muted);opacity:.5}
+.seg-bar i.good{background:var(--good)}.seg-bar i.warning{background:var(--warning)}.seg-bar i.serious{background:var(--serious)}.seg-bar i.critical{background:var(--critical)}.seg-bar i.neutral{background:var(--line)}.seg-bar i.left{background:var(--muted);opacity:.5}.seg-bar i.accent{background:var(--accent)}.seg-bar i.ink{background:var(--ink-2)}
 
 /* tabs + stage */
 .tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow-x:auto;overflow-y:hidden}
@@ -304,6 +307,9 @@ a.more:hover{text-decoration:underline}
 .vp i,.key .vp i{font-style:normal;font-weight:700;display:inline;width:auto;height:auto;border:0;border-radius:0;background:none;box-shadow:none}
 .vp.good{--sc:var(--good)}.vp.warning{--sc:var(--warning)}.vp.serious{--sc:var(--serious)}.vp.critical{--sc:var(--critical)}
 .vp.neutral{--sc:var(--muted);background:var(--surface)}
+/* the two as-built states before the outcomes (plan/RULES.md §2): in progress takes the accent, the work in progress's colour
+   (GUIDANCE.md §1); partially built the strong neutral, an outcome not reached yet. Both solid: they are not pending. */
+.vp.accent{--sc:var(--accent)}.vp.ink{--sc:var(--ink-2);background:var(--surface)}
 .vp.hollow{background:var(--surface)}
 .vp.dashed{border-style:dashed;border-left-style:dashed;color:var(--ink-2)}
 .badge{font:10px/1 var(--mono);padding:3px 6px;border-radius:3px;border:1px solid var(--line);white-space:nowrap;color:var(--ink-2);display:inline-flex;align-items:center;gap:5px}
@@ -349,7 +355,7 @@ a.more:hover{text-decoration:underline}
 .cell::after{content:"";position:absolute;left:-6px;top:calc(50% - 5px);width:10px;height:10px;border-radius:50%;background:var(--ink-2)}
 .cell.gap::before{display:none}
 .cell.built{border-left:3px solid var(--sc,var(--line))}
-.cell.built.good{--sc:var(--good)}.cell.built.warning{--sc:var(--warning)}.cell.built.serious{--sc:var(--serious)}.cell.built.critical{--sc:var(--critical)}
+.cell.built.accent{--sc:var(--accent)}.cell.built.ink{--sc:var(--ink-2)}.cell.built.good{--sc:var(--good)}.cell.built.warning{--sc:var(--warning)}.cell.built.serious{--sc:var(--serious)}.cell.built.critical{--sc:var(--critical)}
 .cell.pending,.cell.deferred{border-style:dashed}
 .cell.pending::before{border-top-style:dashed;border-top-color:var(--muted)}
 .cell.pending::after,.cell.deferred::after{background:var(--surface);border:2px dashed var(--muted)}
@@ -435,7 +441,7 @@ pre.src .k{color:var(--link);font-weight:600} pre.src .s{color:var(--ink-2)}
 .chainsvg .unit.pending rect.box{stroke:var(--muted);stroke-dasharray:6 4}
 .chainsvg .unit rect.bar{fill:var(--c,var(--muted))}
 .chainsvg .unit rect.st{fill:var(--sc,var(--muted))}
-.chainsvg .unit.good{--sc:var(--good)}.chainsvg .unit.warning{--sc:var(--warning)}.chainsvg .unit.serious{--sc:var(--serious)}.chainsvg .unit.critical{--sc:var(--critical)}
+.chainsvg .unit.good{--sc:var(--good)}.chainsvg .unit.warning{--sc:var(--warning)}.chainsvg .unit.serious{--sc:var(--serious)}.chainsvg .unit.critical{--sc:var(--critical)}.chainsvg .unit.accent{--sc:var(--accent)}.chainsvg .unit.ink{--sc:var(--ink-2)}
 .chainsvg .unit text{fill:var(--ink);font:11px var(--mono)}
 .chainsvg .unit text.t{font:700 11.5px var(--sans)}
 .chainsvg .unit text.s{fill:var(--ink-2);font-size:10px}
@@ -726,6 +732,8 @@ const COLS=[
   {key:"built",label:"As built",q:"What exists now, and every change from the verdict"}];
 const STATES={
   "pending":   {g:"…",label:"pending",   cls:"neutral",dash:true, desc:"not built yet"},
+  "in-progress":{g:"▶",label:"in progress",cls:"accent",          desc:"being built: a current stage works on it (a unit: its run is under way)"},
+  "partially-built":{g:"◑",label:"partially built",cls:"ink",     desc:"a finished stage built part of it; a later stage builds the rest"},
   "as-planned":{g:"✓",label:"as planned",cls:"good",              desc:"built as the verdict says"},
   "amended":   {g:"+",label:"amended",   cls:"warning",           desc:"built as decided, plus changes added in implementation or review"},
   "deviated":  {g:"≠",label:"deviated",  cls:"serious",           desc:"the decision itself changed; each difference listed"},
@@ -744,7 +752,20 @@ const OPT={
 const QA={approved:{g:"✓",label:"approved",cls:"good"},"changes-requested":{g:"✕",label:"changes requested",cls:"critical"},running:{g:"…",label:"in progress",cls:"neutral",dash:true}};
 const STEP_ORDER=["sizing","interview","research","architecture","plan","branch","implementation","qa","remediation","landing","landed"];
 const STEP_SPECIAL={halted:{g:"⏸",label:"Waiting on the user",cls:"halted"},escalated:{g:"⇧",label:"Escalated",cls:"escalated"},cancelled:{g:"✕",label:"Cancelled",cls:"cancelled"},landed:{g:"✓",label:"Landed",cls:"landed"}};
-const stateOf=r=>(r.asBuilt&&STATES[r.asBuilt.state])?r.asBuilt.state:"pending";
+/* A row's as-built state: the stored one, unless the build is under way (plan/RULES.md §2, "Before the outcome"). While the run is live
+   the implementation stages (wip.stages) decide it for every row they touch: a row a current stage touches is in progress; one a done
+   stage touched and a later stage still to come touches is partially built; one only stages to come touch is pending. Its outcome
+   (as planned, amended, deviated) applies once its last stage is done. A tracking board's unit in wip.current whose row is pending is
+   in progress (its run is under way); a unit lands whole, so it is never partially built. Dropped, deferred, complete and landed
+   rows keep their state. plan/scripts/lib.js builtState() is the same rule for the scripts. */
+const storedState=r=>(r.asBuilt&&STATES[r.asBuilt.state])?r.asBuilt.state:"pending";
+function stagedState(r){ if(LANDED||STOPPED) return null; const st=storedState(r); if(["dropped","deferred","complete","landed"].includes(st)) return null;
+  if(TRACKING) return r.unit&&st==="pending"&&rowActive(r)?"in-progress":null;
+  const sg=(Array.isArray(WIP.stages)?WIP.stages:[]).filter(x=>x&&Array.isArray(x.rows)&&x.rows.includes(r.id)); if(!sg.length) return null;
+  if(sg.some(x=>x.state==="current")) return "in-progress";
+  const done=sg.some(x=>x.state==="done"), todo=sg.some(x=>x.state!=="done");
+  return done&&todo?"partially-built":!done?"pending":null; }
+const stateOf=r=>stagedState(r)||storedState(r);
 /* A row's verdict kind once its verdict is written (a summary, as check.js reads it): "leave" or "build" (the default kind); null
    while column 3 is not yet written, which is neither build nor leave and is counted, labelled and inspected as such */
 const verdictOf=r=>{ const v=r.verdict||{}; return typeof v.summary==="string"&&v.summary.trim()?(v.kind==="leave"?"leave":"build"):null; };
@@ -789,7 +810,7 @@ const runPaused=r=>{ const L=runOf(r); return !!L&&["halted","escalated"].includ
 const rowHeld=id=>runPaused(ROWS.find(x=>x.id===id));
 const glowCls=(strong,held)=>PAUSED||held?" held":strong?" glow":" glow-soft";
 function cellGlow(rowId,col){ if(CURRENT.includes(rowId+"."+col)) return glowCls(true,rowHeld(rowId)); if(CURRENT.includes(col)) return PAUSED?" held":" glow-soft"; return ""; }
-/* The next unit (wip.next, tracking boards): named, never in progress. Its tag lists each blocker that has not landed; a blocker
+/* The next unit (wip.next, tracking boards): named, never in progress, never a unit left for later (lib.js nextUnit()). Its tag lists each blocker that has not landed; a blocker
    that is not a unit on this board counts as not landed, since the board cannot show it landed. */
 let NEXT_ROW=null;
 const unitLanded=r=>LANDED_STATES.includes(stateOf(r));
@@ -871,17 +892,25 @@ function researchFact(w){ const qs=questionsOf(w), R=w&&w.research;
    it waits on, the panel held still. R is a run: an issue board's own wip (with its verdicts and deviations counted from its rows), or
    a tracking board's unit mirror (unit.live), which carries the same facts (plan/scripts/lib.js panelFacts()). keys collects the legend
    entries the panel drew. */
+const OPEN_PT={g:"!",label:"open",cls:"warning"};
+const KEY_OPEN=`<span>${pill(OPEN_PT)} an open point raised during the run, not resolved yet</span>`;
 const IV={answered:{g:"✓",label:"answered",cls:"neutral"},waiting:{g:"?",label:"waiting on the user",cls:"warning"}};
 const STAGE_DOT={done:"done",current:"cur",todo:"todo"};
 const NEXT_STEP={qa:"landing, or remediation if qa requests changes",remediation:"qa, the next pass",landing:"landed"};
-function nextStepOf(R,S){ if(NEXT_STEP[S]) return NEXT_STEP[S]; const st=R.steps&&R.steps.length?R.steps:STEP_ORDER, i=st.indexOf(S); return i>=0&&i<st.length-1?st[i+1]:""; }
+/* The route /resolve-issue step 5 takes from a qa pass's findings (wip.qa[].route, wip.remediation.route): every fix minor (easily made,
+   no fallout), fixed on the spot with no new qa pass; otherwise a remediation pass by rookie-dev, or a planner re-pass then rookie-dev,
+   and the next qa pass (at most three in all). */
+const ROUTE={"on-the-spot":{label:"fixed on the spot, no new qa pass",next:"landing (no new qa pass)"},"rookie-dev":{label:"a remediation pass: rookie-dev, then the next qa pass",next:"qa, the next pass"},"planner-then-rookie-dev":{label:"a remediation pass: a planner re-pass, then rookie-dev, then the next qa pass",next:"qa, the next pass"}};
+const stepName=x=>x&&(x.name||x.what)||"";
+function nextStepOf(R,S){ if(S==="remediation"&&R.remediation&&ROUTE[R.remediation.route]) return ROUTE[R.remediation.route].next; if(NEXT_STEP[S]) return NEXT_STEP[S]; const st=R.steps&&R.steps.length?R.steps:STEP_ORDER, i=st.indexOf(S); return i>=0&&i<st.length-1?st[i+1]:""; }
 function spList(items){ return items.length?`<ol class="sp-list">${items.join("")}</ol>`:""; }
 const spItem=(cls,mark,body,sub)=>`<li class="${cls}">${mark}<span class="q">${body}${sub?`<small>${sub}</small>`:""}</span></li>`;
 const dotMark=`<span class="dot" aria-hidden="true"></span>`;
 function qaBlock(p,keys){ const d=QA[p.verdict]||QA.running, f=p.findings||{}, sv=p.severity||{};
   const kinds=["documentation","test","code"].filter(k=>f[k]!=null).map(k=>`${f[k]} ${k==="documentation"?"doc":k}`).join(" · "), sev=Object.entries(sv).map(([k,n])=>`${n} ${k}`).join(" · ");
   keys.add(`<span>${pill(d)} qa pass verdict</span>`);
-  return `<div class="sp-pass ${p.verdict==="approved"?"good":p.verdict==="changes-requested"?"critical":"run pend"}"><div class="ph">Pass ${esc(p.pass)} ${pill(d)}${p.date?` <span class="nw">${when(p.date)}</span>`:""}</div>${kinds?`<small>findings by kind: ${esc(kinds)}</small>`:""}${sev?`<small>by severity: ${esc(sev)}</small>`:""}${p.note?`<small>${rich(p.note)}</small>`:""}</div>`; }
+  const rt=ROUTE[p.route];
+  return `<div class="sp-pass ${p.verdict==="approved"?"good":p.verdict==="changes-requested"?"critical":"run pend"}"><div class="ph">Pass ${esc(p.pass)} ${pill(d)}${p.date?` <span class="nw">${when(p.date)}</span>`:""}</div>${kinds?`<small>findings by kind: ${esc(kinds)}</small>`:""}${sev?`<small>by severity: ${esc(sev)}</small>`:""}${rt?`<small>route: ${esc(rt.label)}</small>`:""}${p.note?`<small>${rich(p.note)}</small>`:""}</div>`; }
 const PANEL={
   sizing:R=>`<p>The issue is being sized: its systems and how much planning it takes.</p>${R.detail?`<p>${rich(R.detail)}</p>`:""}`,
   interview:(R,o,keys)=>{ const iv=Array.isArray(R.interview)?R.interview.filter(q=>q&&q.text):[];
@@ -889,7 +918,8 @@ const PANEL={
     const done=iv.filter(q=>q.answer!=null&&String(q.answer).trim()).length;
     keys.add(`<span>${pill(IV.answered)} ${pill(IV.waiting)} an interview question, answered or waiting</span>`);
     return `<p class="sp-sum">${done} of ${iv.length} question${iv.length===1?"":"s"} answered${iv.length-done?` · ${iv.length-done} waiting`:""}</p>`+spList(iv.map(q=>{ const a=q.answer!=null&&String(q.answer).trim();
-      return spItem("",pill(a?IV.answered:IV.waiting),rich(q.text),a?`answer: ${rich(q.answer)}${q.answered?` · ${when(q.answered)}`:""}`:q.asked?`asked ${when(q.asked)}`:""); })); },
+      const ops=Array.isArray(q.options)?q.options.filter(x=>typeof x==="string"&&x.trim()):[];
+      return spItem("",pill(a?IV.answered:IV.waiting),`${rich(q.text)}${ops.length?`<ul class="sp-opts">${ops.map(x=>`<li>${rich(x)}</li>`).join("")}</ul>`:""}`,a?`answer: ${rich(q.answer)}${q.answered?` · ${when(q.answered)}`:""}`:q.asked?`asked ${when(q.asked)}`:""); })); },
   research:(R,o,keys)=>{ const qs=questionsOf(R), Rs=R.research||{}, st=qs.map(qState);
     const phase=Rs.phase||(st.includes("verifying")?"verification":st.length&&st.every(x=>x==="complete")?"complete":st.some(x=>x!=="planning")?"research":st.length?"planning":"");
     const line=["planning","research","verification"], at=phase==="complete"?3:line.indexOf(phase);
@@ -904,9 +934,9 @@ const PANEL={
     return h; },
   architecture:(R,o)=>`<p>The architecture weighs the options and decomposes the work into its units; it is signed off by the user.</p>${o.options!=null?`<p class="sp-sum">${o.options} option${o.options===1?"":"s"} weighed so far</p>`:""}`,
   plan:(R,o,keys)=>{ const P=R.plan||{}, V=R.verdicts, re=P.state==="re-pass";
-    const first=re?`re-pass ${P.from==="qa"?`after qa pass ${esc(P.pass||"?")}`:P.from==="parent"?(o.parent?`from #${esc(o.parent)}'s plan`:"from the parent's plan"):""}`:"plan writing";
+    const first=re?`re-pass ${P.from==="qa"?`after qa pass ${esc(P.pass||"?")}`:P.from==="parent"?(o.parent?`from #${esc(o.parent)}'s plan`:"from the parent's plan"):P.from==="existing"?`verifying the existing plan${P.against?` against ${esc(P.against)}`:""}`:""}`:"plan writing";
     let h=`<ol class="steps" aria-label="The plan's stages"><li class="cur${o.held?" held":" glow"}" aria-current="step"><span class="dot" aria-hidden="true"></span>${first}</li><li class="todo"><span class="dot" aria-hidden="true"></span>plan accepted</li></ol>`;
-    if(re) h+=`<p>${P.from==="qa"?`The planner re-passes the plan to answer qa pass ${esc(P.pass||"?")}'s findings.`:`The planner verifies the plan this unit takes from its parent's architecture, and writes its own.`}</p>`;
+    if(re) h+=`<p>${P.from==="qa"?`The planner re-passes the plan to answer qa pass ${esc(P.pass||"?")}'s findings${R.remediation&&R.remediation.route==="planner-then-rookie-dev"?"; rookie-dev's fixes and the next qa pass follow":""}.`:P.from==="existing"?`The planner verifies the plan already written${P.against?` against <code>${esc(P.against)}</code> as it stands now`:" against the code as it stands now"}, and records each delta.`:`The planner verifies the plan this unit takes from its parent's architecture, and writes its own.`}</p>`;
     if(V&&V.total) { h+=`<p class="sp-sum">${V.written} of ${V.total} verdict${V.total===1?"":"s"} written</p>`; if(o.unwritten&&o.unwritten.length&&V.written<V.total) h+=`<p>Still to write: ${o.unwritten.slice(0,6).map(esc).join(", ")}${o.unwritten.length>6?`, and ${o.unwritten.length-6} more`:""}.</p>`; }
     if(o.planDoc) h+=`<p>${refHtml(o.planDoc,"plan.md")}</p>`;
     return h; },
@@ -923,12 +953,18 @@ const PANEL={
     h+=qa.map(p=>qaBlock(p,keys)).join("");
     if(!running){ h+=qaBlock({pass:qa.length+1,verdict:"running"},keys); }
     return h; },
-  remediation:(R,o,keys)=>{ const qa=Array.isArray(R.qa)?R.qa:[], M=R.remediation||{}, last=qa.length?qa[qa.length-1]:null, n=M.pass||(last&&last.pass)||null;
-    const steps=Array.isArray(M.steps)&&M.steps.length?M.steps:[{what:`Fixes for the findings of qa pass ${n||"n"}: the implementer, the planner first where the plan itself is wrong`,state:"current"},{what:`qa pass ${n?n+1:"n+1"}${R.qaMax?`, of at most ${R.qaMax}`:""}`,state:"todo"}];
+  remediation:(R,o,keys)=>{ const qa=Array.isArray(R.qa)?R.qa:[], M=R.remediation||{}, last=qa.length?qa[qa.length-1]:null, n=M.pass||(last&&last.pass)||null, route=M.route||(last&&last.route)||null, nx=`qa pass ${n?n+1:"n+1"}${R.qaMax?`, of at most ${R.qaMax}`:""}`;
+    /* while no sub-step is recorded, the loop the route takes (the pipeline's, when no route is recorded either) */
+    const dflt=route==="on-the-spot"?[{what:`Minor fixes for qa pass ${n||"n"}, made on the spot`,state:"current"},{what:"Landing, with no new qa pass",state:"todo"}]
+      :route==="planner-then-rookie-dev"?[{what:`Planner re-pass for qa pass ${n||"n"}'s findings`,state:"current"},{what:"rookie-dev fixes",state:"todo"},{what:nx,state:"todo"}]
+      :route==="rookie-dev"?[{what:`rookie-dev fixes for qa pass ${n||"n"}'s findings`,state:"current"},{what:nx,state:"todo"}]
+      :[{what:`Fixes for the findings of qa pass ${n||"n"}: the implementer, the planner first where the plan itself is wrong`,state:"current"},{what:nx,state:"todo"}];
+    const steps=Array.isArray(M.steps)&&M.steps.length?M.steps:dflt;
     let h=`<p class="sp-sum">Answering qa pass ${esc(n||"?")}${last?` · ${(QA[last.verdict]||QA.running).label}`:""}</p>`;
+    if(ROUTE[route]) h+=`<p>Route: ${esc(ROUTE[route].label)}.</p>`;
     if(last) h+=qaBlock(last,keys);
-    h+=spList(steps.map(x=>spItem(STAGE_DOT[x.state]||"todo",dotMark,`${rich(x.what)}${x.state==="done"?" · done":x.state==="current"?" · in progress":" · to come"}`,"")));
-    if(!(Array.isArray(M.steps)&&M.steps.length)) h+=`<p>The pipeline's remediation loop; its sub-steps are recorded as they run.</p>`;
+    h+=spList(steps.map(x=>spItem(STAGE_DOT[x.state]||"todo",dotMark,`${rich(stepName(x))}${x.state==="done"?" · done":x.state==="current"?" · in progress":" · to come"}`,"")));
+    if(!(Array.isArray(M.steps)&&M.steps.length)) h+=`<p>${ROUTE[route]?"The route's loop":"The pipeline's remediation loop"}; its sub-steps are recorded as they run.</p>`;
     if(R.deviations!=null) h+=`<p>${esc(R.deviations)} deviation${R.deviations===1?"":"s"} from the verdict recorded so far</p>`;
     return h; },
   landing:R=>{ const qa=Array.isArray(R.qa)?R.qa:[], last=qa.length?qa[qa.length-1]:null; return `<p>qa has approved${last?` (pass ${esc(last.pass)})`:""}; the merge and the landing refresh are the admin team's.</p>`; },
@@ -939,6 +975,9 @@ function stepPanel(R,o){ o=o||{}; const k=R.step||"", held=["halted","escalated"
   if(k==="halted"){ h+=`<p class="sp-wait">⏸ Held still at ${esc(S||"its step")}: it waits on the user for ${rich(R.waitingOn||R.detail||"(not stated)")}</p>`; }
   if(k==="escalated") h+=`<p class="sp-wait">⇧ Escalated from ${esc(S||"its step")}: held still while the issue's scope is re-decided.</p>`;
   h+=(PANEL[S]||PANEL._)(R,opts,keys);
+  /* the open points (wip.open, plan/RULES.md §3): raised during the run, shown at every step until resolved; the trail keeps them after */
+  const op=(Array.isArray(R.open)?R.open:[]).filter(x=>x&&typeof x==="object"&&typeof x.text==="string"&&x.text.trim()&&!x.resolved);
+  if(op.length){ keys.add(KEY_OPEN); h+=`<div class="sp-open"><p class="sp-sum">${op.length} open point${op.length===1?"":"s"}</p>${spList(op.map(x=>spItem("",pill(OPEN_PT),rich(x.text),[x.raised?`raised at ${esc(x.raised)}`:"",x.ref?refHtml(x.ref):""].filter(Boolean).join(" · "))))}</div>`; }
   const next=nextStepOf(R,S), foot=[R.since?`${held?"waiting":"in this step"} since <span class="nw">${when(R.since)}</span>`:"",next?`next: ${esc(next)}`:""].filter(Boolean);
   if(foot.length) h+=`<div class="sp-foot">${foot.join(" · ")}</div>`;
   return h+`</div>`; }
@@ -1022,7 +1061,7 @@ function renderWip(){
   /* the board's own facts: its qa passes, its blockers, its landing */
   const facts=[];
   const qa=WIP.qa||[];
-  if(qa.length) facts.push(`<span><span class="l">qa</span>${qa.map(p=>{ const d=QA[p.verdict]||QA.running, f=p.findings||{}; const n=["documentation","test","code"].filter(k=>f[k]!=null).map(k=>`${f[k]} ${k==="documentation"?"doc":k}`).join(" / "); return `${pill(d,"",`pass ${p.pass} · ${d.label}`)}${n?` <small>${esc(n)}</small>`:""}`; }).join(" ")}${WIP.qaMax?` <small>of at most ${esc(WIP.qaMax)}</small>`:""}</span>`);
+  if(qa.length) facts.push(`<span><span class="l">qa</span>${qa.map(p=>{ const d=QA[p.verdict]||QA.running, f=p.findings||{}; const n=["documentation","test","code"].filter(k=>f[k]!=null).map(k=>`${f[k]} ${k==="documentation"?"doc":k}`).join(" / "), sv=Object.entries(p.severity||{}).map(([k,c])=>`${c} ${k}`).join(" / "); return `${pill(d,"",`pass ${p.pass} · ${d.label}`)}${n?` <small>${esc(n)}</small>`:""}${sv?` <small>${esc(sv)}</small>`:""}`; }).join(" ")}${WIP.qaMax?` <small>of at most ${esc(WIP.qaMax)}</small>`:""}</span>`);
   const bl=WIP.blockers||{}, iref=x=>x.repo&&x.repo!==PLAN.repo?ilink(x.issue,x.repo):ilink(x.issue);
   if((bl.waitsOn||[]).length) facts.push(`<span><span class="l">waits on</span>${bl.waitsOn.map(iref).join(", ")}</span>`);
   if((bl.blocks||[]).length) facts.push(`<span><span class="l">blocks</span>${bl.blocks.map(iref).join(", ")}</span>`);
@@ -1353,6 +1392,8 @@ const IMP_EFFECT={none:{g:"○",label:"no change"},additive:{g:"+",label:"additi
 const IMP_NEED={none:{g:"○",label:"nothing to change"},optional:{g:"◇",label:"optional"},required:{g:"!",label:"required"}};
 const IMP_CHANGE={added:{g:"+",label:"added"},changed:{g:"~",label:"changed",cls:"warning"},deprecated:{g:"⚠",label:"deprecated",cls:"warning"},removed:{g:"✕",label:"removed",cls:"critical"}};
 const IMP_TIER={"stable-core":"Stable Core","supported-extension":"Supported Extension",experimental:"Experimental",internal:"internal"};
+/* release.unreleased: the artifact is new and has never been released, so no existing version moves; its first release is its own */
+const UNRELEASED="new, unreleased: its first release is its own";
 const IMP_BUMP={none:"no version moves",fix:"fix · a bugfix release",feat:"feat · a feature release",major:"major · a breaking release"};
 const ibadge=(d,word,cls)=>{ const c=cls!==undefined?cls:d.cls||""; return `<span class="badge${c?" "+c:""}"><b aria-hidden="true">${esc(d.g)}</b>${esc(word||d.label)}</span>`; };
 /* a required adaptation's badge takes its entry's colour: red where not adapting breaks, yellow otherwise */
@@ -1374,14 +1415,14 @@ function compatParts(c,tags,slug){ if(c==="compatible") return {cls:"",pre:"",sy
 function impCard(key,x,i){ const S=IMP_SECTIONS.find(s=>s.key===key), tags=S.tags(x).filter(Boolean), slug=impSlug(x), c=compatOf(key,x), P=compatParts(c,tags,key==="conversion"?null:slug);
   return `<div class="bcard icard${P.cls}" data-sys="${esc(slug)}" data-imp="${key}.${i}" data-compat="${c}" tabindex="0" role="button" aria-label="${esc(S.title)}: ${esc(String(S.head(x,i)||"").replace(/`/g,""))}${c==="compatible"?"":`, ${COMPAT[c].label}`}"><div class="bh"><span class="nm">${rich(S.head(x,i)||"")}</span>${P.pre}${tags.join("")}${P.sys}</div><p>${rich(key==="conversion"?x.what:x.summary)}</p>${x.link?`<div class="meta">${moreLink(x.link,"detail")}</div>`:""}</div>`; }
 function impUnitCard(r,e){ const u=r.unit, c=compatOf("unit",e), P=compatParts(c,[],r.system||"");
-  return `<div class="bcard icard${P.cls}" data-sys="${esc(r.system||"")}" data-imp="unit.${esc(r.id)}" data-compat="${c}" tabindex="0" role="button" aria-label="Unit ${esc(u.n)}: ${esc(r.name)}${e?"":", not recorded yet"}${c==="compatible"?"":`, ${COMPAT[c].label}`}"><div class="bh"><span class="nm">${esc(u.n)}. ${u.issue?pair(u.issue,u.slug||r.id):esc(u.slug||r.id)}</span>${P.pre}${e&&e.release&&IMP_BUMP[e.release.bump]?`<span class="badge">${esc(IMP_BUMP[e.release.bump])}${e.release.version?` · ${esc(e.release.version)}`:""}</span>`:""}${P.sys}</div><p>${e?rich(e.summary||""):"Not recorded yet: summarised from the unit's own impact once its plan is accepted."}</p>${u.versions?`<div class="versions">versions: ${rich(u.versions)}</div>`:""}${e&&e.link?`<div class="meta">${moreLink(e.link,"detail")}</div>`:""}</div>`; }
+  return `<div class="bcard icard${P.cls}" data-sys="${esc(r.system||"")}" data-imp="unit.${esc(r.id)}" data-compat="${c}" tabindex="0" role="button" aria-label="Unit ${esc(u.n)}: ${esc(r.name)}${e?"":", not recorded yet"}${c==="compatible"?"":`, ${COMPAT[c].label}`}"><div class="bh"><span class="nm">${esc(u.n)}. ${u.issue?pair(u.issue,u.slug||r.id):esc(u.slug||r.id)}</span>${P.pre}${e&&e.release&&IMP_BUMP[e.release.bump]?`<span class="badge">${esc(IMP_BUMP[e.release.bump])}${e.release.unreleased===true?" · new, unreleased":""}${e.release.version?` · ${esc(e.release.version)}`:""}</span>`:""}${P.sys}</div><p>${e?rich(e.summary||""):"Not recorded yet: summarised from the unit's own impact once its plan is accepted."}</p>${u.versions?`<div class="versions">versions: ${rich(u.versions)}</div>`:""}${e&&e.link?`<div class="meta">${moreLink(e.link,"detail")}</div>`:""}</div>`; }
 function renderImpact(){
   const I=IMPACT, units=TRACKING?ROWS.filter(r=>r.unit):[];
   const uEntries=new Map((I&&Array.isArray(I.units)?I.units:[]).map(e=>[e.unit,e]));
   $("#impact-lede").textContent="The change's impact as best known now. How it differed from the plan is on the As built tab.";
   let h="";
   const rel=I&&I.release&&IMP_BUMP[I.release.bump]?I.release:null;
-  const head=[rel?`<span class="badge">version · ${esc(IMP_BUMP[rel.bump])}${rel.version?` · ${esc(rel.version)}`:""}</span>`:"",rel&&rel.note?`<span>${rich(rel.note)}</span>`:"",
+  const head=[rel?`<span class="badge">version · ${esc(IMP_BUMP[rel.bump])}${rel.unreleased===true?` · ${esc(UNRELEASED)}`:""}${rel.version?` · ${esc(rel.version)}`:""}</span>`:"",rel&&rel.note?`<span>${rich(rel.note)}</span>`:"",
     I&&I.source?`<span>source ${refHtml(I.source)}</span>`:"",I&&I.link?moreLink(I.link,"detail"):""].filter(Boolean);
   h+=`<div class="ihead">${head.join("")}</div>`;
   if(I&&I.summary) h+=`<p class="isum">${rich(I.summary)}</p>`;
@@ -1412,13 +1453,13 @@ function renderImpact(){
     +used("adaptation",x=>IMP_NEED[x.need]?x.need+"|"+needCls(x):null).map(kc=>{ const [k,c]=kc.split("|"); return `<span>${ibadge(IMP_NEED[k],k==="none"?"":`${IMP_NEED[k].label} change`,c)} what a consumer must change${c==="critical"?": not adapting breaks it":c==="warning"?": it does not break":""}</span>`; }).join("")
     +used("api",x=>IMP_CHANGE[x.change]?x.change:null).map(k=>`<span>${ibadge(IMP_CHANGE[k])} API change</span>`).join("")
     +(impItems("api").length?`<span><span class="badge">Stable Core</span> stability tier</span>`:"")
-    +(rel?`<span><span class="badge">version · …</span> the release this change takes</span>`:"");
+    +(rel?`<span><span class="badge">version · …</span> the release this change takes${rel.unreleased===true?"; new, unreleased: the artifact has no release yet, so no existing version moves":""}</span>`:"");
   if(noneBox) key+=`<span><i class="inb"></i>box: no downstream impact recorded${I?"":" yet"}</span>`;
   $("#impact-key").innerHTML=key; paint($("#impact-key"));
 }
 function inspectImpact(ref){ const [k,...rest]=String(ref).split("."), id=rest.join(".");
   if(k==="unit"){ const r=ROWS.find(x=>x.id===id); if(!r) return; const e=((IMPACT||{}).units||[]).find(x=>x.unit===id), u=r.unit;
-    inspect(`<div class="kicker">IMPACT · UNIT ${esc(u.n)}</div><div class="name">${esc(r.name)}</div><div class="vis">${whereOf(r)}</div><p class="lead">${e?rich(e.summary||""):"Not recorded yet."}</p><dl>${e&&e.release&&IMP_BUMP[e.release.bump]?`<dt>Version</dt><dd>${esc(IMP_BUMP[e.release.bump])}${e.release.version?` · ${esc(e.release.version)}`:""}</dd>`:""}${u.versions?`<dt>Versions in the architecture</dt><dd>${rich(u.versions)}</dd>`:""}<dt>Its issue</dt><dd>${u.issue?pair(u.issue,u.slug||r.id):"—"}</dd>${e&&e.source?`<dt>Source</dt><dd>${refHtml(e.source)}</dd>`:""}${e&&e.link?`<dt>Detail</dt><dd>${refHtml(e.link)}</dd>`:""}</dl>`); return; }
+    inspect(`<div class="kicker">IMPACT · UNIT ${esc(u.n)}</div><div class="name">${esc(r.name)}</div><div class="vis">${whereOf(r)}</div><p class="lead">${e?rich(e.summary||""):"Not recorded yet."}</p><dl>${e&&e.release&&IMP_BUMP[e.release.bump]?`<dt>Version</dt><dd>${esc(IMP_BUMP[e.release.bump])}${e.release.unreleased===true?` · ${esc(UNRELEASED)}`:""}${e.release.version?` · ${esc(e.release.version)}`:""}</dd>`:""}${u.versions?`<dt>Versions in the architecture</dt><dd>${rich(u.versions)}</dd>`:""}<dt>Its issue</dt><dd>${u.issue?pair(u.issue,u.slug||r.id):"—"}</dd>${e&&e.source?`<dt>Source</dt><dd>${refHtml(e.source)}</dd>`:""}${e&&e.link?`<dt>Detail</dt><dd>${refHtml(e.link)}</dd>`:""}</dl>`); return; }
   const S=IMP_SECTIONS.find(s=>s.key===k), i=parseInt(id,10), x=impItems(k)[i]; if(!S||!x) return;
   inspect(`<div class="kicker">IMPACT · ${esc(S.title).toUpperCase()}</div><div class="name">${rich(S.head(x,i)||"")}</div><div class="vis">${compatOf(k,x)!=="compatible"?pill(COMPAT[compatOf(k,x)]):""}${S.tags(x).filter(Boolean).join("")}</div><p class="lead">${rich(k==="conversion"?x.what:x.summary)}</p><dl><dt>System</dt><dd>${impSlug(x)?`<span class="sw" data-sys="${esc(x.system)}"></span>${esc(sysName(x.system))}`:"outside this repository's systems"}</dd>${x.tier!==undefined&&k==="api"?`<dt>Stability tier</dt><dd>${x.tier&&IMP_TIER[x.tier]?esc(IMP_TIER[x.tier]):"not stated"}</dd>`:""}${IMPACT.source?`<dt>Source</dt><dd>${refHtml(IMPACT.source)}</dd>`:""}${x.link?`<dt>Detail</dt><dd>${refHtml(x.link)}</dd>`:""}</dl>`); }
 
@@ -1464,7 +1505,7 @@ function renderContext(){
   const rm=PLAN.roadmap||null;
   if(TRACKING){ const units=ROWS.filter(r=>r.unit);
     cards.push(`<div class="card"><h3>Roadmap <small>#${esc(PLAN.issue)} · ${units.length} units${WIP.updated?` · ${day(WIP.updated)}`:""}</small></h3><ul class="issues">${units.map(r=>`<li><span class="nm">${esc(r.unit.n)}. ${r.unit.issue?pair(r.unit.issue,r.name):esc(r.name)} · ${badge(stateOf(r))}${runOf(r)?` ${runPill(runOf(r))}`:""}${isNext(r)?` ${TAG_NEXT}`:""}</span></li>`).join("")}</ul></div>`); }
-  else if(rm&&rm.issue) cards.push(`<div class="card"><h3>Roadmap <small>${day(rm.asOf||"")}</small></h3><ul class="issues"><li><span class="nm">${pair(rm.issue,rm.title||"")}</span></li>${(rm.items||[]).map(i=>`<li><span class="nm">${pair(i.issue,i.title||"")}${i.state?` · ${esc(i.state)}`:""}${i.issue===PLAN.issue?" · this board":""}</span></li>`).join("")}</ul></div>`);
+  else if(rm&&rm.issue) cards.push(`<div class="card"><h3>Roadmap <small>${day(rm.asOf||"")}</small></h3><ul class="issues"><li><span class="nm">${pair(rm.issue,rm.title||"")}</span></li>${(rm.items||[]).map(i=>`<li><span class="nm">${pair(i.issue,i.title||"")}${i.state?` · ${esc(String(i.state).toUpperCase()==="CLOSED"&&i.stateReason==="NOT_PLANNED"?"closed · not planned":i.state)}`:""}${i.issue===PLAN.issue?" · this board":""}</span></li>`).join("")}</ul></div>`);
   else cards.push(`<div class="card"><h3>Roadmap</h3><p class="lede">No roadmap item claims #${esc(PLAN.issue)}: it has no tracking parent. The <a href="${UP}docs/plans/index.html">work board</a> and the <a href="${UP}docs/dashboards/index.html">repository page</a> show the roadmap.</p></div>`);
   const fu=PLAN.followUps||[];
   cards.push(`<div class="card"><h3>Follow-ups and related issues <small>${fu.length}</small></h3>${fu.length?`<ul class="issues">${fu.map(f=>(f.issue?`<li><span class="nm">${f.title?`${pair(f.issue,f.title,f.repo)}${f.note?` — ${rich(f.note)}`:""}`:`${ilink(f.issue,f.repo)}${boardOf(f.issue,f.repo)?` ${ghlink(f.issue,f.repo)}`:""}${f.note?` — ${rich(f.note)}`:""}`}</span></li>`:`<li><span class="nm"><code>${esc(f.name||"")}</code> <small>not filed</small> — ${rich(f.note||"")}</span></li>`)).join("")}</ul>`:`<p class="lede">None recorded.</p>`}</div>`);
@@ -1488,7 +1529,7 @@ function derive(){
   ISSUE_BOARDS.clear(); issueBoardsOf().forEach((b,n)=>ISSUE_BOARDS.set(n,b)); SYSTEMS=PLAN.systems||[];
   STEP=WIP.step||""; HALTED=STEP==="halted"; PAUSED=HALTED||STEP==="escalated"; LANDED=STEP==="landed"||PLAN.status==="built"; STOPPED=["cancelled"].includes(STEP)||PLAN.status==="abandoned";
   CURRENT=(LANDED||STOPPED)?[]:(WIP.current||[]);
-  NEXT_ROW=TRACKING&&!LANDED&&!STOPPED&&WIP.next?ROWS.find(r=>r.id===WIP.next&&r.unit&&!rowActive(r)&&stateOf(r)==="pending")||null:null;
+  NEXT_ROW=TRACKING&&!LANDED&&!STOPPED&&WIP.next?ROWS.find(r=>r.id===WIP.next&&r.unit&&!rowActive(r)&&stateOf(r)==="pending"&&!leftForLater(r))||null:null;
   ownStep=["halted","escalated"].includes(STEP)?(WIP.resume||WIP.last||""):STEP;
   PLAN_LANDED=LANDED||(TRACKING&&(["building","built"].includes(PLAN.status)||["implementation","landed"].includes(ownStep)
     ||!!(WIP.landing&&(WIP.landing.pr||WIP.landing.merge))||ROWS.some(r=>r.unit&&(stateOf(r)!=="pending"||(WIP.current||[]).some(a=>String(a).split(".")[0]===r.id)))));
