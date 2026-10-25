@@ -42,10 +42,15 @@ module.exports = function cases22(X) {
   guard("the KPI tiles' legends inside each tile, the tiles at their full width (dashboards-skill/22)", c => {
     if (!chrome) { c.push(["the rendered pages (no browser found: set CHROME)", false, "no Chrome or Edge"]); return; }
     const js = 'const K=document.querySelector(".kpis"),ts=[...K.querySelectorAll(":scope>.kpi")];document.body.dataset.r=JSON.stringify({w:Math.round(K.getBoundingClientRect().width),t:ts.map(t=>{const b=t.getBoundingClientRect();return [Math.round(b.width),Math.round(b.top),!!t.querySelector(".seg-bar"),!!t.querySelector(":scope>.key")];}),shared:!!K.querySelector(":scope>.key")});';
-    [["the example (landed)", EX], ["the live fixture (research)", LIVE], ["the tracking fixture", TRK]].forEach(([w, d], i) => {
+    [["the live fixture (research)", LIVE], ["the tracking fixture", TRK]].forEach(([w, d], i) => {
       const r = got(wide(planPage("kpi-" + i, d, js))) || {};
       const ok = r.t && r.t.length === 5 && !r.shared && r.t.every(x => x[0] >= r.w * 0.18 && x[1] === r.t[0][1]) && r.t.every(x => x[2] === x[3]);
       c.push([`${w}: five tiles in one row, each over a sixth of it, each bar with its own legend inside its tile, no shared legend row (1920 px)`, !!ok, JSON.stringify(r)]); });
+    /* a landed board (dashboards-skill/32): four tiles in one row, each over a fifth of it, and the Timeline across the row below it; the
+       example records no time, so its Timeline has a legend (its visits) and no bar */
+    { const r = got(wide(planPage("kpi-landed", EX, js))) || {}, t = r.t || [], four = t.slice(0, 4), tl = t[4];
+      const ok = t.length === 5 && !r.shared && four.every(x => x[0] >= r.w * 0.22 && x[1] === four[0][1] && x[2] === x[3]) && tl && tl[0] >= r.w * 0.98 && tl[1] > four[0][1] && tl[3];
+      c.push(["the example (landed): four tiles in one row, each over a fifth of it, each bar with its legend inside its tile, the Timeline across the row below with its legend, no shared legend row (1920 px)", !!ok, JSON.stringify(r)]); }
     const rw = got(dumpDom(wr(path.join(sc, "kpi-work", "index.html"), probeAt(withData(T.work, "board", JSON.stringify(WBJ, null, 2)), js)), "", "1920,1080", 6000)) || {};
     c.push(["the work board: its tiles' bars each carry their legend inside the tile, as before", !!rw.t && rw.t.every(x => x[2] === x[3]) && !rw.shared, JSON.stringify(rw)]);
     c.push(["the template draws no shared legend row (no kpi-key) and no CSS for one", !/kpi-key|kpikey/.test(T.plan) && /\.kpi \.key\{/.test(T.plan), "template"]);

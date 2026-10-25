@@ -102,11 +102,13 @@ place, with no further pass (its `on-the-spot` route), carries a small neutral m
 "✎ fixed in place · no 2nd pass" ("fixing" while the fixes are being made). It is a decision, not an outcome: it takes no status colour,
 and the pass keeps its own verdict pill (`plan/RULES.md` §5, "QA").
 
-**Phases: a neutral ramp.** A landed board's Timeline tile (`plan/RULES.md` §2, "The KPI tiles") draws the time per phase of its run in
-neutral ink shades, faintest for the first phase to strongest for the last (an issue board's plan, build, qa and landing; a tracking
-board's plan, filing and units), each named with its time in the tile's legend: phases are an order, not systems or outcomes, so they
-take neither a system slot nor a status colour. The tile's figure is the sum of the phases its bar draws, never baseline to built: a phase
-left out of the bar is left out of the sum (admin-team/dashboards-skill/28).
+**Steps: a neutral ramp.** A landed board's Timeline tile (`plan/RULES.md` §2, "The KPI tiles") draws the time of each visit of a run
+step (sizing, research, plan, …, qa, remediation, landing; a tracking board's own steps) in neutral ink shades, one shade per step, faintest
+for the first step drawn to the full ink for the last, a step's repeats sharing its shade, each visit an entry of the tile's legend with
+its start → end and its duration (admin-team/dashboards-skill/32, in place of dashboards-skill/23's four phases): steps are an order, not
+systems or outcomes, so they take neither a system slot nor a status colour. A time not in the record is drawn "—", never guessed; a
+visit without both times is not drawn. The tile's figure is the sum of the visits its bar draws, never baseline to built: a visit left out
+of the bar is left out of the sum (admin-team/dashboards-skill/28).
 
 **Work in progress and the next one up: two accent marks.** The accent colour marks two things
 and nothing else, each with its own look and its own legend entry (the charging arrow, below, is
@@ -183,8 +185,9 @@ segmented bar of what its figure counts (by group, verdict, state or qa pass, `p
 colour, a neutral; dashed for what is pending), and **each tile carries the legend of its own bar, inside the tile**, naming exactly the
 segments that bar drew: no legend row is shared under the tiles, so every tile keeps its full share of the row. The
 work board's Runs tile (every run by its state) and its Landed tile (landed, merged, complete, and the closed ones it does not count) carry one
-too, each with its legend inside the tile. A landed board's Timeline tile carries the time per phase (§1, "Phases"), a phase with no
-bound recorded left out of the bar and named in its sub-line; its figure is the sum of the phases the bar draws. A tile that counts one state (the work board's Active, Waiting, Up next, Not started) has
+too, each with its legend inside the tile. A landed board's Timeline tile carries the time per step visit (§1, "Steps"), its legend
+one entry per visit with its start → end and its duration, a visit without both times left out of the bar and named in its
+sub-line; its figure is the sum of the visits the bar draws. A tile that counts one state (the work board's Active, Waiting, Up next, Not started) has
 nothing to segment and carries none, and so do the system pages' hand-written tiles: they are counted facts written by hand (files,
 types, threads, tests), not states, so there is nothing a bar would divide.
 
@@ -396,9 +399,9 @@ indicator present or absent by type, one-line ledes, reduced motion wherever any
 tablist's keys, the state block, the as-is header, the legends of Guarantees and Context, the work-board link, the links from the data,
 the Markdown copies, the progress notes, a tracking board's steps, the KPI bars, the neutral bug badge, the chain, core subsystems, the tiles'
 legends inside each tile, no "board" tag, the title's `#n`, "since" said once by the step panel, the larger charging arrow, the landing
-step, the Tests tab, the Timeline tile's phases, a reference's section number before its excerpt, no work level in the page's data, a
+step, the Tests tab, the Timeline tile's legend of step visits, a reference's section number before its excerpt, no work level in the page's data, a
 plan board's finished steps clickable, each unit row's label glowing on its own while it is filed, the Timeline tile's figure the sum of
-its phases, an issue's title quoted and marked, every qa pass and the one running as ordinals, the dependency bubbles — and
+its visits, an issue's title quoted and marked, every qa pass and the one running as ordinals, the dependency bubbles — and
 the browser pass the layout ones (the header's halves, the wide page, the legends shown). A missing feature fails, as `FEATURE MISSING:
 <feature> (template since dashboards-skill/N)`, **through a declared divergence too**: a divergence adds or argues a removal; it never
 excuses a page that lags its template. A landed or cancelled issue board is the exception: it is kept as it landed and never
@@ -450,7 +453,7 @@ never the accent (§1).
 
 **The decisions of admin-team/dashboards-skill/28**, each weighed for every type:
 
-- **The Timeline tile's figure is the sum of the phases its bar draws** (§1, "Phases"; `plan/RULES.md` §2): applied to plan boards and
+- **The Timeline tile's figure is the sum of the phases its bar draws** (§1, "Steps"; `plan/RULES.md` §2; since dashboards-skill/32 the visits its bar draws): applied to plan boards and
   tracking boards (one tile, one rule: `lib.js` `timelineTotal()`, the template's `timelineTotal()`). Not to the work board, which has no
   Timeline tile (one row per run), nor to system, supersystem and repository pages, whose tiles are hand-written counted facts and show no
   run's phases.
@@ -491,6 +494,18 @@ never the accent (§1).
   table. Not to plan or tracking boards: their rows are a timeline grid whose sizes the board's own rules set, and a tracking board's
   units already read at the grid's size; not to the state pages, which list no runs.
 
+**The decisions of admin-team/dashboards-skill/32**, each weighed for every type:
+
+- **The Timeline tile: one line per visit of a run step, from the record only** (§1, "Steps"; `plan/RULES.md` §2, "The Timeline tile's
+  legend"): its start → end and its duration in minutes, hours and minutes, or days and hours, never "same day"; a time from the
+  board's snapshots, its sizing stamp and qa passes, the merge's time and the branch's step commits from git, a neighbour's bound, else
+  "—"; the bar one segment per timed visit, its legend one entry per visit; a landed board's Timeline across the KPI row. Applied to plan boards
+  and tracking boards (a tracking board's own steps: sizing to its plan's landing, then its units' runs as `implementation`), one rule in
+  `lib.js` `timelineSteps()` and the template. Not to the work board: its Landed tile counts runs and says no time, so it has no "same
+  day" to replace, and each run's steps are on its own board. Not to system, supersystem and repository pages: their tiles are counted
+  facts written by hand and show no run. A landed board is re-rendered for it only where the user asks (§11, above: WebTools #63's board
+  was).
+
 A **planning-docs landing** — a docs pull request that resolves no issue (a plan folder, a roadmap document) — triggers a small landing
 refresh: the committed work board, and the repository page where the repository has one.
 
@@ -530,7 +545,7 @@ strip is a **unit card**, and a step in the step panel is a **step cell**.
 | **Ring** | A border-only state on a cell (the research scale, §1). |
 | **Glow** | The interior in-progress accent on whatever is being worked on (§1). |
 | **Arrow** | The charging connector into a Verdict cell (§1). |
-| **Legend** | The key for a colour grouping, one per tab or per tile (§2). |
+| **Legend** | The key for a colour grouping, one per tab or per tile (§2); a landed board's Timeline tile's legend has one entry per step visit, with its times (`plan/RULES.md` §2). |
 
 A ruleset that needs an element none of these names describes adds the term here first, with its
 function, and uses it everywhere; it never reuses a term for a second function.

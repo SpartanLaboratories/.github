@@ -1,6 +1,5 @@
-// The case groups of admin-team/dashboards-skill/23, run by verify-templates.js (it passes its helpers in): the Timeline tile's bar on a
-// landed board (the time per phase in neutral ink shades, each phase in the tile's legend, a phase with no bound named in its sub-line;
-// a tracking board's own phases), the run's start stamped (plan.sized) and each qa pass's time (wip.qa[].at); a reference's section
+// The case groups of admin-team/dashboards-skill/23, run by verify-templates.js (it passes its helpers in): (the Timeline tile's phases on
+// a landed board, replaced by its step visits in dashboards-skill/32, verify/cases-32.js), the run's start stamped (plan.sized) and each qa pass's time (wip.qa[].at); a reference's section
 // number before its excerpt (refNumber: the file's headings win, the anchor's number marked "?" where the file is not there); a work
 // level in the pipeline's facts reworded, never written ("inside level 3", "a level-3 re-pass", "Label level: 3"), test-level phrases
 // left alone; and the feature probes of this run. Each group returns [title, cases], a case [name, ok, detail].
@@ -40,57 +39,7 @@ module.exports = function cases23(X) {
   const lum = c => { const v = chans(c); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
   const landed = f => { const d = copy(EX); f(d); return d; };
 
-  /* 1. the Timeline tile */
-  guard("the Timeline tile's bar: the time per phase in neutral ink shades, each phase in its legend, a phase with no bound named (dashboards-skill/23)", c => {
-    const full = landed(d => { d.sized = "2026-10-19T08:00:00Z"; d.wip.qa[0].date = "2026-10-21"; d.wip.qa[0].at = "2026-10-21T09:00:00Z"; d.wip.qa[1].date = "2026-10-22"; d.wip.qa[1].at = "2026-10-22T15:00:00Z"; d.asBuilt.date = "2026-10-24"; d.milestones.find(m => m.column === "built").date = "2026-10-24"; });
-    const L1 = lib.timelinePhases(full);
-    c.push(["lib.js: an issue board's four phases from sized, the verdict milestone, the qa passes' at and the merge", JSON.stringify(L1.phases.map(p => [p.key, p.shade, lib.tlDuration(p)])) === JSON.stringify([["plan", "1", "1 day"], ["build", "2", "1 day"], ["qa", "3", "1 day"], ["landing", "4", "2 days"]]) && !L1.left.length, JSON.stringify(L1)]);
-    const hours = landed(d => { d.sized = "2026-10-20T06:00:00Z"; d.wip.qa[0].at = "2026-10-20T09:00:00Z"; d.wip.qa[1].at = "2026-10-20T14:00:00Z"; });
-    c.push(["a phase whose bounds both carry a time and lie under a day reads in hours (qa · 5 h); one with a date-only bound in calendar days", JSON.stringify(lib.timelinePhases(hours).phases.map(p => [p.key, lib.tlDuration(p)])) === JSON.stringify([["plan", "same day"], ["build", "same day"], ["qa", "5 h"], ["landing", "same day"]]), JSON.stringify(lib.timelinePhases(hours).phases)]);
-    const noSize = lib.timelinePhases(EX);
-    c.push(["the example (no sizing recorded): plan left out and named, build, qa and landing drawn from its dated qa passes", noSize.phases.map(p => p.key).join(",") === "build,qa,landing" && lib.timelineLeftOut(noSize) === "plan left out: no sizing recorded", JSON.stringify(noSize)]);
-    const trailSized = landed(d => { d.trail.unshift({ date: "2026-10-19", column: "gap", label: "Run started: sized as one system" }); });
-    c.push(["an issue board written before plan.sized takes its sizing from the earliest trail entry that says it was sized", lib.timelineBounds(trailSized).sized === "2026-10-19" && lib.timelinePhases(trailSized).phases[0].key === "plan", JSON.stringify(lib.timelineBounds(trailSized))]);
-    const noQa = landed(d => { d.sized = "2026-10-19"; d.wip.qa = []; });
-    c.push(["no qa pass recorded: build, qa and landing left out, named once with their reason", lib.timelinePhases(noQa).phases.map(p => p.key).join(",") === "plan" && lib.timelineLeftOut(lib.timelinePhases(noQa)) === "build, qa, landing left out: no qa pass recorded", lib.timelineLeftOut(lib.timelinePhases(noQa))]);
-    const order = landed(d => { d.sized = "2026-10-19"; d.wip.qa.forEach(q => { q.date = "2026-10-18"; }); });
-    c.push(["bounds out of order: the phase is left out with that reason", /build left out: its bounds out of order/.test(lib.timelineLeftOut(lib.timelinePhases(order))) && !lib.timelinePhases(order).phases.some(p => p.key === "build"), lib.timelineLeftOut(lib.timelinePhases(order))]);
-    const trk = copy(TRK); Object.assign(trk, { status: "built", sized: "2026-10-20T10:00:00Z", asBuilt: { ref: "master", sha: "7de8207", date: "2026-10-25" } }); trk.wip.step = "landed"; trk.wip.current = [];
-    const LT = lib.timelinePhases(trk);
-    c.push(["a tracking board's own phases: plan (to the architecture signed off), filing (to the plan's merge), units (to the last unit's landing), over the same ramp", JSON.stringify(LT.phases.map(p => [p.key, p.shade, lib.tlDuration(p)])) === JSON.stringify([["plan", "1", "1 day"], ["filing", "m", "same day"], ["units", "4", "4 days"]]), JSON.stringify(LT)]);
-    const trkTrail = copy(trk); delete trkTrail.sized; trkTrail.trail.push({ date: "2026-10-25", column: "built", label: "Unit 3, #62, started: sized as one system" });
-    c.push(["a tracking board never takes its sizing from the trail (its units' starts are written there)", lib.timelineBounds(trkTrail).sized === null && /plan left out: no sizing recorded/.test(lib.timelineLeftOut(lib.timelinePhases(trkTrail))), JSON.stringify(lib.timelineBounds(trkTrail))]);
-    if (!chrome) { c.push(["the rendered pages (no browser found: set CHROME)", false, "no Chrome or Edge"]); return; }
-    const r1 = got(wide(planPage("tl-full", full, TILE))) || {};
-    c.push(["the page: four segments, tp-1 to tp-4 in phase order, each with its legend entry inside the tile, the same as lib.js says", r1.l === "Timeline" && JSON.stringify((r1.segs || []).map(s => s[0])) === JSON.stringify(["tp tp-1", "tp tp-2", "tp tp-3", "tp tp-4"]) && JSON.stringify(r1.key) === JSON.stringify(L1.phases.map(p => `${p.key} · ${lib.tlDuration(p)}`)) && (r1.keyCls || []).every((k, i) => k === `segk tp tp-${i + 1}`) && !/left out/.test(r1.s || ""), JSON.stringify(r1).slice(0, 400)]);
-    const ll = (r1.light || []).map(lum), dl = (r1.dark || []).map(lum);
-    c.push(["the shades are neutrals running faintest to strongest: darker step by step in light, lighter step by step in dark", ll.length === 4 && ll.every((v, i) => !i || v < ll[i - 1]) && dl.every((v, i) => !i || v > dl[i - 1]), JSON.stringify([r1.light, r1.dark])]);
-    /* the status-hue rule of GUIDANCE.md §1: a colour is in a status spectrum when its HSL saturation is 0.15 or more and its hue is outside
-       175°–295°; the ink and the surface are the page's neutrals, faintly blue, so their mixes sit in the blue band or under the saturation */
-    const hsl = x => { const [r, g, b] = chans(x), mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn; if (!d) return { h: 0, s: 0 };
-      const s = d / (1 - Math.abs(2 * l - 1)), h = 60 * (mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4); return { h: (h + 360) % 360, s }; };
-    c.push(["the shades take no status colour: each is a neutral of the page's ink, under the status-hue rule (saturation under 0.15, or a hue in 175°–295°)", [...(r1.light || []), ...(r1.dark || [])].length === 8 && [...(r1.light || []), ...(r1.dark || [])].every(x => { const q = hsl(x); return q.s < 0.15 || (q.h >= 175 && q.h <= 295); }), JSON.stringify([...(r1.light || []), ...(r1.dark || [])].map(x => { const q = hsl(x); return [Math.round(q.h), +q.s.toFixed(2)]; }))]);
-    const r2 = got(wide(planPage("tl-example", EX, TILE))) || {};
-    c.push(["the example: three segments (build, qa, landing), three legend entries, plan named in the sub-line", (r2.segs || []).length === 3 && JSON.stringify(r2.key) === JSON.stringify(["build · same day", "qa · same day", "landing · same day"]) && /plan left out: no sizing recorded/.test(r2.s || ""), JSON.stringify(r2).slice(0, 300)]);
-    c.push(["a phase of no length keeps a sliver: every phase drawn is at least 4 px wide", (r2.segs || []).every(s => s[1] >= 4) && (r1.segs || []).every(s => s[1] >= 4), JSON.stringify([r1.segs, r2.segs])]);
-    const r3 = got(wide(planPage("tl-noqa", noQa, TILE))) || {};
-    c.push(["no qa pass recorded: one segment (plan) and its one legend entry; the sub-line names the rest", (r3.segs || []).length === 1 && JSON.stringify(r3.key) === JSON.stringify(["plan · 1 day"]) && /build, qa, landing left out: no qa pass recorded/.test(r3.s || ""), JSON.stringify(r3).slice(0, 300)]);
-    const none = landed(d => { d.wip.qa = []; d.milestones = d.milestones.filter(m => m.column !== "verdict"); });
-    const r4 = got(wide(planPage("tl-none", none, TILE))) || {};
-    c.push(["no phase with both bounds: no bar and no legend inside the tile, every phase named in the sub-line", !(r4.segs || []).length && !(r4.key || []).length && /plan, build left out: no sizing or plan acceptance recorded|plan left out/.test(r4.s || "") && /landing/.test(r4.s || ""), JSON.stringify(r4).slice(0, 300)]);
-    const r5 = got(wide(planPage("tl-trk", trk, TILE))) || {};
-    c.push(["the tracking board, landed: plan, filing and units in tp-1, tp-m and tp-4, each in its legend", JSON.stringify((r5.segs || []).map(s => s[0])) === JSON.stringify(["tp tp-1", "tp tp-m", "tp tp-4"]) && JSON.stringify(r5.key) === JSON.stringify(["plan · 1 day", "filing · same day", "units · 4 days"]), JSON.stringify(r5).slice(0, 300)]);
-    const r6 = got(wide(planPage("tl-live", LIVE, TILE))) || {};
-    c.push(["a board that has not landed keeps its QA passes tile: no phase drawn", r6.l === "QA passes" && !(r6.segs || []).some(s => /\btp\b/.test(s[0])), JSON.stringify(r6).slice(0, 200)]);
-    /* check.js: the phases reported, bounds out of order a warning, a bad sized or qa at a failure */
-    const t1 = tree("tl-check", [landed(d => { d.folder = "docs/plans/38-handshake-empty-name"; d.wip.qa.forEach(q => { q.date = "2026-10-18"; }); d.sized = "2026-10-19"; })]), f1 = path.join(t1, "docs", "plans", "38-handshake-empty-name");
-    ["plan.md", "architecture.md", "impact.md", "final-implementation.md", "research/README.md"].forEach(f => { const s = sk("plan/examples/38-handshake-empty-name/" + f); if (fs.existsSync(s)) wr(path.join(f1, f), rd(s)); });
-    const k1 = run(checkJs, [f1]);
-    c.push(["check.js reports a landed board's phases and warns on bounds out of order", /ok\s+timeline: plan 1 day · qa same day · landing 2 days \(build left out: its bounds out of order\)/.test(k1.stdout) && /warn\s+the Timeline tile leaves out build: its bounds are out of order/.test(k1.stdout), (k1.stdout || "").split(/\r?\n/).filter(l => /timeline|Timeline/.test(l)).join(" | ")]);
-    const p1 = planOf(t1, "docs/plans/38-handshake-empty-name"); p1.sized = "yesterday"; p1.wip.qa[0].at = "noon"; wr(path.join(f1, "plan.json"), JSON.stringify(p1, null, 2) + "\n"); node(embedJs, f1);
-    const k2 = run(checkJs, [f1]);
-    c.push(["check.js fails a sized and a qa pass's at that are not dates", k2.status === 1 && /sized "yesterday" is not a date or an ISO date-time/.test(k2.stdout) && /wip\.qa\[0\]\.at "noon" is not an ISO date-time/.test(k2.stdout), (k2.stdout || "").split(/\r?\n/).filter(l => /^FAIL|fail/.test(l)).join(" | ").slice(0, 300)]);
-  });
+  /* 1. the Timeline tile's phases: replaced by its step visits (dashboards-skill/32), whose cases are verify/cases-32.js */
 
   /* 2. the run's start and the qa passes' times, stamped by the scripts */
   guard("the run's start (plan.sized) and each qa pass's time (wip.qa[].at), stamped by new.js and apply-event.js (dashboards-skill/23)", c => {
