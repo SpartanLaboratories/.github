@@ -111,11 +111,14 @@ function checkPlan(plan, dir, root) {
 
   const rows = Array.isArray(plan.rows) ? plan.rows : [];
   const tracking = plan.kind === "tracking";
-  if (!rows.length && plan.status !== "planned") fail("rows is empty: a board past planning has at least one row");
+  /* A cancelled board (abandoned) stops where its run stopped: before plan acceptance it holds the columns written so far, like a
+     planned board, and its milestones say which. */
+  const early = ["planned", "abandoned"].includes(plan.status);
+  if (!rows.length && !early) fail("rows is empty: a board past planning has at least one row");
   /* The columns are written in order (RULES §4): options are required once the Considered column is written, the verdict once
      the Verdict column is. A planned board between "researched" and "plan-accepted" may hold rows with a gap only. */
-  const wantOptions = plan.status !== "planned" || has("considered") || has("verdict");
-  const wantVerdict = plan.status !== "planned" || has("verdict");
+  const wantOptions = !early || has("considered") || has("verdict");
+  const wantVerdict = !early || has("verdict");
   if (rows.length) ["gap", "considered", "verdict"].forEach(c => { if (!has(c) && (c === "gap" || (c === "considered" ? wantOptions : wantVerdict))) warn(`no "${c}" milestone: the column header carries no date`); });
   if (plan.status === "built" && !has("built")) warn('a built plan usually carries a "built" milestone (the merge or the release)');
   /* A sub-issue of a signed-off tracking plan is never born with empty columns (RULES §2, columns 1-2; §4, sized): its Gap and

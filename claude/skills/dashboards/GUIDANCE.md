@@ -108,7 +108,8 @@ header of a plan board or the live work board, ink, never a status or accent col
 while the view is live and changing and holds still after a quiet spell, while the run waits on the
 user, when its data cannot be read and under `prefers-reduced-motion`. Nothing else animates. The
 in-progress mark is exact: it marks every cell being worked on, however many, and nothing else; a whole column glows
-only while the rows being worked on are unknown (`plan/RULES.md` §3). No check limits how many glow.
+only while the rows being worked on are unknown, or while the work touches no row (an implementation stage that builds no row
+glows the whole As built column, `plan/RULES.md` §3). No check limits how many glow.
 
 **Research state: the research scale.** On a plan board, a row the run's research questions name
 carries a **ring** (its Considered cell's border, never a fill) in a status spectrum of its own, from

@@ -37,7 +37,9 @@
 // dashboards-skill/18: no glow cap (the exact cells; the returned questions' rows before the verification), "closed · not planned" on the work
 // board, wip.next skipping units left for later, release.unreleased, the plan verification re-pass, the richer event facts (interview options,
 // qa severity and route, the remediation's route), the as-built states before the outcome (in progress, partially built) and open points
-// (wip.open). A template is recorded only when its
+// (wip.open). And the fast path of dashboards-skill/20 (plan/scripts/apply-event.js): each event kind applied to a fixture, the same
+// event twice changing nothing, the enrich flag, atomic failure, the re-render of an older-template board by an ordinary event, a stage
+// that touches no rows glowing the whole As built column, and its time. A template is recorded only when its
 // browser passes and every case group pass.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
@@ -628,9 +630,11 @@ targets.filter(t => t.block === "plan").forEach(t => {
     ["architecture", ["considered"], null, false],
     ["plan", ["considered", "verdict"], null, false], ["plan", ["verdict"], null, true, /considered missing/],
     ["branch", [], null, false], ["branch", ["verdict"], null, true, /map glows nothing/],
-    ["implementation", [`${r0}.built`, `${r1}.built`], null, false], ["implementation", [`${r0}.verdict`], null, true, /As built cells of the rows the stage touches/], ["implementation", [], null, true, /no As built cell named/],
+    ["implementation", [`${r0}.built`, `${r1}.built`], null, false], ["implementation", [`${r0}.verdict`], null, true, /off the map: [^ ]*\.verdict/],
+    // no stage is current (none recorded): the whole As built column glows (dashboards-skill/20), and an empty glow is off the map
+    ["implementation", ["built"], null, false], ["implementation", [], null, true, /nothing named \(the whole column, \["built"\], glows\)/],
     ["qa", ["built"], null, false], ["qa", [`${r1}.built`], null, true, /As built \("built"\) column/],
-    ["remediation", [`${r1}.built`], null, false], ["remediation", ["built"], null, true, /qa findings touch/],
+    ["remediation", [`${r1}.built`], null, false], ["remediation", ["built"], null, false], ["remediation", [`${r1}.verdict`], null, true, /qa findings touch/],
     ["landing", [], null, false], ["landing", ["built"], null, true, /map glows nothing/],
     ["halted", ["considered", "verdict"], "plan", false], ["halted", ["built"], "plan", true, /stopped in "plan", wip\.resume/],
     ["escalated", [`${r0}.built`], "implementation", false], ["escalated", ["considered"], "implementation", true, /stopped in "implementation"/]
@@ -1372,6 +1376,154 @@ targets.filter(t => t.block === "plan").forEach(t => {
     const run = lib.unitRun({ status: "building", wip: { step: "implementation", open: V.staged.wip.open }, rows: [] });
     yc.push(["8: a unit's mirror carries its open points (lib.js panelFacts())", Array.isArray(run.open) && run.open.length === 2, JSON.stringify(run.open || null).slice(0, 80)]); }
   report("no glow cap, closed as not planned, next skips left for later, unreleased artifacts, plan verification, the richer event facts, the as-built states before the outcome, open points (dashboards-skill/18)", yc);
+}
+
+/* The fast path (plan/scripts/apply-event.js; plan/RULES.md §4, "The fast path"), in a scratch repository holding an issue board (the
+   live-issue fixture), a tracking board (the tracking fixture) and a sub-issue board inside it, every page the current template plus
+   its data, and the live work board built from them (board.js --live --no-gh):
+   - each event kind applied to a fixture: its step, glow, questions, stages and derived states, halt and resume, qa passes,
+     remediation, open points, detail, wip.event, trail and branch, check.js passing every board it wrote; on the sub-issue the
+     standing rule on the tracking board (a unit's start at sized, complete at an approving qa pass) and the unit's mirror;
+   - idempotence: every event applied twice, the second run "duplicate" and every file byte for byte as the first left it;
+   - the enrich flag: no for the events the facts decide, yes (with why) for those that need the documents;
+   - atomic failure: a refused request, a parent page with no data block, a board that check.js fails, each exit 1 with every
+     file as it was;
+   - the re-render: a board on an older template brought onto the current one by an ordinary event, and a page that declares a
+     divergence left alone;
+   - timing: one event, live work board included, well under five seconds. */
+{ const ac = [], sc = path.join(out, "apply-event"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
+  const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x));
+  const ptpl = (targets.find(t => t.name === "plan/template/dashboard.html") || {}).path, PT = ptpl ? fs.readFileSync(ptpl, "utf8") : null;
+  const apply = sk("plan/scripts/apply-event.js"), tree = path.join(sc, "tree"), plans = path.join(tree, "docs", "plans");
+  const ISSUE = "docs/plans/70-live-verification", TRACK = "docs/plans/55-http-client-stack", SUB = TRACK + "/62-http-core";
+  const at = k => `2026-10-25T${String(10 + Math.floor(k / 60)).padStart(2, "0")}:${String(k % 60).padStart(2, "0")}:00Z`;
+  const fdir = folder => path.join(tree, ...folder.split("/"));
+  const board = (folder, d) => { const dir = fdir(folder); fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(d, null, 2) + "\n"); fs.writeFileSync(path.join(dir, "dashboard.html"), PT); node(embedJs, dir); return dir; };
+  const read = folder => JSON.parse(fs.readFileSync(path.join(fdir(folder), "plan.json"), "utf8"));
+  const edit = (folder, f) => { const d = read(folder); f(d); fs.writeFileSync(path.join(fdir(folder), "plan.json"), JSON.stringify(d, null, 2) + "\n"); node(embedJs, fdir(folder)); };
+  const files = () => { const m = {}; const walk = d => fs.readdirSync(d, { withFileTypes: true }).forEach(e => { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else m[path.relative(tree, p)] = fs.readFileSync(p, "utf8"); }); walk(plans); return m; };
+  const changed = (a, b) => [...new Set([...Object.keys(a), ...Object.keys(b)])].filter(f => a[f] !== b[f]);
+  const parse = r => { try { return JSON.parse((r.stdout || "").trim().split(/\r?\n/).pop()); } catch (e) { return { result: "unparsed", error: (r.stdout || "") + (r.stderr || "") }; } };
+  let n = 0;
+  /* one event: the request (the protocol's message, its fenced json block), the run, its summary as JSON */
+  const ev = (folder, event, facts, o) => { o = o || {}; const f = path.join(sc, `req-${++n}.json`), issue = parseInt(path.basename(folder), 10), stamp = at(n);
+    fs.writeFileSync(f, "plan-board " + event + "\n\n```json\n" + JSON.stringify({ v: 1, id: `verify/${issue}/${n}`, attempt: 1, from: "verify", repo: tree, github: "SpartanLaboratories/WebTools", action: "plan-board", issue, event, folder, facts: facts || {} }, null, 2) + "\n```\n");
+    const argv = s => [apply, "--event", f, "--worktree", tree, "--at", s, "--json", ...(o.live === false ? ["--no-live"] : ["--no-gh"])];
+    const t = Date.now(), r = cp.spawnSync(process.execPath, argv(stamp), { encoding: "utf8", cwd: tree });
+    return { status: r.status, s: parse(r), ms: Date.now() - t, again: () => { const r2 = cp.spawnSync(process.execPath, argv(at(n + 300)), { encoding: "utf8", cwd: tree }); return { status: r2.status, s: parse(r2) }; } }; };
+  /* an event that must apply, then the same event again: a duplicate, and no file changes */
+  const step = (label, folder, event, facts, wantEnrich, test) => {
+    const r = ev(folder, event, facts), d = read(folder), why = (r.s.why || []).join("; ");
+    let okTest = false; try { okTest = test ? !!test(d) : true; } catch (e) { okTest = false; }
+    ac.push([`${label}: ${event} applies and check.js passes every board it wrote`, r.status === 0 && r.s.result === "ok" && /^pass/.test(r.s.check || "") && okTest, `exit ${r.status} · ${r.s.result} · test ${okTest} · ${r.s.error || ""} · ${r.s.check || ""} ·${(r.s.applied || []).join("; ").slice(0, 300)}`]);
+    ac.push([`${label}: ${event} says enrich ${wantEnrich ? "yes" : "no"}`, r.s.enrich === (wantEnrich ? "yes" : "no"), `enrich ${r.s.enrich}: ${why.slice(0, 300)}`]);
+    const before = files(), r2 = r.again(), diff = changed(before, files());
+    ac.push([`${label}: ${event} twice: the second run is a duplicate and changes no file`, r2.status === 0 && r2.s.result === "duplicate" && !diff.length, `exit ${r2.status} · ${r2.s.result} · changed: ${diff.join(", ") || "none"}`]);
+    return r;
+  };
+  if (!PT) ac.push(["the plan-board template", false, "not found"]);
+  else try {
+    const LIVE = J("verify/fixtures/live-issue.plan.json"), TRK = J("verify/fixtures/tracking.plan.json");
+    board(ISSUE, LIVE); board(TRACK, TRK);
+    const subD = copy(LIVE); Object.assign(subD, { issue: 62, slug: "62-http-core", folder: SUB, parent: { issue: 55, board: null }, title: "Verification sub-issue", issueTitle: "Verification sub-issue" });
+    board(SUB, subD); node(embedJs, fdir(TRACK));
+    ["blast-radius", "token-splitting", "wire-compat", "refusal-wording", "prior-art"].forEach(q => [ISSUE, SUB].forEach(F => { const p = path.join(fdir(F), "research"); fs.mkdirSync(p, { recursive: true }); fs.writeFileSync(path.join(p, q + ".md"), "# Findings\n"); }));
+    ["plan.md", "research/README.md"].forEach(f => fs.writeFileSync(path.join(fdir(ISSUE), f), "# Verification\n"));
+    cp.spawnSync(process.execPath, [sk("plan/scripts/board.js"), "--live", "--no-gh", "--root", tree], { encoding: "utf8", cwd: tree });
+    const has = (d, a) => (d.wip.current || []).includes(a), cur = d => JSON.stringify(d.wip.current);
+    /* the research events, the halt and the resume */
+    step("issue board", ISSUE, "research-returned", { returned: { question: "blast-radius", findings: "research/blast-radius.md" } }, false,
+      d => d.wip.questions.find(q => q.question === "blast-radius").state === "returned" && !has(d, "validity-rule.considered") && has(d, "public-kdoc.considered") && d.trail.some(t => t.ref === "research/blast-radius.md") && d.wip.event.note === "returned: blast-radius");
+    step("issue board", ISSUE, "research-started", { researching: [{ question: "wire-compat", rows: ["protocol-doc"] }] }, false,
+      d => d.wip.questions.find(q => q.question === "wire-compat").state === "researching" && has(d, "protocol-doc.considered") && d.wip.research.phase === "research");
+    step("issue board", ISSUE, "halted", { waitingOn: "Verification case: the user picks the refusal wording." }, false,
+      d => d.wip.step === "halted" && d.wip.resume === "research" && /refusal wording/.test(d.wip.waitingOn) && has(d, "protocol-doc.considered"));
+    step("issue board", ISSUE, "resumed", {}, false, d => d.wip.step === "research" && d.wip.resume === null && d.wip.waitingOn === null);
+    step("issue board", ISSUE, "research-returned", { returned: { question: "token-splitting", findings: `${ISSUE}/research/token-splitting.md` } }, false, d => d.wip.questions.find(q => q.question === "token-splitting").findings === "research/token-splitting.md");
+    step("issue board", ISSUE, "research-returned", { returned: { question: "wire-compat", findings: "research/wire-compat.md" } }, false, d => d.wip.questions.every(q => q.findings));
+    step("issue board", ISSUE, "verification-started", {}, false, d => d.wip.questions.every(q => q.state === "verifying") && d.wip.research.phase === "verification");
+    step("issue board", ISSUE, "researched", {}, true, d => d.wip.step === "plan" && d.wip.plan.state === "writing" && cur(d) === '["considered","verdict"]' && d.wip.questions.every(q => q.state === "complete"));
+    step("issue board", ISSUE, "plan-accepted", {}, true, d => d.wip.step === "branch" && !d.wip.current.length && !d.wip.questions.length && d.wip.research === null && d.wip.plan === null);
+    step("issue board", ISSUE, "branch-cut", { branch: "fix/issue-70-live-verification", stages: [{ id: "A", name: "The rule" }, { id: "B", name: "The reply" }] }, true,
+      d => d.branch === "fix/issue-70-live-verification" && d.wip.step === "implementation" && d.wip.stages.map(s => s.state).join() === "current,todo");
+    /* the presenter's enrichment between events: the rows each stage touches (plan.md), the verdicts */
+    edit(ISSUE, d => { d.wip.stages[0].rows = ["validity-rule", "routing"]; d.wip.stages[1].rows = ["routing", "refusal-reply"]; d.wip.stages.push({ id: "C", name: "The as-built record", state: "todo", rows: [] }); d.wip.current = ["validity-rule.built", "routing.built"]; d.rows.forEach(r => { r.verdict = { kind: "build", summary: "Verification case: written.", steps: [{ id: "A", what: "x" }] }; }); });
+    const SG = (a, b, c) => [{ id: "A", name: "The rule", state: a }, { id: "B", name: "The reply", state: b }, { id: "C", name: "The as-built record", state: c }];
+    step("issue board", ISSUE, "implementation-stage", { stage: "A", stages: SG("done", "current", "todo"), open: [{ text: "Verification case: the plan's two stages disagree on the reply's wording.", ref: "plan.md" }] }, true,
+      d => d.status === "building" && d.rows.find(r => r.id === "routing").asBuilt.state === "in-progress" && d.rows.find(r => r.id === "refusal-reply").asBuilt.state === "in-progress" && cur(d) === '["routing.built","refusal-reply.built"]' && d.wip.open.length === 1 && d.wip.open[0].raised === "implementation-stage A" && d.wip.event.note === "A reported done; B current");
+    { const d = read(ISSUE); d.wip.current = ["built"]; const g = require(sk("plan/scripts/lib.js")).glowMismatch(d);
+      ac.push(["a stage that names its rows: the whole As built column is off the map (lib.js glowMismatch)", !!g && /their cells glow, not the whole column/.test(g.bad.join(" ")), JSON.stringify(g)]); }
+    step("stage with no rows", ISSUE, "implementation-stage", { stage: "B", stages: SG("done", "done", "current") }, true,
+      d => d.wip.step === "implementation" && cur(d) === '["built"]' && !require(sk("plan/scripts/lib.js")).glowMismatch(d));
+    { const c = node(checkJs, fdir(ISSUE), "--root", tree);
+      ac.push(["a stage that touches no rows glows the whole As built column, [\"built\"], and check.js keeps quiet on the glow", c.status === 0 && /keeps the step-to-column map at "implementation"/.test(c.stdout) && !/does not match wip\.step/.test(c.stdout), lines(c, /glow|step-to-column|does not match/)]); }
+    step("issue board", ISSUE, "implementation-stage", { stage: "C", stages: SG("done", "done", "done"), open: [{ text: "Verification case: the plan's two stages disagree on the reply's wording.", resolved: "The planner amended plan.md." }] }, true,
+      d => d.wip.step === "qa" && cur(d) === '["built"]' && d.wip.open[0].resolved && d.trail.some(t => /^Open point resolved/.test(t.label)));
+    step("issue board", ISSUE, "qa-pass", { qa: { pass: 1, verdict: "changes-requested", doc: 2, test: 1, code: 0, severity: { minor: 2, other: 1 }, route: "rookie-dev" }, rows: ["routing"] }, true,
+      d => d.wip.step === "remediation" && cur(d) === '["routing.built"]' && d.wip.qa[0].route === "rookie-dev" && d.wip.qa[0].severity.other === 1 && d.wip.qa[0].findings.documentation === 2 && d.wip.remediation.pass === 1 && d.wip.qaMax === 3);
+    step("issue board", ISSUE, "implementation-stage", { remediation: { pass: 1, route: "rookie-dev", steps: [{ name: "Verification case: the fixes", state: "current" }] } }, false,
+      d => d.wip.step === "remediation" && d.wip.remediation.steps[0].state === "current" && cur(d) === '["routing.built"]');
+    step("issue board", ISSUE, "qa-pass", { qa: { pass: 2, verdict: "approved", doc: 0, test: 0, code: 0 } }, false,
+      d => d.wip.step === "landing" && !d.wip.current.length && d.wip.remediation === null && d.wip.qa.length === 2 && !d.wip.qa[1].route);
+    step("issue board, parts unresolved", ISSUE, "landed", { merge: "abcdef1", pr: 99, date: "2026-10-25" }, true, d => d.wip.step === "landing" && d.status === "building" && d.asBuilt.sha === "abcdef1" && d.asBuilt.pr === 99);
+    edit(ISSUE, d => { d.rows.forEach(r => { r.asBuilt = { state: "as-planned", summary: "Verification case: built as decided." }; }); });
+    step("issue board, every part resolved", ISSUE, "landed", { merge: "abcdef2", pr: 99, date: "2026-10-25" }, true, d => d.wip.step === "landed" && d.status === "built" && !d.wip.current.length && d.asBuilt.sha === "abcdef2");
+    /* the other kinds, each on a fresh copy of the fixture */
+    const fresh = f => { const d = copy(LIVE); if (f) f(d); board(ISSUE, d); };
+    fresh(d => { d.wip.questions = []; d.wip.research = null; d.wip.current = ["considered"]; });
+    step("research planning", ISSUE, "research-planning", { drafted: 3 }, false, d => d.wip.research.phase === "planning" && d.wip.research.drafted === 3 && cur(d) === '["considered"]');
+    fresh(d => { d.wip.step = "interview"; d.wip.questions = []; d.wip.research = null; d.wip.current = []; });
+    step("interview", ISSUE, "halted", { waitingOn: "Verification case: two interview questions.", questions: [{ text: "Verification case: refuse or trim?", options: ["Refuse", "Trim"] }] }, false,
+      d => d.wip.resume === "interview" && d.wip.interview.some(q => q.text === "Verification case: refuse or trim?" && q.options.length === 2 && q.answer === null));
+    fresh();
+    step("escalation", ISSUE, "escalated", { proposedLevel: 4 }, true, d => d.wip.step === "escalated" && d.wip.resume === "research" && d.wip.proposedLevel === 4 && !/level/i.test(d.wip.detail + d.wip.waitingOn));
+    fresh();
+    step("cancellation", ISSUE, "cancelled", { reason: "Verification case: superseded." }, true, d => d.status === "abandoned" && d.wip.step === "cancelled" && !d.wip.current.length && d.notes.cancelled);
+    fresh();
+    { const r = ev(ISSUE, "halted", { waitingOn: "Verification case: this is level 3 work, a level-3 change." }), d = read(ISSUE);
+      ac.push(["a work level in the facts is never written: the halt applies without that text, enrich yes", r.status === 0 && !/level/i.test(JSON.stringify(d.wip)) && r.s.enrich === "yes", `${r.s.result} · ${r.s.error || ""} · ${(r.s.why || []).join("; ").slice(0, 200)}`]); }
+    /* a tracking board at its architecture */
+    edit(TRACK, d => { d.wip.step = "architecture"; d.wip.current = ["considered"]; });
+    step("tracking board", TRACK, "architecture-signed-off", {}, true, d => d.wip.step === "landing" && !d.wip.current.length && d.wip.next === "http-core");
+    edit(TRACK, d => { d.wip.step = "implementation"; d.wip.current = ["java-floor.built"]; d.wip.next = "http-core"; });
+    /* the sub-issue: the standing rule on its tracking board */
+    step("sub-issue", SUB, "sized", { step: "research" }, true, () => { const t = read(TRACK), r = t.rows.find(x => x.id === "http-core");
+      return t.wip.current.includes("http-core.built") && t.wip.next === "test-support" && r.unit.live && r.unit.live.step === "research" && /#62 in progress/.test(t.wip.detail); });
+    step("sub-issue", SUB, "research-started", { researching: [{ question: "blast-radius", rows: ["validity-rule"] }] }, false, () => read(TRACK).rows.find(x => x.id === "http-core").unit.live.event.name === "research-started");
+    edit(SUB, d => { d.wip.step = "qa"; d.wip.current = ["built"]; d.wip.questions = []; d.wip.research = null; d.status = "building"; d.rows.forEach(r => { r.verdict = { kind: "build", summary: "Verification case: written.", steps: [{ id: "A", what: "x" }] }; r.asBuilt = { state: "as-planned", summary: "Verification case: built." }; }); });
+    step("sub-issue", SUB, "qa-pass", { qa: { pass: 1, verdict: "approved", doc: 0, test: 0, code: 0 } }, false, () => { const t = read(TRACK); return t.rows.find(x => x.id === "http-core").asBuilt.state === "complete" && t.wip.current.includes("http-core.built") && /#62 complete/.test(t.wip.detail); });
+    /* sized with no board: nothing to apply; the presenter lays the foundation */
+    { const before = files(), r = ev("docs/plans/71-not-yet", "sized", { step: "research" });
+      ac.push(["sized with no board: exit 0, no-board, enrich yes, no file written", r.status === 0 && r.s.result === "no-board" && r.s.enrich === "yes" && !changed(before, files()).length && !fs.existsSync(path.join(plans, "71-not-yet")), `${r.status} · ${r.s.result}`]); }
+    /* atomic failure */
+    const fail = (label, folder, event, facts, prep, re) => { if (prep) prep(); const before = files(), r = ev(folder, event, facts), diff = changed(before, files());
+      ac.push([`atomic failure, ${label}: exit 1, every file as it was`, r.status === 1 && r.s.result === "failed" && r.s.enrich === "yes" && !diff.length && (!re || re.test(r.s.error || "")), `exit ${r.status} · ${r.s.error} · restored ${r.s.restored} · changed: ${diff.join(", ") || "none"}`]); };
+    fresh();
+    fail("a refused request (a question that is not a slug)", ISSUE, "research-started", { researching: [{ question: "Not A Slug", rows: [] }] }, null, /not a kebab-case slug/);
+    fail("a halt with nothing waiting", ISSUE, "halted", {}, null, /waitingOn/);
+    { const tp = path.join(fdir(TRACK), "plan.json"), keep = fs.readFileSync(tp, "utf8");
+      fail("the parent's plan.json does not parse (found after the issue's files were written)", SUB, "research-returned", { returned: { question: "blast-radius", findings: "research/blast-radius.md" } },
+        () => fs.writeFileSync(tp, keep.replace(/\}\s*$/, "")), /parent tracking board's plan\.json does not parse/);
+      fs.writeFileSync(tp, keep); }
+    fail("check.js fails the board", ISSUE, "research-returned", { returned: { question: "blast-radius", findings: "research/blast-radius.md" } }, () => edit(ISSUE, d => { delete d.rows[0].name; }), /check\.js failed/);
+    /* every event re-renders the board onto the current template */
+    fresh();
+    { const p = path.join(fdir(ISSUE), "dashboard.html"); fs.writeFileSync(p, fs.readFileSync(p, "utf8").replace("</head>", "<!-- verification case: an older template -->\n</head>"));
+      const r = ev(ISSUE, "research-returned", { returned: { question: "blast-radius", findings: "research/blast-radius.md" } }), html = fs.readFileSync(p, "utf8");
+      const tplOnly = h => h.replace(/(<script type="application\/json" id="plan">)[\s\S]*?(<\/script>)/, "$1$2").replace(/\r\n/g, "\n");
+      ac.push(["re-render: a board on an older template is brought onto the current one by an ordinary event", r.status === 0 && (r.s.rerendered || []).length === 1 && tplOnly(html) === tplOnly(PT), `${r.s.result} · rerendered ${JSON.stringify(r.s.rerendered)}`]);
+      const c1 = cp.spawnSync(process.execPath, [checkJs, fdir(ISSUE), "--root", tree, "--auto"], { encoding: "utf8" });
+      ac.push(["re-render: check.js --auto then reads the page as the verified template plus its data", /is the verified template plus its data/.test(c1.stdout || ""), lines(c1, /template:/)]);
+      fs.writeFileSync(p, fs.readFileSync(p, "utf8").replace("</head>", '<meta name="template-divergence" content="Verification case: a declared divergence.">\n</head>'));
+      const r2 = ev(ISSUE, "verification-started", {}), h2 = fs.readFileSync(p, "utf8");
+      ac.push(["re-render: a page that declares a divergence is left as it is, and the presenter is told", r2.status === 0 && !(r2.s.rerendered || []).length && /template-divergence/.test(h2) && r2.s.enrich === "yes" && /declares a divergence/.test((r2.s.why || []).join(" ")), `${r2.s.result} · ${(r2.s.why || []).join("; ").slice(0, 200)}`]); }
+    /* timing */
+    fresh();
+    { const r = ev(ISSUE, "research-returned", { returned: { question: "blast-radius", findings: "research/blast-radius.md" } });
+      const r2 = ev(ISSUE, "research-started", { researching: [{ question: "wire-compat", rows: ["protocol-doc"] }] }, { live: false });
+      ac.push([`timing: one event with the live work board in ${r.ms} ms, without it in ${r2.ms} ms (limits 5000 and 2500)`, r.status === 0 && r2.status === 0 && r.ms < 5000 && r2.ms < 2500, `${r.ms} ms · ${r2.ms} ms`]); }
+  } catch (e) { ac.push(["the cases run to the end", false, String(e.stack).split(String.fromCharCode(10)).slice(0, 3).join(" ")]); }
+  report("the fast path, apply-event.js: each event kind, idempotence, the enrich flag, atomic failure, the re-render onto the current template, timing (dashboards-skill/20)", ac);
 }
 
 const today = new Date().toISOString().slice(0, 10);
