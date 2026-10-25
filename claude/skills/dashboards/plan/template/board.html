@@ -62,6 +62,29 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 6px}
 .chip{font:12px/1 var(--mono);padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink-2);max-width:100%;overflow-wrap:anywhere}
 .chip b{color:var(--ink);font-weight:600}
+/* The header's two halves (GUIDANCE.md §6, "The header"): from 940 px the intro (the title, the issue line, the function) fills the
+   left half and the tags stand in the right half beside it, each a small card with its label over its value, growing to fill its line, a
+   long one across the half (.wide); under 940 px the two stack and the tags wrap as chips, the label before the value. The topbar (the breadcrumb, the
+   live indicator, the theme switch) runs across the top. The same rules on every dashboard type. */
+.issueline{font:12.5px/1.4 var(--mono);color:var(--ink-2);margin:0 0 8px;overflow-wrap:anywhere}
+.issueline a{text-decoration:none;border-bottom:1px solid var(--line)}
+.issueline a:hover{border-bottom-color:var(--ink)}
+.chip .ck{font:700 10px/1.2 var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.chip .sysl{display:inline-flex;align-items:center;margin-right:10px;white-space:nowrap}
+.chip .sysl:last-child{margin-right:0}
+@media (min-width:940px){
+  header{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto auto auto auto 1fr;column-gap:28px}
+  header>.topbar{grid-column:1/-1;grid-row:1}
+  header>.crumbs{grid-column:1;grid-row:1}
+  header>.systools{grid-column:2;grid-row:1;justify-self:end;align-self:start;float:none;margin:14px 0 4px}
+  header>h1{grid-column:1;grid-row:2}
+  header>.issueline{grid-column:1;grid-row:3}
+  header>.function{grid-column:1;grid-row:4;max-width:none}
+  header>.chips{grid-column:2;grid-row:2/-1;align-self:start;align-content:flex-start;gap:8px;margin:8px 0 6px}
+  header>.chips>.chip{display:block;flex:1 1 190px;padding:7px 10px 8px;font-size:12.5px;line-height:1.4;border-radius:6px}
+  header>.chips>.chip .ck{display:block;margin:0 0 2px}
+  header>.chips>.chip.wide{flex-basis:100%}
+}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0 18px}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0}
 .kpi .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
@@ -266,7 +289,9 @@ function render(){
   if(B.live) $("#runs-lede").textContent="Each run read from its freshest board across the worktrees; regenerated at every event, never committed.";
   document.title=`${(B.repo||"").split("/")[1]||""} · work board`;
   const t=B.tree||{};
-  $("#chips").innerHTML=[`<span class="chip">generated <b>${when(B.generated||"")}</b></span>`,t.sha?`<span class="chip">from <b>${esc(t.ref||"")} ${esc(t.sha)}</b></span>`:"",B.live?`<span class="chip">live · from <b>${esc(B.live.worktrees)}</b> worktree${B.live.worktrees===1?"":"s"}, each issue's freshest board</span>`:"",`<span class="chip">tracker as of <b>${day(B.asOf||"")}</b></span>`,`<span class="chip model">board <b>board.json</b> · ${ROWS.length} runs</span>`].filter(Boolean).join("");
+  /* the tags (GUIDANCE.md §6, "The header"): each its label (.ck) and its value; when and from which commit it was generated are one tag */
+  const tag=(ck,v,cls)=>`<span class="chip${cls?" "+cls:""}"><span class="ck">${ck}</span> ${v}</span>`;
+  $("#chips").innerHTML=[tag("generated",`<b>${when(B.generated||"")}</b>${t.sha?` · from <b>${esc(t.ref||"")} ${esc(t.sha)}</b>`:""}`),B.live?tag("live view",`from <b>${esc(B.live.worktrees)}</b> worktree${B.live.worktrees===1?"":"s"}, each issue's freshest board`):"",tag("tracker as of",`<b>${day(B.asOf||"")}</b>`),tag("board",`<b>board.json</b> · ${ROWS.length} runs`,"model")].filter(Boolean).join("");
   const n=k=>ROWS.filter(r=>stOf(r)===k).length;
   const nexts=ROWS.filter(r=>stOf(r)==="next");
   $("#kpis").innerHTML=[["Runs",ROWS.length,`${(B.roadmap||[]).length} tracking issue${(B.roadmap||[]).length===1?"":"s"}`],["Active now",ROWS.filter(r=>r.active).length,"glowing below"],["Waiting on the user",n("halted"),"halted runs"],["Landed",n("landed"),[n("complete")?`${n("complete")} more complete, not merged`:"",n("merged")?`${n("merged")} merged, awaiting close`:"",n("not-planned")?`${n("not-planned")} closed as not planned, not counted`:"",n("duplicate")?`${n("duplicate")} closed as duplicates, not counted`:""].filter(Boolean).join(" · ")||"merged"],["Up next",nexts.length,{html:nexts.length?nexts.map(r=>ilink(r.issue)).join(", ")+" · not started":"no unit named next"}],["Not started",n("not-started")+n("no-board"),(()=>{ const ns=ROWS.filter(r=>["not-started","no-board"].includes(stOf(r))), o=ns.filter(r=>r.tracker||stOf(r)==="no-board").length, u=ns.length-o; return [u?`${u} unit${u===1?"":"s"} of a tracking issue`:"",o?`${o} other issue${o===1?"":"s"}, from the tracker`:""].filter(Boolean).join(" · ")||"none"; })()]].map(([l,v,s])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s&&s.html!=null?s.html:esc(s)}</div></div>`).join("");
