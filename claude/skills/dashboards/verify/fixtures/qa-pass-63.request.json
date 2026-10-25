@@ -1,0 +1,123 @@
+{
+  "$comment": "A real plan-board request (WebTools #63, qa pass 1, 2026-10-25) that the fast path refused before the fix: facts.remediation.steps names two current sub-steps (rookie-dev's minor fixes and the planner's ruling, run in parallel), and its open point's ref is a build output that is never committed. verify-templates.js replays it on the apply-event fixture board.",
+  "v": 1,
+  "id": "webtools-21/63/14",
+  "attempt": 1,
+  "from": "webtools-21",
+  "action": "plan-board",
+  "github": "SpartanLaboratories/WebTools",
+  "branch": "feat/issue-63-test-support",
+  "issue": 63,
+  "event": "qa-pass",
+  "folder": "docs/plans/55-http-client-stack/63-test-support",
+  "facts": {
+    "at": "2026-10-25T19:38:32Z",
+    "step": "remediation",
+    "qa": {
+      "pass": 1,
+      "verdict": "CHANGES REQUESTED",
+      "doc": 19,
+      "test": 15,
+      "code": 2,
+      "severity": {
+        "minor": 27,
+        "other": 9
+      },
+      "route": "planner-then-rookie-dev",
+      "report": "build/reports/test-inspector/index.html",
+      "tests": "376 passed, 0 failed, 0 skipped across :webtools-http:check (47 s) and the four build-logic level tasks"
+    },
+    "rows": [
+      "recorder",
+      "fixtures-tests",
+      "publication-check",
+      "fake-transport",
+      "fixture-codec",
+      "fixtures-surface"
+    ],
+    "remediation": {
+      "pass": 1,
+      "route": "planner-then-rookie-dev",
+      "steps": [
+        {
+          "name": "rookie-dev: the 27 minor fixes (KDoc and comment wording, test renames and asserts, two mechanical code fixes); re-run webtools-http check and build-logic e2eTest",
+          "state": "current"
+        },
+        {
+          "name": "planner: rule add-or-record on the nine test gaps (Amendment 3 to plan §9)",
+          "state": "current"
+        },
+        {
+          "name": "rookie-dev: write the tests the planner adds",
+          "state": "todo"
+        },
+        {
+          "name": "qa pass 2",
+          "state": "todo"
+        }
+      ]
+    },
+    "tests": {
+      "base": "5d98102",
+      "ran": [
+        {
+          "class": "FixtureRecorderIntegrationTest",
+          "module": "webtools-http",
+          "passed": 15,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "class": "FixturesPublicationEndToEndTest",
+          "module": "build-logic",
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0
+        }
+      ],
+      "other": {
+        "byModule": {
+          "webtools-http + build-logic": {
+            "1": {
+              "classes": 4,
+              "tests": 11
+            },
+            "2": {
+              "classes": 26,
+              "tests": 183
+            },
+            "3": {
+              "classes": 10,
+              "tests": 60
+            },
+            "4a": {
+              "classes": 23,
+              "tests": 90
+            },
+            "4b": {
+              "classes": 2,
+              "tests": 15
+            },
+            "4c": {
+              "classes": 10,
+              "tests": 17
+            }
+          }
+        }
+      }
+    },
+    "open": [
+      {
+        "text": "Nine test gaps from qa pass 1 await the planner's add-or-record ruling: Amendment 1 edge forms and longest-first ordering (L2), concurrent same-name recordings (L3), the positive branch of the check edge, fixtures-jar resource entries and the -Dorg.gradle.project route (L4b), codec size robustness, concurrency start barrier and an encodable canary (L4c).",
+        "raised": "2026-10-25T19:38:32Z",
+        "ref": "build/reports/test-inspector/index.html"
+      }
+    ],
+    "detail": "Code review: no logic defect, every plan item done, no unplanned change, inside the unit, the single recorded deviation is the only one, hygiene clean (no key material, paths or attribution). Doc: KDoc complete and tier-named; residuals are the Amendment 1 partial-escape boundary missing from two consumer-facing KDocs, header and crypto-constant comments, and ten collapsed wording items. Tests: all plan rows present; the nine non-minor items are edges or guarantees the plan states but no test pins.",
+    "waitingOn": null,
+    "systems": [
+      "webtools-http-test-fixtures",
+      "gradle-build"
+    ]
+  }
+}

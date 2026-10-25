@@ -162,13 +162,14 @@ function applyEvent(orig, ev, facts, req, now) {
     return q.length ? `Research: ${ret} of ${plural(q.length, "question")} returned${openList().length ? "; open: " + openList().join(", ") : ""}.` : "Research: the questions are being drafted."; };
   const docRef = f => fs.existsSync(path.join(DIR, f)) ? f : null;
   /* the note, detail and trail entry of a remediation report: facts.stage (what the report says it reached) first, else the
-     sub-steps done and the one current; from the facts alone, so the same event twice writes the same board */
+     sub-steps done and the current ones (several may run in parallel); from the facts alone, so the same event twice writes the same board */
   const remediationWording = () => {
-    const R = w.remediation || {}, ss = R.steps || [], cur = ss.find(x => x.state === "current"), dn = ss.filter(x => x.state === "done");
+    const R = w.remediation || {}, ss = R.steps || [], curs = ss.filter(x => x.state === "current"), dn = ss.filter(x => x.state === "done");
     const said = txt(facts.stage, "stage"), pass = R.pass != null ? `qa pass ${R.pass}` : "the qa pass";
-    const what = said || [dn.length ? `${plural(dn.length, "sub-step")} done` : null, cur ? `${cur.name} current` : ss.length && !cur ? "every sub-step done" : null].filter(Boolean).join("; ") || null;
-    note = note || (said || [dn.length ? `${dn.length} of ${ss.length} remediation sub-steps done` : null, cur ? "the next current" : null].filter(Boolean).join("; ") || `remediation for ${pass}`);
-    detail = detail || `Remediation for ${pass}${cur ? ": " + cur.name : what ? ": " + what : ""}.`;
+    const names = curs.map(x => x.name).join(curs.length > 1 ? " | " : "");
+    const what = said || [dn.length ? `${plural(dn.length, "sub-step")} done` : null, curs.length === 1 ? `${names} current` : curs.length ? `${curs.length} sub-steps current in parallel: ${names}` : ss.length ? "every sub-step done" : null].filter(Boolean).join("; ") || null;
+    note = note || (said || [dn.length ? `${dn.length} of ${ss.length} remediation sub-steps done` : null, curs.length === 1 ? "the next current" : curs.length ? `${curs.length} current in parallel` : null].filter(Boolean).join("; ") || `remediation for ${pass}`);
+    detail = detail || `Remediation for ${pass}${curs.length === 1 ? ": " + names : what ? ": " + what : ""}.`;
     /* a facts.stage that names the pass itself ("qa pass 1 fixes done; …") stands alone, after "Remediation:" */
     trail = { column: "built", label: said && /\bqa pass\b/i.test(said) ? `Remediation: ${said}` : `Remediation for ${pass}${what ? ": " + what : ""}` };
   };
@@ -359,7 +360,7 @@ function applyEvent(orig, ev, facts, req, now) {
     case "implementation-stage": {
       if (plan.status === "planned") { plan.status = "building"; applied.push("status building"); }
       reportedStage = stageIdOf(facts.stage) || (curStage() || {}).id || null;
-      if (Array.isArray(facts.open)) mergeOpen(w, facts, applied, txt, `implementation-stage ${reportedStage || ""}`.trim(), resolved, plan.folder);
+      if (Array.isArray(facts.open)) mergeOpen(w, facts, applied, txt, `implementation-stage ${reportedStage || ""}`.trim(), resolved, plan.folder, DIR, enrich);
       /* During remediation (facts.remediation, or facts.step "remediation") the report answers a qa pass: its sub-steps are written
          whether or not the facts also carry the stages (which are then merged too, every one done), and the wording follows the
          remediation, facts.stage first, never "qa next". */
@@ -414,7 +415,7 @@ function applyEvent(orig, ev, facts, req, now) {
       if (k < 0) w.qa.push(entry); else w.qa[k] = { ...(w.qa[k] && w.qa[k].note && !entry.note ? { note: w.qa[k].note } : {}), ...entry };
       w.qa.sort((a, b) => a.pass - b.pass); applied.push(`wip.qa pass ${Q.pass} ${verdict}`);
       /* an open point the qa report raises (or settles) is kept as at an implementation stage (plan/RULES.md §3, wip.open) */
-      if (Array.isArray(facts.open)) mergeOpen(w, facts, applied, txt, `qa pass ${Q.pass}`, resolved, plan.folder);
+      if (Array.isArray(facts.open)) mergeOpen(w, facts, applied, txt, `qa pass ${Q.pass}`, resolved, plan.folder, DIR, enrich);
       if (w.qaMax !== 3 && !Number.isInteger(w.qaMax)) w.qaMax = 3;
       const counts = [...Object.entries(findings).filter(([, n]) => n).map(([k2, n]) => `${n} ${k2}`), ...Object.entries(severity).filter(([, n]) => n).map(([k2, n]) => `${n} ${k2}`)].join(", ");
       const anyFinding = Object.values(findings).some(n => n > 0);
@@ -559,7 +560,9 @@ function setRemediation(w, R, applied, enrich, txt) {
     if (!name) refuse(`facts.remediation.steps[${i}] has no name (got ${JSON.stringify(raw === undefined ? null : raw)})`);
     if (!SSTATES.includes(s.state)) refuse(`facts.remediation.steps[${i}].state ${JSON.stringify(s.state)} is not done, current or todo`);
     return { name, state: s.state }; }) : old.steps;
-  if (steps && steps.filter(s => s.state === "current").length > 1) refuse("facts.remediation.steps names more than one current step");
+  /* several sub-steps may be current at once: a remediation's legs can run in parallel (rookie-dev's minor fixes beside the planner's
+     ruling, WebTools #63 qa pass 1); each glows in the step panel. A sub-step has one state, so one done or to do is never current.
+     The implementation stages keep at most one current (mergeStages). */
   const next = { pass: R.pass, ...(R.route || old.route ? { route: R.route || old.route } : {}), ...(steps ? { steps } : {}) };
   if (JSON.stringify(next) !== JSON.stringify(w.remediation || null)) { w.remediation = next; applied.push(`wip.remediation pass ${R.pass}${next.route ? " " + next.route : ""}`); }
 }
@@ -573,14 +576,23 @@ function openRef(ref, folder) {
   if (fo && /^docs\//.test(r) && !/^[a-z][a-z0-9+.-]*:/i.test(r)) { const [p, h] = r.split("#"); const rel = path.posix.relative(fo, p) || path.posix.basename(p); r = rel + (h != null ? "#" + h : ""); }
   return r;
 }
-function mergeOpen(w, facts, applied, txt, raised, resolved, folder) {
+/* A link never points at a file that is not there (plan/RULES.md §1): a ref naming a file (or folder) that is not in the tree from the
+   board's folder — a build output such as a qa report under build/, which is never committed — is kept as text naming it, not as a
+   link, and the presenter is told. Anything else (a URL, a sha, PR #n, #n, a sentence) is kept as it is. */
+const FILE_REF = /^([\w./-]+\.(?:md|html|json|kt|kts|dsl|txt)|[\w./-]+\/)(#[\w-]+)?$/;
+function openRefText(ref, dir, enrich) {
+  const m = FILE_REF.exec(ref); if (!m || !dir || fs.existsSync(path.resolve(dir, m[1]))) return ref;
+  if (enrich) enrich.push(`an open point's ref ${ref} is not in the tree from the board's folder (a build output is never committed): written as text, not a link`);
+  return "`" + m[1] + "` (not in the tree, so not linked)";
+}
+function mergeOpen(w, facts, applied, txt, raised, resolved, folder, dir, enrich) {
   w.open = Array.isArray(w.open) ? w.open : [];
   facts.open.forEach((o, i) => {
     const text = txt(o && typeof o === "object" ? o.text : o, `open[${i}].text`); if (!text) return;
     const res = o && (o.resolved === true ? true : txt(o.resolved, `open[${i}].resolved`));
     let have = w.open.find(x => x && x.text === text);
     const said = txt(o && o.raised, `open[${i}].raised`), by = said && !OPEN_TIME.test(said) ? said : raised;
-    if (!have) { have = { text, raised: by, ...(o && typeof o.ref === "string" && o.ref.trim() ? { ref: openRef(o.ref, folder) } : {}) }; w.open.push(have); applied.push(`wip.open + "${text.slice(0, 40)}"`); }
+    if (!have) { have = { text, raised: by, ...(o && typeof o.ref === "string" && o.ref.trim() ? { ref: openRefText(openRef(o.ref, folder), dir, enrich) } : {}) }; w.open.push(have); applied.push(`wip.open + "${text.slice(0, 40)}"`); }
     if (res && have.resolved !== res) { have.resolved = res; applied.push(`wip.open resolved "${text.slice(0, 40)}"`); resolved.push(have); }
   });
 }
