@@ -32,10 +32,10 @@ guessed. If you are unsure, ask me a question.
 Whenever you find a bug, design flaw, missing capability, or other area of concern in any
 Spartan Labs organization repo — **`github.com/SpartanLabsGaming/*`** (the games org:
 `MyGameServer`, `MyGameClient`, `MyGameTools`) or **`github.com/SpartanLaboratories/*`**
-(`WebTools` and other shared libs) — prompt me to create a GitHub issue for it: briefly
-describe the problem and proposed fix, and ask before filing. File it with `gh issue create
+(`WebTools` and other shared libs) — file a GitHub issue for it without asking first: briefly
+describe the problem and proposed fix, and tell me what you filed. File it with `gh issue create
 --repo <org>/<repo>` against the repo the fix belongs in (the library where the defect
-lives, not necessarily the one where it surfaced), only after I confirm. Repos move between
+lives, not necessarily the one where it surfaced). Repos move between
 these orgs; confirm the current owner with `gh repo view <repo>` if unsure.
 
 ## Repository READMEs — keep current
@@ -61,8 +61,8 @@ versioning the work gets; `/resolve-issue` and its agents scale to it.
 | 4 | **Large feature / roadmap** — anything that spans **more than one** system. | full pipeline up to the architecture; **plan only** | **no** — each system becomes a sub-issue, resolved later at its own level | none (docs only) |
 
 - **The level is re-checked when work starts.** If the issue, or the code it touches, says
-  the label is wrong, or there is no label, propose a level with the evidence and ask me.
-  Never re-level silently.
+  the recorded level is wrong, or none is recorded, propose a level with the evidence and ask
+  me. Never re-level silently.
 - **Escalate, don't stretch.** When work turns out bigger than its level (a level-1 change
   needs code, a level-2 fix changes public API or state, a level-3 feature needs a second
   system), stop and ask me to re-level it. Never quietly do bigger work under a smaller level.
@@ -86,11 +86,12 @@ comments or files itself, and never spawns `manager` directly.
 - It schedules by lane (one per repository, plus the mirror), orders by dependency, brings a
   branch up to date with its base before landing, and hands a base that moved under a branch's
   files back to the pipeline to re-verify. It spawns `manager` as the executor of each request.
-- **Its gates** — rewriting history or force-pushing, deleting code it did not create — are
-  confirmed by me at its console or in the Remote Control app, never by a relayed approval.
-  Filing sub-issues and upstream issues needs no gate, and neither does deleting a stale branch
-  (fully merged into the default branch) with its clean worktree, nor writing the team's own
-  state files.
+- **Its one gate** — removing a worktree with uncommitted changes — is confirmed by me at its
+  console or in the Remote Control app, never by a relayed approval. Its executor holds every
+  GitHub permission as my standing grant: force-pushing, rewriting history and deleting what the
+  team did not create need no gate. Filing sub-issues and upstream issues needs no gate either,
+  and neither does deleting a stale branch (fully merged into the default branch) with its clean
+  worktree, nor writing the team's own state files.
 - **Publishing is its own call, not a gate.** Every landing that moves a published module's
   version is a release candidate; the team's `publisher` agent releases it to Maven Central on
   its own (automatic release, then the repo's tag and a GitHub release) within the Central
