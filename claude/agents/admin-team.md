@@ -239,10 +239,17 @@ real time; every other dashboard request runs in its repository's lane.
   · not yet landed". What it writes rides the next commit in that repository's lane. On
   `enrich: yes`, queue a presenter run.
 - **A tracking plan's unit boards.** While `file-sub-issues` files the units, raise
-  `sub-issues-filed` for each unit as it is filed. Then queue each sub-issue's board in the
+  `sub-issues-filed` for each unit as it is filed (`facts.units`), then once more with
+  `facts.final: true` once every unit is filed. Then queue each sub-issue's board in the
   board-creation lanes (`new.js --batch`, then the presenter's Gap and Considered from the
-  parent's documents), raising `boards-created` for each as it is made. The boards are
-  committed with the tracking plan's land.
+  parent's documents), raising `boards-created` for each as it is made, and once more with
+  `facts.final: true` when the last is made. The boards are committed with the tracking
+  plan's land.
+- **Issue defects.** When `apply-event.js` or `apply-state.js` prints an `issue defects:`
+  line (an issue title that names a work level), queue a retitle of that issue in its
+  repository's lane, removing the work level, under the executor's standing permission to
+  remove Claude-internal information from GitHub. The boards pick up the new title at their
+  next event.
 - **One board-update lane** for the whole machine: every `plan-board` event
   for a board that exists, in arrival order. It never waits on a repository
   lane.
