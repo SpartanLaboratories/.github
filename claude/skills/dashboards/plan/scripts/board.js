@@ -4,7 +4,10 @@
 // embedded verbatim.
 //   node board.js [--root <repo>] [--ref <branch>] [--refresh-template] [--no-gh] [--live]
 // The root is --root, else the current directory. A row's "system" for an issue with no board, and an unscheduled issue's
-// "system", are the presenter's: board.js keeps them from the previous board.json. --refresh-template copies the template over
+// "system", are the presenter's: board.js keeps them from the previous board.json (the one it writes, then the other of the
+// committed and the live board, so a decision recorded on either carries over). An entry the user decided belongs to no system
+// (a docs-only issue that changes only a planning record, say) records "unassigned": true with "system" null: board.js keeps it,
+// shows "no system" on the row and stops reporting it as missing a system. --refresh-template copies the template over
 // an existing index.html. --no-gh builds from the boards alone (no tracker rows, roadmap or unscheduled issues).
 // --ref names the branch the board reflects (default: the checked-out branch). In a landing refresh the tree is a docs branch cut
 // at the merged commit, so pass the default branch (e.g. --ref master): the board then names the commit it shows, not the branch
@@ -32,10 +35,13 @@ const plansDir = path.join(root, "docs", "plans"), outDir = live ? path.join(pla
 const jsonPath = path.join(outDir, "board.json"), htmlPath = path.join(outDir, "index.html");
 const reg = registry(root);
 const sh = (cmd, a) => cp.execFileSync(cmd, a, { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] });
-const prevPath = fs.existsSync(jsonPath) ? jsonPath : path.join(plansDir, "board.json");
-const prev = fs.existsSync(prevPath) ? JSON.parse(fs.readFileSync(prevPath, "utf8")) : {};
-const prevRow = n => (prev.rows || []).find(r => r.issue === n) || {};
-const prevUn = n => (prev.unscheduled || []).find(r => r.issue === n) || {};
+/* The presenter's decisions (a row's or an unscheduled issue's system, or "unassigned"): from the board this run writes, then from
+   the other of the committed and the live board, so one recorded between landings on the live board reaches the next landing's. */
+const readJson = p => { try { return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, "utf8")) : {}; } catch (e) { return {}; } };
+const prevs = [...new Set([jsonPath, path.join(plansDir, "board.json"), path.join(plansDir, ".live", "board.json")])].map(readJson);
+const decided = x => !!(x && (x.system || x.unassigned === true));
+const prevOf = key => n => { const all = prevs.map(p => (p[key] || []).find(r => r.issue === n)).filter(Boolean); return all.find(decided) || all[0] || {}; };
+const prevRow = prevOf("rows"), prevUn = prevOf("unscheduled");
 
 /* Boards */
 /* The trees whose boards count: the root alone, or with --live every worktree of the repository, the root first. */
@@ -152,7 +158,7 @@ const rows = [...rowNums].map(n => {
       step: cur ? w.step : null, detail: cur ? (w.detail || "") : ((u.row.asBuilt || {}).summary || ""), qa: cur ? (w.qa || []) : [], qaMax: cur ? w.qaMax : null,
       status: LANDED_STATES.has(st) ? "landed" : st === "complete" ? "complete" : st === "dropped" ? "abandoned" : cur ? (w.step === "halted" ? "halted" : "building") : "not-started", landed: null, reconciliation: null /* no board of its own: its impact is on the tracking board */ });
     row.active = cur && ACTIVE_STEPS.has(w.step);
-  } else Object.assign(row, { board: null, folder: null, branch: null, system: p.system || null, step: null, detail: p.note || "", qa: [], status: "no-board", active: false, landed: null, reconciliation: null });
+  } else Object.assign(row, { board: null, folder: null, branch: null, system: p.system || null, ...(!p.system && p.unassigned === true ? { unassigned: true } : {}), step: null, detail: p.note || "", qa: [], status: "no-board", active: false, landed: null, reconciliation: null });
   /* The next unit (wip.next): "next · not started", never building or active, tagged with each blocker that has not landed. */
   const nx = nextUnits.get(n);
   if (nx && row.status !== "landed") {
@@ -161,7 +167,7 @@ const rows = [...rowNums].map(n => {
     Object.assign(row, { status: "next", active: false, step: null, qa: [], next: true,
       blockedBy: all.filter(x => !landedIssue(x.issue, x.repo ? x : null)).map(x => ({ issue: x.issue, repo: x.repo })) });
   }
-  const si = sysInfo(row.system); row.systemName = si ? si.name : null;
+  const si = sysInfo(row.system); row.systemName = si ? si.name : row.unassigned ? "no system" : null; // "unassigned": decided, not missing
   // A tracking issue spans several systems: it names their top-level systems and takes no colour of its own.
   if (b && b.plan.kind === "tracking") row.systemName = [...new Set((b.plan.systems || []).map(x => x.top || x.name))].join(", ");
   return row;
@@ -188,7 +194,9 @@ const roadmap = [...trackingNums].sort((a, b) => a - b).map(t => {
   claimed.add(t); return { issue: t, title: g.title, state: (issueOf(t) || {}).state || "OPEN", board: g.board, items };
 });
 const unscheduled = issues.filter(i => i.state === "OPEN" && !claimed.has(i.number)).sort((a, b) => b.number - a.number)
-  .map(i => ({ issue: i.number, title: i.title, labels: i.labels.map(l => l.name).filter(l => !/^level: /.test(l)), created: i.createdAt.slice(0, 10), system: prevUn(i.number).system || (rows.find(r => r.issue === i.number) || {}).system || null }));
+  .map(i => ({ issue: i.number, title: i.title, labels: i.labels.map(l => l.name).filter(l => !/^level: /.test(l)), created: i.createdAt.slice(0, 10), system: prevUn(i.number).system || (rows.find(r => r.issue === i.number) || {}).system || null }))
+  /* a deliberate "no system" (above): kept from the previous entry, or taken from the issue's own row */
+  .map(u => u.system || !(prevUn(u.issue).unassigned === true || (rows.find(r => r.issue === u.issue) || {}).unassigned) ? u : { ...u, unassigned: true });
 
 const used = new Set([...rows.map(r => r.system), ...unscheduled.map(u => u.system)].filter(Boolean));
 let tree = {}; try { tree = { ref: opt(args, "ref", null) || sh("git", ["rev-parse", "--abbrev-ref", "HEAD"]).trim(), sha: sh("git", ["rev-parse", "--short", "HEAD"]).trim() }; } catch (e) { /* not a git tree */ }
@@ -203,5 +211,5 @@ fs.writeFileSync(jsonPath, JSON.stringify(board, null, 2) + "\n");
 if (!fs.existsSync(htmlPath) || live || flag(args, "refresh-template")) fs.copyFileSync(path.resolve(__dirname, "..", "template", "board.html"), htmlPath);
 embed(outDir);
 console.log(`${live ? `live board, ${trees.length} worktree${trees.length === 1 ? "" : "s"}: ` : ""}board.json: ${rows.length} runs in ${board.groups.length} groups, ${roadmap.length} roadmap items, ${unscheduled.length} unscheduled issues; index.html embedded`);
-const noSys = [...rows.filter(r => !r.system && !trackingNums.has(r.issue)).map(r => "#" + r.issue), ...unscheduled.filter(u => !u.system).map(u => "#" + u.issue)];
-if (noSys.length) console.log(`no system recorded for ${noSys.join(", ")}: set "system" on those entries in board.json once, and board.js keeps it`);
+const noSys = [...new Set([...rows.filter(r => !r.system && !r.unassigned && !trackingNums.has(r.issue)).map(r => "#" + r.issue), ...unscheduled.filter(u => !u.system && !u.unassigned).map(u => "#" + u.issue)])];
+if (noSys.length) console.log(`no system recorded for ${noSys.join(", ")}: set "system" (or "unassigned": true, for no system) on those entries in board.json once, and board.js keeps it`);
