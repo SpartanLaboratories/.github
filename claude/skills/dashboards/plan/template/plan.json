@@ -1,5 +1,5 @@
 {
-  "$comment": "The plan board's data model (plan/RULES.md §2-§3). new.js copies this file, fills the header fields, and empties rows, milestones, trail, followUps and documents; every value still written <like this> is a placeholder that check.js refuses. The three rows show the shapes: an issue board's row (all four option verdicts), a Left-for-later row, and a tracking board's unit row (kind tracking only). Links to other issues' boards are never written by hand: embed.js sets parent.board (on a sub-issue's board, {\"issue\": n, \"board\": \"../dashboard.html\" or null}), each unit's unit.board, and issueBoards ({\"<issue>\": \"<path to its dashboard.html>\"} for every other issue the board names whose board exists in the tree), from the folders on disk (plan/RULES.md §1). On a tracking board, embed.js also writes unit.live on each unit in wip.current: a mirror of that sub-issue board's run (its wip step, since, updated, detail, steps, waitingOn, resume, qa, qaMax, and its status and branch), refreshed at every embed of either board and never written by hand (plan/RULES.md §3). level, unit.level and wip.proposedLevel keep the work level as data only, for the scripts: no page shows them, and no text on a board names a work level (GUIDANCE.md §4; check.js fails it). Delete every $comment.",
+  "$comment": "The plan board's data model (plan/RULES.md §2-§3). new.js copies this file, fills the header fields, and empties rows, milestones, trail, followUps and documents; every value still written <like this> is a placeholder that check.js refuses. The three rows show the shapes: an issue board's row (all four option verdicts), a Left-for-later row, and a tracking board's unit row (kind tracking only). The Verdict and As built cells are lists of statements (plan/RULES.md §2, \"Statements\"): verdict.statements, one decision each, ending with ref, the relative link to the plan section it rests on (\"plan.md#<GitHub heading anchor>\", or the plan-<unit>.md it came from; architecture.md for a unit row), bullets or, with verdict.list \"numbered\", numbered when the order matters; asBuilt.statements, one per verdict statement in the same order, each with its adaptation as state (as-planned | amended | deviated), from which the row's outcome is derived. Each statement's excerpt {ref, heading, paragraph, hash} is copied by embed.js from the section its ref names and never written by hand; check.js warns once that section has changed since. A verdict written before the statements keeps one paragraph in verdict.summary. Links to other issues' boards are never written by hand: embed.js sets parent.board (on a sub-issue's board, {\"issue\": n, \"board\": \"../dashboard.html\" or null}), each unit's unit.board, and issueBoards ({\"<issue>\": \"<path to its dashboard.html>\"} for every other issue the board names whose board exists in the tree), from the folders on disk (plan/RULES.md §1). On a tracking board, embed.js also writes unit.live on each unit in wip.current: a mirror of that sub-issue board's run (its wip step, since, updated, detail, steps, waitingOn, resume, qa, qaMax, and its status and branch), refreshed at every embed of either board and never written by hand (plan/RULES.md §3). level, unit.level and wip.proposedLevel keep the work level as data only, for the scripts: no page shows them, and no text on a board names a work level (GUIDANCE.md §4; check.js fails it). Delete every $comment.",
   "schema": "plan-board/1",
   "repo": "<owner/name>",
   "issue": 0,
@@ -30,7 +30,7 @@
     }
   ],
   "wip": {
-    "$comment": "step: sizing | interview | research | architecture | plan | branch | implementation | qa | remediation | landing | landed | halted | escalated | cancelled. current: <row-id>.<column> addresses or a column name (gap, considered, verdict, built), the work in progress, exactly the cells being worked on however many (no count limit); it follows step by the step-to-column map (plan/RULES.md §3): interview the cell the question concerns or nothing, research the <row-id>.considered cells of the rows the questions being researched or verified name , between the last return and the verification the returned questions' rows (the whole considered column only while the rows are unknown: no question recorded, none researching, verifying or returned, a glowing question naming no row, or a board with no rows), architecture considered, plan (writing or verifying a plan) considered and verdict, implementation and remediation the touched rows <row-id>.built (a tracking board: its units in progress), qa built, sizing, branch, landing, landed and cancelled nothing; halted and escalated keep the glow of the step in resume, held still. next: on a tracking board only, the id of the next unit in landing order (the first unit row that is pending, not in current and not left for later: a unit whose verdict is kind leave is skipped), or null when none is left; it is kept so at every landing and every unit start, so the board always names what is coming. On a tracking board, step is the tracking issue's own phase: implementation while its units run (each unit's own step is in its row's unit.live), never a unit's step. While halted: resume (the step to return to) and waitingOn. The step panel's facts (plan/RULES.md §3, \"The step panel\"), each optional: event, the last event {name, at, note}; interview, the interview's questions {text, options: the options it offers (from the halted event's facts.questions), answer: null while it waits, asked, answered}; research {phase: planning | research | verification | complete, drafted: the questions drafted so far, since: {<phase>: when it began}}; questions, the research questions {question: <slug>, rows: [<row-id>], findings: null until it returns, then the findings path, state: planning | researching | returned | verifying | complete, started, returned}, written by research-started, research-returned, verification-started and researched, kept complete until plan-accepted (on a tracking board, architecture-signed-off), which clears them with research; plan {state: writing | re-pass, from: parent | qa | existing (a re-pass's source: the parent's plan, a qa pass, or an existing plan verified against the base), pass: the qa pass a re-pass answers, against: the ref an existing plan is verified against (e.g. main), since}; stages, the implementation stages of plan.md {id, name, state: done | current | todo, rows}; open, the run's open points {text, raised: the event or stage that raised it, ref: a link (optional), resolved: how it was settled, left out while open}, listed in the step panel until resolved, then kept in the trail; remediation {pass: the qa pass it answers, route: on-the-spot | rookie-dev | planner-then-rookie-dev, steps: [{name, state}] (what is the older name of name)}. qa[].verdict: approved | changes-requested | running; qa[].findings counts by kind, qa[].severity by severity (minor: easily made, no fallout; other), qa[].route the route step 5 takes from them; qaMax the most passes (3). blockers from the tracker's blocked-by links; repo only when another repository's.",
+    "$comment": "step: sizing | interview | research | architecture | plan | branch | implementation | qa | remediation | landing | landed | halted | escalated | cancelled. current: <row-id>.<column> addresses or a column name (gap, considered, verdict, built), the work in progress, exactly the cells being worked on however many (no count limit); it follows step by the step-to-column map (plan/RULES.md §3): interview the cell the question concerns or nothing, research the <row-id>.considered cells of the rows the questions being researched or verified name , between the last return and the verification the returned questions' rows (the whole considered column only while the rows are unknown: no question recorded, none researching, verifying or returned, a glowing question naming no row, or a board with no rows), architecture considered, plan (writing or verifying a plan) considered and verdict, implementation and remediation the touched rows <row-id>.built (a tracking board: its units in progress), and the whole As built column, built, for an implementation stage that touches no rows (such as the as-built record) or while no stage is current, qa built, sizing, branch, landing, landed and cancelled nothing; halted and escalated keep the glow of the step in resume, held still. A column address (gap, considered, verdict, built) is drawn as one glow on the column itself, its band and head (on the As built tab, round the cards; on a phone, where no columns are drawn, on each of its cells), never each row's cell lit; a <row-id>.<column> address lights its cell. next: on a tracking board only, the id of the next unit in landing order (the first unit row that is pending, not in current and not left for later: a unit whose verdict is kind leave is skipped), or null when none is left; it is kept so at every landing and every unit start, so the board always names what is coming. On a tracking board, step is the tracking issue's own phase: implementation while its units run (each unit's own step is in its row's unit.live), never a unit's step. While halted: resume (the step to return to) and waitingOn. The step panel's facts (plan/RULES.md §3, \"The step panel\"), each optional: event, the last event {name, at, note}; interview, the interview's questions {text, options: the options it offers (from the halted event's facts.questions), answer: null while it waits, asked, answered}; research {phase: planning | research | verification | complete, drafted: the questions drafted so far, since: {<phase>: when it began}}; questions, the research questions {question: <slug>, rows: [<row-id>], findings: null until it returns, then the findings path, state: planning | researching | returned | verifying | complete, started, returned}, written by research-started, research-returned, verification-started and researched, kept complete until plan-accepted (on a tracking board, architecture-signed-off), which clears them with research; plan {state: writing | re-pass, from: parent | qa | existing (a re-pass's source: the parent's plan, a qa pass, or an existing plan verified against the base), pass: the qa pass a re-pass answers, against: the ref an existing plan is verified against (e.g. main), since}; stages, the implementation stages of plan.md {id, name, state: done | current | todo, rows}; open, the run's open points {text, raised: the event or stage that raised it, ref: a link (optional), resolved: how it was settled, left out while open}, listed in the step panel until resolved, then kept in the trail; remediation {pass: the qa pass it answers, route: on-the-spot | rookie-dev | planner-then-rookie-dev, steps: [{name, state}] (what is the older name of name)}. qa[].verdict: approved | changes-requested | running; qa[].findings counts by kind, qa[].severity by severity (minor: easily made, no fallout; other), qa[].route the route step 5 takes from them; qaMax the most passes (3). blockers from the tracker's blocked-by links; repo only when another repository's.",
     "step": "research",
     "since": "<YYYY-MM-DD or an ISO date-time>",
     "updated": "<ISO date-time of this board update>",
@@ -200,7 +200,17 @@
       ],
       "verdict": {
         "kind": "build",
-        "summary": "<the decision in one or two sentences>",
+        "list": "bullets",
+        "statements": [
+          {
+            "text": "<one decision, in a sentence: what the work does to this part>",
+            "ref": "<plan.md#heading-anchor: the plan section it rests on>"
+          },
+          {
+            "text": "<the next decision, one per statement>",
+            "ref": "<plan.md#heading-anchor>"
+          }
+        ],
         "defense": "<why it beats the options declined>",
         "steps": [
           {
@@ -223,8 +233,20 @@
         "link": "<plan.md#section-anchor>"
       },
       "asBuilt": {
-        "$comment": "state: pending | in-progress | partially-built | as-planned | amended | deviated | dropped | deferred | complete | landed. Before the outcome (plan/RULES.md §2): while the run is live, wip.stages decide it until the row's last stage is done (a current stage: in-progress; a done stage and a later one to come: partially-built, its summary saying what is built and what is left; only stages to come: pending), and the page derives it; a unit in wip.current reads in-progress and is never partially-built. amended and deviated list changes[]; a change that settles a deferred option carries settles: {option, verdict}. dropped states its reason in summary; deferred names issue. complete (implemented and qa passed, not merged yet; set by the qa-pass event) and landed (merged; set by the landing refresh) are for a tracking board's unit rows only: a unit goes pending, complete, landed. An issue board's rows keep as-planned, amended, deviated.",
+        "$comment": "state: pending | in-progress | partially-built | as-planned | amended | deviated | dropped | deferred | complete | landed. Before the outcome (plan/RULES.md §2): while the run is live, wip.stages decide it until the row's last stage is done (a current stage: in-progress; a done stage and a later one to come: partially-built, its summary saying what is built and what is left; only stages to come: pending), and the page derives it; a unit in wip.current reads in-progress and is never partially-built. statements: one per verdict statement, in the same order, each {text, state: as-planned | amended | deviated, ref (optional: the as-built record's section)}, written at the row's outcome; the outcome is derived from them (deviated if any deviated, else amended if any amended, else as planned) and never contradicts asBuilt.state; a unit row, a dropped and a deferred row have none. amended and deviated list changes[]; a change that settles a deferred option carries settles: {option, verdict}. dropped states its reason in summary; deferred names issue. complete (implemented and qa passed, not merged yet; set by the qa-pass event) and landed (merged; set by the landing refresh) are for a tracking board's unit rows only: a unit goes pending, complete, landed. An issue board's rows keep as-planned, amended, deviated.",
         "state": "pending",
+        "statements": [
+          {
+            "text": "<what was built for the first verdict statement, past tense>",
+            "state": "as-planned",
+            "ref": "<final-implementation.md#heading-anchor>"
+          },
+          {
+            "text": "<what was built for the second, and how it differs>",
+            "state": "amended",
+            "ref": "<final-implementation.md#heading-anchor>"
+          }
+        ],
         "summary": "",
         "changes": [
           {
@@ -275,7 +297,12 @@
       ],
       "verdict": {
         "kind": "leave",
-        "summary": "<not changed; what pins the decision>",
+        "statements": [
+          {
+            "text": "<not changed; what pins the decision>",
+            "ref": "<plan.md#non-goals-anchor>"
+          }
+        ],
         "defense": "<why>",
         "steps": [],
         "tests": [],
@@ -323,7 +350,13 @@
       ],
       "verdict": {
         "kind": "build",
-        "summary": "<the unit's scope from the decomposition>",
+        "list": "numbered",
+        "statements": [
+          {
+            "text": "<the unit's scope from the decomposition, one decision each>",
+            "ref": "<architecture.md#decomposition-anchor>"
+          }
+        ],
         "defense": "<why the unit is scoped as it is: one system, a bug fix, docs only; never its work level>",
         "steps": [],
         "tests": [

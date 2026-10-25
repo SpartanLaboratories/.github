@@ -1,0 +1,67 @@
+{
+  "$comment": "A real plan-board request (WebTools #62, qa pass 1, 2026-10-25) that the fast path refused before dashboards-skill/19: a remediation step naming a test level as \"L1 per-type gating\" read as a work level. verify-templates.js replays its facts on the apply-event fixture board.",
+  "v": 1,
+  "id": "webtools-21/62/16",
+  "attempt": 1,
+  "from": "webtools-21",
+  "action": "plan-board",
+  "github": "SpartanLaboratories/WebTools",
+  "branch": "feat/issue-62-http-core",
+  "issue": 62,
+  "event": "qa-pass",
+  "folder": "docs/plans/55-http-client-stack/62-http-core",
+  "facts": {
+    "at": "2026-10-25T11:58:00Z",
+    "step": "remediation",
+    "qa": {
+      "pass": 1,
+      "verdict": "CHANGES REQUESTED",
+      "doc": 18,
+      "test": 9,
+      "code": 2,
+      "severity": {
+        "minor": 27,
+        "other": 2
+      },
+      "route": "on-the-spot",
+      "report": "build/reports/test-inspector/index.html",
+      "tests": "231 passed, 0 failed, 0 skipped; apiCheck passed"
+    },
+    "rows": [
+      "failure-model",
+      "request-response",
+      "transport-port",
+      "common-tests",
+      "common-check-plugin",
+      "readme"
+    ],
+    "remediation": {
+      "pass": 1,
+      "route": "on-the-spot",
+      "steps": [
+        {
+          "name": "rookie-dev: KDoc wording (HttpFailure, HttpHeaders.addSensitive, HttpTransport main-safety), level-1 line comments, test-fixture tags, U+212A escapes, corpus rows, test renames, absent-name set test; re-run the touched tasks",
+          "state": "current"
+        },
+        {
+          "name": "planner: record the two scope exclusions (L1 per-type gating, e2e composite) in plan.md §9 and reconcile final-implementation.md and impact.md",
+          "state": "todo"
+        }
+      ]
+    },
+    "open": [
+      {
+        "text": "Two plan-sanctioned test-scope exclusions flagged by qa: no per-type testing.gating smoke classes for webtools-http's value types (the plan makes componentTest+deterministicTest the pre-commit gate) and the common-check plugin absent from the included-build e2e composite; resolved by recording them in plan §9 and the test KDoc",
+        "raised": "2026-10-25T11:58:00Z",
+        "ref": "build/reports/test-inspector/index.html"
+      }
+    ],
+    "detail": "Code review PASS: no logic bug, every plan item done, diff inside level 3, hygiene clean. Doc: Level-2 KDoc complete and tier-named everywhere; residuals are line comments on the OkHttp-mirroring sets and limits, @param/@return tags on two test fixtures, one over-strong HttpFailure sentence, and the Kelvin-sign homoglyph written literally in five test files. Tests: one missing absent-name branch test, extra corpus rows (Unicode spaces, dot segments above root), table-style test names.",
+    "waitingOn": null,
+    "systems": [
+      "webtools-http-core",
+      "js-commoncheck",
+      "gradle-build"
+    ]
+  }
+}

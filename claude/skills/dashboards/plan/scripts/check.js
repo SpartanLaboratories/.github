@@ -13,7 +13,7 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { levelRefsIn } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
 const { paletteCheck } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js"));
-const { BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
+const { STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
 const STATES = ["pending", "in-progress", "partially-built", "as-planned", "amended", "deviated", "dropped", "deferred", "complete", "landed"];
@@ -67,6 +67,7 @@ function levelFail(data, file) {
 }
 
 function checkPlan(plan, dir, root) {
+  LEGACY.length = 0;
   const folderName = path.basename(path.resolve(dir));
   if (plan.schema !== "plan-board/1") fail(`schema must be "plan-board/1" (got ${JSON.stringify(plan.schema)})`);
   if (!str(plan.repo) || !/^[^/\s<]+\/[^/\s>]+$/.test(plan.repo)) fail("repo must be owner/name");
@@ -156,14 +157,18 @@ function checkPlan(plan, dir, root) {
     });
     if (opts.length && chosen !== 1) fail(`${at}: exactly one option must be accepted, or partial with "chosen": true (found ${chosen}); for a part left alone, the accepted option is the one that leaves it`);
     const v = r.verdict || {};
-    if (!str(v.summary) && wantVerdict) fail(`${at}: verdict.summary is required`);
+    if (!verdictWritten(v) && wantVerdict) fail(`${at}: the verdict is required: its statements (verdict.statements), each ending with the plan reference it rests on`);
+    checkStatements(r, at, v, wantVerdict);
     if (v.kind && !["build", "leave"].includes(v.kind)) fail(`${at}: verdict.kind must be build or leave`);
     (v.steps || []).forEach((s, j) => { if (!str(s.what)) fail(`${at}.verdict.steps[${j}]: "what" is required`); checkLink(dir, s.link, `${at}.verdict.steps[${j}].link`); });
     // A unit row's steps are its sub-issue's plan, not the tracking board's: no warning there.
-    if (str(v.summary) && (v.kind || "build") === "build" && !(v.steps || []).length && !r.unit) warn(`${at}: a build verdict names no steps`);
+    if (verdictWritten(v) && (v.kind || "build") === "build" && !(v.steps || []).length && !r.unit) warn(`${at}: a build verdict names no steps`);
     checkLink(dir, v.link, `${at}.verdict.link`);
-    const bld = r.asBuilt || {}, st = bld.state;
-    if (!STATES.includes(st)) fail(`${at}: asBuilt.state must be one of ${STATES.join(", ")}`);
+    const bld = r.asBuilt || {}, stored = bld.state;
+    if (!STATES.includes(stored)) fail(`${at}: asBuilt.state must be one of ${STATES.join(", ")}`);
+    /* the row's recorded state: the outcome its as-built statements derive, else the stored one (RULES §2, "Statements") */
+    const st = STATES.includes(stored) ? recordedState(r) : stored, said = stmtList(bld).length > 0;
+    checkBuiltStatements(r, at, v, bld, stored);
     // complete and landed are a tracking board's unit-row states (RULES §2); an issue board's rows keep as-planned, amended, deviated.
     if (["complete", "landed"].includes(st) && !r.unit) fail(`${at}: "${st}" is a unit-row state on a tracking board; an issue board's row is as-planned, amended or deviated`);
     if (plan.status === "planned" && st !== "pending" && !BUILDING_STATES.includes(st)) fail(`${at}: a planned plan has every part pending, or being built (found ${st})`);
@@ -171,7 +176,7 @@ function checkPlan(plan, dir, root) {
     /* before the outcome (RULES §2): in progress while a current stage works on the row, partially built while a later stage is still to
        come; a unit lands whole, so it is never partially built */
     if (st === "partially-built" && r.unit) fail(`${at}: a unit lands whole, in one merge: it is never partially built (its own board's rows say what is built)`);
-    if (st === "partially-built" && !str(bld.summary)) fail(`${at}: a partially built part says in asBuilt.summary what is built and what is left`);
+    if (st === "partially-built" && !str(bld.summary) && !said) fail(`${at}: a partially built part says in asBuilt.summary what is built and what is left`);
     { const want = stagedState(plan, r), shown = want || st;
       if (BUILDING_STATES.includes(st) && !want && !["built", "abandoned"].includes(plan.status)) warn(`${at}: asBuilt.state is "${st}", but ${r.unit ? "the unit is not in wip.current" : "no stage of wip.stages that touches the row is current or still to come"}: once its last stage is done its outcome applies (as-planned, amended or deviated)`);
       else if (want && st !== "pending" && want !== st) warn(`${at}: asBuilt.state is "${st}", but ${r.unit ? "the unit's run is under way (it is in wip.current)" : "wip.stages make it"} "${want}"${["as-planned", "amended", "deviated"].includes(st) ? ": its outcome applies once its last stage is done" : ""}; the page shows "${shown}"`);
@@ -190,7 +195,7 @@ function checkPlan(plan, dir, root) {
     });
     if (st === "dropped" && !str(bld.summary)) fail(`${at}: a dropped part states why in asBuilt.summary`);
     if (st === "deferred" && !posInt(bld.issue)) fail(`${at}: a deferred part names the issue it moved to (asBuilt.issue)`);
-    if (st && st !== "pending" && st !== "in-progress" && !str(bld.summary)) fail(`${at}: a ${st} part describes what exists in asBuilt.summary`);
+    if (st && st !== "pending" && st !== "in-progress" && !str(bld.summary) && !said) fail(`${at}: a ${st} part describes what exists in asBuilt.summary${["as-planned", "amended", "deviated"].includes(st) ? " or its statements (asBuilt.statements)" : ""}`);
     (bld.commits || []).forEach((c, j) => { if (!SHA.test(String(c))) fail(`${at}.asBuilt.commits[${j}] "${c}" is not a commit sha`); });
     checkLink(dir, bld.link, `${at}.asBuilt.link`);
     if (r.unit) {
@@ -221,6 +226,14 @@ function checkPlan(plan, dir, root) {
     }
   });
 
+  if (LEGACY.length) warn(`${LEGACY.length === rows.length ? "every verdict is" : `${LEGACY.length} of ${rows.length} verdicts are`} one paragraph (verdict.summary), written before the statements (${LEGACY.slice(0, 6).join(", ")}${LEGACY.length > 6 ? ", …" : ""}): split each into verdict.statements, one decision each with the plan reference it rests on, and the As built cell into one statement per verdict statement (RULES §2, "Statements"; §9)`);
+  /* The statements' references (RULES §2, "Statements"): each excerpt copied from the plan section it names, and that section unchanged
+     since; a reference to a section that is gone is a warning too (correct the reference, or record it). */
+  excerptDrift(plan, dir).forEach(x => {
+    if (x.kind === "gone") warn(`${x.at}: its reference ${x.ref} names no section: ${x.why}; correct the reference (a factual error is corrected in place, under notes.corrections)`);
+    else if (x.kind === "missing") warn(`${x.at}: no excerpt of ${x.ref} is copied yet: run embed.js, which copies the section's heading and first paragraph`);
+    else warn(`${x.at}: the plan section ${x.ref} ("${x.heading}") has changed since its excerpt was copied (${x.have} → ${x.want}): read it again; if the statement still rests on it, re-copy it (embed.js --refresh-excerpts); if not, a factual error is corrected in place under notes.corrections, and a change of mind goes in column 4`);
+  });
   /* The parent's board and the other issues' boards (RULES §1): a link names a board that exists in this tree, or it is dead;
      embed.js sets and clears both from the folders on disk. A missing link where a board exists is the warning below. */
   const p = plan.parent;
@@ -362,6 +375,7 @@ function checkPlan(plan, dir, root) {
       if (tp) staleUnitRuns(tp, up).filter(x => x.unit.issue === plan.issue && x.kind !== "orphan").forEach(x => warn(`the parent #${tp.issue}'s tracking board mirrors this run ${x.kind === "missing" ? "not at all" : x.kind === "older" ? `as of ${x.have.updated}, older than this board's ${x.want.updated}` : "with other content"}: run embed.js on this folder, which re-embeds it`)); }
   }
   checkImpact(plan, dir, systems, rows, tracking);
+  if (plan.roadmap && typeof plan.roadmap === "object") (plan.roadmap.items || []).forEach((x, i) => reasonCheck(x, `roadmap.items[${i}]`));
   (plan.followUps || []).forEach((f, i) => { if (!posInt(f.issue) && !str(f.name)) fail(`followUps[${i}] needs an issue number or, for an unfiled follow-up, a name`); });
   (plan.documents || []).forEach((d, i) => { if (!str(d.label) && !str(d.path)) fail(`documents[${i}] needs a label or a path`); checkLink(dir, d.path, `documents[${i}].path`); });
 
@@ -371,6 +385,54 @@ function checkPlan(plan, dir, root) {
   const lists = listings(plan, "", []);
   if (lists.length) fail(`code blocks over five lines in the data (the detail belongs in the Markdown, linked): ${lists.slice(0, 6).join(", ")}`);
   if (!out.fail.length) ok(`plan.json: ${tracking ? "tracking board, " : ""}${rows.length} rows, ${rows.reduce((n, r) => n + (r.options || []).length, 0)} options, status ${plan.status}, step ${(w || {}).step || "—"}`);
+}
+
+/* Statements (RULES §2, "Statements"). A Verdict cell holds a list of statements, verdict.statements, each { text, ref, label?, excerpt }:
+   one decision per statement, each ending with a reference to the plan paragraph it rests on (ref, a relative link <file>.md#<heading
+   anchor>), the list bullets or numbered (verdict.list). A verdict written before the statements is one paragraph in verdict.summary:
+   it still reads as written, and check.js warns that it is to be split. The As built cell carries one statement per verdict statement,
+   in the same order, each { text, state, ref? }, state its adaptation: as-planned, amended or deviated; the row's outcome is derived
+   from them, so a stored outcome that disagrees fails. A tracking board's unit row has no as-built statements (its sub-issue's board
+   holds them), nor does a dropped or deferred row. */
+const LISTS = ["bullets", "numbered"], LEGACY = [];
+/* A closed issue's reason, as the tracker records it (stateReason; RULES §5): "NOT_PLANNED" reads "closed · not planned", "DUPLICATE"
+   "closed · duplicate", on a work-board row, a roadmap item and a waits-on or blocks entry, and on a plan board's roadmap item. */
+const REASONS = ["COMPLETED", "NOT_PLANNED", "DUPLICATE", "REOPENED"];
+const reasonCheck = (x, at) => { if (!x || x.stateReason == null) return; if (!REASONS.includes(x.stateReason)) fail(`${at}.stateReason must be one of ${REASONS.join(", ")}, as the tracker records it (got ${JSON.stringify(x.stateReason)})`); else if (String(x.state || "").toUpperCase() !== "CLOSED" && x.stateReason !== "REOPENED") fail(`${at}.stateReason ${x.stateReason} is the reason a closed issue was closed, but its state is ${JSON.stringify(x.state)}`); };
+function checkStatementForm(s, at, needRef) {
+  if (!s || typeof s !== "object" || Array.isArray(s)) { fail(`${at} must be an object { text, ref }`); return; }
+  if (!str(s.text)) fail(`${at}.text is required: the statement, one decision in a sentence`);
+  else if (/\(\s*§[^)]*\)\s*\.?$/.test(s.text)) warn(`${at}.text ends with its own "(§…)": the page appends the reference from ref; leave it out of the text`);
+  if (s.ref == null) { if (needRef) fail(`${at}.ref is required: the plan paragraph the statement rests on, as a relative link <file>.md#<heading-anchor> (e.g. "plan.md#5-design")`); }
+  else if (!parseRef(s.ref)) fail(`${at}.ref ${JSON.stringify(s.ref)} is not a relative link to a Markdown section (<file>.md#<heading-anchor>, GitHub's anchor)`);
+  if (s.label != null && !str(s.label)) fail(`${at}.label is the reference's label ("§4.2"), or left out (derived from the heading)`);
+  if (s.excerpt != null && (typeof s.excerpt !== "object" || Array.isArray(s.excerpt) || !str(s.excerpt.heading) || typeof s.excerpt.paragraph !== "string" || !/^[0-9a-f]{12}$/.test(String(s.excerpt.hash || ""))))
+    fail(`${at}.excerpt is written by embed.js: { ref, heading, paragraph, hash } (got ${JSON.stringify(s.excerpt).slice(0, 80)}): delete it and re-embed`);
+}
+function checkStatements(r, at, v, wanted) {
+  if (v.list != null && !LISTS.includes(v.list)) fail(`${at}.verdict.list must be ${LISTS.join(" or ")} (numbered when the order matters), or left out (got ${JSON.stringify(v.list)})`);
+  if (v.statements == null) { if (str(v.summary) && wanted) LEGACY.push(r.id || at); return; }
+  if (!Array.isArray(v.statements)) { fail(`${at}.verdict.statements must be an array of statements, each { text, ref }`); return; }
+  v.statements.forEach((s, j) => checkStatementForm(s, `${at}.verdict.statements[${j}]`, true));
+  if (!v.statements.length && wanted) fail(`${at}.verdict.statements is empty: the verdict is its statements`);
+  if (v.statements.length && str(v.summary)) warn(`${at}: the verdict carries statements and a summary; the page shows the statements only: leave verdict.summary out`);
+}
+function checkBuiltStatements(r, at, v, b, stored) {
+  if (b.statements == null) {
+    if (["as-planned", "amended", "deviated"].includes(stored) && stmtList(v).length && !r.unit) warn(`${at}: its outcome is recorded, but the As built cell has no statements: write asBuilt.statements, one per verdict statement with its adaptation (as-planned, amended, deviated), from final-implementation.md`);
+    return;
+  }
+  if (!Array.isArray(b.statements)) { fail(`${at}.asBuilt.statements must be an array, one statement per verdict statement`); return; }
+  if (r.unit) { fail(`${at}: a unit row carries no as-built statements: its sub-issue's board holds them; the unit is pending, complete or landed`); return; }
+  if (["dropped", "deferred"].includes(stored)) { fail(`${at}: a ${stored} part has no as-built statements: its summary says ${stored === "dropped" ? "why it was dropped" : "where it went"}`); return; }
+  b.statements.forEach((s, j) => { const sat = `${at}.asBuilt.statements[${j}]`; checkStatementForm(s, sat, false);
+    if (s && typeof s === "object" && !STMT_STATES.includes(s.state)) fail(`${sat}.state is its adaptation, one of ${STMT_STATES.join(", ")} (got ${JSON.stringify(s.state)})`); });
+  const vs = stmtList(v);
+  if (!vs.length) warn(`${at}: the As built cell has statements, but the verdict has none: split the verdict into statements first; each as-built statement answers one`);
+  else if (b.statements.length !== vs.length) fail(`${at}: ${b.statements.length} as-built statement${b.statements.length === 1 ? "" : "s"} for ${vs.length} verdict statement${vs.length === 1 ? "" : "s"}: one per verdict statement, in the same order`);
+  const derived = statementOutcome(r);
+  if (derived && ["as-planned", "amended", "deviated"].includes(stored) && stored !== derived) fail(`${at}: asBuilt.state "${stored}" disagrees with its statements, which make it "${derived}" (deviated if any deviated, else amended if any amended, else as planned): write "${derived}", or leave the outcome to the statements`);
+  if (str(b.summary) && derived && !BUILDING_STATES.includes(stored)) warn(`${at}: the As built cell shows its statements; asBuilt.summary is no longer shown beside them: leave it out`);
 }
 
 /* The step panel's facts (RULES §3, "The step panel"; §4): the last event (wip.event), the interview's questions, the research phase,
@@ -712,15 +774,20 @@ function checkBoard(dir) {
     if (r.board) fail(at + ': a row with a board takes its state from the board, not the tracker; leave "tracker" out');
     if (!BOARDLESS_STATES.includes(r.status)) { fail(at + ": a boardless row is " + BOARDLESS_STATES.join(", ") + " (got " + JSON.stringify(r.status) + ")"); return; }
     if (r.active) fail(at + ": a boardless row never glows: it has no run board to mirror");
-    const closed = r.state === "CLOSED", np = closed && r.stateReason === "NOT_PLANNED", why = {
-      landed: !closed ? "landed means the issue is closed" : np ? 'the issue was closed as not planned: the row reads "not-planned" (closed · not planned), never landed' : null,
+    const closed = r.state === "CLOSED", np = closed && r.stateReason === "NOT_PLANNED", dup = closedDuplicate(r.state, r.stateReason), why = {
+      landed: !closed ? "landed means the issue is closed" : np ? 'the issue was closed as not planned: the row reads "not-planned" (closed · not planned), never landed' : dup ? 'the issue was closed as a duplicate: the row reads "duplicate" (closed · duplicate), never landed' : null,
       "not-planned": !closed ? "not-planned means the issue is closed as not planned" : !np ? `not-planned needs the tracker's stateReason NOT_PLANNED (got ${JSON.stringify(r.stateReason == null ? null : r.stateReason)})` : null,
+      duplicate: !closed ? "duplicate means the issue is closed as a duplicate" : !dup ? `duplicate needs the tracker's stateReason DUPLICATE (got ${JSON.stringify(r.stateReason == null ? null : r.stateReason)})` : null,
       merged: closed ? "a closed issue has landed" : !pr || pr.state !== "MERGED" ? "merged needs the merged pull request (tracker.pr, state MERGED)" : null,
       "in-progress": closed ? "a closed issue has landed" : pr ? (pr.state !== "OPEN" ? "in progress with a pull request needs an open one" : null) : !t.branch ? "in progress needs a branch or an open pull request that refers to the issue" : null,
       "not-started": closed ? "a closed issue has landed" : pr || t.branch ? "not started means no branch or pull request refers to the issue" : null }[r.status];
     if (why) fail(at + ': status "' + r.status + '" does not match what the tracker recorded (state ' + r.state + (r.stateReason ? " " + r.stateReason : "") + ", branch " + JSON.stringify(t.branch) + ", pr " + JSON.stringify(pr) + "): " + why);
-    if (["merged", "landed", "not-planned"].includes(r.status) && r.branch) fail(at + ': a merged branch is not shown (plan/RULES.md §3, "Branches"): branch is null once the row is ' + r.status);
+    if (["merged", "landed", "not-planned", "duplicate"].includes(r.status) && r.branch) fail(at + ': a merged branch is not shown (plan/RULES.md §3, "Branches"): branch is null once the row is ' + r.status);
   });
+  /* A closed issue's reason (RULES §5): on every row, roadmap item and waits-on or blocks entry it is the tracker's stateReason of a
+     closed issue, one GitHub records; "NOT_PLANNED" reads "closed · not planned" and "DUPLICATE" "closed · duplicate" on the page. */
+  (b.rows || []).forEach((r, i) => { reasonCheck(r, `rows[${i}] (#${r.issue})`); ["waitsOn", "blocks"].forEach(k => (r[k] || []).forEach((x, j) => reasonCheck(x, `rows[${i}] (#${r.issue}).${k}[${j}]`))); });
+  (b.roadmap || []).forEach((m, i) => { reasonCheck(m, `roadmap[${i}]`); (m.items || []).forEach((x, j) => reasonCheck(x, `roadmap[${i}].items[${j}]`)); });
   const bl = (b.rows || []).filter(r => r.tracker !== undefined);
   if (bl.length) ok("board.json: " + bl.length + " boardless row" + (bl.length === 1 ? "" : "s") + ", state from the tracker: " + BOARDLESS_STATES.map(k => bl.filter(r => r.status === k).length + " " + k).join(", "));
   /* "unassigned": the decision that an entry belongs to no system (board.js keeps it): true, and never beside a system */

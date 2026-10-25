@@ -80,4 +80,6 @@ if (sop) { const pr = path.relative(root, sop.dir).split(path.sep).join("/"); co
 const left = JSON.stringify(plan).match(/"<[^"]*>"/g) || [];
 if (left.length) console.log(`still to fill: ${left.length} placeholder${left.length > 1 ? "s" : ""} (${left.slice(0, 5).join(", ")}${left.length > 5 ? ", …" : ""})`);
 const sk = p => path.join(__dirname, p);
+/* The Verdict and As built columns are lists of statements (plan/RULES.md §2, "Statements"): say how they are written when they come. */
+console.log("later: the Verdict column, at plan-accepted, is verdict.statements, one decision each with its reference into plan.md (ref: \"plan.md#<heading-anchor>\"; embed.js copies the section's excerpt); the As built column, at each row's outcome, is asBuilt.statements, one per verdict statement, each as-planned, amended or deviated");
 console.log(`next: fill plan.json, then node ${sk("embed.js")} ${rel} && node ${sk("check.js")} ${rel} --auto`);

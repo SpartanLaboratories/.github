@@ -16,7 +16,8 @@ const TEST_LEVEL_NAMES = ["gating", "component", "integration", "deterministic",
 const LEVEL_PATTERNS = [
   ["\\blevel:\\s*[1-4]\\b", "i"],                                                         // the label: "level: 2"
   // the short form "L3", unless a test level's name follows ("L1 gating", "L3 · integration"); "L4c" never matches
-  [`\\bL[1-4]\\b(?!\\s*(?:[·:—–-]\\s*)?(?:${TEST_LEVEL_NAMES})\\b)`, ""],
+  // (up to two qualifying words may come between: "L1 per-type gating", "L2 value-type component")
+  [`\\bL[1-4]\\b(?!\\s*(?:[·:—–-]\\s*)?(?:[\\w-]+\\s+){0,2}(?:${TEST_LEVEL_NAMES})\\b)`, ""],
   ["\\b(?:work|issue|tracking)[- ]levels?\\b", "i"],                                       // "work level", "work-level labels"
   ["\\blevel[- ][1-4]\\b[- ](?:change|changes|fix|fixes|feature|features|issue|issues|run|runs|work|plan|plans|planner|planners|planning|bump|label|labels|sub-issue|sub-issues|tracking|initiative|roadmap)\\b", "i"],
   ["\\bre-?level(?:led|ed|ing|s)?\\b", "i"],                                               // "re-level", "relevelled"

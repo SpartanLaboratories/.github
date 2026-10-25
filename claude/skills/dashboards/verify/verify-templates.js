@@ -39,7 +39,9 @@
 // qa severity and route, the remediation's route), the as-built states before the outcome (in progress, partially built) and open points
 // (wip.open). And the fast path of dashboards-skill/20 (plan/scripts/apply-event.js): each event kind applied to a fixture, the same
 // event twice changing nothing, the enrich flag, atomic failure, the re-render of an older-template board by an ordinary event, a stage
-// that touches no rows glowing the whole As built column, and its time. A template is recorded only when its
+// that touches no rows glowing the whole As built column, and its time. And the decisions of dashboards-skill/19: statements in the
+// Verdict and As built cells with their plan excerpts, "closed · duplicate", the column glow, the KPI bars, and the real #62 events the
+// fast path misapplied (a remediation step naming a test level; a remediation report carrying the stages). A template is recorded only when its
 // browser passes and every case group pass.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
@@ -65,6 +67,10 @@ const SETS = [
 const root = opt("root", null);
 const targets = SETS.map(s => ({ ...s, path: root ? path.join(path.resolve(root), ...s.dir.split("/"), s.file) : sk(s.name) })).filter(t => fs.existsSync(t.path));
 if (!targets.length) { console.error(root ? `${root} keeps no templates under docs/plans/_template/ or docs/dashboards/_template/` : "no templates found"); process.exit(2); }
+/* The templates under test count as verified for the scripts the cases run (deviation.js verified()), so a changed template can be
+   verified at all: a case that re-renders a page onto "the verified template" would otherwise fail until the template is recorded,
+   and it is recorded only once every case passes. */
+process.env.DASHBOARDS_TEMPLATES_UNDER_TEST = JSON.stringify(targets.map(t => sha(fs.readFileSync(t.path, "utf8"))));
 
 const withData = (html, id, json) => {
   const open = `<script type="application/json" id="${id}">`, a = html.indexOf(open), b = html.indexOf("</script>", a + open.length);
@@ -895,7 +901,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     /* mixed: the first row's verdict emptied, the second a bare build kind, the last a bare leave kind (an unwritten leave) */
     const mix = unbuilt(copy(ex)), last = mix.rows.length - 1;
     mix.rows[0].verdict = {}; mix.rows[1].verdict = { kind: "build", summary: "" }; mix.rows[last].verdict = { kind: "leave", summary: " " };
-    const W = r => typeof (r.verdict || {}).summary === "string" && r.verdict.summary.trim(), wb = mix.rows.filter(r => W(r) && r.verdict.kind !== "leave").length, wl = mix.rows.filter(r => W(r) && r.verdict.kind === "leave").length, wo = mix.rows.length - wb - wl;
+    const W = r => ((r.verdict || {}).statements || []).some(x => x && typeof x.text === "string" && x.text.trim()) || (typeof (r.verdict || {}).summary === "string" && r.verdict.summary.trim()), wb = mix.rows.filter(r => W(r) && r.verdict.kind !== "leave").length, wl = mix.rows.filter(r => W(r) && r.verdict.kind === "leave").length, wo = mix.rows.length - wb - wl;
     const dM = render("mixed-verdicts", mix, mix.rows[0].id), leaveRow = mix.rows.find(r => W(r) && r.verdict.kind === "leave");
     vc.push([`a board with mixed verdicts counts the written ones: "${wb} build · ${wl} left for later · ${wo} not yet written"`, tile(dM) === `${wb} build ${wl} left for later · ${wo} not yet written`, tile(dM)]);
     vc.push(["written cells keep their kind (build, leave as is); unwritten ones, a bare leave kind included, show none", /class="kind">build</.test(vcell(dM, mix.rows[2].id)) && /class="kind">leave as is</.test(vcell(dM, leaveRow.id)) && [0, 1, last].every(i => !/class="kind"/.test(vcell(dM, mix.rows[i].id))) && !/cell verdict leave/.test(vcell(dM, mix.rows[last].id)), [0, 1, 2, last].map(i => `${mix.rows[i].id}: ${text(vcell(dM, mix.rows[i].id)).slice(0, 40)}`).join(" | ")]);
@@ -1049,7 +1055,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     const tile = d => (text(inner(d, '<div class="kpis" id="kpis">', "div")).match(/As built (.*?) (QA passes|Timeline)/) || ["", "no As built tile"])[1];
     const render = (name, d) => dumpDom(put(name + ".html", withData(tpl, "plan", JSON.stringify(d, null, 2))));
     xc.push(["lib.js leftForLater(): the example's two leave rows (as planned, amended) are left for later, no build row is", ex.rows.filter(lib.leftForLater).map(r => r.id).join(",") === "whitespace-in-tokens,client-validation", ex.rows.filter(lib.leftForLater).map(r => r.id).join(",")]);
-    const dv = copy(ex), lr = dv.rows.find(r => r.id === "client-validation"); lr.asBuilt.state = "deviated";
+    const dv = copy(ex), lr = dv.rows.find(r => r.id === "client-validation"); lr.asBuilt.state = "deviated"; (lr.asBuilt.statements || []).forEach(x => { x.state = "deviated"; }); /* its statements give the outcome (plan/RULES.md §2, "Statements") */
     xc.push(["lib.js leftForLater(): a leave row built after all (deviated) and a deferred one are not left for later", !lib.leftForLater(lr) && !lib.leftForLater({ verdict: { kind: "leave", summary: "x" }, asBuilt: { state: "deferred" } }) && lib.leftForLater({ verdict: { kind: "leave", summary: "x" } }) && !lib.leftForLater({ verdict: { kind: "leave", summary: " " } }), "rule"]);
     const tk = copy(trk), pend = tk.rows.filter(r => r.unit && st(r) === "pending" && r.id !== (tk.wip || {}).next && !((tk.wip || {}).current || []).some(a => a.split(".")[0] === r.id));
     const lu = pend[pend.length - 1]; lu.verdict = { ...(lu.verdict || {}), kind: "leave", summary: "Verification case: this unit is left as is." };
@@ -1078,7 +1084,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     const chk = d => { fs.rmSync(path.join(sc, "tree"), { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true }); (d.rows || []).filter(r => r.board).forEach(r => stub(path.join(dir, path.dirname(r.board))));
       fs.writeFileSync(path.join(dir, "board.json"), JSON.stringify(d, null, 2) + "\n"); fs.writeFileSync(path.join(dir, "index.html"), tpl); node(embedJs, dir); return node(checkJs, dir, "--root", path.join(sc, "tree")); };
     const c0 = chk(wb);
-    xc.push(["check.js passes the fixture's six boardless rows, one per state", c0.status === 0 && /6 boardless rows, state from the tracker: 1 not-started, 2 in-progress, 1 merged, 1 landed, 1 not-planned/.test(c0.stdout), lines(c0, /boardless|FAIL/)]);
+    xc.push(["check.js passes the fixture's seven boardless rows, one per state", c0.status === 0 && /7 boardless rows, state from the tracker: 1 not-started, 2 in-progress, 1 merged, 1 landed, 1 not-planned, 1 duplicate/.test(c0.stdout), lines(c0, /boardless|FAIL/)]);
     const bad = (what, f, re) => { const d = copy(wb); f(d.rows.find(r => r.issue === 80), d.rows.find(r => r.issue === 83), d); const r = chk(d); xc.push([`check.js fails ${what}`, r.status === 1 && re.test(r.stdout), lines(r, /^FAIL/)]); };
     bad("a not-started row a branch refers to", r => { r.tracker.branch = "fix/80-x"; }, /status "not-started" does not match/);
     bad("a landed row whose issue is open", r => { r.status = "landed"; }, /landed means the issue is closed/);
@@ -1524,6 +1530,182 @@ targets.filter(t => t.block === "plan").forEach(t => {
       ac.push([`timing: one event with the live work board in ${r.ms} ms, without it in ${r2.ms} ms (limits 5000 and 2500)`, r.status === 0 && r2.status === 0 && r.ms < 5000 && r2.ms < 2500, `${r.ms} ms · ${r2.ms} ms`]); }
   } catch (e) { ac.push(["the cases run to the end", false, String(e.stack).split(String.fromCharCode(10)).slice(0, 3).join(" ")]); }
   report("the fast path, apply-event.js: each event kind, idempotence, the enrich flag, atomic failure, the re-render onto the current template, timing (dashboards-skill/20)", ac);
+}
+
+/* The decisions of dashboards-skill/19 (plan/RULES.md §2 "Statements" and "The KPI tiles", §3, §5; GUIDANCE.md §1, §2), and the fast
+   path's defect it fixed:
+   A. statements: lib.js's rules (written, the derived outcome, the recorded state), sectionOf() and its elided work level, embed.js
+      copying each excerpt once and --refresh-excerpts, check.js's failures and warnings (the section changed since the copy, a board
+      still in one paragraph), the rendered list (bullets, numbered, the as-built marks), the reference opening its excerpt in the
+      inspector, a board in the older form still drawn, and apply-event.js landing a board whose outcomes are its statements;
+   D. "closed · duplicate": lib.js boardlessState(), check.js on the row and the stateReason, the work board's row, legend, Landed tile,
+      roadmap item and waits-on entry, and a plan board's roadmap item;
+   E. a column address glows the column (its band and head; on the As built tab round the cards), never each cell; held while halted;
+      its own legend entry;
+   F. a segmented bar on every KPI tile but a landed board's Timeline, with the tiles' legend: groups in their systems' colours, the
+      options, the verdicts, the qa slots by result;
+   G. the template plan.json's comment on the implementation glow;
+   and the real qa-pass event (WebTools #62, pass 1) the fast path refused: a remediation step naming "L1 per-type gating" is
+   applied, its open point kept, and --repo takes the slug or the main checkout's path, anything else a usage error. */
+{ const kc = [], sc = path.join(out, "decisions-19"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
+  const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x)), tp = name => (targets.find(t => t.name === name) || {}).path;
+  const text = h => (h || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/\s+/g, " ").trim();
+  const lib = require(path.join(SKILL, "plan", "scripts", "lib.js")), { levelRefs } = require(path.join(SKILL, "system", "scripts", "levelrefs.js"));
+  const ptpl = tp("plan/template/dashboard.html"), btpl = tp("plan/template/board.html"), PT = ptpl ? fs.readFileSync(ptpl, "utf8") : "", BT = btpl ? fs.readFileSync(btpl, "utf8") : "";
+  const EXD = sk("plan/examples/38-handshake-empty-name"), EX = J("plan/examples/38-handshake-empty-name/plan.json"), LIVE = J("verify/fixtures/live-issue.plan.json"), SUB = J("verify/fixtures/sub-issue.plan.json"), TRK = J("verify/fixtures/tracking.plan.json");
+  const render = (name, d, hash, size) => { const dir = path.join(sc, name); fs.mkdirSync(dir, { recursive: true }); const f = path.join(dir, "dashboard.html");
+    fs.writeFileSync(f, withData(PT, "plan", JSON.stringify(d, null, 2))); fs.writeFileSync(path.join(dir, "plan.js"), lib.sidecarText("plan", JSON.stringify(d, null, 2))); return dumpDom(f, hash || "", size); };
+  const light = name => cp.spawnSync(process.execPath, [checker, path.join(sc, name, "dashboard.html"), "--out", path.join(sc, name)], { encoding: "utf8" });
+  const cellOf = (dom, col, id) => inner(dom || "", `<div class="cell ${col}[^"]*"[^>]*data-row="${id}"[^>]*>`, "div"), cellTag = (dom, col, id) => ((dom || "").match(new RegExp(`<div class="cell ${col}[^"]*"[^>]*data-row="${id}"`)) || [""])[0];
+  const kpis = dom => inner(dom, '<div class="kpis" id="kpis">', "div"), insp = dom => inner(dom, '<div id="insp-body">', "div");
+  /* a scratch repository holding a copy of the worked example, its Markdown beside it */
+  const tree = path.join(sc, "tree"), exDir = path.join(tree, "docs", "plans", "38-handshake-empty-name");
+  fs.mkdirSync(path.dirname(exDir), { recursive: true }); fs.cpSync(EXD, exDir, { recursive: true });
+  const rd = () => JSON.parse(fs.readFileSync(path.join(exDir, "plan.json"), "utf8")), wr = d => fs.writeFileSync(path.join(exDir, "plan.json"), JSON.stringify(d, null, 2) + "\n");
+  const chkEx = () => { node(embedJs, exDir); return node(checkJs, exDir, "--root", tree); };
+  try {
+    /* A. the rules */
+    const ab = (...st) => ({ asBuilt: { state: "pending", statements: st.map(s => ({ text: "x", state: s })) } });
+    kc.push(["A: lib.js statementOutcome(): deviated if any deviated, else amended if any amended, else as planned; none for a unit row or a bad state",
+      lib.statementOutcome(ab("as-planned", "amended", "deviated")) === "deviated" && lib.statementOutcome(ab("as-planned", "amended")) === "amended" && lib.statementOutcome(ab("as-planned")) === "as-planned"
+        && lib.statementOutcome({ unit: { issue: 1 }, ...ab("amended") }) === null && lib.statementOutcome(ab("as-planned", "built")) === null, "rule"]);
+    kc.push(["A: lib.js recordedState() takes the statements' outcome over a stored pending, never over dropped or deferred; verdictWritten() takes statements or a summary",
+      lib.recordedState(ab("amended")) === "amended" && lib.recordedState({ asBuilt: { state: "dropped", statements: [{ text: "x", state: "amended" }] } }) === "dropped"
+        && lib.verdictWritten({ statements: [{ text: "x", ref: "plan.md#a" }] }) && lib.verdictWritten({ summary: "x" }) && !lib.verdictWritten({ statements: [] }), "rule"]);
+    const sec = lib.sectionOf(fs.readFileSync(path.join(EXD, "plan.md"), "utf8"), "5-design"), lv = lib.sectionOf("## 2. Fix\n\nThis is a level-3 change, one system.\n", "2-fix");
+    kc.push(["A: lib.js sectionOf() reads a section's heading, first paragraph and hash, and elides a work level in the paragraph",
+      sec && sec.heading === "5. Design" && /^Two internal systems change shape/.test(sec.paragraph) && /^[0-9a-f]{12}$/.test(sec.hash) && lv && !levelRefs(lv.paragraph).length && /…/.test(lv.paragraph) && lib.refLabel({ excerpt: sec }) === "§5",
+      JSON.stringify(sec).slice(0, 160) + " · " + JSON.stringify(lv)]);
+    /* A. embed.js and the excerpts */
+    { const d = rd(); lib.statementRefs(d).forEach(x => { delete x.s.excerpt; }); wr(d); const r = node(embedJs, exDir), d2 = rd(), refs = lib.statementRefs(d2);
+      kc.push(["A: embed.js copies every statement's excerpt from the section its reference names", r.status === 0 && refs.length > 20 && refs.every(x => x.s.excerpt && x.s.excerpt.ref === x.s.ref && /^[0-9a-f]{12}$/.test(x.s.excerpt.hash)), `${refs.filter(x => x.s.excerpt).length} of ${refs.length} copied`]);
+      const before = fs.readFileSync(path.join(exDir, "plan.json"), "utf8"); node(embedJs, exDir);
+      kc.push(["A: a second embed changes nothing (an excerpt is copied once per reference)", fs.readFileSync(path.join(exDir, "plan.json"), "utf8") === before, "plan.json"]);
+      const c0 = chkEx(); kc.push(["A: check.js passes the split example without a statement warning", c0.status === 0 && !/statement|excerpt|one paragraph/.test(lines(c0, /^(warn|FAIL)/)), lines(c0, /^(warn|FAIL)/) || "clean"]);
+      const pm = path.join(exDir, "plan.md"); fs.writeFileSync(pm, fs.readFileSync(pm, "utf8").replace("Two internal systems change shape;", "Two internal systems change shape (verification case);"));
+      const c1 = chkEx(); kc.push(["A: check.js warns when a plan section has changed since its excerpt was copied", c1.status === 0 && /the plan section plan\.md#5-design \("5\. Design"\) has changed since its excerpt was copied/.test(c1.stdout), lines(c1, /changed since/).slice(0, 300)]);
+      node(embedJs, exDir); kc.push(["A: embed.js keeps an excerpt already copied: the warning stays until the presenter re-copies it", /has changed since its excerpt was copied/.test(chkEx().stdout), "kept"]);
+      const rr = node(embedJs, exDir, "--refresh-excerpts"), c2 = chkEx(), e = lib.statementRefs(rd()).find(x => x.s.ref === "plan.md#5-design").s.excerpt;
+      kc.push(["A: embed.js --refresh-excerpts re-copies it, and the warning is gone", rr.status === 0 && /verification case/.test(e.paragraph) && !/has changed since its excerpt was copied/.test(c2.stdout), e.paragraph.slice(0, 80)]); }
+    /* A. check.js's failures and warnings */
+    { const bad = (what, f, re) => { const d = copy(EX); f(d); wr(d); const r = chkEx(); kc.push([`A: check.js fails ${what}`, r.status === 1 && re.test(r.stdout), lines(r, /^FAIL/).slice(0, 300)]); };
+      const row = (d, id) => d.rows.find(r => r.id === id);
+      bad("a verdict statement with no reference", d => { delete row(d, "routing").verdict.statements[0].ref; }, /verdict\.statements\[0\]\.ref is required/);
+      bad("a reference that is not a Markdown section link", d => { row(d, "routing").verdict.statements[0].ref = "see the plan"; }, /is not a relative link to a Markdown section/);
+      bad("as-built statements that do not number one per verdict statement", d => { row(d, "routing").asBuilt.statements.pop(); }, /3 as-built statements for 4 verdict statements/);
+      bad("a stored outcome its statements disagree with", d => { row(d, "refusal-reply").asBuilt.state = "amended"; }, /asBuilt\.state "amended" disagrees with its statements, which make it "as-planned"/);
+      bad("an adaptation that is not as-planned, amended or deviated", d => { row(d, "release").asBuilt.statements[0].state = "built"; }, /state is its adaptation, one of as-planned, amended, deviated/);
+      bad("a list that is neither bullets nor numbered", d => { row(d, "routing").verdict.list = "steps"; }, /verdict\.list must be bullets or numbered/);
+      const old = copy(SUB); wr({ ...copy(EX), rows: EX.rows.map(r => ({ ...r, verdict: { ...r.verdict, statements: undefined, summary: "Verification case: one paragraph." }, asBuilt: { ...r.asBuilt, statements: undefined, summary: "Verification case: built." } })) });
+      const cl = chkEx(); kc.push(["A: a board still in one paragraph per verdict passes, with one warning naming its rows", cl.status === 0 && (cl.stdout.match(/one paragraph \(verdict\.summary\)/g) || []).length === 1 && /every verdict is one paragraph/.test(cl.stdout), lines(cl, /one paragraph/).slice(0, 200)]);
+      const tk = copy(TRK); tk.rows.find(r => r.id === "build-logic").asBuilt.statements = [{ text: "x", state: "as-planned" }];
+      const tdir = path.join(tree, "docs", "plans", "55-http-client-stack"); fs.mkdirSync(tdir, { recursive: true }); fs.writeFileSync(path.join(tdir, "plan.json"), JSON.stringify(tk, null, 2) + "\n"); fs.writeFileSync(path.join(tdir, "dashboard.html"), PT); node(embedJs, tdir);
+      const ct = node(checkJs, tdir, "--root", tree); kc.push(["A: check.js fails as-built statements on a unit row", ct.status === 1 && /a unit row carries no as-built statements/.test(ct.stdout), lines(ct, /^FAIL/).slice(0, 200)]);
+      wr(EX); node(embedJs, exDir); }
+    /* A. apply-event.js: a board whose outcomes are its statements lands */
+    { const d = copy(EX); Object.assign(d, { status: "building", asBuilt: { ref: "master", sha: d.baseline.sha, date: d.baseline.date } }); d.wip = { ...d.wip, step: "landing", current: [], event: { name: "qa-pass", at: "2026-10-25T09:00:00Z" } };
+      d.rows.forEach(r => { r.asBuilt.state = "pending"; }); d.milestones = d.milestones.filter(m => m.column !== "built"); wr(d); node(embedJs, exDir);
+      const rq = path.join(sc, "landed.json"); fs.writeFileSync(rq, JSON.stringify({ v: 1, action: "plan-board", github: d.repo, issue: 38, event: "landed", folder: "docs/plans/38-handshake-empty-name", facts: { merge: "abcdef9", pr: 59, date: "2026-10-25" } }));
+      const r = cp.spawnSync(process.execPath, [sk("plan/scripts/apply-event.js"), "--event", rq, "--worktree", tree, "--no-live", "--at", "2026-10-25T10:00:00Z", "--json"], { encoding: "utf8" }), s = JSON.parse((r.stdout || "{}").trim().split(/\r?\n/).pop() || "{}"), d2 = rd();
+      kc.push(["A: apply-event.js lands a board whose rows' outcomes are their statements (stored pending): status built, step landed", r.status === 0 && d2.status === "built" && d2.wip.step === "landed", `${s.result} · ${s.error || ""} · ${(s.applied || []).join("; ").slice(0, 160)}`]);
+      wr(EX); node(embedJs, exDir); }
+    /* A. the rendered statements */
+    if (chrome) {
+      const dE = render("ex", EX), dR = render("ex-ref", EX, "routing.verdict.s1"), dS = render("sub", SUB);
+      const v = cellOf(dE, "verdict", "validity-rule"), b = cellOf(dE, "built", "validity-rule"), n = cellOf(dE, "verdict", "test-housekeeping");
+      kc.push(["A: a Verdict cell lists its statements, each ending with its (§) reference, a link to the plan section", /<ul class="stmts">/.test(v) && (v.match(/<li>/g) || []).length === 4 && /<a class="sref" href="plan\.md#5-design"[^>]*>\(§5\)<\/a>/.test(v), text(v).slice(0, 240)]);
+      kc.push(["A: a verdict whose order matters is numbered", /<ol class="stmts">/.test(n), text(n).slice(0, 160)]);
+      kc.push(["A: the As built cell answers each statement, marked with the as-built titles' glyph and word", /<ol class="stmts marked">/.test(b) && /vp warning"><i aria-hidden="true">\+<\/i>amended/.test(b) && /vp good"><i aria-hidden="true">✓<\/i>as planned/.test(b) && /final-implementation\.md#code/.test(b), text(b).slice(0, 240)]);
+      kc.push(["A: the timeline legend names the adaptation marks drawn", /amended<\/span> built as decided, plus changes/.test(inner(dE, '<div class="key" id="timeline-key">', "div")), "legend"]);
+      const iR = insp(dR);
+      kc.push(["A: the reference opens the section's excerpt in the inspector, beside the link to the section", /STATEMENT 2 · §5/.test(text(iR)) && /<blockquote class="excerpt"><b>5\. Design<\/b><p>Two internal systems change shape/.test(iR) && /<a href="plan\.md#5-design">plan\.md › 5\. Design<\/a>/.test(iR), text(iR).slice(0, 300)]);
+      kc.push(["A: a board in the older form (the sub-issue fixture's release row) still shows its paragraph", /set after Commit 5/.test(text(cellOf(dS, "verdict", "release"))) && !/stmts/.test(cellOf(dS, "verdict", "release")) && /stmts/.test(cellOf(dS, "verdict", "routing")), text(cellOf(dS, "verdict", "release")).slice(0, 120)]);
+      ["ex", "sub"].forEach(k => { const r = light(k); kc.push([`A: the ${k} rendering passes check-page.js`, r.status === 0, lines(r, /FAIL|DASHED|ERROR|NO LEGEND/)]); });
+      /* F. the KPI bars and their legend */
+      const K = kpis(dE), bars = K.match(/<div class="seg-bar"/g) || [];
+      kc.push(["F: every tile but a landed board's Timeline carries a segmented bar, with the tiles' legend under them", bars.length === 4 && /id="kpi-key"/.test(K) && /Rows<\/span>/.test(K) && /OPTIONS|Options<\/span>/.test(K) && /Verdicts<\/span>/.test(K) && /As built<\/span>/.test(K), `${bars.length} bars · ${text(inner(K, '<div class="key kpikey" id="kpi-key">', "div")).slice(0, 200)}`]);
+      const rowsBar = inner(K, '<div class="seg-bar" role="img" aria-label="Rows by group', "div");
+      kc.push(["F: Rows: one segment per group, in its system's colour", (rowsBar.match(/<i /g) || []).length === 5 && /background:var\(--sys-1\)/.test(rowsBar), (rowsBar.match(/<i /g) || []).length + " segments"]);
+      const optBar = inner(K, '<div class="seg-bar" role="img" aria-label="Options weighed', "div");
+      kc.push(["F: Options weighed: accepted green, declined red, a deferred option settled in column 4 in its settled colour", /class="good"/.test(optBar) && /class="critical"/.test(optBar) && /deferred → accepted/.test(text(inner(K, '<div class="key kpikey" id="kpi-key">', "div"))), optBar.slice(0, 200)]);
+      const V = copy(LIVE); V.status = "building"; Object.assign(V.wip, { step: "qa", current: ["built"], questions: [], research: null, qa: [{ pass: 1, verdict: "changes-requested", findings: { documentation: 2 }, severity: { minor: 2 }, route: "on-the-spot" }, { pass: 2, verdict: "running" }] });
+      V.rows.forEach((r, i) => { if (i < 3) r.verdict = { kind: i === 2 ? "leave" : "build", statements: [{ text: "Verification case: one decision.", ref: "plan.md#5-design" }], steps: [{ id: "A", what: "x" }] }; });
+      const dV = render("qa-col", V, "", "1400,1400"), KV = kpis(dV), qaBar = inner(KV, '<div class="seg-bar" role="img" aria-label="QA passes', "div");
+      kc.push(["F: QA passes: one slot per pass allowed, filled by result: minor findings only yellow, the running pass accent, the unused slot empty", (qaBar.match(/<i /g) || []).length === 3 && /class="warning"[\s\S]*class="accent"[\s\S]*class="slot"/.test(qaBar) && /minor findings only/.test(KV) && /a pass not used/.test(KV), qaBar.slice(0, 260)]);
+      kc.push(["F: Verdicts: build solid, left for later faded, not yet written dashed", /aria-label="Verdicts: 2 build, 1 left for later, 8 not yet written"[^>]*><i class="ink"[^>]*><\/i><i class="left"[^>]*><\/i><i class="dash"/.test(KV), text(inner(KV, '<div class="key kpikey" id="kpi-key">', "div")).slice(0, 200)]);
+      const V2 = copy(V); V2.wip.qa = [{ pass: 1, verdict: "changes-requested", findings: { code: 1 }, severity: { minor: 1, other: 1 }, route: "rookie-dev" }, { pass: 2, verdict: "approved" }]; V2.wip.step = "landing"; V2.wip.current = [];
+      const qb2 = inner(kpis(render("qa-other", V2)), '<div class="seg-bar" role="img" aria-label="QA passes', "div");
+      kc.push(["F: QA passes: other findings red, a passed pass green", /class="critical"[\s\S]*class="good"[\s\S]*class="slot"/.test(qb2), qb2.slice(0, 200)]);
+      const dT = render("trk", TRK), KT = kpis(dT);
+      kc.push(["F: a tracking board's Units bar names the top-level systems in its legend", /aria-label="Units by group/.test(KT) && /webtools-http<\/span>/.test(KT) && !/published test fixtures/.test(text(inner(KT, '<div class="key kpikey" id="kpi-key">', "div"))), text(inner(KT, '<div class="key kpikey" id="kpi-key">', "div")).slice(0, 220)]);
+      /* E. the column glow */
+      const bands = (dV.match(/<div class="band[^"]*"/g) || []);
+      kc.push(["E: a column address glows the column itself: its band glows and its head is washed, no cell of it glows", bands.filter(x => / glow-soft/.test(x)).length === 1 && /<div class="colhead phase colon" data-col="built">/.test(dV) && !/<div class="cell built[^"]*\b(glow|glow-soft|held)\b/.test(dV) && /<div class="cell built[^"]* colglow"/.test(dV), bands.join(" ")]);
+      kc.push(["E: its legend entry names the column glow", /glow around a whole column/.test(inner(dV, '<div class="key" id="timeline-key">', "div")), "legend"]);
+      const dVb = render("qa-col-built", V, "built", "1400,1400");
+      kc.push(["E: on the As built tab the glow goes round the cards, never each card", /<div class="bcards colbox glow-soft" id="built-list">/.test(dVb) && !/<div class="bcard [^"]*\b(glow|glow-soft)\b/.test(dVb), (dVb.match(/<div class="bcards[^"]*" id="built-list">/) || [""])[0]]);
+      const H = copy(V); H.wip.step = "halted"; H.wip.resume = "qa"; H.wip.waitingOn = "Verification case: a question.";
+      const dH = render("qa-col-held", H, "", "1400,1400");
+      kc.push(["E: halted, the column's glow holds still as the ring alone, with its legend entry", (dH.match(/<div class="band held"/g) || []).length === 1 && !/<div class="band[^"]* glow-soft/.test(dH) && /ring around a whole column/.test(inner(dH, '<div class="key" id="timeline-key">', "div")), (dH.match(/<div class="band[^"]*"/g) || []).join(" ")]);
+      const dN = render("qa-col-narrow", V, "", "520,1400");
+      kc.push(["E: at phone width no column is drawn: no band, the column's cells carry the mark (colglow)", !/<div class="band/.test(dN) && /<div class="cell built[^"]* colglow"/.test(dN), "narrow"]);
+      ["qa-col", "qa-col-held"].forEach(k => { const r = light(k); kc.push([`E: the ${k} rendering passes check-page.js`, r.status === 0, lines(r, /FAIL|DASHED|ERROR|NO LEGEND/)]); });
+      /* D. a plan board's roadmap item closed as a duplicate */
+      const s2 = copy(SUB); const it = s2.roadmap.items[2]; it.state = "closed"; it.stateReason = "DUPLICATE";
+      kc.push(["D: a plan board's roadmap item closed as a duplicate reads \"closed · duplicate\"", /closed · duplicate/.test(text(render("roadmap-dup", s2))), "context"]);
+    } else kc.push(["the rendered boards (no browser found: set CHROME)", false, "no Chrome or Edge"]);
+    /* D. closed as a duplicate on the work board */
+    kc.push(["D: lib.js boardlessState(): closed as a duplicate reads duplicate, never landed", lib.boardlessState(86, "CLOSED", [], [], [], [], "DUPLICATE").status === "duplicate" && lib.boardlessState(86, "CLOSED", [], [], [], [], "COMPLETED").status === "landed", "rule"]);
+    if (btpl) { const wb = J("verify/fixtures/work-board.json"), wtree = path.join(sc, "wtree"), dir = path.join(wtree, "docs", "plans");
+      const wchk = d => { fs.rmSync(wtree, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true }); (d.rows || []).filter(r => r.board).forEach(r => stub(path.join(dir, path.dirname(r.board))));
+        fs.writeFileSync(path.join(dir, "board.json"), JSON.stringify(d, null, 2) + "\n"); fs.writeFileSync(path.join(dir, "index.html"), BT); node(embedJs, dir); return node(checkJs, dir, "--root", wtree); };
+      const c0 = wchk(copy(wb)); kc.push(["D: check.js passes the work-board fixture with its duplicate row", c0.status === 0 && /1 duplicate/.test(c0.stdout), lines(c0, /^FAIL|boardless/)]);
+      const bad = (what, f, re) => { const d = copy(wb); f(d.rows.find(r => r.issue === 86), d); const r = wchk(d); kc.push([`D: check.js fails ${what}`, r.status === 1 && re.test(r.stdout), lines(r, /^FAIL/).slice(0, 240)]); };
+      bad("a row closed as a duplicate that reads landed", r => { r.status = "landed"; }, /closed as a duplicate: the row reads "duplicate"/);
+      bad("a duplicate row without the tracker's DUPLICATE", r => { r.stateReason = "COMPLETED"; }, /duplicate needs the tracker's stateReason DUPLICATE/);
+      bad("a stateReason the tracker never records", (r, d) => { d.roadmap[0].items[3].state = "CLOSED"; d.roadmap[0].items[3].stateReason = "WONTFIX"; }, /stateReason must be one of COMPLETED, NOT_PLANNED, DUPLICATE, REOPENED/);
+      bad("a stateReason on an open issue", (r, d) => { d.rows.find(x => x.issue === 80).waitsOn = [{ issue: 86, state: "OPEN", stateReason: "DUPLICATE" }]; }, /is the reason a closed issue was closed/);
+      if (chrome) { const w2 = copy(wb), it = w2.roadmap[0].items[4]; it.state = "CLOSED"; it.stateReason = "DUPLICATE"; w2.rows.find(r => r.issue === 80).waitsOn = [{ issue: 86, state: "CLOSED", stateReason: "DUPLICATE" }];
+        const f = path.join(sc, "wb", "index.html"); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, withData(BT, "board", JSON.stringify(w2, null, 2)));
+        const dW = dumpDom(f), row = n => (dW.match(new RegExp(`<tr class="run[^"]*"[^>]*><td><span class="t"><a [^>]*>#${n}<[\\s\\S]*?</tr>`)) || [""])[0], key = inner(dW, '<div class="key" id="runs-key">', "div");
+        kc.push(["D: the work board: the row closed as a duplicate reads \"closed · duplicate\", solid and neutral, not glowing", /vp neutral"><i aria-hidden="true">⊜<\/i>closed · duplicate/.test(row(86)) && !/glow|dashed/.test(row(86).replace(/<a [^>]*>[^<]*<\/a>/g, "")), text(row(86)).slice(0, 140)]);
+        kc.push(["D: its own legend entry, and the Landed tile counts it apart", /closed · duplicate<\/span> no board: closed on the tracker as a duplicate/.test(key) && /1 closed as duplicates, not counted/.test(text(inner(dW, '<div class="kpis" id="kpis">', "div"))), text(key).slice(0, 200)]);
+        kc.push(["D: a roadmap item and a waits-on entry closed as a duplicate say so", /<small>closed · duplicate<\/small>/.test(dW) && /#86<\/a>[^<]*<small> closed · duplicate<\/small>/.test(row(80)), text(row(80)).slice(0, 160)]);
+        const r = cp.spawnSync(process.execPath, [checker, f, "--out", path.dirname(f)], { encoding: "utf8" }); kc.push(["D: that work board passes check-page.js", r.status === 0, lines(r, /FAIL|ERROR|DASHED|NO LEGEND/)]); } }
+    /* G. the template plan.json's comment on the implementation glow */
+    { const t = J("plan/template/plan.json"); kc.push(["G: the template plan.json says an implementation stage with no rows glows the As built column, drawn as one glow on the column", /an implementation stage that touches no rows/.test(t.wip.$comment) && /drawn as one glow on the column itself/.test(t.wip.$comment) && Array.isArray(t.rows[0].verdict.statements) && Array.isArray(t.rows[0].asBuilt.statements), "template"]); }
+    /* the real qa-pass event the fast path refused (WebTools #62, pass 1) */
+    { kc.push(["levelrefs.js: a test level qualified by a word or two (\"L1 per-type gating\") is not a work level; \"L3\" alone still is", !levelRefs("L1 per-type gating").length && !levelRefs("L2 value-type component").length && levelRefs("an L3 change").length === 1, "rule"]);
+      const req = J("verify/fixtures/qa-pass-62.request.json"), qdir = path.join(sc, "qtree"), folder = "docs/plans/70-live-verification", bdir = path.join(qdir, ...folder.split("/"));
+      fs.mkdirSync(bdir, { recursive: true }); const L = copy(LIVE); L.status = "building"; Object.assign(L.wip, { step: "qa", current: ["built"], questions: [], research: null, qa: [], event: { name: "implementation-stage", at: "2026-10-25T11:00:00Z" } });
+      L.rows.forEach(r => { r.verdict = { kind: "build", summary: "Verification case: written.", steps: [{ id: "A", what: "x" }] }; });
+      fs.writeFileSync(path.join(bdir, "plan.json"), JSON.stringify(L, null, 2) + "\n"); fs.writeFileSync(path.join(bdir, "dashboard.html"), PT); node(embedJs, bdir);
+      const rq = path.join(sc, "qa62.json"); fs.writeFileSync(rq, JSON.stringify({ ...req, issue: 70, folder, $comment: undefined }));
+      const run = (...a) => cp.spawnSync(process.execPath, [sk("plan/scripts/apply-event.js"), "--event", rq, "--worktree", qdir, "--no-live", "--json", ...a], { encoding: "utf8" });
+      const r = run("--repo", "SpartanLaboratories/WebTools"), s = JSON.parse((r.stdout || "{}").trim().split(/\r?\n/).pop() || "{}"), d = JSON.parse(fs.readFileSync(path.join(bdir, "plan.json"), "utf8")), M = d.wip.remediation || {};
+      kc.push(["the WebTools #62 qa-pass event applies: its remediation steps kept by name (\"L1 per-type gating\" included), its open point kept", r.status === 0 && s.result === "ok" && (M.steps || []).length === 2 && /L1 per-type gating/.test(M.steps[1].name) && M.route === "on-the-spot" && (d.wip.open || []).some(o => /test-scope exclusions/.test(o.text)) && d.wip.step === "remediation",
+        `${s.result} · ${s.error || ""} · ${JSON.stringify(M).slice(0, 200)}`]);
+      kc.push(["the same event's detail and qa pass are written from its facts (changes requested, 27 minor and 2 other, on the spot)", /^Code review PASS/.test(d.wip.detail || "") && d.wip.qa[0].verdict === "changes-requested" && d.wip.qa[0].severity.other === 2 && d.wip.qa[0].route === "on-the-spot", (d.wip.detail || "").slice(0, 80)]);
+      const r2 = run("--repo", qdir), s2 = JSON.parse((r2.stdout || "{}").trim().split(/\r?\n/).pop() || "{}");
+      kc.push(["--repo takes the main checkout's path too (read as --main)", r2.status === 0 && s2.result === "duplicate", `${r2.status} · ${s2.result} · ${s2.error || ""}`]);
+      const r3 = run("--repo", "not a slug");
+      kc.push(["--repo with neither a slug nor a path is a usage error that says what it takes", r3.status === 2 && /--repo takes the GitHub slug owner\/repo/.test(r3.stderr || ""), (r3.stderr || "").trim().split(/\r?\n/).pop()]);
+      /* the next real event of the same run (WebTools #62): an implementation-stage during remediation carrying both the stages (every
+         one done) and the remediation */
+      const req2 = J("verify/fixtures/remediation-62.request.json"), rq2 = path.join(sc, "rem62.json"); fs.writeFileSync(rq2, JSON.stringify({ ...req2, issue: 70, folder, $comment: undefined }));
+      const run2 = () => cp.spawnSync(process.execPath, [sk("plan/scripts/apply-event.js"), "--event", rq2, "--worktree", qdir, "--no-live", "--json"], { encoding: "utf8" });
+      const r4 = run2(), s4 = JSON.parse((r4.stdout || "{}").trim().split(/\r?\n/).pop() || "{}"), d4 = JSON.parse(fs.readFileSync(path.join(bdir, "plan.json"), "utf8")), M4 = d4.wip.remediation || {}, last = (d4.trail || []).slice(-1)[0] || {};
+      kc.push(["a remediation report carrying the stages too: both apply, the sub-steps' states written (done, current), every stage done, the step remediation", r4.status === 0 && s4.result === "ok" && (M4.steps || []).map(x => x.state).join() === "done,current" && (d4.wip.stages || []).length === 7 && d4.wip.stages.every(x => x.state === "done") && d4.wip.step === "remediation",
+        `${s4.result} · ${s4.error || ""} · ${JSON.stringify(M4.steps && M4.steps.map(x => x.state))} · ${d4.wip.step}`]);
+      kc.push(["its trail entry and event note follow the remediation (facts.stage), never \"qa next\"", last.label === "Remediation: qa pass 1 fixes done; reconciliation current" && d4.wip.event.note === "qa pass 1 fixes done; reconciliation current" && !/qa next/.test(JSON.stringify(d4.trail) + d4.wip.event.note),
+        `${last.label} · ${d4.wip.event.note}`]);
+      const r5 = run2(), s5 = JSON.parse((r5.stdout || "{}").trim().split(/\r?\n/).pop() || "{}");
+      kc.push(["the same remediation report twice is a duplicate", r5.status === 0 && s5.result === "duplicate", `${s5.result} · ${s5.error || ""}`]);
+      const req3 = { ...req2, issue: 70, folder, $comment: undefined, facts: { ...req2.facts, stage: undefined, at: "2026-10-25T12:40:00Z", remediation: { ...req2.facts.remediation, steps: [{ name: "rookie-dev fixes", state: "done" }, { name: "planner reconciles", state: "current" }] } } }, rq3 = path.join(sc, "rem62b.json");
+      fs.writeFileSync(rq3, JSON.stringify(req3)); const r6 = cp.spawnSync(process.execPath, [sk("plan/scripts/apply-event.js"), "--event", rq3, "--worktree", qdir, "--no-live", "--json"], { encoding: "utf8" }), d6 = JSON.parse(fs.readFileSync(path.join(bdir, "plan.json"), "utf8"));
+      kc.push(["with no facts.stage, the wording names the qa pass and the sub-steps done and current", r6.status === 0 && (d6.trail || []).slice(-1)[0].label === "Remediation for qa pass 1: 1 sub-step done; planner reconciles current", ((d6.trail || []).slice(-1)[0] || {}).label]); }
+  } catch (e) { kc.push(["the cases run to the end", false, String(e.stack).split(String.fromCharCode(10)).slice(0, 3).join(" ")]); }
+  report("statements with their plan excerpts, closed as a duplicate, the column glow, the KPI bars, the implementation glow's comment, the #62 qa-pass event (dashboards-skill/19)", kc);
 }
 
 const today = new Date().toISOString().slice(0, 10);

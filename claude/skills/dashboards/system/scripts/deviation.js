@@ -58,7 +58,11 @@ function verified(template) {
   const { file, key } = recordFile(template);
   let rec = null; try { rec = (JSON.parse(fs.readFileSync(file, "utf8")).templates || {})[key] || null; } catch (e) { /* none yet */ }
   const hash = sha(fs.readFileSync(template, "utf8"));
-  return { ok: !!rec && rec.sha256 === hash, hash, rec, file, key };
+  /* verify/verify-templates.js names the templates it is verifying (their hashes) to the scripts its cases run, so a case that needs
+     "the verified template" (an event re-rendering a page onto it, check.js --auto reading a page as it plus its data) holds while a
+     changed template is being verified; the template is still recorded only once every case and pass has passed. */
+  let under = []; try { under = JSON.parse(process.env.DASHBOARDS_TEMPLATES_UNDER_TEST || "[]"); } catch (e) { /* none */ }
+  return { ok: (!!rec && rec.sha256 === hash) || (Array.isArray(under) && under.includes(hash)), hash, rec, file, key, underTest: Array.isArray(under) && under.includes(hash) };
 }
 
 /* A plan board or the work board: the page with its data block emptied, against the template with its block emptied. */
