@@ -91,7 +91,11 @@ board). Hand-written HTML writes the number of a pair as a plain GitHub link and
 at load and leaves a title plain text while its issue has no board. Nobody writes a board's path
 anywhere else on the page.
 The header names the branch and short SHA the page reflects and the issue that last amended the
-system; every count on the page is counted. The header also carries the **theme switch**
+system; every count on the page is counted. Each chip is a tag, its label then its value,
+`<span class="chip"><span class="ck">version</span> <b>2.0.0a</b></span>` (a bare value such as the platform gets its label,
+"platform"); the template's CSS shows the intro (crumbs, title, function) on the left half of a wide screen and the tags as cards in
+the right half beside it, and stacks them under 940 px (`GUIDANCE.md` §6, "The header"). A page written before the labels keeps its
+chips, which the same CSS lays out alike; the presenter adds the labels when it next writes the header. The header also carries the **theme switch**
 (`GUIDANCE.md` §1, Themes), a light/night toggle the template's renderer adds right of the
 breadcrumb; the presenter writes nothing for it. A system, supersystem or repository page has **no
 live indicator**: it shows the code at a named commit and has no run to follow (`plan/RULES.md` §3,

@@ -68,7 +68,8 @@ board in its own folder.
   only where the page offers no other way to reach the issue: the "part of" chip and a follow-up
   with no title. Wherever the number itself opens GitHub, there is none.
 
-The board's own `#n` opens its GitHub issue, and `PR #n` its pull request. No link points at a
+The board's own `#n` opens its GitHub issue — the header's issue line, beside the issue's title on
+GitHub (`GUIDANCE.md` §6, "The header") — and `PR #n` its pull request. No link points at a
 file that is not there: a board exists when its `dashboard.html` is in the same tree, and the
 link is relative to the linking board's folder, so it is never dead. Where the boards sit:
 
@@ -509,8 +510,14 @@ events, the documents, the trail), never guessed; each step's panel shows:
 | `halted`, `escalated` | what it waits on (the question, or the re-sizing), and the panel of the step it stopped in, **held still** (no breathing dot) |
 | every step | the open points still open (`wip.open`), each with where it was raised and its link |
 
-Every panel names the last event (`wip.event`), since when the run is at its step, and the step that
-follows. **What it adds beyond the list above**, from the same facts: the last event and its time;
+**Its heading is the step's title alone** ("Research", "Plan", "QA"; on a halt, the step it halted in), with no
+"in detail" phrase and, on a tracking board, no unit line: the panel stands beside its unit's bubble, which names the unit (the
+panel's accessible label names it too). **Its facts are info groups at its bottom**, the same convention as a unit bubble's
+(its since, updated, qa and branch): the **last event** (`wip.event`) with its time, **since** when the run is at its step
+("waiting since" while it waits on the user), **next**, the step that follows, and where the step has them the branch (the
+branch step), the plan's link (the plan and implementation steps) and the deviations recorded (implementation, remediation).
+**Every info group is a small bubble of its own** — in the step panel, in a unit's bubble, in the phase bubble and in an issue
+board's strip alike. **What it adds beyond the list above**, from the same facts: the last event and its time;
 each research question's rows by name, its sent and returned times and its findings link; each
 phase's start; at the plan step the rows whose verdict is still to write; at each stage the rows it
 touches; the count of deviations recorded during the build; the qa limit and the running pass; the
@@ -559,9 +566,13 @@ in place of the unit up next, which stays on the chain chip, its chain entry and
 only while no unit's run is mirrored, the up-next bubble with its UP NEXT tag and a "blocked by #n"
 tag for each blocker that has not landed; (4) **waiting on you**, a yellow bubble shown only
 while the tracking issue or a unit's run is halted, saying what each waits on and where it resumes.
-On a phone they stack in that order; up to 1500 px the phase runs across the row with the others
-beside each other under it; on a wide desktop the phase takes two columns and the others sit beside
-it. An issue's number and its title in a bubble are the pair of §1. The legend runs under them all.
+From 940 px the row is split in **fixed shares: the phase bubble 35 %, the unit in progress 25 %,
+its step panel 40 %**. Each further unit in progress takes a row of its own with its panel, the phase
+running down beside them all; the up-next bubble takes the unit's and the panel's shares (the panel's
+alone beside a unit whose run is not mirrored), and "waiting on you" the same two under them; a phase
+with nothing beside it (a landed or cancelled board) takes the whole row. Under 940 px they stack in
+that order, each unit followed by its panel. An issue's number and its title in a bubble are the pair
+of §1. The legend runs under them all.
 An issue board keeps its single strip: one run, nothing to separate.
 
 **Branches.** A merged branch is not shown. An issue board names its branch (the header chip)

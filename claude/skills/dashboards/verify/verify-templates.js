@@ -41,7 +41,9 @@
 // event twice changing nothing, the enrich flag, atomic failure, the re-render of an older-template board by an ordinary event, a stage
 // that touches no rows glowing the whole As built column, and its time. And the decisions of dashboards-skill/19: statements in the
 // Verdict and As built cells with their plan excerpts, "closed · duplicate", the column glow, the KPI bars, and the real #62 events the
-// fast path misapplied (a remediation step naming a test level; a remediation report carrying the stages). A template is recorded only when its
+// fast path misapplied (a remediation step naming a test level; a remediation report carrying the stages). And the decisions of
+// dashboards-skill/21: the header's two halves and its labelled tags on every type, a tracking board's WIP row in fixed shares (35 / 25 / 40),
+// and the step panel's title alone with its facts as info groups, each a small bubble. A template is recorded only when its
 // browser passes and every case group pass.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
@@ -224,14 +226,14 @@ targets.filter(t => t.block === "plan").forEach(t => {
     rc.push(["check.js passes the re-embedded tracking board without the warning", c.status === 0 && !/unit\.live/.test(c.stdout), lines(c, /unit\.live|^FAIL/)]);
     const dom = dumpDom(path.join(folder, "dashboard.html"));
     if (dom != null) {
-      const wip = inner(dom, '<section class="wip[^"]*"[^>]*>', "section"), run = inner(wip, `<div class="wb unit[^"]*" data-row="${plain.id}">`, "div"), wait = inner(wip, '<div class="wb wait">', "div");
+      const wip = inner(dom, '<section class="wip[^"]*"[^>]*>', "section"), run = inner(wip, `<div class="wb unit[^"]*" data-row="${plain.id}"[^>]*>`, "div"), wait = inner(wip, '<div class="wb wait"[^>]*>', "div");
       const cell = (dom.match(new RegExp(`<div class="cell built[^"]*"[^>]*data-row="${plain.id}"[\\s\\S]*?<div class="meta">`)) || [""])[0];
       rc.push(["the WIP strip shows the unit's run in its own bubble, halted, and what it waits on in the \"Waiting on you\" bubble", new RegExp(`class="wb unit halted" data-row="${plain.id}"`).test(wip) && /waiting on the user/.test(run) && /Verification stub: the user chooses/.test(wait), (run || wip).slice(0, 400) || "no run bubble"]);
       rc.push(["the unit's as-built cell carries the run line, its mark paused", /class="run"/.test(cell) && /waiting on the user/.test(cell) && / held"/.test(cell.slice(0, 200)), cell.slice(0, 500) || "no cell"]);
       /* an escalated unit run waits on the user too: its mark pauses to the ring alone, as a halt's does (GUIDANCE.md §1; plan/RULES.md
          §3, the glow follows the step), on its as-built cell and on its bubble's current step */
       Object.assign(sub.wip, { step: "escalated", resume: "plan", updated: "2026-10-23T01:20:00Z", waitingOn: null }); writeSub(); node(embedJs, subDir);
-      const domE = dumpDom(path.join(folder, "dashboard.html")) || "", wipE = inner(domE, '<section class="wip[^"]*"[^>]*>', "section"), runE = inner(wipE, `<div class="wb unit[^"]*" data-row="${plain.id}">`, "div");
+      const domE = dumpDom(path.join(folder, "dashboard.html")) || "", wipE = inner(domE, '<section class="wip[^"]*"[^>]*>', "section"), runE = inner(wipE, `<div class="wb unit[^"]*" data-row="${plain.id}"[^>]*>`, "div");
       const cellE = ((domE.match(new RegExp(`<div class="cell built[^"]*"[^>]*data-row="${plain.id}"`)) || [""])[0]);
       rc.push(["an escalated unit run pauses its mark too: the ring alone on its as-built cell and on its current step", / held"/.test(cellE) && !/ glow"/.test(cellE) && /class="cur held"/.test(runE) && !/class="cur glow"/.test(runE), `${cellE} · ${(runE.match(/<li class="cur[^"]*"/) || ["no current step"])[0]}`]);
     } else rc.push(["the rendered tracking board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
@@ -260,7 +262,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     sc.push(["check.js passes the sub-issue board without the warning", c.status === 0 && !warned(c), lines(c, /^(FAIL|warn)/)]);
     const dom = dumpDom(path.join(sFolder, "dashboard.html"));
     if (dom != null) {
-      const chip = (inner(dom, '<div class="chips" id="chips">', "div").match(/<span class="chip">part of[\s\S]*?<\/span>/) || [""])[0];
+      const chip = (inner(dom, '<div class="chips" id="chips">', "div").match(/<span class="chip"><span class="ck">part of<\/span>[\s\S]*?GitHub ↗<\/a><\/span>/) || [""])[0];
       const crumbs = inner(dom, '<div class="crumbs" id="crumbs">', "div"), ctx = inner(dom, '<div class="cards" id="context">', "div");
       sc.push([`the "part of" chip opens #${sx.parent.issue}'s board, with GitHub ↗ beside it and no separate board link`, chip.includes('href="../dashboard.html"') && /class="gh"[^>]*>GitHub ↗/.test(chip) && !/>board<\/a>/.test(chip), chip || "no chip"]);
       sc.push(["the breadcrumb opens the parent's board", new RegExp(`href="\\.\\./dashboard\\.html">${path.basename(parentDir)}<`).test(crumbs), crumbs.slice(0, 400)]);
@@ -325,13 +327,13 @@ targets.filter(t => t.block === "plan").forEach(t => {
   const c0 = chipOf("as-is", fxC);
   if (c0 == null) cc.push(["the rendered chain chip (no browser found: set CHROME)", false, "no Chrome or Edge"]);
   else {
-    cc.push(["a tracking board's chip reads the chain: landed of all, the unit waiting on the user, the unit up next and its blocker", /^chain 1 of 11 landed · #47 waiting on you · #62 up next, blocked by #47$/.test(text(c0)) && /class="cbar"[^>]*><i style="width:9%"/.test(c0) && !/building/.test(text(c0)), text(c0) || "no chip"]);
+    cc.push(["a tracking board's chip reads the chain: landed of all, the unit waiting on the user, the unit up next and its blocker", /^tracking issue · chain 1 of 11 landed · #47 waiting on you · #62 up next, blocked by #47$/.test(text(c0)) && /class="cbar"[^>]*><i style="width:9%"/.test(c0) && !/building/.test(text(c0)), text(c0) || "no chip"]);
     const c1 = chipOf("run-at-plan", variant(d => { d.rows.find(r => r.id === "java-floor").unit.live.step = "plan"; d.rows.find(r => r.id === "java-floor").unit.live.resume = null; }));
     cc.push(["a unit whose run goes on reads its step from its mirror", /#47 in progress \(plan\)/.test(text(c1)), text(c1)]);
     const c2 = chipOf("planned", variant(d => { d.status = "planned"; d.rows.forEach(r => { r.asBuilt = { state: "pending", summary: "" }; delete r.unit.live; }); d.wip.step = "landing"; d.wip.current = []; d.wip.next = d.rows[0].id; }));
-    cc.push(["before any unit starts it reads \"planned · M units\"", text(c2) === "chain planned · 11 units", text(c2)]);
+    cc.push(["before any unit starts it reads \"planned · M units\"", text(c2) === "tracking issue · chain planned · 11 units", text(c2)]);
     const c3 = chipOf("all-landed", variant(d => { d.status = "built"; d.asBuilt = { ref: "master", sha: "abcdef1", date: "2026-10-23" }; d.rows.forEach(r => { r.asBuilt = { state: "landed", summary: "Landed." }; delete r.unit.live; }); d.wip.step = "landed"; d.wip.current = []; d.wip.next = null; }));
-    cc.push(["once every unit has landed it reads \"landed · M of M\"", text(c3) === "chain landed · 11 of 11" && /width:100%/.test(c3), text(c3)]);
+    cc.push(["once every unit has landed it reads \"landed · M of M\"", text(c3) === "tracking issue · chain landed · 11 of 11" && /width:100%/.test(c3), text(c3)]);
     const c4 = chipOf("issue-board", JSON.parse(fs.readFileSync(sk("plan/examples/38-handshake-empty-name/plan.json"), "utf8")));
     cc.push(["an issue board keeps its status chip", /^status built$/.test(text(c4)), text(c4)]);
   }
@@ -476,17 +478,17 @@ targets.filter(t => t.block === "plan").forEach(t => {
     nc.push(["a tracking board's WIP strip is bubbles: the phase, the unit in progress, that unit's step panel in place of up next, and waiting on you while halted", /class="wb phase"/.test(wip) && /class="wb unit halted"/.test(wip) && /class="sp sp-held" data-step="landing"/.test(wip) && !/class="wb next upnext"/.test(wip) && /class="wb wait"/.test(wip) && /UP NEXT/.test(wip), wip.slice(0, 300)]);
     const nm = copy(trk); nm.rows.forEach(r => { if (r.unit) delete r.unit.live; });
     const wipNm = inner(render("tracking-no-mirror", nm), '<section class="wip[^"]*"[^>]*>', "section");
-    nc.push(["with no unit's run mirrored, the up-next bubble stays, with its blocker", /class="wb next upnext"/.test(wipNm) && /blocked by/.test(inner(wipNm, '<div class="wb next upnext"[^>]*>', "div")) && !/class="sp[ "]/.test(wipNm), wipNm.slice(0, 300)]);
+    nc.push(["with no unit's run mirrored, the up-next bubble stays, with its blocker", /class="wb next upnext beside"/.test(wipNm) && /blocked by/.test(inner(wipNm, '<div class="wb next upnext[^"]*"[^>]*>', "div")) && !/class="sp[ "]/.test(wipNm), wipNm.slice(0, 300)]);
     const run = copy(trk), jf = run.rows.find(r => r.unit && r.unit.live); Object.assign(jf.unit.live, { step: "landing", resume: null, waitingOn: null });
     const wipRun = inner(render("tracking-running", run), '<section class="wip[^"]*"[^>]*>', "section");
     nc.push(["no \"waiting on you\" bubble while nothing is halted", !/class="wb wait"/.test(wipRun) && /class="wb unit"/.test(wipRun), wipRun.slice(0, 300)]);
-    nc.push(["a tracking board whose plan has landed shows no branch chip; its unit's live branch still shows", !/>branch <b>/.test(chips) && wip.includes(jf.unit.live.branch), text(chips).slice(0, 300)]);
+    nc.push(["a tracking board whose plan has landed shows no branch chip; its unit's live branch still shows", !/<span class="ck">branch<\/span>/.test(chips) && wip.includes(jf.unit.live.branch), text(chips).slice(0, 300)]);
     const early = copy(trk); Object.assign(early, { status: "planned" }); early.wip = { ...early.wip, step: "architecture", current: ["considered"], next: null }; early.rows.forEach(r => { r.asBuilt = { state: "pending", summary: "" }; delete r.unit.live; });
     const chipsEarly = inner(render("tracking-planning", early), '<div class="chips" id="chips">', "div");
-    nc.push(["a tracking board still planning shows its branch", chipsEarly.includes(`branch <b>${early.branch}</b>`), text(chipsEarly).slice(0, 300)]);
+    nc.push(["a tracking board still planning shows its branch", chipsEarly.includes(`<span class="ck">branch</span> <b>${early.branch}</b>`), text(chipsEarly).slice(0, 300)]);
     const exB = copy(ex); exB.branch = exB.branch || "fix/issue-38-verification";
     const chipsEx = inner(render("example-branch", exB), '<div class="chips" id="chips">', "div");
-    nc.push(["a landed issue board shows no branch chip", !/>branch <b>/.test(chipsEx), text(chipsEx).slice(0, 300)]);
+    nc.push(["a landed issue board shows no branch chip", !/<span class="ck">branch<\/span>/.test(chipsEx), text(chipsEx).slice(0, 300)]);
 
     /* local times, checked against the UTC source */
     const stamp = trk.wip.updated, tm = new RegExp(`<time datetime="${stamp}" title="${stamp} \\(UTC\\)">([^<]+)</time>`).exec(wip);
@@ -1178,7 +1180,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     lc.push(["A: the mirror names the rows its stages touch and counts the deviations, so the unit's panel reads as on its own board", JSON.stringify(run2.rowNames) === JSON.stringify({ r1: "Row one" }) && run2.deviations === 1, JSON.stringify({ rowNames: run2.rowNames, deviations: run2.deviations })]);
     const fT = path.join(sc, "trk"); fs.mkdirSync(fT, { recursive: true }); fs.writeFileSync(path.join(fT, "dashboard.html"), withData(PT, "plan", JSON.stringify(tq, null, 2)));
     const dT = dumpDom(path.join(fT, "dashboard.html")), sT = strip(dT);
-    lc.push(["A: a tracking board's unit step panel shows the unit's own research, and its bubble the open questions", /class="sp" data-step="research"/.test(sT) && new RegExp(`Unit ${u.unit.n} · #${u.unit.issue} · its step in detail`).test(text(sT)) && /unit-question/.test(inner(sT, '<div class="sp[^"]*"[^>]*>', "div")) && /RESEARCH<\/span>0 of 1 returned · open: <code>unit-question<\/code>/i.test(sT), text(inner(sT, '<div class="sp[^"]*"[^>]*>', "div")).slice(0, 200)]);
+    lc.push(["A: a tracking board's unit step panel shows the unit's own research, and its bubble the open questions", /class="sp" data-step="research"/.test(sT) && new RegExp(`aria-label="Unit ${u.unit.n} · #${u.unit.issue}: its step: research"`).test(sT) && /<h3 class="sp-t">Research<\/h3>/.test(sT) && !/in detail/.test(text(sT)) && /unit-question/.test(inner(sT, '<div class="sp[^"]*"[^>]*>', "div")) && /RESEARCH<\/span>0 of 1 returned · open: <code>unit-question<\/code>/i.test(sT), text(inner(sT, '<div class="sp[^"]*"[^>]*>', "div")).slice(0, 200)]);
     /* B. the rings */
     const ring = (dom, id) => (cellOf(dom, "considered", id).match(/ rs rs-(\w+)/) || [])[1] || null;
     lc.push(["B: rings on the Considered cells by the least advanced state of their questions: researching orange, returned orange, none for an unnamed row", ring(D.research, ids[0]) === "researching" && ring(D.research, ids[1]) === "returned" && ring(D.research, ids[3]) === "researching" && ring(D.research, ids[5]) === null && /vp serious"><i aria-hidden="true">✓<\/i>returned/.test(inner(D.research, `<div class="cell considered[^"]*"[^>]*data-row="${ids[1]}"[^>]*>`, "div")), ids.slice(0, 6).map(id => ring(D.research, id)).join(",")]);
@@ -1355,7 +1357,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     yc.push(["6: an interview question lists its options", /<ul class="sp-opts"><li>Refuse with a reason<\/li><li>Trim and accept<\/li><\/ul>/.test(pI), text(pI).slice(0, 260)]);
     const pQ = panel(D.qa), pS = panel(D.spot);
     yc.push(["6: a qa pass shows its severity (minor, other) and its route; a planner-then-rookie-dev remediation lists its loop", /by severity: 3 minor · 1 other/.test(pQ) && /route: a remediation pass: a planner re-pass, then rookie-dev, then the next qa pass/.test(text(pQ)) && /Planner re-pass for qa pass 1/.test(pQ) && /rookie-dev fixes/.test(pQ) && /qa pass 2/.test(pQ), text(pQ).slice(0, 400)]);
-    yc.push(["6: an on-the-spot remediation: its sub-steps by name, next landing with no new qa pass", /Verification case: the wording fixes · in progress/.test(text(pS)) && /next: landing \(no new qa pass\)/.test(text(pS)) && /fixed on the spot, no new qa pass/.test(text(pS)), text(pS).slice(0, 300)]);
+    yc.push(["6: an on-the-spot remediation: its sub-steps by name, next landing with no new qa pass", /Verification case: the wording fixes · in progress/.test(text(pS)) && /<span class="l">next<\/span>landing \(no new qa pass\)/.test(pS) && /fixed on the spot, no new qa pass/.test(text(pS)), text(pS).slice(0, 300)]);
     const dS = D.staged, st = id => (cellOf(dS, "built", id).match(/<span class="vp ([^"]*)"><i aria-hidden="true">([^<]*)<\/i>([^<]*)/) || []).slice(1).join("|");
     yc.push(["7: the stages decide the state: a done row as planned, one with a stage to come partially built, the current one in progress, one only to come pending", st(ids[0]) === "good|✓|as planned" && st(ids[1]) === "ink|◑|partially built" && st(ids[2]) === "accent|▶|in progress" && st(ids[3]) === "neutral dashed|…|pending", [0, 1, 2, 3].map(i => st(ids[i])).join(" ; ")]);
     yc.push(["7: in progress and partially built are solid, each with its legend entry; the tile does not count them built", !/dashed/.test(cellTag(dS, "built", ids[1])) && !/dashed/.test(cellTag(dS, "built", ids[2])) && /in progress<\/span> being built: a current stage works on it/.test(inner(dS, '<div class="key" id="timeline-key">', "div")) && /partially built<\/span> a finished stage built part of it/.test(inner(dS, '<div class="key" id="timeline-key">', "div")) && /^1 \/ /.test((text(inner(dS, '<div class="kpis" id="kpis">', "div")).match(/As built (.*?) (QA passes|Timeline)/) || ["", ""])[1]), text(inner(dS, '<div class="kpis" id="kpis">', "div")).slice(0, 200)]);
@@ -1706,6 +1708,98 @@ targets.filter(t => t.block === "plan").forEach(t => {
       kc.push(["with no facts.stage, the wording names the qa pass and the sub-steps done and current", r6.status === 0 && (d6.trail || []).slice(-1)[0].label === "Remediation for qa pass 1: 1 sub-step done; planner reconciles current", ((d6.trail || []).slice(-1)[0] || {}).label]); }
   } catch (e) { kc.push(["the cases run to the end", false, String(e.stack).split(String.fromCharCode(10)).slice(0, 3).join(" ")]); }
   report("statements with their plan excerpts, closed as a duplicate, the column glow, the KPI bars, the implementation glow's comment, the #62 qa-pass event (dashboards-skill/19)", kc);
+}
+
+/* The decisions of dashboards-skill/21 (GUIDANCE.md §6, "The header"; plan/RULES.md §3, "The step panel" and the tracking strip), on
+   every dashboard type they fit (GUIDANCE.md §11), measured in headless Chrome at 1920 x 1080 and at 520 px:
+   A. the header's two halves: the intro (title, issue line, function) in the left half and the tags in the right half beside it, on
+      a plan board, a tracking board, the work board, the system and supersystem templates and the system example; stacked under
+      940 px, the tags under the intro;
+   B. the tags: each a label and its value; the board's own #n in the intro's issue line, opening its GitHub issue beside the issue's
+      title; no "issue" or separate "tracking issue" chip; the systems one tag; the chain tag across the half; the work board's
+      generated time and commit one tag;
+   C. a tracking board's WIP row in fixed shares, the phase 35 %, the unit in progress 25 %, its step panel 40 %, the phase running
+      down beside "waiting on you"; the up-next bubble in the unit's and the panel's shares; a landed phase alone across the row;
+      stacked under 940 px, each unit followed by its panel;
+   D. the step panel's heading is the step's title alone, on an issue board and on a tracking board;
+   E. its facts are info groups at its bottom (last event, since, next; the branch at the branch step), and every info group, in the
+      step panel, a unit bubble and the issue board's strip, is a small bubble of its own. */
+{ const hc = [], sc = path.join(out, "decisions-21"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
+  const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x)), tp = name => (targets.find(t => t.name === name) || {}).path;
+  const text = h => (h || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/\s+/g, " ").trim();
+  const lib = require(path.join(SKILL, "plan", "scripts", "lib.js"));
+  /* the probe: each selector's first element's box [left, top, right, bottom, width], and each group selector's every element's border
+     style and radius, as JSON on body[data-rects] */
+  const SELS = ["header", "header>h1", "#issueline", "header .function", "header .chips", "#theme", ".wipgrid", ".wipgrid>.wb.phase", ".wipgrid>.wb.unit", ".wipgrid>.sp", ".wipgrid>.wb.wait", ".wipgrid>.wb.next", ".chip.progress", ".wiprow .sp"];
+  const probe = `<script>window.addEventListener("load",()=>setTimeout(()=>{const box=e=>{const b=e.getBoundingClientRect();return [Math.round(b.left),Math.round(b.top),Math.round(b.right),Math.round(b.bottom),Math.round(b.width)];};const o={};${JSON.stringify(SELS)}.forEach(s=>{const e=document.querySelector(s);o[s]=e?box(e):null;});o.groups=[...document.querySelectorAll(".wip-facts>span")].map(e=>{const c=getComputedStyle(e);return c.borderTopStyle+"/"+parseFloat(c.borderTopLeftRadius)+"/"+c.paddingLeft;});o.chips=[...document.querySelectorAll("header .chips>.chip")].map(e=>box(e));document.body.dataset.rects=JSON.stringify(o);},900));</script>`;
+  const rects = dom => { const m = (dom || "").match(/data-rects="([^"]*)"/); try { return m ? JSON.parse(m[1].replace(/&quot;/g, '"').replace(/&gt;/g, ">").replace(/&lt;/g, "<").replace(/&amp;/g, "&")) : null; } catch (e) { return null; } };
+  const put = (name, html, side) => { const dir = path.join(sc, name); fs.mkdirSync(dir, { recursive: true }); const f = path.join(dir, "index.html"); fs.writeFileSync(f, html.replace("</body>", probe + "</body>"));
+    if (side) fs.writeFileSync(path.join(dir, side[0]), lib.sidecarText(side[1], side[2])); return f; };
+  const wide = f => dumpDom(f, "", "1920,1080", 6000), narrow = f => dumpDom(f, "", "520,2400", 6000);
+  /* the two halves: the intro's boxes end left of the header's middle, the tags start right of it, beside the title (wide); the tags
+     under the function (narrow) */
+  const halves = (R, intro) => { if (!R || !R.header || !R["header .chips"]) return false; const mid = (R.header[0] + R.header[2]) / 2, ch = R["header .chips"];
+    return intro.every(s => R[s] && R[s][2] <= mid + 1) && ch[0] >= mid - 1 && ch[1] < R["header>h1"][3] && R.chips.every(b => b[0] >= mid - 1); };
+  const stacked = (R, last) => !!R && !!R["header .chips"] && !!R[last] && R["header .chips"][1] >= R[last][3] - 1 && R["header .chips"][0] - R.header[0] < 2;
+  const PT = fs.readFileSync(tp("plan/template/dashboard.html") || sk("plan/template/dashboard.html"), "utf8"), BT = fs.readFileSync(tp("plan/template/board.html") || sk("plan/template/board.html"), "utf8");
+  const LIVE = J("verify/fixtures/live-issue.plan.json"), TRK = J("verify/fixtures/tracking.plan.json"), WB = J("verify/fixtures/work-board.json");
+  const plan = (name, d) => put(name, withData(PT, "plan", JSON.stringify(d, null, 2)), ["plan.js", "plan", JSON.stringify(d, null, 2)]);
+  if (!chrome) hc.push(["the rendered pages (no browser found: set CHROME)", false, "no Chrome or Edge"]);
+  else try {
+    const INTRO = ["header>h1", "#issueline", "header .function"];
+    /* A, B: an issue board */
+    const fI = plan("issue", LIVE), dI = wide(fI), RI = rects(dI), nI = rects(narrow(fI));
+    hc.push(["A: an issue board's intro fills the left half and its tags stand in the right half beside it (1920 x 1080)", halves(RI, INTRO), JSON.stringify(RI && { header: RI.header, h1: RI["header>h1"], fn: RI["header .function"], chips: RI["header .chips"] })]);
+    hc.push(["A: under 940 px the tags stack under the intro (520 px)", stacked(nI, "header .function"), JSON.stringify(nI && { fn: nI["header .function"], chips: nI["header .chips"] })]);
+    hc.push(["A: the function stretches across the left half, not held to a prose measure", !!RI && RI["header .function"][4] >= (RI.header[4] / 2) - 60, JSON.stringify(RI && [RI["header .function"], RI.header])]);
+    hc.push(["A: the theme switch stays in the topbar, top right, above the tags", !!RI && !!RI["#theme"] && RI["#theme"][3] <= RI["header .chips"][1] + 1 && RI["#theme"][2] >= RI.header[2] - 2, JSON.stringify(RI && RI["#theme"])]);
+    const chipsI = inner(dI, '<div class="chips" id="chips">', "div"), il = inner(dI, '<p class="issueline" id="issueline">', "p");
+    const tagsI = chipsI.match(/<span class="chip[^"]*">/g) || [], cksI = chipsI.match(/<span class="chip[^"]*"><span class="ck">/g) || [];
+    hc.push(["B: every tag is its label and its value", tagsI.length > 0 && tagsI.length === cksI.length, `${cksI.length} of ${tagsI.length} labelled`]);
+    hc.push(["B: the board's own #n is in the intro's issue line, opening its GitHub issue beside the issue's title; no issue chip", il.includes(`href="https://github.com/${LIVE.repo}/issues/${LIVE.issue}"`) && text(il).includes(LIVE.issueTitle) && !/<span class="ck">issue<\/span>/.test(chipsI) && !/<span class="chip">issue /.test(chipsI), text(il)]);
+    hc.push(["B: the systems are one tag, each system with its swatch", (chipsI.match(/<span class="ck">systems?<\/span>/g) || []).length === 1 && /<span class="sysl"><span class="sw" data-sys=/.test(chipsI) && !/<span class="chip" data-sys=/.test(chipsI), text(chipsI).slice(0, 300)]);
+    /* A, B, C, E: a tracking board, its unit halted (phase, unit, its panel, waiting on you) */
+    const fT = plan("tracking", TRK), dT = wide(fT), RT = rects(dT), nT = rects(narrow(fT)), chipsT = inner(dT, '<div class="chips" id="chips">', "div");
+    hc.push(["A: a tracking board's header in two halves, stacked under 940 px", halves(RT, ["header>h1", "#issueline", "header .function"]) && stacked(nT, "header .function"), JSON.stringify(RT && RT["header .chips"])]);
+    hc.push(["B: the chain tag names the tracking issue and runs across the half; no separate \"tracking issue\" chip", /<span class="chip status progress wide[^"]*"><span class="ck">tracking issue · chain<\/span>/.test(chipsT) && !/<span class="chip"><b>tracking issue<\/b><\/span>/.test(chipsT) && !!RT && Math.abs(RT[".chip.progress"][4] - RT["header .chips"][4]) <= 2, JSON.stringify(RT && [RT[".chip.progress"], RT["header .chips"]])]);
+    const G = RT && RT[".wipgrid"], share = b => G && b ? (b[4] + 10 * 2 / 3) / G[4] : 0;
+    hc.push(["C: the WIP row in fixed shares: the phase 35 %, the unit in progress 25 %, its step panel 40 %", !!G && Math.abs(share(RT[".wipgrid>.wb.phase"]) - 0.35) < 0.02 && Math.abs(share(RT[".wipgrid>.wb.unit"]) - 0.25) < 0.02 && Math.abs(share(RT[".wipgrid>.sp"]) - 0.40) < 0.02 && RT[".wipgrid>.wb.unit"][1] === RT[".wipgrid>.wb.phase"][1] && RT[".wipgrid>.sp"][1] === RT[".wipgrid>.wb.phase"][1], JSON.stringify(RT && [G, RT[".wipgrid>.wb.phase"], RT[".wipgrid>.wb.unit"], RT[".wipgrid>.sp"]])]);
+    hc.push(["C: the phase runs down beside \"waiting on you\", which takes the unit's and the panel's shares under them", !!RT && !!RT[".wipgrid>.wb.wait"] && Math.abs(RT[".wipgrid>.wb.wait"][3] - RT[".wipgrid>.wb.phase"][3]) <= 1 && RT[".wipgrid>.wb.wait"][0] === RT[".wipgrid>.wb.unit"][0] && Math.abs(RT[".wipgrid>.wb.wait"][2] - RT[".wipgrid>.sp"][2]) <= 1, JSON.stringify(RT && [RT[".wipgrid>.wb.phase"], RT[".wipgrid>.wb.wait"]])]);
+    const ord = nT && [".wipgrid>.wb.phase", ".wipgrid>.wb.unit", ".wipgrid>.sp", ".wipgrid>.wb.wait"].map(s => nT[s]);
+    hc.push(["C: under 940 px they stack, the phase, the unit, its panel, waiting on you, each across the row", !!ord && ord.every(Boolean) && ord.every((b, i) => i === 0 || b[1] >= ord[i - 1][3]) && ord.every(b => Math.abs(b[4] - nT[".wipgrid"][4]) <= 1), JSON.stringify(ord)]);
+    const upn = copy(TRK); upn.status = "planned"; upn.rows.forEach(r => { r.asBuilt = { state: "pending", summary: "" }; delete r.unit.live; }); upn.wip = { ...upn.wip, step: "landing", current: [], next: upn.rows[0].id, resume: null, waitingOn: null };
+    const RU = rects(wide(plan("tracking-upnext", upn)));
+    hc.push(["C: with no unit in progress the up-next bubble takes the unit's and the panel's shares beside the phase", !!RU && !!RU[".wipgrid>.wb.next"] && Math.abs((RU[".wipgrid>.wb.next"][4] + 10 / 3) / RU[".wipgrid"][4] - 0.65) < 0.02 && RU[".wipgrid>.wb.next"][1] === RU[".wipgrid>.wb.phase"][1], JSON.stringify(RU && [RU[".wipgrid"], RU[".wipgrid>.wb.next"]])]);
+    const lnd = copy(TRK); lnd.status = "built"; lnd.asBuilt = { ref: "master", sha: "abcdef1", date: "2026-10-23" }; lnd.rows.forEach(r => { r.asBuilt = { state: "landed", summary: "Landed." }; delete r.unit.live; }); lnd.wip = { ...lnd.wip, step: "landed", current: [], next: null, resume: null, waitingOn: null };
+    const RL = rects(wide(plan("tracking-landed", lnd)));
+    hc.push(["C: a landed tracking board's phase, alone, takes the whole row", !!RL && !!RL[".wipgrid>.wb.phase"] && Math.abs(RL[".wipgrid>.wb.phase"][4] - RL[".wipgrid"][4]) <= 1, JSON.stringify(RL && [RL[".wipgrid"], RL[".wipgrid>.wb.phase"]])]);
+    /* D, E: the step panel */
+    const pI = inner(dI, '<div class="sp[^"]*"[^>]*>', "div"), pT = inner(dT, '<div class="sp[^"]*"[^>]*>', "div");
+    hc.push(["D: the step panel's heading is the step's title alone, on an issue board and a tracking board", /^<h3 class="sp-t">Research<\/h3>/.test(pI) && /^<h3 class="sp-t">Landing<\/h3>/.test(pT) && !/in detail/i.test(text(dI)) && !/in detail/i.test(text(inner(dT, '<section class="wip[^"]*" id="wip"[^>]*>', "section"))), [pI.slice(0, 60), pT.slice(0, 60)].join(" | ")]);
+    const facts = p => inner(p, '<div class="wip-facts sp-facts">', "div"), fI2 = facts(pI), fT2 = facts(pT);
+    hc.push(["E: the panel's facts are info groups at its bottom: the last event with its time, since, next", /<span class="l">last event<\/span><code>research-returned<\/code>/.test(fI2) && /<span class="l">since<\/span>/.test(fI2) && /<span class="l">next<\/span>plan/.test(fI2) && /<\/div>$/.test(pI) && pI.trim().endsWith(`${fI2}</div>`) && !/sp-foot|sp-ev/.test(dI), text(fI2)]);
+    hc.push(["E: while the run waits, the unit's panel says \"waiting since\", and names the next step", /<span class="l">waiting since<\/span>/.test(fT2) && /<span class="l">next<\/span>landed/.test(fT2), text(fT2)]);
+    const qa = copy(LIVE); Object.assign(qa, { status: "building" }); qa.wip = { ...qa.wip, step: "qa", current: ["built"], questions: [], research: null, qa: [], event: { name: "implementation-stage", at: "2026-10-25T11:00:00Z" } };
+    const br = copy(LIVE); br.branch = "fix/issue-70-live"; br.wip = { ...br.wip, step: "branch", current: [], questions: [], research: null, event: { name: "plan-accepted", at: "2026-10-25T10:00:00Z" } }; br.rows.forEach(r => { r.verdict = { kind: "build", summary: "Verification case: written." }; });
+    const pQ = inner(wide(plan("issue-qa", qa)), '<div class="sp[^"]*"[^>]*>', "div"), pB = inner(wide(plan("issue-branch", br)), '<div class="sp[^"]*"[^>]*>', "div");
+    hc.push(["D, E: the qa step's heading reads \"QA\"; the branch step's panel shows the branch as an info group", /^<h3 class="sp-t">QA<\/h3>/.test(pQ) && /<span class="l">branch<\/span><code>fix\/issue-70-live<\/code>/.test(facts(pB)) && !/<p>branch /.test(pB), [pQ.slice(0, 40), text(facts(pB))].join(" | ")]);
+    const bub = R => !!R && R.groups.length > 0 && R.groups.every(g => { const [st, rad, pad] = g.split("/"); return st === "solid" && +rad > 0 && parseFloat(pad) > 0; });
+    hc.push(["E: every info group is a small bubble of its own, in the step panel, the unit bubble and the issue board's strip", bub(RI) && bub(RT) && RI.groups.length >= 4 && RT.groups.length >= 6, JSON.stringify([RI && RI.groups, RT && RT.groups])]);
+    /* A, B: the work board */
+    const wb = copy(WB); wb.tree = { ref: "master", sha: "abc1234" };
+    const fW = put("work-board", withData(BT, "board", JSON.stringify(wb, null, 2)), ["board.js", "board", JSON.stringify(wb, null, 2)]), dW = wide(fW), RW = rects(dW), nW = rects(narrow(fW)), chipsW = inner(dW, '<div class="chips" id="chips">', "div");
+    hc.push(["A: the work board's header in two halves, stacked under 940 px", halves(RW, ["header>h1", "header .function"]) && stacked(nW, "header .function"), JSON.stringify(RW && RW["header .chips"])]);
+    const tW = chipsW.match(/<span class="chip[^"]*">/g) || [];
+    hc.push(["B: the work board's tags are labelled, its generated time and commit one tag", tW.length > 0 && tW.length === (chipsW.match(/<span class="chip[^"]*"><span class="ck">/g) || []).length && /<span class="ck">generated<\/span> <b>[\s\S]*?<\/b> · from <b>master abc1234<\/b>/.test(chipsW), text(chipsW)]);
+    /* A, B: the system and supersystem templates, and the system example (made from the system template, its header in the tag form) */
+    [["system/template/system.html", "the system template"], ["system/template/supersystem.html", "the supersystem template"], ["system/examples/webtools-udp/index.html", "the system example"]].forEach(([n, what], i) => {
+      const p = n.includes("template") ? tp(n) : (root ? null : sk(n)); if (!p) return;
+      const f = put("system-" + i, fs.readFileSync(p, "utf8")), d = wide(f), R = rects(d), N = rects(narrow(f)), ch = inner(d, '<div class="chips">', "div");
+      hc.push([`A: ${what}'s header in two halves, the theme switch top right, stacked under 940 px`, halves(R, ["header>h1", "header .function"]) && !!R["#theme"] && R["#theme"][3] <= R["header .chips"][1] + 1 && stacked(N, "header .function"), JSON.stringify(R && [R["header .chips"], R["#theme"]])]);
+      const t = ch.match(/<span class="chip[^"]*">/g) || [];
+      hc.push([`B: ${what}'s tags are each a label and its value`, t.length > 0 && t.length === (ch.match(/<span class="chip[^"]*"><span class="ck">/g) || []).length, text(ch).slice(0, 200)]); });
+  } catch (e) { hc.push(["the cases run to the end", false, String(e.stack).split(String.fromCharCode(10)).slice(0, 3).join(" ")]); }
+  report("the header's two halves and its tags, the tracking strip's fixed shares, the step panel's title and info groups (dashboards-skill/21)", hc);
 }
 
 const today = new Date().toISOString().slice(0, 10);

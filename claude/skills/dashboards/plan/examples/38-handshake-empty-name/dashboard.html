@@ -78,6 +78,29 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .chip.progress.done{border-left-color:var(--good)}
 .chip .cbar{display:block;height:4px;margin-top:4px;border-radius:2px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden}
 .chip .cbar i{display:block;height:100%;background:var(--good)}
+/* The header's two halves (GUIDANCE.md §6, "The header"): from 940 px the intro (the title, the issue line, the function) fills the
+   left half and the tags stand in the right half beside it, each a small card with its label over its value, growing to fill its line, a
+   long one across the half (.wide); under 940 px the two stack and the tags wrap as chips, the label before the value. The topbar (the breadcrumb, the
+   live indicator, the theme switch) runs across the top. The same rules on every dashboard type. */
+.issueline{font:12.5px/1.4 var(--mono);color:var(--ink-2);margin:0 0 8px;overflow-wrap:anywhere}
+.issueline a{text-decoration:none;border-bottom:1px solid var(--line)}
+.issueline a:hover{border-bottom-color:var(--ink)}
+.chip .ck{font:700 10px/1.2 var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.chip .sysl{display:inline-flex;align-items:center;margin-right:10px;white-space:nowrap}
+.chip .sysl:last-child{margin-right:0}
+@media (min-width:940px){
+  header{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto auto auto auto 1fr;column-gap:28px}
+  header>.topbar{grid-column:1/-1;grid-row:1}
+  header>.crumbs{grid-column:1;grid-row:1}
+  header>.systools{grid-column:2;grid-row:1;justify-self:end;align-self:start;float:none;margin:14px 0 4px}
+  header>h1{grid-column:1;grid-row:2}
+  header>.issueline{grid-column:1;grid-row:3}
+  header>.function{grid-column:1;grid-row:4;max-width:none}
+  header>.chips{grid-column:2;grid-row:2/-1;align-self:start;align-content:flex-start;gap:8px;margin:8px 0 6px}
+  header>.chips>.chip{display:block;flex:1 1 190px;padding:7px 10px 8px;font-size:12.5px;line-height:1.4;border-radius:6px}
+  header>.chips>.chip .ck{display:block;margin:0 0 2px}
+  header>.chips>.chip.wide{flex-basis:100%}
+}
 
 /* the WIP strip: where the run is right now */
 .wip{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px 10px;margin:12px 0 0}
@@ -107,8 +130,10 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .chain li.done a{color:var(--ink)}
 .chain li.glow,.chain li.held,.chain li.upnext{border-radius:4px}
 .chain li.glow a,.chain li.glow span.u{background:transparent}
-.wip-facts{display:flex;flex-wrap:wrap;gap:6px 18px;margin:6px 0 0;font-size:12.5px;color:var(--ink-2)}
-.wip-facts>span{display:inline-flex;flex-wrap:wrap;gap:4px 6px;align-items:center}
+.wip-facts{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;font-size:12.5px;color:var(--ink-2)}
+/* Info groups (plan/RULES.md §3): each fact of the strip, a bubble or the step panel is a small bubble of its own, its label before its
+   value. */
+.wip-facts>span{display:inline-flex;flex-wrap:wrap;gap:4px 6px;align-items:center;padding:4px 9px;border:1px solid var(--line);border-radius:6px;background:color-mix(in srgb,var(--ink) 3%,var(--surface));min-width:0;max-width:100%}
 .wip-facts .l{font:700 10.5px var(--mono);letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
 .wip-facts a,.wip-sub a,.vp a{text-decoration:none;border-bottom:1px solid var(--line)}
 .wip-sub a:hover,.vp a:hover{border-bottom-color:var(--ink)}
@@ -119,14 +144,22 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .unitrun .wip-head{font-size:12.5px}
 .unitrun .wip-detail,.unitrun .wip-wait{margin:4px 0 2px}
 /* A tracking board's WIP strip is a set of bubbles (plan/RULES.md §3): the tracking issue's own phase with the chain's progress,
-   one bubble per unit in progress with its run, the unit up next, and "waiting on you" only while something is halted. One column
-   on a phone; the phase across the row and the rest beside each other up to 1500 px; on a wide desktop the phase takes two
-   columns and the others sit beside it. The legend runs under them all. */
+   one bubble per unit in progress with its run, that unit's step panel (or the unit up next while no unit's run is mirrored), and
+   "waiting on you" only while something is halted. From 940 px the row is split in fixed shares: the phase 35 %, the unit in
+   progress 25 %, its step panel 40 %; the phase runs down beside every unit's row, the up-next bubble and "waiting on you" take
+   the unit's and the panel's shares. Under 940 px they stack in that order. The legend runs under them all. */
 .wip.bubbles{background:none;border:0;padding:0}
-.wipgrid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));align-items:stretch}
+.wipgrid{display:grid;gap:10px;grid-template-columns:minmax(0,1fr);align-items:stretch}
+@media (min-width:940px){
+  .wipgrid{grid-template-columns:minmax(0,35fr) minmax(0,25fr) minmax(0,40fr)}
+  .wipgrid>.wb.phase{grid-column:1;grid-row:1/span var(--rows,1)}
+  .wipgrid>.wb.phase.solo{grid-column:1/-1}
+  .wipgrid>.wb.unit{grid-column:2;grid-row:var(--r,1)}
+  .wipgrid>.sp{grid-column:3;grid-row:var(--r,1)}
+  .wipgrid>.wb.next,.wipgrid>.wb.wait{grid-column:2/-1;grid-row:var(--r,1)}
+  .wipgrid>.wb.next.beside{grid-column:3}
+}
 .wb{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;min-width:0}
-.wb.phase{grid-column:1/-1}
-@media (min-width:1500px){.wb.phase{grid-column:span 2}}
 .wb.phase.landed{border-left-color:var(--good)}
 .wb.phase.halted,.wb.wait{border-left-color:var(--warning);background:color-mix(in srgb,var(--warning) 12%,var(--surface))}
 .wb.phase.escalated{border-left-color:var(--serious)}
@@ -163,9 +196,8 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .wip.split>.key{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-top:8px}
 .sp{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--ink-2);border-radius:6px;padding:10px 14px;min-width:0;font-size:12.5px;color:var(--ink-2)}
 .sp.sp-held{border-left-color:var(--warning)}
-.sp .wb-t b{font-family:var(--mono);color:var(--ink)}
-.sp-ev{font:400 11px var(--mono);color:var(--muted);margin-left:auto;text-transform:none;letter-spacing:0}
-.sp-ev code{color:var(--ink-2)}
+/* the panel's heading: the step's title alone */
+.sp-t{font:700 14px/1.3 var(--sans);color:var(--ink);margin:0 0 6px;letter-spacing:0}
 .sp p{margin:4px 0;color:var(--ink-2)}
 .sp p.sp-sum{color:var(--ink);font-weight:600}
 .sp p.sp-wait{color:var(--ink);font-weight:600}
@@ -191,7 +223,7 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .sp-pass .ph{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font:700 11px var(--mono);color:var(--ink)}
 .sp-pass small{display:block;font:11px var(--mono);color:var(--ink-2);margin-top:3px}
 .sp p.sp-when{font:11px var(--mono);color:var(--muted);margin:0 0 4px}
-.sp-foot{font:11px var(--mono);color:var(--muted);margin-top:8px;padding-top:6px;border-top:1px solid var(--hair)}
+.sp-facts{margin-top:10px}
 @media (prefers-reduced-motion:reduce){.sp-list li.cur .dot{animation:none!important;box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent),0 0 8px 3px color-mix(in srgb,var(--accent) 45%,transparent)}}
 
 /* The two accent marks (GUIDANCE.md §1).
@@ -589,6 +621,7 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
 <header>
   <div class="topbar"><div class="crumbs" id="crumbs"></div><div class="tools"><span class="livechip" id="live"></span><button class="themebtn" id="theme" type="button"></button></div></div>
   <h1 id="h1"></h1>
+  <p class="issueline" id="issueline"></p>
   <p class="function" id="function"></p>
   <div class="chips" id="chips"></div>
 </header>
@@ -3042,6 +3075,8 @@ const NEXT_STEP={qa:"landing, or remediation if qa requests changes",remediation
 const ROUTE={"on-the-spot":{label:"fixed on the spot, no new qa pass",next:"landing (no new qa pass)"},"rookie-dev":{label:"a remediation pass: rookie-dev, then the next qa pass",next:"qa, the next pass"},"planner-then-rookie-dev":{label:"a remediation pass: a planner re-pass, then rookie-dev, then the next qa pass",next:"qa, the next pass"}};
 const stepName=x=>x&&(x.name||x.what)||"";
 function nextStepOf(R,S){ if(S==="remediation"&&R.remediation&&ROUTE[R.remediation.route]) return ROUTE[R.remediation.route].next; if(NEXT_STEP[S]) return NEXT_STEP[S]; const st=R.steps&&R.steps.length?R.steps:STEP_ORDER, i=st.indexOf(S); return i>=0&&i<st.length-1?st[i+1]:""; }
+/* a step's title, as the step panel's heading shows it */
+const stepTitle=s=>!s?"—":s==="qa"?"QA":s.charAt(0).toUpperCase()+s.slice(1);
 function spList(items){ return items.length?`<ol class="sp-list">${items.join("")}</ol>`:""; }
 const spItem=(cls,mark,body,sub)=>`<li class="${cls}">${mark}<span class="q">${body}${sub?`<small>${sub}</small>`:""}</span></li>`;
 const dotMark=`<span class="dot" aria-hidden="true"></span>`;
@@ -3077,15 +3112,13 @@ const PANEL={
     let h=`<ol class="steps" aria-label="The plan's stages"><li class="cur${o.held?" held":" glow"}" aria-current="step"><span class="dot" aria-hidden="true"></span>${first}</li><li class="todo"><span class="dot" aria-hidden="true"></span>plan accepted</li></ol>`;
     if(re) h+=`<p>${P.from==="qa"?`The planner re-passes the plan to answer qa pass ${esc(P.pass||"?")}'s findings${R.remediation&&R.remediation.route==="planner-then-rookie-dev"?"; rookie-dev's fixes and the next qa pass follow":""}.`:P.from==="existing"?`The planner verifies the plan already written${P.against?` against <code>${esc(P.against)}</code> as it stands now`:" against the code as it stands now"}, and records each delta.`:`The planner verifies the plan this unit takes from its parent's architecture, and writes its own.`}</p>`;
     if(V&&V.total) { h+=`<p class="sp-sum">${V.written} of ${V.total} verdict${V.total===1?"":"s"} written</p>`; if(o.unwritten&&o.unwritten.length&&V.written<V.total) h+=`<p>Still to write: ${o.unwritten.slice(0,6).map(esc).join(", ")}${o.unwritten.length>6?`, and ${o.unwritten.length-6} more`:""}.</p>`; }
-    if(o.planDoc) h+=`<p>${refHtml(o.planDoc,"plan.md")}</p>`;
     return h; },
-  branch:(R,o)=>`<p>The plan is accepted; the branch is cut next and the build starts.</p>${o.branch?`<p>branch <code>${esc(o.branch)}</code></p>`:""}`,
+  branch:()=>`<p>The plan is accepted; the branch is cut next and the build starts.</p>`,
   implementation:(R,o)=>{ const sg=Array.isArray(R.stages)?R.stages.filter(x=>x&&typeof x==="object"):[];
-    let h=""; if(!sg.length) h+=`<p>Its stages are in the plan; none recorded here yet.${o.planDoc?` ${refHtml(o.planDoc,"plan.md")}`:""}</p>`;
+    let h=""; if(!sg.length) h+=`<p>Its stages are in the plan; none recorded here yet.</p>`;
     else { const cur=sg.findIndex(x=>x.state==="current"), done=sg.filter(x=>x.state==="done").length;
       h+=`<p class="sp-sum">${cur>=0?`Stage ${esc(sg[cur].id||cur+1)} of ${sg.length}`:`${done} of ${sg.length} stages done`}${cur>=0?` · ${done} done`:""}</p>`;
       h+=spList(sg.map((x,i)=>spItem(STAGE_DOT[x.state]||"todo",dotMark,`${x.id?`<b>${esc(x.id)}</b> `:""}${rich(x.name||"")}${x.state==="done"?" · done":x.state==="current"?" · in progress":" · to come"}`,(Array.isArray(x.rows)&&x.rows.length?`touches ${x.rows.map(id=>esc(o.rowName(id))).join(", ")}`:"")))); }
-    if(R.deviations!=null) h+=`<p>${esc(R.deviations)} deviation${R.deviations===1?"":"s"} from the verdict recorded so far</p>`;
     return h; },
   qa:(R,o,keys)=>{ const qa=Array.isArray(R.qa)?R.qa:[], running=qa.length&&qa[qa.length-1].verdict==="running";
     let h=`<p class="sp-sum">${running?`Pass ${esc(qa[qa.length-1].pass)}`:`Pass ${qa.length+1}`} running${R.qaMax?` · at most ${esc(R.qaMax)} passes`:""}</p>`;
@@ -3104,21 +3137,30 @@ const PANEL={
     if(last) h+=qaBlock(last,keys);
     h+=spList(steps.map(x=>spItem(STAGE_DOT[x.state]||"todo",dotMark,`${rich(stepName(x))}${x.state==="done"?" · done":x.state==="current"?" · in progress":" · to come"}`,"")));
     if(!(Array.isArray(M.steps)&&M.steps.length)) h+=`<p>${ROUTE[route]?"The route's loop":"The pipeline's remediation loop"}; its sub-steps are recorded as they run.</p>`;
-    if(R.deviations!=null) h+=`<p>${esc(R.deviations)} deviation${R.deviations===1?"":"s"} from the verdict recorded so far</p>`;
     return h; },
   landing:R=>{ const qa=Array.isArray(R.qa)?R.qa:[], last=qa.length?qa[qa.length-1]:null; return `<p>qa has approved${last?` (pass ${esc(last.pass)})`:""}; the merge and the landing refresh are the admin team's.</p>`; },
   _:R=>R.detail?`<p>${rich(R.detail)}</p>`:`<p>Nothing recorded for this step.</p>`};
 function stepPanel(R,o){ o=o||{}; const k=R.step||"", held=["halted","escalated"].includes(k), S=held?(R.resume||""):k, keys=o.keys||new Set();
   const opts={...o,held};
-  let h=`<div class="sp${held?" sp-held":""}" data-step="${esc(S)}"><div class="wb-t"><span class="k">${o.title||"This step in detail"}</span><b>${esc(S||"—")}</b>${R.event&&R.event.name?`<span class="sp-ev">last event <code>${esc(R.event.name)}</code>${R.event.at?` · <span class="nw">${when(R.event.at)}</span>`:""}</span>`:""}</div>`;
+  /* the heading is the step's title alone (plan/RULES.md §3, "The step panel"); a unit's panel names its unit to assistive technology */
+  let h=`<div class="sp${held?" sp-held":""}" data-step="${esc(S)}"${o.row?` style="--r:${o.row}"`:""} role="group" aria-label="${esc(o.label||"The current step")}: ${esc(S||"—")}"><h3 class="sp-t">${esc(stepTitle(S))}</h3>`;
   if(k==="halted"){ h+=`<p class="sp-wait">⏸ Held still at ${esc(S||"its step")}: it waits on the user for ${rich(R.waitingOn||R.detail||"(not stated)")}</p>`; }
   if(k==="escalated") h+=`<p class="sp-wait">⇧ Escalated from ${esc(S||"its step")}: held still while the issue's scope is re-decided.</p>`;
   h+=(PANEL[S]||PANEL._)(R,opts,keys);
   /* the open points (wip.open, plan/RULES.md §3): raised during the run, shown at every step until resolved; the trail keeps them after */
   const op=(Array.isArray(R.open)?R.open:[]).filter(x=>x&&typeof x==="object"&&typeof x.text==="string"&&x.text.trim()&&!x.resolved);
   if(op.length){ keys.add(KEY_OPEN); h+=`<div class="sp-open"><p class="sp-sum">${op.length} open point${op.length===1?"":"s"}</p>${spList(op.map(x=>spItem("",pill(OPEN_PT),rich(x.text),[x.raised?`raised at ${esc(x.raised)}`:"",x.ref?refHtml(x.ref):""].filter(Boolean).join(" · "))))}</div>`; }
-  const next=nextStepOf(R,S), foot=[R.since?`${held?"waiting":"in this step"} since <span class="nw">${when(R.since)}</span>`:"",next?`next: ${esc(next)}`:""].filter(Boolean);
-  if(foot.length) h+=`<div class="sp-foot">${foot.join(" · ")}</div>`;
+  /* the panel's facts as info groups at its bottom, each a small bubble, as the unit bubble's (plan/RULES.md §3): the last event and
+     its time, since when the run is at this step (or waits), the step that follows, and where the step has them its branch, its plan
+     and the deviations recorded */
+  const next=nextStepOf(R,S), grp=(l,v)=>`<span><span class="l">${l}</span>${v}</span>`;
+  const info=[R.event&&R.event.name?grp("last event",`<code>${esc(R.event.name)}</code>${R.event.at?` · <span class="nw">${when(R.event.at)}</span>`:""}`):"",
+    R.since?grp(held?"waiting since":"since",`<span class="nw">${when(R.since)}</span>`):"",
+    next?grp("next",esc(next)):"",
+    S==="branch"&&o.branch?grp("branch",`<code>${esc(o.branch)}</code>`):"",
+    ["plan","implementation"].includes(S)&&o.planDoc?grp("plan",refHtml(o.planDoc,"plan.md")):"",
+    R.deviations!=null&&["implementation","remediation"].includes(S)?grp("deviations",`${esc(R.deviations)} recorded`):""].filter(Boolean);
+  if(info.length) h+=`<div class="wip-facts sp-facts">${info.join("")}</div>`;
   return h+`</div>`; }
 /* The panel's facts of this issue's own run: its wip, the verdicts written of its rows at the plan step, the deviations recorded during
    the build, the rows still to write, the plan document. */
@@ -3154,7 +3196,7 @@ function chainChip(){ const {units,landed,M,extra}=chainCounts();
   else if(!started) txt=[`<b>planned</b> · ${M?`${M} unit${M===1?"":"s"}`:"no units yet"}`,...extra];
   else txt=[`<b>${landed} of ${M} landed</b>`,...cur.map(r=>`${u(r)} ${runWord(r)}`),NEXT_ROW?`${u(NEXT_ROW)} up next${openBlockers(NEXT_ROW).length?`, blocked by ${openBlockers(NEXT_ROW).map(n=>ilink(n)).join(", ")}`:""}`:"",...extra];
   const pct=chainCounts().pct;
-  return `<span class="chip status progress${done?" done":!started?" planned":""}">chain ${txt.filter(Boolean).join(" · ")}<span class="cbar" role="img" aria-label="${landed} of ${M} units landed"><i style="width:${pct}%"></i></span></span>`; }
+  return `<span class="chip status progress wide${done?" done":!started?" planned":""}"><span class="ck">tracking issue · chain</span> ${txt.filter(Boolean).join(" · ")}<span class="cbar" role="img" aria-label="${landed} of ${M} units landed"><i style="width:${pct}%"></i></span></span>`; }
 let OPTS=[];
 const count=(arr,f)=>arr.filter(f).length;
 function renderHeader(){
@@ -3165,21 +3207,24 @@ function renderHeader(){
   $("#crumbs").innerHTML=`<a href="${UP}docs/dashboards/index.html">${esc(PLAN.repo)}</a> › <a href="${UP}docs/plans/index.html">work board</a>`+segs.map((s,i)=>i<segs.length-1&&segBoard(s)?` › <a href="${esc(segBoard(s))}">${esc(s)}</a>`:` › ${esc(s)}`).join("");
   $("#h1").textContent=`#${PLAN.issue} · ${PLAN.title||""}`;
   $("#function").innerHTML=rich(PLAN.function);
+  /* the intro's issue line: the board's own #n opens its GitHub issue (plan/RULES.md §1), beside the issue's title on GitHub */
+  $("#issueline").innerHTML=`GitHub issue ${ext(ghUrl(PLAN.issue),"#"+esc(PLAN.issue))}${PLAN.issueTitle?` · ${rich(PLAN.issueTitle)}`:""}`;
   const b=PLAN.baseline||{}, a=PLAN.asBuilt;
   const statusText={planned:"planned · nothing built",building:"building",built:"built",abandoned:"abandoned"}[PLAN.status]||PLAN.status;
+  /* the tags (GUIDANCE.md §6, "The header"): each its label (.ck) and its value; one tag for the systems, each with its swatch */
+  const tag=(ck,v,cls)=>`<span class="chip${cls?" "+cls:""}"><span class="ck">${ck}</span> ${v}</span>`;
+  const sysGroups=[...SYSTEMS.reduce((m,s)=>{ const k=s.top||s.name; if(!m.has(k)) m.set(k,[]); m.get(k).push(s); return m; },new Map())];
   const chips=[
-    TRACKING?chainChip():`<span class="chip status ${esc(PLAN.status)}">status <b>${esc(statusText)}</b></span>`,
-    `<span class="chip">issue ${ilink(PLAN.issue)}${PLAN.issueTitle?` <b>${rich(PLAN.issueTitle)}</b>`:""}</span>`,
-    TRACKING?`<span class="chip"><b>tracking issue</b></span>`:"",
-    PLAN.parent&&PLAN.parent.issue?`<span class="chip">part of ${ilink(PLAN.parent.issue)}${boardOf(PLAN.parent.issue)?` ${ghlink(PLAN.parent.issue)}`:""}</span>`:"",
-    SHOW_BRANCH?`<span class="chip">branch <b>${esc(PLAN.branch)}</b></span>`:"",
-    `<span class="chip">baseline <b>${esc(b.ref||"")} ${esc(b.sha||"")}</b>${b.date?` · ${when(b.date)}`:""}</span>`,
-    a?`<span class="chip">as built <b>${esc(a.ref||"")} ${esc(a.sha||"")}</b>${a.date?` · ${when(a.date)}`:""}${a.pr?` · ${prlink(a.pr)}`:""}</span>`:`<span class="chip status planned">as built <b>—</b> · not landed</span>`,
-    a&&a.version?`<span class="chip">ships as <b>${esc(a.version)}</b></span>`:"",
-    /* one chip per system, or per top-level system when several of its parts are on the board */
-    ...[...SYSTEMS.reduce((m,s)=>{ const k=s.top||s.name; if(!m.has(k)) m.set(k,[]); m.get(k).push(s); return m; },new Map())].map(([top,ps])=>{ const s=ps[0], one=ps.length===1, nm=one?s.name:top;
-      return `<span class="chip" data-sys="${esc(s.slug)}">${one&&s.page?`<a href="${UP}${esc(s.page)}">${esc(nm)}</a>`:esc(nm)}${one?"":` · ${ps.length} parts`}${ps.every(x=>x.status==="planned")?" · planned":""}</span>`; }),
-    `<span class="chip model">board <b>plan.json</b> · ${ROWS.length} ${TRACKING?"units":"rows"} · ${OPTS.length} options</span>`].filter(Boolean);
+    TRACKING?chainChip():tag("status",`<b>${esc(statusText)}</b>`,`status ${esc(PLAN.status)}`),
+    PLAN.parent&&PLAN.parent.issue?tag("part of",`${ilink(PLAN.parent.issue)}${boardOf(PLAN.parent.issue)?` ${ghlink(PLAN.parent.issue)}`:""}`):"",
+    SHOW_BRANCH?tag("branch",`<b>${esc(PLAN.branch)}</b>`):"",
+    tag("baseline",`<b>${esc(b.ref||"")} ${esc(b.sha||"")}</b>${b.date?` · ${when(b.date)}`:""}`),
+    a?tag("as built",`<b>${esc(a.ref||"")} ${esc(a.sha||"")}</b>${a.date?` · ${when(a.date)}`:""}${a.pr?` · ${prlink(a.pr)}`:""}`):tag("as built","<b>—</b> · not landed","status planned"),
+    a&&a.version?tag("ships as",`<b>${esc(a.version)}</b>`):"",
+    /* one entry per system, or per top-level system when several of its parts are on the board */
+    sysGroups.length?tag(sysGroups.length===1?"system":"systems",sysGroups.map(([top,ps])=>{ const s=ps[0], one=ps.length===1, nm=one?s.name:top;
+      return `<span class="sysl"><span class="sw" data-sys="${esc(s.slug)}"></span>${one&&s.page?`<a href="${UP}${esc(s.page)}">${esc(nm)}</a>`:esc(nm)}${one?"":` · ${ps.length} parts`}${ps.every(x=>x.status==="planned")?" · planned":""}</span>`; }).join(""),sysGroups.length>2?"wide":""):"",
+    tag("board",`<b>plan.json</b> · ${ROWS.length} ${TRACKING?"units":"rows"} · ${OPTS.length} options`,"model")].filter(Boolean);
   $("#chips").innerHTML=chips.join(""); paint($("#chips"));
 }
 
@@ -3215,8 +3260,9 @@ function renderWip(){
   let h="", runs=[];
   if(units.length){
     /* A tracking board with units shows its strip as bubbles (plan/RULES.md §3): the tracking issue's own phase with the chain's
-       progress; one bubble per unit in progress with its own run; the unit up next; and "waiting on you" only while the tracking
-       issue or a unit's run is halted. An issue's number beside its title is a pair (the number to GitHub, the title to its board);
+       progress; one bubble per unit in progress with its own run, and its step panel beside it; the unit up next while no unit's run
+       is mirrored; and "waiting on you" only while the tracking issue or a unit's run is halted. From 940 px each takes its fixed
+       share of a row (--r, its row; --rows, the rows the phase runs down beside). An issue's number beside its title is a pair (the number to GitHub, the title to its board);
        a lone #n opens the board. */
     w.classList.add("bubbles");
     const uref=r=>r.unit.issue?pair(r.unit.issue,r.unit.slug||r.id):esc(r.unit.slug||r.id);
@@ -3227,13 +3273,13 @@ function renderWip(){
     ph+=own+(WIP.detail&&(!HALTED||WIP.waitingOn)?`<p class="wip-detail">${rich(WIP.detail)}</p>`:"");
     ph+=`<div class="wip-sub">The chain · ${C.landed} of ${C.M} units landed${C.complete?` · ${C.complete} complete, not merged`:""}${C.extra.length?` · ${esc(C.extra.join(" · "))}`:""}</div><span class="chip-bar" role="img" aria-label="${C.landed} of ${C.M} units landed"><i style="width:${C.pct}%"></i></span>`;
     ph+=`<ol class="chain">${units.map(r=>{ const s=stateOf(r), on=rowActive(r), href=r.unit.issue?boardOf(r.unit.issue)||ghUrl(r.unit.issue):""; const inner=`${esc(r.unit.n!=null?r.unit.n:"")}${r.unit.issue?` · #${esc(r.unit.issue)}`:""} ${esc(r.unit.slug||r.id)}${s!=="pending"?` ${STATES[s].g}`:""}${isNext(r)?` ${TAG_NEXT}`:""}`; const tag=href?`<a href="${esc(href)}"${/^https?:/.test(href)?' target="_blank" rel="noopener"':""} data-sys="${esc(r.system)}">${inner}</a>`:`<span class="u" data-sys="${esc(r.system)}">${inner}</span>`; return `<li class="${s==="pending"?"pending":"done"}${on&&!LANDED?(PAUSED||runPaused(r)?" held":" glow"):isNext(r)?" upnext":""}">${tag}</li>`; }).join("")}</ol>`;
-    h+=ph+factsHtml+`</div>`;
+    const phase=ph+factsHtml+`</div>`; let rowN=0;
     legend.push(sysKey(units.map(r=>r.system)),units.some(r=>stateOf(r)==="pending")?`<span><i class="pln"></i>dashed: unit not built, or not started</span>`:"");
     [...new Set(units.map(stateOf))].filter(k=>k!=="pending").forEach(k=>legend.push(`<span>${badge(k)} ${esc(STATES[k].desc)}</span>`));
     if(C.M) legend.push(`<span><i class="bar"></i>green bar: units landed of all units</span>`);
     /* one bubble per unit in progress, with its own run as its board last showed it */
-    act.forEach(r=>{ const L=runOf(r), k=L?runKind(L):null, held=k==="halted";
-      let b=`<div class="wb unit${held?" halted":k==="escalated"?" escalated":""}" data-row="${esc(r.id)}"><div class="wb-t"><span class="k">In progress · unit ${esc(r.unit.n)}</span><span>${uref(r)}</span></div>`;
+    act.forEach(r=>{ const L=runOf(r), k=L?runKind(L):null, held=k==="halted"; rowN++;
+      let b=`<div class="wb unit${held?" halted":k==="escalated"?" escalated":""}" data-row="${esc(r.id)}" style="--r:${rowN}"><div class="wb-t"><span class="k">In progress · unit ${esc(r.unit.n)}</span><span>${uref(r)}</span></div>`;
       if(!L) b+=`<p class="note">Its run is not mirrored here: its board is not in this tree yet.</p>`;
       else {
         b+=`<div class="run">${runPill(L)}${runAt(L)}</div>`;
@@ -3246,18 +3292,21 @@ function renderWip(){
           L.branch&&!unitLanded(r)?`<span><span class="l">branch</span><code>${esc(L.branch)}</code></span>`:""].filter(Boolean);
         if(f.length) b+=`<div class="wip-facts">${f.join("")}</div>`;
       }
-      h+=b+`</div>`; });
-    /* the step panel of each unit in progress whose run is mirrored, in place of the up-next bubble (plan/RULES.md §3): up next stays on
-       the chain and the unit row; with no unit's run to show, the up-next bubble stays */
+      h+=b+`</div>`;
+      /* the unit's step panel beside it, from its mirror (plan/RULES.md §3), in place of the up-next bubble */
+      if(L) h+=stepPanel(L,{label:`Unit ${r.unit.n} · #${r.unit.issue}: its step`,keys:pkeys,rowName:id=>(L.rowNames&&L.rowNames[id])||id,parent:PLAN.issue,branch:L.branch,row:rowN}); });
+    /* up next stays on the chain and the unit row while a unit's step panel is drawn (plan/RULES.md §3); with no unit's run to show, the
+       up-next bubble stays */
     const panels=act.filter(runOf);
-    panels.forEach(r=>{ const L=runOf(r); h+=stepPanel(L,{title:`Unit ${esc(r.unit.n)} · #${esc(r.unit.issue)} · its step in detail`,keys:pkeys,rowName:id=>(L.rowNames&&L.rowNames[id])||id,parent:PLAN.issue,branch:L.branch}); });
-    if(NEXT_ROW&&!panels.length){ h+=`<div class="wb next upnext" data-sys="${esc(NEXT_ROW.system||"")}"><div class="wb-t"><span class="k">Up next · unit ${esc(NEXT_ROW.unit.n)}</span><span>${uref(NEXT_ROW)}</span> ${TAG_NEXT} ${blockedPill(NEXT_ROW)}</div><p class="note">Not started${openBlockers(NEXT_ROW).length?": it starts once its blockers have landed":""}.</p></div>`; }
+    /* up next takes the panel's share beside a unit whose run is not mirrored, else the unit's and the panel's */
+    if(NEXT_ROW&&!panels.length){ const beside=act.length>0; if(!beside) rowN++; h+=`<div class="wb next upnext${beside?" beside":""}" data-sys="${esc(NEXT_ROW.system||"")}" style="--r:${beside?1:rowN}"><div class="wb-t"><span class="k">Up next · unit ${esc(NEXT_ROW.unit.n)}</span><span>${uref(NEXT_ROW)}</span> ${TAG_NEXT} ${blockedPill(NEXT_ROW)}</div><p class="note">Not started${openBlockers(NEXT_ROW).length?": it starts once its blockers have landed":""}.</p></div>`; }
     if(NEXT_ROW) legend.push(KEY_NEXT(NEXT_ROW));
     /* waiting on you: only while the tracking issue or a unit's run is halted */
     const waits=[...(HALTED?[`<li><b>#${esc(PLAN.issue)}</b>, the tracking issue: ${rich(WIP.waitingOn||WIP.detail||"(not stated)")}${WIP.resume?`<small>resumes at ${esc(WIP.resume)}</small>`:""}</li>`]:[]),
       ...act.filter(runHeld).map(r=>{ const L=runOf(r); return `<li>${uref(r)}: ${rich(L.waitingOn||L.detail||"(not stated)")}${L.resume?`<small>its run resumes at ${esc(L.resume)}</small>`:""}</li>`; })];
-    if(waits.length){ h+=`<div class="wb wait"><div class="wb-t"><span class="k">⏸ Waiting on you</span></div><ul>${waits.join("")}</ul></div>`; legend.push(`<span><i class="wait"></i>yellow bubble: waiting on you, and for what</span>`); }
-    h=`<div class="wipgrid">${h}</div>`;
+    if(waits.length){ rowN++; h+=`<div class="wb wait" style="--r:${rowN}"><div class="wb-t"><span class="k">⏸ Waiting on you</span></div><ul>${waits.join("")}</ul></div>`; legend.push(`<span><i class="wait"></i>yellow bubble: waiting on you, and for what</span>`); }
+    /* the phase runs down beside every row the others take; alone, it takes the whole row */
+    h=`<div class="wipgrid">${phase.replace(/^<div class="wb phase([^"]*)"/,(m,c)=>`<div class="wb phase${c}${rowN?"":" solo"}" style="--rows:${Math.max(rowN,1)}"`)}${h}</div>`;
   } else {
     h=headLine;
     if(HALTED) h+=`<p class="wip-wait">Waiting on the user: ${rich(WIP.waitingOn||WIP.detail||"(not stated)")}</p>`;

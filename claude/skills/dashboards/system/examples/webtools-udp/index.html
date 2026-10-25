@@ -47,6 +47,29 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .chip{font:12px/1 var(--mono);padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink-2);max-width:100%;overflow-wrap:anywhere}
 .chip b{color:var(--ink);font-weight:600}
 .chip a{text-decoration:none;border-bottom:1px solid var(--line)}
+/* The header's two halves (GUIDANCE.md §6, "The header"): from 940 px the intro (the title, the issue line, the function) fills the
+   left half and the tags stand in the right half beside it, each a small card with its label over its value, growing to fill its line, a
+   long one across the half (.wide); under 940 px the two stack and the tags wrap as chips, the label before the value. The topbar (the breadcrumb, the
+   live indicator, the theme switch) runs across the top. The same rules on every dashboard type. */
+.issueline{font:12.5px/1.4 var(--mono);color:var(--ink-2);margin:0 0 8px;overflow-wrap:anywhere}
+.issueline a{text-decoration:none;border-bottom:1px solid var(--line)}
+.issueline a:hover{border-bottom-color:var(--ink)}
+.chip .ck{font:700 10px/1.2 var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.chip .sysl{display:inline-flex;align-items:center;margin-right:10px;white-space:nowrap}
+.chip .sysl:last-child{margin-right:0}
+@media (min-width:940px){
+  header{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto auto auto auto 1fr;column-gap:28px}
+  header>.topbar{grid-column:1/-1;grid-row:1}
+  header>.crumbs{grid-column:1;grid-row:1}
+  header>.systools{grid-column:2;grid-row:1;justify-self:end;align-self:start;float:none;margin:14px 0 4px}
+  header>h1{grid-column:1;grid-row:2}
+  header>.issueline{grid-column:1;grid-row:3}
+  header>.function{grid-column:1;grid-row:4;max-width:none}
+  header>.chips{grid-column:2;grid-row:2/-1;align-self:start;align-content:flex-start;gap:8px;margin:8px 0 6px}
+  header>.chips>.chip{display:block;flex:1 1 190px;padding:7px 10px 8px;font-size:12.5px;line-height:1.4;border-radius:6px}
+  header>.chips>.chip .ck{display:block;margin:0 0 2px}
+  header>.chips>.chip.wide{flex-basis:100%}
+}
 
 /* KPIs */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px;margin:14px 0 18px}
@@ -368,15 +391,15 @@ footer code{color:var(--ink-2)}
   <h1>webtools-udp</h1>
   <p class="function">A multi-connection UDP transport for the JVM: many clients handshake onto one server port, then exchange framed datagrams over unreliable and reliable-ordered channels, with opt-in keepalive, link-quality probing and idle detection.</p>
   <div class="chips">
-    <span class="chip">version <b>2.0.0a</b></span>
-    <span class="chip">wire protocol <b>2</b></span>
-    <span class="chip">common port <b>9998</b></span>
-    <span class="chip">Kotlin/JVM</span>
+    <span class="chip"><span class="ck">version</span> <b>2.0.0a</b></span>
+    <span class="chip"><span class="ck">wire protocol</span> <b>2</b></span>
+    <span class="chip"><span class="ck">common port</span> <b>9998</b></span>
+    <span class="chip"><span class="ck">platform</span> <b>Kotlin/JVM</b></span>
     <!-- presenter: the as-is chip takes a date as written, or a time as <time datetime="2026-10-23T01:55:00Z">…</time> (UTC), which the
          page shows in the viewer's local time with the UTC value as its tooltip (GUIDANCE.md §6, "Times") -->
-    <span class="chip">as-is at <b>master 806ce8e</b> · 2026-10-20</span>
-    <span class="chip">last amended by <a href="https://github.com/SpartanLaboratories/WebTools/issues/38" target="_blank" rel="noopener"><b>#38</b></a> <a data-board="38">handshake-empty-name</a> · ca57a57</span>
-    <span class="chip model">C4 model <b>workspace.dsl</b> · <span id="dsl-stats">…</span></span>
+    <span class="chip"><span class="ck">as-is at</span> <b>master 806ce8e</b> · 2026-10-20</span>
+    <span class="chip"><span class="ck">last amended by</span> <a href="https://github.com/SpartanLaboratories/WebTools/issues/38" target="_blank" rel="noopener"><b>#38</b></a> <a data-board="38">handshake-empty-name</a> · ca57a57</span>
+    <span class="chip model"><span class="ck">C4 model</span> <b>workspace.dsl</b> · <span id="dsl-stats">…</span></span>
   </div>
 </header>
 

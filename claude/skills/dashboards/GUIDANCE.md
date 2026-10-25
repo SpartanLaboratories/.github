@@ -247,6 +247,19 @@ pages, plan and tracking boards, the work board — uses most of the window rath
 so the plan boards' timeline columns, the cards, the Guarantees, the C4 canvas and the tables get room;
 prose keeps its own line length, and a diagram drawn to a fixed aspect grows to at most 1280 px wide,
 so it is never smaller than in the 1280 px layout and never outgrows the screen.
+**The header.** Every dashboard type — system, supersystem and repository pages, plan and tracking
+boards, the work board — lays its header out the same way. The topbar runs across the top: the
+breadcrumb, and right of it the live indicator (plan boards and the live work board only) and the
+theme switch. From 940 px wide the rest is two halves: the **intro** — the title, on a plan board
+the issue line (its `#n`, which opens the GitHub issue, and the issue's title on GitHub), and the
+function paragraph — fills the **left half**, the function stretched across it rather than held to a
+prose measure; the **tags** stand in the **right half** beside it, each a small card with its label
+over its value, growing to fill its line, a long one (a tracking board's chain, three systems or
+more) across the half. Under 940 px the two stack, intro first, and the tags wrap as chips with the
+label before the value. A tag is a fact with its label (`<span class="ck">label</span> value`); one
+fact is one tag (the board's systems are one tag, each system with its swatch); a page's
+hand-written header keeps the same form (`system/RULES.md` §2).
+
 Each template is checked for this once, in a headless browser, in light and dark, at a narrow
 width (520 px is the narrowest headless Chrome lays out; the real phone width is verified
 through the checker's iframe harness) and on a 1920 x 1080 desktop; a page inherits it from its
