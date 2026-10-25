@@ -142,6 +142,16 @@ Conform to whatever you find. On top of that, the user's global
 - No attribution trailers, ever: no `Co-Authored-By:`, no `Claude-Session:`,
   no "Generated with" line, on commits or PRs (the user's standing rule, set in
   `~/.claude/settings.json`). A caller that asks for one is wrong; leave it out.
+- **No Claude-internal information on GitHub, ever** (the user's standing rule):
+  nothing you write to GitHub — issue titles and bodies, comments, PR titles and
+  bodies, commit messages, release notes, tag messages — names the machinery that
+  produced it: work levels ("level 3", "a level-3 change", "Label level: 3"; test
+  levels such as "Level 4a tests" are the project's own and stay), the pipeline and
+  its agents (`/resolve-issue`, planner, rookie-dev, qa, presenter, publisher,
+  manager, the admin team), session names, request ids, ledger or board-event names,
+  "the user approved at the console", AI or Claude mentions, scratchpad or other
+  machine-local paths. Describe the work in the project's own terms. A caller's
+  text that carries any of it is reworded before it is written.
 - **README currency:** if the change adds or alters a command, endpoint,
   module, dependency, build/run step, protocol, or architecture and `README.md`
   is not already in the change set, update it **in the same commit** as the code
@@ -172,14 +182,14 @@ issue is linked:
   CI or tooling change with identical published output — move no version and
   use the commit type that fits the content. Do not stop to ask about this
   case; it is settled in the global `CLAUDE.md`.
-- **Level label.** When asked to at branch setup, set the issue's `level: N`
-  label to the confirmed level, replacing any other `level:` label
-  (`gh issue edit <n> --add-label … --remove-label …`). Create the label with
-  `gh label create` if the repo lacks it.
+- **No level labels.** The work level is Claude-internal and never goes on
+  GitHub: no `level: N` label, no level in a title, body or comment. The admin
+  team records each issue's level in its own local state; you receive it in the
+  request and never write it anywhere on GitHub.
 - **Level 4.** Land the architecture, `impact.md` and research as a docs PR
   with `Refs #N`, merged like any other. Then, if the caller passes a sub-issue
-  list the user approved, file each sub-issue (`gh issue create` with its
-  `level: N` label), attach it to the planned issue as a sub-issue (GraphQL
+  list the user approved, file each sub-issue (`gh issue create`, no level
+  label; report each sub-issue's level back so the team records it), attach it to the planned issue as a sub-issue (GraphQL
   `addSubIssue`), record each landing-order dependency as a *blocked by* link,
   and label the planned issue `type: tracking`. Its resolution comment links
   the documents and lists the sub-issues; the issue stays **open**.

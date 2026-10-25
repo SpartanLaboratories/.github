@@ -3,7 +3,7 @@ name: resolve-issue
 description: >-
   Work the oldest open GitHub issue in the current repo toward resolution, or
   pass a specific issue number to work that one. Sizes the issue to a work
-  level (its `level: N` label, re-checked against the issue and the code) and
+  level (its level as the admin team records it, re-checked against the issue and the code) and
   scales the pipeline to it: a level-1 doc/comment change skips planning, a
   level-2 small fix gets a short test-first plan, a level-3 small feature gets
   the interview-research-plan pipeline, and level-4 multi-system work is
@@ -68,7 +68,9 @@ skill runs a different pipeline per level:
   An issue that is only partly done (an earlier tier/stage landed, more is
   open) still counts — this run's goal is the **next step**, not necessarily
   the whole issue.
-- **Size it.** Read the issue's `level: N` label, then re-check it yourself
+- **Size it.** Ask the admin team for the issue's recorded level (a `status`
+  request naming the issue; levels are kept in its local state, never on GitHub),
+  then re-check it yourself
   against the issue text and the code it names: which files and systems it
   touches, whether it changes executable code at all, public API, persisted or
   shared state, or a wire format, and whether it spans more than one system.
@@ -214,7 +216,7 @@ to make the agreed edit.
 
 Send the admin team a `setup-branch` request (the `admin-team` skill) with the
 issue reference, the **work level**, the plan document (if any), the note "set
-up the branch only, and set the issue's `level: N` label to the confirmed
+up the branch only, and record the confirmed
 level if it differs", and — for levels 3–4 — the research commit SHAs
 `planner` reported, which are the only commits so far. The team's executor
 creates the topic branch. Carry forward the branch name and base its `done`
@@ -348,7 +350,7 @@ waiting on the user at the team's console.
 **Level 4** lands the planning documents only: a `docs:` PR that says
 `Refs #<n>` — never `Closes` — and no version bump. After the `done` reply,
 send a `file-sub-issues` request with the **user-approved** list: the team
-files each as a sub-issue of this issue with its proposed `level: N` label and
+files each as a sub-issue of this issue, records its proposed level in its own state (never on GitHub), and
 its landing-order dependencies as *blocked by* links, and labels this issue
 `type: tracking`. The issue stays open. If the user has not approved the list,
 send nothing and the list goes back to the user.

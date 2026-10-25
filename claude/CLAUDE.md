@@ -49,18 +49,18 @@ shape needs no README change.
 
 ## Work levels
 
-Every issue is sized to one of four **work levels**, carried as a `level: N` label on the
-issue. The level decides how much planning, implementation, QA and versioning the work gets;
-`/resolve-issue` and its agents scale to it.
+Every issue is sized to one of four **work levels**, recorded by the admin team in its local
+state, never on GitHub. The level decides how much planning, implementation, QA and
+versioning the work gets; `/resolve-issue` and its agents scale to it.
 
-| Level | Label | What it is | Planning | Built this run? | Version bump |
-|-------|-------|------------|----------|-----------------|--------------|
-| 1 | `level: 1` | **No impact** — comments, KDoc, Markdown docs only. No executable line changes. | none; no plan folder | yes | none |
-| 2 | `level: 2` | **Small fix** — a bug fix that changes no public API, persisted or shared state, or wire format, and stays local to one component. | short `plan.md` (root cause, fix, regression test) | yes, test-first | `fix:` — MinorChange or trailing letter |
-| 3 | `level: 3` | **Small feature** — new or changed behaviour inside **one** system: additive public API, a new class or option. | interview, targeted research, one `plan.md` | yes | `feat:` — Feature release, **only with a downstream effect**; otherwise none |
-| 4 | `level: 4` | **Large feature / roadmap** — anything that spans **more than one** system. | full pipeline up to the architecture; **plan only** | **no** — each system becomes a sub-issue, resolved later at its own level | none (docs only) |
+| Level | What it is | Planning | Built this run? | Version bump |
+|-------|------------|----------|-----------------|--------------|
+| 1 | **No impact** — comments, KDoc, Markdown docs only. No executable line changes. | none; no plan folder | yes | none |
+| 2 | **Small fix** — a bug fix that changes no public API, persisted or shared state, or wire format, and stays local to one component. | short `plan.md` (root cause, fix, regression test) | yes, test-first | `fix:` — MinorChange or trailing letter |
+| 3 | **Small feature** — new or changed behaviour inside **one** system: additive public API, a new class or option. | interview, targeted research, one `plan.md` | yes | `feat:` — Feature release, **only with a downstream effect**; otherwise none |
+| 4 | **Large feature / roadmap** — anything that spans **more than one** system. | full pipeline up to the architecture; **plan only** | **no** — each system becomes a sub-issue, resolved later at its own level | none (docs only) |
 
-- **The label is re-checked when work starts.** If the issue, or the code it touches, says
+- **The level is re-checked when work starts.** If the issue, or the code it touches, says
   the label is wrong, or there is no label, propose a level with the evidence and ask me.
   Never re-level silently.
 - **Escalate, don't stretch.** When work turns out bigger than its level (a level-1 change
