@@ -553,6 +553,8 @@ function checkBoard(dir) {
   (b.rows || []).forEach((r, i) => { if (!posInt(r.issue) || !str(r.title)) fail(`rows[${i}] needs issue and title`); if (r.board) checkLink(dir, r.board, `rows[${i}].board`);
     /* the impact's reconciliation state, derived by board.js from the row's board (lib.js reconciliation()): null, or { state, landed, total } */
     const rc = r.reconciliation; if (rc != null && (typeof rc !== "object" || !Object.keys(RECON_WORDS).includes(rc.state))) fail(`rows[${i}].reconciliation must be null or { state: ${Object.keys(RECON_WORDS).join(" | ")}, landed, total } (got ${JSON.stringify(rc)}): regenerate it with board.js`); });
+  /* "unassigned": the decision that an entry belongs to no system (board.js keeps it): true, and never beside a system */
+  [["rows", b.rows], ["unscheduled", b.unscheduled]].forEach(([k, xs]) => (xs || []).forEach((r, i) => { if (r.unassigned !== undefined && (r.unassigned !== true || r.system)) fail(`${k}[${i}].unassigned must be true, with "system" null (got unassigned ${JSON.stringify(r.unassigned)}, system ${JSON.stringify(r.system)})`); }));
   const rcs = (b.rows || []).filter(r => r.reconciliation && r.reconciliation.state);
   if (rcs.length) ok(`board.json: impact reconciliation ${Object.keys(RECON_WORDS).map(k => `${rcs.filter(r => r.reconciliation.state === k).length} ${RECON_WORDS[k]}`).join(", ")}`);
   const glowing = (b.rows || []).filter(r => r.active).length;
