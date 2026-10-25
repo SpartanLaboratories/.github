@@ -461,6 +461,11 @@ the rows actually being researched, so tell the admin team which those are
 A follow-up researcher (2.4) sends its own `research-started` and
 `research-returned`.
 
+Every board event you send also carries `facts.at` (the ISO time the moment
+happened), and `facts.open` whenever you raise or resolve an open point
+(`[{text, raised, ref?, resolved?}]`), e.g. a plan inconsistency you settle by
+amending the plan.
+
 **Resuming part-way.** If findings files already exist for some questions,
 reuse them and research only the ones still missing.
 

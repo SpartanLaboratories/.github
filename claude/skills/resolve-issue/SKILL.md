@@ -302,9 +302,16 @@ sends none.
 | Planner COMPLETE | `plan-accepted` | the plan path, impact path |
 | Step 3 done | `branch-cut` | branch, worktree |
 | Each rookie-dev report | `implementation-stage` | the stage, `stages`: every stage's id and name with its state (`done`, `current`, `todo`), `final-implementation.md` path, deviations; during a remediation loop also `remediation`: the qa pass it answers, the route (`on-the-spot` / `rookie-dev` / `planner-then-rookie-dev`) and its sub-steps with their state |
-| Each qa verdict | `qa-pass` | pass number, verdict, finding counts by kind (doc, test, code) and by `severity` (`minor` — easily made, no fallout — and `other`), the route step 5 takes from them, report path |
+| Each qa verdict | `qa-pass` | pass number, verdict, finding counts by kind (doc, test, code) and by `severity` (`minor` — easily made, no fallout — and `other`), the route step 5 takes from them, `rows`: the board row ids the findings touch, report path |
 | An escalation | `escalated` | the proposed level and evidence |
 | The run is abandoned | `cancelled` | the reason |
+
+On **every** event also send `at` (the ISO time the moment happened, so a queued
+event keeps its true time), and `open` whenever an open point is raised or
+resolved: `[{text, raised, ref?, resolved?}]` — e.g. a plan inconsistency the
+implementer raises for the planner, or an item left to the maintainer. During a
+remediation loop, `implementation-stage` also carries `rows`: the board row ids
+the fixes touch.
 
 The team raises `landed` itself inside `land`. When the presenter fixes a
 defect in the `dashboards` skill during any of this, the team syncs those
