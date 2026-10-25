@@ -307,7 +307,9 @@ function checkPlan(plan, dir, root) {
 }
 
 /* The Impact tab's data (RULES §2, Impact; §8). impact is null until plan acceptance, then an object with basis "plan" (the plan's
-   impact, from impact.md) and, from the landing on, "as-built" (reconciled, each difference from the plan in changes[]). The
+   impact, from impact.md, partly reconciled while its changes[] accumulate as the work lands: an implementation stage's deviation,
+   on a tracking board each unit's landing) and, from the landing on (a tracking board's last unit's), "as-built" (reconciled, each
+   difference from the plan in changes[]). The
    vocabularies are checked; a built board's impact is the as-built one and a planned board's the plan's. Warnings: impact.md in
    the folder while the tab is empty; a release that does not fit the level (a level-3 bump needs a downstream effect, and a
    level-3 change with none says so); a breaking effect or a removed surface without a major release; on a tracking board, a unit
@@ -357,8 +359,8 @@ function checkImpact(plan, dir, systems, rows, tracking) {
       else if (!lists[m[1]][+m[2]]) fail(`${at}.entry "${x.entry}" names no entry: impact.${m[1]} has ${lists[m[1]].length}; the As built tab would link a card that is not there`); }
     sysOk(x.system, at);
   };
+  /* changes[] under basis "plan" are expected, not warned about: the impact is partly reconciled while they accumulate (RULES §2). */
   each("changes", checkChange);
-  if (I.changes && I.changes.length && I.basis !== "as-built") warn("impact.changes records differences from the planned impact, which exist only once it is reconciled (basis as-built)");
   const rel = I.release;
   if (rel != null && (typeof rel !== "object" || !IMP_BUMPS.includes(rel.bump))) fail(`impact.release.bump must be one of ${IMP_BUMPS.join(", ")}`);
   checkLink(dir, I.link, "impact.link"); checkLink(dir, I.source, "impact.source");
