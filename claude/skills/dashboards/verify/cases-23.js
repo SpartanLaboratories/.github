@@ -189,7 +189,8 @@ module.exports = function cases23(X) {
     c.push(["the plan-board template carries each", !F.probe(T.plan, "plan-board").length, F.probe(T.plan, "plan-board").map(F.line).join(" | ")]);
     c.push(["the work-board template carries the one it takes (no work level in its data)", !F.probe(T.work, "work-board").length && F.applicable("work-board").filter(f => f.since === 23).map(f => f.id).join(",") === "level-phrases", F.probe(T.work, "work-board").map(F.line).join(" | ")]);
     ["system", "supersystem"].forEach(k => { const t = tp(`system/template/${k}.html`); if (t) c.push([`the ${k} template carries the one it takes`, !F.probe(rd(t), k).length && F.applicable(k).filter(f => f.since === 23).map(f => f.id).join(",") === "level-phrases", F.probe(rd(t), k).map(F.line).join(" | ")]); });
-    const hist = (n, note) => { const r = JSON.parse(rd(sk("verify/verified.json"))).templates[n]; const v = r && r.history && r.history.find(x => new RegExp(note).test(x.note || "")); return v ? rd(sk("verify/history/" + v.file)) : null; };
+    /* a recorded version, from verify/history/ or rebuilt from the mirror's git history (system/scripts/history.js) */
+    const hist = (n, note) => require(sk("system/scripts/history.js")).readVersion(sk(n), x => new RegExp(note).test(x.note || ""), { historyRepo: X.historyRepo });
     const oldP = hist("plan/template/dashboard.html", "dashboards-skill/22 left");
     c.push(["the plan-board template as dashboards-skill/22 left it misses the Timeline phases and the section number", !!oldP && ["timeline-phases", "ref-number"].every(id => F.probe(oldP, "plan-board").some(m => m.id === id)), oldP ? F.probe(oldP, "plan-board").map(m => m.id).join(", ") : "no recorded history"]);
     const withLevel = withData(T.plan, "plan", JSON.stringify({ ...copy(LIVE), wip: { ...copy(LIVE).wip, detail: "Code review PASS: diff inside level 3." } }, null, 2));

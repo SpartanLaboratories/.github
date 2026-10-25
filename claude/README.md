@@ -26,6 +26,8 @@ section of `CLAUDE.md`).
   `up`), which holds machine-local paths, and `proposals/`, working drafts.
 - `memory/MyGameServer/deployment-setup.md`, which describes deployment infrastructure, and
   its index line in `memory/MyGameServer/MEMORY.md`.
+- `skills/dashboards/verify/history/`, the dashboards skill's cache of old template versions:
+  a local cache that `history.js` rebuilds on demand from this repository's own git history.
 
 ## Only in this copy
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Bring a page onto its current template, keeping what the page owns (GUIDANCE.md §11, "Re-rendering"; system/RULES.md §8).
-//   node splice.js <page.html> [--template <template.html>] [--dry-run] [--json]
+//   node splice.js <page.html> [--template <template.html>] [--history-repo <clone of SpartanLaboratories/.github>] [--dry-run] [--json]
 // A state page — a system, supersystem or repository page — is its template's CSS, script before MODEL and renderer around what the page
 // fills in (the header, the MODEL, the panels, the Guarantees, the Context, its data blocks). The splice carries the current template's
 // three parts onto the page and leaves the rest as it is:
@@ -18,7 +18,11 @@
 //   - a page with no state block gets one, from its registry entry (state.json written beside it when there is none).
 // A plan board or the work board is its template plus its data: the splice copies the template over the page and embeds the page's
 // data block; one that declares a divergence is merged three ways as above, the page outside its data block as one part.
-// It writes only the page (and a missing state.json beside it), and never on --dry-run. Exit 0 when spliced (or already current), 1 when
+// The recorded versions are read through history.js: verify/history/ is a local cache, kept out of the .github mirror, and a version whose
+// file is missing is rebuilt from the mirror's git history (a local clone with --history-repo, else gh api), matched by its recorded hash
+// and written back into verify/history/. A version nothing matches is warned on; with none left to read, the splice is two-way (the page
+// against the current template alone, as above with no recorded base).
+// It writes only the page (and a missing state.json beside it, and a rebuilt version into verify/history/), and never the page on --dry-run. Exit 0 when spliced (or already current), 1 when
 // a conflict left a part as it was (the rest is written), 2 on a usage error.
 "use strict";
 const fs = require("fs"), path = require("path");
@@ -76,22 +80,23 @@ const filledNames = tplPre => new Set(splitL(tplPre).filter(l => constName(l) &&
 /* the comparable text of a part: the page-filled lines and the DEFAULT_INSPECT line left out, as deviation.js compares them */
 const comparable = (kind, text, filled) => kind === "pre" ? splitL(text).filter(l => !filled.has(constName(l))).join("\n") : kind === "renderer" ? splitL(text).filter(l => !/^const DEFAULT_INSPECT=/.test(l)).join("\n") : text;
 
-/* the template versions verify/verify-templates.js recorded (verified.json history, the copies in history/), oldest first */
-function versions(template) {
-  const { file, key } = dev.recordFile(template), dir = path.join(path.dirname(file), "history");
-  let rec = null; try { rec = (JSON.parse(fs.readFileSync(file, "utf8")).templates || {})[key] || null; } catch (e) { /* none */ }
-  return ((rec && rec.history) || []).map(v => { const f = path.join(dir, v.file || ""); return fs.existsSync(f) ? { ...v, html: norm(fs.readFileSync(f, "utf8")) } : null; }).filter(Boolean);
-}
+/* the template versions verify/verify-templates.js recorded (verified.json history), oldest first, read from verify/history/ or rebuilt
+   from the mirror's git history (history.js) */
+const H = require("./history.js");
 
 function main() {
-  require("./cliargs.js").strict(args, { usage: "usage: node splice.js <page.html> [--template <template.html>] [--dry-run] [--json]", valued: ["template"], flags: ["dry-run", "json"], min: 1, max: 1 });
-  pageArg = args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--template");
-  const page = path.resolve(pageArg), report = { page: path.relative(process.cwd(), page).split(path.sep).join("/"), kind: null, template: null, parts: [], filled: [], chips: [], state: null, conflicts: [], wrote: false };
+  require("./cliargs.js").strict(args, { usage: "usage: node splice.js <page.html> [--template <template.html>] [--history-repo <clone of SpartanLaboratories/.github>] [--dry-run] [--json]", valued: ["template", "history-repo"], flags: ["dry-run", "json"], min: 1, max: 1 });
+  pageArg = args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--template" && args[i - 1] !== "--history-repo");
+  const page = path.resolve(pageArg), report = { page: path.relative(process.cwd(), page).split(path.sep).join("/"), kind: null, template: null, parts: [], filled: [], chips: [], state: null, conflicts: [], history: null, warnings: [], wrote: false };
   if (!fs.existsSync(page)) { console.error(`no such page: ${pageArg}`); process.exit(2); }
   const raw = fs.readFileSync(page, "utf8"), eol = raw.includes("\r\n") ? "\r\n" : "\n";
   let h = norm(raw); const kind = dev.kindOf(h); report.kind = kind;
   const template = opt("template") ? path.resolve(opt("template")) : dev.templateFor(page, kind); report.template = template;
-  const tpl = norm(fs.readFileSync(template, "utf8")), hist = versions(template), declared = /<meta name="template-divergence"/.test(h);
+  const HL = H.load(template, { historyRepo: opt("history-repo") }), hist = HL.versions;
+  report.history = { recorded: HL.recorded, read: hist.length, rebuilt: HL.rebuilt.map(x => ({ sha256: x.v.sha256, file: x.v.file, from: `${HL.source} @ ${x.ref}` })), missing: HL.missing.map(x => ({ sha256: x.v.sha256, note: x.v.note || null, why: x.why })) };
+  HL.missing.forEach(x => report.warnings.push(`recorded version ${H.label(x.v)} could not be read or rebuilt: ${x.why}`));
+  if (HL.recorded && !hist.length) report.warnings.push(`none of the ${HL.recorded} recorded versions could be read or rebuilt: a two-way splice (the page against the current template alone; an undeclared difference is undone, a declared one left)`);
+  const tpl = norm(fs.readFileSync(template, "utf8")), declared = /<meta name="template-divergence"/.test(h);
   /* one part: replaced, merged or left, by the rules above */
   const part = (name, mine, theirs, baseOf) => {
     if (mine === theirs) { report.parts.push({ part: name, how: "current" }); return mine; }
@@ -170,6 +175,8 @@ function main() {
   if (args.includes("--json")) console.log(JSON.stringify(report));
   else {
     console.log(`splice: ${report.page} (${kind}) onto ${path.relative(process.cwd(), template).split(path.sep).join("/")}${hist.length ? `, ${hist.length} recorded version${hist.length === 1 ? "" : "s"}` : ", no recorded versions"}`);
+    HL.rebuilt.forEach(x => console.log(`  history: ${H.label(x.v)} rebuilt from ${HL.source} @ ${x.ref} into verify/history/${x.v.file || ""}`));
+    report.warnings.forEach(w => console.log(`  WARNING: ${w}`));
     report.parts.forEach(p => console.log(`  ${p.part}: ${p.how}`));
     report.filled.forEach(f => console.log(`  page-filled ${f}`)); report.chips.forEach(c => console.log(`  chip ${c}`)); if (report.state) console.log(`  state: ${report.state}`);
     report.conflicts.forEach(c => console.log(`  CONFLICT in ${c.part} at line ${c.at}: the page has ${JSON.stringify(c.mine.slice(0, 80))}, the template ${JSON.stringify(c.theirs.slice(0, 80))}`));
