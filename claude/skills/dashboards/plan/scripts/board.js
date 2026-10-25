@@ -17,6 +17,13 @@
 // is set only when that board's dashboard.html exists, and the page links that issue's #n to it, a tracking issue's as much as a sub-issue's (plan/RULES.md §1, §5).
 // A row with a board carries "reconciliation", its impact's reconciliation state as lib.js reconciliation() derives it (planned,
 // partial or as-built, with landed and total units on a tracking board), or null while the board records no impact (plan/RULES.md §2, §5).
+// A row with no board of its own and no tracking board's unit row to read (a boardless row: any issue the tracker sizes, whatever
+// its level) takes its state from the tracker (plan/RULES.md §5, "Boardless rows"): closed, "landed"; open with a pull request
+// that refers to it merged, "merged" (awaiting close); open with an open pull request or a branch that refers to it, "in-progress"
+// (solid, never active: there is no run board to mirror); otherwise "not-started". A pull request refers to an issue when GitHub
+// links it as closing the issue (closedByPullRequestsReferences) or its head branch names the issue; a branch refers to it when
+// GitHub links it to the issue (linkedBranches) or its name names the issue (branchNames(): "issue-62", "62-slug" or "fix/62" as a
+// path segment, never a number inside a word). The row records what it read as "tracker": { branch, pr: { number, state } }.
 // --live builds the live work board (presenter brief, plan-board mode): run it on the repository's main checkout. It reads the
 // boards of every worktree of the repository (git worktree list; the root first), keeps for each issue the freshest board (the
 // latest wip.updated, else wip.since, else asBuilt.date, or a later unit.live.updated it mirrors; the root's on a tie), and writes docs/plans/.live/board.json and
@@ -24,7 +31,7 @@
 // when they can, a file URL into a worktree on another drive otherwise; the folder is local only (.git/info/exclude).
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), url = require("url");
-const { repoRoot, flag, opt, registry, findPlans, subIssueBoard, shownBranch, unitBranch, reconciliation } = require("./lib.js");
+const { repoRoot, flag, opt, registry, findPlans, subIssueBoard, shownBranch, unitBranch, reconciliation, leftForLater, boardlessState } = require("./lib.js");
 const { embed } = require("./embed.js");
 
 const args = process.argv.slice(2);
@@ -78,11 +85,23 @@ if (!flag(args, "no-gh")) {
   for (let i = 0; i < nums.length; i += 25) {
     const chunk = nums.slice(i, i + 25);
     const node = "number title state repository{nameWithOwner}";
-    const q = `query{repository(owner:"${owner}",name:"${name}"){${chunk.map(n => `i${n}:issue(number:${n}){number parent{number} subIssues(first:50){nodes{${node}}} blockedBy(first:30){nodes{${node}}} blocking(first:30){nodes{${node}}}}`).join(" ")}}}`;
+    const q = `query{repository(owner:"${owner}",name:"${name}"){${chunk.map(n => `i${n}:issue(number:${n}){number parent{number} closedByPullRequestsReferences(first:20,includeClosedPrs:true){nodes{number state headRefName}} linkedBranches(first:10){nodes{ref{name}}} subIssues(first:50){nodes{${node}}} blockedBy(first:30){nodes{${node}}} blocking(first:30){nodes{${node}}}}`).join(" ")}}}`;
     const r = JSON.parse(sh("gh", ["api", "graphql", "-f", "query=" + q]));
     Object.values(r.data.repository).forEach(x => { if (x) gq[x.number] = x; });
   }
 }
+/* Pull requests and branches, for the boardless rows (plan/RULES.md §5): every pull request with its head branch, and every branch
+   on the remote and in the local repository (the root's refs; with --live, every worktree shares them). */
+let prs = [], branches = [];
+if (!flag(args, "no-gh")) {
+  try { prs = JSON.parse(sh("gh", ["pr", "list", "--repo", repo, "--state", "all", "--limit", "1000", "--json", "number,state,headRefName"])); } catch (e) { console.log("could not list pull requests: " + String(e.message).split("\n")[0]); }
+  try { branches = sh("gh", ["api", "--paginate", `repos/${repo}/branches?per_page=100`, "--jq", ".[].name"]).split(/\r?\n/).filter(Boolean); } catch (e) { console.log("could not list remote branches: " + String(e.message).split("\n")[0]); }
+  try { branches.push(...sh("git", ["for-each-ref", "--format=%(refname:short)", "refs/heads"]).split(/\r?\n/).filter(Boolean)); } catch (e) { /* not a git tree */ }
+  branches = [...new Set(branches)];
+}
+/* The tracker's state of a boardless row (plan/RULES.md §5, "Boardless rows"): lib.js boardlessState(). */
+const trackerState = (n, i) => { const g = gq[n] || {};
+  return boardlessState(n, i ? i.state : "OPEN", (g.closedByPullRequestsReferences || {}).nodes || [], ((g.linkedBranches || {}).nodes || []).map(x => x && x.ref && x.ref.name).filter(Boolean), prs, branches); };
 const issueOf = n => issues.find(i => i.number === n);
 const levelOf = i => { const l = i && i.labels.find(x => /^level: [1-4]$/.test(x.name)); return l ? parseInt(l.name.slice(7), 10) : null; };
 const ref = x => ({ issue: x.number, repo: x.repository && x.repository.nameWithOwner !== repo ? x.repository.nameWithOwner : undefined, state: x.state });
@@ -109,21 +128,21 @@ const landedIssue = (n, other) => {
   if (u) return LANDED_STATES.has(unitState(u));
   const i = issueOf(n); return !!(i && i.state === "CLOSED");
 };
-/* A tracking issue's chain, for its row's state cell (plan/RULES.md §3, "The chain's progress"): units landed of all units (dropped
-   and deferred units counted apart), each unit in progress with its own run's step (from the unit's freshest board, else the
+/* A tracking issue's chain, for its row's state cell (plan/RULES.md §3, "The chain's progress"): units landed of all units (dropped,
+   deferred and left-for-later units counted apart, lib.js leftForLater()), each unit in progress with its own run's step (from the unit's freshest board, else the
    tracking board's mirror, unit.live), and the unit up next with the blockers that have not landed. */
 const chainOf = b => {
   const p = b.plan, w = p.wip || {}, units = (p.rows || []).filter(r => r.unit), st = r => (r.asBuilt || {}).state || "pending";
   const live = !["built", "abandoned"].includes(p.status) && !["landed", "cancelled"].includes(w.step);
-  const dropped = units.filter(r => st(r) === "dropped").length, deferred = units.filter(r => st(r) === "deferred").length;
-  const counted = units.filter(r => !["dropped", "deferred"].includes(st(r))), landed = counted.filter(r => LANDED_STATES.has(st(r))).length;
+  const dropped = units.filter(r => st(r) === "dropped").length, deferred = units.filter(r => st(r) === "deferred").length, left = units.filter(leftForLater).length;
+  const counted = units.filter(r => !["dropped", "deferred"].includes(st(r)) && !leftForLater(r)), landed = counted.filter(r => LANDED_STATES.has(st(r))).length;
   const cur = live ? units.filter(r => (w.current || []).some(a => String(a).split(".")[0] === r.id)) : [];
   const current = cur.map(r => { const own = r.unit.issue ? boardOf(r.unit.issue) : null, ow = own ? own.plan.wip || {} : null, L = r.unit.live || {};
     return { issue: r.unit.issue || null, slug: r.unit.slug || r.id, step: (ow && ow.step) || L.step || null }; });
   const nx = live && w.next ? units.find(r => r.id === w.next && st(r) === "pending") : null;
   const next = nx ? { issue: nx.unit.issue || null, slug: nx.unit.slug || nx.id, blockedBy: (nx.unit.blockedBy || []).filter(n => !landedIssue(n)).map(n => ({ issue: n })) } : null;
   const started = landed > 0 || current.length > 0 || units.some(r => st(r) === "complete");
-  return { total: counted.length, landed, dropped, deferred, planned: !started && p.status !== "built", done: p.status === "built" || (counted.length > 0 && landed === counted.length), current, next };
+  return { total: counted.length, landed, dropped, deferred, left, planned: !started && p.status !== "built", done: p.status === "built" || (counted.length > 0 && landed === counted.length), current, next };
 };
 
 /* Rows: every issue with a board or a level label (the label decides which issues are rows; no level is written to board.json,
@@ -158,7 +177,11 @@ const rows = [...rowNums].map(n => {
       step: cur ? w.step : null, detail: cur ? (w.detail || "") : ((u.row.asBuilt || {}).summary || ""), qa: cur ? (w.qa || []) : [], qaMax: cur ? w.qaMax : null,
       status: LANDED_STATES.has(st) ? "landed" : st === "complete" ? "complete" : st === "dropped" ? "abandoned" : cur ? (w.step === "halted" ? "halted" : "building") : "not-started", landed: null, reconciliation: null /* no board of its own: its impact is on the tracking board */ });
     row.active = cur && ACTIVE_STEPS.has(w.step);
-  } else Object.assign(row, { board: null, folder: null, branch: null, system: p.system || null, ...(!p.system && p.unassigned === true ? { unassigned: true } : {}), step: null, detail: p.note || "", qa: [], status: "no-board", active: false, landed: null, reconciliation: null });
+  } else {
+    /* a boardless row: its state from the tracker (plan/RULES.md §5); its branch shown while it is in progress, never a merged one */
+    const ts = trackerState(n, i);
+    Object.assign(row, { board: null, folder: null, branch: ts.status === "in-progress" ? ts.tracker.branch : null, system: p.system || null, ...(!p.system && p.unassigned === true ? { unassigned: true } : {}), step: null, detail: p.note || "", qa: [], status: ts.status, tracker: ts.tracker, active: false, landed: null, reconciliation: null });
+  }
   /* The next unit (wip.next): "next · not started", never building or active, tagged with each blocker that has not landed. */
   const nx = nextUnits.get(n);
   if (nx && row.status !== "landed") {

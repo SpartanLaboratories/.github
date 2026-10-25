@@ -5,11 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="template" content="system/template/system.html">
 <title>system-slug</title>
+<script>/* the theme switch's choice (GUIDANCE.md §1, Themes), applied before the first paint; none chosen: the system setting */try{var t=localStorage.getItem("dashboards-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
 <style>
 /* Layout: header band → KPI strip → tabbed stage with a sticky side inspector → Guarantees bubbles → Context cards → provenance footer.
    System page template (dashboards skill, system set: system/RULES.md): the C4 tab is rendered at load from the Structurizr DSL embedded below.
    Colour plan: --server / --client / --wire are the page's three hue slots (its "sides"), --ph-1..3 the ordinal phase ramp
-   (Lifecycles), --good / --warning / --serious / --critical are status (outcomes only, always beside a label). Dashed = planned. */
+   (Lifecycles), --good / --warning / --serious / --critical are status (outcomes only, always beside a label). Dashed = planned, and nothing else: lifelines, returns and frames are solid. */
 :root{
   --bg:#f3f5f8; --surface:#fcfcfd; --surface-2:#eef1f6; --ink:#0e1420; --ink-2:#4a5468; --muted:#7d879a;
   --line:#dfe4ec; --hair:rgba(14,20,32,.10);
@@ -35,6 +36,10 @@ h1,h2,h3{text-wrap:balance}
 /* header */
 .crumbs{font-size:12px;color:var(--muted);padding-top:18px;overflow-wrap:anywhere}
 .crumbs a{text-decoration:none}
+/* The theme switch (GUIDANCE.md §1, Themes), right of the breadcrumb: the renderer adds it to the header. */
+.systools{float:right;display:flex;gap:6px;align-items:center;margin:14px 0 4px 12px}
+.themebtn{appearance:none;font:600 11px/1 var(--mono);padding:5px 9px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.themebtn:hover{color:var(--ink);border-color:var(--ink-2)}
 .crumbs a:hover{text-decoration:underline}
 h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono);overflow-wrap:anywhere}
 .function{color:var(--ink-2);margin:0 0 10px;max-width:78ch;font-size:15px}
@@ -92,7 +97,7 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .key i.con{border-color:var(--ink)}.key i.ext{border-color:var(--muted);background:var(--surface-2)}
 .key i.bs{border-left:4px solid var(--server)}.key i.bc{border-left:4px solid var(--client)}.key i.bw{border-left:4px solid var(--wire)}
 .key i.ph1{background:var(--ph-1);border-color:var(--ph-1)}.key i.ph2{background:var(--ph-2);border-color:var(--ph-2)}.key i.ph3{background:var(--ph-3);border-color:var(--ph-3)}
-.key i.ln{width:18px;height:0;border:0;border-top:2px solid var(--ink-2);border-radius:0;background:none}.key i.ln.dash{border-top-style:dashed}.key i.ln.on{border-top:2.5px solid var(--on)}.key i.ln.off{border-top-color:var(--line)}
+.key i.ln{width:18px;height:0;border:0;border-top:2px solid var(--ink-2);border-radius:0;background:none}.key i.ln.dash{border-top-style:dashed}.key i.ln.ret{position:relative;border-top-width:1px;width:20px}.key i.ln.ret::after{content:"";position:absolute;right:0;top:-4px;width:6px;height:6px;border-top:1.2px solid var(--ink-2);border-right:1.2px solid var(--ink-2);transform:rotate(45deg)}.key i.ln.on{border-top:2.5px solid var(--on)}.key i.ln.off{border-top-color:var(--line)}
 .key i.hex{border:0;border-radius:0;background:var(--ink-2);clip-path:polygon(22% 0,78% 0,100% 50%,78% 100%,22% 100%,0 50%)}
 .key i.end{border-radius:1px;border-color:var(--line);border-left-width:4px;background:var(--surface-2)}
 .key i.band{border:0;background:var(--surface-2)}
@@ -153,7 +158,7 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .btn[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 
 /* sequence svg */
-.life{stroke:var(--line);stroke-dasharray:3 4}
+.life{stroke:var(--line);stroke-width:1.2}.life.planned{stroke-dasharray:6 4}
 .lh rect{fill:var(--surface-2);stroke:var(--line)}
 .lh.server rect{fill:var(--server-soft);stroke:var(--server)}.lh.client rect{fill:var(--client-soft);stroke:var(--client)}.lh.wire rect{fill:var(--wire-soft);stroke:var(--wire)}
 .lh.consumer rect{fill:var(--surface);stroke:var(--ink)}.lh.external rect{fill:var(--surface-2);stroke:var(--muted)}
@@ -163,7 +168,7 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .phase text{font-size:9.5px;fill:var(--muted);font-family:var(--mono);letter-spacing:.08em}
 .msg{cursor:pointer}
 .msg line,.msg path{stroke:var(--ink-2);stroke-width:1.5;fill:none}
-.msg.ret line{stroke-dasharray:5 4}
+.msg.ret line{stroke-width:1}
 .msg text{font-size:10px;fill:var(--ink-2);font-family:var(--sans)}
 .msg .lbg{fill:var(--surface);stroke:none}
 .msg .num{font-family:var(--mono);font-size:9px;fill:var(--muted)}
@@ -202,7 +207,7 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .c4key i{display:inline-block;width:16px;height:11px;border-radius:3px;border:1.5px solid rgba(0,0,0,.35)}
 .c4key i.arrow{width:18px;height:0;border:0;border-top:1.5px solid var(--rel);border-radius:0}
 .c4key i.arrow.dashed{border-top-style:dashed}
-.c4key i.frame{background:var(--surface-2);border:1.5px dashed var(--muted);border-radius:4px}
+.c4key i.frame{background:var(--surface-2);border:1.5px solid var(--line);border-radius:4px}
 .c4el{cursor:pointer}
 .c4el .card{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
 .c4el .hdr{stroke:none}
@@ -214,6 +219,7 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .c4el.sel .card{stroke:var(--on);stroke-width:2.5}
 .c4el.hl .card{stroke:var(--ink-2);stroke-width:2}
 .c4el.dim{opacity:.3}
+.c4el.planned>.card{stroke-dasharray:6 4}
 .c4rel path{stroke:var(--rel);stroke-width:1.4;fill:none;stroke-linejoin:round}
 .c4rel.dashed path{stroke-dasharray:6 4}
 .c4rel text{font-size:9.5px;fill:var(--ink-2);font-family:var(--sans)}
@@ -226,11 +232,11 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .c4rel.cur text{fill:var(--ink);font-weight:600}
 .c4rel .num circle{fill:var(--ink);stroke:none}
 .c4rel .num text{fill:var(--bg);font-weight:700;font-size:9.5px;font-family:var(--mono)}
-.c4bound{fill:var(--surface-2);fill-opacity:.45;stroke:var(--muted);stroke-dasharray:8 5}
-.c4boundl rect{fill:var(--surface);stroke:var(--muted);stroke-dasharray:8 5}
+.c4bound{fill:var(--surface-2);fill-opacity:.45;stroke:var(--line);stroke-width:1.5}
+.c4boundl rect{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
 .c4boundl text{font:700 10px var(--mono);fill:var(--ink-2)}
 .c4band{font-size:9.5px;font-family:var(--mono);fill:var(--muted);letter-spacing:.14em}
-.c4life{stroke:var(--line);stroke-dasharray:3 4}
+.c4life{stroke:var(--line);stroke-width:1.2}.c4life.planned{stroke-dasharray:6 4}.c4rel.planned path{stroke-dasharray:6 4}
 pre.dsl{margin:0;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:14px;font:12px/1.5 var(--mono);overflow-x:auto;color:var(--ink);max-height:70vh}
 pre.dsl .c{color:var(--muted)} pre.dsl .k{color:var(--server);font-weight:600} pre.dsl .s{color:var(--ink-2)}
 .steps-list{margin:8px 0 0;padding:0;list-style:none;font-size:12.5px}
@@ -716,7 +722,7 @@ const MODEL = {
      rules(s){ const p=["IN","Q"]; if(s.input==="a"){ p.push("A"); return {path:p,outcome:"Case A ends here.",irrelevant:[]}; } p.push("B"); return {path:p,outcome:"Case B ends here.",irrelevant:[]}; }}
   ],
   // The sequence: lifelines in order — a name, or {n: name, side: a key of MODEL.sides (its header takes that hue), planned} —
-  // phases [label, firstStep, lastStep], steps {f, t, l (label), n (note), ret (return: dashed, open head), self, planned}.
+  // phases [label, firstStep, lastStep], steps {f, t, l (label), n (note), ret (return: open head, thin solid line), self, planned}.
   // kicker names the sequence in the inspector.
   sequence:{
     kicker:"SEQUENCE",
@@ -888,7 +894,7 @@ function cardEvents(g,id){
   g.addEventListener("mouseleave",()=>document.querySelectorAll("#svg-c4 .c4rel.hl").forEach(x=>x.classList.remove("hl")));
 }
 function drawCard(svg,id,box){
-  const e=el(id), st=styleFor(e), [x,y,w,h]=box, g=mk("g",{class:"c4el",tabindex:0,role:"button","data-id":id,"aria-label":e.name,opacity:(+st.opacity||100)/100},svg);
+  const e=el(id), st=styleFor(e), [x,y,w,h]=box, g=mk("g",{class:"c4el"+(e.tags.includes("Planned")?" planned":""),tabindex:0,role:"button","data-id":id,"aria-label":e.name,opacity:(+st.opacity||100)/100},svg);
   const dash=st.border==="dashed"?"6 4":st.border==="dotted"?"2 3":"none";
   mk("rect",{class:"card",x,y,width:w,height:h,rx:7,"stroke-dasharray":dash},g);
   mk("path",{class:"hdr",d:`M${x+7},${y} H${x+w-7} a7,7 0 0 1 7,7 V${y+30} H${x} V${y+7} a7,7 0 0 1 7,-7 Z`,fill:st.background},g);
@@ -903,15 +909,15 @@ function drawCard(svg,id,box){
 function renderDynamic(R,svg){
   const cols=R.els, X=i=>112+i*150, Y0=98, DY=44, H=Y0+R.rels.length*DY+14, W=112+(cols.length-1)*150+112;
   svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
-  cols.forEach((id,i)=>{ const x=X(i); mk("line",{x1:x,y1:68,x2:x,y2:H-6,class:"c4life"},svg); });
+  cols.forEach((id,i)=>{ const x=X(i); mk("line",{x1:x,y1:68,x2:x,y2:H-6,class:"c4life"+(el(id).tags.includes("Planned")?" planned":"")},svg); });
   R.rels.forEach(r=>{
-    const i=cols.indexOf(r.a), j=cols.indexOf(r.b), y=Y0+(r.num-1)*DY, a=X(i), b=X(j), g=mk("g",{class:"c4rel","data-a":r.a,"data-b":r.b,"data-num":r.num},svg);
+    const i=cols.indexOf(r.a), j=cols.indexOf(r.b), y=Y0+(r.num-1)*DY, a=X(i), b=X(j), g=mk("g",{class:"c4rel"+(el(r.a).tags.includes("Planned")||el(r.b).tags.includes("Planned")?" planned":""),"data-a":r.a,"data-b":r.b,"data-num":r.num},svg);
     if(i===j){ mk("path",{d:`M${a},${y-10} L${a+34},${y-10} L${a+34},${y+8} L${a+2},${y+8}`,"marker-end":"url(#c4arr)"},g); txt(g,a+42,y+2,fit(r.desc,40),""); }
     else { const dir=b>a?1:-1; mk("path",{d:`M${a},${y} L${b-dir*3},${y}`,"marker-end":"url(#c4arr)"},g); const label=fit(r.desc.split(/[—;]/)[0].trim(),44), mx=(a+b)/2, lw=label.length*5.2+12; mk("rect",{class:"lbg",x:mx-lw/2,y:y-18,width:lw,height:14,rx:7},g); txt(g,mx,y-8,label,"","middle"); }
     const nb=mk("g",{class:"num"},g); mk("circle",{cx:Math.min(a,b)-13,cy:y,r:9},nb); txt(nb,Math.min(a,b)-13,y+3.5,String(r.num),"","middle");
     g.style.cursor="pointer"; g.addEventListener("click",()=>selectC4Step(r.num));
   });
-  cols.forEach((id,i)=>{ const e=el(id), st=styleFor(e), x=X(i), g=mk("g",{class:"c4el",tabindex:0,role:"button","data-id":id,"aria-label":e.name},svg);
+  cols.forEach((id,i)=>{ const e=el(id), st=styleFor(e), x=X(i), g=mk("g",{class:"c4el"+(e.tags.includes("Planned")?" planned":""),tabindex:0,role:"button","data-id":id,"aria-label":e.name,opacity:(+st.opacity||100)/100},svg);
     mk("rect",{class:"card",x:x-66,y:14,width:132,height:50,rx:6},g);
     mk("path",{class:"hdr",d:`M${x-60},14 H${x+60} a6,6 0 0 1 6,6 V40 H${x-66} V20 a6,6 0 0 1 6,-6 Z`,fill:st.background},g);
     glyph(g,e.type,x-60,20,st.color);
@@ -924,6 +930,11 @@ function renderDynamic(R,svg){
 let c4View=null, c4Sel=null, c4Zoom="fit";
 /* fit: the whole view scaled into the panel; 1:1: natural size, scrolling sideways inside the canvas. */
 function applyZoom(){ const svg=$("#svg-c4"); svg.style.width = c4Zoom==="fit" ? "100%" : (c4View&&c4View.width ? c4View.width+"px" : "100%"); document.querySelectorAll("#c4-head .zoom button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.z===c4Zoom))); }
+/* The C4 legend, drawn with each view (GUIDANCE.md §2): one swatch per DSL element style this view draws (element kinds, External,
+   Internal, Standalone, Planned), then the line encodings it draws: the planned arrow and the boundary frame only where they are. */
+function c4Key(R){
+  $("#c4-key").innerHTML=C4.styles.filter(s=>s.props.background&&R.els.some(id=>el(id).tags.includes(s.tag))).map(s=>`<span><i${s.tag==="Planned"?' class="pln"':""} style="background:${esc(s.props.background)};border-style:${esc(s.props.border||"solid")};opacity:${(+s.props.opacity||100)/100}"></i>${esc(s.tag)}</span>`).join("")+`<span><i class="arrow"></i>relationship, labelled with its DSL description</span>`+(document.querySelector("#svg-c4 .c4rel.dashed, #svg-c4 .c4rel.planned")?`<span><i class="arrow dashed"></i>to or from a Planned element</span>`:"")+(document.querySelector("#svg-c4 .c4bound")?`<span><i class="frame"></i>boundary: the view's scope</span>`:"");
+}
 function renderC4(vi){
   const v=C4.views[vi], R=resolveView(v), svg=$("#svg-c4"); c4View={v,R}; c4Sel=null; svg.innerHTML="";
   const d=mk("defs",{},svg); const m=mk("marker",{id:"c4arr",viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"8",markerHeight:"8",orient:"auto-start-reverse"},d); mk("path",{d:"M0,0 L10,5 L0,10 z",fill:"var(--rel)"},m);
@@ -934,7 +945,7 @@ function renderC4(vi){
   else { const L=layoutC4(R,v.type); c4View.width=L.width; svg.setAttribute("viewBox",`0 0 ${L.width} ${L.height}`); drawFrame(svg,L); drawRoutes(svg,L); R.els.forEach(id=>drawCard(svg,id,L.pos[id])); }
   document.querySelectorAll("#c4-ladder .rung").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===String(vi))));
   $("#dsl-view").hidden=true; $("#c4-canvas").hidden=false; $("#c4-head").hidden=false; $("#c4-key").hidden=false;
-  applyZoom(); inspectC4();
+  c4Key(R); applyZoom(); inspectC4();
 }
 /* The inspector for what the C4 tab has on screen: the source, else the selected element or dynamic step, else the view itself. */
 function inspectC4(){
@@ -982,8 +993,6 @@ function showDsl(){
   const host=$("#c4-ladder"), levels=C4.views.filter(v=>v.type!=="dynamic");
   C4.views.forEach((v,i)=>{ const b=document.createElement("button"); const isLevel=v.type!=="dynamic"; b.className="rung"+(isLevel?" lvl":" sep")+(isLevel&&levels[levels.length-1]===v?" last":""); b.dataset.v=String(i); b.setAttribute("aria-pressed","false"); const [lv,nm]=LEVEL[v.type]; b.innerHTML=`<span class="lv">${lv}</span><span class="nm">${nm}</span><span class="sc">${esc(v.type==="dynamic"?v.key:el(v.scope).name)}</span>`; b.addEventListener("click",()=>renderC4(i)); host.appendChild(b); });
   const d=document.createElement("button"); d.className="rung sep"; d.dataset.v="dsl"; d.setAttribute("aria-pressed","false"); d.innerHTML=`<span class="lv">{ }</span><span class="nm">Source</span><span class="sc">workspace.dsl</span>`; d.addEventListener("click",showDsl); host.appendChild(d);
-  // The legend: one swatch per DSL element style (element kinds, External, Internal, Standalone, Planned), then the line encodings.
-  $("#c4-key").innerHTML=C4.styles.filter(s=>s.props.background&&C4.order.some(id=>el(id).tags.includes(s.tag))).map(s=>`<span><i style="background:${esc(s.props.background)};border-style:${esc(s.props.border||"solid")};opacity:${(+s.props.opacity||100)/100}"></i>${esc(s.tag)}</span>`).join("")+`<span><i class="arrow"></i>relationship, labelled with its DSL description</span><span><i class="arrow dashed"></i>to or from a Planned element</span><span><i class="frame"></i>boundary: the view's scope</span>`;
 })();
 function openC4(elementId){ show("t-c4"); const vi=C4.views.findIndex(v=>v.type==="component"&&isWithin(elementId,v.scope)); renderC4(vi>=0?vi:0); selectC4(elementId); }
 
@@ -1098,7 +1107,7 @@ function renderSeq(){
   svg.setAttribute("viewBox",`0 0 1000 ${H}`);
   arrowDefs(svg,"sarr2","var(--ink-2)");
   S.phases.forEach(([label,a,b])=>{ const g=mk("g",{class:"phase"},svg); const y=Y0+a*DY-24, h=(b-a+1)*DY; mk("rect",{x:4,y,width:992,height:h,rx:4},g); txt(g,990,y+11,label,"","end"); });
-  S.lifelines.map(lane).forEach((l,i)=>{ mk("line",{x1:LX(i),y1:40,x2:LX(i),y2:H-4,class:"life"},svg); const g=mk("g",{class:"lh"+(l.side?" "+l.side:"")+(l.planned?" planned":"")},svg); mk("rect",{x:LX(i)-64,y:8,width:128,height:28,rx:4},g); txt(g,LX(i),26,l.n,"","middle"); });
+  S.lifelines.map(lane).forEach((l,i)=>{ mk("line",{x1:LX(i),y1:40,x2:LX(i),y2:H-4,class:"life"+(l.planned?" planned":"")},svg); const g=mk("g",{class:"lh"+(l.side?" "+l.side:"")+(l.planned?" planned":"")},svg); mk("rect",{x:LX(i)-64,y:8,width:128,height:28,rx:4},g); txt(g,LX(i),26,l.n,"","middle"); });
   S.steps.forEach((s,i)=>{
     const y=Y0+i*DY, g=mk("g",{class:"msg"+(s.ret?" ret":"")+(s.planned?" planned":""),"data-i":i,tabindex:0,role:"button","aria-label":`step ${i+1}: ${s.l}`},svg);
     if(s.self){ const x=LX(s.f); mk("path",{d:`M${x},${y-10} L${x+34},${y-10} L${x+34},${y+8} L${x+2},${y+8}`,"marker-end":"url(#sarr2)"},g); txt(g,x+42,y+2,s.l,""); txt(g,x+42,y-8,`${i+1}`,"num"); }
@@ -1111,7 +1120,7 @@ function renderSeq(){
 /* The legend for the sequence: the lifeline owners it shows (each in its side's hue), then the line encodings and planned. */
 function seqKey(S){
   const sw={server:"pub srv",client:"pub cli",wire:"pub wir",consumer:"con",external:"ext"}, sides=[...new Set(S.lifelines.map(lane).map(l=>l.side).filter(Boolean))];
-  $("#seq-key").innerHTML=sides.map(k=>`<span><i class="${sw[k]||""}"></i>${esc((MODEL.sides||{})[k]||k)}</span>`).join("")+`<span><i class="ln"></i>call or send</span><span><i class="ln dash"></i>return, open head</span>`+(S.phases.length?`<span><i class="band"></i>phase</span>`:"")+`<span><i class="ln dash pln"></i>planned, not built (dashed, faded)</span>`;
+  $("#seq-key").innerHTML=sides.map(k=>`<span><i class="${sw[k]||""}"></i>${esc((MODEL.sides||{})[k]||k)}</span>`).join("")+`<span><i class="ln"></i>call or send</span>`+(S.steps.some(s=>s.ret)?`<span><i class="ln ret"></i>return: open head, thin line</span>`:"")+(S.phases.length?`<span><i class="band"></i>phase</span>`:"")+(S.steps.some(s=>s.planned)||S.lifelines.some(l=>l&&l.planned)?`<span><i class="ln dash pln"></i>planned, not built (dashed, faded)</span>`:"");
 }
 function gotoStep(i){
   const S=MODEL.sequence, L=S.lifelines.map(lane); seq.cur=(i+S.steps.length)%S.steps.length; const s=S.steps[seq.cur];
@@ -1147,6 +1156,24 @@ let start="t-structure";
 try{ const s=localStorage.getItem("dash-tab-"+location.pathname); if(s&&document.getElementById(s)) start=s; }catch(e){}
 const hash=location.hash.replace("#",""); if(hash&&document.getElementById("t-"+hash)) start="t-"+hash;
 show(start);
+
+/* ---------- The theme switch (GUIDANCE.md §1, Themes) ----------
+   A light/night toggle in the header (the renderer adds it when the page's header has none). Until it is clicked the page follows the
+   system setting; a click picks the other palette and remembers it (localStorage "dashboards-theme", shared by every dashboard of the
+   same origin) across pages and reloads. It only selects one of the two palettes the page defines: :root[data-theme]. The same code
+   runs on every dashboard type. */
+(function themeSwitch(){ const KEY="dashboards-theme", root=document.documentElement, mq=window.matchMedia?matchMedia("(prefers-color-scheme: dark)"):null;
+  let btn=document.getElementById("theme");
+  if(!btn){ const hdr=document.querySelector("header"); if(!hdr) return; const tools=document.createElement("div"); tools.className="tools systools";
+    tools.innerHTML='<button class="themebtn" id="theme" type="button"></button>'; hdr.prepend(tools); btn=document.getElementById("theme"); }
+  const chosen=()=>{ try{ const t=localStorage.getItem(KEY); return t==="light"||t==="dark"?t:null; }catch(e){ return null; } };
+  const now=()=>root.dataset.theme==="dark"||root.dataset.theme==="light"?root.dataset.theme:(mq&&mq.matches?"dark":"light");
+  const label=()=>{ const t=now(), word=t==="dark"?"night":"light"; btn.textContent=t==="dark"?"☾ night":"☀ light"; btn.setAttribute("aria-pressed",String(t==="dark"));
+    btn.title=`Theme: ${word}${chosen()?"":", as the system setting"}. Click for ${t==="dark"?"light":"night"}.`; btn.setAttribute("aria-label",`Night theme${chosen()?"":" (follows the system setting until clicked)"}`); };
+  btn.addEventListener("click",()=>{ const t=now()==="dark"?"light":"dark"; root.dataset.theme=t; try{ localStorage.setItem(KEY,t); }catch(e){} label(); });
+  if(mq&&mq.addEventListener) mq.addEventListener("change",label);
+  if(window.MutationObserver) new MutationObserver(label).observe(root,{attributes:true,attributeFilter:["data-theme"]});
+  label(); })();
 </script>
 </body>
 </html>

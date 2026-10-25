@@ -80,9 +80,9 @@ fire-and-forget.
 
 | Field | Meaning |
 |-------|---------|
-| `event` | `sized`, `halted`, `resumed`, `researched`, `research-started`, `research-returned`, `architecture-signed-off`, `plan-accepted`, `branch-cut`, `implementation-stage`, `qa-pass`, `escalated`, `cancelled` (`landed` is raised by the team itself inside `land`). |
+| `event` | `sized`, `halted`, `resumed`, `researched`, `research-planning`, `research-started`, `research-returned`, `verification-started`, `architecture-signed-off`, `plan-accepted`, `branch-cut`, `implementation-stage`, `qa-pass`, `escalated`, `cancelled` (`landed` is raised by the team itself inside `land`). |
 | `folder` | `docs/plans/<…>/<issue>-<slug>` — the issue's plan folder, relative to the repo. |
-| `facts` | What the pipeline knows at this event, in plain fields: `step`, `detail`, `waitingOn`, `stage`, `qa` (`{pass, verdict, doc, test, code}`), `documents` (paths written or updated), `proposedLevel`, `reason`, `researching` (`[{question, rows}]`, at `research-started`), `returned` (`{question, findings}`, at `research-returned`). The presenter reads the folder's documents for everything else. |
+| `facts` | What the pipeline knows at this event, in plain fields: `step`, `detail`, `waitingOn`, `stage`, `qa` (`{pass, verdict, doc, test, code}`), `documents` (paths written or updated), `proposedLevel`, `reason`, `drafted` (questions drafted so far, at `research-planning`), `researching` (`[{question, rows}]`, at `research-started`), `returned` (`{question, findings}`, at `research-returned`). The presenter reads the folder's documents for everything else. |
 
 ### Work board
 

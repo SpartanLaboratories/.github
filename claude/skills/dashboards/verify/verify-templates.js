@@ -29,7 +29,11 @@
 // which count and label only written verdicts (a board with rows and none, a board with mixed, a tracking board), and the footer on
 // every dashboard type (GUIDANCE.md §3), with check-page.js failing the old form. And that dashed means only planned or pending on
 // every type (the verdict's kind chip, the model chip, the Source legend, the link button: solid), the As built tile's count of built
-// rows (dropped and deferred out of both figures), and a work-board entry's recorded "no system" (plan/RULES.md §2, §5). A template is recorded only when its
+// rows (dropped and deferred out of both figures), and a work-board entry's recorded "no system" (plan/RULES.md §2, §5). And the decisions
+// of 2026-10-25: no dash but planned or pending (lifelines, returns and C4 frames solid; check-page.js's DASHED NOT PLANNED, every C4
+// view included), rows left for later out of the As built count, and boardless work-board rows taking their state from the tracker. And the decisions of
+// dashboards-skill/17: the step panel beside the WIP strip, research-state rings, the charging arrow, the strip's open research questions, the
+// work board's still ring, live updates through the plan.js and board.js sidecars, and the theme switch on every type. A template is recorded only when its
 // browser passes and every case group pass.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
@@ -44,7 +48,7 @@ const MODES = [[], ["--theme", "dark"], ["--width", "520"], ["--frame", "390"], 
 const sk = p => path.join(SKILL, ...p.split("/"));
 
 /* Each template, the block its data goes in (none for system templates, which carry their own sample content), and its fixtures. */
-const PLAN_FIX = [sk("plan/examples/38-handshake-empty-name/plan.json"), sk("verify/fixtures/tracking.plan.json"), sk("verify/fixtures/sub-issue.plan.json"), null];
+const PLAN_FIX = [sk("plan/examples/38-handshake-empty-name/plan.json"), sk("verify/fixtures/tracking.plan.json"), sk("verify/fixtures/sub-issue.plan.json"), sk("verify/fixtures/live-issue.plan.json"), null];
 const BOARD_FIX = [sk("verify/fixtures/work-board.json"), sk("verify/fixtures/work-board-live.json"), null];
 const SETS = [
   { name: "plan/template/dashboard.html", file: "dashboard.html", dir: "docs/plans/_template", block: "plan", fixtures: PLAN_FIX },
@@ -112,8 +116,8 @@ const browsers = ["C:/Program Files/Google/Chrome/Application/chrome.exe", "C:/P
   "/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"];
 const chrome = process.env.CHROME && fs.existsSync(process.env.CHROME) ? process.env.CHROME : browsers.find(b => fs.existsSync(b));
 /* The DOM of a page after its scripts ran (in a window of `size`, "w,h", when given), or null without a browser. */
-const dumpDom = (page, hash, size) => { if (!chrome) return null; const r = cp.spawnSync(chrome, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check", ...(size ? [`--window-size=${size}`] : []),
-  "--allow-file-access-from-files", "--virtual-time-budget=4000", "--dump-dom", "file:///" + path.resolve(page).replace(/\\/g, "/") + (hash ? "#" + hash : "")], { encoding: "utf8", timeout: 120000, maxBuffer: 64 * 1024 * 1024 });
+const dumpDom = (page, hash, size, budget) => { if (!chrome) return null; const r = cp.spawnSync(chrome, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check", ...(size ? [`--window-size=${size}`] : []),
+  "--allow-file-access-from-files", `--virtual-time-budget=${budget || 4000}`, "--dump-dom", "file:///" + path.resolve(page).replace(/\\/g, "/") + (hash ? "#" + hash : "")], { encoding: "utf8", timeout: 120000, maxBuffer: 64 * 1024 * 1024 });
   return r.stdout || ""; };
 /* The inner HTML of the first element of a DOM dump whose opening tag matches `open` (a regex source), up to its closing tag. */
 const inner = (dom, open, tag) => { const m = new RegExp(open).exec(dom || ""); if (!m) return ""; let depth = 1, i = m.index + m[0].length; const re = new RegExp(`<(/?)${tag}\\b[^>]*>`, "g"); re.lastIndex = i;
@@ -158,7 +162,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     cases.push(["a second unit's board is linked once it exists", boardOf(d, plain) === plain.unit.folder + "dashboard.html", String(boardOf(d, plain))]);
     const dom = dumpDom(path.join(folder, "dashboard.html"));
     if (dom != null) {
-      const wip = inner(dom, '<section class="wip[^"]*"[^>]*>', "section"), inProg = (wip.match(/In progress · unit[\s\S]*?<\/div>/) || [""])[0], next = (wip.match(/Up next · unit[\s\S]*?<\/div>/) || [""])[0];
+      const wip = inner(dom, '<section class="wip[^"]*"[^>]*>', "section"), inProg = (wip.match(/In progress · unit[\s\S]*?<\/div>/) || [""])[0];
       const nx = d.rows.find(r => r.id === d.wip.next);
       cases.push([`the "In progress" line links #${plain.unit.issue}'s number to GitHub and its name to its board, with no GitHub ↗`, inProg.includes(`/issues/${plain.unit.issue}"`) && inProg.includes(`href="${plain.unit.folder}dashboard.html"`) && !/class="gh"/.test(inProg), inProg.slice(0, 400) || "no In progress line"]);
       /* the unit row (plan/RULES.md §1, "Number and title"): "n. #N Title", the number to GitHub, the title to the board (plain
@@ -167,7 +171,10 @@ targets.filter(t => t.block === "plan").forEach(t => {
       const withB = nm(plain.id), noB = nm(nx.id), reEsc = x => String(x).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       cases.push([`the unit row reads "${plain.unit.n}. #${plain.unit.issue} ${plain.name}": the number opens GitHub, the title the board`, new RegExp(`^${plain.unit.n}\\. <a href="https://github\\.com/[^"]+/issues/${plain.unit.issue}"[^>]*>#${plain.unit.issue}</a> <a href="${reEsc(plain.unit.folder)}dashboard\\.html"[^>]*>`).test(withB) && !/class="un"/.test(lab(plain.id)), withB.slice(0, 300) || "no unit row"]);
       cases.push([`a unit with no board keeps its title as plain text ("${nx.unit.n}. #${nx.unit.issue} ${nx.name}")`, new RegExp(`^${nx.unit.n}\\. <a href="https://github\\.com/[^"]+/issues/${nx.unit.issue}"[^>]*>#${nx.unit.issue}</a> [^<]`).test(noB), noB.slice(0, 300) || "no unit row"]);
-      cases.push([`the "Up next" line links #${nx.unit.issue} to GitHub (no board) and the "blocked by" tag opens #${plain.unit.issue}'s board`, next.includes(`/issues/${nx.unit.issue}"`) && /blocked by/.test(next) && next.includes(`href="${plain.unit.folder}dashboard.html"`), next.slice(0, 500) || "no Up next line"]);
+      /* the unit up next stays on the chain chip and the unit row (the step panel of the unit in progress takes its bubble): the chip
+         links #${nx} to GitHub (no board) and its "blocked by" to the blocker's board */
+      const chip = inner(dom, '<span class="chip status progress[^"]*">', "span");
+      cases.push([`the chain chip's "up next" links #${nx.unit.issue} to GitHub (no board) and its "blocked by" opens #${plain.unit.issue}'s board`, chip.includes(`/issues/${nx.unit.issue}"`) && /up next, blocked by/.test(chip) && chip.includes(`href="${plain.unit.folder}dashboard.html"`), chip.slice(0, 500) || "no chain chip"]);
     } else cases.push(["the rendered tracking board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
   }
   report(`issue links on ${t.name} (tracking board)`, cases);
@@ -454,7 +461,10 @@ targets.filter(t => t.block === "plan").forEach(t => {
 
     /* the bubbles and the branches */
     const wip = inner(dTl, '<section class="wip[^"]*"[^>]*>', "section"), chips = inner(dTl, '<div class="chips" id="chips">', "div");
-    nc.push(["a tracking board's WIP strip is bubbles: the phase, the unit in progress, up next, and waiting on you while halted", /class="wb phase"/.test(wip) && /class="wb unit halted"/.test(wip) && /class="wb next upnext"/.test(wip) && /class="wb wait"/.test(wip) && /blocked by/.test(inner(wip, '<div class="wb next upnext"[^>]*>', "div")), wip.slice(0, 300)]);
+    nc.push(["a tracking board's WIP strip is bubbles: the phase, the unit in progress, that unit's step panel in place of up next, and waiting on you while halted", /class="wb phase"/.test(wip) && /class="wb unit halted"/.test(wip) && /class="sp sp-held" data-step="landing"/.test(wip) && !/class="wb next upnext"/.test(wip) && /class="wb wait"/.test(wip) && /UP NEXT/.test(wip), wip.slice(0, 300)]);
+    const nm = copy(trk); nm.rows.forEach(r => { if (r.unit) delete r.unit.live; });
+    const wipNm = inner(render("tracking-no-mirror", nm), '<section class="wip[^"]*"[^>]*>', "section");
+    nc.push(["with no unit's run mirrored, the up-next bubble stays, with its blocker", /class="wb next upnext"/.test(wipNm) && /blocked by/.test(inner(wipNm, '<div class="wb next upnext"[^>]*>', "div")) && !/class="sp[ "]/.test(wipNm), wipNm.slice(0, 300)]);
     const run = copy(trk), jf = run.rows.find(r => r.unit && r.unit.live); Object.assign(jf.unit.live, { step: "landing", resume: null, waitingOn: null });
     const wipRun = inner(render("tracking-running", run), '<section class="wip[^"]*"[^>]*>', "section");
     nc.push(["no \"waiting on you\" bubble while nothing is halted", !/class="wb wait"/.test(wipRun) && /class="wb unit"/.test(wipRun), wipRun.slice(0, 300)]);
@@ -576,21 +586,25 @@ targets.filter(t => t.block === "plan").forEach(t => {
   const at = (step, current, resume) => { const d = copy(ex); d.folder = `docs/plans/${ex.slug}`; d.status = "building"; Object.assign(d.wip, { step, current, resume: resume || null, landing: null, waitingOn: step === "halted" ? "Verification case: a question for the user." : null }); return d; };
   const [r0, r1, r2] = ex.rows.map(r => r.id), C = id => id + ".considered";
   /* research: the rows being researched (wip.questions; lib.js researchGlow()), with the fallback to the whole Considered column */
-  const Q = (question, rows, findings) => ({ question, rows, findings: findings || null });
+  const Q = (question, rows, findings, state) => ({ question, rows, findings: findings || null, ...(state ? { state } : {}) });
   const rq = (cur, questions, o) => { o = o || {}; const d = at(o.step || "research", cur, o.resume); d.wip.questions = questions;
     d.trail = [...(d.trail || []), ...questions.filter(q => q.findings && !o.noTrail).map(q => ({ date: "2026-10-25", column: "gap", label: `Verification case: research returned, ${q.question}`, ref: q.findings }))]; return d; };
   [ // [what, board, warns? (true: the glow warning; a word: another warning, the glow quiet), what the warning must name]
     ["research with open questions glows their rows' Considered cells: quiet", rq([C(r0), C(r1)], [Q("q-one", [r0, r1]), Q("q-two", [r1])]), false],
-    ["research with open questions glowing the whole column: warns", rq(["considered"], [Q("q-one", [r0, r1])]), true, /Considered cells of the rows the open research questions name/],
-    ["research glowing a row no open question names: warns, naming it", rq([C(r0), C(r2)], [Q("q-one", [r0])]), true, /\.considered \(no open question names its row\)/],
+    ["research with open questions glowing the whole column: warns", rq(["considered"], [Q("q-one", [r0, r1])]), true, /Considered cells of the rows the questions being researched or verified name/],
+    ["research glowing a row no open question names: warns, naming it", rq([C(r0), C(r2)], [Q("q-one", [r0])]), true, /\.considered \(no question being researched or verified names its row\)/],
     ["a returned question's rows stop glowing, a row another open question names keeps glowing: quiet", rq([C(r1), C(r2)], [Q("q-one", [r0, r1], "research/q-one.md"), Q("q-two", [r1, r2])]), false],
-    ["a returned question's row left glowing: warns", rq([C(r0), C(r1), C(r2)], [Q("q-one", [r0, r1], "research/q-one.md"), Q("q-two", [r1, r2])]), true, /no open question names its row/],
-    ["the verification (every question returned) glows every question's rows again: quiet", rq([C(r0), C(r1), C(r2)], [Q("q-one", [r0, r1], "research/q-one.md"), Q("q-two", [r2], "research/q-two.md")]), false],
+    ["a returned question's row left glowing: warns", rq([C(r0), C(r1), C(r2)], [Q("q-one", [r0, r1], "research/q-one.md"), Q("q-two", [r1, r2])]), true, /no question being researched or verified names its row/],
+    ["the verification (verification-started: every question verifying) glows every question's rows again: quiet", rq([C(r0), C(r1), C(r2)], [Q("q-one", [r0, r1], "research/q-one.md", "verifying"), Q("q-two", [r2], "research/q-two.md", "verifying")]), false],
+    ["every question returned, the verification not started: the whole Considered column (the fallback): quiet", rq(["considered"], [Q("q-one", [r0, r1], "research/q-one.md", "returned"), Q("q-two", [r2], "research/q-two.md", "returned")]), false],
+    ["every question returned, its rows still glowing: warns", rq([C(r0), C(r1), C(r2)], [Q("q-one", [r0, r1], "research/q-one.md", "returned"), Q("q-two", [r2], "research/q-two.md", "returned")]), true, /fallback: no question is being researched or verified/],
     ["a question naming no row falls back to the whole Considered column: quiet", rq(["considered"], [Q("q-one", [r0]), Q("q-none", [])]), false],
     ["more than six cells fall back to the whole Considered column: quiet", rq(["considered"], [Q("q-wide", ex.rows.slice(0, 7).map(r => r.id))]), false],
     ["a halt during research keeps the research glow: quiet", rq([C(r0)], [Q("q-one", [r0])], { step: "halted", resume: "research" }), false],
     ["a returned question whose findings the trail does not record: warns", rq([C(r1)], [Q("q-one", [r0], "research/q-one.md"), Q("q-two", [r1])], { noTrail: true }), "trail", /the trail records no entry with that ref/],
-    ["questions left once the run is past research: warns", rq(["considered", "verdict"], [Q("q-one", [r0], "research/q-one.md")], { step: "plan" }), "past", /the researched event ends research and clears it/],
+    ["questions not complete once the run is past research: warns", rq(["considered", "verdict"], [Q("q-one", [r0], "research/q-one.md")], { step: "plan" }), "past", /researched sets every question complete/],
+    ["complete questions kept at the plan step (the green ring until plan-accepted): no question warning", rq(["considered", "verdict"], [Q("q-one", [r0], "research/q-one.md", "complete")], { step: "plan" }), "kept", /^(?![\s\S]*wip\.questions (records|at "plan"))/],
+    ["questions left once the plan is accepted: warns", rq([], [Q("q-one", [r0], "research/q-one.md", "complete")], { step: "branch" }), "accepted", /plan-accepted clears them/],
     ["a question naming an id that is not a row: warns", rq([C(r0)], [Q("q-one", [r0, "no-such-row"])]), "row", /names "no-such-row", which is not a row of this board/]
   ].forEach(([what, d, warns, names]) => {
     const c = put(d, edir), w = GW.test(c.stdout);
@@ -598,6 +612,10 @@ targets.filter(t => t.block === "plan").forEach(t => {
   });
   { const c = put(rq([C(r0)], [Q("q-one", [r0]), Q("q-one", "r0")]), edir);
     gc.push(["check.js fails a malformed wip.questions (a question twice, rows not an array)", c.status === 1 && /a second entry for question "q-one"/.test(c.stdout) && /rows must be an array of row ids/.test(c.stdout), lines(c, /^FAIL/) || "no failure"]); }
+  { const c = put(rq([C(r0)], [Q("q-one", [r0], null, "researched"), Q("q-two", [r1], null, "verifying"), Q("q-three", [r2], "research/q-three.md", "researching")]), edir);
+    gc.push(["check.js fails a question state that is not one of the five, a verifying question with no findings, a researching one with findings", c.status === 1 && /\.state must be one of planning, researching, returned, verifying, complete/.test(c.stdout) && /"q-two"\) is "verifying" but records no findings/.test(c.stdout) && /"q-three"\) is "researching" but records findings/.test(c.stdout), lines(c, /^FAIL/) || "no failure"]); }
+  { const c = put(rq([C(r0)], [Q("q-one", [r0])]), edir);
+    gc.push(["check.js warns on a question that records no state (written before the states), naming what it reads as", /\("q-one"\) records no state: it reads "researching"/.test(c.stdout), lines(c, /records no state/) || "no warning"]); }
   [ // [step, wip.current, wip.resume, warns?, what the warning must name]
     ["sizing", [], null, false], ["sizing", ["gap"], null, true, /map glows nothing/],
     ["interview", [], null, false], ["interview", [`${r0}.gap`], null, false], ["interview", ["verdict"], null, true, /the cell the question concerns/],
@@ -921,7 +939,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
    - the plan board: the verdict's kind chip, "leave as is" included, is solid, and the Timeline legend names the kind chips it drew
      (the verdict's and the gap's) as the same solid chip; the header's model chip is solid; the Source legend draws no dashed swatch;
    - the As built tile reads "N / M rows built": N the rows as-planned, amended or deviated, M every row less the dropped and deferred
-     ones, which the line under it still names; a tracking board's "N / M units landed" is counted the same way, as its chain chip;
+     ones and those left for later, which the line under it still names; a tracking board's "N / M units landed" is counted the same way, as its chain chip;
    - the work board: the model chip solid, no dashed swatch in the Source legend; a row recorded "unassigned": true reads "no system"
      (not "no system recorded"); check.js passes "unassigned": true with system null and fails one that is not true or sits beside
      a system;
@@ -938,16 +956,16 @@ targets.filter(t => t.block === "plan").forEach(t => {
   if (ptpl) { const tpl = fs.readFileSync(ptpl, "utf8"), ex = J("plan/examples/38-handshake-empty-name/plan.json"), trk = J("verify/fixtures/tracking.plan.json");
     const render = (name, d) => dumpDom(put(name + ".html", withData(tpl, "plan", JSON.stringify(d, null, 2)).replace("</body>", probe([".cell.verdict .kick .kind", ".cell.verdict.leave .kick .kind", "#timeline-key .kind", ".chip.model"]) + "</body>")));
     const tile = dom => (text(inner(dom, '<div class="kpis" id="kpis">', "div")).match(/As built (.*?) (QA passes|Timeline)/) || ["", "no As built tile"])[1];
-    const BUILT = ["as-planned", "amended", "deviated"], LANDED = ["landed", ...BUILT], st = r => (r.asBuilt || {}).state || "pending";
+    const BUILT = ["as-planned", "amended", "deviated"], LANDED = ["landed", ...BUILT], st = r => (r.asBuilt || {}).state || "pending", { leftForLater } = require(path.join(SKILL, "plan", "scripts", "lib.js"));
     const dE = render("example", ex);
     if (dE == null) dc.push(["the rendered plan board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
     else { const b = borders(dE), key = inner(dE, '<div class="key" id="timeline-key">', "div"), src = inner(dumpDom(path.join(sc, "example.html"), "source"), '<div class="key" id="source-key">', "div");
       dc.push(["the verdict's kind chip is solid, \"leave as is\" included", solid(b[".cell.verdict .kick .kind"]) && solid(b[".cell.verdict.leave .kick .kind"]) && /class="kind">leave as is</.test(dE), JSON.stringify(b)]);
       dc.push(["the Timeline legend names the kind chips it drew, solid: the verdict's (build, leave as is) and the gap's", /<b class="kind">build<\/b> <b class="kind">leave as is<\/b> the verdict's kind: build it, or leave it as is/.test(key) && /<b class="kind">bug<\/b>[\s\S]*? the gap's kind/.test(key) && solid(b["#timeline-key .kind"]), text(key).slice(0, 300)]);
       dc.push(["the header's model chip is solid, and the Source legend draws no dashed swatch", solid(b[".chip.model"]) && /this copy is replaced on every/.test(src) && !/class="pln"/.test(src), `${JSON.stringify(b[".chip.model"])} · ${src.slice(0, 160)}`]);
-      dc.push(["the example's As built tile reads \"11 / 11 rows built\"", tile(dE).startsWith(`${ex.rows.filter(r => BUILT.includes(st(r))).length} / ${ex.rows.length} rows built`) && ex.rows.length === 11, tile(dE)]);
+      dc.push(["the example's As built tile reads \"9 / 9 rows built\", its two rows left for later named under it, not counted", tile(dE).startsWith("9 / 9 rows built") && /4 as planned · 5 amended · 2 left for later/.test(tile(dE)) && ex.rows.length === 11, tile(dE)]);
       const v = copy(ex); v.rows[0].asBuilt = { state: "dropped", summary: "Verification case.", reason: "Verification case." }; v.rows[1].asBuilt = { state: "deferred", summary: "Verification case.", issue: 999 };
-      const n = v.rows.filter(r => BUILT.includes(st(r))).length, m = v.rows.filter(r => !["dropped", "deferred"].includes(st(r))).length, tv = tile(render("dropped", v));
+      const n = v.rows.filter(r => BUILT.includes(st(r)) && !leftForLater(r)).length, m = v.rows.filter(r => !["dropped", "deferred"].includes(st(r)) && !leftForLater(r)).length, tv = tile(render("dropped", v));
       dc.push([`with a row dropped and one deferred the tile reads "${n} / ${m} rows built", both still named under it`, tv.startsWith(`${n} / ${m} rows built`) && /1 dropped/.test(tv) && /1 deferred/.test(tv), tv]);
       const tk = copy(trk), pend = tk.rows.filter(r => r.unit && st(r) === "pending" && r.id !== (tk.wip || {}).next && !((tk.wip || {}).current || []).some(a => a.split(".")[0] === r.id));
       pend[pend.length - 1].asBuilt = { state: "dropped", summary: "Verification case.", reason: "Verification case." };
@@ -978,6 +996,256 @@ targets.filter(t => t.block === "plan").forEach(t => {
   report("dashed means planned, the As built count and \"no system\" on every dashboard type", dc);
 }
 
+/* The decisions of 2026-10-25 (admin-team/dashboards-skill/16), on every dashboard type they fit (GUIDANCE.md §11):
+   - dashed means only planned or pending, no exception (GUIDANCE.md §1; system/RULES.md §4, §9): the system and supersystem
+     templates draw their lifelines, returns and C4 frames solid, so check-page.js's dash scan (every tab, every C4 view) passes them;
+     the same template with a dashed lifeline, a dashed boundary frame or a DSL style dashing a tag other than Planned fails
+     (DASHED NOT PLANNED), and a page from the template before the change fails too; the plan board and work board fixtures pass;
+   - rows left for later (plan/RULES.md §2): lib.js leftForLater() and the template agree; a leave row built after all (deviated)
+     counts as built again; a tracking board's unit with a leave verdict, not landed, is out of the tile, the chain and the
+     reconciliation's total, and named;
+   - boardless work-board rows take their state from the tracker (plan/RULES.md §5): lib.js boardlessState() over every case,
+     namesIssue() over branch names, check.js on the fixture's five boardless rows and on rows that contradict their tracker, and
+     the rendered work board: "not started" dashed, "in progress" and "merged · awaiting close" solid, no glow, legend entries. */
+{ const xc = [], sc = path.join(out, "decisions-16"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
+  const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x)), tp = name => (targets.find(t => t.name === name) || {}).path;
+  const text = h => (h || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+  const put = (name, html) => { const f = path.join(sc, name); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, html); return f; };
+  const pageCheck = (file, ...a) => cp.spawnSync(process.execPath, [checker, file, "--out", sc, ...a], { encoding: "utf8" });
+  const lib = require(path.join(SKILL, "plan", "scripts", "lib.js"));
+  /* 1. dashed means only planned or pending */
+  ["system/template/system.html", "system/template/supersystem.html"].forEach(name => { const p = tp(name); if (!p) return; const base = path.basename(name, ".html"), tpl = fs.readFileSync(p, "utf8");
+    if (!chrome) { xc.push([`${name}: the dash scan (no browser found: set CHROME)`, false, "no Chrome or Edge"]); return; }
+    const ok = pageCheck(put(base + "-solid/index.html", tpl));
+    xc.push([`${name}: lifelines, returns and C4 frames are solid; every dash marks something planned, on every tab and C4 view`, ok.status === 0 && /CHECK dashes: every dashed element is planned or pending/.test(ok.stdout), lines(ok, /CHECK dashes|FAIL/)]);
+    const life = tpl.replace(".life{stroke:var(--line);stroke-width:1.2}", ".life{stroke:var(--line);stroke-dasharray:3 4}"), bound = tpl.replace(".c4bound{fill:var(--surface-2);fill-opacity:.45;stroke:var(--line);stroke-width:1.5}", ".c4bound{fill:var(--surface-2);fill-opacity:.45;stroke:var(--line);stroke-dasharray:8 5}");
+    const r1 = pageCheck(put(base + "-dashed-life/index.html", life)), r2 = pageCheck(put(base + "-dashed-frame/index.html", bound));
+    xc.push([`${name}: a dashed lifeline and a dashed boundary frame fail (DASHED NOT PLANNED)`, life !== tpl && bound !== tpl && r1.status === 1 && /DASHED NOT PLANNED: line\.life/.test(r1.stdout) && r2.status === 1 && /DASHED NOT PLANNED: rect\.c4bound/.test(r2.stdout), `${lines(r1, /CHECK dashes/)} || ${lines(r2, /CHECK dashes/)}`]);
+    const dsl = tpl.replace(/element "Internal"(\s*)\{([^}]*)\}/, (m, sp, body) => `element "Internal"${sp}{${body.replace(/\s+$/, "")} border dashed }`), r3 = pageCheck(put(base + "-dashed-dsl/index.html", dsl));
+    /* the C4 legend is drawn with each view: the frame entry exactly where the view draws a frame, the planned arrow exactly where it
+       draws one, and the Planned swatch exactly where it shows a Planned element */
+    const kp = `<script>window.addEventListener("load",()=>setTimeout(()=>{ const t=document.getElementById("t-c4"); if(t) t.click(); const out=[];
+      document.querySelectorAll("#c4-ladder .rung").forEach(r=>{ if(r.dataset.v==="dsl") return; r.click(); const k=document.getElementById("c4-key").innerHTML, s=document.getElementById("svg-c4");
+        out.push([!!s.querySelector(".c4bound")===/boundary: the view/.test(k), !!s.querySelector(".c4rel.dashed,.c4rel.planned")===/to or from a Planned element/.test(k), !!s.querySelector(".c4el.planned")===/class="pln"/.test(k)].map(Number).join("")); });
+      document.body.dataset.c4keys=out.join(","); },700));</script>`;
+    const kd = dumpDom(put(base + "-c4key/index.html", tpl.replace("</body>", kp + "</body>"))), keys = ((kd || "").match(/data-c4keys="([^"]*)"/) || ["", ""])[1];
+    xc.push([`${name}: each C4 view's legend names the frame, the planned arrow and the Planned swatch exactly where the view draws them`, keys !== "" && keys.split(",").every(x => x === "111"), keys || "no views read"]);
+    xc.push([`${name}: a workspace.dsl style dashing a tag other than Planned fails, without a browser too`, dsl !== tpl && r3.status === 1 && /CHECK dsl: DASHED NOT PLANNED: workspace\.dsl styles element "Internal"/.test(r3.stdout), lines(r3, /CHECK dsl|FAIL/)]); });
+  if (chrome) [["plan/template/dashboard.html", "plan", "plan/examples/38-handshake-empty-name/plan.json"], ["plan/template/dashboard.html", "plan", "verify/fixtures/tracking.plan.json"], ["plan/template/board.html", "board", "verify/fixtures/work-board.json"]].forEach(([name, block, fx]) => { const p = tp(name); if (!p) return;
+    const r = pageCheck(put(`dash-${path.basename(fx, ".json")}/index.html`, withData(fs.readFileSync(p, "utf8"), block, fs.readFileSync(sk(fx), "utf8"))));
+    xc.push([`${name} with ${path.basename(fx)}: every dash is planned or pending`, /CHECK dashes: every dashed element is planned or pending/.test(r.stdout), lines(r, /CHECK dashes/)]); });
+  /* 2. rows left for later */
+  const ptpl = tp("plan/template/dashboard.html");
+  if (ptpl) { const tpl = fs.readFileSync(ptpl, "utf8"), ex = J("plan/examples/38-handshake-empty-name/plan.json"), trk = J("verify/fixtures/tracking.plan.json"), st = r => (r.asBuilt || {}).state || "pending";
+    const tile = d => (text(inner(d, '<div class="kpis" id="kpis">', "div")).match(/As built (.*?) (QA passes|Timeline)/) || ["", "no As built tile"])[1];
+    const render = (name, d) => dumpDom(put(name + ".html", withData(tpl, "plan", JSON.stringify(d, null, 2))));
+    xc.push(["lib.js leftForLater(): the example's two leave rows (as planned, amended) are left for later, no build row is", ex.rows.filter(lib.leftForLater).map(r => r.id).join(",") === "whitespace-in-tokens,client-validation", ex.rows.filter(lib.leftForLater).map(r => r.id).join(",")]);
+    const dv = copy(ex), lr = dv.rows.find(r => r.id === "client-validation"); lr.asBuilt.state = "deviated";
+    xc.push(["lib.js leftForLater(): a leave row built after all (deviated) and a deferred one are not left for later", !lib.leftForLater(lr) && !lib.leftForLater({ verdict: { kind: "leave", summary: "x" }, asBuilt: { state: "deferred" } }) && lib.leftForLater({ verdict: { kind: "leave", summary: "x" } }) && !lib.leftForLater({ verdict: { kind: "leave", summary: " " } }), "rule"]);
+    const tk = copy(trk), pend = tk.rows.filter(r => r.unit && st(r) === "pending" && r.id !== (tk.wip || {}).next && !((tk.wip || {}).current || []).some(a => a.split(".")[0] === r.id));
+    const lu = pend[pend.length - 1]; lu.verdict = { ...(lu.verdict || {}), kind: "leave", summary: "Verification case: this unit is left as is." };
+    const units = tk.rows.filter(r => r.unit), tn = units.filter(r => ["landed", "as-planned", "amended", "deviated"].includes(st(r))).length, tm = units.filter(r => !["dropped", "deferred"].includes(st(r)) && !lib.leftForLater(r)).length, rc = lib.reconciliation(tk);
+    xc.push([`lib.js reconciliation(): a tracking board's unit left for later is out of the total (${tm})`, !rc || rc.total === tm, JSON.stringify(rc && { landed: rc.landed, total: rc.total })]);
+    const dD = render("left-deviated", dv), dT = render("left-tracking", tk);
+    if (dD == null) xc.push(["the rendered tiles (no browser found: set CHROME)", false, "no Chrome or Edge"]);
+    else { xc.push(["a leave row built after all (deviated) counts as built again: \"10 / 10 rows built\", \"1 left for later\"", tile(dD).startsWith("10 / 10 rows built") && /1 left for later/.test(tile(dD)) && /1 deviated/.test(tile(dD)), tile(dD)]);
+      xc.push([`a tracking board's unit left for later: "${tn} / ${tm} units landed" and named, as its chain chip counts`, tile(dT).startsWith(`${tn} / ${tm} units landed`) && /1 left for later/.test(tile(dT)) && new RegExp(`${tn} of ${tm} landed`).test(text(dT)), tile(dT)]); } }
+  /* 3. boardless rows: state from the tracker */
+  const B = lib.boardlessState, pr = (number, state, headRefName) => ({ number, state, headRefName });
+  const cases = [
+    ["open, nothing refers to it: not started", B(80, "OPEN", [], [], [], ["master", "fix/180-x", "v80", "release-1.80"]), "not-started", null, null],
+    ["open, a branch names it: in progress", B(81, "OPEN", [], [], [], ["fix/81-port-lock"]), "in-progress", "fix/81-port-lock", null],
+    ["open, GitHub links a branch: in progress", B(81, "OPEN", [], ["any-name"], [], []), "in-progress", "any-name", null],
+    ["open, an open pull request's head names it: in progress, with the pull request", B(82, "OPEN", [], [], [pr(91, "OPEN", "docs/issue-82-readme")], []), "in-progress", "docs/issue-82-readme", 91],
+    ["open, a closing pull request merged: merged, branch hidden", B(83, "OPEN", [pr(92, "MERGED", "x")], [], [], ["x"]), "merged", null, 92],
+    ["open, merged and another open pull request: in progress", B(83, "OPEN", [pr(92, "MERGED", "x")], [], [pr(94, "OPEN", "fix/83-more")], []), "in-progress", "fix/83-more", 94],
+    ["closed: landed", B(84, "CLOSED", [pr(93, "MERGED", "y")], [], [], ["y"]), "landed", null, 93],
+    ["a closed, unmerged pull request alone: not started", B(85, "OPEN", [pr(95, "CLOSED", "z")], [], [], []), "not-started", null, null]];
+  cases.forEach(([what, got, status, branch, n]) => xc.push([`boardlessState(): ${what}`, got.status === status && got.tracker.branch === branch && ((got.tracker.pr || {}).number || null) === n, JSON.stringify(got)]));
+  const N = lib.namesIssue;
+  xc.push(["namesIssue(): issue-62, 62-slug, fix/62, add-issue-62 name #62; after-62, v62, 1.62, 620-x and g1 do not", ["feat/issue-62-http-core", "62-http", "fix/62", "add-issue-62"].every(b => N(b, 62)) && !["docs/dashboards-after-62", "v62", "release-1.62", "620-x"].some(b => N(b, 62)) && N("feature/3-g1-build-skeleton", 3) && !N("feature/3-g1-build-skeleton", 1), "names"]);
+  const btpl = tp("plan/template/board.html");
+  if (btpl) { const tpl = fs.readFileSync(btpl, "utf8"), wb = J("verify/fixtures/work-board.json"), dir = path.join(sc, "tree", "docs", "plans");
+    const chk = d => { fs.rmSync(path.join(sc, "tree"), { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true }); (d.rows || []).filter(r => r.board).forEach(r => stub(path.join(dir, path.dirname(r.board))));
+      fs.writeFileSync(path.join(dir, "board.json"), JSON.stringify(d, null, 2) + "\n"); fs.writeFileSync(path.join(dir, "index.html"), tpl); node(embedJs, dir); return node(checkJs, dir, "--root", path.join(sc, "tree")); };
+    const c0 = chk(wb);
+    xc.push(["check.js passes the fixture's five boardless rows, one per state", c0.status === 0 && /5 boardless rows, state from the tracker: 1 not-started, 2 in-progress, 1 merged, 1 landed/.test(c0.stdout), lines(c0, /boardless|FAIL/)]);
+    const bad = (what, f, re) => { const d = copy(wb); f(d.rows.find(r => r.issue === 80), d.rows.find(r => r.issue === 83), d); const r = chk(d); xc.push([`check.js fails ${what}`, r.status === 1 && re.test(r.stdout), lines(r, /^FAIL/)]); };
+    bad("a not-started row a branch refers to", r => { r.tracker.branch = "fix/80-x"; }, /status "not-started" does not match/);
+    bad("a landed row whose issue is open", r => { r.status = "landed"; }, /landed means the issue is closed/);
+    bad("a boardless row that glows", (r, m) => { m.active = true; }, /a boardless row never glows/);
+    bad("a tracker state on a row without tracker", (r, m) => { delete m.tracker; }, /is a boardless row's state, read from the tracker/);
+    bad("a status the page does not draw", r => { r.status = "started"; }, /status must be one of/);
+    const old = copy(wb), o = old.rows.find(r => r.issue === 80); delete o.tracker; o.status = "no-board"; const cw = chk(old);
+    xc.push(["check.js warns on a row from a board.js older than the boardless rows (\"no-board\")", cw.status === 0 && /"no-board" is the state of a board\.js older/.test(cw.stdout), lines(cw, /no-board/)]);
+    const dW = dumpDom(put("work-board/index.html", withData(tpl, "board", JSON.stringify(wb, null, 2))));
+    if (dW == null) xc.push(["the rendered work board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
+    else { const row = n => (dW.match(new RegExp(`<tr class="run[^"]*"[^>]*><td><span class="t"><a [^>]*>#${n}<[\\s\\S]*?</tr>`)) || [""])[0], key = inner(dW, '<div class="key" id="runs-key">', "div");
+      xc.push(["the work board: not started dashed, in progress and merged solid, none glowing", /^<tr class="run nob"/.test(row(80)) && [81, 82, 83, 84].every(n => /^<tr class="run"/.test(row(n)) && !/glow/.test(row(n))) && /vp neutral dashed[^>]*><i aria-hidden="true">…<\/i>not started/.test(row(80)) && /vp neutral"><i aria-hidden="true">▸<\/i>in progress/.test(row(81)) && /vp good"><i aria-hidden="true">✓<\/i>merged · awaiting close/.test(row(83)), [80, 81, 83].map(n => text(row(n)).slice(0, 90)).join(" | ")]);
+      xc.push(["the work board: a boardless row shows its pull request and, in progress, its branch; a merged one no branch", /PR #91<\/a> open/.test(row(82)) && /<code>docs\/issue-82-readme<\/code>/.test(row(82)) && /PR #92<\/a> merged/.test(row(83)) && !/<code>/.test(row(83)), text(row(82)).slice(0, 160)]);
+      xc.push(["the legend names in progress and merged · awaiting close with where they came from", /in progress<\/span> no board: a branch or an open pull request refers to it/.test(key) && /merged · awaiting close<\/span> no board: its pull request merged, the issue still open/.test(key), text(key).slice(0, 400)]); } }
+  report("dashed means only planned (solid furniture), rows left for later, boardless rows from the tracker", xc);
+}
+
+/* The decisions of 2026-10-25 (admin-team/dashboards-skill/17), on every dashboard type they fit (GUIDANCE.md §11), rendered from the
+   live issue fixture (verify/fixtures/live-issue.plan.json, a run mid-research) and its variants at each step:
+   A. the step panel beside the half-width WIP strip: interview (answered, waiting), research (the planning → research → verification
+      timeline, each question's state, the returned count), plan (writing, re-pass, verdicts written), implementation (stages done,
+      current, to come), qa (each pass apart, by kind and by severity), remediation (its sub-steps), halted and escalated (what it waits
+      on, held still); none on a landed board; on a tracking board, the unit's step panel in place of the up-next bubble;
+   B. research-state rings on the Considered cells (red planning, orange researching and returned, yellow verifying, green complete),
+      with their legend entry; none while the questions are only drafted; check.js on the question states and the research phase;
+   C. the charging arrow into each unwritten Verdict cell during the plan step, still while halted, gone once written or past the plan;
+   D. the strip's research line: the open questions and how many have returned;
+   E. the work board: a halted or escalated row keeps the still ring;
+   F. live updates: embed.js writes plan.js (board.js on the work board), check.js holds it to the data file, and the page re-loads it
+      while the run is live, redraws in place keeping the tab and the inspector, and says so in its live indicator;
+   G. the theme switch on every dashboard type: it follows the system setting until clicked, then remembers the choice. */
+{ const lc = [], sc = path.join(out, "decisions-17"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
+  const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x)), tp = name => (targets.find(t => t.name === name) || {}).path;
+  const text = h => (h || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/\s+/g, " ").trim();
+  const lib = require(path.join(SKILL, "plan", "scripts", "lib.js"));
+  const ptpl = tp("plan/template/dashboard.html"), btpl = tp("plan/template/board.html"), PT = ptpl ? fs.readFileSync(ptpl, "utf8") : "", BT = btpl ? fs.readFileSync(btpl, "utf8") : "";
+  const LIVE = J("verify/fixtures/live-issue.plan.json"), ids = LIVE.rows.map(r => r.id);
+  /* the variants of the live fixture, one per step the panel breaks down */
+  const at = (f) => { const d = copy(LIVE); f(d, d.wip); return d; };
+  const complete = w => { w.questions.forEach(q => { q.state = "complete"; q.findings = q.findings || `research/${q.question}.md`; }); w.research = { ...w.research, phase: "complete" }; };
+  const V = {
+    research: at(() => {}),
+    planning: at((d, w) => { w.questions = []; w.research = { phase: "planning", drafted: 2, since: { planning: "2026-10-25T08:05:00Z" } }; w.current = ["considered"]; w.event = { name: "research-planning", at: "2026-10-25T08:10:00Z" }; }),
+    verifying: at((d, w) => { w.questions.forEach(q => { q.state = "verifying"; q.findings = q.findings || `research/${q.question}.md`; }); w.research.phase = "verification"; w.current = ["considered"]; /* a verifying question names no row: the fallback */ }),
+    interview: at((d, w) => { w.step = "interview"; w.current = []; w.questions = []; w.research = null; w.interview[1].answer = null; w.interview[1].answered = null; }),
+    plan: at((d, w) => { w.step = "plan"; w.current = ["considered", "verdict"]; complete(w); w.plan = { state: "re-pass", from: "qa", pass: 1 }; d.rows.slice(1, 4).forEach(r => { r.verdict = { kind: "build", summary: "Verification case: written." }; }); }),
+    halted: at((d, w) => { w.step = "halted"; w.resume = "plan"; w.current = ["considered", "verdict"]; complete(w); w.plan = { state: "writing" }; w.waitingOn = "Verification case: which refusal reply text to send."; }),
+    escalated: at((d, w) => { w.step = "escalated"; w.resume = "plan"; w.current = ["considered", "verdict"]; complete(w); }),
+    implementation: at((d, w) => { d.status = "building"; w.step = "implementation"; w.questions = []; w.research = null; d.rows.forEach(r => { r.verdict = { kind: "build", summary: "Verification case: written.", steps: [{ id: "A", what: "x" }] }; });
+      w.stages = [{ id: "A", name: "The validity rule", state: "done", rows: [ids[0]] }, { id: "B", name: "Routing and the reply", state: "current", rows: [ids[1], ids[2]] }, { id: "C", name: "Documents", state: "todo", rows: [ids[6]] }]; w.current = [ids[1] + ".built", ids[2] + ".built"]; }),
+    qa: at((d, w) => { d.status = "building"; w.step = "qa"; w.questions = []; w.research = null; w.current = ["built"]; d.rows.forEach(r => { r.verdict = { kind: "build", summary: "Verification case: written." }; });
+      w.qa = [{ pass: 1, verdict: "changes-requested", date: "2026-10-25", findings: { documentation: 4, test: 2, code: 1 }, severity: { major: 2, minor: 5 } }]; }),
+    remediation: at((d, w) => { d.status = "building"; w.step = "remediation"; w.questions = []; w.research = null; w.current = [ids[0] + ".built"]; d.rows.forEach(r => { r.verdict = { kind: "build", summary: "Verification case: written." }; });
+      w.qa = [{ pass: 1, verdict: "changes-requested", findings: { documentation: 1, test: 0, code: 2 } }]; w.remediation = { pass: 1, steps: [{ what: "Planner re-pass of stage B", state: "done" }, { what: "Implementer fixes for pass 1", state: "current" }, { what: "qa pass 2", state: "todo" }] }; }),
+    branch: at((d, w) => { w.step = "branch"; w.current = []; w.questions = []; w.research = null; d.rows.forEach(r => { r.verdict = { kind: "build", summary: "Verification case: written." }; }); })
+  };
+  const render = (name, d, o) => { o = o || {}; const dir = path.join(sc, name); fs.mkdirSync(dir, { recursive: true }); const f = path.join(dir, "dashboard.html");
+    fs.writeFileSync(f, withData(PT, "plan", JSON.stringify(d, null, 2)).replace("</body>", (o.inject || "") + "</body>"));
+    if (o.side !== false) fs.writeFileSync(path.join(dir, "plan.js"), lib.sidecarText("plan", JSON.stringify(o.side || d, null, 2)));
+    return dumpDom(f, o.hash || "", o.size, o.budget); };
+  const strip = dom => inner(dom, '<section class="wip[^"]*" id="wip"[^>]*>', "section");
+  const panel = dom => inner(strip(dom), '<div class="sp[^"]*"[^>]*>', "div");
+  const cellOf = (dom, col, id) => ((dom || "").match(new RegExp(`<div class="cell ${col}[^"]*"[^>]*data-row="${id}"`)) || [""])[0];
+  if (!ptpl || !chrome) lc.push(["the rendered plan boards (no browser found: set CHROME)", !!ptpl && !!chrome, "no Chrome or Edge"]);
+  else {
+    const D = {}; Object.keys(V).forEach(k => { D[k] = render("v-" + k, V[k]); });
+    /* A. the step panel */
+    const sR = strip(D.research), pR = panel(D.research);
+    lc.push(["A: an issue board's strip sits beside its step panel, half and half, the legend under both", /class="wip split"/.test(D.research) && /<div class="wiprow"><div class="wipmain">/.test(sR) && /class="sp" data-step="research"/.test(sR) && /<\/div><div class="key">/.test(sR), sR.slice(0, 200)]);
+    lc.push(["A: research: the planning → research → verification timeline, research current", /aria-label="The research timeline"/.test(pR) && /<li class="done"><span class="dot"[^>]*><\/span>planning<\/li><li class="cur glow"[^>]*><span class="dot"[^>]*><\/span>research<\/li><li class="todo"><span class="dot"[^>]*><\/span>verification<\/li>/.test(pR), text(pR).slice(0, 200)]);
+    lc.push(["A: research: each question with its state and the count returned", /2 of 4 questions returned/.test(text(pR)) && (pR.match(/vp serious"><i aria-hidden="true">↻<\/i>researching/g) || []).length === 2 && (pR.match(/vp serious"><i aria-hidden="true">✓<\/i>returned/g) || []).length === 2 && /bears on no row/.test(pR), text(pR).slice(0, 300)]);
+    lc.push(["A: research-planning: the panel says planning and how many questions are drafted; no row rings", /Planning the research questions: 2 drafted so far/.test(text(panel(D.planning))) && /<li class="cur glow"[^>]*><span class="dot"[^>]*><\/span>planning/.test(panel(D.planning)) && !/class="cell considered[^"$]* rs /.test(D.planning), text(panel(D.planning)).slice(0, 200)]);
+    lc.push(["A: interview: the questions, answered or waiting, counted", /1 of 2 questions answered · 1 waiting/.test(text(panel(D.interview))) && /vp warning"><i aria-hidden="true">\?<\/i>waiting on the user/.test(panel(D.interview)) && /answer: Refused/.test(text(panel(D.interview))), text(panel(D.interview)).slice(0, 300)]);
+    const pP = panel(D.plan);
+    lc.push(["A: plan: a re-pass after a qa pass, plan accepted to come, the verdicts written and those still to write", /re-pass after qa pass 1/.test(text(pP)) && /<li class="todo"><span class="dot"[^>]*><\/span>plan accepted/.test(pP) && /3 of 11 verdicts written/.test(text(pP)) && /Still to write: /.test(text(pP)), text(pP).slice(0, 300)]);
+    const pI = panel(D.implementation);
+    lc.push(["A: implementation: the stages done, current and to come, with the rows each touches", /Stage B of 3 · 1 done/.test(text(pI)) && /<li class="done"><span class="dot"[^>]*><\/span><span class="q"><b>A<\/b>/.test(pI) && /<li class="cur"><span class="dot"[^>]*><\/span><span class="q"><b>B<\/b>/.test(pI) && /<li class="todo"><span class="dot"[^>]*><\/span><span class="q"><b>C<\/b>/.test(pI) && /touches /.test(pI), text(pI).slice(0, 300)]);
+    const pQ = panel(D.qa);
+    lc.push(["A: qa: each pass apart, its verdict, its finding counts by kind and by severity, the running pass", (pQ.match(/<div class="sp-pass /g) || []).length === 2 && /Pass 1 <span class="vp critical">/.test(pQ) && /findings by kind: 4 doc · 2 test · 1 code/.test(pQ) && /by severity: 2 major · 5 minor/.test(pQ) && /sp-pass run pend/.test(pQ) && /Pass 2 running · at most 3 passes/.test(text(pQ)), text(pQ).slice(0, 300)]);
+    lc.push(["A: remediation: the qa pass it answers and its sub-steps, done, current, to come", /Answering qa pass 1/.test(text(panel(D.remediation))) && /<li class="done">[\s\S]*?Planner re-pass of stage B/.test(panel(D.remediation)) && /<li class="cur">[\s\S]*?Implementer fixes/.test(panel(D.remediation)) && /<li class="todo">[\s\S]*?qa pass 2/.test(panel(D.remediation)), text(panel(D.remediation)).slice(0, 300)]);
+    const pH = panel(D.halted), pE = panel(D.escalated);
+    lc.push(["A: halted and escalated: what it waits on, the panel held still (no breathing dot)", /class="sp sp-held" data-step="plan"/.test(strip(D.halted)) && /Held still at plan: it waits on the user for Verification case: which refusal reply/.test(text(pH)) && /class="cur held"/.test(pH) && !/class="cur glow"/.test(pH) && /Escalated from plan: held still/.test(text(pE)) && /class="cur held"/.test(pE), text(pH).slice(0, 200)]);
+    const dEx = render("v-landed", J("plan/examples/38-handshake-empty-name/plan.json"));
+    lc.push(["A: a landed board has no current step: its strip runs across the row, no panel", !/class="wip split"/.test(dEx) && !/class="sp[ "]/.test(strip(dEx)), strip(dEx).slice(0, 160)]);
+    /* the unit's step panel on a tracking board, from its mirror, which carries the panel's facts (lib.js panelFacts()) */
+    const trk = J("verify/fixtures/tracking.plan.json"), u = trk.rows.find(r => r.unit && r.unit.live), tq = copy(trk), uq = tq.rows.find(r => r.id === u.id);
+    Object.assign(uq.unit.live, { step: "research", resume: null, waitingOn: null, questions: [{ question: "unit-question", rows: [], findings: null, state: "researching" }], research: { phase: "research" } });
+    const run = lib.unitRun({ status: "planned", wip: { step: "research", questions: [{ question: "q", rows: [], findings: null, state: "researching" }], research: { phase: "research" }, stages: [], plan: null }, rows: [] });
+    lc.push(["A: lib.js unitRun() mirrors the step panel's facts a unit's board records, and only those", Array.isArray(run.questions) && run.research && run.research.phase === "research" && !("stages" in run) && !("plan" in run), JSON.stringify(run).slice(0, 200)]);
+    const run2 = lib.unitRun({ status: "building", wip: { step: "implementation", stages: [{ id: "A", state: "current", rows: ["r1"] }] }, rows: [{ id: "r1", name: "Row one", asBuilt: { state: "amended", changes: [{ what: "x", why: "y" }] } }, { id: "r2", name: "Row two" }] });
+    lc.push(["A: the mirror names the rows its stages touch and counts the deviations, so the unit's panel reads as on its own board", JSON.stringify(run2.rowNames) === JSON.stringify({ r1: "Row one" }) && run2.deviations === 1, JSON.stringify({ rowNames: run2.rowNames, deviations: run2.deviations })]);
+    const fT = path.join(sc, "trk"); fs.mkdirSync(fT, { recursive: true }); fs.writeFileSync(path.join(fT, "dashboard.html"), withData(PT, "plan", JSON.stringify(tq, null, 2)));
+    const dT = dumpDom(path.join(fT, "dashboard.html")), sT = strip(dT);
+    lc.push(["A: a tracking board's unit step panel shows the unit's own research, and its bubble the open questions", /class="sp" data-step="research"/.test(sT) && new RegExp(`Unit ${u.unit.n} · #${u.unit.issue} · its step in detail`).test(text(sT)) && /unit-question/.test(inner(sT, '<div class="sp[^"]*"[^>]*>', "div")) && /RESEARCH<\/span>0 of 1 returned · open: <code>unit-question<\/code>/i.test(sT), text(inner(sT, '<div class="sp[^"]*"[^>]*>', "div")).slice(0, 200)]);
+    /* B. the rings */
+    const ring = (dom, id) => (cellOf(dom, "considered", id).match(/ rs rs-(\w+)/) || [])[1] || null;
+    lc.push(["B: rings on the Considered cells by the least advanced state of their questions: researching orange, returned orange, none for an unnamed row", ring(D.research, ids[0]) === "researching" && ring(D.research, ids[1]) === "returned" && ring(D.research, ids[3]) === "researching" && ring(D.research, ids[5]) === null && /vp serious"><i aria-hidden="true">✓<\/i>returned/.test(inner(D.research, `<div class="cell considered[^"]*"[^>]*data-row="${ids[1]}"[^>]*>`, "div")), ids.slice(0, 6).map(id => ring(D.research, id)).join(",")]);
+    lc.push(["B: verifying yellow, complete green (kept at the plan step), and the ring is the border, never a fill", ring(D.verifying, ids[0]) === "verifying" && ring(D.plan, ids[0]) === "complete" && /\.cell\.rs\{border:2px solid var\(--rc\)/.test(ptpl ? fs.readFileSync(ptpl, "utf8") : "") && /\.rs-planning\{--rc:var\(--critical\)\}\.rs-researching,\.rs-returned\{--rc:var\(--serious\)\}\.rs-verifying\{--rc:var\(--warning\)\}\.rs-complete\{--rc:var\(--good\)\}/.test(fs.readFileSync(ptpl, "utf8")), [ring(D.verifying, ids[0]), ring(D.plan, ids[0])].join(",")]);
+    const kR = inner(D.research, '<div class="key" id="timeline-key">', "div");
+    lc.push(["B: the Timeline legend names each research state it drew, as a ring with its pill", /<i class="ring rs-researching"><\/i>[\s\S]*?research state: a researcher is out on it/.test(kR) && /<i class="ring rs-returned"><\/i>/.test(kR) && !/rs-verifying/.test(kR), text(kR).slice(-300)]);
+    lc.push(["B: no ring once the plan is accepted (the questions cleared) or on a landed board", ids.every(id => ring(D.branch, id) === null) && ids.every(id => ring(dEx, id) === null), "rings at branch: " + ids.map(id => ring(D.branch, id)).filter(Boolean).length]);
+    /* C. the charging arrow */
+    const chg = (dom, id) => /\bcharging\b/.test(cellOf(dom, "verdict", id)), still = (dom, id) => / charging still/.test(cellOf(dom, "verdict", id));
+    lc.push(["C: during the plan step an unwritten verdict's connector charges; a written one is the plain line", chg(D.plan, ids[0]) && !still(D.plan, ids[0]) && !chg(D.plan, ids[1]) && /charging arrow: its verdict being written/.test(inner(D.plan, '<div class="key" id="timeline-key">', "div")), cellOf(D.plan, "verdict", ids[0])]);
+    lc.push(["C: it holds still while halted or escalated, and is gone outside the plan step", still(D.halted, ids[0]) && still(D.escalated, ids[0]) && !chg(D.research, ids[0]) && !chg(D.branch, ids[0]) && !chg(D.implementation, ids[0]), [cellOf(D.halted, "verdict", ids[0]), cellOf(D.research, "verdict", ids[0])].join(" | ").slice(0, 300)]);
+    const tplCss = fs.readFileSync(ptpl, "utf8");
+    lc.push(["C: the arrow's segments fill left to right as an animation, and hold still under reduced motion", /@keyframes charge\{0%\{background-size:0 100%,100% 100%\}100%\{background-size:100% 100%,100% 100%\}\}/.test(tplCss) && /prefers-reduced-motion:reduce\)\{\.cell\.verdict\.charging::before\{animation:none!important\}\}/.test(tplCss), "css"]);
+    /* D. the strip lists the open questions with the count returned */
+    lc.push(["D: the strip lists the open research questions and how many have returned", /<span class="l">research<\/span>2 of 4 returned · open: <code>blast-radius<\/code>, <code>token-splitting<\/code>/.test(inner(sR, '<div class="wipmain">', "div")), text(inner(sR, '<div class="wip-facts">', "div"))]);
+    /* the check: every pass of the variants (dashes only planned, a legend everywhere, no script error) */
+    ["plan", "halted", "qa"].forEach(k => { const r = cp.spawnSync(process.execPath, [checker, path.join(sc, "v-" + k, "dashboard.html"), "--out", path.join(sc, "v-" + k)], { encoding: "utf8" });
+      lc.push([`the ${k} variant passes check-page.js (no dash that is not planned, every legend, no error)`, r.status === 0, (r.stdout || "").split(/\r?\n/).filter(l => /FAIL|DASHED|ERROR|NO LEGEND/.test(l)).join(" | ")]); });
+    /* F. live updates: the sidecar, the poll, the redraw, the indicator */
+    const chipOf = dom => inner(dom || "", '<span class="livechip[^"]*" id="live"[^>]*>', "span"), chipCls = dom => ((dom || "").match(/<span class="(livechip[^"]*)" id="live"/) || [])[1] || "";
+    const B2 = copy(LIVE); B2.wip.detail = "Verification case: the run moved on."; B2.wip.updated = "2026-10-25T09:20:00Z"; B2.wip.questions[0] = { ...B2.wip.questions[0], state: "returned", findings: "research/blast-radius.md" };
+    const pick = `<script>window.addEventListener("load",()=>setTimeout(()=>{ document.getElementById("t-decisions").click(); const tr=document.querySelector("#dec-table tbody tr"); if(tr) tr.click(); },300));</script>`;
+    const dL = render("live-redraw", LIVE, { side: B2, inject: pick, budget: 9000 });
+    lc.push(["F: the page re-loads plan.js while the run is live and redraws in place: the new detail, the question returned", /Verification case: the run moved on\./.test(strip(dL)) && /3 of 4 returned/.test(strip(dL)), text(inner(strip(dL), '<div class="wipmain">', "div")).slice(0, 200)]);
+    lc.push(["F: the redraw keeps the tab and what the inspector shows", /<button class="tab"[^>]*id="t-decisions"[^>]*aria-selected="true"/.test(dL) && /<div class="kicker">2 · CONSIDERED<\/div>/.test(inner(dL, '<aside class="inspector"[^>]*>', "aside")), text(inner(dL, '<aside class="inspector"[^>]*>', "aside")).slice(0, 120)]);
+    lc.push(["F: the live indicator: LIVE · updated n s ago, its dot pulsing, the counter restarted at the change", /livechip on pulse/.test(chipCls(dL)) && /LIVE · updated \d+ s ago/.test(text(chipOf(dL))), chipCls(dL) + " · " + text(chipOf(dL))]);
+    const QL = copy(LIVE); QL.wip.updated = "2026-01-01T00:00:00Z"; QL.wip.since = "2026-01-01T00:00:00Z"; const dQ = render("live-quiet", QL, { budget: 6500 });
+    lc.push(["F: with no change for a quiet spell it reads LIVE · no change for n min, the dot still", /^livechip on$/.test(chipCls(dQ)) && /LIVE · no change for \d+ (min|h)/.test(text(chipOf(dQ))), chipCls(dQ) + " · " + text(chipOf(dQ))]);
+    const dU = render("live-unavailable", LIVE, { side: false, budget: 6500 });
+    lc.push(["F: with plan.js unreadable it reads LIVE · data unavailable", /livechip on na/.test(chipCls(dU)) && /LIVE · data unavailable/.test(text(chipOf(dU))), chipCls(dU) + " · " + text(chipOf(dU))]);
+    const hL = copy(V.halted); hL.wip.updated = new Date().toISOString().replace(/\.\d+Z$/, "Z"); const dH = render("live-halted", hL, { budget: 6500 });
+    lc.push(["F: while the run waits on the user the dot holds still", /^livechip on$/.test(chipCls(dH)) && /LIVE · updated/.test(text(chipOf(dH))), chipCls(dH) + " · " + text(chipOf(dH))]);
+    lc.push(["F: a landed board does not poll: not live · as of its local time", /livechip off/.test(chipCls(dEx)) && /not live · as of/.test(text(chipOf(dEx))) && /<time datetime=/.test(chipOf(dEx)), chipCls(dEx) + " · " + text(chipOf(dEx))]);
+    /* embed.js writes the sidecar; check.js holds it to plan.json; embed.js --check too */
+    const tree = path.join(sc, "tree"), dir = path.join(tree, "docs", "plans", LIVE.slug); fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(LIVE, null, 2) + "\n"); fs.writeFileSync(path.join(dir, "dashboard.html"), PT); node(embedJs, dir);
+    const side = lib.readSidecar(path.join(dir, "plan.js"), "plan"), c1 = node(checkJs, dir, "--root", tree);
+    lc.push(["F: embed.js writes plan.js beside the page, carrying plan.json; check.js says so", !side.error && JSON.stringify(side.data) === JSON.stringify(LIVE) && /ok {4}plan\.js carries plan\.json/.test(c1.stdout) && c1.status === 0, side.error || lines(c1, /plan\.js|^FAIL/)]);
+    fs.writeFileSync(path.join(dir, "plan.js"), lib.sidecarText("plan", JSON.stringify(B2, null, 2)));
+    const c2 = node(checkJs, dir, "--root", tree), e2 = node(embedJs, dir, "--check");
+    lc.push(["F: check.js and embed.js --check fail a plan.js that differs from plan.json", c2.status === 1 && /plan\.js differs from plan\.json: run embed\.js/.test(c2.stdout) && e2.status === 1 && /sidecar plan\.js differs/.test(e2.stdout), lines(c2, /plan\.js/) + " · " + (e2.stdout || "").trim()]);
+    fs.unlinkSync(path.join(dir, "plan.js")); const c3 = node(checkJs, dir, "--root", tree);
+    lc.push(["F: check.js warns when plan.js is missing", c3.status === 0 && /plan\.js is missing beside the page/.test(c3.stdout), lines(c3, /plan\.js/)]);
+    /* check.js on the step panel's facts */
+    const bad = copy(LIVE); Object.assign(bad.wip, { event: { name: "research-finished" }, research: { phase: "drafting" }, interview: [{ answer: "x" }], plan: { state: "re-pass" }, stages: [{ id: "A", state: "current" }, { id: "B", state: "current" }] });
+    fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(bad, null, 2) + "\n"); node(embedJs, dir); const c4 = node(checkJs, dir, "--root", tree);
+    lc.push(["check.js fails an unknown event, research phase, an interview question with no text, a re-pass with no source, two current stages", c4.status === 1 && /wip\.event must be/.test(c4.stdout) && /wip\.research must be/.test(c4.stdout) && /wip\.interview\[0\] needs its text/.test(c4.stdout) && /a re-pass names where it comes from/.test(c4.stdout) && /more than one "current" stage/.test(c4.stdout), lines(c4, /^FAIL/)]);
+    const ok = copy(V.verifying); ok.wip.event = { name: "verification-started", at: "2026-10-25T09:35:00Z" };
+    fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(ok, null, 2) + "\n"); node(embedJs, dir); const c5 = node(checkJs, dir, "--root", tree);
+    lc.push(["check.js takes the new events (research-planning, verification-started) and a verification with its questions verifying", c5.status === 0 && lib.EVENTS.includes("research-planning") && lib.EVENTS.includes("verification-started") && !/wip\.(event|research)/.test(lines(c5, /^(FAIL|warn)/)), lines(c5, /^(FAIL|warn).*wip/) || "clean"]);
+    /* new.js lays the new fields */
+    const nroot = path.join(sc, "new"); fs.mkdirSync(path.join(nroot, "docs", "plans"), { recursive: true });
+    const nr = cp.spawnSync(process.execPath, [path.join(SKILL, "plan", "scripts", "new.js"), "901", "panel", "--root", nroot, "--level", "3", "--repo", "owner/name"], { encoding: "utf8", cwd: nroot });
+    let nw = null; try { nw = JSON.parse(fs.readFileSync(path.join(nroot, "docs", "plans", "901-panel", "plan.json"), "utf8")).wip; } catch (e) { /* below */ }
+    lc.push(["new.js lays the step panel's fields (research, interview, plan, stages, remediation, the sized event) and writes plan.js", nr.status === 0 && !!nw && nw.research === null && Array.isArray(nw.interview) && Array.isArray(nw.stages) && nw.event && nw.event.name === "sized" && fs.existsSync(path.join(nroot, "docs", "plans", "901-panel", "plan.js")), (nr.stdout || nr.stderr || "").split(/\r?\n/)[0]]);
+  }
+  /* E and F on the work board */
+  if (btpl && chrome) {
+    const wb = J("verify/fixtures/work-board-live.json"), h = copy(wb), r47 = h.rows.find(r => r.issue === 47); Object.assign(r47, { status: "halted", active: false, step: "halted" });
+    const wdir = path.join(sc, "wb"); fs.mkdirSync(wdir, { recursive: true }); const wf = path.join(wdir, "index.html");
+    const h2 = copy(h); h2.generated = "2026-10-25T09:00:00Z"; h2.rows.find(r => r.issue === 62).detail = "Verification case: the live work board moved on.";
+    fs.writeFileSync(wf, withData(BT, "board", JSON.stringify(h, null, 2))); fs.writeFileSync(path.join(wdir, "board.js"), lib.sidecarText("board", JSON.stringify(h2, null, 2)));
+    const dW = dumpDom(wf, "", null, 9000), row = (dW.match(/<tr class="run[^"]*"[^>]*><td><span class="t"><a [^>]*>#47<[\s\S]*?<\/tr>/) || [""])[0];
+    lc.push(["E: a halted run's row on the work board keeps the still ring, with its legend entry", /class="vp warning held"><i aria-hidden="true">⏸<\/i>waiting on the user/.test(row) && /ring alone, still: being worked on, paused while the run waits on the user/.test(inner(dW, '<div class="key" id="runs-key">', "div")), row.slice(0, 300)]);
+    lc.push(["F: the live work board re-loads board.js and redraws in place, LIVE · updated", /Verification case: the live work board moved on\./.test(dW) && /LIVE · updated \d+ s ago/.test(text(inner(dW, '<span class="livechip[^"]*" id="live"[^>]*>', "span"))), text(inner(dW, '<span class="livechip[^"]*" id="live"[^>]*>', "span"))]);
+    const cf = path.join(sc, "wb-committed", "index.html"); fs.mkdirSync(path.dirname(cf), { recursive: true }); fs.writeFileSync(cf, withData(BT, "board", fs.readFileSync(sk("verify/fixtures/work-board.json"), "utf8")));
+    const dC = dumpDom(cf);
+    lc.push(["F: the committed work board does not poll: not live · as of its generated time", /not live · as of/.test(text(inner(dC, '<span class="livechip[^"]*" id="live"[^>]*>', "span"))), text(inner(dC, '<span class="livechip[^"]*" id="live"[^>]*>', "span"))]);
+  } else lc.push(["the rendered work board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
+  /* G. the theme switch on every dashboard type: a click picks the other palette and remembers it; a later page applies the choice before
+     its first paint; before any click the page follows the system setting (the button says which) */
+  if (chrome) {
+    const probe = `<script>window.addEventListener("load",()=>setTimeout(()=>{ const b=document.getElementById("theme"), r=document.documentElement; const before=(r.dataset.theme||"none")+"/"+(b?b.textContent:"no button"); if(b) b.click(); const after=r.dataset.theme+"/"+localStorage.getItem("dashboards-theme")+"/"+b.textContent; if(b) b.click(); document.body.dataset.theme=[before,after,r.dataset.theme+"/"+localStorage.getItem("dashboards-theme")].join("|"); },500));</script>`;
+    const pages = [["a plan board", ptpl, "plan", "plan/examples/38-handshake-empty-name/plan.json"], ["a tracking board", ptpl, "plan", "verify/fixtures/tracking.plan.json"], ["the work board", btpl, "board", "verify/fixtures/work-board.json"], ["a system page", tp("system/template/system.html"), null, null], ["a supersystem or repository page", tp("system/template/supersystem.html"), null, null]];
+    pages.forEach(([what, tpath, block, fx], i) => { if (!tpath) return; const html = fs.readFileSync(tpath, "utf8"), f = path.join(sc, "theme-" + i, block === "board" ? "index.html" : block ? "dashboard.html" : "index.html");
+      fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, (block ? withData(html, block, fs.readFileSync(sk(fx), "utf8")) : html).replace("</body>", probe + "</body>"));
+      const d = dumpDom(f), got = ((d || "").match(/data-theme="([^"]*)"/g) || []).map(x => x.slice(12, -1)).pop() || "";
+      lc.push([`G: ${what}: the theme switch follows the system setting until clicked, then picks the other palette and remembers it`, /^none\/☀ light\|dark\/dark\/☾ night\|light\/light$/.test(got) && /<head>[\s\S]*?localStorage\.getItem\("dashboards-theme"\)[\s\S]*?<\/head>/.test(html), got || "no probe result"]); });
+  } else lc.push(["the theme switch (no browser found: set CHROME)", false, "no Chrome or Edge"]);
+  report("the step panel, research rings, the charging arrow, live updates and the theme switch (dashboards-skill/17)", lc);
+}
+
 const today = new Date().toISOString().slice(0, 10);
 targets.forEach(t => {
   const tpl = fs.readFileSync(t.path, "utf8"), results = [];
@@ -987,10 +1255,11 @@ targets.forEach(t => {
     fs.mkdirSync(dir, { recursive: true });
     const page = path.join(dir, t.block === "board" ? "index.html" : t.block ? "dashboard.html" : "index.html");
     fs.writeFileSync(page, fx ? withData(tpl, t.block, fs.readFileSync(fx, "utf8")) : tpl);
+    if (t.block) fs.writeFileSync(path.join(dir, t.block === "board" ? "board.js" : "plan.js"), require(path.join(SKILL, "plan", "scripts", "lib.js")).sidecarText(t.block, fx ? fs.readFileSync(fx, "utf8") : "{}"));
     MODES.forEach(m => {
       const r = cp.spawnSync(process.execPath, [checker, page, "--out", dir, ...m], { encoding: "utf8" });
       const lines = (r.stdout || "").split(/\r?\n/);
-      results.push({ fixture: label, mode: m.join(" ") || "light", pass: r.status === 0, bad: lines.filter(l => /FAIL|ERROR|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|FOOTER NOT IN ITS FORM/.test(l)) });
+      results.push({ fixture: label, mode: m.join(" ") || "light", pass: r.status === 0, bad: lines.filter(l => /FAIL|ERROR|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM/.test(l)) });
     });
   });
   const ok = results.every(r => r.pass);

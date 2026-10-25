@@ -13,7 +13,7 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { levelRefsIn } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
 const { paletteCheck } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js"));
-const { glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
+const { BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
 const STATES = ["pending", "as-planned", "amended", "deviated", "dropped", "deferred", "complete", "landed"];
@@ -249,7 +249,9 @@ function checkPlan(plan, dir, root) {
       if (since && Date.now() - since > 86400000) warn(`halted since ${w.since || w.updated}: more than a day`);
     }
     if (w.resume != null && !STEPS.includes(w.resume)) fail(`wip.resume "${w.resume}" is not a step`);
-    (w.qa || []).forEach((p, j) => { if (!posInt(p.pass)) fail(`wip.qa[${j}].pass must be a pass number`); if (!QA.includes(p.verdict)) fail(`wip.qa[${j}].verdict must be one of ${QA.join(", ")}`); if (p.date && !DATE.test(p.date)) fail(`wip.qa[${j}].date "${p.date}" is not YYYY-MM-DD`); });
+    (w.qa || []).forEach((p, j) => { if (!posInt(p.pass)) fail(`wip.qa[${j}].pass must be a pass number`); if (!QA.includes(p.verdict)) fail(`wip.qa[${j}].verdict must be one of ${QA.join(", ")}`); if (p.date && !DATE.test(p.date)) fail(`wip.qa[${j}].date "${p.date}" is not YYYY-MM-DD`);
+      /* finding counts: by kind (findings: documentation, test, code) and, where the qa report states it, by severity (severity: {"<word>": n}) */
+      ["findings", "severity"].forEach(k => { const f = p[k]; if (f == null) return; if (typeof f !== "object" || Array.isArray(f) || Object.entries(f).some(([n, c]) => !/^[a-z][a-z-]*$/.test(n) || !(Number.isInteger(c) && c >= 0))) fail(`wip.qa[${j}].${k} must map a lower-case word to a count, e.g. {"major": 2, "minor": 3} (got ${JSON.stringify(f)})`); }); });
     const cur = Array.isArray(w.current) ? w.current : [];
     cur.forEach(a => {
       const parts = String(a).split(".");
@@ -280,11 +282,26 @@ function checkPlan(plan, dir, root) {
           if (q.findings != null && !str(q.findings)) fail(`${qat}.findings is the path of the question's findings once it has returned, or null while it is open`);
           else if (str(q.findings)) { checkLink(dir, q.findings, `${qat}.findings`); if (!(plan.trail || []).some(t => t && t.ref === q.findings)) warn(`${qat} ("${q.question}") has returned (${q.findings}), but the trail records no entry with that ref: research-returned records the findings in the trail`); }
           ["started", "returned"].forEach(k => { if (q[k] != null && !STAMP.test(String(q[k]))) fail(`${qat}.${k} "${q[k]}" is not a date or an ISO date-time`); });
+          /* the question's state (RULES §3, "Research: the questions and their states"): one of Q_STATES, and its findings recorded
+             exactly when it has returned; a question with no state reads from its findings (written before the states) */
+          if (q.state == null) warn(`${qat} ("${q.question}") records no state: it reads "${qState(q)}" from its findings; the research events write it (${Q_STATES.join(", ")})`);
+          else if (!Q_STATES.includes(q.state)) fail(`${qat}.state must be one of ${Q_STATES.join(", ")} (got ${JSON.stringify(q.state)})`);
+          else if (Q_NEEDS_FINDINGS.includes(q.state) && !str(q.findings)) fail(`${qat} ("${q.question}") is "${q.state}" but records no findings: a question has returned, its findings path recorded, before it is ${q.state}`);
+          else if (!Q_NEEDS_FINDINGS.includes(q.state) && q.findings != null) fail(`${qat} ("${q.question}") is "${q.state}" but records findings (${q.findings}): research-returned sets it "returned"`);
         });
-        const rs = ["halted", "escalated"].includes(w.step) ? w.resume : w.step;
-        if (w.questions.length && rs !== "research" && !["built", "abandoned"].includes(plan.status)) warn(`wip.questions records ${w.questions.length} research question${w.questions.length === 1 ? "" : "s"} while the run is at "${rs}": the researched event ends research and clears it (the trail keeps each question's findings)`);
+        const rs = ["halted", "escalated"].includes(w.step) ? w.resume : w.step, qsAll = w.questions.filter(q => q && typeof q === "object");
+        /* the questions stay, complete, until the plan is accepted (on a tracking board, the architecture signed off), so the rows keep
+           their green ring; at research a question is anything but complete; past the plan they are cleared */
+        const keeps = tracking ? ["research", "architecture"] : ["research", "architecture", "plan"];
+        if (qsAll.length && !["built", "abandoned"].includes(plan.status) && rs) {
+          if (!keeps.includes(rs)) warn(`wip.questions records ${qsAll.length} research question${qsAll.length === 1 ? "" : "s"} while the run is at "${rs}": ${tracking ? "architecture-signed-off" : "plan-accepted"} clears them (the trail keeps each question's findings)`);
+          else if (rs !== "research" && qsAll.some(q => qState(q) !== "complete")) warn(`wip.questions at "${rs}" holds questions that are not complete (${qsAll.filter(q => qState(q) !== "complete").map(q => q.question).slice(0, 4).join(", ")}): researched sets every question complete`);
+          else if (rs === "research" && qsAll.every(q => qState(q) === "complete")) warn("every research question is complete while the run is still at research: researched moves the step on");
+        }
       }
     }
+    /* The step panel's facts (RULES §3, "The step panel"): each optional, each written from an event's facts or the folder's documents. */
+    checkPanel(plan, w, ids, tracking);
     if (gm) warn(`wip.current ${JSON.stringify(cur)} does not match wip.step "${w.step}"${gm.via ? ` (it stopped in "${gm.step}", wip.resume, and keeps that step's glow as a still ring)` : ""}: at "${gm.step}" the map glows ${gm.want}; off the map: ${gm.bad.join(", ")} (plan/RULES.md §3, the glow follows the step)`);
     else if (!["built", "abandoned"].includes(plan.status) && w.step !== "landed" && !(["halted", "escalated"].includes(w.step) && !w.resume)) ok(`wip.current keeps the step-to-column map at "${w.step}"${["halted", "escalated"].includes(w.step) ? ` (the glow of "${w.resume}", the step it stopped in, held still)` : ""}`);
     /* wip.next (RULES §3): on a tracking board, always the next unit in landing order — the first unit row, in row order, that is
@@ -339,6 +356,58 @@ function checkPlan(plan, dir, root) {
   const lists = listings(plan, "", []);
   if (lists.length) fail(`code blocks over five lines in the data (the detail belongs in the Markdown, linked): ${lists.slice(0, 6).join(", ")}`);
   if (!out.fail.length) ok(`plan.json: ${tracking ? "tracking board, " : ""}${rows.length} rows, ${rows.reduce((n, r) => n + (r.options || []).length, 0)} options, status ${plan.status}, step ${(w || {}).step || "—"}`);
+}
+
+/* The step panel's facts (RULES §3, "The step panel"; §4): the last event (wip.event), the interview's questions, the research phase,
+   the plan's pass, the implementation stages and the remediation's sub-steps. Each is optional; a value written is held to its form. */
+const STAGE_STATES = ["done", "current", "todo"], PLAN_PASSES = ["writing", "re-pass"], REPASS_FROM = ["parent", "qa"];
+function checkPanel(plan, w, ids, tracking) {
+  const stampOk = (v, at) => { if (v != null && !STAMP.test(String(v))) fail(`${at} "${v}" is not a date or an ISO date-time`); };
+  const ev = w.event;
+  if (ev != null) { if (typeof ev !== "object" || Array.isArray(ev) || !EVENTS.includes(ev.name)) fail(`wip.event must be { name, at, note }, name one of ${EVENTS.join(", ")} (got ${JSON.stringify(ev)})`); else stampOk(ev.at, "wip.event.at"); }
+  if (w.interview != null) {
+    if (!Array.isArray(w.interview)) fail("wip.interview must be an array of the interview's questions, each { \"text\": \"…\", \"answer\": null | \"…\" }");
+    else w.interview.forEach((q, j) => { const at = `wip.interview[${j}]`;
+      if (!q || typeof q !== "object" || !str(q.text)) fail(`${at} needs its text (the question asked)`);
+      else { if (q.answer != null && !str(q.answer)) fail(`${at}.answer is the answer's gist, or null while the question waits`); stampOk(q.asked, at + ".asked"); stampOk(q.answered, at + ".answered"); } });
+  }
+  const R = w.research;
+  if (R != null) {
+    if (typeof R !== "object" || Array.isArray(R) || !R_PHASES.includes(R.phase)) fail(`wip.research must be { phase, drafted, since }, phase one of ${R_PHASES.join(", ")} (got ${JSON.stringify(R)})`);
+    else {
+      if (R.drafted != null && !(Number.isInteger(R.drafted) && R.drafted >= 0)) fail(`wip.research.drafted is the number of questions drafted so far (got ${JSON.stringify(R.drafted)})`);
+      if (R.since != null) { if (typeof R.since !== "object" || Array.isArray(R.since)) fail("wip.research.since maps each phase to the time it began"); else Object.entries(R.since).forEach(([k, v]) => { if (!R_PHASES.includes(k)) fail(`wip.research.since names "${k}", which is not a research phase`); stampOk(v, "wip.research.since." + k); }); }
+      const qs = (Array.isArray(w.questions) ? w.questions : []).filter(q => q && typeof q === "object"), st = qs.map(qState);
+      if (R.phase === "planning" && st.some(x => x !== "planning")) warn(`wip.research is at "planning", but a question is ${st.find(x => x !== "planning")}: research-started moves the phase to "research"`);
+      if (R.phase === "verification" && !st.includes("verifying") && !st.includes("researching")) warn("wip.research is at \"verification\", but no question is verifying: verification-started sets the returned questions \"verifying\"");
+      if (R.phase === "complete" && st.some(x => x !== "complete")) warn("wip.research is \"complete\", but a question is not: researched sets every question complete");
+      if (["research", "verification"].includes(R.phase) && !qs.length) warn(`wip.research is at "${R.phase}", but no question is recorded: research-started records them`);
+    }
+  }
+  if (w.plan != null) {
+    const P = w.plan;
+    if (typeof P !== "object" || Array.isArray(P) || !PLAN_PASSES.includes(P.state)) fail(`wip.plan must be { state, from, pass }, state one of ${PLAN_PASSES.join(", ")} (got ${JSON.stringify(P)})`);
+    else { if (P.state === "re-pass" && !REPASS_FROM.includes(P.from)) fail(`a re-pass names where it comes from: wip.plan.from is ${REPASS_FROM.join(" or ")} (the parent's plan, or a qa pass)`);
+      if (P.from === "qa" && !posInt(P.pass)) fail("a re-pass after qa names the qa pass it answers: wip.plan.pass"); stampOk(P.since, "wip.plan.since"); }
+  }
+  if (w.stages != null) {
+    if (!Array.isArray(w.stages)) fail("wip.stages must be an array of the implementation stages, each { id, name, state, rows }");
+    else { w.stages.forEach((x, j) => { const at = `wip.stages[${j}]`;
+        if (!x || typeof x !== "object") { fail(`${at} must be an object`); return; }
+        if (!str(x.id) && !str(x.name)) fail(`${at} needs its id or name (the stage of plan.md)`);
+        if (!STAGE_STATES.includes(x.state)) fail(`${at}.state must be one of ${STAGE_STATES.join(", ")}`);
+        (Array.isArray(x.rows) ? x.rows : []).forEach(r => { if (!ids.has(r)) warn(`${at} names row "${r}", which is not a row of this board`); }); });
+      if (w.stages.filter(x => x && x.state === "current").length > 1) fail("wip.stages has more than one \"current\" stage"); }
+  }
+  if (w.remediation != null) {
+    const M = w.remediation;
+    if (typeof M !== "object" || Array.isArray(M)) fail("wip.remediation must be { pass, steps: [{ what, state }] }");
+    else { if (M.pass != null && !posInt(M.pass)) fail("wip.remediation.pass is the qa pass whose findings it answers");
+      const v = M.steps == null ? [] : Array.isArray(M.steps) ? M.steps : (fail("wip.remediation.steps must be an array"), []);
+      v.forEach((x, j) => { const at = `wip.remediation.steps[${j}]`; if (!x || typeof x !== "object" || !str(x.what)) fail(`${at} needs "what"`); else if (!STAGE_STATES.includes(x.state)) fail(`${at}.state must be one of ${STAGE_STATES.join(", ")}`); });
+      if (v.filter(x => x && x.state === "current").length > 1) fail("wip.remediation.steps has more than one \"current\" step"); }
+  }
+  if (tracking && ((Array.isArray(w.stages) && w.stages.length) || w.remediation || w.plan)) warn("a tracking board records implementation stages, a plan pass or a remediation: those are its units' runs, each on its own board, not the tracking issue's");
 }
 
 /* The Impact tab's data (RULES §2, Impact; §8). impact is null until plan acceptance, then an object with basis "plan" (the plan's
@@ -552,6 +621,12 @@ function checkHtml(htmlPath, id, data, kindMeta) {
   if (body == null) { fail(`${path.basename(htmlPath)} has no <script type="application/json" id="${id}"> block`); return; }
   let embedded; try { embedded = JSON.parse(body); } catch (e) { fail("the embedded copy does not parse: " + e.message); return; }
   if (JSON.stringify(embedded) !== JSON.stringify(data)) fail(`the embedded copy differs from ${id}.json: run embed.js`); else ok(`${path.basename(htmlPath)} embeds ${id}.json verbatim`);
+  /* the live sidecar (RULES §1, "plan.js"): the data file as a script beside the page, which the page re-loads while its run is live */
+  const side = readSidecar(path.join(path.dirname(htmlPath), SIDECAR[id]), id);
+  if (side.error === "missing") warn(`${SIDECAR[id]} is missing beside the page: its live view has nothing to re-load (run embed.js, which writes it)`);
+  else if (side.error) fail(`${SIDECAR[id]} is ${side.error}: run embed.js`);
+  else if (JSON.stringify(side.data) !== JSON.stringify(data)) fail(`${SIDECAR[id]} differs from ${id}.json: run embed.js`);
+  else ok(`${SIDECAR[id]} carries ${id}.json`);
   if (!html.includes(`<meta name="dashboard" content="${kindMeta}">`)) fail(`${path.basename(htmlPath)} does not declare <meta name="dashboard" content="${kindMeta}">`);
   const panels = html.match(/<section[^>]*role="tabpanel"[\s\S]*?<\/section>/g) || [];
   if (!panels.length) fail(`${path.basename(htmlPath)} has no tab panels`);
@@ -579,6 +654,31 @@ function checkBoard(dir) {
   (b.rows || []).forEach((r, i) => { if (!posInt(r.issue) || !str(r.title)) fail(`rows[${i}] needs issue and title`); if (r.board) checkLink(dir, r.board, `rows[${i}].board`);
     /* the impact's reconciliation state, derived by board.js from the row's board (lib.js reconciliation()): null, or { state, landed, total } */
     const rc = r.reconciliation; if (rc != null && (typeof rc !== "object" || !Object.keys(RECON_WORDS).includes(rc.state))) fail(`rows[${i}].reconciliation must be null or { state: ${Object.keys(RECON_WORDS).join(" | ")}, landed, total } (got ${JSON.stringify(rc)}): regenerate it with board.js`); });
+  /* A row's state (plan/RULES.md §5): one the work board draws. A boardless row (board.js writes "tracker" on it) takes its state from
+     the tracker, one of BOARDLESS_STATES, and holds to what it read: landed when the issue is closed; merged with a merged pull
+     request; in progress with an open pull request or a branch (never active: no run board to mirror); not started with neither. */
+  const ROW_STATES = ["landed", "complete", "building", "planning", "halted", "escalated", "abandoned", "next", "no-board", ...BOARDLESS_STATES];
+  (b.rows || []).forEach((r, i) => { const at = "rows[" + i + "] (#" + r.issue + ")";
+    if (r.status != null && !ROW_STATES.includes(r.status)) fail(at + ".status must be one of " + [...new Set(ROW_STATES)].join(", ") + " (got " + JSON.stringify(r.status) + ")");
+    if (r.tracker === undefined) {
+      if (["in-progress", "merged"].includes(r.status)) fail(at + ': "' + r.status + '" is a boardless row\'s state, read from the tracker, but the row records no "tracker": regenerate it with board.js');
+      if (r.status === "no-board") warn(at + ': "no-board" is the state of a board.js older than the boardless rows (plan/RULES.md §5): regenerate the work board with board.js, which reads its state from the tracker');
+      return; }
+    const t = r.tracker, pr = t && t.pr;
+    if (!t || typeof t !== "object" || Array.isArray(t) || !(t.branch === null || (typeof t.branch === "string" && t.branch.trim())) || !(pr === null || (pr && typeof pr === "object" && posInt(pr.number) && ["OPEN", "MERGED"].includes(pr.state)))) { fail(at + ".tracker must be { branch: a branch name or null, pr: { number, state: OPEN | MERGED } or null } (got " + JSON.stringify(t) + "): regenerate it with board.js"); return; }
+    if (r.board) fail(at + ': a row with a board takes its state from the board, not the tracker; leave "tracker" out');
+    if (!BOARDLESS_STATES.includes(r.status)) { fail(at + ": a boardless row is " + BOARDLESS_STATES.join(", ") + " (got " + JSON.stringify(r.status) + ")"); return; }
+    if (r.active) fail(at + ": a boardless row never glows: it has no run board to mirror");
+    const closed = r.state === "CLOSED", why = {
+      landed: closed ? null : "landed means the issue is closed",
+      merged: closed ? "a closed issue has landed" : !pr || pr.state !== "MERGED" ? "merged needs the merged pull request (tracker.pr, state MERGED)" : null,
+      "in-progress": closed ? "a closed issue has landed" : pr ? (pr.state !== "OPEN" ? "in progress with a pull request needs an open one" : null) : !t.branch ? "in progress needs a branch or an open pull request that refers to the issue" : null,
+      "not-started": closed ? "a closed issue has landed" : pr || t.branch ? "not started means no branch or pull request refers to the issue" : null }[r.status];
+    if (why) fail(at + ': status "' + r.status + '" does not match what the tracker recorded (state ' + r.state + ", branch " + JSON.stringify(t.branch) + ", pr " + JSON.stringify(pr) + "): " + why);
+    if (["merged", "landed"].includes(r.status) && r.branch) fail(at + ': a merged branch is not shown (plan/RULES.md §3, "Branches"): branch is null once the row is ' + r.status);
+  });
+  const bl = (b.rows || []).filter(r => r.tracker !== undefined);
+  if (bl.length) ok("board.json: " + bl.length + " boardless row" + (bl.length === 1 ? "" : "s") + ", state from the tracker: " + BOARDLESS_STATES.map(k => bl.filter(r => r.status === k).length + " " + k).join(", "));
   /* "unassigned": the decision that an entry belongs to no system (board.js keeps it): true, and never beside a system */
   [["rows", b.rows], ["unscheduled", b.unscheduled]].forEach(([k, xs]) => (xs || []).forEach((r, i) => { if (r.unassigned !== undefined && (r.unassigned !== true || r.system)) fail(`${k}[${i}].unassigned must be true, with "system" null (got unassigned ${JSON.stringify(r.unassigned)}, system ${JSON.stringify(r.system)})`); }));
   const rcs = (b.rows || []).filter(r => r.reconciliation && r.reconciliation.state);

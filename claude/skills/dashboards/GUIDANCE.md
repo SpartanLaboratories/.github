@@ -82,7 +82,8 @@ dashed, partly reconciled yellow, as built green, each with its glyph and word (
 Impact).
 
 **Work in progress and the next one up: two accent marks.** The accent colour marks two things
-and nothing else, each with its own look and its own legend entry:
+and nothing else, each with its own look and its own legend entry (the charging arrow, below, is
+the in-progress mark of a connector):
 
 - **In progress** — the thing currently being worked on (a plan board's `wip.current`, an active
   run on the work board) carries an **interior glow**: a solid accent ring inside its edge, a faint
@@ -97,17 +98,42 @@ and nothing else, each with its own look and its own legend entry:
   tag. It never animates and never reads as building or active; a blocker that has not landed
   adds a yellow "blocked by #n" tag.
 
-Nothing else animates. At most a handful of elements are in progress at once; if everything
-glows, nothing is current.
+Two more marks belong to the work in progress on a plan board, and to nothing else
+(`plan/RULES.md` §3): the **charging arrow**, the connector into a Verdict cell whose verdict the plan
+step is writing, a battery of accent segments filling left to right (held still, filled, while the
+run waits on the user and under `prefers-reduced-motion`); and the **live indicator**'s dot in the
+header of a plan board or the live work board, ink, never a status or accent colour, which pulses
+while the view is live and changing and holds still after a quiet spell, while the run waits on the
+user, when its data cannot be read and under `prefers-reduced-motion`. Nothing else animates. At
+most a handful of elements are in progress at once; if everything glows, nothing is current.
+
+**Research state: the research scale.** On a plan board, a row the run's research questions name
+carries a **ring** (its Considered cell's border, never a fill) in a status spectrum of its own, from
+red to green: **red** planning (the question is being drafted), **orange** researching, **orange
+with a check** returned (awaiting verification), **yellow** verifying, **green** complete (kept until
+the plan is accepted). A pill in the cell's head says the state with its glyph and word, and the
+Timeline's legend names each state it drew. The ring and the in-progress glow coexist: the glow is
+the activity, the ring the research's progress (`plan/RULES.md` §3).
 
 **Line and fill encodings.** Solid = built, done, decided. **Dashed = planned or pending**, on
 every tab of every page but one, and dashed means nothing else. The exception is a plan board's
-Impact tab, which draws nothing dashed (above). Dotted = standalone or conditional where a
-ruleset uses it. Filled vs outlined only where the legend says what it means.
+Impact tab, which draws nothing dashed (above). No ruleset may use a dash for anything else:
+diagram furniture is solid — sequence lifelines and boundary frames faint and solid, a return message
+a thin solid line told by its open arrowhead — and only a planned lifeline, message, element or
+relationship is dashed. `check-page.js` fails a dashed element that marks nothing planned or pending,
+on every tab of every kind of page, every C4 view included, and a `workspace.dsl` style that dashes
+a tag other than `Planned`. Dotted = standalone or conditional where a ruleset uses it. Filled vs
+outlined only where the legend says what it means.
 
 **Themes.** Every colour is a token on `:root`, redefined for dark mode; status and system
 colours are validated for contrast in both themes (the `dataviz` skill's validator). Dark mode
-is selected, never computed by flipping.
+is selected, never computed by flipping. Every dashboard type — system, supersystem and repository
+pages, plan boards, tracking boards, the work board — carries a **theme switch** in its header, a
+light/night toggle right of the breadcrumb: until it is clicked the page follows the system setting
+(`prefers-color-scheme`); a click picks the other palette and remembers the choice across pages and
+reloads (`localStorage` key `dashboards-theme`, shared by every dashboard of the same origin, applied
+in the page's head before its first paint). It only selects one of the two palettes the page already
+defines (`:root[data-theme]`); it adds no colour.
 
 ## 2. Legends
 
@@ -200,7 +226,9 @@ the unscheduled issues, the header's "last amended by" — they are the two link
 
 ## 6. Pages are self-contained
 
-Inline CSS, JS and SVG; no external resources; light and dark; no horizontal page scroll at
+Inline CSS, JS and SVG; no external resources (a plan board's or the live work board's own
+sidecar, `plan.js` or `board.js` beside the page, is its data, not a resource: the page renders
+without it and re-reads it only while its run is live, `plan/RULES.md` §1); light and dark; no horizontal page scroll at
 phone width (diagrams scroll inside their own frame); every control reachable by keyboard;
 under 16 MB. On a wide desktop screen (over 1500 px) every page — system, supersystem and repository
 pages, plan and tracking boards, the work board — uses most of the window rather than a fixed measure,
@@ -248,7 +276,7 @@ Every page, before it is committed, passes its set's checker in `--auto` mode
 
 | The page | Checked |
 |---|---|
-| any page | its data and its rules (`check.js`), the embedded copy matching its data file, no dead `href="#"`, no external resource, no work level in its text (§4), no system colour in a status spectrum (§1) |
+| any page | its data and its rules (`check.js`), the embedded copy matching its data file (on a plan board and the work board, its live sidecar too), no dead `href="#"`, no external resource, no work level in its text (§4), no system colour in a status spectrum (§1) |
 | a plan board or the work board that is a verified template plus its data | nothing more: no browser pass |
 | a system, supersystem or repository page whose CSS, tabs and script — before `MODEL` (less its page-filled lines, such as `REPO` and `SRC`) and after it — are the verified template's | one light pass, for the facts it fills in: no script error, every tab drawn with its legend, the Guarantees, Context, no git-ignored registry file |
 | a page that diverges — declared, undeclared, made from an older template — or whose template changed since it was verified | the full pass: light, dark, 520 px, a 390 px frame, a 1920 x 1080 desktop |

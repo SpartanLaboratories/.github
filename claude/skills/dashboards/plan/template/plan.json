@@ -13,35 +13,136 @@
   "status": "planned",
   "parent": null,
   "branch": "<the run's branch, once cut>",
-  "baseline": {"ref": "master", "sha": "<sha>", "date": "<YYYY-MM-DD>"},
+  "baseline": {
+    "ref": "master",
+    "sha": "<sha>",
+    "date": "<YYYY-MM-DD>"
+  },
   "asBuilt": null,
   "systems": [
-    {"slug": "<registry slug>", "name": "<registry name>", "slot": 1, "top": "<the top-level system's name>", "status": "built", "page": "docs/dashboards/<slug>/index.html"}
+    {
+      "slug": "<registry slug>",
+      "name": "<registry name>",
+      "slot": 1,
+      "top": "<the top-level system's name>",
+      "status": "built",
+      "page": "docs/dashboards/<slug>/index.html"
+    }
   ],
   "wip": {
-    "$comment": "step: sizing | interview | research | architecture | plan | branch | implementation | qa | remediation | landing | landed | halted | escalated | cancelled. current: <row-id>.<column> addresses or a column name (gap, considered, verdict, built), the work in progress; at most six; it follows step by the step-to-column map (plan/RULES.md §3): interview the cell the question concerns or nothing, research the <row-id>.considered cells of the rows the open research questions name (the whole considered column while none is recorded, a question names no row, the board has no rows or the cells would be more than six; the verification after the last question returned glows every question's rows again), architecture considered, plan (writing or verifying a plan) considered and verdict, implementation and remediation the touched rows <row-id>.built (a tracking board: its units in progress), qa built, sizing, branch, landing, landed and cancelled nothing; halted and escalated keep the glow of the step in resume, held still. next: on a tracking board only, the id of the next unit in landing order (the first unit row that is pending and not in current), or null when none is left; it is kept so at every landing and every unit start, so the board always names what is coming. On a tracking board, step is the tracking issue's own phase: implementation while its units run (each unit's own step is in its row's unit.live), never a unit's step. While halted: resume (the step to return to) and waitingOn. questions: the research questions, each {question: <slug>, rows: [<row-id>], findings: null while open, then the findings path}, written by research-started and research-returned and cleared by researched. qa[].verdict: approved | changes-requested | running. blockers from the tracker's blocked-by links; repo only when another repository's.",
+    "$comment": "step: sizing | interview | research | architecture | plan | branch | implementation | qa | remediation | landing | landed | halted | escalated | cancelled. current: <row-id>.<column> addresses or a column name (gap, considered, verdict, built), the work in progress; at most six; it follows step by the step-to-column map (plan/RULES.md §3): interview the cell the question concerns or nothing, research the <row-id>.considered cells of the rows the questions being researched or verified name (the whole considered column while none is recorded, none is researching or verifying, a question names no row, the board has no rows or the cells would be more than six), architecture considered, plan (writing or verifying a plan) considered and verdict, implementation and remediation the touched rows <row-id>.built (a tracking board: its units in progress), qa built, sizing, branch, landing, landed and cancelled nothing; halted and escalated keep the glow of the step in resume, held still. next: on a tracking board only, the id of the next unit in landing order (the first unit row that is pending and not in current), or null when none is left; it is kept so at every landing and every unit start, so the board always names what is coming. On a tracking board, step is the tracking issue's own phase: implementation while its units run (each unit's own step is in its row's unit.live), never a unit's step. While halted: resume (the step to return to) and waitingOn. The step panel's facts (plan/RULES.md §3, \"The step panel\"), each optional: event, the last event {name, at, note}; interview, the interview's questions {text, answer: null while it waits, asked, answered}; research {phase: planning | research | verification | complete, drafted: the questions drafted so far, since: {<phase>: when it began}}; questions, the research questions {question: <slug>, rows: [<row-id>], findings: null until it returns, then the findings path, state: planning | researching | returned | verifying | complete, started, returned}, written by research-started, research-returned, verification-started and researched, kept complete until plan-accepted (on a tracking board, architecture-signed-off), which clears them with research; plan {state: writing | re-pass, from: parent | qa (a re-pass's source), pass: the qa pass a re-pass answers, since}; stages, the implementation stages of plan.md {id, name, state: done | current | todo, rows}; remediation {pass: the qa pass it answers, steps: [{what, state}]}. qa[].verdict: approved | changes-requested | running; qa[].findings counts by kind, qa[].severity by severity where the qa report states it. blockers from the tracker's blocked-by links; repo only when another repository's.",
     "step": "research",
     "since": "<YYYY-MM-DD or an ISO date-time>",
     "updated": "<ISO date-time of this board update>",
     "detail": "<one line: which stage, which qa pass, what waits on the user>",
-    "steps": ["sizing", "interview", "research", "plan", "branch", "implementation", "qa", "remediation", "landing", "landed"],
-    "current": ["considered"],
-    "questions": [],
+    "steps": [
+      "sizing",
+      "interview",
+      "research",
+      "plan",
+      "branch",
+      "implementation",
+      "qa",
+      "remediation",
+      "landing",
+      "landed"
+    ],
+    "current": [
+      "considered"
+    ],
+    "questions": [
+      {
+        "question": "<question-slug>",
+        "rows": [
+          "<row-id>"
+        ],
+        "findings": null,
+        "state": "researching",
+        "started": "<ISO date-time>"
+      }
+    ],
+    "research": {
+      "phase": "research",
+      "drafted": 0,
+      "since": {
+        "planning": "<ISO date-time>",
+        "research": "<ISO date-time>"
+      }
+    },
+    "interview": [
+      {
+        "text": "<the question asked>",
+        "answer": null,
+        "asked": "<ISO date-time>"
+      }
+    ],
+    "plan": {
+      "state": "writing",
+      "from": null,
+      "pass": null
+    },
+    "stages": [
+      {
+        "id": "A",
+        "name": "<the stage, as plan.md names it>",
+        "state": "current",
+        "rows": [
+          "<row-id>"
+        ]
+      }
+    ],
+    "remediation": null,
+    "event": {
+      "name": "research-started",
+      "at": "<ISO date-time>"
+    },
     "next": null,
     "qa": [
-      {"pass": 1, "verdict": "changes-requested", "date": "<YYYY-MM-DD>", "findings": {"documentation": 0, "test": 0, "code": 0}, "note": "<optional>"}
+      {
+        "pass": 1,
+        "verdict": "changes-requested",
+        "date": "<YYYY-MM-DD>",
+        "findings": {
+          "documentation": 0,
+          "test": 0,
+          "code": 0
+        },
+        "note": "<optional>",
+        "severity": {
+          "<severity word>": 0
+        }
+      }
     ],
     "qaMax": 3,
     "waitingOn": null,
     "resume": null,
-    "blockers": {"waitsOn": [], "blocks": [{"issue": 0, "repo": "<owner/name, only for another repository>"}]},
+    "blockers": {
+      "waitsOn": [],
+      "blocks": [
+        {
+          "issue": 0,
+          "repo": "<owner/name, only for another repository>"
+        }
+      ]
+    },
     "landing": null
   },
   "milestones": [
-    {"column": "gap", "label": "Research verified", "date": "<YYYY-MM-DD>", "ref": "research/README.md", "note": "<optional>"}
+    {
+      "column": "gap",
+      "label": "Research verified",
+      "date": "<YYYY-MM-DD>",
+      "ref": "research/README.md",
+      "note": "<optional>"
+    }
   ],
   "trail": [
-    {"date": "<YYYY-MM-DD>", "column": "gap", "label": "<a dated event: issue opened, research, review round, merge>", "ref": "<sha, PR #n, #n or a relative path>"}
+    {
+      "date": "<YYYY-MM-DD>",
+      "column": "gap",
+      "label": "<a dated event: issue opened, research, review round, merge>",
+      "ref": "<sha, PR #n, #n or a relative path>"
+    }
   ],
   "rows": [
     {
@@ -54,23 +155,70 @@
         "kind": "bug",
         "summary": "<the hole, never the fix, in two to four lines>",
         "detail": "",
-        "evidence": ["<path:line — what it shows, at the baseline>"],
+        "evidence": [
+          "<path:line — what it shows, at the baseline>"
+        ],
         "source": "<research/README.md §…>",
         "link": "<research/README.md#heading-anchor: the Markdown section that holds the rest>"
       },
       "options": [
-        {"id": "<option-id>", "name": "<the option taken>", "summary": "", "verdict": "accepted", "why": "<why it was taken>", "source": "<architecture.md §…>", "link": "<architecture.md#alternatives-anchor>"},
-        {"id": "<option-id>", "name": "<an option adopted in part>", "summary": "", "verdict": "partial", "chosen": false, "why": "<what was taken and what wasn't>", "source": "<architecture.md §…>"},
-        {"id": "<option-id>", "name": "<an option left open at plan time>", "summary": "", "verdict": "deferred", "why": "<why it was left open; column 4 settles it with a change carrying settles>", "source": "<plan.md §…>"},
-        {"id": "<option-id>", "name": "<an option ruled out>", "summary": "", "verdict": "declined", "why": "<the trade-off that ruled it out>", "wins": "<when it would have been right>", "source": "<architecture.md §…>"}
+        {
+          "id": "<option-id>",
+          "name": "<the option taken>",
+          "summary": "",
+          "verdict": "accepted",
+          "why": "<why it was taken>",
+          "source": "<architecture.md §…>",
+          "link": "<architecture.md#alternatives-anchor>"
+        },
+        {
+          "id": "<option-id>",
+          "name": "<an option adopted in part>",
+          "summary": "",
+          "verdict": "partial",
+          "chosen": false,
+          "why": "<what was taken and what wasn't>",
+          "source": "<architecture.md §…>"
+        },
+        {
+          "id": "<option-id>",
+          "name": "<an option left open at plan time>",
+          "summary": "",
+          "verdict": "deferred",
+          "why": "<why it was left open; column 4 settles it with a change carrying settles>",
+          "source": "<plan.md §…>"
+        },
+        {
+          "id": "<option-id>",
+          "name": "<an option ruled out>",
+          "summary": "",
+          "verdict": "declined",
+          "why": "<the trade-off that ruled it out>",
+          "wins": "<when it would have been right>",
+          "source": "<architecture.md §…>"
+        }
       ],
       "verdict": {
         "kind": "build",
         "summary": "<the decision in one or two sentences>",
         "defense": "<why it beats the options declined>",
-        "steps": [{"id": "<plan's own label>", "what": "<one sentence naming the file and anchor>", "files": ["<path>"], "check": "<the command or observation that proves it>", "link": "<plan.md#step-anchor>"}],
-        "tests": ["<Level n — the class and the claim>"],
-        "risks": ["<a risk and what bounds it>"],
+        "steps": [
+          {
+            "id": "<plan's own label>",
+            "what": "<one sentence naming the file and anchor>",
+            "files": [
+              "<path>"
+            ],
+            "check": "<the command or observation that proves it>",
+            "link": "<plan.md#step-anchor>"
+          }
+        ],
+        "tests": [
+          "<Level n — the class and the claim>"
+        ],
+        "risks": [
+          "<a risk and what bounds it>"
+        ],
         "source": "<plan.md §…>",
         "link": "<plan.md#section-anchor>"
       },
@@ -78,7 +226,18 @@
         "$comment": "state: pending | as-planned | amended | deviated | dropped | deferred | complete | landed. amended and deviated list changes[]; a change that settles a deferred option carries settles: {option, verdict}. dropped states its reason in summary; deferred names issue. complete (implemented and qa passed, not merged yet; set by the qa-pass event) and landed (merged; set by the landing refresh) are for a tracking board's unit rows only: a unit goes pending, complete, landed. An issue board's rows keep as-planned, amended, deviated.",
         "state": "pending",
         "summary": "",
-        "changes": [{"what": "<what moved>", "why": "<why>", "when": "<the stage or review round>", "ref": "<sha>", "settles": {"option": "<option-id>", "verdict": "accepted"}}],
+        "changes": [
+          {
+            "what": "<what moved>",
+            "why": "<why>",
+            "when": "<the stage or review round>",
+            "ref": "<sha>",
+            "settles": {
+              "option": "<option-id>",
+              "verdict": "accepted"
+            }
+          }
+        ],
         "files": [],
         "tests": "",
         "commits": [],
@@ -92,13 +251,40 @@
       "name": "<a scope item the plan deliberately leaves alone>",
       "system": "<registry slug>",
       "where": "<path>",
-      "gap": {"kind": "risk", "summary": "<what stays wrong>", "evidence": ["<path:line>"], "source": "<architecture.md §…>"},
+      "gap": {
+        "kind": "risk",
+        "summary": "<what stays wrong>",
+        "evidence": [
+          "<path:line>"
+        ],
+        "source": "<architecture.md §…>"
+      },
       "options": [
-        {"id": "<option-id>", "name": "<leave it, to the issue that owns it>", "verdict": "accepted", "why": "<why leaving it is right here>"},
-        {"id": "<option-id>", "name": "<fix it here>", "verdict": "declined", "why": "<why not in this change>"}
+        {
+          "id": "<option-id>",
+          "name": "<leave it, to the issue that owns it>",
+          "verdict": "accepted",
+          "why": "<why leaving it is right here>"
+        },
+        {
+          "id": "<option-id>",
+          "name": "<fix it here>",
+          "verdict": "declined",
+          "why": "<why not in this change>"
+        }
       ],
-      "verdict": {"kind": "leave", "summary": "<not changed; what pins the decision>", "defense": "<why>", "steps": [], "tests": [], "risks": [], "source": "<plan.md §…>"},
-      "asBuilt": {"state": "pending"}
+      "verdict": {
+        "kind": "leave",
+        "summary": "<not changed; what pins the decision>",
+        "defense": "<why>",
+        "steps": [],
+        "tests": [],
+        "risks": [],
+        "source": "<plan.md §…>"
+      },
+      "asBuilt": {
+        "state": "pending"
+      }
     },
     {
       "id": "<unit slug>",
@@ -106,13 +292,54 @@
       "name": "<the unit's name>",
       "system": "<registry slug>",
       "where": "<placement>",
-      "unit": {"n": 1, "slug": "<unit slug>", "issue": 0, "level": 3, "blockedBy": [], "versions": "<versions moved>", "branch": null, "folder": "<NN-slug/ once it exists, else null>", "board": "<set by embed.js: NN-slug/dashboard.html once that board exists in this tree, else null (plan/RULES.md §1)>"},
-      "gap": {"kind": "missing", "summary": "<what the unit's system lacks at the baseline>", "evidence": ["<path:line>"], "source": "<architecture.md §…>", "link": "<architecture.md#anchor>"},
+      "unit": {
+        "n": 1,
+        "slug": "<unit slug>",
+        "issue": 0,
+        "level": 3,
+        "blockedBy": [],
+        "versions": "<versions moved>",
+        "branch": null,
+        "folder": "<NN-slug/ once it exists, else null>",
+        "board": "<set by embed.js: NN-slug/dashboard.html once that board exists in this tree, else null (plan/RULES.md §1)>"
+      },
+      "gap": {
+        "kind": "missing",
+        "summary": "<what the unit's system lacks at the baseline>",
+        "evidence": [
+          "<path:line>"
+        ],
+        "source": "<architecture.md §…>",
+        "link": "<architecture.md#anchor>"
+      },
       "options": [
-        {"id": "<option-id>", "name": "<the architecture's design for the unit>", "verdict": "accepted", "why": "<why>", "source": "<architecture.md §…>"}
+        {
+          "id": "<option-id>",
+          "name": "<the architecture's design for the unit>",
+          "verdict": "accepted",
+          "why": "<why>",
+          "source": "<architecture.md §…>"
+        }
       ],
-      "verdict": {"kind": "build", "summary": "<the unit's scope from the decomposition>", "defense": "<why the unit is scoped as it is: one system, a bug fix, docs only; never its work level>", "steps": [], "tests": ["<the test levels the unit's plan must cover>"], "leaves": ["<what it leaves to other units>"], "risks": [], "source": "<architecture.md §…>", "link": "<architecture.md#decomposition>"},
-      "asBuilt": {"state": "pending", "summary": ""}
+      "verdict": {
+        "kind": "build",
+        "summary": "<the unit's scope from the decomposition>",
+        "defense": "<why the unit is scoped as it is: one system, a bug fix, docs only; never its work level>",
+        "steps": [],
+        "tests": [
+          "<the test levels the unit's plan must cover>"
+        ],
+        "leaves": [
+          "<what it leaves to other units>"
+        ],
+        "risks": [],
+        "source": "<architecture.md §…>",
+        "link": "<architecture.md#decomposition>"
+      },
+      "asBuilt": {
+        "state": "pending",
+        "summary": ""
+      }
     }
   ],
   "impact": {
@@ -120,36 +347,97 @@
     "basis": "plan",
     "summary": "<two to four lines: what the change means outside itself>",
     "none": null,
-    "release": {"bump": "fix", "version": "<artifact version>", "note": "<optional>"},
+    "release": {
+      "bump": "fix",
+      "version": "<artifact version>",
+      "note": "<optional>"
+    },
     "downstream": [
-      {"who": "<the party affected>", "kind": "consumer", "system": "<registry slug, or null>", "effect": "behaviour", "summary": "<what it sees, before and after>", "link": "<impact.md#section-anchor>"}
+      {
+        "who": "<the party affected>",
+        "kind": "consumer",
+        "system": "<registry slug, or null>",
+        "effect": "behaviour",
+        "summary": "<what it sees, before and after>",
+        "link": "<impact.md#section-anchor>"
+      }
     ],
     "adaptation": [
-      {"who": "<the party that must adapt>", "system": "<registry slug, or null>", "need": "required", "summary": "<what it must change>", "link": "<impact.md#section-anchor>"}
+      {
+        "who": "<the party that must adapt>",
+        "system": "<registry slug, or null>",
+        "need": "required",
+        "summary": "<what it must change>",
+        "link": "<impact.md#section-anchor>"
+      }
     ],
     "api": [
-      {"surface": "<the public type or member, in `code`>", "system": "<registry slug>", "change": "added", "tier": "stable-core", "summary": "<what moves>", "link": "<plan.md#section-anchor>"}
+      {
+        "surface": "<the public type or member, in `code`>",
+        "system": "<registry slug>",
+        "change": "added",
+        "tier": "stable-core",
+        "summary": "<what moves>",
+        "link": "<plan.md#section-anchor>"
+      }
     ],
     "conversion": [
-      {"what": "<one migration step, in order>", "link": "<impact.md#section-anchor>"}
+      {
+        "what": "<one migration step, in order>",
+        "link": "<impact.md#section-anchor>"
+      }
     ],
     "units": [
-      {"unit": "<unit row id>", "basis": "plan", "summary": "<the unit's own impact in a sentence or two>", "release": {"bump": "none", "version": null}, "source": "<NN-slug/impact.md>", "link": "<NN-slug/impact.md#section-anchor>", "changes": []}
+      {
+        "unit": "<unit row id>",
+        "basis": "plan",
+        "summary": "<the unit's own impact in a sentence or two>",
+        "release": {
+          "bump": "none",
+          "version": null
+        },
+        "source": "<NN-slug/impact.md>",
+        "link": "<NN-slug/impact.md#section-anchor>",
+        "changes": []
+      }
     ],
     "changes": [
-      {"what": "<what moved from the planned impact>", "why": "<why>", "when": "<the stage or review round>", "unit": "<unit row id: tracking boards only; leave out on an issue board>", "ref": "<sha>", "entry": "<downstream | adaptation | api | conversion>.<index>", "system": "<registry slug, or null>"},
-      {"unit": "<unit row id>", "when": "#<issue> landing", "none": true}
+      {
+        "what": "<what moved from the planned impact>",
+        "why": "<why>",
+        "when": "<the stage or review round>",
+        "unit": "<unit row id: tracking boards only; leave out on an issue board>",
+        "ref": "<sha>",
+        "entry": "<downstream | adaptation | api | conversion>.<index>",
+        "system": "<registry slug, or null>"
+      },
+      {
+        "unit": "<unit row id>",
+        "when": "#<issue> landing",
+        "none": true
+      }
     ],
     "source": "impact.md",
     "link": "<impact.md#section-anchor>"
   },
   "roadmap": null,
   "followUps": [
-    {"issue": 0, "title": "<the issue's title, optional: with it the number opens the GitHub issue and the title its board>", "note": "<how it relates>"},
-    {"name": "<an unfiled follow-up's name>", "note": "<what it would do>"}
+    {
+      "issue": 0,
+      "title": "<the issue's title, optional: with it the number opens the GitHub issue and the title its board>",
+      "note": "<how it relates>"
+    },
+    {
+      "name": "<an unfiled follow-up's name>",
+      "note": "<what it would do>"
+    }
   ],
   "documents": [
-    {"label": "Research", "path": "research/README.md", "note": "<what it holds>"}
+    {
+      "label": "Research",
+      "path": "research/README.md",
+      "note": "<what it holds>"
+    }
   ],
   "notes": {
     "paths": "<how paths are abbreviated on this board>",

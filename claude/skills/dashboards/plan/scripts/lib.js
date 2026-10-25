@@ -128,7 +128,26 @@ function unitRun(sub) {
     steps: Array.isArray(w.steps) ? w.steps : [], waitingOn: w.waitingOn || null, resume: w.resume || null,
     qa: Array.isArray(w.qa) ? w.qa : [], qaMax: w.qaMax || null, status: sub.status || null, branch: sub.branch || null };
   if (w.proposedLevel) run.proposedLevel = w.proposedLevel;
+  Object.assign(run, panelFacts(sub));
   return run;
+}
+/* The step panel's facts of a board's run (plan/RULES.md §3, "The step panel"), as a unit's mirror carries them so the tracking
+   board can draw that unit's step panel: only the fields the board records (none is written empty, so a mirror stays as small as
+   the run): the last event, the interview's questions, the research phase and questions, the plan's pass, the implementation
+   stages, the remediation's sub-steps; at the plan step the verdicts written of the rows, in implementation and remediation the
+   deviations recorded (the rows' as-built changes); and rowNames, the names of the rows the questions and stages name. */
+const PANEL_FIELDS = ["event", "interview", "research", "questions", "plan", "stages", "remediation"];
+function panelFacts(sub) {
+  const w = (sub && sub.wip) || {}, out = {}, has = v => Array.isArray(v) ? v.length > 0 : v != null && typeof v === "object";
+  PANEL_FIELDS.forEach(k => { if (has(w[k])) out[k] = w[k]; });
+  const rows = Array.isArray(sub && sub.rows) ? sub.rows : [], step = ["halted", "escalated"].includes(w.step) ? w.resume : w.step;
+  if (step === "plan" && rows.length) out.verdicts = { written: rows.filter(r => r && r.verdict && typeof r.verdict.summary === "string" && r.verdict.summary.trim()).length, total: rows.length };
+  if (["implementation", "remediation"].includes(step) && rows.length) out.deviations = rows.reduce((n, r) => n + (Array.isArray(((r || {}).asBuilt || {}).changes) ? r.asBuilt.changes.length : 0), 0);
+  /* the names of the rows the questions and stages name, so the tracking board names them as the unit's own board does */
+  const named = new Set([...(out.questions || []), ...(out.stages || [])].flatMap(x => Array.isArray(x && x.rows) ? x.rows : []));
+  const names = rows.filter(r => r && named.has(r.id) && typeof r.name === "string").map(r => [r.id, r.name]);
+  if (names.length) out.rowNames = Object.fromEntries(names);
+  return out;
 }
 /* The plan.json of a unit's sub-issue board, seen from the tracking board's folder `dir`, or null (no board, or one that does not
    parse, or a board of another issue). */
@@ -219,9 +238,15 @@ function parentBoard(dir, parent) {
    clicks. */
 const ISSUE_UNLINKED = new Set(["$comment", "schema", "repo", "slug", "folder", "kind", "status", "id", "where", "title", "system", "slot", "top", "page", "board",
   "branch", "step", "steps", "since", "updated", "state", "verdict", "column", "date", "sha", "merge", "version", "pr", "files", "n", "level", "current", "next",
-  "resume", "qa", "qaMax", "pass", "findings", "question", "questions", "landing", "chosen", "settles", "when", "issueBoards"]);
+  "resume", "qa", "qaMax", "pass", "findings", "question", "questions", "landing", "chosen", "settles", "when", "issueBoards",
+  "event", "research", "phase", "drafted", "stages", "severity", "started", "returned", "asked", "answered", "verdicts", "deviations"]);
 const reEsc = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const UNIT_LANDED = ["landed", "as-planned", "amended", "deviated"];
+/* Left for later (plan/RULES.md §2, the As built tile; §3, the chain's progress): a row whose written verdict leaves it as is (kind
+   "leave" with a summary) and that is resolved as planned (pending, as-planned or amended) is not built, so the counts leave it out
+   of both figures and name it beside them. One that column 4 records built after all (deviated; a unit complete or landed) counts
+   as built again; a dropped or deferred one keeps its own state. The plan-board template's leftForLater() is the same rule. */
+const leftForLater = r => { const v = (r && r.verdict) || {}; return v.kind === "leave" && typeof v.summary === "string" && !!v.summary.trim() && !["deviated", "dropped", "deferred", "complete", "landed"].includes(((r.asBuilt || {}).state) || "pending"); };
 function issueRefs(plan) {
   const out = [];
   if (!plan || typeof plan !== "object") return out;
@@ -362,8 +387,8 @@ const unitBranch = row => row && row.unit && row.unit.branch && !UNIT_LANDED.inc
    - "as-built": basis as-built.
    An impact.changes entry with none: true is a unit's explicit "no change" record: on a tracking board every landed unit records its
    effect on the initiative's impact at its landing refresh, as the changes it made (each naming the unit) or as one such entry.
-   Returns null while the board records no impact, else { state, basis, tracking, landed, total (tracking boards; units dropped or
-   deferred left out of the total, as in the chain's progress), changes (the real changes), noChange (unit ids with a "no change"
+   Returns null while the board records no impact, else { state, basis, tracking, landed, total (tracking boards; units dropped,
+   deferred or left for later left out of the total, as in the chain's progress), changes (the real changes), noChange (unit ids with a "no change"
    entry), unrecorded (unit ids landed with neither) }. check.js and board.js use it; the plan-board template's reconciliationOf()
    is the same rule, in the page's own runtime. */
 const isNoChange = c => !!c && typeof c === "object" && c.none === true;
@@ -371,7 +396,7 @@ function reconciliation(plan) {
   const I = plan && plan.impact;
   if (!I || typeof I !== "object" || Array.isArray(I)) return null;
   const tracking = plan.kind === "tracking", st = r => (r.asBuilt || {}).state || "pending";
-  const counted = tracking ? (plan.rows || []).filter(r => r && r.unit && !["dropped", "deferred"].includes(st(r))) : [];
+  const counted = tracking ? (plan.rows || []).filter(r => r && r.unit && !["dropped", "deferred"].includes(st(r)) && !leftForLater(r)) : [];
   const landed = counted.filter(r => UNIT_LANDED.includes(st(r)));
   const changes = Array.isArray(I.changes) ? I.changes.filter(c => c && typeof c === "object") : [];
   const state = I.basis === "as-built" ? "as-built" : changes.length || landed.length ? "partial" : "planned";
@@ -379,6 +404,35 @@ function reconciliation(plan) {
     changes: changes.filter(c => !isNoChange(c)).length,
     noChange: tracking ? [...new Set(changes.filter(isNoChange).map(c => c.unit))] : [],
     unrecorded: tracking ? landed.filter(r => !changes.some(c => c.unit === r.id)).map(r => r.id) : [] };
+}
+/* Boardless rows on the work board (plan/RULES.md §5, "Boardless rows"): a row with no board of its own and no tracking board's unit
+   row to read takes its state from the tracker. BOARDLESS_STATES are the four it can take, in this order of precedence:
+   - "landed": the issue is closed;
+   - "in-progress": open, and an open pull request refers to it (solid, never active: there is no run board to mirror);
+   - "merged": open, and a pull request that refers to it has merged (awaiting close);
+   - "in-progress": open, and a branch refers to it (a branch whose pull request has merged counts only as that merge);
+   - "not-started": open, and nothing refers to it (dashed, pending).
+   A pull request refers to issue n when GitHub links it as closing the issue (closing: closedByPullRequestsReferences nodes) or its
+   head branch names the issue; a branch when GitHub links it to the issue (linked: linkedBranches names) or its name names the issue
+   (namesIssue). Returns { status, tracker: { branch, pr: { number, state } | null } }; board.js writes both on the row, and check.js
+   holds the row to them. */
+const BOARDLESS_STATES = ["not-started", "in-progress", "merged", "landed"];
+/* Whether a branch name names issue n: "issue-62" or "issue/62" anywhere, or the number at the start of a path segment followed by
+   "-", "_", "/" or the end ("62-http-core", "fix/62", "feature/3-g1-build-skeleton"); never a number inside a word or a version
+   ("v62", "1.62", "g1"). */
+const namesIssue = (branch, n) => new RegExp(`(^|/)(issue[-/])?${n}([-_/]|$)|[-_]issue-${n}([-_/]|$)`, "i").test(String(branch || ""));
+function boardlessState(n, issueState, closing, linked, prs, branches) {
+  const byHead = (prs || []).filter(p => namesIssue(p.headRefName, n)), cl = (closing || []).filter(p => p && p.number);
+  const all = [...cl, ...byHead.filter(p => !cl.some(c => c.number === p.number))];
+  const open = all.filter(p => p.state === "OPEN").sort((a, b) => b.number - a.number), merged = all.filter(p => p.state === "MERGED").sort((a, b) => b.number - a.number);
+  const mergedHeads = new Set(merged.map(p => p.headRefName).filter(Boolean));
+  const named = [...new Set([...(linked || []), ...(branches || []).filter(b => namesIssue(b, n))])].filter(b => !mergedHeads.has(b));
+  const pr = p => ({ number: p.number, state: p.state });
+  if (issueState === "CLOSED") return { status: "landed", tracker: { branch: null, pr: merged[0] ? pr(merged[0]) : null } };
+  if (open.length) return { status: "in-progress", tracker: { branch: open[0].headRefName || null, pr: pr(open[0]) } };
+  if (merged.length) return { status: "merged", tracker: { branch: null, pr: pr(merged[0]) } };
+  if (named.length) return { status: "in-progress", tracker: { branch: named[0], pr: null } };
+  return { status: "not-started", tracker: { branch: null, pr: null } };
 }
 /* A sub-issue of a signed-off tracking plan (plan/RULES.md §2, columns 1-2; §4, sized): its board's Gap and Considered columns are
    filled at "sized" from the parent's documents, since its research and architecture happened in the parent's run. Returns the
@@ -410,32 +464,70 @@ const GLOW_MAP = {
   landing: { kind: "none" }, landed: { kind: "none" }, cancelled: { kind: "none" }
 };
 const COLUMN_NAMES = { gap: "Gap", considered: "Considered", verdict: "Verdict", built: "As built" };
-/* Research glows the rows being researched (plan/RULES.md §3, "Research: the rows being researched"). wip.questions records the
-   research questions of the run, each { question: "<slug>", rows: ["<row-id>", …], findings: null | "<path>" } (findings null:
-   still open), from the research-started and research-returned events; researched clears it. While a question is open, the
-   Considered cells of the rows the open questions name glow (their union); once every question has returned, the verification
-   runs until researched, and RESEARCH_VERIFY_GLOW says what glows then: "rows" (the default: every question's rows again) or
-   "column" (the whole Considered column). The whole Considered column glows instead (the fallback) when no question is recorded
-   yet, when a question in the set names no row (rows [], or only ids that are not rows of the board), when the board has no rows,
-   and when the cells would be more than six. Returns { current, phase, fallback }. */
-const RESEARCH_VERIFY_GLOW = "rows";
+/* The research questions and their states (plan/RULES.md §3, "Research: the questions and their states"). wip.questions records
+   the run's research questions, each { question: "<slug>", rows: ["<row-id>", …], findings: null | "<path>", state }, from the
+   research events: research-started adds questions "researching", research-returned sets one "returned" (its findings recorded),
+   verification-started sets the returned ones "verifying", researched sets every one "complete", and plan-accepted (on a tracking
+   board, architecture-signed-off) clears the list. "planning" is a question recorded with its rows before its batch is sent. A
+   question written before the states existed has none: findings null reads "researching", a findings path "returned".
+   Q_STATES is their order, from the least advanced; a row takes the least advanced state of the questions that name it. */
+const Q_STATES = ["planning", "researching", "returned", "verifying", "complete"];
+const Q_NEEDS_FINDINGS = ["returned", "verifying", "complete"];
+const qState = q => q && Q_STATES.includes(q.state) ? q.state : q && q.findings != null ? "returned" : "researching";
+/* The research phase (wip.research.phase): planning (the questions are being drafted, facts.drafted counted), research (a batch is
+   out), verification (the findings are being verified), complete (researched). Written by research-planning, research-started,
+   verification-started and researched; cleared with the questions. */
+const R_PHASES = ["planning", "research", "verification", "complete"];
+/* The research state of each row the questions name: Map row id → state (the least advanced of its questions'). */
+function researchRows(plan) {
+  const w = (plan && plan.wip) || {}, qs = Array.isArray(w.questions) ? w.questions.filter(q => q && typeof q === "object") : [];
+  const ids = new Set((Array.isArray(plan && plan.rows) ? plan.rows : []).map(r => r && r.id)), out = new Map();
+  qs.forEach(q => (Array.isArray(q.rows) ? q.rows : []).map(String).filter(id => ids.has(id)).forEach(id => {
+    const s = qState(q), have = out.get(id); if (have == null || Q_STATES.indexOf(s) < Q_STATES.indexOf(have)) out.set(id, s); }));
+  return out;
+}
+/* Research glows the rows being researched or verified (plan/RULES.md §3, "Research: the rows being researched"): the union of the
+   Considered cells of the rows the questions "researching" or "verifying" name. A returned question's rows stop glowing (they wait
+   for the verification), unless another active question names them. The whole Considered column glows instead (the fallback) while
+   no question is recorded yet (research-planning: the questions are being drafted), while none is being researched or verified (all
+   returned, the verification not started), when an active question names no row (rows [], or only ids that are not rows of the
+   board), when the board has no rows, and when the cells would be more than six. Returns { current, phase, fallback }, phase
+   "none" (no question), "open" (a question researching), "verifying" (a question verifying, none researching) or "waiting". */
 const MAX_GLOW_CELLS = 6;
 function researchGlow(plan) {
   const w = (plan && plan.wip) || {}, rows = Array.isArray(plan && plan.rows) ? plan.rows : [], ids = new Set(rows.map(r => r && r.id));
   const qs = Array.isArray(w.questions) ? w.questions.filter(q => q && typeof q === "object") : [];
-  const open = qs.filter(q => q.findings == null), phase = !qs.length ? "none" : open.length ? "open" : "verifying";
+  const active = qs.filter(q => ["researching", "verifying"].includes(qState(q)));
+  const phase = !qs.length ? "none" : active.some(q => qState(q) === "researching") ? "open" : active.length ? "verifying" : "waiting";
   const column = (fallback) => ({ current: ["considered"], phase, fallback });
   if (phase === "none") return column("no research question is recorded yet");
-  if (phase === "verifying" && RESEARCH_VERIFY_GLOW === "column") return column(null);
+  if (phase === "waiting") return column("no question is being researched or verified");
   if (!rows.length) return column("the board has no rows yet");
-  const set = phase === "open" ? open : qs, cells = new Set();
-  for (const q of set) {
+  const cells = new Set();
+  for (const q of active) {
     const own = (Array.isArray(q.rows) ? q.rows : []).map(String).filter(id => ids.has(id));
     if (!own.length) return column(`question "${q.question}" names no row of the board`);
     own.forEach(id => cells.add(id + ".considered"));
   }
   if (cells.size > MAX_GLOW_CELLS) return column(`${cells.size} cells would glow, more than ${MAX_GLOW_CELLS}`);
   return { current: rows.map(r => r.id + ".considered").filter(a => cells.has(a)), phase, fallback: null };
+}
+/* The plan-board events (plan/RULES.md §4), as wip.event.name records the last one a board took. */
+const EVENTS = ["sized", "halted", "resumed", "research-planning", "research-started", "research-returned", "verification-started", "researched",
+  "architecture-signed-off", "plan-accepted", "branch-cut", "implementation-stage", "qa-pass", "escalated", "landed", "cancelled"];
+/* The live sidecar (plan/RULES.md §1, "plan.js"): the data file as a script beside the page, which the page re-loads while its run
+   is live and redraws from (the template's dashboardLive()). Its text is the data file verbatim between a fixed head and tail, so
+   check.js reads it back and compares it with the data file. plan.json → plan.js; the work board's board.json → board.js. */
+const SIDECAR = { plan: "plan.js", board: "board.js" };
+const sidecarHead = id => `/* ${SIDECAR[id]}: ${id}.json as a script, written by plan/scripts/embed.js beside the page for its live view (plan/RULES.md §1). Do not edit: edit ${id}.json and re-embed. */\nwindow.dashboardLive&&window.dashboardLive(${JSON.stringify(id)},\n`;
+/* The sidecar's text for a data file's text (its line endings kept). */
+function sidecarText(id, json) { const eol = /\r\n/.test(json) ? "\r\n" : "\n"; return (sidecarHead(id) + json.replace(/\s*$/, "") + "\n);\n").replace(/\r?\n/g, eol); }
+/* The data a sidecar carries, parsed: { data }, or { error } (missing, not in its form, or not parsing). */
+function readSidecar(file, id) {
+  let t; try { t = fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n"); } catch (e) { return { error: "missing" }; }
+  const head = sidecarHead(id);
+  if (!t.startsWith(head) || !/\n\);\n?$/.test(t)) return { error: "not in its form (embed.js writes it)" };
+  try { return { data: JSON.parse(t.slice(head.length).replace(/\n\);\n?$/, "")) }; } catch (e) { return { error: "its data does not parse: " + e.message }; }
 }
 /* The wip.current a step starts with when nothing more is known (new.js): its columns, else nothing; research, the whole
    Considered column until a question is recorded. */
@@ -455,8 +547,8 @@ function glowMismatch(plan) {
   if (m.kind === "none") { want = "nothing"; bad = cur; }
   else if (m.kind === "research") {
     const g = researchGlow(plan), want0 = g.current;
-    want = (g.fallback || want0[0] === "considered" ? `the whole Considered column, as ["considered"]${g.fallback ? ` (the fallback: ${g.fallback})` : " (the verification, RESEARCH_VERIFY_GLOW \"column\")"}` : `the Considered cells of the rows the ${g.phase === "open" ? "open research questions name" : "research questions named (the verification)"}, as ${JSON.stringify(want0)}`);
-    bad = cur.filter(a => !want0.includes(a)).map(a => a.endsWith(".considered") && want0[0] !== "considered" ? `${a} (no open question names its row)` : a);
+    want = g.fallback ? `the whole Considered column, as ["considered"] (the fallback: ${g.fallback})` : `the Considered cells of the rows the questions being researched or verified name, as ${JSON.stringify(want0)}`;
+    bad = cur.filter(a => !want0.includes(a)).map(a => a.endsWith(".considered") && want0[0] !== "considered" ? `${a} (no question being researched or verified names its row)` : a);
     const miss = want0.filter(a => !cur.includes(a)); if (miss.length) bad.push(`${miss.join(", ")} missing`);
   }
   else if (m.kind === "cells") { want = "the cell the question concerns (<row-id>.<column>), or nothing"; bad = cur.filter(a => a.split(".").length !== 2); }
@@ -472,5 +564,5 @@ function glowMismatch(plan) {
   return bad.length ? { step, via, want, bad } : null;
 }
 
-module.exports = { GLOW_MAP, glowFor, glowMismatch, researchGlow, RESEARCH_VERIFY_GLOW, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+module.exports = { leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, parentFolder, staleUnitRuns, stampMs, treeRoot, boardFolders, boardLink, parentBoard, issueRefs, otherBoards, linkIssueBoards, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };
