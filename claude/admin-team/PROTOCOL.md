@@ -45,8 +45,8 @@ one fenced ```json block:
 | `id` | yes | Unique per sender: `<sender>/<issue>/<n>`. A retry keeps the `id` and raises `attempt`. |
 | `attempt` | yes | Starts at 1. |
 | `from` | yes | The sender's session name, as `ListAgents` shows it. The reply goes here. |
-| `repo` | yes (not `status`) | Absolute path of the main checkout. Forward slashes. |
-| `github` | yes (not `status`) | `owner/repo`; also the lane key. `SpartanLaboratories/.github` for `mirror-sync`. |
+| `repo` | yes (not `status` or `file-issue`) | Absolute path of the main checkout. Forward slashes. |
+| `github` | yes (not `status`) | `owner/repo`; also the lane key. `SpartanLaboratories/.github` for `mirror-sync`; for `file-issue`, the repo the fix belongs in. |
 | `action` | yes | One of the actions below. |
 | `issue` | per action | The issue number. Omit it on a `land` of a branch that resolves no issue (a docs or config branch): then give `title` for the PR, and the landing has no closing keyword and no resolution comment. |
 | `level` | `setup-branch`, `land` | The work level, 1–4. |
@@ -59,14 +59,29 @@ one fenced ```json block:
 | `publish` | `land` | `true` only when the user explicitly asked for a publish this run. Not a gate: the team's publisher releases every version-bumping landing on its own within the Maven Central budget (7 release events per namespace per month); `true` lets this release use the 2 held in reserve, and never passes the cap. |
 | `subIssues` | `file-sub-issues` | The approved list: `[{title, level, blockedBy: [unit numbers], body}]` in landing order. |
 | `body`, `labels` | `comment`, `label` | The comment body (a path to a file, or text); labels to add/remove `{add: [], remove: []}`. |
+| `title`, `body`, `surfacedIn` | `file-issue` | The new issue's title and body (a path to a file, or text): the problem and a proposed fix. `surfacedIn` is the `owner/repo` (with `#n` when an issue was in hand) where the defect was found; the filing direction is judged from it. Optional `labels` `{add: []}`. |
 | `notes` | optional | Anything the executor should know, in one line. |
 
 ### Actions
 
 Version control: `setup-branch` · `allocate-worktree` · `commit` · `sync-branch` · `land` ·
-`file-sub-issues` · `comment` · `label` · `mirror-sync` · `status` · `cancel`
+`file-sub-issues` · `file-issue` · `comment` · `label` · `mirror-sync` · `status` · `cancel`
 
 Dashboards: `plan-board` · `dashboards-refresh`
+
+**`file-issue`.** A session that finds a bug, design flaw, missing capability or other concern in
+a Spartan Labs repo sends `file-issue`; it never runs `gh issue create` itself. The team files it
+in the `github` lane without asking the user, against the repo the fix belongs in (the owner
+confirmed with `gh repo view`), under the executor's filing rules:
+- never against a downstream consumer of the `surfacedIn` project (`rejected`; the sender reports
+  the coordination need to the user);
+- never about the change the sender is landing;
+- a defect the executor judges speculative is not filed (`rejected`, reported as a suspicion);
+- nothing Claude-internal is written: the title and body are reworded first;
+- an open issue that already covers it gets no second issue: `done` names that one.
+
+`done` carries `result.issue` `{number, url}` and `result.filed` (`true`, or `false` for an
+existing issue). The sender tells the user what was filed.
 
 Publishing has no action: the team raises it itself inside `land` (the release consideration of
 every bump that moved a published module) and at its consideration points (startup, a landing, a

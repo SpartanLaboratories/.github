@@ -33,9 +33,9 @@ Whenever you find a bug, design flaw, missing capability, or other area of conce
 Spartan Labs organization repo — **`github.com/SpartanLabsGaming/*`** (the games org:
 `MyGameServer`, `MyGameClient`, `MyGameTools`) or **`github.com/SpartanLaboratories/*`**
 (`WebTools` and other shared libs) — file a GitHub issue for it without asking first: briefly
-describe the problem and proposed fix, and tell me what you filed. File it with `gh issue create
---repo <org>/<repo>` against the repo the fix belongs in (the library where the defect
-lives, not necessarily the one where it surfaced). Repos move between
+describe the problem and proposed fix, and tell me what you filed. Have the `admin team` file
+it: send it a `file-issue` request (the `admin-team` skill) against the repo the fix belongs in
+(the library where the defect lives, not necessarily the one where it surfaced). Repos move between
 these orgs; confirm the current owner with `gh repo view <repo>` if unsure.
 
 ## Repository READMEs — keep current
