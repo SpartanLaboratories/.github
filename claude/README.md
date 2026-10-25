@@ -26,6 +26,9 @@ section of `CLAUDE.md`).
   `up`), which holds machine-local paths, and `proposals/`, working drafts.
 - `memory/MyGameServer/deployment-setup.md`, which describes deployment infrastructure, and
   its index line in `memory/MyGameServer/MEMORY.md`.
+- Inside `memory/` files: session ids (`originSessionId`), claude.ai artifact links and
+  machine-local paths. They are scrubbed in the copy, with paths written as `~/` or
+  `<workspace>/`.
 - `skills/dashboards/verify/history/`, the dashboards skill's cache of old template versions:
   a local cache that `history.js` rebuilds on demand from this repository's own git history.
 
