@@ -206,7 +206,7 @@ columns: each stands on its own neutral band under a strong, sticky head (its nu
 question, its milestone). The bands are layout, not an encoding: they take no colour of their own,
 so system and status colours keep their meanings, and the legend does not list them; the narrow
 layout stacks each row and draws none. A tab's lede is at most one short line, and only for what its
-graphic does not show.
+graphic and legend do not show (`GUIDANCE.md` §2); the work board's Runs lede too.
 
 **Landing Order** (tracking boards) draws the units as a dependency graph in landing order: a column
 is the earliest a unit can start, an arrow runs from a unit to the units it blocks. The graph spans

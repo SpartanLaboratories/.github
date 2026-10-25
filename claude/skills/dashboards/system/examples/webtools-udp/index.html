@@ -28,44 +28,46 @@
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans);padding-block:0 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .page{max-width:1280px;margin:0 auto}
 a{color:inherit}
-code{font-family:var(--mono);font-size:.92em}
+code{font-family:var(--mono);font-size:.92em;overflow-wrap:anywhere}
 h1,h2,h3{text-wrap:balance}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 
 /* header */
-.crumbs{font-size:12px;color:var(--muted);padding-top:18px}
+.crumbs{font-size:12px;color:var(--muted);padding-top:18px;overflow-wrap:anywhere}
 .crumbs a{text-decoration:none}
 .crumbs a:hover{text-decoration:underline}
-h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)}
+h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono);overflow-wrap:anywhere}
 .function{color:var(--ink-2);margin:0 0 10px;max-width:78ch;font-size:15px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 6px}
-.chip{font:12px/1 var(--mono);padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink-2)}
+.chip{font:12px/1 var(--mono);padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink-2);max-width:100%;overflow-wrap:anywhere}
 .chip b{color:var(--ink);font-weight:600}
+.chip a{text-decoration:none;border-bottom:1px solid var(--line)}
 .chip.model{border-style:dashed}
 
 /* KPIs */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px;margin:14px 0 18px}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0}
 .kpi .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
-.kpi .v{font-size:22px;font-weight:700;letter-spacing:-.01em;margin-top:2px}
+.kpi .v{font-size:22px;font-weight:700;letter-spacing:-.01em;margin-top:2px;font-variant-numeric:tabular-nums}
 .kpi .s{font-size:12px;color:var(--ink-2);margin-top:2px}
 .kpi .seg-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;gap:2px;margin-top:8px}
 .kpi .seg-bar i{display:block;height:100%}
 
 /* tabs + stage */
-.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow-x:auto}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow-x:auto;overflow-y:hidden}
 .tab{appearance:none;border:0;background:none;color:var(--ink-2);font:inherit;font-weight:600;padding:10px 14px;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;white-space:nowrap}
 .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
 .tab:hover{color:var(--ink)}
 .tab.model::after{content:" DSL";font:10px var(--mono);color:var(--muted);vertical-align:super}
 .stage{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start}
-@media (max-width:940px){.stage{grid-template-columns:minmax(0,1fr)}.inspector{position:static}}
+@media (max-width:940px){.stage{grid-template-columns:minmax(0,1fr)}.inspector{position:static;max-height:none;overflow:visible}}
 .stage>div{min-width:0}
 .view{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px;min-width:0}
 .view svg{display:block;width:100%;height:auto}
 .view h2{font-size:15px;margin:0 0 4px}
 .lede{font-size:13px;color:var(--ink-2);margin:0 0 10px;max-width:90ch}
-.inspector{position:sticky;top:calc(12px + env(safe-area-inset-top,0px));background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px;min-width:0}
+/* the inspector stays in view beside the tab and scrolls inside itself when its entry is taller than the window */
+.inspector{position:sticky;top:calc(12px + env(safe-area-inset-top,0px));background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px;min-width:0;max-height:calc(100vh - 24px);overflow:auto}
 .inspector h2{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 8px}
 .inspector .kicker{font:11px var(--mono);color:var(--muted);letter-spacing:.04em}
 .inspector .name{font-weight:700;font-size:15px;font-family:var(--mono);word-break:break-word}
@@ -300,6 +302,17 @@ pre.dsl .c{color:var(--muted)} pre.dsl .k{color:var(--server);font-weight:600} p
 .bubble .gap{color:var(--muted);font-style:italic}
 .bubble .badge{margin-left:2px}
 
+/* Wide desktop (16:9 screens, GUIDANCE.md §6): the page uses most of the window, so the C4 canvas, the thread columns, the
+   lifecycle cards, the Guarantees and the Context get room; a diagram drawn to a fixed aspect grows to at most 1280 px wide, so it
+   is never smaller than in the 1280 px layout and never outgrows the screen, and prose keeps its own measure. At 1500 px and below
+   the page keeps its 1280 px measure and the narrow layouts below 940 and 700 px apply. */
+@media (min-width:1500px){
+  .page{max-width:min(2400px,100%)}
+  .stage{grid-template-columns:minmax(0,1fr) 360px}
+  .view>svg{max-width:1280px}
+  .bubbles{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+}
+
 /* context */
 .context{margin-top:24px}
 .context h2{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 10px}
@@ -324,6 +337,10 @@ pre.dsl .c{color:var(--muted)} pre.dsl .k{color:var(--server);font-weight:600} p
 .roadmap .ri a{font-family:var(--mono);text-decoration:none;color:var(--ink-2)}
 .roadmap .issues{margin:4px 0 0 14px}
 .roadmap .more{margin:4px 0 0 14px;font-size:12px;color:var(--muted)}
+/* An issue's number and its title are two links (GUIDANCE.md §5): the number opens the GitHub issue, the title its plan board
+   (plain text while it has none, linkIssues() below) */
+.issues span a,.roadmap .ri span a{font-family:inherit;color:inherit;text-decoration:none;border-bottom:1px solid var(--line)}
+.issues span a:hover,.roadmap .ri span a:hover{border-bottom-color:var(--ink)}
 /* one series (test classes), so one neutral fill: a hue here would read as a side */
 .bars{display:grid;grid-template-columns:auto 1fr auto;gap:5px 10px;align-items:center;font-size:12px}
 .bars .lbl{color:var(--ink-2);font-family:var(--mono);font-size:11.5px}
@@ -353,7 +370,7 @@ footer code{color:var(--ink-2)}
     <!-- presenter: the as-is chip takes a date as written, or a time as <time datetime="2026-10-23T01:55:00Z">…</time> (UTC), which the
          page shows in the viewer's local time with the UTC value as its tooltip (GUIDANCE.md §6, "Times") -->
     <span class="chip">as-is at <b>master 806ce8e</b> · 2026-10-20</span>
-    <span class="chip">last amended by <a href="https://github.com/SpartanLaboratories/WebTools/issues/38" target="_blank" rel="noopener"><b>#38</b></a> handshake-empty-name · ca57a57</span>
+    <span class="chip">last amended by <a href="https://github.com/SpartanLaboratories/WebTools/issues/38" target="_blank" rel="noopener"><b>#38</b></a> <a data-board="38">handshake-empty-name</a> · ca57a57</span>
     <span class="chip model">C4 model <b>workspace.dsl</b> · <span id="dsl-stats">…</span></span>
   </div>
 </header>
@@ -380,14 +397,14 @@ footer code{color:var(--ink-2)}
 <div>
   <section class="view" role="tabpanel" id="p-structure" aria-labelledby="t-structure">
     <h2>Component map</h2>
-    <p class="lede">Nesting is ownership. Filled boxes are public types, outlined boxes internal. Click any box for its role, files and threads — and its place in the C4 model.</p>
+    <p class="lede">Nesting is ownership. Click a box for its role, files and threads, and its place in the C4 model.</p>
     <svg id="svg-structure" viewBox="0 0 1000 612" role="img" aria-label="Component map of webtools-udp"></svg>
     <div class="key"><span><i class="pub srv"></i>public · server</span><span><i class="srv"></i>internal · server</span><span><i class="pub cli"></i>public · client</span><span><i class="cli"></i>internal · client</span><span><i class="pub wir"></i>public · shared</span><span><i class="wir"></i>internal · shared</span><span><i class="std"></i>standalone, outside the stack</span><span><i class="pln"></i>planned, not built</span></div>
   </section>
 
   <section class="view" role="tabpanel" id="p-c4" aria-labelledby="t-c4" hidden>
     <h2>C4 model <small style="font:11px var(--mono);color:var(--muted);font-weight:400">rendered from workspace.dsl at load</small></h2>
-    <p class="lede">The Structurizr DSL beside this page is the formal model: elements, their relationships, tags and styles. These views are parsed from it every time the page opens — nothing here is drawn by hand, so the model and the dashboard cannot disagree. Step down the ladder to zoom in; hover an element to see what it touches. Structurizr Lite or <code>structurizr-cli</code> render the same file.</p>
+    <p class="lede">Nothing here is drawn by hand. Step down the ladder to zoom in; hover an element to see what it touches.</p>
     <div class="c4wrap">
       <nav class="ladder" id="c4-ladder" aria-label="C4 levels"></nav>
       <div class="c4main">
@@ -401,7 +418,7 @@ footer code{color:var(--ink-2)}
 
   <section class="view" role="tabpanel" id="p-threads" aria-labelledby="t-threads" hidden>
     <h2>Thread inventory</h2>
-    <p class="lede">Eleven threads, every one named, all daemon, coloured by the endpoint that owns them. Filled pills are created eagerly, outlined ones lazily on first use, dotted ones only under a condition. Click a thread for what runs on it.</p>
+    <p class="lede">Eleven threads, every one named, all daemon. Click a thread for what runs on it.</p>
     <div class="threads">
       <div class="tside"><h3>Server · mcups-*</h3>
         <div class="thread server" data-t="mcups-listener" tabindex="0" role="button"><span class="n">mcups-listener</span><span class="pill eager">eager</span><span class="r">receive · accept() liveness stamp · tag switch · handshake incl. admit / onClientConnect · inline 0x82 replies · reliable ack processing</span></div>
@@ -421,7 +438,7 @@ footer code{color:var(--ink-2)}
     </div>
     <div class="key"><span><i class="bs"></i>server endpoint · mcups-*</span><span><i class="bc"></i>client endpoint · mcupc-*</span><span><span class="pill eager">eager</span>created eagerly</span><span><span class="pill lazy">lazy</span>created on first use</span><span><span class="pill cond">if …</span>only under a condition</span><span><span class="pill planned">planned</span>planned, not built</span><span><i class="dot"></i>puts it on the wire (table below)</span></div>
     <h2 style="margin-top:16px">Outbound send paths</h2>
-    <p class="lede">Which thread puts each kind of datagram on the wire. A reliable message's first transmission runs on the caller's thread; retransmits and standalone acks on the side's own retransmit thread.</p>
+    <p class="lede">A reliable message's first send runs on the caller's thread; retransmits and acks on the side's retransmit thread.</p>
     <div class="scroll"><table class="matrix">
       <thead><tr><th>Traffic</th><th>Caller's thread</th><th>Listener</th><th>Keepalive</th><th>Probe</th><th>Retransmit</th></tr></thead>
       <tbody>
@@ -440,7 +457,7 @@ footer code{color:var(--ink-2)}
 
   <section class="view" role="tabpanel" id="p-datagrams" aria-labelledby="t-datagrams" hidden>
     <h2>Inbound datagram path</h2>
-    <p class="lede">Pick what arrives and from whom; the path the listener thread takes lights up. Hexagons are decisions; shaded boxes are where the datagram ends, their stripe coloured by the log level it ends at.</p>
+    <p class="lede">Pick what arrives and from whom; the path the listener thread takes lights up.</p>
     <div class="ctl" id="flow-ctl"></div>
     <p class="outcome" id="outcome"></p>
     <svg id="svg-flow" viewBox="0 0 980 580" role="img" aria-label="Inbound dispatch flow"></svg>
@@ -449,7 +466,7 @@ footer code{color:var(--ink-2)}
 
   <section class="view" role="tabpanel" id="p-reliable" aria-labelledby="t-reliable" hidden>
     <h2>The reliable sequence, server side</h2>
-    <p class="lede">A reliable-ordered send, its arrival at the peer's listener, and the 50 ms retransmit tick, each lifeline in the colour of who owns it. Step through it, or click any message. The client mirrors it on mcupc-* threads.</p>
+    <p class="lede">A reliable-ordered send, its arrival and the 50 ms retransmit tick; the client mirrors it on mcupc-* threads.</p>
     <div class="ctl">
       <button class="btn" id="seq-prev">‹ prev</button>
       <button class="btn" id="seq-next">next ›</button>
@@ -462,7 +479,7 @@ footer code{color:var(--ink-2)}
 
   <section class="view" role="tabpanel" id="p-lifecycles" aria-labelledby="t-lifecycles" hidden>
     <h2>Lifecycles and concurrency</h2>
-    <p class="lede">Ordered shutdowns, the connection states, when a reliable engine comes and goes, and the locking rules — coloured by phase.</p>
+    <p class="lede">Ordered shutdowns, the connection states, when a reliable engine comes and goes, and the locking rules.</p>
     <div class="lgrid">
       <div class="card ph3"><h3>Server <code>stop()</code> <small>every step runs even if an earlier one fails</small></h3>
         <ol class="steps"><li>stopNotifying</li><li>terminateAll</li><li>listener join ≤ 1 s</li><li>close socket</li><li>liveness</li><li>keepalive</li><li>probe</li><li>retransmit</li><li>dispatch</li></ol>
@@ -567,24 +584,24 @@ footer code{color:var(--ink-2)}
   <div class="cards">
     <div class="card"><h3>Roadmap <small>1 item · 2026-10-21</small></h3>
       <ol class="roadmap">
-        <li><div class="ri"><a href="https://github.com/SpartanLaboratories/WebTools/issues/55" target="_blank" rel="noopener">#55</a><span>HTTP client stack for BotTools: suspend transport, outbound-URL guard, response cache, call budget and test fakes <small>tracking issue</small></span><span class="tags"><span class="badge">open</span></span></div>
+        <li><div class="ri"><a href="https://github.com/SpartanLaboratories/WebTools/issues/55" target="_blank" rel="noopener">#55</a><span><a data-board="55">HTTP client stack for BotTools: suspend transport, outbound-URL guard, response cache, call budget and test fakes</a> <small>tracking issue</small></span><span class="tags"><span class="badge">open</span></span></div>
           <ul class="issues">
-            <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/47" target="_blank" rel="noopener">#47</a><span>webtools-udp 2.0.0 ships Java 23 bytecode but README claims JDK 11+</span><span class="tags"><span class="badge bug">bug · docs</span><span class="badge">open</span></span></li>
+            <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/47" target="_blank" rel="noopener">#47</a><span><a data-board="47">webtools-udp 2.0.0 ships Java 23 bytecode but README claims JDK 11+</a></span><span class="tags"><span class="badge bug">bug · docs</span><span class="badge">open</span></span></li>
           </ul>
           <p class="more">Its ten other sub-issues — #61 and #62–#70 — belong to the build, webtools-http, webtools-feeds and their docs.</p></li>
       </ol></div>
     <div class="card"><h3>Unscheduled issues <small>10 open · 2026-10-21</small></h3>
       <ul class="issues">
-        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/57" target="_blank" rel="noopener">#57</a><span>Server answers handshakes from unverified source addresses with no rate limit (reflection)</span><span class="tags"><span class="badge bug">bug</span></span></li>
-        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/56" target="_blank" rel="noopener">#56</a><span>Handshake from a registered origin gets REGISTERED 2 even when it names a different client</span><span class="tags"><span class="badge bug">bug</span></span></li>
-        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/54" target="_blank" rel="noopener">#54</a><span>A throwing onClientConnect kills the server's listener thread</span><span class="tags"><span class="badge bug">bug</span></span></li>
-        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/53" target="_blank" rel="noopener">#53</a><span>Server accepts handshake names and credentials containing tabs, CR/LF or other non-space whitespace</span><span class="tags"><span class="badge bug">bug</span></span></li>
-        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/52" target="_blank" rel="noopener">#52</a><span>Client sends malformed or misparsed handshakes for an empty or whitespace-containing name or credential</span><span class="tags"><span class="badge bug">bug</span></span></li>
-        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/50" target="_blank" rel="noopener">#50</a><span>Multiplatform protocol core and a datagram-transport seam for a future web client</span><span class="tags"><span class="badge planned">planned system</span></span></li>
-        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/49" target="_blank" rel="noopener">#49</a><span>Handshake registration orphaned when the REGISTERED send fails</span><span class="tags"><span class="badge bug">bug</span></span></li>
-        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/48" target="_blank" rel="noopener">#48</a><span>MultiConnectionUDPServer.stop() blocks ~1 s joining the listener before closing the socket</span><span class="tags"><span class="badge bug">bug</span></span></li>
-        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/41" target="_blank" rel="noopener">#41</a><span>Rate-bound the per-datagram-drop WARN logs on server and client</span><span class="tags"><span class="badge">untyped</span></span></li>
-        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/39" target="_blank" rel="noopener">#39</a><span>Client only checks datagram origin on the reliable-channel receive branch</span><span class="tags"><span class="badge">untyped</span></span></li>
+        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/57" target="_blank" rel="noopener">#57</a><span><a data-board="57">Server answers handshakes from unverified source addresses with no rate limit (reflection)</a></span><span class="tags"><span class="badge bug">bug</span></span></li>
+        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/56" target="_blank" rel="noopener">#56</a><span><a data-board="56">Handshake from a registered origin gets REGISTERED 2 even when it names a different client</a></span><span class="tags"><span class="badge bug">bug</span></span></li>
+        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/54" target="_blank" rel="noopener">#54</a><span><a data-board="54">A throwing onClientConnect kills the server's listener thread</a></span><span class="tags"><span class="badge bug">bug</span></span></li>
+        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/53" target="_blank" rel="noopener">#53</a><span><a data-board="53">Server accepts handshake names and credentials containing tabs, CR/LF or other non-space whitespace</a></span><span class="tags"><span class="badge bug">bug</span></span></li>
+        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/52" target="_blank" rel="noopener">#52</a><span><a data-board="52">Client sends malformed or misparsed handshakes for an empty or whitespace-containing name or credential</a></span><span class="tags"><span class="badge bug">bug</span></span></li>
+        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/50" target="_blank" rel="noopener">#50</a><span><a data-board="50">Multiplatform protocol core and a datagram-transport seam for a future web client</a></span><span class="tags"><span class="badge planned">planned system</span></span></li>
+        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/49" target="_blank" rel="noopener">#49</a><span><a data-board="49">Handshake registration orphaned when the REGISTERED send fails</a></span><span class="tags"><span class="badge bug">bug</span></span></li>
+        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/48" target="_blank" rel="noopener">#48</a><span><a data-board="48">MultiConnectionUDPServer.stop() blocks ~1 s joining the listener before closing the socket</a></span><span class="tags"><span class="badge bug">bug</span></span></li>
+        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/41" target="_blank" rel="noopener">#41</a><span><a data-board="41">Rate-bound the per-datagram-drop WARN logs on server and client</a></span><span class="tags"><span class="badge">untyped</span></span></li>
+        <li><a href="https://github.com/SpartanLaboratories/WebTools/issues/39" target="_blank" rel="noopener">#39</a><span><a data-board="39">Client only checks datagram origin on the reliable-channel receive branch</a></span><span class="tags"><span class="badge">untyped</span></span></li>
       </ul></div>
     <div class="card"><h3>Plans and documents</h3>
       <ul class="docs">
@@ -592,7 +609,7 @@ footer code{color:var(--ink-2)}
         <li><a href="https://github.com/SpartanLaboratories/WebTools/blob/master/docs/webtools-udp-protocol.md" target="_blank" rel="noopener">webtools-udp-protocol.md</a> — the bytes</li>
         <li><code>workspace.dsl</code> — the C4 model beside this page; the C4 tab is rendered from it</li>
         <li><a href="https://github.com/SpartanLaboratories/WebTools/blob/master/docs/plans/14-reliable-ordered-channel/architecture.md" target="_blank" rel="noopener">#14 reliable-ordered channel</a> — the design that added the reliable plane, in four stages</li>
-        <li><a href="https://github.com/SpartanLaboratories/WebTools/blob/master/docs/plans/34-probe-cadence/plan.md" target="_blank" rel="noopener">#34 probe cadence</a> · <a href="https://github.com/SpartanLaboratories/WebTools/tree/master/docs/plans/38-handshake-empty-name" target="_blank" rel="noopener">#38 handshake empty name</a> · <a href="https://github.com/SpartanLaboratories/WebTools/blob/master/docs/plans/40-channel-byte-guard/plan.md" target="_blank" rel="noopener">#40 channel-byte guard</a></li>
+        <li><a href="https://github.com/SpartanLaboratories/WebTools/blob/master/docs/plans/34-probe-cadence/plan.md" target="_blank" rel="noopener">#34 probe cadence</a> · <a href="https://github.com/SpartanLaboratories/WebTools/issues/38" target="_blank" rel="noopener">#38</a> <a data-board="38">handshake empty name</a> · <a href="https://github.com/SpartanLaboratories/WebTools/blob/master/docs/plans/40-channel-byte-guard/plan.md" target="_blank" rel="noopener">#40 channel-byte guard</a></li>
         <li>Earlier plans: #3 public client handshake · #5 prune stale registrations · #8 binary datagram path · #9 receive buffer · #10 connection liveness · #11 handshake refusal and credential · #12 scheduled keepalive · #13 link-quality probe · #15 split into three modules</li>
       </ul></div>
   </div>
@@ -747,7 +764,22 @@ const txt=(p,x,y,lines,cls,anchor,dy)=>{const t=mk("text",{x,y,class:cls||"","te
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
 const flink=f=>`<a href="${SRC}${f}" target="_blank" rel="noopener">${f}</a>`;
-const ilink=n=>`<a href="${REPO}/issues/${n}" target="_blank" rel="noopener">#${n}</a>`;
+/* Links to an issue and its board (GUIDANCE.md §5; system/RULES.md §6). BOARDS maps an issue's number to its plan board, relative
+   to this page, for every issue the page names whose board is in the repository; the presenter fills it from the folders on disk
+   when the page is written, on its one line, and check-page.js fails an entry whose file is not there. Where an issue's number and
+   its title appear together they are two links: the number opens the GitHub issue (pair(), or a plain href in hand-written HTML)
+   and the title opens the board, written <a data-board="N">title</a> by hand, plain text while the issue has none. A lone #n opens
+   the board when one exists and the GitHub issue otherwise: ilink(n), or <a data-issue="N">#N</a> by hand. linkIssues() resolves
+   the hand-written ones at load. */
+const BOARDS={"38":"../../../plan/examples/38-handshake-empty-name/dashboard.html"}; // presenter: in the skill, the copy of #38's board beside this example; in WebTools, ../../plans/38-handshake-empty-name/dashboard.html
+const boardOf=n=>Object.prototype.hasOwnProperty.call(BOARDS,String(n))?BOARDS[String(n)]:null;
+const ghIssue=n=>`${REPO}/issues/${n}`;
+const ilink=n=>{ const b=boardOf(n); return b?`<a href="${esc(b)}" title="#${esc(n)}: its plan board">#${esc(n)}</a>`:`<a href="${ghIssue(n)}" target="_blank" rel="noopener">#${esc(n)}</a>`; };
+const pair=(n,title)=>{ const b=boardOf(n); return `<a href="${ghIssue(n)}" target="_blank" rel="noopener">#${esc(n)}</a> ${b?`<a href="${esc(b)}" title="#${esc(n)}: its plan board">${esc(title)}</a>`:esc(title)}`; };
+function linkIssues(root){ const r=root||document;
+  r.querySelectorAll("a[data-board]").forEach(a=>{ const n=a.dataset.board, b=boardOf(n); if(b){ a.href=b; a.title=`#${n}: its plan board`; } else a.replaceWith(...a.childNodes); });
+  r.querySelectorAll("a[data-issue]").forEach(a=>{ const n=a.dataset.issue, b=boardOf(n); a.href=b||ghIssue(n); if(b) a.title=`#${n}: its plan board`; else { a.target="_blank"; a.rel="noopener"; } }); }
+window.addEventListener("DOMContentLoaded",()=>linkIssues());
 function inspect(html){ $("#insp-body").innerHTML=html; }
 function arrowDefs(svg,id,color){ const d=mk("defs",{},svg); const m=mk("marker",{id,viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"7",markerHeight:"7",orient:"auto-start-reverse"},d); mk("path",{d:"M0,0 L10,5 L0,10 z",fill:color||"var(--ink-2)"},m); const mo=mk("marker",{id:id+"-open",viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"7",markerHeight:"7",orient:"auto-start-reverse"},d); mk("path",{d:"M0,0 L10,5 L0,10",fill:"none",stroke:color||"var(--ink-2)","stroke-width":"1.5"},mo); const mon=mk("marker",{id:id+"-on",viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"7",markerHeight:"7",orient:"auto-start-reverse"},d); mk("path",{d:"M0,0 L10,5 L0,10 z",fill:"var(--on)"},mon); }
 

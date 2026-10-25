@@ -28,44 +28,46 @@
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans);padding-block:0 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .page{max-width:1280px;margin:0 auto}
 a{color:inherit}
-code{font-family:var(--mono);font-size:.92em}
+code{font-family:var(--mono);font-size:.92em;overflow-wrap:anywhere}
 h1,h2,h3{text-wrap:balance}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 
 /* header */
-.crumbs{font-size:12px;color:var(--muted);padding-top:18px}
+.crumbs{font-size:12px;color:var(--muted);padding-top:18px;overflow-wrap:anywhere}
 .crumbs a{text-decoration:none}
 .crumbs a:hover{text-decoration:underline}
-h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)}
+h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono);overflow-wrap:anywhere}
 .function{color:var(--ink-2);margin:0 0 10px;max-width:78ch;font-size:15px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 6px}
-.chip{font:12px/1 var(--mono);padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink-2)}
+.chip{font:12px/1 var(--mono);padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink-2);max-width:100%;overflow-wrap:anywhere}
 .chip b{color:var(--ink);font-weight:600}
+.chip a{text-decoration:none;border-bottom:1px solid var(--line)}
 .chip.model{border-style:dashed}
 
 /* KPIs */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px;margin:14px 0 18px}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0}
 .kpi .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
-.kpi .v{font-size:22px;font-weight:700;letter-spacing:-.01em;margin-top:2px}
+.kpi .v{font-size:22px;font-weight:700;letter-spacing:-.01em;margin-top:2px;font-variant-numeric:tabular-nums}
 .kpi .s{font-size:12px;color:var(--ink-2);margin-top:2px}
 .kpi .seg-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;gap:2px;margin-top:8px}
 .kpi .seg-bar i{display:block;height:100%}
 
 /* tabs + stage */
-.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow-x:auto}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow-x:auto;overflow-y:hidden}
 .tab{appearance:none;border:0;background:none;color:var(--ink-2);font:inherit;font-weight:600;padding:10px 14px;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;white-space:nowrap}
 .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
 .tab:hover{color:var(--ink)}
 .tab.model::after{content:" DSL";font:10px var(--mono);color:var(--muted);vertical-align:super}
 .stage{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start}
-@media (max-width:940px){.stage{grid-template-columns:minmax(0,1fr)}.inspector{position:static}}
+@media (max-width:940px){.stage{grid-template-columns:minmax(0,1fr)}.inspector{position:static;max-height:none;overflow:visible}}
 .stage>div{min-width:0}
 .view{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px;min-width:0}
 .view svg{display:block;width:100%;height:auto}
 .view h2{font-size:15px;margin:0 0 4px}
 .lede{font-size:13px;color:var(--ink-2);margin:0 0 10px;max-width:90ch}
-.inspector{position:sticky;top:calc(12px + env(safe-area-inset-top,0px));background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px;min-width:0}
+/* the inspector stays in view beside the tab and scrolls inside itself when its entry is taller than the window */
+.inspector{position:sticky;top:calc(12px + env(safe-area-inset-top,0px));background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px;min-width:0;max-height:calc(100vh - 24px);overflow:auto}
 .inspector h2{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 8px}
 .inspector .kicker{font:11px var(--mono);color:var(--muted);letter-spacing:.04em}
 .inspector .name{font-weight:700;font-size:15px;font-family:var(--mono);word-break:break-word}
@@ -300,6 +302,17 @@ pre.dsl .c{color:var(--muted)} pre.dsl .k{color:var(--server);font-weight:600} p
 .bubble .gap{color:var(--muted);font-style:italic}
 .bubble .badge{margin-left:2px}
 
+/* Wide desktop (16:9 screens, GUIDANCE.md §6): the page uses most of the window, so the C4 canvas, the thread columns, the
+   lifecycle cards, the Guarantees and the Context get room; a diagram drawn to a fixed aspect grows to at most 1280 px wide, so it
+   is never smaller than in the 1280 px layout and never outgrows the screen, and prose keeps its own measure. At 1500 px and below
+   the page keeps its 1280 px measure and the narrow layouts below 940 and 700 px apply. */
+@media (min-width:1500px){
+  .page{max-width:min(2400px,100%)}
+  .stage{grid-template-columns:minmax(0,1fr) 360px}
+  .view>svg{max-width:1280px}
+  .bubbles{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+}
+
 /* context */
 .context{margin-top:24px}
 .context h2{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 10px}
@@ -324,6 +337,10 @@ pre.dsl .c{color:var(--muted)} pre.dsl .k{color:var(--server);font-weight:600} p
 .roadmap .ri a{font-family:var(--mono);text-decoration:none;color:var(--ink-2)}
 .roadmap .issues{margin:4px 0 0 14px}
 .roadmap .more{margin:4px 0 0 14px;font-size:12px;color:var(--muted)}
+/* An issue's number and its title are two links (GUIDANCE.md §5): the number opens the GitHub issue, the title its plan board
+   (plain text while it has none, linkIssues() below) */
+.issues span a,.roadmap .ri span a{font-family:inherit;color:inherit;text-decoration:none;border-bottom:1px solid var(--line)}
+.issues span a:hover,.roadmap .ri span a:hover{border-bottom-color:var(--ink)}
 /* one series (test classes), so one neutral fill: a hue here would read as a side */
 .bars{display:grid;grid-template-columns:auto 1fr auto;gap:5px 10px;align-items:center;font-size:12px}
 .bars .lbl{color:var(--ink-2);font-family:var(--mono);font-size:11.5px}
@@ -353,7 +370,9 @@ footer code{color:var(--ink-2)}
     <!-- presenter: the as-is chip takes a date as written, or a time as <time datetime="2026-10-23T01:55:00Z">…</time> (UTC), which the
          page shows in the viewer's local time with the UTC value as its tooltip (GUIDANCE.md §6, "Times") -->
     <span class="chip">as-is at <b>branch sha</b> · YYYY-MM-DD</span>
-    <span class="chip">last amended by <a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener"><b>#N</b></a> issue-slug · sha</span>
+    <!-- presenter: the number opens the GitHub issue; the slug, written <a data-board="N">, opens the issue's plan board (BOARDS in the
+         script) and is plain text while it has none (GUIDANCE.md §5) -->
+    <span class="chip">last amended by <a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener"><b>#N</b></a> <a data-board="N">issue-slug</a> · sha</span>
     <span class="chip model">C4 model <b>workspace.dsl</b> · <span id="dsl-stats">…</span></span>
   </div>
 </header>
@@ -381,7 +400,8 @@ footer code{color:var(--ink-2)}
 <div>
   <section class="view" role="tabpanel" id="p-structure" aria-labelledby="t-structure">
     <h2>Component map</h2>
-    <p class="lede">Nesting is ownership. Filled boxes are public types, outlined boxes internal. Click any box for its role, files and threads — and its place in the C4 model.</p>
+    <p class="lede">Nesting is ownership. Click a box for its role, files and threads, and its place in the C4 model.</p>
+    <!-- presenter: a tab's lede is one short line, and only for what its graphic and legend do not show (GUIDANCE.md §2) -->
     <svg id="svg-structure" viewBox="0 0 1000 612" role="img" aria-label="Component map of system-slug"></svg>
     <!-- presenter: the legend names this page's colour groups. side = server | client | wire are the page's three hue slots
          (blue, purple, teal: registry slots 1 to 3, never a status hue) and keep their meaning on every tab; label them for what they are in this system (MODEL.sides
@@ -391,7 +411,7 @@ footer code{color:var(--ink-2)}
 
   <section class="view" role="tabpanel" id="p-c4" aria-labelledby="t-c4" hidden>
     <h2>C4 model <small style="font:11px var(--mono);color:var(--muted);font-weight:400">rendered from workspace.dsl at load</small></h2>
-    <p class="lede">The Structurizr DSL beside this page is the formal model: elements, their relationships, tags and styles. These views are parsed from it every time the page opens — nothing here is drawn by hand, so the model and the dashboard cannot disagree. Step down the ladder to zoom in; hover an element to see what it touches. Structurizr Lite or <code>structurizr-cli</code> render the same file.</p>
+    <p class="lede">Nothing here is drawn by hand. Step down the ladder to zoom in; hover an element to see what it touches.</p>
     <div class="c4wrap">
       <nav class="ladder" id="c4-ladder" aria-label="C4 levels"></nav>
       <div class="c4main">
@@ -405,7 +425,7 @@ footer code{color:var(--ink-2)}
 
   <section class="view" role="tabpanel" id="p-threads" aria-labelledby="t-threads" hidden>
     <h2>Thread inventory</h2>
-    <p class="lede">Every thread the system can start, coloured by the side that owns it, when it is created (filled pill = eagerly, outlined = lazily on first use, dotted = only under a condition) and what runs on it. Click a thread for details. <!-- presenter: a core tab. A system with no threads of its own says so here (callers' threads, callbacks it runs on them); removing the tab is a divergence that needs a strong argument, recorded in the footer --></p>
+    <p class="lede">Every thread the system can start. Click one for when it is created, what runs on it and what it sends. <!-- presenter: a core tab. A system with no threads of its own says so here (callers' threads, callbacks it runs on them); removing the tab is a divergence that needs a strong argument, recorded in the footer --></p>
     <div class="threads">
       <div class="tside"><h3>Side A</h3>
         <!-- presenter: one .thread per thread; data-t must be a key of MODEL.threads; class server|client|wire picks the hue
@@ -428,7 +448,7 @@ footer code{color:var(--ink-2)}
 
   <section class="view" role="tabpanel" id="p-datagrams" aria-labelledby="t-datagrams" hidden>
     <h2>Decision path</h2>
-    <p class="lede">Pick the inputs; the path the system takes lights up. Hexagons are decisions; shaded boxes are where it ends, their stripe coloured by the outcome. <!-- presenter: name the view after the decision the system makes (a dispatch, a routing, an admission) --></p>
+    <p class="lede">Pick the inputs; the path the system takes lights up. <!-- presenter: name the view after the decision the system makes (a dispatch, a routing, an admission) --></p>
     <div class="ctl" id="flow-ctl"></div>
     <p class="outcome" id="outcome"></p>
     <svg id="svg-flow" viewBox="0 0 980 580" role="img" aria-label="Decision path"></svg>
@@ -438,7 +458,7 @@ footer code{color:var(--ink-2)}
 
   <section class="view" role="tabpanel" id="p-reliable" aria-labelledby="t-reliable" hidden>
     <h2>Sequence</h2>
-    <p class="lede">The system's defining interaction, step by step. Step through it, or click any message. <!-- presenter: name it after the interaction --></p>
+    <p class="lede">The system's defining interaction: step through it, or click any message. <!-- presenter: name it after the interaction --></p>
     <div class="ctl">
       <button class="btn" id="seq-prev">‹ prev</button>
       <button class="btn" id="seq-next">next ›</button>
@@ -452,7 +472,7 @@ footer code{color:var(--ink-2)}
 
   <section class="view" role="tabpanel" id="p-lifecycles" aria-labelledby="t-lifecycles" hidden>
     <h2>Lifecycles and invariants</h2>
-    <p class="lede">Ordered start-up and shutdown, the states a thing can be in, when resources come and go, and the locking or ordering rules — coloured by phase. <!-- presenter: cards below are examples of shape; keep only what the system has. Phase classes: ph1 start / creation, ph2 run / steady state, ph3 stop / teardown — on a card (top rule), a step, a table row or a state box; a card mixing phases marks its rows instead --></p>
+    <p class="lede">Start-up and shutdown order, the states a thing can be in, and the locking or ordering rules. <!-- presenter: cards below are examples of shape; keep only what the system has. Phase classes: ph1 start / creation, ph2 run / steady state, ph3 stop / teardown — on a card (top rule), a step, a table row or a state box; a card mixing phases marks its rows instead --></p>
     <div class="lgrid">
       <div class="card ph1"><h3>Start-up order <small>what construction or start does, in order</small></h3>
         <ol class="steps"><li>first</li><li>second</li></ol></div>
@@ -524,11 +544,13 @@ footer code{color:var(--ink-2)}
       <!-- presenter: each roadmap item that claims an issue touching this system. A roadmap item is a tracking issue with its
            sub-issues (gh issue view <n> --json subIssues,parent), or an entry in a roadmap document the repository keeps, with
            the issues it names. Under each item, its issues that touch this system: number, title and state (never a work level:
-           GUIDANCE.md §4); then how many of its issues touch other systems. No item claims one: say so in a single line. -->
+           GUIDANCE.md §4); then how many of its issues touch other systems. No item claims one: say so in a single line.
+           Number and title are two links (GUIDANCE.md §5): the number opens the GitHub issue, the title, written
+           <a data-board="N">, opens the issue's plan board and stays plain text while it has none (BOARDS in the script). -->
       <ol class="roadmap">
-        <li><div class="ri"><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span>Roadmap item title <small>tracking issue</small></span><span class="tags"><span class="badge">open</span></span></div>
+        <li><div class="ri"><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span><a data-board="N">Roadmap item title</a> <small>tracking issue</small></span><span class="tags"><span class="badge">open</span></span></div>
           <ul class="issues">
-            <li><a href="https://github.com/ORG/REPO/issues/M" target="_blank" rel="noopener">#M</a><span>Issue mapped to the item</span><span class="tags"><span class="badge">open</span></span></li>
+            <li><a href="https://github.com/ORG/REPO/issues/M" target="_blank" rel="noopener">#M</a><span><a data-board="M">Issue mapped to the item</a></span><span class="tags"><span class="badge">open</span></span></li>
           </ul>
           <p class="more">n more of its issues touch other systems.</p></li>
       </ol></div>
@@ -536,13 +558,14 @@ footer code{color:var(--ink-2)}
       <!-- presenter: only the open issues touching this system that no roadmap item claims (the open issues from gh issue list,
            minus every issue the Roadmap card lists); badges: bug (status colour), planned (dashed) and the type; never a work level (GUIDANCE.md §4) -->
       <ul class="issues">
-        <li><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span>Issue title</span><span class="tags"><span class="badge bug">bug</span></span></li>
+        <li><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span><a data-board="N">Issue title</a></span><span class="tags"><span class="badge bug">bug</span></span></li>
       </ul></div>
     <div class="card"><h3>Plans and documents</h3>
       <ul class="docs">
         <li><a href="https://github.com/ORG/REPO/blob/main/docs/…" target="_blank" rel="noopener">architecture document</a> — what it covers (this dashboard's source)</li>
         <li><code>workspace.dsl</code> — the C4 model beside this page; the C4 tab is rendered from it</li>
-        <li>Plans that shaped the system: #N …</li>
+        <!-- presenter: a lone #n, written <a data-issue="N">#N</a>, opens the issue's plan board when it has one, else the GitHub issue -->
+        <li>Plans that shaped the system: <a data-issue="N">#N</a> …</li>
       </ul></div>
   </div>
 </section>
@@ -628,7 +651,22 @@ const txt=(p,x,y,lines,cls,anchor,dy)=>{const t=mk("text",{x,y,class:cls||"","te
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
 const flink=f=>`<a href="${SRC}${f}" target="_blank" rel="noopener">${f}</a>`;
-const ilink=n=>`<a href="${REPO}/issues/${n}" target="_blank" rel="noopener">#${n}</a>`;
+/* Links to an issue and its board (GUIDANCE.md §5; system/RULES.md §6). BOARDS maps an issue's number to its plan board, relative
+   to this page, for every issue the page names whose board is in the repository; the presenter fills it from the folders on disk
+   when the page is written, on its one line, and check-page.js fails an entry whose file is not there. Where an issue's number and
+   its title appear together they are two links: the number opens the GitHub issue (pair(), or a plain href in hand-written HTML)
+   and the title opens the board, written <a data-board="N">title</a> by hand, plain text while the issue has none. A lone #n opens
+   the board when one exists and the GitHub issue otherwise: ilink(n), or <a data-issue="N">#N</a> by hand. linkIssues() resolves
+   the hand-written ones at load. */
+const BOARDS={}; // presenter: issue number → its plan board relative to this page, on this one line, e.g. {"38":"../../plans/38-slug/dashboard.html"}
+const boardOf=n=>Object.prototype.hasOwnProperty.call(BOARDS,String(n))?BOARDS[String(n)]:null;
+const ghIssue=n=>`${REPO}/issues/${n}`;
+const ilink=n=>{ const b=boardOf(n); return b?`<a href="${esc(b)}" title="#${esc(n)}: its plan board">#${esc(n)}</a>`:`<a href="${ghIssue(n)}" target="_blank" rel="noopener">#${esc(n)}</a>`; };
+const pair=(n,title)=>{ const b=boardOf(n); return `<a href="${ghIssue(n)}" target="_blank" rel="noopener">#${esc(n)}</a> ${b?`<a href="${esc(b)}" title="#${esc(n)}: its plan board">${esc(title)}</a>`:esc(title)}`; };
+function linkIssues(root){ const r=root||document;
+  r.querySelectorAll("a[data-board]").forEach(a=>{ const n=a.dataset.board, b=boardOf(n); if(b){ a.href=b; a.title=`#${n}: its plan board`; } else a.replaceWith(...a.childNodes); });
+  r.querySelectorAll("a[data-issue]").forEach(a=>{ const n=a.dataset.issue, b=boardOf(n); a.href=b||ghIssue(n); if(b) a.title=`#${n}: its plan board`; else { a.target="_blank"; a.rel="noopener"; } }); }
+window.addEventListener("DOMContentLoaded",()=>linkIssues());
 function inspect(html){ $("#insp-body").innerHTML=html; }
 function arrowDefs(svg,id,color){ const d=mk("defs",{},svg); const m=mk("marker",{id,viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"7",markerHeight:"7",orient:"auto-start-reverse"},d); mk("path",{d:"M0,0 L10,5 L0,10 z",fill:color||"var(--ink-2)"},m); const mo=mk("marker",{id:id+"-open",viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"7",markerHeight:"7",orient:"auto-start-reverse"},d); mk("path",{d:"M0,0 L10,5 L0,10",fill:"none",stroke:color||"var(--ink-2)","stroke-width":"1.5"},mo); const mon=mk("marker",{id:id+"-on",viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"7",markerHeight:"7",orient:"auto-start-reverse"},d); mk("path",{d:"M0,0 L10,5 L0,10 z",fill:"var(--on)"},mon); }
 

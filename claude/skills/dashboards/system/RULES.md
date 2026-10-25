@@ -79,6 +79,17 @@ facts.
 Hand-written panels (threads list, send-paths matrix, lifecycles cards, the Guarantees bubbles,
 the Context cards) and the header (function sentence, version, as-is stamp, last amended)
 complete the page. The template marks every placeholder with a `<!-- presenter: … -->` comment.
+
+**Board links** (`GUIDANCE.md` §5). The script's `BOARDS` constant maps an issue's number to its plan
+board, relative to the page (`{"38":"../../plans/38-handshake-empty-name/dashboard.html"}` on a system page,
+`../plans/…` on the repository page), for every issue the page names whose board is in the repository. The
+presenter fills it from the folders on disk when it writes the page, as plain JSON on its one line (a
+page-filled line, §9). The renderer links through it (`ilink(n)`: a lone `#n` opens the board when one
+exists, else the GitHub issue; `pair(n, title)`: the number opens the GitHub issue, the title the
+board). Hand-written HTML writes the number of a pair as a plain GitHub link and its title as
+`<a data-board="N">title</a>`, and a lone `#n` as `<a data-issue="N">#N</a>`; `linkIssues()` resolves both
+at load and leaves a title plain text while its issue has no board. Nobody writes a board's path
+anywhere else on the page.
 The header names the branch and short SHA the page reflects and the issue that last amended the
 system; every count on the page is counted.
 
@@ -93,6 +104,13 @@ first and adapt the six: Structure shows how the systems compose and depend on e
 Threads the threads and processes across systems; Decision path a cross-system decision, such as
 which module a consumer picks; Sequence a cross-system interaction; Lifecycles the lifecycles
 that span systems, such as source to release.
+
+A tab's lede is one short line, and only for what its graphic and legend do not show (`GUIDANCE.md` §2):
+what to click, a fact the picture cannot carry. On a wide desktop the page uses most of the window
+(`GUIDANCE.md` §6): the inspector widens to 360 px, the Guarantees run five to a row, and a diagram
+drawn to a fixed aspect (Structure, the decision path, the sequence) grows to at most 1280 px wide; the
+C4 canvas, the thread columns, the lifecycle cards and the Context take the rest. The inspector stays
+beside every tab and scrolls inside itself when its entry is taller than the window.
 
 **Optional tabs.** Add one after the core tabs wherever content for it exists, on any page.
 Candidates:
@@ -188,7 +206,8 @@ row is dashed and says only that nothing is built yet.
 
 - **Roadmap** — each roadmap item with the issues mapped to it, each issue with its number,
   title and state, never its work level (`GUIDANCE.md` §4); the number opens the GitHub issue and
-  the title the issue's plan board where one exists (`GUIDANCE.md` §5). A roadmap item is a tracking issue with its sub-issues,
+  the title the issue's plan board where one exists (`GUIDANCE.md` §5; the title written
+  `<a data-board="N">`, §2 "Board links"). The header's "last amended by" chip is the same pair. A roadmap item is a tracking issue with its sub-issues,
   or an entry in a roadmap document the repository keeps, with the issues it names. On a system
   page, list the items that claim an issue touching the system, those issues under them, and how
   many of the item's issues touch other systems.
@@ -234,7 +253,9 @@ append rather than reorder.
 6. Map the Context: the open issues (`gh issue list --state open`); for each tracking issue its
    sub-issues (`gh issue view <n> --json subIssues,parent`); the repository's roadmap document,
    if it keeps one. Each issue a roadmap item claims goes under that item; the open issues no
-   item claims are the unscheduled ones. Link the plan boards that amended the system.
+   item claims are the unscheduled ones. Link the plan boards that amended the system. Fill `BOARDS`
+   with every issue the page names whose `docs/plans/…/dashboard.html` exists in the tree (§2, "Board
+   links").
 7. Add an optional tab wherever content for one exists (a declared divergence, step 2).
 8. Update the parents: the system's card and its place on every tab of the supersystem and
    repository pages, their Guarantees rows and registry copies; the supersystem DSL if an
@@ -259,7 +280,7 @@ by `verify/verify-templates.js`; `--auto` compares the page with it (`scripts/de
 and its renderer script (everything after `MODEL`'s closing `};`, less the `DEFAULT_INSPECT`
 line, which is the page's own text). The script before `MODEL` is compared less its
 **page-filled lines**: the `REPO` and `SRC` constants, and any other `const` whose line in the
-template carries a `// presenter:` comment, which is how a template marks a line filled per
+template carries a `// presenter:` comment (the `BOARDS` map), which is how a template marks a line filled per
 page; those lines are left out by name on both sides, so a page's own value there is never a
 difference. A page whose four are the verified template's gets **one light pass**, which checks
 the facts it fills in. A page that differs in any of them — declared with
@@ -279,6 +300,11 @@ spectrum** (`scripts/palette.js`: a `--sys-N`, `--server`, `--client` or `--wire
 `-soft` fill, chromatic with a hue outside 175°–295°, read from the page's CSS on every run,
 `--auto` included, and as the browser computes it in the theme of the pass), or a **git-ignored
 system folder**. A slot that is not the shared palette's value is a warning.
+
+**No dead board link.** On a system, supersystem or repository page, `check-page.js` reads the `BOARDS`
+map and fails (`DEAD BOARD LINK`) an entry whose file does not exist relative to the page, and
+(`BOARDS UNREADABLE`) a map that is not plain JSON. A page with no `BOARDS` line (a template older than
+the rule) gets a note; re-render it from the template.
 
 **No git-ignored system folder.** On a system, supersystem or repository page, `check-page.js`
 finds the `docs/dashboards/systems.json` the page belongs to and runs `git check-ignore
