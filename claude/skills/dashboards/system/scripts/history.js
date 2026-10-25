@@ -2,6 +2,8 @@
 //   const H = require(".../system/scripts/history.js");
 //   const { versions, missing, rebuilt, source } = H.load(template, { historyRepo });   // splice.js
 //   const html = H.readVersion(template, v => /dashboards-skill\/25/.test(v.note || ""), { historyRepo });   // the verify cases
+//   const { html, v, from } = H.verifiedVersion(template, { historyRepo });   // splice.js --verified: the recorded verified version
+//   const { template, key, v } = H.ofCached(file);   // splice.js --template <a file in verify/history/>: the template it is a version of
 // verify/history/ is a local cache: it is kept out of the .github mirror. A recorded version whose file is missing (or no longer hashes
 // to its recorded sha256) is rebuilt from the git history of the mirror, SpartanLaboratories/.github, at claude/skills/dashboards/<the
 // template's path>: from a local clone when historyRepo names one (git log --all --follow, git show), else through gh api (the commits
@@ -92,7 +94,36 @@ function readVersion(template, pick, opts = {}) {
   if (!R.inSkill || opts.noRebuild) return null;
   const r = rebuild(R.key, new Map([[v.sha256, v]]), R.dir, opts); return r.rebuilt.length ? r.rebuilt[0].html : null;
 }
+/* The verified version of a template: the text verify/verified.json records as its last full verification (the record's sha256), read
+   from the template itself while it is unchanged, else from its recorded history (verify/history/, rebuilt if it must be), so a page can
+   be spliced onto it while the template is being edited (splice.js --verified). { html, v, from } or { html: null, why }. */
+function verifiedVersion(template, opts = {}) {
+  const R = recordOf(template);
+  if (!R.rec || !R.rec.sha256) return { html: null, why: `${R.key} has no verified record in ${path.basename(R.file)}: run verify/verify-templates.js once` };
+  const listed = (Array.isArray(R.rec.history) ? R.rec.history : []).find(x => x.sha256 === R.rec.sha256), v = listed || { sha256: R.rec.sha256, verified: R.rec.verified };
+  if (fs.existsSync(template)) { const cur = dev.norm(fs.readFileSync(template, "utf8")); if (dev.sha(cur) === R.rec.sha256) return { html: cur, v, from: "the template itself (unchanged since it was verified)" }; }
+  const html = listed ? readVersion(template, x => x.sha256 === R.rec.sha256, opts) : null;
+  if (html != null) return { html, v, from: `verify/history/${fileOf(R.key, v)}` };
+  return { html: null, why: `the verified version ${label(v)} of ${R.key} is neither the template on disk nor a readable recorded version (${listed ? "not in verify/history/, and not rebuilt" : "its record lists no history entry for it"})` };
+}
+/* A cached version file (a file under a record's history/ folder, e.g. verify/history/supersystem/9b877b5e17b6.html) back to the template
+   it is a version of and its record entry: { template, key, v } or null. A page given such a file as its --template is spliced with that
+   template's recorded history as its merge bases, not with none. */
+function ofCached(file) {
+  const f = path.resolve(file);
+  for (let d = path.dirname(f); path.dirname(d) !== d; d = path.dirname(d)) {
+    if (path.basename(d) !== "history") continue;
+    const recFile = path.join(path.dirname(d), "verified.json"); if (!fs.existsSync(recFile)) continue;
+    let T = {}; try { T = JSON.parse(fs.readFileSync(recFile, "utf8")).templates || {}; } catch (e) { continue; }
+    const rel = path.relative(d, f).split(path.sep).join("/"), inSkill = path.resolve(recFile) === path.join(dev.SKILL, "verify", "verified.json");
+    for (const [key, rec] of Object.entries(T)) {
+      const v = (rec.history || []).find(x => fileOf(key, x) === rel); if (!v) continue;
+      return { template: inSkill ? path.join(dev.SKILL, ...key.split("/")) : path.join(path.dirname(recFile), key), key, v };
+    }
+  }
+  return null;
+}
 /* a one-line account of a version, for warnings */
 const label = v => `${short(v.sha256)}${v.note ? ` (${v.note})` : ""}`;
 
-module.exports = { load, readVersion, label, MIRROR, PREFIX };
+module.exports = { load, readVersion, verifiedVersion, ofCached, label, MIRROR, PREFIX };
