@@ -496,7 +496,10 @@ function applyEvent(orig, ev, facts, req, now) {
   if (facts.tests != null) {
     if (tracking) enrich.push("facts.tests on a tracking board: its units' boards record the tests (the presenter writes them there)");
     else { const qp = ev === "qa-pass" && facts.qa && Number.isInteger(facts.qa.pass) ? facts.qa.pass : null;
-      const r = TL.mergeTests(plan, facts.tests, { now, pass: qp, stage: ev === "implementation-stage" ? reportedStage || stageIdOf(facts.stage) || (typeof facts.stage === "string" && facts.stage.trim() ? facts.stage.trim() : null) : null, ids });
+      /* A remediation's report names no stage of plan.md: its classes take "qa pass n fixes", the pass the remediation answers, never the
+         report's free-text note ("qa pass 2 fixes done; reconciliation current" is a status, not a stage) */
+      const remPass = (facts.remediation || facts.step === "remediation") && w.remediation && Number.isInteger(w.remediation.pass) ? w.remediation.pass : null;
+      const r = TL.mergeTests(plan, facts.tests, { now, pass: qp, stage: ev === "implementation-stage" ? reportedStage || stageIdOf(facts.stage) || (remPass ? `qa pass ${remPass} fixes` : null) || (typeof facts.stage === "string" && facts.stage.trim() ? facts.stage.trim() : null) : null, ids });
       applied.push(...r.applied); enrich.push(...r.notes.map(n => "tests: " + n)); }
   } else if (!tracking && testsDue)
     enrich.push(`the Tests tab: the event carries no facts.tests; ${ev === "qa-pass" ? "Relevant, Other and the results come from the qa report" : "Added and Amended come from the branch's diff against its base"}`);
