@@ -80,27 +80,41 @@ const repo = (reg && reg.reg.repo) || (boards[0] && boards[0].plan.repo) || (() 
 if (!repo) { console.error("cannot tell the repository (no registry, no board, no origin remote)"); process.exit(2); }
 const [owner, name] = repo.split("/");
 
-/* Tracker */
-let issues = [], gq = {};
-if (!flag(args, "no-gh")) {
-  issues = JSON.parse(sh("gh", ["issue", "list", "--repo", repo, "--state", "all", "--limit", "1000", "--json", "number,title,state,stateReason,labels,createdAt"]));
-  const want = new Set([...issues.filter(i => i.state === "OPEN").map(i => i.number), ...boards.map(b => b.plan.issue)]);
-  const nums = [...want];
+/* Tracker. The reads run in parallel, in two rounds (shAll(): one child process that runs its commands at once), since the live
+   work board is regenerated at every board event and its time is mostly the tracker's round trips (plan/scripts/apply-event.js, the
+   fast path): round 1 the issue list, the pull requests, the remote and local branches and the graph of every issue with a board;
+   round 2 the graph of the open issues round 1 did not cover. What is read, and what a failed read does, is as before: the issue
+   list and the graph are required, the pull requests and the branches are logged and left out. */
+const PAR = 'const cp=require("child_process");const [cwd,jobs]=JSON.parse(process.argv[1]);Promise.all(jobs.map(([c,a])=>new Promise(r=>cp.execFile(c,a,{cwd,encoding:"utf8",maxBuffer:268435456,windowsHide:true},(e,o,er)=>r(e?{error:String(e.message||e).split("\\n")[0]+(er?" "+String(er).split("\\n")[0]:"")}:{out:o}))))).then(x=>process.stdout.write(JSON.stringify(x)));';
+const shAll = jobs => jobs.length ? JSON.parse(cp.execFileSync(process.execPath, ["-e", PAR, JSON.stringify([root, jobs])], { encoding: "utf8", maxBuffer: 1024 * 1024 * 1024 })) : [];
+const must = (r, what) => { if (r.error) throw new Error(`${what} failed: ${r.error}`); return r.out; };
+const graphJobs = nums => { const jobs = [];
   for (let i = 0; i < nums.length; i += 25) {
     const chunk = nums.slice(i, i + 25);
     const node = "number title state stateReason repository{nameWithOwner}";
     const q = `query{repository(owner:"${owner}",name:"${name}"){${chunk.map(n => `i${n}:issue(number:${n}){number parent{number} closedByPullRequestsReferences(first:20,includeClosedPrs:true){nodes{number state headRefName}} linkedBranches(first:10){nodes{ref{name}}} subIssues(first:50){nodes{${node}}} blockedBy(first:30){nodes{${node}}} blocking(first:30){nodes{${node}}}}`).join(" ")}}}`;
-    const r = JSON.parse(sh("gh", ["api", "graphql", "-f", "query=" + q]));
-    Object.values(r.data.repository).forEach(x => { if (x) gq[x.number] = x; });
+    jobs.push(["gh", ["api", "graphql", "-f", "query=" + q]]);
   }
-}
+  return jobs; };
+const takeGraph = rs => rs.forEach(r => Object.values(JSON.parse(must(r, "gh api graphql")).data.repository).forEach(x => { if (x) gq[x.number] = x; }));
+let issues = [], gq = {};
 /* Pull requests and branches, for the boardless rows (plan/RULES.md §5): every pull request with its head branch, and every branch
    on the remote and in the local repository (the root's refs; with --live, every worktree shares them). */
 let prs = [], branches = [];
 if (!flag(args, "no-gh")) {
-  try { prs = JSON.parse(sh("gh", ["pr", "list", "--repo", repo, "--state", "all", "--limit", "1000", "--json", "number,state,headRefName"])); } catch (e) { console.log("could not list pull requests: " + String(e.message).split("\n")[0]); }
-  try { branches = sh("gh", ["api", "--paginate", `repos/${repo}/branches?per_page=100`, "--jq", ".[].name"]).split(/\r?\n/).filter(Boolean); } catch (e) { console.log("could not list remote branches: " + String(e.message).split("\n")[0]); }
-  try { branches.push(...sh("git", ["for-each-ref", "--format=%(refname:short)", "refs/heads"]).split(/\r?\n/).filter(Boolean)); } catch (e) { /* not a git tree */ }
+  const boardNums = [...new Set(boards.map(b => b.plan.issue))], g1 = graphJobs(boardNums);
+  const [il, pl, rb, lb, ...gr1] = shAll([
+    ["gh", ["issue", "list", "--repo", repo, "--state", "all", "--limit", "1000", "--json", "number,title,state,stateReason,labels,createdAt"]],
+    ["gh", ["pr", "list", "--repo", repo, "--state", "all", "--limit", "1000", "--json", "number,state,headRefName"]],
+    ["gh", ["api", "--paginate", `repos/${repo}/branches?per_page=100`, "--jq", ".[].name"]],
+    ["git", ["for-each-ref", "--format=%(refname:short)", "refs/heads"]], ...g1]);
+  issues = JSON.parse(must(il, "gh issue list"));
+  takeGraph(gr1);
+  const rest = [...new Set(issues.filter(i => i.state === "OPEN").map(i => i.number))].filter(n => !boardNums.includes(n));
+  takeGraph(shAll(graphJobs(rest)));
+  if (pl.error) console.log("could not list pull requests: " + pl.error); else prs = JSON.parse(pl.out);
+  if (rb.error) console.log("could not list remote branches: " + rb.error); else branches = rb.out.split(/\r?\n/).filter(Boolean);
+  if (!lb.error) branches.push(...lb.out.split(/\r?\n/).filter(Boolean)); // not a git tree: no local branches
   branches = [...new Set(branches)];
 }
 /* The tracker's state of a boardless row (plan/RULES.md §5, "Boardless rows"): lib.js boardlessState(). */

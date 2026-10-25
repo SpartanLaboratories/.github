@@ -31,7 +31,21 @@ Two sets, one presenter, one shared rulebook.
 | `GUIDANCE.md` | The rules shared by both sets: colour coding, legends, planned/pending drawn dashed, themes, self-contained pages, facts, Context, divergence, checks. Read it first, every time. |
 | `system/RULES.md` | The system-board ruleset. `system/template/` (system and supersystem pages, registry), `system/scripts/` (`check-page.js`, `embed.js`, `deviation.js`, `levelrefs.js`, `palette.js` (the shared system palette and the status-hue rule), and `cliargs.js`, the strict option parser every script uses: an unknown option exits 2 with the usage, `--help` prints it), `system/examples/webtools-udp/`. |
 | `verify/` | `verify-templates.js`, which verifies every template once (the full browser pass over the fixtures in `verify/fixtures/`) and records its hash in `verified.json`. Pages made from a verified template are checked only where they deviate (`GUIDANCE.md` §8). Run it after every template change. |
-| `plan/RULES.md` | The plan-board ruleset: the data model, the events that update a board, the WIP strip and its step panel, the live updates, the work board. `plan/template/` (issue page, `plan.json` skeleton, work board), `plan/scripts/` (`new.js`, `embed.js` (which also writes each page's live sidecar, `plan.js` or `board.js`), `check.js`, `board.js`), `plan/examples/38-handshake-empty-name/`. |
+| `plan/RULES.md` | The plan-board ruleset: the data model, the events that update a board, the WIP strip and its step panel, the live updates, the work board. `plan/template/` (issue page, `plan.json` skeleton, work board), `plan/scripts/` (`new.js`, `embed.js` (which also writes each page's live sidecar, `plan.js` or `board.js`), `check.js`, `board.js`, and `apply-event.js`, the fast path of a plan-board event, below), `plan/examples/38-handshake-empty-name/`. |
+
+## The fast path of a plan-board event
+
+At every `plan-board` request the admin team runs, itself:
+
+    node ~/.claude/skills/dashboards/plan/scripts/apply-event.js --event <request.json> --worktree <path> [--repo <owner/repo>]
+
+It applies, deterministically and in a second or two, everything the event's facts alone decide (the step, the glow, the research
+questions, the stages and the derived as-built states, the halt, the qa passes, the remediation, the open points, the detail, the
+trail entry, the branch, a sub-issue's move on its tracking board), re-renders each board it writes onto the current template where
+the page is not the verified template plus its data, embeds, checks (no browser pass) and regenerates the live work board; nothing
+changes on a failure (exit 1). Its summary ends the job when it says `enrich: no`; with `enrich: yes` (and `why`) the presenter
+enriches the board from the folder's documents: the columns, the summaries and outcomes, the impact, the foundation at `sized`.
+What the script decides and what the presenter adds is in `plan/RULES.md` §4, "The fast path".
 
 ## Reading order for a job
 

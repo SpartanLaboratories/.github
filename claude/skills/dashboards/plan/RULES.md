@@ -92,7 +92,8 @@ a tracking issue as much as a sub-issue (§5).
 Scripts, from the repo root: `new.js <issue> <slug> …` scaffolds a folder from the template;
 `embed.js <folder>` embeds `plan.json`; `check.js <folder> --auto` enforces this ruleset and
 checks the page against its template (§8); `board.js` regenerates `docs/plans/board.json` and
-`index.html`.
+`index.html`; `apply-event.js --event <request.json> --worktree <path>` is the fast path of a
+plan-board event (§4, "The fast path").
 
 **Made from the template, checked where it deviates** (`GUIDANCE.md` §3, §8). A board is always
 the template plus its `plan.json`, and the work board the template plus `board.json`: `new.js`,
@@ -316,7 +317,8 @@ A board is alive while its run is. Its data carries:
   interior glow (`GUIDANCE.md` §1). `wip.current` means a run is actively in progress and
   nothing else. What it holds **follows `wip.step`**, by the step-to-column map below: during
   research the Considered cells of the rows being researched; while a plan is written or verified, Considered and Verdict;
-  during implementation the As built cells of the rows the current stage touches; during qa the
+  during implementation the As built cells of the rows the current stage touches (the whole As built column for a stage that
+  touches none); during qa the
   whole As built column lightly; while halted, the glow of the step it halted in holds still as a
   ring, and a yellow "waiting on the user" strip says for what;
 - `wip.next` — on a tracking board only: the id of the **next unit in landing order** — the
@@ -387,9 +389,9 @@ that does not keep it (§8). The map is written once for the scripts, as `GLOW_M
 | `architecture` | `considered`: the architecture weighs the options (a tracking board's units appear at its sign-off) |
 | `plan` | `considered` and `verdict`, both while the plan is written and while an existing plan is verified (a planner re-pass over a plan already written, which runs at this step) |
 | `branch` | nothing: the Verdict is written and the build has not started |
-| `implementation` | the As built cells of the rows the current stage touches, as `<row-id>.built`, at least one; on a tracking board, the As built cells of its units in progress (`<unit-id>.built`), or nothing between a unit's landing and the next unit's start |
+| `implementation` | the As built cells of the rows the current stage touches, as `<row-id>.built`; the whole As built column, `built`, when the current stage touches no rows (a stage such as "the as-built record") or no stage is current; on a tracking board, the As built cells of its units in progress (`<unit-id>.built`), or nothing between a unit's landing and the next unit's start |
 | `qa` | `built`: the whole As built column, lightly |
-| `remediation` | the As built cells of the rows the qa findings touch, as `<row-id>.built`, at least one |
+| `remediation` | the As built cells of the rows the qa findings touch, as `<row-id>.built`; the whole As built column, `built`, while those rows are not known |
 | `landing` | nothing: qa has approved and the merge is the admin team's (on a tracking board, its plan's own landing) |
 | `landed`, `cancelled` | nothing: the glow is off |
 | `halted` | the glow of the step it halted in (`wip.resume`), unchanged, drawn as a still ring |
@@ -635,12 +637,58 @@ kind and severity and its route into `wip.qa` from `qa-pass`. Every embed writes
 | `researched` | research verified | the Gap column from `research/README.md` and the findings; the `gap` milestone; every question's `state` `complete` (green) and `wip.research.phase = complete`: the questions stay, their rows ringed green, until the plan is accepted (the trail keeps the findings); `wip.step` the step the event's facts name next (`architecture` on a tracking issue, else `plan`), `wip.plan` `{state: "writing"}` at the plan step, and `wip.current` from the map: `considered`, or `considered` and `verdict` (§3) |
 | `architecture-signed-off` | level 4 sign-off | the Considered column from `architecture.md`; on a tracking board, the unit rows (each `pending` with a one-line progress summary until its sub-issue lands; `embed.js` links it to the sub-issue's board once that board exists, §1), and `wip.next` the first unit (§3); `wip.questions` and `wip.research` cleared (the tracking issue has no plan step); `wip.step = landing` (the plan's own landing) and `wip.current` empty |
 | `plan-accepted` | planner COMPLETE | Considered (if not yet) and Verdict from `plan.md`; the `verdict` milestone; `impact` from `impact.md` (and `plan.md` where it states API or migration facts), `basis` `plan` (§2, Impact); `wip.questions`, `wip.research` and `wip.plan` cleared (the green rings end here); `wip.step = branch` and `wip.current` empty (§3: nothing glows between the Verdict and the build). For a sub-issue, its unit's `impact.units` entry on the tracking board |
-| `branch-cut` | step 3 done | the branch; `wip.stages` from `plan.md`'s stages (the first `current`, the rest `todo`, each with the rows it touches); `wip.step = implementation`; `wip.current` the As built cells of the rows the first stage of `plan.md` touches (`<row-id>.built`) |
-| `implementation-stage` | a rookie-dev stage or report | `status = building`; the touched rows' as-built state and summary (`partially-built`, saying what is built and what is left, for a row a later stage still works on; its outcome once its last stage is done; §2, "Before the outcome"); an open point the report raises appended to `wip.open`, and one it settles marked `resolved` and recorded in the trail; each deviation from `final-implementation.md` as a `changes[]` entry, and one that changes the impact added to `impact.changes` with the entry it changed (`basis` stays `plan`: partly reconciled, §2, Impact); the reported stage `done` in `wip.stages` and the next `current`; `wip.current` = the As built cells of the rows the next stage touches (`<row-id>.built`); once the last stage is reported and the run moves to qa, `wip.step = qa` and `wip.current` `built` (§3) |
+| `branch-cut` | step 3 done | the branch; `wip.stages` from `plan.md`'s stages (the first `current`, the rest `todo`, each with the rows it touches); `wip.step = implementation`; `wip.current` the As built cells of the rows the first stage of `plan.md` touches (`<row-id>.built`), or the whole column, `built`, when it touches none |
+| `implementation-stage` | a rookie-dev stage or report | `status = building`; the touched rows' as-built state and summary (`partially-built`, saying what is built and what is left, for a row a later stage still works on; its outcome once its last stage is done; §2, "Before the outcome"); an open point the report raises appended to `wip.open`, and one it settles marked `resolved` and recorded in the trail; each deviation from `final-implementation.md` as a `changes[]` entry, and one that changes the impact added to `impact.changes` with the entry it changed (`basis` stays `plan`: partly reconciled, §2, Impact); the reported stage `done` in `wip.stages` and the next `current`; `wip.current` = the As built cells of the rows the next stage touches (`<row-id>.built`), or the whole column, `built`, when it touches none; once the last stage is reported and the run moves to qa, `wip.step = qa` and `wip.current` `built` (§3) |
 | `qa-pass` | a qa verdict | `wip.qa` appended (its counts by kind and by severity, `minor` and `other`, from the facts, and the `route` step 5 takes from them), `wip.qaMax` 3; `wip.step = remediation`, with `wip.remediation` `{pass, route, steps}` (the route's sub-steps as the pipeline runs them: on the spot, minor fixes then landing with no new qa pass; else the fixes, a planner re-pass first on `planner-then-rookie-dev`, then the next qa pass) and `wip.current` the As built cells of the rows the findings touch, or `landing`, with `wip.current` empty (§3). On an approving pass of a sub-issue's run, its unit row on the tracking board becomes `complete` (it stays in `wip.current` until it lands) |
 | `escalated` | a level escalation | `wip.step = escalated`, `wip.resume` the step it escalated from, and `wip.current` unchanged, its glow held still as a ring (§3); the proposed level is kept as data only (`wip.proposedLevel`, never shown: `GUIDANCE.md` §4); the board follows the issue's new sizing |
 | `landed` | the team has merged | never sent by a pipeline: the admin team raises it itself inside the landing refresh (the presenter writes, the executor commits). On the issue's board: `status = built`; `asBuilt` (sha, date, PR, merge, version); the `built` milestone; every `pending` part resolved; the trail completed; `impact` reconciled from `final-implementation.md` and the reconciled `impact.md`, `basis` `as-built`, each difference from the planned impact in `impact.changes`, naming the `entry` it changed where there is one (§2, Impact; the As built tab shows them); `wip.step = landed` and `wip.current` empty. For a sub-issue, on its tracking board, the standing rule (§3): the unit `landed`, out of `wip.current` (which clears its mirror at the next embed), `wip.next` recomputed as the next unit in landing order; its `impact.units` entry reconciled, `basis` `as-built`, each difference from the unit's planned impact in its `changes[]`; its effect on the initiative's impact recorded in the tracking board's `impact.changes`, always: each difference its landing makes, with `unit` set to the unit's row id, or one no-change entry `{unit, when, none: true}` when it changed nothing; that `basis` stays `plan` until the last unit lands and becomes `as-built` with it (§2, Impact). Then the work board is regenerated |
 | `cancelled` | the run is abandoned | `status = abandoned`, reason in `notes`; `wip.step = cancelled` and `wip.current` empty |
+
+**Every event re-renders the board onto the current template.** When a board's page is not the
+verified template plus its data (its page, its data block aside, differs from the current template, and the template's hash is the
+one `verify/verified.json` records), the event copies the current template over the page before it embeds: the issue's board, its
+parent tracking board and the live work board (`board.js --live --refresh-template`). A page that declares a divergence
+(`<meta name="template-divergence">`) is left as it is, and so is every page while the template has changed since it was verified;
+the presenter is told either way. The committed work board on the default branch is never re-rendered by an event: it changes only at
+a landing.
+
+### The fast path
+
+Most of what an event writes is decided by its facts alone. `plan/scripts/apply-event.js` writes that part, deterministically and
+with no reasoning, so the admin team runs it itself at every `plan-board` request and the board is up to date in a second or two
+(well under five seconds on a board like WebTools #62, the live work board included); the presenter then **enriches** the board
+with what needs the folder's documents, only when the script says so.
+
+    node ~/.claude/skills/dashboards/plan/scripts/apply-event.js --event <request.json> --worktree <path> [--repo <owner/repo>]
+
+`--event` is the protocol's plan-board request (its fenced json block, or the JSON alone), `--worktree` the worktree the board
+lives in; the main checkout, where the live work board is, is the request's `repo` (or `--main`). It reads the request and the
+board's `plan.json`, applies the event, re-renders the page onto the current template where it must (above), embeds the board (its
+data block and `plan.js`), on a sub-issue applies the standing rule to its parent tracking board (§3) and re-embeds it (the unit's
+mirror), runs `check.js` (no browser pass) on every board it wrote and regenerates the live work board at once. It writes only the
+issue's board files, its parent tracking board's files and `docs/plans/.live/`, never git. Every file is written through a
+temporary file and a rename, and on any failure every file is put back as it was: exit 1. The same event twice changes nothing (the
+second run reports `duplicate`): what it writes depends on the board, the facts and the event's time (`--at`, `facts.at`, else
+now), never on what changed. Its summary on stdout (key: value lines, or one JSON object with `--json`) names what it applied, the
+files it wrote, the check, the live board, the time, and `enrich: yes|no` with `why`.
+
+| The script decides (from the facts) | The presenter adds afterwards (from the documents), when `enrich: yes` |
+|---|---|
+| `wip.step`, `since`, `resume`, `waitingOn` (`halted`, `resumed`, `escalated`, `cancelled`); `wip.current` by the step-to-column map, during research from the questions' rows (`researchGlow()`); `wip.event` and `wip.updated`; `wip.detail` (`facts.detail`, else one line worded from the facts); one trail entry worded from the facts | the board's foundation at `sized` (`new.js`), and a sub-issue's Gap and Considered columns from its parent's documents |
+| the research questions and phase (`research-planning`, `research-started`, `research-returned` with its findings in the trail, `verification-started`, `researched` setting them complete) | the Gap column and its milestone (`researched`) |
+| `wip.plan` (writing at the plan step, a re-pass from the parent or after a qa pass) | the Considered column (`architecture-signed-off`, `plan-accepted`), a tracking board's unit rows, the Verdict column, the milestones, the impact |
+| the branch (`branch-cut`); `wip.stages` from `facts.stages`, each keeping the rows the board records for it; the derived As built states `pending`, `in-progress`, `partially-built` (a partially built row only where it has a summary), never an outcome | the rows each stage touches (`plan.md`); at a stage's end its rows' summaries and outcomes (`as-planned`, `amended`, `deviated`), the deviations and impact changes from `final-implementation.md` |
+| `wip.open` from `facts.open` (a resolved one recorded in the trail); `wip.interview` questions from `facts.questions` | the interview's answers |
+| `wip.qa` entries (pass, verdict, counts by kind and severity, route), `wip.qaMax`, `wip.remediation` (pass, route, steps); the rows the findings touch only from `facts.rows` | the findings' detail: the rows they touch, the pass's note |
+| on a sub-issue, the standing rule on its tracking board: the unit's start (`sized`), `complete` (an approving qa pass), `landed`, `wip.next`, the chain's `wip.detail` | the unit's summary, its `impact.units` entry and its effect on the initiative's impact |
+| at `landed`, `asBuilt` from the facts, and `status = built` with the step `landed` only once every part is resolved; at `cancelled`, `status = abandoned` and the reason in `notes` | the landing refresh (every part resolved, the trail, the impact reconciled); the cancelled board's closing state |
+
+`enrich: yes` whenever the event needs the documents — `sized` (always), `researched`, `architecture-signed-off`,
+`plan-accepted`, `branch-cut` without the stages' rows, an `implementation-stage` that finishes a stage, a `qa-pass` with
+findings, `escalated`, `cancelled`, `landed` — and whenever anything could not be applied (a fact missing, a text naming a work
+level, which is never written, a page left off the template, the live board's folder not in `.git/info/exclude`); `no` otherwise.
+A failed run (exit 1, nothing changed) leaves the whole event to the presenter. `sized` on a folder with no board yet writes nothing
+and says `enrich: yes`: the presenter lays the foundation.
 
 The **work board** (§5) is regenerated only at landings, as part of the landing refresh, and
 committed with it; between landings it may lag, and a run's live state is on its own board, on
@@ -728,7 +776,8 @@ board.
 |-----|------|
 | the `/resolve-issue` pipeline | sends `plan-board` events with the facts it has (step, verdicts, counts, documents written, what waits on the user); never edits a board |
 | the planner, implementer, qa | write their Markdown as before; the board is read from it |
-| the presenter (admin team service) | writes `plan.json`, re-embeds, checks, fills `board.json`; decides the rows and the summaries from the documents; sets `wip` from the event; on a sub-issue's event, re-embeds and checks its tracking board too, whose units' runs `embed.js` mirrors (§3; the presenter never writes `unit.live` by hand); in a landing refresh, sets the landed state and applies the standing rule (§3) on the tracking board |
+| the admin team | runs the fast path, `apply-event.js`, at every `plan-board` request (§4), and spawns the presenter only when it says `enrich: yes` or fails |
+| the presenter (admin team service) | enriches what the fast path leaves (§4, "The fast path"); writes `plan.json`, re-embeds, checks, fills `board.json`; decides the rows and the summaries from the documents; sets `wip` from the event; on a sub-issue's event, re-embeds and checks its tracking board too, whose units' runs `embed.js` mirrors (§3; the presenter never writes `unit.live` by hand); in a landing refresh, sets the landed state and applies the standing rule (§3) on the tracking board |
 | the admin team's executor | commits the folder on the issue's branch after each event, with its tracking board's `plan.json` and `dashboard.html` when a sub-issue's event changed them (a mirror conflict between branches is resolved by re-embedding, §3); commits the regenerated work board only in a landing's docs flow |
 
 ## 7. Writing

@@ -458,8 +458,10 @@ const RECON_WORDS = { planned: "planned", partial: "partly reconciled", "as-buil
      research the Considered cells of the rows the research  research (researchGlow below: the open questions' rows, the whole
               questions name                                  Considered column as the fallback)
      columns  exactly these columns                           architecture: considered; plan: considered, verdict; qa: built
-     built    the As built cells of the rows the stage, or    implementation, remediation (<row-id>.built addresses; at least one on
-              the findings, touch                             an issue board; on a tracking board the units in progress, or none)
+     built    the As built cells of the rows the stage, or    implementation, remediation (<row-id>.built addresses on an issue board;
+              the findings, touch                             the whole As built column, ["built"], when the current stage touches no
+                                                              rows, no stage is current, or the rows the findings touch are not known;
+                                                              on a tracking board the units in progress, or none)
    halted and escalated keep the glow of the step they stopped in (wip.resume), drawn as a still ring. */
 const GLOW_MAP = {
   sizing: { kind: "none" }, interview: { kind: "cells" }, research: { kind: "research" },
@@ -590,11 +592,24 @@ function glowMismatch(plan) {
   else if (m.kind === "columns") {
     want = `the ${words(cols)} column${cols.length > 1 ? "s" : ""}, as ${JSON.stringify(cols)}`; bad = cur.filter(a => !cols.includes(a));
     const miss = cols.filter(c => !cur.includes(c)); if (!bad.length && miss.length) bad = [`${miss.join(", ")} missing`];
+  } else if (tracking) {
+    want = "the As built cells of the units in progress (<unit-id>.built), or nothing between units";
+    bad = cur.filter(a => { const p = a.split("."); return p.length !== 2 || p[1] !== "built" || !unitRow(p[0]); });
   } else {
-    want = tracking ? "the As built cells of the units in progress (<unit-id>.built), or nothing between units"
-      : `the As built cells of the rows the ${step === "remediation" ? "qa findings touch" : "stage touches"} (<row-id>.built)`;
-    bad = cur.filter(a => { const p = a.split("."); return p.length !== 2 || p[1] !== "built" || (tracking && !unitRow(p[0])); });
-    if (!bad.length && !cur.length && !tracking) bad = ["no As built cell named"];
+    /* an issue board: the As built cells of the rows the current stage (or the qa findings) touches; the whole As built column,
+       ["built"], when the current stage touches no rows, no stage is current, or the rows the qa findings touch are not known (a
+       whole column glows only while the rows being worked on are unknown, GUIDANCE.md §1) */
+    const st = (Array.isArray(w.stages) ? w.stages : []).find(x => x && x.state === "current");
+    const own = st && Array.isArray(st.rows) ? st.rows.map(String).filter(id => rows.some(r => r && r.id === id)) : [];
+    const column = step === "remediation" || !own.length;
+    want = step === "remediation" ? 'the As built cells of the rows the qa findings touch (<row-id>.built), or the whole As built column, ["built"], while they are not known'
+      : column ? `the whole As built column, as ["built"] (${st ? `the current stage ${st.id} touches no row` : "no stage is current"})`
+      : `the As built cells of the rows the current stage ${st.id} touches (<row-id>.built), as ${JSON.stringify(own.map(id => id + ".built"))}`;
+    if (cur.length === 1 && cur[0] === "built") bad = column ? [] : ["built (the current stage names its rows: their cells glow, not the whole column)"];
+    else {
+      bad = cur.filter(a => { const p = a.split("."); return p.length !== 2 || p[1] !== "built"; });
+      if (!bad.length && !cur.length) bad = [step === "remediation" || !column ? "no As built cell named" : 'nothing named (the whole column, ["built"], glows)'];
+    }
   }
   return bad.length ? { step, via, want, bad } : null;
 }
