@@ -50,7 +50,6 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .chip{font:12px/1 var(--mono);padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink-2);max-width:100%;overflow-wrap:anywhere}
 .chip b{color:var(--ink);font-weight:600}
 .chip a{text-decoration:none;border-bottom:1px solid var(--line)}
-.chip.model{border-style:dashed}
 .chip.status{border-left:3px solid var(--line)}
 .chip.status.planned{border-style:dashed}
 .chip.status.built{border-left-color:var(--good)}
@@ -227,6 +226,8 @@ a.more:hover{text-decoration:underline}
 .key i{display:inline-block;width:16px;height:11px;border-radius:3px;border:1.5px solid var(--ink-2);background:var(--surface);flex:none}
 .key i.sbar{border-color:var(--line);border-left:4px solid var(--c)}
 .key i.pln{border-style:dashed;background:none;border-color:var(--muted)}
+/* a cell's kind chip in the legend: the same neutral, solid chip the cell draws (a fact, not an outcome; dashed means only planned) */
+.key .kind{font:600 10px var(--mono);color:var(--ink-2);border:1px solid var(--line);border-radius:3px;padding:1px 5px;letter-spacing:.04em}
 .key i.node{width:10px;height:10px;border:0;border-radius:50%;background:var(--ink-2)}
 .key i.node.hollow{background:none;border:2px dashed var(--muted)}
 .key i.node.acc{background:var(--accent)}
@@ -295,7 +296,6 @@ a.more:hover{text-decoration:underline}
 .cell.pending,.cell.deferred{border-style:dashed}
 .cell.pending::before{border-top-style:dashed;border-top-color:var(--muted)}
 .cell.pending::after,.cell.deferred::after{background:var(--surface);border:2px dashed var(--muted)}
-.cell.leave .kick .kind{border-style:dashed}
 .opts{list-style:none;margin:0;padding:0;display:grid;gap:3px}
 .opts li{min-width:0}
 .opt{--sc:var(--muted);appearance:none;border:1px solid transparent;border-left:3px solid var(--sc);background:color-mix(in srgb,var(--sc) 10%,transparent);color:var(--ink);font:inherit;font-size:12px;line-height:1.35;text-align:left;padding:3px 6px;border-radius:3px;cursor:pointer;display:grid;grid-template-columns:14px minmax(0,1fr);gap:5px;align-items:start;width:100%;min-width:0;max-width:100%}
@@ -557,7 +557,6 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
 
 <!-- A verbatim copy of plan.json (plan/scripts/embed.js). Do not edit here: edit plan.json and re-embed. -->
 <script type="application/json" id="plan">
-
 {
   "schema": "plan-board/1",
   "repo": "SpartanLaboratories/WebTools",
@@ -2266,7 +2265,11 @@ function renderWip(){
 /* ---------- KPIs ---------- */
 function renderKpis(){
   const states=Object.keys(STATES).map(k=>[k,count(ROWS,r=>stateOf(r)===k)]);
-  const built=TRACKING?count(ROWS,unitLanded):count(ROWS,r=>!["pending","deferred"].includes(stateOf(r)));
+  /* The As built tile (plan/RULES.md §2): rows built of the rows this issue builds. Built is as-planned, amended or deviated (a
+     tracking board's units: landed); a dropped or deferred row is built neither here nor counted in the total, as the chain's
+     progress counts them (§3), and the line under the figure names it with every other state. */
+  const counted=ROWS.filter(r=>!["dropped","deferred"].includes(stateOf(r)));
+  const built=TRACKING?count(counted,unitLanded):count(counted,r=>["as-planned","amended","deviated"].includes(stateOf(r)));
   const groups=[...new Set(ROWS.map(r=>r.group).filter(Boolean))];
   const by=v=>count(OPTS,x=>x.opt.verdict===v);
   const vbuild=count(ROWS,r=>verdictOf(r)==="build"), leave=count(ROWS,r=>verdictOf(r)==="leave"), vopen=ROWS.length-vbuild-leave;
@@ -2279,7 +2282,7 @@ function renderKpis(){
     `<div class="kpi"><div class="l">${TRACKING?"Units":"Rows"}</div><div class="v">${ROWS.length}</div><div class="s">${groups.length?`${groups.length} group${groups.length>1?"s":""}: ${groups.map(esc).join(", ")}`:"no rows yet"}</div></div>`,
     `<div class="kpi"><div class="l">Options weighed</div><div class="v">${OPTS.length}</div><div class="s">${["accepted","partial","deferred","declined"].filter(by).map(v=>`${by(v)} ${v}`).join(" · ")||"none yet"}</div></div>`,
     `<div class="kpi"><div class="l">Verdicts</div>${vbuild+leave?`<div class="v">${vbuild} <small>build</small></div><div class="s">${leave} left for later${vopen?` · ${vopen} not yet written`:""}</div>`:`<div class="v">0${ROWS.length?` <small>of ${ROWS.length}</small>`:""}</div><div class="s">none written yet</div>`}</div>`,
-    `<div class="kpi"><div class="l">As built</div><div class="v">${built} <small>/ ${ROWS.length} ${TRACKING?"units landed":"rows"}</small></div><div class="s">${states.filter(([,n])=>n).map(([k,n])=>`${n} ${STATES[k].label}`).join(" · ")||"—"}${changes?` · ${changes} changes`:""}</div>${ROWS.length?bar:""}</div>`,
+    `<div class="kpi"><div class="l">As built</div><div class="v">${built} <small>/ ${counted.length} ${TRACKING?"units landed":"rows built"}</small></div><div class="s">${states.filter(([,n])=>n).map(([k,n])=>`${n} ${STATES[k].label}`).join(" · ")||"—"}${changes?` · ${changes} changes`:""}</div>${ROWS.length?bar:""}</div>`,
     `<div class="kpi"><div class="l">${LANDED?"Timeline":"QA passes"}</div><div class="v">${LANDED?(days==null?"—":days===0?"same day":`${days} day${days===1?"":"s"}`):`${qa.length}${WIP.qaMax?` <small>of at most ${esc(WIP.qaMax)}</small>`:""}`}</div><div class="s">${LANDED?`${b.date?`baseline ${when(b.date)}`:""}${a&&a.date?` → built ${when(a.date)}`:""}`:(qa.length?esc(qa.map(p=>`pass ${p.pass}: ${(QA[p.verdict]||QA.running).label}`).join(" · ")):"no qa pass yet")}</div></div>`].join("");
 }
 
@@ -2323,11 +2326,17 @@ function renderBoard(){
     +["accepted","partial","deferred","declined"].filter(v=>used.includes(v)).map(v=>`<span>${pill(OPT[v])} ${esc(OPT[v].desc)}</span>`).join("")
     +(used.includes("settled")?`<span>${pill({...OPT.accepted},"","deferred → accepted")} settled in column 4</span>`:"")
     +Object.keys(STATES).filter(k=>usedSt.includes(k)).map(k=>`<span>${badge(k)} ${esc(STATES[k].desc)}</span>`).join("")
+    +kindKeys()
     +`<span><i class="node"></i>a phase reached</span>`
     +(usedSt.some(k=>STATES[k].dash)?`<span><i class="node hollow"></i>dashed: not built yet</span>`:"")
     +markKeys(CURRENT)+runKeys(ROWS)
     +(NEXT_ROW?KEY_NEXT(NEXT_ROW):"");
 }
+/* The kind chips the Timeline draws, in its legend: the gap's kind (column 1) and the written verdict's (column 3), each a neutral,
+   solid chip (GUIDANCE.md §1: a kind is a fact, not an outcome, and dashed means only planned or pending), listed only when drawn. */
+function kindKeys(){ const chip=w=>`<b class="kind">${esc(w)}</b>`;
+  const gk=[...new Set(ROWS.map(r=>(r.gap||{}).kind).filter(Boolean))], vk=["build","leave"].filter(k=>ROWS.some(r=>verdictOf(r)===k));
+  return (gk.length?`<span>${gk.map(chip).join(" ")} the gap's kind</span>`:"")+(vk.length?`<span>${vk.map(k=>chip(k==="leave"?"leave as is":"build")).join(" ")} the verdict's kind${vk.length>1?": build it, or leave it as is":""}</span>`:""); }
 /* The column bands: one behind each phase column, the head's width and the board's full height, redrawn whenever the board's
    width changes (a resize, the tab shown); none while the narrow layout stacks the rows. */
 function layoutBands(){ const b=$("#board"); if(!b) return; b.querySelectorAll(".band").forEach(x=>x.remove());
@@ -2591,7 +2600,7 @@ function renderSource(){
      (GUIDANCE.md §4) */
   const j=esc(JSON.stringify(PLAN,(k,v)=>DATA_ONLY.includes(k)?undefined:v,2));
   $("#source-view").innerHTML=j.replace(/^(\s*)(&quot;[^&]*?&quot;)(:)/gm,'$1<span class="k">$2</span>$3').replace(/(:\s)(&quot;.*&quot;)(,?)$/gm,'$1<span class="s">$2</span>$3');
-  $("#source-key").innerHTML=`<span><b style="color:var(--link)">"key"</b> a field</span><span><b>"text"</b> a value</span><span><i class="pln"></i>this copy is replaced on every <code>embed.js</code> run</span>`;
+  $("#source-key").innerHTML=`<span><b style="color:var(--link)">"key"</b> a field</span><span><b>"text"</b> a value</span><span>this copy is replaced on every <code>embed.js</code> run</span>`;
 }
 
 /* ---------- Context: roadmap, unscheduled and follow-ups, trail, documents, notes ---------- */

@@ -27,7 +27,9 @@
 // the plan-board template's chip, check.js and board.json, and the per-unit "no change" entry. And a sub-issue's board born at "sized" under a
 // signed-off tracking plan, its Gap and Considered filled from the parent's documents (plan/RULES.md §4). And the Verdicts tile and column,
 // which count and label only written verdicts (a board with rows and none, a board with mixed, a tracking board), and the footer on
-// every dashboard type (GUIDANCE.md §3), with check-page.js failing the old form. A template is recorded only when its
+// every dashboard type (GUIDANCE.md §3), with check-page.js failing the old form. And that dashed means only planned or pending on
+// every type (the verdict's kind chip, the model chip, the Source legend, the link button: solid), the As built tile's count of built
+// rows (dropped and deferred out of both figures), and a work-board entry's recorded "no system" (plan/RULES.md §2, §5). A template is recorded only when its
 // browser passes and every case group pass.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
@@ -826,6 +828,68 @@ targets.filter(t => t.block === "plan").forEach(t => {
   if (!root) { const exs = fs.readFileSync(sk("system/examples/webtools-udp/index.html"), "utf8");
     fc.push(["the system example's footer is the trimmed form", ftext(exs) === `Corresponds to workspace.dsl. ${CODE}`, ftext(exs)]); }
   report("the footer on every dashboard type", fc);
+}
+
+/* Dashed means only planned or pending (GUIDANCE.md §1), the As built tile counts what is built, and "no system" is a recorded
+   decision (plan/RULES.md §2, §5), on every dashboard type, rendered through headless Chrome with a probe that reads computed styles:
+   - the plan board: the verdict's kind chip, "leave as is" included, is solid, and the Timeline legend names the kind chips it drew
+     (the verdict's and the gap's) as the same solid chip; the header's model chip is solid; the Source legend draws no dashed swatch;
+   - the As built tile reads "N / M rows built": N the rows as-planned, amended or deviated, M every row less the dropped and deferred
+     ones, which the line under it still names; a tracking board's "N / M units landed" is counted the same way, as its chain chip;
+   - the work board: the model chip solid, no dashed swatch in the Source legend; a row recorded "unassigned": true reads "no system"
+     (not "no system recorded"); check.js passes "unassigned": true with system null and fails one that is not true or sits beside
+     a system;
+   - the system and supersystem templates: the model chip and the inspector's link button are solid. */
+{ const dc = [], sc = path.join(out, "dashed-and-counts"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
+  const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x)), tp = name => (targets.find(t => t.name === name) || {}).path;
+  const text = h => (h || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+  const put = (name, html) => { const f = path.join(sc, name); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, html); return f; };
+  /* the probe: each selector's computed top border style, "sel=style" joined by "|", on body[data-borders]; a .linkbtn is made */
+  const probe = sels => `<script>window.addEventListener("load",()=>setTimeout(()=>{const b=document.createElement("button");b.className="linkbtn";document.body.append(b);document.body.dataset.borders=${JSON.stringify(sels)}.map(s=>s+"="+[...document.querySelectorAll(s)].map(e=>getComputedStyle(e).borderTopStyle).join(",")).join("|");},700));</script>`;
+  const borders = dom => Object.fromEntries(((dom || "").match(/data-borders="([^"]*)"/) || ["", ""])[1].split("|").filter(Boolean).map(x => { const i = x.lastIndexOf("="); return [x.slice(0, i).replace(/&gt;/g, ">"), x.slice(i + 1).split(",").filter(Boolean)]; }));
+  const solid = xs => !!xs && xs.length > 0 && xs.every(s => s === "solid");
+  const ptpl = tp("plan/template/dashboard.html");
+  if (ptpl) { const tpl = fs.readFileSync(ptpl, "utf8"), ex = J("plan/examples/38-handshake-empty-name/plan.json"), trk = J("verify/fixtures/tracking.plan.json");
+    const render = (name, d) => dumpDom(put(name + ".html", withData(tpl, "plan", JSON.stringify(d, null, 2)).replace("</body>", probe([".cell.verdict .kick .kind", ".cell.verdict.leave .kick .kind", "#timeline-key .kind", ".chip.model"]) + "</body>")));
+    const tile = dom => (text(inner(dom, '<div class="kpis" id="kpis">', "div")).match(/As built (.*?) (QA passes|Timeline)/) || ["", "no As built tile"])[1];
+    const BUILT = ["as-planned", "amended", "deviated"], LANDED = ["landed", ...BUILT], st = r => (r.asBuilt || {}).state || "pending";
+    const dE = render("example", ex);
+    if (dE == null) dc.push(["the rendered plan board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
+    else { const b = borders(dE), key = inner(dE, '<div class="key" id="timeline-key">', "div"), src = inner(dumpDom(path.join(sc, "example.html"), "source"), '<div class="key" id="source-key">', "div");
+      dc.push(["the verdict's kind chip is solid, \"leave as is\" included", solid(b[".cell.verdict .kick .kind"]) && solid(b[".cell.verdict.leave .kick .kind"]) && /class="kind">leave as is</.test(dE), JSON.stringify(b)]);
+      dc.push(["the Timeline legend names the kind chips it drew, solid: the verdict's (build, leave as is) and the gap's", /<b class="kind">build<\/b> <b class="kind">leave as is<\/b> the verdict's kind: build it, or leave it as is/.test(key) && /<b class="kind">bug<\/b>[\s\S]*? the gap's kind/.test(key) && solid(b["#timeline-key .kind"]), text(key).slice(0, 300)]);
+      dc.push(["the header's model chip is solid, and the Source legend draws no dashed swatch", solid(b[".chip.model"]) && /this copy is replaced on every/.test(src) && !/class="pln"/.test(src), `${JSON.stringify(b[".chip.model"])} · ${src.slice(0, 160)}`]);
+      dc.push(["the example's As built tile reads \"11 / 11 rows built\"", tile(dE).startsWith(`${ex.rows.filter(r => BUILT.includes(st(r))).length} / ${ex.rows.length} rows built`) && ex.rows.length === 11, tile(dE)]);
+      const v = copy(ex); v.rows[0].asBuilt = { state: "dropped", summary: "Verification case.", reason: "Verification case." }; v.rows[1].asBuilt = { state: "deferred", summary: "Verification case.", issue: 999 };
+      const n = v.rows.filter(r => BUILT.includes(st(r))).length, m = v.rows.filter(r => !["dropped", "deferred"].includes(st(r))).length, tv = tile(render("dropped", v));
+      dc.push([`with a row dropped and one deferred the tile reads "${n} / ${m} rows built", both still named under it`, tv.startsWith(`${n} / ${m} rows built`) && /1 dropped/.test(tv) && /1 deferred/.test(tv), tv]);
+      const tk = copy(trk), pend = tk.rows.filter(r => r.unit && st(r) === "pending" && r.id !== (tk.wip || {}).next && !((tk.wip || {}).current || []).some(a => a.split(".")[0] === r.id));
+      pend[pend.length - 1].asBuilt = { state: "dropped", summary: "Verification case.", reason: "Verification case." };
+      const units = tk.rows.filter(r => r.unit), tn = units.filter(r => LANDED.includes(st(r))).length, tm = units.filter(r => !["dropped", "deferred"].includes(st(r))).length, dT = render("tracking-dropped", tk), tt = tile(dT);
+      dc.push([`a tracking board with a unit dropped reads "${tn} / ${tm} units landed", as its chain chip counts`, tt.startsWith(`${tn} / ${tm} units landed`) && /1 dropped/.test(tt) && new RegExp(`${tn} of ${tm} landed`).test(text(dT)), tt]); } }
+  const btpl = tp("plan/template/board.html");
+  if (btpl) { const tpl = fs.readFileSync(btpl, "utf8"), b = J("verify/fixtures/work-board.json");
+    const un = copy(b); un.groups.push({ key: "other", issue: null, title: "Other runs, oldest first", board: null });
+    un.rows.push({ issue: 71, title: "Verification case: a planning record only", state: "OPEN", created: "2026-10-01", parent: null, waitsOn: [], blocks: [], board: null, folder: null, branch: null, system: null, unassigned: true, step: null, detail: "", qa: [], qaMax: null, status: "no-board", landed: null, reconciliation: null, active: false, systemName: "no system", group: "other", order: 0 });
+    un.unscheduled = [{ issue: 72, title: "Verification case: an unscheduled planning record", labels: [], created: "2026-10-02", system: null, unassigned: true }];
+    const dW = dumpDom(put("work-board/index.html", withData(tpl, "board", JSON.stringify(un, null, 2)).replace("</body>", probe([".chip.model"]) + "</body>")));
+    if (dW == null) dc.push(["the rendered work board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
+    else { const bw = borders(dW), src = inner(dW, '<div class="key" id="source-key">', "div"), row = (dW.match(/<tr class="run[^"]*"[^>]*><td><span class="t"><a [^>]*>#71<[\s\S]*?<\/tr>/) || [""])[0];
+      dc.push(["the work board's model chip is solid, and its Source legend draws no dashed swatch", solid(bw[".chip.model"]) && /this copy is replaced on every/.test(src) && !/class="pln"/.test(src), `${JSON.stringify(bw[".chip.model"])} · ${src.slice(0, 160)}`]);
+      dc.push(["a row recorded \"unassigned\": true reads \"no system\", not \"no system recorded\"", /<\/span>no system<\/div>/.test(row) && !/no system recorded/.test(row), text(row).slice(0, 200)]); }
+    const dir = path.join(sc, "tree", "docs", "plans"), chk = d => { fs.rmSync(path.join(sc, "tree"), { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
+      (d.rows || []).filter(r => r.board).forEach(r => stub(path.join(dir, path.dirname(r.board))));
+      fs.writeFileSync(path.join(dir, "board.json"), JSON.stringify(d, null, 2) + "\n"); fs.writeFileSync(path.join(dir, "index.html"), tpl); node(embedJs, dir); return node(checkJs, dir, "--root", path.join(sc, "tree")); };
+    const c1 = chk(un);
+    dc.push(["check.js passes \"unassigned\": true with system null, on a row and an unscheduled issue", c1.status === 0 && !/unassigned/.test(lines(c1, /^(FAIL|warn)/)), lines(c1, /^(FAIL|warn)/) || "clean"]);
+    const bad1 = copy(un); bad1.rows[bad1.rows.length - 1].unassigned = "yes"; const c2 = chk(bad1);
+    const bad2 = copy(un); bad2.unscheduled[0].system = "gradle-build"; const c3 = chk(bad2);
+    dc.push(["check.js fails an \"unassigned\" that is not true, and one beside a system", c2.status === 1 && /rows\[\d+\]\.unassigned must be true/.test(c2.stdout) && c3.status === 1 && /unscheduled\[0\]\.unassigned must be true/.test(c3.stdout), `${lines(c2, /^FAIL/)} || ${lines(c3, /^FAIL/)}`]); }
+  ["system/template/system.html", "system/template/supersystem.html"].forEach(name => { const p = tp(name); if (!p) return;
+    const d = dumpDom(put(path.basename(name, ".html") + "/index.html", fs.readFileSync(p, "utf8").replace("</body>", probe([".chip.model", ".linkbtn"]) + "</body>")));
+    if (d == null) { dc.push([`the rendered ${name} (no browser found: set CHROME)`, false, "no Chrome or Edge"]); return; }
+    const bs = borders(d); dc.push([`${name}: the model chip and the inspector's link button are solid`, solid(bs[".chip.model"]) && solid(bs[".linkbtn"]), JSON.stringify(bs)]); });
+  report("dashed means planned, the As built count and \"no system\" on every dashboard type", dc);
 }
 
 const today = new Date().toISOString().slice(0, 10);

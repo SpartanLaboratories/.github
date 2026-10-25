@@ -40,7 +40,6 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 6px}
 .chip{font:12px/1 var(--mono);padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink-2);max-width:100%;overflow-wrap:anywhere}
 .chip b{color:var(--ink);font-weight:600}
-.chip.model{border-style:dashed}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0 18px}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0}
 .kpi .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
@@ -252,7 +251,7 @@ function render(){
   /* the footer (GUIDANCE.md §3): what the page corresponds to and what is authoritative; nothing more */
   $("#footer").innerHTML=`Corresponds to <code>docs/plans/${B.live?".live/":""}board.json</code>. Code and the Markdown beside this page are authoritative on any conflict.`;
   $("#source-view").textContent=JSON.stringify(B,(k,v)=>k==="level"?undefined:v,2); /* a work level is never shown (GUIDANCE.md §4) */
-  $("#source-key").innerHTML=`<span><i class="pln"></i>this copy is replaced on every <code>board.js</code> run</span>`;
+  $("#source-key").innerHTML=`<span>this copy is replaced on every <code>board.js</code> run</span>`;
 }
 const tabs=[...document.querySelectorAll(".tab")];
 function show(id){ tabs.forEach(t=>{ const on=t.id===id; t.setAttribute("aria-selected",String(on)); t.tabIndex=on?0:-1; document.getElementById(t.getAttribute("aria-controls")).hidden=!on; }); }
