@@ -34,7 +34,7 @@
 Paths under `webtools-udp/src/main/kotlin/com/spartanlabs/webtools/udp/` are abbreviated
 `main/`; paths under `webtools-udp/src/test/kotlin/com/spartanlabs/testing/` are
 abbreviated `test/`. Line numbers are on `85cfbbe` (the branch's code is identical) unless
-marked "after". All commands run from `D:\Documents\Programming\WebTools` in Git Bash and
+marked "after". All commands run from the repository root in Git Bash and
 use `./gradlew.bat`.
 
 ---
@@ -308,7 +308,7 @@ Byte-aware edit (tested on a scratch copy: result is 42091 bytes from 42081, byt
 and after the literal are identical):
 
 ```bash
-cd /d/Documents/Programming/WebTools
+cd <the repository root>
 F=webtools-udp/src/test/kotlin/com/spartanlabs/testing/component/webtools/udp/HandshakeCoordinatorTest.kt
 grep -a -c -P '\x00' "$F"      # expect 1 (the NUL is on one line)
 perl -0777 -pe 's/"\x00\x01"/"\x5Cu0000\x5Cu0001"/' "$F" > "$F.tmp" && mv "$F.tmp" "$F"
@@ -1620,7 +1620,7 @@ The socket-binding tasks (integration, e2e, nonfunctional) are serialised by
 Static checks:
 
 ```bash
-cd /d/Documents/Programming/WebTools
+cd <the repository root>
 grep -rn "getOrThrow\|isFailure" webtools-udp/src/test/kotlin/com/spartanlabs/testing/deterministic/webtools/udp/HandshakeProtocolTest.kt webtools-udp/src/test/kotlin/com/spartanlabs/testing/gating/webtools/udp/HandshakeProtocolGatingTest.kt   # expect no output
 grep -a -c -P '\x00' webtools-udp/src/test/kotlin/com/spartanlabs/testing/component/webtools/udp/HandshakeCoordinatorTest.kt   # expect 0
 git status --short    # expect only the files named in this plan
@@ -2006,7 +2006,7 @@ Apply to the LF-converted file (B-0). Insert and replace exactly:
 ### B-7 Stage B checks
 
 ```bash
-cd /d/Documents/Programming/WebTools
+cd <the repository root>
 src=webtools-udp/src/main/kotlin/com/spartanlabs/webtools/udp
 # 1. every File.kt:N reference in the protocol doc: print the first and last line it cites
 tr -d '\r' < docs/webtools-udp-protocol.md | grep -n -o -P '[A-Za-z]+\.kt:[0-9][0-9,\-]*' |
@@ -2181,7 +2181,7 @@ branch at Commit 2 (`1605bdd`) with Stage B's three documents edited but uncommi
 ### C-0 Preconditions
 
 ```bash
-cd /d/Documents/Programming/WebTools
+cd <the repository root>
 git log --oneline -1     # expect: 1605bdd fix: refuse a malformed Iam with REFUSED malformed ...
 git status --short       # expect: M README.md, M docs/webtools-udp-architecture.md,
                          # M docs/webtools-udp-protocol.md, and the plan documents if this
@@ -3567,7 +3567,7 @@ means an edit did not land as quoted. In that case, stop and report it.
 ### D-7 Checks
 
 ```bash
-cd /d/Documents/Programming/WebTools
+cd <the repository root>
 src=webtools-udp/src/main/kotlin/com/spartanlabs/webtools/udp
 ./gradlew.bat :webtools-udp:compileKotlin :webtools-udp:compileTestKotlin
 ./gradlew.bat :webtools-udp:gatingTest :webtools-udp:componentTest :webtools-udp:deterministicTest

@@ -158,6 +158,7 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
   .wipgrid>.sp{grid-column:3;grid-row:var(--r,1)}
   .wipgrid>.wb.next,.wipgrid>.wb.wait{grid-column:2/-1;grid-row:var(--r,1)}
   .wipgrid>.wb.next.beside{grid-column:3}
+  .wipgrid>.sp.own{grid-column:2/-1}
 }
 .wb{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;min-width:0}
 .wb.phase.landed{border-left-color:var(--good)}
@@ -460,6 +461,8 @@ blockquote.excerpt p{margin:4px 0 0;color:var(--ink-2);font-size:12.5px}
 @media (max-width:900px){
   .board .cell.colglow{animation:glowsoft 2s ease-in-out infinite;background-color:color-mix(in srgb,var(--accent) 4%,var(--surface))}
   .board .cell.colglow.colheld{animation:none;box-shadow:inset 0 0 0 2px var(--accent)}
+  .board .rowlab.colglow{animation:glowsoft 2s ease-in-out infinite;background-color:color-mix(in srgb,var(--accent) 4%,var(--surface));border-radius:6px}
+  .board .rowlab.colglow.colheld{animation:none;box-shadow:inset 0 0 0 2px var(--accent)}
   .board{display:block}
   .colhead{display:none}
   .grouphead{margin-top:18px}
@@ -613,7 +616,17 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
 /* the accent marks win over the surfaces they sit on (cells, cards and column heads set their own background) */
 .cell.glow,.bcard.glow,.colhead.glow{background-color:color-mix(in srgb,var(--accent) 7%,var(--surface))}
 .cell.glow-soft,.bcard.glow-soft,.colhead.glow-soft{background-color:color-mix(in srgb,var(--accent) 4%,var(--surface))}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}.colhead.glow{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 14px 4px color-mix(in srgb,var(--accent) 40%,transparent)}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}.colhead.glow{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 14px 4px color-mix(in srgb,var(--accent) 40%,transparent)}
+  .board .cell.colglow,.board .rowlab.colglow{animation:none!important;box-shadow:inset 0 0 0 1.5px var(--accent),inset 0 0 9px 2px color-mix(in srgb,var(--accent) 26%,transparent)}}
+/* Progress notes (plan/RULES.md §3, "The step panel"): each agent's own note of its work, an info group of the step panel; a note not
+   updated for over 20 minutes is muted (its agent may have stopped). */
+.wip-facts>span.prog{border-left:3px solid var(--ink-2)}
+.wip-facts>span.prog.stale{opacity:.55}
+.wip-facts>span.prog small{font:11px var(--mono);color:var(--muted)}
+.key i.progk{border:1px solid var(--line);border-left:3px solid var(--ink-2);background:color-mix(in srgb,var(--ink) 3%,var(--surface))}
+.key i.progk.stale{opacity:.55}
+/* the Context's legend (GUIDANCE.md §2): the encodings its cards draw */
+.context>.key{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-top:10px}
 </style>
 </head>
 <body>
@@ -1661,7 +1674,7 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
               "ref": "plan.md#8-tests--stage-a-a-7",
               "heading": "8. Tests — Stage A (A-7)",
               "paragraph": "Conventions followed (read from the existing suites): `kotlin.test` assertions with `org.junit.jupiter.api.Tag`; the level `@Tag` on every class; hand-written recording fakes (`FakeConnection`, `FakePeriodicSchedule`) under `test/support/webtools/udp/`; log assertions through `captureLogsOf`/`hasEventAt`/`hasWarnContaining` (`test/support/webtools/udp/LogCapture.kt`); one test class per file; component tests pass pre-trimmed text (`accept(origin, text)` does not trim). MockK is not used by these suites. Every socket-level case sends from a raw `DatagramSocket`, never from …",
-              "hash": "8b89e7329f99"
+              "hash": "36a137c3b0de"
             }
           },
           {
@@ -1865,7 +1878,7 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
               "ref": "plan.md#a-1-testcomponentwebtoolsudphandshakecoordinatortestkt--escape-the-nulsoh-bytes-first-edit-to-this-file",
               "heading": "A-1 `test/component/webtools/udp/HandshakeCoordinatorTest.kt` — escape the NUL/SOH bytes (FIRST edit to this file)",
               "paragraph": "Line `:577` is ` assertTrue(coordinator.accept(originA, byteArrayOf(0x00, 0x01), \"<NUL><SOH>\").isSuccess)` where the string literal holds the raw bytes 0x00 0x01. Do not open this file with an editor/Edit tool before this step; do not use `Grep`/`rg` on it (they skip it).",
-              "hash": "188d39cb9e3c"
+              "hash": "376709d24bf7"
             }
           },
           {
@@ -2868,6 +2881,32 @@ const when=v=>{ const s=String(v==null?"":v).trim(), u=STAMP_RE.test(s)&&utcIso(
 const day=v=>{ const s=String(v==null?"":v).trim(), u=STAMP_RE.test(s)&&utcIso(s); return u?`<time datetime="${u}" title="${u} (UTC)">${esc(new Date(u).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"}))}</time>`:esc(s); };
 function localizeTimes(root){ (root||document).querySelectorAll("time[datetime]").forEach(t=>{ const u=STAMP_RE.test(t.getAttribute("datetime"))&&utcIso(t.getAttribute("datetime")); if(!u||t.dataset.local) return;
   t.dataset.local="1"; t.title=`${u} (UTC)`; t.textContent=new Date(u).toLocaleString(undefined,LOCAL_FMT); }); }
+/* ---------- Links to the shared pages and the live views (GUIDANCE.md §5; plan/RULES.md §1, §5) ----------
+   PLAN.links, set by embed.js from the files on disk at every embed: the committed work board (workBoard), the repository page (repoPage)
+   and each system's page (pages), each a path relative to this folder, or absent while its file is not there, so no link points at a
+   missing file (check.js fails one that does). A board embedded before the rule carries no links: the old paths are used. The work
+   board opens the live view first: docs/plans/.live/index.js, the marker board.js --live writes in each checkout of the repository, names
+   the live board on this machine; else the committed one, else the words stay plain text. The Markdown a board links opens its rendered
+   copy when one is on disk (docs/plans/.live/docs/index.js lists them; embed.js writes them), else the .md itself. */
+let LIVE_WB=null, LIVE_DOCS=null;
+function liveMark(src,key,cb){ if(!src){ cb(null); return; } const sc=document.createElement("script"); sc.src=src+(src.includes("?")?"&":"?")+"t="+Date.now();
+  sc.onload=()=>{ const v=(window.DASHBOARDS_LIVE||{})[key]; sc.remove(); cb(v==null?null:v); }; sc.onerror=()=>{ sc.remove(); cb(null); }; document.head.appendChild(sc); }
+const relTo=(base,href)=>/^[a-z][a-z0-9+.-]*:/i.test(href)||href.startsWith("/")?href:base.replace(/[^/]*$/,"")+href;
+const hasLinks=()=>!!PLAN.links&&typeof PLAN.links==="object"&&!Array.isArray(PLAN.links);
+const sharedLink=k=>hasLinks()?(relLink(PLAN.links[k])?PLAN.links[k]:null):({workBoard:`${UP}docs/plans/index.html`,repoPage:`${UP}docs/dashboards/index.html`})[k]||null;
+const wbHref=()=>LIVE_WB||sharedLink("workBoard");
+const pageHref=s=>hasLinks()?(PLAN.links.pages&&relLink(PLAN.links.pages[s.slug])?PLAN.links.pages[s.slug]:null):(s.page?UP+s.page:null);
+const linkOr=(href,text,title)=>href?`<a href="${esc(href)}"${title?` title="${esc(title)}"`:""}>${text}</a>`:text;
+const wbLink=text=>linkOr(wbHref(),text,LIVE_WB?"The live work board on this machine":"The committed work board, as of the last landing");
+const normPath=p=>{ const out=[]; String(p).split("/").forEach(s=>{ if(s===".."&&out.length) out.pop(); else if(s&&s!==".") out.push(s); }); return out.join("/"); };
+/* a relative link to a Markdown file, as the rendered copy's path when that copy is on disk (its anchor kept: a "(§n)" reference opens the
+   copy at that section), else null */
+function liveDocHref(href){ if(!LIVE_DOCS||!relLink(href)) return null; const m=/^([^#?]+\.md)(#.*)?$/i.exec(href); if(!m) return null;
+  const abs=normPath(FOLDER+"/"+m[1]); if(!LIVE_DOCS.has(abs)) return null; const rel=abs.startsWith("docs/plans/")?abs.slice("docs/plans/".length):"_repo/"+abs;
+  return `${UP}docs/plans/.live/docs/${rel.replace(/\.md$/i,".html")}${m[2]||""}`; }
+function liveDocs(root){ if(!LIVE_DOCS||!root) return; const all=[...(root.matches&&root.matches("a[href]")?[root]:[]),...(root.querySelectorAll?root.querySelectorAll("a[href]"):[])];
+  all.forEach(a=>{ if(a.dataset.md) return; const href=a.getAttribute("href"), c=liveDocHref(href); if(!c) return; a.dataset.md=href; a.setAttribute("href",c); a.title=(a.title?a.title+" · ":"")+"its rendered copy on this machine; the Markdown is "+href; }); }
+if(window.MutationObserver) new MutationObserver(ms=>{ if(LIVE_DOCS) ms.forEach(m=>m.addedNodes.forEach(n=>{ if(n.nodeType===1) liveDocs(n); })); }).observe(document.body,{childList:true,subtree:true});
 const moreLink=(href,txt)=>href?`<a class="more" href="${esc(href)}"${/^https?:/.test(href)?' target="_blank" rel="noopener"':""}>${esc(txt||"detail")} ›</a>`:"";
 
 /* ---------- Vocabulary (plan/RULES.md §2, §3) ---------- */
@@ -2960,7 +2999,8 @@ function sysKey(slugs,cls){ const seen=new Map(); slugs.forEach(sl=>{ const s=sy
 /* ---------- Work in progress: the glowing cells ----------
    PAUSED: the run waits on the user, halted or escalated; its in-progress marks stop to the ring alone (GUIDANCE.md §1) and keep
    the glow of the step it stopped in (plan/RULES.md §3, the glow follows the step). */
-let STEP="", HALTED=false, PAUSED=false, LANDED=false, STOPPED=false, CURRENT=[];
+/* NOT_STARTED: a board laid before its run starts (a tracking issue's unit, plan/RULES.md §4): no step yet, status planned, nothing glows */
+let NOT_STARTED=false, STEP="", HALTED=false, PAUSED=false, LANDED=false, STOPPED=false, CURRENT=[];
 const rowActive=r=>CURRENT.some(a=>a.split(".")[0]===r.id);
 /* ---------- The units' own runs (tracking boards, plan/RULES.md §3) ----------
    A unit in progress carries unit.live: its sub-issue board's run (step, since, updated, detail, steps, waitingOn, resume, qa,
@@ -3068,7 +3108,15 @@ const OPEN_PT={g:"!",label:"open",cls:"warning"};
 const KEY_OPEN=`<span>${pill(OPEN_PT)} an open point raised during the run, not resolved yet</span>`;
 const IV={answered:{g:"✓",label:"answered",cls:"neutral"},waiting:{g:"?",label:"waiting on the user",cls:"warning"}};
 const STAGE_DOT={done:"done",current:"cur",todo:"todo"};
-const NEXT_STEP={qa:"landing, or remediation if qa requests changes",remediation:"qa, the next pass",landing:"landed"};
+const NEXT_STEP={qa:"landing, or remediation if qa requests changes",remediation:"qa, the next pass",landing:"landed","sub-issues":"boards: creating each unit's board","boards":"landing: the tracking plan's own"};
+/* A tracking board's own steps after its architecture (plan/RULES.md §3): "sub-issues", the admin team filing each unit as a sub-issue, then
+   "boards", the units' boards created in the board-creation lanes; their progress is counted from the unit rows (a unit's issue, its board),
+   never stored. */
+function unitProgress(R,o,what){ const units=ROWS.filter(r=>r.unit), done=r=>what==="filed"?Number.isInteger(r.unit.issue)&&r.unit.issue>0:!!relLink(r.unit.board), n=units.filter(done).length;
+  if(!units.length) return `<p>The units come from the architecture; none is on the board yet.</p>`;
+  let first=true;
+  return `<p class="sp-sum">${n} of ${units.length} unit${units.length===1?"":"s"} ${what==="filed"?"filed as sub-issues":"with a board"}</p>`+spList(units.map(r=>{ const d=done(r), cur=!d&&first&&!o.held; if(!d) first=false;
+    return spItem(d?"done":cur?"cur":"todo",dotMark,`${esc(r.unit.n!=null?r.unit.n+". ":"")}${r.unit.issue?pair(r.unit.issue,r.name):codeOnly(r.name)}`,d?(what==="filed"?"filed":"board created"):what==="filed"?"to file":r.unit.issue?"its board to create":"its sub-issue first"); })); }
 /* The route /resolve-issue step 5 takes from a qa pass's findings (wip.qa[].route, wip.remediation.route): every fix minor (easily made,
    no fallout), fixed on the spot with no new qa pass; otherwise a remediation pass by rookie-dev, or a planner re-pass then rookie-dev,
    and the next qa pass (at most three in all). */
@@ -3139,11 +3187,13 @@ const PANEL={
     if(!(Array.isArray(M.steps)&&M.steps.length)) h+=`<p>${ROUTE[route]?"The route's loop":"The pipeline's remediation loop"}; its sub-steps are recorded as they run.</p>`;
     return h; },
   landing:R=>{ const qa=Array.isArray(R.qa)?R.qa:[], last=qa.length?qa[qa.length-1]:null; return `<p>qa has approved${last?` (pass ${esc(last.pass)})`:""}; the merge and the landing refresh are the admin team's.</p>`; },
+  "sub-issues":(R,o)=>`<p>The admin team files each unit of the signed-off architecture as a sub-issue of this one.</p>`+unitProgress(R,o,"filed"),
+  boards:(R,o)=>`<p>Each unit's board is created from this issue's documents: its Gap and Considered columns, not started.</p>`+unitProgress(R,o,"boards"),
   _:R=>R.detail?`<p>${rich(R.detail)}</p>`:`<p>Nothing recorded for this step.</p>`};
 function stepPanel(R,o){ o=o||{}; const k=R.step||"", held=["halted","escalated"].includes(k), S=held?(R.resume||""):k, keys=o.keys||new Set();
   const opts={...o,held};
   /* the heading is the step's title alone (plan/RULES.md §3, "The step panel"); a unit's panel names its unit to assistive technology */
-  let h=`<div class="sp${held?" sp-held":""}" data-step="${esc(S)}"${o.row?` style="--r:${o.row}"`:""} role="group" aria-label="${esc(o.label||"The current step")}: ${esc(S||"—")}"><h3 class="sp-t">${esc(stepTitle(S))}</h3>`;
+  let h=`<div class="sp${held?" sp-held":""}${o.own?" own":""}" data-step="${esc(S)}"${o.row?` style="--r:${o.row}"`:""} role="group" aria-label="${esc(o.label||"The current step")}: ${esc(S||"—")}"><h3 class="sp-t">${esc(stepTitle(S))}</h3>`;
   if(k==="halted"){ h+=`<p class="sp-wait">⏸ Held still at ${esc(S||"its step")}: it waits on the user for ${rich(R.waitingOn||R.detail||"(not stated)")}</p>`; }
   if(k==="escalated") h+=`<p class="sp-wait">⇧ Escalated from ${esc(S||"its step")}: held still while the issue's scope is re-decided.</p>`;
   h+=(PANEL[S]||PANEL._)(R,opts,keys);
@@ -3160,6 +3210,7 @@ function stepPanel(R,o){ o=o||{}; const k=R.step||"", held=["halted","escalated"
     S==="branch"&&o.branch?grp("branch",`<code>${esc(o.branch)}</code>`):"",
     ["plan","implementation"].includes(S)&&o.planDoc?grp("plan",refHtml(o.planDoc,"plan.md")):"",
     R.deviations!=null&&["implementation","remediation"].includes(S)?grp("deviations",`${esc(R.deviations)} recorded`):""].filter(Boolean);
+  h+=progressHtml(o.issue,keys);
   if(info.length) h+=`<div class="wip-facts sp-facts">${info.join("")}</div>`;
   return h+`</div>`; }
 /* The panel's facts of this issue's own run: its wip, the verdicts written of its rows at the plan step, the deviations recorded during
@@ -3204,7 +3255,7 @@ function renderHeader(){
   document.title=`${repoName} · #${PLAN.issue} plan board`;
   /* an ancestor folder links its board only when it has one (embed.js: parent.board, issueBoards), never a missing file */
   const segs=FOLDER.split("/").filter(Boolean).slice(2), segBoard=s=>{ const m=String(s).match(/^(\d+)-/); return m?boardOf(m[1]):null; };
-  $("#crumbs").innerHTML=`<a href="${UP}docs/dashboards/index.html">${esc(PLAN.repo)}</a> › <a href="${UP}docs/plans/index.html">work board</a>`+segs.map((s,i)=>i<segs.length-1&&segBoard(s)?` › <a href="${esc(segBoard(s))}">${esc(s)}</a>`:` › ${esc(s)}`).join("");
+  $("#crumbs").innerHTML=`${linkOr(sharedLink("repoPage"),esc(PLAN.repo))} › ${wbLink("work board")}`+segs.map((s,i)=>i<segs.length-1&&segBoard(s)?` › <a href="${esc(segBoard(s))}">${esc(s)}</a>`:` › ${esc(s)}`).join("");
   $("#h1").textContent=`#${PLAN.issue} · ${PLAN.title||""}`;
   $("#function").innerHTML=rich(PLAN.function);
   /* the intro's issue line: the board's own #n opens its GitHub issue (plan/RULES.md §1), beside the issue's title on GitHub */
@@ -3223,7 +3274,7 @@ function renderHeader(){
     a&&a.version?tag("ships as",`<b>${esc(a.version)}</b>`):"",
     /* one entry per system, or per top-level system when several of its parts are on the board */
     sysGroups.length?tag(sysGroups.length===1?"system":"systems",sysGroups.map(([top,ps])=>{ const s=ps[0], one=ps.length===1, nm=one?s.name:top;
-      return `<span class="sysl"><span class="sw" data-sys="${esc(s.slug)}"></span>${one&&s.page?`<a href="${UP}${esc(s.page)}">${esc(nm)}</a>`:esc(nm)}${one?"":` · ${ps.length} parts`}${ps.every(x=>x.status==="planned")?" · planned":""}</span>`; }).join(""),sysGroups.length>2?"wide":""):"",
+      return `<span class="sysl"><span class="sw" data-sys="${esc(s.slug)}"></span>${one&&pageHref(s)?`<a href="${esc(pageHref(s))}">${esc(nm)}</a>`:esc(nm)}${one?"":` · ${ps.length} parts`}${ps.every(x=>x.status==="planned")?" · planned":""}</span>`; }).join(""),sysGroups.length>2?"wide":""):"",
     tag("board",`<b>plan.json</b> · ${ROWS.length} ${TRACKING?"units":"rows"} · ${OPTS.length} options`,"model")].filter(Boolean);
   $("#chips").innerHTML=chips.join(""); paint($("#chips"));
 }
@@ -3232,13 +3283,38 @@ function renderHeader(){
 /* o (a unit's run): held (its run waits on the user), still (no mark: the inspector's copy), label (the list's name). */
 function stepsLine(steps,cur,o){ o=o||{}; const i=steps.indexOf(cur), held=o.held!=null?o.held:PAUSED, done=o.held!=null?false:LANDED;
   return `<ol class="steps" aria-label="${esc(o.label||"Pipeline steps")}">${steps.map((s,j)=>{ const st=done||j<i?"done":j===i?"cur":"todo"; return `<li class="${st}${st==="cur"&&!done&&!o.still?(held?" held":" glow"):""}"${st==="cur"?' aria-current="step"':""}><span class="dot" aria-hidden="true"></span>${esc(s)}</li>`; }).join("")}</ol>`; }
+/* ---------- Progress notes (plan/RULES.md §3, "The step panel") ----------
+   Every agent of the run's tree writes docs/plans/.live/progress/<issue>/<name>.js in its checkout every 10 minutes it runs, one line
+   setting window.PROGRESS["<name>"] to {agent, issue, started, at, done, left, eta}, and deletes it when it finishes. While the run is
+   live and the page is a local copy, each live poll probes the names the run can have: every agent of the pipeline, researcher-<slug>
+   for each research question, rookie-dev-<stage> for each stage (a missing file is simply no note). Each note is an info group of the
+   step panel: the agent, how long it has run, what is done, what is left, its estimate and when it wrote; a note not updated for over 20
+   minutes is drawn muted. A tracking board probes each unit in progress under the unit's own issue. */
+const AGENTS=["planner","interviewer","researcher","verifier","architect","plan-writer","rookie-dev","test-inspector","qa","code-reviewer","documentation-reviewer"];
+const PROG_STALE_MS=20*60000;
+let PROG={};
+const KEY_PROG=`<span><i class="progk"></i>a progress note: an agent's own report of its work, every 10 minutes</span>`;
+const KEY_PROG_STALE=`<span><i class="progk stale"></i>muted: no update for over 20 minutes</span>`;
+function progNames(R){ R=R||{}; const qs=questionsOf(R).map(q=>"researcher-"+q.question), st=(Array.isArray(R.stages)?R.stages:[]).filter(x=>x&&x.id).map(x=>"rookie-dev-"+String(x.id).toLowerCase());
+  return [...new Set([...AGENTS,...qs,...st])].filter(n=>/^[a-z0-9][a-z0-9-]*$/.test(n)); }
+function loadNote(issue,name){ return new Promise(res=>{ const sc=document.createElement("script"); try{ if(window.PROGRESS) delete window.PROGRESS[name]; }catch(e){}
+  sc.src=`${UP}docs/plans/.live/progress/${issue}/${name}.js?t=${Date.now()}`;
+  sc.onload=()=>{ const v=(window.PROGRESS||{})[name]; sc.remove(); res(v&&typeof v==="object"&&!Array.isArray(v)?v:null); }; sc.onerror=()=>{ sc.remove(); res(null); }; document.head.appendChild(sc); }); }
+async function pollProgress(){ if(!(runLive()&&LIVE_LOCAL)) return;
+  const runs=[[PLAN.issue,WIP],...(TRACKING?ROWS.filter(r=>r.unit&&r.unit.issue&&runOf(r)).map(r=>[r.unit.issue,runOf(r)]):[])], next={};
+  for(const [n,R] of runs){ const names=progNames(R), got=await Promise.all(names.map(x=>loadNote(n,x))); names.forEach((x,i)=>{ if(got[i]) (next[n]=next[n]||{})[x]=got[i]; }); }
+  if(JSON.stringify(next)!==JSON.stringify(PROG)){ PROG=next; renderWip(); } }
+function progressHtml(issue,keys){ const notes=Object.entries(PROG[issue]||{}); if(!notes.length) return ""; const now=Date.now(), span=ms=>{ const m=Math.max(0,Math.round(ms/60000)); return m<90?`${m} min`:`${Math.round(m/60)} h`; };
+  const items=notes.map(([name,p])=>{ const at=Date.parse(String(p.at||"")), st=Date.parse(String(p.started||"")), stale=isNaN(at)||now-at>PROG_STALE_MS; keys.add(KEY_PROG); if(stale) keys.add(KEY_PROG_STALE);
+    return `<span class="prog${stale?" stale":""}"><span class="l">${esc(p.agent||name)}</span>${!isNaN(st)?`<small>${span(now-st)} in</small>`:""}${p.done?` done: ${rich(p.done)}`:""}${p.left?` · left: ${rich(p.left)}`:""}${p.eta?` · ETA ${esc(p.eta)}`:""}${p.at?` <small>as of <span class="nw">${when(p.at)}</span></small>`:""}</span>`; });
+  return `<div class="wip-facts sp-prog" role="group" aria-label="Progress notes">${items.join("")}</div>`; }
 function renderWip(){
   const w=$("#wip"), st=STEP||"—"; w.className="wip"; w.dataset.step=st;
   const special=STEP_SPECIAL[LANDED?"landed":st];
   if(special) w.classList.add(special.cls);
   const steps=WIP.steps&&WIP.steps.length?WIP.steps:STEP_ORDER;
   const shownStep=HALTED||st==="escalated"?(WIP.resume||WIP.last||""):st;
-  const head=special?`<span class="state"><i aria-hidden="true">${special.g}</i>${esc(special.label)}</span>`:`<span class="state"><i aria-hidden="true">●</i>Work in progress</span>`;
+  const head=special?`<span class="state"><i aria-hidden="true">${special.g}</i>${esc(special.label)}</span>`:NOT_STARTED?`<span class="state"><i aria-hidden="true">…</i>Not started</span>`:`<span class="state"><i aria-hidden="true">●</i>Work in progress</span>`;
   const since=WIP.since?` · since <span class="nw">${when(WIP.since)}</span>`:"";
   const headLine=`<div class="wip-head">${head}<span>step <b>${esc(LANDED?"landed":st)}</b>${since}</span>${WIP.updated?`<span class="upd">updated ${when(WIP.updated)}</span>`:""}</div>`;
   const legend=[];
@@ -3294,12 +3370,15 @@ function renderWip(){
       }
       h+=b+`</div>`;
       /* the unit's step panel beside it, from its mirror (plan/RULES.md §3), in place of the up-next bubble */
-      if(L) h+=stepPanel(L,{label:`Unit ${r.unit.n} · #${r.unit.issue}: its step`,keys:pkeys,rowName:id=>(L.rowNames&&L.rowNames[id])||id,parent:PLAN.issue,branch:L.branch,row:rowN}); });
+      if(L) h+=stepPanel(L,{issue:r.unit.issue,label:`Unit ${r.unit.n} · #${r.unit.issue}: its step`,keys:pkeys,rowName:id=>(L.rowNames&&L.rowNames[id])||id,parent:PLAN.issue,branch:L.branch,row:rowN}); });
     /* up next stays on the chain and the unit row while a unit's step panel is drawn (plan/RULES.md §3); with no unit's run to show, the
        up-next bubble stays */
     const panels=act.filter(runOf);
     /* up next takes the panel's share beside a unit whose run is not mirrored, else the unit's and the panel's */
-    if(NEXT_ROW&&!panels.length){ const beside=act.length>0; if(!beside) rowN++; h+=`<div class="wb next upnext${beside?" beside":""}" data-sys="${esc(NEXT_ROW.system||"")}" style="--r:${beside?1:rowN}"><div class="wb-t"><span class="k">Up next · unit ${esc(NEXT_ROW.unit.n)}</span><span>${uref(NEXT_ROW)}</span> ${TAG_NEXT} ${blockedPill(NEXT_ROW)}</div><p class="note">Not started${openBlockers(NEXT_ROW).length?": it starts once its blockers have landed":""}.</p></div>`; }
+    /* a tracking board filing its units or creating their boards: its own step panel, with the count, beside its phase (plan/RULES.md §3) */
+    const ownPanel=!LANDED&&!STOPPED&&["sub-issues","boards"].includes(ownStep);
+    if(ownPanel){ rowN++; h+=stepPanel(ownRun(),{issue:PLAN.issue,keys:pkeys,row:rowN,own:true,label:`#${PLAN.issue}: its own step`}); }
+    if(NEXT_ROW&&!panels.length&&!ownPanel){ const beside=act.length>0; if(!beside) rowN++; h+=`<div class="wb next upnext${beside?" beside":""}" data-sys="${esc(NEXT_ROW.system||"")}" style="--r:${beside?1:rowN}"><div class="wb-t"><span class="k">Up next · unit ${esc(NEXT_ROW.unit.n)}</span><span>${uref(NEXT_ROW)}</span> ${TAG_NEXT} ${blockedPill(NEXT_ROW)}</div><p class="note">Not started${openBlockers(NEXT_ROW).length?": it starts once its blockers have landed":""}.</p></div>`; }
     if(NEXT_ROW) legend.push(KEY_NEXT(NEXT_ROW));
     /* waiting on you: only while the tracking issue or a unit's run is halted */
     const waits=[...(HALTED?[`<li><b>#${esc(PLAN.issue)}</b>, the tracking issue: ${rich(WIP.waitingOn||WIP.detail||"(not stated)")}${WIP.resume?`<small>resumes at ${esc(WIP.resume)}</small>`:""}</li>`]:[]),
@@ -3315,9 +3394,10 @@ function renderWip(){
     h+=own+(WIP.detail&&(!HALTED||WIP.waitingOn)?`<p class="wip-detail">${rich(WIP.detail)}</p>`:"")+factsHtml;
     if(HALTED) legend.push(`<span><i class="wait"></i>yellow strip: waiting on the user</span>`);
     /* the strip on the left half, the step panel on the right (plan/RULES.md §3); a landed or cancelled board has no current step */
-    if(!LANDED&&!STOPPED){ w.classList.add("split");
+    if(NOT_STARTED) h+=`<p class="wip-detail">Its board was laid from ${PLAN.parent&&PLAN.parent.issue?`${ilink(PLAN.parent.issue)}'s`:"its tracking issue's"} documents; its run starts when it is sized.</p>`;
+    if(!LANDED&&!STOPPED&&!NOT_STARTED){ w.classList.add("split");
       const unwritten=ROWS.filter(r=>!verdictOf(r)).map(r=>r.name);
-      h=`<div class="wiprow"><div class="wipmain${special?" "+special.cls:""}">${h}</div>${stepPanel(ownRun(),{keys:pkeys,rowName:id=>(ROWS.find(r=>r.id===id)||{}).name||id,options:OPTS.length,planDoc:planDocOf(),branch:SHOW_BRANCH?PLAN.branch:null,parent:PLAN.parent&&PLAN.parent.issue,unwritten,charging:CHARGING()&&unwritten.length>0})}</div>`; }
+      h=`<div class="wiprow"><div class="wipmain${special?" "+special.cls:""}">${h}</div>${stepPanel(ownRun(),{issue:PLAN.issue,keys:pkeys,rowName:id=>(ROWS.find(r=>r.id===id)||{}).name||id,options:OPTS.length,planDoc:planDocOf(),branch:SHOW_BRANCH?PLAN.branch:null,parent:PLAN.parent&&PLAN.parent.issue,unwritten,charging:CHARGING()&&unwritten.length>0})}</div>`; }
   }
   legend.push(...pkeys);
   /* the strip's legend: exactly what it drew */
@@ -3423,12 +3503,12 @@ function renderBoard(){
     ?"One row per unit, in landing order; each unit is planned and built on its own board. Click a cell for its detail."
     :"Click a cell, an option or a statement's (§) reference for its detail and the Markdown section that holds the rest.";
   const ms=c=>(PLAN.milestones||[]).find(m=>m.column===c);
-  let h=`<div class="colhead" aria-hidden="true"></div>`+COLS.map((c,i)=>{ const m=ms(c.key);
+  let h=`<div class="colhead${CURRENT.includes("units")?" units":""}" data-col="units" aria-hidden="true"></div>`+COLS.map((c,i)=>{ const m=ms(c.key);
     const dt=m?`${esc(m.label)}${m.date?` · <span class="nw">${when(m.date)}</span>`:""}${m.ref?` · ${refHtml(m.ref)}`:""}`:(c.key==="built"&&!LANDED?"not landed":"");
     return `<div class="colhead phase${CURRENT.includes(c.key)?" colon":""}" data-col="${c.key}"><div class="ph"><b>${i+1}</b>${esc(c.label).toUpperCase()}</div><div class="q">${esc(c.q)}</div>${dt?`<div class="dt">${dt}</div>`:""}</div>`; }).join("");
   if(!ROWS.length) h+=`<p class="lede" style="grid-column:1/-1;margin-top:12px">No rows yet: the Gap column is written when the research is verified, the rows with it.</p>`;
   grouped().forEach(G=>{ if(G.name) h+=`<div class="grouphead">${esc(G.name)} <small>${G.rows.length} ${TRACKING?"unit":"row"}${G.rows.length>1?"s":""}</small></div>`;
-    G.rows.forEach(r=>{ h+=`<div class="rowlab" data-sys="${esc(r.system||"")}" id="row-${esc(r.id)}"><div class="nm">${rowTitle(r)}</div>${r.where?`<div class="wh">${esc(r.where)}</div>`:""}<div class="sy"><span class="sw" data-sys="${esc(r.system||"")}"></span>${esc(sysName(r.system))}</div></div>`+cellGap(r)+cellConsidered(r)+cellVerdict(r)+cellBuilt(r); }); });
+    G.rows.forEach(r=>{ h+=`<div class="rowlab${CURRENT.includes("units")&&r.unit?(PAUSED?" colglow colheld":" colglow"):""}" data-sys="${esc(r.system||"")}" id="row-${esc(r.id)}"><div class="nm">${rowTitle(r)}</div>${r.where?`<div class="wh">${esc(r.where)}</div>`:""}<div class="sy"><span class="sw" data-sys="${esc(r.system||"")}"></span>${esc(sysName(r.system))}</div></div>`+cellGap(r)+cellConsidered(r)+cellVerdict(r)+cellBuilt(r); }); });
   $("#board").innerHTML=h; paint($("#board")); layoutBands();
   document.querySelectorAll("#board .cell[role=button]").forEach(c=>{ const go=()=>select(c.dataset.row,c.dataset.col); c.addEventListener("click",e=>{ if(e.target.closest("a")) return; go(); }); c.addEventListener("keydown",e=>{ if(e.target!==c) return; if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } }); });
   document.querySelectorAll("#board .opt").forEach(o=>o.addEventListener("click",()=>select(o.dataset.row,"considered",o.dataset.opt)));
@@ -3458,7 +3538,7 @@ function kindKeys(){ const chip=w=>`<b class="kind">${esc(w)}</b>`;
 function layoutBands(){ const b=$("#board"); if(!b) return; b.querySelectorAll(".band").forEach(x=>x.remove());
   if(getComputedStyle(b).display!=="grid"||!b.offsetWidth) return;
   const pad=Math.max(4,Math.floor((parseFloat(getComputedStyle(b).columnGap)||14)/2)-3);
-  b.querySelectorAll(".colhead.phase").forEach(c=>{ const d=document.createElement("div"); d.className="band"+colGlowCls(c.dataset.col); d.setAttribute("aria-hidden","true");
+  b.querySelectorAll(".colhead.phase, .colhead.units").forEach(c=>{ const d=document.createElement("div"); d.className="band"+colGlowCls(c.dataset.col); d.setAttribute("aria-hidden","true");
     d.style.cssText=`left:${c.offsetLeft-pad}px;width:${c.offsetWidth+2*pad}px;top:0;bottom:0`; b.prepend(d); }); }
 if(window.ResizeObserver){ let w=-1, cw=-1; new ResizeObserver(()=>{ const b=$("#board"); if(b&&b.offsetWidth!==w){ w=b.offsetWidth; layoutBands(); }
   const f=$("#chain-frame"); if(f&&CUR_TAB==="landing-order"&&f.clientWidth!==cw){ cw=f.clientWidth; const sel=(document.querySelector(".chainsvg .unit.sel")||{}).dataset; renderChain(); if(sel&&sel.row){ const g=document.querySelector(`.chainsvg .unit[data-row="${CSS.escape(sel.row)}"]`); if(g) g.classList.add("sel"); } } }).observe(document.body); }
@@ -3744,18 +3824,23 @@ function renderContext(){
   if(TRACKING){ const units=ROWS.filter(r=>r.unit);
     cards.push(`<div class="card"><h3>Roadmap <small>#${esc(PLAN.issue)} · ${units.length} units${WIP.updated?` · ${day(WIP.updated)}`:""}</small></h3><ul class="issues">${units.map(r=>`<li><span class="nm">${esc(r.unit.n)}. ${r.unit.issue?pair(r.unit.issue,r.name):esc(r.name)} · ${badge(stateOf(r))}${runOf(r)?` ${runPill(runOf(r))}`:""}${isNext(r)?` ${TAG_NEXT}`:""}</span></li>`).join("")}</ul></div>`); }
   else if(rm&&rm.issue) cards.push(`<div class="card"><h3>Roadmap <small>${day(rm.asOf||"")}</small></h3><ul class="issues"><li><span class="nm">${pair(rm.issue,rm.title||"")}</span></li>${(rm.items||[]).map(i=>`<li><span class="nm">${pair(i.issue,i.title||"")}${i.state?` · ${esc(String(i.state).toUpperCase()==="CLOSED"&&i.stateReason==="NOT_PLANNED"?"closed · not planned":String(i.state).toUpperCase()==="CLOSED"&&i.stateReason==="DUPLICATE"?"closed · duplicate":i.state)}`:""}${i.issue===PLAN.issue?" · this board":""}</span></li>`).join("")}</ul></div>`);
-  else cards.push(`<div class="card"><h3>Roadmap</h3><p class="lede">No roadmap item claims #${esc(PLAN.issue)}: it has no tracking parent. The <a href="${UP}docs/plans/index.html">work board</a> and the <a href="${UP}docs/dashboards/index.html">repository page</a> show the roadmap.</p></div>`);
+  else cards.push(`<div class="card"><h3>Roadmap</h3><p class="lede">No roadmap item claims #${esc(PLAN.issue)}: it has no tracking parent. The ${wbLink("work board")} and the ${linkOr(sharedLink("repoPage"),"repository page")} show the roadmap.</p></div>`);
   const fu=PLAN.followUps||[];
   cards.push(`<div class="card"><h3>Follow-ups and related issues <small>${fu.length}</small></h3>${fu.length?`<ul class="issues">${fu.map(f=>(f.issue?`<li><span class="nm">${f.title?`${pair(f.issue,f.title,f.repo)}${f.note?` — ${rich(f.note)}`:""}`:`${ilink(f.issue,f.repo)}${boardOf(f.issue,f.repo)?` ${ghlink(f.issue,f.repo)}`:""}${f.note?` — ${rich(f.note)}`:""}`}</span></li>`:`<li><span class="nm"><code>${esc(f.name||"")}</code> <small>not filed</small> — ${rich(f.note||"")}</span></li>`)).join("")}</ul>`:`<p class="lede">None recorded.</p>`}</div>`);
   const events=[...(PLAN.milestones||[]).map(m=>({date:m.date,phase:m.column,text:`<b>${esc(m.label)}</b>${m.note?` — ${rich(m.note)}`:""}${m.ref?` · ${refHtml(m.ref)}`:""}`})),...(PLAN.trail||[]).map(t=>({date:t.date,phase:t.column||"",text:`${rich(t.label||"")}${t.ref?` · ${refHtml(t.ref)}`:""}`}))].map((e,i)=>({...e,i})).sort((a,b)=>String(a.date||"").localeCompare(String(b.date||""))||a.i-b.i);
   const phaseName={gap:"GAP",considered:"CONSIDERED",verdict:"VERDICT",built:"BUILT"};
   cards.push(`<div class="card"><h3>Trail <small>${events.length} events</small></h3>${events.length?`<ul class="trail">${events.map(e=>`<li><span class="d">${when(e.date||"")}</span><span class="t">${e.phase?`<span class="ph">${esc(phaseName[e.phase]||e.phase)}</span>`:""}${e.text}</span></li>`).join("")}</ul>`:`<p class="lede">No dated events yet.</p>`}</div>`);
   const docs=PLAN.documents||[];
-  const shared=[`<li><a href="${UP}docs/plans/index.html">Work board</a> — every run in the repository</li>`,`<li><a href="${UP}docs/dashboards/index.html">System dashboards</a> — the repository as built</li>`,...SYSTEMS.filter(s=>s.page).map(s=>`<li><span class="sw" data-sys="${esc(s.slug)}"></span><a href="${UP}${esc(s.page)}">${esc(s.name)}</a> — its system page</li>`)];
+  const shared=[`<li>${wbLink("Work board")} — every run in the repository</li>`,`<li>${linkOr(sharedLink("repoPage"),"System dashboards")} — the repository as built</li>`,...SYSTEMS.filter(s=>pageHref(s)).map(s=>`<li><span class="sw" data-sys="${esc(s.slug)}"></span><a href="${esc(pageHref(s))}">${esc(s.name)}</a> — its system page</li>`)];
   cards.push(`<div class="card"><h3>Plans and documents</h3><ul class="docs">${docs.map(d=>`<li>${d.path?refHtml(d.path,d.label||d.path):`<b>${esc(d.label||"")}</b>`}${d.note?` — ${rich(d.note)}`:""}</li>`).join("")}${shared.join("")}</ul></div>`);
   const notes=PLAN.notes||{}; const nk=Object.keys(notes).filter(k=>notes[k]&&(!Array.isArray(notes[k])||notes[k].length));
   if(nk.length) cards.push(`<div class="card notes"><h3>Notes</h3>${nk.map(k=>Array.isArray(notes[k])?`<p><b>${esc(k)}.</b></p><ul>${notes[k].map(x=>`<li>${typeof x==="string"?rich(x):`${rich(x.what||"")}${x.when?` <small>(${esc(x.when)})</small>`:""}`}</li>`).join("")}</ul>`:`<p><b>${esc(k)}.</b> ${rich(notes[k])}</p>`).join("")}</div>`);
   $("#context").innerHTML=cards.join(""); paint($("#context"));
+  /* the Context's legend (GUIDANCE.md §2): exactly what its cards drew */
+  const cx=$("#context"), ck=[];
+  const sws=[...new Set([...cx.querySelectorAll(".sw[data-sys]")].map(e=>e.dataset.sys))]; if(sws.length) ck.push(sysKey(sws));
+  if(TRACKING){ const units=ROWS.filter(r=>r.unit); [...new Set(units.map(stateOf))].forEach(k=>ck.push(`<span>${badge(k)} ${esc(STATES[k].desc)}</span>`)); ck.push(runKeys(units)); if(NEXT_ROW&&units.includes(NEXT_ROW)) ck.push(`<span>${TAG_NEXT} the next unit, not started</span>`); }
+  let kk=document.getElementById("context-key"); const kh=ck.filter(Boolean).join(""); if(!kh){ if(kk) kk.remove(); } else { if(!kk){ kk=document.createElement("div"); kk.className="key"; kk.id="context-key"; cx.parentElement.appendChild(kk); } kk.innerHTML=kh; paint(kk); }
   /* the footer (GUIDANCE.md §3): what the page corresponds to, what is authoritative, and the columns' rule; nothing more */
   $("#footer").innerHTML=`Corresponds to <code>${esc(FOLDER)}/plan.json</code>. Code and the Markdown beside this page are authoritative on any conflict. Columns 1 to 3 are written once; column 4 records every difference.`;
 }
@@ -3765,7 +3850,7 @@ function derive(){
   REPO="https://github.com/"+(PLAN.repo||""); ROWS=PLAN.rows||[]; WIP=PLAN.wip||{}; TRACKING=PLAN.kind==="tracking";
   FOLDER=PLAN.folder||("docs/plans/"+(PLAN.slug||"")); UP="../".repeat(FOLDER.split("/").filter(Boolean).length);
   ISSUE_BOARDS.clear(); issueBoardsOf().forEach((b,n)=>ISSUE_BOARDS.set(n,b)); SYSTEMS=PLAN.systems||[];
-  STEP=WIP.step||""; HALTED=STEP==="halted"; PAUSED=HALTED||STEP==="escalated"; LANDED=STEP==="landed"||PLAN.status==="built"; STOPPED=["cancelled"].includes(STEP)||PLAN.status==="abandoned";
+  STEP=WIP.step||""; NOT_STARTED=!STEP&&PLAN.status==="planned"; HALTED=STEP==="halted"; PAUSED=HALTED||STEP==="escalated"; LANDED=STEP==="landed"||PLAN.status==="built"; STOPPED=["cancelled"].includes(STEP)||PLAN.status==="abandoned";
   CURRENT=(LANDED||STOPPED)?[]:(WIP.current||[]);
   NEXT_ROW=TRACKING&&!LANDED&&!STOPPED&&WIP.next?ROWS.find(r=>r.id===WIP.next&&r.unit&&!rowActive(r)&&stateOf(r)==="pending"&&!leftForLater(r))||null:null;
   ownStep=["halted","escalated"].includes(STEP)?(WIP.resume||WIP.last||""):STEP;
@@ -3805,7 +3890,11 @@ function replayInspect(I){ const r=I&&I.row?ROWS.find(x=>x.id===I.row):null, dfl
   if(I.k==="built"||I.k==="unit"){ if(!r) return dflt(); INSPECTED=I; if(I.k==="unit"){ const g=document.querySelector(`.chainsvg .unit[data-row="${CSS.escape(I.row)}"]`); if(g) g.classList.add("sel"); } inspectBuilt(r); return; }
   if(I.k==="imp"){ const c=[...document.querySelectorAll("#impact-body .icard")].find(x=>x.dataset.imp===I.ref); if(!c&&CUR_TAB==="impact") return dflt(); if(c) c.classList.add("sel"); INSPECTED=I; inspectImpact(I.ref); return; }
   dflt(); }
-tabs.forEach((t,i)=>{ t.addEventListener("click",()=>{ show(t.id); try{ history.replaceState(null,"","#"+t.id.replace("t-","")); }catch(e){} }); t.addEventListener("keydown",e=>{ if(e.key==="ArrowRight"||e.key==="ArrowLeft"){ const j=(i+(e.key==="ArrowRight"?1:tabs.length-1))%tabs.length; tabs[j].focus(); show(tabs[j].id); } }); });
+tabs.forEach((t,i)=>{ t.addEventListener("click",()=>{ show(t.id); try{ history.replaceState(null,"","#"+t.id.replace("t-","")); }catch(e){} }); });
+/* The tablist's keys (WAI-ARIA tabs; GUIDANCE.md §6): Left and Right move to the previous and next tab, Home and End to the first and the
+   last, each shown at once; only the selected tab is in the Tab order (a roving tabindex), so Tab moves on to the panel. */
+function tabKeys(list,go){ list.forEach((t,i)=>{ t.tabIndex=t.getAttribute("aria-selected")==="true"?0:-1; t.addEventListener("keydown",e=>{ const n=list.length, j={ArrowRight:(i+1)%n,ArrowLeft:(i+n-1)%n,Home:0,End:n-1}[e.key]; if(j==null) return; e.preventDefault(); list[j].focus(); go(list[j].id); }); }); }
+tabKeys(tabs,id=>show(id));
 
 /* ---------- The theme switch (GUIDANCE.md §1, Themes) ----------
    A light/night toggle in the header. Until it is clicked the page follows the system setting; a click picks the other palette and
@@ -3866,7 +3955,11 @@ function poll(){ const sc=document.createElement("script"); LIVE.got=false;
 function stopLive(){ if(LIVE.timer) clearInterval(LIVE.timer); LIVE.timer=null; }
 function startLive(){ LIVE.last=dataStamp()!=null?Math.min(Date.now(),dataStamp()):Date.now(); liveChip();
   if(LIVE.tick==null) LIVE.tick=setInterval(liveChip,1000);
-  if(runLive()&&LIVE_LOCAL&&!LIVE.timer) LIVE.timer=setInterval(poll,LIVE_POLL_MS); }
+  if(runLive()&&LIVE_LOCAL&&!LIVE.timer) LIVE.timer=setInterval(()=>{ poll(); pollProgress(); },LIVE_POLL_MS);
+  pollProgress();
+  /* the live views on this machine: the live work board, and the rendered Markdown copies */
+  liveMark(`${UP}docs/plans/.live/index.js`,"board",b=>{ if(b){ LIVE_WB=relTo(`${UP}docs/plans/.live/index.js`,String(b)); renderHeader(); renderContext(); } });
+  liveMark(`${UP}docs/plans/.live/docs/index.js`,"docs",d=>{ if(Array.isArray(d)){ LIVE_DOCS=new Set(d.map(String)); liveDocs(document.body); } }); }
 
 renderHeader(); renderWip(); renderKpis(); renderBoard(); renderContext();
 startLive();

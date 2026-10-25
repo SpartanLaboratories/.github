@@ -8,7 +8,7 @@
 //   systems.json    docs/dashboards/systems.json, embedded as id="systems" in supersystem and repository pages: a system is
 //                   planned while its entry's status is "planned"
 "use strict";
-const fs = require("fs"), path = require("path");
+const fs = require("fs"), path = require("path"), cp = require("child_process");
 
 const norm = s => String(s).replace(/\r\n/g, "\n");
 
@@ -217,4 +217,59 @@ function partRefs(html) {
   return [...refs];
 }
 
-module.exports = { stateText, norm, blockText, embedInto, findRegistry, isAncestor, inline, editRegistryText, dslElements, setPlannedTag, restampDsl, stateProblems, stateVsRegistry, partRefs };
+/* ---------- Built or planned, from the code (system/RULES.md §7, §10) ----------
+   A system's status is the code's: a system with code paths in the registry (paths) is built when one of them is present in the tree at
+   the stamped commit, planned while none is; a part of its page tied to a DSL element with code paths of its own (the entry's partPaths,
+   {"<element id>": ["<path>", …]}) is built, and loses its Planned tag, the same way. A supersystem (a system made of systems) is built when
+   every one of its core subsystems is (a child's "core": true, from the parent's architecture: the subsystems without which there is no
+   greater system); its optional ones ("core": false) do not count, and while a child is not classified, or no child is core, the code
+   decides nothing for it. An entry with no code paths keeps the status it has. Paths are relative to the repository root. */
+/* the repository root a registry belongs to: <root>/docs/dashboards/systems.json */
+const registryRoot = reg => path.dirname(path.dirname(path.dirname(path.resolve(reg))));
+/* which of the paths are present at the commit: git's tree at sha when the tree is a git work tree and sha resolves, else the files on
+   disk. Returns Map path → true | false. */
+function codePresence(root, sha, paths) {
+  const ps = [...new Set(paths.filter(p => typeof p === "string" && p.trim()).map(p => p.trim().replace(/\\/g, "/").replace(/^\.\/+/, "").replace(/\/+$/, "") || "."))], out = new Map();
+  if (!ps.length) return out;
+  const git = (a, input) => cp.spawnSync("git", ["-C", root, ...a], { encoding: "utf8", input, stdio: ["pipe", "pipe", "ignore"] });
+  const full = sha && /^[0-9a-f]{4,40}$/.test(sha) && git(["rev-parse", "--is-inside-work-tree"]).status === 0 ? (git(["rev-parse", "--verify", "--quiet", sha + "^{commit}"]).stdout || "").trim() : "";
+  if (full) {
+    const r = git(["cat-file", "--batch-check"], ps.map(p => `${full}:${p === "." ? "" : p}`).join("\n") + "\n"), lines = (r.stdout || "").split(/\r?\n/);
+    ps.forEach((p, i) => out.set(p, !!lines[i] && !/ missing$/.test(lines[i])));
+  } else ps.forEach(p => out.set(p, fs.existsSync(path.join(root, ...p.split("/")))));
+  return out;
+}
+const pathList = v => (Array.isArray(v) ? v : typeof v === "string" ? [v] : []).filter(p => typeof p === "string" && p.trim());
+const cleanPath = p => p.trim().replace(/\\/g, "/").replace(/^\.\/+/, "").replace(/\/+$/, "") || ".";
+/* What the code says of every entry of the registry at the commit: { systems: Map slug → {status, present, missing}, parts: [{slug, dsl,
+   id, planned, paths}], supers: Map slug → {status|null, why, unclassified: [slug], core: [slug]} } (status null: the code decides
+   nothing). statusOf(slug) reads a system's status after the code, a supersystem's after its core subsystems. */
+function codeStatus(reg, root, sha) {
+  const systems = (reg && Array.isArray(reg.systems) ? reg.systems : []), all = [];
+  systems.forEach(e => { if (e.kind === "system") all.push(...pathList(e.paths)); Object.values(e.partPaths && typeof e.partPaths === "object" ? e.partPaths : {}).forEach(v => all.push(...pathList(v))); });
+  const pres = codePresence(root, sha, all), has = p => pres.get(cleanPath(p)) === true;
+  const out = { systems: new Map(), parts: [], supers: new Map() };
+  systems.forEach(e => {
+    if (e.kind === "system" && pathList(e.paths).length) { const ps = pathList(e.paths); out.systems.set(e.slug, { status: ps.some(has) ? "built" : "planned", present: ps.filter(has), missing: ps.filter(p => !has(p)) }); }
+    Object.entries(e.partPaths && typeof e.partPaths === "object" ? e.partPaths : {}).forEach(([id, v]) => { const ps = pathList(v); if (ps.length) out.parts.push({ slug: e.slug, dsl: typeof e.dsl === "string" ? e.dsl.replace(/^\.?\//, "") : null, id, planned: !ps.some(has), paths: ps }); });
+  });
+  const by = s => systems.find(x => x.slug === s), seen = new Set();
+  const statusOf = slug => { const e = by(slug); if (!e) return null;
+    if (e.kind === "supersystem") { const s = superOf(slug); return s.status || e.status; }
+    const d = out.systems.get(slug); return d ? d.status : e.status; };
+  const superOf = slug => {
+    if (out.supers.has(slug)) return out.supers.get(slug);
+    if (seen.has(slug)) return { status: null, why: "a cycle in the registry's parents", unclassified: [], core: [] }; seen.add(slug);
+    const kids = systems.filter(c => c.parent === slug && c.kind !== "repo"), unclassified = kids.filter(c => typeof c.core !== "boolean").map(c => c.slug), core = kids.filter(c => c.core === true).map(c => c.slug);
+    let r;
+    if (!kids.length) r = { status: null, why: "it has no subsystems in the registry", unclassified, core };
+    else if (unclassified.length) r = { status: null, why: `${unclassified.join(", ")} ${unclassified.length === 1 ? "is" : "are"} not classified core or optional (systems.json "core", from its architecture)`, unclassified, core };
+    else if (!core.length) r = { status: null, why: "none of its subsystems is core", unclassified, core };
+    else r = { status: core.every(c => statusOf(c) === "built") ? "built" : "planned", why: null, unclassified, core };
+    out.supers.set(slug, r); return r; };
+  systems.filter(e => e.kind === "supersystem").forEach(e => superOf(e.slug));
+  out.statusOf = statusOf;
+  return out;
+}
+
+module.exports = { registryRoot, codePresence, codeStatus, stateText, norm, blockText, embedInto, findRegistry, isAncestor, inline, editRegistryText, dslElements, setPlannedTag, restampDsl, stateProblems, stateVsRegistry, partRefs };

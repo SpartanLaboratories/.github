@@ -16,6 +16,8 @@
 // dashboard.html), so every event of a unit's run reaches the tracking board, not only the first.
 // Beside the page it writes the live sidecar (plan/RULES.md §1, "plan.js"): plan.json → plan.js, board.json → board.js, the data
 // file verbatim as a script the page re-loads while its run is live and redraws from. --check also holds the sidecar to the file.
+// For a plan board it then renders the Markdown the board links into self-contained HTML copies under the tree's git-ignored
+// docs/plans/.live/docs/ (mdcopy.js), which the board opens in place of the .md when they are on disk; never where .live/ is not ignored.
 "use strict";
 const fs = require("fs"), path = require("path");
 const { readBlock, writeBlock, resolveBoard, parentFolder, SIDECAR, sidecarText, readSidecar } = require("./lib.js");
@@ -45,7 +47,11 @@ function embedOne(dir, opts) {
   if (linked.length) { const eol = /\r\n/.test(json) ? "\r\n" : "\n"; json = (JSON.stringify(data, null, 2) + "\n").replace(/\n/g, eol); fs.writeFileSync(t.json, json); }
   fs.writeFileSync(t.html, writeBlock(fs.readFileSync(t.html, "utf8"), t.id, json));
   fs.writeFileSync(t.js, sidecarText(t.id, json));
-  return { ...t, bytes: Buffer.byteLength(json), linked, data };
+  /* the rendered copies of the Markdown the board links, in the tree's git-ignored docs/plans/.live/docs/ (mdcopy.js; plan/RULES.md §1):
+     a cache of this machine, so a failure here never fails the embed */
+  let copies = null;
+  if (t.id === "plan" && !(opts && opts.copies === false)) { try { copies = require("./mdcopy.js").copyBoardDocs(data, dir); } catch (e) { copies = { wrote: [], skipped: "the copies failed: " + e.message }; } }
+  return { ...t, bytes: Buffer.byteLength(json), linked, data, copies };
 }
 /* Embed a folder; for a sub-issue's board, then re-embed its parent's tracking board, which mirrors this unit's run from the
    plan.json just written (plan/RULES.md §3-§4). opts.parent === false embeds the folder alone. The result carries parent:
@@ -71,6 +77,7 @@ if (require.main === module) {
     const r = embed(dir, { refresh: args.includes("--refresh-excerpts") });
     r.linked.forEach(l => console.log(`${/: excerpt of /.test(l) ? "" : "linked "}${l}`));
     console.log(`embedded ${r.json} into ${r.html} (${r.bytes} bytes) and wrote ${path.basename(r.js)} beside it`);
+    if (r.copies) console.log(r.copies.skipped ? `rendered copies: ${r.copies.skipped}` : `rendered copies: ${r.copies.wrote.length ? r.copies.wrote.length + " written (docs/plans/.live/docs/)" : "current"}`);
     if (r.parent && r.parent.error) { console.error(`could not re-embed the parent's tracking board in ${r.parent.dir}: ${r.parent.error}`); process.exit(1); }
     if (r.parent) { r.parent.linked.forEach(l => console.log(`tracking board ${r.parent.dir}: ${l}`)); console.log(`re-embedded the parent's tracking board in ${r.parent.dir}${r.parent.linked.length ? "" : " (unchanged)"}`); }
   } catch (e) { console.error("embed failed: " + e.message); process.exit(1); }

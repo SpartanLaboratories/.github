@@ -951,7 +951,7 @@ window.dashboardLive&&window.dashboardLive("plan",
               "ref": "plan.md#8-tests--stage-a-a-7",
               "heading": "8. Tests — Stage A (A-7)",
               "paragraph": "Conventions followed (read from the existing suites): `kotlin.test` assertions with `org.junit.jupiter.api.Tag`; the level `@Tag` on every class; hand-written recording fakes (`FakeConnection`, `FakePeriodicSchedule`) under `test/support/webtools/udp/`; log assertions through `captureLogsOf`/`hasEventAt`/`hasWarnContaining` (`test/support/webtools/udp/LogCapture.kt`); one test class per file; component tests pass pre-trimmed text (`accept(origin, text)` does not trim). MockK is not used by these suites. Every socket-level case sends from a raw `DatagramSocket`, never from …",
-              "hash": "8b89e7329f99"
+              "hash": "36a137c3b0de"
             }
           },
           {
@@ -1155,7 +1155,7 @@ window.dashboardLive&&window.dashboardLive("plan",
               "ref": "plan.md#a-1-testcomponentwebtoolsudphandshakecoordinatortestkt--escape-the-nulsoh-bytes-first-edit-to-this-file",
               "heading": "A-1 `test/component/webtools/udp/HandshakeCoordinatorTest.kt` — escape the NUL/SOH bytes (FIRST edit to this file)",
               "paragraph": "Line `:577` is ` assertTrue(coordinator.accept(originA, byteArrayOf(0x00, 0x01), \"<NUL><SOH>\").isSuccess)` where the string literal holds the raw bytes 0x00 0x01. Do not open this file with an editor/Edit tool before this step; do not use `Grep`/`rg` on it (they skip it).",
-              "hash": "188d39cb9e3c"
+              "hash": "376709d24bf7"
             }
           },
           {

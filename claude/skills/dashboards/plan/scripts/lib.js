@@ -141,7 +141,22 @@ function excerptDrift(plan, dir) {
 }
 /* Everything embed.js resolves from the folders on disk before it embeds a plan board: the issue links and the units' runs
    (linkIssueBoards()) and the statements' excerpts (copyExcerpts()). Returns one line per change. */
-function resolveBoard(plan, dir, opts) { return [...linkIssueBoards(plan, dir), ...copyExcerpts(plan, dir, opts)]; }
+function resolveBoard(plan, dir, opts) { return [...linkIssueBoards(plan, dir), ...linkShared(plan, dir), ...copyExcerpts(plan, dir, opts)]; }
+/* The shared pages a board links (GUIDANCE.md §5; plan/RULES.md §1, "Links"), from the files on disk: the committed work board
+   (workBoard, docs/plans/index.html), the repository page (repoPage, docs/dashboards/index.html) and each of the board's systems'
+   pages (pages, by slug), each relative to the board's folder and present only while its file exists, so the page never links a
+   missing file. embed.js writes them at every embed; check.js fails one whose file is gone. */
+function sharedLinks(plan, dir) {
+  const root = treeRoot(dir); if (!root || !plan) return {};
+  const rel = f => path.relative(path.resolve(dir), path.join(root, ...f.split("/"))).split(path.sep).join("/"), want = {};
+  if (fs.existsSync(path.join(root, "docs", "plans", "index.html"))) want.workBoard = rel("docs/plans/index.html");
+  if (fs.existsSync(path.join(root, "docs", "dashboards", "index.html"))) want.repoPage = rel("docs/dashboards/index.html");
+  const pages = {}; (Array.isArray(plan.systems) ? plan.systems : []).forEach(s => { if (s && typeof s.slug === "string" && typeof s.page === "string" && s.page.trim() && !/^[a-z]+:/i.test(s.page) && fs.existsSync(path.join(root, ...s.page.split("/")))) pages[s.slug] = rel(s.page); });
+  if (Object.keys(pages).length) want.pages = pages;
+  return want;
+}
+function linkShared(plan, dir) { if (!plan) return []; const want = sharedLinks(plan, dir); if (JSON.stringify(plan.links === undefined ? null : plan.links) === JSON.stringify(want)) return [];
+  const was = plan.links; plan.links = want; return [`links: ${was === undefined ? "unset" : JSON.stringify(was)} → ${JSON.stringify(want)}`]; }
 
 /* The embedded block of a page: <script type="application/json" id="<id>"> … </script>. */
 const openTag = id => `<script type="application/json" id="${id}">`;
@@ -331,7 +346,7 @@ function parentBoard(dir, parent) {
 const ISSUE_UNLINKED = new Set(["$comment", "schema", "repo", "slug", "folder", "kind", "status", "id", "where", "title", "system", "slot", "top", "page", "board",
   "branch", "step", "steps", "since", "updated", "state", "verdict", "column", "date", "sha", "merge", "version", "pr", "files", "n", "level", "current", "next",
   "resume", "qa", "qaMax", "pass", "findings", "question", "questions", "landing", "chosen", "settles", "when", "issueBoards",
-  "event", "research", "phase", "drafted", "stages", "severity", "started", "returned", "asked", "answered", "verdicts", "deviations", "hash", "list"]);
+  "event", "research", "phase", "drafted", "stages", "severity", "started", "returned", "asked", "answered", "verdicts", "deviations", "hash", "list", "links", "pages"]);
 const reEsc = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const UNIT_LANDED = ["landed", "as-planned", "amended", "deviated"];
 /* Left for later (plan/RULES.md §2, the As built tile; §3, the chain's progress): a row whose written verdict leaves it as is (kind
@@ -587,7 +602,10 @@ const GLOW_MAP = {
   sizing: { kind: "none" }, interview: { kind: "cells" }, research: { kind: "research" },
   architecture: { kind: "columns", cols: ["considered"] }, plan: { kind: "columns", cols: ["considered", "verdict"] }, branch: { kind: "none" },
   implementation: { kind: "built" }, qa: { kind: "columns", cols: ["built"] }, remediation: { kind: "built" },
-  landing: { kind: "none" }, landed: { kind: "none" }, cancelled: { kind: "none" }
+  landing: { kind: "none" }, landed: { kind: "none" }, cancelled: { kind: "none" },
+  /* a tracking board after its architecture (plan/RULES.md §3): filing the units as sub-issues, then creating their boards; the work is
+     on the unit rows as a whole, so the label column glows, one glow on the column ("units") */
+  "sub-issues": { kind: "columns", cols: ["units"] }, boards: { kind: "columns", cols: ["units"] }
 };
 const COLUMN_NAMES = { gap: "Gap", considered: "Considered", verdict: "Verdict", built: "As built" };
 /* The research questions and their states (plan/RULES.md §3, "Research: the questions and their states"). wip.questions records
@@ -642,7 +660,7 @@ function researchGlow(plan) {
 }
 /* The plan-board events (plan/RULES.md §4), as wip.event.name records the last one a board took. */
 const EVENTS = ["sized", "halted", "resumed", "research-planning", "research-started", "research-returned", "verification-started", "researched",
-  "architecture-signed-off", "plan-accepted", "branch-cut", "implementation-stage", "qa-pass", "escalated", "landed", "cancelled"];
+  "architecture-signed-off", "sub-issues-filed", "boards-created", "plan-accepted", "branch-cut", "implementation-stage", "qa-pass", "escalated", "landed", "cancelled"];
 /* A row's as-built state before its outcome (plan/RULES.md §2, "Before the outcome"): derived from the implementation stages while the
    run is live. On an issue board, for a row wip.stages touches: "in-progress" when a current stage touches it, "partially-built" when a
    done stage touched it and a later stage still to come touches it, "pending" when only stages to come touch it; null otherwise (no
@@ -735,4 +753,4 @@ function glowMismatch(plan) {
 }
 
 module.exports = { STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
-  trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, parentFolder, staleUnitRuns, stampMs, treeRoot, boardFolders, boardLink, parentBoard, issueRefs, otherBoards, linkIssueBoards, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };
+  trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, parentFolder, staleUnitRuns, stampMs, treeRoot, boardFolders, boardLink, parentBoard, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

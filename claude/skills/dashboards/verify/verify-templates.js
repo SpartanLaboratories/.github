@@ -44,7 +44,11 @@
 // fast path misapplied (a remediation step naming a test level; a remediation report carrying the stages). And the decisions of
 // dashboards-skill/21: the header's two halves and its labelled tags on every type, a tracking board's WIP row in fixed shares (35 / 25 / 40),
 // and the step panel's title alone with its facts as info groups, each a small bubble. And the state pages on a branch, data only
-// (dashboards-skill/25): system/scripts/apply-state.js, the state block, planned from the data, check-page.js --no-browser. A template is
+// (dashboards-skill/25): system/scripts/apply-state.js, the state block, planned from the data, check-page.js --no-browser. And the decisions
+// of dashboards-skill/26 (verify/cases-26.js): the feature probes, the splice and the template history it reads (verified.json "history",
+// verify/history/), the legends of Guarantees and Context, links only to files that exist and the live views first, the tablists' keys, the
+// theme remembered across pages, no issue above Context, the Markdown copies, the unit boards and a tracking board's two steps, the
+// progress notes, built or planned from the code. A template is
 // recorded only when its browser passes and every case group pass.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
@@ -471,7 +475,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     const lede = (dom, id) => text((dom.match(new RegExp(`<p class="lede" id="${id}">([\\s\\S]*?)</p>`)) || ["", ""])[1]);
     const dTl = render("tracking-timeline", trk), dEx = render("example-timeline", ex);
     nc.push(["the Timeline lede is one short line on both kinds of board", lede(dTl, "timeline-lede").length > 0 && lede(dTl, "timeline-lede").length <= 120 && lede(dEx, "timeline-lede").length <= 120, `${lede(dTl, "timeline-lede").length} / ${lede(dEx, "timeline-lede").length} characters`]);
-    const ledes = (dEx.match(/<p class="lede"[^>]*>[\s\S]*?<\/p>/g) || []).map(text).filter(Boolean);
+    const ledes = (dEx.replace(/<script[\s\S]*?<\/script>/g, "").match(/<p class="lede"[^>]*>[\s\S]*?<\/p>/g) || []).map(text).filter(Boolean);
     nc.push(["every tab's lede is at most one short line", ledes.every(l => l.length <= 130), ledes.filter(l => l.length > 130).join(" | ")]);
 
     /* the bubbles and the branches */
@@ -862,7 +866,8 @@ targets.filter(t => !t.block || t.block === "board").forEach(t => {
       cc.push(["with a board in BOARDS, the title <a data-board> opens it", /<a data-board="7" href="boards\/7\/dashboard\.html"[^>]*>Issue with a board<\/a>/.test(ctx), (ctx.match(/.{0,120}Issue with a board.{0,20}/) || ["no title"])[0]]);
       cc.push(["with a board in BOARDS, a lone <a data-issue> opens the board", /<a data-issue="7" href="boards\/7\/dashboard\.html"/.test(ctx), (ctx.match(/<a data-issue="7"[^>]*>/) || ["no lone #7"])[0]]);
       cc.push(["with no board, a title stays plain text and a lone #n opens the GitHub issue", !/data-board="N"/.test(ctx) && /Issue mapped to the item/.test(ctx) && /<a data-issue="N" href="https:\/\/github\.com\/ORG\/REPO\/issues\/N"/.test(inner(pl, '<section class="context">', "section")), (ctx.match(/.{0,80}Issue mapped to the item.{0,10}/) || ["no title"])[0]]);
-      if (sup) cc.push(["the Systems tab's planned card links \"planned by #7\" to its board", /planned by <a href="boards\/7\/dashboard\.html"/.test(inner(dl, '<div class="syscards" id="syscards">', "div")), text(inner(dl, '<div class="syscards" id="syscards">', "div")).slice(0, 200)]);
+      /* no issue number above Context (dashboards-skill/26): the planned card links its plan board by that name */
+      if (sup) cc.push(["the Systems tab's planned card links its plan board, naming no issue", /planned · <a href="boards\/7\/dashboard\.html">its plan<\/a>/.test(inner(dl, '<div class="syscards" id="syscards">', "div")) && !/#7/.test(text(inner(dl, '<div class="syscards" id="syscards">', "div"))), text(inner(dl, '<div class="syscards" id="syscards">', "div")).slice(0, 200)]);
       const ok = cp.spawnSync(process.execPath, [checker, f, "--out", sc], { encoding: "utf8" });
       cc.push(["check-page.js passes a BOARDS entry whose board is there", ok.status === 0 && /board links: 1 in BOARDS, 0 dead/.test(ok.stdout || ""), (ok.stdout || "").split(/\r?\n/).filter(x => /board links|FAIL/.test(x)).join(" | ")]);
       const dead = write("dead/index.html", withBoards);
@@ -1219,7 +1224,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     const tree = path.join(sc, "tree"), dir = path.join(tree, "docs", "plans", LIVE.slug); fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(LIVE, null, 2) + "\n"); fs.writeFileSync(path.join(dir, "dashboard.html"), PT); node(embedJs, dir);
     const side = lib.readSidecar(path.join(dir, "plan.js"), "plan"), c1 = node(checkJs, dir, "--root", tree);
-    lc.push(["F: embed.js writes plan.js beside the page, carrying plan.json; check.js says so", !side.error && JSON.stringify(side.data) === JSON.stringify(LIVE) && /ok {4}plan\.js carries plan\.json/.test(c1.stdout) && c1.status === 0, side.error || lines(c1, /plan\.js|^FAIL/)]);
+    lc.push(["F: embed.js writes plan.js beside the page, carrying plan.json; check.js says so", !side.error && JSON.stringify(side.data) === JSON.stringify(JSON.parse(fs.readFileSync(path.join(dir, "plan.json"), "utf8"))) && side.data.issue === LIVE.issue && /ok {4}plan\.js carries plan\.json/.test(c1.stdout) && c1.status === 0, side.error || lines(c1, /plan\.js|^FAIL/)]);
     fs.writeFileSync(path.join(dir, "plan.js"), lib.sidecarText("plan", JSON.stringify(B2, null, 2)));
     const c2 = node(checkJs, dir, "--root", tree), e2 = node(embedJs, dir, "--check");
     lc.push(["F: check.js and embed.js --check fail a plan.js that differs from plan.json", c2.status === 1 && /plan\.js differs from plan\.json: run embed\.js/.test(c2.stdout) && e2.status === 1 && /sidecar plan\.js differs/.test(e2.stdout), lines(c2, /plan\.js/) + " · " + (e2.stdout || "").trim()]);
@@ -1493,7 +1498,8 @@ targets.filter(t => t.block === "plan").forEach(t => {
       ac.push(["a work level in the facts is never written: the halt applies without that text, enrich yes", r.status === 0 && !/level/i.test(JSON.stringify(d.wip)) && r.s.enrich === "yes", `${r.s.result} · ${r.s.error || ""} · ${(r.s.why || []).join("; ").slice(0, 200)}`]); }
     /* a tracking board at its architecture */
     edit(TRACK, d => { d.wip.step = "architecture"; d.wip.current = ["considered"]; });
-    step("tracking board", TRACK, "architecture-signed-off", {}, true, d => d.wip.step === "landing" && !d.wip.current.length && d.wip.next === "http-core");
+    /* a tracking board files its units next (dashboards-skill/26): its own step "sub-issues", the label column glowing */
+    step("tracking board", TRACK, "architecture-signed-off", {}, true, d => d.wip.step === "sub-issues" && JSON.stringify(d.wip.current) === '["units"]' && d.wip.next === "http-core" && d.wip.steps.indexOf("sub-issues") === d.wip.steps.indexOf("architecture") + 1);
     edit(TRACK, d => { d.wip.step = "implementation"; d.wip.current = ["java-floor.built"]; d.wip.next = "http-core"; });
     /* the sub-issue: the standing rule on its tracking board */
     step("sub-issue", SUB, "sized", { step: "research" }, true, () => { const t = read(TRACK), r = t.rows.find(x => x.id === "http-core");
@@ -1835,6 +1841,8 @@ targets.filter(t => t.block === "plan").forEach(t => {
     const stTxt = (slug, version) => L.stateText({ slug, version, asIs: { ...stamp }, lastAmended: { issue: 5, title: "five", sha: "1111111" }, written: { sha: "1111111" } });
     const build = () => {
       fs.rmSync(tree, { recursive: true, force: true }); fs.mkdirSync(A, { recursive: true }); fs.mkdirSync(path.join(tree, "docs", "plans", "9-next-part"), { recursive: true });
+      /* the code the registry's paths name (built or planned is the code's, dashboards-skill/26): the two built systems are there */
+      ["system-alpha", "system-beta"].forEach(d => fs.mkdirSync(path.join(tree, d), { recursive: true }));
       const reg = JSON.parse(L.blockText(sup, "systems")); reg.repo = "acme/widgets";
       reg.systems.forEach(e => { if (e.status === "built") { e.asIs = { ...stamp }; e.lastAmended = { issue: 5, sha: "1111111" }; } });
       Object.assign(reg.systems.find(e => e.slug === "system-alpha"), { version: "1.0.0" });
@@ -1863,7 +1871,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     build();
     vc.push(["a browser renders the pages (set CHROME)", !!chrome, "no Chrome or Edge found"]);
     const before = snap(), d0 = dumpDom(path.join(A, "index.html"));
-    vc.push(["the system template draws its stamp chips from the state block, and removes the one with nothing to say", d0 == null || /<span class="chip" id="chip-asis">.*?main @ 1111111/.test(d0) && /id="chip-amended">.*?#5<\/b><\/a> five/.test(d0) && !/id="chip-written"/.test(d0), text(inner(d0, '<div class="chips">', "div")).slice(0, 220)]);
+    vc.push(["the system template draws its stamp chips from the state block, and removes the one with nothing to say", d0 == null || /<span class="chip" id="chip-asis">.*?main @ 1111111/.test(d0) && /id="ctx-amended"[^>]*>.*?#5<\/a> five/.test(d0) && !/id="chip-amended"/.test(d0) && !/id="chip-written"/.test(d0), text(inner(d0, '<div class="chips">', "div")).slice(0, 220)]);
     vc.push(["a structure node mapped to a Planned DSL element, and a data-part, are drawn planned", d0 == null || /<g class="node server int planned"[^>]*data-id="next"/.test(d0) && /<li data-part="repo\.sys\.next" class="planned">/.test(d0), (d0 || "").match(/<g class="node[^"]*"[^>]*data-id="next"/) + ""]);
     [["the repository page", path.join(D, "index.html")], ["the system page", path.join(A, "index.html")]].forEach(([w, p]) => { const r = nb(p); vc.push([`check-page.js --auto --no-browser passes ${w} as written`, r.status === 0 && /PASS \(no browser\)/.test(r.stdout) && /browser pass deferred/.test(r.stdout), (r.stdout || "").split(/\r?\n/).filter(l => /state|FAIL|PASS/.test(l)).join(" | ")]); });
 
@@ -1892,7 +1900,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     /* "#9": the system that issue alone plans, and a version */
     const s3 = apply(req({ action: "state-pages" }, { at: "2026-10-25T14:00:00Z", sha: "4444444", systems: ["system-alpha"], built: ["#9"], version: { "system-alpha": "1.1.0" } }));
     const R3 = J("systems.json"), g3 = R3.systems.find(e => e.slug === "system-gamma");
-    vc.push(["\"#9\" marks the system it alone plans built, in the registry and in the DSL, enrich yes", s3.status === 0 && g3.status === "built" && g3.asIs && g3.asIs.sha === "4444444" && /gamma = container "system-gamma" "Issue #N: what it will do\." "proposed"$/m.test(rd("workspace.dsl")) && s3.enrich === "yes" && s3.why.some(x => /system-gamma marked built/.test(x)), JSON.stringify([s3.result, s3.applied, s3.error])]);
+    vc.push(["\"#9\" marks the system it alone plans built, in the registry and in the DSL, enrich yes", s3.status === 0 && g3.status === "built" && g3.asIs && g3.asIs.sha === "4444444" && /gamma = container "system-gamma" "What it will do\." "proposed"$/m.test(rd("workspace.dsl")) && s3.enrich === "yes" && s3.why.some(x => /system-gamma marked built/.test(x)), JSON.stringify([s3.result, s3.applied, s3.error])]);
     vc.push(["a version moved through facts.version: registry and state, enrich naming the bubble", R3.systems.find(e => e.slug === "system-alpha").version === "1.1.0" && J("system-alpha/state.json").version === "1.1.0" && s3.why.some(x => /system-alpha moved to 1.1.0/.test(x)), JSON.stringify([J("system-alpha/state.json").version, s3.why])]);
     const d3 = dumpDom(path.join(D, "index.html"));
     vc.push(["the repository page draws the system solid: its card and every row tied to it", d3 == null || /class="syscard built"[^>]*data-slug="system-gamma"/.test(d3) && !/<tr data-part="sys:system-gamma" class="planned">/.test(d3) && /<tr data-part="sys:system-gamma"/.test(d3), ((d3 || "").match(/<tr data-part="sys:system-gamma"[^>]*>/g) || []).join(" ")]);
@@ -1936,6 +1944,13 @@ targets.filter(t => t.block === "plan").forEach(t => {
   report("state pages on a branch, data only: apply-state.js, the state block, planned from the data, check-page.js --no-browser", vc);
 }
 
+/* The decisions of admin-team/dashboards-skill/26 (verify/cases-26.js): the feature probes, the splice, the legends of Guarantees and Context,
+   links only to files that exist and the live view first, the work-board link on the state pages, the tablists' keys, the clean-ups, the
+   theme remembered across pages, no issue above Context, the rendered Markdown copies, the tracking issue's unit boards and its two steps,
+   the agents' progress notes, built or planned from the code. */
+try { require("./cases-26.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the dashboards-skill/26 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
 const today = new Date().toISOString().slice(0, 10);
 targets.forEach(t => {
   const tpl = fs.readFileSync(t.path, "utf8"), results = [];
@@ -1961,7 +1976,11 @@ targets.forEach(t => {
   let rec = {}; try { rec = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) { /* first record */ }
   rec.$comment = "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last full verification. check-page.js --auto and check.js --auto trust a template only while its hash matches.";
   rec.templates = rec.templates || {};
-  rec.templates[key] = { sha256: sha(tpl), verified: today, fixtures: [...new Set(results.map(r => r.fixture))], modes: MODES.map(m => m.join(" ") || "light") };
+  /* the history (system/scripts/splice.js reads it): every verified version of the template, its text kept in history/ beside verified.json,
+     so a page made from an older version is spliced three ways from the version it was made from */
+  const prevRec = rec.templates[key] || {}, hist = Array.isArray(prevRec.history) ? prevRec.history.slice() : [];
+  if (!hist.some(v => v.sha256 === sha(tpl))) { const hb = path.basename(t.file, ".html"), hf = `${hb}/${sha(tpl).slice(0, 12)}.html`; fs.mkdirSync(path.join(path.dirname(file), "history", hb), { recursive: true }); fs.writeFileSync(path.join(path.dirname(file), "history", ...hf.split("/")), norm(tpl)); hist.push({ sha256: sha(tpl), verified: today, file: hf }); }
+  rec.templates[key] = { sha256: sha(tpl), verified: today, fixtures: [...new Set(results.map(r => r.fixture))], modes: MODES.map(m => m.join(" ") || "light"), history: hist };
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, JSON.stringify(rec, null, 2) + "\n");
 });

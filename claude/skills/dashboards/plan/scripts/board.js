@@ -181,7 +181,8 @@ const rows = [...rowNums].map(n => {
     const w = b.plan.wip || {}, s = b.plan.status;
     Object.assign(row, { board: fs.existsSync(path.join(b.dir, "dashboard.html")) ? relFromPlans(b.folder + "/dashboard.html", b.root) : null, folder: relFromPlans(b.folder, b.root) + "/", branch: shownBranch(b.plan), /* a merged branch is not shown (plan/RULES.md §3, "Branches") */ system: b.plan.kind === "tracking" ? null : ((b.plan.systems || [])[0] || {}).slug || null,
       step: w.step || null, detail: w.step === "halted" ? `Waiting on the user: ${w.waitingOn || w.detail || ""}` : (w.detail || ""), since: w.since || null, updated: w.updated || null, qa: w.qa || [], qaMax: w.qaMax || null,
-      status: s === "built" || unitState(u) === "landed" ? "landed" : s === "abandoned" || w.step === "cancelled" ? "abandoned" : w.step === "halted" ? "halted" : w.step === "escalated" ? "escalated" : u && unitState(u) === "complete" ? "complete" : s === "building" ? "building" : "planning",
+      /* a board laid before its run starts (a tracking issue's unit, plan/RULES.md §4) has no step: not started */
+      status: s === "built" || unitState(u) === "landed" ? "landed" : s === "abandoned" || w.step === "cancelled" ? "abandoned" : w.step === "halted" ? "halted" : w.step === "escalated" ? "escalated" : u && unitState(u) === "complete" ? "complete" : s === "building" ? "building" : !w.step && s === "planned" ? "not-started" : "planning",
       landed: s === "built" ? { pr: (b.plan.asBuilt || {}).pr || null, merge: (b.plan.asBuilt || {}).merge || null, version: (b.plan.asBuilt || {}).version || null, date: (b.plan.asBuilt || {}).date || null } : null });
     /* the impact's reconciliation state, derived from the board (lib.js reconciliation(); plan/RULES.md §2, Impact, §5): null while it
        records no impact; landed and total on a tracking board */
@@ -246,7 +247,9 @@ const used = new Set([...rows.map(r => r.system), ...unscheduled.map(u => u.syst
 let tree = {}; try { tree = { ref: opt(args, "ref", null) || sh("git", ["rev-parse", "--abbrev-ref", "HEAD"]).trim(), sha: sh("git", ["rev-parse", "--short", "HEAD"]).trim() }; } catch (e) { /* not a git tree */ }
 const now = new Date();
 if (live) tree = {}; // the live board names no one tree: its boards come from every worktree
-const board = { schema: "work-board/1", repo, generated: now.toISOString().replace(/\.\d+Z$/, "Z"), asOf: now.toISOString().slice(0, 10), tree,
+/* the shared pages the work board links (GUIDANCE.md §5; plan/RULES.md §5), relative to the page and only where the file exists */
+const links = {}; [["repoPage", "docs/dashboards/index.html"], ["readme", "docs/plans/README.md"]].forEach(([k, f]) => { if (fs.existsSync(path.join(root, ...f.split("/")))) links[k] = path.relative(outDir, path.join(root, ...f.split("/"))).split(path.sep).join("/"); });
+const board = { schema: "work-board/1", repo, generated: now.toISOString().replace(/\.\d+Z$/, "Z"), asOf: now.toISOString().slice(0, 10), tree, links,
   ...(live ? { live: { worktrees: trees.length }, base: "../" } : {}),
   systems: [...used].map(sysInfo), groups: groups.filter(g => rows.some(r => r.group === g.key)), rows, roadmap, unscheduled };
 fs.mkdirSync(outDir, { recursive: true });
@@ -254,6 +257,23 @@ fs.writeFileSync(jsonPath, JSON.stringify(board, null, 2) + "\n");
 // the live board is always the current template: it is regenerated at every event and never committed
 if (!fs.existsSync(htmlPath) || live || flag(args, "refresh-template")) fs.copyFileSync(path.resolve(__dirname, "..", "template", "board.html"), htmlPath);
 embed(outDir);
+/* The live view's markers and copies (plan/RULES.md §1, §5), in every tree read: docs/plans/.live/index.js names the live work board (this
+   checkout's, or from a worktree the main checkout's: a relative path where one exists, else a file URL; the file is git-ignored and
+   never committed), so every page that links the work board opens the live view first; and the Markdown the boards link, rendered into
+   each tree's docs/plans/.live/docs/ (mdcopy.js). Written only where docs/plans/.live/ is git-ignored. */
+if (live) {
+  const md = require("./mdcopy.js"), liveHtml = path.join(outDir, "index.html"), notes = new Set();
+  trees.forEach(t => {
+    if (!md.liveWritable(t)) { notes.add(`${t === root ? "this checkout" : "a worktree"}: docs/plans/.live/ is not git-ignored: no live markers or rendered copies written there`); return; }
+    const dir = path.join(t, "docs", "plans", ".live"), relB = path.relative(dir, liveHtml), href = path.isAbsolute(relB) ? url.pathToFileURL(liveHtml).href : relB.split(path.sep).join("/");
+    fs.mkdirSync(dir, { recursive: true });
+    const text = `/* docs/plans/.live/index.js: the live work board on this machine (plan/scripts/board.js --live). Never committed. */\n(window.DASHBOARDS_LIVE=window.DASHBOARDS_LIVE||{}).board=${JSON.stringify(href)};\n`, f = path.join(dir, "index.js");
+    if (!fs.existsSync(f) || fs.readFileSync(f, "utf8") !== text) fs.writeFileSync(f, text);
+    try { if (fs.existsSync(path.join(t, "docs", "plans", "README.md"))) md.copyDocs(t, ["docs/plans/README.md"], { repo }); } catch (e) { notes.add("the README's copy failed: " + e.message); }
+  });
+  boards.forEach(b => { try { const r = md.copyBoardDocs(b.plan, b.dir); if (r.skipped && !/not git-ignored/.test(r.skipped)) notes.add(r.skipped); } catch (e) { notes.add(`#${b.plan.issue}'s copies failed: ${e.message}`); } });
+  notes.forEach(n => console.log("live: " + n));
+}
 console.log(`${live ? `live board, ${trees.length} worktree${trees.length === 1 ? "" : "s"}: ` : ""}board.json: ${rows.length} runs in ${board.groups.length} groups, ${roadmap.length} roadmap items, ${unscheduled.length} unscheduled issues; index.html embedded`);
 const noSys = [...new Set([...rows.filter(r => !r.system && !r.unassigned && !trackingNums.has(r.issue)).map(r => "#" + r.issue), ...unscheduled.filter(u => !u.system && !u.unassigned).map(u => "#" + u.issue)])];
 if (noSys.length) console.log(`no system recorded for ${noSys.join(", ")}: set "system" (or "unassigned": true, for no system) on those entries in board.json once, and board.js keeps it`);

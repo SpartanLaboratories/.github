@@ -39,7 +39,7 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const args = process.argv.slice(2);
 const USAGE_LINE = "usage: node check-page.js <page.html> [--auto [--no-browser]] [--out <dir>] [--tab <tabId>] [--width n] [--height n] [--theme light|dark] [--frame <px>]";
-require("./cliargs.js").strict(args, { usage: "usage: node check-page.js <page.html> [--auto [--no-browser]] [--out <dir>] [--tab <tabId>] [--width n] [--height n] [--theme light|dark] [--frame <px>]", valued: ["out", "tab", "width", "height", "theme", "frame"], flags: ["auto", "no-browser"], min: 1, max: 1 });
+require("./cliargs.js").strict(args, { usage: "usage: node check-page.js <page.html> [--auto [--no-browser [--features-as-notes]]] [--out <dir>] [--tab <tabId>] [--width n] [--height n] [--theme light|dark] [--frame <px>]", valued: ["out", "tab", "width", "height", "theme", "frame"], flags: ["auto", "no-browser", "features-as-notes"], min: 1, max: 1 });
 if (args.includes("--no-browser") && !args.includes("--auto")) { console.error(USAGE_LINE + "\n(--no-browser goes with --auto: the checks that need no browser, the browser pass deferred)"); process.exit(2); }
 const opt = (name, def) => { const i = args.indexOf("--" + name); return i >= 0 ? args[i + 1] : def; };
 const VALUED = ["--out", "--tab", "--width", "--height", "--theme", "--frame"];
@@ -61,8 +61,8 @@ const paletteLines = () => [`CHECK palette: ${palette.tokens} system-colour toke
 /* The checks that need no browser, on every pass (--auto and --no-browser included): the registry's git-ignore check, the board links,
    and the page's data (the state block, the embedded copies of state.json, workspace.dsl and systems.json, the part references). */
 const src = fs.existsSync(page) ? fs.readFileSync(page, "utf8") : "";
-const regCheck = registryIgnored(), boardCheck = boardLinks(), stateCheck = stateChecks();
-const staticChecks = [regCheck, boardCheck, stateCheck].filter(Boolean);
+const regCheck = registryIgnored(), boardCheck = boardLinks(), stateCheck = stateChecks(), featureCheck = featureChecks(), linkCheck = deadLinks();
+const staticChecks = [regCheck, boardCheck, stateCheck, linkCheck, featureCheck].filter(Boolean);
 const staticLines = () => staticChecks.flatMap(c => [...(c.note ? ["CHECK " + c.note] : []), ...(c.notes || []).map(n => "CHECK " + n), ...c.problems.map(p => "CHECK " + p)]);
 const staticProblems = staticChecks.flatMap(c => c.problems);
 
@@ -88,7 +88,7 @@ if (args.includes("--auto")) {
   modes.forEach(m => {
     const r = cp.spawnSync(process.execPath, [__filename, page, ...rest, ...m], { encoding: "utf8" });
     const lines = (r.stdout || "").trim().split(/\r?\n/), label = m.join(" ") || "light";
-    const bad = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM|GIT-IGNORED|DEAD BOARD LINK|BOARDS UNREADABLE|STATE |EMBED DIFFERS|PART UNKNOWN|FAIL/.test(l));
+    const bad = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM|GIT-IGNORED|DEAD BOARD LINK|DEAD LINK|BOARDS UNREADABLE|STATE |EMBED DIFFERS|PART UNKNOWN|FEATURE MISSING|STATUS DISAGREES WITH CODE|FAIL/.test(l));
     console.log(`CHECK pass ${label}: ${r.status === 0 ? "PASS" : "FAIL"} · ${(lines.find(l => l.startsWith("screenshot:")) || "").replace("screenshot: ", "")}`);
     bad.forEach(l => console.log("  " + l));
     if (r.status !== 0) failed++;
@@ -184,6 +184,18 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   console.log("CHECK times: "+times.length+" local"+(badT.length?" · RAW UTC STAMP in a <time> without its UTC title ("+badT.slice(0,3).map(t=>t.getAttribute("datetime")).join(", ")+")":"")+(raw.length?" · RAW UTC STAMP shown as text ("+raw.slice(0,3).join(", ")+"): render it with when()":""));
   dashScan("page"); console.log("CHECK dashes: "+(dashHits.size?"DASHED NOT PLANNED: "+[...dashHits].slice(0,6).map(([k,w])=>k+" ("+w+")").join("; ")+": dashed means only planned or pending; draw it solid, or mark it planned":"every dashed element is planned or pending"));
   const glow=document.querySelectorAll(".glow").length; console.log("CHECK glow: "+glow); /* reported, never limited: the glow names exactly what is being worked on (plan/RULES.md §3) */
+  /* the layout detectors (features.js LAYOUT): the header's two halves from 940 px, the page using most of a wide window, the Context's
+     and the Guarantees' legends shown wherever their sections draw an encoding */
+  const vw=document.documentElement.clientWidth, hd=document.querySelector("header"), h1=hd&&hd.querySelector("h1"), ch=hd&&hd.querySelector(".chips"), pg=document.querySelector(".page");
+  if(vw>=940&&h1&&ch&&ch.children.length){ const hb=hd.getBoundingClientRect(), mid=hb.left+hb.width/2, a=h1.getBoundingClientRect(), b=ch.getBoundingClientRect(); if(!(a.right<=mid+2&&b.left>=mid-2)) console.log("CHECK layout: FEATURE MISSING: the header's two halves (intro left, tags right, from 940 px) (template since dashboards-skill/21): the title ends at "+Math.round(a.right)+" px and the tags start at "+Math.round(b.left)+" px, the header's middle is "+Math.round(mid)+" px"); }
+  if(vw>1500&&pg&&pg.getBoundingClientRect().width<vw*0.8) console.log("CHECK layout: FEATURE MISSING: the page using most of a window wider than 1500 px (template since dashboards-skill/10): the page is "+Math.round(pg.getBoundingClientRect().width)+" px of "+vw);
+  const cx=document.querySelector("section.context"), gu=document.querySelector("section.guarantees");
+  /* a state page is as-is (GUIDANCE.md §5, §7): nothing above its Context names an issue, the header, the tiles, every tab drawn and the
+     Guarantees, code and source views aside */
+  if(kind==="system"){ const hits=new Set(); [document.querySelector("header"),document.querySelector(".kpis"),...document.querySelectorAll('[role="tabpanel"]'),gu].filter(Boolean).forEach(root=>{ const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement&&n.parentElement.closest("script,style,pre,code,#insp-body")?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT}); while(w.nextNode()){ const m=(w.currentNode.nodeValue||"").match(/(^|[^\\w&#])#\\d+\\b/g); if(m) m.forEach(x=>hits.add(x.slice(x.indexOf("#")))); } });
+    if(hits.size) console.log("CHECK as-is: FEATURE MISSING: an as-is part that names no issue (template since dashboards-skill/26): "+[...hits].slice(0,6).join(", ")+" above the Context section; the issues belong in its roadmap and lists"); }
+  if(cx&&cx.querySelector(".badge,.sw,.vp")&&!shown(document.getElementById("context-key"))) console.log("CHECK layout: FEATURE MISSING: the Context's legend shown wherever its cards draw an encoding (template since dashboards-skill/26): its cards draw badges or swatches and no #context-key is shown");
+  if(kind==="system"&&gu&&gu.querySelector("[data-sys],.planned,.gap,.bars,.badge")&&!shown(document.getElementById("guarantees-key"))) console.log("CHECK layout: FEATURE MISSING: the Guarantees' legend shown wherever its bubbles draw an encoding (template since dashboards-skill/26): no #guarantees-key is shown");
   const want=${JSON.stringify(tab)}; const t=want?document.getElementById(want):tabs[0]; if(t) t.click();
   lvScan(document.body.innerText,"page"); console.log("CHECK work levels: "+(lvHits.size?"LEVEL REFERENCE shown ("+[...lvHits].slice(0,6).join("; ")+"): a dashboard never shows a work level":"none shown"));
   const sw=document.documentElement.scrollWidth, cw=document.documentElement.clientWidth;
@@ -265,6 +277,20 @@ function stateChecks() {
       else if (e) { const d = L.stateVsRegistry(s, e, kind); d.forEach(([f, a, b]) => problems.push(`STATE DISAGREES WITH REGISTRY: ${f} is ${JSON.stringify(a)} on the page and ${JSON.stringify(b)} in systems.json`)); if (!d.length) notes.push(`state: ${s.slug} at ${(s.asIs || {}).ref} @ ${(s.asIs || {}).sha}${(s.asIs || {}).landed === false ? " (not yet landed)" : ""}, as systems.json has it`); }
     }
   }
+  /* Built or planned is the code's (system/RULES.md §7, §10): every system the page draws whose code paths the registry records, its
+     parts with code paths of their own (partPaths) and its supersystems (built once every core subsystem is) agree with the code at the
+     page's stamped commit (STATUS DISAGREES WITH CODE); a supersystem's subsystem not classified core or optional is a warning. */
+  if (R && reg && st != null) { let s0 = null; try { s0 = JSON.parse(st); } catch (e) { /* reported above */ }
+    const sha = s0 && s0.asIs ? s0.asIs.sha : null, code = L.codeStatus(R, L.registryRoot(reg), sha), all = R.systems || [], me = s0 && all.find(x => x.slug === s0.slug);
+    const drawn = kind === "system" ? (me ? [me] : []) : me && me.kind === "supersystem" ? all.filter(x => x.slug === me.slug || L.isAncestor(all, me.slug, x.slug)) : all;
+    drawn.forEach(e => { const d = code.systems.get(e.slug);
+      if (d && d.status !== e.status) problems.push(`STATUS DISAGREES WITH CODE: ${e.slug} is ${e.status} in systems.json, the code at ${sha} says ${d.status} (${d.status === "built" ? "present: " + d.present.join(", ") : "none of " + d.missing.join(", ") + " is there"}): run apply-state.js`);
+      const sp = code.supers.get(e.slug);
+      if (sp && sp.status && sp.status !== e.status) problems.push(`STATUS DISAGREES WITH CODE: the supersystem ${e.slug} is ${e.status} in systems.json; its core subsystems (${sp.core.join(", ")}) make it ${sp.status}: run apply-state.js`);
+      if (sp && sp.unclassified.length) notes.push(`warning: SUBSYSTEM UNCLASSIFIED: ${e.slug}'s ${sp.unclassified.join(", ")} ${sp.unclassified.length === 1 ? "is" : "are"} not classified core or optional in systems.json ("core", from its architecture): its status is not derived until ${sp.unclassified.length === 1 ? "it is" : "they are"}`); });
+    const pdsl = L.blockText(src, "dsl"), els = pdsl ? L.dslElements(pdsl) : [], dslRel = path.relative(path.dirname(reg), path.join(dir, "workspace.dsl")).split(path.sep).join("/");
+    code.parts.filter(x => x.dsl === dslRel).forEach(x => { const el = els.find(y => y.id === x.id); if (el && el.tags.includes("Planned") !== x.planned) problems.push(`STATUS DISAGREES WITH CODE: ${x.id} is ${el.tags.includes("Planned") ? "Planned" : "built"} in workspace.dsl, the code at ${sha} says ${x.planned ? "planned" : "built"} (${x.paths.join(", ")}): run apply-state.js`); });
+  }
   const dsl = L.blockText(src, "dsl"), dslFile = path.join(dir, "workspace.dsl");
   if (dsl != null && fs.existsSync(dslFile) && L.norm(fs.readFileSync(dslFile, "utf8")).trim() !== dsl) problems.push("DSL EMBED DIFFERS: the embedded workspace.dsl is not the file beside the page: node embed.js workspace.dsl index.html dsl");
   const sys = L.blockText(src, "systems");
@@ -278,6 +304,36 @@ function stateChecks() {
   return { notes, problems };
 }
 
+// The page's features (features.js; GUIDANCE.md §8, "Features"): every template feature its type takes, whatever its browser pass and
+// through a declared divergence too: a missing one fails as FEATURE MISSING: <feature> (template since dashboards-skill/N).
+function featureChecks() {
+  if (!src) return null;
+  const F = require("./features.js"), { kindOf } = require("./deviation.js"), kind = kindOf(src);
+  if (/<meta name="dashboard" content="doc-copy">/.test(src)) return null;
+  const miss = F.probe(src, kind);
+  /* --features-as-notes (with --auto --no-browser, apply-state.js): a page that lags its template is the presenter's to splice at the landing
+     refresh, not a reason to refuse a stamp: its missing features are notes, and do not fail the run */
+  /* a landed or cancelled issue board is kept as it landed and never re-rendered (GUIDANCE.md §11, "Re-rendering"): its newer features are notes */
+  let closed = false; if (kind === "plan-board") { try { const p = JSON.parse(require("./statelib.js").blockText(src, "plan") || "{}"); closed = ["built", "abandoned"].includes(p.status); } catch (e) { /* the data check reports it */ } }
+  const asNotes = closed || (args.includes("--features-as-notes") && args.includes("--no-browser"));
+  return { note: `features: ${F.applicable(kind).length - miss.length} of ${F.applicable(kind).length} a ${kind} page takes`, notes: asNotes ? miss.map(m => "note: " + F.line(m)) : [], problems: asNotes ? [] : miss.map(F.line) };
+}
+// The links a state page's hand-written HTML makes (GUIDANCE.md §5: a link never points at a file that is not there): every relative
+// href outside its scripts, from the page's folder, when the page sits in a repository's docs/; and its WORK_BOARD's committed board.
+function deadLinks() {
+  if (!src || /<meta name="dashboard" content="(plan-board|work-board|doc-copy)">/.test(src)) return null;
+  const { repoRootOf } = (() => { try { return { repoRootOf: p => { for (let d = path.dirname(path.resolve(p)); ; d = path.dirname(d)) { if (fs.existsSync(path.join(d, "docs", "dashboards")) || fs.existsSync(path.join(d, "docs", "plans"))) return d; if (path.dirname(d) === d) return null; } } }; } catch (e) { return { repoRootOf: () => null }; } })();
+  const dir = path.dirname(path.resolve(page)), problems = [], notes = [];
+  const wb = (src.match(/^const WORK_BOARD=(.*?);\s*(\/\/.*)?$/m) || [])[1];
+  if (wb != null) { let W; try { W = JSON.parse(wb); } catch (e) { problems.push(`DEAD LINK: const WORK_BOARD=${wb.slice(0, 60)} is not plain JSON (${e.message})`); }
+    if (W && W.committed != null && (typeof W.committed !== "string" || !fs.existsSync(path.resolve(dir, W.committed)))) problems.push(`DEAD LINK: WORK_BOARD.committed ${JSON.stringify(W.committed)} is not the work board's file relative to this page (null while there is none)`); }
+  if (!repoRootOf(page)) { notes.push("links: the page is in no repository's docs/: its relative links are not checked"); return { notes, problems }; }
+  const html = src.replace(/<script[\s\S]*?<\/script>/g, "").replace(/<!--[\s\S]*?-->/g, ""), seen = new Set();
+  [...html.matchAll(/\bhref="([^"]+)"/g)].map(m => m[1]).filter(u => !/^([a-z][a-z0-9+.-]*:|#|\/\/)/i.test(u)).forEach(u => { const f = decodeURIComponent(u.split("#")[0].split("?")[0]); if (!f || seen.has(f)) return; seen.add(f);
+    if (!fs.existsSync(path.resolve(dir, f))) problems.push(`DEAD LINK: href="${u}" names no file from this page's folder`); });
+  notes.push(`links: ${seen.size} relative link${seen.size === 1 ? "" : "s"} in the page's HTML, ${problems.filter(p => /href=/.test(p)).length} dead`);
+  return { notes, problems };
+}
 const wrapped =src.includes("</body>") ? src.replace("</body>", probe + "\n</body>") : src + probe;
 const base = path.basename(path.dirname(path.resolve(page))) + "." + path.basename(page, ".html");
 const wrapperPath = path.join(out, base + ".check.html");
@@ -298,12 +354,13 @@ const r = cp.spawnSync(browser, ["--headless=new", "--disable-gpu", "--no-first-
   "--allow-file-access-from-files", "--virtual-time-budget=6000", `--window-size=${width},${height}`, `--screenshot=${shot}`, url], { encoding: "utf8", timeout: 120000 });
 // Chrome prints console lines as `[...] "message", source: <url> (<line>)`; keep just the message.
 const lines = (r.stderr || "").split(/\r?\n/).filter(l => /CONSOLE|Uncaught/.test(l)).map(l => l.replace(/^.*CONSOLE[^"]*"/, "").replace(/", source:[\s\S]*$/, "").trim());
-const errors = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM/.test(l));
+const errors = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM|FEATURE MISSING/.test(l));
 lines.forEach(l => console.log(l));
 paletteLines().forEach(l => { console.log(l); if (/PALETTE IN STATUS HUE|DASHED NOT PLANNED/.test(l)) errors.push(l); });
 if (regCheck) { if (regCheck.note) console.log("CHECK " + regCheck.note); regCheck.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); }
 if (boardCheck) { if (boardCheck.note) console.log("CHECK " + boardCheck.note); boardCheck.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); }
 if (stateCheck) { stateCheck.notes.forEach(n => console.log("CHECK " + n)); stateCheck.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); }
+[linkCheck, featureCheck].filter(Boolean).forEach(c => { (c.notes || []).forEach(n => console.log("CHECK " + n)); c.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); });
 console.log(`screenshot: ${shot}`);
 if (!lines.some(l => l.includes("CHECK done"))) { console.log("FAIL: the probe never completed (page did not load, or scripts aborted before the probe ran)"); process.exit(1); }
 if (errors.length) { console.log(`FAIL: ${errors.length} problem(s)`); process.exit(1); }

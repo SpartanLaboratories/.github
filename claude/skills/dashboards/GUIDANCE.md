@@ -53,7 +53,7 @@ its ruleset; the shared scale is:
 | **orange** (`--serious`) | changed course | a `deviated` part (the decision itself changed) |
 | **accent** (`--accent`) | being worked on: the in-progress mark | an `in-progress` part (a current stage builds it; a unit whose run is under way), solid, beside the glow |
 | **strong neutral** (`--ink-2`, solid) | partly done, no outcome yet | a `partially-built` part: a finished stage built part of it, a later stage builds the rest |
-| **neutral** (ink/grey) | no outcome yet, or not applicable | a `pending` part; a `deferred` part (with its issue); an impact still planned (dashed); an issue closed as not planned or as a duplicate ("closed · not planned", "closed · duplicate": never landed); counts and facts |
+| **neutral** (ink/grey) | no outcome yet, or not applicable | a `pending` part; a `deferred` part (with its issue); an impact still planned (dashed); an issue closed as not planned or as a duplicate ("closed · not planned", "closed · duplicate": never landed; plan boards and the work board only, §7); a `bug` label ("▲ bug": a label, not an outcome); counts and facts |
 
 **The exception: compatibility on the Impact tab.** On a plan board's Impact tab, red and
 yellow mean **compatibility**, not outcomes, because what a reader needs from that tab first is
@@ -149,10 +149,17 @@ it uses — the system swatches present, each status colour with its glyph and w
 dotted, the in-progress glow, the up-next mark — and nothing it doesn't. A legend that promises
 an encoding the panel never draws is a defect; so is an encoding with no legend entry.
 
-**Figures.** A plan board's row of KPI tiles (an issue board's, a tracking board's) is a panel too: every tile carries a
+**Figures.** A tile that counts states carries a segmented bar of them, wherever it stands: a plan board's row of KPI tiles (an issue board's, a tracking board's) is a panel too, and every tile carries a
 segmented bar of what its figure counts (by group, verdict, state or qa pass, `plan/RULES.md` §2, "The KPI tiles"), in the colour coding of §1 (a system's colour, a status
 colour, a neutral; dashed for what is pending), and one legend under the tiles names every segment drawn. The
-system pages' hand-written tiles and the work board's single-count tiles carry none.
+work board's Runs tile (every run by its state) and its Landed tile (landed, merged, complete, and the closed ones it does not count) carry one
+too, each with its legend inside the tile. A tile that counts one state (the work board's Active, Waiting, Up next, Not started) has
+nothing to segment and carries none, and so do the system pages' hand-written tiles: they are counted facts written by hand (files,
+types, threads, tests), not states, so there is nothing a bar would divide.
+
+**Sections.** The Guarantees and the Context are panels too: each carries a legend under its bubbles or cards, generated from what
+they draw (the system swatches, a planned row dashed, a gap, the test-level bars' one neutral series, the badges and their meaning, a
+tracking issue's chain bar, a board's unit states), and none where they draw no encoding.
 
 **Ledes.** The legend says what the encodings mean, so a tab's lede does not: it is at most one
 short line, and only for what the graphic and its legend do not show (what to click, a fact the
@@ -227,22 +234,38 @@ unit row is the example: `1. #61 Shared build logic`, where `#61` opens issue 61
 "Shared build logic" opens its board. Where **only one link fits** — a bare `#n` in text, a
 chain node, a "blocked by #n" tag, a deferred badge, the "part of #n" chip — the `#n` opens the
 issue's board when one exists and the GitHub issue while none does. A small "GitHub ↗" link
-sits beside such a lone `#n` only where the page offers no other way to reach the issue. A link
+sits beside such a lone `#n` only where the page offers no other way to reach the issue, on a plan board (a system page has none, §7). A link
 never points at a file that is not there (`plan/RULES.md` §1).
+
+**Links to the shared pages, and the live views first.** The template-fixed links of every page — the work board, the repository page
+`docs/dashboards/index.html`, a system's page, `docs/plans/README.md` — point only at files that exist: a plan board and the work board
+take them from their data (`plan.json` `links`, `board.json` `links`, which `embed.js` and `board.js` set from the files on disk), a state
+page from its hand-written HTML and its `WORK_BOARD` line, and the words stay plain text while the file is not there; `check.js` and
+`check-page.js` fail a dead one (`DEAD LINK`). Every link to the work board opens the **live view first**: the live work board on this
+machine (`docs/plans/.live/index.html`, named by the marker `docs/plans/.live/index.js` that `board.js --live` writes in each checkout of the
+repository), else the committed `docs/plans/index.html` (on GitHub or another clone), else plain text. Every Markdown document a board
+links opens its **rendered copy** when one is on disk (`docs/plans/.live/docs/`, `plan/RULES.md` §1), else the `.md`; a "(§n)" reference
+opens the copy at that section.
+
+**A state page is as-is.** The part of a system, supersystem or repository page above its Context — the header, the tabs, the Guarantees —
+shows the code at a named commit and names no issue: no "#n", no "last amended by" chip, no "planned by #n"; a planned part links its
+plan board by name ("its plan") where one exists. The issues are in the Context section: its roadmap and issue lists, and the last
+amendment, said there ("last amended by #n title").
 
 The rule holds on every page. The plan boards and the work board take their board links from their
 data (`embed.js`, `board.js`); a system, supersystem or repository page takes them from its `BOARDS`
 map, filled when the page is written, and its hand-written HTML marks a title link
 `<a data-board="N">` and a lone `#n` `<a data-issue="N">`, which the page resolves at load
 (`system/RULES.md` §6). Where the page's Context lists an issue's number and its title — the roadmap,
-the unscheduled issues, the header's "last amended by" — they are the two links of this section.
+the unscheduled issues, the "last amended by" note — they are the two links of this section.
 
 ## 6. Pages are self-contained
 
 Inline CSS, JS and SVG; no external resources (a plan board's or the live work board's own
 sidecar, `plan.js` or `board.js` beside the page, is its data, not a resource: the page renders
 without it and re-reads it only while its run is live, `plan/RULES.md` §1); light and dark; no horizontal page scroll at
-phone width (diagrams scroll inside their own frame); every control reachable by keyboard;
+phone width (diagrams scroll inside their own frame); every control reachable by keyboard (every tablist: Left and Right, Home and End, one
+tab in the Tab order, a roving tabindex);
 under 16 MB. On a wide desktop screen (over 1500 px) every page — system, supersystem and repository
 pages, plan and tracking boards, the work board — uses most of the window rather than a fixed measure,
 so the plan boards' timeline columns, the cards, the Guarantees, the C4 canvas and the tables get room;
@@ -250,7 +273,8 @@ prose keeps its own line length, and a diagram drawn to a fixed aspect grows to 
 so it is never smaller than in the 1280 px layout and never outgrows the screen.
 **The header.** Every dashboard type — system, supersystem and repository pages, plan and tracking
 boards, the work board — lays its header out the same way. The topbar runs across the top: the
-breadcrumb, and right of it the live indicator (plan boards and the live work board only) and the
+breadcrumb, and right of it the live indicator (plan boards and the work board: the live work board follows the runs, the committed one
+reads "not live · as of" its generation; a state page has none) and the
 theme switch. From 940 px wide the rest is two halves: the **intro** — the title, on a plan board
 the issue line (its `#n`, which opens the GitHub issue, and the issue's title on GitHub), and the
 function paragraph — fills the **left half**, the function stretched across it rather than held to a
@@ -260,6 +284,9 @@ more) across the half. Under 940 px the two stack, intro first, and the tags wra
 label before the value. A tag is a fact with its label (`<span class="ck">label</span> value`); one
 fact is one tag (the board's systems are one tag, each system with its swatch); a page's
 hand-written header keeps the same form (`system/RULES.md` §2).
+
+**Sidecars.** A plan board's `plan.js` (and the work board's `board.js`) is committed with its page: a clone opened from disk then polls it
+while the run is live, as the board on this machine does; the committed work board, which is not live, reads it but never polls.
 
 Each template is checked for this once, in a headless browser, in light and dark, at a narrow
 width (520 px is the narrowest headless Chrome lays out; the real phone width is verified
@@ -287,6 +314,11 @@ presenter's report. A page **declares** each divergence in its head, as
 `<meta name="template-divergence" content="what and why">`, so the checker knows what to check.
 When a divergence would serve every page in the repo, it goes in the repo template instead.
 
+**Type divergences** are the rules' own, declared here for a whole page type rather than on a page: on **system, supersystem and
+repository pages** an issue's state reads open or closed and never the tracker's reason ("closed · not planned", "closed · duplicate" are
+the plan boards' and the work board's), there is no "GitHub ↗" beside a lone `#n` (the number opens the board, or GitHub while there is
+none), and nothing above the Context section names an issue (§5, "A state page is as-is"): a state page is as-is, not as planned or created.
+
 ## 8. Checks
 
 **The template is verified once, in the skill; a page is checked only where it deviates.** A
@@ -309,6 +341,19 @@ Every page, before it is committed, passes its set's checker in `--auto` mode
 
 A difference nobody declared is a warning: re-render the page from the template, or declare it
 (§7). `--browser` (plan) and a plain `check-page.js` run still force a pass when wanted.
+
+**Features.** A page is also held to every feature its template has, whatever its pass: `system/scripts/features.js` keeps one detector per
+template feature, tagged with the skill step that added it and the page types it applies to (and, for each type it does not fit, why).
+`check-page.js` (`--auto`, `--auto --no-browser` and its plain passes) and `check.js --auto` run the static ones on every page — the theme
+switch and its script before the first paint, the dark palette, the labelled tags, the 1500 px layout, the `BOARDS` map, the live
+indicator present or absent by type, one-line ledes, reduced motion wherever anything animates, a tabindex on every role=button, the
+tablist's keys, the state block, the as-is header, the legends of Guarantees and Context, the work-board link, the links from the data,
+the Markdown copies, the progress notes, a tracking board's steps, the KPI bars, the neutral bug badge, the chain, core subsystems — and
+the browser pass the layout ones (the header's halves, the wide page, the legends shown). A missing feature fails, as `FEATURE MISSING:
+<feature> (template since dashboards-skill/N)`, **through a declared divergence too**: a divergence adds or argues a removal; it never
+excuses a page that lags its template. A landed or cancelled issue board is the exception: it is kept as it landed and never
+re-rendered (§11), so its newer features are reported, not failed. `verify/verify-templates.js` holds every template to every detector that applies to it. The fix is
+the splice (§11). On the data-only path (`apply-state.js`) the misses are notes and `enrich: yes`, never a refused stamp.
 
 Then the presenter looks once at the screenshots of the pages that had a browser pass, for what
 a script cannot see: a legend that doesn't match its panel, clipped labels, overlaps, a card off
@@ -336,3 +381,16 @@ script and check it touches, with `verify/verify-templates.js` run after the tem
 it does not fit a type, the reason is stated. The presenter's report names, for each change, the
 types it was applied to and the types it was judged not to fit, with the reason, and the pages
 already in repositories that the change would re-render.
+
+**Re-rendering: who brings which page onto the template, and when.** A template change reaches the pages at these moments, and no
+other:
+
+| Page | Brought onto the current template |
+|---|---|
+| system, supersystem and repository pages; the committed work board | at a **landing refresh** only (`system/scripts/splice.js` for a state page: the template's CSS, script before MODEL and renderer carried onto the page, three ways for a declared divergence; `board.js --refresh-template` for the work board) |
+| the live work board | at **every event** (`board.js --live --refresh-template`: it is the template plus its data, never committed) |
+| an issue's board that is in flight, and its tracking board | at **its own events** (`apply-event.js` re-renders a board that is not the verified template plus its data) |
+| a landed issue board | **never**: it is the record of a finished run, kept as it landed |
+
+A **planning-docs landing** — a docs pull request that resolves no issue (a plan folder, a roadmap document) — triggers a small landing
+refresh: the committed work board, and the repository page where the repository has one.
