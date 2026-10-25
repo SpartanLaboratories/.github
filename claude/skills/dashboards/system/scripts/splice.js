@@ -14,7 +14,10 @@
 //     keep the page's values; a new one takes the template's default and is reported for the presenter to fill; the renderer's
 //     DEFAULT_INSPECT line stays the page's;
 //   - the header: a chip without its label is relabelled where its content says what it is (version, as-is, the C4 model, systems), the
-//     old "last amended by" chip is removed (the renderer says it in the Context section) and any other unlabelled chip is reported;
+//     old "last amended by" chip is removed (the renderer says it in the Context section), labelled or not, and any other unlabelled chip
+//     is reported; on a page whose header lacks the template's chips drawn from state.json (id="chip-asis", "chip-written", "chip-version"),
+//     a hand-written "as-is at" chip is replaced by them, and a hand-written "version" chip whose value is the version alone by its
+//     placeholder (one that holds more is reported, for the presenter to split);
 //   - a page with no state block gets one, from its registry entry (state.json written beside it when there is none).
 // A plan board or the work board is its template plus its data: the splice copies the template over the page and embeds the page's
 // data block; one that declares a divergence is merged three ways as above, the page outside its data block as one part.
@@ -161,7 +164,22 @@ function main() {
     /* the header's chips */
     h = h.replace(/<header>([\s\S]*?)<\/header>/, (m, inner) => "<header>" + inner.replace(/[ \t]*<span class="chip" id="chip-amended"[^>]*><\/span>\n?/, () => { report.chips.push("the \"last amended by\" chip removed: the renderer says it in the Context section"); return ""; })
       .replace(/<span class="chip([^"]*)"((?![^>]*\bid="chip-)[^>]*)>((?:(?!<span class="chip)[\s\S])*?)<\/span>(?=\s*(<span class="chip|<\/div>))/g, (all, cls, attrs, body) => {
-        if (/class="ck"/.test(body) || !body.replace(/<[^>]+>/g, "").trim()) return all;
+        /* a labelled chip: kept, unless it is one the template draws from state.json (the stamp, the version) or the old last amendment,
+           which names an issue above the Context section (GUIDANCE.md §5, "A state page is as-is") */
+        if (/class="ck"/.test(body)) {
+          const lab = ((/<span class="ck">([\s\S]*?)<\/span>/.exec(body) || [, ""])[1]).replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+          const val = body.replace(/<span class="ck">[\s\S]*?<\/span>/, "").replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+          const pageHas = id => new RegExp(`id="${id}"`).test(inner), tplHas = id => new RegExp(`<header>[\\s\\S]*id="${id}"[\\s\\S]*</header>`).test(tpl);
+          if (/^last amended/.test(lab)) { report.chips.push(`removed: the labelled "last amended by" chip ${JSON.stringify(val.slice(0, 50))} (the last amendment is said in the Context section)`); return ""; }
+          if (lab === "as-is at" && !pageHas("chip-asis") && tplHas("chip-asis")) {
+            report.chips.push(`the hand-written "as-is at" chip ${JSON.stringify(val.slice(0, 50))} replaced by the template's, drawn from state.json`);
+            return `<span class="chip" id="chip-asis" hidden></span>` + (tplHas("chip-written") && !pageHas("chip-written") ? `\n    <span class="chip" id="chip-written" hidden></span>` : ""); }
+          if (lab === "version" && !pageHas("chip-version") && tplHas("chip-version")) {
+            if (/^v?\d+\.\d+(\.\d+)?[a-z]?$/i.test(val)) { report.chips.push(`the hand-written "version" chip ${JSON.stringify(val)} replaced by the template's, drawn from state.json`); return `<span class="chip" id="chip-version" hidden></span>`; }
+            report.chips.push(`the hand-written "version" chip holds more than the version (${JSON.stringify(val.slice(0, 50))}): replace it with <span class="chip" id="chip-version" hidden></span>, drawn from state.json, and keep the rest as a chip of its own`); }
+          return all;
+        }
+        if (!body.replace(/<[^>]+>/g, "").trim()) return all;
         const t = body.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim(); let ck = null, b = body;
         if (/\bmodel\b/.test(cls)) ck = "C4 model";
         else if (/^as-is\b/i.test(t)) { ck = "as-is at"; b = body.replace(/as-is\s*(at\s*)?/i, ""); }
@@ -169,7 +187,9 @@ function main() {
         else if (/^v?\d+\.\d+(\.\d+)?[a-z]?$/i.test(t)) ck = "version";
         else if (/\bsystems?\b/i.test(t) && /\d/.test(t)) ck = "systems";
         if (!ck) { report.chips.push(`left unlabelled: ${JSON.stringify(t.slice(0, 50))}: give it its label (<span class="ck">…</span>)`); return all; }
-        report.chips.push(`labelled "${ck}": ${JSON.stringify(t.slice(0, 50))}`); return `<span class="chip${cls}"${attrs}><span class="ck">${ck}</span> ${b.trim()}</span>`; }) + "</header>");
+        report.chips.push(`labelled "${ck}": ${JSON.stringify(t.slice(0, 50))}`); return `<span class="chip${cls}"${attrs}><span class="ck">${ck}</span> ${b.trim()}</span>`; })
+      /* a removed chip leaves no blank line behind */
+      .replace(/(\r?\n)[ \t]*(?=\r?\n)/g, "") + "</header>");
     /* the state block */
     if (L.blockText(h, "state") == null && L.blockText(tpl, "state") != null) {
       const reg = L.findRegistry(page); let e = null, R = null; if (reg) { try { R = JSON.parse(fs.readFileSync(reg, "utf8")); } catch (x) { /* reported by the checker */ } }
