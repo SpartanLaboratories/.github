@@ -50,7 +50,9 @@
 // theme remembered across pages, no issue above Context, the Markdown copies, the unit boards and a tracking board's two steps, the
 // progress notes, built or planned from the code. And the decisions of dashboards-skill/22 (verify/cases-22.js): the KPI tiles' legends
 // inside each tile, the larger charging arrow, the landing event, the header, "unassigned" kept from every checkout, the research-planning
-// glow, the Tests tab and this run's feature probes. A template is recorded only when its browser passes and every case group pass.
+// glow, the Tests tab and this run's feature probes. And the decisions of dashboards-skill/23 (verify/cases-23.js): the Timeline tile's
+// phases, the run's start and the qa passes' times, a reference's section number before its excerpt, a work level in the facts reworded
+// and this run's feature probes. A template is recorded only when its browser passes and every case group pass.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { recordFile, sha, norm } = require(path.join(__dirname, "..", "system", "scripts", "deviation.js"));
@@ -1637,7 +1639,9 @@ targets.filter(t => t.block === "plan").forEach(t => {
       /* F. the KPI bars and their legend */
       const K = kpis(dE), bars = K.match(/<div class="seg-bar"/g) || [];
       const tiles = K.split('<div class="kpi">').slice(1), keyed = tiles.filter(t => /<div class="seg-bar"/.test(t) && /<\/div><div class="key">/.test(t));
-      kc.push(["F: every tile but a landed board's Timeline carries a segmented bar and, inside the tile, its legend (dashboards-skill/22: no shared row)", bars.length === 4 && keyed.length === 4 && !/kpi-key|kpikey/.test(K), `${bars.length} bars · ${keyed.length} tile legends`]);
+      /* dashboards-skill/23: a landed board's Timeline carries the bar of its phases too (the example's qa passes are dated, so build, qa
+         and landing are drawn); until then it was the one tile without a bar */
+      kc.push(["F: every tile carries a segmented bar and, inside the tile, its legend, a landed board's Timeline its phases (dashboards-skill/22: no shared row; dashboards-skill/23: the Timeline's bar)", bars.length === 5 && keyed.length === 5 && /aria-label="Timeline: build same day, qa same day, landing same day; plan left out: no sizing recorded"/.test(K) && !/kpi-key|kpikey/.test(K), `${bars.length} bars · ${keyed.length} tile legends`]);
       const rowsBar = inner(K, '<div class="seg-bar" role="img" aria-label="Rows by group', "div");
       kc.push(["F: Rows: one segment per group, in its system's colour", (rowsBar.match(/<i /g) || []).length === 5 && /background:var\(--sys-1\)/.test(rowsBar), (rowsBar.match(/<i /g) || []).length + " segments"]);
       const optBar = inner(K, '<div class="seg-bar" role="img" aria-label="Options weighed', "div");
@@ -1947,6 +1951,11 @@ targets.filter(t => t.block === "plan").forEach(t => {
     vc.push(["--no-browser fails a part reference that names nothing", r.status === 1 && /PART UNKNOWN: repo\.sys\.gone/.test(r.stdout), (r.stdout || "").split(/\r?\n/).filter(l => /PART|FAIL/.test(l)).join(" | ")]);
     r = cp.spawnSync(process.execPath, [checker, path.join(A, "index.html"), "--no-browser"], { encoding: "utf8" });
     vc.push(["--no-browser needs --auto (exit 2)", r.status === 2, (r.stderr || "").trim().split(/\r?\n/).pop()]);
+    /* a work level in the title (a pipeline fact) is reworded before it is written as the last amendment (dashboards-skill/23) */
+    build(); const sT = apply(stage("3333333abcdef0", { systems: ["system-alpha"], title: "Next part, inside level 3 (level 3)" })), stT = J("system-alpha/state.json");
+    vc.push(["a title that names a work level is written reworded as the last amendment, and the summary says so (dashboards-skill/23)", sT.status === 0 && stT.lastAmended.title === "Next part, inside the issue's scope" && (sT.notes || []).some(x => /facts\.title named a work level, which a page never shows: written reworded/.test(x)), JSON.stringify([sT.result, stT.lastAmended, sT.notes, sT.error])]);
+    build(); const sU = apply(stage("4444444abcdef0", { systems: ["system-alpha"], title: "Label level: 3" })), stU = J("system-alpha/state.json");
+    vc.push(["a title that is nothing but a work level gives way to the folder's slug (dashboards-skill/23)", sU.status === 0 && stU.lastAmended.title === "next-part", JSON.stringify([sU.result, stU.lastAmended, sU.error])]);
   } catch (e) { vc.push(["the cases run to the end", false, String(e.stack).split(String.fromCharCode(10)).slice(0, 3).join(" ")]); }
   report("state pages on a branch, data only: apply-state.js, the state block, planned from the data, check-page.js --no-browser", vc);
 }
@@ -1963,6 +1972,12 @@ catch (e) { report("the dashboards-skill/26 cases", [["the cases run to the end"
    from every checkout, the research-planning glow with and without rows, the Tests tab, and this run's feature probes. */
 try { require("./cases-22.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/22 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
+/* The decisions of admin-team/dashboards-skill/23 (verify/cases-23.js): the Timeline tile's bar on a landed board (the time per phase in
+   neutral ink shades, a phase with no bound named; a tracking board's own phases), the run's start and the qa passes' times stamped, a
+   reference's section number before its excerpt, a work level in the pipeline's facts reworded, and this run's feature probes. */
+try { require("./cases-23.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the dashboards-skill/23 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 const today = new Date().toISOString().slice(0, 10);
 targets.forEach(t => {

@@ -84,13 +84,43 @@ function sectionOf(md, anchor) {
   return { heading: h.text.replace(/\s+/g, " ").trim(), paragraph: p, hash };
 }
 /* The label a reference shows, "(§4.2)": the statement's own label, else the heading's leading section number ("4.2", "A-3", "T-1"),
-   else the heading itself (shortened), else the anchor. The page derives it the same way (stmtLabel()). */
+   else the heading itself (shortened); until an excerpt is copied, the section number its anchor names (refNumber, below: read from
+   the referenced file's headings, or from the anchor alone and marked "?"), else the anchor. The page derives it the same way
+   (stmtLabel()). */
+const HEAD_NUM = /^((?:\d+\.)*\d+|[A-Z][A-Za-z0-9]?-[A-Za-z0-9]+)\.?(?=\s|$)/;
 function refLabel(s) {
   if (s && typeof s.label === "string" && s.label.trim()) return s.label.trim();
-  const h = s && s.excerpt && s.excerpt.heading, m = h && /^((?:\d+\.)*\d+|[A-Z][A-Za-z0-9]?-[A-Za-z0-9]+)\.?(?=\s|$)/.exec(h);
+  const h = s && s.excerpt && s.excerpt.heading, m = h && HEAD_NUM.exec(h);
   if (m) return "§" + m[1];
   if (h) return "§ " + (h.length > 32 ? h.slice(0, 31).replace(/\s+\S*$/, "") + "…" : h).replace(/`/g, "");
+  const n = refNumberShown(s); if (n) return n.label + (n.from === "anchor" ? "?" : "");
   const r = parseRef(s && s.ref); return r ? "§ " + r.anchor : "§";
+}
+/* The section number a reference's anchor names, before its excerpt is copied (admin-team/dashboards-skill/23). GitHub's anchor drops the
+   dots of a numbered heading ("4.2 The fix" → "42-the-fix"), so "42-…" may be §4.2 or §42. When the referenced Markdown is reachable
+   from the board's folder, its headings decide: the numbered heading whose number, its dots dropped, leads the anchor ("4.2" for
+   "42-…"; "A-3" for "a-3-…"), the one sharing most of the anchor where several do; heading numbers win. Only when the file is not there
+   (or none of its numbered headings fits) is the anchor's leading number taken as it stands, and marked: { label: "§42", from: "anchor" },
+   which the page shows "§42?". Returns { label, from: "headings" | "anchor" }, or null when the anchor leads with no number. */
+function refNumberOf(dir, ref) {
+  const r = parseRef(ref); if (!r) return null;
+  const file = path.resolve(dir, r.file), root = treeRoot(dir) || path.resolve(dir);
+  let md = null; if (!path.relative(root, file).startsWith("..")) { try { md = fs.readFileSync(file, "utf8"); } catch (e) { /* not there */ } }
+  if (md != null) {
+    const shared = (a, b) => { let i = 0; while (i < a.length && i < b.length && a[i] === b[i]) i++; return i; };
+    const fits = mdHeadings(md).map(h => { const m = HEAD_NUM.exec(String(h.text).replace(/<[^>]+>/g, "").trim()); return m ? { num: m[1], key: m[1].toLowerCase().replace(/\./g, ""), slug: h.slug } : null; })
+      .filter(c => c && (r.anchor === c.key || r.anchor.startsWith(c.key + "-")));
+    if (fits.length) { fits.sort((a, b) => shared(b.slug, r.anchor) - shared(a.slug, r.anchor) || b.key.length - a.key.length); return { label: "§" + fits[0].num, from: "headings" }; }
+  }
+  const lead = /^(\d+)(?=-|$)/.exec(r.anchor);
+  return lead ? { label: "§" + lead[1], from: "anchor" } : null;
+}
+/* the refNumber a statement carries for its current reference (embed.js writes it; a stale one, for another ref, is not shown), else the
+   anchor's leading number, marked: what the page shows when no file could be read */
+function refNumberShown(s) {
+  const ref = s && typeof s.ref === "string" ? s.ref.trim() : "", n = s && s.refNumber;
+  if (n && typeof n === "object" && n.ref === ref && typeof n.label === "string" && /^§/.test(n.label)) return { label: n.label, from: n.from === "headings" ? "headings" : "anchor" };
+  const r = parseRef(ref), lead = r && /^(\d+)(?=-|$)/.exec(r.anchor); return lead ? { label: "§" + lead[1], from: "anchor" } : null;
 }
 /* Every statement on a board that carries a reference: { s, at, row, col }. */
 function statementRefs(plan) {
@@ -120,13 +150,22 @@ function readRef(dir, ref) {
 function copyExcerpts(plan, dir, opts) {
   const changes = [], refresh = !!(opts && opts.refresh);
   statementRefs(plan).forEach(x => {
-    const e = x.s.excerpt, ref = String(x.s.ref).trim();
+    const ref = String(x.s.ref).trim();
+    copyOne(x, ref);
+    /* the reference's section number until an excerpt is copied (refNumberOf()); gone once one is */
+    const e2 = x.s.excerpt, has = e2 && typeof e2 === "object" && e2.ref === ref, want = has ? null : refNumberOf(dir, ref), next2 = want ? { ref, ...want } : null;
+    if (JSON.stringify(x.s.refNumber === undefined ? null : x.s.refNumber) === JSON.stringify(next2)) return;
+    if (next2) { x.s.refNumber = next2; changes.push(`${x.at}: no excerpt of ${ref} yet; its section number ${next2.label} read from ${next2.from === "headings" ? "the file's headings" : "the anchor alone (marked: the file is not there)"}`); }
+    else { delete x.s.refNumber; changes.push(`${x.at}: its section number dropped: the excerpt names it`); }
+  });
+  function copyOne(x, ref) {
+    const e = x.s.excerpt;
     if (!refresh && e && typeof e === "object" && e.ref === ref) return;
     const got = readRef(dir, ref); if (got.error) return;
     const next = { ref, heading: got.section.heading, paragraph: got.section.paragraph, hash: got.section.hash };
     if (JSON.stringify(e || null) === JSON.stringify(next)) return;
     x.s.excerpt = next; changes.push(`${x.at}: excerpt of ${ref} ${e ? "re-copied" : "copied"} (${got.section.hash})`);
-  });
+  }
   return changes;
 }
 /* The references whose section has changed, or gone, since the excerpt was copied (check.js warns on each): [{ at, ref, kind, want }],
@@ -775,5 +814,51 @@ function glowMismatch(plan) {
   return bad.length ? { step, via, want, bad } : null;
 }
 
-module.exports = { STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+/* ---------- The Timeline tile (plan/RULES.md §2, "The KPI tiles"; admin-team/dashboards-skill/23) ----------
+   A landed board's last tile shows the time per phase as a bar of neutral ink shades, faintest to strongest, one per phase, each with
+   its legend entry inside the tile. An issue board's phases: plan (sized → plan accepted, the verdict milestone), build (plan accepted →
+   the first qa pass), qa (the first qa pass → the last), landing (the last qa pass → the merge). A tracking board's own: plan (sized →
+   the architecture signed off, the considered milestone), filing (signed off → the plan's merge, the verdict milestone: the units filed
+   as sub-issues, their boards laid, the plan landed), units (the plan's merge → the last unit's landing, the board's merge). Each bound
+   is read from the data: sized from plan.sized (new.js and apply-event.js stamp it at the run's start), else, on an issue board, the
+   earliest trail entry that says it was sized; a milestone's date; a qa pass's date (wip.qa[].date); the merge from asBuilt.date, else
+   the built milestone. A phase with a bound not recorded, or with its bounds out of order, is left out, and the tile's sub-line names
+   it with the reason. The template's timelinePhases() is the same rule. */
+const okStamp = v => typeof v === "string" && /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?Z)?$/.test(v) && !isNaN(Date.parse(v));
+const TL_PHASES = {
+  issue: [["plan", "sized", "accepted"], ["build", "accepted", "qaFirst"], ["qa", "qaFirst", "qaLast"], ["landing", "qaLast", "merged"]],
+  tracking: [["plan", "sized", "signedOff"], ["filing", "signedOff", "planMerged"], ["units", "planMerged", "merged"]] };
+/* the shades, faintest to strongest: four on an issue board, three spread over the same ramp on a tracking board */
+const TL_SHADES = { issue: ["1", "2", "3", "4"], tracking: ["1", "m", "4"] };
+const TL_BOUND_WORDS = { sized: "sizing", accepted: "plan acceptance", qaFirst: "qa pass", qaLast: "qa pass", merged: "merge", signedOff: "architecture sign-off", planMerged: "plan merge" };
+function timelineBounds(plan) {
+  const P = plan && typeof plan === "object" ? plan : {}, tracking = P.kind === "tracking";
+  const ms = c => { const m = (Array.isArray(P.milestones) ? P.milestones : []).find(x => x && x.column === c && okStamp(x.date)); return m ? m.date : null; };
+  const trailSized = tracking ? null : (Array.isArray(P.trail) ? P.trail : []).filter(t => t && okStamp(t.date) && /\bsized\b/i.test(String(t.label || ""))).map(t => t.date).sort()[0] || null;
+  /* a qa pass's time: its at (apply-event.js stamps the event's time), else its date */
+  const qa = (P.wip && Array.isArray(P.wip.qa) ? P.wip.qa : []).map(q => q && (okStamp(q.at) ? { pass: q.pass, t: q.at } : okStamp(q.date) ? { pass: q.pass, t: q.date } : null)).filter(Boolean).sort((a, b) => (a.pass || 0) - (b.pass || 0));
+  return { sized: okStamp(P.sized) ? P.sized : trailSized, accepted: ms("verdict"), qaFirst: qa.length ? qa[0].t : null, qaLast: qa.length ? qa[qa.length - 1].t : null,
+    merged: P.asBuilt && okStamp(P.asBuilt.date) ? P.asBuilt.date : ms("built"), signedOff: ms("considered"), planMerged: ms("verdict") };
+}
+const tlDay = s => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10));
+/* { kind, phases: [{ key, shade, from, to, days, weight }], left: [{ key, why }] }: days counted between the bounds' UTC dates; weight, the
+   bar's share, in hours (exact where both bounds carry a time) */
+function timelinePhases(plan) {
+  const kind = plan && plan.kind === "tracking" ? "tracking" : "issue", B = timelineBounds(plan), out = { kind, phases: [], left: [] };
+  TL_PHASES[kind].forEach(([key, a, b], i) => {
+    const from = B[a], to = B[b];
+    if (!from || !to) { out.left.push({ key, why: `no ${[...new Set([a, b].filter(x => !B[x]).map(x => TL_BOUND_WORDS[x]))].join(" or ")} recorded` }); return; }
+    const days = Math.round((tlDay(to) - tlDay(from)) / 864e5), timed = from.length > 10 && to.length > 10, weight = timed ? (Date.parse(to) - Date.parse(from)) / 36e5 : days * 24;
+    if (days < 0 || weight < 0) { out.left.push({ key, why: "its bounds out of order" }); return; }
+    out.phases.push({ key, shade: TL_SHADES[kind][i], from, to, days, weight, timed });
+  });
+  return out;
+}
+/* a phase's length as the legend says it: hours where both bounds carry a time and it is under a day, else calendar days */
+const tlDuration = p => p.timed && p.weight < 24 ? (p.weight < 1 ? "under an hour" : `${Math.round(p.weight)} h`) : p.days === 0 ? "same day" : `${p.days} day${p.days === 1 ? "" : "s"}`;
+/* the sub-line's note of the phases left out, grouped by reason: "plan left out: no sizing recorded" */
+function timelineLeftOut(T) { const by = new Map(); (T && T.left || []).forEach(x => { if (!by.has(x.why)) by.set(x.why, []); by.get(x.why).push(x.key); });
+  return [...by].map(([why, ks]) => `${ks.join(", ")} left out: ${why}`).join(" · "); }
+
+module.exports = { okStamp, TL_PHASES, TL_SHADES, timelineBounds, timelinePhases, tlDuration, timelineLeftOut, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, parentFolder, staleUnitRuns, stampMs, treeRoot, boardFolders, boardLink, parentBoard, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

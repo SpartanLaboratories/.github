@@ -36,6 +36,7 @@
 const T0 = Date.now();
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const L = require("./statelib.js");
+const { levelRefs, scrubLevels } = require("./levelrefs.js");
 
 const USAGE = "usage: node apply-state.js --event <request.json> --worktree <path> [--repo <owner/repo>] [--at <ISO time>] [--json]";
 const args = process.argv.slice(2);
@@ -134,7 +135,12 @@ async function main() {
   S.stamp = `${ref} @ ${sha} · ${landed ? date : "not yet landed"}`;
   const folder = typeof req.folder === "string" ? req.folder.replace(/\\/g, "/").replace(/\/+$/, "") : null;
   if (folder && (folder.split("/").includes("..") || !/^docs\/plans\//.test(folder))) refuse(`the request's folder ${JSON.stringify(folder)} is not under docs/plans/`);
-  const title = typeof facts.title === "string" && facts.title.trim() ? facts.title.trim() : folder ? path.basename(folder).replace(/^\d+-/, "") || null : null;
+  /* the title is a pipeline fact: a work level in it is reworded away, never written (GUIDANCE.md §4; levelrefs.js scrubLevels()), and a
+     title that names nothing else once reworded gives way to the folder's slug (admin-team/dashboards-skill/23) */
+  const slugTitle = folder ? path.basename(folder).replace(/^\d+-/, "") || null : null;
+  let title = typeof facts.title === "string" && facts.title.trim() ? facts.title.replace(/\s+/g, " ").trim() : slugTitle;
+  if (title && title !== slugTitle && levelRefs(title).length) { const r = scrubLevels(title, { scope: "issue" });
+    S.notes.push(`facts.title named a work level, which a page never shows: ${r ? `written reworded (${JSON.stringify(r)})` : "the folder's slug written instead"}`); title = r || slugTitle; }
 
   /* the systems the branch touches: the facts', else the issue board's; at a landing, also every entry the branch stamped */
   let named = Array.isArray(facts.systems) ? facts.systems : Array.isArray(req.systems) ? req.systems : null;

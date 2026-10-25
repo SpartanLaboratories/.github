@@ -29,7 +29,7 @@ const T0 = Date.now();
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const lib = require("./lib.js"), TL = require("./testslib.js");
 const dev = require(path.resolve(__dirname, "..", "..", "system", "scripts", "deviation.js"));
-const { levelRefs } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
+const { levelRefs, scrubLevels } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
 
 const USAGE = "usage: node apply-event.js --event <request.json> --worktree <path> [--repo <owner/repo>] [--main <checkout>] [--at <ISO time>] [--no-live] [--no-gh] [--json]";
 const args = process.argv.slice(2);
@@ -103,12 +103,21 @@ function applyEvent(orig, ev, facts, req, now) {
   const plan = JSON.parse(JSON.stringify(orig)), applied = [], enrich = [], resolved = [], today = now.slice(0, 10);
   const w = plan.wip = plan.wip && typeof plan.wip === "object" ? plan.wip : {};
   const rows = Array.isArray(plan.rows) ? plan.rows : [], ids = new Set(rows.map(r => r && r.id)), tracking = plan.kind === "tracking";
-  /* a text from the facts, as one line; a work level in it (GUIDANCE.md §4) is never written */
+  /* a text from the facts, as one line; a work level in it (GUIDANCE.md §4) is never written: the phrase is reworded or elided
+     (levelrefs.js scrubLevels(): "inside level 3" → "inside the unit's scope" on a sub-issue's board, "the issue's" elsewhere; "a
+     level-3 re-pass" → "a re-pass"; "Label level: 3" dropped), and the text is left out only when a work level would remain; the
+     presenter is told either way (admin-team/dashboards-skill/23) */
+  const scope = plan.parent ? "unit" : "issue";
+  /* an identifier (the branch, the version) is never reworded: one that names a work level is left out, as before */
+  const IDENT = new Set(["branch", "version"]);
   const txt = (v, field) => {
     if (typeof v !== "string" || !v.trim()) return null;
     const s = v.replace(/\s+/g, " ").trim();
-    if (levelRefs(s).length) { enrich.push(`facts.${field} names a work level, which a board never shows: not written`); return null; }
-    return s;
+    if (!levelRefs(s).length) return s;
+    const r = IDENT.has(field) ? null : scrubLevels(s, { scope });
+    if (!r) { enrich.push(`facts.${field} names a work level, which a board never shows: not written`); return null; }
+    enrich.push(`facts.${field} named a work level, which a board never shows: written reworded (${JSON.stringify(r.length > 80 ? r.slice(0, 79) + "…" : r)})`);
+    return r;
   };
   const setStep = s => { if (w.step !== s) { w.step = s; w.since = now; applied.push(`wip.step ${s}`); } };
   const stopped = s => s === "halted" || s === "escalated";
@@ -163,6 +172,8 @@ function applyEvent(orig, ev, facts, req, now) {
       const step = facts.step || (w.step === "sizing" || !w.step ? null : stopped(w.step) ? w.resume : w.step);
       if (!step || !["interview", "research", "plan", "architecture"].includes(step)) refuse(`sized names no step to start at (facts.step: interview, research or plan; got ${JSON.stringify(facts.step || null)})`);
       if (stopped(w.step)) { w.resume = null; w.waitingOn = null; }
+      /* the run's start, kept once: the plan phase's first bound on the Timeline tile (plan/RULES.md §2, "The KPI tiles") */
+      if (!lib.okStamp(plan.sized)) { plan.sized = now; applied.push(`sized ${now}`); }
       setStep(step); setGlow(step);
       if (step === "plan" && !w.plan) { w.plan = plan.parent ? { state: "re-pass", from: "parent", since: now } : { state: "writing", since: now }; applied.push(`wip.plan ${w.plan.state}`); }
       enrich.push("sized: the foundation and, for a sub-issue of a signed-off tracking plan, the Gap and Considered columns come from the documents");
@@ -384,7 +395,7 @@ function applyEvent(orig, ev, facts, req, now) {
       const route = Q.route || (facts.remediation || {}).route || null;
       if (route && !ROUTES.includes(route)) refuse(`facts.qa.route ${JSON.stringify(route)} is not one of ${ROUTES.join(", ")}`);
       testsDue = verdict !== "running";
-      const entry = { pass: Q.pass, verdict, date: today, findings, ...(Object.keys(severity).length ? { severity } : {}), ...(verdict === "changes-requested" && route ? { route } : {}) };
+      const entry = { pass: Q.pass, verdict, date: today, at: now, findings, ...(Object.keys(severity).length ? { severity } : {}), ...(verdict === "changes-requested" && route ? { route } : {}) };
       const qn = txt(Q.note, "qa.note"); if (qn) entry.note = qn;
       w.qa = Array.isArray(w.qa) ? w.qa : []; const k = w.qa.findIndex(x => x && x.pass === Q.pass);
       if (k < 0) w.qa.push(entry); else w.qa[k] = { ...(w.qa[k] && w.qa[k].note && !entry.note ? { note: w.qa[k].note } : {}), ...entry };

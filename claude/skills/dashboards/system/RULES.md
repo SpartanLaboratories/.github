@@ -446,7 +446,7 @@ in. It reads `issue`, `branch` and `folder` from the request and these facts, ev
 | `ref` | at a landing, the default branch the merge is on (required there) |
 | `built`, `planned` | only for what has no code paths recorded (the code decides the rest, below): what the stage built (or, rarely, set back to planned): a registry slug; `"#<issue>"`, every system that issue alone plans (`plannedBy.issue`, or every unit's `subIssue`); `"<dsl path>:<element id>"` (paths under `docs/dashboards/`), or `{dsl, id, tag}` to give a component its built tag. A system marked takes its `c4` elements with it (§7) |
 | `version` | `{"<slug>": "<version>"}`, a version a system's build moved to |
-| `title` | the issue's slug for the "last amended by" note (in the Context section) (default: the folder's name less its number) |
+| `title` | the issue's slug for the "last amended by" note (in the Context section) (default: the folder's name less its number); a work level in it is reworded away before it is written (`system/scripts/levelrefs.js` `scrubLevels()`, `GUIDANCE.md` §4), the folder's slug taking its place when nothing else is left, and the summary's notes say so |
 | `landed` | `true` on a `state-pages` request that restamps a landing, as the `landed` event does |
 | `enrich` | reasons the team already knows need the presenter, passed through |
 
