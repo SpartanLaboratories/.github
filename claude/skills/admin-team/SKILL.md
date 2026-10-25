@@ -15,7 +15,7 @@ The `admin team` session (brief: `~/.claude/agents/admin-team.md`; protocol:
 `~/.claude/admin-team/PROTOCOL.md`) is the only thing on this machine that
 writes shared repository state. You send it requests with `SendMessage` and
 read its replies, which arrive as cross-session messages. You never run a git
-or `gh` command that writes, and you never spawn `manager` yourself.
+or `gh` command that writes, and you never spawn `version-control-manager` yourself.
 
 ## 1. Find the team
 

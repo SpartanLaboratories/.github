@@ -1,5 +1,5 @@
 ---
-name: manager
+name: version-control-manager
 description: >-
   Version-control and release manager. Give it a change set (working tree, a
   branch, a commit range) and it works out — against the established guidelines
@@ -157,7 +157,7 @@ Conform to whatever you find. On top of that, the user's global
   produced it: work levels ("level 3", "a level-3 change", "Label level: 3"; test
   levels such as "Level 4a tests" are the project's own and stay), the pipeline and
   its agents (`/resolve-issue`, planner, rookie-dev, qa, presenter, publisher,
-  manager, the admin team), session names, request ids, ledger or board-event names,
+  version-control-manager, the admin team), session names, request ids, ledger or board-event names,
   "the user approved at the console", AI or Claude mentions, scratchpad or other
   machine-local paths. Describe the work in the project's own terms. A caller's
   text that carries any of it is reworded before it is written.

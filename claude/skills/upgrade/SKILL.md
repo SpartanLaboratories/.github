@@ -3,7 +3,7 @@ name: upgrade
 description: >-
   Bump one named dependency of the current repo to its latest available
   version and adapt the codebase to any breaking change, using the same
-  planner -> rookie-dev -> qa pipeline as resolve-issue, with the manager
+  planner -> rookie-dev -> qa pipeline as resolve-issue, with the version-control-manager
   agent handling version control (branch, commits, PR, merge, resolution
   comment) autonomously and stopping only at its two gates - a Maven
   publish, which needs your explicit go-ahead, and any downstream-consumer
@@ -18,11 +18,11 @@ allowed-tools: Bash(gh issue list *), Bash(gh issue view *), Bash(gh pr list *),
 Bring **one** named dependency to its latest available version using the
 project's agents. Follow the steps in order. Wait for each spawned agent to
 finish before starting the next. All version control runs through the
-`manager` agent, which acts autonomously except at its two gates: a **Maven
+`version-control-manager` agent, which acts autonomously except at its two gates: a **Maven
 publish** happens only if the user explicitly asked this run, and a
 **downstream-consumer issue** is never filed (reported instead). You
 yourself never commit, push, merge, tag, publish, or file/comment on an
-issue outside of `manager`.
+issue outside of `version-control-manager`.
 
 ## 1. Pick the library
 
@@ -96,11 +96,11 @@ three shapes; route on it:
 - Otherwise keep the architecture document path and **every** plan document
   path, in the landing order `planner` gave, plus the recommended approach.
 
-## 3. Branch — `manager`
+## 3. Branch — `version-control-manager`
 
-Spawn `manager` with the plan document, the library name and target
+Spawn `version-control-manager` with the plan document, the library name and target
 version, and the note "about to implement the upgrade — set up the branch
-only, no commits yet". `manager` creates the topic branch itself. Carry
+only, no commits yet". `version-control-manager` creates the topic branch itself. Carry
 forward the branch name and base it reports.
 
 ## 4. Implement — `rookie-dev`
@@ -128,21 +128,21 @@ block, and the path to the visual test report.
   findings, the report path, and the branch as it stands. Never loop more
   than once.
 
-## 6. Land it — `manager`
+## 6. Land it — `version-control-manager`
 
-Spawn `manager` with the QA'd change set, the `qa` verdict, the plan
+Spawn `version-control-manager` with the QA'd change set, the `qa` verdict, the plan
 document, every `.md` file created or updated this run, this session's
 commit trailers and PR footer, and **whether the user asked for a publish
-this run**. `manager` carries out the commits, the version bump, the PR,
+this run**. `version-control-manager` carries out the commits, the version bump, the PR,
 the merge, and — if an open issue in this repo tracked the upgrade — the
 resolution comment on it. If no such issue exists, it merges with an
 ordinary PR description; there is nothing to close.
 
-- Relay `manager`'s **Done** list as-is.
+- Relay `version-control-manager`'s **Done** list as-is.
 - Surface its **Stopped — needs you** items to the user: a Maven publish
   (only if a release was intended — give them the exact command) and any
-  downstream-consumer coordination `manager` flagged rather than filed.
-- Do not re-run or second-guess `manager`'s completed steps.
+  downstream-consumer coordination `version-control-manager` flagged rather than filed.
+- Do not re-run or second-guess `version-control-manager`'s completed steps.
 
 ## 7. Report
 
@@ -151,9 +151,9 @@ ordinary PR description; there is nothing to close.
 - The plan document and any other `.md` files, with their merged links.
 - The `qa` verdict and the visual test-report path.
 - The commits / PR / merge that landed, by reference, and any issue comment
-  or upstream issue `manager` filed or flagged.
+  or upstream issue `version-control-manager` filed or flagged.
 - Anything handed back to the user: `rookie-dev` blockers, unresolved
-  planner open decisions, and `manager`'s **Stopped — needs you** items (a
+  planner open decisions, and `version-control-manager`'s **Stopped — needs you** items (a
   pending Maven publish, downstream-consumer coordination).
 
 Do not start a second upgrade. One dependency per `/upgrade`.

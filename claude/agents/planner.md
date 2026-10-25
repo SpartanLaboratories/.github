@@ -277,7 +277,7 @@ The team's executor decides the branch, the message and the push. You are a
 subagent, so its reply lands in your caller's conversation, not yours: send
 the request, record its `id` in your report, and go on. Your caller watches
 for the reply; a `rejected` reply comes back to you as a halt, and you then
-stop rather than carry uncommitted research forward. Never spawn `manager`
+stop rather than carry uncommitted research forward. Never spawn `version-control-manager`
 yourself, and never run a git command that writes.
 
 ## Where documents go
@@ -689,7 +689,7 @@ work level you planned at.
 - the path to the architecture document and `impact.md`, and the research files;
 - the **final sub-issue list**, as above, in landing order — for the caller to
   have filed once the user approves it;
-- the research commits `manager` made, by SHA;
+- the research commits `version-control-manager` made, by SHA;
 - any cross-repo work the design implies.
 
 ### `COMPLETE` — level 3 (end of stage 4)
@@ -705,7 +705,7 @@ work level you planned at.
   design used instead;
 - the consolidated **Considerations** list verbatim, if any — these block
   execution;
-- the research commits `manager` made, by SHA;
+- the research commits `version-control-manager` made, by SHA;
 - any cross-repo work the plans imply;
 - the note that **stage 5 (review) is not yet defined and was not run**.
 
