@@ -354,5 +354,44 @@ function shownBranch(plan) {
 }
 /* A unit's branch on the work board: shown until the unit has landed. */
 const unitBranch = row => row && row.unit && row.unit.branch && !UNIT_LANDED.includes((row.asBuilt || {}).state) ? row.unit.branch : null;
-module.exports = { shownBranch, unitBranch, repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+
+/* The impact's reconciliation state (plan/RULES.md §2, Impact): derived from the board's data, never stored. impact.basis keeps
+   two values, "plan" and "as-built"; the state has three:
+   - "planned": basis plan, no impact.changes entry recorded and, on a tracking board, no unit landed;
+   - "partial" (partly reconciled): basis plan, with an impact.changes entry recorded or a unit landed;
+   - "as-built": basis as-built.
+   An impact.changes entry with none: true is a unit's explicit "no change" record: on a tracking board every landed unit records its
+   effect on the initiative's impact at its landing refresh, as the changes it made (each naming the unit) or as one such entry.
+   Returns null while the board records no impact, else { state, basis, tracking, landed, total (tracking boards; units dropped or
+   deferred left out of the total, as in the chain's progress), changes (the real changes), noChange (unit ids with a "no change"
+   entry), unrecorded (unit ids landed with neither) }. check.js and board.js use it; the plan-board template's reconciliationOf()
+   is the same rule, in the page's own runtime. */
+const isNoChange = c => !!c && typeof c === "object" && c.none === true;
+function reconciliation(plan) {
+  const I = plan && plan.impact;
+  if (!I || typeof I !== "object" || Array.isArray(I)) return null;
+  const tracking = plan.kind === "tracking", st = r => (r.asBuilt || {}).state || "pending";
+  const counted = tracking ? (plan.rows || []).filter(r => r && r.unit && !["dropped", "deferred"].includes(st(r))) : [];
+  const landed = counted.filter(r => UNIT_LANDED.includes(st(r)));
+  const changes = Array.isArray(I.changes) ? I.changes.filter(c => c && typeof c === "object") : [];
+  const state = I.basis === "as-built" ? "as-built" : changes.length || landed.length ? "partial" : "planned";
+  return { state, basis: I.basis, tracking, landed: tracking ? landed.length : null, total: tracking ? counted.length : null,
+    changes: changes.filter(c => !isNoChange(c)).length,
+    noChange: tracking ? [...new Set(changes.filter(isNoChange).map(c => c.unit))] : [],
+    unrecorded: tracking ? landed.filter(r => !changes.some(c => c.unit === r.id)).map(r => r.id) : [] };
+}
+/* A sub-issue of a signed-off tracking plan (plan/RULES.md §2, columns 1-2; §4, sized): its board's Gap and Considered columns are
+   filled at "sized" from the parent's documents, since its research and architecture happened in the parent's run. Returns the
+   parent tracking board's { dir, plan } when the enclosing folder holds the parent's board and that board has passed
+   architecture-signed-off (a "considered" milestone, or unit rows), else null. new.js and check.js use it. */
+function signedOffParent(dir, plan) {
+  const up = parentFolder(dir, plan); if (!up) return null;
+  let p; try { p = JSON.parse(fs.readFileSync(path.join(up, "plan.json"), "utf8")); } catch (e) { return null; }
+  if (!p || p.kind !== "tracking" || p.issue !== plan.parent.issue) return null;
+  const signed = (p.milestones || []).some(m => m && m.column === "considered") || (p.rows || []).some(r => r && r.unit);
+  return signed ? { dir: up, plan: p } : null;
+}
+/* The words for a state, shared by check.js and the work board's data. */
+const RECON_WORDS = { planned: "planned", partial: "partly reconciled", "as-built": "as built" };
+module.exports = { reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, parentFolder, staleUnitRuns, stampMs, treeRoot, boardFolders, boardLink, parentBoard, issueRefs, otherBoards, linkIssueBoards, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

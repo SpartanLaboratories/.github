@@ -23,7 +23,10 @@
 // board shows the run on the WIP strip and in the unit's as-built cell, its mark paused while the run waits on the user. And it
 // tests the conventions carried across every dashboard type (GUIDANCE.md §11) on the system templates and the work board: one-line
 // ledes, the wide desktop layout, the board links of a system page (BOARDS, data-board, data-issue) and check-page.js's failure
-// on a dead one. A template is recorded only when its browser passes and every case group pass.
+// on a dead one. And it tests the impact's reconciliation state (plan/RULES.md §2, Impact): derived, never stored, the same in lib.js,
+// the plan-board template's chip, check.js and board.json, and the per-unit "no change" entry. And a sub-issue's board born at "sized" under a
+// signed-off tracking plan, its Gap and Considered filled from the parent's documents (plan/RULES.md §4). A template is recorded only when its
+// browser passes and every case group pass.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { recordFile, sha, norm } = require(path.join(__dirname, "..", "system", "scripts", "deviation.js"));
@@ -399,7 +402,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     nc.push(["As built: an impact reconciled with no change says so", /None: the impact as built is the impact the plan recorded/.test(bE) && !/class="bcard ichg"/.test(bE), text(bE).slice(0, 200)]);
     const pl = copy(ex); pl.status = "building"; pl.impact.basis = "plan"; pl.impact.changes = [];
     const bP = builtImp(render("planned-built", pl, "built"));
-    nc.push(["As built: nothing is drawn while the impact is the plan's and unchanged", !text(bP), text(bP).slice(0, 200)]);
+    nc.push(["As built: an impact still the plan's and unchanged shows the planned chip, dashed, and no change card", /class="vp neutral dashed"><i aria-hidden="true">…<\/i>planned/.test(bP) && /Nothing reconciled yet/.test(bP) && !/class="bcard ichg"/.test(bP), text(bP).slice(0, 200)]);
     const bu = trk.rows.find(r => r.unit && trk.impact.units.some(e => e.unit === r.id && (e.changes || []).length)), bT = builtImp(render("tracking-built", trk, "built"));
     nc.push(["As built: a tracking board lists each unit's own impact changes under its number and title, linking its unit card", !!bu && /<h4>Units<\/h4>/.test(bT) && bT.includes(`/issues/${bu.unit.issue}"`) && bT.includes(`href="${bu.unit.board}"`) && bT.includes(`href="#impact.unit.${bu.id}"`), text(bT).slice(0, 300)]);
     /* partly reconciled (plan/RULES.md §2, Impact): a tracking board's initiative impact accumulates changes as its units land, basis
@@ -407,8 +410,13 @@ targets.filter(t => t.block === "plan").forEach(t => {
        board's changes recorded during implementation say so too */
     const landedN = trk.rows.filter(r => r.unit && ["landed", "as-planned", "amended", "deviated"].includes((r.asBuilt || {}).state)).length, unitsN = trk.rows.filter(r => r.unit && !["dropped", "deferred"].includes((r.asBuilt || {}).state)).length;
     nc.push(["As built: a tracking board's partly reconciled initiative impact shows its changes so far and how many units have landed", trk.impact.basis === "plan" && trk.impact.changes.length > 0 && /<h4>The initiative<\/h4>/.test(bT) && text(bT).includes(`So far, with ${landedN} of ${unitsN} units landed`) && /href="#impact\.downstream\.1"/.test(bT), text(bT).slice(0, 300)]);
-    const tn = copy(trk); tn.impact.changes = []; const bTn = builtImp(render("tracking-none-so-far", tn, "built"));
-    nc.push(["As built: a tracking board whose landed units changed nothing in the initiative's impact says \"None so far\"", text(bTn).includes(`None so far: the ${landedN} of ${unitsN} units landed changed nothing`), text(bTn).slice(0, 300)]);
+    /* "None so far" only from recorded "no change" entries, never inferred from absence: a landed unit with no entry is named as not
+       recorded yet, dashed, with its legend entry */
+    const lu = trk.rows.find(r => r.unit && ["landed", "as-planned", "amended", "deviated"].includes((r.asBuilt || {}).state));
+    const tn = copy(trk); tn.impact.changes = []; const dTn = render("tracking-unrecorded", tn, "built"), bTn = builtImp(dTn);
+    nc.push(["As built: a tracking board whose landed unit recorded nothing does not say \"None so far\"; it names the unit as not recorded yet, dashed", !/None so far/.test(bTn) && /class="empty pend">Not recorded yet: /.test(bTn) && bTn.includes(`/issues/${lu.unit.issue}"`) && /dashed line: a landed unit whose effect on the impact is not recorded yet/.test(inner(dTn, '<div class="key" id="built-key">', "div")), text(bTn).slice(0, 300)]);
+    const ts = copy(trk); ts.impact.changes = [{ unit: lu.id, when: `#${lu.unit.issue} landing`, none: true }]; const bTs = builtImp(render("tracking-none-so-far", ts, "built"));
+    nc.push(["As built: a tracking board whose landed units recorded \"no change\" says \"None so far\", naming them", /None so far: /.test(bTs) && text(bTs).includes(`recorded no change to the initiative's impact`) && !/Not recorded yet/.test(bTs), text(bTs).slice(0, 300)]);
     const pp = copy(am); pp.status = "building"; pp.impact.basis = "plan"; const bPp = builtImp(render("issue-partly", pp, "built"));
     nc.push(["As built: an issue board's impact changes recorded during implementation are shown, marked as so far", /So far, as implementation recorded them/.test(bPp) && /Verification case: a change from the planned impact/.test(bPp), text(bPp).slice(0, 300)]);
     /* a halted issue board keeps its detail beside the question it waits on (the tracking strip's rule); with no waitingOn the wait
@@ -502,6 +510,154 @@ targets.filter(t => t.block === "plan").forEach(t => {
     const helps = ["plan/scripts/check.js", "plan/scripts/embed.js", "plan/scripts/new.js", "system/scripts/check-page.js", "system/scripts/embed.js"].filter(js => { const r = run(js, "-h"); return r.status !== 0 || !/usage:/.test(r.stdout); });
     nc.push(["every script prints its usage for -h and exits 0", !helps.length, helps.join(", ")]); }
   report(`this run's conventions on ${t.name}`, nc);
+});
+
+/* A sub-issue of a signed-off tracking plan at "sized" (plan/RULES.md §2, columns 1-2; §4, sized): its board is born with the Gap
+   and Considered columns filled from the parent's documents, with the gap and considered milestones, and no Verdict yet. In a
+   scratch tree holding the tracking fixture (signed off: it has unit rows) and the unit's folder inside it: check.js passes such a
+   board with no milestone warning and says so; it warns on one born empty; new.js --parent prints what to fill; the page renders
+   the filled columns (the options in Considered) with no verdict and passes a light browser pass. */
+targets.filter(t => t.block === "plan").forEach(t => {
+  const tpl = fs.readFileSync(t.path, "utf8"), zc = [], scratch = path.join(out, "sized-sub-issue"); fs.rmSync(scratch, { recursive: true, force: true });
+  const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x));
+  const trk = J("verify/fixtures/tracking.plan.json"), ex = J("plan/examples/38-handshake-empty-name/plan.json");
+  const tdir = path.join(scratch, ...trk.folder.split("/")); fs.mkdirSync(tdir, { recursive: true });
+  fs.writeFileSync(path.join(tdir, "plan.json"), JSON.stringify(trk, null, 2) + "\n"); fs.writeFileSync(path.join(tdir, "dashboard.html"), tpl);
+  const u = trk.rows.find(r => r.unit && r.unit.issue && ((r.asBuilt || {}).state || "pending") === "pending"), name = `${u.unit.issue}-verification-unit`, sdir = path.join(tdir, name);
+  const born = (rows, milestones) => ({ schema: "plan-board/1", repo: trk.repo, issue: u.unit.issue, slug: name, folder: `${trk.folder}/${name}`, kind: "issue", level: 3,
+    title: u.name, function: "Verification case: a unit's board at sized, its research and architecture done in the parent's run.", status: "planned",
+    parent: { issue: trk.issue, board: null }, branch: null, baseline: trk.baseline, asBuilt: null, systems: (trk.systems || []).filter(s => s.slug === u.system),
+    wip: { step: "plan", since: "2026-10-25T07:00:00Z", updated: "2026-10-25T07:00:00Z", detail: "Verification case: the planner writes `plan.md` now.", steps: ["sizing", "interview", "research", "plan", "branch", "implementation", "qa", "remediation", "landing", "landed"],
+      current: ["verdict"], next: null, qa: [], qaMax: 3, waitingOn: null, resume: null, blockers: { waitsOn: [], blocks: [] }, landing: null },
+    milestones, trail: [], rows, impact: null, roadmap: null, followUps: [], documents: [], notes: {} });
+  const filledRows = ex.rows.slice(0, 2).map(r => ({ id: r.id, name: r.name, group: r.group, system: u.system, where: r.where, gap: { ...r.gap, link: null, source: null },
+    options: r.options.map(o => ({ ...o, link: null, source: null })), verdict: {}, asBuilt: { state: "pending", summary: "" } }));
+  const ms = [{ column: "gap", label: "gap · from #" + trk.issue + "'s research", date: "2026-10-25" }, { column: "considered", label: "considered · from #" + trk.issue + "'s architecture", date: "2026-10-25" }];
+  const write = d => { fs.rmSync(sdir, { recursive: true, force: true }); fs.mkdirSync(sdir, { recursive: true }); fs.writeFileSync(path.join(sdir, "plan.json"), JSON.stringify(d, null, 2) + "\n"); fs.writeFileSync(path.join(sdir, "dashboard.html"), tpl); node(embedJs, sdir); return node(checkJs, sdir, "--root", scratch); };
+  const c1 = write(born(filledRows, ms));
+  zc.push(["check.js passes a sub-issue board born at sized with Gap and Considered filled, no Verdict, and no milestone warning", c1.status === 0 && /Gap and Considered filled from the parent's documents/.test(c1.stdout) && !/no "(gap|considered|verdict)" milestone/.test(c1.stdout) && !/signed off: its Gap and Considered/.test(c1.stdout), lines(c1, /^(FAIL|warn).*(milestone|options|signed off)/) || "clean"]);
+  const dom = dumpDom(path.join(sdir, "dashboard.html"));
+  if (dom != null) { const id = filledRows[0].id, cell = col => inner(dom, `<div class="cell ${col}[^"]*"[^>]*data-row="${id}"[^>]*>`, "div");
+    const g = cell("gap"), c = cell("considered"), v = cell("verdict");
+    zc.push(["the page renders the filled Gap and Considered columns with no verdict", !!g && !/Not yet written/.test(g) && (c.match(/<li>/g) || []).length === filledRows[0].options.length && /Not yet written/.test(v), `gap ${g ? "drawn" : "missing"} · ${(c.match(/<li>/g) || []).length} options · verdict ${/Not yet written/.test(v) ? "empty" : "written or missing"}`]);
+    const r = cp.spawnSync(process.execPath, [checker, path.join(sdir, "dashboard.html"), "--out", scratch], { encoding: "utf8" });
+    zc.push(["it passes a light browser pass", r.status === 0, (r.stdout || "").split(/\r?\n/).filter(l => /FAIL|ERROR|MISSING|NO LEGEND/.test(l)).join(" | ")]);
+  } else zc.push(["the rendered sub-issue board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
+  const c2 = write(born([], []));
+  zc.push(["check.js warns on a sub-issue board of a signed-off plan born with empty columns", /sub-issue of #\d+, whose tracking plan is signed off: its Gap and Considered columns/.test(c2.stdout) && /no rows/.test(c2.stdout), lines(c2, /signed off/) || "no warning"]);
+  fs.rmSync(sdir, { recursive: true, force: true });
+  const n = cp.spawnSync(process.execPath, [path.join(SKILL, "plan", "scripts", "new.js"), String(u.unit.issue), "verification-unit", "--root", scratch, "--parent", trk.folder.split("/").slice(2).join("/"), "--level", "3", "--repo", trk.repo], { encoding: "utf8", cwd: scratch });
+  zc.push(["new.js --parent under a signed-off tracking plan says to fill Gap and Considered from the parent's documents", n.status === 0 && /is a signed-off tracking plan: fill the Gap and Considered columns now/.test(n.stdout), (n.stdout || n.stderr || "").split(/\r?\n/).slice(0, 3).join(" | ")]);
+  report(`a sub-issue born at sized under a signed-off tracking plan, on ${t.name}`, zc);
+});
+
+/* The impact's reconciliation state (plan/RULES.md §2, Impact; §5; §8), derived and never stored, in each runtime that derives or
+   shows it:
+   - lib.js reconciliation(), the scripts' one derivation: planned, partial and as-built on an issue board and a tracking board (a
+     unit landed with nothing recorded is partial too), null while no impact is recorded;
+   - the plan-board template (reconciliationOf()): the chip on the As built tab in all three states, on an issue board and a tracking
+     board, with its legend entry: planned dashed and neutral, partly reconciled yellow (n of M units on a tracking board), as built
+     green; nothing on the Impact tab;
+   - check.js prints the derived state; warns on a landed unit with no impact.changes entry, and not once it records "no change";
+     names a change whose "when" names the unit but carries no "unit"; warns on an as-built impact with a landed unit unrecorded;
+     fails a "no change" entry on an issue board;
+   - board.js writes each row's "reconciliation" into board.json (planned, partial with n of M on the tracking issue, as-built, null
+     for a row with no board of its own), check.js takes it, and the work board shows it in the State cell with its legend. */
+targets.filter(t => t.block === "plan").forEach(t => {
+  const tpl = fs.readFileSync(t.path, "utf8"), rc = [], sc = path.join(out, "reconciliation"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
+  const { reconciliation } = require(path.join(SKILL, "plan", "scripts", "lib.js"));
+  const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x));
+  const trk = J("verify/fixtures/tracking.plan.json"), ex = J("plan/examples/38-handshake-empty-name/plan.json");
+  const LANDED = ["landed", "as-planned", "amended", "deviated"], lu = trk.rows.find(r => r.unit && LANDED.includes((r.asBuilt || {}).state));
+  /* the six boards: an issue board and a tracking board in each state */
+  const iPlanned = copy(ex); iPlanned.status = "building"; iPlanned.impact.basis = "plan"; iPlanned.impact.changes = [];
+  const iPartial = copy(iPlanned); iPartial.impact.changes = [{ what: "Verification case: a deviation that changed the impact.", why: "Verification case.", when: "Stage B", entry: "api.0" }];
+  const iBuilt = copy(ex);
+  const tPlanned = copy(trk); Object.assign(tPlanned, { status: "planned" }); tPlanned.rows.forEach(r => { r.asBuilt = { state: "pending", summary: "" }; delete r.unit.live; });
+  tPlanned.wip = { ...tPlanned.wip, step: "landing", current: [], next: tPlanned.rows[0].id }; tPlanned.impact.changes = []; tPlanned.impact.units = [];
+  const tPartial = copy(trk);
+  const tBuilt = copy(trk); Object.assign(tBuilt, { status: "built", asBuilt: { ref: "master", sha: "abcdef1", date: "2026-10-25" } });
+  tBuilt.rows.forEach(r => { r.asBuilt = { state: "landed", summary: "Landed." }; delete r.unit.live; }); tBuilt.wip = { ...tBuilt.wip, step: "landed", current: [], next: null };
+  tBuilt.impact.basis = "as-built"; tBuilt.impact.units.forEach(e => { e.basis = "as-built"; });
+  tBuilt.impact.changes = [...tBuilt.impact.changes, ...tBuilt.rows.filter(r => r.unit && r.id !== lu.id).map(r => ({ unit: r.id, when: `#${r.unit.issue} landing`, none: true }))];
+  const B = { "issue · planned": [iPlanned, "planned"], "issue · partial": [iPartial, "partial"], "issue · as-built": [iBuilt, "as-built"],
+    "tracking · planned": [tPlanned, "planned"], "tracking · partial": [tPartial, "partial"], "tracking · as-built": [tBuilt, "as-built"] };
+  const landedOnly = copy(trk); landedOnly.impact.changes = [];
+  const derived = Object.entries(B).map(([k, [d, want]]) => [k, (reconciliation(d) || {}).state, want]);
+  rc.push(["lib.js reconciliation() derives planned, partial and as-built on an issue board and a tracking board", derived.every(([, got, want]) => got === want), derived.map(([k, g, w]) => `${k}: ${g} (want ${w})`).join("; ")]);
+  const lo = reconciliation(landedOnly);
+  rc.push(["a tracking board with a unit landed and nothing recorded is partial, with that unit unrecorded; no impact is null", lo.state === "partial" && lo.landed === 1 && lo.total === 11 && lo.unrecorded.join() === lu.id && reconciliation({ ...ex, impact: null }) === null, JSON.stringify(lo)]);
+  /* the chip, rendered */
+  const render = (name, d, hash) => { const f = path.join(sc, name + ".html"); fs.writeFileSync(f, withData(tpl, "plan", JSON.stringify(d, null, 2))); return dumpDom(f, hash); };
+  const CHIP = { planned: /<p class="q recon"><span class="vp neutral dashed"><i aria-hidden="true">…<\/i>planned<\/span>/, partial: /<p class="q recon"><span class="vp warning"><i aria-hidden="true">◐<\/i>partly reconciled( · \d+ of \d+ units?)?<\/span>/, "as-built": /<p class="q recon"><span class="vp good"><i aria-hidden="true">✓<\/i>as built<\/span>/ };
+  const KEY = { planned: /impact planned: the plan's/, partial: /impact partly reconciled: changes recorded/, "as-built": /impact as built: reconciled with the build/ };
+  const seen = [];
+  Object.entries(B).forEach(([k, [d, want]], i) => {
+    const dom = render("chip-" + i, d, "built"); if (dom == null) return;
+    const bi = inner(dom, '<div id="built-impact">', "div"), key = inner(dom, '<div class="key" id="built-key">', "div"), imp = inner(dom, '<section class="view" role="tabpanel" id="p-impact"[^>]*>', "section");
+    const others = Object.keys(CHIP).filter(s => s !== want);
+    seen.push([k, CHIP[want].test(bi) && others.every(s => !CHIP[s].test(bi)) && KEY[want].test(key) && others.every(s => !KEY[s].test(key)) && !/class="q recon"/.test(imp), (bi.match(/<p class="q recon">[\s\S]*?<\/p>/) || ["no chip"])[0].slice(0, 200)]);
+  });
+  if (!seen.length) rc.push(["the rendered chip (no browser found: set CHROME)", false, "no Chrome or Edge"]);
+  else seen.forEach(([k, okv, got]) => rc.push([`the As built tab's chip reads the derived state, with its legend entry, and the Impact tab has none: ${k}`, okv, got]));
+  const dT = render("chip-trk-n", tPartial, "built");
+  if (dT != null) rc.push(["a tracking board's partly reconciled chip says how many units have landed", /partly reconciled · 1 of 11 units<\/span>/.test(inner(dT, '<div id="built-impact">', "div")), (inner(dT, '<div id="built-impact">', "div").match(/<p class="q recon">[\s\S]*?<\/p>/) || ["no chip"])[0]]);
+  /* check.js: the derived state, the per-unit entry, the inconsistencies */
+  const chk = (name, d) => { const dir = path.join(sc, "tree", "docs", "plans", ...(d.folder.split("/").slice(2))); fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(d, null, 2) + "\n"); fs.writeFileSync(path.join(dir, "dashboard.html"), tpl); node(embedJs, dir); return node(checkJs, dir, "--root", path.join(sc, "tree")); };
+  const stateLine = r => ((r.stdout || "").match(/^ok {4}impact: reconciliation (\S+)/m) || [])[1];
+  const printed = Object.entries(B).map(([k, [d, want]]) => { const dd = copy(d); if (!dd.folder.startsWith("docs/plans/")) dd.folder = "docs/plans/" + dd.slug; return [k, stateLine(chk("p-" + k.replace(/\W+/g, "-"), dd)), want]; });
+  rc.push(["check.js prints the derived state on every board", printed.every(([, g, w]) => g === w), printed.map(([k, g, w]) => `${k}: ${g} (want ${w})`).join("; ")]);
+  const per = new RegExp(`unit "${lu.id}" \\(#${lu.unit.issue}\\) has landed and impact\\.changes records nothing for it`);
+  const c1 = chk("u-none", landedOnly);
+  rc.push(["check.js warns on a landed unit with no impact.changes entry", per.test(c1.stdout) && c1.status === 0, lines(c1, /impact\.changes records nothing/) || "no warning"]);
+  const named = copy(landedOnly); named.impact.changes = [{ what: "Verification case: a change.", why: "Verification case.", when: `#${lu.unit.issue} landing` }];
+  const c2 = chk("u-when", named);
+  rc.push(["the warning names a change whose \"when\" names the unit's landing but carries no \"unit\"", per.test(c2.stdout) && /impact\.changes\[0\] names #\d+ in "when" but carries no unit/.test(c2.stdout), lines(c2, /records nothing/) || "no warning"]);
+  const noneE = copy(landedOnly); noneE.impact.changes = [{ unit: lu.id, when: `#${lu.unit.issue} landing`, none: true }];
+  const c3 = chk("u-recorded", noneE);
+  rc.push(["check.js takes a landed unit's \"no change\" entry, with no warning", c3.status === 0 && !per.test(c3.stdout) && !/no change/.test(lines(c3, /^warn/)), lines(c3, /^(FAIL|warn).*(no change|records nothing)/) || "no warning"]);
+  const c4 = chk("u-tracking-fixture", copy(trk));
+  rc.push(["the tracking fixture records its landed unit's change with its unit, and check.js does not warn", c4.status === 0 && !per.test(c4.stdout), lines(c4, /records nothing|^FAIL/) || "no warning"]);
+  const inc = copy(landedOnly); inc.impact.basis = "as-built";
+  const c5 = chk("u-inconsistent", inc);
+  rc.push(["check.js warns that an as-built impact with a landed unit unrecorded, and units still to land, is inconsistent", /inconsistent: the impact is reconciled \(basis as-built\), but unit/.test(c5.stdout) && /inconsistent: the initiative's impact is reconciled \(basis as-built\), but 10 of 11 units have not landed/.test(c5.stdout), lines(c5, /inconsistent/) || "no warning"]);
+  const iss = copy(ex); iss.folder = "docs/plans/" + iss.slug; iss.impact.changes = [{ unit: "x", when: "#1 landing", none: true }];
+  const c6 = chk("u-issue", iss);
+  rc.push(["check.js fails a \"no change\" entry on an issue board", c6.status === 1 && /a "no change" entry \(none: true\) records a unit's landing, and an issue board has no units/.test(c6.stdout), lines(c6, /^FAIL/) || "no failure"]);
+  const c7 = chk("u-built", tBuilt);
+  rc.push(["check.js passes a tracking board reconciled whole, every landed unit's effect recorded", c7.status === 0 && stateLine(c7) === "as-built" && !/records nothing|inconsistent/.test(c7.stdout), lines(c7, /^(FAIL|warn).*(impact|inconsistent)/) || "clean"]);
+  report(`the derived reconciliation state on ${t.name}`, rc);
+});
+/* board.js writes the derived state into board.json, and the work board shows it */
+targets.filter(t => t.block === "board").forEach(t => {
+  const tpl = fs.readFileSync(t.path, "utf8"), wc = [], repo = path.join(out, "reconciliation-board"); fs.rmSync(repo, { recursive: true, force: true });
+  const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x));
+  const ex = J("plan/examples/38-handshake-empty-name/plan.json"), trk = J("verify/fixtures/tracking.plan.json"), ptpl = fs.readFileSync(sk("plan/template/dashboard.html"), "utf8");
+  const put = (d, issue, slug, f) => { const x = copy(d); Object.assign(x, { issue, slug, folder: `docs/plans/${slug}` }); f(x); const dir = path.join(repo, "docs", "plans", slug); fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(x, null, 2) + "\n"); fs.writeFileSync(path.join(dir, "dashboard.html"), ptpl); node(embedJs, dir); };
+  put(ex, 101, "101-planned", x => { x.status = "building"; x.impact.basis = "plan"; x.impact.changes = []; });
+  put(ex, 102, "102-partial", x => { x.status = "building"; x.impact.basis = "plan"; x.impact.changes = [{ what: "Verification case.", why: "Verification case.", when: "Stage B" }]; });
+  put(ex, 103, "103-built", () => {});
+  put(ex, 104, "104-no-impact", x => { x.status = "building"; x.impact = null; });
+  put(trk, 155, "155-tracking", () => {});
+  const r = cp.spawnSync(process.execPath, [path.join(SKILL, "plan", "scripts", "board.js"), "--root", repo, "--no-gh"], { encoding: "utf8", cwd: repo });
+  let b = null; try { b = JSON.parse(fs.readFileSync(path.join(repo, "docs", "plans", "board.json"), "utf8")); } catch (e) { /* none written */ }
+  const rowOf = n => ((b && b.rows) || []).find(x => x.issue === n) || {}, rcOf = n => JSON.stringify(rowOf(n).reconciliation);
+  const unit = trk.rows.find(x => x.unit && x.unit.issue && !x.unit.board);
+  wc.push(["board.js writes each row's reconciliation into board.json: planned, partial, as-built, null with no impact, n of M on a tracking issue, null on a unit with no board", r.status === 0 && rcOf(101) === '{"state":"planned","landed":null,"total":null}' && rcOf(102) === '{"state":"partial","landed":null,"total":null}' && rcOf(103) === '{"state":"as-built","landed":null,"total":null}' && rcOf(104) === "null" && rcOf(155) === '{"state":"partial","landed":1,"total":11}' && rcOf(unit.unit.issue) === "null",
+    r.status ? (r.stderr || r.stdout).slice(0, 300) : [101, 102, 103, 104, 155, unit.unit.issue].map(n => `#${n} ${rcOf(n)}`).join("; ")]);
+  const c = node(checkJs, path.join(repo, "docs", "plans"), "--root", repo);
+  wc.push(["check.js takes board.json's reconciliation and prints the count", c.status === 0 && /impact reconciliation 1 planned, 2 partly reconciled, 1 as built/.test(c.stdout), lines(c, /reconciliation|^FAIL/) || "nothing printed"]);
+  if (b) { const bad = copy(b); bad.rows[0].reconciliation = { state: "partly" }; fs.writeFileSync(path.join(repo, "docs", "plans", "board.json"), JSON.stringify(bad, null, 2) + "\n"); node(embedJs, path.join(repo, "docs", "plans"));
+    const c2 = node(checkJs, path.join(repo, "docs", "plans"), "--root", repo);
+    wc.push(["check.js fails a reconciliation state that is not one of the three", c2.status === 1 && /reconciliation must be null or/.test(c2.stdout), lines(c2, /^FAIL/) || "no failure"]); }
+  const f = path.join(out, "reconciliation-board-fixture.html"); fs.writeFileSync(f, withData(tpl, "board", fs.readFileSync(sk("verify/fixtures/work-board.json"), "utf8")));
+  const dom = dumpDom(f);
+  if (dom == null) wc.push(["the rendered work board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
+  else { const key = inner(dom, '<div class="key" id="runs-key">', "div");
+    wc.push(["the work board shows the derived state in the State cell, with its legend: the tracking issue partly reconciled with n of M, a landed issue as built", /<span class="vp warning"><i aria-hidden="true">◐<\/i>impact partly reconciled · 1 of 11<\/span>/.test(dom) && /<span class="vp good"><i aria-hidden="true">✓<\/i>impact as built<\/span>/.test(dom) && /impact partly reconciled<\/span> changes recorded as the work lands/.test(key) && /impact as built<\/span> reconciled with the build/.test(key) && !/impact planned<\/span>/.test(key), key.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(-260)]); }
+  report(`the derived reconciliation state on ${t.name}`, wc);
 });
 
 targets.filter(t => t.block === "board").forEach(t => {

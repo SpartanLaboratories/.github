@@ -12,6 +12,8 @@
 // "complete", one that is landed (or as-planned, amended or deviated, on a board written before those states) reads "landed", and
 // the unit a tracking board names in wip.next reads "next", never active, with the blockers that have not landed. A row's "board"
 // is set only when that board's dashboard.html exists, and the page links that issue's #n to it, a tracking issue's as much as a sub-issue's (plan/RULES.md §1, §5).
+// A row with a board carries "reconciliation", its impact's reconciliation state as lib.js reconciliation() derives it (planned,
+// partial or as-built, with landed and total units on a tracking board), or null while the board records no impact (plan/RULES.md §2, §5).
 // --live builds the live work board (presenter brief, plan-board mode): run it on the repository's main checkout. It reads the
 // boards of every worktree of the repository (git worktree list; the root first), keeps for each issue the freshest board (the
 // latest wip.updated, else wip.since, else asBuilt.date, or a later unit.live.updated it mirrors; the root's on a tie), and writes docs/plans/.live/board.json and
@@ -19,7 +21,7 @@
 // when they can, a file URL into a worktree on another drive otherwise; the folder is local only (.git/info/exclude).
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), url = require("url");
-const { repoRoot, flag, opt, registry, findPlans, subIssueBoard, shownBranch, unitBranch } = require("./lib.js");
+const { repoRoot, flag, opt, registry, findPlans, subIssueBoard, shownBranch, unitBranch, reconciliation } = require("./lib.js");
 const { embed } = require("./embed.js");
 
 const args = process.argv.slice(2);
@@ -135,6 +137,10 @@ const rows = [...rowNums].map(n => {
       step: w.step || null, detail: w.step === "halted" ? `Waiting on the user: ${w.waitingOn || w.detail || ""}` : (w.detail || ""), since: w.since || null, updated: w.updated || null, qa: w.qa || [], qaMax: w.qaMax || null,
       status: s === "built" || unitState(u) === "landed" ? "landed" : s === "abandoned" || w.step === "cancelled" ? "abandoned" : w.step === "halted" ? "halted" : w.step === "escalated" ? "escalated" : u && unitState(u) === "complete" ? "complete" : s === "building" ? "building" : "planning",
       landed: s === "built" ? { pr: (b.plan.asBuilt || {}).pr || null, merge: (b.plan.asBuilt || {}).merge || null, version: (b.plan.asBuilt || {}).version || null, date: (b.plan.asBuilt || {}).date || null } : null });
+    /* the impact's reconciliation state, derived from the board (lib.js reconciliation(); plan/RULES.md §2, Impact, §5): null while it
+       records no impact; landed and total on a tracking board */
+    const rc = reconciliation(b.plan);
+    row.reconciliation = rc ? { state: rc.state, landed: rc.landed, total: rc.total } : null;
     row.active = ACTIVE_STEPS.has(w.step) && ["planned", "building"].includes(s);
     if (b.plan.kind === "tracking") row.active = false; // the chain's active unit glows on its own row
     if (b.plan.kind === "tracking") row.chain = chainOf(b); // the state cell shows the chain's progress, not a bare "building"
@@ -144,9 +150,9 @@ const rows = [...rowNums].map(n => {
     const sb = subIssueBoard(u.board.dir, u.row.unit);
     Object.assign(row, { board: sb ? relFromPlans(u.board.folder + "/" + sb.board, u.board.root) : null, folder: u.row.unit.folder && !/^https?:/.test(u.row.unit.folder) ? relFromPlans(u.board.folder + "/" + u.row.unit.folder, u.board.root) + (u.row.unit.folder.endsWith("/") ? "/" : "") : (u.row.unit.folder || null), branch: unitBranch(u.row), system: u.row.system,
       step: cur ? w.step : null, detail: cur ? (w.detail || "") : ((u.row.asBuilt || {}).summary || ""), qa: cur ? (w.qa || []) : [], qaMax: cur ? w.qaMax : null,
-      status: LANDED_STATES.has(st) ? "landed" : st === "complete" ? "complete" : st === "dropped" ? "abandoned" : cur ? (w.step === "halted" ? "halted" : "building") : "not-started", landed: null });
+      status: LANDED_STATES.has(st) ? "landed" : st === "complete" ? "complete" : st === "dropped" ? "abandoned" : cur ? (w.step === "halted" ? "halted" : "building") : "not-started", landed: null, reconciliation: null /* no board of its own: its impact is on the tracking board */ });
     row.active = cur && ACTIVE_STEPS.has(w.step);
-  } else Object.assign(row, { board: null, folder: null, branch: null, system: p.system || null, step: null, detail: p.note || "", qa: [], status: "no-board", active: false, landed: null });
+  } else Object.assign(row, { board: null, folder: null, branch: null, system: p.system || null, step: null, detail: p.note || "", qa: [], status: "no-board", active: false, landed: null, reconciliation: null });
   /* The next unit (wip.next): "next · not started", never building or active, tagged with each blocker that has not landed. */
   const nx = nextUnits.get(n);
   if (nx && row.status !== "landed") {

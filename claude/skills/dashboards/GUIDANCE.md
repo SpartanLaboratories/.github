@@ -47,11 +47,11 @@ its ruleset; the shared scale is:
 
 | Colour | Meaning | Examples |
 |--------|---------|----------|
-| **green** (`--good`) | accepted, done as decided, passing | an accepted option; an `as-planned` part; a passing qa gate; a `complete` unit (qa passed, drawn outlined: not merged yet) and a `landed` one (merged) |
-| **yellow** (`--warning`) | in between: partly adopted, amended, waiting | a `partial` option; an `amended` part; an option left `deferred` at plan time; a halt waiting on the user |
+| **green** (`--good`) | accepted, done as decided, passing | an accepted option; an `as-planned` part; a passing qa gate; a `complete` unit (qa passed, drawn outlined: not merged yet) and a `landed` one (merged); an impact reconciled as built |
+| **yellow** (`--warning`) | in between: partly adopted, amended, waiting | a `partial` option; an `amended` part; an option left `deferred` at plan time; a halt waiting on the user; an impact partly reconciled |
 | **red** (`--critical`) | declined, dropped, failing | a `declined` option; a `dropped` part; a failing gate |
 | **orange** (`--serious`) | changed course | a `deviated` part (the decision itself changed) |
-| **neutral** (ink/grey) | no outcome yet, or not applicable | a `pending` part; a `deferred` part (with its issue); counts and facts |
+| **neutral** (ink/grey) | no outcome yet, or not applicable | a `pending` part; a `deferred` part (with its issue); an impact still planned (dashed); counts and facts |
 
 **The exception: compatibility on the Impact tab.** On a plan board's Impact tab, red and
 yellow mean **compatibility**, not outcomes, because what a reader needs from that tab first is
@@ -73,7 +73,13 @@ includes the impact's: the As built tab shows how the impact differed from the p
 system's colour linking the Impact card it changed, never in the Impact tab's compatibility red or
 yellow. Those changes accumulate as the work lands, on a tracking board as each unit lands, while the
 impact is partly reconciled; it is reconciled whole at the landing, a tracking board's at its last
-unit's. The data keeps the impact's basis for the checks (`plan/RULES.md` §2, Impact).
+unit's. Every landed unit records its effect on the initiative's impact — the changes it made, or an
+explicit "no change" — so "None so far" is said from a record, never from an absence. The data keeps
+only the impact's basis (`plan` or `as-built`); the **reconciliation state** — planned, partly
+reconciled, as built — is derived from the data, never stored, by one rule in each runtime, and shows
+as a chip on the As built tab and on the work board, never on the Impact tab: planned neutral and
+dashed, partly reconciled yellow, as built green, each with its glyph and word (`plan/RULES.md` §2,
+Impact).
 
 **Work in progress and the next one up: two accent marks.** The accent colour marks two things
 and nothing else, each with its own look and its own legend entry:
