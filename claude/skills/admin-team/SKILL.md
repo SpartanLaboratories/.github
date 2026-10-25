@@ -74,6 +74,7 @@ A pipeline's steps map to actions like this:
 | The planner's research commits | `commit` (fire-and-forget; the reply lands in your session) |
 | Landing a change set | `land` (includes the resolution comment and the landing refresh of shared dashboards) |
 | Filing a level-4 sub-issue list the user approved | `file-sub-issues` |
+| A defect or concern found in a Spartan Labs repo | `file-issue` against the repo the fix belongs in, with `title`, `body` and `surfacedIn`; tell the user what was filed |
 | A comment or label on an issue | `comment`, `label` |
 | A change to anything the `.github` mirror covers | `mirror-sync` with the `~/.claude` paths |
 | A step transition in a `/resolve-issue` run (levels 2–4) | `plan-board` with the `event` and its facts (fire-and-forget; see `PROTOCOL.md`) |
