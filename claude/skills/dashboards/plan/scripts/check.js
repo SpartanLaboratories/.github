@@ -13,7 +13,7 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { levelRefsIn, titleSkip, issueTitleRefs, titleDefect } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
 const { paletteCheck } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js"));
-const { unitTests } = require("./lib.js");
+const { unitTests, DEP_STATES, HOLD_STATES } = require("./lib.js");
 const { HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, timelinePhases, tlDuration, timelineLeftOut, timelineTotal, unitInRun, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
@@ -317,6 +317,8 @@ function checkPlan(plan, dir, root) {
     if (w.resume != null && !STEPS.includes(w.resume)) fail(`wip.resume "${w.resume}" is not a step`);
     (w.qa || []).forEach((p, j) => { if (!posInt(p.pass)) fail(`wip.qa[${j}].pass must be a pass number`); if (!QA.includes(p.verdict)) fail(`wip.qa[${j}].verdict must be one of ${QA.join(", ")}`); if (p.date && !DATE.test(p.date)) fail(`wip.qa[${j}].date "${p.date}" is not YYYY-MM-DD`);
       /* finding counts: by kind (findings: documentation, test, code) and, where the qa report states it, by severity (severity: {"<word>": n}) */
+      /* the in-place mark is derived (lib.js qaInPlace(), dashboards-skill/31) from the recorded route, never stored */
+      if (p.inPlace != null) fail(`wip.qa[${j}].inPlace is derived from the pass's route (lib.js qaInPlace()), never stored: record route "on-the-spot" instead`);
       if (p.route != null && !ROUTES.includes(p.route)) fail(`wip.qa[${j}].route must be one of ${ROUTES.join(", ")} (got ${JSON.stringify(p.route)})`);
       else if (p.route != null && p.verdict !== "changes-requested") warn(`wip.qa[${j}] (pass ${p.pass}) records a route (${p.route}) but its verdict is ${p.verdict}: a route answers requested changes`);
       ["findings", "severity"].forEach(k => { const f = p[k]; if (f == null) return; if (typeof f !== "object" || Array.isArray(f) || Object.entries(f).some(([n, c]) => !/^[a-z][a-z-]*$/.test(n) || !(Number.isInteger(c) && c >= 0))) fail(`wip.qa[${j}].${k} must map a lower-case word to a count, e.g. {"major": 2, "minor": 3} (got ${JSON.stringify(f)})`); }); });
@@ -893,6 +895,19 @@ function checkBoard(dir) {
      closed issue, one GitHub records; "NOT_PLANNED" reads "closed · not planned" and "DUPLICATE" "closed · duplicate" on the page. */
   (b.rows || []).forEach((r, i) => { reasonCheck(r, `rows[${i}] (#${r.issue})`); ["waitsOn", "blocks"].forEach(k => (r[k] || []).forEach((x, j) => reasonCheck(x, `rows[${i}] (#${r.issue}).${k}[${j}]`))); });
   (b.roadmap || []).forEach((m, i) => { reasonCheck(m, `roadmap[${i}]`); (m.items || []).forEach((x, j) => reasonCheck(x, `roadmap[${i}].items[${j}]`)); });
+  /* Depends on, and Blocks · enables (RULES §5; dashboards-skill/30): a dependency's build state and locality, and what a row does to the
+     issues it holds up, are board.js's (lib.js depBuild(), depLocality(), holdState()), never written by hand; a dependency with neither a
+     build state nor a locality says why (no rule fits) */
+  const LOCS = ["local-repository", "local-organization", "local-parent-org"];
+  (b.rows || []).forEach((r, i) => {
+    (r.waitsOn || []).forEach((x, j) => { const at = `rows[${i}] (#${r.issue}).waitsOn[${j}]`;
+      if (x.build !== undefined && x.build !== null && !DEP_STATES.includes(x.build)) fail(`${at}.build must be ${DEP_STATES.join(" | ")} or null (got ${JSON.stringify(x.build)}): regenerate it with board.js`);
+      if (x.locality !== undefined && x.locality !== null && !(LOCS.includes(x.locality) || /^external-\S+$/.test(String(x.locality)))) fail(`${at}.locality must be ${LOCS.join(" | ")}, external-<name> or null (got ${JSON.stringify(x.locality)}): regenerate it with board.js`);
+      if ((x.build === null || x.locality === null) && !str(x.why)) fail(`${at}: a dependency no state rule fits says why ("why"): regenerate it with board.js`);
+      if (x.build === undefined && x.locality === undefined && b.rows.some(y => (y.waitsOn || []).some(z => z.build !== undefined))) warn(`${at} carries no build state or locality: regenerate the board with board.js`); });
+    (r.blocks || []).forEach((x, j) => { if (x.hold !== undefined && !HOLD_STATES.includes(x.hold)) fail(`rows[${i}] (#${r.issue}).blocks[${j}].hold must be ${HOLD_STATES.join(" | ")} (got ${JSON.stringify(x.hold)})`);
+      if (x.hold !== undefined) { const done = r.state === "CLOSED" || r.status === "landed"; if ((x.hold === "enables") !== done) warn(`rows[${i}] (#${r.issue}).blocks[${j}].hold is ${x.hold}, but the issue is ${done ? "done" : "still open"}: it ${done ? "enables" : "blocks"} (regenerate it with board.js)`); } });
+  });
   const bl = (b.rows || []).filter(r => r.tracker !== undefined);
   if (bl.length) ok("board.json: " + bl.length + " boardless row" + (bl.length === 1 ? "" : "s") + ", state from the tracker: " + BOARDLESS_STATES.map(k => bl.filter(r => r.status === k).length + " " + k).join(", "));
   /* "unassigned": the decision that an entry belongs to no system (board.js keeps it): true, and never beside a system */

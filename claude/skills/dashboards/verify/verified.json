@@ -2,7 +2,7 @@
   "$comment": "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last full verification. check-page.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.",
   "templates": {
     "plan/template/dashboard.html": {
-      "sha256": "252716c6cebfa55f77fa78736332c21311a29ffa3d2f5bb95e7ccf6501b85d4f",
+      "sha256": "a9c3b5818f016506374c5efc77b5048032c85279982765552b18931ca67ca18e",
       "verified": "2026-10-25",
       "fixtures": [
         "plan",
@@ -155,11 +155,21 @@
           "sha256": "252716c6cebfa55f77fa78736332c21311a29ffa3d2f5bb95e7ccf6501b85d4f",
           "verified": "2026-10-25",
           "file": "dashboard/252716c6cebf.html"
+        },
+        {
+          "sha256": "c25289581f83f1620eba4c9acfa8deec6006735dd99f184b161f52d576c86458",
+          "verified": "2026-10-25",
+          "file": "dashboard/c25289581f83.html"
+        },
+        {
+          "sha256": "a9c3b5818f016506374c5efc77b5048032c85279982765552b18931ca67ca18e",
+          "verified": "2026-10-25",
+          "file": "dashboard/a9c3b5818f01.html"
         }
       ]
     },
     "plan/template/board.html": {
-      "sha256": "f4ddc9e3f7913f8299918c3bca841bdc1ee000773b9e65e6935b60ce1607d4e1",
+      "sha256": "ee10c2c23f5da3db013e65efd348a1a463bd9cce762625cc1fc2292c0bb52c22",
       "verified": "2026-10-25",
       "fixtures": [
         "work-board",
@@ -291,6 +301,16 @@
           "sha256": "f4ddc9e3f7913f8299918c3bca841bdc1ee000773b9e65e6935b60ce1607d4e1",
           "verified": "2026-10-25",
           "file": "board/f4ddc9e3f791.html"
+        },
+        {
+          "sha256": "5d4c69b120c066106facb909a9736c00f8e4daf90e3c8119a4e6aa0e63de7b76",
+          "verified": "2026-10-25",
+          "file": "board/5d4c69b120c0.html"
+        },
+        {
+          "sha256": "ee10c2c23f5da3db013e65efd348a1a463bd9cce762625cc1fc2292c0bb52c22",
+          "verified": "2026-10-25",
+          "file": "board/ee10c2c23f5d.html"
         }
       ]
     },

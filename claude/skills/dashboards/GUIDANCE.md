@@ -88,6 +88,20 @@ five-level testing hierarchy's L1 gating to L5 UAT, as a ramp of neutrals from t
 the levels are an order, not systems or outcomes, so they take neither a system slot nor a status colour, and the class's latest result
 keeps the status scale (passed green, failed red, each with its glyph and word).
 
+**Dependencies: a status pill and a neutral ramp** (admin-team/dashboards-skill/30). A dependency on the work board ("Depends on"),
+on a plan board's WIP strip ("depends on") and in a tracking board's unit inspector carries one small bubble of two states. Its **build
+state** takes the status scale, with its glyph and word: `blocking` yellow (⊘: part of the plan, still open — waiting), `clear` green (✓:
+part of the plan, landed or closed — done), `pre-built` neutral (◼: not part of the tracking issue, built before its plan started — the
+plan's outcome does not apply to it). Its **locality** is an order, near to far, so it takes a **neutral ramp**, faintest to full ink, never
+a system slot or a status colour, each with its glyph and word: `local-repository` (⌂ repo), `local-organization` (◇ org),
+`local-parent-org` (△ parent org), `external-<name>` (↗ external · name). What an issue holds up ("Blocks · enables") takes the status
+scale: `blocks` yellow (⊘: still open), `enables` green (→: done). A state no rule fits is not drawn (`plan/RULES.md` §5).
+
+**The decision not to run another qa pass: a neutral mark** (admin-team/dashboards-skill/31). A qa pass whose findings were fixed in
+place, with no further pass (its `on-the-spot` route), carries a small neutral mark beside its verdict pill, with its glyph and words:
+"✎ fixed in place · no 2nd pass" ("fixing" while the fixes are being made). It is a decision, not an outcome: it takes no status colour,
+and the pass keeps its own verdict pill (`plan/RULES.md` §5, "QA").
+
 **Phases: a neutral ramp.** A landed board's Timeline tile (`plan/RULES.md` §2, "The KPI tiles") draws the time per phase of its run in
 neutral ink shades, faintest for the first phase to strongest for the last (an issue board's plan, build, qa and landing; a tracking
 board's plan, filing and units), each named with its time in the tile's legend: phases are an order, not systems or outcomes, so they
@@ -382,7 +396,7 @@ the Markdown copies, the progress notes, a tracking board's steps, the KPI bars,
 legends inside each tile, no "board" tag, the title's `#n`, "since" said once by the step panel, the larger charging arrow, the landing
 step, the Tests tab, the Timeline tile's phases, a reference's section number before its excerpt, no work level in the page's data, a
 plan board's finished steps clickable, each unit row's label glowing on its own while it is filed, the Timeline tile's figure the sum of
-its phases, an issue's title quoted and marked — and
+its phases, an issue's title quoted and marked, every qa pass and the one running as ordinals, the dependency bubbles — and
 the browser pass the layout ones (the header's halves, the wide page, the legends shown). A missing feature fails, as `FEATURE MISSING:
 <feature> (template since dashboards-skill/N)`, **through a declared divergence too**: a divergence adds or argues a removal; it never
 excuses a page that lags its template. A landed or cancelled issue board is the exception: it is kept as it landed and never
@@ -447,6 +461,33 @@ never the accent (§1).
 - **Each unit row's label glows on its own while it is filed, then while its board is created** (`plan/RULES.md` §3, §4): applied to
   tracking boards, the only type with those steps. Not to the work board, which marks runs and shows filing as the tracking issue's own
   step on its row (a unit's row there glows only once its run is under way), nor to the state pages, which show no run.
+
+**The decisions of admin-team/dashboards-skill/30**, each weighed for every type:
+
+- **The work board drops its board-link and branch columns** (the title is the link to the board; the branch shows in the state column
+  while there is one): the work board only. Not to plan or tracking boards, which have no such columns (the branch is a header tag, and a
+  unit's title links its board already), nor to the state pages, which list no runs.
+- **Every qa pass is shown, the pass running included** (the defect: a pass in progress was recorded nowhere `board.js` or the page read):
+  applied to the work board (`lib.js` `qaShown()`, a unit's from its own run, not the tracking board's `wip`), to plan boards (the QA tile,
+  the WIP strip's qa pills) and to tracking boards (each unit's run mirror). Not to the state pages, which show no run.
+- **QA pass numbers as ordinals** (1st, 2nd, 3rd): applied to the work board's QA cell and to plan and tracking boards' qa pills and QA
+  tile. The step panel's prose ("Answering qa pass 1", a remediation sub-step "qa pass 2") keeps the pipeline's own words. Not to the
+  state pages: no qa passes.
+- **Depends on, with a build state and a locality; Blocks · enables** (§1, "Dependencies"): applied to the work board (two columns), to
+  plan boards (the WIP strip's `wip.blockers`) and to tracking boards (each unit's dependencies and the units it holds up, in its
+  inspector). Not to system, supersystem and repository pages: a state page is as-is and names no issue above its Context, and its Context
+  lists issues open or closed, not their dependencies.
+
+**The decisions of admin-team/dashboards-skill/31**, each weighed for every type:
+
+- **The decision not to run another qa pass, shown** (§1; `plan/RULES.md` §5, "QA"): applied to the work board's QA column, plan
+  boards (the QA tile's sub-line, the WIP strip's qa pills) and tracking boards (each unit's run line, bubble and inspector), all from
+  one rule (`lib.js` `qaShown()`, `qaInPlace()`, and the templates' copies). Not to the state pages: they show no run. A landed board is
+  never re-rendered (§11, above), so a landed plan board shows the mark only if it is re-rendered for another reason; the work board shows
+  it for every row whose pass records the route.
+- **The Runs tab's content larger, but Now** (`plan/RULES.md` §5, "Its columns"): the work board only, the one dashboard with a runs
+  table. Not to plan or tracking boards: their rows are a timeline grid whose sizes the board's own rules set, and a tracking board's
+  units already read at the grid's size; not to the state pages, which list no runs.
 
 A **planning-docs landing** — a docs pull request that resolves no issue (a plan folder, a roadmap document) — triggers a small landing
 refresh: the committed work board, and the repository page where the repository has one.

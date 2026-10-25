@@ -62,7 +62,9 @@
 // a work level flagged (ISSUE TITLE NAMES A WORK LEVEL: #n) on every type, NO ROWS AT RESEARCH, each unit row's label glowing on its own while
 // it is filed and its board created, and this run's feature probes. And the defects of dashboards-skill/29 (verify/cases-29.js): splice.js
 // onto the recorded verified version (--verified) and a cached version as --template keeping its template's history, apply-state.js keeping
-// a verbatim lastAmended.title, and a planned supersystem's card linking its built parts' page. A
+// a verbatim lastAmended.title, and a planned supersystem's card linking its built parts' page. And the work board's columns of
+// dashboards-skill/30 (verify/cases-30.js): every qa pass and the one running as ordinals, no branch or board column, "Depends on" with
+// each dependency's build state and locality, "Blocks · enables", and their spread to the plan and tracking boards. A
 // template is recorded only when its browser passes and every case group pass.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
@@ -1341,7 +1343,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
       const dW = dumpDom(f), row = n => (dW.match(new RegExp(`<tr class="run[^"]*"[^>]*><td><span class="t"><a [^>]*>#${n}<[\\s\\S]*?</tr>`)) || [""])[0], key = inner(dW, '<div class="key" id="runs-key">', "div");
       yc.push(["2: the work board: the row closed as not planned reads \"closed · not planned\", solid and neutral, not glowing", /^<tr class="run"/.test(row(85)) && /vp neutral"><i aria-hidden="true">⊖<\/i>closed · not planned/.test(row(85)) && !/glow|landed/.test(row(85).replace(/<a [^>]*>[^<]*<\/a>/g, "")), text(row(85)).slice(0, 120)]);
       yc.push(["2: its legend entry, and the Landed tile counts it apart", /closed · not planned<\/span> no board: closed on the tracker as not planned/.test(key) && /1 closed as not planned, not counted/.test(text(inner(dW, '<div class="kpis" id="kpis">', "div"))), text(key).slice(0, 300)]);
-      yc.push(["2: a roadmap item and a waits-on entry closed as not planned say so", /<small>closed · not planned<\/small>/.test(dW) && /#85<\/a>[^<]*<small> closed · not planned<\/small>/.test(row(80)), text(row(80)).slice(0, 160)]);
+      yc.push(["2: a roadmap item and a waits-on entry closed as not planned say so", /<small>closed · not planned<\/small>/.test(dW) && /#85<\/a> (?:<span class="dbub"[^>]*>[\s\S]*?<\/span><\/span>)?<small>closed · not planned<\/small>/.test(row(80)), text(row(80)).slice(0, 160)]);
       const r = cp.spawnSync(process.execPath, [checker, f, "--out", path.dirname(f)], { encoding: "utf8" });
       yc.push(["2: the work board with the row passes check-page.js", r.status === 0, lines(r, /FAIL|ERROR|DASHED|NO LEGEND/)]); } }
   if (chrome) { const s = copy(J("verify/fixtures/sub-issue.plan.json")); const it = s.roadmap.items[2]; it.state = "closed"; it.stateReason = "NOT_PLANNED";
@@ -1705,7 +1707,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
         const dW = dumpDom(f), row = n => (dW.match(new RegExp(`<tr class="run[^"]*"[^>]*><td><span class="t"><a [^>]*>#${n}<[\\s\\S]*?</tr>`)) || [""])[0], key = inner(dW, '<div class="key" id="runs-key">', "div");
         kc.push(["D: the work board: the row closed as a duplicate reads \"closed · duplicate\", solid and neutral, not glowing", /vp neutral"><i aria-hidden="true">⊜<\/i>closed · duplicate/.test(row(86)) && !/glow|dashed/.test(row(86).replace(/<a [^>]*>[^<]*<\/a>/g, "")), text(row(86)).slice(0, 140)]);
         kc.push(["D: its own legend entry, and the Landed tile counts it apart", /closed · duplicate<\/span> no board: closed on the tracker as a duplicate/.test(key) && /1 closed as duplicates, not counted/.test(text(inner(dW, '<div class="kpis" id="kpis">', "div"))), text(key).slice(0, 200)]);
-        kc.push(["D: a roadmap item and a waits-on entry closed as a duplicate say so", /<small>closed · duplicate<\/small>/.test(dW) && /#86<\/a>[^<]*<small> closed · duplicate<\/small>/.test(row(80)), text(row(80)).slice(0, 160)]);
+        kc.push(["D: a roadmap item and a waits-on entry closed as a duplicate say so", /<small>closed · duplicate<\/small>/.test(dW) && /#86<\/a> (?:<span class="dbub"[^>]*>[\s\S]*?<\/span><\/span>)?<small>closed · duplicate<\/small>/.test(row(80)), text(row(80)).slice(0, 160)]);
         const r = cp.spawnSync(process.execPath, [checker, f, "--out", path.dirname(f)], { encoding: "utf8" }); kc.push(["D: that work board passes check-page.js", r.status === 0, lines(r, /FAIL|ERROR|DASHED|NO LEGEND/)]); } }
     /* G. the template plan.json's comment on the implementation glow */
     { const t = J("plan/template/plan.json"); kc.push(["G: the template plan.json says an implementation stage with no rows glows the As built column, drawn as one glow on the column", /an implementation stage that touches no rows/.test(t.wip.$comment) && /drawn as one glow on the column itself/.test(t.wip.$comment) && Array.isArray(t.rows[0].verdict.statements) && Array.isArray(t.rows[0].asBuilt.statements), "template"]); }
@@ -2043,6 +2045,20 @@ catch (e) { report("the dashboards-skill/28 cases", [["the cases run to the end"
    issue, taking facts.title, the folder's name only when neither exists; a planned supersystem's card linking its built parts' page. */
 try { require("./cases-29.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/29 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
+/* The work board's columns of admin-team/dashboards-skill/30 (verify/cases-30.js): every qa pass and the one running, as ordinals (the
+   defect: a pass in progress shown nowhere, a unit's passes read from the tracking board's own wip); no branch or board column, the branch in
+   the state cell; "Depends on" with each dependency's build state and locality, none where no rule fits; "Blocks · enables"; check.js on
+   the new fields; the plan board's QA tile and WIP strip and a tracking unit's inspector; and this run's feature probes. */
+try { require("./cases-30.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the dashboards-skill/30 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
+/* The decisions of admin-team/dashboards-skill/31 (verify/cases-31.js): the decision not to run another qa pass shown, a neutral mark beside
+   the pass fixed in place (lib.js qaShown(), qaInPlace(), from the recorded route only), on the work board, a plan board's WIP strip and QA
+   tile and a tracking unit's run; apply-event.js recording the route on the pass; check.js refusing a stored inPlace; the work board's Runs
+   tab larger but Now, a labelled card per run under 880 px; and this run's feature probes. */
+try { require("./cases-31.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the dashboards-skill/31 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 const today = new Date().toISOString().slice(0, 10);
 const COMMENT = "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last full verification. check-page.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.";
