@@ -1575,7 +1575,9 @@ targets.filter(t => t.block === "plan").forEach(t => {
       options, the verdicts, the qa slots by result;
    G. the template plan.json's comment on the implementation glow;
    and the real qa-pass event (WebTools #62, pass 1) the fast path refused: a remediation step naming "L1 per-type gating" is
-   applied, its open point kept, and --repo takes the slug or the main checkout's path, anything else a usage error. */
+   applied, its open point kept, and --repo takes the slug or the main checkout's path, anything else a usage error; and the real
+   qa-pass event (WebTools #63, pass 1) it refused next: two remediation sub-steps current at once, each shown in progress in the step
+   panel, the stages still at most one current, and an open point's ref to a build output kept as text, never a dead link. */
 { const kc = [], sc = path.join(out, "decisions-19"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
   const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x)), tp = name => (targets.find(t => t.name === name) || {}).path;
   const text = h => (h || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/\s+/g, " ").trim();
@@ -1736,9 +1738,31 @@ targets.filter(t => t.block === "plan").forEach(t => {
       kc.push(["the same remediation report twice is a duplicate", r5.status === 0 && s5.result === "duplicate", `${s5.result} · ${s5.error || ""}`]);
       const req3 = { ...req2, issue: 70, folder, $comment: undefined, facts: { ...req2.facts, stage: undefined, at: "2026-10-25T12:40:00Z", remediation: { ...req2.facts.remediation, steps: [{ name: "rookie-dev fixes", state: "done" }, { name: "planner reconciles", state: "current" }] } } }, rq3 = path.join(sc, "rem62b.json");
       fs.writeFileSync(rq3, JSON.stringify(req3)); const r6 = cp.spawnSync(process.execPath, [sk("plan/scripts/apply-event.js"), "--event", rq3, "--worktree", qdir, "--no-live", "--json"], { encoding: "utf8" }), d6 = JSON.parse(fs.readFileSync(path.join(bdir, "plan.json"), "utf8"));
-      kc.push(["with no facts.stage, the wording names the qa pass and the sub-steps done and current", r6.status === 0 && (d6.trail || []).slice(-1)[0].label === "Remediation for qa pass 1: 1 sub-step done; planner reconciles current", ((d6.trail || []).slice(-1)[0] || {}).label]); }
+      kc.push(["with no facts.stage, the wording names the qa pass and the sub-steps done and current", r6.status === 0 && (d6.trail || []).slice(-1)[0].label === "Remediation for qa pass 1: 1 sub-step done; planner reconciles current", ((d6.trail || []).slice(-1)[0] || {}).label]);
+      /* the real qa-pass event the fast path refused (WebTools #63, pass 1): two remediation sub-steps current at once, run in parallel
+         (rookie-dev's minor fixes and the planner's ruling), and an open point whose ref is a build output that is never committed */
+      fs.writeFileSync(path.join(bdir, "plan.json"), JSON.stringify(L, null, 2) + "\n"); fs.writeFileSync(path.join(bdir, "dashboard.html"), PT); node(embedJs, bdir);
+      const req63 = J("verify/fixtures/qa-pass-63.request.json"), rq63 = path.join(sc, "qa63.json"); fs.writeFileSync(rq63, JSON.stringify({ ...req63, issue: 70, folder, $comment: undefined }));
+      const run63 = () => cp.spawnSync(process.execPath, [sk("plan/scripts/apply-event.js"), "--event", rq63, "--worktree", qdir, "--no-live", "--json"], { encoding: "utf8" });
+      const r7 = run63(), s7 = JSON.parse((r7.stdout || "{}").trim().split(/\r?\n/).pop() || "{}"), d7 = JSON.parse(fs.readFileSync(path.join(bdir, "plan.json"), "utf8")), M7 = d7.wip.remediation || {}, op7 = (d7.wip.open || []).find(o => /Nine test gaps/.test(o.text)) || {};
+      kc.push(["the WebTools #63 qa-pass event applies: two remediation sub-steps current at once, the two to come kept to do, check.js passing", r7.status === 0 && s7.result === "ok" && /^pass/.test(s7.check || "") && (M7.steps || []).map(x => x.state).join() === "current,current,todo,todo" && M7.route === "planner-then-rookie-dev" && d7.wip.step === "remediation" && !!d7.wip.plan && d7.wip.plan.from === "qa",
+        `${s7.result} · ${s7.error || ""} · ${s7.check || ""} · ${JSON.stringify(M7.steps && M7.steps.map(x => x.state))}`]);
+      kc.push(["its open point's ref, a build output not in the tree, is kept as text naming it, never a dead link, and the presenter is told", typeof op7.ref === "string" && /^`build\/reports\/test-inspector\/index\.html` \(not in the tree/.test(op7.ref) && (s7.why || []).some(x => /not in the tree from the board's folder/.test(x)), `${op7.ref} · ${(s7.why || []).filter(x => /ref/.test(x)).join("; ").slice(0, 160)}`]);
+      const r8 = run63(), s8 = JSON.parse((r8.stdout || "{}").trim().split(/\r?\n/).pop() || "{}");
+      kc.push(["the same #63 event twice is a duplicate", r8.status === 0 && s8.result === "duplicate", `${s8.result} · ${s8.error || ""}`]);
+      { const q2 = path.join(sc, "qtree2"), td = path.join(q2, ...folder.split("/")); fs.mkdirSync(td, { recursive: true });
+        const chk = d => { fs.writeFileSync(path.join(td, "plan.json"), JSON.stringify(d, null, 2) + "\n"); fs.writeFileSync(path.join(td, "dashboard.html"), PT); node(embedJs, td); return cp.spawnSync(process.execPath, [checkJs, td], { encoding: "utf8", cwd: q2 }); };
+        const two = copy(d7); two.wip.remediation.steps[0].state = "done"; two.wip.remediation.steps[2].state = "current";
+        const c = chk(two);
+        kc.push(["check.js passes several current remediation sub-steps, each with one state (done, current or to do)", c.status === 0 && !/remediation\.steps has more than one/.test(c.stdout), lines(c, /^FAIL/) || "no FAIL"]);
+        const bad = copy(two); bad.wip.remediation.steps[1].state = "doing"; const c2 = chk(bad);
+        kc.push(["a sub-step's state is one of done, current or to do: any other fails", c2.status === 1 && /wip\.remediation\.steps\[1\]\.state must be one of/.test(c2.stdout), lines(c2, /^FAIL/)]);
+        const st = copy(two); st.wip.stages = [{ id: "A", name: "one", state: "current", rows: [] }, { id: "B", name: "two", state: "current", rows: [] }]; const c3 = chk(st);
+        kc.push(["the implementation stages still keep at most one current: two fail", c3.status === 1 && /more than one "current" stage/.test(c3.stdout), lines(c3, /^FAIL/)]); }
+      if (chrome) { const dom = dumpDom(path.join(bdir, "dashboard.html")), sp = inner(dom || "", '<div class="sp[ "]', "div"), curLis = (sp.match(/<li class="cur"/g) || []).length;
+        kc.push(["the step panel shows both current sub-steps, each in progress with its breathing dot, and the two to come", curLis === 2 && (sp.match(/· in progress/g) || []).length === 2 && (sp.match(/<li class="todo"/g) || []).length === 2 && /the 27 minor fixes/.test(sp) && /Amendment 3/.test(sp), `${curLis} current · ${(sp.match(/<li class="todo"/g) || []).length} to come`]); } }
   } catch (e) { kc.push(["the cases run to the end", false, String(e.stack).split(String.fromCharCode(10)).slice(0, 3).join(" ")]); }
-  report("statements with their plan excerpts, closed as a duplicate, the column glow, the KPI bars, the implementation glow's comment, the #62 qa-pass event (dashboards-skill/19)", kc);
+  report("statements with their plan excerpts, closed as a duplicate, the column glow, the KPI bars, the implementation glow's comment, the #62 qa-pass event, the #63 qa-pass event with its parallel remediation sub-steps (dashboards-skill/19)", kc);
 }
 
 /* The decisions of dashboards-skill/21 (GUIDANCE.md §6, "The header"; plan/RULES.md §3, "The step panel" and the tracking strip), on

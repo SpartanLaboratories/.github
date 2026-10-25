@@ -550,8 +550,9 @@ function checkPanel(plan, w, ids, tracking, dir) {
     else { if (M.pass != null && !posInt(M.pass)) fail("wip.remediation.pass is the qa pass whose findings it answers");
       if (M.route != null && !ROUTES.includes(M.route)) fail(`wip.remediation.route must be one of ${ROUTES.join(", ")} (got ${JSON.stringify(M.route)})`);
       const v = M.steps == null ? [] : Array.isArray(M.steps) ? M.steps : (fail("wip.remediation.steps must be an array"), []);
-      v.forEach((x, j) => { const at = `wip.remediation.steps[${j}]`; if (!x || typeof x !== "object" || !(str(x.what) || str(x.name))) fail(`${at} needs "name" (or "what")`); else if (!STAGE_STATES.includes(x.state)) fail(`${at}.state must be one of ${STAGE_STATES.join(", ")}`); });
-      if (v.filter(x => x && x.state === "current").length > 1) fail("wip.remediation.steps has more than one \"current\" step"); }
+      /* each sub-step has one state (a step done or to do is never current); several may be current at once, a remediation's legs
+         running in parallel (WebTools #63 qa pass 1), unlike the implementation stages, which keep at most one */
+      v.forEach((x, j) => { const at = `wip.remediation.steps[${j}]`; if (!x || typeof x !== "object" || !(str(x.what) || str(x.name))) fail(`${at} needs "name" (or "what")`); else if (!STAGE_STATES.includes(x.state)) fail(`${at}.state must be one of ${STAGE_STATES.join(", ")}`); }); }
   }
   checkHistory(plan, w, stampOk);
   if (tracking && ((Array.isArray(w.stages) && w.stages.length) || w.remediation || w.plan)) warn("a tracking board records implementation stages, a plan pass or a remediation: those are its units' runs, each on its own board, not the tracking issue's");
