@@ -64,7 +64,8 @@
 // onto the recorded verified version (--verified) and a cached version as --template keeping its template's history, apply-state.js keeping
 // a verbatim lastAmended.title, and a planned supersystem's card linking its built parts' page. And the work board's columns of
 // dashboards-skill/30 (verify/cases-30.js): every qa pass and the one running as ordinals, no branch or board column, "Depends on" with
-// each dependency's build state and locality, "Blocks · enables", and their spread to the plan and tracking boards. A
+// each dependency's build state and locality, "Blocks · enables", and their spread to the plan and tracking boards. And the
+// Timeline tile of dashboards-skill/32 (verify/cases-32.js): one legend entry per visit of a run step, its times from the record only. A
 // template is recorded only when its browser passes and every case group pass.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
@@ -1657,9 +1658,11 @@ targets.filter(t => t.block === "plan").forEach(t => {
       /* F. the KPI bars and their legend */
       const K = kpis(dE), bars = K.match(/<div class="seg-bar"/g) || [];
       const tiles = K.split('<div class="kpi">').slice(1), keyed = tiles.filter(t => /<div class="seg-bar"/.test(t) && /<\/div><div class="key">/.test(t));
-      /* dashboards-skill/23: a landed board's Timeline carries the bar of its phases too (the example's qa passes are dated, so build, qa
-         and landing are drawn); until then it was the one tile without a bar */
-      kc.push(["F: every tile carries a segmented bar and, inside the tile, its legend, a landed board's Timeline its phases (dashboards-skill/22: no shared row; dashboards-skill/23: the Timeline's bar)", bars.length === 5 && keyed.length === 5 && /aria-label="Timeline: build same day, qa same day, landing same day; plan left out: no sizing recorded"/.test(K) && !/kpi-key|kpikey/.test(K), `${bars.length} bars · ${keyed.length} tile legends`]);
+      /* dashboards-skill/32: a landed board's Timeline carries a bar of its timed step visits, its legend one entry per visit; the example
+         records no time (its trail and qa passes are dated only), so its Timeline draws no bar, and its legend lists every visit with "—"
+         (verify/cases-32.js covers a timed run) */
+      const tlTile = tiles.find(t => /<div class="l">Timeline<\/div>/.test(t)) || "";
+      kc.push(["F: every tile that counts carries a segmented bar and, inside the tile, its legend; the example's Timeline, with no time recorded, no bar and a legend of its visits, each \"—\" (dashboards-skill/22: no shared row; dashboards-skill/32: the Timeline's step visits)", bars.length === 4 && keyed.length === 4 && /<div class="v">—<\/div>/.test(tlTile) && /<div class="key tl-steps">/.test(tlTile) && !/<div class="seg-bar"/.test(tlTile) && !/same day/.test(tlTile) && !/kpi-key|kpikey/.test(K), `${bars.length} bars · ${keyed.length} tile legends · ${text(tlTile).slice(0, 160)}`]);
       const rowsBar = inner(K, '<div class="seg-bar" role="img" aria-label="Rows by group', "div");
       kc.push(["F: Rows: one segment per group, in its system's colour", (rowsBar.match(/<i /g) || []).length === 5 && /background:var\(--sys-1\)/.test(rowsBar), (rowsBar.match(/<i /g) || []).length + " segments"]);
       const optBar = inner(K, '<div class="seg-bar" role="img" aria-label="Options weighed', "div");
@@ -2059,6 +2062,14 @@ catch (e) { report("the dashboards-skill/30 cases", [["the cases run to the end"
    tab larger but Now, a labelled card per run under 880 px; and this run's feature probes. */
 try { require("./cases-31.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/31 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
+/* The decisions of admin-team/dashboards-skill/32 (verify/cases-32.js): the Timeline tile of a landed board as one legend entry per visit
+   of a run step (start → end, duration), in place of the four phases in calendar days; its bounds from the record only (the snapshots,
+   plan.sized, the qa passes, the merge's time and the step commits from git, a neighbour's bound), "—" where none; spans in minutes, hours
+   and minutes, or days and hours; the bar and its neutral ramp; a landed board's Timeline across the KPI row; gitTimes(), timeline.js
+   --from-git and apply-event.js at landed; check.js; and this run's feature probe. */
+try { require("./cases-32.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the dashboards-skill/32 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 const today = new Date().toISOString().slice(0, 10);
 const COMMENT = "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last full verification. check-page.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.";

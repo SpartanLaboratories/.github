@@ -1,5 +1,5 @@
-// The case groups of admin-team/dashboards-skill/28, run by verify-templates.js (it passes its helpers in): the Timeline tile's figure the
-// sum of the phases its bar draws (a phase left out not summed); an issue's title quoted verbatim, one that names a work level flagged as a
+// The case groups of admin-team/dashboards-skill/28, run by verify-templates.js (it passes its helpers in): (the Timeline tile's figure the
+// sum of what its bar draws, since dashboards-skill/32 the visits of its run's steps: verify/cases-32.js); an issue's title quoted verbatim, one that names a work level flagged as a
 // defect in the issue (ISSUE TITLE NAMES A WORK LEVEL: #n) by check.js, check-page.js, apply-event.js and apply-state.js and never a failure
 // of the page, on every type; an issue board at research with no rows a defect (NO ROWS AT RESEARCH), research planning on a rowless board
 // glowing nothing, a tracking board's research left alone; each unit row's label glowing on its own while it is filed as a sub-issue, then
@@ -37,28 +37,7 @@ module.exports = function cases28(X) {
   const fails = r => (r.stdout || "").split(/\r?\n/).filter(l => /^FAIL/.test(l));
   const LV = "Retry budget for the cache (level: 2)", LV2 = "A level-3 change to the transport";
 
-  /* 1. the Timeline tile's figure: the sum of the phases its bar draws */
-  guard("the Timeline tile's figure the sum of the phases its bar draws, a phase left out not summed (dashboards-skill/28)", c => {
-    const landed = f => { const d = copy(EX); f(d); return d; };
-    const full = landed(d => { d.sized = "2026-10-19T08:00:00Z"; d.wip.qa[0].date = "2026-10-21"; d.wip.qa[0].at = "2026-10-21T09:00:00Z"; d.wip.qa[1].date = "2026-10-22"; d.wip.qa[1].at = "2026-10-22T15:00:00Z"; d.asBuilt.date = "2026-10-24"; d.milestones.find(m => m.column === "built").date = "2026-10-24"; });
-    const hours = landed(d => { d.sized = "2026-10-20T06:00:00Z"; d.milestones.find(m => m.column === "verdict").date = "2026-10-20T08:00:00Z"; d.wip.qa[0].at = "2026-10-20T09:00:00Z"; d.wip.qa[1].at = "2026-10-20T14:00:00Z"; d.asBuilt.date = "2026-10-20T15:00:00Z"; });
-    const none = landed(d => { d.wip.qa = []; d.milestones = d.milestones.filter(m => m.column !== "verdict"); });
-    const trk = copy(TRK); Object.assign(trk, { status: "built", sized: "2026-10-20T10:00:00Z", asBuilt: { ref: "master", sha: "7de8207", date: "2026-10-25" } }); trk.wip.step = "landed"; trk.wip.current = [];
-    const sum = d => { const t = lib.timelineTotal(lib.timelinePhases(d)); return t ? lib.tlDuration(t) : null; };
-    c.push(["lib.js timelineTotal(): the four phases of a full run summed (1 + 1 + 1 + 2 days)", sum(full) === "5 days", String(sum(full))]);
-    c.push(["the example, plan left out (no sizing): build, qa and landing summed, \"same day\", though its baseline is a day before its merge", sum(EX) === "same day" && EX.baseline.date !== EX.asBuilt.date, `${sum(EX)} · baseline ${EX.baseline.date} → built ${EX.asBuilt.date}`]);
-    c.push(["every phase drawn timed and the sum under a day: in hours (2 + 1 + 5 + 1 h)", sum(hours) === "9 h", String(sum(hours))]);
-    c.push(["no phase drawn: no sum", sum(none) === null, String(sum(none))]);
-    c.push(["a tracking board's own phases summed (plan 1 day, filing same day, units 4 days)", sum(trk) === "5 days", String(sum(trk))]);
-    const TILE = 'const k=[...document.querySelectorAll("#kpis>.kpi")].pop();document.body.dataset.r=JSON.stringify({l:k.querySelector(".l").textContent,v:k.querySelector(".v").textContent,s:k.querySelector(".s").textContent});';
-    const pages = [["the example", EX, "same day", /plan left out: no sizing recorded/], ["a full run", full, "5 days", null], ["a run in hours", hours, "9 h", null], ["no phase drawn", none, "—", /left out/], ["a tracking board", trk, "5 days", null]];
-    pages.forEach(([w, d, v, sub], i) => { const r = got(wide(planPage("tl-sum-" + i, d, TILE))) || {};
-      c.push([`the page, ${w}: the tile's figure reads "${v}", the sum the lib gives${sub ? ", the sub-line naming what is left out" : ""}`, r.l === "Timeline" && r.v === v && (!sub || sub.test(r.s || "")), JSON.stringify(r)]); });
-    const t1 = tree("tl-sum-check", [landed(d => { d.sized = "2026-10-19"; })]), f1 = path.join(t1, "docs", "plans", "38-handshake-empty-name");
-    ["plan.md", "architecture.md", "impact.md", "final-implementation.md", "research/README.md"].forEach(f => { const s = sk("plan/examples/38-handshake-empty-name/" + f); if (fs.existsSync(s)) wr(path.join(f1, f), rd(s)); });
-    const k1 = run(checkJs, [f1]);
-    c.push(["check.js reports the figure with the phases: their sum", /ok\s+timeline: plan 1 day · build same day · qa same day · landing same day; the figure: 1 day, the sum of the phases drawn/.test(k1.stdout), (k1.stdout || "").split(/\r?\n/).filter(l => /timeline/.test(l)).join(" | ")]);
-  });
+  /* 1. the Timeline tile's figure, the sum of what its bar draws: since dashboards-skill/32 the visits of its run's steps (verify/cases-32.js) */
 
   /* 2. an issue's title quoted verbatim; one that names a work level flagged as the issue's defect, never the page's failure */
   guard("an issue's title quoted verbatim; one naming a work level flagged ISSUE TITLE NAMES A WORK LEVEL: #n, never a failure, on every type (dashboards-skill/28)", c => {
@@ -195,7 +174,7 @@ module.exports = function cases28(X) {
       c.push([`the ${k} template carries ${want.join(", ")}`, !miss.length && want.length === (k === "plan-board" ? 3 : 1), JSON.stringify(miss)]); });
     const lacks = (h, k, id) => F.probe(h, k).some(m => m.id === id);
     c.push(["a plan template whose unit labels glow as one column lacks unit-filing-glow", lacks(T.plan.replace('class="rowlab${r.unit&&CURRENT.includes(r.id+".units")', 'class="rowlab${r.unit&&CURRENT.includes("units")'), "plan-board", "unit-filing-glow"), "probe"]);
-    c.push(["a plan template whose Timeline figure is baseline to built lacks timeline-sum", lacks(T.plan.replace("tlDuration(timelineTotal(TP))", "tlDuration(TP)"), "plan-board", "timeline-sum"), "probe"]);
+    c.push(["a plan template whose Timeline figure is not the sum of what its bar draws lacks timeline-sum", lacks(T.plan.split("tlSpan(tot)").join("tlSpan(0)"), "plan-board", "timeline-sum"), "probe"]);
     c.push(["a plan template that does not mark its issue line lacks issue-title-quoted", lacks(T.plan.replace('`<span data-issue-title="${esc(PLAN.issue)}">${rich(PLAN.issueTitle)}</span>`', 'rich(PLAN.issueTitle)'), "plan-board", "issue-title-quoted"), "probe"]);
     c.push(["a work-board template whose pair() marks no title lacks it", lacks(T.work.split("data-issue-title=").join("data-x="), "work-board", "issue-title-quoted"), "probe"]);
     c.push(["a system template whose linkIssues() drops the mark lacks it", lacks(T.system.split("data-issue-title").join("data-x").replace(/issueTitle=/g, "x="), "system", "issue-title-quoted"), "probe"]);

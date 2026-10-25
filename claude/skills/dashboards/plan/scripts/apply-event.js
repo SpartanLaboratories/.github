@@ -475,6 +475,11 @@ function applyEvent(orig, ev, facts, req, now) {
       const sha = [facts.sha, facts.merge].find(s => typeof s === "string" && /^[0-9a-f]{7,40}$/.test(s)), pr = Number.isInteger(facts.pr) ? facts.pr : null;
       const next = { ...A, ...(sha ? { sha } : {}), ...(typeof facts.merge === "string" && /^[0-9a-f]{7,40}$/.test(facts.merge) ? { merge: facts.merge } : {}), ...(pr ? { pr } : {}),
         ...(txt(facts.version, "version") ? { version: txt(facts.version, "version") } : {}), date: /^\d{4}-\d{2}-\d{2}$/.test(String(facts.date || "")) ? facts.date : (A.date || today) };
+      /* the merge's time and the branch's step commits, for the Timeline tile (plan/RULES.md §2, "The KPI tiles"; dashboards-skill/32):
+         facts.mergedAt when given, else read from git in the worktree (lib.js gitTimes()); nothing is recorded where git cannot tell */
+      const gt = lib.gitTimes(ROOT, typeof plan.folder === "string" ? plan.folder : null, next.merge || sha || null), mAt = lib.isTime(facts.mergedAt) ? facts.mergedAt : gt.at || null;
+      if (mAt) next.at = mAt; if (Array.isArray(gt.commits) && gt.commits.length) next.commits = gt.commits;
+      if (!next.at) enrich.push("landed: the merge's time (asBuilt.at) is not recorded: git in the worktree cannot tell it (timeline.js <folder> --from-git, or facts.mergedAt)");
       plan.asBuilt = next; applied.push("asBuilt");
       /* the board is built, and its step landed, only once every part is resolved and the merge is recorded (check.js); until the
          landing refresh resolves them it stays at the landing, its merge recorded */
@@ -505,6 +510,10 @@ function applyEvent(orig, ev, facts, req, now) {
       applied.push(...r.applied); enrich.push(...r.notes.map(n => "tests: " + n)); }
   } else if (!tracking && testsDue)
     enrich.push(`the Tests tab: the event carries no facts.tests; ${ev === "qa-pass" ? "Relevant, Other and the results come from the qa report" : "Added and Amended come from the branch's diff against its base"}`);
+  /* the fast path takes open points only at an implementation stage and a qa pass (plan/RULES.md §4, "The fast path"); a facts.open on
+     any other event is never dropped silently: the presenter writes it (anything not applied means enrich: yes) */
+  if (Array.isArray(facts.open) && facts.open.length && !["implementation-stage", "qa-pass"].includes(ev))
+    enrich.push(`facts.open (${facts.open.length} open point${facts.open.length === 1 ? "" : "s"}) on ${ev} is not applied by the fast path, which takes open points at an implementation stage or a qa pass: the presenter writes them into wip.open (and a resolved one into the trail)`);
   if (detail !== w.detail) { w.detail = detail; applied.push("wip.detail"); }
   const evRec = { name: ev, at: now, ...(note ? { note } : {}) };
   w.event = evRec; w.updated = now;

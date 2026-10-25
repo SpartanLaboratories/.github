@@ -294,11 +294,22 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .key i.segk{width:16px;height:6px;border:0;border-radius:2px;background:var(--sc,var(--ink-2))}
 .key i.segk.good{--sc:var(--good)}.key i.segk.warning{--sc:var(--warning)}.key i.segk.critical{--sc:var(--critical)}.key i.segk.serious{--sc:var(--serious)}.key i.segk.accent{--sc:var(--accent)}.key i.segk.ink{--sc:var(--ink-2)}.key i.segk.neutral{--sc:var(--line)}
 .key i.segk.left{background:var(--muted);opacity:.5}
-/* The Timeline tile of a landed board (plan/RULES.md §2, "The KPI tiles"): one segment per phase, sized by its time, in a neutral ink
-   ramp from the first phase (faintest) to the last (strongest), so it spends no system colour and no status colour (GUIDANCE.md §1); a
-   phase of no length keeps a sliver, so every phase its legend names is drawn. A tracking board's three phases spread over the same ramp. */
-.tp-1{--tp:color-mix(in srgb,var(--ink) 28%,var(--surface))}.tp-2{--tp:color-mix(in srgb,var(--ink) 52%,var(--surface))}.tp-m{--tp:color-mix(in srgb,var(--ink) 64%,var(--surface))}.tp-3{--tp:color-mix(in srgb,var(--ink) 76%,var(--surface))}.tp-4{--tp:var(--ink)}
-.kpi .seg-bar i.tp{background:var(--tp);min-width:4px}.key i.segk.tp{--sc:var(--tp)}
+/* The Timeline tile of a landed board (plan/RULES.md §2, "The KPI tiles"; dashboards-skill/32): one segment per timed visit of a run step,
+   sized by its time, in a neutral ink ramp, one shade per step from the first step drawn (faintest) to the last (the full ink), so it
+   spends no system colour and no status colour (GUIDANCE.md §1); a visit of no length keeps a sliver. Its legend is the step lines, laid
+   in columns down the row the tile takes across a landed board's KPI row (four tiles above it). */
+.kpi .seg-bar i.tp{min-width:4px}.key i.segk.tp{--sc:var(--tp)}.key i.segk.tl-none{background:none}
+.kpis:has(>.kpi>.key.tl-steps){grid-template-columns:repeat(4,minmax(0,1fr))}
+.kpis>.kpi:has(>.key.tl-steps){grid-column:1/-1}
+@media (max-width:760px){.kpis:has(>.kpi>.key.tl-steps){grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:430px){.kpis:has(>.kpi>.key.tl-steps){grid-template-columns:minmax(0,1fr)}}
+.kpi .key.tl-steps{display:block;columns:20rem;column-gap:28px;margin-top:8px}
+.kpi .key.tl-steps>span.tl-step{display:grid;grid-template-columns:16px minmax(0,10.5em) minmax(0,1fr) auto;align-items:baseline;gap:2px 8px;break-inside:avoid;padding:1.5px 0}
+.tl-step>i.segk{align-self:center}
+.tl-step>b{font-weight:600;color:var(--ink)}
+.tl-step>.tl-when{font-variant-numeric:tabular-nums}
+.tl-step>.tl-dur{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
+.kpi .key.tl-steps>span.tl-note{display:block;color:var(--muted);margin-top:5px;break-inside:avoid}
 /* a statement's reference whose section number is read from its link's anchor alone (its file not there to read): "(§42?)" */
 .key b.srefk{font:600 10.5px var(--mono);color:var(--link)}
 .key i.segk.dash{background:none;border:1.5px dashed var(--sc,var(--muted));height:7px}
@@ -1668,38 +1679,60 @@ function renderWip(){
   w.addEventListener("keydown",e=>{ if(e.key==="Escape"&&SEL){ e.preventDefault(); backToNow(); } }); })();
 
 /* ---------- KPIs ---------- */
-/* The Timeline tile of a landed board (plan/RULES.md §2, "The KPI tiles"; dashboards-skill/23): the time per phase, a bar of neutral ink
-   shades, faintest to strongest, each phase with its legend entry inside the tile. An issue board's phases: plan (sized → plan accepted,
-   the verdict milestone), build (plan accepted → the first qa pass), qa (the first qa pass → the last), landing (the last qa pass → the
-   merge); a tracking board's own: plan (sized → the architecture signed off, the considered milestone), filing (signed off → the plan's
-   merge, the verdict milestone), units (the plan's merge → the last unit's landing, the board's merge). sized is PLAN.sized, else on an
-   issue board the earliest trail entry that says it was sized; a qa pass's time its at, else its date; the merge asBuilt.date, else the
-   built milestone. A phase with a bound not recorded, or out of order, is left out and named in the sub-line. lib.js timelinePhases(). */
+/* The Timeline tile of a landed board (plan/RULES.md §2, "The KPI tiles"; dashboards-skill/32): one line per visit of a run step, in the
+   step panel's vocabulary and the order the run visited them, each with its start → end and its duration; the bar draws the visits whose
+   both bounds carry a time, one segment each, in a neutral ink ramp, one shade per step (a step's repeats share it), and each timed line
+   is its segment's legend entry. Bounds from the record only: a visit's snapshot (since, ended), else plan.sized for the sizing's end and
+   a qa pass's at; the merge (asBuilt.at, from git) as the last visit's end; a neighbour's bound where no step of the line lies between
+   them; a step's first commit (asBuilt.commits, from git) as a "by" start, no duration. Anything else is "—". The figure is the sum of
+   the visits drawn. lib.js timelineSteps(), tlSpan(), timelineTotal() are the same rule. */
 const okStamp=v=>typeof v==="string"&&/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?Z)?$/.test(v)&&!isNaN(Date.parse(v));
-const TLP_PH={issue:[["plan","sized","accepted"],["build","accepted","qaFirst"],["qa","qaFirst","qaLast"],["landing","qaLast","merged"]],tracking:[["plan","sized","signedOff"],["filing","signedOff","planMerged"],["units","planMerged","merged"]]};
-const TLP_SH={issue:["1","2","3","4"],tracking:["1","m","4"]};
-const TLP_BW={sized:"sizing",accepted:"plan acceptance",qaFirst:"qa pass",qaLast:"qa pass",merged:"merge",signedOff:"architecture sign-off",planMerged:"plan merge"};
-const TLP_DESC={plan:"sized to the plan accepted",build:"the plan accepted to the first qa pass",qa:"the first qa pass to the last",landing:"the last qa pass to the merge",filing:"the architecture signed off to the plan's merge: the units filed, their boards laid",units:"the plan's merge to the last unit's landing"};
-function timelinePhases(P){ const kind=P&&P.kind==="tracking"?"tracking":"issue", out={kind,phases:[],left:[]};
-  const ms=c=>{ const m=(Array.isArray(P.milestones)?P.milestones:[]).find(x=>x&&x.column===c&&okStamp(x.date)); return m?m.date:null; };
-  const trailSized=kind==="tracking"?null:(Array.isArray(P.trail)?P.trail:[]).filter(t=>t&&okStamp(t.date)&&/\bsized\b/i.test(String(t.label||""))).map(t=>t.date).sort()[0]||null;
-  const qa=(P.wip&&Array.isArray(P.wip.qa)?P.wip.qa:[]).map(q=>q&&(okStamp(q.at)?{pass:q.pass,t:q.at}:okStamp(q.date)?{pass:q.pass,t:q.date}:null)).filter(Boolean).sort((a,b)=>(a.pass||0)-(b.pass||0));
-  const B={sized:okStamp(P.sized)?P.sized:trailSized,accepted:ms("verdict"),qaFirst:qa.length?qa[0].t:null,qaLast:qa.length?qa[qa.length-1].t:null,merged:P.asBuilt&&okStamp(P.asBuilt.date)?P.asBuilt.date:ms("built"),signedOff:ms("considered"),planMerged:ms("verdict")};
-  const day=s=>Date.UTC(+s.slice(0,4),+s.slice(5,7)-1,+s.slice(8,10));
-  TLP_PH[kind].forEach(([key,a,b],i)=>{ const from=B[a], to=B[b];
-    if(!from||!to){ out.left.push({key,why:`no ${[...new Set([a,b].filter(x=>!B[x]).map(x=>TLP_BW[x]))].join(" or ")} recorded`}); return; }
-    const days=Math.round((day(to)-day(from))/864e5), timed=from.length>10&&to.length>10, weight=timed?(Date.parse(to)-Date.parse(from))/36e5:days*24;
-    if(days<0||weight<0){ out.left.push({key,why:"its bounds out of order"}); return; }
-    out.phases.push({key,shade:TLP_SH[kind][i],from,to,days,weight,timed}); });
-  return out; }
-const tlDuration=p=>p.timed&&p.weight<24?(p.weight<1?"under an hour":`${Math.round(p.weight)} h`):p.days===0?"same day":`${p.days} day${p.days===1?"":"s"}`;
-/* the tile's figure (dashboards-skill/28): the sum of the phases the bar draws, never baseline to built; a phase left out is not summed,
-   and the sub-line names it. In hours where every phase drawn carries both times and the sum is under a day, else in calendar days.
-   lib.js timelineTotal(). */
-function timelineTotal(T){ const ps=T&&Array.isArray(T.phases)?T.phases:[]; if(!ps.length) return null;
-  return {days:ps.reduce((n,p)=>n+p.days,0),weight:ps.reduce((n,p)=>n+p.weight,0),timed:ps.every(p=>p.timed)}; }
-function timelineLeftOut(T){ const by=new Map(); (T&&T.left||[]).forEach(x=>{ if(!by.has(x.why)) by.set(x.why,[]); by.get(x.why).push(x.key); });
-  return [...by].map(([why,ks])=>`${ks.join(", ")} left out: ${why}`).join(" · "); }
+const isTime=v=>okStamp(v)&&v.length>10;
+const tlShade=(k,n)=>n<=1?100:Math.round(40+60*k/(n-1));
+const tlMix=p=>`color-mix(in srgb,var(--ink) ${p}%,var(--surface))`;
+function timelineSteps(P){ const w=(P&&P.wip)||{}, H=histOf(w), steps=(Array.isArray(w.steps)&&w.steps.length?w.steps:STEP_ORDER).filter(s=>s!=="landed"), idx=s=>steps.indexOf(s);
+  const bd=t=>isTime(t)?{t,how:"exact"}:null, ne=v=>Array.isArray(v)?v.length>0:v!=null&&typeof v==="object", passOf=q=>Array.isArray(q)&&q[0]&&Number.isInteger(q[0].pass)?q[0].pass:null, seq=[], recon=[], left=[];
+  steps.forEach(s=>visitsOf(w,s).forEach(v=>seq.push({step:s,pass:s==="qa"?passOf(v.qa):s==="remediation"?((v.remediation&&v.remediation.pass)||passOf(v.qa)):null,from:bd(v.since),to:bd(v.ended)})));
+  const tOf=v=>Date.parse((v.to||v.from||{t:""}).t)||0; seq.sort((a,b)=>tOf(a)-tOf(b)||idx(a.step)-idx(b.step));
+  steps.filter(s=>!visitsOf(w,s).length).forEach(s=>{ const R=reconStep(P,s), date=R.ended||null;
+    if((s==="qa"||s==="remediation")&&Array.isArray(R.qa)&&R.qa.length){ R.qa.forEach(q=>recon.push({step:s,pass:Number.isInteger(q.pass)?q.pass:null,from:null,to:s==="qa"?bd(q.at):null,date:q.at||q.date||date})); return; }
+    if(R.trail.length||R.milestones.length||R.sized||ne(R.interview)||ne(R.questions)||ne(R.stages)||R.units) recon.push({step:s,pass:null,from:null,to:s==="sizing"?bd(P.sized):null,date}); else left.push(s); });
+  const loop=x=>x.step==="qa"||x.step==="remediation"; recon.sort((a,b)=>loop(a)&&loop(b)?((a.pass||0)-(b.pass||0)||idx(a.step)-idx(b.step)):idx(a.step)-idx(b.step));
+  recon.forEach(r=>{ r.recon=true; let k=seq.findIndex(v=>!v.recon&&idx(v.step)>idx(r.step)); if(k<0) k=seq.length; seq.splice(k,0,r); });
+  const A=P.asBuilt&&typeof P.asBuilt==="object"?P.asBuilt:{}, last=seq[seq.length-1];
+  if(last&&isTime(A.at)&&(!last.from||Date.parse(A.at)>=Date.parse(last.from.t))) last.to={t:A.at,how:"exact",merge:true};
+  const adj=(a,b)=>idx(b.step)-idx(a.step)<=1;
+  for(let ch=true,g=0;ch&&g<4;g++){ ch=false; for(let k=0;k+1<seq.length;k++){ const a=seq[k], b=seq[k+1]; if(!adj(a,b)) continue;
+    if(!a.to&&b.from&&b.from.how==="exact"){ a.to={t:b.from.t,how:"exact"}; ch=true; } if(!b.from&&a.to&&a.to.how==="exact"){ b.from={t:a.to.t,how:"exact"}; ch=true; } } }
+  const cs=(Array.isArray(A.commits)?A.commits:[]).filter(c=>c&&isTime(c.at)&&typeof c.step==="string").sort((a,b)=>Date.parse(a.at)-Date.parse(b.at));
+  steps.forEach(s=>{ const vs=seq.filter(v=>v.step===s), c=cs.find(x=>x.step===s); if(vs.length===1&&!vs[0].from&&c&&(!vs[0].to||Date.parse(c.at)<=Date.parse(vs[0].to.t))) vs[0].from={t:c.at,how:"by",sha:c.sha||null}; });
+  const cnt={}, nth={}; seq.forEach(v=>{ cnt[v.step]=(cnt[v.step]||0)+1; });
+  seq.forEach(v=>{ v.n=nth[v.step]=(nth[v.step]||0)+1;
+    v.label=v.step==="qa"?(v.pass?`qa · ${ordinal(v.pass)} pass`:cnt.qa>1?`qa · visit ${v.n}`:"qa"):v.step==="remediation"?(v.pass||cnt.remediation>1?`remediation · loop ${v.n}`:"remediation"):cnt[v.step]>1?`${v.step} · visit ${v.n}`:v.step;
+    const a=v.from&&v.from.how==="exact"?Date.parse(v.from.t):null, b=v.to?Date.parse(v.to.t):null; v.ms=a!=null&&b!=null?b-a:null; if(v.ms!=null&&v.ms<0){ v.ms=null; v.order=true; } });
+  const timed=seq.filter(v=>v.ms!=null), drawn=[...new Set(timed.map(v=>v.step))].sort((x,y)=>idx(x)-idx(y)); timed.forEach(v=>{ v.shade=tlShade(drawn.indexOf(v.step),drawn.length); });
+  return {visits:seq,left,untimed:seq.filter(v=>v.ms==null).map(v=>v.label)}; }
+/* a span: "40 min", "2 h 35 min", "3 days 4 h", "under 1 min" */
+const tlSpan=ms=>{ if(ms==null||!isFinite(ms)) return "—"; const m=Math.round(ms/6e4); if(m<1) return "under 1 min"; if(m<60) return `${m} min`;
+  if(m<1440){ const h=Math.floor(m/60), r=m%60; return r?`${h} h ${r} min`:`${h} h`; } let d=Math.floor(m/1440), h=Math.round((m-d*1440)/60); if(h===24){ d++; h=0; } return `${d} day${d===1?"":"s"}${h?` ${h} h`:""}`; };
+/* the tile's figure: the sum of the visits drawn (ms), null when none is */
+function timelineTotal(T){ const ts=(T&&Array.isArray(T.visits)?T.visits:[]).filter(v=>v.ms!=null); return ts.length?ts.reduce((n,v)=>n+v.ms,0):null; }
+function timelineLeftOut(T){ const vs=(T&&T.visits||[]).filter(v=>v.ms==null), o=vs.filter(v=>v.order), u=vs.filter(v=>!v.order);
+  return [u.length?`not summed: ${u.map(v=>v.label).join(", ")} (a bound not recorded)`:"",o.length?`not summed: ${o.map(v=>v.label).join(", ")} (bounds out of order)`:"",T&&T.left&&T.left.length?`no record of: ${T.left.join(", ")}`:""].filter(Boolean).join(" · "); }
+/* The tile's times, in the viewer's zone (GUIDANCE.md §6): a clock time on the run's first day, the day before it on any other; the zone
+   once, in the sub-line; every <time> holds the UTC stamp. */
+function tlView(T){ const ts=[]; (T.visits||[]).forEach(v=>[v.from,v.to].forEach(b=>{ if(b) ts.push(b.t); })); ts.sort((a,b)=>Date.parse(a)-Date.parse(b));
+  const dOf=t=>new Date(t).toLocaleDateString(undefined,{day:"numeric",month:"short"}), day0=ts.length?dOf(ts[0]):"";
+  const clock=t=>{ const hm=new Date(t).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}), d=dOf(t); return d===day0?hm:`${d} ${hm}`; };
+  const full=t=>new Date(t).toLocaleString(undefined,LOCAL_FMT);
+  const time=b=>b?`${b.how==="by"?"by ":""}<time datetime="${esc(b.t)}" data-local="1" title="${esc(`${full(b.t)} · ${b.t} (UTC)${b.how==="by"?` · its first commit${b.sha?` ${b.sha}`:""}: the step was under way by then`:""}${b.merge?" · the merge":""}`)}">${esc(clock(b.t))}</time>${b.merge?" merged":""}`:`<span class="tl-nil" title="not recorded">—</span>`;
+  const text=b=>b?`${b.how==="by"?"by ":""}${clock(b.t)}${b.merge?" merged":""}`:"—";
+  const zone=ts.length?((new Intl.DateTimeFormat(undefined,{timeZoneName:"short"}).formatToParts(new Date(ts[0])).find(p=>p.type==="timeZoneName")||{}).value||""):"";
+  const YMD={day:"numeric",month:"short",year:"numeric"}, ydt=d=>d.length>10?new Date(d).toLocaleDateString(undefined,YMD):new Date(d+"T12:00:00Z").toLocaleDateString(undefined,{...YMD,timeZone:"UTC"});
+  const yd=d=>d.length>10?`<time datetime="${esc(d)}" data-local="1" title="${esc(d)} (UTC)">${esc(ydt(d))}</time>`:esc(ydt(d));
+  const ds=ts.length?[ts[0],ts[ts.length-1]]:(T.visits||[]).map(v=>v.date).filter(okStamp).sort((x,y)=>Date.parse(x)-Date.parse(y)), first=ds[0], end=ds[ds.length-1];
+  const range=!ds.length?"":ydt(first)===ydt(end)?yd(first):`${yd(first)} – ${yd(end)}`;
+  return {time,text,zone,range}; }
 function renderKpis(){
   const states=Object.keys(STATES).map(k=>[k,count(ROWS,r=>!leftForLater(r)&&stateOf(r)===k)]), left=count(ROWS,leftForLater);
   /* The As built tile (plan/RULES.md §2): rows built of the rows this issue builds. Built is as-planned, amended or deviated (a
@@ -1726,18 +1759,18 @@ function renderKpis(){
   OPTS.forEach(x=>{ const {def,settled}=optDef(x.row,x.opt), k=settled?"settled-"+(settled.verdict||"accepted"):x.opt.verdict, p=optParts.find(q=>q.k===k)||optParts.find(q=>q.k==="declined"); p.n++; p.cls=def.cls+(def.dash?" dash":""); });
   const qa=LANDED||STOPPED?qaInPlace(WIP,(Array.isArray(WIP.qa)?WIP.qa:[]).filter(p=>p&&typeof p==="object"),true):qaShown(WIP), qmax=Math.max(qa.length,Number.isInteger(WIP.qaMax)&&WIP.qaMax>0?WIP.qaMax:3);
   const qaParts=[...qa.map(p=>({n:1,cls:QA_RES[qaResult(p)].cls,t:`${ordinal(p.pass)} pass: ${QA_RES[qaResult(p)].label}`})),...Array.from({length:qmax-qa.length},()=>({n:1,cls:"slot",t:"a pass not used"}))];
-  /* the Timeline tile (a landed board): one segment per phase drawn, sized by its time; a phase of no length keeps a sliver, and phases
-     all of no length share the bar alike */
-  const TP=LANDED?timelinePhases(PLAN):null, tpTot=TP?TP.phases.reduce((n,p)=>n+p.weight,0):0;
-  const tpParts=TP?TP.phases.map(p=>({n:tpTot>0?Math.max(p.weight,tpTot*0.04):1,cls:`tp tp-${p.shade}`,t:`${p.key}: ${tlDuration(p)} (${TLP_DESC[p.key]})`})):[];
-  KPI_DRAWN={rows:gparts,opts:optParts.filter(p=>p.n),verdicts:[vbuild,leave,vopen],states:states.filter(([,n])=>n).map(([k])=>k),left,qa:LANDED?[]:[...new Set(qa.map(qaResult))],slots:!LANDED&&qmax>qa.length,timeline:TP?TP.phases:[]};
+  /* the Timeline tile (a landed board, dashboards-skill/32): one segment per timed visit, in the order of its step lines, sized by its time
+     (a visit of no length keeps a sliver; visits all of no length share the bar alike), each in its step's shade */
+  const TS=LANDED?timelineSteps(PLAN):null, tsTot=TS?timelineTotal(TS):null, TV=TS?tlView(TS):null, tsTimed=TS?TS.visits.filter(v=>v.ms!=null):[];
+  const tpParts=tsTimed.map(v=>({n:tsTot>0?Math.max(v.ms,tsTot*0.03):1,cls:"tp",c:tlMix(v.shade),t:`${v.label}: ${TV.text(v.from)} → ${TV.text(v.to)} · ${tlSpan(v.ms)}`}));
+  KPI_DRAWN={rows:gparts,opts:optParts.filter(p=>p.n),verdicts:[vbuild,leave,vopen],states:states.filter(([,n])=>n).map(([k])=>k),left,qa:LANDED?[]:[...new Set(qa.map(qaResult))],slots:!LANDED&&qmax>qa.length};
   const K=kpiKeys();
   $("#kpis").innerHTML=[
     `<div class="kpi"><div class="l">${TRACKING?"Units":"Rows"}</div><div class="v">${ROWS.length}</div><div class="s">${groups.length?`${groups.length} group${groups.length>1?"s":""}: ${groups.map(esc).join(", ")}`:"no rows yet"}</div>${ROWS.length?segBar(gparts,`${TRACKING?"Units":"Rows"} by group: ${gparts.map(p=>p.t).join("; ")}`)+K.rows:""}</div>`,
     `<div class="kpi"><div class="l">Options weighed</div><div class="v">${OPTS.length}</div><div class="s">${["accepted","partial","deferred","declined"].filter(by).map(v=>`${by(v)} ${v}`).join(" · ")||"none yet"}</div>${OPTS.length?segBar(optParts,`Options weighed: ${optParts.filter(p=>p.n).map(p=>`${p.n} ${p.k.replace("settled-","deferred, settled ")}`).join(", ")}`)+K.opts:""}</div>`,
     `<div class="kpi"><div class="l">Verdicts</div>${vbuild+leave?`<div class="v">${vbuild} <small>build</small></div><div class="s">${leave} left for later${vopen?` · ${vopen} not yet written`:""}</div>`:`<div class="v">0${ROWS.length?` <small>of ${ROWS.length}</small>`:""}</div><div class="s">none written yet</div>`}${ROWS.length?segBar([{n:vbuild,cls:"ink",t:`${vbuild} build`},{n:leave,cls:"left",t:`${leave} left for later`},{n:vopen,cls:"dash",t:`${vopen} not yet written`}],`Verdicts: ${vbuild} build, ${leave} left for later, ${vopen} not yet written`)+K.verdicts:""}</div>`,
     `<div class="kpi"><div class="l">As built</div><div class="v">${built} <small>/ ${counted.length} ${TRACKING?"units landed":"rows built"}</small></div><div class="s">${[...states.filter(([,n])=>n).map(([k,n])=>`${n} ${STATES[k].label}`),left?`${left} left for later`:""].filter(Boolean).join(" · ")||"—"}${changes?` · ${changes} changes`:""}</div>${ROWS.length?bar+K.built:""}</div>`,
-    `<div class="kpi"><div class="l">${LANDED?"Timeline":"QA passes"}</div><div class="v">${LANDED?(TP&&TP.phases.length?esc(tlDuration(timelineTotal(TP))):"—"):`${qa.length}${WIP.qaMax?` <small>of at most ${esc(WIP.qaMax)}</small>`:""}`}</div><div class="s">${LANDED?[`${b.date?`baseline ${when(b.date)}`:""}${a&&a.date?` → built ${when(a.date)}`:""}`,esc(timelineLeftOut(TP))].filter(Boolean).join(" · "):(qa.length?esc(qa.map(p=>`${ordinal(p.pass)} pass: ${(QA[p.verdict]||QA.running).label}${p.inPlace?`, ${inPlaceWords(p)}`:""}`).join(" · ")):"no qa pass yet")}</div>${LANDED?(tpParts.length?segBar(tpParts,`Timeline: ${TP.phases.map(p=>`${p.key} ${tlDuration(p)}`).join(", ")}${TP.left.length?`; ${timelineLeftOut(TP)}`:""}`)+K.timeline:""):segBar(qaParts,`QA passes: ${qa.length} of ${qmax} slots used`)+K.qa}</div>`].join("");
+    LANDED?timelineTile(TS,TV,tsTot,tpParts,segBar):`<div class="kpi"><div class="l">QA passes</div><div class="v">${qa.length}${WIP.qaMax?` <small>of at most ${esc(WIP.qaMax)}</small>`:""}</div><div class="s">${qa.length?esc(qa.map(p=>`${ordinal(p.pass)} pass: ${(QA[p.verdict]||QA.running).label}${p.inPlace?`, ${inPlaceWords(p)}`:""}`).join(" · ")):"no qa pass yet"}</div>${segBar(qaParts,`QA passes: ${qa.length} of ${qmax} slots used`)+K.qa}</div>`].join("");
 }
 /* A qa pass's result on its slot: running (accent), passed (green), changes requested with minor findings only (yellow: every
    finding minor by severity, or fixed on the spot), changes requested with other findings (red). */
@@ -1747,7 +1780,7 @@ function qaResult(p){ if(!p||p.verdict==="running"||!QA[p.verdict]) return "runn
   return (sv.minor>0&&!other)||p.route==="on-the-spot"?"minor":"other"; }
 let KPI_DRAWN=null;
 /* Each tile's legend, inside the tile: exactly the segments its own bar drew (GUIDANCE.md §2; plan/RULES.md §2, "The KPI tiles"). */
-function kpiKeys(){ const D=KPI_DRAWN, o={rows:"",opts:"",verdicts:"",built:"",qa:"",timeline:""}; if(!D) return o;
+function kpiKeys(){ const D=KPI_DRAWN, o={rows:"",opts:"",verdicts:"",built:"",qa:""}; if(!D) return o;
   const k=(cls,word,st)=>`<span><i class="segk ${cls}"${st?` style="background:${st}"`:""}></i>${word}</span>`, key=a=>a.length?`<div class="key">${a.join("")}</div>`:"";
   if(D.rows.length){ const seen=new Map(); D.rows.forEach(p=>{ if(!seen.has(p.c)) seen.set(p.c,new Set()); p.names.forEach(x=>seen.get(p.c).add(x)); });
     o.rows=key([...seen].map(([c,ns])=>k("",esc([...ns].join(", ")),c))); }
@@ -1755,9 +1788,17 @@ function kpiKeys(){ const D=KPI_DRAWN, o={rows:"",opts:"",verdicts:"",built:"",q
   o.verdicts=key([D.verdicts[0]?k("ink","build"):"",D.verdicts[1]?k("left","left for later"):"",D.verdicts[2]?k("dash","not yet written (dashed: pending)"):""].filter(Boolean));
   o.built=key([...D.states.map(s=>k(STATES[s].cls+(STATES[s].dash?" dash":""),`${esc(STATES[s].g)} ${esc(STATES[s].label)}`)),D.left?k("left","left for later"):""].filter(Boolean));
   o.qa=key([...D.qa.map(x=>k(QA_RES[x].cls,`${esc(QA_RES[x].g)} ${esc(QA_RES[x].label)}`)),D.slots?k("slot","a pass not used"):""].filter(Boolean));
-  /* the Timeline tile: each phase drawn, its shade and its time (its bounds in the title) */
-  o.timeline=key((D.timeline||[]).map(p=>`<span title="${esc(TLP_DESC[p.key])}"><i class="segk tp tp-${p.shade}"></i>${esc(p.key)} · ${esc(tlDuration(p))}</span>`));
   return o; }
+/* The Timeline tile (plan/RULES.md §2, "The KPI tiles"; dashboards-skill/32): the figure, the sum of the visits drawn; the sub-line, the
+   run's dates, the zone of its times and what is not summed; the bar; and its legend, the step lines: one per visit, its swatch (a timed
+   visit's segment; none for a visit not drawn), its step, its start → end and its duration, then a note naming the marks the lines use. */
+function timelineTile(T,V,tot,parts,segBar){ const vs=T.visits||[], nil=vs.some(v=>!v.from||!v.to), by=vs.some(v=>v.from&&v.from.how==="by"), merged=vs.some(v=>v.to&&v.to.merge);
+  const sub=[V.range,V.zone&&vs.some(v=>v.from||v.to)?`times ${esc(V.zone)}`:"",esc(timelineLeftOut(T))].filter(Boolean).join(" · ");
+  const line=v=>`<span class="tl-step"><i class="segk ${v.ms!=null?"tp":"tl-none"}"${v.ms!=null?` style="--tp:${tlMix(v.shade)}"`:' aria-hidden="true"'}></i><b>${esc(v.label)}</b><span class="tl-when">${V.time(v.from)} → ${V.time(v.to)}</span><span class="tl-dur">${v.ms!=null?esc(tlSpan(v.ms)):"—"}</span></span>`;
+  const note=[nil?"— not recorded":"",by?"by: the step under way at its first commit":"",merged?"merged: the run's end, the merge":""].filter(Boolean).join(" · ");
+  const keyH=vs.length?`<div class="key tl-steps">${vs.map(line).join("")}${note?`<span class="tl-note">${esc(note)}</span>`:""}</div>`:"";
+  const bar=parts.length?segBar(parts,`Timeline: ${vs.filter(v=>v.ms!=null).map(v=>`${v.label} ${tlSpan(v.ms)}`).join(", ")}${T.untimed.length?`; not summed: ${T.untimed.join(", ")}`:""}`):"";
+  return `<div class="kpi"><div class="l">Timeline</div><div class="v">${tot!=null?esc(tlSpan(tot)):"—"}</div><div class="s">${sub||"no step recorded"}</div>${bar}${keyH}</div>`; }
 
 /* ---------- Timeline board ---------- */
 /* A unit row's title (plan/RULES.md §1, "The unit row"): "1. #61 Shared build logic", where #61 opens the GitHub issue and the

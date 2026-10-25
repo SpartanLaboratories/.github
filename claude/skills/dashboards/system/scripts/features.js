@@ -117,7 +117,8 @@ const FEATURES = [
   /* admin-team/dashboards-skill/23 */
   { id: "timeline-phases", name: "the Timeline tile's bar on a landed board: the time per phase in neutral ink shades, each phase in its legend, a phase with no bound named", since: 23, types: ["plan-board"],
     notFor: { system: "its tiles are hand-written counted facts: a state page shows no run's phases", supersystem: "no KPI tiles", "work-board": "one row per run and no Timeline tile: each run's phases are on its own board" },
-    test: h => { const s = scripts(h), c = css(h); return need(/function timelinePhases\(/.test(s) && /o\.timeline=key\(/.test(s) && /\.tp-1\{--tp:/.test(c) && /\.tp-4\{--tp:/.test(c), "the Timeline tile draws no bar of its phases (timelinePhases(), the tp shades)"); } },
+    /* the phases of dashboards-skill/23, or the legend of step visits that replaced them (dashboards-skill/32, timeline-steps) */
+    test: h => { const s = scripts(h), c = css(h); return need((/function timelinePhases\(/.test(s) && /o\.timeline=key\(/.test(s) && /\.tp-1\{--tp:/.test(c) && /\.tp-4\{--tp:/.test(c)) || /function timelineSteps\(/.test(s), "the Timeline tile draws no bar of its phases (timelinePhases(), the tp shades)"); } },
   { id: "ref-number", name: "a reference's section number before its excerpt: from its file's headings (refNumber), else its anchor's number marked \"?\"", since: 23, types: ["plan-board"],
     notFor: { system: "no statements with plan references", supersystem: "no statements with plan references", "work-board": "no statements: one row per run" },
     test: h => { const s = scripts(h); return need(/const refNumShown=/.test(s) && /refMarked\(/.test(s) && /\.key b\.srefk\{/.test(css(h)), "a reference with no excerpt still reads its whole anchor (\"§ 42-the-fix\"), with no section number from refNumber"); } },
@@ -133,7 +134,8 @@ const FEATURES = [
     test: h => { const s = scripts(h); return need(/class="rowlab\$\{r\.unit&&CURRENT\.includes\(r\.id\+"\.units"\)/.test(s) && /const rowActive=r=>CURRENT\.some\(a=>\{ const p=String\(a\)\.split\("\."\); return p\[0\]===r\.id&&p\[1\]!=="units"; \}\)/.test(s), "the unit rows' labels glow as one column (\"units\"), not each unit on its own, or a unit being filed reads as in progress"); } },
   { id: "timeline-sum", name: "the Timeline tile's figure the sum of the phases its bar draws (a phase left out not summed)", since: 28, types: ["plan-board"],
     notFor: { system: "its tiles are hand-written counted facts: a state page shows no run's phases", supersystem: "no KPI tiles", "work-board": "one row per run and no Timeline tile: each run's phases are on its own board" },
-    test: h => { const s = scripts(h); return need(/function timelineTotal\(/.test(s) && /tlDuration\(timelineTotal\(TP\)\)/.test(s), "the Timeline tile's figure is the span from baseline to built, not the sum of its phases (timelineTotal())"); } },
+    /* the sum of the phases drawn (dashboards-skill/28), or of the visits drawn (dashboards-skill/32) */
+    test: h => { const s = scripts(h); return need(/function timelineTotal\(/.test(s) && (/tlDuration\(timelineTotal\(TP\)\)/.test(s) || /tlSpan\(tot\)/.test(s)), "the Timeline tile's figure is the span from baseline to built, not the sum of its phases (timelineTotal())"); } },
   { id: "issue-title-quoted", name: "an issue's title quoted verbatim and marked (data-issue-title), so a work level in it is flagged as a defect in the issue, not shown as the page's", since: 28, types: ALL,
     test: (h, k) => { const s = scripts(h);
       if (k === "plan-board") return need(/data-issue-title=/.test(s) && /\$\("#issueline"\)\.innerHTML=PLAN\.issueTitle\?`<span data-issue-title=/.test(s), "the renderer quotes no issue title marked data-issue-title (the issue line, the roadmap, the follow-ups)");
@@ -159,6 +161,10 @@ const FEATURES = [
   { id: "runs-larger", name: "the Runs tab's content larger but Now, each run a labelled card under 880 px", since: 31, types: ["work-board"],
     notFor: { system: "no runs table: its tabs show the code at a commit", supersystem: "no runs table: its tabs show the code at a commit", "plan-board": "no runs table: one run, its rows a timeline grid sized by its own rules (plan/RULES.md §2)" },
     test: h => { const c = css(h); return need(c.includes(".tbl{font-size:14.5px") && c.includes(".tbl td:nth-child(3){font-size:12.5px}") && c.includes("@media (max-width:879.98px)"), "the Runs tab keeps the small table (12.5 px everywhere) or scrolls it sideways at phone width"); } },
+  /* admin-team/dashboards-skill/32 */
+  { id: "timeline-steps", name: "the Timeline tile of a landed board: one line per visit of a run step, its start → end and duration from the record only (— where none), in hours and minutes, the bar one segment per timed visit", since: 32, types: ["plan-board"],
+    notFor: { system: "its tiles are hand-written counted facts: a state page shows no run's steps", supersystem: "no KPI tiles", "work-board": "one row per run and no Timeline tile: its Landed tile counts runs and shows no time; each run's steps are on its own board" },
+    test: h => { const s = scripts(h), c = css(h); return need(/function timelineSteps\(/.test(s) && /const tlSpan=/.test(s) && /function timelineTile\(/.test(s) && /class="key tl-steps"/.test(s) && c.includes(".kpis:has(>.kpi>.key.tl-steps){"), "the Timeline tile shows phases in calendar days (\"same day\"), not one line per run step with its times (timelineSteps(), tlSpan(), timelineTile())"); } },
   /* admin-team/dashboards-skill/24 */
   { id: "finished-steps", name: "finished steps on the progress strip clickable: each shows its snapshot (wip.history) in the step panel, or what survives, reconstructed", since: 24, types: ["plan-board"],
     notFor: { system: "no progress strip: a state page shows the code at a commit, not a run's steps", supersystem: "no progress strip: a state page shows the code at a commit, not a run's steps", "work-board": "no progress strip: one row per run, each run's step as text; its steps are on its own board" },

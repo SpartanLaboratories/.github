@@ -1055,57 +1055,111 @@ function glowMismatch(plan) {
   return bad.length ? { step, via, want, bad } : null;
 }
 
-/* ---------- The Timeline tile (plan/RULES.md §2, "The KPI tiles"; admin-team/dashboards-skill/23) ----------
-   A landed board's last tile shows the time per phase as a bar of neutral ink shades, faintest to strongest, one per phase, each with
-   its legend entry inside the tile. An issue board's phases: plan (sized → plan accepted, the verdict milestone), build (plan accepted →
-   the first qa pass), qa (the first qa pass → the last), landing (the last qa pass → the merge). A tracking board's own: plan (sized →
-   the architecture signed off, the considered milestone), filing (signed off → the plan's merge, the verdict milestone: the units filed
-   as sub-issues, their boards laid, the plan landed), units (the plan's merge → the last unit's landing, the board's merge). Each bound
-   is read from the data: sized from plan.sized (new.js and apply-event.js stamp it at the run's start), else, on an issue board, the
-   earliest trail entry that says it was sized; a milestone's date; a qa pass's date (wip.qa[].date); the merge from asBuilt.date, else
-   the built milestone. A phase with a bound not recorded, or with its bounds out of order, is left out, and the tile's sub-line names
-   it with the reason. The template's timelinePhases() is the same rule. */
+/* ---------- The Timeline tile (plan/RULES.md §2, "The KPI tiles"; admin-team/dashboards-skill/32, in place of dashboards-skill/23's
+   four phases) ----------
+   A landed board's last tile carries one line per visit of a run step, in the step panel's vocabulary (sizing, interview, research,
+   plan, branch, implementation, qa, remediation, landing; a tracking board's own steps), in the order the run visited them, each with
+   its start → end and its duration; a step the record says nothing of is no line, and the sub-line names it. A qa visit is named by its
+   pass ("qa · 1st pass"), a remediation visit by its loop ("remediation · loop 1", as the step panel numbers them), any other step
+   visited twice by its visit ("plan · visit 2"). The bar draws the visits whose both bounds carry a time, one segment each in the order
+   of the lines, sized by its time, in a neutral ink ramp, one shade per step (faintest for the first step drawn, the full ink for the
+   last; a step's repeats share its shade), and each timed line is that segment's legend entry. Bounds come from the record only:
+     1. a visit's own times: its snapshot's since and ended (wip.history); with no snapshot, the sizing's end from plan.sized and a qa
+        pass's end from its at;
+     2. the run's end, the last visit's, is the merge (asBuilt.at, the merge commit's time from git), where recorded;
+     3. a neighbour's: visits follow each other, so a visit with an unknown bound takes the next visit's start as its end, or the one
+        before's end as its start, when no step of the steps line lies between them;
+     4. a step's own commit on the branch (asBuilt.commits, from git: a commit that changes only the step's documents, its research,
+        its architecture or its plan): the step was under way by then, a "by" start, which gives no duration.
+   A bound none of these gives is unknown ("—"); a visit with an unknown bound, or with bounds out of order, has no duration, is not
+   drawn and is named in the sub-line. The figure is the sum of the visits drawn. A date alone is no time. The template's
+   timelineSteps(), tlSpan() and timelineTotal() are the same rule. */
 const okStamp = v => typeof v === "string" && /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?Z)?$/.test(v) && !isNaN(Date.parse(v));
-const TL_PHASES = {
-  issue: [["plan", "sized", "accepted"], ["build", "accepted", "qaFirst"], ["qa", "qaFirst", "qaLast"], ["landing", "qaLast", "merged"]],
-  tracking: [["plan", "sized", "signedOff"], ["filing", "signedOff", "planMerged"], ["units", "planMerged", "merged"]] };
-/* the shades, faintest to strongest: four on an issue board, three spread over the same ramp on a tracking board */
-const TL_SHADES = { issue: ["1", "2", "3", "4"], tracking: ["1", "m", "4"] };
-const TL_BOUND_WORDS = { sized: "sizing", accepted: "plan acceptance", qaFirst: "qa pass", qaLast: "qa pass", merged: "merge", signedOff: "architecture sign-off", planMerged: "plan merge" };
-function timelineBounds(plan) {
-  const P = plan && typeof plan === "object" ? plan : {}, tracking = P.kind === "tracking";
-  const ms = c => { const m = (Array.isArray(P.milestones) ? P.milestones : []).find(x => x && x.column === c && okStamp(x.date)); return m ? m.date : null; };
-  const trailSized = tracking ? null : (Array.isArray(P.trail) ? P.trail : []).filter(t => t && okStamp(t.date) && /\bsized\b/i.test(String(t.label || ""))).map(t => t.date).sort()[0] || null;
-  /* a qa pass's time: its at (apply-event.js stamps the event's time), else its date */
-  const qa = (P.wip && Array.isArray(P.wip.qa) ? P.wip.qa : []).map(q => q && (okStamp(q.at) ? { pass: q.pass, t: q.at } : okStamp(q.date) ? { pass: q.pass, t: q.date } : null)).filter(Boolean).sort((a, b) => (a.pass || 0) - (b.pass || 0));
-  return { sized: okStamp(P.sized) ? P.sized : trailSized, accepted: ms("verdict"), qaFirst: qa.length ? qa[0].t : null, qaLast: qa.length ? qa[qa.length - 1].t : null,
-    merged: P.asBuilt && okStamp(P.asBuilt.date) ? P.asBuilt.date : ms("built"), signedOff: ms("considered"), planMerged: ms("verdict") };
-}
-const tlDay = s => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10));
-/* { kind, phases: [{ key, shade, from, to, days, weight }], left: [{ key, why }] }: days counted between the bounds' UTC dates; weight, the
-   bar's share, in hours (exact where both bounds carry a time) */
-function timelinePhases(plan) {
-  const kind = plan && plan.kind === "tracking" ? "tracking" : "issue", B = timelineBounds(plan), out = { kind, phases: [], left: [] };
-  TL_PHASES[kind].forEach(([key, a, b], i) => {
-    const from = B[a], to = B[b];
-    if (!from || !to) { out.left.push({ key, why: `no ${[...new Set([a, b].filter(x => !B[x]).map(x => TL_BOUND_WORDS[x]))].join(" or ")} recorded` }); return; }
-    const days = Math.round((tlDay(to) - tlDay(from)) / 864e5), timed = from.length > 10 && to.length > 10, weight = timed ? (Date.parse(to) - Date.parse(from)) / 36e5 : days * 24;
-    if (days < 0 || weight < 0) { out.left.push({ key, why: "its bounds out of order" }); return; }
-    out.phases.push({ key, shade: TL_SHADES[kind][i], from, to, days, weight, timed });
+const isTime = v => okStamp(v) && v.length > 10;
+/* a step's shade on the bar, as the ink's share of its mix with the surface: 40 % for the first step drawn, 100 % for the last */
+const tlShade = (k, n) => n <= 1 ? 100 : Math.round(40 + 60 * k / (n - 1));
+const passOf = q => Array.isArray(q) && q[0] && Number.isInteger(q[0].pass) ? q[0].pass : null;
+function timelineSteps(plan) {
+  const P = plan && typeof plan === "object" ? plan : {}, w = P.wip || {}, H = historyOf(w), kind = P.kind === "tracking" ? "tracking" : "issue";
+  const steps = (Array.isArray(w.steps) && w.steps.length ? w.steps : STEP_ORDER).filter(s => s !== "landed"), idx = s => steps.indexOf(s);
+  const bd = t => isTime(t) ? { t, how: "exact" } : null, seq = [], recon = [], left = [];
+  /* 1. the visits the history froze, oldest first */
+  steps.forEach(s => (Array.isArray(H[s]) ? H[s] : []).forEach(v => { if (!isObj(v)) return;
+    seq.push({ step: s, pass: s === "qa" ? passOf(v.qa) : s === "remediation" ? ((v.remediation && v.remediation.pass) || passOf(v.qa)) : null, from: bd(v.since), to: bd(v.ended) }); }));
+  const tOf = v => Date.parse((v.to || v.from || { t: "" }).t) || 0;
+  seq.sort((a, b) => tOf(a) - tOf(b) || idx(a.step) - idx(b.step));
+  /* a step with no snapshot: a visit where the record names it (reconstructStep()), one per qa pass at qa and at remediation */
+  steps.filter(s => !(Array.isArray(H[s]) && H[s].length)).forEach(s => {
+    const R = reconstructStep(P, s), date = R.ended || null;
+    if ((s === "qa" || s === "remediation") && Array.isArray(R.qa) && R.qa.length) { R.qa.forEach(q => recon.push({ step: s, pass: Number.isInteger(q.pass) ? q.pass : null, from: null, to: s === "qa" ? bd(q.at) : null, date: q.at || q.date || date })); return; }
+    if (R.trail.length || R.milestones.length || R.sized || nonEmpty(R.interview) || nonEmpty(R.questions) || nonEmpty(R.stages) || R.units) recon.push({ step: s, pass: null, from: null, to: s === "sizing" ? bd(P.sized) : null, date });
+    else left.push(s);
   });
+  const loop = x => x.step === "qa" || x.step === "remediation";
+  recon.sort((a, b) => loop(a) && loop(b) ? ((a.pass || 0) - (b.pass || 0) || idx(a.step) - idx(b.step)) : idx(a.step) - idx(b.step));
+  recon.forEach(r => { r.recon = true; let k = seq.findIndex(v => !v.recon && idx(v.step) > idx(r.step)); if (k < 0) k = seq.length; seq.splice(k, 0, r); });
+  /* 2. the run's end: the merge */
+  const A = isObj(P.asBuilt) ? P.asBuilt : {}, last = seq[seq.length - 1];
+  if (last && isTime(A.at) && (!last.from || Date.parse(A.at) >= Date.parse(last.from.t))) last.to = { t: A.at, how: "exact", merge: true };
+  /* 3. the neighbours: the next step of the line, the same step again, or a step back (a loop), never across a step of the line that
+     may hold an unrecorded visit */
+  const adj = (a, b) => idx(b.step) - idx(a.step) <= 1;
+  for (let ch = true, g = 0; ch && g < 4; g++) { ch = false;
+    for (let k = 0; k + 1 < seq.length; k++) { const a = seq[k], b = seq[k + 1]; if (!adj(a, b)) continue;
+      if (!a.to && b.from && b.from.how === "exact") { a.to = { t: b.from.t, how: "exact" }; ch = true; }
+      if (!b.from && a.to && a.to.how === "exact") { b.from = { t: a.to.t, how: "exact" }; ch = true; } } }
+  /* 4. a step's first commit: under way by then (a step visited once, its start still unknown) */
+  const cs = (Array.isArray(A.commits) ? A.commits : []).filter(c => c && isTime(c.at) && typeof c.step === "string").sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+  steps.forEach(s => { const vs = seq.filter(v => v.step === s), c = cs.find(x => x.step === s);
+    if (vs.length === 1 && !vs[0].from && c && (!vs[0].to || Date.parse(c.at) <= Date.parse(vs[0].to.t))) vs[0].from = { t: c.at, how: "by", sha: c.sha || null }; });
+  /* the lines: label, duration, shade */
+  const cnt = {}, nth = {}; seq.forEach(v => { cnt[v.step] = (cnt[v.step] || 0) + 1; });
+  seq.forEach(v => { v.n = nth[v.step] = (nth[v.step] || 0) + 1;
+    v.label = v.step === "qa" ? (v.pass ? `qa · ${ordinal(v.pass)} pass` : cnt.qa > 1 ? `qa · visit ${v.n}` : "qa")
+      : v.step === "remediation" ? (v.pass || cnt.remediation > 1 ? `remediation · loop ${v.n}` : "remediation") : cnt[v.step] > 1 ? `${v.step} · visit ${v.n}` : v.step;
+    const a = v.from && v.from.how === "exact" ? Date.parse(v.from.t) : null, b = v.to ? Date.parse(v.to.t) : null;
+    v.ms = a != null && b != null ? b - a : null; if (v.ms != null && v.ms < 0) { v.ms = null; v.order = true; } });
+  const timed = seq.filter(v => v.ms != null), drawn = [...new Set(timed.map(v => v.step))].sort((x, y) => idx(x) - idx(y));
+  timed.forEach(v => { v.shade = tlShade(drawn.indexOf(v.step), drawn.length); });
+  return { kind, visits: seq, left, untimed: seq.filter(v => v.ms == null).map(v => v.label) };
+}
+/* A span as the tile says it: under an hour in minutes ("40 min"), under a day in hours and minutes ("2 h 35 min"), else in days and
+   hours ("3 days 4 h"); "under 1 min" below a minute. */
+function tlSpan(ms) { if (ms == null || !isFinite(ms)) return "—"; const m = Math.round(ms / 6e4); if (m < 1) return "under 1 min"; if (m < 60) return `${m} min`;
+  if (m < 1440) { const h = Math.floor(m / 60), r = m % 60; return r ? `${h} h ${r} min` : `${h} h`; }
+  let d = Math.floor(m / 1440), h = Math.round((m - d * 1440) / 60); if (h === 24) { d++; h = 0; } return `${d} day${d === 1 ? "" : "s"}${h ? ` ${h} h` : ""}`; }
+/* The tile's figure: the sum of the visits the bar draws, in ms; null when none is drawn. */
+function timelineTotal(T) { const ts = (T && Array.isArray(T.visits) ? T.visits : []).filter(v => v.ms != null); return ts.length ? ts.reduce((n, v) => n + v.ms, 0) : null; }
+/* the sub-line's note of the visits not summed, and of the steps the record says nothing of */
+function timelineLeftOut(T) { const vs = (T && T.visits || []).filter(v => v.ms == null), o = vs.filter(v => v.order), u = vs.filter(v => !v.order);
+  return [u.length ? `not summed: ${u.map(v => v.label).join(", ")} (a bound not recorded)` : "", o.length ? `not summed: ${o.map(v => v.label).join(", ")} (bounds out of order)` : "",
+    T && T.left && T.left.length ? `no record of: ${T.left.join(", ")}` : ""].filter(Boolean).join(" · "); }
+/* one visit's line in UTC, as check.js and timeline.js report it: "implementation: 2026-10-25 14:21Z → 2026-10-25 19:00Z · 4 h 39 min" */
+const tlBoundText = b => b ? `${b.how === "by" ? "by " : ""}${b.t.slice(0, 10)} ${b.t.slice(11, 16)}Z${b.merge ? " (the merge)" : ""}` : "—";
+const timelineLines = T => (T && T.visits || []).map(v => `${v.label}: ${tlBoundText(v.from)} → ${tlBoundText(v.to)} · ${v.ms != null ? tlSpan(v.ms) : "—"}`);
+/* The merge's time and the branch's step commits, from git, for the Timeline tile (asBuilt.at, asBuilt.commits): the merge commit's
+   committer time; for a merge with two parents, each commit of the branch (not a merge) that changes only the board folder's research
+   (research/…), its architecture.md, or its plan (plan.md, plan-<unit>.md, draft.md), with its committer time and the step. {} when git
+   cannot tell (no git, the merge not in this clone): nothing is recorded, never guessed. */
+const utcIso = s => { const d = new Date(String(s || "")); return isNaN(d) ? null : d.toISOString().replace(/\.\d{3}Z$/, "Z"); };
+const commitStep = (dir, files) => { if (!files.length) return null; const rel = files.map(f => f.startsWith(dir) ? f.slice(dir.length) : null); if (rel.some(r => r == null)) return null;
+  if (rel.every(r => r.startsWith("research/"))) return "research"; if (rel.every(r => r === "architecture.md")) return "architecture";
+  if (rel.every(r => /^(draft|plan(-[a-z0-9-]+)?)\.md$/.test(r))) return "plan"; return null; };
+function gitTimes(repoDir, folder, merge) {
+  const out = {}; if (!repoDir || !/^[0-9a-f]{7,40}$/.test(String(merge || ""))) return out;
+  const g = a => require("child_process").execFileSync("git", ["-C", repoDir, ...a], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], windowsHide: true }).trim();
+  try {
+    const [iso, ...parents] = g(["show", "-s", "--format=%cI %P", merge]).split(/\s+/).filter(Boolean), at = utcIso(iso); if (at) out.at = at;
+    if (parents.length === 2 && folder) {
+      const dir = String(folder).replace(/\\/g, "/").replace(/\/+$/, "") + "/", commits = [];
+      g(["log", "--no-merges", "--format=%x00%H %cI", "--name-only", `${parents[0]}..${parents[1]}`]).split("\0").filter(x => x.trim()).forEach(block => {
+        const lines = block.split(/\r?\n/).map(s => s.trim()).filter(Boolean), [sha, when] = (lines[0] || "").split(" "), step = commitStep(dir, lines.slice(1)), t = utcIso(when);
+        if (step && t && /^[0-9a-f]{7,40}$/.test(sha || "")) commits.push({ sha: sha.slice(0, 7), at: t, step }); });
+      out.commits = commits.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+    }
+  } catch (e) { /* no git, or the merge is not in this clone: nothing recorded */ }
   return out;
 }
-/* a phase's length as the legend says it: hours where both bounds carry a time and it is under a day, else calendar days */
-const tlDuration = p => p.timed && p.weight < 24 ? (p.weight < 1 ? "under an hour" : `${Math.round(p.weight)} h`) : p.days === 0 ? "same day" : `${p.days} day${p.days === 1 ? "" : "s"}`;
-/* The tile's figure (admin-team/dashboards-skill/28): the sum of the phases its bar draws, never baseline to built; a phase left out is not
-   summed. { days, weight, timed }, so tlDuration() says it as it says a phase: in hours where every phase drawn carries both times and the
-   sum is under a day, else in calendar days (the phases meet end to start, so their days add up to the span they cover). null when no
-   phase is drawn. The template's timelineTotal() is the same rule. */
-function timelineTotal(T) { const ps = T && Array.isArray(T.phases) ? T.phases : []; if (!ps.length) return null;
-  return { days: ps.reduce((n, p) => n + p.days, 0), weight: ps.reduce((n, p) => n + p.weight, 0), timed: ps.every(p => p.timed) }; }
-/* the sub-line's note of the phases left out, grouped by reason: "plan left out: no sizing recorded" */
-function timelineLeftOut(T) { const by = new Map(); (T && T.left || []).forEach(x => { if (!by.has(x.why)) by.set(x.why, []); by.get(x.why).push(x.key); });
-  return [...by].map(([why, ks]) => `${ks.join(", ")} left out: ${why}`).join(" · "); }
 
-module.exports = { qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, HISTORY_FIELDS, HISTORY_STEPS, STEP_ORDER, shownStep, visitKey, freezeVisit, freezeSteps, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, okStamp, TL_PHASES, TL_SHADES, timelineBounds, timelinePhases, tlDuration, timelineLeftOut, timelineTotal, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+module.exports = { qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, HISTORY_FIELDS, HISTORY_STEPS, STEP_ORDER, shownStep, visitKey, freezeVisit, freezeSteps, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, okStamp, isTime, tlShade, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, parentFolder, staleUnitRuns, stampMs, treeRoot, boardFolders, boardLink, parentBoard, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };
