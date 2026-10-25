@@ -15,7 +15,9 @@
 //                planned   or "<dsl path>:<element id>" (paths relative to docs/dashboards), or {dsl, id, tag} / {system}; a DSL element
 //                          marked built loses its Planned tag and takes `tag` when given; "planned" sets the Planned tag back
 //                version   {slug: version}, a version a system's build moved to
-//                title     the issue's slug for the "last amended by" note (in the Context section) (default: the folder's name less its number)
+//                title     the issue's title for the "last amended by" note (in the Context section), quoted verbatim (default: the folder's
+//                          name less its number); one that names a work level is a defect in the issue, written as it stands and flagged
+//                          ISSUE TITLE NAMES A WORK LEVEL: #n in the notes
 //                landed    true for a state-pages request that restamps at a landing (as the landed event does)
 //                enrich    reasons the team already knows the presenter is needed for (passed through)
 // --worktree   the worktree the branch is checked out in; the pages are <worktree>/docs/dashboards/
@@ -36,7 +38,7 @@
 const T0 = Date.now();
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const L = require("./statelib.js");
-const { levelRefs, scrubLevels } = require("./levelrefs.js");
+const { levelRefs, titleDefect } = require("./levelrefs.js");
 
 const USAGE = "usage: node apply-state.js --event <request.json> --worktree <path> [--repo <owner/repo>] [--at <ISO time>] [--json]";
 const args = process.argv.slice(2);
@@ -44,14 +46,14 @@ require("./cliargs.js").strict(args, { usage: USAGE, valued: ["event", "worktree
 const opt = n => { const i = args.indexOf("--" + n); return i >= 0 ? args[i + 1] : null; }, flag = n => args.includes("--" + n);
 
 /* the summary, printed at the end whatever happens */
-const S = { result: null, event: null, issue: null, stamp: null, systems: [], applied: [], enrich: [], notes: [], wrote: [], check: null, error: null, restored: 0 };
+const S = { result: null, event: null, issue: null, stamp: null, systems: [], applied: [], enrich: [], notes: [], wrote: [], check: null, defects: [], error: null, restored: 0 };
 const say = () => {
   S.ms = Date.now() - T0;
   const enrich = S.enrich.length ? "yes" : "no", why = S.enrich.length ? S.enrich : ["the request's facts decide everything it writes"];
   if (flag("json")) { console.log(JSON.stringify({ ...S, enrich, why })); return; }
   [["apply-state", S.result], ["event", S.event], ["issue", S.issue != null ? "#" + S.issue : null], ["stamp", S.stamp], ["systems", S.systems.join(", ") || null],
     ["applied", S.applied.join("; ") || "nothing"], ["enrich", enrich], ["why", why.join("; ")], ["notes", S.notes.join("; ") || null],
-    ["wrote", S.wrote.join(", ") || "nothing"], ["check", S.check || "not run"], ["error", S.error],
+    ["wrote", S.wrote.join(", ") || "nothing"], ["check", S.check || "not run"], ["issue defects", S.defects.length ? S.defects.join(" | ") : null], ["error", S.error],
     ["restored", S.error ? `${S.restored} file${S.restored === 1 ? "" : "s"}, as they were` : null], ["time", `${S.ms} ms`]]
     .filter(([, v]) => v != null).forEach(([k, v]) => console.log(`${k}: ${v}`));
 };
@@ -135,12 +137,12 @@ async function main() {
   S.stamp = `${ref} @ ${sha} · ${landed ? date : "not yet landed"}`;
   const folder = typeof req.folder === "string" ? req.folder.replace(/\\/g, "/").replace(/\/+$/, "") : null;
   if (folder && (folder.split("/").includes("..") || !/^docs\/plans\//.test(folder))) refuse(`the request's folder ${JSON.stringify(folder)} is not under docs/plans/`);
-  /* the title is a pipeline fact: a work level in it is reworded away, never written (GUIDANCE.md §4; levelrefs.js scrubLevels()), and a
-     title that names nothing else once reworded gives way to the folder's slug (admin-team/dashboards-skill/23) */
+  /* the title is the issue's, quoted verbatim: never reworded, never elided (GUIDANCE.md §4, §5; admin-team/dashboards-skill/28). Work
+     levels are never part of an issue, so a title that names one is a defect in the issue: written as it stands and flagged, ISSUE TITLE
+     NAMES A WORK LEVEL: #n, in the summary's notes, for the team to bring to the user to retitle on GitHub */
   const slugTitle = folder ? path.basename(folder).replace(/^\d+-/, "") || null : null;
   let title = typeof facts.title === "string" && facts.title.trim() ? facts.title.replace(/\s+/g, " ").trim() : slugTitle;
-  if (title && title !== slugTitle && levelRefs(title).length) { const r = scrubLevels(title, { scope: "issue" });
-    S.notes.push(`facts.title named a work level, which a page never shows: ${r ? `written reworded (${JSON.stringify(r)})` : "the folder's slug written instead"}`); title = r || slugTitle; }
+  if (title && levelRefs(title).length) { S.notes.push(titleDefect({ issue: S.issue, at: "facts.title", title, hits: levelRefs(title) })); S.defects.push(`ISSUE TITLE NAMES A WORK LEVEL: #${S.issue != null ? S.issue : "?"}`); }
 
   /* the systems the branch touches: the facts', else the issue board's; at a landing, also every entry the branch stamped */
   let named = Array.isArray(facts.systems) ? facts.systems : Array.isArray(req.systems) ? req.systems : null;

@@ -13,7 +13,9 @@
 // scrubLevels() rewords a pipeline fact that names a work level so that it names none (admin-team/dashboards-skill/23): the scope
 // phrase becomes the unit's or the issue's scope, the level before a noun is elided ("a level-3 re-pass" → "a re-pass"), the label
 // ("Label level: 3") is dropped with its punctuation; apply-event.js and apply-state.js write the reworded text, never the level.
-// A quotation (a plan excerpt, lib.js sectionOf()) keeps its "…" elision instead: a quote is never reworded.
+// A quotation (a plan excerpt, lib.js sectionOf()) keeps its "…" elision instead: a quote is never reworded. An issue's title is quoted
+// verbatim and never reworded or elided either: one that names a work level is a defect in the issue, flagged ISSUE TITLE NAMES A WORK
+// LEVEL: #n (issueTitleRefs(), titleDefect(); admin-team/dashboards-skill/28), never a failure of the page.
 "use strict";
 /* The test levels' names, matched in any case (a table head may set them in capitals: "L1 GATING") while the "L" itself stays
    case-sensitive: each letter becomes a class of both its cases. */
@@ -47,14 +49,63 @@ function levelRefs(text) {
   REGEXES.forEach(re => { re.lastIndex = 0; let m; while ((m = re.exec(text))) out.push(m[0]); });
   return out;
 }
-/* Every work-level reference in the strings of a data file: [{ at, hit }]. Keys are not text and are skipped; so are numbers. */
-function levelRefsIn(v, at, found) {
+/* Every work-level reference in the strings of a data file: [{ at, hit }]. Keys are not text and are skipped; so are numbers. skip(at),
+   when given, leaves out the strings at the paths it accepts (the issue titles, below). */
+function levelRefsIn(v, at, found, skip) {
   found = found || [];
-  if (typeof v === "string") levelRefs(v).forEach(hit => found.push({ at: at || "(root)", hit }));
-  else if (Array.isArray(v)) v.forEach((x, i) => levelRefsIn(x, `${at}[${i}]`, found));
-  else if (v && typeof v === "object") Object.keys(v).forEach(k => { if (k !== "$comment") levelRefsIn(v[k], at ? `${at}.${k}` : k, found); });
+  if (typeof v === "string") { if (!(skip && skip(at || ""))) levelRefs(v).forEach(hit => found.push({ at: at || "(root)", hit })); }
+  else if (Array.isArray(v)) v.forEach((x, i) => levelRefsIn(x, `${at}[${i}]`, found, skip));
+  else if (v && typeof v === "object") Object.keys(v).forEach(k => { if (k !== "$comment") levelRefsIn(v[k], at ? `${at}.${k}` : k, found, skip); });
   return found;
 }
+
+/* Issue titles (GUIDANCE.md §4, §5; admin-team/dashboards-skill/28). An issue's title is quoted verbatim: never reworded, never elided.
+   Work levels are internal to the pipeline and never part of an issue, so a title that names one is a defect in the issue, not in the
+   page: the checks flag it, ISSUE TITLE NAMES A WORK LEVEL: #n, without failing the page (the admin team brings it to the user to
+   retitle on GitHub), and the work-level rule above leaves the title's text alone. The fields that quote an issue's title, by data file
+   (a path with its indices written []): a plan board's plan.json, the work board's board.json, a state page's state.json. */
+const TITLE_PATHS = {
+  "plan-board": ["issueTitle", "parent.title", "followUps[].title", "roadmap.title", "roadmap.items[].title", "rows[].unit.title"],
+  "work-board": ["rows[].title", "groups[].title", "roadmap[].title", "roadmap[].items[].title", "unscheduled[].title"],
+  state: ["lastAmended.title"] };
+/* the kind of a data file, as TITLE_PATHS names it, or null */
+function dataKind(d) {
+  if (!d || typeof d !== "object" || Array.isArray(d)) return null;
+  if (d.schema === "plan-board/1") return "plan-board";
+  if (d.schema === "work-board/1") return "work-board";
+  return d.lastAmended && typeof d.lastAmended === "object" && typeof d.slug === "string" ? "state" : null;
+}
+const isTitlePath = (kind, at) => !!kind && (TITLE_PATHS[kind] || []).includes(String(at || "").replace(/\[\d+\]/g, "[]"));
+/* the skip() of levelRefsIn() for a data file: its issue titles */
+const titleSkip = (data, kind) => { const k = kind || dataKind(data); return at => isTitlePath(k, at); };
+/* Every quoted issue title of a data file that names a work level: [{ at, issue, title, hits }], issue the number of the issue it quotes
+   (the issue field beside it; for a plan board's issueTitle, the board's own issue), or null where none is recorded. */
+function issueTitleRefs(data, kind) {
+  const k = kind || dataKind(data), out = [];
+  if (!k) return out;
+  const walk = (v, at, holder) => {
+    if (typeof v === "string") { if (isTitlePath(k, at)) { const hits = levelRefs(v); if (hits.length) out.push({ at, issue: holder && Number.isInteger(holder.issue) ? holder.issue : null, title: v, hits }); } }
+    else if (Array.isArray(v)) v.forEach((x, i) => walk(x, `${at}[${i}]`, holder));
+    else if (v && typeof v === "object") Object.keys(v).forEach(key => { if (key !== "$comment") walk(v[key], at ? `${at}.${key}` : key, v); });
+  };
+  walk(data, "", data);
+  return out;
+}
+/* Every title a data file quotes (whatever it says): the browser pass leaves each, JSON-quoted as a Source view prints it, out of its
+   work-level scan, as it leaves out the titles a page marks data-issue-title (check-page.js) */
+function quotedTitles(data, kind) {
+  const k = kind || dataKind(data), out = [];
+  if (!k) return out;
+  const walk = (v, at) => {
+    if (typeof v === "string") { if (isTitlePath(k, at)) out.push(v); }
+    else if (Array.isArray(v)) v.forEach((x, i) => walk(x, `${at}[${i}]`));
+    else if (v && typeof v === "object") Object.keys(v).forEach(key => { if (key !== "$comment") walk(v[key], at ? `${at}.${key}` : key); });
+  };
+  walk(data, "");
+  return [...new Set(out)];
+}
+/* the flag's line: the issue first, then where the title is quoted and the words that name a work level */
+const titleDefect = x => `ISSUE TITLE NAMES A WORK LEVEL: #${x.issue != null ? x.issue : "?"} (${x.at}: ${JSON.stringify(x.title)} names ${x.hits.map(h => JSON.stringify(h)).join(", ")}): a defect in the issue, quoted verbatim on the page; the issue is retitled on GitHub`;
 
 /* A pipeline fact reworded so that it names no work level (GUIDANCE.md §4; plan/RULES.md §4, "The fast path"): the scope phrase
    ("inside level 3") becomes "inside the unit's scope" (opts.scope: "unit" on a sub-issue's board, else "issue"), the level before a
@@ -94,4 +145,4 @@ function scrubLevels(text, opts) {
   if (cap && /^[a-z]/.test(s)) s = s[0].toUpperCase() + s.slice(1);
   return s && !levelRefs(s).length ? s : null;
 }
-module.exports = { LEVEL_PATTERNS, levelRefs, levelRefsIn, scrubLevels };
+module.exports = { LEVEL_PATTERNS, levelRefs, levelRefsIn, scrubLevels, TITLE_PATHS, dataKind, isTitlePath, titleSkip, issueTitleRefs, quotedTitles, titleDefect };

@@ -61,8 +61,8 @@ const paletteLines = () => [`CHECK palette: ${palette.tokens} system-colour toke
 /* The checks that need no browser, on every pass (--auto and --no-browser included): the registry's git-ignore check, the board links,
    and the page's data (the state block, the embedded copies of state.json, workspace.dsl and systems.json, the part references). */
 const src = fs.existsSync(page) ? fs.readFileSync(page, "utf8") : "";
-const regCheck = registryIgnored(), boardCheck = boardLinks(), stateCheck = stateChecks(), featureCheck = featureChecks(), linkCheck = deadLinks();
-const staticChecks = [regCheck, boardCheck, stateCheck, linkCheck, featureCheck].filter(Boolean);
+const regCheck = registryIgnored(), boardCheck = boardLinks(), stateCheck = stateChecks(), featureCheck = featureChecks(), linkCheck = deadLinks(), titleCheck = titleChecks();
+const staticChecks = [regCheck, boardCheck, stateCheck, linkCheck, featureCheck, titleCheck].filter(Boolean);
 const staticLines = () => staticChecks.flatMap(c => [...(c.note ? ["CHECK " + c.note] : []), ...(c.notes || []).map(n => "CHECK " + n), ...c.problems.map(p => "CHECK " + p)]);
 const staticProblems = staticChecks.flatMap(c => c.problems);
 
@@ -108,7 +108,11 @@ const browsers = [
   "/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser",
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
 ];
-const { LEVEL_PATTERNS } = require("./levelrefs.js");
+const { LEVEL_PATTERNS, quotedTitles } = require("./levelrefs.js");
+/* the issue titles the page's data quotes (dashboards-skill/28): a Source view prints them JSON-quoted, and the browser pass leaves them out
+   of its work-level scan there, as it leaves out the titles the page marks data-issue-title */
+const QUOTED = (() => { const L = require("./statelib.js"), all = []; ["plan", "board", "state"].forEach(id => { const t = L.blockText(src, id); if (t == null) return; try { all.push(...quotedTitles(JSON.parse(t))); } catch (e) { /* the data checks report it */ } });
+  return [...new Set(all)].filter(t => t).map(t => JSON.stringify(t)); })();
 const browser = process.env.CHROME && fs.existsSync(process.env.CHROME) ? process.env.CHROME : browsers.find(b => fs.existsSync(b));
 if (!browser) { console.error("no Chrome/Edge found; set CHROME=<path to binary>"); process.exit(2); }
 
@@ -125,6 +129,13 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   /* work levels are never shown (levelrefs.js): the text of every tab, then of the whole page, is scanned */
   const LV=${JSON.stringify(LEVEL_PATTERNS)}.map(([s,f])=>new RegExp(s,f+"g")), lvHits=new Set();
   const lvScan=(txt,where)=>LV.forEach(re=>{ re.lastIndex=0; let m; while((m=re.exec(txt||""))) lvHits.add(where+": “"+m[0]+"”"); });
+  /* An issue's title is quoted verbatim and marked data-issue-title (GUIDANCE.md §5; dashboards-skill/28): its text is left out of the
+     scan above (textOf() reads a part's rendered text with the titles hidden), and a work level in it is a defect in the issue, flagged
+     by number, ISSUE TITLE NAMES A WORK LEVEL: #n, never a failure of the page (the title's own words are not printed: they are the issue's) */
+  const hideT=document.createElement("style"); hideT.textContent="[data-issue-title]{display:none!important}"; document.head.appendChild(hideT); hideT.disabled=true;
+  const QT=${JSON.stringify(QUOTED).replace(/</g, "\\u003c")};
+  const textOf=el=>{ if(!el) return ""; hideT.disabled=false; let t=el.innerText; hideT.disabled=true; QT.forEach(q=>{ t=t.split(q).join('""'); }); return t; };
+  const tHits=new Set(), tSeen=new Set(); const titleScan=()=>document.querySelectorAll("[data-issue-title]").forEach(e=>{ tSeen.add(e.dataset.issueTitle); if(LV.some(re=>{ re.lastIndex=0; return re.test(e.textContent||""); })) tHits.add("#"+e.dataset.issueTitle); });
   /* Dashed means only planned or pending (GUIDANCE.md §1), on every tab of every kind: a dashed border or outline, or a dashed SVG
      stroke (a dash of 3 px or more; shorter is dotted: standalone or conditional), on an element that is not, and is not inside, one
      marked planned or pending by the kind's own classes. Diagram furniture (lifelines, returns, boundary frames) is solid. */
@@ -137,7 +148,7 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
     if(e instanceof SVGElement){ if(SHAPES.has(e.tagName.toLowerCase())&&s.stroke!=="none"&&s.strokeDasharray&&s.strokeDasharray!=="none") dashed=parseFloat(s.strokeDasharray)>=3; }
     else dashed=SIDES.some(d=>s["border"+d+"Style"]==="dashed"&&parseFloat(s["border"+d+"Width"])>0)||(s.outlineStyle==="dashed"&&parseFloat(s.outlineWidth)>0);
     if(dashed&&!e.closest(PLANNED_SEL)){ const k=nameOf(e); if(!dashHits.has(k)) dashHits.set(k,where); } }); };
-  tabs.forEach(t=>{ try{ t.click(); dashScan("tab "+t.id); if(kind==="system"&&t.id==="t-c4"){ const rungs=[...document.querySelectorAll(".rung")]; rungs.forEach((r,i)=>{ r.click(); dashScan("tab t-c4, view "+(i+1)); }); if(rungs[0]) rungs[0].click(); } const p=document.getElementById(t.getAttribute("aria-controls")); if(p) lvScan(p.innerText,"tab "+t.id); const vis=p&&!p.hidden&&getComputedStyle(p).display!=="none"; const drawn=p?p.querySelectorAll("svg *, table, .card, .thread, .syscard, .cell, .bcard, .run").length:0; const keys=p?[...p.querySelectorAll(".key, .c4key")].filter(k=>shown(k)&&k.children.length).length:0; console.log("CHECK tab "+t.id+": "+(vis?"visible":"NOT VISIBLE")+" · "+drawn+" drawn nodes · "+(keys?"legend":"NO LEGEND (every tab needs a visible .key)")); }catch(err){ console.log("CHECK tab "+t.id+" threw: "+err.message); } });
+  tabs.forEach(t=>{ try{ t.click(); dashScan("tab "+t.id); if(kind==="system"&&t.id==="t-c4"){ const rungs=[...document.querySelectorAll(".rung")]; rungs.forEach((r,i)=>{ r.click(); dashScan("tab t-c4, view "+(i+1)); }); if(rungs[0]) rungs[0].click(); } const p=document.getElementById(t.getAttribute("aria-controls")); if(p){ lvScan(textOf(p),"tab "+t.id); titleScan(); } const vis=p&&!p.hidden&&getComputedStyle(p).display!=="none"; const drawn=p?p.querySelectorAll("svg *, table, .card, .thread, .syscard, .cell, .bcard, .run").length:0; const keys=p?[...p.querySelectorAll(".key, .c4key")].filter(k=>shown(k)&&k.children.length).length:0; console.log("CHECK tab "+t.id+": "+(vis?"visible":"NOT VISIBLE")+" · "+drawn+" drawn nodes · "+(keys?"legend":"NO LEGEND (every tab needs a visible .key)")); }catch(err){ console.log("CHECK tab "+t.id+" threw: "+err.message); } });
   if(kind==="system"){
     const g=document.querySelector(".guarantees"), b=g?[...g.querySelectorAll(".bubble")].filter(shown).map(x=>(x.querySelector("h3")||{}).firstChild):[];
     console.log("CHECK guarantees: "+(shown(g)&&b.length?b.length+" bubbles · "+b.map(n=>n?n.textContent.trim():"?").join(" · "):"MISSING (no visible .guarantees area with a .bubble)"));
@@ -197,7 +208,9 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   if(cx&&cx.querySelector(".badge,.sw,.vp")&&!shown(document.getElementById("context-key"))) console.log("CHECK layout: FEATURE MISSING: the Context's legend shown wherever its cards draw an encoding (template since dashboards-skill/26): its cards draw badges or swatches and no #context-key is shown");
   if(kind==="system"&&gu&&gu.querySelector("[data-sys],.planned,.gap,.bars,.badge")&&!shown(document.getElementById("guarantees-key"))) console.log("CHECK layout: FEATURE MISSING: the Guarantees' legend shown wherever its bubbles draw an encoding (template since dashboards-skill/26): no #guarantees-key is shown");
   const want=${JSON.stringify(tab)}; const t=want?document.getElementById(want):tabs[0]; if(t) t.click();
-  lvScan(document.body.innerText,"page"); console.log("CHECK work levels: "+(lvHits.size?"LEVEL REFERENCE shown ("+[...lvHits].slice(0,6).join("; ")+"): a dashboard never shows a work level":"none shown"));
+  lvScan(textOf(document.body),"page"); titleScan();
+  console.log("CHECK issue titles: "+tSeen.size+" quoted verbatim"+(tHits.size?" · "+[...tHits].map(n=>"ISSUE TITLE NAMES A WORK LEVEL: "+n).join(" · ")+": a defect in the issue, retitled on GitHub":", none names a work level"));
+  console.log("CHECK work levels: "+(lvHits.size?"LEVEL REFERENCE shown ("+[...lvHits].slice(0,6).join("; ")+"): a dashboard never shows a work level":"none shown"));
   const sw=document.documentElement.scrollWidth, cw=document.documentElement.clientWidth;
   console.log("CHECK width: "+cw+"px"+(sw>cw+1?" · HORIZONTAL SCROLL ("+sw+"px of content)":" · no horizontal scroll"));
   if(want){ const bar=document.querySelector('[role="tablist"]'); if(bar) window.scrollTo(0, bar.getBoundingClientRect().top+window.scrollY-8); }
@@ -317,6 +330,22 @@ function featureChecks() {
   let closed = false; if (kind === "plan-board") { try { const p = JSON.parse(require("./statelib.js").blockText(src, "plan") || "{}"); closed = ["built", "abandoned"].includes(p.status); } catch (e) { /* the data check reports it */ } }
   const asNotes = closed || (args.includes("--features-as-notes") && args.includes("--no-browser"));
   return { note: `features: ${F.applicable(kind).length - miss.length} of ${F.applicable(kind).length} a ${kind} page takes`, notes: asNotes ? miss.map(m => "note: " + F.line(m)) : [], problems: asNotes ? [] : miss.map(F.line) };
+}
+// The issue titles a page quotes (GUIDANCE.md §4, §5; levelrefs.js issueTitleRefs(); admin-team/dashboards-skill/28), read without a
+// browser: a state page's Context titles (written <a data-board="N">title</a>) and its state block's lastAmended.title, a board's data
+// block's title fields. A title is quoted verbatim; one that names a work level is a defect in the issue, flagged as a warning, ISSUE
+// TITLE NAMES A WORK LEVEL: #n, never a problem of the page: the admin team brings it to the user to retitle on GitHub.
+function titleChecks() {
+  if (!src || /<meta name="dashboard" content="doc-copy">/.test(src)) return null;
+  const { levelRefs, issueTitleRefs, titleDefect } = require("./levelrefs.js"), L = require("./statelib.js"), notes = [];
+  const flag = x => notes.push("warning: " + titleDefect(x));
+  ["plan", "board", "state"].forEach(id => { const t = L.blockText(src, id); if (t == null) return; try { issueTitleRefs(JSON.parse(t)).forEach(flag); } catch (e) { /* the data checks report it */ } });
+  if (!/<meta name="dashboard" content="(plan-board|work-board)">/.test(src)) {
+    const html = src.replace(/<script[\s\S]*?<\/script>/g, "").replace(/<!--[\s\S]*?-->/g, "");
+    [...html.matchAll(/<a\b[^>]*\bdata-board="(\d+)"[^>]*>([\s\S]*?)<\/a>/g)].forEach(m => { const title = m[2].replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim(), hits = levelRefs(title);
+      if (hits.length) flag({ issue: +m[1], at: `the Context's <a data-board="${m[1]}">`, title, hits }); });
+  }
+  return { notes: notes.length ? notes : [], problems: [] };
 }
 // The links a state page's hand-written HTML makes (GUIDANCE.md §5: a link never points at a file that is not there): every relative
 // href outside its scripts, from the page's folder, when the page sits in a repository's docs/; and its WORK_BOARD's committed board.

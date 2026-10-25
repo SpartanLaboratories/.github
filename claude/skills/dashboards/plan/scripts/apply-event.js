@@ -38,7 +38,7 @@ require("../../system/scripts/cliargs.js").strict(args, { usage: USAGE, valued: 
 const opt = n => lib.opt(args, n, null), flag = n => lib.flag(args, n);
 
 /* the summary, printed at the end whatever happens */
-const S = { result: null, event: null, issue: null, board: null, applied: [], enrich: [], rerendered: [], wrote: [], parent: null, live: null, check: null, error: null, restored: 0 };
+const S = { result: null, event: null, issue: null, board: null, applied: [], enrich: [], rerendered: [], wrote: [], parent: null, live: null, check: null, defects: [], error: null, restored: 0 };
 const say = () => {
   S.ms = Date.now() - T0;
   const enrich = S.enrich.length ? "yes" : "no";
@@ -46,7 +46,7 @@ const say = () => {
   const L = [["apply-event", S.result], ["event", S.event], ["issue", S.issue != null ? "#" + S.issue : null], ["board", S.board],
     ["applied", S.applied.join("; ") || "nothing"], ["enrich", enrich], ["why", S.enrich.length ? S.enrich.join("; ") : "the event's facts decide everything it writes"],
     ["rerendered", S.rerendered.join(", ") || "none"], ["wrote", S.wrote.join(", ") || "nothing"], ["parent", S.parent || "none"], ["live", S.live || "untouched"],
-    ["check", S.check || "not run"], ["error", S.error], ["restored", S.error ? `${S.restored} file${S.restored === 1 ? "" : "s"}, as they were` : null], ["time", `${S.ms} ms`]];
+    ["check", S.check || "not run"], ["issue defects", S.defects.length ? S.defects.join(" | ") : null], ["error", S.error], ["restored", S.error ? `${S.restored} file${S.restored === 1 ? "" : "s"}, as they were` : null], ["time", `${S.ms} ms`]];
   L.filter(([, v]) => v != null).forEach(([k, v]) => console.log(`${k}: ${v}`));
 };
 class Refusal extends Error {}
@@ -123,6 +123,9 @@ function applyEvent(orig, ev, facts, req, now) {
   const setStep = s => { if (w.step !== s) { w.step = s; w.since = now; applied.push(`wip.step ${s}`); } };
   const stopped = s => s === "halted" || s === "escalated";
   const curStage = () => (w.stages || []).find(x => x && x.state === "current") || null;
+  /* a facts.stage that is a stage's id ("S5"), else null: a sentence such as "S5 done; S6 current" is not an id */
+  const stageIdOf = v => { const t = typeof v === "string" ? v.trim() : ""; return t && (w.stages || []).some(x => x && x.id === t) ? t : null; };
+  let reportedStage = null;
   const builtCells = list => [...new Set((list || []).map(String).filter(id => ids.has(id)))].map(id => id + ".built");
   const factRows = () => Array.isArray(facts.rows) ? facts.rows.filter(x => typeof x === "string") : null;
   /* wip.current for a step, by the step-to-column map (plan/RULES.md §3; lib.js GLOW_MAP) */
@@ -131,6 +134,8 @@ function applyEvent(orig, ev, facts, req, now) {
     if (m.kind === "none") return [];
     if (m.kind === "columns") return m.cols.slice();
     if (m.kind === "research") return lib.researchGlow(plan).current;
+    /* a tracking board filing its units, then creating their boards: each unit row not done in the step glows on its own (lib.js filingGlow()) */
+    if (m.kind === "filing") return lib.filingGlow(plan, step);
     if (m.kind === "cells") return (w.current || []).map(String).filter(a => a.split(".").length === 2);
     if (tracking) return (w.current || []).map(String).filter(a => /\.built$/.test(a) && rows.some(r => r.id === a.split(".")[0] && r.unit));
     /* an issue board: the cells of the rows the current stage touches; the whole As built column, ["built"], when it touches no rows
@@ -296,33 +301,39 @@ function applyEvent(orig, ev, facts, req, now) {
       trail = { column: "considered", label: "Architecture signed off", ref: docRef("architecture.md") };
       break;
     }
-    /* team-raised (plan/RULES.md §4): the units filed as sub-issues (facts.units [{unit: <row id>, issue: n}]), then their boards
-       created; each moves the step on once every unit row has its issue, then its board (the counts are read from the rows) */
+    /* team-raised (plan/RULES.md §4; admin-team/dashboards-skill/28): the units filed as sub-issues, then their boards created, each event
+       per unit (facts.units [{unit: <row id>, issue: n}], one or more at a time) and a final one closing the step (facts.final: true). The
+       glow is the units not yet done in the step (lib.js filingGlow()), so each unit stops glowing as its issue (its board) is recorded; the
+       counts are read from the rows. The final event moves the step on once every unit is done; one that comes too early leaves it. */
     case "sub-issues-filed": {
       if (!tracking) refuse("sub-issues-filed is a tracking board's event");
       (Array.isArray(facts.units) ? facts.units : []).forEach(x => { const id = x && (x.unit || x.row || x.id), n = x && x.issue;
         const r = rows.find(y => y && y.id === id && y.unit); if (!r) { enrich.push(`sub-issues-filed names ${JSON.stringify(id)}, which is no unit row of the board`); return; }
         if (!Number.isInteger(n) || n <= 0) { enrich.push(`sub-issues-filed gives ${id} no issue number`); return; }
         if (r.unit.issue !== n) { r.unit.issue = n; applied.push(`${id}: unit.issue #${n}`); } });
-      const units = rows.filter(r => r && r.unit), filed = units.filter(r => Number.isInteger(r.unit.issue) && r.unit.issue > 0).length;
+      const units = rows.filter(r => r && r.unit), filed = units.filter(lib.unitFiled).length, final = facts.final === true, all = units.length > 0 && filed === units.length;
       if (!units.length) enrich.push("sub-issues-filed: the board has no unit rows yet: the presenter writes them from architecture.md");
+      if (final && !all && units.length) enrich.push(`sub-issues-filed closes the step, but ${units.length - filed} of the ${plural(units.length, "unit")} have no issue yet: the step stays at sub-issues`);
       withUnitSteps(w, applied);
-      const next = units.length && filed === units.length ? "boards" : "sub-issues";
+      const next = final && all ? "boards" : w.step === "boards" && all ? "boards" : "sub-issues";
       setStep(next); setGlow(next);
       detail = detail || `${filed} of ${plural(units.length, "unit")} filed as sub-issues${next === "boards" ? "; their boards are created next" : ""}.`;
-      trail = { column: "considered", label: `${filed} of ${plural(units.length, "unit")} filed as sub-issues` };
+      trail = { column: "considered", label: `${filed} of ${plural(units.length, "unit")} filed as sub-issues${final && next === "boards" ? "; filing done" : ""}` };
+      /* the final event is recorded as such, so one that comes too early is not taken for the last per-unit event again (a duplicate) */
+      if (final) note = note || (next === "boards" ? "final: filing done" : `final, too early: ${units.length - filed} of ${plural(units.length, "unit")} with no issue yet`);
       break;
     }
     case "boards-created": {
       if (!tracking) refuse("boards-created is a tracking board's event");
       lib.linkSubIssueBoards(plan, DIR).forEach(x => applied.push(x));
-      const units = rows.filter(r => r && r.unit), made = units.filter(r => typeof r.unit.board === "string" && r.unit.board).length;
+      const units = rows.filter(r => r && r.unit), made = units.filter(lib.unitBoarded).length, final = facts.final === true, all = units.length > 0 && made === units.length;
       withUnitSteps(w, applied);
-      const next = units.length && made === units.length ? "landing" : "boards";
+      const next = final && all ? "landing" : w.step === "landing" && all ? "landing" : "boards";
       setStep(next); setGlow(next);
-      if (made < units.length) enrich.push(`${units.length - made} of the units' boards are not in the tree yet`);
+      if (made < units.length) enrich.push(`${units.length - made} of the units' boards are not in the tree yet${final ? ": the step stays at boards" : ""}`);
       detail = detail || `${made} of ${plural(units.length, "unit board")} created${next === "landing" ? "; the tracking plan lands next" : ""}.`;
-      trail = { column: "considered", label: `${made} of ${plural(units.length, "unit board")} created` };
+      trail = { column: "considered", label: `${made} of ${plural(units.length, "unit board")} created${final && next === "landing" ? "; boards done" : ""}` };
+      if (final) note = note || (next === "landing" ? "final: every unit's board created" : `final, too early: ${units.length - made} of ${plural(units.length, "unit")} with no board yet`);
       break;
     }
     case "plan-accepted": {
@@ -347,7 +358,8 @@ function applyEvent(orig, ev, facts, req, now) {
     }
     case "implementation-stage": {
       if (plan.status === "planned") { plan.status = "building"; applied.push("status building"); }
-      if (Array.isArray(facts.open)) mergeOpen(w, facts, applied, txt, `implementation-stage ${facts.stage || (curStage() || {}).id || ""}`.trim(), resolved);
+      reportedStage = stageIdOf(facts.stage) || (curStage() || {}).id || null;
+      if (Array.isArray(facts.open)) mergeOpen(w, facts, applied, txt, `implementation-stage ${reportedStage || ""}`.trim(), resolved, plan.folder);
       /* During remediation (facts.remediation, or facts.step "remediation") the report answers a qa pass: its sub-steps are written
          whether or not the facts also carry the stages (which are then merged too, every one done), and the wording follows the
          remediation, facts.stage first, never "qa next". */
@@ -402,7 +414,7 @@ function applyEvent(orig, ev, facts, req, now) {
       if (k < 0) w.qa.push(entry); else w.qa[k] = { ...(w.qa[k] && w.qa[k].note && !entry.note ? { note: w.qa[k].note } : {}), ...entry };
       w.qa.sort((a, b) => a.pass - b.pass); applied.push(`wip.qa pass ${Q.pass} ${verdict}`);
       /* an open point the qa report raises (or settles) is kept as at an implementation stage (plan/RULES.md §3, wip.open) */
-      if (Array.isArray(facts.open)) mergeOpen(w, facts, applied, txt, `qa pass ${Q.pass}`, resolved);
+      if (Array.isArray(facts.open)) mergeOpen(w, facts, applied, txt, `qa pass ${Q.pass}`, resolved, plan.folder);
       if (w.qaMax !== 3 && !Number.isInteger(w.qaMax)) w.qaMax = 3;
       const counts = [...Object.entries(findings).filter(([, n]) => n).map(([k2, n]) => `${n} ${k2}`), ...Object.entries(severity).filter(([, n]) => n).map(([k2, n]) => `${n} ${k2}`)].join(", ");
       const anyFinding = Object.values(findings).some(n => n > 0);
@@ -483,7 +495,7 @@ function applyEvent(orig, ev, facts, req, now) {
   if (facts.tests != null) {
     if (tracking) enrich.push("facts.tests on a tracking board: its units' boards record the tests (the presenter writes them there)");
     else { const qp = ev === "qa-pass" && facts.qa && Number.isInteger(facts.qa.pass) ? facts.qa.pass : null;
-      const r = TL.mergeTests(plan, facts.tests, { now, pass: qp, stage: ev === "implementation-stage" && typeof facts.stage === "string" && facts.stage.trim() ? facts.stage.trim() : null, ids });
+      const r = TL.mergeTests(plan, facts.tests, { now, pass: qp, stage: ev === "implementation-stage" ? reportedStage || stageIdOf(facts.stage) || (typeof facts.stage === "string" && facts.stage.trim() ? facts.stage.trim() : null) : null, ids });
       applied.push(...r.applied); enrich.push(...r.notes.map(n => "tests: " + n)); }
   } else if (!tracking && testsDue)
     enrich.push(`the Tests tab: the event carries no facts.tests; ${ev === "qa-pass" ? "Relevant, Other and the results come from the qa report" : "Added and Amended come from the branch's diff against its base"}`);
@@ -551,14 +563,24 @@ function setRemediation(w, R, applied, enrich, txt) {
   const next = { pass: R.pass, ...(R.route || old.route ? { route: R.route || old.route } : {}), ...(steps ? { steps } : {}) };
   if (JSON.stringify(next) !== JSON.stringify(w.remediation || null)) { w.remediation = next; applied.push(`wip.remediation pass ${R.pass}${next.route ? " " + next.route : ""}`); }
 }
-/* wip.open from facts.open ([{text, raised?, ref?, resolved?}]): a new point appended, a known one (by its text) marked resolved. */
-function mergeOpen(w, facts, applied, txt, raised, resolved) {
+/* wip.open from facts.open ([{text, raised?, ref?, resolved?}]): a new point appended, a known one (by its text) marked resolved. `raised`
+   names the event or stage that raised it (plan/RULES.md §3): a time given there is not one, and the event's own label is used; `ref` is a
+   link from the board's folder, so a path from the repository root ("docs/plans/<folder>/plan.md") is made relative to the folder. */
+const OPEN_TIME = /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
+function openRef(ref, folder) {
+  let r = String(ref).trim().replace(/\\/g, "/").replace(/^\.\//, "");
+  const fo = String(folder || "").replace(/\\/g, "/").replace(/\/+$/, "");
+  if (fo && /^docs\//.test(r) && !/^[a-z][a-z0-9+.-]*:/i.test(r)) { const [p, h] = r.split("#"); const rel = path.posix.relative(fo, p) || path.posix.basename(p); r = rel + (h != null ? "#" + h : ""); }
+  return r;
+}
+function mergeOpen(w, facts, applied, txt, raised, resolved, folder) {
   w.open = Array.isArray(w.open) ? w.open : [];
   facts.open.forEach((o, i) => {
     const text = txt(o && typeof o === "object" ? o.text : o, `open[${i}].text`); if (!text) return;
     const res = o && (o.resolved === true ? true : txt(o.resolved, `open[${i}].resolved`));
     let have = w.open.find(x => x && x.text === text);
-    if (!have) { have = { text, raised: txt(o && o.raised, `open[${i}].raised`) || raised, ...(o && typeof o.ref === "string" && o.ref.trim() ? { ref: o.ref.trim() } : {}) }; w.open.push(have); applied.push(`wip.open + "${text.slice(0, 40)}"`); }
+    const said = txt(o && o.raised, `open[${i}].raised`), by = said && !OPEN_TIME.test(said) ? said : raised;
+    if (!have) { have = { text, raised: by, ...(o && typeof o.ref === "string" && o.ref.trim() ? { ref: openRef(o.ref, folder) } : {}) }; w.open.push(have); applied.push(`wip.open + "${text.slice(0, 40)}"`); }
     if (res && have.resolved !== res) { have.resolved = res; applied.push(`wip.open resolved "${text.slice(0, 40)}"`); resolved.push(have); }
   });
 }
@@ -607,7 +629,7 @@ function applyParent(orig, sub, op, now) {
 function chainDetail(plan) {
   const w = plan.wip || {}, units = (plan.rows || []).filter(r => r && r.unit), st = r => ((r.asBuilt || {}).state) || "pending";
   const counted = units.filter(r => !["dropped", "deferred"].includes(st(r)) && !lib.leftForLater(r)), landed = counted.filter(r => lib.UNIT_LANDED.includes(st(r)));
-  const cur = units.filter(r => (w.current || []).some(a => String(a).split(".")[0] === r.id)), n = r => r.unit.issue ? "#" + r.unit.issue : r.name;
+  const cur = units.filter(r => lib.unitInRun(w.current, r.id)), n = r => r.unit.issue ? "#" + r.unit.issue : r.name;
   const done = cur.filter(r => st(r) === "complete"), going = cur.filter(r => st(r) !== "complete"), nx = units.find(r => r.id === w.next);
   return [`${landed.length} of ${plural(counted.length, "unit")} landed`, going.length ? `${going.map(n).join(", ")} in progress` : null,
     done.length ? `${done.map(n).join(", ")} complete, awaiting ${done.length > 1 ? "their landings" : "its landing"}` : null, nx ? `${n(nx)} up next` : null].filter(Boolean).join("; ") + ".";
@@ -719,6 +741,9 @@ async function main() {
     const warns = cks.map(c => (c.stdout.match(/^warn/gm) || []).length), fails = cks.flatMap(c => c.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l)));
     if (cks.some(c => c.status !== 0)) { S.check = `FAIL: ${fails.slice(0, 6).join(" | ") || (cks.find(c => c.status !== 0).stderr || "").trim().split(/\r?\n/)[0]}`; throw new Error("check.js failed on the board it would write"); }
     S.check = `pass (board: ${plural(warns[0], "warning")}${up ? `; parent: ${plural(warns[1], "warning")}` : ""})`;
+    /* an issue title that names a work level is a defect in the issue (levelrefs.js issueTitleRefs(); dashboards-skill/28): quoted verbatim,
+       never failing the board; named here so the team brings it to the user to retitle on GitHub */
+    S.defects = [...new Set(cks.flatMap(c => c.stdout.split(/\r?\n/).map(l => (l.match(/^warn\s+(ISSUE TITLE NAMES A WORK LEVEL: #[\d?]+)/) || [])[1]).filter(Boolean)))];
     if (lv) {
       if (lv.status !== 0) throw new Error(`board.js --live failed: ${(lv.stderr || lv.stdout).trim().split(/\r?\n/).slice(-1)[0]}`);
       S.live = `regenerated ${path.relative(main, liveDir).split(path.sep).join("/")}/`;

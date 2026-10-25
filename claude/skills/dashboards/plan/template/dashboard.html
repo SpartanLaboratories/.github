@@ -423,6 +423,7 @@ a.more:hover{text-decoration:underline}
 .grouphead{grid-column:1/-1;margin:14px 0 0;font:700 11px var(--sans);text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
 .grouphead small{font:400 11px var(--mono);text-transform:none;letter-spacing:0}
 .rowlab{padding:10px 8px 10px 10px;border-left:4px solid var(--c,var(--muted));margin:8px 0;min-width:0}
+.rowlab.glow,.rowlab.held{border-radius:0 6px 6px 0}
 .rowlab .nm{font-weight:700;font-size:13px;overflow-wrap:anywhere}
 .rowlab .wh{font:11px var(--mono);color:var(--muted);margin-top:3px;overflow-wrap:anywhere}
 .rowlab .sy{font-size:11px;color:var(--ink-2);margin-top:3px}
@@ -491,8 +492,6 @@ blockquote.excerpt p{margin:4px 0 0;color:var(--ink-2);font-size:12.5px}
 @media (max-width:900px){
   .board .cell.colglow{animation:glowsoft 2s ease-in-out infinite;background-color:color-mix(in srgb,var(--accent) 4%,var(--surface))}
   .board .cell.colglow.colheld{animation:none;box-shadow:inset 0 0 0 2px var(--accent)}
-  .board .rowlab.colglow{animation:glowsoft 2s ease-in-out infinite;background-color:color-mix(in srgb,var(--accent) 4%,var(--surface));border-radius:6px}
-  .board .rowlab.colglow.colheld{animation:none;box-shadow:inset 0 0 0 2px var(--accent)}
   .board{display:block}
   .colhead{display:none}
   .grouphead{margin-top:18px}
@@ -688,7 +687,7 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
 .cell.glow,.bcard.glow,.colhead.glow{background-color:color-mix(in srgb,var(--accent) 7%,var(--surface))}
 .cell.glow-soft,.bcard.glow-soft,.colhead.glow-soft{background-color:color-mix(in srgb,var(--accent) 4%,var(--surface))}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}.colhead.glow{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 14px 4px color-mix(in srgb,var(--accent) 40%,transparent)}
-  .board .cell.colglow,.board .rowlab.colglow{animation:none!important;box-shadow:inset 0 0 0 1.5px var(--accent),inset 0 0 9px 2px color-mix(in srgb,var(--accent) 26%,transparent)}}
+  .board .cell.colglow{animation:none!important;box-shadow:inset 0 0 0 1.5px var(--accent),inset 0 0 9px 2px color-mix(in srgb,var(--accent) 26%,transparent)}}
 /* Progress notes (plan/RULES.md §3, "The step panel"): each agent's own note of its work, an info group of the step panel; a note not
    updated for over 20 minutes is muted (its agent may have stopped). */
 .wip-facts>span.prog{border-left:3px solid var(--ink-2)}
@@ -859,8 +858,10 @@ const ghUrl=(n,repo)=>`https://github.com/${repo||PLAN.repo}/issues/${n}`;
 const ilabel=(n,repo)=>`${repo&&repo!==PLAN.repo?esc(repo.split("/")[1])+"#":"#"}${esc(n)}`;
 const ilink=(n,repo)=>{ const b=boardOf(n,repo); return b?`<a href="${esc(b)}" title="#${esc(n)}: its plan board">${ilabel(n,repo)}</a>`:ext(ghUrl(n,repo),ilabel(n,repo)); };
 /* pair(): an issue's number and its title together, as two links (plan/RULES.md §1, "Number and title"): the number opens the
-   GitHub issue and the title opens the issue's board, plain text while it has none. */
-const pair=(n,title,repo)=>{ const b=boardOf(n,repo), t=codeOnly(title); return `${ext(ghUrl(n,repo),ilabel(n,repo))} ${b?`<a href="${esc(b)}" title="#${esc(n)}: its plan board">${t}</a>`:t}`; };
+   GitHub issue and the title opens the issue's board, plain text while it has none. With q, the title is the issue's own, quoted
+   verbatim (GUIDANCE.md §5; dashboards-skill/28) and marked data-issue-title: a work level in it is a defect in the issue, which the
+   checks flag (ISSUE TITLE NAMES A WORK LEVEL: #n) rather than fail the page; a unit's name, the presenter's, takes no mark. */
+const pair=(n,title,repo,q)=>{ const b=boardOf(n,repo), t=codeOnly(title), m=q?` data-issue-title="${esc(n)}"`:""; return `${ext(ghUrl(n,repo),ilabel(n,repo))} ${b?`<a href="${esc(b)}" title="#${esc(n)}: its plan board"${m}>${t}</a>`:m?`<span${m}>${t}</span>`:t}`; };
 const ghlink=(n,repo)=>boardOf(n,repo)?`<a class="gh" href="${esc(ghUrl(n,repo))}" target="_blank" rel="noopener" title="#${esc(n)} on GitHub" aria-label="#${esc(n)} on GitHub">GitHub ↗</a>`:"";
 const clink=sha=>ext(`${REPO}/commit/${sha}`,`<code>${esc(sha)}</code>`);
 const prlink=n=>ext(`${REPO}/pull/${n}`,`PR #${esc(n)}`);
@@ -1027,7 +1028,9 @@ function sysKey(slugs,cls){ const seen=new Map(); slugs.forEach(sl=>{ const s=sy
    the glow of the step it stopped in (plan/RULES.md §3, the glow follows the step). */
 /* NOT_STARTED: a board laid before its run starts (a tracking issue's unit, plan/RULES.md §4): no step yet, status planned, nothing glows */
 let NOT_STARTED=false, STEP="", HALTED=false, PAUSED=false, LANDED=false, STOPPED=false, CURRENT=[];
-const rowActive=r=>CURRENT.some(a=>a.split(".")[0]===r.id);
+/* a row at work: an address of it in wip.current; a unit row's label (<unit-id>.units), which glows while the unit is filed as a sub-issue or
+   its board created, is no run of the unit's (lib.js unitInRun(); dashboards-skill/28) */
+const rowActive=r=>CURRENT.some(a=>{ const p=String(a).split("."); return p[0]===r.id&&p[1]!=="units"; });
 /* ---------- The units' own runs (tracking boards, plan/RULES.md §3) ----------
    A unit in progress carries unit.live: its sub-issue board's run (step, since, updated, detail, steps, waitingOn, resume, qa,
    status, branch) as embed.js mirrored it from that board's plan.json at the last embed of either board. Nobody writes it by
@@ -1141,7 +1144,9 @@ const NEXT_STEP={qa:"landing, or remediation if qa requests changes",remediation
 function unitProgress(R,o,what){ const units=ROWS.filter(r=>r.unit), done=r=>what==="filed"?Number.isInteger(r.unit.issue)&&r.unit.issue>0:!!relLink(r.unit.board), n=units.filter(done).length;
   if(!units.length) return `<p>The units come from the architecture; none is on the board yet.</p>`;
   let first=true;
-  return `<p class="sp-sum">${n} of ${units.length} unit${units.length===1?"":"s"} ${what==="filed"?"filed as sub-issues":"with a board"}</p>`+spList(units.map(r=>{ const d=done(r), cur=!d&&first&&!o.held; if(!d) first=false;
+  /* the units at work are the ones whose labels glow (<unit-id>.units, dashboards-skill/28); a board that names none marks the first to do */
+  const lit=CURRENT.some(a=>/\.units$/.test(String(a)));
+  return `<p class="sp-sum">${n} of ${units.length} unit${units.length===1?"":"s"} ${what==="filed"?"filed as sub-issues":"with a board"}</p>`+spList(units.map(r=>{ const d=done(r), cur=!d&&!o.held&&(lit?CURRENT.includes(r.id+".units"):first); if(!d) first=false;
     return spItem(d?"done":cur?"cur":"todo",dotMark,`${esc(r.unit.n!=null?r.unit.n+". ":"")}${r.unit.issue?pair(r.unit.issue,r.name):codeOnly(r.name)}`,d?(what==="filed"?"filed":"board created"):what==="filed"?"to file":r.unit.issue?"its board to create":"its sub-issue first"); })); }
 /* The route /resolve-issue step 5 takes from a qa pass's findings (wip.qa[].route, wip.remediation.route): every fix minor (easily made,
    no fallout), fixed on the spot with no new qa pass; otherwise a remediation pass by rookie-dev, or a planner re-pass then rookie-dev,
@@ -1415,7 +1420,8 @@ function renderHeader(){
   $("#h1").innerHTML=`<a class="ghn" href="${esc(ghUrl(PLAN.issue))}" target="_blank" rel="noopener" title="#${esc(PLAN.issue)} on GitHub">#${esc(PLAN.issue)}</a> · ${esc(PLAN.title||"")}`;
   $("#function").innerHTML=rich(PLAN.function);
   /* the intro's issue line: the issue's title on GitHub, and nothing else (the title's #n is the link) */
-  $("#issueline").innerHTML=PLAN.issueTitle?rich(PLAN.issueTitle):"";
+  /* the issue's title on GitHub, quoted verbatim and marked (dashboards-skill/28): a work level in it is the issue's defect, flagged */
+  $("#issueline").innerHTML=PLAN.issueTitle?`<span data-issue-title="${esc(PLAN.issue)}">${rich(PLAN.issueTitle)}</span>`:"";
   const b=PLAN.baseline||{}, a=PLAN.asBuilt;
   const statusText={planned:"planned · nothing built",building:"building",built:"built",abandoned:"abandoned"}[PLAN.status]||PLAN.status;
   /* the tags (GUIDANCE.md §6, "The header"): each its label (.ck) and its value; one tag for the systems, each with its swatch */
@@ -1626,6 +1632,11 @@ function timelinePhases(P){ const kind=P&&P.kind==="tracking"?"tracking":"issue"
     out.phases.push({key,shade:TLP_SH[kind][i],from,to,days,weight,timed}); });
   return out; }
 const tlDuration=p=>p.timed&&p.weight<24?(p.weight<1?"under an hour":`${Math.round(p.weight)} h`):p.days===0?"same day":`${p.days} day${p.days===1?"":"s"}`;
+/* the tile's figure (dashboards-skill/28): the sum of the phases the bar draws, never baseline to built; a phase left out is not summed,
+   and the sub-line names it. In hours where every phase drawn carries both times and the sum is under a day, else in calendar days.
+   lib.js timelineTotal(). */
+function timelineTotal(T){ const ps=T&&Array.isArray(T.phases)?T.phases:[]; if(!ps.length) return null;
+  return {days:ps.reduce((n,p)=>n+p.days,0),weight:ps.reduce((n,p)=>n+p.weight,0),timed:ps.every(p=>p.timed)}; }
 function timelineLeftOut(T){ const by=new Map(); (T&&T.left||[]).forEach(x=>{ if(!by.has(x.why)) by.set(x.why,[]); by.get(x.why).push(x.key); });
   return [...by].map(([why,ks])=>`${ks.join(", ")} left out: ${why}`).join(" · "); }
 function renderKpis(){
@@ -1641,7 +1652,6 @@ function renderKpis(){
   const vbuild=count(ROWS,r=>verdictOf(r)==="build"), leave=count(ROWS,r=>verdictOf(r)==="leave"), vopen=ROWS.length-vbuild-leave;
   const changes=ROWS.reduce((n,r)=>n+((r.asBuilt||{}).changes||[]).length,0);
   const b=PLAN.baseline||{}, a=PLAN.asBuilt;
-  const days=(a&&a.date&&b.date)?Math.round((Date.parse(a.date)-Date.parse(b.date))/86400000):null;
   /* The segmented bars (plan/RULES.md §2, "The KPI tiles"), one per tile, each segment named in the tiles' legend (GUIDANCE.md §2):
      Rows / Units one segment per row group, sized by its rows, in its system's colour (a group whose rows span several systems is cut
      by system); Options weighed by verdict, as the Considered column colours them (a deferred option still open dashed, one settled in
@@ -1666,7 +1676,7 @@ function renderKpis(){
     `<div class="kpi"><div class="l">Options weighed</div><div class="v">${OPTS.length}</div><div class="s">${["accepted","partial","deferred","declined"].filter(by).map(v=>`${by(v)} ${v}`).join(" · ")||"none yet"}</div>${OPTS.length?segBar(optParts,`Options weighed: ${optParts.filter(p=>p.n).map(p=>`${p.n} ${p.k.replace("settled-","deferred, settled ")}`).join(", ")}`)+K.opts:""}</div>`,
     `<div class="kpi"><div class="l">Verdicts</div>${vbuild+leave?`<div class="v">${vbuild} <small>build</small></div><div class="s">${leave} left for later${vopen?` · ${vopen} not yet written`:""}</div>`:`<div class="v">0${ROWS.length?` <small>of ${ROWS.length}</small>`:""}</div><div class="s">none written yet</div>`}${ROWS.length?segBar([{n:vbuild,cls:"ink",t:`${vbuild} build`},{n:leave,cls:"left",t:`${leave} left for later`},{n:vopen,cls:"dash",t:`${vopen} not yet written`}],`Verdicts: ${vbuild} build, ${leave} left for later, ${vopen} not yet written`)+K.verdicts:""}</div>`,
     `<div class="kpi"><div class="l">As built</div><div class="v">${built} <small>/ ${counted.length} ${TRACKING?"units landed":"rows built"}</small></div><div class="s">${[...states.filter(([,n])=>n).map(([k,n])=>`${n} ${STATES[k].label}`),left?`${left} left for later`:""].filter(Boolean).join(" · ")||"—"}${changes?` · ${changes} changes`:""}</div>${ROWS.length?bar+K.built:""}</div>`,
-    `<div class="kpi"><div class="l">${LANDED?"Timeline":"QA passes"}</div><div class="v">${LANDED?(days==null?"—":days===0?"same day":`${days} day${days===1?"":"s"}`):`${qa.length}${WIP.qaMax?` <small>of at most ${esc(WIP.qaMax)}</small>`:""}`}</div><div class="s">${LANDED?[`${b.date?`baseline ${when(b.date)}`:""}${a&&a.date?` → built ${when(a.date)}`:""}`,esc(timelineLeftOut(TP))].filter(Boolean).join(" · "):(qa.length?esc(qa.map(p=>`pass ${p.pass}: ${(QA[p.verdict]||QA.running).label}`).join(" · ")):"no qa pass yet")}</div>${LANDED?(tpParts.length?segBar(tpParts,`Timeline: ${TP.phases.map(p=>`${p.key} ${tlDuration(p)}`).join(", ")}${TP.left.length?`; ${timelineLeftOut(TP)}`:""}`)+K.timeline:""):segBar(qaParts,`QA passes: ${qa.length} of ${qmax} slots used`)+K.qa}</div>`].join("");
+    `<div class="kpi"><div class="l">${LANDED?"Timeline":"QA passes"}</div><div class="v">${LANDED?(TP&&TP.phases.length?esc(tlDuration(timelineTotal(TP))):"—"):`${qa.length}${WIP.qaMax?` <small>of at most ${esc(WIP.qaMax)}</small>`:""}`}</div><div class="s">${LANDED?[`${b.date?`baseline ${when(b.date)}`:""}${a&&a.date?` → built ${when(a.date)}`:""}`,esc(timelineLeftOut(TP))].filter(Boolean).join(" · "):(qa.length?esc(qa.map(p=>`pass ${p.pass}: ${(QA[p.verdict]||QA.running).label}`).join(" · ")):"no qa pass yet")}</div>${LANDED?(tpParts.length?segBar(tpParts,`Timeline: ${TP.phases.map(p=>`${p.key} ${tlDuration(p)}`).join(", ")}${TP.left.length?`; ${timelineLeftOut(TP)}`:""}`)+K.timeline:""):segBar(qaParts,`QA passes: ${qa.length} of ${qmax} slots used`)+K.qa}</div>`].join("");
 }
 /* A qa pass's result on its slot: running (accent), passed (green), changes requested with minor findings only (yellow: every
    finding minor by severity, or fixed on the spot), changes requested with other findings (red). */
@@ -1719,12 +1729,13 @@ function renderBoard(){
     ?"One row per unit, in landing order; each unit is planned and built on its own board. Click a cell for its detail."
     :"Click a cell, an option or a statement's (§) reference for its detail and the Markdown section that holds the rest.";
   const ms=c=>(PLAN.milestones||[]).find(m=>m.column===c);
-  let h=`<div class="colhead${CURRENT.includes("units")?" units":""}" data-col="units" aria-hidden="true"></div>`+COLS.map((c,i)=>{ const m=ms(c.key);
+  let h=`<div class="colhead" data-col="units" aria-hidden="true"></div>`+COLS.map((c,i)=>{ const m=ms(c.key);
     const dt=m?`${esc(m.label)}${m.date?` · <span class="nw">${when(m.date)}</span>`:""}${m.ref?` · ${refHtml(m.ref)}`:""}`:(c.key==="built"&&!LANDED?"not landed":"");
     return `<div class="colhead phase${CURRENT.includes(c.key)?" colon":""}" data-col="${c.key}"><div class="ph"><b>${i+1}</b>${esc(c.label).toUpperCase()}</div><div class="q">${esc(c.q)}</div>${dt?`<div class="dt">${dt}</div>`:""}</div>`; }).join("");
-  if(!ROWS.length) h+=`<p class="lede" style="grid-column:1/-1;margin-top:12px">No rows yet: the Gap column is written when the research is verified, the rows with it.</p>`;
+  if(!ROWS.length) h+=`<p class="lede" style="grid-column:1/-1;margin-top:12px">${TRACKING?"No units yet: they are written from the architecture at its sign-off.":"No rows yet: they are named from the gaps before the research starts."}</p>`;
   grouped().forEach(G=>{ if(G.name) h+=`<div class="grouphead">${esc(G.name)} <small>${G.rows.length} ${TRACKING?"unit":"row"}${G.rows.length>1?"s":""}</small></div>`;
-    G.rows.forEach(r=>{ h+=`<div class="rowlab${CURRENT.includes("units")&&r.unit?(PAUSED?" colglow colheld":" colglow"):""}" data-sys="${esc(r.system||"")}" id="row-${esc(r.id)}"><div class="nm">${rowTitle(r)}</div>${r.where?`<div class="wh">${esc(r.where)}</div>`:""}<div class="sy"><span class="sw" data-sys="${esc(r.system||"")}"></span>${esc(sysName(r.system))}</div></div>`+cellGap(r)+cellConsidered(r)+cellVerdict(r)+cellBuilt(r); }); });
+    /* a unit row's label glows on its own while its sub-issue, then its board, is made (<unit-id>.units; plan/RULES.md §3; dashboards-skill/28) */
+    G.rows.forEach(r=>{ h+=`<div class="rowlab${r.unit&&CURRENT.includes(r.id+".units")?glowCls(true,false):""}" data-sys="${esc(r.system||"")}" id="row-${esc(r.id)}"><div class="nm">${rowTitle(r)}</div>${r.where?`<div class="wh">${esc(r.where)}</div>`:""}<div class="sy"><span class="sw" data-sys="${esc(r.system||"")}"></span>${esc(sysName(r.system))}</div></div>`+cellGap(r)+cellConsidered(r)+cellVerdict(r)+cellBuilt(r); }); });
   $("#board").innerHTML=h; paint($("#board")); layoutBands();
   document.querySelectorAll("#board .cell[role=button]").forEach(c=>{ const go=()=>select(c.dataset.row,c.dataset.col); c.addEventListener("click",e=>{ if(e.target.closest("a")) return; go(); }); c.addEventListener("keydown",e=>{ if(e.target!==c) return; if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } }); });
   document.querySelectorAll("#board .opt").forEach(o=>o.addEventListener("click",()=>select(o.dataset.row,"considered",o.dataset.opt)));
@@ -1755,7 +1766,7 @@ function kindKeys(){ const chip=w=>`<b class="kind">${esc(w)}</b>`;
 function layoutBands(){ const b=$("#board"); if(!b) return; b.querySelectorAll(".band").forEach(x=>x.remove());
   if(getComputedStyle(b).display!=="grid"||!b.offsetWidth) return;
   const pad=Math.max(4,Math.floor((parseFloat(getComputedStyle(b).columnGap)||14)/2)-3);
-  b.querySelectorAll(".colhead.phase, .colhead.units").forEach(c=>{ const d=document.createElement("div"); d.className="band"+colGlowCls(c.dataset.col); d.setAttribute("aria-hidden","true");
+  b.querySelectorAll(".colhead.phase").forEach(c=>{ const d=document.createElement("div"); d.className="band"+colGlowCls(c.dataset.col); d.setAttribute("aria-hidden","true");
     d.style.cssText=`left:${c.offsetLeft-pad}px;width:${c.offsetWidth+2*pad}px;top:0;bottom:0`; b.prepend(d); }); }
 if(window.ResizeObserver){ let w=-1, cw=-1; new ResizeObserver(()=>{ const b=$("#board"); if(b&&b.offsetWidth!==w){ w=b.offsetWidth; layoutBands(); }
   const f=$("#chain-frame"); if(f&&CUR_TAB==="landing-order"&&f.clientWidth!==cw){ cw=f.clientWidth; const sel=(document.querySelector(".chainsvg .unit.sel")||{}).dataset; renderChain(); if(sel&&sel.row){ const g=document.querySelector(`.chainsvg .unit[data-row="${CSS.escape(sel.row)}"]`); if(g) g.classList.add("sel"); } } }).observe(document.body); }
@@ -2134,10 +2145,10 @@ function renderContext(){
   const rm=PLAN.roadmap||null;
   if(TRACKING){ const units=ROWS.filter(r=>r.unit);
     cards.push(`<div class="card"><h3>Roadmap <small>#${esc(PLAN.issue)} · ${units.length} units${WIP.updated?` · ${day(WIP.updated)}`:""}</small></h3><ul class="issues">${units.map(r=>`<li><span class="nm">${esc(r.unit.n)}. ${r.unit.issue?pair(r.unit.issue,r.name):esc(r.name)} · ${badge(stateOf(r))}${runOf(r)?` ${runPill(runOf(r))}`:""}${isNext(r)?` ${TAG_NEXT}`:""}</span></li>`).join("")}</ul></div>`); }
-  else if(rm&&rm.issue) cards.push(`<div class="card"><h3>Roadmap <small>${day(rm.asOf||"")}</small></h3><ul class="issues"><li><span class="nm">${pair(rm.issue,rm.title||"")}</span></li>${(rm.items||[]).map(i=>`<li><span class="nm">${pair(i.issue,i.title||"")}${i.state?` · ${esc(String(i.state).toUpperCase()==="CLOSED"&&i.stateReason==="NOT_PLANNED"?"closed · not planned":String(i.state).toUpperCase()==="CLOSED"&&i.stateReason==="DUPLICATE"?"closed · duplicate":i.state)}`:""}${i.issue===PLAN.issue?" · this board":""}</span></li>`).join("")}</ul></div>`);
+  else if(rm&&rm.issue) cards.push(`<div class="card"><h3>Roadmap <small>${day(rm.asOf||"")}</small></h3><ul class="issues"><li><span class="nm">${pair(rm.issue,rm.title||"",null,1)}</span></li>${(rm.items||[]).map(i=>`<li><span class="nm">${pair(i.issue,i.title||"",null,1)}${i.state?` · ${esc(String(i.state).toUpperCase()==="CLOSED"&&i.stateReason==="NOT_PLANNED"?"closed · not planned":String(i.state).toUpperCase()==="CLOSED"&&i.stateReason==="DUPLICATE"?"closed · duplicate":i.state)}`:""}${i.issue===PLAN.issue?" · this board":""}</span></li>`).join("")}</ul></div>`);
   else cards.push(`<div class="card"><h3>Roadmap</h3><p class="lede">No roadmap item claims #${esc(PLAN.issue)}: it has no tracking parent. The ${wbLink("work board")} and the ${linkOr(sharedLink("repoPage"),"repository page")} show the roadmap.</p></div>`);
   const fu=PLAN.followUps||[];
-  cards.push(`<div class="card"><h3>Follow-ups and related issues <small>${fu.length}</small></h3>${fu.length?`<ul class="issues">${fu.map(f=>(f.issue?`<li><span class="nm">${f.title?`${pair(f.issue,f.title,f.repo)}${f.note?` — ${rich(f.note)}`:""}`:`${ilink(f.issue,f.repo)}${boardOf(f.issue,f.repo)?` ${ghlink(f.issue,f.repo)}`:""}${f.note?` — ${rich(f.note)}`:""}`}</span></li>`:`<li><span class="nm"><code>${esc(f.name||"")}</code> <small>not filed</small> — ${rich(f.note||"")}</span></li>`)).join("")}</ul>`:`<p class="lede">None recorded.</p>`}</div>`);
+  cards.push(`<div class="card"><h3>Follow-ups and related issues <small>${fu.length}</small></h3>${fu.length?`<ul class="issues">${fu.map(f=>(f.issue?`<li><span class="nm">${f.title?`${pair(f.issue,f.title,f.repo,1)}${f.note?` — ${rich(f.note)}`:""}`:`${ilink(f.issue,f.repo)}${boardOf(f.issue,f.repo)?` ${ghlink(f.issue,f.repo)}`:""}${f.note?` — ${rich(f.note)}`:""}`}</span></li>`:`<li><span class="nm"><code>${esc(f.name||"")}</code> <small>not filed</small> — ${rich(f.note||"")}</span></li>`)).join("")}</ul>`:`<p class="lede">None recorded.</p>`}</div>`);
   const events=[...(PLAN.milestones||[]).map(m=>({date:m.date,phase:m.column,text:`<b>${esc(m.label)}</b>${m.note?` — ${rich(m.note)}`:""}${m.ref?` · ${refHtml(m.ref)}`:""}`})),...(PLAN.trail||[]).map(t=>({date:t.date,phase:t.column||"",text:`${rich(t.label||"")}${t.ref?` · ${refHtml(t.ref)}`:""}`}))].map((e,i)=>({...e,i})).sort((a,b)=>String(a.date||"").localeCompare(String(b.date||""))||a.i-b.i);
   const phaseName={gap:"GAP",considered:"CONSIDERED",verdict:"VERDICT",built:"BUILT"};
   cards.push(`<div class="card"><h3>Trail <small>${events.length} events</small></h3>${events.length?`<ul class="trail">${events.map(e=>`<li><span class="d">${when(e.date||"")}</span><span class="t">${e.phase?`<span class="ph">${esc(phaseName[e.phase]||e.phase)}</span>`:""}${e.text}</span></li>`).join("")}</ul>`:`<p class="lede">No dated events yet.</p>`}</div>`);
@@ -2166,7 +2177,7 @@ function derive(){
   NEXT_ROW=TRACKING&&!LANDED&&!STOPPED&&WIP.next?ROWS.find(r=>r.id===WIP.next&&r.unit&&!rowActive(r)&&stateOf(r)==="pending"&&!leftForLater(r))||null:null;
   ownStep=["halted","escalated"].includes(STEP)?(WIP.resume||WIP.last||""):STEP;
   PLAN_LANDED=LANDED||(TRACKING&&(["building","built"].includes(PLAN.status)||["implementation","landed"].includes(ownStep)
-    ||!!(WIP.landing&&(WIP.landing.pr||WIP.landing.merge))||ROWS.some(r=>r.unit&&(stateOf(r)!=="pending"||(WIP.current||[]).some(a=>String(a).split(".")[0]===r.id)))));
+    ||!!(WIP.landing&&(WIP.landing.pr||WIP.landing.merge))||ROWS.some(r=>r.unit&&(stateOf(r)!=="pending"||(WIP.current||[]).some(a=>{ const p=String(a).split("."); return p[0]===r.id&&p[1]!=="units"; })))));
   SHOW_BRANCH=!!PLAN.branch&&!PLAN_LANDED;
   OPTS=ROWS.flatMap(r=>(r.options||[]).map(o=>({row:r,opt:o})));
   IMPACT=PLAN.impact&&typeof PLAN.impact==="object"&&!Array.isArray(PLAN.impact)?PLAN.impact:null;

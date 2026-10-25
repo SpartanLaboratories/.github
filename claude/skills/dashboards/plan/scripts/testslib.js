@@ -82,8 +82,14 @@ function mergeTests(plan, ft, o) {
   TEST_LISTS.forEach(k => { T[k] = Array.isArray(T[k]) ? T[k] : []; });
   if (str(ft.base) && T.base !== ft.base.trim()) T.base = ft.base.trim();
   const rank = { added: 3, amended: 2, relevant: 1 };
-  const find = e => { for (const k of TEST_LISTS) { let i = T[k].findIndex(x => x && testKey(x) === testKey(e)); if (i < 0 && !e.module) { const hits = T[k].map((x, j) => x && x.class === e.class ? j : -1).filter(j => j >= 0); if (hits.length === 1) i = hits[0]; } if (i >= 0) return { k, i }; } return null; };
-  const merge = (old, e) => { const m = { ...old, ...e }; if (old.rows || e.rows) m.rows = [...new Set([...(old.rows || []), ...(e.rows || [])])]; if (old.module && !e.module) m.module = old.module; return m; };
+  /* a class matches by its module and name; failing that, uniquely, by its name with no module given, or by its simple name where one side
+     names the class without its package (a stage's facts may give "FooTest" for a class recorded as "com.acme.testing.component.FooTest") */
+  const simple = c => String(c || "").split(".").pop();
+  const sameModule = (x, e) => !e.module || !x.module || x.module === e.module;
+  const loose = (x, e) => !!x && sameModule(x, e) && (x.class === e.class || ((!String(x.class).includes(".") || !String(e.class).includes(".")) && simple(x.class) === simple(e.class)));
+  const find = e => { for (const k of TEST_LISTS) { let i = T[k].findIndex(x => x && testKey(x) === testKey(e)); if (i < 0) { const hits = T[k].map((x, j) => loose(x, e) ? j : -1).filter(j => j >= 0); if (hits.length === 1) i = hits[0]; } if (i >= 0) return { k, i }; } return null; };
+  /* the merged class keeps its qualified name, whichever side gave it */
+  const merge = (old, e) => { const m = { ...old, ...e }; if (old.rows || e.rows) m.rows = [...new Set([...(old.rows || []), ...(e.rows || [])])]; if (old.module && !e.module) m.module = old.module; if (String(old.class).includes(".") && !String(e.class).includes(".")) m.class = old.class; return m; };
   const put = (k, e, resultOnly) => { const w = find(e);
     if (!w) { T[k].push(e); applied.push(`tests.${k} + ${e.class}`); return; }
     const old = T[w.k][w.i], merged = resultOnly ? { ...old, ...(e.result ? { result: e.result } : {}), ...(old.testLevel || !e.testLevel ? {} : { testLevel: e.testLevel }), ...(old.tests != null || e.tests == null ? {} : { tests: e.tests }), ...(old.path || !e.path ? {} : { path: e.path }) } : merge(old, e);

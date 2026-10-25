@@ -91,7 +91,8 @@ keeps the status scale (passed green, failed red, each with its glyph and word).
 **Phases: a neutral ramp.** A landed board's Timeline tile (`plan/RULES.md` §2, "The KPI tiles") draws the time per phase of its run in
 neutral ink shades, faintest for the first phase to strongest for the last (an issue board's plan, build, qa and landing; a tracking
 board's plan, filing and units), each named with its time in the tile's legend: phases are an order, not systems or outcomes, so they
-take neither a system slot nor a status colour.
+take neither a system slot nor a status colour. The tile's figure is the sum of the phases its bar draws, never baseline to built: a phase
+left out of the bar is left out of the sum (admin-team/dashboards-skill/28).
 
 **Work in progress and the next one up: two accent marks.** The accent colour marks two things
 and nothing else, each with its own look and its own legend entry (the charging arrow, below, is
@@ -119,7 +120,9 @@ while the view is live and changing and holds still after a quiet spell, while t
 user, when its data cannot be read and under `prefers-reduced-motion`. Nothing else animates. The
 in-progress mark is exact: it marks every cell being worked on, however many, and nothing else; a whole column glows
 only while the rows being worked on are unknown, or while the work touches no row (an implementation stage that builds no row
-glows the whole As built column, `plan/RULES.md` §3). No check limits how many glow. **A column at work is one glow on the
+glows the whole As built column, `plan/RULES.md` §3). No check limits how many glow. While a tracking board files its units as
+sub-issues, then creates their boards, each unit row's label glows on its own while its issue (then its board) is being made, and stops
+when that one is done (`plan/RULES.md` §3; admin-team/dashboards-skill/28). **A column at work is one glow on the
 column itself** — its band and head on a board's Timeline, round the cards on its As built tab — never each of its cells lit; held
 still as the ring alone while the run waits on the user, static under `prefers-reduced-motion`, with its own legend entry. A
 layout that draws no column (a board's Timeline at phone width stacks its rows) puts the mark on each of that column's cells.
@@ -165,7 +168,7 @@ colour, a neutral; dashed for what is pending), and **each tile carries the lege
 segments that bar drew: no legend row is shared under the tiles, so every tile keeps its full share of the row. The
 work board's Runs tile (every run by its state) and its Landed tile (landed, merged, complete, and the closed ones it does not count) carry one
 too, each with its legend inside the tile. A landed board's Timeline tile carries the time per phase (§1, "Phases"), a phase with no
-bound recorded left out of the bar and named in its sub-line. A tile that counts one state (the work board's Active, Waiting, Up next, Not started) has
+bound recorded left out of the bar and named in its sub-line; its figure is the sum of the phases the bar draws. A tile that counts one state (the work board's Active, Waiting, Up next, Not started) has
 nothing to segment and carries none, and so do the system pages' hand-written tiles: they are counted facts written by hand (files,
 types, threads, tests), not states, so there is nothing a bar would divide.
 
@@ -226,7 +229,16 @@ a plan keeps its level as data where a script needs it (`plan.json` `level`, `un
 "a level-3 re-pass", "Label level: 3") is reworded before it is written — the scope phrase becomes the unit's or the issue's scope, the
 level is elided before its noun, the label dropped — and left out only where a work level would remain (`system/scripts/levelrefs.js`
 `scrubLevels()`, which `apply-event.js` and `apply-state.js` run); a quotation (a plan excerpt) elides it with "…" instead, as a quote
-is never reworded. The test
+is never reworded.
+
+**An issue's title is quoted verbatim** (admin-team/dashboards-skill/28). Wherever a page shows an issue's title — a plan board's issue
+line, a roadmap item, a follow-up, a work-board row, group, roadmap item or unscheduled issue, a state page's Context and its "last amended
+by" note — it is the issue's own, never reworded and never elided. Work levels are internal to the pipeline and never part of an issue, so
+a title that names one is a **defect in the issue**, not in the page: `plan/scripts/check.js` (on `plan.json` and `board.json`) and
+`system/scripts/check-page.js` (a state page's Context titles and `lastAmended.title`, and in its browser pass every title the page marks
+`data-issue-title`) flag it, `ISSUE TITLE NAMES A WORK LEVEL: #n`, as a warning and never fail the page for it, and `apply-event.js` and
+`apply-state.js` name it in their summary's `issue defects`; the admin team brings it to the user to retitle on GitHub. The rule above
+holds for everything else on the page, the quoted titles' text aside (`levelrefs.js` `issueTitleRefs()`, `titleSkip()`). The test
 levels of the five-level testing hierarchy and the C4 model's levels are not work levels: the rule
 does not touch them, and they keep their level labels — "L1 gating", "L2 component", "L4a
 deterministic", "L5 UAT", "Level 2 — component", "Level 1 · System Context". `plan/scripts/check.js`
@@ -245,7 +257,8 @@ links their pages; the repository page links the work board.
 **An issue's number and its title.** Where an issue's number and its title appear together — a
 unit row, a roadmap item, a work-board row or group heading, the WIP strip's unit lines, the
 inspector's unit entry — they are **two links**: the number opens the GitHub issue, and the
-title opens the issue's own board, or stays plain text while it has none. A tracking board's
+title opens the issue's own board, or stays plain text while it has none. An issue's title is quoted verbatim (§4); a unit's name, the
+presenter's, is not a quotation. A tracking board's
 unit row is the example: `1. #61 Shared build logic`, where `#61` opens issue 61 on GitHub and
 "Shared build logic" opens its board. Where **only one link fits** — a bare `#n` in text, a
 chain node, a "blocked by #n" tag, a deferred badge, the "part of #n" chip — the `#n` opens the
@@ -368,7 +381,8 @@ tablist's keys, the state block, the as-is header, the legends of Guarantees and
 the Markdown copies, the progress notes, a tracking board's steps, the KPI bars, the neutral bug badge, the chain, core subsystems, the tiles'
 legends inside each tile, no "board" tag, the title's `#n`, "since" said once by the step panel, the larger charging arrow, the landing
 step, the Tests tab, the Timeline tile's phases, a reference's section number before its excerpt, no work level in the page's data, a
-plan board's finished steps clickable — and
+plan board's finished steps clickable, each unit row's label glowing on its own while it is filed, the Timeline tile's figure the sum of
+its phases, an issue's title quoted and marked — and
 the browser pass the layout ones (the header's halves, the wide page, the legends shown). A missing feature fails, as `FEATURE MISSING:
 <feature> (template since dashboards-skill/N)`, **through a declared divergence too**: a divergence adds or argues a removal; it never
 excuses a page that lags its template. A landed or cancelled issue board is the exception: it is kept as it landed and never
@@ -417,6 +431,22 @@ own steps and for each unit in progress through its mirror), where the progress 
 the work board, which has no progress strip — one row per run, its step as text, the run's steps on its own board — and not to system,
 supersystem and repository pages, which show the code at a commit and no run's steps. The highlight of the step shown is an ink ring,
 never the accent (§1).
+
+**The decisions of admin-team/dashboards-skill/28**, each weighed for every type:
+
+- **The Timeline tile's figure is the sum of the phases its bar draws** (§1, "Phases"; `plan/RULES.md` §2): applied to plan boards and
+  tracking boards (one tile, one rule: `lib.js` `timelineTotal()`, the template's `timelineTotal()`). Not to the work board, which has no
+  Timeline tile (one row per run), nor to system, supersystem and repository pages, whose tiles are hand-written counted facts and show no
+  run's phases.
+- **An issue's title is quoted verbatim; one that names a work level is flagged as the issue's defect** (§4): applied to every type — plan
+  and tracking boards (the issue line, the roadmap, the follow-ups), the work board (its rows, groups, roadmap and unscheduled issues), and
+  system, supersystem and repository pages (the Context's titles and the "last amended by" note), each title marked `data-issue-title`.
+- **A board at research with no rows is a defect** (`NO ROWS AT RESEARCH`, `plan/RULES.md` §3, §8): applied to issue boards and sub-issues'
+  boards. Not to a tracking board, whose rows are its units, written from its architecture at the sign-off, after its research (it has no
+  rows at research by design); not to the work board or the state pages, which have no research step.
+- **Each unit row's label glows on its own while it is filed, then while its board is created** (`plan/RULES.md` §3, §4): applied to
+  tracking boards, the only type with those steps. Not to the work board, which marks runs and shows filing as the tracking issue's own
+  step on its row (a unit's row there glows only once its run is under way), nor to the state pages, which show no run.
 
 A **planning-docs landing** — a docs pull request that resolves no issue (a plan folder, a roadmap document) — triggers a small landing
 refresh: the committed work board, and the repository page where the repository has one.
