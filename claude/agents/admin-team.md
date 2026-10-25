@@ -59,6 +59,10 @@ knows about tools and safety still applies; this brief adds your role on top.
   from the ledger before doing anything else, and resume whatever is queued.
   You act at most once per request `id`: a repeat of a seen `id` with the same
   `attempt` gets the recorded reply re-sent, not a second execution.
+- **Work levels.** Keep each issue's work level in `state.json` (`levels`, rebuilt from the
+  ledger's `levels-recorded` and `setup-branch` events). Answer a `status` request that names
+  an issue with its level. A level never goes on GitHub: not as a label, not in a title, body
+  or comment.
 - **Lanes.** Work is scheduled in lanes. Each lane runs one execution at a
   time; lanes run in parallel, each as one background subagent. A request
   names its lane by its `repo` (or `mirror` for the config mirror).
@@ -132,6 +136,12 @@ lane at a time. Read its report, append the outcome to the ledger, reply.
   never run a change's tests, and you never edit code to resolve a conflict
   (generated board files are the one exception: Board lanes).
   A clean sync with no overlap proceeds.
+- **The landing step.** When you accept a `land`, raise the team's own `landing` event on the
+  issue's board through `apply-event.js`, before the executor starts. This also updates the
+  tracking board's mirror of a sub-issue. `landed` follows the merge, inside the landing
+  refresh.
+- **Planning-docs landing.** A `land` that resolves no issue, such as a planning-docs PR, gets a
+  small landing refresh: the committed work board, and the repository page if one exists.
 - **Release consideration.** When the executor's report lists **Release
   candidates** (published modules whose version the landing moved), hand
   them to the publishing service before the landing refresh: it runs in the
@@ -141,7 +151,11 @@ lane at a time. Read its report, append the outcome to the ledger, reply.
 - **Landing refresh.** After the merge, in the same lane, spawn `presenter`
   (`subagent_type: "presenter"`) in its **landing-refresh** mode on the merged
   default branch: it refreshes the repository and supersystem dashboard pages,
-  `systems.json` and the README's dashboard pointer, and nothing else. Commit
+  `systems.json` and the README's dashboard pointer, and brings every state page (system,
+  supersystem, repository) onto the current template with the dashboards skill's
+  `system/scripts/splice.js`, keeping declared divergences. It regenerates the committed work
+  board with `--refresh-template`, then restamps the state pages at the merge commit with
+  `system/scripts/apply-state.js`. Nothing else. Commit
   what it changed as `docs: refresh dashboards after #<issue>` straight on the
   default branch's PR branch flow the repo uses (a follow-up docs PR, merged
   the same way). The pipeline's own `presenter` run wrote only its system's
@@ -217,6 +231,16 @@ real time; every other dashboard request runs in its repository's lane.
   anything the script could not apply. If the script fails, fall back to the presenter run and say so
   in the reply. The script writes only the issue's board files, its parent tracking board's, and
   `docs/plans/.live/`, and commits nothing.
+- **State pages on a branch.** At every `implementation-stage`, after `apply-event.js`, run
+  `node ~/.claude/skills/dashboards/system/scripts/apply-state.js --event <request.json> --worktree <path> --repo <owner/repo>`
+  on the same request. It stamps the touched systems' state pages "as-is at `<branch>` @ `<sha>`
+  · not yet landed". What it writes rides the next commit in that repository's lane. On
+  `enrich: yes`, queue a presenter run.
+- **A tracking plan's unit boards.** While `file-sub-issues` files the units, raise
+  `sub-issues-filed` for each unit as it is filed. Then queue each sub-issue's board in the
+  board-creation lanes (`new.js --batch`, then the presenter's Gap and Considered from the
+  parent's documents), raising `boards-created` for each as it is made. The boards are
+  committed with the tracking plan's land.
 - **One board-update lane** for the whole machine: every `plan-board` event
   for a board that exists, in arrival order. It never waits on a repository
   lane.
