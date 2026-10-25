@@ -70,9 +70,9 @@ const FEATURES = [
   { id: "progress-notes", name: "the agents' progress notes in the step panel", since: 26, types: ["plan-board"],
     notFor: { system: "no step panel: a state page shows no run", supersystem: "no step panel: a state page shows no run", "work-board": "one row per run: each run's detail is on its own board" },
     test: h => need(/docs\/plans\/\.live\/progress\//.test(scripts(h)), "the step panel does not load the progress notes") },
-  { id: "tracking-steps", name: "a tracking board's steps after its architecture (sub-issues, boards) and the label column's glow", since: 26, types: ["plan-board"],
+  { id: "tracking-steps", name: "a tracking board's steps after its architecture (sub-issues, boards)", since: 26, types: ["plan-board"],
     notFor: { system: "no run steps", supersystem: "no run steps", "work-board": "it shows each run's step as text" },
-    test: h => need(/"sub-issues":\(R,o\)/.test(scripts(h)) && /CURRENT\.includes\("units"\)/.test(scripts(h)), "the step panel has no sub-issues step, or the label column no glow") },
+    test: h => need(/"sub-issues":\(R,o\)/.test(scripts(h)), "the step panel has no sub-issues step") },
   { id: "kpi-bars", name: "a segmented bar on every tile that counts states", since: 19, types: BOARDS,
     notFor: { system: "its tiles are hand-written counted facts, with no states to segment", supersystem: "no KPI tiles" },
     test: h => need(/seg-bar/.test(scripts(h)), "no tile draws a segmented bar") },
@@ -116,10 +116,23 @@ const FEATURES = [
     notFor: { system: "no statements with plan references", supersystem: "no statements with plan references", "work-board": "no statements: one row per run" },
     test: h => { const s = scripts(h); return need(/const refNumShown=/.test(s) && /refMarked\(/.test(s) && /\.key b\.srefk\{/.test(css(h)), "a reference with no excerpt still reads its whole anchor (\"§ 42-the-fix\"), with no section number from refNumber"); } },
   { id: "level-phrases", name: "no work level in the page's data, its scope and re-pass phrases included (\"inside level 3\", \"a level-3 re-pass\", \"Label level: 3\")", since: 23, types: ALL,
-    test: h => { const { levelRefs } = require("./levelrefs.js"), hits = [];
-      const walk = v => typeof v === "string" ? levelRefs(v).forEach(x => hits.push(x)) : Array.isArray(v) ? v.forEach(walk) : v && typeof v === "object" ? Object.keys(v).filter(k => k !== "$comment").forEach(k => walk(v[k])) : null;
-      [...h.matchAll(/<script type="(application\/json|text\/plain)"[^>]*>([\s\S]*?)<\/script>/g)].forEach(m => { if (m[1] === "text/plain") walk(m[2]); else { try { walk(JSON.parse(m[2])); } catch (e) { /* the embed checks report a block that does not parse */ } } });
+    /* an issue's title is quoted verbatim and left out of the scan (dashboards-skill/28): one that names a work level is a defect in the
+       issue, flagged by check.js and check-page.js (ISSUE TITLE NAMES A WORK LEVEL: #n), never a missing feature of the page */
+    test: h => { const { levelRefs, levelRefsIn, titleSkip } = require("./levelrefs.js"), hits = [];
+      [...h.matchAll(/<script type="(application\/json|text\/plain)"[^>]*>([\s\S]*?)<\/script>/g)].forEach(m => { if (m[1] === "text/plain") levelRefs(m[2]).forEach(x => hits.push(x)); else { try { const d = JSON.parse(m[2]); levelRefsIn(d, "", [], titleSkip(d)).forEach(x => hits.push(x.hit)); } catch (e) { /* the embed checks report a block that does not parse */ } } });
       return need(!hits.length, `its data names a work level ${hits.slice(0, 3).map(x => JSON.stringify(x)).join(", ")}: reword it (levelrefs.js scrubLevels()), never write it`); } },
+  /* admin-team/dashboards-skill/28 */
+  { id: "unit-filing-glow", name: "each unit row's label glowing on its own while its sub-issue, then its board, is made (<unit-id>.units)", since: 28, types: ["plan-board"],
+    notFor: { system: "no units and no run", supersystem: "no units and no run", "work-board": "it marks runs: filing is the tracking issue's own step, on its own row, and a unit's row glows only once its run is under way" },
+    test: h => { const s = scripts(h); return need(/class="rowlab\$\{r\.unit&&CURRENT\.includes\(r\.id\+"\.units"\)/.test(s) && /const rowActive=r=>CURRENT\.some\(a=>\{ const p=String\(a\)\.split\("\."\); return p\[0\]===r\.id&&p\[1\]!=="units"; \}\)/.test(s), "the unit rows' labels glow as one column (\"units\"), not each unit on its own, or a unit being filed reads as in progress"); } },
+  { id: "timeline-sum", name: "the Timeline tile's figure the sum of the phases its bar draws (a phase left out not summed)", since: 28, types: ["plan-board"],
+    notFor: { system: "its tiles are hand-written counted facts: a state page shows no run's phases", supersystem: "no KPI tiles", "work-board": "one row per run and no Timeline tile: each run's phases are on its own board" },
+    test: h => { const s = scripts(h); return need(/function timelineTotal\(/.test(s) && /tlDuration\(timelineTotal\(TP\)\)/.test(s), "the Timeline tile's figure is the span from baseline to built, not the sum of its phases (timelineTotal())"); } },
+  { id: "issue-title-quoted", name: "an issue's title quoted verbatim and marked (data-issue-title), so a work level in it is flagged as a defect in the issue, not shown as the page's", since: 28, types: ALL,
+    test: (h, k) => { const s = scripts(h);
+      if (k === "plan-board") return need(/data-issue-title=/.test(s) && /\$\("#issueline"\)\.innerHTML=PLAN\.issueTitle\?`<span data-issue-title=/.test(s), "the renderer quotes no issue title marked data-issue-title (the issue line, the roadmap, the follow-ups)");
+      if (k === "work-board") return need(/data-issue-title=/.test(s), "the renderer quotes no issue title marked data-issue-title (the rows, the groups, the roadmap, the unscheduled issues)");
+      return need(/a\[data-board\]/.test(s) && /issueTitle=/.test(s) && /data-issue-title/.test(s), "linkIssues() drops the title's mark: a title written <a data-board=\"N\"> keeps data-issue-title once resolved"); } },
   /* admin-team/dashboards-skill/24 */
   { id: "finished-steps", name: "finished steps on the progress strip clickable: each shows its snapshot (wip.history) in the step panel, or what survives, reconstructed", since: 24, types: ["plan-board"],
     notFor: { system: "no progress strip: a state page shows the code at a commit, not a run's steps", supersystem: "no progress strip: a state page shows the code at a commit, not a run's steps", "work-board": "no progress strip: one row per run, each run's step as text; its steps are on its own board" },

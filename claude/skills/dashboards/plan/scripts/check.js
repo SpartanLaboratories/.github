@@ -11,10 +11,10 @@
 // Exit 0 when every rule holds, 1 otherwise. Warnings never fail the run.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
-const { levelRefsIn } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
+const { levelRefsIn, titleSkip, issueTitleRefs, titleDefect } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
 const { paletteCheck } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js"));
 const { unitTests } = require("./lib.js");
-const { HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, timelinePhases, tlDuration, timelineLeftOut, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
+const { HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, timelinePhases, tlDuration, timelineLeftOut, timelineTotal, unitInRun, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
 const STATES = ["pending", "in-progress", "partially-built", "as-planned", "amended", "deviated", "dropped", "deferred", "complete", "landed"];
@@ -59,9 +59,12 @@ function checkLink(dir, ref, at) {
 }
 
 /* No work levels on a dashboard (GUIDANCE.md §4): every string the page renders is free of a work-level reference
-   (system/scripts/levelrefs.js). The numeric fields that keep a level as data (level, unit.level, proposedLevel) are not text. */
+   (system/scripts/levelrefs.js). The numeric fields that keep a level as data (level, unit.level, proposedLevel) are not text. An issue's
+   title is quoted verbatim (admin-team/dashboards-skill/28): one that names a work level is a defect in the issue, flagged ISSUE TITLE
+   NAMES A WORK LEVEL: #n as a warning, never a failure of the board (levelrefs.js issueTitleRefs()). */
 function levelFail(data, file) {
-  const hits = levelRefsIn(data, "", []);
+  issueTitleRefs(data).forEach(x => warn(titleDefect(x)));
+  const hits = levelRefsIn(data, "", [], titleSkip(data));
   // a decision's defence written as its work level ("Level 3: one system, additive"), the architecture's usual form
   (data.rows || []).forEach((r, i) => { const d = (r && r.verdict || {}).defense; if (typeof d === "string" && /^\s*level [1-4]\b(?![a-c])\s*[:.]/i.test(d)) hits.push({ at: `rows[${i}].verdict.defense`, hit: d.slice(0, 9) }); });
   if (hits.length) fail(`${file} shows a work level, which a dashboard never does: ${hits.slice(0, 6).map(h => `${h.at} ("${h.hit}")`).join(", ")}${hits.length > 6 ? ` and ${hits.length - 6} more` : ""}; say what the work is instead (one system, a bug fix, docs only)`);
@@ -99,7 +102,8 @@ function checkPlan(plan, dir, root) {
   ((plan.wip || {}).qa || []).forEach((q, i) => { if (q && q.at != null && !okStamp(q.at)) fail(`wip.qa[${i}].at ${JSON.stringify(q.at)} is not an ISO date-time`); });
   if (plan.status === "built" || (plan.wip || {}).step === "landed") {
     const T = timelinePhases(plan);
-    ok(`timeline: ${T.phases.length ? T.phases.map(p => `${p.key} ${tlDuration(p)}`).join(" · ") : "no phase drawn"}${T.left.length ? ` (${timelineLeftOut(T)})` : ""}`);
+    /* the tile's figure is the sum of the phases its bar draws, a phase left out not summed (dashboards-skill/28) */
+    ok(`timeline: ${T.phases.length ? T.phases.map(p => `${p.key} ${tlDuration(p)}`).join(" · ") : "no phase drawn"}${T.left.length ? ` (${timelineLeftOut(T)})` : ""}; the figure: ${T.phases.length ? `${tlDuration(timelineTotal(T))}, the sum of the phases drawn` : "—, no phase drawn"}`);
     T.left.filter(x => /out of order/.test(x.why)).forEach(x => warn(`the Timeline tile leaves out ${x.key}: its bounds are out of order (check sized, the milestones' dates, wip.qa[].date and asBuilt.date)`));
   }
 
@@ -296,6 +300,13 @@ function checkPlan(plan, dir, root) {
     if (w.step == null && plan.status === "planned") { if ((w.current || []).length) fail("a board whose run has not started (no wip.step) glows nothing: wip.current is empty"); }
     else if (!STEPS.includes(w.step)) fail(`wip.step must be one of ${STEPS.join(", ")} (got ${JSON.stringify(w.step)})`);
     if (["sub-issues", "boards"].includes(w.step) && plan.kind !== "tracking") fail(`wip.step "${w.step}" is a tracking board's own step (filing its units, creating their boards)`);
+    /* rows before research (RULES §3, "Research: the rows being researched"; admin-team/dashboards-skill/28): the rows are filled from the
+       gaps and named before the research starts, so an issue board at research whose research has started (a question recorded, or the
+       phase past planning) with no rows is a defect. Research planning on a rowless board is not (nothing glows, the panel shows the
+       planning), and neither is a tracking board, whose rows are its units, written at the architecture's sign-off, after its research. */
+    { const rs = ["halted", "escalated"].includes(w.step) ? w.resume : w.step, qn = Array.isArray(w.questions) ? w.questions.length : 0, ph = w.research && typeof w.research === "object" ? w.research.phase : null;
+      if (rs === "research" && plan.kind !== "tracking" && !(Array.isArray(plan.rows) && plan.rows.length) && (qn || ["research", "verification", "complete"].includes(ph)))
+        fail(`NO ROWS AT RESEARCH: the board is at research${w.step !== rs ? ` (${w.step}, resuming there)` : ""} with ${qn ? `${qn} research question${qn === 1 ? "" : "s"} recorded` : `its research phase at ${ph}`} and no rows: the rows are named from the gaps before the research starts; write them (each with its gap) and name them in the questions`); }
     (w.steps || []).forEach((s, j) => { if (!STEPS.includes(s)) fail(`wip.steps[${j}] "${s}" is not a step`); });
     ["since", "updated"].forEach(k => { if (w[k] != null && !STAMP.test(String(w[k]))) fail(`wip.${k} "${w[k]}" is not a date or an ISO date-time`); });
     if (w.step === "halted") {
@@ -313,6 +324,8 @@ function checkPlan(plan, dir, root) {
     cur.forEach(a => {
       const parts = String(a).split(".");
       if (parts.length === 1) { if (parts[0] === "units") { if (plan.kind !== "tracking") fail('wip.current "units" (the label column of the unit rows) is a tracking board\'s'); } else if (!COLUMNS.includes(parts[0])) fail(`wip.current "${a}" is neither a column nor a <row-id>.<column> address`); }
+      /* a unit row's label cell, <unit-id>.units: the unit being filed as a sub-issue, then its board created (RULES §3; dashboards-skill/28) */
+      else if (parts.length === 2 && parts[1] === "units") { if (plan.kind !== "tracking") fail(`wip.current "${a}" (a unit row's label, glowing while the unit is filed or its board created) is a tracking board's`); else if (!rows.some(r => r.id === parts[0] && r.unit)) fail(`wip.current "${a}" names no unit row`); }
       else if (parts.length !== 2 || !ids.has(parts[0]) || !COLUMNS.includes(parts[1])) fail(`wip.current "${a}" names no cell`);
     });
     // The standing rule (RULES §3): a unit that has landed leaves wip.current in the same landing refresh.
@@ -368,7 +381,7 @@ function checkPlan(plan, dir, root) {
        only warns. */
     if (!tracking && w.next != null) fail(`wip.next "${w.next}" is set on a board whose kind is not tracking; only a tracking board names a next unit`);
     if (tracking) {
-      const units = rows.filter(r => r.unit), inCur = r => cur.some(a => String(a).split(".")[0] === r.id);
+      const units = rows.filter(r => r.unit), inCur = r => unitInRun(cur, r.id);
       const want = nextUnit(plan);
       if (w.next != null) {
         const nx = units.find(r => r.id === w.next);

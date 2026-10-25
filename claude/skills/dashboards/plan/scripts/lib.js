@@ -442,7 +442,7 @@ function unitRuns(plan, dir) {
   if (!plan || plan.kind !== "tracking") return [];
   const live = trackingLive(plan), cur = Array.isArray((plan.wip || {}).current) ? plan.wip.current : [];
   return (plan.rows || []).filter(r => r.unit && Number.isInteger(r.unit.issue)).map(r => {
-    const inCur = cur.some(a => String(a).split(".")[0] === r.id), sub = live && inCur ? subIssuePlan(dir, r.unit) : null;
+    const inCur = unitInRun(cur, r.id), sub = live && inCur ? subIssuePlan(dir, r.unit) : null;
     return { row: r, unit: r.unit, inCur, want: sub ? unitRun(sub) : null, have: r.unit.live || null };
   });
 }
@@ -593,7 +593,7 @@ function issueRefs(plan) {
     if (b.state === "deferred") add(b.issue, `rows(${r.id}).asBuilt.issue`, `the "deferred → #${b.issue}" badge of ${r.id}`, "issue", "field", null, { plain: true }); });
   if (tracking) {
     const live = !["built", "abandoned"].includes(plan.status) && !["landed", "cancelled"].includes(w.step);
-    const cur = Array.isArray(w.current) ? w.current : [], inCur = r => cur.some(a => String(a).split(".")[0] === r.id);
+    const cur = Array.isArray(w.current) ? w.current : [], inCur = r => unitInRun(cur, r.id);
     const stateOf = r => (r.asBuilt || {}).state || "pending";
     units.forEach(r => {
       const n = r.unit.issue;
@@ -698,8 +698,7 @@ function shownBranch(plan) {
   const w = plan.wip || {}, step = ["halted", "escalated"].includes(w.step) ? (w.resume || w.last || "") : w.step;
   if (plan.status === "built" || w.step === "landed") return null;
   if (plan.kind === "tracking") {
-    const cur = (w.current || []).map(a => String(a).split(".")[0]);
-    const started = (plan.rows || []).some(r => r.unit && (((r.asBuilt || {}).state || "pending") !== "pending" || cur.includes(r.id)));
+    const started = (plan.rows || []).some(r => r.unit && (((r.asBuilt || {}).state || "pending") !== "pending" || unitInRun(w.current, r.id)));
     if (["building", "built"].includes(plan.status) || ["implementation", "landed"].includes(step) || (w.landing && (w.landing.pr || w.landing.merge)) || started) return null;
   }
   return plan.branch;
@@ -793,17 +792,30 @@ const RECON_WORDS = { planned: "planned", partial: "partly reconciled", "as-buil
               the findings, touch                             the whole As built column, ["built"], when the current stage touches no
                                                               rows, no stage is current, or the rows the findings touch are not known;
                                                               on a tracking board the units in progress, or none)
+     filing   the label cell of each unit row not yet done    sub-issues (a unit with no issue yet), boards (a unit with no board yet):
+              in the step, <unit-id>.units                    filingGlow() below (admin-team/dashboards-skill/28)
    halted and escalated keep the glow of the step they stopped in (wip.resume), drawn as a still ring. */
 const GLOW_MAP = {
   sizing: { kind: "none" }, interview: { kind: "cells" }, research: { kind: "research" },
   architecture: { kind: "columns", cols: ["considered"] }, plan: { kind: "columns", cols: ["considered", "verdict"] }, branch: { kind: "none" },
   implementation: { kind: "built" }, qa: { kind: "columns", cols: ["built"] }, remediation: { kind: "built" },
   landing: { kind: "none" }, landed: { kind: "none" }, cancelled: { kind: "none" },
-  /* a tracking board after its architecture (plan/RULES.md §3): filing the units as sub-issues, then creating their boards; the work is
-     on the unit rows as a whole, so the label column glows, one glow on the column ("units") */
-  "sub-issues": { kind: "columns", cols: ["units"] }, boards: { kind: "columns", cols: ["units"] }
+  /* a tracking board after its architecture (plan/RULES.md §3): filing the units as sub-issues, then creating their boards; each unit row's
+     label glows on its own while its issue (then its board) is made, and stops when that one is done (admin-team/dashboards-skill/28; it
+     replaces the one glow on the label column of dashboards-skill/26) */
+  "sub-issues": { kind: "filing" }, boards: { kind: "filing" }
 };
-const COLUMN_NAMES = { gap: "Gap", considered: "Considered", verdict: "Verdict", built: "As built" };
+const COLUMN_NAMES = { gap: "Gap", considered: "Considered", verdict: "Verdict", built: "As built", units: "the unit rows' label" };
+/* The filing glow (plan/RULES.md §3; admin-team/dashboards-skill/28): at a tracking board's "sub-issues" step, the label cell of each unit
+   row with no issue yet; at "boards", of each unit row with no board yet (unit.board, which embed.js sets from the folders on disk); in row
+   order, however many. A unit stops glowing once its issue (its board) is recorded; the team raises sub-issues-filed and boards-created per
+   unit, one or more at a time, and a final one that closes the step. */
+const unitFiled = r => Number.isInteger(r.unit.issue) && r.unit.issue > 0, unitBoarded = r => typeof r.unit.board === "string" && !!r.unit.board.trim();
+function filingGlow(plan, step) {
+  if (!plan || plan.kind !== "tracking" || !["sub-issues", "boards"].includes(step)) return [];
+  const done = step === "sub-issues" ? unitFiled : unitBoarded;
+  return (Array.isArray(plan.rows) ? plan.rows : []).filter(r => r && r.unit && !done(r)).map(r => r.id + ".units");
+}
 /* The research questions and their states (plan/RULES.md §3, "Research: the questions and their states"). wip.questions records
    the run's research questions, each { question: "<slug>", rows: ["<row-id>", …], findings: null | "<path>", state }, from the
    research events: research-started adds questions "researching", research-returned sets one "returned" (its findings recorded),
@@ -832,7 +844,9 @@ function researchRows(plan) {
    verification-started (no question researching or verifying, some returned) the returned questions' rows glow: the planner is on
    them next. The whole Considered column glows instead (the fallback) only while the rows are unknown: no question is recorded yet
    (research-planning: the questions are being drafted), none is researching, verifying or returned, a glowing question names no row
-   (rows [], or only ids that are not rows of the board), or the board has no rows. There is no count limit: the glow names exactly
+   (rows [], or only ids that are not rows of the board: a board with no rows once questions are recorded is a defect on an issue board,
+   check.js NO ROWS AT RESEARCH, and a tracking board's questions name no row before its units, so this covers both; dashboards-skill/28).
+   There is no count limit: the glow names exactly
    the cells being worked on. Returns { current, phase, fallback }, phase "none" (no question), "open" (a question researching),
    "verifying" (a question verifying, none researching) or "waiting" (none researching or verifying). */
 function researchGlow(plan) {
@@ -847,7 +861,6 @@ function researchGlow(plan) {
      rows glows nothing, and only the step panel shows the planning */
   if (phase === "none") return rows.length ? column("no research question is recorded yet") : { current: [], phase, fallback: "the board has no rows yet: nothing glows, the step panel shows the planning" };
   if (!active.length) return column("no question is being researched, verified or awaiting verification");
-  if (!rows.length) return column("the board has no rows yet");
   const cells = new Set();
   for (const q of active) {
     const own = (Array.isArray(q.rows) ? q.rows : []).map(String).filter(id => ids.has(id));
@@ -871,7 +884,7 @@ function stagedState(plan, row) {
   const w = (plan && plan.wip) || {}, st = ((row && row.asBuilt) || {}).state || "pending";
   if (!row || plan.status === "built" || plan.status === "abandoned" || ["landed", "cancelled"].includes(w.step)) return null;
   if (["dropped", "deferred", "complete", "landed"].includes(st)) return null;
-  if (plan.kind === "tracking") return row.unit && st === "pending" && (Array.isArray(w.current) ? w.current : []).some(a => String(a).split(".")[0] === row.id) ? "in-progress" : null;
+  if (plan.kind === "tracking") return row.unit && st === "pending" && unitInRun(w.current, row.id) ? "in-progress" : null;
   const sg = (Array.isArray(w.stages) ? w.stages : []).filter(x => x && Array.isArray(x.rows) && x.rows.includes(row.id));
   if (!sg.length) return null;
   if (sg.some(x => x.state === "current")) return "in-progress";
@@ -879,13 +892,16 @@ function stagedState(plan, row) {
   return done && todo ? "partially-built" : !done ? "pending" : null;
 }
 const builtState = (plan, row) => stagedState(plan, row) || recordedState(row);
+/* A unit whose run is under way (plan/RULES.md §3): an address of its row in wip.current, its label cell (<unit-id>.units) aside, which
+   glows while the unit is filed as a sub-issue or its board created, before any run of its own (admin-team/dashboards-skill/28). */
+const unitInRun = (cur, id) => (Array.isArray(cur) ? cur : []).some(a => { const p = String(a).split("."); return p[0] === id && p[1] !== "units"; });
 /* The next unit in landing order (plan/RULES.md §3, "Next is the next one up"): the first unit row, in row order, that is pending, not
    in wip.current and not left for later (a unit whose written verdict leaves it as is, leftForLater()), or null when none is left.
    check.js holds wip.next to it; board.js and the template never name another. */
 function nextUnit(plan) {
   if (!plan || plan.kind !== "tracking") return null;
   const cur = Array.isArray((plan.wip || {}).current) ? plan.wip.current : [];
-  return (plan.rows || []).find(r => r && r.unit && ((r.asBuilt || {}).state || "pending") === "pending" && !cur.some(a => String(a).split(".")[0] === r.id) && !leftForLater(r)) || null;
+  return (plan.rows || []).find(r => r && r.unit && ((r.asBuilt || {}).state || "pending") === "pending" && !unitInRun(cur, r.id) && !leftForLater(r)) || null;
 }
 /* The live sidecar (plan/RULES.md §1, "plan.js"): the data file as a script beside the page, which the page re-loads while its run
    is live and redraws from (the template's dashboardLive()). Its text is the data file verbatim between a fixed head and tail, so
@@ -925,6 +941,12 @@ function glowMismatch(plan) {
     const miss = want0.filter(a => !cur.includes(a)); if (miss.length) bad.push(`${miss.join(", ")} missing`);
   }
   else if (m.kind === "cells") { want = "the cell the question concerns (<row-id>.<column>), or nothing"; bad = cur.filter(a => a.split(".").length !== 2); }
+  else if (m.kind === "filing") {
+    const want0 = filingGlow(plan, step);
+    want = want0.length ? `the label cell of each unit row ${step === "sub-issues" ? "not filed as a sub-issue yet" : "with no board yet"}, as ${JSON.stringify(want0)}` : `nothing (every unit row ${step === "sub-issues" ? "has its issue" : "has its board"}: the step closes at the team's final event)`;
+    bad = cur.filter(a => !want0.includes(a)).map(a => a === "units" ? "units (the one glow on the label column of dashboards-skill/26: each unit row now glows on its own)" : a);
+    const miss = want0.filter(a => !cur.includes(a)); if (miss.length) bad.push(`${miss.join(", ")} missing`);
+  }
   else if (m.kind === "columns") {
     want = `the ${words(cols)} column${cols.length > 1 ? "s" : ""}, as ${JSON.stringify(cols)}`; bad = cur.filter(a => !cols.includes(a));
     const miss = cols.filter(c => !cur.includes(c)); if (!bad.length && miss.length) bad = [`${miss.join(", ")} missing`];
@@ -992,9 +1014,15 @@ function timelinePhases(plan) {
 }
 /* a phase's length as the legend says it: hours where both bounds carry a time and it is under a day, else calendar days */
 const tlDuration = p => p.timed && p.weight < 24 ? (p.weight < 1 ? "under an hour" : `${Math.round(p.weight)} h`) : p.days === 0 ? "same day" : `${p.days} day${p.days === 1 ? "" : "s"}`;
+/* The tile's figure (admin-team/dashboards-skill/28): the sum of the phases its bar draws, never baseline to built; a phase left out is not
+   summed. { days, weight, timed }, so tlDuration() says it as it says a phase: in hours where every phase drawn carries both times and the
+   sum is under a day, else in calendar days (the phases meet end to start, so their days add up to the span they cover). null when no
+   phase is drawn. The template's timelineTotal() is the same rule. */
+function timelineTotal(T) { const ps = T && Array.isArray(T.phases) ? T.phases : []; if (!ps.length) return null;
+  return { days: ps.reduce((n, p) => n + p.days, 0), weight: ps.reduce((n, p) => n + p.weight, 0), timed: ps.every(p => p.timed) }; }
 /* the sub-line's note of the phases left out, grouped by reason: "plan left out: no sizing recorded" */
 function timelineLeftOut(T) { const by = new Map(); (T && T.left || []).forEach(x => { if (!by.has(x.why)) by.set(x.why, []); by.get(x.why).push(x.key); });
   return [...by].map(([why, ks]) => `${ks.join(", ")} left out: ${why}`).join(" · "); }
 
-module.exports = { HISTORY_FIELDS, HISTORY_STEPS, STEP_ORDER, shownStep, visitKey, freezeVisit, freezeSteps, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, okStamp, TL_PHASES, TL_SHADES, timelineBounds, timelinePhases, tlDuration, timelineLeftOut, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+module.exports = { filingGlow, unitFiled, unitBoarded, HISTORY_FIELDS, HISTORY_STEPS, STEP_ORDER, shownStep, visitKey, freezeVisit, freezeSteps, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, okStamp, TL_PHASES, TL_SHADES, timelineBounds, timelinePhases, tlDuration, timelineLeftOut, timelineTotal, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, parentFolder, staleUnitRuns, stampMs, treeRoot, boardFolders, boardLink, parentBoard, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

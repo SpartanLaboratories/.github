@@ -198,7 +198,10 @@ module.exports = function cases23(X) {
     c.push(["a board whose data names \"inside level 3\" misses no work level in its data, with the hit named", !!m && /inside level 3/.test(m.why), m ? F.line(m) : "not reported"]);
     const sys = tp("system/template/system.html");
     if (sys) { const h = rd(sys).replace(/(<script type="application\/json" id="state">)([\s\S]*?)(<\/script>)/, (x, a, b, z) => { let s; try { s = JSON.parse(b); } catch (e) { return x; } s.lastAmended = { ...(s.lastAmended || {}), issue: 9, title: "a level-3 re-pass" }; return a + "\n" + JSON.stringify(s) + "\n" + z; });
-      c.push(["a system page whose state names \"a level-3 re-pass\" misses it too (the data-only path's probe)", F.probe(h, "system").some(x => x.id === "level-phrases"), F.probe(h, "system").map(x => x.id).join(", ")]); }
+      /* dashboards-skill/28: lastAmended.title quotes the issue's title, which the probe leaves out (a work level there is the issue's
+         defect, flagged by check-page.js); the same words in any other field of the state still miss the feature */
+      const h2 = h.replace(/(<script type="application\/json" id="state">)([\s\S]*?)(<\/script>)/, (x, a, b, z) => { let s; try { s = JSON.parse(b); } catch (e) { return x; } s.version = "a level-3 re-pass"; return a + "\n" + JSON.stringify(s) + "\n" + z; });
+      c.push(["a system page whose state names \"a level-3 re-pass\" misses it too (the data-only path's probe), its quoted title aside", F.probe(h2, "system").some(x => x.id === "level-phrases") && !F.probe(h, "system").some(x => x.id === "level-phrases"), F.probe(h2, "system").map(x => x.id).join(", ")]); }
     ["system", "supersystem", "work-board"].forEach(k => c.push([`the Timeline phases and the section number are not held to a ${k} page (each names why it does not fit)`, mine.filter(f => f.id !== "level-phrases").every(f => !f.types.includes(k) && f.notFor && f.notFor[k]), mine.map(f => f.id + ": " + (f.notFor || {})[k]).join(" | ").slice(0, 300)]));
   });
   return groups;

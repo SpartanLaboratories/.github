@@ -57,7 +57,10 @@
 // it, a step with no snapshot reconstructed, a tracking board's unit through its mirror and its own steps, and this run's feature probe. And
 // verify/history/ as a local cache, kept out of the .github mirror (dashboards-skill/27, verify/cases-27.js): a recorded version missing from
 // it rebuilt on demand from the mirror's git history (system/scripts/history.js; the case groups read the old versions through it too, from a
-// local clone with --history-repo, else through gh api), and the splice's warning and two-way fallback when nothing matches. A
+// local clone with --history-repo, else through gh api), and the splice's warning and two-way fallback when nothing matches. And the decisions
+// of dashboards-skill/28 (verify/cases-28.js): the Timeline tile's figure the sum of its phases, an issue's title quoted verbatim and one naming
+// a work level flagged (ISSUE TITLE NAMES A WORK LEVEL: #n) on every type, NO ROWS AT RESEARCH, each unit row's label glowing on its own while
+// it is filed and its board created, and this run's feature probes. A
 // template is recorded only when its browser passes and every case group pass.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
@@ -1512,8 +1515,9 @@ targets.filter(t => t.block === "plan").forEach(t => {
       ac.push(["a work level in the facts is never written: the halt applies without that text, enrich yes", r.status === 0 && !/level/i.test(JSON.stringify(d.wip)) && r.s.enrich === "yes", `${r.s.result} · ${r.s.error || ""} · ${(r.s.why || []).join("; ").slice(0, 200)}`]); }
     /* a tracking board at its architecture */
     edit(TRACK, d => { d.wip.step = "architecture"; d.wip.current = ["considered"]; });
-    /* a tracking board files its units next (dashboards-skill/26): its own step "sub-issues", the label column glowing */
-    step("tracking board", TRACK, "architecture-signed-off", {}, true, d => d.wip.step === "sub-issues" && JSON.stringify(d.wip.current) === '["units"]' && d.wip.next === "http-core" && d.wip.steps.indexOf("sub-issues") === d.wip.steps.indexOf("architecture") + 1);
+    /* a tracking board files its units next (dashboards-skill/26): its own step "sub-issues"; each unit row with no issue yet glows on its own
+       (dashboards-skill/28, in place of the one glow on the label column): every unit of the fixture is filed already, so nothing glows */
+    step("tracking board", TRACK, "architecture-signed-off", {}, true, d => d.wip.step === "sub-issues" && JSON.stringify(d.wip.current) === "[]" && d.wip.next === "http-core" && d.wip.steps.indexOf("sub-issues") === d.wip.steps.indexOf("architecture") + 1);
     edit(TRACK, d => { d.wip.step = "implementation"; d.wip.current = ["java-floor.built"]; d.wip.next = "http-core"; });
     /* the sub-issue: the standing rule on its tracking board */
     step("sub-issue", SUB, "sized", { step: "research" }, true, () => { const t = read(TRACK), r = t.rows.find(x => x.id === "http-core");
@@ -1890,7 +1894,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     build();
     vc.push(["a browser renders the pages (set CHROME)", !!chrome, "no Chrome or Edge found"]);
     const before = snap(), d0 = dumpDom(path.join(A, "index.html"));
-    vc.push(["the system template draws its stamp chips from the state block, and removes the one with nothing to say", d0 == null || /<span class="chip" id="chip-asis">.*?main @ 1111111/.test(d0) && /id="ctx-amended"[^>]*>.*?#5<\/a> five/.test(d0) && !/id="chip-amended"/.test(d0) && !/id="chip-written"/.test(d0), text(inner(d0, '<div class="chips">', "div")).slice(0, 220)]);
+    vc.push(["the system template draws its stamp chips from the state block, and removes the one with nothing to say", d0 == null || /<span class="chip" id="chip-asis">.*?main @ 1111111/.test(d0) && /id="ctx-amended"[^>]*>.*?#5<\/a> <span data-issue-title="5">five<\/span>/.test(d0) && !/id="chip-amended"/.test(d0) && !/id="chip-written"/.test(d0), text(inner(d0, '<div class="chips">', "div")).slice(0, 220)]);
     vc.push(["a structure node mapped to a Planned DSL element, and a data-part, are drawn planned", d0 == null || /<g class="node server int planned"[^>]*data-id="next"/.test(d0) && /<li data-part="repo\.sys\.next" class="planned">/.test(d0), (d0 || "").match(/<g class="node[^"]*"[^>]*data-id="next"/) + ""]);
     [["the repository page", path.join(D, "index.html")], ["the system page", path.join(A, "index.html")]].forEach(([w, p]) => { const r = nb(p); vc.push([`check-page.js --auto --no-browser passes ${w} as written`, r.status === 0 && /PASS \(no browser\)/.test(r.stdout) && /browser pass deferred/.test(r.stdout), (r.stdout || "").split(/\r?\n/).filter(l => /state|FAIL|PASS/.test(l)).join(" | ")]); });
 
@@ -1959,11 +1963,12 @@ targets.filter(t => t.block === "plan").forEach(t => {
     vc.push(["--no-browser fails a part reference that names nothing", r.status === 1 && /PART UNKNOWN: repo\.sys\.gone/.test(r.stdout), (r.stdout || "").split(/\r?\n/).filter(l => /PART|FAIL/.test(l)).join(" | ")]);
     r = cp.spawnSync(process.execPath, [checker, path.join(A, "index.html"), "--no-browser"], { encoding: "utf8" });
     vc.push(["--no-browser needs --auto (exit 2)", r.status === 2, (r.stderr || "").trim().split(/\r?\n/).pop()]);
-    /* a work level in the title (a pipeline fact) is reworded before it is written as the last amendment (dashboards-skill/23) */
+    /* the title is the issue's, quoted verbatim (dashboards-skill/28, in place of dashboards-skill/23's rewording): one that names a work
+       level is a defect in the issue, written as it stands and flagged in the summary, and the pages still pass */
     build(); const sT = apply(stage("3333333abcdef0", { systems: ["system-alpha"], title: "Next part, inside level 3 (level 3)" })), stT = J("system-alpha/state.json");
-    vc.push(["a title that names a work level is written reworded as the last amendment, and the summary says so (dashboards-skill/23)", sT.status === 0 && stT.lastAmended.title === "Next part, inside the issue's scope" && (sT.notes || []).some(x => /facts\.title named a work level, which a page never shows: written reworded/.test(x)), JSON.stringify([sT.result, stT.lastAmended, sT.notes, sT.error])]);
+    vc.push(["a title that names a work level is quoted verbatim as the last amendment, flagged as a defect in the issue (dashboards-skill/28)", sT.status === 0 && stT.lastAmended.title === "Next part, inside level 3 (level 3)" && (sT.notes || []).some(x => /^ISSUE TITLE NAMES A WORK LEVEL: #\d+ \(facts\.title: /.test(x)) && (sT.defects || []).length === 1 && /pass/.test(String(sT.check)), JSON.stringify([sT.result, stT.lastAmended, sT.notes, sT.defects, sT.check, sT.error])]);
     build(); const sU = apply(stage("4444444abcdef0", { systems: ["system-alpha"], title: "Label level: 3" })), stU = J("system-alpha/state.json");
-    vc.push(["a title that is nothing but a work level gives way to the folder's slug (dashboards-skill/23)", sU.status === 0 && stU.lastAmended.title === "next-part", JSON.stringify([sU.result, stU.lastAmended, sU.error])]);
+    vc.push(["a title that is nothing but a work level is quoted as it stands too, never replaced by the folder's slug (dashboards-skill/28)", sU.status === 0 && stU.lastAmended.title === "Label level: 3" && (sU.defects || []).length === 1, JSON.stringify([sU.result, stU.lastAmended, sU.error])]);
   } catch (e) { vc.push(["the cases run to the end", false, String(e.stack).split(String.fromCharCode(10)).slice(0, 3).join(" ")]); }
   report("state pages on a branch, data only: apply-state.js, the state block, planned from the data, check-page.js --no-browser", vc);
 }
@@ -1999,6 +2004,13 @@ catch (e) { report("the dashboards-skill/24 cases", [["the cases run to the end"
    stand-in), a damaged copy rebuilt over, and a version nothing matches warned on, the splice two-way when none is left. */
 try { require("./cases-27.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/27 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
+/* The decisions of admin-team/dashboards-skill/28 (verify/cases-28.js): the Timeline tile's figure the sum of the phases its bar draws; an
+   issue's title quoted verbatim, one that names a work level flagged as the issue's defect on every type, never a failure; an issue board at
+   research with no rows a defect (NO ROWS AT RESEARCH); each unit row's label glowing on its own while it is filed, then while its board is
+   created (per-unit events, a final one closing each step); and this run's feature probes. */
+try { require("./cases-28.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the dashboards-skill/28 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 const today = new Date().toISOString().slice(0, 10);
 const COMMENT = "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last full verification. check-page.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.";

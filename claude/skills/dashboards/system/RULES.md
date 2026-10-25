@@ -90,7 +90,8 @@ facts.
    The header's version, as-is and "written at" chips are drawn from it, and the last amendment's note in the Context section (the part
    of the page above Context names no issue, `GUIDANCE.md` §5): the presenter writes those facts here and never in the HTML. `asIs` is the commit the page shows — the default branch's after a landing, or a feature branch's while that
    branch's work is shown on it, `landed: false`, which the chip reads "as-is at <branch> @ <sha> · not yet landed" (§10); the date
-   is a date, or a UTC time the page shows in the viewer's zone. `lastAmended.title` is the issue's slug, the link to its plan board.
+   is a date, or a UTC time the page shows in the viewer's zone. `lastAmended.title` is the issue's title, quoted verbatim (its slug while
+   none is given), the link to its plan board (`GUIDANCE.md` §5).
    `written.sha` is the commit at which the presenter last wrote the page's prose and figures (the function sentence, the KPI tiles,
    the panels, the Guarantees, the Context); the presenter sets it to `asIs.sha` whenever it writes them, and while the two differ the
    header shows "written at <sha>", so a restamp never claims prose nobody read again. The state agrees with the page's registry entry
@@ -261,8 +262,9 @@ row is tied to it (`data-part="sys:<slug>"`), dashed while the registry says pla
 `GUIDANCE.md` §5 sets the section (headed exactly **Context**). On system boards its cards are:
 
 - **Roadmap** — each roadmap item with the issues mapped to it, each issue with its number,
-  title and state, open or closed (the tracker's reason for a closed issue is the plan boards' and the work board's: a type divergence,
-  `GUIDANCE.md` §7), never its work level (`GUIDANCE.md` §4); the number opens the GitHub issue and
+  title, quoted verbatim, and state, open or closed (the tracker's reason for a closed issue is the plan boards' and the work board's: a type divergence,
+  `GUIDANCE.md` §7), never its work level (`GUIDANCE.md` §4: a title that names one is a defect in the issue, quoted as it stands and
+  flagged by `check-page.js`, `ISSUE TITLE NAMES A WORK LEVEL: #n`, never reworded or elided); the number opens the GitHub issue and
   the title the issue's plan board where one exists (`GUIDANCE.md` §5; the title written
   `<a data-board="N">`, §2 "Board links"); no GitHub ↗. A tracking issue shows its chain, written `<span class="chainprog"
   data-landed="n" data-total="m"></span>` (the renderer draws "chain n of m landed" and its bar), from its tracking board. The last
@@ -399,6 +401,13 @@ that is not its file (`DSL EMBED DIFFERS`, `REGISTRY EMBED DIFFERS`), and a part
 with no state block, on a template older than it, gets a note. `--auto --no-browser` runs these, the palette, the DSL's dashes, the
 board links and the git-ignore check, and names the browser pass the page would get, which it leaves to the presenter's next look.
 
+**Issue titles, quoted verbatim** (`GUIDANCE.md` §4, §5; admin-team/dashboards-skill/28). A title the page quotes — the Context's
+`<a data-board="N">title</a>` and the state's `lastAmended.title` — is the issue's own and is never reworded or elided. Work levels are never
+part of an issue, so one that names a work level is a defect in the issue, not in the page: on every pass, without a browser and in it,
+`check-page.js` flags it, `ISSUE TITLE NAMES A WORK LEVEL: #n`, as a warning (the browser pass reads a title by its `data-issue-title`
+mark, which `linkIssues()` keeps on the resolved link or plain text, and leaves its text out of the work-level scan), and never fails the
+page for it; the admin team brings it to the user to retitle on GitHub.
+
 **No dead board link.** On a system, supersystem or repository page, `check-page.js` reads the `BOARDS`
 map and fails (`DEAD BOARD LINK`) an entry whose file does not exist relative to the page, and
 (`BOARDS UNREADABLE`) a map that is not plain JSON. The same holds for `WORK_BOARD`'s committed board and for every relative `href` of the
@@ -452,7 +461,7 @@ in. It reads `issue`, `branch` and `folder` from the request and these facts, ev
 | `ref` | at a landing, the default branch the merge is on (required there) |
 | `built`, `planned` | only for what has no code paths recorded (the code decides the rest, below): what the stage built (or, rarely, set back to planned): a registry slug; `"#<issue>"`, every system that issue alone plans (`plannedBy.issue`, or every unit's `subIssue`); `"<dsl path>:<element id>"` (paths under `docs/dashboards/`), or `{dsl, id, tag}` to give a component its built tag. A system marked takes its `c4` elements with it (§7) |
 | `version` | `{"<slug>": "<version>"}`, a version a system's build moved to |
-| `title` | the issue's slug for the "last amended by" note (in the Context section) (default: the folder's name less its number); a work level in it is reworded away before it is written (`system/scripts/levelrefs.js` `scrubLevels()`, `GUIDANCE.md` §4), the folder's slug taking its place when nothing else is left, and the summary's notes say so |
+| `title` | the issue's title for the "last amended by" note (in the Context section), quoted verbatim (default: the folder's name less its number); a title that names a work level is a defect in the issue (`GUIDANCE.md` §4): written as it stands, never reworded or elided, and flagged `ISSUE TITLE NAMES A WORK LEVEL: #n` in the summary's `issue defects` and notes, for the admin team to bring to the user to retitle on GitHub |
 | `landed` | `true` on a `state-pages` request that restamps a landing, as the `landed` event does |
 | `enrich` | reasons the team already knows need the presenter, passed through |
 

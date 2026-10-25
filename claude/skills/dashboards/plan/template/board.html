@@ -251,7 +251,9 @@ const ghUrl=(n,repo)=>`https://github.com/${repo||B.repo}/issues/${n}`;
 const ilabel=(n,repo)=>`${repo&&repo!==B.repo?esc(repo.split("/")[1])+"#":"#"}${esc(n)}`;
 const ilink=(n,repo)=>{ const b=boardOf(n,repo); return b?`<a href="${esc(b)}" title="#${esc(n)}: its plan board">${ilabel(n,repo)}</a>`:ext(ghUrl(n,repo),ilabel(n,repo)); };
 const codeOnly=s=>String(s==null?"":s).split("`").map((p,i)=>i%2?`<code>${esc(p)}</code>`:esc(p)).join("");
-const pair=(n,title,repo)=>{ const b=boardOf(n,repo), t=codeOnly(title); return `${ext(ghUrl(n,repo),ilabel(n,repo))} ${b?`<a href="${esc(b)}" title="#${esc(n)}: its plan board">${t}</a>`:t}`; };
+/* every title pair() shows is the issue's own, quoted verbatim and marked data-issue-title (GUIDANCE.md §5; dashboards-skill/28): a work
+   level in it is a defect in the issue, which the checks flag (ISSUE TITLE NAMES A WORK LEVEL: #n) rather than fail the board */
+const pair=(n,title,repo)=>{ const b=boardOf(n,repo), t=codeOnly(title), m=` data-issue-title="${esc(n)}"`; return `${ext(ghUrl(n,repo),ilabel(n,repo))} ${b?`<a href="${esc(b)}" title="#${esc(n)}: its plan board"${m}>${t}</a>`:`<span${m}>${t}</span>`}`; };
 /* #n and owner/repo#n are linked in one pass; "PR #n" is a pull request, never an issue's board */
 const rich=s=>String(s==null?"":s).split("`").map((p,i)=>i%2?`<code>${esc(p)}</code>`:esc(p).replace(/(^|[\s(>;,])(?:PR #(\d+)|([\w.-]+\/[\w.-]+)#(\d+)|#(\d+))\b/g,(m,a,pr,r,rn,n)=>a+(pr?ext(`https://github.com/${B.repo}/pull/${pr}`,`PR #${esc(pr)}`):r?ilink(rn,r):ilink(n)))).join("");
 const sysOf=sl=>SYS.find(s=>s.slug===sl);

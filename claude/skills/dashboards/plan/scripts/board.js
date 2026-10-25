@@ -33,7 +33,7 @@
 // when they can, a file URL into a worktree on another drive otherwise; the folder is local only (.git/info/exclude).
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), url = require("url");
-const { repoRoot, flag, opt, registry, findPlans, subIssueBoard, shownBranch, unitBranch, reconciliation, leftForLater, boardlessState } = require("./lib.js");
+const { repoRoot, flag, opt, registry, findPlans, subIssueBoard, shownBranch, unitBranch, reconciliation, leftForLater, boardlessState, unitInRun } = require("./lib.js");
 /* A closed issue's reason, kept on every row, roadmap item and waits-on/blocks entry that the tracker read: "NOT_PLANNED" reads
    "closed · not planned" and "DUPLICATE" "closed · duplicate" on the page, never landed (plan/RULES.md §5); open issues record none. */
 const reasonOf = x => x && x.state === "CLOSED" && x.stateReason ? { stateReason: x.stateReason } : {};
@@ -166,7 +166,7 @@ const chainOf = b => {
   const live = !["built", "abandoned"].includes(p.status) && !["landed", "cancelled"].includes(w.step);
   const dropped = units.filter(r => st(r) === "dropped").length, deferred = units.filter(r => st(r) === "deferred").length, left = units.filter(leftForLater).length;
   const counted = units.filter(r => !["dropped", "deferred"].includes(st(r)) && !leftForLater(r)), landed = counted.filter(r => LANDED_STATES.has(st(r))).length;
-  const cur = live ? units.filter(r => (w.current || []).some(a => String(a).split(".")[0] === r.id)) : [];
+  const cur = live ? units.filter(r => unitInRun(w.current, r.id)) : []; // a unit's label glowing while it is filed (<id>.units) is no run
   const current = cur.map(r => { const own = r.unit.issue ? boardOf(r.unit.issue) : null, ow = own ? own.plan.wip || {} : null, L = r.unit.live || {};
     return { issue: r.unit.issue || null, slug: r.unit.slug || r.id, step: (ow && ow.step) || L.step || null }; });
   const nx = live && w.next ? units.find(r => r.id === w.next && st(r) === "pending" && !leftForLater(r)) : null;
@@ -201,7 +201,7 @@ const rows = [...rowNums].map(n => {
     if (b.plan.kind === "tracking") row.active = false; // the chain's active unit glows on its own row
     if (b.plan.kind === "tracking") row.chain = chainOf(b); // the state cell shows the chain's progress, not a bare "building"
   } else if (u) {
-    const w = u.board.plan.wip || {}, cur = (w.current || []).some(a => a.split(".")[0] === u.row.id), st = unitState(u);
+    const w = u.board.plan.wip || {}, cur = unitInRun(w.current, u.row.id), st = unitState(u);
     // the unit's board as embed.js resolves it, from the folders on disk: linked only when its file exists (plan/RULES.md §1)
     const sb = subIssueBoard(u.board.dir, u.row.unit);
     Object.assign(row, { board: sb ? relFromPlans(u.board.folder + "/" + sb.board, u.board.root) : null, folder: u.row.unit.folder && !/^https?:/.test(u.row.unit.folder) ? relFromPlans(u.board.folder + "/" + u.row.unit.folder, u.board.root) + (u.row.unit.folder.endsWith("/") ? "/" : "") : (u.row.unit.folder || null), branch: unitBranch(u.row), system: u.row.system,
