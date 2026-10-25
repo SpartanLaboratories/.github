@@ -434,6 +434,25 @@ committed in one commit (see "Committing research") before verification
 starts. If a researcher fails, commit the files that were written, then
 re-run only the missing question.
 
+**Board events during research** (levels 2–4). The issue's plan board glows on
+the rows actually being researched, so tell the admin team which those are
+(`plan-board` requests, the `admin-team` skill, fire-and-forget):
+
+- **When you spawn the batch:** event `research-started`, with
+  `facts.researching`: one entry per question, `{question: "<question-slug>",
+  rows: ["<row-id>", …]}`. A row id is a row of the issue board's
+  `plan.json` (`rows[].id`, in the issue folder) whose Considered column the
+  question bears on. Give `rows: []` for a question that bears on no existing
+  row (or when the board has no rows yet); the board then glows its whole
+  Considered column.
+- **As each researcher returns:** event `research-returned`, with
+  `facts.returned: {question: "<question-slug>", findings:
+  "<issue-folder>/research/<question-slug>.md"}`. Its rows stop glowing.
+- **Once verification is done:** `researched`, as before (sent by your caller).
+
+A follow-up researcher (2.4) sends its own `research-started` and
+`research-returned`.
+
 **Resuming part-way.** If findings files already exist for some questions,
 reuse them and research only the ones still missing.
 

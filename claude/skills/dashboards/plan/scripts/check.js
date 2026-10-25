@@ -13,7 +13,7 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { levelRefsIn } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
 const { paletteCheck } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js"));
-const { reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
+const { glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
 const STATES = ["pending", "as-planned", "amended", "deviated", "dropped", "deferred", "complete", "landed"];
@@ -261,6 +261,32 @@ function checkPlan(plan, dir, root) {
     if (cur.length > MAX_GLOW) fail(`wip.current names ${cur.length} cells; at most ${MAX_GLOW} glow at once`);
     if ((w.step === "landed" || plan.status === "built") && cur.length) warn("a landed board has wip.current set; nothing glows once it has landed");
     if (w.step === "landed" && plan.status !== "built") fail('wip.step is "landed" but status is not "built"');
+    /* The glow follows the step (RULES §3, the step-to-column map; lib.js GLOW_MAP): wip.current holds what wip.step's row of the
+       map gives it, a halted or escalated board what the step it stopped in gives (wip.resume), held still as a ring. */
+    const gm = glowMismatch(plan);
+    /* The research questions (RULES §3, "Research: the rows being researched"; §4, research-started and research-returned): each
+       { question, rows, findings }, findings null while it is open; researched clears them, and the trail keeps each findings file. */
+    if (w.questions != null) {
+      if (!Array.isArray(w.questions)) fail('wip.questions must be an array of research questions, each { "question": "<slug>", "rows": ["<row-id>", …], "findings": null | "<path>" }');
+      else {
+        const seen = new Set();
+        w.questions.forEach((q, j) => {
+          const qat = `wip.questions[${j}]`;
+          if (!q || typeof q !== "object" || Array.isArray(q)) { fail(`${qat} must be an object { question, rows, findings }`); return; }
+          if (!str(q.question) || !ID.test(q.question)) fail(`${qat}.question must be the research question's kebab-case slug`);
+          else if (seen.has(q.question)) fail(`${qat}: a second entry for question "${q.question}"`); else seen.add(q.question);
+          if (!Array.isArray(q.rows) || q.rows.some(x => !str(x))) fail(`${qat}.rows must be an array of row ids (empty when the question names no row)`);
+          else q.rows.filter(x => !ids.has(x)).forEach(x => warn(`${qat} ("${q.question}") names "${x}", which is not a row of this board: while none of its rows is, the question glows the whole Considered column`));
+          if (q.findings != null && !str(q.findings)) fail(`${qat}.findings is the path of the question's findings once it has returned, or null while it is open`);
+          else if (str(q.findings)) { checkLink(dir, q.findings, `${qat}.findings`); if (!(plan.trail || []).some(t => t && t.ref === q.findings)) warn(`${qat} ("${q.question}") has returned (${q.findings}), but the trail records no entry with that ref: research-returned records the findings in the trail`); }
+          ["started", "returned"].forEach(k => { if (q[k] != null && !STAMP.test(String(q[k]))) fail(`${qat}.${k} "${q[k]}" is not a date or an ISO date-time`); });
+        });
+        const rs = ["halted", "escalated"].includes(w.step) ? w.resume : w.step;
+        if (w.questions.length && rs !== "research" && !["built", "abandoned"].includes(plan.status)) warn(`wip.questions records ${w.questions.length} research question${w.questions.length === 1 ? "" : "s"} while the run is at "${rs}": the researched event ends research and clears it (the trail keeps each question's findings)`);
+      }
+    }
+    if (gm) warn(`wip.current ${JSON.stringify(cur)} does not match wip.step "${w.step}"${gm.via ? ` (it stopped in "${gm.step}", wip.resume, and keeps that step's glow as a still ring)` : ""}: at "${gm.step}" the map glows ${gm.want}; off the map: ${gm.bad.join(", ")} (plan/RULES.md §3, the glow follows the step)`);
+    else if (!["built", "abandoned"].includes(plan.status) && w.step !== "landed" && !(["halted", "escalated"].includes(w.step) && !w.resume)) ok(`wip.current keeps the step-to-column map at "${w.step}"${["halted", "escalated"].includes(w.step) ? ` (the glow of "${w.resume}", the step it stopped in, held still)` : ""}`);
     /* wip.next (RULES §3): on a tracking board, always the next unit in landing order — the first unit row, in row order, that is
        pending and not in wip.current — or null when none is left. It is never also current and never a unit already done. A
        board written before wip.next existed (no key at all) only warns. */

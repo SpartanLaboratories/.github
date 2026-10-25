@@ -137,7 +137,7 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 /* The two accent marks (GUIDANCE.md §1).
    In progress (wip.current): a solid accent ring inside the edge, an interior glow that breathes (~2 s) and a faint accent wash.
    .glow-soft is the same, lighter, for a whole column at work. With reduced motion the interior glow holds still at its middle
-   strength; while the run is halted it stops (.held: the ring alone).
+   strength; while the run waits on the user, halted or escalated, it stops (.held: the ring alone).
    Up next (wip.next, tracking boards): the mild outer glow the in-progress mark used before, held still, never animated, with
    the static UP NEXT tag. It is not work in progress, so it neither breathes nor counts as a glowing cell. */
 @keyframes glow{0%,100%{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 6px 2px color-mix(in srgb,var(--accent) 28%,transparent)}50%{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 22px 6px color-mix(in srgb,var(--accent) 52%,transparent)}}
@@ -691,9 +691,11 @@ function paint(root){ (root||document).querySelectorAll("[data-sys]").forEach(e=
 function sysKey(slugs,cls){ const seen=new Map(); slugs.forEach(sl=>{ const s=sysOf(sl)||{slug:sl,name:sl}; const k=s.slot>=1&&s.slot<=6?"s"+s.slot:"n"; const nm=s.slot>=1&&s.slot<=6?(s.top||s.name):`${s.name} (no system colour)`; if(!seen.has(k)) seen.set(k,{c:sysColour(sl),names:new Set()}); seen.get(k).names.add(nm); });
   return [...seen.values()].map(v=>`<span><i class="${cls||"sbar"}" style="--c:${v.c}"></i>${esc([...v.names].join(", "))}</span>`).join(""); }
 
-/* ---------- Work in progress: the glowing cells ---------- */
+/* ---------- Work in progress: the glowing cells ----------
+   PAUSED: the run waits on the user, halted or escalated; its in-progress marks stop to the ring alone (GUIDANCE.md §1) and keep
+   the glow of the step it stopped in (plan/RULES.md §3, the glow follows the step). */
 const STEP=WIP.step||"";
-const HALTED=STEP==="halted", LANDED=STEP==="landed"||PLAN.status==="built", STOPPED=["cancelled"].includes(STEP)||PLAN.status==="abandoned";
+const HALTED=STEP==="halted", PAUSED=HALTED||STEP==="escalated", LANDED=STEP==="landed"||PLAN.status==="built", STOPPED=["cancelled"].includes(STEP)||PLAN.status==="abandoned";
 const CURRENT=(LANDED||STOPPED)?[]:(WIP.current||[]);
 const rowActive=r=>CURRENT.some(a=>a.split(".")[0]===r.id);
 /* ---------- The units' own runs (tracking boards, plan/RULES.md §3) ----------
@@ -706,9 +708,10 @@ const RUN={run:{g:"▶",label:"run",cls:"neutral"},halted:{g:"⏸",label:"waitin
 const runOf=r=>TRACKING&&r&&r.unit&&r.unit.live&&typeof r.unit.live==="object"&&rowActive(r)?r.unit.live:null;
 const runKind=L=>L.step==="halted"?"halted":L.step==="escalated"?"escalated":L.step==="cancelled"||L.status==="abandoned"?"cancelled":"run";
 const runHeld=r=>{ const L=runOf(r); return !!L&&runKind(L)==="halted"; };
-const rowHeld=id=>runHeld(ROWS.find(x=>x.id===id));
-const glowCls=(strong,held)=>HALTED||held?" held":strong?" glow":" glow-soft";
-function cellGlow(rowId,col){ if(CURRENT.includes(rowId+"."+col)) return glowCls(true,rowHeld(rowId)); if(CURRENT.includes(col)) return HALTED?" held":" glow-soft"; return ""; }
+const runPaused=r=>{ const L=runOf(r); return !!L&&["halted","escalated"].includes(runKind(L)); };
+const rowHeld=id=>runPaused(ROWS.find(x=>x.id===id));
+const glowCls=(strong,held)=>PAUSED||held?" held":strong?" glow":" glow-soft";
+function cellGlow(rowId,col){ if(CURRENT.includes(rowId+"."+col)) return glowCls(true,rowHeld(rowId)); if(CURRENT.includes(col)) return PAUSED?" held":" glow-soft"; return ""; }
 /* The next unit (wip.next, tracking boards): named, never in progress. Its tag lists each blocker that has not landed; a blocker
    that is not a unit on this board counts as not landed, since the board cannot show it landed. */
 const NEXT_ROW=TRACKING&&!LANDED&&!STOPPED&&WIP.next?ROWS.find(r=>r.id===WIP.next&&r.unit&&!rowActive(r)&&stateOf(r)==="pending")||null:null;
@@ -731,7 +734,7 @@ const nextTags=r=>isNext(r)?`${TAG_NEXT} ${blockedPill(r)}`:"";
 const KEY_GLOW=`<span><i class="gl"></i>interior glow, breathing: being worked on now</span>`;
 const KEY_NEXT=r=>`<span><i class="nx"></i>${TAG_NEXT} still outer glow: the next unit, not started</span>${openBlockers(r).length?`<span>${pill(BLOCKED,"","blocked by #n")} a blocker has not landed</span>`:""}`;
 /* The in-progress marks of a set of wip.current addresses: breathing where the work goes on, the ring alone where it waits. */
-const heldAddr=a=>HALTED||rowHeld(String(a).split(".")[0]);
+const heldAddr=a=>PAUSED||rowHeld(String(a).split(".")[0]);
 const KEY_HELD=`<span><i class="hold"></i>ring alone: being worked on, paused while the run waits on the user</span>`;
 function markKeys(addrs){ if(!addrs.length) return ""; const held=addrs.filter(heldAddr).length; return (addrs.length>held?KEY_GLOW:"")+(held?KEY_HELD:""); }
 /* A unit's run: its pill, its last qa pass, the run line of its cell and card, its block on the strip, its legend entries. */
@@ -746,7 +749,7 @@ function runBlock(r,still){ const L=runOf(r); if(!L) return ""; const k=runKind(
   let h=`<div class="${still?"":"unitrun"}${held&&!still?" halted":""}">${still?"":`<div class="wip-head"><span>its run · step <b>${esc(L.step||"—")}</b>${L.since?` · since <span class="nw">${when(L.since)}</span>`:""}${L.branch?` · branch <code>${esc(L.branch)}</code>`:""}</span>${L.updated?`<span class="upd">updated ${when(L.updated)}</span>`:""}</div>`}`;
   if(held) h+=`<p class="wip-wait">Waiting on the user: ${rich(L.waitingOn||L.detail||"(not stated)")}</p>`;
   if(k==="escalated") h+=`<p class="wip-wait">Escalated: the run waits while the issue's scope is re-decided.</p>`;
-  if(k!=="cancelled") h+=stepsLine(steps,k==="halted"||k==="escalated"?(L.resume||""):L.step,{held,still,label:`#${r.unit.issue}: its pipeline steps`});
+  if(k!=="cancelled") h+=stepsLine(steps,k==="halted"||k==="escalated"?(L.resume||""):L.step,{held:held||k==="escalated",still,label:`#${r.unit.issue}: its pipeline steps`});
   if(L.detail&&!held) h+=`<p class="wip-detail">${rich(L.detail)}</p>`;
   if(qa.length&&!still) h+=`<div class="wip-facts"><span><span class="l">qa</span>${qa.map(qaPill).join(" ")}${L.qaMax?` <small>of at most ${esc(L.qaMax)}</small>`:""}</span></div>`;
   return h+`</div>`; }
@@ -813,7 +816,7 @@ function renderHeader(){
 
 /* ---------- The WIP strip (plan/RULES.md §3) ---------- */
 /* o (a unit's run): held (its run waits on the user), still (no mark: the inspector's copy), label (the list's name). */
-function stepsLine(steps,cur,o){ o=o||{}; const i=steps.indexOf(cur), held=o.held!=null?o.held:HALTED, done=o.held!=null?false:LANDED;
+function stepsLine(steps,cur,o){ o=o||{}; const i=steps.indexOf(cur), held=o.held!=null?o.held:PAUSED, done=o.held!=null?false:LANDED;
   return `<ol class="steps" aria-label="${esc(o.label||"Pipeline steps")}">${steps.map((s,j)=>{ const st=done||j<i?"done":j===i?"cur":"todo"; return `<li class="${st}${st==="cur"&&!done&&!o.still?(held?" held":" glow"):""}"${st==="cur"?' aria-current="step"':""}><span class="dot" aria-hidden="true"></span>${esc(s)}</li>`; }).join("")}</ol>`; }
 function renderWip(){
   const w=$("#wip"), st=STEP||"—"; w.dataset.step=st;
@@ -851,7 +854,7 @@ function renderWip(){
     if(st==="escalated") ph+=`<p class="wip-wait">Escalated: the run waits while the issue's scope is re-decided.</p>`;
     ph+=own+(WIP.detail&&(!HALTED||WIP.waitingOn)?`<p class="wip-detail">${rich(WIP.detail)}</p>`:"");
     ph+=`<div class="wip-sub">The chain · ${C.landed} of ${C.M} units landed${C.complete?` · ${C.complete} complete, not merged`:""}${C.extra.length?` · ${esc(C.extra.join(" · "))}`:""}</div><span class="chip-bar" role="img" aria-label="${C.landed} of ${C.M} units landed"><i style="width:${C.pct}%"></i></span>`;
-    ph+=`<ol class="chain">${units.map(r=>{ const s=stateOf(r), on=rowActive(r), href=r.unit.issue?boardOf(r.unit.issue)||ghUrl(r.unit.issue):""; const inner=`${esc(r.unit.n!=null?r.unit.n:"")}${r.unit.issue?` · #${esc(r.unit.issue)}`:""} ${esc(r.unit.slug||r.id)}${s!=="pending"?` ${STATES[s].g}`:""}${isNext(r)?` ${TAG_NEXT}`:""}`; const tag=href?`<a href="${esc(href)}"${/^https?:/.test(href)?' target="_blank" rel="noopener"':""} data-sys="${esc(r.system)}">${inner}</a>`:`<span class="u" data-sys="${esc(r.system)}">${inner}</span>`; return `<li class="${s==="pending"?"pending":"done"}${on&&!LANDED?(HALTED||runHeld(r)?" held":" glow"):isNext(r)?" upnext":""}">${tag}</li>`; }).join("")}</ol>`;
+    ph+=`<ol class="chain">${units.map(r=>{ const s=stateOf(r), on=rowActive(r), href=r.unit.issue?boardOf(r.unit.issue)||ghUrl(r.unit.issue):""; const inner=`${esc(r.unit.n!=null?r.unit.n:"")}${r.unit.issue?` · #${esc(r.unit.issue)}`:""} ${esc(r.unit.slug||r.id)}${s!=="pending"?` ${STATES[s].g}`:""}${isNext(r)?` ${TAG_NEXT}`:""}`; const tag=href?`<a href="${esc(href)}"${/^https?:/.test(href)?' target="_blank" rel="noopener"':""} data-sys="${esc(r.system)}">${inner}</a>`:`<span class="u" data-sys="${esc(r.system)}">${inner}</span>`; return `<li class="${s==="pending"?"pending":"done"}${on&&!LANDED?(PAUSED||runPaused(r)?" held":" glow"):isNext(r)?" upnext":""}">${tag}</li>`; }).join("")}</ol>`;
     h+=ph+factsHtml+`</div>`;
     legend.push(sysKey(units.map(r=>r.system)),units.some(r=>stateOf(r)==="pending")?`<span><i class="pln"></i>dashed: unit not built, or not started</span>`:"");
     [...new Set(units.map(stateOf))].filter(k=>k!=="pending").forEach(k=>legend.push(`<span>${badge(k)} ${esc(STATES[k].desc)}</span>`));
@@ -864,7 +867,7 @@ function renderWip(){
         b+=`<div class="run">${runPill(L)}${runAt(L)}</div>`;
         if(held) b+=`<p class="note">What it waits on is under “Waiting on you”.</p>`;
         if(k==="escalated") b+=`<p class="wip-wait">Escalated: the run waits while the issue's scope is re-decided.</p>`;
-        if(k!=="cancelled") b+=stepsLine(L.steps&&L.steps.length?L.steps:STEP_ORDER,held||k==="escalated"?(L.resume||""):L.step,{held,label:`#${r.unit.issue}: its pipeline steps`});
+        if(k!=="cancelled") b+=stepsLine(L.steps&&L.steps.length?L.steps:STEP_ORDER,held||k==="escalated"?(L.resume||""):L.step,{held:held||k==="escalated",label:`#${r.unit.issue}: its pipeline steps`});
         if(L.detail) b+=`<p class="wip-detail">${rich(L.detail)}</p>`;
         const f=[L.since?`<span><span class="l">since</span><span class="nw">${when(L.since)}</span></span>`:"",L.updated?`<span><span class="l">updated</span><span class="nw">${when(L.updated)}</span></span>`:"",
           (L.qa||[]).length?`<span><span class="l">qa</span>${L.qa.map(qaPill).join(" ")}${L.qaMax?` <small>of at most ${esc(L.qaMax)}</small>`:""}</span>`:"",
@@ -889,12 +892,12 @@ function renderWip(){
   }
   /* the strip's legend: exactly what it drew */
   const runHeldAny=runs.some(runHeld);
-  if(st!=="cancelled") legend.push(`<span><i class="node"></i>step done</span>`,LANDED?"":HALTED?`<span><i class="hold"></i>current step, paused</span>`:`<span><i class="node acc"></i>ringed dot, breathing: the step at work now</span>`,LANDED?"":`<span><i class="node hollow"></i>dashed: step to come</span>`);
-  if(!HALTED&&!LANDED&&runHeldAny) legend.push(`<span><i class="hold"></i>a unit's current step, paused</span>`);
+  if(st!=="cancelled") legend.push(`<span><i class="node"></i>step done</span>`,LANDED?"":PAUSED?`<span><i class="hold"></i>current step, paused</span>`:`<span><i class="node acc"></i>ringed dot, breathing: the step at work now</span>`,LANDED?"":`<span><i class="node hollow"></i>dashed: step to come</span>`);
+  if(!PAUSED&&!LANDED&&runs.some(runPaused)) legend.push(`<span><i class="hold"></i>a unit's current step, paused</span>`);
   if(runs.length) legend.push(`<span><i class="runbar"></i>accent edge: a unit in progress, its own run mirrored from its board</span>`);
   if(runHeldAny) legend.push(`<span><i class="runbar halt"></i>yellow edge: that run waits on the user</span>`);
   if(runs.length) legend.push(runKeys(runs));
-  if(TRACKING&&!LANDED){ const act=ROWS.filter(r=>r.unit&&rowActive(r)); if(act.some(r=>!HALTED&&!runHeld(r))) legend.push(KEY_GLOW); if(act.some(r=>HALTED||runHeld(r))) legend.push(KEY_HELD); }
+  if(TRACKING&&!LANDED){ const act=ROWS.filter(r=>r.unit&&rowActive(r)); if(act.some(r=>!PAUSED&&!runPaused(r))) legend.push(KEY_GLOW); if(act.some(r=>PAUSED||runPaused(r))) legend.push(KEY_HELD); }
   if(LANDED) legend.push(`<span>${pill({g:"✓",cls:"good",label:"landed"})} merged; nothing glows</span>`);
   const qv=[...new Set(qa.map(p=>p.verdict))].filter(v=>QA[v]); qv.forEach(v=>legend.push(`<span>${pill(QA[v])} qa pass verdict</span>`));
   /* a unit bubble lists every qa pass of its run; runKeys() named the latest ones, so add the verdicts only earlier passes took */
@@ -1226,13 +1229,13 @@ function renderChain(){
   const pos=new Map(); cols.forEach((c,i)=>(c||[]).forEach((r,j)=>{ const off=(maxRows-c.length)*(H+GY)/2; pos.set(r.id,{x:PAD+i*(W+GX),y:PAD+off+j*(H+GY)}); }));
   let s=`<svg class="chainsvg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Units and what blocks them"><defs><marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="arrow" d="M0,0 L8,4 L0,8 z"/></marker></defs>`;
   units.forEach(r=>(r.unit.blockedBy||[]).map(n=>byIssue.get(n)).filter(Boolean).forEach(b=>{ const p=pos.get(b.id), q=pos.get(r.id); const x1=p.x+W,y1=p.y+H/2,x2=q.x-2,y2=q.y+H/2,mx=(x1+x2)/2; s+=`<path class="edge${unitLanded(b)?"":" todo"}" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" marker-end="url(#arr)"/>`; }));
-  units.forEach(r=>{ const p=pos.get(r.id), st=stateOf(r), S=STATES[st], act=rowActive(r)&&!LANDED&&!STOPPED?(HALTED||runHeld(r)?" held":" glow"):isNext(r)?" upnext":"", L=runOf(r);
+  units.forEach(r=>{ const p=pos.get(r.id), st=stateOf(r), S=STATES[st], act=rowActive(r)&&!LANDED&&!STOPPED?(PAUSED||runPaused(r)?" held":" glow"):isNext(r)?" upnext":"", L=runOf(r);
     s+=`<g class="unit ${S.cls}${st==="pending"?" pending":""}${act}" data-row="${esc(r.id)}" data-sys="${esc(r.system)}" tabindex="0" role="button" aria-label="Unit ${esc(r.unit.n)}: ${esc(r.name)}, ${S.label}${L?`, its run: ${esc(runShort(L).slice(2))}`:""}" transform="translate(${p.x},${p.y})"><rect class="box" width="${W}" height="${H}" rx="5"/><rect class="bar" width="5" height="${H}" rx="2"/>${st!=="pending"?`<rect class="st" x="${W-6}" width="6" height="${H}" rx="2"/>`:""}<text class="t" x="12" y="19">${esc(r.unit.n)} · ${esc((r.unit.slug||r.id).slice(0,chars))}</text><text class="s" x="12" y="37">${esc(fit(`#${r.unit.issue} · ${L?runShort(L):`${S.g} ${S.label}`}`,Math.floor((W-24)/6.2)))}</text>${isNext(r)?`<rect class="tagbox" x="${W-60}" y="-7" width="54" height="14" rx="3"/><text class="tagtx" x="${W-33}" y="3" text-anchor="middle">UP NEXT</text>`:""}</g>`; });
   s+=`</svg>`;
   $("#chain-frame").innerHTML=s; paint($("#chain-frame"));
   document.querySelectorAll(".chainsvg .unit").forEach(g=>{ const go=()=>{ document.querySelectorAll(".chainsvg .unit.sel").forEach(e=>e.classList.remove("sel")); g.classList.add("sel"); inspectBuilt(ROWS.find(x=>x.id===g.dataset.row)); }; g.addEventListener("click",go); g.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } }); });
   const usedSt=[...new Set(units.map(stateOf))];
-  $("#chain-key").innerHTML=sysKey(units.map(r=>r.system))+Object.keys(STATES).filter(k=>usedSt.includes(k)&&k!=="pending").map(k=>`<span>${badge(k)} ${["as-planned","amended","deviated"].includes(k)?"landed: ":""}${esc(STATES[k].desc)}</span>`).join("")+(usedSt.includes("pending")?`<span><i class="pln"></i>dashed: unit not built</span>`:"")+`<span><i class="ln"></i>arrow: blocks</span>`+(units.some(r=>(r.unit.blockedBy||[]).some(n=>byIssue.has(n)&&!unitLanded(byIssue.get(n))))?`<span><i class="ln dash"></i>dashed arrow: its blocker has not landed</span>`:"")+(!LANDED&&!STOPPED&&units.some(r=>rowActive(r)&&!HALTED&&!runHeld(r))?`<span><i class="gl"></i>accent fill, breathing: the unit being worked on now</span>`:"")+(!LANDED&&!STOPPED&&units.some(r=>rowActive(r)&&(HALTED||runHeld(r)))?`<span><i class="hold"></i>active unit, paused while its run waits on the user</span>`:"")+(units.some(runOf)?`<span>▶ step · ⏸ waiting on the user: a unit in progress, its own run from its board</span>`:"")+(NEXT_ROW?`<span><i class="nx"></i>${TAG_NEXT} still outer glow: the next unit, not started</span>`:"");
+  $("#chain-key").innerHTML=sysKey(units.map(r=>r.system))+Object.keys(STATES).filter(k=>usedSt.includes(k)&&k!=="pending").map(k=>`<span>${badge(k)} ${["as-planned","amended","deviated"].includes(k)?"landed: ":""}${esc(STATES[k].desc)}</span>`).join("")+(usedSt.includes("pending")?`<span><i class="pln"></i>dashed: unit not built</span>`:"")+`<span><i class="ln"></i>arrow: blocks</span>`+(units.some(r=>(r.unit.blockedBy||[]).some(n=>byIssue.has(n)&&!unitLanded(byIssue.get(n))))?`<span><i class="ln dash"></i>dashed arrow: its blocker has not landed</span>`:"")+(!LANDED&&!STOPPED&&units.some(r=>rowActive(r)&&!PAUSED&&!runPaused(r))?`<span><i class="gl"></i>accent fill, breathing: the unit being worked on now</span>`:"")+(!LANDED&&!STOPPED&&units.some(r=>rowActive(r)&&(PAUSED||runPaused(r)))?`<span><i class="hold"></i>active unit, paused while its run waits on the user</span>`:"")+(units.some(runOf)?`<span>▶ step · ⏸ waiting on the user: a unit in progress, its own run from its board</span>`:"")+(NEXT_ROW?`<span><i class="nx"></i>${TAG_NEXT} still outer glow: the next unit, not started</span>`:"");
 }
 
 /* ---------- Source ---------- */

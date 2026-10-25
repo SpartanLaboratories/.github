@@ -10,7 +10,7 @@
 // the unit is in its wip.current, mirrors the unit's run from the new board (§3). Every later embed.js of this folder does the same.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
-const { repoRoot, opt, registry, signedOffParent } = require("./lib.js");
+const { repoRoot, opt, registry, signedOffParent, glowFor } = require("./lib.js");
 const { embed } = require("./embed.js");
 
 const args = process.argv.slice(2);
@@ -36,6 +36,7 @@ const plan = JSON.parse(fs.readFileSync(path.join(tpl, "plan.json"), "utf8"));
 delete plan.$comment;
 const level = opt(args, "level", null), kind = opt(args, "kind", level === "4" ? "tracking" : "issue");
 const now = new Date().toISOString().replace(/\.\d+Z$/, "Z");
+const step = opt(args, "step", "research"); // its wip.current comes from the step-to-column map (plan/RULES.md §3): lib.js glowFor()
 /* A tracking issue (level 4) runs its own steps up to its architecture and the landing of its plan; then "implementation" spans its
    units' runs, each on its own board, from the first unit's start until the last unit lands, and "landed" follows (plan/RULES.md §3). */
 const STEPS_BY_LEVEL = {
@@ -56,7 +57,7 @@ Object.assign(plan, {
   baseline: { ref: "master", sha: opt(args, "baseline", plan.baseline.sha), date: opt(args, "date", plan.baseline.date) },
   asBuilt: null,
   systems: (opt(args, "systems", "") || "").split(",").filter(Boolean).map(s => (reg && reg.info(s)) || { slug: s, name: s, slot: 0, top: s, status: "built", page: null }),
-  wip: { step: opt(args, "step", "research"), since: now, updated: now, detail: "", steps: STEPS_BY_LEVEL[level] || STEPS_BY_LEVEL[3], current: [], next: null, qa: [], qaMax: 3, waitingOn: null, resume: null, blockers: { waitsOn: [], blocks: [] }, landing: null },
+  wip: { step, since: now, updated: now, detail: "", steps: STEPS_BY_LEVEL[level] || STEPS_BY_LEVEL[3], current: glowFor(step) /* the step-to-column map, plan/RULES.md §3 */, questions: [] /* the research questions, from research-started */, next: null, qa: [], qaMax: 3, waitingOn: null, resume: null, blockers: { waitsOn: [], blocks: [] }, landing: null },
   // impact is written at plan acceptance from impact.md and reconciled at the landing (plan/RULES.md §2, Impact); until then the
   // Impact tab says that nothing is recorded yet
   milestones: [], trail: [], rows: [], impact: null, roadmap: null, followUps: [], documents: [], notes: {}

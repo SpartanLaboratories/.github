@@ -293,6 +293,8 @@ sends none.
 |--------|---------|-------|
 | Step 1 sized (the run's first action after sizing) | `sized` | level, baseline sha, the issue's systems if known, the next step |
 | A planner halt, a `needs-user` reply, a qa stop | `halted` | what waits on the user; then `resumed` with the answer's gist |
+| A research batch spawned (sent by the planner itself) | `research-started` | `researching`: per question, its slug and the board row ids it bears on (`[]` for none) |
+| A researcher returned (sent by the planner itself) | `research-returned` | `returned`: the question slug and its findings path |
 | Research verified | `researched` | the research README path |
 | Level-4 sign-off | `architecture-signed-off` | the architecture path, the approved unit list |
 | Planner COMPLETE | `plan-accepted` | the plan path, impact path |
