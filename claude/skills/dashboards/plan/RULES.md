@@ -508,7 +508,9 @@ A board is alive while its run is. Its data carries:
   `documentation`, `test`, `code`), by severity (`severity`, a word to a count: the pipeline sends `minor`, easily made
   with no fallout, and `other`, `{"minor": 3, "other": 1}`; a qa report's own words are kept as it writes them) and the
   `route` it sends the run on (as `wip.remediation.route`); `wip.qaMax` the most passes the pipeline allows (three);
-- `wip.blockers` — issues this run waits on, and runs waiting on it (from *blocked by* links).
+- `wip.blockers` — issues this run waits on, and runs waiting on it (from *blocked by* links);
+- `wip.history` — the finished steps' snapshots, each step an array of its visits (below, "Finished steps"), frozen by
+  `apply-event.js` (and `new.js`'s sizing) and never written by hand.
 
 The fields of the step panel (`interview`, `research`, `questions`, `plan`, `stages`, `remediation`,
 `event`, `open`) are optional and written from the event's facts and the folder's documents, never guessed;
@@ -589,7 +591,8 @@ tracking board also the chain of units, the unit in progress and the unit up nex
 board the strip is **half as wide**, and the **step panel** stands to its right (below); one column
 under 940 px, the legend under both. When the change lands, `status` becomes `built`, `wip.step`
 becomes `landed`, the glow stops, and the strip shows the landing (PR, merge commit, version) across
-the row: a landed or cancelled board has no current step and no panel.
+the row: a landed or cancelled board has no current step and no panel (a finished step picked on a landed board shows beside the
+landing, "Finished steps" below).
 
 **The step panel.** The current step broken down in detail, from the facts the board records (the
 events, the documents, the trail), never guessed; each step's panel shows:
@@ -636,6 +639,49 @@ phase's start; at the plan step the rows whose verdict is still to write; at eac
 touches; the count of deviations recorded during the build; the qa limit and the running pass; the
 next step. The panel's legend entries (the question states, the interview's answered and waiting,
 the qa verdicts, the dots) join the strip's legend.
+
+**Finished steps** (admin-team/dashboards-skill/24). Every finished step's dot on the progress strip is a **button** (a `<button>`, in
+the Tab order, `aria-pressed`): a click, Enter or Space shows that step in the step panel. The dot stays highlighted — **ringed in ink**,
+never the accent, which marks only the work in progress and the unit up next (`GUIDANCE.md` §1) — and a line above the panel says what it
+shows, "viewing: research · finished 08:53 · back to now", with a "back to now" button; a second click on the dot, "back to now" or Escape
+returns to the current step. The selection survives the live redraw (§3, "Live updates"), the focus with it, and is dropped once the step
+is no longer finished there. A step is **finished** when it lies before the step the strip marks current (a halt's or an escalation's
+resume step), on a board that has landed every step but `landed`, and any other step that holds a finished visit (a remediation loop while
+the run is back at qa); a cancelled board draws no steps, a board not started has none finished (`lib.js` `finishedSteps()`, the template's
+`finishedOf()`). The strip's legend says that a finished step is clicked, and names the ink ring while one is shown.
+
+- **The snapshot, `wip.history.<step>`.** When a step ends, `apply-event.js` freezes its panel's facts into `wip.history.<step>`, an array
+  of the step's **visits**, oldest first: `{since, ended, endedBy, to, held, event, detail, open, …}` — when the visit began (when the visit
+  before it ended; a halt inside a step is no visit of its own), when and by which event it ended, the step the run moved to, `held` when it
+  ended while the run waited on the user, its last event, its last detail line, the open points still open — and the step's own facts as
+  they stood (`lib.js` `HISTORY_FIELDS`): the interview's questions; the research phase and questions; the plan's pass; the branch; the
+  stage list; at qa the passes of the visit; at remediation the loop (`remediation`) with the qa pass it answers; on a tracking board the
+  units filed or with a board (`units`). A fact is taken after the ending event unless that event cleared it or replaced it with the next
+  visit's (`plan-accepted` clears the plan's pass; a new qa pass starts a new loop), then before. A visit ends when the step the panel
+  shows changes; at remediation also when the qa pass the loop answers changes, so **each remediation loop is a visit of its own** and a
+  second loop never overwrites the first; and **every qa verdict is a visit of qa**, the pass it returned, even when the run reached it from
+  remediation (that visit has no `since`). `new.js` lays the sizing visit with the foundation, and `sized` on a board laid before its run
+  records it; the standing rule freezes a tracking board's own step its unit's start ends (its plan's landing). Deterministic and
+  idempotent, part of the fast path: the same event twice freezes nothing more. A step moved by hand freezes nothing, so the landing refresh
+  moves a board to `landed` through `apply-event.js` (`landed` once more, after every part is resolved), which freezes the landing step.
+- **The panel of a finished step** is its snapshot: each visit with its facts and its info groups (last event, since, ended and by what,
+  then), a remediation step as "Loop 1 · qa pass 1", "Loop 2 · qa pass 2", a qa step as each pass apart; a stage or sub-step not done when the
+  step ended is drawn dashed, its word saying so. While the run is at remediation again, its live panel lists the earlier loops.
+- **No snapshot: reconstructed.** A finished step with no snapshot (it ended before the snapshots, as WebTools #63's research and plan
+  did) gets a **reduced panel**, labelled "reconstructed from the history" on its viewing line, from what survives: the trail entries and
+  milestones that name the step (a label names its step by its leading words, a halt's or a resume's by the step named, `lib.js`
+  `trailStep()`; a milestone that names none by its column: gap research, considered the architecture on a tracking board and the plan
+  elsewhere, verdict the plan, built the landing; a tracking board, which has no plan step, gives what names its plan to its landing), the interview's questions (`wip.interview`), the research questions the trail names
+  with their findings, the branch, the stage list as the board holds it now (`wip.stages`), the qa passes (`wip.qa`; at remediation those
+  that requested changes), the units, the run's start (`sized`). A step the history records nothing of says so. `lib.js`
+  `reconstructStep()` and the template's `reconStep()` are the one rule.
+- **Tracking boards.** A unit's finished steps are buttons on its bubble's steps line: its snapshot (the mirror carries `history`, and
+  `recon`, the reconstruction of its board's finished steps with no snapshot, both written by `embed.js` from the unit's board) takes the
+  place of the unit's step panel, its viewing line naming the unit ("viewing: #63's research"), its references read from the unit's folder.
+  The tracking board's own finished steps are buttons on its phase's steps line: the step shown takes a row of its own beside the phase,
+  first, in the unit's and the panel's shares (at its own `sub-issues` or `boards` step, the own panel's place). One step is shown at a time.
+- **A board that has landed** keeps its strip across the row until a step is picked; the step shown then stands beside the landing, as the
+  panel beside an issue board's strip.
 
 **A tracking board's step panel.** On a tracking board with units the strip is bubbles (below);
 there the **step panel of each unit in progress** stands after that unit's bubble, from the unit's
@@ -800,8 +846,9 @@ for rookie-dev's fixes; from `existing`, with `against`, when the facts say the 
 against its base), the stages of `plan.md` into `wip.stages` at
 `branch-cut`, and at each `implementation-stage` from its `facts.stages` (every stage's id, name and state), the
 remediation's pass, route and sub-steps into `wip.remediation` from `facts.remediation`, and each qa pass's counts by
-kind and severity and its route into `wip.qa` from `qa-pass`. Every embed writes the board's
-`plan.js` beside it (§1).
+kind and severity and its route into `wip.qa` from `qa-pass`. **An event that ends a step freezes it**: the step's panel facts as they
+stood go into `wip.history.<step>` as one visit (each remediation loop, each qa verdict a visit of its own; §3, "Finished steps"). Every
+embed writes the board's `plan.js` beside it (§1).
 
 | Event | When | What the presenter writes |
 |-------|------|---------------------------|
@@ -874,6 +921,7 @@ files it wrote, the check, the live board, the time, and `enrich: yes|no` with `
 | on a sub-issue, the standing rule on its tracking board: the unit's start (`sized`), `complete` (an approving qa pass), `landed`, `wip.next`, the chain's `wip.detail` | the unit's summary, its `impact.units` entry and its effect on the initiative's impact |
 | at `landed`, `asBuilt` from the facts, and `status = built` with the step `landed` only once every part is resolved; at `cancelled`, `status = abandoned` and the reason in `notes` | the landing refresh (every part resolved, the trail, the impact reconciled); the cancelled board's closing state |
 | at `landing` (team-raised), the step, the event with its pull request, the detail and the trail entry: everything | nothing |
+| the snapshot of the step the event ends, `wip.history.<step>` (§3, "Finished steps"): every visit, each remediation loop and each qa verdict apart; the sizing visit at a board's first `sized`; on a sub-issue, the tracking board's own step its unit's start ends | nothing: a snapshot is never written by hand (a step with none is reconstructed on the page) |
 | the Tests tab from an event's `facts.tests` (§2, "The Tests tab"; `testslib.js` `mergeTests()`): each class of `added`, `amended` and `relevant` upserted (its test level from its `testLevel`, else its package or path; `stage` the implementation stage reported; `rows` kept to the board's rows), a class kept in the highest list it reached; `ran`, the classes qa ran with their counts, sets each one's latest result (with the qa pass) and puts a class in no list into Relevant; `other` replaces the counts; `drop` removes a class; `base` the ref of the diff | the Tests tab when an implementation stage or a qa verdict carries no `facts.tests`: Added and Amended from the branch's diff against its base, Relevant, Other and the results from the qa report |
 
 **A work level in the facts is reworded, never written** (`GUIDANCE.md` §4; admin-team/dashboards-skill/23). Every text the script takes
@@ -1043,6 +1091,10 @@ included); a `wip.research` whose phase is not `planning`, `research`, `verifica
 a count; a `wip.interview` question with no text; a `wip.plan` that is not `writing` or a `re-pass` naming where it comes
 from (`parent`, or `qa` with its pass); a `wip.stages` or `wip.remediation.steps` entry without its name or state, or two
 current; a `wip.open` entry without its text or `raised`, or with a `resolved` that is neither `true` nor a sentence; a
+`wip.history` (§3, "Finished steps") that is not a map of steps to arrays of visits, a step no snapshot is kept of, a visit whose
+`ended` is not an ISO date-time, whose `since` is after it or whose visits are not oldest first, an `endedBy` that is not an event of
+§4, a `to` that is not a step, or a frozen fact not in its live field's form (the interview, the research phase and questions, the plan's
+pass, the branch, the stages, the qa passes, the remediation loop, the units); a
 `partially-built` unit row, or a partially built row without a summary; an `in-progress` or `partially-built` row on a built
 board; a `wip.interview` question's `options` that is not an array of strings; a `wip.qa` pass's or `wip.remediation`'s
 `route` that is not `on-the-spot`, `rookie-dev` or `planner-then-rookie-dev`; a `wip.plan.against` that is not a ref or sits
@@ -1108,7 +1160,8 @@ With `--auto` it reports the page's standing against its template (`system/scrip
 the verified template plus its data (no browser pass), or a divergence (the full browser pass:
 light, dark, 520 px, a 390 px frame, a 1920 x 1080 desktop).
 
-Warns: verdicts written before the statements, one paragraph each (one warning naming the rows: split them, §9); a statement whose
+Warns: a `wip.history` visit holding a fact a snapshot of its step does not keep, and two remediation loops answering the same qa pass
+(§3, "Finished steps"; its `ok` line names the steps kept and those the page reconstructs); verdicts written before the statements, one paragraph each (one warning naming the rows: split them, §9); a statement whose
 reference names a section that is gone, whose excerpt is not copied yet, or whose section has changed since its excerpt was copied
 (§2, "Statements"); a statement's text that ends with its own "(§…)"; a verdict or an As built cell that keeps its summary beside
 its statements; an outcome recorded with verdict statements but no as-built statements; as-built statements beside a verdict that

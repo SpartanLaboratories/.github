@@ -52,7 +52,10 @@
 // inside each tile, the larger charging arrow, the landing event, the header, "unassigned" kept from every checkout, the research-planning
 // glow, the Tests tab and this run's feature probes. And the decisions of dashboards-skill/23 (verify/cases-23.js): the Timeline tile's
 // phases, the run's start and the qa passes' times, a reference's section number before its excerpt, a work level in the facts reworded
-// and this run's feature probes. A template is recorded only when its browser passes and every case group pass.
+// and this run's feature probes. And the decisions of dashboards-skill/24 (verify/cases-24.js): the finished steps on a plan board's progress
+// strip clickable, each step's snapshot frozen into wip.history by the fast path (each remediation loop and each qa pass apart), check.js on
+// it, a step with no snapshot reconstructed, a tracking board's unit through its mirror and its own steps, and this run's feature probe. A
+// template is recorded only when its browser passes and every case group pass.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { recordFile, sha, norm } = require(path.join(__dirname, "..", "system", "scripts", "deviation.js"));
@@ -1978,6 +1981,13 @@ catch (e) { report("the dashboards-skill/22 cases", [["the cases run to the end"
    reference's section number before its excerpt, a work level in the pipeline's facts reworded, and this run's feature probes. */
 try { require("./cases-23.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/23 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
+/* The decisions of admin-team/dashboards-skill/24 (verify/cases-24.js): the finished steps on a plan board's progress strip clickable: the
+   snapshots apply-event.js freezes into wip.history (each remediation loop and each qa pass apart; deterministic, idempotent), new.js's sizing,
+   the standing rule's on a tracking board, check.js on wip.history, the reconstruction of a step with no snapshot, the template's buttons,
+   panel, viewing line and selection across the live redraw, a tracking board's unit and own steps, and this run's feature probe. */
+try { require("./cases-24.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the dashboards-skill/24 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 const today = new Date().toISOString().slice(0, 10);
 targets.forEach(t => {

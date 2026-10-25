@@ -275,16 +275,152 @@ function unitRun(sub) {
     qa: Array.isArray(w.qa) ? w.qa : [], qaMax: w.qaMax || null, status: sub.status || null, branch: sub.branch || null };
   if (w.proposedLevel) run.proposedLevel = w.proposedLevel;
   Object.assign(run, panelFacts(sub));
+  /* the finished steps the unit's board kept no snapshot of, reconstructed from what survives on it (its trail, milestones, stages,
+     qa passes), so the tracking board shows them as the unit's own board does (plan/RULES.md §3, "Finished steps") */
+  const recon = reconstructSteps(sub); if (Object.keys(recon).length) run.recon = recon;
   return run;
+}
+/* ---------- Finished steps (plan/RULES.md §3, "Finished steps"; admin-team/dashboards-skill/24) ----------
+   When a step ends, apply-event.js freezes the step panel's facts into wip.history.<step>, an array of the step's visits, oldest first:
+   { since, ended, endedBy, to, held, event, detail, open, …the step's own facts }. A visit ends when the step the panel shows (a halt's or an
+   escalation's resume step, else wip.step) changes, or, at remediation, when the qa pass it answers changes (each remediation loop is a
+   visit of its own); every qa verdict is a visit of qa, the pass it returned, even when the run reached it from remediation. The step's
+   own facts, per step (HISTORY_FIELDS): the interview's questions, the research phase and questions, the plan's pass, the branch, the
+   stage list, the qa passes of the visit, the remediation loop (with the pass it answers), a tracking board's units filed or with a
+   board. Each is taken as it stood when the step ended: after the ending event, unless that event cleared it or replaced it with the
+   next visit's (a new remediation loop), then before. Deterministic and idempotent: the same event twice freezes nothing more. */
+const HISTORY_FIELDS = { sizing: [], interview: ["interview"], research: ["research", "questions"], architecture: [], plan: ["plan"], branch: ["branch"],
+  implementation: ["stages"], qa: ["qa"], remediation: ["remediation", "qa"], "sub-issues": ["units"], boards: ["units"], landing: [] };
+const HISTORY_STEPS = Object.keys(HISTORY_FIELDS);
+const STEP_ORDER = ["sizing", "interview", "research", "architecture", "plan", "branch", "implementation", "qa", "remediation", "landing", "landed"];
+const isObj = v => v != null && typeof v === "object" && !Array.isArray(v);
+const nonEmpty = v => Array.isArray(v) ? v.length > 0 : isObj(v);
+const clone = v => v == null ? v : JSON.parse(JSON.stringify(v));
+/* the step the panel shows: the one a halt or an escalation stopped in, else wip.step */
+const shownStep = w => w && ["halted", "escalated"].includes(w.step) ? (w.resume || null) : (w && w.step) || null;
+/* a visit's key: the step shown, and at remediation the qa pass its loop answers */
+const visitKey = w => { const s = shownStep(w); return !s ? null : s === "remediation" ? `remediation#${(w.remediation && w.remediation.pass) || ""}` : s; };
+const FINAL_QA = ["approved", "changes-requested"];
+const historyOf = w => isObj(w && w.history) ? w.history : {};
+const frozenPasses = H => new Set((Array.isArray(H.qa) ? H.qa : []).flatMap(v => (Array.isArray(v && v.qa) ? v.qa : []).filter(p => p && FINAL_QA.includes(p.verdict)).map(p => p.pass)));
+const unitCount = (plan, step) => { const units = (Array.isArray(plan.rows) ? plan.rows : []).filter(r => r && r.unit);
+  return { done: units.filter(r => step === "sub-issues" ? Number.isInteger(r.unit.issue) && r.unit.issue > 0 : typeof r.unit.board === "string" && !!r.unit.board.trim()).length, total: units.length }; };
+const lastEnded = H => Object.values(H).flatMap(vs => Array.isArray(vs) ? vs : []).map(v => v && v.ended).filter(x => typeof x === "string" && !isNaN(Date.parse(x))).sort((x, y) => Date.parse(x) - Date.parse(y)).pop() || null;
+const openOf = w => (Array.isArray(w.open) ? w.open : []).filter(x => x && typeof x.text === "string" && x.text.trim() && !x.resolved);
+/* One visit of a step, frozen: pre the board before the event that ends it, post after. */
+function freezeVisit(pre, post, step, ev, now) {
+  const a = (pre && pre.wip) || {}, b = (post && post.wip) || {}, H = historyOf(b);
+  /* the visit began when the visit before it ended (visits follow each other: a halt inside a step is no visit of its own); with no
+     visit frozen before it (a board older than the snapshots), when the panel's "since" says */
+  const V = { since: lastEnded(H) || a.since || null, ended: now, endedBy: ev, to: shownStep(b) || b.step || null };
+  if (["halted", "escalated"].includes(a.step)) V.held = true;
+  if (a.event && a.event.name) V.event = clone(a.event);
+  if (typeof a.detail === "string" && a.detail.trim()) V.detail = a.detail;
+  const open = openOf(a); if (open.length) V.open = clone(open);
+  const pick = k => nonEmpty(b[k]) ? b[k] : nonEmpty(a[k]) ? a[k] : null;
+  (HISTORY_FIELDS[step] || []).forEach(k => {
+    let v = null;
+    if (k === "branch") v = (post && post.branch) || (pre && pre.branch) || null;
+    else if (k === "units") v = unitCount(post || pre, step);
+    else if (k === "qa" && step === "qa") { const seen = frozenPasses(H); v = (pick("qa") || []).filter(p => p && !seen.has(p.pass)); }
+    else if (k === "qa") { const M = V.remediation; v = M ? (pick("qa") || []).filter(p => p && p.pass === M.pass) : null; }
+    else if (k === "remediation") v = b.remediation && a.remediation && b.remediation.pass === a.remediation.pass ? b.remediation : a.remediation || null;
+    else v = pick(k);
+    if (nonEmpty(v) || (typeof v === "string" && v)) V[k] = clone(v);
+  });
+  return V;
+}
+/* Freeze what the event ended into post.wip.history (post is changed in place). Returns one line per visit frozen. */
+function freezeSteps(pre, post, ev, now, facts) {
+  const a = (pre && pre.wip) || {}, b = post.wip = isObj(post.wip) ? post.wip : {}, out = [];
+  const push = (step, V) => { if (!HISTORY_STEPS.includes(step)) return; b.history = historyOf(b); (b.history[step] = Array.isArray(b.history[step]) ? b.history[step] : []).push(V);
+    out.push(`wip.history.${step} + visit ${b.history[step].length}${step === "qa" && V.qa && V.qa.length ? ` (qa pass ${V.qa.map(p => p.pass).join(", ")})` : step === "remediation" && V.remediation ? ` (qa pass ${V.remediation.pass})` : ""}`); };
+  const ka = visitKey(a), kb = visitKey(b), sa = shownStep(a);
+  /* the run's start: a board laid before its run (or at sizing) records sizing once, ended by the sized event */
+  /* sizing is one visit, the run's start, kept once: a later sized (or a board already holding it) freezes no second */
+  if (!sa || sa === "sizing") { if (ev === "sized" && !nonEmpty(historyOf(b).sizing)) push("sizing", { since: sa === "sizing" && a.since ? a.since : null, ended: now, endedBy: "sized", to: shownStep(b) }); }
+  else if (ka && ka !== kb) push(sa, freezeVisit(pre, post, sa, ev, now));
+  /* a qa verdict the run reached from another step (remediation, implementation): the pass is a visit of qa of its own */
+  const Q = facts && facts.qa, pass = Q && Number.isInteger(Q.pass) ? Q.pass : null, entry = pass != null ? (Array.isArray(b.qa) ? b.qa : []).find(p => p && p.pass === pass) : null;
+  if (ev === "qa-pass" && entry && FINAL_QA.includes(entry.verdict) && sa !== "qa" && !frozenPasses(historyOf(b)).has(pass)) {
+    const V = { since: null, ended: now, endedBy: "qa-pass", to: shownStep(b) || b.step || null };
+    if (a.event && a.event.name) V.event = clone(a.event);
+    const open = openOf(a); if (open.length) V.open = clone(open);
+    V.qa = [clone(entry)]; push("qa", V);
+  }
+  return out;
+}
+/* The steps of a board the strip draws as finished (their dots become buttons): every step before the one shown, every step on a board
+   that has landed (but "landed" itself), and any step other than the one shown that holds a finished visit (a remediation loop while the
+   run is back at qa). A cancelled board draws no steps; a board not started has none finished. R is a wip, or a unit's mirror. */
+function finishedSteps(R, status) {
+  const w = R || {}, steps = Array.isArray(w.steps) && w.steps.length ? w.steps : STEP_ORDER, H = historyOf(w);
+  if (w.step === "cancelled" || status === "abandoned") return [];
+  if (w.step === "landed" || status === "built") return steps.filter(s => s !== "landed");
+  const cur = shownStep(w), i = cur ? steps.indexOf(cur) : -1;
+  return steps.filter((s, j) => s !== "landed" && ((i >= 0 && j < i) || (s !== cur && Array.isArray(H[s]) && H[s].length > 0)));
+}
+/* ---------- A finished step with no snapshot: reconstructed from what survives (plan/RULES.md §3, "Finished steps") ----------
+   A board whose steps ended before the snapshots (or a step moved by hand) shows a reduced panel for them, labelled "reconstructed from
+   the history": the trail entries and milestones that name the step, and what the board still holds of it — the interview's questions
+   (wip.interview), the research questions the trail names (sent, returned with their findings), the branch, the stage list (wip.stages),
+   the qa passes (wip.qa; at remediation the passes that requested changes), the units filed or with a board, the run's start (sized).
+   A trail entry or milestone names its step by its leading words (trailStep()); a milestone that names none goes by its column (gap:
+   research; considered: the architecture on a tracking board, else the plan; verdict: the plan; built: the landing). The template's
+   reconStep() is the same rule. */
+const TRAIL_STEP_WORDS = [["filing the units", "sub-issues"], ["creating the units", "boards"], ["the interview", "interview"], ["interview", "interview"], ["research", "research"], ["the architecture", "architecture"], ["architecture", "architecture"],
+  ["the plan", "plan"], ["plan", "plan"], ["the branch", "branch"], ["branch", "branch"], ["implementation", "implementation"], ["qa", "qa"], ["remediation", "remediation"], ["the landing", "landing"], ["landing", "landing"], ["sizing", "sizing"]];
+const TRAIL_STEP_RE = [[/^(run started|sized|sizing|re-?sized)\b/i, "sizing"], [/^interview/i, "interview"], [/^(research|verification|findings)/i, "research"], [/^architecture/i, "architecture"],
+  [/^(\d+ of \d+ units? filed|sub-issues filed)/i, "sub-issues"], [/^\d+ of \d+ unit boards? created/i, "boards"], [/^plan\b/i, "plan"], [/^branch\b/i, "branch"], [/^(S\d+\b|implementation\b|stage\b)/i, "implementation"],
+  [/^qa pass/i, "qa"], [/^remediation/i, "remediation"], [/^(landing|landed)\b/i, "landing"]];
+function trailStep(label) {
+  const s = String(label == null ? "" : label).replace(/`/g, "").replace(/\s+/g, " ").trim();
+  const m = /^(?:halted|resumed|escalated)\s+(?:at|in|during)\s+(.+)$/i.exec(s);
+  if (m) { const t = m[1].toLowerCase(), hit = TRAIL_STEP_WORDS.find(([x]) => t.startsWith(x)); return hit ? hit[1] : null; }
+  const hit = TRAIL_STEP_RE.find(([re]) => re.test(s)); return hit ? hit[1] : null;
+}
+const MILESTONE_STEP = { gap: "research", verdict: "plan", built: "landing" };
+/* a tracking board has no plan step of its own: its plan lands at its landing step, so an entry naming the plan is its landing's */
+const boardStep = (plan, s) => plan && plan.kind === "tracking" && s === "plan" ? "landing" : s;
+const milestoneStep = (plan, m) => boardStep(plan, trailStep(m && m.label) || (m && m.column === "considered" ? (plan.kind === "tracking" ? "architecture" : "plan") : MILESTONE_STEP[m && m.column] || null));
+const okDay = v => typeof v === "string" && /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?Z)?$/.test(v) && !isNaN(Date.parse(v));
+function reconstructStep(plan, step) {
+  const w = (plan && plan.wip) || {}, R = { reconstructed: true, ended: null, trail: [], milestones: [] };
+  const later = d => { if (okDay(d) && (R.ended == null || Date.parse(d) > Date.parse(R.ended))) R.ended = d; };
+  (Array.isArray(plan.trail) ? plan.trail : []).forEach(t => { if (!t || typeof t.label !== "string" || !t.label.trim() || boardStep(plan, trailStep(t.label)) !== step) return;
+    R.trail.push({ date: t.date || null, label: t.label, ...(typeof t.ref === "string" && t.ref.trim() ? { ref: t.ref } : {}) }); later(t.date); });
+  (Array.isArray(plan.milestones) ? plan.milestones : []).forEach(m => { if (!m || typeof m.label !== "string" || !m.label.trim() || milestoneStep(plan, m) !== step) return;
+    R.milestones.push({ date: m.date || null, label: m.label, ...(typeof m.ref === "string" && m.ref.trim() ? { ref: m.ref } : {}), ...(typeof m.note === "string" && m.note.trim() ? { note: m.note } : {}) }); later(m.date); });
+  if (step === "sizing" && okDay(plan.sized)) { R.sized = plan.sized; later(plan.sized); }
+  if (step === "interview" && nonEmpty(w.interview)) R.interview = clone(w.interview);
+  if (step === "research") { const qs = [];
+    R.trail.forEach(t => { const s = t.label.replace(/\s+/g, " "), sent = /^research started:/i.test(s), back = /^research returned:/i.test(s); if (!sent && !back) return;
+      (s.match(/`([a-z0-9][a-z0-9-]*)`/g) || []).map(x => x.slice(1, -1)).forEach(q => { let have = qs.find(x => x.question === q); if (!have) { have = { question: q, findings: null }; qs.push(have); }
+        if (back && t.ref) have.findings = t.ref; }); });
+    if (qs.length) R.questions = qs; }
+  if (step === "branch" && typeof plan.branch === "string" && plan.branch.trim()) R.branch = plan.branch;
+  if (step === "implementation" && nonEmpty(w.stages)) R.stages = clone(w.stages);
+  if (step === "qa" || step === "remediation") { const qa = (Array.isArray(w.qa) ? w.qa : []).filter(p => p && (step === "qa" || p.verdict === "changes-requested"));
+    if (qa.length) R.qa = clone(qa); qa.forEach(p => later(p.at || p.date)); }
+  if (["sub-issues", "boards"].includes(step) && (Array.isArray(plan.rows) ? plan.rows : []).some(r => r && r.unit)) R.units = unitCount(plan, step);
+  return R;
+}
+/* { step: reconstruction } for every finished step that has no snapshot */
+function reconstructSteps(plan) {
+  const w = (plan && plan.wip) || {}, H = historyOf(w), out = {};
+  finishedSteps(w, plan && plan.status).filter(s => !(Array.isArray(H[s]) && H[s].length)).forEach(s => { out[s] = reconstructStep(plan, s); });
+  return out;
 }
 /* The step panel's facts of a board's run (plan/RULES.md §3, "The step panel"), as a unit's mirror carries them so the tracking
    board can draw that unit's step panel: only the fields the board records (none is written empty, so a mirror stays as small as
    the run): the last event, the interview's questions, the research phase and questions, the plan's pass, the implementation
    stages, the remediation's sub-steps; at the plan step the verdicts written of the rows, in implementation and remediation the
    deviations recorded (the rows' as-built changes); and rowNames, the names of the rows the questions and stages name. */
-const PANEL_FIELDS = ["event", "interview", "research", "questions", "plan", "stages", "remediation", "open"];
+/* wip.history, the finished steps' snapshots (plan/RULES.md §3, "Finished steps"), rides along so the tracking board shows the unit's
+   finished steps as its own board does; an empty history is left out. */
+const PANEL_FIELDS = ["event", "interview", "research", "questions", "plan", "stages", "remediation", "open", "history"];
 function panelFacts(sub) {
-  const w = (sub && sub.wip) || {}, out = {}, has = v => Array.isArray(v) ? v.length > 0 : v != null && typeof v === "object";
+  const w = (sub && sub.wip) || {}, out = {}, has = v => Array.isArray(v) ? v.length > 0 : v != null && typeof v === "object" && (v !== w.history || Object.values(v).some(x => Array.isArray(x) && x.length));
   PANEL_FIELDS.forEach(k => { if (has(w[k])) out[k] = w[k]; });
   const rows = Array.isArray(sub && sub.rows) ? sub.rows : [], step = ["halted", "escalated"].includes(w.step) ? w.resume : w.step;
   if (step === "plan" && rows.length) out.verdicts = { written: rows.filter(r => r && verdictWritten(r.verdict)).length, total: rows.length };
@@ -860,5 +996,5 @@ const tlDuration = p => p.timed && p.weight < 24 ? (p.weight < 1 ? "under an hou
 function timelineLeftOut(T) { const by = new Map(); (T && T.left || []).forEach(x => { if (!by.has(x.why)) by.set(x.why, []); by.get(x.why).push(x.key); });
   return [...by].map(([why, ks]) => `${ks.join(", ")} left out: ${why}`).join(" · "); }
 
-module.exports = { okStamp, TL_PHASES, TL_SHADES, timelineBounds, timelinePhases, tlDuration, timelineLeftOut, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+module.exports = { HISTORY_FIELDS, HISTORY_STEPS, STEP_ORDER, shownStep, visitKey, freezeVisit, freezeSteps, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, okStamp, TL_PHASES, TL_SHADES, timelineBounds, timelinePhases, tlDuration, timelineLeftOut, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, parentFolder, staleUnitRuns, stampMs, treeRoot, boardFolders, boardLink, parentBoard, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

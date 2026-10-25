@@ -15,7 +15,8 @@
 // --json       print the summary as one JSON object instead of key: value lines
 // What it does: reads the request and <worktree>/<folder>/plan.json; applies the event (the step, the stages and the derived as-built
 // states, the research questions and phase, the glow, the halt and its resume, the open points, the qa passes, the remediation, the
-// interview's questions, the detail, wip.event and wip.updated, one trail entry, the branch); re-renders the page onto the current
+// interview's questions, the detail, wip.event and wip.updated, one trail entry, the branch; the snapshot of the step it ended, frozen
+// into wip.history.<step>, plan/RULES.md §3, "Finished steps"); re-renders the page onto the current
 // template when it is not the verified template plus its data (plan/RULES.md §4, "Every event re-renders the board"); embeds the
 // board (its data block and its plan.js sidecar); on a sub-issue applies the standing rule to its parent tracking board (a unit's
 // start at sized, complete at an approving qa pass, landed at landed) and re-embeds it, which mirrors the unit's run; runs check.js
@@ -498,6 +499,9 @@ function applyEvent(orig, ev, facts, req, now) {
   resolved.forEach(o => { const t = { date: today, column: "built", label: `Open point resolved: ${o.text}`, ...(o.ref ? { ref: o.ref } : {}) };
     plan.trail = Array.isArray(plan.trail) ? plan.trail : [];
     if (!plan.trail.some(x => x && x.label === t.label)) { plan.trail.push(t); applied.push("trail +1 (open point resolved)"); } });
+  /* the finished step's snapshot (plan/RULES.md §3, "Finished steps"; admin-team/dashboards-skill/24): when the event ends the step the
+     panel showed (or a remediation loop, or returns a qa verdict), its panel's facts are frozen into wip.history.<step>, as they stood */
+  applied.push(...lib.freezeSteps(orig, plan, ev, now, facts));
   return { plan, applied, enrich, parentOp };
 }
 
@@ -588,6 +592,8 @@ function applyParent(orig, sub, op, now) {
   const nx = lib.nextUnit(plan), id = nx ? nx.id : null;
   if (w.next !== id) { w.next = id; applied.push(`#${plan.issue}: wip.next ${id}`); }
   const d = chainDetail(plan); if (w.detail !== d) { w.detail = d; applied.push(`#${plan.issue}: wip.detail`); }
+  /* the tracking board's own step the unit's start ended (its plan's landing), frozen as any board's (plan/RULES.md §3, "Finished steps") */
+  lib.freezeSteps(orig, plan, op.kind === "start" ? "sized" : op.kind === "landed" ? "landed" : "qa-pass", now, null).forEach(x => applied.push(`#${plan.issue}: ${x}`));
   if (applied.length) {
     w.updated = now;
     const words = { start: "started", complete: "complete: qa passed", landed: "landed" }[op.kind];

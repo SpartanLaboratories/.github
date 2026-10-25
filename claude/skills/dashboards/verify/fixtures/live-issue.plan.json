@@ -118,6 +118,16 @@
       "at": "2026-10-25T09:12:00Z",
       "note": "prior-art"
     },
+    "history": {
+      "sizing": [
+        {
+          "since": null,
+          "ended": "2026-10-25T08:00:00Z",
+          "endedBy": "sized",
+          "to": "research"
+        }
+      ]
+    },
     "next": null,
     "qa": [],
     "qaMax": 3,

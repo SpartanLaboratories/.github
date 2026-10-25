@@ -120,6 +120,10 @@ const FEATURES = [
       const walk = v => typeof v === "string" ? levelRefs(v).forEach(x => hits.push(x)) : Array.isArray(v) ? v.forEach(walk) : v && typeof v === "object" ? Object.keys(v).filter(k => k !== "$comment").forEach(k => walk(v[k])) : null;
       [...h.matchAll(/<script type="(application\/json|text\/plain)"[^>]*>([\s\S]*?)<\/script>/g)].forEach(m => { if (m[1] === "text/plain") walk(m[2]); else { try { walk(JSON.parse(m[2])); } catch (e) { /* the embed checks report a block that does not parse */ } } });
       return need(!hits.length, `its data names a work level ${hits.slice(0, 3).map(x => JSON.stringify(x)).join(", ")}: reword it (levelrefs.js scrubLevels()), never write it`); } },
+  /* admin-team/dashboards-skill/24 */
+  { id: "finished-steps", name: "finished steps on the progress strip clickable: each shows its snapshot (wip.history) in the step panel, or what survives, reconstructed", since: 24, types: ["plan-board"],
+    notFor: { system: "no progress strip: a state page shows the code at a commit, not a run's steps", supersystem: "no progress strip: a state page shows the code at a commit, not a run's steps", "work-board": "no progress strip: one row per run, each run's step as text; its steps are on its own board" },
+    test: h => { const s = scripts(h), c = css(h); return need(/function pastPanel\(/.test(s) && /class="stepbtn"/.test(s) && /function reconStep\(/.test(s) && /reconstructed from the history/.test(s) && /\.steps li\.sel \.dot\{/.test(c), "the strip's finished steps are not buttons, or the step panel cannot show a finished step's snapshot (pastPanel(), reconStep())"); } },
 ];
 /* The layout detectors, run in the browser pass (check-page.js's probe), named here so the report and the rules list them. */
 const LAYOUT = [
