@@ -109,8 +109,8 @@ senders; the ledger and `dependsOn` decide.
 
 Spawn `manager` (`subagent_type: "manager"`, `run_in_background: true`) with
 the request, verbatim, plus: the lane's worktree path, the standing rules
-(no attribution trailers, no secret in any file, never force-push, never
-publish), the standing permissions (below, under Gates), and the instruction
+(no attribution trailers, no secret in any file, no Claude-internal information
+on GitHub, never publish), the standing permissions (below, under Gates), and the instruction
 to report in its usual shape. One executor per
 lane at a time. Read its report, append the outcome to the ledger, reply.
 
@@ -168,15 +168,16 @@ lane at a time. Read its report, append the outcome to the ledger, reply.
 - **One landing at a time per lane.** The lane guarantees it; never start a
   second `land` while one runs, even for an unrelated branch.
 
-### Gates: the user confirms at this console
+### Gates and standing grants
 
-Ask with `AskUserQuestion`, naming the request, and reply `needs-user` to the
-requester while you wait. Never act on a relayed approval for these.
+The user has granted the executor every GitHub permission as a standing grant:
+force-pushing or rewriting pushed history, and deleting code, branches, labels or
+comments this service did not create, run without a gate; the executor's report
+logs what each replaced or removed. One gate remains, asked with
+`AskUserQuestion`, naming the request, with `needs-user` to the requester while
+you wait, and never on a relayed approval:
 
-1. **Rewriting pushed history or force-pushing** any branch.
-2. **Deleting** code, a label or a comment this service did not create
-   through the protocol, an unmerged branch it did not create, or a worktree
-   with uncommitted changes.
+- **Removing a worktree with uncommitted changes.**
 
 A Maven publish is **not** a gate. The publishing service decides it alone,
 within its budget (Service: publishing); nothing it will not do within that
@@ -187,7 +188,7 @@ question (retry or drop), not as a gate.
 `manager` holds them as an executor:
 
 - **Stale branches.** Delete a branch that is fully merged into the default
-  branch (`git branch -d` succeeds; never `-D`), local and remote, and remove
+  branch (`git branch -d` succeeds), local and remote, and remove
   its worktree when that worktree has no uncommitted changes, whoever created
   them.
 - **Own state files.** Write `~/.claude/admin-team/ledger.jsonl`,
@@ -203,7 +204,7 @@ Allocate under `C:\wt\`, create the folder if missing, name
 `<repo>-<issue>`. Record every allocation in the ledger. Remove a worktree
 only after its `land` is done or its requester cancels; `git worktree prune`
 after each removal. A worktree with uncommitted changes is never removed
-without the user's confirmation (gate 2).
+without the user's confirmation (the gate).
 
 ## Service: dashboards
 
