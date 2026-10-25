@@ -169,6 +169,8 @@ reloads (`localStorage` key `dashboards-theme`, shared by every dashboard of the
 in the page's head before its first paint). It only selects one of the two palettes the page already
 defines (`:root[data-theme]`); it adds no colour.
 
+The elements these colours apply to are named in §12, one name per function.
+
 ## 2. Legends
 
 Every tab, panel or board shows a visible legend (`class="key"`) listing exactly the encodings
@@ -491,3 +493,44 @@ never the accent (§1).
 
 A **planning-docs landing** — a docs pull request that resolves no issue (a plan folder, a roadmap document) — triggers a small landing
 refresh: the committed work board, and the repository page where the repository has one.
+
+## 12. Elements — one name per function
+
+Every visible element has one name, chosen by what it does, never by its look; the look follows
+§1 and §2. A compound name puts the subject first and the type last (`guarantee card`, `unit
+card`, `verdict pill`, `issue chip`, `step cell`, `KPI tile`), so the type vocabulary stays small.
+The templates' CSS classes and the data keys carry the type word (`.card`, `.pill`, `.chip`, …),
+so a reader can tell an element's kind from the markup without the page. "Bubble" names
+nothing: a Guarantees sub-area is a **guarantee card**, a tracking board's unit block in the WIP
+strip is a **unit card**, and a step in the step panel is a **step cell**.
+
+**Containers, by how much they hold**
+
+| Term | Function | Examples |
+|------|----------|----------|
+| **Panel** | A top-level region of a page with its own heading. | a tab's body, the Guarantees area, the Context section, the WIP strip, the step panel, the KPI row |
+| **Card** | A self-contained statement inside a panel, with a title and a body, readable alone. | a guarantee card, an Impact entry, an As-built entry, a unit card |
+| **Tile** | A card whose body is one figure with its segmented bar and legend. | the KPI tiles, the work board's Runs and Landed tiles |
+| **Cell** | The intersection of a row and a column on a board table. | a Gap, Considered, Verdict or As built cell; a step cell |
+| **Row** | One subject across a board's columns. | an issue board's design point, a tracking board's unit |
+
+**Labels, by what they say**
+
+| Term | Function | Examples |
+|------|----------|----------|
+| **Pill** | A state word with its glyph, in a status colour. | a verdict pill, an as-built pill, a dependency pill, the research-state pill |
+| **Chip** | A reference that names or opens something, neutral. | an issue chip, the "part of" chip, a branch chip, the chain chip |
+| **Badge** | A count or classification fixed to a card's corner. | the effect, need and API-change badges |
+| **Tag** | Plain text over an element that classifies it without a status colour. | `Planned`, `UP NEXT`, `Context` |
+
+**Marks, by what they overlay**
+
+| Term | Function |
+|------|----------|
+| **Ring** | A border-only state on a cell (the research scale, §1). |
+| **Glow** | The interior in-progress accent on whatever is being worked on (§1). |
+| **Arrow** | The charging connector into a Verdict cell (§1). |
+| **Legend** | The key for a colour grouping, one per tab or per tile (§2). |
+
+A ruleset that needs an element none of these names describes adds the term here first, with its
+function, and uses it everywhere; it never reuses a term for a second function.
