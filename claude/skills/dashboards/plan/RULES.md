@@ -90,7 +90,7 @@ board link through those three. The work board applies the same rule to every is
 a tracking issue as much as a sub-issue (§5).
 
 Scripts, from the repo root: `new.js <issue> <slug> …` scaffolds a folder from the template;
-`embed.js <folder>` embeds `plan.json`; `check.js <folder> --auto` enforces this ruleset and
+`embed.js <folder>` embeds `plan.json` (copying each statement's excerpt not copied yet, §2 "Statements"; `--refresh-excerpts` re-copies them all); `check.js <folder> --auto` enforces this ruleset and
 checks the page against its template (§8); `board.js` regenerates `docs/plans/board.json` and
 `index.html`; `apply-event.js --event <request.json> --worktree <path>` is the fast path of a
 plan-board event (§4, "The fast path").
@@ -116,11 +116,58 @@ On a tracking issue's board the rows are its units. Four to twelve rows is usual
 |---|---|---|---|
 | 1 | **Gap** | what was wrong or missing at the baseline, with evidence (`path:line`) and a source in the research | once, after research; for a sub-issue of a signed-off tracking plan, at `sized`, from the parent's research and architecture (its unit row in the decomposition, the current-state section) |
 | 2 | **Considered** | every option weighed, each with a verdict: **accepted** (green), **declined** (red, with the trade-off that ruled it out), **partial** (yellow: adopted in part, with what was taken and what wasn't), **deferred** (yellow until settled: left open at plan time, settled in column 4). Exactly one option per row is accepted or partial-as-chosen. | once, after architecture; for a sub-issue of a signed-off tracking plan, at `sized`, the options the parent's architecture weighed for this unit (its alternatives-considered and per-unit design sections), to which the unit's own plan adds at `plan-accepted` |
-| 3 | **Verdict** | the decision and its defence in a few sentences (what the work is — one system, a bug fix, docs only — never its work level); a `build` or `leave` kind (a neutral, solid chip, "build" or "leave as is", which the Timeline legend names: a decision, not an outcome, and never dashed, `GUIDANCE.md` §1); the steps named, not listed (a step is a sentence with a file anchor and its check — the detail is in `plan.md`); tests by test level; risks | once, at plan acceptance |
-| 4 | **As built** | the state, a summary of what exists at the as-built commit, and every change from the verdict with `what`, `why`, `when` (the stage or review round) and `ref` (the commit) | kept as the work lands |
+| 3 | **Verdict** | the decision as a **list of statements**, one decision each, each ending with its reference to the plan paragraph it rests on (below, "Statements"), and its defence in a few sentences (what the work is — one system, a bug fix, docs only — never its work level); a `build` or `leave` kind (a neutral, solid chip, "build" or "leave as is", which the Timeline legend names: a decision, not an outcome, and never dashed, `GUIDANCE.md` §1); the steps named, not listed (a step is a sentence with a file anchor and its check — the detail is in `plan.md`); tests by test level; risks | once, at plan acceptance |
+| 4 | **As built** | the state; **one statement per verdict statement**, each marked with its adaptation (as planned, amended, deviated), saying what exists at the as-built commit (a summary while the row is partially built, dropped or deferred); and every change from the verdict with `what`, `why`, `when` (the stage or review round) and `ref` (the commit) | kept as the work lands |
 
 Columns 1–3 are written once. A factual error found later is corrected in place and noted
 under `notes.corrections`; a change of mind goes in column 4, never into column 3.
+
+### Statements
+
+**The Verdict cell is a list of statements** (`verdict.statements`), never one paragraph of sentences joined by semicolons or
+full stops: one decision per statement, as **bullets**, or **numbered** (`verdict.list` `"numbered"`) when the order matters —
+the form itself says whether it does; the presenter chooses per content. Each statement is `{text, ref}`: `text` the decision in a
+sentence, and `ref` the plan paragraph it rests on, a **relative link** to that section of `plan.md` (or the `plan-<unit>.md` it
+came from; on a tracking board's unit row, `architecture.md`'s section for the unit) with GitHub's heading anchor,
+`"plan.md#42-the-fix"`. The page ends the statement with the reference in parentheses, "(§4.2)": the heading's leading section
+number ("4.2", "A-3"), else the heading itself, or a `label` the statement sets. The text does not repeat it.
+
+- **The excerpt.** When `embed.js` writes the board (and `apply-event.js` with it) it copies the referenced section's heading and
+  first paragraph into the statement's `excerpt` `{ref, heading, paragraph, hash}` — the paragraph on one line, fenced code and
+  tables skipped, a work level in it elided (`GUIDANCE.md` §4), `hash` a hash of the whole section — once per reference: an
+  excerpt copied for the same `ref` is kept, as column 3 is written once. A plain click on the reference shows that excerpt in the
+  inspector, beside the link that opens the section (a modified click follows the link; `#<row>.verdict.s<n>` deep-links it).
+  Nobody writes an excerpt by hand.
+- **When the plan changes.** `check.js` warns when the section has changed since its excerpt was copied (its hash differs), when
+  the section is gone, and when no excerpt is copied yet. The presenter reads the section again: if the statement still rests on
+  it, `embed.js <folder> --refresh-excerpts` re-copies the excerpts; a factual error is corrected in place under
+  `notes.corrections`; a change of mind goes in column 4.
+- **The As built cell answers each statement** (`asBuilt.statements`, one per verdict statement, in the same order, written at
+  the row's outcome from `final-implementation.md`): `{text, state, ref}`, `text` what was built for it, in the past tense, `state`
+  its adaptation, `as-planned` (✓), `amended` (+) or `deviated` (≠), marked with the as-built titles' glyph and word, and `ref`
+  optional, the as-built record's section (its excerpt copied the same way). **The row's outcome is derived**: `deviated` if any
+  statement deviated, else `amended` if any amended, else `as-planned`; a stored `asBuilt.state` that disagrees fails. The
+  before-outcome states (`pending`, `in-progress`, `partially-built`, from `wip.stages`, "Before the outcome" below) still apply
+  until the row's last stage is done. A dropped or deferred row says why in its summary and carries no statements; a tracking
+  board's unit row carries verdict statements (from `architecture.md`) and no as-built ones: its sub-issue's board holds them, and
+  the unit moves `pending` → `complete` → `landed`.
+- **A board written before the statements** keeps its paragraph (`verdict.summary`, `asBuilt.summary`): the page still shows it,
+  and `check.js` warns, naming the rows, until it is split (§9, "Splitting a board into statements").
+
+The **legend** of the Timeline and the As built tab names each adaptation mark it drew; the lede says the reference is clickable.
+
+### The KPI tiles
+
+Every tile in the header row carries a segmented bar, and one legend under the tiles names every segment drawn (`GUIDANCE.md` §2):
+
+| Tile | Its bar |
+|---|---|
+| **Rows** (**Units** on a tracking board) | one segment per row group, sized by its rows, in the group's system colour (`GUIDANCE.md` §1; a group whose rows span several colour slots is cut by slot) |
+| **Options weighed** | accepted (green) · partial (yellow) · deferred (yellow, dashed: still open) · declined (red), as the Considered column colours them; a deferred option settled in column 4 takes its settled colour |
+| **Verdicts** | build (solid neutral) · left for later (faded neutral) · not yet written (dashed: pending) |
+| **As built** | every state with its count (pending dashed), then the rows left for later (faded) |
+| **QA passes** | one slot per pass allowed (`wip.qaMax`, three), filled left to right by each pass's result: passed green, minor findings only yellow (every finding minor by severity, or the on-the-spot route), other findings red, the pass running accent; a slot not used empty (solid outline) |
+| **Timeline** (a board that has landed) | no bar yet: the time per phase (plan, build, qa, landing) waits on the colours its phases take |
 
 **As-built states:** `pending` (dashed, neutral: the work on the row has not started) · `in-progress` (solid, accent: a current
 stage is working on the row) · `partially-built` (solid, strong neutral: a finished stage built part of the row and the next stage
@@ -320,7 +367,11 @@ A board is alive while its run is. Its data carries:
   during implementation the As built cells of the rows the current stage touches (the whole As built column for a stage that
   touches none); during qa the
   whole As built column lightly; while halted, the glow of the step it halted in holds still as a
-  ring, and a yellow "waiting on the user" strip says for what;
+  ring, and a yellow "waiting on the user" strip says for what. A **column address** (`gap`, `considered`, `verdict`, `built`) is
+  drawn as **one glow on the column itself**, its band and its head on the Timeline (round the cards on the As built tab), never
+  each row's cell lit; it holds still as the ring alone while the run waits on the user and is static under reduced motion, and the
+  legend names it apart from a cell's glow. The phone layout, which stacks the rows and draws no column, puts it on each of that
+  column's cells;
 - `wip.next` — on a tracking board only: the id of the **next unit in landing order** — the
   first unit row, in the board's row order, that is `pending`, not in `wip.current` and not left for later (its written
   verdict is `leave`, §2: a unit left as is is never next) — or
@@ -636,9 +687,9 @@ kind and severity and its route into `wip.qa` from `qa-pass`. Every embed writes
 | `verification-started` | the planner starts verifying the batch's findings (after they are committed) | every `returned` question's `state` `verifying` (yellow); `wip.research.phase = verification` (its `since`); `wip.current` the Considered cells of the verifying questions' rows, or the whole column by the fallback (§3) |
 | `researched` | research verified | the Gap column from `research/README.md` and the findings; the `gap` milestone; every question's `state` `complete` (green) and `wip.research.phase = complete`: the questions stay, their rows ringed green, until the plan is accepted (the trail keeps the findings); `wip.step` the step the event's facts name next (`architecture` on a tracking issue, else `plan`), `wip.plan` `{state: "writing"}` at the plan step, and `wip.current` from the map: `considered`, or `considered` and `verdict` (§3) |
 | `architecture-signed-off` | level 4 sign-off | the Considered column from `architecture.md`; on a tracking board, the unit rows (each `pending` with a one-line progress summary until its sub-issue lands; `embed.js` links it to the sub-issue's board once that board exists, §1), and `wip.next` the first unit (§3); `wip.questions` and `wip.research` cleared (the tracking issue has no plan step); `wip.step = landing` (the plan's own landing) and `wip.current` empty |
-| `plan-accepted` | planner COMPLETE | Considered (if not yet) and Verdict from `plan.md`; the `verdict` milestone; `impact` from `impact.md` (and `plan.md` where it states API or migration facts), `basis` `plan` (§2, Impact); `wip.questions`, `wip.research` and `wip.plan` cleared (the green rings end here); `wip.step = branch` and `wip.current` empty (§3: nothing glows between the Verdict and the build). For a sub-issue, its unit's `impact.units` entry on the tracking board |
+| `plan-accepted` | planner COMPLETE | Considered (if not yet) and Verdict from `plan.md`, the Verdict as statements, each with its reference into `plan.md` (§2, "Statements"; `embed.js` copies the excerpts); the `verdict` milestone; `impact` from `impact.md` (and `plan.md` where it states API or migration facts), `basis` `plan` (§2, Impact); `wip.questions`, `wip.research` and `wip.plan` cleared (the green rings end here); `wip.step = branch` and `wip.current` empty (§3: nothing glows between the Verdict and the build). For a sub-issue, its unit's `impact.units` entry on the tracking board |
 | `branch-cut` | step 3 done | the branch; `wip.stages` from `plan.md`'s stages (the first `current`, the rest `todo`, each with the rows it touches); `wip.step = implementation`; `wip.current` the As built cells of the rows the first stage of `plan.md` touches (`<row-id>.built`), or the whole column, `built`, when it touches none |
-| `implementation-stage` | a rookie-dev stage or report | `status = building`; the touched rows' as-built state and summary (`partially-built`, saying what is built and what is left, for a row a later stage still works on; its outcome once its last stage is done; §2, "Before the outcome"); an open point the report raises appended to `wip.open`, and one it settles marked `resolved` and recorded in the trail; each deviation from `final-implementation.md` as a `changes[]` entry, and one that changes the impact added to `impact.changes` with the entry it changed (`basis` stays `plan`: partly reconciled, §2, Impact); the reported stage `done` in `wip.stages` and the next `current`; `wip.current` = the As built cells of the rows the next stage touches (`<row-id>.built`), or the whole column, `built`, when it touches none; once the last stage is reported and the run moves to qa, `wip.step = qa` and `wip.current` `built` (§3) |
+| `implementation-stage` | a rookie-dev stage or report | `status = building`; the touched rows' as-built state and summary (`partially-built`, saying what is built and what is left, for a row a later stage still works on; once its last stage is done, its as-built statements, one per verdict statement with its adaptation, from which its outcome is derived; §2, "Before the outcome", "Statements"); an open point the report raises appended to `wip.open`, and one it settles marked `resolved` and recorded in the trail; each deviation from `final-implementation.md` as a `changes[]` entry, and one that changes the impact added to `impact.changes` with the entry it changed (`basis` stays `plan`: partly reconciled, §2, Impact); the reported stage `done` in `wip.stages` and the next `current`; `wip.current` = the As built cells of the rows the next stage touches (`<row-id>.built`), or the whole column, `built`, when it touches none; once the last stage is reported and the run moves to qa, `wip.step = qa` and `wip.current` `built` (§3) |
 | `qa-pass` | a qa verdict | `wip.qa` appended (its counts by kind and by severity, `minor` and `other`, from the facts, and the `route` step 5 takes from them), `wip.qaMax` 3; `wip.step = remediation`, with `wip.remediation` `{pass, route, steps}` (the route's sub-steps as the pipeline runs them: on the spot, minor fixes then landing with no new qa pass; else the fixes, a planner re-pass first on `planner-then-rookie-dev`, then the next qa pass) and `wip.current` the As built cells of the rows the findings touch, or `landing`, with `wip.current` empty (§3). On an approving pass of a sub-issue's run, its unit row on the tracking board becomes `complete` (it stays in `wip.current` until it lands) |
 | `escalated` | a level escalation | `wip.step = escalated`, `wip.resume` the step it escalated from, and `wip.current` unchanged, its glow held still as a ring (§3); the proposed level is kept as data only (`wip.proposedLevel`, never shown: `GUIDANCE.md` §4); the board follows the issue's new sizing |
 | `landed` | the team has merged | never sent by a pipeline: the admin team raises it itself inside the landing refresh (the presenter writes, the executor commits). On the issue's board: `status = built`; `asBuilt` (sha, date, PR, merge, version); the `built` milestone; every `pending` part resolved; the trail completed; `impact` reconciled from `final-implementation.md` and the reconciled `impact.md`, `basis` `as-built`, each difference from the planned impact in `impact.changes`, naming the `entry` it changed where there is one (§2, Impact; the As built tab shows them); `wip.step = landed` and `wip.current` empty. For a sub-issue, on its tracking board, the standing rule (§3): the unit `landed`, out of `wip.current` (which clears its mirror at the next embed), `wip.next` recomputed as the next unit in landing order; its `impact.units` entry reconciled, `basis` `as-built`, each difference from the unit's planned impact in its `changes[]`; its effect on the initiative's impact recorded in the tracking board's `impact.changes`, always: each difference its landing makes, with `unit` set to the unit's row id, or one no-change entry `{unit, when, none: true}` when it changed nothing; that `basis` stays `plan` until the last unit lands and becomes `as-built` with it (§2, Impact). Then the work board is regenerated |
@@ -662,7 +713,9 @@ with what needs the folder's documents, only when the script says so.
     node ~/.claude/skills/dashboards/plan/scripts/apply-event.js --event <request.json> --worktree <path> [--repo <owner/repo>]
 
 `--event` is the protocol's plan-board request (its fenced json block, or the JSON alone), `--worktree` the worktree the board
-lives in; the main checkout, where the live work board is, is the request's `repo` (or `--main`). It reads the request and the
+lives in; the main checkout, where the live work board is, is the request's `repo` (or `--main`). `--repo` takes the GitHub slug,
+`owner/repo` (the request's `github`); a path to the main checkout is accepted too and read as `--main`, and anything else is a
+usage error (exit 2) that says so. It reads the request and the
 board's `plan.json`, applies the event, re-renders the page onto the current template where it must (above), embeds the board (its
 data block and `plan.js`), on a sub-issue applies the standing rule to its parent tracking board (§3) and re-embeds it (the unit's
 mirror), runs `check.js` (no browser pass) on every board it wrote and regenerates the live work board at once. It writes only the
@@ -678,8 +731,9 @@ files it wrote, the check, the live board, the time, and `enrich: yes|no` with `
 | the research questions and phase (`research-planning`, `research-started`, `research-returned` with its findings in the trail, `verification-started`, `researched` setting them complete) | the Gap column and its milestone (`researched`) |
 | `wip.plan` (writing at the plan step, a re-pass from the parent or after a qa pass) | the Considered column (`architecture-signed-off`, `plan-accepted`), a tracking board's unit rows, the Verdict column, the milestones, the impact |
 | the branch (`branch-cut`); `wip.stages` from `facts.stages`, each keeping the rows the board records for it; the derived As built states `pending`, `in-progress`, `partially-built` (a partially built row only where it has a summary), never an outcome | the rows each stage touches (`plan.md`); at a stage's end its rows' summaries and outcomes (`as-planned`, `amended`, `deviated`), the deviations and impact changes from `final-implementation.md` |
-| `wip.open` from `facts.open` (a resolved one recorded in the trail); `wip.interview` questions from `facts.questions` | the interview's answers |
-| `wip.qa` entries (pass, verdict, counts by kind and severity, route), `wip.qaMax`, `wip.remediation` (pass, route, steps); the rows the findings touch only from `facts.rows` | the findings' detail: the rows they touch, the pass's note |
+| `wip.open` from `facts.open` (at an implementation stage or a qa pass; a resolved one recorded in the trail); `wip.interview` questions from `facts.questions` | the interview's answers |
+| `wip.qa` entries (pass, verdict, counts by kind and severity, route), `wip.qaMax`, `wip.remediation` (pass, route, steps: a work level in a step's name is elided, "…", never the step dropped; an `implementation-stage` during remediation — `facts.remediation`, or `facts.step` `remediation` — writes its sub-steps and, when it carries them, the stages too, and its trail entry and note follow the remediation, `facts.stage` first, never "qa next"); the rows the findings touch only from `facts.rows` | the findings' detail: the rows they touch, the pass's note |
+| the statements' excerpts not copied yet (as `embed.js` copies them) | the statements themselves (§2, "Statements") |
 | on a sub-issue, the standing rule on its tracking board: the unit's start (`sized`), `complete` (an approving qa pass), `landed`, `wip.next`, the chain's `wip.detail` | the unit's summary, its `impact.units` entry and its effect on the initiative's impact |
 | at `landed`, `asBuilt` from the facts, and `status = built` with the step `landed` only once every part is resolved; at `cancelled`, `status = abandoned` and the reason in `notes` | the landing refresh (every part resolved, the trail, the impact reconciled); the cancelled board's closing state |
 
@@ -736,6 +790,7 @@ tracker, which `board.js` reads at every run (`lib.js` `boardlessState()`), in t
 | The tracker shows | State | Drawn |
 |---|---|---|
 | the issue closed as not planned (`stateReason` `NOT_PLANNED`) | `not-planned` | solid, neutral, "⊖ closed · not planned": never landed, and not counted with the landed runs |
+| the issue closed as a duplicate (`stateReason` `DUPLICATE`) | `duplicate` | solid, neutral, "⊜ closed · duplicate": never landed, and not counted with the landed runs; its own legend entry |
 | the issue closed otherwise | `landed` | solid, green, "✓ landed" |
 | open, and an open pull request refers to it | `in-progress` | solid, neutral, "▸ in progress", no glow: there is no run board to mirror |
 | open, and a pull request that refers to it has merged | `merged` | solid, green, "✓ merged · awaiting close" |
@@ -750,7 +805,9 @@ as that merge. The row records what was read as `tracker` (`{branch, pr: {number
 pull request under the state ("PR #91 open") and its branch while it is in progress, never a merged one
 (§3, "Branches"). The legend names each of these states it drew, with where it came from. The same words mark an issue
 closed as not planned wherever the work board lists one: a roadmap item, a waits-on or blocks entry ("closed · not
-planned", beside "closed" for the rest). A unit row of
+planned", beside "closed" for the rest), and an issue closed as a duplicate the same way ("closed · duplicate"); a plan board's
+roadmap item reads them alike. `check.js` holds a recorded `stateReason` to the tracker's values (`COMPLETED`, `NOT_PLANNED`,
+`DUPLICATE`, `REOPENED`) and to a closed issue. A unit row of
 a tracking board keeps the state its tracking board gives it.
 
 **A row's system, and "no system".** A row's `system` for an issue with no board, and an unscheduled
@@ -811,7 +868,15 @@ current; a `wip.open` entry without its text or `raised`, or with a `resolved` t
 `partially-built` unit row, or a partially built row without a summary; an `in-progress` or `partially-built` row on a built
 board; a `wip.interview` question's `options` that is not an array of strings; a `wip.qa` pass's or `wip.remediation`'s
 `route` that is not `on-the-spot`, `rookie-dev` or `planner-then-rookie-dev`; a `wip.plan.against` that is not a ref or sits
-on a pass that is not a re-pass from `existing`; a qa pass's `findings` or `severity` that is not a word-to-count map; a `plan.js` (the work board's `board.js`)
+on a pass that is not a re-pass from `existing`; a qa pass's `findings` or `severity` that is not a word-to-count map; a written
+verdict with neither statements nor a summary, a `verdict.statements` that is not an array or is empty, a statement without its
+`text` or (in the Verdict) its `ref`, a `ref` that is not a relative `<file>.md#<anchor>` link, an `excerpt` not in embed.js's
+form, a `verdict.list` other than `bullets` or `numbered`, as-built statements on a unit row or a dropped or deferred row, an
+as-built statement's `state` other than `as-planned`, `amended` or `deviated`, as-built statements that do not number one per
+verdict statement, a stored outcome that disagrees with the one its statements derive (§2, "Statements"); a recorded
+`stateReason` that is not the tracker's (`COMPLETED`, `NOT_PLANNED`, `DUPLICATE`, `REOPENED`) or sits on an issue that is not
+closed, on a work-board row, roadmap item or waits-on or blocks entry and on a plan board's roadmap item; a boardless row closed as
+a duplicate that does not read `duplicate`, or one reading `duplicate` without the tracker's `DUPLICATE`; a `plan.js` (the work board's `board.js`)
 that differs from its data file or is not in its form (§1);
 `complete` or `landed` on a row that is not a tracking board's
 unit row; a `wip.next` on a board that is not a tracking board, or one that names no unit row,
@@ -855,7 +920,11 @@ With `--auto` it reports the page's standing against its template (`system/scrip
 the verified template plus its data (no browser pass), or a divergence (the full browser pass:
 light, dark, 520 px, a 390 px frame, a 1920 x 1080 desktop).
 
-Warns: a system slot that is not the shared palette's colour (`GUIDANCE.md` §1), so the system
+Warns: verdicts written before the statements, one paragraph each (one warning naming the rows: split them, §9); a statement whose
+reference names a section that is gone, whose excerpt is not copied yet, or whose section has changed since its excerpt was copied
+(§2, "Statements"); a statement's text that ends with its own "(§…)"; a verdict or an As built cell that keeps its summary beside
+its statements; an outcome recorded with verdict statements but no as-built statements; as-built statements beside a verdict that
+has none; a system slot that is not the shared palette's colour (`GUIDANCE.md` §1), so the system
 would look different here than on the other pages; `impact.md` in the folder while the Impact tab is empty (`impact` null, or no entry, no
 summary and no `none` statement); an `impact.none` that the entries contradict; a release that
 does not fit the work (a change with a downstream effect and no version bump; a change with no
@@ -922,3 +991,24 @@ run `verify/verify-templates.js` once (it verifies the template against the exam
 fixtures in `verify/fixtures/` and records its hash), then copy it over each page and re-embed:
 the data lives in `plan.json`, so nothing is lost, and each re-rendered board is again the
 verified template plus its data. Never hand-edit a page.
+
+**Splitting a board into statements** (§2, "Statements"). A board written before the statements keeps one paragraph per Verdict
+cell and per As built cell, and is re-rendered onto the current template by its next event or landing like any other; its data
+is split by the presenter, at the board's next enrichment (or a landing refresh), from the documents, never from the old
+paragraph alone:
+
+1. For each row, read the plan section the verdict rests on (`verdict.link` and `verdict.source` name it; on a tracking board's
+   unit row, `architecture.md`'s section for the unit and its decomposition entry). Write `verdict.statements`: one decision per
+   statement, in the plan's words where they serve, each with `ref` the section's relative link and GitHub heading anchor
+   (`lib.js` `headingSlugs()` gives the anchors). Choose `verdict.list` `"numbered"` only where the order matters. Delete
+   `verdict.summary`. Nothing new is decided: a statement the plan does not support is not written.
+2. For each row with an outcome (`as-planned`, `amended`, `deviated`) on an issue board, read `final-implementation.md` (and the
+   row's `asBuilt.changes`): write `asBuilt.statements`, one per verdict statement in the same order, each `text` what was built for
+   it, `state` its adaptation (amended where a change in `asBuilt.changes` touches it, deviated where the decision itself
+   changed), `ref` the record's section. Delete `asBuilt.summary`. The derived outcome must equal the recorded one; if it does not,
+   the record decides and the difference is a correction under `notes.corrections`. A partially built, dropped or deferred row,
+   and a unit row, keep their summary and take no as-built statements.
+3. `embed.js <folder>` (it copies every excerpt), then `check.js <folder> --auto`: no "one paragraph" warning, no excerpt warning,
+   no disagreeing outcome.
+
+`plan/examples/38-handshake-empty-name/` is split this way; `verify/fixtures/` keeps one row in the older form for coverage.

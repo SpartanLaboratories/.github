@@ -243,7 +243,48 @@ window.dashboardLive&&window.dashboardLive("plan",
       ],
       "verdict": {
         "kind": "build",
-        "summary": "`HandshakeProtocol` gains a sealed `HandshakeParse`, a three-entry `HandshakeDefect` enum with fixed log-safe labels, a total `parseHandshake` that checks the verb through `isHandshake`, then the name, then the credential, and `MALFORMED_REFUSAL_DATAGRAM` built once beside `REGISTERED_DATAGRAM`. `Handshake`, `isHandshake` and `extraTokenCount` keep their signatures; `MIN_TOKENS` goes.",
+        "statements": [
+          {
+            "text": "`HandshakeProtocol` gains a sealed `HandshakeParse` (`NotAHandshake`, `Malformed`, `Valid`) and a three-entry `HandshakeDefect` enum with fixed, log-safe labels.",
+            "ref": "plan.md#5-design",
+            "excerpt": {
+              "ref": "plan.md#5-design",
+              "heading": "5. Design",
+              "paragraph": "Two internal systems change shape; nothing is added to the public surface.",
+              "hash": "12e7e600e88a"
+            }
+          },
+          {
+            "text": "A total `parseHandshake` checks the verb through `isHandshake`, then the name, then the credential, which it reads with `getOrNull`.",
+            "ref": "plan.md#5-design",
+            "excerpt": {
+              "ref": "plan.md#5-design",
+              "heading": "5. Design",
+              "paragraph": "Two internal systems change shape; nothing is added to the public surface.",
+              "hash": "12e7e600e88a"
+            }
+          },
+          {
+            "text": "`MALFORMED_REFUSAL_DATAGRAM` is built once, beside `REGISTERED_DATAGRAM`.",
+            "ref": "plan.md#a-3-mainhandshakeprotocolkt--replace-the-whole-file",
+            "excerpt": {
+              "ref": "plan.md#a-3-mainhandshakeprotocolkt--replace-the-whole-file",
+              "heading": "A-3 `main/HandshakeProtocol.kt` — replace the whole file",
+              "paragraph": "Replace the file (LF line endings; ASCII only) with:",
+              "hash": "ea7f16f4470b"
+            }
+          },
+          {
+            "text": "`Handshake`, `isHandshake` and `extraTokenCount` keep their signatures; the unused `MIN_TOKENS` goes.",
+            "ref": "plan.md#5-design",
+            "excerpt": {
+              "ref": "plan.md#5-design",
+              "heading": "5. Design",
+              "paragraph": "Two internal systems change shape; nothing is added to the public surface.",
+              "hash": "12e7e600e88a"
+            }
+          }
+        ],
         "defense": "One definition of recognition (`isHandshake` feeds the `NotAHandshake` arm), one definition of validity, no throw path left in the handshake, and the name slot checked before the credential slot so `Iam  x y` reports the name defect. The sealed type is closed on purpose: the routing's exhaustive `when` is what guarantees that a future arm, such as #53's, is routed.",
         "steps": [
           {
@@ -268,7 +309,52 @@ window.dashboardLive&&window.dashboardLive("plan",
       },
       "asBuilt": {
         "state": "amended",
-        "summary": "Built as decided in Commit 2: the sealed outcome, the enum, the total parse with `getOrNull`, and the refusal bytes built once. Two review rounds reworded its KDoc.",
+        "statements": [
+          {
+            "text": "Built in Commit 2; the second review reworded `HandshakeProtocol`'s KDoc: its two replies are fixed-text replies whose bytes never come from the application.",
+            "state": "amended",
+            "ref": "final-implementation.md#stage-d-after-the-second-review",
+            "excerpt": {
+              "ref": "final-implementation.md#stage-d-after-the-second-review",
+              "heading": "Stage D: after the second review",
+              "paragraph": "The second review returned changes requested with 5 LOW items: 4 documentation, 1 test. · `HandshakeProtocol`'s KDoc said its two fixed replies go out \"without consulting the application\". But a new origin's `REGISTERED 2` follows `admit`. It now says they are fixed-text replies, whose bytes never come from the application. · The release labels did not name the artifact, and `2.0.0a` was also a version of the retired combined `io.github.spartanlaboratories:WebTools` artifact. The first mention in each KDoc block now reads `webtools-udp` `2.0.0a`, and the neighbouring `1.4.0` labels are …",
+              "hash": "7b74858763e4"
+            }
+          },
+          {
+            "text": "Built in Commit 2: the total parse, verb, then name, then credential with `getOrNull`; no throw path is left.",
+            "state": "as-planned",
+            "ref": "final-implementation.md#code",
+            "excerpt": {
+              "ref": "final-implementation.md#code",
+              "heading": "Code",
+              "paragraph": "`HandshakeProtocol.kt`: · a sealed `HandshakeParse` (`NotAHandshake`, `Malformed(defect)`, `Valid(handshake)`); · a `HandshakeDefect` enum with three fixed, log-safe labels; · a total `parseHandshake` that checks the verb through `isHandshake`, then the name, then the credential, which it reads with `getOrNull`; · `MALFORMED_REFUSAL_DATAGRAM`, built once from `HandshakeWireFormat.refusedMessage(\"malformed\")`.",
+              "hash": "366975e7066d"
+            }
+          },
+          {
+            "text": "Built once from `refusedMessage(\"malformed\")`; the first review moved the rationale out of its KDoc into a `//` comment.",
+            "state": "amended",
+            "ref": "final-implementation.md#stage-c-after-the-first-review",
+            "excerpt": {
+              "ref": "final-implementation.md#stage-c-after-the-first-review",
+              "heading": "Stage C: after the first review",
+              "paragraph": "The first review returned changes requested: 10 documentation findings and 8 test findings.",
+              "hash": "6ab3787fb836"
+            }
+          },
+          {
+            "text": "`Handshake`, `isHandshake` and `extraTokenCount` are unchanged.",
+            "state": "as-planned",
+            "ref": "final-implementation.md#code",
+            "excerpt": {
+              "ref": "final-implementation.md#code",
+              "heading": "Code",
+              "paragraph": "`HandshakeProtocol.kt`: · a sealed `HandshakeParse` (`NotAHandshake`, `Malformed(defect)`, `Valid(handshake)`); · a `HandshakeDefect` enum with three fixed, log-safe labels; · a total `parseHandshake` that checks the verb through `isHandshake`, then the name, then the credential, which it reads with `getOrNull`; · `MALFORMED_REFUSAL_DATAGRAM`, built once from `HandshakeWireFormat.refusedMessage(\"malformed\")`.",
+              "hash": "366975e7066d"
+            }
+          }
+        ],
         "changes": [
           {
             "what": "The reply-bytes KDoc no longer cites `refusedMessage`'s internals; that rationale moved to a `//` comment.",
@@ -344,7 +430,48 @@ window.dashboardLive&&window.dashboardLive("plan",
       ],
       "verdict": {
         "kind": "build",
-        "summary": "`classify`'s `null` branch splits once and calls a new `routeUnframed`, an exhaustive `when` over `HandshakeParse`. `refuseMalformed` handles the malformed arm with one WARN (`Refusing malformed handshake from {} ({}); origin registered: {}`: the origin, the defect label, the flag) and `send(MALFORMED_REFUSAL_DATAGRAM, origin)`. `handleHandshake` keeps the valid line's lookup and retransmit; `admitAndRegister` is today's body moved verbatim, #49 ordering included.",
+        "statements": [
+          {
+            "text": "`classify`'s `null` branch splits the text once and calls a new `routeUnframed`, an exhaustive `when` over `HandshakeParse`.",
+            "ref": "plan.md#5-design",
+            "excerpt": {
+              "ref": "plan.md#5-design",
+              "heading": "5. Design",
+              "paragraph": "Two internal systems change shape; nothing is added to the public surface.",
+              "hash": "12e7e600e88a"
+            }
+          },
+          {
+            "text": "`refuseMalformed` handles the malformed arm with one fixed WARN (the origin, the defect label, the registered flag) and sends `MALFORMED_REFUSAL_DATAGRAM`.",
+            "ref": "plan.md#5-design",
+            "excerpt": {
+              "ref": "plan.md#5-design",
+              "heading": "5. Design",
+              "paragraph": "Two internal systems change shape; nothing is added to the public surface.",
+              "hash": "12e7e600e88a"
+            }
+          },
+          {
+            "text": "`handleHandshake` keeps the valid line's lookup and retransmit.",
+            "ref": "plan.md#5-design",
+            "excerpt": {
+              "ref": "plan.md#5-design",
+              "heading": "5. Design",
+              "paragraph": "Two internal systems change shape; nothing is added to the public surface.",
+              "hash": "12e7e600e88a"
+            }
+          },
+          {
+            "text": "`admitAndRegister` is today's body moved verbatim, the #49 ordering included.",
+            "ref": "plan.md#a-4-mainhandshakecoordinatorkt--five-edits-top-to-bottom",
+            "excerpt": {
+              "ref": "plan.md#a-4-mainhandshakecoordinatorkt--five-edits-top-to-bottom",
+              "heading": "A-4 `main/HandshakeCoordinator.kt` — five edits, top to bottom",
+              "paragraph": "Use the `Edit` tool with the quoted old text; each `old` below is copied from `85cfbbe` and is unique in the file.",
+              "hash": "b7271da1af49"
+            }
+          }
+        ],
         "defense": "The malformed arm never reaches `admit`, never looks up by name, never supersedes, registers nothing and fires no `onRegistered`; its registration lookup is read-only, for the log field. The WARN never carries the line, its tokens, the name or the credential, and attaches no exception (CWE-117; the OWASP logging guidance). `accept`'s `@return` narrows to: failure only when a reply could not be delivered or `admit` threw.",
         "steps": [
           {
@@ -373,7 +500,52 @@ window.dashboardLive&&window.dashboardLive("plan",
       },
       "asBuilt": {
         "state": "amended",
-        "summary": "Built as decided in Commit 2. The first review found the KDoc overstated the registration guarantee and understated `accept`'s failures; Commit 3 fixed both, marked the #49 ordering and added the module's first `//region`s.",
+        "statements": [
+          {
+            "text": "Built in Commit 2; Commit 3 named `accept`'s three failure sources in its `@return`, wrote the two-argument `accept`'s contract and added the module's first six `//region`s.",
+            "state": "amended",
+            "ref": "final-implementation.md#stage-c-after-the-first-review",
+            "excerpt": {
+              "ref": "final-implementation.md#stage-c-after-the-first-review",
+              "heading": "Stage C: after the first review",
+              "paragraph": "The first review returned changes requested: 10 documentation findings and 8 test findings.",
+              "hash": "6ab3787fb836"
+            }
+          },
+          {
+            "text": "Built in Commit 2; the first review made the registration guarantee precise: nothing is torn down or re-screened, but the liveness stamp still refreshes when idle detection is on.",
+            "state": "amended",
+            "ref": "final-implementation.md#behaviour",
+            "excerpt": {
+              "ref": "final-implementation.md#behaviour",
+              "heading": "Behaviour",
+              "paragraph": "What counts as malformed. The server trims an unframed datagram's text and splits it on a single U+0020. A line whose first token is exactly `Iam` is a handshake. It is malformed when: · its name slot is missing (a bare `Iam`), or · its name slot is empty (`Iam x`), or · its credential slot is present but empty (`Iam bob tok`).",
+              "hash": "e25e90814ea2"
+            }
+          },
+          {
+            "text": "A registered origin's valid line gets `REGISTERED 2` again, with no re-screening.",
+            "state": "as-planned",
+            "ref": "final-implementation.md#behaviour",
+            "excerpt": {
+              "ref": "final-implementation.md#behaviour",
+              "heading": "Behaviour",
+              "paragraph": "What counts as malformed. The server trims an unframed datagram's text and splits it on a single U+0020. A line whose first token is exactly `Iam` is a handshake. It is malformed when: · its name slot is missing (a bare `Iam`), or · its name slot is empty (`Iam x`), or · its credential slot is present but empty (`Iam bob tok`).",
+              "hash": "e25e90814ea2"
+            }
+          },
+          {
+            "text": "Moved unchanged; Commit 3 marks the registration line `FIXME(#49)` and its KDoc names #49 as a known defect.",
+            "state": "amended",
+            "ref": "final-implementation.md#code",
+            "excerpt": {
+              "ref": "final-implementation.md#code",
+              "heading": "Code",
+              "paragraph": "`HandshakeProtocol.kt`: · a sealed `HandshakeParse` (`NotAHandshake`, `Malformed(defect)`, `Valid(handshake)`); · a `HandshakeDefect` enum with three fixed, log-safe labels; · a total `parseHandshake` that checks the verb through `isHandshake`, then the name, then the credential, which it reads with `getOrNull`; · `MALFORMED_REFUSAL_DATAGRAM`, built once from `HandshakeWireFormat.refusedMessage(\"malformed\")`.",
+              "hash": "366975e7066d"
+            }
+          }
+        ],
         "changes": [
           {
             "what": "The registration guarantee reads precisely: not torn down, superseded or re-screened, no `onClientDisconnect`, but the liveness stamp still refreshed when idle detection is on.",
@@ -469,7 +641,38 @@ window.dashboardLive&&window.dashboardLive("plan",
       ],
       "verdict": {
         "kind": "build",
-        "summary": "`MALFORMED_REFUSAL_DATAGRAM`, an `internal val ByteArray` on `HandshakeProtocol`, built once from `HandshakeWireFormat.refusedMessage(\"malformed\")`; the reason string is a `private const val`. `HandshakeWireFormat` itself is not edited in code.",
+        "statements": [
+          {
+            "text": "`MALFORMED_REFUSAL_DATAGRAM`, an `internal val ByteArray` on `HandshakeProtocol`, is built once from `HandshakeWireFormat.refusedMessage(\"malformed\")`.",
+            "ref": "plan.md#a-3-mainhandshakeprotocolkt--replace-the-whole-file",
+            "excerpt": {
+              "ref": "plan.md#a-3-mainhandshakeprotocolkt--replace-the-whole-file",
+              "heading": "A-3 `main/HandshakeProtocol.kt` — replace the whole file",
+              "paragraph": "Replace the file (LF line endings; ASCII only) with:",
+              "hash": "ea7f16f4470b"
+            }
+          },
+          {
+            "text": "The reason string is a `private const val`.",
+            "ref": "plan.md#a-3-mainhandshakeprotocolkt--replace-the-whole-file",
+            "excerpt": {
+              "ref": "plan.md#a-3-mainhandshakeprotocolkt--replace-the-whole-file",
+              "heading": "A-3 `main/HandshakeProtocol.kt` — replace the whole file",
+              "paragraph": "Replace the file (LF line endings; ASCII only) with:",
+              "hash": "ea7f16f4470b"
+            }
+          },
+          {
+            "text": "`HandshakeWireFormat` itself is not edited in code.",
+            "ref": "plan.md#a-6-mainhandshakewireformatkt--kdoc-only-no-code",
+            "excerpt": {
+              "ref": "plan.md#a-6-mainhandshakewireformatkt--kdoc-only-no-code",
+              "heading": "A-6 `main/HandshakeWireFormat.kt` — KDoc only (no code)",
+              "paragraph": "H1 — \"The optional credential slot\", lines 19-20.",
+              "hash": "794835d5979d"
+            }
+          }
+        ],
         "defense": "The reply verb and its handling are already Stable Core (`REFUSED_REPLY`, `isRefused`, `refusalReason`); only the reason text is new and it sits outside the contract, so no consumer can build on it. The shared array is read-only, like `REGISTERED_DATAGRAM`.",
         "steps": [
           {
@@ -494,7 +697,41 @@ window.dashboardLive&&window.dashboardLive("plan",
       },
       "asBuilt": {
         "state": "as-planned",
-        "summary": "Built as decided in Commit 2: 17 bytes, built once, the reason informative. Protocol doc §3 says the reason is not a contract.",
+        "statements": [
+          {
+            "text": "Built in Commit 2: 17 bytes, built once.",
+            "state": "as-planned",
+            "ref": "final-implementation.md#code",
+            "excerpt": {
+              "ref": "final-implementation.md#code",
+              "heading": "Code",
+              "paragraph": "`HandshakeProtocol.kt`: · a sealed `HandshakeParse` (`NotAHandshake`, `Malformed(defect)`, `Valid(handshake)`); · a `HandshakeDefect` enum with three fixed, log-safe labels; · a total `parseHandshake` that checks the verb through `isHandshake`, then the name, then the credential, which it reads with `getOrNull`; · `MALFORMED_REFUSAL_DATAGRAM`, built once from `HandshakeWireFormat.refusedMessage(\"malformed\")`.",
+              "hash": "366975e7066d"
+            }
+          },
+          {
+            "text": "The reason is a private constant; protocol doc §3 says it is informative wire text, not a contract.",
+            "state": "as-planned",
+            "ref": "final-implementation.md#behaviour",
+            "excerpt": {
+              "ref": "final-implementation.md#behaviour",
+              "heading": "Behaviour",
+              "paragraph": "What counts as malformed. The server trims an unframed datagram's text and splits it on a single U+0020. A line whose first token is exactly `Iam` is a handshake. It is malformed when: · its name slot is missing (a bare `Iam`), or · its name slot is empty (`Iam x`), or · its credential slot is present but empty (`Iam bob tok`).",
+              "hash": "e25e90814ea2"
+            }
+          },
+          {
+            "text": "`HandshakeWireFormat` changed in KDoc only.",
+            "state": "as-planned",
+            "ref": "final-implementation.md#code",
+            "excerpt": {
+              "ref": "final-implementation.md#code",
+              "heading": "Code",
+              "paragraph": "`HandshakeProtocol.kt`: · a sealed `HandshakeParse` (`NotAHandshake`, `Malformed(defect)`, `Valid(handshake)`); · a `HandshakeDefect` enum with three fixed, log-safe labels; · a total `parseHandshake` that checks the verb through `isHandshake`, then the name, then the credential, which it reads with `getOrNull`; · `MALFORMED_REFUSAL_DATAGRAM`, built once from `HandshakeWireFormat.refusedMessage(\"malformed\")`.",
+              "hash": "366975e7066d"
+            }
+          }
+        ],
         "files": [
           "main/HandshakeProtocol.kt"
         ],
@@ -533,7 +770,38 @@ window.dashboardLive&&window.dashboardLive("plan",
       ],
       "verdict": {
         "kind": "build",
-        "summary": "KDoc only, no code: `MultiConnectionUDPServer` (class KDoc, `admit`) and `HandshakeWireFormat` (the `REFUSED` reply section, `REFUSED_REPLY`) state that a malformed `Iam` is refused `REFUSED malformed` before `admit` and whatever the origin's state, that `admit` never sees an empty `name` and sees `credential` as `\"\"` only when absent, and that the reason text is informative.",
+        "statements": [
+          {
+            "text": "KDoc only, no code: `MultiConnectionUDPServer`'s class KDoc and `admit` state that a malformed `Iam` is refused `REFUSED malformed` before `admit`, whatever the origin's state.",
+            "ref": "plan.md#a-5-mainmulticonnectionudpserverkt--kdoc-only-no-code",
+            "excerpt": {
+              "ref": "plan.md#a-5-mainmulticonnectionudpserverkt--kdoc-only-no-code",
+              "heading": "A-5 `main/MultiConnectionUDPServer.kt` — KDoc only (no code)",
+              "paragraph": "S1 — class KDoc, lines 15-23.",
+              "hash": "7006ea7dacd4"
+            }
+          },
+          {
+            "text": "`HandshakeWireFormat`'s `REFUSED` reply section and `REFUSED_REPLY` say the same, and that the reason text is informative.",
+            "ref": "plan.md#a-6-mainhandshakewireformatkt--kdoc-only-no-code",
+            "excerpt": {
+              "ref": "plan.md#a-6-mainhandshakewireformatkt--kdoc-only-no-code",
+              "heading": "A-6 `main/HandshakeWireFormat.kt` — KDoc only (no code)",
+              "paragraph": "H1 — \"The optional credential slot\", lines 19-20.",
+              "hash": "794835d5979d"
+            }
+          },
+          {
+            "text": "`admit` never sees an empty `name`, and sees `credential` as `\"\"` only when it is absent.",
+            "ref": "plan.md#a-5-mainmulticonnectionudpserverkt--kdoc-only-no-code",
+            "excerpt": {
+              "ref": "plan.md#a-5-mainmulticonnectionudpserverkt--kdoc-only-no-code",
+              "heading": "A-5 `main/MultiConnectionUDPServer.kt` — KDoc only (no code)",
+              "paragraph": "S1 — class KDoc, lines 15-23.",
+              "hash": "7006ea7dacd4"
+            }
+          }
+        ],
         "defense": "The `admit` KDoc is where an implementer of a server looks; the protocol doc is where a client author looks. Both must say the same thing.",
         "steps": [
           {
@@ -562,7 +830,41 @@ window.dashboardLive&&window.dashboardLive("plan",
       },
       "asBuilt": {
         "state": "amended",
-        "summary": "Written in Commit 2 and corrected in Commit 3: the planned text got the release history wrong and the liveness wording loose.",
+        "statements": [
+          {
+            "text": "Written in Commit 2 and corrected in Commit 3: the release labels are split, refusal by `admit` from `1.4.0` and the malformed refusal from `2.0.0a`, and the liveness text says any datagram refreshes the stamp.",
+            "state": "amended",
+            "ref": "final-implementation.md#stage-c-after-the-first-review",
+            "excerpt": {
+              "ref": "final-implementation.md#stage-c-after-the-first-review",
+              "heading": "Stage C: after the first review",
+              "paragraph": "The first review returned changes requested: 10 documentation findings and 8 test findings.",
+              "hash": "6ab3787fb836"
+            }
+          },
+          {
+            "text": "Written as planned; the second review named the artifact, `webtools-udp`, on every release label.",
+            "state": "amended",
+            "ref": "final-implementation.md#stage-d-after-the-second-review",
+            "excerpt": {
+              "ref": "final-implementation.md#stage-d-after-the-second-review",
+              "heading": "Stage D: after the second review",
+              "paragraph": "The second review returned changes requested with 5 LOW items: 4 documentation, 1 test. · `HandshakeProtocol`'s KDoc said its two fixed replies go out \"without consulting the application\". But a new origin's `REGISTERED 2` follows `admit`. It now says they are fixed-text replies, whose bytes never come from the application. · The release labels did not name the artifact, and `2.0.0a` was also a version of the retired combined `io.github.spartanlaboratories:WebTools` artifact. The first mention in each KDoc block now reads `webtools-udp` `2.0.0a`, and the neighbouring `1.4.0` labels are …",
+              "hash": "7b74858763e4"
+            }
+          },
+          {
+            "text": "Stated as planned.",
+            "state": "as-planned",
+            "ref": "final-implementation.md#code",
+            "excerpt": {
+              "ref": "final-implementation.md#code",
+              "heading": "Code",
+              "paragraph": "`HandshakeProtocol.kt`: · a sealed `HandshakeParse` (`NotAHandshake`, `Malformed(defect)`, `Valid(handshake)`); · a `HandshakeDefect` enum with three fixed, log-safe labels; · a total `parseHandshake` that checks the verb through `isHandshake`, then the name, then the credential, which it reads with `getOrNull`; · `MALFORMED_REFUSAL_DATAGRAM`, built once from `HandshakeWireFormat.refusedMessage(\"malformed\")`.",
+              "hash": "366975e7066d"
+            }
+          }
+        ],
         "changes": [
           {
             "what": "Release labels split and qualified: refusal by `admit` is `webtools-udp` `1.4.0`, the malformed refusal is `webtools-udp` `2.0.0a`.",
@@ -641,7 +943,48 @@ window.dashboardLive&&window.dashboardLive("plan",
       ],
       "verdict": {
         "kind": "build",
-        "summary": "T-1 to T-8: replace `HandshakeProtocolGatingTest` and `HandshakeProtocolTest`, one new gating test on the coordinator, the component cases for both origins with `LogCapture` on the WARN, `FramingComponentTest` for `Iam<TAB>bob`, the integration flip and four admission tests, and a 4c burst mirroring `MultiConnectionUDPServerAdmissionNonFunctionalTest:104`.",
+        "statements": [
+          {
+            "text": "Levels 1 and 4a: `HandshakeProtocolGatingTest` and `HandshakeProtocolTest` are replaced, and the coordinator gains one gating test.",
+            "ref": "plan.md#8-tests--stage-a-a-7",
+            "excerpt": {
+              "ref": "plan.md#8-tests--stage-a-a-7",
+              "heading": "8. Tests — Stage A (A-7)",
+              "paragraph": "Conventions followed (read from the existing suites): `kotlin.test` assertions with `org.junit.jupiter.api.Tag`; the level `@Tag` on every class; hand-written recording fakes (`FakeConnection`, `FakePeriodicSchedule`) under `test/support/webtools/udp/`; log assertions through `captureLogsOf`/`hasEventAt`/`hasWarnContaining` (`test/support/webtools/udp/LogCapture.kt`); one test class per file; component tests pass pre-trimmed text (`accept(origin, text)` does not trim). MockK is not used by these suites. Every socket-level case sends from a raw `DatagramSocket`, never from …",
+              "hash": "8b89e7329f99"
+            }
+          },
+          {
+            "text": "Level 2: the component cases for both origins with `LogCapture` on the WARN, and `FramingComponentTest` for `Iam<TAB>bob`.",
+            "ref": "plan.md#t-3-level-2--testcomponentwebtoolsudphandshakecoordinatortestkt",
+            "excerpt": {
+              "ref": "plan.md#t-3-level-2--testcomponentwebtoolsudphandshakecoordinatortestkt",
+              "heading": "T-3 Level 2 — `test/component/webtools/udp/HandshakeCoordinatorTest.kt`",
+              "paragraph": "A-1 must have landed. Edits in file order:",
+              "hash": "8a4107a6d93e"
+            }
+          },
+          {
+            "text": "Level 3: the integration flip and four admission tests.",
+            "ref": "plan.md#t-5-level-3--testintegrationwebtoolsudpmulticonnectionudpservertestkt-flip-in-place",
+            "excerpt": {
+              "ref": "plan.md#t-5-level-3--testintegrationwebtoolsudpmulticonnectionudpservertestkt-flip-in-place",
+              "heading": "T-5 Level 3 — `test/integration/webtools/udp/MultiConnectionUDPServerTest.kt` (flip, in place)",
+              "paragraph": "In the `@Order(11)` test (`:246-259`), replace the first statement (`:248`):",
+              "hash": "a19b6815d0ec"
+            }
+          },
+          {
+            "text": "Level 4c: a malformed burst mirroring `MultiConnectionUDPServerAdmissionNonFunctionalTest:104`.",
+            "ref": "plan.md#t-8-level-4c--testnonfunctionalwebtoolsudpmulticonnectionudpserveradmissionnonfunctionaltestkt-one-new-test",
+            "excerpt": {
+              "ref": "plan.md#t-8-level-4c--testnonfunctionalwebtoolsudpmulticonnectionudpserveradmissionnonfunctionaltestkt-one-new-test",
+              "heading": "T-8 Level 4c — `test/nonfunctional/webtools/udp/MultiConnectionUDPServerAdmissionNonFunctionalTest.kt` (one new test)",
+              "paragraph": "Insert after `a burst of refusals leaves no registrations and the server still accepts a good client` (`:103-125`), before `a slow admit serialises handshakes`. In the `private companion object` add `const val MALFORMED_BURST = 600`. No new imports.",
+              "hash": "d1b19e78b70f"
+            }
+          }
+        ],
         "defense": "Every acceptance clause in the plan has a test at the level that can observe it; the burst test proves requirement 8 (no throw path) instead of arguing it.",
         "steps": [
           {
@@ -672,7 +1015,52 @@ window.dashboardLive&&window.dashboardLive("plan",
       },
       "asBuilt": {
         "state": "amended",
-        "summary": "Stage A's tests landed in Commit 2; the first review asked for eight more and the second corrected one probe. Final counts against 85cfbbe: gating 83 (+6), component 235 (+12), integration 115 (+5), deterministic 96 (+7), e2e 34 (+1), nonfunctional 65 (+3), uat 13 (unchanged, skipped). All pass.",
+        "statements": [
+          {
+            "text": "Built in Commit 2; the first review added gating cases for the `CREDENTIAL_EMPTY` and `NotAHandshake` arms, deterministic cases for the verb check, and the deferred 4b e2e test. Gating 83 (+6), deterministic 96 (+7), e2e 34 (+1); all pass.",
+            "state": "amended",
+            "ref": "final-implementation.md#tests",
+            "excerpt": {
+              "ref": "final-implementation.md#tests",
+              "heading": "Tests",
+              "paragraph": "All runs pass.",
+              "hash": "9202f8af886e"
+            }
+          },
+          {
+            "text": "Component 235 (+12): a mis-named `deliverData` test was renamed and strengthened, and a real no-handler `deliverData` test added.",
+            "state": "amended",
+            "ref": "final-implementation.md#stage-c-after-the-first-review",
+            "excerpt": {
+              "ref": "final-implementation.md#stage-c-after-the-first-review",
+              "heading": "Stage C: after the first review",
+              "paragraph": "The first review returned changes requested: 10 documentation findings and 8 test findings.",
+              "hash": "6ab3787fb836"
+            }
+          },
+          {
+            "text": "Integration 115 (+5): with a retry on the same socket after a refusal, and an empty-credential line from a registered socket.",
+            "state": "amended",
+            "ref": "final-implementation.md#stage-c-after-the-first-review",
+            "excerpt": {
+              "ref": "final-implementation.md#stage-c-after-the-first-review",
+              "heading": "Stage C: after the first review",
+              "paragraph": "The first review returned changes requested: 10 documentation findings and 8 test findings.",
+              "hash": "6ab3787fb836"
+            }
+          },
+          {
+            "text": "Nonfunctional 65 (+3): two more 4c tests, the burst including a registered socket (probed through the registry after the second review) and a hostile CR/LF line.",
+            "state": "amended",
+            "ref": "final-implementation.md#stage-d-after-the-second-review",
+            "excerpt": {
+              "ref": "final-implementation.md#stage-d-after-the-second-review",
+              "heading": "Stage D: after the second review",
+              "paragraph": "The second review returned changes requested with 5 LOW items: 4 documentation, 1 test. · `HandshakeProtocol`'s KDoc said its two fixed replies go out \"without consulting the application\". But a new origin's `REGISTERED 2` follows `admit`. It now says they are fixed-text replies, whose bytes never come from the application. · The release labels did not name the artifact, and `2.0.0a` was also a version of the retired combined `io.github.spartanlaboratories:WebTools` artifact. The first mention in each KDoc block now reads `webtools-udp` `2.0.0a`, and the neighbouring `1.4.0` labels are …",
+              "hash": "7b74858763e4"
+            }
+          }
+        ],
         "changes": [
           {
             "what": "Gating cases for the `CREDENTIAL_EMPTY` and `NotAHandshake` arms, a registered origin's malformed line, and the non-`Iam` drop asserting nothing was sent.",
@@ -758,7 +1146,39 @@ window.dashboardLive&&window.dashboardLive("plan",
       ],
       "verdict": {
         "kind": "build",
-        "summary": "A-1 and A-2 land first, in their own commit with the plan documents.",
+        "list": "numbered",
+        "statements": [
+          {
+            "text": "A-1 escapes the NUL and SOH bytes in `HandshakeCoordinatorTest.kt`, the first edit to that file.",
+            "ref": "plan.md#a-1-testcomponentwebtoolsudphandshakecoordinatortestkt--escape-the-nulsoh-bytes-first-edit-to-this-file",
+            "excerpt": {
+              "ref": "plan.md#a-1-testcomponentwebtoolsudphandshakecoordinatortestkt--escape-the-nulsoh-bytes-first-edit-to-this-file",
+              "heading": "A-1 `test/component/webtools/udp/HandshakeCoordinatorTest.kt` — escape the NUL/SOH bytes (FIRST edit to this file)",
+              "paragraph": "Line `:577` is ` assertTrue(coordinator.accept(originA, byteArrayOf(0x00, 0x01), \"<NUL><SOH>\").isSuccess)` where the string literal holds the raw bytes 0x00 0x01. Do not open this file with an editor/Edit tool before this step; do not use `Grep`/`rg` on it (they skip it).",
+              "hash": "188d39cb9e3c"
+            }
+          },
+          {
+            "text": "A-2 corrects a comment's line range in `ChannelByteGuardIntegrationTest.kt`.",
+            "ref": "plan.md#a-2-testintegrationwebtoolsudpchannelbyteguardintegrationtestkt25--comment",
+            "excerpt": {
+              "ref": "plan.md#a-2-testintegrationwebtoolsudpchannelbyteguardintegrationtestkt25--comment",
+              "heading": "A-2 `test/integration/webtools/udp/ChannelByteGuardIntegrationTest.kt:25` — comment",
+              "paragraph": "Re-check the target range first: `sed -n '187p;215p' webtools-udp/src/test/kotlin/com/spartanlabs/testing/nonfunctional/webtools/udp/FramingNonFunctionalTest.kt` must print ` // --- fuzzing the client-side receiveLoop ---` and ` }` (the end of the `repeat(100) { … }` garbage send loop). Line `:191` is the raw `DatagramSocket` peer. If the lines differ, find the same two anchors and use their numbers.",
+              "hash": "37f57b2a3dab"
+            }
+          },
+          {
+            "text": "Both land first, in their own commit with the plan documents.",
+            "ref": "plan.md#14-sequencing--follow-ups",
+            "excerpt": {
+              "ref": "plan.md#14-sequencing--follow-ups",
+              "heading": "14. Sequencing & follow-ups",
+              "paragraph": "A-1, A-2, then Commit 1 (with this plan, `architecture.md` and `impact.md`). · A-3, A-4, A-5, A-6 (`compileKotlin`), then A-7 tests, then the §8.1 checks, then Commit 2. · Stage B: B-0 pre-checks, B-1 and B-2 (compute), B-3..B-6 (edit), B-7 (check). Its commit waits for Stage C. · Stage C (§17): C-0, C-1..C-4 then C-5; C-T1..C-T8 then C-6; C-D (document corrections), C-B (recompute every reference), C-7 (checks). · Stage D (§18), on Stage C's uncommitted tree: D-1..D-6, then D-7. Then Commit 3 (C-1..C-4, D-1..D-3, plan documents), Commit 4 (C-T1..C-T8, D-4), Commit 5 (Stage B with C-D, C-B, …",
+              "hash": "662f030b84d9"
+            }
+          }
+        ],
         "defense": "Ordering is the whole point: every later edit to `HandshakeCoordinatorTest.kt` is safe only once the bytes are escapes.",
         "steps": [
           {
@@ -788,7 +1208,41 @@ window.dashboardLive&&window.dashboardLive("plan",
       },
       "asBuilt": {
         "state": "as-planned",
-        "summary": "Commit 1 (56a2121), as the first edit to the file.",
+        "statements": [
+          {
+            "text": "Commit 1 (`56a2121`), the first edit to the file.",
+            "state": "as-planned",
+            "ref": "final-implementation.md#1-commits",
+            "excerpt": {
+              "ref": "final-implementation.md#1-commits",
+              "heading": "1. Commits",
+              "paragraph": "",
+              "hash": "7cba5110d951"
+            }
+          },
+          {
+            "text": "In the same commit.",
+            "state": "as-planned",
+            "ref": "final-implementation.md#1-commits",
+            "excerpt": {
+              "ref": "final-implementation.md#1-commits",
+              "heading": "1. Commits",
+              "paragraph": "",
+              "hash": "7cba5110d951"
+            }
+          },
+          {
+            "text": "Commit 1 carried `plan.md`, `architecture.md` and `impact.md` with them.",
+            "state": "as-planned",
+            "ref": "final-implementation.md#1-commits",
+            "excerpt": {
+              "ref": "final-implementation.md#1-commits",
+              "heading": "1. Commits",
+              "paragraph": "",
+              "hash": "7cba5110d951"
+            }
+          }
+        ],
         "files": [
           "test/component/webtools/udp/HandshakeCoordinatorTest.kt",
           "test/integration/webtools/udp/ChannelByteGuardIntegrationTest.kt"
@@ -836,7 +1290,48 @@ window.dashboardLive&&window.dashboardLive("plan",
       ],
       "verdict": {
         "kind": "build",
-        "summary": "§3: the rule, the registered-origin trade-off, the known #53 gap, the \"informative, not contract\" status of the reason, and a Boundary-Ring note on the replies an unverified source can draw (sizes, ratios, no address validation, no rate limit, #57). §8: replace the bare-`Iam` row, add the empty-slot and registered-origin rows, tighten the non-`Iam` row. Recheck all 37 references and refresh the 21 stale ones.",
+        "statements": [
+          {
+            "text": "§3 states the rule, the registered-origin trade-off, the known #53 gap and that the reason is informative, not a contract.",
+            "ref": "plan.md#b-3-protocol-doc-3--prose-docswebtools-udp-protocolmd-lines-58-101-on-85cfbbe",
+            "excerpt": {
+              "ref": "plan.md#b-3-protocol-doc-3--prose-docswebtools-udp-protocolmd-lines-58-101-on-85cfbbe",
+              "heading": "B-3 Protocol doc §3 — prose (`docs/webtools-udp-protocol.md`, lines 58-101 on `85cfbbe`)",
+              "paragraph": "Substitute the placeholder values from B-2 for every `{PLACEHOLDER}` below. Ranges are written `File.kt:A-B` (or `:A` for a single line), like the rest of the document.",
+              "hash": "3b2d982bd462"
+            }
+          },
+          {
+            "text": "A Boundary-Ring note in §3 names the replies an unverified source can draw: sizes, ratios, no address validation, no rate limit (#57).",
+            "ref": "plan.md#b-3-protocol-doc-3--prose-docswebtools-udp-protocolmd-lines-58-101-on-85cfbbe",
+            "excerpt": {
+              "ref": "plan.md#b-3-protocol-doc-3--prose-docswebtools-udp-protocolmd-lines-58-101-on-85cfbbe",
+              "heading": "B-3 Protocol doc §3 — prose (`docs/webtools-udp-protocol.md`, lines 58-101 on `85cfbbe`)",
+              "paragraph": "Substitute the placeholder values from B-2 for every `{PLACEHOLDER}` below. Ranges are written `File.kt:A-B` (or `:A` for a single line), like the rest of the document.",
+              "hash": "3b2d982bd462"
+            }
+          },
+          {
+            "text": "§8 replaces the bare-`Iam` row, adds the empty-slot and registered-origin rows and tightens the non-`Iam` row.",
+            "ref": "plan.md#b-4-protocol-doc-8-lines-315-342",
+            "excerpt": {
+              "ref": "plan.md#b-4-protocol-doc-8-lines-315-342",
+              "heading": "B-4 Protocol doc §8 (lines 315-342)",
+              "paragraph": "Replace the table rows at `:320` and `:321`:",
+              "hash": "3b825756d4d7"
+            }
+          },
+          {
+            "text": "All 37 references are rechecked and the 21 stale ones refreshed.",
+            "ref": "plan.md#b-2-protocol-doc--references-into-files-stage-a-edited-compute-from-the-final-files",
+            "excerpt": {
+              "ref": "plan.md#b-2-protocol-doc--references-into-files-stage-a-edited-compute-from-the-final-files",
+              "heading": "B-2 Protocol doc — references into files Stage A edited (compute from the final files)",
+              "paragraph": "Find the new numbers with `grep -n '<anchor>' <file>` and `sed -n 'A,Bp' <file>` (`<src>` = `webtools-udp/src/main/kotlin/com/spartanlabs/webtools/udp`).",
+              "hash": "56696c15613a"
+            }
+          }
+        ],
         "defense": "The protocol doc is the wire contract's home; a third-party client author reads it, not the KDoc.",
         "steps": [
           {
@@ -861,7 +1356,52 @@ window.dashboardLive&&window.dashboardLive("plan",
       },
       "asBuilt": {
         "state": "amended",
-        "summary": "Stage B landed last, in Commit 5 (16d6849), after Stages C and D were final, with three corrections the reviews asked for and every reference recomputed from the final sources.",
+        "statements": [
+          {
+            "text": "Stage B landed last, in Commit 5 (`16d6849`); §3's list of the library-client calls that send a malformed line now states the rule, with examples.",
+            "state": "amended",
+            "ref": "final-implementation.md#stage-c-after-the-first-review",
+            "excerpt": {
+              "ref": "final-implementation.md#stage-c-after-the-first-review",
+              "heading": "Stage C: after the first review",
+              "paragraph": "The first review returned changes requested: 10 documentation findings and 8 test findings.",
+              "hash": "6ab3787fb836"
+            }
+          },
+          {
+            "text": "The note is scoped to handshake replies and lists the transport's own `0x82` and `0xA1`.",
+            "state": "amended",
+            "ref": "final-implementation.md#stage-c-after-the-first-review",
+            "excerpt": {
+              "ref": "final-implementation.md#stage-c-after-the-first-review",
+              "heading": "Stage C: after the first review",
+              "paragraph": "The first review returned changes requested: 10 documentation findings and 8 test findings.",
+              "hash": "6ab3787fb836"
+            }
+          },
+          {
+            "text": "§8 has the malformed rows; §9 gained a row for servers before `2.0.0a`, its source cited, and the scope line names `2.0.0a`.",
+            "state": "amended",
+            "ref": "final-implementation.md#documents",
+            "excerpt": {
+              "ref": "final-implementation.md#documents",
+              "heading": "Documents",
+              "paragraph": "Protocol doc: · §3 states: · the rule and the registered-origin trade-off; · the informative reason; · the #53 gap; · the replies an unverified source can draw: the handshake replies, plus the transport's `0x82` and `0xA1`; · when a library client sends a malformed line. · §8 has the malformed rows. · §9 has a row for servers before `2.0.0a`, with its source cited. · The scope line names `2.0.0a`. · Every source line reference into an edited file was recomputed from the final sources.",
+              "hash": "2ec638f3d8ae"
+            }
+          },
+          {
+            "text": "Every reference into an edited file was recomputed from the final sources.",
+            "state": "as-planned",
+            "ref": "final-implementation.md#documents",
+            "excerpt": {
+              "ref": "final-implementation.md#documents",
+              "heading": "Documents",
+              "paragraph": "Protocol doc: · §3 states: · the rule and the registered-origin trade-off; · the informative reason; · the #53 gap; · the replies an unverified source can draw: the handshake replies, plus the transport's `0x82` and `0xA1`; · when a library client sends a malformed line. · §8 has the malformed rows. · §9 has a row for servers before `2.0.0a`, with its source cited. · The scope line names `2.0.0a`. · Every source line reference into an edited file was recomputed from the final sources.",
+              "hash": "2ec638f3d8ae"
+            }
+          }
+        ],
         "changes": [
           {
             "what": "§9 gains a row for servers before 2.0.0a, with its source cited; the scope line names 2.0.0a.",
@@ -920,7 +1460,28 @@ window.dashboardLive&&window.dashboardLive("plan",
       ],
       "verdict": {
         "kind": "build",
-        "summary": "B-5 and B-6 in Stage B.",
+        "statements": [
+          {
+            "text": "B-5: the architecture doc's `:52` reference and its handshake node.",
+            "ref": "plan.md#b-5-architecture-doc-docswebtools-udp-architecturemd",
+            "excerpt": {
+              "ref": "plan.md#b-5-architecture-doc-docswebtools-udp-architecturemd",
+              "heading": "B-5 Architecture doc (`docs/webtools-udp-architecture.md`)",
+              "paragraph": "Line 52. Replace `(\\`MultiConnectionUDPServer.kt:254\\`, \\`Registrations.kt:50,87\\`)` with `(\\`MultiConnectionUDPServer.kt:{MCUS_COORD}\\`, \\`Registrations.kt:50,87\\`)`. Confirm `Registrations.kt:50,87` still read `class Registration` / `class Registrations` (`sed -n '50p;87p' <src>/Registrations.kt`); that file is not edited. · Lines 111-112 (flowchart).",
+              "hash": "d6b8d7e95e16"
+            }
+          },
+          {
+            "text": "B-6: the README's handshake sections.",
+            "ref": "plan.md#b-6-readme-readmemd",
+            "excerpt": {
+              "ref": "plan.md#b-6-readme-readmemd",
+              "heading": "B-6 README (`README.md`)",
+              "paragraph": "Apply to the LF-converted file (B-0). Insert and replace exactly:",
+              "hash": "a4072c119f49"
+            }
+          }
+        ],
         "defense": "Small wording changes; the README gains a definition of well-formed, not a second copy of the rule.",
         "steps": [
           {
@@ -947,7 +1508,30 @@ window.dashboardLive&&window.dashboardLive("plan",
       },
       "asBuilt": {
         "state": "as-planned",
-        "summary": "Commit 5 (16d6849). The architecture doc's reference reads `MultiConnectionUDPServer.kt:277`, the `coordinator` field. The README's install snippet moved to 2.0.0a with the version bump.",
+        "statements": [
+          {
+            "text": "Commit 5 (`16d6849`): the reference reads `MultiConnectionUDPServer.kt:277`, the `coordinator` field.",
+            "state": "as-planned",
+            "ref": "final-implementation.md#documents",
+            "excerpt": {
+              "ref": "final-implementation.md#documents",
+              "heading": "Documents",
+              "paragraph": "Protocol doc: · §3 states: · the rule and the registered-origin trade-off; · the informative reason; · the #53 gap; · the replies an unverified source can draw: the handshake replies, plus the transport's `0x82` and `0xA1`; · when a library client sends a malformed line. · §8 has the malformed rows. · §9 has a row for servers before `2.0.0a`, with its source cited. · The scope line names `2.0.0a`. · Every source line reference into an edited file was recomputed from the final sources.",
+              "hash": "2ec638f3d8ae"
+            }
+          },
+          {
+            "text": "Commit 5; the README's install snippet moved to `2.0.0a` with the version bump.",
+            "state": "as-planned",
+            "ref": "final-implementation.md#documents",
+            "excerpt": {
+              "ref": "final-implementation.md#documents",
+              "heading": "Documents",
+              "paragraph": "Protocol doc: · §3 states: · the rule and the registered-origin trade-off; · the informative reason; · the #53 gap; · the replies an unverified source can draw: the handshake replies, plus the transport's `0x82` and `0xA1`; · when a library client sends a malformed line. · §8 has the malformed rows. · §9 has a row for servers before `2.0.0a`, with its source cited. · The scope line names `2.0.0a`. · Every source line reference into an edited file was recomputed from the final sources.",
+              "hash": "2ec638f3d8ae"
+            }
+          }
+        ],
         "files": [
           "docs/webtools-udp-architecture.md",
           "README.md"
@@ -994,7 +1578,18 @@ window.dashboardLive&&window.dashboardLive("plan",
       ],
       "verdict": {
         "kind": "build",
-        "summary": "`webtools-udp` `2.0.0a`, set after Commit 5.",
+        "statements": [
+          {
+            "text": "`webtools-udp` `2.0.0a`, the bugfix after `2.0.0`, set in its own commit after Commit 5.",
+            "ref": "plan.md#14-sequencing--follow-ups",
+            "excerpt": {
+              "ref": "plan.md#14-sequencing--follow-ups",
+              "heading": "14. Sequencing & follow-ups",
+              "paragraph": "A-1, A-2, then Commit 1 (with this plan, `architecture.md` and `impact.md`). · A-3, A-4, A-5, A-6 (`compileKotlin`), then A-7 tests, then the §8.1 checks, then Commit 2. · Stage B: B-0 pre-checks, B-1 and B-2 (compute), B-3..B-6 (edit), B-7 (check). Its commit waits for Stage C. · Stage C (§17): C-0, C-1..C-4 then C-5; C-T1..C-T8 then C-6; C-D (document corrections), C-B (recompute every reference), C-7 (checks). · Stage D (§18), on Stage C's uncommitted tree: D-1..D-6, then D-7. Then Commit 3 (C-1..C-4, D-1..D-3, plan documents), Commit 4 (C-T1..C-T8, D-4), Commit 5 (Stage B with C-D, C-B, …",
+              "hash": "662f030b84d9"
+            }
+          }
+        ],
         "defense": "A letter for a fix, the third number for an addition: the module's stated convention.",
         "steps": [
           {
@@ -1014,7 +1609,19 @@ window.dashboardLive&&window.dashboardLive("plan",
       },
       "asBuilt": {
         "state": "as-planned",
-        "summary": "ca57a57, then PR #59 opened and merged the same evening (806ce8e). The registry records `webtools-udp` 2.0.0a; Maven Central still carries 2.0.0 until the release is published.",
+        "statements": [
+          {
+            "text": "`ca57a57`, then PR #59 opened and merged the same evening (`806ce8e`); Maven Central still carries `2.0.0` until the release is published.",
+            "state": "as-planned",
+            "ref": "final-implementation.md#1-commits",
+            "excerpt": {
+              "ref": "final-implementation.md#1-commits",
+              "heading": "1. Commits",
+              "paragraph": "",
+              "hash": "7cba5110d951"
+            }
+          }
+        ],
         "files": [
           "webtools-udp/build.gradle.kts",
           "README.md"
@@ -1061,7 +1668,38 @@ window.dashboardLive&&window.dashboardLive("plan",
       ],
       "verdict": {
         "kind": "leave",
-        "summary": "Not changed. The protocol doc describes the gap as known and links #53; a 4a test pins today's behaviour and flips when #53 lands.",
+        "statements": [
+          {
+            "text": "Not changed: non-space whitespace inside a name or credential still registers.",
+            "ref": "plan.md#4-non-goals",
+            "excerpt": {
+              "ref": "plan.md#4-non-goals",
+              "heading": "4. Non-goals",
+              "paragraph": "#41 rate-bounding the per-datagram WARN logs. The new WARN joins that set. · #49 the register-before-send ordering. The valid/unknown path is moved, not changed. · #52 client-side validation (`HandshakeWireFormat.handshakeMessage`, `MultiConnectionUDPClient.handshake`). Neither is edited. · #53 non-space whitespace inside a name or credential. Still registers; documented as a known gap and pinned by one test (§8, T-7). · #54 a throwing `onClientConnect` or any exception escaping `accept`. · The liveness stamp a malformed `Iam` still refreshes for a registered origin (`accept` stamps before …",
+              "hash": "1211df52ada6"
+            }
+          },
+          {
+            "text": "The protocol doc describes the gap as known and links #53.",
+            "ref": "plan.md#4-non-goals",
+            "excerpt": {
+              "ref": "plan.md#4-non-goals",
+              "heading": "4. Non-goals",
+              "paragraph": "#41 rate-bounding the per-datagram WARN logs. The new WARN joins that set. · #49 the register-before-send ordering. The valid/unknown path is moved, not changed. · #52 client-side validation (`HandshakeWireFormat.handshakeMessage`, `MultiConnectionUDPClient.handshake`). Neither is edited. · #53 non-space whitespace inside a name or credential. Still registers; documented as a known gap and pinned by one test (§8, T-7). · #54 a throwing `onClientConnect` or any exception escaping `accept`. · The liveness stamp a malformed `Iam` still refreshes for a registered origin (`accept` stamps before …",
+              "hash": "1211df52ada6"
+            }
+          },
+          {
+            "text": "A 4a test pins today's behaviour and flips when #53 lands.",
+            "ref": "plan.md#t-7-level-4a--testdeterministicwebtoolsudphandshakeprotocoltestkt-replace-the-whole-file",
+            "excerpt": {
+              "ref": "plan.md#t-7-level-4a--testdeterministicwebtoolsudphandshakeprotocoltestkt-replace-the-whole-file",
+              "heading": "T-7 Level 4a — `test/deterministic/webtools/udp/HandshakeProtocolTest.kt` (replace the whole file)",
+              "paragraph": "Removed: \"parseHandshake rejects a verb-only line / an empty token list / a non-Iam verb\" and \"parseHandshake failure carries an IllegalArgumentException\" (the `Result` and the exception no longer exist; the same inputs are asserted as `Malformed`/`NotAHandshake`). Net 13 -> 19 tests (+6).",
+              "hash": "269e73b9c701"
+            }
+          }
+        ],
         "defense": "A gap a reader can find in the protocol doc, and a test that fails the day it is fixed, is the cheapest honest handling.",
         "steps": [
           {
@@ -1082,7 +1720,41 @@ window.dashboardLive&&window.dashboardLive("plan",
       },
       "asBuilt": {
         "state": "as-planned",
-        "summary": "Left as planned: the 4a test `parseHandshake accepts non-space whitespace inside a name - known gap tracked as 53` pins it, protocol doc §3 links #53, and a comment on #53 records that it inherits this change's rule.",
+        "statements": [
+          {
+            "text": "Left as is.",
+            "state": "as-planned",
+            "ref": "final-implementation.md#8-follow-ups",
+            "excerpt": {
+              "ref": "final-implementation.md#8-follow-ups",
+              "heading": "8. Follow-ups",
+              "paragraph": "See `impact.md` §6: · #41: rate-bounding the drop WARNs, including the new malformed WARN. · #49: the registration orphaned on a failed `REGISTERED` send, now marked `FIXME(#49)`. · #52: client-side validation. The 4b test flips with it. · #53: non-space whitespace in tokens. A 4a test pins the gap and flips with it. · #54: a throwing `onClientConnect`. · #56: the retransmit lookup ignores the name. · #57: replies to unverified sources, with no rate limit.",
+              "hash": "c1387f2f5547"
+            }
+          },
+          {
+            "text": "Protocol doc §3 links #53, and a comment on #53 records that it inherits this change's rule.",
+            "state": "as-planned",
+            "ref": "final-implementation.md#documents",
+            "excerpt": {
+              "ref": "final-implementation.md#documents",
+              "heading": "Documents",
+              "paragraph": "Protocol doc: · §3 states: · the rule and the registered-origin trade-off; · the informative reason; · the #53 gap; · the replies an unverified source can draw: the handshake replies, plus the transport's `0x82` and `0xA1`; · when a library client sends a malformed line. · §8 has the malformed rows. · §9 has a row for servers before `2.0.0a`, with its source cited. · The scope line names `2.0.0a`. · Every source line reference into an edited file was recomputed from the final sources.",
+              "hash": "2ec638f3d8ae"
+            }
+          },
+          {
+            "text": "The 4a test `parseHandshake accepts non-space whitespace inside a name - known gap tracked as 53` pins it.",
+            "state": "as-planned",
+            "ref": "final-implementation.md#tests",
+            "excerpt": {
+              "ref": "final-implementation.md#tests",
+              "heading": "Tests",
+              "paragraph": "All runs pass.",
+              "hash": "9202f8af886e"
+            }
+          }
+        ],
         "commits": [
           "1605bdd"
         ],
@@ -1126,7 +1798,28 @@ window.dashboardLive&&window.dashboardLive("plan",
       ],
       "verdict": {
         "kind": "leave",
-        "summary": "Not changed. A library client with an empty name now fails fast with `HandshakeRefusedException`, reason `malformed`; #52 will move that failure local.",
+        "statements": [
+          {
+            "text": "Not changed: client-side validation stays with #52.",
+            "ref": "plan.md#4-non-goals",
+            "excerpt": {
+              "ref": "plan.md#4-non-goals",
+              "heading": "4. Non-goals",
+              "paragraph": "#41 rate-bounding the per-datagram WARN logs. The new WARN joins that set. · #49 the register-before-send ordering. The valid/unknown path is moved, not changed. · #52 client-side validation (`HandshakeWireFormat.handshakeMessage`, `MultiConnectionUDPClient.handshake`). Neither is edited. · #53 non-space whitespace inside a name or credential. Still registers; documented as a known gap and pinned by one test (§8, T-7). · #54 a throwing `onClientConnect` or any exception escaping `accept`. · The liveness stamp a malformed `Iam` still refreshes for a registered origin (`accept` stamps before …",
+              "hash": "1211df52ada6"
+            }
+          },
+          {
+            "text": "A library client with an empty name now fails fast with `HandshakeRefusedException`, reason `malformed`; #52 will move that failure local.",
+            "ref": "plan.md#4-non-goals",
+            "excerpt": {
+              "ref": "plan.md#4-non-goals",
+              "heading": "4. Non-goals",
+              "paragraph": "#41 rate-bounding the per-datagram WARN logs. The new WARN joins that set. · #49 the register-before-send ordering. The valid/unknown path is moved, not changed. · #52 client-side validation (`HandshakeWireFormat.handshakeMessage`, `MultiConnectionUDPClient.handshake`). Neither is edited. · #53 non-space whitespace inside a name or credential. Still registers; documented as a known gap and pinned by one test (§8, T-7). · #54 a throwing `onClientConnect` or any exception escaping `accept`. · The liveness stamp a malformed `Iam` still refreshes for a registered origin (`accept` stamps before …",
+              "hash": "1211df52ada6"
+            }
+          }
+        ],
         "defense": "The protocol doc lists the library-client calls that send a malformed line, so the behaviour is documented until #52 removes it.",
         "steps": [],
         "tests": [],
@@ -1136,7 +1829,30 @@ window.dashboardLive&&window.dashboardLive("plan",
       },
       "asBuilt": {
         "state": "amended",
-        "summary": "Left as planned, and pinned harder than planned: the first review added the 4b e2e test that fails fast with a typed `malformed` refusal and flips when #52 lands.",
+        "statements": [
+          {
+            "text": "Left as is.",
+            "state": "as-planned",
+            "ref": "final-implementation.md#8-follow-ups",
+            "excerpt": {
+              "ref": "final-implementation.md#8-follow-ups",
+              "heading": "8. Follow-ups",
+              "paragraph": "See `impact.md` §6: · #41: rate-bounding the drop WARNs, including the new malformed WARN. · #49: the registration orphaned on a failed `REGISTERED` send, now marked `FIXME(#49)`. · #52: client-side validation. The 4b test flips with it. · #53: non-space whitespace in tokens. A 4a test pins the gap and flips with it. · #54: a throwing `onClientConnect`. · #56: the retransmit lookup ignores the name. · #57: replies to unverified sources, with no rate limit.",
+              "hash": "c1387f2f5547"
+            }
+          },
+          {
+            "text": "Pinned harder than planned: the first review added the 4b e2e test, which fails fast with a typed `malformed` refusal and flips when #52 lands.",
+            "state": "amended",
+            "ref": "final-implementation.md#4-decisions-taken-during-the-reviews",
+            "excerpt": {
+              "ref": "final-implementation.md#4-decisions-taken-during-the-reviews",
+              "heading": "4. Decisions taken during the reviews",
+              "paragraph": "These are the maintainer's decisions, each with its reason: · Level 4b: add the e2e test. The original plan made 4b optional. The test pins that a library client with an empty name fails fast with a typed `malformed` refusal, and it flips when #52 makes that call fail locally. · Level 5: no UAT step. The change's observable surface is the wire reply and the server log, which the level-3, 4b and 4c tests exercise end to end over real loopback sockets. · Test name `deliverData with no handler bound drops a 0x90 frame with no reply` kept. Naming the function a test exercises is acceptable in a …",
+              "hash": "a08bd56b24ab"
+            }
+          }
+        ],
         "changes": [
           {
             "what": "The 4b e2e test `a nameless handshake fails fast with a typed malformed refusal and registers nothing`.",

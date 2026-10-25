@@ -19,7 +19,8 @@
 // partial or as-built, with landed and total units on a tracking board), or null while the board records no impact (plan/RULES.md §2, §5).
 // A row with no board of its own and no tracking board's unit row to read (a boardless row: any issue the tracker sizes, whatever
 // its level) takes its state from the tracker (plan/RULES.md §5, "Boardless rows"): closed as not planned, "not-planned" ("closed ·
-// not planned", never landed); closed otherwise, "landed"; open with a pull request
+// not planned", never landed); closed as a duplicate, "duplicate" ("closed · duplicate", never landed); closed otherwise, "landed";
+// open with a pull request
 // that refers to it merged, "merged" (awaiting close); open with an open pull request or a branch that refers to it, "in-progress"
 // (solid, never active: there is no run board to mirror); otherwise "not-started". A pull request refers to an issue when GitHub
 // links it as closing the issue (closedByPullRequestsReferences) or its head branch names the issue; a branch refers to it when
@@ -34,7 +35,7 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process"), url = require("url");
 const { repoRoot, flag, opt, registry, findPlans, subIssueBoard, shownBranch, unitBranch, reconciliation, leftForLater, boardlessState } = require("./lib.js");
 /* A closed issue's reason, kept on every row, roadmap item and waits-on/blocks entry that the tracker read: "NOT_PLANNED" reads
-   "closed · not planned" on the page, never landed (plan/RULES.md §5); open issues and the other reasons record none. */
+   "closed · not planned" and "DUPLICATE" "closed · duplicate" on the page, never landed (plan/RULES.md §5); open issues record none. */
 const reasonOf = x => x && x.state === "CLOSED" && x.stateReason ? { stateReason: x.stateReason } : {};
 const { embed } = require("./embed.js");
 
@@ -139,7 +140,8 @@ const unitState = u => (u && u.row.asBuilt && u.row.asBuilt.state) || "pending";
 const nextUnits = new Map();
 boards.forEach(b => { if (b.plan.kind !== "tracking" || b.plan.status === "built") return; const id = (b.plan.wip || {}).next; const r = id && (b.plan.rows || []).find(x => x.id === id && x.unit && x.unit.issue && !leftForLater(x)); if (r) nextUnits.set(r.unit.issue, { board: b, row: r }); });
 /* Whether an issue has landed: its own board is built, or its unit row has landed; an issue on no board reads the tracker. For a
-   blocker this means "no longer blocks": an issue closed as not planned no longer blocks either, though its own row never reads landed. */
+   blocker this means "no longer blocks": an issue closed as not planned or as a duplicate no longer blocks either, though its own row
+   never reads landed. */
 const landedIssue = (n, other) => {
   if (other) return other.state === "CLOSED";
   const b = boardOf(n), u = unitRow(n);

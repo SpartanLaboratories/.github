@@ -213,7 +213,7 @@ row is dashed and says only that nothing is built yet.
 
 - **Roadmap** — each roadmap item with the issues mapped to it, each issue with its number,
   title and state (an issue closed as not planned, `gh issue view <n> --json state,stateReason` `NOT_PLANNED`, reads
-  "closed · not planned", never done or landed, as on the work board, `plan/RULES.md` §5), never its work level (`GUIDANCE.md` §4); the number opens the GitHub issue and
+  "closed · not planned", and one closed as a duplicate, `stateReason` `DUPLICATE`, "closed · duplicate", never done or landed, as on the work board, `plan/RULES.md` §5), never its work level (`GUIDANCE.md` §4); the number opens the GitHub issue and
   the title the issue's plan board where one exists (`GUIDANCE.md` §5; the title written
   `<a data-board="N">`, §2 "Board links"). The header's "last amended by" chip is the same pair. A roadmap item is a tracking issue with its sub-issues,
   or an entry in a roadmap document the repository keeps, with the issues it names. On a system

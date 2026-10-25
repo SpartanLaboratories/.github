@@ -41,10 +41,11 @@ At every `plan-board` request the admin team runs, itself:
 
 It applies, deterministically and in a second or two, everything the event's facts alone decide (the step, the glow, the research
 questions, the stages and the derived as-built states, the halt, the qa passes, the remediation, the open points, the detail, the
-trail entry, the branch, a sub-issue's move on its tracking board), re-renders each board it writes onto the current template where
+trail entry, the branch, a sub-issue's move on its tracking board, the statements' excerpts), re-renders each board it writes onto the current template where
 the page is not the verified template plus its data, embeds, checks (no browser pass) and regenerates the live work board; nothing
 changes on a failure (exit 1). Its summary ends the job when it says `enrich: no`; with `enrich: yes` (and `why`) the presenter
-enriches the board from the folder's documents: the columns, the summaries and outcomes, the impact, the foundation at `sized`.
+enriches the board from the folder's documents: the columns (the Verdict and As built cells as lists of statements, each with its
+reference into the plan, `plan/RULES.md` §2), the outcomes, the impact, the foundation at `sized`.
 What the script decides and what the presenter adds is in `plan/RULES.md` §4, "The fast path".
 
 ## Reading order for a job

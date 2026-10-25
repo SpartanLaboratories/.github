@@ -641,6 +641,35 @@
       },
       "order": 5,
       "stateReason": "NOT_PLANNED"
+    },
+    {
+      "parent": null,
+      "waitsOn": [],
+      "blocks": [],
+      "board": null,
+      "folder": null,
+      "system": "gradle-build",
+      "step": null,
+      "detail": "",
+      "qa": [],
+      "qaMax": null,
+      "landed": null,
+      "reconciliation": null,
+      "active": false,
+      "systemName": "Gradle build",
+      "group": "other",
+      "issue": 86,
+      "title": "Docs: a boardless issue closed as a duplicate of another",
+      "state": "CLOSED",
+      "created": "2026-10-25",
+      "branch": null,
+      "status": "duplicate",
+      "tracker": {
+        "branch": null,
+        "pr": null
+      },
+      "order": 6,
+      "stateReason": "DUPLICATE"
     }
   ],
   "roadmap": [

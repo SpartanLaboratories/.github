@@ -284,7 +284,49 @@
       ],
       "verdict": {
         "kind": "build",
-        "summary": "Create the included build with `WebToolsBuild` (the level list and `registerLevelTasks`) and the plugins `webtools.published-library`, `webtools.kotlin-jvm-library` and `webtools.kotlin-multiplatform-library`; cut the root build to `group` and `version`; put the three modules on the JVM plugin with their own `api(slf4j-api)`; keep the UDP port lock verbatim; select the level tasks by package.",
+        "list": "numbered",
+        "statements": [
+          {
+            "text": "Create the included build with `WebToolsBuild` (the level list and `registerLevelTasks`) and the plugins `webtools.published-library`, `webtools.kotlin-jvm-library` and `webtools.kotlin-multiplatform-library`.",
+            "ref": "architecture.md#61-shared-build-logic--build-logic",
+            "excerpt": {
+              "ref": "architecture.md#61-shared-build-logic--build-logic",
+              "heading": "6.1 Shared build logic — `build-logic`",
+              "paragraph": "Responsibility: one place where every module's compile target, test layout and publishing shape are decided. · Placement: an included build at `build-logic/` (`pluginManagement { includeBuild(\"build-logic\") }` in `settings.gradle.kts`, first statement). The root `build.gradle.kts` keeps only `allprojects { group; version }`; its `plugins`, `subprojects {}`, level-task and publishing blocks (`:1-5`, `:17-92`) move here. Plugin versions (KGP 2.2.0, vanniktech 0.36.0) are pinned once in `build-logic/build.gradle.kts`. · Owns: · `WebToolsBuild` — an object holding `JAVA_FLOOR = 11`, the ordered …",
+              "hash": "0c357490aac9"
+            }
+          },
+          {
+            "text": "Cut the root build to `group` and `version`.",
+            "ref": "architecture.md#61-shared-build-logic--build-logic",
+            "excerpt": {
+              "ref": "architecture.md#61-shared-build-logic--build-logic",
+              "heading": "6.1 Shared build logic — `build-logic`",
+              "paragraph": "Responsibility: one place where every module's compile target, test layout and publishing shape are decided. · Placement: an included build at `build-logic/` (`pluginManagement { includeBuild(\"build-logic\") }` in `settings.gradle.kts`, first statement). The root `build.gradle.kts` keeps only `allprojects { group; version }`; its `plugins`, `subprojects {}`, level-task and publishing blocks (`:1-5`, `:17-92`) move here. Plugin versions (KGP 2.2.0, vanniktech 0.36.0) are pinned once in `build-logic/build.gradle.kts`. · Owns: · `WebToolsBuild` — an object holding `JAVA_FLOOR = 11`, the ordered …",
+              "hash": "0c357490aac9"
+            }
+          },
+          {
+            "text": "Put the three modules on the JVM plugin with their own `api(slf4j-api)`, keeping the UDP port lock verbatim.",
+            "ref": "architecture.md#11-decomposition",
+            "excerpt": {
+              "ref": "architecture.md#11-decomposition",
+              "heading": "11. Decomposition",
+              "paragraph": "Eleven plannable units. Each is a sub-issue of #55, merges on its own and leaves `master` building with every test green. `webtools-http` and `webtools-feeds` stay unreleased at `1.0.0` until the stack is complete, so the units that build them move no version; the three existing modules move only in `java-floor`. \"Blocked by\" names true dependencies; units 5, 7 and 8 are independent of one another, and 6 needs only 5 and 4.",
+              "hash": "4440f63c01d9"
+            }
+          },
+          {
+            "text": "Select the level tasks by package.",
+            "ref": "architecture.md#61-shared-build-logic--build-logic",
+            "excerpt": {
+              "ref": "architecture.md#61-shared-build-logic--build-logic",
+              "heading": "6.1 Shared build logic — `build-logic`",
+              "paragraph": "Responsibility: one place where every module's compile target, test layout and publishing shape are decided. · Placement: an included build at `build-logic/` (`pluginManagement { includeBuild(\"build-logic\") }` in `settings.gradle.kts`, first statement). The root `build.gradle.kts` keeps only `allprojects { group; version }`; its `plugins`, `subprojects {}`, level-task and publishing blocks (`:1-5`, `:17-92`) move here. Plugin versions (KGP 2.2.0, vanniktech 0.36.0) are pinned once in `build-logic/build.gradle.kts`. · Owns: · `WebToolsBuild` — an object holding `JAVA_FLOOR = 11`, the ordered …",
+              "hash": "0c357490aac9"
+            }
+          }
+        ],
         "defense": "The build is one system and the change is additive build behaviour with no library API change. Measured: the three modules publish identical output.",
         "steps": [],
         "tests": [
@@ -422,7 +464,38 @@
       ],
       "verdict": {
         "kind": "build",
-        "summary": "Add `JAVA_FLOOR = 11` and wire `jvmTarget`, `-Xjdk-release` and the Java compatibility settings (JVM plugin) and the `TargetJvmVersion` attribute (KMP plugin) from it; add `verifyJavaFloor` into `check`; set `1.0.0a` on `webtools-scraping` and `webtools-browser` and extend `webtools-udp`'s `2.0.0a` note; add the build-JDK note to the README.",
+        "statements": [
+          {
+            "text": "Add `JAVA_FLOOR = 11` and wire `jvmTarget`, `-Xjdk-release`, the Java compatibility settings and the `TargetJvmVersion` attribute from it.",
+            "ref": "architecture.md#61-shared-build-logic--build-logic",
+            "excerpt": {
+              "ref": "architecture.md#61-shared-build-logic--build-logic",
+              "heading": "6.1 Shared build logic — `build-logic`",
+              "paragraph": "Responsibility: one place where every module's compile target, test layout and publishing shape are decided. · Placement: an included build at `build-logic/` (`pluginManagement { includeBuild(\"build-logic\") }` in `settings.gradle.kts`, first statement). The root `build.gradle.kts` keeps only `allprojects { group; version }`; its `plugins`, `subprojects {}`, level-task and publishing blocks (`:1-5`, `:17-92`) move here. Plugin versions (KGP 2.2.0, vanniktech 0.36.0) are pinned once in `build-logic/build.gradle.kts`. · Owns: · `WebToolsBuild` — an object holding `JAVA_FLOOR = 11`, the ordered …",
+              "hash": "0c357490aac9"
+            }
+          },
+          {
+            "text": "Add `verifyJavaFloor` into `check`.",
+            "ref": "architecture.md#11-decomposition",
+            "excerpt": {
+              "ref": "architecture.md#11-decomposition",
+              "heading": "11. Decomposition",
+              "paragraph": "Eleven plannable units. Each is a sub-issue of #55, merges on its own and leaves `master` building with every test green. `webtools-http` and `webtools-feeds` stay unreleased at `1.0.0` until the stack is complete, so the units that build them move no version; the three existing modules move only in `java-floor`. \"Blocked by\" names true dependencies; units 5, 7 and 8 are independent of one another, and 6 needs only 5 and 4.",
+              "hash": "4440f63c01d9"
+            }
+          },
+          {
+            "text": "Set `1.0.0a` on `webtools-scraping` and `webtools-browser`, extend `webtools-udp`'s `2.0.0a` note, and add the build-JDK note to the README.",
+            "ref": "architecture.md#11-decomposition",
+            "excerpt": {
+              "ref": "architecture.md#11-decomposition",
+              "heading": "11. Decomposition",
+              "paragraph": "Eleven plannable units. Each is a sub-issue of #55, merges on its own and leaves `master` building with every test green. `webtools-http` and `webtools-feeds` stay unreleased at `1.0.0` until the stack is complete, so the units that build them move no version; the three existing modules move only in `java-floor`. \"Blocked by\" names true dependencies; units 5, 7 and 8 are independent of one another, and 6 needs only 5 and 4.",
+              "hash": "4440f63c01d9"
+            }
+          }
+        ],
         "defense": "A bug fix to bytecode and metadata with no public API, state or wire change, local to the build.",
         "steps": [],
         "tests": [
@@ -544,7 +617,38 @@
       ],
       "verdict": {
         "kind": "build",
-        "summary": "Create `webtools-http` (KMP plugin, `explicitApi()`, the ABI dump) and `webtools-http-commoncheck` with the `webtools.kotlin-common-check` plugin; deliver the marker, the failure model, the request and response types, `HttpTransport`, `WallClock`, the logging seam and the internal `flatMap`; add the README artifact row and install line.",
+        "statements": [
+          {
+            "text": "Create `webtools-http` (KMP plugin, `explicitApi()`, the ABI dump) and `webtools-http-commoncheck` with the `webtools.kotlin-common-check` plugin.",
+            "ref": "architecture.md#62-webtools-http-common-core",
+            "excerpt": {
+              "ref": "architecture.md#62-webtools-http-common-core",
+              "heading": "6.2 `webtools-http` common core",
+              "paragraph": "Responsibility: the vocabulary and the contracts every other system in the module speaks, with nothing platform-specific in a signature. · Placement: `common/`, one flat package `com.spartanlabs.webtools.http` (no `.internal` subpackage: `internal` does the hiding, and a flat package never needs a type to move). `explicitApi()`. Module build: `webtools.kotlin-multiplatform-library`, `jvm()` only, `jvmMain` dependencies `okhttp-jvm` 5.5.0, `caffeine` 3.3.1 and `slf4j-api` 2.0.13, all `implementation`. · The one `api` dependency. `kotlinx-coroutines-core` 1.10.2 is the only third-party library …",
+              "hash": "3b7998b63fc0"
+            }
+          },
+          {
+            "text": "Deliver the marker, the failure model, the request and response types, `HttpTransport`, `WallClock`, the logging seam and the internal `flatMap`.",
+            "ref": "architecture.md#62-webtools-http-common-core",
+            "excerpt": {
+              "ref": "architecture.md#62-webtools-http-common-core",
+              "heading": "6.2 `webtools-http` common core",
+              "paragraph": "Responsibility: the vocabulary and the contracts every other system in the module speaks, with nothing platform-specific in a signature. · Placement: `common/`, one flat package `com.spartanlabs.webtools.http` (no `.internal` subpackage: `internal` does the hiding, and a flat package never needs a type to move). `explicitApi()`. Module build: `webtools.kotlin-multiplatform-library`, `jvm()` only, `jvmMain` dependencies `okhttp-jvm` 5.5.0, `caffeine` 3.3.1 and `slf4j-api` 2.0.13, all `implementation`. · The one `api` dependency. `kotlinx-coroutines-core` 1.10.2 is the only third-party library …",
+              "hash": "3b7998b63fc0"
+            }
+          },
+          {
+            "text": "Add the README artifact row and install line.",
+            "ref": "architecture.md#11-decomposition",
+            "excerpt": {
+              "ref": "architecture.md#11-decomposition",
+              "heading": "11. Decomposition",
+              "paragraph": "Eleven plannable units. Each is a sub-issue of #55, merges on its own and leaves `master` building with every test green. `webtools-http` and `webtools-feeds` stay unreleased at `1.0.0` until the stack is complete, so the units that build them move no version; the three existing modules move only in `java-floor`. \"Blocked by\" names true dependencies; units 5, 7 and 8 are independent of one another, and 6 needs only 5 and 4.",
+              "hash": "4440f63c01d9"
+            }
+          }
+        ],
         "defense": "One new module's additive API. Its plan starts with the compile proof of the marker, a gated interface, a default naming it and a consumer without opt-in.",
         "steps": [],
         "tests": [

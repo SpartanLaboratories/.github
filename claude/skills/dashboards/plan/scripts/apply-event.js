@@ -7,7 +7,8 @@
 // --event      the admin-team protocol's plan-board request (action, event, folder, facts; the message's fenced json block, or the
 //              JSON alone)
 // --worktree   the worktree the issue's board lives in; the board is <worktree>/<folder>
-// --repo       owner/repo; held to the request's github and the board's repo
+// --repo       the GitHub slug, owner/repo; held to the request's github and the board's repo. A path to the main checkout is
+//              accepted too, read as --main
 // --main       the repository's main checkout, where the live work board lives (default: the request's repo, else the worktree)
 // --at         the event's time (default: facts.at, else now); every stamp the event writes takes it
 // --no-live    leave the live work board alone; --no-gh builds it from the boards alone (board.js --no-gh)
@@ -143,6 +144,17 @@ function applyEvent(orig, ev, facts, req, now) {
   const researchDetail = () => { const q = qs(), ret = q.filter(x => x.findings != null).length;
     return q.length ? `Research: ${ret} of ${plural(q.length, "question")} returned${openList().length ? "; open: " + openList().join(", ") : ""}.` : "Research: the questions are being drafted."; };
   const docRef = f => fs.existsSync(path.join(DIR, f)) ? f : null;
+  /* the note, detail and trail entry of a remediation report: facts.stage (what the report says it reached) first, else the
+     sub-steps done and the one current; from the facts alone, so the same event twice writes the same board */
+  const remediationWording = () => {
+    const R = w.remediation || {}, ss = R.steps || [], cur = ss.find(x => x.state === "current"), dn = ss.filter(x => x.state === "done");
+    const said = txt(facts.stage, "stage"), pass = R.pass != null ? `qa pass ${R.pass}` : "the qa pass";
+    const what = said || [dn.length ? `${plural(dn.length, "sub-step")} done` : null, cur ? `${cur.name} current` : ss.length && !cur ? "every sub-step done" : null].filter(Boolean).join("; ") || null;
+    note = note || (said || [dn.length ? `${dn.length} of ${ss.length} remediation sub-steps done` : null, cur ? "the next current" : null].filter(Boolean).join("; ") || `remediation for ${pass}`);
+    detail = detail || `Remediation for ${pass}${cur ? ": " + cur.name : what ? ": " + what : ""}.`;
+    /* a facts.stage that names the pass itself ("qa pass 1 fixes done; …") stands alone, after "Remediation:" */
+    trail = { column: "built", label: said && /\bqa pass\b/i.test(said) ? `Remediation: ${said}` : `Remediation for ${pass}${what ? ": " + what : ""}` };
+  };
 
   switch (ev) {
     case "sized": {
@@ -290,13 +302,15 @@ function applyEvent(orig, ev, facts, req, now) {
     case "implementation-stage": {
       if (plan.status === "planned") { plan.status = "building"; applied.push("status building"); }
       if (Array.isArray(facts.open)) mergeOpen(w, facts, applied, txt, `implementation-stage ${facts.stage || (curStage() || {}).id || ""}`.trim(), resolved);
-      if (facts.remediation && !Array.isArray(facts.stages)) {
-        setRemediation(w, facts.remediation, applied, enrich, txt);
+      /* During remediation (facts.remediation, or facts.step "remediation") the report answers a qa pass: its sub-steps are written
+         whether or not the facts also carry the stages (which are then merged too, every one done), and the wording follows the
+         remediation, facts.stage first, never "qa next". */
+      const remed = !!facts.remediation || facts.step === "remediation";
+      if (facts.remediation) setRemediation(w, facts.remediation, applied, enrich, txt);
+      if (remed && !Array.isArray(facts.stages)) {
         const step = facts.step && STEPS.includes(facts.step) ? facts.step : "remediation";
         setStep(step); setGlow(step);
-        const R = w.remediation || {}, cur = (R.steps || []).find(x => x.state === "current");
-        detail = detail || `Remediation for qa pass ${R.pass}${cur ? ": " + cur.name : ""}.`;
-        trail = { column: "built", label: `Remediation for qa pass ${R.pass}${cur ? ": " + cur.name : ""}` };
+        remediationWording();
         break;
       }
       const before = JSON.parse(JSON.stringify(w.stages || []));
@@ -304,7 +318,7 @@ function applyEvent(orig, ev, facts, req, now) {
       const st = w.stages || [], done = st.filter(x => x.state === "done" && !before.some(y => y.id === x.id && y.state === "done"));
       /* the derived as-built states (plan/RULES.md §2, "Before the outcome"): never an outcome; an outcome a row already records stays */
       rows.forEach(r => {
-        const s = lib.stagedState(plan, r), have = ((r.asBuilt || {}).state) || "pending";
+        const s = lib.stagedState(plan, r), have = lib.recordedState(r);
         if (!s || s === have || !["pending", ...lib.BUILDING_STATES].includes(have)) return;
         if (s === "partially-built" && !(r.asBuilt && typeof r.asBuilt.summary === "string" && r.asBuilt.summary.trim())) { enrich.push(`${r.id} is partially built and has no summary yet`); return; }
         r.asBuilt = { ...(r.asBuilt || {}), state: s }; applied.push(`${r.id} ${s}`);
@@ -312,8 +326,9 @@ function applyEvent(orig, ev, facts, req, now) {
       const touched = [...new Set(done.flatMap(x => x.rows || []))].filter(id => ids.has(id));
       if (done.length) enrich.push(`stage${done.length > 1 ? "s" : ""} ${done.map(x => x.id).join(", ")} done: the summaries and outcomes of ${touched.length ? touched.join(", ") : "the rows they touch"}, and any deviation from final-implementation.md, come from the documents`);
       const allDone = st.length > 0 && st.every(x => x.state === "done");
-      const step = facts.step && STEPS.includes(facts.step) ? facts.step : allDone ? "qa" : "implementation";
+      const step = facts.step && STEPS.includes(facts.step) ? facts.step : remed ? "remediation" : allDone ? "qa" : "implementation";
       setStep(step); setGlow(step);
+      if (remed) { remediationWording(); break; }
       /* the wording comes from the facts alone, never from what changed, so the same event twice writes the same board: the stage
          reported is facts.stage when it names a done stage, else the last done stage before the current one */
       const c = curStage(), ci = c ? st.indexOf(c) : st.length;
@@ -338,6 +353,8 @@ function applyEvent(orig, ev, facts, req, now) {
       w.qa = Array.isArray(w.qa) ? w.qa : []; const k = w.qa.findIndex(x => x && x.pass === Q.pass);
       if (k < 0) w.qa.push(entry); else w.qa[k] = { ...(w.qa[k] && w.qa[k].note && !entry.note ? { note: w.qa[k].note } : {}), ...entry };
       w.qa.sort((a, b) => a.pass - b.pass); applied.push(`wip.qa pass ${Q.pass} ${verdict}`);
+      /* an open point the qa report raises (or settles) is kept as at an implementation stage (plan/RULES.md §3, wip.open) */
+      if (Array.isArray(facts.open)) mergeOpen(w, facts, applied, txt, `qa pass ${Q.pass}`, resolved);
       if (w.qaMax !== 3 && !Number.isInteger(w.qaMax)) w.qaMax = 3;
       const counts = [...Object.entries(findings).filter(([, n]) => n).map(([k2, n]) => `${n} ${k2}`), ...Object.entries(severity).filter(([, n]) => n).map(([k2, n]) => `${n} ${k2}`)].join(", ");
       const anyFinding = Object.values(findings).some(n => n > 0);
@@ -389,7 +406,8 @@ function applyEvent(orig, ev, facts, req, now) {
       plan.asBuilt = next; applied.push("asBuilt");
       /* the board is built, and its step landed, only once every part is resolved and the merge is recorded (check.js); until the
          landing refresh resolves them it stays at the landing, its merge recorded */
-      const open = rows.filter(r => ["pending", ...lib.BUILDING_STATES].includes(((r.asBuilt || {}).state) || "pending"));
+      /* a row's recorded state: the outcome its as-built statements derive, else its stored state (plan/RULES.md §2, "Statements") */
+      const open = rows.filter(r => ["pending", ...lib.BUILDING_STATES].includes(lib.recordedState(r)));
       w.resume = null; w.waitingOn = null;
       if (next.sha && next.date && !open.length) { if (plan.status !== "built") { plan.status = "built"; applied.push("status built"); } setStep("landed"); setGlow("landed"); }
       else { setStep("landing"); setGlow("landing"); enrich.push(open.length ? `landed: ${open.map(r => r.id).join(", ")} still to resolve before the board is built (it stays at the landing until then)` : "landed: asBuilt has no sha yet"); }
@@ -444,7 +462,13 @@ function setRemediation(w, R, applied, enrich, txt) {
   if (!R || !Number.isInteger(R.pass)) refuse("the remediation names no qa pass (facts.remediation.pass)");
   if (R.route != null && !ROUTES.includes(R.route)) refuse(`facts.remediation.route ${JSON.stringify(R.route)} is not one of ${ROUTES.join(", ")}`);
   const old = w.remediation && w.remediation.pass === R.pass ? w.remediation : {};
-  const steps = Array.isArray(R.steps) ? R.steps.map((s, i) => { const name = txt(s && (s.name || s.what), `remediation.steps[${i}].name`); if (!name || !SSTATES.includes(s.state)) refuse(`facts.remediation.steps[${i}] needs a name and a state (done, current, todo)`); return { name, state: s.state }; }) : old.steps;
+  /* a sub-step's name: a work level in it (GUIDANCE.md §4) is elided ("…") rather than the step dropped, and the presenter is told */
+  const stepName = (raw, i) => { const t = txt(raw, `remediation.steps[${i}].name`); if (t || typeof raw !== "string" || !raw.trim()) return t;
+    let s = raw.replace(/\s+/g, " ").trim(); levelRefs(s).forEach(h => { s = s.split(h).join("…"); }); return s; };
+  const steps = Array.isArray(R.steps) ? R.steps.map((s, i) => { const raw = s && (s.name || s.what), name = stepName(raw, i);
+    if (!name) refuse(`facts.remediation.steps[${i}] has no name (got ${JSON.stringify(raw === undefined ? null : raw)})`);
+    if (!SSTATES.includes(s.state)) refuse(`facts.remediation.steps[${i}].state ${JSON.stringify(s.state)} is not done, current or todo`);
+    return { name, state: s.state }; }) : old.steps;
   if (steps && steps.filter(s => s.state === "current").length > 1) refuse("facts.remediation.steps names more than one current step");
   const next = { pass: R.pass, ...(R.route || old.route ? { route: R.route || old.route } : {}), ...(steps ? { steps } : {}) };
   if (JSON.stringify(next) !== JSON.stringify(w.remediation || null)) { w.remediation = next; applied.push(`wip.remediation pass ${R.pass}${next.route ? " " + next.route : ""}`); }
@@ -520,12 +544,12 @@ function pageBase(pagePath, enrich, rel) {
   if (!dev.verified(tplPath).ok) { enrich.push(`the template ${path.relative(dev.SKILL, tplPath).split(path.sep).join("/")} changed since it was verified: ${rel} not re-rendered (run verify/verify-templates.js)`); if (html == null) refuse(`${rel} has no page and the template is not verified`); return { html, rerendered: false }; }
   return { html: tpl, rerendered: true };
 }
-/* Embed a board in memory and write its three files (plan/scripts/embed.js does the same on disk): the issue links and, on a tracking
-   board, the units' mirrors resolved from the folders on disk (lib.js linkIssueBoards), plan.json in its own line endings, the page's
-   data block and the plan.js sidecar. */
+/* Embed a board in memory and write its three files (plan/scripts/embed.js does the same on disk): the issue links, on a tracking
+   board the units' mirrors, and the statements' excerpts not copied yet, resolved from the folders on disk (lib.js resolveBoard()),
+   plan.json in its own line endings, the page's data block and the plan.js sidecar. */
 function writeBoard(dir, data, eol, enrich, label) {
   const rel = path.relative(ROOT, path.join(dir, "dashboard.html")).split(path.sep).join("/");
-  lib.linkIssueBoards(data, dir);
+  lib.resolveBoard(data, dir);
   const json = (JSON.stringify(data, null, 2) + "\n").replace(/\n/g, eol);
   const base = pageBase(path.join(dir, "dashboard.html"), enrich, rel);
   if (base.rerendered) S.rerendered.push(rel);
@@ -540,6 +564,12 @@ const run = (file, a, cwd) => new Promise(res => { const c = cp.spawn(process.ex
   c.stdout.on("data", d => { o += d; }); c.stderr.on("data", d => { e += d; }); c.on("close", s => res({ status: s, stdout: o, stderr: e })); c.on("error", x => res({ status: 1, stdout: o, stderr: String(x) })); });
 
 let DIR = null, ROOT = null;
+/* --repo takes the GitHub slug, owner/repo; a path to the repository's main checkout is accepted too and read as --main (the
+   protocol's "repo" field is that path, its "github" field the slug). Anything else is a usage error. */
+const REPO_ARG = opt("repo"), REPO_SLUG = REPO_ARG && /^[\w.-]+\/[\w.-]+$/.test(REPO_ARG) && !fs.existsSync(path.resolve(REPO_ARG)) ? REPO_ARG : null;
+const REPO_PATH = REPO_ARG && !REPO_SLUG && fs.existsSync(REPO_ARG) && fs.statSync(REPO_ARG).isDirectory() ? REPO_ARG : null;
+if (REPO_ARG && !REPO_SLUG && !REPO_PATH) { console.error(`${USAGE}\n(--repo takes the GitHub slug owner/repo, e.g. SpartanLaboratories/WebTools, or the path of the repository's main checkout; got ${JSON.stringify(REPO_ARG)})`); process.exit(2); }
+if (REPO_PATH && opt("main") && path.resolve(opt("main")) !== path.resolve(REPO_PATH)) { console.error(`${USAGE}\n(--repo ${REPO_PATH} is a path, read as the main checkout, but --main names another: ${opt("main")})`); process.exit(2); }
 async function main() {
   const evFile = opt("event"), wt = opt("worktree");
   if (!evFile || !wt) { console.error(`${USAGE}\n(--event and --worktree are required)`); process.exit(2); }
@@ -563,8 +593,8 @@ async function main() {
   let orig; try { orig = JSON.parse(text); } catch (e) { refuse(`${folder}/plan.json does not parse: ${e.message}`); }
   S.issue = orig.issue;
   if (req.issue != null && req.issue !== orig.issue) refuse(`the request names issue #${req.issue}, the board is #${orig.issue}'s`);
-  const repo = opt("repo") || req.github || null;
-  if (opt("repo") && req.github && opt("repo") !== req.github) refuse(`--repo ${opt("repo")} is not the request's github ${req.github}`);
+  const repo = REPO_SLUG || req.github || null;
+  if (REPO_SLUG && req.github && REPO_SLUG !== req.github) refuse(`--repo ${REPO_SLUG} is not the request's github ${req.github}`);
   if (repo && orig.repo && repo !== orig.repo) refuse(`the board is ${orig.repo}'s, not ${repo}'s`);
 
   /* the same event twice changes nothing: applied again at its own recorded time, it gives the board it left */
@@ -593,7 +623,7 @@ async function main() {
     const checks = [run(path.join(__dirname, "check.js"), [DIR], ROOT)];
     if (up) checks.push(run(path.join(__dirname, "check.js"), [up], ROOT));
     let liveRun = null, liveDir = null;
-    const main = path.resolve(opt("main") || req.repo || ROOT);
+    const main = path.resolve(opt("main") || REPO_PATH || req.repo || ROOT);
     if (flag("no-live")) S.live = "skipped (--no-live)";
     else if (!fs.existsSync(path.join(main, "docs", "plans"))) { S.live = `skipped (${main} has no docs/plans/)`; S.enrich.push("the live work board: the main checkout was not found"); }
     else {

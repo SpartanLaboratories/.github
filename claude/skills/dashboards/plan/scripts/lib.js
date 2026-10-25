@@ -35,21 +35,113 @@ function registry(root) {
 }
 
 /* GitHub's heading anchors (github-slugger): lower case, punctuation dropped, spaces to hyphens, duplicates numbered. */
-function headingSlugs(md) {
+function headingSlugs(md) { return new Set(mdHeadings(md).map(h => h.slug)); }
+/* Every heading of a Markdown text outside fenced blocks: [{ slug, level, text, line }], line the 0-based line index. */
+function mdHeadings(md) {
   // A fence closes only on a line of the same character, at least as long as its opener, with nothing after it (CommonMark):
   // a ``` inside a ```` block (a diff of a Markdown file, say) is content, not a close.
-  const seen = {}, out = new Set(); let fence = null;
-  md.split(/\r?\n/).forEach(l => {
+  const seen = {}, out = []; let fence = null;
+  String(md).split(/\r?\n/).forEach((l, line) => {
     const f = l.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
     if (fence) { if (f && f[1][0] === fence[0] && f[1].length >= fence.length && !f[2].trim()) fence = null; return; }
     if (f && !(f[1][0] === "`" && f[2].includes("`"))) { fence = f[1]; return; }
     const m = l.match(/^(#{1,6})\s+(.*?)\s*#*\s*$/); if (!m) return;
     let s = m[2].replace(/<[^>]+>/g, "").toLowerCase().replace(/[^\p{L}\p{M}\p{N}\p{Pc} -]/gu, "").replace(/ /g, "-");
     const base = s; if (seen[base] != null) { seen[base]++; s = base + "-" + seen[base]; } else seen[base] = 0;
-    out.add(s);
+    out.push({ slug: s, level: m[1].length, text: m[2], line });
   });
   return out;
 }
+
+/* ---------- Statements' references and their excerpts (plan/RULES.md §2, "Statements") ----------
+   A statement's ref is a relative link to a section of a Markdown file in the tree, "plan.md#5-design" (GitHub's heading anchor).
+   sectionOf() reads that section: its heading, its first paragraph (the first block of prose under the heading, fenced code and tables
+   skipped, Markdown links and emphasis reduced to their text, one line, at most 600 characters) and a hash of the whole section, from
+   its heading to the next heading of the same or a higher level, line endings and trailing spaces normalised. The paragraph is what the
+   page shows, so a work level in it (GUIDANCE.md §4) is elided ("…"); the hash is of the section as written. */
+const STMT_REF = /^((?:\.\.\/|\.\/)?(?:[\w.-]+\/)*[\w.-]+\.md)#([\w\p{L}\p{N}-]+)$/u;
+const parseRef = ref => { const m = typeof ref === "string" ? STMT_REF.exec(ref.trim()) : null; return m ? { file: m[1], anchor: m[2] } : null; };
+function sectionOf(md, anchor) {
+  const hs = mdHeadings(md), i = hs.findIndex(h => h.slug === anchor); if (i < 0) return null;
+  const h = hs[i], lines = String(md).replace(/\r\n/g, "\n").split("\n"), end = (hs.slice(i + 1).find(x => x.level <= h.level) || { line: lines.length }).line;
+  const body = lines.slice(h.line, end).map(l => l.replace(/\s+$/, "")), text = body.join("\n").replace(/\n+$/, "");
+  const hash = require("crypto").createHash("sha256").update(text).digest("hex").slice(0, 12);
+  /* the first paragraph: up to the first heading of any level below this one */
+  const own = lines.slice(h.line + 1, (hs[i + 1] || { line: lines.length }).line);
+  let para = [], fence = null;
+  for (const l of own) {
+    const f = l.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+    if (fence) { if (f && f[1][0] === fence[0] && f[1].length >= fence.length && !f[2].trim()) fence = null; continue; }
+    if (f) { if (para.length) break; fence = f[1]; continue; }
+    if (!l.trim()) { if (para.length) break; continue; }
+    if (/^\s*\|/.test(l) || /^\s*<!--/.test(l)) { if (para.length) break; continue; }
+    para.push(l.trim().replace(/^(?:[-*+]|\d+[.)])\s+/, () => para.length ? "· " : ""));
+  }
+  let p = para.join(" ").replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\*\*([^*]+)\*\*/g, "$1").replace(/__([^_]+)__/g, "$1").replace(/\s+/g, " ").trim();
+  const { levelRefs } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
+  levelRefs(p).forEach(hit => { p = p.split(hit).join("…"); });
+  if (p.length > 600) p = p.slice(0, 600).replace(/\s+\S*$/, "") + " …";
+  return { heading: h.text.replace(/\s+/g, " ").trim(), paragraph: p, hash };
+}
+/* The label a reference shows, "(§4.2)": the statement's own label, else the heading's leading section number ("4.2", "A-3", "T-1"),
+   else the heading itself (shortened), else the anchor. The page derives it the same way (stmtLabel()). */
+function refLabel(s) {
+  if (s && typeof s.label === "string" && s.label.trim()) return s.label.trim();
+  const h = s && s.excerpt && s.excerpt.heading, m = h && /^((?:\d+\.)*\d+|[A-Z][A-Za-z0-9]?-[A-Za-z0-9]+)\.?(?=\s|$)/.exec(h);
+  if (m) return "§" + m[1];
+  if (h) return "§ " + (h.length > 32 ? h.slice(0, 31).replace(/\s+\S*$/, "") + "…" : h).replace(/`/g, "");
+  const r = parseRef(s && s.ref); return r ? "§ " + r.anchor : "§";
+}
+/* Every statement on a board that carries a reference: { s, at, row, col }. */
+function statementRefs(plan) {
+  const out = [];
+  (Array.isArray(plan && plan.rows) ? plan.rows : []).forEach((r, i) => {
+    if (!r || typeof r !== "object") return;
+    stmtList(r.verdict).forEach((s, j) => out.push({ s, at: `rows[${i}] (${r.id}).verdict.statements[${j}]`, row: r, col: "verdict" }));
+    stmtList(r.asBuilt).forEach((s, j) => out.push({ s, at: `rows[${i}] (${r.id}).asBuilt.statements[${j}]`, row: r, col: "built" }));
+  });
+  return out.filter(x => x.s.ref != null);
+}
+/* The section a reference names, read from the tree: { file (absolute), section } or { error }. The file must be a Markdown file in the
+   board's tree (never outside it). */
+function readRef(dir, ref) {
+  const r = parseRef(ref); if (!r) return { error: "not a relative link to a Markdown section (<file>.md#<heading-anchor>)" };
+  const file = path.resolve(dir, r.file), root = treeRoot(dir) || path.resolve(dir);
+  if (path.relative(root, file).startsWith("..")) return { error: `${r.file} is outside the board's tree` };
+  let md; try { md = fs.readFileSync(file, "utf8"); } catch (e) { return { error: `${r.file} does not exist from this folder` }; }
+  const section = sectionOf(md, r.anchor);
+  return section ? { file, section } : { error: `${r.file} has no heading #${r.anchor}` };
+}
+/* Copy each statement's excerpt (embed.js runs it before embedding, and apply-event.js with it): a statement whose reference resolves and
+   that has no excerpt, or one copied from another reference (excerpt.ref differs), gets the section's heading, first paragraph and hash.
+   An excerpt already copied for the same reference is kept, so a verdict is written once: when the plan section changes later, check.js
+   warns (excerptDrift()) and the presenter decides; opts.refresh re-copies every excerpt (embed.js --refresh-excerpts). Returns one line
+   per change. */
+function copyExcerpts(plan, dir, opts) {
+  const changes = [], refresh = !!(opts && opts.refresh);
+  statementRefs(plan).forEach(x => {
+    const e = x.s.excerpt, ref = String(x.s.ref).trim();
+    if (!refresh && e && typeof e === "object" && e.ref === ref) return;
+    const got = readRef(dir, ref); if (got.error) return;
+    const next = { ref, heading: got.section.heading, paragraph: got.section.paragraph, hash: got.section.hash };
+    if (JSON.stringify(e || null) === JSON.stringify(next)) return;
+    x.s.excerpt = next; changes.push(`${x.at}: excerpt of ${ref} ${e ? "re-copied" : "copied"} (${got.section.hash})`);
+  });
+  return changes;
+}
+/* The references whose section has changed, or gone, since the excerpt was copied (check.js warns on each): [{ at, ref, kind, want }],
+   kind "missing" (no excerpt yet), "changed" (the section's hash differs), "gone" (the file or the heading is not there). */
+function excerptDrift(plan, dir) {
+  return statementRefs(plan).map(x => {
+    const ref = String(x.s.ref).trim(), got = readRef(dir, ref), e = x.s.excerpt;
+    if (got.error) return { at: x.at, ref, kind: "gone", why: got.error };
+    if (!e || typeof e !== "object" || e.ref !== ref) return { at: x.at, ref, kind: "missing" };
+    return e.hash !== got.section.hash ? { at: x.at, ref, kind: "changed", have: e.hash, want: got.section.hash, heading: got.section.heading } : null;
+  }).filter(Boolean);
+}
+/* Everything embed.js resolves from the folders on disk before it embeds a plan board: the issue links and the units' runs
+   (linkIssueBoards()) and the statements' excerpts (copyExcerpts()). Returns one line per change. */
+function resolveBoard(plan, dir, opts) { return [...linkIssueBoards(plan, dir), ...copyExcerpts(plan, dir, opts)]; }
 
 /* The embedded block of a page: <script type="application/json" id="<id>"> … </script>. */
 const openTag = id => `<script type="application/json" id="${id}">`;
@@ -141,7 +233,7 @@ function panelFacts(sub) {
   const w = (sub && sub.wip) || {}, out = {}, has = v => Array.isArray(v) ? v.length > 0 : v != null && typeof v === "object";
   PANEL_FIELDS.forEach(k => { if (has(w[k])) out[k] = w[k]; });
   const rows = Array.isArray(sub && sub.rows) ? sub.rows : [], step = ["halted", "escalated"].includes(w.step) ? w.resume : w.step;
-  if (step === "plan" && rows.length) out.verdicts = { written: rows.filter(r => r && r.verdict && typeof r.verdict.summary === "string" && r.verdict.summary.trim()).length, total: rows.length };
+  if (step === "plan" && rows.length) out.verdicts = { written: rows.filter(r => r && verdictWritten(r.verdict)).length, total: rows.length };
   if (["implementation", "remediation"].includes(step) && rows.length) out.deviations = rows.reduce((n, r) => n + (Array.isArray(((r || {}).asBuilt || {}).changes) ? r.asBuilt.changes.length : 0), 0);
   /* the names of the rows the questions and stages name, so the tracking board names them as the unit's own board does */
   const named = new Set([...(out.questions || []), ...(out.stages || [])].flatMap(x => Array.isArray(x && x.rows) ? x.rows : []));
@@ -239,14 +331,38 @@ function parentBoard(dir, parent) {
 const ISSUE_UNLINKED = new Set(["$comment", "schema", "repo", "slug", "folder", "kind", "status", "id", "where", "title", "system", "slot", "top", "page", "board",
   "branch", "step", "steps", "since", "updated", "state", "verdict", "column", "date", "sha", "merge", "version", "pr", "files", "n", "level", "current", "next",
   "resume", "qa", "qaMax", "pass", "findings", "question", "questions", "landing", "chosen", "settles", "when", "issueBoards",
-  "event", "research", "phase", "drafted", "stages", "severity", "started", "returned", "asked", "answered", "verdicts", "deviations"]);
+  "event", "research", "phase", "drafted", "stages", "severity", "started", "returned", "asked", "answered", "verdicts", "deviations", "hash", "list"]);
 const reEsc = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const UNIT_LANDED = ["landed", "as-planned", "amended", "deviated"];
 /* Left for later (plan/RULES.md §2, the As built tile; §3, the chain's progress): a row whose written verdict leaves it as is (kind
    "leave" with a summary) and that is resolved as planned (pending, as-planned or amended) is not built, so the counts leave it out
    of both figures and name it beside them. One that column 4 records built after all (deviated; a unit complete or landed) counts
    as built again; a dropped or deferred one keeps its own state. The plan-board template's leftForLater() is the same rule. */
-const leftForLater = r => { const v = (r && r.verdict) || {}; return v.kind === "leave" && typeof v.summary === "string" && !!v.summary.trim() && !["deviated", "dropped", "deferred", "complete", "landed"].includes(((r.asBuilt || {}).state) || "pending"); };
+const leftForLater = r => { const v = (r && r.verdict) || {}; return v.kind === "leave" && verdictWritten(v) && !["deviated", "dropped", "deferred", "complete", "landed"].includes(recordedState(r)); };
+/* Statements (plan/RULES.md §2, "Statements"). A Verdict cell holds a list of statements, verdict.statements, each { text, ref, label,
+   excerpt }: one decision per statement, bullets (verdict.list "bullets", the default) or numbered when order matters ("numbered"),
+   each ending with a parenthesised reference to the plan paragraph it rests on, ref, a relative link to a section of a Markdown file
+   (plan.md, a plan-<unit>.md, architecture.md for a unit row) with GitHub's heading anchor. embed.js copies the section's heading and
+   first paragraph into excerpt { heading, paragraph, hash } (copyExcerpts(), below); the page shows it in the inspector when the
+   reference is clicked, and check.js warns once the section has changed since the copy (excerptDrift()). A verdict written before the
+   statements carries one paragraph in verdict.summary instead; both read as written. The As built cell carries one statement per
+   verdict statement, asBuilt.statements, in the same order, each { text, state, ref? } with its adaptation, state "as-planned",
+   "amended" or "deviated", marked with the as-built titles' symbols; the row's outcome is derived from them (statementOutcome()). */
+const STMT_STATES = ["as-planned", "amended", "deviated"];
+const stmtList = x => (x && Array.isArray(x.statements) ? x.statements : []).filter(s => s && typeof s === "object");
+const verdictWritten = v => !!v && (stmtList(v).some(s => typeof s.text === "string" && s.text.trim()) || (typeof v.summary === "string" && !!v.summary.trim()));
+/* The outcome a row's as-built statements give: deviated if any statement deviated, else amended if any amended, else as planned; null
+   when the row has none (or one with no valid adaptation: check.js fails it), and on a tracking board's unit row, whose statements
+   live on its sub-issue's board. */
+function statementOutcome(row) {
+  if (!row || row.unit) return null;
+  const ss = stmtList(row.asBuilt).map(s => s.state);
+  if (!ss.length || ss.some(s => !STMT_STATES.includes(s))) return null;
+  return ss.includes("deviated") ? "deviated" : ss.includes("amended") ? "amended" : "as-planned";
+}
+/* A row's recorded state: the outcome its as-built statements derive, else asBuilt.state; dropped, deferred, complete and landed are
+   kept as stored. Before the outcome the stages still decide (stagedState(), builtState()). */
+const recordedState = row => { const st = ((row && row.asBuilt) || {}).state || "pending"; return ["dropped", "deferred", "complete", "landed"].includes(st) ? st : statementOutcome(row) || st; };
 function issueRefs(plan) {
   const out = [];
   if (!plan || typeof plan !== "object") return out;
@@ -408,6 +524,7 @@ function reconciliation(plan) {
 /* Boardless rows on the work board (plan/RULES.md §5, "Boardless rows"): a row with no board of its own and no tracking board's unit
    row to read takes its state from the tracker. BOARDLESS_STATES are the four it can take, in this order of precedence:
    - "not-planned": the issue is closed as not planned (GitHub's stateReason NOT_PLANNED): "closed · not planned", never landed;
+   - "duplicate": the issue is closed as a duplicate (stateReason DUPLICATE): "closed · duplicate", never landed;
    - "landed": the issue is closed otherwise (completed, or no reason recorded);
    - "in-progress": open, and an open pull request refers to it (solid, never active: there is no run board to mirror);
    - "merged": open, and a pull request that refers to it has merged (awaiting close);
@@ -418,8 +535,10 @@ function reconciliation(plan) {
    (namesIssue). stateReason is the tracker's reason for a closed issue (COMPLETED, NOT_PLANNED, …; null or absent when open or not
    read). Returns { status, tracker: { branch, pr: { number, state } | null } }; board.js writes both on the row, with stateReason,
    and check.js holds the row to them. */
-const BOARDLESS_STATES = ["not-started", "in-progress", "merged", "landed", "not-planned"];
+const BOARDLESS_STATES = ["not-started", "in-progress", "merged", "landed", "not-planned", "duplicate"];
 const closedNotPlanned = (state, reason) => state === "CLOSED" && reason === "NOT_PLANNED";
+/* An issue closed as a duplicate of another (GitHub's stateReason DUPLICATE): "closed · duplicate", neutral like not planned, never landed. */
+const closedDuplicate = (state, reason) => state === "CLOSED" && reason === "DUPLICATE";
 /* Whether a branch name names issue n: "issue-62" or "issue/62" anywhere, or the number at the start of a path segment followed by
    "-", "_", "/" or the end ("62-http-core", "fix/62", "feature/3-g1-build-skeleton"); never a number inside a word or a version
    ("v62", "1.62", "g1"). */
@@ -432,6 +551,7 @@ function boardlessState(n, issueState, closing, linked, prs, branches, stateReas
   const named = [...new Set([...(linked || []), ...(branches || []).filter(b => namesIssue(b, n))])].filter(b => !mergedHeads.has(b));
   const pr = p => ({ number: p.number, state: p.state });
   if (closedNotPlanned(issueState, stateReason)) return { status: "not-planned", tracker: { branch: null, pr: merged[0] ? pr(merged[0]) : null } };
+  if (closedDuplicate(issueState, stateReason)) return { status: "duplicate", tracker: { branch: null, pr: merged[0] ? pr(merged[0]) : null } };
   if (issueState === "CLOSED") return { status: "landed", tracker: { branch: null, pr: merged[0] ? pr(merged[0]) : null } };
   if (open.length) return { status: "in-progress", tracker: { branch: open[0].headRefName || null, pr: pr(open[0]) } };
   if (merged.length) return { status: "merged", tracker: { branch: null, pr: pr(merged[0]) } };
@@ -542,7 +662,7 @@ function stagedState(plan, row) {
   const done = sg.some(x => x.state === "done"), todo = sg.some(x => x.state !== "done");
   return done && todo ? "partially-built" : !done ? "pending" : null;
 }
-const builtState = (plan, row) => stagedState(plan, row) || ((row && row.asBuilt) || {}).state || "pending";
+const builtState = (plan, row) => stagedState(plan, row) || recordedState(row);
 /* The next unit in landing order (plan/RULES.md §3, "Next is the next one up"): the first unit row, in row order, that is pending, not
    in wip.current and not left for later (a unit whose written verdict leaves it as is, leftForLater()), or null when none is left.
    check.js holds wip.next to it; board.js and the template never name another. */
@@ -614,5 +734,5 @@ function glowMismatch(plan) {
   return bad.length ? { step, via, want, bad } : null;
 }
 
-module.exports = { BUILDING_STATES, stagedState, builtState, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+module.exports = { STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, parentFolder, staleUnitRuns, stampMs, treeRoot, boardFolders, boardLink, parentBoard, issueRefs, otherBoards, linkIssueBoards, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

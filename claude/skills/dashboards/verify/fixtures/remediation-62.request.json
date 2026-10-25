@@ -1,0 +1,90 @@
+{
+  "$comment": "A real plan-board request (WebTools #62, an implementation-stage during remediation, 2026-10-25) that the fast path misapplied before dashboards-skill/19: it skipped facts.remediation because the facts also carried the stages, and worded the trail \"qa next\". verify-templates.js replays it on the apply-event fixture board.",
+  "v": 1,
+  "id": "webtools-21/62/17",
+  "attempt": 1,
+  "from": "webtools-21",
+  "action": "plan-board",
+  "github": "SpartanLaboratories/WebTools",
+  "branch": "feat/issue-62-http-core",
+  "issue": 62,
+  "event": "implementation-stage",
+  "folder": "docs/plans/55-http-client-stack/62-http-core",
+  "facts": {
+    "at": "2026-10-25T12:20:00Z",
+    "step": "remediation",
+    "stage": "qa pass 1 fixes done; reconciliation current",
+    "stages": [
+      {
+        "id": "S1",
+        "name": "common-check plugin and TestKit tests",
+        "state": "done"
+      },
+      {
+        "id": "S2",
+        "name": "module skeleton, gated declarations, compile proof",
+        "state": "done"
+      },
+      {
+        "id": "S3",
+        "name": "Url, encoders, corpus, generator, commonTest",
+        "state": "done"
+      },
+      {
+        "id": "S4",
+        "name": "remaining level 2/4a/4c tests, jvmTest differentials, logback-test.xml",
+        "state": "done"
+      },
+      {
+        "id": "S5",
+        "name": "ABI dump and checks",
+        "state": "done"
+      },
+      {
+        "id": "S6",
+        "name": "README",
+        "state": "done"
+      },
+      {
+        "id": "S7",
+        "name": "level-5 pass and as-built record",
+        "state": "done"
+      }
+    ],
+    "remediation": {
+      "pass": 1,
+      "route": "on-the-spot",
+      "steps": [
+        {
+          "name": "rookie-dev: KDoc wording, level-1 line comments, test-fixture tags, U+212A escapes, corpus rows, test renames, absent-name set test; touched tasks re-run",
+          "state": "done"
+        },
+        {
+          "name": "planner: record the two scope exclusions in plan.md §9 and reconcile final-implementation.md and impact.md",
+          "state": "current"
+        }
+      ]
+    },
+    "rows": [
+      "failure-model",
+      "request-response",
+      "transport-port",
+      "common-tests",
+      "common-check-plugin",
+      "readme"
+    ],
+    "documents": [
+      "docs/plans/55-http-client-stack/62-http-core/final-implementation.md"
+    ],
+    "deviations": [
+      "final-implementation.md §2 now records the one README edit beyond plan §8 (the verifyJavaFloor command comment), pointing at §5 S7"
+    ],
+    "detail": "Fixes: HttpFailure message-rule KDoc, addSensitive flag wording, HttpTransport main-safety point, Amendment 1 comment in HttpSyntax, OkHttp set names in UrlEncoding, DNS-limit and no-octal comments in UrlHost; Kelvin sign escaped in six test files; UrlInputGenerator and UrlCorpus tags and comments; corpus gains every isUrlSpace code point and four dot-segment folds; one new HttpHeaders test; behaviour-named tests; RegExp injection hints; e2e class KDoc notes the common-check plugin is covered at level 3. Re-run: :webtools-http:check :webtools-http-commoncheck:check (131 tests, apiCheck, dump unchanged); CommonCheckPluginIntegrationTest 7 + e2eTest 5. No behaviour, API or design change.",
+    "waitingOn": null,
+    "systems": [
+      "webtools-http-core",
+      "js-commoncheck",
+      "gradle-build"
+    ]
+  }
+}

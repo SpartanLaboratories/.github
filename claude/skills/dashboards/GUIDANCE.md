@@ -53,7 +53,7 @@ its ruleset; the shared scale is:
 | **orange** (`--serious`) | changed course | a `deviated` part (the decision itself changed) |
 | **accent** (`--accent`) | being worked on: the in-progress mark | an `in-progress` part (a current stage builds it; a unit whose run is under way), solid, beside the glow |
 | **strong neutral** (`--ink-2`, solid) | partly done, no outcome yet | a `partially-built` part: a finished stage built part of it, a later stage builds the rest |
-| **neutral** (ink/grey) | no outcome yet, or not applicable | a `pending` part; a `deferred` part (with its issue); an impact still planned (dashed); counts and facts |
+| **neutral** (ink/grey) | no outcome yet, or not applicable | a `pending` part; a `deferred` part (with its issue); an impact still planned (dashed); an issue closed as not planned or as a duplicate ("closed · not planned", "closed · duplicate": never landed); counts and facts |
 
 **The exception: compatibility on the Impact tab.** On a plan board's Impact tab, red and
 yellow mean **compatibility**, not outcomes, because what a reader needs from that tab first is
@@ -109,7 +109,10 @@ while the view is live and changing and holds still after a quiet spell, while t
 user, when its data cannot be read and under `prefers-reduced-motion`. Nothing else animates. The
 in-progress mark is exact: it marks every cell being worked on, however many, and nothing else; a whole column glows
 only while the rows being worked on are unknown, or while the work touches no row (an implementation stage that builds no row
-glows the whole As built column, `plan/RULES.md` §3). No check limits how many glow.
+glows the whole As built column, `plan/RULES.md` §3). No check limits how many glow. **A column at work is one glow on the
+column itself** — its band and head on a board's Timeline, round the cards on its As built tab — never each of its cells lit; held
+still as the ring alone while the run waits on the user, static under `prefers-reduced-motion`, with its own legend entry. A
+layout that draws no column (a board's Timeline at phone width stacks its rows) puts the mark on each of that column's cells.
 
 **Research state: the research scale.** On a plan board, a row the run's research questions name
 carries a **ring** (its Considered cell's border, never a fill) in a status spectrum of its own, from
@@ -145,6 +148,11 @@ Every tab, panel or board shows a visible legend (`class="key"`) listing exactly
 it uses — the system swatches present, each status colour with its glyph and word, dashed,
 dotted, the in-progress glow, the up-next mark — and nothing it doesn't. A legend that promises
 an encoding the panel never draws is a defect; so is an encoding with no legend entry.
+
+**Figures.** A plan board's row of KPI tiles (an issue board's, a tracking board's) is a panel too: every tile carries a
+segmented bar of what its figure counts (by group, verdict, state or qa pass, `plan/RULES.md` §2, "The KPI tiles"), in the colour coding of §1 (a system's colour, a status
+colour, a neutral; dashed for what is pending), and one legend under the tiles names every segment drawn. The
+system pages' hand-written tiles and the work board's single-count tiles carry none.
 
 **Ledes.** The legend says what the encodings mean, so a tab's lede does not: it is at most one
 short line, and only for what the graphic and its legend do not show (what to click, a fact the
