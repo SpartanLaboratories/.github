@@ -394,7 +394,7 @@
       ]
     },
     "system/template/supersystem.html": {
-      "sha256": "9b877b5e17b6704369763ab18d87feb4e61b71ae8c61a91dbdc6bc80d3fa2214",
+      "sha256": "a4683c42f4c52e6922328794b352afb99194d243aa2a63474dd24430cee5f070",
       "verified": "2026-10-25",
       "fixtures": [
         "placeholder"
@@ -495,6 +495,11 @@
           "sha256": "9b877b5e17b6704369763ab18d87feb4e61b71ae8c61a91dbdc6bc80d3fa2214",
           "verified": "2026-10-25",
           "file": "supersystem/9b877b5e17b6.html"
+        },
+        {
+          "sha256": "a4683c42f4c52e6922328794b352afb99194d243aa2a63474dd24430cee5f070",
+          "verified": "2026-10-25",
+          "file": "supersystem/a4683c42f4c5.html"
         }
       ]
     }

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Bring a page onto its current template, keeping what the page owns (GUIDANCE.md §11, "Re-rendering"; system/RULES.md §8).
-//   node splice.js <page.html> [--template <template.html>] [--history-repo <clone of SpartanLaboratories/.github>] [--dry-run] [--json]
+//   node splice.js <page.html> [--template <template.html>] [--verified] [--history-repo <clone of SpartanLaboratories/.github>] [--dry-run] [--json]
 // A state page — a system, supersystem or repository page — is its template's CSS, script before MODEL and renderer around what the page
 // fills in (the header, the MODEL, the panels, the Guarantees, the Context, its data blocks). The splice carries the current template's
 // three parts onto the page and leaves the rest as it is:
@@ -22,6 +22,11 @@
 // file is missing is rebuilt from the mirror's git history (a local clone with --history-repo, else gh api), matched by its recorded hash
 // and written back into verify/history/. A version nothing matches is warned on; with none left to read, the splice is two-way (the page
 // against the current template alone, as above with no recorded base).
+// The template it splices onto is the current one (the page's, or --template's), or with --verified its recorded verified version: the text
+// verify/verified.json records as the template's last full verification, from the template itself while it is unchanged, else from its
+// history (rebuilt if it must be), so a page can be brought up while the template is being edited. A --template that is itself a cached
+// version (a file in verify/history/) is that version of its template: the splice reads the template's recorded history as its merge
+// bases, as it does for the template, and splices onto that version (with --verified, onto the verified one).
 // It writes only the page (and a missing state.json beside it, and a rebuilt version into verify/history/), and never the page on --dry-run. Exit 0 when spliced (or already current), 1 when
 // a conflict left a part as it was (the rest is written), 2 on a usage error.
 "use strict";
@@ -85,18 +90,31 @@ const comparable = (kind, text, filled) => kind === "pre" ? splitL(text).filter(
 const H = require("./history.js");
 
 function main() {
-  require("./cliargs.js").strict(args, { usage: "usage: node splice.js <page.html> [--template <template.html>] [--history-repo <clone of SpartanLaboratories/.github>] [--dry-run] [--json]", valued: ["template", "history-repo"], flags: ["dry-run", "json"], min: 1, max: 1 });
+  require("./cliargs.js").strict(args, { usage: "usage: node splice.js <page.html> [--template <template.html>] [--verified] [--history-repo <clone of SpartanLaboratories/.github>] [--dry-run] [--json]", valued: ["template", "history-repo"], flags: ["verified", "dry-run", "json"], min: 1, max: 1 });
   pageArg = args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--template" && args[i - 1] !== "--history-repo");
-  const page = path.resolve(pageArg), report = { page: path.relative(process.cwd(), page).split(path.sep).join("/"), kind: null, template: null, parts: [], filled: [], chips: [], state: null, conflicts: [], history: null, warnings: [], wrote: false };
+  const page = path.resolve(pageArg), report = { page: path.relative(process.cwd(), page).split(path.sep).join("/"), kind: null, template: null, onto: null, parts: [], filled: [], chips: [], state: null, conflicts: [], history: null, warnings: [], wrote: false };
   if (!fs.existsSync(page)) { console.error(`no such page: ${pageArg}`); process.exit(2); }
   const raw = fs.readFileSync(page, "utf8"), eol = raw.includes("\r\n") ? "\r\n" : "\n";
   let h = norm(raw); const kind = dev.kindOf(h); report.kind = kind;
-  const template = opt("template") ? path.resolve(opt("template")) : dev.templateFor(page, kind); report.template = template;
+  /* the template: the page's, or --template's; a --template in a history folder is a cached version of its template, whose recorded
+     history is the merge bases (dashboards-skill/29) */
+  let template = opt("template") ? path.resolve(opt("template")) : dev.templateFor(page, kind), ontoText = null;
+  if (opt("template") && !fs.existsSync(template)) { console.error(`no such template: ${opt("template")}`); process.exit(2); }
+  const cachedOf = opt("template") ? H.ofCached(template) : null;
+  if (cachedOf) { ontoText = norm(fs.readFileSync(template, "utf8")); template = cachedOf.template;
+    report.onto = `the recorded version ${H.label(cachedOf.v)} of ${cachedOf.key}${dev.sha(ontoText) === cachedOf.v.sha256 ? "" : " (its cached file no longer hashes to its record)"}`; }
+  report.template = template;
+  if (args.includes("--verified")) {
+    const V = H.verifiedVersion(template, { historyRepo: opt("history-repo") });
+    if (V.html == null) { console.error(`--verified: ${V.why}`); process.exit(2); }
+    ontoText = V.html; report.onto = `the verified version ${H.label(V.v)}${V.v.verified ? `, verified ${V.v.verified}` : ""}, read from ${V.from}`;
+  }
+  if (!report.onto) report.onto = "the current template";
   const HL = H.load(template, { historyRepo: opt("history-repo") }), hist = HL.versions;
   report.history = { recorded: HL.recorded, read: hist.length, rebuilt: HL.rebuilt.map(x => ({ sha256: x.v.sha256, file: x.v.file, from: `${HL.source} @ ${x.ref}` })), missing: HL.missing.map(x => ({ sha256: x.v.sha256, note: x.v.note || null, why: x.why })) };
   HL.missing.forEach(x => report.warnings.push(`recorded version ${H.label(x.v)} could not be read or rebuilt: ${x.why}`));
   if (HL.recorded && !hist.length) report.warnings.push(`none of the ${HL.recorded} recorded versions could be read or rebuilt: a two-way splice (the page against the current template alone; an undeclared difference is undone, a declared one left)`);
-  const tpl = norm(fs.readFileSync(template, "utf8")), declared = /<meta name="template-divergence"/.test(h);
+  const tpl = ontoText != null ? ontoText : norm(fs.readFileSync(template, "utf8")), declared = /<meta name="template-divergence"/.test(h);
   /* one part: replaced, merged or left, by the rules above */
   const part = (name, mine, theirs, baseOf) => {
     if (mine === theirs) { report.parts.push({ part: name, how: "current" }); return mine; }
@@ -174,7 +192,7 @@ function main() {
   report.changed = changed;
   if (args.includes("--json")) console.log(JSON.stringify(report));
   else {
-    console.log(`splice: ${report.page} (${kind}) onto ${path.relative(process.cwd(), template).split(path.sep).join("/")}${hist.length ? `, ${hist.length} recorded version${hist.length === 1 ? "" : "s"}` : ", no recorded versions"}`);
+    console.log(`splice: ${report.page} (${kind}) onto ${path.relative(process.cwd(), template).split(path.sep).join("/")}${report.onto === "the current template" ? "" : ` as ${report.onto}`}${hist.length ? `, ${hist.length} recorded version${hist.length === 1 ? "" : "s"}` : ", no recorded versions"}`);
     HL.rebuilt.forEach(x => console.log(`  history: ${H.label(x.v)} rebuilt from ${HL.source} @ ${x.ref} into verify/history/${x.v.file || ""}`));
     report.warnings.forEach(w => console.log(`  WARNING: ${w}`));
     report.parts.forEach(p => console.log(`  ${p.part}: ${p.how}`));

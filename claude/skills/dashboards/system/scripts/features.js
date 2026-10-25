@@ -133,6 +133,10 @@ const FEATURES = [
       if (k === "plan-board") return need(/data-issue-title=/.test(s) && /\$\("#issueline"\)\.innerHTML=PLAN\.issueTitle\?`<span data-issue-title=/.test(s), "the renderer quotes no issue title marked data-issue-title (the issue line, the roadmap, the follow-ups)");
       if (k === "work-board") return need(/data-issue-title=/.test(s), "the renderer quotes no issue title marked data-issue-title (the rows, the groups, the roadmap, the unscheduled issues)");
       return need(/a\[data-board\]/.test(s) && /issueTitle=/.test(s) && /data-issue-title/.test(s), "linkIssues() drops the title's mark: a title written <a data-board=\"N\"> keeps data-issue-title once resolved"); } },
+  /* admin-team/dashboards-skill/29 */
+  { id: "planned-parts-page", name: "a planned supersystem's card linking the page of its built parts (\"its built parts' page\"), never \"no page yet\"", since: 29, types: ["supersystem"],
+    notFor: { system: "no Systems tab: it is the page of one system", "plan-board": "its systems tag links a system's page from the files on disk (embed.js), whatever its status", "work-board": "no system cards: it links the repository page and the boards" },
+    test: h => need(/its built parts' page/.test(scripts(h)), "the Systems tab says \"no page yet\" on a planned supersystem whose built parts have a page") },
   /* admin-team/dashboards-skill/24 */
   { id: "finished-steps", name: "finished steps on the progress strip clickable: each shows its snapshot (wip.history) in the step panel, or what survives, reconstructed", since: 24, types: ["plan-board"],
     notFor: { system: "no progress strip: a state page shows the code at a commit, not a run's steps", supersystem: "no progress strip: a state page shows the code at a commit, not a run's steps", "work-board": "no progress strip: one row per run, each run's step as text; its steps are on its own board" },

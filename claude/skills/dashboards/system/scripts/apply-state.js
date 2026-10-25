@@ -15,9 +15,11 @@
 //                planned   or "<dsl path>:<element id>" (paths relative to docs/dashboards), or {dsl, id, tag} / {system}; a DSL element
 //                          marked built loses its Planned tag and takes `tag` when given; "planned" sets the Planned tag back
 //                version   {slug: version}, a version a system's build moved to
-//                title     the issue's title for the "last amended by" note (in the Context section), quoted verbatim (default: the folder's
-//                          name less its number); one that names a work level is a defect in the issue, written as it stands and flagged
-//                          ISSUE TITLE NAMES A WORK LEVEL: #n in the notes
+//                title     the issue's title for the "last amended by" note (in the Context section), quoted verbatim; without it, a page
+//                          keeps the verbatim title its state.json already holds for the same issue (else one another page in scope holds
+//                          for it), and only with none of these takes the folder's name less its number, noted as not the issue's own; one
+//                          that names a work level is a defect in the issue, written as it stands and flagged ISSUE TITLE NAMES A WORK
+//                          LEVEL: #n in the notes
 //                landed    true for a state-pages request that restamps at a landing (as the landed event does)
 //                enrich    reasons the team already knows the presenter is needed for (passed through)
 // --worktree   the worktree the branch is checked out in; the pages are <worktree>/docs/dashboards/
@@ -140,9 +142,13 @@ async function main() {
   /* the title is the issue's, quoted verbatim: never reworded, never elided (GUIDANCE.md §4, §5; admin-team/dashboards-skill/28). Work
      levels are never part of an issue, so a title that names one is a defect in the issue: written as it stands and flagged, ISSUE TITLE
      NAMES A WORK LEVEL: #n, in the summary's notes, for the team to bring to the user to retitle on GitHub */
+  /* which title a page's last amendment takes (dashboards-skill/29): facts.title when the event carries it; else the verbatim title the
+     page's state.json already holds for the same issue (never overwritten by a folder name); else one another page in scope holds for it;
+     only with none of these the folder's name less its number, which is not the issue's own and is noted so */
   const slugTitle = folder ? path.basename(folder).replace(/^\d+-/, "") || null : null;
-  let title = typeof facts.title === "string" && facts.title.trim() ? facts.title.replace(/\s+/g, " ").trim() : slugTitle;
-  if (title && levelRefs(title).length) { S.notes.push(titleDefect({ issue: S.issue, at: "facts.title", title, hits: levelRefs(title) })); S.defects.push(`ISSUE TITLE NAMES A WORK LEVEL: #${S.issue != null ? S.issue : "?"}`); }
+  const factTitle = typeof facts.title === "string" && facts.title.trim() ? facts.title.replace(/\s+/g, " ").trim() : null;
+  if (factTitle && levelRefs(factTitle).length) { S.notes.push(titleDefect({ issue: S.issue, at: "facts.title", title: factTitle, hits: levelRefs(factTitle) })); S.defects.push(`ISSUE TITLE NAMES A WORK LEVEL: #${S.issue != null ? S.issue : "?"}`); }
+  const keptTitle = la => la && la.issue === S.issue && typeof la.title === "string" && la.title.trim() && la.title !== slugTitle ? la.title : null;
 
   /* the systems the branch touches: the facts', else the issue board's; at a landing, also every entry the branch stamped */
   let named = Array.isArray(facts.systems) ? facts.systems : Array.isArray(req.systems) ? req.systems : null;
@@ -236,6 +242,14 @@ async function main() {
   /* the pages */
   const pages = [];
   const regText = L.norm(regEdit.text).trim();
+  /* a verbatim title for this issue another page in scope already holds (its state.json, else its state block) */
+  let sharedTitle = null;
+  if (!factTitle && S.issue != null) for (const e of R.systems.filter(x => scope.has(x.slug) && typeof x.page === "string" && x.page)) {
+    const file = path.join(DASH, ...e.page.split("/")), stFile = path.join(path.dirname(file), "state.json");
+    let st = null; try { st = JSON.parse(fs.existsSync(stFile) ? fs.readFileSync(stFile, "utf8") : fs.existsSync(file) ? L.blockText(L.norm(fs.readFileSync(file, "utf8")), "state") || "null" : "null"); } catch (x) { /* refused below, page by page */ }
+    if (st && keptTitle(st.lastAmended)) { sharedTitle = keptTitle(st.lastAmended); break; }
+  }
+  let slugUsed = false;
   for (const e of R.systems.filter(x => typeof x.page === "string" && x.page)) {
     const file = path.join(DASH, ...e.page.split("/")), rel = path.relative(ROOT, file).split(path.sep).join("/");
     const inScope = scope.has(e.slug) && e.status !== "planned";
@@ -256,7 +270,8 @@ async function main() {
       const old = s.asIs || {}, la = s.lastAmended || {};
       if (!s.written && old.sha) s.written = { sha: old.sha };
       s.asIs = asIs;
-      if (S.issue != null) s.lastAmended = { issue: S.issue, ...(title ? { title } : la.issue === S.issue && la.title ? { title: la.title } : {}), sha };
+      if (S.issue != null) { const title = factTitle || keptTitle(la) || sharedTitle || slugTitle; if (title && title === slugTitle && !factTitle) slugUsed = true;
+        s.lastAmended = { issue: S.issue, ...(title ? { title } : {}), sha }; }
       if (e.kind === "system") s.version = e.version == null ? null : e.version;
       const stText = L.stateText(s);
       if (put(stFile, inEol(stText, st0.eol))) S.wrote.push(path.relative(ROOT, stFile).split(path.sep).join("/"));
@@ -289,6 +304,7 @@ async function main() {
     if (wrote && put(file, inEol(html, pg.eol))) S.wrote.push(rel);
     if (inScope || wrote) pages.push(file);
   }
+  if (slugUsed) S.notes.push(`lastAmended.title "${slugTitle}" taken from the folder's name: no facts.title and no title on record for #${S.issue}; it is not the issue's own, so the presenter quotes the issue's title verbatim`);
   if (put(REG, inEol(regEdit.text, regFile.eol))) S.wrote.unshift("docs/dashboards/systems.json");
   if (S.wrote.length) S.applied.push(`stamped ${S.stamp}`);
 
