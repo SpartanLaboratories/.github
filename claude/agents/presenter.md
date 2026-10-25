@@ -101,8 +101,10 @@ After the team has merged a change, on the merged default-branch commit:
    `systems.json` (rows, versions, as-is stamps, last amended) and the README's
    dashboard pointer, so they show the code at that commit. At **level 4**,
    draw the architecture's new systems on the supersystem page and DSL as
-   `Planned` elements, dashed on every tab with their sub-issue numbers; no
-   page for anything unbuilt.
+   `Planned` elements, dashed on every tab, with no issue numbers above the
+   Context section (state pages are as-is; a planned card reads "planned · its
+   plan", and the Context roadmap lists the sub-issues); no page for anything
+   unbuilt.
 3. **The issue's board** as `landed`: `status = built`, `asBuilt`, the `built`
    milestone, every pending part resolved, the trail completed, the glow off.
    For a sub-issue, also its **parent tracking board** (standing rule, next is
