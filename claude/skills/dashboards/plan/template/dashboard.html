@@ -63,6 +63,10 @@ h1,h2,h3{text-wrap:balance}
 .crumbs a{text-decoration:none}
 .crumbs a:hover{text-decoration:underline}
 h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono);overflow-wrap:anywhere}
+/* the title's #n is the GitHub issue's link (plan/RULES.md §1); the issue line under it is the issue's title on GitHub alone */
+h1 a.ghn{color:inherit;text-decoration:none;border-bottom:2px solid var(--line)}
+h1 a.ghn:hover{border-bottom-color:var(--ink)}
+.issueline:empty{display:none}
 .function{color:var(--ink-2);margin:0 0 10px;max-width:78ch;font-size:15px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 6px}
 .chip{font:12px/1 var(--mono);padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink-2);max-width:100%;overflow-wrap:anywhere}
@@ -266,8 +270,10 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .seg-bar i.dash{background:none!important;border:1.5px dashed var(--sc,var(--muted));opacity:1}
 .seg-bar i.dash.warning{--sc:var(--warning)}
 .seg-bar i.slot{background:none!important;border:1px solid var(--line)}
-.kpis>.key.kpikey{grid-column:1/-1;margin:0;padding:6px 12px;background:var(--surface);border:1px solid var(--line);border-radius:6px}
-.key .kk{font:700 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+/* each tile carries the legend of its own bar (GUIDANCE.md §2), as the work board's do: no shared row under the tiles, so every tile
+   keeps its full share of the row */
+.kpi .key{margin-top:6px;gap:3px 10px;font-size:11px;line-height:1.3}
+.kpi .key span{gap:4px}
 .key i.segk{width:16px;height:6px;border:0;border-radius:2px;background:var(--sc,var(--ink-2))}
 .key i.segk.good{--sc:var(--good)}.key i.segk.warning{--sc:var(--warning)}.key i.segk.critical{--sc:var(--critical)}.key i.segk.serious{--sc:var(--serious)}.key i.segk.accent{--sc:var(--accent)}.key i.segk.ink{--sc:var(--ink-2)}.key i.segk.neutral{--sc:var(--line)}
 .key i.segk.left{background:var(--muted);opacity:.5}
@@ -425,12 +431,12 @@ a.more:hover{text-decoration:underline}
 /* The charging arrow (plan/RULES.md §3, "The charging arrow"): during the plan step, the connector into a Verdict cell whose verdict is
    not yet written is a battery of segments that fill left to right; it holds still, filled, while the run waits on the user and under
    reduced motion, and is the plain line again once the verdict is written. */
-.cell.verdict.charging::before{border-top:0;height:12px;top:calc(50% - 6px);left:calc(-1 * var(--cg) - 2px);width:calc(var(--cg) + 2px);clip-path:polygon(0 22%,68% 22%,68% 0,100% 50%,68% 100%,68% 78%,0 78%);
-  background:repeating-linear-gradient(90deg,var(--accent) 0 2px,transparent 2px 4px) 0 0/100% 100% no-repeat,repeating-linear-gradient(90deg,color-mix(in srgb,var(--accent) 32%,transparent) 0 2px,transparent 2px 4px);animation:charge 1.8s steps(6,end) infinite}
+.cell.verdict.charging::before{border-top:0;height:22px;top:calc(50% - 11px);left:calc(-1 * var(--cg) - 9px);width:calc(var(--cg) + 15px);z-index:2;clip-path:polygon(0 26%,64% 26%,64% 0,100% 50%,64% 100%,64% 74%,0 74%);
+  background:repeating-linear-gradient(90deg,var(--accent) 0 3px,transparent 3px 5px) 0 0/100% 100% no-repeat,repeating-linear-gradient(90deg,color-mix(in srgb,var(--accent) 32%,transparent) 0 3px,transparent 3px 5px);animation:charge 1.8s steps(8,end) infinite}
 .cell.verdict.charging::after{display:none}
 @keyframes charge{0%{background-size:0 100%,100% 100%}100%{background-size:100% 100%,100% 100%}}
 .cell.verdict.charging.still::before{animation:none}
-.key i.chg{width:20px;height:12px;border:0;border-radius:0;clip-path:polygon(0 22%,68% 22%,68% 0,100% 50%,68% 100%,68% 78%,0 78%);background:repeating-linear-gradient(90deg,var(--accent) 0 2px,transparent 2px 4px)}
+.key i.chg{width:30px;height:18px;border:0;border-radius:0;clip-path:polygon(0 26%,64% 26%,64% 0,100% 50%,64% 100%,64% 74%,0 74%);background:repeating-linear-gradient(90deg,var(--accent) 0 3px,transparent 3px 5px)}
 @media (prefers-reduced-motion:reduce){.cell.verdict.charging::before{animation:none!important}}
 /* Statements (plan/RULES.md §2, "Statements"): a Verdict cell lists its statements, bullets or numbered, each ending with its "(§…)"
    reference to the plan section it rests on (a link; a plain click shows that section's excerpt in the inspector); the As built cell
@@ -575,6 +581,47 @@ pre.src .k{color:var(--link);font-weight:600} pre.src .s{color:var(--ink-2)}
 .bcard.ichg .bh .nm{font-weight:600}
 .bcard .meta a.goimp{white-space:normal;overflow-wrap:anywhere}
 
+/* The Tests tab (plan/RULES.md §2, "The Tests tab"): four sub-tabs, Added, Amended, Relevant and Other; each class grouped and coloured
+   by its test level, a neutral ramp from L1 gating (faintest) to L5 UAT (full ink, in either theme), so no system colour and no status colour is spent on
+   it (GUIDANCE.md §1); its latest result a status pill (passed green, failed red, skipped neutral, not run yet dashed: pending); Other
+   counts only, solid neutral: not run, untouched by this change. */
+.tl-1{--tl:color-mix(in srgb,var(--ink) 20%,var(--surface))}.tl-2{--tl:color-mix(in srgb,var(--ink) 34%,var(--surface))}.tl-3{--tl:color-mix(in srgb,var(--ink) 48%,var(--surface))}
+.tl-4a{--tl:color-mix(in srgb,var(--ink) 60%,var(--surface))}.tl-4b{--tl:color-mix(in srgb,var(--ink) 70%,var(--surface))}.tl-4c{--tl:color-mix(in srgb,var(--ink) 80%,var(--surface))}
+.tl-5{--tl:var(--ink)}.tl-none{--tl:var(--line)}
+.stabs{margin:0 0 12px}
+.stabs .stab{appearance:none;border:0;background:var(--surface);color:var(--ink-2);font:12px/1 var(--mono);padding:7px 10px;cursor:pointer;border-right:1px solid var(--line)}
+.stabs .stab:last-child{border-right:0}
+.stabs .stab[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+.stabs .stab:hover:not([aria-selected="true"]){background:var(--surface-2)}
+.stabs .stab small{font-size:11px;margin-left:5px;opacity:.85}
+.tsub .empty{font-size:12.5px;color:var(--muted);margin:0 0 10px;padding:6px 10px;border:1px solid var(--line);border-radius:6px}
+.tsub .empty.pend{border-style:dashed}
+.tgroup{margin:0 0 14px}
+.tlh{font-size:12px;margin:0 0 6px;color:var(--ink-2);display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.tlh small{font:400 11px var(--mono);color:var(--muted)}
+i.tlk{display:inline-block;width:16px;height:11px;border-radius:3px;border:1px solid var(--line);border-left:6px solid var(--tl);background:var(--surface);flex:none}
+.key i.tlk{border:1px solid var(--line);border-left:6px solid var(--tl)}
+.key i.tbox{border:1px solid var(--line)}
+.tcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:8px}
+.tcard{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--tl);border-radius:6px;padding:8px 10px;min-width:0;font-size:12.5px;color:var(--ink-2);cursor:pointer}
+.tcard:hover{border-color:var(--ink-2);border-left-color:var(--tl)}
+.tcard.sel{outline:2px solid var(--on);outline-offset:1px}
+.tcard .th{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;justify-content:space-between}
+.tcard .cn{font:600 12px var(--mono);color:var(--ink);overflow-wrap:anywhere;min-width:0}
+.tcard .tm,.tcard .tr,.tcard .tu{font:11px var(--mono);color:var(--muted);margin-top:4px;overflow-wrap:anywhere}
+.tcard .pk{font:10.5px var(--mono);color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
+.tcard a,.tunits a{text-decoration:none;border-bottom:1px solid var(--line)}
+.tunits{list-style:none;margin:0 0 12px;padding:0;font-size:12.5px}
+.tunits li{padding:5px 0;border-top:1px solid var(--hair);overflow-wrap:anywhere;color:var(--ink-2)}
+.tunits li .vp{margin-left:4px}
+.tbl.tother{min-width:420px}
+.tbl.tother tbody tr{cursor:default}
+.tbl.tother td.n,.tbl.tother th.n{text-align:right;font-variant-numeric:tabular-nums}
+.tbl.tother th .tlk{margin-right:5px;vertical-align:-2px}
+.tother-u{font-size:12px;margin:12px 0 4px;color:var(--ink-2)}
+
+.tlchip{display:inline-flex;align-items:center;gap:5px;font:600 10.5px/1.2 var(--mono);color:var(--ink-2)}
+
 /* Wide desktop (16:9 screens): the page uses most of the window, so the timeline's four columns, the as-built cards and the impact
    cards get room; at 1500 px and below the page keeps its 1280 px measure and the narrow layouts below 940 and 900 px apply. */
 @media (min-width:1500px){
@@ -644,12 +691,13 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
 
 <div class="kpis" id="kpis"></div>
 
-<!-- presenter: three views of the same rows, the Impact (plan.json "impact") and the source; a tracking board adds Landing Order. Every tab
-     carries a legend. -->
+<!-- presenter: three views of the same rows, the Tests (plan.json "tests"; a tracking board its units' unit.tests), the Impact (plan.json
+     "impact") and the source; a tracking board adds Landing Order. Every tab carries a legend, every sub-tab of Tests its own. -->
 <div class="tabs" role="tablist" aria-label="Views">
   <button class="tab" role="tab" id="t-timeline" aria-controls="p-timeline" aria-selected="true">Timeline</button>
   <button class="tab" role="tab" id="t-decisions" aria-controls="p-decisions" aria-selected="false">Decisions</button>
   <button class="tab" role="tab" id="t-built" aria-controls="p-built" aria-selected="false">As built</button>
+  <button class="tab" role="tab" id="t-tests" aria-controls="p-tests" aria-selected="false">Tests</button>
   <button class="tab" role="tab" id="t-impact" aria-controls="p-impact" aria-selected="false">Impact</button>
   <button class="tab" role="tab" id="t-landing-order" aria-controls="p-landing-order" aria-selected="false">Landing Order</button>
   <button class="tab model" role="tab" id="t-source" aria-controls="p-source" aria-selected="false">Source</button>
@@ -679,6 +727,21 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
     <div class="bcards" id="built-list"></div>
     <div id="built-impact"></div>
     <div class="key" id="built-key"></div>
+  </section>
+
+  <section class="view" role="tabpanel" id="p-tests" aria-labelledby="t-tests" hidden>
+    <h2>Tests: what the change adds, amends and runs, by test level</h2>
+    <p class="lede" id="tests-lede"></p>
+    <div class="seg stabs" role="tablist" aria-label="Tests" id="tests-tabs">
+      <button class="stab" role="tab" id="t-tests-added" aria-controls="p-tests-added" aria-selected="true">Added</button>
+      <button class="stab" role="tab" id="t-tests-amended" aria-controls="p-tests-amended" aria-selected="false">Amended</button>
+      <button class="stab" role="tab" id="t-tests-relevant" aria-controls="p-tests-relevant" aria-selected="false">Relevant</button>
+      <button class="stab" role="tab" id="t-tests-other" aria-controls="p-tests-other" aria-selected="false">Other</button>
+    </div>
+    <div class="tsub" role="tabpanel" id="p-tests-added" aria-labelledby="t-tests-added"><div id="tests-added"></div><div class="key" id="tests-added-key"></div></div>
+    <div class="tsub" role="tabpanel" id="p-tests-amended" aria-labelledby="t-tests-amended" hidden><div id="tests-amended"></div><div class="key" id="tests-amended-key"></div></div>
+    <div class="tsub" role="tabpanel" id="p-tests-relevant" aria-labelledby="t-tests-relevant" hidden><div id="tests-relevant"></div><div class="key" id="tests-relevant-key"></div></div>
+    <div class="tsub" role="tabpanel" id="p-tests-other" aria-labelledby="t-tests-other" hidden><div id="tests-other"></div><div class="key" id="tests-other-key"></div></div>
   </section>
 
   <section class="view" role="tabpanel" id="p-impact" aria-labelledby="t-impact" hidden>
@@ -1112,7 +1175,9 @@ const PANEL={
     h+=spList(steps.map(x=>spItem(STAGE_DOT[x.state]||"todo",dotMark,`${rich(stepName(x))}${x.state==="done"?" · done":x.state==="current"?" · in progress":" · to come"}`,"")));
     if(!(Array.isArray(M.steps)&&M.steps.length)) h+=`<p>${ROUTE[route]?"The route's loop":"The pipeline's remediation loop"}; its sub-steps are recorded as they run.</p>`;
     return h; },
-  landing:R=>{ const qa=Array.isArray(R.qa)?R.qa:[], last=qa.length?qa[qa.length-1]:null; return `<p>qa has approved${last?` (pass ${esc(last.pass)})`:""}; the merge and the landing refresh are the admin team's.</p>`; },
+  /* the team-raised "landing" event (plan/RULES.md §4): the admin team has accepted the land and merges it; "landed" follows the merge */
+  landing:R=>{ const qa=Array.isArray(R.qa)?R.qa:[], last=qa.length?qa[qa.length-1]:null, acc=!!(R.event&&R.event.name==="landing"), pr=acc&&/PR #(\d+)/.exec(String(R.event.note||""));
+    return `<p>qa has approved${last?` (pass ${esc(last.pass)})`:""}; ${acc?`the admin team has accepted the land and is merging it${pr?` in ${prlink(pr[1])}`:""}; the landing refresh follows the merge`:"the merge and the landing refresh are the admin team's"}.</p>`; },
   "sub-issues":(R,o)=>`<p>The admin team files each unit of the signed-off architecture as a sub-issue of this one.</p>`+unitProgress(R,o,"filed"),
   boards:(R,o)=>`<p>Each unit's board is created from this issue's documents: its Gap and Considered columns, not started.</p>`+unitProgress(R,o,"boards"),
   _:R=>R.detail?`<p>${rich(R.detail)}</p>`:`<p>Nothing recorded for this step.</p>`};
@@ -1182,10 +1247,11 @@ function renderHeader(){
   /* an ancestor folder links its board only when it has one (embed.js: parent.board, issueBoards), never a missing file */
   const segs=FOLDER.split("/").filter(Boolean).slice(2), segBoard=s=>{ const m=String(s).match(/^(\d+)-/); return m?boardOf(m[1]):null; };
   $("#crumbs").innerHTML=`${linkOr(sharedLink("repoPage"),esc(PLAN.repo))} › ${wbLink("work board")}`+segs.map((s,i)=>i<segs.length-1&&segBoard(s)?` › <a href="${esc(segBoard(s))}">${esc(s)}</a>`:` › ${esc(s)}`).join("");
-  $("#h1").textContent=`#${PLAN.issue} · ${PLAN.title||""}`;
+  /* the title's #n opens the GitHub issue (plan/RULES.md §1, "The board's own #n") */
+  $("#h1").innerHTML=`<a class="ghn" href="${esc(ghUrl(PLAN.issue))}" target="_blank" rel="noopener" title="#${esc(PLAN.issue)} on GitHub">#${esc(PLAN.issue)}</a> · ${esc(PLAN.title||"")}`;
   $("#function").innerHTML=rich(PLAN.function);
-  /* the intro's issue line: the board's own #n opens its GitHub issue (plan/RULES.md §1), beside the issue's title on GitHub */
-  $("#issueline").innerHTML=`GitHub issue ${ext(ghUrl(PLAN.issue),"#"+esc(PLAN.issue))}${PLAN.issueTitle?` · ${rich(PLAN.issueTitle)}`:""}`;
+  /* the intro's issue line: the issue's title on GitHub, and nothing else (the title's #n is the link) */
+  $("#issueline").innerHTML=PLAN.issueTitle?rich(PLAN.issueTitle):"";
   const b=PLAN.baseline||{}, a=PLAN.asBuilt;
   const statusText={planned:"planned · nothing built",building:"building",built:"built",abandoned:"abandoned"}[PLAN.status]||PLAN.status;
   /* the tags (GUIDANCE.md §6, "The header"): each its label (.ck) and its value; one tag for the systems, each with its swatch */
@@ -1200,8 +1266,7 @@ function renderHeader(){
     a&&a.version?tag("ships as",`<b>${esc(a.version)}</b>`):"",
     /* one entry per system, or per top-level system when several of its parts are on the board */
     sysGroups.length?tag(sysGroups.length===1?"system":"systems",sysGroups.map(([top,ps])=>{ const s=ps[0], one=ps.length===1, nm=one?s.name:top;
-      return `<span class="sysl"><span class="sw" data-sys="${esc(s.slug)}"></span>${one&&pageHref(s)?`<a href="${esc(pageHref(s))}">${esc(nm)}</a>`:esc(nm)}${one?"":` · ${ps.length} parts`}${ps.every(x=>x.status==="planned")?" · planned":""}</span>`; }).join(""),sysGroups.length>2?"wide":""):"",
-    tag("board",`<b>plan.json</b> · ${ROWS.length} ${TRACKING?"units":"rows"} · ${OPTS.length} options`,"model")].filter(Boolean);
+      return `<span class="sysl"><span class="sw" data-sys="${esc(s.slug)}"></span>${one&&pageHref(s)?`<a href="${esc(pageHref(s))}">${esc(nm)}</a>`:esc(nm)}${one?"":` · ${ps.length} parts`}${ps.every(x=>x.status==="planned")?" · planned":""}</span>`; }).join(""),sysGroups.length>2?"wide":""):""].filter(Boolean);
   $("#chips").innerHTML=chips.join(""); paint($("#chips"));
 }
 
@@ -1241,7 +1306,10 @@ function renderWip(){
   const steps=WIP.steps&&WIP.steps.length?WIP.steps:STEP_ORDER;
   const shownStep=HALTED||st==="escalated"?(WIP.resume||WIP.last||""):st;
   const head=special?`<span class="state"><i aria-hidden="true">${special.g}</i>${esc(special.label)}</span>`:NOT_STARTED?`<span class="state"><i aria-hidden="true">…</i>Not started</span>`:`<span class="state"><i aria-hidden="true">●</i>Work in progress</span>`;
-  const since=WIP.since?` · since <span class="nw">${when(WIP.since)}</span>`:"";
+  /* the head line's "since" is left out while the board's own step panel is drawn beside it: the panel says it (plan/RULES.md §3) */
+  const units0=TRACKING?ROWS.filter(r=>r.unit):[];
+  const ownPanelShown=!LANDED&&!STOPPED&&(units0.length?["sub-issues","boards"].includes(ownStep):!NOT_STARTED);
+  const since=WIP.since&&!ownPanelShown?` · since <span class="nw">${when(WIP.since)}</span>`:"";
   const headLine=`<div class="wip-head">${head}<span>step <b>${esc(LANDED?"landed":st)}</b>${since}</span>${WIP.updated?`<span class="upd">updated ${when(WIP.updated)}</span>`:""}</div>`;
   const legend=[];
   /* the board's own facts: its qa passes, its blockers, its landing */
@@ -1289,7 +1357,8 @@ function renderWip(){
         if(k==="escalated") b+=`<p class="wip-wait">Escalated: the run waits while the issue's scope is re-decided.</p>`;
         if(k!=="cancelled") b+=stepsLine(L.steps&&L.steps.length?L.steps:STEP_ORDER,held||k==="escalated"?(L.resume||""):L.step,{held:held||k==="escalated",label:`#${r.unit.issue}: its pipeline steps`});
         if(L.detail) b+=`<p class="wip-detail">${rich(L.detail)}</p>`;
-        const f=[researchFact(L),L.since?`<span><span class="l">since</span><span class="nw">${when(L.since)}</span></span>`:"",L.updated?`<span><span class="l">updated</span><span class="nw">${when(L.updated)}</span></span>`:"",
+        /* no "since" group while the unit's step panel is drawn beside the bubble (it always is, from its mirror): the panel says it */
+        const f=[researchFact(L),L.updated?`<span><span class="l">updated</span><span class="nw">${when(L.updated)}</span></span>`:"",
           (L.qa||[]).length?`<span><span class="l">qa</span>${L.qa.map(qaPill).join(" ")}${L.qaMax?` <small>of at most ${esc(L.qaMax)}</small>`:""}</span>`:"",
           L.branch&&!unitLanded(r)?`<span><span class="l">branch</span><code>${esc(L.branch)}</code></span>`:""].filter(Boolean);
         if(f.length) b+=`<div class="wip-facts">${f.join("")}</div>`;
@@ -1372,13 +1441,13 @@ function renderKpis(){
   const qa=WIP.qa||[], qmax=Math.max(qa.length,Number.isInteger(WIP.qaMax)&&WIP.qaMax>0?WIP.qaMax:3);
   const qaParts=[...qa.map(p=>({n:1,cls:QA_RES[qaResult(p)].cls,t:`pass ${p.pass}: ${QA_RES[qaResult(p)].label}`})),...Array.from({length:qmax-qa.length},()=>({n:1,cls:"slot",t:"a pass not used"}))];
   KPI_DRAWN={rows:gparts,opts:optParts.filter(p=>p.n),verdicts:[vbuild,leave,vopen],states:states.filter(([,n])=>n).map(([k])=>k),left,qa:LANDED?[]:[...new Set(qa.map(qaResult))],slots:!LANDED&&qmax>qa.length};
+  const K=kpiKeys();
   $("#kpis").innerHTML=[
-    `<div class="kpi"><div class="l">${TRACKING?"Units":"Rows"}</div><div class="v">${ROWS.length}</div><div class="s">${groups.length?`${groups.length} group${groups.length>1?"s":""}: ${groups.map(esc).join(", ")}`:"no rows yet"}</div>${ROWS.length?segBar(gparts,`${TRACKING?"Units":"Rows"} by group: ${gparts.map(p=>p.t).join("; ")}`):""}</div>`,
-    `<div class="kpi"><div class="l">Options weighed</div><div class="v">${OPTS.length}</div><div class="s">${["accepted","partial","deferred","declined"].filter(by).map(v=>`${by(v)} ${v}`).join(" · ")||"none yet"}</div>${OPTS.length?segBar(optParts,`Options weighed: ${optParts.filter(p=>p.n).map(p=>`${p.n} ${p.k.replace("settled-","deferred, settled ")}`).join(", ")}`):""}</div>`,
-    `<div class="kpi"><div class="l">Verdicts</div>${vbuild+leave?`<div class="v">${vbuild} <small>build</small></div><div class="s">${leave} left for later${vopen?` · ${vopen} not yet written`:""}</div>`:`<div class="v">0${ROWS.length?` <small>of ${ROWS.length}</small>`:""}</div><div class="s">none written yet</div>`}${ROWS.length?segBar([{n:vbuild,cls:"ink",t:`${vbuild} build`},{n:leave,cls:"left",t:`${leave} left for later`},{n:vopen,cls:"dash",t:`${vopen} not yet written`}],`Verdicts: ${vbuild} build, ${leave} left for later, ${vopen} not yet written`):""}</div>`,
-    `<div class="kpi"><div class="l">As built</div><div class="v">${built} <small>/ ${counted.length} ${TRACKING?"units landed":"rows built"}</small></div><div class="s">${[...states.filter(([,n])=>n).map(([k,n])=>`${n} ${STATES[k].label}`),left?`${left} left for later`:""].filter(Boolean).join(" · ")||"—"}${changes?` · ${changes} changes`:""}</div>${ROWS.length?bar:""}</div>`,
-    `<div class="kpi"><div class="l">${LANDED?"Timeline":"QA passes"}</div><div class="v">${LANDED?(days==null?"—":days===0?"same day":`${days} day${days===1?"":"s"}`):`${qa.length}${WIP.qaMax?` <small>of at most ${esc(WIP.qaMax)}</small>`:""}`}</div><div class="s">${LANDED?`${b.date?`baseline ${when(b.date)}`:""}${a&&a.date?` → built ${when(a.date)}`:""}`:(qa.length?esc(qa.map(p=>`pass ${p.pass}: ${(QA[p.verdict]||QA.running).label}`).join(" · ")):"no qa pass yet")}</div>${LANDED?"":segBar(qaParts,`QA passes: ${qa.length} of ${qmax} slots used`)}</div>`,
-    kpiKey()].join("");
+    `<div class="kpi"><div class="l">${TRACKING?"Units":"Rows"}</div><div class="v">${ROWS.length}</div><div class="s">${groups.length?`${groups.length} group${groups.length>1?"s":""}: ${groups.map(esc).join(", ")}`:"no rows yet"}</div>${ROWS.length?segBar(gparts,`${TRACKING?"Units":"Rows"} by group: ${gparts.map(p=>p.t).join("; ")}`)+K.rows:""}</div>`,
+    `<div class="kpi"><div class="l">Options weighed</div><div class="v">${OPTS.length}</div><div class="s">${["accepted","partial","deferred","declined"].filter(by).map(v=>`${by(v)} ${v}`).join(" · ")||"none yet"}</div>${OPTS.length?segBar(optParts,`Options weighed: ${optParts.filter(p=>p.n).map(p=>`${p.n} ${p.k.replace("settled-","deferred, settled ")}`).join(", ")}`)+K.opts:""}</div>`,
+    `<div class="kpi"><div class="l">Verdicts</div>${vbuild+leave?`<div class="v">${vbuild} <small>build</small></div><div class="s">${leave} left for later${vopen?` · ${vopen} not yet written`:""}</div>`:`<div class="v">0${ROWS.length?` <small>of ${ROWS.length}</small>`:""}</div><div class="s">none written yet</div>`}${ROWS.length?segBar([{n:vbuild,cls:"ink",t:`${vbuild} build`},{n:leave,cls:"left",t:`${leave} left for later`},{n:vopen,cls:"dash",t:`${vopen} not yet written`}],`Verdicts: ${vbuild} build, ${leave} left for later, ${vopen} not yet written`)+K.verdicts:""}</div>`,
+    `<div class="kpi"><div class="l">As built</div><div class="v">${built} <small>/ ${counted.length} ${TRACKING?"units landed":"rows built"}</small></div><div class="s">${[...states.filter(([,n])=>n).map(([k,n])=>`${n} ${STATES[k].label}`),left?`${left} left for later`:""].filter(Boolean).join(" · ")||"—"}${changes?` · ${changes} changes`:""}</div>${ROWS.length?bar+K.built:""}</div>`,
+    `<div class="kpi"><div class="l">${LANDED?"Timeline":"QA passes"}</div><div class="v">${LANDED?(days==null?"—":days===0?"same day":`${days} day${days===1?"":"s"}`):`${qa.length}${WIP.qaMax?` <small>of at most ${esc(WIP.qaMax)}</small>`:""}`}</div><div class="s">${LANDED?`${b.date?`baseline ${when(b.date)}`:""}${a&&a.date?` → built ${when(a.date)}`:""}`:(qa.length?esc(qa.map(p=>`pass ${p.pass}: ${(QA[p.verdict]||QA.running).label}`).join(" · ")):"no qa pass yet")}</div>${LANDED?"":segBar(qaParts,`QA passes: ${qa.length} of ${qmax} slots used`)+K.qa}</div>`].join("");
 }
 /* A qa pass's result on its slot: running (accent), passed (green), changes requested with minor findings only (yellow: every
    finding minor by severity, or fixed on the spot), changes requested with other findings (red). */
@@ -1387,16 +1456,16 @@ function qaResult(p){ if(!p||p.verdict==="running"||!QA[p.verdict]) return "runn
   const sv=p.severity&&typeof p.severity==="object"?p.severity:{}, other=Object.entries(sv).filter(([k])=>k!=="minor").reduce((n,[,c])=>n+(+c||0),0);
   return (sv.minor>0&&!other)||p.route==="on-the-spot"?"minor":"other"; }
 let KPI_DRAWN=null;
-/* The tiles' legend: exactly the segments their bars drew. */
-function kpiKey(){ const D=KPI_DRAWN; if(!D||!ROWS.length&&!OPTS.length&&!D.qa.length&&!D.slots) return "";
-  const k=(cls,word,st)=>`<span><i class="segk ${cls}"${st?` style="background:${st}"`:""}></i>${word}</span>`, out=[];
+/* Each tile's legend, inside the tile: exactly the segments its own bar drew (GUIDANCE.md §2; plan/RULES.md §2, "The KPI tiles"). */
+function kpiKeys(){ const D=KPI_DRAWN, o={rows:"",opts:"",verdicts:"",built:"",qa:""}; if(!D) return o;
+  const k=(cls,word,st)=>`<span><i class="segk ${cls}"${st?` style="background:${st}"`:""}></i>${word}</span>`, key=a=>a.length?`<div class="key">${a.join("")}</div>`:"";
   if(D.rows.length){ const seen=new Map(); D.rows.forEach(p=>{ if(!seen.has(p.c)) seen.set(p.c,new Set()); p.names.forEach(x=>seen.get(p.c).add(x)); });
-    out.push(`<span class="kk">${TRACKING?"Units":"Rows"}</span><span>a segment per group, sized by its ${TRACKING?"units":"rows"}, in its system's colour:</span>`,...[...seen].map(([c,ns])=>k("",esc([...ns].join(", ")),c))); }
-  if(D.opts.length){ out.push(`<span class="kk">Options</span>`); D.opts.forEach(p=>{ const v=p.k.replace("settled-",""), d=OPT[v]||OPT.declined; out.push(k(p.cls,`${esc(d.g)} ${p.k.startsWith("settled-")?`deferred → ${esc(d.label)}`:esc(d.label)}${v==="deferred"?" (dashed: open)":""}`)); }); }
-  if(D.verdicts.some(n=>n)){ out.push(`<span class="kk">Verdicts</span>`); if(D.verdicts[0]) out.push(k("ink","build")); if(D.verdicts[1]) out.push(k("left","left for later")); if(D.verdicts[2]) out.push(k("dash","not yet written (dashed: pending)")); }
-  if(D.states.length||D.left){ out.push(`<span class="kk">As built</span>`); D.states.forEach(s=>out.push(k(STATES[s].cls+(STATES[s].dash?" dash":""),`${esc(STATES[s].g)} ${esc(STATES[s].label)}`))); if(D.left) out.push(k("left","left for later")); }
-  if(D.qa.length||D.slots){ out.push(`<span class="kk">QA passes</span>`); D.qa.forEach(x=>out.push(k(QA_RES[x].cls,`${esc(QA_RES[x].g)} ${esc(QA_RES[x].label)}`))); if(D.slots) out.push(k("slot","a pass not used")); }
-  return `<div class="key kpikey" id="kpi-key">${out.join("")}</div>`; }
+    o.rows=key([...seen].map(([c,ns])=>k("",esc([...ns].join(", ")),c))); }
+  o.opts=key(D.opts.map(p=>{ const v=p.k.replace("settled-",""), d=OPT[v]||OPT.declined; return k(p.cls,`${esc(d.g)} ${p.k.startsWith("settled-")?`deferred → ${esc(d.label)}`:esc(d.label)}${v==="deferred"?" (dashed: open)":""}`); }));
+  o.verdicts=key([D.verdicts[0]?k("ink","build"):"",D.verdicts[1]?k("left","left for later"):"",D.verdicts[2]?k("dash","not yet written (dashed: pending)"):""].filter(Boolean));
+  o.built=key([...D.states.map(s=>k(STATES[s].cls+(STATES[s].dash?" dash":""),`${esc(STATES[s].g)} ${esc(STATES[s].label)}`)),D.left?k("left","left for later"):""].filter(Boolean));
+  o.qa=key([...D.qa.map(x=>k(QA_RES[x].cls,`${esc(QA_RES[x].g)} ${esc(QA_RES[x].label)}`)),D.slots?k("slot","a pass not used"):""].filter(Boolean));
+  return o; }
 
 /* ---------- Timeline board ---------- */
 /* A unit row's title (plan/RULES.md §1, "The unit row"): "1. #61 Shared build logic", where #61 opens the GitHub issue and the
@@ -1539,6 +1608,100 @@ function renderBuilt(){
   const usedSt=[...new Set([...rows.map(stateOf),...rows.flatMap(r=>stmtsOf(r.asBuilt).map(s=>s.state)).filter(k=>STMT_STATES.includes(k))])];
   $("#built-key").innerHTML=sysKey([...new Set([...ROWS.map(r=>r.system),...IC.slugs])])+(IC.muted?`<span><i class="sbar" style="--c:var(--muted)"></i>an impact change of no single system: the impact as a whole, or a party outside this repository's systems</span>`:"")+(IC.recon?`<span>${pill(RECON[IC.recon.state],"",reconWord(IC.recon))} ${esc(RECON[IC.recon.state].desc)}</span>`:"")+(IC.unrecorded?`<span><i class="pln"></i>dashed line: a landed unit whose effect on the impact is not recorded yet</span>`:"")+Object.keys(STATES).filter(k=>usedSt.includes(k)).map(k=>`<span>${badge(k)} ${esc(STATES[k].desc)}</span>`).join("")+(usedSt.some(k=>STATES[k].dash)||!ROWS.length?`<span><i class="pln"></i>dashed card: nothing built</span>`:"")+markKeys(CURRENT.filter(a=>a.endsWith(".built")||a==="built"))+runKeys(rows)+(NEXT_ROW&&(builtFilter==="all"||stateOf(NEXT_ROW)===builtFilter)?KEY_NEXT(NEXT_ROW):"");
 }
+
+/* ---------- Tests (plan/RULES.md §2, "The Tests tab") ----------
+   plan.json "tests": {base, updated, added[], amended[], relevant[], other: {byModule: {<module>: {<level>: n | {classes, tests}}}}}, each
+   class {class, module, testLevel, path, tests, rows[], stage, result: {state, passed, failed, skipped, pass, at}}. Added and Amended come
+   from the branch's diff against its base and grow with each implementation stage; Relevant is what qa's test-inspector ran on the change
+   beyond them, arriving with each qa pass, as the results do; Other counts every other test class per module and test level, never run
+   for this change. A tracking board records none of its own: it sums its units' (unit.tests, which embed.js mirrors from each unit's
+   board), each unit a click away. Each class is grouped and coloured by its test level (the hierarchy's L1 gating to L5 UAT, a neutral
+   ramp: GUIDANCE.md §1), with its test count, its latest result and the board rows it verifies. lib.js TEST_LEVELS, testLevelOf() and
+   mergeTests() are the same rules for the scripts. */
+const TEST_SUBS=[{k:"added",label:"Added"},{k:"amended",label:"Amended"},{k:"relevant",label:"Relevant"},{k:"other",label:"Other"}];
+const TLV_ORDER=["1","2","3","4a","4b","4c","5","none"];
+const TLV={"1":"L1 gating","2":"L2 component","3":"L3 integration","4a":"L4a deterministic","4b":"L4b end-to-end","4c":"L4c non-functional","5":"L5 UAT","none":"no test level"};
+const TLV_SEG={gating:"1",component:"2",integration:"3",deterministic:"4a",e2e:"4b",nonfunctional:"4c",uat:"5"};
+const tlOf=e=>{ const v=e&&e.testLevel!=null?String(e.testLevel):""; if(TLV[v]&&v!=="none") return v; const m=/(?:^|[./\\])testing[./\\](gating|component|integration|deterministic|e2e|nonfunctional|uat)(?:[./\\]|$)/.exec(String((e&&(e.path||e.class))||"")); return m?TLV_SEG[m[1]]:"none"; };
+const TRES={passed:{g:"✓",label:"passed",cls:"good"},failed:{g:"✕",label:"failed",cls:"critical"},skipped:{g:"↷",label:"skipped",cls:"neutral"},"not-run":{g:"…",label:"not run yet",cls:"neutral",dash:true},untouched:{g:"⊘",label:"not run: untouched by this change",cls:"neutral"}};
+const TRES_DESC={passed:"its latest run passed",failed:"its latest run failed",skipped:"its latest run skipped it","not-run":"no result recorded yet (pending)",untouched:"counted only: never run for this change"};
+const resOf=e=>{ const r=e&&e.result&&typeof e.result==="object"?e.result:null; if(!r) return "not-run"; if(TRES[r.state]&&r.state!=="untouched") return r.state; return (+r.failed>0)?"failed":(+r.passed>0)?"passed":(+r.skipped>0)?"skipped":"not-run"; };
+const resWord=e=>{ const k=resOf(e), r=(e&&e.result)||{}, n=[["passed",r.passed],["failed",r.failed],["skipped",r.skipped]].filter(([,c])=>Number.isInteger(c)&&c>0); return k==="not-run"?TRES[k].label:`${TRES[k].label}${n.length&&!(n.length===1&&n[0][0]===k)?` · ${n.map(([w,c])=>`${c} ${w}`).join(", ")}`:""}`; };
+let TESTS_SUB="added";
+/* the classes of a sub-tab: the board's own, or on a tracking board every unit's, each with its unit */
+const testsOf=()=>PLAN.tests&&typeof PLAN.tests==="object"&&!Array.isArray(PLAN.tests)?PLAN.tests:null;
+const testKey=x=>`${x.u?x.u.id+"/":""}${x.sub}:${x.e.module||""}::${x.e.class}`;
+function testItems(sub){ const own=(T,u)=>(T&&Array.isArray(T[sub])?T[sub]:[]).filter(e=>e&&typeof e==="object"&&typeof e.class==="string"&&e.class).map(e=>({e,sub,u}));
+  return TRACKING?ROWS.filter(r=>r.unit&&r.unit.tests&&typeof r.unit.tests==="object").flatMap(r=>own(r.unit.tests,r)):own(testsOf(),null); }
+const otherOf=T=>T&&T.other&&T.other.byModule&&typeof T.other.byModule==="object"&&Object.keys(T.other.byModule).length?T.other.byModule:null;
+const cnt=v=>Number.isInteger(v)?{classes:v,tests:null}:v&&typeof v==="object"?{classes:Number.isInteger(v.classes)?v.classes:0,tests:Number.isInteger(v.tests)?v.tests:null}:{classes:0,tests:null};
+function otherTotal(T){ const m=otherOf(T); if(!m) return null; let c=0; Object.values(m).forEach(lv=>Object.values(lv&&typeof lv==="object"?lv:{}).forEach(v=>{ c+=cnt(v).classes; })); return c; }
+/* a class's simple name and its package, from a fully qualified name (a package starts lower case) */
+const simpleName=c=>{ const s=String(c||""), i=s.lastIndexOf("."); return i>0&&/^[a-z]/.test(s)?s.slice(i+1):s; };
+const pkgOf=c=>{ const s=String(c||""), i=s.lastIndexOf("."); return i>0&&/^[a-z]/.test(s)?s.slice(0,i):""; };
+const unitTestsBoard=r=>r&&r.unit&&relLink(r.unit.board)?r.unit.board:null;
+/* the board rows a class verifies: on an issue board each opens its row on the Timeline; on a tracking board, on the unit's own board */
+function testRows(x){ const ids=Array.isArray(x.e.rows)?x.e.rows.filter(v=>typeof v==="string"):[]; if(!ids.length) return "";
+  if(!x.u) return `verifies ${ids.map(id=>{ const r=ROWS.find(y=>y.id===id); return r?`<a href="#${esc(id)}.built" data-go-row="${esc(id)}">${esc(r.name)}</a>`:esc(id); }).join(", ")}`;
+  const b=unitTestsBoard(x.u), names=(x.u.unit.tests&&x.u.unit.tests.rowNames)||{}; return `verifies ${ids.map(id=>b?`<a href="${esc(b)}#${esc(id)}.built">${esc(names[id]||id)}</a>`:esc(names[id]||id)).join(", ")} (on its board)`; }
+/* a unit's number and title, the pair of plan/RULES.md §1: the number opens GitHub, the title its board's Tests tab */
+const unitPairTests=(r,sub)=>{ const b=unitTestsBoard(r), n=r.unit.issue; return `${r.unit.n!=null?esc(r.unit.n)+". ":""}${n?ext(ghUrl(n),"#"+esc(n))+" ":""}${b?`<a href="${esc(b)}#tests.${esc(sub)}" title="${n?"#"+esc(n)+": ":""}its board's Tests tab">${codeOnly(r.name)}</a>`:codeOnly(r.name)}`; };
+function testCard(x,used){ const e=x.e, lv=tlOf(e), rk=resOf(e), rows=testRows(x); used.levels.add(lv); used.res.add(rk);
+  return `<div class="tcard tl-${lv}" role="button" tabindex="0" data-tk="${esc(testKey(x))}" aria-label="${esc(e.class)}: ${esc(TLV[lv])}, ${esc(TRES[rk].label)}"><div class="th"><code class="cn" title="${esc(e.class)}">${esc(simpleName(e.class))}</code>${pill(TRES[rk],"",resWord(e))}</div>${pkgOf(e.class)?`<div class="pk">${esc(pkgOf(e.class))}</div>`:""}<div class="tm">${[e.module?esc(e.module):"",Number.isInteger(e.tests)?`${e.tests} test${e.tests===1?"":"s"}`:"tests not counted",e.stage?`stage ${esc(e.stage)}`:"",e.result&&e.result.pass?`qa pass ${esc(e.result.pass)}`:""].filter(Boolean).join(" · ")}</div>${rows?`<div class="tr">${rows}</div>`:""}${x.u?`<div class="tu">unit ${unitPairTests(x.u,x.sub)}</div>`:""}</div>`; }
+function testGroups(items,used){ return TLV_ORDER.map(lv=>{ const g=items.filter(x=>tlOf(x.e)===lv); if(!g.length) return ""; const n=g.reduce((s,x)=>s+(Number.isInteger(x.e.tests)?x.e.tests:0),0);
+  return `<div class="tgroup"><h3 class="tlh"><i class="tlk tl-${lv}" aria-hidden="true"></i>${esc(TLV[lv])} <small>${g.length} class${g.length===1?"":"es"}${n?` · ${n} test${n===1?"":"s"}`:""}</small></h3><div class="tcards">${g.map(x=>testCard(x,used)).join("")}</div></div>`; }).join(""); }
+/* a tracking board's units, each with what the sub-tab holds of it and its title opening its own board's Tests tab */
+function testUnits(sub,used){ const units=ROWS.filter(r=>r.unit); if(!units.length) return "";
+  /* the units whose boards record tests, one line each; the rest named together in one line */
+  const rec=units.filter(r=>r.unit.tests&&typeof r.unit.tests==="object"), none=units.filter(r=>!rec.includes(r));
+  const rest=none.length?`<li>${rec.length?"The other units record":"No unit records"} no tests yet: ${none.map(r=>r.unit.issue?ilink(r.unit.issue):codeOnly(r.name)).join(", ")}</li>`:"";
+  return `<ul class="tunits">${rec.map(r=>{ const T=r.unit.tests;
+    if(sub==="other"){ const t=otherTotal(T); return `<li>${unitPairTests(r,sub)} · ${t==null?"not counted yet":`${t} other class${t===1?"":"es"}`}</li>`; }
+    const xs=testItems(sub).filter(x=>x.u===r), by={}; xs.forEach(x=>{ const k=resOf(x.e); by[k]=(by[k]||0)+1; used.res.add(k); });
+    return `<li>${unitPairTests(r,sub)} · ${xs.length} class${xs.length===1?"":"es"}${Object.keys(TRES).filter(k=>by[k]).map(k=>pill(TRES[k],"",`${by[k]} ${TRES[k].label}`)).join("")}</li>`; }).join("")}${rest}</ul>`; }
+function otherTable(T,used){ const m=otherOf(T); if(!m) return ""; const mods=Object.keys(m).sort(), lvs=TLV_ORDER.filter(lv=>mods.some(md=>m[md]&&typeof m[md]==="object"&&m[md][lv]!=null));
+  lvs.forEach(lv=>used.levels.add(lv)); used.res.add("untouched");
+  const cell=v=>{ const c=cnt(v); return c.classes?`${c.classes}${c.tests!=null?` <small>(${c.tests} tests)</small>`:""}`:"—"; };
+  return `<div class="scroll"><table class="tbl tother"><thead><tr><th>Module</th>${lvs.map(lv=>`<th class="n"><i class="tlk tl-${lv}" aria-hidden="true"></i>${esc(TLV[lv])}</th>`).join("")}<th class="n">All</th></tr></thead><tbody>${mods.map(md=>{ const row=m[md]&&typeof m[md]==="object"?m[md]:{}, all=Object.values(row).reduce((s,v)=>s+cnt(v).classes,0);
+    return `<tr><td><code>${esc(md)}</code></td>${lvs.map(lv=>`<td class="n">${cell(row[lv])}</td>`).join("")}<td class="n">${all}</td></tr>`; }).join("")}</tbody></table></div><p>${pill(TRES.untouched)}</p>`; }
+const TEST_EMPTY={added:"No test class added on the branch yet: Added grows with each implementation stage, from the branch's diff against its base.",
+  amended:"No existing test class changed on the branch yet: Amended grows with each implementation stage, from the same diff.",
+  relevant:"Nothing recorded yet: Relevant arrives with each qa pass, the tests it ran beyond Added and Amended.",
+  other:"Not counted yet: every other test, per module and test level, is counted with the qa pass."};
+function renderTests(){
+  const T=testsOf();
+  $("#tests-lede").textContent=TRACKING?"Every unit's tests, summed; a unit's title opens its own board's Tests tab.":"Click a class for its detail and the board rows it verifies.";
+  TEST_SUBS.forEach(s=>{ const used={levels:new Set(),res:new Set(),pend:false}, b=$("#tests-"+s.k); let h="";
+    if(TRACKING) h+=testUnits(s.k,used);
+    if(s.k==="other"){ if(TRACKING) ROWS.filter(r=>r.unit&&otherOf(r.unit.tests)).forEach(r=>{ h+=`<p class="tother-u">${unitPairTests(r,"other")}</p>`+otherTable(r.unit.tests,used); }); else h+=otherTable(T,used); }
+    else h+=testGroups(testItems(s.k),used);
+    const n=s.k==="other"?(TRACKING?ROWS.reduce((a,r)=>a+((r.unit&&otherTotal(r.unit.tests))||0),0):(otherTotal(T)||0)):testItems(s.k).length;
+    const empty=s.k==="other"?!(TRACKING?ROWS.some(r=>r.unit&&otherOf(r.unit.tests)):otherOf(T)):!n;
+    /* nothing to show: pending (dashed) while the run is live; on a board that has landed or was cancelled, a plain statement */
+    if(empty&&(LANDED||STOPPED)){ h+=`<p class="empty">${TRACKING?"None recorded on its units' boards.":T?"None recorded for this change.":"No tests recorded on this board."}</p>`; used.box=true; }
+    else if(empty){ h+=`<p class="empty pend">${esc(TRACKING?"None recorded on its units' boards yet.":TEST_EMPTY[s.k])}</p>`; used.pend=true; }
+    b.innerHTML=h;
+    $("#t-tests-"+s.k).innerHTML=`${s.label}<small>${n}</small>`;
+    $("#tests-"+s.k+"-key").innerHTML=[...TLV_ORDER.filter(lv=>used.levels.has(lv)).map(lv=>`<span><i class="tlk tl-${lv}"></i>${esc(TLV[lv])}${lv==="1"?" (faintest)":lv==="5"?" (strongest)":""}</span>`),
+      ...["passed","failed","skipped","not-run","untouched"].filter(k=>used.res.has(k)).map(k=>`<span>${pill(TRES[k])} ${esc(TRES_DESC[k])}</span>`),
+      used.pend?`<span><i class="pln"></i>dashed: nothing recorded yet</span>`:"",used.box?`<span><i class="tbox"></i>box: nothing recorded</span>`:""].join("");
+    b.querySelectorAll(".tcard").forEach(c=>{ const go=()=>{ document.querySelectorAll(".tcard.sel").forEach(x=>x.classList.remove("sel")); c.classList.add("sel"); INSPECTED={k:"test",tk:c.dataset.tk}; inspectTest(c.dataset.tk); };
+      c.addEventListener("click",e=>{ if(e.target.closest("a")) return; go(); }); c.addEventListener("keydown",e=>{ if(e.target!==c) return; if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } }); });
+    bindGoRow(b); });
+  showTestsSub(TESTS_SUB,true);
+}
+const bindGoRow=root=>root.querySelectorAll("a[data-go-row]").forEach(a=>a.addEventListener("click",e=>{ if(e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey) return; e.preventDefault(); goRow(a.dataset.goRow); }));
+function goRow(id){ show("t-timeline"); try{ history.replaceState(null,"","#timeline"); }catch(e){} select(id,"built"); const el=document.getElementById("row-"+id); if(el) el.scrollIntoView({block:"center"}); }
+function findTest(tk){ for(const s of TEST_SUBS){ const x=testItems(s.k).find(y=>testKey(y)===tk); if(x) return x; } return null; }
+function inspectTest(tk){ const x=findTest(tk); if(!x){ INSPECTED=null; inspect(DEFAULT_INSPECT.tests); return; } const e=x.e, lv=tlOf(e), r=e.result||{}, rows=testRows(x);
+  inspect(`<div class="kicker">TESTS · ${esc((TEST_SUBS.find(s=>s.k===x.sub)||{}).label||"").toUpperCase()}</div><div class="name"><code>${esc(e.class)}</code></div><div class="vis"><span class="tlchip"><i class="tlk tl-${lv}" aria-hidden="true"></i>${esc(TLV[lv])}</span> ${pill(TRES[resOf(e)],"",resWord(e))}</div>${e.path?`<p class="lead"><code>${esc(e.path)}</code></p>`:""}<dl>${e.module?`<dt>Module</dt><dd><code>${esc(e.module)}</code></dd>`:""}<dt>Tests</dt><dd>${Number.isInteger(e.tests)?esc(e.tests):"not counted"}</dd><dt>Latest result</dt><dd>${esc(resWord(e))}${r.pass?` · qa pass ${esc(r.pass)}`:""}${r.at?` · ${when(r.at)}`:""}</dd>${rows?`<dt>Board rows it verifies</dt><dd>${rows}</dd>`:""}${e.stage?`<dt>Stage</dt><dd>${esc(e.stage)}</dd>`:""}${x.u?`<dt>Unit</dt><dd>${unitPairTests(x.u,x.sub)}</dd>`:""}</dl>`);
+  bindGoRow($("#insp-body")); }
+const stabs=[...document.querySelectorAll(".stab")];
+/* a sub-tab of the Tests tab; selecting one from elsewhere shows the Tests tab first (keep: a redraw, which leaves the tab as it is) */
+function showTestsSub(k,keep){ if(!TEST_SUBS.some(s=>s.k===k)) k="added"; TESTS_SUB=k;
+  if(!keep&&CUR_TAB!=="tests") show("t-tests");
+  stabs.forEach(t=>{ const on=t.id==="t-tests-"+k; t.setAttribute("aria-selected",String(on)); t.tabIndex=on?0:-1; const p=document.getElementById(t.getAttribute("aria-controls")); if(p) p.hidden=!on; }); }
+stabs.forEach(t=>t.addEventListener("click",()=>{ showTestsSub(t.id.replace("t-tests-","")); try{ history.replaceState(null,"","#tests."+TESTS_SUB); }catch(e){} }));
 
 /* ---------- Impact changes from the plan, on the As built tab (plan/RULES.md §2, "As built") ----------
    How the impact differed from the plan, beside the rows' own changes: impact.changes (what, why, when, ref), each linked to the
@@ -1792,7 +1955,7 @@ derive();
 /* ---------- Tabs and deep links ---------- */
 if(!TRACKING){ const t=$("#t-landing-order"), p=$("#p-landing-order"); if(t) t.remove(); if(p) p.remove(); }
 const tabs=[...document.querySelectorAll(".tab")];
-const DEFAULT_INSPECT={timeline:"<p>Click a cell for its detail: the gap's evidence, an option's reasons, the verdict's steps, tests and risks, or the as-built changes with their reasons. Each cell links the Markdown section that holds the rest.</p>",decisions:"<p>Click a row for the option's full reasons and the options it was weighed against.</p>",built:"<p>Click a card for the row's files, commits, verification and every change from the verdict. Each impact change opens the Impact card it changed.</p>",impact:"<p>Click a card for its detail: the party affected or the surface that moves, its system, its tier, and the Markdown section that holds the rest.</p>","landing-order":"<p>Click a unit for its as-built state, its issue and its board or folder, and its run in full.</p>",source:"<p>The committed <code>plan.json</code>. Edit the file, then run <code>plan/scripts/embed.js</code> on the folder.</p>"};
+const DEFAULT_INSPECT={timeline:"<p>Click a cell for its detail: the gap's evidence, an option's reasons, the verdict's steps, tests and risks, or the as-built changes with their reasons. Each cell links the Markdown section that holds the rest.</p>",decisions:"<p>Click a row for the option's full reasons and the options it was weighed against.</p>",built:"<p>Click a card for the row's files, commits, verification and every change from the verdict. Each impact change opens the Impact card it changed.</p>",impact:"<p>Click a card for its detail: the party affected or the surface that moves, its system, its tier, and the Markdown section that holds the rest.</p>",tests:"<p>Click a class for its detail: its path, its module and test level, its test count, its latest result and the board rows it verifies.</p>","landing-order":"<p>Click a unit for its as-built state, its issue and its board or folder, and its run in full.</p>",source:"<p>The committed <code>plan.json</code>. Edit the file, then run <code>plan/scripts/embed.js</code> on the folder.</p>"};
 let CUR_TAB="";
 function show(id,keep){
   const name0=id.replace("t-",""); CUR_TAB=name0;
@@ -1802,6 +1965,7 @@ function show(id,keep){
   const name=id.replace("t-","");
   if(name==="decisions") renderDecisions();
   if(name==="built") renderBuilt();
+  if(name==="tests") renderTests();
   if(name==="impact") renderImpact();
   if(name==="landing-order") renderChain();
   if(name==="source") renderSource();
@@ -1814,6 +1978,7 @@ function replayInspect(I){ const r=I&&I.row?ROWS.find(x=>x.id===I.row):null, dfl
   if(I.k==="opt"){ if(!r) return dflt(); INSPECTED=I; inspectOption(r,(r.options||[]).find(o=>o.id===I.opt)); return; }
   if(I.k==="ref"){ if(!r) return dflt(); inspectRef(I.row,I.col,I.i); if(INSPECTED&&INSPECTED.k==="ref") return; return dflt(); }
   if(I.k==="built"||I.k==="unit"){ if(!r) return dflt(); INSPECTED=I; if(I.k==="unit"){ const g=document.querySelector(`.chainsvg .unit[data-row="${CSS.escape(I.row)}"]`); if(g) g.classList.add("sel"); } inspectBuilt(r); return; }
+  if(I.k==="test"){ const c=[...document.querySelectorAll(".tcard")].find(x=>x.dataset.tk===I.tk); if(!c&&CUR_TAB==="tests") return dflt(); if(c) c.classList.add("sel"); INSPECTED=I; inspectTest(I.tk); return; }
   if(I.k==="imp"){ const c=[...document.querySelectorAll("#impact-body .icard")].find(x=>x.dataset.imp===I.ref); if(!c&&CUR_TAB==="impact") return dflt(); if(c) c.classList.add("sel"); INSPECTED=I; inspectImpact(I.ref); return; }
   dflt(); }
 tabs.forEach((t,i)=>{ t.addEventListener("click",()=>{ show(t.id); try{ history.replaceState(null,"","#"+t.id.replace("t-","")); }catch(e){} }); });
@@ -1821,6 +1986,8 @@ tabs.forEach((t,i)=>{ t.addEventListener("click",()=>{ show(t.id); try{ history.
    last, each shown at once; only the selected tab is in the Tab order (a roving tabindex), so Tab moves on to the panel. */
 function tabKeys(list,go){ list.forEach((t,i)=>{ t.tabIndex=t.getAttribute("aria-selected")==="true"?0:-1; t.addEventListener("keydown",e=>{ const n=list.length, j={ArrowRight:(i+1)%n,ArrowLeft:(i+n-1)%n,Home:0,End:n-1}[e.key]; if(j==null) return; e.preventDefault(); list[j].focus(); go(list[j].id); }); }); }
 tabKeys(tabs,id=>show(id));
+/* the Tests tab's sub-tabs are a tablist of their own, with the same keys */
+tabKeys(stabs,id=>{ showTestsSub(id.replace("t-tests-","")); try{ history.replaceState(null,"","#tests."+TESTS_SUB); }catch(e){} });
 
 /* ---------- The theme switch (GUIDANCE.md §1, Themes) ----------
    A light/night toggle in the header. Until it is clicked the page follows the system setting; a click picks the other palette and
@@ -1892,9 +2059,10 @@ startLive();
 const hash=decodeURIComponent(location.hash.replace("#",""));
 let start="t-timeline"; if(hash&&document.getElementById("t-"+hash)) start="t-"+hash; else if(hash==="chain"&&document.getElementById("t-landing-order")) start="t-landing-order"; /* the tab's old name */
 else if(/^impact\./.test(hash)&&document.getElementById("t-impact")) start="t-impact"; /* an Impact card, "#impact.<entry>" */
+else if(/^tests\.(added|amended|relevant|other)$/.test(hash)&&document.getElementById("t-tests")){ start="t-tests"; TESTS_SUB=hash.slice(6); } /* a sub-tab of Tests, "#tests.<sub>" */
 show(start);
 if(/^impact\./.test(hash)) goImpact(hash.slice("impact.".length));
-else if(hash&&hash!=="chain"&&!document.getElementById("t-"+hash)){ const [rowId,col,optId]=hash.split("."); if(ROWS.some(r=>r.id===rowId)){
+else if(hash&&hash!=="chain"&&!/^tests\./.test(hash)&&!document.getElementById("t-"+hash)){ const [rowId,col,optId]=hash.split("."); if(ROWS.some(r=>r.id===rowId)){
   /* "#<row>.<verdict|built>.s<n>" opens statement n's reference, its excerpt in the inspector */
   if(/^s\d+$/.test(optId||"")&&["verdict","built"].includes(col)){ select(rowId,col); inspectRef(rowId,col,+optId.slice(1)); }
   else select(rowId,COLS.some(c=>c.key===col)?col:"gap",optId); const el=document.getElementById("row-"+rowId); if(el) el.scrollIntoView({block:"center"}); } }

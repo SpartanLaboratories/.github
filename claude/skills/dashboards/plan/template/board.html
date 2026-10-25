@@ -320,7 +320,7 @@ function render(){
   const t=B.tree||{};
   /* the tags (GUIDANCE.md §6, "The header"): each its label (.ck) and its value; when and from which commit it was generated are one tag */
   const tag=(ck,v,cls)=>`<span class="chip${cls?" "+cls:""}"><span class="ck">${ck}</span> ${v}</span>`;
-  $("#chips").innerHTML=[tag("generated",`<b>${when(B.generated||"")}</b>${t.sha?` · from <b>${esc(t.ref||"")} ${esc(t.sha)}</b>`:""}`),B.live?tag("live view",`from <b>${esc(B.live.worktrees)}</b> worktree${B.live.worktrees===1?"":"s"}, each issue's freshest board`):"",tag("tracker as of",`<b>${day(B.asOf||"")}</b>`),tag("board",`<b>board.json</b> · ${ROWS.length} runs`,"model")].filter(Boolean).join("");
+  $("#chips").innerHTML=[tag("generated",`<b>${when(B.generated||"")}</b>${t.sha?` · from <b>${esc(t.ref||"")} ${esc(t.sha)}</b>`:""}`),B.live?tag("live view",`from <b>${esc(B.live.worktrees)}</b> worktree${B.live.worktrees===1?"":"s"}, each issue's freshest board`):"",tag("tracker as of",`<b>${day(B.asOf||"")}</b>`)].filter(Boolean).join("");
   const n=k=>ROWS.filter(r=>stOf(r)===k).length;
   const nexts=ROWS.filter(r=>stOf(r)==="next");
   /* the Runs tile's bar: every run by its state; the Landed tile's: landed, complete, merged, and the closed ones not counted */

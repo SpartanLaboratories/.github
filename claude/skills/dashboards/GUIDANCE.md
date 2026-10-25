@@ -83,6 +83,11 @@ as a chip on the As built tab and on the work board, never on the Impact tab: pl
 dashed, partly reconciled yellow, as built green, each with its glyph and word (`plan/RULES.md` §2,
 Impact).
 
+**Test levels: a neutral ramp.** On a plan board's Tests tab (`plan/RULES.md` §2) a test class is coloured by its test level, the
+five-level testing hierarchy's L1 gating to L5 UAT, as a ramp of neutrals from the faintest (L1) to the full ink (L5), in either theme, each with its level label:
+the levels are an order, not systems or outcomes, so they take neither a system slot nor a status colour, and the class's latest result
+keeps the status scale (passed green, failed red, each with its glyph and word).
+
 **Work in progress and the next one up: two accent marks.** The accent colour marks two things
 and nothing else, each with its own look and its own legend entry (the charging arrow, below, is
 the in-progress mark of a connector):
@@ -151,7 +156,8 @@ an encoding the panel never draws is a defect; so is an encoding with no legend 
 
 **Figures.** A tile that counts states carries a segmented bar of them, wherever it stands: a plan board's row of KPI tiles (an issue board's, a tracking board's) is a panel too, and every tile carries a
 segmented bar of what its figure counts (by group, verdict, state or qa pass, `plan/RULES.md` §2, "The KPI tiles"), in the colour coding of §1 (a system's colour, a status
-colour, a neutral; dashed for what is pending), and one legend under the tiles names every segment drawn. The
+colour, a neutral; dashed for what is pending), and **each tile carries the legend of its own bar, inside the tile**, naming exactly the
+segments that bar drew: no legend row is shared under the tiles, so every tile keeps its full share of the row. The
 work board's Runs tile (every run by its state) and its Landed tile (landed, merged, complete, and the closed ones it does not count) carry one
 too, each with its legend inside the tile. A tile that counts one state (the work board's Active, Waiting, Up next, Not started) has
 nothing to segment and carries none, and so do the system pages' hand-written tiles: they are counted facts written by hand (files,
@@ -275,14 +281,15 @@ so it is never smaller than in the 1280 px layout and never outgrows the screen.
 boards, the work board — lays its header out the same way. The topbar runs across the top: the
 breadcrumb, and right of it the live indicator (plan boards and the work board: the live work board follows the runs, the committed one
 reads "not live · as of" its generation; a state page has none) and the
-theme switch. From 940 px wide the rest is two halves: the **intro** — the title, on a plan board
-the issue line (its `#n`, which opens the GitHub issue, and the issue's title on GitHub), and the
+theme switch. From 940 px wide the rest is two halves: the **intro** — the title (on a plan board `#n · title`, its `#n` the link
+to the GitHub issue), on a plan board the issue line (the issue's title on GitHub, and nothing else), and the
 function paragraph — fills the **left half**, the function stretched across it rather than held to a
 prose measure; the **tags** stand in the **right half** beside it, each a small card with its label
 over its value, growing to fill its line, a long one (a tracking board's chain, three systems or
 more) across the half. Under 940 px the two stack, intro first, and the tags wrap as chips with the
 label before the value. A tag is a fact with its label (`<span class="ck">label</span> value`); one
-fact is one tag (the board's systems are one tag, each system with its swatch); a page's
+fact is one tag (the board's systems are one tag, each system with its swatch), and no tag repeats what the KPI tiles count or what
+the footer names (a plan board and the work board carry no "board" tag: their source is in the footer and the Source tab); a page's
 hand-written header keeps the same form (`system/RULES.md` §2).
 
 **Sidecars.** A plan board's `plan.js` (and the work board's `board.js`) is committed with its page: a clone opened from disk then polls it
@@ -348,7 +355,9 @@ template feature, tagged with the skill step that added it and the page types it
 switch and its script before the first paint, the dark palette, the labelled tags, the 1500 px layout, the `BOARDS` map, the live
 indicator present or absent by type, one-line ledes, reduced motion wherever anything animates, a tabindex on every role=button, the
 tablist's keys, the state block, the as-is header, the legends of Guarantees and Context, the work-board link, the links from the data,
-the Markdown copies, the progress notes, a tracking board's steps, the KPI bars, the neutral bug badge, the chain, core subsystems — and
+the Markdown copies, the progress notes, a tracking board's steps, the KPI bars, the neutral bug badge, the chain, core subsystems, the tiles'
+legends inside each tile, no "board" tag, the title's `#n`, "since" said once by the step panel, the larger charging arrow, the landing
+step, the Tests tab — and
 the browser pass the layout ones (the header's halves, the wide page, the legends shown). A missing feature fails, as `FEATURE MISSING:
 <feature> (template since dashboards-skill/N)`, **through a declared divergence too**: a divergence adds or argues a removal; it never
 excuses a page that lags its template. A landed or cancelled issue board is the exception: it is kept as it landed and never

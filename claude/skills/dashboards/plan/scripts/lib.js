@@ -288,6 +288,24 @@ function mirrorUnitRuns(plan, dir) {
   });
   return changes;
 }
+/* The units' tests (plan/RULES.md §2, "The Tests tab"): on a tracking board each unit row carries unit.tests, its own board's tests block
+   (testslib.js testsMirror(), with the names of the rows its classes verify), so the tracking board's Tests tab sums the units' tests. Nobody
+   writes it by hand: embed.js writes it from the unit's plan.json in the same tree at every embed of the tracking board, landed units
+   included, and clears it where the unit's board is not in the tree or records no tests. Returns [{ row, unit, want, have }]. */
+function unitTests(plan, dir) {
+  if (!plan || plan.kind !== "tracking") return [];
+  const TL = require("./testslib.js");
+  return (plan.rows || []).filter(r => r && r.unit && Number.isInteger(r.unit.issue)).map(r => { const sub = subIssuePlan(dir, r.unit); return { row: r, unit: r.unit, want: sub ? TL.testsMirror(sub) : null, have: r.unit.tests || null }; });
+}
+function mirrorUnitTests(plan, dir) {
+  const changes = [];
+  unitTests(plan, dir).forEach(x => {
+    if (JSON.stringify(x.have) === JSON.stringify(x.want)) return;
+    if (x.want) { x.unit.tests = x.want; changes.push(`#${x.unit.issue}: tests mirrored from its board`); }
+    else if ("tests" in x.unit) { delete x.unit.tests; changes.push(`#${x.unit.issue}: tests mirror cleared (no board of its own in this tree, or it records no tests)`); }
+  });
+  return changes;
+}
 const stampMs = s => { const t = Date.parse(String(s || "")); return isNaN(t) ? null : t; };
 /* The mirrors that lag their sub-issue's board (check.js warns on each): "missing" (in progress with a board, no mirror), "older"
    (unit.live.updated earlier than the board's wip.updated), "differs" (not older, other content), "orphan" (a mirror embed.js
@@ -346,7 +364,8 @@ function parentBoard(dir, parent) {
 const ISSUE_UNLINKED = new Set(["$comment", "schema", "repo", "slug", "folder", "kind", "status", "id", "where", "title", "system", "slot", "top", "page", "board",
   "branch", "step", "steps", "since", "updated", "state", "verdict", "column", "date", "sha", "merge", "version", "pr", "files", "n", "level", "current", "next",
   "resume", "qa", "qaMax", "pass", "findings", "question", "questions", "landing", "chosen", "settles", "when", "issueBoards",
-  "event", "research", "phase", "drafted", "stages", "severity", "started", "returned", "asked", "answered", "verdicts", "deviations", "hash", "list", "links", "pages"]);
+  "event", "research", "phase", "drafted", "stages", "severity", "started", "returned", "asked", "answered", "verdicts", "deviations", "hash", "list", "links", "pages",
+  "class", "module", "path", "testLevel", "byModule", "rowNames", "base", "stage"]);
 const reEsc = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const UNIT_LANDED = ["landed", "as-planned", "amended", "deviated"];
 /* Left for later (plan/RULES.md §2, the As built tile; §3, the chain's progress): a row whose written verdict leaves it as is (kind
@@ -467,6 +486,8 @@ function linkIssueBoards(plan, dir) {
   if (!plan) return changes;
   // the units' runs first (a tracking board): a mirrored detail may name issues, which issueBoards then links
   changes.push(...mirrorUnitRuns(plan, dir));
+  // each unit's tests, from its own board, for the Tests tab (plan/RULES.md §2, "The Tests tab")
+  changes.push(...mirrorUnitTests(plan, dir));
   if (plan.parent && Number.isInteger(plan.parent.issue)) {
     const hit = parentBoard(dir, plan.parent), want = hit ? hit.board : null;
     if ((plan.parent.board || null) !== want) {
@@ -647,7 +668,9 @@ function researchGlow(plan) {
   /* the questions whose rows glow: the ones being researched or verified, or, while none is, the returned ones awaiting verification */
   const active = busy.length ? busy : qs.filter(q => qState(q) === "returned");
   const column = (fallback) => ({ current: ["considered"], phase, fallback });
-  if (phase === "none") return column("no research question is recorded yet");
+  /* research planning (plan/RULES.md §3): no question recorded yet. A board with rows glows its whole Considered column; a board with no
+     rows glows nothing, and only the step panel shows the planning */
+  if (phase === "none") return rows.length ? column("no research question is recorded yet") : { current: [], phase, fallback: "the board has no rows yet: nothing glows, the step panel shows the planning" };
   if (!active.length) return column("no question is being researched, verified or awaiting verification");
   if (!rows.length) return column("the board has no rows yet");
   const cells = new Set();
@@ -660,7 +683,7 @@ function researchGlow(plan) {
 }
 /* The plan-board events (plan/RULES.md §4), as wip.event.name records the last one a board took. */
 const EVENTS = ["sized", "halted", "resumed", "research-planning", "research-started", "research-returned", "verification-started", "researched",
-  "architecture-signed-off", "sub-issues-filed", "boards-created", "plan-accepted", "branch-cut", "implementation-stage", "qa-pass", "escalated", "landed", "cancelled"];
+  "architecture-signed-off", "sub-issues-filed", "boards-created", "plan-accepted", "branch-cut", "implementation-stage", "qa-pass", "escalated", "landing", "landed", "cancelled"];
 /* A row's as-built state before its outcome (plan/RULES.md §2, "Before the outcome"): derived from the implementation stages while the
    run is live. On an issue board, for a row wip.stages touches: "in-progress" when a current stage touches it, "partially-built" when a
    done stage touched it and a later stage still to come touches it, "pending" when only stages to come touch it; null otherwise (no
@@ -722,7 +745,7 @@ function glowMismatch(plan) {
   else if (m.kind === "research") {
     const g = researchGlow(plan), want0 = g.current;
     const who = g.phase === "waiting" ? "the returned questions awaiting verification" : "the questions being researched or verified";
-    want = g.fallback ? `the whole Considered column, as ["considered"] (the fallback: ${g.fallback})` : `the Considered cells of the rows ${who} name, as ${JSON.stringify(want0)}`;
+    want = g.fallback && !want0.length ? `nothing (${g.fallback})` : g.fallback ? `the whole Considered column, as ["considered"] (the fallback: ${g.fallback})` : `the Considered cells of the rows ${who} name, as ${JSON.stringify(want0)}`;
     bad = cur.filter(a => !want0.includes(a)).map(a => a.endsWith(".considered") && want0[0] !== "considered" ? `${a} (${g.phase === "waiting" ? "no returned question" : "no question being researched or verified"} names its row)` : a);
     const miss = want0.filter(a => !cur.includes(a)); if (miss.length) bad.push(`${miss.join(", ")} missing`);
   }
@@ -753,4 +776,4 @@ function glowMismatch(plan) {
 }
 
 module.exports = { STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
-  trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, parentFolder, staleUnitRuns, stampMs, treeRoot, boardFolders, boardLink, parentBoard, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };
+  trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, parentFolder, staleUnitRuns, stampMs, treeRoot, boardFolders, boardLink, parentBoard, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

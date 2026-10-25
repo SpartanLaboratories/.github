@@ -2032,5 +2032,181 @@
     ],
     "source": null,
     "link": null
+  },
+  "tests": {
+    "base": "master",
+    "updated": "2026-10-20T12:00:00Z",
+    "added": [
+      {
+        "class": "com.spartanlabs.testing.e2e.udp.HandshakeMalformedE2ETest",
+        "module": "webtools-udp",
+        "testLevel": "4b",
+        "path": "webtools-udp/src/test/kotlin/com/spartanlabs/testing/e2e/udp/HandshakeMalformedE2ETest.kt",
+        "tests": 1,
+        "rows": [
+          "refusal-reply",
+          "tests"
+        ],
+        "stage": "C",
+        "result": {
+          "state": "passed",
+          "passed": 1,
+          "pass": 2,
+          "at": "2026-10-20T11:00:00Z"
+        }
+      },
+      {
+        "class": "com.spartanlabs.testing.gating.udp.HandshakeParseGatingTest",
+        "module": "webtools-udp",
+        "testLevel": "1",
+        "path": "webtools-udp/src/test/kotlin/com/spartanlabs/testing/gating/udp/HandshakeParseGatingTest.kt",
+        "tests": 6,
+        "rows": [
+          "validity-rule"
+        ],
+        "stage": "A",
+        "result": {
+          "state": "passed",
+          "passed": 6,
+          "pass": 2,
+          "at": "2026-10-20T11:00:00Z"
+        }
+      }
+    ],
+    "amended": [
+      {
+        "class": "com.spartanlabs.testing.component.udp.HandshakeCoordinatorTest",
+        "module": "webtools-udp",
+        "testLevel": "2",
+        "path": "webtools-udp/src/test/kotlin/com/spartanlabs/testing/component/udp/HandshakeCoordinatorTest.kt",
+        "tests": 41,
+        "rows": [
+          "routing",
+          "validity-rule",
+          "test-housekeeping"
+        ],
+        "stage": "A",
+        "result": {
+          "state": "passed",
+          "passed": 41,
+          "pass": 2,
+          "at": "2026-10-20T11:00:00Z"
+        }
+      },
+      {
+        "class": "com.spartanlabs.testing.deterministic.udp.HandshakeProtocolTest",
+        "module": "webtools-udp",
+        "testLevel": "4a",
+        "path": "webtools-udp/src/test/kotlin/com/spartanlabs/testing/deterministic/udp/HandshakeProtocolTest.kt",
+        "tests": 19,
+        "rows": [
+          "validity-rule"
+        ],
+        "stage": "C",
+        "result": {
+          "state": "passed",
+          "passed": 19,
+          "pass": 2,
+          "at": "2026-10-20T11:00:00Z"
+        }
+      },
+      {
+        "class": "com.spartanlabs.testing.integration.udp.ChannelByteGuardIntegrationTest",
+        "module": "webtools-udp",
+        "testLevel": "3",
+        "path": "webtools-udp/src/test/kotlin/com/spartanlabs/testing/integration/udp/ChannelByteGuardIntegrationTest.kt",
+        "tests": 8,
+        "rows": [
+          "test-housekeeping"
+        ],
+        "stage": "A",
+        "result": {
+          "state": "passed",
+          "passed": 8,
+          "pass": 2,
+          "at": "2026-10-20T11:00:00Z"
+        }
+      },
+      {
+        "class": "com.spartanlabs.testing.nonfunctional.udp.FramingNonFunctionalTest",
+        "module": "webtools-udp",
+        "testLevel": "4c",
+        "path": "webtools-udp/src/test/kotlin/com/spartanlabs/testing/nonfunctional/udp/FramingNonFunctionalTest.kt",
+        "tests": 9,
+        "rows": [
+          "refusal-reply"
+        ],
+        "stage": "C",
+        "result": {
+          "state": "passed",
+          "passed": 9,
+          "pass": 2,
+          "at": "2026-10-20T11:00:00Z"
+        }
+      }
+    ],
+    "relevant": [
+      {
+        "class": "com.spartanlabs.testing.integration.udp.MultiConnectionUDPServerTest",
+        "module": "webtools-udp",
+        "testLevel": "3",
+        "path": "webtools-udp/src/test/kotlin/com/spartanlabs/testing/integration/udp/MultiConnectionUDPServerTest.kt",
+        "tests": 22,
+        "rows": [
+          "routing"
+        ],
+        "result": {
+          "state": "passed",
+          "passed": 22,
+          "pass": 2,
+          "at": "2026-10-20T11:00:00Z"
+        }
+      },
+      {
+        "class": "com.spartanlabs.testing.uat.udp.HandshakeUatTest",
+        "module": "webtools-udp",
+        "testLevel": "5",
+        "path": "webtools-udp/src/test/kotlin/com/spartanlabs/testing/uat/udp/HandshakeUatTest.kt",
+        "tests": 2,
+        "result": {
+          "state": "skipped",
+          "skipped": 2,
+          "pass": 2,
+          "at": "2026-10-20T11:00:00Z"
+        }
+      },
+      {
+        "class": "LegacyFramingSmokeTest",
+        "module": "webtools-udp",
+        "path": "webtools-udp/src/test/kotlin/LegacyFramingSmokeTest.kt",
+        "tests": 3,
+        "result": {
+          "state": "passed",
+          "passed": 3,
+          "pass": 2,
+          "at": "2026-10-20T11:00:00Z"
+        }
+      }
+    ],
+    "other": {
+      "byModule": {
+        "webtools-core": {
+          "1": 4,
+          "2": 18,
+          "4a": 5
+        },
+        "webtools-udp": {
+          "1": 9,
+          "2": {
+            "classes": 31,
+            "tests": 212
+          },
+          "3": 12,
+          "5": 1,
+          "4a": 7,
+          "4c": 4
+        }
+      }
+    }
   }
 }

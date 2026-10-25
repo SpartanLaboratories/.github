@@ -13,6 +13,7 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { levelRefsIn } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
 const { paletteCheck } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js"));
+const { unitTests } = require("./lib.js");
 const { STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
@@ -392,6 +393,12 @@ function checkPlan(plan, dir, root) {
       if (tp) staleUnitRuns(tp, up).filter(x => x.unit.issue === plan.issue && x.kind !== "orphan").forEach(x => warn(`the parent #${tp.issue}'s tracking board mirrors this run ${x.kind === "missing" ? "not at all" : x.kind === "older" ? `as of ${x.have.updated}, older than this board's ${x.want.updated}` : "with other content"}: run embed.js on this folder, which re-embeds it`)); }
   }
   checkImpact(plan, dir, systems, rows, tracking);
+  /* The Tests tab (RULES §2, "The Tests tab"): the board's tests block (testslib.js testsProblems()), a unit row's mirror of its board's
+     (unit.tests, tracking boards only, written by embed.js), and a mirror that differs from the unit's board (fixed by embed.js). */
+  { const TL = require("./testslib.js"), p = TL.testsProblems(plan); p.fail.forEach(fail); p.warn.forEach(warn);
+    rows.forEach((r, i) => { if (!r || !r.unit || r.unit.tests == null) return; const at = `rows[${i}] (${r.id})`;
+      if (!tracking) fail(`${at}.unit.tests on a board that is not a tracking board`); TL.mirrorProblems(r.unit.tests, at).forEach(fail); });
+    if (tracking) unitTests(plan, dir).forEach(x => { if (JSON.stringify(x.have) !== JSON.stringify(x.want)) warn(`rows(${x.row.id}).unit.tests (#${x.unit.issue}) ${x.want ? (x.have ? "differs from its board's tests" : "is missing: its board records tests") : "is a mirror embed.js would clear (no board of the unit in this tree, or it records no tests)"}: run embed.js on this folder, or on the sub-issue's, which re-embeds this one`); }); }
   if (plan.roadmap && typeof plan.roadmap === "object") (plan.roadmap.items || []).forEach((x, i) => reasonCheck(x, `roadmap.items[${i}]`));
   (plan.followUps || []).forEach((f, i) => { if (!posInt(f.issue) && !str(f.name)) fail(`followUps[${i}] needs an issue number or, for an unfiled follow-up, a name`); });
   (plan.documents || []).forEach((d, i) => { if (!str(d.label) && !str(d.path)) fail(`documents[${i}] needs a label or a path`); checkLink(dir, d.path, `documents[${i}].path`); });
