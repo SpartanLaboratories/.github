@@ -85,7 +85,13 @@ aim the research, but keep it out of the file. The report never mentions
 interview questions, user answers, "the user chose", decision IDs, or the
 planner's constraint labels. A requirement your answer must meet is stated as a
 plain fact about the work ("consumers stay on Kotlin 2.2.0"), not attributed to
-anyone.
+anyone. Nor does it name the pipeline's agents, sessions or roles (admin team, planner, plan-writer, architect,
+researcher, verifier, interviewer, presenter, publisher, rookie-dev,
+version-control-manager or executor, qa, code-reviewer, documentation-reviewer,
+test-inspector) or the approval flow ("the user's call", "the user chose",
+"user answers") or state a work level ("level 3", "a level-4 tracking
+issue"); the project's own test levels (Level 2 component, 4a, …), "the implementer" and a library's name that only
+coincides (OkHttp's `RoutePlanner`) are fine.
 
 The report is Markdown, in this order:
 
@@ -145,8 +151,8 @@ for you.
 
 Note the time when you start (`date -u +%Y-%m-%dT%H:%M:%SZ`). After each step of your
 work, check the clock; once 10 minutes have passed since you started, and again every 10
-minutes after that, take a brief look at your own progress and write it where the issue's
-plan board shows it in its step panel. This is the one file you may write besides your
+minutes after that, take a brief look at your own progress and write it where the issue
+board shows it in its step panel. This is the one file you may write besides your
 own outputs; it is never committed.
 
 - **Where:** in the repository checkout you work in (`git rev-parse --show-toplevel`),

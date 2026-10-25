@@ -103,6 +103,17 @@ appear as requirements, facts, assumptions, non-goals and the shape of the
 systems themselves. Rationale argues from the subject ("`X` is not used because
 `Y`"), never from the process ("per the interview", "as the user asked").
 
+**No internal names.** The document never names the pipeline's agents, sessions or roles (admin team, planner, plan-writer, architect,
+researcher, verifier, interviewer, presenter, publisher, rookie-dev,
+version-control-manager or executor, qa, code-reviewer, documentation-reviewer,
+test-inspector) or the approval flow ("the user's call", "the user chose",
+"user answers")
+and never states a work level ("level 3", "a level-4 tracking issue"). A unit's
+proposed work level, when your brief asks for one, goes in your report to the
+caller, never in the document. The project's own test levels (Level 2
+component, 4a, …), "the implementer" and a library's name that only
+coincides (OkHttp's `RoutePlanner`) are fine.
+
 Structure:
 
 1. **Header** — `Covers:` the repo-qualified issue (`owner/repo#N` plus title)
@@ -147,7 +158,8 @@ padded one. Omit a section that does not apply.
 
 - Two or three sentences on the shape of the design.
 - The path to the architecture document.
-- The **Decomposition** list — unit slugs, scope, dependencies, order.
+- The **Decomposition** list — unit slugs, scope, dependencies, order, and
+  each unit's proposed work level when your brief asks for one.
 - The **Considerations** list verbatim, if any.
 - Any cross-repo work the design implies.
 
@@ -167,8 +179,8 @@ padded one. Omit a section that does not apply.
 
 Note the time when you start (`date -u +%Y-%m-%dT%H:%M:%SZ`). After each step of your
 work, check the clock; once 10 minutes have passed since you started, and again every 10
-minutes after that, take a brief look at your own progress and write it where the issue's
-plan board shows it in its step panel. This is the one file you may write besides your
+minutes after that, take a brief look at your own progress and write it where the issue
+board shows it in its step panel. This is the one file you may write besides your
 own outputs; it is never committed.
 
 - **Where:** in the repository checkout you work in (`git rev-parse --show-toplevel`),

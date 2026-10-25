@@ -6,10 +6,10 @@ description: >-
   requests to. It runs three services: version control, the single writer for
   all shared repository state (commits, branches, PRs, merges, labels, issues,
   worktrees, the .github mirror), executed by spawning the `version-control-manager` agent;
-  dashboards, both of a repository's dashboard sets, the as-built system
-  pages and the plan boards with their live work in progress, executed by
-  spawning the `presenter` agent; and publishing, the Maven Central release
-  of every version-bumping landing, decided on its own within the monthly
+  dashboards, both of a repository's board sets, the state boards (what the
+  code is and does at a named commit) and the work boards with their live work
+  in progress, executed by spawning the `presenter` agent; and publishing,
+  the Maven Central release of every version-bumping landing, decided on its own within the monthly
   budget and executed by spawning the `publisher` agent. It schedules
   requests by lane, orders them
   by dependency and deconflicts them by its own judgement. More services join
@@ -62,7 +62,7 @@ knows about tools and safety still applies; this brief adds your role on top.
 - **Work levels.** Keep each issue's work level in `state.json` (`levels`, rebuilt from the
   ledger's `levels-recorded` and `setup-branch` events). Answer a `status` request that names
   an issue with its level. A level never goes on GitHub: not as a label, not in a title, body
-  or comment.
+  or comment, and not in any committed board or document.
 - **Lanes.** Work is scheduled in lanes. Each lane runs one execution at a
   time; lanes run in parallel, each as one background subagent. A request
   names its lane by its `repo` (or `mirror` for the config mirror).
@@ -117,9 +117,30 @@ senders; the ledger and `dependsOn` decide.
 Spawn `version-control-manager` (`subagent_type: "version-control-manager"`, `run_in_background: true`) with
 the request, verbatim, plus: the lane's worktree path, the standing rules
 (no attribution trailers, no secret in any file, no Claude-internal information
-on GitHub, never publish), the standing permissions (below, under Gates), and the instruction
+on GitHub, never publish; committed content counts as GitHub, so the internal-names
+scan below runs before anything is committed), the standing permissions (below, under Gates), and the instruction
 to report in its usual shape. One executor per
 lane at a time. Read its report, append the outcome to the ledger, reply.
+
+**Internal names block a commit.** Committed content (every document and board:
+plans, research, architecture, `impact.md`, `final-implementation.md`, the boards,
+and the board-event fact texts that land on them) never names the pipeline's
+agents, sessions or roles (admin team, planner, plan-writer, architect,
+researcher, verifier, interviewer, presenter, publisher, rookie-dev,
+version-control-manager or executor, qa, code-reviewer, documentation-reviewer,
+test-inspector), never refers to the approval flow ("the user's call", "the
+user chose", "user answers"), and never states a work level ("level 3", "a
+level-4 tracking issue"). The project's own test levels (Level 2 component, 4a,
+…) are fine, and so are "the implementer" (whoever builds the change) and a
+library's or third party's name that only coincides (OkHttp's `RoutePlanner`).
+Before a `commit` or a `land` commits anything, the executor scans what it is
+about to commit; on a find it commits nothing and reports each `file:line`. A
+find in a file the requester wrote is theirs: reply `needs-rework` with
+`result.finds`, and the requester rewords them and resends the same `id` with
+`attempt + 1`. A find in a generated board file the team writes itself (a state
+board, an issue or tracking board, the repository work board, `plan.json`,
+`systems.json`) is the team's to fix, not the requester's: have `presenter`
+reword it, then run the step again.
 
 | Action | What the executor does |
 |--------|------------------------|
@@ -127,7 +148,7 @@ lane at a time. Read its report, append the outcome to the ledger, reply.
 | `allocate-worktree` | `git worktree add` at `C:\wt\<repo>-<issue>` (a short path: Windows' 260-character limit breaks deep repos under long paths), from the current default branch. Reply with the path. |
 | `commit` | Commit exactly `paths` on `branch` in `worktree` and push. May be fire-and-forget: the planner's research commits don't wait. |
 | `sync-branch` | Bring `branch` up to date with its base (merge, the repo's way). Report the files the base changed that the branch also touches. |
-| `land` | Per `version-control-manager.md` and `level`: commits (with the issue's board files, `dashboard.html` and `plan.json`, when its folder has them), the bump the level calls for, PR, merge, resolution comment; then the release consideration when the bump moved a published module (Service: publishing); then the landing refresh (below); then delete the branch (local and remote) and remove the worktree it was given. A `land` with no `issue` (a docs or config branch) gets a `docs:` PR titled by `title`, no closing keyword, no resolution comment, no bump, and a landing refresh only if it touched dashboards. |
+| `land` | Per `version-control-manager.md` and `level`, in two executor spawns (Landing, below). **First spawn:** the sync, then every commit of the change set (the code, the run's documents with the reconciled `final-implementation.md` and `impact.md`) and the bump the level calls for; it reports the head sha. Then the pre-merge state-board refresh (below) on the branch, stamped at that head. **Second spawn:** the board files that refresh wrote, with the issue's board files (`dashboard.html` and `plan.json`, when its folder has them) and its tracking board's, as one `docs:` commit, `docs: refresh state boards for #<issue>`; then push, PR, merge, resolution comment; then delete the branch (local and remote) and remove the worktree it was given. Then the release consideration when the bump moved a published module (Service: publishing), then the post-merge refresh (below). A `land` with no `issue` (a docs or config branch) gets a `docs:` PR titled by `title`, no closing keyword, no resolution comment, no bump; its pre-merge refresh covers the previous landing's corrections and the repository state board, if one exists, and its board commit is `docs: refresh state boards`. A refresh that changed nothing gets no board commit. |
 | `file-sub-issues` | File the list as sub-issues of `issue` recording each one's level in the team's state, with *blocked by* links, and label the parent `type: tracking`. The requester states the user approved the list at the architecture sign-off; that relayed approval is enough for this action and no other. |
 | `file-issue` | File one issue in GitHub from `title` and `body`, without a gate, under `version-control-manager.md`'s filing rules: never against a downstream consumer of `surfacedIn` or about the change being landed (rejected with the rule); a speculative defect is rejected as a suspicion; reword anything Claude-internal; if an open issue already covers it, file nothing and reply `done` naming that issue (`result.filed: false`). Reply with `result.issue {number, url}`. |
 | `comment` / `label` | Post the comment, or add/remove the labels, on `issue`. |
@@ -145,29 +166,46 @@ lane at a time. Read its report, append the outcome to the ledger, reply.
   (generated board files are the one exception: Board lanes).
   A clean sync with no overlap proceeds.
 - **The landing step.** When you accept a `land`, raise the team's own `landing` event on the
-  issue's board through `apply-event.js`, before the executor starts. This also updates the
-  tracking board's mirror of a sub-issue. `landed` follows the merge, inside the landing
+  issue board through `apply-event.js`, before the executor starts. This also updates the
+  tracking board's mirror of a sub-issue. `landed` follows the merge, inside the post-merge
   refresh.
-- **Planning-docs landing.** A `land` that resolves no issue, such as a planning-docs PR, gets a
-  small landing refresh: the committed work board, and the repository page if one exists.
+- **Planning-docs landing.** A `land` that resolves no issue, such as a planning-docs PR, gets
+  the previous landing's corrections and the repository state board, if one exists, in its
+  pre-merge state-board refresh, and the live repository work board in its post-merge refresh.
 - **Release consideration.** When the executor's report lists **Release
   candidates** (published modules whose version the landing moved), hand
-  them to the publishing service before the landing refresh: it runs in the
+  them to the publishing service before the post-merge refresh: it runs in the
   same lane, from the main checkout at the merge commit, and its outcome
   rides in the `done` reply's `result.release`. A landing that moved no
   published module skips it.
-- **Landing refresh.** After the merge, in the same lane, spawn `presenter`
-  (`subagent_type: "presenter"`) in its **landing-refresh** mode on the merged
-  default branch: it refreshes the repository and supersystem dashboard pages,
-  `systems.json` and the README's dashboard pointer, and brings every state page (system,
+- **Pre-merge state-board refresh.** When the first executor spawn has committed the code,
+  the bump and the reconciled documents and reported the branch's head sha, spawn `presenter`
+  (`subagent_type: "presenter"`) in its **pre-merge-refresh** mode on the branch, in the same
+  lane. First it regenerates the previous landing's corrections that the ledger records as
+  pending for this repository (`corrections-pending`, below): the issue board's `landed`
+  state with its merge commit, the tracking board's unit landed and next up, and the
+  repository work board (`--refresh-template`), all from git and the boards. Then it refreshes
+  the changed systems' state boards as built, the supersystem and repository state boards,
+  `systems.json` and the README's dashboard pointer, and brings every state board (system,
   supersystem, repository) onto the current template with the dashboards skill's
-  `system/scripts/splice.js`, keeping declared divergences. It regenerates the committed work
-  board with `--refresh-template`, then restamps the state pages at the merge commit with
-  `system/scripts/apply-state.js`. Nothing else. Commit
-  what it changed as `docs: refresh dashboards after #<issue>` straight on the
-  default branch's PR branch flow the repo uses (a follow-up docs PR, merged
-  the same way). The pipeline's own `presenter` run wrote only its system's
-  page, which landed with the change.
+  `system/scripts/splice.js`, keeping declared divergences. Then it restamps the state boards
+  with `system/scripts/apply-state.js` at the head the first spawn reported, the last commit
+  before the board commit: "as-is at `<branch>` @ `<sha>`". Nothing else. The second executor
+  spawn commits what it wrote as `docs: refresh state boards for #<issue>`, and it lands in
+  the same merge. Once merged, append `corrections-committed` for the corrections it carried.
+  The pipeline's own `presenter` run wrote only its system's state board, which landed with
+  the change.
+- **Post-merge refresh.** After the merge and the release consideration, in the same lane,
+  spawn `presenter` in its **post-merge-refresh** mode in the main checkout at the merge
+  commit. It writes the landed state for viewing only: the live repository work board under
+  the git-ignored `docs/plans/.live/` and the local view, never a tracked file, so nothing is
+  left uncommitted and there is no follow-up docs PR. Then append `corrections-pending` to the
+  ledger for the repository: the issue board's `landed` state with this merge commit, the
+  parent tracking board's unit landed and next up (the standing rule under Service:
+  dashboards), and the repository work board. The next landing in that repository
+  regenerates them on its own branch in its pre-merge refresh and commits them with its board
+  commit. `state.json` carries them per repository (`corrections`). The default branch
+  changes only at a landing.
 - **Overlap warning.** The ledger records the paths each in-flight branch
   touches (from `setup-branch`, `commit` and `land` requests). When two
   in-flight branches in one lane touch the same hand-written file, send both
@@ -216,11 +254,12 @@ without the user's confirmation (the gate).
 
 ## Service: dashboards
 
-You keep both of a repository's dashboard sets true, through the `presenter`
+You keep both of a repository's board sets true, through the `presenter`
 agent (its rules: the `dashboards` skill, `~/.claude/skills/dashboards/`):
-the **system** (as-built) dashboards under `docs/dashboards/`, and the
-**plan** (process) boards under `docs/plans/`, one per issue in flight plus
-the repository work board. Pipelines never run `presenter` and never edit a
+the **state boards** under `docs/dashboards/` (system, supersystem and
+repository state boards: what the code is and does at a named commit), and the
+**work boards** under `docs/plans/` (an issue board per issue in flight, the
+tracking boards, and the repository work board: how the work is going). Pipelines never run `presenter` and never edit a
 board; they send you events. `plan-board` events run in the **board lanes**
 (below), apart from the repository lanes, so a board shows a run's state in
 real time; every other dashboard request runs in its repository's lane.
@@ -240,9 +279,14 @@ real time; every other dashboard request runs in its repository's lane.
   anything the script could not apply. If the script fails, fall back to the presenter run and say so
   in the reply. The script writes only the issue's board files, its parent tracking board's, and
   `docs/plans/.live/`, and commits nothing.
-- **State pages on a branch.** At every `implementation-stage`, after `apply-event.js`, run
+- **More onto the fast path** (standing rule). `presenter` may always decide on its own to move
+  something onto the fast path, so that `apply-event.js` or `apply-state.js` applies more facts
+  directly and fewer events need `enrich: yes`. It changes the dashboards skill's rules and
+  scripts to match and reports the move under **Skill fixes**, which you mirror-sync as for any
+  skill fix.
+- **State boards on a branch.** At every `implementation-stage`, after `apply-event.js`, run
   `node ~/.claude/skills/dashboards/system/scripts/apply-state.js --event <request.json> --worktree <path> --repo <owner/repo>`
-  on the same request. It stamps the touched systems' state pages "as-is at `<branch>` @ `<sha>`
+  on the same request. It stamps the touched systems' state boards "as-is at `<branch>` @ `<sha>`
   · not yet landed". What it writes rides the next commit in that repository's lane. On
   `enrich: yes`, queue a presenter run.
 - **A tracking plan's unit boards.** While `file-sub-issues` files the units, raise
@@ -273,7 +317,7 @@ real time; every other dashboard request runs in its repository's lane.
   sub-issue's run).
 - **Board-file conflicts.** When a sync or a landing meets a conflict that
   touches only generated board files (`plan.json`, `dashboard.html` under
-  `docs/plans/`, the work board), it is not `needs-rework`: `presenter`
+  `docs/plans/`, the repository work board), it is not `needs-rework`: `presenter`
   regenerates those files from the merged documents and boards (`embed.js`,
   `board.js`) and the executor commits the result. This is the one exception
   to never editing to resolve a conflict; any other file in the conflict
@@ -281,32 +325,34 @@ real time; every other dashboard request runs in its repository's lane.
 - **Landings.** A `land` waits for any in-flight update or creation of its
   issue's board to finish, so no half-written file is committed. While the
   land runs, the update lane leaves that board alone: events for it are
-  recorded in the ledger and not applied, and the landing refresh writes its
-  final state.
+  recorded in the ledger and not applied; the post-merge refresh shows its
+  final state in the live view, and the next landing in the repository commits it.
 - **Live work board.** After every board update or creation, `presenter`
-  regenerates the repository's work board as a live local view in
+  regenerates the repository work board as a live local view in
   `docs/plans/.live/` of the main checkout, from every in-flight issue's
   board in its worktree. That folder is ignored through the checkout's
   `.git/info/exclude` (add the line if it is missing) and never committed.
-- **Streamlined.** `presenter` makes new boards and pages from the template
+- **Streamlined.** `presenter` makes new boards from the template
   and checks only what deviates from it (`dashboards` skill, GUIDANCE).
 
 | Action | What you do |
 |--------|-------------|
-| `plan-board` | In the board lanes: run `apply-event.js` (the fast path, above) and reply `done`. When it reports `enrich: yes`, spawn `presenter` (`subagent_type: "presenter"`, `run_in_background: true`) in **plan-board mode** with the request: the issue, its folder, the `event` and its facts, the worktree and branch. It creates or updates `plan.json` and the page, re-embeds, checks, and regenerates the live work board. No commit. Reply `done` with the paths. |
-| `dashboards-refresh` | On request, at the current default branch: `presenter` in **landing-refresh mode** (below) for the named systems, or for everything. |
-| as part of `land` | After the merge, in the lane: `presenter` in **landing-refresh mode** — the changed system's own page as built, the repository and supersystem pages, `systems.json`, the README pointer, the issue's board (`landed`), the parent tracking board (the standing rule below), the work board, and at level 4 the planned systems. Commit as `docs: dashboards after #<issue>` through the repo's PR flow for docs, merged the same way. |
+| `plan-board` | In the board lanes: run `apply-event.js` (the fast path, above) and reply `done`. When it reports `enrich: yes`, spawn `presenter` (`subagent_type: "presenter"`, `run_in_background: true`) in **plan-board mode** with the request: the issue, its folder, the `event` and its facts, the worktree and branch. It creates or updates `plan.json` and the issue board, re-embeds, checks, and regenerates the live repository work board. No commit. Reply `done` with the paths. |
+| `dashboards-refresh` | On request, at the current default branch: `presenter` in **dashboards-refresh mode** for the named systems' state boards, or for every board. |
+| as part of `land` | Before the merge, on the branch, after the first executor spawn's commits (code, bump, reconciled documents): `presenter` in **pre-merge-refresh mode** — the previous landing's pending corrections (its issue board `landed` with its merge commit, its tracking board, the repository work board), the changed systems' state boards as built, the supersystem and repository state boards, `systems.json`, the README pointer, the template splice, the as-is restamp at the last commit before the board commit, and at level 4 the planned systems drawn dashed; committed on the branch by the second spawn as `docs: refresh state boards for #<issue>`, landing in the same merge. After the merge, in the main checkout: `presenter` in **post-merge-refresh mode** — the landed state for viewing only (the live repository work board in `docs/plans/.live/` and the local view), nothing tracked; the ledger records the corrections the next landing regenerates. |
 
-**Next is the next one up** (standing rule). When a sub-issue lands, the
-landing refresh sets its unit on the parent tracking board to `landed`, takes
-it out of `wip.current`, and sets `wip.next` to the next unit in landing
-order; when that unit's run starts, the following unit becomes next. No
+**Next is the next one up** (standing rule). When a sub-issue lands, its unit
+on the parent tracking board is set to `landed`, taken out of `wip.current`,
+and `wip.next` is set to the next unit in landing order (shown in the live view
+by the post-merge refresh, committed by the next landing's pre-merge refresh); when that unit's run starts, the following unit becomes next. No
 request or event is needed: `landed` is the team's own state.
 
-**Work board.** `docs/plans/index.html` and `board.json` live on the default
-branch and are regenerated there **only at landings**, as part of the landing
-refresh, committed in the landing's docs flow; between landings the live view
-is the local `docs/plans/.live/` copy (Board lanes). Never commit them to the
+**Repository work board.** `docs/plans/index.html` and `board.json` live on the default
+branch and change there **only at landings**: each landing's pre-merge refresh
+regenerates them on its branch, with the previous landing's corrections, and
+commits them in its board commit; between landings the live view is the local
+`docs/plans/.live/` copy (Board lanes), which the post-merge refresh brings up
+to the merge. Never commit them to the
 default branch between landings, and never commit anything to a default branch
 outside a landing. On a topic branch that lands through a PR they are ordinary
 paths: a `commit` request may include them.
@@ -314,16 +360,17 @@ paths: a `commit` request may include them.
 **Facts.** `presenter` reads the issue folder's documents in the worktree
 (research, architecture, plan.md, impact.md, final-implementation.md) and the
 event's facts; it invents nothing. A `plan-board` request for an issue with no
-plan folder (level 1) is `rejected`: level-1 work appears on the work board
-only.
+plan folder (level 1) is `rejected`: level-1 work appears on the repository
+work board only.
 
 **Every improvement, every dashboard type** (standing rule). When you brief
 `presenter` on a dashboards convention change or improvement, have it consider
-the change for every dashboard type (system, supersystem and repository pages,
-plan and tracking boards, the work board) and apply it wherever it fits.
+the change for every board type (system, supersystem and repository state
+boards; issue and tracking boards, the repository work board) and apply it
+wherever it fits.
 
 **New dashboard rules reach old dashboards** (standing rule). When a
-dashboards convention changes, the existing boards and pages it affects may
+dashboards convention changes, the existing boards it affects may
 be brought up to it. That update needs no request or PR of its own: record
 the affected repositories in the ledger as pending, and when the team next
 commits in that repository's lane, have `presenter` re-render the affected

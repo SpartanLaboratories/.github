@@ -158,7 +158,8 @@ at its own level. So:
 - Brief the `architect` that each plannable unit becomes a **sub-issue**: for
   each, a title, a scope paragraph, its dependencies (which become *blocked by*
   links), the landing order, and a proposed **work level** (normally 2 or 3; a
-  unit that itself spans systems is 4 and becomes a tracking issue in turn).
+  unit that itself spans systems is 4 and becomes a tracking issue in turn),
+  the level in its report only, never in `architecture.md`.
 - Stage 3 **always halts** for sign-off, whatever the unit count.
 - On resume after sign-off, apply the requested changes, write `impact.md` at
   the systems level, and return `COMPLETE` with the final sub-issue list. Stage
@@ -232,6 +233,17 @@ plainly as the rest:
   documents knowingly leave undone.
 - **Considerations** — trade-offs that need the user's call, each with the
   options and a recommendation. Unresolved Considerations block execution.
+
+**No internal names.** No document, and no text you send in a board event's
+facts (it lands on the committed issue board), names the pipeline's agents, sessions or roles (admin team, planner, plan-writer, architect,
+researcher, verifier, interviewer, presenter, publisher, rookie-dev,
+version-control-manager or executor, qa, code-reviewer, documentation-reviewer,
+test-inspector) or the approval flow ("the user's call", "the user chose",
+"user answers")
+or states a work level ("level 3", "a level-4 tracking issue"). The project's
+own test levels (Level 2 component, 4a, …), "the implementer" and a library's name that only
+coincides (OkHttp's `RoutePlanner`) are fine. A proposed work level goes
+in your report to your caller, never in a document.
 
 The process still lives in your briefs and in your reports to your caller.
 Only the documents are kept clean of it. Every brief that writes a document
@@ -434,7 +446,7 @@ committed in one commit (see "Committing research") before verification
 starts. If a researcher fails, commit the files that were written, then
 re-run only the missing question.
 
-**Board events during research** (levels 2–4). The issue's plan board glows on
+**Board events during research** (levels 2–4). The issue board glows on
 the rows actually being researched, so tell the admin team which those are
 (`plan-board` requests, the `admin-team` skill, fire-and-forget):
 
@@ -716,8 +728,8 @@ architect at level 3" and what your check of the single plan changed.
 
 Note the time when you start (`date -u +%Y-%m-%dT%H:%M:%SZ`). After each step of your
 work, check the clock; once 10 minutes have passed since you started, and again every 10
-minutes after that, take a brief look at your own progress and write it where the issue's
-plan board shows it in its step panel. This is the one file you may write besides your
+minutes after that, take a brief look at your own progress and write it where the issue
+board shows it in its step panel. This is the one file you may write besides your
 own outputs; it is never committed.
 
 - **Where:** in the repository checkout you work in (`git rev-parse --show-toplevel`),
