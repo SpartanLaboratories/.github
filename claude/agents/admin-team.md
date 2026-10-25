@@ -119,7 +119,7 @@ lane at a time. Read its report, append the outcome to the ledger, reply.
 | `land` | Per `manager.md` and `level`: commits (with the issue's board files, `dashboard.html` and `plan.json`, when its folder has them), the bump the level calls for, PR, merge, resolution comment; then the release consideration when the bump moved a published module (Service: publishing); then the landing refresh (below); then delete the branch (local and remote) and remove the worktree it was given. A `land` with no `issue` (a docs or config branch) gets a `docs:` PR titled by `title`, no closing keyword, no resolution comment, no bump, and a landing refresh only if it touched dashboards. |
 | `file-sub-issues` | File the list as sub-issues of `issue` with their `level: N` labels and *blocked by* links, and label the parent `type: tracking`. The requester states the user approved the list at the architecture sign-off; that relayed approval is enough for this action and no other. |
 | `comment` / `label` | Post the comment, or add/remove the labels, on `issue`. |
-| `mirror-sync` | In the `mirror` lane: copy the listed `~/.claude` paths into the mirror clone, run the secret scan, commit straight to `main`, push. Refuse any path the mirror README's "Not included" list excludes, `admin-team/` included. |
+| `mirror-sync` | In the `mirror` lane: copy the listed `~/.claude` paths into the mirror clone, run the secret scan, commit straight to `main`, push. Refuse any path the mirror README's "Not included" list excludes, the admin team's local state (`ledger.jsonl`, `state.json`, `launch.lock`, `up`) included. |
 | `status` / `cancel` | Answered by you, not an executor. `cancel` drops a queued (not started) request from its sender. |
 
 ### Landing
@@ -204,6 +204,19 @@ real time; every other dashboard request runs in its repository's lane.
 
 ### Board lanes
 
+- **Fast path.** Apply every plan-board event first yourself, in the board-update lane, by running the
+  dashboards skill's `plan/scripts/apply-event.js`
+  (`node ~/.claude/skills/dashboards/plan/scripts/apply-event.js --event <request.json> --worktree <path>`).
+  It applies what the event's facts alone decide: the step, the stages, the research questions, the
+  glow, the wait state, the trail entry and open points. It then rewrites the board's `plan.js`,
+  re-embeds the parent tracking board and regenerates the live work board, in seconds. Reply `done` as
+  soon as it exits clean. When its output says `enrich: yes`, queue a presenter run in plan-board mode
+  behind it in the same lane, reply `progress`, then reply `done` when the presenter finishes. That
+  covers an event that needs facts from the folder's documents (a `sized` event creating a board,
+  `researched`, `plan-accepted`, `implementation-stage`, `qa-pass`, `escalated`, `cancelled`) or
+  anything the script could not apply. If the script fails, fall back to the presenter run and say so
+  in the reply. The script writes only the issue's board files, its parent tracking board's, and
+  `docs/plans/.live/`, and commits nothing.
 - **One board-update lane** for the whole machine: every `plan-board` event
   for a board that exists, in arrival order. It never waits on a repository
   lane.
@@ -240,7 +253,7 @@ real time; every other dashboard request runs in its repository's lane.
 
 | Action | What you do |
 |--------|-------------|
-| `plan-board` | In the board lanes: spawn `presenter` (`subagent_type: "presenter"`, `run_in_background: true`) in **plan-board mode** with the request: the issue, its folder, the `event` and its facts, the worktree and branch. It creates or updates `plan.json` and the page, re-embeds, checks, and regenerates the live work board. No commit. Reply `done` with the paths. |
+| `plan-board` | In the board lanes: run `apply-event.js` (the fast path, above) and reply `done`. When it reports `enrich: yes`, spawn `presenter` (`subagent_type: "presenter"`, `run_in_background: true`) in **plan-board mode** with the request: the issue, its folder, the `event` and its facts, the worktree and branch. It creates or updates `plan.json` and the page, re-embeds, checks, and regenerates the live work board. No commit. Reply `done` with the paths. |
 | `dashboards-refresh` | On request, at the current default branch: `presenter` in **landing-refresh mode** (below) for the named systems, or for everything. |
 | as part of `land` | After the merge, in the lane: `presenter` in **landing-refresh mode** — the changed system's own page as built, the repository and supersystem pages, `systems.json`, the README pointer, the issue's board (`landed`), the parent tracking board (the standing rule below), the work board, and at level 4 the planned systems. Commit as `docs: dashboards after #<issue>` through the repo's PR flow for docs, merged the same way. |
 
