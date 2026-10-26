@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-// Embeds a file verbatim into a dashboard page's <script type="..." id="<block>"> block, so the page
+// Embeds a file verbatim into a board's <script type="..." id="<block>"> block, so the board
 // carries exactly the committed copy (the Structurizr workspace.dsl, the systems.json registry). Idempotent.
 //
 //   node embed.js <file> <index.html> [block-id]            # embed; block-id defaults to "dsl"
 //   node embed.js <file> <index.html> [block-id] --check    # exit 1 if the embedded copy differs
 //
-// Blocks: id="dsl" holds workspace.dsl (type text/plain); id="systems" holds systems.json and id="state" the page's state.json
+// Blocks: id="dsl" holds workspace.dsl (type text/plain); id="systems" holds systems.json and id="state" the board's state.json
 // (type application/json; system/RULES.md §2).
-// Line endings are compared, and written, in the page's own convention, so a CRLF working copy (core.autocrlf) checks
+// Line endings are compared, and written, in the board's own convention, so a CRLF working copy (core.autocrlf) checks
 // the same as the LF file in the repository.
 const fs = require("fs");
 require("./cliargs.js").strict(process.argv.slice(2), { usage: "usage: node embed.js <file> <index.html> [block-id] [--check]", flags: ["check"], min: 2, max: 3 });

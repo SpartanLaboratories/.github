@@ -1,9 +1,9 @@
-// The shared system palette and the status-hue rule (GUIDANCE.md §1). Not a command: check.js, check-page.js and
+// The shared system palette and the status-hue rule (GUIDANCE.md §1). Not a command: check.js, check-board.js and
 // verify/verify-templates.js use it.
 //
-// System colours are the same on every tab and on every page (system, supersystem, repository, plan boards, work board): six
-// registry slots, --sys-1 … --sys-6 in registry order, and on a system page its three sides --server / --client / --wire, which
-// are slots 1 to 3. The status spectra are reserved: green–yellow–red for outcomes (a plan board's options and as-built states)
+// System colours are the same on every tab and on every board (system, supersystem, repository, issue boards, work board): six
+// registry slots, --sys-1 … --sys-6 in registry order, and on a system board its three sides --server / --client / --wire, which
+// are slots 1 to 3. The status spectra are reserved: green–yellow–red for outcomes (an issue board's options and as-built states)
 // and yellow–orange–red for compatibility (the Impact tab). So no system colour falls in them: no green, yellow, orange, amber,
 // red or pink. A chromatic colour (HSL saturation of STATUS_MIN_SAT or more) whose hue is outside ALLOWED_HUES is in a status
 // spectrum; a near-neutral grey is not.
@@ -17,7 +17,7 @@ const PALETTE = {
   light: ["#2a78d6", "#653184", "#0d7680", "#1d2660", "#9656aa", "#1a9ec7"],
   dark: ["#3987e5", "#8a44d8", "#1f8089", "#b4bef5", "#a86fb8", "#31b5f4"],
 };
-/* A system page's sides are slots 1 to 3; their -soft fills are tints of the same hues. */
+/* A system board's sides are slots 1 to 3; their -soft fills are tints of the same hues. */
 const SIDES = { server: 1, client: 2, wire: 3 };
 /* Hues (HSL degrees) a system colour may take: cyan through blue and indigo to purple. Below 175 is green, yellow, orange and
    red; from 295 on is magenta, pink and red. */
@@ -50,7 +50,7 @@ function inStatusHue(value) {
   return `hue ${Math.round(h)}° (${name})`;
 }
 
-/* The system-colour tokens a page declares: every "--sys-N:", "--server:", "--client:", "--wire:" and their "-soft" fills, with
+/* The system-colour tokens a board declares: every "--sys-N:", "--server:", "--client:", "--wire:" and their "-soft" fills, with
    the value as written. */
 const TOKEN = /--(sys-[1-9]\d*|server|client|wire)(-soft)?\s*:\s*(#[0-9a-fA-F]{3,6}\b|rgba?\([^)]*\))/g;
 function tokens(html) {
@@ -70,7 +70,7 @@ function paletteCheck(html) {
     const slot = /^sys-/.test(t.base) ? +t.base.slice(4) : SIDES[t.base];
     if (!slot || slot > PALETTE.light.length) return;
     const ok = [PALETTE.light[slot - 1], PALETTE.dark[slot - 1]], v = t.value.toLowerCase();
-    if (!ok.includes(v) && !seen.has("w" + t.token + v)) { seen.add("w" + t.token + v); warnings.push(`${t.token}: ${t.value} is not slot ${slot}'s colour in the shared palette (${ok.join(" light, ")} dark): the system would take another colour on this page than on the others`); }
+    if (!ok.includes(v) && !seen.has("w" + t.token + v)) { seen.add("w" + t.token + v); warnings.push(`${t.token}: ${t.value} is not slot ${slot}'s colour in the shared palette (${ok.join(" light, ")} dark): the system would take another colour on this board than on the others`); }
   });
   return { tokens: all.length, problems, warnings };
 }

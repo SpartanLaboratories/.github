@@ -95,7 +95,7 @@ function readVersion(template, pick, opts = {}) {
   const r = rebuild(R.key, new Map([[v.sha256, v]]), R.dir, opts); return r.rebuilt.length ? r.rebuilt[0].html : null;
 }
 /* The verified version of a template: the text verify/verified.json records as its last full verification (the record's sha256), read
-   from the template itself while it is unchanged, else from its recorded history (verify/history/, rebuilt if it must be), so a page can
+   from the template itself while it is unchanged, else from its recorded history (verify/history/, rebuilt if it must be), so a board can
    be spliced onto it while the template is being edited (splice.js --verified). { html, v, from } or { html: null, why }. */
 function verifiedVersion(template, opts = {}) {
   const R = recordOf(template);
@@ -107,7 +107,7 @@ function verifiedVersion(template, opts = {}) {
   return { html: null, why: `the verified version ${label(v)} of ${R.key} is neither the template on disk nor a readable recorded version (${listed ? "not in verify/history/, and not rebuilt" : "its record lists no history entry for it"})` };
 }
 /* A cached version file (a file under a record's history/ folder, e.g. verify/history/supersystem/9b877b5e17b6.html) back to the template
-   it is a version of and its record entry: { template, key, v } or null. A page given such a file as its --template is spliced with that
+   it is a version of and its record entry: { template, key, v } or null. A board given such a file as its --template is spliced with that
    template's recorded history as its merge bases, not with none. */
 function ofCached(file) {
   const f = path.resolve(file);

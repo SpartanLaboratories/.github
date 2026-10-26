@@ -1,17 +1,17 @@
-// How far a dashboard page deviates from the template it was made from (GUIDANCE.md §8). Not a command: check-page.js --auto and
-// plan/scripts/check.js --auto use it to decide how much browser checking a page needs.
+// How far a board deviates from the template it was made from (GUIDANCE.md §8). Not a command: check-board.js --auto and
+// plan/scripts/check.js --auto use it to decide how much browser checking a board needs.
 //
-// A page starts from its template and changes only what its facts require. The template is verified once, in the skill
-// (verify/verify-templates.js), and its verified hash is recorded in verify/verified.json; a page therefore needs a browser pass
+// A board starts from its template and changes only what its facts require. The template is verified once, in the skill
+// (verify/verify-templates.js), and its verified hash is recorded in verify/verified.json; a board therefore needs a browser pass
 // only for what it adds to the template:
-//   identical   a plan board or work board that is its template plus the embedded data, byte for byte, of a verified template:
+//   identical   an issue board or work board that is its template plus the embedded data, byte for byte, of a verified template:
 //               no browser pass (the data and the embed are checked by plan/scripts/check.js)
-//   structure   a system, supersystem or repository page whose template parts (its CSS, its tab set, its script before MODEL less
-//               the page-filled lines, its renderer script) are the verified template's: one light pass, for the facts the page
+//   structure   a system, supersystem or repository state board whose template parts (its CSS, its tab set, its script before MODEL less
+//               the board-filled lines, its renderer script) are the verified template's: one light pass, for the facts the board
 //               fills in (MODEL, panels, legends, Guarantees, Context)
-//   diverges    anything else — a declared divergence, an undeclared one, a page made from an older template, or a template
+//   diverges    anything else — a declared divergence, an undeclared one, a board made from an older template, or a template
 //               changed since it was verified: the full pass (light, dark, 520 px, a 390 px frame)
-// A page declares a divergence with <meta name="template-divergence" content="what and why">, one per divergence, beside the
+// A board declares a divergence with <meta name="template-divergence" content="what and why">, one per divergence, beside the
 // footer comment GUIDANCE.md §7 asks for. A repository template (docs/plans/_template/, docs/dashboards/_template/) replaces
 // the skill's when present; its verified hashes live in a verified.json beside it.
 "use strict";
@@ -27,7 +27,7 @@ const TEMPLATES = {
 const norm = s => s.replace(/\r\n/g, "\n");
 const sha = s => crypto.createHash("sha256").update(norm(s)).digest("hex");
 
-/* The page's kind: the dashboard meta, then an explicit template meta, then the Systems tab that only supersystem pages carry. */
+/* The board's kind: the dashboard meta, then an explicit template meta, then the Systems tab that only supersystem boards carry. */
 function kindOf(html) {
   const m = (html.match(/<meta name="dashboard" content="([^"]+)">/) || [])[1];
   if (m === "plan-board" || m === "work-board") return m;
@@ -42,7 +42,7 @@ function repoRootOf(page) {
     if (path.dirname(d) === d) return null;
   }
 }
-/* The template a page is held to: the repository's own, else the skill's. */
+/* The template a board is held to: the repository's own, else the skill's. */
 function templateFor(page, kind) {
   const t = TEMPLATES[kind], root = repoRootOf(page);
   const own = root ? path.join(root, ...t.repo.split("/"), t.file) : null;
@@ -59,27 +59,28 @@ function verified(template) {
   let rec = null; try { rec = (JSON.parse(fs.readFileSync(file, "utf8")).templates || {})[key] || null; } catch (e) { /* none yet */ }
   const hash = sha(fs.readFileSync(template, "utf8"));
   /* verify/verify-templates.js names the templates it is verifying (their hashes) to the scripts its cases run, so a case that needs
-     "the verified template" (an event re-rendering a page onto it, check.js --auto reading a page as it plus its data) holds while a
+     "the verified template" (an event re-rendering a board onto it, check.js --auto reading a board as it plus its data) holds while a
      changed template is being verified; the template is still recorded only once every case and pass has passed. */
   let under = []; try { under = JSON.parse(process.env.DASHBOARDS_TEMPLATES_UNDER_TEST || "[]"); } catch (e) { /* none */ }
   return { ok: (!!rec && rec.sha256 === hash) || (Array.isArray(under) && under.includes(hash)), hash, rec, file, key, underTest: Array.isArray(under) && under.includes(hash) };
 }
 
-/* A plan board or the work board: the page with its data block emptied, against the template with its block emptied. */
+/* An issue board or the repository work board: the board with its data block emptied, against the template with its block emptied. */
 const emptyBlock = (html, id) => norm(html).replace(new RegExp(`(<script type="application/json" id="${id}">)[\\s\\S]*?(</script>)`), "$1\n{}\n$2");
 function firstDiff(a, b) { const x = a.split("\n"), y = b.split("\n"); for (let i = 0; i < Math.max(x.length, y.length); i++) if (x[i] !== y[i]) return i + 1; return 0; }
-/* A system page: the template parts — every <style> block, the tab ids in order, the script before MODEL (from the main
-   <script> to "const MODEL = {": the helpers, and on a supersystem or repository page the Systems renderer) less its page-filled
+/* A system board: the template parts — every <style> block, the tab ids in order, the script before MODEL (from the main
+   <script> to "const MODEL = {": the helpers, and on a supersystem or repository state board the Systems renderer) less its board-filled
    lines, and the renderer (the main script after MODEL's closing "};", without the DEFAULT_INSPECT line, whose text is the
-   page's own).
-   The page-filled lines are the constants a page sets to its own facts: REPO and SRC, and any other const whose line in the
-   template carries a "// presenter:" comment (the template's mark for a line filled per page). They are named from the
-   template and dropped by name from both sides, so a page's own value there, and its own comment on that line, is no difference. */
+   board's own).
+   The board-filled lines are the constants a board sets to its own facts: REPO and SRC, and any other const whose line in the
+   template carries a "// fill:" comment (the template's mark for a line filled per board; "// presenter:" on a template older than
+   dashboards-skill/33). They are named from the
+   template and dropped by name from both sides, so a board's own value there, and its own comment on that line, is no difference. */
 const FILLED = ["REPO", "SRC"];
 const constName = l => (l.match(/^\s*const\s+([A-Za-z_$][\w$]*)\s*=/) || [])[1];
 function filledNames(tplHtml) {
   const pre = systemParts(tplHtml).pre || "";
-  return new Set(pre.split("\n").filter(l => constName(l) && (FILLED.includes(constName(l)) || /\/\/\s*presenter:/.test(l))).map(constName));
+  return new Set(pre.split("\n").filter(l => constName(l) && (FILLED.includes(constName(l)) || /\/\/\s*(?:fill|presenter):/.test(l))).map(constName));
 }
 function systemParts(html, filled) {
   const h = norm(html);
@@ -104,7 +105,7 @@ function deviation(page) {
     if (a.styles.join("\0") !== b.styles.join("\0")) differs.push(`its CSS (${a.styles.length} style block${a.styles.length === 1 ? "" : "s"}, the template has ${b.styles.length})`);
     if (a.tabs.join(",") !== b.tabs.join(",")) differs.push(`its tabs (${a.tabs.join(", ")}; the template has ${b.tabs.join(", ")})`);
     if (a.renderer == null) differs.push("its script (no MODEL block found)");
-    else if (a.pre !== b.pre) differs.push(`its script before MODEL (first difference at line ${firstDiff(a.pre, b.pre)} of it, the page-filled ${[...filled].join(", ") || "lines"} left out)`);
+    else if (a.pre !== b.pre) differs.push(`its script before MODEL (first difference at line ${firstDiff(a.pre, b.pre)} of it, the board-filled ${[...filled].join(", ") || "lines"} left out)`);
     if (a.renderer != null && a.renderer !== b.renderer) differs.push(`its renderer script (first difference at line ${firstDiff(a.renderer, b.renderer)} after MODEL)`);
   }
   let verdict, passes;
@@ -120,8 +121,8 @@ function deviation(page) {
   differs.forEach(d => notes.push(`differs from ${rel(template)} in ${d}`));
   declared.forEach(d => notes.push(`declared divergence: ${d}`));
   if (differs.length && !declared.length) notes.push(TEMPLATES[kind].block
-    ? "no divergence is declared: re-render the page from the template (copy it over the page, then embed.js), or declare the divergence with <meta name=\"template-divergence\" content=\"…\">"
-    : "no divergence is declared: bring the page's CSS, tabs, script before MODEL and renderer back to the template's, or declare the divergence with <meta name=\"template-divergence\" content=\"…\">");
+    ? "no divergence is declared: re-render the board from the template (copy it over the board, then embed.js), or declare the divergence with <meta name=\"template-divergence\" content=\"…\">"
+    : "no divergence is declared: bring the board's CSS, tabs, script before MODEL and renderer back to the template's, or declare the divergence with <meta name=\"template-divergence\" content=\"…\">");
   return { kind, template, templateVerified: v.ok, declared, differs, verdict, passes, notes, undeclared: differs.length > 0 && !declared.length };
 }
 module.exports = { deviation, kindOf, templateFor, verified, recordFile, sha, norm, TEMPLATES, SKILL };

@@ -9,20 +9,20 @@
 // --worktree   the worktree the issue's board lives in; the board is <worktree>/<folder>
 // --repo       the GitHub slug, owner/repo; held to the request's github and the board's repo. A path to the main checkout is
 //              accepted too, read as --main
-// --main       the repository's main checkout, where the live work board lives (default: the request's repo, else the worktree)
+// --main       the repository's main checkout, where the live repository work board lives (default: the request's repo, else the worktree)
 // --at         the event's time (default: facts.at, else now); every stamp the event writes takes it
-// --no-live    leave the live work board alone; --no-gh builds it from the boards alone (board.js --no-gh)
+// --no-live    leave the live repository work board alone; --no-gh builds it from the boards alone (board.js --no-gh)
 // --json       print the summary as one JSON object instead of key: value lines
 // What it does: reads the request and <worktree>/<folder>/plan.json; applies the event (the step, the stages and the derived as-built
 // states, the research questions and phase, the glow, the halt and its resume, the open points, the qa passes, the remediation, the
 // interview's questions, the detail, wip.event and wip.updated, one trail entry, the branch; the snapshot of the step it ended, frozen
-// into wip.history.<step>, plan/RULES.md §3, "Finished steps"); re-renders the page onto the current
+// into wip.history.<step>, plan/RULES.md §3, "Finished steps"); re-renders the board onto the current
 // template when it is not the verified template plus its data (plan/RULES.md §4, "Every event re-renders the board"); embeds the
 // board (its data block and its plan.js sidecar); on a sub-issue applies the standing rule to its parent tracking board (a unit's
 // start at sized, complete at an approving qa pass, landed at landed) and re-embeds it, which mirrors the unit's run; runs check.js
-// (no browser pass) on every board it wrote and regenerates the live work board (board.js --live --refresh-template) at once.
+// (no browser pass) on every board it wrote and regenerates the live repository work board (board.js --live --refresh-template) at once.
 // Writes only the issue's board files, its parent tracking board's files and docs/plans/.live/; never git, never a commit, never the
-// committed work board. Every file is written through a temporary file and a rename, and on any failure every file it wrote is put
+// committed repository work board. Every file is written through a temporary file and a rename, and on any failure every file it wrote is put
 // back as it was: exit 1, nothing changed. Exit 0 when applied, or when the event was already applied (the same event twice changes
 // nothing), or when there is no board to apply it to (sized: the presenter lays the foundation); exit 2 on a usage error.
 "use strict";
@@ -31,6 +31,7 @@ const fs = require("fs"), path = require("path"), cp = require("child_process");
 const lib = require("./lib.js"), TL = require("./testslib.js");
 const dev = require(path.resolve(__dirname, "..", "..", "system", "scripts", "deviation.js"));
 const { levelRefs, scrubLevels } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
+const { nameRefs, scrubNames, unambiguous } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
 
 const USAGE = "usage: node apply-event.js --event <request.json> --worktree <path> [--repo <owner/repo>] [--main <checkout>] [--at <ISO time>] [--no-live] [--no-gh] [--json]";
 const args = process.argv.slice(2);
@@ -90,11 +91,15 @@ function readRequest(file) {
 }
 
 const ID = /^[a-z0-9][a-z0-9-]*$/, STEPS = ["sizing", "interview", "research", "architecture", "sub-issues", "boards", "plan", "branch", "implementation", "qa", "remediation", "landing", "landed", "halted", "escalated", "cancelled"];
-const ROUTES = ["on-the-spot", "rookie-dev", "planner-then-rookie-dev"], SSTATES = ["done", "current", "todo"];
+/* the remediation routes (plan/RULES.md §5, "QA"): their ids name no role (dashboards-skill/33); a request (or a board) that carries the
+   older ids, rookie-dev and planner-then-rookie-dev, is read through routeId() and written with the new ones */
+const ROUTES = ["on-the-spot", "remediation", "re-plan-then-remediation"], SSTATES = ["done", "current", "todo"];
+const ROUTE_OLD = { "rookie-dev": "remediation", "planner-then-rookie-dev": "re-plan-then-remediation" };
+const routeId = r => (typeof r === "string" && ROUTE_OLD[r]) || r;
 /* The column a step's trail entry sits in. */
 const STEP_COLUMN = { "sub-issues": "considered", boards: "considered", sizing: "gap", interview: "gap", research: "gap", architecture: "considered", plan: "verdict", branch: "built", implementation: "built", qa: "built", remediation: "built", landing: "built", landed: "built", cancelled: "built" };
 const STEP_WORDS = { "sub-issues": "filing the units as sub-issues", boards: "creating the units' boards", sizing: "sizing", interview: "the interview", research: "research", architecture: "the architecture", plan: "the plan", branch: "the branch", implementation: "implementation", qa: "qa", remediation: "remediation", landing: "the landing", landed: "landed" };
-const ROUTE_WORDS = { "on-the-spot": "minor fixes on the spot, then landing with no new qa pass", "rookie-dev": "a remediation pass, then the next qa pass", "planner-then-rookie-dev": "a planner re-pass, then a remediation pass, then the next qa pass" };
+const ROUTE_WORDS = { "on-the-spot": "minor fixes on the spot, then landing with no new qa pass", "remediation": "a remediation pass, then the next qa pass", "re-plan-then-remediation": "a plan re-pass, then a remediation pass, then the next qa pass" };
 const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 const code = s => "`" + s + "`";
 
@@ -111,14 +116,26 @@ function applyEvent(orig, ev, facts, req, now) {
   const scope = plan.parent ? "unit" : "issue";
   /* an identifier (the branch, the version) is never reworded: one that names a work level is left out, as before */
   const IDENT = new Set(["branch", "version"]);
+  /* then an internal name (GUIDANCE.md §4, "No internal names"; namerefs.js scrubNames(), dashboards-skill/33): the pipeline's agents,
+     sessions and roles and the approval flow are never written either: "accepted by the admin team" → "accepted", "a planner re-pass"
+     → "a plan re-pass", "rookie-dev's fixes" → "the fixes", "(the user's call)" dropped; a text that still names one no library uses is
+     left out, and one that names a word a library may use as well (the planner, the verifier) is written and named for the presenter */
+  const shortJ = r => JSON.stringify(r.length > 80 ? r.slice(0, 79) + "…" : r);
   const txt = (v, field) => {
     if (typeof v !== "string" || !v.trim()) return null;
-    const s = v.replace(/\s+/g, " ").trim();
-    if (!levelRefs(s).length) return s;
-    const r = IDENT.has(field) ? null : scrubLevels(s, { scope });
-    if (!r) { enrich.push(`facts.${field} names a work level, which a board never shows: not written`); return null; }
-    enrich.push(`facts.${field} named a work level, which a board never shows: written reworded (${JSON.stringify(r.length > 80 ? r.slice(0, 79) + "…" : r)})`);
-    return r;
+    let s = v.replace(/\s+/g, " ").trim();
+    if (levelRefs(s).length) {
+      const r = IDENT.has(field) ? null : scrubLevels(s, { scope });
+      if (!r) { enrich.push(`facts.${field} names a work level, which a board never shows: not written`); return null; }
+      enrich.push(`facts.${field} named a work level, which a board never shows: written reworded (${shortJ(r)})`);
+      s = r;
+    }
+    if (!nameRefs(s).length) return s;
+    const n = IDENT.has(field) ? { text: s, left: nameRefs(s) } : scrubNames(s);
+    if (n.left.some(unambiguous)) { enrich.push(`facts.${field} names ${n.left.map(h => JSON.stringify(h)).join(", ")}, an internal name a board never shows: not written`); return null; }
+    if (n.left.length) { enrich.push(`facts.${field} names ${n.left.map(h => JSON.stringify(h)).join(", ")}: written as it is; reword it if it names the pipeline's role rather than the code's`); return n.text; }
+    enrich.push(`facts.${field} named an internal name, which a board never shows: written reworded (${shortJ(n.text)})`);
+    return n.text;
   };
   const setStep = s => { if (w.step !== s) { w.step = s; w.since = now; applied.push(`wip.step ${s}`); } };
   const stopped = s => s === "halted" || s === "escalated";
@@ -192,7 +209,7 @@ function applyEvent(orig, ev, facts, req, now) {
     case "halted": {
       if (!["waitingOn", "detail"].some(k => typeof facts[k] === "string" && facts[k].trim())) refuse("halted carries no facts.waitingOn (what waits on the user)");
       /* a text the board cannot show (a work level) gives way to a plain one; the presenter is told (txt) */
-      const waiting = txt(facts.waitingOn, "waitingOn") || txt(facts.detail, "detail") || "An answer from the user.";
+      const waiting = txt(facts.waitingOn, "waitingOn") || txt(facts.detail, "detail") || "An answer.";
       const resume = stopped(w.step) ? w.resume : w.step;
       if (!resume || stopped(resume)) refuse("halted: the board records no step to resume at");
       if (w.resume !== resume) { w.resume = resume; applied.push(`wip.resume ${resume}`); }
@@ -406,7 +423,7 @@ function applyEvent(orig, ev, facts, req, now) {
       if (!verdict) refuse(`facts.qa.verdict ${JSON.stringify(Q.verdict)} is not approved, changes-requested or running`);
       const findings = {}; [["documentation", Q.documentation != null ? Q.documentation : Q.doc], ["test", Q.test], ["code", Q.code]].forEach(([k, n]) => { if (Number.isInteger(n) && n >= 0) findings[k] = n; });
       const severity = {}; if (Q.severity && typeof Q.severity === "object") Object.keys(Q.severity).forEach(k => { if (Number.isInteger(Q.severity[k]) && Q.severity[k] >= 0) severity[k] = Q.severity[k]; });
-      const route = Q.route || (facts.remediation || {}).route || null;
+      const route = routeId(Q.route || (facts.remediation || {}).route || null);
       if (route && !ROUTES.includes(route)) refuse(`facts.qa.route ${JSON.stringify(route)} is not one of ${ROUTES.join(", ")}`);
       testsDue = verdict !== "running";
       const entry = { pass: Q.pass, verdict, date: today, at: now, findings, ...(Object.keys(severity).length ? { severity } : {}), ...(verdict === "changes-requested" && route ? { route } : {}) };
@@ -423,11 +440,11 @@ function applyEvent(orig, ev, facts, req, now) {
         if (w.remediation) applied.push("wip.remediation cleared"); w.remediation = null;
         const step = facts.step && STEPS.includes(facts.step) ? facts.step : "landing"; setStep(step); setGlow(step);
         if (anyFinding) enrich.push("qa-pass: the approving pass's findings detail comes from the qa report");
-        detail = detail || `QA pass ${Q.pass} approved; the landing is the admin team's.`;
+        detail = detail || `QA pass ${Q.pass} approved; the landing follows.`;
         if (plan.parent) parentOp = { kind: "complete" };
       } else if (verdict === "changes-requested") {
-        setRemediation(w, { pass: Q.pass, route, ...(facts.remediation || {}) }, applied, enrich, txt);
-        if (route === "planner-then-rookie-dev") { w.plan = { state: "re-pass", from: "qa", pass: Q.pass, since: now }; applied.push(`wip.plan re-pass after qa pass ${Q.pass}`); }
+        setRemediation(w, { pass: Q.pass, ...(facts.remediation || {}), route }, applied, enrich, txt);
+        if (route === "re-plan-then-remediation") { w.plan = { state: "re-pass", from: "qa", pass: Q.pass, since: now }; applied.push(`wip.plan re-pass after qa pass ${Q.pass}`); }
         const step = facts.step && STEPS.includes(facts.step) ? facts.step : "remediation"; setStep(step); setGlow(step);
         enrich.push("qa-pass: the findings detail (the rows they touch, the pass's note) comes from the qa report");
         detail = detail || `QA pass ${Q.pass}: changes requested${counts ? " (" + counts + ")" : ""}${route ? "; " + ROUTE_WORDS[route] : ""}.`;
@@ -442,10 +459,10 @@ function applyEvent(orig, ev, facts, req, now) {
       if (w.resume !== resume) { w.resume = resume; applied.push(`wip.resume ${resume}`); }
       setStep("escalated");
       if (Number.isInteger(facts.proposedLevel) && facts.proposedLevel >= 1 && facts.proposedLevel <= 4) { w.proposedLevel = facts.proposedLevel; applied.push("wip.proposedLevel (data only)"); }
-      w.waitingOn = txt(facts.waitingOn, "waitingOn") || "The user's re-sizing of the issue.";
+      w.waitingOn = txt(facts.waitingOn, "waitingOn") || "A re-sizing of the issue.";
       enrich.push("escalated: the board follows the issue's new sizing");
-      detail = detail || "Escalated: waiting on the user's re-sizing.";
-      trail = { column: STEP_COLUMN[resume] || "built", label: `Escalated at ${STEP_WORDS[resume] || resume}: waiting on the user's re-sizing` };
+      detail = detail || "Escalated: waiting on a re-sizing.";
+      trail = { column: STEP_COLUMN[resume] || "built", label: `Escalated at ${STEP_WORDS[resume] || resume}: waiting on a re-sizing` };
       break;
     }
     case "cancelled": {
@@ -459,15 +476,16 @@ function applyEvent(orig, ev, facts, req, now) {
       trail = { column: "built", label: `Cancelled${reason ? ": " + reason : ""}` };
       break;
     }
-    /* team-raised (plan/RULES.md §4): the admin team has accepted the land and is about to merge; "landed" follows after the merge */
+    /* team-raised (plan/RULES.md §4): the land is accepted; the pre-merge refresh brings the state boards up on the branch, stamped at its
+       head, and the merge follows; "landed" is applied after it (the post-merge refresh shows it in the live view; the next landing commits it) */
     case "landing": {
       if (["built", "abandoned"].includes(plan.status) || ["landed", "cancelled"].includes(w.step)) refuse(`landing: the board has ${plan.status === "abandoned" || w.step === "cancelled" ? "been cancelled" : "landed"} already`);
       if (stopped(w.step)) { w.resume = null; w.waitingOn = null; applied.push("wip.resume and wip.waitingOn cleared"); }
       setStep("landing"); setGlow("landing");
       const pr = Number.isInteger(facts.pr) && facts.pr > 0 ? facts.pr : null;
-      note = note || `accepted by the admin team${pr ? ", PR #" + pr : ""}`;
-      detail = detail || `Landing: the admin team merges it${pr ? " in PR #" + pr : ""}.`;
-      trail = { column: "built", label: `Landing: the admin team merges it${pr ? " in PR #" + pr : ""}`, ...(pr ? { ref: `PR #${pr}` } : {}) };
+      note = note || `land accepted${pr ? ", PR #" + pr : ""}`;
+      detail = detail || `Landing: merging it${pr ? " in PR #" + pr : ""}.`;
+      trail = { column: "built", label: `Landing: merging it${pr ? " in PR #" + pr : ""}`, ...(pr ? { ref: `PR #${pr}` } : {}) };
       break;
     }
     case "landed": {
@@ -482,13 +500,13 @@ function applyEvent(orig, ev, facts, req, now) {
       if (!next.at) enrich.push("landed: the merge's time (asBuilt.at) is not recorded: git in the worktree cannot tell it (timeline.js <folder> --from-git, or facts.mergedAt)");
       plan.asBuilt = next; applied.push("asBuilt");
       /* the board is built, and its step landed, only once every part is resolved and the merge is recorded (check.js); until the
-         landing refresh resolves them it stays at the landing, its merge recorded */
+         pre-merge refresh resolves them it stays at the landing, its merge recorded */
       /* a row's recorded state: the outcome its as-built statements derive, else its stored state (plan/RULES.md §2, "Statements") */
       const open = rows.filter(r => ["pending", ...lib.BUILDING_STATES].includes(lib.recordedState(r)));
       w.resume = null; w.waitingOn = null;
       if (next.sha && next.date && !open.length) { if (plan.status !== "built") { plan.status = "built"; applied.push("status built"); } setStep("landed"); setGlow("landed"); }
       else { setStep("landing"); setGlow("landing"); enrich.push(open.length ? `landed: ${open.map(r => r.id).join(", ")} still to resolve before the board is built (it stays at the landing until then)` : "landed: asBuilt has no sha yet"); }
-      enrich.push("landed: the landing refresh resolves every part, completes the trail and reconciles the impact");
+      enrich.push("landed: the pre-merge refresh resolves every part, completes the trail and reconciles the impact");
       detail = detail || `Landed${pr ? " in PR #" + pr : ""}.`;
       /* the merge commit names the merge: facts.merge when given (facts.sha may be the branch's last commit), else the one sha given */
       const mergeSha = next.merge || sha;
@@ -510,10 +528,9 @@ function applyEvent(orig, ev, facts, req, now) {
       applied.push(...r.applied); enrich.push(...r.notes.map(n => "tests: " + n)); }
   } else if (!tracking && testsDue)
     enrich.push(`the Tests tab: the event carries no facts.tests; ${ev === "qa-pass" ? "Relevant, Other and the results come from the qa report" : "Added and Amended come from the branch's diff against its base"}`);
-  /* the fast path takes open points only at an implementation stage and a qa pass (plan/RULES.md §4, "The fast path"); a facts.open on
-     any other event is never dropped silently: the presenter writes it (anything not applied means enrich: yes) */
-  if (Array.isArray(facts.open) && facts.open.length && !["implementation-stage", "qa-pass"].includes(ev))
-    enrich.push(`facts.open (${facts.open.length} open point${facts.open.length === 1 ? "" : "s"}) on ${ev} is not applied by the fast path, which takes open points at an implementation stage or a qa pass: the presenter writes them into wip.open (and a resolved one into the trail)`);
+  /* the fast path takes open points at every event (plan/RULES.md §4, "The fast path"; moved onto it in dashboards-skill/33): an
+     implementation stage and a qa pass raise theirs above, any other event here, raised by the event's name */
+  if (Array.isArray(facts.open) && facts.open.length && !["implementation-stage", "qa-pass"].includes(ev)) mergeOpen(w, facts, applied, txt, ev, resolved, plan.folder, DIR, enrich);
   if (detail !== w.detail) { w.detail = detail; applied.push("wip.detail"); }
   const evRec = { name: ev, at: now, ...(note ? { note } : {}) };
   w.event = evRec; w.updated = now;
@@ -565,11 +582,13 @@ function mergeStages(w, facts, applied, enrich, first) {
 /* wip.remediation from the facts: {pass, route, steps: [{name, state}]}. */
 function setRemediation(w, R, applied, enrich, txt) {
   if (!R || !Number.isInteger(R.pass)) refuse("the remediation names no qa pass (facts.remediation.pass)");
+  /* the route's neutral id, whatever the request or the board carried (routeId()) */
+  R = { ...R, ...(R.route != null ? { route: routeId(R.route) } : {}) };
   if (R.route != null && !ROUTES.includes(R.route)) refuse(`facts.remediation.route ${JSON.stringify(R.route)} is not one of ${ROUTES.join(", ")}`);
-  const old = w.remediation && w.remediation.pass === R.pass ? w.remediation : {};
+  const old0 = w.remediation && w.remediation.pass === R.pass ? w.remediation : {}, old = old0.route ? { ...old0, route: routeId(old0.route) } : old0;
   /* a sub-step's name: a work level in it (GUIDANCE.md §4) is elided ("…") rather than the step dropped, and the presenter is told */
   const stepName = (raw, i) => { const t = txt(raw, `remediation.steps[${i}].name`); if (t || typeof raw !== "string" || !raw.trim()) return t;
-    let s = raw.replace(/\s+/g, " ").trim(); levelRefs(s).forEach(h => { s = s.split(h).join("…"); }); return s; };
+    let s = raw.replace(/\s+/g, " ").trim(); levelRefs(s).forEach(h => { s = s.split(h).join("…"); }); s = scrubNames(s).text; nameRefs(s).forEach(h => { s = s.split(h).join("…"); }); return s; };
   const steps = Array.isArray(R.steps) ? R.steps.map((s, i) => { const raw = s && (s.name || s.what), name = stepName(raw, i);
     if (!name) refuse(`facts.remediation.steps[${i}] has no name (got ${JSON.stringify(raw === undefined ? null : raw)})`);
     if (!SSTATES.includes(s.state)) refuse(`facts.remediation.steps[${i}].state ${JSON.stringify(s.state)} is not done, current or todo`);
@@ -580,7 +599,7 @@ function setRemediation(w, R, applied, enrich, txt) {
   const next = { pass: R.pass, ...(R.route || old.route ? { route: R.route || old.route } : {}), ...(steps ? { steps } : {}) };
   if (JSON.stringify(next) !== JSON.stringify(w.remediation || null)) { w.remediation = next; applied.push(`wip.remediation pass ${R.pass}${next.route ? " " + next.route : ""}`); }
   /* the route is recorded on the pass it answers too, so the decision outlives the loop (wip.remediation is cleared once it ends): every
-     page reads the in-place mark from it (lib.js qaInPlace(), dashboards-skill/31). Only a pass that requested changes and records no route. */
+     board reads the in-place mark from it (lib.js qaInPlace(), dashboards-skill/31). Only a pass that requested changes and records no route. */
   const qp = next.route && Array.isArray(w.qa) ? w.qa.find(p => p && p.pass === R.pass) : null;
   if (qp && qp.verdict === "changes-requested" && qp.route == null) { qp.route = next.route; applied.push(`wip.qa pass ${R.pass} route ${next.route}`); }
 }
@@ -665,20 +684,20 @@ function chainDetail(plan) {
     done.length ? `${done.map(n).join(", ")} complete, awaiting ${done.length > 1 ? "their landings" : "its landing"}` : null, nx ? `${n(nx)} up next` : null].filter(Boolean).join("; ") + ".";
 }
 
-/* The page a board is embedded into: the page itself, or the current template when the page is not the verified template plus its
-   data (plan/RULES.md §4: every event re-renders the board onto the current template). A page that declares a divergence, or a
+/* The board a board is embedded into: the board itself, or the current template when the board is not the verified template plus its
+   data (plan/RULES.md §4: every event re-renders the board onto the current template). A board that declares a divergence, or a
    template not verified since it changed, is left as it is, and the presenter is told. */
 const emptyBlock = (html, id) => dev.norm(html).replace(new RegExp(`(<script type="application/json" id="${id}">)[\\s\\S]*?(</script>)`), "$1\n{}\n$2");
 function pageBase(pagePath, enrich, rel) {
   const html = fs.existsSync(pagePath) ? fs.readFileSync(pagePath, "utf8") : null, tplPath = dev.templateFor(pagePath, "plan-board"), tpl = fs.readFileSync(tplPath, "utf8");
   if (html != null && emptyBlock(html, "plan") === emptyBlock(tpl, "plan")) return { html, rerendered: false };
   if (html != null && /<meta name="template-divergence"/.test(html)) { enrich.push(`${rel} declares a divergence from the template: not re-rendered`); return { html, rerendered: false }; }
-  if (!dev.verified(tplPath).ok) { enrich.push(`the template ${path.relative(dev.SKILL, tplPath).split(path.sep).join("/")} changed since it was verified: ${rel} not re-rendered (run verify/verify-templates.js)`); if (html == null) refuse(`${rel} has no page and the template is not verified`); return { html, rerendered: false }; }
+  if (!dev.verified(tplPath).ok) { enrich.push(`the template ${path.relative(dev.SKILL, tplPath).split(path.sep).join("/")} changed since it was verified: ${rel} not re-rendered (run verify/verify-templates.js)`); if (html == null) refuse(`${rel} has no board and the template is not verified`); return { html, rerendered: false }; }
   return { html: tpl, rerendered: true };
 }
 /* Embed a board in memory and write its three files (plan/scripts/embed.js does the same on disk): the issue links, on a tracking
    board the units' mirrors, and the statements' excerpts not copied yet, resolved from the folders on disk (lib.js resolveBoard()),
-   plan.json in its own line endings, the page's data block and the plan.js sidecar. */
+   plan.json in its own line endings, the board's data block and the plan.js sidecar. */
 function writeBoard(dir, data, eol, enrich, label) {
   const rel = path.relative(ROOT, path.join(dir, "dashboard.html")).split(path.sep).join("/");
   lib.resolveBoard(data, dir);
@@ -751,13 +770,13 @@ async function main() {
       S.parent = `${prel} (${writeBoard(up, pplan, peol, S.enrich, "parent") ? "re-embedded" : "unchanged"})`;
     } else if (R.plan.parent && R.parentOp) S.enrich.push(`the parent tracking board #${R.plan.parent.issue} is not in the enclosing folder: the standing rule is the presenter's`);
 
-    /* check.js on every board written, and the live work board, at once */
+    /* check.js on every board written, and the live repository work board, at once */
     const checks = [run(path.join(__dirname, "check.js"), [DIR], ROOT)];
     if (up) checks.push(run(path.join(__dirname, "check.js"), [up], ROOT));
     let liveRun = null, liveDir = null;
     const main = path.resolve(opt("main") || REPO_PATH || req.repo || ROOT);
     if (flag("no-live")) S.live = "skipped (--no-live)";
-    else if (!fs.existsSync(path.join(main, "docs", "plans"))) { S.live = `skipped (${main} has no docs/plans/)`; S.enrich.push("the live work board: the main checkout was not found"); }
+    else if (!fs.existsSync(path.join(main, "docs", "plans"))) { S.live = `skipped (${main} has no docs/plans/)`; S.enrich.push("the live repository work board: the main checkout was not found"); }
     else {
       liveDir = path.join(main, "docs", "plans", ".live");
       if (!fs.existsSync(liveDir)) { fs.mkdirSync(liveDir, { recursive: true }); madeDirs.push(liveDir); }

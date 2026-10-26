@@ -58,7 +58,7 @@ module.exports = function cases32(X) {
     c.push(["#63's run: the steps in the order visited, repeats named by pass and loop, each with its bounds and its duration", js(got63) === js(want63), js(got63)]);
     c.push(["the steps the record says nothing of are no entry, named apart (the interview)", js(T.left) === js(["interview"]) && lib.timelineLeftOut(T) === "not summed: sizing, research, plan, branch (a bound not recorded) · no record of: interview", lib.timelineLeftOut(T)]);
     c.push(["the figure: the sum of the visits drawn, in hours and minutes (4 h 39 + 38 + 20 + 46 + 54 + 2 min)", lib.tlSpan(lib.timelineTotal(T)) === "7 h 19 min", lib.tlSpan(lib.timelineTotal(T))]);
-    c.push(["the last visit ends at the merge (asBuilt.at), not at the landing refresh's landed event", T.visits[9].to.t === "2026-10-25T21:40:14Z" && T.visits[9].to.merge === true, js(T.visits[9])]);
+    c.push(["the last visit ends at the merge (asBuilt.at), not at the pre-merge refresh's landed event", T.visits[9].to.t === "2026-10-25T21:40:14Z" && T.visits[9].to.merge === true, js(T.visits[9])]);
     c.push(["a neighbour's bound across the next step of the line: the branch ends when implementation began", T.visits[3].to && T.visits[3].to.t === "2026-10-25T14:21:18Z", js(T.visits[3])]);
     const nm = run63(); delete nm.asBuilt.at; const Tn = lib.timelineSteps(nm);
     c.push(["no merge time recorded: the landing ends at its snapshot's end (the record's), 26 min", L(Tn)[9] === "landing|2026-10-25T21:38:04Z|2026-10-25T22:03:35Z|26 min", L(Tn)[9]]);
@@ -90,8 +90,8 @@ module.exports = function cases32(X) {
     cases.forEach(([ms, want]) => c.push([`${ms == null ? "no span" : Math.round(ms / 6e4) + " min"} reads "${want}"`, lib.tlSpan(ms) === want, lib.tlSpan(ms)]));
   });
 
-  /* 3. the page */
-  guard("the page: the Timeline tile's figure, sub-line, bar and legend of step visits, across a landed board's KPI row (dashboards-skill/32)", c => {
+  /* 3. the board */
+  guard("the board: the Timeline tile's figure, sub-line, bar and legend of step visits, across a landed board's KPI row (dashboards-skill/32)", c => {
     if (!chrome) { c.push(["the rendered pages (no browser found: set CHROME)", false, "no Chrome or Edge"]); return; }
     const TILE = 'const ks=[...document.querySelectorAll("#kpis>.kpi")],k=ks.pop(),K=document.getElementById("kpis"),segs=[...k.querySelectorAll(".seg-bar i")],es=[...k.querySelectorAll(".key.tl-steps>.tl-step")];const col=()=>segs.map(i=>getComputedStyle(i).backgroundColor);const light=col();document.documentElement.dataset.theme="dark";const dark=col();const r=x=>x.getBoundingClientRect();document.body.dataset.r=JSON.stringify({l:k.querySelector(".l").textContent,v:k.querySelector(".v").textContent,s:k.querySelector(".s").textContent,segs:segs.map(i=>[Math.round(r(i).width),i.title]),light,dark,es:es.map(e=>[e.querySelector("b").textContent,e.querySelector(".tl-dur").textContent,!!e.querySelector("i.segk.tp"),[...e.querySelectorAll("time")].map(t=>[t.getAttribute("datetime"),t.dataset.local||""]),e.querySelector(".tl-when").textContent]),note:(k.querySelector(".tl-note")||{}).textContent||"",w:Math.round(r(K).width),tw:Math.round(r(k).width),tt:Math.round(r(k).top),ot:ks.map(x=>[Math.round(r(x).width),Math.round(r(x).top)]),txt:k.textContent,sw:document.documentElement.scrollWidth>document.documentElement.clientWidth});';
     const d = run63(), T = lib.timelineSteps(d);
@@ -176,7 +176,7 @@ module.exports = function cases32(X) {
   guard("the feature probe of this run: the plan template carries timeline-steps, one without it does not (dashboards-skill/32)", c => {
     const T = rd(PB);
     c.push(["the plan template carries timeline-steps, and timeline-phases and timeline-sum still hold", !F.probe(T, "plan-board").some(m => ["timeline-steps", "timeline-phases", "timeline-sum"].includes(m.id)), js(F.probe(T, "plan-board").map(m => m.id))]);
-    c.push(["timeline-steps applies to plan boards only; the work board and the state pages say why not", js(F.applicable("plan-board").filter(f => f.id === "timeline-steps").map(f => f.id)) === js(["timeline-steps"]) && ["work-board", "system", "supersystem"].every(k => !F.applicable(k).some(f => f.id === "timeline-steps")) && !!(F.FEATURES.find(f => f.id === "timeline-steps") || {}).notFor["work-board"], "applicable"]);
+    c.push(["timeline-steps applies to issue boards only; the repository work board and the state boards say why not", js(F.applicable("plan-board").filter(f => f.id === "timeline-steps").map(f => f.id)) === js(["timeline-steps"]) && ["work-board", "system", "supersystem"].every(k => !F.applicable(k).some(f => f.id === "timeline-steps")) && !!(F.FEATURES.find(f => f.id === "timeline-steps") || {}).notFor["work-board"], "applicable"]);
     c.push(["a plan template whose Timeline is the four phases (no timelineSteps()) lacks timeline-steps", F.probe(T.split("function timelineSteps(").join("function timelineStepz(").split("function timelineTile(").join("function timelineTilez("), "plan-board").some(m => m.id === "timeline-steps"), "probe"]);
     c.push(["the work-board template is untouched by it: no Timeline tile, its Landed tile counts runs", !/timelineSteps|tlSpan/.test(rd(WB)), "work board"]);
   });

@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-// Embed a board's data file into its page, verbatim, so the page renders from one committed file (GUIDANCE.md §3).
+// Embed a board's data file into its board, verbatim, so the board renders from one committed file (GUIDANCE.md §3).
 //   node embed.js <folder>            a plan folder (plan.json → dashboard.html, block "plan")
 //                                     or docs/plans itself (board.json → index.html, block "board")
 //   node embed.js <folder> --check    exit 1 if the embedded copy differs from the data file
 //   node embed.js <folder> --refresh-excerpts   re-copy every statement's excerpt from the plan section it names (plan/RULES.md §2,
 //                                     "Statements"), once the presenter has judged that the statement still rests on the changed section
-// On a plan board it first links every issue the board names to that issue's board where its dashboard.html exists in this tree,
+// On an issue board it first links every issue the board names to that issue's board where its dashboard.html exists in this tree,
 // and clears a link to one that does not (plan/RULES.md §1): a tracking board's units (unit.board), the parent tracking issue
 // (parent.board) and every other issue (issueBoards). On a tracking board it also mirrors the live run of each unit in progress
 // from that sub-issue's own plan.json (unit.live, plan/RULES.md §3). It copies the excerpt of every statement's reference (verdict
@@ -14,9 +14,9 @@
 // excerpt changed.
 // A sub-issue's board then re-embeds its parent's tracking board (the enclosing folder, when it holds the parent's plan.json and
 // dashboard.html), so every event of a unit's run reaches the tracking board, not only the first.
-// Beside the page it writes the live sidecar (plan/RULES.md §1, "plan.js"): plan.json → plan.js, board.json → board.js, the data
-// file verbatim as a script the page re-loads while its run is live and redraws from. --check also holds the sidecar to the file.
-// For a plan board it then renders the Markdown the board links into self-contained HTML copies under the tree's git-ignored
+// Beside the board it writes the live sidecar (plan/RULES.md §1, "plan.js"): plan.json → plan.js, board.json → board.js, the data
+// file verbatim as a script the board re-loads while its run is live and redraws from. --check also holds the sidecar to the file.
+// For an issue board it then renders the Markdown the board links into self-contained HTML copies under the tree's git-ignored
 // docs/plans/.live/docs/ (mdcopy.js), which the board opens in place of the .md when they are on disk; never where .live/ is not ignored.
 "use strict";
 const fs = require("fs"), path = require("path");
@@ -37,8 +37,8 @@ function same(dir) {
   if (side.error) return { t, same: false, reason: `the sidecar ${path.basename(t.js)} is ${side.error}` };
   return { t, same: JSON.stringify(side.data) === JSON.stringify(file), reason: `the sidecar ${path.basename(t.js)} differs` };
 }
-/* A plan board's issue links and its units' runs are resolved from the folders on disk before it is embedded (lib.js
-   linkIssueBoards); plan.json is rewritten first, keeping its line endings, so the page still embeds the committed file verbatim. */
+/* An issue board's issue links and its units' runs are resolved from the folders on disk before it is embedded (lib.js
+   linkIssueBoards); plan.json is rewritten first, keeping its line endings, so the board still embeds the committed file verbatim. */
 function embedOne(dir, opts) {
   const t = target(dir);
   let json = fs.readFileSync(t.json, "utf8");

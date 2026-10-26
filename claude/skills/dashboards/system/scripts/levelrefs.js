@@ -1,7 +1,7 @@
 // Work-level references (GUIDANCE.md §4, "No work levels"): the dashboards never show an issue's work level (level 1 to 4, "L3",
 // "level: 2", a "level-3 change"). Plans keep their level as data where a script needs it (plan.json "level", unit.level,
 // wip.proposedLevel), and nothing renders it.
-// These patterns find the unambiguous forms in rendered text and in the data a page renders. They leave the five-level test
+// These patterns find the unambiguous forms in rendered text and in the data a board renders. They leave the five-level test
 // hierarchy alone ("Level 2 — the class and the claim", "tests at levels 1 to 4c", "the Level-4c suite"), which a dashboard
 // shows freely with its level label ("L1 gating", "L2 component", "L4a deterministic", "L5 UAT"), and the C4 model's levels
 // ("Level 1 · System Context"): the rule covers the /resolve-issue pipeline's work levels only. A test level is never followed by
@@ -9,13 +9,16 @@
 // when no test level's name follows ("L3" alone, never "L1 gating"), and "Level 3" alone never counts, nor does "Level 4a tests".
 // A scope phrase names a work level too ("inside level 3", "within level 2", "outside level 3": the bounds of a sizing), unless a
 // test level's name or "test" follows it ("inside level 3 integration tests").
-// Used by plan/scripts/check.js (every string of plan.json and board.json) and by check-page.js (the rendered text of every tab).
+// An unnumbered mention names a work level too (dashboards-skill/33): the sizing's own words, "Recorded level confirmed", "the proposed
+// level", "the level re-check", "the issue's level" — never a test level's, a log level's or a C4 level's ("the test level is
+// recorded", "log level kept", "Level 1 · System Context").
+// Used by plan/scripts/check.js (every string of plan.json and board.json) and by check-board.js (the rendered text of every tab).
 // scrubLevels() rewords a pipeline fact that names a work level so that it names none (admin-team/dashboards-skill/23): the scope
 // phrase becomes the unit's or the issue's scope, the level before a noun is elided ("a level-3 re-pass" → "a re-pass"), the label
 // ("Label level: 3") is dropped with its punctuation; apply-event.js and apply-state.js write the reworded text, never the level.
 // A quotation (a plan excerpt, lib.js sectionOf()) keeps its "…" elision instead: a quote is never reworded. An issue's title is quoted
 // verbatim and never reworded or elided either: one that names a work level is a defect in the issue, flagged ISSUE TITLE NAMES A WORK
-// LEVEL: #n (issueTitleRefs(), titleDefect(); admin-team/dashboards-skill/28), never a failure of the page.
+// LEVEL: #n (issueTitleRefs(), titleDefect(); admin-team/dashboards-skill/28), never a failure of the board.
 "use strict";
 /* The test levels' names, matched in any case (a table head may set them in capitals: "L1 GATING") while the "L" itself stays
    case-sensitive: each letter becomes a class of both its cases. */
@@ -28,6 +31,9 @@ const NOT_TEST_OR_TESTS = `(?!\\s*(?:[·:—–-]\\s*)?(?:[\\w-]+\\s+){0,2}(?:${
    "the Level 3 pass", "Level 2 unit tests" are test levels) */
 const WORK_NOUNS = "change|changes|fix|fixes|feature|features|issue|issues|run|runs|work|plan|plans|planner|planners|planning|bump|label|labels|sub-issue|sub-issues|tracking|initiative|roadmap|re-pass|re-passes|repass|repasses|scope|sizing|pipeline|budget|qa";
 const SCOPE_WORDS = "inside|within|outside|beyond";
+/* the words before "level" that make it another kind of level, never a work level */
+const OTHER_LEVEL = "test|testing|gating|component|integration|deterministic|e2e|non-functional|nonfunctional|uat|unit|log|logging|trace|debug|info|warn|error|c4|zoom|isolation|api|access|compression|nesting|indent|indentation|heading|top|sea|noise|power|signal|battery|volume|risk|severity|confidence|service|stability|support|maturity|privilege|security|trust|quality";
+const NOT_OTHER = `(?<!\\b(?:${OTHER_LEVEL})[- ])`;
 const LEVEL_PATTERNS = [
   ["\\blevel:\\s*[1-4]\\b", "i"],                                                         // the label: "level: 2", "Label level: 3"
   // the short form "L3", unless a test level's name follows ("L1 gating", "L3 · integration"); "L4c" never matches
@@ -40,6 +46,11 @@ const LEVEL_PATTERNS = [
   ["\\bat (?:its|their|his|her) own level\\b", "i"],                                       // "planned at its own level"
   ["[(,;]\\s*level [1-4]\\s*[),;:]", "i"],                                                // "(#61, level 3)", "#55, level 2: a bug fix"
   [`\\b(?:${SCOPE_WORDS})\\s+(?:the\\s+)?level[- ][1-4]\\b${NOT_TEST_OR_TESTS}`, "i"],     // "inside level 3", "within the level-2 bounds"
+  /* unnumbered (dashboards-skill/33) */
+  [`\\b(?:recorded|proposed|assigned|sized)\\s+(?:work\\s+)?levels?\\b${NOT_TEST_OR_TESTS}`, "i"],                  // "Recorded level confirmed"
+  [`${NOT_OTHER}\\blevels?\\s+(?:was\\s+|is\\s+|were\\s+|are\\s+)?(?:confirmed|re-?checked|unchanged|agreed)\\b`, "i"],   // "the level was confirmed"
+  [`${NOT_OTHER}\\blevel\\s+(?:re-?checks?|checks?|confirmation|proposal)\\b`, "i"],                                  // "the level re-check"
+  ["\\b(?:issue|unit|run|sub-issue)['’]s\\s+level\\b", "i"],                                                           // "the issue's level"
 ];
 const REGEXES = LEVEL_PATTERNS.map(([s, f]) => new RegExp(s, f + "g"));
 /* Every work-level reference in a text, as the matched strings. */
@@ -61,9 +72,9 @@ function levelRefsIn(v, at, found, skip) {
 
 /* Issue titles (GUIDANCE.md §4, §5; admin-team/dashboards-skill/28). An issue's title is quoted verbatim: never reworded, never elided.
    Work levels are internal to the pipeline and never part of an issue, so a title that names one is a defect in the issue, not in the
-   page: the checks flag it, ISSUE TITLE NAMES A WORK LEVEL: #n, without failing the page (the admin team brings it to the user to
+   board: the checks flag it, ISSUE TITLE NAMES A WORK LEVEL: #n, without failing the board (the admin team brings it to the user to
    retitle on GitHub), and the work-level rule above leaves the title's text alone. The fields that quote an issue's title, by data file
-   (a path with its indices written []): a plan board's plan.json, the work board's board.json, a state page's state.json. */
+   (a path with its indices written []): an issue board's plan.json, the repository work board's board.json, a state board's state.json. */
 const TITLE_PATHS = {
   "plan-board": ["issueTitle", "parent.title", "followUps[].title", "roadmap.title", "roadmap.items[].title", "rows[].unit.title"],
   "work-board": ["rows[].title", "groups[].title", "roadmap[].title", "roadmap[].items[].title", "unscheduled[].title"],
@@ -79,7 +90,7 @@ const isTitlePath = (kind, at) => !!kind && (TITLE_PATHS[kind] || []).includes(S
 /* the skip() of levelRefsIn() for a data file: its issue titles */
 const titleSkip = (data, kind) => { const k = kind || dataKind(data); return at => isTitlePath(k, at); };
 /* Every quoted issue title of a data file that names a work level: [{ at, issue, title, hits }], issue the number of the issue it quotes
-   (the issue field beside it; for a plan board's issueTitle, the board's own issue), or null where none is recorded. */
+   (the issue field beside it; for an issue board's issueTitle, the board's own issue), or null where none is recorded. */
 function issueTitleRefs(data, kind) {
   const k = kind || dataKind(data), out = [];
   if (!k) return out;
@@ -92,7 +103,7 @@ function issueTitleRefs(data, kind) {
   return out;
 }
 /* Every title a data file quotes (whatever it says): the browser pass leaves each, JSON-quoted as a Source view prints it, out of its
-   work-level scan, as it leaves out the titles a page marks data-issue-title (check-page.js) */
+   work-level scan, as it leaves out the titles a board marks data-issue-title (check-board.js) */
 function quotedTitles(data, kind) {
   const k = kind || dataKind(data), out = [];
   if (!k) return out;
@@ -105,7 +116,7 @@ function quotedTitles(data, kind) {
   return [...new Set(out)];
 }
 /* the flag's line: the issue first, then where the title is quoted and the words that name a work level */
-const titleDefect = x => `ISSUE TITLE NAMES A WORK LEVEL: #${x.issue != null ? x.issue : "?"} (${x.at}: ${JSON.stringify(x.title)} names ${x.hits.map(h => JSON.stringify(h)).join(", ")}): a defect in the issue, quoted verbatim on the page; the issue is retitled on GitHub`;
+const titleDefect = x => `ISSUE TITLE NAMES A WORK LEVEL: #${x.issue != null ? x.issue : "?"} (${x.at}: ${JSON.stringify(x.title)} names ${x.hits.map(h => JSON.stringify(h)).join(", ")}): a defect in the issue, quoted verbatim on the board; the issue is retitled on GitHub`;
 
 /* A pipeline fact reworded so that it names no work level (GUIDANCE.md §4; plan/RULES.md §4, "The fast path"): the scope phrase
    ("inside level 3") becomes "inside the unit's scope" (opts.scope: "unit" on a sub-issue's board, else "issue"), the level before a
@@ -131,6 +142,11 @@ function scrubLevels(text, opts) {
   s = s.replace(/\bre-?level(led|ed|ing|s)?\s+(?:to|as|at)\s+(?:level\s+)?[1-4]\b/gi, resize);
   s = s.replace(/\bre-?level(led|ed|ing|s)?\b/gi, resize);
   s = s.replace(/\b(work|issue|tracking)[- ](levels?)\b/gi, (m, w, l) => /s$/i.test(l) ? "sizings" : "sizing");
+  /* an unnumbered mention: the level becomes the sizing ("Recorded level confirmed" → "Recorded sizing confirmed") */
+  s = s.replace(new RegExp(`\\b(recorded|proposed|assigned|sized)\\s+(?:work\\s+)?(levels?)(?:[:\\s]+[1-4]\\b)?${NOT_TEST_OR_TESTS}`, "gi"), (m, w, l) => `${w} ${/s$/i.test(l) ? "sizings" : "sizing"}`);
+  s = s.replace(new RegExp(`${NOT_OTHER}\\b(levels?)(\\s+(?:was\\s+|is\\s+|were\\s+|are\\s+)?(?:confirmed|re-?checked|unchanged|agreed)\\b)`, "gi"), (m, l, rest) => (/^L/.test(l) ? "Sizing" : "sizing") + rest);
+  s = s.replace(new RegExp(`${NOT_OTHER}\\b(level)(\\s+(?:re-?checks?|checks?|confirmation|proposal)\\b)`, "gi"), (m, l, rest) => (/^L/.test(l) ? "Sizing" : "sizing") + rest);
+  s = s.replace(/\b(issue|unit|run|sub-issue)(['’]s)\s+level\b/gi, "$1$2 sizing");
   s = s.replace(/\(\s*(?:the\s+)?(?:label(?:led|ed)?\s+)?level:?\s*[1-4]\s*\)/gi, "");
   s = s.replace(/\s*[,;]\s*level [1-4]\s*(?=[),;:])/gi, "");
   s = s.replace(/\(\s*level [1-4]\s*\)/gi, "");

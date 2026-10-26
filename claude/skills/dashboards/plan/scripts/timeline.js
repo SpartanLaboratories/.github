@@ -33,6 +33,6 @@ if (args.includes("--from-git")) {
   else console.log("asBuilt.at and asBuilt.commits already record what git tells: plan.json unchanged");
 }
 const T = lib.timelineSteps(plan), tot = lib.timelineTotal(T), lo = lib.timelineLeftOut(T);
-if (!(plan.status === "built" || (plan.wip || {}).step === "landed")) console.log("(the board has not landed: its page shows the QA passes tile, not the Timeline)");
+if (!(plan.status === "built" || (plan.wip || {}).step === "landed")) console.log("(the board has not landed: its board shows the QA passes tile, not the Timeline)");
 lib.timelineLines(T).forEach(l => console.log("  " + l));
 console.log(`figure: ${tot != null ? lib.tlSpan(tot) : "—"}${lo ? ` · ${lo}` : ""}`);

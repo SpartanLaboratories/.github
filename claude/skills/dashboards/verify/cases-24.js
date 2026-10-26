@@ -69,7 +69,7 @@ module.exports = function cases24(X) {
     const Q = H.qa || [];
     c.push(["qa: pass 1 a visit of qa (since the build ended), pass 2 a visit of its own though the run reached it from remediation (no since)", Q.length === 2 && JSON.stringify(Q.map(v => (v.qa || []).map(p => p.pass))) === "[[1],[2]]" && Q[0].since === I.ended && Q[1].since === null && Q[1].qa[0].verdict === "changes-requested", JSON.stringify(Q.map(v => ({ since: v.since, passes: (v.qa || []).map(p => p.pass + " " + p.verdict) })))]);
     const M = H.remediation || [];
-    c.push(["remediation: each loop apart, with the pass it answers, its route and sub-steps; the second does not overwrite the first", M.length === 2 && M[0].remediation.pass === 1 && M[0].remediation.route === "rookie-dev" && (M[0].remediation.steps || [])[0].name === "rookie-dev fixes" && M[1].remediation.pass === 2 && (M[0].qa || [])[0].pass === 1 && (M[1].qa || [])[0].pass === 2, JSON.stringify(M.map(v => ({ pass: v.remediation && v.remediation.pass, route: v.remediation && v.remediation.route, steps: (v.remediation && v.remediation.steps || []).map(s => s.name), qa: (v.qa || []).map(p => p.pass) })))]);
+    c.push(["remediation: each loop apart, with the pass it answers, its route and sub-steps; the second does not overwrite the first", M.length === 2 && M[0].remediation.pass === 1 && M[0].remediation.route === "remediation" && (M[0].remediation.steps || [])[0].name === "fixes" && M[1].remediation.pass === 2 && (M[0].qa || [])[0].pass === 1 && (M[1].qa || [])[0].pass === 2, JSON.stringify(M.map(v => ({ pass: v.remediation && v.remediation.pass, route: v.remediation && v.remediation.route, steps: (v.remediation && v.remediation.steps || []).map(s => s.name), qa: (v.qa || []).map(p => p.pass) })))]);
     c.push(["the second loop began when the first ended (the step stayed remediation), and ended at the landing", M.length === 2 && M[1].since === M[0].ended && M[1].endedBy === "landing" && M[1].to === "landing", JSON.stringify(M.map(v => [v.since, v.ended, v.endedBy, v.to]))]);
     c.push(["each visit carries its last event and (but a qa pass reached from another step) its detail; every stamp is the events' own time (--at)", Object.entries(H).flatMap(([k, v]) => v.map(x => [k, x])).filter(([, v]) => v.endedBy !== "sized").every(([k, v]) => v.event && v.event.name && (typeof v.detail === "string" || (k === "qa" && v.since === null))) && Object.values(H).flat().every(v => /^2026-10-25T/.test(v.ended)), JSON.stringify(Object.entries(H).map(([k, v]) => [k, v.map(x => (x.event || {}).name)]))]);
     /* the same event twice changes nothing; the same run replayed gives the same board */
@@ -128,7 +128,7 @@ module.exports = function cases24(X) {
     const cls = { "Sized; research starts": "sizing", "Run started: sized as one system": "sizing", "Research returned: `x`": "research", "Verification started: 2 findings": "research", "Halted in the plan's verification: waiting": "plan",
       "Halted at the interview: waiting on the user (x)": "interview", "Resumed at research": "research", "Escalated at implementation: waiting": "implementation", "Architecture signed off": "architecture", "3 of 11 units filed as sub-issues": "sub-issues",
       "11 of 11 unit boards created": "boards", "Plan accepted": "plan", "Branch `fix/x` cut; implementation starts at S1": "branch", "S1 done; S2 current: two": "implementation", "QA pass 1: changes requested": "qa", "Remediation for qa pass 1": "remediation",
-      "Landing: the admin team merges it in PR #9": "landing", "Landed in PR #9": "landing", "Gap and Considered filled from the parent's research": null, "Issue #63 opened": null };
+      "Landing: the admin team merges it in PR #9": "landing", "Landing: merging it in PR #9": "landing", "Landed in PR #9": "landing", "Gap and Considered filled from the parent's research": null, "Issue #63 opened": null };
     const miss = Object.entries(cls).filter(([l, s]) => lib.trailStep(l) !== s);
     c.push(["trailStep(): each label to its step by its leading words, a halt's, a resume's and an escalation's by the step named, others to none", !miss.length, JSON.stringify(miss.map(([l, s]) => [l, s, lib.trailStep(l)]))]);
     const R = lib.reconstructSteps(SUB);
@@ -138,7 +138,7 @@ module.exports = function cases24(X) {
     c.push(["the interview from the questions the board still holds, answered or waiting", (R2.interview.interview || []).length === (LIVE.wip.interview || []).length && (LIVE.wip.interview || []).length > 0, JSON.stringify(R2.interview).slice(0, 200)]);
     const d0 = copy(d); d0.wip.interview = []; const R0 = lib.reconstructSteps(d0);
     c.push(["research questions from the trail: sent, and returned with their findings", RAN ? (R2.research.questions || []).length === (LIVE.wip.questions || []).length && R2.research.questions.every(q => /^research\//.test(q.findings || "")) : false, JSON.stringify(R2.research && R2.research.questions)]);
-    c.push(["a step the history says nothing of reconstructs empty (the page says so), with no time", JSON.stringify(R0.interview) === JSON.stringify({ reconstructed: true, ended: null, trail: [], milestones: [] }), JSON.stringify(R0.interview)]);
+    c.push(["a step the history says nothing of reconstructs empty (the board says so), with no time", JSON.stringify(R0.interview) === JSON.stringify({ reconstructed: true, ended: null, trail: [], milestones: [] }), JSON.stringify(R0.interview)]);
     const TL = lib.reconstructStep(TRK, "landing");
     c.push(["a tracking board has no plan step: what names its plan (its verdict milestone, \"Plan merged\") is its landing's", TL.milestones.some(m => /^Plan merged/.test(m.label)) && !lib.reconstructStep(TRK, "plan").milestones.length, JSON.stringify(TL.milestones.map(m => m.label))]);
     const mir = lib.unitRun(d);
@@ -186,9 +186,9 @@ module.exports = function cases24(X) {
     /* a landed board: every step but landed a button; the step picked beside the landing */
     const r3 = view(planPage("landed", SUB, PR + `pick("own","qa"); const s=sp(); out.l={split:document.getElementById("wip").classList.contains("split"),main:!!document.querySelector("#wip .wipmain.landed"),view:s&&s.dataset.view,passes:s?s.querySelectorAll(".sp-pass").length:0}; document.body.dataset.r=JSON.stringify(out);`));
     c.push(["a landed board: every step but landed is a button; the step picked shows beside the landing, reconstructed", JSON.stringify((r3.btns || []).map(b => b[1])) === JSON.stringify(SUB.wip.steps.filter(s => s !== "landed")) && (r3.l || {}).split && (r3.l || {}).main && (r3.l || {}).view === "reconstructed" && (r3.l || {}).passes === 2, JSON.stringify([(r3.btns || []).map(b => b[1]), r3.l, r3.err])]);
-    /* the phone width: no horizontal page scroll with a finished step shown */
+    /* the phone width: no horizontal scroll with a finished step shown */
     const r4 = view(planPage("narrow", P, PR + `pick("own","remediation"); out.n={sw:document.scrollingElement.scrollWidth,w:innerWidth,past:!!sp()}; document.body.dataset.r=JSON.stringify(out);`), "520,900");
-    c.push(["at 520 px a finished step's panel causes no horizontal page scroll", (r4.n || {}).past && (r4.n || {}).sw <= (r4.n || {}).w, JSON.stringify(r4.n)]);
+    c.push(["at 520 px a finished step's panel causes no horizontal scroll", (r4.n || {}).past && (r4.n || {}).sw <= (r4.n || {}).w, JSON.stringify(r4.n)]);
   });
 
   /* 6. tracking boards: the unit's steps through its mirror, the board's own steps */
@@ -199,13 +199,13 @@ module.exports = function cases24(X) {
       out.btns=B().map(b=>b.dataset.run+":"+b.dataset.step);
       pick("${row.unit.issue}","plan"); let s=sp(); out.u={view:s&&s.dataset.view,line:s&&s.querySelector(".sp-view").textContent,r:s&&s.style.getPropertyValue("--r"),live:document.querySelectorAll(".wipgrid>.sp:not(.past)").length};
       pick("${row.unit.issue}","research"); s=sp(); out.ur={view:s&&s.dataset.view,text:s&&s.innerText.slice(0,200)};
-      pick("own","architecture"); s=sp(); const u=document.querySelector(".wipgrid>.wb.unit"), p=document.querySelector(".wipgrid>.sp:not(.past)");
+      pick("own","architecture"); s=sp(); const u=document.querySelector(".wipgrid>.wipcard.unit"), p=document.querySelector(".wipgrid>.sp:not(.past)");
       out.o={view:s&&s.dataset.view,own:s&&s.classList.contains("own"),r:s&&s.style.getPropertyValue("--r"),ur:u&&u.style.getPropertyValue("--r"),box:s&&box(s),ubox:u&&box(u),pbox:p&&box(p),line:s&&s.querySelector(".sp-view").textContent};
       document.body.dataset.r=JSON.stringify(out);`;
     const r1 = view(planPage("tracking", TRK, PR));
     c.push(["the tracking board's own finished steps and the unit's are buttons, each run's apart", JSON.stringify(r1.btns) === JSON.stringify([...of.map(s => "own:" + s), ...uf.map(s => row.unit.issue + ":" + s)]), JSON.stringify([r1.btns, r1.err])]);
     const u = r1.u || {};
-    c.push(["a unit's finished step shows its snapshot in place of the unit's step panel, beside its bubble, named \"#n's\"", u.view === "snapshot" && new RegExp(`^viewing: #${row.unit.issue}'s plan · finished`).test(u.line || "") && u.r === "1" && u.live === 0, JSON.stringify(u)]);
+    c.push(["a unit's finished step shows its snapshot in place of the unit's step panel, beside its card, named \"#n's\"", u.view === "snapshot" && new RegExp(`^viewing: #${row.unit.issue}'s plan · finished`).test(u.line || "") && u.r === "1" && u.live === 0, JSON.stringify(u)]);
     c.push(["a unit's step with no snapshot reads its mirror's reconstruction", (r1.ur || {}).view === "reconstructed" && /research verified in the parent's run/.test((r1.ur || {}).text || ""), JSON.stringify(r1.ur)]);
     const o = r1.o || {};
     c.push(["the board's own finished step takes a row of its own, first, beside the phase; the unit's row and live panel follow", o.view === "snapshot" && o.own && o.r === "1" && o.ur === "2" && !!o.pbox && /^viewing: architecture · finished/.test(o.line || ""), JSON.stringify(o)]);
@@ -220,7 +220,7 @@ module.exports = function cases24(X) {
     const old = require(sk("system/scripts/history.js")).readVersion(sk("plan/template/dashboard.html"), x => /dashboards-skill\/23/.test(x.note || ""), { historyRepo: X.historyRepo });
     c.push(["the template as dashboards-skill/23 left it misses it, named with its step", !!old && F.probe(old, "plan-board").some(m => m.id === "finished-steps" && m.since === "dashboards-skill/24"), old ? F.probe(old, "plan-board").map(m => m.id).join(", ") : "no recorded history"]);
     const f = F.FEATURES.find(x => x.id === "finished-steps");
-    c.push(["it fits the plan boards only, with the reason for each type it does not", !!f && JSON.stringify(f.types) === '["plan-board"]' && ["system", "supersystem", "work-board"].every(k => f.notFor && /no progress strip/.test(f.notFor[k])), JSON.stringify(f && f.notFor)]);
+    c.push(["it fits the issue boards only, with the reason for each type it does not", !!f && JSON.stringify(f.types) === '["plan-board"]' && ["system", "supersystem", "work-board"].every(k => f.notFor && /no progress strip/.test(f.notFor[k])), JSON.stringify(f && f.notFor)]);
   });
   return groups;
 };

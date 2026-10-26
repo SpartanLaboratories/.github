@@ -180,7 +180,7 @@ technology, relationships, views, styles; public, internal, standalone and
 planned are tags; identifiers hierarchical and stable) and the board's `MODEL`
 (the component map, the thread inventory, the decision-path variants, the
 sequence, the cross-reference to DSL elements). Then the panels, the
-Guarantees bubbles, the Context section, the header. Every tab gets its colour
+guarantee cards, the Context section, the header. Every tab gets its colour
 plan and its legend as the rulesets set them out; add an optional tab wherever
 content for one exists, declared as a divergence (below). Re-embed the DSL so board and file are byte-identical.
 On an update, change the facts the landing changed and leave the other facts alone, but
