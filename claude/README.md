@@ -13,7 +13,7 @@ section of `CLAUDE.md`).
 | `hooks/`        | `hooks/`                       | Hook scripts referenced by `settings.json`                      |
 | `agents/`       | `agents/`                      | Custom subagents (planner, architect, version-control-manager, qa, presenter, publisher, …) and the `admin-team` session brief |
 | `skills/`       | `skills/`                      | Custom skills (`resolve-issue`, `admin-team`, `dashboards`, `upgrade`) and installed third-party skills (`firecrawl*`, `vercel-connect`, `graphify`) |
-| `admin-team/`   | `admin-team/`                  | The admin team session's protocol, settings file and launcher   |
+| `admin-team/`   | `admin-team/`                  | The admin team session's protocol, settings file and launchers  |
 | `commands/`     | root `*.md` prompt files       | Legacy release / update prompt files                            |
 | `memory/<repo>/`| `projects/<path>/memory/`      | Per-project auto-memory, one folder per repository              |
 
