@@ -134,7 +134,9 @@ level-4 tracking issue"). The project's own test levels (Level 2 component, 4a,
 …) are fine, and so are "the implementer" (whoever builds the change) and a
 library's or third party's name that only coincides (OkHttp's `RoutePlanner`).
 Before a `commit` or a `land` commits anything, the executor scans what it is
-about to commit; on a find it commits nothing and reports each `file:line`. A
+about to commit: documents and boards (`docs/`, `README.md`, the generated board
+files) and the comments in source code, every line of each such file the commit
+carries (code itself is not scanned); on a find it commits nothing and reports each `file:line`. A
 find in a file the requester wrote is theirs: reply `needs-rework` with
 `result.finds`, and the requester rewords them and resends the same `id` with
 `attempt + 1`. A find in a generated board file the team writes itself (a state

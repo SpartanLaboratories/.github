@@ -318,7 +318,7 @@ sends none.
 | Level-4 sign-off | `architecture-signed-off` | the architecture path, the approved unit list |
 | Planner COMPLETE | `plan-accepted` | the plan path, impact path |
 | Step 3 done | `branch-cut` | branch, worktree |
-| Each rookie-dev report | `implementation-stage` | the stage, `stages`: every stage's id and name with its state (`done`, `current`, `todo`), `final-implementation.md` path, deviations; during a remediation loop also `remediation`: the qa pass it answers, the route (`on-the-spot` / `rookie-dev` / `planner-then-rookie-dev`) and its sub-steps with their state; `tests`: the test classes the stage added or amended (`added`/`amended`: class, module, testLevel, path, tests, rows) |
+| Each rookie-dev report | `implementation-stage` | the stage, `stages`: every stage's id and name with its state (`done`, `current`, `todo`), `final-implementation.md` path, deviations; during a remediation loop also `remediation`: the qa pass it answers, the route (`on-the-spot` / `remediation` / `re-plan-then-remediation`) and its sub-steps with their state; `tests`: the test classes the stage added or amended (`added`/`amended`: class, module, testLevel, path, tests, rows) |
 | Each qa verdict | `qa-pass` | pass number, verdict, finding counts by kind (doc, test, code) and by `severity` (`minor` — easily made, no fallout — and `other`), the route step 5 takes from them, `rows`: the board row ids the findings touch, report path; `tests`: what the qa run ran (`ran`: class, module, passed, failed, skipped) and the counts of the untouched modules' tests (`other.byModule`) from the test-inspector report |
 | An escalation | `escalated` | the proposed level and evidence |
 | The run is abandoned | `cancelled` | the reason |
