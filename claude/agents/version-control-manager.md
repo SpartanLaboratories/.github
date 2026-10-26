@@ -130,12 +130,16 @@ writes after the merge is yours to commit: it is a git-ignored live view, and
 the next landing's pre-merge refresh regenerates the committed corrections.
 
 **Internal-names scan.** Before any `commit` or `land` commits anything, scan
-what you are about to commit (every file, both spawns) for the pipeline's
+what you are about to commit, both spawns, for the pipeline's
 agents, sessions or roles (admin team, planner, plan-writer, architect,
 researcher, verifier, interviewer, presenter, publisher, rookie-dev,
 version-control-manager or executor, qa, code-reviewer, documentation-reviewer,
 test-inspector), for the approval flow ("the user's call", "the user chose",
 "user answers") and for a work level ("level 3", "a level-4 tracking issue").
+The scan covers documents and boards (everything under `docs/`, `README.md`,
+the generated board files) and the comments in source code (line and block
+comments, KDoc), reading every line of each such file the commit carries, not
+only the changed lines; code itself (identifiers, strings) is not scanned.
 The project's own test levels, "the implementer" (whoever builds the change)
 and a library's or third party's name that only coincides (OkHttp's
 `RoutePlanner`, a domain `verifier` in the code) are not finds. On a find,
