@@ -115,13 +115,33 @@ place, with no further pass (its `on-the-spot` route), carries a small neutral m
 "✎ fixed in place · no 2nd pass" ("fixing" while the fixes are being made). It is a decision, not an outcome: it takes no status colour,
 and the pass keeps its own verdict pill (`plan/RULES.md` §5, "QA").
 
-**Steps: a neutral ramp.** A landed board's Timeline tile (`plan/RULES.md` §2, "The KPI tiles") draws the time of each visit of a run
-step (sizing, research, plan, …, qa, remediation, landing; a tracking board's own steps) in neutral ink shades, one shade per step, faintest
-for the first step drawn to the full ink for the last, a step's repeats sharing its shade, each visit an entry of the tile's legend with
-its start → end and its duration (admin-team/dashboards-skill/32, in place of dashboards-skill/23's four phases): steps are an order, not
-systems or outcomes, so they take neither a system slot nor a status colour. A time not in the record is drawn "—", never guessed; a
-visit without both times is not drawn. The tile's figure is the sum of the visits its bar draws, never baseline to built: a visit left out
-of the bar is left out of the sum (admin-team/dashboards-skill/28).
+**Steps: four kinds of work** (admin-team/dashboards-skill/34, in place of dashboards-skill/32's neutral ramp). An issue board's Timeline
+tile (`plan/RULES.md` §2, "The Timeline tab"; every issue board's since dashboards-skill/34, a board in flight its steps so far) draws the time
+of each visit of a run step (sizing, research, plan, …, qa, remediation, landing, state boards, merge; a tracking board's own steps), each visit an entry of the tile's legend with its start → end and its duration (admin-team/dashboards-skill/32),
+coloured by the **kind of work** its step is, four hue families, each named in the tile's own legend of families with the steps it drew:
+
+| Family | Its steps | Hue | Light: first → last | Dark: first → last |
+|--------|-----------|-----|---------------------|--------------------|
+| **planning** | sizing, interview, research, architecture, plan; a tracking board's sub-issues and boards (its last planning, before its plan lands) | blue | `#5596de` → `#1d5cab` | `#3a7fd0` → `#80b6f0` |
+| **build** | branch, implementation (a tracking board's: its units' runs) | teal | `#1f9294` → `#0c5c61` | `#1a8a8c` → `#4cc4c2` |
+| **checking** | qa, remediation | purple | `#b67ad0` → `#84409f` | `#a35cbd` → `#d095e6` |
+| **landing** | landing, state-boards, merge (the landing's three steps; an older board's landing alone) | deep indigo (light) · pale indigo (dark) | `#2e3d99` → `#1d2870` | `#b8c4fa` → `#d4dcfd` |
+
+The steps of a family take **distinct shades of it**, lighter to darker in the steps line's order on a light surface (darker to lighter on a
+dark one: the first step nearest the surface, the last the strongest), mixed between its two ends (`--wk-<family>-a`, `-b`); a family of one
+step takes the middle of its two ends; a step's repeats (qa · 2nd pass, remediation · loop 2) share its shade. The colour is the bar's
+segment and the **mark in front of each step line**: filled for a visit the bar draws, outlined for one it does not (a bound not recorded),
+and the tile's legend says so. The families stay clear of the status colours and the research scale (no green, yellow, orange, red or pink:
+every shade is in the system palette's hues, 175°–295°) and of the accent (the in-progress glow), and every shade is at least 3:1 against its
+theme's card surface. They share that hue band with the system slots, as nothing else is left once the statuses and the accent are reserved;
+the tile's legend of families says what they mean there, and a system's colour is never read off the Timeline tile. A step outside the four
+(none today) keeps the neutral ink, as "other". A time not in the record is drawn "—", never guessed; a visit without both times is not drawn.
+An **approximate** time — on a board backfilled at the user's request only, the time a step's update reached the team (`asBuilt.approx`) — is
+drawn "≈", never as a recorded one, and never crosses a recorded time (`plan/RULES.md` §2). The running step of a board in flight runs to
+"now", its time and the figure "so far". The same colours draw each KPI tile's **tracer** (§12): from the tile up to the part of the Timeline
+tile it belongs to, in its steps' kind of work, labelled with their time.
+The tile's figure is the sum of the visits its bar draws, never baseline to built: a visit left out of the bar is left out of the sum
+(admin-team/dashboards-skill/28).
 
 **Work in progress and the next one up: two accent marks.** The accent colour marks two things
 and nothing else, each with its own look and its own legend entry (the charging arrow, below, is
@@ -161,7 +181,7 @@ carries a **ring** (its Considered cell's border, never a fill) in a status spec
 red to green: **red** planning (the question is being drafted), **orange** researching, **orange
 with a check** returned (awaiting verification), **yellow** verifying, **green** complete (kept until
 the plan is accepted). A pill in the cell's head says the state with its glyph and word, and the
-Timeline's legend names each state it drew. The ring and the in-progress glow coexist: the glow is
+Design tab's legend names each state it drew. The ring and the in-progress glow coexist: the glow is
 the activity, the ring the research's progress (`plan/RULES.md` §3).
 
 **Line and fill encodings.** Solid = built, done, decided. **Dashed = planned or pending**, on
@@ -198,9 +218,10 @@ segmented bar of what its figure counts (by group, verdict, state or qa pass, `p
 colour, a neutral; dashed for what is pending), and **each tile carries the legend of its own bar, inside the tile**, naming exactly the
 segments that bar drew: no legend row is shared under the tiles, so every tile keeps its full share of the row. The
 repository work board's Runs tile (every run by its state) and its Landed tile (landed, merged, complete, and the closed ones it does not count) carry one
-too, each with its legend inside the tile. A landed board's Timeline tile carries the time per step visit (§1, "Steps"), its legend
-one entry per visit with its start → end and its duration, a visit without both times left out of the bar and named in its
-sub-line; its figure is the sum of the visits the bar draws. A tile that counts one state (the repository work board's Active, Waiting, Up next, Not started) has
+too, each with its legend inside the tile. An issue board's Timeline tile, at the top of its Timeline tab with the KPI tiles below it, carries
+the time per step visit (§1, "Steps"), coloured by its kind of work, and two legends: the families it drew, each with its steps' shades, then one entry per visit with its step's mark, its start →
+end and its duration, a visit without both times left out of the bar, its mark outlined, and named in its sub-line; its figure is the sum of
+the visits the bar draws. A tile that counts one state (the repository work board's Active, Waiting, Up next, Not started) has
 nothing to segment and carries none, and so do the system boards' hand-written tiles: they are counted facts written by hand (files,
 types, threads, tests), not states, so there is nothing a bar would divide.
 
@@ -434,7 +455,8 @@ indicator present or absent by type, one-line ledes, reduced motion wherever any
 tablist's keys, the state block, the as-is header, the legends of Guarantees and Context, the work-board link, the links from the data,
 the Markdown copies, the progress notes, a tracking board's steps, the KPI bars, the neutral bug badge, the chain, core subsystems, the tiles'
 legends inside each tile, no "board" tag, the title's `#n`, "since" said once by the step panel, the larger charging arrow, the landing
-step, the Tests tab, the Timeline tile's legend of step visits, a reference's section number before its excerpt, no work level in the board's data, a
+step, the Tests tab, the Timeline tile's legend of step visits and its kinds of work, approximate bounds, the Timeline tab and its tracers, the landing's
+three steps, the Design tab, a sub-issue's roadmap naming its parent, a reference's section number before its excerpt, no work level in the board's data, a
 issue board's finished steps clickable, each unit row's label glowing on its own while it is filed, the Timeline tile's figure the sum of
 its visits, an issue's title quoted and marked, every qa pass and the one running as ordinals, the dependency pills — and
 the browser pass the layout ones (the header's halves, the wide board, the legends shown). A missing feature fails, as `FEATURE MISSING:
@@ -541,7 +563,41 @@ never the accent (§1).
   facts written by hand and show no run. A landed board is re-rendered for it only where the user asks (§11, above: WebTools #63's board
   was).
 
-**The landing flow** (dashboards-skill/33). A landing refreshes the boards twice, and commits them once:
+**The decisions of admin-team/dashboards-skill/34**, each weighed for every type:
+
+- **The Timeline tile coloured by kind of work** (§1, "Steps"; `plan/RULES.md` §2, "The KPI tiles"): planning, build, checking and landing,
+  four hue families, a shade per step, on the bar and on a mark in front of each step line, with a legend of the families. Applied to issue
+  boards and to tracking boards, whose own steps take the family of their work (sizing, interview, research, architecture, sub-issues and boards
+  planning; its plan's landing landing; implementation, its units' runs, build; a tracking board runs no qa of its own, so it draws no checking),
+  one rule in `lib.js` `TL_FAMILIES`, `tlFamily()`, `tlShade()` and the template. Not to the repository work board: it has no Timeline tile
+  (one row per run, its step as text; its Landed tile counts runs). Not to system, supersystem and repository state boards: their tiles are
+  counted facts written by hand and show no run's steps. A landed board is re-rendered for it only where the user asks (WebTools #63's board
+  was).
+- **Approximate bounds** (§1; `plan/RULES.md` §2, rule 5): applied to issue and tracking boards, the boards with a Timeline tile, and used only
+  where the user asks for a board to be backfilled (WebTools #63's was, from the times its updates reached the team). Not to the repository
+  work board or the state boards: no Timeline tile.
+- **The landing in three steps: landing, state boards, merge** (`plan/RULES.md` §3, §4): applied to issue boards and to tracking boards, whose
+  plan's own landing is a planning-docs landing with its small pre-merge refresh (§11, "The landing flow"), so it takes the same three steps
+  before `implementation`. The repository work board shows each run's step as its board records it (its state column), and counts
+  `state-boards` and `merge` as active steps; nothing else changes there. Not to the state boards: no run steps. A board that landed before
+  keeps its line, its landing spanning to the merge.
+- **A sub-issue's roadmap named, never "no tracking parent"** (the defect: every unit board under a tracking issue kept `roadmap` null):
+  applied to issue boards (`lib.js` `fillRoadmap()` at every embed, from the repository work board's data, else the parent tracking board;
+  the card naming the parent while unset). A tracking board draws its roadmap from its own units and has no such gap. The repository work
+  board had its own: without the tracker (`board.js --no-gh`) a tracking issue's roadmap item listed no units; it now lists the tracking
+  board's units. The state boards list the repository roadmap from the tracker and have no parent to miss.
+- **The four columns' tab named Design** (`plan/RULES.md` §2, "The tabs"), so it does not clash with the Timeline tile: applied to issue
+  and tracking boards, the boards with that tab; `#timeline` and `#p-timeline` still open it. The repository work board and the state boards
+  have no such tab.
+- **The Timeline tab** (`plan/RULES.md` §2, "The Timeline tab"): right after Design, the Timeline tile at its top and the KPI tiles below it
+  (the KPI row leaves the board's head), each tile's tracer (§12) up to its steps, on every issue board, a board in flight showing its steps
+  so far, the running one to now. Applied to tracking boards with their own steps and tiles: Units sizing and research, Options research and
+  the architecture, Verdicts the architecture, As built implementation (its units' runs), and QA passes no tracer (a tracking board runs no
+  qa of its own). Not to the repository work board: one row per run, its tiles count runs and no step's time, each run's steps on its own
+  board. Not to the state boards: hand-written counted tiles and no run.
+
+**The landing flow** (dashboards-skill/33). A landing refreshes the boards twice, and commits them once; on the issue's board the land is three steps (dashboards-skill/34), `landing` (the branch brought up to date, the code, the version
+bump and the reconciled documents committed), `state-boards` (the pre-merge refresh, 1. below, and its board commit) and `merge`, then `landed`:
 
 1. **The pre-merge refresh**, inside the land, on the issue's branch, after the code, the version bump and the reconciled
    `final-implementation.md` and `impact.md` are committed there. It writes, first, the **previous landing's corrections** — that
@@ -593,7 +649,7 @@ strip is a **unit card**, and a step in the step panel is a **step cell**.
 
 | Term | Function | Examples |
 |------|----------|----------|
-| **Panel** | A top-level region of a board with its own heading. | a tab's body, the Guarantees area, the Context section, the WIP strip, the step panel, the KPI row |
+| **Panel** | A top-level region of a board with its own heading. | a tab's body, the Guarantees area, the Context section, the WIP strip, the step panel, the KPI row (an issue board's, in its Timeline tab) |
 | **Card** | A self-contained statement inside a panel, with a title and a body, readable alone. | a guarantee card, an Impact entry, an As-built entry, a unit card |
 | **Tile** | A card whose body is one figure with its segmented bar and legend. | the KPI tiles, the repository work board's Runs and Landed tiles |
 | **Cell** | The intersection of a row and a column on a board table. | a Gap, Considered, Verdict or As built cell; a step cell |
@@ -615,7 +671,8 @@ strip is a **unit card**, and a step in the step panel is a **step cell**.
 | **Ring** | A border-only state on a cell (the research scale, §1). |
 | **Glow** | The interior in-progress accent on whatever is being worked on (§1). |
 | **Arrow** | The charging connector into a Verdict cell (§1). |
-| **Legend** | The key for a colour grouping, one per tab or per tile (§2); a landed board's Timeline tile's legend has one entry per step visit, with its times (`plan/RULES.md` §2). |
+| **Tracer** | A line from a KPI tile up to the part of the Timeline tile it belongs to (the steps that made the tile's figure), in their kind of work's colour, labelled with how long that part took; under 760 px its label alone, on the tile (§1, "Steps"; `plan/RULES.md` §2, "The Timeline tab"; dashboards-skill/34). |
+| **Legend** | The key for a colour grouping, one per tab or per tile (§2); an issue board's Timeline tile carries two, its kinds of work (one entry per family, with its steps' shades) and its step visits (one entry per visit, with its times, `plan/RULES.md` §2). |
 
 A ruleset that needs an element none of these names describes adds the term here first, with its
 function, and uses it everywhere; it never reuses a term for a second function.

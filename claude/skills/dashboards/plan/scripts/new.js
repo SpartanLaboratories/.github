@@ -25,9 +25,9 @@ const args = process.argv.slice(2);
 /* A tracking issue (level 4) runs its own steps up to its architecture and the landing of its plan; then "implementation" spans its
    units' runs, each on its own board, from the first unit's start until the last unit lands, and "landed" follows (plan/RULES.md §3). */
 const STEPS_BY_LEVEL = {
-  2: ["sizing", "research", "plan", "branch", "implementation", "qa", "remediation", "landing", "landed"],
-  3: ["sizing", "interview", "research", "plan", "branch", "implementation", "qa", "remediation", "landing", "landed"],
-  4: ["sizing", "interview", "research", "architecture", "sub-issues", "boards", "landing", "implementation", "landed"]};
+  2: ["sizing", "research", "plan", "branch", "implementation", "qa", "remediation", "landing", "state-boards", "merge", "landed"],
+  3: ["sizing", "interview", "research", "plan", "branch", "implementation", "qa", "remediation", "landing", "state-boards", "merge", "landed"],
+  4: ["sizing", "interview", "research", "architecture", "sub-issues", "boards", "landing", "state-boards", "merge", "implementation", "landed"]};
 if (args.includes("--batch")) { batch(args); process.exit(0); }
 function batch(a) {
   require("../../system/scripts/cliargs.js").strict(a, { usage: "usage: node new.js --batch <tracking folder> [--root <repo>] [--units id,id] [--baseline <sha>] [--date YYYY-MM-DD]", valued: ["batch", "root", "units", "baseline", "date"], max: 0 });

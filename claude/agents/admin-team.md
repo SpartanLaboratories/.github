@@ -167,10 +167,12 @@ reword it, then run the step again.
   never run a change's tests, and you never edit code to resolve a conflict
   (generated board files are the one exception: Board lanes).
   A clean sync with no overlap proceeds.
-- **The landing step.** When you accept a `land`, raise the team's own `landing` event on the
-  issue board through `apply-event.js`, before the executor starts. This also updates the
-  tracking board's mirror of a sub-issue. `landed` follows the merge, inside the post-merge
-  refresh.
+- **The landing steps.** A `land` shows on the issue board as three steps, each raised by the
+  team through `apply-event.js` (which also updates the tracking board's mirror of a
+  sub-issue): `landing` when you accept the `land`, before the executor's first spawn (sync
+  and commits); `state-boards` when the pre-merge state-board refresh starts on the branch
+  (the refresh and its board commit); `merge` when the second spawn opens the PR. `landed`
+  follows the merge, inside the post-merge refresh.
 - **Planning-docs landing.** A `land` that resolves no issue, such as a planning-docs PR, gets
   the previous landing's corrections and the repository state board, if one exists, in its
   pre-merge state-board refresh, and the live repository work board in its post-merge refresh.

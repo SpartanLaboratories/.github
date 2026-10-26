@@ -85,12 +85,12 @@ module.exports = function cases23(X) {
     const k = run(checkJs, [f]);
     c.push(["check.js warns on the marked one (its number read from the anchor alone), not on the one the headings decided", /shows "§7\?": the number is read from the anchor alone/.test(k.stdout) && !/shows "§4\.2\?"/.test(k.stdout), (k.stdout || "").split(/\r?\n/).filter(l => /refNumber|anchor alone/.test(l)).join(" | ").slice(0, 300)]);
     if (chrome) {
-      const js = 'const a=[...document.querySelectorAll("#board a.sref")];document.body.dataset.r=JSON.stringify({t:a.map(x=>x.textContent),ti:a.map(x=>x.title),k:document.getElementById("timeline-key").textContent,bk:(document.getElementById("built-key")||{}).textContent||""});';
+      const js = 'const a=[...document.querySelectorAll("#board a.sref")];document.body.dataset.r=JSON.stringify({t:a.map(x=>x.textContent),ti:a.map(x=>x.title),k:document.getElementById("design-key").textContent,bk:(document.getElementById("built-key")||{}).textContent||""});';
       const pg = path.join(f, "probe.html"); fs.writeFileSync(pg, probeAt(rd(path.join(f, "dashboard.html")), js));
       const r = got(wide(pg)) || {};
       c.push(["the board: \"(§4.2)\" plain, \"(§7?)\" marked, the mark's reason in its title", (r.t || []).includes("(§4.2)") && (r.t || []).includes("(§7?)") && (r.ti || []).some(x => /read from the link's anchor alone/.test(x)), JSON.stringify((r.t || []).slice(0, 6))]);
       c.push(["the Timeline's legend names the mark it drew", /\(§n\?\) a section number read from its link alone/.test(r.k || ""), (r.k || "").slice(-200)]);
-      const ex = got(wide(planPage("refnum-example", EX, 'document.body.dataset.r=JSON.stringify({k:document.getElementById("timeline-key").textContent});'))) || {};
+      const ex = got(wide(planPage("refnum-example", EX, 'document.body.dataset.r=JSON.stringify({k:document.getElementById("design-key").textContent});'))) || {};
       c.push(["a board whose references all have their excerpts draws no mark and names none in its legend", !/\(§n\?\)/.test(ex.k || "x(§n?)"), (ex.k || "").slice(-120)]);
     } else c.push(["the rendered page (no browser found: set CHROME)", false, "no Chrome or Edge"]);
     /* once the heading is there, the excerpt is copied and refNumber goes */

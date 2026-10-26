@@ -15,14 +15,14 @@ const { levelRefsIn, titleSkip, issueTitleRefs, titleDefect } = require(path.res
 const { nameRefsIn, commentRefs, nameWarning } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
 const { paletteCheck } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js"));
 const { unitTests, DEP_STATES, HOLD_STATES } = require("./lib.js");
-const { HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, isTime, timelineSteps, tlSpan, timelineLines, timelineLeftOut, timelineTotal, unitInRun, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
+const { HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, isTime, APPROX_SOURCES, timelineApproxNote, timelineSteps, tlSpan, timelineLines, timelineLeftOut, timelineTotal, unitInRun, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
 const STATES = ["pending", "in-progress", "partially-built", "as-planned", "amended", "deviated", "dropped", "deferred", "complete", "landed"];
 const VERDICTS = ["accepted", "declined", "partial", "deferred"];
 const GAP_KINDS = ["bug", "missing", "debt", "risk"];
 const COLUMNS = ["gap", "considered", "verdict", "built"];
-const STEPS = ["sizing", "interview", "research", "architecture", "sub-issues", "boards", "plan", "branch", "implementation", "qa", "remediation", "landing", "landed", "halted", "escalated", "cancelled"];
+const STEPS = ["sizing", "interview", "research", "architecture", "sub-issues", "boards", "plan", "branch", "implementation", "qa", "remediation", "landing", "state-boards", "merge", "landed", "halted", "escalated", "cancelled"];
 const QA = ["approved", "changes-requested", "running"];
 const DATE = /^\d{4}-\d{2}-\d{2}$/, STAMP = /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
 const ID = /^[a-z0-9][a-z0-9-]*$/, SHA = /^[0-9a-f]{7,40}$/;
@@ -104,6 +104,12 @@ function checkPlan(plan, dir, root) {
     if (a.at != null && !isTime(a.at)) fail(`asBuilt.at ${JSON.stringify(a.at)} is not an ISO date-time (the merge commit's time, from git)`);
     if (a.commits != null && !Array.isArray(a.commits)) fail("asBuilt.commits is not a list");
     (Array.isArray(a.commits) ? a.commits : []).forEach((c, i) => { if (!c || !SHA.test(String(c.sha || "")) || !isTime(c.at) || !["research", "architecture", "plan"].includes(c.step)) fail(`asBuilt.commits[${i}] is not {sha, at (an ISO date-time), step (research, architecture or plan)}`); });
+    /* an approximate bound (RULES §2, "The KPI tiles"; dashboards-skill/34), on a board backfilled at the user's request only: each entry
+       names a step of the steps line, a visit (1 when unnamed), a since or an ended that is an ISO date-time, and its source */
+    if (a.approx != null && !Array.isArray(a.approx)) fail("asBuilt.approx is not a list");
+    const stepsLine = Array.isArray((plan.wip || {}).steps) ? plan.wip.steps : STEPS;
+    (Array.isArray(a.approx) ? a.approx : []).forEach((x, i) => { if (!x || typeof x !== "object" || !stepsLine.includes(x.step) || !APPROX_SOURCES[x.source] || (x.visit != null && !(Number.isInteger(x.visit) && x.visit > 0)) || (x.since == null && x.ended == null) || (x.since != null && !isTime(x.since)) || (x.ended != null && !isTime(x.ended)))
+      fail(`asBuilt.approx[${i}] is not {step (in the steps line), visit?, since and/or ended (ISO date-times), source (${Object.keys(APPROX_SOURCES).join(" or ")})}`); });
   } else if (plan.status === "planned" && plan.asBuilt) fail("a planned plan has asBuilt: null");
   /* The run's start and the Timeline tile (RULES §2, "The KPI tiles"; dashboards-skill/32): sized is a date or an ISO date-time when set
      (new.js and apply-event.js stamp it); on a landed board the tile's step lines are reported with the figure, the sum of the visits
@@ -113,7 +119,8 @@ function checkPlan(plan, dir, root) {
   if (plan.status === "built" || (plan.wip || {}).step === "landed") {
     const T = timelineSteps(plan), tot = timelineTotal(T), lo = timelineLeftOut(T);
     /* the tile's figure is the sum of the visits its bar draws, a visit with a bound not recorded not summed */
-    ok(`timeline: ${T.visits.length ? timelineLines(T).join(" · ") : "no step recorded"}; the figure: ${tot != null ? `${tlSpan(tot)}, the sum of the visits drawn` : "—, no visit drawn"}${lo ? ` (${lo})` : ""}`);
+    const an = timelineApproxNote(T);
+    ok(`timeline: ${T.visits.length ? timelineLines(T).join(" · ") : "no step recorded"}; the figure: ${tot != null ? `${T.visits.some(v => v.ms != null && v.approx) ? "≈ " : ""}${tlSpan(tot)}, the sum of the visits drawn` : "—, no visit drawn"}${lo ? ` (${lo})` : ""}${an ? ` (${an})` : ""}`);
     T.visits.filter(v => v.order).forEach(v => warn(`the Timeline tile leaves out ${v.label}: its bounds are out of order (check wip.history's since and ended, plan.sized, wip.qa[].at and asBuilt.at)`));
   }
 

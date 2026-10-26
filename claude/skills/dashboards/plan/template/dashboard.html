@@ -20,7 +20,9 @@
    the system templates'. Colour plan (GUIDANCE.md §1): --sys-1..6 are the systems' registry slots, identical to the system
    boards'; --good / --warning / --serious / --critical are status, always beside a glyph and a word; --accent marks the work
    in progress (an interior glow that breathes) and, on a tracking board, the next unit up (a mild, still outer glow and an
-   UP NEXT tag), and nothing else. Dashed = planned or pending, and nothing else. */
+   UP NEXT tag), and nothing else. --wk-<family>-a / -b are the kinds of work of a landed board's Timeline tile (planning, build,
+   checking, landing: each a hue family, clear of the status colours and the accent; a step's shade is a mix of its family's two ends).
+   Dashed = planned or pending, and nothing else. */
 :root{
   --bg:#f3f5f8; --surface:#fcfcfd; --surface-2:#eef1f6; --ink:#0e1420; --ink-2:#4a5468; --muted:#7d879a;
   --line:#dfe4ec; --hair:rgba(14,20,32,.10);
@@ -28,11 +30,13 @@
   --accent:#6d47e0;
   --on:#0e1420; --focus:#2a78d6; --link:#2a78d6;
   --sys-1:#2a78d6;--sys-2:#653184;--sys-3:#0d7680;--sys-4:#1d2660;--sys-5:#9656aa;--sys-6:#1a9ec7;
+  --wk-planning-a:#5596de;--wk-planning-b:#1d5cab;--wk-build-a:#1f9294;--wk-build-b:#0c5c61;--wk-checking-a:#b67ad0;--wk-checking-b:#84409f;--wk-landing-a:#2e3d99;--wk-landing-b:#1d2870;
+  --wk-other-a:color-mix(in srgb,var(--ink) 40%,var(--surface));--wk-other-b:var(--ink);
   --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:ui-monospace,"Cascadia Mono",Consolas,"SF Mono",monospace;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--accent:#a58bff;--on:#eef1f6;--focus:#3987e5;--link:#6aa6f0;--sys-1:#3987e5;--sys-2:#8a44d8;--sys-3:#1f8089;--sys-4:#b4bef5;--sys-5:#a86fb8;--sys-6:#31b5f4;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--accent:#a58bff;--on:#eef1f6;--focus:#3987e5;--link:#6aa6f0;--sys-1:#3987e5;--sys-2:#8a44d8;--sys-3:#1f8089;--sys-4:#b4bef5;--sys-5:#a86fb8;--sys-6:#31b5f4;color-scheme:dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--accent:#a58bff;--on:#eef1f6;--focus:#3987e5;--link:#6aa6f0;--sys-1:#3987e5;--sys-2:#8a44d8;--sys-3:#1f8089;--sys-4:#b4bef5;--sys-5:#a86fb8;--sys-6:#31b5f4;--wk-planning-a:#3a7fd0;--wk-planning-b:#80b6f0;--wk-build-a:#1a8a8c;--wk-build-b:#4cc4c2;--wk-checking-a:#a35cbd;--wk-checking-b:#d095e6;--wk-landing-a:#b8c4fa;--wk-landing-b:#d4dcfd;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--accent:#a58bff;--on:#eef1f6;--focus:#3987e5;--link:#6aa6f0;--sys-1:#3987e5;--sys-2:#8a44d8;--sys-3:#1f8089;--sys-4:#b4bef5;--sys-5:#a86fb8;--sys-6:#31b5f4;--wk-planning-a:#3a7fd0;--wk-planning-b:#80b6f0;--wk-build-a:#1a8a8c;--wk-build-b:#4cc4c2;--wk-checking-a:#a35cbd;--wk-checking-b:#d095e6;--wk-landing-a:#b8c4fa;--wk-landing-b:#d4dcfd;color-scheme:dark}
 
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans);padding-block:0 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -294,20 +298,41 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .key i.segk{width:16px;height:6px;border:0;border-radius:2px;background:var(--sc,var(--ink-2))}
 .key i.segk.good{--sc:var(--good)}.key i.segk.warning{--sc:var(--warning)}.key i.segk.critical{--sc:var(--critical)}.key i.segk.serious{--sc:var(--serious)}.key i.segk.accent{--sc:var(--accent)}.key i.segk.ink{--sc:var(--ink-2)}.key i.segk.neutral{--sc:var(--line)}
 .key i.segk.left{background:var(--muted);opacity:.5}
-/* The Timeline tile of a landed board (plan/RULES.md §2, "The KPI tiles"; dashboards-skill/32): one segment per timed visit of a run step,
-   sized by its time, in a neutral ink ramp, one shade per step from the first step drawn (faintest) to the last (the full ink), so it
-   spends no system colour and no status colour (GUIDANCE.md §1); a visit of no length keeps a sliver. Its legend is the step lines, laid
-   in columns down the row the tile takes across a landed board's KPI row (four tiles above it). */
-.kpi .seg-bar i.tp{min-width:4px}.key i.segk.tp{--sc:var(--tp)}.key i.segk.tl-none{background:none}
-.kpis:has(>.kpi>.key.tl-steps){grid-template-columns:repeat(4,minmax(0,1fr))}
-.kpis>.kpi:has(>.key.tl-steps){grid-column:1/-1}
-@media (max-width:760px){.kpis:has(>.kpi>.key.tl-steps){grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:430px){.kpis:has(>.kpi>.key.tl-steps){grid-template-columns:minmax(0,1fr)}}
+/* The Timeline tile of a landed board (plan/RULES.md §2, "The KPI tiles"; dashboards-skill/32, coloured by dashboards-skill/34): one
+   segment per timed visit of a run step, sized by its time, in the colour of its kind of work (planning, build, checking, landing: the
+   --wk tokens, clear of the status colours and the accent, GUIDANCE.md §1), one shade of its family per step, a step's repeats sharing
+   it; a visit of no length keeps a sliver. Its legends: the families with their steps' shades, then the step lines, each led by its
+   step's mark (filled: its segment; outlined: a visit the bar does not draw), laid in columns down the row the tile takes across a
+   landed board's KPI row (four tiles above it). */
+.kpi .seg-bar i.tp{min-width:4px}.key i.segk.tp{--sc:var(--tp)}.key i.segk.tl-out{background:none;box-shadow:inset 0 0 0 1.5px var(--tp)}
+.kpi .key.tl-fams{margin-top:8px;gap:3px 16px}
+.key .tl-fam>i.segk.tf{width:26px;height:8px}
+.tl-fam>b{font-weight:600;color:var(--ink)}
+/* the Timeline tab (dashboards-skill/34): the Timeline tile across the tab, its bar at its foot; the KPI tiles below it in one row (two,
+   then one, on narrower screens), a gutter between them for the tracers, which are drawn from 760 px; under it each tile's tracer label
+   alone says the part and its time */
+.tl-stack{position:relative}
+.tl-tile>.kpi{padding-bottom:22px}
+.tl-tile .seg-bar{margin-top:10px}
+#kpis{grid-template-columns:repeat(5,minmax(0,1fr));margin:74px 0 8px}
+@media (max-width:1100px){#kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:759.98px){#kpis{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:14px}.tracers{display:none}}
+@media (max-width:430px){#kpis{grid-template-columns:minmax(0,1fr)}}
+.tracers{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.tracers path{fill:none;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+.tracers circle{stroke:none}
+.kpi .tracer-lab{display:flex;align-items:baseline;gap:6px;margin:-2px 0 6px;font-size:11px;line-height:1.3;color:var(--ink-2)}
+.kpi .tracer-lab>i{flex:none;width:10px;height:10px;border-radius:50%;background:var(--tc);align-self:center}
+.kpi .tracer-lab>b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.kpi .tracer-lab.none>i{background:none;box-shadow:inset 0 0 0 1.5px var(--muted)}
+.key i.trk{width:18px;height:10px;border:0;background:none;border-left:2px solid var(--ink-2);border-bottom:2px solid var(--ink-2);border-radius:0}
+.stage.solo{grid-template-columns:minmax(0,1fr)}.stage.solo .inspector{display:none}
 .kpi .key.tl-steps{display:block;columns:20rem;column-gap:28px;margin-top:8px}
 .kpi .key.tl-steps>span.tl-step{display:grid;grid-template-columns:16px minmax(0,10.5em) minmax(0,1fr) auto;align-items:baseline;gap:2px 8px;break-inside:avoid;padding:1.5px 0}
 .tl-step>i.segk{align-self:center}
 .tl-step>b{font-weight:600;color:var(--ink)}
 .tl-step>.tl-when{font-variant-numeric:tabular-nums}
+.tl-approx{color:var(--muted);font-weight:600}
 .tl-step>.tl-dur{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
 .kpi .key.tl-steps>span.tl-note{display:block;color:var(--muted);margin-top:5px;break-inside:avoid}
 /* a statement's reference whose section number is read from its link's anchor alone (its file not there to read): "(§42?)" */
@@ -734,12 +759,11 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
 <!-- fill: the WIP strip is rendered from plan.json "wip" (plan/RULES.md §3); the strip carries its own legend. -->
 <section class="wip" id="wip" aria-label="Work in progress"></section>
 
-<div class="kpis" id="kpis"></div>
-
 <!-- fill: three views of the same rows, the Tests (plan.json "tests"; a tracking board its units' unit.tests), the Impact (plan.json
      "impact") and the source; a tracking board adds Landing Order. Every tab carries a legend, every sub-tab of Tests its own. -->
 <div class="tabs" role="tablist" aria-label="Views">
-  <button class="tab" role="tab" id="t-timeline" aria-controls="p-timeline" aria-selected="true">Timeline</button>
+  <button class="tab" role="tab" id="t-design" aria-controls="p-design" aria-selected="true">Design</button>
+  <button class="tab" role="tab" id="t-steps" aria-controls="p-steps" aria-selected="false">Timeline</button>
   <button class="tab" role="tab" id="t-decisions" aria-controls="p-decisions" aria-selected="false">Decisions</button>
   <button class="tab" role="tab" id="t-built" aria-controls="p-built" aria-selected="false">As built</button>
   <button class="tab" role="tab" id="t-tests" aria-controls="p-tests" aria-selected="false">Tests</button>
@@ -750,10 +774,24 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
 
 <div class="stage">
 <div>
-  <section class="view" role="tabpanel" id="p-timeline" aria-labelledby="t-timeline">
-    <h2>Timeline: gap, considered, verdict, as built</h2>
-    <p class="lede" id="timeline-lede"></p>
+  <section class="view" role="tabpanel" id="p-design" aria-labelledby="t-design">
+    <h2>Design: gap, considered, verdict, as built</h2>
+    <p class="lede" id="design-lede"></p>
     <div class="board" id="board"></div>
+    <div class="key" id="design-key"></div>
+  </section>
+
+  <!-- the Timeline tab (plan/RULES.md §2, "The Timeline tab"; dashboards-skill/34; its ids t-steps / p-steps and its link #steps, as #timeline
+       still opens Design, the tab named Timeline before): the Timeline tile, then the KPI tiles below it, each tile's
+       tracer drawn up to the part of the Timeline tile it belongs to -->
+  <section class="view" role="tabpanel" id="p-steps" aria-labelledby="t-steps" hidden>
+    <h2>Timeline: the run's steps, and the KPI tiles they made</h2>
+    <p class="lede" id="timeline-lede"></p>
+    <div class="tl-stack" id="tl-stack">
+      <div class="tl-tile" id="tl-tile"></div>
+      <svg class="tracers" id="tracers" aria-hidden="true" focusable="false"></svg>
+      <div class="kpis" id="kpis"></div>
+    </div>
     <div class="key" id="timeline-key"></div>
   </section>
 
@@ -1021,7 +1059,7 @@ function depKeys(deps,holds){ const ks=[], bs=new Set(deps.map(x=>x.build).filte
   Object.keys(DEP).filter(k=>bs.has(k)).forEach(k=>ks.push(`<span>${pill(DEP[k])} a dependency's build state: ${esc(DEP[k].desc)}</span>`));
   Object.keys(LOC).filter(k=>ls.has(k)).forEach(k=>ks.push(`<span>${locChip({k},k==="external"?"external · name":"")} a dependency's locality: ${esc(LOC[k].desc)}</span>`));
   Object.keys(HOLD).filter(k=>hs.has(k)).forEach(k=>ks.push(`<span>${pill(HOLD[k])} ${esc(HOLD[k].desc)}</span>`)); return ks; }
-const STEP_ORDER=["sizing","interview","research","architecture","plan","branch","implementation","qa","remediation","landing","landed"];
+const STEP_ORDER=["sizing","interview","research","architecture","plan","branch","implementation","qa","remediation","landing","state-boards","merge","landed"];
 const STEP_SPECIAL={halted:{g:"⏸",label:"Waiting on the user",cls:"halted"},escalated:{g:"⇧",label:"Escalated",cls:"escalated"},cancelled:{g:"✕",label:"Cancelled",cls:"cancelled"},landed:{g:"✓",label:"Landed",cls:"landed"}};
 /* A row's as-built state: the stored one, unless the build is under way (plan/RULES.md §2, "Before the outcome"). While the run is live
    the implementation stages (wip.stages) decide it for every row they touch: a row a current stage touches is in progress; one a done
@@ -1209,7 +1247,7 @@ const OPEN_PT={g:"!",label:"open",cls:"warning"};
 const KEY_OPEN=`<span>${pill(OPEN_PT)} an open point raised during the run, not resolved yet</span>`;
 const IV={answered:{g:"✓",label:"answered",cls:"neutral"},waiting:{g:"?",label:"waiting on the user",cls:"warning"}};
 const STAGE_DOT={done:"done",current:"cur",todo:"todo"};
-const NEXT_STEP={qa:"landing, or remediation if the qa pass requests changes",remediation:"qa, the next pass",landing:"landed","sub-issues":"boards: creating each unit's board","boards":"landing: the tracking plan's own"};
+const NEXT_STEP={qa:"landing, or remediation if the qa pass requests changes",remediation:"qa, the next pass",landing:"state boards: the pre-merge refresh on the branch","state-boards":"merge","merge":"landed","sub-issues":"boards: creating each unit's board","boards":"landing: the tracking plan's own"};
 /* A tracking board's own steps after its architecture (plan/RULES.md §3): "sub-issues", each unit being filed as a sub-issue, then
    "boards", the units' boards created in the board-creation lanes; their progress is counted from the unit rows (a unit's issue, its board),
    never stored. */
@@ -1228,9 +1266,9 @@ const ROUTE_OLD={"rookie-dev":"remediation","planner-then-rookie-dev":"re-plan-t
 const ROUTE0={"on-the-spot":{label:"fixed on the spot, no new qa pass",next:"landing (no new qa pass)"},"remediation":{label:"a remediation pass, then the next qa pass",next:"qa, the next pass"},"re-plan-then-remediation":{label:"a remediation pass: a plan re-pass, then the fixes, then the next qa pass",next:"qa, the next pass"}};
 const ROUTE=new Proxy(ROUTE0,{get:(t,k)=>t[routeKey(k)]});
 const stepName=x=>x&&(x.name||x.what)||"";
-function nextStepOf(R,S){ if(S==="remediation"&&R.remediation&&ROUTE[R.remediation.route]) return ROUTE[R.remediation.route].next; if(NEXT_STEP[S]) return NEXT_STEP[S]; const st=R.steps&&R.steps.length?R.steps:STEP_ORDER, i=st.indexOf(S); return i>=0&&i<st.length-1?st[i+1]:""; }
+function nextStepOf(R,S){ if(S==="remediation"&&R.remediation&&ROUTE[R.remediation.route]) return ROUTE[R.remediation.route].next; if(S==="landing"&&!(Array.isArray(R.steps)&&R.steps.includes("state-boards"))) return "landed"; /* a steps line written before the three landing steps */ if(NEXT_STEP[S]) return NEXT_STEP[S]; const st=R.steps&&R.steps.length?R.steps:STEP_ORDER, i=st.indexOf(S); return i>=0&&i<st.length-1?st[i+1]:""; }
 /* a step's title, as the step panel's heading shows it */
-const stepTitle=s=>!s?"—":s==="qa"?"QA":s.charAt(0).toUpperCase()+s.slice(1);
+const stepTitle=s=>!s?"—":s==="qa"?"QA":s==="state-boards"?"State boards":s.charAt(0).toUpperCase()+s.slice(1);
 function spList(items){ return items.length?`<ol class="sp-list">${items.join("")}</ol>`:""; }
 const spItem=(cls,mark,body,sub)=>`<li class="${cls}">${mark}<span class="q">${body}${sub?`<small>${sub}</small>`:""}</span></li>`;
 const dotMark=`<span class="dot" aria-hidden="true"></span>`;
@@ -1296,10 +1334,14 @@ const PANEL={
     const prev=visitsOf(R,"remediation").filter(V=>V.remediation&&V.remediation.pass!==n);
     if(prev.length) h+=`<p class="sp-sum">Earlier loop${prev.length===1?"":"s"}</p>`+spList(prev.map(V=>spItem("done",dotMark,`Answering qa pass ${esc(V.remediation.pass)}${ROUTE[V.remediation.route]?` · ${esc(ROUTE[V.remediation.route].label)}`:""}`,V.ended?`ended ${when(V.ended)}`:"")));
     return h; },
-  /* the team-raised "landing" event (plan/RULES.md §4): the land is accepted, the state boards are refreshed on the branch before the
-     merge (the pre-merge refresh), and it is merged; "landed" follows the merge */
-  landing:R=>{ const qa=Array.isArray(R.qa)?R.qa:[], last=qa.length?qa[qa.length-1]:null, acc=!!(R.event&&R.event.name==="landing"), pr=acc&&/PR #(\d+)/.exec(String(R.event.note||""));
-    return `<p>The qa pass approved${last?` (pass ${esc(last.pass)})`:""}; ${acc?`the land is accepted and being merged${pr?` in ${prlink(pr[1])}`:""}, its state boards refreshed on the branch before the merge`:"the land follows: its state boards refreshed on the branch, then the merge"}.</p>`; },
+  /* the landing in three team-raised steps (plan/RULES.md §4; dashboards-skill/34): "landing", the land accepted and the code, the version
+     bump and the reconciled documents committed on the branch; "state-boards", the pre-merge refresh of the state boards on the branch and
+     its board commit; "merge", the pull request merged; "landed" follows the merge. A board whose steps line has "landing" alone (written
+     before them) reads its landing as all three. */
+  landing:R=>{ const qa=Array.isArray(R.qa)?R.qa:[], last=qa.length?qa[qa.length-1]:null, acc=!!(R.event&&R.event.name==="landing"), pr=acc&&/PR #(\d+)/.exec(String(R.event.note||"")), split=(R.steps||[]).includes("merge");
+    return `<p>The qa pass approved${last?` (pass ${esc(last.pass)})`:""}; ${split?(acc?`the land is accepted${pr?` (${prlink(pr[1])})`:""}: the branch brought up to date, the code, the version bump and the reconciled documents committed on it`:"the land follows: the branch brought up to date, the code, the version bump and the reconciled documents committed on it"):(acc?`the land is accepted and being merged${pr?` in ${prlink(pr[1])}`:""}, its state boards refreshed on the branch before the merge`:"the land follows: its state boards refreshed on the branch, then the merge")}.</p>`; },
+  "state-boards":R=>`<p>The pre-merge refresh: the state boards brought up on the branch as built, stamped at its head, and committed there in one board commit; the merge follows.</p>`,
+  merge:R=>{ const pr=R.event&&R.event.name==="merge"&&/PR #(\d+)/.exec(String(R.event.note||"")); return `<p>The pull request${pr?` ${prlink(pr[1])}`:""} is being merged; landed follows the merge.</p>`; },
   "sub-issues":(R,o)=>`<p>Each unit of the signed-off architecture is filed as a sub-issue of this one.</p>`+unitProgress(R,o,"filed"),
   boards:(R,o)=>`<p>Each unit's board is created from this issue's documents: its Gap and Considered columns, not started.</p>`+unitProgress(R,o,"boards"),
   _:R=>R.detail?`<p>${rich(R.detail)}</p>`:`<p>Nothing recorded for this step.</p>`};
@@ -1348,7 +1390,7 @@ const unitBase=r=>r&&r.unit&&relLink(r.unit.board)&&r.unit.board.includes("/")?r
    from the history" (a unit's from its mirror's recon, which embed.js writes from its board). plan/scripts/lib.js finishedSteps(),
    trailStep() and reconstructStep() are the same rules. */
 let SEL=null, PICKS=0;
-const HIST_STEPS=["sizing","interview","research","architecture","plan","branch","implementation","qa","remediation","sub-issues","boards","landing"];
+const HIST_STEPS=["sizing","interview","research","architecture","plan","branch","implementation","qa","remediation","sub-issues","boards","landing","state-boards","merge"];
 const histOf=R=>R&&R.history&&typeof R.history==="object"&&!Array.isArray(R.history)?R.history:{};
 const visitsOf=(R,s)=>{ const v=histOf(R)[s]; return Array.isArray(v)?v.filter(x=>x&&typeof x==="object"):[]; };
 const shownOf=R=>R&&["halted","escalated"].includes(R.step)?(R.resume||null):(R&&R.step)||null;
@@ -1358,10 +1400,10 @@ function finishedOf(R,status){ const w=R||{}, steps=Array.isArray(w.steps)&&w.st
   const cur=shownOf(w), i=cur?steps.indexOf(cur):-1;
   return steps.filter((s,j)=>s!=="landed"&&((i>=0&&j<i)||(s!==cur&&Array.isArray(H[s])&&H[s].length>0))); }
 const TRAIL_STEP_WORDS=[["filing the units","sub-issues"],["creating the units","boards"],["the interview","interview"],["interview","interview"],["research","research"],["the architecture","architecture"],["architecture","architecture"],
-  ["the plan","plan"],["plan","plan"],["the branch","branch"],["branch","branch"],["implementation","implementation"],["qa","qa"],["remediation","remediation"],["the landing","landing"],["landing","landing"],["sizing","sizing"]];
+  ["the plan","plan"],["plan","plan"],["the branch","branch"],["branch","branch"],["implementation","implementation"],["qa","qa"],["remediation","remediation"],["the landing","landing"],["landing","landing"],["the state boards","state-boards"],["state boards","state-boards"],["the merge","merge"],["merge","merge"],["sizing","sizing"]];
 const TRAIL_STEP_RE=[[/^(run started|sized|sizing|re-?sized)\b/i,"sizing"],[/^interview/i,"interview"],[/^(research|verification|findings)/i,"research"],[/^architecture/i,"architecture"],
   [/^(\d+ of \d+ units? filed|sub-issues filed)/i,"sub-issues"],[/^\d+ of \d+ unit boards? created/i,"boards"],[/^plan\b/i,"plan"],[/^branch\b/i,"branch"],[/^(S\d+\b|implementation\b|stage\b)/i,"implementation"],
-  [/^qa pass/i,"qa"],[/^remediation/i,"remediation"],[/^(landing|landed)\b/i,"landing"]];
+  [/^qa pass/i,"qa"],[/^remediation/i,"remediation"],[/^state boards\b/i,"state-boards"],[/^merg(?:e|ing)\b/i,"merge"],[/^(landing|landed)\b/i,"landing"]];
 function trailStep(label){ const s=String(label==null?"":label).replace(/`/g,"").replace(/\s+/g," ").trim();
   const m=/^(?:halted|resumed|escalated)\s+(?:at|in|during)\s+(.+)$/i.exec(s);
   if(m){ const t=m[1].toLowerCase(), hit=TRAIL_STEP_WORDS.find(([x])=>t.startsWith(x)); return hit?hit[1]:null; }
@@ -1410,8 +1452,10 @@ const PAST={
   remediation:(V,o,keys)=>{ const M=V.remediation||{}, p=(Array.isArray(V.qa)?V.qa:[])[0], steps=Array.isArray(M.steps)?M.steps.filter(x=>x&&typeof x==="object"):[];
     let h=`<p class="sp-sum">Answering qa pass ${esc(M.pass||"?")}</p>`; if(ROUTE[M.route]) h+=`<p>Route: ${esc(ROUTE[M.route].label)}.</p>`; if(p) h+=qaBlock(p,keys);
     return h+(steps.length?pastItems(steps,o,keys):`<p>No sub-step was recorded.</p>`); },
-  landing:V=>{ const pr=V.event&&V.event.name==="landing"&&/PR #(\d+)/.exec(String(V.event.note||""));
-    return `<p>The qa pass had approved; ${V.event&&V.event.name==="landing"?`the land was accepted${pr?` and merged in ${prlink(pr[1])}`:" and merged"}`:"the merge followed"}.</p>`; },
+  landing:V=>{ const pr=V.event&&V.event.name==="landing"&&/PR #(\d+)/.exec(String(V.event.note||"")), split=(PLAN.wip&&Array.isArray(PLAN.wip.steps)?PLAN.wip.steps:[]).includes("merge");
+    return split?`<p>The qa pass had approved; the land was accepted${pr?` (${prlink(pr[1])})`:""}: the branch brought up to date, the code, the version bump and the reconciled documents committed on it.</p>`:`<p>The qa pass had approved; ${V.event&&V.event.name==="landing"?`the land was accepted${pr?` and merged in ${prlink(pr[1])}`:" and merged"}`:"the merge followed"}.</p>`; },
+  "state-boards":V=>`<p>The state boards were brought up on the branch as built, stamped at its head, and committed there before the merge.</p>`,
+  merge:V=>{ const pr=V.event&&V.event.name==="merge"&&/PR #(\d+)/.exec(String(V.event.note||"")); return `<p>The pull request${pr?` ${prlink(pr[1])}`:""} was merged.</p>`; },
   "sub-issues":V=>V.units?`<p class="sp-sum">${V.units.done} of ${V.units.total} unit${V.units.total===1?"":"s"} filed as sub-issues</p>`:"",
   boards:V=>V.units?`<p class="sp-sum">${V.units.done} of ${V.units.total} unit${V.units.total===1?"":"s"} with a board</p>`:"",
   _:V=>V.detail?`<p>${rich(V.detail)}</p>`:""};
@@ -1698,30 +1742,67 @@ function renderWip(){
    the visits drawn. lib.js timelineSteps(), tlSpan(), timelineTotal() are the same rule. */
 const okStamp=v=>typeof v==="string"&&/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?Z)?$/.test(v)&&!isNaN(Date.parse(v));
 const isTime=v=>okStamp(v)&&v.length>10;
-const tlShade=(k,n)=>n<=1?100:Math.round(40+60*k/(n-1));
-const tlMix=p=>`color-mix(in srgb,var(--ink) ${p}%,var(--surface))`;
-function timelineSteps(P){ const w=(P&&P.wip)||{}, H=histOf(w), steps=(Array.isArray(w.steps)&&w.steps.length?w.steps:STEP_ORDER).filter(s=>s!=="landed"), idx=s=>steps.indexOf(s);
+/* the kinds of work (GUIDANCE.md §1, "Steps"; dashboards-skill/34): each step's family; a tracking board's filing of its units and laying
+   of their boards are planning, its units' runs its build. A step's shade is the share of its family's last end (-b) in its mix with the
+   first end (-a): 0 for the family's first step with a line, 100 for its last, 50 for a family of one step. */
+const TL_FAMILIES=[{id:"planning",steps:["sizing","interview","research","architecture","plan","sub-issues","boards"]},{id:"build",steps:["branch","implementation"]},{id:"checking",steps:["qa","remediation"]},{id:"landing",steps:["landing","state-boards","merge"]}];
+const tlFamily=s=>(TL_FAMILIES.find(f=>f.steps.includes(s))||{id:"other"}).id;
+const tlShade=(k,n)=>n<=1?50:Math.round(100*k/(n-1));
+const tlMix=(f,p)=>`color-mix(in srgb,var(--wk-${f}-b) ${p}%,var(--wk-${f}-a))`;
+/* The tracers (GUIDANCE.md §12; plan/RULES.md §2, "The Timeline tab"; dashboards-skill/34): each KPI tile's steps, their summed time, "≈"
+   when one is approximate, open when the running visit is in it; lib.js TRACE_STEPS and timelineTracers() are the same rule. */
+const TRACE_STEPS={issue:{rows:["sizing","research"],opts:["research"],verdicts:["plan"],built:["branch","implementation"],qa:["qa","remediation"]},tracking:{rows:["sizing","research"],opts:["research","architecture"],verdicts:["architecture"],built:["implementation"],qa:[]}};
+function timelineTracers(T){ const map=TRACE_STEPS[TRACKING?"tracking":"issue"], vs=(T&&T.visits)||[];
+  return Object.keys(map).map(tile=>{ const steps=map[tile]; if(!steps.length) return {tile,steps,none:true};
+    const mine=vs.filter(v=>steps.includes(v.step)), timed=mine.filter(v=>v.ms!=null);
+    return {tile,steps,lined:steps.filter(s=>mine.some(v=>v.step===s)),ms:timed.length?timed.reduce((n,v)=>n+v.ms,0):null,approx:timed.some(v=>v.approx),open:mine.some(v=>v.open),visits:mine.length,family:tlFamily(steps[0])}; }); }
+function timelineFamilies(vs){ return [...TL_FAMILIES.map(f=>f.id),"other"].map(id=>{ const steps=[]; (vs||[]).filter(v=>v.family===id).forEach(v=>{ if(!steps.some(x=>x.step===v.step)) steps.push({step:v.step,shade:v.shade}); }); return {id,steps}; }).filter(f=>f.steps.length); }
+/* An approximate bound (asBuilt.approx; plan/RULES.md §2, "The KPI tiles"; dashboards-skill/34), only on a board backfilled at the user's
+   request: where a bound is still unknown, the time the step's update reached the team, drawn "≈" and never read as recorded; passed to a
+   neighbour; never crossing a recorded bound of its chain (moved onto it, clamped). lib.js approxBounds() is the same rule. */
+const APPROX_SOURCES={arrival:"the time the update reached the team"};
+function approxBounds(seq,A,adj){ const list=(A&&Array.isArray(A.approx)?A.approx:[]).filter(x=>x&&typeof x.step==="string"&&APPROX_SOURCES[x.source]); if(!list.length) return;
+  list.forEach(x=>{ const v=seq.filter(y=>y.step===x.step)[(Number.isInteger(x.visit)&&x.visit>0?x.visit:1)-1]; if(!v) return;
+    if(!v.from&&isTime(x.since)) v.from={t:x.since,how:"approx",source:x.source}; if(!v.to&&isTime(x.ended)) v.to={t:x.ended,how:"approx",source:x.source}; });
+  for(let k=0;k+1<seq.length;k++){ const a=seq[k], b=seq[k+1]; if(!adj(a,b)) continue; if(!a.to&&b.from&&b.from.how==="approx") a.to={...b.from}; if(!b.from&&a.to&&a.to.how==="approx") b.from={...a.to}; }
+  const chains=[]; let cur=[]; seq.forEach((v,k)=>{ if(k&&!adj(seq[k-1],v)){ chains.push(cur); cur=[]; } cur.push([v,"from"],[v,"to"]); }); chains.push(cur);
+  chains.forEach(ch=>ch.forEach(([v,side],i)=>{ const b=v[side]; if(!b||b.how!=="approx") return; const t=Date.parse(b.t);
+    const after=ch.slice(i+1).map(([w,s2])=>w[s2]).find(x=>x&&x.how==="exact"), before=ch.slice(0,i).map(([w,s2])=>w[s2]).reverse().find(x=>x&&x.how==="exact");
+    if(after&&t>Date.parse(after.t)) v[side]={t:after.t,how:"exact",clamped:b.t}; else if(before&&t<Date.parse(before.t)) v[side]={t:before.t,how:"exact",clamped:b.t}; })); }
+function timelineApproxNote(T){ const vs=(T&&T.visits||[]), ap=vs.filter(v=>v.approx).map(v=>v.label), cl=[];
+  vs.forEach(v=>{ if(v.from&&v.from.clamped) cl.push(`${v.label}'s start`); if(v.to&&v.to.clamped) cl.push(`${v.label}'s end`); });
+  return [ap.length?`≈ approximate bounds: ${ap.join(", ")}`:"",cl.length?`a recorded time kept over the update's arrival: ${cl.join(", ")}`:""].filter(Boolean).join(" · "); }
+/* a board still in flight (dashboards-skill/34): its steps so far, the steps after the current one left out, the running step one visit
+   open-ended from wip.since to now; lib.js timelineSteps(plan, {now}) is the same rule */
+const timelineLanded=P=>P.status==="built"||P.status==="abandoned"||["landed","cancelled"].includes((P.wip||{}).step);
+function timelineSteps(P,now){ const w=(P&&P.wip)||{}, H=histOf(w), steps=(Array.isArray(w.steps)&&w.steps.length?w.steps:STEP_ORDER).filter(s=>s!=="landed"), idx=s=>steps.indexOf(s);
+  const live=!timelineLanded(P), cur=live?shownOf(w):null; now=live&&isTime(now)?now:null;
   const bd=t=>isTime(t)?{t,how:"exact"}:null, ne=v=>Array.isArray(v)?v.length>0:v!=null&&typeof v==="object", passOf=q=>Array.isArray(q)&&q[0]&&Number.isInteger(q[0].pass)?q[0].pass:null, seq=[], recon=[], left=[];
   steps.forEach(s=>visitsOf(w,s).forEach(v=>seq.push({step:s,pass:s==="qa"?passOf(v.qa):s==="remediation"?((v.remediation&&v.remediation.pass)||passOf(v.qa)):null,from:bd(v.since),to:bd(v.ended)})));
   const tOf=v=>Date.parse((v.to||v.from||{t:""}).t)||0; seq.sort((a,b)=>tOf(a)-tOf(b)||idx(a.step)-idx(b.step));
-  steps.filter(s=>!visitsOf(w,s).length).forEach(s=>{ const R=reconStep(P,s), date=R.ended||null;
+  steps.filter(s=>!visitsOf(w,s).length&&!(live&&(s===cur||!cur||idx(s)>idx(cur)))).forEach(s=>{ const R=reconStep(P,s), date=R.ended||null;
     if((s==="qa"||s==="remediation")&&Array.isArray(R.qa)&&R.qa.length){ R.qa.forEach(q=>recon.push({step:s,pass:Number.isInteger(q.pass)?q.pass:null,from:null,to:s==="qa"?bd(q.at):null,date:q.at||q.date||date})); return; }
     if(R.trail.length||R.milestones.length||R.sized||ne(R.interview)||ne(R.questions)||ne(R.stages)||R.units) recon.push({step:s,pass:null,from:null,to:s==="sizing"?bd(P.sized):null,date}); else left.push(s); });
   const loop=x=>x.step==="qa"||x.step==="remediation"; recon.sort((a,b)=>loop(a)&&loop(b)?((a.pass||0)-(b.pass||0)||idx(a.step)-idx(b.step)):idx(a.step)-idx(b.step));
   recon.forEach(r=>{ r.recon=true; let k=seq.findIndex(v=>!v.recon&&idx(v.step)>idx(r.step)); if(k<0) k=seq.length; seq.splice(k,0,r); });
+  if(live&&cur&&idx(cur)>=0){ const ps=(Array.isArray(w.qa)?w.qa:[]).filter(q=>q&&q.verdict!=="running"&&Number.isInteger(q.pass));
+    seq.push({step:cur,pass:cur==="qa"?(ps.length?Math.max(...ps.map(q=>q.pass))+1:1):cur==="remediation"?((w.remediation&&w.remediation.pass)||null):null,from:w.step===cur?bd(w.since):null,to:now?{t:now,how:"now"}:null,open:true}); }
   const A=P.asBuilt&&typeof P.asBuilt==="object"?P.asBuilt:{}, last=seq[seq.length-1];
-  if(last&&isTime(A.at)&&(!last.from||Date.parse(A.at)>=Date.parse(last.from.t))) last.to={t:A.at,how:"exact",merge:true};
+  if(!live&&last&&isTime(A.at)&&(!last.from||Date.parse(A.at)>=Date.parse(last.from.t))) last.to={t:A.at,how:"exact",merge:true};
   const adj=(a,b)=>idx(b.step)-idx(a.step)<=1;
   for(let ch=true,g=0;ch&&g<4;g++){ ch=false; for(let k=0;k+1<seq.length;k++){ const a=seq[k], b=seq[k+1]; if(!adj(a,b)) continue;
     if(!a.to&&b.from&&b.from.how==="exact"){ a.to={t:b.from.t,how:"exact"}; ch=true; } if(!b.from&&a.to&&a.to.how==="exact"){ b.from={t:a.to.t,how:"exact"}; ch=true; } } }
+  approxBounds(seq,A,adj);
   const cs=(Array.isArray(A.commits)?A.commits:[]).filter(c=>c&&isTime(c.at)&&typeof c.step==="string").sort((a,b)=>Date.parse(a.at)-Date.parse(b.at));
-  steps.forEach(s=>{ const vs=seq.filter(v=>v.step===s), c=cs.find(x=>x.step===s); if(vs.length===1&&!vs[0].from&&c&&(!vs[0].to||Date.parse(c.at)<=Date.parse(vs[0].to.t))) vs[0].from={t:c.at,how:"by",sha:c.sha||null}; });
+  steps.forEach(s=>{ const vs=seq.filter(v=>v.step===s), c=cs.find(x=>x.step===s); if(vs.length===1&&c&&(!vs[0].from||(vs[0].from.how==="approx"&&Date.parse(c.at)<Date.parse(vs[0].from.t)))&&(!vs[0].to||Date.parse(c.at)<=Date.parse(vs[0].to.t))) vs[0].from={t:c.at,how:"by",sha:c.sha||null}; });
   const cnt={}, nth={}; seq.forEach(v=>{ cnt[v.step]=(cnt[v.step]||0)+1; });
   seq.forEach(v=>{ v.n=nth[v.step]=(nth[v.step]||0)+1;
     v.label=v.step==="qa"?(v.pass?`qa · ${ordinal(v.pass)} pass`:cnt.qa>1?`qa · visit ${v.n}`:"qa"):v.step==="remediation"?(v.pass||cnt.remediation>1?`remediation · loop ${v.n}`:"remediation"):cnt[v.step]>1?`${v.step} · visit ${v.n}`:v.step;
-    const a=v.from&&v.from.how==="exact"?Date.parse(v.from.t):null, b=v.to?Date.parse(v.to.t):null; v.ms=a!=null&&b!=null?b-a:null; if(v.ms!=null&&v.ms<0){ v.ms=null; v.order=true; } });
-  const timed=seq.filter(v=>v.ms!=null), drawn=[...new Set(timed.map(v=>v.step))].sort((x,y)=>idx(x)-idx(y)); timed.forEach(v=>{ v.shade=tlShade(drawn.indexOf(v.step),drawn.length); });
-  return {visits:seq,left,untimed:seq.filter(v=>v.ms==null).map(v=>v.label)}; }
+    v.approx=[v.from,v.to].some(x=>x&&x.how==="approx");
+    const a=v.from&&(v.from.how==="exact"||v.from.how==="approx")?Date.parse(v.from.t):null, b=v.to?Date.parse(v.to.t):null; v.ms=a!=null&&b!=null?b-a:null; if(v.ms!=null&&v.ms<0){ v.ms=null; v.order=true; } });
+  const lined=[...new Set(seq.map(v=>v.step))].sort((x,y)=>idx(x)-idx(y));
+  seq.forEach(v=>{ const fs=lined.filter(s=>tlFamily(s)===tlFamily(v.step)); v.family=tlFamily(v.step); v.shade=tlShade(fs.indexOf(v.step),fs.length); });
+  return {visits:seq,left,untimed:seq.filter(v=>v.ms==null).map(v=>v.label),families:timelineFamilies(seq)}; }
 /* a span: "40 min", "2 h 35 min", "3 days 4 h", "under 1 min" */
 const tlSpan=ms=>{ if(ms==null||!isFinite(ms)) return "—"; const m=Math.round(ms/6e4); if(m<1) return "under 1 min"; if(m<60) return `${m} min`;
   if(m<1440){ const h=Math.floor(m/60), r=m%60; return r?`${h} h ${r} min`:`${h} h`; } let d=Math.floor(m/1440), h=Math.round((m-d*1440)/60); if(h===24){ d++; h=0; } return `${d} day${d===1?"":"s"}${h?` ${h} h`:""}`; };
@@ -1731,12 +1812,12 @@ function timelineLeftOut(T){ const vs=(T&&T.visits||[]).filter(v=>v.ms==null), o
   return [u.length?`not summed: ${u.map(v=>v.label).join(", ")} (a bound not recorded)`:"",o.length?`not summed: ${o.map(v=>v.label).join(", ")} (bounds out of order)`:"",T&&T.left&&T.left.length?`no record of: ${T.left.join(", ")}`:""].filter(Boolean).join(" · "); }
 /* The tile's times, in the viewer's zone (GUIDANCE.md §6): a clock time on the run's first day, the day before it on any other; the zone
    once, in the sub-line; every <time> holds the UTC stamp. */
-function tlView(T){ const ts=[]; (T.visits||[]).forEach(v=>[v.from,v.to].forEach(b=>{ if(b) ts.push(b.t); })); ts.sort((a,b)=>Date.parse(a)-Date.parse(b));
+function tlView(T){ const ts=[]; (T.visits||[]).forEach(v=>[v.from,v.to].forEach(b=>{ if(b&&b.how!=="now") ts.push(b.t); })); ts.sort((a,b)=>Date.parse(a)-Date.parse(b));
   const dOf=t=>new Date(t).toLocaleDateString(undefined,{day:"numeric",month:"short"}), day0=ts.length?dOf(ts[0]):"";
   const clock=t=>{ const hm=new Date(t).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}), d=dOf(t); return d===day0?hm:`${d} ${hm}`; };
   const full=t=>new Date(t).toLocaleString(undefined,LOCAL_FMT);
-  const time=b=>b?`${b.how==="by"?"by ":""}<time datetime="${esc(b.t)}" data-local="1" title="${esc(`${full(b.t)} · ${b.t} (UTC)${b.how==="by"?` · its first commit${b.sha?` ${b.sha}`:""}: the step was under way by then`:""}${b.merge?" · the merge":""}`)}">${esc(clock(b.t))}</time>${b.merge?" merged":""}`:`<span class="tl-nil" title="not recorded">—</span>`;
-  const text=b=>b?`${b.how==="by"?"by ":""}${clock(b.t)}${b.merge?" merged":""}`:"—";
+  const time=b=>b&&b.how==="now"?`<span class="tl-now" title="the step is running">now</span>`:b?`${b.how==="by"?"by ":b.how==="approx"?`<span class="tl-approx" title="approximate: ${esc(APPROX_SOURCES[b.source]||"not recorded")}">≈</span> `:""}<time datetime="${esc(b.t)}" data-local="1" title="${esc(`${b.how==="approx"?`≈ ${APPROX_SOURCES[b.source]||"approximate"} · `:""}${full(b.t)} · ${b.t} (UTC)${b.how==="by"?` · its first commit${b.sha?` ${b.sha}`:""}: the step was under way by then`:""}${b.merge?" · the merge":""}${b.clamped?` · recorded; the update reached the team at ${b.clamped} (UTC), after it`:""}`)}">${esc(clock(b.t))}</time>${b.merge?" merged":""}`:`<span class="tl-nil" title="not recorded">—</span>`;
+  const text=b=>b&&b.how==="now"?"now":b?`${b.how==="by"?"by ":b.how==="approx"?"≈ ":""}${clock(b.t)}${b.merge?" merged":""}`:"—";
   const zone=ts.length?((new Intl.DateTimeFormat(undefined,{timeZoneName:"short"}).formatToParts(new Date(ts[0])).find(p=>p.type==="timeZoneName")||{}).value||""):"";
   const YMD={day:"numeric",month:"short",year:"numeric"}, ydt=d=>d.length>10?new Date(d).toLocaleDateString(undefined,YMD):new Date(d+"T12:00:00Z").toLocaleDateString(undefined,{...YMD,timeZone:"UTC"});
   const yd=d=>d.length>10?`<time datetime="${esc(d)}" data-local="1" title="${esc(d)} (UTC)">${esc(ydt(d))}</time>`:esc(ydt(d));
@@ -1761,7 +1842,7 @@ function renderKpis(){
      by system); Options weighed by verdict, as the Considered column colours them (a deferred option still open dashed, one settled in
      column 4 its settled colour); Verdicts build, left for later, not yet written (dashed); As built every state with its count; QA
      passes one slot per pass allowed, filled in order by each pass's result. */
-  const segBar=(parts,label)=>`<div class="seg-bar" role="img" aria-label="${esc(label)}">${parts.filter(p=>p.n>0).map(p=>`<i class="${p.cls||""}" style="flex:${p.n}${p.c?`;background:${p.c}`:""}"${p.t?` title="${esc(p.t)}"`:""}></i>`).join("")}</div>`;
+  const segBar=(parts,label)=>`<div class="seg-bar" role="img" aria-label="${esc(label)}">${parts.filter(p=>p.n>0).map(p=>`<i class="${p.cls||""}" style="flex:${p.n}${p.c?`;background:${p.c}`:""}"${p.step?` data-step="${esc(p.step)}"`:""}${p.t?` title="${esc(p.t)}"`:""}></i>`).join("")}</div>`;
   const bar=segBar([...states.filter(([,n])=>n).map(([k,n])=>({n,cls:STATES[k].cls+(STATES[k].dash?" dash":""),t:`${n} ${STATES[k].label}`})),{n:left,cls:"left",t:`${left} left for later`}],`As built: ${[...states.filter(([,n])=>n).map(([k,n])=>`${n} ${STATES[k].label}`),left?`${left} left for later`:""].filter(Boolean).join(", ")}`);
   const gparts=[]; grouped().forEach(G=>{ const by2=new Map(); G.rows.forEach(r=>{ const c=sysColour(r.system); if(!by2.has(c)) by2.set(c,{n:0,names:new Set()}); by2.get(c).n++; const so=sysOf(r.system); by2.get(c).names.add(so&&so.slot>=1&&so.slot<=6?(so.top||so.name):`${sysName(r.system)} (no system colour)`); });
     by2.forEach((v,c)=>gparts.push({n:v.n,c,names:[...v.names],t:`${G.name||"rows"}: ${v.n} · ${[...v.names].join(", ")}`})); });
@@ -1771,16 +1852,23 @@ function renderKpis(){
   const qaParts=[...qa.map(p=>({n:1,cls:QA_RES[qaResult(p)].cls,t:`${ordinal(p.pass)} pass: ${QA_RES[qaResult(p)].label}`})),...Array.from({length:qmax-qa.length},()=>({n:1,cls:"slot",t:"a pass not used"}))];
   /* the Timeline tile (a landed board, dashboards-skill/32): one segment per timed visit, in the order of its step lines, sized by its time
      (a visit of no length keeps a sliver; visits all of no length share the bar alike), each in its step's shade */
-  const TS=LANDED?timelineSteps(PLAN):null, tsTot=TS?timelineTotal(TS):null, TV=TS?tlView(TS):null, tsTimed=TS?TS.visits.filter(v=>v.ms!=null):[];
-  const tpParts=tsTimed.map(v=>({n:tsTot>0?Math.max(v.ms,tsTot*0.03):1,cls:"tp",c:tlMix(v.shade),t:`${v.label}: ${TV.text(v.from)} → ${TV.text(v.to)} · ${tlSpan(v.ms)}`}));
-  KPI_DRAWN={rows:gparts,opts:optParts.filter(p=>p.n),verdicts:[vbuild,leave,vopen],states:states.filter(([,n])=>n).map(([k])=>k),left,qa:LANDED?[]:[...new Set(qa.map(qaResult))],slots:!LANDED&&qmax>qa.length};
-  const K=kpiKeys();
+  /* every issue board (dashboards-skill/34): a landed board's run whole, a board in flight its steps so far, the running one to now */
+  const TS=timelineSteps(PLAN,LANDED?null:new Date().toISOString().replace(/\.\d+Z$/,"Z")), tsTot=timelineTotal(TS), TV=tlView(TS), tsTimed=TS.visits.filter(v=>v.ms!=null);
+  const tpParts=tsTimed.map(v=>({n:tsTot>0?Math.max(v.ms,tsTot*0.03):1,cls:"tp",step:v.step,c:tlMix(v.family,v.shade),t:`${v.label} (${v.family}): ${TV.text(v.from)} → ${TV.text(v.to)} · ${v.approx?"≈ ":""}${tlSpan(v.ms)}${v.open?" so far":""}`}));
+  TRACERS=timelineTracers(TS);
+  KPI_DRAWN={rows:gparts,opts:optParts.filter(p=>p.n),verdicts:[vbuild,leave,vopen],states:states.filter(([,n])=>n).map(([k])=>k),left,qa:[...new Set(qa.map(qaResult))],slots:qmax>qa.length};
+  const K=kpiKeys(), TR=k=>tracerLab(TRACERS.find(x=>x.tile===k));
+  $("#tl-tile").innerHTML=timelineTile(TS,TV,tsTot,tpParts,segBar);
+  /* the tab's lede (what the picture does not say) and its legend: the tracer, and its foot where its steps have no time recorded */
+  $("#timeline-lede").textContent=LANDED?"Hover a segment for its times.":"The running step is open-ended: its time runs to now.";
+  const untimed=TRACERS.some(x=>!x.none&&x.ms==null&&x.visits);
+  $("#timeline-key").innerHTML=`<span><i class="trk"></i>tracer: from a tile up to the steps that made it, its colour their kind of work, its label their time</span>`+(untimed?`<span>a tracer ending at the tile's foot, "—": those steps have no time recorded</span>`:"")+(TRACERS.some(x=>x.none)?`<span>no tracer: a tile with no step of its own</span>`:"");
   $("#kpis").innerHTML=[
-    `<div class="kpi"><div class="l">${TRACKING?"Units":"Rows"}</div><div class="v">${ROWS.length}</div><div class="s">${groups.length?`${groups.length} group${groups.length>1?"s":""}: ${groups.map(esc).join(", ")}`:"no rows yet"}</div>${ROWS.length?segBar(gparts,`${TRACKING?"Units":"Rows"} by group: ${gparts.map(p=>p.t).join("; ")}`)+K.rows:""}</div>`,
-    `<div class="kpi"><div class="l">Options weighed</div><div class="v">${OPTS.length}</div><div class="s">${["accepted","partial","deferred","declined"].filter(by).map(v=>`${by(v)} ${v}`).join(" · ")||"none yet"}</div>${OPTS.length?segBar(optParts,`Options weighed: ${optParts.filter(p=>p.n).map(p=>`${p.n} ${p.k.replace("settled-","deferred, settled ")}`).join(", ")}`)+K.opts:""}</div>`,
-    `<div class="kpi"><div class="l">Verdicts</div>${vbuild+leave?`<div class="v">${vbuild} <small>build</small></div><div class="s">${leave} left for later${vopen?` · ${vopen} not yet written`:""}</div>`:`<div class="v">0${ROWS.length?` <small>of ${ROWS.length}</small>`:""}</div><div class="s">none written yet</div>`}${ROWS.length?segBar([{n:vbuild,cls:"ink",t:`${vbuild} build`},{n:leave,cls:"left",t:`${leave} left for later`},{n:vopen,cls:"dash",t:`${vopen} not yet written`}],`Verdicts: ${vbuild} build, ${leave} left for later, ${vopen} not yet written`)+K.verdicts:""}</div>`,
-    `<div class="kpi"><div class="l">As built</div><div class="v">${built} <small>/ ${counted.length} ${TRACKING?"units landed":"rows built"}</small></div><div class="s">${[...states.filter(([,n])=>n).map(([k,n])=>`${n} ${STATES[k].label}`),left?`${left} left for later`:""].filter(Boolean).join(" · ")||"—"}${changes?` · ${changes} changes`:""}</div>${ROWS.length?bar+K.built:""}</div>`,
-    LANDED?timelineTile(TS,TV,tsTot,tpParts,segBar):`<div class="kpi"><div class="l">QA passes</div><div class="v">${qa.length}${WIP.qaMax?` <small>of at most ${esc(WIP.qaMax)}</small>`:""}</div><div class="s">${qa.length?esc(qa.map(p=>`${ordinal(p.pass)} pass: ${(QA[p.verdict]||QA.running).label}${p.inPlace?`, ${inPlaceWords(p)}`:""}`).join(" · ")):"no qa pass yet"}</div>${segBar(qaParts,`QA passes: ${qa.length} of ${qmax} slots used`)+K.qa}</div>`].join("");
+    `<div class="kpi" data-tile="rows">${TR("rows")}<div class="l">${TRACKING?"Units":"Rows"}</div><div class="v">${ROWS.length}</div><div class="s">${groups.length?`${groups.length} group${groups.length>1?"s":""}: ${groups.map(esc).join(", ")}`:"no rows yet"}</div>${ROWS.length?segBar(gparts,`${TRACKING?"Units":"Rows"} by group: ${gparts.map(p=>p.t).join("; ")}`)+K.rows:""}</div>`,
+    `<div class="kpi" data-tile="opts">${TR("opts")}<div class="l">Options weighed</div><div class="v">${OPTS.length}</div><div class="s">${["accepted","partial","deferred","declined"].filter(by).map(v=>`${by(v)} ${v}`).join(" · ")||"none yet"}</div>${OPTS.length?segBar(optParts,`Options weighed: ${optParts.filter(p=>p.n).map(p=>`${p.n} ${p.k.replace("settled-","deferred, settled ")}`).join(", ")}`)+K.opts:""}</div>`,
+    `<div class="kpi" data-tile="verdicts">${TR("verdicts")}<div class="l">Verdicts</div>${vbuild+leave?`<div class="v">${vbuild} <small>build</small></div><div class="s">${leave} left for later${vopen?` · ${vopen} not yet written`:""}</div>`:`<div class="v">0${ROWS.length?` <small>of ${ROWS.length}</small>`:""}</div><div class="s">none written yet</div>`}${ROWS.length?segBar([{n:vbuild,cls:"ink",t:`${vbuild} build`},{n:leave,cls:"left",t:`${leave} left for later`},{n:vopen,cls:"dash",t:`${vopen} not yet written`}],`Verdicts: ${vbuild} build, ${leave} left for later, ${vopen} not yet written`)+K.verdicts:""}</div>`,
+    `<div class="kpi" data-tile="built">${TR("built")}<div class="l">As built</div><div class="v">${built} <small>/ ${counted.length} ${TRACKING?"units landed":"rows built"}</small></div><div class="s">${[...states.filter(([,n])=>n).map(([k,n])=>`${n} ${STATES[k].label}`),left?`${left} left for later`:""].filter(Boolean).join(" · ")||"—"}${changes?` · ${changes} changes`:""}</div>${ROWS.length?bar+K.built:""}</div>`,
+    `<div class="kpi" data-tile="qa">${TR("qa")}<div class="l">QA passes</div><div class="v">${qa.length}${WIP.qaMax?` <small>of at most ${esc(WIP.qaMax)}</small>`:""}</div><div class="s">${qa.length?esc(qa.map(p=>`${ordinal(p.pass)} pass: ${(QA[p.verdict]||QA.running).label}${p.inPlace?`, ${inPlaceWords(p)}`:""}`).join(" · ")):"no qa pass yet"}</div>${segBar(qaParts,`QA passes: ${qa.length} of ${qmax} slots used`)+K.qa}</div>`].join("");
 }
 /* A qa pass's result on its slot: running (accent), passed (green), changes requested with minor findings only (yellow: every
    finding minor by severity, or fixed on the spot), changes requested with other findings (red). */
@@ -1800,15 +1888,53 @@ function kpiKeys(){ const D=KPI_DRAWN, o={rows:"",opts:"",verdicts:"",built:"",q
   o.qa=key([...D.qa.map(x=>k(QA_RES[x].cls,`${esc(QA_RES[x].g)} ${esc(QA_RES[x].label)}`)),D.slots?k("slot","a pass not used"):""].filter(Boolean));
   return o; }
 /* The Timeline tile (plan/RULES.md §2, "The KPI tiles"; dashboards-skill/32): the figure, the sum of the visits drawn; the sub-line, the
-   run's dates, the zone of its times and what is not summed; the bar; and its legend, the step lines: one per visit, its swatch (a timed
-   visit's segment; none for a visit not drawn), its step, its start → end and its duration, then a note naming the marks the lines use. */
+   run's dates, the zone of its times and what is not summed; the bar; and its legends: the kinds of work on its lines (each family with
+   its steps' shades, dashboards-skill/34), then the step lines: one per visit, its step's mark (filled: a timed visit's segment;
+   outlined: a visit the bar does not draw), its step, its start → end and its duration, then a note naming the marks the lines use. */
 function timelineTile(T,V,tot,parts,segBar){ const vs=T.visits||[], nil=vs.some(v=>!v.from||!v.to), by=vs.some(v=>v.from&&v.from.how==="by"), merged=vs.some(v=>v.to&&v.to.merge);
-  const sub=[V.range,V.zone&&vs.some(v=>v.from||v.to)?`times ${esc(V.zone)}`:"",esc(timelineLeftOut(T))].filter(Boolean).join(" · ");
-  const line=v=>`<span class="tl-step"><i class="segk ${v.ms!=null?"tp":"tl-none"}"${v.ms!=null?` style="--tp:${tlMix(v.shade)}"`:' aria-hidden="true"'}></i><b>${esc(v.label)}</b><span class="tl-when">${V.time(v.from)} → ${V.time(v.to)}</span><span class="tl-dur">${v.ms!=null?esc(tlSpan(v.ms)):"—"}</span></span>`;
-  const note=[nil?"— not recorded":"",by?"by: the step under way at its first commit":"",merged?"merged: the run's end, the merge":""].filter(Boolean).join(" · ");
-  const keyH=vs.length?`<div class="key tl-steps">${vs.map(line).join("")}${note?`<span class="tl-note">${esc(note)}</span>`:""}</div>`:"";
+  const apx=vs.some(v=>v.ms!=null&&v.approx), clamped=vs.some(v=>(v.from&&v.from.clamped)||(v.to&&v.to.clamped)), open=vs.some(v=>v.open);
+  const sub=[open?"so far":"",V.range,V.zone&&vs.some(v=>v.from||v.to)?`times ${esc(V.zone)}`:"",esc(timelineLeftOut(T)),esc(timelineApproxNote(T))].filter(Boolean).join(" · ");
+  const line=v=>`<span class="tl-step" data-family="${esc(v.family)}" data-step="${esc(v.step)}"><i class="segk ${v.ms!=null?"tp":"tl-out"}" style="--tp:${tlMix(v.family,v.shade)}"${v.ms!=null?"":' aria-hidden="true"'}></i><b>${esc(v.label)}</b><span class="tl-when">${V.time(v.from)} → ${V.time(v.to)}</span><span class="tl-dur">${v.ms!=null?`${v.approx?"≈ ":""}${esc(tlSpan(v.ms))}${v.open?" so far":""}`:"—"}</span></span>`;
+  const out=vs.some(v=>v.ms==null), note=[open?"now: the step running":"",out?"outlined: a visit the bar does not draw":"",nil?"— not recorded":"",vs.some(v=>v.approx)?"≈ the time the update reached the team":"",by?"by: the step under way at its first commit":"",merged?"merged: the run's end, the merge":""].filter(Boolean).join(" · ");
+  /* the families legend: each kind of work on the lines, its swatch its steps' shades in order, then its steps */
+  const fam=f=>{ const n=f.steps.length, st=f.steps.map((x,i)=>`${tlMix(f.id,x.shade)} ${Math.round(100*i/n)}% ${Math.round(100*(i+1)/n)}%`).join(","); return `<span class="tl-fam" data-family="${esc(f.id)}"><i class="segk tf" style="background:linear-gradient(90deg,${st})" aria-hidden="true"></i><b>${esc(f.id)}</b> ${esc(f.steps.map(x=>x.step).join(" · "))}</span>`; };
+  const famH=(T.families||[]).length?`<div class="key tl-fams">${T.families.map(fam).join("")}</div>`:"";
+  const keyH=vs.length?`${famH}<div class="key tl-steps">${vs.map(line).join("")}${note?`<span class="tl-note">${esc(note)}</span>`:""}</div>`:"";
   const bar=parts.length?segBar(parts,`Timeline: ${vs.filter(v=>v.ms!=null).map(v=>`${v.label} ${tlSpan(v.ms)}`).join(", ")}${T.untimed.length?`; not summed: ${T.untimed.join(", ")}`:""}`):"";
-  return `<div class="kpi"><div class="l">Timeline</div><div class="v">${tot!=null?esc(tlSpan(tot)):"—"}</div><div class="s">${sub||"no step recorded"}</div>${bar}${keyH}</div>`; }
+  return `<div class="kpi"><div class="l">Timeline</div><div class="v">${tot!=null?`${apx?`<span class="tl-approx" title="the sum includes approximate bounds">≈</span> `:""}${esc(tlSpan(tot))}${open?" <small>so far</small>":""}`:"—"}</div><div class="s">${sub||"no step recorded"}</div>${keyH}${bar}</div>`; }
+/* A KPI tile's tracer label (dashboards-skill/34): the dot in its family's colour, the steps it covers, their summed time ("≈" when
+   approximate, "so far" while the running step is in it, "—" when none is timed); a tile with no step of its own (a tracking board's QA
+   passes) says so, with no tracer. Under 760 px it stands alone, the line not drawn. */
+let TRACERS=[];
+function tracerLab(x){ if(!x) return ""; if(x.none) return `<div class="tracer-lab none" data-tracer="${esc(x.tile)}"><i></i><span>no step of its own: no tracer</span></div>`;
+  const words=(x.lined.length?x.lined:x.steps).map(s=>s.replace("-"," ")).join(" + "), t=x.ms!=null?`${x.approx?"≈ ":""}${tlSpan(x.ms)}${x.open?" so far":""}`:x.visits?"—":"not yet";
+  return `<div class="tracer-lab" data-tracer="${esc(x.tile)}" data-steps="${esc(x.steps.join(" "))}" style="--tc:${tlMix(x.family,50)}"><i></i><span>${esc(words)}</span><b>${esc(t)}</b></div>`; }
+/* The tracers, drawn once the tab is laid out (and again on a resize): from the top of each tile's label up a lane of the gutter, across to
+   the middle of its steps' segments, up to the foot of the Timeline tile's bar, where a bracket spans those segments; a part not drawn on
+   the bar (no time recorded) is reached at the foot of the tile under its step lines. Nothing is drawn under 760 px or while the tab is
+   hidden. */
+function drawTracers(){ const svg=$("#tracers"), stack=$("#tl-stack"); if(!svg||!stack) return; svg.innerHTML="";
+  if(stack.offsetParent===null||window.innerWidth<760) return;
+  const S=stack.getBoundingClientRect(), tile=$("#tl-tile>.kpi"); if(!tile) return; const TB=tile.getBoundingClientRect(), bar=tile.querySelector(".seg-bar"), BB=bar?bar.getBoundingClientRect():null;
+  const rel=(x,y)=>[Math.round(x-S.left)+.5,Math.round(y-S.top)+.5];
+  const items=[...stack.querySelectorAll("#kpis .tracer-lab[data-steps]")].map(lab=>{ const steps=lab.dataset.steps.split(" "), segs=[...tile.querySelectorAll(".seg-bar i[data-step]")].filter(i=>steps.includes(i.dataset.step)), L=lab.getBoundingClientRect();
+    const marks=[...tile.querySelectorAll(".tl-step")].filter(e=>steps.includes(e.dataset.step||"")).map(e=>e.querySelector("i.segk")).filter(Boolean);
+    const box=segs.length?{l:Math.min(...segs.map(i=>i.getBoundingClientRect().left)),r:Math.max(...segs.map(i=>i.getBoundingClientRect().right)),y:BB.bottom,seg:true}:marks.length?{l:Math.min(...marks.map(m=>m.getBoundingClientRect().left)),r:Math.max(...marks.map(m=>m.getBoundingClientRect().right)),y:TB.bottom,seg:false}:null;
+    return box?{lab,L,box,c:lab.style.getPropertyValue("--tc")}:null; }).filter(Boolean);
+  items.sort((a,b)=>(a.box.l+a.box.r)-(b.box.l+b.box.r));
+  /* the lanes: the order of the five that crosses fewest tracers (a horizontal run crossing another's rise from its tile, or its rise to
+     the bar), the order of their targets on a tie */
+  items.forEach(it=>{ it.sx=it.L.left+8; it.tx=(it.box.l+it.box.r)/2; });
+  const crosses=ord=>{ let n=0; ord.forEach((A,i)=>ord.forEach((B,j)=>{ if(A===B) return; const lo=Math.min(A.sx,A.tx), hi=Math.max(A.sx,A.tx);
+    if(B.sx>lo&&B.sx<hi&&i>j) n++; if(B.tx>lo+1&&B.tx<hi-1&&i<j) n++; })); return n; };
+  const perms=a=>a.length<=1?[a]:a.flatMap((x,i)=>perms([...a.slice(0,i),...a.slice(i+1)]).map(r=>[x,...r]));
+  if(items.length<=6){ let best=items, bn=crosses(items); perms(items).forEach(o=>{ const k=crosses(o); if(k<bn){ bn=k; best=o; } }); items.splice(0,items.length,...best); }
+  const gTop=TB.bottom, n=items.length;
+  svg.innerHTML=items.map((it,i)=>{ const sx=it.sx, sy=it.L.top+2, tx=it.tx, lane=gTop+14+i*Math.min(11,52/Math.max(1,n)), by=it.box.y+4+(it.box.seg?i*3:0);
+    const [a,b]=rel(sx,sy), [c,d]=rel(tx,lane), [e,f]=rel(tx,it.box.seg?by:it.box.y+2), [g]=rel(it.box.l,0), [h]=rel(it.box.r,0);
+    const br=it.box.seg?`<path d="M${g} ${f-3} V${f} H${h} V${f-3}" style="stroke:${it.c}"/>`:"";
+    return `<g data-tracer="${esc(it.lab.dataset.tracer)}"><path d="M${a} ${b} V${d} H${c} V${f}" style="stroke:${it.c}"/>${br}<circle cx="${e}" cy="${f}" r="2.6" style="fill:${it.c}"/></g>`; }).join(""); }
+window.addEventListener("resize",()=>{ if(CUR_TAB==="steps") drawTracers(); });
 
 /* ---------- Timeline board ---------- */
 /* A unit row's title (plan/RULES.md §1, "The unit row"): "1. #61 Shared build logic", where #61 opens the GitHub issue and the
@@ -1837,7 +1963,7 @@ function grouped(){ const groups=[]; ROWS.forEach(r=>{ const g=r.group||""; let 
   return groups.sort((a,b)=>{ const i=GROUP_ORDER.indexOf(a.name), j=GROUP_ORDER.indexOf(b.name); return (i<0?GROUP_ORDER.length:i)-(j<0?GROUP_ORDER.length:j)||0; }); }
 function renderBoard(){
   /* one line, for what the board does not draw (the columns, the colours and the marks are in the heads and the legend) */
-  $("#timeline-lede").textContent=TRACKING
+  $("#design-lede").textContent=TRACKING
     ?"One row per unit, in landing order; each unit is planned and built on its own board. Click a cell for its detail."
     :"Click a cell, an option or a statement's (§) reference for its detail and the Markdown section that holds the rest.";
   const ms=c=>(PLAN.milestones||[]).find(m=>m.column===c);
@@ -1855,7 +1981,7 @@ function renderBoard(){
   const used=[...new Set(OPTS.map(x=>optDef(x.row,x.opt).word.startsWith("deferred →")?"settled":x.opt.verdict))];
   /* the states drawn: each row's, and each as-built statement's mark */
   const usedSt=[...new Set([...ROWS.map(stateOf),...ROWS.flatMap(r=>stmtsOf(r.asBuilt).map(s=>s.state)).filter(k=>STMT_STATES.includes(k))])];
-  $("#timeline-key").innerHTML=sysKey(ROWS.map(r=>r.system))
+  $("#design-key").innerHTML=sysKey(ROWS.map(r=>r.system))
     +["accepted","partial","deferred","declined"].filter(v=>used.includes(v)).map(v=>`<span>${pill(OPT[v])} ${esc(OPT[v].desc)}</span>`).join("")
     +(used.includes("settled")?`<span>${pill({...OPT.accepted},"","deferred → accepted")} settled in column 4</span>`:"")
     +Object.keys(STATES).filter(k=>usedSt.includes(k)).map(k=>`<span>${badge(k)} ${esc(STATES[k].desc)}</span>`).join("")
@@ -2036,7 +2162,7 @@ function renderTests(){
   showTestsSub(TESTS_SUB,true);
 }
 const bindGoRow=root=>root.querySelectorAll("a[data-go-row]").forEach(a=>a.addEventListener("click",e=>{ if(e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey) return; e.preventDefault(); goRow(a.dataset.goRow); }));
-function goRow(id){ show("t-timeline"); try{ history.replaceState(null,"","#timeline"); }catch(e){} select(id,"built"); const el=document.getElementById("row-"+id); if(el) el.scrollIntoView({block:"center"}); }
+function goRow(id){ show("t-design"); try{ history.replaceState(null,"","#design"); }catch(e){} select(id,"built"); const el=document.getElementById("row-"+id); if(el) el.scrollIntoView({block:"center"}); }
 function findTest(tk){ for(const s of TEST_SUBS){ const x=testItems(s.k).find(y=>testKey(y)===tk); if(x) return x; } return null; }
 function inspectTest(tk){ const x=findTest(tk); if(!x){ INSPECTED=null; inspect(DEFAULT_INSPECT.tests); return; } const e=x.e, lv=tlOf(e), r=e.result||{}, rows=testRows(x);
   inspect(`<div class="kicker">TESTS · ${esc((TEST_SUBS.find(s=>s.k===x.sub)||{}).label||"").toUpperCase()}</div><div class="name"><code>${esc(e.class)}</code></div><div class="vis"><span class="tlchip"><i class="tlk tl-${lv}" aria-hidden="true"></i>${esc(TLV[lv])}</span> ${pill(TRES[resOf(e)],"",resWord(e))}</div>${e.path?`<p class="lead"><code>${esc(e.path)}</code></p>`:""}<dl>${e.module?`<dt>Module</dt><dd><code>${esc(e.module)}</code></dd>`:""}<dt>Tests</dt><dd>${Number.isInteger(e.tests)?esc(e.tests):"not counted"}</dd><dt>Latest result</dt><dd>${esc(resWord(e))}${r.pass?` · qa pass ${esc(r.pass)}`:""}${r.at?` · ${when(r.at)}`:""}</dd>${rows?`<dt>Board rows it verifies</dt><dd>${rows}</dd>`:""}${e.stage?`<dt>Stage</dt><dd>${esc(e.stage)}</dd>`:""}${x.u?`<dt>Unit</dt><dd>${unitPairTests(x.u,x.sub)}</dd>`:""}</dl>`);
@@ -2257,7 +2383,11 @@ function renderContext(){
   const rm=PLAN.roadmap||null;
   if(TRACKING){ const units=ROWS.filter(r=>r.unit);
     cards.push(`<div class="card"><h3>Roadmap <small>#${esc(PLAN.issue)} · ${units.length} units${WIP.updated?` · ${day(WIP.updated)}`:""}</small></h3><ul class="issues">${units.map(r=>`<li><span class="nm">${esc(r.unit.n)}. ${r.unit.issue?pair(r.unit.issue,r.name):esc(r.name)} · ${badge(stateOf(r))}${runOf(r)?` ${runPill(runOf(r))}`:""}${isNext(r)?` ${TAG_NEXT}`:""}</span></li>`).join("")}</ul></div>`); }
-  else if(rm&&rm.issue) cards.push(`<div class="card"><h3>Roadmap <small>${day(rm.asOf||"")}</small></h3><ul class="issues"><li><span class="nm">${pair(rm.issue,rm.title||"",null,1)}</span></li>${(rm.items||[]).map(i=>`<li><span class="nm">${pair(i.issue,i.title||"",null,1)}${i.state?` · ${esc(String(i.state).toUpperCase()==="CLOSED"&&i.stateReason==="NOT_PLANNED"?"closed · not planned":String(i.state).toUpperCase()==="CLOSED"&&i.stateReason==="DUPLICATE"?"closed · duplicate":i.state)}`:""}${i.issue===PLAN.issue?" · this board":""}</span></li>`).join("")}</ul></div>`);
+  else if(rm&&rm.issue) cards.push(`<div class="card"><h3>Roadmap <small>${day(rm.asOf||"")}</small></h3><ul class="issues"><li><span class="nm">${rm.title?pair(rm.issue,rm.title,null,1):ilink(rm.issue)}</span></li>${(rm.items||[]).map(i=>`<li><span class="nm">${i.title?pair(i.issue,i.title,null,1):ilink(i.issue)}${i.state?` · ${esc(String(i.state).toUpperCase()==="CLOSED"&&i.stateReason==="NOT_PLANNED"?"closed · not planned":String(i.state).toUpperCase()==="CLOSED"&&i.stateReason==="DUPLICATE"?"closed · duplicate":i.state)}`:""}${i.issue===PLAN.issue?" · this board":""}</span></li>`).join("")}</ul></div>`);
+  /* a sub-issue's board whose roadmap is not filled yet (embed.js fills it from the repository roadmap, lib.js fillRoadmap();
+     dashboards-skill/34): its parent tracking issue claims it, so the card names the parent and its board; "no tracking parent" only
+     where there is none */
+  else if(PLAN.parent&&Number.isInteger(PLAN.parent.issue)) cards.push(`<div class="card"><h3>Roadmap</h3><p class="lede">#${esc(PLAN.issue)} is a unit of the tracking issue ${ilink(PLAN.parent.issue)}: ${relLink(PLAN.parent.board)?`<a href="${esc(PLAN.parent.board)}">its tracking board</a>`:`its tracking board`} lists its roadmap item and units, and the ${wbLink("repository work board")} the roadmap.</p></div>`);
   else cards.push(`<div class="card"><h3>Roadmap</h3><p class="lede">No roadmap item claims #${esc(PLAN.issue)}: it has no tracking parent. The ${wbLink("repository work board")} and the ${linkOr(sharedLink("repoBoard"),"repository state board")} show the roadmap.</p></div>`);
   const fu=PLAN.followUps||[];
   cards.push(`<div class="card"><h3>Follow-ups and related issues <small>${fu.length}</small></h3>${fu.length?`<ul class="issues">${fu.map(f=>(f.issue?`<li><span class="nm">${f.title?`${pair(f.issue,f.title,f.repo,1)}${f.note?` — ${rich(f.note)}`:""}`:`${ilink(f.issue,f.repo)}${boardOf(f.issue,f.repo)?` ${ghlink(f.issue,f.repo)}`:""}${f.note?` — ${rich(f.note)}`:""}`}</span></li>`:`<li><span class="nm"><code>${esc(f.name||"")}</code> <small>not filed</small> — ${rich(f.note||"")}</span></li>`)).join("")}</ul>`:`<p class="lede">None recorded.</p>`}</div>`);
@@ -2300,12 +2430,12 @@ derive();
 /* ---------- Tabs and deep links ---------- */
 if(!TRACKING){ const t=$("#t-landing-order"), p=$("#p-landing-order"); if(t) t.remove(); if(p) p.remove(); }
 const tabs=[...document.querySelectorAll(".tab")];
-const DEFAULT_INSPECT={timeline:"<p>Click a cell for its detail: the gap's evidence, an option's reasons, the verdict's steps, tests and risks, or the as-built changes with their reasons. Each cell links the Markdown section that holds the rest.</p>",decisions:"<p>Click a row for the option's full reasons and the options it was weighed against.</p>",built:"<p>Click a card for the row's files, commits, verification and every change from the verdict. Each impact change opens the Impact card it changed.</p>",impact:"<p>Click a card for its detail: the party affected or the surface that moves, its system, its tier, and the Markdown section that holds the rest.</p>",tests:"<p>Click a class for its detail: its path, its module and test level, its test count, its latest result and the board rows it verifies.</p>","landing-order":"<p>Click a unit for its as-built state, its issue and its board or folder, and its run in full.</p>",source:"<p>The committed <code>plan.json</code>. Edit the file, then run <code>plan/scripts/embed.js</code> on the folder.</p>"};
+const DEFAULT_INSPECT={design:"<p>Click a cell for its detail: the gap's evidence, an option's reasons, the verdict's steps, tests and risks, or the as-built changes with their reasons. Each cell links the Markdown section that holds the rest.</p>",decisions:"<p>Click a row for the option's full reasons and the options it was weighed against.</p>",built:"<p>Click a card for the row's files, commits, verification and every change from the verdict. Each impact change opens the Impact card it changed.</p>",impact:"<p>Click a card for its detail: the party affected or the surface that moves, its system, its tier, and the Markdown section that holds the rest.</p>",tests:"<p>Click a class for its detail: its path, its module and test level, its test count, its latest result and the board rows it verifies.</p>","landing-order":"<p>Click a unit for its as-built state, its issue and its board or folder, and its run in full.</p>",source:"<p>The committed <code>plan.json</code>. Edit the file, then run <code>plan/scripts/embed.js</code> on the folder.</p>"};
 let CUR_TAB="";
 function show(id,keep){
   const name0=id.replace("t-",""); CUR_TAB=name0;
   /* the Landing Order tab gives its graph the whole width and puts the inspector under it, as cards */
-  const stage=document.querySelector(".stage"); if(stage) stage.classList.toggle("below",name0==="landing-order");
+  const stage=document.querySelector(".stage"); if(stage){ stage.classList.toggle("below",name0==="landing-order"); stage.classList.toggle("solo",name0==="steps"); }
   tabs.forEach(t=>{ const on=t.id===id; t.setAttribute("aria-selected",String(on)); t.tabIndex=on?0:-1; document.getElementById(t.getAttribute("aria-controls")).hidden=!on; });
   const name=id.replace("t-","");
   if(name==="decisions") renderDecisions();
@@ -2314,6 +2444,7 @@ function show(id,keep){
   if(name==="impact") renderImpact();
   if(name==="landing-order") renderChain();
   if(name==="source") renderSource();
+  if(name==="steps") setTimeout(drawTracers,0);
   if(!keep){ INSPECTED=null; if(DEFAULT_INSPECT[name]) inspect(DEFAULT_INSPECT[name]); }
 }
 /* Show again what the inspector showed, after a live redraw: by ids, so it is read from the new plan (the default when it is gone). */
@@ -2374,13 +2505,13 @@ function liveChip(){ const c=$("#live"); if(!c) return;
   c.innerHTML=quiet?`<span class="ld" aria-hidden="true"></span>LIVE · no change for ${ago(since)}`:`<span class="ld" aria-hidden="true">●</span>LIVE · updated ${ago(since)} ago`;
   c.title=`Re-read from plan.js every ${LIVE_POLL_MS/1000} s${PAUSED?"; the run waits on the user":""}.`; }
 /* Everything the board draws from the plan, in place. */
-function renderAll(){ renderHeader(); renderWip(); renderKpis(); renderBoard(); renderContext(); localizeTimes(); }
+function renderAll(){ renderHeader(); renderWip(); renderKpis(); renderBoard(); renderContext(); localizeTimes(); if(CUR_TAB==="steps") setTimeout(drawTracers,0); }
 function dashboardRedraw(data){
   if(!data||typeof data!=="object") return false;
   const j=JSON.stringify(data); if(j===LIVE.json){ liveChip(); return false; }
   const keep={x:window.scrollX,y:window.scrollY,tab:CUR_TAB,insp:INSPECTED,is:($("#inspector")||{}).scrollTop||0,cf:($("#chain-frame")||{}).scrollLeft||0};
   LIVE.json=j; PLAN=data; derive(); renderAll();
-  show("t-"+(document.getElementById("t-"+keep.tab)?keep.tab:"timeline"),true); replayInspect(keep.insp);
+  show("t-"+(document.getElementById("t-"+keep.tab)?keep.tab:"design"),true); replayInspect(keep.insp);
   const ins=$("#inspector"); if(ins) ins.scrollTop=keep.is; const cf=$("#chain-frame"); if(cf) cf.scrollLeft=keep.cf;
   window.scrollTo(keep.x,keep.y);
   LIVE.last=Date.now(); liveChip(); if(!runLive()) stopLive();
@@ -2402,7 +2533,8 @@ function startLive(){ LIVE.last=dataStamp()!=null?Math.min(Date.now(),dataStamp(
 renderHeader(); renderWip(); renderKpis(); renderBoard(); renderContext();
 startLive();
 const hash=decodeURIComponent(location.hash.replace("#",""));
-let start="t-timeline"; if(hash&&document.getElementById("t-"+hash)) start="t-"+hash; else if(hash==="chain"&&document.getElementById("t-landing-order")) start="t-landing-order"; /* the tab's old name */
+/* the Design tab was named Timeline before dashboards-skill/34: "#timeline" and "#p-timeline" still open it */
+let start="t-design"; if(hash&&document.getElementById("t-"+hash)) start="t-"+hash; else if(hash==="timeline"||hash==="p-timeline") start="t-design"; else if(hash==="chain"&&document.getElementById("t-landing-order")) start="t-landing-order"; /* the tab's old name */
 else if(/^impact\./.test(hash)&&document.getElementById("t-impact")) start="t-impact"; /* an Impact card, "#impact.<entry>" */
 else if(/^tests\.(added|amended|relevant|other)$/.test(hash)&&document.getElementById("t-tests")){ start="t-tests"; TESTS_SUB=hash.slice(6); } /* a sub-tab of Tests, "#tests.<sub>" */
 show(start);
