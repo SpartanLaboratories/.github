@@ -15,7 +15,6 @@ section of `CLAUDE.md`).
 | `skills/`       | `skills/`                      | Custom skills (`resolve-issue`, `admin-team`, `dashboards`, `upgrade`) and installed third-party skills (`firecrawl*`, `vercel-connect`, `graphify`) |
 | `admin-team/`   | `admin-team/`                  | The admin team session's protocol, settings file and launchers  |
 | `commands/`     | root `*.md` prompt files       | Legacy release / update prompt files                            |
-| `memory/<repo>/`| `projects/<path>/memory/`      | Per-project auto-memory, one folder per repository              |
 
 ## Not included
 
@@ -24,11 +23,7 @@ section of `CLAUDE.md`).
 - Anthropic's auto-synced skill bundle (`skills/synced/`).
 - The admin team session's local state (`admin-team/ledger.jsonl`, `state.json`, `launch.lock`,
   `up`), which holds machine-local paths, and `proposals/`, working drafts.
-- `memory/MyGameServer/deployment-setup.md`, which describes deployment infrastructure, and
-  its index line in `memory/MyGameServer/MEMORY.md`.
-- Inside `memory/` files: session ids (`originSessionId`), claude.ai artifact links and
-  machine-local paths. They are scrubbed in the copy, with paths written as `~/` or
-  `<workspace>/`.
+- Projects' auto-memory (`projects/*/memory/`) is not mirrored.
 - `skills/dashboards/verify/history/`, the dashboards skill's cache of old template versions:
   a local cache that `history.js` rebuilds on demand from this repository's own git history.
 
@@ -40,6 +35,4 @@ section of `CLAUDE.md`).
 
 ## Restoring
 
-Copy the contents back into `~/.claude/`. Memory folders go back under
-`~/.claude/projects/<path-encoded project dir>/memory/`, e.g.
-`memory/GameGraphics/` → `projects/D--Documents-Programming-GameGraphics/memory/`.
+Copy the contents back into `~/.claude/`.
