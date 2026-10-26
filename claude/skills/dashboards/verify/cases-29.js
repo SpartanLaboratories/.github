@@ -72,7 +72,7 @@ module.exports = function cases29(X) {
   });
 
   /* 2. apply-state.js: lastAmended.title */
-  guard("apply-state.js keeps a verbatim lastAmended.title for the same issue, takes facts.title, and the folder's name only when neither exists (dashboards-skill/29)", c => {
+  guard("apply-state.js keeps a verbatim lastAmended.title for the same issue, takes facts.title, else the issue board's issueTitle, and the folder's name only when none exists (dashboards-skill/29)", c => {
     const L = require(sk("system/scripts/statelib.js")), AS = sk("system/scripts/apply-state.js");
     const sup = rd(SUP), sys = rd(SYS), tree = path.join(sc, "state-tree"), D = path.join(tree, "docs", "dashboards"), A = path.join(D, "system-alpha");
     const stamp = { ref: "main", sha: "1111111", date: "2026-10-20" }, VERB = "Add the next part: verbatim, as on GitHub";
@@ -127,6 +127,11 @@ module.exports = function cases29(X) {
     build({ issue: 9, title: "next-part", sha: "1111111" }, { issue: 9, title: VERB, sha: "1111111" });
     s = apply({}); [ta, tr] = titles();
     c.push(["a board holding only the folder's name for the issue takes the verbatim title another board in scope holds", s.status === 0 && ta === VERB && tr === VERB && !slugNote(s), JSON.stringify({ ta, tr })]);
+    /* the issue board's own issueTitle, with no title on record for the issue: the verbatim title, never the folder's name */
+    build({ issue: 5, title: "five", sha: "1111111" }, { issue: 5, title: "five", sha: "1111111" });
+    fs.writeFileSync(path.join(tree, "docs", "plans", "9-next-part", "plan.json"), JSON.stringify({ issue: 9, issueTitle: VERB, systems: ["system-alpha"] }, null, 2) + "\n");
+    s = apply({}); [ta, tr] = titles();
+    c.push(["with no facts.title and no title on record, the issue board's own issueTitle, verbatim, on every board in scope; no folder-name note", s.status === 0 && ta === VERB && tr === VERB && !slugNote(s) && embedded(), JSON.stringify({ ta, tr, notes: s.notes })]);
     c.push(["the boards it wrote pass check-board.js --auto --no-browser", [path.join(A, "index.html"), path.join(D, "index.html")].every(p => cp.spawnSync(process.execPath, [checker, p, "--auto", "--no-browser"], { encoding: "utf8" }).status === 0), /^pass/.test(s.check || "") ? s.check : String(s.check)]);
   });
 

@@ -954,7 +954,8 @@ yes`: it changes this ruleset and the scripts to match, runs the skill's checks 
 and reports the move as a skill fix. Nothing here limits a fact to the events it is applied at today: an event that carries a fact the
 script takes is applied whatever the event. Moved so far: the open points (`facts.open`) on every event, not only at an implementation
 stage and a qa pass, raised by the event's name where the point names none (dashboards-skill/33); the pre-merge stamp of the state
-boards (`facts.premerge`, `system/RULES.md` §10).
+boards (`facts.premerge`, `system/RULES.md` §10); the "last amended by" title of a state board, read from the issue board's own
+`issueTitle` when the event carries no `facts.title` and none is on record (`system/RULES.md` §10, `title`).
 
 | The script decides (from the facts) | The presenter adds afterwards (from the documents), when `enrich: yes` |
 |---|---|

@@ -38,6 +38,10 @@
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), url = require("url");
 const { repoRoot, flag, opt, registry, findPlans, subIssueBoard, shownBranch, unitBranch, reconciliation, leftForLater, boardlessState, unitInRun, qaShown, depBuild, depLocality, holdState } = require("./lib.js");
+/* a pass's route written with its neutral id (GUIDANCE.md §4, "No internal names"): a board recorded before the rename keeps the older
+   rookie-dev and planner-then-rookie-dev, read alike everywhere; board.json is generated, so it carries the neutral ones */
+const ROUTE_NEUTRAL = { "rookie-dev": "remediation", "planner-then-rookie-dev": "re-plan-then-remediation" };
+const neutralQa = qa => qa.map(p => (p && ROUTE_NEUTRAL[p.route] ? { ...p, route: ROUTE_NEUTRAL[p.route] } : p));
 /* A closed issue's reason, kept on every row, roadmap item and waits-on/blocks entry that the tracker read: "NOT_PLANNED" reads
    "closed · not planned" and "DUPLICATE" "closed · duplicate" on the board, never landed (plan/RULES.md §5); open issues record none. */
 const reasonOf = x => x && x.state === "CLOSED" && x.stateReason ? { stateReason: x.stateReason } : {};
@@ -226,7 +230,7 @@ const rows = [...rowNums].map(n => {
   if (b) {
     const w = b.plan.wip || {}, s = b.plan.status;
     Object.assign(row, { board: fs.existsSync(path.join(b.dir, "dashboard.html")) ? relFromPlans(b.folder + "/dashboard.html", b.root) : null, folder: relFromPlans(b.folder, b.root) + "/", branch: shownBranch(b.plan), /* a merged branch is not shown (plan/RULES.md §3, "Branches") */ system: b.plan.kind === "tracking" ? null : ((b.plan.systems || [])[0] || {}).slug || null,
-      step: w.step || null, detail: w.step === "halted" ? `Waiting on the user: ${w.waitingOn || w.detail || ""}` : (w.detail || ""), since: w.since || null, updated: w.updated || null, qa: qaShown(w) /* every pass recorded, and the one running (lib.js qaShown()) */, qaMax: w.qaMax || null,
+      step: w.step || null, detail: w.step === "halted" ? `Waiting on the user: ${w.waitingOn || w.detail || ""}` : (w.detail || ""), since: w.since || null, updated: w.updated || null, qa: neutralQa(qaShown(w)) /* every pass recorded, and the one running (lib.js qaShown()) */, qaMax: w.qaMax || null,
       /* a board laid before its run starts (a tracking issue's unit, plan/RULES.md §4) has no step: not started */
       status: s === "built" || unitState(u) === "landed" ? "landed" : s === "abandoned" || w.step === "cancelled" ? "abandoned" : w.step === "halted" ? "halted" : w.step === "escalated" ? "escalated" : u && unitState(u) === "complete" ? "complete" : s === "building" ? "building" : !w.step && s === "planned" ? "not-started" : "planning",
       landed: s === "built" ? { pr: (b.plan.asBuilt || {}).pr || null, merge: (b.plan.asBuilt || {}).merge || null, version: (b.plan.asBuilt || {}).version || null, date: (b.plan.asBuilt || {}).date || null } : null });
@@ -244,7 +248,7 @@ const rows = [...rowNums].map(n => {
     // the unit's board as embed.js resolves it, from the folders on disk: linked only when its file exists (plan/RULES.md §1)
     const sb = subIssueBoard(u.board.dir, u.row.unit);
     Object.assign(row, { board: sb ? relFromPlans(u.board.folder + "/" + sb.board, u.board.root) : null, folder: u.row.unit.folder && !/^https?:/.test(u.row.unit.folder) ? relFromPlans(u.board.folder + "/" + u.row.unit.folder, u.board.root) + (u.row.unit.folder.endsWith("/") ? "/" : "") : (u.row.unit.folder || null), branch: unitBranch(u.row), system: u.row.system,
-      step: cur ? (L.step || w.step) : null, detail: cur ? (L.detail || w.detail || "") : ((u.row.asBuilt || {}).summary || ""), qa: cur ? qaShown(L) : [], qaMax: cur ? (L.qaMax || null) : null,
+      step: cur ? (L.step || w.step) : null, detail: cur ? (L.detail || w.detail || "") : ((u.row.asBuilt || {}).summary || ""), qa: cur ? neutralQa(qaShown(L)) : [], qaMax: cur ? (L.qaMax || null) : null,
       status: LANDED_STATES.has(st) ? "landed" : st === "complete" ? "complete" : st === "dropped" ? "abandoned" : cur ? ((L.step || w.step) === "halted" ? "halted" : "building") : "not-started", landed: null, reconciliation: null /* no board of its own: its impact is on the tracking board */ });
     row.active = cur && ACTIVE_STEPS.has(L.step || w.step);
   } else {
