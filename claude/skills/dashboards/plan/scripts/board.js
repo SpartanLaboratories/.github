@@ -221,7 +221,7 @@ const holdsUp = (n, g, i) => { const tracked = ((g.blocking || {}).nodes || []).
 /* ...and every unit of a tracking board, so the chain (and its next unit) shows even without a level label or the tracker. */
 const unitNums = boards.filter(b => b.plan.kind === "tracking").flatMap(b => (b.plan.rows || []).filter(r => r.unit && Number.isInteger(r.unit.issue) && r.unit.issue > 0).map(r => r.unit.issue));
 const rowNums = new Set([...boards.map(b => b.plan.issue), ...issues.filter(i => levelOf(i)).map(i => i.number), ...unitNums]);
-const ACTIVE_STEPS = new Set(["sizing", "interview", "research", "architecture", "plan", "branch", "implementation", "qa", "remediation", "landing"]);
+const ACTIVE_STEPS = new Set(["sizing", "interview", "research", "architecture", "plan", "branch", "implementation", "qa", "remediation", "landing", "state-boards", "merge"]);
 const rows = [...rowNums].map(n => {
   const i = issueOf(n), g = gq[n] || {}, b = boardOf(n), u = unitRow(n), p = prevRow(n);
   const row = { issue: n, title: (i && i.title) || (b && b.plan.issueTitle) || (b && b.plan.title) || (u && u.row.name) || `#${n}`, state: i ? i.state : ((b && b.plan.status === "built") || (u && LANDED_STATES.has(unitState(u))) ? "CLOSED" : "OPEN"), ...reasonOf(i), created: i ? i.createdAt.slice(0, 10) : null,
@@ -287,7 +287,13 @@ rows.sort((a, b) => groups.findIndex(g => g.key === a.group) - groups.findIndex(
 /* Roadmap and unscheduled issues (Context) */
 const claimed = new Set();
 const roadmap = [...trackingNums].sort((a, b) => a - b).map(t => {
-  const g = groups.find(x => x.issue === t), items = ((gq[t] || {}).subIssues || { nodes: [] }).nodes.map(x => { claimed.add(x.number); return { issue: x.number, title: x.title, state: x.state, ...reasonOf(x) }; });
+  const g = groups.find(x => x.issue === t), nodes = ((gq[t] || {}).subIssues || { nodes: [] }).nodes;
+  let items = nodes.map(x => { claimed.add(x.number); return { issue: x.number, title: x.title, state: x.state, ...reasonOf(x) }; });
+  /* no tracker read (--no-gh, or gh failed): the tracking board's own units in landing order, each title its own board's issueTitle where
+     that board is here (verbatim), else none (dashboards-skill/34: a roadmap item with no units listed although its board names them) */
+  const tb = boardOf(t);
+  if (!nodes.length && tb && tb.plan.kind === "tracking") items = (tb.plan.rows || []).filter(r => r && r.unit && Number.isInteger(r.unit.issue)).sort((a, b) => (a.unit.n || 0) - (b.unit.n || 0))
+    .map(r => { claimed.add(r.unit.issue); const ub = boardOf(r.unit.issue), st = (issueOf(r.unit.issue) || {}).state; return { issue: r.unit.issue, title: ub && typeof ub.plan.issueTitle === "string" && ub.plan.issueTitle ? ub.plan.issueTitle : null, ...(st ? { state: st } : {}) }; });
   claimed.add(t); return { issue: t, title: g.title, state: (issueOf(t) || {}).state || "OPEN", board: g.board, items };
 });
 const unscheduled = issues.filter(i => i.state === "OPEN" && !claimed.has(i.number)).sort((a, b) => b.number - a.number)

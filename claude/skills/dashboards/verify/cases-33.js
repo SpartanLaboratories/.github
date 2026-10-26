@@ -98,7 +98,7 @@ module.exports = function cases33(X) {
     /* the landing: neutral words */
     const G = built(copy(LIVE)); G.folder = "docs/plans/73-landing"; G.issue = 73; G.slug = "73-landing"; Object.assign(G.wip, { step: "landing", current: [], qa: [{ pass: 1, verdict: "approved", date: "2026-10-25", at: "2026-10-25T11:00:00Z", findings: {} }] });
     const r3 = tree("land", [G]), l = apply(r3, req(path.join(sc, "land.json"), { github: G.repo, issue: G.issue, event: "landing", folder: G.folder, facts: { pr: 9 } }), "2026-10-25T12:20:00Z"), g = planOf(r3, G.folder);
-    c.push(["the landing event's note, detail and trail name no role", l.status === 0 && g.wip.event.note === "land accepted, PR #9" && g.wip.detail === "Landing: merging it in PR #9." && !/admin team/.test(js(g)), js([l.status, g.wip.event, g.wip.detail, l.s.error])]);
+    c.push(["the landing event's note, detail and trail name no role", l.status === 0 && g.wip.event.note === "land accepted, PR #9" && g.wip.detail === "Landing: the branch brought up to date; the code, the version bump and the reconciled documents committed on it." && !/admin team/.test(js(g)), js([l.status, g.wip.event, g.wip.detail, l.s.error])]);
   });
 
   /* 4. the warnings */

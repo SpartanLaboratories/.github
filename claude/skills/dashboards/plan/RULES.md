@@ -190,11 +190,12 @@ number ("4.2", "A-3"), else the heading itself, or a `label` the statement sets.
 - **A board written before the statements** keeps its paragraph (`verdict.summary`, `asBuilt.summary`): the board still shows it,
   and `check.js` warns, naming the rows, until it is split (§9, "Splitting a board into statements").
 
-The **legend** of the Timeline and the As built tab names each adaptation mark it drew; the lede says the reference is clickable.
+The **legend** of the Design tab and the As built tab names each adaptation mark it drew; the lede says the reference is clickable.
 
 ### The KPI tiles
 
-Every tile in the header row carries a segmented bar, and **each tile carries the legend of its own bar, inside the tile**, naming exactly the
+The KPI tiles stand in the **Timeline tab** (below), under the Timeline tile; since admin-team/dashboards-skill/34 there is no KPI row in
+the board's head. Every KPI tile carries a segmented bar, and **each tile carries the legend of its own bar, inside the tile**, naming exactly the
 segments that bar drew (`GUIDANCE.md` §2), as the repository work board's tiles do. There is no shared legend row under the tiles: every tile keeps its
 full share of the row (a row spanning every track kept the empty tracks from collapsing and squeezed the tiles on a wide screen).
 
@@ -205,11 +206,12 @@ full share of the row (a row spanning every track kept the empty tracks from col
 | **Verdicts** | build (solid neutral) · left for later (faded neutral) · not yet written (dashed: pending) |
 | **As built** | every state with its count (pending dashed), then the rows left for later (faded) |
 | **QA passes** | one slot per pass allowed (`wip.qaMax`, three), filled left to right by each pass's result: passed green, minor findings only yellow (every finding minor by severity, or the on-the-spot route), other findings red, the pass running accent (the pass running is derived, `lib.js` `qaShown()`, §5: at qa, or the remediation's current "qa pass n" sub-step); a slot not used empty (solid outline); each pass named by its ordinal, "1st pass: changes requested · 2nd pass: in progress", as on the WIP strip's qa pills (dashboards-skill/30); a last pass whose findings are fixed in place with no further pass says so in the sub-line, "1st pass: changes requested, fixed in place · no 2nd pass" (§5, "QA"; dashboards-skill/31) |
-| **Timeline** (a board that has landed) | the time per **step visit** of the run (admin-team/dashboards-skill/32, in place of dashboards-skill/23's four phases): one segment per visit whose both bounds carry a time, in the order the run visited them, sized by its time, in a **neutral ink ramp**, one shade per step, faintest for the first step drawn to the full ink for the last, a step's repeats sharing its shade (`GUIDANCE.md` §1); a visit of no length keeps a sliver. **Its legend lists the visits**, below the bar, one entry (a line) per visit: the step's swatch (none for a visit the bar does not draw), the step, its start → end and its duration ("implementation · 9:21 AM → 2:00 PM · 4 h 39 min"), laid in columns; a note after them names the marks its entries use ("— not recorded", "by", "merged"). The figure is the **sum of the visits the bar draws** (admin-team/dashboards-skill/28's rule, kept); the sub-line gives the run's date or dates, the zone of its times, and names every visit not summed, with the reason ("not summed: sizing, plan (a bound not recorded)"), and every step the record says nothing of ("no record of: interview"). On a landed board the KPI row is four tiles, and the Timeline takes the row below across its width |
+| **Timeline** (every issue board, at the top of its Timeline tab; on a board in flight its steps so far) | the time per **step visit** of the run (admin-team/dashboards-skill/32, in place of dashboards-skill/23's four phases): one segment per visit whose both bounds carry a time, in the order the run visited them, sized by its time, coloured by its step's **kind of work** (admin-team/dashboards-skill/34, in place of the neutral ink ramp): planning, build, checking, landing, each a hue family, one shade of it per step with a line, lighter to darker in the steps line's order (darker to lighter in dark), a family of one step its middle shade, a step's repeats sharing its shade (`GUIDANCE.md` §1, "Steps"); a visit of no length keeps a sliver. **Its legends**, below the bar: first **the families**, one entry per family with a line, its swatch the shades of its steps in order, its name and its steps ("planning sizing · research · plan"); then **the visits**, one entry (a line) per visit: the step's **mark** in its family's shade (filled: its segment; outlined: a visit the bar does not draw), the step, its start → end and its duration ("implementation · 9:21 AM → 2:00 PM · 4 h 39 min"), laid in columns; a note after them names the marks its entries use ("outlined", "— not recorded", "≈", "by", "merged"). The figure is the **sum of the visits the bar draws** (admin-team/dashboards-skill/28's rule, kept), "≈" before it when a visit summed has an approximate bound; the sub-line gives the run's date or dates, the zone of its times, and names every visit not summed, with the reason ("not summed: sizing, plan (a bound not recorded)"), every step the record says nothing of ("no record of: interview"), the visits with an approximate bound ("≈ approximate bounds: research, plan") and the bounds where a recorded time was kept over an arrival. Its bar stands at the tile's foot, where the tracers reach it (below). On a board in flight the running step is one visit open-ended, from `wip.since` (when `wip.step` is that step) to **now**, its duration and the figure "so far"; the steps after it are left out, and "no record of" names only the steps before it |
 
 **The Timeline tile's legend** (admin-team/dashboards-skill/32), one entry per step visit. **The vocabulary is the step panel's**: `sizing`, `interview`, `research`,
-`architecture`, `plan`, `branch`, `implementation`, `qa`, `remediation`, `landing` (a tracking board's own: `sub-issues`, `boards`,
-its plan's `landing`, then `implementation`, its units' runs), in the board's steps line (`wip.steps`). **An entry per visit**: a step
+`architecture`, `plan`, `branch`, `implementation`, `qa`, `remediation`, `landing`, `state-boards`, `merge` (a tracking board's own: `sub-issues`, `boards`,
+its plan's `landing`, `state-boards` and `merge`, then `implementation`, its units' runs), in the board's steps line (`wip.steps`); a board that landed
+before the landing's three steps has `landing` alone, and its landing spans to the merge. **An entry per visit**: a step
 the run visited twice has two, named so the step panel's numbering reads the same — a qa visit by its pass, "qa · 1st pass", "qa · 2nd
 pass" (the ordinals of dashboards-skill/30); a remediation visit by its loop, "remediation · loop 1", "remediation · loop 2"; any other step
 by its visit, "plan · visit 2". The visits are the step's snapshots in `wip.history` (§3, "Finished steps"), oldest first; a step with no
@@ -227,7 +229,13 @@ says nothing of has no entry, and the sub-line names it.
    before's end as its start, when no step of the steps line lies between the two (a step between them may hold a visit nobody recorded);
 4. **a step's own commit** on the branch (`asBuilt.commits`): a commit that changes only the board folder's research, its
    `architecture.md` or its plan (`plan.md`, `plan-<unit>.md`, `draft.md`) shows the step under way by then, a **"by"** start, which gives
-   the entry no duration (its own start is earlier and unknown).
+   the entry no duration (its own start is earlier and unknown);
+5. **an approximate bound** (admin-team/dashboards-skill/34), only on a board **backfilled at the user's request**: `asBuilt.approx`, a list of
+   `{step, visit?, since?, ended?, source}` (visit 1 when unnamed), its `source` `arrival` — the time the step's update reached the team. It
+   fills a bound still unknown after 1–3, before 4 (a step commit earlier than it still gives the "by" start), passes to a neighbour as 3
+   does, and never crosses a recorded bound of its chain: one that would lies on the recorded bound instead (kept, and said in the
+   sub-line). It is drawn **"≈"** (its title names its source), never as a recorded time; a visit with one is timed, its duration "≈", and
+   summed. Nobody writes it at an event: the fast path never does, and the presenter only when the user asks for a board to be backfilled.
 
 A bound none of these gives is **unknown**, drawn "—" (its title says "not recorded"); a date alone is no time. A visit with an unknown
 bound, or with bounds out of order, has no duration, is not drawn and is not summed, and the sub-line names it. **Spans** read in minutes
@@ -236,8 +244,31 @@ never "same day". **Times** read in the viewer's zone (`GUIDANCE.md` §6): a clo
 the zone named once in the sub-line, each a `<time>` holding the UTC stamp. **`asBuilt.at` and `asBuilt.commits`** are read from git:
 `apply-event.js` records them at the `landed` event from the worktree (`facts.mergedAt` when the team sends it), and
 `plan/scripts/timeline.js <folder> --from-git` for a board that landed before them; where git cannot tell, nothing is recorded.
-`plan/scripts/lib.js` `timelineSteps()`, `tlSpan()` and `timelineTotal()` and the template's are the one rule; `check.js` reports a
-landed board's entries with the figure and warns on bounds out of order, and `timeline.js <folder>` prints them.
+`plan/scripts/lib.js` `timelineSteps()`, `approxBounds()`, `tlSpan()`, `timelineTotal()`, `TL_FAMILIES` and `tlShade()` and the template's are
+the one rule; `check.js` reports a landed board's entries with the figure, warns on bounds out of order and fails an `asBuilt.approx` entry
+not in its form, and `timeline.js <folder>` prints them.
+
+### The Timeline tab
+
+**The Timeline tab** (admin-team/dashboards-skill/34) stands right after Design on every issue board, a tracking board's included: the
+Timeline tile across the tab, then the five KPI tiles below it (Rows or Units, Options weighed, Verdicts, As built, QA passes; on a landed
+board too), in one row on a wide screen, three or two on narrower ones and one on a phone. The inspector does not stand beside this tab. Each
+KPI tile carries a **tracer** (`GUIDANCE.md` §12): a label at its top — a dot in its steps' kind of work's colour, the steps, and their summed
+time (the units of the tile's spans, "≈" when one is approximate, "so far" while the running step is among them, "—" when none is timed,
+"not yet" when none has run) — and, from 760 px, a line drawn from it up a lane of the gutter, across to the middle of its steps' segments and
+up to the foot of the Timeline tile's bar, where a bracket spans them; steps not drawn on the bar (no time recorded) are reached at the
+tile's foot under their step lines. Under 760 px the label alone stands. The tiles' steps:
+
+| Tile | Issue board | Tracking board |
+|---|---|---|
+| Rows / Units (the gap) | sizing, research | sizing, research |
+| Options weighed (considered) | research | research, architecture |
+| Verdicts | plan | architecture (it has no plan step) |
+| As built | branch, implementation | implementation (its units' runs) |
+| QA passes | qa, remediation: every pass and loop | none: it runs no qa of its own, so no tracer, and its label says so |
+
+The landing's three steps have no tile and no tracer. The tab's legend names the tracer (and its foot, where drawn); each tile keeps its
+own legend. `lib.js` `TRACE_STEPS` and `timelineTracers()` and the template's are the one rule.
 
 **As-built states:** `pending` (dashed, neutral: the work on the row has not started) · `in-progress` (solid, accent: a current
 stage is working on the row) · `partially-built` (solid, strong neutral: a finished stage built part of the row and the next stage
@@ -423,7 +454,7 @@ hierarchy's folders — in that order, and coloured by it: a neutral ramp from L
 system colour nor a status colour on a level (`GUIDANCE.md` §1). Each class shows its simple name, its package, its module, its test count,
 the stage that added or changed it, its **latest result** with its counts and its qa pass (a status pill with its glyph and word: `✓ passed`
 green, `✕ failed` red, `↷ skipped` neutral, `… not run yet` neutral and dashed: pending) and the **board rows it verifies**, each opening the
-row on the Timeline. A class opens in the inspector. Every sub-tab carries its own legend: the levels and the results it drew, and the
+row on the Design tab. A class opens in the inspector. Every sub-tab carries its own legend: the levels and the results it drew, and the
 dashed "nothing recorded yet" while the run is live and a sub-tab is empty (a board that has landed or was cancelled says "None recorded",
 solid). The lede says only what to click.
 
@@ -448,13 +479,23 @@ unit's board.
 
 ### The tabs
 
-The board's tabs are **Timeline** (the four columns), **Decisions**, **As built** (column 4's
-cards, then how the impact differed from the plan, §2), **Tests** (above), **Impact** and **Source**; a tracking board adds **Landing Order**. On the Timeline the four phase columns read as
+The board's tabs are **Design** (the four columns; named Timeline before admin-team/dashboards-skill/34, and a link to `#timeline` or
+`#p-timeline` still opens it), **Timeline** (the Timeline tile and the KPI tiles, §2, "The Timeline tab"; its ids `t-steps` and `p-steps`, its link `#steps`, as
+`#timeline` keeps opening Design), **Decisions**, **As built** (column 4's
+cards, then how the impact differed from the plan, §2), **Tests** (above), **Impact** and **Source**; a tracking board adds **Landing Order**. On the Design tab the four phase columns read as
 columns: each stands on its own neutral band under a strong, sticky head (its number, its name, its
 question, its milestone). The bands are layout, not an encoding: they take no colour of their own,
 so system and status colours keep their meanings, and the legend does not list them; the narrow
 layout stacks each row and draws none. A tab's lede is at most one short line, and only for what its
 graphic and legend do not show (`GUIDANCE.md` §2); the repository work board's Runs lede too.
+
+**The Context's roadmap** of an issue board is `plan.json` `roadmap`: `{issue, title, asOf, items: [{issue, title, state?, stateReason?}]}`,
+the repository roadmap item that claims the issue. A sub-issue's board takes it once, while it is unset (`lib.js` `fillRoadmap()`, at every
+`embed.js`, so at `new.js` and at every event; admin-team/dashboards-skill/34): from the repository work board's data (`docs/plans/.live/board.json`
+of the tree or of the main checkout, else the committed `docs/plans/board.json`), its titles the tracker's, verbatim; else from the parent
+tracking board (its `issueTitle`, its units in landing order, each unit's title its own board's `issueTitle` where that board is in the tree,
+else none, the number shown alone). While it is unset the card names the parent tracking issue and links its board; "No roadmap item claims
+#n: it has no tracking parent" is said only of an issue with no parent and no roadmap. A tracking board draws its roadmap from its units.
 
 **Landing Order** (tracking boards) draws the units as a dependency graph in landing order: a column
 is the earliest a unit can start, an arrow runs from a unit to the units it blocks. The graph spans
@@ -470,7 +511,7 @@ A board is alive while its run is. Its data carries:
 
 - `wip.step` — the pipeline step the run is at (`sizing`, `interview`, `research`,
   `architecture`, `sub-issues` and `boards` (a tracking board's own, below), `plan`, `branch`, `implementation`, `qa`, `remediation`, `landing`,
-  `landed`, `halted`, `escalated`, `cancelled`), with `since` (date-time) and `detail` (one
+  `state-boards`, `merge`, `landed`, `halted`, `escalated`, `cancelled`), with `since` (date-time) and `detail` (one
   line: which stage, which qa pass, what waits on the user); on a tracking board it is the
   tracking issue's own phase (below, "The units' own runs");
 - `wip.current` — the cells being worked on, as `<row-id>.<column>` addresses, **exactly the cells being worked on,
@@ -482,7 +523,7 @@ A board is alive while its run is. Its data carries:
   touches none); during qa the
   whole As built column lightly; while halted, the glow of the step it halted in holds still as a
   ring, and a yellow "waiting on the user" strip says for what. A **column address** (`gap`, `considered`, `verdict`, `built`) is
-  drawn as **one glow on the column itself**, its band and its head on the Timeline (round the cards on the As built tab), never
+  drawn as **one glow on the column itself**, its band and its head on the Design tab (round the cards on the As built tab), never
   each row's cell lit; it holds still as the ring alone while the run waits on the user and is static under reduced motion, and the
   legend names it apart from a cell's glow. The phone layout, which stacks the rows and draws no column, puts it on each of that
   column's cells;
@@ -568,7 +609,7 @@ that does not keep it (§8). The map is written once for the scripts, as `GLOW_M
 | `implementation` | the As built cells of the rows the current stage touches, as `<row-id>.built`; the whole As built column, `built`, when the current stage touches no rows (a stage such as "the as-built record") or no stage is current; on a tracking board, the As built cells of its units in progress (`<unit-id>.built`), or nothing between a unit's landing and the next unit's start |
 | `qa` | `built`: the whole As built column, lightly |
 | `remediation` | the As built cells of the rows the qa findings touch, as `<row-id>.built`; the whole As built column, `built`, while those rows are not known |
-| `landing` | nothing: qa has approved and the merge is the admin team's (on a tracking board, its plan's own landing) |
+| `landing`, `state-boards`, `merge` | nothing: qa has approved, and the landing's three steps are the team's (on a tracking board, its plan's own landing) |
 | `landed`, `cancelled` | nothing: the glow is off |
 | `halted` | the glow of the step it halted in (`wip.resume`), unchanged, drawn as a still ring |
 | `escalated` | the glow of the step it escalated from (`wip.resume`), unchanged, drawn as a still ring: the run waits on the user's re-sizing, as a halt does |
@@ -599,7 +640,7 @@ questions name a **ring** on its Considered cell (`GUIDANCE.md` §1, the researc
 advanced state of the questions that name it, in this order — **red** `planning` (recorded with its
 rows before its batch is sent), **orange** `researching`, **orange with a check** `returned`
 (awaiting verification), **yellow** `verifying`, **green** `complete`. The ring is the cell's border,
-never a fill, with a pill in the cell's head saying the state (glyph and word), and the Timeline's
+never a fill, with a pill in the cell's head saying the state (glyph and word), and the Design tab's
 legend has a "research state" entry for each state it drew. During planning (`research-planning`,
 `facts.drafted` the questions drafted so far) the questions have no rows yet, so **no row rings**:
 only the step panel shows the planning and "n questions drafted". The green ring stays until
@@ -646,7 +687,9 @@ events, the documents, the trail), never guessed; each step's panel shows:
 | `remediation` | the qa pass it answers, its route, and its sub-steps (`wip.remediation.steps`; while none is recorded, the route's loop: minor fixes on the spot, then landing with no new qa pass; rookie-dev's fixes, then the next qa pass; a planner re-pass, rookie-dev's fixes, then the next qa pass; and with no route the pipeline's loop) |
 | `sub-issues` | the units filed as sub-issues of the signed-off architecture, "n of m", counted from the unit rows (a unit's issue), each unit done, being filed (the units whose labels glow) or to file |
 | `boards` | the units' boards created, "n of m", counted from the unit rows (a unit's board in the tree), each done, being created (the units whose labels glow) or to create |
-| `landing` | qa's approval, the merge the admin team's; once the team has raised `landing`, that it has accepted the land and is merging it (with its pull request) |
+| `landing` | qa's approval; once the team has raised `landing`, that it has accepted the land (with its pull request) and brings the branch up to date, committing the code, the version bump and the reconciled documents on it (on a board whose steps line has `landing` alone, written before the three steps: the land accepted and being merged) |
+| `state-boards` | the pre-merge refresh: the state boards brought up on the branch as built, stamped at its head, committed in one board commit; the merge next |
+| `merge` | the pull request being merged; `landed` next |
 | `halted`, `escalated` | what it waits on (the question, or the re-sizing), and the panel of the step it stopped in, **held still** (no breathing dot) |
 | every step | the open points still open (`wip.open`), each with where it was raised and its link; the agents' **progress notes** (below) |
 
@@ -734,7 +777,7 @@ resumes at it), the connector between a row's Considered cell and its Verdict ce
 accent segments filling left to right** while that row's verdict is unwritten, drawn large — 22 px tall, reaching over the edges of both
 cells, so it reads at a glance on a wide board; once the verdict is
 written it is the plain line again, and outside the plan step every connector is plain. It holds
-still, filled, while the run waits on the user, and under `prefers-reduced-motion`. The Timeline's
+still, filled, while the run waits on the user, and under `prefers-reduced-motion`. The Design tab's
 legend names it while it is drawn (`GUIDANCE.md` §1).
 
 **Live updates.** While a board's run is live (not landed, not cancelled) and the board is a local
@@ -787,7 +830,7 @@ unit in progress. Two things say where the work is, and they never mix:
 
 - **The tracking board's own `wip`** is the tracking issue's phase, never a unit's step. Its
   steps are `sizing`, `interview`, `research`, `architecture`, `sub-issues` (the units filed as sub-issues), `boards` (the units'
-  boards created), `landing` (the plan's own landing)
+  boards created), `landing`, `state-boards` and `merge` (the plan's own landing, in the landing's three steps, admin-team/dashboards-skill/34)
   and then `implementation`, which spans its units' runs from the first unit's start until the
   last unit lands, then `landed`. While any unit runs, `wip.step` stays `implementation`, whatever
   step each unit is at; `halted`, `escalated` and `cancelled` mean the tracking issue itself (an
@@ -905,7 +948,9 @@ embed writes the board's `plan.js` beside it (§1).
 | `implementation-stage` | an implementation stage's report | `status = building`; the touched rows' as-built state and summary (`partially-built`, saying what is built and what is left, for a row a later stage still works on; once its last stage is done, its as-built statements, one per verdict statement with its adaptation, from which its outcome is derived; §2, "Before the outcome", "Statements"); an open point the report raises appended to `wip.open`, and one it settles marked `resolved` and recorded in the trail; each deviation from `final-implementation.md` as a `changes[]` entry, and one that changes the impact added to `impact.changes` with the entry it changed (`basis` stays `plan`: partly reconciled, §2, Impact); the reported stage `done` in `wip.stages` and the next `current`; `wip.current` = the As built cells of the rows the next stage touches (`<row-id>.built`), or the whole column, `built`, when it touches none; once the last stage is reported and the run moves to qa, `wip.step = qa` and `wip.current` `built` (§3) |
 | `qa-pass` | a qa verdict | `wip.qa` appended (its counts by kind and by severity, `minor` and `other`, from the facts, and the `route` step 5 takes from them), `wip.qaMax` 3; `wip.step = remediation`, with `wip.remediation` `{pass, route, steps}` (the route's sub-steps as the pipeline runs them: on the spot, minor fixes then landing with no new qa pass; else the fixes, a planner re-pass first on `planner-then-rookie-dev`, then the next qa pass) and `wip.current` the As built cells of the rows the findings touch, or `landing`, with `wip.current` empty (§3). On an approving pass of a sub-issue's run, its unit row on the tracking board becomes `complete` (it stays in `wip.current` until it lands) |
 | `escalated` | a level escalation | `wip.step = escalated`, `wip.resume` the step it escalated from, and `wip.current` unchanged, its glow held still as a ring (§3); the proposed level is kept as data only (`wip.proposedLevel`, never shown: `GUIDANCE.md` §4); the board follows the issue's new sizing |
-| `landing` | the issue's `land` request is accepted and its merge is about to run (team-raised, like `landed`; `facts.pr` optional) | never sent by a pipeline: the admin team raises it itself through `apply-event.js` before the pre-merge refresh and the merge. `wip.step = landing`, `wip.current` empty, a halt cleared; `wip.event` `landing` with its note ("land accepted, PR #n"), the detail "Landing: merging it in PR #n." and its trail entry (no internal name, `GUIDANCE.md` §4); refused on a board that has landed or was cancelled. For a sub-issue, its tracking board's mirror of the unit's run follows at the re-embed (its unit reads the landing); the unit's row and `wip.next` do not move until `landed`. `landed` follows after the merge |
+| `landing` | the issue's `land` request is accepted (team-raised, like `landed`; `facts.pr` optional) | never sent by a pipeline: the admin team raises it itself through `apply-event.js` as the land begins: the branch brought up to date, the code, the version bump and the reconciled documents committed on it. `wip.step = landing` (its `since` the visit's start), `wip.current` empty, a halt cleared, a steps line written before the three steps brought up (`lib.js` `landingSteps()`, as at any event of a board in flight); `wip.event` `landing` with its note ("land accepted, PR #n"), the detail and its trail entry "Landing: the land accepted in PR #n" (no internal name, `GUIDANCE.md` §4); refused on a board that has landed or was cancelled. For a sub-issue, its tracking board's mirror of the unit's run follows at the re-embed (its unit reads the landing); the unit's row and `wip.next` do not move until `landed`. `state-boards` and `merge` follow, then `landed` after the merge |
+| `state-boards` | the pre-merge refresh begins on the branch (team-raised, admin-team/dashboards-skill/34) | `wip.step = state-boards`, the landing frozen with its end (`wip.history.landing`); the note, the detail "State boards: the pre-merge refresh on the branch, stamped at its head, and its board commit." and the trail entry; refused as `landing` is |
+| `merge` | the pull request is being merged (team-raised; `facts.pr` optional) | `wip.step = merge`, the state boards' visit frozen with its end; the note, the detail "Merge: merging it in PR #n." and the trail entry; refused as `landing` is. `landed` follows; a board whose parts are still open stays at the merge |
 | `landed` | the team has merged | never sent by a pipeline: the admin team raises it itself after the merge — for the live view only in the post-merge refresh (nothing tracked written), and on the issue's board in the **next landing's pre-merge refresh** (step 0 there, the previous landing's corrections), on that landing's branch, committed with it. On the issue's board: `status = built`; `asBuilt` (sha, date, PR, merge, version, and from git the merge's time `at` and the branch's step `commits`, which `apply-event.js` reads from the worktree or takes from `facts.mergedAt`, §2, "The Timeline tile's legend"); the `built` milestone; every `pending` part resolved; the trail completed; `impact` reconciled from `final-implementation.md` and the reconciled `impact.md`, `basis` `as-built`, each difference from the planned impact in `impact.changes`, naming the `entry` it changed where there is one (§2, Impact; the As built tab shows them); `wip.step = landed` and `wip.current` empty. For a sub-issue, on its tracking board, the standing rule (§3): the unit `landed`, out of `wip.current` (which clears its mirror at the next embed), `wip.next` recomputed as the next unit in landing order; its `impact.units` entry reconciled, `basis` `as-built`, each difference from the unit's planned impact in its `changes[]`; its effect on the initiative's impact recorded in the tracking board's `impact.changes`, always: each difference its landing makes, with `unit` set to the unit's row id, or one no-change entry `{unit, when, none: true}` when it changed nothing; that `basis` stays `plan` until the last unit lands and becomes `as-built` with it (§2, Impact). Then the repository work board is regenerated |
 | `cancelled` | the run is abandoned | `status = abandoned`, reason in `notes`; `wip.step = cancelled` and `wip.current` empty |
 
@@ -968,7 +1013,7 @@ boards (`facts.premerge`, `system/RULES.md` §10); the "last amended by" title o
 | the statements' excerpts not copied yet (as `embed.js` copies them) | the statements themselves (§2, "Statements") |
 | on a sub-issue, the standing rule on its tracking board: the unit's start (`sized`), `complete` (an approving qa pass), `landed`, `wip.next`, the chain's `wip.detail` | the unit's summary, its `impact.units` entry and its effect on the initiative's impact |
 | at `landed`, `asBuilt` from the facts, and `status = built` with the step `landed` only once every part is resolved; at `cancelled`, `status = abandoned` and the reason in `notes` | the landing's record at the next pre-merge refresh (every part resolved, the trail, the impact reconciled); the cancelled board's closing state |
-| at `landing` (team-raised), the step, the event with its pull request, the detail and the trail entry: everything | nothing |
+| at `landing`, `state-boards` and `merge` (team-raised), the step, the event with its pull request, the detail and the trail entry, an older steps line brought up: everything | nothing |
 | the snapshot of the step the event ends, `wip.history.<step>` (§3, "Finished steps"): every visit, each remediation loop and each qa verdict apart; the sizing visit at a board's first `sized`; on a sub-issue, the tracking board's own step its unit's start ends | nothing: a snapshot is never written by hand (a step with none is reconstructed on the board) |
 | the Tests tab from an event's `facts.tests` (§2, "The Tests tab"; `testslib.js` `mergeTests()`): each class of `added`, `amended` and `relevant` upserted (its test level from its `testLevel`, else its package or path; `stage` the implementation stage reported; `rows` kept to the board's rows), a class kept in the highest list it reached; `ran`, the classes qa ran with their counts, sets each one's latest result (with the qa pass) and puts a class in no list into Relevant; `other` replaces the counts; `drop` removes a class; `base` the ref of the diff | the Tests tab when an implementation stage or a qa verdict carries no `facts.tests`: Added and Amended from the branch's diff against its base, Relevant, Other and the results from the qa report |
 

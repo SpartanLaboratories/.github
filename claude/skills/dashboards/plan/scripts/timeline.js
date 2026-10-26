@@ -35,4 +35,5 @@ if (args.includes("--from-git")) {
 const T = lib.timelineSteps(plan), tot = lib.timelineTotal(T), lo = lib.timelineLeftOut(T);
 if (!(plan.status === "built" || (plan.wip || {}).step === "landed")) console.log("(the board has not landed: its board shows the QA passes tile, not the Timeline)");
 lib.timelineLines(T).forEach(l => console.log("  " + l));
-console.log(`figure: ${tot != null ? lib.tlSpan(tot) : "—"}${lo ? ` · ${lo}` : ""}`);
+const an = lib.timelineApproxNote(T);
+console.log(`figure: ${tot != null ? `${T.visits.some(v => v.ms != null && v.approx) ? "≈ " : ""}${lib.tlSpan(tot)}` : "—"}${lo ? ` · ${lo}` : ""}${an ? ` · ${an}` : ""}`);

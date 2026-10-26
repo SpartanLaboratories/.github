@@ -67,7 +67,8 @@
 // each dependency's build state and locality, "Blocks · enables", and their spread to the issue and tracking boards. And the
 // Timeline tile of dashboards-skill/32 (verify/cases-32.js): one legend entry per visit of a run step, its times from the record only. The
 // decisions of dashboards-skill/33 (verify/cases-33.js): the element vocabulary, boards never pages, no internal names, the landing flow's
-// pre-merge stamp, the open points on every event. A
+// pre-merge stamp, the open points on every event. The decisions of dashboards-skill/34 (verify/cases-34.js): the Timeline tile coloured
+// by kind of work, approximate bounds, the landing in three steps, a sub-issue's roadmap, the Design tab. A
 // template is recorded only when its browser passes and every case group pass.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
@@ -495,7 +496,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     /* the ledes */
     const lede = (dom, id) => text((dom.match(new RegExp(`<p class="lede" id="${id}">([\\s\\S]*?)</p>`)) || ["", ""])[1]);
     const dTl = render("tracking-timeline", trk), dEx = render("example-timeline", ex);
-    nc.push(["the Timeline lede is one short line on both kinds of board", lede(dTl, "timeline-lede").length > 0 && lede(dTl, "timeline-lede").length <= 120 && lede(dEx, "timeline-lede").length <= 120, `${lede(dTl, "timeline-lede").length} / ${lede(dEx, "timeline-lede").length} characters`]);
+    nc.push(["the Timeline lede is one short line on both kinds of board", lede(dTl, "design-lede").length > 0 && lede(dTl, "design-lede").length <= 120 && lede(dEx, "design-lede").length <= 120, `${lede(dTl, "design-lede").length} / ${lede(dEx, "design-lede").length} characters`]);
     const ledes = (dEx.replace(/<script[\s\S]*?<\/script>/g, "").match(/<p class="lede"[^>]*>[\s\S]*?<\/p>/g) || []).map(text).filter(Boolean);
     nc.push(["every tab's lede is at most one short line", ledes.every(l => l.length <= 130), ledes.filter(l => l.length > 130).join(" | ")]);
 
@@ -916,7 +917,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
   const click = id => `<script>window.addEventListener("load",()=>setTimeout(()=>{const c=document.querySelector('.cell.verdict[data-row="${id}"]');if(c)c.click();},600));</script>`;
   const render = (name, d, id) => { const f = path.join(sc, name + ".html"); fs.writeFileSync(f, withData(tpl, "plan", JSON.stringify(d, null, 2)).replace("</body>", (id ? click(id) : "") + "</body>")); return dumpDom(f); };
   /* the tile's figures, its own legend left out (each tile carries one since dashboards-skill/22) */
-  const tile = dom => (text(inner(dom, '<div class="kpis" id="kpis">', "div").replace(/<div class="key">[\s\S]*?<\/div>/g, "")).match(/Verdicts (.*?) As built/) || ["", "no Verdicts tile"])[1];
+  const tile = dom => (text(inner(dom, '<div class="kpis" id="kpis">', "div").replace(/<div class="tracer-lab[^"]*"[^>]*>[\s\S]*?<\/div>/g, "").replace(/<div class="key">[\s\S]*?<\/div>/g, "")).match(/Verdicts (.*?) As built/) || ["", "no Verdicts tile"])[1];
   const vcell = (dom, id) => (dom.match(new RegExp(`<div class="cell verdict[^"]*"[^>]*data-row="${id}"[^>]*><div class="kick">[\\s\\S]*?</div><div class="sum">[\\s\\S]*?</div>`)) || [""])[0];
   const kicker = dom => text((inner(dom, '<aside class="inspector"[^>]*>', "aside").match(/<div class="kicker">([\s\S]*?)<\/div>/) || ["", ""])[1]);
   const unbuilt = d => { d.status = "planned"; d.asBuilt = null; d.impact = null; d.rows.forEach(r => { r.asBuilt = { state: "pending", summary: "" }; delete (r.unit || {}).live; }); d.milestones = (d.milestones || []).filter(m => ["gap", "considered"].includes(m.column)); d.wip = { ...d.wip, step: "plan", current: ["verdict"], landing: null, qa: [] }; return d; };
@@ -1000,14 +1001,14 @@ targets.filter(t => t.block === "plan").forEach(t => {
   const solid = xs => !!xs && xs.length > 0 && xs.every(s => s === "solid");
   const ptpl = tp("plan/template/dashboard.html");
   if (ptpl) { const tpl = fs.readFileSync(ptpl, "utf8"), ex = J("plan/examples/38-handshake-empty-name/plan.json"), trk = J("verify/fixtures/tracking.plan.json");
-    const render = (name, d) => dumpDom(put(name + ".html", withData(tpl, "plan", JSON.stringify(d, null, 2)).replace("</body>", probe([".cell.verdict .kick .kind", ".cell.verdict.leave .kick .kind", "#timeline-key .kind", ".chip.model"]) + "</body>")));
-    const tile = dom => (text(inner(dom, '<div class="kpis" id="kpis">', "div").replace(/<div class="key">[\s\S]*?<\/div>/g, "")).match(/As built (.*?) (QA passes|Timeline)/) || ["", "no As built tile"])[1];
+    const render = (name, d) => dumpDom(put(name + ".html", withData(tpl, "plan", JSON.stringify(d, null, 2)).replace("</body>", probe([".cell.verdict .kick .kind", ".cell.verdict.leave .kick .kind", "#design-key .kind", ".chip.model"]) + "</body>")));
+    const tile = dom => (text(inner(dom, '<div class="kpis" id="kpis">', "div").replace(/<div class="tracer-lab[^"]*"[^>]*>[\s\S]*?<\/div>/g, "").replace(/<div class="key">[\s\S]*?<\/div>/g, "")).match(/As built (.*?) (QA passes|Timeline)/) || ["", "no As built tile"])[1];
     const BUILT = ["as-planned", "amended", "deviated"], LANDED = ["landed", ...BUILT], st = r => (r.asBuilt || {}).state || "pending", { leftForLater } = require(path.join(SKILL, "plan", "scripts", "lib.js"));
     const dE = render("example", ex);
     if (dE == null) dc.push(["the rendered issue board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
-    else { const b = borders(dE), key = inner(dE, '<div class="key" id="timeline-key">', "div"), src = inner(dumpDom(path.join(sc, "example.html"), "source"), '<div class="key" id="source-key">', "div");
+    else { const b = borders(dE), key = inner(dE, '<div class="key" id="design-key">', "div"), src = inner(dumpDom(path.join(sc, "example.html"), "source"), '<div class="key" id="source-key">', "div");
       dc.push(["the verdict's kind chip is solid, \"leave as is\" included", solid(b[".cell.verdict .kick .kind"]) && solid(b[".cell.verdict.leave .kick .kind"]) && /class="kind">leave as is</.test(dE), JSON.stringify(b)]);
-      dc.push(["the Timeline legend names the kind chips it drew, solid: the verdict's (build, leave as is) and the gap's", /<b class="kind">build<\/b> <b class="kind">leave as is<\/b> the verdict's kind: build it, or leave it as is/.test(key) && /<b class="kind">bug<\/b>[\s\S]*? the gap's kind/.test(key) && solid(b["#timeline-key .kind"]), text(key).slice(0, 300)]);
+      dc.push(["the Timeline legend names the kind chips it drew, solid: the verdict's (build, leave as is) and the gap's", /<b class="kind">build<\/b> <b class="kind">leave as is<\/b> the verdict's kind: build it, or leave it as is/.test(key) && /<b class="kind">bug<\/b>[\s\S]*? the gap's kind/.test(key) && solid(b["#design-key .kind"]), text(key).slice(0, 300)]);
       dc.push(["the header draws no \"board\" tag (dashboards-skill/22: it repeated the tiles), and the Source legend draws no dashed swatch", !(b[".chip.model"] || []).length && !/<span class="ck">board<\/span>/.test(dE) && /this copy is replaced on every/.test(src) && !/class="pln"/.test(src), `${JSON.stringify(b[".chip.model"])} · ${src.slice(0, 160)}`]);
       dc.push(["the example's As built tile reads \"9 / 9 rows built\", its two rows left for later named under it, not counted", tile(dE).startsWith("9 / 9 rows built") && /4 as planned · 5 amended · 2 left for later/.test(tile(dE)) && ex.rows.length === 11, tile(dE)]);
       const v = copy(ex); v.rows[0].asBuilt = { state: "dropped", summary: "Verification case.", reason: "Verification case." }; v.rows[1].asBuilt = { state: "deferred", summary: "Verification case.", issue: 999 };
@@ -1083,7 +1084,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
   /* 2. rows left for later */
   const ptpl = tp("plan/template/dashboard.html");
   if (ptpl) { const tpl = fs.readFileSync(ptpl, "utf8"), ex = J("plan/examples/38-handshake-empty-name/plan.json"), trk = J("verify/fixtures/tracking.plan.json"), st = r => (r.asBuilt || {}).state || "pending";
-    const tile = d => (text(inner(d, '<div class="kpis" id="kpis">', "div")).match(/As built (.*?) (QA passes|Timeline)/) || ["", "no As built tile"])[1];
+    const tile = d => (text(inner(d, '<div class="kpis" id="kpis">', "div").replace(/<div class="tracer-lab[^"]*"[^>]*>[\s\S]*?<\/div>/g, "")).match(/As built (.*?) (QA passes|Timeline)/) || ["", "no As built tile"])[1];
     const render = (name, d) => dumpDom(put(name + ".html", withData(tpl, "plan", JSON.stringify(d, null, 2))));
     xc.push(["lib.js leftForLater(): the example's two leave rows (as planned, amended) are left for later, no build row is", ex.rows.filter(lib.leftForLater).map(r => r.id).join(",") === "whitespace-in-tokens,client-validation", ex.rows.filter(lib.leftForLater).map(r => r.id).join(",")]);
     const dv = copy(ex), lr = dv.rows.find(r => r.id === "client-validation"); lr.asBuilt.state = "deviated"; (lr.asBuilt.statements || []).forEach(x => { x.state = "deviated"; }); /* its statements give the outcome (plan/RULES.md §2, "Statements") */
@@ -1214,12 +1215,12 @@ targets.filter(t => t.block === "plan").forEach(t => {
     const ring = (dom, id) => (cellOf(dom, "considered", id).match(/ rs rs-(\w+)/) || [])[1] || null;
     lc.push(["B: rings on the Considered cells by the least advanced state of their questions: researching orange, returned orange, none for an unnamed row", ring(D.research, ids[0]) === "researching" && ring(D.research, ids[1]) === "returned" && ring(D.research, ids[3]) === "researching" && ring(D.research, ids[5]) === null && /vp serious"><i aria-hidden="true">✓<\/i>returned/.test(inner(D.research, `<div class="cell considered[^"]*"[^>]*data-row="${ids[1]}"[^>]*>`, "div")), ids.slice(0, 6).map(id => ring(D.research, id)).join(",")]);
     lc.push(["B: verifying yellow, complete green (kept at the plan step), and the ring is the border, never a fill", ring(D.verifying, ids[0]) === "verifying" && ring(D.plan, ids[0]) === "complete" && /\.cell\.rs\{border:2px solid var\(--rc\)/.test(ptpl ? fs.readFileSync(ptpl, "utf8") : "") && /\.rs-planning\{--rc:var\(--critical\)\}\.rs-researching,\.rs-returned\{--rc:var\(--serious\)\}\.rs-verifying\{--rc:var\(--warning\)\}\.rs-complete\{--rc:var\(--good\)\}/.test(fs.readFileSync(ptpl, "utf8")), [ring(D.verifying, ids[0]), ring(D.plan, ids[0])].join(",")]);
-    const kR = inner(D.research, '<div class="key" id="timeline-key">', "div");
+    const kR = inner(D.research, '<div class="key" id="design-key">', "div");
     lc.push(["B: the Timeline legend names each research state it drew, as a ring with its pill", /<i class="ring rs-researching"><\/i>[\s\S]*?research state: being researched/.test(kR) && /<i class="ring rs-returned"><\/i>/.test(kR) && !/rs-verifying/.test(kR), text(kR).slice(-300)]);
     lc.push(["B: no ring once the plan is accepted (the questions cleared) or on a landed board", ids.every(id => ring(D.branch, id) === null) && ids.every(id => ring(dEx, id) === null), "rings at branch: " + ids.map(id => ring(D.branch, id)).filter(Boolean).length]);
     /* C. the charging arrow */
     const chg = (dom, id) => /\bcharging\b/.test(cellOf(dom, "verdict", id)), still = (dom, id) => / charging still/.test(cellOf(dom, "verdict", id));
-    lc.push(["C: during the plan step an unwritten verdict's connector charges; a written one is the plain line", chg(D.plan, ids[0]) && !still(D.plan, ids[0]) && !chg(D.plan, ids[1]) && /charging arrow: its verdict being written/.test(inner(D.plan, '<div class="key" id="timeline-key">', "div")), cellOf(D.plan, "verdict", ids[0])]);
+    lc.push(["C: during the plan step an unwritten verdict's connector charges; a written one is the plain line", chg(D.plan, ids[0]) && !still(D.plan, ids[0]) && !chg(D.plan, ids[1]) && /charging arrow: its verdict being written/.test(inner(D.plan, '<div class="key" id="design-key">', "div")), cellOf(D.plan, "verdict", ids[0])]);
     lc.push(["C: it holds still while halted or escalated, and is gone outside the plan step", still(D.halted, ids[0]) && still(D.escalated, ids[0]) && !chg(D.research, ids[0]) && !chg(D.branch, ids[0]) && !chg(D.implementation, ids[0]), [cellOf(D.halted, "verdict", ids[0]), cellOf(D.research, "verdict", ids[0])].join(" | ").slice(0, 300)]);
     const tplCss = fs.readFileSync(ptpl, "utf8");
     lc.push(["C: the arrow's segments fill left to right as an animation, and hold still under reduced motion", /@keyframes charge\{0%\{background-size:0 100%,100% 100%\}100%\{background-size:100% 100%,100% 100%\}\}/.test(tplCss) && /prefers-reduced-motion:reduce\)\{\.cell\.verdict\.charging::before\{animation:none!important\}\}/.test(tplCss), "css"]);
@@ -1389,7 +1390,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     yc.push(["6: an on-the-spot remediation: its sub-steps by name, next landing with no new qa pass", /Verification case: the wording fixes · in progress/.test(text(pS)) && /<span class="l">next<\/span>landing \(no new qa pass\)/.test(pS) && /fixed on the spot, no new qa pass/.test(text(pS)), text(pS).slice(0, 300)]);
     const dS = D.staged, st = id => (cellOf(dS, "built", id).match(/<span class="vp ([^"]*)"><i aria-hidden="true">([^<]*)<\/i>([^<]*)/) || []).slice(1).join("|");
     yc.push(["7: the stages decide the state: a done row as planned, one with a stage to come partially built, the current one in progress, one only to come pending", st(ids[0]) === "good|✓|as planned" && st(ids[1]) === "ink|◑|partially built" && st(ids[2]) === "accent|▶|in progress" && st(ids[3]) === "neutral dashed|…|pending", [0, 1, 2, 3].map(i => st(ids[i])).join(" ; ")]);
-    yc.push(["7: in progress and partially built are solid, each with its legend entry; the tile does not count them built", !/dashed/.test(cellTag(dS, "built", ids[1])) && !/dashed/.test(cellTag(dS, "built", ids[2])) && /in progress<\/span> being built: a current stage works on it/.test(inner(dS, '<div class="key" id="timeline-key">', "div")) && /partially built<\/span> a finished stage built part of it/.test(inner(dS, '<div class="key" id="timeline-key">', "div")) && /^1 \/ /.test((text(inner(dS, '<div class="kpis" id="kpis">', "div")).match(/As built (.*?) (QA passes|Timeline)/) || ["", ""])[1]), text(inner(dS, '<div class="kpis" id="kpis">', "div")).slice(0, 200)]);
+    yc.push(["7: in progress and partially built are solid, each with its legend entry; the tile does not count them built", !/dashed/.test(cellTag(dS, "built", ids[1])) && !/dashed/.test(cellTag(dS, "built", ids[2])) && /in progress<\/span> being built: a current stage works on it/.test(inner(dS, '<div class="key" id="design-key">', "div")) && /partially built<\/span> a finished stage built part of it/.test(inner(dS, '<div class="key" id="design-key">', "div")) && /^1 \/ /.test((text(inner(dS, '<div class="kpis" id="kpis">', "div")).match(/As built (.*?) (QA passes|Timeline)/) || ["", ""])[1]), text(inner(dS, '<div class="kpis" id="kpis">', "div")).slice(0, 200)]);
     yc.push(["7: lib.js builtState() agrees with the board", lib.builtState(V.staged, V.staged.rows[1]) === "partially-built" && lib.builtState(V.staged, V.staged.rows[2]) === "in-progress" && lib.builtState(V.staged, V.staged.rows[3]) === "pending" && lib.builtState(V.staged, V.staged.rows[0]) === "as-planned", "rule"]);
     const pO = panel(dS);
     yc.push(["8: the open points still open are listed in the step panel with where they were raised; a resolved one is not", /1 open point/.test(text(pO)) && /the plan's media-type rows disagree/.test(text(pO)) && /raised at implementation-stage A/.test(text(pO)) && !/settled earlier/.test(pO) && /an open point raised during the run/.test(strip(dS)), text(inner(pO, '<div class="sp-open">', "div")).slice(0, 200)]);
@@ -1503,7 +1504,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     /* an approving pass carries no facts.tests here: the Tests tab's results are the presenter's (dashboards-skill/22), so it enriches */
     step("issue board", ISSUE, "qa-pass", { qa: { pass: 2, verdict: "approved", doc: 0, test: 0, code: 0 } }, true,
       d => d.wip.step === "landing" && !d.wip.current.length && d.wip.remediation === null && d.wip.qa.length === 2 && !d.wip.qa[1].route);
-    step("issue board, parts unresolved", ISSUE, "landed", { merge: "abcdef1", pr: 99, date: "2026-10-25" }, true, d => d.wip.step === "landing" && d.status === "building" && d.asBuilt.sha === "abcdef1" && d.asBuilt.pr === 99);
+    step("issue board, parts unresolved", ISSUE, "landed", { merge: "abcdef1", pr: 99, date: "2026-10-25" }, true, d => d.wip.step === "merge" && d.status === "building" && d.asBuilt.sha === "abcdef1" && d.asBuilt.pr === 99); /* at the merge since dashboards-skill/34: its steps line brought up to the three landing steps */
     edit(ISSUE, d => { d.rows.forEach(r => { r.asBuilt = { state: "as-planned", summary: "Verification case: built as decided." }; }); });
     step("issue board, every part resolved", ISSUE, "landed", { merge: "abcdef2", pr: 99, date: "2026-10-25" }, true, d => d.wip.step === "landed" && d.status === "built" && !d.wip.current.length && d.asBuilt.sha === "abcdef2");
     /* the other kinds, each on a fresh copy of the fixture */
@@ -1652,19 +1653,20 @@ targets.filter(t => t.block === "plan").forEach(t => {
       kc.push(["A: a Verdict cell lists its statements, each ending with its (§) reference, a link to the plan section", /<ul class="stmts">/.test(v) && (v.match(/<li>/g) || []).length === 4 && /<a class="sref" href="plan\.md#5-design"[^>]*>\(§5\)<\/a>/.test(v), text(v).slice(0, 240)]);
       kc.push(["A: a verdict whose order matters is numbered", /<ol class="stmts">/.test(n), text(n).slice(0, 160)]);
       kc.push(["A: the As built cell answers each statement, marked with the as-built titles' glyph and word", /<ol class="stmts marked">/.test(b) && /vp warning"><i aria-hidden="true">\+<\/i>amended/.test(b) && /vp good"><i aria-hidden="true">✓<\/i>as planned/.test(b) && /final-implementation\.md#code/.test(b), text(b).slice(0, 240)]);
-      kc.push(["A: the timeline legend names the adaptation marks drawn", /amended<\/span> built as decided, plus changes/.test(inner(dE, '<div class="key" id="timeline-key">', "div")), "legend"]);
+      kc.push(["A: the timeline legend names the adaptation marks drawn", /amended<\/span> built as decided, plus changes/.test(inner(dE, '<div class="key" id="design-key">', "div")), "legend"]);
       const iR = insp(dR);
       kc.push(["A: the reference opens the section's excerpt in the inspector, beside the link to the section", /STATEMENT 2 · §5/.test(text(iR)) && /<blockquote class="excerpt"><b>5\. Design<\/b><p>Two internal systems change shape/.test(iR) && /<a href="plan\.md#5-design">plan\.md › 5\. Design<\/a>/.test(iR), text(iR).slice(0, 300)]);
       kc.push(["A: a board in the older form (the sub-issue fixture's release row) still shows its paragraph", /set after Commit 5/.test(text(cellOf(dS, "verdict", "release"))) && !/stmts/.test(cellOf(dS, "verdict", "release")) && /stmts/.test(cellOf(dS, "verdict", "routing")), text(cellOf(dS, "verdict", "release")).slice(0, 120)]);
       ["ex", "sub"].forEach(k => { const r = light(k); kc.push([`A: the ${k} rendering passes check-board.js`, r.status === 0, lines(r, /FAIL|DASHED|ERROR|NO LEGEND/)]); });
       /* F. the KPI bars and their legend */
       const K = kpis(dE), bars = K.match(/<div class="seg-bar"/g) || [];
-      const tiles = K.split('<div class="kpi">').slice(1), keyed = tiles.filter(t => /<div class="seg-bar"/.test(t) && /<\/div><div class="key">/.test(t));
+      /* since dashboards-skill/34 the five KPI tiles stand under the Timeline tile, in the Timeline tab; each opens with its tracer label */
+      const tiles = K.split(/<div class="kpi"[^>]*>/).slice(1), keyed = tiles.filter(t => /<div class="seg-bar"/.test(t) && /<\/div><div class="key">/.test(t));
       /* dashboards-skill/32: a landed board's Timeline carries a bar of its timed step visits, its legend one entry per visit; the example
          records no time (its trail and qa passes are dated only), so its Timeline draws no bar, and its legend lists every visit with "—"
          (verify/cases-32.js covers a timed run) */
-      const tlTile = tiles.find(t => /<div class="l">Timeline<\/div>/.test(t)) || "";
-      kc.push(["F: every tile that counts carries a segmented bar and, inside the tile, its legend; the example's Timeline, with no time recorded, no bar and a legend of its visits, each \"—\" (dashboards-skill/22: no shared row; dashboards-skill/32: the Timeline's step visits)", bars.length === 4 && keyed.length === 4 && /<div class="v">—<\/div>/.test(tlTile) && /<div class="key tl-steps">/.test(tlTile) && !/<div class="seg-bar"/.test(tlTile) && !/same day/.test(tlTile) && !/kpi-key|kpikey/.test(K), `${bars.length} bars · ${keyed.length} tile legends · ${text(tlTile).slice(0, 160)}`]);
+      const tlTile = inner(dE, '<div class="tl-tile" id="tl-tile">', "div");
+      kc.push(["F: every tile that counts carries a segmented bar and, inside the tile, its legend; the example's Timeline, with no time recorded, no bar and a legend of its visits, each \"—\" (dashboards-skill/22: no shared row; dashboards-skill/32: the Timeline's step visits)", bars.length === 5 && keyed.length === 5 && /<div class="v">—<\/div>/.test(tlTile) && /<div class="key tl-steps">/.test(tlTile) && !/<div class="seg-bar"/.test(tlTile) && !/same day/.test(tlTile) && !/kpi-key|kpikey/.test(K), `${bars.length} bars · ${keyed.length} tile legends · ${text(tlTile).slice(0, 160)}`]);
       const rowsBar = inner(K, '<div class="seg-bar" role="img" aria-label="Rows by group', "div");
       kc.push(["F: Rows: one segment per group, in its system's colour", (rowsBar.match(/<i /g) || []).length === 5 && /background:var\(--sys-1\)/.test(rowsBar), (rowsBar.match(/<i /g) || []).length + " segments"]);
       const optBar = inner(K, '<div class="seg-bar" role="img" aria-label="Options weighed', "div");
@@ -1683,12 +1685,12 @@ targets.filter(t => t.block === "plan").forEach(t => {
       /* E. the column glow */
       const bands = (dV.match(/<div class="band[^"]*"/g) || []);
       kc.push(["E: a column address glows the column itself: its band glows and its head is washed, no cell of it glows", bands.filter(x => / glow-soft/.test(x)).length === 1 && /<div class="colhead phase colon" data-col="built">/.test(dV) && !/<div class="cell built[^"]*\b(glow|glow-soft|held)\b/.test(dV) && /<div class="cell built[^"]* colglow"/.test(dV), bands.join(" ")]);
-      kc.push(["E: its legend entry names the column glow", /glow around a whole column/.test(inner(dV, '<div class="key" id="timeline-key">', "div")), "legend"]);
+      kc.push(["E: its legend entry names the column glow", /glow around a whole column/.test(inner(dV, '<div class="key" id="design-key">', "div")), "legend"]);
       const dVb = render("qa-col-built", V, "built", "1400,1400");
       kc.push(["E: on the As built tab the glow goes round the cards, never each card", /<div class="bcards colbox glow-soft" id="built-list">/.test(dVb) && !/<div class="bcard [^"]*\b(glow|glow-soft)\b/.test(dVb), (dVb.match(/<div class="bcards[^"]*" id="built-list">/) || [""])[0]]);
       const H = copy(V); H.wip.step = "halted"; H.wip.resume = "qa"; H.wip.waitingOn = "Verification case: a question.";
       const dH = render("qa-col-held", H, "", "1400,1400");
-      kc.push(["E: halted, the column's glow holds still as the ring alone, with its legend entry", (dH.match(/<div class="band held"/g) || []).length === 1 && !/<div class="band[^"]* glow-soft/.test(dH) && /ring around a whole column/.test(inner(dH, '<div class="key" id="timeline-key">', "div")), (dH.match(/<div class="band[^"]*"/g) || []).join(" ")]);
+      kc.push(["E: halted, the column's glow holds still as the ring alone, with its legend entry", (dH.match(/<div class="band held"/g) || []).length === 1 && !/<div class="band[^"]* glow-soft/.test(dH) && /ring around a whole column/.test(inner(dH, '<div class="key" id="design-key">', "div")), (dH.match(/<div class="band[^"]*"/g) || []).join(" ")]);
       const dN = render("qa-col-narrow", V, "", "520,1400");
       kc.push(["E: at phone width no column is drawn: no band, the column's cells carry the mark (colglow)", !/<div class="band/.test(dN) && /<div class="cell built[^"]* colglow"/.test(dN), "narrow"]);
       ["qa-col", "qa-col-held"].forEach(k => { const r = light(k); kc.push([`E: the ${k} rendering passes check-board.js`, r.status === 0, lines(r, /FAIL|DASHED|ERROR|NO LEGEND/)]); });
@@ -2080,6 +2082,12 @@ catch (e) { report("the dashboards-skill/32 cases", [["the cases run to the end"
    and the state-boards action, and the probes reading the older wording alike. */
 try { require("./cases-33.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/33 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
+/* The decisions of admin-team/dashboards-skill/34 (verify/cases-34.js): the Timeline tile coloured by kind of work (planning, build, checking,
+   landing), approximate bounds (asBuilt.approx, "≈"), the landing in three steps (landing, state-boards, merge), a sub-issue's roadmap filled
+   from the repository roadmap and its card naming the parent while unset, the four columns' tab named Design, and this run's feature probes. */
+try { require("./cases-34.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the dashboards-skill/34 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 const today = new Date().toISOString().slice(0, 10);
 const COMMENT = "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last full verification. check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.";

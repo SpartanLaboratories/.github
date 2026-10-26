@@ -90,15 +90,15 @@ function readRequest(file) {
   try { return JSON.parse(m[1]); } catch (e) { refuse(`the request's json block does not parse: ${e.message}`); }
 }
 
-const ID = /^[a-z0-9][a-z0-9-]*$/, STEPS = ["sizing", "interview", "research", "architecture", "sub-issues", "boards", "plan", "branch", "implementation", "qa", "remediation", "landing", "landed", "halted", "escalated", "cancelled"];
+const ID = /^[a-z0-9][a-z0-9-]*$/, STEPS = ["sizing", "interview", "research", "architecture", "sub-issues", "boards", "plan", "branch", "implementation", "qa", "remediation", "landing", "state-boards", "merge", "landed", "halted", "escalated", "cancelled"];
 /* the remediation routes (plan/RULES.md §5, "QA"): their ids name no role (dashboards-skill/33); a request (or a board) that carries the
    older ids, rookie-dev and planner-then-rookie-dev, is read through routeId() and written with the new ones */
 const ROUTES = ["on-the-spot", "remediation", "re-plan-then-remediation"], SSTATES = ["done", "current", "todo"];
 const ROUTE_OLD = { "rookie-dev": "remediation", "planner-then-rookie-dev": "re-plan-then-remediation" };
 const routeId = r => (typeof r === "string" && ROUTE_OLD[r]) || r;
 /* The column a step's trail entry sits in. */
-const STEP_COLUMN = { "sub-issues": "considered", boards: "considered", sizing: "gap", interview: "gap", research: "gap", architecture: "considered", plan: "verdict", branch: "built", implementation: "built", qa: "built", remediation: "built", landing: "built", landed: "built", cancelled: "built" };
-const STEP_WORDS = { "sub-issues": "filing the units as sub-issues", boards: "creating the units' boards", sizing: "sizing", interview: "the interview", research: "research", architecture: "the architecture", plan: "the plan", branch: "the branch", implementation: "implementation", qa: "qa", remediation: "remediation", landing: "the landing", landed: "landed" };
+const STEP_COLUMN = { "sub-issues": "considered", boards: "considered", sizing: "gap", interview: "gap", research: "gap", architecture: "considered", plan: "verdict", branch: "built", implementation: "built", qa: "built", remediation: "built", landing: "built", "state-boards": "built", merge: "built", landed: "built", cancelled: "built" };
+const STEP_WORDS = { "sub-issues": "filing the units as sub-issues", boards: "creating the units' boards", sizing: "sizing", interview: "the interview", research: "research", architecture: "the architecture", plan: "the plan", branch: "the branch", implementation: "implementation", qa: "qa", remediation: "remediation", landing: "the landing", "state-boards": "the state boards", merge: "the merge", landed: "landed" };
 const ROUTE_WORDS = { "on-the-spot": "minor fixes on the spot, then landing with no new qa pass", "remediation": "a remediation pass, then the next qa pass", "re-plan-then-remediation": "a plan re-pass, then a remediation pass, then the next qa pass" };
 const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 const code = s => "`" + s + "`";
@@ -108,6 +108,9 @@ const code = s => "`" + s + "`";
 function applyEvent(orig, ev, facts, req, now) {
   const plan = JSON.parse(JSON.stringify(orig)), applied = [], enrich = [], resolved = [], today = now.slice(0, 10);
   const w = plan.wip = plan.wip && typeof plan.wip === "object" ? plan.wip : {};
+  /* a steps line written before the landing's three steps (dashboards-skill/34) takes state-boards and merge after its landing, at any
+     event of a board still in flight (a landed or cancelled board keeps its line) */
+  if (Array.isArray(w.steps) && !["built", "abandoned"].includes(plan.status) && !["landed", "cancelled"].includes(w.step)) { const ls = lib.landingSteps(w.steps); if (ls !== w.steps) { w.steps = ls; applied.push("wip.steps: state-boards and merge after the landing"); } }
   const rows = Array.isArray(plan.rows) ? plan.rows : [], ids = new Set(rows.map(r => r && r.id)), tracking = plan.kind === "tracking";
   /* a text from the facts, as one line; a work level in it (GUIDANCE.md §4) is never written: the phrase is reworded or elided
      (levelrefs.js scrubLevels(): "inside level 3" → "inside the unit's scope" on a sub-issue's board, "the issue's" elsewhere; "a
@@ -476,16 +479,23 @@ function applyEvent(orig, ev, facts, req, now) {
       trail = { column: "built", label: `Cancelled${reason ? ": " + reason : ""}` };
       break;
     }
-    /* team-raised (plan/RULES.md §4): the land is accepted; the pre-merge refresh brings the state boards up on the branch, stamped at its
-       head, and the merge follows; "landed" is applied after it (the post-merge refresh shows it in the live view; the next landing commits it) */
-    case "landing": {
-      if (["built", "abandoned"].includes(plan.status) || ["landed", "cancelled"].includes(w.step)) refuse(`landing: the board has ${plan.status === "abandoned" || w.step === "cancelled" ? "been cancelled" : "landed"} already`);
+    /* team-raised (plan/RULES.md §4), the landing in three steps (admin-team/dashboards-skill/34): "landing", the land accepted, the branch
+       brought up to date and the code, the version bump and the reconciled documents committed on it; "state-boards", the pre-merge refresh
+       of the state boards on the branch, stamped at its head, and its board commit; "merge", the pull request merged. "landed" is applied
+       after the merge (the post-merge refresh shows it in the live view; the next landing commits it). Each records its visit's time: the
+       step's since, and the step before frozen with its end (wip.history). */
+    case "landing": case "state-boards": case "merge": {
+      if (["built", "abandoned"].includes(plan.status) || ["landed", "cancelled"].includes(w.step)) refuse(`${ev}: the board has ${plan.status === "abandoned" || w.step === "cancelled" ? "been cancelled" : "landed"} already`);
       if (stopped(w.step)) { w.resume = null; w.waitingOn = null; applied.push("wip.resume and wip.waitingOn cleared"); }
-      setStep("landing"); setGlow("landing");
-      const pr = Number.isInteger(facts.pr) && facts.pr > 0 ? facts.pr : null;
-      note = note || `land accepted${pr ? ", PR #" + pr : ""}`;
-      detail = detail || `Landing: merging it${pr ? " in PR #" + pr : ""}.`;
-      trail = { column: "built", label: `Landing: merging it${pr ? " in PR #" + pr : ""}`, ...(pr ? { ref: `PR #${pr}` } : {}) };
+      if (Array.isArray(w.steps)) { const ls = lib.landingSteps(w.steps); if (ls !== w.steps) { w.steps = ls; applied.push("wip.steps: state-boards and merge after the landing"); } }
+      setStep(ev); setGlow(ev);
+      const pr = Number.isInteger(facts.pr) && facts.pr > 0 ? facts.pr : null, inPr = pr ? " in PR #" + pr : "";
+      const say = { landing: [`land accepted${pr ? ", PR #" + pr : ""}`, `Landing: the branch brought up to date; the code, the version bump and the reconciled documents committed on it.`, `Landing: the land accepted${inPr}`],
+        "state-boards": ["the state boards refreshed on the branch", `State boards: the pre-merge refresh on the branch, stamped at its head, and its board commit.`, `State boards: refreshed on the branch before the merge`],
+        merge: [`merging${pr ? " PR #" + pr : ""}`, `Merge: merging it${inPr}.`, `Merge: merging it${inPr}`] }[ev];
+      note = note || say[0];
+      detail = detail || say[1];
+      trail = { column: "built", label: say[2], ...(pr ? { ref: `PR #${pr}` } : {}) };
       break;
     }
     case "landed": {
@@ -505,7 +515,7 @@ function applyEvent(orig, ev, facts, req, now) {
       const open = rows.filter(r => ["pending", ...lib.BUILDING_STATES].includes(lib.recordedState(r)));
       w.resume = null; w.waitingOn = null;
       if (next.sha && next.date && !open.length) { if (plan.status !== "built") { plan.status = "built"; applied.push("status built"); } setStep("landed"); setGlow("landed"); }
-      else { setStep("landing"); setGlow("landing"); enrich.push(open.length ? `landed: ${open.map(r => r.id).join(", ")} still to resolve before the board is built (it stays at the landing until then)` : "landed: asBuilt has no sha yet"); }
+      else { const at = (Array.isArray(w.steps) && w.steps.includes("merge")) || ["merge", "state-boards"].includes(w.step) ? "merge" : "landing"; setStep(at); setGlow(at); enrich.push(open.length ? `landed: ${open.map(r => r.id).join(", ")} still to resolve before the board is built (it stays at the ${at === "merge" ? "merge" : "landing"} until then)` : "landed: asBuilt has no sha yet"); }
       enrich.push("landed: the pre-merge refresh resolves every part, completes the trail and reconciles the impact");
       detail = detail || `Landed${pr ? " in PR #" + pr : ""}.`;
       /* the merge commit names the merge: facts.merge when given (facts.sha may be the branch's last commit), else the one sha given */
