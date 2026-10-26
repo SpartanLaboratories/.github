@@ -4,7 +4,7 @@
 // anyway: what qa's test-inspector ran on the change, less Added and Amended), and "other" (every other test, counts only per module and
 // test level: never run for this change). Each class { class, module, testLevel, path, tests, rows, stage, result }; a class is in one
 // list only, Added before Amended before Relevant. A tracking board records none of its own: embed.js mirrors each unit's into the unit
-// row (unit.tests, with rowNames), and the page sums them. The plan-board template's tlOf(), resOf() and testKey() are the same rules.
+// row (unit.tests, with rowNames), and the board sums them. The plan-board template's tlOf(), resOf() and testKey() are the same rules.
 "use strict";
 
 const TEST_LISTS = ["added", "amended", "relevant"];

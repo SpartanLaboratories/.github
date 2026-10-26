@@ -1,10 +1,10 @@
-// The case groups of admin-team/dashboards-skill/30, run by verify-templates.js (it passes its helpers in), for the work board's columns
+// The case groups of admin-team/dashboards-skill/30, run by verify-templates.js (it passes its helpers in), for the repository work board's columns
 // and their spread to the other types: the qa passes shown with the pass running (the defect: a pass in progress, recorded only in the
 // remediation's current "qa pass n" sub-step or by the run being at qa, was shown nowhere; a unit's passes read from the tracking board's
 // own wip, which stays empty), each pass numbered as an ordinal; the board-link and branch columns dropped, the branch in the state cell;
 // "Depends on" with each dependency's build state (blocking, clear, pre-built) and locality (local-repository, local-organization,
 // local-parent-org, external-<name>), a dependency no rule fits left with none and reported; "Blocks · enables"; check.js on the new
-// fields; the plan board's WIP strip and QA tile and a tracking board's unit inspector; and this run's feature probes. Each group returns
+// fields; the issue board's WIP strip and QA tile and a tracking board's unit inspector; and this run's feature probes. Each group returns
 // [title, cases], a case [name, ok, detail].
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
@@ -46,7 +46,7 @@ module.exports = function cases30(X) {
     c.push(["holdState(): blocks while the issue is open, enables once it is done", lib.holdState(false) === "blocks" && lib.holdState(true) === "enables", "blocks · enables"]);
   });
 
-  /* 2. board.js: a tracking board and a unit's board, the tracker read from a fixture; then the page and check.js */
+  /* 2. board.js: a tracking board and a unit's board, the tracker read from a fixture; then the board and check.js */
   const TRK = J("verify/fixtures/tracking.plan.json"), LIVE = J("verify/fixtures/live-issue.plan.json"), REPO = TRK.repo;
   const root = path.join(sc, "tree"), plans = path.join(root, "docs", "plans"), TF = path.join(plans, "55-http-client-stack"), UF = path.join(TF, "63-test-support");
   let wbHtml = "", wbJson = null;
@@ -91,7 +91,7 @@ module.exports = function cases30(X) {
   });
 
   /* 3. the work-board page drawn from it */
-  guard("the work board: no branch or board column, the branch in the state cell, the qa passes as ordinals, the dependency bubbles and their legend (dashboards-skill/30)", c => {
+  guard("the repository work board: no branch or board column, the branch in the state cell, the qa passes as ordinals, the dependency pills and their legend (dashboards-skill/30)", c => {
     if (!wbJson) { c.push(["the board.js group produced a board", false, "no board.json"]); return; }
     const page = path.join(sc, "wb", "index.html"); wr(page, withData(rd(WB), "board", JSON.stringify(wbJson, null, 2)));
     const dom = dumpDom(page); if (dom == null) { c.push(["a headless browser is available", true, "skipped: no browser"]); return; }
@@ -101,23 +101,23 @@ module.exports = function cases30(X) {
     const r63 = rowOf(63), cells = [...r63.matchAll(/<td>([\s\S]*?)<\/td>(?=<td>|$)/g)].map(m => m[1]);
     c.push(["#63's state cell shows its branch", /branch <code>feat\/issue-63-test-support<\/code>/.test(r63) && cells.length === 6, text(cells[1] || "").slice(0, 200)]);
     c.push(["#63's QA cell: \"✕ 1st · changes requested\" and \"… 2nd · in progress\"", /1st · changes requested/.test(text(r63)) && /2nd · in progress/.test(text(r63)), text(cells[3] || r63).slice(0, 200)]);
-    c.push(["a dependency's bubble: its build state and its locality (#63 on #62: ✓ clear ⌂ repo)", /<span class="dbub"><span class="vp good"><i aria-hidden="true">✓<\/i>clear<\/span><span class="loc l1"><i aria-hidden="true">⌂<\/i>repo<\/span><\/span>/.test(r63), (inner(r63, '<div class="deps">', "div") || "").slice(0, 300)]);
+    c.push(["a dependency's pill: its build state and its locality (#63 on #62: ✓ clear ⌂ repo)", /<span class="dep-pill"><span class="vp good"><i aria-hidden="true">✓<\/i>clear<\/span><span class="loc l1"><i aria-hidden="true">⌂<\/i>repo<\/span><\/span>/.test(r63), (inner(r63, '<div class="deps">', "div") || "").slice(0, 300)]);
     const r64 = rowOf(64), r66 = rowOf(66), r90 = rowOf(90);
     c.push(["pre-built neutral, local-organization on the ramp, external with its owner's name", /◼<\/i>pre-built/.test(r64) && /class="vp neutral"/.test(r64) && /<span class="loc l2"><i aria-hidden="true">◇<\/i>org/.test(r66) && /<span class="loc l4"><i aria-hidden="true">↗<\/i>external · square/.test(r90), text(r90).slice(0, 200)]);
-    c.push(["a dependency no rule fits draws no state, its reason on hover", /MyGameTools#3[\s\S]{0,80}<span class="dbub" title="[^"]*no locality rule fits/.test(r66) || (/MyGameTools#3/.test(r66) && !/MyGameTools#3<\/a> <span class="dbub"><span class="vp/.test(r66)), (inner(r66, '<div class="deps">', "div") || "").slice(0, 400)]);
+    c.push(["a dependency no rule fits draws no state, its reason on hover", /MyGameTools#3[\s\S]{0,80}<span class="dep-pill" title="[^"]*no locality rule fits/.test(r66) || (/MyGameTools#3/.test(r66) && !/MyGameTools#3<\/a> <span class="dep-pill"><span class="vp/.test(r66)), (inner(r66, '<div class="deps">', "div") || "").slice(0, 400)]);
     c.push(["Blocks · enables: #61 → enables, #63 ⊘ blocks", /→<\/i>enables/.test(rowOf(61)) && /⊘<\/i>blocks/.test(r63), "enables · blocks"]);
     const key = inner(dom, '<div class="key" id="runs-key">', "div");
     c.push(["the legend names each build state, locality and hold drawn, and the qa pass running", ["a dependency's build state: part of the plan, still open", "a dependency's build state: part of the plan, landed or closed", "a dependency's build state: not part of the tracking issue", "a dependency's locality: this repository", "a dependency's locality: another repository of this organization", "a dependency's locality: outside both organizations", "this issue is still open: it holds these issues up", "this issue is done: these issues can go ahead", "the qa pass running now", "a dependency with no build state or locality drawn"].every(s => text(key).includes(s)), text(key).slice(0, 600)]);
     c.push(["no legend entry for a state not drawn (parent org)", !/a repository of the parent organization/.test(text(key)), "parent org absent"]);
-    /* a board.json written before the rule (no build, locality or hold; qa without the running pass): the page derives what it can */
+    /* a board.json written before the rule (no build, locality or hold; qa without the running pass): the board derives what it can */
     const old = copy(wbJson); old.rows.forEach(r => { (r.waitsOn || []).forEach(x => { delete x.build; delete x.locality; delete x.why; }); (r.blocks || []).forEach(x => delete x.hold); if (r.issue === 63) r.qa = r.qa.filter(p => p.verdict !== "running"); });
     const p2 = path.join(sc, "wb-old", "index.html"); wr(p2, withData(rd(WB), "board", JSON.stringify(old, null, 2))); const d2 = dumpDom(p2) || "";
     const o63 = (m => m ? inner(d2.slice(m.index), '<tr class="run[^"]*"[^>]*>', "tr") : "")(/<tr class="run[^"]*"[^>]*><td><span class="t"><a [^>]*\/issues\/63"/.exec(d2));
     c.push(["an older board.json: the running pass from the row's step, the locality from the entry's repository, the hold from the row", /2nd · in progress/.test(text(o63)) && /⌂<\/i>repo/.test(o63) && /⊘<\/i>blocks/.test(o63) && !/<span class="vp good"><i aria-hidden="true">✓<\/i>clear/.test(o63), text(o63).slice(0, 240)]);
   });
 
-  /* 4. the plan board and the tracking board */
-  guard("plan boards: the QA tile and the WIP strip's passes with the one running, as ordinals, the WIP strip's dependencies, a tracking unit's in its inspector (dashboards-skill/30)", c => {
+  /* 4. the issue board and the tracking board */
+  guard("issue boards: the QA tile and the WIP strip's passes with the one running, as ordinals, the WIP strip's dependencies, a tracking unit's in its inspector (dashboards-skill/30)", c => {
     const u = JSON.parse(rd(path.join(UF, "plan.json")));
     u.wip.blockers = { waitsOn: [{ issue: 62, state: "CLOSED", build: "clear", locality: "local-repository" }, { issue: 5, repo: "square/okhttp", state: "OPEN" }], blocks: [{ issue: 65, state: "OPEN" }] };
     const dir = path.join(sc, "pb"), page = path.join(dir, "dashboard.html"); wr(page, withData(rd(PB), "plan", JSON.stringify(u, null, 2)));
@@ -126,7 +126,7 @@ module.exports = function cases30(X) {
     c.push(["the QA tile counts the running pass and names each by its ordinal", /QA passes 2 of at most 3/.test(kp) && /1st pass: changes requested · 2nd pass: in progress/.test(kp) && /running/.test(kp), kp.slice(kp.indexOf("QA passes"), kp.indexOf("QA passes") + 160)]);
     const wip = inner(dom, '<section class="wip[^"]*"[^>]*>', "section"), wt = text(wip);
     c.push(["the WIP strip's qa pills: \"1st pass · changes requested\", \"2nd pass · in progress\"", /1st pass · changes requested/.test(wt) && /2nd pass · in progress/.test(wt), wt.slice(wt.indexOf("qa "), wt.indexOf("qa ") + 160)]);
-    c.push(["the WIP strip: depends on, each with its bubble (✓ clear ⌂ repo; ↗ external · square, no build state recorded), and blocks · enables", /depends on/.test(wt) && /#62 ✓ clear ⌂ repo/.test(wt) && /okhttp#5 ↗ external · square/.test(wt) && /blocks · enables #65 ⊘ blocks/.test(wt), wt.slice(wt.indexOf("depends on"), wt.indexOf("depends on") + 200)]);
+    c.push(["the WIP strip: depends on, each with its pill (✓ clear ⌂ repo; ↗ external · square, no build state recorded), and blocks · enables", /depends on/.test(wt) && /#62 ✓ clear ⌂ repo/.test(wt) && /okhttp#5 ↗ external · square/.test(wt) && /blocks · enables #65 ⊘ blocks/.test(wt), wt.slice(wt.indexOf("depends on"), wt.indexOf("depends on") + 200)]);
     c.push(["…with their legend entries in the strip's legend", /a dependency's build state: part of the plan, landed or closed/.test(wt) && /a dependency's locality: outside both organizations/.test(wt) && /this issue is still open: it holds these issues up/.test(wt), "legend"]);
     /* the tracking board: a unit's dependencies and what it holds up, in its inspector */
     const tdir = path.join(sc, "tb"), tpage = path.join(tdir, "dashboard.html"); wr(tpage, withData(rd(PB), "plan", rd(path.join(TF, "plan.json"))));
@@ -150,17 +150,17 @@ module.exports = function cases30(X) {
   });
 
   /* 6. the feature probes */
-  guard("the feature probes of dashboards-skill/30: the qa passes shown, the dependency bubbles", c => {
+  guard("the feature probes of dashboards-skill/30: the qa passes shown, the dependency pills", c => {
     const pb = rd(PB), wb = rd(WB);
     const miss = (h, k) => F.probe(h, k).map(m => m.id);
-    c.push(["both plan-set templates carry both features", !miss(pb, "plan-board").some(x => ["qa-passes-shown", "dependency-bubbles"].includes(x)) && !miss(wb, "work-board").some(x => ["qa-passes-shown", "dependency-bubbles"].includes(x)), js([miss(pb, "plan-board"), miss(wb, "work-board")])]);
+    c.push(["both plan-set templates carry both features", !miss(pb, "plan-board").some(x => ["qa-passes-shown", "dependency-pills"].includes(x)) && !miss(wb, "work-board").some(x => ["qa-passes-shown", "dependency-pills"].includes(x)), js([miss(pb, "plan-board"), miss(wb, "work-board")])]);
     const wbOld = wb.replace("<th>Depends on</th><th>Blocks · enables</th>", "<th>Waits on · blocks</th><th>Branch</th><th>Board</th>");
-    c.push(["a work board with the old columns misses the dependency bubbles", miss(wbOld, "work-board").includes("dependency-bubbles"), js(miss(wbOld, "work-board"))]);
+    c.push(["a repository work board with the old columns misses the dependency pills", miss(wbOld, "work-board").includes("dependency-pills"), js(miss(wbOld, "work-board"))]);
     const pbOld = pb.replace("function qaShown(", "function qaShownGone(");
-    c.push(["a plan board without qaShown() misses the qa passes shown", miss(pbOld, "plan-board").includes("qa-passes-shown"), js(miss(pbOld, "plan-board"))]);
+    c.push(["an issue board without qaShown() misses the qa passes shown", miss(pbOld, "plan-board").includes("qa-passes-shown"), js(miss(pbOld, "plan-board"))]);
     const ex = rd(sk("plan/examples/38-handshake-empty-name/dashboard.html"));
-    c.push(["the example board (landed, made before) lacks them: reported for a landed board, never re-rendered", miss(ex, "plan-board").includes("dependency-bubbles"), js(miss(ex, "plan-board"))]);
-    c.push(["neither probe applies to the state pages, each with its reason", ["system", "supersystem"].every(k => !F.applicable(k).some(f => ["qa-passes-shown", "dependency-bubbles"].includes(f.id))) && F.FEATURES.filter(f => ["qa-passes-shown", "dependency-bubbles"].includes(f.id)).every(f => f.notFor && f.notFor.system && f.notFor.supersystem), "notFor"]);
+    c.push(["the example board (landed, made before) lacks them: reported for a landed board, never re-rendered", miss(ex, "plan-board").includes("dependency-pills"), js(miss(ex, "plan-board"))]);
+    c.push(["neither probe applies to the state boards, each with its reason", ["system", "supersystem"].every(k => !F.applicable(k).some(f => ["qa-passes-shown", "dependency-pills"].includes(f.id))) && F.FEATURES.filter(f => ["qa-passes-shown", "dependency-pills"].includes(f.id)).every(f => f.notFor && f.notFor.system && f.notFor.supersystem), "notFor"]);
   });
   return groups;
 };

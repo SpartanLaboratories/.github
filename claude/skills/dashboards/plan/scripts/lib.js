@@ -12,10 +12,19 @@ function repoRoot(args) {
 const opt = (args, name, dflt) => { const i = args.indexOf("--" + name); return i >= 0 && args[i + 1] != null && !args[i + 1].startsWith("--") ? args[i + 1] : dflt; };
 const flag = (args, name) => args.includes("--" + name);
 
-/* The registry's colour slots, computed exactly as the system pages compute them (system/template/supersystem.html, sysColour):
+/* The registry's colour slots, computed exactly as the system boards compute them (system/template/supersystem.html, sysColour):
    the systems in registry order without the repo entry; a top-level system is one whose parent is not itself such a system;
    tops take slots 1..6 in order, a seventh and later get 0 (neutral); a child takes its top-level ancestor's slot. The repo
    entry itself, when a row names it, is neutral (slot 0). */
+/* A system's board, as the registry (docs/dashboards/systems.json) and the boards' systems entries record it (dashboards-skill/33): the key
+   "board"; a file written before reads "page" alike, so an older registry, plan.json or board.json still loads. */
+const boardPath = s => s && typeof s === "object" ? (typeof s.board === "string" && s.board.trim() ? s.board : typeof s.page === "string" && s.page.trim() ? s.page : null) : null;
+/* The shared links' keys (dashboards-skill/33): repoBoard and boards, read by the current template; repoPage and pages on a board whose
+   template is older (it reads only those), so an embed never takes a link from a board that is kept as it was (a landed board). */
+const LINK_KEYS = { now: { repo: "repoBoard", systems: "boards" }, old: { repo: "repoPage", systems: "pages" } };
+const linkKeys = html => typeof html === "string" && !/sharedLink\("repoBoard"\)/.test(html) && /sharedLink\("repoPage"\)/.test(html) ? LINK_KEYS.old : LINK_KEYS.now;
+/* a link of plan.links or board.json links, by its current key or its older one */
+const linkOf = (links, k) => { if (!links || typeof links !== "object") return undefined; const o = { repoBoard: "repoPage", boards: "pages" }[k]; return links[k] !== undefined ? links[k] : o ? links[o] : undefined; };
 function registry(root) {
   const p = path.join(root, "docs", "dashboards", "systems.json");
   if (!fs.existsSync(p)) return null;
@@ -24,12 +33,12 @@ function registry(root) {
   const by = slug => systems.find(s => s.slug === slug);
   const top = slug => { let s = by(slug); while (s && by(s.parent)) s = by(s.parent); return s; };
   const tops = systems.filter(s => !by(s.parent));
-  const pageOf = s => s.page ? "docs/dashboards/" + s.page : null;
+  const boardOf = s => boardPath(s) ? "docs/dashboards/" + boardPath(s) : null;
   const info = slug => {
     const s = by(slug);
-    if (!s) { const r = all.find(x => x.slug === slug); return r ? { slug, name: r.name, slot: 0, top: r.name, status: r.status || "built", page: pageOf(r) } : null; }
+    if (!s) { const r = all.find(x => x.slug === slug); return r ? { slug, name: r.name, slot: 0, top: r.name, status: r.status || "built", board: boardOf(r) } : null; }
     const t = top(slug), i = tops.indexOf(t);
-    return { slug, name: s.name, slot: i >= 0 && i < 6 ? i + 1 : 0, top: t ? t.name : s.name, status: s.status, page: pageOf(s) };
+    return { slug, name: s.name, slot: i >= 0 && i < 6 ? i + 1 : 0, top: t ? t.name : s.name, status: s.status, board: boardOf(s) };
   };
   return { reg, info };
 }
@@ -58,7 +67,7 @@ function mdHeadings(md) {
    sectionOf() reads that section: its heading, its first paragraph (the first block of prose under the heading, fenced code and tables
    skipped, Markdown links and emphasis reduced to their text, one line, at most 600 characters) and a hash of the whole section, from
    its heading to the next heading of the same or a higher level, line endings and trailing spaces normalised. The paragraph is what the
-   page shows, so a work level in it (GUIDANCE.md §4) is elided ("…"); the hash is of the section as written. */
+   board shows, so a work level in it (GUIDANCE.md §4) is elided ("…"); the hash is of the section as written. */
 const STMT_REF = /^((?:\.\.\/|\.\/)?(?:[\w.-]+\/)*[\w.-]+\.md)#([\w\p{L}\p{N}-]+)$/u;
 const parseRef = ref => { const m = typeof ref === "string" ? STMT_REF.exec(ref.trim()) : null; return m ? { file: m[1], anchor: m[2] } : null; };
 function sectionOf(md, anchor) {
@@ -85,7 +94,7 @@ function sectionOf(md, anchor) {
 }
 /* The label a reference shows, "(§4.2)": the statement's own label, else the heading's leading section number ("4.2", "A-3", "T-1"),
    else the heading itself (shortened); until an excerpt is copied, the section number its anchor names (refNumber, below: read from
-   the referenced file's headings, or from the anchor alone and marked "?"), else the anchor. The page derives it the same way
+   the referenced file's headings, or from the anchor alone and marked "?"), else the anchor. The board derives it the same way
    (stmtLabel()). */
 const HEAD_NUM = /^((?:\d+\.)*\d+|[A-Z][A-Za-z0-9]?-[A-Za-z0-9]+)\.?(?=\s|$)/;
 function refLabel(s) {
@@ -101,7 +110,7 @@ function refLabel(s) {
    from the board's folder, its headings decide: the numbered heading whose number, its dots dropped, leads the anchor ("4.2" for
    "42-…"; "A-3" for "a-3-…"), the one sharing most of the anchor where several do; heading numbers win. Only when the file is not there
    (or none of its numbered headings fits) is the anchor's leading number taken as it stands, and marked: { label: "§42", from: "anchor" },
-   which the page shows "§42?". Returns { label, from: "headings" | "anchor" }, or null when the anchor leads with no number. */
+   which the board shows "§42?". Returns { label, from: "headings" | "anchor" }, or null when the anchor leads with no number. */
 function refNumberOf(dir, ref) {
   const r = parseRef(ref); if (!r) return null;
   const file = path.resolve(dir, r.file), root = treeRoot(dir) || path.resolve(dir);
@@ -116,7 +125,7 @@ function refNumberOf(dir, ref) {
   return lead ? { label: "§" + lead[1], from: "anchor" } : null;
 }
 /* the refNumber a statement carries for its current reference (embed.js writes it; a stale one, for another ref, is not shown), else the
-   anchor's leading number, marked: what the page shows when no file could be read */
+   anchor's leading number, marked: what the board shows when no file could be read */
 function refNumberShown(s) {
   const ref = s && typeof s.ref === "string" ? s.ref.trim() : "", n = s && s.refNumber;
   if (n && typeof n === "object" && n.ref === ref && typeof n.label === "string" && /^§/.test(n.label)) return { label: n.label, from: n.from === "headings" ? "headings" : "anchor" };
@@ -178,26 +187,28 @@ function excerptDrift(plan, dir) {
     return e.hash !== got.section.hash ? { at: x.at, ref, kind: "changed", have: e.hash, want: got.section.hash, heading: got.section.heading } : null;
   }).filter(Boolean);
 }
-/* Everything embed.js resolves from the folders on disk before it embeds a plan board: the issue links and the units' runs
+/* Everything embed.js resolves from the folders on disk before it embeds an issue board: the issue links and the units' runs
    (linkIssueBoards()) and the statements' excerpts (copyExcerpts()). Returns one line per change. */
 function resolveBoard(plan, dir, opts) { return [...linkIssueBoards(plan, dir), ...linkShared(plan, dir), ...copyExcerpts(plan, dir, opts)]; }
-/* The shared pages a board links (GUIDANCE.md §5; plan/RULES.md §1, "Links"), from the files on disk: the committed work board
-   (workBoard, docs/plans/index.html), the repository page (repoPage, docs/dashboards/index.html) and each of the board's systems'
-   pages (pages, by slug), each relative to the board's folder and present only while its file exists, so the page never links a
+/* The shared boards a board links (GUIDANCE.md §5; plan/RULES.md §1, "Links"), from the files on disk: the committed repository work board
+   (workBoard, docs/plans/index.html), the repository state board (repoBoard, docs/dashboards/index.html) and each of the board's systems'
+   boards (boards, by slug; repoPage and pages on a board whose template is older, linkKeys()), each relative to the board's folder and present only while its file exists, so the board never links a
    missing file. embed.js writes them at every embed; check.js fails one whose file is gone. */
 function sharedLinks(plan, dir) {
   const root = treeRoot(dir); if (!root || !plan) return {};
+  let html = null; try { html = fs.readFileSync(path.join(path.resolve(dir), "dashboard.html"), "utf8"); } catch (e) { /* no board yet: the current keys */ }
+  const K = linkKeys(html);
   const rel = f => path.relative(path.resolve(dir), path.join(root, ...f.split("/"))).split(path.sep).join("/"), want = {};
   if (fs.existsSync(path.join(root, "docs", "plans", "index.html"))) want.workBoard = rel("docs/plans/index.html");
-  if (fs.existsSync(path.join(root, "docs", "dashboards", "index.html"))) want.repoPage = rel("docs/dashboards/index.html");
-  const pages = {}; (Array.isArray(plan.systems) ? plan.systems : []).forEach(s => { if (s && typeof s.slug === "string" && typeof s.page === "string" && s.page.trim() && !/^[a-z]+:/i.test(s.page) && fs.existsSync(path.join(root, ...s.page.split("/")))) pages[s.slug] = rel(s.page); });
-  if (Object.keys(pages).length) want.pages = pages;
+  if (fs.existsSync(path.join(root, "docs", "dashboards", "index.html"))) want[K.repo] = rel("docs/dashboards/index.html");
+  const boards = {}; (Array.isArray(plan.systems) ? plan.systems : []).forEach(s => { const b = boardPath(s); if (s && typeof s.slug === "string" && b && !/^[a-z]+:/i.test(b) && fs.existsSync(path.join(root, ...b.split("/")))) boards[s.slug] = rel(b); });
+  if (Object.keys(boards).length) want[K.systems] = boards;
   return want;
 }
 function linkShared(plan, dir) { if (!plan) return []; const want = sharedLinks(plan, dir); if (JSON.stringify(plan.links === undefined ? null : plan.links) === JSON.stringify(want)) return [];
   const was = plan.links; plan.links = want; return [`links: ${was === undefined ? "unset" : JSON.stringify(was)} → ${JSON.stringify(want)}`]; }
 
-/* The embedded block of a page: <script type="application/json" id="<id>"> … </script>. */
+/* The embedded block of a board: <script type="application/json" id="<id>"> … </script>. */
 const openTag = id => `<script type="application/json" id="${id}">`;
 function readBlock(html, id) {
   const OPEN = openTag(id), a = html.indexOf(OPEN), b = a < 0 ? -1 : html.indexOf("</script>", a + OPEN.length);
@@ -526,12 +537,12 @@ function parentBoard(dir, parent) {
   return path.basename(up).startsWith(parent.issue + "-") && fs.existsSync(path.join(up, "dashboard.html")) ? { board: "../dashboard.html" } : null;
 }
 
-/* Every issue a plan board names, where the page names it (plan/RULES.md §1): one entry per place, { n, repo, at, how, place,
-   since }. how is "field" (a number the page links: the parent, a unit, a roadmap item, a follow-up, a blocker, a deferred part's
+/* Every issue an issue board names, where the board names it (plan/RULES.md §1): one entry per place, { n, repo, at, how, place,
+   since }. how is "field" (a number the board links: the parent, a unit, a roadmap item, a follow-up, a blocker, a deferred part's
    issue, an ancestor folder in the breadcrumb), "text" (a #n or an owner/repo#n of its own repo outside `code` spans, in a field
-   the page renders as linked text) or "url" (a GitHub URL of the issue written in the data, which the page links to GitHub
+   the board renders as linked text) or "url" (a GitHub URL of the issue written in the data, which the board links to GitHub
    whatever the rule). since is the template rule that first linked the place to a board: "sub" for the sub-issue rule (the
-   SUB_BOARDS map: a unit's row, chain, inspector and roadmap entry, and every #n the page links), "issue" for the widened rule
+   SUB_BOARDS map: a unit's row, chain, inspector and roadmap entry, and every #n the board links), "issue" for the widened rule
    (the ISSUE_BOARDS map: the parent, the breadcrumb, the roadmap of an issue board, and the WIP strip's unit lines and "blocked
    by" tags and the deferred badge, which were plain text before). Names, ids, paths, states, dates and titles are written
    without links and skipped; "PR #n" is a pull request, never an issue. Approximate by design: it names the places a reader
@@ -552,7 +563,7 @@ const leftForLater = r => { const v = (r && r.verdict) || {}; return v.kind === 
    excerpt }: one decision per statement, bullets (verdict.list "bullets", the default) or numbered when order matters ("numbered"),
    each ending with a parenthesised reference to the plan paragraph it rests on, ref, a relative link to a section of a Markdown file
    (plan.md, a plan-<unit>.md, architecture.md for a unit row) with GitHub's heading anchor. embed.js copies the section's heading and
-   first paragraph into excerpt { heading, paragraph, hash } (copyExcerpts(), below); the page shows it in the inspector when the
+   first paragraph into excerpt { heading, paragraph, hash } (copyExcerpts(), below); the board shows it in the inspector when the
    reference is clicked, and check.js warns once the section has changed since the copy (excerptDrift()). A verdict written before the
    statements carries one paragraph in verdict.summary instead; both read as written. The As built cell carries one statement per
    verdict statement, asBuilt.statements, in the same order, each { text, state, ref? } with its adaptation, state "as-planned",
@@ -632,7 +643,7 @@ function issueRefs(plan) {
   return out;
 }
 
-/* The boards of the other issues a plan board names (plan/RULES.md §1): every issue in issueRefs (fields and text) that is neither
+/* The boards of the other issues an issue board names (plan/RULES.md §1): every issue in issueRefs (fields and text) that is neither
    this issue, nor its parent (parent.board), nor a unit of this tracking board (unit.board), and whose board's dashboard.html is
    in this tree, anywhere under docs/plans/. Returns { "<n>": "<path relative to dir>" } in issue order; {} outside a tree. */
 function otherBoards(plan, dir) {
@@ -651,7 +662,7 @@ function otherBoards(plan, dir) {
   return want;
 }
 
-/* Link every issue a plan board names to that issue's board, from the folders on disk (embed.js runs it before embedding, so
+/* Link every issue an issue board names to that issue's board, from the folders on disk (embed.js runs it before embedding, so
    nobody writes these links by hand; plan/RULES.md §1): a tracking board's units (unit.board, linkSubIssueBoards), the parent
    (parent.board: "../dashboard.html" when the enclosing folder is the parent's and holds its board, else null), and every other
    issue it names (issueBoards: { "<n>": path }, present only while one is linked). A link is made only to a file that exists, and
@@ -680,12 +691,12 @@ function linkIssueBoards(plan, dir) {
 }
 
 /* The markers of the templates that route an issue's links to its board (plan/RULES.md §1). SUB_BOARDS: the sub-issue rule (a
-   tracking board's units; on the work board, every sub-issue with a board). ISSUE_BOARDS: the widened rule (every issue the page
+   tracking board's units; on the repository work board, every sub-issue with a board). ISSUE_BOARDS: the widened rule (every issue the board
    names that has a board: the parent, the units, every other issue; the WIP strip's unit lines and "blocked by" tags linked). A
    page with neither links every #n to GitHub. */
 const SUB_BOARD_MARKER = "const SUB_BOARDS=";
 const ISSUE_BOARD_MARKER = "const ISSUE_BOARDS=";
-/* The link rule a page's template implements: 2 the widened rule, 1 the sub-issue rule, 0 neither. */
+/* The link rule a board's template implements: 2 the widened rule, 1 the sub-issue rule, 0 neither. */
 const linkRule = html => html.includes(ISSUE_BOARD_MARKER) ? 2 : html.includes(SUB_BOARD_MARKER) ? 1 : 0;
 
 const skillDir = path.resolve(__dirname, "..");
@@ -703,7 +714,7 @@ function shownBranch(plan) {
   }
   return plan.branch;
 }
-/* A unit's branch on the work board: shown until the unit has landed. */
+/* A unit's branch on the repository work board: shown until the unit has landed. */
 const unitBranch = row => row && row.unit && row.unit.branch && !UNIT_LANDED.includes((row.asBuilt || {}).state) ? row.unit.branch : null;
 
 /* The impact's reconciliation state (plan/RULES.md §2, Impact): derived from the board's data, never stored. impact.basis keeps
@@ -712,11 +723,11 @@ const unitBranch = row => row && row.unit && row.unit.branch && !UNIT_LANDED.inc
    - "partial" (partly reconciled): basis plan, with an impact.changes entry recorded or a unit landed;
    - "as-built": basis as-built.
    An impact.changes entry with none: true is a unit's explicit "no change" record: on a tracking board every landed unit records its
-   effect on the initiative's impact at its landing refresh, as the changes it made (each naming the unit) or as one such entry.
+   effect on the initiative's impact at the pre-merge refresh that records its landing, as the changes it made (each naming the unit) or as one such entry.
    Returns null while the board records no impact, else { state, basis, tracking, landed, total (tracking boards; units dropped,
    deferred or left for later left out of the total, as in the chain's progress), changes (the real changes), noChange (unit ids with a "no change"
    entry), unrecorded (unit ids landed with neither) }. check.js and board.js use it; the plan-board template's reconciliationOf()
-   is the same rule, in the page's own runtime. */
+   is the same rule, in the board's own runtime. */
 const isNoChange = c => !!c && typeof c === "object" && c.none === true;
 function reconciliation(plan) {
   const I = plan && plan.impact;
@@ -731,7 +742,7 @@ function reconciliation(plan) {
     noChange: tracking ? [...new Set(changes.filter(isNoChange).map(c => c.unit))] : [],
     unrecorded: tracking ? landed.filter(r => !changes.some(c => c.unit === r.id)).map(r => r.id) : [] };
 }
-/* Boardless rows on the work board (plan/RULES.md §5, "Boardless rows"): a row with no board of its own and no tracking board's unit
+/* Boardless rows on the repository work board (plan/RULES.md §5, "Boardless rows"): a row with no board of its own and no tracking board's unit
    row to read takes its state from the tracker. BOARDLESS_STATES are the four it can take, in this order of precedence:
    - "not-planned": the issue is closed as not planned (GitHub's stateReason NOT_PLANNED): "closed · not planned", never landed;
    - "duplicate": the issue is closed as a duplicate (stateReason DUPLICATE): "closed · duplicate", never landed;
@@ -774,7 +785,7 @@ function boardlessState(n, issueState, closing, linked, prs, branches, stateReas
    is at qa (wip.step "qa"): the one the remediation loop's current sub-step names ("qa pass 2"), else the pass after the last recorded
    one; or while the run is at remediation and that loop's current sub-step is a qa pass. None runs after an approving pass, past qaMax,
    or once the run has moved on (landing, landed, halted). w is a board's wip or a unit's run mirror (unit.live: step, qa, qaMax,
-   remediation, history). The plan-board and work-board templates' qaShown() are the same rule, in the page's own runtime. The last pass
+   remediation, history). The plan-board and work-board templates' qaShown() are the same rule, in the board's own runtime. The last pass
    shown carries inPlace when the run decided to fix its findings in place with no further pass (qaInPlace(), below). */
 const QA_PASS_RE = /\bqa pass (\d+)\b/i;
 function qaShown(w) {
@@ -793,7 +804,7 @@ function qaShown(w) {
    where a board records it, and nowhere else: the pass's own route (wip.qa[].route, apply-event.js at qa-pass), else the remediation loop
    that answers that pass (wip.remediation.route), else a frozen remediation visit that answered it (wip.history.remediation[].remediation).
    Never from prose: a note or a trail entry that says so is not read. The pass is then copied with inPlace: "fixing" while the run is at
-   remediation (or halted, to resume there), "fixed" otherwise; every page that shows qa passes draws it as a small neutral mark beside
+   remediation (or halted, to resume there), "fixed" otherwise; every board that shows qa passes draws it as a small neutral mark beside
    the pass ("fixed in place · no 2nd pass"). A pass running after it, or an approving one, means no such decision stands: no mark. */
 function qaRoute(w, p) {
   if (p && p.route) return p.route;
@@ -811,9 +822,9 @@ function qaInPlace(w, qa) {
 }
 /* the mark's words: "fixed in place · no 2nd pass", "fixing in place · no 3rd pass" (the pass after the one it answers) */
 const inPlaceWords = p => p && p.inPlace ? `${p.inPlace === "fixing" ? "fixing" : "fixed"} in place · no ${ordinal((parseInt(p.pass, 10) || 0) + 1)} pass` : "";
-/* A qa pass's number as an ordinal: 1st, 2nd, 3rd, 4th, … 11th, 12th, 13th, 21st (the work board's QA cell, a plan board's qa pills). */
+/* A qa pass's number as an ordinal: 1st, 2nd, 3rd, 4th, … 11th, 12th, 13th, 21st (the repository work board's QA cell, an issue board's qa pills). */
 const ordinal = n => { const k = Math.abs(parseInt(n, 10)); if (!Number.isFinite(k)) return String(n); const t = k % 100, u = k % 10; return `${n}${t >= 11 && t <= 13 ? "th" : u === 1 ? "st" : u === 2 ? "nd" : u === 3 ? "rd" : "th"}`; };
-/* A dependency's two states (the work board's "Depends on"; a plan board's "depends on"; a tracking board's units; admin-team/
+/* A dependency's two states (the repository work board's "Depends on"; an issue board's "depends on"; a tracking board's units; admin-team/
    dashboards-skill/30), each derived from the data, never written by hand:
    - its build state, depBuild(): "blocking" when it is part of the plan (a unit, or a sub-issue, of the row's tracking issue) and still
      open, not landed; "clear" when it is part of the plan and closed or landed; "pre-built" when it is not part of the tracking issue and
@@ -847,7 +858,7 @@ function depBuild({ inPlan, done, closedAt, planStart, tracking }) {
   if (closedAt && planStart && String(closedAt).slice(0, 10) > String(planStart).slice(0, 10)) return { build: null, why: `not part of the tracking issue, and closed (${String(closedAt).slice(0, 10)}) only after the plan started (${String(planStart).slice(0, 10)})` };
   return { build: "pre-built", ...(closedAt && planStart ? {} : { note: "closed; when, relative to the plan's start, is not recorded" }) };
 }
-/* What an issue does to the issues it holds up (the work board's "Blocks · enables"; a plan board's and a tracking board's units'):
+/* What an issue does to the issues it holds up (the repository work board's "Blocks · enables"; an issue board's and a tracking board's units'):
    "blocks" while it is still open, not done; "enables" once it is done (landed, or its issue closed). */
 const HOLD_STATES = ["blocks", "enables"];
 const holdState = done => done ? "enables" : "blocks";
@@ -862,7 +873,7 @@ function signedOffParent(dir, plan) {
   const signed = (p.milestones || []).some(m => m && m.column === "considered") || (p.rows || []).some(r => r && r.unit);
   return signed ? { dir: up, plan: p } : null;
 }
-/* The words for a state, shared by check.js and the work board's data. */
+/* The words for a state, shared by check.js and the repository work board's data. */
 const RECON_WORDS = { planned: "planned", partial: "partly reconciled", "as-built": "as built" };
 /* The step-to-column map (plan/RULES.md §3, "The glow follows the step"): what wip.current holds at each wip.step, written once
    for the scripts (check.js warns on a board that does not keep it; new.js lays the foundation's wip.current from it).
@@ -960,7 +971,7 @@ const EVENTS = ["sized", "halted", "resumed", "research-planning", "research-sta
    done stage touched it and a later stage still to come touches it, "pending" when only stages to come touch it; null otherwise (no
    stage touches it, or its last stage is done: its stored state, the outcome, applies). On a tracking board, a unit in wip.current whose
    row is pending is "in-progress" (its run is under way); a unit lands whole, so it is never partially built. Dropped, deferred,
-   complete and landed rows, and a board that has landed or was cancelled, derive nothing. builtState() is the state the page shows:
+   complete and landed rows, and a board that has landed or was cancelled, derive nothing. builtState() is the state the board shows:
    the derived one, else the stored one. The plan-board template's stagedState() and stateOf() are the same rule. */
 const BUILDING_STATES = ["in-progress", "partially-built"];
 function stagedState(plan, row) {
@@ -986,17 +997,18 @@ function nextUnit(plan) {
   const cur = Array.isArray((plan.wip || {}).current) ? plan.wip.current : [];
   return (plan.rows || []).find(r => r && r.unit && ((r.asBuilt || {}).state || "pending") === "pending" && !unitInRun(cur, r.id) && !leftForLater(r)) || null;
 }
-/* The live sidecar (plan/RULES.md §1, "plan.js"): the data file as a script beside the page, which the page re-loads while its run
+/* The live sidecar (plan/RULES.md §1, "plan.js"): the data file as a script beside the board, which the board re-loads while its run
    is live and redraws from (the template's dashboardLive()). Its text is the data file verbatim between a fixed head and tail, so
-   check.js reads it back and compares it with the data file. plan.json → plan.js; the work board's board.json → board.js. */
+   check.js reads it back and compares it with the data file. plan.json → plan.js; the repository work board's board.json → board.js. */
 const SIDECAR = { plan: "plan.js", board: "board.js" };
-const sidecarHead = id => `/* ${SIDECAR[id]}: ${id}.json as a script, written by plan/scripts/embed.js beside the page for its live view (plan/RULES.md §1). Do not edit: edit ${id}.json and re-embed. */\nwindow.dashboardLive&&window.dashboardLive(${JSON.stringify(id)},\n`;
+const sidecarHead = id => `/* ${SIDECAR[id]}: ${id}.json as a script, written by plan/scripts/embed.js beside the board for its live view (plan/RULES.md §1). Do not edit: edit ${id}.json and re-embed. */\nwindow.dashboardLive&&window.dashboardLive(${JSON.stringify(id)},\n`;
 /* The sidecar's text for a data file's text (its line endings kept). */
 function sidecarText(id, json) { const eol = /\r\n/.test(json) ? "\r\n" : "\n"; return (sidecarHead(id) + json.replace(/\s*$/, "") + "\n);\n").replace(/\r?\n/g, eol); }
 /* The data a sidecar carries, parsed: { data }, or { error } (missing, not in its form, or not parsing). */
 function readSidecar(file, id) {
   let t; try { t = fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n"); } catch (e) { return { error: "missing" }; }
-  const head = sidecarHead(id);
+  /* the head says "beside the board" (dashboards-skill/33); a sidecar written before says "beside the page", and is read alike */
+  const head = [sidecarHead(id), sidecarHead(id).replace("beside the board", "beside the page")].find(h => t.startsWith(h)) || sidecarHead(id);
   if (!t.startsWith(head) || !/\n\);\n?$/.test(t)) return { error: "not in its form (embed.js writes it)" };
   try { return { data: JSON.parse(t.slice(head.length).replace(/\n\);\n?$/, "")) }; } catch (e) { return { error: "its data does not parse: " + e.message }; }
 }
@@ -1161,5 +1173,5 @@ function gitTimes(repoDir, folder, merge) {
   return out;
 }
 
-module.exports = { qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, HISTORY_FIELDS, HISTORY_STEPS, STEP_ORDER, shownStep, visitKey, freezeVisit, freezeSteps, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, okStamp, isTime, tlShade, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+module.exports = { boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, HISTORY_FIELDS, HISTORY_STEPS, STEP_ORDER, shownStep, visitKey, freezeVisit, freezeSteps, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, okStamp, isTime, tlShade, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, parentFolder, staleUnitRuns, stampMs, treeRoot, boardFolders, boardLink, parentBoard, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

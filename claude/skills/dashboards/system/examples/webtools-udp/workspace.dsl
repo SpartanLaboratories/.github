@@ -1,5 +1,5 @@
 // webtools-udp — C4 model as code (Structurizr DSL).
-// Source of truth for the structure shown on docs/dashboards/webtools-udp/. The page's C4 tab is rendered from this file.
+// Source of truth for the structure shown on docs/dashboards/webtools-udp/. The board's C4 tab is rendered from this file.
 // As-is at WebTools master 806ce8e (2026-10-20), webtools-udp 2.0.0a. Code is authoritative on any conflict.
 workspace "WebTools" "Spartan Laboratories' Kotlin/JVM networking and web toolkit — three independently versioned modules." {
 

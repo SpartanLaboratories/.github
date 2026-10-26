@@ -1,7 +1,7 @@
 // The case groups of admin-team/dashboards-skill/22, run by verify-templates.js (it passes its helpers in): the KPI tiles' legends inside
 // each tile, the larger charging arrow, the team-raised "landing" event, the header (no "board" tag, the title's #n the GitHub link, the
 // issue line the GitHub title alone, "since" said once beside a step panel), board.js keeping "unassigned": true from every checkout, the
-// research-planning glow on a board with and without rows, the Tests tab (data, fast path, checks, the tracking mirror, the page), and the
+// research-planning glow on a board with and without rows, the Tests tab (data, fast path, checks, the tracking mirror, the board), and the
 // feature probes of this run. Each group returns [title, cases], a case [name, ok, detail].
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
@@ -20,7 +20,7 @@ module.exports = function cases22(X) {
   const sc = path.join(out, "skill-22"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
   const T = { plan: rd(PB), work: rd(WB) };
   const EX = J("plan/examples/38-handshake-empty-name/plan.json"), LIVE = J("verify/fixtures/live-issue.plan.json"), TRK = J("verify/fixtures/tracking.plan.json"), SUB = J("verify/fixtures/sub-issue.plan.json"), WBJ = J("verify/fixtures/work-board.json");
-  /* a page with a probe that writes its result, JSON, on body[data-r] once the page has drawn */
+  /* a board with a probe that writes its result, JSON, on body[data-r] once the board has drawn */
   const probeAt = (html, js) => html.replace("</body>", `<script>window.addEventListener("load",()=>setTimeout(()=>{ try{ ${js} }catch(e){ document.body.dataset.r=JSON.stringify({err:e.message}); } },700));</script></body>`);
   const got = d => { const m = (d || "").match(/<body[^>]*data-r="([^"]*)"/); if (!m) return null; try { return JSON.parse(m[1].replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#39;/g, "'").replace(/&amp;/g, "&")); } catch (e) { return { err: "unparsed " + m[1].slice(0, 80) }; } };
   const planPage = (name, d, js) => { const dir = path.join(sc, name); const html = withData(T.plan, "plan", JSON.stringify(d, null, 2)); wr(path.join(dir, "plan.js"), lib.sidecarText("plan", JSON.stringify(d, null, 2))); return wr(path.join(dir, "dashboard.html"), js ? probeAt(html, js) : html); };
@@ -52,7 +52,7 @@ module.exports = function cases22(X) {
       const ok = t.length === 5 && !r.shared && four.every(x => x[0] >= r.w * 0.22 && x[1] === four[0][1] && x[2] === x[3]) && tl && tl[0] >= r.w * 0.98 && tl[1] > four[0][1] && tl[3];
       c.push(["the example (landed): four tiles in one row, each over a fifth of it, each bar with its legend inside its tile, the Timeline across the row below with its legend, no shared legend row (1920 px)", !!ok, JSON.stringify(r)]); }
     const rw = got(dumpDom(wr(path.join(sc, "kpi-work", "index.html"), probeAt(withData(T.work, "board", JSON.stringify(WBJ, null, 2)), js)), "", "1920,1080", 6000)) || {};
-    c.push(["the work board: its tiles' bars each carry their legend inside the tile, as before", !!rw.t && rw.t.every(x => x[2] === x[3]) && !rw.shared, JSON.stringify(rw)]);
+    c.push(["the repository work board: its tiles' bars each carry their legend inside the tile, as before", !!rw.t && rw.t.every(x => x[2] === x[3]) && !rw.shared, JSON.stringify(rw)]);
     c.push(["the template draws no shared legend row (no kpi-key) and no CSS for one", !/kpi-key|kpikey/.test(T.plan) && /\.kpi \.key\{/.test(T.plan), "template"]);
   });
 
@@ -73,15 +73,15 @@ module.exports = function cases22(X) {
     const root = tree("landing", [ex]), F0 = ex.folder, rq = req(path.join(sc, "landing.json"), { github: ex.repo, issue: ex.issue, event: "landing", folder: F0, facts: { pr: 59 } });
     c.push(["lib.js EVENTS names landing, between escalated and landed", lib.EVENTS.indexOf("landing") === lib.EVENTS.indexOf("landed") - 1, lib.EVENTS.join(", ")]);
     const a = apply(root, rq, "2026-10-25T10:00:00Z"), p = planOf(root, F0);
-    c.push(["applied: step landing, wip.event landing with its note, the detail and the trail entry, no enrichment", a.status === 0 && a.s.result === "ok" && p.wip.step === "landing" && p.wip.event.name === "landing" && /PR #59/.test(p.wip.event.note || "") && p.wip.detail === "Landing: the admin team merges it in PR #59." && p.trail.some(t => t.label === "Landing: the admin team merges it in PR #59" && t.ref === "PR #59") && a.s.enrich === "no" && p.status === "building", JSON.stringify(a.s).slice(0, 300)]);
+    c.push(["applied: step landing, wip.event landing with its note, the detail and the trail entry, no enrichment", a.status === 0 && a.s.result === "ok" && p.wip.step === "landing" && p.wip.event.name === "landing" && /PR #59/.test(p.wip.event.note || "") && p.wip.detail === "Landing: merging it in PR #59." && p.trail.some(t => t.label === "Landing: merging it in PR #59" && t.ref === "PR #59") && !/admin team/.test(JSON.stringify(p.wip) + JSON.stringify(p.trail)) && a.s.enrich === "no" && p.status === "building", JSON.stringify(a.s).slice(0, 300)]);
     const b = apply(root, rq, "2026-10-25T10:05:00Z");
     c.push(["the same event twice changes nothing (duplicate)", b.status === 0 && b.s.result === "duplicate", b.s.result]);
     if (chrome) { const dom = wide(path.join(root, ...F0.split("/"), "dashboard.html")), sp = inner(dom, '<div class="sp[^"]*"[^>]*>', "div");
-      c.push(["the landing step panel says the admin team has accepted the land and is merging it, with its pull request", /^<h3 class="sp-t">Landing<\/h3>/.test(sp) && /the admin team has accepted the land and is merging it in <a [^>]*>PR #59<\/a>/.test(sp), text(sp).slice(0, 200)]); }
+      c.push(["the landing step panel says the land is accepted and being merged, with its pull request, naming no role", /^<h3 class="sp-t">Landing<\/h3>/.test(sp) && /the land is accepted and being merged in <a [^>]*>PR #59<\/a>/.test(sp) && !/admin team/.test(sp), text(sp).slice(0, 200)]); }
     /* from a halt at the landing: the halt is cleared */
     const h = copy(ex); h.wip = { ...h.wip, step: "halted", resume: "landing", waitingOn: "Verification case: a question.", current: [], event: { name: "halted", at: "2026-10-25T09:30:00Z" } };
     const rootH = tree("landing-halted", [h]), aH = apply(rootH, req(path.join(sc, "landing-h.json"), { github: h.repo, issue: h.issue, event: "landing", folder: F0, facts: {} }), "2026-10-25T10:00:00Z"), pH = planOf(rootH, F0);
-    c.push(["from a halt at the landing, the halt is cleared and the step is the landing", aH.status === 0 && pH.wip.step === "landing" && !pH.wip.resume && !pH.wip.waitingOn && pH.wip.detail === "Landing: the admin team merges it.", JSON.stringify(aH.s.applied || aH.s.error)]);
+    c.push(["from a halt at the landing, the halt is cleared and the step is the landing", aH.status === 0 && pH.wip.step === "landing" && !pH.wip.resume && !pH.wip.waitingOn && pH.wip.detail === "Landing: merging it.", JSON.stringify(aH.s.applied || aH.s.error)]);
     /* refused on a board that has landed: nothing changes */
     const rootL = tree("landing-landed", [copy(EX)]), before = rd(path.join(rootL, ...F0.split("/"), "plan.json"));
     const aL = apply(rootL, req(path.join(sc, "landing-l.json"), { github: EX.repo, issue: EX.issue, event: "landing", folder: F0, facts: {} }), "2026-10-25T10:00:00Z");
@@ -101,18 +101,18 @@ module.exports = function cases22(X) {
     const dI = wide(planPage("hdr-issue", LIVE)), h1 = inner(dI, '<h1 id="h1">', "h1"), il = inner(dI, '<p class="issueline" id="issueline">', "p"), chips = inner(dI, '<div class="chips" id="chips">', "div");
     c.push(["the title's #n opens the GitHub issue", new RegExp(`<a class="ghn" href="https://github\\.com/${LIVE.repo}/issues/${LIVE.issue}"[^>]*>#${LIVE.issue}</a>`).test(h1) && text(h1) === `#${LIVE.issue} · ${LIVE.title}`, h1.slice(0, 200)]);
     c.push(["the issue line carries the issue's GitHub title alone", text(il) === LIVE.issueTitle && !/GitHub issue|<a /.test(il), il.slice(0, 200)]);
-    c.push(["no \"board\" tag (plan.json · n rows · n options) on a plan board", !/<span class="ck">board<\/span>/.test(chips) && !/plan\.json<\/b> ·/.test(chips), text(chips).slice(0, 200)]);
+    c.push(["no \"board\" tag (plan.json · n rows · n options) on an issue board", !/<span class="ck">board<\/span>/.test(chips) && !/plan\.json<\/b> ·/.test(chips), text(chips).slice(0, 200)]);
     const head = inner(dI, '<div class="wip-head">', "div"), sp = inner(dI, '<div class="sp[^"]*"[^>]*>', "div");
     c.push(["an issue board's strip head line has no \"since\" while its step panel is drawn; the panel says it", !/since/.test(text(head)) && /<span class="l">since<\/span>/.test(sp), text(head)]);
     const dL = wide(planPage("hdr-landed", EX)), headL = inner(dL, '<div class="wip-head">', "div");
     c.push(["a landed board, with no step panel, keeps the head line's \"since\"", /since/.test(text(headL)) && !/<div class="sp[ "]/.test(dL), text(headL)]);
-    const dT = wide(planPage("hdr-tracking", TRK)), ub = inner(dT, '<div class="wb unit[^"]*"[^>]*>', "div"), spT = inner(dT, '<div class="sp[^"]*"[^>]*>', "div");
-    c.push(["a tracking board's unit bubble has no \"since\" group beside its step panel; the panel says \"waiting since\"", !!ub && !/<span class="l">since<\/span>/.test(ub) && /<span class="l">updated<\/span>/.test(ub) && /<span class="l">waiting since<\/span>/.test(spT), text(ub).slice(0, 200)]);
+    const dT = wide(planPage("hdr-tracking", TRK)), ub = inner(dT, '<div class="wipcard unit[^"]*"[^>]*>', "div"), spT = inner(dT, '<div class="sp[^"]*"[^>]*>', "div");
+    c.push(["a tracking board's unit card has no \"since\" group beside its step panel; the panel says \"waiting since\"", !!ub && !/<span class="l">since<\/span>/.test(ub) && /<span class="l">updated<\/span>/.test(ub) && /<span class="l">waiting since<\/span>/.test(spT), text(ub).slice(0, 200)]);
     const own = copy(TRK); own.status = "planned"; own.rows.forEach(r => { r.asBuilt = { state: "pending", summary: "" }; delete r.unit.live; delete r.unit.issue; delete r.unit.board; }); own.wip = { ...own.wip, step: "sub-issues", current: ["units"], next: own.rows[0].id, resume: null, waitingOn: null, event: { name: "architecture-signed-off", at: "2026-10-21T10:00:00Z" } };
-    const dO = wide(planPage("hdr-own", own)), headO = inner(inner(dO, '<div class="wb phase[^"]*"[^>]*>', "div"), '<div class="wip-head">', "div");
+    const dO = wide(planPage("hdr-own", own)), headO = inner(inner(dO, '<div class="wipcard phase[^"]*"[^>]*>', "div"), '<div class="wip-head">', "div");
     c.push(["a tracking board at its own step (sub-issues), its own panel drawn: the phase's head line has no \"since\"", !/since/.test(text(headO)) && /<span class="l">since<\/span>/.test(dO), text(headO)]);
     const dW = wide(workPage("hdr-work", WBJ)), chipsW = inner(dW, '<div class="chips" id="chips">', "div");
-    c.push(["no \"board\" tag (board.json · n runs) on the work board", !/<span class="ck">board<\/span>/.test(chipsW) && !/board\.json<\/b>/.test(chipsW), text(chipsW)]);
+    c.push(["no \"board\" tag (board.json · n runs) on the repository work board", !/<span class="ck">board<\/span>/.test(chipsW) && !/board\.json<\/b>/.test(chipsW), text(chipsW)]);
   });
 
   /* 5. board.js keeps "unassigned": true across live regenerations from any checkout (the decision read from every board it knows) */
@@ -219,8 +219,8 @@ module.exports = function cases22(X) {
     c.push(["check.js fails unit.tests on a board that is not a tracking board", (() => { const rootN = path.join(sc, "tests-nontrk"); const dir = path.join(rootN, ...LIVE.folder.split("/")); wr(path.join(dir, "plan.json"), JSON.stringify(nt, null, 2) + "\n"); fs.writeFileSync(path.join(dir, "dashboard.html"), T.plan); node(embedJs, dir); const r = node(checkJs, dir); return r.status === 1 && /unit\.tests on a board that is not a tracking board/.test(r.stdout); })(), "non-tracking"]);
   });
 
-  /* 7. the Tests tab: the page */
-  guard("the Tests tab on the page: four sub-tabs, by test level, results, rows, Other's counts, a tracking board's sum (dashboards-skill/22)", c => {
+  /* 7. the Tests tab: the board */
+  guard("the Tests tab on the board: four sub-tabs, by test level, results, rows, Other's counts, a tracking board's sum (dashboards-skill/22)", c => {
     if (!chrome) { c.push(["the rendered pages (no browser found: set CHROME)", false, "no Chrome or Edge"]); return; }
     const tabsOf = dom => (inner(dom, '<div class="tabs" role="tablist" aria-label="Views">', "div").match(/id="t-[a-z-]+"/g) || []).map(x => x.slice(6, -1));
     const fS = planPage("tests-sub", SUB), dS = wide(fS, "tests.amended");
@@ -257,9 +257,9 @@ module.exports = function cases22(X) {
     c.push(["a live board with nothing recorded: a dashed note, pending, with its legend entry", /<p class="empty pend">No test class added on the branch yet/.test(dL) && /dashed: nothing recorded yet/.test(keyL), text(keyL)]);
     const dE = wide(planPage("tests-landed", EX), "tests.added"), keyE = inner(dE, '<div class="key" id="tests-added-key">', "div");
     c.push(["a landed board that recorded no tests: a plain box, \"No tests recorded on this board.\", never dashed", /<p class="empty">No tests recorded on this board\.<\/p>/.test(dE) && /box: nothing recorded/.test(keyE) && !/empty pend/.test(inner(dE, '<section class="view" role="tabpanel" id="p-tests"[^>]*>', "section")), text(keyE)]);
-    c.push(["the work board has no Tests tab (one row per run)", !/id="t-tests"/.test(T.work), "board.html"]);
+    c.push(["the repository work board has no Tests tab (one row per run)", !/id="t-tests"/.test(T.work), "board.html"]);
     const cp1 = cp.spawnSync(process.execPath, [checker, fS, "--out", path.join(sc, "tests-sub")], { encoding: "utf8" });
-    c.push(["check-page.js passes the rendering, every sub-tab with its legend", cp1.status === 0 && ["added", "amended", "relevant", "other"].every(k => new RegExp(`CHECK tab t-tests-${k}: visible · \\d+ drawn nodes · legend`).test(cp1.stdout)), (cp1.stdout || "").split(/\r?\n/).filter(l => /t-tests|FAIL|DASHED|NO LEGEND/.test(l)).join(" | ").slice(0, 400)]);
+    c.push(["check-board.js passes the rendering, every sub-tab with its legend", cp1.status === 0 && ["added", "amended", "relevant", "other"].every(k => new RegExp(`CHECK tab t-tests-${k}: visible · \\d+ drawn nodes · legend`).test(cp1.stdout)), (cp1.stdout || "").split(/\r?\n/).filter(l => /t-tests|FAIL|DASHED|NO LEGEND/.test(l)).join(" | ").slice(0, 400)]);
   });
 
   /* 8. this run's feature probes */

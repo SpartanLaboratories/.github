@@ -36,7 +36,7 @@ module.exports = function cases27(X) {
     const G = mkRepo(path.join(sc, "mirror"), [old.replace(/\n/g, "\r\n"), other, cur]);
     const G2 = mkRepo(path.join(sc, "mirror-without"), [other]);
     c.push(["the fixture mirror holds three versions of the template", (git(G, "log", "--format=%H", "--", REL).stdout || "").trim().split(/\r?\n/).length === 3, git(G, "log", "--oneline").stdout]);
-    /* the page, made from the old version, unchanged since */
+    /* the board, made from the old version, unchanged since */
     const page = path.join(sc, "tree", "docs", "dashboards", "alpha", "index.html"), SP = fsk("system/scripts/splice.js");
     const splice = (...a) => { const r = cp.spawnSync(process.execPath, [SP, page, "--template", TPL, "--json", ...a], { encoding: "utf8" }); let j = null; try { j = JSON.parse(r.stdout); } catch (e) { /* reported */ } return { r, j }; };
     const how = (j, p) => ((j && j.parts) || []).find(x => x.part === p) || {};
@@ -47,7 +47,7 @@ module.exports = function cases27(X) {
     const reb = fs.existsSync(hf(vOld)) ? rd(hf(vOld)) : null;
     c.push(["splice.js --history-repo rebuilds the missing version from the clone and says so", r.status === 0 && j && j.history.rebuilt.length === 1 && j.history.rebuilt[0].sha256 === vOld.sha256 && /the local clone .* @ [0-9a-f]{7}/.test(j.history.rebuilt[0].from) && !j.warnings.length, JSON.stringify(j && { history: j.history, warnings: j.warnings }) || r.stderr]);
     c.push(["the rebuilt copy is written into verify/history/ under its recorded name, LF-normalised and hashing to its record", reb != null && !/\r/.test(reb) && sha(reb) === vOld.sha256, reb == null ? "no file" : `sha ${sha(reb).slice(0, 12)}`]);
-    c.push(["the page, unchanged since the old version, is spliced from it: its CSS replaced by the template's", /replaced: the page had not changed it/.test(how(j, "style block 1").how || "") && /footer\{margin-top:28px;/.test(rd(page)) && !/footer\{margin-top:24px;/.test(rd(page)), JSON.stringify(how(j, "style block 1"))]);
+    c.push(["the board, unchanged since the old version, is spliced from it: its CSS replaced by the template's", /replaced: the board had not changed it/.test(how(j, "style block 1").how || "") && /footer\{margin-top:28px;/.test(rd(page)) && !/footer\{margin-top:24px;/.test(rd(page)), JSON.stringify(how(j, "style block 1"))]);
     const plain = cp.spawnSync(process.execPath, [SP, page, "--template", TPL, "--dry-run"], { encoding: "utf8" });
     c.push(["--history-repo is a known option of splice.js (an unknown one still exits 2)", cp.spawnSync(process.execPath, [SP, page, "--history-rep", G], { encoding: "utf8" }).status === 2 && plain.status === 0, (plain.stdout || "").split(/\r?\n/)[0]]);
 

@@ -1,11 +1,11 @@
-// The data of a state page (system/RULES.md §2, §10): what system, supersystem and repository pages render their stamps and their
+// The data of a state board (system/RULES.md §2, §10): what system, supersystem and repository state boards render their stamps and their
 // planned parts from, and the edits the data-only path makes to it. Not a command: apply-state.js writes through it and
-// check-page.js checks with it.
+// check-board.js checks with it.
 //
-//   state.json      beside each page, embedded verbatim as <script type="application/json" id="state">: the page's own stamp
+//   state.json      beside each board, embedded verbatim as <script type="application/json" id="state">: the board's own stamp
 //                   ({slug, version, asIs {ref, sha, date, landed}, lastAmended {issue, title, sha}, written {sha}})
-//   workspace.dsl   beside each page, embedded as id="dsl": a part is planned while its element carries the Planned tag
-//   systems.json    docs/dashboards/systems.json, embedded as id="systems" in supersystem and repository pages: a system is
+//   workspace.dsl   beside each board, embedded as id="dsl": a part is planned while its element carries the Planned tag
+//   systems.json    docs/dashboards/systems.json, embedded as id="systems" in supersystem and repository state boards: a system is
 //                   planned while its entry's status is "planned"
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
@@ -14,19 +14,19 @@ const norm = s => String(s).replace(/\r\n/g, "\n");
 
 /* ---------- Embedded blocks (as embed.js writes them) ---------- */
 const blockRe = id => new RegExp(`(<script type="[^"]+" id="${id}">\\r?\\n)([\\s\\S]*?)(</script>)`);
-/* the text of a page's block, trimmed, LF line endings; null when the page has no such block */
+/* the text of a board's block, trimmed, LF line endings; null when the board has no such block */
 function blockText(html, id) { const m = String(html).match(blockRe(id)); return m ? norm(m[2]).trim() : null; }
-/* the page with `content` embedded verbatim as block `id`, in the page's own line endings (embed.js's rule) */
+/* the board with `content` embedded verbatim as block `id`, in the board's own line endings (embed.js's rule) */
 function embedInto(html, id, content) {
   const c = norm(content).trim();
   if (c.includes("</script>")) throw new Error(`the ${id} data must not contain '</script>'`);
   const eol = String(html).includes("\r\n") ? "\r\n" : "\n", re = blockRe(id);
-  if (!re.test(html)) throw new Error(`the page has no <script ... id="${id}"> block`);
+  if (!re.test(html)) throw new Error(`the board has no <script ... id="${id}"> block`);
   return html.replace(re, (_, a, __, z) => a + c.replace(/\n/g, eol) + eol + z);
 }
 
 /* ---------- The registry ---------- */
-/* docs/dashboards/systems.json above a page (or in a worktree), or null */
+/* docs/dashboards/systems.json above a board (or in a worktree), or null */
 function findRegistry(start) {
   let dir = fs.existsSync(start) && fs.statSync(start).isDirectory() ? path.resolve(start) : path.dirname(path.resolve(start));
   for (;;) {
@@ -119,7 +119,7 @@ function editRegistryText(text, reg, edits, top) {
 /* ---------- workspace.dsl: the elements, their tags, the as-is line ---------- */
 const TYPES = ["person", "softwareSystem", "container", "component"];
 const tok = l => { const out = [], re = /"([^"]*)"|(\S+)/g; let m; while ((m = re.exec(l))) out.push(m[1] !== undefined ? { s: m[1] } : { t: m[2] }); return out; };
-/* Every element of the model with its hierarchical id, line index and tags, read as the page's parseDsl() reads them. */
+/* Every element of the model with its hierarchical id, line index and tags, read as the board's parseDsl() reads them. */
 function dslElements(text) {
   const lines = norm(text).split("\n"), stack = [], out = [];
   const parentEl = () => { for (let i = stack.length - 1; i >= 0; i--) if (stack[i].kind === "element") return stack[i].id; return null; };
@@ -182,7 +182,7 @@ function restampDsl(text, oldSha, asIs, oldRef) {
 /* ---------- state.json ---------- */
 /* state.json as it is written: one field per line, each value on that line ({"ref": "main", "sha": …}), as the templates show it */
 const stateText = st => "{\n" + Object.entries(st).map(([k, v]) => "  " + JSON.stringify(k) + ": " + inline(v)).join(",\n") + "\n}\n";
-/* The shape of a page's state: a list of problems (empty when it is in its form). */
+/* The shape of a board's state: a list of problems (empty when it is in its form). */
 function stateProblems(s) {
   const p = [], str = (v, k) => { if (typeof v !== "string" || !v.trim()) p.push(`${k} is not a string`); };
   if (!s || typeof s !== "object" || Array.isArray(s)) return ["state.json is not an object"];
@@ -197,7 +197,7 @@ function stateProblems(s) {
   if (s.written != null && (typeof s.written !== "object" || typeof s.written.sha !== "string")) p.push("written is not {sha}");
   return p;
 }
-/* Where a page's state and its registry entry disagree: [field, page value, registry value] */
+/* Where a board's state and its registry entry disagree: [field, page value, registry value] */
 function stateVsRegistry(s, e, kind) {
   const d = [], a = s.asIs || {}, b = e.asIs || {}, la = s.lastAmended || {}, lb = e.lastAmended || {};
   const cmp = (f, x, y) => { if (JSON.stringify(x == null ? null : x) !== JSON.stringify(y == null ? null : y)) d.push([f, x, y]); };
@@ -207,7 +207,7 @@ function stateVsRegistry(s, e, kind) {
   return d;
 }
 
-/* The part references a page makes: data-part="…" in its HTML (outside scripts) and part:"…" in its MODEL. */
+/* The part references a board makes: data-part="…" in its HTML (outside scripts) and part:"…" in its MODEL. */
 function partRefs(html) {
   const h = norm(html), refs = new Set();
   const body = h.replace(/<script[\s\S]*?<\/script>/g, "").replace(/<!--[\s\S]*?-->/g, "");
@@ -219,7 +219,7 @@ function partRefs(html) {
 
 /* ---------- Built or planned, from the code (system/RULES.md §7, §10) ----------
    A system's status is the code's: a system with code paths in the registry (paths) is built when one of them is present in the tree at
-   the stamped commit, planned while none is; a part of its page tied to a DSL element with code paths of its own (the entry's partPaths,
+   the stamped commit, planned while none is; a part of its board tied to a DSL element with code paths of its own (the entry's partPaths,
    {"<element id>": ["<path>", …]}) is built, and loses its Planned tag, the same way. A supersystem (a system made of systems) is built when
    every one of its core subsystems is (a child's "core": true, from the parent's architecture: the subsystems without which there is no
    greater system); its optional ones ("core": false) do not count, and while a child is not classified, or no child is core, the code

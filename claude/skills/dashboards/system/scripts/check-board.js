@@ -1,57 +1,57 @@
 #!/usr/bin/env node
-// The browser checker for every dashboard page: system, supersystem and repository pages, plan boards and the work board.
-// Opens a page in headless Chrome (or Edge), clicks every tab, and reports whether each panel rendered, whether it shows a
-// legend, and whether any script error fired; then checks the page-kind rules. Writes a screenshot beside the report.
+// The browser checker for every board: system, supersystem and repository state boards, issue boards and the repository work board.
+// Opens a board in headless Chrome (or Edge), clicks every tab, and reports whether each panel rendered, whether it shows a
+// legend, and whether any script error fired; then checks the board-kind rules. Writes a screenshot beside the report.
 //
-//   node check-page.js <page.html> [--out <dir>] [--tab <tabId>] [--width 1400] [--height 1500] [--theme light|dark] [--frame <px>]
+//   node check-board.js <board.html> [--out <dir>] [--tab <tabId>] [--width 1400] [--height 1500] [--theme light|dark] [--frame <px>]
 //
-// Page kind: <meta name="dashboard" content="plan-board|work-board"> marks a plan board or the work board; anything else is a
-// system page. Exit code 0 when, for every kind: every tab rendered with a visible legend (.key, or .c4key on the C4 tab), the
+// Board kind: <meta name="dashboard" content="plan-board|work-board"> marks an issue board or the repository work board; anything else is a
+// system board. Exit code 0 when, for every kind: every tab rendered with a visible legend (.key, or .c4key on the C4 tab), the
 // Context section is headed exactly "Context", the footer is "Corresponds to <source>." and its authority sentence (GUIDANCE.md
-// §3), no link is a dead href="#", the page has no horizontal scroll at the width
+// §3), no link is a dead href="#", the board has no horizontal scroll at the width
 // checked, no work level is shown (levelrefs.js: "level 3", "L3", "level: 2" and the like, in any
-// tab's text or the page's), no system colour falls in a status spectrum (palette.js: the --sys-N slots and a system page's
-// --server / --client / --wire, read from the page's CSS and, in the browser, as the theme of the pass computes them), and no
-// error fired. Then, by kind: a system page has a visible Guarantees area
-// (.guarantees holding at least one .bubble) and, when the page sits under a docs/dashboards/ with a systems.json in a git
-// work tree, no registry page or DSL file is git-ignored, and every entry of its BOARDS map (issue number → plan board) names a
-// board file that is there; a plan board has a visible WIP strip (.wip) with its own legend, and its
+// tab's text or the board's), no system colour falls in a status spectrum (palette.js: the --sys-N slots and a system board's
+// --server / --client / --wire, read from the board's CSS and, in the browser, as the theme of the pass computes them), and no
+// error fired. Then, by kind: a system board has a visible Guarantees area
+// (.guarantees holding at least one .guarantee-card; .bubble on a board not yet spliced onto the template of dashboards-skill/33) and, when the board sits under a docs/dashboards/ with a systems.json in a git
+// work tree, no registry board or DSL file is git-ignored, and every entry of its BOARDS map (issue number → issue board) names a
+// board file that is there; an issue board has a visible WIP strip (.wip) with its own legend, and its
 // Impact tab shows no planning information (no dashed element, no planned / as-built pill, no changes-from-the-plan list). On every
 // kind, dashed means only planned or pending (GUIDANCE.md §1): a dashed border or SVG stroke on any tab (every C4 view of a system
-// page included) that marks nothing planned or pending fails (DASHED NOT PLANNED), and so does a workspace.dsl element style with
-// "border dashed" on a tag other than Planned, read from the page without a browser. --theme sets
-// data-theme on <html>. --frame loads the page inside an iframe of that width (the harness for real phone widths, below what
-// headless Chrome lays out as a window). The page is loaded from a wrapper copy in the output directory, so the committed file
+// board included) that marks nothing planned or pending fails (DASHED NOT PLANNED), and so does a workspace.dsl element style with
+// "border dashed" on a tag other than Planned, read from the board without a browser. --theme sets
+// data-theme on <html>. --frame loads the board inside an iframe of that width (the harness for real phone widths, below what
+// headless Chrome lays out as a window). The board is loaded from a wrapper copy in the output directory, so the committed file
 // is never modified.
 //
-//   node check-page.js <page.html> --auto [--out <dir>]
+//   node check-board.js <board.html> --auto [--out <dir>]
 //
-// --auto checks only what the page adds to its template (GUIDANCE.md §8; deviation.js): no browser pass for a plan board or work
-// board that is a verified template plus its data; one light pass for a system page whose CSS, tabs, script before MODEL (less its
-// page-filled lines, REPO and SRC) and renderer are the verified template's (the facts it fills in); the full pass (light, dark, 520 px, a 390 px frame, 1920 x 1080 desktop) for a page that diverges — declared or
+// --auto checks only what the board adds to its template (GUIDANCE.md §8; deviation.js): no browser pass for an issue board or work
+// board that is a verified template plus its data; one light pass for a system board whose CSS, tabs, script before MODEL (less its
+// board-filled lines, REPO and SRC) and renderer are the verified template's (the facts it fills in); the full pass (light, dark, 520 px, a 390 px frame, 1920 x 1080 desktop) for a board that diverges — declared or
 // not — or whose template changed since verify/verify-templates.js last verified it.
 //
-//   node check-page.js <page.html> --auto --no-browser
+//   node check-board.js <board.html> --auto --no-browser
 //
 // --no-browser runs every check that needs no browser (the palette, the DSL's dashes, the board links, the git-ignore check, and the
-// page's data: its state block, the embedded copies of state.json, workspace.dsl and systems.json, its part references; system/RULES.md
-// §9) and names the browser pass it defers. The data-only path of a state page (apply-state.js, system/RULES.md §10) runs it.
+// board's data: its state block, the embedded copies of state.json, workspace.dsl and systems.json, its part references; system/RULES.md
+// §9) and names the browser pass it defers. The data-only path of a state board (apply-state.js, system/RULES.md §10) runs it.
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const args = process.argv.slice(2);
-const USAGE_LINE = "usage: node check-page.js <page.html> [--auto [--no-browser]] [--out <dir>] [--tab <tabId>] [--width n] [--height n] [--theme light|dark] [--frame <px>]";
-require("./cliargs.js").strict(args, { usage: "usage: node check-page.js <page.html> [--auto [--no-browser [--features-as-notes]]] [--out <dir>] [--tab <tabId>] [--width n] [--height n] [--theme light|dark] [--frame <px>]", valued: ["out", "tab", "width", "height", "theme", "frame"], flags: ["auto", "no-browser", "features-as-notes"], min: 1, max: 1 });
+const USAGE_LINE = "usage: node check-board.js <board.html> [--auto [--no-browser]] [--out <dir>] [--tab <tabId>] [--width n] [--height n] [--theme light|dark] [--frame <px>]";
+require("./cliargs.js").strict(args, { usage: "usage: node check-board.js <board.html> [--auto [--no-browser [--features-as-notes]]] [--out <dir>] [--tab <tabId>] [--width n] [--height n] [--theme light|dark] [--frame <px>]", valued: ["out", "tab", "width", "height", "theme", "frame"], flags: ["auto", "no-browser", "features-as-notes"], min: 1, max: 1 });
 if (args.includes("--no-browser") && !args.includes("--auto")) { console.error(USAGE_LINE + "\n(--no-browser goes with --auto: the checks that need no browser, the browser pass deferred)"); process.exit(2); }
 const opt = (name, def) => { const i = args.indexOf("--" + name); return i >= 0 ? args[i + 1] : def; };
 const VALUED = ["--out", "--tab", "--width", "--height", "--theme", "--frame"];
 const page = args.find((a, i) => !a.startsWith("--") && !(i > 0 && VALUED.includes(args[i - 1])));
-if (!page) { console.error("usage: node check-page.js <page.html> [--auto [--no-browser]] [--out <dir>] [--tab <tabId>] [--width n] [--height n] [--theme light|dark] [--frame <px>]"); process.exit(2); }
+if (!page) { console.error("usage: node check-board.js <board.html> [--auto [--no-browser]] [--out <dir>] [--tab <tabId>] [--width n] [--height n] [--theme light|dark] [--frame <px>]"); process.exit(2); }
 
-/* The palette (GUIDANCE.md §1; palette.js), read from the page's CSS without a browser, so it holds on every page whatever its
+/* The palette (GUIDANCE.md §1; palette.js), read from the board's CSS without a browser, so it holds on every board whatever its
    passes: a system colour in a status spectrum fails; a slot that is not the shared palette's value is a warning. */
 const { paletteCheck, ALLOWED_HUES, STATUS_MIN_SAT } = require("./palette.js");
 const palette = fs.existsSync(page) ? paletteCheck(fs.readFileSync(page, "utf8")) : { tokens: 0, problems: [], warnings: [] };
 /* Dashed means only planned (GUIDANCE.md §1): in the embedded workspace.dsl's styles, only the Planned tag may draw a dashed border.
-   Read from the page without a browser, so it holds on every pass, --auto included. */
+   Read from the board without a browser, so it holds on every pass, --auto included. */
 const dslDashes = (() => { if (!fs.existsSync(page)) return []; const m = fs.readFileSync(page, "utf8").match(/<script type="text\/plain" id="dsl">([\s\S]*?)<\/script>/); if (!m) return [];
   return [...m[1].matchAll(/^\s*element\s+"([^"]+)"\s*\{([^}]*)\}/gm)].filter(x => x[1] !== "Planned" && /\bborder\s+dashed\b/.test(x[2])).map(x => "DASHED NOT PLANNED: workspace.dsl styles element \"" + x[1] + "\" with border dashed: only Planned is dashed; draw it solid or dotted"); })();
 const paletteLines = () => [`CHECK palette: ${palette.tokens} system-colour tokens${palette.problems.length ? "" : ", none in a status spectrum"}`,
@@ -59,10 +59,10 @@ const paletteLines = () => [`CHECK palette: ${palette.tokens} system-colour toke
   ...dslDashes.map(p => "CHECK dsl: " + p)];
 
 /* The checks that need no browser, on every pass (--auto and --no-browser included): the registry's git-ignore check, the board links,
-   and the page's data (the state block, the embedded copies of state.json, workspace.dsl and systems.json, the part references). */
+   and the board's data (the state block, the embedded copies of state.json, workspace.dsl and systems.json, the part references). */
 const src = fs.existsSync(page) ? fs.readFileSync(page, "utf8") : "";
-const regCheck = registryIgnored(), boardCheck = boardLinks(), stateCheck = stateChecks(), featureCheck = featureChecks(), linkCheck = deadLinks(), titleCheck = titleChecks();
-const staticChecks = [regCheck, boardCheck, stateCheck, linkCheck, featureCheck, titleCheck].filter(Boolean);
+const regCheck = registryIgnored(), boardCheck = boardLinks(), stateCheck = stateChecks(), featureCheck = featureChecks(), linkCheck = deadLinks(), titleCheck = titleChecks(), nameCheck = nameChecks();
+const staticChecks = [regCheck, boardCheck, stateCheck, linkCheck, featureCheck, titleCheck, nameCheck].filter(Boolean);
 const staticLines = () => staticChecks.flatMap(c => [...(c.note ? ["CHECK " + c.note] : []), ...(c.notes || []).map(n => "CHECK " + n), ...c.problems.map(p => "CHECK " + p)]);
 const staticProblems = staticChecks.flatMap(c => c.problems);
 
@@ -72,14 +72,14 @@ if (args.includes("--auto")) {
   paletteLines().forEach(l => console.log(l));
   staticLines().forEach(l => console.log(l));
   if (args.includes("--no-browser")) {
-    /* the data-only path (apply-state.js): every check that needs no browser; the browser pass the page needs is named and left to
-       the presenter's next look (the landing refresh) */
+    /* the data-only path (apply-state.js): every check that needs no browser; the browser pass the board needs is named and left to
+       the presenter's next look (the pre-merge refresh) */
     const bad = palette.problems.length + dslDashes.length + staticProblems.length;
-    console.log(`CHECK template: ${d.kind} page · ${d.verdict} · browser pass deferred (${d.passes === "none" ? "none needed" : d.passes === "light" ? "one light pass" : "the full pass"})`);
+    console.log(`CHECK template: ${d.kind} board · ${d.verdict} · browser pass deferred (${d.passes === "none" ? "none needed" : d.passes === "light" ? "one light pass" : "the full pass"})`);
     d.notes.forEach(n => console.log("CHECK template: " + n));
     console.log(bad ? `FAIL: ${bad} problem(s) found without a browser` : "PASS (no browser)"); process.exit(bad ? 1 : 0);
   }
-  console.log(`CHECK template: ${d.kind} page · ${d.verdict} · ${d.passes === "none" ? "no browser pass" : d.passes === "light" ? "one light pass (the facts it fills in)" : "full pass (light, dark, 520, frame 390, desktop 1920x1080)"}`);
+  console.log(`CHECK template: ${d.kind} board · ${d.verdict} · ${d.passes === "none" ? "no browser pass" : d.passes === "light" ? "one light pass (the facts it fills in)" : "full pass (light, dark, 520, frame 390, desktop 1920x1080)"}`);
   d.notes.forEach(n => console.log("CHECK template: " + n));
   if (d.passes === "none") { const bad = palette.problems.length || dslDashes.length || staticProblems.length; console.log(bad ? `FAIL: ${palette.problems.length ? "a system colour in a status spectrum" : dslDashes.length ? "a dashed DSL style that is not Planned" : staticProblems[0]}` : "PASS"); process.exit(bad ? 1 : 0); }
   const rest = args.filter(a => a !== "--auto" && a !== page);
@@ -109,14 +109,14 @@ const browsers = [
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
 ];
 const { LEVEL_PATTERNS, quotedTitles } = require("./levelrefs.js");
-/* the issue titles the page's data quotes (dashboards-skill/28): a Source view prints them JSON-quoted, and the browser pass leaves them out
-   of its work-level scan there, as it leaves out the titles the page marks data-issue-title */
+/* the issue titles the board's data quotes (dashboards-skill/28): a Source view prints them JSON-quoted, and the browser pass leaves them out
+   of its work-level scan there, as it leaves out the titles the board marks data-issue-title */
 const QUOTED = (() => { const L = require("./statelib.js"), all = []; ["plan", "board", "state"].forEach(id => { const t = L.blockText(src, id); if (t == null) return; try { all.push(...quotedTitles(JSON.parse(t))); } catch (e) { /* the data checks report it */ } });
   return [...new Set(all)].filter(t => t).map(t => JSON.stringify(t)); })();
 const browser = process.env.CHROME && fs.existsSync(process.env.CHROME) ? process.env.CHROME : browsers.find(b => fs.existsSync(b));
 if (!browser) { console.error("no Chrome/Edge found; set CHROME=<path to binary>"); process.exit(2); }
 
-// The probe appended to the page: report tab clicks and errors through console.log, which headless Chrome echoes to stderr with
+// The probe appended to the board: report tab clicks and errors through console.log, which headless Chrome echoes to stderr with
 // --enable-logging=stderr (from an iframe too). A legend counts when it is rendered (not display:none) and has at least one entry.
 const probe = `<script>
 window.addEventListener("error",e=>console.log("CHECK ERROR: "+e.message+" @"+(e.filename||"")+":"+e.lineno));
@@ -126,12 +126,12 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   console.log("CHECK kind: "+kind);
   const shown=e=>!!e&&e.offsetParent!==null;
   const tabs=[...document.querySelectorAll('[role="tab"]')]; console.log("CHECK tabs: "+tabs.length);
-  /* work levels are never shown (levelrefs.js): the text of every tab, then of the whole page, is scanned */
+  /* work levels are never shown (levelrefs.js): the text of every tab, then of the whole board, is scanned */
   const LV=${JSON.stringify(LEVEL_PATTERNS)}.map(([s,f])=>new RegExp(s,f+"g")), lvHits=new Set();
   const lvScan=(txt,where)=>LV.forEach(re=>{ re.lastIndex=0; let m; while((m=re.exec(txt||""))) lvHits.add(where+": “"+m[0]+"”"); });
   /* An issue's title is quoted verbatim and marked data-issue-title (GUIDANCE.md §5; dashboards-skill/28): its text is left out of the
      scan above (textOf() reads a part's rendered text with the titles hidden), and a work level in it is a defect in the issue, flagged
-     by number, ISSUE TITLE NAMES A WORK LEVEL: #n, never a failure of the page (the title's own words are not printed: they are the issue's) */
+     by number, ISSUE TITLE NAMES A WORK LEVEL: #n, never a failure of the board (the title's own words are not printed: they are the issue's) */
   const hideT=document.createElement("style"); hideT.textContent="[data-issue-title]{display:none!important}"; document.head.appendChild(hideT); hideT.disabled=true;
   const QT=${JSON.stringify(QUOTED).replace(/</g, "\\u003c")};
   const textOf=el=>{ if(!el) return ""; hideT.disabled=false; let t=el.innerText; hideT.disabled=true; QT.forEach(q=>{ t=t.split(q).join('""'); }); return t; };
@@ -150,12 +150,12 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
     if(dashed&&!e.closest(PLANNED_SEL)){ const k=nameOf(e); if(!dashHits.has(k)) dashHits.set(k,where); } }); };
   tabs.forEach(t=>{ try{ t.click(); dashScan("tab "+t.id); if(kind==="system"&&t.id==="t-c4"){ const rungs=[...document.querySelectorAll(".rung")]; rungs.forEach((r,i)=>{ r.click(); dashScan("tab t-c4, view "+(i+1)); }); if(rungs[0]) rungs[0].click(); } const p=document.getElementById(t.getAttribute("aria-controls")); if(p){ lvScan(textOf(p),"tab "+t.id); titleScan(); } const vis=p&&!p.hidden&&getComputedStyle(p).display!=="none"; const drawn=p?p.querySelectorAll("svg *, table, .card, .thread, .syscard, .cell, .bcard, .run").length:0; const keys=p?[...p.querySelectorAll(".key, .c4key")].filter(k=>shown(k)&&k.children.length).length:0; console.log("CHECK tab "+t.id+": "+(vis?"visible":"NOT VISIBLE")+" · "+drawn+" drawn nodes · "+(keys?"legend":"NO LEGEND (every tab needs a visible .key)")); }catch(err){ console.log("CHECK tab "+t.id+" threw: "+err.message); } });
   if(kind==="system"){
-    const g=document.querySelector(".guarantees"), b=g?[...g.querySelectorAll(".bubble")].filter(shown).map(x=>(x.querySelector("h3")||{}).firstChild):[];
-    console.log("CHECK guarantees: "+(shown(g)&&b.length?b.length+" bubbles · "+b.map(n=>n?n.textContent.trim():"?").join(" · "):"MISSING (no visible .guarantees area with a .bubble)"));
+    const g=document.querySelector(".guarantees"), b=g?[...g.querySelectorAll(".guarantee-card,.bubble")].filter(shown).map(x=>(x.querySelector("h3")||{}).firstChild):[];
+    console.log("CHECK guarantees: "+(shown(g)&&b.length?b.length+" guarantee cards · "+b.map(n=>n?n.textContent.trim():"?").join(" · "):"MISSING (no visible .guarantees area with a .guarantee-card)"));
   }
   if(kind==="plan-board"){
     const w=document.querySelector(".wip"), k=w?w.querySelector(".key"):null;
-    console.log("CHECK wip strip: "+(shown(w)&&w.textContent.trim()?"shown · step "+(w.dataset.step||"?")+(shown(k)&&k.children.length?" · legend":" · NO LEGEND (the strip needs its own .key)"):"MISSING (a plan board shows a visible .wip strip)"));
+    console.log("CHECK wip strip: "+(shown(w)&&w.textContent.trim()?"shown · step "+(w.dataset.step||"?")+(shown(k)&&k.children.length?" · legend":" · NO LEGEND (the strip needs its own .key)"):"MISSING (an issue board shows a visible .wip strip)"));
     /* The Impact tab shows the current best-known impact and no planning information (GUIDANCE.md §1; plan/RULES.md §2): nothing
        on it is dashed, no pill tells the planned impact from the as-built one, and no list of changes from the planned impact. */
     const ti=document.getElementById("t-impact"), ip=document.getElementById("p-impact");
@@ -176,10 +176,12 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   console.log("CHECK palette (computed): "+toks.length+" tokens"+(palBad.length?" · PALETTE IN STATUS HUE "+palBad.map(x=>x[0]+" "+x[1]+" (hue "+x[2]+"°)").join(", "):" · none in a status spectrum"));
   const c=document.querySelector(".context > h2"), ct=c?c.textContent.trim():"";
   console.log("CHECK context: "+(ct==="Context"?"headed Context":c?"WRONG HEADING '"+ct+"' (must read Context)":"MISSING (no .context section with an h2)"));
-  /* The footer (GUIDANCE.md §3): "Corresponds to <source>." and the authority sentence (a plan board's columns sentence after it),
-     nothing more: no baseline, landed state or "maintained by" clause. A system, supersystem or repository page names code alone. */
+  /* The footer (GUIDANCE.md §3): "Corresponds to <source>." and the authority sentence (an issue board's columns sentence after it),
+     nothing more: no baseline, landed state or "maintained by" clause. A system, supersystem or repository state board names code alone. */
   const ft=document.querySelector("footer"), ftx=ft?ft.textContent.replace(/\\s+/g," ").trim():"";
-  const AUTH=kind==="system"?"Code is authoritative on any conflict.":"Code and the Markdown beside this page are authoritative on any conflict.";
+  /* a board rendered before the nomenclature of dashboards-skill/33 reads "beside this board"; the current templates "beside this board" */
+  const AUTH0=kind==="system"?"Code is authoritative on any conflict.":"Code and the Markdown beside this board are authoritative on any conflict.";
+  const AUTH=kind!=="system"&&ftx.includes(AUTH0.replace("this board","this "+"page"))?AUTH0.replace("this board","this "+"page"):AUTH0;
   const COLS=kind==="plan-board"?" Columns 1 to 3 are written once; column 4 records every difference.":"";
   const ftOk=ftx.startsWith("Corresponds to ")&&ftx.length>("Corresponds to . "+AUTH+COLS).length&&ftx.endsWith(". "+AUTH+COLS)&&ftx.split(AUTH).length===2&&!/Maintained by|embedded verbatim|against the baseline|Built from|Drawn from|Nothing has landed/.test(ftx);
   console.log("CHECK footer: "+(ftOk?"trimmed: "+ftx:"FOOTER NOT IN ITS FORM ("+(ftx?JSON.stringify(ftx.slice(0,160)):"no footer")+"): it reads Corresponds to <source>. "+AUTH+COLS));
@@ -195,18 +197,18 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   console.log("CHECK times: "+times.length+" local"+(badT.length?" · RAW UTC STAMP in a <time> without its UTC title ("+badT.slice(0,3).map(t=>t.getAttribute("datetime")).join(", ")+")":"")+(raw.length?" · RAW UTC STAMP shown as text ("+raw.slice(0,3).join(", ")+"): render it with when()":""));
   dashScan("page"); console.log("CHECK dashes: "+(dashHits.size?"DASHED NOT PLANNED: "+[...dashHits].slice(0,6).map(([k,w])=>k+" ("+w+")").join("; ")+": dashed means only planned or pending; draw it solid, or mark it planned":"every dashed element is planned or pending"));
   const glow=document.querySelectorAll(".glow").length; console.log("CHECK glow: "+glow); /* reported, never limited: the glow names exactly what is being worked on (plan/RULES.md §3) */
-  /* the layout detectors (features.js LAYOUT): the header's two halves from 940 px, the page using most of a wide window, the Context's
+  /* the layout detectors (features.js LAYOUT): the header's two halves from 940 px, the board using most of a wide window, the Context's
      and the Guarantees' legends shown wherever their sections draw an encoding */
   const vw=document.documentElement.clientWidth, hd=document.querySelector("header"), h1=hd&&hd.querySelector("h1"), ch=hd&&hd.querySelector(".chips"), pg=document.querySelector(".page");
   if(vw>=940&&h1&&ch&&ch.children.length){ const hb=hd.getBoundingClientRect(), mid=hb.left+hb.width/2, a=h1.getBoundingClientRect(), b=ch.getBoundingClientRect(); if(!(a.right<=mid+2&&b.left>=mid-2)) console.log("CHECK layout: FEATURE MISSING: the header's two halves (intro left, tags right, from 940 px) (template since dashboards-skill/21): the title ends at "+Math.round(a.right)+" px and the tags start at "+Math.round(b.left)+" px, the header's middle is "+Math.round(mid)+" px"); }
-  if(vw>1500&&pg&&pg.getBoundingClientRect().width<vw*0.8) console.log("CHECK layout: FEATURE MISSING: the page using most of a window wider than 1500 px (template since dashboards-skill/10): the page is "+Math.round(pg.getBoundingClientRect().width)+" px of "+vw);
+  if(vw>1500&&pg&&pg.getBoundingClientRect().width<vw*0.8) console.log("CHECK layout: FEATURE MISSING: the board using most of a window wider than 1500 px (template since dashboards-skill/10): the board is "+Math.round(pg.getBoundingClientRect().width)+" px of "+vw);
   const cx=document.querySelector("section.context"), gu=document.querySelector("section.guarantees");
-  /* a state page is as-is (GUIDANCE.md §5, §7): nothing above its Context names an issue, the header, the tiles, every tab drawn and the
+  /* a state board is as-is (GUIDANCE.md §5, §7): nothing above its Context names an issue, the header, the tiles, every tab drawn and the
      Guarantees, code and source views aside */
   if(kind==="system"){ const hits=new Set(); [document.querySelector("header"),document.querySelector(".kpis"),...document.querySelectorAll('[role="tabpanel"]'),gu].filter(Boolean).forEach(root=>{ const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement&&n.parentElement.closest("script,style,pre,code,#insp-body")?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT}); while(w.nextNode()){ const m=(w.currentNode.nodeValue||"").match(/(^|[^\\w&#])#\\d+\\b/g); if(m) m.forEach(x=>hits.add(x.slice(x.indexOf("#")))); } });
     if(hits.size) console.log("CHECK as-is: FEATURE MISSING: an as-is part that names no issue (template since dashboards-skill/26): "+[...hits].slice(0,6).join(", ")+" above the Context section; the issues belong in its roadmap and lists"); }
   if(cx&&cx.querySelector(".badge,.sw,.vp")&&!shown(document.getElementById("context-key"))) console.log("CHECK layout: FEATURE MISSING: the Context's legend shown wherever its cards draw an encoding (template since dashboards-skill/26): its cards draw badges or swatches and no #context-key is shown");
-  if(kind==="system"&&gu&&gu.querySelector("[data-sys],.planned,.gap,.bars,.badge")&&!shown(document.getElementById("guarantees-key"))) console.log("CHECK layout: FEATURE MISSING: the Guarantees' legend shown wherever its bubbles draw an encoding (template since dashboards-skill/26): no #guarantees-key is shown");
+  if(kind==="system"&&gu&&gu.querySelector("[data-sys],.planned,.gap,.bars,.badge")&&!shown(document.getElementById("guarantees-key"))) console.log("CHECK layout: FEATURE MISSING: the Guarantees' legend shown wherever its guarantee cards draw an encoding (template since dashboards-skill/26): no #guarantees-key is shown");
   const want=${JSON.stringify(tab)}; const t=want?document.getElementById(want):tabs[0]; if(t) t.click();
   lvScan(textOf(document.body),"page"); titleScan();
   console.log("CHECK issue titles: "+tSeen.size+" quoted verbatim"+(tHits.size?" · "+[...tHits].map(n=>"ISSUE TITLE NAMES A WORK LEVEL: "+n).join(" · ")+": a defect in the issue, retitled on GitHub":", none names a work level"));
@@ -218,8 +220,8 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
 },400); });
 </script>`;
 
-// The registry check (system/RULES.md §9): on a system, supersystem or repository page, find the docs/dashboards/systems.json
-// the page belongs to and fail when the registry, or any entry's page or workspace.dsl, is git-ignored in its repository, as a
+// The registry check (system/RULES.md §9): on a system, supersystem or repository state board, find the docs/dashboards/systems.json
+// the board belongs to and fail when the registry, or any entry's board or workspace.dsl, is git-ignored in its repository, as a
 // `build/` rule swallows docs/dashboards/build/. Files are tested, never folders: `git check-ignore --no-index` reports every
 // path ending in "/" as matched (by a blank .gitignore line, in git 2.55), so a folder is tested through the files the
 // registry puts in it. --no-index tests the rules alone, so a tracked file under an ignored folder still fails (the next file
@@ -233,11 +235,11 @@ function registryIgnored() {
     if (path.dirname(dir) === dir) break;
     dir = path.dirname(dir);
   }
-  if (!reg) return { note: "registry: no docs/dashboards/systems.json above the page; git-ignore check skipped", problems: [] };
+  if (!reg) return { note: "registry: no docs/dashboards/systems.json above the board; git-ignore check skipped", problems: [] };
   const dash = path.dirname(reg);
   let systems; try { systems = JSON.parse(fs.readFileSync(reg, "utf8")).systems || []; } catch (e) { return { note: "", problems: [`REGISTRY UNREADABLE: ${e.message}`] }; }
   const files = new Map([["systems.json", "the registry"]]);
-  systems.forEach(s => ["page", "dsl"].forEach(k => { const f = typeof s[k] === "string" ? s[k].trim().replace(/\\/g, "/").replace(/^\.?\/+/, "") : ""; if (f && !f.endsWith("/")) files.set(f, `${s.slug || "?"} ${k}`); }));
+  systems.forEach(s => ["board", "page", "dsl"].forEach(k => { const f = typeof s[k] === "string" ? s[k].trim().replace(/\\/g, "/").replace(/^\.?\/+/, "") : ""; if (f && !f.endsWith("/")) files.set(f, `${s.slug || "?"} ${k}`); }));
   const git = a => cp.spawnSync("git", ["-C", dash, ...a], { encoding: "utf8" });
   if (git(["rev-parse", "--is-inside-work-tree"]).status !== 0) return { note: "registry: not inside a git work tree; git-ignore check skipped", problems: [] };
   const rels = [...files.keys()];
@@ -249,23 +251,23 @@ function registryIgnored() {
   return { note: `registry: ${rels.length} paths from systems.json, ${hit.length} git-ignored`, problems };
 }
 
-// The board links of a system, supersystem or repository page (GUIDANCE.md §5; system/RULES.md §6): its BOARDS map, issue number →
-// plan board relative to the page, filled by the presenter on its one line. A link never points at a file that is not there, so an
+// The board links of a system, supersystem or repository state board (GUIDANCE.md §5; system/RULES.md §6): its BOARDS map, issue number →
+// issue board relative to the board, filled by the presenter on its one line. A link never points at a file that is not there, so an
 // entry whose file is missing fails (DEAD BOARD LINK), and so does a map that is not plain JSON (keys and paths in double quotes).
 function boardLinks() {
   if (/<meta name="dashboard" content="(plan-board|work-board)">/.test(src)) return null;
   const m = src.match(/^const BOARDS=(.*?);\s*(\/\/.*)?$/m);
-  if (!m) return { note: "board links: no BOARDS map (a page on a template older than the board-link rule)", problems: [] };
+  if (!m) return { note: "board links: no BOARDS map (a board on a template older than the board-link rule)", problems: [] };
   let map; try { map = JSON.parse(m[1]); } catch (e) { return { note: "", problems: [`BOARDS UNREADABLE: const BOARDS=${m[1].slice(0, 80)} is not plain JSON (${e.message})`] }; }
   const dir = path.dirname(path.resolve(page)), entries = Object.entries(map || {});
   const problems = entries.filter(([, p]) => typeof p !== "string" || /^[a-z]+:/i.test(p) || !fs.existsSync(path.resolve(dir, p.split("#")[0])))
-    .map(([n, p]) => `DEAD BOARD LINK: BOARDS["${n}"] = ${JSON.stringify(p)} is not a plan board file relative to this page`);
+    .map(([n, p]) => `DEAD BOARD LINK: BOARDS["${n}"] = ${JSON.stringify(p)} is not an issue board file relative to this board`);
   return { note: `board links: ${entries.length} in BOARDS, ${problems.length} dead`, problems };
 }
 
-// The page's data (system/RULES.md §2, §10): a system, supersystem or repository page renders its stamp from its state block, a verbatim
+// The board's data (system/RULES.md §2, §10): a system, supersystem or repository state board renders its stamp from its state block, a verbatim
 // copy of state.json beside it, and its planned parts from its DSL and registry. Fails a state block that is not JSON or not in its form
-// (STATE UNREADABLE, STATE INVALID), one that differs from state.json beside the page (STATE EMBED DIFFERS), a state that names a system
+// (STATE UNREADABLE, STATE INVALID), one that differs from state.json beside the board (STATE EMBED DIFFERS), a state that names a system
 // the registry does not list or disagrees with its registry entry on the stamp, the last amendment or the version (STATE UNKNOWN SYSTEM,
 // STATE DISAGREES WITH REGISTRY), an embedded workspace.dsl or systems.json that differs from its file (DSL EMBED DIFFERS, REGISTRY EMBED
 // DIFFERS), and a part reference (data-part, part:) that names no element of the DSL and no system of the registry (PART UNKNOWN). A
@@ -277,22 +279,22 @@ function stateChecks() {
   let R = null; if (reg) { try { R = JSON.parse(fs.readFileSync(reg, "utf8")); } catch (e) { /* the registry check reports it */ } }
   const st = L.blockText(src, "state");
   let tplHas = false; try { tplHas = L.blockText(fs.readFileSync(templateFor(page, kind), "utf8"), "state") != null; } catch (e) { /* no template */ }
-  if (st == null) notes.push(`state: no state block${tplHas ? " (a page on a template older than the data-only path: apply-state.js leaves it to the presenter, who brings it onto the template)" : ""}`);
+  if (st == null) notes.push(`state: no state block${tplHas ? " (a board on a template older than the data-only path: apply-state.js leaves it to the presenter, who brings it onto the template)" : ""}`);
   else {
     let s = null; try { s = JSON.parse(st); } catch (e) { problems.push(`STATE UNREADABLE: the state block is not JSON (${e.message})`); }
     if (s) {
       L.stateProblems(s).forEach(p => problems.push(`STATE INVALID: ${p}`));
       const side = path.join(dir, "state.json");
-      if (fs.existsSync(side)) { if (L.norm(fs.readFileSync(side, "utf8")).trim() !== st) problems.push("STATE EMBED DIFFERS: the state block is not state.json beside the page: node embed.js state.json index.html state"); else notes.push(`state: ${s.slug} at ${(s.asIs || {}).ref} @ ${(s.asIs || {}).sha}${(s.asIs || {}).landed === false ? " · not yet landed" : ""}, embedded from state.json`); }
-      else notes.push("state: no state.json beside the page (the template's own sample)");
+      if (fs.existsSync(side)) { if (L.norm(fs.readFileSync(side, "utf8")).trim() !== st) problems.push("STATE EMBED DIFFERS: the state block is not state.json beside the board: node embed.js state.json index.html state"); else notes.push(`state: ${s.slug} at ${(s.asIs || {}).ref} @ ${(s.asIs || {}).sha}${(s.asIs || {}).landed === false ? " · not yet landed" : ""}, embedded from state.json`); }
+      else notes.push("state: no state.json beside the board (the template's own sample)");
       const e = R && Array.isArray(R.systems) ? R.systems.find(x => x.slug === s.slug) : null;
       if (R && !e) problems.push(`STATE UNKNOWN SYSTEM: the state names ${JSON.stringify(s.slug)}, which docs/dashboards/systems.json does not list`);
-      else if (e) { const d = L.stateVsRegistry(s, e, kind); d.forEach(([f, a, b]) => problems.push(`STATE DISAGREES WITH REGISTRY: ${f} is ${JSON.stringify(a)} on the page and ${JSON.stringify(b)} in systems.json`)); if (!d.length) notes.push(`state: ${s.slug} at ${(s.asIs || {}).ref} @ ${(s.asIs || {}).sha}${(s.asIs || {}).landed === false ? " (not yet landed)" : ""}, as systems.json has it`); }
+      else if (e) { const d = L.stateVsRegistry(s, e, kind); d.forEach(([f, a, b]) => problems.push(`STATE DISAGREES WITH REGISTRY: ${f} is ${JSON.stringify(a)} on the board and ${JSON.stringify(b)} in systems.json`)); if (!d.length) notes.push(`state: ${s.slug} at ${(s.asIs || {}).ref} @ ${(s.asIs || {}).sha}${(s.asIs || {}).landed === false ? " (not yet landed)" : ""}, as systems.json has it`); }
     }
   }
-  /* Built or planned is the code's (system/RULES.md §7, §10): every system the page draws whose code paths the registry records, its
+  /* Built or planned is the code's (system/RULES.md §7, §10): every system the board draws whose code paths the registry records, its
      parts with code paths of their own (partPaths) and its supersystems (built once every core subsystem is) agree with the code at the
-     page's stamped commit (STATUS DISAGREES WITH CODE); a supersystem's subsystem not classified core or optional is a warning. */
+     board's stamped commit (STATUS DISAGREES WITH CODE); a supersystem's subsystem not classified core or optional is a warning. */
   if (R && reg && st != null) { let s0 = null; try { s0 = JSON.parse(st); } catch (e) { /* reported above */ }
     const sha = s0 && s0.asIs ? s0.asIs.sha : null, code = L.codeStatus(R, L.registryRoot(reg), sha), all = R.systems || [], me = s0 && all.find(x => x.slug === s0.slug);
     const drawn = kind === "system" ? (me ? [me] : []) : me && me.kind === "supersystem" ? all.filter(x => x.slug === me.slug || L.isAncestor(all, me.slug, x.slug)) : all;
@@ -305,36 +307,36 @@ function stateChecks() {
     code.parts.filter(x => x.dsl === dslRel).forEach(x => { const el = els.find(y => y.id === x.id); if (el && el.tags.includes("Planned") !== x.planned) problems.push(`STATUS DISAGREES WITH CODE: ${x.id} is ${el.tags.includes("Planned") ? "Planned" : "built"} in workspace.dsl, the code at ${sha} says ${x.planned ? "planned" : "built"} (${x.paths.join(", ")}): run apply-state.js`); });
   }
   const dsl = L.blockText(src, "dsl"), dslFile = path.join(dir, "workspace.dsl");
-  if (dsl != null && fs.existsSync(dslFile) && L.norm(fs.readFileSync(dslFile, "utf8")).trim() !== dsl) problems.push("DSL EMBED DIFFERS: the embedded workspace.dsl is not the file beside the page: node embed.js workspace.dsl index.html dsl");
+  if (dsl != null && fs.existsSync(dslFile) && L.norm(fs.readFileSync(dslFile, "utf8")).trim() !== dsl) problems.push("DSL EMBED DIFFERS: the embedded workspace.dsl is not the file beside the board: node embed.js workspace.dsl index.html dsl");
   const sys = L.blockText(src, "systems");
   if (sys != null && reg && L.norm(fs.readFileSync(reg, "utf8")).trim() !== sys) problems.push("REGISTRY EMBED DIFFERS: the embedded systems.json is not docs/dashboards/systems.json: node embed.js <docs/dashboards/systems.json> index.html systems");
   const ids = new Set(dsl ? L.dslElements(dsl).map(x => x.id) : []);
   let slugs = new Set(); try { slugs = new Set((JSON.parse(sys || "{}").systems || []).map(x => x.slug)); } catch (e) { /* the embed check reports it */ }
   L.partRefs(src).forEach(r => {
-    if (r.startsWith("sys:")) { if (kind !== "supersystem") problems.push(`PART UNKNOWN: ${r}: a system page reads no registry; tie the part to an element of its workspace.dsl`); else if (!slugs.has(r.slice(4))) problems.push(`PART UNKNOWN: ${r}: the embedded registry lists no such system`); }
+    if (r.startsWith("sys:")) { if (kind !== "supersystem") problems.push(`PART UNKNOWN: ${r}: a system board reads no registry; tie the part to an element of its workspace.dsl`); else if (!slugs.has(r.slice(4))) problems.push(`PART UNKNOWN: ${r}: the embedded registry lists no such system`); }
     else if (!ids.has(r)) problems.push(`PART UNKNOWN: ${r}: the embedded workspace.dsl has no such element`);
   });
   return { notes, problems };
 }
 
-// The page's features (features.js; GUIDANCE.md §8, "Features"): every template feature its type takes, whatever its browser pass and
+// The board's features (features.js; GUIDANCE.md §8, "Features"): every template feature its type takes, whatever its browser pass and
 // through a declared divergence too: a missing one fails as FEATURE MISSING: <feature> (template since dashboards-skill/N).
 function featureChecks() {
   if (!src) return null;
   const F = require("./features.js"), { kindOf } = require("./deviation.js"), kind = kindOf(src);
   if (/<meta name="dashboard" content="doc-copy">/.test(src)) return null;
   const miss = F.probe(src, kind);
-  /* --features-as-notes (with --auto --no-browser, apply-state.js): a page that lags its template is the presenter's to splice at the landing
+  /* --features-as-notes (with --auto --no-browser, apply-state.js): a board that lags its template is the presenter's to splice at the landing
      refresh, not a reason to refuse a stamp: its missing features are notes, and do not fail the run */
   /* a landed or cancelled issue board is kept as it landed and never re-rendered (GUIDANCE.md §11, "Re-rendering"): its newer features are notes */
   let closed = false; if (kind === "plan-board") { try { const p = JSON.parse(require("./statelib.js").blockText(src, "plan") || "{}"); closed = ["built", "abandoned"].includes(p.status); } catch (e) { /* the data check reports it */ } }
   const asNotes = closed || (args.includes("--features-as-notes") && args.includes("--no-browser"));
-  return { note: `features: ${F.applicable(kind).length - miss.length} of ${F.applicable(kind).length} a ${kind} page takes`, notes: asNotes ? miss.map(m => "note: " + F.line(m)) : [], problems: asNotes ? [] : miss.map(F.line) };
+  return { note: `features: ${F.applicable(kind).length - miss.length} of ${F.applicable(kind).length} a ${kind} board takes`, notes: asNotes ? miss.map(m => "note: " + F.line(m)) : [], problems: asNotes ? [] : miss.map(F.line) };
 }
-// The issue titles a page quotes (GUIDANCE.md §4, §5; levelrefs.js issueTitleRefs(); admin-team/dashboards-skill/28), read without a
-// browser: a state page's Context titles (written <a data-board="N">title</a>) and its state block's lastAmended.title, a board's data
+// The issue titles a board quotes (GUIDANCE.md §4, §5; levelrefs.js issueTitleRefs(); admin-team/dashboards-skill/28), read without a
+// browser: a state board's Context titles (written <a data-board="N">title</a>) and its state block's lastAmended.title, a board's data
 // block's title fields. A title is quoted verbatim; one that names a work level is a defect in the issue, flagged as a warning, ISSUE
-// TITLE NAMES A WORK LEVEL: #n, never a problem of the page: the admin team brings it to the user to retitle on GitHub.
+// TITLE NAMES A WORK LEVEL: #n, never a problem of the board: the admin team brings it to the user to retitle on GitHub.
 function titleChecks() {
   if (!src || /<meta name="dashboard" content="doc-copy">/.test(src)) return null;
   const { levelRefs, issueTitleRefs, titleDefect } = require("./levelrefs.js"), L = require("./statelib.js"), notes = [];
@@ -347,20 +349,36 @@ function titleChecks() {
   }
   return { notes: notes.length ? notes : [], problems: [] };
 }
-// The links a state page's hand-written HTML makes (GUIDANCE.md §5: a link never points at a file that is not there): every relative
-// href outside its scripts, from the page's folder, when the page sits in a repository's docs/; and its WORK_BOARD's committed board.
+// Internal names (GUIDANCE.md §4, "No internal names"; namerefs.js; dashboards-skill/33), read without a browser: the strings of a board's
+// data blocks (plan, board, state; an issue's title, quoted verbatim, left out), its HTML comments (the old "presenter:" placeholder marks
+// included) and the text of its hand-written HTML (a state board's header, panels, Guarantees and Context; code left out). Each is a
+// warning, INTERNAL NAME, never a problem of the board: the board is reworded at its next refresh.
+function nameChecks() {
+  if (!src || /<meta name="dashboard" content="doc-copy">/.test(src)) return null;
+  const N = require("./namerefs.js"), L = require("./statelib.js"), { titleSkip } = require("./levelrefs.js"), notes = [];
+  ["plan", "board", "state"].forEach(id => { const t = L.blockText(src, id); if (t == null) return; try { const d = JSON.parse(t), h = N.nameRefsIn(d, "", [], titleSkip(d)); if (h.length) notes.push("warning: " + N.nameWarning(`its ${id} data (${[...new Set(h.map(x => x.at))].slice(0, 4).join(", ")})`, h.map(x => x.hit))); } catch (e) { /* the data checks report it */ } });
+  const c = N.commentRefs(src); if (c.length) notes.push("warning: " + N.nameWarning("its comments", c));
+  if (!/<meta name="dashboard" content="(plan-board|work-board)">/.test(src)) {
+    const text = src.replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<style[\s\S]*?<\/style>/g, " ").replace(/<!--[\s\S]*?-->/g, " ").replace(/<(code|pre)\b[^>]*>[\s\S]*?<\/\1>/g, " ")
+      .replace(/<a\b[^>]*\bdata-board="\d+"[^>]*>[\s\S]*?<\/a>/g, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&rsquo;/g, "'").replace(/\s+/g, " ");
+    const h = N.nameRefs(text); if (h.length) notes.push("warning: " + N.nameWarning("its text", h));
+  }
+  return { note: `internal names: ${notes.length ? notes.length + " warning" + (notes.length === 1 ? "" : "s") : "none"}`, notes, problems: [] };
+}
+// The links a state board's hand-written HTML makes (GUIDANCE.md §5: a link never points at a file that is not there): every relative
+// href outside its scripts, from the board's folder, when the board sits in a repository's docs/; and its WORK_BOARD's committed board.
 function deadLinks() {
   if (!src || /<meta name="dashboard" content="(plan-board|work-board|doc-copy)">/.test(src)) return null;
   const { repoRootOf } = (() => { try { return { repoRootOf: p => { for (let d = path.dirname(path.resolve(p)); ; d = path.dirname(d)) { if (fs.existsSync(path.join(d, "docs", "dashboards")) || fs.existsSync(path.join(d, "docs", "plans"))) return d; if (path.dirname(d) === d) return null; } } }; } catch (e) { return { repoRootOf: () => null }; } })();
   const dir = path.dirname(path.resolve(page)), problems = [], notes = [];
   const wb = (src.match(/^const WORK_BOARD=(.*?);\s*(\/\/.*)?$/m) || [])[1];
   if (wb != null) { let W; try { W = JSON.parse(wb); } catch (e) { problems.push(`DEAD LINK: const WORK_BOARD=${wb.slice(0, 60)} is not plain JSON (${e.message})`); }
-    if (W && W.committed != null && (typeof W.committed !== "string" || !fs.existsSync(path.resolve(dir, W.committed)))) problems.push(`DEAD LINK: WORK_BOARD.committed ${JSON.stringify(W.committed)} is not the work board's file relative to this page (null while there is none)`); }
-  if (!repoRootOf(page)) { notes.push("links: the page is in no repository's docs/: its relative links are not checked"); return { notes, problems }; }
+    if (W && W.committed != null && (typeof W.committed !== "string" || !fs.existsSync(path.resolve(dir, W.committed)))) problems.push(`DEAD LINK: WORK_BOARD.committed ${JSON.stringify(W.committed)} is not the repository work board's file relative to this board (null while there is none)`); }
+  if (!repoRootOf(page)) { notes.push("links: the board is in no repository's docs/: its relative links are not checked"); return { notes, problems }; }
   const html = src.replace(/<script[\s\S]*?<\/script>/g, "").replace(/<!--[\s\S]*?-->/g, ""), seen = new Set();
   [...html.matchAll(/\bhref="([^"]+)"/g)].map(m => m[1]).filter(u => !/^([a-z][a-z0-9+.-]*:|#|\/\/)/i.test(u)).forEach(u => { const f = decodeURIComponent(u.split("#")[0].split("?")[0]); if (!f || seen.has(f)) return; seen.add(f);
-    if (!fs.existsSync(path.resolve(dir, f))) problems.push(`DEAD LINK: href="${u}" names no file from this page's folder`); });
-  notes.push(`links: ${seen.size} relative link${seen.size === 1 ? "" : "s"} in the page's HTML, ${problems.filter(p => /href=/.test(p)).length} dead`);
+    if (!fs.existsSync(path.resolve(dir, f))) problems.push(`DEAD LINK: href="${u}" names no file from this board's folder`); });
+  notes.push(`links: ${seen.size} relative link${seen.size === 1 ? "" : "s"} in the board's HTML, ${problems.filter(p => /href=/.test(p)).length} dead`);
   return { notes, problems };
 }
 const wrapped =src.includes("</body>") ? src.replace("</body>", probe + "\n</body>") : src + probe;
@@ -368,8 +386,8 @@ const base = path.basename(path.dirname(path.resolve(page))) + "." + path.basena
 const wrapperPath = path.join(out, base + ".check.html");
 const shot = path.join(out, base + (tab ? "." + tab : "") + (theme ? "." + theme : "") + (frame ? ".frame" + frame : width !== 1400 ? "." + width : "") + ".png");
 fs.writeFileSync(wrapperPath, wrapped);
-// A plan board or the work board re-loads its live sidecar (plan.js, board.js) from beside the page while its run is live: the wrapper
-// gets a copy beside it, so the pass sees the page as a reader would; a copy left by another page is removed.
+// An issue board or the repository work board re-loads its live sidecar (plan.js, board.js) from beside the board while its run is live: the wrapper
+// gets a copy beside it, so the pass sees the board as a reader would; a copy left by another board is removed.
 ["plan.js", "board.js"].forEach(f => { const side = path.join(path.dirname(path.resolve(page)), f); const copy = path.join(out, f); if (/<meta name="dashboard" content="(plan-board|work-board)">/.test(src) && fs.existsSync(side)) fs.copyFileSync(side, copy); else if (fs.existsSync(copy)) fs.unlinkSync(copy); });
 let target = wrapperPath;
 if (frame) {
@@ -389,7 +407,7 @@ paletteLines().forEach(l => { console.log(l); if (/PALETTE IN STATUS HUE|DASHED 
 if (regCheck) { if (regCheck.note) console.log("CHECK " + regCheck.note); regCheck.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); }
 if (boardCheck) { if (boardCheck.note) console.log("CHECK " + boardCheck.note); boardCheck.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); }
 if (stateCheck) { stateCheck.notes.forEach(n => console.log("CHECK " + n)); stateCheck.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); }
-[linkCheck, featureCheck].filter(Boolean).forEach(c => { (c.notes || []).forEach(n => console.log("CHECK " + n)); c.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); });
+[linkCheck, featureCheck, nameCheck].filter(Boolean).forEach(c => { (c.notes || []).forEach(n => console.log("CHECK " + n)); c.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); });
 console.log(`screenshot: ${shot}`);
 if (!lines.some(l => l.includes("CHECK done"))) { console.log("FAIL: the probe never completed (page did not load, or scripts aborted before the probe ran)"); process.exit(1); }
 if (errors.length) { console.log(`FAIL: ${errors.length} problem(s)`); process.exit(1); }

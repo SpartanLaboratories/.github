@@ -9,12 +9,12 @@
 // (a docs-only issue that changes only a planning record, say) records "unassigned": true with "system" null: board.js keeps it,
 // shows "no system" on the row and stops reporting it as missing a system. --refresh-template copies the template over
 // an existing index.html. --no-gh builds from the boards alone (no tracker rows, roadmap or unscheduled issues).
-// --ref names the branch the board reflects (default: the checked-out branch). In a landing refresh the tree is a docs branch cut
-// at the merged commit, so pass the default branch (e.g. --ref master): the board then names the commit it shows, not the branch
-// it was written on. Unit states and the next unit are read as plan/RULES.md §2-§3 set them: a unit row that is complete reads
+// --ref names the branch the board reflects (default: the checked-out branch). At the pre-merge refresh the tree is the landing issue's
+// branch, so pass the default branch (e.g. --ref master): the board lands in that merge, so it names the default branch, not the
+// branch it was written on. Unit states and the next unit are read as plan/RULES.md §2-§3 set them: a unit row that is complete reads
 // "complete", one that is landed (or as-planned, amended or deviated, on a board written before those states) reads "landed", and
 // the unit a tracking board names in wip.next reads "next", never active, with the blockers that have not landed. A row's "board"
-// is set only when that board's dashboard.html exists, and the page links that issue's #n to it, a tracking issue's as much as a sub-issue's (plan/RULES.md §1, §5).
+// is set only when that board's dashboard.html exists, and the board links that issue's #n to it, a tracking issue's as much as a sub-issue's (plan/RULES.md §1, §5).
 // A row with a board carries "reconciliation", its impact's reconciliation state as lib.js reconciliation() derives it (planned,
 // partial or as-built, with landed and total units on a tracking board), or null while the board records no impact (plan/RULES.md §2, §5).
 // A row with no board of its own and no tracking board's unit row to read (a boardless row: any issue the tracker sizes, whatever
@@ -26,7 +26,7 @@
 // links it as closing the issue (closedByPullRequestsReferences) or its head branch names the issue; a branch refers to it when
 // GitHub links it to the issue (linkedBranches) or its name names the issue (branchNames(): "issue-62", "62-slug" or "fix/62" as a
 // path segment, never a number inside a word). The row records what it read as "tracker": { branch, pr: { number, state } }.
-// --live builds the live work board (presenter brief, plan-board mode): run it on the repository's main checkout. It reads the
+// --live builds the live repository work board (presenter brief, plan-board mode): run it on the repository's main checkout. It reads the
 // boards of every worktree of the repository (git worktree list; the root first), keeps for each issue the freshest board (the
 // latest wip.updated, else wip.since, else asBuilt.date, or a later unit.live.updated it mirrors; the root's on a tie), and writes docs/plans/.live/board.json and
 // index.html, never the committed docs/plans/board.json and index.html. Its links reach each board where it lives: relative
@@ -39,7 +39,7 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process"), url = require("url");
 const { repoRoot, flag, opt, registry, findPlans, subIssueBoard, shownBranch, unitBranch, reconciliation, leftForLater, boardlessState, unitInRun, qaShown, depBuild, depLocality, holdState } = require("./lib.js");
 /* A closed issue's reason, kept on every row, roadmap item and waits-on/blocks entry that the tracker read: "NOT_PLANNED" reads
-   "closed · not planned" and "DUPLICATE" "closed · duplicate" on the page, never landed (plan/RULES.md §5); open issues record none. */
+   "closed · not planned" and "DUPLICATE" "closed · duplicate" on the board, never landed (plan/RULES.md §5); open issues record none. */
 const reasonOf = x => x && x.state === "CLOSED" && x.stateReason ? { stateReason: x.stateReason } : {};
 const { embed } = require("./embed.js");
 
@@ -295,8 +295,11 @@ const used = new Set([...rows.map(r => r.system), ...unscheduled.map(u => u.syst
 let tree = {}; try { tree = { ref: opt(args, "ref", null) || sh("git", ["rev-parse", "--abbrev-ref", "HEAD"]).trim(), sha: sh("git", ["rev-parse", "--short", "HEAD"]).trim() }; } catch (e) { /* not a git tree */ }
 const now = new Date();
 if (live) tree = {}; // the live board names no one tree: its boards come from every worktree
-/* the shared pages the work board links (GUIDANCE.md §5; plan/RULES.md §5), relative to the page and only where the file exists */
-const links = {}; [["repoPage", "docs/dashboards/index.html"], ["readme", "docs/plans/README.md"]].forEach(([k, f]) => { if (fs.existsSync(path.join(root, ...f.split("/")))) links[k] = path.relative(outDir, path.join(root, ...f.split("/"))).split(path.sep).join("/"); });
+/* the shared boards the repository work board links (GUIDANCE.md §5; plan/RULES.md §5), relative to the board and only where the file exists */
+/* the repository state board's key: repoBoard (dashboards-skill/33), repoPage while the board written stays on a template older than it
+   (lib.js linkKeys()) */
+const repoKey = (() => { if (flag(args, "refresh-template") || live) return "repoBoard"; try { return require("./lib.js").linkKeys(fs.readFileSync(htmlPath, "utf8")).repo; } catch (e) { return "repoBoard"; } })();
+const links = {}; [[repoKey, "docs/dashboards/index.html"], ["readme", "docs/plans/README.md"]].forEach(([k, f]) => { if (fs.existsSync(path.join(root, ...f.split("/")))) links[k] = path.relative(outDir, path.join(root, ...f.split("/"))).split(path.sep).join("/"); });
 const board = { schema: "work-board/1", repo, generated: now.toISOString().replace(/\.\d+Z$/, "Z"), asOf: now.toISOString().slice(0, 10), tree, links,
   ...(live ? { live: { worktrees: trees.length }, base: "../" } : {}),
   systems: [...used].map(sysInfo), groups: groups.filter(g => rows.some(r => r.group === g.key)), rows, roadmap, unscheduled };
@@ -305,9 +308,9 @@ fs.writeFileSync(jsonPath, JSON.stringify(board, null, 2) + "\n");
 // the live board is always the current template: it is regenerated at every event and never committed
 if (!fs.existsSync(htmlPath) || live || flag(args, "refresh-template")) fs.copyFileSync(path.resolve(__dirname, "..", "template", "board.html"), htmlPath);
 embed(outDir);
-/* The live view's markers and copies (plan/RULES.md §1, §5), in every tree read: docs/plans/.live/index.js names the live work board (this
+/* The live view's markers and copies (plan/RULES.md §1, §5), in every tree read: docs/plans/.live/index.js names the live repository work board (this
    checkout's, or from a worktree the main checkout's: a relative path where one exists, else a file URL; the file is git-ignored and
-   never committed), so every page that links the work board opens the live view first; and the Markdown the boards link, rendered into
+   never committed), so every board that links the repository work board opens the live view first; and the Markdown the boards link, rendered into
    each tree's docs/plans/.live/docs/ (mdcopy.js). Written only where docs/plans/.live/ is git-ignored. */
 if (live) {
   const md = require("./mdcopy.js"), liveHtml = path.join(outDir, "index.html"), notes = new Set();
@@ -315,7 +318,7 @@ if (live) {
     if (!md.liveWritable(t)) { notes.add(`${t === root ? "this checkout" : "a worktree"}: docs/plans/.live/ is not git-ignored: no live markers or rendered copies written there`); return; }
     const dir = path.join(t, "docs", "plans", ".live"), relB = path.relative(dir, liveHtml), href = path.isAbsolute(relB) ? url.pathToFileURL(liveHtml).href : relB.split(path.sep).join("/");
     fs.mkdirSync(dir, { recursive: true });
-    const text = `/* docs/plans/.live/index.js: the live work board on this machine (plan/scripts/board.js --live). Never committed. */\n(window.DASHBOARDS_LIVE=window.DASHBOARDS_LIVE||{}).board=${JSON.stringify(href)};\n`, f = path.join(dir, "index.js");
+    const text = `/* docs/plans/.live/index.js: the live repository work board on this machine (plan/scripts/board.js --live). Never committed. */\n(window.DASHBOARDS_LIVE=window.DASHBOARDS_LIVE||{}).board=${JSON.stringify(href)};\n`, f = path.join(dir, "index.js");
     if (!fs.existsSync(f) || fs.readFileSync(f, "utf8") !== text) fs.writeFileSync(f, text);
     try { if (fs.existsSync(path.join(t, "docs", "plans", "README.md"))) md.copyDocs(t, ["docs/plans/README.md"], { repo }); } catch (e) { notes.add("the README's copy failed: " + e.message); }
   });

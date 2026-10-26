@@ -88,7 +88,7 @@ module.exports = function cases23(X) {
       const js = 'const a=[...document.querySelectorAll("#board a.sref")];document.body.dataset.r=JSON.stringify({t:a.map(x=>x.textContent),ti:a.map(x=>x.title),k:document.getElementById("timeline-key").textContent,bk:(document.getElementById("built-key")||{}).textContent||""});';
       const pg = path.join(f, "probe.html"); fs.writeFileSync(pg, probeAt(rd(path.join(f, "dashboard.html")), js));
       const r = got(wide(pg)) || {};
-      c.push(["the page: \"(§4.2)\" plain, \"(§7?)\" marked, the mark's reason in its title", (r.t || []).includes("(§4.2)") && (r.t || []).includes("(§7?)") && (r.ti || []).some(x => /read from the link's anchor alone/.test(x)), JSON.stringify((r.t || []).slice(0, 6))]);
+      c.push(["the board: \"(§4.2)\" plain, \"(§7?)\" marked, the mark's reason in its title", (r.t || []).includes("(§4.2)") && (r.t || []).includes("(§7?)") && (r.ti || []).some(x => /read from the link's anchor alone/.test(x)), JSON.stringify((r.t || []).slice(0, 6))]);
       c.push(["the Timeline's legend names the mark it drew", /\(§n\?\) a section number read from its link alone/.test(r.k || ""), (r.k || "").slice(-200)]);
       const ex = got(wide(planPage("refnum-example", EX, 'document.body.dataset.r=JSON.stringify({k:document.getElementById("timeline-key").textContent});'))) || {};
       c.push(["a board whose references all have their excerpts draws no mark and names none in its legend", !/\(§n\?\)/.test(ex.k || "x(§n?)"), (ex.k || "").slice(-120)]);
@@ -121,7 +121,7 @@ module.exports = function cases23(X) {
     const rs = tree("lv-sub", [sub]), h = apply(rs, req(path.join(sc, "lv-halt.json"), { github: sub.repo, issue: sub.issue, event: "halted", folder: sub.folder, facts: { waitingOn: "Is the fix still inside level 3? Label level: 3." } }), "2026-10-25T12:00:00Z"), ps = planOf(rs, sub.folder);
     c.push(["a halt on a sub-issue's board: what waits on the user reworded, the unit's scope, enrich yes with the new wording", h.status === 0 && ps.wip.waitingOn === "Is the fix still inside the unit's scope?" && h.s.enrich === "yes" && (h.s.why || []).some(x => /facts\.waitingOn named a work level, which a board never shows: written reworded/.test(x)) && !LR.levelRefsIn(ps, "", []).length, JSON.stringify([h.s.result, ps.wip.waitingOn, h.s.why, h.s.error]).slice(0, 400)]);
     const rr = apply(rs, req(path.join(sc, "lv-rem.json"), { github: sub.repo, issue: sub.issue, event: "implementation-stage", folder: sub.folder, facts: { step: "remediation", remediation: { pass: 1, route: "planner-then-rookie-dev", steps: [{ name: "planner: a level-3 re-pass of plan §9", state: "current" }, { name: "rookie-dev: L1 per-type gating classes", state: "todo" }] } } }), "2026-10-25T12:10:00Z"), pr = planOf(rs, sub.folder);
-    c.push(["a remediation's sub-steps: \"a level-3 re-pass\" reads \"a re-pass\", \"L1 per-type gating\" kept", rr.status === 0 && pr.wip.remediation && pr.wip.remediation.steps[0].name === "planner: a re-pass of plan §9" && pr.wip.remediation.steps[1].name === "rookie-dev: L1 per-type gating classes", JSON.stringify([rr.s.result, pr.wip.remediation, rr.s.error]).slice(0, 300)]);
+    c.push(["a remediation's sub-steps: \"a level-3 re-pass\" reads \"a re-pass\", \"L1 per-type gating\" kept, the role labels dropped, the route's older id read as its neutral one", rr.status === 0 && pr.wip.remediation && pr.wip.remediation.steps[0].name === "a re-pass of plan §9" && pr.wip.remediation.steps[1].name === "L1 per-type gating classes" && pr.wip.remediation.route === "re-plan-then-remediation", JSON.stringify([rr.s.result, pr.wip.remediation, rr.s.error]).slice(0, 300)]);
     const brn = copy(LIVE); Object.assign(brn.wip, { step: "branch", current: [], questions: [], research: null }); const rb = tree("lv-branch", [brn]), was = brn.branch;
     const bc = apply(rb, req(path.join(sc, "lv-branch.json"), { github: brn.repo, issue: brn.issue, event: "branch-cut", folder: brn.folder, facts: { branch: "feat/issue-70-level-3-fix" } }), "2026-10-25T12:20:00Z"), pb = planOf(rb, brn.folder);
     c.push(["an identifier is never reworded: a branch that names a work level is left out, the presenter told", bc.status === 0 && pb.branch === was && (bc.s.why || []).some(x => /facts\.branch names a work level, which a board never shows: not written/.test(x)), JSON.stringify([bc.s.result, pb.branch, bc.s.error])]);
@@ -132,7 +132,7 @@ module.exports = function cases23(X) {
   });
 
   /* 5. this run's feature probes */
-  guard("the feature probes of dashboards-skill/23: on the templates, missed by the templates dashboards-skill/22 left, a work level in a page's data", c => {
+  guard("the feature probes of dashboards-skill/23: on the templates, missed by the templates dashboards-skill/22 left, a work level in a board's data", c => {
     const ids = ["timeline-phases", "ref-number", "level-phrases"], mine = F.FEATURES.filter(f => f.since === 23);
     c.push(["features.js holds this run's three detectors, tagged dashboards-skill/23", JSON.stringify(mine.map(f => f.id).sort()) === JSON.stringify(ids.slice().sort()), mine.map(f => f.id).join(", ")]);
     c.push(["the plan-board template carries each", !F.probe(T.plan, "plan-board").length, F.probe(T.plan, "plan-board").map(F.line).join(" | ")]);
@@ -148,9 +148,9 @@ module.exports = function cases23(X) {
     const sys = tp("system/template/system.html");
     if (sys) { const h = rd(sys).replace(/(<script type="application\/json" id="state">)([\s\S]*?)(<\/script>)/, (x, a, b, z) => { let s; try { s = JSON.parse(b); } catch (e) { return x; } s.lastAmended = { ...(s.lastAmended || {}), issue: 9, title: "a level-3 re-pass" }; return a + "\n" + JSON.stringify(s) + "\n" + z; });
       /* dashboards-skill/28: lastAmended.title quotes the issue's title, which the probe leaves out (a work level there is the issue's
-         defect, flagged by check-page.js); the same words in any other field of the state still miss the feature */
+         defect, flagged by check-board.js); the same words in any other field of the state still miss the feature */
       const h2 = h.replace(/(<script type="application\/json" id="state">)([\s\S]*?)(<\/script>)/, (x, a, b, z) => { let s; try { s = JSON.parse(b); } catch (e) { return x; } s.version = "a level-3 re-pass"; return a + "\n" + JSON.stringify(s) + "\n" + z; });
-      c.push(["a system page whose state names \"a level-3 re-pass\" misses it too (the data-only path's probe), its quoted title aside", F.probe(h2, "system").some(x => x.id === "level-phrases") && !F.probe(h, "system").some(x => x.id === "level-phrases"), F.probe(h2, "system").map(x => x.id).join(", ")]); }
+      c.push(["a system board whose state names \"a level-3 re-pass\" misses it too (the data-only path's probe), its quoted title aside", F.probe(h2, "system").some(x => x.id === "level-phrases") && !F.probe(h, "system").some(x => x.id === "level-phrases"), F.probe(h2, "system").map(x => x.id).join(", ")]); }
     ["system", "supersystem", "work-board"].forEach(k => c.push([`the Timeline phases and the section number are not held to a ${k} page (each names why it does not fit)`, mine.filter(f => f.id !== "level-phrases").every(f => !f.types.includes(k) && f.notFor && f.notFor[k]), mine.map(f => f.id + ": " + (f.notFor || {})[k]).join(" | ").slice(0, 300)]));
   });
   return groups;

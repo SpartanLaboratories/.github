@@ -1,9 +1,9 @@
 // The case groups of admin-team/dashboards-skill/29, run by verify-templates.js (it passes its helpers in), for three tool and template
-// defects: splice.js onto the recorded verified version of a page's template (--verified), and a --template that is a cached version (a
+// defects: splice.js onto the recorded verified version of a board's template (--verified), and a --template that is a cached version (a
 // file in verify/history/) spliced with its template's history as the merge bases, not with none; apply-state.js keeping a verbatim
 // lastAmended.title already on record for the same issue, taking facts.title when the event carries it, and the folder's name only when
-// neither exists (noted); and a planned supersystem whose built parts have a page, its Systems card linking that page ("its built parts'
-// page", "planned · built in part") instead of "no page yet", with its legend entry and its feature probe. Each group returns
+// neither exists (noted); and a planned supersystem whose built parts have a board, its Systems card linking that board ("its built parts'
+// page", "planned · built in part") instead of "no board yet", with its legend entry and its feature probe. Each group returns
 // [title, cases], a case [name, ok, detail].
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
@@ -23,7 +23,7 @@ module.exports = function cases29(X) {
   guard("splice.js onto the recorded verified version (--verified), and a cached version as --template keeping its template's history (dashboards-skill/29)", c => {
     const dev = require(sk("system/scripts/deviation.js")), norm = dev.norm, sha = dev.sha;
     /* a scratch skill (its scripts, its own verified.json and verify/history/): three versions of the system template, the verified one
-       recorded and cached, an older one the page was made from, and the template on disk being edited past the verified one */
+       recorded and cached, an older one the board was made from, and the template on disk being edited past the verified one */
     const FS = path.join(sc, "skill"), fsk = p => path.join(FS, ...p.split("/"));
     fs.readdirSync(sk("system/scripts")).filter(f => f.endsWith(".js")).forEach(f => wr(fsk("system/scripts/" + f), rd(sk("system/scripts/" + f))));
     const ver = norm(rd(SYS)), old = ver.replace("footer{margin-top:28px;", "footer{margin-top:24px;"), edit = ver.replace("footer{margin-top:28px;", "footer{margin-top:32px;");
@@ -45,18 +45,18 @@ module.exports = function cases29(X) {
     /* the template being edited: the current template is the edit, the verified version the cached one */
     wr(TPL, edit); wr(page, old); ({ r, j } = splice("--template", TPL, "--verified"));
     c.push(["while the template is edited, --verified splices onto the verified version from verify/history/, not onto the edit", r.status === 0 && j && /read from verify\/history\/system\/[0-9a-f]{12}\.html$/.test(j.onto) && margin() === "28", JSON.stringify(j && { onto: j.onto, m: margin() }) || r.stderr]);
-    c.push(["…with the template's recorded history as its merge bases: both versions read, the page's unchanged CSS replaced", j && j.history && j.history.read === 2 && /replaced: the page had not changed it/.test(how(j, "style block 1").how || "") && !j.warnings.length, JSON.stringify(j && { h: j.history, p: how(j, "style block 1"), w: j.warnings })]);
+    c.push(["…with the template's recorded history as its merge bases: both versions read, the board's unchanged CSS replaced", j && j.history && j.history.read === 2 && /replaced: the board had not changed it/.test(how(j, "style block 1").how || "") && !j.warnings.length, JSON.stringify(j && { h: j.history, p: how(j, "style block 1"), w: j.warnings })]);
     wr(page, old); ({ r, j } = splice("--template", TPL));
     c.push(["without --verified the splice is onto the current template, the edit", r.status === 0 && j && j.onto === "the current template" && margin() === "32", JSON.stringify(j && { onto: j.onto, m: margin() })]);
 
     /* a cached version given as --template: its template's history, not none */
     wr(page, old); ({ r, j } = splice("--template", VERF));
-    c.push(["a cached version as --template: onto that version, the template it is a version of named, its history read (the defect: none was)", r.status === 0 && j && /^the recorded version [0-9a-f]{12} \(the verified version \(verify case\)\) of system\/template\/system\.html$/.test(j.onto) && path.resolve(j.template) === path.resolve(TPL) && j.history.read === 2 && /replaced: the page had not changed it/.test(how(j, "style block 1").how || "") && margin() === "28", JSON.stringify(j && { onto: j.onto, t: j.template, h: j.history, p: how(j, "style block 1") }) || r.stderr]);
+    c.push(["a cached version as --template: onto that version, the template it is a version of named, its history read (the defect: none was)", r.status === 0 && j && /^the recorded version [0-9a-f]{12} \(the verified version \(verify case\)\) of system\/template\/system\.html$/.test(j.onto) && path.resolve(j.template) === path.resolve(TPL) && j.history.read === 2 && /replaced: the board had not changed it/.test(how(j, "style block 1").how || "") && margin() === "28", JSON.stringify(j && { onto: j.onto, t: j.template, h: j.history, p: how(j, "style block 1") }) || r.stderr]);
 
     /* a declared divergence, merged three ways onto the verified version */
     const div = old.replace("</head>", '<meta name="template-divergence" content="a rule of its own (verify case)">\n</head>').replace("<style>", "<style>\n.page-own{outline:0}");
     wr(page, div); ({ r, j } = splice("--template", TPL, "--verified"));
-    c.push(["a declared divergence is merged three ways onto the verified version: the page's change kept, the template's taken", r.status === 0 && /merged three ways \(its declared divergence kept\)/.test(how(j, "style block 1").how || "") && /<style>\n\.page-own\{outline:0\}/.test(rd(page)) && margin() === "28", JSON.stringify(how(j, "style block 1"))]);
+    c.push(["a declared divergence is merged three ways onto the verified version: the board's change kept, the template's taken", r.status === 0 && /merged three ways \(its declared divergence kept\)/.test(how(j, "style block 1").how || "") && /<style>\n\.page-own\{outline:0\}/.test(rd(page)) && margin() === "28", JSON.stringify(how(j, "style block 1"))]);
 
     /* the plain report names what it spliced onto */
     wr(page, old); const txt = cp.spawnSync(process.execPath, [SP, page, "--template", TPL, "--verified", "--dry-run"], { encoding: "utf8" });
@@ -67,7 +67,7 @@ module.exports = function cases29(X) {
     c.push(["--verified with no verified record exits 2, naming why", r.status === 2 && /--verified: system\/template\/system\.html has no verified record/.test(r.stderr || ""), (r.stderr || "").trim()]);
     record(); fs.rmSync(VERF); const noGh = path.join(sc, "not-a-clone"); fs.mkdirSync(noGh, { recursive: true });
     ({ r } = splice("--template", TPL, "--verified", "--history-repo", noGh));
-    c.push(["--verified with the verified version neither on disk nor rebuildable exits 2, and the page is not written", r.status === 2 && /neither the template on disk nor a readable recorded version/.test(r.stderr || "") && margin() === "24", (r.stderr || "").trim().slice(0, 240)]);
+    c.push(["--verified with the verified version neither on disk nor rebuildable exits 2, and the board is not written", r.status === 2 && /neither the template on disk nor a readable recorded version/.test(r.stderr || "") && margin() === "24", (r.stderr || "").trim().slice(0, 240)]);
     c.push(["--verified is a known flag of splice.js (an unknown one still exits 2)", cp.spawnSync(process.execPath, [SP, page, "--verifed"], { encoding: "utf8" }).status === 2 && /--verified/.test(cp.spawnSync(process.execPath, [SP, "--help"], { encoding: "utf8" }).stdout + cp.spawnSync(process.execPath, [SP, "--help"], { encoding: "utf8" }).stderr), "usage"]);
   });
 
@@ -102,17 +102,17 @@ module.exports = function cases29(X) {
     const embedded = () => [path.join(A, "index.html"), path.join(D, "index.html")].every(p => L.blockText(rd(p), "state") === rd(path.join(path.dirname(p), "state.json")).trim());
     const slugNote = s => (s.notes || []).some(x => /taken from the folder's name/.test(x));
 
-    /* the defect: no facts.title, a verbatim title on the page's state for #9, and the folder name written over it */
+    /* the defect: no facts.title, a verbatim title on the board's state for #9, and the folder name written over it */
     build({ issue: 5, title: "five", sha: "1111111" }, { issue: 9, title: VERB, sha: "1111111" });
     let s = apply({});
     let [ta, tr] = titles();
-    c.push(["no facts.title: the page keeps the verbatim title its state.json holds for the same issue, never the folder's name", s.status === 0 && ta === VERB, JSON.stringify({ result: s.result, ta, error: s.error })]);
-    c.push(["…and the shared page in scope, with no title for #9, takes that verbatim title, not the folder's name; no folder-name note", tr === VERB && !slugNote(s) && embedded(), JSON.stringify({ tr, notes: s.notes })]);
+    c.push(["no facts.title: the board keeps the verbatim title its state.json holds for the same issue, never the folder's name", s.status === 0 && ta === VERB, JSON.stringify({ result: s.result, ta, error: s.error })]);
+    c.push(["…and the shared board in scope, with no title for #9, takes that verbatim title, not the folder's name; no folder-name note", tr === VERB && !slugNote(s) && embedded(), JSON.stringify({ tr, notes: s.notes })]);
 
     /* facts.title wins when the event carries it */
     build({ issue: 5, title: "five", sha: "1111111" }, { issue: 9, title: VERB, sha: "1111111" });
     s = apply({ title: "Add the next part (retitled on GitHub)" }); [ta, tr] = titles();
-    c.push(["facts.title, when the event carries it, is written on every page in scope", s.status === 0 && ta === "Add the next part (retitled on GitHub)" && tr === ta && !slugNote(s) && embedded(), JSON.stringify({ ta, tr })]);
+    c.push(["facts.title, when the event carries it, is written on every board in scope", s.status === 0 && ta === "Add the next part (retitled on GitHub)" && tr === ta && !slugNote(s) && embedded(), JSON.stringify({ ta, tr })]);
 
     /* a title on record for another issue is not this one's */
     build({ issue: 5, title: "five", sha: "1111111" }, { issue: 5, title: "five", sha: "1111111" });
@@ -123,41 +123,41 @@ module.exports = function cases29(X) {
     const again = apply({});
     c.push(["the same request again changes nothing (the folder's name it wrote is no verbatim title, so it is not mistaken for one)", again.status === 0 && again.result === "duplicate" && titles().every(t => t === "next-part"), JSON.stringify({ result: again.result, wrote: again.wrote })]);
 
-    /* a folder-name title on record yields to a verbatim one another page holds */
+    /* a folder-name title on record yields to a verbatim one another board holds */
     build({ issue: 9, title: "next-part", sha: "1111111" }, { issue: 9, title: VERB, sha: "1111111" });
     s = apply({}); [ta, tr] = titles();
-    c.push(["a page holding only the folder's name for the issue takes the verbatim title another page in scope holds", s.status === 0 && ta === VERB && tr === VERB && !slugNote(s), JSON.stringify({ ta, tr })]);
-    c.push(["the pages it wrote pass check-page.js --auto --no-browser", [path.join(A, "index.html"), path.join(D, "index.html")].every(p => cp.spawnSync(process.execPath, [checker, p, "--auto", "--no-browser"], { encoding: "utf8" }).status === 0), /^pass/.test(s.check || "") ? s.check : String(s.check)]);
+    c.push(["a board holding only the folder's name for the issue takes the verbatim title another board in scope holds", s.status === 0 && ta === VERB && tr === VERB && !slugNote(s), JSON.stringify({ ta, tr })]);
+    c.push(["the boards it wrote pass check-board.js --auto --no-browser", [path.join(A, "index.html"), path.join(D, "index.html")].every(p => cp.spawnSync(process.execPath, [checker, p, "--auto", "--no-browser"], { encoding: "utf8" }).status === 0), /^pass/.test(s.check || "") ? s.check : String(s.check)]);
   });
 
-  /* 3. a planned supersystem whose built parts have a page */
-  guard("a planned supersystem whose built parts have a page: its Systems card links that page, never \"no page yet\" (dashboards-skill/29)", c => {
+  /* 3. a planned supersystem whose built parts have a board */
+  guard("a planned supersystem whose built parts have a board: its Systems card links that board, never \"no board yet\" (dashboards-skill/29)", c => {
     const L = require(sk("system/scripts/statelib.js")), F = require(sk("system/scripts/features.js")), H = require(sk("system/scripts/history.js"));
     const sup = rd(SUP), reg = JSON.parse(L.blockText(sup, "systems"));
-    /* system-gamma: a planned supersystem with a page for its built parts, and a planned system with none beside it */
+    /* system-gamma: a planned supersystem with a board for its built parts, and a planned system with none beside it */
     Object.assign(reg.systems.find(e => e.slug === "system-gamma"), { kind: "supersystem", page: "system-gamma/index.html" });
     reg.systems.push({ slug: "system-delta", name: "system-delta", kind: "system", parent: null, status: "planned", function: "What delta will do.", paths: [], plannedBy: { issue: 0, architecture: "docs/plans/N-slug/architecture.md" } });
     const regText = "{\n  \"repo\": \"ORG/REPO\",\n  \"updated\": \"YYYY-MM-DD\",\n  \"systems\": [\n" + reg.systems.map(e => "    " + L.inline(e)).join(",\n") + "\n  ]\n}\n";
     const page = wr(path.join(sc, "parts-page", "index.html"), L.embedInto(sup, "systems", regText)); wr(path.join(sc, "parts-page", "system-gamma", "index.html"), "<!doctype html><title>stub</title>");
     const d = dumpDom(page, "", "1400,1000");
-    c.push(["a browser renders the page (set CHROME)", d != null, "no Chrome or Edge found"]);
+    c.push(["a browser renders the board (set CHROME)", d != null, "no Chrome or Edge found"]);
     if (d != null) {
       const cards = inner(d, '<div class="syscards" id="syscards">', "div"), card = slug => (cards.match(new RegExp(`<span class="syscard planned"[^>]*data-slug="${slug}"[\\s\\S]*?</span></div></span>`)) || [""])[0];
       const g = card("system-gamma"), dl = card("system-delta"), key = text(inner(d, '<div class="key" id="systems-key">', "div"));
-      c.push(["the planned supersystem's card links its built parts' page and says \"planned · built in part\", not \"no page yet\"", /<div class="st">planned · built in part<\/div>/.test(g) && /<a href="system-gamma\/index\.html">its built parts' page<\/a>/.test(g) && !/no page yet/.test(g), text(g).slice(0, 220)]);
+      c.push(["the planned supersystem's card links its built parts' board and says \"planned · built in part\", not \"no board yet\"", /<div class="st">planned · built in part<\/div>/.test(g) && /<a href="system-gamma\/index\.html">its built parts' board<\/a>/.test(g) && !/no board yet/.test(g), text(g).slice(0, 220)]);
       c.push(["…as a link inside the card, the card itself a span (links do not nest: \"its plan\" is a link too)", /^<span class="syscard planned"/.test(g) && !/<a class="syscard planned"[^>]*data-slug="system-gamma"/.test(cards), g.slice(0, 120)]);
-      c.push(["a planned system with no page still says \"planned · no page yet\", with no page link", /<div class="st">planned · no page yet<\/div>/.test(dl) && !/its built parts' page/.test(dl), text(dl).slice(0, 200)]);
-      c.push(["the legend names both: \"planned: no page yet, or built in part: links its built parts' page\"", /planned: no page yet, or built in part: links its built parts' page/.test(key), key.slice(0, 300)]);
+      c.push(["a planned system with no board still says \"planned · no board yet\", with no board link", /<div class="st">planned · no board yet<\/div>/.test(dl) && !/its built parts' board/.test(dl), text(dl).slice(0, 200)]);
+      c.push(["the legend names both: \"planned: no board yet, or built in part: links its built parts' board\"", /planned: no board yet, or built in part: links its built parts' board/.test(key), key.slice(0, 300)]);
       const base = dumpDom(SUP, "", "1400,1000"), bkey = text(inner(base, '<div class="key" id="systems-key">', "div"));
-      c.push(["with no planned supersystem page, the legend keeps \"planned: no page yet\" alone", /planned: no page yet(?!, or)/.test(bkey) && !/built parts/.test(bkey), bkey.slice(0, 200)]);
+      c.push(["with no planned supersystem board, the legend keeps \"planned: no board yet\" alone", /planned: no board yet(?!, or)/.test(bkey) && !/built parts/.test(bkey), bkey.slice(0, 200)]);
       const ck = cp.spawnSync(process.execPath, [checker, page, "--out", path.join(sc, "parts-page-check")], { encoding: "utf8" });
-      c.push(["check-page.js's full pass passes the page (legends, dashes, keyboard, no dead link)", ck.status === 0, (ck.stdout || "").split(/\r?\n/).filter(l => /FAIL|DEAD|LEGEND|MISSING/.test(l)).slice(0, 4).join(" | ") || "pass"]);
+      c.push(["check-board.js's full pass passes the board (legends, dashes, keyboard, no dead link)", ck.status === 0, (ck.stdout || "").split(/\r?\n/).filter(l => /FAIL|DEAD|LEGEND|MISSING/.test(l)).slice(0, 4).join(" | ") || "pass"]);
     }
     /* the feature probe: the template passes it; the verified version before this run lacks it */
-    c.push(["the feature probe planned-parts-page applies to supersystem and repository pages, and the template passes it", F.applicable("supersystem").some(f => f.id === "planned-parts-page") && !F.probe(sup, "supersystem").some(m => m.id === "planned-parts-page"), JSON.stringify(F.probe(sup, "supersystem"))]);
+    c.push(["the feature probe planned-parts-page applies to supersystem and repository state boards, and the template passes it", F.applicable("supersystem").some(f => f.id === "planned-parts-page") && !F.probe(sup, "supersystem").some(m => m.id === "planned-parts-page"), JSON.stringify(F.probe(sup, "supersystem"))]);
     c.push(["…not to the other types, each with its reason", ["system", "plan-board", "work-board"].every(k => !F.applicable(k).some(f => f.id === "planned-parts-page")) && Object.keys((F.FEATURES.find(f => f.id === "planned-parts-page") || {}).notFor || {}).length === 3, JSON.stringify((F.FEATURES.find(f => f.id === "planned-parts-page") || {}).notFor)]);
-    const lacks = (() => { const R = H.load(SUP, { noRebuild: true }).versions.filter(v => !/its built parts' page/.test(v.html)); return R.length ? R[R.length - 1].html : null; })();
-    c.push(["a page on the template before this run is missing the feature (it says \"no page yet\" on such a card)", lacks == null || F.probe(lacks, "supersystem").some(m => m.id === "planned-parts-page" && /no page yet/.test(m.why)), lacks == null ? "no earlier version cached" : JSON.stringify(F.probe(lacks, "supersystem").filter(m => m.id === "planned-parts-page"))]);
+    const lacks = (() => { const R = H.load(SUP, { noRebuild: true }).versions.filter(v => !/its built parts' (?:board|page)/.test(v.html)); return R.length ? R[R.length - 1].html : null; })();
+    c.push(["a board on the template before this run is missing the feature (it says \"no board yet\" on such a card)", lacks == null || F.probe(lacks, "supersystem").some(m => m.id === "planned-parts-page" && /no board yet/.test(m.why)), lacks == null ? "no earlier version cached" : JSON.stringify(F.probe(lacks, "supersystem").filter(m => m.id === "planned-parts-page"))]);
   });
 
   return groups;

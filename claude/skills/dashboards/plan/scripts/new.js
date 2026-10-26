@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Lay a plan board's foundation (the "sized" event, plan/RULES.md §4): docs/plans/[<parent>/]<issue>-<slug>/{plan.json,dashboard.html}.
+// Lay an issue board's foundation (the "sized" event, plan/RULES.md §4): docs/plans/[<parent>/]<issue>-<slug>/{plan.json,dashboard.html}.
 //   node new.js <issue> <slug> [--root <repo>] [--parent <folder under docs/plans>] [--kind issue|tracking] [--level 2|3|4]
 //               [--title "Short name"] [--issue-title "The issue's title"] [--function "One paragraph"]
 //               [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems slug,slug] [--step research] [--repo owner/name]
@@ -52,7 +52,7 @@ function batch(a) {
       /* a true sentence until the presenter writes the unit's own function from the documents */
       function: `${r.name}: unit ${u.n != null ? u.n + " " : ""}of #${tp.issue}, its board laid from #${tp.issue}'s architecture. Its own plan is written when its run starts.`, status: "planned", sized: null /* not started: its sized event stamps it */, parent: { issue: tp.issue, board: null }, branch: null,
       baseline: { ref: (tp.baseline || {}).ref || "master", sha: base, date: opt(a, "date", now.slice(0, 10)) }, asBuilt: null,
-      systems: [r.system].filter(Boolean).map(s => (reg && reg.info(s)) || (tp.systems || []).find(x => x && x.slug === s) || { slug: s, name: s, slot: 0, top: s, status: "built", page: null }),
+      systems: [r.system].filter(Boolean).map(s => (reg && reg.info(s)) || (tp.systems || []).find(x => x && x.slug === s) || { slug: s, name: s, slot: 0, top: s, status: "built", board: null }),
       /* not started: no step, nothing glows, the steps its run will take; "sized" starts it in place (plan/RULES.md §4) */
       wip: { step: null, since: now, updated: now, detail: "", steps: STEPS_BY_LEVEL[level] || STEPS_BY_LEVEL[3], current: [], questions: [], research: null, interview: [], plan: null, stages: [], remediation: null, open: [], event: { name: "boards-created", at: now }, history: {} /* not started: its sized event records sizing */, next: null, qa: [], qaMax: 3, waitingOn: null, resume: null, blockers: { waitsOn: (u.blockedBy || []).map(n => ({ issue: n })), blocks: [] }, landing: null },
       milestones: [], trail: [{ date: now.slice(0, 10), column: "gap", label: `Board laid from #${tp.issue}'s architecture; not started` }], rows: [], impact: null, tests: null, roadmap: null, followUps: [], documents: [], notes: {} });
@@ -103,7 +103,7 @@ Object.assign(plan, {
   branch: opt(args, "branch", null),
   baseline: { ref: "master", sha: opt(args, "baseline", plan.baseline.sha), date: opt(args, "date", plan.baseline.date) },
   asBuilt: null,
-  systems: (opt(args, "systems", "") || "").split(",").filter(Boolean).map(s => (reg && reg.info(s)) || { slug: s, name: s, slot: 0, top: s, status: "built", page: null }),
+  systems: (opt(args, "systems", "") || "").split(",").filter(Boolean).map(s => (reg && reg.info(s)) || { slug: s, name: s, slot: 0, top: s, status: "built", board: null }),
   wip: { step, since: now, updated: now, detail: "", steps: STEPS_BY_LEVEL[level] || STEPS_BY_LEVEL[3], current: step === "research" ? [] : glowFor(step) /* the step-to-column map, plan/RULES.md §3; a new board has no rows, and during research planning a board with no rows glows nothing */, questions: [] /* the research questions, each with its state, from research-started (plan/RULES.md §3) */, research: null /* the research phase, from research-planning */, interview: [] /* the interview questions, answered or waiting */, plan: null /* the plan pass: writing, or a re-pass */, stages: [] /* the implementation stages, from plan.md */, remediation: null, open: [] /* the open points raised during the run, until resolved */, event: { name: "sized", at: now } /* the last event (plan/RULES.md §4) */, history: { sizing: [{ since: null, ended: now, endedBy: "sized", to: step }] } /* the finished steps, frozen as they end (plan/RULES.md §3, "Finished steps"): sizing ends here */, next: null, qa: [], qaMax: 3, waitingOn: null, resume: null, blockers: { waitsOn: [], blocks: [] }, landing: null },
   // impact is written at plan acceptance from impact.md and reconciled at the landing (plan/RULES.md §2, Impact); until then the
   // Impact tab says that nothing is recorded yet

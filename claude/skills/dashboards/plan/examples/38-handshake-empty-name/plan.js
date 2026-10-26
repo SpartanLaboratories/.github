@@ -1,4 +1,4 @@
-/* plan.js: plan.json as a script, written by plan/scripts/embed.js beside the page for its live view (plan/RULES.md §1). Do not edit: edit plan.json and re-embed. */
+/* plan.js: plan.json as a script, written by plan/scripts/embed.js beside the board for its live view (plan/RULES.md §1). Do not edit: edit plan.json and re-embed. */
 window.dashboardLive&&window.dashboardLive("plan",
 {
   "schema": "plan-board/1",
@@ -2064,7 +2064,7 @@ window.dashboardLive&&window.dashboardLive("plan",
   ],
   "notes": {
     "paths": "Paths under `webtools-udp/src/main/kotlin/com/spartanlabs/webtools/udp/` are abbreviated `main/`; paths under `webtools-udp/src/test/kotlin/com/spartanlabs/testing/` are abbreviated `test/`. Line references are on the baseline 85cfbbe unless a change names a later commit.",
-    "retrofit": "This board was written after the fact, as the worked example for plan boards, from the issue's research, architecture, plan, impact and as-built documents; its dates come from the commits and the pull request. Its qa passes are the two reviews of the change set. A board kept from the start of a run is updated at every step transition, and its WIP strip shows where the run is.",
+    "retrofit": "This board was written after the fact, as the worked example for issue boards, from the issue's research, architecture, plan, impact and as-built documents; its dates come from the commits and the pull request. Its qa passes are the two reviews of the change set. A board kept from the start of a run is updated at every step transition, and its WIP strip shows where the run is.",
     "corrections": [
       {
         "what": "The release row's system is `webtools-udp`: `webtools-udp/build.gradle.kts` sits under that module's registry paths, not the Gradle build's.",

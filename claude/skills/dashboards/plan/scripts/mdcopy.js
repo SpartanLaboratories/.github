@@ -1,4 +1,4 @@
-// The rendered copies of the Markdown a plan board links (plan/RULES.md §1, "The Markdown copies"). Not a command: embed.js (and so
+// The rendered copies of the Markdown an issue board links (plan/RULES.md §1, "The Markdown copies"). Not a command: embed.js (and so
 // apply-event.js and new.js) and board.js --live call it.
 //
 // Every Markdown document a board links — its plan.md or plan-<unit>.md, final-implementation.md, impact.md, architecture.md, the
@@ -7,7 +7,7 @@
 // document outside docs/plans/ goes under .live/docs/_repo/<its path from the repository root>). A copy has GitHub's heading anchors,
 // so a statement's "(§n)" reference opens it at its section; its links to the other copies are rewritten to them and every other
 // relative link to the file itself; it carries the boards' light and dark palettes and the theme switch. docs/plans/.live/docs/index.js
-// lists the copies on disk ((window.DASHBOARDS_LIVE||{}).docs, repository-relative .md paths): a board, the work board and a copy load it
+// lists the copies on disk ((window.DASHBOARDS_LIVE||{}).docs, repository-relative .md paths): a board, the repository work board and a copy load it
 // and open the copy when one exists, else the .md. The copies are a cache of this machine, never committed: they are written only where
 // docs/plans/.live/ is git-ignored (the main checkout's .git/info/exclude, shared by every worktree) or outside a git work tree.
 "use strict";
@@ -82,7 +82,7 @@ function render(md, link) {
   return out.join("\n");
 }
 
-/* The page of one copy: the boards' palettes, the theme switch (applied before the first paint), the rendered document. */
+/* The board of one copy: the boards' palettes, the theme switch (applied before the first paint), the rendered document. */
 function page(title, srcRel, repo, body) {
   return `<!doctype html>
 <html lang="en">
@@ -93,7 +93,7 @@ function page(title, srcRel, repo, body) {
 <title>${esc(title)}</title>
 <script>try{var t=localStorage.getItem("dashboards-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
 <style>
-/* A rendered copy of a Markdown document a plan board links (plan/scripts/mdcopy.js; plan/RULES.md §1): the boards' palettes, light and
+/* A rendered copy of a Markdown document an issue board links (plan/scripts/mdcopy.js; plan/RULES.md §1): the boards' palettes, light and
    dark; prose at its own measure. Never committed: it lives in the git-ignored docs/plans/.live/docs/ of this machine. */
 :root{--bg:#f3f5f8;--surface:#fcfcfd;--surface-2:#eef1f6;--ink:#0e1420;--ink-2:#4a5468;--muted:#7d879a;--line:#dfe4ec;--link:#2a78d6;--focus:#2a78d6;
   --sans:system-ui,-apple-system,"Segoe UI",sans-serif;--mono:ui-monospace,"Cascadia Mono",Consolas,"SF Mono",monospace}
@@ -207,7 +207,7 @@ function indexed(root) {
 }
 function writeIndex(root) {
   const f = path.join(root, "docs", "plans", ".live", "docs", "index.js");
-  const text = `/* docs/plans/.live/docs/index.js: the rendered copies of the Markdown the plan boards link, on this machine (plan/scripts/mdcopy.js). Never committed. */\n(window.DASHBOARDS_LIVE=window.DASHBOARDS_LIVE||{}).docs=${JSON.stringify(indexed(root))};\n`;
+  const text = `/* docs/plans/.live/docs/index.js: the rendered copies of the Markdown the issue boards link, on this machine (plan/scripts/mdcopy.js). Never committed. */\n(window.DASHBOARDS_LIVE=window.DASHBOARDS_LIVE||{}).docs=${JSON.stringify(indexed(root))};\n`;
   fs.mkdirSync(path.dirname(f), { recursive: true });
   let old = null; try { old = fs.readFileSync(f, "utf8"); } catch (e) { /* new */ }
   if (old !== text) fs.writeFileSync(f, text);

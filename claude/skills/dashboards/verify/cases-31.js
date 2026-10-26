@@ -1,8 +1,8 @@
 // The case groups of admin-team/dashboards-skill/31, run by verify-templates.js (it passes its helpers in): the decision not to run another
 // qa pass shown (a pass whose findings were fixed in place, its on-the-spot route read from the pass, the remediation loop answering it, or
 // a frozen remediation visit; never from prose), derived by lib.js qaShown() / qaInPlace() and drawn as a small neutral mark beside the
-// pass on the work board's QA column, a plan board's QA tile and WIP strip and a tracking unit's run line; apply-event.js recording a
-// remediation's route on the pass it answers; check.js refusing a stored inPlace; the work board's Runs tab drawn larger but its Now column,
+// pass on the repository work board's QA column, an issue board's QA tile and WIP strip and a tracking unit's run line; apply-event.js recording a
+// remediation's route on the pass it answers; check.js refusing a stored inPlace; the repository work board's Runs tab drawn larger but its Now column,
 // each run a labelled card under 880 px with no sideways scroll; and this run's feature probes. Each group returns [title, cases], a case
 // [name, ok, detail].
 "use strict";
@@ -66,7 +66,7 @@ module.exports = function cases31(X) {
   });
 
   /* 3. board.js writes the mark into the row, and the work-board page draws it, with its legend; an older board.json is derived */
-  guard("the work board: the mark beside the pass in the QA column, its legend, from board.js and from an older board.json (dashboards-skill/31)", c => {
+  guard("the repository work board: the mark beside the pass in the QA column, its legend, from board.js and from an older board.json (dashboards-skill/31)", c => {
     const root = path.join(sc, "wbtree"), plans = path.join(root, "docs", "plans"); fs.mkdirSync(plans, { recursive: true });
     const git = (...a) => cp.spawnSync("git", ["-c", "user.name=verify", "-c", "user.email=verify@example.invalid", ...a], { cwd: root, encoding: "utf8" });
     if (git("init", "-q", "-b", "master").status !== 0) { c.push(["git is available", false, "git init failed"]); return; }
@@ -84,15 +84,15 @@ module.exports = function cases31(X) {
     const rowOf = n => { const m = new RegExp(`<tr class="run[^"]*"[^>]*><td><span class="t"><a [^>]*/issues/${n}"`).exec(dom); return m ? inner(dom.slice(m.index), '<tr class="run[^"]*"[^>]*>', "tr") : ""; };
     const t84 = text(rowOf(84)), t47 = text(rowOf(47));
     c.push(["#84's QA cell: \"✕ 1st · changes requested\" with \"✎ fixed in place · no 2nd pass\" beside it, in a neutral mark", /1st · changes requested ✎ fixed in place · no 2nd pass/.test(t84) && /<span class="qa1"><span class="vp critical">[\s\S]*?<\/span><span class="qamark"/.test(rowOf(84)), t84.slice(t84.indexOf("1st"), t84.indexOf("1st") + 80)]);
-    c.push(["an older board.json (the route, no inPlace) at remediation: the page derives \"fixing in place · no 2nd pass\"", /✎ fixing in place · no 2nd pass/.test(t47), t47.slice(t47.indexOf("1st"), t47.indexOf("1st") + 80)]);
+    c.push(["an older board.json (the route, no inPlace) at remediation: the board derives \"fixing in place · no 2nd pass\"", /✎ fixing in place · no 2nd pass/.test(t47), t47.slice(t47.indexOf("1st"), t47.indexOf("1st") + 80)]);
     const key = text(inner(dom, '<div class="key" id="runs-key">', "div"));
     c.push(["the legend names both marks drawn, each with its meaning", /fixed in place · no 2nd pass the findings were fixed on the spot, and no further qa pass ran/.test(key) && /fixing in place · no 2nd pass the findings are being fixed on the spot; no further qa pass will run/.test(key), key.slice(key.indexOf("✎") - 5, key.indexOf("✎") + 200)]);
     const plain = copy(WBJ), p2 = wr(path.join(sc, "wb-plain", "index.html"), withData(rd(WB), "board", JSON.stringify(plain, null, 2))), d2 = dumpDom(p2) || "";
     c.push(["no mark, and no legend entry, where no pass records the route (the fixture's #61: its note says \"no third pass\", never read)", !/qamark/.test(inner(d2, '<table class="tbl" id="runs">', "table")) && !/fixed in place/.test(text(inner(d2, '<div class="key" id="runs-key">', "div"))), "none"]);
   });
 
-  /* 4. the plan board's WIP strip and QA tile, and a tracking unit's run line */
-  guard("plan boards: the mark on the WIP strip's qa pill and in the QA tile; a tracking unit's run line (dashboards-skill/31)", c => {
+  /* 4. the issue board's WIP strip and QA tile, and a tracking unit's run line */
+  guard("issue boards: the mark on the WIP strip's qa pill and in the QA tile; a tracking unit's run line (dashboards-skill/31)", c => {
     const Q = built(copy(LIVE)); Object.assign(Q.wip, { step: "remediation", current: ["built"], qa: [CR(1, { route: "on-the-spot" })], qaMax: 3, remediation: { pass: 1, route: "on-the-spot", steps: [{ name: "minor fixes on the spot", state: "current" }] } });
     const page = wr(path.join(sc, "pb", "dashboard.html"), withData(rd(PB), "plan", JSON.stringify(Q, null, 2)));
     const dom = dumpDom(page); if (dom == null) { c.push(["a headless browser is available", true, "skipped: no browser"]); return; }
@@ -108,7 +108,7 @@ module.exports = function cases31(X) {
   });
 
   /* 5. the Runs tab larger but Now; a labelled card per run under 880 px */
-  guard("the work board's Runs tab: every column larger but Now; each run a labelled card at phone width, no sideways scroll (dashboards-skill/31)", c => {
+  guard("the repository work board's Runs tab: every column larger but Now; each run a labelled card at phone width, no sideways scroll (dashboards-skill/31)", c => {
     const page = wr(path.join(sc, "wb-size", "index.html"), probeAt(withData(rd(WB), "board", JSON.stringify(WBJ, null, 2)),
       'const fz=s=>{const e=document.querySelector(s);return e?parseFloat(getComputedStyle(e).fontSize):null;};const r=[...document.querySelectorAll("#runs tr.run")];const first=sel=>{for(const t of r){const e=t.querySelector(sel);if(e)return parseFloat(getComputedStyle(e).fontSize);}return null;};' +
       'const tr=r[0],sc=document.querySelector(".scroll");document.body.dataset.r=JSON.stringify({t:first("td:nth-child(1) .t"),state:first("td:nth-child(2) .vp"),qa:first("td:nth-child(4) .vp"),dep:first("td:nth-child(5) .dep .vp"),now:first("td:nth-child(3)"),key:fz("#runs-key .vp"),thead:getComputedStyle(document.querySelector("#runs thead")).display,row:getComputedStyle(tr).display,label:getComputedStyle(tr.querySelector("td:nth-child(2)"),"::before").content,page:document.documentElement.scrollWidth-window.innerWidth,inner:sc.scrollWidth-sc.clientWidth});'));
@@ -116,16 +116,16 @@ module.exports = function cases31(X) {
     if (!wide) { c.push(["a headless browser is available", true, "skipped: no browser"]); return; }
     c.push(["1920 px: the issue's title, the state, qa and dependency pills larger than before (15+, 12+, 12+, 11.5+ px)", wide.t >= 15 && wide.state >= 12 && wide.qa >= 12 && wide.dep >= 11.5, js(wide)]);
     c.push(["…the Now column keeps its size, 12.5 px, at every width; the legend's pills are unchanged (10.5 px)", wide.now === 12.5 && mid.now === 12.5 && nar.now === 12.5 && wide.key === 10.5, js([wide.now, mid.now, nar.now, wide.key])]);
-    c.push(["1280 px: still the table, its head shown, no sideways page scroll", mid.thead !== "none" && mid.row === "table-row" && mid.page <= 0, js(mid)]);
-    c.push(["520 px: each run a card (grid), the head hidden, each cell labelled (State), no sideways scroll of the page or inside the table", nar.thead === "none" && nar.row === "grid" && /State/.test(nar.label) && nar.page <= 0 && nar.inner <= 1, js(nar)]);
+    c.push(["1280 px: still the table, its head shown, no sideways scroll", mid.thead !== "none" && mid.row === "table-row" && mid.page <= 0, js(mid)]);
+    c.push(["520 px: each run a card (grid), the head hidden, each cell labelled (State), no sideways scroll of the board or inside the table", nar.thead === "none" && nar.row === "grid" && /State/.test(nar.label) && nar.page <= 0 && nar.inner <= 1, js(nar)]);
   });
 
   /* 6. the feature probes */
   guard("the feature probes of dashboards-skill/31: the in-place mark, the larger Runs tab", c => {
     const pb = rd(PB), wb = rd(WB), miss = (h, k) => F.probe(h, k).map(m => m.id);
-    c.push(["both plan-set templates carry the in-place mark; the work board the larger Runs tab", !miss(pb, "plan-board").includes("qa-in-place") && !miss(wb, "work-board").some(x => ["qa-in-place", "runs-larger"].includes(x)), js([miss(pb, "plan-board"), miss(wb, "work-board")])]);
-    c.push(["a work board without the mark, or with the small table, misses them", miss(wb.replace("const inPlaceMark=", "const gone="), "work-board").includes("qa-in-place") && miss(wb.replace(".tbl{font-size:14.5px", ".tbl{font-size:12.5px"), "work-board").includes("runs-larger"), "probes"]);
-    c.push(["runs-larger fits the work board only, its reason given for each other type", F.FEATURES.filter(f => f.id === "runs-larger").every(f => js(f.types) === js(["work-board"]) && f.notFor.system && f.notFor.supersystem && f.notFor["plan-board"]) && !F.applicable("plan-board").some(f => f.id === "runs-larger"), "notFor"]);
+    c.push(["both plan-set templates carry the in-place mark; the repository work board the larger Runs tab", !miss(pb, "plan-board").includes("qa-in-place") && !miss(wb, "work-board").some(x => ["qa-in-place", "runs-larger"].includes(x)), js([miss(pb, "plan-board"), miss(wb, "work-board")])]);
+    c.push(["a repository work board without the mark, or with the small table, misses them", miss(wb.replace("const inPlaceMark=", "const gone="), "work-board").includes("qa-in-place") && miss(wb.replace(".tbl{font-size:14.5px", ".tbl{font-size:12.5px"), "work-board").includes("runs-larger"), "probes"]);
+    c.push(["runs-larger fits the repository work board only, its reason given for each other type", F.FEATURES.filter(f => f.id === "runs-larger").every(f => js(f.types) === js(["work-board"]) && f.notFor.system && f.notFor.supersystem && f.notFor["plan-board"]) && !F.applicable("plan-board").some(f => f.id === "runs-larger"), "notFor"]);
     c.push(["the example board (landed, made before) lacks the mark: reported for a landed board, never re-rendered", miss(rd(sk("plan/examples/38-handshake-empty-name/dashboard.html")), "plan-board").includes("qa-in-place"), "example"]);
   });
   return groups;

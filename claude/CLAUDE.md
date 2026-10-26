@@ -220,9 +220,9 @@ ruleset per set, the templates and the checks.
   added wherever content for them exists. Every tab colours its content by a grouping that suits
   it and shows a legend for it; Planned is dashed on every tab.
 - **Guarantees.** Every state board carries a Guarantees area below the tabs and above Context, made of
-  named sub-bubbles: failure model, extension points, test levels, compatibility & versioning,
+  named guarantee cards: failure model, extension points, test levels, compatibility & versioning,
   thread safety, resources to close, and what lands on a consumer's classpath — plus any other
-  that fits. On supersystem and repository state boards each sub-bubble covers every system.
+  that fits. On supersystem and repository state boards each guarantee card covers every system.
 - **`docs/dashboards/systems.json`** is the registry: every system, its slug, function, code
   paths, parent, status (`built` | `planned`), version and as-is stamp.
 - **As-is, never as planned.** A state board shows the code at the commit it names. Planned systems
