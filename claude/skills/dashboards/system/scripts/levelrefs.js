@@ -49,7 +49,7 @@ const LEVEL_PATTERNS = [
   /* unnumbered (dashboards-skill/33) */
   [`\\b(?:recorded|proposed|assigned|sized)\\s+(?:work\\s+)?levels?\\b${NOT_TEST_OR_TESTS}`, "i"],                  // "Recorded level confirmed"
   [`${NOT_OTHER}\\blevels?\\s+(?:was\\s+|is\\s+|were\\s+|are\\s+)?(?:confirmed|re-?checked|unchanged|agreed)\\b`, "i"],   // "the level was confirmed"
-  [`${NOT_OTHER}\\blevel\\s+(?:re-?checks?|checks?|confirmation|proposal)\\b`, "i"],                                  // "the level re-check"
+  [`${NOT_OTHER}\\blevel[ \\t]+(?:re-?checks?|checks?|confirmation|proposal)\\b(?![ \\t]*:)`, "i"],                 // "the level re-check"; on one line, never a "check:" label ("test: every level" beside "check: …")
   ["\\b(?:issue|unit|run|sub-issue)['’]s\\s+level\\b", "i"],                                                           // "the issue's level"
 ];
 const REGEXES = LEVEL_PATTERNS.map(([s, f]) => new RegExp(s, f + "g"));
@@ -145,7 +145,7 @@ function scrubLevels(text, opts) {
   /* an unnumbered mention: the level becomes the sizing ("Recorded level confirmed" → "Recorded sizing confirmed") */
   s = s.replace(new RegExp(`\\b(recorded|proposed|assigned|sized)\\s+(?:work\\s+)?(levels?)(?:[:\\s]+[1-4]\\b)?${NOT_TEST_OR_TESTS}`, "gi"), (m, w, l) => `${w} ${/s$/i.test(l) ? "sizings" : "sizing"}`);
   s = s.replace(new RegExp(`${NOT_OTHER}\\b(levels?)(\\s+(?:was\\s+|is\\s+|were\\s+|are\\s+)?(?:confirmed|re-?checked|unchanged|agreed)\\b)`, "gi"), (m, l, rest) => (/^L/.test(l) ? "Sizing" : "sizing") + rest);
-  s = s.replace(new RegExp(`${NOT_OTHER}\\b(level)(\\s+(?:re-?checks?|checks?|confirmation|proposal)\\b)`, "gi"), (m, l, rest) => (/^L/.test(l) ? "Sizing" : "sizing") + rest);
+  s = s.replace(new RegExp(`${NOT_OTHER}\\b(level)([ \\t]+(?:re-?checks?|checks?|confirmation|proposal)\\b(?![ \\t]*:))`, "gi"), (m, l, rest) => (/^L/.test(l) ? "Sizing" : "sizing") + rest);
   s = s.replace(/\b(issue|unit|run|sub-issue)(['’]s)\s+level\b/gi, "$1$2 sizing");
   s = s.replace(/\(\s*(?:the\s+)?(?:label(?:led|ed)?\s+)?level:?\s*[1-4]\s*\)/gi, "");
   s = s.replace(/\s*[,;]\s*level [1-4]\s*(?=[),;:])/gi, "");

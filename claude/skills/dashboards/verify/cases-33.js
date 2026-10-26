@@ -71,7 +71,7 @@ module.exports = function cases33(X) {
     const lv = [["Recorded level confirmed.", "Recorded sizing confirmed."], ["the level was confirmed", "the sizing was confirmed"], ["the level re-check passed", "the sizing re-check passed"], ["the issue's level", "the issue's sizing"], ["proposed level 3 confirmed", "proposed sizing confirmed"]];
     const lvBad = lv.filter(([s, w]) => !LR.levelRefs(s).length || LR.scrubLevels(s, {}) !== w);
     c.push(["levelrefs.js: an unnumbered work-level mention is found and reworded (\"Recorded level confirmed\" → \"Recorded sizing confirmed\")", !lvBad.length, js(lvBad.map(([s, w]) => [s, LR.levelRefs(s), LR.scrubLevels(s, {}), w]))]);
-    const notLv = ["the test level is recorded", "log level confirmed", "Level 1 · System Context", "tests at levels 1 to 4c", "the L2 component level check"];
+    const notLv = ["the test level is recorded", "log level confirmed", "Level 1 · System Context", "tests at levels 1 to 4c", "the L2 component level check", "test: every level\ncheck: verifyJavaFloor", "every level check: verifyJavaFloor"];
     c.push(["…never a test level's, a log level's or a C4 level's words", notLv.every(s => !LR.levelRefs(s).length), js(notLv.filter(s => LR.levelRefs(s).length).map(s => [s, LR.levelRefs(s)]))]);
   });
 
