@@ -24,7 +24,7 @@
         "other": 2
       },
       "route": "on-the-spot",
-      "report": "build/reports/test-inspector/index.html",
+      "report": "build/reports/tests/index.html",
       "tests": "231 passed, 0 failed, 0 skipped; apiCheck passed"
     },
     "rows": [
@@ -53,7 +53,7 @@
       {
         "text": "Two plan-sanctioned test-scope exclusions flagged by qa: no per-type testing.gating smoke classes for webtools-http's value types (the plan makes componentTest+deterministicTest the pre-commit gate) and the common-check plugin absent from the included-build e2e composite; resolved by recording them in plan §9 and the test KDoc",
         "raised": "2026-10-25T11:58:00Z",
-        "ref": "build/reports/test-inspector/index.html"
+        "ref": "build/reports/tests/index.html"
       }
     ],
     "detail": "Code review PASS: no logic bug, every plan item done, diff inside level 3, hygiene clean. Doc: Level-2 KDoc complete and tier-named everywhere; residuals are line comments on the OkHttp-mirroring sets and limits, @param/@return tags on two test fixtures, one over-strong HttpFailure sentence, and the Kelvin-sign homoglyph written literally in five test files. Tests: one missing absent-name branch test, extra corpus rows (Unicode spaces, dot segments above root), table-style test names.",

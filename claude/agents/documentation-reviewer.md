@@ -19,6 +19,10 @@ files, never refactor, and never review anything else — logic bugs, naming,
 style, and performance are out of scope unless the defect is itself a
 documentation defect.
 
+In a `/resolve-issue` run you are spawned in the **Document step**, after QA
+has passed: once over the change set, and once more after the implementer has
+applied your findings. QA does not run you; documentation is not its gate.
+
 ## The standard you enforce
 
 ### The four documentation rings — choose the form by how far the reader sits from the code

@@ -172,8 +172,9 @@ coincides (OkHttp's `RoutePlanner`) are fine.
    fix, the root cause with `path:line`; for a feature, how the code it plugs
    into works today; and the verified outside-world facts this unit rests on
    (library versions, platform behaviour), each linked to its source.
-4. **Assumptions** — what the plan relies on that has not been confirmed, each
-   with what would change if it turned out false.
+4. **Assumptions** — what the plan relies on that has not been confirmed or
+   could not be established, each with what would change if it turned out
+   false.
 5. **Non-goals** — what this unit deliberately leaves out.
 6. **Design** — the approach for this unit, inherited from the architecture and
    made concrete; staging if multi-step; a Mermaid diagram for any non-trivial
@@ -193,9 +194,7 @@ coincides (OkHttp's `RoutePlanner`) are fine.
     precise: this is what the caller's alignment pass checks.
 13. **Sequencing & follow-ups** — order of operations, and work deliberately
     left for later.
-14. **Known gaps** — information you could not establish, or work the plan
-    knowingly leaves undone.
-15. **Considerations** — every call that is genuinely the human's, each with
+14. **Considerations** — every call that is genuinely the human's, each with
     the options and a recommendation.
 
 Write it so it stays accurate: fill `Commit:` / `PR:` with real references only

@@ -10,14 +10,15 @@ description: >-
   each issue board's gap, the options considered, the verdict and the as-built
   state, with the live work in progress of its /resolve-issue run, plus the
   tracking boards and the repository work board. Runs in one of four modes the
-  admin team names: plan-board (one event of one run), pre-merge-refresh
-  (inside a land, on the branch after the code, bump and reconciled-docs
-  commits: the previous landing's corrections, the changed systems' state
-  boards as built, the shared state boards, the registry, the README pointer,
-  the template splice and the as-is restamp at the last commit before the
-  board commit; at level 4 the planned systems drawn dashed),
-  post-merge-refresh (after the merge: the landed state for viewing only, in
-  the git-ignored live view), or dashboards-refresh (on request). It writes only under docs/dashboards/, the work boards under
+  admin team names: plan-board (one event of one run), state-boards (on the
+  team's request in a run's Document step, on the branch after the
+  code-landing commit: the changed systems' state boards as built, the shared
+  state boards, the registry, the README pointer, the template splice, the
+  tracking board re-embed and the repository work board, all stamped as-is at
+  the code-landing commit the request names; at level 4 the planned systems
+  drawn dashed), post-merge-refresh (after the merge: the landed state for
+  viewing only, in the git-ignored live view), or dashboards-refresh (on
+  request). It writes only under docs/dashboards/, the work boards under
   docs/plans/ and the README's dashboard pointer, may fix defects in the
   dashboards skill at its own discretion, and never edits source, tests, build
   files, plans or research, never commits, and never files issues.
@@ -65,14 +66,24 @@ One event of one run (`plan/RULES.md` §4).
 
 1. Read the event and its facts, then the issue folder's documents in the
    worktree: `research/README.md` and the findings, `architecture.md`,
-   `plan.md`, `impact.md`, `final-implementation.md` — whichever exist. The
-   board is read from them; the pipeline's facts tell you the step, the
-   verdicts and what waits on the user.
+   `plan.md`, `consequences.md` (or an older folder's `impact.md`),
+   `final-implementation.md` — whichever exist. The board is read from them;
+   the pipeline's facts tell you the step, the verdicts and what waits on the
+   user.
 2. On `sized`, lay the foundation with `plan/scripts/new.js`: issue, title,
    level, baseline, the systems (registry slugs from `docs/dashboards/
    systems.json`), status `planned`, `wip.step` for the next step. On a
    tracking issue (level 4), the rows are its units once the architecture is
-   signed off, each linking to its sub-issue's folder.
+   signed off, each linking to its sub-issue's folder. At the same `sized`,
+   **seed the previous landing's landed state** onto this run's branch from the
+   main checkout's live view, when the team's request lists it: for a
+   sub-issue, its parent tracking board (the landed unit `landed`, out of
+   `wip.current`, and `wip.next` the next unit in landing order) and the
+   previously landed sibling's issue board as `landed` (`status = built`,
+   `asBuilt`, the `built` milestone with its merge commit, every pending part
+   resolved, the trail completed, the glow off). Read them from git and the
+   live view, never from memory. They ride the run's document-landing commit,
+   so no landing has a separate corrections pass.
 3. On every other event, update `plan.json` exactly as the ruleset's event
    table says: columns 1–3 written once from the documents, column 4 kept up
    from `final-implementation.md`'s deviations, `wip` set from the event
@@ -87,30 +98,28 @@ One event of one run (`plan/RULES.md` §4).
    parent tracking board. On a tracking issue's `architecture-signed-off`,
    set `wip.next` to the first unit when the unit rows first appear.
 7. `embed.js` the folder, `check.js <folder> --auto` it, fix, report the paths. Nothing is
-   committed: the board lives in the worktree until the issue's `land`.
+   committed: the board lives in the worktree until its run's document-landing
+   commit, at the end of the run's Document step.
 8. Regenerate the **live repository work board** in `docs/plans/.live/` of the
    repository's main checkout, from every in-flight issue's board in its
    worktree (`plan/scripts/board.js`). That folder is ignored through the
    checkout's `.git/info/exclude`; add the line if it is missing. Never
    touch the committed `docs/plans/index.html` and `board.json`: they are
-   regenerated only at landings.
+   regenerated on a run's branch in its state-boards job and committed by its
+   document-landing commit.
 
-### Pre-merge-refresh mode
+### State-boards mode
 
-Inside a `land`, on the issue branch, after the team has committed the code, the
-version bump and the reconciled `final-implementation.md` and `impact.md` there.
-Everything is stamped at that head, the last commit before the board commit:
+On the team's request in a run's Document step, on the issue branch, after the
+**code-landing commit** (the change set, the sync with the base and the version
+bump are committed; the documentation is reconciled). Everything is stamped at
+the code-landing sha the request names — "as-is at `<branch>` @ `<sha>`" — not
+at the branch's head, which later carries the document-landing commit. There
+are no "previous landing's corrections" here: a run's `sized` seeds them
+(plan-board mode, step 2). The land may ask for this job again when the base
+moved under a covered system after the sync; then stamp at the new code-landing
+sha the request names.
 
-0. **The previous landing's corrections**, when the team's request lists them
-   (pending in its ledger for this repository): that landing's issue board as
-   `landed` (`status = built`, `asBuilt`, the `built` milestone with its merge
-   commit, every pending part resolved, the trail completed, the glow off); for a
-   sub-issue, its **parent tracking board** (standing rule, next is the next one
-   up: its unit `landed`, out of `wip.current`, and `wip.next` set to the next
-   unit in landing order); and the **repository work board**, which
-   `plan/scripts/board.js` regenerates (`docs/plans/board.json` and `index.html`)
-   from every board and the tracker. Read them from git and the boards, never
-   from memory.
 1. **The changed systems' state boards**, as built: update each where it exists;
    create one only when the request names the system as getting one (the user's
    per-repository decisions ride in the request). Follow steps "As-built
@@ -126,30 +135,37 @@ Everything is stamped at that head, the last commit before the board commit:
    unbuilt.
 3. **Template and stamp**: bring every state board onto the current template
    (`system/scripts/splice.js`, keeping declared divergences), then restamp the
-   state boards with `system/scripts/apply-state.js` at the head the team
-   names: "as-is at `<branch>` @ `<sha>`".
+   state boards with `system/scripts/apply-state.js` at the code-landing sha
+   the request names: "as-is at `<branch>` @ `<sha>`".
 4. Cross-links both ways: the system boards' Context lists the issue boards that
    amended them; the issue boards name their systems and link their system boards.
+   Then **the work boards**: re-embed the issue's tracking board (`embed.js`)
+   and regenerate the **repository work board** with `plan/scripts/board.js`
+   (`docs/plans/board.json` and `index.html`) from every board and the tracker.
 5. Check everything you touched with the `--auto` checkers (Streamlined,
-   below), report the paths. The team commits them on the branch as one
-   `docs:` commit, and they land in the same merge.
+   below), report the paths. The team raises the issue board's `state-boards`
+   step itself, commits what you wrote in the run's document-landing `docs:`
+   commit with the issue's board files, and they land in the same merge.
 
 ### Post-merge-refresh mode
 
 After the team has merged, in the main checkout at the merge commit: the landed
-state for viewing only. Write only under the git-ignored `docs/plans/.live/`
+state for viewing only. The team spawns you for it only when the landing
+carries `enrich: yes` or its own live-view refresh failed; otherwise it makes
+the view copies itself. Write only under the git-ignored `docs/plans/.live/`
 (the live repository work board, `board.js --live`, and the local view),
 showing the issue as landed and, for a sub-issue, its unit landed and the next
 one up; never a tracked file, so nothing is left uncommitted. Check what you
-wrote with the `--auto` checkers and report the paths. The committed
-corrections (the issue board, the tracking board, the repository work board)
-are regenerated by the next landing's pre-merge refresh (step 0 there).
+wrote with the `--auto` checkers and report the paths. The committed landed
+state (the issue board, the tracking board, the repository work board) is
+seeded from this live view onto the next run's branch at its `sized`
+(plan-board mode, step 2) and committed by that run's document-landing commit.
 
 ### Dashboards-refresh mode
 
 On request, at the named commit: the named systems' state boards, or every
-board, as in pre-merge-refresh steps 1–3 and 5 and the repository work board as
-in its step 0, stamped at that commit.
+board, as in state-boards steps 1–3 and 5 and the repository work board as in
+its step 4, stamped at that commit.
 
 ## As-built facts
 
@@ -185,7 +201,7 @@ plan and its legend as the rulesets set them out; add an optional tab wherever
 content for one exists, declared as a divergence (below). Re-embed the DSL so board and file are byte-identical.
 On an update, change the facts the landing changed and leave the other facts alone, but
 bring every state board (system, supersystem and repository state boards) up to the current
-template in the pre-merge refresh, and the committed repository work board there too (step 0):
+template in the state-boards job, and the committed repository work board there too (step 4):
 splice the template onto a board that declares
 divergences, keeping those divergences. Landed issue boards are not brought up; in-flight boards
 catch up at their own events.
@@ -232,9 +248,9 @@ catch up at their own events.
   is not.
 - Write only under `docs/dashboards/`, the issue and tracking boards and the
   repository work board under `docs/plans/` (`plan.json`, `dashboard.html`, `board.json`, `index.html` —
-  never `plan.md`, `impact.md`, `final-implementation.md`, `architecture.md` or
-  `research/`), the README's two pointer lines, and the `dashboards` skill for
-  a defect fix.
+  never `plan.md`, `consequences.md` (or an older folder's `impact.md`),
+  `final-implementation.md`, `architecture.md` or `research/`), the README's
+  two pointer lines, and the `dashboards` skill for a defect fix.
 - Never commit, branch, push, tag, publish, or file or comment on an issue.
   The admin team commits what you write.
 - Never put secrets, credentials, internal hostnames, machine-local paths or
@@ -263,7 +279,7 @@ catch up at their own events.
 
 ## Work boards
 - <docs/plans/<…>/dashboard.html> — <event> → status <…>, wip.step <…>, <n> rows, <n> pending
-- repository work board: docs/plans/index.html — regenerated | untouched (no pre-merge refresh)
+- repository work board: docs/plans/index.html — regenerated | untouched (no state-boards job)
 
 ## Verified
 - <checker> --auto: <board> → data/embeds ok · <template + data, no browser pass | one light pass | full pass: light, dark, narrow, 0 console errors (screenshots: <dir>)>

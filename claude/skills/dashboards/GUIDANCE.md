@@ -33,7 +33,7 @@ learns the colour once can follow the system everywhere. On a system board the t
 **Status spectra are reserved.** Wherever a view needs two colour schemes and a yellow–orange–red
 or green–yellow–red spectrum fits a status, that spectrum carries the status, and every other
 colour indicator on the view avoids it. The issue boards colour an option's status green, yellow
-and red, and the Impact tab colours compatibility yellow and red (orange where useful), so the
+and red, and the Consequences tab colours compatibility yellow and red (orange where useful), so the
 system palette leaves out green, yellow, orange, amber, red and pink: its six slots are blues, a
 teal, an indigo and purples, the same on every board and in both themes
 (`system/scripts/palette.js` holds them; hex per slot, light / dark):
@@ -68,7 +68,9 @@ its ruleset; the shared scale is:
 | **strong neutral** (`--ink-2`, solid) | partly done, no outcome yet | a `partially-built` part: a finished stage built part of it, a later stage builds the rest |
 | **neutral** (ink/grey) | no outcome yet, or not applicable | a `pending` part; a `deferred` part (with its issue); an impact still planned (dashed); an issue closed as not planned or as a duplicate ("closed · not planned", "closed · duplicate": never landed; issue boards and the repository work board only, §7); a `bug` label ("▲ bug": a label, not an outcome); counts and facts |
 
-**The exception: compatibility on the Impact tab.** On an issue board's Impact tab, red and
+**The exception: compatibility on the Consequences tab** (named the Impact tab before admin-team/dashboards-skill/35; its ids, its
+`#impact.<entry>` deep links and its data key `impact` are kept, the document it reads is `consequences.md`, `impact.md` in an older folder).
+On an issue board's Consequences tab, red and
 yellow mean **compatibility**, not outcomes, because what a reader needs from that tab first is
 whether the change breaks them. **Red** (`--critical`) is a breaking change: a `breaking`
 downstream effect, a `removed` surface, a required adaptation that breaks a consumer that does
@@ -79,36 +81,51 @@ does not break, a lettered or strict-version requirement and the like. Every oth
 colours, always with a glyph and a word. Nothing else on that tab is red or yellow. Everywhere
 else the scale above holds.
 
-**No planning information on the Impact tab.** The tab shows only the current best-known impact:
+**No planning information on the Consequences tab.** The tab shows only the current best-known impact:
 no pill for its standing (planned, as built, amended), no list of changes from the planned impact,
 and one solid card style for every entry, whether the impact is still the plan's or reconciled.
 Nothing on that tab is dashed. The plan-versus-build story stays on the As built tab, and that
 includes the impact's: the As built tab shows how the impact differed from the plan
 (`impact.changes`, and on a tracking board each unit's own), each change a solid card in its
-system's colour linking the Impact card it changed, never in the Impact tab's compatibility red or
+system's colour linking the Consequences card it changed, never in the Consequences tab's compatibility red or
 yellow. Those changes accumulate as the work lands, on a tracking board as each unit lands, while the
 impact is partly reconciled; it is reconciled whole at the landing, a tracking board's at its last
 unit's. Every landed unit records its effect on the initiative's impact — the changes it made, or an
 explicit "no change" — so "None so far" is said from a record, never from an absence. The data keeps
 only the impact's basis (`plan` or `as-built`); the **reconciliation state** — planned, partly
 reconciled, as built — is derived from the data, never stored, by one rule in each runtime, and shows
-as a chip on the As built tab and on the repository work board, never on the Impact tab: planned neutral and
+as a chip on the As built tab and on the repository work board, never on the Consequences tab: planned neutral and
 dashed, partly reconciled yellow, as built green, each with its glyph and word (`plan/RULES.md` §2,
-Impact).
+Consequences).
 
 **Test levels: a neutral ramp.** On an issue board's Tests tab (`plan/RULES.md` §2) a test class is coloured by its test level, the
 five-level testing hierarchy's L1 gating to L5 UAT, as a ramp of neutrals from the faintest (L1) to the full ink (L5), in either theme, each with its level label:
 the levels are an order, not systems or outcomes, so they take neither a system slot nor a status colour, and the class's latest result
 keeps the status scale (passed green, failed red, each with its glyph and word).
 
-**Dependencies: a status pill and a neutral ramp** (admin-team/dashboards-skill/30). A dependency on the repository work board ("Depends on"),
-on an issue board's WIP strip ("depends on") and in a tracking board's unit inspector carries one dependency pill of two states. Its **build
-state** takes the status scale, with its glyph and word: `blocking` yellow (⊘: part of the plan, still open — waiting), `clear` green (✓:
-part of the plan, landed or closed — done), `pre-built` neutral (◼: not part of the tracking issue, built before its plan started — the
-plan's outcome does not apply to it). Its **locality** is an order, near to far, so it takes a **neutral ramp**, faintest to full ink, never
+**Dependencies: a status pill and a neutral ramp** (admin-team/dashboards-skill/30; the build state redefined by dashboards-skill/35). A
+dependency on the repository work board ("Depends on"), on an issue board's WIP strip ("depends on") and in a tracking board's unit inspector
+carries one dependency pill of two states. Its **build state** says whether the dependency's **code** is there — the code is the blocker,
+never the GitHub issue — and takes the status scale, with its glyph and word: `blocking` yellow (⊘: its code is not merged yet), `clear`
+green (✓: its code is merged, in a plan or not; an issue still open whose pull request has merged reads clear), `pre-built` neutral (◼:
+outside the plan and merged before the plan started — the plan's outcome does not apply to it; it takes precedence where clear fits too),
+`dropped` red (✕: closed as not planned — the dependent waits on code that will never arrive, and its plan needs another look). A
+dependency closed as a duplicate takes the state of the issue it duplicates. Its **locality** is an order, near to far, so it takes a **neutral ramp**, faintest to full ink, never
 a system slot or a status colour, each with its glyph and word: `local-repository` (⌂ repo), `local-organization` (◇ org),
 `local-parent-org` (△ parent org), `external-<name>` (↗ external · name). What an issue holds up ("Blocks · enables") takes the status
 scale: `blocks` yellow (⊘: still open), `enables` green (→: done). A state no rule fits is not drawn (`plan/RULES.md` §5).
+
+**Visibility: a neutral ramp** (admin-team/dashboards-skill/35). A system's visibility (`systems.json` `visibility`, `system/RULES.md` §7) —
+who consumes it — is an order, near to far, so it takes a neutral ramp, as a dependency's locality does, each with its glyph and word:
+`internal-repo` (⌂ internal · repo, the faintest), `internal-org` (◇ internal · org), `public` (↗ public, the full ink), and `unset`
+(? visibility not set, dashed edge: no record yet). It groups the repository and supersystem state boards' Systems tab, one group per
+visibility with its chip as the heading and its legend entry, and is a candidate grouping on another tab where it fits; a system board
+names its own in a header tag. Never a system slot or a status colour: a card keeps its system's colour inside its group.
+
+**Archived: solid, faded, tagged** (admin-team/dashboards-skill/35). A system no longer developed (`status` `archived`) is drawn solid
+(never dashed: dashed is planned), faded and desaturated, with a neutral tag "⊟ archived" and its legend entry; on the Systems tab it
+leaves the visibility grouping for an Archived group of its own, last. Its Guarantees rows and its rows on the repository work board carry
+the same tag; its own board's header says it ("status ⊟ archived").
 
 **The decision not to run another qa pass: a neutral mark** (admin-team/dashboards-skill/31). A qa pass whose findings were fixed in
 place, with no further pass (its `on-the-spot` route), carries a small neutral mark beside its verdict pill, with its glyph and words:
@@ -117,7 +134,7 @@ and the pass keeps its own verdict pill (`plan/RULES.md` §5, "QA").
 
 **Steps: four kinds of work** (admin-team/dashboards-skill/34, in place of dashboards-skill/32's neutral ramp). An issue board's Timeline
 tile (`plan/RULES.md` §2, "The Timeline tab"; every issue board's since dashboards-skill/34, a board in flight its steps so far) draws the time
-of each visit of a run step (sizing, research, plan, …, qa, remediation, landing, state boards, merge; a tracking board's own steps), each visit an entry of the tile's legend with its start → end and its duration (admin-team/dashboards-skill/32),
+of each visit of a run step (sizing, research, plan, …, qa, remediation, document, landing, merge; a tracking board's own steps), each visit an entry of the tile's legend with its start → end and its duration (admin-team/dashboards-skill/32),
 coloured by the **kind of work** its step is, four hue families, each named in the tile's own legend of families with the steps it drew:
 
 | Family | Its steps | Hue | Light: first → last | Dark: first → last |
@@ -125,7 +142,7 @@ coloured by the **kind of work** its step is, four hue families, each named in t
 | **planning** | sizing, interview, research, architecture, plan; a tracking board's sub-issues and boards (its last planning, before its plan lands) | blue | `#5596de` → `#1d5cab` | `#3a7fd0` → `#80b6f0` |
 | **build** | branch, implementation (a tracking board's: its units' runs) | teal | `#1f9294` → `#0c5c61` | `#1a8a8c` → `#4cc4c2` |
 | **checking** | qa, remediation | purple | `#b67ad0` → `#84409f` | `#a35cbd` → `#d095e6` |
-| **landing** | landing, state-boards, merge (the landing's three steps; an older board's landing alone) | deep indigo (light) · pale indigo (dark) | `#2e3d99` → `#1d2870` | `#b8c4fa` → `#d4dcfd` |
+| **landing** | document, landing, merge (the Document step, the land's preparation on the branch, and the land's two steps, admin-team/dashboards-skill/35; an older board's landing, state-boards and merge, or its landing alone) | deep indigo (light) · pale indigo (dark) | `#2e3d99` → `#1d2870` | `#b8c4fa` → `#d4dcfd` |
 
 The steps of a family take **distinct shades of it**, lighter to darker in the steps line's order on a light surface (darker to lighter on a
 dark one: the first step nearest the surface, the last the strongest), mixed between its two ends (`--wk-<family>-a`, `-b`); a family of one
@@ -186,7 +203,7 @@ the activity, the ring the research's progress (`plan/RULES.md` §3).
 
 **Line and fill encodings.** Solid = built, done, decided. **Dashed = planned or pending**, on
 every tab of every board but one, and dashed means nothing else. The exception is an issue board's
-Impact tab, which draws nothing dashed (above). No ruleset may use a dash for anything else:
+Consequences tab, which draws nothing dashed (above). No ruleset may use a dash for anything else:
 diagram furniture is solid — sequence lifelines and boundary frames faint and solid, a return message
 a thin solid line told by its open arrowhead — and only a planned lifeline, message, element or
 relationship is dashed. `check-board.js` fails a dashed element that marks nothing planned or pending,
@@ -284,7 +301,11 @@ level is elided before its noun, the label dropped — and left out only where a
 `scrubLevels()`, which `apply-event.js` and `apply-state.js` run); a quotation (a plan excerpt) elides it with "…" instead, as a quote
 is never reworded. An unnumbered mention is a work level too: "Recorded level confirmed", "the proposed level", "the level
 re-check", "the issue's level" read "Recorded sizing confirmed" and the like (dashboards-skill/33); a test level's, a log level's and a
-C4 level's words are not touched.
+C4 level's words are not touched. **A bare "Ln"** (admin-team/dashboards-skill/35): beside a test word ("L2 test", "tests (L3)", "regression
+test (L2)") it is a test level written short, never a work level, and the fast path writes it as its named test level ("L2 component test",
+"tests (L3 integration)"; L4 has no single name and stands as written; `levelrefs.js` `nameTestLevels()`), and `check.js` warns on one a
+board still carries (`BARE TEST LEVEL`); anywhere else a bare "Ln" is a work level, elided by the rewording, and the fast path warns
+(`LEVEL ELIDED`, its summary's `warnings`) so the elision is visible.
 
 **No internal names** (dashboards-skill/33). Nothing a board shows or its data carries — its text, its labels, its data blocks, its
 comments, the fixed text of its template — names the pipeline's agents, sessions or roles (admin team, planner, plan-writer, architect,
@@ -456,7 +477,9 @@ tablist's keys, the state block, the as-is header, the legends of Guarantees and
 the Markdown copies, the progress notes, a tracking board's steps, the KPI bars, the neutral bug badge, the chain, core subsystems, the tiles'
 legends inside each tile, no "board" tag, the title's `#n`, "since" said once by the step panel, the larger charging arrow, the landing
 step, the Tests tab, the Timeline tile's legend of step visits and its kinds of work, approximate bounds, the Timeline tab and its tracers, the landing's
-three steps, the Design tab, a sub-issue's roadmap naming its parent, a reference's section number before its excerpt, no work level in the board's data, a
+steps, the Design tab, a sub-issue's roadmap naming its parent, a reference's section number before its excerpt, no work level in the board's data, the
+Document step, the dependency's build state from its code (dropped included), the Consequences tab, the build outputs' live copies, a fix's "fix
+to #n", the structure map's recorded height, a
 issue board's finished steps clickable, each unit row's label glowing on its own while it is filed, the Timeline tile's figure the sum of
 its visits, an issue's title quoted and marked, every qa pass and the one running as ordinals, the dependency pills — and
 the browser pass the layout ones (the header's halves, the wide board, the legends shown). A missing feature fails, as `FEATURE MISSING:
@@ -497,7 +520,7 @@ other:
 
 | Board | Brought onto the current template |
 |---|---|
-| system, supersystem and repository state boards; the committed repository work board | at a **pre-merge refresh** only, inside a landing, on the issue's branch (`system/scripts/splice.js` for a state board: the template's CSS, script before MODEL and renderer carried onto the board, three ways for a declared divergence; `board.js --refresh-template` for the repository work board) |
+| system, supersystem and repository state boards; the committed repository work board | at the **Document step's state-boards task** only, on the issue's branch before its land (`system/scripts/splice.js` for a state board: the template's CSS, script before MODEL and renderer carried onto the board, three ways for a declared divergence; `board.js --refresh-template` for the repository work board); before admin-team/dashboards-skill/35, at the pre-merge refresh inside the land |
 | the live repository work board | at **every event** (`board.js --live --refresh-template`: it is the template plus its data, never committed) |
 | an issue's board that is in flight, and its tracking board | at **its own events** (`apply-event.js` re-renders a board that is not the verified template plus its data) |
 | a landed issue board | **never**: it is the record of a finished run, kept as it landed |
@@ -596,25 +619,67 @@ never the accent (§1).
   qa of its own). Not to the repository work board: one row per run, its tiles count runs and no step's time, each run's steps on its own
   board. Not to the state boards: hand-written counted tiles and no run.
 
-**The landing flow** (dashboards-skill/33). A landing refreshes the boards twice, and commits them once; on the issue's board the land is three steps (dashboards-skill/34), `landing` (the branch brought up to date, the code, the version
-bump and the reconciled documents committed), `state-boards` (the pre-merge refresh, 1. below, and its board commit) and `merge`, then `landed`:
+**The landing flow** (dashboards-skill/33; the Document step of admin-team/dashboards-skill/35). The run's last steps are `document`, then the land in
+two steps, `landing` and `merge`, then `landed` (dashboards-skill/34's three landing steps, `landing`, `state-boards`, `merge`, stay on a board that
+reached its landing before the change):
 
-1. **The pre-merge refresh**, inside the land, on the issue's branch, after the code, the version bump and the reconciled
-   `final-implementation.md` and `impact.md` are committed there. It writes, first, the **previous landing's corrections** — that
-   landing's issue board as `landed` with its merge commit, its parent tracking board's unit landed and the next one up, and the
-   repository work board regenerated (`board.js --refresh-template`) — then the changed systems' state boards as built, the shared state
-   boards, `systems.json`, the README's pointer, the splice onto the current template and the restamp, every state board stamped "as-is at
-   `<branch>` @ `<sha>`" at the **head the team names: the last commit before the board commit**. They are committed on the branch as one
-   `docs:` commit and land in the same merge.
-2. **The post-merge refresh**, after the merge, in the main checkout at the merge commit, for viewing only: the live view under the
-   git-ignored `docs/plans/.live/` (`board.js --live`) shows the issue landed and, for a sub-issue, its unit landed and the next one up. It
+1. **The Document step**, on the issue's branch, between qa (or remediation) and the land: its tasks — `documentation-review`,
+   `reconcile-documentation`, `dokka-check`, `reconcile-plan` (the reconciled `final-implementation.md` and `consequences.md`),
+   `readme-changelog` and `state-boards` — each done, current or to do, several at once where they run in parallel (the `document` event,
+   `plan/RULES.md` §4). The **state boards are built in it**: when the team accepts the run's `state-boards` request it raises that task
+   itself, and the presenter's `state-boards` mode writes the changed systems' state boards as built, the supersystem and repository state
+   boards, `systems.json`, the README's pointer, the splice onto the current template, the tracking board's re-embed, the committed
+   repository work board (`board.js --refresh-template`) and, for a tracking issue, its planned systems drawn dashed — every state board
+   stamped "as-is at `<branch>` @ `<code-landing sha>`", the sha the request gives: the branch's last code commit, after the sync and the
+   bump (`apply-state.js` `facts.document`). Only documents change after it, so nothing is restamped at the land; the boards land in the
+   same merge.
+2. **The land**: `landing` (the land accepted; every open point resolved by then, as none is committed open, `plan/RULES.md` §3) and
+   `merge`, then `landed`.
+3. **The post-merge refresh**, after the merge, in the main checkout at the merge commit, for viewing only: the live view under the
+   git-ignored `docs/plans/.live/` (`board.js --live`) shows the issue landed and, for a sub-issue, its unit landed and the next one up, in
+   view copies of the boards under `docs/plans/.live/view/` (`apply-event.js --view`; `plan/RULES.md` §4, "The live view of a landing"). It
    writes no tracked file, so nothing is left uncommitted.
-3. The committed corrections of that landing — the issue board's `landed` state, the tracking board's unit landed and next up, the
-   repository work board — ride the **next landing's pre-merge refresh** (step 1), on its own branch, before its merge. There is never a
-   follow-up docs pull request.
+4. That landed state — the issue board `landed` at its merge, the tracking board's unit landed and next up, the repository work board — is
+   **seeded at the next run's `sized`**: a run sized in a worktree branched after the landing starts those boards from the main checkout's
+   view copies (`apply-event.js`, `plan/RULES.md` §4, "Seeding at sized"), so its branch carries the landed state from its first commit.
+   A merge that marks an issue landed on its own board does so for its parent too: both are seeded together. There is never a follow-up
+   docs pull request.
 
-A **planning-docs landing** — a docs pull request that resolves no issue (a plan folder, a roadmap document) — takes a small pre-merge
+A **planning-docs landing** — a docs pull request that resolves no issue (a plan folder, a roadmap document) — takes a small state-boards
 refresh on its branch: the committed repository work board, and the repository state board where the repository has one.
+
+**The decisions of admin-team/dashboards-skill/35**, each weighed for every type:
+
+- **A dependency's build state from its code** (§1, "Dependencies"): blocking until the dependency's code is merged, clear once it is (an open
+  issue whose pull request merged included), pre-built outside the plan and merged before it, dropped when closed as not planned, a duplicate
+  taking its canonical issue's state. Applied to the repository work board (`board.js`, `lib.js` `depBuild()`, the tracker's merged pull
+  requests and duplicates), to issue boards (the WIP strip's `wip.blockers`, as recorded) and to tracking boards (a unit's dependency on a
+  unit: blocking, clear once it lands, dropped where the board dropped it). Not to the state boards: they name no issue's dependencies.
+- **Remediation sub-steps in parallel** (`plan/RULES.md` §3): issue and tracking boards (a unit's run mirror); the implementation stages keep
+  at most one current. Not to the repository work board or the state boards: no step panel.
+- **Open points: a build output linked live, none committed open** (`plan/RULES.md` §3, `wip.open`): issue and tracking boards (a unit's
+  mirror carries its points). The repository work board shows no open point; the state boards no run.
+- **A bare "Ln"** (§4): every type, as the work-level rule is (the fast path's facts on issue and tracking boards; the checks on every board).
+- **Consequences** (§1; `plan/RULES.md` §2): the issue and tracking boards' tab and the documents they read; the repository work board's
+  reconciliation chip keeps its words (it names the impact, the data the tab draws). Not to the state boards: no such tab.
+- **A fix to an earlier plan's work** (`plan/RULES.md` §1): issue boards ("fix to #n") and the repository work board (its row's "fix to #n");
+  a tracking board lists it as any issue its board names. A landed board it fixes is kept as it landed (§11, "Re-rendering"): the link runs
+  from the fix. Not to the state boards: they name no issue above their Context.
+- **The Document step** (`plan/RULES.md` §3, §4): issue boards and tracking boards (whose plan's land takes it before its landing); the
+  repository work board shows it as a run's step and counts it active. Not to the state boards: no run steps.
+- **State boards built in the Document step; seeding at sized**: the state boards and the committed repository work board are written in the
+  Document step; the issue and tracking boards' landed state is seeded at the next run's sized.
+- **The test report's neutral path** (`build/reports/tests/index.html`): issue boards (a qa pass's test report, plain text, linked to its copy
+  in the live view) and the state boards' Test levels guarantee card (plain text: a build output, never committed, and a state board has no
+  live view). Not to the repository work board: it shows no qa report.
+- **The structure map's height recorded** (`system/RULES.md` §2): system boards only, the type with a hand-placed structure map.
+- **The Systems tab by visibility; archived** (§1, "Visibility", "Archived"; `system/RULES.md` §3, §7): the repository and supersystem
+  state boards' Systems tab (grouped by visibility, a system's parts inside its panel, an Archived group apart: the WebTools repository
+  board's renderer, promoted to the template, so no board diverges for it), their Guarantees rows (an archived row faded and tagged), the
+  registry (`visibility`, `status` `archived`, checked by `check-board.js`); a system board's header (its visibility tag, an archived
+  status chip) and its On your classpath card (who consumes it); the repository work board (a row whose system is archived carries the
+  tag; visibility does not group runs, so it is not shown there); an issue board's systems tag ("· archived"). Visibility is not drawn on
+  the issue boards: they show a run, not who consumes a system.
 
 **The decisions of dashboards-skill/33** (the global conventions: boards never pages, no internal names in committed content, the pre-merge landing flow), each weighed for every type:
 
@@ -650,7 +715,7 @@ strip is a **unit card**, and a step in the step panel is a **step cell**.
 | Term | Function | Examples |
 |------|----------|----------|
 | **Panel** | A top-level region of a board with its own heading. | a tab's body, the Guarantees area, the Context section, the WIP strip, the step panel, the KPI row (an issue board's, in its Timeline tab) |
-| **Card** | A self-contained statement inside a panel, with a title and a body, readable alone. | a guarantee card, an Impact entry, an As-built entry, a unit card |
+| **Card** | A self-contained statement inside a panel, with a title and a body, readable alone. | a guarantee card, a Consequences entry, an As-built entry, a unit card |
 | **Tile** | A card whose body is one figure with its segmented bar and legend. | the KPI tiles, the repository work board's Runs and Landed tiles |
 | **Cell** | The intersection of a row and a column on a board table. | a Gap, Considered, Verdict or As built cell; a step cell |
 | **Row** | One subject across a board's columns. | an issue board's design point, a tracking board's unit |

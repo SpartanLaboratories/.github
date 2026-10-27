@@ -30,7 +30,7 @@ one fenced ```json block:
   "worktree": "D:/Documents/Programming/WebTools",
   "paths": ["build-logic/", "settings.gradle.kts"],
   "plan": "docs/plans/55-http-client-stack/61-build-logic/plan.md",
-  "docs": ["docs/plans/55-http-client-stack/61-build-logic/impact.md"],
+  "docs": ["docs/plans/55-http-client-stack/61-build-logic/consequences.md"],
   "dashboards": ["docs/dashboards/build/index.html"],
   "qa": "PASS",
   "dependsOn": ["SpartanLaboratories/WebTools#47"],
@@ -45,18 +45,20 @@ one fenced ```json block:
 | `id` | yes | Unique per sender: `<sender>/<issue>/<n>`. A retry keeps the `id` and raises `attempt`. |
 | `attempt` | yes | Starts at 1. |
 | `from` | yes | The sender's session name, as `ListAgents` shows it. The reply goes here. |
-| `repo` | yes (not `status` or `file-issue`) | Absolute path of the main checkout. Forward slashes. |
-| `github` | yes (not `status`) | `owner/repo`; also the lane key. `SpartanLaboratories/.github` for `mirror-sync`; for `file-issue`, the repo the fix belongs in. |
+| `repo` | yes (not `status`, `file-issue` or `log-hook`) | Absolute path of the main checkout. Forward slashes. |
+| `github` | yes (not `status` or `log-hook`) | `owner/repo`; also the lane key. `SpartanLaboratories/.github` for `mirror-sync`; for `file-issue`, the repo the fix belongs in. |
 | `action` | yes | One of the actions below. |
 | `issue` | per action | The issue number. Omit it on a `land` of a branch that resolves no issue (a docs or config branch): then give `title` for the PR, and the landing has no closing keyword and no resolution comment. |
-| `level` | `setup-branch`, `land` | The work level, 1–4. |
+| `level` | `setup-branch`, `prepare-landing`, `state-boards`, `land` | The work level, 1–4. |
 | `branch` | per action | The topic branch. |
 | `worktree` | per action | Where the branch is checked out. The main checkout unless allocated. |
 | `paths` | `commit`, `land`, `mirror-sync` | Exact paths to commit (or, for `land`, the change set). |
-| `plan`, `docs`, `dashboards` | `land` | The plan document; every `.md` created or updated this run; the dashboard paths, if any, the run wants refreshed. The state boards are written inside the `land` by the team, not by the run. |
-| `qa` | `land` | `PASS`, or `NONE` for levels that run no qa. |
+| `plan`, `docs`, `dashboards` | `land` | The plan document; every `.md` created or updated this run; the dashboard paths, if any, the run wants refreshed. The state boards are built by the team on the run's `state-boards` request in its Document step, not by the run. |
+| `qa` | `prepare-landing`, `land` | `PASS`, or `NONE` for levels that run no qa. |
+| `head` | `state-boards`, `land` | The code-landing commit `prepare-landing` reported. |
+| `systems` | `state-boards` | The slugs of the systems the change touched. |
 | `dependsOn` | optional | Issues that must be closed first, `owner/repo#n`. |
-| `publish` | `land` | `true` only when the user explicitly asked for a publish this run. Not a gate: the team's publisher releases every version-bumping landing on its own within the Maven Central budget (7 release events per namespace per month); `true` lets this release use the 2 held in reserve, and never passes the cap. |
+| `publish` | `prepare-landing`, `land` | `true` only when the user explicitly asked for a publish this run. Not a gate: the team's publisher releases every version-bumping landing on its own within the Maven Central budget (7 release events per namespace per month); `true` lets this release use the 2 held in reserve, and never passes the cap. |
 | `subIssues` | `file-sub-issues` | The approved list: `[{title, level, blockedBy: [unit numbers], body}]` in landing order. |
 | `body`, `labels` | `comment`, `label` | The comment body (a path to a file, or text); labels to add/remove `{add: [], remove: []}`. |
 | `title`, `body`, `surfacedIn` | `file-issue` | The new issue's title and body (a path to a file, or text): the problem and a proposed fix. `surfacedIn` is the `owner/repo` (with `#n` when an issue was in hand) where the defect was found; the filing direction is judged from it. Optional `labels` `{add: []}`. |
@@ -64,10 +66,34 @@ one fenced ```json block:
 
 ### Actions
 
-Version control: `setup-branch` · `allocate-worktree` · `commit` · `sync-branch` · `land` ·
-`file-sub-issues` · `file-issue` · `comment` · `label` · `mirror-sync` · `status` · `cancel`
+Version control: `setup-branch` · `allocate-worktree` · `commit` · `sync-branch` · `prepare-landing` ·
+`land` · `file-sub-issues` · `file-issue` · `comment` · `label` · `mirror-sync` · `status` · `cancel`
 
-Dashboards (the work boards and the state boards): `plan-board` · `dashboards-refresh`
+Dashboards (the work boards and the state boards): `plan-board` · `state-boards` · `dashboards-refresh`
+
+Direction: `log-hook`
+
+**`log-hook`.** Any session may hand the team an idea for the user to revisit later: `text` (the idea,
+in the sender's words), `area` (one word or two: `dashboards`, `pipeline`, `CHANGELOG`, …), optional
+`links` (issues, files, request ids). The team's direction manager appends it to the user's hook log;
+`done` carries `result.hook`, the hook id, and `result.feasibility`, its assessment of the idea's
+feasibility and difficulty of execution. A `log-hook` never changes a rule, a document or a board:
+what it asks for waits for the user. It is fire-and-forget for the sender.
+
+**`prepare-landing`.** Opens a run's Document step, after its last qa verdict. The team syncs the
+branch with its base (merge, the repo's way; `needs-rework` with `result.overlap` when the base
+changed files the branch also touches: the run re-verifies with the change's own tests and resends
+the same `id` with `attempt + 1` and a fresh `qa`) and commits the version bump the level calls
+for; `done` carries `result.head`, the **code-landing commit**. From then on only documents change
+on the branch.
+
+**`state-boards`.** In the Document step, after the code-landing commit: the team builds the state
+boards on the branch (the changed systems' boards as built, the supersystem and repository boards,
+`systems.json`, the README pointer, the tracking board re-embed, the repository work board),
+stamped "as-is at `<branch>` @ `<head>`"; at level 4 the planned systems are drawn dashed. It
+raises the issue board's `state-boards` step itself. `done` carries `result.paths`. Nothing is
+committed: the run's `commit` of its documents (the document-landing commit) carries them, then
+its `land`.
 
 **`file-issue`.** A session that finds a bug, design flaw, missing capability or other concern in
 a Spartan Labs repo sends `file-issue`; it never runs `gh issue create` itself. The team files it
@@ -88,7 +114,7 @@ every bump that moved a published module) and at its consideration points (start
 `status`, the month's rollover or its last 3 days). A `status` reply carries each namespace's budget
 (`used` of 7 this month) and its deferred queue.
 
-What each does is in the agent brief's service tables. `commit` and `plan-board` may be
+What each does is in the agent brief's service tables. `commit`, `plan-board` and `log-hook` may be
 fire-and-forget.
 
 ### `plan-board` fields
@@ -97,20 +123,19 @@ A `plan-board` event updates the issue's issue board and, for a sub-issue, its t
 
 | Field | Meaning |
 |-------|---------|
-| `event` | `sized`, `halted`, `resumed`, `researched`, `research-planning`, `research-started`, `research-returned`, `verification-started`, `architecture-signed-off`, `plan-accepted`, `branch-cut`, `implementation-stage`, `qa-pass`, `escalated`, `cancelled` (`landing`, `state-boards`, `merge` and `landed` are raised by the team itself inside `land`: sync and commits, the pre-merge state-board refresh, the PR and merge, then the merged state). |
+| `event` | `sized`, `halted`, `resumed`, `researched`, `research-planning`, `research-started`, `research-returned`, `verification-started`, `architecture-signed-off`, `plan-accepted`, `branch-cut`, `implementation-stage`, `qa-pass`, `document`, `escalated`, `cancelled` (`state-boards`, `landing`, `merge` and `landed` are raised by the team itself: `state-boards` when it accepts the run's `state-boards` request, `landing` when it accepts the `land`, `merge` at the PR, `landed` after the merge). |
 | `folder` | `docs/plans/<…>/<issue>-<slug>` — the issue's plan folder, relative to the repo. |
-| `facts` | What the pipeline knows at this event, in plain fields: `step`, `detail`, `waitingOn`, `stage`, `qa` (`{pass, verdict, doc, test, code, severity, route}`, `severity` `{minor, other}`, `route` as in `remediation`), `documents` (paths written or updated), `proposedLevel`, `reason`, `drafted` (questions drafted so far, at `research-planning`), `researching` (`[{question, rows}]`, at `research-started`), `returned` (`{question, findings}`, at `research-returned`), `questions` (`[{text, options?}]`, at an interview `halted`), `stages` (`[{id, name, state}]`, `state` `done` | `current` | `todo`, at `implementation-stage`), `remediation` (`{pass, route, steps: [{name, state}]}`, `route` `on-the-spot` | `remediation` | `re-plan-then-remediation` (the older `rookie-dev` and `planner-then-rookie-dev` are still read), during a remediation loop), `rows` (board row ids the findings or fixes touch, at `qa-pass` and during remediation), `open` (`[{text, raised, ref?, resolved?}]`, open points raised or resolved), `at` (ISO time the event happened, any event), `tests` (optional, at `implementation-stage` and `qa-pass`): `{base, added: [{class, module, testLevel, path, tests, rows}], amended: […], relevant: […], ran: [{class, module, passed, failed, skipped}], other: {byModule: {<module>: {<level>: count | {classes, tests}}}}, drop: […]}`; `testLevel` is one of `1` `2` `3` `4a` `4b` `4c` `5`, and may be omitted when the class's package names the level folder. The presenter reads the folder's documents for everything else. |
+| `facts` | What the pipeline knows at this event, in plain fields: `step`, `detail`, `waitingOn`, `stage`, `qa` (`{pass, verdict, doc, test, code, severity, route}`, `severity` `{minor, other}`, `route` as in `remediation`), `documents` (paths written or updated), `proposedLevel`, `reason`, `drafted` (questions drafted so far, at `research-planning`), `researching` (`[{question, rows}]`, at `research-started`), `returned` (`{question, findings}`, at `research-returned`), `questions` (`[{text, options?}]`, at an interview `halted`), `stages` (`[{id, name, state}]`, `state` `done` | `current` | `todo`, at `implementation-stage`), `tasks` (`[{id, name, state}]`, the same states, at `document`; ids `documentation-review`, `reconcile-documentation`, `dokka-check`, `reconcile-plan`, `readme-changelog`, `state-boards`), `remediation` (`{pass, route, steps: [{name, state}]}`, `route` `on-the-spot` | `remediation` | `re-plan-then-remediation` (the older `rookie-dev` and `planner-then-rookie-dev` are still read), during a remediation loop), `rows` (board row ids the findings or fixes touch, at `qa-pass` and during remediation), `open` (`[{text, raised, ref?, resolved?}]`, open points raised or resolved), `at` (ISO time the event happened, any event), `tests` (optional, at `implementation-stage` and `qa-pass`): `{base, added: [{class, module, testLevel, path, tests, rows}], amended: […], relevant: […], ran: [{class, module, passed, failed, skipped}], other: {byModule: {<module>: {<level>: count | {classes, tests}}}}, drop: […]}`; `testLevel` is one of `1` `2` `3` `4a` `4b` `4c` `5`, and may be omitted when the class's package names the level folder. The presenter reads the folder's documents for everything else. |
 
 ### Repository work board
 
 `docs/plans/index.html` and `board.json` sit on the default branch, which changes only at a
-landing. Each `land` regenerates them on its own branch before its merge, in its pre-merge
-refresh, together with the previous landing's corrections in that repository (its issue board
-as `landed` with its merge commit, its tracking board's unit landed and next up), read from git
-and the boards and committed in the landing's board commit. After a merge the team writes the
-landed state for viewing only, into the git-ignored `docs/plans/.live/` of the main checkout;
-nothing is left uncommitted, there is no follow-up docs PR, and the team's ledger records the
-pending corrections per repository for the next landing. Between landings the live view is
+landing. Each run's `state-boards` task regenerates them on its branch, and its document-landing
+commit carries them. After a merge the team writes the landed state for viewing only, into the
+git-ignored `docs/plans/.live/` of the main checkout (view copies under `.live/view/`); nothing
+is left uncommitted, there is no follow-up docs PR, and the next run in the repository seeds that
+landed state (its issue board as `landed` with its merge commit, its tracking board's unit landed
+and next up, the repository work board) onto its branch at `sized`. Between landings the live view is
 that local copy, regenerated after every board event, and a run's live state is on its own
 board in its worktree. A `plan-board` event runs in the team's board lanes, apart from the
 repository lanes, and commits nothing: an issue's board files are committed by its `land`. On
@@ -132,7 +157,7 @@ Same shape: one line, then a ```json block.
 |---------|---------|
 | `ack` | Queued. `lane` and `position` (0 = running). |
 | `progress` | Only for long actions; what step it is on. |
-| `done` | Finished. `result` carries SHAs, PR, merge commit, links, worktree path. For a `land`, `result.release` is `{status, coordinates, deploymentId, tags, releases, reason, used}` with `status` one of `published`, `deferred` (`reason`: `cap-reached`, `reserve-held`), `failed` (the user decides at the team's console) or `none` (no published module moved); `result.stateBoards` is `{commit}`, the board commit on the branch (`docs: refresh state boards for #<issue>`; `null` when the refresh changed nothing), which landed in the same merge; `result.corrections` lists what the next landing in the repository regenerates (this landing's issue board as `landed`, its tracking board, the repository work board). |
+| `done` | Finished. `result` carries SHAs, PR, merge commit, links, worktree path. For a `land`, `result.release` is `{status, coordinates, deploymentId, tags, releases, reason, used}` with `status` one of `published`, `deferred` (`reason`: `cap-reached`, `reserve-held`), `failed` (the user decides at the team's console) or `none` (no published module moved); `result.stateBoards` is `{commit}` only when the land had to rebuild the boards because the base moved under a covered system (`docs: refresh state boards for #<issue>`), else `null`; `result.corrections` lists the landed state the next run in the repository seeds onto its branch at `sized` (this landing's issue board as `landed`, its tracking board, the repository work board). |
 | `rejected` | Refused. `reason` names the rule. Fix the request and send a new `id`. |
 | `needs-user` | Waiting on the user at the team's console. `waitingOn` says for what. |
 | `needs-rework` | A `land` whose base moved under its files: `result.overlap` lists them; re-verify, then resend the same `id` with `attempt + 1` and a fresh `qa`. Or a `commit` or `land` whose content breaks the internal-names rule (below): nothing was committed, `result.finds` lists each `file:line` with its text; reword them, then resend the same `id` with `attempt + 1`. A find in a board the team generates is the team's to fix and is never sent back. |
@@ -147,7 +172,7 @@ Same shape: one line, then a ```json block.
 - Only the user at the team's console answers its gates. A relayed approval counts for
   `file-sub-issues` only.
 - No internal names in committed content: no committed document or board (plans, research,
-  architecture, `impact.md`, `final-implementation.md`, every board, and the `plan-board` fact
+  architecture, `consequences.md`, `final-implementation.md`, every board, and the `plan-board` fact
   texts that land on one) names the pipeline's agents, sessions or roles (admin team, planner,
   plan-writer, architect, researcher, verifier, interviewer, presenter, publisher, rookie-dev,
   version-control-manager or executor, qa, code-reviewer, documentation-reviewer,

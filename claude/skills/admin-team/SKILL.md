@@ -1,14 +1,14 @@
 ---
 name: admin-team
 description: >-
-  How any session sends version-control work to this machine's "admin team"
-  session — the single writer for every repository and for the .github mirror
-  of ~/.claude — and acts on its replies. Load it before any step that would
-  commit, push, branch, merge, label, comment, file an issue, allocate a git
-  worktree, rewrite history or sync the mirror: those are requests to the
-  team, never actions you take yourself. Covers finding the team, launching it
-  under a lock when it is not running, building a request in the protocol,
-  waiting for the reply, and what each reply means.
+  How any session sends version-control, dashboard and direction work to this
+  machine's "admin team" session — the single writer for every repository and
+  for the .github mirror of ~/.claude — and acts on its replies. Load it
+  before any step that would commit, push, branch, merge, label, comment, file
+  an issue, allocate a git worktree, rewrite history or sync the mirror: those
+  are requests to the team, never actions you take yourself. Covers finding the
+  team, launching it under a lock when it is not running, building a request in
+  the protocol, waiting for the reply, and what each reply means.
 ---
 
 The `admin team` session (brief: `~/.claude/agents/admin-team.md`; protocol:
@@ -72,13 +72,17 @@ A pipeline's steps map to actions like this:
 | Branch setup, recording the confirmed level | `setup-branch` |
 | A worktree for a concurrent run | `allocate-worktree` (the reply carries the path) |
 | The planner's research commits | `commit` (fire-and-forget; the reply lands in your session, and a `needs-rework` one still needs acting on) |
-| Landing a change set | `land` (includes the resolution comment and the state-board refresh on the branch before the merge) |
+| Opening the Document step: the change set committed, the branch synced with its base, the version bump the level calls for | `prepare-landing` (the `done` reply carries the head sha — the code-landing commit — and the version bumped to, if any; `needs-rework` with `result.overlap` when the base moved under the branch's files) |
+| The state boards built on the branch in the Document step | `state-boards` (issue, level, branch, worktree, the systems touched, the code-landing sha; the reply carries the paths) |
+| The Document step's document-landing commit (its documents, the issue and tracking boards, the repository work board, the state-board files) | `commit` (wait for the reply: its sha is the document-landing commit) |
+| Landing a change set already committed | `land` (the base check, the PR, the merge, the resolution comment, the branch's deletion, the release consideration; no bump and no board commit) |
 | Filing a level-4 sub-issue list the user approved | `file-sub-issues` |
 | A defect or concern found in a Spartan Labs repo | `file-issue` against the repo the fix belongs in, with `title`, `body` and `surfacedIn`; tell the user what was filed |
 | A comment or label on an issue | `comment`, `label` |
 | A change to anything the `.github` mirror covers | `mirror-sync` with the `~/.claude` paths |
-| A step transition in a `/resolve-issue` run (levels 2–4) | `plan-board` with the `event` and its facts (fire-and-forget; see `PROTOCOL.md`) |
+| A step transition in a `/resolve-issue` run (levels 2–4), the Document step's `document` event with its `tasks` included | `plan-board` with the `event` and its facts (fire-and-forget; see `PROTOCOL.md`) |
 | A dashboard refresh on request | `dashboards-refresh` |
+| An idea the user should revisit later | `log-hook` with `text` (the idea, in your words), `area` and optional `links`; no `repo` or `github` (fire-and-forget). The `done` reply carries `result.hook`, the hook id, and `result.feasibility`, its assessment of the idea |
 | Where is my request | `status` |
 
 ## 4. Send and wait
@@ -86,8 +90,8 @@ A pipeline's steps map to actions like this:
 `SendMessage(to: "admin team", summary: "<action> #<issue>", message: <the
 request>)`. The reply comes back as a cross-session message from `admin team`
 and starts your next turn when you are idle, so end your turn after sending a
-request that you need the result of; do not poll. A `commit` request needs no
-wait.
+request that you need the result of; do not poll. A `commit`, `plan-board` or
+`log-hook` request needs no wait.
 
 ## 5. Act on the reply
 
@@ -97,7 +101,7 @@ wait.
 | `done` | Carry `result` forward (SHAs, PR, merge commit, comment link, worktree path). For a `land`, `result.release` says whether the bump was `published` (coordinates, tags, release URLs), `deferred` (reason, usage) or `failed` (the user decides at the team's console); `none` means no published module moved. |
 | `rejected` | Read `reason`. Fix the request and send it with a **new** `id`. If the reason is a rule you cannot meet, stop and tell the user. |
 | `needs-user` | The team is waiting on the user at its own console or in the Remote Control app. Tell the user so, naming the request and what it waits on, and end your turn. |
-| `needs-rework` | Either the base moved under files your branch touches (`result.overlap`): re-verify: re-run the change's own tests, and `qa` if the overlap touches code the change altered; fix what breaks; then resend the same `id` with `attempt + 1` and the fresh `qa` verdict. Or, for a `commit` or `land`, content about to be committed names the pipeline's agents, sessions or roles, the approval flow, or a work level (`result.finds`, each `file:line`; nothing was committed): reword each find in the project's own terms (or have the agent that wrote the file reword it), then resend the same `id` with `attempt + 1`. |
+| `needs-rework` | Either the base moved under files your branch touches (`result.overlap`, on a `prepare-landing` or a `land`): re-verify: re-run the change's own tests, and `qa` if the overlap touches code the change altered; fix what breaks; then resend the same `id` with `attempt + 1` and the fresh `qa` verdict. Or, for a `commit`, content about to be committed names the pipeline's agents, sessions or roles, the approval flow, or a work level (`result.finds`, each `file:line`; nothing was committed): reword each find in the project's own terms (or have the agent that wrote the file reword it), then resend the same `id` with `attempt + 1`. |
 | `warning` | Another in-flight branch touches the same hand-written file. Tell the user; carry on. |
 
 Never resend a request verbatim (the harness drops identical repeats): a retry

@@ -11,7 +11,9 @@
 // or before a pipeline noun ("planner re-pass"), and never inside code (backticks, <code>) or as part of a longer word (RoutePlanner); the
 // two a concurrency or a reactive library uses all the time, executor and publisher, only with the pipeline's own verbs ("the executor
 // commits", "the publisher released"), so "the dispatcher and the executor" on a state board is left alone. "qa" matches only as an agent ("qa found", "qa
-// has approved", "by qa", "qa's"), never as the step or its passes.
+// has approved", "by qa", "qa's"), never as the step or its passes. The version-control-manager shortened matches as "the manager's" or
+// "the manager" with a pipeline verb, never "Selenium Manager"; "confirms" counts among the pipeline's verbs ("the executor confirms the
+// branch"). The approval flow matches with a word between ("the user's two answers") and in the passive ("signed off by the user").
 // Used by plan/scripts/check.js (every string of plan.json and board.json, warned), by check-board.js (a board's data blocks, its comments
 // and its rendered text, warned) and by plan/scripts/apply-event.js, which rewords a fact text through scrubNames() before it is written,
 // and leaves it out, telling the presenter (enrich), where a name would remain.
@@ -19,7 +21,7 @@
 const UNAMBIGUOUS = ["admin[- ]teams?", "plan-writers?", "rookie-devs?", "version-control-managers?", "code-reviewers?", "documentation-reviewers?", "test-inspectors?", "interviewers?", "researchers?"];
 const CONTEXTUAL = ["planners?", "architects?", "verifiers?", "presenters?"];
 /* executor and publisher: the pipeline's only with its verbs */
-const PIPELINE_VERBS = "commits?|committed|pushe[sd]|push|merges?|merged|lands?|landed|files?|filed|releases?|released|publishe[sd]|defers?|deferred|tags?|tagged";
+const PIPELINE_VERBS = "commits?|committed|pushe[sd]|push|merges?|merged|lands?|landed|files?|filed|releases?|released|publishe[sd]|defers?|deferred|tags?|tagged|confirms?|confirmed";
 const ROLE_NOUNS = "agent|agents|session|sessions|re-pass|re-passes|repass|step|verdict|report|reports|leg|lane|lanes|brief|fixes|pass";
 const CTX = CONTEXTUAL.join("|");
 const NAME_PATTERNS = [
@@ -30,11 +32,13 @@ const NAME_PATTERNS = [
   [`(?:^|[.;:!?]\\s+|\\(\\s*)(?:${CTX})\\s+[a-z]+(?:s|ed)\\b`, "i"],                                             // "planner reconciles" (the role as the subject)
   [`(?:^|[;,]\\s*|\\(\\s*)(?:${CTX})\\s*:`, "i"],                                                                  // "planner: rule on the gaps" (the role as a label)
   [`\\b(?:executors?|publishers?)['’]?s?\\s+(?:${PIPELINE_VERBS})\\b`, "i"],                                         // "the executor commits", "the publisher released"
+  [`\\bthe\\s+manager(?:['’]s\\b|\\s+(?:${PIPELINE_VERBS})\\b)`, "i"],                                                // "the manager's final call": the version-control-manager, shortened
   ["\\bqa\\s+(?:agent|agents|found|finds|flagged|flags|raised|raises|reported|reports|said|says|asked|asks|approved|approves|rejected|rejects|returned|returns|requested|requests|reviewer|team|has\\s+approved|had\\s+approved|has\\s+found|had\\s+found)\\b", "i"], // "qa found", "qa has approved"
   ["\\b(?:by|from)\\s+qa\\b(?!\\s+pass)", "i"],                                                             // "raised by qa", never "from qa pass 2"
   ["\\bqa['’]s\\b", "i"],                                                                                  // "qa's test-inspector"
-  ["\\buser['’]s\\s+(?:call|answers?|approval|decision|choice|sign-?off|go-ahead)\\b", "i"],               // "the user's call"
+  ["\\buser['’]s\\s+(?:[a-z]+\\s+)?(?:call|answers?|approval|decision|choice|sign-?off|go-ahead)\\b", "i"], // "the user's call", "the user's two answers"
   ["\\buser\\s+(?:chose|chooses|choose|answered|answers|approved|approves|decided|decides|signed\\s+off|confirmed|confirms|okayed)\\b", "i"], // "the user chose", "user answers"
+  ["\\b(?:signed\\s+off|approved|decided|chosen|answered)\\s+by\\s+the\\s+user\\b", "i"],                  // "signed off by the user"
 ];
 const REGEXES = NAME_PATTERNS.map(([s, f]) => new RegExp(s, f + "g"));
 /* code is never prose: backtick spans and <code> elements are left out of the scan */
@@ -46,6 +50,15 @@ function nameRefs(text) {
   const t = prose(text);
   REGEXES.forEach(re => { re.lastIndex = 0; let m; while ((m = re.exec(t))) out.push(m[0]); });
   return out;
+}
+/* Every internal name in a text as its span, { index, end }, in the text as given (code masked to spaces of the same length, so the
+   offsets hold): lib.js sectionOf() elides the clause around each from a plan excerpt, as it elides a work level. */
+function nameSpans(text) {
+  const out = [];
+  if (typeof text !== "string" || !text) return out;
+  const t = text.replace(/`[^`\n]*`/g, m => " ".repeat(m.length)).replace(/<code\b[^>]*>[\s\S]*?<\/code>/gi, m => " ".repeat(m.length));
+  REGEXES.forEach(re => { re.lastIndex = 0; let m; while ((m = re.exec(t))) out.push({ index: m.index, end: m.index + m[0].length }); });
+  return out.sort((a, b) => a.index - b.index);
 }
 /* Every internal name in the strings of a data file: [{ at, hit }]; keys, numbers and $comment are skipped, and so are the paths skip(at)
    accepts (an issue's title, quoted verbatim: levelrefs.js titleSkip()). */
@@ -99,4 +112,4 @@ function scrubNames(text) {
 const unambiguous = hit => new RegExp(`\\b(?:${UNAMBIGUOUS.join("|")})\\b`, "i").test(hit) || /\buser\b/i.test(hit) || /\bqa\b/i.test(hit);
 /* the warning's line */
 const nameWarning = (where, hits) => `INTERNAL NAME: ${where} names ${[...new Set(hits)].slice(0, 6).map(h => JSON.stringify(h)).join(", ")}: a board never names the pipeline's agents, sessions or roles, nor the approval flow (GUIDANCE.md §4); reword it at the board's next refresh`;
-module.exports = { NAME_PATTERNS, UNAMBIGUOUS, CONTEXTUAL, nameRefs, nameRefsIn, commentRefs, scrubNames, unambiguous, nameWarning };
+module.exports = { NAME_PATTERNS, UNAMBIGUOUS, CONTEXTUAL, nameRefs, nameSpans, nameRefsIn, commentRefs, scrubNames, unambiguous, nameWarning };

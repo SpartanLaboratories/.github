@@ -3,7 +3,7 @@
 // deterministically and with no reasoning, so the admin team can run it itself in well under five seconds; what needs the folder's
 // documents is left to the presenter, who enriches the board afterwards (the summary's "enrich" line says whether, and why).
 //   node apply-event.js --event <request.json> --worktree <path> [--repo <owner/repo>] [--main <checkout>] [--at <ISO time>]
-//                       [--no-live] [--no-gh] [--json]
+//                       [--view] [--no-live] [--no-gh] [--json]
 // --event      the admin-team protocol's plan-board request (action, event, folder, facts; the message's fenced json block, or the
 //              JSON alone)
 // --worktree   the worktree the issue's board lives in; the board is <worktree>/<folder>
@@ -11,6 +11,10 @@
 //              accepted too, read as --main
 // --main       the repository's main checkout, where the live repository work board lives (default: the request's repo, else the worktree)
 // --at         the event's time (default: facts.at, else now); every stamp the event writes takes it
+// --view       the live view only (the post-merge refresh's landed, plan/RULES.md §4, "The live view of a landing"): every board it would
+//              write in place (the issue's, its parent tracking board) is written as its view copy under the main checkout's git-ignored
+//              docs/plans/.live/view/<folder under docs/plans>/ instead, and read from that copy where one is fresher than the tracked
+//              board (lib.js viewOf()); no tracked file is written. The live repository work board then opens the copies
 // --no-live    leave the live repository work board alone; --no-gh builds it from the boards alone (board.js --no-gh)
 // --json       print the summary as one JSON object instead of key: value lines
 // What it does: reads the request and <worktree>/<folder>/plan.json; applies the event (the step, the stages and the derived as-built
@@ -25,29 +29,39 @@
 // committed repository work board. Every file is written through a temporary file and a rename, and on any failure every file it wrote is put
 // back as it was: exit 1, nothing changed. Exit 0 when applied, or when the event was already applied (the same event twice changes
 // nothing), or when there is no board to apply it to (sized: the presenter lays the foundation); exit 2 on a usage error.
+// Since admin-team/dashboards-skill/35: the Document step's event (document, facts.tasks, applied whole; a team-raised state-boards on a
+// board in that flow is its state-boards task), the land in two steps (landing, merge), an approving qa pass leading to the Document step;
+// seeding at sized (a worktree branched after a landing starts the boards the main checkout's live view shows landed, seedFromView());
+// an open point's report outside the tree copied when the point is raised, for the live view (runOpenJobs()), and every open point
+// resolved at the land (check.js fails one left open); a bare test level beside a test word written as its named test level, and a bare
+// "Ln" elsewhere elided as a work level with a warning (summary: warnings).
 "use strict";
 const T0 = Date.now();
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const lib = require("./lib.js"), TL = require("./testslib.js");
 const dev = require(path.resolve(__dirname, "..", "..", "system", "scripts", "deviation.js"));
-const { levelRefs, scrubLevels } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
+const { levelRefs, scrubLevels, nameTestLevels } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
 const { nameRefs, scrubNames, unambiguous } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
 
-const USAGE = "usage: node apply-event.js --event <request.json> --worktree <path> [--repo <owner/repo>] [--main <checkout>] [--at <ISO time>] [--no-live] [--no-gh] [--json]";
+const USAGE = "usage: node apply-event.js --event <request.json> --worktree <path> [--repo <owner/repo>] [--main <checkout>] [--at <ISO time>] [--view] [--no-live] [--no-gh] [--json]";
 const args = process.argv.slice(2);
-require("../../system/scripts/cliargs.js").strict(args, { usage: USAGE, valued: ["event", "worktree", "repo", "main", "at"], flags: ["no-live", "no-gh", "json"], max: 0 });
+require("../../system/scripts/cliargs.js").strict(args, { usage: USAGE, valued: ["event", "worktree", "repo", "main", "at"], flags: ["view", "no-live", "no-gh", "json"], max: 0 });
 const opt = n => lib.opt(args, n, null), flag = n => lib.flag(args, n);
 
 /* the summary, printed at the end whatever happens */
-const S = { result: null, event: null, issue: null, board: null, applied: [], enrich: [], rerendered: [], wrote: [], parent: null, live: null, check: null, defects: [], error: null, restored: 0 };
+const S = { result: null, event: null, issue: null, board: null, applied: [], enrich: [], rerendered: [], wrote: [], view: [], seeded: [], parent: null, live: null, check: null, warnings: [], defects: [], error: null, restored: 0 };
+/* the fast path's own warnings (a bare "Ln" elided as a work level, dashboards-skill/35): printed under "warnings" and counted on the check line */
+const WARNINGS = S.warnings;
 const say = () => {
   S.ms = Date.now() - T0;
+  S.warnings.splice(0, S.warnings.length, ...new Set(S.warnings));
+  if (S.warnings.length && S.check && !/fast-path warning/.test(S.check)) S.check += ` · ${S.warnings.length} fast-path warning${S.warnings.length === 1 ? "" : "s"} (below)`;
   const enrich = S.enrich.length ? "yes" : "no";
   if (flag("json")) { console.log(JSON.stringify({ ...S, enrich, why: S.enrich.length ? S.enrich : ["the event's facts decide everything it writes"] })); return; }
   const L = [["apply-event", S.result], ["event", S.event], ["issue", S.issue != null ? "#" + S.issue : null], ["board", S.board],
     ["applied", S.applied.join("; ") || "nothing"], ["enrich", enrich], ["why", S.enrich.length ? S.enrich.join("; ") : "the event's facts decide everything it writes"],
-    ["rerendered", S.rerendered.join(", ") || "none"], ["wrote", S.wrote.join(", ") || "nothing"], ["parent", S.parent || "none"], ["live", S.live || "untouched"],
-    ["check", S.check || "not run"], ["issue defects", S.defects.length ? S.defects.join(" | ") : null], ["error", S.error], ["restored", S.error ? `${S.restored} file${S.restored === 1 ? "" : "s"}, as they were` : null], ["time", `${S.ms} ms`]];
+    ["rerendered", S.rerendered.join(", ") || "none"], ["wrote", S.wrote.join(", ") || "nothing"], ["view", VIEWING ? S.view.join(", ") || "nothing" : null], ["seeded", S.seeded.length ? S.seeded.join(", ") : null], ["parent", S.parent || "none"], ["live", S.live || "untouched"],
+    ["check", S.check || "not run"], ["warnings", S.warnings.length ? S.warnings.map(w => "warn " + w).join(" | ") : null], ["issue defects", S.defects.length ? S.defects.join(" | ") : null], ["error", S.error], ["restored", S.error ? `${S.restored} file${S.restored === 1 ? "" : "s"}, as they were` : null], ["time", `${S.ms} ms`]];
   L.filter(([, v]) => v != null).forEach(([k, v]) => console.log(`${k}: ${v}`));
 };
 class Refusal extends Error {}
@@ -90,16 +104,16 @@ function readRequest(file) {
   try { return JSON.parse(m[1]); } catch (e) { refuse(`the request's json block does not parse: ${e.message}`); }
 }
 
-const ID = /^[a-z0-9][a-z0-9-]*$/, STEPS = ["sizing", "interview", "research", "architecture", "sub-issues", "boards", "plan", "branch", "implementation", "qa", "remediation", "landing", "state-boards", "merge", "landed", "halted", "escalated", "cancelled"];
+const ID = /^[a-z0-9][a-z0-9-]*$/, STEPS = ["sizing", "interview", "research", "architecture", "sub-issues", "boards", "plan", "branch", "implementation", "qa", "remediation", "document", "landing", "state-boards", "merge", "landed", "halted", "escalated", "cancelled"];
 /* the remediation routes (plan/RULES.md §5, "QA"): their ids name no role (dashboards-skill/33); a request (or a board) that carries the
    older ids, rookie-dev and planner-then-rookie-dev, is read through routeId() and written with the new ones */
 const ROUTES = ["on-the-spot", "remediation", "re-plan-then-remediation"], SSTATES = ["done", "current", "todo"];
 const ROUTE_OLD = { "rookie-dev": "remediation", "planner-then-rookie-dev": "re-plan-then-remediation" };
 const routeId = r => (typeof r === "string" && ROUTE_OLD[r]) || r;
 /* The column a step's trail entry sits in. */
-const STEP_COLUMN = { "sub-issues": "considered", boards: "considered", sizing: "gap", interview: "gap", research: "gap", architecture: "considered", plan: "verdict", branch: "built", implementation: "built", qa: "built", remediation: "built", landing: "built", "state-boards": "built", merge: "built", landed: "built", cancelled: "built" };
-const STEP_WORDS = { "sub-issues": "filing the units as sub-issues", boards: "creating the units' boards", sizing: "sizing", interview: "the interview", research: "research", architecture: "the architecture", plan: "the plan", branch: "the branch", implementation: "implementation", qa: "qa", remediation: "remediation", landing: "the landing", "state-boards": "the state boards", merge: "the merge", landed: "landed" };
-const ROUTE_WORDS = { "on-the-spot": "minor fixes on the spot, then landing with no new qa pass", "remediation": "a remediation pass, then the next qa pass", "re-plan-then-remediation": "a plan re-pass, then a remediation pass, then the next qa pass" };
+const STEP_COLUMN = { "sub-issues": "considered", boards: "considered", sizing: "gap", interview: "gap", research: "gap", architecture: "considered", plan: "verdict", branch: "built", implementation: "built", qa: "built", remediation: "built", document: "built", landing: "built", "state-boards": "built", merge: "built", landed: "built", cancelled: "built" };
+const STEP_WORDS = { "sub-issues": "filing the units as sub-issues", boards: "creating the units' boards", sizing: "sizing", interview: "the interview", research: "research", architecture: "the architecture", plan: "the plan", branch: "the branch", implementation: "implementation", qa: "qa", remediation: "remediation", document: "the Document step", landing: "the landing", "state-boards": "the state boards", merge: "the merge", landed: "landed" };
+const ROUTE_WORDS = { "on-the-spot": "minor fixes on the spot, then the Document step with no new qa pass", "remediation": "a remediation pass, then the next qa pass", "re-plan-then-remediation": "a plan re-pass, then a remediation pass, then the next qa pass" };
 const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 const code = s => "`" + s + "`";
 
@@ -110,7 +124,10 @@ function applyEvent(orig, ev, facts, req, now) {
   const w = plan.wip = plan.wip && typeof plan.wip === "object" ? plan.wip : {};
   /* a steps line written before the landing's three steps (dashboards-skill/34) takes state-boards and merge after its landing, at any
      event of a board still in flight (a landed or cancelled board keeps its line) */
-  if (Array.isArray(w.steps) && !["built", "abandoned"].includes(plan.status) && !["landed", "cancelled"].includes(w.step)) { const ls = lib.landingSteps(w.steps); if (ls !== w.steps) { w.steps = ls; applied.push("wip.steps: state-boards and merge after the landing"); } }
+  /* a steps line written before the Document step (dashboards-skill/35) takes it before its landing, and merge after it, at any event of a
+     board in flight whose run has not reached its landing; a run at its landing or past it keeps the three landing steps of
+     dashboards-skill/34 (lib.js documentSteps()); a landed or cancelled board keeps its line */
+  if (Array.isArray(w.steps) && !["built", "abandoned"].includes(plan.status) && !["landed", "cancelled"].includes(w.step)) { const ls = lib.documentSteps(w.steps, lib.shownStep(w)); if (ls !== w.steps) { w.steps = ls; applied.push(`wip.steps: ${ls.includes("document") ? "the Document step before the landing, merge after it" : "state-boards and merge after the landing"}`); } }
   const rows = Array.isArray(plan.rows) ? plan.rows : [], ids = new Set(rows.map(r => r && r.id)), tracking = plan.kind === "tracking";
   /* a text from the facts, as one line; a work level in it (GUIDANCE.md §4) is never written: the phrase is reworded or elided
      (levelrefs.js scrubLevels(): "inside level 3" → "inside the unit's scope" on a sub-issue's board, "the issue's" elsewhere; "a
@@ -127,8 +144,13 @@ function applyEvent(orig, ev, facts, req, now) {
   const txt = (v, field) => {
     if (typeof v !== "string" || !v.trim()) return null;
     let s = v.replace(/\s+/g, " ").trim();
+    /* a bare test level beside a test word is written as its named test level ("L2 test" → "L2 component test"; levelrefs.js
+       nameTestLevels(), admin-team/dashboards-skill/35): a rewording the facts alone decide */
+    if (!IDENT.has(field)) { const nt = nameTestLevels(s); if (nt.named.length) { s = nt.text; applied.push(`facts.${field}: ${nt.named.join(", ")} written as ${nt.named.length === 1 ? "its" : "their"} named test level`); } }
     if (levelRefs(s).length) {
-      const r = IDENT.has(field) ? null : scrubLevels(s, { scope });
+      const el = [], r = IDENT.has(field) ? null : scrubLevels(s, { scope, elided: el });
+      /* a bare "Ln" elided as a work level is warned on, so the elision is visible (dashboards-skill/35) */
+      if (r && el.length) WARNINGS.push(`LEVEL ELIDED: facts.${field}: ${el.map(h => JSON.stringify(h)).join(", ")} elided as a work level (written ${shortJ(r)}); a test level is written with its name ("L2 component")`);
       if (!r) { enrich.push(`facts.${field} names a work level, which a board never shows: not written`); return null; }
       enrich.push(`facts.${field} named a work level, which a board never shows: written reworded (${shortJ(r)})`);
       s = r;
@@ -361,7 +383,7 @@ function applyEvent(orig, ev, facts, req, now) {
       if ((w.questions || []).length || w.research || w.plan) applied.push("wip.questions, wip.research and wip.plan cleared");
       w.questions = []; w.research = null; w.plan = null;
       setStep("branch"); setGlow("branch");
-      enrich.push("plan-accepted: the Considered and Verdict columns, the verdict milestone and the impact come from plan.md and impact.md");
+      enrich.push("plan-accepted: the Considered and Verdict columns, the verdict milestone and the consequences come from plan.md and consequences.md (impact.md in an older folder)");
       detail = detail || "Plan accepted; the branch is cut next.";
       trail = { column: "verdict", label: "Plan accepted", ref: docRef("plan.md") };
       break;
@@ -432,6 +454,12 @@ function applyEvent(orig, ev, facts, req, now) {
       const entry = { pass: Q.pass, verdict, date: today, at: now, findings, ...(Object.keys(severity).length ? { severity } : {}), ...(verdict === "changes-requested" && route ? { route } : {}) };
       const qn = txt(Q.note, "qa.note"); if (qn) entry.note = qn;
       w.qa = Array.isArray(w.qa) ? w.qa : []; const k = w.qa.findIndex(x => x && x.pass === Q.pass);
+      /* the pass's test report (facts.qa.report, build/reports/tests/index.html; admin-team/dashboards-skill/35): a build output, never
+         committed, so recorded as plain text (its path from the repository root), and copied once, when the pass returns, under the
+         git-ignored docs/plans/.live/open/ for the live view to link (reportCopy); a pass recorded before keeps its copy */
+      const had = k >= 0 ? w.qa[k] : null;
+      if (typeof Q.report === "string" && Q.report.trim()) { const rp = openRefLocal(Q.report.trim().replace(/\\/g, "/")).replace(/^\.\//, "");
+        if (!/^`/.test(rp)) { entry.report = rp; const cp0 = had && had.report === rp && had.reportCopy ? had.reportCopy : openCopyFor(rp, `qa pass ${Q.pass} test report`, plan.folder); if (cp0) entry.reportCopy = cp0; } }
       if (k < 0) w.qa.push(entry); else w.qa[k] = { ...(w.qa[k] && w.qa[k].note && !entry.note ? { note: w.qa[k].note } : {}), ...entry };
       w.qa.sort((a, b) => a.pass - b.pass); applied.push(`wip.qa pass ${Q.pass} ${verdict}`);
       /* an open point the qa report raises (or settles) is kept as at an implementation stage (plan/RULES.md §3, wip.open) */
@@ -441,9 +469,11 @@ function applyEvent(orig, ev, facts, req, now) {
       const anyFinding = Object.values(findings).some(n => n > 0);
       if (verdict === "approved") {
         if (w.remediation) applied.push("wip.remediation cleared"); w.remediation = null;
-        const step = facts.step && STEPS.includes(facts.step) ? facts.step : "landing"; setStep(step); setGlow(step);
+        /* the Document step follows an approving pass (dashboards-skill/35); a board on the older line goes to its landing */
+        const after = Array.isArray(w.steps) && w.steps.length && !w.steps.includes("document") ? "landing" : "document";
+        const step = facts.step && STEPS.includes(facts.step) ? facts.step : after; setStep(step); setGlow(step);
         if (anyFinding) enrich.push("qa-pass: the approving pass's findings detail comes from the qa report");
-        detail = detail || `QA pass ${Q.pass} approved; the landing follows.`;
+        detail = detail || `QA pass ${Q.pass} approved; ${step === "document" ? "the Document step follows" : "the landing follows"}.`;
         if (plan.parent) parentOp = { kind: "complete" };
       } else if (verdict === "changes-requested") {
         setRemediation(w, { pass: Q.pass, ...(facts.remediation || {}), route }, applied, enrich, txt);
@@ -484,13 +514,43 @@ function applyEvent(orig, ev, facts, req, now) {
        of the state boards on the branch, stamped at its head, and its board commit; "merge", the pull request merged. "landed" is applied
        after the merge (the post-merge refresh shows it in the live view; the next landing commits it). Each records its visit's time: the
        step's since, and the step before frozen with its end (wip.history). */
+    /* The Document step (admin-team/dashboards-skill/35), between qa (or remediation) and the land: facts.tasks [{id, name, state}], ids
+       documentation-review, reconcile-documentation, dokka-check, reconcile-plan, readme-changelog and state-boards, states done | current |
+       todo, merged by id into wip.document.tasks (a task the event leaves out keeps its state; several may be current: the tasks may run in
+       parallel). The admin team raises the state-boards task itself when it accepts the run's state-boards request: a "state-boards" event
+       on a board in this flow is that task, current (below). Applied whole on the fast path: the step, the tasks, the glow, the detail and the
+       trail entry; nothing needs the documents. */
+    case "document": {
+      if (["built", "abandoned"].includes(plan.status) || ["landed", "cancelled"].includes(w.step)) refuse(`document: the board has ${plan.status === "abandoned" || w.step === "cancelled" ? "been cancelled" : "landed"} already`);
+      if (stopped(w.step)) { w.resume = null; w.waitingOn = null; applied.push("wip.resume and wip.waitingOn cleared"); }
+      if (Array.isArray(w.steps) && !w.steps.includes("document")) { const ls = lib.documentSteps(w.steps, null); if (ls !== w.steps && ls.includes("document")) { w.steps = ls; applied.push("wip.steps: the Document step before the landing, merge after it"); } }
+      mergeTasks(w, facts.tasks, applied, enrich, txt);
+      setStep("document"); setGlow("document");
+      ({ note, detail, trail } = documentWording(w, note, detail, txt(facts.task, "task")));
+      break;
+    }
     case "landing": case "state-boards": case "merge": {
       if (["built", "abandoned"].includes(plan.status) || ["landed", "cancelled"].includes(w.step)) refuse(`${ev}: the board has ${plan.status === "abandoned" || w.step === "cancelled" ? "been cancelled" : "landed"} already`);
+      /* the state boards in the Document step (dashboards-skill/35): on a board whose steps line has the Document step (or that is at it), the
+         team-raised state-boards is the Document step's state-boards task, current; on a board that reached its landing in the older line it
+         is the step of dashboards-skill/34, and so it is on a board already at its landing (or past it), whose line then takes state-boards
+         after its landing: the state boards are never put back before a land that has begun */
+      const shown = lib.shownStep(w), ln = Array.isArray(w.steps) ? w.steps : [], beforeLand = !shown || shown === "document" || (ln.includes(shown) && ln.includes("landing") && ln.indexOf(shown) < ln.indexOf("landing"));
+      const docFlow = w.step === "document" || (stopped(w.step) && w.resume === "document") || (ln.includes("document") && beforeLand);
+      if (ev === "state-boards" && !docFlow && ln.includes("landing") && !ln.includes("state-boards")) { const st = ln.slice(); st.splice(st.indexOf("landing") + 1, 0, "state-boards"); w.steps = st; applied.push("wip.steps: state-boards after the landing (the older flow)"); }
+      if (ev === "state-boards" && docFlow) {
+        if (stopped(w.step)) { w.resume = null; w.waitingOn = null; applied.push("wip.resume and wip.waitingOn cleared"); }
+        const t0 = Array.isArray(facts.tasks) ? facts.tasks : [], given = t0.some(x => x && x.id === "state-boards");
+        mergeTasks(w, given ? t0 : [...t0, { id: "state-boards", state: facts.done === true ? "done" : "current" }], applied, enrich, txt);
+        setStep("document"); setGlow("document");
+        ({ note, detail, trail } = documentWording(w, note, detail, "the state boards"));
+        break;
+      }
       if (stopped(w.step)) { w.resume = null; w.waitingOn = null; applied.push("wip.resume and wip.waitingOn cleared"); }
-      if (Array.isArray(w.steps)) { const ls = lib.landingSteps(w.steps); if (ls !== w.steps) { w.steps = ls; applied.push("wip.steps: state-boards and merge after the landing"); } }
+
       setStep(ev); setGlow(ev);
       const pr = Number.isInteger(facts.pr) && facts.pr > 0 ? facts.pr : null, inPr = pr ? " in PR #" + pr : "";
-      const say = { landing: [`land accepted${pr ? ", PR #" + pr : ""}`, `Landing: the branch brought up to date; the code, the version bump and the reconciled documents committed on it.`, `Landing: the land accepted${inPr}`],
+      const say = { landing: [`land accepted${pr ? ", PR #" + pr : ""}`, ln.includes("document") ? `Landing: the land accepted${inPr}; the branch carries the code, the version bump, the reconciled documents and the state boards.` : `Landing: the branch brought up to date; the code, the version bump and the reconciled documents committed on it.`, `Landing: the land accepted${inPr}`],
         "state-boards": ["the state boards refreshed on the branch", `State boards: the pre-merge refresh on the branch, stamped at its head, and its board commit.`, `State boards: refreshed on the branch before the merge`],
         merge: [`merging${pr ? " PR #" + pr : ""}`, `Merge: merging it${inPr}.`, `Merge: merging it${inPr}`] }[ev];
       note = note || say[0];
@@ -516,7 +576,7 @@ function applyEvent(orig, ev, facts, req, now) {
       w.resume = null; w.waitingOn = null;
       if (next.sha && next.date && !open.length) { if (plan.status !== "built") { plan.status = "built"; applied.push("status built"); } setStep("landed"); setGlow("landed"); }
       else { const at = (Array.isArray(w.steps) && w.steps.includes("merge")) || ["merge", "state-boards"].includes(w.step) ? "merge" : "landing"; setStep(at); setGlow(at); enrich.push(open.length ? `landed: ${open.map(r => r.id).join(", ")} still to resolve before the board is built (it stays at the ${at === "merge" ? "merge" : "landing"} until then)` : "landed: asBuilt has no sha yet"); }
-      enrich.push("landed: the pre-merge refresh resolves every part, completes the trail and reconciles the impact");
+      enrich.push("landed: every part is resolved, the trail completed and the consequences reconciled from final-implementation.md and consequences.md (impact.md in an older folder), on the board seeded at the next run's sized or by the presenter");
       detail = detail || `Landed${pr ? " in PR #" + pr : ""}.`;
       /* the merge commit names the merge: facts.merge when given (facts.sha may be the branch's last commit), else the one sha given */
       const mergeSha = next.merge || sha;
@@ -589,6 +649,37 @@ function mergeStages(w, facts, applied, enrich, first) {
   if (norows.length) enrich.push(`the rows stage${norows.length > 1 ? "s" : ""} ${norows.join(", ")} touch come from plan.md`);
   if (JSON.stringify(out) !== JSON.stringify(have)) { w.stages = out; applied.push(`wip.stages ${out.map(x => x.id + " " + x.state).join(", ")}`); }
 }
+/* wip.document from the facts (admin-team/dashboards-skill/35): {tasks: [{id, name, state}]}, merged by id: a task the event names takes
+   its state (and its name, when given; else the name it has, else lib.js DOC_TASK_NAMES), a task it leaves out keeps its own, a new one is
+   added in the order lib.js DOC_TASKS gives (another id after them, as given). Several may be current: the tasks may run in parallel. A task
+   with no id, or whose state is not done, current or todo, is refused, as a stage's is. */
+function mergeTasks(w, list, applied, enrich, txt) {
+  const have = w.document && typeof w.document === "object" && Array.isArray(w.document.tasks) ? w.document.tasks.filter(x => x && typeof x === "object") : [];
+  const out = have.map(x => ({ ...x }));
+  (Array.isArray(list) ? list : []).forEach((t, i) => {
+    const id = t && typeof t.id === "string" ? t.id.trim() : "";
+    if (!ID.test(id)) refuse(`facts.tasks[${i}] has no id (a kebab-case task id, such as documentation-review)`);
+    if (!SSTATES.includes(t.state)) refuse(`facts.tasks[${i}].state ${JSON.stringify(t.state)} is not done, current or todo`);
+    const name = txt(t.name, `tasks[${i}].name`), x = out.find(y => y.id === id);
+    if (x) { x.state = t.state; if (name) x.name = name; }
+    else { const nm = name || lib.DOC_TASK_NAMES[id]; if (!nm) { enrich.push(`facts.tasks[${i}] (${id}) is no task of the Document step the board knows and carries no name: written with its id as its name`); }
+      out.push({ id, name: nm || id, state: t.state }); }
+  });
+  const rank = id => { const k = lib.DOC_TASKS.findIndex(([d]) => d === id); return k < 0 ? lib.DOC_TASKS.length : k; };
+  out.sort((a, b) => rank(a.id) - rank(b.id));
+  if (!out.length) enrich.push("document carries no facts.tasks: the step panel lists none until the tasks are reported");
+  const next = { tasks: out };
+  if (JSON.stringify(next) !== JSON.stringify(w.document || null)) { w.document = next; applied.push(`wip.document ${out.map(x => x.id + " " + x.state).join(", ") || "(no tasks)"}`); }
+}
+/* the note, the detail and the trail entry of a Document step event, from its tasks alone (the same event twice writes the same board) */
+function documentWording(w, note, detail, said) {
+  const ts = ((w.document || {}).tasks || []), cur = ts.filter(x => x.state === "current"), dn = ts.filter(x => x.state === "done");
+  const curWords = cur.length ? `${cur.map(x => x.name).join(", ")} ${cur.length > 1 ? "in parallel" : "current"}` : ts.length && dn.length === ts.length ? "every task done" : null;
+  const count = ts.length ? `${dn.length} of ${ts.length} task${ts.length === 1 ? "" : "s"} done` : null;
+  return { note: note || [said, count].filter(Boolean).join("; ") || "the Document step",
+    detail: detail || `Document: ${[count, curWords].filter(Boolean).join("; ") || "the documents and the state boards on the branch"}.`,
+    trail: { column: "built", label: `Document: ${curWords || count || "the step begins"}` } };
+}
 /* wip.remediation from the facts: {pass, route, steps: [{name, state}]}. */
 function setRemediation(w, R, applied, enrich, txt) {
   if (!R || !Number.isInteger(R.pass)) refuse("the remediation names no qa pass (facts.remediation.pass)");
@@ -626,11 +717,35 @@ function openRef(ref, folder) {
 /* A link never points at a file that is not there (plan/RULES.md §1): a ref naming a file (or folder) that is not in the tree from the
    board's folder — a build output such as a qa report under build/, which is never committed — is kept as text naming it, not as a
    link, and the presenter is told. Anything else (a URL, a sha, PR #n, #n, a sentence) is kept as it is. */
-const FILE_REF = /^([\w./-]+\.(?:md|html|json|kt|kts|dsl|txt)|[\w./-]+\/)(#[\w-]+)?$/;
+const FILE_REF = /^([\w./-]+\.(?:md|html|json|kt|kts|dsl|txt|xml|log)|[\w./-]+\/)(#[\w-]+)?$/;
 function openRefText(ref, dir, enrich) {
   const m = FILE_REF.exec(ref); if (!m || !dir || fs.existsSync(path.resolve(dir, m[1]))) return ref;
   if (enrich) enrich.push(`an open point's ref ${ref} is not in the tree from the board's folder (a build output is never committed): written as text, not a link`);
   return "`" + m[1] + "` (not in the tree, so not linked)";
+}
+/* An open point's ref given as an absolute path (GUIDANCE.md §10: no machine-local path on a board): inside the worktree, made relative to
+   its root (a build output, "build/reports/…"); outside it, its file name alone, as text. */
+function openRefLocal(ref) {
+  const r = String(ref).trim(); if (!/^(?:[a-z]:[\\/]|[\\/])/i.test(r) || !ROOT) return r;
+  const rel = path.relative(ROOT, path.resolve(r)); return !rel.startsWith("..") && !path.isAbsolute(rel) ? rel.split(path.sep).join("/") : "`" + path.basename(r) + "` (outside the repository, not linked)";
+}
+/* The copy of an open point's report, taken when the point is raised (plan/RULES.md §3, wip.open; admin-team/dashboards-skill/35): a ref that
+   names a file outside the tree (a build output such as a test report, never committed) stays plain text on the committed board, and the
+   file as it stood is copied under the git-ignored docs/plans/.live/open/<the board's folder under docs/plans>/<key>/ of the worktree and of
+   the main checkout (an HTML report's index.html with its folder, a small one), so the live view links each point to the report it was
+   raised against. The point records the copy's path under .live/open/ (copy); the copies are made once the event is written (OPEN_JOBS),
+   a cache of this machine outside the atomic set, never committed; a later event never takes the copy again. */
+const OPEN_JOBS = [];
+function openCopyFor(raw, text, folder) {
+  const m = FILE_REF.exec(String(raw || "").trim().replace(/\\/g, "/").replace(/^\.\//, "")); if (!m || !ROOT) return null;
+  const src = [path.resolve(DIR || ROOT, m[1]), path.resolve(ROOT, m[1])].find(f => { try { return fs.statSync(f).isFile(); } catch (e) { return false; } });
+  if (!src || !path.relative(path.join(ROOT, "docs", "plans"), src).startsWith("..")) return null;
+  const under = String(folder || "").replace(/\\/g, "/").replace(/^docs\/plans\/?/, "").replace(/\/+$/, "");
+  const key = require("crypto").createHash("sha1").update(text).digest("hex").slice(0, 8);
+  const whole = /^index\.html?$/i.test(path.basename(src)), name = whole ? `${path.basename(path.dirname(src))}/${path.basename(src)}` : path.basename(src);
+  const rel = [under, key, name].filter(Boolean).join("/");
+  OPEN_JOBS.push({ src, whole, rel });
+  return rel;
 }
 function mergeOpen(w, facts, applied, txt, raised, resolved, folder, dir, enrich) {
   w.open = Array.isArray(w.open) ? w.open : [];
@@ -639,9 +754,43 @@ function mergeOpen(w, facts, applied, txt, raised, resolved, folder, dir, enrich
     const res = o && (o.resolved === true ? true : txt(o.resolved, `open[${i}].resolved`));
     let have = w.open.find(x => x && x.text === text);
     const said = txt(o && o.raised, `open[${i}].raised`), by = said && !OPEN_TIME.test(said) ? said : raised;
-    if (!have) { have = { text, raised: by, ...(o && typeof o.ref === "string" && o.ref.trim() ? { ref: openRefText(openRef(o.ref, folder), dir, enrich) } : {}) }; w.open.push(have); applied.push(`wip.open + "${text.slice(0, 40)}"`); }
+    if (!have) { const raw = o && typeof o.ref === "string" && o.ref.trim() ? openRefLocal(o.ref) : null, ref = raw ? openRefText(openRef(raw, folder), dir, enrich) : null;
+      const copy = raw && ref !== openRef(raw, folder) ? openCopyFor(raw, text, folder) : null;
+      have = { text, raised: by, ...(ref ? { ref } : {}), ...(copy ? { copy } : {}) }; w.open.push(have); applied.push(`wip.open + "${text.slice(0, 40)}"${copy ? " (its report copied for the live view)" : ""}`); }
     if (res && have.resolved !== res) { have.resolved = res; applied.push(`wip.open resolved "${text.slice(0, 40)}"`); resolved.push(have); }
   });
+}
+
+/* Take the open points' report copies (OPEN_JOBS) into each checkout's git-ignored docs/plans/.live/open/ (the worktree's, and the main
+   checkout's, where the view copies of a landing resolve), each once: a copy already there is the report the point was raised against and
+   is kept. An HTML report's index.html is copied with its folder when the folder is small (at most 2000 files, 50 MB), else alone. Then
+   docs/plans/.live/open/index.js lists the copies on disk ((window.DASHBOARDS_LIVE||{}).open), which a board loads to link them. Returns
+   one line per copy taken. */
+function runOpenJobs() {
+  const md = require("./mdcopy.js"), out = [], roots = [...new Set([ROOT, MAIN].filter(Boolean).map(r => path.resolve(r)))];
+  const jobs = OPEN_JOBS.filter((j, i) => OPEN_JOBS.findIndex(k => k.rel === j.rel) === i);
+  roots.forEach(root => {
+    if (!fs.existsSync(path.join(root, "docs", "plans")) || !md.liveWritable(root)) return;
+    const base = path.join(root, "docs", "plans", ".live", "open");
+    jobs.forEach(j => {
+      const dest = path.join(base, ...j.rel.split("/")); if (fs.existsSync(dest)) return;
+      try {
+        let whole = j.whole;
+        if (whole) { let n = 0, size = 0; const walk = d => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else { n++; size += fs.statSync(p).size; } if (n > 2000 || size > 50e6) return; } };
+          walk(path.dirname(j.src)); if (n > 2000 || size > 50e6) whole = false; }
+        if (whole) fs.cpSync(path.dirname(j.src), path.dirname(dest), { recursive: true });
+        else { fs.mkdirSync(path.dirname(dest), { recursive: true }); fs.copyFileSync(j.src, dest); }
+        out.push(path.relative(root, dest).split(path.sep).join("/"));
+      } catch (e) { S.enrich.push(`an open point's report could not be copied (${j.rel}): ${e.message}`); }
+    });
+    const idx = path.join(base, "index.js"); let list = [];
+    try { const m = /\.open=(\[[\s\S]*?\]);/.exec(fs.readFileSync(idx, "utf8")); if (m) list = JSON.parse(m[1]); } catch (e) { /* none yet */ }
+    list = [...new Set([...list, ...jobs.map(j => j.rel)])].filter(r => typeof r === "string" && fs.existsSync(path.join(base, ...r.split("/")))).sort();
+    if (list.length) { fs.mkdirSync(base, { recursive: true });
+      const text = `/* docs/plans/.live/open/index.js: the open points' reports, copied when each point was raised (plan/scripts/apply-event.js). Never committed. */\n(window.DASHBOARDS_LIVE=window.DASHBOARDS_LIVE||{}).open=${JSON.stringify(list)};\n`;
+      let old = null; try { old = fs.readFileSync(idx, "utf8"); } catch (e) { /* new */ } if (old !== text) fs.writeFileSync(idx, text); }
+  });
+  return out;
 }
 
 /* The standing rule on the parent tracking board (plan/RULES.md §3, "Next is the next one up"): a unit's start (sized), its approving
@@ -666,7 +815,11 @@ function applyParent(orig, sub, op, now) {
       if (had) enrich.push(`#${plan.issue}: ${row.id}'s summary, now complete, comes from #${sub.issue}'s board`);
     }
   } else if (op.kind === "landed") {
-    if (state !== "landed") { row.asBuilt = { ...(row.asBuilt || {}), state: "landed" }; applied.push(`#${plan.issue}: ${row.id} landed`); }
+    /* a landed unit says what exists (check.js): with no summary yet, or only the plain fact its qa pass wrote, the plain fact of its
+       landing from the sub-issue's asBuilt; a summary written from the documents is the presenter's to update */
+    const A = (sub && sub.asBuilt) || {}, m = A.merge || A.sha, s0 = row.asBuilt && typeof row.asBuilt.summary === "string" ? row.asBuilt.summary.trim() : "";
+    const had = s0 && s0 !== `#${sub.issue}'s run passed qa; it is not merged yet.`;
+    if (state !== "landed" || !had) { row.asBuilt = { ...(row.asBuilt || {}), state: "landed", ...(had ? {} : { summary: `#${sub.issue} landed${A.pr ? ` through PR #${A.pr}` : ""}${m ? ` as ${String(m).slice(0, 7)}` : ""}.` }) }; applied.push(`#${plan.issue}: ${row.id} landed${had ? "" : ", with the plain fact of its landing as its summary"}`); }
     if (cur.includes(cell)) { w.current = cur.filter(a => a !== cell); applied.push(`#${plan.issue}: ${row.id} out of wip.current`); }
     enrich.push(`#${plan.issue}: the landed unit's summary, its impact entry and its effect on the initiative's impact come from the sub-issue's board and documents`);
   }
@@ -697,9 +850,9 @@ function chainDetail(plan) {
 /* The board a board is embedded into: the board itself, or the current template when the board is not the verified template plus its
    data (plan/RULES.md §4: every event re-renders the board onto the current template). A board that declares a divergence, or a
    template not verified since it changed, is left as it is, and the presenter is told. */
-const emptyBlock = (html, id) => dev.norm(html).replace(new RegExp(`(<script type="application/json" id="${id}">)[\\s\\S]*?(</script>)`), "$1\n{}\n$2");
-function pageBase(pagePath, enrich, rel) {
-  const html = fs.existsSync(pagePath) ? fs.readFileSync(pagePath, "utf8") : null, tplPath = dev.templateFor(pagePath, "plan-board"), tpl = fs.readFileSync(tplPath, "utf8");
+const emptyBlock = (html, id) => dev.norm(html).replace(/<base [^>]*data-live-view[^>]*>\n/, "").replace(new RegExp(`(<script type="application/json" id="${id}">)[\\s\\S]*?(</script>)`), "$1\n{}\n$2");
+function pageBase(pagePath, enrich, rel, tplOf) {
+  const html = fs.existsSync(pagePath) ? fs.readFileSync(pagePath, "utf8") : null, tplPath = dev.templateFor(tplOf || pagePath, "plan-board"), tpl = fs.readFileSync(tplPath, "utf8");
   if (html != null && emptyBlock(html, "plan") === emptyBlock(tpl, "plan")) return { html, rerendered: false };
   if (html != null && /<meta name="template-divergence"/.test(html)) { enrich.push(`${rel} declares a divergence from the template: not re-rendered`); return { html, rerendered: false }; }
   if (!dev.verified(tplPath).ok) { enrich.push(`the template ${path.relative(dev.SKILL, tplPath).split(path.sep).join("/")} changed since it was verified: ${rel} not re-rendered (run verify/verify-templates.js)`); if (html == null) refuse(`${rel} has no board and the template is not verified`); return { html, rerendered: false }; }
@@ -709,22 +862,70 @@ function pageBase(pagePath, enrich, rel) {
    board the units' mirrors, and the statements' excerpts not copied yet, resolved from the folders on disk (lib.js resolveBoard()),
    plan.json in its own line endings, the board's data block and the plan.js sidecar. */
 function writeBoard(dir, data, eol, enrich, label) {
-  const rel = path.relative(ROOT, path.join(dir, "dashboard.html")).split(path.sep).join("/");
-  lib.resolveBoard(data, dir);
+  /* with --view, the board's view copy in the main checkout (lib.js viewDirOf()), its links resolved from the tracked folder `dir` */
+  const to = VIEWING ? lib.viewDirOf(dir, MAIN) : dir;
+  if (VIEWING) { const made = []; for (let d = to; !fs.existsSync(d); d = path.dirname(d)) made.unshift(d); made.forEach(d => { fs.mkdirSync(d); madeDirs.push(d); }); }
+  const rel = path.relative(VIEWING ? MAIN : ROOT, path.join(to, "dashboard.html")).split(path.sep).join("/");
+  lib.setViewLinks(VIEWING); try { lib.resolveBoard(data, dir); } finally { lib.setViewLinks(false); }
   const json = (JSON.stringify(data, null, 2) + "\n").replace(/\n/g, eol);
-  const base = pageBase(path.join(dir, "dashboard.html"), enrich, rel);
+  const base = pageBase(fs.existsSync(path.join(to, "dashboard.html")) ? path.join(to, "dashboard.html") : path.join(dir, "dashboard.html"), enrich, rel, path.join(dir, "dashboard.html"));
   if (base.rerendered) S.rerendered.push(rel);
-  const html = lib.writeBlock(base.html, "plan", json), js = lib.sidecarText("plan", json);
+  let html = lib.writeBlock(base.html, "plan", json); const js = lib.sidecarText("plan", json);
+  if (VIEWING) html = lib.withViewBase(html, to, dir);
   const files = [["plan.json", json], ["dashboard.html", html], ["plan.js", js]], wrote = [];
-  files.forEach(([f, t]) => { if (put(path.join(dir, f), t)) wrote.push(f); });
+  files.forEach(([f, t]) => { if (put(path.join(to, f), t)) wrote.push(f); });
+  if (VIEWING && !S.view.includes(rel)) S.view.push(rel);
   if (wrote.length) S.wrote.push(`${label}: ${wrote.join(", ")}`);
   return wrote.length > 0;
+}
+/* Seeding at sized (plan/RULES.md §4, "Seeding at sized"; admin-team/dashboards-skill/35). The post-merge refresh shows a landing in view
+   copies under the main checkout's git-ignored docs/plans/.live/view/ (the issue board landed at its merge, its parent tracking board's
+   unit landed and the next one up). When a run is sized in a worktree branched after that landing, the boards it shows start from those
+   copies, so the new branch carries the landed state from its first commit: every view copy fresher than the worktree's tracked board
+   (lib.js planStamp()) whose merge (asBuilt.merge, else sha) is in the worktree's history (git merge-base --is-ancestor), and a copy with no
+   merge of its own (a tracking board) with a seeded copy inside its folder, is written over the tracked board (plan.json, dashboard.html,
+   plan.js; its links resolved from the tracked folder, never into .live/). A landed sub-issue seeded without its tracking board's copy
+   marks its unit landed on the tracked tracking board by the standing rule (applyParent()): a merge that marks an issue landed on its own
+   board does so for its parent too, and both are seeded together. Nothing is seeded in the main checkout itself, or from a copy whose merge
+   the branch does not hold. Returns the tracked folders written. */
+function seedFromView(now) {
+  if (!MAIN || path.resolve(MAIN) === path.resolve(ROOT)) return [];
+  const vroot = path.join(MAIN, ...lib.VIEW); if (!fs.existsSync(vroot)) return [];
+  const read = f => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch (e) { return null; } };
+  const dirs = []; const walk = d => { let es = []; try { es = fs.readdirSync(d, { withFileTypes: true }); } catch (e) { return; } if (fs.existsSync(path.join(d, "plan.json"))) dirs.push(d); es.filter(e => e.isDirectory()).forEach(e => walk(path.join(d, e.name))); };
+  walk(vroot);
+  const inHead = sha => cp.spawnSync("git", ["-C", ROOT, "merge-base", "--is-ancestor", sha, "HEAD"], { encoding: "utf8", windowsHide: true }).status === 0;
+  const cand = dirs.map(vd => { const rel = path.relative(vroot, vd).split(path.sep).join("/"), tracked = path.join(ROOT, "docs", "plans", ...rel.split("/"));
+    return { vd, rel, tracked, vp: read(path.join(vd, "plan.json")), tp: read(path.join(tracked, "plan.json")) }; })
+    .filter(x => x.rel && x.vp && x.tp && x.vp.issue === x.tp.issue && path.resolve(x.tracked) !== path.resolve(DIR) && String(lib.planStamp(x.vp)) > String(lib.planStamp(x.tp)));
+  const mergeOf = p => { const A = (p && p.asBuilt) || {}, m = [A.merge, A.sha].find(s => typeof s === "string" && /^[0-9a-f]{7,40}$/.test(s)); return m || null; };
+  const ok = cand.filter(x => mergeOf(x.vp) && inHead(mergeOf(x.vp)));
+  cand.filter(x => !ok.includes(x) && !mergeOf(x.vp) && ok.some(y => y.rel.startsWith(x.rel + "/"))).forEach(x => ok.push(x));
+  cand.filter(x => !ok.includes(x)).forEach(x => S.applied.push(`not seeded: ${x.rel} (${mergeOf(x.vp) ? "its merge is not in this branch's history" : "no landing inside it seeded"})`));
+  const out = [];
+  ok.sort((a, b) => a.rel.split("/").length - b.rel.split("/").length).forEach(x => {
+    const text = fs.readFileSync(path.join(x.tracked, "plan.json"), "utf8"), eol = /\r\n/.test(text) ? "\r\n" : "\n";
+    writeBoard(x.tracked, x.vp, eol, S.enrich, `seeded ${x.rel}`); out.push(x.tracked); S.seeded.push(`docs/plans/${x.rel}`);
+  });
+  /* the parent of a landed sub-issue seeded alone: its unit landed by the standing rule */
+  ok.filter(x => x.vp.status === "built" && x.vp.parent && Number.isInteger(x.vp.parent.issue)).forEach(x => {
+    const up = path.dirname(x.tracked); if (out.includes(up) || !fs.existsSync(path.join(up, "plan.json"))) return;
+    const text = fs.readFileSync(path.join(up, "plan.json"), "utf8"), eol = /\r\n/.test(text) ? "\r\n" : "\n"; let pp; try { pp = JSON.parse(text); } catch (e) { return; }
+    if (pp.issue !== x.vp.parent.issue || pp.kind !== "tracking") return;
+    const P = applyParent(pp, x.vp, { kind: "landed" }, now); S.applied.push(...P.applied.map(a => `seeded: ${a}`)); S.enrich.push(...P.enrich);
+    if (P.applied.length) { writeBoard(up, P.plan, eol, S.enrich, `seeded ${path.relative(path.join(ROOT, "docs", "plans"), up).split(path.sep).join("/")}`); out.push(up); S.seeded.push(path.relative(ROOT, up).split(path.sep).join("/") + " (its unit landed)"); }
+  });
+  if (out.length) S.applied.push(`seeded ${out.length} board${out.length === 1 ? "" : "s"} from the live view (the previous landing's state)`);
+  return out;
 }
 /* A child process, as a promise of { status, stdout, stderr }. */
 const run = (file, a, cwd) => new Promise(res => { const c = cp.spawn(process.execPath, [file, ...a], { cwd, windowsHide: true }); let o = "", e = "";
   c.stdout.on("data", d => { o += d; }); c.stderr.on("data", d => { e += d; }); c.on("close", s => res({ status: s, stdout: o, stderr: e })); c.on("error", x => res({ status: 1, stdout: o, stderr: String(x) })); });
 
-let DIR = null, ROOT = null;
+let DIR = null, ROOT = null, MAIN = null;
+const VIEWING = flag("view");
+/* the board's data where --view reads it: its view copy when one is fresher than the tracked board, else the tracked plan.json */
+const viewRead = dir => { const v = VIEWING ? lib.viewOf(dir, MAIN) : null; return v && v.fresh ? path.join(v.dir, "plan.json") : path.join(dir, "plan.json"); };
 /* --repo takes the GitHub slug, owner/repo; a path to the repository's main checkout is accepted too and read as --main (the
    protocol's "repo" field is that path, its "github" field the slug). Anything else is a usage error. */
 const REPO_ARG = opt("repo"), REPO_SLUG = REPO_ARG && /^[\w.-]+\/[\w.-]+$/.test(REPO_ARG) && !fs.existsSync(path.resolve(REPO_ARG)) ? REPO_ARG : null;
@@ -741,6 +942,9 @@ async function main() {
   const folder = typeof req.folder === "string" ? req.folder.replace(/\\/g, "/").replace(/\/+$/, "") : null;
   if (!folder || !/^docs\/plans\/(.+\/)?\d+-[a-z0-9][a-z0-9-]*$/.test(folder) || folder.split("/").includes("..")) refuse(`the request's folder ${JSON.stringify(req.folder || null)} is not docs/plans/[<parent>/]<issue>-<slug>`);
   ROOT = path.resolve(wt); DIR = path.join(ROOT, ...folder.split("/")); S.board = folder;
+  MAIN = path.resolve(opt("main") || REPO_PATH || req.repo || ROOT);
+  if (VIEWING && !fs.existsSync(path.join(MAIN, "docs", "plans"))) refuse(`--view: the main checkout ${MAIN} has no docs/plans/`);
+  if (VIEWING && !require("./mdcopy.js").liveWritable(MAIN)) refuse(`--view: docs/plans/.live/ is not git-ignored in ${MAIN} (add it to the main checkout's .git/info/exclude): no view copy written`);
   if (!fs.existsSync(path.join(ROOT, "docs"))) refuse(`the worktree ${ROOT} has no docs/ folder`);
   const at = opt("at") || facts.at || req.at || null;
   if (at && isNaN(Date.parse(at))) refuse(`the event's time ${JSON.stringify(at)} is not an ISO time`);
@@ -750,7 +954,7 @@ async function main() {
     if (ev !== "sized") refuse(`${folder} holds no plan.json: there is no board to apply ${ev} to`);
     S.result = "no-board"; S.issue = req.issue || null; S.enrich.push("sized: no board yet; the presenter lays the foundation (new.js) from the documents"); return;
   }
-  const text = fs.readFileSync(planFile, "utf8"), eol = /\r\n/.test(text) ? "\r\n" : "\n";
+  const text = fs.readFileSync(viewRead(DIR), "utf8"), eol = /\r\n/.test(text) ? "\r\n" : "\n";
   let orig; try { orig = JSON.parse(text); } catch (e) { refuse(`${folder}/plan.json does not parse: ${e.message}`); }
   S.issue = orig.issue;
   if (req.issue != null && req.issue !== orig.issue) refuse(`the request names issue #${req.issue}, the board is #${orig.issue}'s`);
@@ -765,6 +969,9 @@ async function main() {
     a.wip.updated = b.wip.updated = null;
     if (JSON.stringify(a) === JSON.stringify(b)) { S.result = "duplicate"; S.applied.push(`already applied at ${last.at}: nothing written`); return; }
   }
+  /* seeding at sized (plan/RULES.md §4, "Seeding at sized"; admin-team/dashboards-skill/35): a run sized in a worktree branched after a
+     landing starts from the landed state the main checkout's live view shows, so the branch carries it from its first commit */
+  const seeded = ev === "sized" && !VIEWING ? seedFromView(now) : [];
   const R = applyEvent(orig, ev, facts, req, now);
   S.applied.push(...R.applied); S.enrich.push(...R.enrich);
 
@@ -773,16 +980,25 @@ async function main() {
     /* the parent tracking board: the standing rule's move, then a re-embed that mirrors this unit's run (lib.js mirrorUnitRuns) */
     const up = lib.parentFolder(DIR, R.plan);
     if (up && fs.existsSync(path.join(up, "dashboard.html"))) {
-      const ptext = fs.readFileSync(path.join(up, "plan.json"), "utf8"), peol = /\r\n/.test(ptext) ? "\r\n" : "\n";
+      const ptext = fs.readFileSync(viewRead(up), "utf8"), peol = /\r\n/.test(ptext) ? "\r\n" : "\n";
       let pplan; try { pplan = JSON.parse(ptext); } catch (e) { throw new Error(`the parent tracking board's plan.json does not parse: ${e.message}`); }
       if (R.parentOp) { const P = applyParent(pplan, R.plan, R.parentOp, now); pplan = P.plan; S.applied.push(...P.applied); S.enrich.push(...P.enrich); }
       const prel = path.relative(ROOT, up).split(path.sep).join("/");
       S.parent = `${prel} (${writeBoard(up, pplan, peol, S.enrich, "parent") ? "re-embedded" : "unchanged"})`;
+      /* with --view, the issue's copy once more, now that its parent's copy exists for its link to open (lib.js viewLink()) */
+      if (VIEWING) writeBoard(DIR, R.plan, eol, [], "board");
     } else if (R.plan.parent && R.parentOp) S.enrich.push(`the parent tracking board #${R.plan.parent.issue} is not in the enclosing folder: the standing rule is the presenter's`);
 
     /* check.js on every board written, and the live repository work board, at once */
-    const checks = [run(path.join(__dirname, "check.js"), [DIR], ROOT)];
-    if (up) checks.push(run(path.join(__dirname, "check.js"), [up], ROOT));
+    const at = d => VIEWING ? [lib.viewDirOf(d, MAIN), "--root", ROOT] : [d];
+    const checks = [run(path.join(__dirname, "check.js"), at(DIR), ROOT)];
+    if (up) checks.push(run(path.join(__dirname, "check.js"), at(up), ROOT));
+    /* the boards seeded from the live view, and the worktree's committed repository work board regenerated from them (board.js
+       --refresh-template), so the branch carries the previous landing's state from its first commit */
+    const seededChecks = seeded.filter(d => d !== DIR && d !== up).map(d => run(path.join(__dirname, "check.js"), [d], ROOT));
+    let wbRun = null;
+    if (seeded.length) { ["board.json", "index.html", "board.js"].forEach(f => stage(path.join(ROOT, "docs", "plans", f)));
+      wbRun = run(path.join(__dirname, "board.js"), ["--refresh-template", "--root", ROOT, ...(flag("no-gh") ? ["--no-gh"] : [])], ROOT); }
     let liveRun = null, liveDir = null;
     const main = path.resolve(opt("main") || REPO_PATH || req.repo || ROOT);
     if (flag("no-live")) S.live = "skipped (--no-live)";
@@ -796,9 +1012,15 @@ async function main() {
         S.enrich.push("docs/plans/.live/ is not in the main checkout's .git/info/exclude: the presenter adds the line");
       liveRun = run(path.join(__dirname, "board.js"), ["--live", "--refresh-template", "--root", main, ...(flag("no-gh") ? ["--no-gh"] : [])], main);
     }
-    const [cks, lv] = await Promise.all([Promise.all(checks), liveRun]);
+    const [cks, lv, sks, wb] = await Promise.all([Promise.all(checks), liveRun, Promise.all(seededChecks), wbRun]);
     const warns = cks.map(c => (c.stdout.match(/^warn/gm) || []).length), fails = cks.flatMap(c => c.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l)));
+    /* no open point is committed open (dashboards-skill/35): at the landing every open point is resolved, and check.js fails a board at the
+       land with one still open; the summary says what to do */
+    if (fails.some(l => /OPEN POINT AT THE LAND/.test(l))) S.enrich.push("an open point is still open at the land: resolve it (facts.open, each with resolved) and raise the event again; nothing is committed open");
     if (cks.some(c => c.status !== 0)) { S.check = `FAIL: ${fails.slice(0, 6).join(" | ") || (cks.find(c => c.status !== 0).stderr || "").trim().split(/\r?\n/)[0]}`; throw new Error("check.js failed on the board it would write"); }
+    if (sks.some(c => c.status !== 0)) { S.check = `FAIL (a seeded board): ${sks.flatMap(c => c.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l))).slice(0, 4).join(" | ")}`; throw new Error("check.js failed on a board seeded from the live view"); }
+    if (wb && wb.status !== 0) throw new Error(`board.js (the committed repository work board, after seeding) failed: ${(wb.stderr || wb.stdout).trim().split(/\r?\n/).slice(-1)[0]}`);
+    if (wb) S.wrote.push("the repository work board: docs/plans/board.json, index.html, board.js (regenerated after seeding)");
     S.check = `pass (board: ${plural(warns[0], "warning")}${up ? `; parent: ${plural(warns[1], "warning")}` : ""})`;
     /* an issue title that names a work level is a defect in the issue (levelrefs.js issueTitleRefs(); dashboards-skill/28): quoted verbatim,
        never failing the board; named here so the team brings it to the user to retitle on GitHub */
@@ -809,6 +1031,8 @@ async function main() {
     }
     /* the rendered copies of the Markdown the board links (mdcopy.js): a cache of this machine, outside the atomic set */
     try { const md = require("./mdcopy.js"), c = md.copyBoardDocs(R.plan, DIR); if (c.skipped) S.enrich.push(c.skipped); else if (c.wrote.length) S.wrote.push(`rendered copies: ${c.wrote.length}`); } catch (e) { S.enrich.push("the rendered Markdown copies failed: " + e.message); }
+    /* the open points' reports, copied when each point is raised (dashboards-skill/35): a cache of this machine, outside the atomic set */
+    if (OPEN_JOBS.length) { try { const c = runOpenJobs(); if (c.length) S.wrote.push(`open points' reports copied: ${c.join(", ")}`); } catch (e) { S.enrich.push("the open points' report copies failed: " + e.message); } }
     S.result = "ok";
   }
 }

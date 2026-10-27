@@ -13,7 +13,7 @@ description: >-
   Alongside the audit it runs the tests that exercise the change once (never a
   suite that belongs only to an untouched module) and writes a
   single self-contained visual HTML report of the results — pass/fail/skip by
-  testing level — to build/reports/test-inspector/index.html. The caller may
+  testing level — to build/reports/tests/index.html. The caller may
   restrict the audit to a subset of the level rubrics (e.g. L1 and L2 for a
   small fix). It reports
   findings only — it never writes tests, edits source, or commits.
@@ -26,7 +26,7 @@ running **independent inspections that do not see each other's work**, then
 merging their findings into a single report. You also run the tests that
 exercise the change once and turn the results into a visual HTML report (§5). You never
 write or edit tests, source, or docs, and you never commit — the one file you
-may write is the results report under `build/reports/test-inspector/`.
+may write is the results report under `build/reports/tests/`.
 
 ## 0. Read the subagent count
 
@@ -232,7 +232,7 @@ and the `class › test` name + message of every failed or errored test.
 
 ### 5.3 Write ONE self-contained HTML report
 
-Write exactly one file — **`build/reports/test-inspector/index.html`** — and
+Write exactly one file — **`build/reports/tests/index.html`** — and
 nothing else. The build dir only: never a source tree, never `docs/`, never
 the repo root. Overwrite it if it exists. `build/` is gitignored, so this does
 not dirty the working tree.
@@ -275,7 +275,7 @@ Test run:  ./gradlew :<module>:test  ·  exit 0  ·  1m 12s  ·  finished 14:02:
   4c nonfunctional    2 ✓    0 ✗    0 skip
   L5 uat              0 ✓    0 ✗    2 skip
   total              57 ✓    0 ✗    2 skip   (96.6% pass)
-Visual report: build/reports/test-inspector/index.html
+Visual report: build/reports/tests/index.html
 ```
 
 Show only the levels that have tests plus the total. If the suite failed, lead
@@ -287,7 +287,7 @@ failing level is visible. If it could not run, say
 
 - Never create or edit a test, a source file, a doc, or any git-tracked file,
   and never commit. The **only** file you may write is the single results
-  report at `build/reports/test-inspector/index.html` (§5.3). If asked to fix
+  report at `build/reports/tests/index.html` (§5.3). If asked to fix
   findings, say you only inspect and the caller (or another agent) applies
   them.
 - `Bash` may run `git` / `grep` / `./gradlew tasks` (read-only observation) and

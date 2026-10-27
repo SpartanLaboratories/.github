@@ -38,7 +38,7 @@ it: send it a `file-issue` request (the `admin-team` skill) against the repo the
 (the library where the defect lives, not necessarily the one where it surfaced). Repos move between
 these orgs; confirm the current owner with `gh repo view <repo>` if unsure.
 
-## Repository READMEs — keep current
+## Repository READMEs and CHANGELOGs — keep current
 
 Whenever your work changes what lands on a repository's `master` / `main` branch — a new
 command, endpoint, module, dependency, build or run step, protocol change, or architectural
@@ -46,6 +46,14 @@ shift — update that repository's `README.md` as part of the same change so it 
 accurately describing the project. Create a `README.md` if the repo has none. Keep the edit
 proportional: a bug fix or internal refactor that doesn't change the project's external
 shape needs no README change.
+
+Every repository also keeps a `CHANGELOG.md` in the Keep a Changelog layout. A change that
+lands adds its entry (Added, Changed, Fixed, Removed, …) in the same change: under
+`## [X.Y.Z] - <date>` when the landing bumps a version, since the version is known by then,
+else under `## [Unreleased]`; a repository without one gets one. A comment- or doc-only change
+adds no entry. The publisher reads a version's section as its GitHub release notes, and the
+notes of a version that ships name any superseded version it includes. In a `/resolve-issue`
+run, the Document step writes both the README delta and the entry.
 
 ## Work levels
 
@@ -78,14 +86,16 @@ versioning the work gets; `/resolve-issue` and its agents scale to it.
 All version control on this machine runs through one long-lived session named **`admin team`**
 (brief: `~/.claude/agents/admin-team.md`; protocol: `~/.claude/admin-team/PROTOCOL.md`). It is
 the single writer for every repository and for the `.github` mirror: commits, branches, pushes,
-PRs, merges, labels, comments, issues, worktrees, the board refreshes inside each landing, and
-mirror syncs. Any other session — a `/resolve-issue` run or anything else — sends it requests
+PRs, merges, labels, comments, issues, worktrees, the state boards a run asks for in its
+Document step, and mirror syncs. Any other session — a `/resolve-issue` run or anything else — sends it requests
 with the `admin-team` skill and acts on its replies; it never commits, pushes, merges, labels,
 comments or files itself, and never spawns `version-control-manager` directly.
 
 - It schedules by lane (one per repository, plus the mirror), orders by dependency, brings a
-  branch up to date with its base before landing, and hands a base that moved under a branch's
-  files back to the pipeline to re-verify. It spawns `version-control-manager` as the executor of each request.
+  branch up to date with its base when the run's Document step opens (`prepare-landing`, which
+  also commits the version bump and reports the code-landing commit), and hands a base that
+  moved under a branch's files back to the pipeline to re-verify. It spawns
+  `version-control-manager` as the executor of each request.
 - **Its one gate** — removing a worktree with uncommitted changes — is confirmed by me at its
   console or in the Remote Control app, never by a relayed approval. Its executor holds every
   GitHub permission as my standing grant: force-pushing, rewriting history and deleting what the
@@ -101,11 +111,19 @@ comments or files itself, and never spawns `version-control-manager` directly.
   What does not fit is deferred and re-evaluated at the next consideration point; a deferred
   version a later landing superseded collapses into the latest. Backlog older than the service
   is mine to publish by hand.
+- **Direction is its service too.** Through its `direction-manager` agent (brief:
+  `~/.claude/agents/direction-manager.md`) it keeps the direction of the work straight: the
+  workflow structure, the organization policies, the direction documents that state them
+  (this file, the agent briefs, the skills, the protocol, the root prompt files) and my idea
+  hooks. Any session may send it a `log-hook` request for an idea I should revisit; a hook
+  changes nothing until I decide it. A direction document changes only through the team, as
+  an edit I direct at its console or as the propagation of a decision I have already made
+  into the documents that implement it; a new rule is never set without my direction.
 - If it is not running, the requesting session launches it with `~/.claude/admin-team/launch.cmd`
   under the launch lock (the skill does this): a minimized, Remote Control-enabled session started
   with `--agent admin-team`. Resume after a restart with `claude --resume "admin team"`.
-- Its ledger and state (`~/.claude/admin-team/ledger.jsonl`, `state.json`) are local only and
-  never mirrored.
+- Its ledger, state and hooks log (`~/.claude/admin-team/ledger.jsonl`, `state.json`,
+  `hooks.jsonl`) are local only and never mirrored.
 
 ## Planning documents — folder layout
 
@@ -125,16 +143,39 @@ its folder.
 issue gets its own `<number>-<slug>/` subfolder inside the host issue's folder, as a sub-issue
 would, and its documents go there.
 
+**A fix to an earlier plan's work.** When a level-2 fix corrects code an earlier issue's plan
+built, the fix's folder goes inside that issue's folder, as a folded-in issue's would, unless the
+fix is a GitHub sub-issue, whose folder follows its own sub-issue chain. Either way, the earlier
+issue's `consequences.md` takes the fix's follow-ups and known gaps, each naming the fix; notes
+what the fix made no longer current, with a link to the fix; and marks closed, with a link, any
+follow-up or known gap the fix closes. These are the only edits a landed document takes.
+Otherwise a level-2 fix writes a `consequences.md` only when it leaves a follow-up or known gap.
+
 **An issue folder holds only that issue's resolution:**
 - `draft.md`: the draft plan.
 - `architecture.md`: the grand design, when the work has one.
 - `plan.md`, or one `plan-<unit-slug>.md` per unit when the design decomposes into several.
-- `impact.md`: fallout and impact thoughts (adoption, blast radius, follow-ups). The planner
-  writes it while planning and reconciles it once implementation ends.
-- `final-implementation.md`: the final as-built record. It describes what was actually built,
-  every deviation from the plan, and the reasoning for each. The implementer appends each
+- `consequences.md`: what the change does to its surroundings and leaves behind: published
+  artifacts, blast radius, adoption, sibling units, neighbouring issues, follow-ups, and the
+  known gaps the build leaves open, with the outcome of the plan's assumptions and follow-ups
+  (each assumption that failed, each follow-up still open) linked back to the plan. Known gaps
+  live only here: a plan or architecture has no Known gaps section; what it could not
+  establish is an Assumption, and work it leaves undone a Non-goal or follow-up. The planner
+  writes it while planning and reconciles it once implementation ends. Issue folders from
+  before this convention keep their `impact.md`, read the same.
+- `final-implementation.md`: the final as-built record: what was actually built, acceptance,
+  measurements, and every deviation from the plan in one section. Each deviation cites the plan
+  section it departs from, gives its reasoning, and links secondarily to what that part of the
+  plan was based on: the research finding, or the parent architecture section (which gets a
+  dated callout when the build changes what it describes). The implementer appends each
   deviation, with its reasoning, the moment it makes it; the planner reconciles the file into
-  the final as-built once implementation ends.
+  the final as-built once implementation ends. A research claim the build disproved appears as
+  the deviation it caused; one that caused none gets a "did not hold in the build" note in
+  `research/README.md`'s verification results.
+- **One home per fact.** `final-implementation.md` and `consequences.md` never restate each
+  other; one links to the other. No open point is committed open, whatever raised it: before
+  the landing each is resolved (by remediation, for a qa finding), or settled as a deviation in
+  `final-implementation.md` or as a follow-up or known gap in `consequences.md`.
 - `research/README.md`: the planner's research questions (one topic-led question per open
   point the design depends on) and, below them, the verification results and its summary of
   the findings.
@@ -158,7 +199,7 @@ written, with a concurrent batch of researchers' findings landing in one commit 
 whole batch has returned; everything else is committed with the work it plans.
 
 **No internal names in committed content.** Committed documents and boards (plans, research,
-architecture, impact, final-implementation, every board, and the board-event fact texts that
+architecture, consequences, final-implementation, every board, and the board-event fact texts that
 land on them) never name the pipeline's agents, sessions or roles (admin team, planner,
 plan-writer, architect, researcher, verifier, interviewer, presenter, publisher, rookie-dev,
 version-control-manager or executor, qa, code-reviewer, documentation-reviewer,
@@ -175,17 +216,18 @@ is the team's to fix.
 
 "Dashboard" is the umbrella for two groups of **boards** (never "pages"): every repository
 keeps both, made and maintained by the `presenter` agent as a service of the `admin team`
-session (never by a pipeline step — `/resolve-issue` only sends it events):
+session (never by a pipeline step — `/resolve-issue` only sends it events and, in its Document
+step, the `state-boards` request):
 
 - **State boards** (`docs/dashboards/`): what the code is and does, the current state of each
   system as it is at a named commit; planning is secondary context. The system board, the
   supersystem board and the repository state board, and later the org project board and the
-  intra-org dependency board (planned). Refreshed by the admin team inside every landing, on
-  the branch before the merge and stamped at the last commit before the board commit (the code,
-  the version bump and the reconciled `final-implementation.md` and `impact.md` are all
-  committed first): the changed system's board,
-  the repository and supersystem state boards, `systems.json`, the README pointer, and at
-  level 4 the planned systems drawn dashed. They land in the same merge.
+  intra-org dependency board (planned). Built by the admin team on the run's request in its
+  Document step, on the branch, stamped at the code-landing commit (the synced, bumped code;
+  only documents change after it): the changed system's board, the repository and supersystem
+  state boards, `systems.json`, the README pointer, and at level 4 the planned systems drawn
+  dashed. The run's document-landing commit carries them, so they land in the same merge; the
+  stamp is never written into the merge commit.
 - **Work boards** (`docs/plans/`): how the work is going. The issue board
   (`docs/plans/<issue>-<slug>/dashboard.html`), the tracking board (a tracking issue's issue
   board), the repository work board (`docs/plans/index.html`), and later the org work board
@@ -197,12 +239,12 @@ session (never by a pipeline step — `/resolve-issue` only sends it events):
   `final-implementation.md` keep the details beside it. Board updates run in real time in the
   admin team's own board lanes and commit nothing; an issue board is committed by its
   landing. After the merge the admin team shows the landed state for viewing only, in the
-  git-ignored live view; nothing is left uncommitted. The next landing in that repository
-  regenerates the previous landing's corrections (the issue board's `landed` state with its
-  merge commit, the tracking board's unit landed and next up, the repository work board) on
-  its own branch before its merge and commits them with it; there is never a follow-up docs
-  PR. The repository work board on the default branch changes only at landings; between them
-  its live view is a local, git-ignored copy in `docs/plans/.live/`.
+  git-ignored live view; nothing is left uncommitted. The next run in that repository carries
+  that landed state (the issue board's `landed` with its merge commit, the tracking board's
+  unit landed and next up, the repository work board) onto its branch when it is sized, and
+  it lands with it; there is never a follow-up docs PR. The repository work board on the
+  default branch changes only at landings; between them its live view is a local, git-ignored
+  copy in `docs/plans/.live/`.
 
 The `dashboards` skill holds the shared guidance (`GUIDANCE.md`, colour coding first), one
 ruleset per set, the templates and the checks.
@@ -247,13 +289,13 @@ ruleset per set, the templates and the checks.
 `SpartanLaboratories/.github` holds a public copy of `~/.claude/` under `claude/`; its
 `claude/README.md` maps each mirrored path to its source. Whenever your work changes anything
 that copy covers — `CLAUDE.md`, `settings.json`, `hooks/`, `agents/`, `skills/` (including
-ones a tool installs, e.g. `graphify`), the root `*.md` prompt files (`commands/`), or a
-project's auto-memory (`memory/<repo>/`; a project without a folder yet gets one) — have the
+ones a tool installs, e.g. `graphify`), or the root `*.md` prompt files (`commands/`) — have the
 copy updated as part of the same change so it matches `~/.claude/` again: send the `admin team`
 session a `mirror-sync` request naming the changed paths (the `admin-team` skill), and it
 copies, scans and pushes.
 
 - Commit straight to `main`; no branch or PR.
+- Never sync project auto-memory (`projects/*/memory/`): it is not mirrored.
 - Leave out everything in the README's "Not included" list. The repo is public: check every
   change for secrets before pushing.
 - When a third-party skill's license requires redistributions to carry its license files,

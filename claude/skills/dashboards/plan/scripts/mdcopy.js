@@ -1,7 +1,8 @@
 // The rendered copies of the Markdown an issue board links (plan/RULES.md §1, "The Markdown copies"). Not a command: embed.js (and so
 // apply-event.js and new.js) and board.js --live call it.
 //
-// Every Markdown document a board links — its plan.md or plan-<unit>.md, final-implementation.md, impact.md, architecture.md, the
+// Every Markdown document a board links — its plan.md or plan-<unit>.md, final-implementation.md, consequences.md (impact.md in a folder
+// older than the rename), architecture.md, the
 // research README and findings, anything its data names as a relative *.md path — is rendered into a self-contained HTML copy under
 // the git-ignored docs/plans/.live/docs/ of the board's own tree, at the same path relative to docs/plans/ with .md become .html (a
 // document outside docs/plans/ goes under .live/docs/_repo/<its path from the repository root>). A copy has GitHub's heading anchors,

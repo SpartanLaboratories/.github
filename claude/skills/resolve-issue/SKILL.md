@@ -8,9 +8,10 @@ description: >-
   level-2 small fix gets a short test-first plan, a level-3 small feature gets
   the interview-research-plan pipeline, and level-4 multi-system work is
   planned to the architecture only and split into sub-issues, with nothing
-  built. Before landing, the presenter agent updates the repository's state
-  boards (docs/dashboards/) to show what was built, or what is planned,
-  as such. The admin team handles version control autonomously, releases every
+  built. After QA, a Document step reconciles the documentation, the plan's
+  as-built record, the README and the CHANGELOG, and has the repository's
+  state boards (docs/dashboards/) built to show what was built, or what is
+  planned, as such. The admin team handles version control autonomously, releases every
   version-bumping landing to Maven Central within its monthly budget, stops only
   at its gates - a history rewrite, deleting what it did not create - and reports
   downstream-consumer coordination rather than filing it. Use to
@@ -46,12 +47,12 @@ skill runs a different pipeline per level:
 | 2. Plan | skipped | `planner` (level 2, Sonnet) | `planner` (level 3) | `planner` (level 4) |
 | 3. Branch | `admin team`: `setup-branch` | `admin team`: `setup-branch` | `admin team`: `setup-branch` | `admin team`: `setup-branch` |
 | 4. Implement | `rookie-dev` from the issue text | `rookie-dev`, test-first | `rookie-dev` | **skipped** |
-| 5. Check | `qa level:1` | `qa level:2` | `qa level:3` | **skipped** |
-| 5b. Present | **skipped** | **skipped** — the admin team's state-board refresh inside the land | **skipped** — the admin team's state-board refresh inside the land | **skipped** — the state-board refresh inside the land draws the planned systems |
-| 6. Land | `admin team`: `land`, no bump | `admin team`: `land`, fix bump | `admin team`: `land`, feature bump only with a downstream effect | `admin team`: `land` (docs PR with `Refs`) then `file-sub-issues` |
+| 5. QA | `qa level:1` | `qa level:2` | `qa level:3` | **skipped** |
+| 6. Document | `admin team`: `prepare-landing` (sync, no bump); documentation review and reconcile; Dokka check; README only; `admin team`: `state-boards` | `admin team`: `prepare-landing` (sync, fix bump); documentation review and reconcile; Dokka check; `planner` reconciles the plan; README and CHANGELOG; `admin team`: `state-boards` | `admin team`: `prepare-landing` (sync, feature bump only with a downstream effect); documentation review and reconcile; Dokka check; `planner` reconciles the plan; README and CHANGELOG; `admin team`: `state-boards` | `admin team`: `prepare-landing` (sync, no bump); architecture and `consequences.md` confirmed final; `admin team`: `state-boards` draws the planned systems |
+| 7. Land | `admin team`: `land` | `admin team`: `land` | `admin team`: `land` | `admin team`: `land` (docs PR with `Refs`) then `file-sub-issues` |
 
 **No internal names in committed content.** Every document and board this run commits (plans,
-research, architecture, `impact.md`, `final-implementation.md`, the issue board) never names
+research, architecture, `consequences.md`, `final-implementation.md`, the issue board) never names
 the pipeline's agents, sessions or roles (admin team, planner, plan-writer, architect,
 researcher, verifier, interviewer, presenter, publisher, rookie-dev, version-control-manager or
 executor, qa, code-reviewer, documentation-reviewer, test-inspector), never refers to the
@@ -60,9 +61,10 @@ level ("level 3", "a level-4 tracking issue"). That covers the text you send in 
 facts (`detail`, `open`, `questions`, `reason`), which lands on the committed issue board. The
 project's own test levels (Level 2 component, 4a, …), "the implementer" (whoever builds the
 change) and a library's name that only coincides (OkHttp's `RoutePlanner`) are fine. Carry the
-rule in every brief to an agent that writes a document. A `commit` or `land` whose content
-breaks it is blocked: the team commits nothing and replies `needs-rework` with `result.finds`
-(`file:line`); reword each find and resend the same `id` with `attempt + 1`.
+rule in every brief to an agent that writes a document. A `commit` whose content breaks it
+(the document-landing commit of step 6 included) is blocked: the team commits nothing and
+replies `needs-rework` with `result.finds` (`file:line`); reword each find and resend the same
+`id` with `attempt + 1`.
 
 ## 1. Pick and size the issue
 
@@ -109,11 +111,11 @@ sub-issues yet is not planned: work it as an ordinary issue, at its level.
   **unblocked** when every issue blocking it is closed. Read both with
   `gh issue view <n> --json subIssues,blockedBy` (the GraphQL `subIssues` and
   `blockedBy` connections).
-- **`/resolve-issue <n>`** on a planned tracking issue: run steps 1–7 on its
+- **`/resolve-issue <n>`** on a planned tracking issue: run steps 1–8 on its
   **next** unblocked sub-issue in landing order — one sub-issue, one run.
-- **`/resolve-issue <n> consecutive`**: run steps 1–7 on every open sub-issue in
+- **`/resolve-issue <n> consecutive`**: run steps 1–8 on every open sub-issue in
   landing order, one after another. Each lands before the next one starts.
-- **`/resolve-issue <n> concurrent`**: start steps 1–7 at once on every open,
+- **`/resolve-issue <n> concurrent`**: start steps 1–8 at once on every open,
   unblocked sub-issue. Whenever one lands, start every sub-issue it unblocked.
   Keep going until every sub-issue is done.
 - **A mode word with no number** takes the oldest open planned tracking issue.
@@ -128,8 +130,10 @@ sub-issues yet is not planned: work it as an ordinary issue, at its level.
   long paths), passed as the repo to every agent of that run. The team removes
   the worktree once the run lands.
 - **Landing one at a time** is the admin team's job: its lane lands one
-  change set at a time, brings each branch up to date with `master` first, and
-  refreshes the state boards and README on the branch before each merge. A
+  change set at a time, brings each branch up to date with `master` when the
+  run's Document step opens (`prepare-landing`), and checks the base has not
+  moved again before each merge. The state boards and README are brought up to
+  date on the branch in the Document step, not inside the land. A
   `needs-rework` reply means the base moved under the run's files, or its
   content names the pipeline or a work level: re-verify or reword per the
   skill and resend.
@@ -139,11 +143,11 @@ sub-issues yet is not planned: work it as an ordinary issue, at its level.
   sub-issue that does not depend on it and starts nothing it blocks until it
   lands. Ask the user's questions one at a time, each saying which sub-issue
   it is for.
-- **Per sub-issue,** steps 1–7 apply unchanged, including the level re-check:
+- **Per sub-issue,** steps 1–8 apply unchanged, including the level re-check:
   a label the check disagrees with is still the user's call. Invoking a mode
   is the user's go-ahead for every run in the chain, so no per-issue
   "shall I proceed".
-- **Report** each sub-issue's step 7 as it lands. When the chain ends or
+- **Report** each sub-issue's step 8 as it lands. When the chain ends or
   everything left is waiting on the user, add a chain summary: what landed,
   what is in flight, what waits and on what, and what remains.
 
@@ -171,7 +175,7 @@ layout" in the global `CLAUDE.md`).
 A **level-3 sub-issue of a level-4 plan** gets the planner's detailed re-pass:
 pass the parent issue reference and the path to its `architecture.md`. The
 planner re-validates the unit's slice against the code as it is now, including
-siblings that have landed, and writes a full implementation plan; steps 3–6
+siblings that have landed, and writes a full implementation plan; steps 3–7
 then implement it in the same run as for any level-3 issue. A re-pass that
 finds the parent architecture no longer fits halts with a proposed amendment —
 relay it to the user and wait.
@@ -237,8 +241,9 @@ level if it differs", and — for levels 3–4 — the research commit SHAs
 creates the topic branch. Carry forward the branch name and base its `done`
 reply reports.
 
-**Level 4:** go straight to step 6; the state-board refresh inside the land
-draws the planned systems.
+**Level 4:** go straight to step 6 (Document): its `prepare-landing` sync (no
+bump), the confirmation that the architecture and `consequences.md` are final,
+and its `state-boards` task, which draws the planned systems dashed.
 
 ## 4. Implement — `rookie-dev`  (levels 1–3)
 
@@ -264,40 +269,128 @@ Then:
   one component; level 3 stays inside one system. If the diff crosses its
   level, **stop and ask the user** with the evidence, as for an escalation.
 
-## 5. Check — `qa`  (levels 1–3)
+## 5. QA — `qa`  (levels 1–3)
 
 Spawn `qa` with `level:<N>` over the change set (`git diff <base-branch>...HEAD`
 plus untracked files), the plan document path (or, for level 1, the issue text)
-and, for level 2, `rookie-dev`'s recorded fail-before/pass-after test run. Keep
-its gate verdict, the test-inspector **Test run** block, the code review, and
-the path to the visual test report.
+and, for level 2, `rookie-dev`'s recorded fail-before/pass-after test run. QA
+gates the **tests and the code** only — the test-inspector and the code-reviewer
+(level 1: the code-reviewer alone, checking that the diff is comments and
+documentation only and matches the issue); documentation is reviewed in step 6.
+Keep its gate verdict, the test-inspector **Test run** block, the code review,
+and the path to the visual test report.
 
-- **PASS** -> step 5b.
+- **PASS** -> step 6.
 - **CHANGES REQUESTED, every fix minor** — each is easily made and has no
-  fallout: doc or comment wording, a missing KDoc, a misplaced or misnamed
-  test, a small mechanical code fix that changes no behaviour, public API or
-  design. Fix them on the spot (a short `rookie-dev` pass for code or tests;
-  doc and comment wording directly), record what was fixed for step 7, and go
-  on to step 5b **without another `qa` pass**.
+  fallout: a misplaced or misnamed test, a small mechanical code fix that
+  changes no behaviour, public API or design. Fix them on the spot (a short
+  `rookie-dev` pass), record what was fixed for step 8, and go on to step 6
+  **without another `qa` pass**.
 - **CHANGES REQUESTED, otherwise** -> do a remediation pass: `rookie-dev` for a
   code or test gap; `planner` then `rookie-dev` if the plan itself is wrong.
+  When the plan re-pass gates only part of the fixes, split them: the fixes
+  the re-pass could change wait for it, and the rest go to `rookie-dev` at
+  once, beside the re-pass (the board shows both sub-steps current). Judge
+  the split each time; when in doubt, a fix waits.
   Then re-run `qa`, without asking the user. **At most three `qa` passes** in
   all, so at most two remediation loops; a pass whose fixes are all minor ends
   the loop as above. If the third pass still fails, stop and hand the user the
   findings, the report path, and the branch as it stands.
 
-## 5b. Present — no pipeline step
+## 6. Document  (every level)
 
-The presenter is not a pipeline step. It runs as a service of the `admin
-team` session: every landing (step 6) includes its **refresh** of the
-state boards (the changed system's board, the supersystem and repository state
-boards, the registry, the README pointer; at level 4 the planned systems), and
-the **issue board** is kept up by the `plan-board` events you send at each step transition
-(see "Plan-board events" below). Send nothing here; go on to step 6.
+Runs after the last `qa` verdict — `PASS`, or `CHANGES REQUESTED` with every
+fix minor and fixed on the spot — and at level 4 straight after step 3. From
+its first task on, only documents change on the branch. Report it on the issue
+board with the `document` event (see "Plan-board events" below): send it when
+the step starts and at every task change, with `tasks` listing every task's id,
+name and state. The tasks, in this order (the levels that skip one are named
+on it):
 
-- If it reports `BLOCKED — system unresolved`, **stop** and ask the user
-  which system the work belongs to; resume the same `presenter` with the
-  answer.
+0. **Open — `admin team`: `prepare-landing`.** Send a `prepare-landing` request
+   (the `admin-team` skill) with the fields a `land` carries: the issue, the
+   **work level**, the branch and worktree, the change set (`paths`), the `qa`
+   verdict (`NONE` for level 4), `publish` (true only if the user asked for a
+   publish this run) and the versions. The team's executor commits the change
+   set, syncs the branch with its base (a merge, the repository's way), decides
+   and commits the version bump the level calls for (none at levels 1 and 4),
+   and replies `done` with the head sha — the **code-landing commit** — and the
+   version it bumped to, if any. Carry both forward: every state board is
+   stamped at the sha, and task 5 files the CHANGELOG entry under the version.
+   A `needs-rework` reply means the base moved under the branch's files
+   (`result.overlap`): re-verify with the change's own tests (the
+   test-inspector's run), and `qa` if the overlap touches code the change
+   altered, fix what breaks, then resend the same `id` with `attempt + 1` and
+   the fresh `qa` verdict.
+1. **Documentation review** (levels 1–3). Spawn `documentation-reviewer` over
+   the change set (`git diff <base-branch>...HEAD`). It reports findings only;
+   keep its report.
+2. **Reconcile documentation** (levels 1–3). Spawn `rookie-dev` for a short
+   pass that applies the findings to the inline documentation (KDoc, line
+   comments) and to any document the findings name, changing **no behaviour,
+   API or test**. Then spawn `documentation-reviewer` once more. Findings left
+   after that second review are fixed on the spot (a short `rookie-dev` pass,
+   or wording directly) with no further review.
+3. **Dokka check** (levels 1–3, only where the repository applies the
+   `org.jetbrains.dokka` plugin in a build file or convention plugin — today
+   MyGameTools does, with Dokka 2 in its V2 plugin mode; WebTools, GeneralTools
+   and MyGameServer do not). Run the repository's Dokka task — `dokkaGenerate`
+   (or the `dokkaGeneratePublicationHtml` the repository's CI runs) under
+   Dokka 2, `dokkaHtml` under Dokka 1. It must complete cleanly: no warnings,
+   none about undocumented public API or unresolved KDoc links among them.
+   Nothing from it is committed; its output is build output. A failure goes
+   back to task 2, then the check runs again.
+4. **Reconcile plan** (levels 2–4). Resume the **same `planner`** with
+   `SendMessage` (its context is intact) to reconcile the plan with the build,
+   per its "When resumed in the Document step's reconcile-plan task"
+   paragraph: `final-implementation.md` (every deviation from the plan, with its
+   secondary links), `consequences.md` (the known gaps the build leaves open,
+   the outcome of the plan's assumptions and follow-ups, the sibling units), the
+   earlier plan's `consequences.md` for a fix to earlier work, the parent's link
+   line for a sub-issue, the "did not hold in the build" notes in
+   `research/README.md`, and every open point this run raised settled — as a
+   deviation in `final-implementation.md`, or as a follow-up or known gap in
+   `consequences.md`. **No open point is committed open**, whatever raised it.
+   At **level 4** the planner wrote `consequences.md` at sign-off; the task only
+   confirms the architecture and `consequences.md` are final.
+5. **README and CHANGELOG** (levels 1–3). Spawn `rookie-dev` for a short pass
+   from the plan's **Documentation impact** section and the as-built record
+   (`final-implementation.md`): the README delta the global "Repository READMEs
+   — keep current" rule calls for, proportional (none when the change leaves
+   the project's external shape as it was), and a CHANGELOG entry in the Keep a
+   Changelog layout (`### Added` / `### Changed` / `### Fixed` / `### Removed`
+   / `### Deprecated` / `### Security`) — under `## [X.Y.Z] - <date>` when
+   `prepare-landing` bumped a version (pass `rookie-dev` the version from its
+   `done` reply), else under `## [Unreleased]` — creating `CHANGELOG.md` if the
+   repository has none. **Level 1** updates the README only, no CHANGELOG
+   entry.
+6. **State boards — `admin team`: `state-boards`.** Send a `state-boards`
+   request with the issue, the **work level**, the branch and worktree, the
+   systems the change touched and the code-landing sha. The team's presenter
+   builds, on the branch: the changed systems' state boards as built, the
+   supersystem and repository state boards, `systems.json`, the README's
+   dashboard pointer, the template splice, the tracking board re-embed and the
+   repository work board, all stamped "as-is at `<branch>` @ `<code-landing
+   sha>`"; at level 4 the planned systems drawn dashed. The team raises the
+   issue board's `state-boards` step itself and replies `done` with the paths.
+   A reply reporting `BLOCKED — system unresolved`: **stop** and ask the user
+   which system the work belongs to; resend the same `id` with `attempt + 1`
+   and the answer.
+
+Then the **document-landing commit**: send a `commit` request carrying every
+document the step wrote or changed (the reconciled plan documents, the README
+and CHANGELOG), the issue's board files, its tracking board's, the repository
+work board and the state-board files; the executor splits them per its
+guidelines, `docs:` type. Its `done` reply's sha is the **document-landing
+commit**. A `needs-rework` with `result.finds` means a file names the pipeline
+or a work level: reword each `file:line` (or have the agent that wrote it
+reword it) and resend the same `id` with `attempt + 1`. Then step 7.
+
+The presenter is not a pipeline step: it runs as a service of the `admin team`
+session, building the state boards on the run's `state-boards` request (task 6)
+and keeping the **issue board** true from the `plan-board` events you send at
+each step transition (see "Plan-board events" below).
+
 ## Plan-board events  (levels 2–4, every run)
 
 At each of these moments send the admin team a `plan-board` request (the
@@ -316,10 +409,11 @@ sends none.
 | Verification of the findings starts (sent by the planner itself) | `verification-started` | — |
 | Research verified | `researched` | the research README path |
 | Level-4 sign-off | `architecture-signed-off` | the architecture path, the approved unit list |
-| Planner COMPLETE | `plan-accepted` | the plan path, impact path |
+| Planner COMPLETE | `plan-accepted` | the plan path, consequences path |
 | Step 3 done | `branch-cut` | branch, worktree |
 | Each rookie-dev report | `implementation-stage` | the stage, `stages`: every stage's id and name with its state (`done`, `current`, `todo`), `final-implementation.md` path, deviations; during a remediation loop also `remediation`: the qa pass it answers, the route (`on-the-spot` / `remediation` / `re-plan-then-remediation`) and its sub-steps with their state; `tests`: the test classes the stage added or amended (`added`/`amended`: class, module, testLevel, path, tests, rows) |
-| Each qa verdict | `qa-pass` | pass number, verdict, finding counts by kind (doc, test, code) and by `severity` (`minor` — easily made, no fallout — and `other`), the route step 5 takes from them, `rows`: the board row ids the findings touch, report path; `tests`: what the qa run ran (`ran`: class, module, passed, failed, skipped) and the counts of the untouched modules' tests (`other.byModule`) from the test-inspector report |
+| Each qa verdict | `qa-pass` | pass number, verdict, finding counts by kind (test, code) and by `severity` (`minor` — easily made, no fallout — and `other`), the route step 5 takes from them, `rows`: the board row ids the findings touch, report path; `tests`: what the qa run ran (`ran`: class, module, passed, failed, skipped) and the counts of the untouched modules' tests (`other.byModule`) from the test-inspector report |
+| Step 6 starts, and each task change in it | `document` | `tasks`: every task's id and name with its state (`done`, `current`, `todo`), like `implementation-stage`'s `stages` — ids `documentation-review`, `reconcile-documentation`, `dokka-check`, `reconcile-plan`, `readme-changelog`, `state-boards`; once `prepare-landing` replied, the code-landing sha |
 | An escalation | `escalated` | the proposed level and evidence |
 | The run is abandoned | `cancelled` | the reason |
 
@@ -336,35 +430,44 @@ implementer raises for the planner, or an item left to the maintainer. During a
 remediation loop, `implementation-stage` also carries `rows`: the board row ids
 the fixes touch.
 
-The team raises `landed` itself inside `land`. When the presenter fixes a
-defect in the `dashboards` skill during any of this, the team syncs those
-files to the `.github` mirror itself; step 7 mentions them if the `done`
+The team raises the issue board's `state-boards` step itself inside the
+`state-boards` request of step 6, and `landed` itself inside `land`; the
+board's landing steps are `landing → merge → landed`. When the presenter fixes
+a defect in the `dashboards` skill during any of this, the team syncs those
+files to the `.github` mirror itself; step 8 mentions them if the `done`
 reply lists them.
 
-## 6. Land it — `admin team`: `land`
+**Boards at the start of a run.** When a run is sized, the team seeds its
+boards with the previous landing's landed state — the parent tracking board
+(its unit landed, the next one up) and the previously landed sibling's issue
+board as `landed` — from the main checkout's live view, so the run's branch
+carries them and they ride its document-landing commit. There is no separate
+corrections work in any landing.
 
-Send the admin team a `land` request with the **work level**, the change set
-(`paths`), the branch and worktree, the `qa` verdict (`NONE` for level 4), the
-plan or architecture document, every `.md` file created or updated this run,
-and `publish: true` only if **the user asked for a publish this run** (it lets
-the release use the budget's reserve; every version-bumping landing is
-considered for release regardless). The
-team's executor carries out the commits, the version bump the level calls for,
-the reconciled documents, then (after the presenter's state-board refresh on
-the branch, stamped at that head) one `docs:` board commit, the PR, the
-merge, an upstream issue if the work exposed one, and the
-**issue-resolution comment** (steps taken + links to any plan/design docs);
-then its publisher releases a moved published-module version to Maven Central
-when the monthly budget allows (`result.release` in the reply: `published`,
-`deferred`, `failed` or `none`); then the team shows the landed state in the
-live view (the next landing in the repository commits this landing's issue
-board as `landed`, its tracking board and the repository work board) and
-removes the branch and any worktree it allocated. Wait for the reply: a
-`needs-rework` means the base moved under the run's files — re-verify and
-resend the same `id` with `attempt + 1` — or, with `result.finds`, that a
-committed file names the pipeline or a work level — reword each `file:line`
-and resend the same `id` with `attempt + 1`; a `needs-user` means a gate is
-waiting on the user at the team's console.
+## 7. Land it — `admin team`: `land`
+
+The change set is already committed: the code-landing commit (step 6, task 0)
+and the document-landing commit (end of step 6). Send the admin team a `land`
+request with the **work level**, the branch and worktree, the code-landing and
+document-landing shas, the `qa` verdict (`NONE` for level 4), the plan or
+architecture document, every `.md` file created or updated this run (for the
+resolution comment's links), and `publish: true` only if **the user asked for a
+publish this run** (it lets the release use the budget's reserve; every
+version-bumping landing is considered for release regardless). The team:
+checks the base has not moved since the `prepare-landing` sync (if it has, it
+re-syncs; `needs-rework` on overlap; when the new changes touch a system the
+boards cover, the `state-boards` task of step 6 runs again and its files are
+committed before the merge); opens the PR; merges; posts the
+**issue-resolution comment** (steps taken + links to any plan/design docs); files
+an upstream issue if the work exposed one; deletes the branch and any worktree
+it allocated; considers the release — its publisher releases a moved
+published-module version to Maven Central when the monthly budget allows
+(`result.release` in the reply: `published`, `deferred`, `failed` or `none`);
+and shows the landed state in the live view. No board commit and no version
+bump happen in the land any more. Wait for the reply: a `needs-rework` means
+the base moved under the run's files — re-verify and resend the same `id` with
+`attempt + 1`; a `needs-user` means a gate is waiting on the user at the
+team's console.
 
 **Level 4** lands the planning documents only: a `docs:` PR that says
 `Refs #<n>` — never `Closes` — and no version bump. After the `done` reply,
@@ -381,7 +484,7 @@ send nothing and the list goes back to the user.
   is in the result.
 - Do not re-run or second-guess the team's completed steps.
 
-## 7. Report
+## 8. Report
 
 - The issue, its **work level**, and whether it is now **resolved**, a **step
   taken** (with what remains), or — level 4 — **planned**, with the sub-issues
@@ -389,6 +492,9 @@ send nothing and the list goes back to the user.
 - The plan or architecture document and any other `.md` files, with their
   merged links.
 - The `qa` verdict, the code review's verdict, and the visual test-report path.
+- The documentation review's final verdict, the Dokka check's result where it
+  ran, and the README and CHANGELOG changes (or that none was needed).
+- The code-landing and document-landing commits, by sha.
 - The dashboards `presenter` created or updated, with their merged links, and
   anything it reported as not shown.
 - The commits / PR / merge / issue comment that landed, by reference, and any

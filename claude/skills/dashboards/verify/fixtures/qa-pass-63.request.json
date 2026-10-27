@@ -24,7 +24,7 @@
         "other": 9
       },
       "route": "planner-then-rookie-dev",
-      "report": "build/reports/test-inspector/index.html",
+      "report": "build/reports/tests/index.html",
       "tests": "376 passed, 0 failed, 0 skipped across :webtools-http:check (47 s) and the four build-logic level tasks"
     },
     "rows": [
@@ -110,7 +110,7 @@
       {
         "text": "Nine test gaps from qa pass 1 await the planner's add-or-record ruling: Amendment 1 edge forms and longest-first ordering (L2), concurrent same-name recordings (L3), the positive branch of the check edge, fixtures-jar resource entries and the -Dorg.gradle.project route (L4b), codec size robustness, concurrency start barrier and an encodable canary (L4c).",
         "raised": "2026-10-25T19:38:32Z",
-        "ref": "build/reports/test-inspector/index.html"
+        "ref": "build/reports/tests/index.html"
       }
     ],
     "detail": "Code review: no logic defect, every plan item done, no unplanned change, inside the unit, the single recorded deviation is the only one, hygiene clean (no key material, paths or attribution). Doc: KDoc complete and tier-named; residuals are the Amendment 1 partial-escape boundary missing from two consumer-facing KDocs, header and crypto-constant comments, and ten collapsed wording items. Tests: all plan rows present; the nine non-minor items are edges or guarantees the plan states but no test pins.",
