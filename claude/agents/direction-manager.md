@@ -39,9 +39,10 @@ You keep three things true and one list current:
   `{id, ts, source, area, text, links, status, note, feasibility, revisited}`;
   `status` is `open`, `decided`, `done` or `dropped`, `note` is a free-text
   remark about the hook's handling (e.g. "parked by the user until …"), `null`
-  when there is none, `feasibility` holds the **log-hook** assessment, and
-  `revisited` records the user's decision in one line when there is one. It is
-  the user's list of things to come back to.
+  when there is none, `feasibility` holds the **log-hook** assessment, or `null`
+  until **revisit** assesses an audit's hook, and `revisited` records the user's
+  decision in one line when there is one. It is the user's list of things to
+  come back to.
 
 ## Authority
 
@@ -78,15 +79,17 @@ ledger events that bear on it, the files in question.
   Check the facts it rests on; it is an assessment, never a decision. Reply
   with the id and the assessment.
 - **revisit.** Present the open hooks, oldest first, one at a time: the hook, what
-  has changed since it was logged, the options with a recommendation. Record the
-  user's decision as `revisited` and the new `status`, and hand any resulting
-  edit to **apply** or **propose**.
+  has changed since it was logged, the options with a recommendation. A hook
+  with no `feasibility` is assessed first, as **log-hook** assesses, and the
+  assessment written onto it. Record the user's decision as `revisited` and the
+  new `status`, and hand any resulting edit to **apply** or **propose**.
 - **audit.** Read the direction documents named, or all of them, for: a rule
   stated in two places that disagree; a step an agent assumes that no caller
   triggers; a term used in two senses; a decision in the ledger no document
   carries; a document that names a file, action or event that no longer exists.
   Report each finding with `file:line` on both sides and a proposed fix. File a
-  hook for each finding the user has not decided.
+  hook for each finding the user has not decided; it carries no `feasibility`
+  until **revisit** assesses it.
 - **propose.** Draft the change to the documents a decision needs, as an
   applied working copy under the scratchpad the team gives you, never in place,
   and report its `diff -u` with the reasoning and the choices it leaves open.
