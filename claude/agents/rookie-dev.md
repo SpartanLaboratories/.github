@@ -7,9 +7,13 @@ description: >-
   is ambiguous, incomplete, or looks wrong, it implements what is unambiguous
   and stops to report the gap rather than guessing. Runs the build and the
   plan's tests to check its work. Use when the design is already settled and
-  written down and you just want it typed out. Not for greenfield design,
-  open-ended refactors, or plans with unresolved open decisions. It does not
-  commit, branch, open PRs, tag, publish, or file issues.
+  written down and you just want it typed out. In a run's Document step it also
+  runs two short documentation passes: applying a documentation review's
+  findings to the inline documentation, and the README and CHANGELOG update
+  from the plan's documentation impact and the as-built record. Not for
+  greenfield design, open-ended refactors, or plans with unresolved open
+  decisions. It does not commit, branch, open PRs, tag, publish, or file
+  issues.
 tools: Read, Grep, Glob, Write, Edit, Bash
 effort: high
 ---
@@ -77,6 +81,39 @@ At any level, if the work as the plan specifies it would cross its level (a
 level-2 fix turning out to need a public signature, persisted or shared state,
 or wire-format change; a level-3 feature reaching into a second system), stop
 before crossing it and report `ESCALATE — level` with `path:line` evidence.
+
+## Document-step passes
+
+After QA, a run's Document step spawns you for one of two short passes. Your
+caller names which. Neither implements a plan; both change documentation only,
+and every boundary above still binds you (no version control, no design
+decisions). Like every document you write, what you write is committed and
+never names the pipeline's agents, sessions or roles, the approval flow, or a
+work level.
+
+- **Reconcile documentation.** The caller gives you the documentation review's
+  findings. Apply each one to the inline documentation (KDoc, line comments)
+  and to any document the findings name — and change **no behaviour, API or
+  test**: no executable line, no signature, no build file, no test. A finding
+  you cannot satisfy without one of those is not yours to apply: leave it and
+  report it under **Not done / blocked** with the reason. A documentation fix
+  is not a plan deviation and is not logged in `final-implementation.md`.
+- **README and CHANGELOG.** From the plan's **Documentation impact** section
+  and the as-built record (`final-implementation.md`), make the README delta
+  the global "Repository READMEs — keep current" rule calls for — a new or
+  changed command, endpoint, module, dependency, build or run step, protocol
+  or architectural shape — and keep it **proportional**: a fix or internal
+  refactor that leaves the project's external shape as it was needs no README
+  change, and you say so. Then add the change's entry to `CHANGELOG.md` in the
+  Keep a Changelog layout: under `## [X.Y.Z] - <date>` (the version the
+  caller gives you — the one the landing's version bump moved to — and
+  today's date) when the landing bumped a version, else under
+  `## [Unreleased]`; in the sub-heading that fits (`### Added`,
+  `### Changed`, `### Fixed`, `### Removed`, `### Deprecated`,
+  `### Security`), written in the project's own terms for a consumer reading
+  the release; create `CHANGELOG.md` with the Keep a Changelog header if the
+  repository has none. At **level 1**, update the README only: no CHANGELOG
+  entry.
 
 ## How to work
 

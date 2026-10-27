@@ -250,7 +250,9 @@ function codeStatus(reg, root, sha) {
   const pres = codePresence(root, sha, all), has = p => pres.get(cleanPath(p)) === true;
   const out = { systems: new Map(), parts: [], supers: new Map() };
   systems.forEach(e => {
-    if (e.kind === "system" && pathList(e.paths).length) { const ps = pathList(e.paths); out.systems.set(e.slug, { status: ps.some(has) ? "built" : "planned", present: ps.filter(has), missing: ps.filter(p => !has(p)) }); }
+    /* an archived system (status "archived", no longer developed; admin-team/dashboards-skill/35) keeps its status: the code decides only
+       between built and planned */
+    if (e.kind === "system" && e.status !== "archived" && pathList(e.paths).length) { const ps = pathList(e.paths); out.systems.set(e.slug, { status: ps.some(has) ? "built" : "planned", present: ps.filter(has), missing: ps.filter(p => !has(p)) }); }
     Object.entries(e.partPaths && typeof e.partPaths === "object" ? e.partPaths : {}).forEach(([id, v]) => { const ps = pathList(v); if (ps.length) out.parts.push({ slug: e.slug, dsl: typeof e.dsl === "string" ? e.dsl.replace(/^\.?\//, "") : null, id, planned: !ps.some(has), paths: ps }); });
   });
   const by = s => systems.find(x => x.slug === s), seen = new Set();
@@ -265,7 +267,7 @@ function codeStatus(reg, root, sha) {
     if (!kids.length) r = { status: null, why: "it has no subsystems in the registry", unclassified, core };
     else if (unclassified.length) r = { status: null, why: `${unclassified.join(", ")} ${unclassified.length === 1 ? "is" : "are"} not classified core or optional (systems.json "core", from its architecture)`, unclassified, core };
     else if (!core.length) r = { status: null, why: "none of its subsystems is core", unclassified, core };
-    else r = { status: core.every(c => statusOf(c) === "built") ? "built" : "planned", why: null, unclassified, core };
+    else r = { status: core.every(c => ["built", "archived"].includes(statusOf(c))) ? "built" : "planned", why: null, unclassified, core };
     out.supers.set(slug, r); return r; };
   systems.filter(e => e.kind === "supersystem").forEach(e => superOf(e.slug));
   out.statusOf = statusOf;

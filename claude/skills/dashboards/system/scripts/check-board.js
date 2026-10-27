@@ -88,7 +88,7 @@ if (args.includes("--auto")) {
   modes.forEach(m => {
     const r = cp.spawnSync(process.execPath, [__filename, page, ...rest, ...m], { encoding: "utf8" });
     const lines = (r.stdout || "").trim().split(/\r?\n/), label = m.join(" ") || "light";
-    const bad = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM|GIT-IGNORED|DEAD BOARD LINK|DEAD LINK|BOARDS UNREADABLE|STATE |EMBED DIFFERS|PART UNKNOWN|FEATURE MISSING|STATUS DISAGREES WITH CODE|FAIL/.test(l));
+    const bad = lines.filter(l => !/^CHECK note:/.test(l) && !(r.status === 0 && /FEATURE MISSING/.test(l))).filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM|GIT-IGNORED|DEAD BOARD LINK|DEAD LINK|BOARDS UNREADABLE|STATE |EMBED DIFFERS|PART UNKNOWN|FEATURE MISSING|STATUS DISAGREES WITH CODE|STRUCTURE CANVAS|REGISTRY INVALID|FAIL/.test(l));
     console.log(`CHECK pass ${label}: ${r.status === 0 ? "PASS" : "FAIL"} · ${(lines.find(l => l.startsWith("screenshot:")) || "").replace("screenshot: ", "")}`);
     bad.forEach(l => console.log("  " + l));
     if (r.status !== 0) failed++;
@@ -277,6 +277,13 @@ function stateChecks() {
   const L = require("./statelib.js"), { kindOf, templateFor } = require("./deviation.js"), kind = kindOf(src);
   const notes = [], problems = [], dir = path.dirname(path.resolve(page)), reg = L.findRegistry(page);
   let R = null; if (reg) { try { R = JSON.parse(fs.readFileSync(reg, "utf8")); } catch (e) { /* the registry check reports it */ } }
+  /* the structure map's canvas (system/RULES.md §2; admin-team/dashboards-skill/35): 1000 wide, its height recorded on the board
+     (MODEL.structure.h, 612 by default) and at most 812; a system that needs more is split into subsystems under a supersystem board */
+  if (kind === "system") {
+    const hm = /structure\s*:\s*\{[\s\S]{0,4000}?\bh\s*:\s*(\d+)/.exec(src), vb = /id="svg-structure"\s+viewBox="0 0 (\d+) (\d+)"/.exec(src);
+    if (hm && +hm[1] > 812) problems.push(`STRUCTURE CANVAS TOO TALL: MODEL.structure.h is ${hm[1]}, over the 1000×812 limit: split the system into subsystems under a supersystem board`);
+    if (vb && (+vb[1] !== 1000 || +vb[2] > 812)) problems.push(`STRUCTURE CANVAS TOO TALL: the structure map's viewBox is ${vb[1]}×${vb[2]}: it is 1000 wide and at most 812 high (MODEL.structure.h)`);
+  }
   const st = L.blockText(src, "state");
   let tplHas = false; try { tplHas = L.blockText(fs.readFileSync(templateFor(page, kind), "utf8"), "state") != null; } catch (e) { /* no template */ }
   if (st == null) notes.push(`state: no state block${tplHas ? " (a board on a template older than the data-only path: apply-state.js leaves it to the presenter, who brings it onto the template)" : ""}`);
@@ -298,10 +305,19 @@ function stateChecks() {
   if (R && reg && st != null) { let s0 = null; try { s0 = JSON.parse(st); } catch (e) { /* reported above */ }
     const sha = s0 && s0.asIs ? s0.asIs.sha : null, code = L.codeStatus(R, L.registryRoot(reg), sha), all = R.systems || [], me = s0 && all.find(x => x.slug === s0.slug);
     const drawn = kind === "system" ? (me ? [me] : []) : me && me.kind === "supersystem" ? all.filter(x => x.slug === me.slug || L.isAncestor(all, me.slug, x.slug)) : all;
+    /* the registry's status and visibility (system/RULES.md §7; admin-team/dashboards-skill/35): status built, planned or archived; every
+       system (not the repository's own entry) records its visibility, public, internal-org or internal-repo, or inherits its parent
+       system's; one with none is warned on (the Systems tab draws it in an "unset" group), an archived one excepted */
+    if (kind === "supersystem") { const VIS = ["public", "internal-org", "internal-repo"], byS = x => all.find(y => y.slug === x);
+      const visOf = e => { let x = e; while (x && !x.visibility && byS(x.parent) && byS(x.parent).kind !== "repo") x = byS(x.parent); return x && x.visibility; };
+      all.forEach(e => { if (e.status != null && !["built", "planned", "archived"].includes(e.status)) problems.push(`REGISTRY INVALID: ${e.slug}'s status ${JSON.stringify(e.status)} is not built, planned or archived`);
+        if (e.visibility != null && !VIS.includes(e.visibility)) problems.push(`REGISTRY INVALID: ${e.slug}'s visibility ${JSON.stringify(e.visibility)} is not public, internal-org or internal-repo`); });
+      const unset = drawn.filter(e => e.kind !== "repo" && e.status !== "archived" && !visOf(e)).map(e => e.slug);
+      if (unset.length) notes.push(`warning: VISIBILITY UNSET: ${unset.join(", ")} ${unset.length === 1 ? "records" : "record"} no visibility in systems.json (public, internal-org or internal-repo; a part takes its parent's): the Systems tab draws ${unset.length === 1 ? "it" : "them"} in the "unset" group`); }
     drawn.forEach(e => { const d = code.systems.get(e.slug);
       if (d && d.status !== e.status) problems.push(`STATUS DISAGREES WITH CODE: ${e.slug} is ${e.status} in systems.json, the code at ${sha} says ${d.status} (${d.status === "built" ? "present: " + d.present.join(", ") : "none of " + d.missing.join(", ") + " is there"}): run apply-state.js`);
       const sp = code.supers.get(e.slug);
-      if (sp && sp.status && sp.status !== e.status) problems.push(`STATUS DISAGREES WITH CODE: the supersystem ${e.slug} is ${e.status} in systems.json; its core subsystems (${sp.core.join(", ")}) make it ${sp.status}: run apply-state.js`);
+      if (sp && sp.status && sp.status !== e.status && e.status !== "archived") problems.push(`STATUS DISAGREES WITH CODE: the supersystem ${e.slug} is ${e.status} in systems.json; its core subsystems (${sp.core.join(", ")}) make it ${sp.status}: run apply-state.js`);
       if (sp && sp.unclassified.length) notes.push(`warning: SUBSYSTEM UNCLASSIFIED: ${e.slug}'s ${sp.unclassified.join(", ")} ${sp.unclassified.length === 1 ? "is" : "are"} not classified core or optional in systems.json ("core", from its architecture): its status is not derived until ${sp.unclassified.length === 1 ? "it is" : "they are"}`); });
     const pdsl = L.blockText(src, "dsl"), els = pdsl ? L.dslElements(pdsl) : [], dslRel = path.relative(path.dirname(reg), path.join(dir, "workspace.dsl")).split(path.sep).join("/");
     code.parts.filter(x => x.dsl === dslRel).forEach(x => { const el = els.find(y => y.id === x.id); if (el && el.tags.includes("Planned") !== x.planned) problems.push(`STATUS DISAGREES WITH CODE: ${x.id} is ${el.tags.includes("Planned") ? "Planned" : "built"} in workspace.dsl, the code at ${sha} says ${x.planned ? "planned" : "built"} (${x.paths.join(", ")}): run apply-state.js`); });
@@ -319,6 +335,12 @@ function stateChecks() {
   return { notes, problems };
 }
 
+/* A landed or cancelled issue board (plan.json status built or abandoned): kept as it landed and never re-rendered (GUIDANCE.md §8, §11),
+   so a newer template feature it lacks is a note in every pass, the browser probe's layout probes included, never a failure. */
+function closedPlanBoard() {
+  if (!src || !/<meta name="dashboard" content="plan-board">/.test(src)) return false;
+  try { const p = JSON.parse(require("./statelib.js").blockText(src, "plan") || "{}"); return ["built", "abandoned"].includes(p.status); } catch (e) { return false; /* the data check reports it */ }
+}
 // The board's features (features.js; GUIDANCE.md §8, "Features"): every template feature its type takes, whatever its browser pass and
 // through a declared divergence too: a missing one fails as FEATURE MISSING: <feature> (template since dashboards-skill/N).
 function featureChecks() {
@@ -329,7 +351,7 @@ function featureChecks() {
   /* --features-as-notes (with --auto --no-browser, apply-state.js): a board that lags its template is the presenter's to splice at the landing
      refresh, not a reason to refuse a stamp: its missing features are notes, and do not fail the run */
   /* a landed or cancelled issue board is kept as it landed and never re-rendered (GUIDANCE.md §11, "Re-rendering"): its newer features are notes */
-  let closed = false; if (kind === "plan-board") { try { const p = JSON.parse(require("./statelib.js").blockText(src, "plan") || "{}"); closed = ["built", "abandoned"].includes(p.status); } catch (e) { /* the data check reports it */ } }
+  const closed = closedPlanBoard();
   const asNotes = closed || (args.includes("--features-as-notes") && args.includes("--no-browser"));
   return { note: `features: ${F.applicable(kind).length - miss.length} of ${F.applicable(kind).length} a ${kind} board takes`, notes: asNotes ? miss.map(m => "note: " + F.line(m)) : [], problems: asNotes ? [] : miss.map(F.line) };
 }
@@ -401,7 +423,8 @@ const r = cp.spawnSync(browser, ["--headless=new", "--disable-gpu", "--no-first-
   "--allow-file-access-from-files", "--virtual-time-budget=6000", `--window-size=${width},${height}`, `--screenshot=${shot}`, url], { encoding: "utf8", timeout: 120000 });
 // Chrome prints console lines as `[...] "message", source: <url> (<line>)`; keep just the message.
 const lines = (r.stderr || "").split(/\r?\n/).filter(l => /CONSOLE|Uncaught/.test(l)).map(l => l.replace(/^.*CONSOLE[^"]*"/, "").replace(/", source:[\s\S]*$/, "").trim());
-const errors = lines.filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM|FEATURE MISSING/.test(l));
+const keptAsLanded = closedPlanBoard();
+const errors = lines.filter(l => !(keptAsLanded && /FEATURE MISSING/.test(l) && !/CHECK ERROR|Uncaught|threw/.test(l))).filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM|FEATURE MISSING/.test(l));
 lines.forEach(l => console.log(l));
 paletteLines().forEach(l => { console.log(l); if (/PALETTE IN STATUS HUE|DASHED NOT PLANNED/.test(l)) errors.push(l); });
 if (regCheck) { if (regCheck.note) console.log("CHECK " + regCheck.note); regCheck.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); }

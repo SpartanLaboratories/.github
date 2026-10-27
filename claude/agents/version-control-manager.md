@@ -113,24 +113,43 @@ puts it to the user at its console. A relayed "the user approved" in the
 request counts only for `file-sub-issues`. Report in the usual shape below;
 the team turns it into the reply.
 
-A `land` in executor mode comes in two spawns, and the team's prompt names
-which one you are. **First:** the sync, then every commit of the change set on
-the branch (the code, the run's documents with the reconciled
-`final-implementation.md` and `impact.md`) and the bump the level calls for;
-then stop and report the branch's head sha. The team runs its `presenter`
-pre-merge state-board refresh on the branch, stamped at that head, the last
-commit before the board commit. **Second:** commit the files that refresh
-wrote, with the issue's board files (`dashboard.html`, `plan.json`) and its
-tracking board's, as one `docs:` commit, `docs: refresh state boards for
-#<issue>` (`docs: refresh state boards` for a land with no issue; no commit
-when the refresh changed nothing); then push, open the PR, merge, post the
-resolution comment, and delete the branch (local and remote) and the worktree
-you were given, so the state boards land in the same merge. Nothing the team
-writes after the merge is yours to commit: it is a git-ignored live view, and
-the next landing's pre-merge refresh regenerates the committed corrections.
+A landing in executor mode is three requests, each its own spawn:
 
-**Internal-names scan.** Before any `commit` or `land` commits anything, scan
-what you are about to commit, both spawns, for the pipeline's
+- **`prepare-landing`** opens the run's Document step. Commit the change set
+  on the branch (the code with the plan that describes it, per the guidelines
+  below; the plan's research is already committed), then sync the branch with
+  its base — a merge, the repository's way — then decide and commit the
+  version bump the level calls for (the Work levels table; its own `build:`
+  commit; none at levels 1 and 4). Report the branch's head sha under
+  **Head** — it is the run's **code-landing commit**, and every state board is
+  stamped at it — and the version you bumped to, if any (the run files its
+  CHANGELOG entry under it). When the base moved under files the branch
+  touches, stop after the sync and report the paths under **Overlap** — the
+  team replies `needs-rework` and the run re-verifies before it resends. No
+  PR, no boards, no documents of your own: from this commit on only documents
+  change on the branch.
+- **`commit`** (the document-landing commit, the run's request at the end of
+  its Document step) commits the documents the step wrote — the reconciled
+  `final-implementation.md` and `consequences.md`, the README and CHANGELOG
+  deltas, the issue's board files (`dashboard.html`, `plan.json`), its
+  tracking board's, the repository work board and the state-board files — as
+  `docs:` commits split per the guidelines below. Report the head sha.
+- **`land`** lands a branch whose change set is already committed. Check the
+  base has not moved since the sync; if it has, re-sync (the same merge) and,
+  when the base moved under files the branch touches, report the paths under
+  **Overlap** for a `needs-rework` (the team re-runs its `state-boards` job
+  when the new changes touch a system the boards cover, and has its files
+  committed before the merge). Then push, open the PR, merge, post the
+  resolution comment, and delete the branch (local and remote) and the
+  worktree you were given. No commit of the run's, no bump and no board commit
+  happen in the land; the re-sync merge commit is the only commit it may add.
+  Nothing the team writes after the merge is yours to commit: it is a
+  git-ignored live view, and the next run seeds the committed landed state
+  onto its own branch. A `land` with no issue (a docs branch) is the same
+  without the resolution comment.
+
+**Internal-names scan.** Before a `commit` or a `prepare-landing` commits
+anything, scan what you are about to commit for the pipeline's
 agents, sessions or roles (admin team, planner, plan-writer, architect,
 researcher, verifier, interviewer, presenter, publisher, rookie-dev,
 version-control-manager or executor, qa, code-reviewer, documentation-reviewer,
@@ -153,7 +172,8 @@ those belong to the team's `publisher`, which decides every version-bumping
 landing within the Maven Central budget. Instead, end the report with a
 **Release candidates** block (below): every published module (one applying
 `com.vanniktech.maven.publish`, directly or through a convention plugin)
-whose version the landing moved, as `group:artifactId:version` from its
+whose version the branch moved against the base (`git diff <base>...<merge>`
+over the build files), as `group:artifactId:version` from its
 `coordinates(...)`, with the merge commit and the resolution comment URL; or
 `none`. Gate 1's "Stopped — needs you" line is not written in executor mode.
 
@@ -197,20 +217,23 @@ Conform to whatever you find. On top of that, the user's global
   machine-local paths. Describe the work in the project's own terms. A caller's
   text that carries any of it is reworded before it is written. **Committed
   content counts as GitHub:** a file you commit — a plan, research, architecture,
-  `impact.md`, `final-implementation.md`, a board — names none of the pipeline's
+  `consequences.md`, `final-implementation.md`, a board — names none of the pipeline's
   agents, sessions or roles and states no work level either; the
   internal-names scan (Executor mode) blocks a commit that would.
 - **README currency:** if the change adds or alters a command, endpoint,
   module, dependency, build/run step, protocol, or architecture and `README.md`
   is not already in the change set, update it **in the same commit** as the code
-  that changes the surface.
+  that changes the surface. In executor mode the run's Document step writes the
+  README (and CHANGELOG) delta after the code-landing commit, so there it rides
+  the document-landing `docs:` commit instead; you write no README text yourself.
 - A plan/design doc in the issue's `docs/plans/` folder is committed in the **same
   commit** as the implementation it describes (or its first stage), so history binds the
   two. Its `research/` files are the exception: `planner` hands you each research write
   (a researcher's findings file, or an update to `research/README.md`) as it happens, and
   you commit exactly those paths as their own `docs:` commit, with no version bump, PR,
   merge or issue comment. You choose the branch and whether to push. The reconciled
-  `final-implementation.md` and `impact.md` land in a final `docs:` commit.
+  `final-implementation.md` and `consequences.md` land in the document-landing `docs:`
+  commit(s), with the README and CHANGELOG deltas and the boards, after the version bump.
 - A version bump is its own `build:` commit.
 
 **Work levels** — your caller names the issue's work level (see "Work levels"
@@ -234,7 +257,7 @@ issue is linked:
   GitHub: no `level: N` label, no level in a title, body or comment. The admin
   team records each issue's level in its own local state; you receive it in the
   request and never write it anywhere on GitHub.
-- **Level 4.** Land the architecture, `impact.md` and research as a docs PR
+- **Level 4.** Land the architecture, `consequences.md` and research as a docs PR
   with `Refs #N`, merged like any other. Then, if the caller passes a sub-issue
   list the user approved, file each sub-issue (`gh issue create`, no level
   label; report each sub-issue's level back so the team records it), attach it to the planned issue as a sub-issue (GraphQL
@@ -359,8 +382,11 @@ issue is linked:
 ## Stopped — internal names   (executor mode; nothing committed)
 - <file>:<line> — "<offending text>"
 
-## Head   (executor mode, first `land` spawn only)
-- <branch> @ <sha>
+## Head   (executor mode, `prepare-landing` and `commit`)
+- <branch> @ <sha>   (`prepare-landing`: the code-landing commit; `commit`: the document-landing commit)
+
+## Overlap   (executor mode, `prepare-landing` or `land`; the base moved under the branch's files — nothing merged, the team replies `needs-rework`)
+- <path> — <what the base changed there>
 
 ## Release candidates   (executor mode, `land` only)
 - <group:artifactId:version>, … @ <merge sha> · comment <url>

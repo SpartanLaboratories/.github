@@ -68,7 +68,8 @@
 // Timeline tile of dashboards-skill/32 (verify/cases-32.js): one legend entry per visit of a run step, its times from the record only. The
 // decisions of dashboards-skill/33 (verify/cases-33.js): the element vocabulary, boards never pages, no internal names, the landing flow's
 // pre-merge stamp, the open points on every event. The decisions of dashboards-skill/34 (verify/cases-34.js): the Timeline tile coloured
-// by kind of work, approximate bounds, the landing in three steps, a sub-issue's roadmap, the Design tab. A
+// by kind of work, approximate bounds, the landing in three steps, a sub-issue's roadmap, the Design tab. The live view of a landing
+// (verify/cases-live-view.js): apply-event.js --view, the view copies and their <base> line, board.js --live opening them. A
 // template is recorded only when its browser passes and every case group pass.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
@@ -323,7 +324,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     fs.writeFileSync(path.join(dir, "impact.md"), "# Impact\n");
     const d = JSON.parse(fs.readFileSync(path.join(dir, "plan.json"), "utf8")); d.impact = null; fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(d, null, 2) + "\n"); node(embedJs, dir);
     const c = node(checkJs, dir, "--root", iScratch);
-    ic.push(["check.js warns when impact.md exists but the Impact tab is empty", /impact\.md exists in this folder, but the Impact tab is empty/.test(c.stdout), lines(c, /^warn/) || "no warning"]);
+    ic.push(["check.js warns when impact.md exists but the Consequences tab is empty (an older folder's impact.md, read as consequences.md is)", /impact\.md exists in this folder, but the Consequences tab is empty/.test(c.stdout), lines(c, /^warn/) || "no warning"]);
     const dom2 = dumpDom(path.join(dir, "dashboard.html"), "impact");
     if (dom2 != null) ic.push(["a board with no impact recorded shows the tab with the statement and its source", /No downstream impact recorded yet/.test(panel(dom2)) && /Source:/.test(panel(dom2)), panel(dom2).slice(0, 300)]); }
   { const d = JSON.parse(JSON.stringify(ex)); d.impact = { basis: "as-built", summary: "", none: "Verification case: a change inside one system with no consumer-visible difference.", release: { bump: "none", version: null }, downstream: [], adaptation: [], api: [], conversion: [], changes: [], source: "plan.md" };
@@ -450,7 +451,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
        nothing while the impact is still the plan's and unchanged. A deep link "#impact.<entry>" opens that card, selected. */
     const builtImp = dom => inner(dom, '<div id="built-impact">', "div");
     const bS = builtImp(render("sub-built", sub, "built")), chg = bS.match(/<div class="bcard ichg"[^>]*>/g) || [];
-    nc.push(["As built: the impact's changes from the plan are cards, each linking the Impact card it changed", /Impact changes from the plan/.test(bS) && chg.length === sub.impact.changes.length && /href="#impact\.api\.0"/.test(bS) && /href="#impact\.downstream\.2"/.test(bS), `${chg.length} cards · ${text(bS).slice(0, 200)}`]);
+    nc.push(["As built: the impact's changes from the plan are cards, each linking the Impact card it changed", /Consequences: changes from the plan/.test(bS) && chg.length === sub.impact.changes.length && /href="#impact\.api\.0"/.test(bS) && /href="#impact\.downstream\.2"/.test(bS), `${chg.length} cards · ${text(bS).slice(0, 200)}`]);
     nc.push(["As built: an impact change takes its system's colour (its own, else its entry's; muted for none), solid, never red or yellow", chg[0] && chg[0].includes(`data-sys="${sub.impact.api[0].system}"`) && chg.slice(1).every(c => c.includes('data-sys=""')) && !/\b(cmp|badge|vp) (critical|warning|serious)\b/.test(bS) && !/planned/.test(chg.join(" ")), chg.join(" | ")]);
     const kS = inner(render("sub-built", sub, "built"), '<div class="key" id="built-key">', "div");
     nc.push(["As built: the legend lists the muted bar for an impact change of no single system", /an impact change of no single system/.test(kS), text(kS).slice(0, 300)]);
@@ -890,7 +891,7 @@ targets.filter(t => !t.block || t.block === "board").forEach(t => {
       cc.push(["with a board in BOARDS, a lone <a data-issue> opens the board", /<a data-issue="7" href="boards\/7\/dashboard\.html"/.test(ctx), (ctx.match(/<a data-issue="7"[^>]*>/) || ["no lone #7"])[0]]);
       cc.push(["with no board, a title stays plain text and a lone #n opens the GitHub issue", !/data-board="N"/.test(ctx) && /Issue mapped to the item/.test(ctx) && /<a data-issue="N" href="https:\/\/github\.com\/ORG\/REPO\/issues\/N"/.test(inner(pl, '<section class="context">', "section")), (ctx.match(/.{0,80}Issue mapped to the item.{0,10}/) || ["no title"])[0]]);
       /* no issue number above Context (dashboards-skill/26): the planned card links its issue board by that name */
-      if (sup) cc.push(["the Systems tab's planned card links its issue board, naming no issue", /planned · <a href="boards\/7\/dashboard\.html">its plan<\/a>/.test(inner(dl, '<div class="syscards" id="syscards">', "div")) && !/#7/.test(text(inner(dl, '<div class="syscards" id="syscards">', "div"))), text(inner(dl, '<div class="syscards" id="syscards">', "div")).slice(0, 200)]);
+      if (sup) cc.push(["the Systems tab's planned card links its issue board, naming no issue", /planned · <a href="boards\/7\/dashboard\.html">its plan<\/a>/.test(inner(dl, '<div id="syscards">', "div")) && !/#7/.test(text(inner(dl, '<div id="syscards">', "div"))), text(inner(dl, '<div id="syscards">', "div")).slice(0, 200)]);
       const ok = cp.spawnSync(process.execPath, [checker, f, "--out", sc], { encoding: "utf8" });
       cc.push(["check-board.js passes a BOARDS entry whose board is there", ok.status === 0 && /board links: 1 in BOARDS, 0 dead/.test(ok.stdout || ""), (ok.stdout || "").split(/\r?\n/).filter(x => /board links|FAIL/.test(x)).join(" | ")]);
       const dead = write("dead/index.html", withBoards);
@@ -1387,7 +1388,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     yc.push(["6: an interview question lists its options", /<ul class="sp-opts"><li>Refuse with a reason<\/li><li>Trim and accept<\/li><\/ul>/.test(pI), text(pI).slice(0, 260)]);
     const pQ = panel(D.qa), pS = panel(D.spot);
     yc.push(["6: a qa pass shows its severity (minor, other) and its route; a re-plan-then-remediation remediation (its older id read alike) lists its loop", /by severity: 3 minor · 1 other/.test(pQ) && /route: a remediation pass: a plan re-pass, then the fixes, then the next qa pass/.test(text(pQ)) && /Plan re-pass for qa pass 1/.test(pQ) && /Fixes · to come/.test(text(pQ)) && !/rookie-dev|[Pp]lanner/.test(text(pQ)) && /qa pass 2/.test(pQ), text(pQ).slice(0, 400)]);
-    yc.push(["6: an on-the-spot remediation: its sub-steps by name, next landing with no new qa pass", /Verification case: the wording fixes · in progress/.test(text(pS)) && /<span class="l">next<\/span>landing \(no new qa pass\)/.test(pS) && /fixed on the spot, no new qa pass/.test(text(pS)), text(pS).slice(0, 300)]);
+    yc.push(["6: an on-the-spot remediation: its sub-steps by name, next the Document step with no new qa pass (dashboards-skill/35)", /Verification case: the wording fixes · in progress/.test(text(pS)) && /<span class="l">next<\/span>document \(no new qa pass\)/.test(pS) && /fixed on the spot, no new qa pass/.test(text(pS)), text(pS).slice(0, 300)]);
     const dS = D.staged, st = id => (cellOf(dS, "built", id).match(/<span class="vp ([^"]*)"><i aria-hidden="true">([^<]*)<\/i>([^<]*)/) || []).slice(1).join("|");
     yc.push(["7: the stages decide the state: a done row as planned, one with a stage to come partially built, the current one in progress, one only to come pending", st(ids[0]) === "good|✓|as planned" && st(ids[1]) === "ink|◑|partially built" && st(ids[2]) === "accent|▶|in progress" && st(ids[3]) === "neutral dashed|…|pending", [0, 1, 2, 3].map(i => st(ids[i])).join(" ; ")]);
     yc.push(["7: in progress and partially built are solid, each with its legend entry; the tile does not count them built", !/dashed/.test(cellTag(dS, "built", ids[1])) && !/dashed/.test(cellTag(dS, "built", ids[2])) && /in progress<\/span> being built: a current stage works on it/.test(inner(dS, '<div class="key" id="design-key">', "div")) && /partially built<\/span> a finished stage built part of it/.test(inner(dS, '<div class="key" id="design-key">', "div")) && /^1 \/ /.test((text(inner(dS, '<div class="kpis" id="kpis">', "div")).match(/As built (.*?) (QA passes|Timeline)/) || ["", ""])[1]), text(inner(dS, '<div class="kpis" id="kpis">', "div")).slice(0, 200)]);
@@ -1503,7 +1504,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
       d => d.wip.step === "remediation" && d.wip.remediation.steps[0].state === "current" && cur(d) === '["routing.built"]');
     /* an approving pass carries no facts.tests here: the Tests tab's results are the presenter's (dashboards-skill/22), so it enriches */
     step("issue board", ISSUE, "qa-pass", { qa: { pass: 2, verdict: "approved", doc: 0, test: 0, code: 0 } }, true,
-      d => d.wip.step === "landing" && !d.wip.current.length && d.wip.remediation === null && d.wip.qa.length === 2 && !d.wip.qa[1].route);
+      d => d.wip.step === "document" && JSON.stringify(d.wip.current) === '["built"]' && d.wip.remediation === null && d.wip.qa.length === 2 && !d.wip.qa[1].route); /* the Document step follows an approving pass since dashboards-skill/35 */
     step("issue board, parts unresolved", ISSUE, "landed", { merge: "abcdef1", pr: 99, date: "2026-10-25" }, true, d => d.wip.step === "merge" && d.status === "building" && d.asBuilt.sha === "abcdef1" && d.asBuilt.pr === 99); /* at the merge since dashboards-skill/34: its steps line brought up to the three landing steps */
     edit(ISSUE, d => { d.rows.forEach(r => { r.asBuilt = { state: "as-planned", summary: "Verification case: built as decided." }; }); });
     step("issue board, every part resolved", ISSUE, "landed", { merge: "abcdef2", pr: 99, date: "2026-10-25" }, true, d => d.wip.step === "landed" && d.status === "built" && !d.wip.current.length && d.asBuilt.sha === "abcdef2");
@@ -1756,7 +1757,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
       const r7 = run63(), s7 = JSON.parse((r7.stdout || "{}").trim().split(/\r?\n/).pop() || "{}"), d7 = JSON.parse(fs.readFileSync(path.join(bdir, "plan.json"), "utf8")), M7 = d7.wip.remediation || {}, op7 = (d7.wip.open || []).find(o => /Nine test gaps/.test(o.text)) || {};
       kc.push(["the WebTools #63 qa-pass event applies: two remediation sub-steps current at once, the two to come kept to do, check.js passing", r7.status === 0 && s7.result === "ok" && /^pass/.test(s7.check || "") && (M7.steps || []).map(x => x.state).join() === "current,current,todo,todo" && M7.route === "re-plan-then-remediation" && d7.wip.step === "remediation" && !/rookie-dev/.test(JSON.stringify(M7.steps)) && !!d7.wip.plan && d7.wip.plan.from === "qa",
         `${s7.result} · ${s7.error || ""} · ${s7.check || ""} · ${JSON.stringify(M7.steps && M7.steps.map(x => x.state))}`]);
-      kc.push(["its open point's ref, a build output not in the tree, is kept as text naming it, never a dead link, and the presenter is told", typeof op7.ref === "string" && /^`build\/reports\/test-inspector\/index\.html` \(not in the tree/.test(op7.ref) && (s7.why || []).some(x => /not in the tree from the board's folder/.test(x)), `${op7.ref} · ${(s7.why || []).filter(x => /ref/.test(x)).join("; ").slice(0, 160)}`]);
+      kc.push(["its open point's ref, a build output not in the tree, is kept as text naming it, never a dead link, and the presenter is told", typeof op7.ref === "string" && /^`build\/reports\/tests\/index\.html` \(not in the tree/.test(op7.ref) && (s7.why || []).some(x => /not in the tree from the board's folder/.test(x)), `${op7.ref} · ${(s7.why || []).filter(x => /ref/.test(x)).join("; ").slice(0, 160)}`]);
       const r8 = run63(), s8 = JSON.parse((r8.stdout || "{}").trim().split(/\r?\n/).pop() || "{}");
       kc.push(["the same #63 event twice is a duplicate", r8.status === 0 && s8.result === "duplicate", `${s8.result} · ${s8.error || ""}`]);
       { const q2 = path.join(sc, "qtree2"), td = path.join(q2, ...folder.split("/")); fs.mkdirSync(td, { recursive: true });
@@ -2088,6 +2089,20 @@ catch (e) { report("the dashboards-skill/33 cases", [["the cases run to the end"
    from the repository roadmap and its card naming the parent while unset, the four columns' tab named Design, and this run's feature probes. */
 try { require("./cases-34.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/34 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
+/* The decisions of admin-team/dashboards-skill/35 (verify/cases-35.js): a dependency's build state from its code (dropped, a duplicate's
+   canonical state), remediation sub-steps in parallel, an open point's report copied for the live view and none committed open, a bare "Ln",
+   consequences.md, a fix to an earlier plan's work, the Document step, the state boards stamped in it, seeding at sized, the test report's
+   neutral path, the structure map's recorded height, and this run's feature probes. */
+try { require("./cases-35.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the dashboards-skill/35 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
+/* The live view of a landing (verify/cases-live-view.js; plan/RULES.md §4): the post-merge refresh's landed raised with apply-event.js --view
+   into view copies under docs/plans/.live/view/, no tracked file written; a copy's <base> line, no difference to deviation.js; embed.js and
+   check.js on a copy, its links from the tracked folder and its neighbours' copies; board.js --live opening the copies and removing a stale
+   one; the landed unit's plain-fact summary on the fast path. */
+try { require("./cases-live-view.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the live view cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 const today = new Date().toISOString().slice(0, 10);
 const COMMENT = "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last full verification. check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.";

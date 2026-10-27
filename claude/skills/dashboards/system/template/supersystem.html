@@ -407,7 +407,7 @@ footer code{color:var(--ink-2)}
 :root{--sys-1:#2a78d6;--sys-2:#653184;--sys-3:#0d7680;--sys-4:#1d2660;--sys-5:#9656aa;--sys-6:#1a9ec7}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--sys-1:#3987e5;--sys-2:#8a44d8;--sys-3:#1f8089;--sys-4:#b4bef5;--sys-5:#a86fb8;--sys-6:#31b5f4}}
 :root[data-theme="dark"]{--sys-1:#3987e5;--sys-2:#8a44d8;--sys-3:#1f8089;--sys-4:#b4bef5;--sys-5:#a86fb8;--sys-6:#31b5f4}
-.syscards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.syscards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
 .syscard{display:block;text-decoration:none;color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0;border-top:3px solid var(--c,var(--muted))}
 .syscard:hover{border-color:var(--ink-2)}
 .syscard.planned{border-style:dashed;opacity:.7}
@@ -417,6 +417,20 @@ footer code{color:var(--ink-2)}
 .syscard .meta span{font:11px var(--mono);padding:3px 6px;border:1px solid var(--line);border-radius:3px;color:var(--ink-2)}
 .syscard .meta .role,.key .role{font:700 10px/1.2 var(--mono);letter-spacing:.04em;color:var(--ink);padding:2px 5px;border:1px solid var(--ink-2);border-radius:3px}
 .syscard .st{font:700 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+/* the Systems tab's visibility groups and its panels (dashboards-skill/35): a group heading named by its visibility chip, a neutral ramp from
+   near (internal · repo, faint) to far (public, full ink), as a dependency's locality; a system with parts is a panel, its parts inside it */
+.sysgroup{margin:14px 0 6px;font:700 11px var(--sans);text-transform:uppercase;letter-spacing:.07em;color:var(--muted);display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+#syscards>.sysgroup:first-child{margin-top:0}
+.sysgroup small{font-weight:400;text-transform:none;letter-spacing:0}
+.vischip{display:inline-flex;align-items:center;gap:4px;font:700 10.5px/1.2 var(--mono);letter-spacing:.03em;text-transform:none;padding:2px 6px;border-radius:3px;border:1px solid var(--line);color:var(--ink-2)}
+.vischip i,.key .vischip i{font-style:normal;display:inline;width:auto;height:auto;border:0;background:none;margin:0;opacity:1;vertical-align:baseline}
+.vischip.v1{color:var(--muted)}.vischip.v2{color:var(--ink-2);border-color:var(--ink-2)}.vischip.v4{color:var(--ink);border-color:var(--ink);border-width:1.5px}.vischip.v0{color:var(--muted);font-style:italic}
+.syspanel{grid-column:1/-1;border:1px solid var(--line);border-left:4px solid var(--c,var(--muted));border-radius:8px;padding:10px;background:color-mix(in srgb,var(--c,var(--muted)) 4%,var(--surface));min-width:0}
+.syspanel.planned{border-style:dashed}
+.syscard.archived,[data-part].archived{opacity:.6;filter:saturate(.35)}
+.archtag{display:inline-block;font:700 10px/1.2 var(--mono);letter-spacing:.04em;text-transform:none;color:var(--ink-2);padding:2px 5px;border:1px solid var(--muted);border-radius:3px;background:var(--surface-2)}
+.syspanel>.syscard{margin-bottom:8px}
+.sysparts{padding-left:10px}
 .key i.sys{border-color:var(--c);background:color-mix(in srgb,var(--c) 18%,var(--surface))}
 .key i.sbar{border-color:var(--line);border-left:4px solid var(--c)}
 .sw{display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--c,var(--muted));margin-right:6px;vertical-align:-1px}
@@ -672,15 +686,15 @@ footer code{color:var(--ink-2)}
      "function": "One sentence on the repository.", "paths": ["."], "version": null,
      "asIs": {"ref": "main", "sha": "sha", "date": "YYYY-MM-DD"}, "lastAmended": {"issue": 1, "sha": "sha"},
      "board": "index.html", "dsl": "workspace.dsl"},
-    {"slug": "system-alpha", "name": "system-alpha", "kind": "system", "parent": null, "status": "built",
+    {"slug": "system-alpha", "name": "system-alpha", "kind": "system", "parent": null, "status": "built", "visibility": "public",
      "function": "What system alpha does, in one sentence.", "paths": ["system-alpha/"], "version": "x.y.z",
      "asIs": {"ref": "main", "sha": "sha", "date": "YYYY-MM-DD"}, "lastAmended": {"issue": 0, "sha": "sha"},
      "board": "system-alpha/index.html", "dsl": "system-alpha/workspace.dsl"},
-    {"slug": "system-beta", "name": "system-beta", "kind": "system", "parent": null, "status": "built",
+    {"slug": "system-beta", "name": "system-beta", "kind": "system", "parent": null, "status": "built", "visibility": "internal-org",
      "function": "What system beta does.", "paths": ["system-beta/"], "version": "x.y.z",
      "asIs": {"ref": "main", "sha": "sha", "date": "YYYY-MM-DD"}, "lastAmended": {"issue": 0, "sha": "sha"},
      "board": "system-beta/index.html", "dsl": "system-beta/workspace.dsl"},
-    {"slug": "system-gamma", "name": "system-gamma", "kind": "system", "parent": null, "status": "planned",
+    {"slug": "system-gamma", "name": "system-gamma", "kind": "system", "parent": null, "status": "planned", "visibility": "internal-repo",
      "function": "What it will do.", "paths": [], "plannedBy": {"issue": 0, "architecture": "docs/plans/N-slug/architecture.md"},
      "c4": {"workspace.dsl": "repo.gamma"}}
   ]
@@ -831,34 +845,71 @@ function sysColour(slug){ const i=TOPS.indexOf(sysTop(slug)); return i>=0&&i<SLO
 const sysPlanned=slug=>{ const s=bySlug(slug); return !!s&&s.status==="planned"; };
 const partPlanned=ref=>typeof ref==="string"&&(ref.startsWith("sys:")?sysPlanned(ref.slice(4)):!!el(ref)&&el(ref).tags.includes("Planned"));
 const isPlanned=x=>!!x&&typeof x==="object"&&(x.planned===true||x.kind==="planned"||partPlanned(x.part)||(!!x.sys&&sysPlanned(x.sys)));
-function applyParts(root){ (root||document).querySelectorAll("[data-part]").forEach(e=>e.classList.toggle("planned",partPlanned(e.dataset.part)));
+/* an archived system's row (registry status "archived", dashboards-skill/35): solid and faded, with its ⊟ archived tag, never dashed */
+const sysArchived=ref=>typeof ref==="string"&&ref.startsWith("sys:")&&!!bySlug(ref.slice(4))&&bySlug(ref.slice(4)).status==="archived";
+function applyParts(root){ (root||document).querySelectorAll("[data-part]").forEach(e=>{ e.classList.toggle("planned",partPlanned(e.dataset.part)); e.classList.toggle("archived",sysArchived(e.dataset.part)); });
   document.querySelectorAll(".thread[data-t]").forEach(e=>{ const t=MODEL.threads[e.dataset.t]; if(t) e.classList.toggle("planned",isPlanned(t)); }); }
 function paintSystems(root){ (root||document).querySelectorAll("[data-sys]").forEach(e=>e.style.setProperty("--c",sysColour(e.dataset.sys))); }
 /* Legend entries for a set of systems: one per top-level system, in slot order, then "other" when any folded. */
 function sysKey(slugs,cls){ const tops=TOPS.filter(t=>slugs.some(s=>sysTop(s)===t)), more=slugs.some(s=>{ const i=TOPS.indexOf(sysTop(s)); return i<0||i>=SLOTS; });
   return tops.filter(t=>TOPS.indexOf(t)<SLOTS).map(t=>`<span><i class="${cls||"sys"}" style="--c:${sysColour(t.slug)}"></i>${esc(t.name)}</span>`).join("")+(more?`<span><i class="${cls||"sys"}" style="--c:var(--muted)"></i>other systems</span>`:""); }
 
+/* The Systems tab (system/RULES.md §3, §7; admin-team/dashboards-skill/35, promoted from the WebTools repository state board): the systems
+   grouped by their visibility (the registry's "visibility": public, consumed by another organization; internal-org, consumed only by other
+   repositories of the same GitHub organization; internal-repo, consumed only inside the repository; a system with none yet in an "unset"
+   group, which check-board.js warns on), the groups in that order, far to near, each named by its visibility chip (a neutral ramp, as a
+   dependency's locality, GUIDANCE.md §1), never a system colour or a status colour. A system with parts (its children in the registry) is a
+   panel holding its own card and its parts' cards inside it, so a subsystem sits inside its supersystem, never beside it; a part takes its
+   parent's group. Each card keeps its system's colour; a planned one is a dashed outline, as everywhere. A planned card names its planning
+   units (plannedBy.units, each linking its issue board by its name, no issue number above Context) and its planned placement; a built card
+   its version, the Maven Central latest (published) and a new, unreleased one (unreleased). */
+const VISIBILITY=[{k:"public",g:"↗",l:"public",s:4,desc:"consumed by another organization"},{k:"internal-org",g:"◇",l:"internal · org",s:2,desc:"consumed only by other repositories of this organization"},{k:"internal-repo",g:"⌂",l:"internal · repo",s:1,desc:"consumed only inside this repository"},{k:"unset",g:"?",l:"visibility not set",s:0,desc:"its visibility is not recorded yet"}];
+const visOf=s=>{ let x=s; while(x&&!x.visibility&&bySlug(x.parent)&&bySlug(x.parent).kind!=="repo") x=bySlug(x.parent); const v=x&&x.visibility; return VISIBILITY.some(V=>V.k===v)?v:"unset"; };
+const visChip=k=>{ const V=VISIBILITY.find(x=>x.k===k)||VISIBILITY[3]; return `<span class="vischip v${V.s}"><i aria-hidden="true">${V.g}</i>${esc(V.l)}</span>`; };
+const unitsOf=s=>((s.plannedBy||{}).units||[]);
+const unitLink=u=>{ const b=u.subIssue&&boardOf(u.subIssue); return `unit ${esc(u.unit)} ${b?`<a href="${esc(b)}" title="its issue board">${esc(u.slug||u.unit)}</a>`:esc(u.slug||"")}`; };
+/* a subsystem of a supersystem is core (the greater system cannot exist without it) or optional, as the architecture says (systems.json
+   "core"); a supersystem is built once every core subsystem is (system/RULES.md §7) */
+const roleOf=s=>{ const sup=bySlug(s.parent)&&bySlug(s.parent).kind==="supersystem"; return sup?(s.core===true?"core subsystem":s.core===false?"optional subsystem":"subsystem · not classified yet"):""; };
+function sysCard(s){
+  const planned=s.status==="planned", own=s.board||s.page, linked=!planned&&!!own, role=roleOf(s), partsBoard=planned&&s.kind==="supersystem"&&!!own;
+  /* each entry is HTML: escaped text, and the as-is date or time through when() */
+  /* no issue numbers above Context (system/RULES.md §2): a planned system links its issue board, where one exists, by that name */
+  const plan=planned&&(s.plannedBy||{}).issue&&boardOf(s.plannedBy.issue);
+  const meta=(planned
+    ? [plan?`planned · <a href="${esc(plan)}">its plan</a>`:"planned", ...(partsBoard?[`<a href="${esc(own)}">its built parts' board</a>`]:[]), ...unitsOf(s).map(unitLink), ...((s.plannedBy||{}).placement?[`placement <code>${esc(s.plannedBy.placement)}</code>`]:[])]
+    : [esc(s.version?`v${s.version}`+(s.published&&s.published!==s.version?` (Central ${s.published})`:"")+(s.unreleased?" · unreleased":""):(s.toolchain||"")), s.asIs?`as-is ${esc(s.asIs.ref)} @ ${esc(s.asIs.sha)} · ${s.asIs.landed===false?"not yet landed":when(s.asIs.date)}`:""]).concat(role?[`<b class="role">${esc(role)}</b>`]:[]).filter(Boolean);
+  // A built system the repository gives no board yet is a card, not a link (never a dead href="#").
+  const tag=linked?"a":"span", href=linked?` href="${esc(own)}"`:"";
+  /* an archived system (status "archived": no longer developed) is a solid, faded card with its ⊟ archived tag, never dashed (dashed is planned) */
+  const archived=s.status==="archived";
+  const st=archived?`<span class="archtag">⊟ archived</span> no longer developed`:planned?(s.kind==="supersystem"?(partsBoard?"planned supersystem · built in part":"planned supersystem · no board yet"):"planned · no board yet"):(linked?"built":"built · no board yet");
+  return `<${tag} class="syscard ${planned?"planned":archived?"archived":"built"}"${href} data-slug="${esc(s.slug)}" style="--c:${sysColour(s.slug)}" tabindex="0"><div class="st">${st}</div><div class="nm">${esc(s.name)}</div><div class="fn">${esc(s.function||"")}</div><div class="meta">${meta.map(m=>`<span>${m}</span>`).join("")}</div></${tag}>`;
+}
+/* a system and, inside its panel, its parts (each a panel of its own when it has parts in turn) */
+const kidsOf=s=>SYSTEMS.filter(x=>x.parent===s.slug&&x.kind!=="repo");
+function sysBlock(s){ const kids=kidsOf(s); if(!kids.length) return sysCard(s);
+  return `<div class="syspanel${s.status==="planned"?" planned":""}" data-slug="${esc(s.slug)}" style="--c:${sysColour(s.slug)}">${sysCard(s)}<div class="sysparts"><div class="sysgroup">${s.kind==="supersystem"?"Its subsystems":"Its parts"} <small>${kids.length} · ${kids.filter(k=>k.status==="built").length} built</small></div><div class="syscards">${kids.map(sysBlock).join("")}</div></div></div>`; }
 function renderSystems(){
-  $("#syscards").innerHTML=SYSTEMS.map(s=>{
-    const planned=s.status==="planned";
-    /* each entry is HTML: escaped text, and the as-is date or time through when() */
-    /* no issue numbers above Context (system/RULES.md §2): a planned system links its issue board, where one exists, by that name */
-    const plan=planned&&(s.plannedBy||{}).issue&&boardOf(s.plannedBy.issue);
-    /* a subsystem of a supersystem is core (the greater system cannot exist without it) or optional, as the architecture says (systems.json
-       "core"); a supersystem is built once every core subsystem is (system/RULES.md §7) */
-    const sup=bySlug(s.parent)&&bySlug(s.parent).kind==="supersystem", role=sup?(s.core===true?"core subsystem":s.core===false?"optional subsystem":"subsystem · not classified yet"):"";
-    /* a supersystem is built only once every core subsystem is, so a planned one can have a board for its built parts: its card links that
-       board beside its plan (a link in the card, as "its plan" is, never the card itself: links do not nest) (dashboards-skill/29) */
-    const own=s.board||s.page, partsBoard=planned&&s.kind==="supersystem"&&!!own;
-    const meta=(planned?[plan?`planned · <a href="${esc(plan)}">its plan</a>`:"planned",...(partsBoard?[`<a href="${esc(own)}">its built parts' board</a>`]:[])]:[esc(`v${s.version||"?"}`), s.asIs?`as-is ${esc(s.asIs.ref)} @ ${esc(s.asIs.sha)} · ${s.asIs.landed===false?"not yet landed":when(s.asIs.date)}`:""]).concat(role?[`<b class="role">${esc(role)}</b>`]:[]).filter(Boolean);
-    // A built system the repository gives no board yet is a card, not a link (never a dead href="#").
-    const linked=!planned&&!!own, tag=linked?"a":"span", href=linked?` href="${esc(own)}"`:"";
-    return `<${tag} class="syscard ${planned?"planned":"built"}"${href} data-slug="${esc(s.slug)}" style="--c:${sysColour(s.slug)}" tabindex="0"><div class="st">${planned?(partsBoard?"planned · built in part":"planned · no board yet"):linked?"built":"built · no board yet"}</div><div class="nm">${esc(s.name)}</div><div class="fn">${esc(s.function||"")}</div><div class="meta">${meta.map(m=>`<span>${m}</span>`).join("")}</div></${tag}>`;
-  }).join("");
-  document.querySelectorAll(".syscard").forEach(c=>{ const show=()=>{ const s=SYSTEMS.find(x=>x.slug===c.dataset.slug); inspect(`<div class="kicker">${s.kind==="supersystem"?"SUPERSYSTEM":"SYSTEM"} · ${s.status.toUpperCase()}</div><div class="name">${esc(s.name)}</div><div class="vis">${esc((s.paths||[]).join(" · ")||"no code paths yet")}</div><p>${esc(s.function||"")}</p><dl>${(s.board||s.page)?`<dt>Board</dt><dd><a href="${esc(s.board||s.page)}">${esc(s.board||s.page)}</a></dd>`:""}${s.parent?`<dt>Parent</dt><dd>${esc(s.parent)}</dd>`:""}${s.plannedBy?`<dt>Planned in</dt><dd>${s.plannedBy.issue&&boardOf(s.plannedBy.issue)?`<a href="${esc(boardOf(s.plannedBy.issue))}">its issue board</a> · `:""}<code>${esc(s.plannedBy.architecture||"")}</code></dd>`:""}</dl>`); }; c.addEventListener("mouseenter",show); c.addEventListener("focus",show); });
-  const subs=SYSTEMS.filter(s=>bySlug(s.parent)&&bySlug(s.parent).kind==="supersystem");
-  $("#systems-key").innerHTML=sysKey(SYSTEMS.map(s=>s.slug))+`<span><i></i>built: opens its board, or says no board yet</span>`+(()=>{ const pl=SYSTEMS.filter(s=>s.status==="planned"), pp=pl.filter(s=>s.kind==="supersystem"&&!!s.page);
-    return pl.length?`<span><i class="pln"></i>planned: ${pp.length?(pp.length<pl.length?"no board yet, or built in part: links its built parts' board":"built in part: links its built parts' board"):"no board yet"}</span>`:""; })()+(subs.some(s=>s.core===true)?`<span><b class="role">core subsystem</b> its supersystem cannot exist without it; built once every core one is</span>`:"")+(subs.some(s=>s.core===false)?`<span><b class="role">optional subsystem</b> additive: its supersystem exists without it</span>`:"")+(subs.some(s=>s.core!==true&&s.core!==false)?`<span><b class="role">subsystem · not classified yet</b> its architecture has not been read for it</span>`:"");
+  const top=s=>s.kind!=="repo"&&!(bySlug(s.parent)&&bySlug(s.parent).kind!=="repo");
+  /* an archived system leaves the visibility grouping: it sits in an Archived group of its own, last (its visibility may be unset) */
+  const groups=VISIBILITY.map(V=>[V,SYSTEMS.filter(s=>top(s)&&s.status!=="archived"&&visOf(s)===V.k)]).filter(g=>g[1].length), arch=SYSTEMS.filter(s=>top(s)&&s.status==="archived");
+  $("#syscards").outerHTML=`<div id="syscards">${groups.map(([V,list])=>`<div class="sysgroup">${visChip(V.k)} <small>${esc(V.desc)} · ${list.length} system${list.length===1?"":"s"}</small></div><div class="syscards">${list.map(sysBlock).join("")}</div>`).join("")}${arch.length?`<div class="sysgroup"><span class="archtag">⊟ archived</span> <small>no longer developed · ${arch.length} system${arch.length===1?"":"s"}</small></div><div class="syscards">${arch.map(sysBlock).join("")}</div>`:""}</div>`;
+  document.querySelectorAll(".syscard").forEach(c=>{ const show=()=>{ const s=SYSTEMS.find(x=>x.slug===c.dataset.slug), pb=s.plannedBy, plan=pb&&pb.issue&&boardOf(pb.issue), role=roleOf(s);
+    inspect(`<div class="kicker">${(s.kind==="supersystem"?"SUPERSYSTEM":"SYSTEM")} · ${s.status.toUpperCase()}</div><div class="name">${esc(s.name)}</div><div class="vis">${esc((s.paths||[]).join(" · ")||"no code paths yet")}</div><p>${esc(s.function||"")}</p><dl>`
+      +`<dt>Visibility</dt><dd>${visChip(visOf(s))}${!s.visibility&&visOf(s)!=="unset"?" · its parent's":""}</dd>`
+      +((s.board||s.page)?`<dt>Board</dt><dd><a href="${esc(s.board||s.page)}">${esc(s.board||s.page)}</a></dd>`:(s.status==="built"?`<dt>Board</dt><dd>none yet</dd>`:""))
+      +(s.status==="built"&&s.version?`<dt>Version</dt><dd>${esc(s.version)} in the build${s.published?` · Maven Central latest ${esc(s.published)}`:""}${s.unreleased?" · new, not released":""}</dd>`:"")
+      +(s.toolchain?`<dt>Toolchain</dt><dd>${esc(s.toolchain)}</dd>`:"")
+      +(s.parent&&bySlug(s.parent)&&bySlug(s.parent).kind!=="repo"?`<dt>Part of</dt><dd>${esc(bySlug(s.parent).name)}${role?` · ${esc(role)}`:""}</dd>`:"")
+      +(pb?`<dt>Planned in</dt><dd>${plan?`<a href="${esc(plan)}">its issue board</a> · `:""}<code>${esc(pb.architecture||"")}</code>${pb.section?` §${esc(pb.section)}`:""}</dd>`:"")
+      +(pb&&pb.placement?`<dt>Planned placement</dt><dd><code>${esc(pb.placement)}</code></dd>`:"")
+      +(unitsOf(s).length?`<dt>Units</dt><dd>${unitsOf(s).map(unitLink).join("<br>")}</dd>`:"")
+      +`</dl>`); }; c.addEventListener("mouseenter",show); c.addEventListener("focus",show); });
+  const subs=SYSTEMS.filter(s=>bySlug(s.parent)&&bySlug(s.parent).kind==="supersystem"), drawn=groups.map(g=>g[0]);
+  $("#systems-key").innerHTML=drawn.map(V=>`<span>${visChip(V.k)} ${esc(V.desc)}</span>`).join("")+sysKey(SYSTEMS.map(s=>s.slug))+`<span><i></i>built: opens its board, or says no board yet</span>`+(()=>{ const pl=SYSTEMS.filter(s=>s.status==="planned"), pp=pl.filter(s=>s.kind==="supersystem"&&!!(s.board||s.page));
+    return (SYSTEMS.some(s=>s.status==="archived")?`<span><span class="archtag">⊟ archived</span> no longer developed: a solid, faded card in its own group</span>`:"")+(pl.length?`<span><i class="pln"></i>planned: ${pp.length?(pp.length<pl.length?"no board yet, or built in part: links its built parts' board":"built in part: links its built parts' board"):"no board yet"}</span>`:""); })()
+    +(SYSTEMS.some(s=>kidsOf(s).length)?`<span><span class="k">a system's parts sit inside its panel, in its colour</span></span>`:"")+(subs.some(s=>s.core===true)?`<span><b class="role">core subsystem</b> its supersystem cannot exist without it; built once every core one is</span>`:"")+(subs.some(s=>s.core===false)?`<span><b class="role">optional subsystem</b> additive: its supersystem exists without it</span>`:"")+(subs.some(s=>s.core!==true&&s.core!==false)?`<span><b class="role">subsystem · not classified yet</b> its architecture has not been read for it</span>`:"");
 }
 renderSystems();
 paintSystems();
@@ -1358,6 +1409,7 @@ function sectionKeys(){
   put(G,"guarantees-key",[swatches(G,"swk"),
     has(G,".bars")?`<span><i class="barsk"></i>test classes per level: one series, one neutral fill</span>`:"",
     has(G,".planned")?`<span><i class="pln"></i>dashed, faded: about a planned part, nothing built yet</span>`:"",
+    has(G,".archived")?`<span><span class="archtag">⊟ archived</span> solid, faded: an archived system, no longer developed</span>`:"",
     has(G,".gap")?`<span><i class="gapk">gap</i>italic, muted: not established, said as a gap</span>`:"",
     has(G,".badge")?`<span><span class="badge">tier</span>a fact: a stability tier, a marker, neutral</span>`:""]);
   const states=C?[...new Set([...C.querySelectorAll(".tags .badge:not(.bug):not(.planned):not([data-sys])")].map(b=>b.textContent.trim()).filter(t=>/^(open|closed)$/.test(t)))]:[];

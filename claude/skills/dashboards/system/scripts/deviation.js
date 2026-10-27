@@ -65,8 +65,10 @@ function verified(template) {
   return { ok: (!!rec && rec.sha256 === hash) || (Array.isArray(under) && under.includes(hash)), hash, rec, file, key, underTest: Array.isArray(under) && under.includes(hash) };
 }
 
-/* An issue board or the repository work board: the board with its data block emptied, against the template with its block emptied. */
-const emptyBlock = (html, id) => norm(html).replace(new RegExp(`(<script type="application/json" id="${id}">)[\\s\\S]*?(</script>)`), "$1\n{}\n$2");
+/* An issue board or the repository work board: the board with its data block emptied, against the template with its block emptied.
+   A view copy's <base … data-live-view> line (plan/scripts/lib.js withViewBase(); plan/RULES.md §4, "The live view of a landing") is
+   no difference: the copy is still the template plus its data. */
+const emptyBlock = (html, id) => norm(html).replace(/<base [^>]*data-live-view[^>]*>\n/, "").replace(new RegExp(`(<script type="application/json" id="${id}">)[\\s\\S]*?(</script>)`), "$1\n{}\n$2");
 function firstDiff(a, b) { const x = a.split("\n"), y = b.split("\n"); for (let i = 0; i < Math.max(x.length, y.length); i++) if (x[i] !== y[i]) return i + 1; return 0; }
 /* A system board: the template parts — every <style> block, the tab ids in order, the script before MODEL (from the main
    <script> to "const MODEL = {": the helpers, and on a supersystem or repository state board the Systems renderer) less its board-filled

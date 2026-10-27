@@ -125,9 +125,11 @@ Structure:
    the relevant code works today (`path:line`), and the verified outside-world
    facts the design rests on (library versions, platform behaviour), each
    linked to its research findings file or source.
-4. **Assumptions** — what the design relies on that has not been confirmed,
-   each with what would change if it turned out false.
-5. **Non-goals** — what this work deliberately leaves out.
+4. **Assumptions** — what the design relies on that has not been confirmed or
+   could not be established, each with what would change if it turned out
+   false.
+5. **Non-goals** — what this work deliberately leaves out, including what it
+   leaves for later.
 6. **System inventory** — per system: name, one-sentence responsibility, module
    and package placement, what it owns, what it explicitly does not.
 7. **Interactions** — the relationships between systems: dependency direction,
@@ -145,9 +147,7 @@ Structure:
 12. **Risks at the systems level** — breaking changes, cross-repo impact
     (a protocol or shared type change usually needs a matching change
     elsewhere — name the repo), concurrency and performance shape, migration.
-13. **Known gaps** — information you could not establish, or work the design
-    knowingly leaves undone.
-14. **Considerations** — every call that is genuinely the human's (product
+13. **Considerations** — every call that is genuinely the human's (product
     scope, an API break, a stability tier you are not confident in), each with
     the options and a recommendation. Never resolve one silently.
 

@@ -53,7 +53,7 @@ level decides which stages run and what they produce:
 | 2 Research | **none**; no `research/` folder | only the decisions that need outside evidence — possibly none; `verifier` only if a findings file has load-bearing claims | full |
 | 3 Architecture | none | none; the plan's **Design** section carries it | `architect`; **always halts** for sign-off |
 | 4 Drafting | **you** write a short `plan.md` | one `plan-writer` → `plan.md`, then your check | **none** — the sub-issues are planned later, each at its own level |
-| `impact.md` | no — risks go in the plan | yes | yes, at the systems level |
+| `consequences.md` | only for a follow-up or known gap, and then in the earlier plan's file when the fix corrects an earlier plan's work (see "Level 2 — small fix"); risks go in the plan | yes | yes, at the systems level |
 
 Level 1 never reaches you; it has no plan.
 
@@ -75,6 +75,17 @@ The whole pipeline is yours, with no subagents and no research commits:
 2. **Root cause.** Find it and cite it as `path:line` — the cause, not the
    symptom's location. Check `git log` / `git blame` for intent. Confirm the
    fix stays inside level 2; if it does not, escalate.
+   **Earlier plan.** The same history says whether the code was built under an
+   earlier issue that has a plan folder under `docs/plans/`. If it was, this
+   fix's folder goes inside that issue's folder, as a folded-in issue's would,
+   unless the fix is a GitHub sub-issue, whose folder follows its own sub-issue
+   chain. Either way, when resumed in the Document step's reconcile-plan task, write into that
+   issue's `consequences.md` (its `impact.md`, in an older folder): the fix's
+   follow-ups and known gaps, each naming this fix; a note of what the fix made
+   no longer current, with a link to the fix; and a closed mark, with a link,
+   on any follow-up or known gap the fix closes. These are the only edits a
+   landed document takes. With no earlier plan, write a `consequences.md` in
+   this fix's own folder only if it leaves a follow-up or known gap.
 3. **Write `<issue-folder>/plan.md`**, short — usually under a page, using the
    plan-writer's Association block and only these sections: **Requirements**
    (expected behaviour), **Root cause** (`path:line`), **Fix** (file by file),
@@ -113,15 +124,16 @@ This run turns it into a detailed implementation plan against the code as it
 is now, and the plan is then implemented in the same run. Its unit's scope,
 seams and tier stay settled design: do not re-interview or re-research them.
 
-1. **Re-validate the slice.** Read the parent's `architecture.md`, `impact.md`
-   and research, and the `final-implementation.md` of every sibling that has
-   landed since. Check the unit's slice against current `master`: every
-   `path:line` it cites, every existing system it attaches to, and every
-   contract it consumes from a landed sibling **as that sibling was actually
-   built**, not as the architecture sketched it. Where they differ, the as-built
-   code wins. A difference that changes this unit's scope, a seam or a tier is
-   not yours to absorb: halt and report it, with a proposed amendment to the
-   parent architecture, rather than redesigning.
+1. **Re-validate the slice.** Read the parent's `architecture.md`,
+   `consequences.md` and research, and the `final-implementation.md` and
+   `consequences.md` of every sibling that has landed since (an older folder
+   keeps `impact.md` instead). Check the unit's slice against current
+   `master`: every `path:line` it cites, every existing system it attaches to,
+   and every contract it consumes from a landed sibling **as that sibling was
+   actually built**, not as the architecture sketched it. Where they differ,
+   the as-built code wins. A difference that changes this unit's scope, a seam
+   or a tier is not yours to absorb: halt and report it, with a proposed
+   amendment to the parent architecture, rather than redesigning.
 2. **Interview at the implementation level.** Run stage 1 for the intent gaps
    the architecture left open — API shape details, defaults, edge-case
    behaviour, adoption of existing callers — never for what it settles.
@@ -142,9 +154,11 @@ seams and tier stay settled design: do not re-interview or re-research them.
 6. **Return `COMPLETE`** as for level 3, adding any contract this plan pins that
    an unlanded sibling must now honour. Implementation follows in the same run.
 
-When resumed after implementation, reconcile `final-implementation.md` as
-usual and also update the parent's `impact.md` with anything the as-built
-unit changes for its unlanded siblings.
+When resumed in the Document step's reconcile-plan task, reconcile `final-implementation.md` and
+`consequences.md` as usual. What the as-built unit changes for its unlanded
+siblings goes in the unit's own `consequences.md` (its sibling-units section)
+and nowhere else; the parent's `consequences.md` (its `impact.md`, in an older
+folder) gets one line for the unit, linking to that section, never restating it.
 
 A **level-2** sub-issue keeps the plain level-2 path; its parent's
 architecture is binding context for the root cause and the fix.
@@ -161,9 +175,12 @@ at its own level. So:
   unit that itself spans systems is 4 and becomes a tracking issue in turn),
   the level in its report only, never in `architecture.md`.
 - Stage 3 **always halts** for sign-off, whatever the unit count.
-- On resume after sign-off, apply the requested changes, write `impact.md` at
-  the systems level, and return `COMPLETE` with the final sub-issue list. Stage
-  4 does not run, and no `plan-*.md` is written.
+- On resume after sign-off, apply the requested changes, write `consequences.md`
+  at the systems level, and return `COMPLETE` with the final sub-issue list.
+  Stage 4 does not run, and no `plan-*.md` is written.
+- When resumed in the Document step's reconcile-plan task at level 4, there is
+  no build to reconcile: only confirm that the architecture and
+  `consequences.md` are final, and return `RECONCILED` saying so.
 
 ## Subagent models
 
@@ -226,11 +243,13 @@ non-goal, a system's shape. Rationale is welcome when it argues from the
 subject ("`X` is not used because `Y`"), never from the process ("per the
 interview", "decision D3", "as the user asked").
 
-Where something is still open, it goes in one of two sections, written as
-plainly as the rest:
+Where something is still open, it goes in one of these sections, written as
+plainly as the rest (a design document has no Known gaps section; known gaps
+are the build's, recorded in `consequences.md`):
 
-- **Known gaps** — information that could not be established, or work the
-  documents knowingly leave undone.
+- **Assumptions** — information that could not be established, each with
+  what would change if it turned out false.
+- **Non-goals** or **follow-ups** — work the documents knowingly leave undone.
 - **Considerations** — trade-offs that need the user's call, each with the
   options and a recommendation. Unresolved Considerations block execution.
 
@@ -315,19 +334,35 @@ What goes in it, and who writes it:
 | `plan.md`, or `plan-<unit-slug>.md` per unit | `plan-writer` (stage 4) |
 | `research/README.md` | you: the research questions before any researcher starts, then the verification results and the summary of findings (stage 2) |
 | `research/<question-slug>.md` | each `researcher`, one file each (stage 2) |
-| `impact.md` | you: adoption, blast radius and follow-ups (end of stage 4) |
-| `final-implementation.md` | the implementer appends each deviation and its reasoning as it happens; you reconcile it when resumed after implementation |
+| `consequences.md` | you: what the change does to its surroundings and leaves behind — published artifacts, blast radius, adoption, sibling units, neighbouring issues, follow-ups and known gaps (end of stage 4); you reconcile it when resumed in the Document step's reconcile-plan task |
+| `final-implementation.md` | the implementer appends each deviation and its reasoning as it happens; you reconcile it when resumed in the Document step's reconcile-plan task |
 | `superseded/<name>-<YYYY-MM-DD>.md` | you, when a document is replaced; put a "superseded by" note at its top |
 
 Give every subagent the **exact path** it writes to. Its brief's read-only boundary then
 reads: *change no file except the one you own at `<path>`*.
 
-**When resumed after implementation**, reconcile `final-implementation.md` into the final
-as-built record (what was actually built, every deviation from the plan, and the reasoning
-for each), and bring `impact.md` up to date. Give the as-built record a **Research that
-didn't hold** section: each research claim that implementation proved wrong, the part of
-the design it shaped, and what it cost, or "None". That list is the feedback for tuning the
-research stage.
+**When resumed in the Document step's reconcile-plan task** — your caller resumes you by
+`SendMessage`, context intact, once qa has passed and the code-landing commit is made, before
+the documents are committed — reconcile `final-implementation.md` into the final
+as-built record: what was actually built, acceptance, measurements, and every deviation from
+the plan in one section. Each deviation cites the plan section it departs from, gives its
+reasoning, and links secondarily to what that part of the plan was based on: the research
+finding, or the parent architecture section (give the architecture a dated callout when the
+build changes what it describes). Then bring
+`consequences.md` up to date (an older folder keeps its `impact.md`), with its known gaps,
+the ones the build leaves open, and the outcome of the plan's assumptions and follow-ups:
+each assumption that failed and each follow-up still open, linked back to the plan. Known
+gaps live only in `consequences.md`; `final-implementation.md` and the design documents have
+no Known gaps section. The research keeps its own Gaps in `research/`. The two files never restate
+each other: each fact has one home, and the other file links to it. For a sub-issue, the
+parent's `consequences.md` gets its one link line for the unit. No open point is
+committed open, whatever raised it: before the document-landing commit each is resolved (by
+remediation, for a qa finding), or settled as a deviation in `final-implementation.md` or as a
+follow-up or known gap in `consequences.md`. There is no separate "Research that didn't hold" section: a
+research claim implementation proved wrong appears as the deviation it caused, with the
+research linked; one that caused no deviation gets a "did not hold in the build" note, with
+what the build found, in `research/README.md`'s verification results. Those deviations and
+notes are the feedback for tuning the research stage.
 
 ---
 
@@ -565,7 +600,8 @@ When it returns:
      level 3; the architecture document stays as research for that plan.
 4. On resume after sign-off (or after the user's requested changes), apply any
    changes they asked for to the architecture document and the sub-issue list,
-   write `impact.md`, and return `COMPLETE`. Stage 4 does not run at level 4.
+   write `consequences.md`, and return `COMPLETE`. Stage 4 does not run at
+   level 4.
 
 ---
 
@@ -622,9 +658,10 @@ single-plan ones.
 4. **Collect the Considerations** from every plan and the architecture into one
    list. These block execution.
 
-5. **Write `<issue-folder>/impact.md`**: the fallout and impact thoughts for the whole
-   issue. Cover the adoption verdicts, the blast radius (call sites, docs, downstream
-   consumers), and the follow-ups the plans leave behind.
+5. **Write `<issue-folder>/consequences.md`**: what the change does to its surroundings
+   and leaves behind, for the whole issue. Cover the published artifacts, the adoption
+   verdicts, the blast radius (call sites, docs, downstream consumers), the sibling units,
+   the neighbouring issues, and the follow-ups the plans leave behind.
 
 ---
 
@@ -698,7 +735,7 @@ work level you planned at.
 
 ### `COMPLETE` — level 4 (after sign-off)
 
-- the path to the architecture document and `impact.md`, and the research files;
+- the path to the architecture document and `consequences.md`, and the research files;
 - the **final sub-issue list**, as above, in landing order — for the caller to
   have filed once the user approves it;
 - the research commits `version-control-manager` made, by SHA;
@@ -708,7 +745,7 @@ work level you planned at.
 
 - one or two sentences on the recommended approach;
 - the issue folder, the path to the architecture document, the path to **every** plan
-  document in landing order, and the paths of `impact.md` and the research files;
+  document in landing order, and the paths of `consequences.md` and the research files;
 - which model produced the architecture document — Fable, or Opus because Fable
   hit a usage or rate limit;
 - what the **alignment pass** changed, and any shared risk it could not
@@ -723,6 +760,18 @@ work level you planned at.
 
 At level 3 the architecture-model and alignment-pass lines reduce to "no
 architect at level 3" and what your check of the single plan changed.
+
+### `RECONCILED` (after the Document step's reconcile-plan task)
+
+- the documents you reconciled, by path: `final-implementation.md` (the number of
+  deviations, each with its plan section and secondary link), `consequences.md` (the known
+  gaps, the assumptions and follow-ups with their outcome, the sibling-units section), the
+  earlier plan's `consequences.md` for a fix to earlier work, the parent's link line for a
+  sub-issue, and the "did not hold in the build" notes in `research/README.md`;
+- every open point the run raised and where each was settled;
+- any dated callout you gave the architecture;
+- at level 4: that the architecture and `consequences.md` are confirmed final, with nothing
+  rewritten.
 
 ## Progress review every 10 minutes  (when you run inside a /resolve-issue run)
 

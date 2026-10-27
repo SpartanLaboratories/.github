@@ -56,8 +56,10 @@ module.exports = function cases33(X) {
 
   /* 2. the forms and the scrub */
   guard("namerefs.js: the internal names found, a library's word left alone, scrubNames()'s safe rewrites; levelrefs.js's unnumbered mention (dashboards-skill/33)", c => {
-    const found = ["accepted by the admin team", "the planner reconciled it", "rookie-dev's fixes", "qa found two issues", "the presenter's call", "the user's call", "the user chose B", "planner: rule on the gaps", "planner reconciles", "a code-reviewer pass", "the test-inspector report", "two researchers still out", "a planner re-pass"];
-    const fine = ["uses OkHttp's `RoutePlanner`", "RoutePlanner picks a route", "runs on an `Executor`", "a single-thread executor drains the queue", "the event publisher emits", "qa pass 2 approved", "the QA tile", "from qa pass 1", "the implementer added a test", "waiting on the user", "the research step", "the architecture", "the bytecode verifier rejects it", "Level 2 — component"];
+    const found = ["accepted by the admin team", "the planner reconciled it", "rookie-dev's fixes", "qa found two issues", "the presenter's call", "the user's call", "the user chose B", "planner: rule on the gaps", "planner reconciles", "a code-reviewer pass", "the test-inspector report", "two researchers still out", "a planner re-pass",
+      "the executor confirms it (P1)", "the manager's final call", "the user's two answers at the interview", "it is signed off by the user"];
+    const fine = ["uses OkHttp's `RoutePlanner`", "RoutePlanner picks a route", "runs on an `Executor`", "a single-thread executor drains the queue", "the event publisher emits", "qa pass 2 approved", "the QA tile", "from qa pass 1", "the implementer added a test", "waiting on the user", "the research step", "the architecture", "the bytecode verifier rejects it", "Level 2 — component",
+      "Selenium Manager resolves the driver", "Selenium Manager's cache", "the step ends at its sign-off"];
     const miss = found.filter(t => !N.nameRefs(t).length), wrong = fine.filter(t => N.nameRefs(t).length);
     c.push(["each internal form is found", !miss.length, js(miss)]);
     c.push(["a library's word, the qa step and the implementer are not", !wrong.length, js(wrong.map(t => [t, N.nameRefs(t)]))]);
@@ -67,6 +69,10 @@ module.exports = function cases33(X) {
     c.push(["scrubNames(): the agent phrase dropped, a possessive the article, a role's work the work, a role label and an aside on the approval flow dropped", !bad.length, js(bad.map(([s, w]) => [s, N.scrubNames(s), w]))]);
     const left = N.scrubNames("The planner reconciled the impact.");
     c.push(["…and where no safe rewrite exists, the name is left and reported (the caller decides)", left.left.length === 1 && left.text === "The planner reconciled the impact.", js(left)]);
+    /* a plan excerpt (lib.js sectionOf()): the clause naming an agent cut to "…", the rest as written, so a refresh never copies it back */
+    const md = "# Plan\n\n## 11. Version control\n\n- **Branch:** `feat/x`. It exists and holds the research commits; the executor confirms it\n  (P1) rather than cutting it again.\n- **Commits.** Each leaves the build green. The type and the split are the manager's final call;\n  subject lines carry `(Issue #9)`.\n";
+    const ex = lib.sectionOf(md, "11-version-control"), wantEx = "Branch: `feat/x`. It exists and holds the research commits; … · Commits. Each leaves the build green. …; subject lines carry `(Issue #9)`.";
+    c.push(["sectionOf(): an excerpt's clause naming an agent cut to \"…\", the rest as written (the excerpt elided, the hash of the section as written)", ex && ex.paragraph === wantEx && /^[0-9a-f]{12}$/.test(ex.hash), js(ex && ex.paragraph)]);
     c.push(["unambiguous(): a name no library uses, the approval flow and qa as an agent are; a library's word is not", N.unambiguous("rookie-dev") && N.unambiguous("user's call") && N.unambiguous("qa found") && !N.unambiguous("the planner") && !N.unambiguous("an executor"), "unambiguous"]);
     const lv = [["Recorded level confirmed.", "Recorded sizing confirmed."], ["the level was confirmed", "the sizing was confirmed"], ["the level re-check passed", "the sizing re-check passed"], ["the issue's level", "the issue's sizing"], ["proposed level 3 confirmed", "proposed sizing confirmed"]];
     const lvBad = lv.filter(([s, w]) => !LR.levelRefs(s).length || LR.scrubLevels(s, {}) !== w);

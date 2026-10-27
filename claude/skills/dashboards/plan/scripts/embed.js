@@ -7,7 +7,8 @@
 //                                     "Statements"), once the presenter has judged that the statement still rests on the changed section
 // On an issue board it first links every issue the board names to that issue's board where its dashboard.html exists in this tree,
 // and clears a link to one that does not (plan/RULES.md §1): a tracking board's units (unit.board), the parent tracking issue
-// (parent.board) and every other issue (issueBoards). On a tracking board it also mirrors the live run of each unit in progress
+// (parent.board) and every other issue (issueBoards); on a board in flight it takes each system's status and board from the registry
+// (lib.js refreshSystems()). On a tracking board it also mirrors the live run of each unit in progress
 // from that sub-issue's own plan.json (unit.live, plan/RULES.md §3). It copies the excerpt of every statement's reference (verdict
 // and as-built statements: the referenced Markdown section's heading, first paragraph and hash) where none is copied yet for that
 // reference, and keeps one already copied (plan/RULES.md §2, "Statements"). plan.json is rewritten only when a link, a mirror or an
@@ -18,9 +19,12 @@
 // file verbatim as a script the board re-loads while its run is live and redraws from. --check also holds the sidecar to the file.
 // For an issue board it then renders the Markdown the board links into self-contained HTML copies under the tree's git-ignored
 // docs/plans/.live/docs/ (mdcopy.js), which the board opens in place of the .md when they are on disk; never where .live/ is not ignored.
+// A view copy's folder (docs/plans/.live/view/<folder>/, plan/RULES.md §4, "The live view of a landing") embeds like any board's: its links,
+// units' runs, excerpts and copies resolved from the tracked folder it stands for, its <base> line kept, and its parent re-embedded only as
+// the parent's own view copy, never the tracked board.
 "use strict";
 const fs = require("fs"), path = require("path");
-const { readBlock, writeBlock, resolveBoard, parentFolder, SIDECAR, sidecarText, readSidecar } = require("./lib.js");
+const { readBlock, writeBlock, resolveBoard, parentFolder, SIDECAR, sidecarText, readSidecar, viewSource, viewOf, withViewBase, setViewLinks } = require("./lib.js");
 
 function target(dir) {
   if (fs.existsSync(path.join(dir, "plan.json"))) return { json: path.join(dir, "plan.json"), html: path.join(dir, "dashboard.html"), js: path.join(dir, SIDECAR.plan), id: "plan" };
@@ -41,24 +45,32 @@ function same(dir) {
    linkIssueBoards); plan.json is rewritten first, keeping its line endings, so the board still embeds the committed file verbatim. */
 function embedOne(dir, opts) {
   const t = target(dir);
+  /* a view copy (docs/plans/.live/view/, lib.js viewSource(); plan/RULES.md §4, "The live view of a landing") resolves its links, its
+     units' runs, its excerpts and its rendered copies from the tracked folder it stands for, and keeps its <base> line */
+  const src = (t.id === "plan" && viewSource(dir)) || dir;
   let json = fs.readFileSync(t.json, "utf8");
   const data = JSON.parse(json); // refuse to embed a file that does not parse
-  const linked = t.id === "plan" ? resolveBoard(data, dir, { refresh: !!(opts && opts.refresh) }) : [];
+  setViewLinks(src !== dir);
+  let linked; try { linked = t.id === "plan" ? resolveBoard(data, src, { refresh: !!(opts && opts.refresh) }) : []; } finally { setViewLinks(false); }
   if (linked.length) { const eol = /\r\n/.test(json) ? "\r\n" : "\n"; json = (JSON.stringify(data, null, 2) + "\n").replace(/\n/g, eol); fs.writeFileSync(t.json, json); }
-  fs.writeFileSync(t.html, writeBlock(fs.readFileSync(t.html, "utf8"), t.id, json));
+  let html = writeBlock(fs.readFileSync(t.html, "utf8"), t.id, json);
+  if (src !== dir) html = withViewBase(html, dir, src);
+  fs.writeFileSync(t.html, html);
   fs.writeFileSync(t.js, sidecarText(t.id, json));
   /* the rendered copies of the Markdown the board links, in the tree's git-ignored docs/plans/.live/docs/ (mdcopy.js; plan/RULES.md §1):
      a cache of this machine, so a failure here never fails the embed */
   let copies = null;
-  if (t.id === "plan" && !(opts && opts.copies === false)) { try { copies = require("./mdcopy.js").copyBoardDocs(data, dir); } catch (e) { copies = { wrote: [], skipped: "the copies failed: " + e.message }; } }
+  if (t.id === "plan" && !(opts && opts.copies === false)) { try { copies = require("./mdcopy.js").copyBoardDocs(data, src); } catch (e) { copies = { wrote: [], skipped: "the copies failed: " + e.message }; } }
   return { ...t, bytes: Buffer.byteLength(json), linked, data, copies };
 }
 /* Embed a folder; for a sub-issue's board, then re-embed its parent's tracking board, which mirrors this unit's run from the
    plan.json just written (plan/RULES.md §3-§4). opts.parent === false embeds the folder alone. The result carries parent:
    { dir, linked } when a parent was re-embedded, or { dir, error } when it could not be. */
 function embed(dir, opts) {
-  const r = embedOne(dir, opts);
-  const up = r.id === "plan" && !(opts && opts.parent === false) ? parentFolder(dir, r.data) : null;
+  const r = embedOne(dir, opts), src = (r.id === "plan" && viewSource(dir)) || dir;
+  let up = r.id === "plan" && !(opts && opts.parent === false) ? parentFolder(src, r.data) : null;
+  /* a view copy's parent is re-embedded only as its own view copy, never the tracked board (the view writes no tracked file) */
+  if (up && src !== dir) { const v = viewOf(up, require("./lib.js").viewParts(dir).root); up = v ? v.dir : null; }
   if (up && fs.existsSync(path.join(up, "dashboard.html"))) {
     try { const p = embedOne(up); r.parent = { dir: up, linked: p.linked }; }
     catch (e) { r.parent = { dir: up, error: e.message }; }

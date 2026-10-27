@@ -2,16 +2,16 @@
 // The data-only path for state boards (system/RULES.md §10): restamps the system, supersystem and repository state boards a branch touches,
 // marks system parts built or planned, updates docs/dashboards/systems.json, re-embeds and checks without a browser pass —
 // deterministically and with no reasoning, so the admin team runs it itself at an implementation stage, and inside a landing at the
-// pre-merge refresh (facts.premerge: on the issue's branch, at the head the team names, the last commit before the board commit). What needs the code read and the prose written is left to the presenter: the summary's "enrich" line says
+// Document step's state-boards task (facts.document, dashboards-skill/35: on the issue's branch, at the code-landing sha the request gives; facts.premerge, the older pre-merge refresh, read alike). What needs the code read and the prose written is left to the presenter: the summary's "enrich" line says
 // whether, and why.
 //   node apply-state.js --event <request.json> --worktree <path> [--repo <owner/repo>] [--at <ISO time>] [--json]
 // --event      the request: the protocol's plan-board request of an implementation-stage (or landed) event, or a state-boards request
 //              (action "state-boards"; "state-pages", its older name, read alike); its JSON alone, or the message with its fenced json block. Read from it: github, issue, branch,
 //              folder (the issue's plan folder, for the title and the board's systems), and facts:
 //                systems   the registry slugs the branch touches (default: the issue board's systems, <worktree>/<folder>/plan.json)
-//                sha       the commit the boards now show (default: the worktree's HEAD); at the pre-merge refresh the head the team
+//                sha       the commit the boards now show (default: the worktree's HEAD); at the Document step's state boards the code-landing sha the team
 //                          names; at a restamp after the merge (landed), merge (or sha), the merge commit
-//                ref       at the pre-merge refresh the branch (default: the request's branch); at a restamp after the merge, the
+//                ref       at the Document step's state boards the branch (default: the request's branch); at a restamp after the merge, the
 //                          default branch the merge is on (required there)
 //                built     what the branch has built, each a registry slug, "#<issue>" (every planned system that issue alone plans),
 //                planned   or "<dsl path>:<element id>" (paths relative to docs/dashboards), or {dsl, id, tag} / {system}; a DSL element
@@ -23,10 +23,11 @@
 //                          takes the folder's name less its number, noted as not the issue's own; one
 //                          that names a work level is a defect in the issue, written as it stands and flagged ISSUE TITLE NAMES A WORK
 //                          LEVEL: #n in the notes
-//                premerge  true for the pre-merge refresh (dashboards-skill/33): every board the branch stamped, and every board in scope,
-//                          stamped "<ref> @ <sha>" with no "not yet landed": ref the branch (facts.ref, else the request's branch), sha the
-//                          head the team names (facts.sha, else the worktree's HEAD), the last commit before the board commit; the boards
-//                          land with the merge, so they say what the merged code is
+//                document  true for the Document step's state-boards task (admin-team/dashboards-skill/35): every board the branch stamped,
+//                          and every board in scope, stamped "<ref> @ <sha>" with no "not yet landed": ref the branch (facts.ref, else the
+//                          request's branch), sha the code-landing sha the request gives (facts.sha, required: the branch's last code
+//                          commit, after the sync and the bump); only documents change after it, so the boards land with the merge as stamped
+//                premerge  the older name (dashboards-skill/33's pre-merge refresh), read alike; there facts.sha defaults to the worktree's HEAD
 //                landed    true for a state-boards request that restamps at a landing, after the merge (as the landed event does): the
 //                          older flow, kept for a landing that refreshes no state board before its merge
 //                enrich    reasons the team already knows the presenter is needed for (passed through)
@@ -35,7 +36,7 @@
 // --at         the time to stamp when the commit's own time cannot be read (default: facts.at, else now)
 // --json       print the summary as one JSON object instead of key: value lines
 // What it does: stamps every touched system, its supersystem and the repository (registry entry and board) "<branch> @ <sha> · not yet
-// landed" (at the pre-merge refresh "<branch> @ <head>", after a merge "<ref> @ <merge>", for every entry stamped with the branch), with the issue as the last amendment; applies the
+// landed" (at the Document step's state boards "<branch> @ <code-landing sha>", after a merge "<ref> @ <merge>", for every entry stamped with the branch), with the issue as the last amendment; applies the
 // built and planned marks to systems.json and to the DSLs — the code's first: a system, or a partPaths part, with a code path present at the
 // stamped commit is built, with none present planned; a supersystem once every core subsystem is (statelib.js codeStatus(), system/RULES.md
 // §7); the facts decide only what has no code paths — (the boards draw a part planned from its DSL element's Planned tag, or from its
@@ -132,9 +133,13 @@ async function main() {
   [repoArg, req.github].filter(Boolean).forEach(r => { if (reg.repo && r !== reg.repo) refuse(`the registry is ${reg.repo}'s, not ${r}'s`); });
   const bySlug = s => reg.systems.find(x => x.slug === s);
 
-  /* the stamp: the branch and its commit ("not yet landed"); at the pre-merge refresh the branch and the head the team names; at a
+  /* the stamp: the branch and its commit ("not yet landed"); at the Document step's state boards the branch and the head the team names; at a
      restamp after the merge the default branch and the merge commit */
-  const premerge = facts.premerge === true, landed = ev === "landed" || facts.landed === true || premerge;
+  /* the Document step's state-boards task (facts.document, admin-team/dashboards-skill/35; facts.premerge, its older name, read alike): the
+     boards stamped "<branch> @ <sha>" with no "not yet landed", at the code-landing sha the request gives (the branch's last code commit,
+     after the sync and the bump); only documents change after it, so nothing is restamped at the land */
+  const document = facts.document === true, premerge = facts.premerge === true || document, landed = ev === "landed" || facts.landed === true || premerge;
+  if (document && !(typeof facts.sha === "string" && HEX.test(facts.sha))) refuse("the Document step's stamp is the code-landing sha the request gives (facts.sha): the branch's last code commit, after the sync and the bump");
   const head = git(ROOT, ["rev-parse", "--abbrev-ref", "HEAD"]);
   const branch = req.branch || facts.branch || (head && head !== "HEAD" ? head : null);
   if (!branch) refuse("the request names no branch, and the worktree's HEAD is detached");
@@ -167,7 +172,7 @@ async function main() {
   }
   const keptTitle = la => la && la.issue === S.issue && typeof la.title === "string" && la.title.trim() && la.title !== slugTitle ? la.title : null;
 
-  /* the systems the branch touches: the facts', else the issue board's; at the pre-merge refresh (and after a merge), also every entry the branch stamped */
+  /* the systems the branch touches: the facts', else the issue board's; at the Document step's state boards (and after a merge), also every entry the branch stamped */
   let named = Array.isArray(facts.systems) ? facts.systems : Array.isArray(req.systems) ? req.systems : null;
   if (!named && folder && fs.existsSync(path.join(ROOT, ...folder.split("/"), "plan.json"))) {
     try { const b = JSON.parse(fs.readFileSync(path.join(ROOT, ...folder.split("/"), "plan.json"), "utf8")); if (Array.isArray(b.systems)) { named = b.systems; S.notes.push(`systems from the board ${folder}`); } } catch (e) { refuse(`${folder}/plan.json does not parse: ${e.message}`); }
@@ -327,7 +332,8 @@ async function main() {
         if (put(dslFile, inEol(t, d0.eol))) S.wrote.push(path.relative(ROOT, dslFile).split(path.sep).join("/"));
         if (L.blockText(html, "dsl") != null && L.blockText(html, "dsl") !== L.norm(t).trim()) { html = L.embedInto(html, "dsl", t); wrote = true; }
       } else if (myElems.length) refuse(`${e.dsl} is not on disk`);
-      if (landed && s.written && s.written.sha !== old.sha) S.enrich.push(`${rel}: its panels were written at ${s.written.sha}, before the branch's last stamp ${old.sha}: the pre-merge refresh reads them again at the merge`);
+      /* panels written at the stamp now applied (the presenter wrote them at the head the team names) are current, not stale */
+      if (landed && s.written && s.written.sha !== old.sha && !String(shaFull).startsWith(String(s.written.sha)) && String(s.written.sha) !== sha) S.enrich.push(`${rel}: its panels were written at ${s.written.sha}, before the branch's last stamp ${old.sha}: the presenter reads them again at this stamp (the Document step's state boards)`);
     }
     if (hasSystems && L.blockText(html, "systems") !== regText) { html = L.embedInto(html, "systems", regText); wrote = true; }
     if (wrote && put(file, inEol(html, pg.eol))) S.wrote.push(rel);
@@ -341,8 +347,8 @@ async function main() {
   const checker = path.join(__dirname, "check-board.js");
   const cks = await Promise.all(pages.map(p => run(checker, [p, "--auto", "--no-browser", "--features-as-notes"], ROOT)));
   /* a board that lags its template is no reason to refuse the stamp: its missing features are the presenter's, who splices it onto the
-     template at the pre-merge refresh (system/scripts/splice.js) */
-  cks.forEach((c, i) => { const miss = (c.stdout.match(/^CHECK note: FEATURE MISSING: .*$/gm) || []).length; if (miss) S.enrich.push(`${path.relative(ROOT, pages[i]).split(path.sep).join("/")} lags its template (${miss} feature${miss === 1 ? "" : "s"} missing): the presenter splices it onto the template (system/scripts/splice.js) at the pre-merge refresh`); });
+     template at the Document step's state boards (system/scripts/splice.js) */
+  cks.forEach((c, i) => { const miss = (c.stdout.match(/^CHECK note: FEATURE MISSING: .*$/gm) || []).length; if (miss) S.enrich.push(`${path.relative(ROOT, pages[i]).split(path.sep).join("/")} lags its template (${miss} feature${miss === 1 ? "" : "s"} missing): the presenter splices it onto the template (system/scripts/splice.js) at the Document step's state boards`); });
   const bad = cks.map((c, i) => [c, pages[i]]).filter(([c]) => c.status !== 0);
   if (bad.length) { S.check = "FAIL: " + bad.map(([c, p]) => `${path.relative(ROOT, p).split(path.sep).join("/")}: ${(c.stdout.split(/\r?\n/).filter(l => /^CHECK .*[A-Z]{4,} [A-Z]{2,}|^FAIL/.test(l)).slice(0, 4).join(" | ")) || (c.stderr || "").trim().split(/\r?\n/)[0]}`).join(" ; "); throw new Error("check-board.js failed on a board it would write"); }
   const deferred = cks.map(c => (c.stdout.match(/browser pass deferred \(([^)]+)\)/) || [])[1]).filter(Boolean);

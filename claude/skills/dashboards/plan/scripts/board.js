@@ -30,14 +30,17 @@
 // boards of every worktree of the repository (git worktree list; the root first), keeps for each issue the freshest board (the
 // latest wip.updated, else wip.since, else asBuilt.date, or a later unit.live.updated it mirrors; the root's on a tie), and writes docs/plans/.live/board.json and
 // index.html, never the committed docs/plans/board.json and index.html. Its links reach each board where it lives: relative
-// when they can, a file URL into a worktree on another drive otherwise; the folder is local only (.git/info/exclude).
+// when they can, a file URL into a worktree on another drive otherwise; the folder is local only (.git/info/exclude). A view copy under
+// docs/plans/.live/view/ fresher than the main checkout's tracked board stands in for it, its row linked to the copy; a stale one is
+// removed (plan/RULES.md §4, "The live view of a landing").
 // A row's qa lists every pass its board records and the pass running (lib.js qaShown(): at qa, or the remediation's current "qa pass n"
-// sub-step); its waitsOn ("Depends on") each dependency with "dep" (blocking, clear, external; pre-built not yet derived) and its blocks
+// sub-step); its waitsOn ("Depends on") each dependency with its build state (blocking while its code is not merged, clear once it is, pre-built,
+// dropped when it was closed as not planned; a duplicate takes its canonical issue's, dashboards-skill/35) and its locality, and its blocks
 // ("Blocks · enables") each issue it holds up with "hold" (blocks while this issue is open, enables once it is done), from the tracker's
 // blocked-by links and the tracking boards' unit.blockedBy (plan/RULES.md §5; admin-team/dashboards-skill/30).
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), url = require("url");
-const { repoRoot, flag, opt, registry, findPlans, subIssueBoard, shownBranch, unitBranch, reconciliation, leftForLater, boardlessState, unitInRun, qaShown, depBuild, depLocality, holdState } = require("./lib.js");
+const { repoRoot, flag, opt, registry, findPlans, VIEW, viewSource, planStamp, subIssueBoard, shownBranch, unitBranch, reconciliation, leftForLater, boardlessState, unitInRun, qaShown, depBuild, depLocality, holdState } = require("./lib.js");
 /* a pass's route written with its neutral id (GUIDANCE.md §4, "No internal names"): a board recorded before the rename keeps the older
    rookie-dev and planner-then-rookie-dev, read alike everywhere; board.json is generated, so it carries the neutral ones */
 const ROUTE_NEUTRAL = { "rookie-dev": "remediation", "planner-then-rookie-dev": "re-plan-then-remediation" };
@@ -85,6 +88,30 @@ trees.forEach(t => findPlans(t).forEach(p => {
   const k = boards.findIndex(x => x.plan.issue === b.plan.issue);
   if (k < 0) boards.push(b); else if (fresh(b) > fresh(boards[k])) boards[k] = b;
 }));
+/* The live view's copies (docs/plans/.live/view/, lib.js viewOf(); plan/RULES.md §4, "The live view of a landing"), with --live: a copy
+   fresher than the main checkout's tracked board stands in for it (the landed state the post-merge refresh wrote), its row's board
+   link the copy's; its folder, links and Markdown are the tracked board's. A copy no fresher than the tracked board (the next landing
+   committed its state), or one whose board is gone, is stale: removed. */
+const viewNotes = [];
+if (live) {
+  const vroot = path.join(root, ...VIEW), copies = [];
+  const walk = d => { let ents = []; try { ents = fs.readdirSync(d, { withFileTypes: true }); } catch (e) { return; }
+    if (fs.existsSync(path.join(d, "plan.json"))) copies.push(d); ents.filter(e => e.isDirectory()).forEach(e => walk(path.join(d, e.name))); };
+  walk(vroot);
+  const read = f => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch (e) { return null; } };
+  copies.forEach(vd => {
+    const src = viewSource(vd), vp = read(path.join(vd, "plan.json")), tp = read(path.join(src, "plan.json")), rel = p => path.relative(root, p).split(path.sep).join("/");
+    if (!vp || !tp || !(planStamp(vp) > planStamp(tp))) {
+      ["plan.json", "dashboard.html", "plan.js"].forEach(f => fs.rmSync(path.join(vd, f), { force: true }));
+      for (let d = vd; path.relative(vroot, d) && !path.relative(vroot, d).startsWith(".."); d = path.dirname(d)) { try { fs.rmdirSync(d); } catch (e) { break; } }
+      viewNotes.push(`removed the stale view copy ${rel(vd)}/ (${!tp ? "its board is gone" : !vp ? "it does not parse" : "the tracked board is as fresh"})`); return;
+    }
+    const b = { dir: src, folder: rel(src), root, plan: vp, view: rel(vd) }, k = boards.findIndex(x => x.plan.issue === vp.issue);
+    if (k < 0) boards.push(b); else if (fresh(b) > fresh(boards[k])) boards[k] = b;
+  });
+}
+/* a board's own link: its view copy's where it stands in for it, else the board where it lives */
+const boardHtml = b => b.view ? relFromPlans(b.view + "/dashboard.html", b.root) : relFromPlans(b.folder + "/dashboard.html", b.root);
 const boardOf = n => boards.find(b => b.plan.issue === n);
 /* A link from the board's own folder to a path in a tree: relative, or a file URL where none exists (a worktree on another drive). */
 const relFromPlans = (p, t = root) => { const abs = path.join(t, p), rel = path.relative(outDir, abs);
@@ -105,13 +132,14 @@ const must = (r, what) => { if (r.error) throw new Error(`${what} failed: ${r.er
 const graphJobs = nums => { const jobs = [];
   for (let i = 0; i < nums.length; i += 25) {
     const chunk = nums.slice(i, i + 25);
-    const node = "number title state stateReason closedAt repository{nameWithOwner}";
-    const q = `query{repository(owner:"${owner}",name:"${name}"){${chunk.map(n => `i${n}:issue(number:${n}){number parent{number} closedByPullRequestsReferences(first:20,includeClosedPrs:true){nodes{number state headRefName}} linkedBranches(first:10){nodes{ref{name}}} subIssues(first:50){nodes{${node}}} blockedBy(first:30){nodes{${node}}} blocking(first:30){nodes{${node}}}}`).join(" ")}}}`;
+    const node = "number title state stateReason closedAt repository{nameWithOwner}", dup = `timelineItems(itemTypes:[MARKED_AS_DUPLICATE_EVENT],last:1){nodes{... on MarkedAsDuplicateEvent{canonical{... on Issue{number state stateReason closedAt repository{nameWithOwner}}}}}}`;
+    const q = `query{repository(owner:"${owner}",name:"${name}"){${chunk.map(n => `i${n}:issue(number:${n}){number parent{number} closedByPullRequestsReferences(first:20,includeClosedPrs:true){nodes{number state headRefName}} linkedBranches(first:10){nodes{ref{name}}} subIssues(first:50){nodes{${node}}} blockedBy(first:30){nodes{${node} ${dup}}} blocking(first:30){nodes{${node}}} ${dup}}`).join(" ")}}}`;
     jobs.push(["gh", ["api", "graphql", "-f", "query=" + q]]);
   }
   return jobs; };
 const takeGraph = rs => rs.forEach(r => Object.values(JSON.parse(must(r, "gh api graphql")).data.repository).forEach(x => { if (x) gq[x.number] = x; }));
-let issues = [], gq = {};
+/* dupGraph: the issue each closed duplicate a unit depends on duplicates, read in a round of its own for those the graph above did not cover (admin-team/dashboards-skill/35) */
+let issues = [], gq = {}, dupGraph = {};
 /* Pull requests and branches, for the boardless rows (plan/RULES.md §5): every pull request with its head branch, and every branch
    on the remote and in the local repository (the root's refs; with --live, every worktree shares them). */
 let prs = [], branches = [];
@@ -130,6 +158,11 @@ if (FIXTURE && !flag(args, "no-gh")) {
   takeGraph(gr1);
   const rest = [...new Set(issues.filter(i => i.state === "OPEN").map(i => i.number))].filter(n => !boardNums.includes(n));
   takeGraph(shAll(graphJobs(rest)));
+  /* round 3: the closed duplicates a tracking board's unit depends on, outside the graph read so far: the issue each duplicates */
+  const dups = [...new Set(boards.filter(b => b.plan.kind === "tracking").flatMap(b => (b.plan.rows || []).flatMap(r => (r.unit && r.unit.blockedBy) || [])))].filter(m => Number.isInteger(m) && !gq[m] && issues.some(i => i.number === m && i.state === "CLOSED" && i.stateReason === "DUPLICATE"));
+  for (let k = 0; k < dups.length; k += 50) { const r = shAll([["gh", ["api", "graphql", "-f", `query=query{repository(owner:"${owner}",name:"${name}"){${dups.slice(k, k + 50).map(m => `d${m}:issue(number:${m}){number timelineItems(itemTypes:[MARKED_AS_DUPLICATE_EVENT],last:1){nodes{... on MarkedAsDuplicateEvent{canonical{... on Issue{number state stateReason closedAt repository{nameWithOwner}}}}}}}`).join(" ")}}}`]]])[0];
+    if (r.error) { console.log("could not read the duplicates' canonical issues: " + r.error); break; }
+    Object.values(JSON.parse(r.out).data.repository).forEach(x => { if (x) dupGraph[x.number] = canonicalNode(x); }); }
   if (pl.error) console.log("could not list pull requests: " + pl.error); else prs = JSON.parse(pl.out);
   if (rb.error) console.log("could not list remote branches: " + rb.error); else branches = rb.out.split(/\r?\n/).filter(Boolean);
   if (!lb.error) branches.push(...lb.out.split(/\r?\n/).filter(Boolean)); // not a git tree: no local branches
@@ -140,7 +173,13 @@ const trackerState = (n, i) => { const g = gq[n] || {};
   return boardlessState(n, i ? i.state : "OPEN", (g.closedByPullRequestsReferences || {}).nodes || [], ((g.linkedBranches || {}).nodes || []).map(x => x && x.ref && x.ref.name).filter(Boolean), prs, branches, i ? i.stateReason : null); };
 const issueOf = n => issues.find(i => i.number === n);
 const levelOf = i => { const l = i && i.labels.find(x => /^level: [1-4]$/.test(x.name)); return l ? parseInt(l.name.slice(7), 10) : null; };
-const ref = x => ({ issue: x.number, repo: x.repository && x.repository.nameWithOwner !== repo ? x.repository.nameWithOwner : undefined, state: x.state, ...reasonOf(x), ...(x.closedAt ? { closedAt: x.closedAt } : {}) });
+/* an issue the graph names; a duplicate carries the issue it duplicates (dupOf, from its MarkedAsDuplicateEvent), read where its
+   dependency state is derived and not written to board.json (admin-team/dashboards-skill/35) */
+function canonicalNode(x) { const c = x && x.timelineItems && Array.isArray(x.timelineItems.nodes) && x.timelineItems.nodes.length ? (x.timelineItems.nodes[x.timelineItems.nodes.length - 1] || {}).canonical : null;
+  return c && Number.isInteger(c.number) ? c : null; }
+const canonicalOf = x => { const c = canonicalNode(x); return c ? ref(c) : null; };
+const ref = x => ({ issue: x.number, repo: x.repository && x.repository.nameWithOwner !== repo ? x.repository.nameWithOwner : undefined, state: x.state, ...reasonOf(x), ...(x.closedAt ? { closedAt: x.closedAt } : {}),
+  ...(x.state === "CLOSED" && x.stateReason === "DUPLICATE" ? { dupOf: canonicalOf(x) || (gq[x.number] && !x.repository ? canonicalOf(gq[x.number]) : null) || (dupGraph[x.number] ? ref(dupGraph[x.number]) : null) } : {}) });
 /* A system's name and colour slot: the registry's; else, in a repository with no registry entry for it yet, the slot the boards
    themselves give it (plan.json systems), so a row keeps the colour its own board shows (GUIDANCE.md §1); else no colour. */
 const boardSys = slug => { for (const b of boards) { const s = (b.plan.systems || []).find(x => x && x.slug === slug); if (s) return { slug, name: s.name || slug, slot: Number.isInteger(s.slot) ? s.slot : 0, top: s.top || s.name || slug }; } return null; };
@@ -193,7 +232,8 @@ const chainOf = b => {
    (landed, or closed). */
 const doneIssue = (n, x) => x && x.repo ? x.state === "CLOSED" : landedIssue(n) || !!(x && x.state === "CLOSED");
 const unitsBlockedBy = n => boards.filter(b => b.plan.kind === "tracking").flatMap(b => (b.plan.rows || []).filter(r => r.unit && Number.isInteger(r.unit.issue) && (r.unit.blockedBy || []).includes(n)).map(r => r.unit.issue));
-const asRef = m => { const i = issueOf(m); return { issue: m, ...(i ? { state: i.state, ...reasonOf(i), ...(i.closedAt ? { closedAt: i.closedAt } : {}) } : {}) }; };
+const asRef = m => { const i = issueOf(m); return { issue: m, ...(i ? { state: i.state, ...reasonOf(i), ...(i.closedAt ? { closedAt: i.closedAt } : {}) } : {}),
+  ...(i && i.state === "CLOSED" && i.stateReason === "DUPLICATE" ? { dupOf: (gq[m] ? canonicalOf(gq[m]) : null) || (dupGraph[m] ? ref(dupGraph[m]) : null) } : {}) }; };
 /* the tracking issue a row belongs to: itself when it is one, else its parent when that is one; null for a row outside every tracking issue */
 const parentOf = n => { const g = gq[n] || {}, b = boardOf(n), u = unitRow(n); return (g.parent && g.parent.number) || (b && b.plan.parent && b.plan.parent.issue) || (u && u.board.plan.issue) || null; };
 const isTracking = n => !!n && (trackingNums.has(n) || !!(boardOf(n) && boardOf(n).plan.kind === "tracking") || !!(((gq[n] || {}).subIssues || {}).nodes || []).length);
@@ -209,19 +249,36 @@ const unclassified = [];
 const dependsOn = (n, g) => { const u = unitRow(n), tracked = ((g.blockedBy || {}).nodes || []).map(ref);
   const own = ((u && u.row.unit.blockedBy) || []).filter(m => Number.isInteger(m) && !tracked.some(t => t.issue === m && !t.repo)).map(asRef);
   const t = trackingOf(n), plan = t ? planOf(t) : new Set(), start = planStartOf(t || n);
-  return [...tracked, ...own].map(x => { const B = depBuild({ inPlan: !!t && x.issue !== t && plan.has(keyOf(x.issue, x.repo)), done: doneIssue(x.issue, x), closedAt: x.closedAt || null, planStart: start, tracking: !!t }), Lc = depLocality(repo, x.repo || repo);
+  const inPlan = x => !!t && x.issue !== t && plan.has(keyOf(x.issue, x.repo));
+  return [...tracked, ...own].map(x => { const B = depBuild({ inPlan: inPlan(x), ...depFacts(x, inPlan), planStart: start, tracking: !!t }), Lc = depLocality(repo, x.repo || repo);
     const why = [B.why, Lc.why].filter(Boolean); if (why.length) unclassified.push(`#${n} depends on ${x.repo ? x.repo : ""}#${x.issue}: ${why.join("; ")}`);
-    return { ...x, build: B.build, locality: Lc.locality, ...(why.length ? { why: why.join("; ") } : {}) }; }); };
+    const { dupOf, ...rest } = x;
+    return { ...rest, build: B.build, locality: Lc.locality, ...(B.via ? { via: B.via } : {}), ...(why.length ? { why: why.join("; ") } : {}) }; }); };
+/* What depBuild() reads of a dependency (plan/RULES.md §5, "Depends on"; admin-team/dashboards-skill/35): merged, its code merged — its board
+   landed or its unit landed, its issue closed (as completed: a reason NOT_PLANNED or DUPLICATE is read apart), or still open with a pull
+   request that refers to it merged (the tracker's "merged"); mergedAt, when (its closing, where recorded); reason, the tracker's
+   stateReason of a closed issue, NOT_PLANNED also for a unit its tracking board dropped; duplicateOf, the issue a duplicate duplicates (the
+   tracker's MarkedAsDuplicateEvent), read the same way. Another repository's issue is read from its state alone. */
+const trackerMerged = n => { const i = issueOf(n); return !!i && i.state === "OPEN" && trackerState(n, i).status === "merged"; };
+function depFacts(x, inPlan, depth) {
+  const own = !x.repo, u = own ? unitRow(x.issue) : null, closed = x.state === "CLOSED";
+  const reason = u && unitState(u) === "dropped" ? "NOT_PLANNED" : closed ? (x.stateReason || null) : null;
+  const done = closed && !["NOT_PLANNED", "DUPLICATE"].includes(x.stateReason);
+  const merged = own ? (landedIssue(x.issue) && !(closed && !done)) || done || trackerMerged(x.issue) : closed;
+  const d = x.dupOf && typeof x.dupOf === "object" && (depth || 0) < 4 ? x.dupOf : null;
+  return { merged, mergedAt: closed ? x.closedAt || null : null, reason,
+    duplicateOf: reason === "DUPLICATE" && d ? { issue: d.issue, repo: d.repo, inPlan: inPlan(d), ...depFacts(d, inPlan, (depth || 0) + 1) } : null };
+}
 const holdsUp = (n, g, i) => { const tracked = ((g.blocking || {}).nodes || []).map(ref), hold = holdState(doneIssue(n, i));
   const own = unitsBlockedBy(n).filter(m => !tracked.some(t => t.issue === m && !t.repo)).map(asRef);
-  return [...tracked, ...own].map(x => ({ ...x, hold })); };
+  return [...tracked, ...own].map(({ dupOf, ...x }) => ({ ...x, hold })); };
 
 /* Rows: every issue with a board or a level label (the label decides which issues are rows; no level is written to board.json,
    since a dashboard never shows one: GUIDANCE.md §4) */
 /* ...and every unit of a tracking board, so the chain (and its next unit) shows even without a level label or the tracker. */
 const unitNums = boards.filter(b => b.plan.kind === "tracking").flatMap(b => (b.plan.rows || []).filter(r => r.unit && Number.isInteger(r.unit.issue) && r.unit.issue > 0).map(r => r.unit.issue));
 const rowNums = new Set([...boards.map(b => b.plan.issue), ...issues.filter(i => levelOf(i)).map(i => i.number), ...unitNums]);
-const ACTIVE_STEPS = new Set(["sizing", "interview", "research", "architecture", "plan", "branch", "implementation", "qa", "remediation", "landing", "state-boards", "merge"]);
+const ACTIVE_STEPS = new Set(["sizing", "interview", "research", "architecture", "plan", "branch", "implementation", "qa", "remediation", "document", "landing", "state-boards", "merge"]);
 const rows = [...rowNums].map(n => {
   const i = issueOf(n), g = gq[n] || {}, b = boardOf(n), u = unitRow(n), p = prevRow(n);
   const row = { issue: n, title: (i && i.title) || (b && b.plan.issueTitle) || (b && b.plan.title) || (u && u.row.name) || `#${n}`, state: i ? i.state : ((b && b.plan.status === "built") || (u && LANDED_STATES.has(unitState(u))) ? "CLOSED" : "OPEN"), ...reasonOf(i), created: i ? i.createdAt.slice(0, 10) : null,
@@ -229,10 +286,12 @@ const rows = [...rowNums].map(n => {
     waitsOn: dependsOn(n, g), blocks: holdsUp(n, g, i) };
   if (b) {
     const w = b.plan.wip || {}, s = b.plan.status;
-    Object.assign(row, { board: fs.existsSync(path.join(b.dir, "dashboard.html")) ? relFromPlans(b.folder + "/dashboard.html", b.root) : null, folder: relFromPlans(b.folder, b.root) + "/", branch: shownBranch(b.plan), /* a merged branch is not shown (plan/RULES.md §3, "Branches") */ system: b.plan.kind === "tracking" ? null : ((b.plan.systems || [])[0] || {}).slug || null,
+    Object.assign(row, { board: fs.existsSync(path.join(b.dir, "dashboard.html")) ? boardHtml(b) : null, folder: relFromPlans(b.folder, b.root) + "/", branch: shownBranch(b.plan), /* a merged branch is not shown (plan/RULES.md §3, "Branches") */ system: b.plan.kind === "tracking" ? null : ((b.plan.systems || [])[0] || {}).slug || null,
       step: w.step || null, detail: w.step === "halted" ? `Waiting on the user: ${w.waitingOn || w.detail || ""}` : (w.detail || ""), since: w.since || null, updated: w.updated || null, qa: neutralQa(qaShown(w)) /* every pass recorded, and the one running (lib.js qaShown()) */, qaMax: w.qaMax || null,
       /* a board laid before its run starts (a tracking issue's unit, plan/RULES.md §4) has no step: not started */
       status: s === "built" || unitState(u) === "landed" ? "landed" : s === "abandoned" || w.step === "cancelled" ? "abandoned" : w.step === "halted" ? "halted" : w.step === "escalated" ? "escalated" : u && unitState(u) === "complete" ? "complete" : s === "building" ? "building" : !w.step && s === "planned" ? "not-started" : "planning",
+      /* a fix to an earlier plan's work (plan/RULES.md §1, §5; admin-team/dashboards-skill/35): the landed issue it fixes, shown "fix to #n" */
+      fixOf: b.plan.fixOf && Number.isInteger(b.plan.fixOf.issue) ? b.plan.fixOf.issue : null,
       landed: s === "built" ? { pr: (b.plan.asBuilt || {}).pr || null, merge: (b.plan.asBuilt || {}).merge || null, version: (b.plan.asBuilt || {}).version || null, date: (b.plan.asBuilt || {}).date || null } : null });
     /* the impact's reconciliation state, derived from the board (lib.js reconciliation(); plan/RULES.md §2, Impact, §5): null while it
        records no impact; landed and total on a tracking board */
@@ -265,6 +324,8 @@ const rows = [...rowNums].map(n => {
       blockedBy: all.filter(x => !landedIssue(x.issue, x.repo ? x : null)).map(x => ({ issue: x.issue, repo: x.repo })) });
   }
   const si = sysInfo(row.system); row.systemName = si ? si.name : row.unassigned ? "no system" : null; // "unassigned": decided, not missing
+  /* an archived system (registry status "archived", no longer developed; dashboards-skill/35): its rows say so */
+  if (si && si.status === "archived") row.systemArchived = true;
   // A tracking issue spans several systems: it names their top-level systems and takes no colour of its own.
   if (b && b.plan.kind === "tracking") row.systemName = [...new Set((b.plan.systems || []).map(x => x.top || x.name))].join(", ");
   return row;
@@ -274,7 +335,7 @@ const rows = [...rowNums].map(n => {
 const groups = [], order = new Map();
 [...trackingNums].sort((a, b) => a - b).forEach(t => {
   const tb = boardOf(t), i = issueOf(t);
-  groups.push({ key: String(t), issue: t, title: (i && i.title) || (tb && tb.plan.issueTitle) || `#${t}`, board: tb ? relFromPlans(tb.folder + "/dashboard.html", tb.root) : null });
+  groups.push({ key: String(t), issue: t, title: (i && i.title) || (tb && tb.plan.issueTitle) || `#${t}`, board: tb ? boardHtml(tb) : null });
   const seq = tb ? (tb.plan.rows || []).filter(r => r.unit).map(r => r.unit.issue) : ((gq[t] || {}).subIssues || { nodes: [] }).nodes.map(x => x.number);
   [t, ...seq].forEach((n, k) => { if (!order.has(n)) order.set(n, { group: String(t), order: k }); });
 });
@@ -333,6 +394,7 @@ if (live) {
     try { if (fs.existsSync(path.join(t, "docs", "plans", "README.md"))) md.copyDocs(t, ["docs/plans/README.md"], { repo }); } catch (e) { notes.add("the README's copy failed: " + e.message); }
   });
   boards.forEach(b => { try { const r = md.copyBoardDocs(b.plan, b.dir); if (r.skipped && !/not git-ignored/.test(r.skipped)) notes.add(r.skipped); } catch (e) { notes.add(`#${b.plan.issue}'s copies failed: ${e.message}`); } });
+  viewNotes.forEach(n => notes.add(n));
   notes.forEach(n => console.log("live: " + n));
 }
 console.log(`${live ? `live board, ${trees.length} worktree${trees.length === 1 ? "" : "s"}: ` : ""}board.json: ${rows.length} runs in ${board.groups.length} groups, ${roadmap.length} roadmap items, ${unscheduled.length} unscheduled issues; index.html embedded`);

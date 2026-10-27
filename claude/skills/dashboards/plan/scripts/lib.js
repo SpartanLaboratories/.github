@@ -67,7 +67,8 @@ function mdHeadings(md) {
    sectionOf() reads that section: its heading, its first paragraph (the first block of prose under the heading, fenced code and tables
    skipped, Markdown links and emphasis reduced to their text, one line, at most 600 characters) and a hash of the whole section, from
    its heading to the next heading of the same or a higher level, line endings and trailing spaces normalised. The paragraph is what the
-   board shows, so a work level in it (GUIDANCE.md §4) is elided ("…"); the hash is of the section as written. */
+   board shows, so a work level in it (GUIDANCE.md §4) is elided ("…"), and so is a clause naming an internal name (elideNamed(),
+   below); the hash is of the section as written. */
 const STMT_REF = /^((?:\.\.\/|\.\/)?(?:[\w.-]+\/)*[\w.-]+\.md)#([\w\p{L}\p{N}-]+)$/u;
 const parseRef = ref => { const m = typeof ref === "string" ? STMT_REF.exec(ref.trim()) : null; return m ? { file: m[1], anchor: m[2] } : null; };
 function sectionOf(md, anchor) {
@@ -89,8 +90,29 @@ function sectionOf(md, anchor) {
   let p = para.join(" ").replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\*\*([^*]+)\*\*/g, "$1").replace(/__([^_]+)__/g, "$1").replace(/\s+/g, " ").trim();
   const { levelRefs } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
   levelRefs(p).forEach(hit => { p = p.split(hit).join("…"); });
+  p = elideNamed(p);
   if (p.length > 600) p = p.slice(0, 600).replace(/\s+\S*$/, "") + " …";
   return { heading: h.text.replace(/\s+/g, " ").trim(), paragraph: p, hash };
+}
+/* An excerpt's clauses that name the pipeline's agents or the approval flow (GUIDANCE.md §4; namerefs.js), each cut to "…": the clause
+   runs from the last sentence, clause or list boundary before the name (". ", "; ", "· ", "! ", "? ") to the next one after it; a ";"
+   or " ·" that ends it stays, a "." goes with it. A quote is never reworded, so the clause goes rather than the name alone, and the
+   rest still reads as written: "It exists and holds the research commits; the executor confirms it (P1) rather than cutting it again."
+   becomes "It exists and holds the research commits; …". Every copy elides the same way, embed.js --refresh-excerpts included. */
+function elideNamed(p) {
+  const { nameSpans } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
+  const spans = nameSpans(p); if (!spans.length) return p;
+  const BEFORE = /(?:[.;!?]|·)\s+/g, ranges = [];
+  spans.forEach(s => {
+    let start = 0, m; BEFORE.lastIndex = 0;
+    while ((m = BEFORE.exec(p)) && m.index < s.index) if (m.index + m[0].length <= s.index) start = m.index + m[0].length;
+    const after = /[.;!?](?=\s|$)|\s·(?=\s|$)/g; after.lastIndex = s.end;
+    const a = after.exec(p), end = a ? (a[0] === "." ? a.index + 1 : a.index) : p.length;
+    const last = ranges[ranges.length - 1];
+    if (last && start <= last.end) last.end = Math.max(last.end, end); else ranges.push({ start, end });
+  });
+  for (let i = ranges.length - 1; i >= 0; i--) p = p.slice(0, ranges[i].start) + "…" + p.slice(ranges[i].end);
+  return p.replace(/…(?:\s*…)+/g, "…");
 }
 /* The label a reference shows, "(§4.2)": the statement's own label, else the heading's leading section number ("4.2", "A-3", "T-1"),
    else the heading itself (shortened); until an excerpt is copied, the section number its anchor names (refNumber, below: read from
@@ -189,7 +211,23 @@ function excerptDrift(plan, dir) {
 }
 /* Everything embed.js resolves from the folders on disk before it embeds an issue board: the issue links and the units' runs
    (linkIssueBoards()) and the statements' excerpts (copyExcerpts()). Returns one line per change. */
-function resolveBoard(plan, dir, opts) { return [...fillRoadmap(plan, dir), ...linkIssueBoards(plan, dir), ...linkShared(plan, dir), ...copyExcerpts(plan, dir, opts)]; }
+function resolveBoard(plan, dir, opts) { return [...fillRoadmap(plan, dir), ...linkIssueBoards(plan, dir), ...refreshSystems(plan, dir), ...linkShared(plan, dir), ...copyExcerpts(plan, dir, opts)]; }
+/* An issue board's systems, kept current with the registry while its run is in flight (the defect: the entries were a snapshot taken at
+   sized, so a system the run builds stayed "planned" with no board, its header said "· planned" and its board was never linked, even once
+   the pre-merge refresh had built it and given it a board). At every embed of a board that is neither landed nor cancelled (status built or
+   abandoned: kept as it landed, GUIDANCE.md §11), each entry takes the registry's status and board (under the key the entry already uses,
+   "board" or the older "page"); its slug, name and colour slot are left as they are. Returns the changes, one line each. */
+function refreshSystems(plan, dir) {
+  if (!plan || !Array.isArray(plan.systems) || ["built", "abandoned"].includes(plan.status)) return [];
+  const root = treeRoot(dir); if (!root) return [];
+  let R = null; try { R = registry(root); } catch (e) { return []; } if (!R) return [];
+  const out = [];
+  plan.systems.forEach(s => { if (!s || typeof s.slug !== "string") return; const i = R.info(s.slug); if (!i) return;
+    if (typeof i.status === "string" && s.status !== i.status) { out.push(`systems ${s.slug}: status ${s.status} → ${i.status}`); s.status = i.status; }
+    const key = Object.prototype.hasOwnProperty.call(s, "board") || !Object.prototype.hasOwnProperty.call(s, "page") ? "board" : "page", b = i.board || null;
+    if ((s[key] || null) !== b) { out.push(`systems ${s.slug}: ${key} ${s[key] || null} → ${b}`); s[key] = b; } });
+  return out;
+}
 /* An issue board's roadmap (plan/RULES.md §5, "An issue board's Context"; admin-team/dashboards-skill/34, the defect: every unit board
    under a tracking issue kept roadmap null, and its Context said "no tracking parent"): a sub-issue's board whose plan.roadmap is unset
    takes the repository roadmap item that claims it, through its parent tracking issue. The first source that names it: the repository
@@ -273,11 +311,11 @@ function subIssueBoard(dir, unit) {
   if (!unit || !Number.isInteger(unit.issue) || unit.issue <= 0) return null;
   const f = typeof unit.folder === "string" && unit.folder.trim() && !/^[a-z][a-z0-9+.-]*:/i.test(unit.folder)
     ? unit.folder.trim().replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/?$/, "/") : null;
-  if (f && fs.existsSync(path.join(dir, f, "dashboard.html"))) return { board: f + "dashboard.html", folder: f };
+  if (f && fs.existsSync(path.join(dir, f, "dashboard.html"))) return { board: viewLink(dir, f + "dashboard.html"), folder: f };
   let names = [];
   try { names = fs.readdirSync(dir, { withFileTypes: true }).filter(d => d.isDirectory() && d.name.startsWith(unit.issue + "-")).map(d => d.name).sort(); } catch (e) { /* no folder */ }
   const hit = names.find(n => fs.existsSync(path.join(dir, n, "dashboard.html")));
-  return hit ? { board: hit + "/dashboard.html", folder: hit + "/" } : null;
+  return hit ? { board: viewLink(dir, hit + "/dashboard.html"), folder: hit + "/" } : null;
 }
 
 /* Link every unit of a tracking board to its sub-issue's board, from the folders on disk (embed.js runs it before embedding, so
@@ -328,16 +366,43 @@ function unitRun(sub) {
    board. Each is taken as it stood when the step ended: after the ending event, unless that event cleared it or replaced it with the
    next visit's (a new remediation loop), then before. Deterministic and idempotent: the same event twice freezes nothing more. */
 const HISTORY_FIELDS = { sizing: [], interview: ["interview"], research: ["research", "questions"], architecture: [], plan: ["plan"], branch: ["branch"],
-  implementation: ["stages"], qa: ["qa"], remediation: ["remediation", "qa"], "sub-issues": ["units"], boards: ["units"], landing: [], "state-boards": [], merge: [] };
+  implementation: ["stages"], qa: ["qa"], remediation: ["remediation", "qa"], "sub-issues": ["units"], boards: ["units"], document: ["document"], landing: [], "state-boards": [], merge: [] };
 const HISTORY_STEPS = Object.keys(HISTORY_FIELDS);
-const STEP_ORDER = ["sizing", "interview", "research", "architecture", "plan", "branch", "implementation", "qa", "remediation", "landing", "state-boards", "merge", "landed"];
-/* The landing in three steps (admin-team/dashboards-skill/34): landing (the branch brought up to date; the code, the version bump and the
-   reconciled documents committed), state-boards (the pre-merge refresh of the state boards on the branch, and its board commit), merge
-   (the pull request and the merge), then landed. A steps line written before them, with "landing" alone, takes them after its landing
-   (landingSteps(); apply-event.js at a board's next event); a board that landed before keeps its line, its landing spanning to the merge. */
+/* The run's steps (admin-team/dashboards-skill/35): the Document step between qa (or remediation) and the land, then the land in two steps,
+   landing and merge, then landed. "state-boards" is no step of a new run: the state boards are the Document step's state-boards task; a
+   board that met the three landing steps of dashboards-skill/34 (landing, state-boards, merge) keeps them where its run reached its
+   landing before the change (documentSteps()). */
+const STEP_ORDER = ["sizing", "interview", "research", "architecture", "plan", "branch", "implementation", "qa", "remediation", "document", "landing", "merge", "landed"];
+/* The Document step's tasks (admin-team/dashboards-skill/35; plan/RULES.md §3, §4, "document"): the ids the pipeline sends in facts.tasks,
+   each with the name a board shows when the event gives none, in the order a board lists them. The admin team raises the state-boards task
+   itself when it accepts the run's state-boards request, inside the Document step. Another id is kept with the name the event gives. */
+const DOC_TASKS = [["documentation-review", "Documentation review"], ["reconcile-documentation", "Reconcile the documentation"], ["dokka-check", "Dokka check"],
+  ["reconcile-plan", "Reconcile the plan and its consequences"], ["readme-changelog", "README and CHANGELOG"], ["state-boards", "State boards"]];
+const DOC_TASK_NAMES = Object.fromEntries(DOC_TASKS);
+/* The land (admin-team/dashboards-skill/34, then 35): landing (the land accepted), merge (the pull request merged), then landed; before
+   dashboards-skill/35 a third step, state-boards (the pre-merge refresh), stood between them. LANDING_STEPS keeps the three of the older
+   line, as a board that landed in it (or reached its landing in it) keeps them. */
 const LANDING_STEPS = ["landing", "state-boards", "merge"];
-function landingSteps(steps) { if (!Array.isArray(steps)) return steps; const i = steps.indexOf("landing"); if (i < 0 || LANDING_STEPS.slice(1).every(s => steps.includes(s))) return steps;
-  const out = steps.filter(s => !LANDING_STEPS.slice(1).includes(s)), j = out.indexOf("landing"); out.splice(j + 1, 0, ...LANDING_STEPS.slice(1)); return out; }
+/* A steps line brought up to the current one at any event of a board in flight (apply-event.js), from where its run stands (cur, the step
+   the panel shows): a line with "landing" alone, or with the three landing steps of dashboards-skill/34, takes the Document step before its
+   landing and merge after it, and loses state-boards, while its run has not reached its landing; a run already at its landing (or past it)
+   keeps the three landing steps (a line with landing alone takes state-boards and merge, as at dashboards-skill/34), so a step it visited
+   stays on its line. A board that landed before keeps its line. */
+function documentSteps(steps, cur) {
+  if (!Array.isArray(steps)) return steps; const i = steps.indexOf("landing"); if (i < 0) return steps;
+  const reached = !!cur && steps.includes(cur) && steps.indexOf(cur) >= i;
+  const old = steps.includes("state-boards");
+  if (reached || (old && cur === "state-boards")) {
+    if (LANDING_STEPS.slice(1).every(s => steps.includes(s)) || steps.includes("document")) return steps;
+    const out = steps.filter(s => !LANDING_STEPS.slice(1).includes(s)), j = out.indexOf("landing"); out.splice(j + 1, 0, ...LANDING_STEPS.slice(1)); return out;
+  }
+  if (steps.includes("document") && steps.includes("merge") && !old) return steps;
+  const out = steps.filter(s => s !== "state-boards" && s !== "document" && s !== "merge"), j = out.indexOf("landing");
+  out.splice(j, 0, "document"); out.splice(j + 2, 0, "merge"); return out;
+}
+/* the older name: an older line brought up (dashboards-skill/34's three landing steps once the run has reached its landing, else the
+   Document step and the two landing steps) */
+const landingSteps = (steps, cur) => documentSteps(steps, cur);
 const isObj = v => v != null && typeof v === "object" && !Array.isArray(v);
 const nonEmpty = v => Array.isArray(v) ? v.length > 0 : isObj(v);
 const clone = v => v == null ? v : JSON.parse(JSON.stringify(v));
@@ -414,10 +479,10 @@ function finishedSteps(R, status) {
    research; considered: the architecture on a tracking board, else the plan; verdict: the plan; built: the landing). The template's
    reconStep() is the same rule. */
 const TRAIL_STEP_WORDS = [["filing the units", "sub-issues"], ["creating the units", "boards"], ["the interview", "interview"], ["interview", "interview"], ["research", "research"], ["the architecture", "architecture"], ["architecture", "architecture"],
-  ["the plan", "plan"], ["plan", "plan"], ["the branch", "branch"], ["branch", "branch"], ["implementation", "implementation"], ["qa", "qa"], ["remediation", "remediation"], ["the landing", "landing"], ["landing", "landing"], ["the state boards", "state-boards"], ["state boards", "state-boards"], ["the merge", "merge"], ["merge", "merge"], ["sizing", "sizing"]];
+  ["the plan", "plan"], ["plan", "plan"], ["the branch", "branch"], ["branch", "branch"], ["implementation", "implementation"], ["qa", "qa"], ["remediation", "remediation"], ["the document step", "document"], ["document", "document"], ["the landing", "landing"], ["landing", "landing"], ["the state boards", "state-boards"], ["state boards", "state-boards"], ["the merge", "merge"], ["merge", "merge"], ["sizing", "sizing"]];
 const TRAIL_STEP_RE = [[/^(run started|sized|sizing|re-?sized)\b/i, "sizing"], [/^interview/i, "interview"], [/^(research|verification|findings)/i, "research"], [/^architecture/i, "architecture"],
   [/^(\d+ of \d+ units? filed|sub-issues filed)/i, "sub-issues"], [/^\d+ of \d+ unit boards? created/i, "boards"], [/^plan\b/i, "plan"], [/^branch\b/i, "branch"], [/^(S\d+\b|implementation\b|stage\b)/i, "implementation"],
-  [/^qa pass/i, "qa"], [/^remediation/i, "remediation"], [/^state boards\b/i, "state-boards"], [/^merg(?:e|ing)\b/i, "merge"], [/^(landing|landed)\b/i, "landing"]];
+  [/^qa pass/i, "qa"], [/^remediation/i, "remediation"], [/^document\b/i, "document"], [/^state boards\b/i, "state-boards"], [/^merg(?:e|ing)\b/i, "merge"], [/^(landing|landed)\b/i, "landing"]];
 function trailStep(label) {
   const s = String(label == null ? "" : label).replace(/`/g, "").replace(/\s+/g, " ").trim();
   const m = /^(?:halted|resumed|escalated)\s+(?:at|in|during)\s+(.+)$/i.exec(s);
@@ -445,6 +510,7 @@ function reconstructStep(plan, step) {
     if (qs.length) R.questions = qs; }
   if (step === "branch" && typeof plan.branch === "string" && plan.branch.trim()) R.branch = plan.branch;
   if (step === "implementation" && nonEmpty(w.stages)) R.stages = clone(w.stages);
+  if (step === "document" && isObj(w.document) && nonEmpty(w.document.tasks)) R.document = clone(w.document);
   if (step === "qa" || step === "remediation") { const qa = (Array.isArray(w.qa) ? w.qa : []).filter(p => p && (step === "qa" || p.verdict === "changes-requested"));
     if (qa.length) R.qa = clone(qa); qa.forEach(p => later(p.at || p.date)); }
   if (["sub-issues", "boards"].includes(step) && (Array.isArray(plan.rows) ? plan.rows : []).some(r => r && r.unit)) R.units = unitCount(plan, step);
@@ -463,7 +529,7 @@ function reconstructSteps(plan) {
    deviations recorded (the rows' as-built changes); and rowNames, the names of the rows the questions and stages name. */
 /* wip.history, the finished steps' snapshots (plan/RULES.md §3, "Finished steps"), rides along so the tracking board shows the unit's
    finished steps as its own board does; an empty history is left out. */
-const PANEL_FIELDS = ["event", "interview", "research", "questions", "plan", "stages", "remediation", "open", "history"];
+const PANEL_FIELDS = ["event", "interview", "research", "questions", "plan", "stages", "remediation", "document", "open", "history"];
 function panelFacts(sub) {
   const w = (sub && sub.wip) || {}, out = {}, has = v => Array.isArray(v) ? v.length > 0 : v != null && typeof v === "object" && (v !== w.history || Object.values(v).some(x => Array.isArray(x) && x.length));
   PANEL_FIELDS.forEach(k => { if (has(w[k])) out[k] = w[k]; });
@@ -540,9 +606,64 @@ function staleUnitRuns(plan, dir) {
   }).filter(Boolean);
 }
 
-/* The repository root of the tree that holds a folder: the first ancestor with docs/plans, or null. */
+/* The repository root of the tree that holds a folder: the first ancestor with docs/plans, or null. A view copy's folder (below) is
+   held by the tree whose docs/plans/.live/view/ it is in. */
 function treeRoot(dir) {
+  const v = viewParts(dir); if (v) return v.root;
   for (let d = path.resolve(dir); ; d = path.dirname(d)) { if (fs.existsSync(path.join(d, "docs", "plans"))) return d; if (path.dirname(d) === d) return null; }
+}
+/* The live view's copies of boards (plan/RULES.md §4, "The live view of a landing"): the post-merge refresh shows a landed issue's board,
+   and its parent tracking board's unit landed, without writing a tracked file, in a copy of each board under the main checkout's
+   git-ignored docs/plans/.live/view/<the board's folder under docs/plans/>/ (plan.json, dashboard.html, plan.js). The copy's
+   dashboard.html carries <base href="<the tracked folder>/" data-live-view> right after <head>, so every relative link (the Markdown,
+   the parent's and the units' boards, the live markers) resolves as from the tracked board; deviation.js reads the line as no
+   difference from the template. The copy is read in place of the tracked board (board.js --live, apply-event.js --view) only while it
+   is fresher (planStamp(): the later stamp wins, the tracked board on a tie), so once the next landing commits the landed state the copy
+   is stale, and board.js --live removes it. */
+const VIEW = ["docs", "plans", ".live", "view"];
+function viewParts(dir) {
+  const parts = path.resolve(dir).split(path.sep);
+  for (let i = parts.length - VIEW.length; i >= 1; i--) if (VIEW.every((s, k) => parts[i + k] === s)) return { root: parts.slice(0, i).join(path.sep) + (i === 1 ? path.sep : ""), rel: parts.slice(i + VIEW.length) };
+  return null;
+}
+/* the tracked folder a view copy's folder stands for, or null when the folder is no view copy */
+function viewSource(dir) { const v = viewParts(dir); return v ? path.join(v.root, "docs", "plans", ...v.rel) : null; }
+/* the view copy's folder of a tracked board's folder, in the tree `root` (default: the folder's own tree) */
+function viewDirOf(dir, root) {
+  const own = treeRoot(dir), rel = path.relative(path.join(own, "docs", "plans"), path.resolve(dir));
+  return path.join(root || own, ...VIEW, ...(rel ? rel.split(path.sep) : []));
+}
+const VIEW_BASE_RE = /<base [^>]*data-live-view[^>]*>\r?\n/;
+/* While a view copy is resolved (embed.js, apply-event.js --view) or checked (check.js), its links to a neighbouring board (the parent,
+   a unit, any other issue) open that board's own view copy where a fresh one exists, so the live view stays one view: the landed
+   issue's copy opens its tracking board's copy, and back. The link is written from the tracked folder the copy's <base> names. Off
+   otherwise: a tracked board never links into .live/. */
+const VIEW_LINKS = { on: false };
+const setViewLinks = on => { VIEW_LINKS.on = !!on; };
+function viewLink(from, rel) {
+  if (!VIEW_LINKS.on || !rel || /^[a-z][a-z0-9+.-]*:/i.test(rel)) return rel;
+  const target = path.resolve(from, rel), dir = path.dirname(target);
+  if (viewParts(dir)) return rel;
+  const v = viewOf(dir); if (!v || !v.fresh || !fs.existsSync(path.join(v.dir, path.basename(target)))) return rel;
+  return path.relative(path.resolve(from), path.join(v.dir, path.basename(target))).split(path.sep).join("/");
+}
+/* a board's HTML as its view copy: the <base> line naming the tracked folder, right after <head> (replacing one there) */
+function withViewBase(html, viewDir, trackedDir) {
+  const href = path.relative(viewDir, trackedDir).split(path.sep).join("/") + "/", eol = /\r\n/.test(html) ? "\r\n" : "\n";
+  const h = html.replace(VIEW_BASE_RE, ""), m = h.match(/<head[^>]*>\r?\n/);
+  if (!m) throw new Error("the board has no <head> line to carry the view copy's <base>");
+  return h.slice(0, m.index + m[0].length) + `<base href="${href}" data-live-view>` + eol + h.slice(m.index + m[0].length);
+}
+/* How fresh a board's data is: its wip.updated (else since, else asBuilt.date), or on a tracking board a later unit.live.updated it
+   mirrors (board.js keeps the freshest copy of each board by it) */
+const planStamp = plan => { const w = (plan && plan.wip) || {};
+  return [String(w.updated || w.since || ((plan && plan.asBuilt) || {}).date || ""), ...((plan && plan.rows) || []).map(r => String((((r && r.unit) || {}).live || {}).updated || ""))].sort().pop(); };
+const readPlanIn = d => { try { return JSON.parse(fs.readFileSync(path.join(d, "plan.json"), "utf8")); } catch (e) { return null; } };
+/* The view copy of a tracked board's folder, in the tree `root`: { dir, fresh } when one exists (fresh: its data is later than the
+   tracked board's), else null. */
+function viewOf(dir, root) {
+  const v = viewDirOf(dir, root), vp = readPlanIn(v); if (!vp) return null;
+  const tp = readPlanIn(dir); return { dir: v, fresh: !tp || planStamp(vp) > planStamp(tp) };
 }
 /* Every issue folder under docs/plans/ of a tree that holds a board: { issue, dir } for each <issue>-<slug>/ with a dashboard.html,
    in name order, parents before their children. */
@@ -560,15 +681,29 @@ function boardFolders(root) {
   if (fs.existsSync(base)) walk(base);
   return found;
 }
-const boardLink = (from, toDir) => path.relative(path.resolve(from), path.join(toDir, "dashboard.html")).split(path.sep).join("/");
+const boardLink = (from, toDir) => viewLink(from, path.relative(path.resolve(from), path.join(toDir, "dashboard.html")).split(path.sep).join("/"));
 
+/* The board of the landed issue a fix corrects (plan.fixOf; plan/RULES.md §1, "A fix to an earlier plan's work"; admin-team/dashboards-skill/35),
+   seen from the fix's board in `dir`: "../dashboard.html" when the fix's folder sits inside that issue's folder (a folded-in fix), else that
+   issue's board wherever it is in the tree (a fix under its own GitHub parent), else null. A link only to a file that exists. */
+function fixOfBoard(dir, fixOf) {
+  if (!isObj(fixOf) || !Number.isInteger(fixOf.issue) || fixOf.issue <= 0) return null;
+  const up = path.dirname(path.resolve(dir));
+  if (path.basename(up).startsWith(fixOf.issue + "-") && fs.existsSync(path.join(up, "dashboard.html"))) return viewLink(dir, "../dashboard.html");
+  const root = treeRoot(dir); if (!root) return null;
+  const hit = boardFolders(root).find(b => b.issue === fixOf.issue && path.resolve(b.dir) !== path.resolve(dir));
+  return hit ? boardLink(dir, hit.dir) : null;
+}
+/* Whether a fix's folder sits inside the folder of the landed issue it fixes (a folded-in fix): check.js leaves such a folder out of the
+   "kept outside its parent's folder" warning when the fix has no GitHub parent. */
+const foldedIn = (dir, plan) => !!(plan && isObj(plan.fixOf) && Number.isInteger(plan.fixOf.issue) && path.basename(path.dirname(path.resolve(dir))).startsWith(plan.fixOf.issue + "-"));
 /* The parent tracking issue's board, seen from a sub-issue's board in `dir` (plan/RULES.md §1, "Links to an issue's board"): the
    enclosing folder, when it is the parent's <issue>-<slug>/ and holds dashboard.html. Returns { board: "../dashboard.html" } or
    null, so the parent is linked to its board only when that file exists. */
 function parentBoard(dir, parent) {
   if (!parent || !Number.isInteger(parent.issue) || parent.issue <= 0) return null;
   const up = path.dirname(path.resolve(dir));
-  return path.basename(up).startsWith(parent.issue + "-") && fs.existsSync(path.join(up, "dashboard.html")) ? { board: "../dashboard.html" } : null;
+  return path.basename(up).startsWith(parent.issue + "-") && fs.existsSync(path.join(up, "dashboard.html")) ? { board: viewLink(dir, "../dashboard.html") } : null;
 }
 
 /* Every issue an issue board names, where the board names it (plan/RULES.md §1): one entry per place, { n, repo, at, how, place,
@@ -627,6 +762,7 @@ function issueRefs(plan) {
   /* fields */
   String(plan.folder || "").split("/").filter(Boolean).slice(2, -1).forEach(s => { const m = s.match(/^(\d+)-/); if (m) add(parseInt(m[1], 10), "folder", "the breadcrumb", "issue", "field", null, { crumb: true }); });
   if (plan.parent) add(plan.parent.issue, "parent.issue", 'the header\'s "part of" chip', "issue");
+  if (isObj(plan.fixOf)) add(plan.fixOf.issue, "fixOf.issue", "the header's \"fix to\" chip", "issue");
   const rm = plan.roadmap;
   if (!tracking && rm) { add(rm.issue, "roadmap.issue", "the Context roadmap", "issue"); (rm.items || []).forEach((x, i) => add(x.issue, `roadmap.items[${i}]`, "the Context roadmap", "issue")); }
   (plan.followUps || []).forEach((f, i) => add(f.issue, `followUps[${i}]`, `followUps[${i}] in Context`, "sub", "field", f.repo));
@@ -714,6 +850,13 @@ function linkIssueBoards(plan, dir) {
       changes.push(`parent #${plan.parent.issue}: parent.board ${plan.parent.board ? JSON.stringify(plan.parent.board) : "unset"} → ${want ? JSON.stringify(want) : "null (the enclosing folder holds no board of #" + plan.parent.issue + ")"}`);
       plan.parent.board = want;
     }
+  }
+  /* a fix to an earlier plan's work (plan/RULES.md §1, "A fix to an earlier plan's work"; admin-team/dashboards-skill/35): fixOf.board, the
+     landed issue's board it fixes, from the folders on disk: the enclosing folder when it is that issue's (a folded-in fix), else that
+     issue's board anywhere in the tree (a fix under its own GitHub parent), else null */
+  if (isObj(plan.fixOf) && Number.isInteger(plan.fixOf.issue)) {
+    const want = fixOfBoard(dir, plan.fixOf);
+    if ((plan.fixOf.board || null) !== want) { changes.push(`fix to #${plan.fixOf.issue}: fixOf.board ${plan.fixOf.board ? JSON.stringify(plan.fixOf.board) : "unset"} → ${want ? JSON.stringify(want) : "null (no board of #" + plan.fixOf.issue + " in this tree)"}`); plan.fixOf.board = want; }
   }
   const want = otherBoards(plan, dir), have = plan.issueBoards && typeof plan.issueBoards === "object" ? plan.issueBoards : {};
   if (JSON.stringify(have) !== JSON.stringify(want) || ("issueBoards" in plan && !Object.keys(want).length)) {
@@ -859,17 +1002,20 @@ const inPlaceWords = p => p && p.inPlace ? `${p.inPlace === "fixing" ? "fixing" 
 /* A qa pass's number as an ordinal: 1st, 2nd, 3rd, 4th, … 11th, 12th, 13th, 21st (the repository work board's QA cell, an issue board's qa pills). */
 const ordinal = n => { const k = Math.abs(parseInt(n, 10)); if (!Number.isFinite(k)) return String(n); const t = k % 100, u = k % 10; return `${n}${t >= 11 && t <= 13 ? "th" : u === 1 ? "st" : u === 2 ? "nd" : u === 3 ? "rd" : "th"}`; };
 /* A dependency's two states (the repository work board's "Depends on"; an issue board's "depends on"; a tracking board's units; admin-team/
-   dashboards-skill/30), each derived from the data, never written by hand:
-   - its build state, depBuild(): "blocking" when it is part of the plan (a unit, or a sub-issue, of the row's tracking issue) and still
-     open, not landed; "clear" when it is part of the plan and closed or landed; "pre-built" when it is not part of the tracking issue and
-     was already built (closed) before the tracking plan started, so the plan relies on it without a unit of its own. A dependency that
-     fits none (not part of the plan and still open, or closed only after the plan started; or a row with no tracking issue whose
-     dependency is open) has no build state: { build: null, why }, reported by board.js, never given one;
+   dashboards-skill/30, its build state redefined by dashboards-skill/35), each derived from the data, never written by hand:
+   - its build state, depBuild(): the code is what blocks, not the GitHub issue. "blocking" while the dependency's code is not merged; "clear"
+     once it is merged (its board landed, its unit landed, its issue closed as completed, or an issue still open whose pull request has
+     merged: the code was the blocker, not the issue), in a plan or not; "pre-built" for a dependency outside the plan (no unit or
+     sub-issue of the row's tracking issue, or of the row's own plan where it has none) whose code was merged before the plan started (its
+     board's sizing, else its baseline, else its issue's creation): the plan relies on it without a unit of its own, and pre-built takes
+     precedence where both it and clear fit; "dropped" for a dependency closed as not planned: the dependent waits on code that will never
+     arrive, and its plan needs another look. A dependency closed as a duplicate takes the state of the issue it duplicates (duplicateOf);
+     one whose canonical issue the tracker does not name has no build state: { build: null, why }, reported by board.js, never given one;
    - its locality, depLocality(): "local-repository" (the same repository), "local-organization" (another repository of the same GitHub
      organization), "local-parent-org" (a repository of the parent organization, ORG_PARENT), "external-<name>" (outside both
      organizations, named by its owner). A case that fits none (a parent organization's repository depending on a child's) has none:
      { locality: null, why }, reported, never given one. */
-const DEP_STATES = ["blocking", "clear", "pre-built"];
+const DEP_STATES = ["blocking", "clear", "pre-built", "dropped"];
 /* The two organizations and their relation (the user's: SpartanLaboratories is the parent of SpartanLabsGaming). */
 const ORG_PARENT = { SpartanLabsGaming: "SpartanLaboratories" };
 const LOCALITIES = ["local-repository", "local-organization", "local-parent-org", "external"];
@@ -884,13 +1030,25 @@ function depLocality(fromRepo, depRepo) {
   return { locality: null, why: `${to} is in ${o}, which is neither ${a}'s own organization nor its parent organization (a parent organization's repository depending on a child's): no locality rule fits` };
 }
 const localityKind = l => !l ? null : String(l).startsWith("external-") ? "external" : l;
-/* inPlan: the dependency is a unit or sub-issue of the row's tracking issue (false when the row has none); done: it has landed or is closed;
-   closedAt, planStart: ISO dates or stamps (either may be unknown). */
-function depBuild({ inPlan, done, closedAt, planStart, tracking }) {
-  if (inPlan) return { build: done ? "clear" : "blocking" };
-  if (!done) return { build: null, why: tracking ? "not part of the tracking issue and still open" : "the issue belongs to no tracking issue and its dependency is still open" };
-  if (closedAt && planStart && String(closedAt).slice(0, 10) > String(planStart).slice(0, 10)) return { build: null, why: `not part of the tracking issue, and closed (${String(closedAt).slice(0, 10)}) only after the plan started (${String(planStart).slice(0, 10)})` };
-  return { build: "pre-built", ...(closedAt && planStart ? {} : { note: "closed; when, relative to the plan's start, is not recorded" }) };
+/* inPlan: the dependency is a unit or sub-issue of the row's tracking issue (false when the row has none); merged (done, the older name):
+   its code is merged — landed, closed as completed, or open with a merged pull request; mergedAt (closedAt, the older name): when, an ISO
+   date or stamp (may be unknown); planStart: when the plan started (may be unknown); reason: the tracker's stateReason of a closed issue
+   (NOT_PLANNED: dropped; DUPLICATE: the state of duplicateOf, the issue it duplicates, given as the same kind of object, resolved here;
+   duplicateOf null: unknown). Returns { build, why?, note?, via? }. */
+function depBuild(o) {
+  const x = o || {}, seen = x.seen || new Set();
+  if (x.reason === "NOT_PLANNED") return { build: "dropped" };
+  if (x.reason === "DUPLICATE") {
+    const d = x.duplicateOf;
+    if (!d || typeof d !== "object") return { build: null, why: "closed as a duplicate of an issue the tracker does not name: its state is the canonical issue's" };
+    const key = `${d.repo || ""}#${d.issue || ""}`; if (seen.has(key)) return { build: null, why: "closed as a duplicate in a loop of duplicates" };
+    seen.add(key); const r = depBuild({ inPlan: x.inPlan, planStart: x.planStart, tracking: x.tracking, ...d, seen });
+    return { ...r, via: d.issue != null ? `#${d.issue}` : "its canonical issue" };
+  }
+  const merged = x.merged != null ? !!x.merged : !!x.done, at = x.mergedAt || x.closedAt || null, start = x.planStart || null;
+  if (!merged) return { build: "blocking" };
+  if (!x.inPlan && at && start && String(at).slice(0, 10) <= String(start).slice(0, 10)) return { build: "pre-built" };
+  return { build: "clear", ...(!x.inPlan && !(at && start) ? { note: "merged; when, relative to the plan's start, is not recorded: clear, as pre-built cannot be told" } : {}) };
 }
 /* What an issue does to the issues it holds up (the repository work board's "Blocks · enables"; an issue board's and a tracking board's units'):
    "blocks" while it is still open, not done; "enables" once it is done (landed, or its issue closed). */
@@ -911,11 +1069,11 @@ function signedOffParent(dir, plan) {
 const RECON_WORDS = { planned: "planned", partial: "partly reconciled", "as-built": "as built" };
 /* The step-to-column map (plan/RULES.md §3, "The glow follows the step"): what wip.current holds at each wip.step, written once
    for the scripts (check.js warns on a board that does not keep it; new.js lays the foundation's wip.current from it).
-     none     nothing glows                                  sizing, branch, landing, landed, cancelled
+     none     nothing glows                                  sizing, branch, landing, merge, landed, cancelled (state-boards, an older line's)
      cells    the cell the question concerns, or nothing      interview (<row-id>.<column> addresses only, no whole column)
      research the Considered cells of the rows the research  research (researchGlow below: the open questions' rows, the whole
               questions name                                  Considered column as the fallback)
-     columns  exactly these columns                           architecture: considered; plan: considered, verdict; qa: built
+     columns  exactly these columns                           architecture: considered; plan: considered, verdict; qa, document: built
      built    the As built cells of the rows the stage, or    implementation, remediation (<row-id>.built addresses on an issue board;
               the findings, touch                             the whole As built column, ["built"], when the current stage touches no
                                                               rows, no stage is current, or the rows the findings touch are not known;
@@ -927,6 +1085,9 @@ const GLOW_MAP = {
   sizing: { kind: "none" }, interview: { kind: "cells" }, research: { kind: "research" },
   architecture: { kind: "columns", cols: ["considered"] }, plan: { kind: "columns", cols: ["considered", "verdict"] }, branch: { kind: "none" },
   implementation: { kind: "built" }, qa: { kind: "columns", cols: ["built"] }, remediation: { kind: "built" },
+  /* the Document step (admin-team/dashboards-skill/35): its tasks reconcile the as-built record and the consequences that column 4 reads,
+     so the whole As built column glows, as at qa */
+  document: { kind: "columns", cols: ["built"] },
   landing: { kind: "none" }, "state-boards": { kind: "none" }, merge: { kind: "none" }, landed: { kind: "none" }, cancelled: { kind: "none" },
   /* a tracking board after its architecture (plan/RULES.md §3): filing the units as sub-issues, then creating their boards; each unit row's
      label glows on its own while its issue (then its board) is made, and stops when that one is done (admin-team/dashboards-skill/28; it
@@ -999,7 +1160,7 @@ function researchGlow(plan) {
 }
 /* The plan-board events (plan/RULES.md §4), as wip.event.name records the last one a board took. */
 const EVENTS = ["sized", "halted", "resumed", "research-planning", "research-started", "research-returned", "verification-started", "researched",
-  "architecture-signed-off", "sub-issues-filed", "boards-created", "plan-accepted", "branch-cut", "implementation-stage", "qa-pass", "escalated", "landing", "state-boards", "merge", "landed", "cancelled"];
+  "architecture-signed-off", "sub-issues-filed", "boards-created", "plan-accepted", "branch-cut", "implementation-stage", "qa-pass", "document", "escalated", "landing", "state-boards", "merge", "landed", "cancelled"];
 /* A row's as-built state before its outcome (plan/RULES.md §2, "Before the outcome"): derived from the implementation stages while the
    run is live. On an issue board, for a row wip.stages touches: "in-progress" when a current stage touches it, "partially-built" when a
    done stage touched it and a later stage still to come touches it, "pending" when only stages to come touch it; null otherwise (no
@@ -1137,7 +1298,9 @@ const TL_FAMILIES = [
   { id: "planning", steps: ["sizing", "interview", "research", "architecture", "plan", "sub-issues", "boards"] },
   { id: "build", steps: ["branch", "implementation"] },
   { id: "checking", steps: ["qa", "remediation"] },
-  { id: "landing", steps: ["landing", "state-boards", "merge"] },
+  /* the Document step (admin-team/dashboards-skill/35) is the land's preparation, the documents and the state boards on the branch: it takes
+     the landing family, with the land's steps; state-boards stays in it for a board on the older line */
+  { id: "landing", steps: ["document", "landing", "state-boards", "merge"] },
 ];
 const tlFamily = step => (TL_FAMILIES.find(f => f.steps.includes(step)) || { id: "other" }).id;
 /* a step's shade within its family, as the share of the family's last end in its mix with its first end: 0 % for the family's first
@@ -1287,5 +1450,5 @@ function gitTimes(repoDir, folder, merge) {
   return out;
 }
 
-module.exports = { boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, HISTORY_FIELDS, HISTORY_STEPS, STEP_ORDER, LANDING_STEPS, landingSteps, shownStep, visitKey, freezeVisit, freezeSteps, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
-  trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, parentFolder, staleUnitRuns, stampMs, treeRoot, boardFolders, boardLink, parentBoard, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };
+module.exports = { boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, HISTORY_FIELDS, HISTORY_STEPS, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, shownStep, visitKey, freezeVisit, freezeSteps, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+  trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, setViewLinks, viewLink, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

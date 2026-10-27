@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Lay an issue board's foundation (the "sized" event, plan/RULES.md §4): docs/plans/[<parent>/]<issue>-<slug>/{plan.json,dashboard.html}.
-//   node new.js <issue> <slug> [--root <repo>] [--parent <folder under docs/plans>] [--kind issue|tracking] [--level 2|3|4]
+//   node new.js <issue> <slug> [--root <repo>] [--parent <folder under docs/plans>] [--fix-of <landed issue>] [--kind issue|tracking] [--level 2|3|4]
 //               [--title "Short name"] [--issue-title "The issue's title"] [--function "One paragraph"]
 //               [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems slug,slug] [--step research] [--repo owner/name]
 // The repository root is --root, else the current directory. Systems take their names and colour slots from
@@ -18,16 +18,17 @@
 // event starts the board in place.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
-const { repoRoot, opt, registry, signedOffParent, glowFor, subIssueBoard } = require("./lib.js");
+const { repoRoot, opt, registry, signedOffParent, glowFor, subIssueBoard, boardFolders } = require("./lib.js");
 const { embed } = require("./embed.js");
 
 const args = process.argv.slice(2);
 /* A tracking issue (level 4) runs its own steps up to its architecture and the landing of its plan; then "implementation" spans its
    units' runs, each on its own board, from the first unit's start until the last unit lands, and "landed" follows (plan/RULES.md §3). */
+/* the Document step before the land, then the land's two steps, landing and merge (admin-team/dashboards-skill/35; plan/RULES.md §3) */
 const STEPS_BY_LEVEL = {
-  2: ["sizing", "research", "plan", "branch", "implementation", "qa", "remediation", "landing", "state-boards", "merge", "landed"],
-  3: ["sizing", "interview", "research", "plan", "branch", "implementation", "qa", "remediation", "landing", "state-boards", "merge", "landed"],
-  4: ["sizing", "interview", "research", "architecture", "sub-issues", "boards", "landing", "state-boards", "merge", "implementation", "landed"]};
+  2: ["sizing", "research", "plan", "branch", "implementation", "qa", "remediation", "document", "landing", "merge", "landed"],
+  3: ["sizing", "interview", "research", "plan", "branch", "implementation", "qa", "remediation", "document", "landing", "merge", "landed"],
+  4: ["sizing", "interview", "research", "architecture", "sub-issues", "boards", "document", "landing", "merge", "implementation", "landed"]};
 if (args.includes("--batch")) { batch(args); process.exit(0); }
 function batch(a) {
   require("../../system/scripts/cliargs.js").strict(a, { usage: "usage: node new.js --batch <tracking folder> [--root <repo>] [--units id,id] [--baseline <sha>] [--date YYYY-MM-DD]", valued: ["batch", "root", "units", "baseline", "date"], max: 0 });
@@ -65,18 +66,25 @@ function batch(a) {
   kept.forEach(k => console.log(`left: ${k}`));
   console.log(`${made.length} board${made.length === 1 ? "" : "s"} laid in ${trel}${made.length ? "; the tracking board is re-embedded and links them" : ""}`);
 }
-require("../../system/scripts/cliargs.js").strict(args, { usage: "usage: node new.js <issue> <slug> [--root <repo>] [--parent <folder>] [--kind issue|tracking] [--level n] [--title ...] [--issue-title ...] [--function ...] [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems a,b] [--step <step>] [--repo owner/name]",
-  valued: ["root", "parent", "kind", "level", "title", "issue-title", "function", "baseline", "date", "branch", "systems", "step", "repo"], min: 2, max: 2 });
+require("../../system/scripts/cliargs.js").strict(args, { usage: "usage: node new.js <issue> <slug> [--root <repo>] [--parent <folder>] [--fix-of <issue>] [--kind issue|tracking] [--level n] [--title ...] [--issue-title ...] [--function ...] [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems a,b] [--step <step>] [--repo owner/name]",
+  valued: ["root", "parent", "fix-of", "kind", "level", "title", "issue-title", "function", "baseline", "date", "branch", "systems", "step", "repo"], min: 2, max: 2 });
 const issue = parseInt(args[0], 10), slug = args[1];
 if (!issue || !slug || !/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
-  console.error("usage: node new.js <issue> <slug> [--root <repo>] [--parent <folder>] [--kind issue|tracking] [--level n] [--title ...] [--issue-title ...] [--function ...] [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems a,b] [--step <step>] [--repo owner/name]");
+  console.error("usage: node new.js <issue> <slug> [--root <repo>] [--parent <folder>] [--fix-of <issue>] [--kind issue|tracking] [--level n] [--title ...] [--issue-title ...] [--function ...] [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems a,b] [--step <step>] [--repo owner/name]");
   process.exit(2);
 }
 let root; try { root = repoRoot(args); } catch (e) { console.error(e.message); process.exit(2); }
 const tpl = path.resolve(__dirname, "..", "template");
 const name = slug.startsWith(issue + "-") ? slug : `${issue}-${slug}`;
 const parent = opt(args, "parent", "");
-const rel = ["docs", "plans", ...parent.split(/[\\/]/).filter(Boolean), name].join("/"), dir = path.join(root, ...rel.split("/"));
+/* --fix-of <n>: a fix to the work of an earlier, landed issue (plan/RULES.md §1, "A fix to an earlier plan's work"; admin-team/dashboards-skill/35):
+   with --parent it sits under its own GitHub parent, else inside the landed issue's folder (a folded-in fix); plan.fixOf names that issue,
+   and embed.js links its board */
+const fixOf = opt(args, "fix-of", null), fixN = fixOf ? parseInt(String(fixOf).replace(/^#/, ""), 10) : null;
+if (fixOf && !(fixN > 0)) { console.error(`--fix-of takes the number of the landed issue this fixes (got ${JSON.stringify(fixOf)})`); process.exit(2); }
+let host = "";
+if (fixN && !parent) { const hit = boardFolders(root).find(b => b.issue === fixN); if (!hit) { console.error(`--fix-of ${fixN}: #${fixN}'s folder is not in this tree; name --parent <folder> for a fix under its own GitHub parent`); process.exit(2); } host = path.relative(path.join(root, "docs", "plans"), hit.dir).split(path.sep).join("/"); }
+const rel = ["docs", "plans", ...(parent || host).split(/[\\/]/).filter(Boolean), name].join("/"), dir = path.join(root, ...rel.split("/"));
 if (fs.existsSync(path.join(dir, "dashboard.html")) || fs.existsSync(path.join(dir, "plan.json"))) { console.error(`refusing to overwrite: ${rel} already holds a plan.json or dashboard.html`); process.exit(1); }
 
 const reg = registry(root);
@@ -100,13 +108,14 @@ Object.assign(plan, {
   sized: now,
   // parent.board is set by embed.js below, from the folders on disk: "../dashboard.html" only when the parent folder holds a board
   parent: parent ? { issue: parseInt(path.basename(parent), 10) || null, board: null } : null,
+  ...(fixN ? { fixOf: { issue: fixN, board: null } } : {}),
   branch: opt(args, "branch", null),
   baseline: { ref: "master", sha: opt(args, "baseline", plan.baseline.sha), date: opt(args, "date", plan.baseline.date) },
   asBuilt: null,
   systems: (opt(args, "systems", "") || "").split(",").filter(Boolean).map(s => (reg && reg.info(s)) || { slug: s, name: s, slot: 0, top: s, status: "built", board: null }),
   wip: { step, since: now, updated: now, detail: "", steps: STEPS_BY_LEVEL[level] || STEPS_BY_LEVEL[3], current: step === "research" ? [] : glowFor(step) /* the step-to-column map, plan/RULES.md §3; a new board has no rows, and during research planning a board with no rows glows nothing */, questions: [] /* the research questions, each with its state, from research-started (plan/RULES.md §3) */, research: null /* the research phase, from research-planning */, interview: [] /* the interview questions, answered or waiting */, plan: null /* the plan pass: writing, or a re-pass */, stages: [] /* the implementation stages, from plan.md */, remediation: null, open: [] /* the open points raised during the run, until resolved */, event: { name: "sized", at: now } /* the last event (plan/RULES.md §4) */, history: { sizing: [{ since: null, ended: now, endedBy: "sized", to: step }] } /* the finished steps, frozen as they end (plan/RULES.md §3, "Finished steps"): sizing ends here */, next: null, qa: [], qaMax: 3, waitingOn: null, resume: null, blockers: { waitsOn: [], blocks: [] }, landing: null },
-  // impact is written at plan acceptance from impact.md and reconciled at the landing (plan/RULES.md §2, Impact); until then the
-  // Impact tab says that nothing is recorded yet
+  // impact is written at plan acceptance from consequences.md (impact.md in an older folder) and reconciled at the landing (plan/RULES.md
+  // §2, Consequences); until then the Consequences tab says that nothing is recorded yet
   milestones: [], trail: [], rows: [], impact: null, tests: null, roadmap: null, followUps: [], documents: [], notes: {}
 });
 if (plan.parent && !plan.parent.issue) plan.parent = null;

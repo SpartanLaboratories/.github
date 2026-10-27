@@ -147,9 +147,9 @@ module.exports = function cases29(X) {
     const d = dumpDom(page, "", "1400,1000");
     c.push(["a browser renders the board (set CHROME)", d != null, "no Chrome or Edge found"]);
     if (d != null) {
-      const cards = inner(d, '<div class="syscards" id="syscards">', "div"), card = slug => (cards.match(new RegExp(`<span class="syscard planned"[^>]*data-slug="${slug}"[\\s\\S]*?</span></div></span>`)) || [""])[0];
+      const cards = inner(d, '<div id="syscards">', "div"), card = slug => (cards.match(new RegExp(`<span class="syscard planned"[^>]*data-slug="${slug}"[\\s\\S]*?</span></div></span>`)) || [""])[0];
       const g = card("system-gamma"), dl = card("system-delta"), key = text(inner(d, '<div class="key" id="systems-key">', "div"));
-      c.push(["the planned supersystem's card links its built parts' board and says \"planned · built in part\", not \"no board yet\"", /<div class="st">planned · built in part<\/div>/.test(g) && /<a href="system-gamma\/index\.html">its built parts' board<\/a>/.test(g) && !/no board yet/.test(g), text(g).slice(0, 220)]);
+      c.push(["the planned supersystem's card links its built parts' board and says \"planned supersystem · built in part\" (the template's words since dashboards-skill/35), not \"no board yet\"", /<div class="st">planned supersystem · built in part<\/div>/.test(g) && /<a href="system-gamma\/index\.html">its built parts' board<\/a>/.test(g) && !/no board yet/.test(g), text(g).slice(0, 220)]);
       c.push(["…as a link inside the card, the card itself a span (links do not nest: \"its plan\" is a link too)", /^<span class="syscard planned"/.test(g) && !/<a class="syscard planned"[^>]*data-slug="system-gamma"/.test(cards), g.slice(0, 120)]);
       c.push(["a planned system with no board still says \"planned · no board yet\", with no board link", /<div class="st">planned · no board yet<\/div>/.test(dl) && !/its built parts' board/.test(dl), text(dl).slice(0, 200)]);
       c.push(["the legend names both: \"planned: no board yet, or built in part: links its built parts' board\"", /planned: no board yet, or built in part: links its built parts' board/.test(key), key.slice(0, 300)]);

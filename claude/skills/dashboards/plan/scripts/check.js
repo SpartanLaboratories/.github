@@ -8,21 +8,23 @@
 //                                        only if the board deviates from its template, declared or not, or the template changed
 //                                        since verify/verify-templates.js verified it; a board that is the verified template plus
 //                                        its data gets none
+// A view copy's folder (docs/plans/.live/view/<folder>/) is checked as the board it stands for: its links from the tracked folder, its
+// <base> line held to that folder (plan/RULES.md §4, "The live view of a landing").
 // Exit 0 when every rule holds, 1 otherwise. Warnings never fail the run.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
-const { levelRefsIn, titleSkip, issueTitleRefs, titleDefect } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
+const { levelRefsIn, titleSkip, issueTitleRefs, titleDefect, nameTestLevels } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
 const { nameRefsIn, commentRefs, nameWarning } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
 const { paletteCheck } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js"));
 const { unitTests, DEP_STATES, HOLD_STATES } = require("./lib.js");
-const { HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, isTime, APPROX_SOURCES, timelineApproxNote, timelineSteps, tlSpan, timelineLines, timelineLeftOut, timelineTotal, unitInRun, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, opt, flag } = require("./lib.js");
+const { HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, isTime, APPROX_SOURCES, timelineApproxNote, timelineSteps, tlSpan, timelineLines, timelineLeftOut, timelineTotal, unitInRun, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, fixOfBoard, foldedIn, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, viewSource, setViewLinks, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
 const STATES = ["pending", "in-progress", "partially-built", "as-planned", "amended", "deviated", "dropped", "deferred", "complete", "landed"];
 const VERDICTS = ["accepted", "declined", "partial", "deferred"];
 const GAP_KINDS = ["bug", "missing", "debt", "risk"];
 const COLUMNS = ["gap", "considered", "verdict", "built"];
-const STEPS = ["sizing", "interview", "research", "architecture", "sub-issues", "boards", "plan", "branch", "implementation", "qa", "remediation", "landing", "state-boards", "merge", "landed", "halted", "escalated", "cancelled"];
+const STEPS = ["sizing", "interview", "research", "architecture", "sub-issues", "boards", "plan", "branch", "implementation", "qa", "remediation", "document", "landing", "state-boards", "merge", "landed", "halted", "escalated", "cancelled"];
 const QA = ["approved", "changes-requested", "running"];
 const DATE = /^\d{4}-\d{2}-\d{2}$/, STAMP = /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
 const ID = /^[a-z0-9][a-z0-9-]*$/, SHA = /^[0-9a-f]{7,40}$/;
@@ -53,7 +55,7 @@ function listings(v, at, found) {
 /* A relative link on the board: its file must exist, and its #anchor must be a heading of that Markdown file. */
 function checkLink(dir, ref, at) {
   if (!str(ref) || /^https?:/.test(ref) || SHA.test(ref) || /^(PR )?#\d+$/i.test(ref) || /^[\w.-]+\/[\w.-]+#\d+$/.test(ref)) return;
-  const m = ref.match(/^([\w./-]+\.(?:md|html|json|kt|kts|dsl|txt)|[\w./-]+\/)(#[\w-]+)?/); if (!m) return;
+  const m = ref.match(/^([\w./-]+\.(?:md|html|json|kt|kts|dsl|txt|xml|log)|[\w./-]+\/)(#[\w-]+)?/); if (!m) return;
   const file = path.resolve(dir, m[1]);
   if (!fs.existsSync(file)) { warn(`${at}: links ${m[1]}, which does not exist from this folder`); return; }
   if (m[2] && /\.md$/.test(m[1]) && !headingSlugs(fs.readFileSync(file, "utf8")).has(m[2].slice(1))) warn(`${at}: ${m[1]} has no heading ${m[2]}`);
@@ -73,6 +75,12 @@ function levelFail(data, file) {
   const hits = levelRefsIn(data, "", [], titleSkip(data));
   // a decision's defence written as its work level ("Level 3: one system, additive"), the architecture's usual form
   (data.rows || []).forEach((r, i) => { const d = (r && r.verdict || {}).defense; if (typeof d === "string" && /^\s*level [1-4]\b(?![a-c])\s*[:.]/i.test(d)) hits.push({ at: `rows[${i}].verdict.defense`, hit: d.slice(0, 9) }); });
+  /* a bare test level beside a test word ("L2 test", admin-team/dashboards-skill/35) is no work level, but a board writes a test level with
+     its name: warned, naming the form to write (levelrefs.js nameTestLevels()) */
+  const bare = []; const walkB = (v, at) => { if (typeof v === "string") { const n = nameTestLevels(v); if (n.named.length) bare.push(`${at} ("${n.named.join(", ")}" → "${(n.text.match(/\bL[1-3] (?:gating|component|integration)\b/) || [""])[0]}")`); }
+    else if (Array.isArray(v)) v.forEach((x, i) => walkB(x, `${at}[${i}]`)); else if (v && typeof v === "object") Object.keys(v).forEach(k => { if (k !== "$comment") walkB(v[k], at ? `${at}.${k}` : k); }); };
+  walkB(data, "");
+  if (bare.length) warn(`BARE TEST LEVEL: ${file} writes a test level without its name: ${bare.slice(0, 4).join(", ")}${bare.length > 4 ? ", …" : ""}; write its named test level (GUIDANCE.md §4)`);
   if (hits.length) fail(`${file} shows a work level, which a dashboard never does: ${hits.slice(0, 6).map(h => `${h.at} ("${h.hit}")`).join(", ")}${hits.length > 6 ? ` and ${hits.length - 6} more` : ""}; say what the work is instead (one system, a bug fix, docs only)`);
 }
 
@@ -217,6 +225,8 @@ function checkPlan(plan, dir, root) {
     (bld.changes || []).forEach((c, j) => {
       const cat = `${at}.asBuilt.changes[${j}]`;
       if (!str(c.what) || !str(c.why)) fail(`${cat}: "what" and "why" are required`);
+      /* the research finding or architecture section behind the deviation, final-implementation.md's secondary link (dashboards-skill/35) */
+      if (c.link != null) { if (!str(c.link)) fail(`${cat}.link is the research finding or architecture section behind the deviation, or left out`); else checkLink(dir, c.link, `${cat}.link`); }
       if (c.settles) {
         const sid = typeof c.settles === "string" ? c.settles : c.settles.option, sv = typeof c.settles === "object" ? (c.settles.verdict || "accepted") : "accepted";
         const o = opts.find(x => x.id === sid);
@@ -286,6 +296,21 @@ function checkPlan(plan, dir, root) {
       if (away.length) warn(`the parent #${p.issue}'s board is at ${away[0].folder}/dashboard.html, but this board's folder is not inside it: the "part of" chip keeps linking the GitHub issue until this folder sits inside #${p.issue}'s`);
     }
   }
+  /* A fix to an earlier plan's work (RULES §1, "A fix to an earlier plan's work"; admin-team/dashboards-skill/35): fixOf names the landed
+     issue it fixes, { issue, title?, board }; its folder sits inside that issue's folder (a folded-in fix) or under its own GitHub parent;
+     embed.js sets fixOf.board from the folders on disk */
+  const fx = plan.fixOf;
+  if (fx != null) {
+    if (typeof fx !== "object" || Array.isArray(fx) || !posInt(fx.issue)) fail('fixOf must be { "issue": <the landed issue this fixes>, "title": "…", "board": <set by embed.js> }');
+    else {
+      if (fx.issue === plan.issue) fail("fixOf names the board's own issue: it names the landed issue whose work this fixes");
+      if (fx.title != null && !str(fx.title)) fail("fixOf.title is that issue's title, quoted verbatim, or left out");
+      const want = fixOfBoard(dir, fx);
+      if (fx.board && (!str(fx.board) || !fs.existsSync(path.resolve(dir, fx.board)))) fail(`fixOf.board ${JSON.stringify(fx.board)} names no board in this tree, a dead link: run embed.js, which clears it`);
+      else if ((fx.board || null) !== want) warn(`fixOf.board is ${JSON.stringify(fx.board || null)}, but the folders on disk give ${JSON.stringify(want)}: run embed.js`);
+      if (!plan.parent && !foldedIn(dir, plan)) warn(`this fix to #${fx.issue} has no GitHub parent and its folder is not inside #${fx.issue}'s: a folded-in fix sits in the folder of the issue it fixes (RULES §1)`);
+    }
+  }
   if (plan.issueBoards != null) {
     if (typeof plan.issueBoards !== "object" || Array.isArray(plan.issueBoards)) fail('issueBoards must be an object { "<issue>": "<path to its dashboard.html>" } (embed.js writes it)');
     else {
@@ -335,6 +360,9 @@ function checkPlan(plan, dir, root) {
     (w.qa || []).forEach((p, j) => { if (!posInt(p.pass)) fail(`wip.qa[${j}].pass must be a pass number`); if (!QA.includes(p.verdict)) fail(`wip.qa[${j}].verdict must be one of ${QA.join(", ")}`); if (p.date && !DATE.test(p.date)) fail(`wip.qa[${j}].date "${p.date}" is not YYYY-MM-DD`);
       /* finding counts: by kind (findings: documentation, test, code) and, where the qa report states it, by severity (severity: {"<word>": n}) */
       /* the in-place mark is derived (lib.js qaInPlace(), dashboards-skill/31) from the recorded route, never stored */
+      /* the pass's test report (dashboards-skill/35): its path, plain text (a build output, never committed), and the live view's copy */
+      if (p.report != null && (!str(p.report) || /^(?:[a-z]:[\\/]|[\\/])/i.test(p.report))) fail(`wip.qa[${j}].report is the test report's path from the repository root (build/reports/tests/index.html), never a machine-local path (got ${JSON.stringify(p.report)})`);
+      if (p.reportCopy != null && (!str(p.reportCopy) || !/^[\w.-]+(\/[\w.-]+)*$/.test(p.reportCopy) || p.reportCopy.split("/").includes(".."))) fail(`wip.qa[${j}].reportCopy is the path of its copy under docs/plans/.live/open/ (apply-event.js takes it), or left out`);
       if (p.inPlace != null) fail(`wip.qa[${j}].inPlace is derived from the pass's route (lib.js qaInPlace()), never stored: record route "on-the-spot" instead`);
       if (p.route != null && !ROUTES.includes(p.route)) fail(`wip.qa[${j}].route must be one of ${ROUTES.join(", ")} (got ${JSON.stringify(p.route)})`);
       else if (p.route != null && p.verdict !== "changes-requested") warn(`wip.qa[${j}] (pass ${p.pass}) records a route (${p.route}) but its verdict is ${p.verdict}: a route answers requested changes`);
@@ -562,6 +590,13 @@ function checkPanel(plan, w, ids, tracking, dir) {
       if (!str(x.raised)) fail(`${at}.raised names the event or stage that raised it (e.g. "implementation-stage S2")`);
       if (x.ref != null) { if (!str(x.ref)) fail(`${at}.ref is a link to where the point is recorded, or left out`); else checkLink(dir, x.ref, `${at}.ref`); }
       if (x.resolved != null && x.resolved !== true && !str(x.resolved)) fail(`${at}.resolved is how it was resolved (a sentence, or true), or left out while it is open`);
+      /* the copy of the report the point was raised against (dashboards-skill/35): a path under docs/plans/.live/open/, which the live view links */
+      if (x.copy != null && (!str(x.copy) || !/^[\w.-]+(\/[\w.-]+)*$/.test(x.copy) || x.copy.split("/").includes(".."))) fail(`${at}.copy is the path of its report's copy under docs/plans/.live/open/ (apply-event.js takes it), or left out (got ${JSON.stringify(x.copy)})`);
+      /* no open point is committed open (RULES §3, wip.open; admin-team/dashboards-skill/35): from the landing on (landing, state-boards,
+         merge, or a halt there) every open point is resolved; a landed board that kept one, from before the rule, is warned on */
+      { const rs = ["halted", "escalated"].includes(w.step) ? w.resume : w.step;
+        if (!x.resolved && ["landing", "state-boards", "merge"].includes(rs)) fail(`OPEN POINT AT THE LAND: ${at} ("${x.text.slice(0, 60)}") is still open at "${rs}": every open point is resolved at the landing (facts.open with resolved), so none is committed open`);
+        else if (!x.resolved && (w.step === "landed" || plan.status === "built")) warn(`${at} ("${x.text.slice(0, 60)}") is still open on a landed board: since dashboards-skill/35 every open point is resolved at the landing`); }
       if (x.resolved && !(plan.trail || []).some(t => t && typeof t.label === "string" && (t.label.includes(x.text.slice(0, 40)) || (x.ref && t.ref === x.ref)))) warn(`${at} is resolved, but the trail records no entry for it (a label quoting its text, or its ref): the trail keeps a resolved open point`); });
   }
   if (w.remediation != null) {
@@ -574,8 +609,19 @@ function checkPanel(plan, w, ids, tracking, dir) {
          running in parallel (WebTools #63 qa pass 1), unlike the implementation stages, which keep at most one */
       v.forEach((x, j) => { const at = `wip.remediation.steps[${j}]`; if (!x || typeof x !== "object" || !(str(x.what) || str(x.name))) fail(`${at} needs "name" (or "what")`); else if (!STAGE_STATES.includes(x.state)) fail(`${at}.state must be one of ${STAGE_STATES.join(", ")}`); }); }
   }
+  /* wip.document (RULES §3; admin-team/dashboards-skill/35): the Document step's tasks, { tasks: [{ id, name, state }] }, each state done,
+     current or todo; several may be current (the tasks may run in parallel) */
+  if (w.document != null) {
+    const D = w.document;
+    if (typeof D !== "object" || Array.isArray(D) || !Array.isArray(D.tasks)) fail('wip.document must be { "tasks": [{ "id", "name", "state" }] }');
+    else { const seen = new Set(); D.tasks.forEach((x, j) => { const at = `wip.document.tasks[${j}]`;
+      if (!x || typeof x !== "object" || !str(x.id) || !ID.test(x.id)) { fail(`${at} needs its id (a kebab-case task id, such as documentation-review)`); return; }
+      if (seen.has(x.id)) fail(`${at}: a second entry for task "${x.id}"`); seen.add(x.id);
+      if (!str(x.name)) fail(`${at} (${x.id}) needs its name`);
+      if (!STAGE_STATES.includes(x.state)) fail(`${at}.state must be one of ${STAGE_STATES.join(", ")}`); }); }
+  }
   checkHistory(plan, w, stampOk);
-  if (tracking && ((Array.isArray(w.stages) && w.stages.length) || w.remediation || w.plan)) warn("a tracking board records implementation stages, a plan pass or a remediation: those are its units' runs, each on its own board, not the tracking issue's");
+  if (tracking &&((Array.isArray(w.stages) && w.stages.length) || w.remediation || w.plan)) warn("a tracking board records implementation stages, a plan pass or a remediation: those are its units' runs, each on its own board, not the tracking issue's");
 }
 
 /* wip.history (RULES §3, "Finished steps"; admin-team/dashboards-skill/24): the finished steps' snapshots, each step an array of its
@@ -653,8 +699,11 @@ function compatCheck(k, x, at) {
   return IMP_COMPAT.indexOf(x.compat) > IMP_COMPAT.indexOf(f) ? x.compat : f;
 }
 function checkImpact(plan, dir, systems, rows, tracking) {
-  const I = plan.impact, hasDoc = fs.existsSync(path.join(dir, "impact.md"));
-  if (I == null) { if (hasDoc) warn("impact.md exists in this folder, but the Impact tab is empty (impact is null): fill plan.json impact from it (RULES §2, Impact)"); return; }
+  /* the folder's consequences document (admin-team/dashboards-skill/35): consequences.md, or impact.md in a folder older than the rename,
+     read the same; consequences.md wins where both are there */
+  const doc = ["consequences.md", "impact.md"].find(f => fs.existsSync(path.join(dir, f))) || null, hasDoc = !!doc;
+  const I = plan.impact;
+  if (I == null) { if (hasDoc) warn(`${doc} exists in this folder, but the Consequences tab is empty (impact is null): fill plan.json impact from it (RULES §2, Consequences)`); return; }
   if (typeof I !== "object" || Array.isArray(I)) { fail("impact must be an object (or null until plan acceptance)"); return; }
   if (!IMP_BASES.includes(I.basis)) fail(`impact.basis must be one of ${IMP_BASES.join(", ")} (got ${JSON.stringify(I.basis)})`);
   if (plan.status === "built" && I.basis === "plan") fail('a built board\'s impact is the as-built one: the landing reconciles it from final-implementation.md and sets impact.basis "as-built"');
@@ -699,7 +748,7 @@ function checkImpact(plan, dir, systems, rows, tracking) {
   if (rel != null && (typeof rel !== "object" || !IMP_BUMPS.includes(rel.bump))) fail(`impact.release.bump must be one of ${IMP_BUMPS.join(", ")}`);
   checkLink(dir, I.link, "impact.link"); checkLink(dir, I.source, "impact.source");
   const items = ds.length + ad.length + api.length + cv.length, effect = ds.some(x => x.effect && x.effect !== "none") || api.length || ad.some(x => x.need === "required");
-  if (!items && !str(I.none) && !str(I.summary) && !(I.units || []).length) warn(`the Impact tab is empty: impact records no entry, no summary and no "none" statement${hasDoc ? ", although impact.md exists in this folder: fill it from there" : ""}`);
+  if (!items && !str(I.none) && !str(I.summary) && !(I.units || []).length) warn(`the Consequences tab is empty: impact records no entry, no summary and no "none" statement${hasDoc ? `, although ${doc} exists in this folder: fill it from there` : ""}`);
   if (str(I.none) && effect) warn("impact.none says no downstream impact is recorded, but the entries record one: keep one of the two");
   const bump = rel && rel.bump;
   /* release.unreleased (RULES §2, Impact): the change's downstream effect lands on a new artifact that has never been released, so no
@@ -870,7 +919,7 @@ function checkHtml(htmlPath, id, data, kindMeta) {
   pal.problems.forEach(p => fail(`palette: ${p}`)); pal.warnings.forEach(w => warn(`palette: ${w}`));
   if (!pal.problems.length) ok(`palette: ${pal.tokens} system-colour tokens, none in a status spectrum`);
   { const c = commentRefs(html); if (c.length) warn(nameWarning(`the comments of ${path.basename(htmlPath)}`, c)); }
-  if (kindMeta === "plan-board") issueLinkWarnings(data, path.dirname(htmlPath), html);
+  if (kindMeta === "plan-board") issueLinkWarnings(data, viewSource(path.dirname(htmlPath)) || path.dirname(htmlPath), html);
   if (kindMeta === "work-board") workBoardLinkWarnings(data, html);
 }
 
@@ -963,7 +1012,17 @@ function run(dir, args) {
     const jsonPath = path.join(dir, "plan.json");
     if (!fs.existsSync(jsonPath)) { fail(`${jsonPath} is missing`); return report(); }
     let plan; try { plan = JSON.parse(fs.readFileSync(jsonPath, "utf8")); } catch (e) { fail("plan.json does not parse: " + e.message); return report(); }
-    checkPlan(plan, dir, root);
+    /* a view copy (docs/plans/.live/view/; plan/RULES.md §4, "The live view of a landing") is checked as the board it stands for: its
+       links and its neighbours read from the tracked folder, its own data and HTML from the copy, whose <base> must name that folder */
+    const src = viewSource(dir);
+    setViewLinks(!!src); // its links to a neighbour with a fresh view copy open that copy (lib.js viewLink())
+    if (src) {
+      if (!fs.existsSync(path.join(src, "plan.json"))) fail(`the view copy stands for ${path.relative(root, src).split(path.sep).join("/")}, which holds no board`);
+      const html = fs.existsSync(path.join(dir, "dashboard.html")) ? fs.readFileSync(path.join(dir, "dashboard.html"), "utf8") : "", want = path.relative(dir, src).split(path.sep).join("/") + "/";
+      const base = (html.match(/<base href="([^"]*)" data-live-view>/) || [])[1];
+      if (base !== want) fail(`the view copy's <base href> is ${base == null ? "missing" : JSON.stringify(base)}, not ${JSON.stringify(want)}: run embed.js on the copy`); else ok(`view copy of ${path.relative(root, src).split(path.sep).join("/")}, its links resolved from there`);
+    }
+    checkPlan(plan, src || dir, root);
     checkHtml(path.join(dir, "dashboard.html"), "plan", plan, "plan-board");
   }
   const page = path.join(dir, isBoard ? "index.html" : "dashboard.html"), outDir = opt(args, "out", path.join(os.tmpdir(), "dashboard-check"));

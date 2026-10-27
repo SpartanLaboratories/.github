@@ -6,7 +6,9 @@
 // shows freely with its level label ("L1 gating", "L2 component", "L4a deterministic", "L5 UAT"), and the C4 model's levels
 // ("Level 1 · System Context"): the rule covers the /resolve-issue pipeline's work levels only. A test level is never followed by
 // a word naming work (change, fix, issue, run, plan, re-pass …) and never written "level: n"; "L1".."L4" count as a work level only
-// when no test level's name follows ("L3" alone, never "L1 gating"), and "Level 3" alone never counts, nor does "Level 4a tests".
+// when no test level's name follows ("L3" alone, never "L1 gating") and no test word stands beside it ("L2 test", "tests (L3)": a test
+// level written short, which nameTestLevels() writes as its named test level, dashboards-skill/35), and "Level 3" alone never counts,
+// nor does "Level 4a tests".
 // A scope phrase names a work level too ("inside level 3", "within level 2", "outside level 3": the bounds of a sizing), unless a
 // test level's name or "test" follows it ("inside level 3 integration tests").
 // An unnumbered mention names a work level too (dashboards-skill/33): the sizing's own words, "Recorded level confirmed", "the proposed
@@ -27,6 +29,16 @@ const TEST_LEVEL_NAMES = ["gating", "component", "integration", "deterministic",
 /* what may follow a test level: its name (after up to two qualifying words, "L1 per-type gating"), or "test(s)" itself */
 const NOT_TEST = `(?!\\s*(?:[·:—–-]\\s*)?(?:[\\w-]+\\s+){0,2}(?:${TEST_LEVEL_NAMES})\\b)`;
 const NOT_TEST_OR_TESTS = `(?!\\s*(?:[·:—–-]\\s*)?(?:[\\w-]+\\s+){0,2}(?:${TEST_LEVEL_NAMES}|${anyCase("tests")}|${anyCase("test")})\\b)`;
+/* A bare "Ln" next to a test word (admin-team/dashboards-skill/35): "L2 test", "L1 regression tests", "tests (L3)", "regression test (L2)"
+   is a test level written short, never a work level: the checks leave it alone, and the fast path writes it as its named test level
+   (nameTestLevels(): "L2 component test", "tests (L3 integration)"). L4 has no single name (4a, 4b, 4c): "L4 tests" is left as it stands.
+   A test word follows the level (after up to two qualifying words) or stands right before it, with at most a bracket, a colon or a dash
+   between. Elsewhere a bare "Ln" is a work level: scrubLevels() elides it and reports the elision (opts.elided), so the fast path warns. */
+const TEST_WORD = `${anyCase("tests")}|${anyCase("test")}`;
+const AFTER_TEST = `\\s*(?:[·:—–-]\\s*)?(?:[\\w-]+\\s+){0,2}(?:${TEST_WORD})\\b`;
+const BEFORE_TEST = `\\b(?:${TEST_WORD})\\s*[(:·—–-]?\\s*`;
+const NOT_NEAR_TEST = `(?<!${BEFORE_TEST})`, NOT_TEST_AFTER = `(?!${AFTER_TEST})`;
+const TEST_LEVEL_SHORT = { 1: "gating", 2: "component", 3: "integration" };
 /* the nouns that make "level-3 <noun>" a work level: work, its run and its sizing, never a test's ("pass", "unit" and "review" stay out:
    "the Level 3 pass", "Level 2 unit tests" are test levels) */
 const WORK_NOUNS = "change|changes|fix|fixes|feature|features|issue|issues|run|runs|work|plan|plans|planner|planners|planning|bump|label|labels|sub-issue|sub-issues|tracking|initiative|roadmap|re-pass|re-passes|repass|repasses|scope|sizing|pipeline|budget|qa";
@@ -38,7 +50,8 @@ const LEVEL_PATTERNS = [
   ["\\blevel:\\s*[1-4]\\b", "i"],                                                         // the label: "level: 2", "Label level: 3"
   // the short form "L3", unless a test level's name follows ("L1 gating", "L3 · integration"); "L4c" never matches
   // (up to two qualifying words may come between: "L1 per-type gating", "L2 value-type component")
-  [`\\bL[1-4]\\b${NOT_TEST}`, ""],
+  // and never next to a test word ("L2 test", "tests (L3)": a test level written short, dashboards-skill/35)
+  [`${NOT_NEAR_TEST}\\bL[1-4]\\b${NOT_TEST}${NOT_TEST_AFTER}`, ""],
   ["\\b(?:work|issue|tracking)[- ]levels?\\b", "i"],                                       // "work level", "work-level labels"
   [`\\blevel[- ][1-4]\\b[- ](?:${WORK_NOUNS})\\b`, "i"],                                    // "a level-3 change", "level-3 re-pass"
   ["\\bre-?level(?:led|ed|ing|s)?\\b", "i"],                                               // "re-level", "relevelled"
@@ -152,7 +165,11 @@ function scrubLevels(text, opts) {
   s = s.replace(/\(\s*level [1-4]\s*\)/gi, "");
   s = s.replace(/\b(?:the\s+)?(?:label(?:led|ed)?\s+)?level:\s*[1-4]\b/gi, "");
   elide(new RegExp(`\\blevel[- ][1-4][- ](?=(?:${WORK_NOUNS})\\b)`, "gi"));
-  elide(new RegExp(`\\bL[1-4]\\b${NOT_TEST}\\s*`, "g"));
+  /* a bare "Ln" that no test word stands beside is a work level: elided, and reported (opts.elided), so the fast path warns and the
+     elision is visible (dashboards-skill/35) */
+  const bare = new RegExp(`${NOT_NEAR_TEST}\\bL[1-4]\\b${NOT_TEST}${NOT_TEST_AFTER}`, "g");
+  if (opts && Array.isArray(opts.elided)) (s.match(bare) || []).forEach(h => opts.elided.push(h));
+  elide(new RegExp(`${NOT_NEAR_TEST}\\bL[1-4]\\b${NOT_TEST}${NOT_TEST_AFTER}\\s*`, "g"));
   /* the article markers, then the punctuation and spaces an elision leaves */
   s = s.replace(/\b(an?)\s+\u0000(an?)\u0000/gi, (m, a, w) => (a[0] === "A" ? w[0].toUpperCase() + w.slice(1) : w) + " ").replace(/\u0000/g, "");
   s = s.replace(/\(\s*\)/g, "").replace(/\(\s*[,;:]\s*/g, "(").replace(/\s*[,;:]\s*\)/g, ")")
@@ -161,4 +178,17 @@ function scrubLevels(text, opts) {
   if (cap && /^[a-z]/.test(s)) s = s[0].toUpperCase() + s.slice(1);
   return s && !levelRefs(s).length ? s : null;
 }
-module.exports = { LEVEL_PATTERNS, levelRefs, levelRefsIn, scrubLevels, TITLE_PATHS, dataKind, isTitlePath, titleSkip, issueTitleRefs, quotedTitles, titleDefect };
+/* A bare test level next to a test word, written as its named test level (admin-team/dashboards-skill/35): "L2 test" → "L2 component
+   test", "regression test (L2)" → "regression test (L2 component)", "L1 tests" → "L1 gating tests"; a level already named ("L2 component
+   test") and "L4" (no single name) are left as they are. Returns { text, named: [the short forms rewritten] }. apply-event.js runs it on
+   every fact text before the work-level scrub; check.js warns on one a board still carries (bareTestLevels()). */
+function nameTestLevels(text) {
+  if (typeof text !== "string" || !text) return { text, named: [] };
+  const named = [], NAMED = `(?!\\s*(?:[·:—–-]\\s*)?(?:[\\w-]+\\s+){0,2}(?:${TEST_LEVEL_NAMES})\\b)`;
+  let s = text.replace(new RegExp(`\\bL([1-3])\\b${NAMED}(?=${AFTER_TEST})`, "g"), (m, n) => { named.push(m); return `L${n} ${TEST_LEVEL_SHORT[n]}`; });
+  s = s.replace(new RegExp(`(?<=${BEFORE_TEST})\\bL([1-3])\\b${NAMED}`, "g"), (m, n) => { named.push(m); return `L${n} ${TEST_LEVEL_SHORT[n]}`; });
+  return { text: s, named };
+}
+/* the bare test levels a text still carries ("L2 test"): check.js warns, naming the named form to write */
+const bareTestLevels = text => nameTestLevels(text).named;
+module.exports = { LEVEL_PATTERNS, levelRefs, levelRefsIn, scrubLevels, nameTestLevels, bareTestLevels, TITLE_PATHS, dataKind, isTitlePath, titleSkip, issueTitleRefs, quotedTitles, titleDefect };

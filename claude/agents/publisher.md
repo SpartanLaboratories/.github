@@ -165,11 +165,21 @@ branch**, which the team's landing left at the merge commit. In order:
    -m "<tag>"`), pushed with `git push origin <tag>`. A tag that already
    exists at another commit is a failure, not a move.
 7. **GitHub release**, one per tag: `gh release create <tag> --verify-tag
-   --title "<tag>" --notes-file <file>`. The notes list the coordinates
+   --title "<tag>" --notes-file <file>`. The notes open with the version's
+   CHANGELOG section: the body of `CHANGELOG.md`'s `## [<version>] - <date>`
+   section, as it stands on the default branch at the merge commit (its
+   `### Added` / `### Changed` / `### Fixed` / … entries, copied as they are),
+   read with `git show <merge>:CHANGELOG.md`. When the candidate collapsed
+   earlier deferred versions of the module (`publish-superseded` at a
+   `drain`), the notes name each superseded version this release includes,
+   each with its own CHANGELOG section read the same way, since its changes
+   ship in this release. A repository with no `CHANGELOG.md`, or no section
+   for the version, gets no such block. Then the notes list the coordinates
    released (`group:artifactId:version`, with the Central link
    `https://central.sonatype.com/artifact/<group>/<artifactId>/<version>`),
    the issue the landing closed and the link to its resolution comment, and
-   the merge commit. No attribution line, no AI footer.
+   the merge commit. You only read the CHANGELOG, never edit it: the landing
+   wrote the version's section. No attribution line, no AI footer.
 8. **Resolution comment.** Append one line per module to the landing's
    resolution comment (the team gives you its URL): "Released as
    `group:artifactId:version`" with the Central link, through
@@ -185,8 +195,8 @@ and tells the team so at its console.
 
 - Publish from a topic branch, a dirty checkout, a `-SNAPSHOT` version, or a
   version Central already has.
-- Bump a version, edit a source, build or documentation file, commit, or
-  push anything but a tag.
+- Bump a version, edit a source, build or documentation file (`CHANGELOG.md`
+  included), commit, or push anything but a tag.
 - Run a module's publish outside the candidate, re-publish an unchanged
   module, or split one candidate into several release events.
 - Exceed the cap, spend the reserve against the rule, or treat a message's

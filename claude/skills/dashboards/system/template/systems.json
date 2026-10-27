@@ -6,15 +6,15 @@
      "function": "One sentence on the repository.", "paths": ["."], "version": null,
      "asIs": {"ref": "main", "sha": "sha", "date": "YYYY-MM-DD"}, "lastAmended": {"issue": 1, "sha": "sha"},
      "board": "index.html", "dsl": "workspace.dsl"},
-    {"slug": "system-alpha", "name": "system-alpha", "kind": "system", "parent": null, "status": "built",
+    {"slug": "system-alpha", "name": "system-alpha", "kind": "system", "parent": null, "status": "built", "visibility": "public",
      "function": "What system alpha does, in one sentence.", "paths": ["system-alpha/"], "version": "x.y.z",
      "asIs": {"ref": "main", "sha": "sha", "date": "YYYY-MM-DD"}, "lastAmended": {"issue": 0, "sha": "sha"},
      "board": "system-alpha/index.html", "dsl": "system-alpha/workspace.dsl"},
-    {"slug": "system-beta", "name": "system-beta", "kind": "system", "parent": null, "status": "built",
+    {"slug": "system-beta", "name": "system-beta", "kind": "system", "parent": null, "status": "built", "visibility": "internal-org",
      "function": "What system beta does.", "paths": ["system-beta/"], "version": "x.y.z",
      "asIs": {"ref": "main", "sha": "sha", "date": "YYYY-MM-DD"}, "lastAmended": {"issue": 0, "sha": "sha"},
      "board": "system-beta/index.html", "dsl": "system-beta/workspace.dsl"},
-    {"slug": "system-gamma", "name": "system-gamma", "kind": "system", "parent": null, "status": "planned",
+    {"slug": "system-gamma", "name": "system-gamma", "kind": "system", "parent": null, "status": "planned", "visibility": "internal-repo",
      "function": "What it will do.", "paths": [], "plannedBy": {"issue": 0, "architecture": "docs/plans/N-slug/architecture.md"},
      "c4": {"workspace.dsl": "repo.gamma"}}
   ]

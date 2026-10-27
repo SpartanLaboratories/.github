@@ -417,6 +417,10 @@ footer code{color:var(--ink-2)}
          other chip is hand-written, its label then its value. -->
     <span class="chip" id="chip-version" hidden></span>
     <span class="chip"><span class="ck">platform</span> <b>Kotlin/JVM</b></span>
+    <!-- fill: the system's visibility, the registry's (system/RULES.md §7; dashboards-skill/35): public (consumed by another organization),
+         internal · org (only by other repositories of this organization) or internal · repo (only inside this repository); an archived
+         system (registry status "archived", no longer developed) adds a chip "status ⊟ archived" -->
+    <span class="chip"><span class="ck">visibility</span> <b>public</b></span>
     <span class="chip" id="chip-asis" hidden></span>
     <span class="chip" id="chip-written" hidden></span>
     <span class="chip model"><span class="ck">C4 model</span> <b>workspace.dsl</b> · <span id="dsl-stats">…</span></span>
@@ -560,7 +564,7 @@ footer code{color:var(--ink-2)}
       <ul><li><code>SeamType</code> — what a consumer overrides or supplies <span class="badge">Stable Core</span></li></ul></div>
     <div class="guarantee-card"><h3>Test levels <small>n classes</small></h3>
       <!-- fill: test classes per level of the 5-level hierarchy, counted from the testing.<level> packages; one row per level
-           that exists, labelled by its test level and package name ("L1 gating", "L2 component", … "L4a deterministic", … "L5 UAT"); test levels are not work levels (GUIDANCE.md §4); width = count / max. Link the test report (under build/reports/) when one exists. -->
+           that exists, labelled by its test level and package name ("L1 gating", "L2 component", … "L4a deterministic", … "L5 UAT"); test levels are not work levels (GUIDANCE.md §4); width = count / max. Name the test report, build/reports/tests/index.html, as plain text when one exists: a build output, never committed, so never a link on this board. -->
       <div class="bars" role="table" aria-label="Test classes per testing level">
         <span class="lbl">L1 gating</span><span class="trk"><span class="fil" style="width:100%"></span></span><span class="val">n</span>
       </div>
@@ -580,7 +584,8 @@ footer code{color:var(--ink-2)}
       <ul><li><code>stop()</code> — releases … · skipped: …</li></ul></div>
     <div class="guarantee-card"><h3>On your classpath</h3>
       <!-- fill: the api dependencies a consumer inherits, with coordinates and versions, from the build file or the
-           published POM; implementation-only dependencies do not belong here -->
+           published POM; implementation-only dependencies do not belong here; who consumes the artifact, as its visibility says
+           (another organization, this organization only, this repository only), where that bounds what may change -->
       <ul><li><code>group:artifact:version</code> — why it is api</li></ul></div>
   </div>
 </section>
@@ -772,7 +777,10 @@ const MODEL = {
   // Map node id → DSL element id, so the component map and the C4 tab cross-reference each other.
   c4:{sys:"repo.sys.facade",core:"repo.sys.core"},
   structure: {
-    // Lane captions: [text, x, y, anchor]. The map is a 1000×612 viewBox; place nodes by hand — nesting is ownership.
+    // The map is 1000 wide and h high: 612 by default, at most 812 when the system needs the room (dashboards-skill/35); a system that
+    // needs more is split into subsystems under a supersystem board. Record the height here; the renderer sets the viewBox from it.
+    h:612,
+    // Lane captions: [text, x, y, anchor]. Place nodes by hand — nesting is ownership.
     // band: [x, y, w, h], an optional neutral band drawn behind a lane (e.g. the wire between two sides); leave it out for none.
     lanes:[["SYSTEM",40,44,"start"]],
     // Free-text notes drawn on the map: {x, y, lines:[...]}.
@@ -1097,6 +1105,8 @@ function openC4(elementId){ show("t-c4"); const vi=C4.views.findIndex(v=>v.type=
 /* ---------- Structure ---------- */
 function renderStructure(){
   const svg=$("#svg-structure"); if(svg.dataset.done) return; svg.dataset.done="1";
+  /* the canvas: 1000 wide, its height recorded on the board (MODEL.structure.h: 612 by default, at most 812; dashboards-skill/35) */
+  const SH=Math.min(812,Math.max(200,Number(MODEL.structure.h)||612)); svg.setAttribute("viewBox",`0 0 1000 ${SH}`);
   /* a neutral band behind a lane (the wire between two sides, say), only where MODEL.structure.band asks for one: [x, y, w, h] */
   const band=MODEL.structure.band; if(Array.isArray(band)&&band.length===4) mk("rect",{x:band[0],y:band[1],width:band[2],height:band[3],rx:6,class:"band"},svg);
   MODEL.structure.lanes.forEach(([l,x,y,a])=>txt(svg,x,y,l,"lane",a));
