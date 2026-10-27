@@ -22,7 +22,9 @@ section of `CLAUDE.md`).
   `history.jsonl`, `sessions/`, …).
 - Anthropic's auto-synced skill bundle (`skills/synced/`).
 - The admin team session's local state (`admin-team/ledger.jsonl`, `state.json`, `hooks.jsonl`,
-  `launch.lock`, `up`), which holds machine-local paths, and `proposals/`, working drafts.
+  `launch.lock`, `up`), which holds machine-local paths; `proposals/`, working drafts;
+  `backups/`, local bundles of this repository's own earlier history; and `scrub-memory.py`,
+  local tooling.
 - Projects' auto-memory (`projects/*/memory/`) is not mirrored.
 - `skills/dashboards/verify/history/`, the dashboards skill's cache of old template versions:
   a local cache that `history.js` rebuilds on demand from this repository's own git history.

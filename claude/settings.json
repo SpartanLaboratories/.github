@@ -76,5 +76,6 @@
       "**Trusted repo**: github.com/SpartanLabsGaming/MyGameTools (origin) and its working directory; visibility unknown so treat as private",
       "**Org-specific CLIs**: None configured"
     ]
-  }
+  },
+  "effortLevel": "max"
 }
