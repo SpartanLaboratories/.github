@@ -177,7 +177,8 @@ async function main() {
   if (!named && folder && fs.existsSync(path.join(ROOT, ...folder.split("/"), "plan.json"))) {
     try { const b = JSON.parse(fs.readFileSync(path.join(ROOT, ...folder.split("/"), "plan.json"), "utf8")); if (Array.isArray(b.systems)) { named = b.systems; S.notes.push(`systems from the board ${folder}`); } } catch (e) { refuse(`${folder}/plan.json does not parse: ${e.message}`); }
   }
-  const touched = new Set((named || []).filter(x => typeof x === "string"));
+  /* a slug, or an issue board's system entry ({slug, name, slot, …}, plan.json systems[]): the board records objects, never bare slugs */
+  const touched = new Set((named || []).map(x => typeof x === "string" ? x : x && typeof x.slug === "string" ? x.slug : null).filter(x => typeof x === "string" && x.trim()));
   if (landed) reg.systems.filter(e => e.asIs && e.asIs.landed === false && e.asIs.ref === branch).forEach(e => touched.add(e.slug));
   const unknown = [...touched].filter(s => !bySlug(s));
   if (unknown.length) refuse(`BLOCKED — system unresolved: ${unknown.join(", ")} ${unknown.length === 1 ? "is" : "are"} not in docs/dashboards/systems.json (its systems: ${reg.systems.map(e => e.slug).join(", ")})`);

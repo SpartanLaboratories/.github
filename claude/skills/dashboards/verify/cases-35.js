@@ -165,6 +165,13 @@ module.exports = function cases35(X) {
     c.push(["without facts.sha the stamp is refused (exit 1): the Document step's stamp is the sha the request gives", s1.a.status === 1 && /code-landing sha/.test(s1.S.error || ""), js([s1.a.status, s1.S.error])]);
     const s2 = ap({ document: true, sha: "3333333" }), R = JSON.parse(rd(path.join(dash, "systems.json"))), e = R.systems.find(x => x.slug === "repo");
     c.push(["with it: \"feat/9 @ 3333333\", no \"not yet landed\" (landed not false)", s2.a.status === 0 && e.asIs && e.asIs.ref === "feat/9" && e.asIs.sha === "3333333" && e.asIs.landed === undefined && !/not yet landed/.test(s2.S.stamp || ""), js([s2.a.status, e.asIs, s2.S.stamp, s2.S.error])]);
+    /* the defect: with no facts.systems the systems come from the issue board, whose plan.json systems[] are objects ({slug, name, …}); they were
+       filtered as strings and dropped, so every such request printed no-systems */
+    const folder = "docs/plans/9-widget", bd = path.join(root, ...folder.split("/"));
+    wr(path.join(bd, "plan.json"), JSON.stringify({ issue: 9, issueTitle: "Widget", systems: [{ slug: "repo", name: "widgets", slot: 1, status: "built" }] }, null, 2) + "\n");
+    const rq3 = wr(path.join(sc, "state-req-board.json"), JSON.stringify({ action: "plan-board", event: "implementation-stage", github: "acme/widgets", issue: 9, branch: "feat/9", folder, facts: { at: "2026-10-26T12:30:00Z", sha: "4444444" } }));
+    const a3 = run(STATE, ["--event", rq3, "--worktree", root, "--json"]); let S3 = {}; try { S3 = JSON.parse(a3.stdout); } catch (x) { /* below */ }
+    c.push(["without facts.systems the issue board's systems (objects with a slug) are read: the repo stamped \"feat/9 @ 4444444 · not yet landed\", not no-systems", a3.status === 0 && S3.result !== "no-systems" && (S3.systems || []).includes("repo") && /4444444 · not yet landed/.test(S3.stamp || ""), js([a3.status, S3.result, S3.systems, S3.stamp, S3.error])]);
   });
 
   /* 8. seeding at sized */

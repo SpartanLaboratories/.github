@@ -1,8 +1,8 @@
 {
-  "$comment": "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last full verification. check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.",
+  "$comment": "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last verification, when every check that needs no browser passed (its modes: \"--auto --no-browser\"; a run with --browser, made only when a person asks for it, lists the browser passes instead). check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.",
   "templates": {
     "plan/template/dashboard.html": {
-      "sha256": "1924f3347ca098ff980b0d8216c102032571ae0d95eafd497c7e59aa345aab63",
+      "sha256": "7aa912ad7929f98f28eb8240195d233e3aecd009d96e91b76ddf057598fe9cc8",
       "verified": "2026-11-01",
       "fixtures": [
         "plan",
@@ -12,11 +12,7 @@
         "placeholder"
       ],
       "modes": [
-        "light",
-        "--theme dark",
-        "--width 520",
-        "--frame 390",
-        "--width 1920 --height 1080"
+        "--auto --no-browser"
       ],
       "history": [
         {
@@ -195,6 +191,11 @@
           "sha256": "1924f3347ca098ff980b0d8216c102032571ae0d95eafd497c7e59aa345aab63",
           "verified": "2026-11-01",
           "file": "dashboard/1924f3347ca0.html"
+        },
+        {
+          "sha256": "7aa912ad7929f98f28eb8240195d233e3aecd009d96e91b76ddf057598fe9cc8",
+          "verified": "2026-11-01",
+          "file": "dashboard/7aa912ad7929.html"
         }
       ]
     },
@@ -207,11 +208,7 @@
         "placeholder"
       ],
       "modes": [
-        "light",
-        "--theme dark",
-        "--width 520",
-        "--frame 390",
-        "--width 1920 --height 1080"
+        "--auto --no-browser"
       ],
       "history": [
         {
@@ -376,11 +373,7 @@
         "placeholder"
       ],
       "modes": [
-        "light",
-        "--theme dark",
-        "--width 520",
-        "--frame 390",
-        "--width 1920 --height 1080"
+        "--auto --no-browser"
       ],
       "history": [
         {
@@ -490,11 +483,7 @@
         "placeholder"
       ],
       "modes": [
-        "light",
-        "--theme dark",
-        "--width 520",
-        "--frame 390",
-        "--width 1920 --height 1080"
+        "--auto --no-browser"
       ],
       "history": [
         {
