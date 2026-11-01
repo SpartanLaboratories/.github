@@ -703,7 +703,15 @@ function checkImpact(plan, dir, systems, rows, tracking) {
      read the same; consequences.md wins where both are there */
   const doc = ["consequences.md", "impact.md"].find(f => fs.existsSync(path.join(dir, f))) || null, hasDoc = !!doc;
   const I = plan.impact;
-  if (I == null) { if (hasDoc) warn(`${doc} exists in this folder, but the Consequences tab is empty (impact is null): fill plan.json impact from it (RULES §2, Consequences)`); return; }
+  /* impact is null until plan acceptance (RULES §2, Consequences, "When"): a consequences document drafted while the plan is written
+     is not on the board yet, so the warning waits for the plan's acceptance — a Verdict written (a row's verdict or the verdict
+     milestone; on a tracking board its units' verdicts, from the architecture's sign-off) or the run past the plan */
+  const accepted = plan.status !== "planned" || (plan.milestones || []).some(m => m && m.column === "verdict") || (rows || []).some(r => r && r.verdict);
+  if (I == null) {
+    if (hasDoc && accepted) warn(`${doc} exists in this folder, but the Consequences tab is empty (impact is null): fill plan.json impact from it (RULES §2, Consequences)`);
+    else if (hasDoc) ok(`${doc} drafted in this folder; the Consequences tab is filled from it at plan acceptance (RULES §2, Consequences)`);
+    return;
+  }
   if (typeof I !== "object" || Array.isArray(I)) { fail("impact must be an object (or null until plan acceptance)"); return; }
   if (!IMP_BASES.includes(I.basis)) fail(`impact.basis must be one of ${IMP_BASES.join(", ")} (got ${JSON.stringify(I.basis)})`);
   if (plan.status === "built" && I.basis === "plan") fail('a built board\'s impact is the as-built one: the landing reconciles it from final-implementation.md and sets impact.basis "as-built"');

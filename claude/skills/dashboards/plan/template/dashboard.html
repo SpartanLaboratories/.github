@@ -61,6 +61,10 @@ h1,h2,h3{text-wrap:balance}
 .livechip.on.pulse .ld{animation:livepulse 1.6s ease-in-out infinite}
 .livechip.off .ld{background:none;border:1.5px solid var(--muted)}
 .livechip.na .ld{background:var(--muted)}
+.livechip a{color:inherit}
+/* an older copy of this board, while a newer one is on this machine (plan/RULES.md §1, "The newest board on this machine") */
+.newer{margin:8px 0 0;padding:7px 11px;border:1px solid var(--ink-2);border-radius:8px;background:var(--surface);color:var(--ink);font-size:13px;max-width:100%}
+.newer:empty{display:none}
 @keyframes livepulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.65)}}
 .themebtn{appearance:none;font:600 11px/1 var(--mono);padding:5px 9px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink-2);cursor:pointer;white-space:nowrap}
 .themebtn:hover{color:var(--ink);border-color:var(--ink-2)}
@@ -750,6 +754,7 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
 <div class="page">
 <header>
   <div class="topbar"><div class="crumbs" id="crumbs"></div><div class="tools"><span class="livechip" id="live"></span><button class="themebtn" id="theme" type="button"></button></div></div>
+  <p class="newer" id="newer" role="note"></p>
   <h1 id="h1"></h1>
   <p class="issueline" id="issueline"></p>
   <p class="function" id="function"></p>
@@ -914,7 +919,14 @@ const issueBoardsOf=()=>{ const m=new Map([
   ...(PLAN.fixOf&&PLAN.fixOf.issue&&relLink(PLAN.fixOf.board)?[[String(PLAN.fixOf.issue),PLAN.fixOf.board]]:[]),
   ...(TRACKING?ROWS.filter(r=>r.unit&&r.unit.issue&&relLink(r.unit.board)).map(r=>[String(r.unit.issue),r.unit.board]):[])]);
   m.delete(String(PLAN.issue)); return m; };
-const boardOf=(n,repo)=>!repo||repo===PLAN.repo?ISSUE_BOARDS.get(String(n))||null:null;
+/* The newest board on this machine (plan/RULES.md §1): docs/plans/.live/boards.js, which board.js --live writes in every checkout, names
+   each issue's newest board here (an in-flight worktree's, a landed issue's live view copy); opened from disk, every link to another
+   issue's board opens that one, and an issue that has a board only elsewhere (a run in another worktree) gets its link. NEWER is this
+   board's own entry when it names another file: this copy is older, and says so. A published copy has no marker: the data's links stand. */
+let LIVE_BOARDS=null, NEWER=null;
+const boardOf=(n,repo)=>!repo||repo===PLAN.repo?(String(n)!==String(PLAN.issue)&&LIVE_BOARDS&&LIVE_BOARDS.get(String(n)))||ISSUE_BOARDS.get(String(n))||null:null;
+/* a unit row's board, the newest on this machine first */
+const unitHref=r=>r&&r.unit?(r.unit.issue&&boardOf(r.unit.issue))||(relLink(r.unit.board)?r.unit.board:null):null;
 const ghUrl=(n,repo)=>`https://github.com/${repo||PLAN.repo}/issues/${n}`;
 const ilabel=(n,repo)=>`${repo&&repo!==PLAN.repo?esc(repo.split("/")[1])+"#":"#"}${esc(n)}`;
 const ilink=(n,repo)=>{ const b=boardOf(n,repo); return b?`<a href="${esc(b)}" title="#${esc(n)}: its issue board">${ilabel(n,repo)}</a>`:ext(ghUrl(n,repo),ilabel(n,repo)); };
@@ -1980,8 +1992,8 @@ const builtBody=(r,st)=>{ const b=r.asBuilt||{}; return stmtsHtml(r,"built")||ri
 const builtMark=r=>{ const g=cellGlow(r.id,"built"); return g+(/ glow| held/.test(g)||!isNext(r)?"":" upnext"); };
 function cellVerdict(r){ const v=r.verdict||{}, w=verdictOf(r), leave=w==="leave", chg=!w&&CHARGING(); return `<div class="cell verdict${leave?" leave":""}${chg?` charging${PAUSED?" still":""}`:""}${cellGlow(r.id,"verdict")}" role="button" tabindex="0" data-row="${esc(r.id)}" data-col="verdict" aria-label="Verdict: ${esc(r.name)}${w?"":", not yet written"}"><div class="kick">3 · VERDICT${w?` <span class="kind">${leave?"leave as is":"build"}</span>`:""}</div><div class="sum">${verdictBody(r)}</div><div class="meta"><span>${(v.steps||[]).length} steps · ${(v.tests||[]).length} tests · ${(v.risks||[]).length} risks</span>${moreLink(v.link,"plan")}</div></div>`; }
 function cellBuilt(r){ const st=stateOf(r), b=r.asBuilt||{}, S=STATES[st]; const extra=st==="deferred"&&b.issue?` → ${ilink(b.issue)}`:"";
-  const link=b.link||(r.unit&&(r.unit.board||r.unit.folder))||"";
-  return `<div class="cell built ${S.cls}${st==="pending"?" pending":""}${st==="deferred"?" deferred":""}${builtMark(r)}" role="button" tabindex="0" data-row="${esc(r.id)}" data-col="built" aria-label="As built: ${esc(r.name)}, ${S.label}${isNext(r)?", up next":""}${runOf(r)?`, its run: ${esc(runShort(runOf(r)).slice(2))}`:""}"><div class="kick">4 · AS BUILT ${badge(st,extra)}${nextTags(r)}</div><div class="sum">${builtBody(r,st)}</div>${runLine(r)}<div class="meta"><span>${(b.changes||[]).length} changes · ${(b.commits||[]).length} commits</span>${moreLink(link,r.unit?(r.unit.board?"board":"folder"):"record")}</div></div>`; }
+  const link=b.link||(r.unit&&(unitHref(r)||r.unit.folder))||"";
+  return `<div class="cell built ${S.cls}${st==="pending"?" pending":""}${st==="deferred"?" deferred":""}${builtMark(r)}" role="button" tabindex="0" data-row="${esc(r.id)}" data-col="built" aria-label="As built: ${esc(r.name)}, ${S.label}${isNext(r)?", up next":""}${runOf(r)?`, its run: ${esc(runShort(runOf(r)).slice(2))}`:""}"><div class="kick">4 · AS BUILT ${badge(st,extra)}${nextTags(r)}</div><div class="sum">${builtBody(r,st)}</div>${runLine(r)}<div class="meta"><span>${(b.changes||[]).length} changes · ${(b.commits||[]).length} commits</span>${moreLink(link,r.unit?(unitHref(r)?"board":"folder"):"record")}</div></div>`; }
 const GROUP_ORDER=["Code","Tests","Documents","Release","Left for later"];
 function grouped(){ const groups=[]; ROWS.forEach(r=>{ const g=r.group||""; let G=groups.find(x=>x.name===g); if(!G){ G={name:g,rows:[]}; groups.push(G); } G.rows.push(r); });
   /* an issue board orders its groups Code, Tests, Documents, Release, Left for later; a tracking board keeps landing order */
@@ -2096,7 +2108,7 @@ function renderBuilt(){
   /* a column address glows round the cards as a whole (plan/RULES.md §3), never each card */
   $("#built-list").className="bcards"+(CURRENT.includes("built")?" colbox"+colGlowCls("built"):"");
   $("#built-list").innerHTML=rows.length?rows.map(r=>{ const b=r.asBuilt||{}, st=stateOf(r);
-    return `<div class="bcard st-${st}${builtMark(r).replace(/ colglow( colheld)?/,"")}" data-sys="${esc(r.system||"")}" data-row="${esc(r.id)}" tabindex="0" role="button" aria-label="${esc(r.name)}: ${STATES[st].label}${isNext(r)?", up next":""}"><div class="bh"><span class="nm">${r.unit&&r.unit.n!=null?`${esc(r.unit.n)} · `:""}${esc(r.name)}</span>${badge(st,st==="deferred"&&b.issue?` → ${ilink(b.issue)}`:"")}${nextTags(r)}${r.where?`<span class="wh">${esc(r.where)}</span>`:""}</div>${stmtsOf(b).length?stmtsHtml(r,"built"):`<p>${rich(b.summary||(st==="pending"?"Not built yet.":""))}</p>`}${runLine(r)}${b.changes&&b.changes.length?`<ol class="changes">${b.changes.map(c=>`<li><b>${rich(c.what||"")}</b>${c.why?` — ${rich(c.why)}`:""}<small>${esc(c.when||"")}${c.ref?` · ${refHtml(c.ref)}`:""}</small></li>`).join("")}</ol>`:""}<div class="meta">${[b.commits&&b.commits.length?`commits ${b.commits.map(c=>refHtml(c)).join(" ")}`:"",b.files&&b.files.length?`${b.files.length} file${b.files.length>1?"s":""}`:"",b.verified?"verified":"",moreLink(b.link||(r.unit&&(r.unit.board||r.unit.folder)),r.unit?(r.unit.board?"board":"folder"):"record")].filter(Boolean).join(" · ")}</div></div>`; }).join(""):`<p class="lede">No row in this state.</p>`;
+    return `<div class="bcard st-${st}${builtMark(r).replace(/ colglow( colheld)?/,"")}" data-sys="${esc(r.system||"")}" data-row="${esc(r.id)}" tabindex="0" role="button" aria-label="${esc(r.name)}: ${STATES[st].label}${isNext(r)?", up next":""}"><div class="bh"><span class="nm">${r.unit&&r.unit.n!=null?`${esc(r.unit.n)} · `:""}${esc(r.name)}</span>${badge(st,st==="deferred"&&b.issue?` → ${ilink(b.issue)}`:"")}${nextTags(r)}${r.where?`<span class="wh">${esc(r.where)}</span>`:""}</div>${stmtsOf(b).length?stmtsHtml(r,"built"):`<p>${rich(b.summary||(st==="pending"?"Not built yet.":""))}</p>`}${runLine(r)}${b.changes&&b.changes.length?`<ol class="changes">${b.changes.map(c=>`<li><b>${rich(c.what||"")}</b>${c.why?` — ${rich(c.why)}`:""}<small>${esc(c.when||"")}${c.ref?` · ${refHtml(c.ref)}`:""}</small></li>`).join("")}</ol>`:""}<div class="meta">${[b.commits&&b.commits.length?`commits ${b.commits.map(c=>refHtml(c)).join(" ")}`:"",b.files&&b.files.length?`${b.files.length} file${b.files.length>1?"s":""}`:"",b.verified?"verified":"",moreLink(b.link||(r.unit&&(unitHref(r)||r.unit.folder)),r.unit?(unitHref(r)?"board":"folder"):"record")].filter(Boolean).join(" · ")}</div></div>`; }).join(""):`<p class="lede">No row in this state.</p>`;
   paint($("#built-list")); bindRefs($("#built-list"));
   document.querySelectorAll("#built-list .bcard").forEach(c=>{ const go=()=>{ INSPECTED={k:"built",row:c.dataset.row}; inspectBuilt(ROWS.find(x=>x.id===c.dataset.row)); }; c.addEventListener("click",e=>{ if(e.target.closest("a")) return; go(); }); c.addEventListener("keydown",e=>{ if(e.target!==c) return; if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } }); });
   const IC=impactChanges();
@@ -2136,7 +2148,7 @@ function otherTotal(T){ const m=otherOf(T); if(!m) return null; let c=0; Object.
 /* a class's simple name and its package, from a fully qualified name (a package starts lower case) */
 const simpleName=c=>{ const s=String(c||""), i=s.lastIndexOf("."); return i>0&&/^[a-z]/.test(s)?s.slice(i+1):s; };
 const pkgOf=c=>{ const s=String(c||""), i=s.lastIndexOf("."); return i>0&&/^[a-z]/.test(s)?s.slice(0,i):""; };
-const unitTestsBoard=r=>r&&r.unit&&relLink(r.unit.board)?r.unit.board:null;
+const unitTestsBoard=r=>unitHref(r);
 /* the board rows a class verifies: on an issue board each opens its row on the Timeline; on a tracking board, on the unit's own board */
 function testRows(x){ const ids=Array.isArray(x.e.rows)?x.e.rows.filter(v=>typeof v==="string"):[]; if(!ids.length) return "";
   if(!x.u) return `verifies ${ids.map(id=>{ const r=ROWS.find(y=>y.id===id); return r?`<a href="#${esc(id)}.built" data-go-row="${esc(id)}">${esc(r.name)}</a>`:esc(id); }).join(", ")}`;
@@ -2523,7 +2535,10 @@ const runLive=()=>!LANDED&&!STOPPED;
 function dataStamp(){ const st=[WIP.updated,WIP.since,...ROWS.map(r=>r.unit&&r.unit.live&&r.unit.live.updated)].map(v=>Date.parse(String(v||""))).filter(n=>!isNaN(n)); return st.length?Math.max(...st):null; }
 const ago=ms=>{ const s=Math.max(0,Math.round(ms/1000)); return s<90?`${s} s`:s<5400?`${Math.round(s/60)} min`:`${Math.round(s/3600)} h`; };
 function liveChip(){ const c=$("#live"); if(!c) return;
-  const stamp=dataStamp(), live=runLive()&&LIVE_LOCAL;
+  const stamp=dataStamp(), live=runLive()&&LIVE_LOCAL&&!NEWER;
+  /* an older copy of this board (plan/RULES.md §1, "The newest board on this machine"): not live, with a link to the newest; written
+     once, so the link stays clickable under the chip's one-second tick */
+  if(NEWER){ const h=`<span class="ld" aria-hidden="true"></span>not live · <a href="${esc(NEWER)}">newer copy</a>`; c.className="livechip off"; if(c.innerHTML!==h) c.innerHTML=h; c.title="An older copy of this board: the newest one on this machine follows the run."; return; }
   if(!live){ const u=stamp!=null?new Date(stamp).toISOString().replace(/\.000Z$/,"Z"):null; c.className="livechip off"; c.innerHTML=`<span class="ld" aria-hidden="true"></span>not live${u?` · as of ${when(u)}`:""}`; c.title=runLive()?"A published copy: it shows the board as committed and does not follow the run.":"The run is not live: the board shows it as it ended."; return; }
   if(!LIVE.ok){ c.className="livechip on na"; c.innerHTML=`<span class="ld" aria-hidden="true"></span>LIVE · data unavailable`; c.title="plan.js beside this board cannot be read: run embed.js on the folder."; return; }
   const since=Date.now()-LIVE.last, quiet=since>LIVE_QUIET_MS;
@@ -2543,9 +2558,13 @@ function dashboardRedraw(data){
   LIVE.last=Date.now(); liveChip(); if(!runLive()) stopLive();
   return true; }
 window.dashboardRedraw=dashboardRedraw;
-window.dashboardLive=(id,data)=>{ if(id!=="plan") return; LIVE.got=true; dashboardRedraw(data); };
+/* a sidecar older than the data shown never replaces it: a live update moves the board forward only */
+const stampOf=P=>{ const W=(P&&P.wip)||{}, st=[W.updated,W.since,...((P&&P.rows)||[]).map(r=>r&&r.unit&&r.unit.live&&r.unit.live.updated)].map(v=>Date.parse(String(v||""))).filter(n=>!isNaN(n)); return st.length?Math.max(...st):null; };
+window.dashboardLive=(id,data)=>{ if(id!=="plan") return; LIVE.got=true; const a=stampOf(data), b=dataStamp(); if(a!=null&&b!=null&&a<b){ liveChip(); return; } dashboardRedraw(data); };
+/* the sidecar beside this file, never beside the folder a view copy's <base> names (that is the tracked board's, older than the copy) */
+const SIDECAR=(()=>{ try{ return new URL("plan.js",location.href).href; }catch(e){ return "plan.js"; } })();
 function poll(){ const sc=document.createElement("script"); LIVE.got=false;
-  sc.src="plan.js?t="+Date.now(); sc.onload=()=>{ LIVE.ok=LIVE.got; sc.remove(); liveChip(); }; sc.onerror=()=>{ LIVE.ok=false; sc.remove(); liveChip(); };
+  sc.src=SIDECAR+"?t="+Date.now(); sc.onload=()=>{ LIVE.ok=LIVE.got; sc.remove(); liveChip(); }; sc.onerror=()=>{ LIVE.ok=false; sc.remove(); liveChip(); };
   document.head.appendChild(sc); }
 function stopLive(){ if(LIVE.timer) clearInterval(LIVE.timer); LIVE.timer=null; }
 function startLive(){ LIVE.last=dataStamp()!=null?Math.min(Date.now(),dataStamp()):Date.now(); liveChip();
@@ -2555,7 +2574,19 @@ function startLive(){ LIVE.last=dataStamp()!=null?Math.min(Date.now(),dataStamp(
   /* the live views on this machine: the live repository work board, and the rendered Markdown copies */
   liveMark(`${UP}docs/plans/.live/index.js`,"board",b=>{ if(b){ LIVE_WB=relTo(`${UP}docs/plans/.live/index.js`,String(b)); renderHeader(); renderContext(); } });
   liveMark(`${UP}docs/plans/.live/open/index.js`,"open",d=>{ if(Array.isArray(d)&&d.length){ LIVE_OPEN=new Set(d.map(String)); renderWip(); } });
-  liveMark(`${UP}docs/plans/.live/docs/index.js`,"docs",d=>{ if(Array.isArray(d)){ LIVE_DOCS=new Set(d.map(String)); liveDocs(document.body); } }); }
+  liveMark(`${UP}docs/plans/.live/docs/index.js`,"docs",d=>{ if(Array.isArray(d)){ LIVE_DOCS=new Set(d.map(String)); liveDocs(document.body); } });
+  /* the newest board of each issue on this machine (plan/RULES.md §1): every issue link opens it, and an older copy says so and stops
+     following its own sidecar */
+  const bsrc=`${UP}docs/plans/.live/boards.js`;
+  liveMark(bsrc,"boards",m=>{ if(!m||typeof m!=="object"||Array.isArray(m)) return;
+    LIVE_BOARDS=new Map(Object.entries(m).filter(([,v])=>typeof v==="string"&&v.trim()).map(([k,v])=>[String(k),relTo(bsrc,v)]));
+    const abs=u=>{ try{ const x=new URL(u,document.baseURI); return decodeURIComponent(x.protocol+"//"+x.host+x.pathname).replace(/\\/g,"/").toLowerCase(); }catch(e){ return String(u).toLowerCase(); } };
+    const mine=LIVE_BOARDS.get(String(PLAN.issue));
+    NEWER=mine&&abs(mine)!==abs(location.href)?mine:null;
+    if(NEWER) stopLive();
+    const nw=$("#newer"); if(nw) nw.innerHTML=NEWER?`An older copy of #${esc(PLAN.issue)}'s board. <a href="${esc(NEWER)}">Open the newest on this machine</a>, which follows the run.`:"";
+    const keep={x:window.scrollX,y:window.scrollY,tab:CUR_TAB,insp:INSPECTED};
+    renderAll(); show("t-"+(document.getElementById("t-"+keep.tab)?keep.tab:"design"),true); replayInspect(keep.insp); window.scrollTo(keep.x,keep.y); liveChip(); }); }
 
 renderHeader(); renderWip(); renderKpis(); renderBoard(); renderContext();
 startLive();

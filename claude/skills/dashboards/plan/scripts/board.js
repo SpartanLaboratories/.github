@@ -32,7 +32,9 @@
 // index.html, never the committed docs/plans/board.json and index.html. Its links reach each board where it lives: relative
 // when they can, a file URL into a worktree on another drive otherwise; the folder is local only (.git/info/exclude). A view copy under
 // docs/plans/.live/view/ fresher than the main checkout's tracked board stands in for it, its row linked to the copy; a stale one is
-// removed (plan/RULES.md §4, "The live view of a landing").
+// removed (plan/RULES.md §4, "The live view of a landing"). In every checkout it writes docs/plans/.live/boards.js, the newest board of
+// each issue on this machine as seen from that checkout, which every board opened from disk links through (plan/RULES.md §1, "The newest
+// board on this machine").
 // A row's qa lists every pass its board records and the pass running (lib.js qaShown(): at qa, or the remediation's current "qa pass n"
 // sub-step); its waitsOn ("Depends on") each dependency with its build state (blocking while its code is not merged, clear once it is, pre-built,
 // dropped when it was closed as not planned; a duplicate takes its canonical issue's, dashboards-skill/35) and its locality, and its blocks
@@ -82,10 +84,11 @@ const trees = !live ? [root] : [root, ...checkouts.filter(t => path.relative(t, 
    makes that copy the freshest. */
 const fresh = b => { const w = b.plan.wip || {};
   return [String(w.updated || w.since || (b.plan.asBuilt || {}).date || ""), ...(b.plan.rows || []).map(r => String(((r.unit || {}).live || {}).updated || ""))].sort().pop(); };
-const boards = [];
+const boards = [], allBoards = [];
 trees.forEach(t => findPlans(t).forEach(p => {
   const b = { ...p, root: t, plan: JSON.parse(fs.readFileSync(path.join(p.dir, "plan.json"), "utf8")) };
   const k = boards.findIndex(x => x.plan.issue === b.plan.issue);
+  allBoards.push(b);
   if (k < 0) boards.push(b); else if (fresh(b) > fresh(boards[k])) boards[k] = b;
 }));
 /* The live view's copies (docs/plans/.live/view/, lib.js viewOf(); plan/RULES.md §4, "The live view of a landing"), with --live: a copy
@@ -107,6 +110,7 @@ if (live) {
       viewNotes.push(`removed the stale view copy ${rel(vd)}/ (${!tp ? "its board is gone" : !vp ? "it does not parse" : "the tracked board is as fresh"})`); return;
     }
     const b = { dir: src, folder: rel(src), root, plan: vp, view: rel(vd) }, k = boards.findIndex(x => x.plan.issue === vp.issue);
+    allBoards.push(b);
     if (k < 0) boards.push(b); else if (fresh(b) > fresh(boards[k])) boards[k] = b;
   });
 }
@@ -391,6 +395,19 @@ if (live) {
     fs.mkdirSync(dir, { recursive: true });
     const text = `/* docs/plans/.live/index.js: the live repository work board on this machine (plan/scripts/board.js --live). Never committed. */\n(window.DASHBOARDS_LIVE=window.DASHBOARDS_LIVE||{}).board=${JSON.stringify(href)};\n`, f = path.join(dir, "index.js");
     if (!fs.existsSync(f) || fs.readFileSync(f, "utf8") !== text) fs.writeFileSync(f, text);
+    /* docs/plans/.live/boards.js: the newest board of every issue on this machine, as seen from this tree (plan/RULES.md §1, "The
+       newest board on this machine"): this tree's own copy (its view copy, in the main checkout, where that is fresher than the tracked
+       board) while no other tree holds a fresher one, else the freshest copy wherever it lives. Every board opened from disk links an
+       issue through it, and a board whose own entry names another file is an older copy and says so. */
+    const newest = {};
+    boards.slice().sort((a, b) => a.plan.issue - b.plan.issue).forEach(nb => {
+      const own = allBoards.filter(x => x.plan.issue === nb.plan.issue && path.relative(x.root, t) === "").sort((a, b) => (fresh(a) < fresh(b) ? 1 : fresh(a) > fresh(b) ? -1 : 0))[0];
+      const pick = own && !(fresh(nb) > fresh(own)) ? own : nb, abs = path.join(pick.root, pick.view || pick.folder, "dashboard.html");
+      if (!fs.existsSync(abs)) return;
+      const rel = path.relative(dir, abs); newest[nb.plan.issue] = path.isAbsolute(rel) ? url.pathToFileURL(abs).href : rel.split(path.sep).join("/");
+    });
+    const btext = `/* docs/plans/.live/boards.js: the newest board of each issue on this machine, seen from this checkout (plan/scripts/board.js --live). Never committed. */\n(window.DASHBOARDS_LIVE=window.DASHBOARDS_LIVE||{}).boards=${JSON.stringify(newest)};\n`, bf = path.join(dir, "boards.js");
+    if (!fs.existsSync(bf) || fs.readFileSync(bf, "utf8") !== btext) fs.writeFileSync(bf, btext);
     try { if (fs.existsSync(path.join(t, "docs", "plans", "README.md"))) md.copyDocs(t, ["docs/plans/README.md"], { repo }); } catch (e) { notes.add("the README's copy failed: " + e.message); }
   });
   boards.forEach(b => { try { const r = md.copyBoardDocs(b.plan, b.dir); if (r.skipped && !/not git-ignored/.test(r.skipped)) notes.add(r.skipped); } catch (e) { notes.add(`#${b.plan.issue}'s copies failed: ${e.message}`); } });

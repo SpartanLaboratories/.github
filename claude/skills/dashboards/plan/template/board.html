@@ -312,7 +312,11 @@ const ext=(h,t)=>`<a href="${esc(h)}" target="_blank" rel="noopener">${t}</a>`;
 const ISSUE_BOARDS=new Map();
 function derive(){ BASE=B.base||""; ROWS=B.rows||[]; SYS=B.systems||[]; ISSUE_BOARDS.clear(); ROWS.filter(r=>r.board).forEach(r=>ISSUE_BOARDS.set(String(r.issue),r.board)); }
 derive();
-const boardOf=(n,repo)=>!repo||repo===B.repo?ISSUE_BOARDS.get(String(n))||null:null;
+/* the newest board of each issue on this machine (plan/RULES.md §1, "The newest board on this machine"): docs/plans/.live/boards.js,
+   which board.js --live writes in every checkout; opened from disk, a row's links open it (the committed board's rows link the boards as
+   committed, older than a run in flight); a published copy has no marker */
+let LIVE_BOARDS=null;
+const boardOf=(n,repo)=>!repo||repo===B.repo?(LIVE_BOARDS&&LIVE_BOARDS.get(String(n)))||ISSUE_BOARDS.get(String(n))||null:null;
 const ghUrl=(n,repo)=>`https://github.com/${repo||B.repo}/issues/${n}`;
 const ilabel=(n,repo)=>`${repo&&repo!==B.repo?esc(repo.split("/")[1])+"#":"#"}${esc(n)}`;
 const ilink=(n,repo)=>{ const b=boardOf(n,repo); return b?`<a href="${esc(b)}" title="#${esc(n)}: its issue board">${ilabel(n,repo)}</a>`:ext(ghUrl(n,repo),ilabel(n,repo)); };
@@ -517,6 +521,8 @@ startLive();
 /* the live views on this machine (above): the committed board names the live one; a Markdown link opens its rendered copy */
 liveMark(`${BASE}.live/index.js`,"board",b=>{ if(b&&!B.live){ LIVE_WB=relTo(`${BASE}.live/index.js`,String(b)); render(); } });
 liveMark(`${BASE}.live/docs/index.js`,"docs",d=>{ if(Array.isArray(d)){ LIVE_DOCS=new Set(d.map(String)); render(); } });
+liveMark(`${BASE}.live/boards.js`,"boards",m=>{ if(m&&typeof m==="object"&&!Array.isArray(m)){
+  LIVE_BOARDS=new Map(Object.entries(m).filter(([,v])=>typeof v==="string"&&v.trim()).map(([k,v])=>[String(k),relTo(`${BASE}.live/boards.js`,v)])); render(); } });
 </script>
 </body>
 </html>

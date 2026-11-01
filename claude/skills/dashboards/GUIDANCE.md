@@ -370,7 +370,10 @@ board from its hand-written HTML and its `WORK_BOARD` line, and the words stay p
 machine (`docs/plans/.live/index.html`, named by the marker `docs/plans/.live/index.js` that `board.js --live` writes in each checkout of the
 repository), else the committed `docs/plans/index.html` (on GitHub or another clone), else plain text. Every Markdown document a board
 links opens its **rendered copy** when one is on disk (`docs/plans/.live/docs/`, `plan/RULES.md` §1), else the `.md`; a "(§n)" reference
-opens the copy at that section.
+opens the copy at that section. Every link to an issue's board opens the **newest board of that issue on this machine** first (a run's
+board in its worktree, a landed issue's live view copy), named by the marker `docs/plans/.live/boards.js` that `board.js --live` writes in
+each checkout, and an issue or tracking board that is an older copy says so and links the newest (`plan/RULES.md` §1, "The newest board on
+this machine"); a board with no marker (a published copy) keeps its data's links.
 
 **A state board is as-is.** The part of a system, supersystem or repository state board above its Context — the header, the tabs, the Guarantees —
 shows the code at a named commit and names no issue: no "#n", no "last amended by" chip, no "planned by #n"; a planned part links its

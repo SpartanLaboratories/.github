@@ -729,7 +729,11 @@ const flink=f=>`<a href="${SRC}${f}" target="_blank" rel="noopener">${f}</a>`;
    the board when one exists and the GitHub issue otherwise: ilink(n), or <a data-issue="N">#N</a> by hand. linkIssues() resolves
    the hand-written ones at load. */
 const BOARDS={}; // fill: issue number → its issue board relative to this board, on this one line, e.g. {"38":"../../plans/38-slug/dashboard.html"}
-const boardOf=n=>Object.prototype.hasOwnProperty.call(BOARDS,String(n))?BOARDS[String(n)]:null;
+/* the newest board of each issue on this machine (plan/RULES.md §1, "The newest board on this machine"): docs/plans/.live/boards.js, beside the
+   live marker, which board.js --live writes in every checkout; opened from disk, an issue's link opens it (a run in flight in a worktree,
+   a landed issue's live view copy) before BOARDS, the boards as committed; a published copy has no marker */
+let LIVE_BOARDS=null;
+const boardOf=n=>(LIVE_BOARDS&&LIVE_BOARDS.get(String(n)))||(Object.prototype.hasOwnProperty.call(BOARDS,String(n))?BOARDS[String(n)]:null);
 /* The repository work board (GUIDANCE.md §5; system/RULES.md §6): "committed" is docs/plans/index.html relative to this board when that file exists
    (else null: no link to a file that is not there; check-board.js fails a committed path that is missing), and "live" the live view's
    marker, docs/plans/.live/index.js, which board.js --live writes in each checkout. A link to the repository work board opens the live view when
@@ -746,7 +750,15 @@ function linkWorkBoard(){ const W=WORK_BOARD&&typeof WORK_BOARD==="object"?WORK_
   if(docs&&!document.querySelector("a[data-workboard]")){ const li=document.createElement("li"); li.innerHTML='<a data-workboard>Repository work board</a> — every planning and development run in the repository'; docs.appendChild(li); }
   const set=href=>document.querySelectorAll("a[data-workboard]").forEach(a=>{ if(href) a.href=href; else a.removeAttribute("href"); a.title=href&&href===W.committed?"The committed repository work board, as of the last landing":href?"The live repository work board on this machine":"No repository work board in this checkout"; });
   set(W.committed||null);
-  liveMark(W.live,"board",b=>{ if(b) set(relTo(W.live,b)); }); }
+  liveMark(W.live,"board",b=>{ if(b) set(relTo(W.live,b)); });
+  /* the newest boards: every issue link already drawn is pointed at the newest board, and a title with no board yet gets its link */
+  const bsrc=typeof W.live==="string"&&/index\.js$/.test(W.live)?W.live.replace(/index\.js$/,"boards.js"):null;
+  liveMark(bsrc,"boards",m=>{ if(!m||typeof m!=="object"||Array.isArray(m)) return;
+    LIVE_BOARDS=new Map(Object.entries(m).filter(([,v])=>typeof v==="string"&&v.trim()).map(([k,v])=>[String(k),relTo(bsrc,v)]));
+    document.querySelectorAll("a[title$=\": its issue board\"]").forEach(a=>{ const n=(/^#(\d+):/.exec(a.title)||[])[1], b=n&&LIVE_BOARDS.get(n); if(b) a.href=b; });
+    document.querySelectorAll("a[data-issue]").forEach(a=>{ const n=a.dataset.issue, b=LIVE_BOARDS.get(String(n)); if(b){ a.href=b; a.title=`#${n}: its issue board`; a.removeAttribute("target"); a.removeAttribute("rel"); } });
+    document.querySelectorAll("span[data-issue-title]").forEach(t=>{ const n=t.dataset.issueTitle, b=LIVE_BOARDS.get(String(n)); if(!b) return;
+      const a=document.createElement("a"); a.href=b; a.title=`#${n}: its issue board`; a.dataset.issueTitle=n; a.append(...t.childNodes); t.replaceWith(a); }); }); }
 window.addEventListener("DOMContentLoaded",()=>linkWorkBoard());
 /* The board's state (system/RULES.md §2): a verbatim copy of state.json, its stamp, version and last amendment, which apply-state.js
    restamps on a feature branch and at the landing; renderState() draws the header's chips from it. */

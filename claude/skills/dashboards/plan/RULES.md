@@ -46,6 +46,17 @@ writes it; nothing else goes there (`GUIDANCE.md` §3).
 **Committed sidecars.** `plan.js` is committed with the board, not left to this machine: a clone opened from disk polls it while the run
 is live, as the board here does, so another checkout of the branch follows the run too.
 
+**The newest board on this machine.** One issue can have several boards on this machine: the main checkout's tracked one (as of the last
+landing), its live view copy (the landed state, §4, "The live view of a landing"), and a worktree's, where the run is. `board.js --live`
+writes `docs/plans/.live/boards.js` in every checkout (git-ignored, never committed), naming for each issue its **newest** board as seen
+from that checkout: the checkout's own copy while no other is fresher (`lib.js` `planStamp()`), else the freshest wherever it lives (a
+relative path, or a file URL into a worktree on another drive). Every board opened from disk — issue and tracking boards, the repository
+work board, the state boards — loads it and links each issue through it before its data's own links, so a unit's link opens the run's
+board in its worktree, or a landed unit's view copy, never an older tracked copy, and an issue whose board is only in another worktree
+(a unit in flight) gets its link. An issue or tracking board whose own entry names another file is an **older copy**: it says so under its
+topbar, with a link to the newest, and its live indicator reads "not live · newer copy" and stops polling. A published copy has no marker,
+so its links are its data's.
+
 **Links to the shared boards** (`GUIDANCE.md` §5). `plan.json` `links` — the committed repository work board (`workBoard`), the repository state board
 (`repoBoard`) and each of the board's systems' boards (`boards`, by slug; `repoPage` and `pages`, the older keys, on a board whose
 template reads no other, `lib.js` `linkKeys()`, and read alike everywhere), each relative to the board's folder — is written by `embed.js` at
@@ -1146,7 +1157,9 @@ docs/plans/.live/view/<folder>`), or raises `landed` with `--view` again once th
 - **A copy is the board, seen from where the board lives.** Its `dashboard.html` is the template plus its data, with one line more,
   `<base href="<the tracked folder>/" data-live-view>` right after `<head>` (`lib.js` `withViewBase()`), so every relative link (the
   Markdown and its rendered copies, the live markers, the shared boards) resolves as from the tracked board; `deviation.js` reads the
-  line as no difference from the template. `embed.js` and `check.js` take a copy's folder like any board's and resolve its links, its
+  line as no difference from the template. **Its live sidecar is its own**: the board polls the `plan.js` beside its own file
+  (`location`), never the one the `<base>` names, which is the tracked board's and older than the copy; and a sidecar older than the data
+  shown never replaces it (a live update only moves a board forward). `embed.js` and `check.js` take a copy's folder like any board's and resolve its links, its
   units' runs and its excerpts from the tracked folder (`lib.js` `viewSource()`); `check.js` fails a copy whose `<base>` names another
   folder.
 - **The view is one view.** A copy's link to a neighbouring board (the parent, a unit, any other issue) opens that board's own copy
