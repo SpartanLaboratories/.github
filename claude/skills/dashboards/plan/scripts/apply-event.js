@@ -227,7 +227,10 @@ function applyEvent(orig, ev, facts, req, now) {
       if (step === "plan" && !w.plan) { w.plan = plan.parent ? { state: "re-pass", from: "parent", since: now } : { state: "writing", since: now }; applied.push(`wip.plan ${w.plan.state}`); }
       enrich.push("sized: the foundation and, for a sub-issue of a signed-off tracking plan, the Gap and Considered columns come from the documents");
       detail = detail || `Sized; ${STEP_WORDS[step]} starts.`;
-      trail = { column: "gap", label: `Sized; ${STEP_WORDS[step]} starts` };
+      /* a corrected sizing (a second sized with no event between, a request re-sent with corrected facts) adds no second entry where
+         the trail already records the sizing that day (the foundation's "Run started" entry, or the first sized's own) */
+      const resent = w.event && w.event.name === "sized" && (plan.trail || []).some(x => x && x.date === today && lib.trailStep(x.label) === "sizing");
+      trail = resent ? null : { column: "gap", label: `Sized; ${STEP_WORDS[step]} starts` };
       if (plan.parent) parentOp = { kind: "start" };
       break;
     }
