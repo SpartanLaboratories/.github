@@ -44,6 +44,9 @@ function registry(root) {
 }
 
 /* GitHub's heading anchors (github-slugger): lower case, punctuation dropped, spaces to hyphens, duplicates numbered. */
+/* The heading text the anchor is made from: an HTML tag is dropped, but only outside a code span, whose text GitHub keeps as written
+   (`<cm>Foo.kt` gives "73-cmfookt", as GitHub renders it; mdcopy.js slugOf() is the same rule). */
+const slugText = t => String(t).split(/(`+[^`]*`+)/).map((x, i) => i % 2 ? x : x.replace(/<[^>]+>/g, "")).join("");
 function headingSlugs(md) { return new Set(mdHeadings(md).map(h => h.slug)); }
 /* Every heading of a Markdown text outside fenced blocks: [{ slug, level, text, line }], line the 0-based line index. */
 function mdHeadings(md) {
@@ -55,7 +58,7 @@ function mdHeadings(md) {
     if (fence) { if (f && f[1][0] === fence[0] && f[1].length >= fence.length && !f[2].trim()) fence = null; return; }
     if (f && !(f[1][0] === "`" && f[2].includes("`"))) { fence = f[1]; return; }
     const m = l.match(/^(#{1,6})\s+(.*?)\s*#*\s*$/); if (!m) return;
-    let s = m[2].replace(/<[^>]+>/g, "").toLowerCase().replace(/[^\p{L}\p{M}\p{N}\p{Pc} -]/gu, "").replace(/ /g, "-");
+    let s = slugText(m[2]).toLowerCase().replace(/[^\p{L}\p{M}\p{N}\p{Pc} -]/gu, "").replace(/ /g, "-");
     const base = s; if (seen[base] != null) { seen[base]++; s = base + "-" + seen[base]; } else seen[base] = 0;
     out.push({ slug: s, level: m[1].length, text: m[2], line });
   });

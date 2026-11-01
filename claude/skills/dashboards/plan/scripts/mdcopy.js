@@ -16,7 +16,9 @@ const fs = require("fs"), path = require("path"), cp = require("child_process");
 
 const esc = s => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 /* GitHub's heading anchors (github-slugger), as lib.js mdHeadings() computes them */
-const slugOf = (t, seen) => { let s = String(t).replace(/<[^>]+>/g, "").toLowerCase().replace(/[^\p{L}\p{M}\p{N}\p{Pc} -]/gu, "").replace(/ /g, "-");
+/* an HTML tag is dropped only outside a code span, whose text GitHub keeps (lib.js slugText()) */
+const slugText = t => String(t).split(/(`+[^`]*`+)/).map((x, i) => i % 2 ? x : x.replace(/<[^>]+>/g, "")).join("");
+const slugOf = (t, seen) => { let s = slugText(t).toLowerCase().replace(/[^\p{L}\p{M}\p{N}\p{Pc} -]/gu, "").replace(/ /g, "-");
   const base = s; if (seen[base] != null) { seen[base]++; s = base + "-" + seen[base]; } else seen[base] = 0; return s; };
 
 /* ---------- Inline Markdown: code spans, links, images (as links), emphasis, strike-through, autolinks, hard breaks ---------- */

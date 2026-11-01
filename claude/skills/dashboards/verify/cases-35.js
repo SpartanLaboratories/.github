@@ -277,5 +277,16 @@ module.exports = function cases35(X) {
     c.push(["the legend names each visibility drawn and archived", /↗public consumed by another organization/.test(R.key || "") && /⌂internal · repo consumed only inside this repository/.test(R.key || "") && /⊟ archived no longer developed/.test(R.key || ""), (R.key || "").slice(0, 300)]);
   });
 
+  /* heading anchors: a tag inside a code span is text GitHub keeps ("### 7.3 `<cm>Foo.kt`" is #73-cmfookt, read from GitHub's rendering of
+     WebTools #64's plan, 2026-11-01); a tag outside one is dropped. lib.js mdHeadings() and mdcopy.js's copies' ids are the one rule. */
+  guard("heading anchors keep a code span's text, as GitHub's do (a statement's ref and a rendered copy's id agree with GitHub)", c => {
+    const md = "### 7.3 `<cm>OutboundUrlPolicy.kt`\n\n### 7.14 Fixtures (new, `<fx>`)\n\n## A <a name=\"x\"></a>Title\n\n### 6.5 `ExchangeGuard`\n";
+    const slugs = lib.mdHeadings(md).map(h => h.slug);
+    c.push(["a placeholder in a code span stays in the anchor", slugs[0] === "73-cmoutboundurlpolicykt" && slugs[1] === "714-fixtures-new-fx", js(slugs)]);
+    c.push(["an HTML tag outside a code span is dropped", slugs[2] === "a-title" && slugs[3] === "65-exchangeguard", js(slugs)]);
+    const html = require(sk("plan/scripts/mdcopy.js")).render(md, u => u), ids = [...html.matchAll(/<h\d id="([^"]+)"/g)].map(m => m[1]);
+    c.push(["a rendered copy's heading ids are the same anchors", js(ids) === js(slugs), js(ids)]);
+  });
+
   return groups;
 };
