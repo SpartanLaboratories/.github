@@ -26,10 +26,15 @@
 //
 //   node check-board.js <board.html> --auto [--out <dir>]
 //
-// --auto checks only what the board adds to its template (GUIDANCE.md §8; deviation.js): no browser pass for an issue board or work
-// board that is a verified template plus its data; one light pass for a system board whose CSS, tabs, script before MODEL (less its
-// board-filled lines, REPO and SRC) and renderer are the verified template's (the facts it fills in); the full pass (light, dark, 520 px, a 390 px frame, 1920 x 1080 desktop) for a board that diverges — declared or
-// not — or whose template changed since verify/verify-templates.js last verified it.
+// --auto gives a board a browser pass only when it diverges from its template (GUIDANCE.md §8; deviation.js). A board that is a verified
+// template plus its data gets none: an issue board or work board whose data block is all it adds, and a system, supersystem or
+// repository state board whose CSS, tabs, script before MODEL (less its board-filled lines: REPO, SRC and the "// fill:" lines) and
+// renderer are the verified template's; the checks that need no browser (below) cover it. A board that diverges — declared or not,
+// made from an older template — or whose template changed since verify/verify-templates.js last verified it gets the full pass (light,
+// dark, 520 px, a 390 px frame, a 1920 x 1080 desktop).
+//
+// DASHBOARDS_NO_BROWSER=1 in the environment (verify/verify-templates.js sets it unless run with --browser) forbids a browser: a run
+// that would open one runs the checks that need no browser, prints "CHECK browser: NOT RUN" and exits 3.
 //
 //   node check-board.js <board.html> --auto --no-browser
 //
@@ -42,6 +47,8 @@ const USAGE_LINE = "usage: node check-board.js <board.html> [--auto [--no-browse
 require("./cliargs.js").strict(args, { usage: "usage: node check-board.js <board.html> [--auto [--no-browser [--features-as-notes]]] [--out <dir>] [--tab <tabId>] [--width n] [--height n] [--theme light|dark] [--frame <px>]", valued: ["out", "tab", "width", "height", "theme", "frame"], flags: ["auto", "no-browser", "features-as-notes"], min: 1, max: 1 });
 if (args.includes("--no-browser") && !args.includes("--auto")) { console.error(USAGE_LINE + "\n(--no-browser goes with --auto: the checks that need no browser, the browser pass deferred)"); process.exit(2); }
 const opt = (name, def) => { const i = args.indexOf("--" + name); return i >= 0 ? args[i + 1] : def; };
+/* DASHBOARDS_NO_BROWSER=1: no browser is opened (verify/verify-templates.js sets it unless run with --browser; GUIDANCE.md §8) */
+function noBrowser() { return process.env.DASHBOARDS_NO_BROWSER === "1"; }
 const VALUED = ["--out", "--tab", "--width", "--height", "--theme", "--frame"];
 const page = args.find((a, i) => !a.startsWith("--") && !(i > 0 && VALUED.includes(args[i - 1])));
 if (!page) { console.error("usage: node check-board.js <board.html> [--auto [--no-browser]] [--out <dir>] [--tab <tabId>] [--width n] [--height n] [--theme light|dark] [--frame <px>]"); process.exit(2); }
@@ -75,15 +82,17 @@ if (args.includes("--auto")) {
     /* the data-only path (apply-state.js): every check that needs no browser; the browser pass the board needs is named and left to
        the presenter's next look (the pre-merge refresh) */
     const bad = palette.problems.length + dslDashes.length + staticProblems.length;
-    console.log(`CHECK template: ${d.kind} board · ${d.verdict} · browser pass deferred (${d.passes === "none" ? "none needed" : d.passes === "light" ? "one light pass" : "the full pass"})`);
+    console.log(`CHECK template: ${d.kind} board · ${d.verdict} · browser pass deferred (${d.passes === "none" ? "none needed" : "the full pass"})`);
     d.notes.forEach(n => console.log("CHECK template: " + n));
     console.log(bad ? `FAIL: ${bad} problem(s) found without a browser` : "PASS (no browser)"); process.exit(bad ? 1 : 0);
   }
-  console.log(`CHECK template: ${d.kind} board · ${d.verdict} · ${d.passes === "none" ? "no browser pass" : d.passes === "light" ? "one light pass (the facts it fills in)" : "full pass (light, dark, 520, frame 390, desktop 1920x1080)"}`);
+  console.log(`CHECK template: ${d.kind} board · ${d.verdict} · ${d.passes === "none" ? "no browser pass (the verified template plus its data)" : "full pass (light, dark, 520, frame 390, desktop 1920x1080)"}`);
   d.notes.forEach(n => console.log("CHECK template: " + n));
   if (d.passes === "none") { const bad = palette.problems.length || dslDashes.length || staticProblems.length; console.log(bad ? `FAIL: ${palette.problems.length ? "a system colour in a status spectrum" : dslDashes.length ? "a dashed DSL style that is not Planned" : staticProblems[0]}` : "PASS"); process.exit(bad ? 1 : 0); }
   const rest = args.filter(a => a !== "--auto" && a !== page);
-  const modes = d.passes === "light" ? [[]] : [[], ["--theme", "dark"], ["--width", "520"], ["--frame", "390"], ["--width", "1920", "--height", "1080"]];
+  if (noBrowser()) { const bad = palette.problems.length + dslDashes.length + staticProblems.length; console.log("CHECK browser: NOT RUN: the full pass needs a browser and DASHBOARDS_NO_BROWSER=1 forbids one");
+    console.log(bad ? `FAIL: ${bad} problem(s) found without a browser` : "NOT RUN (no browser): the checks that need none pass"); process.exit(bad ? 1 : 3); }
+  const modes = [[], ["--theme", "dark"], ["--width", "520"], ["--frame", "390"], ["--width", "1920", "--height", "1080"]];
   let failed = 0;
   modes.forEach(m => {
     const r = cp.spawnSync(process.execPath, [__filename, page, ...rest, ...m], { encoding: "utf8" });
@@ -96,6 +105,10 @@ if (args.includes("--auto")) {
   console.log(failed ? `FAIL: ${failed} of ${modes.length} pass(es)` : "PASS");
   process.exit(failed ? 1 : 0);
 }
+/* a run that allows no browser (verify/verify-templates.js without --browser): the checks that need none, then exit 3 */
+if (noBrowser()) { paletteLines().forEach(l => console.log(l)); staticLines().forEach(l => console.log(l)); const bad = palette.problems.length + dslDashes.length + staticProblems.length;
+  console.log("CHECK browser: NOT RUN: this pass needs a browser and DASHBOARDS_NO_BROWSER=1 forbids one");
+  console.log(bad ? `FAIL: ${bad} problem(s) found without a browser` : "NOT RUN (no browser): the checks that need none pass"); process.exit(bad ? 1 : 3); }
 const out = opt("out", path.join(os.tmpdir(), "dashboard-check")), tab = opt("tab", ""), theme = opt("theme", ""), frame = +opt("frame", 0);
 const width = +opt("width", frame ? frame + 48 : 1400), height = +opt("height", 1500);
 fs.mkdirSync(out, { recursive: true });

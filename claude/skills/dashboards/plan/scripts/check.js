@@ -10,6 +10,8 @@
 //                                        its data gets none
 // A view copy's folder (docs/plans/.live/view/<folder>/) is checked as the board it stands for: its links from the tracked folder, its
 // <base> line held to that folder (plan/RULES.md §4, "The live view of a landing").
+// DASHBOARDS_NO_BROWSER=1 in the environment (verify/verify-templates.js sets it unless run with --browser) opens no browser: a browser
+// pass the run would make fails as "browser: NOT RUN".
 // Exit 0 when every rule holds, 1 otherwise. Warnings never fail the run.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
@@ -999,6 +1001,9 @@ function checkBoard(dir) {
 const FULL = [[], ["--theme", "dark"], ["--width", "520"], ["--frame", "390"], ["--width", "1920", "--height", "1080"]];
 function browser(page, outDir, modes) {
   const checker = path.resolve(__dirname, "..", "..", "system", "scripts", "check-board.js");
+  /* DASHBOARDS_NO_BROWSER=1 (verify/verify-templates.js without --browser): no browser is opened, and the pass this board needs is named
+     as not run, never passed */
+  if (process.env.DASHBOARDS_NO_BROWSER === "1") { fail(`browser: NOT RUN: the board needs the ${(modes || FULL).length === FULL.length ? "full pass" : "pass"} and DASHBOARDS_NO_BROWSER=1 forbids a browser`); return; }
   (modes || FULL).forEach(extra => {
     const r = cp.spawnSync(process.execPath, [checker, page, "--out", outDir, ...extra], { encoding: "utf8" });
     const label = extra.join(" ") || "light";
@@ -1046,7 +1051,7 @@ function run(dir, args) {
     // A declared divergence is reported; a difference nobody declared, or an unverified template, is a warning.
     d.notes.forEach(n => (/^declared divergence/.test(n) ? ok : warn)(`template: ${n}`));
     if (d.passes === "none") ok(`template: ${path.basename(page)} is the verified template plus its data; browser pass not needed`);
-    else browser(page, outDir, d.passes === "light" ? [[]] : FULL);
+    else browser(page, outDir, FULL);
   }
   return report();
 }

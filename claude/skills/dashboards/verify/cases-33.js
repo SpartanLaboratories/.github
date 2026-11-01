@@ -11,6 +11,8 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 
 module.exports = function cases33(X) {
+  /* a case that needs a browser, in a run without one (verify-templates.js without --browser): reported as not run */
+  const NEEDS_BROWSER = X.NEEDS_BROWSER || "needs a browser: not run (verify-templates.js --browser runs it)", notRun = X.notRun || (() => false);
   const { sk, out, targets, dumpDom, inner, embedJs, node, withData, checker } = X;
   const tp = name => (targets.find(t => t.name === name) || {}).path;
   const PB = tp("plan/template/dashboard.html"), WB = tp("plan/template/board.html"), SYS = tp("system/template/system.html"), SUP = tp("system/template/supersystem.html");
@@ -124,7 +126,7 @@ module.exports = function cases33(X) {
     c.push(["…and none on the current system template", !/INTERNAL NAME/.test(ok.stdout || ""), (ok.stdout || "").split(/\r?\n/).filter(l => /INTERNAL/.test(l)).join(" | ") || "none"]);
     /* a board rendered before keeps its footer's "beside this page" until it is re-rendered (a landed board never is): the check takes it */
     const ex = sk("plan/examples/38-handshake-empty-name/dashboard.html"), fp = run(checker, [ex, "--out", path.join(sc, "footer")]);
-    c.push(["check-board.js takes the footer a board rendered before carries (\"beside this page\")", !/beside this page/.test(rd(ex)) || /CHECK footer: trimmed:/.test(fp.stdout || ""), (fp.stdout || "").split(/\r?\n/).filter(l => /footer/.test(l)).join(" | ")]);
+    c.push(["check-board.js takes the footer a board rendered before carries (\"beside this page\")", !/beside this page/.test(rd(ex)) || /CHECK footer: trimmed:/.test(fp.stdout || ""), notRun(fp) ? NEEDS_BROWSER : (fp.stdout || "").split(/\r?\n/).filter(l => /footer/.test(l)).join(" | ")]);
   });
 
   /* 5. the splice migrates a state board's names */
@@ -160,7 +162,7 @@ module.exports = function cases33(X) {
     const O = copy(P); O.links = { repoPage: "../../dashboards/index.html", pages: { alpha: "../../dashboards/alpha/index.html" } };
     const f = wr(path.join(sc, "keys-render", "dashboard.html"), withData(rd(PB), "plan", JSON.stringify(O, null, 2)));
     const d = dumpDom(f);
-    c.push(["the current issue-board template links the repository state board and a system's board from the older keys too", d == null || (/<a href="\.\.\/\.\.\/dashboards\/index\.html">/.test(inner(d, '<nav class="crumbs"', "nav") || d) && /href="\.\.\/\.\.\/dashboards\/alpha\/index\.html"/.test(d)), d == null ? "no browser" : (d.match(/<a href="[^"]*dashboards[^"]*">[^<]*<\/a>/g) || []).slice(0, 3).join(" ")]);
+    c.push(d == null ? ["the current issue-board template links the repository state board and a system's board from the older keys too", false, NEEDS_BROWSER] : ["the current issue-board template links the repository state board and a system's board from the older keys too", d == null || (/<a href="\.\.\/\.\.\/dashboards\/index\.html">/.test(inner(d, '<nav class="crumbs"', "nav") || d) && /href="\.\.\/\.\.\/dashboards\/alpha\/index\.html"/.test(d)), d == null ? "no browser" : (d.match(/<a href="[^"]*dashboards[^"]*">[^<]*<\/a>/g) || []).slice(0, 3).join(" ")]);
     const k = run(CHECK, [dir]);
     c.push(["check.js accepts the new keys and the old (no failure for either)", !/links must be an object/.test(k.stdout || ""), (k.stdout || "").split(/\r?\n/).filter(l => /links/.test(l)).join(" | ") || "ok"]);
   });

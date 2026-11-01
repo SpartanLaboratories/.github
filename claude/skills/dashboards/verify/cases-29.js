@@ -9,6 +9,8 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 
 module.exports = function cases29(X) {
+  /* a case that needs a browser, in a run without one (verify-templates.js without --browser): reported as not run */
+  const NEEDS_BROWSER = X.NEEDS_BROWSER || "needs a browser: not run (verify-templates.js --browser runs it)", notRun = X.notRun || (() => false);
   const { sk, out, targets, dumpDom, inner, checker } = X;
   const tp = name => (targets.find(t => t.name === name) || {}).path;
   const SYS = tp("system/template/system.html"), SUP = tp("system/template/supersystem.html");
@@ -156,7 +158,7 @@ module.exports = function cases29(X) {
       const base = dumpDom(SUP, "", "1400,1000"), bkey = text(inner(base, '<div class="key" id="systems-key">', "div"));
       c.push(["with no planned supersystem board, the legend keeps \"planned: no board yet\" alone", /planned: no board yet(?!, or)/.test(bkey) && !/built parts/.test(bkey), bkey.slice(0, 200)]);
       const ck = cp.spawnSync(process.execPath, [checker, page, "--out", path.join(sc, "parts-page-check")], { encoding: "utf8" });
-      c.push(["check-board.js's full pass passes the board (legends, dashes, keyboard, no dead link)", ck.status === 0, (ck.stdout || "").split(/\r?\n/).filter(l => /FAIL|DEAD|LEGEND|MISSING/.test(l)).slice(0, 4).join(" | ") || "pass"]);
+      c.push(["check-board.js's full pass passes the board (legends, dashes, keyboard, no dead link)", ck.status === 0, notRun(ck) ? NEEDS_BROWSER : (ck.stdout || "").split(/\r?\n/).filter(l => /FAIL|DEAD|LEGEND|MISSING/.test(l)).slice(0, 4).join(" | ") || "pass"]);
     }
     /* the feature probe: the template passes it; the verified version before this run lacks it */
     c.push(["the feature probe planned-parts-page applies to supersystem and repository state boards, and the template passes it", F.applicable("supersystem").some(f => f.id === "planned-parts-page") && !F.probe(sup, "supersystem").some(m => m.id === "planned-parts-page"), JSON.stringify(F.probe(sup, "supersystem"))]);

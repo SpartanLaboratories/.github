@@ -7,7 +7,9 @@
 //                                                     the folder after it. --repo-dir is the clone that holds the merge (default: the
 //                                                     git repository the folder is in).
 // It never guesses a time: what git cannot tell (no git, the merge not in the clone, no merge sha on the board) is left unrecorded and
-// said. apply-event.js records the same at a board's landed event, from the worktree; this is for a board that landed before the rule.
+// said. apply-event.js records the same at a board's landed event (facts.mergedAt, git in the worktree or the main checkout, the pull
+// request's merge time) and at the next run's seeding (plan/RULES.md §4, "The fast path owns the Timeline"); this is for a board that
+// landed before the rule.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const lib = require("./lib.js");

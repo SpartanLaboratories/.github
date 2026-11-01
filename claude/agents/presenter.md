@@ -216,8 +216,9 @@ catch up at their own events.
 - **Streamlined.** Make new boards from the template and change
   only what the facts require. Check with `check.js <folder> --auto` and
   `check-board.js <board> --auto`: they check the data and embeds everywhere
-  and run browser passes only as `GUIDANCE.md` §8 sets out, by how far the
-  board deviates from its verified template. Look at screenshots only for a
+  and run a browser pass only on a board that diverges from its verified
+  template (`GUIDANCE.md` §8); a board that is the verified template plus its
+  data, a state board included, gets none. Look at screenshots only for a
   board that got a browser pass.
 - **Every improvement, every dashboard type.** When a convention change or
   improvement is made for one dashboard type, consider it for all of them
@@ -229,6 +230,10 @@ catch up at their own events.
   scripts; after any template change run `verify/verify-templates.js`. List
   every skill file changed under **Skill fixes** so the mirror is synced.
   Conventions are proposed in the report, not changed.
+- **Skill and template changes get no browser pass from you** (`GUIDANCE.md`
+  §8). Run their checks that need no browser; list under **Browser check**
+  exactly what the user should check in a browser (which file to open, what to
+  click, what they should see), and the user verifies.
 - **More onto the fast path** (standing rule). You may always decide on your
   own to move something onto the fast path, so that `plan/scripts/apply-event.js`
   or `system/scripts/apply-state.js` applies more facts directly and fewer
@@ -282,11 +287,14 @@ catch up at their own events.
 - repository work board: docs/plans/index.html — regenerated | untouched (no state-boards job)
 
 ## Verified
-- <checker> --auto: <board> → data/embeds ok · <template + data, no browser pass | one light pass | full pass: light, dark, narrow, 0 console errors (screenshots: <dir>)>
+- <checker> --auto: <board> → data/embeds ok · <template + data, no browser pass | full pass: light, dark, narrow, 0 console errors (screenshots: <dir>)>
 - looked at: <what you fixed after the look, or "nothing to fix">
 
 ## Skill fixes
 - <skill file changed> — <the defect and the fix in one line, checks re-run> | none
+
+## Browser check
+- <file to open> — <what to click> → <what the user should see>   (or "none": no skill or template change)
 
 ## As-is stamp
 <branch> @ <short sha> · last amended by #<issue> · <date>

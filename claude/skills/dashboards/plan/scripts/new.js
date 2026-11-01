@@ -3,6 +3,7 @@
 //   node new.js <issue> <slug> [--root <repo>] [--parent <folder under docs/plans>] [--fix-of <landed issue>] [--kind issue|tracking] [--level 2|3|4]
 //               [--title "Short name"] [--issue-title "The issue's title"] [--function "One paragraph"]
 //               [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems slug,slug] [--step research] [--repo owner/name]
+//               [--at <ISO time>]   the sized event's time, the run's start (plan.sized, wip.since); default now
 // The repository root is --root, else the current directory. Systems take their names and colour slots from
 // docs/dashboards/systems.json. Refuses to overwrite. Anything not given stays a <placeholder> that check.js refuses.
 // With --parent, the new board links its parent's board (parent.board, set by embed.js only when the parent folder holds one), and
@@ -66,8 +67,8 @@ function batch(a) {
   kept.forEach(k => console.log(`left: ${k}`));
   console.log(`${made.length} board${made.length === 1 ? "" : "s"} laid in ${trel}${made.length ? "; the tracking board is re-embedded and links them" : ""}`);
 }
-require("../../system/scripts/cliargs.js").strict(args, { usage: "usage: node new.js <issue> <slug> [--root <repo>] [--parent <folder>] [--fix-of <issue>] [--kind issue|tracking] [--level n] [--title ...] [--issue-title ...] [--function ...] [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems a,b] [--step <step>] [--repo owner/name]",
-  valued: ["root", "parent", "fix-of", "kind", "level", "title", "issue-title", "function", "baseline", "date", "branch", "systems", "step", "repo"], min: 2, max: 2 });
+require("../../system/scripts/cliargs.js").strict(args, { usage: "usage: node new.js <issue> <slug> [--root <repo>] [--parent <folder>] [--fix-of <issue>] [--kind issue|tracking] [--level n] [--title ...] [--issue-title ...] [--function ...] [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems a,b] [--step <step>] [--repo owner/name] [--at <ISO time>]",
+  valued: ["root", "parent", "fix-of", "kind", "level", "title", "issue-title", "function", "baseline", "date", "branch", "systems", "step", "repo", "at"], min: 2, max: 2 });
 const issue = parseInt(args[0], 10), slug = args[1];
 if (!issue || !slug || !/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
   console.error("usage: node new.js <issue> <slug> [--root <repo>] [--parent <folder>] [--fix-of <issue>] [--kind issue|tracking] [--level n] [--title ...] [--issue-title ...] [--function ...] [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems a,b] [--step <step>] [--repo owner/name]");
@@ -94,7 +95,11 @@ if (!repo) { try { const u = cp.execSync("git remote get-url origin", { cwd: roo
 const plan = JSON.parse(fs.readFileSync(path.join(tpl, "plan.json"), "utf8"));
 delete plan.$comment;
 const level = opt(args, "level", null), kind = opt(args, "kind", level === "4" ? "tracking" : "issue");
-const now = new Date().toISOString().replace(/\.\d+Z$/, "Z");
+/* the run's start, the sized event's time (--at; apply-event.js names it in its summary when there is no board yet), so the Timeline's
+   first bound is the event's, not the time the foundation was laid (plan/RULES.md §4, "The fast path owns the Timeline") */
+const AT = opt(args, "at", null);
+if (AT != null && (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?Z$/.test(AT) || isNaN(Date.parse(AT)))) { console.error(`--at ${JSON.stringify(AT)} is not an ISO UTC time (YYYY-MM-DDTHH:MM[:SS]Z)`); process.exit(2); }
+const now = (AT ? new Date(AT) : new Date()).toISOString().replace(/\.\d+Z$/, "Z");
 const step = opt(args, "step", "research"); // its wip.current comes from the step-to-column map (plan/RULES.md §3): lib.js glowFor()
 Object.assign(plan, {
   repo: repo || plan.repo,

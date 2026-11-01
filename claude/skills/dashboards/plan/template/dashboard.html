@@ -1893,7 +1893,7 @@ function renderKpis(){
   /* every issue board (dashboards-skill/34): a landed board's run whole, a board in flight its steps so far, the running one to now */
   const TS=timelineSteps(PLAN,LANDED?null:new Date().toISOString().replace(/\.\d+Z$/,"Z")), tsTot=timelineTotal(TS), TV=tlView(TS), tsTimed=TS.visits.filter(v=>v.ms!=null);
   const tpParts=tsTimed.map(v=>({n:tsTot>0?Math.max(v.ms,tsTot*0.03):1,cls:"tp",step:v.step,c:tlMix(v.family,v.shade),t:`${v.label} (${v.family}): ${TV.text(v.from)} → ${TV.text(v.to)} · ${v.approx?"≈ ":""}${tlSpan(v.ms)}${v.open?" so far":""}`}));
-  TRACERS=timelineTracers(TS);
+  TRACERS=timelineTracers(TS); TL_OPEN=TS.visits.some(v=>v.open);
   KPI_DRAWN={rows:gparts,opts:optParts.filter(p=>p.n),verdicts:[vbuild,leave,vopen],states:states.filter(([,n])=>n).map(([k])=>k),left,qa:[...new Set(qa.map(qaResult))],slots:qmax>qa.length};
   const K=kpiKeys(), TR=k=>tracerLab(TRACERS.find(x=>x.tile===k));
   $("#tl-tile").innerHTML=timelineTile(TS,TV,tsTot,tpParts,segBar);
@@ -1973,6 +1973,13 @@ function drawTracers(){ const svg=$("#tracers"), stack=$("#tl-stack"); if(!svg||
     const br=it.box.seg?`<path d="M${g} ${f-3} V${f} H${h} V${f-3}" style="stroke:${it.c}"/>`:"";
     return `<g data-tracer="${esc(it.lab.dataset.tracer)}"><path d="M${a} ${b} V${d} H${c} V${f}" style="stroke:${it.c}"/>${br}<circle cx="${e}" cy="${f}" r="2.6" style="fill:${it.c}"/></g>`; }).join(""); }
 window.addEventListener("resize",()=>{ if(CUR_TAB==="steps") drawTracers(); });
+/* The running step runs to now (plan/RULES.md §2, "The Timeline tab"; §4, "The fast path owns the Timeline"): while the Timeline draws an
+   open-ended visit, the Timeline tile, the KPI tiles with their tracer labels and the tracers are drawn again every half minute, so the
+   running visit's time and the figure "so far" follow the clock between two updates of the board's data (each update redraws them from
+   plan.js at once); a board with no running visit, or a hidden one, is left alone, and showing it again catches it up. */
+let TL_OPEN=false; const TL_TICK_MS=30000;
+function timelineTick(){ if(!TL_OPEN||document.hidden) return; renderKpis(); localizeTimes(); if(CUR_TAB==="steps") drawTracers(); }
+setInterval(timelineTick,TL_TICK_MS); document.addEventListener("visibilitychange",timelineTick);
 
 /* ---------- Timeline board ---------- */
 /* A unit row's title (plan/RULES.md §1, "The unit row"): "1. #61 Shared build logic", where #61 opens the GitHub issue and the

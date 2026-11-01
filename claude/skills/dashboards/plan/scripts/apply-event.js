@@ -35,6 +35,10 @@
 // an open point's report outside the tree copied when the point is raised, for the live view (runOpenJobs()), and every open point
 // resolved at the land (check.js fails one left open); a bare test level beside a test word written as its named test level, and a bare
 // "Ln" elsewhere elided as a work level with a warning (summary: warnings).
+// The fast path owns the Timeline (plan/RULES.md §4, "The fast path owns the Timeline"): the merge's time at landed from facts.mergedAt, git in
+// the worktree, then the main checkout, then the pull request's merge time from the tracker (mergeTimes(), lib.js ghMergeTime(); not with
+// --no-gh), a warning where none tells it, never an enrichment; the seeding at sized records it from git where the landing could not; at a
+// sized with no board the summary names new.js --at with the event's time.
 "use strict";
 const T0 = Date.now();
 const fs = require("fs"), path = require("path"), cp = require("child_process");
@@ -567,10 +571,13 @@ function applyEvent(orig, ev, facts, req, now) {
       const next = { ...A, ...(sha ? { sha } : {}), ...(typeof facts.merge === "string" && /^[0-9a-f]{7,40}$/.test(facts.merge) ? { merge: facts.merge } : {}), ...(pr ? { pr } : {}),
         ...(txt(facts.version, "version") ? { version: txt(facts.version, "version") } : {}), date: /^\d{4}-\d{2}-\d{2}$/.test(String(facts.date || "")) ? facts.date : (A.date || today) };
       /* the merge's time and the branch's step commits, for the Timeline tile (plan/RULES.md §2, "The KPI tiles"; dashboards-skill/32):
-         facts.mergedAt when given, else read from git in the worktree (lib.js gitTimes()); nothing is recorded where git cannot tell */
-      const gt = lib.gitTimes(ROOT, typeof plan.folder === "string" ? plan.folder : null, next.merge || sha || null), mAt = lib.isTime(facts.mergedAt) ? facts.mergedAt : gt.at || null;
-      if (mAt) next.at = mAt; if (Array.isArray(gt.commits) && gt.commits.length) next.commits = gt.commits;
-      if (!next.at) enrich.push("landed: the merge's time (asBuilt.at) is not recorded: git in the worktree cannot tell it (timeline.js <folder> --from-git, or facts.mergedAt)");
+         the fast path owns them (plan/RULES.md §4, "The fast path owns the Timeline"): facts.mergedAt when given, else git (the worktree,
+         then the main checkout), else the pull request's merge time from the tracker; what none can tell is left unrecorded, never
+         guessed, and recorded from git when the next run's sized seeds this board (seedFromView()); never the presenter's */
+      const mt = mergeTimes(plan, facts, req, next.merge || sha || null, next.pr || null);
+      if (mt.at) next.at = mt.at; if (Array.isArray(mt.commits) && mt.commits.length) next.commits = mt.commits;
+      if (mt.applied) applied.push(mt.applied);
+      if (mt.warn) WARNINGS.push(mt.warn);
       plan.asBuilt = next; applied.push("asBuilt");
       /* the board is built, and its step landed, only once every part is resolved and the merge is recorded (check.js); until the
          pre-merge refresh resolves them it stays at the landing, its merge recorded */
@@ -796,6 +803,31 @@ function runOpenJobs() {
   return out;
 }
 
+/* The merge's time (asBuilt.at) and the branch's step commits (asBuilt.commits) at landed, for the Timeline tile (plan/RULES.md §2, "The
+   Timeline tile's legend"; §4, "The fast path owns the Timeline"), each from the first source that tells it: facts.mergedAt; git in the
+   worktree, then in the main checkout (lib.js gitTimes(): the merge commit's time, and the step commits of a two-parent merge); the pull
+   request's merge time from the tracker (lib.js ghMergeTime(); not with --no-gh), held to the board's merge commit. The step commits come
+   from git alone. Where none tells the time, nothing is recorded and the summary warns: the next run's sized records it from git when it
+   seeds the board (the merge is then in its branch). The tracker is asked once per run (the duplicate check applies the event twice). */
+const GH_MEMO = new Map();
+function mergeTimes(plan, facts, req, merge, pr) {
+  const folder = typeof plan.folder === "string" ? plan.folder : null, out = {};
+  let g = lib.gitTimes(ROOT, folder, merge);
+  if (!g.at && MAIN && path.resolve(MAIN) !== path.resolve(ROOT)) g = lib.gitTimes(MAIN, folder, merge);
+  if (Array.isArray(g.commits) && g.commits.length) out.commits = g.commits;
+  if (lib.isTime(facts.mergedAt)) { out.at = facts.mergedAt; return out; }
+  if (g.at) { out.at = g.at; return out; }
+  const repo = REPO_SLUG || req.github || plan.repo || null, n = Number.isInteger(facts.pr) && facts.pr > 0 ? facts.pr : Number.isInteger(pr) && pr > 0 ? pr : null;
+  if (!flag("no-gh") && repo && n) {
+    const key = `${repo}#${n}@${merge || ""}`; if (!GH_MEMO.has(key)) GH_MEMO.set(key, lib.ghMergeTime(repo, n, merge));
+    const t = GH_MEMO.get(key);
+    if (t.at) { out.at = t.at; out.applied = `asBuilt.at from PR #${n}'s merge time (git here does not hold the merge yet)`; return out; }
+    if (t.mismatch) { out.warn = `landed: PR #${n}'s merge commit ${String(t.mismatch).slice(0, 7)} is not the board's merge ${String(merge).slice(0, 7)}: its merge time is not taken; the next run's sized records the merge's time from git when it seeds this board`; return out; }
+  }
+  out.warn = `landed: the merge's time (asBuilt.at) is not recorded yet: ${merge ? "git here does not hold the merge" : "the board records no merge commit"}${flag("no-gh") ? "" : n ? " and the tracker cannot tell it" : " and the event names no pull request"}; the next run's sized records it from git when it seeds this board (or timeline.js <folder> --from-git, or facts.mergedAt)`;
+  return out;
+}
+
 /* The standing rule on the parent tracking board (plan/RULES.md §3, "Next is the next one up"): a unit's start (sized), its approving
    qa pass (complete) and its landing (landed). Returns { plan, applied, enrich }. */
 function applyParent(orig, sub, op, now) {
@@ -908,6 +940,15 @@ function seedFromView(now) {
   const out = [];
   ok.sort((a, b) => a.rel.split("/").length - b.rel.split("/").length).forEach(x => {
     const text = fs.readFileSync(path.join(x.tracked, "plan.json"), "utf8"), eol = /\r\n/.test(text) ? "\r\n" : "\n";
+    /* the Timeline's merge time and step commits, where the landing could not record them (plan/RULES.md §4, "The fast path owns the
+       Timeline"): the merge is in this branch's history now, so git tells them; a time already recorded is kept */
+    const A = x.vp.asBuilt, m = mergeOf(x.vp);
+    if (A && m && (!lib.isTime(A.at) || !Array.isArray(A.commits))) {
+      const g = lib.gitTimes(ROOT, typeof x.vp.folder === "string" ? x.vp.folder : `docs/plans/${x.rel}`, m), got = [];
+      if (!lib.isTime(A.at) && g.at) { A.at = g.at; got.push("asBuilt.at"); }
+      if (!Array.isArray(A.commits) && Array.isArray(g.commits) && g.commits.length) { A.commits = g.commits; got.push("asBuilt.commits"); }
+      if (got.length) S.applied.push(`seeded ${x.rel}: ${got.join(" and ")} from git`);
+    }
     writeBoard(x.tracked, x.vp, eol, S.enrich, `seeded ${x.rel}`); out.push(x.tracked); S.seeded.push(`docs/plans/${x.rel}`);
   });
   /* the parent of a landed sub-issue seeded alone: its unit landed by the standing rule */
@@ -955,7 +996,7 @@ async function main() {
   const planFile = path.join(DIR, "plan.json");
   if (!fs.existsSync(planFile)) {
     if (ev !== "sized") refuse(`${folder} holds no plan.json: there is no board to apply ${ev} to`);
-    S.result = "no-board"; S.issue = req.issue || null; S.enrich.push("sized: no board yet; the presenter lays the foundation (new.js) from the documents"); return;
+    S.result = "no-board"; S.issue = req.issue || null; S.enrich.push(`sized: no board yet; the presenter lays the foundation (new.js ... --at ${now}, the event's time, the Timeline's run start) from the documents`); return;
   }
   const text = fs.readFileSync(viewRead(DIR), "utf8"), eol = /\r\n/.test(text) ? "\r\n" : "\n";
   let orig; try { orig = JSON.parse(text); } catch (e) { refuse(`${folder}/plan.json does not parse: ${e.message}`); }

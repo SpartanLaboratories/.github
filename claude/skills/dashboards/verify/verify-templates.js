@@ -1,19 +1,25 @@
 #!/usr/bin/env node
 // Verify the dashboard templates once, so boards made from them need not be (GUIDANCE.md §8).
-//   node verify/verify-templates.js [--root <repo>] [--out <dir>] [--history-repo <clone of SpartanLaboratories/.github>]
-// Renders each template with its fixtures into a scratch folder and runs system/scripts/check-board.js on every rendering, in
-// light, dark, 520 px, a 390 px frame and a 1920 x 1080 desktop window. When every pass of a template passes, records the template's sha256 in
-// verify/verified.json (the skill's templates) or in <repo>/docs/{plans,dashboards}/_template/verified.json (a repository's own
-// templates, with --root). check-board.js --auto and plan/scripts/check.js --auto then skip the browser pass for a board that is a
-// verified template plus its data, and give a system board whose structure is the template's one light pass. Run it after every
-// change to a template; until then, every board made from that template gets the full pass.
+//   node verify/verify-templates.js [--root <repo>] [--out <dir>] [--history-repo <clone of SpartanLaboratories/.github>] [--browser]
+// By default it runs only the checks that need no browser, and opens none (GUIDANCE.md §8: a skill or template change gets no browser
+// pass from the presenter; the user checks it in a browser from what the report lists). It renders each template with its fixtures
+// into a scratch folder and runs system/scripts/check-board.js --auto --no-browser on every rendering, and runs the case groups below
+// with DASHBOARDS_NO_BROWSER=1 set, so neither check-board.js nor plan/scripts/check.js opens a browser; a case that needs one (a
+// rendered DOM, a browser pass) is reported as not run, never as passed or failed. When every check of a template that needs no
+// browser passes, it records the template's sha256 in verify/verified.json (the skill's templates) or in
+// <repo>/docs/{plans,dashboards}/_template/verified.json (a repository's own templates, with --root). check-board.js --auto and
+// plan/scripts/check.js --auto then give no browser pass to a board that is a verified template plus its data, a state board
+// included. Run it after every change to a template; until then, every board made from that template gets the full pass.
+// --browser (only when a person asks for it) adds what needs a browser: the rendered-DOM cases (headless Chrome, --dump-dom) and the
+// browser passes of check-board.js on every rendering, in light, dark, 520 px, a 390 px frame and a 1920 x 1080 desktop window.
 // The fixtures cover each template's states: the issue board example (landed, every option verdict and as-built state), the
 // tracking fixture (a landed, a complete and an in-progress unit, the unit up next and blocked), the sub-issue fixture (a board
 // inside its parent's folder, its parent and a sibling with boards, a part deferred to an issue), the repository work board fixture (landed,
 // complete, building, next, not started; a sub-issue with a board, linked from its row, the roadmap and a waits-on; and its
 // live variant from board.js --live) and each template's own placeholder content.
-// Before the browser passes it tests deviation.js on each system template, without a browser: board-filled lines are no
-// difference; an undeclared change to the script before MODEL is reported, with its warning, and gets the full pass. It also
+// First it tests deviation.js on each system template, without a browser: board-filled lines are no difference, and the board is
+// the verified template plus its data, with no browser pass (check-board.js --auto opens none); an undeclared change to the script
+// before MODEL is reported, with its warning, and gets the full pass (named and not run without --browser). It also
 // tests the links to an issue's board (plan/RULES.md §1) on the plan-board and work-board templates: embed.js links a unit, the
 // parent and every other issue a board names to that issue's board only when the board exists, and clears a link whose board is
 // gone; check.js warns on a board older than the rule and fails a dead link; and the rendered pages (headless Chrome, --dump-dom)
@@ -70,19 +76,25 @@
 // pre-merge stamp, the open points on every event. The decisions of dashboards-skill/34 (verify/cases-34.js): the Timeline tile coloured
 // by kind of work, approximate bounds, the landing in three steps, a sub-issue's roadmap, the Design tab. The live view of a landing
 // (verify/cases-live-view.js): apply-event.js --view, the view copies and their <base> line, board.js --live opening them. A
-// template is recorded only when its browser passes and every case group pass.
+// template is recorded only when every check it runs passes: by default those that need no browser; with --browser its browser
+// passes and the rendered cases too.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { recordFile, sha, norm } = require(path.join(__dirname, "..", "system", "scripts", "deviation.js"));
 const SKILL = path.resolve(__dirname, "..");
-require(path.join(__dirname, "..", "system", "scripts", "cliargs.js")).strict(process.argv.slice(2), { usage: "usage: node verify/verify-templates.js [--root <repo>] [--out <dir>] [--history-repo <clone of SpartanLaboratories/.github>]", valued: ["root", "out", "history-repo"], max: 0 });
+require(path.join(__dirname, "..", "system", "scripts", "cliargs.js")).strict(process.argv.slice(2), { usage: "usage: node verify/verify-templates.js [--root <repo>] [--out <dir>] [--history-repo <clone of SpartanLaboratories/.github>] [--browser]", valued: ["root", "out", "history-repo"], flags: ["browser"], max: 0 });
 const args = process.argv.slice(2), opt = (n, d) => { const i = args.indexOf("--" + n); return i >= 0 ? args[i + 1] : d; };
 const out = path.resolve(opt("out", path.join(os.tmpdir(), "dashboards-verify")));
+/* No browser unless asked for (GUIDANCE.md §8): DASHBOARDS_NO_BROWSER=1 reaches every script the checks and cases spawn, so
+   check-board.js and check.js open none (exit 3, "NOT RUN") and dumpDom() below renders nothing. */
+const BROWSER = args.includes("--browser");
+if (!BROWSER) process.env.DASHBOARDS_NO_BROWSER = "1"; else delete process.env.DASHBOARDS_NO_BROWSER;
 /* a local clone of the .github mirror, for the case groups that read an old template version missing from verify/history/ (history.js) */
 const historyRepo = opt("history-repo", null);
 const checker = path.join(SKILL, "system", "scripts", "check-board.js");
-/* light, dark, the narrowest window headless Chrome lays out, a phone-width frame, and a 16:9 desktop (the wide layout) */
-const MODES = [[], ["--theme", "dark"], ["--width", "520"], ["--frame", "390"], ["--width", "1920", "--height", "1080"]];
+/* with --browser: light, dark, the narrowest window headless Chrome lays out, a phone-width frame, and a 16:9 desktop (the wide layout);
+   without: one run of the checks that need no browser */
+const MODES = BROWSER ? [[], ["--theme", "dark"], ["--width", "520"], ["--frame", "390"], ["--width", "1920", "--height", "1080"]] : [["--auto", "--no-browser"]];
 const sk = p => path.join(SKILL, ...p.split("/"));
 
 /* Each template, the block its data goes in (none for system templates, which carry their own sample content), and its fixtures. */
@@ -106,8 +118,8 @@ const withData = (html, id, json) => {
   const open = `<script type="application/json" id="${id}">`, a = html.indexOf(open), b = html.indexOf("</script>", a + open.length);
   return html.slice(0, a + open.length) + "\n" + json.replace(/<\/script/gi, "<\\/script").trim() + "\n" + html.slice(b);
 };
-/* The comparison check-board.js --auto makes (deviation.js), tested on each system template before any browser pass, with no
-   browser: a copy whose board-filled lines (REPO, SRC) carry a board's own values must not differ; a copy with one undeclared line
+/* The comparison check-board.js --auto makes (deviation.js), tested on each system template with no browser: a copy whose
+   board-filled lines (REPO, SRC) carry a board's own values must not differ, and gets no browser pass; a copy with one undeclared line
    added to the script before MODEL (where a supersystem or repository state board keeps its Systems renderer) must differ there, be
    reported undeclared and get the full pass; the same copy declaring it must not be reported undeclared. Each copy sits in a
    scratch repository whose docs/dashboards/_template/ holds the template under test, so deviation.js holds it to that template. */
@@ -130,6 +142,13 @@ targets.filter(t => !t.block).forEach(t => {
     ["an undeclared line before MODEL is reported undeclared, with the warning", u.undeclared && u.notes.some(n => /no divergence is declared/.test(n)), u.notes.join(" | ")],
     ["an undeclared line before MODEL gets the full pass", u.passes === "full", u.passes],
     ["the same line declared is not reported undeclared", before(d) && !d.undeclared && d.passes === "full", d.notes.join(" | ")],
+    /* a state board that is the verified template plus its data gets no browser pass (GUIDANCE.md §8), and check-board.js --auto opens none */
+    ["the board-filled copy is the verified template plus its data: no browser pass", f.verdict === "structure" && f.passes === "none", `${f.verdict} · ${f.passes}`],
+    ...(() => { const auto = name => cp.spawnSync(process.execPath, [checker, path.join(pdir, name + ".html"), "--auto"], { encoding: "utf8" }), tl = r => (r.stdout || "").split(/\r?\n/).filter(l => /CHECK template: \w+ board|CHECK pass |CHECK browser|^FAIL|^PASS|^NOT RUN/.test(l)).join(" | ");
+      const rf = auto("filled"), out = [["check-board.js --auto runs no browser pass on it", /CHECK template: \w+ board · structure · no browser pass/.test(rf.stdout || "") && !/CHECK pass |CHECK browser: NOT RUN/.test(rf.stdout || ""), tl(rf)]];
+      /* without --browser, DASHBOARDS_NO_BROWSER=1: the diverging copy's full pass is named and not run (exit 3, or 1 beside a failure found without one) */
+      if (!BROWSER) { const ru = auto("undeclared"); out.push(["without a browser, check-board.js --auto names the diverging copy's full pass and opens no browser", /CHECK template: \w+ board · diverges · full pass/.test(ru.stdout || "") && /^CHECK browser: NOT RUN/m.test(ru.stdout || "") && !/CHECK pass /.test(ru.stdout || "") && (ru.status === 3 || ru.status === 1), `exit ${ru.status} · ${tl(ru)}`]); }
+      return out; })(),
   ];
   const bad = cases.filter(c => !c[1]);
   console.log(`${bad.length ? "FAILED  " : "checked "} deviation.js on ${t.name}: ${cases.length - bad.length}/${cases.length} cases`);
@@ -156,9 +175,11 @@ let linkFailures = 0;
 const browsers = ["C:/Program Files/Google/Chrome/Application/chrome.exe", "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
   "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe", "C:/Program Files/Microsoft/Edge/Application/msedge.exe",
   "/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"];
-const chrome = process.env.CHROME && fs.existsSync(process.env.CHROME) ? process.env.CHROME : browsers.find(b => fs.existsSync(b));
+/* no browser unless --browser: every case reads a null chrome and dumpDom() as "no browser", and is reported as not run */
+const chrome = !BROWSER ? null : process.env.CHROME && fs.existsSync(process.env.CHROME) ? process.env.CHROME : browsers.find(b => fs.existsSync(b));
 /* The DOM of a board after its scripts ran (in a window of `size`, "w,h", when given), or null without a browser. */
-const dumpDom = (page, hash, size, budget) => { if (!chrome) return null; const r = cp.spawnSync(chrome, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check", ...(size ? [`--window-size=${size}`] : []),
+let domSkips = 0;
+const dumpDom = (page, hash, size, budget) => { if (!chrome) { if (!BROWSER) domSkips++; return null; } const r = cp.spawnSync(chrome, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check", ...(size ? [`--window-size=${size}`] : []),
   "--allow-file-access-from-files", `--virtual-time-budget=${budget || 4000}`, "--dump-dom", "file:///" + path.resolve(page).replace(/\\/g, "/") + (hash ? "#" + hash : "")], { encoding: "utf8", timeout: 120000, maxBuffer: 64 * 1024 * 1024 });
   return r.stdout || ""; };
 /* The inner HTML of the first element of a DOM dump whose opening tag matches `open` (a regex source), up to its closing tag. */
@@ -169,8 +190,20 @@ const node = (js, folder, ...a) => cp.spawnSync(process.execPath, [js, folder, .
 const lines = (r, re) => (r.stdout || "").split(/\r?\n/).filter(l => re.test(l)).join(" | ");
 const warned = r => /has a board .* links #\d+ to its GitHub issue/.test(r.stdout || "");
 const stub = dir => { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(path.join(dir, "dashboard.html"), "<!doctype html><title>stub</title>"); };
-const report = (what, cases) => { const bad = cases.filter(c => !c[1]);
-  console.log(`${bad.length ? "FAILED  " : "checked "} ${what}: ${cases.length - bad.length}/${cases.length} cases`);
+/* A case that needs a browser, in a run without one (no --browser): its detail says so ("no Chrome or Edge", "skipped: no browser", or
+   NEEDS_BROWSER), or it is a check-board.js / check.js run that answered NOT RUN. It is reported as not run, never as passed or failed;
+   with --browser the same case is an ordinary one, and a missing browser fails it. */
+const NEEDS_BROWSER = "needs a browser: not run (verify-templates.js --browser runs it)";
+/* a check-board.js run that stopped at its browser pass with every check that needs none passing (exit 3), or a check.js run whose only
+   failures are the browser passes it did not run: a static failure beside them still fails the case */
+const notRun = r => { if (!r || BROWSER) return false; const o = r.stdout || "", f = o.split(/\r?\n/).filter(l => /^FAIL /.test(l));
+  return (r.status === 3 && /^CHECK browser: NOT RUN/m.test(o)) || (r.status === 1 && f.length > 0 && f.every(l => /^FAIL +browser: NOT RUN/.test(l))); };
+const needsBrowser = c => !BROWSER && (/^(no Chrome or Edge|skipped: no browser)/.test(String(c[2])) || c[2] === NEEDS_BROWSER);
+let notRunTotal = 0, domSkipsSeen = 0;
+const report = (what, cases) => { const skip = cases.filter(needsBrowser), run = cases.filter(c => !needsBrowser(c)), bad = run.filter(c => !c[1]);
+  const doms = domSkips - domSkipsSeen; domSkipsSeen = domSkips; notRunTotal += skip.length;
+  const nr = !BROWSER && (skip.length || doms) ? ` · not run without a browser: ${skip.length} case${skip.length === 1 ? "" : "s"}${doms ? `, ${doms} rendering${doms === 1 ? "" : "s"}` : ""}` : "";
+  console.log(`${bad.length ? "FAILED  " : "checked "} ${what}: ${run.length - bad.length}/${run.length} cases${nr}`);
   bad.forEach(c => console.log(`  ${c[0]}: ${c[2]}`)); if (bad.length) linkFailures++; };
 
 targets.filter(t => t.block === "plan").forEach(t => {
@@ -340,7 +373,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     const dir = page("38-levels", d), c = node(checkJs, dir, "--root", iScratch);
     ic.push(["check.js fails a board whose text names a work level", c.status === 1 && /shows a work level/.test(c.stdout), lines(c, /^FAIL/) || "no failure"]);
     const r = cp.spawnSync(process.execPath, [checker, path.join(dir, "dashboard.html"), "--out", iScratch], { encoding: "utf8" });
-    ic.push(["check-board.js reports a work level the board shows", r.status === 1 && /LEVEL REFERENCE/.test(r.stdout || ""), (r.stdout || "").split(/\r?\n/).filter(l => /work levels|FAIL/.test(l)).join(" | ")]); }
+    ic.push(["check-board.js reports a work level the board shows", r.status === 1 && /LEVEL REFERENCE/.test(r.stdout || ""), notRun(r) ? NEEDS_BROWSER : (r.stdout || "").split(/\r?\n/).filter(l => /work levels|FAIL/.test(l)).join(" | ")]); }
   report(`the Impact tab and the work-level guard on ${t.name}`, ic);
 
   /* The chain's progress (plan/RULES.md §3): a tracking board's status chip reads the chain, not "building". Rendered from the
@@ -557,7 +590,11 @@ targets.filter(t => t.block === "plan").forEach(t => {
     const c = node(checkJs, dir, "--root", sc);
     nc.push(["check.js fails a board whose system slot is orange", orange !== tpl && c.status === 1 && /palette: --sys-2: #eb6834 is in a status spectrum/.test(c.stdout), lines(c, /palette/) || "no failure"]);
     const r = cp.spawnSync(process.execPath, [checker, path.join(dir, "dashboard.html"), "--out", sc], { encoding: "utf8" });
-    nc.push(["check-board.js fails it, from the CSS and from the computed colour", r.status === 1 && /CHECK palette: PALETTE IN STATUS HUE --sys-2/.test(r.stdout || "") && /palette \(computed\).*PALETTE IN STATUS HUE --sys-2/.test(r.stdout || ""), (r.stdout || "").split(/\r?\n/).filter(l => /palette/.test(l)).join(" | ")]); }
+    /* without a browser (no --browser) the CSS half is checked and the computed colour, which needs one, is not run */
+    if (/^CHECK browser: NOT RUN/m.test(r.stdout || "")) {
+      nc.push(["check-board.js fails it from the CSS, without a browser", r.status === 1 && /CHECK palette: PALETTE IN STATUS HUE --sys-2/.test(r.stdout || ""), (r.stdout || "").split(/\r?\n/).filter(l => /palette/.test(l)).join(" | ")]);
+      nc.push(["…and from the colour the browser computes", false, NEEDS_BROWSER]); }
+    else nc.push(["check-board.js fails it, from the CSS and from the computed colour", r.status === 1 && /CHECK palette: PALETTE IN STATUS HUE --sys-2/.test(r.stdout || "") && /palette \(computed\).*PALETTE IN STATUS HUE --sys-2/.test(r.stdout || ""), (r.stdout || "").split(/\r?\n/).filter(l => /palette/.test(l)).join(" | ")]); }
 
   /* strict options: an unknown one fails before any file is touched; --help prints the usage */
   { const repo = path.join(sc, "cli"), bj = path.join(repo, "docs", "plans", "board.json"); fs.rmSync(repo, { recursive: true, force: true }); fs.mkdirSync(path.dirname(bj), { recursive: true });
@@ -956,7 +993,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
   const ftext = html => (inner(html, "<footer[^>]*>", "footer") || "").replace(/<!--[\s\S]*?-->/g, "").replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/\s+/g, " ").trim();
   const MD = "Code and the Markdown beside this board are authoritative on any conflict.", CODE = "Code is authoritative on any conflict.", COLS = "Columns 1 to 3 are written once; column 4 records every difference.";
   const put = (name, html) => { const f = path.join(sc, name); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, html); return f; };
-  const checkFails = f => { const r = cp.spawnSync(process.execPath, [checker, f, "--out", sc], { encoding: "utf8" }); return [r.status === 1 && /FOOTER NOT IN ITS FORM/.test(r.stdout || ""), (r.stdout || "").split(/\r?\n/).filter(l => /footer|FAIL/.test(l)).join(" | ")]; };
+  const checkFails = f => { const r = cp.spawnSync(process.execPath, [checker, f, "--out", sc], { encoding: "utf8" }); return [r.status === 1 && /FOOTER NOT IN ITS FORM/.test(r.stdout || ""), notRun(r) ? NEEDS_BROWSER : (r.stdout || "").split(/\r?\n/).filter(l => /footer|FAIL/.test(l)).join(" | ")]; };
   const ptpl = tp("plan/template/dashboard.html");
   if (ptpl) { const tpl = fs.readFileSync(ptpl, "utf8");
     [["an issue board", J("plan/examples/38-handshake-empty-name/plan.json")], ["a tracking board", J("verify/fixtures/tracking.plan.json")], ["a sub-issue board", J("verify/fixtures/sub-issue.plan.json")]].forEach(([what, d], i) => {
@@ -1930,8 +1967,8 @@ targets.filter(t => t.block === "plan").forEach(t => {
     build();
     vc.push(["a browser renders the boards (set CHROME)", !!chrome, "no Chrome or Edge found"]);
     const before = snap(), d0 = dumpDom(path.join(A, "index.html"));
-    vc.push(["the system template draws its stamp chips from the state block, and removes the one with nothing to say", d0 == null || /<span class="chip" id="chip-asis">.*?main @ 1111111/.test(d0) && /id="ctx-amended"[^>]*>.*?#5<\/a> <span data-issue-title="5">five<\/span>/.test(d0) && !/id="chip-amended"/.test(d0) && !/id="chip-written"/.test(d0), text(inner(d0, '<div class="chips">', "div")).slice(0, 220)]);
-    vc.push(["a structure node mapped to a Planned DSL element, and a data-part, are drawn planned", d0 == null || /<g class="node server int planned"[^>]*data-id="next"/.test(d0) && /<li data-part="repo\.sys\.next" class="planned">/.test(d0), (d0 || "").match(/<g class="node[^"]*"[^>]*data-id="next"/) + ""]);
+    vc.push(d0 == null ? ["the system template draws its stamp chips from the state block, and removes the one with nothing to say", false, NEEDS_BROWSER] : ["the system template draws its stamp chips from the state block, and removes the one with nothing to say", d0 == null || /<span class="chip" id="chip-asis">.*?main @ 1111111/.test(d0) && /id="ctx-amended"[^>]*>.*?#5<\/a> <span data-issue-title="5">five<\/span>/.test(d0) && !/id="chip-amended"/.test(d0) && !/id="chip-written"/.test(d0), text(inner(d0, '<div class="chips">', "div")).slice(0, 220)]);
+    vc.push(d0 == null ? ["a structure node mapped to a Planned DSL element, and a data-part, are drawn planned", false, NEEDS_BROWSER] : ["a structure node mapped to a Planned DSL element, and a data-part, are drawn planned", d0 == null || /<g class="node server int planned"[^>]*data-id="next"/.test(d0) && /<li data-part="repo\.sys\.next" class="planned">/.test(d0), (d0 || "").match(/<g class="node[^"]*"[^>]*data-id="next"/) + ""]);
     [["the repository state board", path.join(D, "index.html")], ["the system board", path.join(A, "index.html")]].forEach(([w, p]) => { const r = nb(p); vc.push([`check-board.js --auto --no-browser passes ${w} as written`, r.status === 0 && /PASS \(no browser\)/.test(r.stdout) && /browser pass deferred/.test(r.stdout), (r.stdout || "").split(/\r?\n/).filter(l => /state|FAIL|PASS/.test(l)).join(" | ")]); });
 
     /* an implementation stage marking the DSL part built */
@@ -1945,9 +1982,9 @@ targets.filter(t => t.block === "plan").forEach(t => {
     vc.push(["every board carries its files verbatim: state, DSL, registry", L.blockText(rd("system-alpha/index.html"), "state") === rd("system-alpha/state.json").trim() && L.blockText(rd("system-alpha/index.html"), "dsl") === rd("system-alpha/workspace.dsl").trim() && L.blockText(rd("index.html"), "systems") === rd("systems.json").trim() && L.blockText(rd("index.html"), "state") === rd("state.json").trim(), "embedded copies"]);
     vc.push(["its check ran without a browser and passed", /^pass, no browser \(2 boards/.test(s1.check || ""), s1.check]);
     const d1 = dumpDom(path.join(A, "index.html"));
-    vc.push(["the rendered page: \"as-is at <branch> @ <sha> · not yet landed\", \"written at\" the old commit, the part solid", d1 == null || /id="chip-asis"><span class="ck">as-is at<\/span> <b>feat\/issue-9-next-part @ 2222222<\/b> · not yet landed<\/span>/.test(d1) && /id="chip-written"><span class="ck">written at<\/span> <b>1111111<\/b>/.test(d1) && /<g class="node server int"[^>]*data-id="next"/.test(d1) && /<li data-part="repo\.sys\.next"( class="")?>/.test(d1), text(inner(d1, '<div class="chips">', "div")).slice(0, 260)]);
+    vc.push(d1 == null ? ["the rendered page: \"as-is at <branch> @ <sha> · not yet landed\", \"written at\" the old commit, the part solid", false, NEEDS_BROWSER] : ["the rendered page: \"as-is at <branch> @ <sha> · not yet landed\", \"written at\" the old commit, the part solid", d1 == null || /id="chip-asis"><span class="ck">as-is at<\/span> <b>feat\/issue-9-next-part @ 2222222<\/b> · not yet landed<\/span>/.test(d1) && /id="chip-written"><span class="ck">written at<\/span> <b>1111111<\/b>/.test(d1) && /<g class="node server int"[^>]*data-id="next"/.test(d1) && /<li data-part="repo\.sys\.next"( class="")?>/.test(d1), text(inner(d1, '<div class="chips">', "div")).slice(0, 260)]);
     const dr = dumpDom(path.join(D, "index.html"));
-    vc.push(["the repository state board: its own stamp, and the Systems card of the touched system, not yet landed", dr == null || /id="chip-asis"><span class="ck">as-is at<\/span> <b>feat\/issue-9-next-part @ 2222222<\/b> · not yet landed/.test(dr) && /data-slug="system-alpha"[\s\S]{0,700}as-is feat\/issue-9-next-part @ 2222222 · not yet landed/.test(dr), text(inner(dr, '<div class="syscards" id="syscards">', "div")).slice(0, 260)]);
+    vc.push(dr == null ? ["the repository state board: its own stamp, and the Systems card of the touched system, not yet landed", false, NEEDS_BROWSER] : ["the repository state board: its own stamp, and the Systems card of the touched system, not yet landed", dr == null || /id="chip-asis"><span class="ck">as-is at<\/span> <b>feat\/issue-9-next-part @ 2222222<\/b> · not yet landed/.test(dr) && /data-slug="system-alpha"[\s\S]{0,700}as-is feat\/issue-9-next-part @ 2222222 · not yet landed/.test(dr), text(inner(dr, '<div class="syscards" id="syscards">', "div")).slice(0, 260)]);
 
     /* the same request twice; a stage that marks nothing */
     const k1 = snap(), s1b = apply(path.join(sc, `req-${n}.json`));
@@ -1962,7 +1999,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     vc.push(["\"#9\" marks the system it alone plans built, in the registry and in the DSL, enrich yes", s3.status === 0 && g3.status === "built" && g3.asIs && g3.asIs.sha === "4444444" && /gamma = container "system-gamma" "What it will do\." "proposed"$/m.test(rd("workspace.dsl")) && s3.enrich === "yes" && s3.why.some(x => /system-gamma marked built/.test(x)), JSON.stringify([s3.result, s3.applied, s3.error])]);
     vc.push(["a version moved through facts.version: registry and state, enrich naming the card", R3.systems.find(e => e.slug === "system-alpha").version === "1.1.0" && J("system-alpha/state.json").version === "1.1.0" && s3.why.some(x => /system-alpha moved to 1.1.0/.test(x)), JSON.stringify([J("system-alpha/state.json").version, s3.why])]);
     const d3 = dumpDom(path.join(D, "index.html"));
-    vc.push(["the repository state board draws the system solid: its card and every row tied to it", d3 == null || /class="syscard built"[^>]*data-slug="system-gamma"/.test(d3) && !/<tr data-part="sys:system-gamma" class="planned">/.test(d3) && /<tr data-part="sys:system-gamma"/.test(d3), ((d3 || "").match(/<tr data-part="sys:system-gamma"[^>]*>/g) || []).join(" ")]);
+    vc.push(d3 == null ? ["the repository state board draws the system solid: its card and every row tied to it", false, NEEDS_BROWSER] : ["the repository state board draws the system solid: its card and every row tied to it", d3 == null || /class="syscard built"[^>]*data-slug="system-gamma"/.test(d3) && !/<tr data-part="sys:system-gamma" class="planned">/.test(d3) && /<tr data-part="sys:system-gamma"/.test(d3), ((d3 || "").match(/<tr data-part="sys:system-gamma"[^>]*>/g) || []).join(" ")]);
 
     /* the landing */
     const s4 = apply(req({ action: "plan-board", event: "landed" }, { at: "2026-10-26T09:00:00Z", merge: "5555555", ref: "main", pr: 12 }));
@@ -2013,59 +2050,59 @@ targets.filter(t => t.block === "plan").forEach(t => {
    links only to files that exist and the live view first, the work-board link on the state boards, the tablists' keys, the clean-ups, the
    theme remembered across boards, no issue above Context, the rendered Markdown copies, the tracking issue's unit boards and its two steps,
    the agents' progress notes, built or planned from the code. */
-try { require("./cases-26.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
+try { require("./cases-26.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/26 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The decisions of admin-team/dashboards-skill/22 (verify/cases-22.js): the KPI tiles' legends inside each tile, the larger charging arrow, the
    team-raised landing event, the header (no "board" tag, the title's #n, the issue line, "since" said once), board.js keeping "unassigned"
    from every checkout, the research-planning glow with and without rows, the Tests tab, and this run's feature probes. */
-try { require("./cases-22.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
+try { require("./cases-22.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/22 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The decisions of admin-team/dashboards-skill/23 (verify/cases-23.js): the Timeline tile's bar on a landed board (the time per phase in
    neutral ink shades, a phase with no bound named; a tracking board's own phases), the run's start and the qa passes' times stamped, a
    reference's section number before its excerpt, a work level in the pipeline's facts reworded, and this run's feature probes. */
-try { require("./cases-23.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
+try { require("./cases-23.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/23 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The decisions of admin-team/dashboards-skill/24 (verify/cases-24.js): the finished steps on an issue board's progress strip clickable: the
    snapshots apply-event.js freezes into wip.history (each remediation loop and each qa pass apart; deterministic, idempotent), new.js's sizing,
    the standing rule's on a tracking board, check.js on wip.history, the reconstruction of a step with no snapshot, the template's buttons,
    panel, viewing line and selection across the live redraw, a tracking board's unit and own steps, and this run's feature probe. */
-try { require("./cases-24.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
+try { require("./cases-24.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/24 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The decisions of admin-team/dashboards-skill/27 (verify/cases-27.js): verify/history/ is a local cache, kept out of the .github mirror; a
    recorded version missing from it is rebuilt on demand from the mirror's git history (history.js; a fixture clone, and gh api through a
    stand-in), a damaged copy rebuilt over, and a version nothing matches warned on, the splice two-way when none is left. */
-try { require("./cases-27.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
+try { require("./cases-27.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/27 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The decisions of admin-team/dashboards-skill/28 (verify/cases-28.js): the Timeline tile's figure the sum of the phases its bar draws; an
    issue's title quoted verbatim, one that names a work level flagged as the issue's defect on every type, never a failure; an issue board at
    research with no rows a defect (NO ROWS AT RESEARCH); each unit row's label glowing on its own while it is filed, then while its board is
    created (per-unit events, a final one closing each step); and this run's feature probes. */
-try { require("./cases-28.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
+try { require("./cases-28.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/28 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The defects fixed by admin-team/dashboards-skill/29 (verify/cases-29.js): splice.js onto the recorded verified version (--verified), a
    cached version as --template spliced with its template's history; apply-state.js keeping a verbatim lastAmended.title for the same
    issue, taking facts.title, the folder's name only when neither exists; a planned supersystem's card linking its built parts' board. */
-try { require("./cases-29.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
+try { require("./cases-29.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/29 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The repository work board's columns of admin-team/dashboards-skill/30 (verify/cases-30.js): every qa pass and the one running, as ordinals (the
    defect: a pass in progress shown nowhere, a unit's passes read from the tracking board's own wip); no branch or board column, the branch in
    the state cell; "Depends on" with each dependency's build state and locality, none where no rule fits; "Blocks · enables"; check.js on
    the new fields; the issue board's QA tile and WIP strip and a tracking unit's inspector; and this run's feature probes. */
-try { require("./cases-30.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
+try { require("./cases-30.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/30 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The decisions of admin-team/dashboards-skill/31 (verify/cases-31.js): the decision not to run another qa pass shown, a neutral mark beside
    the pass fixed in place (lib.js qaShown(), qaInPlace(), from the recorded route only), on the repository work board, an issue board's WIP strip and QA
    tile and a tracking unit's run; apply-event.js recording the route on the pass; check.js refusing a stored inPlace; the repository work board's Runs
    tab larger but Now, a labelled card per run under 880 px; and this run's feature probes. */
-try { require("./cases-31.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
+try { require("./cases-31.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/31 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The decisions of admin-team/dashboards-skill/32 (verify/cases-32.js): the Timeline tile of a landed board as one legend entry per visit
@@ -2073,7 +2110,7 @@ catch (e) { report("the dashboards-skill/31 cases", [["the cases run to the end"
    plan.sized, the qa passes, the merge's time and the step commits from git, a neighbour's bound), "—" where none; spans in minutes, hours
    and minutes, or days and hours; the bar and its neutral ramp; a landed board's Timeline across the KPI row; gitTimes(), timeline.js
    --from-git and apply-event.js at landed; check.js; and this run's feature probe. */
-try { require("./cases-32.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
+try { require("./cases-32.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/32 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The decisions of dashboards-skill/33 (verify/cases-33.js; the global conventions: boards never pages, no internal names in committed content, the pre-merge landing flow): the
@@ -2081,31 +2118,38 @@ catch (e) { report("the dashboards-skill/32 cases", [["the cases run to the end"
    older names), no internal names on a board (namerefs.js, apply-event.js's scrub, the neutral route ids, the progress notes, the
    INTERNAL NAME warnings, the splice's migration), an unnumbered work-level mention, the open points on every event, the pre-merge stamp
    and the state-boards action, and the probes reading the older wording alike. */
-try { require("./cases-33.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
+try { require("./cases-33.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/33 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The decisions of admin-team/dashboards-skill/34 (verify/cases-34.js): the Timeline tile coloured by kind of work (planning, build, checking,
    landing), approximate bounds (asBuilt.approx, "≈"), the landing in three steps (landing, state-boards, merge), a sub-issue's roadmap filled
    from the repository roadmap and its card naming the parent while unset, the four columns' tab named Design, and this run's feature probes. */
-try { require("./cases-34.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
+try { require("./cases-34.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/34 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The decisions of admin-team/dashboards-skill/35 (verify/cases-35.js): a dependency's build state from its code (dropped, a duplicate's
    canonical state), remediation sub-steps in parallel, an open point's report copied for the live view and none committed open, a bare "Ln",
    consequences.md, a fix to an earlier plan's work, the Document step, the state boards stamped in it, seeding at sized, the test report's
    neutral path, the structure map's recorded height, and this run's feature probes. */
-try { require("./cases-35.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
+try { require("./cases-35.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/35 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The live view of a landing (verify/cases-live-view.js; plan/RULES.md §4): the post-merge refresh's landed raised with apply-event.js --view
    into view copies under docs/plans/.live/view/, no tracked file written; a copy's <base> line, no difference to deviation.js; embed.js and
    check.js on a copy, its links from the tracked folder and its neighbours' copies; board.js --live opening the copies and removing a stale
    one; the landed unit's plain-fact summary on the fast path. */
-try { require("./cases-live-view.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo }).forEach(([what, cases]) => report(what, cases)); }
+try { require("./cases-live-view.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the live view cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
+/* The fast path owning the Timeline (verify/cases-timeline-fast-path.js; plan/RULES.md §4, "The fast path owns the Timeline"): the merge's
+   time at landed from the facts, git in the worktree or the main checkout, or the pull request (lib.js ghMergeTime()), a warning and no
+   enrichment where none tells it; the seeding at sized recording it from git; new.js --at; a board in flight's Timeline from the plan.js an
+   event writes, and the template's tick. It needs no browser, and runs on its own too (node verify/cases-timeline-fast-path.js). */
+try { require("./cases-timeline-fast-path.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the Timeline's fast path cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
 const today = new Date().toISOString().slice(0, 10);
-const COMMENT = "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last full verification. check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.";
+const COMMENT = "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last verification, when every check that needs no browser passed (its modes: \"--auto --no-browser\"; a run with --browser, made only when a person asks for it, lists the browser passes instead). check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.";
 targets.forEach(t => {
   const tpl = fs.readFileSync(t.path, "utf8"), results = [];
   t.fixtures.forEach(fx => {
@@ -2116,13 +2160,15 @@ targets.forEach(t => {
     fs.writeFileSync(page, fx ? withData(tpl, t.block, fs.readFileSync(fx, "utf8")) : tpl);
     if (t.block) fs.writeFileSync(path.join(dir, t.block === "board" ? "board.js" : "plan.js"), require(path.join(SKILL, "plan", "scripts", "lib.js")).sidecarText(t.block, fx ? fs.readFileSync(fx, "utf8") : "{}"));
     MODES.forEach(m => {
-      const r = cp.spawnSync(process.execPath, [checker, page, "--out", dir, ...m], { encoding: "utf8" });
+      /* without --browser: check-board.js --auto --no-browser (the palette, the DSL's dashes, the links, the features, the state block, the
+         names); the rendering is the template plus its fixture, so it needs no browser pass either */
+      const r = cp.spawnSync(process.execPath, [checker, page, ...(BROWSER ? ["--out", dir] : []), ...m], { encoding: "utf8" });
       const lines = (r.stdout || "").split(/\r?\n/);
-      results.push({ fixture: label, mode: m.join(" ") || "light", pass: r.status === 0, bad: lines.filter(l => /FAIL|ERROR|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM/.test(l)) });
+      results.push({ fixture: label, mode: m.join(" ") || "light", pass: r.status === 0, bad: lines.filter(l => !/^CHECK note:/.test(l) && /FAIL|ERROR|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM|STATE |EMBED DIFFERS|PART UNKNOWN|NOT RUN/.test(l)) });
     });
   });
   const ok = results.every(r => r.pass);
-  console.log(`${ok ? "verified" : "FAILED  "} ${t.name}${root ? " (" + path.relative(path.resolve(root), t.path).split(path.sep).join("/") + ")" : ""}: ${results.filter(r => r.pass).length}/${results.length} passes`);
+  console.log(`${ok ? "verified" : "FAILED  "} ${t.name}${root ? " (" + path.relative(path.resolve(root), t.path).split(path.sep).join("/") + ")" : ""}: ${results.filter(r => r.pass).length}/${results.length} ${BROWSER ? "passes" : "renderings checked without a browser"}`);
   results.filter(r => !r.pass).forEach(r => console.log(`  ${r.fixture} · ${r.mode}: ${r.bad.join(" | ")}`));
   if (!ok) { failures++; return; }
   if (linkFailures) { console.log(`  not recorded: a case group above failed`); failures++; return; }
@@ -2139,5 +2185,6 @@ targets.forEach(t => {
   fs.writeFileSync(file, JSON.stringify(rec, null, 2) + "\n");
 });
 if (devFailures) console.log(`\ndeviation.js failed its cases on ${devFailures} template(s): fix system/scripts/deviation.js`);
-console.log(failures ? `\n${failures} template(s) failed: not recorded; fix them and run again` : `\nall templates verified; screenshots in ${out}`);
+console.log(failures ? `\n${failures} template(s) failed: not recorded; fix them and run again` : BROWSER ? `\nall templates verified; screenshots in ${out}`
+  : `\nall templates verified by the checks that need no browser (${notRunTotal} case(s) and ${domSkips} rendering(s) that need one not run: the user checks the change in a browser)`);
 process.exit(failures || devFailures || linkFailures ? 1 : 0);

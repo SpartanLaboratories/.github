@@ -369,7 +369,7 @@ append rather than reorder.
 8. Update the parents: the system's card and its place on every tab of the supersystem and
    repository state boards, their Guarantees rows and registry copies; the supersystem DSL if an
    inter-system relationship changed.
-9. Check (§9) with `--auto`, look once at the screenshots it took, fix.
+9. Check (§9) with `--auto`, look once at the screenshots it took (a diverging board's), fix.
 10. Report the paths, the as-is stamp, the divergences (with the argument for any removal) and
     the gaps; the admin team commits the files.
 
@@ -393,13 +393,14 @@ line, which is the board's own text). The script before `MODEL` is compared less
 **board-filled lines**: the `REPO` and `SRC` constants, and any other `const` whose line in the
 template carries a `// fill:` comment (the `BOARDS` map; `// presenter:` on a template older than dashboards-skill/33), which is how a
 template marks a line filled per board; those lines are left out by name on both sides, so a board's own value there is never a
-difference. A board whose four are the verified template's gets **one light pass**, which checks
-the facts it fills in. A board that differs in any of them — declared with
+difference. A board whose four are the verified template's is the verified template plus its data
+and gets **no browser pass**: the checks without a browser cover it. A board that differs in any of
+them — declared with
 `<meta name="template-divergence">` or not, or made from an older template — or whose template
 changed since it was verified gets the **full pass**: light, dark, 520 px, a 390 px frame and a
 1920 x 1080 desktop. An
 undeclared difference is reported as one to declare or undo. `verify/verify-templates.js` tests
-this comparison on each system template before its browser passes. The plain form below the
+this comparison on each system template. The plain form below the
 embeds runs one pass of the named mode, for looking at a single tab.
 
 `check-board.js` needs a local Chrome or Edge (it searches the usual install paths; set `CHROME=`
@@ -422,7 +423,8 @@ block that is not JSON or not in its form (`STATE UNREADABLE`, `STATE INVALID`),
 last amendment or the version (`STATE UNKNOWN SYSTEM`, `STATE DISAGREES WITH REGISTRY`), an embedded `workspace.dsl` or `systems.json`
 that is not its file (`DSL EMBED DIFFERS`, `REGISTRY EMBED DIFFERS`), a part reference naming nothing (`PART UNKNOWN`, §2), a structure map taller than 1000×812 (`STRUCTURE CANVAS TOO TALL`, §2), and on a supersystem or repository state board a registry status other than built, planned or archived, or a visibility other than public, internal-org or internal-repo (`REGISTRY INVALID`, §7), warning on a system with no visibility (`VISIBILITY UNSET`, an archived one excepted; admin-team/dashboards-skill/35). A board
 with no state block, on a template older than it, gets a note. `--auto --no-browser` runs these, the palette, the DSL's dashes, the
-board links and the git-ignore check, and names the browser pass the board would get, which it leaves to the presenter's next look.
+board links and the git-ignore check, and names the browser pass the board would get (none for the verified template plus its data, the
+full pass for a divergence), which it leaves to the presenter's next look.
 
 **Issue titles, quoted verbatim** (`GUIDANCE.md` §4, §5; admin-team/dashboards-skill/28). A title the board quotes — the Context's
 `<a data-board="N">title</a>` and the state's `lastAmended.title` — is the issue's own and is never reworded or elided. Work levels are never
@@ -515,7 +517,7 @@ check, the time, and `enrich: yes|no` with `why`. Committing what it wrote is th
 | the stamp of each touched system, its supersystems and the repository: the registry's `asIs` and `lastAmended`, each board's `state.json` (`asIs`, `lastAmended`, `version`; `written` kept), the DSL's as-is line and its views' "as built at" commit | the prose and figures at the new commit — the function sentence, the KPI tiles, the panels, the Guarantees, the Context — and `written.sha` once it has read them again; until then the header says "written at <sha>" |
 | a part marked built or planned: its DSL element's `Planned` tag (and its built tag), a system's registry `status`; every board draws it from that data (§2, "Planned parts") | what the boards say of the part: its descriptions and labels, its threads, lifecycle and Guarantees text, its code paths in the registry; a part no element draws yet; a board for a newly built system, when the repository gives it one |
 | a system's `version` (`facts.version`) | the Compatibility & versioning card's wording |
-| the embedded copies (state, DSL, registry) of every board that carries them; `check-board.js --auto --no-browser` on each board it wrote | the browser pass the check names as deferred, at the presenter's next look (the Document step's state boards) |
+| the embedded copies (state, DSL, registry) of every board that carries them; `check-board.js --auto --no-browser` on each board it wrote | the browser pass the check names as deferred, on a board that diverges, at the presenter's next look (the Document step's state boards) |
 | — | a board on a template older than the state block, brought onto the template (its CSS, its script before `MODEL` and its renderer, the stamp chips, the state block); the script leaves such a board alone but for its embedded registry copy, and stamps only its registry entry |
 
 `enrich: yes` whenever a part's status changes (its prose is the presenter's), a version moves, a part named is not in its DSL, a built component has no

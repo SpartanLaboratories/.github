@@ -7,6 +7,8 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 
 module.exports = function cases26(X) {
+  /* a case that needs a browser, in a run without one (verify-templates.js without --browser): reported as not run */
+  const NEEDS_BROWSER = X.NEEDS_BROWSER || "needs a browser: not run (verify-templates.js --browser runs it)", notRun = X.notRun || (() => false);
   const { sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData } = X;
   const lib = require(sk("plan/scripts/lib.js")), F = require(sk("system/scripts/features.js")), L = require(sk("system/scripts/statelib.js")), dev = require(sk("system/scripts/deviation.js"));
   const tp = name => (targets.find(t => t.name === name) || {}).path;
@@ -86,7 +88,7 @@ module.exports = function cases26(X) {
       const hdr = inner(d, "<header>", "header"), hds = inner(ds, "<header>", "header");
       c.push(["no issue number in the header; the last amendment in the Context section", !/#\d|#N/.test(text(hdr) + text(hds)) && /id="ctx-amended"[^>]*>.*?last amended by.*?#1<\/a>/.test(d) && /id="ctx-amended"/.test(ds), text(hdr).slice(0, 120) + " || " + (d.match(/id="ctx-amended"[^>]*>.{0,140}/) || ["no ctx-amended"])[0]]);
       const named = wr(path.join(sc, "state", "named", "index.html"), T.system.replace("<li>Confined: …</li>", "<li>Confined: … (#12)</li>")), rn = run(checker, [named, "--out", path.join(sc, "state", "out")]);
-      c.push(["check-board.js's browser pass fails an issue number above the Context section", rn.status === 1 && /FEATURE MISSING: an as-is part that names no issue .*#12/.test(rn.stdout), (rn.stdout || "").split(/\r?\n/).filter(l => /as-is|FAIL/.test(l)).join(" | ")]);
+      c.push(["check-board.js's browser pass fails an issue number above the Context section", rn.status === 1 && /FEATURE MISSING: an as-is part that names no issue .*#12/.test(rn.stdout), notRun(rn) ? NEEDS_BROWSER : (rn.stdout || "").split(/\r?\n/).filter(l => /as-is|FAIL/.test(l)).join(" | ")]);
       c.push(["the Systems tab names no issue", !/#\d|#N/.test(text(inner(d, '<div class="syscards" id="syscards">', "div"))), text(inner(d, '<div class="syscards" id="syscards">', "div")).slice(0, 200)]);
       c.push(["the repository work board's line, plain text while no work board is there", /<a data-workboard="" title="No repository work board in this checkout">Repository work board<\/a>/.test(d) || /<a data-workboard[^>]*>Repository work board<\/a>/.test(d) && !/data-workboard[^>]*href=/.test(d), (d.match(/<a data-workboard[^>]*>/) || ["none"])[0]]);
       c.push(["the structure band is drawn only where MODEL.structure asks for one: none in the template", !/<rect[^>]*class="band"/.test(inner(ds, '<svg id="svg-structure"', "svg")), (inner(ds, '<svg id="svg-structure"', "svg").match(/<rect[^>]*class="band"[^>]*>/) || ["no band"])[0]]);
@@ -118,7 +120,7 @@ module.exports = function cases26(X) {
     c.push(["embed.js records no shared link while none of their files is there", JSON.stringify(P.links) === "{}", JSON.stringify(P.links)]);
     let d = dumpDom(path.join(dir, "dashboard.html"));
     const crumbs = x => inner(x, '<div class="crumbs" id="crumbs">', "div");
-    c.push(["the breadcrumb is plain text then: no link to a missing work board or repository state board", d == null || !/<a /.test(crumbs(d)), crumbs(d)]);
+    c.push(d == null ? ["the breadcrumb is plain text then: no link to a missing work board or repository state board", false, NEEDS_BROWSER] : ["the breadcrumb is plain text then: no link to a missing work board or repository state board", d == null || !/<a /.test(crumbs(d)), crumbs(d)]);
     wr(path.join(tree, "docs", "plans", "index.html"), "<!doctype html><title>wb</title>"); wr(path.join(tree, "docs", "dashboards", "index.html"), "<!doctype html><title>repo</title>"); wr(path.join(tree, "docs", "dashboards", "webtools-udp", "index.html"), "<!doctype html><title>udp</title>");
     node(embedJs, dir); P = JSON.parse(rd(path.join(dir, "plan.json")));
     c.push(["with the files there, embed.js links each, relative to the board", P.links.workBoard === "../index.html" && P.links.repoBoard === "../../dashboards/index.html" && P.links.boards["webtools-udp"] === "../../dashboards/webtools-udp/index.html", JSON.stringify(P.links)]);
@@ -136,9 +138,9 @@ module.exports = function cases26(X) {
     /* the board, on disk with its copies and the live marker: a "(§n)" reference opens the copy at its section; the repository work board the live view */
     wr(path.join(tree, "docs", "plans", ".live", "index.js"), '(window.DASHBOARDS_LIVE=window.DASHBOARDS_LIVE||{}).board="index.html";\n');
     d = dumpDom(path.join(dir, "dashboard.html"));
-    c.push(["on the board a statement's reference opens the copy at its section", d == null || /<a class="sref" href="\.\.\/\.\.\/\.\.\/docs\/plans\/\.live\/docs\/38-handshake-empty-name\/plan\.html#[\w-]+"/.test(d), (d.match(/<a class="sref" href="[^"]+"/) || ["none"])[0]]);
-    c.push(["…and the breadcrumb's work board the live view", d == null || /href="\.\.\/\.\.\/\.\.\/docs\/plans\/\.live\/index\.html"[^>]*>repository work board/.test(crumbs(d)), crumbs(d)]);
-    c.push(["…and its Context's legend names the swatches it drew", d == null || /<div class="key" id="context-key">[\s\S]*?webtools-udp/.test(d), (d.match(/<div class="key" id="context-key">.{0,120}/) || ["none"])[0]]);
+    c.push(d == null ? ["on the board a statement's reference opens the copy at its section", false, NEEDS_BROWSER] : ["on the board a statement's reference opens the copy at its section", d == null || /<a class="sref" href="\.\.\/\.\.\/\.\.\/docs\/plans\/\.live\/docs\/38-handshake-empty-name\/plan\.html#[\w-]+"/.test(d), (d.match(/<a class="sref" href="[^"]+"/) || ["none"])[0]]);
+    c.push(d == null ? ["…and the breadcrumb's work board the live view", false, NEEDS_BROWSER] : ["…and the breadcrumb's work board the live view", d == null || /href="\.\.\/\.\.\/\.\.\/docs\/plans\/\.live\/index\.html"[^>]*>repository work board/.test(crumbs(d)), crumbs(d)]);
+    c.push(d == null ? ["…and its Context's legend names the swatches it drew", false, NEEDS_BROWSER] : ["…and its Context's legend names the swatches it drew", d == null || /<div class="key" id="context-key">[\s\S]*?webtools-udp/.test(d), (d.match(/<div class="key" id="context-key">.{0,120}/) || ["none"])[0]]);
     /* the progress notes: a fresh one and a stale one, under the live fixture's issue */
     const lv = JSON.parse(LIVEJ), ldir = path.join(tree, ...lv.folder.split("/")); lv.wip.updated = new Date().toISOString().replace(/\.\d+Z$/, "Z");
     fs.mkdirSync(ldir, { recursive: true }); fs.writeFileSync(path.join(ldir, "plan.json"), JSON.stringify(lv, null, 2) + "\n"); fs.writeFileSync(path.join(ldir, "dashboard.html"), T["plan-board"]); node(embedJs, ldir);
@@ -146,8 +148,8 @@ module.exports = function cases26(X) {
     const note = (name, started, at) => wr(path.join(pdir, name + ".js"), `(window.PROGRESS=window.PROGRESS||{})[${JSON.stringify(name)}]=${JSON.stringify({ agent: name, issue: lv.issue, started: iso(started), at: iso(at), done: "Read the three findings files.", left: "Write the verification section.", eta: "~10 min" })};\n`);
     note("planner", now - 25 * 60000, now - 2 * 60000); note("researcher-blast-radius", now - 60 * 60000, now - 30 * 60000);
     const dp = dumpDom(path.join(ldir, "dashboard.html"), "", null, 6000), sp = inner(dp, '<div class="wip-facts sp-prog"', "div");
-    c.push(["the step panel shows each agent's note as an info card: the work it reports (never the agent's name), elapsed, done, left, ETA, as of", dp == null || /class="prog"><span class="l">planning<\/span><small>2\d min in<\/small> done: Read the three findings files\. · left: Write the verification section\. · ETA ~10 min <small>as of/.test(sp), text(sp).slice(0, 240)]);
-    c.push(["a note not updated for over 20 minutes is muted, and the legend names both", dp == null || /class="prog stale"><span class="l">research · blast-radius/.test(sp) && !/planner|researcher/.test(text(sp)) && /a progress note: an agent's own report/.test(dp) && /muted: no update for over 20 minutes/.test(dp), text(sp).slice(0, 200)]);
+    c.push(dp == null ? ["the step panel shows each agent's note as an info card: the work it reports (never the agent's name), elapsed, done, left, ETA, as of", false, NEEDS_BROWSER] : ["the step panel shows each agent's note as an info card: the work it reports (never the agent's name), elapsed, done, left, ETA, as of", dp == null || /class="prog"><span class="l">planning<\/span><small>2\d min in<\/small> done: Read the three findings files\. · left: Write the verification section\. · ETA ~10 min <small>as of/.test(sp), text(sp).slice(0, 240)]);
+    c.push(dp == null ? ["a note not updated for over 20 minutes is muted, and the legend names both", false, NEEDS_BROWSER] : ["a note not updated for over 20 minutes is muted, and the legend names both", dp == null || /class="prog stale"><span class="l">research · blast-radius/.test(sp) && !/planner|researcher/.test(text(sp)) && /a progress note: an agent's own report/.test(dp) && /muted: no update for over 20 minutes/.test(dp), text(sp).slice(0, 200)]);
     c.push(["the progress notes are probed only by a live board: none on the landed example", !/class="prog/.test(inner(d || "", '<section class="wip"', "section")), "the example board"]);
     groups.push(["links to files that exist, live first (issue boards); the rendered Markdown copies; the agents' progress notes in the step panel", c]); }
 
@@ -164,8 +166,8 @@ module.exports = function cases26(X) {
     const unfiled = J(F0).rows.filter(r => r.unit && !r.unit.issue).map(r => r.id + ".units");
     c.push(["architecture-signed-off: the tracking board files its units next, each unit not filed yet glowing on its own (dashboards-skill/28)", s.status === 0 && J(F0).wip.step === "sub-issues" && unfiled.length === 9 && JSON.stringify(J(F0).wip.current) === JSON.stringify(unfiled), JSON.stringify([s.result, s.error, J(F0).wip.step, J(F0).wip.current])]);
     const dS = dumpDom(path.join(tdir, "dashboard.html"), "", "1400,1000"), panel = inner(dS, '<div class="sp own', "div");
-    c.push(["its step panel counts the units filed, from the rows", dS == null || /2 of 11 units filed as sub-issues/.test(text(panel)), text(panel).slice(0, 200)]);
-    c.push(["each unit not filed yet glows on its own label, the label column no glow of its own (dashboards-skill/28)", dS == null || ((dS.match(/<div class="rowlab glow"/g) || []).length === 9 && /<div class="colhead" data-col="units"/.test(dS) && !/<div class="band glow-soft"/.test(dS)), `${(dS.match(/<div class="rowlab glow"/g) || []).length} unit labels glowing`]);
+    c.push(dS == null ? ["its step panel counts the units filed, from the rows", false, NEEDS_BROWSER] : ["its step panel counts the units filed, from the rows", dS == null || /2 of 11 units filed as sub-issues/.test(text(panel)), text(panel).slice(0, 200)]);
+    c.push(dS == null ? ["each unit not filed yet glows on its own label, the label column no glow of its own (dashboards-skill/28)", false, NEEDS_BROWSER] : ["each unit not filed yet glows on its own label, the label column no glow of its own (dashboards-skill/28)", dS == null || ((dS.match(/<div class="rowlab glow"/g) || []).length === 9 && /<div class="colhead" data-col="units"/.test(dS) && !/<div class="band glow-soft"/.test(dS)), `${(dS.match(/<div class="rowlab glow"/g) || []).length} unit labels glowing`]);
     s = ev(55, "sub-issues-filed", { at: "2026-10-25T14:05:00Z", final: true, units: ["http-core", "test-support", "url-policy", "okhttp-transport", "response-cache", "call-budget", "call-facades", "feeds", "http-docs"].map((u, i) => ({ unit: u, issue: 62 + i })) });
     c.push(["sub-issues-filed (the final one, dashboards-skill/28): each unit's issue written; every unit filed, the step moves to boards", s.status === 0 && J(F0).wip.step === "boards" && J(F0).rows.filter(r => r.unit).every(r => r.unit.issue > 0), JSON.stringify([s.result, s.error, J(F0).wip.step])]);
     const nb = run(NEW, ["--batch", "55-http-client-stack", "--root", tree, "--baseline", "abc1234", "--date", "2026-10-25"]);
@@ -176,7 +178,7 @@ module.exports = function cases26(X) {
     s = ev(55, "boards-created", { at: "2026-10-25T14:10:00Z", final: true });
     c.push(["boards-created (the final one, dashboards-skill/28): every unit linked to its board, the step moves to the plan's landing, nothing glows", s.status === 0 && J(F0).wip.step === "landing" && !J(F0).wip.current.length && J(F0).rows.filter(r => r.unit).every(r => r.unit.board), JSON.stringify([s.result, s.error, J(F0).wip.step])]);
     const dN = dumpDom(path.join(tdir, "62-http-core", "dashboard.html"));
-    c.push(["a laid board reads \"Not started\", with no step panel", dN == null || /Not started/.test(text(inner(dN, '<section class="wip"', "section"))) && !/<div class="sp"/.test(dN), text(inner(dN, '<section class="wip"', "section")).slice(0, 160)]);
+    c.push(dN == null ? ["a laid board reads \"Not started\", with no step panel", false, NEEDS_BROWSER] : ["a laid board reads \"Not started\", with no step panel", dN == null || /Not started/.test(text(inner(dN, '<section class="wip"', "section"))) && !/<div class="sp"/.test(dN), text(inner(dN, '<section class="wip"', "section")).slice(0, 160)]);
     s = ev(62, "sized", { at: "2026-10-25T15:00:00Z", step: "research" }, F0 + "/62-http-core");
     c.push(["a later sized starts the laid board in place, and the unit on its tracking board", s.status === 0 && s.result === "ok" && J(F0 + "/62-http-core").wip.step === "research" && J(F0).wip.current.includes("http-core.built"), JSON.stringify([s.result, s.error, J(F0 + "/62-http-core").wip.step, J(F0).wip.current])]);
     const wb = run(sk("plan/scripts/board.js"), ["--root", tree, "--no-gh"]), bj = JSON.parse(rd(path.join(tree, "docs", "plans", "board.json")));
@@ -187,14 +189,14 @@ module.exports = function cases26(X) {
   { const c = [], pages = [["an issue board", lib.writeBlock(T["plan-board"], "plan", EX)], ["the repository work board", lib.writeBlock(T["work-board"], "board", WBJ)], ["a system board", T.system], ["a supersystem board", T.supersystem]];
     const keys = 'const t=[...document.querySelector(\'[role="tablist"]\').querySelectorAll(\'[role="tab"]\')], k=(el,key)=>el.dispatchEvent(new KeyboardEvent("keydown",{key,bubbles:true})), sel=()=>t.findIndex(x=>x.getAttribute("aria-selected")==="true"), o=[]; k(t[0],"End"); o.push(sel()); k(t[t.length-1],"Home"); o.push(sel()); k(t[0],"ArrowLeft"); o.push(sel()); k(t[t.length-1],"ArrowRight"); o.push(sel()); o.push(t.filter(x=>x.tabIndex===0).length); o.push(t.length); document.body.dataset.r=o.join(",");';
     pages.forEach(([w, h], i) => { const d = dumpDom(wr(path.join(sc, "keys", String(i), "index.html"), probeAt(h, keys))), r = got(d).split(",").map(Number), n = r[5];
-      c.push([`${w}: End, Home and the arrows move the selection, one tab in the Tab order`, d == null || (r[0] === n - 1 && r[1] === 0 && r[2] === n - 1 && r[3] === 0 && r[4] === 1), got(d)]); });
+      c.push(d == null ? [`${w}: End, Home and the arrows move the selection, one tab in the Tab order`, false, NEEDS_BROWSER] : [`${w}: End, Home and the arrows move the selection, one tab in the Tab order`, d == null || (r[0] === n - 1 && r[1] === 0 && r[2] === n - 1 && r[3] === 0 && r[4] === 1), got(d)]); });
     /* the theme: picked on one board, applied in the next board's head before its first paint, across types */
     const pre = h => h.replace(/(<script>[^<]*dashboards-theme[^<]*<\/script>)/, '$1<script>window.__t0=document.documentElement.dataset.theme||"none";</script>');
     pages.forEach(([w, h], i) => { const [w2, h2] = pages[(i + 1) % pages.length], dir = path.join(sc, "theme", String(i));
       wr(path.join(dir, "b.html"), probeAt(pre(h2), 'document.body.dataset.r=window.__t0+"/"+getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();'));
       const a = wr(path.join(dir, "a.html"), probeAt(h, 'localStorage.removeItem("dashboards-theme"); document.getElementById("theme").click(); setTimeout(()=>{ location.href="b.html"; },100);'));
       const d = dumpDom(a, "", null, 7000);
-      c.push([`the night theme picked on ${w} is applied by ${w2} before its first paint`, d == null || /^dark\/#10141b$/.test(got(d)), got(d) || "no probe result"]); });
+      c.push(d == null ? [`the night theme picked on ${w} is applied by ${w2} before its first paint`, false, NEEDS_BROWSER] : [`the night theme picked on ${w} is applied by ${w2} before its first paint`, d == null || /^dark\/#10141b$/.test(got(d)), got(d) || "no probe result"]); });
     groups.push(["the tablists' keys (Home, End, arrows, a roving tabindex) and the theme remembered across boards before the first paint, on every type", c]); }
 
   /* I. built or planned from the code; a supersystem from its core subsystems */

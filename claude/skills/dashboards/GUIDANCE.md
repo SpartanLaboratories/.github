@@ -338,9 +338,12 @@ holds for everything else on the board, the quoted titles' text aside (`levelref
 levels of the five-level testing hierarchy and the C4 model's levels are not work levels: the rule
 does not touch them, and they keep their level labels — "L1 gating", "L2 component", "L4a
 deterministic", "L5 UAT", "Level 2 — component", "Level 1 · System Context". `plan/scripts/check.js`
-fails a board whose text names a work level, and the browser pass fails a board that shows one
-(`system/scripts/levelrefs.js` holds the forms; it matches work-level forms only, never a test
-level's or a C4 level's label, and never "Level 3" alone).
+fails a board whose text names a work level, and the browser pass, on a board that gets one (a
+divergence, §8), fails a board that shows one (`system/scripts/levelrefs.js` holds the forms; it
+matches work-level forms only, never a test level's or a C4 level's label, and never "Level 3"
+alone). On a board that gets no browser pass, `check.js`'s scan of the data holds an issue board
+and the repository work board; a work level in a state board's text is found by the admin team's
+scan of the commit that carries it, which blocks that commit.
 
 ## 5. Context, roadmap, work
 
@@ -417,10 +420,9 @@ hand-written header keeps the same form (`system/RULES.md` §2).
 **Sidecars.** An issue board's `plan.js` (and the repository work board's `board.js`) is committed with its board: a clone opened from disk then polls it
 while the run is live, as the board on this machine does; the committed repository work board, which is not live, reads it but never polls.
 
-Each template is checked for this once, in a headless browser, in light and dark, at a narrow
-width (520 px is the narrowest headless Chrome lays out; the real phone width is verified
-through the checker's iframe harness) and on a 1920 x 1080 desktop; a board inherits it from its
-template, and is checked again only where it diverges (§8).
+Each template is checked for this once, in a browser, by the user, from what the presenter's
+report lists (§8); a board inherits it from its template, and gets a browser pass only where it
+diverges (§8).
 
 **Times.** The data keeps every time as a UTC ISO stamp (`2026-10-23T01:55:00Z`), as now. A board
 shows each one in the viewer's own time zone, with the zone's abbreviation ("23 Oct 2026, 03:55
@@ -429,8 +431,8 @@ value. This covers every time a board shows: the WIP strip's since and updated, 
 mirrors, the trail, milestones, the repository work board's generated stamp, and an as-is stamp where it
 carries a time. A date alone stays a date. Hand-written HTML (a system board's header or panels)
 writes a time as `<time datetime="…Z">…</time>` and the board localises it. The checks never depend
-on the machine's time zone: they compare against the UTC source, and the browser pass fails a
-zoned ISO stamp left as plain text outside code and the Source view.
+on the machine's time zone: they compare against the UTC source, and the browser pass, on a board
+that gets one (§8), fails a zoned ISO stamp left as plain text outside code and the Source view.
 
 ## 7. Divergence
 
@@ -451,21 +453,27 @@ none), and nothing above the Context section names an issue (§5, "A state board
 ## 8. Checks
 
 **The template is verified once, in the skill; a board is checked only where it deviates.** A
-template's own structure, tabs, legends, themes and responsive layout are verified by
-`verify/verify-templates.js`, which renders it with fixtures covering its states, runs the full
-browser pass on each (light, dark, 520 px, a 390 px frame, a 1920 x 1080 desktop) and records the template's hash in
+template is verified by `verify/verify-templates.js`, which runs the checks that need no browser
+over the fixtures covering its states and, when they pass, records the template's hash in
 `verify/verified.json` (a repository's `_template/` records its own beside it). Run it after
 every template change; until it has run, a changed template counts as a divergence on every
 board made from it.
 
+**A skill or template change gets no browser pass from the presenter.** For a change to this
+skill (a template, a script, a template's `verify/verify-templates.js` run), the presenter runs
+no headless or other browser pass. Its report lists exactly what the user should check in a
+browser: which file to open, what to click, what they should see. The user verifies. A template
+is recorded as verified when the presenter's checks that need no browser succeed; the user's
+browser check follows separately.
+
 Every board, before it is committed, passes its set's checker in `--auto` mode
-(`plan/scripts/check.js <folder> --auto`; `system/scripts/check-board.js <board> --auto`):
+(`plan/scripts/check.js <folder> --auto`; `system/scripts/check-board.js <board> --auto`), and
+gets a browser pass before landing only when it diverges from its template:
 
 | The board | Checked |
 |---|---|
-| any board | its data and its rules (`check.js`), the embedded copy matching its data file (on an issue board and the repository work board, its live sidecar too), no dead `href="#"`, no external resource, no work level in its text (§4), no system colour in a status spectrum (§1); a warning, never a failure, on an internal name left in its data, its comments or its text (§4, `INTERNAL NAME`) |
-| an issue board or the repository work board that is a verified template plus its data | nothing more: no browser pass |
-| a system, supersystem or repository state board whose CSS, tabs and script — before `MODEL` (less its board-filled lines, such as `REPO` and `SRC`) and after it — are the verified template's | one light pass, for the facts it fills in: no script error, every tab drawn with its legend, the Guarantees, Context, no git-ignored registry file |
+| any board | its data and its rules (`check.js`), the embedded copy matching its data file (on an issue board and the repository work board, its live sidecar too), no dead `href="#"`, no external resource, no work level in its text (§4: its data, and its rendered text on a browser pass), no system colour in a status spectrum (§1); a warning, never a failure, on an internal name left in its data, its comments or its text (§4, `INTERNAL NAME`) |
+| a board that is a verified template plus its data: an issue board or the repository work board, or a system, supersystem or repository state board whose CSS, tabs and script — before `MODEL` (less its board-filled lines, such as `REPO` and `SRC`) and after it — are the verified template's | nothing more: no browser pass |
 | a board that diverges — declared, undeclared, made from an older template — or whose template changed since it was verified | the full pass: light, dark, 520 px, a 390 px frame, a 1920 x 1080 desktop |
 
 A difference nobody declared is a warning: re-render the board from the template, or declare it
@@ -485,10 +493,10 @@ Document step, the dependency's build state from its code (dropped included), th
 to #n", the structure map's recorded height, a
 issue board's finished steps clickable, each unit row's label glowing on its own while it is filed, the Timeline tile's figure the sum of
 its visits, an issue's title quoted and marked, every qa pass and the one running as ordinals, the dependency pills — and
-the browser pass the layout ones (the header's halves, the wide board, the legends shown). A missing feature fails, as `FEATURE MISSING:
+the browser pass, on a board that gets one, the layout ones (the header's halves, the wide board, the legends shown). A missing feature fails, as `FEATURE MISSING:
 <feature> (template since dashboards-skill/N)`, **through a declared divergence too**: a divergence adds or argues a removal; it never
 excuses a board that lags its template. A landed or cancelled issue board is the exception: it is kept as it landed and never
-re-rendered (§11), so its newer features are reported, not failed. `verify/verify-templates.js` holds every template to every detector that applies to it. The fix is
+re-rendered (§11), so its newer features are reported, not failed. `verify/verify-templates.js` holds every template to every detector that applies to it and needs no browser. The fix is
 the splice (§11). On the data-only path (`apply-state.js`) the misses are notes and `enrich: yes`, never a refused stamp.
 
 Then the presenter looks once at the screenshots of the boards that had a browser pass, for what
@@ -702,6 +710,13 @@ refresh on its branch: the committed repository work board, and the repository s
 - **The landing flow** (above): the state boards and the committed repository work board are written at the pre-merge refresh, the
   issue and tracking boards' landed state at the next landing's; the live repository work board at the post-merge refresh. Not to an
   issue board in flight, which keeps its own events.
+- **The fast path owns the Timeline** (`plan/RULES.md` §4, "The fast path owns the Timeline"): every input of the Timeline tile, its
+  legends, the Timeline tab's KPI tiles and their tracers written by `apply-event.js` at the event (the merge's time from the facts, git
+  or the pull request, recorded at the next run's seeding where none could tell it; the run's start at a foundation laid after its event),
+  never an enrichment, and the running visit kept to the clock on the board between events. Applied to issue boards and tracking boards,
+  the boards with a Timeline tile. Not to the repository work board, which draws no Timeline (its runs' since and qa passes already come
+  from the boards it reads at each regeneration, the same fast path), nor to the state boards, whose stamp and figures are the data-only
+  path's and the code's (`system/RULES.md` §10) and show no run's steps.
 
 ## 12. Elements — one name per function
 

@@ -2,15 +2,15 @@
 // plan/scripts/check.js --auto use it to decide how much browser checking a board needs.
 //
 // A board starts from its template and changes only what its facts require. The template is verified once, in the skill
-// (verify/verify-templates.js), and its verified hash is recorded in verify/verified.json; a board therefore needs a browser pass
-// only for what it adds to the template:
+// (verify/verify-templates.js, the checks that need no browser), and its verified hash is recorded in verify/verified.json; a board
+// therefore gets an automatic browser pass only when it diverges from its template:
 //   identical   an issue board or work board that is its template plus the embedded data, byte for byte, of a verified template:
 //               no browser pass (the data and the embed are checked by plan/scripts/check.js)
 //   structure   a system, supersystem or repository state board whose template parts (its CSS, its tab set, its script before MODEL less
-//               the board-filled lines, its renderer script) are the verified template's: one light pass, for the facts the board
-//               fills in (MODEL, panels, legends, Guarantees, Context)
+//               the board-filled lines, its renderer script) are the verified template's: the verified template plus its data, so no
+//               browser pass either (the facts it fills in are held by the checks that need no browser: check-board.js --auto)
 //   diverges    anything else — a declared divergence, an undeclared one, a board made from an older template, or a template
-//               changed since it was verified: the full pass (light, dark, 520 px, a 390 px frame)
+//               changed since it was verified: the full pass (light, dark, 520 px, a 390 px frame, a 1920 x 1080 desktop)
 // A board declares a divergence with <meta name="template-divergence" content="what and why">, one per divergence, beside the
 // footer comment GUIDANCE.md §7 asks for. A repository template (docs/plans/_template/, docs/dashboards/_template/) replaces
 // the skill's when present; its verified hashes live in a verified.json beside it.
@@ -60,7 +60,7 @@ function verified(template) {
   const hash = sha(fs.readFileSync(template, "utf8"));
   /* verify/verify-templates.js names the templates it is verifying (their hashes) to the scripts its cases run, so a case that needs
      "the verified template" (an event re-rendering a board onto it, check.js --auto reading a board as it plus its data) holds while a
-     changed template is being verified; the template is still recorded only once every case and pass has passed. */
+     changed template is being verified; the template is still recorded only once every check it runs (those that need no browser, by default) has passed. */
   let under = []; try { under = JSON.parse(process.env.DASHBOARDS_TEMPLATES_UNDER_TEST || "[]"); } catch (e) { /* none */ }
   return { ok: (!!rec && rec.sha256 === hash) || (Array.isArray(under) && under.includes(hash)), hash, rec, file, key, underTest: Array.isArray(under) && under.includes(hash) };
 }
@@ -114,7 +114,7 @@ function deviation(page) {
   if (!v.ok) { verdict = "diverges"; passes = "full"; }
   else if (differs.length || declared.length) { verdict = "diverges"; passes = "full"; }
   else if (TEMPLATES[kind].block) { verdict = "identical"; passes = "none"; }
-  else { verdict = "structure"; passes = "light"; }
+  else { verdict = "structure"; passes = "none"; }
   /* the template named the way a reader finds it: the skill's path, or the repository's from its root */
   const rel = p => { const inSkill = !path.relative(SKILL, p).startsWith(".."), root = repoRootOf(page);
     return inSkill ? "the skill's " + path.relative(SKILL, p).split(path.sep).join("/") : root ? path.relative(root, p).split(path.sep).join("/") : p; };

@@ -272,7 +272,10 @@ ruleset per set, the templates and the checks.
   appear only on supersystem boards, dashed and tagged `Planned` (a level-4 run adds them); a
   system gets its own board when its implementing issue lands.
 - Boards are self-contained HTML (inline CSS/JS/SVG, no external resources, light and dark),
-  verified in a headless browser before landing. A repository may keep its own template under
+  verified in a headless browser before landing when they diverge from their template; a board
+  that is a verified template plus its data gets no browser pass. A change to the `dashboards`
+  skill or its templates gets no browser pass from the presenter: its report lists what I should
+  check in a browser, and I verify it. A repository may keep its own template under
   `docs/dashboards/_template/`, and a board may diverge from a template when the system is better
   shown another way. A divergence should primarily add; removing content, a core tab included,
   needs a strong argument, such as no data for it existing. Either is recorded on the board and

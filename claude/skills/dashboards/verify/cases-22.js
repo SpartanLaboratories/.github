@@ -7,6 +7,8 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 
 module.exports = function cases22(X) {
+  /* a case that needs a browser, in a run without one (verify-templates.js without --browser): reported as not run */
+  const NEEDS_BROWSER = X.NEEDS_BROWSER || "needs a browser: not run (verify-templates.js --browser runs it)", notRun = X.notRun || (() => false);
   const { sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, withData } = X;
   const lib = require(sk("plan/scripts/lib.js")), TL = require(sk("plan/scripts/testslib.js")), F = require(sk("system/scripts/features.js"));
   const tp = name => (targets.find(t => t.name === name) || {}).path;
@@ -261,7 +263,7 @@ module.exports = function cases22(X) {
     c.push(["a landed board that recorded no tests: a plain box, \"No tests recorded on this board.\", never dashed", /<p class="empty">No tests recorded on this board\.<\/p>/.test(dE) && /box: nothing recorded/.test(keyE) && !/empty pend/.test(inner(dE, '<section class="view" role="tabpanel" id="p-tests"[^>]*>', "section")), text(keyE)]);
     c.push(["the repository work board has no Tests tab (one row per run)", !/id="t-tests"/.test(T.work), "board.html"]);
     const cp1 = cp.spawnSync(process.execPath, [checker, fS, "--out", path.join(sc, "tests-sub")], { encoding: "utf8" });
-    c.push(["check-board.js passes the rendering, every sub-tab with its legend", cp1.status === 0 && ["added", "amended", "relevant", "other"].every(k => new RegExp(`CHECK tab t-tests-${k}: visible · \\d+ drawn nodes · legend`).test(cp1.stdout)), (cp1.stdout || "").split(/\r?\n/).filter(l => /t-tests|FAIL|DASHED|NO LEGEND/.test(l)).join(" | ").slice(0, 400)]);
+    c.push(["check-board.js passes the rendering, every sub-tab with its legend", cp1.status === 0 && ["added", "amended", "relevant", "other"].every(k => new RegExp(`CHECK tab t-tests-${k}: visible · \\d+ drawn nodes · legend`).test(cp1.stdout)), notRun(cp1) ? NEEDS_BROWSER : (cp1.stdout || "").split(/\r?\n/).filter(l => /t-tests|FAIL|DASHED|NO LEGEND/.test(l)).join(" | ").slice(0, 400)]);
   });
 
   /* 8. this run's feature probes */
