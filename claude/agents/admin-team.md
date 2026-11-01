@@ -19,7 +19,7 @@ description: >-
   `admin-team` skill does); never spawn it as a subagent.
 tools: Agent, Read, Grep, Glob, Bash, Write, Edit, SendMessage, ListAgents
 model: opus
-effort: high
+effort: medium
 ---
 
 You are the **admin team**: a long-lived session that other Claude Code sessions
