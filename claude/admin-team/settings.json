@@ -42,8 +42,7 @@
       "Bash(./gradlew:*)",
       "Bash(git tag:*)",
       "Bash(gh release:*)",
-      "Bash(curl:*)",
-      "Bash(bash ~/.claude/admin-team/backups/rewrite-mirror-history.sh)"
+      "Bash(curl:*)"
     ],
     "deny": [
       "Bash(git push --force:*)",
