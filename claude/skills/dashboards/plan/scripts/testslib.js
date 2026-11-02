@@ -21,6 +21,14 @@ const count = v => Number.isInteger(v) && v >= 0;
 /* A class's test level: its own testLevel when it is one, else the level folder its path or package names (testing.<segment>), else null. */
 function levelFromPath(e) { const m = LEVEL_PATH.exec(String((e && (e.path || e.class)) || "")); return m ? TEST_LEVEL_SEGMENTS[m[1]] : null; }
 function testLevelOf(e) { const v = e && e.testLevel != null ? String(e.testLevel) : null; return v && TEST_LEVELS.includes(v) ? v : levelFromPath(e); }
+/* A run's name without its module (WebTools #65: a qa pass sent "webtools-http componentTest", a later stage "componentTest" with the
+   module beside it, and the Tests tab listed the same Gradle task twice): "<module> <name>", "<module>:<name>" and ":<module>:<name>"
+   read as <name> when the entry names that module. */
+function bareName(cls, module) {
+  const c = String(cls || "").trim(), m = String(module || "").trim(); if (!m) return c;
+  for (const p of [":" + m + ":", m + ":", m + " "]) if (c.startsWith(p) && c.length > p.length) return c.slice(p.length).trim();
+  return c;
+}
 /* A class's identity across the lists: its module and its class name. */
 const testKey = e => `${(e && e.module) || ""}::${e && e.class}`;
 /* A result's state: its own when it is one, else what its counts say (a failure fails it). */
@@ -37,7 +45,7 @@ function normEntry(x, o, withResult) {
   if (!x || typeof x !== "object" || Array.isArray(x)) return { why: "not an object" };
   const cls = str(x.class) ? x.class.trim() : str(x.name) ? x.name.trim() : null;
   if (!cls) return { why: "no class" };
-  const e = { class: cls };
+  const e = { class: str(x.module) ? bareName(cls, x.module) : cls };
   if (str(x.module)) e.module = x.module.trim();
   const lv = x.testLevel != null ? String(x.testLevel) : x.level != null ? String(x.level) : null;
   const level = lv && TEST_LEVELS.includes(lv) ? lv : levelFromPath({ path: x.path, class: cls });
@@ -71,8 +79,8 @@ function normOther(x) {
 }
 /* Apply an event's facts.tests to a board (plan/RULES.md §4): each class of "added", "amended" and "relevant" upserted, a class kept in the
    highest list it has reached (Added, then Amended, then Relevant: a class added on the branch and changed later stays Added); "ran", the
-   classes qa's test-inspector ran with their results, sets each one's latest result and puts a class in no list into Relevant; "other"
-   replaces the counts; "drop" removes classes from every list (a change reverted); "base" names the ref the diff is against. The same
+   classes qa's test-inspector ran with their results, sets each one's latest result and its count (the tests the run counted) and puts a class in no list into Relevant; "other"
+   replaces the counts; "drop" removes classes from every list (a change reverted; one on no list is named in the summary, never passed over); "base" names the ref the diff is against. The same
    facts twice change nothing. Returns { changed, applied, notes }. o: { now, pass, stage, ids }. */
 function mergeTests(plan, ft, o) {
   const applied = [], notes = [];
@@ -86,13 +94,13 @@ function mergeTests(plan, ft, o) {
      names the class without its package (a stage's facts may give "FooTest" for a class recorded as "com.acme.testing.component.FooTest") */
   const simple = c => String(c || "").split(".").pop();
   const sameModule = (x, e) => !e.module || !x.module || x.module === e.module;
-  const loose = (x, e) => !!x && sameModule(x, e) && (x.class === e.class || ((!String(x.class).includes(".") || !String(e.class).includes(".")) && simple(x.class) === simple(e.class)));
+  const loose = (x, e) => !!x && sameModule(x, e) && (x.class === e.class || bareName(x.class, x.module || e.module) === bareName(e.class, e.module || x.module) || ((!String(x.class).includes(".") || !String(e.class).includes(".")) && simple(x.class) === simple(e.class)));
   const find = e => { for (const k of TEST_LISTS) { let i = T[k].findIndex(x => x && testKey(x) === testKey(e)); if (i < 0) { const hits = T[k].map((x, j) => loose(x, e) ? j : -1).filter(j => j >= 0); if (hits.length === 1) i = hits[0]; } if (i >= 0) return { k, i }; } return null; };
   /* the merged class keeps its qualified name, whichever side gave it */
   const merge = (old, e) => { const m = { ...old, ...e }; if (old.rows || e.rows) m.rows = [...new Set([...(old.rows || []), ...(e.rows || [])])]; if (old.module && !e.module) m.module = old.module; if (String(old.class).includes(".") && !String(e.class).includes(".")) m.class = old.class; return m; };
   const put = (k, e, resultOnly) => { const w = find(e);
     if (!w) { T[k].push(e); applied.push(`tests.${k} + ${e.class}`); return; }
-    const old = T[w.k][w.i], merged = resultOnly ? { ...old, ...(e.result ? { result: e.result } : {}), ...(old.testLevel || !e.testLevel ? {} : { testLevel: e.testLevel }), ...(old.tests != null || e.tests == null ? {} : { tests: e.tests }), ...(old.path || !e.path ? {} : { path: e.path }) } : merge(old, e);
+    const old = T[w.k][w.i], merged = resultOnly ? { ...old, ...(e.result ? { result: e.result } : {}), ...(old.testLevel || !e.testLevel ? {} : { testLevel: e.testLevel }), ...(e.tests == null || old.tests === e.tests ? {} : { tests: e.tests }), ...(old.path || !e.path ? {} : { path: e.path }) } : merge(old, e);
     if (rank[k] > rank[w.k]) { T[w.k].splice(w.i, 1); T[k].push(merged); applied.push(`tests: ${e.class} ${w.k} → ${k}`); }
     else if (JSON.stringify(merged) !== JSON.stringify(old)) { T[w.k][w.i] = merged; applied.push(`tests.${w.k} ${e.class}${resultOnly && e.result ? " " + e.result.state : ""}`); } };
   TEST_LISTS.forEach(k => { if (ft[k] != null && !Array.isArray(ft[k])) { notes.push(`facts.tests.${k} is not a list: not applied`); return; }
@@ -100,7 +108,7 @@ function mergeTests(plan, ft, o) {
   if (ft.ran != null && !Array.isArray(ft.ran)) notes.push("facts.tests.ran is not a list: not applied");
   (Array.isArray(ft.ran) ? ft.ran : []).forEach((x, i) => { const n = normEntry(x, o, true); if (!n.entry) { notes.push(`facts.tests.ran[${i}]: ${n.why}: not applied`); return; } notes.push(...n.notes); put("relevant", n.entry, true); });
   if (ft.other != null) { const ot = normOther(ft.other); if (!ot) notes.push("facts.tests.other is not { byModule: { <module>: { <test level>: count } } }: not applied"); else if (JSON.stringify(T.other || null) !== JSON.stringify(ot)) { T.other = ot; applied.push("tests.other"); } }
-  (Array.isArray(ft.drop) ? ft.drop : []).forEach(x => { const e = typeof x === "string" ? { class: x } : x && typeof x === "object" && str(x.class) ? { class: x.class, ...(str(x.module) ? { module: x.module } : {}) } : null; if (!e) return; const w = find(e); if (w) { T[w.k].splice(w.i, 1); applied.push(`tests.${w.k} − ${e.class}`); } });
+  (Array.isArray(ft.drop) ? ft.drop : []).forEach(x => { const e = typeof x === "string" ? { class: x } : x && typeof x === "object" && str(x.class) ? { class: x.class, ...(str(x.module) ? { module: x.module } : {}) } : null; if (!e) return; const w = find(e); if (w) { T[w.k].splice(w.i, 1); applied.push(`tests.${w.k} − ${e.class}`); } else applied.push(`tests.drop ${e.class}: on no list of the board, nothing to remove`); });
   const changed = JSON.stringify(T) !== before && (before !== "null" || hasTests(T) || !!T.base);
   if (changed) { T.updated = o.now; const ordered = { ...(T.base ? { base: T.base } : {}), updated: T.updated }; TEST_LISTS.forEach(k => { ordered[k] = T[k]; }); if (T.other) ordered.other = T.other; plan.tests = ordered; }
   return { changed, applied, notes };
@@ -175,4 +183,4 @@ function testsProblems(plan) {
 /* A unit row's mirror (unit.tests), as check.js holds it: an object of the same form. */
 function mirrorProblems(m, at) { if (m == null) return []; if (typeof m !== "object" || Array.isArray(m)) return [`${at}.unit.tests must be the mirror of the unit's board's tests (embed.js writes it)`]; const p = testsProblems({ tests: m, rows: [] }); return p.fail.filter(f => !/names no row/.test(f)).map(f => `${at}.unit.${f}`); }
 
-module.exports = { TEST_LISTS, TEST_LEVELS, TEST_LEVEL_SEGMENTS, TEST_RESULTS, testLevelOf, levelFromPath, testKey, resultState, testsBlock, hasTests, normEntry, normOther, mergeTests, testsMirror, testsProblems, mirrorProblems };
+module.exports = { TEST_LISTS, TEST_LEVELS, TEST_LEVEL_SEGMENTS, TEST_RESULTS, bareName, testLevelOf, levelFromPath, testKey, resultState, testsBlock, hasTests, normEntry, normOther, mergeTests, testsMirror, testsProblems, mirrorProblems };

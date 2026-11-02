@@ -1,0 +1,116 @@
+// The cases of a row a remediation stage reopens and of the Tests tab's facts on that stage (admin-team/board/remediation-row; plan/RULES.md
+// §2 "Before the outcome", §4 "The fast path"), run by verify-templates.js (it passes its helpers in), or on its own with no browser:
+// node verify/cases-remediation-row.js [--out <dir>].
+// The defects (WebTools #65, remediation stage R1): facts.tests.drop named a class on no list of the board (added and deleted on the branch
+// before any event recorded it), and the fast path passed over it in silence, so the summary never said the fact was taken; a run sent as
+// "webtools-http componentTest" at one event and "componentTest" with its module at the next was listed twice, and a later run kept the
+// earlier run's count beside its own result (392 tests, 395 passed); and a row with its as-built statements, reopened by a later stage, was
+// drawn partially built with its statements alone, its summary (what is built, what is left) never shown. check.js warned on such a row stored
+// partially built beside its statements, reading the stored state as the outcome they derive. Each group returns
+// [title, cases], a case [name, ok, detail]; the template's rendering needs a browser and is reported as not run without one.
+"use strict";
+const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
+
+module.exports = function casesRemediationRow(X) {
+  const { sk, out, targets, dumpDom, withData, NEEDS_BROWSER } = X;
+  const tp = name => (targets.find(t => t.name === name) || {}).path;
+  const PB = tp("plan/template/dashboard.html");
+  if (!PB) return [["a row a remediation stage reopens (the plan-board template under test)", [["the plan-board template is under test", false, "a repository template set without it skips these groups"]]]];
+  const rd = f => fs.readFileSync(f, "utf8"), wr = (f, t) => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, t); return f; };
+  const J = n => JSON.parse(rd(sk(n))), copy = x => JSON.parse(JSON.stringify(x)), js = x => JSON.stringify(x);
+  const run = (f, a, o) => cp.spawnSync(process.execPath, [f, ...a], { encoding: "utf8", ...(o || {}) });
+  const TL = require(sk("plan/scripts/testslib.js"));
+  const APPLY = sk("plan/scripts/apply-event.js"), EMBED = sk("plan/scripts/embed.js");
+  const sc = path.join(out, "remediation-row"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
+  const EXD = "plan/examples/38-handshake-empty-name", EX = J(EXD + "/plan.json");
+  const groups = [];
+  const guard = (title, fn) => { const c = []; try { fn(c); } catch (e) { c.push(["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]); } groups.push([title, c]); };
+  const docsInto = dir => fs.readdirSync(sk(EXD)).filter(f => /\.md$/.test(f) || f === "research").forEach(f => fs.cpSync(sk(EXD + "/" + f), path.join(dir, f), { recursive: true }));
+  const parse = a => { try { return JSON.parse(a.stdout); } catch (e) { return { parseError: (a.stdout || a.stderr || "").slice(0, 300) }; } };
+  const STEPS = ["sizing", "interview", "research", "plan", "branch", "implementation", "qa", "remediation", "document", "landing", "merge", "landed"];
+  const ids = EX.rows.map(r => r.id), R0 = ids[0], R1 = ids[1];
+  /* the example in remediation: every row built with its statements (as the example records them), R1 done on two rows, R2 still to come on
+     the first */
+  const atRem = () => { const x = copy(EX); Object.assign(x, { status: "building", asBuilt: null }); x.milestones = x.milestones.filter(m => m.column !== "built"); if (x.impact) x.impact.basis = "plan";
+    x.wip = { ...x.wip, step: "remediation", since: "2026-11-02T00:08:52Z", updated: "2026-11-02T00:08:52Z", current: [R0 + ".built", R1 + ".built"], questions: [], research: null, open: [], plan: null,
+      qa: [{ pass: 1, verdict: "changes-requested", date: "2026-11-02", at: "2026-11-02T00:08:52Z", findings: { test: 2, code: 0 }, route: "remediation" }], qaMax: 3,
+      remediation: { pass: 1, route: "remediation", steps: [{ name: "The fixes", state: "current" }, { name: "qa pass 2", state: "todo" }] },
+      stages: [{ id: "S1", name: "The build", state: "done", rows: ids.slice() }, { id: "R1", name: "First fixes", state: "done", rows: [R0, R1] }, { id: "R2", name: "Second fixes", state: "todo", rows: [R0] }],
+      steps: STEPS.slice(), event: { name: "qa-pass", at: "2026-11-02T00:08:52Z" } };
+    x.tests = { base: "master", updated: "2026-11-02T00:08:52Z", added: [{ class: "KeptTest", module: "webtools-udp", testLevel: "2", tests: 3 }], amended: [], relevant: [] }; return x; };
+  let n = 0;
+  const lay = plan => { const root = path.join(sc, `b-${++n}`), dir = path.join(root, ...plan.folder.split("/")); docsInto(dir);
+    wr(path.join(dir, "plan.json"), JSON.stringify(plan, null, 2) + "\n"); wr(path.join(dir, "dashboard.html"), rd(PB)); run(EMBED, [dir]); return { root, dir }; };
+  const ev = (B, plan, facts, at) => { const rq = wr(path.join(sc, `req-${n}.json`), js({ v: 1, action: "plan-board", github: plan.repo, issue: plan.issue, event: "implementation-stage", folder: plan.folder, facts }));
+    const a = run(APPLY, ["--event", rq, "--worktree", B.root, "--no-gh", "--no-live", "--at", at, "--json"]), S = parse(a);
+    return { a, S, p: JSON.parse(rd(path.join(B.dir, "plan.json"))) }; };
+  const words = S => [].concat(S.applied || [], S.why || [], S.enrich || []).map(String).join(" | ");
+
+  guard("testslib.js and apply-event.js: facts.tests.drop of a class on no list is named, a run named with its module is one entry, a run's count is its own", c => {
+    const now = "2026-11-02T01:22:28Z", o = { now, ids: new Set(ids) };
+    const P = { rows: EX.rows, tests: { base: "master", updated: "2026-11-01T00:00:00Z", added: [{ class: "KeptTest", module: "m", testLevel: "2", tests: 3 }], amended: [], relevant: [] } };
+    const r = TL.mergeTests(P, { drop: [{ class: "GoneComponentTest", module: "m", testLevel: "2", path: "m/src/test/kotlin/x/testing/component/GoneComponentTest.kt" }] }, o);
+    c.push(["a drop of a class on no list: nothing changes, and the summary names it", !r.changed && r.applied.some(x => /tests\.drop GoneComponentTest: on no list of the board/.test(x)) && P.tests.added.length === 1, js(r)]);
+    const r2 = TL.mergeTests(P, { drop: ["KeptTest"] }, o);
+    c.push(["a drop of a class on a list still removes it", r2.changed && !P.tests.added.length && r2.applied.includes("tests.added − KeptTest"), js(r2)]);
+    const Q = { rows: EX.rows, tests: null };
+    TL.mergeTests(Q, { ran: [{ class: "m componentTest", module: "m", passed: 392, failed: 0, skipped: 0 }] }, { now: "2026-11-01T22:37:24Z", ids: new Set(ids) });
+    TL.mergeTests(Q, { ran: [{ class: "componentTest", module: "m", passed: 395, failed: 0, skipped: 0 }] }, o);
+    const rel = (Q.tests || {}).relevant || [];
+    c.push(["a run sent as \"<module> componentTest\", then as \"componentTest\" with its module: one Relevant entry", rel.length === 1 && rel[0].class === "componentTest", js(rel)]);
+    c.push(["…with the later run's result and its count (395, never the earlier 392)", rel.length === 1 && rel[0].result.passed === 395 && rel[0].tests === 395 && rel[0].result.at === now, js(rel)]);
+    TL.mergeTests(Q, { ran: [{ class: ":m:componentTest", module: "m", passed: 396 }] }, { now: "2026-11-02T02:00:00Z", ids: new Set(ids) });
+    c.push(["…and a Gradle path \":<module>:componentTest\" is the same entry", ((Q.tests || {}).relevant || []).length === 1 && Q.tests.relevant[0].tests === 396, js(Q.tests.relevant)]);
+    c.push(["bareName keeps a name that only starts like the module (\"mx componentTest\" in module \"m\")", TL.bareName("mx componentTest", "m") === "mx componentTest" && TL.bareName("m componentTest", "m") === "componentTest" && TL.bareName("m", "m") === "m", js([TL.bareName("mx componentTest", "m"), TL.bareName("m componentTest", "m")])]);
+    /* the fast path end to end: the stage's summary carries the drop, and it raises no enrichment of its own */
+    const B = atRem(), L = lay(B);
+    const e = ev(L, B, { step: "remediation", stage: "R1", stages: B.wip.stages.map(s => ({ id: s.id, name: s.name, state: s.state })), rows: [R0, R1],
+      tests: { added: [{ class: "NewDeterministicTest", module: "webtools-udp", testLevel: "4a", tests: 5, rows: [R0] }], drop: [{ class: "GoneComponentTest", module: "webtools-udp", testLevel: "2" }] } }, "2026-11-02T01:22:28Z");
+    c.push(["apply-event.js: the stage applies (exit 0), Added takes the new class", e.a.status === 0 && (e.p.tests.added || []).some(x => x.class === "NewDeterministicTest"), js([e.a.status, e.S.error, (e.p.tests || {}).added])]);
+    c.push(["…and its summary names the drop of the class on no list, never passing over it", /tests\.drop GoneComponentTest: on no list of the board/.test(js(e.S.applied || [])), js(e.S.applied)]);
+    c.push(["…as applied, not as an enrichment for the presenter", !/GoneComponentTest/.test(js(e.S.why || []) + js(e.S.enrich || [])), words(e.S)]);
+  });
+
+  /* check.js: a reopened row that stores the staged state beside its statements is not warned on; one that still stores its outcome is */
+  guard("check.js: a row a later stage reopens, stored partially built beside its statements with its summary, passes without a warning", c => {
+    const CHECK = sk("plan/scripts/check.js"), sum = "Built: the first fixes. Left: the second fixes.";
+    const warnFor = P => { const L = lay(P), r = run(CHECK, [L.dir]); return { r, w: (r.stdout || "").split(/\r?\n/).filter(l => /^warn/.test(l) && l.includes(`(${R0})`) && /wip\.stages make it/.test(l)) }; };
+    const P = atRem(); Object.assign(P.rows.find(r => r.id === R0).asBuilt, { state: "partially-built", summary: sum });
+    const ok = warnFor(P);
+    c.push(["stored \"partially-built\" with its statements and summary: no \"wip.stages make it\" warning, no failure", ok.r.status === 0 && !ok.w.length, (ok.w.join(" | ") || (ok.r.stdout || "").split(/\r?\n/).filter(l => /^FAIL/.test(l)).join(" | ")).slice(0, 300)]);
+    const Q = atRem(); Q.rows.find(r => r.id === R0).asBuilt.summary = sum;
+    const still = warnFor(Q);
+    c.push(["…one that still stores its outcome is warned on, as before", still.w.length === 1, (still.r.stdout || "").slice(0, 300)]);
+  });
+
+  /* the template: a partially built row that already carries its as-built statements shows its summary above them (a static case on the
+     template's source, and the rendering in a browser) */
+  guard("the template: a row a later stage reopens shows its summary (what is built, what is left) above its as-built statements", c => {
+    const tpl = rd(PB);
+    c.push(["buildingLead() draws the summary of an in-progress or partially built row that has statements", /const buildingLead=\(r,st,cls\)=>\{[^\n]*\(st==="in-progress"\|\|st==="partially-built"\)&&stmtsOf\(b\)\.length/.test(tpl), "buildingLead() not found in its form"]);
+    c.push(["…in the As built cell, the inspector and the As built tab's card", /builtBody=\(r,st\)=>\{[^\n]*buildingLead\(r,st\)\+s/.test(tpl) && /buildingLead\(r,st,"lead"\)\+stmtsHtml\(r,"built"\)/.test(tpl) && /buildingLead\(r,st,"blead"\)\+stmtsHtml\(r,"built"\)/.test(tpl), "a place without it"]);
+    const P = atRem(), sum = "Built: the first fixes. Left: the second fixes, after the plan amendment.";
+    P.rows.find(r => r.id === R0).asBuilt.state = "partially-built"; P.rows.find(r => r.id === R0).asBuilt.summary = sum;
+    const dir = path.join(sc, "render"), page = wr(path.join(dir, "dashboard.html"), withData(tpl, "plan", js(P)));
+    wr(path.join(dir, "plan.js"), require(sk("plan/scripts/lib.js")).sidecarText("plan", js(P)));
+    const dom = dumpDom ? dumpDom(page, "", "1600,1000", 8000) : null;
+    if (dom == null) { c.push(["the partially built row's cell shows the summary and the statements", false, NEEDS_BROWSER]); return; }
+    const cell = (dom.match(new RegExp(`<div class="cell built[^"]*"[^>]*data-row="${R0}"[\\s\\S]*?<div class="meta">`)) || [""])[0];
+    c.push(["the partially built row's cell shows the summary and the statements", /class="blead"/.test(cell) && cell.includes("Left: the second fixes") && /class="stmts marked/.test(cell), cell.slice(0, 300)]);
+    const other = (dom.match(new RegExp(`<div class="cell built[^"]*"[^>]*data-row="${ids[2]}"[\\s\\S]*?<div class="meta">`)) || [""])[0];
+    c.push(["…a row with its outcome shows its statements alone", other && !/class="blead"/.test(other), other.slice(0, 200)]);
+  });
+  return groups;
+};
+
+if (require.main === module) {
+  const SKILL = path.resolve(__dirname, ".."), sk = p => path.join(SKILL, ...p.split("/"));
+  const args = process.argv.slice(2), i = args.indexOf("--out"), out = path.resolve(i >= 0 && args[i + 1] ? args[i + 1] : path.join(os.tmpdir(), "dashboards-verify"));
+  const targets = ["plan/template/dashboard.html", "plan/template/board.html"].map(name => ({ name, path: sk(name) }));
+  const NEEDS_BROWSER = "needs a browser: not run (verify-templates.js --browser runs it)";
+  const withData = (tpl, block, json) => require(sk("plan/scripts/lib.js")).writeBlock(tpl, block, json);
+  let bad = 0, skipped = 0;
+  module.exports({ sk, out, targets, dumpDom: null, withData, NEEDS_BROWSER }).forEach(([what, cases]) => { const s = cases.filter(x => !x[1] && x[2] === NEEDS_BROWSER), b = cases.filter(x => !x[1] && x[2] !== NEEDS_BROWSER); bad += b.length; skipped += s.length;
+    console.log(`${b.length ? "FAILED " : "checked"}  ${what}: ${cases.length - b.length - s.length}/${cases.length - s.length} cases${s.length ? ` · not run without a browser: ${s.length}` : ""}`); b.forEach(x => console.log(`  ${x[0]}: ${x[2]}`)); });
+  process.exit(bad ? 1 : 0);
+}

@@ -221,7 +221,8 @@ function checkPlan(plan, dir, root) {
     if (st === "partially-built" && !str(bld.summary) && !said) fail(`${at}: a partially built part says in asBuilt.summary what is built and what is left`);
     { const want = stagedState(plan, r), shown = want || st;
       if (BUILDING_STATES.includes(st) && !want && !["built", "abandoned"].includes(plan.status)) warn(`${at}: asBuilt.state is "${st}", but ${r.unit ? "the unit is not in wip.current" : "no stage of wip.stages that touches the row is current or still to come"}: once its last stage is done its outcome applies (as-planned, amended or deviated)`);
-      else if (want && st !== "pending" && want !== st) warn(`${at}: asBuilt.state is "${st}", but ${r.unit ? "the unit's run is under way (it is in wip.current)" : "wip.stages make it"} "${want}"${["as-planned", "amended", "deviated"].includes(st) ? ": its outcome applies once its last stage is done" : ""}; the board shows "${shown}"`);
+      /* a row a later stage reopens (a remediation stage after its outcome) stores the staged state beside its statements: no warning then */
+      else if (want && st !== "pending" && want !== st && stored !== want) warn(`${at}: asBuilt.state is "${st}", but ${r.unit ? "the unit's run is under way (it is in wip.current)" : "wip.stages make it"} "${want}"${["as-planned", "amended", "deviated"].includes(st) ? ": its outcome applies once its last stage is done" : ""}; the board shows "${shown}"`);
       if (shown === "partially-built" && st !== "partially-built" && !str(bld.summary)) warn(`${at} is partially built (wip.stages: a done stage touched it, a later one is still to come), but asBuilt.summary is empty: say what is built and what is left`); }
     if (["amended", "deviated"].includes(st) && (!Array.isArray(bld.changes) || !bld.changes.length)) fail(`${at}: an ${st} part lists its changes`);
     (bld.changes || []).forEach((c, j) => {
