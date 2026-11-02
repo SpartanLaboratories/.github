@@ -409,7 +409,7 @@ function applyEvent(orig, ev, facts, req, now) {
       const b = txt(facts.branch, "branch") || txt(req.branch, "branch");
       if (b && plan.branch !== b) { plan.branch = b; applied.push(`branch ${b}`); }
       if (!b && !plan.branch) enrich.push("branch-cut names no branch");
-      mergeStages(w, facts, applied, enrich, true);
+      mergeStages(w, facts, applied, enrich, true, ids);
       setStep("implementation"); setGlow("implementation");
       const c = curStage();
       detail = detail || `Branch ${code(plan.branch || "?")} cut; implementation starts${c ? ` at ${c.id}: ${c.name}` : ""}.`;
@@ -432,7 +432,7 @@ function applyEvent(orig, ev, facts, req, now) {
         break;
       }
       const before = JSON.parse(JSON.stringify(w.stages || []));
-      mergeStages(w, facts, applied, enrich, false);
+      mergeStages(w, facts, applied, enrich, false, ids);
       const st = w.stages || [], done = st.filter(x => x.state === "done" && !before.some(y => y.id === x.id && y.state === "done"));
       /* the derived as-built states (plan/RULES.md §2, "Before the outcome"): never an outcome; an outcome a row already records stays */
       rows.forEach(r => {
@@ -653,7 +653,12 @@ function withUnitSteps(w, applied) {
   const at = st.indexOf("architecture"); if (at < 0) return;
   st.splice(at + 1, 0, ...["sub-issues", "boards"].filter(s => !st.includes(s))); w.steps = st; applied.push("wip.steps: sub-issues and boards after the architecture");
 }
-function mergeStages(w, facts, applied, enrich, first) {
+/* wip.stages from facts.stages (plan/RULES.md §4, "The fast path"). A stage's rows: facts.stages[i].rows when the event gives them (the
+   board's row ids only; another is named in the summary and left out), else the rows the board records for it, else, for the one stage a
+   remediation report adds (facts.remediation, or facts.step "remediation"), the rows the qa findings touch (facts.rows, the board's ids):
+   the remediation's own stage then carries every finding, so its rows are exact. Two or more new stages in one report share facts.rows
+   between them in a way only the documents tell, so they stay for the presenter, as a plan stage's rows do (WebTools #65, R1 and R2). */
+function mergeStages(w, facts, applied, enrich, first, ids) {
   const have = Array.isArray(w.stages) ? w.stages : [];
   if (!Array.isArray(facts.stages) || !facts.stages.length) {
     if (!have.length) enrich.push("the stages of plan.md, with the rows each touches, come from plan.md");
@@ -667,11 +672,24 @@ function mergeStages(w, facts, applied, enrich, first) {
     if (!state) refuse(`facts.stages[${i}].state ${JSON.stringify(s.state)} is not done, current or todo`);
     const name = typeof s.name === "string" && s.name.trim() ? s.name.replace(/\s+/g, " ").trim() : old.name;
     if (!name) refuse(`facts.stages[${i}] (${s.id}) has no name`);
-    return { id: s.id, name, state, rows: Array.isArray(old.rows) ? old.rows : [] };
+    let rows = Array.isArray(old.rows) ? old.rows : [], given = false;
+    if (Array.isArray(s.rows)) {
+      const ok = s.rows.filter(x => typeof x === "string" && (!ids || ids.has(x))), off = s.rows.filter(x => !ok.includes(x));
+      if (off.length) enrich.push(`facts.stages[${i}] (${s.id}) names rows not on the board (${off.map(x => JSON.stringify(x)).join(", ")}): not written`);
+      rows = [...new Set(ok)]; given = true;
+    }
+    return { id: s.id, name, state, rows, given };
   });
+  const remed = !!facts.remediation || facts.step === "remediation";
+  const fresh = out.filter(x => !x.given && !have.some(y => y && y.id === x.id));
+  const fr = Array.isArray(facts.rows) ? [...new Set(facts.rows.filter(x => typeof x === "string" && (!ids || ids.has(x))))] : [];
+  if (remed && fresh.length === 1 && fr.length) { fresh[0].rows = fr; fresh[0].given = true; applied.push(`wip.stages ${fresh[0].id} rows from facts.rows (${fr.join(", ")})`); }
+  out.forEach(x => delete x.given);
   if (out.filter(x => x.state === "current").length > 1) refuse("facts.stages names more than one current stage");
-  const norows = out.filter(x => !have.some(y => y && y.id === x.id)).map(x => x.id);
-  if (norows.length) enrich.push(`the rows stage${norows.length > 1 ? "s" : ""} ${norows.join(", ")} touch come from plan.md`);
+  const norows = fresh.filter(x => !x.rows.length).map(x => x.id);
+  if (norows.length) enrich.push(remed
+    ? `the rows remediation stage${norows.length > 1 ? "s" : ""} ${norows.join(", ")} touch: facts.rows names the rows of every finding and facts.stages[].rows none per stage, so the presenter maps them from the findings and any plan amendment`
+    : `the rows stage${norows.length > 1 ? "s" : ""} ${norows.join(", ")} touch come from plan.md`);
   if (JSON.stringify(out) !== JSON.stringify(have)) { w.stages = out; applied.push(`wip.stages ${out.map(x => x.id + " " + x.state).join(", ")}`); }
 }
 /* wip.document from the facts (admin-team/dashboards-skill/35): {tasks: [{id, name, state}]}, merged by id: a task the event names takes

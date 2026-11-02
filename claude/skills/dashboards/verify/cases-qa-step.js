@@ -62,6 +62,38 @@ module.exports = function casesQaStep(X) {
     c.push(["the lede reads the open wait first", /\(TS\.waits\|\|\[\]\)\.some\(x=>x\.open\)\?"The run waits on the user: no step's time runs until the answer\."/.test(line), line.slice(0, 200)]);
     c.push(["…and says a step runs to now only while a visit is open", /TL_OPEN\?"The running step is open-ended: its time runs to now\."/.test(line), line.slice(0, 200)]);
   });
+  /* a remediation report's stages (WebTools #65, qa pass 1): the one stage a remediation adds takes the rows the qa findings touch
+     (facts.rows) itself; facts.stages[].rows, when given, are written as given; two new stages with no rows of their own stay for the
+     presenter (facts.rows is the union of every finding then), as a plan stage's rows do */
+  guard("apply-event.js: a remediation stage's rows on the fast path (facts.rows for its one new stage, facts.stages[].rows as given)", c => {
+    const atRem = () => { const x = atQa(), ids = x.rows.map(r => r.id); x.wip.step = "remediation"; x.wip.current = [ids[0] + ".built"];
+      x.wip.stages = [{ id: "S1", name: "The one plan stage", state: "done", rows: ids.slice() }];
+      x.wip.qa = [{ pass: 1, verdict: "changes-requested", date: "2026-11-02", at: "2026-11-02T00:08:52Z", findings: { test: 2 }, route: "remediation" }];
+      x.wip.remediation = { pass: 1, route: "remediation", steps: [{ name: "The fixes", state: "current" }, { name: "qa pass 2", state: "todo" }] }; return x; };
+    const ev = (B, plan, facts, at) => { const rq = wr(path.join(sc, `req-${n}.json`), js({ v: 1, action: "plan-board", github: plan.repo, issue: plan.issue, event: "implementation-stage", folder: plan.folder, facts }));
+      const a = run(APPLY, ["--event", rq, "--worktree", B.root, "--no-gh", "--no-live", "--at", at, "--json"]), S = parse(a);
+      return { a, S, p: JSON.parse(rd(path.join(B.dir, "plan.json"))) }; };
+    const st = (p, id) => ((p.wip.stages || []).find(x => x.id === id) || {}).rows;
+    const why = S => (S.why || []).join(" | ");
+    const S1 = { id: "S1", name: "The one plan stage", state: "done" };
+    const rem = { pass: 1, route: "remediation", steps: [{ name: "The fixes", state: "current" }] };
+    const P = atRem(), ids = P.rows.map(r => r.id), fr = ids.slice(0, 2), B = lay(P);
+    const one = ev(B, P, { step: "remediation", stage: "R1", stages: [S1, { id: "R1", name: "Remediation of qa pass 1", state: "current" }], rows: fr, remediation: rem }, "2026-11-02T01:00:00Z");
+    c.push(["one new remediation stage takes facts.rows as its rows", one.a.status === 0 && js(st(one.p, "R1")) === js(fr), js([one.a.status, st(one.p, "R1"), one.S.error])]);
+    c.push(["…and asks no enrichment for its rows", one.a.status === 0 && !/ touch/.test(why(one.S)), why(one.S)]);
+    c.push(["…a plan stage keeps the rows the board records for it", js(st(one.p, "S1")) === js(ids), js(st(one.p, "S1"))]);
+    const P2 = atRem(), B2 = lay(P2);
+    const two = ev(B2, P2, { step: "remediation", stage: "R1", stages: [S1, { id: "R1", name: "First fixes", state: "current" }, { id: "R2", name: "Second fixes", state: "todo" }], rows: fr, remediation: rem }, "2026-11-02T01:00:00Z");
+    c.push(["two new remediation stages with no rows of their own: no row written to either", two.a.status === 0 && js(st(two.p, "R1")) === "[]" && js(st(two.p, "R2")) === "[]", js([two.a.status, st(two.p, "R1"), st(two.p, "R2"), two.S.error])]);
+    c.push(["…and the enrichment names them as remediation stages for the presenter", /remediation stages R1, R2 touch/.test(why(two.S)), why(two.S)]);
+    const P3 = atRem(), B3 = lay(P3);
+    const giv = ev(B3, P3, { step: "remediation", stage: "R1", stages: [S1, { id: "R1", name: "First fixes", state: "current", rows: [ids[0], "no-such-row"] }, { id: "R2", name: "Second fixes", state: "todo", rows: [ids[1]] }], rows: fr, remediation: rem }, "2026-11-02T01:00:00Z");
+    c.push(["facts.stages[].rows are written as given, the board's row ids only", giv.a.status === 0 && js(st(giv.p, "R1")) === js([ids[0]]) && js(st(giv.p, "R2")) === js([ids[1]]), js([giv.a.status, st(giv.p, "R1"), st(giv.p, "R2"), giv.S.error])]);
+    c.push(["…a row id not on the board is named in the summary, not written", /no-such-row/.test(why(giv.S)) && !/R1, R2 touch/.test(why(giv.S)), why(giv.S)]);
+    const P4 = atQa(); P4.wip.step = "implementation"; P4.wip.stages = null; const B4 = lay(P4);
+    const imp = ev(B4, P4, { step: "implementation", stage: "S1", stages: [{ id: "S1", name: "A plan stage", state: "current" }], rows: fr }, "2026-11-02T01:00:00Z");
+    c.push(["outside remediation a new stage's rows still come from plan.md (facts.rows is not a stage's)", imp.a.status === 0 && js(st(imp.p, "S1")) === "[]" && /S1 touch come from plan\.md/.test(why(imp.S)), js([imp.a.status, st(imp.p, "S1"), why(imp.S)])]);
+  });
   return groups;
 };
 
