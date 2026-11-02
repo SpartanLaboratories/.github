@@ -509,8 +509,11 @@ solid). The lede says only what to click.
 last time it changed; each class `{class, module, testLevel, path, tests, rows, stage, result}` — `class` its (fully qualified) name,
 `module` its module, `testLevel` one of `1` `2` `3` `4a` `4b` `4c` `5` (or absent: then the level folder its path or package names,
 `testing.<segment>`, else no level), `tests` its test count, `rows` the ids of the board rows it verifies, `stage` the implementation
-stage that added or changed it, `result` `{state, passed, failed, skipped, pass, at}` its latest run (`state` `passed` · `failed` ·
-`skipped` · `not-run`; `pass` the qa pass). A class is in **one list only**, Added before Amended before Relevant: a class added on the
+stage that added or changed it, `result` `{state, passed, failed, skipped, pass, at, note}` its latest run (`state` `passed` · `failed` ·
+`skipped` · `not-run`; `pass` the qa pass; `note`, optional, what the result means where its state alone would mislead, such as a failure the
+change did not cause: an untouched class of an earlier issue timing out under parallel task runs, green in isolation, and the issue it
+is filed as; the card and the inspector show it under the result, and the state stays what the run returned. It belongs to that run: the
+next result replaces it. The fast path takes it from `facts.tests.ran[].note`, reworded as any text from the facts; WebTools #65, qa pass 2). A class is in **one list only**, Added before Amended before Relevant: a class added on the
 branch and changed later stays Added, one in Relevant that the branch then changes moves to Amended. `other` is `{byModule: {<module>:
 {<test level, or "none">: <classes> | {classes, tests}}}}`, counts only. `plan/scripts/testslib.js` holds the rules (`testLevelOf()`,
 `mergeTests()`, `testsProblems()`); the template's `tlOf()` and `resOf()` are the same.

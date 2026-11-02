@@ -100,6 +100,35 @@ module.exports = function casesRemediationRow(X) {
     const other = (dom.match(new RegExp(`<div class="cell built[^"]*"[^>]*data-row="${ids[2]}"[\\s\\S]*?<div class="meta">`)) || [""])[0];
     c.push(["…a row with its outcome shows its statements alone", other && !/class="blead"/.test(other), other.slice(0, 200)]);
   });
+
+  /* a run's note (WebTools #65, qa pass 2): a failure the change did not cause, an untouched class of #62 timing out under parallel task runs,
+     was drawn as the change's failure with nothing to say otherwise; the result now carries an optional note, shown on the card and in the
+     inspector, taken by the fast path from facts.tests.ran[].note and replaced with the next result */
+  guard("testslib.js, apply-event.js and the template: a test result's note", c => {
+    const o = { now: "2026-11-02T02:06:09Z", ids: new Set(ids), pass: 2 }, Q = { rows: EX.rows, tests: null };
+    const note = "Not this change's failure: an untouched class of an earlier issue, green in isolation.";
+    TL.mergeTests(Q, { ran: [{ class: "nonfunctionalTest", module: "m", passed: 30, failed: 1, skipped: 0, note }] }, o);
+    const e = ((Q.tests || {}).relevant || [])[0] || {};
+    c.push(["facts.tests.ran[].note is kept with the result, the state still failed", e.result && e.result.note === note && e.result.state === "failed", js(e)]);
+    c.push(["…and passes testsProblems()", !TL.testsProblems(Q).fail.length, js(TL.testsProblems(Q))]);
+    TL.mergeTests(Q, { ran: [{ class: "nonfunctionalTest", module: "m", passed: 31, failed: 0, skipped: 0 }] }, { ...o, now: "2026-11-02T03:00:00Z", pass: 3 });
+    const e2 = ((Q.tests || {}).relevant || [])[0] || {};
+    c.push(["the next result replaces it, note and all", e2.result && e2.result.state === "passed" && e2.result.note == null, js(e2)]);
+    const B = { rows: EX.rows, tests: { relevant: [{ class: "nonfunctionalTest", module: "m", result: { state: "failed", failed: 1, note: 3 } }] } };
+    c.push(["a result.note that is not a text fails the check", TL.testsProblems(B).fail.some(f => /result.note must be a text/.test(f)), js(TL.testsProblems(B))]);
+    const P = atRem(), L = lay(P), rq = wr(path.join(sc, "req-note.json"), js({ v: 1, action: "plan-board", github: P.repo, issue: P.issue, event: "qa-pass", folder: P.folder,
+      facts: { step: "qa", qa: { pass: 2, verdict: "CHANGES REQUESTED", test: 1, code: 0, severity: { minor: 1, other: 0 }, route: "on-the-spot" }, rows: [R0], tests: { ran: [{ class: "nonfunctionalTest", module: "m", passed: 30, failed: 1, skipped: 0, note: "Not this change's failure:  an untouched class of an earlier issue." }] } } }));
+    const a = run(APPLY, ["--event", rq, "--worktree", L.root, "--no-gh", "--no-live", "--at", "2026-11-02T02:06:09Z", "--json"]), p = JSON.parse(rd(path.join(L.dir, "plan.json")));
+    const ne = ((p.tests || {}).relevant || []).find(x => x.class === "nonfunctionalTest") || {};
+    c.push(["apply-event.js takes the note through the rewording of any text from the facts, as one line", a.status === 0 && ne.result && ne.result.note === "Not this change's failure: an untouched class of an earlier issue.", (a.stderr || "").slice(0, 200) + js(ne)]);
+    const P2 = atRem(), L2 = lay(P2), rq2 = wr(path.join(sc, "req-note-2.json"), js({ v: 1, action: "plan-board", github: P2.repo, issue: P2.issue, event: "qa-pass", folder: P2.folder,
+      facts: { step: "qa", qa: { pass: 2, verdict: "CHANGES REQUESTED", test: 1, code: 0, severity: { minor: 1, other: 0 }, route: "on-the-spot" }, rows: [R0], tests: { ran: [{ class: "nonfunctionalTest", module: "m", passed: 30, failed: 1, skipped: 0, note: "Pre-existing, as the admin team relays it." }] } } }));
+    const a2 = run(APPLY, ["--event", rq2, "--worktree", L2.root, "--no-gh", "--no-live", "--at", "2026-11-02T02:06:09Z", "--json"]), p2 = JSON.parse(rd(path.join(L2.dir, "plan.json"))), S2 = parse(a2);
+    const ne2 = ((p2.tests || {}).relevant || []).find(x => x.class === "nonfunctionalTest") || {};
+    c.push(["…a note naming an internal name is never written with it, and the presenter is told", a2.status === 0 && !/admin team/i.test(js(ne2)) && /tests.note/.test(words(S2)), js(ne2) + " " + words(S2).slice(0, 300)]);
+    const tpl = rd(PB);
+    c.push(["the template's test card and inspector show the note (resNote())", tpl.includes("const resNote=e=>") && tpl.includes('<div class="tn">${rich(resNote(e))}</div>') && tpl.includes('<br>${rich(resNote(e))}'), "resNote() not found where the card and the inspector draw the result"]);
+  });
   return groups;
 };
 

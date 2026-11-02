@@ -2,7 +2,7 @@
 // command. A board's plan.json "tests" holds the test classes the change touches, by how: "added" (new on the branch, from the git diff
 // against its base), "amended" (existing classes the branch changed), "relevant" (unchanged existing classes that exercise the new code
 // anyway: what qa's test-inspector ran on the change, less Added and Amended), and "other" (every other test, counts only per module and
-// test level: never run for this change). Each class { class, module, testLevel, path, tests, rows, stage, result }; a class is in one
+// test level: never run for this change). Each class { class, module, testLevel, path, tests, rows, stage, result } (result { state, passed, failed, skipped, pass, at, note }); a class is in one
 // list only, Added before Amended before Relevant. A tracking board records none of its own: embed.js mirrors each unit's into the unit
 // row (unit.tests, with rowNames), and the board sums them. The plan-board template's tlOf(), resOf() and testKey() are the same rules.
 "use strict";
@@ -63,7 +63,11 @@ function normEntry(x, o, withResult) {
     const st = TEST_RESULTS.includes(R.state) ? R.state : resultState(r); r.state = st;
     if (Number.isInteger(R.pass) && R.pass > 0) r.pass = R.pass; else if (o.pass) r.pass = o.pass;
     r.at = str(R.at) && STAMP.test(R.at) ? R.at : o.now;
-    e.result = { state: r.state, ...["passed", "failed", "skipped"].reduce((a, k) => (r[k] != null ? { ...a, [k]: r[k] } : a), {}), ...(r.pass ? { pass: r.pass } : {}), at: r.at };
+    /* the run's note (WebTools #65, qa pass 2: a failure the change did not cause, an untouched class of another issue timing out under
+       parallel task runs and green in isolation): what the result means, kept with that result and gone with it at the next run. A text
+       from the facts goes through apply-event.js's rewording (o.txt) where one is given */
+    const nt = str(R.note) ? (typeof o.txt === "function" ? o.txt(R.note) : R.note.replace(/\s+/g, " ").trim()) : null;
+    e.result = { state: r.state, ...["passed", "failed", "skipped"].reduce((a, k) => (r[k] != null ? { ...a, [k]: r[k] } : a), {}), ...(r.pass ? { pass: r.pass } : {}), at: r.at, ...(nt ? { note: nt } : {}) };
   }
   return { entry: e, notes };
 }
@@ -150,12 +154,13 @@ function testsProblems(plan) {
       if (e.rows != null) { if (!Array.isArray(e.rows)) fail.push(`${at}.rows must be a list of row ids`); else e.rows.forEach((r, j) => { if (!ids.has(r)) fail.push(`${at}.rows[${j}] "${r}" names no row of the board`); }); }
       if (e.result != null) {
         const r = e.result;
-        if (typeof r !== "object" || Array.isArray(r)) fail.push(`${at}.result must be { state, passed, failed, skipped, pass, at }`);
+        if (typeof r !== "object" || Array.isArray(r)) fail.push(`${at}.result must be { state, passed, failed, skipped, pass, at, note }`);
         else {
           if (!TEST_RESULTS.includes(r.state)) fail.push(`${at}.result.state must be one of ${TEST_RESULTS.join(", ")}`);
           ["passed", "failed", "skipped"].forEach(c => { if (r[c] != null && !count(r[c])) fail.push(`${at}.result.${c} must be a count`); });
           if (r.pass != null && !(Number.isInteger(r.pass) && r.pass > 0)) fail.push(`${at}.result.pass must be a qa pass number`);
           if (r.at != null && !STAMP.test(String(r.at))) fail.push(`${at}.result.at "${r.at}" is not an ISO date-time`);
+          if (r.note != null && !str(r.note)) fail.push(`${at}.result.note must be a text (what the result means: a failure the change did not cause) or absent`);
           if (r.failed > 0 && r.state !== "failed") warn.push(`${at} (${e.class}): ${r.failed} failed, but its state reads ${r.state}`);
         }
       }
