@@ -75,7 +75,8 @@
 // decisions of dashboards-skill/33 (verify/cases-33.js): the element vocabulary, boards never pages, no internal names, the landing flow's
 // pre-merge stamp, the open points on every event. The decisions of dashboards-skill/34 (verify/cases-34.js): the Timeline tile coloured
 // by kind of work, approximate bounds, the landing in three steps, a sub-issue's roadmap, the Design tab. The live view of a landing
-// (verify/cases-live-view.js): apply-event.js --view, the view copies and their <base> line, board.js --live opening them. A
+// (verify/cases-live-view.js): apply-event.js --view, the view copies and their <base> line, board.js --live opening them. The waits on
+// the user (verify/cases-timeline-waits.js): not active time, the step split into visits around each wait, the signals on the fast path. A
 // template is recorded only when every check it runs passes: by default those that need no browser; with --browser its browser
 // passes and the rendered cases too.
 "use strict";
@@ -2147,6 +2148,19 @@ catch (e) { report("the live view cases", [["the cases run to the end", false, S
    event writes, and the template's tick. It needs no browser, and runs on its own too (node verify/cases-timeline-fast-path.js). */
 try { require("./cases-timeline-fast-path.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the Timeline's fast path cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
+/* The waits on the user (verify/cases-timeline-waits.js; admin-team/board/timeline-waits): the time from a blocking question to its answer
+   counted by no visit and no figure, the step split into visits around it; the signals on the fast path (a stop until the event that ends
+   it, a resumed answering the open points of the event before it), "implement" read as the implementation step, check.js on wip.waits,
+   and the template's copy of the rule. It needs no browser, and runs on its own too (node verify/cases-timeline-waits.js). */
+try { require("./cases-timeline-waits.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the waits on the user cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
+/* A qa verdict's step (verify/cases-qa-step.js; admin-team/board/qa-step): a returned verdict sent with facts.step "qa", the step the pass
+   ran in, moves the board on to remediation (its glow the rows the findings touch, the qa visit frozen) or the Document step, a running
+   pass stays at qa; the pass's test report is read from facts.documents. It needs no browser, and runs on its own too. */
+try { require("./cases-qa-step.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("a qa verdict's step cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 const today = new Date().toISOString().slice(0, 10);
 const COMMENT = "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last verification, when every check that needs no browser passed (its modes: \"--auto --no-browser\"; a run with --browser, made only when a person asks for it, lists the browser passes instead). check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.";

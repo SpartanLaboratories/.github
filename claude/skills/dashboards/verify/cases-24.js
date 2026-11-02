@@ -34,7 +34,8 @@ module.exports = function cases24(X) {
   const apply = (root, rq, at) => { const r = cp.spawnSync(process.execPath, [APPLY, "--event", rq, "--worktree", root, "--no-live", "--at", at, "--json"], { encoding: "utf8" }); let s = {}; try { s = JSON.parse((r.stdout || "{}").trim().split(/\r?\n/).pop() || "{}"); } catch (e) { s = { error: (r.stdout || "") + (r.stderr || "") }; } return { status: r.status, s }; };
   const planOf = (root, folder) => JSON.parse(rd(path.join(root, ...folder.split("/"), "plan.json")));
 
-  /* A full run through the fast path, on a copy of the live fixture: research ends, a halt inside the plan step, the plan accepted, the
+  /* A full run through the fast path, on a copy of the live fixture: research ends, a halt inside the plan step (a wait on the user, which
+     splits the plan into two visits around it, admin-team/board/timeline-waits), the plan accepted, the
      branch cut, the stages done, qa pass 1 (changes requested, from qa), a remediation loop, qa pass 2 (changes requested, reached from
      remediation), a second loop, the landing and the merge. */
   const base = () => { const d = copy(LIVE); d.rows.forEach(r => { r.verdict = { kind: "build", summary: "Verification case: written.", steps: [{ id: "A", what: "x" }] }; }); return d; };
@@ -59,11 +60,15 @@ module.exports = function cases24(X) {
   guard("finished steps frozen into wip.history by apply-event.js: each step as it ended, each remediation loop and each qa pass apart (dashboards-skill/24)", c => {
     const A = playRun("run"); RAN = A; const H = A.plan.wip.history || {};
     c.push(["every event of the run applies and passes check.js", A.res.every(([, r]) => r.status === 0 && r.s.result === "ok"), JSON.stringify(A.res.filter(([, r]) => r.status !== 0 || r.s.result !== "ok").map(([e, r]) => [e, r.s.result, String(r.s.error || r.s.check || "").slice(0, 160)]))]);
-    c.push(["the steps frozen, in visits: sizing (the fixture's), research, plan, branch, implementation, qa twice, remediation twice", JSON.stringify(Object.fromEntries(Object.entries(H).map(([k, v]) => [k, v.length]))) === JSON.stringify({ sizing: 1, research: 1, plan: 1, branch: 1, implementation: 1, qa: 2, remediation: 2 }), JSON.stringify(Object.fromEntries(Object.entries(H).map(([k, v]) => [k, v.length])))]);
+    c.push(["the steps frozen, in visits: sizing (the fixture's), research, plan twice (split by the wait), branch, implementation, qa twice, remediation twice", JSON.stringify(Object.fromEntries(Object.entries(H).map(([k, v]) => [k, v.length]))) === JSON.stringify({ sizing: 1, research: 1, plan: 2, branch: 1, implementation: 1, qa: 2, remediation: 2 }), JSON.stringify(Object.fromEntries(Object.entries(H).map(([k, v]) => [k, v.length])))]);
     const R = (H.research || [])[0] || {};
     c.push(["research: ended by researched, to the plan, its questions complete and its phase complete, as they stood", R.endedBy === "researched" && R.to === "plan" && (R.questions || []).length === (LIVE.wip.questions || []).length && R.questions.every(q => q.state === "complete") && R.research && R.research.phase === "complete", JSON.stringify({ endedBy: R.endedBy, to: R.to, q: (R.questions || []).map(q => q.state), phase: R.research && R.research.phase })]);
-    const P = (H.plan || [])[0] || {};
-    c.push(["a halt inside the plan step is no visit: the plan's one visit began when research ended, and kept its pass though plan-accepted cleared it", P.since === R.ended && P.endedBy === "plan-accepted" && P.plan && P.plan.state === "writing" && !(A.plan.wip.history.halted), JSON.stringify({ since: P.since, researchEnded: R.ended, plan: P.plan })]);
+    const P = (H.plan || [])[0] || {}, P2 = (H.plan || [])[1] || {}, WT = A.plan.wip.waits || [];
+    /* admin-team/board/timeline-waits: the halt is no visit of its own, it is a wait between two: the plan's visit 1 began when research
+       ended and ended at the halt, held; its visit 2 began at the resume and kept its pass though plan-accepted cleared it */
+    c.push(["a halt inside the plan step is no visit but a wait between two: visit 1 from research's end to the halt (held), visit 2 from the resume, keeping its pass though plan-accepted cleared it",
+      P.since === R.ended && P.endedBy === "halted" && P.held === true && WT.length === 1 && WT[0].since === P.ended && P2.since === WT[0].ended && P2.endedBy === "plan-accepted" && P2.plan && P2.plan.state === "writing" && !(A.plan.wip.history.halted),
+      JSON.stringify({ visit1: [P.since, P.ended, P.endedBy, P.held], researchEnded: R.ended, waits: WT, visit2: [P2.since, P2.endedBy, P2.plan] })]);
     const B = (H.branch || [])[0] || {}, I = (H.implementation || [])[0] || {};
     c.push(["branch: the branch the step cut; implementation: the stage list as it stood when it ended, every stage done", B.branch === "fix/issue-70-verification" && B.endedBy === "branch-cut" && JSON.stringify((I.stages || []).map(x => x.state)) === JSON.stringify(["done", "done"]) && I.to === "qa", JSON.stringify({ branch: B.branch, stages: (I.stages || []).map(x => x.id + " " + x.state), to: I.to })]);
     const Q = H.qa || [];
@@ -83,7 +88,7 @@ module.exports = function cases24(X) {
     c.push(["landed (every part resolved first, or it stays at the landing): the landing step is frozen once the step moves to landed", L.status === 0 && (["landed", "merge"].includes(LP.wip.step) ? (LP.wip.history.landing || []).length === 1 : !(LP.wip.history.landing || []).length) /* dashboards-skill/34: parts open, it waits at the merge */, JSON.stringify([L.status, LP.wip.step, (LP.wip.history.landing || []).length])]);
     /* the board after the run passes check.js, which reports the snapshots */
     const k = node(checkJs, path.join(A.root, ...LIVE.folder.split("/")));
-    c.push(["check.js passes the board and reports the history it keeps", k.status === 0 && /ok\s+history: sizing 1 · research 1 · plan 1 · branch 1 · implementation 1 · qa 2 · remediation 2/.test(k.stdout), (k.stdout || "").split(/\r?\n/).filter(l => /history|FAIL/.test(l)).join(" | ").slice(0, 300)]);
+    c.push(["check.js passes the board and reports the history it keeps", k.status === 0 && /ok\s+history: sizing 1 · research 1 · plan 2 · branch 1 · implementation 1 · qa 2 · remediation 2/.test(k.stdout), (k.stdout || "").split(/\r?\n/).filter(l => /history|FAIL/.test(l)).join(" | ").slice(0, 300)]);
   });
 
   /* 2. check.js on wip.history */

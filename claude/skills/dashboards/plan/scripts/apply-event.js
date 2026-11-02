@@ -114,6 +114,8 @@ const ID = /^[a-z0-9][a-z0-9-]*$/, STEPS = ["sizing", "interview", "research", "
 const ROUTES = ["on-the-spot", "remediation", "re-plan-then-remediation"], SSTATES = ["done", "current", "todo"];
 const ROUTE_OLD = { "rookie-dev": "remediation", "planner-then-rookie-dev": "re-plan-then-remediation" };
 const routeId = r => (typeof r === "string" && ROUTE_OLD[r]) || r;
+/* a step named in the run's own words (admin-team/board/timeline-waits): "implement", the pipeline's name of its implementation step */
+const STEP_ALIASES = { implement: "implementation", implementing: "implementation" };
 /* The column a step's trail entry sits in. */
 const STEP_COLUMN = { "sub-issues": "considered", boards: "considered", sizing: "gap", interview: "gap", research: "gap", architecture: "considered", plan: "verdict", branch: "built", implementation: "built", qa: "built", remediation: "built", document: "built", landing: "built", "state-boards": "built", merge: "built", landed: "built", cancelled: "built" };
 const STEP_WORDS = { "sub-issues": "filing the units as sub-issues", boards: "creating the units' boards", sizing: "sizing", interview: "the interview", research: "research", architecture: "the architecture", plan: "the plan", branch: "the branch", implementation: "implementation", qa: "qa", remediation: "remediation", document: "the Document step", landing: "the landing", "state-boards": "the state boards", merge: "the merge", landed: "landed" };
@@ -126,6 +128,14 @@ const code = s => "`" + s + "`";
 function applyEvent(orig, ev, facts, req, now) {
   const plan = JSON.parse(JSON.stringify(orig)), applied = [], enrich = [], resolved = [], today = now.slice(0, 10);
   const w = plan.wip = plan.wip && typeof plan.wip === "object" ? plan.wip : {};
+  /* the step the facts name, in the run's own words where they differ from the board's (admin-team/board/timeline-waits: "implement" is the
+     implementation step, so an implementation-stage that says the run is still implementing keeps it there, never moved to qa because
+     every stage is done); a facts.step that names no step is warned on, never dropped silently, and the step is derived from the event */
+  if (typeof facts.step === "string" && facts.step.trim()) {
+    const said = facts.step.trim(), step = STEP_ALIASES[said.toLowerCase()] || said;
+    if (step !== facts.step) { facts = { ...facts, step }; applied.push(`facts.step ${JSON.stringify(said)} read as ${step}`); }
+    if (!STEPS.includes(step)) WARNINGS.push(`STEP UNKNOWN: facts.step ${JSON.stringify(said)} is no step of the board (${STEPS.join(", ")}): the step is derived from the event`);
+  }
   /* a steps line written before the landing's three steps (dashboards-skill/34) takes state-boards and merge after its landing, at any
      event of a board still in flight (a landed or cancelled board keeps its line) */
   /* a steps line written before the Document step (dashboards-skill/35) takes it before its landing, and merge after it, at any event of a
@@ -458,6 +468,11 @@ function applyEvent(orig, ev, facts, req, now) {
       const route = routeId(Q.route || (facts.remediation || {}).route || null);
       if (route && !ROUTES.includes(route)) refuse(`facts.qa.route ${JSON.stringify(route)} is not one of ${ROUTES.join(", ")}`);
       testsDue = verdict !== "running";
+      /* a returned verdict's facts.step "qa" names the step the pass ran in, never the step after it: the step after is the verdict's
+         (remediation, or the Document step), so the board never stays at qa with the whole As built column glowing once the pass is in */
+      const after0 = verdict !== "running" && facts.step === "qa" ? null : facts.step;
+      /* the pass's test report: facts.qa.report, else the test report among facts.documents (the protocol carries the report path there) */
+      const rep0 = typeof Q.report === "string" && Q.report.trim() ? Q.report : (Array.isArray(facts.documents) ? facts.documents : []).find(d => typeof d === "string" && /(^|[\\/])reports[\\/]tests[\\/](.+[\\/])?index\.html?$/i.test(d.trim())) || null;
       const entry = { pass: Q.pass, verdict, date: today, at: now, findings, ...(Object.keys(severity).length ? { severity } : {}), ...(verdict === "changes-requested" && route ? { route } : {}) };
       const qn = txt(Q.note, "qa.note"); if (qn) entry.note = qn;
       w.qa = Array.isArray(w.qa) ? w.qa : []; const k = w.qa.findIndex(x => x && x.pass === Q.pass);
@@ -465,7 +480,7 @@ function applyEvent(orig, ev, facts, req, now) {
          committed, so recorded as plain text (its path from the repository root), and copied once, when the pass returns, under the
          git-ignored docs/plans/.live/open/ for the live view to link (reportCopy); a pass recorded before keeps its copy */
       const had = k >= 0 ? w.qa[k] : null;
-      if (typeof Q.report === "string" && Q.report.trim()) { const rp = openRefLocal(Q.report.trim().replace(/\\/g, "/")).replace(/^\.\//, "");
+      if (rep0) { const rp = openRefLocal(rep0.trim().replace(/\\/g, "/")).replace(/^\.\//, "");
         if (!/^`/.test(rp)) { entry.report = rp; const cp0 = had && had.report === rp && had.reportCopy ? had.reportCopy : openCopyFor(rp, `qa pass ${Q.pass} test report`, plan.folder); if (cp0) entry.reportCopy = cp0; } }
       if (k < 0) w.qa.push(entry); else w.qa[k] = { ...(w.qa[k] && w.qa[k].note && !entry.note ? { note: w.qa[k].note } : {}), ...entry };
       w.qa.sort((a, b) => a.pass - b.pass); applied.push(`wip.qa pass ${Q.pass} ${verdict}`);
@@ -478,14 +493,14 @@ function applyEvent(orig, ev, facts, req, now) {
         if (w.remediation) applied.push("wip.remediation cleared"); w.remediation = null;
         /* the Document step follows an approving pass (dashboards-skill/35); a board on the older line goes to its landing */
         const after = Array.isArray(w.steps) && w.steps.length && !w.steps.includes("document") ? "landing" : "document";
-        const step = facts.step && STEPS.includes(facts.step) ? facts.step : after; setStep(step); setGlow(step);
+        const step = after0 && STEPS.includes(after0) ? after0 : after; setStep(step); setGlow(step);
         if (anyFinding) enrich.push("qa-pass: the approving pass's findings detail comes from the qa report");
         detail = detail || `QA pass ${Q.pass} approved; ${step === "document" ? "the Document step follows" : "the landing follows"}.`;
         if (plan.parent) parentOp = { kind: "complete" };
       } else if (verdict === "changes-requested") {
         setRemediation(w, { pass: Q.pass, ...(facts.remediation || {}), route }, applied, enrich, txt);
         if (route === "re-plan-then-remediation") { w.plan = { state: "re-pass", from: "qa", pass: Q.pass, since: now }; applied.push(`wip.plan re-pass after qa pass ${Q.pass}`); }
-        const step = facts.step && STEPS.includes(facts.step) ? facts.step : "remediation"; setStep(step); setGlow(step);
+        const step = after0 && STEPS.includes(after0) ? after0 : "remediation"; setStep(step); setGlow(step);
         enrich.push("qa-pass: the findings detail (the rows they touch, the pass's note) comes from the qa report");
         detail = detail || `QA pass ${Q.pass}: changes requested${counts ? " (" + counts + ")" : ""}${route ? "; " + ROUTE_WORDS[route] : ""}.`;
       } else { setStep("qa"); setGlow("qa"); detail = detail || `QA pass ${Q.pass} running.`; }

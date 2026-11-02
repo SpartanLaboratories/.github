@@ -19,7 +19,7 @@ const { levelRefsIn, titleSkip, issueTitleRefs, titleDefect, nameTestLevels } = 
 const { nameRefsIn, commentRefs, nameWarning } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
 const { paletteCheck } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js"));
 const { unitTests, DEP_STATES, HOLD_STATES } = require("./lib.js");
-const { HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, isTime, APPROX_SOURCES, timelineApproxNote, timelineSteps, tlSpan, timelineLines, timelineLeftOut, timelineTotal, unitInRun, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, fixOfBoard, foldedIn, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, viewSource, setViewLinks, opt, flag } = require("./lib.js");
+const { WAIT_BY, timelineWaitNote, HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, isTime, APPROX_SOURCES, timelineApproxNote, timelineSteps, tlSpan, timelineLines, timelineLeftOut, timelineTotal, unitInRun, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, fixOfBoard, foldedIn, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, viewSource, setViewLinks, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
 const STATES = ["pending", "in-progress", "partially-built", "as-planned", "amended", "deviated", "dropped", "deferred", "complete", "landed"];
@@ -129,8 +129,8 @@ function checkPlan(plan, dir, root) {
   if (plan.status === "built" || (plan.wip || {}).step === "landed") {
     const T = timelineSteps(plan), tot = timelineTotal(T), lo = timelineLeftOut(T);
     /* the tile's figure is the sum of the visits its bar draws, a visit with a bound not recorded not summed */
-    const an = timelineApproxNote(T);
-    ok(`timeline: ${T.visits.length ? timelineLines(T).join(" · ") : "no step recorded"}; the figure: ${tot != null ? `${T.visits.some(v => v.ms != null && v.approx) ? "≈ " : ""}${tlSpan(tot)}, the sum of the visits drawn` : "—, no visit drawn"}${lo ? ` (${lo})` : ""}${an ? ` (${an})` : ""}`);
+    const an = timelineApproxNote(T), wn = timelineWaitNote(T);
+    ok(`timeline: ${T.visits.length ? timelineLines(T).join(" · ") : "no step recorded"}; the figure: ${tot != null ? `${T.visits.some(v => v.ms != null && v.approx) ? "≈ " : ""}${tlSpan(tot)}, the sum of the visits drawn` : "—, no visit drawn"}${lo ? ` (${lo})` : ""}${an ? ` (${an})` : ""}${wn ? ` (${wn})` : ""}`);
     T.visits.filter(v => v.order).forEach(v => warn(`the Timeline tile leaves out ${v.label}: its bounds are out of order (check wip.history's since and ended, plan.sized, wip.qa[].at and asBuilt.at)`));
   }
 
@@ -357,6 +357,24 @@ function checkPlan(plan, dir, root) {
       if (!str(w.waitingOn) && !str(w.detail)) fail("a halted board says what waits on the user (wip.waitingOn)");
       const since = Date.parse(w.since || w.updated || "");
       if (since && Date.now() - since > 86400000) warn(`halted since ${w.since || w.updated}: more than a day`);
+    }
+    /* the waits on the user (admin-team/board/timeline-waits): wip.waits, oldest first, each { step, since, ended, by }, written by
+       apply-event.js (lib.js waitSteps()); at most the last one open, and an open one only while the board is stopped */
+    if (w.waits != null) {
+      if (!Array.isArray(w.waits)) fail("wip.waits is the waits on the user, oldest first: [{ step, since, ended, by }]");
+      else { let prev = null; const stopped = ["halted", "escalated"].includes(w.step);
+        w.waits.forEach((x, j) => { const a = `wip.waits[${j}]`;
+          if (!x || typeof x !== "object" || Array.isArray(x)) { fail(`${a} must be one wait, { step, since, ended, by }`); return; }
+          if (!isTime(x.since)) fail(`${a}.since is the ISO date-time the question was put (got ${JSON.stringify(x.since)})`);
+          if (x.ended != null && !isTime(x.ended)) fail(`${a}.ended is the ISO date-time the answer came, or null while it waits (got ${JSON.stringify(x.ended)})`);
+          if (isTime(x.since) && isTime(x.ended) && Date.parse(x.since) > Date.parse(x.ended)) fail(`${a}: since ${x.since} is after ended ${x.ended}`);
+          if (x.step != null && (!STEPS.includes(x.step) || ["halted", "escalated", "cancelled", "landed"].includes(x.step))) fail(`${a}.step is the step the run waited in (got ${JSON.stringify(x.step)})`);
+          if (!WAIT_BY.includes(x.by)) fail(`${a}.by is the signal that marked the wait, one of ${WAIT_BY.join(", ")} (got ${JSON.stringify(x.by)})`);
+          if (prev && isTime(x.since) && Date.parse(x.since) < Date.parse(prev)) fail(`${a} began ${x.since}, before the wait ahead of it ended (${prev}): the waits run oldest first and never overlap`);
+          if (x.ended == null && j < w.waits.length - 1) fail(`${a} is open (no ended) with a wait after it: only the last wait may be open`);
+          if (x.ended == null && !stopped) warn(`${a} is open while the board is not stopped (wip.step ${w.step}): the event that took it out of its stop ends the wait`);
+          prev = isTime(x.ended) ? x.ended : x.since; });
+        if (stopped && !w.waits.some(x => x && x.ended == null)) warn(`the board is ${w.step} with no open wait in wip.waits: the stop was raised before the waits were recorded; the Timeline takes wip.since as its start`); }
     }
     if (w.resume != null && !STEPS.includes(w.resume)) fail(`wip.resume "${w.resume}" is not a step`);
     (w.qa || []).forEach((p, j) => { if (!posInt(p.pass)) fail(`wip.qa[${j}].pass must be a pass number`); if (!QA.includes(p.verdict)) fail(`wip.qa[${j}].verdict must be one of ${QA.join(", ")}`); if (p.date && !DATE.test(p.date)) fail(`wip.qa[${j}].date "${p.date}" is not YYYY-MM-DD`);
