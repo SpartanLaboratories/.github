@@ -83,7 +83,8 @@ not refused: the summary asks the presenter to splice it. What the script decide
 The run's last steps are `document`, `landing` and `merge` (`GUIDANCE.md` §11, "The landing flow"; admin-team/dashboards-skill/35). The
 **Document step** brings the documents up on the branch and, in its `state-boards` task (the presenter's `state-boards` mode), the state
 boards as built, spliced onto the template and stamped at the code-landing sha, the tracking board re-embedded and the repository work board
-regenerated, committed on the branch; nothing is restamped at the land. After the merge, the **post-merge refresh** shows the issue landed in
+regenerated, committed on the branch; nothing is restamped at the land. `landing` and `merge` go into the view copies (`apply-event.js --view`, before
+the merge from the run's worktree, after it from the main checkout), so a committed board's worktree stays clean. After the merge, the **post-merge refresh** shows the issue landed in
 the live view only (`docs/plans/.live/`, git-ignored; view copies under `docs/plans/.live/view/`, `apply-event.js --view`). That landed state
 is **seeded at the next run's `sized`**, into its branch (`plan/RULES.md` §4, "Seeding at sized").
 

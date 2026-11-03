@@ -19,7 +19,7 @@ const { levelRefsIn, titleSkip, issueTitleRefs, titleDefect, nameTestLevels } = 
 const { nameRefsIn, commentRefs, nameWarning } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
 const { paletteCheck } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js"));
 const { unitTests, DEP_STATES, HOLD_STATES } = require("./lib.js");
-const { WAIT_BY, timelineWaitNote, HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, isTime, APPROX_SOURCES, timelineApproxNote, timelineSteps, tlSpan, timelineLines, timelineLeftOut, timelineTotal, unitInRun, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, fixOfBoard, foldedIn, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, viewSource, setViewLinks, opt, flag } = require("./lib.js");
+const { WAIT_BY, timelineWaitNote, HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, isTime, APPROX_SOURCES, timelineApproxNote, timelineSteps, tlSpan, timelineLines, timelineLeftOut, timelineTotal, unitInRun, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, fixOfBoard, foldedIn, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, viewSource, viewParts, viewBaseHref, viewedFolder, setViewLinks, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
 const STATES = ["pending", "in-progress", "partially-built", "as-planned", "amended", "deviated", "dropped", "deferred", "complete", "landed"];
@@ -503,7 +503,7 @@ function checkPlan(plan, dir, root) {
   /* On a sub-issue's board: its parent's tracking board, in the enclosing folder, mirrors this run; it lags until re-embedded. */
   if (!tracking && posInt(plan.issue)) {
     const up = parentFolder(dir, plan);
-    if (up) { let tp = null; try { tp = JSON.parse(fs.readFileSync(path.join(up, "plan.json"), "utf8")); } catch (e) { /* the parent's own check reports it */ }
+    if (up) { let tp = null; try { tp = JSON.parse(fs.readFileSync(path.join(viewedFolder(up), "plan.json"), "utf8")); } catch (e) { /* the parent's own check reports it */ }
       if (tp) staleUnitRuns(tp, up).filter(x => x.unit.issue === plan.issue && x.kind !== "orphan").forEach(x => warn(`the parent #${tp.issue}'s tracking board mirrors this run ${x.kind === "missing" ? "not at all" : x.kind === "older" ? `as of ${x.have.updated}, older than this board's ${x.want.updated}` : "with other content"}: run embed.js on this folder, which re-embeds it`)); }
   }
   checkImpact(plan, dir, systems, rows, tracking);
@@ -1067,14 +1067,14 @@ function run(dir, args) {
     /* a view copy (docs/plans/.live/view/; plan/RULES.md §4, "The live view of a landing") is checked as the board it stands for: its
        links and its neighbours read from the tracked folder, its own data and HTML from the copy, whose <base> must name that folder */
     const src = viewSource(dir);
-    setViewLinks(!!src); // its links to a neighbour with a fresh view copy open that copy (lib.js viewLink())
+    setViewLinks(!!src, src ? viewParts(dir).root : null); // its links to a neighbour with a fresh view copy open that copy (lib.js viewLink()), and a unit's mirror reads the unit's copy (viewedFolder())
     if (src) {
       if (!fs.existsSync(path.join(src, "plan.json"))) fail(`the view copy stands for ${path.relative(root, src).split(path.sep).join("/")}, which holds no board`);
-      const html = fs.existsSync(path.join(dir, "dashboard.html")) ? fs.readFileSync(path.join(dir, "dashboard.html"), "utf8") : "", want = path.relative(dir, src).split(path.sep).join("/") + "/";
+      const html = fs.existsSync(path.join(dir, "dashboard.html")) ? fs.readFileSync(path.join(dir, "dashboard.html"), "utf8") : "", want = viewBaseHref(dir, src);
       const base = (html.match(/<base href="([^"]*)" data-live-view>/) || [])[1];
       if (base !== want) fail(`the view copy's <base href> is ${base == null ? "missing" : JSON.stringify(base)}, not ${JSON.stringify(want)}: run embed.js on the copy`); else ok(`view copy of ${path.relative(root, src).split(path.sep).join("/")}, its links resolved from there`);
     }
-    checkPlan(plan, src || dir, root);
+    checkPlan(plan, src || dir, src ? treeRoot(src) || root : root);
     checkHtml(path.join(dir, "dashboard.html"), "plan", plan, "plan-board");
   }
   const page = path.join(dir, isBoard ? "index.html" : "dashboard.html"), outDir = opt(args, "out", path.join(os.tmpdir(), "dashboard-check"));

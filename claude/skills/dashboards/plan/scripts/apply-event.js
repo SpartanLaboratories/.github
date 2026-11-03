@@ -11,10 +11,12 @@
 //              accepted too, read as --main
 // --main       the repository's main checkout, where the live repository work board lives (default: the request's repo, else the worktree)
 // --at         the event's time (default: facts.at, else now); every stamp the event writes takes it
-// --view       the live view only (the post-merge refresh's landed, plan/RULES.md §4, "The live view of a landing"): every board it would
-//              write in place (the issue's, its parent tracking board) is written as its view copy under the main checkout's git-ignored
-//              docs/plans/.live/view/<folder under docs/plans>/ instead, and read from that copy where one is fresher than the tracked
-//              board (lib.js viewOf()); no tracked file is written. The live repository work board then opens the copies
+// --view       the live view only (the land's landing and merge, the post-merge refresh's landed, plan/RULES.md §4, "The live view of a
+//              landing"): every board it would write in place (the issue's, its parent tracking board) is written as its view copy under the
+//              main checkout's git-ignored docs/plans/.live/view/<folder under docs/plans>/ instead, and read from that copy where one is
+//              fresher than the tracked board (lib.js viewOf()); no tracked file is written. The worktree may be the run's, before the merge
+//              (--main the checkout; the copy's <base> names the worktree's folder) or the main checkout, after it. A land step raised again is
+//              a duplicate; one older than the board's last event is refused. The live repository work board then opens the copies
 // --no-live    leave the live repository work board alone; --no-gh builds it from the boards alone (board.js --no-gh)
 // --json       print the summary as one JSON object instead of key: value lines
 // What it does: reads the request and <worktree>/<folder>/plan.json; applies the event (the step, the stages and the derived as-built
@@ -535,7 +537,8 @@ function applyEvent(orig, ev, facts, req, now) {
       trail = { column: "built", label: `Cancelled${reason ? ": " + reason : ""}` };
       break;
     }
-    /* team-raised (plan/RULES.md §4), the landing in three steps (admin-team/dashboards-skill/34): "landing", the land accepted, the branch
+    /* landing and merge reach the view copies with --view (the land has committed the board; plan/RULES.md §4, "The live view of a landing").
+       team-raised (plan/RULES.md §4), the landing in three steps (admin-team/dashboards-skill/34): "landing", the land accepted, the branch
        brought up to date and the code, the version bump and the reconciled documents committed on it; "state-boards", the pre-merge refresh
        of the state boards on the branch, stamped at its head, and its board commit; "merge", the pull request merged. "landed" is applied
        after the merge (the post-merge refresh shows it in the live view; the next landing commits it). Each records its visit's time: the
@@ -606,7 +609,8 @@ function applyEvent(orig, ev, facts, req, now) {
       if (next.sha && next.date && !open.length) { if (plan.status !== "built") { plan.status = "built"; applied.push("status built"); } setStep("landed"); setGlow("landed"); }
       else { const at = (Array.isArray(w.steps) && w.steps.includes("merge")) || ["merge", "state-boards"].includes(w.step) ? "merge" : "landing"; setStep(at); setGlow(at); enrich.push(open.length ? `landed: ${open.map(r => r.id).join(", ")} still to resolve before the board is built (it stays at the ${at === "merge" ? "merge" : "landing"} until then)` : "landed: asBuilt has no sha yet"); }
       enrich.push("landed: every part is resolved, the trail completed and the consequences reconciled from final-implementation.md and consequences.md (impact.md in an older folder), on the board seeded at the next run's sized or by the presenter");
-      detail = detail || `Landed${pr ? " in PR #" + pr : ""}.`;
+      /* raised again on a board it already landed, the detail the landing's record wrote stays: the same event twice changes nothing */
+      detail = detail || ((w.event || {}).name === "landed" && w.detail ? w.detail : `Landed${pr ? " in PR #" + pr : ""}.`);
       /* the merge commit names the merge: facts.merge when given (facts.sha may be the branch's last commit), else the one sha given */
       const mergeSha = next.merge || sha;
       trail = { column: "built", label: `Landed${pr ? " in PR #" + pr : ""}${mergeSha ? ", merge " + mergeSha.slice(0, 7) : ""}`, ...(pr ? { ref: `PR #${pr}` } : {}) };
@@ -958,7 +962,7 @@ function writeBoard(dir, data, eol, enrich, label) {
   const to = VIEWING ? lib.viewDirOf(dir, MAIN) : dir;
   if (VIEWING) { const made = []; for (let d = to; !fs.existsSync(d); d = path.dirname(d)) made.unshift(d); made.forEach(d => { fs.mkdirSync(d); madeDirs.push(d); }); }
   const rel = path.relative(VIEWING ? MAIN : ROOT, path.join(to, "dashboard.html")).split(path.sep).join("/");
-  lib.setViewLinks(VIEWING); try { lib.resolveBoard(data, dir); } finally { lib.setViewLinks(false); }
+  lib.setViewLinks(VIEWING, MAIN); try { lib.resolveBoard(data, dir); } finally { lib.setViewLinks(false); }
   const json = (JSON.stringify(data, null, 2) + "\n").replace(/\n/g, eol);
   const base = pageBase(fs.existsSync(path.join(to, "dashboard.html")) ? path.join(to, "dashboard.html") : path.join(dir, "dashboard.html"), enrich, rel, path.join(dir, "dashboard.html"));
   if (base.rerendered) S.rerendered.push(rel);
@@ -1063,6 +1067,14 @@ async function main() {
   if (REPO_SLUG && req.github && REPO_SLUG !== req.github) refuse(`--repo ${REPO_SLUG} is not the request's github ${req.github}`);
   if (repo && orig.repo && repo !== orig.repo) refuse(`the board is ${orig.repo}'s, not ${repo}'s`);
 
+  /* a land step is known by its visit: raised again, whatever events came since (the merge, landed), it changes nothing (plan/RULES.md §4,
+     "The live view of a landing"), with its own time, or with none on a board that has landed; with --view, one older than the board's last event
+     cannot be placed: the view's Timeline would run backwards */
+  if (["landing", "merge"].includes(ev)) {
+    const W0 = orig.wip || {}, gone = orig.status === "built" || W0.step === "landed";
+    if (at ? lib.landVisit(W0, ev, now) : gone && lib.landVisit(W0, ev, null)) { S.result = "duplicate"; S.applied.push(`${ev} is already recorded${at ? ` at ${now}` : ""}: nothing written`); return; }
+    if (VIEWING && W0.event && lib.isTime(W0.event.at) && Date.parse(now) < Date.parse(W0.event.at)) refuse(`--view: ${ev} at ${now} is older than the board's last event (${W0.event.name}, ${W0.event.at}): raise landing, merge and landed in order (remove the view copies under docs/plans/.live/view/ to start them again)`);
+  }
   /* a stretch when the run was not running is known by its bounds: raised again, whatever events came since, it changes nothing */
   if (ev === "run-restarted" && lib.hasOutage(orig.wip, facts.since, facts.ended)) { S.result = "duplicate"; S.applied.push(`${facts.since} → ${facts.ended} is already recorded: nothing written`); return; }
   /* the same event twice changes nothing: applied again at its own recorded time, it gives the board it left */
@@ -1077,6 +1089,8 @@ async function main() {
   const seeded = ev === "sized" && !VIEWING ? seedFromView(now) : [];
   const R = applyEvent(orig, ev, facts, req, now);
   S.applied.push(...R.applied); S.enrich.push(...R.enrich);
+  /* a view copy lives only while fresher than the board it stands for (board.js --live removes it otherwise): said, never lost in silence */
+  if (VIEWING) { let tp = null; try { tp = JSON.parse(fs.readFileSync(planFile, "utf8")); } catch (e) { /* reported above */ } if (tp && !(String(lib.planStamp(R.plan)) > String(lib.planStamp(tp)))) WARNINGS.push(`VIEW COPY NOT FRESHER: the event's time ${now} is not after the board's own stamp ${lib.planStamp(tp)}, so the live view drops the copy: raise it with its real time`); }
 
   {
     writeBoard(DIR, R.plan, eol, S.enrich, "board");
@@ -1102,7 +1116,7 @@ async function main() {
     let wbRun = null;
     if (seeded.length) { ["board.json", "index.html", "board.js"].forEach(f => stage(path.join(ROOT, "docs", "plans", f)));
       wbRun = run(path.join(__dirname, "board.js"), ["--refresh-template", "--root", ROOT, ...(flag("no-gh") ? ["--no-gh"] : [])], ROOT); }
-    let liveRun = null, liveDir = null;
+    let liveStart = null, liveDir = null;
     const main = path.resolve(opt("main") || REPO_PATH || req.repo || ROOT);
     if (flag("no-live")) S.live = "skipped (--no-live)";
     else if (!fs.existsSync(path.join(main, "docs", "plans"))) { S.live = `skipped (${main} has no docs/plans/)`; S.enrich.push("the live repository work board: the main checkout was not found"); }
@@ -1113,9 +1127,11 @@ async function main() {
       const ex = path.join(main, ".git", "info", "exclude");
       if (fs.existsSync(path.join(main, ".git")) && fs.statSync(path.join(main, ".git")).isDirectory() && !(fs.existsSync(ex) && /^\/?docs\/plans\/\.live\/?\s*$/m.test(fs.readFileSync(ex, "utf8"))))
         S.enrich.push("docs/plans/.live/ is not in the main checkout's .git/info/exclude: the presenter adds the line");
-      liveRun = run(path.join(__dirname, "board.js"), ["--live", "--refresh-template", "--root", main, ...(flag("no-gh") ? ["--no-gh"] : [])], main);
+      liveStart = () => run(path.join(__dirname, "board.js"), ["--live", "--refresh-template", "--root", main, ...(flag("no-gh") ? ["--no-gh"] : [])], main);
     }
-    const [cks, lv, sks, wb] = await Promise.all([Promise.all(checks), liveRun, Promise.all(seededChecks), wbRun]);
+    /* with --view the checks read the copies before board.js --live runs: it removes a copy no fresher than its tracked board, never under a check reading it */
+    const viewCks = VIEWING ? await Promise.all(checks) : null;
+    const [cks, lv, sks, wb] = await Promise.all([viewCks || Promise.all(checks), liveStart && !(viewCks && viewCks.some(c => c.status !== 0)) ? liveStart() : null, Promise.all(seededChecks), wbRun]);
     const warns = cks.map(c => (c.stdout.match(/^warn/gm) || []).length), fails = cks.flatMap(c => c.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l)));
     /* no open point is committed open (dashboards-skill/35): at the landing every open point is resolved, and check.js fails a board at the
        land with one still open; the summary says what to do */

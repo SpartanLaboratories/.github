@@ -75,7 +75,7 @@
 // decisions of dashboards-skill/33 (verify/cases-33.js): the element vocabulary, boards never pages, no internal names, the landing flow's
 // pre-merge stamp, the open points on every event. The decisions of dashboards-skill/34 (verify/cases-34.js): the Timeline tile coloured
 // by kind of work, approximate bounds, the landing in three steps, a sub-issue's roadmap, the Design tab. The live view of a landing
-// (verify/cases-live-view.js): apply-event.js --view, the view copies and their <base> line, board.js --live opening them. The waits on
+// (verify/cases-live-view.js): apply-event.js --view (landed, and the land's landing and merge, before the merge and after it), the view copies and their <base> line, board.js --live opening them. The waits on
 // the user (verify/cases-timeline-waits.js): not active time, the step split into visits around each wait, the signals on the fast path. A
 // stretch when the run was not running (verify/cases-timeline-outages.js): its own line, the run-restarted event on the fast path. A
 // template is recorded only when every check it runs passes: by default those that need no browser; with --browser its browser

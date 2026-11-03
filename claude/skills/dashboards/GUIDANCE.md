@@ -651,7 +651,8 @@ reached its landing before the change):
    bump (`apply-state.js` `facts.document`). Only documents change after it, so nothing is restamped at the land; the boards land in the
    same merge.
 2. **The land**: `landing` (the land accepted; every open point resolved by then, as none is committed open, `plan/RULES.md` §3) and
-   `merge`, then `landed`.
+   `merge`, then `landed`. The board is committed by now, so both are raised into the view copies (`apply-event.js --view`), before the merge from the
+   run's worktree or after it from the main checkout, with their real times and no tracked file written (`plan/RULES.md` §4, "The live view of a landing").
 3. **The post-merge refresh**, after the merge, in the main checkout at the merge commit, for viewing only: the live view under the
    git-ignored `docs/plans/.live/` (`board.js --live`) shows the issue landed and, for a sub-issue, its unit landed and the next one up, in
    view copies of the boards under `docs/plans/.live/view/` (`apply-event.js --view`; `plan/RULES.md` §4, "The live view of a landing"). It

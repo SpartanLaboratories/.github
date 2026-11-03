@@ -50,7 +50,7 @@ function embedOne(dir, opts) {
   const src = (t.id === "plan" && viewSource(dir)) || dir;
   let json = fs.readFileSync(t.json, "utf8");
   const data = JSON.parse(json); // refuse to embed a file that does not parse
-  setViewLinks(src !== dir);
+  setViewLinks(src !== dir, src !== dir ? require("./lib.js").viewParts(dir).root : null);
   let linked; try { linked = t.id === "plan" ? resolveBoard(data, src, { refresh: !!(opts && opts.refresh) }) : []; } finally { setViewLinks(false); }
   if (linked.length) { const eol = /\r\n/.test(json) ? "\r\n" : "\n"; json = (JSON.stringify(data, null, 2) + "\n").replace(/\n/g, eol); fs.writeFileSync(t.json, json); }
   let html = writeBlock(fs.readFileSync(t.html, "utf8"), t.id, json);

@@ -14,6 +14,9 @@
 // An unnumbered mention names a work level too (dashboards-skill/33): the sizing's own words, "Recorded level confirmed", "the proposed
 // level", "the level re-check", "the issue's level" — never a test level's, a log level's or a C4 level's ("the test level is
 // recorded", "log level kept", "Level 1 · System Context").
+// A numbered level written as a modifier of a change names a work level too (LEVEL_MODIFIER, WORK_PHRASE below): a work level sizes a change,
+// a test level places a test ("a later level-1 documentation change", "A level-1 rewording of the comment", "a level-2 bug fix"; never
+// "Level-2 KDoc", "the Level-1 gate", "a Level 2 regression test", "at Level 3 the fix holds").
 // Used by plan/scripts/check.js (every string of plan.json and board.json) and by check-board.js (the rendered text of every tab).
 // scrubLevels() rewords a pipeline fact that names a work level so that it names none (admin-team/dashboards-skill/23): the scope
 // phrase becomes the unit's or the issue's scope, the level before a noun is elided ("a level-3 re-pass" → "a re-pass"), the label
@@ -46,6 +49,23 @@ const SCOPE_WORDS = "inside|within|outside|beyond";
 /* the words before "level" that make it another kind of level, never a work level */
 const OTHER_LEVEL = "test|testing|gating|component|integration|deterministic|e2e|non-functional|nonfunctional|uat|unit|log|logging|trace|debug|info|warn|error|c4|zoom|isolation|api|access|compression|nesting|indent|indentation|heading|top|sea|noise|power|signal|battery|volume|risk|severity|confidence|service|stability|support|maturity|privilege|security|trust|quality";
 const NOT_OTHER = `(?<!\\b(?:${OTHER_LEVEL})[- ])`;
+/* What a work level is: the size of a piece of work, so its phrase is headed by a change being made, whatever the change is about. The level
+   is written as a modifier, hyphenated or classifying a thing right after "a", "an", "another", "later" or "next" ("level-1 documentation
+   change", "a level 1 doc change", "a later level 1 edit"; never "at Level 3 the fix holds"), and the head is a change or an act of changing:
+   a noun ("change", "edit") or any "-ing of" ("rewording of"). Up to two free qualifiers may stand before the head, so the subject of the
+   change needs no list. A qualifier is never a function word ("Level-2 KDoc on the change") or a thing of a test level or of the
+   documentation rings ("Level-2 KDoc change", "the Level-3 suite fix"); a test's own doing is no act of changing ("Level-3 testing of"), and
+   a test word after the head makes the whole a test ("Level-2 feature tests"). The heads stay a short lexicon: the other way round, any noun
+   but the test vocabulary, fails each time a test level modifies something new ("the Level 1 consumer", "the level-3 row"). A level directly
+   before one of WORK_NOUNS is the pattern above this one's in LEVEL_PATTERNS, so a phrase counts once. */
+const LEVEL_MODIFIER = `${NOT_OTHER}(?:\\blevel-[1-4]\\b|(?<=\\b(?:an?|another|later|next)\\s+)\\blevel\\s+[1-4]\\b)`;
+const FUNCTION_WORD = "a|an|the|this|that|these|those|each|every|any|all|both|some|no|its|their|our|and|or|but|nor|of|on|in|at|to|for|from|by|with|without|as|is|are|was|were|be|not|never|only|then|than|so|if|when|while|once|after|before|via|per|through|against|under|over|into|can|may|must|will|would|should|could|does|do|did|has|have|had";
+const TEST_THING = `[\\w-]*test[\\w-]*|[\\w-]*kdoc[\\w-]*|${TEST_LEVEL_NAMES}|unit|suites?|class(?:es)?|cases?|rows?|fixtures?|harness(?:es)?|coverage|gates?|pass(?:es)?|consumers?|assertions?|scenarios?|checks?|fakes?|mocks?|stubs?|tasks?`;
+const QUALIFIER = `(?!(?:${FUNCTION_WORD}|${TEST_THING})(?![\\w-]))[\\w-]+\\s+`;
+const CHANGE_NOUNS = "changes?|fix(?:es)?|features?|edits?|rewrites?|rewords?|corrections?|revisions?|updates?|tweaks?|patch(?:es)?|cleanups?|refactors?|prs?|commits?";
+const NOT_TEST_ACT = "(?!(?:test|check|gat|mock|stubb|fak|run|assert|cover|verify|validat|prob|wir|handl|exercis)ing\\b)";
+const NOT_TEST_NEXT = `(?!\\s+(?:${TEST_WORD})\\b)`;
+const WORK_PHRASE = `(?:${QUALIFIER}){0,2}?(?:(?:${CHANGE_NOUNS})(?![\\w-])${NOT_TEST_NEXT}|${NOT_TEST_ACT}[a-z]+ing\\s+of\\b)`;
 const LEVEL_PATTERNS = [
   ["\\blevel:\\s*[1-4]\\b", "i"],                                                         // the label: "level: 2", "Label level: 3"
   // the short form "L3", unless a test level's name follows ("L1 gating", "L3 · integration"); "L4c" never matches
@@ -53,7 +73,8 @@ const LEVEL_PATTERNS = [
   // and never next to a test word ("L2 test", "tests (L3)": a test level written short, dashboards-skill/35)
   [`${NOT_NEAR_TEST}\\bL[1-4]\\b${NOT_TEST}${NOT_TEST_AFTER}`, ""],
   ["\\b(?:work|issue|tracking)[- ]levels?\\b", "i"],                                       // "work level", "work-level labels"
-  [`\\blevel[- ][1-4]\\b[- ](?:${WORK_NOUNS})\\b`, "i"],                                    // "a level-3 change", "level-3 re-pass"
+  [`\\blevel[- ][1-4]\\b[- ](?:${WORK_NOUNS})\\b${NOT_TEST_NEXT}`, "i"],                    // "a level-3 change", "level-3 re-pass"; never "Level-2 feature tests"
+  [`${LEVEL_MODIFIER}\\s+(?!(?:${WORK_NOUNS})\\b)${WORK_PHRASE}`, "i"],                      // "a later level-1 documentation change", "A level-1 rewording of"
   ["\\bre-?level(?:led|ed|ing|s)?\\b", "i"],                                               // "re-level", "relevelled"
   ["\\b(?:escalat\\w*|re-?sized?|sized|labelled|labeled) (?:to|as|at) level [1-4]\\b", "i"],  // "escalated to level 3"
   ["\\bat (?:its|their|his|her) own level\\b", "i"],                                       // "planned at its own level"
@@ -164,7 +185,8 @@ function scrubLevels(text, opts) {
   s = s.replace(/\s*[,;]\s*level [1-4]\s*(?=[),;:])/gi, "");
   s = s.replace(/\(\s*level [1-4]\s*\)/gi, "");
   s = s.replace(/\b(?:the\s+)?(?:label(?:led|ed)?\s+)?level:\s*[1-4]\b/gi, "");
-  elide(new RegExp(`\\blevel[- ][1-4][- ](?=(?:${WORK_NOUNS})\\b)`, "gi"));
+  elide(new RegExp(`\\blevel[- ][1-4][- ](?=(?:${WORK_NOUNS})\\b${NOT_TEST_NEXT})`, "gi"));
+  elide(new RegExp(`${LEVEL_MODIFIER}\\s+(?=${WORK_PHRASE})`, "gi"));
   /* a bare "Ln" that no test word stands beside is a work level: elided, and reported (opts.elided), so the fast path warns and the
      elision is visible (dashboards-skill/35) */
   const bare = new RegExp(`${NOT_NEAR_TEST}\\bL[1-4]\\b${NOT_TEST}${NOT_TEST_AFTER}`, "g");

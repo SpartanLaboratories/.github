@@ -2,8 +2,9 @@
 // helpers in): the post-merge refresh's landed, raised with apply-event.js --view into view copies under docs/plans/.live/view/, never a
 // tracked file; a copy's <base> line (lib.js withViewBase()), read by deviation.js as no difference from the template; embed.js and
 // check.js on a copy's folder, its links resolved from the tracked folder and its neighbours' links opening their own copies
-// (lib.js viewLink()); board.js --live opening the copies and removing a stale one; and the landed unit's plain-fact summary the fast
-// path writes on the tracking board. Each group returns [title, cases], a case [name, ok, detail].
+// (lib.js viewLink()); board.js --live opening the copies and removing a stale one; the landed unit's plain-fact summary the fast
+// path writes on the tracking board; and the land's own steps, landing and merge, raised with --view before the merge (the board only in a
+// worktree) and after it, idempotent, tracked files and both checkouts clean. Each group returns [title, cases], a case [name, ok, detail].
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 
@@ -88,6 +89,88 @@ module.exports = function casesLiveView(X) {
     const b2 = run(BOARD, ["--live", "--no-gh", "--root", root], { cwd: root });
     const B2 = JSON.parse(rd(path.join(root, "docs", "plans", ".live", "board.json"))), r47b = B2.rows.find(r => r.issue === 47);
     c.push(["a copy no fresher than its tracked board is removed, and the row opens the tracked board again", b2.status === 0 && !fs.existsSync(path.join(vsub, "plan.json")) && r47b.board === "../55-http-client-stack/47-java-23-bytecode/dashboard.html" && /removed the stale view copy/.test(b2.stdout), js([b2.status, fs.existsSync(vsub), r47b.board, b2.stdout.split(/\r?\n/).filter(l => /view copy/.test(l))])]);
+  });
+
+  guard("apply-event.js --view: the land's landing and merge, before the merge and after it, nothing tracked written (plan/RULES.md §4, \"The live view of a landing\")", c => {
+    const g = (cwd, ...a) => cp.spawnSync("git", ["-C", cwd, ...a], { encoding: "utf8" }), clean = d => g(d, "status", "--porcelain").stdout.trim() === "";
+    const M = path.join(sc, "land-main"), W = path.join(sc, "land-wt"), SUB = ["docs", "plans", "55-http-client-stack", "47-java-23-bytecode"], TR = SUB.slice(0, 3);
+    [W, M].forEach(d => fs.rmSync(d, { recursive: true, force: true })); fs.mkdirSync(M, { recursive: true });
+    const T0 = "2026-10-26T09:00:00Z", T1 = "2026-10-26T09:10:00Z", T2 = "2026-10-26T09:12:00Z", T3 = "2026-10-26T09:12:30Z";
+    /* the board at the document-landing commit: the Document step done, the land next; on its branch, in a worktree only */
+    const s0 = copy(sub); s0.wip = { ...s0.wip, step: "document", since: "2026-10-26T08:00:00Z", updated: "2026-10-26T09:00:00Z", event: { name: "document", at: "2026-10-26T09:00:00Z" },
+      steps: ["sizing", "interview", "research", "plan", "branch", "implementation", "qa", "remediation", "document", "landing", "merge", "landed"] };
+    const t0 = copy(trk); t0.wip.updated = "2026-10-26T08:00:00Z"; t0.wip.current = ["java-floor.built"]; t0.wip.next = "http-core"; t0.rows.find(r => r.id === "java-floor").asBuilt = { state: "complete", summary: "#47's run passed qa; it is not merged yet." };
+    g(M, "init", "-q", "-b", "master"); g(M, "config", "user.email", "verify@example.invalid"); g(M, "config", "user.name", "verify"); g(M, "config", "core.autocrlf", "false");
+    fs.appendFileSync(path.join(M, ".git", "info", "exclude"), "docs/plans/.live/\n");
+    wr(path.join(M, ...TR, "plan.json"), JSON.stringify(t0, null, 2) + "\n"); wr(path.join(M, ...TR, "dashboard.html"), rd(PB)); run(EMBED, [path.join(M, ...TR)]);
+    g(M, "add", "-A"); g(M, "commit", "-q", "-m", "the tracking board");
+    g(M, "worktree", "add", "-q", "-b", "feat/47", W);
+    wr(path.join(W, ...SUB, "plan.json"), JSON.stringify(s0, null, 2) + "\n"); wr(path.join(W, ...SUB, "dashboard.html"), rd(PB)); run(EMBED, [path.join(W, ...SUB)]);
+    g(W, "add", "-A"); g(W, "commit", "-q", "-m", "the document-landing commit");
+    const vS = path.join(M, "docs", "plans", ".live", "view", ...SUB.slice(2)), vT = path.dirname(vS), wS = path.join(W, ...SUB);
+    const ev = (e, at, extra) => wr(path.join(sc, `land-${e}-${at.replace(/\W/g, "")}.json`), JSON.stringify({ v: 1, action: "plan-board", github: sub.repo, issue: 47, event: e, folder: sub.folder, facts: { pr: 90, at, ...(extra || {}) } }));
+    const raise = (e, at, tree, extra) => { const a = run(APPLY, ["--event", ev(e, at, extra), "--worktree", tree, "--main", M, "--no-gh", "--view", "--json"]); let S = {}; try { S = JSON.parse(a.stdout); } catch (x) { /* reported by the case */ } return { status: a.status, S, raw: js([a.status, S.result, S.check, S.error, (a.stderr || "").slice(0, 200)]) }; };
+    const P = d => JSON.parse(rd(path.join(d, "plan.json"))), trailOf = (p, re) => (p.trail || []).filter(t => re.test(t.label)).length;
+
+    /* before the merge: the board lives only in the worktree */
+    c.push(["the main checkout holds no board of the issue before the merge", !fs.existsSync(path.join(M, ...SUB, "plan.json")), M]);
+    const a1 = raise("landing", T1, W);
+    c.push(["landing, before the merge: applied, checks pass on both copies", a1.status === 0 && a1.S.result === "ok" && /^pass/.test(a1.S.check || ""), a1.raw]);
+    c.push(["nothing tracked written, and neither checkout is dirty (a dirty worktree blocks its removal)", clean(W) && clean(M), js([g(W, "status", "--porcelain").stdout, g(M, "status", "--porcelain").stdout])]);
+    const p1 = P(vS);
+    c.push(["the copy shows the landing at its real time", p1.wip.step === "landing" && p1.wip.since === T1 && p1.wip.event.at === T1 && trailOf(p1, /^Landing:/) === 1, js([p1.wip.step, p1.wip.since, p1.wip.event])]);
+    c.push(["its <base> line names the board where it lives, the worktree's folder, and viewSource() reads it", path.resolve(lib.viewSource(vS)) === path.resolve(wS) && path.resolve(lib.viewBaseFolder(vS)) === path.resolve(wS), js([lib.viewSource(vS), lib.viewBaseFolder(vS)])]);
+    const t1 = P(vT);
+    c.push(["the tracking board's copy mirrors the unit's run from the unit's copy, so it stays fresher than the tracked board", t1.rows.find(r => r.id === "java-floor").unit.live.step === "landing" && t1.rows.find(r => r.id === "java-floor").unit.live.updated === T1, js(t1.rows.find(r => r.id === "java-floor").unit.live || null).slice(0, 200)]);
+    const k1 = run(CHECK, [vS]), k2 = run(CHECK, [vT]);
+    c.push(["check.js passes both copies on its own, with no --root", k1.status === 0 && k2.status === 0, js([k1.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l)), k2.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l))])]);
+    const e1 = run(EMBED, [vS]);
+    c.push(["embed.js on the copy keeps its <base> and writes no tracked file", e1.status === 0 && path.resolve(lib.viewBaseFolder(vS)) === path.resolve(wS) && clean(W) && clean(M), js([e1.status, (e1.stderr || "").slice(0, 200), lib.viewBaseFolder(vS)])]);
+    const b1 = run(BOARD, ["--live", "--no-gh", "--root", M], { cwd: M }), B1 = JSON.parse(rd(path.join(M, "docs", "plans", ".live", "board.json"))), r1 = B1.rows.find(r => r.issue === 47);
+    c.push(["board.js --live keeps the copy and its row opens it, at the landing, its folder the worktree's", b1.status === 0 && fs.existsSync(path.join(vS, "plan.json")) && r1 && r1.step === "landing" && r1.board === "view/55-http-client-stack/47-java-23-bytecode/dashboard.html" && /land-wt/.test(r1.folder), js([b1.status, r1 && [r1.step, r1.board, r1.folder], (b1.stderr || "").slice(0, 200)])]);
+    const before1 = rd(path.join(vS, "plan.json")), a1b = raise("landing", T1, W);
+    c.push(["landing raised again is a duplicate: the copy unchanged", a1b.status === 0 && a1b.S.result === "duplicate" && rd(path.join(vS, "plan.json")) === before1, a1b.raw]);
+    const a2 = raise("merge", T2, W), p2 = P(vS);
+    c.push(["merge, before the merge: applied, the landing's visit frozen with its end", a2.status === 0 && a2.S.result === "ok" && p2.wip.step === "merge" && p2.wip.since === T2 && (p2.wip.history.landing || []).length === 1 && p2.wip.history.landing[0].since === T1 && p2.wip.history.landing[0].ended === T2, a2.raw + js(p2.wip.history.landing)]);
+    const a1c = raise("landing", T1, W), P2 = P(vS);
+    c.push(["landing raised again with the board at the merge is a duplicate: no second visit, the trail not doubled", a1c.status === 0 && a1c.S.result === "duplicate" && P2.wip.step === "merge" && P2.wip.history.landing.length === 1 && trailOf(P2, /^Landing:/) === 1, a1c.raw]);
+    const keep = rd(path.join(vS, "plan.json")), old = raise("landing", "2026-10-26T09:05:00Z", W);
+    c.push(["a land step older than the board's last event is refused, nothing changed", old.status === 1 && /older than the board's last event/.test(old.S.error || "") && rd(path.join(vS, "plan.json")) === keep, old.raw]);
+
+    /* the merge: the board is in the main checkout now */
+    g(M, "merge", "--no-ff", "-q", "-m", "Merge the branch", "feat/47");
+    const sha = g(M, "rev-parse", "--short", "HEAD").stdout.trim();
+    const a2b = raise("merge", T2, M);
+    c.push(["merge raised again after the merge, from the main checkout, is a duplicate", a2b.status === 0 && a2b.S.result === "duplicate", a2b.raw]);
+    const a3 = raise("landed", T3, M, { sha, merge: sha, mergedAt: T3 }), p3 = P(vS), html3 = rd(path.join(vS, "dashboard.html"));
+    c.push(["landed, from the main checkout: built, the copy's <base> now the main checkout's folder", a3.status === 0 && p3.status === "built" && p3.wip.step === "landed" && /<base href="\.\.\/\.\.\/\.\.\/\.\.\/55-http-client-stack\/47-java-23-bytecode\/" data-live-view>/.test(html3), a3.raw + (html3.match(/<base [^>]*>/) || ["none"])[0]]);
+    const lines = lib.timelineLines(lib.timelineSteps(p3)), has = (re) => lines.some(l => re.test(l));
+    c.push(["the Timeline: landing from its real time to the merge step's, then the merge to the merge's time, each once", has(/^landing.*09:10Z → .*09:12Z/) && has(/^merge.*09:12Z → .*09:12Z/) && lines.filter(l => /^landing/.test(l)).length === 1 && lines.filter(l => /^merge/.test(l)).length === 1, lines.filter(l => /^(document|landing|merge)/.test(l)).join(" | ")]);
+    const a1d = raise("landing", T1, M), a2d = raise("merge", T2, M), p3b = P(vS);
+    c.push(["both raised again on the landed copy are duplicates: the trail not doubled", a1d.S.result === "duplicate" && a2d.S.result === "duplicate" && trailOf(p3b, /^Landing:/) === 1 && trailOf(p3b, /^Merge:/) === 1 && p3b.wip.step === "landed", a1d.raw + a2d.raw]);
+    { const q0 = P(vS); q0.wip.detail = "Merged through PR #90: the landing's own record."; wr(path.join(vS, "plan.json"), JSON.stringify(q0, null, 2) + "\n"); run(EMBED, [vS]);
+      const a3b = raise("landed", T3, M, { sha, merge: sha, mergedAt: T3 });
+      c.push(["landed raised again on the enriched copy is a duplicate: the record's detail stays", a3b.status === 0 && a3b.S.result === "duplicate" && P(vS).wip.detail === q0.wip.detail, a3b.raw + P(vS).wip.detail]); }
+    const ts = P(vT), row3 = ts.rows.find(r => r.id === "java-floor");
+    c.push(["the tracking board's copy: the unit landed, out of wip.current, the next one up", row3.asBuilt.state === "landed" && !(ts.wip.current || []).includes("java-floor.built") && ts.wip.next === "http-core" && !row3.unit.live, js([row3.asBuilt.state, ts.wip.current, ts.wip.next])]);
+    c.push(["still nothing dirty in either checkout", clean(W) && clean(M), js([g(W, "status", "--porcelain").stdout, g(M, "status", "--porcelain").stdout])]);
+
+    /* after the merge alone: the real times, older than the moment raised and later than the tracked board's stamp; no copy yet */
+    fs.rmSync(path.join(M, "docs", "plans", ".live", "view"), { recursive: true, force: true });
+    const b1a = raise("landing", T1, M), b1k = fs.existsSync(path.join(vS, "plan.json")) && fs.existsSync(path.join(vT, "dashboard.html"));
+    c.push(["landing, after the merge: applied, and board.js --live leaves the tracking board's copy (it refused before, its copy removed under the check as no fresher)", b1a.status === 0 && b1a.S.result === "ok" && b1k && P(vS).wip.step === "landing" && P(vT).rows.find(r => r.id === "java-floor").unit.live.updated === T1, b1a.raw]);
+    const b2a = raise("merge", T2, M), b3a = raise("landed", T3, M, { sha, merge: sha, mergedAt: T3 }), q = P(vS), ql = lib.timelineLines(lib.timelineSteps(q));
+    c.push(["merge and landed follow, the same Timeline; the main checkout clean", b2a.status === 0 && b3a.status === 0 && q.wip.step === "landed" && ql.some(l => /^landing.*09:10Z → .*09:12Z/.test(l)) && ql.some(l => /^merge.*09:12Z → .*09:12Z/.test(l)) && clean(M), b2a.raw + b3a.raw + ql.filter(l => /^(landing|merge)/.test(l)).join(" | ")]);
+    /* a time not after the board's own stamp: said, as the live view drops such a copy */
+    fs.rmSync(path.join(M, "docs", "plans", ".live", "view"), { recursive: true, force: true });
+    const late = raise("landing", T0, M);
+    c.push(["a land step not after the board's own stamp is warned on (VIEW COPY NOT FRESHER), as the live view drops such a copy", (late.S.warnings || []).some(w => /VIEW COPY NOT FRESHER/.test(w)), late.raw + js(late.S.warnings)]);
+    /* a worktree on another drive: no relative path exists, so the <base> is a file URL (the copy is git-ignored, never committed) */
+    if (process.platform === "win32") {
+      const h = lib.viewBaseHref("D:\\m\\docs\\plans\\.live\\view\\a", "C:\\wt\\docs\\plans\\a");
+      c.push(["viewBaseHref() across drives is a file URL into the worktree", h === "file:///C:/wt/docs/plans/a/", h]);
+    }
+    [W].forEach(d => { g(M, "worktree", "remove", "--force", d); });
   });
   return groups;
 };

@@ -411,6 +411,8 @@ const nonEmpty = v => Array.isArray(v) ? v.length > 0 : isObj(v);
 const clone = v => v == null ? v : JSON.parse(JSON.stringify(v));
 /* the step the panel shows: the one a halt or an escalation stopped in, else wip.step */
 const shownStep = w => w && ["halted", "escalated"].includes(w.step) ? (w.resume || null) : (w && w.step) || null;
+/* whether a land step's visit is on the record, running or frozen: the visit that starts at `at`, or with no `at` any visit of the step (plan/RULES.md §4, "The live view of a landing": raised again, it changes nothing, whichever events came since) */
+const landVisit = (w, step, at) => { const x = w || {}, H = x.history && Array.isArray(x.history[step]) ? x.history[step] : []; return at ? (x.step === step && x.since === at) || H.some(v => v && v.since === at) : x.step === step || H.length > 0; };
 /* a visit's key: the step shown, and at remediation the qa pass its loop answers */
 const visitKey = w => { const s = shownStep(w); return !s ? null : s === "remediation" ? `remediation#${(w.remediation && w.remediation.pass) || ""}` : s; };
 const FINAL_QA = ["approved", "changes-requested"];
@@ -660,7 +662,7 @@ function panelFacts(sub) {
    parse, or a board of another issue). */
 function subIssuePlan(dir, unit) {
   const hit = subIssueBoard(dir, unit); if (!hit) return null;
-  try { const p = JSON.parse(fs.readFileSync(path.join(dir, hit.folder, "plan.json"), "utf8")); return p && p.issue === unit.issue ? p : null; } catch (e) { return null; }
+  try { const p = JSON.parse(fs.readFileSync(path.join(viewedFolder(path.join(dir, hit.folder)), "plan.json"), "utf8")); return p && p.issue === unit.issue ? p : null; } catch (e) { return null; }
 }
 /* What each unit's mirror should be now: [{ row, unit, inCur, want, have }] for every unit row, want null when it carries none. */
 function unitRuns(plan, dir) {
@@ -740,8 +742,20 @@ function viewParts(dir) {
   for (let i = parts.length - VIEW.length; i >= 1; i--) if (VIEW.every((s, k) => parts[i + k] === s)) return { root: parts.slice(0, i).join(path.sep) + (i === 1 ? path.sep : ""), rel: parts.slice(i + VIEW.length) };
   return null;
 }
-/* the tracked folder a view copy's folder stands for, or null when the folder is no view copy */
-function viewSource(dir) { const v = viewParts(dir); return v ? path.join(v.root, "docs", "plans", ...v.rel) : null; }
+/* the folder a view copy's <base> line names, or null (no copy, no line) */
+function viewBaseFolder(dir) {
+  let html; try { html = fs.readFileSync(path.join(dir, "dashboard.html"), "utf8"); } catch (e) { return null; }
+  const m = html.match(/<base href="([^"]*)" data-live-view>/); if (!m) return null;
+  try { return /^file:/i.test(m[1]) ? path.resolve(require("url").fileURLToPath(m[1])) : path.resolve(dir, m[1]); } catch (e) { return null; }
+}
+/* the tracked folder a view copy's folder stands for, or null when the folder is no view copy: the board where it lives. That is the main
+   checkout's folder, or, for a land step raised before the merge (plan/RULES.md §4, "The live view of a landing"), the same folder in the
+   worktree its <base> line names while that worktree holds the board: until the merge the board lives only there. */
+function viewSource(dir) {
+  const v = viewParts(dir); if (!v) return null;
+  const own = path.join(v.root, "docs", "plans", ...v.rel), b = viewBaseFolder(dir);
+  return b && path.resolve(b) !== path.resolve(own) && b.endsWith(path.sep + path.join("docs", "plans", ...v.rel)) && fs.existsSync(path.join(b, "plan.json")) ? b : own;
+}
 /* the view copy's folder of a tracked board's folder, in the tree `root` (default: the folder's own tree) */
 function viewDirOf(dir, root) {
   const own = treeRoot(dir), rel = path.relative(path.join(own, "docs", "plans"), path.resolve(dir));
@@ -750,10 +764,14 @@ function viewDirOf(dir, root) {
 const VIEW_BASE_RE = /<base [^>]*data-live-view[^>]*>\r?\n/;
 /* While a view copy is resolved (embed.js, apply-event.js --view) or checked (check.js), its links to a neighbouring board (the parent,
    a unit, any other issue) open that board's own view copy where a fresh one exists, so the live view stays one view: the landed
-   issue's copy opens its tracking board's copy, and back. The link is written from the tracked folder the copy's <base> names. Off
-   otherwise: a tracked board never links into .live/. */
-const VIEW_LINKS = { on: false };
-const setViewLinks = on => { VIEW_LINKS.on = !!on; };
+   issue's copy opens its tracking board's copy, and back. The link is written from the tracked folder the copy's <base> names; from a
+   worktree (a land step raised before the merge) it stays that worktree's, and the marker boards.js opens the newest. Off otherwise: a
+   tracked board never links into .live/. A tracking board's mirror of a unit's run reads the unit's copy the same way, in the main
+   checkout's view (root): a unit at its land step moves in the view alone (viewedFolder()). */
+const VIEW_LINKS = { on: false, root: null };
+const setViewLinks = (on, root) => { VIEW_LINKS.on = !!on; VIEW_LINKS.root = on && root ? root : null; };
+/* the folder a board's data is read from while a view copy is resolved: its fresh view copy, else the folder itself */
+function viewedFolder(dir) { if (!VIEW_LINKS.on) return dir; const v = viewOf(dir, VIEW_LINKS.root || undefined); return v && v.fresh ? v.dir : dir; }
 function viewLink(from, rel) {
   if (!VIEW_LINKS.on || !rel || /^[a-z][a-z0-9+.-]*:/i.test(rel)) return rel;
   const target = path.resolve(from, rel), dir = path.dirname(target);
@@ -761,9 +779,14 @@ function viewLink(from, rel) {
   const v = viewOf(dir); if (!v || !v.fresh || !fs.existsSync(path.join(v.dir, path.basename(target)))) return rel;
   return path.relative(path.resolve(from), path.join(v.dir, path.basename(target))).split(path.sep).join("/");
 }
+/* the href of a view copy's <base> line: relative, or a file URL where none exists (a worktree on another drive; the copy is git-ignored and never committed) */
+function viewBaseHref(viewDir, trackedDir) {
+  const rel = path.relative(viewDir, trackedDir);
+  return path.isAbsolute(rel) ? require("url").pathToFileURL(path.resolve(trackedDir) + path.sep).href : rel.split(path.sep).join("/") + "/";
+}
 /* a board's HTML as its view copy: the <base> line naming the tracked folder, right after <head> (replacing one there) */
 function withViewBase(html, viewDir, trackedDir) {
-  const href = path.relative(viewDir, trackedDir).split(path.sep).join("/") + "/", eol = /\r\n/.test(html) ? "\r\n" : "\n";
+  const href = viewBaseHref(viewDir, trackedDir), eol = /\r\n/.test(html) ? "\r\n" : "\n";
   const h = html.replace(VIEW_BASE_RE, ""), m = h.match(/<head[^>]*>\r?\n/);
   if (!m) throw new Error("the board has no <head> line to carry the view copy's <base>");
   return h.slice(0, m.index + m[0].length) + `<base href="${href}" data-live-view>` + eol + h.slice(m.index + m[0].length);
@@ -1617,4 +1640,4 @@ function ghMergeTime(repo, pr, merge) {
 }
 
 module.exports = { boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, HISTORY_FIELDS, HISTORY_STEPS, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, timelineRows, timelineWaitNote, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
-  trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, setViewLinks, viewLink, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };
+  trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewBaseFolder, viewBaseHref, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, setViewLinks, viewedFolder, viewLink, landVisit, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

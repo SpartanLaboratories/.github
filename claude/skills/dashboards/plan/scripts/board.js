@@ -42,7 +42,7 @@
 // blocked-by links and the tracking boards' unit.blockedBy (plan/RULES.md §5; admin-team/dashboards-skill/30).
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), url = require("url");
-const { repoRoot, flag, opt, registry, findPlans, VIEW, viewSource, planStamp, subIssueBoard, shownBranch, unitBranch, reconciliation, leftForLater, boardlessState, unitInRun, qaShown, depBuild, depLocality, holdState } = require("./lib.js");
+const { repoRoot, flag, opt, registry, findPlans, VIEW, viewSource, treeRoot, planStamp, subIssueBoard, shownBranch, unitBranch, reconciliation, leftForLater, boardlessState, unitInRun, qaShown, depBuild, depLocality, holdState } = require("./lib.js");
 /* a pass's route written with its neutral id (GUIDANCE.md §4, "No internal names"): a board recorded before the rename keeps the older
    rookie-dev and planner-then-rookie-dev, read alike everywhere; board.json is generated, so it carries the neutral ones */
 const ROUTE_NEUTRAL = { "rookie-dev": "remediation", "planner-then-rookie-dev": "re-plan-then-remediation" };
@@ -109,13 +109,14 @@ if (live) {
       for (let d = vd; path.relative(vroot, d) && !path.relative(vroot, d).startsWith(".."); d = path.dirname(d)) { try { fs.rmdirSync(d); } catch (e) { break; } }
       viewNotes.push(`removed the stale view copy ${rel(vd)}/ (${!tp ? "its board is gone" : !vp ? "it does not parse" : "the tracked board is as fresh"})`); return;
     }
-    const b = { dir: src, folder: rel(src), root, plan: vp, view: rel(vd) }, k = boards.findIndex(x => x.plan.issue === vp.issue);
+    /* the board's folder and tree are where it lives (a worktree, for a land step raised before the merge: lib.js viewSource()); the copy is always this checkout's */
+    const srcRoot = treeRoot(src) || root, b = { dir: src, folder: path.relative(srcRoot, src).split(path.sep).join("/"), root: srcRoot, plan: vp, view: rel(vd) }, k = boards.findIndex(x => x.plan.issue === vp.issue);
     allBoards.push(b);
     if (k < 0) boards.push(b); else if (fresh(b) > fresh(boards[k])) boards[k] = b;
   });
 }
 /* a board's own link: its view copy's where it stands in for it, else the board where it lives */
-const boardHtml = b => b.view ? relFromPlans(b.view + "/dashboard.html", b.root) : relFromPlans(b.folder + "/dashboard.html", b.root);
+const boardHtml = b => b.view ? relFromPlans(b.view + "/dashboard.html", root) : relFromPlans(b.folder + "/dashboard.html", b.root);
 const boardOf = n => boards.find(b => b.plan.issue === n);
 /* A link from the board's own folder to a path in a tree: relative, or a file URL where none exists (a worktree on another drive). */
 const relFromPlans = (p, t = root) => { const abs = path.join(t, p), rel = path.relative(outDir, abs);
@@ -402,7 +403,7 @@ if (live) {
     const newest = {};
     boards.slice().sort((a, b) => a.plan.issue - b.plan.issue).forEach(nb => {
       const own = allBoards.filter(x => x.plan.issue === nb.plan.issue && path.relative(x.root, t) === "").sort((a, b) => (fresh(a) < fresh(b) ? 1 : fresh(a) > fresh(b) ? -1 : 0))[0];
-      const pick = own && !(fresh(nb) > fresh(own)) ? own : nb, abs = path.join(pick.root, pick.view || pick.folder, "dashboard.html");
+      const pick = own && !(fresh(nb) > fresh(own)) ? own : nb, abs = pick.view ? path.join(root, pick.view, "dashboard.html") : path.join(pick.root, pick.folder, "dashboard.html");
       if (!fs.existsSync(abs)) return;
       const rel = path.relative(dir, abs); newest[nb.plan.issue] = path.isAbsolute(rel) ? url.pathToFileURL(abs).href : rel.split(path.sep).join("/");
     });
