@@ -213,6 +213,47 @@ module.exports = function cases35(X) {
     c.push(["a copy whose merge the branch does not hold is not seeded", a2.status === 0 && !(S2.seeded || []).length && JSON.parse(rd(path.join(wt2, "docs", "plans", "55-http-client-stack", "47-java-23-bytecode", "plan.json"))).wip.step === "merge", js([a2.status, S2.seeded, S2.error])]);
   });
 
+  /* 8b. seeding at a sized with no board yet, in a worktree and in the main checkout (hook-9) */
+  guard("apply-event.js at sized on a folder with no board: the seed does not wait for the foundation, in a worktree and in a run's main checkout", c => {
+    const main = path.join(sc, "seedn-main"), wt = path.join(sc, "seedn-wt"); fs.rmSync(wt, { recursive: true, force: true });
+    const tdir = path.join(main, "docs", "plans", "55-http-client-stack"), sdir = path.join(tdir, "47-java-23-bytecode"), folder = "docs/plans/55-http-client-stack/62-http-core";
+    if (git(sc, "init", "-q", "-b", "master", main).status !== 0) { c.push(["git is available", false, "git init failed"]); return; }
+    wr(path.join(main, ".git", "info", "exclude"), "docs/plans/.live/\n");
+    const sub = copy(EX); Object.assign(sub, { issue: 47, slug: "47-java-23-bytecode", folder: "docs/plans/55-http-client-stack/47-java-23-bytecode", parent: { issue: 55 }, status: "building", asBuilt: { ref: "master", sha: sub.baseline.sha, date: sub.baseline.date } });
+    delete sub.issueBoards; sub.milestones = sub.milestones.filter(m => m.column !== "built");
+    sub.wip = { ...sub.wip, step: "merge", since: "2026-10-26T09:20:00Z", updated: "2026-10-26T09:20:00Z", current: [], questions: [], research: null, open: [], event: { name: "merge", at: "2026-10-26T09:20:00Z" }, steps: ["sizing", "interview", "research", "plan", "branch", "implementation", "qa", "remediation", "document", "landing", "merge", "landed"] };
+    const trk = copy(TRK); trk.wip.updated = "2026-10-26T09:00:00Z";
+    wr(path.join(tdir, "plan.json"), JSON.stringify(trk, null, 2) + "\n"); wr(path.join(tdir, "dashboard.html"), rd(PB)); wr(path.join(sdir, "plan.json"), JSON.stringify(sub, null, 2) + "\n"); wr(path.join(sdir, "dashboard.html"), rd(PB));
+    run(EMBED, [sdir]); run(EMBED, [tdir]);
+    git(main, "add", "-A"); git(main, "commit", "-q", "-m", "the merge"); const M = (git(main, "rev-parse", "HEAD").stdout || "").trim();
+    const lq = wr(path.join(sc, "seedn-landed.json"), js({ v: 1, action: "plan-board", github: sub.repo, issue: 47, event: "landed", folder: sub.folder, facts: { pr: 90, sha: M, merge: M, date: "2026-10-26", mergedAt: "2026-10-26T09:22:00Z" } }));
+    const lv = run(APPLY, ["--event", lq, "--worktree", main, "--main", main, "--no-gh", "--no-live", "--view", "--at", "2026-10-26T09:30:00Z", "--json"]);
+    const copyAt = path.join(main, "docs", "plans", ".live", "view", "55-http-client-stack", "47-java-23-bytecode", "plan.json");
+    c.push(["the post-merge refresh wrote the view copies", lv.status === 0 && fs.existsSync(copyAt), (lv.stdout || lv.stderr).slice(0, 300)]);
+    const sized = wr(path.join(sc, "seedn-sized.json"), js({ v: 1, action: "plan-board", github: sub.repo, issue: 62, event: "sized", folder, repo: main, facts: { step: "plan" } }));
+    const go = root => { const a = run(APPLY, ["--event", sized, "--worktree", root, "--no-gh", "--no-live", "--at", "2026-10-26T10:00:00Z", "--json"]); let S = {}; try { S = JSON.parse(a.stdout); } catch (e) { /* below */ } return { a, S, sub: JSON.parse(rd(path.join(root, "docs", "plans", "55-http-client-stack", "47-java-23-bytecode", "plan.json"))), trk: JSON.parse(rd(path.join(root, "docs", "plans", "55-http-client-stack", "plan.json"))) }; };
+    /* a worktree: the board is laid afterwards, the main checkout is left alone */
+    if (git(main, "worktree", "add", "-q", "-b", "feat/62", wt).status !== 0) { c.push(["git worktree add", false, "failed"]); return; }
+    /* a failure puts the seed back: a seeded board that fails its check; first, so the copies still stand for the cases below */
+    const wtf = path.join(sc, "seedn-wtf"); fs.rmSync(wtf, { recursive: true, force: true });
+    if (git(main, "worktree", "add", "-q", "-b", "feat/63", wtf).status !== 0) { c.push(["git worktree add (the failure case)", false, "failed"]); return; }
+    const pf = path.join(wtf, "docs", "plans", "55-http-client-stack", "47-java-23-bytecode", "plan.json"), wasF = rd(pf), wbF = path.join(wtf, "docs", "plans", "board.json");
+    wr(wbF, "not json, and a folder in its way\n"); fs.rmSync(wbF); fs.mkdirSync(wbF);
+    const af = run(APPLY, ["--event", sized, "--worktree", wtf, "--no-gh", "--no-live", "--at", "2026-10-26T10:00:00Z", "--json"]); let SF = {}; try { SF = JSON.parse(af.stdout); } catch (e) { /* below */ }
+    c.push(["a seed that cannot finish changes nothing: exit 1, the tracked board as it was", af.status === 1 && SF.result === "failed" && rd(pf) === wasF, js([af.status, SF.result, SF.error, SF.check])]);
+    const w = go(wt), u47 = t => (t.rows.find(r => r.unit && r.unit.issue === 47) || { asBuilt: {} }).asBuilt.state;
+    c.push(["a worktree: no-board, enrich yes, and the landed board seeded with its merge", w.a.status === 0 && w.S.result === "no-board" && w.S.enrich === "yes" && (w.S.seeded || []).some(x => /47-java-23-bytecode/.test(x)) && (w.sub.asBuilt || {}).merge === M, js([w.a.status, w.S.result, w.S.seeded, w.S.error, w.sub.asBuilt])]);
+    c.push(["…with its tracking board, the unit landed", u47(w.trk) === "landed", js(u47(w.trk))]);
+    c.push(["…the committed repository work board regenerated, and no folder made for the issue", fs.existsSync(path.join(wt, "docs", "plans", "board.json")) && !fs.existsSync(path.join(wt, ...folder.split("/"))), "board.json"]);
+    c.push(["…and the main checkout's tracked board untouched", JSON.parse(rd(path.join(sdir, "plan.json"))).wip.step === "merge", "main untouched"]);
+    const w2 = go(wt);
+    c.push(["raised again, nothing fresher: nothing seeded", w2.a.status === 0 && w2.S.result === "no-board" && !(w2.S.seeded || []).length, js([w2.S.result, w2.S.seeded])]);
+    /* the main checkout: a run that works there seeds its tracked boards */
+    const m = go(main);
+    c.push(["a run in the main checkout: no-board, its tracked boards seeded", m.a.status === 0 && m.S.result === "no-board" && (m.S.seeded || []).some(x => /47-java-23-bytecode/.test(x)) && (m.sub.asBuilt || {}).merge === M && u47(m.trk) === "landed", js([m.a.status, m.S.result, m.S.seeded, m.S.error])]);
+    c.push(["…uncommitted", /47-java-23-bytecode\/plan\.json/.test(git(main, "status", "--short", "--", "docs/plans").stdout || ""), "git status"]);
+  });
+
   /* 9. the structure map's height, check-board.js */
   guard("the structure map: 1000 wide, its height recorded (MODEL.structure.h, at most 812), a taller one failed (dashboards-skill/35)", c => {
     if (!SB) { c.push(["the system template is under test", false, "skipped"]); return; }

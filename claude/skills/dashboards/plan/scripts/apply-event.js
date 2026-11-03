@@ -30,10 +30,12 @@
 // Writes only the issue's board files, its parent tracking board's files and docs/plans/.live/; never git, never a commit, never the
 // committed repository work board. Every file is written through a temporary file and a rename, and on any failure every file it wrote is put
 // back as it was: exit 1, nothing changed. Exit 0 when applied, or when the event was already applied (the same event twice changes
-// nothing), or when there is no board to apply it to (sized: the presenter lays the foundation); exit 2 on a usage error.
+// nothing), or when there is no board to apply it to (sized: the presenter lays the foundation; the previous landing is still seeded,
+// seedFromView()); exit 2 on a usage error.
 // Since admin-team/dashboards-skill/35: the Document step's event (document, facts.tasks, applied whole; a team-raised state-boards on a
 // board in that flow is its state-boards task), the land in two steps (landing, merge), an approving qa pass leading to the Document step;
-// seeding at sized (a worktree branched after a landing starts the boards the main checkout's live view shows landed, seedFromView());
+// seeding at sized (a run's tree, a worktree or the main checkout, branched after a landing starts the boards the main checkout's live view
+// shows landed, with or without a board of the issue's yet, seedFromView());
 // an open point's report outside the tree copied when the point is raised, for the live view (runOpenJobs()), and every open point
 // resolved at the land (check.js fails one left open); a bare test level beside a test word written as its named test level, and a bare
 // "Ln" elsewhere elided as a work level with a warning (summary: warnings).
@@ -982,10 +984,12 @@ function writeBoard(dir, data, eol, enrich, label) {
    merge of its own (a tracking board) with a seeded copy inside its folder, is written over the tracked board (plan.json, dashboard.html,
    plan.js; its links resolved from the tracked folder, never into .live/). A landed sub-issue seeded without its tracking board's copy
    marks its unit landed on the tracked tracking board by the standing rule (applyParent()): a merge that marks an issue landed on its own
-   board does so for its parent too, and both are seeded together. Nothing is seeded in the main checkout itself, or from a copy whose merge
-   the branch does not hold. Returns the tracked folders written. */
+   board does so for its parent too, and both are seeded together. It reads nothing of the issue's own board, so a sized on a folder with no
+   board seeds too (main(), finishSeed()); and a run in the main checkout itself seeds its tracked boards like a worktree's: --view never
+   comes here, so a sized there is a run's. Nothing is seeded from a copy whose merge the branch does not hold. Returns the tracked folders
+   written. */
 function seedFromView(now) {
-  if (!MAIN || path.resolve(MAIN) === path.resolve(ROOT)) return [];
+  if (!MAIN) return [];
   const vroot = path.join(MAIN, ...lib.VIEW); if (!fs.existsSync(vroot)) return [];
   const read = f => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch (e) { return null; } };
   const dirs = []; const walk = d => { let es = []; try { es = fs.readdirSync(d, { withFileTypes: true }); } catch (e) { return; } if (fs.existsSync(path.join(d, "plan.json"))) dirs.push(d); es.filter(e => e.isDirectory()).forEach(e => walk(path.join(d, e.name))); };
@@ -1037,6 +1041,28 @@ const REPO_ARG = opt("repo"), REPO_SLUG = REPO_ARG && /^[\w.-]+\/[\w.-]+$/.test(
 const REPO_PATH = REPO_ARG && !REPO_SLUG && fs.existsSync(REPO_ARG) && fs.statSync(REPO_ARG).isDirectory() ? REPO_ARG : null;
 if (REPO_ARG && !REPO_SLUG && !REPO_PATH) { console.error(`${USAGE}\n(--repo takes the GitHub slug owner/repo, e.g. SpartanLaboratories/WebTools, or the path of the repository's main checkout; got ${JSON.stringify(REPO_ARG)})`); process.exit(2); }
 if (REPO_PATH && opt("main") && path.resolve(opt("main")) !== path.resolve(REPO_PATH)) { console.error(`${USAGE}\n(--repo ${REPO_PATH} is a path, read as the main checkout, but --main names another: ${opt("main")})`); process.exit(2); }
+/* The boards seeded at a sized with no board of the issue's yet (no-board, below): what the event's own tail does after a seed, every board
+   checked, the tree's committed repository work board regenerated (board.js --refresh-template) and the live one with it, under the same
+   staged set: a failure here puts the seed back. */
+async function finishSeed(seeded) {
+  if (!seeded.length) return;
+  const sks = await Promise.all(seeded.map(d => run(path.join(__dirname, "check.js"), [d], ROOT)));
+  if (sks.some(c => c.status !== 0)) { S.check = `FAIL (a seeded board): ${sks.flatMap(c => c.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l))).slice(0, 4).join(" | ")}`; throw new Error("check.js failed on a board seeded from the live view"); }
+  S.check = `pass (seeded boards: ${plural(sks.reduce((n, c) => n + (c.stdout.match(/^warn/gm) || []).length, 0), "warning")})`;
+  const noGh = flag("no-gh") ? ["--no-gh"] : [];
+  ["board.json", "index.html", "board.js"].forEach(f => stage(path.join(ROOT, "docs", "plans", f)));
+  const wb = await run(path.join(__dirname, "board.js"), ["--refresh-template", "--root", ROOT, ...noGh], ROOT);
+  if (wb.status !== 0) throw new Error(`board.js (the committed repository work board, after seeding) failed: ${(wb.stderr || wb.stdout).trim().split(/\r?\n/).slice(-1)[0]}`);
+  S.wrote.push("the repository work board: docs/plans/board.json, index.html, board.js (regenerated after seeding)");
+  if (flag("no-live")) { S.live = "skipped (--no-live)"; return; }
+  if (!fs.existsSync(path.join(MAIN, "docs", "plans"))) { S.live = `skipped (${MAIN} has no docs/plans/)`; return; }
+  const liveDir = path.join(MAIN, "docs", "plans", ".live");
+  if (!fs.existsSync(liveDir)) { fs.mkdirSync(liveDir, { recursive: true }); madeDirs.push(liveDir); }
+  ["board.json", "index.html", "board.js"].forEach(f => stage(path.join(liveDir, f)));
+  const lv = await run(path.join(__dirname, "board.js"), ["--live", "--refresh-template", "--root", MAIN, ...noGh], MAIN);
+  if (lv.status !== 0) throw new Error(`board.js --live failed: ${(lv.stderr || lv.stdout).trim().split(/\r?\n/).slice(-1)[0]}`);
+  S.live = `regenerated ${path.relative(MAIN, liveDir).split(path.sep).join("/")}/`;
+}
 async function main() {
   const evFile = opt("event"), wt = opt("worktree");
   if (!evFile || !wt) { console.error(`${USAGE}\n(--event and --worktree are required)`); process.exit(2); }
@@ -1057,7 +1083,10 @@ async function main() {
   const planFile = path.join(DIR, "plan.json");
   if (!fs.existsSync(planFile)) {
     if (ev !== "sized") refuse(`${folder} holds no plan.json: there is no board to apply ${ev} to`);
-    S.result = "no-board"; S.issue = req.issue || null; S.enrich.push(`sized: no board yet; the presenter lays the foundation (new.js ... --at ${now}, the event's time, the Timeline's run start) from the documents`); return;
+    S.result = "no-board"; S.issue = req.issue || null; S.enrich.push(`sized: no board yet; the presenter lays the foundation (new.js ... --at ${now}, the event's time, the Timeline's run start) from the documents, then raises the event again, which starts the unit on its tracking board`);
+    /* the previous landing's state does not wait for the foundation: the seed reads nothing of this issue's board (plan/RULES.md §4, "Seeding at sized") */
+    if (!VIEWING) await finishSeed(seedFromView(now));
+    return;
   }
   const text = fs.readFileSync(viewRead(DIR), "utf8"), eol = /\r\n/.test(text) ? "\r\n" : "\n";
   let orig; try { orig = JSON.parse(text); } catch (e) { refuse(`${folder}/plan.json does not parse: ${e.message}`); }

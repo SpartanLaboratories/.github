@@ -1136,7 +1136,7 @@ Timeline input no event writes: it exists only on a board backfilled at the user
 | on a sub-issue, the standing rule on its tracking board: the unit's start (`sized`), `complete` (an approving qa pass), `landed`, `wip.next`, the chain's `wip.detail`; a unit's summary where it has none, or only the plain fact its qa pass wrote: the plain fact of its state ("#n's run passed qa; it is not merged yet.", and at `landed` "#n landed through PR #p as <merge>." from the sub-issue's `asBuilt`) | the unit's summary from the documents, its `impact.units` entry and its effect on the initiative's impact |
 | at `landed`, `asBuilt` from the facts, its merge time and step commits (§4, "The fast path owns the Timeline"), and `status = built` with the step `landed` only once every part is resolved; at `cancelled`, `status = abandoned` and the reason in `notes` | the landing's record, on the view copies and on the boards seeded at the next run's `sized` (every part resolved, the trail, the consequences reconciled); the cancelled board's closing state |
 | at `document`, the step and its tasks from `facts.tasks` (merged by id, several current), the glow, the detail and the trail entry; at `landing`, `state-boards` and `merge` (team-raised), the step (`state-boards` in the Document step's flow: its task), the event with its pull request, the detail and the trail entry, an older steps line brought up: everything | nothing |
-| at `sized` in a worktree branched after a landing, the boards seeded from the main checkout's live view ("Seeding at sized", below) and the committed repository work board regenerated from them; an open point's report and a qa pass's test report copied for the live view; a bare "Ln" beside a test word written as its named test level, elsewhere elided with a `warnings` line | the seeded boards' parts the fast path leaves (as at `landed`) |
+| at `sized` in a run's tree branched after a landing, with or without a board of the issue's yet, the boards seeded from the main checkout's live view ("Seeding at sized", below) and the committed repository work board regenerated from them; an open point's report and a qa pass's test report copied for the live view; a bare "Ln" beside a test word written as its named test level, elsewhere elided with a `warnings` line | the seeded boards' parts the fast path leaves (as at `landed`) |
 | at `run-restarted` (team-raised), `wip.outages` and the visit or wait it cuts, the event, its note and the trail entry: everything | nothing |
 | the snapshot of the step the event ends, `wip.history.<step>` (§3, "Finished steps"): every visit, each remediation loop and each qa verdict apart; the sizing visit at a board's first `sized`; on a sub-issue, the tracking board's own step its unit's start ends | nothing: a snapshot is never written by hand (a step with none is reconstructed on the board) |
 | the Tests tab from an event's `facts.tests` (§2, "The Tests tab"; `testslib.js` `mergeTests()`): each class of `added`, `amended` and `relevant` upserted (its test level from its `testLevel`, else its package or path; `stage` the implementation stage reported; `rows` kept to the board's rows), a class kept in the highest list it reached; `ran`, the classes qa ran with their counts, sets each one's latest result (with the qa pass) and its count, the tests that run counted, and puts a class in no list into Relevant (a run named with its module, `"<module> componentTest"` or `":<module>:componentTest"`, is the same entry as `componentTest` of that module); `other` replaces the counts; `drop` removes a class, and one on no list is named in the summary (`tests.drop <class>: on no list of the board`), never passed over; `base` the ref of the diff | the Tests tab when an implementation stage or a qa verdict carries no `facts.tests`: Added and Amended from the branch's diff against its base, Relevant, Other and the results from the qa report |
@@ -1168,8 +1168,8 @@ naming an internal name (reworded, written as it is for the presenter to look at
 naming a work level, which is never written: reworded, its new wording in the summary for the presenter to read, or left out where a work level would remain, a board left off the template, the live board's folder not in `.git/info/exclude`, a
 `facts.tests` class with no name or naming a row not on the board, `facts.tests` on a tracking board); `no` otherwise (`landing`
 included).
-A failed run (exit 1, nothing changed) leaves the whole event to the presenter. `sized` on a folder with no board yet writes nothing
-and says `enrich: yes`: the presenter lays the foundation.
+A failed run (exit 1, nothing changed) leaves the whole event to the presenter. `sized` on a folder with no board yet writes no board of the
+issue's and says `enrich: yes`: the presenter lays the foundation; it still seeds the previous landing ("Seeding at sized", below).
 
 **`facts.tests`**, on any event (usually an `implementation-stage` or a `qa-pass`), all fields optional:
 
@@ -1193,8 +1193,8 @@ boards' Context links to the landing issue's board are written in the same Docum
 ### Seeding at sized
 
 A landing's state is shown in the main checkout's live view by the post-merge refresh, in view copies (below), and committed by the next
-run (admin-team/dashboards-skill/35, in place of the next landing's pre-merge corrections). When a run is **sized in a worktree branched after
-that landing**, `apply-event.js` (at `sized`, never with `--view`) starts the boards the landing changed from the main checkout's view copies
+run (admin-team/dashboards-skill/35, in place of the next landing's pre-merge corrections). When a run is **sized in a tree branched after
+that landing** (its worktree, or the main checkout where the run works there), `apply-event.js` (at `sized`, never with `--view`) starts the boards the landing changed from the main checkout's view copies
 (`docs/plans/.live/view/`): each copy **fresher than the worktree's tracked board** (`lib.js` `planStamp()`) whose merge (`asBuilt.merge`,
 else `sha`) is in the worktree's history (`git merge-base --is-ancestor`) is written over the tracked board (its `plan.json`, its board and
 its `plan.js`, its links resolved from the tracked folder, never into `.live/`), and a copy with no merge of its own — the parent tracking
@@ -1202,8 +1202,13 @@ board, its unit landed and the next one up — with it. **A merge that marks an 
 too: both are seeded together** — a landed sub-issue seeded without its tracking board's copy marks its unit landed on the tracked tracking
 board by the standing rule (§3). Then the worktree's committed repository work board is regenerated (`board.js --refresh-template`), so the
 new branch carries the previous landing's state — the issue board `landed` at its merge, the tracking board's unit landed and next up, the
-repository work board — from its first commit. Nothing is seeded in the main checkout itself, or from a copy whose merge the branch does
-not hold; the summary names the boards it seeded (`seeded`) and those it left. Every seeded board is checked with the issue's.
+repository work board — from its first commit. **The seed does not wait for the issue's own board**: a `sized` on a folder with no board yet
+answers `no-board` and seeds all the same, under the same staged set, checking every seeded board and regenerating the committed and the live
+repository work boards; the foundation and the event raised again follow, and that second `sized` finds nothing fresher to seed and starts the unit on its
+tracking board. **A run in the main checkout seeds its tracked boards like a worktree's**, uncommitted, as its foundation is, and they ride its branch; `--view` never
+seeds, so nothing else writes them. The tracked boards then tie their copies, so `board.js --live` removes the copies; a run cancelled there and its
+changes discarded rebuilds them by raising `landing`, `merge` and `landed` with `--view` again. Nothing is seeded from a copy whose merge the
+branch does not hold; the summary names the boards it seeded (`seeded`) and those it left. Every seeded board is checked with the issue's.
 
 ### The live view of a landing
 
