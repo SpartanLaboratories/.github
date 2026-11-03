@@ -354,7 +354,8 @@ the ones the build leaves open, and the outcome of the plan's assumptions and fo
 each assumption that failed and each follow-up still open, linked back to the plan. Known
 gaps live only in `consequences.md`; `final-implementation.md` and the design documents have
 no Known gaps section. The research keeps its own Gaps in `research/`. The two files never restate
-each other: each fact has one home, and the other file links to it. For a sub-issue, the
+each other: each fact has one home, and the other file links to it. Neither writes a PR
+placeholder: the issue's resolution comment links the PR. For a sub-issue, the
 parent's `consequences.md` gets its one link line for the unit. No open point is
 committed open, whatever raised it: before the document-landing commit each is resolved (by
 remediation, for a qa finding), or settled as a deviation in `final-implementation.md` or as a

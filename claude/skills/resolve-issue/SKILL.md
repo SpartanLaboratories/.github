@@ -375,7 +375,8 @@ on it):
    dashboard pointer, the template splice, the tracking board re-embed and the
    repository work board, all stamped "as-is at `<branch>` @ `<code-landing
    sha>`"; at level 4 the planned systems drawn dashed. The team raises the
-   issue board's `state-boards` step itself and replies `done` with the paths.
+   issue board's `state-boards` step itself, also making the commit task
+   (`document-landing`) current, and replies `done` with the paths.
    A reply reporting `BLOCKED — system unresolved`: **stop** and ask the user
    which system the work belongs to; resend the same `id` with `attempt + 1`
    and the answer.
@@ -385,7 +386,9 @@ document the step wrote or changed (the reconciled plan documents, the README
 and CHANGELOG), the issue's board files, its tracking board's, the repository
 work board and the state-board files; the executor splits them per its
 guidelines, `docs:` type. Its `done` reply's sha is the **document-landing
-commit**. A `needs-rework` with `result.finds` means a file names the pipeline
+commit**. The team closes the board's commit task before it commits; send no
+`document` event after the `commit` request, because it would dirty the
+worktree. A `needs-rework` with `result.finds` means a file names the pipeline
 or a work level: reword each `file:line` (or have the agent that wrote it
 reword it) and resend the same `id` with `attempt + 1`. Then step 7.
 
@@ -417,7 +420,7 @@ sends none.
 | Each rookie-dev report | `implementation-stage` | the stage, `stages`: every stage's id and name with its state (`done`, `current`, `todo`), `final-implementation.md` path, deviations; during a remediation loop also `remediation`: the qa pass it answers, the route (`on-the-spot` / `remediation` / `re-plan-then-remediation`) and its sub-steps with their state; `tests`: the test classes the stage added or amended (`added`/`amended`: class, module, testLevel, path, tests, rows). It names no `step` |
 | Just before each `qa` pass is spawned | `qa-pass` | `qa: {pass: N, verdict: "running"}`, `at` |
 | Each qa verdict | `qa-pass` | pass number, verdict, finding counts by kind (test, code) and by `severity` (`minor` — easily made, no fallout — and `other`), the route step 5 takes from them, `rows`: the board row ids the findings touch, report path; `tests`: what the qa run ran (`ran`: class, module, passed, failed, skipped) and the counts of the untouched modules' tests (`other.byModule`) from the test-inspector report |
-| Step 6 starts, and each task change in it | `document` | `tasks`: every task's id and name with its state (`done`, `current`, `todo`), like `implementation-stage`'s `stages` — ids `documentation-review`, `reconcile-documentation`, `dokka-check`, `reconcile-plan`, `readme-changelog`, `state-boards`; once `prepare-landing` replied, the code-landing sha |
+| Step 6 starts, and each task change in it | `document` | `tasks`: every task's id and name with its state (`done`, `current`, `todo`), like `implementation-stage`'s `stages` — ids `documentation-review`, `reconcile-documentation`, `dokka-check`, `reconcile-plan`, `readme-changelog`, `state-boards` (the board adds `document-landing`, which the run need not send); once `prepare-landing` replied, the code-landing sha |
 | An escalation | `escalated` | the proposed level and evidence |
 | The run is abandoned | `cancelled` | the reason |
 
@@ -435,7 +438,8 @@ remediation loop, `implementation-stage` also carries `rows`: the board row ids
 the fixes touch.
 
 The team raises the issue board's `state-boards` step itself inside the
-`state-boards` request of step 6, and `landed` itself inside `land`; the
+`state-boards` request of step 6, the commit task (`document-landing`) inside
+that request and the `commit` after it, and `landed` itself inside `land`; the
 board's landing steps are `landing → merge → landed`. When the presenter fixes
 a defect in the `dashboards` skill during any of this, the team syncs those
 files to the `.github` mirror itself; step 8 mentions them if the `done`

@@ -1,6 +1,6 @@
 // Work levels and the boards (admin-team/dashboards-skill/option-d-and-decisions): a work level is never kept in plan.json. Not a command.
 // A board's kind and its wip.steps answer what a script asks (tracking or not; a line with an interview or not); where a script needs the level at
-// the moment of an event it comes from the request (its level, facts.level, facts.proposedLevel), else from the team's local state
+// the moment of an event it comes from the request (its level, facts.level), else from the team's local state
 // (~/.claude/admin-team/state.json, levels["owner/repo#n"]), never from the board. A board written before this may still carry the fields:
 // plan.level, rows[].unit.level, wip.proposedLevel and a unit's mirror's proposedLevel. They are read without failing. A landed work board keeps
 // them, whatever rewrites it, and nothing re-adds them; a board not landed drops them at any rewrite, and check.js fails one that holds them. A

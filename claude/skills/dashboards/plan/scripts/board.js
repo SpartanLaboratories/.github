@@ -42,7 +42,7 @@
 // blocked-by links and the tracking boards' unit.blockedBy (plan/RULES.md §5; admin-team/dashboards-skill/30).
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), url = require("url");
-const { atomicWrite, repoRoot, flag, opt, registry, findPlans, VIEW, viewSource, treeRoot, planStamp, subIssueBoard, shownBranch, unitBranch, reconciliation, leftForLater, boardlessState, unitInRun, qaShown, depBuild, depLocality, holdState } = require("./lib.js");
+const { atomicWrite, repoRoot, flag, opt, registry, findPlans, VIEW, viewSource, treeRoot, planStamp, notYetLanded, landedPending, unitLeft, UNIT_LANDED, subIssueBoard, shownBranch, unitBranch, reconciliation, leftForLater, boardlessState, unitInRun, qaShown, depBuild, depLocality, holdState } = require("./lib.js");
 /* a pass's route written with its neutral id (GUIDANCE.md §4, "No internal names"): a board recorded before the rename keeps the older
    rookie-dev and planner-then-rookie-dev, read alike everywhere; board.json is generated, so it carries the neutral ones */
 const ROUTE_NEUTRAL = { "rookie-dev": "remediation", "planner-then-rookie-dev": "re-plan-then-remediation" };
@@ -53,7 +53,7 @@ const reasonOf = x => x && x.state === "CLOSED" && x.stateReason ? { stateReason
 const { embed } = require("./embed.js");
 
 const args = process.argv.slice(2);
-require("../../system/scripts/cliargs.js").strict(args, { usage: "usage: node board.js [--root <repo>] [--ref <branch>] [--refresh-template] [--no-gh] [--live]\nRegenerates docs/plans/board.json and index.html (with --live, docs/plans/.live/ instead).", valued: ["root", "ref"], flags: ["refresh-template", "no-gh", "live"], max: 0 });
+require("../../system/scripts/cliargs.js").strict(args, { usage: "usage: node board.js [--root <repo>] [--ref <branch>] [--refresh-template] [--no-gh] [--live] [--settled]\nRegenerates docs/plans/board.json and index.html (with --live, docs/plans/.live/ instead).", valued: ["root", "ref"], flags: ["refresh-template", "no-gh", "settled", "live"], max: 0 });
 let root; try { root = repoRoot(args); } catch (e) { console.error(e.message); process.exit(2); }
 const live = flag(args, "live");
 const plansDir = path.join(root, "docs", "plans"), outDir = live ? path.join(plansDir, ".live") : plansDir;
@@ -94,7 +94,9 @@ trees.forEach(t => findPlans(t).forEach(p => {
 /* The live view's copies (docs/plans/.live/view/, lib.js viewOf(); plan/RULES.md §4, "The live view of a landing"), with --live: a copy
    fresher than the main checkout's tracked board stands in for it (the landed state the post-merge refresh wrote), its row's board
    link the copy's; its folder, links and Markdown are the tracked board's. A copy no fresher than the tracked board (the next landing
-   committed its state), or one whose board is gone, is stale: removed. */
+   committed its state), or one whose board is gone, is stale: removed, unless the post-merge refresh still writes it: merged with parts to resolve (lib.js landedPending()),
+   a tracking board's copy with a copy not yet landed inside it, or either side of a landed unit its tracking board's copy has not finished (lib.js unitLeft(); on the unit's side only while its tracked board ties the copy, as a seed leaves it). Such a copy is kept
+   but not shown, as a board only follows a fresher copy. --settled, which the event reseed passes at the end of the refresh, keeps only the first two. */
 const viewNotes = [];
 if (live) {
   const vroot = path.join(root, ...VIEW), copies = [];
@@ -104,6 +106,12 @@ if (live) {
   const read = f => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch (e) { return null; } };
   copies.forEach(vd => {
     const src = viewSource(vd), vp = read(path.join(vd, "plan.json")), tp = read(path.join(src, "plan.json")), rel = p => path.relative(root, p).split(path.sep).join("/");
+    const inside = vp && copies.filter(d => d !== vd && d.startsWith(vd + path.sep)).map(d => read(path.join(d, "plan.json"))).filter(Boolean), outer = vp && read(path.join(path.dirname(vd), "plan.json"));
+    const unfinished = (trk, sub) => { const r = trk && trk.kind === "tracking" && sub ? (trk.rows || []).find(x => x && x.unit && x.unit.issue === sub.issue) : null; return !!r && UNIT_LANDED.includes((r.asBuilt || {}).state) && unitLeft(trk, r).length > 0; };
+    const refreshing = vp && ((landedPending(vp) && tp && tp.status !== "built") || (vp.kind === "tracking" && inside.some(notYetLanded)) || (!flag(args, "settled") && (vp.kind === "tracking" ? inside.some(s => unfinished(vp, s)) : tp && planStamp(vp) === planStamp(tp) && unfinished(outer, vp))));
+    if (vp && tp && !(planStamp(vp) > planStamp(tp)) && refreshing) {
+      viewNotes.push(`kept the view copy ${rel(vd)}/, not yet landed: its enrichment writes it, and no board follows it while it is no fresher`); return;
+    }
     if (!vp || !tp || !(planStamp(vp) > planStamp(tp))) {
       ["plan.json", "dashboard.html", "plan.js"].forEach(f => fs.rmSync(path.join(vd, f), { force: true }));
       for (let d = vd; path.relative(vroot, d) && !path.relative(vroot, d).startsWith(".."); d = path.dirname(d)) { try { fs.rmdirSync(d); } catch (e) { break; } }

@@ -165,7 +165,7 @@ reword it, then run the step again.
 |--------|------------------------|
 | `setup-branch` | Create or confirm the topic branch from its base; record the issue's confirmed level in the team's state (never on GitHub). |
 | `allocate-worktree` | `git worktree add` at `C:\wt\<repo>-<issue>` (a short path: Windows' 260-character limit breaks deep repos under long paths), from the current default branch. Reply with the path. |
-| `commit` | Commit exactly `paths` on `branch` in `worktree` and push. May be fire-and-forget: the planner's research commits don't wait. |
+| `commit` | Commit exactly `paths` on `branch` in `worktree` and push. May be fire-and-forget: the planner's research commits don't wait. Before a run's document-landing commit, raise its `document-landing` task done, ahead of the scan (The landing steps). |
 | `sync-branch` | Bring `branch` up to date with its base (merge, the repo's way). Report the files the base changed that the branch also touches. |
 | `prepare-landing` | Opens the run's Document step. Commit whatever of the run's change set (`paths`: the code with its plan) is not yet committed, then sync `branch` with its base (the `sync-branch` step; `needs-rework` naming the overlap when the base changed files the branch also touches, and the request stays queued as not-ready until the same `id` returns with a higher `attempt` and a fresh `qa`; a clean sync proceeds), then commit the bump the level calls for per `version-control-manager.md`, push, and reply `done` with `result.head`: the **code-landing commit**, the branch's last code change. From here on only documents change on the branch; the run builds its documents and asks for its state boards against this head. No PR, no boards. |
 | `land` | Per `version-control-manager.md` and `level`, in one executor spawn (Landing, below). The change set is already committed: the code-landing commit (`prepare-landing`), then the run's document-landing commit (its `commit` of the documents, the issue's and tracking board files, the repository work board and the state boards). The executor confirms the base has not moved since the `prepare-landing` sync; if it has, it syncs again under the same rule, and when the new changes touch a system the state boards cover you run the `state-boards` task again at the new head and the executor commits it as `docs: refresh state boards for #<issue>`. Then push, PR, merge, resolution comment; then delete the branch (local and remote) and remove the worktree it was given. Then the release consideration when the bump moved a published module (Service: publishing), then the post-merge landed view (below). A `land` with no `issue` (a docs or config branch) gets a `docs:` PR titled by `title`, no closing keyword, no resolution comment, no bump. |
@@ -196,8 +196,13 @@ reword it, then run the step again.
   `node ~/.claude/skills/dashboards/plan/scripts/apply-event.js --event <landing.json> --worktree <the run's worktree> --main <main checkout> --repo <owner/repo> --view`
   before the merge; after it, `--worktree` is the main checkout. `landed` follows
   the merge, in the post-merge landed view. The `state-boards` step belongs to the run's
-  Document step: raise it when you accept the run's `state-boards` request (Service:
-  dashboards).
+  Document step: raise it when you accept the run's `state-boards` request, and with
+  `facts.done: true` just before you reply `done` to it (Service: dashboards), which makes its
+  `document-landing` task current. On a run with an issue board, close that task just before the
+  scan and the executor's commit of the document-landing commit (the run's `commit` after that
+  reply), so the commit carries it closed:
+  `{"v":1,"action":"plan-board","github":"<owner/repo>","issue":<n>,"event":"document","folder":"docs/plans/<…>/<n>-<slug>","facts":{"tasks":[{"id":"document-landing","state":"done"}]}}`, then
+  `node ~/.claude/skills/dashboards/plan/scripts/apply-event.js --event <req.json> --worktree <the run's worktree> --main <main checkout> --repo <owner/repo>`.
 - **Planning-docs landing.** A `land` that resolves no issue, such as a planning-docs PR, has no
   Document step of its own; a `state-boards` request on its branch is served like any other, and
   its post-merge view regenerates the live repository work board.
@@ -226,7 +231,10 @@ reword it, then run the step again.
   repository work board. They stay in the live view until the next run in that repository
   starts: its `sized` seeds them onto its branch from the view copies (Seeding, under Service:
   dashboards), and they land with it. `state.json` carries them per repository
-  (`corrections`). The default branch changes only at a landing.
+  (`corrections`). The default branch changes only at a landing. When the refresh has ended, any
+  presenter job included, raise `reseed`, which does nothing when nothing raced (Seeding):
+  `{"v":1,"action":"plan-board","github":"<owner/repo>","event":"reseed","facts":{}}`, then
+  `node ~/.claude/skills/dashboards/plan/scripts/apply-event.js --event <reseed.json> --worktree <main checkout> --main <main checkout> --repo <owner/repo>`.
 - **Overlap warning.** The ledger records the paths each in-flight branch
   touches (from `setup-branch`, `commit` and `land` requests). When two
   in-flight branches in one lane touch the same hand-written file, send both
@@ -270,8 +278,11 @@ appear at this console too; the launcher's settings file allows the routine
 Allocate under `C:\wt\`, create the folder if missing, name
 `<repo>-<issue>`. Record every allocation in the ledger. Remove a worktree
 only after its `land` is done or its requester cancels; `git worktree prune`
-after each removal. A worktree with uncommitted changes is never removed
-without the user's confirmation (the gate).
+after each removal. `core.longpaths` is set globally on this machine; if
+`git worktree remove` still fails with a long-path error, the executor removes
+the clean worktree with `rm -rf` on its allocated path and `git worktree prune`,
+and logs it (`version-control-manager.md`, Removing a worktree). A worktree with
+uncommitted changes is never removed without the user's confirmation (the gate).
 
 ## Service: dashboards
 
@@ -294,12 +305,13 @@ real time; every other dashboard request runs in its repository's lane.
   glow, the wait state, the trail entry and open points. It then rewrites the board's `plan.js`,
   re-embeds the parent tracking board and regenerates the live work board, in seconds. Reply `done` as
   soon as it exits clean. When its output says `enrich: yes`, queue a presenter run in plan-board mode
-  behind it in the same lane (behind a `sized` that laid a board, in a fill lane, below), reply
-  `progress`, then reply `done` when the presenter finishes. That
+  in a fill lane (below), reply `progress`, then reply `done` when the presenter finishes. That
   covers an event that needs facts from the folder's documents (a `sized` event that laid a board,
   `researched`, `plan-accepted`, `implementation-stage`, a `qa-pass` verdict, `escalated`, `cancelled`) or
-  anything the script could not apply. If the script fails, fall back to the presenter run and say so
-  in the reply. The script writes only the issue's board files, its parent tracking board's, and
+  anything the script could not apply. If the script fails, the presenter fixes the cause and you
+  raise the event again, as a failed `sized` already does, and say so in the reply; nothing writes
+  the event's result directly. If the fix is beyond a plain defect, the event waits: tell the user
+  and the run. The script writes only the issue's board files, its parent tracking board's, and
   `docs/plans/.live/`, and commits nothing.
 - **More onto the fast path** (standing rule). `presenter` may always decide on its own to move
   something onto the fast path, so that `apply-event.js` or `apply-state.js` applies more facts
@@ -310,7 +322,9 @@ real time; every other dashboard request runs in its repository's lane.
   `node ~/.claude/skills/dashboards/system/scripts/apply-state.js --event <request.json> --worktree <path> --repo <owner/repo>`
   on the same request. It stamps the touched systems' state boards "as-is at `<branch>` @ `<sha>`
   · not yet landed". What it writes rides the next commit in that repository's lane. On
-  `enrich: yes`, queue a presenter run.
+  `enrich: yes`, queue a presenter run. When it refuses a slug the registry does not list
+  (`BLOCKED — system unresolved`), reply `done` for the board and name the block and the slug in
+  the reply; the stamp waits, and the Document step stops and asks.
 - **A tracking plan's unit boards.** `file-sub-issues` follows the plan's merge, so its events are
   raised from the main checkout with `apply-event.js --view`, as `landed` is, and nothing tracked
   is written. While it files the units, raise `sub-issues-filed` for each unit as it is filed
@@ -340,10 +354,11 @@ real time; every other dashboard request runs in its repository's lane.
   update lane and of any presenter run, and lays the board in seconds
   (`plan/RULES.md` §4, "The foundation"). No board is laid ahead of its run's
   `sized`.
-- **Board-fill lanes**: one per board being filled (the presenter run behind a
-  `sized` that laid it, or that could not lay it), **at most 3 running at once**;
-  more wait in a queue. Events keep applying during a fill, on the fast path in
-  the update lane: the fill merges onto the latest `plan.json` through `fill.js`
+- **Board-fill lanes**: every enrichment runs in one (the presenter run behind a
+  plan-board event, a `sized` that laid its board or could not lay it included),
+  one per board, **at most 3 running at once**; more wait in a queue. The fast
+  path always applies at once: events keep applying during a fill, in the update
+  lane: the fill merges onto the latest `plan.json` through `fill.js`
   (`plan/RULES.md` §4, "The fast path").
 - **No commits.** A board update or a laying writes the issue's board in its
   worktree and nothing is committed. The issue's board files
@@ -377,17 +392,20 @@ real time; every other dashboard request runs in its repository's lane.
   the tracking board's filed units, its unit landed and next up, the repository work board) in its document-landing
   commit. A merge that marks an issue landed on its own board marks it so on the parent too:
   both are seeded together. Append `corrections-seeded`; when that branch lands, append
-  `corrections-committed`; a cancelled branch leaves them pending again.
+  `corrections-committed`; a cancelled branch leaves them pending again. A `sized` during a
+  post-merge refresh seeds the copies as they stand and the run is not delayed (`plan/RULES.md` §4,
+  "Seeding at sized"): append `corrections-seeded`, and keep the pending corrections until `reseed`
+  reports.
 - **Streamlined.** `apply-event.js` lays a new board from the template (`presenter`
   with `new.js`, when that fails), and the checks cover only what deviates from it
   (`dashboards` skill, GUIDANCE).
 
 | Action | What you do |
 |--------|-------------|
-| `plan-board` | In the board lanes: run `apply-event.js` (the fast path, above) and reply `done`. When it reports `enrich: yes`, spawn `presenter` (`subagent_type: "presenter"`, `run_in_background: true`) in **plan-board mode** with the request: the issue, its folder, the `event` and its facts, the worktree and branch. It fills the issue board through `fill.js` (a board the fast path could not lay, it lays with `new.js`), re-embeds, checks, and regenerates the live repository work board. No commit. Reply `done` with the paths. |
+| `plan-board` | A request from another session naming an event only you raise (`run-restarted`, `state-boards`, `landing`, `merge`, `landed`, `sub-issues-filed`, `reseed`) is `rejected`, naming the rule. Otherwise, in the board lanes: run `apply-event.js` (the fast path, above) and reply `done`. When it reports `enrich: yes`, spawn `presenter` (`subagent_type: "presenter"`, `run_in_background: true`) in **plan-board mode**, in a fill lane (Board lanes), with the request: the issue, its folder, the `event` and its facts, the worktree and branch. It fills the issue board through `fill.js` (a board the fast path could not lay, it lays with `new.js`), re-embeds, checks, and regenerates the live repository work board. No commit. Reply `done` with the paths. |
 | `dashboards-refresh` | On request, at the current default branch: `presenter` in **dashboards-refresh mode** for the named systems' state boards, or for every board. |
-| `state-boards` | On the run's request in its Document step, after its code-landing commit, on the branch, in the repository's lane: raise the issue board's `state-boards` step (`apply-event.js`), then `presenter` in **state-boards mode** — the changed systems' state boards as built, the supersystem and repository state boards, `systems.json`, the README pointer, the template splice (`system/scripts/splice.js`, keeping declared divergences), the tracking board re-embed and the repository work board (`--refresh-template`), all stamped with `system/scripts/apply-state.js` "as-is at `<branch>` @ `<code-landing sha>`", and at level 4 the planned systems drawn dashed. No commit: the run's document-landing commit carries them. Reply `done` with the paths. The `land` runs it again only when the base moved under a covered system (Landing). |
-| as part of `land` | `landing` and `merge` raised with `apply-event.js --view` (The landing steps). After the merge, in the main checkout: `landed` raised the same way — the landed state for viewing only (view copies under `docs/plans/.live/view/` and the live repository work board in `docs/plans/.live/`), nothing tracked; `presenter` in **post-merge-refresh mode** only on `enrich: yes` or a failure; the ledger records the corrections the next run seeds onto its branch at `sized` (Seeding). |
+| `state-boards` | On the run's request in its Document step, after its code-landing commit, on the branch, in the repository's lane: raise the issue board's `state-boards` step (`apply-event.js`), then `presenter` in **state-boards mode** — the changed systems' state boards as built, the supersystem and repository state boards, `systems.json`, the README pointer, the template splice (`system/scripts/splice.js`, keeping declared divergences), the tracking board re-embed and the repository work board (`--refresh-template`), all stamped with `system/scripts/apply-state.js` "as-is at `<branch>` @ `<code-landing sha>`", and at level 4 the planned systems drawn dashed. No commit: the run's document-landing commit carries them. Just before replying, raise the step again with `facts.done: true`, closing the Document step's task, so that commit carries it closed, and making its `document-landing` task current; raise that task done before the commit's scan (The landing steps). Reply `done` with the paths. The `land` runs it again only when the base moved under a covered system (Landing). |
+| as part of `land` | `landing` and `merge` raised with `apply-event.js --view` (The landing steps). After the merge, in the main checkout: `landed` raised the same way — the landed state for viewing only (view copies under `docs/plans/.live/view/` and the live repository work board in `docs/plans/.live/`), nothing tracked; `presenter` in **post-merge-refresh mode** only on `enrich: yes` or a failure; `reseed` once the refresh has ended, any presenter job included (Post-merge landed view); the ledger records the corrections the next run seeds onto its branch at `sized` (Seeding). |
 
 **Next is the next one up** (standing rule). When a sub-issue lands, its unit
 on the parent tracking board is set to `landed`, taken out of `wip.current`,

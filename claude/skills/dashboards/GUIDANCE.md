@@ -493,7 +493,7 @@ template feature, tagged with the skill step that added it and the board types i
 switch and its script before the first paint, the dark palette, the labelled tags, the 1500 px layout, the `BOARDS` map, the live
 indicator present or absent by type, one-line ledes, reduced motion wherever anything animates, a tabindex on every role=button, the
 tablist's keys, the state block, the as-is header, the legends of Guarantees and Context, the work-board link, the links from the data,
-the Markdown copies, the progress notes, a tracking board's steps, the KPI bars, the neutral bug badge, the chain, core subsystems, the tiles'
+the Markdown copies, the progress notes, every progress note drawn, whatever its name, a tracking board's steps, the KPI bars, the neutral bug badge, the chain, core subsystems, the tiles'
 legends inside each tile, no "board" tag, the title's `#n`, "since" said once by the step panel, the larger charging arrow, the landing
 step, the Tests tab, the Timeline tile's legend of step visits and its kinds of work, approximate bounds, the Timeline tab and its tracers, the landing's
 steps, the Design tab, a sub-issue's roadmap naming its parent, a reference's section number before its excerpt, no work level in the board's data, the
@@ -644,14 +644,14 @@ reached its landing before the change):
 
 1. **The Document step**, on the issue's branch, between qa (or remediation) and the land: its tasks — `documentation-review`,
    `reconcile-documentation`, `dokka-check`, `reconcile-plan` (the reconciled `final-implementation.md` and `consequences.md`),
-   `readme-changelog` and `state-boards` — each done, current or to do, several at once where they run in parallel (the `document` event,
+   `readme-changelog`, `state-boards` and `document-landing` — each done, current or to do, several at once where they run in parallel (the `document` event,
    `plan/RULES.md` §4). The **state boards are built in it**: when the team accepts the run's `state-boards` request it raises that task
    itself, and the presenter's `state-boards` mode writes the changed systems' state boards as built, the supersystem and repository state
    boards, `systems.json`, the README's pointer, the splice onto the current template, the tracking board's re-embed, the committed
    repository work board (`board.js --refresh-template`) and, for a tracking issue, its planned systems drawn dashed — every state board
    stamped "as-is at `<branch>` @ `<code-landing sha>`", the sha the request gives: the branch's last code commit, after the sync and the
    bump (`apply-state.js` `facts.document`). Only documents change after it, so nothing is restamped at the land; the boards land in the
-   same merge.
+   same merge. The team makes `document-landing` current when the state boards finish and closes it just before the document-landing commit, which carries it closed.
 2. **The land**: `landing` (the land accepted; every open point resolved by then, as none is committed open, `plan/RULES.md` §3) and
    `merge`, then `landed`. The board is committed by now, so both are raised into the view copies (`apply-event.js --view`), before the merge from the
    run's worktree or after it from the main checkout, with their real times and no tracked file written (`plan/RULES.md` §4, "The live view of a landing").
@@ -663,7 +663,9 @@ reached its landing before the change):
    **seeded at the next run's `sized`**: a run sized in a worktree branched after the landing starts those boards from the main checkout's
    view copies (`apply-event.js`, `plan/RULES.md` §4, "Seeding at sized"), so its branch carries the landed state in its document-landing commit.
    A merge that marks an issue landed on its own board does so for its parent too: both are seeded together. There is never a follow-up
-   docs pull request.
+   docs pull request. A `sized` during the refresh seeds the copies as they stand and is not delayed; the team's `reseed`, at the end of every post-merge refresh, brings the
+   finished state to those boards, and does nothing when nothing raced. Until a later landing commits the state, a tracked board opened on this machine follows its fresher view
+   copy in place, labelled the live view (`plan/RULES.md` §1).
 
 A **planning-docs landing** — a docs pull request that resolves no issue (a plan folder, a roadmap document) — takes a small state-boards
 refresh on its branch: the committed repository work board, and the repository state board where the repository has one.

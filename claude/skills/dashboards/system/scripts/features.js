@@ -194,6 +194,10 @@ const FEATURES = [
   { id: "timeline-tab", name: "the Timeline tab after Design: the Timeline tile, the KPI tiles below it with their tracers, on every issue board (a board in flight its steps so far)", since: 34, types: ["plan-board"],
     notFor: { system: "its tiles are hand-written counted facts: a state board shows no run's steps", supersystem: "no KPI tiles and no run", "work-board": "one row per run: its tiles count runs and say no step's time; each run's steps are on its own board" },
     test: h => { const s = scripts(h); return need(/id="t-steps"[^>]*>Timeline</.test(h) && /<div class="tl-tile" id="tl-tile">/.test(h) && /function drawTracers\(/.test(s) && /function timelineTracers\(/.test(s) && !/<\/section>\s*<div class="kpis" id="kpis"><\/div>\s*<!--/.test(h), "the KPI tiles stand in the board's head, with no Timeline tab and no tracers (drawTracers(), timelineTracers())"); } },
+  /* admin-team/dashboards-skill/doc-landing-and-view-follow */
+  { id: "view-copy-follow", name: "a tracked issue or tracking board opened on this machine follows its fresher view copy at each poll, read-only, labelled the live view", since: 38, types: ["plan-board"],
+    notFor: { system: "a state board has no run steps and no view copy", supersystem: "a state board has no run steps and no view copy", "work-board": "its live view is a board of its own (docs/plans/.live/index.html), which the committed one links" },
+    test: h => { const s2 = scripts(h); return need(/const planStampOf=/.test(s2) && /function followSettle\(/.test(s2) && /dataset\.viewCopy/.test(s2) && /id="liveview"/.test(h), "the tracked board does not follow its view copy (planStampOf(), followSettle(), the script's data-view-copy, #liveview)"); } },
   /* admin-team/dashboards-skill/35 */
   { id: "document-step", name: "the Document step between qa and the land (its tasks in the step panel, the state boards among them), then the land in two steps, landing and merge", since: 35, types: ["plan-board"],
     notFor: { system: "no run steps", supersystem: "no run steps", "work-board": "it shows each run's step as text (its state column), from the board's own data" },

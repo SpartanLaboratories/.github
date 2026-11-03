@@ -69,11 +69,18 @@ module.exports = function casesExplicitStep(X) {
     c.push(["…nor on a board at the Document step", d.a.status === 0 && d.p.wip.step === "document" && d.p.wip.since === T2, js([d.p.wip.step, d.p.wip.since, d.S.error])]);
   });
 
-  guard("apply-event.js: remediation stays recognised, and a \"qa\" sent after one is ignored: the board waits for the running event", c => {
+  guard("apply-event.js: remediation is recognised from the report, never from facts.step, and a \"qa\" sent after one is ignored: the board waits for the running event", c => {
     const B1 = lay(board()), r1 = ev(B1, "implementation-stage", { remediation: REM(1, "current") }, T2);
     c.push(["facts.remediation: the step remediation", r1.a.status === 0 && r1.p.wip.step === "remediation" && r1.p.wip.remediation.pass === 1, js([r1.p.wip.step, r1.S.error])]);
-    const B2 = lay(board({ step: "qa", since: T1, remediation: REM(1, "done") })), r2 = ev(B2, "implementation-stage", { step: "remediation", stage: "R1", stages: STG("done", "done") }, T2);
-    c.push(["facts.step \"remediation\", an older caller: the step remediation", r2.a.status === 0 && r2.p.wip.step === "remediation" && r2.p.wip.since === T2, js([r2.p.wip.step, r2.S.error])]);
+    const IGN = /facts\.step "remediation" ignored/;
+    const B2 = lay(board({ step: "qa", since: T1, remediation: REM(1, "done") })), r2 = ev(B2, "implementation-stage", { step: "remediation", stage: "S2", stages: STG("done", "done") }, T2);
+    c.push(["facts.step \"remediation\" on a board at qa: ignored like any other, the visit runs on, and the summary says so", r2.a.status === 0 && r2.p.wip.step === "qa" && r2.p.wip.since === T1 && !vis(r2.p, "qa").length && (r2.S.applied || []).some(x => IGN.test(x)), js([r2.p.wip.step, r2.p.wip.since, r2.S.applied, r2.S.error])]);
+    const B2i = lay(board()), r2i = ev(B2i, "implementation-stage", { step: "remediation", stage: "S1", stages: STG("done", "current") }, T2);
+    c.push(["…on a board at implementation: the step stays, no remediation visit, the report worded as a stage's", r2i.a.status === 0 && r2i.p.wip.step === "implementation" && r2i.p.wip.since === T0 && !vis(r2i.p, "implementation").length && !r2i.p.wip.remediation && !/^Remediation/.test(r2i.p.trail[r2i.p.trail.length - 1].label) && (r2i.S.applied || []).some(x => IGN.test(x)), js([r2i.p.wip.step, r2i.p.wip.since, r2i.p.wip.remediation, r2i.p.trail.slice(-1), r2i.S.error])]);
+    const B2r = lay(board()), r2r = ev(B2r, "implementation-stage", { step: "remediation", stage: "R1", stages: [...STG("done", "done"), { id: "R1", name: "The fixes", state: "current" }], rows: [EX.rows[0].id] }, T2);
+    c.push(["…so a new stage it names is no remediation's: facts.rows is not taken as its rows", r2r.a.status === 0 && r2r.p.wip.step === "implementation" && js(r2r.p.wip.stages[2].rows) === "[]", js([r2r.p.wip.step, r2r.p.wip.stages, r2r.S.error])]);
+    const B2b = lay(board()), r2b = ev(B2b, "implementation-stage", { step: "remediation", remediation: REM(1, "current") }, T2);
+    c.push(["facts.step \"remediation\" beside facts.remediation: facts.remediation moves the step, the summary still names the step ignored", r2b.a.status === 0 && r2b.p.wip.step === "remediation" && r2b.p.wip.remediation.pass === 1 && (r2b.S.applied || []).some(x => IGN.test(x)), js([r2b.p.wip.step, r2b.S.applied, r2b.S.error])]);
     const B3 = lay(atRem()), r3 = ev(B3, "implementation-stage", { step: "qa", stage: "R1", stages: [...STG("done", "done"), { id: "R1", name: "The fixes", state: "done" }], rows: [] }, T3);
     c.push(["a facts.step \"qa\" after a remediation, its stages all done: ignored, the visit runs on, no qa visit", r3.a.status === 0 && r3.p.wip.step === "remediation" && r3.p.wip.since === T2 && !vis(r3.p, "remediation").length, js([r3.p.wip.step, r3.p.wip.since, r3.p.wip.history.remediation, r3.S.error])]);
     c.push(["…its wording follows the remediation, never \"qa next\", and the stage is the remediation's", !/qa next/.test(js([r3.p.wip.detail, r3.p.wip.event, r3.p.trail.slice(-1)])) && /^Remediation/.test(r3.p.trail[r3.p.trail.length - 1].label), js([r3.p.wip.detail, r3.p.trail.slice(-1)])]);

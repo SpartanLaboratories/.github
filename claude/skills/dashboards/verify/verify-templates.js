@@ -1552,7 +1552,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
       d => d.wip.step === "document" && JSON.stringify(d.wip.current) === '["built"]' && d.wip.remediation === null && d.wip.qa.length === 2 && !d.wip.qa[1].route); /* the Document step follows an approving pass since dashboards-skill/35 */
     step("issue board, parts unresolved", ISSUE, "landed", { merge: "abcdef1", pr: 99, date: "2026-10-25" }, true, d => d.wip.step === "merge" && d.status === "building" && d.asBuilt.sha === "abcdef1" && d.asBuilt.pr === 99); /* at the merge since dashboards-skill/34: its steps line brought up to the three landing steps */
     edit(ISSUE, d => { d.rows.forEach(r => { r.asBuilt = { state: "as-planned", summary: "Verification case: built as decided." }; }); });
-    step("issue board, every part resolved", ISSUE, "landed", { merge: "abcdef2", pr: 99, date: "2026-10-25" }, true, d => d.wip.step === "landed" && d.status === "built" && !d.wip.current.length && d.asBuilt.sha === "abcdef2");
+    step("issue board, every part resolved", ISSUE, "landed", { merge: "abcdef2", pr: 99, date: "2026-10-25" }, false, d => d.wip.step === "landed" && d.status === "built" && !d.wip.current.length && d.asBuilt.sha === "abcdef2");
     /* the other kinds, each on a fresh copy of the fixture */
     const fresh = f => { const d = copy(LIVE); if (f) f(d); board(ISSUE, d); };
     fresh(d => { d.wip.questions = []; d.wip.research = null; d.wip.current = ["considered"]; });
@@ -2193,6 +2193,12 @@ catch (e) { report("an explicit signal moves the step cases", [["the cases run t
    its writer's own; the watcher needs no event, runs only where .live is git-ignored and stops by itself. It needs no browser. */
 try { require("./cases-progress-index.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the progress notes' index cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
+/* The Document step's last task, a view copy followed and left until it has landed, the fill's impact lists, the landed summary's enrich (verify/cases-doc-landing.js;
+   admin-team/dashboards-skill/doc-landing-and-view-follow). It needs no browser, and runs on its own too (node verify/cases-doc-landing.js); the follow in a browser is
+   verify/browser-view-follow.js, run only when a person asks for it. */
+try { require("./cases-doc-landing.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the document-landing and view-copy cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* A foundation on the fast path (verify/cases-foundation.js; admin-team/board/foundation-fast-path): a sized with no board lays it, applies the
    event, re-embeds the parent tracking board and regenerates the live repository work board; its facts each from the first source that tells

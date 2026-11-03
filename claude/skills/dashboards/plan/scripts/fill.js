@@ -10,6 +10,8 @@
 //   documents, notes, issueBoards.
 //   Merge: an object merges key by key; a list of objects with an identity (rows and options by id, systems by slug, issue lists by issue, tests by class,
 //   ...) merges item by item, a new item appended, an item not named left alone, { "$remove": true } removing one; when every item is named the fill's order wins.
+//   impact.units merges by unit; impact.changes and a unit entry's changes merge by what each names (unit, entry, what, none), so a concurrent entry is kept: an
+//   item the fill does not name stays, { ..., "$remove": true } removes one, and an empty list there adds nothing (null clears the list).
 //   Any other list and any other value replaces what is there. null clears a field.
 //   Left alone, whatever the fill says, on a row: asBuilt.state unless the fill's is an outcome (the events derive pending, in-progress and partially-built; a
 //   complete or landed unit stays so), and unit.issue, unit.board, unit.folder and unit.live once set (the filing and embed.js write them).
@@ -47,8 +49,17 @@ function withoutLevels(v, at, dropped) {
     out[k] = withoutLevels(v[k], here, dropped); });
   return out;
 }
-function mergeValue(cur, next) {
-  if (isObj(cur) && isObj(next)) { const out = { ...cur }; Object.keys(next).forEach(k => { out[k] = mergeValue(cur[k], next[k]); }); return out; }
+/* A change's identity: a difference names its unit and the entry it changed and says what changed; "no change" is one per unit. A list a fill composed earlier
+   may not hold an entry written meanwhile, so these lists are never replaced whole. */
+const changeKey = c => JSON.stringify([c.unit == null ? null : c.unit, c.entry == null ? null : c.entry, c.what == null ? null : c.what, c.none === true]);
+const KEPT_LISTS = { "impact.units": x => x.unit, "impact.changes": changeKey, "impact.units[].changes": changeKey };
+function mergeValue(cur, next, at = "") {
+  if (isObj(cur) && isObj(next)) { const out = { ...cur }; Object.keys(next).forEach(k => { out[k] = mergeValue(cur[k], next[k], at ? `${at}.${k}` : k); }); return out; }
+  const kept = KEPT_LISTS[at];
+  if (kept && Array.isArray(next) && next.every(x => isObj(x) && kept(x) != null) && (cur == null || (Array.isArray(cur) && cur.every(x => isObj(x) && kept(x) != null)))) {
+    if (!next.length) return cur == null ? next : cur;
+    return mergeList(cur || [], next, kept, at === "impact.units" ? (c, n) => mergeValue(c, n, "impact.units[]") : (c, n) => ({ ...c, ...n }));
+  }
   if (Array.isArray(cur) && Array.isArray(next) && next.length) {
     const key = identityOf(next);
     if (key && cur.every(x => isObj(x) && x[key] != null)) return mergeList(cur, next, key, mergeValue);
@@ -56,11 +67,12 @@ function mergeValue(cur, next) {
   return next;
 }
 function mergeList(cur, next, key, mergeItem) {
-  const named = new Map(next.map(x => [String(x[key]), x])), kept = [];
-  cur.forEach(x => { const n = named.get(String(x[key])); if (!n) kept.push(x); else if (!n.$remove) kept.push(mergeItem(x, n)); });
-  next.filter(n => !n.$remove && !cur.some(x => String(x[key]) === String(n[key]))).forEach(n => { const { $remove, ...rest } = n; kept.push(rest); });
+  const K = x => String(typeof key === "function" ? key(x) : x[key]);
+  const named = new Map(next.map(x => [K(x), x])), kept = [];
+  cur.forEach(x => { const n = named.get(K(x)); if (!n) kept.push(x); else if (!n.$remove) kept.push(mergeItem(x, n)); });
+  next.filter(n => !n.$remove && !cur.some(x => K(x) === K(n))).forEach(n => { const { $remove, ...rest } = n; kept.push(rest); });
   /* when the fill names every item, its order wins */
-  if (cur.every(x => named.has(String(x[key])))) { const at = new Map(next.map((n, i) => [String(n[key]), i])); kept.sort((a, b) => at.get(String(a[key])) - at.get(String(b[key]))); }
+  if (cur.every(x => named.has(K(x)))) { const at = new Map(next.map((n, i) => [K(n), i])); kept.sort((a, b) => at.get(K(a)) - at.get(K(b))); }
   return kept;
 }
 function mergeRow(cur, next, notes) {
@@ -84,7 +96,7 @@ function mergeFill(board, fields) {
     if (k === "rows" && Array.isArray(F.rows)) {
       if (F.rows.some(r => !isObj(r) || typeof r.id !== "string" || !r.id)) throw new Refused("rows: every row names its id");
       plan.rows = mergeList(Array.isArray(plan.rows) ? plan.rows : [], F.rows, "id", (c, n) => mergeRow(c, n, notes));
-    } else plan[k] = mergeValue(plan[k], F[k]);
+    } else plan[k] = mergeValue(plan[k], F[k], k);
     merged.push(k);
   });
   /* the two narrow ways into what the events own */
@@ -159,4 +171,4 @@ function main() {
   S.fill = "ok"; say(0);
 }
 if (require.main === module) main();
-module.exports = { mergeFill, Refused, OWNED };
+module.exports = { mergeFill, Refused, OWNED, changeKey };

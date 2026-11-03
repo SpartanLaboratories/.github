@@ -65,6 +65,7 @@ h1,h2,h3{text-wrap:balance}
 /* an older copy of this board, while a newer one is on this machine (plan/RULES.md §1, "The newest board on this machine") */
 .newer{margin:8px 0 0;padding:7px 11px;border:1px solid var(--ink-2);border-radius:8px;background:var(--surface);color:var(--ink);font-size:13px;max-width:100%}
 .newer:empty{display:none}
+.newer.liveview{border-style:dashed}
 @keyframes livepulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.65)}}
 .themebtn{appearance:none;font:600 11px/1 var(--mono);padding:5px 9px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink-2);cursor:pointer;white-space:nowrap}
 .themebtn:hover{color:var(--ink);border-color:var(--ink-2)}
@@ -771,6 +772,7 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
 <header>
   <div class="topbar"><div class="crumbs" id="crumbs"></div><div class="tools"><span class="livechip" id="live"></span><button class="themebtn" id="theme" type="button"></button></div></div>
   <p class="newer" id="newer" role="note"></p>
+  <p class="newer liveview" id="liveview" role="status"></p>
   <h1 id="h1"></h1>
   <p class="issueline" id="issueline"></p>
   <p class="function" id="function"></p>
@@ -863,7 +865,7 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
   </section>
 
   <section class="view" role="tabpanel" id="p-source" aria-labelledby="t-source" hidden>
-    <h2>plan.json <small>the committed file, embedded verbatim</small></h2>
+    <h2>plan.json <small id="source-small">the committed file, embedded verbatim</small></h2>
     <p class="lede">Written at each event of the run; the few fields kept as data only are left out of this view.</p>
     <pre class="src" id="source-view" tabindex="0"></pre>
     <div class="key" id="source-key"></div>
@@ -1383,7 +1385,7 @@ const PANEL={
   /* the Document step (plan/RULES.md §3, §4; dashboards-skill/35), between qa and the land: its tasks (wip.document.tasks), done, current
      (several may run in parallel) and to come, the state boards among them */
   document:(R,o)=>{ const ts=R.document&&Array.isArray(R.document.tasks)?R.document.tasks.filter(x=>x&&typeof x==="object"):[];
-    let h=`<p>The documents are brought up to the build on the branch: the documentation reviewed and reconciled, the Dokka check, the plan and its consequences reconciled, the README and the CHANGELOG, and the state boards as built.</p>`;
+    let h=`<p>The documents are brought up to the build on the branch: the documentation reviewed and reconciled, the Dokka check, the plan and its consequences reconciled, the README and the CHANGELOG, and the state boards as built, then the document-landing commit that carries them.</p>`;
     /* the last qa pass's test report, a build output: plain text, its copy linked on this machine (dashboards-skill/35) */
     const lq=(Array.isArray(R.qa)?R.qa:[]).filter(p=>p&&p.report).slice(-1)[0];
     if(lq) h+=`<p class="sp-when">The test report of qa pass ${esc(lq.pass)}: <code>${esc(lq.report)}</code> (a build output, not committed)${liveCopyLink(lq.reportCopy,"its copy")}</p>`;
@@ -2610,12 +2612,13 @@ function liveChip(){ const c=$("#live"); if(!c) return;
   /* an older copy of this board (plan/RULES.md §1, "The newest board on this machine"): not live, with a link to the newest; written
      once, so the link stays clickable under the chip's one-second tick */
   if(NEWER){ const h=`<span class="ld" aria-hidden="true"></span>not live · <a href="${esc(NEWER)}">newer copy</a>`; c.className="livechip off"; if(c.innerHTML!==h) c.innerHTML=h; c.title="An older copy of this board: the newest one on this machine follows the run."; return; }
-  if(!live){ const u=stamp!=null?new Date(stamp).toISOString().replace(/\.000Z$/,"Z"):null; c.className="livechip off"; c.innerHTML=`<span class="ld" aria-hidden="true"></span>not live${u?` · as of ${when(u)}`:""}`; c.title=runLive()?"A published copy: it shows the board as committed and does not follow the run.":"The run is not live: the board shows it as it ended."; return; }
-  if(!LIVE.ok){ c.className="livechip on na"; c.innerHTML=`<span class="ld" aria-hidden="true"></span>LIVE · data unavailable`; c.title="plan.js beside this board cannot be read: run embed.js on the folder."; return; }
+  const vw=FOLLOW.on?" · live view":"";
+  if(!live){ const u=stamp!=null?new Date(stamp).toISOString().replace(/\.000Z$/,"Z"):null; c.className="livechip off"; c.innerHTML=`<span class="ld" aria-hidden="true"></span>not live${vw}${u?` · as of ${when(u)}`:""}`; c.title=runLive()?"A published copy: it shows the board as committed and does not follow the run.":"The run is not live: the board shows it as it ended."; return; }
+  if(!LIVE.ok&&!FOLLOW.on){ c.className="livechip on na"; c.innerHTML=`<span class="ld" aria-hidden="true"></span>LIVE · data unavailable`; c.title="plan.js beside this board cannot be read: run embed.js on the folder."; return; }
   const since=Date.now()-LIVE.last, quiet=since>LIVE_QUIET_MS;
   c.className=`livechip on${quiet||PAUSED?"":" pulse"}`;
-  c.innerHTML=quiet?`<span class="ld" aria-hidden="true"></span>LIVE · no change for ${ago(since)}`:`<span class="ld" aria-hidden="true">●</span>LIVE · updated ${ago(since)} ago`;
-  c.title=`Re-read from plan.js every ${LIVE_POLL_MS/1000} s${PAUSED?"; the run waits on you":""}.`; }
+  c.innerHTML=quiet?`<span class="ld" aria-hidden="true"></span>LIVE${vw} · no change for ${ago(since)}`:`<span class="ld" aria-hidden="true">●</span>LIVE${vw} · updated ${ago(since)} ago`;
+  c.title=`Re-read from plan.js every ${LIVE_POLL_MS/1000} s${FOLLOW.on?", and from the live view's copy on this machine":""}${PAUSED?"; the run waits on you":""}.`; }
 /* Everything the board draws from the plan, in place. */
 function renderAll(){ renderHeader(); renderWip(); renderKpis(); renderBoard(); renderContext(); localizeTimes(); if(CUR_TAB==="steps") setTimeout(drawTracers,0); }
 function dashboardRedraw(data){
@@ -2631,12 +2634,47 @@ function dashboardRedraw(data){
 window.dashboardRedraw=dashboardRedraw;
 /* a sidecar older than the data shown never replaces it: a live update moves the board forward only */
 const stampOf=P=>{ const W=(P&&P.wip)||{}, st=[W.updated,W.since,...((P&&P.rows)||[]).map(r=>r&&r.unit&&r.unit.live&&r.unit.live.updated)].map(v=>Date.parse(String(v||""))).filter(n=>!isNaN(n)); return st.length?Math.max(...st):null; };
-window.dashboardLive=(id,data)=>{ if(id!=="plan") return; LIVE.got=true; const a=stampOf(data), b=dataStamp(); if(a!=null&&b!=null&&a<b){ liveChip(); return; } dashboardRedraw(data); };
+window.dashboardLive=(id,data)=>{ if(id!=="plan") return; if(followData(data)) return; LIVE.got=true; const a=stampOf(data), b=dataStamp(); if(a!=null&&b!=null&&a<b){ liveChip(); return; } dashboardRedraw(data); };
+/* The view copy, followed (plan/RULES.md §1, "The tracked board follows its view copy"; §4, "The live view of a landing"). The land's own steps go only
+   into the git-ignored view copy (docs/plans/.live/view/<folder>/), so the tracked board, committed at the Document step, would read that step
+   for ever. While it is opened on this machine each poll re-reads the marker boards.js, which names this issue's newest board wherever it lives
+   (so a worktree's board finds the main checkout's copy, and no file is probed while there is no copy), and when that is this board's own view
+   copy, the plan.js beside it. A copy fresher than the tracked data (planStampOf(), lib.js planStamp(): the later stamp wins, the tracked board on
+   a tie) is shown in place, labelled the live view; once it is no fresher, or gone, the tracked data is back. Read-only: nothing is written, and
+   the tracked plan.js goes on being read. A published copy (not LIVE_LOCAL) and a view copy itself (its <base data-live-view> line) follow nothing. */
+const IS_VIEW_COPY=!!document.querySelector("base[data-live-view]");
+const planStampOf=P=>{ const w=(P&&P.wip)||{}; return [String(w.updated||w.since||((P&&P.asBuilt)||{}).date||""),...((P&&P.rows)||[]).map(r=>String((((r&&r.unit)||{}).live||{}).updated||""))].sort().pop(); };
+const FOLLOW={url:null,html:null,data:null,tracked:PLAN,on:false};
+const BOARDS_MARK=()=>`${UP}docs/plans/.live/boards.js`;
+/* the URL of this board's own view copy from the marker's entry for this issue, or null when the entry names any other board */
+function ownViewCopy(href){ if(IS_VIEW_COPY||!href) return null; try{ const u=new URL(href,document.baseURI), want=`/docs/plans/.live/view/${String(FOLDER).replace(/^docs\/plans\//,"").replace(/\/+$/,"")}/dashboard.html`.toLowerCase(); return decodeURIComponent(u.pathname).replace(/\\/g,"/").toLowerCase().endsWith(want)?u.href:null; }catch(e){ return null; } }
+function renderFollow(){ const e=$("#liveview"), s=$("#source-small"), T=FOLLOW.tracked&&FOLLOW.tracked.wip||{};
+  const h=FOLLOW.on?`<b>Live view.</b> This machine's git-ignored copy of this board is fresher than the committed file, so the board shows the copy: <b>${esc(stepTitle(STEP))}</b>. Nothing committed changes; the file beside this board reads <b>${esc(stepTitle(T.step))}</b> until a later landing commits this state. <a href="${esc(FOLLOW.html)}">Open the copy</a>.`
+    :IS_VIEW_COPY?`<b>Live view.</b> This machine's git-ignored copy of this board, never committed: the land's steps reach it before a later landing commits them.`:"";
+  if(e&&e.innerHTML!==h) e.innerHTML=h;
+  if(s) s.textContent=FOLLOW.on||IS_VIEW_COPY?"the live view's copy on this machine, never committed":"the committed file, embedded verbatim"; }
+function followSettle(){ const fresher=!!FOLLOW.data&&planStampOf(FOLLOW.data)>planStampOf(FOLLOW.tracked), was=FOLLOW.on; FOLLOW.on=fresher; /* the redraw names the step the label says, so the label comes after it */
+  dashboardRedraw(fresher?FOLLOW.data:FOLLOW.tracked);
+  if(fresher!==was) renderFollow(); liveChip(); }
+/* the sidecar's hand-over: the view copy's plan.js is told apart by its script element; the tracked plan.js moves the tracked side (forward only,
+   as dashboardLive() below) and stops here while the copy is shown or fresher. Returns whether it dealt with the data. */
+function followData(data){ const cs=document.currentScript;
+  if(cs&&cs.dataset&&cs.dataset.viewCopy){ FOLLOW.data=data; followSettle(); return true; }
+  const x=stampOf(data), y=stampOf(FOLLOW.tracked); if(!(x!=null&&y!=null&&x<y)) FOLLOW.tracked=data;
+  if(!FOLLOW.on&&!FOLLOW.data) return false;
+  LIVE.got=true; followSettle(); return true; }
+function loadFollow(){ if(!FOLLOW.url){ if(FOLLOW.data||FOLLOW.on){ FOLLOW.data=null; followSettle(); } return; }
+  const sc=document.createElement("script"); sc.dataset.viewCopy="1"; sc.src=FOLLOW.url+"?t="+Date.now();
+  sc.onload=()=>sc.remove(); sc.onerror=()=>{ sc.remove(); FOLLOW.url=null; FOLLOW.data=null; followSettle(); }; document.head.appendChild(sc); }
+/* the marker's entry for this issue, at the start and at each poll: its own view copy to follow, or, once the marker names another board, none
+   (a marker that cannot be read, its worktree gone, leaves the copy already found) */
+function followMark(m){ if(LIVE_LOCAL&&m&&typeof m==="object"&&!Array.isArray(m)){ const v=m[String(PLAN.issue)], u=typeof v==="string"&&ownViewCopy(relTo(BOARDS_MARK(),v)); FOLLOW.url=u?new URL("plan.js",u).href:null; FOLLOW.html=u||null; } }
+function pollFollow(){ if(IS_VIEW_COPY||!LIVE_LOCAL) return; liveMark(BOARDS_MARK(),"boards",m=>{ followMark(m); loadFollow(); }); }
 /* the sidecar beside this file, never beside the folder a view copy's <base> names (that is the tracked board's, older than the copy) */
 const SIDECAR=(()=>{ try{ return new URL("plan.js",location.href).href; }catch(e){ return "plan.js"; } })();
 function poll(){ const sc=document.createElement("script"); LIVE.got=false;
   sc.src=SIDECAR+"?t="+Date.now(); sc.onload=()=>{ LIVE.ok=LIVE.got; sc.remove(); liveChip(); }; sc.onerror=()=>{ LIVE.ok=false; sc.remove(); liveChip(); };
-  document.head.appendChild(sc); }
+  document.head.appendChild(sc); pollFollow(); }
 function stopLive(){ if(LIVE.timer) clearInterval(LIVE.timer); LIVE.timer=null; }
 function startLive(){ LIVE.last=dataStamp()!=null?Math.min(Date.now(),dataStamp()):Date.now(); liveChip();
   if(LIVE.tick==null) LIVE.tick=setInterval(liveChip,1000);
@@ -2653,13 +2691,15 @@ function startLive(){ LIVE.last=dataStamp()!=null?Math.min(Date.now(),dataStamp(
     LIVE_BOARDS=new Map(Object.entries(m).filter(([,v])=>typeof v==="string"&&v.trim()).map(([k,v])=>[String(k),relTo(bsrc,v)]));
     const abs=u=>{ try{ const x=new URL(u,document.baseURI); return decodeURIComponent(x.protocol+"//"+x.host+x.pathname).replace(/\\/g,"/").toLowerCase(); }catch(e){ return String(u).toLowerCase(); } };
     const mine=LIVE_BOARDS.get(String(PLAN.issue));
-    NEWER=mine&&abs(mine)!==abs(location.href)?mine:null;
-    if(NEWER) stopLive();
+    /* an entry naming this board's own view copy is no older copy of the run's board to leave: the board follows the copy in place, labelled */
+    NEWER=mine&&abs(mine)!==abs(location.href)&&!ownViewCopy(mine)?mine:null;
+    if(NEWER) stopLive(); else { followMark(m); loadFollow(); }
     const nw=$("#newer"); if(nw) nw.innerHTML=NEWER?`An older copy of #${esc(PLAN.issue)}'s board. <a href="${esc(NEWER)}">Open the newest on this machine</a>, which follows the run.`:"";
     const keep={x:window.scrollX,y:window.scrollY,tab:CUR_TAB,insp:INSPECTED};
     renderAll(); show("t-"+(document.getElementById("t-"+keep.tab)?keep.tab:"design"),true); replayInspect(keep.insp); window.scrollTo(keep.x,keep.y); liveChip(); }); }
 
 renderHeader(); renderWip(); renderKpis(); renderBoard(); renderContext();
+renderFollow();
 startLive();
 const hash=decodeURIComponent(location.hash.replace("#",""));
 /* the Design tab was named Timeline before dashboards-skill/34: "#timeline" and "#p-timeline" still open it */

@@ -168,12 +168,15 @@ sha the request names.
 After the team has merged, in the main checkout at the merge commit: the landed
 state for viewing only. The team spawns you for it only when the landing
 carries `enrich: yes` or its own live-view refresh failed; otherwise it makes
-the view copies itself. Write only under the git-ignored `docs/plans/.live/`
-(the live repository work board, `board.js --live`, and the local view),
-showing the issue as landed and, for a sub-issue, its unit landed and the next
-one up; never a tracked file, so nothing is left uncommitted. Check what you
-wrote with the `--auto` checkers and report the paths. The committed landed
-state (the issue board, the tracking board, the repository work board) is
+the view copies itself. On a failure, fix the cause and the team raises `landed`
+again (`plan/RULES.md` §4, "The fast path"). Write only under the git-ignored
+`docs/plans/.live/` (the live repository work board, `board.js --live`, and the
+local view), showing the issue as landed and, for a sub-issue, its unit landed
+and the next one up; never a tracked file, so nothing is left uncommitted. Check
+what you wrote with the `--auto` checkers and report the paths. To drop an
+`impact.changes` or `impact.units` entry in a fill, use `$remove`: a list
+replaces nothing there. The team raises `reseed` after this job. The committed
+landed state (the issue board, the tracking board, the repository work board) is
 seeded from this live view onto the next run's branch at its `sized`
 (plan-board mode, step 2) and committed by that run's document-landing commit.
 

@@ -490,10 +490,13 @@ const HISTORY_STEPS = Object.keys(HISTORY_FIELDS);
 const STEP_ORDER = ["sizing", "interview", "research", "architecture", "plan", "branch", "implementation", "qa", "remediation", "document", "landing", "merge", "landed"];
 /* The Document step's tasks (admin-team/dashboards-skill/35; plan/RULES.md §3, §4, "document"): the ids the pipeline sends in facts.tasks,
    each with the name a board shows when the event gives none, in the order a board lists them. The admin team raises the state-boards task
-   itself when it accepts the run's state-boards request, inside the Document step. Another id is kept with the name the event gives. */
+   itself when it accepts the run's state-boards request, inside the Document step, and the document-landing task, the step's last, itself
+   (TEAM_TASKS): current once the state boards finish, done just before the commit, so the committed board does not read that commit as in
+   progress. A run's list need not name it (apply-event.js mergeTasks()). Another id is kept with the name the event gives. */
 const DOC_TASKS = [["documentation-review", "Documentation review"], ["reconcile-documentation", "Reconcile the documentation"], ["dokka-check", "Dokka check"],
-  ["reconcile-plan", "Reconcile the plan and its consequences"], ["readme-changelog", "README and CHANGELOG"], ["state-boards", "State boards"]];
+  ["reconcile-plan", "Reconcile the plan and its consequences"], ["readme-changelog", "README and CHANGELOG"], ["state-boards", "State boards"], ["document-landing", "Document-landing commit"]];
 const DOC_TASK_NAMES = Object.fromEntries(DOC_TASKS);
+const DOC_LANDING_TASK = "document-landing", TEAM_TASKS = ["state-boards", DOC_LANDING_TASK];
 /* The land (admin-team/dashboards-skill/34, then 35): landing (the land accepted), merge (the pull request merged), then landed; before
    dashboards-skill/35 a third step, state-boards (the pre-merge refresh), stood between them. LANDING_STEPS keeps the three of the older
    line, as a board that landed in it (or reached its landing in it) keeps them. */
@@ -541,7 +544,7 @@ const openOf = w => (Array.isArray(w.open) ? w.open : []).filter(x => x && typeo
    wip.waitingOn, from the stop's event until the event that takes the board out of it, resumed or any other), or "open-points" (a
    resumed on a board that was not stopped, after an event that left open points unresolved, or with a resumed that resolves one: the
    question was put at the board's last event, and the wait runs from that event's time to the resumed's). The visit running when the
-   question is put ends there (held: "ended, waiting on the user"), and the step's next visit starts at the answer, so a step a wait
+   question is put ends there (held: "ended, waiting on you"), and the step's next visit starts at the answer, so a step a wait
    interrupts has two visits, "plan · visit 1" and "plan · visit 2", as a step the run comes back to has. A wait is a fact of the
    record, never guessed: a resumed with neither a stop before it nor an open point records none. waitSteps() writes them, freezeSteps()
    splits the visits around them, timelineSteps() leaves them out of the bar and the figure; the template's copy is the same rule. */
@@ -914,6 +917,20 @@ function viewOf(dir, root) {
   const v = viewDirOf(dir, root), vp = readPlanIn(v); if (!vp) return null;
   const tp = readPlanIn(dir); return { dir: v, fresh: !tp || planStamp(vp) > planStamp(tp) };
 }
+/* A view copy of an issue's board that has not landed yet (plan/RULES.md §4, "Seeding at sized"): its land under way (at landing or merge), or merged with
+   parts still to resolve (landed raised, status not built, its enrichment under way). A sized seeds the second as it stands, and the event reseed brings the finished state
+   when the refresh ends; the copy stays until then, as the enrichment's target. A tracking board has no landing of its own to wait for: its copy is held by its units'. */
+const notYetLanded = plan => !!plan && plan.kind !== "tracking" && !["built", "abandoned"].includes(plan.status);
+/* merged, its parts still to resolve: the copy an enrichment is writing, kept however fresh its tracked board reads until it has landed */
+const landedPending = plan => notYetLanded(plan) && ((plan.wip || {}).event || {}).name === "landed";
+/* what is still to write of a landed unit on its tracking board, from the sub-issue's board and documents: only the plain fact as its summary, no reconciled impact entry, no
+   effect recorded on the initiative's impact. Nothing left, no enrichment (apply-event.js), and no reason to keep its copies (board.js --live). */
+function unitLeft(plan, row) {
+  const I = plan && plan.impact && typeof plan.impact === "object" ? plan.impact : null, sum = String(((row || {}).asBuilt || {}).summary || "").trim(), id = (row || {}).id;
+  return [...(/^#\d+ landed( through PR #\d+)?( as [0-9a-f]{7,40})?\.$/.test(sum) || !sum ? ["summary"] : []),
+    ...(I && !(Array.isArray(I.units) && I.units.some(e => e && e.unit === id && e.basis === "as-built")) ? ["impact entry"] : []),
+    ...(I && !(Array.isArray(I.changes) && I.changes.some(c => c && c.unit === id)) ? ["effect on the initiative's impact"] : [])];
+}
 /* Every issue folder under docs/plans/ of a tree that holds a board: { issue, dir } for each <issue>-<slug>/ with a dashboard.html,
    in name order, parents before their children. */
 function boardFolders(root) {
@@ -1207,7 +1224,8 @@ function boardlessState(n, issueState, closing, linked, prs, branches, stateReas
 }
 /* ---------- QA passes shown, dependencies and what an issue holds up (admin-team/dashboards-skill/30) ----------
    qaShown(w): the qa passes a run shows (plan/RULES.md §2, "The KPI tiles"; §5): every pass wip.qa records, oldest first, and the pass
-   that is running, which wip.qa does not record until its verdict arrives: { pass, verdict: "running" }. A pass is running while the run
+   that is running. wip.qa records a running pass from its qa-pass with verdict "running" until its verdict replaces it (apply-event.js);
+   with none recorded, one is derived here and added: { pass, verdict: "running" }. A pass is running while the run
    is at qa (wip.step "qa"): the one the remediation loop's current sub-step names ("qa pass 2"), else the pass after the last recorded
    one; or while the run is at remediation and that loop's current sub-step is a qa pass. None runs after an approving pass, past qaMax,
    or once the run has moved on (landing, landed, halted). w is a board's wip or a unit's run mirror (unit.live: step, qa, qaMax,
@@ -1411,7 +1429,7 @@ function researchGlow(plan) {
    (RETIRED_EVENTS), read and drawn, which apply-event.js refuses: no unit's board is laid ahead of its run. */
 const RETIRED_EVENTS = ["boards-created"];
 const EVENTS = ["sized", "halted", "resumed", "research-planning", "research-started", "research-returned", "verification-started", "researched",
-  "architecture-signed-off", "sub-issues-filed", "boards-created", "plan-accepted", "branch-cut", "implementation-stage", "qa-pass", "document", "escalated", "landing", "state-boards", "merge", "landed", "cancelled", "run-restarted"];
+  "architecture-signed-off", "sub-issues-filed", "boards-created", "plan-accepted", "branch-cut", "implementation-stage", "qa-pass", "document", "escalated", "landing", "state-boards", "merge", "landed", "cancelled", "run-restarted", "reseed"];
 /* A row's as-built state before its outcome (plan/RULES.md §2, "Before the outcome"): derived from the implementation stages while the
    run is live. On an issue board, for a row wip.stages touches: "in-progress" when a current stage touches it, "partially-built" when a
    done stage touched it and a later stage still to come touches it, "pending" when only stages to come touch it; null otherwise (no
@@ -1753,5 +1771,5 @@ function ghMergeTime(repo, pr, merge) {
   } catch (e) { return out; }
 }
 
-module.exports = { ...LV, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, HISTORY_FIELDS, HISTORY_STEPS, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, timelineRows, timelineWaitNote, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
-  trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewBaseFolder, viewBaseHref, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, setViewLinks, viewedFolder, viewLink, landVisit, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };
+module.exports = { ...LV, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, HISTORY_FIELDS, HISTORY_STEPS, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, timelineRows, timelineWaitNote, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+  trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewBaseFolder, viewBaseHref, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, notYetLanded, landedPending, unitLeft, setViewLinks, viewedFolder, viewLink, landVisit, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

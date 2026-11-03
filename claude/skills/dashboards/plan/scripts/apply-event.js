@@ -147,15 +147,16 @@ function applyEvent(orig, ev, facts, req, now) {
   const plan = JSON.parse(JSON.stringify(orig)), applied = [], enrich = [], resolved = [], today = now.slice(0, 10);
   const w = plan.wip = plan.wip && typeof plan.wip === "object" ? plan.wip : {};
   /* Only an explicit signal from the run moves the board's step (admin-team/dashboards-skill/explicit-step): an implementation-stage's
-     facts.step has no effect, whatever it names, and every stage done does not imply qa: the step stays at implementation until the run's
-     qa-pass with verdict "running". Remediation alone stays recognised: facts.remediation, or facts.step "remediation" for an older caller;
-     and a report while the board stands at remediation is that remediation's, so a "qa" sent after one is ignored too and the board waits
+     facts.step has no effect, whatever it names, "remediation" included, and every stage done does not imply qa: the step stays at
+     implementation until the run's qa-pass with verdict "running". Remediation is recognised from the report alone: facts.remediation, or a
+     report while the board stands at remediation, which is that remediation's, so a "qa" sent after one is ignored too and the board waits
      for the running event. */
+  let remed = false;
   if (ev === "implementation-stage") {
     const said = typeof facts.step === "string" ? facts.step.trim() : "", { step: dropped, ...rest } = facts;
-    const atRem = (["halted", "escalated"].includes(w.step) ? w.resume : w.step) === "remediation";
-    facts = facts.remediation || said === "remediation" || atRem ? { ...rest, step: "remediation" } : rest;
-    if (said && said !== "remediation") applied.push(`facts.step ${JSON.stringify(said)} ignored: an implementation-stage moves no step of its own`);
+    remed = !!facts.remediation || (["halted", "escalated"].includes(w.step) ? w.resume : w.step) === "remediation";
+    facts = rest;
+    if (said) applied.push(`facts.step ${JSON.stringify(said)} ignored: an implementation-stage moves no step of its own`);
   }
   /* the step the facts name on any other event, in the run's own words where they differ from the board's (admin-team/board/timeline-waits:
      "implement" is the implementation step); a facts.step that names no step is warned on, never dropped silently, and the step is derived
@@ -446,10 +447,9 @@ function applyEvent(orig, ev, facts, req, now) {
       if (plan.status === "planned") { plan.status = "building"; applied.push("status building"); }
       reportedStage = stageIdOf(facts.stage) || (curStage() || {}).id || null;
       if (Array.isArray(facts.open)) mergeOpen(w, facts, applied, txt, `implementation-stage ${reportedStage || ""}`.trim(), resolved, plan.folder, DIR, enrich);
-      /* During remediation (facts.remediation, or facts.step "remediation") the report answers a qa pass: its sub-steps are written
-         whether or not the facts also carry the stages (which are then merged too, every one done), and the wording follows the
-         remediation, facts.stage first, never "qa next". */
-      const remed = !!facts.remediation || facts.step === "remediation";
+      /* During remediation (facts.remediation, or a report while the board stands at remediation) the report answers a qa pass: its
+         sub-steps are written whether or not the facts also carry the stages (which are then merged too, every one done), and the wording
+         follows the remediation, facts.stage first, never "qa next". */
       if (facts.remediation) setRemediation(w, facts.remediation, applied, enrich, txt);
       if (remed && !Array.isArray(facts.stages)) {
         setStep("remediation"); setGlow("remediation");
@@ -457,7 +457,7 @@ function applyEvent(orig, ev, facts, req, now) {
         break;
       }
       const before = JSON.parse(JSON.stringify(w.stages || []));
-      mergeStages(w, facts, applied, enrich, false, ids);
+      mergeStages(w, facts, applied, enrich, false, ids, remed);
       const st = w.stages || [], done = st.filter(x => x.state === "done" && !before.some(y => y.id === x.id && y.state === "done"));
       /* the derived as-built states (plan/RULES.md §2, "Before the outcome"): never an outcome; an outcome a row already records stays */
       rows.forEach(r => {
@@ -571,16 +571,19 @@ function applyEvent(orig, ev, facts, req, now) {
        after the merge (the post-merge refresh shows it in the live view; the next landing commits it). Each records its visit's time: the
        step's since, and the step before frozen with its end (wip.history). */
     /* The Document step (admin-team/dashboards-skill/35), between qa (or remediation) and the land: facts.tasks [{id, name, state}], ids
-       documentation-review, reconcile-documentation, dokka-check, reconcile-plan, readme-changelog and state-boards, states done | current |
-       todo, merged by id into wip.document.tasks (a task the event leaves out keeps its state; several may be current: the tasks may run in
-       parallel). The admin team raises the state-boards task itself when it accepts the run's state-boards request: a "state-boards" event
-       on a board in this flow is that task, current (below). Applied whole on the fast path: the step, the tasks, the glow, the detail and the
-       trail entry; nothing needs the documents. */
+       documentation-review, reconcile-documentation, dokka-check, reconcile-plan, readme-changelog, state-boards and document-landing, states
+       done | current | todo, merged by id into wip.document.tasks (a task the event leaves out keeps its state; several may be current: the
+       tasks may run in parallel). The admin team raises the state-boards task itself when it accepts the run's state-boards request: a
+       "state-boards" event on a board in this flow is that task, current (below). The document-landing task is the team's too: state-boards
+       with facts.done moves it to current, and the team raises this event naming it done, just before the executor commits, so the committed
+       board carries it closed. This event never moves either of the two back (mergeTasks()), so a run's list, which may lack them or carry
+       an older state, cannot undo them. Applied whole on the fast path: the step, the tasks, the glow, the detail and the trail entry; nothing
+       needs the documents. */
     case "document": {
       if (["built", "abandoned"].includes(plan.status) || ["landed", "cancelled"].includes(w.step)) refuse(`document: the board has ${plan.status === "abandoned" || w.step === "cancelled" ? "been cancelled" : "landed"} already`);
       if (stopped(w.step)) { w.resume = null; w.waitingOn = null; applied.push("wip.resume and wip.waitingOn cleared"); }
       if (Array.isArray(w.steps) && !w.steps.includes("document")) { const ls = lib.documentSteps(w.steps, null); if (ls !== w.steps && ls.includes("document")) { w.steps = ls; applied.push("wip.steps: the Document step before the landing, merge after it"); } }
-      mergeTasks(w, facts.tasks, applied, enrich, txt);
+      mergeTasks(w, facts.tasks, applied, enrich, txt, { forward: true });
       setStep("document"); setGlow("document");
       ({ note, detail, trail } = documentWording(w, note, detail, txt(facts.task, "task")));
       break;
@@ -597,13 +600,13 @@ function applyEvent(orig, ev, facts, req, now) {
       if (ev === "state-boards" && docFlow) {
         if (stopped(w.step)) { w.resume = null; w.waitingOn = null; applied.push("wip.resume and wip.waitingOn cleared"); }
         const t0 = Array.isArray(facts.tasks) ? facts.tasks : [], given = t0.some(x => x && x.id === "state-boards");
-        mergeTasks(w, given ? t0 : [...t0, { id: "state-boards", state: facts.done === true ? "done" : "current" }], applied, enrich, txt);
+        mergeTasks(w, given ? t0 : [...t0, { id: "state-boards", state: facts.done === true ? "done" : "current" }], applied, enrich, txt, { boards: true });
         setStep("document"); setGlow("document");
         ({ note, detail, trail } = documentWording(w, note, detail, "the state boards"));
         break;
       }
       if (stopped(w.step)) { w.resume = null; w.waitingOn = null; applied.push("wip.resume and wip.waitingOn cleared"); }
-
+      if (ev !== "state-boards") closeLandingCommit(w, applied);
       setStep(ev); setGlow(ev);
       const pr = Number.isInteger(facts.pr) && facts.pr > 0 ? facts.pr : null, inPr = pr ? " in PR #" + pr : "";
       const say = { landing: [`land accepted${pr ? ", PR #" + pr : ""}`, ln.includes("document") ? `Landing: the land accepted${inPr}; the branch carries the code, the version bump, the reconciled documents and the state boards.` : `Landing: the branch brought up to date; the code, the version bump and the reconciled documents committed on it.`, `Landing: the land accepted${inPr}`],
@@ -624,6 +627,7 @@ function applyEvent(orig, ev, facts, req, now) {
         trail = { column: "built", label: `The plan landed${pr0 ? " in PR #" + pr0 : ""}${m0 ? ", merge " + String(m0).slice(0, 7) : ""}`, ...(pr0 ? { ref: `PR #${pr0}` } : {}) };
         break;
       }
+      closeLandingCommit(w, applied);
       const A = plan.asBuilt && typeof plan.asBuilt === "object" ? plan.asBuilt : {};
       const sha = [facts.sha, facts.merge].find(s => typeof s === "string" && /^[0-9a-f]{7,40}$/.test(s)), pr = Number.isInteger(facts.pr) ? facts.pr : null;
       const next = { ...A, ...(sha ? { sha } : {}), ...(typeof facts.merge === "string" && /^[0-9a-f]{7,40}$/.test(facts.merge) ? { merge: facts.merge } : {}), ...(pr ? { pr } : {}),
@@ -644,7 +648,9 @@ function applyEvent(orig, ev, facts, req, now) {
       w.resume = null; w.waitingOn = null;
       if (next.sha && next.date && !open.length) { if (plan.status !== "built") { plan.status = "built"; applied.push("status built"); } setStep("landed"); setGlow("landed"); }
       else { const at = (Array.isArray(w.steps) && w.steps.includes("merge")) || ["merge", "state-boards"].includes(w.step) ? "merge" : "landing"; setStep(at); setGlow(at); enrich.push(open.length ? `landed: ${open.map(r => r.id).join(", ")} still to resolve before the board is built (it stays at the ${at === "merge" ? "merge" : "landing"} until then)` : "landed: asBuilt has no sha yet"); }
-      enrich.push("landed: every part is resolved, the trail completed and the consequences reconciled from final-implementation.md and consequences.md (impact.md in an older folder), on the board seeded at the next run's sized or by the presenter");
+      /* what is still to write from the documents: the open parts are said above; the consequences while they are not reconciled, or not on the board with their document beside it. Nothing left, no enrichment */
+      const rec = lib.reconciliation(plan), docs = DIR && ["consequences.md", "impact.md"].some(f => fs.existsSync(path.join(DIR, f)));
+      if (rec ? rec.state !== "as-built" : docs) enrich.push("landed: the consequences reconciled from final-implementation.md and consequences.md (impact.md in an older folder), on the board seeded at the next run's sized or by the presenter");
       /* raised again on a board it already landed, the detail the landing's record wrote stays: the same event twice changes nothing */
       detail = detail || ((w.event || {}).name === "landed" && w.detail ? w.detail : `Landed${pr ? " in PR #" + pr : ""}.`);
       /* the merge commit names the merge: facts.merge when given (facts.sha may be the branch's last commit), else the one sha given */
@@ -682,7 +688,7 @@ function applyEvent(orig, ev, facts, req, now) {
     else { const qp = ev === "qa-pass" && facts.qa && Number.isInteger(facts.qa.pass) ? facts.qa.pass : null;
       /* A remediation's report names no stage of plan.md: its classes take "qa pass n fixes", the pass the remediation answers, never the
          report's free-text note ("qa pass 2 fixes done; reconciliation current" is a status, not a stage) */
-      const remPass = (facts.remediation || facts.step === "remediation") && w.remediation && Number.isInteger(w.remediation.pass) ? w.remediation.pass : null;
+      const remPass = remed && w.remediation && Number.isInteger(w.remediation.pass) ? w.remediation.pass : null;
       const r = TL.mergeTests(plan, facts.tests, { now, pass: qp, stage: ev === "implementation-stage" ? reportedStage || stageIdOf(facts.stage) || (remPass ? `qa pass ${remPass} fixes` : null) || (typeof facts.stage === "string" && facts.stage.trim() ? facts.stage.trim() : null) : null, ids, txt: v => txt(v, "tests.note") });
       applied.push(...r.applied); enrich.push(...r.notes.map(n => "tests: " + n)); }
   } else if (!tracking && testsDue)
@@ -726,10 +732,10 @@ function recordPlanMerge(plan, w, facts, applied, txt) {
 }
 /* wip.stages from facts.stages (plan/RULES.md §4, "The fast path"). A stage's rows: facts.stages[i].rows when the event gives them (the
    board's row ids only; another is named in the summary and left out), else the rows the board records for it, else, for the one stage a
-   remediation report adds (facts.remediation, or facts.step "remediation"), the rows the qa findings touch (facts.rows, the board's ids):
+   remediation report adds (facts.remediation, or any report while the board stands at remediation), the rows the qa findings touch (facts.rows, the board's ids):
    the remediation's own stage then carries every finding, so its rows are exact. Two or more new stages in one report share facts.rows
    between them in a way only the documents tell, so they stay for the presenter, as a plan stage's rows do (WebTools #65, R1 and R2). */
-function mergeStages(w, facts, applied, enrich, first, ids) {
+function mergeStages(w, facts, applied, enrich, first, ids, remed = !!facts.remediation) {
   const have = Array.isArray(w.stages) ? w.stages : [];
   if (!Array.isArray(facts.stages) || !facts.stages.length) {
     if (!have.length) enrich.push("the stages of plan.md, with the rows each touches, come from plan.md");
@@ -751,7 +757,6 @@ function mergeStages(w, facts, applied, enrich, first, ids) {
     }
     return { id: s.id, name, state, rows, given };
   });
-  const remed = !!facts.remediation || facts.step === "remediation";
   const fresh = out.filter(x => !x.given && !have.some(y => y && y.id === x.id));
   const fr = Array.isArray(facts.rows) ? [...new Set(facts.rows.filter(x => typeof x === "string" && (!ids || ids.has(x))))] : [];
   if (remed && fresh.length === 1 && fr.length) { fresh[0].rows = fr; fresh[0].given = true; applied.push(`wip.stages ${fresh[0].id} rows from facts.rows (${fr.join(", ")})`); }
@@ -765,9 +770,15 @@ function mergeStages(w, facts, applied, enrich, first, ids) {
 }
 /* wip.document from the facts (admin-team/dashboards-skill/35): {tasks: [{id, name, state}]}, merged by id: a task the event names takes
    its state (and its name, when given; else the name it has, else lib.js DOC_TASK_NAMES), a task it leaves out keeps its own, a new one is
-   added in the order lib.js DOC_TASKS gives (another id after them, as given). Several may be current: the tasks may run in parallel. A task
-   with no id, or whose state is not done, current or todo, is refused, as a stage's is. */
-function mergeTasks(w, list, applied, enrich, txt) {
+   added in the order lib.js DOC_TASKS gives (another id after them, as given, the document-landing task last of all). Several may be current:
+   the tasks may run in parallel. A task with no id, or whose state is not done, current or todo, is refused, as a stage's is.
+   The team's own tasks (lib.js TEAM_TASKS): a list that has tasks takes the document-landing task where it has none, to come, or current once
+   the state boards are done, so the list never reads "every task done" before that commit; a board with no such task and no new event keeps
+   its list. how.forward (the document event): the event moves neither back, so a run's list, written from what it knows, undoes neither.
+   how.boards (the team's state-boards event): the state boards done move the commit from to come to current; the state boards raised again
+   (a land that asks for them anew, the base having moved) put it back to come, since another commit follows them. */
+const TASK_ORDER = ["todo", "current", "done"];
+function mergeTasks(w, list, applied, enrich, txt, how = {}) {
   const have = w.document && typeof w.document === "object" && Array.isArray(w.document.tasks) ? w.document.tasks.filter(x => x && typeof x === "object") : [];
   const out = have.map(x => ({ ...x }));
   (Array.isArray(list) ? list : []).forEach((t, i) => {
@@ -775,15 +786,28 @@ function mergeTasks(w, list, applied, enrich, txt) {
     if (!ID.test(id)) refuse(`facts.tasks[${i}] has no id (a kebab-case task id, such as documentation-review)`);
     if (!SSTATES.includes(t.state)) refuse(`facts.tasks[${i}].state ${JSON.stringify(t.state)} is not done, current or todo`);
     const name = txt(t.name, `tasks[${i}].name`), x = out.find(y => y.id === id);
-    if (x) { x.state = t.state; if (name) x.name = name; }
+    if (x) { if (!(how.forward && lib.TEAM_TASKS.includes(id) && TASK_ORDER.indexOf(t.state) < TASK_ORDER.indexOf(x.state))) x.state = t.state; if (name) x.name = name; }
     else { const nm = name || lib.DOC_TASK_NAMES[id]; if (!nm) { enrich.push(`facts.tasks[${i}] (${id}) is no task of the Document step the board knows and carries no name: written with its id as its name`); }
       out.push({ id, name: nm || id, state: t.state }); }
   });
-  const rank = id => { const k = lib.DOC_TASKS.findIndex(([d]) => d === id); return k < 0 ? lib.DOC_TASKS.length : k; };
-  out.sort((a, b) => rank(a.id) - rank(b.id));
+  if (out.length) {
+    const named = (Array.isArray(list) ? list : []).some(t => t && t.id === lib.DOC_LANDING_TASK), sb = out.find(x => x.id === "state-boards");
+    let dl = out.find(x => x.id === lib.DOC_LANDING_TASK);
+    if (!dl) { dl = { id: lib.DOC_LANDING_TASK, name: lib.DOC_TASK_NAMES[lib.DOC_LANDING_TASK], state: "todo" }; out.push(dl); }
+    if (!named && sb && sb.state === "done" && dl.state === "todo") dl.state = "current";
+    else if (!named && how.boards && sb && sb.state !== "done") dl.state = "todo";
+  }
+  const rank = id => { if (id === lib.DOC_LANDING_TASK) return Infinity; const k = lib.DOC_TASKS.findIndex(([d]) => d === id); return k < 0 ? lib.DOC_TASKS.length : k; };
+  out.sort((a, b) => (rank(a.id) === rank(b.id) ? 0 : rank(a.id) - rank(b.id)));
   if (!out.length) enrich.push("document carries no facts.tasks: the step panel lists none until the tasks are reported");
   const next = { tasks: out };
   if (JSON.stringify(next) !== JSON.stringify(w.document || null)) { w.document = next; applied.push(`wip.document ${out.map(x => x.id + " " + x.state).join(", ") || "(no tasks)"}`); }
+}
+/* The land has begun, so the document-landing commit is made: a task still open (its raise missed) closes with the land's event, in the
+   view copies and the frozen Document step alike. A board with no such task keeps its list. */
+function closeLandingCommit(w, applied) {
+  const t = ((w.document && Array.isArray(w.document.tasks)) ? w.document.tasks : []).find(x => x && x.id === lib.DOC_LANDING_TASK);
+  if (t && t.state !== "done") { t.state = "done"; applied.push(`wip.document ${lib.DOC_LANDING_TASK} done (the land has begun)`); }
 }
 /* the note, the detail and the trail entry of a Document step event, from its tasks alone (the same event twice writes the same board) */
 function documentWording(w, note, detail, said) {
@@ -960,7 +984,8 @@ function applyParent(orig, sub, op, now) {
     const had = s0 && s0 !== `#${sub.issue}'s run passed qa; it is not merged yet.`;
     if (state !== "landed" || !had) { row.asBuilt = { ...(row.asBuilt || {}), state: "landed", ...(had ? {} : { summary: `#${sub.issue} landed${A.pr ? ` through PR #${A.pr}` : ""}${m ? ` as ${String(m).slice(0, 7)}` : ""}.` }) }; applied.push(`#${plan.issue}: ${row.id} landed${had ? "" : ", with the plain fact of its landing as its summary"}`); }
     if (cur.includes(cell)) { w.current = cur.filter(a => a !== cell); applied.push(`#${plan.issue}: ${row.id} out of wip.current`); }
-    enrich.push(`#${plan.issue}: the landed unit's summary, its impact entry and its effect on the initiative's impact come from the sub-issue's board and documents`);
+    const left = lib.unitLeft(plan, row);
+    if (left.length) enrich.push(`#${plan.issue}: the landed unit's ${left.join(", ")} ${left.length === 1 ? "comes" : "come"} from the sub-issue's board and documents`);
   }
   const nx = lib.nextUnit(plan), id = nx ? nx.id : null;
   if (w.next !== id) { w.next = id; applied.push(`#${plan.issue}: wip.next ${id}`); }
@@ -1027,8 +1052,10 @@ function writeBoard(dir, data, eol, enrich, label) {
    marks its unit landed on the tracked tracking board by the standing rule (applyParent()): a merge that marks an issue landed on its own
    board does so for its parent too, and both are seeded together. It reads nothing of the issue's own board, so a sized on a folder with no
    board seeds too, before it lays the foundation (main()); and a run in the main checkout itself seeds its tracked boards like a worktree's: --view never
-   comes here, so a sized there is a run's. Nothing is seeded from a copy whose merge the branch does not hold. Returns the tracked folders
-   written. */
+   comes here, so a sized there is a run's. Nothing is seeded from a copy whose merge the branch does not hold, nor from a copy whose land is still under way (no merge on
+   record), or a tracking board's copy with such a copy inside it. A copy merged with parts still to resolve (lib.js landedPending(), the post-merge refresh under way) is
+   seeded as it stands, so the run is never delayed: the summary warns and names it, board.js --live keeps the copy for the enrichment, and the team's reseed at the end of
+   the refresh brings the finished state (reseed(), below). Returns the tracked folders written. */
 function seedFromView(now) {
   if (!MAIN) return [];
   const vroot = path.join(MAIN, ...lib.VIEW); if (!fs.existsSync(vroot)) return [];
@@ -1036,9 +1063,16 @@ function seedFromView(now) {
   const dirs = []; const walk = d => { let es = []; try { es = fs.readdirSync(d, { withFileTypes: true }); } catch (e) { return; } if (fs.existsSync(path.join(d, "plan.json"))) dirs.push(d); es.filter(e => e.isDirectory()).forEach(e => walk(path.join(d, e.name))); };
   walk(vroot);
   const inHead = sha => cp.spawnSync("git", ["-C", ROOT, "merge-base", "--is-ancestor", sha, "HEAD"], { encoding: "utf8", windowsHide: true }).status === 0;
-  const cand = dirs.map(vd => { const rel = path.relative(vroot, vd).split(path.sep).join("/"), tracked = path.join(ROOT, "docs", "plans", ...rel.split("/"));
-    return { vd, rel, tracked, vp: read(path.join(vd, "plan.json")), tp: read(path.join(tracked, "plan.json")) }; })
+  const copies = dirs.map(vd => { const rel = path.relative(vroot, vd).split(path.sep).join("/"), tracked = path.join(ROOT, "docs", "plans", ...rel.split("/"));
+    return { vd, rel, tracked, vp: read(path.join(vd, "plan.json")), tp: read(path.join(tracked, "plan.json")) }; });
+  const cand = copies
     .filter(x => x.rel && x.vp && x.tp && x.vp.issue === x.tp.issue && path.resolve(x.tracked) !== path.resolve(DIR) && String(lib.planStamp(x.vp)) > String(lib.planStamp(x.tp)));
+  /* a copy not yet landed, and a tracking board's copy with one inside it, wait: the copy stays for the enrichment, and a later raise seeds it */
+  const held = copies.filter(x => x.rel && lib.notYetLanded(x.vp) && !lib.landedPending(x.vp) && (!x.tp || String(lib.planStamp(x.vp)) > String(lib.planStamp(x.tp))));
+  const waiting = cand.filter(x => held.some(y => y.rel === x.rel || y.rel.startsWith(x.rel + "/")));
+  waiting.forEach(x => { const me = held.find(y => y.rel === x.rel), w0 = (x.vp.wip || {}), why = me ? `its land is under way (status ${x.vp.status}, step ${lib.shownStep(w0) || "none"})` : `a unit inside it has its land under way (${held.filter(y => y.rel.startsWith(x.rel + "/")).map(y => y.rel).join(", ")})`;
+    S.applied.push(`not seeded: ${x.rel} (${why})`); WARNINGS.push(`VIEW COPY NOT YET LANDED: ${x.rel} is left: ${why}; the next sized seeds it`); });
+  cand.splice(0, cand.length, ...cand.filter(x => !waiting.includes(x)));
   /* a tracking board in its units' filing records its plan's merge on wip.landing; a landed board on asBuilt */
   const mergeOf = p => { const A = (p && p.asBuilt) || {}, L = (p && p.wip && p.wip.landing) || {}, m = [A.merge, A.sha, L.merge].find(s => typeof s === "string" && /^[0-9a-f]{7,40}$/.test(s)); return m || null; };
   /* a tracking copy that records no merge and is filing its units (or filed them): the plan's merge is what this tree's tracked board came from, so its filed units go on too */
@@ -1046,6 +1080,7 @@ function seedFromView(now) {
   const ok = cand.filter(x => mergeOf(x.vp) && inHead(mergeOf(x.vp)));
   cand.filter(x => !ok.includes(x) && !mergeOf(x.vp) && (filing(x.vp) || ok.some(y => y.rel.startsWith(x.rel + "/")))).forEach(x => ok.push(x));
   cand.filter(x => !ok.includes(x)).forEach(x => S.applied.push(`not seeded: ${x.rel} (${mergeOf(x.vp) ? "its merge is not in this branch's history" : "no landing inside it seeded"})`));
+  ok.filter(x => lib.landedPending(x.vp)).forEach(x => WARNINGS.push(`VIEW COPY NOT YET LANDED: ${x.rel} seeded as it stands (status ${x.vp.status}, step ${lib.shownStep(x.vp.wip || {}) || "none"}, parts still to resolve): the copy is kept for the post-merge refresh; raise reseed when the refresh ends`));
   const out = [];
   ok.sort((a, b) => a.rel.split("/").length - b.rel.split("/").length).forEach(x => {
     const text = fs.readFileSync(path.join(x.tracked, "plan.json"), "utf8"), eol = /\r\n/.test(text) ? "\r\n" : "\n";
@@ -1061,7 +1096,7 @@ function seedFromView(now) {
     writeBoard(x.tracked, x.vp, eol, S.enrich, `seeded ${x.rel}`); out.push(x.tracked); S.seeded.push(`docs/plans/${x.rel}`);
   });
   /* the parent of a landed sub-issue seeded alone: its unit landed by the standing rule */
-  ok.filter(x => x.vp.status === "built" && x.vp.parent && Number.isInteger(x.vp.parent.issue)).forEach(x => {
+  ok.filter(x => (x.vp.status === "built" || lib.landedPending(x.vp)) && x.vp.parent && Number.isInteger(x.vp.parent.issue)).forEach(x => {
     const up = path.dirname(x.tracked); if (out.includes(up) || !fs.existsSync(path.join(up, "plan.json"))) return;
     const text = fs.readFileSync(path.join(up, "plan.json"), "utf8"), eol = /\r\n/.test(text) ? "\r\n" : "\n"; let pp; try { pp = JSON.parse(text); } catch (e) { return; }
     if (pp.issue !== x.vp.parent.issue || pp.kind !== "tracking") return;
@@ -1071,6 +1106,78 @@ function seedFromView(now) {
   if (out.length) S.applied.push(`seeded ${out.length} board${out.length === 1 ? "" : "s"} from the live view (the previous landing's state)`);
   return out;
 }
+/* The event reseed (plan/RULES.md §4, "Seeding at sized"), team-raised at the end of every post-merge refresh; it names no board and no time is needed. A sized that met the refresh seeded
+   a copy as it stood; this brings the finished state to the boards seeded then, in the main checkout and every worktree. It acts only on a landing such a sized seeded: a tracked board
+   holding that landing unfinished (lib.js landedPending()) whose copy has now landed takes the copy whole, as nothing but the landing writes it; a tracked board already built keeps its
+   board. Its tracking board, whose wip the new run's events write, takes only what the landing owns: the unit's row as built (the unit landed, by the standing rule, and the copy's summary),
+   its impact.units entry, its impact.changes entries and the copy's trail entries it lacks. A tracked board at its committed state (no sized seeded anything) is left alone, so a landing
+   nothing raced does nothing. A copy still unfinished is warned on and left. board.js --live --settled then removes the copies no fresher, which the refresh no longer needs. */
+async function reseed(now, req) {
+  const read = f => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch (e) { return null; } };
+  const vroot = path.join(MAIN, ...lib.VIEW), dirs = []; const walk = d => { let es = []; try { es = fs.readdirSync(d, { withFileTypes: true }); } catch (e) { return; } if (fs.existsSync(path.join(d, "plan.json"))) dirs.push(d); es.filter(e => e.isDirectory()).forEach(e => walk(path.join(d, e.name))); };
+  walk(vroot);
+  const copies = dirs.map(vd => ({ vd, rel: path.relative(vroot, vd).split(path.sep).join("/"), vp: read(path.join(vd, "plan.json")) })).filter(x => x.rel && x.vp && (!req.github || !x.vp.repo || x.vp.repo === req.github));
+  const landedIssues = copies.filter(x => x.vp.kind !== "tracking");
+  landedIssues.filter(x => lib.landedPending(x.vp)).forEach(x => WARNINGS.push(`VIEW COPY NOT YET LANDED: ${x.rel} still has parts to resolve: raise landed with --view once they are, then reseed again`));
+  const gw = cp.spawnSync("git", ["-C", MAIN, "worktree", "list", "--porcelain"], { encoding: "utf8", windowsHide: true });
+  const trees = [...new Set([path.resolve(MAIN), ...(gw.status === 0 ? gw.stdout.split(/\r?\n/).filter(l => l.startsWith("worktree ")).map(l => path.resolve(l.slice(9))) : [])])].filter(t => fs.existsSync(path.join(t, "docs", "plans")));
+  const written = new Map();
+  for (const tree of trees) {
+    ROOT = tree;
+    for (const x of landedIssues.filter(y => y.vp.status === "built")) {
+      const tracked = path.join(tree, "docs", "plans", ...x.rel.split("/"));
+      let tp = read(path.join(tracked, "plan.json")); if (!tp || tp.issue !== x.vp.issue || !(lib.landedPending(tp) || tp.status === "built")) continue;
+      lib.lockTree(tree, "apply-event.js reseed"); tp = read(path.join(tracked, "plan.json"));
+      const note = d => { if (!written.has(tree)) written.set(tree, []); written.get(tree).push(d); S.seeded.push(path.relative(tree, d).split(path.sep).join("/")); };
+      if (lib.landedPending(tp)) {
+        const vp = JSON.parse(JSON.stringify(x.vp)), A = vp.asBuilt || {}, m = A.merge || A.sha;
+        if (m && (!lib.isTime(A.at) || !Array.isArray(A.commits))) { const g = lib.gitTimes(tree, vp.folder || `docs/plans/${x.rel}`, m); if (!lib.isTime(A.at) && g.at) A.at = g.at; if (!Array.isArray(A.commits) && Array.isArray(g.commits) && g.commits.length) A.commits = g.commits; }
+        const text = fs.readFileSync(path.join(tracked, "plan.json"), "utf8"), eol = /\r\n/.test(text) ? "\r\n" : "\n";
+        writeBoard(tracked, vp, eol, S.enrich, `re-seeded ${x.rel}`); note(tracked); S.applied.push(`re-seeded ${x.rel}: landed at ${String(m || "").slice(0, 7)}`);
+      }
+      /* its tracking board: only what the landing owns */
+      const up = path.dirname(tracked), ptext = (() => { try { return fs.readFileSync(path.join(up, "plan.json"), "utf8"); } catch (e) { return null; } })(); if (!ptext || !x.vp.parent) continue;
+      let pp; try { pp = JSON.parse(ptext); } catch (e) { continue; } if (pp.kind !== "tracking" || pp.issue !== x.vp.parent.issue) continue;
+      const before = JSON.stringify(pp), P = applyParent(pp, x.vp, { kind: "landed" }, now), merged = P.plan, row = (merged.rows || []).find(r => r && r.unit && r.unit.issue === x.vp.issue);
+      const cpy = copies.find(y => y.rel === path.dirname(x.rel).split(path.sep).join("/")), cp0 = cpy && cpy.vp, crow = cp0 && row && (cp0.rows || []).find(r => r && r.id === row.id);
+      let changed = false;
+      if (crow && row) {
+        const nextB = { ...(row.asBuilt || {}), ...(crow.asBuilt || {}) }; if (JSON.stringify(nextB) !== JSON.stringify(row.asBuilt || {})) { row.asBuilt = nextB; changed = true; }
+        const I = merged.impact, CI = cp0.impact;
+        if (I && typeof I === "object" && CI && typeof CI === "object") {
+          const cu = (Array.isArray(CI.units) ? CI.units : []).find(e => e && e.unit === row.id), us = Array.isArray(I.units) ? I.units : [];
+          if (cu && JSON.stringify(us.find(e => e && e.unit === row.id) || null) !== JSON.stringify(cu)) { I.units = [...us.filter(e => !(e && e.unit === row.id)), cu]; changed = true; }
+          const cs = (Array.isArray(CI.changes) ? CI.changes : []).filter(c => c && c.unit === row.id), hs = Array.isArray(I.changes) ? I.changes : [];
+          cs.forEach(c => { if (!hs.some(h => JSON.stringify(h) === JSON.stringify(c))) { const { changeKey } = require("./fill.js"), at = hs.findIndex(h => h && changeKey(h) === changeKey(c)); if (at >= 0) hs[at] = c; else hs.push(c); I.changes = hs; changed = true; } });
+        }
+        (Array.isArray(cp0.trail) ? cp0.trail : []).forEach(t => { merged.trail = Array.isArray(merged.trail) ? merged.trail : []; if (t && !merged.trail.some(h => h && h.date === t.date && h.column === t.column && h.label === t.label)) { merged.trail.push(t); changed = true; } });
+      }
+      if (changed) { merged.wip = merged.wip || {}; merged.wip.updated = now; }
+      if (changed || JSON.stringify(merged) !== before) {
+        const eol = /\r\n/.test(ptext) ? "\r\n" : "\n"; writeBoard(up, merged, eol, S.enrich, `re-seeded ${path.relative(path.join(tree, "docs", "plans"), up).split(path.sep).join("/")}`); note(up);
+        S.applied.push(`re-seeded #${merged.issue}: #${x.vp.issue}'s row, its impact entries and its trail; its wip left to the run's events`);
+      }
+    }
+  }
+  /* the checks, the committed repository work board of each tree written, and the live one; nothing written, nothing regenerated, unless a copy is left to clear */
+  const stale = copies.some(x => { const t = read(path.join(MAIN, "docs", "plans", ...x.rel.split("/"), "plan.json")); return t && !(String(lib.planStamp(x.vp)) > String(lib.planStamp(t))); });
+  for (const [tree, ds] of written) {
+    ROOT = tree;
+    const cks = await Promise.all([...new Set(ds)].map(d => run(path.join(__dirname, "check.js"), [d], tree)));
+    if (cks.some(c => c.status !== 0)) { S.check = `FAIL: ${cks.flatMap(c => c.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l))).slice(0, 6).join(" | ")}`; throw new Error("check.js failed on a board it would re-seed"); }
+    ["board.json", "index.html", "board.js"].forEach(f => stage(path.join(tree, "docs", "plans", f)));
+    const wb = await run(path.join(__dirname, "board.js"), ["--refresh-template", "--root", tree, ...(flag("no-gh") ? ["--no-gh"] : [])], tree);
+    if (wb.status !== 0) throw new Error(`board.js (the committed repository work board, after re-seeding) failed: ${(wb.stderr || wb.stdout).trim().split(/\r?\n/).slice(-1)[0]}`);
+  }
+  if ((written.size || stale) && !flag("no-live")) {
+    const lv = await run(path.join(__dirname, "board.js"), ["--live", "--settled", "--refresh-template", "--root", MAIN, ...(flag("no-gh") ? ["--no-gh"] : [])], MAIN);
+    if (lv.status !== 0) throw new Error(`board.js --live failed: ${(lv.stderr || lv.stdout).trim().split(/\r?\n/).slice(-1)[0]}`);
+    S.live = "regenerated docs/plans/.live/";
+  } else S.live = "untouched";
+  S.check = written.size ? "pass" : "nothing to check";
+  S.result = written.size ? "ok" : "nothing";
+  if (!written.size) S.applied.push("no board holds a landing a sized seeded unfinished: nothing to re-seed");
+}
 /* A child process, as a promise of { status, stdout, stderr }. */
 const run = (file, a, cwd) => new Promise(res => { const c = cp.spawn(process.execPath, [file, ...a], { cwd, windowsHide: true }); let o = "", e = "";
   c.stdout.on("data", d => { o += d; }); c.stderr.on("data", d => { e += d; }); c.on("close", s => res({ status: s, stdout: o, stderr: e })); c.on("error", x => res({ status: 1, stdout: o, stderr: String(x) })); });
@@ -1078,7 +1185,8 @@ const run = (file, a, cwd) => new Promise(res => { const c = cp.spawn(process.ex
 let DIR = null, ROOT = null, MAIN = null, LAY_HINT = null;
 const VIEWING = flag("view");
 /* the board's data where --view reads it: its view copy when one is fresher than the tracked board, else the tracked plan.json */
-const viewRead = dir => { const v = VIEWING ? lib.viewOf(dir, MAIN) : null; return v && v.fresh ? path.join(v.dir, "plan.json") : path.join(dir, "plan.json"); };
+const HELD = new Set();
+const viewRead = dir => { const v = VIEWING ? lib.viewOf(dir, MAIN) : null; return v && (v.fresh || HELD.has(path.resolve(dir))) ? path.join(v.dir, "plan.json") : path.join(dir, "plan.json"); };
 /* --repo takes the GitHub slug, owner/repo; a path to the repository's main checkout is accepted too and read as --main (the
    protocol's "repo" field is that path, its "github" field the slug). Anything else is a usage error. */
 const REPO_ARG = opt("repo"), REPO_SLUG = REPO_ARG && /^[\w.-]+\/[\w.-]+$/.test(REPO_ARG) && !fs.existsSync(path.resolve(REPO_ARG)) ? REPO_ARG : null;
@@ -1171,6 +1279,14 @@ async function main() {
   /* retired: no unit's board is laid ahead of its run (plan/RULES.md §4); an older board's record of it is still read */
   if (lib.RETIRED_EVENTS.includes(ev)) refuse(`${ev} is retired: a unit's board is laid at its own sized, never ahead of its run`);
   if (!lib.EVENTS.includes(ev)) refuse(`the request names no plan-board event (got ${JSON.stringify(ev || null)}; one of ${lib.EVENTS.join(", ")})`);
+  if (ev === "reseed") {
+    if (VIEWING) refuse("reseed writes the tracked boards a sized seeded, never the view copies: raise it without --view");
+    if (REPO_SLUG && req.github && REPO_SLUG !== req.github) refuse(`--repo ${REPO_SLUG} is not the request's github ${req.github}`);
+    ROOT = path.resolve(wt); MAIN = path.resolve(opt("main") || REPO_PATH || req.repo || ROOT);
+    if (!fs.existsSync(path.join(MAIN, "docs", "plans"))) refuse(`reseed: the main checkout ${MAIN} has no docs/plans/`);
+    const at0 = opt("at") || facts.at || null; if (at0 && isNaN(Date.parse(at0))) refuse(`the event's time ${JSON.stringify(at0)} is not an ISO time`);
+    return reseed((at0 ? new Date(at0) : new Date()).toISOString().replace(/\.\d+Z$/, "Z"), req);
+  }
   const folder = typeof req.folder === "string" ? req.folder.replace(/\\/g, "/").replace(/\/+$/, "") : null;
   if (!folder || !/^docs\/plans\/(.+\/)?\d+-[a-z0-9][a-z0-9-]*$/.test(folder) || folder.split("/").includes("..")) refuse(`the request's folder ${JSON.stringify(req.folder || null)} is not docs/plans/[<parent>/]<issue>-<slug>`);
   ROOT = path.resolve(wt); DIR = path.join(ROOT, ...folder.split("/")); S.board = folder;
@@ -1195,6 +1311,9 @@ async function main() {
     seededFirst = seedFromView(now);
     laid = layFoundation(req, facts, folder, now);
   }
+  /* a copy a sized seeded as it stood ties its tracked board, or falls behind it on the tracking board: the refresh's fills are in the copy, so the refresh's own events read it (reseed() then brings it to the tracked boards) */
+  if (VIEWING) { const v0 = lib.viewOf(DIR, MAIN); let vp0 = null; try { vp0 = v0 && JSON.parse(fs.readFileSync(path.join(v0.dir, "plan.json"), "utf8")); } catch (e) { /* no copy */ }
+    if (lib.landedPending(vp0)) { HELD.add(path.resolve(DIR)); HELD.add(path.resolve(path.dirname(DIR))); } }
   const text = laid ? null : fs.readFileSync(viewRead(DIR), "utf8"), eol = text && /\r\n/.test(text) ? "\r\n" : "\n";
   let orig = laid ? laid.plan : null; if (!laid) { try { orig = JSON.parse(text); } catch (e) { refuse(`${folder}/plan.json does not parse: ${e.message}`); } }
   S.issue = orig.issue;

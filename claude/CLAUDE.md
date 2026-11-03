@@ -182,7 +182,8 @@ Otherwise a level-2 fix writes a `consequences.md` only when it leaves a follow-
   the deviation it caused; one that caused none gets a "did not hold in the build" note in
   `research/README.md`'s verification results.
 - **One home per fact.** `final-implementation.md` and `consequences.md` never restate each
-  other; one links to the other. No open point is committed open, whatever raised it: before
+  other; one links to the other. Neither writes a PR placeholder: the issue's resolution comment
+  links the PR. No open point is committed open, whatever raised it: before
   the landing each is resolved (by remediation, for a qa finding), or settled as a deviation in
   `final-implementation.md` or as a follow-up or known gap in `consequences.md`.
 - `research/README.md`: the planner's research questions (one topic-led question per open

@@ -148,6 +148,13 @@ A landing in executor mode is three requests, each its own spawn:
   onto its own branch. A `land` with no issue (a docs branch) is the same
   without the resolution comment.
 
+**Removing a worktree.** `core.longpaths` is set globally on this machine. Check
+the worktree is clean with `git status --porcelain` before `git worktree remove`:
+a removal that fails has already dropped the registration, and git no longer
+answers there. If it still fails with a long-path error, `rm -rf` that allocated
+path, run `git worktree prune`, and log it in the report. A worktree with
+uncommitted changes still needs the user: report it under **Stopped — needs you**.
+
 **Internal-names scan.** Before a `commit` or a `prepare-landing` commits
 anything, scan what you are about to commit for the pipeline's
 agents, sessions or roles (admin team, planner, plan-writer, architect,
