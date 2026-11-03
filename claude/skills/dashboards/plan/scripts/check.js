@@ -377,6 +377,25 @@ function checkPlan(plan, dir, root) {
           prev = isTime(x.ended) ? x.ended : x.since; });
         if (stopped && !w.waits.some(x => x && x.ended == null)) warn(`the board is ${w.step} with no open wait in wip.waits: the stop was raised before the waits were recorded; the Timeline takes wip.since as its start`); }
     }
+    /* the stretches when the run was not running (admin-team/board/timeline-outages): wip.outages, oldest first, each { step, since, ended,
+       reason }, written by apply-event.js (lib.js outageSteps()): closed, in order, overlapping no other, no wait and no visit */
+    if (w.outages != null) {
+      if (!Array.isArray(w.outages)) fail("wip.outages is the stretches when the run was not running, oldest first: [{ step, since, ended, reason }]");
+      else { let prev = null; const ms = x => Date.parse(x), overlap = (a, b, c, d) => ms(a) < ms(d) && ms(c) < ms(b);
+        w.outages.forEach((x, j) => { const a = `wip.outages[${j}]`;
+          if (!x || typeof x !== "object" || Array.isArray(x)) { fail(`${a} must be one stretch, { step, since, ended, reason }`); return; }
+          if (!isTime(x.since)) fail(`${a}.since is the ISO date-time the run stopped (got ${JSON.stringify(x.since)})`);
+          if (!isTime(x.ended)) fail(`${a}.ended is the ISO date-time the run came back: a stretch is recorded only once a restart is known (got ${JSON.stringify(x.ended)})`);
+          if (x.step != null && (!STEPS.includes(x.step) || ["halted", "escalated", "cancelled", "landed"].includes(x.step))) fail(`${a}.step is the step the run was in (got ${JSON.stringify(x.step)})`);
+          if (x.reason != null && !str(x.reason)) fail(`${a}.reason is why, in plain words, or null`);
+          if (!isTime(x.since) || !isTime(x.ended)) return;
+          if (ms(x.since) >= ms(x.ended)) fail(`${a}: since ${x.since} is not before ended ${x.ended}`);
+          if (prev && ms(x.since) < ms(prev)) fail(`${a} began ${x.since}, before the stretch ahead of it ended (${prev}): the stretches run oldest first and never overlap`);
+          prev = x.ended;
+          (Array.isArray(w.waits) ? w.waits : []).filter(y => y && isTime(y.since)).forEach(y => { if (overlap(x.since, x.ended, y.since, isTime(y.ended) ? y.ended : "9999-12-31T00:00:00Z")) fail(`${a} overlaps the wait on the user from ${y.since}: a time is one or the other`); });
+          Object.entries(w.history && typeof w.history === "object" && !Array.isArray(w.history) ? w.history : {}).forEach(([s, vs]) => (Array.isArray(vs) ? vs : []).filter(V => V && isTime(V.since) && isTime(V.ended)).forEach(V => { if (overlap(x.since, x.ended, V.since, V.ended)) fail(`${a} overlaps a visit of ${s} (${V.since} → ${V.ended}): a visit never counts it`); }));
+          if (!["built", "abandoned"].includes(plan.status) && !["halted", "escalated", "landed", "cancelled"].includes(w.step) && isTime(w.since) && ms(w.since) < ms(x.ended)) fail(`${a}: the running visit began ${w.since}, before the stretch ended: it would count it`); }); }
+    }
     if (w.resume != null && !STEPS.includes(w.resume)) fail(`wip.resume "${w.resume}" is not a step`);
     (w.qa || []).forEach((p, j) => { if (!posInt(p.pass)) fail(`wip.qa[${j}].pass must be a pass number`); if (!QA.includes(p.verdict)) fail(`wip.qa[${j}].verdict must be one of ${QA.join(", ")}`); if (p.date && !DATE.test(p.date)) fail(`wip.qa[${j}].date "${p.date}" is not YYYY-MM-DD`);
       /* finding counts: by kind (findings: documentation, test, code) and, where the qa report states it, by severity (severity: {"<word>": n}) */
@@ -650,7 +669,7 @@ function checkPanel(plan, w, ids, tracking, dir) {
    (lib.js HISTORY_FIELDS) }. Held to its form: a step a snapshot is kept of, ISO stamps in order, the event that ended it, the step it
    moved to, each frozen fact in its live field's form. The steps the strip draws finished with no snapshot are reported: the board
    reconstructs them from the trail, the milestones, the stages and the qa passes. */
-const HIST_COMMON = ["since", "ended", "endedBy", "to", "held", "event", "detail", "open"];
+const HIST_COMMON = ["since", "ended", "endedBy", "to", "held", "outage", "event", "detail", "open"];
 function checkHistory(plan, w, stampOk) {
   const H = w.history, posI = v => Number.isInteger(v) && v > 0;
   if (H != null) {
@@ -669,6 +688,7 @@ function checkHistory(plan, w, stampOk) {
         if (V.endedBy != null && !EVENTS.includes(V.endedBy)) fail(`${a}.endedBy is the event that ended the step, one of ${EVENTS.join(", ")} (got ${JSON.stringify(V.endedBy)})`);
         if (V.to != null && !STEPS.includes(V.to)) fail(`${a}.to is the step the run moved to (got ${JSON.stringify(V.to)})`);
         if (V.held != null && typeof V.held !== "boolean") fail(`${a}.held is true when the step ended while the run waited on the user`);
+        if (V.outage != null && V.outage !== true && !str(V.outage)) fail(`${a}.outage is why the run stopped running when this visit ended (its reason), or true`);
         if (V.event != null && (typeof V.event !== "object" || !EVENTS.includes(V.event.name))) fail(`${a}.event is the step's last event, { name, at, note } (got ${JSON.stringify(V.event)})`);
         else if (V.event) stampOk(V.event.at, `${a}.event.at`);
         if (V.detail != null && !str(V.detail)) fail(`${a}.detail is the step's last detail line, or left out`);
@@ -685,7 +705,7 @@ function checkHistory(plan, w, stampOk) {
         if (V.remediation != null && (typeof V.remediation !== "object" || (V.remediation.pass != null && !posI(V.remediation.pass)))) fail(`${a}.remediation is the remediation loop as it stood, { pass, route, steps }`);
         if (V.units != null && (typeof V.units !== "object" || !Number.isInteger(V.units.done) || !Number.isInteger(V.units.total))) fail(`${a}.units is { done, total }, the units filed (or with a board) when the step ended`);
       });
-      if (s === "remediation") { const ps = vs.map(V => V && V.remediation && V.remediation.pass).filter(Boolean); if (new Set(ps).size !== ps.length) warn(`${at}: two visits answer the same qa pass (${ps.join(", ")}): each remediation loop answers a pass of its own`); }
+      if (s === "remediation") { const ps = vs.filter(V => V && !V.outage).map(V => V.remediation && V.remediation.pass).filter(Boolean); if (new Set(ps).size !== ps.length) warn(`${at}: two visits answer the same qa pass (${ps.join(", ")}): each remediation loop answers a pass of its own`); }
     });
   }
   const fin = finishedSteps(w, plan.status), Hs = H && typeof H === "object" && !Array.isArray(H) ? H : {};

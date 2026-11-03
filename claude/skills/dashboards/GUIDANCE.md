@@ -155,6 +155,9 @@ the tile's legend of families says what they mean there, and a system's colour i
 (none today) keeps the neutral ink, as "other". A time not in the record is drawn "—", never guessed; a visit without both times is not drawn.
 The time the run waited on the user, from a blocking question to its answer, is no visit's and no figure's: each wait is a line of the
 visits legend in the halt's yellow, never a segment of the bar (`plan/RULES.md` §2, "Waits on the user are not active time").
+A stretch when the run was not running, recorded only when a restart is known, is no visit's and no figure's either, and no wait on the user: its own line of
+the visits legend, "run not running, not counted", its mark a **neutral hatch**, as it is no outcome and no kind of work, never a segment of the bar, and its
+time named apart from the waits' (`plan/RULES.md` §2, "A run not running is not active time").
 An **approximate** time — on a board backfilled at the user's request only, the time a step's update reached the team (`asBuilt.approx`) — is
 drawn "≈", never as a recorded one, and never crosses a recorded time (`plan/RULES.md` §2). The running step of a board in flight runs to
 "now", its time and the figure "so far", except while the run waits on the user, when none runs. The same colours draw each KPI tile's
@@ -723,6 +726,12 @@ refresh on its branch: the committed repository work board, and the repository s
 - **Waits on the user are not active time** (§1, "Steps"; `plan/RULES.md` §2, "Waits on the user are not active time"): applied to issue
   boards and tracking boards, the boards with a Timeline tile. Not to the repository work board, which draws no Timeline, nor to the state
   boards, which show no run's steps.
+- **A run not running is not active time** (§1, "Steps"; `plan/RULES.md` §2, "A run not running is not active time"; admin-team/board/timeline-outages): applied to
+  issue boards and tracking boards, the boards with a Timeline tile; a tracking board takes its own, raised on its own folder, and as with a wait on
+  the user a unit's stretch stays on the unit's board and is not subtracted from the tracking board's `implementation`, which is the wall time of its
+  units' runs. A unit's finished visits, mirrored into the tracking board's step panel, read the same. Not to the repository work board: one row per
+  run, it draws no Timeline and sums no step's time, and its `since` and `updated` follow the boards at each regeneration. Not to the state boards,
+  which show no run's steps. Landed boards are not re-rendered for it.
 
 ## 12. Elements — one name per function
 
@@ -761,7 +770,7 @@ strip is a **unit card**, and a step in the step panel is a **step cell**.
 | **Glow** | The interior in-progress accent on whatever is being worked on (§1). |
 | **Arrow** | The charging connector into a Verdict cell (§1). |
 | **Tracer** | A line from a KPI tile up to the part of the Timeline tile it belongs to (the steps that made the tile's figure), in their kind of work's colour, labelled with how long that part took; under 760 px its label alone, on the tile (§1, "Steps"; `plan/RULES.md` §2, "The Timeline tab"; dashboards-skill/34). |
-| **Legend** | The key for a colour grouping, one per tab or per tile (§2); an issue board's Timeline tile carries two, its kinds of work (one entry per family, with its steps' shades) and its step visits (one entry per visit, with its times, and one per wait on the user, not counted, `plan/RULES.md` §2). |
+| **Legend** | The key for a colour grouping, one per tab or per tile (§2); an issue board's Timeline tile carries two, its kinds of work (one entry per family, with its steps' shades) and its step visits (one entry per visit, with its times, one per wait on the user, not counted, and one per stretch when the run was not running, not counted, `plan/RULES.md` §2). |
 
 A ruleset that needs an element none of these names describes adds the term here first, with its
 function, and uses it everywhere; it never reuses a term for a second function.

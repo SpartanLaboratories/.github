@@ -199,6 +199,10 @@ const FEATURES = [
   { id: "build-output-copies", name: "a build output (an open point's report, a qa pass's test report) named as plain text, and linked to its copy in the live view (docs/plans/.live/open/)", since: 35, types: ["plan-board"],
     notFor: { system: "it names its test report as plain text, with no live view to link it (system/RULES.md §5)", supersystem: "as a system board", "work-board": "it shows no open point or test report: each run's are on its own board" },
     test: h => need(/const liveCopyLink=/.test(scripts(h)) && /docs\/plans\/\.live\/open\/index\.js/.test(scripts(h)), "an open point's or a test report's build output is never linked to its copy in the live view (liveCopyLink())") },
+  /* admin-team/board/timeline-outages, in the skill step after dashboards-skill/35 */
+  { id: "timeline-outages", name: "the Timeline's \"run not running\" line: a stretch when the run was not running, its own line in its own wording, never a bar segment, never summed, never a wait on the user", since: 36, types: ["plan-board"],
+    notFor: { system: "its tiles are hand-written counted facts: a state board shows no run's steps", supersystem: "no KPI tiles", "work-board": "one row per run and no Timeline tile: it sums no step's time; each run's steps are on its own board" },
+    test: h => { const s = scripts(h), c = css(h); return need(/const outagesOf=/.test(s) && /oline=x=>/.test(s) && /run not running/.test(s) && c.includes(".key i.segk.tl-outk{"), "the Timeline draws no stretch when the run was not running (outagesOf(), the tl-outage line, its mark)"); } },
   { id: "fix-of", name: "a fix to an earlier plan's work names the landed issue it fixes (\"fix to #n\"), its board first", since: 35, types: BOARDS,
     notFor: { system: "a state board names no issue above its Context", supersystem: "a state board names no issue above its Context" },
     test: (h, k) => need(k === "work-board" ? /fix to \$\{ilink\(r\.fixOf\)\}/.test(scripts(h)) : /tag\("fix to"/.test(scripts(h)), "a fix's board or row does not name the issue it fixes (plan.fixOf, row.fixOf)") },

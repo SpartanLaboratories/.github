@@ -311,6 +311,10 @@ real time; every other dashboard request runs in its repository's lane.
   parent's documents), raising `boards-created` for each as it is made, and once more with
   `facts.final: true` when the last is made. The boards are committed with the tracking
   plan's land.
+- **A run not running.** When a retry or resume reports a restart, raise `run-restarted` through
+  `apply-event.js`: `since` the last event of that run in the ledger before it, `ended` that retry
+  or resume, `reason` in plain words. Never from a gap between events, and no threshold. What it
+  does to the board: `plan/RULES.md` §2 and §4.
 - **Issue defects.** When `apply-event.js` or `apply-state.js` prints an `issue defects:`
   line (an issue title that names a work level), queue a retitle of that issue in its
   repository's lane, removing the work level, under the executor's standing permission to

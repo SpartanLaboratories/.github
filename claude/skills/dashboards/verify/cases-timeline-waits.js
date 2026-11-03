@@ -118,7 +118,7 @@ module.exports = function casesTimelineWaits(X) {
     /* a top-level definition: from its line to the next line that starts at the margin */
     const def = name => { const i = lines.findIndex(l => l.startsWith(`const ${name}=`) || l.startsWith(`function ${name}(`)); if (i < 0) throw new Error(`the template defines no ${name}`);
       let j = i + 1; while (j < lines.length && /^\s/.test(lines[j])) j++; return lines.slice(i, j).join("\n"); };
-    const names = ["ordinal", "STEP_ORDER", "histOf", "visitsOf", "shownOf", "WAIT_BY", "waitsOf", "okStamp", "isTime", "TL_FAMILIES", "tlFamily", "tlShade", "timelineFamilies", "APPROX_SOURCES", "approxBounds", "timelineLanded", "timelineSteps", "timelineRows", "timelineWaitNote", "tlSpan", "timelineTotal"];
+    const names = ["ordinal", "STEP_ORDER", "histOf", "visitsOf", "shownOf", "WAIT_BY", "waitsOf", "outagesOf", "okStamp", "isTime", "TL_FAMILIES", "tlFamily", "tlShade", "timelineFamilies", "APPROX_SOURCES", "approxBounds", "timelineLanded", "timelineSteps", "timelineRows", "timelineWaitNote", "tlSpan", "timelineTotal"];
     const src = names.map(def).join("\n") + "\nconst reconStep=()=>({trail:[],milestones:[]});\nthis.api={timelineSteps,timelineRows,timelineWaitNote,timelineTotal};";
     const box = {}; vm.createContext(box); vm.runInContext(src, box);
     const A = box.api, shape = T => js({ v: T.visits.map(v => [v.step, v.label, v.from && v.from.t, v.to && v.to.t, v.ms, !!v.open]), w: (T.waits || []).map(x => [x.step, x.by, x.from && x.from.t, x.to && x.to.t, x.ms, x.open]) });
@@ -130,7 +130,7 @@ module.exports = function casesTimelineWaits(X) {
       c.push([`${what}: the template's Timeline is lib.js's (visits, waits, rows, the figure, the note)`, shape(L) === shape(P) && lib.timelineTotal(L) === A.timelineTotal(P) && lib.timelineWaitNote(L) === A.timelineWaitNote(P)
         && js(lib.timelineRows(L).map(r => r.wait ? "wait" : r.visit.label)) === js(A.timelineRows(P).map(r => r.wait ? "wait" : r.visit.label)), js([shape(L), shape(P), lib.timelineWaitNote(L), A.timelineWaitNote(P)])]); });
     c.push(["the tile draws each wait as a line of its own (.tl-wait, the halt's yellow mark), its time \"not counted\", the note naming the mark; the bar takes the visits alone",
-      /wline=x=>`<span class="tl-wait"/.test(t) && /timelineRows\(T\)\.map\(r=>r\.wait\?wline\(r\.wait\):line\(r\.visit\)\)/.test(t) && /"yellow: waiting on the user, not counted"/.test(t) && /\.key i\.segk\.tl-waitk\{[^}]*var\(--warning\)/.test(t) && /esc\(timelineWaitNote\(T\)\)/.test(t) && /const tpParts=tsTimed\.map\(/.test(t), "wline · timelineRows · tl-waitk · timelineWaitNote"]);
+      /wline=x=>`<span class="tl-wait"/.test(t) && /timelineRows\(T\)\.map\(r=>r\.outage\?oline\(r\.outage\):r\.wait\?wline\(r\.wait\):line\(r\.visit\)\)/.test(t) && /"yellow: waiting on the user, not counted"/.test(t) && /\.key i\.segk\.tl-waitk\{[^}]*var\(--warning\)/.test(t) && /esc\(timelineWaitNote\(T\)\)/.test(t) && /const tpParts=tsTimed\.map\(/.test(t), "wline · timelineRows · tl-waitk · timelineWaitNote"]);
     c.push(["the tick follows only a visit open to now: while the run waits none is open, so nothing ticks", /TL_OPEN=TS\.visits\.some\(v=>v\.open\)/.test(t) && /if\(waiting&&cur&&idx\(cur\)>=0\)/.test(t), "TL_OPEN · waiting"]);
   });
   return groups;

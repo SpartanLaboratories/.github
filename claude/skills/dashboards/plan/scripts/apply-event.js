@@ -39,6 +39,8 @@
 // the worktree, then the main checkout, then the pull request's merge time from the tracker (mergeTimes(), lib.js ghMergeTime(); not with
 // --no-gh), a warning where none tells it, never an enrichment; the seeding at sized records it from git where the landing could not; at a
 // sized with no board the summary names new.js --at with the event's time.
+// A stretch when the run was not running (run-restarted, facts { since, ended, reason }; team-raised; admin-team/board/timeline-outages): its
+// own line on the Timeline, its bounds from the facts alone, recorded once, whichever visit it falls in (lib.js outageSteps()).
 "use strict";
 const T0 = Date.now();
 const fs = require("fs"), path = require("path"), cp = require("child_process");
@@ -609,6 +611,26 @@ function applyEvent(orig, ev, facts, req, now) {
       if (plan.parent) parentOp = { kind: "landed" };
       break;
     }
+    /* team-raised (plan/RULES.md §4; admin-team/board/timeline-outages): a retry or resume reported a restart, so the run was not running from
+       facts.since to facts.ended. Its bounds come from the facts alone and it is never inferred from a gap between events. The step does not
+       change: the visit it falls in is cut around it (lib.js outageSteps()). The same bounds again are a duplicate (main()). */
+    case "run-restarted": {
+      if (["built", "abandoned"].includes(plan.status) || ["landed", "cancelled"].includes(w.step)) refuse(`run-restarted: the board has ${plan.status === "abandoned" || w.step === "cancelled" ? "been cancelled" : "landed"} already, and a finished run's board is kept as it ended`);
+      if (!lib.isTime(facts.since) || !lib.isTime(facts.ended)) refuse(`run-restarted carries no facts.since and facts.ended, the UTC ISO times the run stopped and came back (got ${JSON.stringify([facts.since || null, facts.ended || null])})`);
+      if (!(Date.parse(facts.since) < Date.parse(facts.ended))) refuse(`run-restarted: facts.since ${facts.since} is not before facts.ended ${facts.ended}`);
+      if (Date.parse(facts.ended) > Date.parse(now)) refuse(`run-restarted: facts.ended ${facts.ended} is after the event's time ${now}: the event says the run has come back`);
+      if (typeof facts.reason !== "string" || !facts.reason.trim()) refuse("run-restarted carries no facts.reason (why, in plain words, such as \"session restart\")");
+      const reason = txt(facts.reason, "reason"), span = lib.tlSpan(Date.parse(facts.ended) - Date.parse(facts.since));
+      const lastAt = w.event && lib.isTime(w.event.at) ? Date.parse(w.event.at) : null;
+      if (lastAt != null && lastAt > Date.parse(facts.since) && lastAt < Date.parse(facts.ended)) WARNINGS.push(`RUN ACTIVE IN THE STRETCH: the board's last event (${w.event.name}, ${w.event.at}) falls inside ${facts.since} → ${facts.ended}: check the bounds`);
+      const r = lib.outageSteps(orig, plan, { since: facts.since, ended: facts.ended, reason }, ev);
+      if (r.refused) refuse(`run-restarted: ${r.refused}`);
+      applied.push(...r.lines);
+      note = note || `run not running ${span}${reason ? `: ${reason}` : ""}`;
+      detail = detail || w.detail || null;
+      trail = { column: STEP_COLUMN[r.step || lib.shownStep(w)] || "built", label: `Run not running for ${span}, not counted${reason ? `: ${reason}` : ""}` };
+      break;
+    }
     default: refuse(`unknown event ${JSON.stringify(ev)}`);
   }
   /* The Tests tab (plan/RULES.md §2, "The Tests tab"): an event that carries facts.tests has it applied (testslib.js mergeTests()); an
@@ -1039,9 +1061,11 @@ async function main() {
   if (REPO_SLUG && req.github && REPO_SLUG !== req.github) refuse(`--repo ${REPO_SLUG} is not the request's github ${req.github}`);
   if (repo && orig.repo && repo !== orig.repo) refuse(`the board is ${orig.repo}'s, not ${repo}'s`);
 
+  /* a stretch when the run was not running is known by its bounds: raised again, whatever events came since, it changes nothing */
+  if (ev === "run-restarted" && lib.hasOutage(orig.wip, facts.since, facts.ended)) { S.result = "duplicate"; S.applied.push(`${facts.since} → ${facts.ended} is already recorded: nothing written`); return; }
   /* the same event twice changes nothing: applied again at its own recorded time, it gives the board it left */
   const last = (orig.wip || {}).event;
-  if (last && last.name === ev && last.at) {
+  if (ev !== "run-restarted" && last && last.name === ev && last.at) {
     const again = applyEvent(orig, ev, facts, req, last.at), a = JSON.parse(JSON.stringify(again.plan)), b = JSON.parse(JSON.stringify(orig));
     a.wip.updated = b.wip.updated = null;
     if (JSON.stringify(a) === JSON.stringify(b)) { S.result = "duplicate"; S.applied.push(`already applied at ${last.at}: nothing written`); return; }
