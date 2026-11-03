@@ -335,10 +335,9 @@ real time; every other dashboard request runs in its repository's lane.
   serving every other board.
 - **No commits.** A board update or creation writes the issue's board in its
   worktree and nothing is committed. The issue's board files
-  (`dashboard.html`, `plan.json`) are committed by the issue's `land`, with
-  its other commits on the issue branch, and so are its parent tracking
-  board's files, which every sub-issue event re-embeds (the mirror of the
-  sub-issue's run).
+  (`dashboard.html`, `plan.json`) are committed by the run's document-landing
+  commit on the issue branch, and so are its parent tracking board's files,
+  which every sub-issue event re-embeds (the mirror of the sub-issue's run).
 - **Board-file conflicts.** When a sync or a landing meets a conflict that
   touches only generated board files (`plan.json`, `dashboard.html` under
   `docs/plans/`, the repository work board), it is not `needs-rework`: `presenter`
