@@ -36,7 +36,7 @@
     "step": "research",
     "since": "<YYYY-MM-DD or an ISO date-time>",
     "updated": "<ISO date-time of this board update>",
-    "detail": "<one line: which stage, which qa pass, what waits on the user>",
+    "detail": "<one line: which stage, which qa pass, what waits on you>",
     "steps": [
       "sizing",
       "interview",

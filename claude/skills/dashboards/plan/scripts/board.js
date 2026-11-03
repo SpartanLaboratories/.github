@@ -291,7 +291,7 @@ const rows = [...rowNums].map(n => {
   if (b) {
     const w = b.plan.wip || {}, s = b.plan.status;
     Object.assign(row, { board: fs.existsSync(path.join(b.dir, "dashboard.html")) ? boardHtml(b) : null, folder: relFromPlans(b.folder, b.root) + "/", branch: shownBranch(b.plan), /* a merged branch is not shown (plan/RULES.md §3, "Branches") */ system: b.plan.kind === "tracking" ? null : ((b.plan.systems || [])[0] || {}).slug || null,
-      step: w.step || null, detail: w.step === "halted" ? `Waiting on the user: ${w.waitingOn || w.detail || ""}` : (w.detail || ""), since: w.since || null, updated: w.updated || null, qa: neutralQa(qaShown(w)) /* every pass recorded, and the one running (lib.js qaShown()) */, qaMax: w.qaMax || null,
+      step: w.step || null, detail: w.step === "halted" ? `Waiting on you: ${w.waitingOn || w.detail || ""}` : (w.detail || ""), since: w.since || null, updated: w.updated || null, qa: neutralQa(qaShown(w)) /* every pass recorded, and the one running (lib.js qaShown()) */, qaMax: w.qaMax || null,
       /* a board laid before its run starts (a tracking issue's unit, plan/RULES.md §4) has no step: not started */
       status: s === "built" || unitState(u) === "landed" ? "landed" : s === "abandoned" || w.step === "cancelled" ? "abandoned" : w.step === "halted" ? "halted" : w.step === "escalated" ? "escalated" : u && unitState(u) === "complete" ? "complete" : s === "building" ? "building" : !w.step && s === "planned" ? "not-started" : "planning",
       /* a fix to an earlier plan's work (plan/RULES.md §1, §5; admin-team/dashboards-skill/35): the landed issue it fixes, shown "fix to #n" */

@@ -14,6 +14,9 @@
 // has approved", "by qa", "qa's"), never as the step or its passes. The version-control-manager shortened matches as "the manager's" or
 // "the manager" with a pipeline verb, never "Selenium Manager"; "confirms" counts among the pipeline's verbs ("the executor confirms the
 // branch"). The approval flow matches with a word between ("the user's two answers") and in the passive ("signed off by the user").
+// A wait on the user, in a fact or a comment, reads "waiting on you" (§4's wording for a halt): waitRefs() finds "waiting on the user", "waits on
+// the user" and "wait on the user" in a board's data and comments and scrubWaits() rewords a fact; nameRefs() leaves it alone, as it is the
+// fixed text of the templates' status labels (plan/RULES.md §2, §3).
 // Used by plan/scripts/check.js (every string of plan.json and board.json, warned), by check-board.js (a board's data blocks, its comments
 // and its rendered text, warned) and by plan/scripts/apply-event.js, which rewords a fact text through scrubNames() before it is written,
 // and leaves it out, telling the presenter (enrich), where a name would remain.
@@ -60,21 +63,28 @@ function nameSpans(text) {
   REGEXES.forEach(re => { re.lastIndex = 0; let m; while ((m = re.exec(t))) out.push({ index: m.index, end: m.index + m[0].length }); });
   return out.sort((a, b) => a.index - b.index);
 }
+/* A wait on the user in a fact or a comment: its wording is "waiting on you" (GUIDANCE.md §4). */
+const WAIT_ON_USER = /\b(wait(?:s|ing)?)(\s+on\s+)the\s+user\b(?!['’])/gi;
+function waitRefs(text) { return typeof text === "string" && text ? (prose(text).match(WAIT_ON_USER) || []) : []; }
+function scrubWaits(text) { return typeof text === "string" ? text.replace(WAIT_ON_USER, "$1$2you") : text; }
 /* Every internal name in the strings of a data file: [{ at, hit }]; keys, numbers and $comment are skipped, and so are the paths skip(at)
    accepts (an issue's title, quoted verbatim: levelrefs.js titleSkip()). */
 function nameRefsIn(v, at, found, skip) {
   found = found || [];
-  if (typeof v === "string") { if (!(skip && skip(at || ""))) nameRefs(v).forEach(hit => found.push({ at: at || "(root)", hit })); }
+  if (typeof v === "string") { if (!(skip && skip(at || ""))) [...nameRefs(v), ...waitRefs(v)].forEach(hit => found.push({ at: at || "(root)", hit })); }
   else if (Array.isArray(v)) v.forEach((x, i) => nameRefsIn(x, `${at}[${i}]`, found, skip));
   else if (v && typeof v === "object") Object.keys(v).forEach(k => { if (k !== "$comment") nameRefsIn(v[k], at ? `${at}.${k}` : k, found, skip); });
   return found;
 }
-/* The comments of a board's HTML (<!-- … -->, and // or /* … *\/ in its scripts are code, not shown, and left alone): the template's
-   placeholders once carried a "presenter:" mark, and a hand-written comment is committed with the board. */
+/* The comments of a board's HTML: <!-- … -->, and the /* … *\/ blocks of its styles and scripts, which are committed with the board as well
+   (a script's code, its // lines and its data blocks are left alone): the template's placeholders once carried a "presenter:" mark, and a
+   hand-written comment is committed with the board. */
 function commentRefs(html) {
-  const out = [];
-  String(html || "").replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<!--([\s\S]*?)-->/g, (m, c) => { nameRefs(c).forEach(h => out.push(h)); if (/^\s*presenter:/i.test(c)) out.push("presenter:"); return ""; });
+  const out = [], one = c => { nameRefs(c).forEach(h => out.push(h)); waitRefs(c).forEach(h => out.push(h)); };
+  String(html || "").replace(/<(script|style)\b([^>]*)>([\s\S]*?)<\/\1>/gi, (m, tag, attrs, body) => {
+    if (!/^script$/i.test(tag) || !/\btype\s*=\s*["'](?!text\/javascript|module)/i.test(attrs)) (body.match(/\/\*[\s\S]*?\*\//g) || []).forEach(one);
+    return " ";
+  }).replace(/<!--([\s\S]*?)-->/g, (m, c) => { one(c); if (/^\s*presenter:/i.test(c)) out.push("presenter:"); return ""; });
   /* the placeholder mark on a board-filled line of the script before MODEL ("// presenter:"), committed with every state board */
   (String(html || "").match(/\/\/\s*presenter:/g) || []).forEach(() => out.push("// presenter:"));
   return out;
@@ -86,6 +96,7 @@ function commentRefs(html) {
    { text, left }: the reworded text, and the names still in it (none when it names none). The caller writes text when left is empty,
    leaves it out where an unambiguous name remains, and asks the presenter to look (enrich) either way. */
 function scrubNames(text) {
+  if (typeof text === "string") text = scrubWaits(text);
   if (typeof text !== "string" || !nameRefs(text).length) return { text, left: [] };
   const cap = /^[A-Z]/.test(text.trim());
   const ROLE = `(?:admin[- ]team|plan-writer|rookie-dev|version-control-manager|code-reviewer|documentation-reviewer|test-inspector|interviewer|researchers?|${CTX}|executors?|publishers?|qa)`;
@@ -112,4 +123,4 @@ function scrubNames(text) {
 const unambiguous = hit => new RegExp(`\\b(?:${UNAMBIGUOUS.join("|")})\\b`, "i").test(hit) || /\buser\b/i.test(hit) || /\bqa\b/i.test(hit);
 /* the warning's line */
 const nameWarning = (where, hits) => `INTERNAL NAME: ${where} names ${[...new Set(hits)].slice(0, 6).map(h => JSON.stringify(h)).join(", ")}: a board never names the pipeline's agents, sessions or roles, nor the approval flow (GUIDANCE.md §4); reword it at the board's next refresh`;
-module.exports = { NAME_PATTERNS, UNAMBIGUOUS, CONTEXTUAL, nameRefs, nameSpans, nameRefsIn, commentRefs, scrubNames, unambiguous, nameWarning };
+module.exports = { NAME_PATTERNS, UNAMBIGUOUS, CONTEXTUAL, nameRefs, nameSpans, nameRefsIn, commentRefs, scrubNames, waitRefs, scrubWaits, unambiguous, nameWarning };

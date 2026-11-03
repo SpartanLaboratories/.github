@@ -47,7 +47,7 @@ const fs = require("fs"), path = require("path"), cp = require("child_process");
 const lib = require("./lib.js"), TL = require("./testslib.js");
 const dev = require(path.resolve(__dirname, "..", "..", "system", "scripts", "deviation.js"));
 const { levelRefs, scrubLevels, nameTestLevels } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
-const { nameRefs, scrubNames, unambiguous } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
+const { nameRefs, scrubNames, scrubWaits, unambiguous } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
 
 const USAGE = "usage: node apply-event.js --event <request.json> --worktree <path> [--repo <owner/repo>] [--main <checkout>] [--at <ISO time>] [--view] [--no-live] [--no-gh] [--json]";
 const args = process.argv.slice(2);
@@ -171,6 +171,8 @@ function applyEvent(orig, ev, facts, req, now) {
       enrich.push(`facts.${field} named a work level, which a board never shows: written reworded (${shortJ(r)})`);
       s = r;
     }
+    /* a wait on the user reads "waiting on you" (GUIDANCE.md §4; namerefs.js scrubWaits()): a rewording the facts alone decide */
+    if (!IDENT.has(field)) s = scrubWaits(s);
     if (!nameRefs(s).length) return s;
     const n = IDENT.has(field) ? { text: s, left: nameRefs(s) } : scrubNames(s);
     if (n.left.some(unambiguous)) { enrich.push(`facts.${field} names ${n.left.map(h => JSON.stringify(h)).join(", ")}, an internal name a board never shows: not written`); return null; }
@@ -267,8 +269,8 @@ function applyEvent(orig, ev, facts, req, now) {
           w.interview.push({ text, ...(options.length ? { options } : {}), answer: null, asked: now }); applied.push(`wip.interview + "${text.slice(0, 40)}"`);
         });
       }
-      detail = detail || `Waiting on the user: ${waiting}`;
-      trail = { column: STEP_COLUMN[resume] || "built", label: `Halted at ${STEP_WORDS[resume] || resume}: waiting on the user (${waiting})` };
+      detail = detail || `Waiting on you: ${waiting}`;
+      trail = { column: STEP_COLUMN[resume] || "built", label: `Halted at ${STEP_WORDS[resume] || resume}: waiting on you (${waiting})` };
       break;
     }
     case "resumed": {

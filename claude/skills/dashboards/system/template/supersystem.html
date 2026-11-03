@@ -866,7 +866,7 @@ function paintSystems(root){ (root||document).querySelectorAll("[data-sys]").for
 function sysKey(slugs,cls){ const tops=TOPS.filter(t=>slugs.some(s=>sysTop(s)===t)), more=slugs.some(s=>{ const i=TOPS.indexOf(sysTop(s)); return i<0||i>=SLOTS; });
   return tops.filter(t=>TOPS.indexOf(t)<SLOTS).map(t=>`<span><i class="${cls||"sys"}" style="--c:${sysColour(t.slug)}"></i>${esc(t.name)}</span>`).join("")+(more?`<span><i class="${cls||"sys"}" style="--c:var(--muted)"></i>other systems</span>`:""); }
 
-/* The Systems tab (system/RULES.md §3, §7; admin-team/dashboards-skill/35, promoted from the WebTools repository state board): the systems
+/* The Systems tab (system/RULES.md §3, §7; dashboards-skill/35, promoted from the WebTools repository state board): the systems
    grouped by their visibility (the registry's "visibility": public, consumed by another organization; internal-org, consumed only by other
    repositories of the same GitHub organization; internal-repo, consumed only inside the repository; a system with none yet in an "unset"
    group, which check-board.js warns on), the groups in that order, far to near, each named by its visibility chip (a neutral ramp, as a

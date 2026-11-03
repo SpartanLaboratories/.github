@@ -75,6 +75,15 @@ module.exports = function cases33(X) {
     const md = "# Plan\n\n## 11. Version control\n\n- **Branch:** `feat/x`. It exists and holds the research commits; the executor confirms it\n  (P1) rather than cutting it again.\n- **Commits.** Each leaves the build green. The type and the split are the manager's final call;\n  subject lines carry `(Issue #9)`.\n";
     const ex = lib.sectionOf(md, "11-version-control"), wantEx = "Branch: `feat/x`. It exists and holds the research commits; … · Commits. Each leaves the build green. …; subject lines carry `(Issue #9)`.";
     c.push(["sectionOf(): an excerpt's clause naming an agent cut to \"…\", the rest as written (the excerpt elided, the hash of the section as written)", ex && ex.paragraph === wantEx && /^[0-9a-f]{12}$/.test(ex.hash), js(ex && ex.paragraph)]);
+    /* a wait on the user in a fact or a comment reads "waiting on you"; nameRefs() leaves the templates' status labels alone */
+    const waits = [["Halted at the plan: waiting on the user (interview answers)", "Halted at the plan: waiting on you (interview answers)"], ["two questions wait on the user; the slice re-validated", "two questions wait on you; the slice re-validated"], ["what waits\n  on the user", "what waits\n  on you"]];
+    const wBad = waits.filter(([s, w]) => !N.waitRefs(s).length || N.scrubWaits(s) !== w || N.scrubNames(s).text !== w);
+    c.push(["waitRefs(), scrubWaits(), scrubNames(): a wait on the user found and written as a wait on you, the rest as written", !wBad.length, js(wBad)]);
+    const dataHits = N.nameRefsIn({ trail: [{ label: "waiting on the user" }], gap: "a hook the user must remember" }, "");
+    c.push(["…a wait on the user in a data string is warned, a library's user is not", dataHits.length === 1, js(dataHits)]);
+    const cmHtml = '<style>/* each researcher writes */</style><script>/* the admin-team/board step; the run waits on the user */ const a="rookie-dev"; // planner\n</script><script type="application/json" id="plan">{"x":"/* the planner */"}</script><!-- plan-writer -->';
+    const cmHits = N.commentRefs(cmHtml);
+    c.push(["commentRefs(): the block comments of styles and scripts and the HTML comments; a script's code, its // lines and its data blocks are left alone", js(cmHits) === js(["researcher", "admin-team", "waits on the user", "plan-writer"]), js(cmHits)]);
     c.push(["unambiguous(): a name no library uses, the approval flow and qa as an agent are; a library's word is not", N.unambiguous("rookie-dev") && N.unambiguous("user's call") && N.unambiguous("qa found") && !N.unambiguous("the planner") && !N.unambiguous("an executor"), "unambiguous"]);
     const lv = [["Recorded level confirmed.", "Recorded sizing confirmed."], ["the level was confirmed", "the sizing was confirmed"], ["the level re-check passed", "the sizing re-check passed"], ["the issue's level", "the issue's sizing"], ["proposed level 3 confirmed", "proposed sizing confirmed"]];
     const lvBad = lv.filter(([s, w]) => !LR.levelRefs(s).length || LR.scrubLevels(s, {}) !== w);
