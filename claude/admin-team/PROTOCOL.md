@@ -123,7 +123,7 @@ A `plan-board` event updates the issue's issue board and, for a sub-issue, its t
 
 | Field | Meaning |
 |-------|---------|
-| `event` | `sized`, `halted`, `resumed`, `researched`, `research-planning`, `research-started`, `research-returned`, `verification-started`, `architecture-signed-off`, `plan-accepted`, `branch-cut`, `implementation-stage`, `qa-pass`, `document`, `escalated`, `cancelled` (`state-boards`, `landing`, `merge`, `landed` and `run-restarted` are raised by the team itself: `state-boards` when it accepts the run's `state-boards` request, `landing` when it accepts the `land`, `merge` at the PR, `landed` after the merge, `run-restarted` when a retry or resume reports a restart). |
+| `event` | `sized`, `halted`, `resumed`, `researched`, `research-planning`, `research-started`, `research-returned`, `verification-started`, `architecture-signed-off`, `plan-accepted`, `branch-cut`, `implementation-stage`, `qa-pass`, `document`, `escalated`, `cancelled` (`state-boards`, `landing`, `merge`, `landed` and `run-restarted` are raised by the team itself: `state-boards` when it accepts the run's `state-boards` request, `landing` when it accepts the `land`, `merge` at the PR, `landed` after the merge, `run-restarted` when a retry or resume reports a restart; `landing`, `merge` and `landed` go to the view copies, nothing tracked written). |
 | `folder` | `docs/plans/<…>/<issue>-<slug>` — the issue's plan folder, relative to the repo. |
 | `facts` | What the pipeline knows at this event, in plain fields: `step`, `detail`, `waitingOn`, `stage`, `qa` (`{pass, verdict, doc, test, code, severity, route}`, `severity` `{minor, other}`, `route` as in `remediation`), `documents` (paths written or updated), `proposedLevel`, `reason`, `drafted` (questions drafted so far, at `research-planning`), `researching` (`[{question, rows}]`, at `research-started`), `returned` (`{question, findings}`, at `research-returned`), `questions` (`[{text, options?}]`, at an interview `halted`), `stages` (`[{id, name, state}]`, `state` `done` | `current` | `todo`, at `implementation-stage`), `tasks` (`[{id, name, state}]`, the same states, at `document`; ids `documentation-review`, `reconcile-documentation`, `dokka-check`, `reconcile-plan`, `readme-changelog`, `state-boards`), `remediation` (`{pass, route, steps: [{name, state}]}`, `route` `on-the-spot` | `remediation` | `re-plan-then-remediation` (the older `rookie-dev` and `planner-then-rookie-dev` are still read), during a remediation loop), `rows` (board row ids the findings or fixes touch, at `qa-pass` and during remediation), `open` (`[{text, raised, ref?, resolved?}]`, open points raised or resolved), `at` (ISO time the event happened, any event), `tests` (optional, at `implementation-stage` and `qa-pass`): `{base, added: [{class, module, testLevel, path, tests, rows}], amended: […], relevant: […], ran: [{class, module, passed, failed, skipped}], other: {byModule: {<module>: {<level>: count | {classes, tests}}}}, drop: […]}`; `testLevel` is one of `1` `2` `3` `4a` `4b` `4c` `5`, and may be omitted when the class's package names the level folder. The presenter reads the folder's documents for everything else. |
 
@@ -131,16 +131,16 @@ A `plan-board` event updates the issue's issue board and, for a sub-issue, its t
 
 `docs/plans/index.html` and `board.json` sit on the default branch, which changes only at a
 landing. Each run's `state-boards` task regenerates them on its branch, and its document-landing
-commit carries them. After a merge the team writes the landed state for viewing only, into the
-git-ignored `docs/plans/.live/` of the main checkout (view copies under `.live/view/`); nothing
-is left uncommitted, there is no follow-up docs PR, and the next run in the repository seeds that
-landed state (its issue board as `landed` with its merge commit, its tracking board's unit landed
-and next up, the repository work board) onto its branch at `sized`. Between landings the live view is
+commit carries them. The team raises a land's `landing` and `merge`, and `landed` after the merge,
+for viewing only, into the git-ignored `docs/plans/.live/` of the main checkout (view copies under
+`.live/view/`); nothing is left uncommitted, there is no follow-up docs PR, and the next run in the
+repository seeds the landed state (its issue board as `landed` with its merge commit, its tracking
+board's unit landed and next up, the repository work board) onto its branch at `sized`. Between landings the live view is
 that local copy, regenerated after every board event, and a run's live state is on its own
 board in its worktree. A `plan-board` event runs in the team's board lanes, apart from the
-repository lanes, and commits nothing: an issue's board files are committed by its `land`. On
-a topic branch that lands through a PR (the board's first creation, a docs branch), the
-repository work board files are ordinary paths and a `commit` may include them.
+repository lanes, and commits nothing: an issue's board files are committed by the run's
+document-landing commit. On a topic branch that lands through a PR (the board's first creation, a
+docs branch), the repository work board files are ordinary paths and a `commit` may include them.
 
 ## A reply
 

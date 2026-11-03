@@ -188,7 +188,12 @@ reword it, then run the step again.
   task runs again at the new head before the PR.
 - **The landing steps.** A `land` shows on the issue board as two steps, each raised by the team
   through `apply-event.js` (which also updates the tracking board's mirror of a sub-issue):
-  `landing` when you accept the `land`; `merge` when the executor opens the PR. `landed` follows
+  `landing` when you accept the `land`; `merge` when the executor opens the PR. The board is
+  committed by then, so both are raised with the dashboards skill's view mode, each with its real
+  time (`facts.at` or `--at`), into the view copies under the main checkout's git-ignored
+  `docs/plans/.live/view/`, and a clean worktree stays clean:
+  `node ~/.claude/skills/dashboards/plan/scripts/apply-event.js --event <landing.json> --worktree <the run's worktree> --main <main checkout> --repo <owner/repo> --view`
+  before the merge; after it, `--worktree` is the main checkout. `landed` follows
   the merge, in the post-merge landed view. The `state-boards` step belongs to the run's
   Document step: raise it when you accept the run's `state-boards` request (Service:
   dashboards).
@@ -208,7 +213,7 @@ reword it, then run the step again.
   stamp is never written into the merge commit.
 - **Post-merge landed view.** After the merge and the release consideration, in the same lane,
   raise `landed` yourself in the main checkout at the merge commit, with the dashboards
-  skill's view mode:
+  skill's view mode, as the landing steps are:
   `node ~/.claude/skills/dashboards/plan/scripts/apply-event.js --event <landed.json> --worktree <main checkout> --repo <owner/repo> --view`.
   It writes the landed state for viewing only: view copies of the issue board and its tracking
   board under the git-ignored `docs/plans/.live/view/`, and the live repository work board
@@ -369,7 +374,7 @@ real time; every other dashboard request runs in its repository's lane.
 | `plan-board` | In the board lanes: run `apply-event.js` (the fast path, above) and reply `done`. When it reports `enrich: yes`, spawn `presenter` (`subagent_type: "presenter"`, `run_in_background: true`) in **plan-board mode** with the request: the issue, its folder, the `event` and its facts, the worktree and branch. It creates or updates `plan.json` and the issue board, re-embeds, checks, and regenerates the live repository work board. No commit. Reply `done` with the paths. |
 | `dashboards-refresh` | On request, at the current default branch: `presenter` in **dashboards-refresh mode** for the named systems' state boards, or for every board. |
 | `state-boards` | On the run's request in its Document step, after its code-landing commit, on the branch, in the repository's lane: raise the issue board's `state-boards` step (`apply-event.js`), then `presenter` in **state-boards mode** — the changed systems' state boards as built, the supersystem and repository state boards, `systems.json`, the README pointer, the template splice (`system/scripts/splice.js`, keeping declared divergences), the tracking board re-embed and the repository work board (`--refresh-template`), all stamped with `system/scripts/apply-state.js` "as-is at `<branch>` @ `<code-landing sha>`", and at level 4 the planned systems drawn dashed. No commit: the run's document-landing commit carries them. Reply `done` with the paths. The `land` runs it again only when the base moved under a covered system (Landing). |
-| as part of `land` | After the merge, in the main checkout: `landed` raised with `apply-event.js --view` — the landed state for viewing only (view copies under `docs/plans/.live/view/` and the live repository work board in `docs/plans/.live/`), nothing tracked; `presenter` in **post-merge-refresh mode** only on `enrich: yes` or a failure; the ledger records the corrections the next run seeds onto its branch at `sized` (Seeding). |
+| as part of `land` | `landing` and `merge` raised with `apply-event.js --view` (The landing steps). After the merge, in the main checkout: `landed` raised the same way — the landed state for viewing only (view copies under `docs/plans/.live/view/` and the live repository work board in `docs/plans/.live/`), nothing tracked; `presenter` in **post-merge-refresh mode** only on `enrich: yes` or a failure; the ledger records the corrections the next run seeds onto its branch at `sized` (Seeding). |
 
 **Next is the next one up** (standing rule). When a sub-issue lands, its unit
 on the parent tracking board is set to `landed`, taken out of `wip.current`,
