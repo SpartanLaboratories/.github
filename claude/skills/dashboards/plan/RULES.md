@@ -1202,7 +1202,7 @@ board, its unit landed and the next one up — with it. **A merge that marks an 
 too: both are seeded together** — a landed sub-issue seeded without its tracking board's copy marks its unit landed on the tracked tracking
 board by the standing rule (§3). Then the worktree's committed repository work board is regenerated (`board.js --refresh-template`), so the
 new branch carries the previous landing's state — the issue board `landed` at its merge, the tracking board's unit landed and next up, the
-repository work board — from its first commit. **The seed does not wait for the issue's own board**: a `sized` on a folder with no board yet
+repository work board — in its document-landing commit. **The seed does not wait for the issue's own board**: a `sized` on a folder with no board yet
 answers `no-board` and seeds all the same, under the same staged set, checking every seeded board and regenerating the committed and the live
 repository work boards; the foundation and the event raised again follow, and that second `sized` finds nothing fresher to seed and starts the unit on its
 tracking board. **A run in the main checkout seeds its tracked boards like a worktree's**, uncommitted, as its foundation is, and they ride its branch; `--view` never

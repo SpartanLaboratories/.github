@@ -361,7 +361,7 @@ real time; every other dashboard request runs in its repository's lane.
   previously landed issue's board in the run's worktree from the main checkout's view copies
   (`docs/plans/.live/view/`) where those are newer than the tracked boards, so the branch
   carries the previous landing's landed state (the issue board `landed` with its merge commit,
-  the tracking board's unit landed and next up, the repository work board) from its first
+  the tracking board's unit landed and next up, the repository work board) in its document-landing
   commit. A merge that marks an issue landed on its own board marks it so on the parent too:
   both are seeded together. Append `corrections-seeded`; when that branch lands, append
   `corrections-committed`; a cancelled branch leaves them pending again.

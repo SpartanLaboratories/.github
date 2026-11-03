@@ -659,7 +659,7 @@ reached its landing before the change):
    writes no tracked file, so nothing is left uncommitted.
 4. That landed state — the issue board `landed` at its merge, the tracking board's unit landed and next up, the repository work board — is
    **seeded at the next run's `sized`**: a run sized in a worktree branched after the landing starts those boards from the main checkout's
-   view copies (`apply-event.js`, `plan/RULES.md` §4, "Seeding at sized"), so its branch carries the landed state from its first commit.
+   view copies (`apply-event.js`, `plan/RULES.md` §4, "Seeding at sized"), so its branch carries the landed state in its document-landing commit.
    A merge that marks an issue landed on its own board does so for its parent too: both are seeded together. There is never a follow-up
    docs pull request.
 
