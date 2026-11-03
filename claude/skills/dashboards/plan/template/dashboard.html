@@ -762,6 +762,8 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
 .key i.progk.stale{opacity:.55}
 /* the Context's legend (GUIDANCE.md §2): the encodings its cards draw */
 .context>.key{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-top:10px}
+/* an archived system holds no colour (GUIDANCE.md §1): neutral through --muted, solid, faded */
+.sys-archived{opacity:.6;filter:saturate(.35)}
 </style>
 </head>
 <body>
@@ -1094,7 +1096,7 @@ function depKeys(deps,holds){ const ks=[], bs=new Set(deps.map(x=>x.build).filte
   Object.keys(LOC).filter(k=>ls.has(k)).forEach(k=>ks.push(`<span>${locChip({k},k==="external"?"external · name":"")} a dependency's locality: ${esc(LOC[k].desc)}</span>`));
   Object.keys(HOLD).filter(k=>hs.has(k)).forEach(k=>ks.push(`<span>${pill(HOLD[k])} ${esc(HOLD[k].desc)}</span>`)); return ks; }
 const STEP_ORDER=["sizing","interview","research","architecture","plan","branch","implementation","qa","remediation","document","landing","merge","landed"];
-const STEP_SPECIAL={halted:{g:"⏸",label:"Waiting on the user",cls:"halted"},escalated:{g:"⇧",label:"Escalated",cls:"escalated"},cancelled:{g:"✕",label:"Cancelled",cls:"cancelled"},landed:{g:"✓",label:"Landed",cls:"landed"}};
+const STEP_SPECIAL={halted:{g:"⏸",label:"Waiting on you",cls:"halted"},escalated:{g:"⇧",label:"Escalated",cls:"escalated"},cancelled:{g:"✕",label:"Cancelled",cls:"cancelled"},landed:{g:"✓",label:"Landed",cls:"landed"}};
 /* A row's as-built state: the stored one, unless the build is under way (plan/RULES.md §2, "Before the outcome"). While the run is live
    the implementation stages (wip.stages) decide it for every row they touch: a row a current stage touches is in progress; one a done
    stage touched and a later stage still to come touches is partially built; one only stages to come touch is pending. Its outcome
@@ -1160,18 +1162,23 @@ function optDef(r,o){ const s=o.verdict==="deferred"?settlement(r,o):null; const
 /* ---------- System colours: the registry slots, identical to the system boards' (plan.json systems[].slot) ---------- */
 let SYSTEMS=[];
 const sysOf=slug=>SYSTEMS.find(s=>s.slug===slug);
-function sysColour(slug){ const s=sysOf(slug); return s&&s.slot>=1&&s.slot<=6?`var(--sys-${s.slot})`:"var(--muted)"; }
+/* an archived system holds no slot (GUIDANCE.md §1): neutral, whatever an entry written before it was archived records */
+const sysLit=s=>!!s&&s.status!=="archived"&&s.slot>=1&&s.slot<=6;
+function sysColour(slug){ const s=sysOf(slug); return sysLit(s)?`var(--sys-${s.slot})`:"var(--muted)"; }
 const sysName=slug=>{ const s=sysOf(slug); return s?s.name:(slug||"—"); };
-function paint(root){ (root||document).querySelectorAll("[data-sys]").forEach(e=>e.style.setProperty("--c",sysColour(e.dataset.sys))); }
+function paint(root){ (root||document).querySelectorAll("[data-sys]").forEach(e=>{ e.style.setProperty("--c",sysColour(e.dataset.sys)); const s=sysOf(e.dataset.sys); e.classList.toggle("sys-archived",!!s&&s.status==="archived"); }); }
 /* Legend: one entry per colour group present (a system's parts share their top-level system's slot). */
-function sysKey(slugs,cls){ const seen=new Map(); slugs.forEach(sl=>{ const s=sysOf(sl)||{slug:sl,name:sl}; const k=s.slot>=1&&s.slot<=6?"s"+s.slot:"n"; const nm=s.slot>=1&&s.slot<=6?(s.top||s.name):`${s.name} (no system colour)`; if(!seen.has(k)) seen.set(k,{c:sysColour(sl),names:new Set()}); seen.get(k).names.add(nm); });
+function sysKey(slugs,cls){ const seen=new Map(); slugs.forEach(sl=>{ const s=sysOf(sl)||{slug:sl,name:sl}; const arch=s.status==="archived", k=sysLit(s)?"s"+s.slot:arch?"a":"n"; const nm=sysLit(s)?(s.top||s.name):arch?`${s.name} (⊟ archived)`:`${s.name} (no system colour)`; if(!seen.has(k)) seen.set(k,{c:sysColour(sl),names:new Set()}); seen.get(k).names.add(nm); });
   return [...seen.values()].map(v=>`<span><i class="${cls||"sbar"}" style="--c:${v.c}"></i>${esc([...v.names].join(", "))}</span>`).join(""); }
 
 /* ---------- Work in progress: the glowing cells ----------
    PAUSED: the run waits on you, halted or escalated; its in-progress marks stop to the ring alone (GUIDANCE.md §1) and keep
    the glow of the step it stopped in (plan/RULES.md §3, the glow follows the step). */
 /* NOT_STARTED: a board laid before its run starts (a tracking issue's unit, plan/RULES.md §4): no step yet, status planned, nothing glows */
-let NOT_STARTED=false, STEP="", HALTED=false, PAUSED=false, LANDED=false, STOPPED=false, CURRENT=[];
+let NOT_STARTED=false, STEP="", HALTED=false, PAUSED=false, LANDED=false, STOPPED=false, CURRENT=[], FILLING=[];
+/* the columns a foundation laid on the fast path has still to be written (plan/RULES.md §4, "The foundation"; lib.js foundationFilling() is the
+   same rule): they glow and say so until the data holds them, and the live refresh picks up the fill; nothing else on the board stands in for them */
+const fillingOf=P=>{ const F=P&&P.foundation; if(!F||typeof F!=="object"||P.kind==="tracking") return []; const R=Array.isArray(P.rows)?P.rows:[], c=[]; if(!R.length) c.push("gap"); if(F.considered&&!R.some(r=>r&&Array.isArray(r.options)&&r.options.length)) c.push("considered"); return c; };
 /* a row at work: an address of it in wip.current; a unit row's label (<unit-id>.units), which glows while the unit is filed as a sub-issue or
    its board created, is no run of the unit's (lib.js unitInRun(); dashboards-skill/28) */
 const rowActive=r=>CURRENT.some(a=>{ const p=String(a).split("."); return p[0]===r.id&&p[1]!=="units"; });
@@ -1181,7 +1188,7 @@ const rowActive=r=>CURRENT.some(a=>{ const p=String(a).split("."); return p[0]==
    hand. The board shows it under the WIP strip's "In progress" line, in the unit's as-built cell and card, in the inspector, on
    its chain node and in the roadmap; while the unit's run waits on you its mark pauses (the ring alone), as the whole
    board's does while the tracking issue itself is halted. The tracking board's own wip.step is the tracking issue's phase. */
-const RUN={run:{g:"▶",label:"run",cls:"neutral"},halted:{g:"⏸",label:"waiting on the user",cls:"warning"},escalated:{g:"⇧",label:"escalated",cls:"serious"},cancelled:{g:"✕",label:"run cancelled",cls:"critical"}};
+const RUN={run:{g:"▶",label:"run",cls:"neutral"},halted:{g:"⏸",label:"waiting on you",cls:"warning"},escalated:{g:"⇧",label:"escalated",cls:"serious"},cancelled:{g:"✕",label:"run cancelled",cls:"critical"}};
 const runOf=r=>TRACKING&&r&&r.unit&&r.unit.live&&typeof r.unit.live==="object"&&rowActive(r)?r.unit.live:null;
 const runKind=L=>L.step==="halted"?"halted":L.step==="escalated"?"escalated":L.step==="cancelled"||L.status==="abandoned"?"cancelled":"run";
 const runHeld=r=>{ const L=runOf(r); return !!L&&runKind(L)==="halted"; };
@@ -1212,9 +1219,9 @@ const KEY_GLOW=`<span><i class="gl"></i>interior glow, breathing: being worked o
 const KEY_NEXT=r=>`<span><i class="nx"></i>${TAG_NEXT} still outer glow: the next unit, not started</span>${openBlockers(r).length?`<span>${pill(BLOCKED,"","blocked by #n")} a blocker has not landed</span>`:""}`;
 /* The in-progress marks of a set of wip.current addresses: breathing where the work goes on, the ring alone where it waits. */
 const heldAddr=a=>PAUSED||rowHeld(String(a).split(".")[0]);
-const KEY_HELD=`<span><i class="hold"></i>ring alone: being worked on, paused while the run waits on the user</span>`;
+const KEY_HELD=`<span><i class="hold"></i>ring alone: being worked on, paused while the run waits on you</span>`;
 const KEY_COLGLOW=`<span><i class="gl colk"></i>glow around a whole column (on the As built tab, around its cards; on a phone, on each of its cells): that column at work, no single row named</span>`;
-const KEY_COLHELD=`<span><i class="hold colk"></i>ring around a whole column: at work, paused while the run waits on the user</span>`;
+const KEY_COLHELD=`<span><i class="hold colk"></i>ring around a whole column: at work, paused while the run waits on you</span>`;
 function markKeys(addrs){ if(!addrs.length) return ""; const cells=addrs.filter(a=>String(a).includes(".")), cols=addrs.length-cells.length, held=cells.filter(heldAddr).length;
   return (cells.length>held?KEY_GLOW:"")+(held?KEY_HELD:"")+(cols?(PAUSED?KEY_COLHELD:KEY_COLGLOW):""); }
 /* A unit's run: its pill, its last qa pass, the run line of its cell and card, its block on the strip, its legend entries. */
@@ -1224,10 +1231,10 @@ const lastQa=L=>{ const q=qaShown(L); return q.length?q[q.length-1]:null; };
 const qaPill=p=>{ const d=QA[p.verdict]||QA.running; return pill(d,"",`${ordinal(p.pass)} qa · ${d.label}`)+inPlaceMark(p); };
 function runLine(r){ const L=runOf(r); if(!L) return ""; const q=lastQa(L);
   return `<div class="run">${runPill(L)}${runAt(L)}${q?qaPill(q):""}${L.updated?`<span>updated <span class="nw">${when(L.updated)}</span></span>`:""}</div>`; }
-const runShort=L=>({halted:"⏸ waiting on the user",escalated:"⇧ escalated",cancelled:"✕ run cancelled"}[runKind(L)]||`▶ ${L.step||"?"}`);
+const runShort=L=>({halted:"⏸ waiting on you",escalated:"⇧ escalated",cancelled:"✕ run cancelled"}[runKind(L)]||`▶ ${L.step||"?"}`);
 function runBlock(r,still){ const L=runOf(r); if(!L) return ""; const k=runKind(L), held=k==="halted", steps=L.steps&&L.steps.length?L.steps:STEP_ORDER, qa=qaShown(L);
   let h=`<div class="${still?"":"unitrun"}${held&&!still?" halted":""}">${still?"":`<div class="wip-head"><span>its run · step <b>${esc(L.step||"—")}</b>${L.since?` · since <span class="nw">${when(L.since)}</span>`:""}${L.branch?` · branch <code>${esc(L.branch)}</code>`:""}</span>${L.updated?`<span class="upd">updated ${when(L.updated)}</span>`:""}</div>`}`;
-  if(held) h+=`<p class="wip-wait">Waiting on the user: ${rich(L.waitingOn||L.detail||"(not stated)")}</p>`;
+  if(held) h+=`<p class="wip-wait">Waiting on you: ${rich(L.waitingOn||L.detail||"(not stated)")}</p>`;
   if(k==="escalated") h+=`<p class="wip-wait">Escalated: the run waits while the issue's scope is re-decided.</p>`;
   if(k!=="cancelled") h+=stepsLine(steps,k==="halted"||k==="escalated"?(L.resume||""):L.step,{held:held||k==="escalated",still,label:`#${r.unit.issue}: its pipeline steps`});
   if(L.detail&&!held) h+=`<p class="wip-detail">${rich(L.detail)}</p>`;
@@ -1236,7 +1243,7 @@ function runBlock(r,still){ const L=runOf(r); if(!L) return ""; const k=runKind(
 /* The legend entries for the runs drawn: the run pill, a halt, an escalation, a cancelled run, the qa verdicts. */
 function runKeys(rows){ const Ls=rows.map(runOf).filter(Boolean); if(!Ls.length) return ""; const ks=new Set(Ls.map(runKind)), qv=new Set(Ls.map(lastQa).filter(Boolean).map(p=>p.verdict).filter(v=>QA[v]));
   return (ks.has("run")?`<span>${pill(RUN.run,"","run at <step>")} a unit in progress: its own run's step, from its board</span>`:"")
-    +(ks.has("halted")?`<span>${pill(RUN.halted)} the unit's run waits on the user</span>`:"")
+    +(ks.has("halted")?`<span>${pill(RUN.halted)} the unit's run waits on you</span>`:"")
     +(ks.has("escalated")?`<span>${pill(RUN.escalated)} the unit's scope is being re-decided</span>`:"")
     +(ks.has("cancelled")?`<span>${pill(RUN.cancelled)} the unit's run was abandoned</span>`:"")
     +[...qv].map(v=>`<span>${pill(QA[v],"",`nth qa · ${QA[v].label}`)} the unit's latest qa pass</span>`).join("")+inPlaceKeys(Ls.map(lastQa)); }
@@ -1279,11 +1286,12 @@ function researchFact(w){ const qs=questionsOf(w), R=w&&w.research;
    entries the panel drew. */
 const OPEN_PT={g:"!",label:"open",cls:"warning"};
 const KEY_OPEN=`<span>${pill(OPEN_PT)} an open point raised during the run, not resolved yet</span>`;
-const IV={answered:{g:"✓",label:"answered",cls:"neutral"},waiting:{g:"?",label:"waiting on the user",cls:"warning"}};
+const IV={answered:{g:"✓",label:"answered",cls:"neutral"},waiting:{g:"?",label:"waiting on you",cls:"warning"}};
 const STAGE_DOT={done:"done",current:"cur",todo:"todo"};
-const NEXT_STEP={qa:"document, or remediation if the qa pass requests changes",remediation:"qa, the next pass",document:"landing",landing:"merge","state-boards":"merge","merge":"landed","sub-issues":"boards: creating each unit's board","boards":"landing: the tracking plan's own"};
-/* A tracking board's own steps after its architecture (plan/RULES.md §3): "sub-issues", each unit being filed as a sub-issue, then
-   "boards", the units' boards created in the board-creation lanes; their progress is counted from the unit rows (a unit's issue, its board),
+const OWN_PANEL_STEPS=["document","landing","state-boards","merge","sub-issues","boards"];
+const NEXT_STEP={qa:"document, or remediation if the qa pass requests changes",remediation:"qa, the next pass",document:"landing",landing:"merge","state-boards":"merge","merge":"landed","boards":"landing: the tracking plan's own"};
+/* A tracking board's own step after its plan's merge (plan/RULES.md §3): "sub-issues", each unit being filed as a sub-issue; on an older board also
+   "boards", the units' boards laid ahead of their runs, read and drawn only. Their progress is counted from the unit rows (a unit's issue, its board),
    never stored. */
 function unitProgress(R,o,what){ const units=ROWS.filter(r=>r.unit), done=r=>what==="filed"?Number.isInteger(r.unit.issue)&&r.unit.issue>0:!!relLink(r.unit.board), n=units.filter(done).length;
   if(!units.length) return `<p>The units come from the architecture; none is on the board yet.</p>`;
@@ -1300,7 +1308,7 @@ const ROUTE_OLD={"rookie-dev":"remediation","planner-then-rookie-dev":"re-plan-t
 const ROUTE0={"on-the-spot":{label:"fixed on the spot, no new qa pass",next:"document (no new qa pass)"},"remediation":{label:"a remediation pass, then the next qa pass",next:"qa, the next pass"},"re-plan-then-remediation":{label:"a remediation pass: a plan re-pass, then the fixes, then the next qa pass",next:"qa, the next pass"}};
 const ROUTE=new Proxy(ROUTE0,{get:(t,k)=>t[routeKey(k)]});
 const stepName=x=>x&&(x.name||x.what)||"";
-function nextStepOf(R,S){ if(S==="remediation"&&R.remediation&&ROUTE[R.remediation.route]) return ROUTE[R.remediation.route].next; if(S==="qa"&&Array.isArray(R.steps)&&R.steps.length&&!R.steps.includes("document")) return "landing, or remediation if the qa pass requests changes"; /* an older line */ if(S==="landing"&&Array.isArray(R.steps)&&R.steps.includes("state-boards")) return "state boards: the pre-merge refresh on the branch"; /* dashboards-skill/34's three landing steps */ if(S==="landing"&&!(Array.isArray(R.steps)&&R.steps.includes("merge"))) return "landed"; /* a steps line written before the landing's steps */ if(NEXT_STEP[S]) return NEXT_STEP[S]; const st=R.steps&&R.steps.length?R.steps:STEP_ORDER, i=st.indexOf(S); return i>=0&&i<st.length-1?st[i+1]:""; }
+function nextStepOf(R,S){ const ln=Array.isArray(R.steps)?R.steps:[]; if(S==="merge"&&ln.includes("sub-issues")&&ln.indexOf("sub-issues")>ln.indexOf("merge")) return "sub-issues: each unit filed"; /* a tracking plan lands, then files */ if(S==="sub-issues") return ln.includes("boards")&&ln.indexOf("boards")>ln.indexOf("sub-issues")?"boards: creating each unit's board":"implementation: the first unit's run, its board laid when it starts"; if(S==="remediation"&&R.remediation&&ROUTE[R.remediation.route]) return ROUTE[R.remediation.route].next; if(S==="qa"&&Array.isArray(R.steps)&&R.steps.length&&!R.steps.includes("document")) return "landing, or remediation if the qa pass requests changes"; /* an older line */ if(S==="landing"&&Array.isArray(R.steps)&&R.steps.includes("state-boards")) return "state boards: the pre-merge refresh on the branch"; /* dashboards-skill/34's three landing steps */ if(S==="landing"&&!(Array.isArray(R.steps)&&R.steps.includes("merge"))) return "landed"; /* a steps line written before the landing's steps */ if(NEXT_STEP[S]) return NEXT_STEP[S]; const st=R.steps&&R.steps.length?R.steps:STEP_ORDER, i=st.indexOf(S); return i>=0&&i<st.length-1?st[i+1]:""; }
 /* a step's title, as the step panel's heading shows it */
 const stepTitle=s=>!s?"—":s==="qa"?"QA":s==="state-boards"?"State boards":s.charAt(0).toUpperCase()+s.slice(1);
 function spList(items){ return items.length?`<ol class="sp-list">${items.join("")}</ol>`:""; }
@@ -1388,14 +1396,14 @@ const PANEL={
     return `<p>The qa pass approved${last?` (pass ${esc(last.pass)})`:""}; ${split?(acc?`the land is accepted${pr?` (${prlink(pr[1])})`:""}: the branch brought up to date, the code, the version bump and the reconciled documents committed on it`:"the land follows: the branch brought up to date, the code, the version bump and the reconciled documents committed on it"):(acc?`the land is accepted and being merged${pr?` in ${prlink(pr[1])}`:""}, its state boards refreshed on the branch before the merge`:"the land follows: its state boards refreshed on the branch, then the merge")}.</p>`; },
   "state-boards":R=>`<p>The pre-merge refresh: the state boards brought up on the branch as built, stamped at its head, and committed there in one board commit; the merge follows.</p>`,
   merge:R=>{ const pr=R.event&&R.event.name==="merge"&&/PR #(\d+)/.exec(String(R.event.note||"")); return `<p>The pull request${pr?` ${prlink(pr[1])}`:""} is being merged; landed follows the merge.</p>`; },
-  "sub-issues":(R,o)=>`<p>Each unit of the signed-off architecture is filed as a sub-issue of this one.</p>`+unitProgress(R,o,"filed"),
-  boards:(R,o)=>`<p>Each unit's board is created from this issue's documents: its Gap and Considered columns, not started.</p>`+unitProgress(R,o,"boards"),
+  "sub-issues":(R,o)=>`<p>The plan has landed: each unit of its architecture is filed as a sub-issue of this one. A unit's board appears when its run starts.</p>`+unitProgress(R,o,"filed"),
+  boards:(R,o)=>`<p>Each unit's board was created ahead of its run, from this issue's documents: its Gap and Considered columns, not started.</p>`+unitProgress(R,o,"boards"),
   _:R=>R.detail?`<p>${rich(R.detail)}</p>`:`<p>Nothing recorded for this step.</p>`};
 function stepPanel(R,o){ o=o||{}; const k=R.step||"", held=["halted","escalated"].includes(k), S=held?(R.resume||""):k, keys=o.keys||new Set();
   const opts={...o,held};
   /* the heading is the step's title alone (plan/RULES.md §3, "The step panel"); a unit's panel names its unit to assistive technology */
   let h=`<div class="sp${held?" sp-held":""}${o.own?" own":""}" data-step="${esc(S)}"${o.row?` style="--r:${o.row}"`:""} role="group" aria-label="${esc(o.label||"The current step")}: ${esc(S||"—")}"><h3 class="sp-t">${esc(stepTitle(S))}</h3>`;
-  if(k==="halted"){ h+=`<p class="sp-wait">⏸ Held still at ${esc(S||"its step")}: it waits on the user for ${rich(R.waitingOn||R.detail||"(not stated)")}</p>`; }
+  if(k==="halted"){ h+=`<p class="sp-wait">⏸ Held still at ${esc(S||"its step")}: it waits on you for ${rich(R.waitingOn||R.detail||"(not stated)")}</p>`; }
   if(k==="escalated") h+=`<p class="sp-wait">⇧ Escalated from ${esc(S||"its step")}: held still while the issue's scope is re-decided.</p>`;
   h+=(PANEL[S]||PANEL._)(R,opts,keys);
   /* the open points (wip.open, plan/RULES.md §3): raised during the run, shown at every step until resolved; the trail keeps them after */
@@ -1524,7 +1532,7 @@ function visitHtml(S,V,i,n,o,keys){ const grp=(l,v)=>`<span><span class="l">${l}
   if(op.length){ keys.add(KEY_OPEN); h+=`<div class="sp-open"><p class="sp-sum">${op.length} open point${op.length===1?"":"s"} when it ended</p>${spList(op.map(x=>spItem("",pill(OPEN_PT),rich(x.text),[x.raised?`raised at ${esc(x.raised)}`:"",x.ref?refAt(x.ref,"",o.base)+liveCopyLink(x.copy,"the report as raised"):""].filter(Boolean).join(" · "))))}</div>`; }
   const info=[V.event&&V.event.name?grp("last event",`<code>${esc(V.event.name)}</code>${V.event.at?` · <span class="nw">${when(V.event.at)}</span>`:""}`):"",
     V.since?grp("since",`<span class="nw">${when(V.since)}</span>`):"",
-    grp(V.outage?"ended, run not running":V.held?"ended, waiting on the user":"ended",`<span class="nw">${when(V.ended)}</span>${V.endedBy?` · by <code>${esc(V.endedBy)}</code>`:""}${typeof V.outage==="string"?` · ${esc(V.outage)}`:""}`),
+    grp(V.outage?"ended, run not running":V.held?"ended, waiting on you":"ended",`<span class="nw">${when(V.ended)}</span>${V.endedBy?` · by <code>${esc(V.endedBy)}</code>`:""}${typeof V.outage==="string"?` · ${esc(V.outage)}`:""}`),
     V.to&&V.to!==S?grp("then",esc(V.to)):""].filter(Boolean);
   return h+`<div class="wip-facts sp-facts">${info.join("")}</div></div>`; }
 /* a finished step with no snapshot: what survives, reduced */
@@ -1556,7 +1564,7 @@ function focusPick(key,step){ const b=[...document.querySelectorAll("#wip .stepb
 function pickStep(key,step){ SEL=SEL&&SEL.run===key&&SEL.step===step?null:{run:key,step}; renderWip(); focusPick(key,step); }
 function backToNow(){ if(!SEL) return; const s=SEL; SEL=null; renderWip(); focusPick(s.run,s.step); }
 const CHARGING=()=>!LANDED&&!STOPPED&&(STEP==="plan"||(PAUSED&&WIP.resume==="plan"));
-const KEY_CHG=()=>`<span><i class="chg"></i>charging arrow: its verdict being written${PAUSED?", held still while the run waits on the user":""}</span>`;
+const KEY_CHG=()=>`<span><i class="chg"></i>charging arrow: its verdict being written${PAUSED?", held still while the run waits on you":""}</span>`;
 
 /* ---------- Header, chips ---------- */
 /* The chain's progress (tracking boards, plan/RULES.md §3): in place of a status that reads "building" from the first unit's start to
@@ -1613,7 +1621,7 @@ function renderHeader(){
     a&&a.version?tag("ships as",`<b>${esc(a.version)}</b>`):"",
     /* one entry per system, or per top-level system when several of its parts are on the board */
     sysGroups.length?tag(sysGroups.length===1?"system":"systems",sysGroups.map(([top,ps])=>{ const s=ps[0], one=ps.length===1, nm=one?s.name:top;
-      return `<span class="sysl"><span class="sw" data-sys="${esc(s.slug)}"></span>${one&&boardHref(s)?`<a href="${esc(boardHref(s))}">${esc(nm)}</a>`:esc(nm)}${one?"":` · ${ps.length} parts`}${ps.every(x=>x.status==="planned")?" · planned":ps.every(x=>x.status==="archived")?" · archived":""}</span>`; }).join(""),sysGroups.length>2?"wide":""):""].filter(Boolean);
+      return `<span class="sysl"><span class="sw" data-sys="${esc(s.slug)}"></span>${one&&boardHref(s)?`<a href="${esc(boardHref(s))}">${esc(nm)}</a>`:esc(nm)}${one?"":` · ${ps.length} parts`}${ps.every(x=>x.status==="planned")?" · planned":ps.every(x=>x.status==="archived")?" · ⊟ archived":""}</span>`; }).join(""),sysGroups.length>2?"wide":""):""].filter(Boolean);
   $("#chips").innerHTML=chips.join(""); paint($("#chips"));
 }
 
@@ -1630,8 +1638,9 @@ function stepsLine(steps,cur,o){ o=o||{}; const i=steps.indexOf(cur), held=o.hel
 /* ---------- Progress notes (plan/RULES.md §3, "The step panel") ----------
    Every part of the run writes docs/plans/.live/progress/<issue>/<name>.js in its checkout every 10 minutes it runs, one line
    setting window.PROGRESS["<name>"] to its note (who, issue, times, done, left, estimate), and deletes it when it finishes. While the run is
-   live and the board is a local copy, each live poll probes the names the run can have: one per kind of work, one
-   per research question, one per stage (a missing file is simply no note). Each note is an info card of the
+   live and the board is a local copy, each live poll reads the names the issue's folder holds from its index.js (plan/scripts/progress-index.js
+   keeps it, with no event: a board from disk cannot list a folder, and a note's slug is its writer's own) and probes those and the names the
+   run is known to have: one per kind of work, one per research question, one per stage (a missing file is simply no note). Each note is an info card of the
    step panel: its work, how long it has run, what is done, what is left, its estimate and when it wrote; a note not updated for over 20
    minutes is drawn muted. A tracking board probes each unit in progress under the unit's own issue. The names below are
    file names only: a note is shown by the work it reports (noteLabel(): "research ·
@@ -1643,14 +1652,17 @@ const PROG_STALE_MS=20*60000;
 let PROG={};
 const KEY_PROG=`<span><i class="progk"></i>a progress note: an agent's own report of its work, every 10 minutes</span>`;
 const KEY_PROG_STALE=`<span><i class="progk stale"></i>muted: no update for over 20 minutes</span>`;
-function progNames(R){ R=R||{}; const qs=questionsOf(R).map(q=>"researcher-"+q.question), st=(Array.isArray(R.stages)?R.stages:[]).filter(x=>x&&x.id).map(x=>"rookie-dev-"+String(x.id).toLowerCase());
-  return [...new Set([...AGENTS,...qs,...st])].filter(n=>/^[a-z0-9][a-z0-9-]*$/.test(n)); }
+function progNames(R,listed){ R=R||{}; const qs=questionsOf(R).map(q=>"researcher-"+q.question), st=(Array.isArray(R.stages)?R.stages:[]).filter(x=>x&&x.id).map(x=>"rookie-dev-"+String(x.id).toLowerCase());
+  return [...new Set([...AGENTS,...qs,...st,...(Array.isArray(listed)?listed:[])])].filter(n=>typeof n==="string"&&/^[a-z0-9][a-z0-9-]*$/.test(n)); }
+function loadNoteNames(issue){ return new Promise(res=>{ const k=String(issue), sc=document.createElement("script"); try{ if(window.PROGRESS_NAMES) delete window.PROGRESS_NAMES[k]; }catch(e){}
+  sc.src=`${UP}docs/plans/.live/progress/${issue}/index.js?t=${Date.now()}`;
+  sc.onload=()=>{ const v=(window.PROGRESS_NAMES||{})[k]; sc.remove(); res(Array.isArray(v)?v:[]); }; sc.onerror=()=>{ sc.remove(); res([]); }; document.head.appendChild(sc); }); }
 function loadNote(issue,name){ return new Promise(res=>{ const sc=document.createElement("script"); try{ if(window.PROGRESS) delete window.PROGRESS[name]; }catch(e){}
   sc.src=`${UP}docs/plans/.live/progress/${issue}/${name}.js?t=${Date.now()}`;
   sc.onload=()=>{ const v=(window.PROGRESS||{})[name]; sc.remove(); res(v&&typeof v==="object"&&!Array.isArray(v)?v:null); }; sc.onerror=()=>{ sc.remove(); res(null); }; document.head.appendChild(sc); }); }
 async function pollProgress(){ if(!(runLive()&&LIVE_LOCAL)) return;
   const runs=[[PLAN.issue,WIP],...(TRACKING?ROWS.filter(r=>r.unit&&r.unit.issue&&runOf(r)).map(r=>[r.unit.issue,runOf(r)]):[])], next={};
-  for(const [n,R] of runs){ const names=progNames(R), got=await Promise.all(names.map(x=>loadNote(n,x))); names.forEach((x,i)=>{ if(got[i]) (next[n]=next[n]||{})[x]=got[i]; }); }
+  for(const [n,R] of runs){ const names=progNames(R,await loadNoteNames(n)), got=await Promise.all(names.map(x=>loadNote(n,x))); names.forEach((x,i)=>{ if(got[i]) (next[n]=next[n]||{})[x]=got[i]; }); }
   if(JSON.stringify(next)!==JSON.stringify(PROG)){ PROG=next; renderWip(); } }
 function progressHtml(issue,keys){ const notes=Object.entries(PROG[issue]||{}); if(!notes.length) return ""; const now=Date.now(), span=ms=>{ const m=Math.max(0,Math.round(ms/60000)); return m<90?`${m} min`:`${Math.round(m/60)} h`; };
   const items=notes.map(([name,p])=>{ const at=Date.parse(String(p.at||"")), st=Date.parse(String(p.started||"")), stale=isNaN(at)||now-at>PROG_STALE_MS; keys.add(KEY_PROG); if(stale) keys.add(KEY_PROG_STALE);
@@ -1668,7 +1680,7 @@ function renderWip(){
   const head=special?`<span class="state"><i aria-hidden="true">${special.g}</i>${esc(special.label)}</span>`:NOT_STARTED?`<span class="state"><i aria-hidden="true">…</i>Not started</span>`:`<span class="state"><i aria-hidden="true">●</i>Work in progress</span>`;
   /* the head line's "since" is left out while the board's own step panel is drawn beside it: the panel says it (plan/RULES.md §3) */
   const units0=TRACKING?ROWS.filter(r=>r.unit):[];
-  const ownPanelShown=!LANDED&&!STOPPED&&(units0.length?["sub-issues","boards"].includes(ownStep):!NOT_STARTED);
+  const ownPanelShown=!LANDED&&!STOPPED&&(units0.length?OWN_PANEL_STEPS.includes(ownStep):!NOT_STARTED);
   const since=WIP.since&&(!ownPanelShown||selFor("own"))?` · since <span class="nw">${when(WIP.since)}</span>`:"";
   const headLine=`<div class="wip-head">${head}<span>step <b>${esc(LANDED?"landed":st)}</b>${since}</span>${WIP.updated?`<span class="upd">updated ${when(WIP.updated)}</span>`:""}</div>`;
   const legend=[];
@@ -1711,7 +1723,7 @@ function renderWip(){
     /* the tracking issue's own finished step, picked on its phase's steps line (plan/RULES.md §3, "Finished steps"): a row of its own
        beside the phase, first, in the unit's and the panel's shares; at its own sub-issues or boards step it takes the own panel's place */
     const ovRow=selFor("own");
-    if(ovRow&&!(!LANDED&&!STOPPED&&["sub-issues","boards"].includes(ownStep))){ rowN++; h+=pastPanel(WIP,ovRow,{key:"own",own:true,cls:"own",keys:pkeys,row:rowN,rowName:id=>(ROWS.find(x=>x.id===id)||{}).name||id,label:`#${PLAN.issue}: the finished step shown`}); }
+    if(ovRow&&!(!LANDED&&!STOPPED&&OWN_PANEL_STEPS.includes(ownStep))){ rowN++; h+=pastPanel(WIP,ovRow,{key:"own",own:true,cls:"own",keys:pkeys,row:rowN,rowName:id=>(ROWS.find(x=>x.id===id)||{}).name||id,label:`#${PLAN.issue}: the finished step shown`}); }
     /* one card per unit in progress, with its own run as its board last showed it */
     act.forEach(r=>{ const L=runOf(r), k=L?runKind(L):null, held=k==="halted"; rowN++;
       let b=`<div class="wipcard unit${held?" halted":k==="escalated"?" escalated":""}" data-row="${esc(r.id)}" style="--r:${rowN}"><div class="wipcard-t"><span class="k">In progress · unit ${esc(r.unit.n)}</span><span>${uref(r)}</span></div>`;
@@ -1737,8 +1749,8 @@ function renderWip(){
        up-next card stays */
     const panels=act.filter(runOf);
     /* up next takes the panel's share beside a unit whose run is not mirrored, else the unit's and the panel's */
-    /* a tracking board filing its units or creating their boards: its own step panel, with the count, beside its phase (plan/RULES.md §3) */
-    const ownPanel=!LANDED&&!STOPPED&&["sub-issues","boards"].includes(ownStep);
+    /* a tracking board at its plan's document step or its land, or filing its units (on an older board, creating their boards): its own step panel, beside its phase (plan/RULES.md §3) */
+    const ownPanel=!LANDED&&!STOPPED&&OWN_PANEL_STEPS.includes(ownStep);
     const ov=selFor("own");
     if(ownPanel){ rowN++; h+=ov?pastPanel(WIP,ov,{key:"own",own:true,cls:"own",keys:pkeys,row:rowN,rowName:id=>(ROWS.find(r=>r.id===id)||{}).name||id,label:`#${PLAN.issue}: the finished step shown`}):stepPanel(ownRun(),{issue:PLAN.issue,keys:pkeys,row:rowN,own:true,label:`#${PLAN.issue}: its own step`}); }
     if(NEXT_ROW&&!panels.length&&!ownPanel){ const beside=act.length>0; if(!beside) rowN++; h+=`<div class="wipcard next upnext${beside?" beside":""}" data-sys="${esc(NEXT_ROW.system||"")}" style="--r:${beside?1:rowN}"><div class="wipcard-t"><span class="k">Up next · unit ${esc(NEXT_ROW.unit.n)}</span><span>${uref(NEXT_ROW)}</span> ${TAG_NEXT} ${blockedPill(NEXT_ROW)}</div><p class="note">Not started${openBlockers(NEXT_ROW).length?": it starts once its blockers have landed":""}.</p></div>`; }
@@ -1751,11 +1763,11 @@ function renderWip(){
     h=`<div class="wipgrid">${phase.replace(/^<div class="wipcard phase([^"]*)"/,(m,c)=>`<div class="wipcard phase${c}${rowN?"":" solo"}" style="--rows:${Math.max(rowN,1)}"`)}${h}</div>`;
   } else {
     h=headLine;
-    if(HALTED) h+=`<p class="wip-wait">Waiting on the user: ${rich(WIP.waitingOn||WIP.detail||"(not stated)")}</p>`;
+    if(HALTED) h+=`<p class="wip-wait">Waiting on you: ${rich(WIP.waitingOn||WIP.detail||"(not stated)")}</p>`;
     if(st==="escalated") h+=`<p class="wip-wait">Escalated: the run waits while the issue's scope is re-decided.</p>`;
     /* while halted the wait line shows waitingOn, falling back to the detail: the detail is drawn too unless it is that fallback */
     h+=own+(WIP.detail&&(!HALTED||WIP.waitingOn)?`<p class="wip-detail">${rich(WIP.detail)}</p>`:"")+factsHtml;
-    if(HALTED) legend.push(`<span><i class="wait"></i>yellow strip: waiting on the user</span>`);
+    if(HALTED) legend.push(`<span><i class="wait"></i>yellow strip: waiting on you</span>`);
     /* the strip on the left half, the step panel on the right (plan/RULES.md §3); a landed or cancelled board has no current step */
     if(NOT_STARTED) h+=`<p class="wip-detail">Its board was laid from ${PLAN.parent&&PLAN.parent.issue?`${ilink(PLAN.parent.issue)}'s`:"its tracking issue's"} documents; its run starts when it is sized.</p>`;
     const pv=selFor("own"), pastOpts={key:"own",own:true,keys:pkeys,rowName:id=>(ROWS.find(r=>r.id===id)||{}).name||id,parent:PLAN.parent&&PLAN.parent.issue,label:"The finished step shown"};
@@ -1771,7 +1783,7 @@ function renderWip(){
   if(st!=="cancelled") legend.push(`<span><i class="node"></i>step done${PICKS?": click a finished step to see it in the panel":""}</span>`,SEL?KEY_SEL:"",LANDED?"":PAUSED?`<span><i class="hold"></i>current step, paused</span>`:`<span><i class="node acc"></i>ringed dot, breathing: the step at work now</span>`,LANDED?"":`<span><i class="node hollow"></i>dashed: step to come</span>`);
   if(!PAUSED&&!LANDED&&runs.some(runPaused)) legend.push(`<span><i class="hold"></i>a unit's current step, paused</span>`);
   if(runs.length) legend.push(`<span><i class="runbar"></i>accent edge: a unit in progress, its own run mirrored from its board</span>`);
-  if(runHeldAny) legend.push(`<span><i class="runbar halt"></i>yellow edge: that run waits on the user</span>`);
+  if(runHeldAny) legend.push(`<span><i class="runbar halt"></i>yellow edge: that run waits on you</span>`);
   if(runs.length) legend.push(runKeys(runs));
   if(TRACKING&&!LANDED){ const act=ROWS.filter(r=>r.unit&&rowActive(r)); if(act.some(r=>!PAUSED&&!runPaused(r))) legend.push(KEY_GLOW); if(act.some(r=>PAUSED||runPaused(r))) legend.push(KEY_HELD); }
   if(LANDED) legend.push(`<span>${pill({g:"✓",cls:"good",label:"landed"})} merged; nothing glows</span>`);
@@ -1869,7 +1881,7 @@ function timelineSteps(P,now){ const w=(P&&P.wip)||{}, H=histOf(w), steps=(Array
     const a=v.from&&(v.from.how==="exact"||v.from.how==="approx")?Date.parse(v.from.t):null, b=v.to?Date.parse(v.to.t):null; v.ms=a!=null&&b!=null?b-a:null; if(v.ms!=null&&v.ms<0){ v.ms=null; v.order=true; } });
   const lined=[...new Set(seq.map(v=>v.step))].sort((x,y)=>idx(x)-idx(y));
   seq.forEach(v=>{ const fs=lined.filter(s=>tlFamily(s)===tlFamily(v.step)); v.family=tlFamily(v.step); v.shade=tlShade(fs.indexOf(v.step),fs.length); });
-  const waits=WT.map(x=>{ const ms=x.ended?Date.parse(x.ended)-Date.parse(x.since):null; return {wait:true,step:x.step,by:x.by,label:"waiting on the user",from:bd(x.since),to:x.ended?bd(x.ended):now?{t:now,how:"now"}:null,open:!x.ended,ms:ms!=null&&ms>=0?ms:null}; });
+  const waits=WT.map(x=>{ const ms=x.ended?Date.parse(x.ended)-Date.parse(x.since):null; return {wait:true,step:x.step,by:x.by,label:"waiting on you",from:bd(x.since),to:x.ended?bd(x.ended):now?{t:now,how:"now"}:null,open:!x.ended,ms:ms!=null&&ms>=0?ms:null}; });
   const outages=OG.map(x=>({outage:true,step:x.step,reason:x.reason,label:"run not running",from:bd(x.since),to:bd(x.ended),ms:Date.parse(x.ended)-Date.parse(x.since)})).filter(x=>x.ms>=0);
   return {visits:seq,waits,outages,left,untimed:seq.filter(v=>v.ms==null).map(v=>v.label),families:timelineFamilies(seq)}; }
 /* The waits on you (plan/RULES.md §2; timeline-waits): wip.waits, oldest first, { step, since, ended, by }, written by apply-event.js
@@ -1881,8 +1893,8 @@ function timelineRows(T){ const vs=(T&&T.visits)||[], ws=[...((T&&T.waits)||[]),
   ws.forEach(x=>{ const t=Date.parse(x.from.t); let at=0; rows.forEach((r,i)=>{ const k=r.visit?key(r.visit):Date.parse((r.wait||r.outage).from.t); if(k!=null&&k<=t) at=i+1; }); rows.splice(at,0,x.outage?{outage:x}:{wait:x}); });
   return rows; }
 function timelineWaitNote(T){ const ws=(T&&T.waits)||[], shut=ws.filter(x=>x.ms!=null), tot=shut.reduce((n,x)=>n+x.ms,0), og=(T&&T.outages)||[], otot=og.reduce((n,x)=>n+x.ms,0);
-  const parts=[shut.length?`waiting on the user, ${tlSpan(tot)}${shut.length>1?` (${shut.length} waits)`:""}`:"",og.length?`run not running, ${tlSpan(otot)} (${og.length})`:""].filter(Boolean);
-  return [parts.length?`not counted: ${parts.join("; ")}`:"",ws.some(x=>x.open)?"waiting on the user now: not counted":""].filter(Boolean).join(" · "); }
+  const parts=[shut.length?`waiting on you, ${tlSpan(tot)}${shut.length>1?` (${shut.length} waits)`:""}`:"",og.length?`run not running, ${tlSpan(otot)} (${og.length})`:""].filter(Boolean);
+  return [parts.length?`not counted: ${parts.join("; ")}`:"",ws.some(x=>x.open)?"waiting on you now: not counted":""].filter(Boolean).join(" · "); }
 /* a span: "40 min", "2 h 35 min", "3 days 4 h", "under 1 min" */
 const tlSpan=ms=>{ if(ms==null||!isFinite(ms)) return "—"; const m=Math.round(ms/6e4); if(m<1) return "under 1 min"; if(m<60) return `${m} min`;
   if(m<1440){ const h=Math.floor(m/60), r=m%60; return r?`${h} h ${r} min`:`${h} h`; } let d=Math.floor(m/1440), h=Math.round((m-d*1440)/60); if(h===24){ d++; h=0; } return `${d} day${d===1?"":"s"}${h?` ${h} h`:""}`; };
@@ -1924,7 +1936,7 @@ function renderKpis(){
      passes one slot per pass allowed, filled in order by each pass's result. */
   const segBar=(parts,label)=>`<div class="seg-bar" role="img" aria-label="${esc(label)}">${parts.filter(p=>p.n>0).map(p=>`<i class="${p.cls||""}" style="flex:${p.n}${p.c?`;background:${p.c}`:""}"${p.step?` data-step="${esc(p.step)}"`:""}${p.t?` title="${esc(p.t)}"`:""}></i>`).join("")}</div>`;
   const bar=segBar([...states.filter(([,n])=>n).map(([k,n])=>({n,cls:STATES[k].cls+(STATES[k].dash?" dash":""),t:`${n} ${STATES[k].label}`})),{n:left,cls:"left",t:`${left} left for later`}],`As built: ${[...states.filter(([,n])=>n).map(([k,n])=>`${n} ${STATES[k].label}`),left?`${left} left for later`:""].filter(Boolean).join(", ")}`);
-  const gparts=[]; grouped().forEach(G=>{ const by2=new Map(); G.rows.forEach(r=>{ const c=sysColour(r.system); if(!by2.has(c)) by2.set(c,{n:0,names:new Set()}); by2.get(c).n++; const so=sysOf(r.system); by2.get(c).names.add(so&&so.slot>=1&&so.slot<=6?(so.top||so.name):`${sysName(r.system)} (no system colour)`); });
+  const gparts=[]; grouped().forEach(G=>{ const by2=new Map(); G.rows.forEach(r=>{ const c=sysColour(r.system); if(!by2.has(c)) by2.set(c,{n:0,names:new Set()}); by2.get(c).n++; const so=sysOf(r.system); by2.get(c).names.add(sysLit(so)?(so.top||so.name):`${sysName(r.system)} (no system colour)`); });
     by2.forEach((v,c)=>gparts.push({n:v.n,c,names:[...v.names],t:`${G.name||"rows"}: ${v.n} · ${[...v.names].join(", ")}`})); });
   const optParts=["accepted","partial","deferred","declined","settled-accepted","settled-partial","settled-declined"].map(k=>({k,n:0}));
   OPTS.forEach(x=>{ const {def,settled}=optDef(x.row,x.opt), k=settled?"settled-"+(settled.verdict||"accepted"):x.opt.verdict, p=optParts.find(q=>q.k===k)||optParts.find(q=>q.k==="declined"); p.n++; p.cls=def.cls+(def.dash?" dash":""); });
@@ -1941,7 +1953,7 @@ function renderKpis(){
   $("#tl-tile").innerHTML=timelineTile(TS,TV,tsTot,tpParts,segBar);
   /* the tab's lede (what the picture does not say) and its legend: the tracer, and its foot where its steps have no time recorded */
   /* while the run waits on you no visit runs to now (plan/RULES.md §2), so the lede says so */
-  $("#timeline-lede").textContent=LANDED?"Hover a segment for its times.":(TS.waits||[]).some(x=>x.open)?"The run waits on the user: no step's time runs until the answer.":TL_OPEN?"The running step is open-ended: its time runs to now.":"Hover a segment for its times.";
+  $("#timeline-lede").textContent=LANDED?"Hover a segment for its times.":(TS.waits||[]).some(x=>x.open)?"The run waits on you: no step's time runs until the answer.":TL_OPEN?"The running step is open-ended: its time runs to now.":"Hover a segment for its times.";
   const untimed=TRACERS.some(x=>!x.none&&x.ms==null&&x.visits);
   $("#timeline-key").innerHTML=`<span><i class="trk"></i>tracer: from a tile up to the steps that made it, its colour their kind of work, its label their time</span>`+(untimed?`<span>a tracer ending at the tile's foot, "—": those steps have no time recorded</span>`:"")+(TRACERS.some(x=>x.none)?`<span>no tracer: a tile with no step of its own</span>`:"");
   $("#kpis").innerHTML=[
@@ -1977,10 +1989,10 @@ function timelineTile(T,V,tot,parts,segBar){ const vs=T.visits||[], nil=vs.some(
   const sub=[open?"so far":"",V.range,V.zone&&vs.some(v=>v.from||v.to)?`times ${esc(V.zone)}`:"",esc(timelineLeftOut(T)),esc(timelineApproxNote(T)),esc(timelineWaitNote(T))].filter(Boolean).join(" · ");
   const line=v=>`<span class="tl-step" data-family="${esc(v.family)}" data-step="${esc(v.step)}"><i class="segk ${v.ms!=null?"tp":"tl-out"}" style="--tp:${tlMix(v.family,v.shade)}"${v.ms!=null?"":' aria-hidden="true"'}></i><b>${esc(v.label)}</b><span class="tl-when">${V.time(v.from)} → ${V.time(v.to)}</span><span class="tl-dur">${v.ms!=null?`${v.approx?"≈ ":""}${esc(tlSpan(v.ms))}${v.open?" so far":""}`:"—"}</span></span>`;
   /* a wait on you (timeline-waits): its line between the visits, its mark the halt's yellow, its time shown and not counted, never on the bar */
-  const ws=T.waits||[], wline=x=>`<span class="tl-wait" data-wait="${esc(x.by||"")}" title="${esc(`waiting on the user${x.step?` in ${x.step}`:""}: not active time, not counted in the figure`)}"><i class="segk tl-waitk" aria-hidden="true"></i><b>${esc(x.label)}</b><span class="tl-when">${V.time(x.from)} → ${x.open?`<span class="tl-now" title="still waiting on the user">now</span>`:V.time(x.to)}</span><span class="tl-dur">${x.ms!=null?`${esc(tlSpan(x.ms))}, not counted`:"not counted"}</span></span>`;
+  const ws=T.waits||[], wline=x=>`<span class="tl-wait" data-wait="${esc(x.by||"")}" title="${esc(`waiting on you${x.step?` in ${x.step}`:""}: not active time, not counted in the figure`)}"><i class="segk tl-waitk" aria-hidden="true"></i><b>${esc(x.label)}</b><span class="tl-when">${V.time(x.from)} → ${x.open?`<span class="tl-now" title="still waiting on you">now</span>`:V.time(x.to)}</span><span class="tl-dur">${x.ms!=null?`${esc(tlSpan(x.ms))}, not counted`:"not counted"}</span></span>`;
   /* a stretch when the run was not running (timeline-outages): its own line and wording, its mark a neutral hatch, its time shown and not counted, never on the bar */
   const ogs=T.outages||[], oline=x=>`<span class="tl-outage" data-outage="${esc(x.step||"")}" title="${esc(`run not running${x.step?` in ${x.step}`:""}${x.reason?`: ${x.reason}`:""}: not active time, not counted in the figure`)}"><i class="segk tl-outk" aria-hidden="true"></i><b>${esc(x.label)}</b><span class="tl-when">${V.time(x.from)} → ${V.time(x.to)}</span><span class="tl-dur">${esc(tlSpan(x.ms))}, not counted</span></span>`;
-  const out=vs.some(v=>v.ms==null), note=[open?"now: the step running":"",ws.length?"yellow: waiting on the user, not counted":"",ogs.length?"hatched: run not running, not counted":"",out?"outlined: a visit the bar does not draw":"",nil?"— not recorded":"",vs.some(v=>v.approx)?"≈ the time the update reached the team":"",by?"by: the step under way at its first commit":"",merged?"merged: the run's end, the merge":""].filter(Boolean).join(" · ");
+  const out=vs.some(v=>v.ms==null), note=[open?"now: the step running":"",ws.length?"yellow: waiting on you, not counted":"",ogs.length?"hatched: run not running, not counted":"",out?"outlined: a visit the bar does not draw":"",nil?"— not recorded":"",vs.some(v=>v.approx)?"≈ the time the update reached the team":"",by?"by: the step under way at its first commit":"",merged?"merged: the run's end, the merge":""].filter(Boolean).join(" · ");
   /* the families legend: each kind of work on the lines, its swatch its steps' shades in order, then its steps */
   const fam=f=>{ const n=f.steps.length, st=f.steps.map((x,i)=>`${tlMix(f.id,x.shade)} ${Math.round(100*i/n)}% ${Math.round(100*(i+1)/n)}%`).join(","); return `<span class="tl-fam" data-family="${esc(f.id)}"><i class="segk tf" style="background:linear-gradient(90deg,${st})" aria-hidden="true"></i><b>${esc(f.id)}</b> ${esc(f.steps.map(x=>x.step).join(" · "))}</span>`; };
   const famH=(T.families||[]).length?`<div class="key tl-fams">${T.families.map(fam).join("")}</div>`:"";
@@ -2063,9 +2075,9 @@ function renderBoard(){
     :"Click a cell, an option or a statement's (§) reference for its detail and the Markdown section that holds the rest.";
   const ms=c=>(PLAN.milestones||[]).find(m=>m.column===c);
   let h=`<div class="colhead" data-col="units" aria-hidden="true"></div>`+COLS.map((c,i)=>{ const m=ms(c.key);
-    const dt=m?`${esc(m.label)}${m.date?` · <span class="nw">${when(m.date)}</span>`:""}${m.ref?` · ${refHtml(m.ref)}`:""}`:(c.key==="built"&&!LANDED?"not landed":"");
+    const dt=m?`${esc(m.label)}${m.date?` · <span class="nw">${when(m.date)}</span>`:""}${m.ref?` · ${refHtml(m.ref)}`:""}`:FILLING.includes(c.key)?"being written":(c.key==="built"&&!LANDED?"not landed":"");
     return `<div class="colhead phase${CURRENT.includes(c.key)?" colon":""}" data-col="${c.key}"><div class="ph"><b>${i+1}</b>${esc(c.label).toUpperCase()}</div><div class="q">${esc(c.q)}</div>${dt?`<div class="dt">${dt}</div>`:""}</div>`; }).join("");
-  if(!ROWS.length) h+=`<p class="lede" style="grid-column:1/-1;margin-top:12px">${TRACKING?"No units yet: they are written from the architecture at its sign-off.":"No rows yet: they are named from the gaps before the research starts."}</p>`;
+  if(!ROWS.length) h+=`<p class="lede" style="grid-column:1/-1;margin-top:12px">${TRACKING?"No units yet: they are written from the architecture at its sign-off.":FILLING.length?`The ${FILLING.includes("considered")?"Gap and Considered columns are":"Gap column is"} being written from ${FILLING.includes("considered")&&PLAN.parent&&PLAN.parent.issue?`#${esc(PLAN.parent.issue)}'s documents`:"the issue and its documents"}: the rows appear here as soon as they are.`:"No rows yet: they are named from the gaps before the research starts."}</p>`;
   grouped().forEach(G=>{ if(G.name) h+=`<div class="grouphead">${esc(G.name)} <small>${G.rows.length} ${TRACKING?"unit":"row"}${G.rows.length>1?"s":""}</small></div>`;
     /* a unit row's label glows on its own while its sub-issue, then its board, is made (<unit-id>.units; plan/RULES.md §3; dashboards-skill/28) */
     G.rows.forEach(r=>{ h+=`<div class="rowlab${r.unit&&CURRENT.includes(r.id+".units")?glowCls(true,false):""}" data-sys="${esc(r.system||"")}" id="row-${esc(r.id)}"><div class="nm">${rowTitle(r)}</div>${r.where?`<div class="wh">${esc(r.where)}</div>`:""}<div class="sy"><span class="sw" data-sys="${esc(r.system||"")}"></span>${esc(sysName(r.system))}</div></div>`+cellGap(r)+cellConsidered(r)+cellVerdict(r)+cellBuilt(r); }); });
@@ -2460,14 +2472,13 @@ function renderChain(){
   $("#chain-frame").innerHTML=s; paint($("#chain-frame"));
   document.querySelectorAll(".chainsvg .unit").forEach(g=>{ const go=()=>{ document.querySelectorAll(".chainsvg .unit.sel").forEach(e=>e.classList.remove("sel")); g.classList.add("sel"); INSPECTED={k:"unit",row:g.dataset.row}; inspectBuilt(ROWS.find(x=>x.id===g.dataset.row)); }; g.addEventListener("click",go); g.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } }); });
   const usedSt=[...new Set(units.map(stateOf))];
-  $("#chain-key").innerHTML=sysKey(units.map(r=>r.system))+Object.keys(STATES).filter(k=>usedSt.includes(k)&&k!=="pending").map(k=>`<span>${badge(k)} ${["as-planned","amended","deviated"].includes(k)?"landed: ":""}${esc(STATES[k].desc)}</span>`).join("")+(usedSt.includes("pending")?`<span><i class="pln"></i>dashed: unit not built</span>`:"")+`<span><i class="ln"></i>arrow: blocks</span>`+(units.some(r=>(r.unit.blockedBy||[]).some(n=>byIssue.has(n)&&!unitLanded(byIssue.get(n))))?`<span><i class="ln dash"></i>dashed arrow: its blocker has not landed</span>`:"")+(!LANDED&&!STOPPED&&units.some(r=>rowActive(r)&&!PAUSED&&!runPaused(r))?`<span><i class="gl"></i>accent fill, breathing: the unit being worked on now</span>`:"")+(!LANDED&&!STOPPED&&units.some(r=>rowActive(r)&&(PAUSED||runPaused(r)))?`<span><i class="hold"></i>active unit, paused while its run waits on the user</span>`:"")+(units.some(runOf)?`<span>▶ step · ⏸ waiting on the user: a unit in progress, its own run from its board</span>`:"")+(NEXT_ROW?`<span><i class="nx"></i>${TAG_NEXT} still outer glow: the next unit, not started</span>`:"");
+  $("#chain-key").innerHTML=sysKey(units.map(r=>r.system))+Object.keys(STATES).filter(k=>usedSt.includes(k)&&k!=="pending").map(k=>`<span>${badge(k)} ${["as-planned","amended","deviated"].includes(k)?"landed: ":""}${esc(STATES[k].desc)}</span>`).join("")+(usedSt.includes("pending")?`<span><i class="pln"></i>dashed: unit not built</span>`:"")+`<span><i class="ln"></i>arrow: blocks</span>`+(units.some(r=>(r.unit.blockedBy||[]).some(n=>byIssue.has(n)&&!unitLanded(byIssue.get(n))))?`<span><i class="ln dash"></i>dashed arrow: its blocker has not landed</span>`:"")+(!LANDED&&!STOPPED&&units.some(r=>rowActive(r)&&!PAUSED&&!runPaused(r))?`<span><i class="gl"></i>accent fill, breathing: the unit being worked on now</span>`:"")+(!LANDED&&!STOPPED&&units.some(r=>rowActive(r)&&(PAUSED||runPaused(r)))?`<span><i class="hold"></i>active unit, paused while its run waits on you</span>`:"")+(units.some(runOf)?`<span>▶ step · ⏸ waiting on you: a unit in progress, its own run from its board</span>`:"")+(NEXT_ROW?`<span><i class="nx"></i>${TAG_NEXT} still outer glow: the next unit, not started</span>`:"");
 }
 
 /* ---------- Source ---------- */
 const DATA_ONLY=["level","proposedLevel"];
 function renderSource(){
-  /* the fields kept as data only (the work level a script may need: level, unit.level, proposedLevel) are never shown
-     (GUIDANCE.md §4) */
+  /* a work level an older landed board still holds (level, unit.level, proposedLevel) is never shown (GUIDANCE.md §4; plan/scripts/levels.js) */
   const j=esc(JSON.stringify(PLAN,(k,v)=>DATA_ONLY.includes(k)?undefined:v,2));
   $("#source-view").innerHTML=j.replace(/^(\s*)(&quot;[^&]*?&quot;)(:)/gm,'$1<span class="k">$2</span>$3').replace(/(:\s)(&quot;.*&quot;)(,?)$/gm,'$1<span class="s">$2</span>$3');
   $("#source-key").innerHTML=`<span><b style="color:var(--link)">"key"</b> a field</span><span><b>"text"</b> a value</span><span>this copy is replaced on every <code>embed.js</code> run</span>`;
@@ -2512,7 +2523,8 @@ function derive(){
   FOLDER=PLAN.folder||("docs/plans/"+(PLAN.slug||"")); UP="../".repeat(FOLDER.split("/").filter(Boolean).length);
   ISSUE_BOARDS.clear(); issueBoardsOf().forEach((b,n)=>ISSUE_BOARDS.set(n,b)); SYSTEMS=PLAN.systems||[];
   STEP=WIP.step||""; NOT_STARTED=!STEP&&PLAN.status==="planned"; HALTED=STEP==="halted"; PAUSED=HALTED||STEP==="escalated"; LANDED=STEP==="landed"||PLAN.status==="built"; STOPPED=["cancelled"].includes(STEP)||PLAN.status==="abandoned";
-  CURRENT=(LANDED||STOPPED)?[]:(WIP.current||[]);
+  FILLING=(LANDED||STOPPED)?[]:fillingOf(PLAN);
+  CURRENT=(LANDED||STOPPED)?[]:[...new Set([...(WIP.current||[]),...FILLING])];
   NEXT_ROW=TRACKING&&!LANDED&&!STOPPED&&WIP.next?ROWS.find(r=>r.id===WIP.next&&r.unit&&!rowActive(r)&&stateOf(r)==="pending"&&!leftForLater(r))||null:null;
   ownStep=["halted","escalated"].includes(STEP)?(WIP.resume||WIP.last||""):STEP;
   PLAN_LANDED=LANDED||(TRACKING&&(["building","built"].includes(PLAN.status)||["implementation","landed"].includes(ownStep)
@@ -2603,7 +2615,7 @@ function liveChip(){ const c=$("#live"); if(!c) return;
   const since=Date.now()-LIVE.last, quiet=since>LIVE_QUIET_MS;
   c.className=`livechip on${quiet||PAUSED?"":" pulse"}`;
   c.innerHTML=quiet?`<span class="ld" aria-hidden="true"></span>LIVE · no change for ${ago(since)}`:`<span class="ld" aria-hidden="true">●</span>LIVE · updated ${ago(since)} ago`;
-  c.title=`Re-read from plan.js every ${LIVE_POLL_MS/1000} s${PAUSED?"; the run waits on the user":""}.`; }
+  c.title=`Re-read from plan.js every ${LIVE_POLL_MS/1000} s${PAUSED?"; the run waits on you":""}.`; }
 /* Everything the board draws from the plan, in place. */
 function renderAll(){ renderHeader(); renderWip(); renderKpis(); renderBoard(); renderContext(); localizeTimes(); if(CUR_TAB==="steps") setTimeout(drawTracers,0); }
 function dashboardRedraw(data){

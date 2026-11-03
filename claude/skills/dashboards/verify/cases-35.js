@@ -240,17 +240,17 @@ module.exports = function cases35(X) {
     const pf = path.join(wtf, "docs", "plans", "55-http-client-stack", "47-java-23-bytecode", "plan.json"), wasF = rd(pf), wbF = path.join(wtf, "docs", "plans", "board.json");
     wr(wbF, "not json, and a folder in its way\n"); fs.rmSync(wbF); fs.mkdirSync(wbF);
     const af = run(APPLY, ["--event", sized, "--worktree", wtf, "--no-gh", "--no-live", "--at", "2026-10-26T10:00:00Z", "--json"]); let SF = {}; try { SF = JSON.parse(af.stdout); } catch (e) { /* below */ }
-    c.push(["a seed that cannot finish changes nothing: exit 1, the tracked board as it was", af.status === 1 && SF.result === "failed" && rd(pf) === wasF, js([af.status, SF.result, SF.error, SF.check])]);
+    c.push(["a seed that cannot finish changes nothing: exit 1, the tracked board as it was, no board laid", af.status === 1 && SF.result === "failed" && rd(pf) === wasF && !fs.existsSync(path.join(wtf, ...folder.split("/"))), js([af.status, SF.result, SF.error, SF.check])]);
     const w = go(wt), u47 = t => (t.rows.find(r => r.unit && r.unit.issue === 47) || { asBuilt: {} }).asBuilt.state;
-    c.push(["a worktree: no-board, enrich yes, and the landed board seeded with its merge", w.a.status === 0 && w.S.result === "no-board" && w.S.enrich === "yes" && (w.S.seeded || []).some(x => /47-java-23-bytecode/.test(x)) && (w.sub.asBuilt || {}).merge === M, js([w.a.status, w.S.result, w.S.seeded, w.S.error, w.sub.asBuilt])]);
+    c.push(["a worktree: the foundation laid, enrich yes, and the landed board seeded with its merge", w.a.status === 0 && w.S.result === "ok" && w.S.laid === folder && w.S.enrich === "yes" && (w.S.seeded || []).some(x => /47-java-23-bytecode/.test(x)) && (w.sub.asBuilt || {}).merge === M, js([w.a.status, w.S.result, w.S.seeded, w.S.error, w.sub.asBuilt])]);
     c.push(["…with its tracking board, the unit landed", u47(w.trk) === "landed", js(u47(w.trk))]);
-    c.push(["…the committed repository work board regenerated, and no folder made for the issue", fs.existsSync(path.join(wt, "docs", "plans", "board.json")) && !fs.existsSync(path.join(wt, ...folder.split("/"))), "board.json"]);
+    c.push(["…the committed repository work board regenerated, and the issue's board laid with it", fs.existsSync(path.join(wt, "docs", "plans", "board.json")) && fs.existsSync(path.join(wt, ...folder.split("/"), "plan.json")), "board.json"]);
     c.push(["…and the main checkout's tracked board untouched", JSON.parse(rd(path.join(sdir, "plan.json"))).wip.step === "merge", "main untouched"]);
     const w2 = go(wt);
-    c.push(["raised again, nothing fresher: nothing seeded", w2.a.status === 0 && w2.S.result === "no-board" && !(w2.S.seeded || []).length, js([w2.S.result, w2.S.seeded])]);
+    c.push(["raised again: a duplicate, nothing seeded", w2.a.status === 0 && w2.S.result === "duplicate" && !(w2.S.seeded || []).length, js([w2.S.result, w2.S.seeded])]);
     /* the main checkout: a run that works there seeds its tracked boards */
     const m = go(main);
-    c.push(["a run in the main checkout: no-board, its tracked boards seeded", m.a.status === 0 && m.S.result === "no-board" && (m.S.seeded || []).some(x => /47-java-23-bytecode/.test(x)) && (m.sub.asBuilt || {}).merge === M && u47(m.trk) === "landed", js([m.a.status, m.S.result, m.S.seeded, m.S.error])]);
+    c.push(["a run in the main checkout: the foundation laid, its tracked boards seeded", m.a.status === 0 && m.S.result === "ok" && (m.S.seeded || []).some(x => /47-java-23-bytecode/.test(x)) && (m.sub.asBuilt || {}).merge === M && u47(m.trk) === "landed", js([m.a.status, m.S.result, m.S.seeded, m.S.error])]);
     c.push(["…uncommitted", /47-java-23-bytecode\/plan\.json/.test(git(main, "status", "--short", "--", "docs/plans").stdout || ""), "git status"]);
   });
 

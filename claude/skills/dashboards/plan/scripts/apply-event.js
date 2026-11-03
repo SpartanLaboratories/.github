@@ -30,19 +30,35 @@
 // Writes only the issue's board files, its parent tracking board's files and docs/plans/.live/; never git, never a commit, never the
 // committed repository work board. Every file is written through a temporary file and a rename, and on any failure every file it wrote is put
 // back as it was: exit 1, nothing changed. Exit 0 when applied, or when the event was already applied (the same event twice changes
-// nothing), or when there is no board to apply it to (sized: the presenter lays the foundation; the previous landing is still seeded,
-// seedFromView()); exit 2 on a usage error.
+// nothing); exit 2 on a usage error.
+// A sized on a folder with no board lays the foundation itself and then applies the event to it (plan/RULES.md §4, "The foundation"; layFoundation(),
+// lib.js foundationPlan()), so the board can be opened within seconds of the run's start: the title, the issue's title and the function from
+// the event, the issue on the tracker (not with --no-gh), the parent's unit row or the registry, each from the first that tells it; what none
+// tells reads as being written, never invented, and the summary says enrich: yes, for the presenter to fill it behind the event. Should
+// anything fail, it is as any failed event: nothing written, the summary names new.js --at with the event's time.
+// Only an explicit signal from the run moves the board's step (plan/RULES.md §4, the implementation-stage and qa-pass rows;
+// admin-team/dashboards-skill/explicit-step): an implementation-stage's facts.step has no effect and every stage done implies nothing, so the
+// step stays at implementation until the run's qa-pass with verdict "running", which opens the qa visit at the event's time; a returned verdict
+// with no running before it for that pass still applies, and says so (summary: warnings; wip.qa[].startUnrecorded, which check.js warns on).
 // Since admin-team/dashboards-skill/35: the Document step's event (document, facts.tasks, applied whole; a team-raised state-boards on a
 // board in that flow is its state-boards task), the land in two steps (landing, merge), an approving qa pass leading to the Document step;
 // seeding at sized (a run's tree, a worktree or the main checkout, branched after a landing starts the boards the main checkout's live view
-// shows landed, with or without a board of the issue's yet, seedFromView());
+// shows landed, seedFromView());
 // an open point's report outside the tree copied when the point is raised, for the live view (runOpenJobs()), and every open point
 // resolved at the land (check.js fails one left open); a bare test level beside a test word written as its named test level, and a bare
 // "Ln" elsewhere elided as a work level with a warning (summary: warnings).
 // The fast path owns the Timeline (plan/RULES.md §4, "The fast path owns the Timeline"): the merge's time at landed from facts.mergedAt, git in
 // the worktree, then the main checkout, then the pull request's merge time from the tracker (mergeTimes(), lib.js ghMergeTime(); not with
-// --no-gh), a warning where none tells it, never an enrichment; the seeding at sized records it from git where the landing could not; at a
-// sized with no board the summary names new.js --at with the event's time.
+// --no-gh), a warning where none tells it, never an enrichment; the seeding at sized records it from git where the landing could not; a
+// foundation it lays starts at the event's time.
+// Tracking plans land, then file (admin-team/dashboards-skill/option-d-and-decisions): architecture-signed-off moves a tracking board to its plan's document step; its
+// land follows; sub-issues-filed, raised after the merge with --view, moves it to "sub-issues", and a final one closes the filing with nothing
+// glowing; the first unit's sized seeds that copy, lays the unit's own board and moves the tracking board to implementation. No board is laid ahead
+// of its run: boards-created is refused, and an older board's record of it is read and drawn.
+// A work level is never written (levels.js): the laying reads it from the request, else the team's local state, for the kind and the steps line only; a board
+// not landed loses any it still holds at this rewrite (lib.js resolveBoard()); a landed one keeps them.
+// Events and fills share the boards' short lock (lib.js lockTree()), held for this whole run: a fill (fill.js) merges onto the latest plan.json behind it and
+// waits at most this run's second or two, so neither overwrites the other, and every file is written through a rename (lib.js atomicWrite()).
 // A stretch when the run was not running (run-restarted, facts { since, ended, reason }; team-raised; admin-team/board/timeline-outages): its
 // own line on the Timeline, its bounds from the facts alone, recorded once, whichever visit it falls in (lib.js outageSteps()).
 "use strict";
@@ -59,7 +75,7 @@ require("../../system/scripts/cliargs.js").strict(args, { usage: USAGE, valued: 
 const opt = n => lib.opt(args, n, null), flag = n => lib.flag(args, n);
 
 /* the summary, printed at the end whatever happens */
-const S = { result: null, event: null, issue: null, board: null, applied: [], enrich: [], rerendered: [], wrote: [], view: [], seeded: [], parent: null, live: null, check: null, warnings: [], defects: [], error: null, restored: 0 };
+const S = { result: null, event: null, issue: null, board: null, laid: null, applied: [], enrich: [], rerendered: [], wrote: [], view: [], seeded: [], parent: null, live: null, check: null, warnings: [], defects: [], error: null, restored: 0 };
 /* the fast path's own warnings (a bare "Ln" elided as a work level, dashboards-skill/35): printed under "warnings" and counted on the check line */
 const WARNINGS = S.warnings;
 const say = () => {
@@ -68,7 +84,7 @@ const say = () => {
   if (S.warnings.length && S.check && !/fast-path warning/.test(S.check)) S.check += ` · ${S.warnings.length} fast-path warning${S.warnings.length === 1 ? "" : "s"} (below)`;
   const enrich = S.enrich.length ? "yes" : "no";
   if (flag("json")) { console.log(JSON.stringify({ ...S, enrich, why: S.enrich.length ? S.enrich : ["the event's facts decide everything it writes"] })); return; }
-  const L = [["apply-event", S.result], ["event", S.event], ["issue", S.issue != null ? "#" + S.issue : null], ["board", S.board],
+  const L = [["apply-event", S.result], ["event", S.event], ["issue", S.issue != null ? "#" + S.issue : null], ["board", S.board], ["laid", S.laid],
     ["applied", S.applied.join("; ") || "nothing"], ["enrich", enrich], ["why", S.enrich.length ? S.enrich.join("; ") : "the event's facts decide everything it writes"],
     ["rerendered", S.rerendered.join(", ") || "none"], ["wrote", S.wrote.join(", ") || "nothing"], ["view", VIEWING ? S.view.join(", ") || "nothing" : null], ["seeded", S.seeded.length ? S.seeded.join(", ") : null], ["parent", S.parent || "none"], ["live", S.live || "untouched"],
     ["check", S.check || "not run"], ["warnings", S.warnings.length ? S.warnings.map(w => "warn " + w).join(" | ") : null], ["issue defects", S.defects.length ? S.defects.join(" | ") : null], ["error", S.error], ["restored", S.error ? `${S.restored} file${S.restored === 1 ? "" : "s"}, as they were` : null], ["time", `${S.ms} ms`]];
@@ -80,12 +96,7 @@ const refuse = m => { throw new Refusal(m); };
 /* Files: every write is staged (its old bytes kept) and atomic (a temporary file, then a rename); rollback() puts every staged file
    back. A rename can meet a file a browser holds open for a moment (Windows): it is retried briefly. */
 const staged = new Map(), madeDirs = [];
-const sleep = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
-function atomicWrite(file, data) {
-  const tmp = path.join(path.dirname(file), `.${path.basename(file)}.${process.pid}.tmp`);
-  fs.writeFileSync(tmp, data);
-  for (let i = 0; ; i++) { try { fs.renameSync(tmp, file); return; } catch (e) { if (i >= 20 || !["EPERM", "EBUSY", "EACCES"].includes(e.code)) { try { fs.unlinkSync(tmp); } catch (x) { /* gone */ } throw e; } sleep(25); } }
-}
+const atomicWrite = lib.atomicWrite;
 const stage = file => { if (!staged.has(file)) staged.set(file, fs.existsSync(file) ? fs.readFileSync(file) : null); };
 function put(file, text) {
   stage(file);
@@ -120,7 +131,8 @@ const ID = /^[a-z0-9][a-z0-9-]*$/, STEPS = ["sizing", "interview", "research", "
 const ROUTES = ["on-the-spot", "remediation", "re-plan-then-remediation"], SSTATES = ["done", "current", "todo"];
 const ROUTE_OLD = { "rookie-dev": "remediation", "planner-then-rookie-dev": "re-plan-then-remediation" };
 const routeId = r => (typeof r === "string" && ROUTE_OLD[r]) || r;
-/* a step named in the run's own words (admin-team/board/timeline-waits): "implement", the pipeline's name of its implementation step */
+/* a step named in the run's own words (admin-team/board/timeline-waits): "implement", the pipeline's name of its implementation step. Any
+   event that reads facts.step may use it; an implementation-stage reads none (its facts.step has no effect, applyEvent()) */
 const STEP_ALIASES = { implement: "implementation", implementing: "implementation" };
 /* The column a step's trail entry sits in. */
 const STEP_COLUMN = { "sub-issues": "considered", boards: "considered", sizing: "gap", interview: "gap", research: "gap", architecture: "considered", plan: "verdict", branch: "built", implementation: "built", qa: "built", remediation: "built", document: "built", landing: "built", "state-boards": "built", merge: "built", landed: "built", cancelled: "built" };
@@ -134,9 +146,20 @@ const code = s => "`" + s + "`";
 function applyEvent(orig, ev, facts, req, now) {
   const plan = JSON.parse(JSON.stringify(orig)), applied = [], enrich = [], resolved = [], today = now.slice(0, 10);
   const w = plan.wip = plan.wip && typeof plan.wip === "object" ? plan.wip : {};
-  /* the step the facts name, in the run's own words where they differ from the board's (admin-team/board/timeline-waits: "implement" is the
-     implementation step, so an implementation-stage that says the run is still implementing keeps it there, never moved to qa because
-     every stage is done); a facts.step that names no step is warned on, never dropped silently, and the step is derived from the event */
+  /* Only an explicit signal from the run moves the board's step (admin-team/dashboards-skill/explicit-step): an implementation-stage's
+     facts.step has no effect, whatever it names, and every stage done does not imply qa: the step stays at implementation until the run's
+     qa-pass with verdict "running". Remediation alone stays recognised: facts.remediation, or facts.step "remediation" for an older caller;
+     and a report while the board stands at remediation is that remediation's, so a "qa" sent after one is ignored too and the board waits
+     for the running event. */
+  if (ev === "implementation-stage") {
+    const said = typeof facts.step === "string" ? facts.step.trim() : "", { step: dropped, ...rest } = facts;
+    const atRem = (["halted", "escalated"].includes(w.step) ? w.resume : w.step) === "remediation";
+    facts = facts.remediation || said === "remediation" || atRem ? { ...rest, step: "remediation" } : rest;
+    if (said && said !== "remediation") applied.push(`facts.step ${JSON.stringify(said)} ignored: an implementation-stage moves no step of its own`);
+  }
+  /* the step the facts name on any other event, in the run's own words where they differ from the board's (admin-team/board/timeline-waits:
+     "implement" is the implementation step); a facts.step that names no step is warned on, never dropped silently, and the step is derived
+     from the event */
   if (typeof facts.step === "string" && facts.step.trim()) {
     const said = facts.step.trim(), step = STEP_ALIASES[said.toLowerCase()] || said;
     if (step !== facts.step) { facts = { ...facts, step }; applied.push(`facts.step ${JSON.stringify(said)} read as ${step}`); }
@@ -198,7 +221,7 @@ function applyEvent(orig, ev, facts, req, now) {
     if (m.kind === "none") return [];
     if (m.kind === "columns") return m.cols.slice();
     if (m.kind === "research") return lib.researchGlow(plan).current;
-    /* a tracking board filing its units, then creating their boards: each unit row not done in the step glows on its own (lib.js filingGlow()) */
+    /* a tracking board filing its units (an older board also creating their boards): each unit row not done in the step glows on its own (lib.js filingGlow()) */
     if (m.kind === "filing") return lib.filingGlow(plan, step);
     if (m.kind === "cells") return (w.current || []).map(String).filter(a => a.split(".").length === 2);
     if (tracking) return (w.current || []).map(String).filter(a => /\.built$/.test(a) && rows.some(r => r.id === a.split(".")[0] && r.unit));
@@ -213,7 +236,11 @@ function applyEvent(orig, ev, facts, req, now) {
   const setGlow = step => {
     const g = glow(step);
     if (JSON.stringify(g) !== JSON.stringify(w.current || [])) { w.current = g; applied.push(`wip.current ${g.length ? g.join(", ") : "empty"}`); }
-    if (step === "remediation" && !tracking && g.length === 1 && g[0] === "built") enrich.push("the rows the qa findings touch are not known from the facts: the whole As built column glows until the presenter names them");
+    /* a row the facts name that is not on the board is reported by its id, as facts.tests reports one (testslib.js): the facts did name rows, the board holds none of them */
+    if (step === "remediation" && !tracking) { const fr = factRows() || [], off = [...new Set(fr.filter(x => !ids.has(x)))], full = g.length === 1 && g[0] === "built";
+      if (fr.length && full && off.length === fr.length) enrich.push(`facts.rows names no row on this board: ${off.join(", ")} (the whole As built column glows until the presenter names them)`);
+      else if (off.length) enrich.push(`facts.rows names rows not on this board (${off.join(", ")}): left out`);
+      else if (full) enrich.push("the rows the qa findings touch are not known from the facts: the whole As built column glows until the presenter names them"); }
   };
   let detail = txt(facts.detail, "detail"), note = txt(facts.note, "note"), trail = null, parentOp = null;
   /* the Tests tab is due an update when a stage is reported done or a qa pass returns its verdict (plan/RULES.md §2, "The Tests tab") */
@@ -247,7 +274,7 @@ function applyEvent(orig, ev, facts, req, now) {
       if (!lib.okStamp(plan.sized)) { plan.sized = now; applied.push(`sized ${now}`); }
       setStep(step); setGlow(step);
       if (step === "plan" && !w.plan) { w.plan = plan.parent ? { state: "re-pass", from: "parent", since: now } : { state: "writing", since: now }; applied.push(`wip.plan ${w.plan.state}`); }
-      enrich.push("sized: the foundation and, for a sub-issue of a signed-off tracking plan, the Gap and Considered columns come from the documents");
+      enrich.push(lib.foundationFilling(plan).function || lib.foundationFilling(plan).columns.length ? "sized: the foundation is laid and the event applied; what reads as being written comes from the issue and the documents: the function, the rows with their Gap and, for a sub-issue of a signed-off tracking plan, the Considered column, written in place on this board, as at any enrichment (embed.js clears plan.foundation)" : "sized: the function and, for a sub-issue of a signed-off tracking plan, the Gap and Considered columns come from the documents");
       detail = detail || `Sized; ${STEP_WORDS[step]} starts.`;
       /* a corrected sizing (a second sized with no event between, a request re-sent with corrected facts) adds no second entry where
          the trail already records the sizing that day (the foundation's "Run started" entry, or the first sized's own) */
@@ -359,20 +386,22 @@ function applyEvent(orig, ev, facts, req, now) {
     case "architecture-signed-off": {
       if ((w.questions || []).length || w.research) applied.push("wip.questions and wip.research cleared");
       w.questions = []; w.research = null;
-      /* a tracking board's own steps after its architecture: the units filed as sub-issues, then their boards, then the plan's landing */
-      const next = tracking ? "sub-issues" : "landing";
+      /* a tracking board's own steps after its architecture: its plan's documents and its land; its units are filed after the merge */
+      const next = tracking ? "document" : "landing";
       if (tracking) withUnitSteps(w, applied);
       setStep(next); setGlow(next);
       if (tracking && rows.some(r => r.unit)) { const nx = lib.nextUnit(plan), id = nx ? nx.id : null; if (w.next !== id) { w.next = id; applied.push(`wip.next ${id}`); } }
       enrich.push("architecture-signed-off: the Considered column and, on a tracking board, the unit rows come from architecture.md");
-      detail = detail || (tracking ? "Architecture signed off; its units are filed as sub-issues next." : "Architecture signed off; the plan lands next.");
+      detail = detail || (tracking ? "Architecture signed off; the plan's documents and its land are next, and its units are filed after the merge." : "Architecture signed off; the plan lands next.");
       trail = { column: "considered", label: "Architecture signed off", ref: docRef("architecture.md") };
       break;
     }
-    /* team-raised (plan/RULES.md §4; admin-team/dashboards-skill/28): the units filed as sub-issues, then their boards created, each event
+    /* team-raised after the plan's merge, with --view (plan/RULES.md §4; admin-team/dashboards-skill/28): the units filed as sub-issues, each event
        per unit (facts.units [{unit: <row id>, issue: n}], one or more at a time) and a final one closing the step (facts.final: true). The
-       glow is the units not yet done in the step (lib.js filingGlow()), so each unit stops glowing as its issue (its board) is recorded; the
-       counts are read from the rows. The final event moves the step on once every unit is done; one that comes too early leaves it. */
+       first event ends the plan's merge. The glow is the units with no issue yet (lib.js filingGlow()), so each unit stops glowing as its issue is
+       recorded; the counts are read from the rows. The final event, once every unit is filed, leaves the step at sub-issues with nothing glowing, until
+       the first unit's start moves it to implementation (applyParent()); one that comes too early says so. facts.merge (and facts.pr) record the plan's
+       merge (wip.landing), which the next sized in the repository holds it to when it seeds this copy (seedFromView()). */
     case "sub-issues-filed": {
       if (!tracking) refuse("sub-issues-filed is a tracking board's event");
       (Array.isArray(facts.units) ? facts.units : []).forEach(x => { const id = x && (x.unit || x.row || x.id), n = x && x.issue;
@@ -383,25 +412,14 @@ function applyEvent(orig, ev, facts, req, now) {
       if (!units.length) enrich.push("sub-issues-filed: the board has no unit rows yet: the presenter writes them from architecture.md");
       if (final && !all && units.length) enrich.push(`sub-issues-filed closes the step, but ${units.length - filed} of the ${plural(units.length, "unit")} have no issue yet: the step stays at sub-issues`);
       withUnitSteps(w, applied);
-      const next = final && all ? "boards" : w.step === "boards" && all ? "boards" : "sub-issues";
+      /* a board already at its units' runs, or an older one at its boards step, stays there: a late filing moves nothing back */
+      const stood = stopped(w.step) ? w.resume : w.step, next = ["implementation", "boards"].includes(stood) ? stood : "sub-issues", closed = final && all;
+      recordPlanMerge(plan, w, facts, applied, txt);
       setStep(next); setGlow(next);
-      detail = detail || `${filed} of ${plural(units.length, "unit")} filed as sub-issues${next === "boards" ? "; their boards are created next" : ""}.`;
-      trail = { column: "considered", label: `${filed} of ${plural(units.length, "unit")} filed as sub-issues${final && next === "boards" ? "; filing done" : ""}` };
+      detail = detail || `${filed} of ${plural(units.length, "unit")} filed as sub-issues${closed ? "; each unit's board appears when its run starts" : ""}.`;
+      trail = { column: "considered", label: `${filed} of ${plural(units.length, "unit")} filed as sub-issues${closed ? "; filing done" : ""}` };
       /* the final event is recorded as such, so one that comes too early is not taken for the last per-unit event again (a duplicate) */
-      if (final) note = note || (next === "boards" ? "final: filing done" : `final, too early: ${units.length - filed} of ${plural(units.length, "unit")} with no issue yet`);
-      break;
-    }
-    case "boards-created": {
-      if (!tracking) refuse("boards-created is a tracking board's event");
-      lib.linkSubIssueBoards(plan, DIR).forEach(x => applied.push(x));
-      const units = rows.filter(r => r && r.unit), made = units.filter(lib.unitBoarded).length, final = facts.final === true, all = units.length > 0 && made === units.length;
-      withUnitSteps(w, applied);
-      const next = final && all ? "landing" : w.step === "landing" && all ? "landing" : "boards";
-      setStep(next); setGlow(next);
-      if (made < units.length) enrich.push(`${units.length - made} of the units' boards are not in the tree yet${final ? ": the step stays at boards" : ""}`);
-      detail = detail || `${made} of ${plural(units.length, "unit board")} created${next === "landing" ? "; the tracking plan lands next" : ""}.`;
-      trail = { column: "considered", label: `${made} of ${plural(units.length, "unit board")} created${final && next === "landing" ? "; boards done" : ""}` };
-      if (final) note = note || (next === "landing" ? "final: every unit's board created" : `final, too early: ${units.length - made} of ${plural(units.length, "unit")} with no board yet`);
+      if (final) note = note || (closed ? "final: filing done" : `final, too early: ${units.length - filed} of ${plural(units.length, "unit")} with no issue yet`);
       break;
     }
     case "plan-accepted": {
@@ -434,8 +452,7 @@ function applyEvent(orig, ev, facts, req, now) {
       const remed = !!facts.remediation || facts.step === "remediation";
       if (facts.remediation) setRemediation(w, facts.remediation, applied, enrich, txt);
       if (remed && !Array.isArray(facts.stages)) {
-        const step = facts.step && STEPS.includes(facts.step) ? facts.step : "remediation";
-        setStep(step); setGlow(step);
+        setStep("remediation"); setGlow("remediation");
         remediationWording();
         break;
       }
@@ -453,16 +470,19 @@ function applyEvent(orig, ev, facts, req, now) {
       testsDue = done.length > 0;
       if (done.length) enrich.push(`stage${done.length > 1 ? "s" : ""} ${done.map(x => x.id).join(", ")} done: the summaries and outcomes of ${touched.length ? touched.join(", ") : "the rows they touch"}, and any deviation from final-implementation.md, come from the documents`);
       const allDone = st.length > 0 && st.every(x => x.state === "done");
-      const step = facts.step && STEPS.includes(facts.step) ? facts.step : remed ? "remediation" : allDone ? "qa" : "implementation";
+      /* the step: remediation when the report is one, else implementation, every stage done or not (only the run's qa-pass with verdict
+         "running" moves it on); a late report on a board already at qa or past it moves nothing back */
+      const stood = stopped(w.step) ? w.resume : w.step, past = ["qa", "document", "landing", "state-boards", "merge", "landed", "cancelled"].includes(stood);
+      const step = remed ? "remediation" : past ? stood : "implementation";
       setStep(step); setGlow(step);
       if (remed) { remediationWording(); break; }
       /* the wording comes from the facts alone, never from what changed, so the same event twice writes the same board: the stage
          reported is facts.stage when it names a done stage, else the last done stage before the current one */
       const c = curStage(), ci = c ? st.indexOf(c) : st.length;
       const rep = st.find(x => x.id === facts.stage && x.state === "done") || st.slice(0, ci).reverse().find(x => x.state === "done") || null;
-      note = note || [rep ? `${rep.id} reported done` : null, c ? `${c.id} current` : allDone ? "qa next" : null].filter(Boolean).join("; ") || null;
-      detail = detail || (c ? `Implementation at ${c.id} of ${st.length}${rep ? `: ${rep.id} is done` : ""}; ${c.id} takes ${c.name}.` : allDone ? `Implementation done, ${plural(st.length, "stage")}; qa next.` : "Implementation.");
-      trail = { column: "built", label: c ? `${rep ? rep.id + " done; " : ""}${c.id} current: ${c.name}` : allDone ? `Implementation done (${plural(st.length, "stage")}); qa next` : "Implementation stage reported" };
+      note = note || [rep ? `${rep.id} reported done` : null, c ? `${c.id} current` : allDone && !past ? "qa next" : null].filter(Boolean).join("; ") || null;
+      detail = detail || (past ? w.detail || null : c ? `Implementation at ${c.id} of ${st.length}${rep ? `: ${rep.id} is done` : ""}; ${c.id} takes ${c.name}.` : allDone ? `Implementation done, ${plural(st.length, "stage")}; qa next.` : "Implementation.");
+      trail = { column: "built", label: c ? `${rep ? rep.id + " done; " : ""}${c.id} current: ${c.name}` : allDone ? `Implementation done (${plural(st.length, "stage")})${past ? "" : "; qa next"}` : "Implementation stage reported" };
       break;
     }
     case "qa-pass": {
@@ -488,6 +508,11 @@ function applyEvent(orig, ev, facts, req, now) {
          committed, so recorded as plain text (its path from the repository root), and copied once, when the pass returns, under the
          git-ignored docs/plans/.live/open/ for the live view to link (reportCopy); a pass recorded before keeps its copy */
       const had = k >= 0 ? w.qa[k] : null;
+      /* a returned verdict with no running before it for that pass still applies as it stands, and says so: the summary's warnings line and
+         the entry's mark, which check.js warns on, so a pass whose start the run never signalled is not silent. A verdict sent again keeps
+         the mark and says nothing new. */
+      if (verdict !== "running" && !had) { entry.startUnrecorded = true; WARNINGS.push(`QA START NOT RECORDED: qa pass ${Q.pass}'s verdict came with no qa-pass verdict "running" before it, so the pass's start is not on the record: its qa visit has no start of its own`); }
+      else if (verdict !== "running" && had.startUnrecorded) entry.startUnrecorded = true;
       if (rep0) { const rp = openRefLocal(rep0.trim().replace(/\\/g, "/")).replace(/^\.\//, "");
         if (!/^`/.test(rp)) { entry.report = rp; const cp0 = had && had.report === rp && had.reportCopy ? had.reportCopy : openCopyFor(rp, `qa pass ${Q.pass} test report`, plan.folder); if (cp0) entry.reportCopy = cp0; } }
       if (k < 0) w.qa.push(entry); else w.qa[k] = { ...(w.qa[k] && w.qa[k].note && !entry.note ? { note: w.qa[k].note } : {}), ...entry };
@@ -521,7 +546,7 @@ function applyEvent(orig, ev, facts, req, now) {
       if (!resume || stopped(resume)) refuse("escalated: the board records no step it escalated from");
       if (w.resume !== resume) { w.resume = resume; applied.push(`wip.resume ${resume}`); }
       setStep("escalated");
-      if (Number.isInteger(facts.proposedLevel) && facts.proposedLevel >= 1 && facts.proposedLevel <= 4) { w.proposedLevel = facts.proposedLevel; applied.push("wip.proposedLevel (data only)"); }
+      /* facts.proposedLevel is the team's, in its local state: never written to a board (levels.js) */
       w.waitingOn = txt(facts.waitingOn, "waitingOn") || "A re-sizing of the issue.";
       enrich.push("escalated: the board follows the issue's new sizing");
       detail = detail || "Escalated: waiting on a re-sizing.";
@@ -590,6 +615,15 @@ function applyEvent(orig, ev, facts, req, now) {
       break;
     }
     case "landed": {
+      /* a tracking plan not started on its units: this is its plan's merge, recorded on wip.landing; its asBuilt is the initiative's, written when its last unit lands */
+      if (tracking && plan.status === "planned") {
+        recordPlanMerge(plan, w, facts, applied, txt);
+        w.resume = null; w.waitingOn = null; setStep("merge"); setGlow("merge");
+        const pr0 = Number.isInteger(facts.pr) ? facts.pr : null, m0 = (w.landing || {}).merge;
+        detail = detail || `The plan landed${pr0 ? " in PR #" + pr0 : ""}; its units are filed next.`;
+        trail = { column: "built", label: `The plan landed${pr0 ? " in PR #" + pr0 : ""}${m0 ? ", merge " + String(m0).slice(0, 7) : ""}`, ...(pr0 ? { ref: `PR #${pr0}` } : {}) };
+        break;
+      }
       const A = plan.asBuilt && typeof plan.asBuilt === "object" ? plan.asBuilt : {};
       const sha = [facts.sha, facts.merge].find(s => typeof s === "string" && /^[0-9a-f]{7,40}$/.test(s)), pr = Number.isInteger(facts.pr) ? facts.pr : null;
       const next = { ...A, ...(sha ? { sha } : {}), ...(typeof facts.merge === "string" && /^[0-9a-f]{7,40}$/.test(facts.merge) ? { merge: facts.merge } : {}), ...(pr ? { pr } : {}),
@@ -676,12 +710,19 @@ function applyEvent(orig, ev, facts, req, now) {
 
 /* wip.stages from facts.stages ([{id, name, state}]), each keeping the rows the board records for it (plan.md's stages, written by the
    presenter); at branch-cut a list with no states starts with the first current and the rest to do. */
-/* A tracking board's steps line with its two steps after the architecture (plan/RULES.md §3): inserted when a board written before them lacks them. */
+/* A tracking board's steps line with its filing step after its plan's merge (plan/RULES.md §3): inserted where a board written before it lacks it; an older line that has sub-issues (and boards) keeps them where they stand. */
 function withUnitSteps(w, applied) {
   const st = Array.isArray(w.steps) ? w.steps.slice() : [];
-  if (!st.length || (st.includes("sub-issues") && st.includes("boards"))) return;
-  const at = st.indexOf("architecture"); if (at < 0) return;
-  st.splice(at + 1, 0, ...["sub-issues", "boards"].filter(s => !st.includes(s))); w.steps = st; applied.push("wip.steps: sub-issues and boards after the architecture");
+  if (!st.length || st.includes("sub-issues")) return;
+  const at = st.indexOf("merge"); if (at < 0) return;
+  st.splice(at + 1, 0, "sub-issues"); w.steps = st; applied.push("wip.steps: sub-issues after the merge");
+}
+/* A tracking plan's own merge, from the facts (facts.merge, else a sha in facts.sha; facts.pr; facts.version; facts.date): wip.landing, as a tracking board has recorded it since dashboards-skill/35. */
+function recordPlanMerge(plan, w, facts, applied, txt) {
+  const m = [facts.merge, facts.sha].find(s => typeof s === "string" && /^[0-9a-f]{7,40}$/.test(s)) || null, pr = Number.isInteger(facts.pr) && facts.pr > 0 ? facts.pr : null;
+  if (!m && !pr) return;
+  const L = w.landing && typeof w.landing === "object" ? w.landing : {}, next = { ...L, ...(pr ? { pr } : {}), ...(m ? { merge: m } : {}), ...(txt(facts.version, "version") ? { version: txt(facts.version, "version") } : {}), ...(/^\d{4}-\d{2}-\d{2}$/.test(String(facts.date || "")) ? { date: facts.date } : {}) };
+  if (JSON.stringify(next) !== JSON.stringify(w.landing || null)) { w.landing = next; applied.push(`wip.landing ${m ? String(m).slice(0, 7) : "PR #" + pr}`); }
 }
 /* wip.stages from facts.stages (plan/RULES.md §4, "The fast path"). A stage's rows: facts.stages[i].rows when the event gives them (the
    board's row ids only; another is named in the summary and left out), else the rows the board records for it, else, for the one stage a
@@ -967,7 +1008,7 @@ function writeBoard(dir, data, eol, enrich, label) {
   lib.setViewLinks(VIEWING, MAIN); try { lib.resolveBoard(data, dir); } finally { lib.setViewLinks(false); }
   const json = (JSON.stringify(data, null, 2) + "\n").replace(/\n/g, eol);
   const base = pageBase(fs.existsSync(path.join(to, "dashboard.html")) ? path.join(to, "dashboard.html") : path.join(dir, "dashboard.html"), enrich, rel, path.join(dir, "dashboard.html"));
-  if (base.rerendered) S.rerendered.push(rel);
+  if (base.rerendered && fs.existsSync(path.join(to, "dashboard.html"))) S.rerendered.push(rel);
   let html = lib.writeBlock(base.html, "plan", json); const js = lib.sidecarText("plan", json);
   if (VIEWING) html = lib.withViewBase(html, to, dir);
   const files = [["plan.json", json], ["dashboard.html", html], ["plan.js", js]], wrote = [];
@@ -980,12 +1021,12 @@ function writeBoard(dir, data, eol, enrich, label) {
    copies under the main checkout's git-ignored docs/plans/.live/view/ (the issue board landed at its merge, its parent tracking board's
    unit landed and the next one up). When a run is sized in a worktree branched after that landing, the boards it shows start from those
    copies, so the new branch carries the landed state from its first commit: every view copy fresher than the worktree's tracked board
-   (lib.js planStamp()) whose merge (asBuilt.merge, else sha) is in the worktree's history (git merge-base --is-ancestor), and a copy with no
-   merge of its own (a tracking board) with a seeded copy inside its folder, is written over the tracked board (plan.json, dashboard.html,
+   (lib.js planStamp()) whose merge (asBuilt.merge, else sha, on a tracking board wip.landing.merge) is in the worktree's history (git merge-base --is-ancestor), and a copy with no
+   merge of its own (a tracking board) filing its units or with a seeded copy inside its folder, is written over the tracked board (plan.json, dashboard.html,
    plan.js; its links resolved from the tracked folder, never into .live/). A landed sub-issue seeded without its tracking board's copy
    marks its unit landed on the tracked tracking board by the standing rule (applyParent()): a merge that marks an issue landed on its own
    board does so for its parent too, and both are seeded together. It reads nothing of the issue's own board, so a sized on a folder with no
-   board seeds too (main(), finishSeed()); and a run in the main checkout itself seeds its tracked boards like a worktree's: --view never
+   board seeds too, before it lays the foundation (main()); and a run in the main checkout itself seeds its tracked boards like a worktree's: --view never
    comes here, so a sized there is a run's. Nothing is seeded from a copy whose merge the branch does not hold. Returns the tracked folders
    written. */
 function seedFromView(now) {
@@ -998,9 +1039,12 @@ function seedFromView(now) {
   const cand = dirs.map(vd => { const rel = path.relative(vroot, vd).split(path.sep).join("/"), tracked = path.join(ROOT, "docs", "plans", ...rel.split("/"));
     return { vd, rel, tracked, vp: read(path.join(vd, "plan.json")), tp: read(path.join(tracked, "plan.json")) }; })
     .filter(x => x.rel && x.vp && x.tp && x.vp.issue === x.tp.issue && path.resolve(x.tracked) !== path.resolve(DIR) && String(lib.planStamp(x.vp)) > String(lib.planStamp(x.tp)));
-  const mergeOf = p => { const A = (p && p.asBuilt) || {}, m = [A.merge, A.sha].find(s => typeof s === "string" && /^[0-9a-f]{7,40}$/.test(s)); return m || null; };
+  /* a tracking board in its units' filing records its plan's merge on wip.landing; a landed board on asBuilt */
+  const mergeOf = p => { const A = (p && p.asBuilt) || {}, L = (p && p.wip && p.wip.landing) || {}, m = [A.merge, A.sha, L.merge].find(s => typeof s === "string" && /^[0-9a-f]{7,40}$/.test(s)); return m || null; };
+  /* a tracking copy that records no merge and is filing its units (or filed them): the plan's merge is what this tree's tracked board came from, so its filed units go on too */
+  const filing = p => !!p && p.kind === "tracking" && lib.shownStep(p.wip || {}) === "sub-issues";
   const ok = cand.filter(x => mergeOf(x.vp) && inHead(mergeOf(x.vp)));
-  cand.filter(x => !ok.includes(x) && !mergeOf(x.vp) && ok.some(y => y.rel.startsWith(x.rel + "/"))).forEach(x => ok.push(x));
+  cand.filter(x => !ok.includes(x) && !mergeOf(x.vp) && (filing(x.vp) || ok.some(y => y.rel.startsWith(x.rel + "/")))).forEach(x => ok.push(x));
   cand.filter(x => !ok.includes(x)).forEach(x => S.applied.push(`not seeded: ${x.rel} (${mergeOf(x.vp) ? "its merge is not in this branch's history" : "no landing inside it seeded"})`));
   const out = [];
   ok.sort((a, b) => a.rel.split("/").length - b.rel.split("/").length).forEach(x => {
@@ -1031,7 +1075,7 @@ function seedFromView(now) {
 const run = (file, a, cwd) => new Promise(res => { const c = cp.spawn(process.execPath, [file, ...a], { cwd, windowsHide: true }); let o = "", e = "";
   c.stdout.on("data", d => { o += d; }); c.stderr.on("data", d => { e += d; }); c.on("close", s => res({ status: s, stdout: o, stderr: e })); c.on("error", x => res({ status: 1, stdout: o, stderr: String(x) })); });
 
-let DIR = null, ROOT = null, MAIN = null;
+let DIR = null, ROOT = null, MAIN = null, LAY_HINT = null;
 const VIEWING = flag("view");
 /* the board's data where --view reads it: its view copy when one is fresher than the tracked board, else the tracked plan.json */
 const viewRead = dir => { const v = VIEWING ? lib.viewOf(dir, MAIN) : null; return v && v.fresh ? path.join(v.dir, "plan.json") : path.join(dir, "plan.json"); };
@@ -1041,27 +1085,82 @@ const REPO_ARG = opt("repo"), REPO_SLUG = REPO_ARG && /^[\w.-]+\/[\w.-]+$/.test(
 const REPO_PATH = REPO_ARG && !REPO_SLUG && fs.existsSync(REPO_ARG) && fs.statSync(REPO_ARG).isDirectory() ? REPO_ARG : null;
 if (REPO_ARG && !REPO_SLUG && !REPO_PATH) { console.error(`${USAGE}\n(--repo takes the GitHub slug owner/repo, e.g. SpartanLaboratories/WebTools, or the path of the repository's main checkout; got ${JSON.stringify(REPO_ARG)})`); process.exit(2); }
 if (REPO_PATH && opt("main") && path.resolve(opt("main")) !== path.resolve(REPO_PATH)) { console.error(`${USAGE}\n(--repo ${REPO_PATH} is a path, read as the main checkout, but --main names another: ${opt("main")})`); process.exit(2); }
-/* The boards seeded at a sized with no board of the issue's yet (no-board, below): what the event's own tail does after a seed, every board
-   checked, the tree's committed repository work board regenerated (board.js --refresh-template) and the live one with it, under the same
-   staged set: a failure here puts the seed back. */
-async function finishSeed(seeded) {
-  if (!seeded.length) return;
-  const sks = await Promise.all(seeded.map(d => run(path.join(__dirname, "check.js"), [d], ROOT)));
-  if (sks.some(c => c.status !== 0)) { S.check = `FAIL (a seeded board): ${sks.flatMap(c => c.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l))).slice(0, 4).join(" | ")}`; throw new Error("check.js failed on a board seeded from the live view"); }
-  S.check = `pass (seeded boards: ${plural(sks.reduce((n, c) => n + (c.stdout.match(/^warn/gm) || []).length, 0), "warning")})`;
-  const noGh = flag("no-gh") ? ["--no-gh"] : [];
-  ["board.json", "index.html", "board.js"].forEach(f => stage(path.join(ROOT, "docs", "plans", f)));
-  const wb = await run(path.join(__dirname, "board.js"), ["--refresh-template", "--root", ROOT, ...noGh], ROOT);
-  if (wb.status !== 0) throw new Error(`board.js (the committed repository work board, after seeding) failed: ${(wb.stderr || wb.stdout).trim().split(/\r?\n/).slice(-1)[0]}`);
-  S.wrote.push("the repository work board: docs/plans/board.json, index.html, board.js (regenerated after seeding)");
-  if (flag("no-live")) { S.live = "skipped (--no-live)"; return; }
-  if (!fs.existsSync(path.join(MAIN, "docs", "plans"))) { S.live = `skipped (${MAIN} has no docs/plans/)`; return; }
-  const liveDir = path.join(MAIN, "docs", "plans", ".live");
-  if (!fs.existsSync(liveDir)) { fs.mkdirSync(liveDir, { recursive: true }); madeDirs.push(liveDir); }
-  ["board.json", "index.html", "board.js"].forEach(f => stage(path.join(liveDir, f)));
-  const lv = await run(path.join(__dirname, "board.js"), ["--live", "--refresh-template", "--root", MAIN, ...noGh], MAIN);
-  if (lv.status !== 0) throw new Error(`board.js --live failed: ${(lv.stderr || lv.stdout).trim().split(/\r?\n/).slice(-1)[0]}`);
-  S.live = `regenerated ${path.relative(MAIN, liveDir).split(path.sep).join("/")}/`;
+/* The foundation of a sized on a folder with no board (plan/RULES.md §4, "The foundation"): built in memory, not started, for the event to
+   start in place, as a board laid before its run is. Each text from the first source that tells it: the event, the issue on the tracker, the
+   parent's unit row, the registry, the folder's own name; every text but the issue's title (quoted verbatim, §4) as any fact's, its work
+   level and its internal names reworded, or left out for the next source. What only the documents can tell reads as being written, in
+   the function's closing sentence and, from plan.foundation, on the board's columns. A fact the check requires and nothing tells (the repository, the baseline) refuses: the event falls
+   back whole. Returns { plan, applied, enrich }. */
+const gitAt = (...a) => { const r = cp.spawnSync("git", ["-C", ROOT, ...a], { encoding: "utf8", windowsHide: true }); return r.status === 0 ? r.stdout.trim() : null; };
+function cleanText(v) {
+  if (typeof v !== "string" || !v.trim()) return null;
+  let s = nameTestLevels(v.replace(/\s+/g, " ").trim()).text;
+  if (levelRefs(s).length) { s = scrubLevels(s, { scope: "issue", elided: [] }); if (!s || levelRefs(s).length) return null; }
+  s = scrubWaits(s);
+  if (nameRefs(s).length) { const n = scrubNames(s); if (n.left.some(unambiguous)) return null; s = n.text; }
+  return /<(issue|slug|YYYY-MM-DD|sha|owner\/name)/.test(s) || /^<[^>]*>$/.test(s) ? null : s;
+}
+function layFoundation(req, facts, folder, now) {
+  const name = path.basename(DIR), issue = parseInt(name, 10), applied = [], enrich = [];
+  if (req.issue != null && req.issue !== issue) refuse(`the request names issue #${req.issue}, the folder is #${issue}'s`);
+  const tplPlan = JSON.parse(fs.readFileSync(path.resolve(__dirname, "..", "template", "plan.json"), "utf8"));
+  let reg = null; try { reg = lib.registry(ROOT); } catch (e) { enrich.push(`docs/dashboards/systems.json does not parse (${e.message}): the systems are laid as the event names them`); }
+  /* the repository */
+  const inGit = fs.existsSync(path.join(ROOT, ".git"));
+  const remote = () => { const u = inGit ? gitAt("remote", "get-url", "origin") : null, m = u && u.match(/[:/]([^/:]+\/[^/]+?)(\.git)?$/); return m ? m[1] : null; };
+  const repo = REPO_SLUG || req.github || (reg && reg.reg.repo) || remote();
+  if (!repo) refuse("the foundation names no repository: the request has no github, the registry no repo, the checkout no origin");
+  /* the baseline: the event's sha (a string, or {ref, sha, date}), else the tree's HEAD; its date the commit's, else the event's */
+  const g0 = facts.baseline != null ? facts.baseline : req.baseline, gb = g0 && typeof g0 === "object" ? g0 : { sha: g0 };
+  const isSha = v => typeof v === "string" && /^[0-9a-f]{7,40}$/.test(v), isDay = v => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
+  const sha = isSha(gb.sha) ? gb.sha : inGit ? gitAt("rev-parse", "--short", "HEAD") : null;
+  if (!isSha(sha)) refuse(`the foundation has no baseline: the event names no sha (facts.baseline: ${JSON.stringify(g0 == null ? null : g0)}) and ${ROOT} tells none`);
+  const shaDay = inGit ? gitAt("show", "-s", "--format=%cs", sha) : null;
+  const originHead = inGit ? gitAt("symbolic-ref", "--short", "refs/remotes/origin/HEAD") : null;
+  const ref = typeof gb.ref === "string" && gb.ref.trim() ? gb.ref.trim() : originHead ? originHead.replace(/^origin\//, "") : inGit && gitAt("rev-parse", "--verify", "--quiet", "refs/heads/main") ? "main" : "master";
+  /* the parent, from the event, else the folder the issue sits in: a tracking board's (or a folder with no board yet), its parent; another
+     issue's board holds a fix of its work or a folded-in issue, which the event or the presenter names */
+  const up = path.dirname(DIR), upNum = parseInt(path.basename(up), 10) || null, inPlans = path.relative(path.join(ROOT, "docs", "plans"), up) !== "" && !path.relative(path.join(ROOT, "docs", "plans"), up).startsWith("..");
+  let upPlan = null; try { upPlan = JSON.parse(fs.readFileSync(path.join(up, "plan.json"), "utf8")); } catch (e) { /* no board there, or none readable */ }
+  const num = v => { const n = typeof v === "string" ? parseInt(v.replace(/^#/, ""), 10) : v; return Number.isInteger(n) && n > 0 ? n : null; };
+  const said = num(facts.parent != null ? facts.parent : req.parent), fix = num(facts.fixOf != null ? facts.fixOf : req.fixOf);
+  const within = upPlan && upPlan.issue === upNum && upPlan.kind !== "tracking" ? upNum : null;
+  const parentN = said || (inPlans && upNum && !within && !fix ? upNum : null);
+  if (within && !said && !fix) enrich.push(`#${issue} sits inside #${within}'s folder, and #${within} is no tracking issue: its parent and any fixOf are the presenter's to record`);
+  const row = upPlan && parentN && upPlan.issue === parentN ? (upPlan.rows || []).find(r => r && r.unit && r.unit.issue === issue) || null : null, unit = row ? row.unit : null;
+  /* the level, read for the kind and the steps line and never kept on the board (levels.js): the request's, an older unit row's, else the team's local state */
+  const lv = [req.level, facts.level, unit && unit.level, lib.localLevel(repo, issue)].find(v => [1, 2, 3, 4].includes(v)), level = lv != null ? lv : null;
+  const kind = facts.kind === "tracking" || facts.kind === "issue" ? facts.kind : level === 4 || facts.step === "architecture" ? "tracking" : "issue";
+  /* the systems: the event's slugs, else the unit row's. A slug the registry does not know yields to the parent's unit row's system where the
+     registry knows that one (WebTools #66: the run sent webtools-http-response-cache, the registry and the unit row say webtools-http-cache),
+     with a warning; else it falls back to itself, in the neutral colour (lib.js systemEntry()): the check warns on it, and it is named here,
+     for the presenter to map it */
+  const saidSlugs = (Array.isArray(facts.systems) ? facts.systems : typeof facts.systems === "string" ? [facts.systems] : row && row.system ? [row.system] : []).filter(s => typeof s === "string" && s.trim()).map(s => s.trim());
+  const knownSlug = s => !!(reg && reg.info(s)), rowSlug = row && typeof row.system === "string" && knownSlug(row.system) ? row.system : null, yielded = rowSlug ? [...new Set(saidSlugs.filter(s => !knownSlug(s)))] : [];
+  if (yielded.length) { WARNINGS.push(`SYSTEM UNKNOWN: ${yielded.map(s => JSON.stringify(s)).join(", ")} ${yielded.length === 1 ? "is" : "are"} not in docs/dashboards/systems.json: the parent's unit row's ${JSON.stringify(rowSlug)} laid instead`); applied.push(`systems: ${yielded.join(", ")} yielded to the unit row's ${rowSlug}`); }
+  const slugs = [...new Set(saidSlugs.map(s => yielded.includes(s) ? rowSlug : s))];
+  const systems = slugs.map(s => lib.systemEntry(reg, s)), unknown = slugs.filter(s => !(reg && reg.info(s)));
+  if (unknown.length) { WARNINGS.push(`SYSTEM UNKNOWN: ${unknown.map(s => JSON.stringify(s)).join(", ")} ${unknown.length === 1 ? "is" : "are"} not in docs/dashboards/systems.json: laid as named, in the neutral colour, with no board`); enrich.push(`facts.systems names ${unknown.join(", ")}, which the registry does not know: laid as named, in the neutral colour, with no board; the presenter maps ${unknown.length === 1 ? "it" : "them"} to the registry's slug`); }
+  /* the texts */
+  const wantIssue = !cleanText(facts.function) || !(typeof facts.issueTitle === "string" && facts.issueTitle.trim());
+  const G = wantIssue && !flag("no-gh") ? lib.ghIssue(repo, issue) : {};
+  const shortName = name.slice(String(issue).length + 1).replace(/-/g, " "), fromSlug = shortName.charAt(0).toUpperCase() + shortName.slice(1);
+  const title = cleanText(facts.title) || cleanText(row && row.name) || fromSlug;
+  /* the issue's title is quoted verbatim, whatever it says (a work level in it is a defect in the issue, which check.js flags) */
+  const issueTitle = [facts.issueTitle, G.title, unit && unit.title].find(v => typeof v === "string" && v.trim()) || null;
+  const given = cleanText(facts.function);
+  const unitWords = unit ? `${title}, unit ${unit.n != null ? unit.n + " " : ""}of #${parentN}.` : null;
+  const body = cleanText(lib.firstParagraph(G.body)), gap = row && row.gap ? cleanText(row.gap.summary) : null;
+  const sys = !body && !gap && slugs.length && reg ? (reg.reg.systems || []).find(s => s.slug === slugs[0] && typeof s.function === "string") : null, sysWords = sys ? cleanText(`${sys.name}: ${sys.function}`) : null;
+  const standIn = [body ? null : unitWords, body, gap, sysWords, !body && !unitWords && !gap && !sysWords ? (issueTitle && cleanText(issueTitle) ? `${cleanText(issueTitle).replace(/[.:;,]+$/, "")}.` : `Issue #${issue}, ${shortName}.`) : null, "What this run does is being written from the documents."].filter(Boolean).join(" ");
+  const fn = given || standIn;
+  const parent = parentN ? { issue: parentN, board: null } : null;
+  const plan = lib.foundationPlan(tplPlan, { repo, issue, name, rel: folder, kind, level, title, issueTitle, function: fn, parent, fixOf: fix ? { issue: fix, board: null } : null, step: null, now,
+    baseline: { ref, sha, date: isDay(gb.date) ? gb.date : isDay(shaDay) ? shaDay : now.slice(0, 10) }, systems });
+  const sop = parent && kind !== "tracking" && upPlan && upPlan.issue === parentN && upPlan.kind === "tracking" && ((upPlan.milestones || []).some(m => m && m.column === "considered") || (upPlan.rows || []).some(r => r && r.unit));
+  plan.foundation = { at: now, ...(given ? {} : { function: fn }), ...(sop ? { considered: true } : {}) };
+  applied.push(`foundation laid: title from ${cleanText(facts.title) ? "the event" : cleanText(row && row.name) ? "the parent's unit row" : "the folder's name"}, the issue's title from ${!issueTitle ? "nothing yet" : issueTitle === facts.issueTitle ? "the event" : issueTitle === G.title ? "the tracker" : "the parent's unit row"}, the function ${given ? "from the event" : `a stand-in from ${[body ? "the tracker" : null, !body && unitWords ? "the parent's unit row" : null, gap ? "the unit row's gap" : null, sysWords ? "the registry" : null].filter(Boolean).join(" and ") || "the folder's name"}`}`);
+  return { plan, applied, enrich };
 }
 async function main() {
   const evFile = opt("event"), wt = opt("worktree");
@@ -1069,6 +1168,8 @@ async function main() {
   const req = readRequest(evFile), facts = req.facts && typeof req.facts === "object" ? req.facts : {};
   if (req.action && req.action !== "plan-board") refuse(`the request's action is ${JSON.stringify(req.action)}, not plan-board`);
   const ev = req.event || facts.event; S.event = ev || null;
+  /* retired: no unit's board is laid ahead of its run (plan/RULES.md §4); an older board's record of it is still read */
+  if (lib.RETIRED_EVENTS.includes(ev)) refuse(`${ev} is retired: a unit's board is laid at its own sized, never ahead of its run`);
   if (!lib.EVENTS.includes(ev)) refuse(`the request names no plan-board event (got ${JSON.stringify(ev || null)}; one of ${lib.EVENTS.join(", ")})`);
   const folder = typeof req.folder === "string" ? req.folder.replace(/\\/g, "/").replace(/\/+$/, "") : null;
   if (!folder || !/^docs\/plans\/(.+\/)?\d+-[a-z0-9][a-z0-9-]*$/.test(folder) || folder.split("/").includes("..")) refuse(`the request's folder ${JSON.stringify(req.folder || null)} is not docs/plans/[<parent>/]<issue>-<slug>`);
@@ -1081,15 +1182,21 @@ async function main() {
   if (at && isNaN(Date.parse(at))) refuse(`the event's time ${JSON.stringify(at)} is not an ISO time`);
   const now = (at ? new Date(at) : new Date()).toISOString().replace(/\.\d+Z$/, "Z");
   const planFile = path.join(DIR, "plan.json");
+  /* the boards' short lock, held for this run (lib.js lockTree()): a fill behind this event merges onto what it writes, and waits at most this run's second or two; with --view the view copies' tree too */
+  try { lib.lockTree(ROOT, `apply-event.js ${ev}`); if (VIEWING && path.resolve(MAIN) !== path.resolve(ROOT)) lib.lockTree(MAIN, `apply-event.js ${ev} --view`); } catch (e) { refuse(e.message); }
+  /* a sized on a folder with no board lays the foundation first (plan/RULES.md §4, "The foundation"), after the seed, so it reads its parent's
+     unit row as the previous landing left it, and the event then starts it in place; a failure on the way leaves it to the presenter */
+  let laid = null, seededFirst = [];
   if (!fs.existsSync(planFile)) {
     if (ev !== "sized") refuse(`${folder} holds no plan.json: there is no board to apply ${ev} to`);
-    S.result = "no-board"; S.issue = req.issue || null; S.enrich.push(`sized: no board yet; the presenter lays the foundation (new.js ... --at ${now}, the event's time, the Timeline's run start) from the documents, then raises the event again, which starts the unit on its tracking board`);
-    /* the previous landing's state does not wait for the foundation: the seed reads nothing of this issue's board (plan/RULES.md §4, "Seeding at sized") */
-    if (!VIEWING) await finishSeed(seedFromView(now));
-    return;
+    /* the view shows a landing, never a run's start: nothing to do */
+    if (VIEWING) { S.result = "no-board"; S.issue = req.issue || null; S.enrich.push("sized with --view: no board to show; the event is raised without it"); return; }
+    LAY_HINT = `sized: no foundation was laid, so the presenter lays it (new.js ... --at ${now}, the event's time, the Timeline's run start) from the documents, then raises the event again, which starts the unit on its tracking board`;
+    seededFirst = seedFromView(now);
+    laid = layFoundation(req, facts, folder, now);
   }
-  const text = fs.readFileSync(viewRead(DIR), "utf8"), eol = /\r\n/.test(text) ? "\r\n" : "\n";
-  let orig; try { orig = JSON.parse(text); } catch (e) { refuse(`${folder}/plan.json does not parse: ${e.message}`); }
+  const text = laid ? null : fs.readFileSync(viewRead(DIR), "utf8"), eol = text && /\r\n/.test(text) ? "\r\n" : "\n";
+  let orig = laid ? laid.plan : null; if (!laid) { try { orig = JSON.parse(text); } catch (e) { refuse(`${folder}/plan.json does not parse: ${e.message}`); } }
   S.issue = orig.issue;
   if (req.issue != null && req.issue !== orig.issue) refuse(`the request names issue #${req.issue}, the board is #${orig.issue}'s`);
   const repo = REPO_SLUG || req.github || null;
@@ -1115,13 +1222,16 @@ async function main() {
   }
   /* seeding at sized (plan/RULES.md §4, "Seeding at sized"; admin-team/dashboards-skill/35): a run sized in a worktree branched after a
      landing starts from the landed state the main checkout's live view shows, so the branch carries it from its first commit */
-  const seeded = ev === "sized" && !VIEWING ? seedFromView(now) : [];
+  const seeded = laid ? seededFirst : ev === "sized" && !VIEWING ? seedFromView(now) : [];
   const R = applyEvent(orig, ev, facts, req, now);
+  if (laid) { S.laid = folder; S.applied.push(...laid.applied); S.enrich.push(...laid.enrich); }
   S.applied.push(...R.applied); S.enrich.push(...R.enrich);
   /* a view copy lives only while fresher than the board it stands for (board.js --live removes it otherwise): said, never lost in silence */
   if (VIEWING) { let tp = null; try { tp = JSON.parse(fs.readFileSync(planFile, "utf8")); } catch (e) { /* reported above */ } if (tp && !(String(lib.planStamp(R.plan)) > String(lib.planStamp(tp)))) WARNINGS.push(`VIEW COPY NOT FRESHER: the event's time ${now} is not after the board's own stamp ${lib.planStamp(tp)}, so the live view drops the copy: raise it with its real time`); }
 
   {
+    if (laid) { const made = []; for (let d = DIR; !fs.existsSync(d); d = path.dirname(d)) made.unshift(d); made.forEach(d => { fs.mkdirSync(d); madeDirs.push(d); }); }
+    if (laid && !flag("no-live")) { const lv = path.join(ROOT, "docs", "plans", ".live"); if (!fs.existsSync(lv)) { fs.mkdirSync(lv, { recursive: true }); madeDirs.push(lv); } }
     writeBoard(DIR, R.plan, eol, S.enrich, "board");
     /* the parent tracking board: the standing rule's move, then a re-embed that mirrors this unit's run (lib.js mirrorUnitRuns) */
     const up = lib.parentFolder(DIR, R.plan);
@@ -1153,6 +1263,8 @@ async function main() {
       liveDir = path.join(main, "docs", "plans", ".live");
       if (!fs.existsSync(liveDir)) { fs.mkdirSync(liveDir, { recursive: true }); madeDirs.push(liveDir); }
       ["board.json", "index.html", "board.js"].forEach(f => stage(path.join(liveDir, f)));
+      /* the markers board.js writes in every tree it reads: put back too, or a failed event's marker names a board that is gone */
+      [...new Set([main, ROOT])].forEach(t => ["index.js", "boards.js"].forEach(f => stage(path.join(t, "docs", "plans", ".live", f))));
       const ex = path.join(main, ".git", "info", "exclude");
       if (fs.existsSync(path.join(main, ".git")) && fs.statSync(path.join(main, ".git")).isDirectory() && !(fs.existsSync(ex) && /^\/?docs\/plans\/\.live\/?\s*$/m.test(fs.readFileSync(ex, "utf8"))))
         S.enrich.push("docs/plans/.live/ is not in the main checkout's .git/info/exclude: the presenter adds the line");
@@ -1165,6 +1277,7 @@ async function main() {
     /* no open point is committed open (dashboards-skill/35): at the landing every open point is resolved, and check.js fails a board at the
        land with one still open; the summary says what to do */
     if (fails.some(l => /OPEN POINT AT THE LAND/.test(l))) S.enrich.push("an open point is still open at the land: resolve it (facts.open, each with resolved) and raise the event again; nothing is committed open");
+    if (fails.some(l => /GAP UNWRITTEN|FOUNDATION NOT FILLED/.test(l))) S.enrich.push("the board's foundation is not filled: write what it reads as being written from the documents (the function, the rows with their Gap) and raise the event again");
     if (cks.some(c => c.status !== 0)) { S.check = `FAIL: ${fails.slice(0, 6).join(" | ") || (cks.find(c => c.status !== 0).stderr || "").trim().split(/\r?\n/)[0]}`; throw new Error("check.js failed on the board it would write"); }
     if (sks.some(c => c.status !== 0)) { S.check = `FAIL (a seeded board): ${sks.flatMap(c => c.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l))).slice(0, 4).join(" | ")}`; throw new Error("check.js failed on a board seeded from the live view"); }
     if (wb && wb.status !== 0) throw new Error(`board.js (the committed repository work board, after seeding) failed: ${(wb.stderr || wb.stdout).trim().split(/\r?\n/).slice(-1)[0]}`);
@@ -1181,6 +1294,8 @@ async function main() {
     try { const md = require("./mdcopy.js"), c = md.copyBoardDocs(R.plan, DIR); if (c.skipped) S.enrich.push(c.skipped); else if (c.wrote.length) S.wrote.push(`rendered copies: ${c.wrote.length}`); } catch (e) { S.enrich.push("the rendered Markdown copies failed: " + e.message); }
     /* the open points' reports, copied when each point is raised (dashboards-skill/35): a cache of this machine, outside the atomic set */
     if (OPEN_JOBS.length) { try { const c = runOpenJobs(); if (c.length) S.wrote.push(`open points' reports copied: ${c.join(", ")}`); } catch (e) { S.enrich.push("the open points' report copies failed: " + e.message); } }
+    /* the progress notes' index and its watcher (progress-index.js): a note needs no event, and a board cannot list a folder. A cache of this machine, outside the atomic set */
+    if (!VIEWING && !["landed", "cancelled"].includes(((R.plan || {}).wip || {}).step)) { try { require("./progress-index.js").ensureWatcher(ROOT); } catch (e) { S.enrich.push("the progress notes' index failed: " + e.message); } }
     S.result = "ok";
   }
 }
@@ -1189,5 +1304,6 @@ main().then(() => { say(); process.exit(0); }, e => {
   S.result = "failed"; S.error = e.message;
   try { S.restored = rollback(); } catch (x) { S.error += `; the rollback failed too: ${x.message}`; }
   if (!S.enrich.includes("the event was not applied: the presenter applies it")) S.enrich.unshift("the event was not applied: the presenter applies it");
+  if (LAY_HINT) { S.laid = null; [S.applied, S.enrich].forEach(l => l.splice(0, l.length, ...l.filter(x => !/^foundation laid|^sized: the foundation is laid/.test(x)))); S.enrich.push(LAY_HINT); }
   say(); process.exit(1);
 });

@@ -12,14 +12,16 @@
 // <base> line held to that folder (plan/RULES.md §4, "The live view of a landing").
 // DASHBOARDS_NO_BROWSER=1 in the environment (verify/verify-templates.js sets it unless run with --browser) opens no browser: a browser
 // pass the run would make fails as "browser: NOT RUN".
+// A foundation laid on the fast path passes while it is being written (plan/RULES.md §4, "The foundation"); past its plan's acceptance it fails.
 // Exit 0 when every rule holds, 1 otherwise. Warnings never fail the run.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { levelRefsIn, titleSkip, issueTitleRefs, titleDefect, nameTestLevels } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
 const { nameRefsIn, commentRefs, nameWarning } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
 const { paletteCheck } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js"));
+const { boardLanded, workLevelFields, featureRun } = require("./levels.js");
 const { unitTests, DEP_STATES, HOLD_STATES } = require("./lib.js");
-const { WAIT_BY, timelineWaitNote, HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, isTime, APPROX_SOURCES, timelineApproxNote, timelineSteps, tlSpan, timelineLines, timelineLeftOut, timelineTotal, unitInRun, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, fixOfBoard, foldedIn, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, viewSource, viewParts, viewBaseHref, viewedFolder, setViewLinks, opt, flag } = require("./lib.js");
+const { foundationFilling, WAIT_BY, timelineWaitNote, HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, isTime, APPROX_SOURCES, timelineApproxNote, timelineSteps, tlSpan, timelineLines, timelineLeftOut, timelineTotal, unitInRun, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, fixOfBoard, foldedIn, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, viewSource, viewParts, viewBaseHref, viewedFolder, setViewLinks, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
 const STATES = ["pending", "in-progress", "partially-built", "as-planned", "amended", "deviated", "dropped", "deferred", "complete", "landed"];
@@ -64,7 +66,7 @@ function checkLink(dir, ref, at) {
 }
 
 /* No work levels on a dashboard (GUIDANCE.md §4): every string the board renders is free of a work-level reference
-   (system/scripts/levelrefs.js). The numeric fields that keep a level as data (level, unit.level, proposedLevel) are not text. An issue's
+   (system/scripts/levelrefs.js). The numeric fields an older landed board may keep (level, unit.level, proposedLevel; levels.js) are not text. An issue's
    title is quoted verbatim (admin-team/dashboards-skill/28): one that names a work level is a defect in the issue, flagged ISSUE TITLE
    NAMES A WORK LEVEL: #n as a warning, never a failure of the board (levelrefs.js issueTitleRefs()). */
 function levelFail(data, file) {
@@ -99,7 +101,8 @@ function checkPlan(plan, dir, root) {
   ["title", "function"].forEach(k => { if (!str(plan[k])) fail(`${k} is required`); });
   if (!STATUS.includes(plan.status)) fail(`status must be one of ${STATUS.join(", ")}`);
   if (plan.kind != null && !["issue", "tracking"].includes(plan.kind)) fail(`kind must be issue or tracking (got ${JSON.stringify(plan.kind)})`);
-  if (plan.level != null && ![1, 2, 3, 4].includes(plan.level)) fail(`level must be 1 to 4 or null (got ${JSON.stringify(plan.level)})`);
+  /* a work level is never kept on a board not landed (levels.js; every rewrite drops it); a landed work board keeps what it holds */
+  { const lv = workLevelFields(plan); if (lv.length && !boardLanded(plan)) fail(`WORK LEVEL ON THE BOARD: ${lv.join(", ")}: a board not landed keeps no work level; the request and the team's local state hold it (run embed.js, which drops it)`); else if (lv.length) ok(`a landed board keeps the work level it landed with (${lv.join(", ")}), never shown`); }
   const b = plan.baseline || {};
   if (!str(b.ref) || !str(b.sha) || !str(b.date)) fail("baseline needs ref, sha and date");
   if (str(b.sha) && !SHA.test(b.sha)) fail(`baseline.sha "${b.sha}" is not a commit sha`);
@@ -137,10 +140,10 @@ function checkPlan(plan, dir, root) {
   const systems = Array.isArray(plan.systems) ? plan.systems : [];
   systems.forEach((s, i) => { if (!str(s.slug) || !str(s.name)) fail(`systems[${i}] needs slug and name`); if (s.slot != null && !(Number.isInteger(s.slot) && s.slot >= 0 && s.slot <= 6)) fail(`systems[${i}].slot must be 0 to 6`); });
   // Colour groups, not rows (plan/RULES.md §8): a system's parts share their top-level system's slot.
-  const groups = new Set(systems.map(s => s.top || s.name || s.slug));
+  const groups = new Set(systems.filter(s => s.status !== "archived").map(s => s.top || s.name || s.slug)); // an archived system holds no slot
   if (groups.size > 6) warn(`more than six colour groups on one board (${groups.size} top-level systems)`);
   const reg = root ? registry(root) : null;
-  if (reg) systems.forEach((s, i) => { const r = reg.info(s.slug); if (!r) warn(`systems[${i}] "${s.slug}" is not in docs/dashboards/systems.json`); else if (r.slot !== (s.slot || 0)) warn(`systems[${i}] "${s.slug}" has slot ${s.slot}, the registry gives ${r.slot}: its colour would differ from the system boards'`); });
+  if (reg) systems.forEach((s, i) => { const r = reg.info(s.slug); if (!r) warn(`systems[${i}] "${s.slug}" is not in docs/dashboards/systems.json`); else if (r.slot !== (s.slot || 0) && !(r.status === "archived" && boardLanded(plan))) warn(`systems[${i}] "${s.slug}" has slot ${s.slot}, the registry gives ${r.slot}: its colour would differ from the system boards'`); });
 
   const ms = plan.milestones || [];
   ms.forEach((m, i) => {
@@ -167,10 +170,26 @@ function checkPlan(plan, dir, root) {
   /* A sub-issue of a signed-off tracking plan is never born with empty columns (RULES §2, columns 1-2; §4, sized): its Gap and
      Considered columns, with their milestones, are filled at "sized" from the parent's research and architecture. */
   const sop = plan.kind !== "tracking" && plan.parent ? signedOffParent(dir, plan) : null;
+  /* A foundation laid on the fast path (RULES §4, "The foundation"): its function a stand-in that says it is being written, no rows, while the
+     presenter fills it behind the event, which is a board's honest state until its plan is accepted. Past that, a board with its Gap (or its
+     function) unwritten says something untrue, so the plan's acceptance is refused on it, and the event falls back whole. */
+  const filling = foundationFilling(plan);
+  if (plan.foundation != null) {
+    const F = plan.foundation;
+    if (typeof F !== "object" || Array.isArray(F) || !isTime(F.at) || (F.function != null && !str(F.function)) || (F.considered != null && typeof F.considered !== "boolean")) fail("foundation is {at (the sized event's ISO date-time), function? (the stand-in the function was laid with), considered? (true: the Considered column comes at sized too)}");
+    else ok(`a foundation laid ${F.at}${filling.function || filling.columns.length ? `, still being written: ${[filling.function ? "the function" : "", ...filling.columns.map(c => `the ${c === "gap" ? "Gap" : "Considered"} column`)].filter(Boolean).join(", ")}` : ""}`);
+  }
+  { const W = plan.wip || {}, shown = ["halted", "escalated"].includes(W.step) ? W.resume : W.step;
+    if (plan.status !== "abandoned" && !tracking && ["branch", "implementation", "qa", "remediation", "document", "landing", "state-boards", "merge", "landed"].includes(shown)) {
+      if (!rows.length) fail(`GAP UNWRITTEN: the run is at ${shown}, past its plan's acceptance, and the board has no rows: write them, each with its gap, from the documents; then raise the event again`);
+      if (filling.function) fail(`FOUNDATION NOT FILLED: the run is at ${shown}, past its plan's acceptance, and the function is still the stand-in it was laid with: write it from the documents; then raise the event again`);
+    } }
   if (sop) {
     const miss = [!rows.length ? "no rows" : "", rows.length && !has("gap") ? 'no "gap" milestone' : "", rows.length && !has("considered") ? 'no "considered" milestone' : "",
       rows.length && rows.some(r => !Array.isArray(r.options) || !r.options.length) ? `rows without options (${rows.filter(r => !Array.isArray(r.options) || !r.options.length).map(r => r.id).slice(0, 4).join(", ")})` : ""].filter(Boolean);
-    if (miss.length) warn(`this is a sub-issue of #${plan.parent.issue}, whose tracking plan is signed off: its Gap and Considered columns, with the "gap" and "considered" milestones, are filled at "sized" from the parent's research README and architecture (the unit's row in the decomposition, the alternatives weighed for it), but the board has ${miss.join(", ")}`);
+    /* a foundation still being filled says so on the board, so nothing is missing yet */
+    if (miss.length && filling.columns.length) ok(`sub-issue of the signed-off #${plan.parent.issue}: its Gap and Considered columns are being written from the parent's documents`);
+    else if (miss.length) warn(`this is a sub-issue of #${plan.parent.issue}, whose tracking plan is signed off: its Gap and Considered columns, with the "gap" and "considered" milestones, are filled at "sized" from the parent's research README and architecture (the unit's row in the decomposition, the alternatives weighed for it), but the board has ${miss.join(", ")}`);
     else ok(`sub-issue of the signed-off #${plan.parent.issue}: Gap and Considered filled from the parent's documents`);
   }
   const ids = new Set();
@@ -246,9 +265,10 @@ function checkPlan(plan, dir, root) {
     if (r.unit) {
       const u = r.unit;
       if (!tracking) warn(`${at}: a unit row on a board whose kind is not tracking`);
-      /* a unit has no issue yet only while its tracking board files them (RULES §3: its own steps "architecture", "sub-issues") */
-      const own = ["halted", "escalated"].includes((plan.wip || {}).step) ? (plan.wip || {}).resume : (plan.wip || {}).step;
-      if (u.issue == null && ["architecture", "sub-issues"].includes(own) && (((r.asBuilt || {}).state) || "pending") === "pending") { /* not filed yet */ }
+      /* a unit has no issue yet up to its tracking board's "sub-issues" step, by its place in the board's own line (RULES §3): a plan lands, then its units are filed */
+      const own = ["halted", "escalated"].includes((plan.wip || {}).step) ? (plan.wip || {}).resume : (plan.wip || {}).step, line = Array.isArray((plan.wip || {}).steps) ? plan.wip.steps : [];
+      const unfiledYet = line.includes("sub-issues") && line.includes(own) ? line.indexOf(own) <= line.indexOf("sub-issues") : ["architecture", "sub-issues"].includes(own);
+      if (u.issue == null && unfiledYet && (((r.asBuilt || {}).state) || "pending") === "pending") { /* not filed yet */ }
       else if (!posInt(u.issue)) fail(`${at}.unit.issue must be the sub-issue's number${u.issue == null ? " (a unit is filed as a sub-issue before the tracking board leaves its \"sub-issues\" step)" : ""}`);
       (u.blockedBy || []).forEach((n, j) => { if (!posInt(n)) fail(`${at}.unit.blockedBy[${j}] must be an issue number`); });
       // The sub-issue's board (RULES §1): when its file exists in this tree the row links it, relative to this folder; a link to
@@ -341,16 +361,19 @@ function checkPlan(plan, dir, root) {
   const w = plan.wip;
   if (!w || typeof w !== "object") warn("wip is missing: the WIP strip has nothing to show");
   else {
-    /* a board laid before its run starts (a tracking issue's unit, RULES §4, "boards-created") has no step yet: status planned, nothing glows */
+    /* an older board laid before its run starts (a tracking issue's unit; a board is laid at its run's sized now, RULES §4) has no step yet: status planned, nothing glows */
     if (w.step == null && plan.status === "planned") { if ((w.current || []).length) fail("a board whose run has not started (no wip.step) glows nothing: wip.current is empty"); }
     else if (!STEPS.includes(w.step)) fail(`wip.step must be one of ${STEPS.join(", ")} (got ${JSON.stringify(w.step)})`);
-    if (["sub-issues", "boards"].includes(w.step) && plan.kind !== "tracking") fail(`wip.step "${w.step}" is a tracking board's own step (filing its units, creating their boards)`);
+    if (["sub-issues", "boards"].includes(w.step) && plan.kind !== "tracking") fail(`wip.step "${w.step}" is a tracking board's own step (filing its units; on an older board, creating their boards)`);
     /* rows before research (RULES §3, "Research: the rows being researched"; admin-team/dashboards-skill/28): the rows are filled from the
        gaps and named before the research starts, so an issue board at research whose research has started (a question recorded, or the
        phase past planning) with no rows is a defect. Research planning on a rowless board is not (nothing glows, the panel shows the
        planning), and neither is a tracking board, whose rows are its units, written at the architecture's sign-off, after its research. */
     { const rs = ["halted", "escalated"].includes(w.step) ? w.resume : w.step, qn = Array.isArray(w.questions) ? w.questions.length : 0, ph = w.research && typeof w.research === "object" ? w.research.phase : null;
-      if (rs === "research" && plan.kind !== "tracking" && !(Array.isArray(plan.rows) && plan.rows.length) && (qn || ["research", "verification", "complete"].includes(ph)))
+      /* a foundation whose Gap column is still being written (RULES §4, "The foundation") is honest: events keep applying while its fill is composed, and the fill names the rows */
+      if (rs === "research" && plan.kind !== "tracking" && !(Array.isArray(plan.rows) && plan.rows.length) && (qn || ["research", "verification", "complete"].includes(ph)) && filling.columns.includes("gap"))
+        warn(`no rows at research yet: the board's Gap column is still being written (plan.foundation)`);
+      else if (rs === "research" && plan.kind !== "tracking" && !(Array.isArray(plan.rows) && plan.rows.length) && (qn || ["research", "verification", "complete"].includes(ph)))
         fail(`NO ROWS AT RESEARCH: the board is at research${w.step !== rs ? ` (${w.step}, resuming there)` : ""} with ${qn ? `${qn} research question${qn === 1 ? "" : "s"} recorded` : `its research phase at ${ph}`} and no rows: the rows are named from the gaps before the research starts; write them (each with its gap) and name them in the questions`); }
     (w.steps || []).forEach((s, j) => { if (!STEPS.includes(s)) fail(`wip.steps[${j}] "${s}" is not a step`); });
     ["since", "updated"].forEach(k => { if (w[k] != null && !STAMP.test(String(w[k]))) fail(`wip.${k} "${w[k]}" is not a date or an ISO date-time`); });
@@ -403,6 +426,9 @@ function checkPlan(plan, dir, root) {
       /* the pass's test report (dashboards-skill/35): its path, plain text (a build output, never committed), and the live view's copy */
       if (p.report != null && (!str(p.report) || /^(?:[a-z]:[\\/]|[\\/])/i.test(p.report))) fail(`wip.qa[${j}].report is the test report's path from the repository root (build/reports/tests/index.html), never a machine-local path (got ${JSON.stringify(p.report)})`);
       if (p.reportCopy != null && (!str(p.reportCopy) || !/^[\w.-]+(\/[\w.-]+)*$/.test(p.reportCopy) || p.reportCopy.split("/").includes(".."))) fail(`wip.qa[${j}].reportCopy is the path of its copy under docs/plans/.live/open/ (apply-event.js takes it), or left out`);
+      /* the mark of a returned verdict with no running before it (apply-event.js at qa-pass; admin-team/dashboards-skill/explicit-step): warned on, so it is never silent */
+      if (p.startUnrecorded != null && p.startUnrecorded !== true) fail(`wip.qa[${j}].startUnrecorded is true, set by apply-event.js, or left out (got ${JSON.stringify(p.startUnrecorded)})`);
+      else if (p.startUnrecorded) warn(`QA START NOT RECORDED: wip.qa[${j}] (pass ${p.pass}) returned with no qa-pass verdict "running" before it, so the pass's start is not on the record: its qa visit has no start of its own`);
       if (p.inPlace != null) fail(`wip.qa[${j}].inPlace is derived from the pass's route (lib.js qaInPlace()), never stored: record route "on-the-spot" instead`);
       if (p.route != null && !ROUTES.includes(p.route)) fail(`wip.qa[${j}].route must be one of ${ROUTES.join(", ")} (got ${JSON.stringify(p.route)})`);
       else if (p.route != null && p.verdict !== "changes-requested") warn(`wip.qa[${j}] (pass ${p.pass}) records a route (${p.route}) but its verdict is ${p.verdict}: a route answers requested changes`);
@@ -808,11 +834,13 @@ function checkImpact(plan, dir, systems, rows, tracking) {
   if (unrel && bump && bump !== "none") warn(`impact.release.unreleased says the artifact is new and unreleased, so no existing version moves, but release.bump is ${bump}: keep bump "none" (its first release is its own), or drop the mark`);
   if (unrel && !ds.some(x => x.kind === "artifact")) warn("impact.release.unreleased marks a new, unreleased artifact, but no downstream entry of kind artifact records it: add one (who: the artifact, effect additive)");
   if (unrel) ok("impact: release.unreleased — the artifact is new and unreleased; no existing version moves (the release warnings are quiet)");
-  if (plan.level === 3 && bump === "none" && effect && !unrel) warn("a level-3 change with a downstream effect takes a feat: release; release.bump is none (a new artifact that has never been released: mark it with impact.release.unreleased: true)");
-  if (plan.level === 3 && bump === "none" && !str(I.none) && !unrel) warn("a level-3 change with no version bump says explicitly that it has no downstream effect (impact.none), or marks a new, unreleased artifact (impact.release.unreleased: true)");
-  if (plan.level === 3 && bump === "feat" && !effect && str(I.none)) warn("a level-3 change bumps only with a downstream effect, but impact.none says it has none");
+  /* the board's kind and steps line tell its run (levels.js featureRun()): a small feature's release rules */
+  const feature = featureRun(plan);
+  if (feature && bump === "none" && effect && !unrel) warn("a level-3 change with a downstream effect takes a feat: release; release.bump is none (a new artifact that has never been released: mark it with impact.release.unreleased: true)");
+  if (feature && bump === "none" && !str(I.none) && !unrel) warn("a level-3 change with no version bump says explicitly that it has no downstream effect (impact.none), or marks a new, unreleased artifact (impact.release.unreleased: true)");
+  if (feature && bump === "feat" && !effect && str(I.none)) warn("a level-3 change bumps only with a downstream effect, but impact.none says it has none");
   if (breaking.length && !tracking && bump && bump !== "major") warn(`a breaking entry (${breaking.slice(0, 3).join(", ")}) rides in a major release; release.bump is ${bump}`);
-  if (plan.level === 4 && bump && bump !== "none") warn("a level-4 plan moves no version itself (docs only): its units' releases go in impact.units");
+  if (tracking && bump && bump !== "none") warn("a level-4 plan moves no version itself (docs only): its units' releases go in impact.units");
   /* units: tracking boards only, one entry per unit row */
   const us = I.units == null ? [] : Array.isArray(I.units) ? I.units : (fail("impact.units must be an array"), []);
   if (us.length && !tracking) fail("impact.units is for a tracking board's units; an issue board has none");

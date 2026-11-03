@@ -45,6 +45,7 @@ module.exports = function cases24(X) {
     ["verification-started", {}], ["researched", {}], ["halted", { waitingOn: "Verification case: a decision on the plan." }], ["resumed", {}], ["plan-accepted", {}],
     ["branch-cut", { branch: "fix/issue-70-verification", stages: STAGES(["current", "todo"]) }],
     ["implementation-stage", { stage: "S1", stages: STAGES(["done", "current"]) }], ["implementation-stage", { stage: "S2", stages: STAGES(["done", "done"]) }],
+    ["qa-pass", { qa: { pass: 1, verdict: "running" } }],
     ["qa-pass", { qa: { pass: 1, verdict: "changes-requested", doc: 2, test: 1, code: 0, route: "rookie-dev" } }],
     ["implementation-stage", { step: "remediation", remediation: { pass: 1, route: "rookie-dev", steps: [{ name: "rookie-dev fixes", state: "done" }] } }],
     ["qa-pass", { qa: { pass: 2, verdict: "changes-requested", doc: 1, route: "on-the-spot" } }],
@@ -115,9 +116,11 @@ module.exports = function cases24(X) {
     c.push(["new.js lays history.sizing: ended at the run's start (plan.sized), by sized, to the step it starts at", n.status === 0 && sz.ended === np.sized && sz.endedBy === "sized" && sz.to === "research", JSON.stringify([n.status, np.wip.history])]);
     const trk = copy(TRK); trk.wip.step = "landing"; trk.wip.current = []; trk.wip.history = {}; trk.rows.forEach(r => { if (r.unit) delete r.unit.live; }); trk.wip.next = (lib.nextUnit(trk) || {}).id || null;
     const troot = tree("standing", [trk]), tdir = path.join(troot, ...TRK.folder.split("/"));
-    const bt = run(NEW, ["--batch", TRK.folder, "--root", troot]);
-    const nx = trk.rows.find(r => r.id === trk.wip.next), laid = fs.readdirSync(tdir).filter(x => /^\d+-/.test(x) && fs.existsSync(path.join(tdir, x, "plan.json"))).find(x => JSON.parse(rd(path.join(tdir, x, "plan.json"))).issue === (nx && nx.unit.issue));
-    c.push(["new.js --batch lays unit boards with an empty history (not started)", bt.status === 0 && !!laid && JSON.stringify(JSON.parse(rd(path.join(tdir, laid, "plan.json"))).wip.history) === "{}", JSON.stringify([bt.status, laid])]);
+    /* an older board laid before its run (no board is laid ahead of its run now): not started, its history empty */
+    const nx = trk.rows.find(r => r.id === trk.wip.next), laid = nx ? `${nx.unit.issue}-${nx.unit.slug || nx.id}` : null;
+    const bt = run(NEW, [String(nx.unit.issue), laid, "--root", troot, "--parent", TRK.folder.replace(/^docs\/plans\//, ""), "--repo", TRK.repo, "--title", nx.name, "--issue-title", nx.name, "--function", "Verification case.", "--baseline", "abcdef1", "--date", "2026-10-25"]);
+    { const lp = path.join(tdir, laid, "plan.json"), o = JSON.parse(rd(lp)); o.sized = null; Object.assign(o.wip, { step: null, current: [], history: {}, event: { name: "boards-created", at: "2026-10-24T07:00:00Z" } }); fs.writeFileSync(lp, JSON.stringify(o, null, 2) + "\n"); run(path.join(path.dirname(NEW), "embed.js"), [path.join(tdir, laid)]); }
+    c.push(["an older board laid before its run has an empty history (not started)", bt.status === 0 && JSON.stringify(JSON.parse(rd(path.join(tdir, laid, "plan.json"))).wip.history) === "{}", JSON.stringify([bt.status, laid])]);
     if (!laid) return;
     const uf = `${TRK.folder}/${laid}`, a = apply(troot, req(path.join(sc, "unit-sized.json"), { github: TRK.repo, issue: nx.unit.issue, event: "sized", folder: uf, facts: { step: "plan" } }), "2026-10-25T07:00:00Z");
     const up = planOf(troot, uf), tp2 = planOf(troot, TRK.folder), row = tp2.rows.find(r => r.id === nx.id);

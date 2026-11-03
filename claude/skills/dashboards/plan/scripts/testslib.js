@@ -71,20 +71,23 @@ function normEntry(x, o, withResult) {
   }
   return { entry: e, notes };
 }
-/* The other tests' counts: { byModule: { <module>: { <level or "none">: n | { classes, tests } } } }, or null when the facts' are not that. */
+/* The other tests' counts: { byModule: { <module>: { <level or "none">: n | { classes, tests } } } }; { byModule: {} } when the facts' report nothing (an empty byModule, or modules with no count: PROTOCOL.md allows it); null when they are not that shape. */
 function normOther(x) {
   const m = x && typeof x === "object" && x.byModule && typeof x.byModule === "object" && !Array.isArray(x.byModule) ? x.byModule : null;
   if (!m) return null;
+  /* wrong in shape: a module that is not an object, or one naming something that is no count */
+  if (Object.values(m).some(lv => !lv || typeof lv !== "object" || Array.isArray(lv))) return null;
   const out = {};
   Object.keys(m).sort().forEach(md => { const lv = m[md]; if (!lv || typeof lv !== "object" || Array.isArray(lv)) return; const row = {};
     [...TEST_LEVELS, "none"].forEach(k => { const v = lv[k]; if (count(v)) row[k] = v; else if (v && typeof v === "object" && count(v.classes)) row[k] = { classes: v.classes, ...(count(v.tests) ? { tests: v.tests } : {}) }; });
     if (Object.keys(row).length) out[md] = row; });
-  return Object.keys(out).length ? { byModule: out, ...(str(x.source) ? { source: x.source.trim() } : {}) } : null;
+  if (!Object.keys(out).length) return Object.values(m).every(lv => !Object.keys(lv).length) ? { byModule: {} } : null;
+  return { byModule: out, ...(str(x.source) ? { source: x.source.trim() } : {}) };
 }
 /* Apply an event's facts.tests to a board (plan/RULES.md §4): each class of "added", "amended" and "relevant" upserted, a class kept in the
    highest list it has reached (Added, then Amended, then Relevant: a class added on the branch and changed later stays Added); "ran", the
    classes qa's test-inspector ran with their results, sets each one's latest result and its count (the tests the run counted) and puts a class in no list into Relevant; "other"
-   replaces the counts; "drop" removes classes from every list (a change reverted; one on no list is named in the summary, never passed over); "base" names the ref the diff is against. The same
+   replaces the counts (an empty one reports nothing new, so any earlier counts stay); "drop" removes classes from every list (a change reverted; one on no list is named in the summary, never passed over); "base" names the ref the diff is against. The same
    facts twice change nothing. Returns { changed, applied, notes }. o: { now, pass, stage, ids }. */
 function mergeTests(plan, ft, o) {
   const applied = [], notes = [];
@@ -111,7 +114,7 @@ function mergeTests(plan, ft, o) {
     (ft[k] || []).forEach((x, i) => { const n = normEntry(x, o, false); if (!n.entry) { notes.push(`facts.tests.${k}[${i}]: ${n.why}: not applied`); return; } notes.push(...n.notes); put(k, n.entry, false); }); });
   if (ft.ran != null && !Array.isArray(ft.ran)) notes.push("facts.tests.ran is not a list: not applied");
   (Array.isArray(ft.ran) ? ft.ran : []).forEach((x, i) => { const n = normEntry(x, o, true); if (!n.entry) { notes.push(`facts.tests.ran[${i}]: ${n.why}: not applied`); return; } notes.push(...n.notes); put("relevant", n.entry, true); });
-  if (ft.other != null) { const ot = normOther(ft.other); if (!ot) notes.push("facts.tests.other is not { byModule: { <module>: { <test level>: count } } }: not applied"); else if (JSON.stringify(T.other || null) !== JSON.stringify(ot)) { T.other = ot; applied.push("tests.other"); } }
+  if (ft.other != null) { const ot = normOther(ft.other); if (!ot) notes.push("facts.tests.other is not { byModule: { <module>: { <test level>: count } } }: not applied"); else if (Object.keys(ot.byModule).length && JSON.stringify(T.other || null) !== JSON.stringify(ot)) { T.other = ot; applied.push("tests.other"); } }
   (Array.isArray(ft.drop) ? ft.drop : []).forEach(x => { const e = typeof x === "string" ? { class: x } : x && typeof x === "object" && str(x.class) ? { class: x.class, ...(str(x.module) ? { module: x.module } : {}) } : null; if (!e) return; const w = find(e); if (w) { T[w.k].splice(w.i, 1); applied.push(`tests.${w.k} − ${e.class}`); } else applied.push(`tests.drop ${e.class}: on no list of the board, nothing to remove`); });
   const changed = JSON.stringify(T) !== before && (before !== "null" || hasTests(T) || !!T.base);
   if (changed) { T.updated = o.now; const ordered = { ...(T.base ? { base: T.base } : {}), updated: T.updated }; TEST_LISTS.forEach(k => { ordered[k] = T[k]; }); if (T.other) ordered.other = T.other; plan.tests = ordered; }

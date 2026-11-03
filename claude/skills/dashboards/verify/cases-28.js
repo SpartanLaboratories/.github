@@ -2,8 +2,8 @@
 // sum of what its bar draws, since dashboards-skill/32 the visits of its run's steps: verify/cases-32.js); an issue's title quoted verbatim, one that names a work level flagged as a
 // defect in the issue (ISSUE TITLE NAMES A WORK LEVEL: #n) by check.js, check-board.js, apply-event.js and apply-state.js and never a failure
 // of the board, on every type; an issue board at research with no rows a defect (NO ROWS AT RESEARCH), research planning on a rowless board
-// glowing nothing, a tracking board's research left alone; each unit row's label glowing on its own while it is filed as a sub-issue, then
-// while its board is created (per-unit sub-issues-filed and boards-created events, a final one closing each step); and the feature probes
+// glowing nothing, a tracking board's research left alone; each unit row's label glowing on its own while it is filed as a sub-issue, after its plan's merge
+// (per-unit sub-issues-filed events, a final one closing the step); and the feature probes
 // of this run. Each group returns [title, cases], a case [name, ok, detail].
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
@@ -127,8 +127,8 @@ module.exports = function cases28(X) {
     c.push(di == null ? ["the Timeline says the rows are named before the research starts (a tracking board: its units come at the sign-off)", false, NEEDS_BROWSER] : ["the Timeline says the rows are named before the research starts (a tracking board: its units come at the sign-off)", di == null || (/No rows yet: they are named from the gaps before the research starts\./.test(di) && /No units yet: they are written from the architecture at its sign-off\./.test(dk) && !/the rows with it/.test(di)), text(inner(di || "", '<div class="board"[^>]*>', "div")).slice(0, 160)]);
   });
 
-  /* 4. a tracking board files its units, then creates their boards: each unit row's label glows on its own */
-  guard("each unit row's label glowing on its own while it is filed, then while its board is created; per-unit events, a final one closing each step (dashboards-skill/28)", c => {
+  /* 4. a tracking board files its units after its plan's merge: each unit row's label glows on its own */
+  guard("each unit row's label glowing on its own while it is filed; per-unit events, a final one closing the step (dashboards-skill/28)", c => {
     const root = path.join(sc, "filing"), F0 = "docs/plans/55-http-client-stack", tdir = path.join(root, ...F0.split("/"));
     fs.rmSync(root, { recursive: true, force: true }); fs.mkdirSync(tdir, { recursive: true });
     const p = copy(TRK); p.rows.forEach(r => { if (r.unit) { r.unit.board = null; r.unit.folder = null; delete r.unit.live; r.asBuilt = { state: "pending", summary: "Not started." }; if (r.unit.n > 2) delete r.unit.issue; } });
@@ -138,7 +138,9 @@ module.exports = function cases28(X) {
     const P = () => planOf(root, F0), U = d => d.rows.filter(r => r.unit), lit = d => d.wip.current.filter(a => /\.units$/.test(a)).map(a => a.split(".")[0]);
     const ids = U(p).map(r => r.id), unfiled = U(p).filter(r => !r.unit.issue).map(r => r.id);
     let a = ev("architecture-signed-off", {}), d = P();
-    c.push(["architecture-signed-off: the step sub-issues, the label of each unit not filed yet glowing on its own, in row order", a.status === 0 && d.wip.step === "sub-issues" && JSON.stringify(d.wip.current) === JSON.stringify(unfiled.map(id => id + ".units")), JSON.stringify([a.s.result, a.s.error, d.wip.step, d.wip.current])]);
+    c.push(["architecture-signed-off: its plan's document step, no unit's label glowing", a.status === 0 && d.wip.step === "document" && !lit(d).length, JSON.stringify([a.s.result, a.s.error, d.wip.step, d.wip.current])]);
+    a = ev("sub-issues-filed", {}); d = P();
+    c.push(["the first sub-issues-filed: the step sub-issues, the label of each unit not filed yet glowing on its own, in row order", a.status === 0 && d.wip.step === "sub-issues" && JSON.stringify(d.wip.current) === JSON.stringify(unfiled.map(id => id + ".units")), JSON.stringify([a.s.result, a.s.error, d.wip.step, d.wip.current])]);
     c.push(["a unit's label glowing is not its run: wip.next stays the first pending unit, nothing reads in progress, the plan's branch still shown", d.wip.next === ids[0] && U(d).every(r => lib.builtState(d, r) === "pending") && lib.shownBranch(d) === "plan/55-http-client-stack" && lib.nextUnit({ ...d, wip: { ...d.wip, current: [ids[0] + ".units"] } }).id === ids[0], JSON.stringify([d.wip.next, U(d).map(r => lib.builtState(d, r)).join(","), lib.shownBranch(d)])]);
     a = ev("sub-issues-filed", { units: [{ unit: unfiled[0], issue: 62 }, { unit: unfiled[1], issue: 63 }] }); d = P();
     c.push(["sub-issues-filed for two units: their labels stop glowing, the rest glow on; the step stays; the panel's count from the rows", a.status === 0 && d.wip.step === "sub-issues" && JSON.stringify(lit(d)) === JSON.stringify(unfiled.slice(2)) && /^4 of 11 units filed as sub-issues\.$/.test(d.wip.detail), JSON.stringify([a.s.result, a.s.error, d.wip.current, d.wip.detail])]);
@@ -153,15 +155,7 @@ module.exports = function cases28(X) {
     const again = ev("sub-issues-filed", { units: unfiled.slice(2).map((id, i) => ({ unit: id, issue: 64 + i })) });
     c.push(["the same event again changes nothing", again.status === 0 && again.s.result === "duplicate", JSON.stringify([again.s.result, again.s.applied])]);
     a = ev("sub-issues-filed", { final: true }); d = P();
-    c.push(["the final sub-issues-filed closes the step: boards, the label of every unit with no board yet glowing", a.status === 0 && d.wip.step === "boards" && JSON.stringify(lit(d)) === JSON.stringify(ids) && /their boards are created next/.test(d.wip.detail) && /filing done/.test((d.trail || []).slice(-1)[0].label), JSON.stringify([a.s.result, a.s.error, d.wip.step, d.wip.current.length, (d.trail || []).slice(-1)[0]])]);
-    U(d).slice(0, 2).forEach(r => stub(path.join(tdir, `${r.unit.issue}-${r.unit.slug || r.id}`)));
-    a = ev("boards-created", { units: U(d).slice(0, 2).map(r => ({ unit: r.id, issue: r.unit.issue })) }); d = P();
-    c.push(["boards-created for two units: linked from the folders on disk, their labels stop glowing, the rest glow on", a.status === 0 && d.wip.step === "boards" && JSON.stringify(lit(d)) === JSON.stringify(ids.slice(2)) && U(d).slice(0, 2).every(r => r.unit.board), JSON.stringify([a.s.result, a.s.error, d.wip.current.length])]);
-    a = ev("boards-created", { final: true }); d = P();
-    c.push(["a final boards-created that comes too early leaves the step at boards, and says why", a.status === 0 && d.wip.step === "boards" && (a.s.why || []).some(w => /9 of the units' boards are not in the tree yet: the step stays at boards/.test(w)), JSON.stringify([a.s.result, d.wip.step, a.s.why])]);
-    const nb = run(NEW, ["--batch", "55-http-client-stack", "--root", root, "--baseline", "abc1234", "--date", "2026-10-25"]);
-    a = ev("boards-created", { final: true }); d = P();
-    c.push(["every board laid, the final boards-created closes the step: the plan's landing, nothing glowing", nb.status === 0 && a.status === 0 && d.wip.step === "landing" && !d.wip.current.length, JSON.stringify([nb.status, a.s.result, a.s.error, d.wip.step, d.wip.current])]);
+    c.push(["the final sub-issues-filed closes the filing: the step stays, nothing glowing, each unit's board appearing when its run starts", a.status === 0 && d.wip.step === "sub-issues" && !d.wip.current.length && /each unit's board appears when its run starts/.test(d.wip.detail) && /filing done/.test((d.trail || []).slice(-1)[0].label), JSON.stringify([a.s.result, a.s.error, d.wip.step, d.wip.current.length, (d.trail || []).slice(-1)[0]])]);
     /* check.js on the address */
     const ck = (name, f) => { const q = copy(d); f(q); const r = tree(name, [q]); return run(checkJs, [path.join(r, ...q.folder.split("/"))]); };
     const k1 = ck("filing-bad-row", q => { q.wip.step = "boards"; q.wip.current = ["nope.units"]; });

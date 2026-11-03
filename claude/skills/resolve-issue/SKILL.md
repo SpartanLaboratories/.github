@@ -80,6 +80,7 @@ replies `needs-rework` with `result.finds` (`file:line`); reword each find and r
   shows, has no open PR already addressing it. If you skip the oldest for one of
   those reasons, say which and why, then take the next.
 - If there are no open issues, say so and stop.
+- **Handoff.** Look for `~/.claude/handoffs/<repo>-<issue>.md`; if present, read it, and set `restarted` on the first request.
 - Read the chosen issue in full: `gh issue view <n> --repo <repo> --comments`.
   An issue that is only partly done (an earlier tier/stage landed, more is
   open) still counts — this run's goal is the **next step**, not necessarily
@@ -278,7 +279,9 @@ gates the **tests and the code** only — the test-inspector and the code-review
 (level 1: the code-reviewer alone, checking that the diff is comments and
 documentation only and matches the issue); documentation is reviewed in step 6.
 Keep its gate verdict, the test-inspector **Test run** block, the code review,
-and the path to the visual test report.
+and the path to the visual test report. At levels 2–3, just before each pass,
+this one and every re-run, send the `qa-pass` event with `verdict: "running"`
+("Plan-board events" below).
 
 - **PASS** -> step 6.
 - **CHANGES REQUESTED, every fix minor** — each is easily made and has no
@@ -411,7 +414,8 @@ sends none.
 | Level-4 sign-off | `architecture-signed-off` | the architecture path, the approved unit list |
 | Planner COMPLETE | `plan-accepted` | the plan path, consequences path |
 | Step 3 done | `branch-cut` | branch, worktree |
-| Each rookie-dev report | `implementation-stage` | the stage, `stages`: every stage's id and name with its state (`done`, `current`, `todo`), `final-implementation.md` path, deviations; during a remediation loop also `remediation`: the qa pass it answers, the route (`on-the-spot` / `remediation` / `re-plan-then-remediation`) and its sub-steps with their state; `tests`: the test classes the stage added or amended (`added`/`amended`: class, module, testLevel, path, tests, rows) |
+| Each rookie-dev report | `implementation-stage` | the stage, `stages`: every stage's id and name with its state (`done`, `current`, `todo`), `final-implementation.md` path, deviations; during a remediation loop also `remediation`: the qa pass it answers, the route (`on-the-spot` / `remediation` / `re-plan-then-remediation`) and its sub-steps with their state; `tests`: the test classes the stage added or amended (`added`/`amended`: class, module, testLevel, path, tests, rows). It names no `step` |
+| Just before each `qa` pass is spawned | `qa-pass` | `qa: {pass: N, verdict: "running"}`, `at` |
 | Each qa verdict | `qa-pass` | pass number, verdict, finding counts by kind (test, code) and by `severity` (`minor` — easily made, no fallout — and `other`), the route step 5 takes from them, `rows`: the board row ids the findings touch, report path; `tests`: what the qa run ran (`ran`: class, module, passed, failed, skipped) and the counts of the untouched modules' tests (`other.byModule`) from the test-inspector report |
 | Step 6 starts, and each task change in it | `document` | `tasks`: every task's id and name with its state (`done`, `current`, `todo`), like `implementation-stage`'s `stages` — ids `documentation-review`, `reconcile-documentation`, `dokka-check`, `reconcile-plan`, `readme-changelog`, `state-boards`; once `prepare-landing` replied, the code-landing sha |
 | An escalation | `escalated` | the proposed level and evidence |
@@ -437,9 +441,11 @@ a defect in the `dashboards` skill during any of this, the team syncs those
 files to the `.github` mirror itself; step 8 mentions them if the `done`
 reply lists them.
 
-**Boards at the start of a run.** When a run is sized, the team seeds its
-boards with the previous landing's landed state — the parent tracking board
-(its unit landed, the next one up) and the previously landed sibling's issue
+**Boards at the start of a run.** When a run is sized, the team lays its
+board in seconds, so it can be viewed as the work begins, with its Gap and
+Considered filled behind it; no board is laid ahead of a run. It also seeds the
+run's boards with the previous landing's landed state — the parent tracking board
+(its filed units, its unit landed, the next one up) and the previously landed sibling's issue
 board as `landed` — from the main checkout's live view, so the run's branch
 carries them and they ride its document-landing commit. There is no separate
 corrections work in any landing.
@@ -473,8 +479,9 @@ team's console.
 `Refs #<n>` — never `Closes` — and no version bump. After the `done` reply,
 send a `file-sub-issues` request with the **user-approved** list: the team
 files each as a sub-issue of this issue, records its proposed level in its own state (never on GitHub), and
-its landing-order dependencies as *blocked by* links, and labels this issue
-`type: tracking`. The issue stays open. If the user has not approved the list,
+its landing-order dependencies as *blocked by* links, labels this issue
+`type: tracking`, and adds a comment listing the sub-issues. The issue stays
+open. If the user has not approved the list,
 send nothing and the list goes back to the user.
 
 - Relay the `done` reply's **result** as-is.

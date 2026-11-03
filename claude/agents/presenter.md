@@ -68,15 +68,28 @@ One event of one run (`plan/RULES.md` §4).
    worktree: `research/README.md` and the findings, `architecture.md`,
    `plan.md`, `consequences.md` (or an older folder's `impact.md`),
    `final-implementation.md` — whichever exist. The board is read from them;
-   the pipeline's facts tell you the step, the verdicts and what waits on the
-   user.
-2. On `sized`, lay the foundation with `plan/scripts/new.js`: issue, title,
-   level, baseline, the systems (registry slugs from `docs/dashboards/
-   systems.json`), status `planned`, `wip.step` for the next step. On a
-   tracking issue (level 4), the rows are its units once the architecture is
-   signed off, each linking to its sub-issue's folder. At the same `sized`,
-   **seed the previous landing's landed state** onto this run's branch from the
-   main checkout's live view, when the team's request lists it: for a
+   the pipeline's events and facts tell you the step, the verdicts and what
+   waits on the user.
+2. On `sized`, the board is already laid: the fast path lays its foundation
+   and seeds the previous landing first (`plan/RULES.md` §4, "The foundation").
+   **Fill it in place**, as every enrichment writes, with
+   `node ~/.claude/skills/dashboards/plan/scripts/fill.js <folder> --fields <fields.json> [--root <repo>] [--json]`:
+   it merges your fields onto the latest `plan.json`, events applying meanwhile,
+   then embeds and checks. Never write `plan.json` directly. Write the function
+   from the issue and the documents, and the rows with their Gap,
+   on a standalone issue as much as on a sub-issue: an issue board past its
+   plan's acceptance with no rows fails (`GAP UNWRITTEN`). On a sub-issue of a
+   signed-off tracking plan, fill its Considered column too, from the parent's
+   documents. On a tracking issue (level 4), the rows are its units once the
+   architecture is signed off, each linking to its sub-issue's folder once that
+   unit's run has laid its board. Only when the fast path failed and its summary
+   says so, lay the foundation with `plan/scripts/new.js`, `--at` the event's
+   time: issue, title, baseline, the systems (registry slugs from
+   `docs/dashboards/systems.json`), status `planned`, `wip.step` for the next
+   step; the event is then raised again, which seeds and starts it. At the same
+   `sized`, **complete the previous landing's landed state** the fast path
+   seeded onto this run's branch from the main checkout's live view, when the
+   team's request lists it: for a
    sub-issue, its parent tracking board (the landed unit `landed`, out of
    `wip.current`, and `wip.next` the next unit in landing order) and the
    previously landed sibling's issue board as `landed` (`status = built`,
@@ -84,19 +97,22 @@ One event of one run (`plan/RULES.md` §4).
    resolved, the trail completed, the glow off). Read them from git and the
    live view, never from memory. They ride the run's document-landing commit,
    so no landing has a separate corrections pass.
-3. On every other event, update `plan.json` exactly as the ruleset's event
-   table says: columns 1–3 written once from the documents, column 4 kept up
-   from `final-implementation.md`'s deviations, `wip` set from the event
-   (step, detail, what waits, the glowing cells, qa passes, blockers).
+3. On every other event, the fast path has set `wip` from the event (step,
+   detail, what waits, the glowing cells, qa passes, blockers). Write what it
+   leaves through `fill.js`, as the ruleset's event table says: columns 1–3
+   written once from the documents, column 4 kept up from
+   `final-implementation.md`'s deviations.
 4. Keep it general: summaries, decisions, reasons, states, links to the
    Markdown section that holds the detail. No listings; `check.js` refuses a
    code block over five lines.
-5. On a sub-issue's `sized` (its run starts), update its parent tracking
-   board too: the unit moves from `wip.next` to `wip.current`, and the
-   following unit in landing order becomes `wip.next` (`plan/RULES.md` §3–4).
-6. On a sub-issue's approving `qa-pass`, set its unit `complete` on the
-   parent tracking board. On a tracking issue's `architecture-signed-off`,
-   set `wip.next` to the first unit when the unit rows first appear.
+5. On a sub-issue's `sized` (its run starts), the fast path has updated its
+   parent tracking board too: the unit moves from `wip.next` to `wip.current`,
+   and the following unit in landing order becomes `wip.next` (`plan/RULES.md`
+   §3–4). When that run failed, raising the event again makes the move.
+6. On a sub-issue's approving `qa-pass`, the fast path sets its unit `complete`
+   on the parent tracking board. On a tracking issue's
+   `architecture-signed-off`, `fill.js` sets `wip.next` to the first unit when
+   your fill's unit rows first appear.
 7. `embed.js` the folder, `check.js <folder> --auto` it, fix, report the paths. Nothing is
    committed: the board lives in the worktree until its run's document-landing
    commit, at the end of the run's Document step.
@@ -131,8 +147,8 @@ sha the request names.
    draw the architecture's new systems on the supersystem board and DSL as
    `Planned` elements, dashed on every tab, with no issue numbers above the
    Context section (state boards are as-is; a planned card reads "planned · its
-   plan", and the Context roadmap lists the sub-issues); no board for anything
-   unbuilt.
+   plan", and the Context roadmap lists the plan's units, which are filed as
+   sub-issues only after its merge); no board for anything unbuilt.
 3. **Template and stamp**: bring every state board onto the current template
    (`system/scripts/splice.js`, keeping declared divergences), then restamp the
    state boards with `system/scripts/apply-state.js` at the code-landing sha

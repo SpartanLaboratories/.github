@@ -1,6 +1,6 @@
 // Work-level references (GUIDANCE.md §4, "No work levels"): the dashboards never show an issue's work level (level 1 to 4, "L3",
-// "level: 2", a "level-3 change"). Plans keep their level as data where a script needs it (plan.json "level", unit.level,
-// wip.proposedLevel), and nothing renders it.
+// "level: 2", a "level-3 change"). A board keeps no level as data: an older landed board's plan.json "level", unit.level
+// and wip.proposedLevel are numbers, not text, and nothing renders them (plan/scripts/levels.js).
 // These patterns find the unambiguous forms in rendered text and in the data a board renders. They leave the five-level test
 // hierarchy alone ("Level 2 — the class and the claim", "tests at levels 1 to 4c", "the Level-4c suite"), which a dashboard
 // shows freely with its level label ("L1 gating", "L2 component", "L4a deterministic", "L5 UAT"), and the C4 model's levels

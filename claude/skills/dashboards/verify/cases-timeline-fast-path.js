@@ -122,11 +122,15 @@ module.exports = function casesTimelineFastPath(X) {
   });
 
   /* 4. the run's start at a foundation laid after its event */
-  guard("the run's start at sized with no board: apply-event.js names the event's time, new.js --at stamps it (plan.sized, wip.since)", c => {
+  guard("the run's start at sized with no board: the foundation apply-event.js lays starts at the event's time; a failed laying names it for new.js --at, which stamps it (plan.sized, wip.since)", c => {
     const root = path.join(sc, "new-root"); fs.mkdirSync(path.join(root, "docs", "plans"), { recursive: true });
+    const rq0 = wr(path.join(sc, "nb-sized0.json"), js({ v: 1, action: "plan-board", github: "acme/widgets", issue: 92, event: "sized", folder: "docs/plans/92-laid", facts: { step: "research", baseline: "abc1234" } }));
+    const a0 = run(APPLY, ["--event", rq0, "--worktree", root, "--no-gh", "--no-live", "--at", "2026-10-27T08:15:00Z", "--json"]), P0 = fs.existsSync(path.join(root, "docs", "plans", "92-laid", "plan.json")) ? JSON.parse(rd(path.join(root, "docs", "plans", "92-laid", "plan.json"))) : {};
+    c.push(["no board yet: the foundation it lays starts at the event's time", a0.status === 0 && P0.sized === "2026-10-27T08:15:00Z" && (P0.wip || {}).since === "2026-10-27T08:15:00Z", js([a0.status, parse(a0).error, P0.sized, (P0.wip || {}).since])]);
+    /* no baseline, no git: the laying fails, as any failed event */
     const rq = wr(path.join(sc, "nb-sized.json"), js({ v: 1, action: "plan-board", github: "acme/widgets", issue: 93, event: "sized", folder: "docs/plans/93-a-case", facts: { step: "research" } }));
     const a = run(APPLY, ["--event", rq, "--worktree", root, "--no-gh", "--no-live", "--at", "2026-10-27T08:15:00Z", "--json"]), S = parse(a);
-    c.push(["no board yet: nothing written, and the summary names new.js --at with the event's time", a.status === 0 && S.result === "no-board" && (S.why || []).some(w => /new\.js \.\.\. --at 2026-10-27T08:15:00Z/.test(w)), js([a.status, S.result, S.why])]);
+    c.push(["a laying that fails: nothing written, and the summary names new.js --at with the event's time", a.status === 1 && S.result === "failed" && !fs.existsSync(path.join(root, "docs", "plans", "93-a-case")) && (S.why || []).some(w => /new\.js \.\.\. --at 2026-10-27T08:15:00Z/.test(w)), js([a.status, S.result, S.why])]);
     const n = run(NEW, ["93", "a-case", "--root", root, "--at", "2026-10-27T08:15:00Z", "--repo", "acme/widgets", "--title", "A case"]);
     const p = fs.existsSync(path.join(root, "docs", "plans", "93-a-case", "plan.json")) ? JSON.parse(rd(path.join(root, "docs", "plans", "93-a-case", "plan.json"))) : {};
     c.push(["new.js --at: the run's start and the first step's since are the event's time", n.status === 0 && p.sized === "2026-10-27T08:15:00Z" && (p.wip || {}).since === "2026-10-27T08:15:00Z", js([n.status, p.sized, (p.wip || {}).since, (n.stderr || "").slice(0, 200)])]);

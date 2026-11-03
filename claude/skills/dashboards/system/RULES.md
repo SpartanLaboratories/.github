@@ -44,7 +44,7 @@ This set ships, under `skills/dashboards/system/`:
 | `scripts/features.js` | The per-board feature probes: one detector per template feature, its skill step and the board types it fits (`GUIDANCE.md` §8, "Features"; not a command). |
 | `scripts/splice.js` | Brings a state board onto its current template: the template's CSS, script before MODEL and renderer carried onto the board, three ways for a declared divergence, the board-filled lines and the board's own content kept, old chips relabelled, a missing state block added, the names of dashboards-skill/33 migrated (§8). The Document step's state-boards task runs it; `--verified` splices onto the template's recorded verified version instead of the file on disk, for a template being edited. Its merge bases come through `scripts/history.js`, which rebuilds a recorded version missing from the local `verify/history/` cache from the `.github` mirror's git history (`--history-repo <clone>`, else `gh api`) and warns on one it cannot find (§8). |
 | `scripts/namerefs.js` | The internal names a board never carries (`GUIDANCE.md` §4): the forms, `scrubNames()`, which `apply-event.js` runs on every fact text, and the warnings `check.js` and `check-board.js` give (not a command). |
-| `scripts/palette.js` | The shared system palette (six slots, light and dark) and the status-hue rule that `check.js` and `check-board.js` apply (`GUIDANCE.md` §1; not a command). |
+| `scripts/palette.js` | The shared system palette (six slots, light and dark), `colourSlots()` (the slot each system holds), and the status-hue rule that `check.js` and `check-board.js` apply (`GUIDANCE.md` §1; not a command). |
 | `../verify/verify-templates.js` | Verifies every template once with the fixtures in `../verify/fixtures/` and records its hash in `../verify/verified.json`; run it after any template change. |
 
 ## 2. The sources of a system board
@@ -214,8 +214,10 @@ dashed = planned, a legend on every tab). The groupings the system templates use
   of the shared palette); name them in `MODEL.sides` and the Structure legend.
 - On a supersystem or repository state board each top-level system takes a slot `--sys-1` … `--sys-6`
   in registry order (`sysColour(slug)`: a top-level system is one whose parent is not itself a
-  system on the board; a child takes its top-level ancestor's slot; a seventh folds into
-  neutral), and every hand-written element about a system carries `data-sys="<slug>"` so
+  system on the board; a child takes the slot of the highest live system on its parent chain; an archived system holds
+  no slot and is drawn neutral; a live system keeps its place's slot, archived places still counted;
+  a freed slot goes to the next system with none, and with none free a system is drawn neutral;
+  `palette.js` `colourSlots()`), and every hand-written element about a system carries `data-sys="<slug>"` so
   `paintSystems()` colours it. The issue boards use the same slots (`plan/RULES.md`), so a system
   has one colour on both sets.
 - The slots' values are the shared palette's (`GUIDANCE.md` §1, `scripts/palette.js`), and no
@@ -323,7 +325,7 @@ presenter (`enrich: yes`). There is no partly built state: its board draws each 
 **Archived is the user's**: an `archived` system keeps that status whatever its code paths say (the code decides only between built and
 planned), counts as built for its supersystem's rule, and its board keeps its last stamp; `check-board.js` fails a status or a visibility
 outside these values (`REGISTRY INVALID`). Its order sets the colour slots
-for both sets of boards: reordering it recolours every system board and every issue board, so
+for both sets of boards, an archived system's place still counted though it holds no slot (`GUIDANCE.md` §1): reordering it recolours every system board and every issue board, so
 append rather than reorder.
 
 ## 8. Workflow

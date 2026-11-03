@@ -2,7 +2,7 @@
   "$comment": "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last verification, when every check that needs no browser passed (its modes: \"--auto --no-browser\"; a run with --browser, made only when a person asks for it, lists the browser passes instead). check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.",
   "templates": {
     "plan/template/dashboard.html": {
-      "sha256": "4a07ef237fed070d158d7d69579da05c15469612c4752be0f093136f2227974e",
+      "sha256": "31dd04033b33099334c968d78b539beb3f48fa6f4376e85bcfe0b19b80105e34",
       "verified": "2026-11-03",
       "fixtures": [
         "plan",
@@ -226,11 +226,26 @@
           "sha256": "4a07ef237fed070d158d7d69579da05c15469612c4752be0f093136f2227974e",
           "verified": "2026-11-03",
           "file": "dashboard/4a07ef237fed.html"
+        },
+        {
+          "sha256": "c7ee6804b793fa587f8bb9741f10d0deabcac947a985d7485ad25b9c96f8c706",
+          "verified": "2026-11-03",
+          "file": "dashboard/c7ee6804b793.html"
+        },
+        {
+          "sha256": "79e6df7b911770b4214d473cbd5d71f16bd66ec526fa9e57a07c8ad01d4168d8",
+          "verified": "2026-11-03",
+          "file": "dashboard/79e6df7b9117.html"
+        },
+        {
+          "sha256": "31dd04033b33099334c968d78b539beb3f48fa6f4376e85bcfe0b19b80105e34",
+          "verified": "2026-11-03",
+          "file": "dashboard/31dd04033b33.html"
         }
       ]
     },
     "plan/template/board.html": {
-      "sha256": "914d3ac47286df4a99d49292641e9384a464f127597da9d4033cbf1de5283810",
+      "sha256": "bdc3cb42f811c967178c663d35b97b5fc7157beb06374112578f9dafadc6bd5e",
       "verified": "2026-11-03",
       "fixtures": [
         "work-board",
@@ -398,11 +413,16 @@
           "sha256": "914d3ac47286df4a99d49292641e9384a464f127597da9d4033cbf1de5283810",
           "verified": "2026-11-03",
           "file": "board/914d3ac47286.html"
+        },
+        {
+          "sha256": "bdc3cb42f811c967178c663d35b97b5fc7157beb06374112578f9dafadc6bd5e",
+          "verified": "2026-11-03",
+          "file": "board/bdc3cb42f811.html"
         }
       ]
     },
     "system/template/system.html": {
-      "sha256": "559953c08e361297d8e727cbae8a3c4b1bbf3fac0aa278a836cb12fd4499979f",
+      "sha256": "74b952b96000dc735dd2afb7df2474b26770eaab6f6f06e6aabdd27786237405",
       "verified": "2026-11-03",
       "fixtures": [
         "placeholder"
@@ -508,11 +528,16 @@
           "sha256": "559953c08e361297d8e727cbae8a3c4b1bbf3fac0aa278a836cb12fd4499979f",
           "verified": "2026-11-01",
           "file": "system/559953c08e36.html"
+        },
+        {
+          "sha256": "74b952b96000dc735dd2afb7df2474b26770eaab6f6f06e6aabdd27786237405",
+          "verified": "2026-11-03",
+          "file": "system/74b952b96000.html"
         }
       ]
     },
     "system/template/supersystem.html": {
-      "sha256": "36bf47e677c153afe5a40503e77a52da3ec664155241a41c1dca03f8ba017c6a",
+      "sha256": "408a037a8841946d99c856553ec085a2ceefde3a4bfdabc207ac34950ebce65f",
       "verified": "2026-11-03",
       "fixtures": [
         "placeholder"
@@ -644,6 +669,11 @@
           "sha256": "36bf47e677c153afe5a40503e77a52da3ec664155241a41c1dca03f8ba017c6a",
           "verified": "2026-11-03",
           "file": "supersystem/36bf47e677c1.html"
+        },
+        {
+          "sha256": "408a037a8841946d99c856553ec085a2ceefde3a4bfdabc207ac34950ebce65f",
+          "verified": "2026-11-03",
+          "file": "supersystem/408a037a8841.html"
         }
       ]
     }

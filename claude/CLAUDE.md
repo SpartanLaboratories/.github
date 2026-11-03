@@ -58,7 +58,8 @@ run, the Document step writes both the README delta and the entry.
 ## Work levels
 
 Every issue is sized to one of four **work levels**, recorded by the admin team in its local
-state, never on GitHub, and never stated in a committed board or document. The level decides how much planning, implementation, QA and
+state, never on GitHub, and never stated in a committed board or document (work boards that landed
+before this rule keep theirs as unshown data, and state boards hold none). The level decides how much planning, implementation, QA and
 versioning the work gets; `/resolve-issue` and its agents scale to it.
 
 | Level | What it is | Planning | Built this run? | Version bump |
@@ -124,6 +125,14 @@ comments or files itself, and never spawns `version-control-manager` directly.
   with `--agent admin-team`. Resume after a restart with `claude --resume "admin team"`.
 - Its ledger, state and hooks log (`~/.claude/admin-team/ledger.jsonl`, `state.json`,
   `hooks.jsonl`) are local only and never mirrored.
+
+## Session handoffs
+
+A session stopped with work unfinished leaves a handoff at `~/.claude/handoffs/<key>.md`. A session
+taking up that work reads it first, which also tells it the work was interrupted, then deletes it
+once its contents are acted on or recorded. The key is `admin-team` for the team and
+`<repo>-<issue>` for a run. A session with no issue has no handoff. Handoffs are local and never
+mirrored.
 
 ## Planning documents — folder layout
 
@@ -231,9 +240,9 @@ step, the `state-boards` request):
 - **Work boards** (`docs/plans/`): how the work is going. The issue board
   (`docs/plans/<issue>-<slug>/dashboard.html`), the tracking board (a tracking issue's issue
   board), the repository work board (`docs/plans/index.html`), and later the org work board
-  (planned). An issue board's foundation is created
-  at the start of a level 2–4 `/resolve-issue` run and kept up at every step transition to show
-  the current work in progress; it records the gap, the options considered (accepted green,
+  (planned). An issue board opens when work on its issue begins: its foundation is laid in
+  seconds when a level 2–4 `/resolve-issue` run is sized, never ahead of that run, and is kept up
+  at every step transition to show the current work in progress; it records the gap, the options considered (accepted green,
   declined red, partial yellow), the verdict and the as-built state, with the cell being worked
   on glowing. It is a general representation with little code; `plan.md` and
   `final-implementation.md` keep the details beside it. Board updates run in real time in the
@@ -241,7 +250,7 @@ step, the `state-boards` request):
   landing. After the merge the admin team shows the landed state for viewing only, in the
   git-ignored live view; nothing is left uncommitted. The next run in that repository carries
   that landed state (the issue board's `landed` with its merge commit, the tracking board's
-  unit landed and next up, the repository work board) onto its branch when it is sized, and
+  filed units, its unit landed and next up, the repository work board) onto its branch when it is sized, and
   it lands with it; there is never a follow-up docs PR. The repository work board on the
   default branch changes only at landings; between them its live view is a local, git-ignored
   copy in `docs/plans/.live/`.

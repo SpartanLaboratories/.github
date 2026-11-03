@@ -1,6 +1,7 @@
 // Shared helpers for the plan-set scripts (new.js, embed.js, check.js, board.js). Not a command.
 "use strict";
 const fs = require("fs"), path = require("path");
+const LV = require("./levels.js");
 
 /* The repository root: --root <dir>, else the current directory. It must hold docs/ (a plan set lives under docs/plans/). */
 function repoRoot(args) {
@@ -9,13 +10,49 @@ function repoRoot(args) {
   if (!fs.existsSync(path.join(root, "docs"))) throw new Error(`${root} has no docs/ folder: run from the repository root or pass --root <repo>`);
   return root;
 }
+/* Every write of a board's files goes through a temporary file and a rename, so a reader (a board's live re-load, board.js, a fill, an event) never
+   sees half a file. A rename can meet a file a browser holds open for a moment (Windows): it is retried briefly. */
+const sleepMs = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+function atomicWrite(file, data) {
+  const tmp = path.join(path.dirname(file), `.${path.basename(file)}.${process.pid}.tmp`);
+  fs.writeFileSync(tmp, data);
+  for (let i = 0; ; i++) { try { fs.renameSync(tmp, file); return; } catch (e) { if (i >= 120 || !["EPERM", "EBUSY", "EACCES"].includes(e.code)) { try { fs.unlinkSync(tmp); } catch (x) { /* gone */ } throw e; } sleepMs(25); } }
+}
+/* The boards' short lock, one per tree (docs/plans/.live/.boards.lock, git-ignored with .live/): held across one read, merge and write of a board's
+   files, by apply-event.js for its run (about a second), by fill.js and the embed.js and new.js commands for theirs, never while a fill is being
+   composed. So an event never waits on a fill's minutes, and neither overwrites what the other wrote since it read. A holder that died, or one
+   older than LOCK_STALE_MS, is taken over; a holder alive past LOCK_WAIT_MS refuses (throws), nothing written. Released at process exit. */
+const LOCK_WAIT_MS = 60000, LOCK_STALE_MS = 300000, HELD_LOCKS = new Map();
+function lockTree(root, what) {
+  const dir = path.join(root, "docs", "plans", ".live"), file = path.join(dir, ".boards.lock");
+  if (HELD_LOCKS.has(file)) return () => {};
+  const madeDir = !fs.existsSync(dir), t0 = Date.now(); fs.mkdirSync(dir, { recursive: true });
+  for (;;) {
+    try { fs.writeFileSync(file, JSON.stringify({ pid: process.pid, at: new Date().toISOString(), what: what || null }), { flag: "wx" }); break; }
+    catch (e) {
+      if (e.code === "ENOENT") { fs.mkdirSync(dir, { recursive: true }); continue; }
+      if (e.code !== "EEXIST" && e.code !== "EPERM" && e.code !== "EACCES") throw e;
+      let h = null, age = 0; try { age = Date.now() - fs.statSync(file).mtimeMs; h = JSON.parse(fs.readFileSync(file, "utf8")); } catch (x) { /* being written, or just gone */ }
+      let dead = age > LOCK_STALE_MS || (h === null && age > 5000);
+      if (!dead && h && Number.isInteger(h.pid)) { try { process.kill(h.pid, 0); } catch (x) { dead = x.code === "ESRCH"; } }
+      if (dead) { try { fs.unlinkSync(file); } catch (x) { /* another took it over */ } continue; }
+      if (Date.now() - t0 > LOCK_WAIT_MS) throw new Error(`the boards in ${root} are locked by ${h ? `process ${h.pid}${h.what ? ` (${h.what})` : ""}` : "another process"}: nothing written`);
+      sleepMs(25);
+    }
+  }
+  const release = () => { if (!HELD_LOCKS.has(file)) return; HELD_LOCKS.delete(file); try { fs.unlinkSync(file); } catch (e) { /* gone */ } if (madeDir) { try { fs.rmdirSync(dir); } catch (e) { /* not empty */ } } };
+  if (!HELD_LOCKS.size) process.on("exit", () => [...HELD_LOCKS.values()].forEach(r => r()));
+  HELD_LOCKS.set(file, release);
+  return release;
+}
 const opt = (args, name, dflt) => { const i = args.indexOf("--" + name); return i >= 0 && args[i + 1] != null && !args[i + 1].startsWith("--") ? args[i + 1] : dflt; };
 const flag = (args, name) => args.includes("--" + name);
 
-/* The registry's colour slots, computed exactly as the system boards compute them (system/template/supersystem.html, sysColour):
-   the systems in registry order without the repo entry; a top-level system is one whose parent is not itself such a system;
-   tops take slots 1..6 in order, a seventh and later get 0 (neutral); a child takes its top-level ancestor's slot. The repo
-   entry itself, when a row names it, is neutral (slot 0). */
+/* The registry's colour slots, computed exactly as the system boards compute them (system/template/supersystem.html, sysColour;
+   system/scripts/palette.js colourSlots()): the systems in registry order without the repo entry; a top-level system is one whose parent is
+   not itself such a system; tops take slots 1..6 by their place, a child takes its top-level ancestor's slot; an archived system holds no slot
+   (0, neutral), and the slot its place frees goes to the next system with none, a seventh top-level system first; with none left it is 0 too.
+   The repo entry itself, when a row names it, is neutral (slot 0). */
 /* A system's board, as the registry (docs/dashboards/systems.json) and the boards' systems entries record it (dashboards-skill/33): the key
    "board"; a file written before reads "page" alike, so an older registry, plan.json or board.json still loads. */
 const boardPath = s => s && typeof s === "object" ? (typeof s.board === "string" && s.board.trim() ? s.board : typeof s.page === "string" && s.page.trim() ? s.page : null) : null;
@@ -30,15 +67,13 @@ function registry(root) {
   if (!fs.existsSync(p)) return null;
   const reg = JSON.parse(fs.readFileSync(p, "utf8"));
   const all = reg.systems || [], systems = all.filter(s => s.kind !== "repo");
-  const by = slug => systems.find(s => s.slug === slug);
-  const top = slug => { let s = by(slug); while (s && by(s.parent)) s = by(s.parent); return s; };
-  const tops = systems.filter(s => !by(s.parent));
+  const by = slug => systems.find(s => s.slug === slug), colours = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js")).colourSlots(systems);
   const boardOf = s => boardPath(s) ? "docs/dashboards/" + boardPath(s) : null;
   const info = slug => {
     const s = by(slug);
     if (!s) { const r = all.find(x => x.slug === slug); return r ? { slug, name: r.name, slot: 0, top: r.name, status: r.status || "built", board: boardOf(r) } : null; }
-    const t = top(slug), i = tops.indexOf(t);
-    return { slug, name: s.name, slot: i >= 0 && i < 6 ? i + 1 : 0, top: t ? t.name : s.name, status: s.status, board: boardOf(s) };
+    const t = colours.holder(slug);
+    return { slug, name: s.name, slot: colours.slot(slug), top: t ? t.name : s.name, status: s.status, board: boardOf(s) };
   };
   return { reg, info };
 }
@@ -214,12 +249,89 @@ function excerptDrift(plan, dir) {
 }
 /* Everything embed.js resolves from the folders on disk before it embeds an issue board: the issue links and the units' runs
    (linkIssueBoards()) and the statements' excerpts (copyExcerpts()). Returns one line per change. */
-function resolveBoard(plan, dir, opts) { return [...fillRoadmap(plan, dir), ...linkIssueBoards(plan, dir), ...refreshSystems(plan, dir), ...linkShared(plan, dir), ...copyExcerpts(plan, dir, opts)]; }
+function resolveBoard(plan, dir, opts) { return [...LV.dropWorkLevels(plan), ...clearFoundation(plan), ...fillRoadmap(plan, dir), ...linkIssueBoards(plan, dir), ...refreshSystems(plan, dir), ...linkShared(plan, dir), ...copyExcerpts(plan, dir, opts)]; }
+/* ---------- The foundation (plan/RULES.md §4, "The foundation") ----------
+   A board's first state, laid at sized: by apply-event.js on the fast path, by new.js on the presenter's fallback. foundationPlan() is the
+   one laying: step null lays it not started, for the sized event to start in place (the fast path); a step lays it started (new.js).
+   STEPS_BY_LEVEL, read at the laying from the level the request (or the team's local state) tells and never kept on the board (levels.js): a
+   tracking issue runs its own steps up to its architecture, the Document step before its plan's land, the land's two steps, landing and merge
+   (admin-team/dashboards-skill/35), then "sub-issues", its units filed after the merge; then "implementation" spans its units' runs, each on its
+   own board laid at its own sized, from the first unit's start until the last unit lands, and "landed" follows (§3). */
+const STEPS_BY_LEVEL = {
+  2: ["sizing", "research", "plan", "branch", "implementation", "qa", "remediation", "document", "landing", "merge", "landed"],
+  3: ["sizing", "interview", "research", "plan", "branch", "implementation", "qa", "remediation", "document", "landing", "merge", "landed"],
+  4: ["sizing", "interview", "research", "architecture", "document", "landing", "merge", "sub-issues", "implementation", "landed"]};
+/* a system's entry on a board: the registry's, else (a slug the registry does not know) the slug itself, in the neutral colour, with no board */
+const systemEntry = (reg, slug) => (reg && reg.info(slug)) || { slug, name: slug, slot: 0, top: slug, status: "built", board: null };
+function foundationPlan(skeleton, o) {
+  const plan = JSON.parse(JSON.stringify(skeleton)); delete plan.$comment;
+  const step = o.step || null, now = o.now;
+  Object.assign(plan, {
+    repo: o.repo || plan.repo,
+    issue: o.issue, slug: o.name, folder: o.rel, kind: o.kind,
+    title: o.title != null ? o.title : plan.title,
+    issueTitle: o.issueTitle !== undefined ? o.issueTitle : plan.issueTitle,
+    function: o.function != null ? o.function : plan.function,
+    status: "planned",
+    // the run's start: the plan phase's first bound on a landed board's Timeline tile (plan/RULES.md §2, "The KPI tiles"); a board not started takes it from its sized event
+    sized: step ? now : null,
+    // parent.board is set by embed.js (and apply-event.js), from the folders on disk: "../dashboard.html" only when the parent folder holds a board
+    parent: o.parent || null,
+    ...(o.fixOf ? { fixOf: o.fixOf } : {}),
+    branch: o.branch || null,
+    baseline: o.baseline,
+    asBuilt: null,
+    systems: o.systems,
+    wip: { step, since: now, updated: now, detail: "", steps: STEPS_BY_LEVEL[o.level] || STEPS_BY_LEVEL[o.kind === "tracking" ? 4 : 3], current: !step || step === "research" ? [] : glowFor(step) /* the step-to-column map, plan/RULES.md §3; a new board has no rows, and during research planning a board with no rows glows nothing */, questions: [] /* the research questions, each with its state, from research-started (plan/RULES.md §3) */, research: null /* the research phase, from research-planning */, interview: [] /* the interview questions, answered or waiting */, plan: null /* the plan pass: writing, or a re-pass */, stages: [] /* the implementation stages, from plan.md */, remediation: null, open: [] /* the open points raised during the run, until resolved */, event: step ? { name: "sized", at: now } : null /* the last event (plan/RULES.md §4) */, history: step ? { sizing: [{ since: null, ended: now, endedBy: "sized", to: step }] } : {} /* the finished steps, frozen as they end (plan/RULES.md §3, "Finished steps"): sizing ends here */, next: null, qa: [], qaMax: 3, waitingOn: null, resume: null, blockers: { waitsOn: [], blocks: [] }, landing: null },
+    // impact is written at plan acceptance from consequences.md (impact.md in an older folder) and reconciled at the landing (plan/RULES.md
+    // §2, Consequences); until then the Consequences tab says that nothing is recorded yet
+    milestones: [], trail: [], rows: [], impact: null, tests: null, roadmap: null, followUps: [], documents: [], notes: {}
+  });
+  return plan;
+}
+/* What a foundation laid on the fast path has still to be written (plan/RULES.md §4, "The foundation"), read from the data, so a fill needs
+   no second write to say it is done: plan.foundation { at, function?, considered? } records the laying, function the stand-in sentence the
+   function was laid with, considered that the Considered column comes at sized too (a sub-issue of a signed-off tracking plan). The function
+   is unwritten while it is still that sentence; the Gap column while the board has no rows; the Considered column, where it comes at sized,
+   while no row has an option. A tracking board has no column to write at sized: its rows are its units, written at the architecture's sign-off.
+   The template's fillingOf() is the same rule for the columns. */
+function foundationFilling(plan) {
+  const F = plan && plan.foundation; if (!F || typeof F !== "object") return { function: false, columns: [] };
+  const rows = Array.isArray(plan.rows) ? plan.rows : [], columns = [];
+  if (plan.kind !== "tracking") { if (!rows.length) columns.push("gap"); if (F.considered && !rows.some(r => r && Array.isArray(r.options) && r.options.length)) columns.push("considered"); }
+  return { function: typeof F.function === "string" && plan.function === F.function, columns };
+}
+/* the marker goes once everything it names is written, at the embed that follows the fill */
+function clearFoundation(plan) {
+  if (!plan || plan.foundation == null) return [];
+  const f = foundationFilling(plan); if (f.function || f.columns.length) return [];
+  delete plan.foundation; return ["foundation: every part written, plan.foundation cleared"];
+}
+/* The issue on the tracker, for a foundation with no title or function of its own: its title and body, {} where it cannot tell (DASHBOARDS_GH: the verify cases' stub). */
+function ghIssue(repo, n) {
+  if (!/^[\w.-]+\/[\w.-]+$/.test(String(repo || "")) || !Number.isInteger(n) || n <= 0) return {};
+  const gh = process.env.DASHBOARDS_GH || "gh", viaNode = /\.js$/i.test(gh);
+  try {
+    const r = require("child_process").spawnSync(viaNode ? process.execPath : gh, [...(viaNode ? [gh] : []), "issue", "view", String(n), "--repo", repo, "--json", "title,body"], { encoding: "utf8", timeout: 8000, windowsHide: true });
+    if (r.status !== 0 || !r.stdout) return {};
+    const j = JSON.parse(r.stdout); return j && typeof j === "object" ? { title: typeof j.title === "string" ? j.title : null, body: typeof j.body === "string" ? j.body : null } : {};
+  } catch (e) { return {}; }
+}
+/* An issue body's first plain paragraph, on one line: no heading, list, table, quote, fence or comment, none that only leads into a list; cut at a sentence's end within limit, and left out when no sentence ends there. */
+function firstParagraph(body, limit) {
+  const max = limit || 420;
+  const p = String(body || "").replace(/\r\n/g, "\n").split(/\n\s*\n/).map(x => x.trim()).find(x => x && !/^(#|[-*+] |\d+[.)] |>|\||```|<!--)/.test(x) && !x.includes("\n|") && !/:$/.test(x));
+  if (!p) return null;
+  const one = p.replace(/\s+/g, " ");
+  if (one.length <= max) return one;
+  const cut = one.slice(0, max), end = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("; "));
+  return end > 40 ? cut.slice(0, end + 1).replace(/;$/, ".") : null;
+}
 /* An issue board's systems, kept current with the registry while its run is in flight (the defect: the entries were a snapshot taken at
    sized, so a system the run builds stayed "planned" with no board, its header said "· planned" and its board was never linked, even once
    the pre-merge refresh had built it and given it a board). At every embed of a board that is neither landed nor cancelled (status built or
    abandoned: kept as it landed, GUIDANCE.md §11), each entry takes the registry's status and board (under the key the entry already uses,
-   "board" or the older "page"); its slug, name and colour slot are left as they are. Returns the changes, one line each. */
+   "board" or the older "page") and colour slot (an archived system holds none, palette.js colourSlots()); its slug and name are left as they are. Returns the changes, one line each. */
 function refreshSystems(plan, dir) {
   if (!plan || !Array.isArray(plan.systems) || ["built", "abandoned"].includes(plan.status)) return [];
   const root = treeRoot(dir); if (!root) return [];
@@ -228,7 +340,8 @@ function refreshSystems(plan, dir) {
   plan.systems.forEach(s => { if (!s || typeof s.slug !== "string") return; const i = R.info(s.slug); if (!i) return;
     if (typeof i.status === "string" && s.status !== i.status) { out.push(`systems ${s.slug}: status ${s.status} → ${i.status}`); s.status = i.status; }
     const key = Object.prototype.hasOwnProperty.call(s, "board") || !Object.prototype.hasOwnProperty.call(s, "page") ? "board" : "page", b = i.board || null;
-    if ((s[key] || null) !== b) { out.push(`systems ${s.slug}: ${key} ${s[key] || null} → ${b}`); s[key] = b; } });
+    if ((s[key] || null) !== b) { out.push(`systems ${s.slug}: ${key} ${s[key] || null} → ${b}`); s[key] = b; }
+    if (Number.isInteger(i.slot) && (s.slot || 0) !== i.slot) { out.push(`systems ${s.slug}: slot ${s.slot || 0} → ${i.slot}`); s.slot = i.slot; } });
   return out;
 }
 /* An issue board's roadmap (plan/RULES.md §5, "An issue board's Context"; admin-team/dashboards-skill/34, the defect: every unit board
@@ -342,7 +455,7 @@ function linkSubIssueBoards(plan, dir) {
 
 /* The live run of a tracking board's units (plan/RULES.md §3, "The units' own runs"). While a tracking board is live, each unit in
    its wip.current whose sub-issue has a board in this tree carries unit.live: a mirror of that board's run state, its wip as the
-   pipeline last left it (step, since, updated, detail, steps, waitingOn, resume, qa, qaMax, and proposedLevel while escalated) plus
+   pipeline last left it (step, since, updated, detail, steps, waitingOn, resume, qa, qaMax) plus
    its status and branch. Nobody writes it by hand: embed.js writes it from the sub-issue's plan.json at every embed of the tracking
    board, and every embed of a sub-issue's board re-embeds its parent's (embed.js), so the mirror follows each event of the unit's
    run. A unit that is not in progress, or has no board, or a tracking board that has landed or was cancelled, carries none. */
@@ -352,7 +465,6 @@ function unitRun(sub) {
   const run = { step: w.step || null, since: w.since || null, updated: w.updated || w.since || null, detail: w.detail || "",
     steps: Array.isArray(w.steps) ? w.steps : [], waitingOn: w.waitingOn || null, resume: w.resume || null,
     qa: Array.isArray(w.qa) ? w.qa : [], qaMax: w.qaMax || null, status: sub.status || null, branch: sub.branch || null };
-  if (w.proposedLevel) run.proposedLevel = w.proposedLevel;
   Object.assign(run, panelFacts(sub));
   /* the finished steps the unit's board kept no snapshot of, reconstructed from what survives on it (its trail, milestones, stages,
      qa passes), so the tracking board shows them as the unit's own board does (plan/RULES.md §3, "Finished steps") */
@@ -1226,16 +1338,16 @@ const GLOW_MAP = {
      so the whole As built column glows, as at qa */
   document: { kind: "columns", cols: ["built"] },
   landing: { kind: "none" }, "state-boards": { kind: "none" }, merge: { kind: "none" }, landed: { kind: "none" }, cancelled: { kind: "none" },
-  /* a tracking board after its architecture (plan/RULES.md §3): filing the units as sub-issues, then creating their boards; each unit row's
-     label glows on its own while its issue (then its board) is made, and stops when that one is done (admin-team/dashboards-skill/28; it
-     replaces the one glow on the label column of dashboards-skill/26) */
+  /* a tracking board after its plan's merge (plan/RULES.md §3): filing the units as sub-issues (an older board also creating their boards); each
+     unit row's label glows on its own while its issue is made, and stops when that one is done (admin-team/dashboards-skill/28; it replaces the
+     one glow on the label column of dashboards-skill/26) */
   "sub-issues": { kind: "filing" }, boards: { kind: "filing" }
 };
 const COLUMN_NAMES = { gap: "Gap", considered: "Considered", verdict: "Verdict", built: "As built", units: "the unit rows' label" };
-/* The filing glow (plan/RULES.md §3; admin-team/dashboards-skill/28): at a tracking board's "sub-issues" step, the label cell of each unit
-   row with no issue yet; at "boards", of each unit row with no board yet (unit.board, which embed.js sets from the folders on disk); in row
-   order, however many. A unit stops glowing once its issue (its board) is recorded; the team raises sub-issues-filed and boards-created per
-   unit, one or more at a time, and a final one that closes the step. */
+/* The filing glow (plan/RULES.md §3; admin-team/dashboards-skill/28): at a tracking board's "sub-issues" step, after its plan's merge, the
+   label cell of each unit row with no issue yet; at "boards", an older board's step, of each unit row with no board yet (unit.board, which
+   embed.js sets from the folders on disk); in row order, however many. A unit stops glowing once its issue is recorded; the team raises
+   sub-issues-filed per unit, one or more at a time, and a final one that closes the step. */
 const unitFiled = r => Number.isInteger(r.unit.issue) && r.unit.issue > 0, unitBoarded = r => typeof r.unit.board === "string" && !!r.unit.board.trim();
 function filingGlow(plan, step) {
   if (!plan || plan.kind !== "tracking" || !["sub-issues", "boards"].includes(step)) return [];
@@ -1295,7 +1407,9 @@ function researchGlow(plan) {
   }
   return { current: rows.map(r => r.id + ".considered").filter(a => cells.has(a)), phase, fallback: null };
 }
-/* The plan-board events (plan/RULES.md §4), as wip.event.name records the last one a board took. */
+/* The plan-board events (plan/RULES.md §4), as wip.event.name records the last one a board took; an older board's record may name a retired one
+   (RETIRED_EVENTS), read and drawn, which apply-event.js refuses: no unit's board is laid ahead of its run. */
+const RETIRED_EVENTS = ["boards-created"];
 const EVENTS = ["sized", "halted", "resumed", "research-planning", "research-started", "research-returned", "verification-started", "researched",
   "architecture-signed-off", "sub-issues-filed", "boards-created", "plan-accepted", "branch-cut", "implementation-stage", "qa-pass", "document", "escalated", "landing", "state-boards", "merge", "landed", "cancelled", "run-restarted"];
 /* A row's as-built state before its outcome (plan/RULES.md §2, "Before the outcome"): derived from the implementation stages while the
@@ -1542,7 +1656,7 @@ function timelineSteps(plan, opts) {
   seq.forEach(v => { const fs = lined.filter(s => tlFamily(s) === tlFamily(v.step)); v.family = tlFamily(v.step); v.shade = tlShade(fs.indexOf(v.step), fs.length); });
   /* the waits, each drawn as a line of its own between the visits, never on the bar: its time is shown and not counted */
   const waits = WT.map(x => { const ms = x.ended ? Date.parse(x.ended) - Date.parse(x.since) : null;
-    return { wait: true, step: x.step, by: x.by, label: "waiting on the user", from: bd(x.since), to: x.ended ? bd(x.ended) : now ? { t: now, how: "now" } : null, open: !x.ended, ms: ms != null && ms >= 0 ? ms : null }; });
+    return { wait: true, step: x.step, by: x.by, label: "waiting on you", from: bd(x.since), to: x.ended ? bd(x.ended) : now ? { t: now, how: "now" } : null, open: !x.ended, ms: ms != null && ms >= 0 ? ms : null }; });
   /* the stretches when the run was not running: each a line of its own, shown and not counted, never folded into the waits */
   const outages = OG.map(x => ({ outage: true, step: x.step, reason: x.reason, label: "run not running", from: bd(x.since), to: bd(x.ended), ms: Date.parse(x.ended) - Date.parse(x.since) })).filter(x => x.ms >= 0);
   return { kind, visits: seq, waits, outages, left, untimed: seq.filter(v => v.ms == null).map(v => v.label), families: timelineFamilies(seq) };
@@ -1594,8 +1708,8 @@ function timelineRows(T) {
 /* the sub-line's note of what is not counted: the waits on the user, their time, and a wait still open; the stretches when the run was not
    running named apart, their time never folded into the waits' */
 function timelineWaitNote(T) { const ws = (T && T.waits) || [], shut = ws.filter(x => x.ms != null), tot = shut.reduce((n, x) => n + x.ms, 0), og = (T && T.outages) || [], otot = og.reduce((n, x) => n + x.ms, 0);
-  const parts = [shut.length ? `waiting on the user, ${tlSpan(tot)}${shut.length > 1 ? ` (${shut.length} waits)` : ""}` : "", og.length ? `run not running, ${tlSpan(otot)} (${og.length})` : ""].filter(Boolean);
-  return [parts.length ? `not counted: ${parts.join("; ")}` : "", ws.some(x => x.open) ? "waiting on the user now: not counted" : ""].filter(Boolean).join(" · "); }
+  const parts = [shut.length ? `waiting on you, ${tlSpan(tot)}${shut.length > 1 ? ` (${shut.length} waits)` : ""}` : "", og.length ? `run not running, ${tlSpan(otot)} (${og.length})` : ""].filter(Boolean);
+  return [parts.length ? `not counted: ${parts.join("; ")}` : "", ws.some(x => x.open) ? "waiting on you now: not counted" : ""].filter(Boolean).join(" · "); }
 const timelineLines = T => timelineRows(T).map(({ visit: v, wait: x, outage: o }) => o ? `${o.label} (not counted): ${tlBoundText(o.from)} → ${tlBoundText(o.to)} · ${tlSpan(o.ms)}${o.reason ? ` · ${o.reason}` : ""}` : x ? `${x.label} (not counted): ${tlBoundText(x.from)} → ${tlBoundText(x.to)} · ${x.ms != null ? tlSpan(x.ms) : "—"}`
   : `${v.label}${v.family && v.family !== v.step ? ` (${v.family})` : ""}: ${tlBoundText(v.from)} → ${tlBoundText(v.to)} · ${v.ms != null ? `${v.approx ? "≈ " : ""}${tlSpan(v.ms)}` : "—"}`);
 /* The merge's time and the branch's step commits, from git, for the Timeline tile (asBuilt.at, asBuilt.commits): the merge commit's
@@ -1639,5 +1753,5 @@ function ghMergeTime(repo, pr, merge) {
   } catch (e) { return out; }
 }
 
-module.exports = { boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, HISTORY_FIELDS, HISTORY_STEPS, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, timelineRows, timelineWaitNote, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+module.exports = { ...LV, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, HISTORY_FIELDS, HISTORY_STEPS, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, timelineRows, timelineWaitNote, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewBaseFolder, viewBaseHref, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, setViewLinks, viewedFolder, viewLink, landVisit, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

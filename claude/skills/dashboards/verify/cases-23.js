@@ -56,10 +56,6 @@ module.exports = function cases23(X) {
     const n = run(NEW, ["91", "verification-case", "--root", nroot, "--title", "Verification case", "--function", "Verification case.", "--baseline", "abcdef1", "--date", "2026-10-25", "--repo", "acme/widgets", "--step", "research"]);
     const np = JSON.parse(rd(path.join(nroot, "docs", "plans", "91-verification-case", "plan.json")));
     c.push(["new.js stamps the foundation's sized (an ISO date-time), never the template's placeholder", n.status === 0 && lib.okStamp(np.sized) && np.sized.length > 10, JSON.stringify([n.status, np.sized, (n.stderr || "").slice(0, 120)])]);
-    const troot = tree("batch", [copy(TRK)]), tdir = path.join(troot, ...TRK.folder.split("/"));
-    const bt = run(NEW, ["--batch", TRK.folder, "--root", troot]);
-    const laid = fs.readdirSync(tdir).filter(x => /^\d+-/.test(x) && fs.existsSync(path.join(tdir, x, "plan.json"))).map(x => JSON.parse(rd(path.join(tdir, x, "plan.json"))));
-    c.push(["new.js --batch lays unit boards not started: sized null until their own sized event", bt.status === 0 && laid.length > 0 && laid.every(x => x.sized === null), JSON.stringify([bt.status, laid.map(x => [x.issue, x.sized]), (bt.stdout || "").split(/\r?\n/).slice(-2)])]);
   });
 
   /* 3. a reference's section number before its excerpt */

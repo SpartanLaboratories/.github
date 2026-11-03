@@ -42,7 +42,7 @@
 // blocked-by links and the tracking boards' unit.blockedBy (plan/RULES.md §5; admin-team/dashboards-skill/30).
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), url = require("url");
-const { repoRoot, flag, opt, registry, findPlans, VIEW, viewSource, treeRoot, planStamp, subIssueBoard, shownBranch, unitBranch, reconciliation, leftForLater, boardlessState, unitInRun, qaShown, depBuild, depLocality, holdState } = require("./lib.js");
+const { atomicWrite, repoRoot, flag, opt, registry, findPlans, VIEW, viewSource, treeRoot, planStamp, subIssueBoard, shownBranch, unitBranch, reconciliation, leftForLater, boardlessState, unitInRun, qaShown, depBuild, depLocality, holdState } = require("./lib.js");
 /* a pass's route written with its neutral id (GUIDANCE.md §4, "No internal names"): a board recorded before the rename keeps the older
    rookie-dev and planner-then-rookie-dev, read alike everywhere; board.json is generated, so it carries the neutral ones */
 const ROUTE_NEUTRAL = { "rookie-dev": "remediation", "planner-then-rookie-dev": "re-plan-then-remediation" };
@@ -329,7 +329,7 @@ const rows = [...rowNums].map(n => {
       blockedBy: all.filter(x => !landedIssue(x.issue, x.repo ? x : null)).map(x => ({ issue: x.issue, repo: x.repo })) });
   }
   const si = sysInfo(row.system); row.systemName = si ? si.name : row.unassigned ? "no system" : null; // "unassigned": decided, not missing
-  /* an archived system (registry status "archived", no longer developed; dashboards-skill/35): its rows say so */
+  /* an archived system (registry status "archived", no longer developed; dashboards-skill/35): its rows say so; it holds no slot, so its swatch is neutral */
   if (si && si.status === "archived") row.systemArchived = true;
   // A tracking issue spans several systems: it names their top-level systems and takes no colour of its own.
   if (b && b.plan.kind === "tracking") row.systemName = [...new Set((b.plan.systems || []).map(x => x.top || x.name))].join(", ");
@@ -380,9 +380,9 @@ const board = { schema: "work-board/1", repo, generated: now.toISOString().repla
   ...(live ? { live: { worktrees: trees.length }, base: "../" } : {}),
   systems: [...used].map(sysInfo), groups: groups.filter(g => rows.some(r => r.group === g.key)), rows, roadmap, unscheduled };
 fs.mkdirSync(outDir, { recursive: true });
-fs.writeFileSync(jsonPath, JSON.stringify(board, null, 2) + "\n");
+atomicWrite(jsonPath, JSON.stringify(board, null, 2) + "\n");
 // the live board is always the current template: it is regenerated at every event and never committed
-if (!fs.existsSync(htmlPath) || live || flag(args, "refresh-template")) fs.copyFileSync(path.resolve(__dirname, "..", "template", "board.html"), htmlPath);
+if (!fs.existsSync(htmlPath) || live || flag(args, "refresh-template")) atomicWrite(htmlPath, fs.readFileSync(path.resolve(__dirname, "..", "template", "board.html")));
 embed(outDir);
 /* The live view's markers and copies (plan/RULES.md §1, §5), in every tree read: docs/plans/.live/index.js names the live repository work board (this
    checkout's, or from a worktree the main checkout's: a relative path where one exists, else a file URL; the file is git-ignored and

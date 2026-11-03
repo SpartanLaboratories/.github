@@ -22,10 +22,12 @@ and `work-board` — are identifiers and keep their spelling.
 
 Colour means one thing per board, and the same thing on every board of a repo.
 
-**Categorical: one colour per system.** Every system in `docs/dashboards/systems.json` owns
+**Categorical: one colour per system.** Every live system in `docs/dashboards/systems.json` holds
 one colour slot, assigned in registry order (six slots; a system's parts inherit its parent's
-colour; a seventh top-level system is never silently grey — re-parent, or add a slot and record
-it). A system keeps that colour on **every tab of every board**: its card and rows on the system,
+colour). An archived system holds no slot; a live system keeps its place's slot, archived places
+still counted, so archiving one moves no other system's colour; a freed slot goes to the next
+system with none, and with none free a system is drawn neutral (`system/scripts/palette.js`
+`colourSlots()`). A system keeps that colour on **every tab of every board**: its card and rows on the system,
 supersystem and repository state boards, its rows on every issue board and on the repository work board. A reader who
 learns the colour once can follow the system everywhere. On a system board the three sides
 (`--server`, `--client`, `--wire`) are slots 1 to 3.
@@ -61,7 +63,7 @@ its ruleset; the shared scale is:
 | Colour | Meaning | Examples |
 |--------|---------|----------|
 | **green** (`--good`) | accepted, done as decided, passing | an accepted option; an `as-planned` part; a passing qa gate; a `complete` unit (qa passed, drawn outlined: not merged yet) and a `landed` one (merged); an impact reconciled as built |
-| **yellow** (`--warning`) | in between: partly adopted, amended, waiting | a `partial` option; an `amended` part; an option left `deferred` at plan time; a halt waiting on the user; a wait on the user on the Timeline tile; an impact partly reconciled |
+| **yellow** (`--warning`) | in between: partly adopted, amended, waiting | a `partial` option; an `amended` part; an option left `deferred` at plan time; a halt, "waiting on you"; a wait on the user on the Timeline tile; an impact partly reconciled |
 | **red** (`--critical`) | declined, dropped, failing | a `declined` option; a `dropped` part; a failing gate |
 | **orange** (`--serious`) | changed course | a `deviated` part (the decision itself changed) |
 | **accent** (`--accent`) | being worked on: the in-progress mark | an `in-progress` part (a current stage builds it; a unit whose run is under way), solid, beside the glow |
@@ -122,7 +124,7 @@ who consumes it — is an order, near to far, so it takes a neutral ramp, as a d
 visibility with its chip as the heading and its legend entry, and is a candidate grouping on another tab where it fits; a system board
 names its own in a header tag. Never a system slot or a status colour: a card keeps its system's colour inside its group.
 
-**Archived: solid, faded, tagged** (admin-team/dashboards-skill/35). A system no longer developed (`status` `archived`) is drawn solid
+**Archived: solid, faded, tagged** (admin-team/dashboards-skill/35). A system no longer developed (`status` `archived`) is drawn neutral, with no colour of its own, on every board type: solid
 (never dashed: dashed is planned), faded and desaturated, with a neutral tag "⊟ archived" and its legend entry; on the Systems tab it
 leaves the visibility grouping for an Archived group of its own, last. Its Guarantees rows and its rows on the repository work board carry
 the same tag; its own board's header says it ("status ⊟ archived").
@@ -139,7 +141,7 @@ coloured by the **kind of work** its step is, four hue families, each named in t
 
 | Family | Its steps | Hue | Light: first → last | Dark: first → last |
 |--------|-----------|-----|---------------------|--------------------|
-| **planning** | sizing, interview, research, architecture, plan; a tracking board's sub-issues and boards (its last planning, before its plan lands) | blue | `#5596de` → `#1d5cab` | `#3a7fd0` → `#80b6f0` |
+| **planning** | sizing, interview, research, architecture, plan; a tracking board's sub-issues (its last planning, after its plan lands), an older board's boards | blue | `#5596de` → `#1d5cab` | `#3a7fd0` → `#80b6f0` |
 | **build** | branch, implementation (a tracking board's: its units' runs) | teal | `#1f9294` → `#0c5c61` | `#1a8a8c` → `#4cc4c2` |
 | **checking** | qa, remediation | purple | `#b67ad0` → `#84409f` | `#a35cbd` → `#d095e6` |
 | **landing** | document, landing, merge (the Document step, the land's preparation on the branch, and the land's two steps, admin-team/dashboards-skill/35; an older board's landing, state-boards and merge, or its landing alone) | deep indigo (light) · pale indigo (dark) | `#2e3d99` → `#1d2870` | `#b8c4fa` → `#d4dcfd` |
@@ -193,7 +195,7 @@ user, when its data cannot be read and under `prefers-reduced-motion`. Nothing e
 in-progress mark is exact: it marks every cell being worked on, however many, and nothing else; a whole column glows
 only while the rows being worked on are unknown, or while the work touches no row (an implementation stage that builds no row
 glows the whole As built column, `plan/RULES.md` §3). No check limits how many glow. While a tracking board files its units as
-sub-issues, then creates their boards, each unit row's label glows on its own while its issue (then its board) is being made, and stops
+sub-issues, each unit row's label glows on its own while its issue (on an older board, then its board) is being made, and stops
 when that one is done (`plan/RULES.md` §3; admin-team/dashboards-skill/28). **A column at work is one glow on the
 column itself** — its band and head on a board's Timeline, round the cards on its As built tab — never each of its cells lit; held
 still as the ring alone while the run waits on the user, static under `prefers-reduced-motion`, with its own legend entry. A
@@ -299,9 +301,9 @@ difference.
 to 4, the `level: N` label), and nothing else. A dashboard never shows an issue's work level: no "level 3", "L3",
 "level: 2", "a level-3 change" or "escalated to level 4", in a chip, a badge, a column, a chain
 node, a legend, a lede or any text the presenter writes. Say what the work is instead: one
-system, a bug fix, docs only, a tracking issue. The work levels stay in force everywhere else;
-a plan keeps its level as data where a script needs it (`plan.json` `level`, `unit.level`,
-`wip.proposedLevel`), and no board renders those fields, the Source tab included. A pipeline fact that names one ("inside level 3",
+system, a bug fix, docs only, a tracking issue. The work levels stay in force everywhere else.
+No board that has not landed holds a level (`check.js` fails `WORK LEVEL ON THE BOARD`) and state boards hold none; a landed work board keeps
+any it holds, and no board renders them, the Source tab included (`plan/scripts/levels.js`). A pipeline fact that names one ("inside level 3",
 "a level-3 re-pass", "Label level: 3") is reworded before it is written — the scope phrase becomes the unit's or the issue's scope, the
 level is elided before its noun, the label dropped — and left out only where a work level would remain (`system/scripts/levelrefs.js`
 `scrubLevels()`, which `apply-event.js` and `apply-state.js` run); a quotation (a plan excerpt) elides it with "…" instead, as a quote
@@ -557,10 +559,10 @@ never the accent (§1).
 - **An issue's title is quoted verbatim; one that names a work level is flagged as the issue's defect** (§4): applied to every type — plan
   and tracking boards (the issue line, the roadmap, the follow-ups), the repository work board (its rows, groups, roadmap and unscheduled issues), and
   system, supersystem and repository state boards (the Context's titles and the "last amended by" note), each title marked `data-issue-title`.
-- **A board at research with no rows is a defect** (`NO ROWS AT RESEARCH`, `plan/RULES.md` §3, §8): applied to issue boards and sub-issues'
+- **A board at research with no rows is a defect** (`NO ROWS AT RESEARCH`, `plan/RULES.md` §3, §8; a warning while its foundation's Gap is being written): applied to issue boards and sub-issues'
   boards. Not to a tracking board, whose rows are its units, written from its architecture at the sign-off, after its research (it has no
   rows at research by design); not to the repository work board or the state boards, which have no research step.
-- **Each unit row's label glows on its own while it is filed, then while its board is created** (`plan/RULES.md` §3, §4): applied to
+- **Each unit row's label glows on its own while it is filed (on an older board, then while its board is created)** (`plan/RULES.md` §3, §4): applied to
   tracking boards, the only type with those steps. Not to the repository work board, which marks runs and shows filing as the tracking issue's own
   step on its row (a unit's row there glows only once its run is under way), nor to the state boards, which show no run.
 
@@ -597,7 +599,7 @@ never the accent (§1).
   legend"): its start → end and its duration in minutes, hours and minutes, or days and hours, never "same day"; a time from the
   board's snapshots, its sizing stamp and qa passes, the merge's time and the branch's step commits from git, a neighbour's bound, else
   "—"; the bar one segment per timed visit, its legend one entry per visit; a landed board's Timeline across the KPI row. Applied to issue boards
-  and tracking boards (a tracking board's own steps: sizing to its plan's landing, then its units' runs as `implementation`), one rule in
+  and tracking boards (a tracking board's own steps: sizing to its plan's landing and the filing of its units, then its units' runs as `implementation`), one rule in
   `lib.js` `timelineSteps()` and the template. Not to the repository work board: its Landed tile counts runs and says no time, so it has no "same
   day" to replace, and each run's steps are on its own board. Not to system, supersystem and repository state boards: their tiles are counted
   facts written by hand and show no run. A landed board is re-rendered for it only where the user asks (§11, above: WebTools #63's board
@@ -607,7 +609,7 @@ never the accent (§1).
 
 - **The Timeline tile coloured by kind of work** (§1, "Steps"; `plan/RULES.md` §2, "The KPI tiles"): planning, build, checking and landing,
   four hue families, a shade per step, on the bar and on a mark in front of each step line, with a legend of the families. Applied to issue
-  boards and to tracking boards, whose own steps take the family of their work (sizing, interview, research, architecture, sub-issues and boards
+  boards and to tracking boards, whose own steps take the family of their work (sizing, interview, research, architecture, sub-issues, and an older board's boards,
   planning; its plan's landing landing; implementation, its units' runs, build; a tracking board runs no qa of its own, so it draws no checking),
   one rule in `lib.js` `TL_FAMILIES`, `tlFamily()`, `tlShade()` and the template. Not to the repository work board: it has no Timeline tile
   (one row per run, its step as text; its Landed tile counts runs). Not to system, supersystem and repository state boards: their tiles are
@@ -657,7 +659,7 @@ reached its landing before the change):
    git-ignored `docs/plans/.live/` (`board.js --live`) shows the issue landed and, for a sub-issue, its unit landed and the next one up, in
    view copies of the boards under `docs/plans/.live/view/` (`apply-event.js --view`; `plan/RULES.md` §4, "The live view of a landing"). It
    writes no tracked file, so nothing is left uncommitted.
-4. That landed state — the issue board `landed` at its merge, the tracking board's unit landed and next up, the repository work board — is
+4. That landed state — the issue board `landed` at its merge, the tracking board's filed units, its unit landed and next up, the repository work board — is
    **seeded at the next run's `sized`**: a run sized in a worktree branched after the landing starts those boards from the main checkout's
    view copies (`apply-event.js`, `plan/RULES.md` §4, "Seeding at sized"), so its branch carries the landed state in its document-landing commit.
    A merge that marks an issue landed on its own board does so for its parent too: both are seeded together. There is never a follow-up
@@ -719,7 +721,7 @@ refresh on its branch: the committed repository work board, and the repository s
   issue board in flight, which keeps its own events.
 - **The fast path owns the Timeline** (`plan/RULES.md` §4, "The fast path owns the Timeline"): every input of the Timeline tile, its
   legends, the Timeline tab's KPI tiles and their tracers written by `apply-event.js` at the event (the merge's time from the facts, git
-  or the pull request, recorded at the next run's seeding where none could tell it; the run's start at a foundation laid after its event),
+  or the pull request, recorded at the next run's seeding where none could tell it; the run's start at the foundation it lays, or at one laid after its failed run),
   never an enrichment, and the running visit kept to the clock on the board between events. Applied to issue boards and tracking boards,
   the boards with a Timeline tile. Not to the repository work board, which draws no Timeline (its runs' since and qa passes already come
   from the boards it reads at each regeneration, the same fast path), nor to the state boards, whose stamp and figures are the data-only

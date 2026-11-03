@@ -262,8 +262,9 @@ issue is linked:
   list the user approved, file each sub-issue (`gh issue create`, no level
   label; report each sub-issue's level back so the team records it), attach it to the planned issue as a sub-issue (GraphQL
   `addSubIssue`), record each landing-order dependency as a *blocked by* link,
-  and label the planned issue `type: tracking`. Its resolution comment links
-  the documents and lists the sub-issues; the issue stays **open**.
+  and label the planned issue `type: tracking`. The land's resolution comment
+  links the documents; it precedes the sub-issues, so the filing adds a comment
+  listing them. The issue stays **open**.
 - A breaking change is never level 1 or 2. If a change set's level and its
   content disagree (a `level: 2` diff that changes a public signature), stop
   and report it rather than picking a bump.

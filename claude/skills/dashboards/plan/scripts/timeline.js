@@ -19,6 +19,7 @@ require("../../system/scripts/cliargs.js").strict(args, { usage: USAGE, valued: 
 const dir = path.resolve(args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--repo-dir"));
 const file = path.join(dir, "plan.json");
 if (!fs.existsSync(file)) { console.error(`${dir} holds no plan.json`); process.exit(2); }
+if (args.includes("--from-git")) { const root = lib.treeRoot(dir); if (root) lib.lockTree(root, "timeline.js"); } // it rewrites plan.json: the boards' short lock (lib.js lockTree()), held from the read
 const text = fs.readFileSync(file, "utf8"), eol = /\r\n/.test(text) ? "\r\n" : "\n", plan = JSON.parse(text);
 
 if (args.includes("--from-git")) {
@@ -31,7 +32,7 @@ if (args.includes("--from-git")) {
   if (!g.at) { console.error(`git cannot tell the merge's time (${repo ? `${merge} is not in ${repo}` : "no git repository found"}): nothing recorded`); process.exit(1); }
   const before = JSON.stringify(A);
   A.at = g.at; if (Array.isArray(g.commits)) { if (g.commits.length) A.commits = g.commits; else delete A.commits; }
-  if (JSON.stringify(A) !== before) { fs.writeFileSync(file, (JSON.stringify(plan, null, 2) + "\n").replace(/\n/g, eol)); console.log(`recorded asBuilt.at ${A.at}${A.commits ? ` and ${A.commits.length} step commit${A.commits.length === 1 ? "" : "s"} (${A.commits.map(c => `${c.sha} ${c.step}`).join(", ")})` : ""} in ${file}; run embed.js on the folder`); }
+  if (JSON.stringify(A) !== before) { lib.atomicWrite(file, (JSON.stringify(plan, null, 2) + "\n").replace(/\n/g, eol)); console.log(`recorded asBuilt.at ${A.at}${A.commits ? ` and ${A.commits.length} step commit${A.commits.length === 1 ? "" : "s"} (${A.commits.map(c => `${c.sha} ${c.step}`).join(", ")})` : ""} in ${file}; run embed.js on the folder`); }
   else console.log("asBuilt.at and asBuilt.commits already record what git tells: plan.json unchanged");
 }
 const T = lib.timelineSteps(plan), tot = lib.timelineTotal(T), lo = lib.timelineLeftOut(T);

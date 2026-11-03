@@ -2,7 +2,7 @@
 // verify/verify-templates.js use it.
 //
 // System colours are the same on every tab and on every board (system, supersystem, repository, issue boards, work board): six
-// registry slots, --sys-1 … --sys-6 in registry order, and on a system board its three sides --server / --client / --wire, which
+// registry slots, --sys-1 … --sys-6 in registry order (colourSlots(): an archived system holds none), and on a system board its three sides --server / --client / --wire, which
 // are slots 1 to 3. The status spectra are reserved: green–yellow–red for outcomes (an issue board's options and as-built states)
 // and yellow–orange–red for compatibility (the Impact tab). So no system colour falls in them: no green, yellow, orange, amber,
 // red or pink. A chromatic colour (HSL saturation of STATUS_MIN_SAT or more) whose hue is outside ALLOWED_HUES is in a status
@@ -75,4 +75,21 @@ function paletteCheck(html) {
   return { tokens: all.length, problems, warnings };
 }
 
-module.exports = { PALETTE, SIDES, ALLOWED_HUES, STATUS_MIN_SAT, parseColour, hsl, inStatusHue, tokens, paletteCheck };
+/* The registry's colour slots (GUIDANCE.md §1), one rule for every runtime: lib.js registry() for the boards built from it, and the same rule in
+   the supersystem template's sysColour. A system's colour is held by the highest live system on its parent chain, and a child takes that one's;
+   an archived system (status "archived") holds none and is drawn neutral (slot 0). A live top-level system keeps the slot of its place among the
+   top-level systems in registry order, archived ones counted, so archiving one moves no other system's colour; what an archived system's place
+   freed goes to the next system that has none (a seventh top-level system on, a live child of an archived one), lowest slot first, and only when
+   no slot is left does a system fold into the neutral. Returns { slot(slug) (0 when none), holder(slug) (the system whose colour it is, or null) }. */
+function colourSlots(list, max) {
+  const M = max || PALETTE.light.length, systems = (Array.isArray(list) ? list : []).filter(s => s && s.kind !== "repo"), by = slug => systems.find(s => s.slug === slug);
+  const live = s => s.status !== "archived", tops = systems.filter(s => !by(s.parent));
+  const holderOf = s => { if (!s || !live(s)) return null; let h = s, c = s, n = 0; while (by(c.parent) && n++ < 64) { c = by(c.parent); if (live(c)) h = c; } return h; };
+  const holders = [...new Set(systems.map(holderOf).filter(Boolean))], slots = new Map();
+  holders.forEach(h => { const i = tops.indexOf(h); if (i >= 0 && i < M) slots.set(h.slug, i + 1); });
+  const free = []; for (let n = 1; n <= M; n++) if (![...slots.values()].includes(n)) free.push(n);
+  holders.filter(h => !slots.has(h.slug)).forEach(h => { if (free.length) slots.set(h.slug, free.shift()); });
+  return { slot: slug => { const h = holderOf(by(slug)); return (h && slots.get(h.slug)) || 0; }, holder: slug => holderOf(by(slug)) };
+}
+
+module.exports = { colourSlots, PALETTE, SIDES, ALLOWED_HUES, STATUS_MIN_SAT, parseColour, hsl, inStatusHue, tokens, paletteCheck };

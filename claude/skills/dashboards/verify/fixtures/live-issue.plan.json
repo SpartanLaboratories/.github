@@ -5,7 +5,6 @@
   "slug": "70-live-verification",
   "folder": "docs/plans/70-live-verification",
   "kind": "issue",
-  "level": null,
   "title": "Live verification fixture",
   "issueTitle": "Verification fixture: a run in progress, mid-research",
   "function": "Verification fixture for the live views: an issue board in the middle of its research, its questions in every state, its Gap and Considered columns filled from a signed-off parent's documents.",

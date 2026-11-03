@@ -5,7 +5,6 @@
   "slug": "38-handshake-empty-name",
   "folder": "docs/plans/36-handshake-hardening/38-handshake-empty-name",
   "kind": "issue",
-  "level": null,
   "title": "Malformed Iam refusal",
   "issueTitle": "Handshake parsing accepts an empty peer name on extra whitespace",
   "function": "The `webtools-udp` server trims an unframed handshake line and splits it on a single space, so `Iam  x` registered a peer named `\"\"` and a bare `Iam` died in a stack-trace WARN. This plan makes the server refuse every malformed `Iam` line with `REFUSED malformed`, from any origin, before `admit` and without touching a registration, and moves the KDoc, tests and living documents that said otherwise. A contained bugfix in one module, shipped as `webtools-udp` `2.0.0a`.",

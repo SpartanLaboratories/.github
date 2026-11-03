@@ -5,6 +5,7 @@
 //   node embed.js <folder> --check    exit 1 if the embedded copy differs from the data file
 //   node embed.js <folder> --refresh-excerpts   re-copy every statement's excerpt from the plan section it names (plan/RULES.md §2,
 //                                     "Statements"), once the presenter has judged that the statement still rests on the changed section
+// Every file goes through a temporary file and a rename (lib.js atomicWrite()), so no reader sees half of one.
 // On an issue board it first links every issue the board names to that issue's board where its dashboard.html exists in this tree,
 // and clears a link to one that does not (plan/RULES.md §1): a tracking board's units (unit.board), the parent tracking issue
 // (parent.board) and every other issue (issueBoards); on a board in flight it takes each system's status and board from the registry
@@ -24,7 +25,7 @@
 // the parent's own view copy, never the tracked board.
 "use strict";
 const fs = require("fs"), path = require("path");
-const { readBlock, writeBlock, resolveBoard, parentFolder, SIDECAR, sidecarText, readSidecar, viewSource, viewOf, withViewBase, setViewLinks } = require("./lib.js");
+const { readBlock, writeBlock, resolveBoard, parentFolder, SIDECAR, sidecarText, readSidecar, viewSource, viewOf, withViewBase, setViewLinks, atomicWrite, lockTree, treeRoot } = require("./lib.js");
 
 function target(dir) {
   if (fs.existsSync(path.join(dir, "plan.json"))) return { json: path.join(dir, "plan.json"), html: path.join(dir, "dashboard.html"), js: path.join(dir, SIDECAR.plan), id: "plan" };
@@ -52,11 +53,11 @@ function embedOne(dir, opts) {
   const data = JSON.parse(json); // refuse to embed a file that does not parse
   setViewLinks(src !== dir, src !== dir ? require("./lib.js").viewParts(dir).root : null);
   let linked; try { linked = t.id === "plan" ? resolveBoard(data, src, { refresh: !!(opts && opts.refresh) }) : []; } finally { setViewLinks(false); }
-  if (linked.length) { const eol = /\r\n/.test(json) ? "\r\n" : "\n"; json = (JSON.stringify(data, null, 2) + "\n").replace(/\n/g, eol); fs.writeFileSync(t.json, json); }
+  if (linked.length) { const eol = /\r\n/.test(json) ? "\r\n" : "\n"; json = (JSON.stringify(data, null, 2) + "\n").replace(/\n/g, eol); atomicWrite(t.json, json); }
   let html = writeBlock(fs.readFileSync(t.html, "utf8"), t.id, json);
   if (src !== dir) html = withViewBase(html, dir, src);
-  fs.writeFileSync(t.html, html);
-  fs.writeFileSync(t.js, sidecarText(t.id, json));
+  atomicWrite(t.html, html);
+  atomicWrite(t.js, sidecarText(t.id, json));
   /* the rendered copies of the Markdown the board links, in the tree's git-ignored docs/plans/.live/docs/ (mdcopy.js; plan/RULES.md §1):
      a cache of this machine, so a failure here never fails the embed */
   let copies = null;
@@ -86,6 +87,8 @@ if (require.main === module) {
   if (!dir) { console.error("usage: node embed.js <folder> [--check]"); process.exit(2); }
   try {
     if (args.includes("--check")) { const r = same(dir); console.log(r.same ? `${r.t.html} embeds ${path.basename(r.t.json)} verbatim, and ${path.basename(r.t.js)} carries it` : `${r.t.html}: embedded copy DIFFERS from ${path.basename(r.t.json)}${r.reason ? " (" + r.reason + ")" : ""}`); process.exit(r.same ? 0 : 1); }
+    /* the command takes the boards' short lock (lib.js lockTree()): it reads and rewrites plan.json, and an event may be running; embed(), a function, runs under its caller's */
+    { const root = treeRoot(path.resolve(dir)) || null; if (root && fs.existsSync(path.join(root, "docs", "plans"))) lockTree(root, "embed.js"); }
     const r = embed(dir, { refresh: args.includes("--refresh-excerpts") });
     r.linked.forEach(l => console.log(`${/: excerpt of /.test(l) ? "" : "linked "}${l}`));
     console.log(`embedded ${r.json} into ${r.html} (${r.bytes} bytes) and wrote ${path.basename(r.js)} beside it`);

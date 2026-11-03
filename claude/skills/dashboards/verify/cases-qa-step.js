@@ -59,7 +59,7 @@ module.exports = function casesQaStep(X) {
      then, so the lede says the run waits rather than that the running step's time runs to now (a static case: the render needs a browser) */
   guard("the template: the Timeline tab's lede says the run waits on the user while a wait is open, never that a step runs to now", c => {
     const t = rd(PB), line = (t.split(/\r?\n/).find(l => /#timeline-lede"\)\.textContent=/.test(l)) || "");
-    c.push(["the lede reads the open wait first", /\(TS\.waits\|\|\[\]\)\.some\(x=>x\.open\)\?"The run waits on the user: no step's time runs until the answer\."/.test(line), line.slice(0, 200)]);
+    c.push(["the lede reads the open wait first", /\(TS\.waits\|\|\[\]\)\.some\(x=>x\.open\)\?"The run waits on you: no step's time runs until the answer\."/.test(line), line.slice(0, 200)]);
     c.push(["…and says a step runs to now only while a visit is open", /TL_OPEN\?"The running step is open-ended: its time runs to now\."/.test(line), line.slice(0, 200)]);
   });
   /* a remediation report's stages (WebTools #65, qa pass 1): the one stage a remediation adds takes the rows the qa findings touch

@@ -91,6 +91,10 @@ const out = path.resolve(opt("out", path.join(os.tmpdir(), "dashboards-verify"))
    check-board.js and check.js open none (exit 3, "NOT RUN") and dumpDom() below renders nothing. */
 const BROWSER = args.includes("--browser");
 if (!BROWSER) process.env.DASHBOARDS_NO_BROWSER = "1"; else delete process.env.DASHBOARDS_NO_BROWSER;
+/* the cases read no team's local state (plan/scripts/levels.js localLevel()): a case that wants a level gives it, or points this elsewhere */
+process.env.DASHBOARDS_ADMIN_STATE = process.env.DASHBOARDS_ADMIN_STATE || path.join(os.tmpdir(), "dashboards-verify-no-state.json");
+/* the progress notes' watcher (plan/scripts/progress-index.js): no fixture starts one; the cases that test it turn it on for their own runs */
+process.env.DASHBOARDS_NO_WATCHER = "1";
 /* a local clone of the .github mirror, for the case groups that read an old template version missing from verify/history/ (history.js) */
 const historyRepo = opt("history-repo", null);
 const checker = path.join(SKILL, "system", "scripts", "check-board.js");
@@ -291,8 +295,8 @@ targets.filter(t => t.block === "plan").forEach(t => {
     if (dom != null) {
       const wip = inner(dom, '<section class="wip[^"]*"[^>]*>', "section"), run = inner(wip, `<div class="wipcard unit[^"]*" data-row="${plain.id}"[^>]*>`, "div"), wait = inner(wip, '<div class="wipcard wait"[^>]*>', "div");
       const cell = (dom.match(new RegExp(`<div class="cell built[^"]*"[^>]*data-row="${plain.id}"[\\s\\S]*?<div class="meta">`)) || [""])[0];
-      rc.push(["the WIP strip shows the unit's run in its own card, halted, and what it waits on in the \"Waiting on you\" card", new RegExp(`class="wipcard unit halted" data-row="${plain.id}"`).test(wip) && /waiting on the user/.test(run) && /Verification stub: a choice between two designs/.test(wait), (run || wip).slice(0, 400) || "no run bubble"]);
-      rc.push(["the unit's as-built cell carries the run line, its mark paused", /class="run"/.test(cell) && /waiting on the user/.test(cell) && / held"/.test(cell.slice(0, 200)), cell.slice(0, 500) || "no cell"]);
+      rc.push(["the WIP strip shows the unit's run in its own card, halted, and what it waits on in the \"Waiting on you\" card", new RegExp(`class="wipcard unit halted" data-row="${plain.id}"`).test(wip) && /waiting on you/.test(run) && /Verification stub: a choice between two designs/.test(wait), (run || wip).slice(0, 400) || "no run bubble"]);
+      rc.push(["the unit's as-built cell carries the run line, its mark paused", /class="run"/.test(cell) && /waiting on you/.test(cell) && / held"/.test(cell.slice(0, 200)), cell.slice(0, 500) || "no cell"]);
       /* an escalated unit run waits on the user too: its mark pauses to the ring alone, as a halt's does (GUIDANCE.md §1; plan/RULES.md
          §3, the glow follows the step), on its as-built cell and on its bubble's current step */
       Object.assign(sub.wip, { step: "escalated", resume: "plan", updated: "2026-10-23T01:20:00Z", waitingOn: null }); writeSub(); node(embedJs, subDir);
@@ -390,7 +394,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
   const c0 = chipOf("as-is", fxC);
   if (c0 == null) cc.push(["the rendered chain chip (no browser found: set CHROME)", false, "no Chrome or Edge"]);
   else {
-    cc.push(["a tracking board's chip reads the chain: landed of all, the unit waiting on the user, the unit up next and its blocker", /^tracking issue · chain 1 of 11 landed · #47 waiting on you · #62 up next, blocked by #47$/.test(text(c0)) && /class="cbar"[^>]*><i style="width:9%"/.test(c0) && !/building/.test(text(c0)), text(c0) || "no chip"]);
+    cc.push(["a tracking board's chip reads the chain: landed of all, the unit waiting on you, the unit up next and its blocker", /^tracking issue · chain 1 of 11 landed · #47 waiting on you · #62 up next, blocked by #47$/.test(text(c0)) && /class="cbar"[^>]*><i style="width:9%"/.test(c0) && !/building/.test(text(c0)), text(c0) || "no chip"]);
     const c1 = chipOf("run-at-plan", variant(d => { d.rows.find(r => r.id === "java-floor").unit.live.step = "plan"; d.rows.find(r => r.id === "java-floor").unit.live.resume = null; }));
     cc.push(["a unit whose run goes on reads its step from its mirror", /#47 in progress \(plan\)/.test(text(c1)), text(c1)]);
     const c2 = chipOf("planned", variant(d => { d.status = "planned"; d.rows.forEach(r => { r.asBuilt = { state: "pending", summary: "" }; delete r.unit.live; }); d.wip.step = "landing"; d.wip.current = []; d.wip.next = d.rows[0].id; }));
@@ -625,7 +629,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
   const tdir = path.join(scratch, ...trk.folder.split("/")); fs.mkdirSync(tdir, { recursive: true });
   fs.writeFileSync(path.join(tdir, "plan.json"), JSON.stringify(trk, null, 2) + "\n"); fs.writeFileSync(path.join(tdir, "dashboard.html"), tpl);
   const u = trk.rows.find(r => r.unit && r.unit.issue && ((r.asBuilt || {}).state || "pending") === "pending"), name = `${u.unit.issue}-verification-unit`, sdir = path.join(tdir, name);
-  const born = (rows, milestones) => ({ schema: "plan-board/1", repo: trk.repo, issue: u.unit.issue, slug: name, folder: `${trk.folder}/${name}`, kind: "issue", level: 3,
+  const born = (rows, milestones) => ({ schema: "plan-board/1", repo: trk.repo, issue: u.unit.issue, slug: name, folder: `${trk.folder}/${name}`, kind: "issue",
     title: u.name, function: "Verification case: a unit's board at sized, its research and architecture done in the parent's run.", status: "planned",
     parent: { issue: trk.issue, board: null }, branch: null, baseline: trk.baseline, asBuilt: null, systems: (trk.systems || []).filter(s => s.slug === u.system),
     wip: { step: "plan", since: "2026-10-25T07:00:00Z", updated: "2026-10-25T07:00:00Z", detail: "Verification case: `plan.md` is being written now.", steps: ["sizing", "interview", "research", "plan", "branch", "implementation", "qa", "remediation", "landing", "landed"],
@@ -1229,7 +1233,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     lc.push(["A: research: the planning → research → verification timeline, research current", /aria-label="The research timeline"/.test(pR) && /<li class="done"><span class="dot"[^>]*><\/span>planning<\/li><li class="cur glow"[^>]*><span class="dot"[^>]*><\/span>research<\/li><li class="todo"><span class="dot"[^>]*><\/span>verification<\/li>/.test(pR), text(pR).slice(0, 200)]);
     lc.push(["A: research: each question with its state and the count returned", /2 of 4 questions returned/.test(text(pR)) && (pR.match(/vp serious"><i aria-hidden="true">↻<\/i>researching/g) || []).length === 2 && (pR.match(/vp serious"><i aria-hidden="true">✓<\/i>returned/g) || []).length === 2 && /bears on no row/.test(pR), text(pR).slice(0, 300)]);
     lc.push(["A: research-planning: the panel says planning and how many questions are drafted; no row rings", /Planning the research questions: 2 drafted so far/.test(text(panel(D.planning))) && /<li class="cur glow"[^>]*><span class="dot"[^>]*><\/span>planning/.test(panel(D.planning)) && !/class="cell considered[^"$]* rs /.test(D.planning), text(panel(D.planning)).slice(0, 200)]);
-    lc.push(["A: interview: the questions, answered or waiting, counted", /1 of 2 questions answered · 1 waiting/.test(text(panel(D.interview))) && /vp warning"><i aria-hidden="true">\?<\/i>waiting on the user/.test(panel(D.interview)) && /answer: Refused/.test(text(panel(D.interview))), text(panel(D.interview)).slice(0, 300)]);
+    lc.push(["A: interview: the questions, answered or waiting, counted", /1 of 2 questions answered · 1 waiting/.test(text(panel(D.interview))) && /vp warning"><i aria-hidden="true">\?<\/i>waiting on you/.test(panel(D.interview)) && /answer: Refused/.test(text(panel(D.interview))), text(panel(D.interview)).slice(0, 300)]);
     const pP = panel(D.plan);
     lc.push(["A: plan: a re-pass after a qa pass, plan accepted to come, the verdicts written and those still to write", /re-pass after qa pass 1/.test(text(pP)) && /<li class="todo"><span class="dot"[^>]*><\/span>plan accepted/.test(pP) && /3 of 11 verdicts written/.test(text(pP)) && /Still to write: /.test(text(pP)), text(pP).slice(0, 300)]);
     const pI = panel(D.implementation);
@@ -1314,7 +1318,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     const h2 = copy(h); h2.generated = "2026-10-25T09:00:00Z"; h2.rows.find(r => r.issue === 62).detail = "Verification case: the live repository work board moved on.";
     fs.writeFileSync(wf, withData(BT, "board", JSON.stringify(h, null, 2))); fs.writeFileSync(path.join(wdir, "board.js"), lib.sidecarText("board", JSON.stringify(h2, null, 2)));
     const dW = dumpDom(wf, "", null, 9000), row = (dW.match(/<tr class="run[^"]*"[^>]*><td><span class="t"><a [^>]*>#47<[\s\S]*?<\/tr>/) || [""])[0];
-    lc.push(["E: a halted run's row on the repository work board keeps the still ring, with its legend entry", /class="vp warning held"><i aria-hidden="true">⏸<\/i>waiting on the user/.test(row) && /ring alone, still: being worked on, paused while the run waits on the user/.test(inner(dW, '<div class="key" id="runs-key">', "div")), row.slice(0, 300)]);
+    lc.push(["E: a halted run's row on the repository work board keeps the still ring, with its legend entry", /class="vp warning held"><i aria-hidden="true">⏸<\/i>waiting on you/.test(row) && /ring alone, still: being worked on, paused while the run waits on the user/.test(inner(dW, '<div class="key" id="runs-key">', "div")), row.slice(0, 300)]);
     lc.push(["F: the live repository work board re-loads board.js and redraws in place, LIVE · updated", /Verification case: the live repository work board moved on\./.test(dW) && /LIVE · updated \d+ s ago/.test(text(inner(dW, '<span class="livechip[^"]*" id="live"[^>]*>', "span"))), text(inner(dW, '<span class="livechip[^"]*" id="live"[^>]*>', "span"))]);
     const cf = path.join(sc, "wb-committed", "index.html"); fs.mkdirSync(path.dirname(cf), { recursive: true }); fs.writeFileSync(cf, withData(BT, "board", fs.readFileSync(sk("verify/fixtures/work-board.json"), "utf8")));
     const dC = dumpDom(cf);
@@ -1401,7 +1405,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     yc.push(["3: with wip.next on the following unit check.js says nothing about it", !/wip\.next/.test(lines(c2, /^(FAIL|warn)/)), lines(c2, /wip\.next/) || "quiet"]);
     if (chrome) { const dom = render("next-leave", tk); yc.push(["3: the board never tags a unit left for later UP NEXT", !/UP NEXT/.test(cellOf(dom, "built", nx.id)), text(cellOf(dom, "built", nx.id)).slice(0, 120)]); } }
   /* 4. release.unreleased */
-  { const base = m => { const d = copy(EX); d.level = 3; d.impact = { basis: "as-built", summary: "Verification case: a new module.", none: null, release: { bump: "none", version: null, ...(m || {}) },
+  { const base = m => { const d = copy(EX); d.wip.steps = ["sizing", "interview", "research", "plan", "branch", "implementation", "qa", "remediation", "document", "landing", "merge", "landed"]; /* a small feature's line */ d.impact = { basis: "as-built", summary: "Verification case: a new module.", none: null, release: { bump: "none", version: null, ...(m || {}) },
       downstream: [{ who: "`acme:widgets-new` (new artifact)", kind: "artifact", effect: "additive", summary: "Verification case: a new artifact with no release yet.", system: d.systems[0].slug }], adaptation: [], api: [], conversion: [], changes: [], source: "impact.md" }; return d; };
     const c0 = chk(base()), c1 = chk(base({ unreleased: true })), c2 = chk(base({ unreleased: true, bump: "feat" })), d3 = base({ unreleased: true }); d3.impact.downstream[0].kind = "consumer"; const c3 = chk(d3), c4 = chk(base({ unreleased: "yes" }));
     yc.push(["4: without the mark a new artifact with no bump draws both release warnings", /takes a feat: release/.test(c0.stdout) && /says explicitly that it has no downstream effect/.test(c0.stdout), lines(c0, /release|feat/)]);
@@ -1536,7 +1540,9 @@ targets.filter(t => t.block === "plan").forEach(t => {
     { const c = node(checkJs, fdir(ISSUE), "--root", tree);
       ac.push(["a stage that touches no rows glows the whole As built column, [\"built\"], and check.js keeps quiet on the glow", c.status === 0 && /keeps the step-to-column map at "implementation"/.test(c.stdout) && !/does not match wip\.step/.test(c.stdout), lines(c, /glow|step-to-column|does not match/)]); }
     step("issue board", ISSUE, "implementation-stage", { stage: "C", stages: SG("done", "done", "done"), open: [{ text: "Verification case: the plan's two stages disagree on the reply's wording.", resolved: "The planner amended plan.md." }] }, true,
-      d => d.wip.step === "qa" && cur(d) === '["built"]' && d.wip.open[0].resolved && d.trail.some(t => /^Open point resolved/.test(t.label)));
+      d => d.wip.step === "implementation" && cur(d) === '["built"]' && d.wip.open[0].resolved && d.trail.some(t => /^Open point resolved/.test(t.label))); /* every stage done moves no step (admin-team/dashboards-skill/explicit-step) */
+    step("issue board", ISSUE, "qa-pass", { qa: { pass: 1, verdict: "running" } }, false,
+      d => d.wip.step === "qa" && cur(d) === '["built"]' && d.wip.qa[0].verdict === "running");
     step("issue board", ISSUE, "qa-pass", { qa: { pass: 1, verdict: "changes-requested", doc: 2, test: 1, code: 0, severity: { minor: 2, other: 1 }, route: "rookie-dev" }, rows: ["routing"] }, true,
       d => d.wip.step === "remediation" && cur(d) === '["routing.built"]' && d.wip.qa[0].route === "remediation" && d.wip.qa[0].severity.other === 1 && d.wip.qa[0].findings.documentation === 2 && d.wip.remediation.pass === 1 && d.wip.qaMax === 3);
     step("issue board", ISSUE, "implementation-stage", { remediation: { pass: 1, route: "rookie-dev", steps: [{ name: "Verification case: the fixes", state: "current" }] } }, false,
@@ -1555,7 +1561,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     step("interview", ISSUE, "halted", { waitingOn: "Verification case: two interview questions.", questions: [{ text: "Verification case: refuse or trim?", options: ["Refuse", "Trim"] }] }, false,
       d => d.wip.resume === "interview" && d.wip.interview.some(q => q.text === "Verification case: refuse or trim?" && q.options.length === 2 && q.answer === null));
     fresh();
-    step("escalation", ISSUE, "escalated", { proposedLevel: 4 }, true, d => d.wip.step === "escalated" && d.wip.resume === "research" && d.wip.proposedLevel === 4 && !/level/i.test(d.wip.detail + d.wip.waitingOn));
+    step("escalation", ISSUE, "escalated", { proposedLevel: 4 }, true, d => d.wip.step === "escalated" && d.wip.resume === "research" && d.wip.proposedLevel === undefined && !/level/i.test(d.wip.detail + d.wip.waitingOn));
     fresh();
     step("cancellation", ISSUE, "cancelled", { reason: "Verification case: superseded." }, true, d => d.status === "abandoned" && d.wip.step === "cancelled" && !d.wip.current.length && d.notes.cancelled);
     fresh();
@@ -1563,9 +1569,8 @@ targets.filter(t => t.block === "plan").forEach(t => {
       ac.push(["a work level in the facts is never written: the halt applies without that text, enrich yes", r.status === 0 && !/level/i.test(JSON.stringify(d.wip)) && r.s.enrich === "yes", `${r.s.result} · ${r.s.error || ""} · ${(r.s.why || []).join("; ").slice(0, 200)}`]); }
     /* a tracking board at its architecture */
     edit(TRACK, d => { d.wip.step = "architecture"; d.wip.current = ["considered"]; });
-    /* a tracking board files its units next (dashboards-skill/26): its own step "sub-issues"; each unit row with no issue yet glows on its own
-       (dashboards-skill/28, in place of the one glow on the label column): every unit of the fixture is filed already, so nothing glows */
-    step("tracking board", TRACK, "architecture-signed-off", {}, true, d => d.wip.step === "sub-issues" && JSON.stringify(d.wip.current) === "[]" && d.wip.next === "http-core" && d.wip.steps.indexOf("sub-issues") === d.wip.steps.indexOf("architecture") + 1);
+    /* a tracking plan lands, then files (verify/cases-option-d.js): its plan's document step next, its whole As built column glowing, sub-issues after its merge */
+    step("tracking board", TRACK, "architecture-signed-off", {}, true, d => d.wip.step === "document" && JSON.stringify(d.wip.current) === '["built"]' && d.wip.next === "http-core" && d.wip.steps.indexOf("sub-issues") === d.wip.steps.indexOf("merge") + 1);
     edit(TRACK, d => { d.wip.step = "implementation"; d.wip.current = ["java-floor.built"]; d.wip.next = "http-core"; });
     /* the sub-issue: the standing rule on its tracking board */
     step("sub-issue", SUB, "sized", { step: "research" }, true, () => { const t = read(TRACK), r = t.rows.find(x => x.id === "http-core");
@@ -1573,9 +1578,10 @@ targets.filter(t => t.block === "plan").forEach(t => {
     step("sub-issue", SUB, "research-started", { researching: [{ question: "blast-radius", rows: ["validity-rule"] }] }, false, () => read(TRACK).rows.find(x => x.id === "http-core").unit.live.event.name === "research-started");
     edit(SUB, d => { d.wip.step = "qa"; d.wip.current = ["built"]; d.wip.questions = []; d.wip.research = null; d.status = "building"; d.rows.forEach(r => { r.verdict = { kind: "build", summary: "Verification case: written.", steps: [{ id: "A", what: "x" }] }; r.asBuilt = { state: "as-planned", summary: "Verification case: built." }; }); });
     step("sub-issue", SUB, "qa-pass", { qa: { pass: 1, verdict: "approved", doc: 0, test: 0, code: 0 } }, true, () => { const t = read(TRACK); return t.rows.find(x => x.id === "http-core").asBuilt.state === "complete" && t.wip.current.includes("http-core.built") && /#62 complete/.test(t.wip.detail); });
-    /* sized with no board: nothing to apply; the presenter lays the foundation */
-    { const before = files(), r = ev("docs/plans/71-not-yet", "sized", { step: "research" });
-      ac.push(["sized with no board: exit 0, no-board, enrich yes, no file written", r.status === 0 && r.s.result === "no-board" && r.s.enrich === "yes" && !changed(before, files()).length && !fs.existsSync(path.join(plans, "71-not-yet")), `${r.status} · ${r.s.result}`]); }
+    /* sized with no board: the foundation laid and the event applied (plan/RULES.md §4, "The foundation"; verify/cases-foundation.js), and the presenter fills it behind the event */
+    { const r = ev("docs/plans/71-not-yet", "sized", { step: "research", baseline: "abc1234" });
+      ac.push(["sized with no board: exit 0, the foundation laid, enrich yes", r.status === 0 && r.s.result === "ok" && r.s.laid === "docs/plans/71-not-yet" && r.s.enrich === "yes" && fs.existsSync(path.join(plans, "71-not-yet", "plan.json")), `${r.status} · ${r.s.result} · ${r.s.error}`]);
+      fs.rmSync(path.join(plans, "71-not-yet"), { recursive: true, force: true }); }
     /* atomic failure */
     const fail = (label, folder, event, facts, prep, re) => { if (prep) prep(); const before = files(), r = ev(folder, event, facts), diff = changed(before, files());
       ac.push([`atomic failure, ${label}: exit 1, every file as it was`, r.status === 1 && r.s.result === "failed" && r.s.enrich === "yes" && !diff.length && (!re || re.test(r.s.error || "")), `exit ${r.status} · ${r.s.error} · restored ${r.s.restored} · changed: ${diff.join(", ") || "none"}`]); };
@@ -2175,6 +2181,32 @@ catch (e) { report("a row a remediation stage reopens cases", [["the cases run t
    its own too (node verify/cases-timeline-outages.js). */
 try { require("./cases-timeline-outages.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("a stretch when the run was not running cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
+/* Only an explicit signal from the run moves the board's step (verify/cases-explicit-step.js; admin-team/dashboards-skill/explicit-step): an
+   implementation-stage's facts.step has no effect and every stage done implies nothing; remediation alone stays recognised, a "qa" after one
+   ignored; qa-pass with verdict "running" opens the qa visit at its time and the verdict closes that same visit; a returned verdict with no
+   running before it applies as it stands, and says so. It needs no browser, and runs on its own too (node verify/cases-explicit-step.js). */
+try { require("./cases-explicit-step.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("an explicit signal moves the step cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
+/* The progress notes' index (verify/cases-progress-index.js; admin-team/board/progress-index): every note a run writes reaches the step panel, its slug
+   its writer's own; the watcher needs no event, runs only where .live is git-ignored and stops by itself. It needs no browser. */
+try { require("./cases-progress-index.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the progress notes' index cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
+/* A foundation on the fast path (verify/cases-foundation.js; admin-team/board/foundation-fast-path): a sized with no board lays it, applies the
+   event, re-embeds the parent tracking board and regenerates the live repository work board; its facts each from the first source that tells
+   it; a slug the registry does not know; a failure leaves nothing; the fill read from the data, a board past its plan's acceptance with its Gap
+   unwritten refused. It needs no browser, and runs on its own too (node verify/cases-foundation.js). */
+try { require("./cases-foundation.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("a foundation on the fast path cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
+/* The decisions of admin-team/dashboards-skill/option-d-and-decisions: a tracking plan lands, then files (verify/cases-option-d.js); a fill merges onto the latest board, event and
+   fill at once losing neither (verify/cases-fill.js); a board keeps no work level, the "waiting on you" labels and the event notes (verify/cases-work-levels.js); an archived system
+   holds no colour (verify/cases-archived-colours.js). Each runs on its own too. */
+[["./cases-option-d.js", "a tracking plan lands, then files"], ["./cases-fill.js", "a fill merges onto the latest board"], ["./cases-work-levels.js", "a board keeps no work level"], ["./cases-archived-colours.js", "an archived system holds no colour"]].forEach(([file, what0]) => {
+  try { require(file)({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+  catch (e) { report(`${what0} cases`, [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); } });
 
 const today = new Date().toISOString().slice(0, 10);
 const COMMENT = "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last verification, when every check that needs no browser passed (its modes: \"--auto --no-browser\"; a run with --browser, made only when a person asks for it, lists the browser passes instead). check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.";

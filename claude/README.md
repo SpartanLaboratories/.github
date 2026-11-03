@@ -26,6 +26,7 @@ section of `CLAUDE.md`).
   `backups/`, local bundles of this repository's own earlier history; and `scrub-memory.py`,
   local tooling.
 - Projects' auto-memory (`projects/*/memory/`) is not mirrored.
+- Session handoffs (`handoffs/`), which are local to the machine.
 - `skills/dashboards/verify/history/`, the dashboards skill's cache of old template versions:
   a local cache that `history.js` rebuilds on demand from this repository's own git history.
 

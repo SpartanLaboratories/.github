@@ -5,7 +5,6 @@
   "slug": "55-http-client-stack",
   "folder": "docs/plans/55-http-client-stack",
   "kind": "tracking",
-  "level": 4,
   "title": "HTTP client stack",
   "issueTitle": "HTTP client stack for BotTools: suspend transport, outbound-URL guard, response cache, call budget and test fakes",
   "function": "BotTools needs a suspend HTTP stack: a transport, an outbound-URL guard, a response cache, a call budget and test fakes. This tracking issue designs it as a new Kotlin Multiplatform module `webtools-http`, a feeds module `webtools-feeds` on top of it, the shared `build-logic` with the Java 11 floor that folds in #47, and their documentation, and builds it as eleven units, each a sub-issue planned and built on its own board.",
@@ -288,7 +287,6 @@
         "n": 1,
         "slug": "build-logic",
         "issue": 61,
-        "level": 3,
         "blockedBy": [],
         "versions": "none: published POMs and metadata identical",
         "branch": "feat/issue-61-build-logic",
@@ -475,7 +473,6 @@
         "n": 2,
         "slug": "java-floor",
         "issue": 47,
-        "level": 2,
         "blockedBy": [
           61
         ],
@@ -738,7 +735,6 @@
         "n": 3,
         "slug": "http-core",
         "issue": 62,
-        "level": 3,
         "blockedBy": [
           61,
           47
@@ -891,7 +887,6 @@
         "n": 4,
         "slug": "test-support",
         "issue": 63,
-        "level": 3,
         "blockedBy": [
           62
         ],
@@ -976,7 +971,6 @@
         "n": 5,
         "slug": "url-policy",
         "issue": 64,
-        "level": 3,
         "blockedBy": [
           62
         ],
@@ -1054,7 +1048,6 @@
         "n": 6,
         "slug": "okhttp-transport",
         "issue": 65,
-        "level": 3,
         "blockedBy": [
           64,
           63
@@ -1138,7 +1131,6 @@
         "n": 7,
         "slug": "response-cache",
         "issue": 66,
-        "level": 3,
         "blockedBy": [
           63,
           62
@@ -1217,7 +1209,6 @@
         "n": 8,
         "slug": "call-budget",
         "issue": 67,
-        "level": 3,
         "blockedBy": [
           63,
           62
@@ -1302,7 +1293,6 @@
         "n": 9,
         "slug": "call-facades",
         "issue": 68,
-        "level": 3,
         "blockedBy": [
           67,
           66,
@@ -1380,7 +1370,6 @@
         "n": 10,
         "slug": "feeds",
         "issue": 69,
-        "level": 3,
         "blockedBy": [
           68,
           63
@@ -1481,7 +1470,6 @@
         "n": 11,
         "slug": "http-docs",
         "issue": 70,
-        "level": 1,
         "blockedBy": [
           69
         ],
