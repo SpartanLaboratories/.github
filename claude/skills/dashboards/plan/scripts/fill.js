@@ -14,7 +14,8 @@
 //   item the fill does not name stays, { ..., "$remove": true } removes one, and an empty list there adds nothing (null clears the list).
 //   Any other list and any other value replaces what is there. null clears a field.
 //   Left alone, whatever the fill says, on a row: asBuilt.state unless the fill's is an outcome (the events derive pending, in-progress and partially-built; a
-//   complete or landed unit stays so), and unit.issue, unit.board, unit.folder and unit.live once set (the filing and embed.js write them).
+//   complete or landed unit stays so), and unit.issue, unit.board, unit.folder and unit.live once set (the filing and embed.js write them). One exception, plan/RULES.md §2,
+//   "Before the outcome": partially-built with a summary is stored where the stages do not say otherwise (no stage decides the row, or they make it partially built too).
 //   Refused, exit 2 and nothing written: wip, trail, status, sized, branch, asBuilt, kind and the board's identity (schema, repo, issue, slug, folder), foundation
 //   and links (embed.js clears and writes them): the events own them. A work level (level, unit.level, proposedLevel) is dropped and named, never written (levels.js).
 //   Two narrow ways into what the events own, each by what it names, so neither undoes an event:
@@ -75,11 +76,12 @@ function mergeList(cur, next, key, mergeItem) {
   if (cur.every(x => named.has(K(x)))) { const at = new Map(next.map((n, i) => [K(n), i])); kept.sort((a, b) => at.get(K(a)) - at.get(K(b))); }
   return kept;
 }
-function mergeRow(cur, next, notes) {
+function mergeRow(cur, next, notes, plan) {
   const out = mergeValue(cur, next), id = cur.id;
   if (isObj(cur.asBuilt) && isObj(next.asBuilt) && typeof cur.asBuilt.state === "string" && typeof next.asBuilt.state === "string" && next.asBuilt.state !== cur.asBuilt.state) {
     /* an event's state stands against a fill's that is no outcome; a complete or landed unit stays so */
-    if (ROW_DERIVED.includes(next.asBuilt.state) || (cur.unit && ["complete", ...lib.UNIT_LANDED].includes(cur.asBuilt.state))) { out.asBuilt.state = cur.asBuilt.state; notes.push(`${id}: asBuilt.state stays ${cur.asBuilt.state}, the events'`); }
+    const partStored = next.asBuilt.state === "partially-built" && !cur.unit && !["dropped", "deferred"].includes(cur.asBuilt.state) && typeof out.asBuilt.summary === "string" && !!out.asBuilt.summary.trim() && [null, "partially-built"].includes(lib.stagedState(plan, cur));
+    if ((ROW_DERIVED.includes(next.asBuilt.state) && !partStored) || (cur.unit && ["complete", ...lib.UNIT_LANDED].includes(cur.asBuilt.state))) { out.asBuilt.state = cur.asBuilt.state; notes.push(`${id}: asBuilt.state stays ${cur.asBuilt.state}, the events'`); }
   }
   if (isObj(cur.unit) && isObj(next.unit)) UNIT_KEPT.forEach(k => { if (cur.unit[k] != null && next.unit[k] !== cur.unit[k]) { out.unit[k] = cur.unit[k]; if (next.unit[k] !== undefined) notes.push(`${id}: unit.${k} stays ${JSON.stringify(cur.unit[k])}, the filing's or embed.js's`); } });
   return out;
@@ -95,7 +97,7 @@ function mergeFill(board, fields) {
   Object.keys(F).filter(k => !["wip", "trailAdd"].includes(k)).forEach(k => {
     if (k === "rows" && Array.isArray(F.rows)) {
       if (F.rows.some(r => !isObj(r) || typeof r.id !== "string" || !r.id)) throw new Refused("rows: every row names its id");
-      plan.rows = mergeList(Array.isArray(plan.rows) ? plan.rows : [], F.rows, "id", (c, n) => mergeRow(c, n, notes));
+      plan.rows = mergeList(Array.isArray(plan.rows) ? plan.rows : [], F.rows, "id", (c, n) => mergeRow(c, n, notes, plan));
     } else plan[k] = mergeValue(plan[k], F[k], k);
     merged.push(k);
   });

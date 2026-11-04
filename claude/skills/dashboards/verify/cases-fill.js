@@ -75,6 +75,13 @@ module.exports = function casesFill(X) {
     const sd = fill(Bw, { rows: [{ id: "a", asBuilt: { state: "pending", summary: "Written so far." } }] }), ra = P(Bw).rows.find(r => r.id === "a");
     c.push(["a row's derived state stands against a fill's that is no outcome; the summary is the fill's", sd.a.status === 0 && ra.asBuilt.summary === "Written so far." && ra.asBuilt.state !== "pending" === (P(Bw).rows.find(r => r.id === "a").asBuilt.state !== "pending"), js(ra.asBuilt)]);
 
+    /* partially built with its summary, where the stages decide nothing (row a's last stage is done, its rest comes after the stages): stored; without a summary, or against a stage's state, the row's stands */
+    const { mergeFill } = require(FILL), pbBoard = { kind: "issue", status: "building", rows: ["a", "b", "c"].map(id => ({ id, asBuilt: { state: "pending", summary: "" } })), wip: { step: "implementation", stages: [{ id: "S1", state: "done", rows: ["a", "b"] }, { id: "S2", state: "current", rows: ["c"] }] } };
+    const part = summary => ({ state: "partially-built", summary }), pb = mergeFill(pbBoard, { rows: [{ id: "a", asBuilt: part("Built so far; the rest comes after the stages.") }, { id: "b", asBuilt: part("") }, { id: "c", asBuilt: part("Not so.") }] }), stateOf = id => pb.plan.rows.find(r => r.id === id).asBuilt.state;
+    c.push(["a fill's partially-built with a summary is stored where no stage decides the row", stateOf("a") === "partially-built", js(pb.plan.rows)]);
+    c.push(["…without a summary the row's state stands, and is said", stateOf("b") === "pending" && pb.notes.some(x => /^b: asBuilt.state stays/.test(x)), js(pb.notes)]);
+    c.push(["…against a current stage the row's state stands, and is said", stateOf("c") === "pending" && pb.notes.some(x => /^c: asBuilt.state stays/.test(x)), js(pb.notes)]);
+
     /* a tracking board: the units' rows appear, wip.next with them; the filing's issue stands */
     const t0 = copy(TRK), units = t0.rows.filter(r => r.unit); t0.rows = []; Object.assign(t0, { status: "planned", asBuilt: null }); Object.assign(t0.wip, { step: "document", since: T(0), updated: T(0), current: ["built"], next: null, landing: null, steps: lib.STEPS_BY_LEVEL[4].slice(), history: {}, qa: [] }); if (t0.impact) t0.impact = null;
     const Bt = { root: path.join(sc, `t-${++n}`), folder: t0.folder }; Bt.dir = path.join(Bt.root, ...t0.folder.split("/")); wr(path.join(Bt.dir, "plan.json"), JSON.stringify(t0, null, 2) + "\n"); wr(path.join(Bt.dir, "dashboard.html"), rd(PB)); run(EMBED, [Bt.dir], { env });
