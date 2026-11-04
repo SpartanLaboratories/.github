@@ -450,9 +450,22 @@ function applyEvent(orig, ev, facts, req, now) {
       /* During remediation (facts.remediation, or a report while the board stands at remediation) the report answers a qa pass: its
          sub-steps are written whether or not the facts also carry the stages (which are then merged too, every one done), and the wording
          follows the remediation, facts.stage first, never "qa next". */
+      const fixedBefore = new Set(((w.remediation || {}).steps || []).filter(x => x && x.state === "done").map(x => x.name));
       if (facts.remediation) setRemediation(w, facts.remediation, applied, enrich, txt);
+      /* A report can change what the rows say while it finishes no stage (WebTools #67, the report of qa pass 1's fixes: every stage already done, a sub-step done,
+         a new deviation D7, and it said enrich: no): a remediation sub-step it finishes, or a deviation it names, needs the documents too (plan/RULES.md §4,
+         "The fast path"). From the board and the facts alone, so the same report twice asks nothing new of the sub-steps. */
+      const reportWithoutStage = () => {
+        const fixed = facts.remediation ? ((w.remediation || {}).steps || []).filter(x => x && x.state === "done" && !fixedBefore.has(x.name)) : [];
+        const devs = (Array.isArray(facts.deviations) ? facts.deviations : []).filter(d => typeof d === "string" && d.trim());
+        if (!fixed.length && !devs.length) return;
+        const rws = (Array.isArray(facts.rows) ? facts.rows : []).filter(id => ids.has(id));
+        enrich.push(`${[fixed.length ? `${plural(fixed.length, "remediation sub-step")} done` : null, devs.length ? `${plural(devs.length, "deviation")} named` : null].filter(Boolean).join(", ")}: the summaries and outcomes of ${rws.length ? rws.join(", ") : "the rows they touch"}, and any deviation from final-implementation.md, come from the documents`);
+        if (fixed.length) testsDue = true;
+      };
       if (remed && !Array.isArray(facts.stages)) {
         setStep("remediation"); setGlow("remediation");
+        reportWithoutStage();
         remediationWording();
         break;
       }
@@ -469,6 +482,7 @@ function applyEvent(orig, ev, facts, req, now) {
       const touched = [...new Set(done.flatMap(x => x.rows || []))].filter(id => ids.has(id));
       testsDue = done.length > 0;
       if (done.length) enrich.push(`stage${done.length > 1 ? "s" : ""} ${done.map(x => x.id).join(", ")} done: the summaries and outcomes of ${touched.length ? touched.join(", ") : "the rows they touch"}, and any deviation from final-implementation.md, come from the documents`);
+      else reportWithoutStage();
       const allDone = st.length > 0 && st.every(x => x.state === "done");
       /* the step: remediation when the report is one, else implementation, every stage done or not (only the run's qa-pass with verdict
          "running" moves it on); a late report on a board already at qa or past it moves nothing back */

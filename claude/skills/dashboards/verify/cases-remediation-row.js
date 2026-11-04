@@ -71,6 +71,36 @@ module.exports = function casesRemediationRow(X) {
     c.push(["…as applied, not as an enrichment for the presenter", !/GoneComponentTest/.test(js(e.S.why || []) + js(e.S.enrich || [])), words(e.S)]);
   });
 
+  /* A report that finishes no stage can still change what the rows say (WebTools #67, the report of qa pass 1's fixes: every stage already done, a sub-step
+     done, a new deviation D7 and the rows it touches, and the fast path said enrich: no, so the board stayed behind it) */
+  guard("apply-event.js: a report that finishes no stage asks for the documents when it finishes a remediation sub-step or names a deviation", c => {
+    const allDone = P => { P.wip.stages.forEach(s => { s.state = "done"; }); return P.wip.stages.map(s => ({ id: s.id, name: s.name, state: s.state })); };
+    const why = S => (S.why || []).join(" | "), tests = { base: "master", amended: [{ class: "KeptTest", module: "webtools-udp", testLevel: "2", tests: 4, rows: [R0] }] };
+    const fixed = { pass: 1, route: "remediation", steps: [{ name: "The fixes", state: "done" }, { name: "qa pass 2", state: "current" }] };
+    const held = { pass: 1, route: "remediation", steps: [{ name: "The fixes", state: "current" }, { name: "qa pass 2", state: "todo" }] };
+    const P1 = atRem(), st1 = allDone(P1), B1 = lay(P1);
+    const e1 = ev(B1, P1, { stage: "R2", stages: st1, rows: [R0, R1], remediation: fixed, deviations: ["D7: the plan's listing corrected"], tests }, "2026-11-02T01:00:00Z");
+    c.push(["every stage already done, a sub-step done, a deviation: enrich yes, naming what it found and the rows", e1.a.status === 0 && e1.S.enrich === "yes" && /1 remediation sub-step done, 1 deviation named/.test(why(e1.S)) && why(e1.S).includes(R0 + ", " + R1) && /final-implementation.md/.test(why(e1.S)), js([e1.a.status, e1.S.enrich, e1.S.error, why(e1.S)])]);
+    c.push(["…and the event itself applies as before: the step stays remediation, the sub-steps written", e1.p.wip.step === "remediation" && js((e1.p.wip.remediation.steps || []).map(s => s.state)) === js(["done", "current"]), js([e1.p.wip.step, e1.p.wip.remediation])]);
+    const P2 = atRem(), B2 = lay(P2);
+    const e2 = ev(B2, P2, { rows: [R0], remediation: fixed, tests }, "2026-11-02T01:00:00Z");
+    c.push(["a remediation report with no stages at all, a sub-step done: enrich yes", e2.a.status === 0 && e2.S.enrich === "yes" && /1 remediation sub-step done/.test(why(e2.S)) && !/deviation named/.test(why(e2.S)), js([e2.a.status, e2.S.enrich, why(e2.S)])]);
+    const e2b = ev(B2, P2, { rows: [R0], remediation: fixed, tests, detail: "The same sub-step, a later word." }, "2026-11-02T01:10:00Z");
+    c.push(["…a later report of the same sub-step asks nothing new", e2b.a.status === 0 && e2b.S.enrich === "no", js([e2b.a.status, e2b.S.enrich, why(e2b.S)])]);
+    const P3 = atRem(), B3 = lay(P3);
+    const e3 = ev(B3, P3, { rows: [R0], remediation: held, tests }, "2026-11-02T01:00:00Z");
+    c.push(["a remediation report with the sub-step still current and no deviation: enrich no, as before", e3.a.status === 0 && e3.S.enrich === "no", js([e3.a.status, e3.S.enrich, why(e3.S)])]);
+    const P4 = atRem(), B4 = lay(P4);
+    const e4 = ev(B4, P4, { rows: [R0], remediation: fixed }, "2026-11-02T01:00:00Z");
+    c.push(["a sub-step done with no facts.tests: the Tests tab is asked for too", e4.a.status === 0 && e4.S.enrich === "yes" && /the Tests tab: the event carries no facts.tests/.test(why(e4.S)), js([e4.a.status, why(e4.S)])]);
+    const P5 = atRem(); P5.wip.step = "implementation"; P5.wip.remediation = null; P5.wip.stages = [{ id: "S1", name: "The build", state: "current", rows: ids.slice() }]; const B5 = lay(P5);
+    const e5 = ev(B5, P5, { stage: "S1", stages: [{ id: "S1", name: "The build", state: "current" }], deviations: ["D1: a plan row reads otherwise"], tests }, "2026-11-02T01:00:00Z");
+    c.push(["outside remediation, a stage still current and a deviation named: enrich yes", e5.a.status === 0 && e5.S.enrich === "yes" && /1 deviation named/.test(why(e5.S)), js([e5.a.status, e5.S.enrich, why(e5.S)])]);
+    const P6 = atRem(); P6.wip.step = "implementation"; P6.wip.remediation = null; P6.wip.stages = [{ id: "S1", name: "The build", state: "current", rows: ids.slice() }]; const B6 = lay(P6);
+    const e6 = ev(B6, P6, { stage: "S1", stages: [{ id: "S1", name: "The build", state: "done" }], deviations: ["D1: a plan row reads otherwise"], tests }, "2026-11-02T01:00:00Z");
+    c.push(["a stage finished with a deviation: one reason, the stage's, as before", e6.a.status === 0 && e6.S.enrich === "yes" && /stage S1 done/.test(why(e6.S)) && !/deviation named/.test(why(e6.S)), js([e6.a.status, why(e6.S)])]);
+  });
+
   /* check.js: a reopened row that stores the staged state beside its statements is not warned on; one that still stores its outcome is */
   guard("check.js: a row a later stage reopens, stored partially built beside its statements with its summary, passes without a warning", c => {
     const CHECK = sk("plan/scripts/check.js"), sum = "Built: the first fixes. Left: the second fixes.";
