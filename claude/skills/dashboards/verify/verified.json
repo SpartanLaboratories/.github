@@ -2,8 +2,8 @@
   "$comment": "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last verification, when every check that needs no browser passed (its modes: \"--auto --no-browser\"; a run with --browser, made only when a person asks for it, lists the browser passes instead). check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.",
   "templates": {
     "plan/template/dashboard.html": {
-      "sha256": "c5b352752ef1d7c7586ce0aef58d6e27bbea9e280772161b85f9b6d8c0975f51",
-      "verified": "2026-11-03",
+      "sha256": "ad4437df8240f04e8d31f70f8c9752b936675b1b24eea7a68f6e8db95fdc8d69",
+      "verified": "2026-11-05",
       "fixtures": [
         "plan",
         "tracking",
@@ -246,12 +246,17 @@
           "sha256": "c5b352752ef1d7c7586ce0aef58d6e27bbea9e280772161b85f9b6d8c0975f51",
           "verified": "2026-11-03",
           "file": "dashboard/c5b352752ef1.html"
+        },
+        {
+          "sha256": "ad4437df8240f04e8d31f70f8c9752b936675b1b24eea7a68f6e8db95fdc8d69",
+          "verified": "2026-11-05",
+          "file": "dashboard/ad4437df8240.html"
         }
       ]
     },
     "plan/template/board.html": {
       "sha256": "bdc3cb42f811c967178c663d35b97b5fc7157beb06374112578f9dafadc6bd5e",
-      "verified": "2026-11-03",
+      "verified": "2026-11-05",
       "fixtures": [
         "work-board",
         "work-board-live",
@@ -428,7 +433,7 @@
     },
     "system/template/system.html": {
       "sha256": "74b952b96000dc735dd2afb7df2474b26770eaab6f6f06e6aabdd27786237405",
-      "verified": "2026-11-03",
+      "verified": "2026-11-05",
       "fixtures": [
         "placeholder"
       ],
@@ -543,7 +548,7 @@
     },
     "system/template/supersystem.html": {
       "sha256": "408a037a8841946d99c856553ec085a2ceefde3a4bfdabc207ac34950ebce65f",
-      "verified": "2026-11-03",
+      "verified": "2026-11-05",
       "fixtures": [
         "placeholder"
       ],

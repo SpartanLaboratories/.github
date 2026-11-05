@@ -93,7 +93,7 @@ module.exports = function casesWorkLevels(X) {
     const dash = rd(PB), work = WB ? rd(WB) : "";
     c.push(["neither work-board template says \"on the user\" anywhere", !/on the user/i.test(dash) && !/on the user/i.test(work), (dash.match(/.{30}on the user.{10}/i) || work.match(/.{30}on the user.{10}/i) || [""])[0]]);
     c.push(["the labels are there", /label:"Waiting on you"/.test(dash) && /l:"waiting on you"/.test(work) && /\["Waiting on you",n\("halted"\)/.test(work), "templates"]);
-    c.push(["lib.js's Timeline note matches", /^not counted: waiting on you, /.test(lib.timelineWaitNote({ waits: [{ since: T(0), ended: T(5), ms: 300000, by: "halted" }] })), lib.timelineWaitNote({ waits: [{ since: T(0), ended: T(5), ms: 300000, by: "halted" }] })]);
+    c.push(["lib.js keeps no Timeline note of the waits to word at all (decided 2026-11-05: time that is not counted is not mentioned)", lib.timelineWaitNote === undefined, typeof lib.timelineWaitNote]);
     const r = root0(), d = put(r, copy(LIVE)), e = ev(r, LIVE.folder, "halted", { waitingOn: "An answer from the user." }, T(5));
     c.push(["stored data keeps what the run sent: wip.waitingOn is as the facts said it", e.a.status === 0 && e.p.wip.waitingOn === "An answer from the user.", js(e.p && e.p.wip.waitingOn)]);
   });

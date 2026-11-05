@@ -21,7 +21,7 @@ const { nameRefsIn, commentRefs, nameWarning } = require(path.resolve(__dirname,
 const { paletteCheck } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js"));
 const { boardLanded, workLevelFields, featureRun } = require("./levels.js");
 const { unitTests, DEP_STATES, HOLD_STATES } = require("./lib.js");
-const { foundationFilling, WAIT_BY, timelineWaitNote, HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, isTime, APPROX_SOURCES, timelineApproxNote, timelineSteps, tlSpan, timelineLines, timelineLeftOut, timelineTotal, unitInRun, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, fixOfBoard, foldedIn, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, viewSource, viewParts, viewBaseHref, viewedFolder, setViewLinks, opt, flag } = require("./lib.js");
+const { foundationFilling, WAIT_BY, HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, isTime, APPROX_SOURCES, timelineApproxNote, timelineSteps, tlSpan, timelineLines, timelineLeftOut, timelineTotal, unitInRun, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, fixOfBoard, foldedIn, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, viewSource, viewParts, viewBaseHref, viewedFolder, setViewLinks, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
 const STATES = ["pending", "in-progress", "partially-built", "as-planned", "amended", "deviated", "dropped", "deferred", "complete", "landed"];
@@ -132,8 +132,8 @@ function checkPlan(plan, dir, root) {
   if (plan.status === "built" || (plan.wip || {}).step === "landed") {
     const T = timelineSteps(plan), tot = timelineTotal(T), lo = timelineLeftOut(T);
     /* the tile's figure is the sum of the visits its bar draws, a visit with a bound not recorded not summed */
-    const an = timelineApproxNote(T), wn = timelineWaitNote(T);
-    ok(`timeline: ${T.visits.length ? timelineLines(T).join(" · ") : "no step recorded"}; the figure: ${tot != null ? `${T.visits.some(v => v.ms != null && v.approx) ? "≈ " : ""}${tlSpan(tot)}, the sum of the visits drawn` : "—, no visit drawn"}${lo ? ` (${lo})` : ""}${an ? ` (${an})` : ""}${wn ? ` (${wn})` : ""}`);
+    const an = timelineApproxNote(T);
+    ok(`timeline: ${T.visits.length ? timelineLines(T).join(" · ") : "no step recorded"}; the figure: ${tot != null ? `${T.visits.some(v => v.ms != null && v.approx) ? "≈ " : ""}${tlSpan(tot)}, the sum of the visits drawn` : "—, no visit drawn"}${lo ? ` (${lo})` : ""}${an ? ` (${an})` : ""}`);
     T.visits.filter(v => v.order).forEach(v => warn(`the Timeline tile leaves out ${v.label}: its bounds are out of order (check wip.history's since and ended, plan.sized, wip.qa[].at and asBuilt.at)`));
   }
 

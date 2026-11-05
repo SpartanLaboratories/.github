@@ -60,7 +60,8 @@
 // Events and fills share the boards' short lock (lib.js lockTree()), held for this whole run: a fill (fill.js) merges onto the latest plan.json behind it and
 // waits at most this run's second or two, so neither overwrites the other, and every file is written through a rename (lib.js atomicWrite()).
 // A stretch when the run was not running (run-restarted, facts { since, ended, reason }; team-raised; admin-team/board/timeline-outages): its
-// own line on the Timeline, its bounds from the facts alone, recorded once, whichever visit it falls in (lib.js outageSteps()).
+// bounds from the facts alone, recorded once, whichever visit it falls in (lib.js outageSteps()); it bounds the visits and no board mentions
+// it (decided 2026-11-05: time that is not counted is not mentioned), so it writes no wip.event, no event note and no trail entry (wip.updated still moves).
 "use strict";
 const T0 = Date.now();
 const fs = require("fs"), path = require("path"), cp = require("child_process");
@@ -673,24 +674,25 @@ function applyEvent(orig, ev, facts, req, now) {
       if (plan.parent) parentOp = { kind: "landed" };
       break;
     }
-    /* team-raised (plan/RULES.md §4; admin-team/board/timeline-outages): a retry or resume reported a restart, so the run was not running from
-       facts.since to facts.ended. Its bounds come from the facts alone and it is never inferred from a gap between events. The step does not
-       change: the visit it falls in is cut around it (lib.js outageSteps()). The same bounds again are a duplicate (main()). */
+    /* team-raised (plan/RULES.md §4; admin-team/board/timeline-outages): a request reported a restart, or a run's request came from a
+       different session than its last one, so the run was not running from facts.since to facts.ended. Its bounds come from the facts alone
+       and it is never inferred from a gap between events (a gap in one session's requests is never a break); nothing else in the facts is read. The step does not change: the visit it falls in
+       is cut around it (lib.js outageSteps()). The same bounds again are a duplicate (main()). No wip.event, no event note and no trail entry: the stretch
+       drops out of the times and no board mentions it (decided 2026-11-05); wip.outages and the cut visit's outage field keep it as data. */
     case "run-restarted": {
       if (["built", "abandoned"].includes(plan.status) || ["landed", "cancelled"].includes(w.step)) refuse(`run-restarted: the board has ${plan.status === "abandoned" || w.step === "cancelled" ? "been cancelled" : "landed"} already, and a finished run's board is kept as it ended`);
       if (!lib.isTime(facts.since) || !lib.isTime(facts.ended)) refuse(`run-restarted carries no facts.since and facts.ended, the UTC ISO times the run stopped and came back (got ${JSON.stringify([facts.since || null, facts.ended || null])})`);
       if (!(Date.parse(facts.since) < Date.parse(facts.ended))) refuse(`run-restarted: facts.since ${facts.since} is not before facts.ended ${facts.ended}`);
       if (Date.parse(facts.ended) > Date.parse(now)) refuse(`run-restarted: facts.ended ${facts.ended} is after the event's time ${now}: the event says the run has come back`);
       if (typeof facts.reason !== "string" || !facts.reason.trim()) refuse("run-restarted carries no facts.reason (why, in plain words, such as \"session restart\")");
-      const reason = txt(facts.reason, "reason"), span = lib.tlSpan(Date.parse(facts.ended) - Date.parse(facts.since));
+      const reason = txt(facts.reason, "reason");
       const lastAt = w.event && lib.isTime(w.event.at) ? Date.parse(w.event.at) : null;
       if (lastAt != null && lastAt > Date.parse(facts.since) && lastAt < Date.parse(facts.ended)) WARNINGS.push(`RUN ACTIVE IN THE STRETCH: the board's last event (${w.event.name}, ${w.event.at}) falls inside ${facts.since} → ${facts.ended}: check the bounds`);
       const r = lib.outageSteps(orig, plan, { since: facts.since, ended: facts.ended, reason }, ev);
       if (r.refused) refuse(`run-restarted: ${r.refused}`);
       applied.push(...r.lines);
-      note = note || `run not running ${span}${reason ? `: ${reason}` : ""}`;
       detail = detail || w.detail || null;
-      trail = { column: STEP_COLUMN[r.step || lib.shownStep(w)] || "built", label: `Run not running for ${span}, not counted${reason ? `: ${reason}` : ""}` };
+      note = null; /* no event note, not even one the facts carry, and no wip.event (below): the stretch is mentioned nowhere */
       break;
     }
     default: refuse(`unknown event ${JSON.stringify(ev)}`);
@@ -712,7 +714,10 @@ function applyEvent(orig, ev, facts, req, now) {
   if (Array.isArray(facts.open) && facts.open.length && !["implementation-stage", "qa-pass"].includes(ev)) mergeOpen(w, facts, applied, txt, ev, resolved, plan.folder, DIR, enrich);
   if (detail !== w.detail) { w.detail = detail; applied.push("wip.detail"); }
   const evRec = { name: ev, at: now, ...(note ? { note } : {}) };
-  w.event = evRec; w.updated = now;
+  /* run-restarted leaves wip.event as it was (plan/RULES.md §4; decided 2026-11-05): it is no event of the run's, and a later resumed reads the
+     run's own last event, never the break; wip.updated still moves */
+  if (ev !== "run-restarted") w.event = evRec;
+  w.updated = now;
   if (trail) {
     const t = { date: today, column: trail.column, label: trail.label, ...(trail.ref ? { ref: trail.ref } : {}) };
     plan.trail = Array.isArray(plan.trail) ? plan.trail : [];

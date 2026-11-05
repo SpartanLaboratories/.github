@@ -76,8 +76,8 @@
 // pre-merge stamp, the open points on every event. The decisions of dashboards-skill/34 (verify/cases-34.js): the Timeline tile coloured
 // by kind of work, approximate bounds, the landing in three steps, a sub-issue's roadmap, the Design tab. The live view of a landing
 // (verify/cases-live-view.js): apply-event.js --view (landed, and the land's landing and merge, before the merge and after it), the view copies and their <base> line, board.js --live opening them. The waits on
-// the user (verify/cases-timeline-waits.js): not active time, the step split into visits around each wait, the signals on the fast path. A
-// stretch when the run was not running (verify/cases-timeline-outages.js): its own line, the run-restarted event on the fast path. A
+// the user (verify/cases-timeline-waits.js): not active time and not mentioned, the step split into visits around each wait, the signals on the fast path. A
+// stretch when the run was not running (verify/cases-timeline-outages.js): not counted and not mentioned, the run-restarted event on the fast path. A
 // template is recorded only when every check it runs passes: by default those that need no browser; with --browser its browser
 // passes and the rendered cases too.
 "use strict";
@@ -2157,7 +2157,7 @@ try { require("./cases-timeline-fast-path.js")({ sk, out, targets, dumpDom, inne
 catch (e) { report("the Timeline's fast path cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The waits on the user (verify/cases-timeline-waits.js; admin-team/board/timeline-waits): the time from a blocking question to its answer
-   counted by no visit and no figure, the step split into visits around it; the signals on the fast path (a stop until the event that ends
+   counted by no visit and no figure and mentioned nowhere on the Timeline (decided 2026-11-05), the step split into visits around it; the signals on the fast path (a stop until the event that ends
    it, a resumed answering the open points of the event before it), "implement" read as the implementation step, check.js on wip.waits,
    and the template's copy of the rule. It needs no browser, and runs on its own too (node verify/cases-timeline-waits.js). */
 try { require("./cases-timeline-waits.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
@@ -2175,9 +2175,10 @@ catch (e) { report("a qa verdict's step cases", [["the cases run to the end", fa
 try { require("./cases-remediation-row.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("a row a remediation stage reopens cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
-/* A stretch when the run was not running (verify/cases-timeline-outages.js; admin-team/board/timeline-outages): its own line on the Timeline, never a bar
+/* A stretch when the run was not running (verify/cases-timeline-outages.js; admin-team/board/timeline-outages): mentioned nowhere (no line, mark, note or trail entry; decided 2026-11-05), never a bar
    segment, never summed, never a wait on the user; the team-raised run-restarted event, its bounds from the facts alone, idempotent, in the
-   running visit, a closed one, a wait or a gap; check.js on wip.outages, and the template's copy of the rule. It needs no browser, and runs on
+   running visit, a closed one, a wait or a gap; check.js on wip.outages, the template's copy of the rule, and a step's bar segment floor (a quarter
+   of the old: 0.75 % of the figure, 1 px). It needs no browser, and runs on
    its own too (node verify/cases-timeline-outages.js). */
 try { require("./cases-timeline-outages.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("a stretch when the run was not running cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }

@@ -38,5 +38,5 @@ if (args.includes("--from-git")) {
 const T = lib.timelineSteps(plan), tot = lib.timelineTotal(T), lo = lib.timelineLeftOut(T);
 if (!(plan.status === "built" || (plan.wip || {}).step === "landed")) console.log("(the board has not landed: its Timeline tab shows the steps so far, the running one to now; the lines below are the record alone)");
 lib.timelineLines(T).forEach(l => console.log("  " + l));
-const an = lib.timelineApproxNote(T), wn = lib.timelineWaitNote(T);
-console.log(`figure: ${tot != null ? `${T.visits.some(v => v.ms != null && v.approx) ? "≈ " : ""}${lib.tlSpan(tot)}` : "—"}${lo ? ` · ${lo}` : ""}${an ? ` · ${an}` : ""}${wn ? ` · ${wn}` : ""}`);
+const an = lib.timelineApproxNote(T);
+console.log(`figure: ${tot != null ? `${T.visits.some(v => v.ms != null && v.approx) ? "≈ " : ""}${lib.tlSpan(tot)}` : "—"}${lo ? ` · ${lo}` : ""}${an ? ` · ${an}` : ""}`);

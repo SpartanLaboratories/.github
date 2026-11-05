@@ -309,7 +309,7 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
    it; a visit of no length keeps a sliver. Its legends: the families with their steps' shades, then the step lines, each led by its
    step's mark (filled: its segment; outlined: a visit the bar does not draw), laid in columns down the row the tile takes across a
    landed board's KPI row (four tiles above it). */
-.kpi .seg-bar i.tp{min-width:4px}.key i.segk.tp{--sc:var(--tp)}.key i.segk.tl-out{background:none;box-shadow:inset 0 0 0 1.5px var(--tp)}
+.kpi .seg-bar i.tp{min-width:1px}.key i.segk.tp{--sc:var(--tp)}.key i.segk.tl-out{background:none;box-shadow:inset 0 0 0 1.5px var(--tp)}
 .kpi .key.tl-fams{margin-top:8px;gap:3px 16px}
 .key .tl-fam>i.segk.tf{width:26px;height:8px}
 .tl-fam>b{font-weight:600;color:var(--ink)}
@@ -339,18 +339,6 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .tl-step>.tl-when{font-variant-numeric:tabular-nums}
 .tl-approx{color:var(--muted);font-weight:600}
 .tl-step>.tl-dur{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
-/* a wait on you between the visits (timeline-waits): the step line's layout, its mark the halt's yellow (GUIDANCE.md §1), its time
-   muted: shown, never counted, never on the bar */
-.kpi .key.tl-steps>span.tl-wait{display:grid;grid-template-columns:16px minmax(0,10.5em) minmax(0,1fr) auto;align-items:baseline;gap:2px 8px;break-inside:avoid;padding:1.5px 0;color:var(--muted)}
-.tl-wait>i.segk{align-self:center}.key i.segk.tl-waitk{background:color-mix(in srgb,var(--warning) 35%,transparent);box-shadow:inset 0 0 0 1.5px var(--warning)}
-.tl-wait>b{font-weight:600;color:var(--ink-2)}.tl-wait>.tl-when{font-variant-numeric:tabular-nums}
-.tl-wait>.tl-dur{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-/* a stretch when the run was not running (timeline-outages): the wait line's layout in its own wording; its mark a neutral hatch (GUIDANCE.md
-   §1: no outcome, not the halt's yellow, not a kind of work): shown, never counted, never on the bar */
-.kpi .key.tl-steps>span.tl-outage{display:grid;grid-template-columns:16px minmax(0,10.5em) minmax(0,1fr) auto;align-items:baseline;gap:2px 8px;break-inside:avoid;padding:1.5px 0;color:var(--muted)}
-.tl-outage>i.segk{align-self:center}.key i.segk.tl-outk{background:repeating-linear-gradient(135deg,var(--muted) 0 2px,transparent 2px 4px);box-shadow:inset 0 0 0 1.5px var(--muted)}
-.tl-outage>b{font-weight:600;color:var(--ink-2)}.tl-outage>.tl-when{font-variant-numeric:tabular-nums}
-.tl-outage>.tl-dur{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .kpi .key.tl-steps>span.tl-note{display:block;color:var(--muted);margin-top:5px;break-inside:avoid}
 /* a statement's reference whose section number is read from its link's anchor alone (its file not there to read): "(§42?)" */
 .key b.srefk{font:600 10.5px var(--mono);color:var(--link)}
@@ -1534,7 +1522,9 @@ function visitHtml(S,V,i,n,o,keys){ const grp=(l,v)=>`<span><span class="l">${l}
   if(op.length){ keys.add(KEY_OPEN); h+=`<div class="sp-open"><p class="sp-sum">${op.length} open point${op.length===1?"":"s"} when it ended</p>${spList(op.map(x=>spItem("",pill(OPEN_PT),rich(x.text),[x.raised?`raised at ${esc(x.raised)}`:"",x.ref?refAt(x.ref,"",o.base)+liveCopyLink(x.copy,"the report as raised"):""].filter(Boolean).join(" · "))))}</div>`; }
   const info=[V.event&&V.event.name?grp("last event",`<code>${esc(V.event.name)}</code>${V.event.at?` · <span class="nw">${when(V.event.at)}</span>`:""}`):"",
     V.since?grp("since",`<span class="nw">${when(V.since)}</span>`):"",
-    grp(V.outage?"ended, run not running":V.held?"ended, waiting on you":"ended",`<span class="nw">${when(V.ended)}</span>${V.endedBy?` · by <code>${esc(V.endedBy)}</code>`:""}${typeof V.outage==="string"?` · ${esc(V.outage)}`:""}`),
+    /* a visit a stretch when the run was not running ended reads plainly "ended" (V.outage stays in the data, mentioned nowhere: decided
+       2026-11-05); a halt stays, as the outcome of the visit it ends */
+    grp(V.held&&!V.outage?"ended, waiting on you":"ended",`<span class="nw">${when(V.ended)}</span>${V.endedBy&&!V.outage?` · by <code>${esc(V.endedBy)}</code>`:""}`),
     V.to&&V.to!==S?grp("then",esc(V.to)):""].filter(Boolean);
   return h+`<div class="wip-facts sp-facts">${info.join("")}</div></div>`; }
 /* a finished step with no snapshot: what survives, reduced */
@@ -1883,20 +1873,11 @@ function timelineSteps(P,now){ const w=(P&&P.wip)||{}, H=histOf(w), steps=(Array
     const a=v.from&&(v.from.how==="exact"||v.from.how==="approx")?Date.parse(v.from.t):null, b=v.to?Date.parse(v.to.t):null; v.ms=a!=null&&b!=null?b-a:null; if(v.ms!=null&&v.ms<0){ v.ms=null; v.order=true; } });
   const lined=[...new Set(seq.map(v=>v.step))].sort((x,y)=>idx(x)-idx(y));
   seq.forEach(v=>{ const fs=lined.filter(s=>tlFamily(s)===tlFamily(v.step)); v.family=tlFamily(v.step); v.shade=tlShade(fs.indexOf(v.step),fs.length); });
-  const waits=WT.map(x=>{ const ms=x.ended?Date.parse(x.ended)-Date.parse(x.since):null; return {wait:true,step:x.step,by:x.by,label:"waiting on you",from:bd(x.since),to:x.ended?bd(x.ended):now?{t:now,how:"now"}:null,open:!x.ended,ms:ms!=null&&ms>=0?ms:null}; });
-  const outages=OG.map(x=>({outage:true,step:x.step,reason:x.reason,label:"run not running",from:bd(x.since),to:bd(x.ended),ms:Date.parse(x.ended)-Date.parse(x.since)})).filter(x=>x.ms>=0);
-  return {visits:seq,waits,outages,left,untimed:seq.filter(v=>v.ms==null).map(v=>v.label),families:timelineFamilies(seq)}; }
-/* The waits on you (plan/RULES.md §2; timeline-waits): wip.waits, oldest first, { step, since, ended, by }, written by apply-event.js
-   (lib.js waitSteps()): the time from a blocking question to its answer, counted by no visit and by no figure. The tile's lines in order:
-   each wait after the last visit that ended by its question (lib.js timelineRows()), each stretch when the run was not running after the last
-   visit that ended by its start; the sub-line names their time, not counted, apart. */
-function timelineRows(T){ const vs=(T&&T.visits)||[], ws=[...((T&&T.waits)||[]),...((T&&T.outages)||[])].filter(x=>x&&x.from).sort((x,y)=>Date.parse(x.from.t)-Date.parse(y.from.t));
-  const key=v=>v.to&&v.to.how!=="now"?Date.parse(v.to.t):v.from?Date.parse(v.from.t):null, rows=vs.map(v=>({visit:v}));
-  ws.forEach(x=>{ const t=Date.parse(x.from.t); let at=0; rows.forEach((r,i)=>{ const k=r.visit?key(r.visit):Date.parse((r.wait||r.outage).from.t); if(k!=null&&k<=t) at=i+1; }); rows.splice(at,0,x.outage?{outage:x}:{wait:x}); });
-  return rows; }
-function timelineWaitNote(T){ const ws=(T&&T.waits)||[], shut=ws.filter(x=>x.ms!=null), tot=shut.reduce((n,x)=>n+x.ms,0), og=(T&&T.outages)||[], otot=og.reduce((n,x)=>n+x.ms,0);
-  const parts=[shut.length?`waiting on you, ${tlSpan(tot)}${shut.length>1?` (${shut.length} waits)`:""}`:"",og.length?`run not running, ${tlSpan(otot)} (${og.length})`:""].filter(Boolean);
-  return [parts.length?`not counted: ${parts.join("; ")}`:"",ws.some(x=>x.open)?"waiting on you now: not counted":""].filter(Boolean).join(" · "); }
+  /* the waits on you and the stretches when the run was not running bound the visits (above), counted by none and mentioned nowhere (decided 2026-11-05) */
+  return {visits:seq,left,untimed:seq.filter(v=>v.ms==null).map(v=>v.label),families:timelineFamilies(seq)}; }
+/* The tile's lines in order: the visits alone (lib.js timelineRows()). A wait on you or a stretch when the run was not running has no line,
+   no mark and no note: it only bounds the visits around it (decided 2026-11-05: time that is not counted is not mentioned). */
+function timelineRows(T){ return ((T&&T.visits)||[]).map(v=>({visit:v})); }
 /* a span: "40 min", "2 h 35 min", "3 days 4 h", "under 1 min" */
 const tlSpan=ms=>{ if(ms==null||!isFinite(ms)) return "—"; const m=Math.round(ms/6e4); if(m<1) return "under 1 min"; if(m<60) return `${m} min`;
   if(m<1440){ const h=Math.floor(m/60), r=m%60; return r?`${h} h ${r} min`:`${h} h`; } let d=Math.floor(m/1440), h=Math.round((m-d*1440)/60); if(h===24){ d++; h=0; } return `${d} day${d===1?"":"s"}${h?` ${h} h`:""}`; };
@@ -1906,7 +1887,7 @@ function timelineLeftOut(T){ const vs=(T&&T.visits||[]).filter(v=>v.ms==null), o
   return [u.length?`not summed: ${u.map(v=>v.label).join(", ")} (a bound not recorded)`:"",o.length?`not summed: ${o.map(v=>v.label).join(", ")} (bounds out of order)`:"",T&&T.left&&T.left.length?`no record of: ${T.left.join(", ")}`:""].filter(Boolean).join(" · "); }
 /* The tile's times, in the viewer's zone (GUIDANCE.md §6): a clock time on the run's first day, the day before it on any other; the zone
    once, in the sub-line; every <time> holds the UTC stamp. */
-function tlView(T){ const ts=[]; [...(T.visits||[]),...(T.waits||[]),...(T.outages||[])].forEach(v=>[v.from,v.to].forEach(b=>{ if(b&&b.how!=="now") ts.push(b.t); })); ts.sort((a,b)=>Date.parse(a)-Date.parse(b));
+function tlView(T){ const ts=[]; (T.visits||[]).forEach(v=>[v.from,v.to].forEach(b=>{ if(b&&b.how!=="now") ts.push(b.t); })); ts.sort((a,b)=>Date.parse(a)-Date.parse(b));
   const dOf=t=>new Date(t).toLocaleDateString(undefined,{day:"numeric",month:"short"}), day0=ts.length?dOf(ts[0]):"";
   const clock=t=>{ const hm=new Date(t).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}), d=dOf(t); return d===day0?hm:`${d} ${hm}`; };
   const full=t=>new Date(t).toLocaleString(undefined,LOCAL_FMT);
@@ -1948,14 +1929,14 @@ function renderKpis(){
      (a visit of no length keeps a sliver; visits all of no length share the bar alike), each in its step's shade */
   /* every issue board (dashboards-skill/34): a landed board's run whole, a board in flight its steps so far, the running one to now */
   const TS=timelineSteps(PLAN,LANDED?null:new Date().toISOString().replace(/\.\d+Z$/,"Z")), tsTot=timelineTotal(TS), TV=tlView(TS), tsTimed=TS.visits.filter(v=>v.ms!=null);
-  const tpParts=tsTimed.map(v=>({n:tsTot>0?Math.max(v.ms,tsTot*0.03):1,cls:"tp",step:v.step,c:tlMix(v.family,v.shade),t:`${v.label} (${v.family}): ${TV.text(v.from)} → ${TV.text(v.to)} · ${v.approx?"≈ ":""}${tlSpan(v.ms)}${v.open?" so far":""}`}));
+  const tpParts=tsTimed.map(v=>({n:tsTot>0?Math.max(v.ms,tsTot*0.0075):1,cls:"tp",step:v.step,c:tlMix(v.family,v.shade),t:`${v.label} (${v.family}): ${TV.text(v.from)} → ${TV.text(v.to)} · ${v.approx?"≈ ":""}${tlSpan(v.ms)}${v.open?" so far":""}`}));
   TRACERS=timelineTracers(TS); TL_OPEN=TS.visits.some(v=>v.open);
   KPI_DRAWN={rows:gparts,opts:optParts.filter(p=>p.n),verdicts:[vbuild,leave,vopen],states:states.filter(([,n])=>n).map(([k])=>k),left,qa:[...new Set(qa.map(qaResult))],slots:qmax>qa.length};
   const K=kpiKeys(), TR=k=>tracerLab(TRACERS.find(x=>x.tile===k));
   $("#tl-tile").innerHTML=timelineTile(TS,TV,tsTot,tpParts,segBar);
   /* the tab's lede (what the picture does not say) and its legend: the tracer, and its foot where its steps have no time recorded */
-  /* while the run waits on you no visit runs to now (plan/RULES.md §2), so the lede says so */
-  $("#timeline-lede").textContent=LANDED?"Hover a segment for its times.":(TS.waits||[]).some(x=>x.open)?"The run waits on you: no step's time runs until the answer.":TL_OPEN?"The running step is open-ended: its time runs to now.":"Hover a segment for its times.";
+  /* while the run waits on you no visit runs to now (plan/RULES.md §2); the lede says nothing of the wait (time not counted is not mentioned) */
+  $("#timeline-lede").textContent=LANDED?"Hover a segment for its times.":TL_OPEN?"The running step is open-ended: its time runs to now.":"Hover a segment for its times.";
   const untimed=TRACERS.some(x=>!x.none&&x.ms==null&&x.visits);
   $("#timeline-key").innerHTML=`<span><i class="trk"></i>tracer: from a tile up to the steps that made it, its colour their kind of work, its label their time</span>`+(untimed?`<span>a tracer ending at the tile's foot, "—": those steps have no time recorded</span>`:"")+(TRACERS.some(x=>x.none)?`<span>no tracer: a tile with no step of its own</span>`:"");
   $("#kpis").innerHTML=[
@@ -1988,17 +1969,13 @@ function kpiKeys(){ const D=KPI_DRAWN, o={rows:"",opts:"",verdicts:"",built:"",q
    outlined: a visit the bar does not draw), its step, its start → end and its duration, then a note naming the marks the lines use. */
 function timelineTile(T,V,tot,parts,segBar){ const vs=T.visits||[], nil=vs.some(v=>!v.from||!v.to), by=vs.some(v=>v.from&&v.from.how==="by"), merged=vs.some(v=>v.to&&v.to.merge);
   const apx=vs.some(v=>v.ms!=null&&v.approx), clamped=vs.some(v=>(v.from&&v.from.clamped)||(v.to&&v.to.clamped)), open=vs.some(v=>v.open);
-  const sub=[open?"so far":"",V.range,V.zone&&vs.some(v=>v.from||v.to)?`times ${esc(V.zone)}`:"",esc(timelineLeftOut(T)),esc(timelineApproxNote(T)),esc(timelineWaitNote(T))].filter(Boolean).join(" · ");
+  const sub=[open?"so far":"",V.range,V.zone&&vs.some(v=>v.from||v.to)?`times ${esc(V.zone)}`:"",esc(timelineLeftOut(T)),esc(timelineApproxNote(T))].filter(Boolean).join(" · ");
   const line=v=>`<span class="tl-step" data-family="${esc(v.family)}" data-step="${esc(v.step)}"><i class="segk ${v.ms!=null?"tp":"tl-out"}" style="--tp:${tlMix(v.family,v.shade)}"${v.ms!=null?"":' aria-hidden="true"'}></i><b>${esc(v.label)}</b><span class="tl-when">${V.time(v.from)} → ${V.time(v.to)}</span><span class="tl-dur">${v.ms!=null?`${v.approx?"≈ ":""}${esc(tlSpan(v.ms))}${v.open?" so far":""}`:"—"}</span></span>`;
-  /* a wait on you (timeline-waits): its line between the visits, its mark the halt's yellow, its time shown and not counted, never on the bar */
-  const ws=T.waits||[], wline=x=>`<span class="tl-wait" data-wait="${esc(x.by||"")}" title="${esc(`waiting on you${x.step?` in ${x.step}`:""}: not active time, not counted in the figure`)}"><i class="segk tl-waitk" aria-hidden="true"></i><b>${esc(x.label)}</b><span class="tl-when">${V.time(x.from)} → ${x.open?`<span class="tl-now" title="still waiting on you">now</span>`:V.time(x.to)}</span><span class="tl-dur">${x.ms!=null?`${esc(tlSpan(x.ms))}, not counted`:"not counted"}</span></span>`;
-  /* a stretch when the run was not running (timeline-outages): its own line and wording, its mark a neutral hatch, its time shown and not counted, never on the bar */
-  const ogs=T.outages||[], oline=x=>`<span class="tl-outage" data-outage="${esc(x.step||"")}" title="${esc(`run not running${x.step?` in ${x.step}`:""}${x.reason?`: ${x.reason}`:""}: not active time, not counted in the figure`)}"><i class="segk tl-outk" aria-hidden="true"></i><b>${esc(x.label)}</b><span class="tl-when">${V.time(x.from)} → ${V.time(x.to)}</span><span class="tl-dur">${esc(tlSpan(x.ms))}, not counted</span></span>`;
-  const out=vs.some(v=>v.ms==null), note=[open?"now: the step running":"",ws.length?"yellow: waiting on you, not counted":"",ogs.length?"hatched: run not running, not counted":"",out?"outlined: a visit the bar does not draw":"",nil?"— not recorded":"",vs.some(v=>v.approx)?"≈ the time the update reached the team":"",by?"by: the step under way at its first commit":"",merged?"merged: the run's end, the merge":""].filter(Boolean).join(" · ");
+  const out=vs.some(v=>v.ms==null), note=[open?"now: the step running":"",out?"outlined: a visit the bar does not draw":"",nil?"— not recorded":"",vs.some(v=>v.approx)?"≈ the time the update reached the team":"",by?"by: the step under way at its first commit":"",merged?"merged: the run's end, the merge":""].filter(Boolean).join(" · ");
   /* the families legend: each kind of work on the lines, its swatch its steps' shades in order, then its steps */
   const fam=f=>{ const n=f.steps.length, st=f.steps.map((x,i)=>`${tlMix(f.id,x.shade)} ${Math.round(100*i/n)}% ${Math.round(100*(i+1)/n)}%`).join(","); return `<span class="tl-fam" data-family="${esc(f.id)}"><i class="segk tf" style="background:linear-gradient(90deg,${st})" aria-hidden="true"></i><b>${esc(f.id)}</b> ${esc(f.steps.map(x=>x.step).join(" · "))}</span>`; };
   const famH=(T.families||[]).length?`<div class="key tl-fams">${T.families.map(fam).join("")}</div>`:"";
-  const keyH=vs.length||ws.length||ogs.length?`${famH}<div class="key tl-steps">${timelineRows(T).map(r=>r.outage?oline(r.outage):r.wait?wline(r.wait):line(r.visit)).join("")}${note?`<span class="tl-note">${esc(note)}</span>`:""}</div>`:"";
+  const keyH=vs.length?`${famH}<div class="key tl-steps">${timelineRows(T).map(r=>line(r.visit)).join("")}${note?`<span class="tl-note">${esc(note)}</span>`:""}</div>`:"";
   const bar=parts.length?segBar(parts,`Timeline: ${vs.filter(v=>v.ms!=null).map(v=>`${v.label} ${tlSpan(v.ms)}`).join(", ")}${T.untimed.length?`; not summed: ${T.untimed.join(", ")}`:""}`):"";
   return `<div class="kpi"><div class="l">Timeline</div><div class="v">${tot!=null?`${apx?`<span class="tl-approx" title="the sum includes approximate bounds">≈</span> `:""}${esc(tlSpan(tot))}${open?" <small>so far</small>":""}`:"—"}</div><div class="s">${sub||"no step recorded"}</div>${keyH}${bar}</div>`; }
 /* A KPI tile's tracer label (dashboards-skill/34): the dot in its family's colour, the steps it covers, their summed time ("≈" when
@@ -2501,7 +2478,9 @@ function renderContext(){
   else cards.push(`<div class="card"><h3>Roadmap</h3><p class="lede">No roadmap item claims #${esc(PLAN.issue)}: it has no tracking parent. The ${wbLink("repository work board")} and the ${linkOr(sharedLink("repoBoard"),"repository state board")} show the roadmap.</p></div>`);
   const fu=PLAN.followUps||[];
   cards.push(`<div class="card"><h3>Follow-ups and related issues <small>${fu.length}</small></h3>${fu.length?`<ul class="issues">${fu.map(f=>(f.issue?`<li><span class="nm">${f.title?`${pair(f.issue,f.title,f.repo,1)}${f.note?` — ${rich(f.note)}`:""}`:`${ilink(f.issue,f.repo)}${boardOf(f.issue,f.repo)?` ${ghlink(f.issue,f.repo)}`:""}${f.note?` — ${rich(f.note)}`:""}`}</span></li>`:`<li><span class="nm"><code>${esc(f.name||"")}</code> <small>not filed</small> — ${rich(f.note||"")}</span></li>`)).join("")}</ul>`:`<p class="lede">None recorded.</p>`}</div>`);
-  const events=[...(PLAN.milestones||[]).map(m=>({date:m.date,phase:m.column,text:`<b>${esc(m.label)}</b>${m.note?` — ${rich(m.note)}`:""}${m.ref?` · ${refHtml(m.ref)}`:""}`})),...(PLAN.trail||[]).map(t=>({date:t.date,phase:t.column||"",text:`${rich(t.label||"")}${t.ref?` · ${refHtml(t.ref)}`:""}`}))].map((e,i)=>({...e,i})).sort((a,b)=>String(a.date||"").localeCompare(String(b.date||""))||a.i-b.i);
+  /* a stretch when the run was not running is mentioned nowhere (decided 2026-11-05): the trail entry an older run-restarted wrote ("Run not
+     running for …, not counted") stays in the data and is not drawn */
+  const events=[...(PLAN.milestones||[]).map(m=>({date:m.date,phase:m.column,text:`<b>${esc(m.label)}</b>${m.note?` — ${rich(m.note)}`:""}${m.ref?` · ${refHtml(m.ref)}`:""}`})),...(PLAN.trail||[]).filter(t=>!(t&&/^Run not running for /.test(String(t.label||"")))).map(t=>({date:t.date,phase:t.column||"",text:`${rich(t.label||"")}${t.ref?` · ${refHtml(t.ref)}`:""}`}))].map((e,i)=>({...e,i})).sort((a,b)=>String(a.date||"").localeCompare(String(b.date||""))||a.i-b.i);
   const phaseName={gap:"GAP",considered:"CONSIDERED",verdict:"VERDICT",built:"BUILT"};
   cards.push(`<div class="card"><h3>Trail <small>${events.length} events</small></h3>${events.length?`<ul class="trail">${events.map(e=>`<li><span class="d">${when(e.date||"")}</span><span class="t">${e.phase?`<span class="ph">${esc(phaseName[e.phase]||e.phase)}</span>`:""}${e.text}</span></li>`).join("")}</ul>`:`<p class="lede">No dated events yet.</p>`}</div>`);
   const docs=PLAN.documents||[];

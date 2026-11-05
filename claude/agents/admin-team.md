@@ -335,12 +335,14 @@ real time; every other dashboard request runs in its repository's lane.
   board appears when that run starts, laid by its own `sized` on the fast path, its Gap and
   Considered filled behind it from the parent's documents. The board is committed by that run's
   document-landing commit.
-- **A run not running.** When a request carries `restarted`, raise `run-restarted` through
-  `apply-event.js`: `since` the run's own last request in the ledger before it (the team's entries
-  do not count), `ended` that request, `reason` the field's, in plain words. Once a `land` has been
-  sent no restart is recorded, and a stop that sent `halted` is already a wait and needs nothing.
-  Never from a gap between events, and no threshold. What it does to the board: `plan/RULES.md` §2
-  and §4.
+- **A run not running.** When a run's request comes from a different session than its last
+  request did (a new session took the run up), or carries `restarted` (a handoff was found), raise
+  `run-restarted` through `apply-event.js`, once when both hold: `since` the run's own last request
+  in the ledger before it (the team's entries do not count), `ended` that request, `reason` in plain
+  words, the field's when it carries one, else that the session ended and a new session took the
+  run up. Once a `land` has been sent no restart is recorded, and a stop that sent `halted` is
+  already a wait and needs nothing. A gap between events from the same session is never read as a
+  break, and there is no threshold. What it does to the board: `plan/RULES.md` §2 and §4.
 - **Issue defects.** When `apply-event.js` or `apply-state.js` prints an `issue defects:`
   line (an issue title that names a work level), queue a retitle of that issue in its
   repository's lane, removing the work level, under the executor's standing permission to

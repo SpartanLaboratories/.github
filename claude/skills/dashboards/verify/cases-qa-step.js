@@ -56,10 +56,11 @@ module.exports = function casesQaStep(X) {
     c.push(["a returned verdict naming another step still takes it (an override, as before)", o.a.status === 0 && o.p.wip.step === "plan", js([o.a.status, o.p.wip.step, o.S.error])]);
   });
   /* the Timeline tab's lede while the run waits on the user (plan/RULES.md §2, "Waits on the user are not active time"): no visit runs to now
-     then, so the lede says the run waits rather than that the running step's time runs to now (a static case: the render needs a browser) */
-  guard("the template: the Timeline tab's lede says the run waits on the user while a wait is open, never that a step runs to now", c => {
+     then, so the lede never says a step's time runs to now; and it says nothing of the wait either (decided 2026-11-05: time that is not
+     counted is not mentioned), so it reads as on a board with no step running (a static case: the render needs a browser) */
+  guard("the template: the Timeline tab's lede says nothing of a wait, and never that a step runs to now while none is open", c => {
     const t = rd(PB), line = (t.split(/\r?\n/).find(l => /#timeline-lede"\)\.textContent=/.test(l)) || "");
-    c.push(["the lede reads the open wait first", /\(TS\.waits\|\|\[\]\)\.some\(x=>x\.open\)\?"The run waits on you: no step's time runs until the answer\."/.test(line), line.slice(0, 200)]);
+    c.push(["the lede names no wait (no \"waits on you\", no \"not counted\")", !/waits on you|not counted|TS\.waits/.test(line) && /\$\("#timeline-lede"\)\.textContent=LANDED\?"Hover a segment for its times\.":TL_OPEN\?/.test(line), line.slice(0, 200)]);
     c.push(["…and says a step runs to now only while a visit is open", /TL_OPEN\?"The running step is open-ended: its time runs to now\."/.test(line), line.slice(0, 200)]);
   });
   /* a remediation report's stages (WebTools #65, qa pass 1): the one stage a remediation adds takes the rows the qa findings touch
