@@ -1,5 +1,5 @@
 // The case groups of admin-team/dashboards-skill/32, run by verify-templates.js (it passes its helpers in): the Timeline tile of a landed
-// board as one legend entry per visit of a run step (the step panel's vocabulary, repeats as "qa · 1st pass", "remediation · loop 1"),
+// board as one legend entry per visit of a run step (the step panel's vocabulary, repeats as "Quality Review 1", "Correction", "Correction of Quality Review 2"),
 // each with its start → end and its duration, in place of dashboards-skill/23's four phases in calendar days ("same day"); the bounds from
 // the record only (the snapshots' since and ended, plan.sized, a qa pass's at, the merge's time and the branch's step commits from git, a
 // neighbour's bound where no step of the line lies between), "—" where none; spans in minutes, hours and minutes, or days and hours; the
@@ -51,38 +51,38 @@ module.exports = function cases32(X) {
   /* 1. the rule in lib.js */
   guard("lib.js timelineSteps(): one entry per visit of a run step, its bounds from the record only, \"—\" where none (dashboards-skill/32)", c => {
     const T = lib.timelineSteps(run63()), got63 = L(T);
-    const want63 = ["sizing|-|-|-", "research|by 2026-10-25T12:35:59Z|-|-", "plan|-|-|-", "branch|-|2026-10-25T14:21:18Z|-",
-      "implementation|2026-10-25T14:21:18Z|2026-10-25T19:00:34Z|4 h 39 min", "qa · 1st pass|2026-10-25T19:00:34Z|2026-10-25T19:38:32Z|38 min",
-      "remediation · loop 1|2026-10-25T19:38:32Z|2026-10-25T19:58:08Z|20 min", "qa · 2nd pass|2026-10-25T19:58:08Z|2026-10-25T20:44:31Z|46 min",
-      "remediation · loop 2|2026-10-25T20:44:31Z|2026-10-25T21:38:04Z|54 min", "landing|2026-10-25T21:38:04Z|2026-10-25T21:40:14ZM|2 min"];
+    const want63 = ["Sizing|-|-|-", "Research|by 2026-10-25T12:35:59Z|-|-", "Plan|-|-|-", "Branch|-|2026-10-25T14:21:18Z|-",
+      "Implementation|2026-10-25T14:21:18Z|2026-10-25T19:00:34Z|4 h 39 min", "Quality Review 1|2026-10-25T19:00:34Z|2026-10-25T19:38:32Z|38 min",
+      "Resolution|2026-10-25T19:38:32Z|2026-10-25T19:58:08Z|20 min", "Quality Review 2|2026-10-25T19:58:08Z|2026-10-25T20:44:31Z|46 min",
+      "Correction of Quality Review 2|2026-10-25T20:44:31Z|2026-10-25T21:38:04Z|54 min", "Landing|2026-10-25T21:38:04Z|2026-10-25T21:40:14ZM|2 min"];
     c.push(["#63's run: the steps in the order visited, repeats named by pass and loop, each with its bounds and its duration", js(got63) === js(want63), js(got63)]);
-    c.push(["the steps the record says nothing of are no entry, named apart (the interview)", js(T.left) === js(["interview"]) && lib.timelineLeftOut(T) === "not summed: sizing, research, plan, branch (a bound not recorded) · no record of: interview", lib.timelineLeftOut(T)]);
+    c.push(["the steps the record says nothing of are no entry, named apart (the interview)", js(T.left) === js(["interview"]) && lib.timelineLeftOut(T) === "not summed: Sizing, Research, Plan, Branch (a bound not recorded) · no record of: Interview", lib.timelineLeftOut(T)]);
     c.push(["the figure: the sum of the visits drawn, in hours and minutes (4 h 39 + 38 + 20 + 46 + 54 + 2 min)", lib.tlSpan(lib.timelineTotal(T)) === "7 h 19 min", lib.tlSpan(lib.timelineTotal(T))]);
     c.push(["the last visit ends at the merge (asBuilt.at), not at the pre-merge refresh's landed event", T.visits[9].to.t === "2026-10-25T21:40:14Z" && T.visits[9].to.merge === true, js(T.visits[9])]);
     c.push(["a neighbour's bound across the next step of the line: the branch ends when implementation began", T.visits[3].to && T.visits[3].to.t === "2026-10-25T14:21:18Z", js(T.visits[3])]);
     const nm = run63(); delete nm.asBuilt.at; const Tn = lib.timelineSteps(nm);
-    c.push(["no merge time recorded: the landing ends at its snapshot's end (the record's), 26 min", L(Tn)[9] === "landing|2026-10-25T21:38:04Z|2026-10-25T22:03:35Z|26 min", L(Tn)[9]]);
+    c.push(["no merge time recorded: the landing ends at its snapshot's end (the record's), 26 min", L(Tn)[9] === "Landing|2026-10-25T21:38:04Z|2026-10-25T22:03:35Z|26 min", L(Tn)[9]]);
     const sz = run63(); sz.sized = "2026-10-25T11:54:26Z"; const Ts = lib.timelineSteps(sz);
-    c.push(["plan.sized ends the sizing; never across the interview to the research's start (a step between may hold an unrecorded visit)", L(Ts)[0] === "sizing|-|2026-10-25T11:54:26Z|-" && L(Ts)[1] === "research|by 2026-10-25T12:35:59Z|-|-", js(L(Ts).slice(0, 2))]);
+    c.push(["plan.sized ends the sizing; never across the interview to the research's start (a step between may hold an unrecorded visit)", L(Ts)[0] === "Sizing|-|2026-10-25T11:54:26Z|-" && L(Ts)[1] === "Research|by 2026-10-25T12:35:59Z|-|-", js(L(Ts).slice(0, 2))]);
     const nointv = run63(); nointv.sized = "2026-10-25T11:54:26Z"; nointv.wip.steps = nointv.wip.steps.filter(s => s !== "interview"); const Ti = lib.timelineSteps(nointv);
-    c.push(["…with no interview in the steps line, the research starts when the sizing ended (the next step of the line)", L(Ti)[1] === "research|2026-10-25T11:54:26Z|-|-", L(Ti)[1]]);
+    c.push(["…with no interview in the steps line, the research starts when the sizing ended (the next step of the line)", L(Ti)[1] === "Research|2026-10-25T11:54:26Z|-|-", L(Ti)[1]]);
     const nc = run63(); delete nc.asBuilt.commits;
-    c.push(["no step commit recorded: the research's start is \"—\", never guessed", L(lib.timelineSteps(nc))[1] === "research|-|-|-", L(lib.timelineSteps(nc))[1]]);
+    c.push(["no step commit recorded: the research's start is \"—\", never guessed", L(lib.timelineSteps(nc))[1] === "Research|-|-|-", L(lib.timelineSteps(nc))[1]]);
     const dated = copy(EX), Td = lib.timelineSteps(dated);
     c.push(["a board with dates only (the example): every visit \"—\", no figure, nothing drawn (a date alone is no time)", Td.visits.length > 0 && Td.visits.every(v => !v.from && !v.to && v.ms == null) && lib.timelineTotal(Td) === null, js(L(Td))]);
     const noHist = copy(EX); noHist.wip.qa = [{ pass: 1, verdict: "changes-requested", at: "2026-10-20T09:00:00Z" }, { pass: 2, verdict: "approved", at: "2026-10-20T11:30:00Z" }];
-    const Tq = lib.timelineSteps(noHist), qq = L(Tq).filter(x => /^(qa|remediation)/.test(x));
-    c.push(["no snapshot at qa: a visit per qa pass ending at its at, a remediation loop per pass that requested changes, interleaved, the loop starting where its pass ended",js(qq) === js(["qa · 1st pass|-|2026-10-20T09:00:00Z|-", "remediation · loop 1|2026-10-20T09:00:00Z|-|-", "qa · 2nd pass|-|2026-10-20T11:30:00Z|-"]), js(qq)]);
+    const Tq = lib.timelineSteps(noHist), qq = L(Tq).filter(x => /^(Quality Review|Correction|Resolution)/.test(x));
+    c.push(["no snapshot at qa: a visit per qa pass ending at its at, a remediation loop per pass that requested changes, interleaved, the loop starting where its pass ended",js(qq) === js(["Quality Review 1|-|2026-10-20T09:00:00Z|-", "Correction|2026-10-20T09:00:00Z|-|-", "Quality Review 2|-|2026-10-20T11:30:00Z|-"]), js(qq)]);
     const order = run63(); order.wip.history.qa[0].ended = "2026-10-25T18:00:00Z"; const To = lib.timelineSteps(order);
-    c.push(["bounds out of order: no duration, not drawn, named with that reason", To.visits.some(v => v.order && v.label === "qa · 1st pass") && /not summed: qa · 1st pass \(bounds out of order\)/.test(lib.timelineLeftOut(To)), lib.timelineLeftOut(To)]);
+    c.push(["bounds out of order: no duration, not drawn, named with that reason", To.visits.some(v => v.order && v.label === "Quality Review 1") && /not summed: Quality Review 1 \(bounds out of order\)/.test(lib.timelineLeftOut(To)), lib.timelineLeftOut(To)]);
     /* the shades: since dashboards-skill/34 one per step within its kind of work (verify/cases-34.js), in place of the neutral ramp */
     const sh = T.visits.filter(v => v.ms != null).map(v => [v.step, v.family, v.shade]);
     c.push(["one shade per step within its kind of work, a step's repeats sharing it (dashboards-skill/34)", js(sh) === js([["implementation", "build", 100], ["qa", "checking", 0], ["remediation", "checking", 100], ["qa", "checking", 0], ["remediation", "checking", 100], ["landing", "landing", 50]]), js(sh)]);
     const trk = copy(TRK); Object.assign(trk, { status: "built" }); trk.asBuilt = { ref: "master", sha: "7de8207", date: "2026-10-30", at: "2026-10-30T16:00:00Z" }; trk.wip.step = "landed"; trk.wip.current = [];
     trk.wip.steps = ["sizing", "interview", "research", "architecture", "sub-issues", "boards", "landing", "implementation", "landed"];
     trk.wip.history = { "sub-issues": [H("2026-10-21T10:00:00Z", "2026-10-21T10:40:00Z")], boards: [H("2026-10-21T10:40:00Z", "2026-10-21T11:05:00Z")], landing: [H("2026-10-21T11:05:00Z", "2026-10-22T09:00:00Z")], implementation: [H("2026-10-22T09:00:00Z", "2026-10-30T15:00:00Z")] };
-    const Tt = lib.timelineSteps(trk), tl = L(Tt).filter(x => /^(sub-issues|boards|landing|implementation)/.test(x));
-    c.push(["a tracking board's own steps: filing, its boards, its plan's landing, then its units' runs ending at the last unit's merge, in days and hours", js(tl) === js(["sub-issues|2026-10-21T10:00:00Z|2026-10-21T10:40:00Z|40 min", "boards|2026-10-21T10:40:00Z|2026-10-21T11:05:00Z|25 min", "landing|2026-10-21T11:05:00Z|2026-10-22T09:00:00Z|21 h 55 min", "implementation|2026-10-22T09:00:00Z|2026-10-30T16:00:00ZM|8 days 7 h"]), js(tl)]);
+    const Tt = lib.timelineSteps(trk), tl = L(Tt).filter(x => /^(Sub-issues|Boards|Landing|Implementation)/.test(x));
+    c.push(["a tracking board's own steps: filing, its boards, its plan's landing, then its units' runs ending at the last unit's merge, in days and hours", js(tl) === js(["Sub-issues|2026-10-21T10:00:00Z|2026-10-21T10:40:00Z|40 min", "Boards|2026-10-21T10:40:00Z|2026-10-21T11:05:00Z|25 min", "Landing|2026-10-21T11:05:00Z|2026-10-22T09:00:00Z|21 h 55 min", "Implementation|2026-10-22T09:00:00Z|2026-10-30T16:00:00ZM|8 days 7 h"]), js(tl)]);
   });
 
   /* 2. the spans */
@@ -94,11 +94,11 @@ module.exports = function cases32(X) {
   /* 3. the board */
   guard("the board: the Timeline tile's figure, sub-line, bar and legend of step visits, across a landed board's KPI row (dashboards-skill/32)", c => {
     if (!chrome) { c.push(["the rendered pages (no browser found: set CHROME)", false, "no Chrome or Edge"]); return; }
-    const TILE = 'const st=document.getElementById("t-steps");if(st)st.click();const ks=[...document.querySelectorAll("#kpis>.kpi")],k=document.querySelector("#tl-tile>.kpi"),K=document.getElementById("kpis"),segs=[...k.querySelectorAll(".seg-bar i")],es=[...k.querySelectorAll(".key.tl-steps>.tl-step")];const col=()=>segs.map(i=>getComputedStyle(i).backgroundColor);const light=col();document.documentElement.dataset.theme="dark";const dark=col();const r=x=>x.getBoundingClientRect();document.body.dataset.r=JSON.stringify({l:k.querySelector(".l").textContent,v:k.querySelector(".v").textContent,s:k.querySelector(".s").textContent,segs:segs.map(i=>[Math.round(r(i).width),i.title]),light,dark,es:es.map(e=>[e.querySelector("b").textContent,e.querySelector(".tl-dur").textContent,!!e.querySelector("i.segk.tp"),[...e.querySelectorAll("time")].map(t=>[t.getAttribute("datetime"),t.dataset.local||""]),e.querySelector(".tl-when").textContent]),note:(k.querySelector(".tl-note")||{}).textContent||"",w:Math.round(r(K).width),tw:Math.round(r(k).width),tt:Math.round(r(k).top),ot:ks.map(x=>[Math.round(r(x).width),Math.round(r(x).top)]),txt:k.textContent,sw:document.documentElement.scrollWidth>document.documentElement.clientWidth});';
+    const TILE = 'const st=document.getElementById("t-steps");if(st)st.click();const ks=[...document.querySelectorAll("#kpis>.kpi-tile")],k=document.querySelector("#tl-tile>.kpi-tile"),K=document.getElementById("kpis"),segs=[...k.querySelectorAll(".seg-bar i")],es=[...k.querySelectorAll(".legend.tl-steps>.tl-step")];const col=()=>segs.map(i=>getComputedStyle(i).backgroundColor);const light=col();document.documentElement.dataset.theme="dark";const dark=col();const r=x=>x.getBoundingClientRect();document.body.dataset.r=JSON.stringify({l:k.querySelector(".l").textContent,v:k.querySelector(".v").textContent,s:k.querySelector(".s").textContent,segs:segs.map(i=>[Math.round(r(i).width),i.title]),light,dark,es:es.map(e=>[e.querySelector("b").textContent,e.querySelector(".tl-dur").textContent,!!e.querySelector("i.segk.tp"),[...e.querySelectorAll("time")].map(t=>[t.getAttribute("datetime"),t.dataset.local||""]),e.querySelector(".tl-when").textContent]),note:(k.querySelector(".tl-note")||{}).textContent||"",w:Math.round(r(K).width),tw:Math.round(r(k).width),tt:Math.round(r(k).top),ot:ks.map(x=>[Math.round(r(x).width),Math.round(r(x).top)]),txt:k.textContent,sw:document.documentElement.scrollWidth>document.documentElement.clientWidth});';
     const d = run63(), T = lib.timelineSteps(d);
     const r1 = got(dumpDom(planPage("tl63", d, TILE), "", "1920,1080", 6000)) || {};
     c.push(["the figure, the sum of the visits drawn: \"7 h 19 min\"", r1.l === "Timeline" && r1.v === "7 h 19 min", js([r1.l, r1.v, r1.err])]);
-    c.push(["the sub-line: the run's date, the zone of its times, the visits not summed and the step never recorded", /2026/.test(r1.s || "") && /times \S+/.test(r1.s || "") && /not summed: sizing, research, plan, branch \(a bound not recorded\)/.test(r1.s || "") && /no record of: interview/.test(r1.s || ""), r1.s]);
+    c.push(["the sub-line: the run's date, the zone of its times, the visits not summed and the step never recorded", /2026/.test(r1.s || "") && /times \S+/.test(r1.s || "") && /not summed: Sizing, Research, Plan, Branch \(a bound not recorded\)/.test(r1.s || "") && /no record of: Interview/.test(r1.s || ""), r1.s]);
     c.push(["the legend: one entry per visit, in order, each with its step and duration as lib.js gives them", js((r1.es || []).map(e => [e[0], e[1]])) === js(T.visits.map(v => [v.label, v.ms != null ? lib.tlSpan(v.ms) : "—"])), js((r1.es || []).map(e => [e[0], e[1]]))]);
     c.push(["each timed entry carries its segment's swatch, an untimed one none; one segment per timed visit, each at least 4 px", js((r1.es || []).map(e => e[2])) === js(T.visits.map(v => v.ms != null)) && (r1.segs || []).length === 6 && (r1.segs || []).every(s => s[0] >= 4), js([(r1.es || []).map(e => e[2]), r1.segs])]);
     c.push(["every time is a <time> holding the UTC stamp, shown in the viewer's zone (data-local); a bound not recorded is \"—\"; a \"by\" start and the merge are said", js((r1.es || []).map(e => e[3].map(t => t[0]))) === js(T.visits.map(v => [v.from, v.to].filter(Boolean).map(b => b.t))) && (r1.es || []).every(e => e[3].every(t => t[1] === "1")) && /^— → —$/.test((r1.es || [[]])[0][4] || "") && /^by /.test((r1.es || [[], []])[1][4] || "") && / merged$/.test((r1.es || []).slice(-1)[0] && (r1.es || []).slice(-1)[0][4] || ""), js((r1.es || []).map(e => e[4]))]);
@@ -165,14 +165,14 @@ module.exports = function cases32(X) {
     c.push(["…facts.mergedAt, when the team sends it, is taken as the merge's time", a2.status === 0 && pb.asBuilt.at === "2026-10-25T21:41:00Z", js([a2.status, pb.asBuilt.at])]);
     /* check.js */
     const k1 = run(CHECK, [fdir]);
-    c.push(["check.js reports a landed board's entries with the figure", /ok\s+timeline: [^\n]*landing: [^\n]*the figure: /.test(k1.stdout), (k1.stdout || "").split(/\r?\n/).filter(l => /timeline/.test(l)).join(" | ").slice(0, 400)]);
+    c.push(["check.js reports a landed board's entries with the figure", /ok\s+timeline: [^\n]*Landing: [^\n]*the figure: /.test(k1.stdout), (k1.stdout || "").split(/\r?\n/).filter(l => /timeline/.test(l)).join(" | ").slice(0, 400)]);
     const bad = JSON.parse(rd(path.join(fdir, "plan.json"))); bad.status = "built"; bad.asBuilt.at = "evening"; bad.asBuilt.commits = [{ sha: "zz", at: "x", step: "qa" }];
     wr(path.join(fdir, "plan.json"), JSON.stringify(bad, null, 2) + "\n"); node(embedJs, fdir);
     const k2 = run(CHECK, [fdir]);
     c.push(["check.js fails an asBuilt.at that is no time and a step commit not in its form", k2.status === 1 && /asBuilt\.at "evening" is not an ISO date-time/.test(k2.stdout) && /asBuilt\.commits\[0\] is not \{sha, at/.test(k2.stdout), (k2.stdout || "").split(/\r?\n/).filter(l => /^FAIL|asBuilt/.test(l)).join(" | ").slice(0, 300)]);
     const ord = run63(); Object.assign(ord, { folder, issue: 91, slug: "91-verification-case" }); ord.wip.history.qa[0].ended = "2026-10-25T18:00:00Z"; wr(path.join(fdir, "plan.json"), JSON.stringify(ord, null, 2) + "\n"); node(embedJs, fdir);
     const k3 = run(CHECK, [fdir]);
-    c.push(["check.js warns on a visit whose bounds are out of order", /warn\s+the Timeline tile leaves out qa · 1st pass: its bounds are out of order/.test(k3.stdout), (k3.stdout || "").split(/\r?\n/).filter(l => /Timeline/.test(l)).join(" | ").slice(0, 300)]);
+    c.push(["check.js warns on a visit whose bounds are out of order", /warn\s+the Timeline tile leaves out Quality Review 1: its bounds are out of order/.test(k3.stdout), (k3.stdout || "").split(/\r?\n/).filter(l => /Timeline/.test(l)).join(" | ").slice(0, 300)]);
   });
 
   /* 5. the feature probe */

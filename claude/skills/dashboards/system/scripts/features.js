@@ -84,8 +84,19 @@ const FEATURES = [
     test: h => need(/"sub-issues":\(R,o\)/.test(scripts(h)), "the step panel has no sub-issues step") },
   { id: "quality-review", name: "a qa pass named by its number reads \"Quality Review N\", from the template's PASS_NAME (plan/scripts/passnames.js), never \"qa pass N\"", since: 40, types: ["plan-board"],
     notFor: { system: "no qa passes: a state board shows the code at a commit, not a run", supersystem: "no qa passes: a state board shows the code at a commit, not a run",
-      "work-board": "it names no pass by number of its own (its passes are ordinals); its rows' text comes from board.json, which board.js words so" },
+      "work-board": "held to the board-wording feature instead: its Quality Reviews column names each pass by its number from its names block, and its rows' text comes from board.json, which board.js words so" },
     test: h => { const s = scripts(h); return need(/const PASS_NAME="Quality Review"/.test(s) && !/qa pass \$\{/i.test(s) && !/[`>]Pass \$\{/.test(s), "the template names a qa pass \"qa pass N\" (or \"Pass N\") rather than from PASS_NAME, \"Quality Review N\""); } },
+  /* admin-team/dashboards-skill/board-wording (the user's decisions of 2026-11-06), dated 41: the names a board shows, from the template's
+     names block (plan/scripts/passnames.js, the same names), and the classes renamed to carry their element's type. A board drawn before them
+     keeps its older names and classes until its next rebuild (the splice, its next event, board.js --refresh-template); a landed issue board
+     is kept as it landed (GUIDANCE.md §11). */
+  { id: "board-wording", name: "every name from the template's names block: the qa step \"Quality Review\", a pass \"Quality Review N\" (never an ordinal), one not numbered \"review\", the remediation step \"Correction\" or \"Resolution\" by its route (no \"loop\"), each step by its name", since: 41, types: ["plan-board", "work-board"],
+    notFor: { system: "no run: a state board shows the code at a commit, not a run's steps or reviews", supersystem: "no run: a state board shows the code at a commit, not a run's steps or reviews" },
+    test: (h, k) => { const s = scripts(h), base = /\/\* names:begin\b/.test(s) && /const STEP_NAME=\{/.test(s) && /const stepLabel=/.test(s) && /in place · no additional \$\{REVIEW\}/.test(s) && !/\bordinal\(/.test(s);
+      return need(k === "plan-board" ? base && /const remediationName=/.test(s) && /const REMEDIATION_NOTE="Correction or Resolution after a Quality Review; each step is recorded as it runs"/.test(s) && !/remediation · loop|Loop \$\{i\+1\}|\bqa · \$\{/.test(s) && /function raisedWords\(/.test(s) : base,
+        "the board composes its older names (an ordinal pass, \"qa\" or \"remediation · loop\" for a step, \"no 2nd pass\") rather than from the names block (names:begin, STEP_NAME, stepLabel())"); } },
+  { id: "board-ui-classes", name: "the classes that carry their element's type: .kpi-tile, .verdict-pill, .legend, .c4-legend (never .kpi, .vp, .key, .c4key)", since: 41, types: ALL,
+    test: h => { const c = css(h); const old = (c.match(/\.(?:kpi|vp|key|c4key)(?![-\w])/g) || []); return need(!old.length && /\.legend\{/.test(c), `the board's CSS still uses the older classes (${[...new Set(old)].join(", ") || "no .legend"}): splice it onto the template, or re-render it`); } },
   { id: "waiting-on-you", name: "a board's text says \"waiting on you\", never naming the user in the third person", since: 37, types: ["plan-board", "work-board"],
     notFor: { system: "no run to wait on", supersystem: "no run to wait on" },
     test: h => need(!/waiting on the user/i.test(scripts(h)), "its text still says \"waiting on the user\"") },
@@ -107,7 +118,7 @@ const FEATURES = [
   { id: "kpi-tile-legends", name: "each KPI tile's legend inside the tile, no shared legend row under the tiles", since: 22, types: BOARDS,
     notFor: { system: "its tiles are hand-written counted facts with no bar, so no legend", supersystem: "no KPI tiles" },
     test: (h, k) => k === "plan-board" ? need(/function kpiKeys\(/.test(scripts(h)) && !/kpikey|kpi-key/.test(h), /kpikey|kpi-key/.test(h) ? "the tiles still share one legend row (kpi-key)" : "no tile carries its own legend (kpiKeys())")
-      : need(/\.kpi \.key\{/.test(css(h)), "the tiles carry no legend of their own (.kpi .key)") },
+      : need(/\.kpi(?:-tile)? \.(?:key|legend)\{/.test(css(h)), "the tiles carry no legend of their own (.kpi-tile .legend)") },
   { id: "no-model-tag", name: "no \"board\" tag in the header (it repeated the KPI tiles; the source is in the footer and the Source tab)", since: 22, types: BOARDS,
     notFor: { system: "its C4 model tag names the DSL the board renders, with counts no tile repeats", supersystem: "its C4 model tag names the DSL the board renders, with counts no tile repeats" },
     test: h => need(!/tag\("board",/.test(scripts(h)), "the header still draws the \"board\" tag") },
@@ -134,7 +145,7 @@ const FEATURES = [
     test: h => { const s = scripts(h), c = css(h); return need((/function timelinePhases\(/.test(s) && /o\.timeline=key\(/.test(s) && /\.tp-1\{--tp:/.test(c) && /\.tp-4\{--tp:/.test(c)) || /function timelineSteps\(/.test(s), "the Timeline tile draws no bar of its phases (timelinePhases(), the tp shades)"); } },
   { id: "ref-number", name: "a reference's section number before its excerpt: from its file's headings (refNumber), else its anchor's number marked \"?\"", since: 23, types: ["plan-board"],
     notFor: { system: "no statements with plan references", supersystem: "no statements with plan references", "work-board": "no statements: one row per run" },
-    test: h => { const s = scripts(h); return need(/const refNumShown=/.test(s) && /refMarked\(/.test(s) && /\.key b\.srefk\{/.test(css(h)), "a reference with no excerpt still reads its whole anchor (\"§ 42-the-fix\"), with no section number from refNumber"); } },
+    test: h => { const s = scripts(h); return need(/const refNumShown=/.test(s) && /refMarked\(/.test(s) && /\.(?:key|legend) b\.srefk\{/.test(css(h)), "a reference with no excerpt still reads its whole anchor (\"§ 42-the-fix\"), with no section number from refNumber"); } },
   { id: "level-phrases", name: "no work level in the board's data, its scope and re-pass phrases included (\"inside level 3\", \"a level-3 re-pass\", \"Label level: 3\")", since: 23, types: ALL,
     /* an issue's title is quoted verbatim and left out of the scan (dashboards-skill/28): one that names a work level is a defect in the
        issue, flagged by check.js and check-board.js (ISSUE TITLE NAMES A WORK LEVEL: #n), never a missing feature of the board */
@@ -159,9 +170,9 @@ const FEATURES = [
     notFor: { system: "no Systems tab: it is the board of one system", "plan-board": "its systems tag links a system's board from the files on disk (embed.js), whatever its status", "work-board": "no system cards: it links the repository state board and the boards" },
     test: h => need(/its built parts' (?:board|page)/.test(scripts(h)), "the Systems tab says \"no board yet\" on a planned supersystem whose built parts have a board") },
   /* admin-team/dashboards-skill/30 */
-  { id: "qa-passes-shown", name: "every qa pass a board records and the pass running (qaShown()), each numbered as an ordinal (1st, 2nd, 3rd)", since: 30, types: BOARDS,
+  { id: "qa-passes-shown", name: "every Quality Review a board records and the one running (qaShown()), each by its number (\"Quality Review 2\"; an ordinal before dashboards-skill/41)", since: 30, types: BOARDS,
     notFor: { system: "no qa passes: a state board shows the code at a commit, not a run", supersystem: "no qa passes: a state board shows the code at a commit, not a run" },
-    test: h => { const s = scripts(h); return need(/function qaShown\(/.test(s) && /const ordinal=/.test(s) && /\$\{ordinal\(p\.pass\)\}/.test(s), "the qa passes leave out the pass running, or number the passes 1, 2 rather than 1st, 2nd (qaShown(), ordinal())"); } },
+    test: h => { const s = scripts(h); return need(/function qaShown\(/.test(s) && (/\$\{passName\(p\.pass\)\}/.test(s) || (/const ordinal=/.test(s) && /\$\{ordinal\(p\.pass\)\}/.test(s))), "the Quality Reviews leave out the one running, or are not named by their number (qaShown(), passName())"); } },
   { id: "dependency-pills", name: "each dependency with its build state (blocking, clear, pre-built) and its locality (repo, org, parent org, external), and what an issue holds up (blocks or enables)", since: 30, types: BOARDS,
     notFor: { system: "a state board is as-is and names no issue above its Context; its Context lists issues open or closed, not their dependencies", supersystem: "a state board is as-is and names no issue above its Context; its Context lists issues open or closed, not their dependencies" },
     test: (h, k) => { const s = scripts(h), base = /const dep(?:Pill|Bubble)=/.test(s) && /const LOC=\{/.test(s) && /const HOLD=\{/.test(s) && /\.loc\.l4\{/.test(css(h));
@@ -177,11 +188,11 @@ const FEATURES = [
   /* admin-team/dashboards-skill/32 */
   { id: "timeline-steps", name: "the Timeline tile of a landed board: one line per visit of a run step, its start → end and duration from the record only (— where none), in hours and minutes, the bar one segment per timed visit", since: 32, types: ["plan-board"],
     notFor: { system: "its tiles are hand-written counted facts: a state board shows no run's steps", supersystem: "no KPI tiles", "work-board": "one row per run and no Timeline tile: its Landed tile counts runs and shows no time; each run's steps are on its own board" },
-    test: h => { const s = scripts(h), c = css(h); return need(/function timelineSteps\(/.test(s) && /const tlSpan=/.test(s) && /function timelineTile\(/.test(s) && /class="key tl-steps"/.test(s) && (c.includes(".kpis:has(>.kpi>.key.tl-steps){") || c.includes(".tl-tile>.kpi{")) /* across the KPI row (dashboards-skill/32), or across the Timeline tab (dashboards-skill/34) */, "the Timeline tile shows phases in calendar days (\"same day\"), not one line per run step with its times (timelineSteps(), tlSpan(), timelineTile())"); } },
+    test: h => { const s = scripts(h), c = css(h); return need(/function timelineSteps\(/.test(s) && /const tlSpan=/.test(s) && /function timelineTile\(/.test(s) && /class="(?:key|legend) tl-steps"/.test(s) && (c.includes(".kpis:has(>.kpi>.key.tl-steps){") || c.includes(".tl-tile>.kpi{") || c.includes(".tl-tile>.kpi-tile{")) /* across the KPI row (dashboards-skill/32), or across the Timeline tab (dashboards-skill/34) */, "the Timeline tile shows phases in calendar days (\"same day\"), not one line per run step with its times (timelineSteps(), tlSpan(), timelineTile())"); } },
   /* admin-team/dashboards-skill/34 */
   { id: "timeline-families", name: "the Timeline tile coloured by kind of work (planning, build, checking, landing), a shade per step, a mark before each step line and a legend of the families", since: 34, types: ["plan-board"],
     notFor: { system: "its tiles are hand-written counted facts: a state board shows no run's steps", supersystem: "no KPI tiles", "work-board": "one row per run and no Timeline tile: each run's steps are on its own board" },
-    test: h => { const s = scripts(h), c = css(h); return need(/const TL_FAMILIES=/.test(s) && /class="key tl-fams"/.test(s) && /--wk-planning-a:/.test(c) && /--wk-landing-b:/.test(c) && c.includes(".key i.segk.tl-out{"), "the Timeline tile draws its steps in a neutral ink ramp, with no kinds of work (TL_FAMILIES, the --wk tokens, the families legend)"); } },
+    test: h => { const s = scripts(h), c = css(h); return need(/const TL_FAMILIES=/.test(s) && /class="(?:key|legend) tl-fams"/.test(s) && /--wk-planning-a:/.test(c) && /--wk-landing-b:/.test(c) && (c.includes(".key i.segk.tl-out{") || c.includes(".legend i.segk.tl-out{")), "the Timeline tile draws its steps in a neutral ink ramp, with no kinds of work (TL_FAMILIES, the --wk tokens, the families legend)"); } },
   { id: "timeline-approx", name: "the Timeline tile reads approximate bounds (asBuilt.approx, ≈), never as recorded times", since: 34, types: ["plan-board"],
     notFor: { system: "no Timeline tile", supersystem: "no KPI tiles", "work-board": "no Timeline tile" },
     test: h => need(/function approxBounds\(/.test(scripts(h)) && /function timelineApproxNote\(/.test(scripts(h)), "the Timeline tile ignores asBuilt.approx (approxBounds(), timelineApproxNote())") },

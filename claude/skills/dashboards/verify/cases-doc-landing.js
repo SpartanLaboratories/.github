@@ -40,12 +40,12 @@ module.exports = function casesDocLanding(X) {
   guard("the Document step's document-landing task: the team's, after State boards, a run's list never undoing it", c => {
     const T = tree("task", building()), ev = evIn(T);
     const e1 = ev("document", at(0), { tasks: SIX.map((id, i) => ({ id, state: i ? "todo" : "current" })) });
-    c.push(["a run's six tasks: the board lists seven, Document-landing commit last, to come, and not every task done", e1.a.status === 0 && js(tasks(e1.p).map(t => t.id)) === js([...SIX, "document-landing"]) && stateOf(e1.p, "document-landing") === "todo" && tasks(e1.p)[6].name === "Document-landing commit" && /0 of 7 tasks done/.test(e1.p.wip.detail || "") && e1.S.enrich === "no", js([e1.a.status, tasks(e1.p), e1.p.wip.detail, e1.S.enrich, e1.S.why])]);
+    c.push(["a run's six tasks: the board lists seven, Document commit last, to come, and not every task done", e1.a.status === 0 && js(tasks(e1.p).map(t => t.id)) === js([...SIX, "document-landing"]) && stateOf(e1.p, "document-landing") === "todo" && tasks(e1.p)[6].name === "Document commit" && /0 of 7 tasks done/.test(e1.p.wip.detail || "") && e1.S.enrich === "no", js([e1.a.status, tasks(e1.p), e1.p.wip.detail, e1.S.enrich, e1.S.why])]);
     const e2 = ev("document", at(1), { tasks: SIX.map(id => ({ id, state: id === "state-boards" ? "current" : "done" })) });
     const e3 = ev("state-boards", at(2));
     c.push(["state-boards accepted: its task current, the commit still to come", e3.a.status === 0 && stateOf(e3.p, "state-boards") === "current" && stateOf(e3.p, "document-landing") === "todo", js(tasks(e3.p))]);
     const e4 = ev("state-boards", at(3), { done: true });
-    c.push(["state-boards with facts.done: its task done, the commit current, the step staying at document, the detail naming it", e4.a.status === 0 && stateOf(e4.p, "state-boards") === "done" && stateOf(e4.p, "document-landing") === "current" && e4.p.wip.step === "document" && /Document-landing commit current/.test(e4.p.wip.detail || ""), js([tasks(e4.p), e4.p.wip.detail])]);
+    c.push(["state-boards with facts.done: its task done, the commit current, the step staying at document, the detail naming it", e4.a.status === 0 && stateOf(e4.p, "state-boards") === "done" && stateOf(e4.p, "document-landing") === "current" && e4.p.wip.step === "document" && /Document commit current/.test(e4.p.wip.detail || ""), js([tasks(e4.p), e4.p.wip.detail])]);
     const e5 = ev("document", at(4), { tasks: SIX.map(id => ({ id, state: "done" })) });
     c.push(["a run's document event after it, six tasks: the commit stays current", e5.a.status === 0 && stateOf(e5.p, "document-landing") === "current" && /6 of 7 tasks done/.test(e5.p.wip.detail || ""), js([tasks(e5.p), e5.p.wip.detail])]);
     const e5b = ev("document", at(5), { tasks: [{ id: "state-boards", state: "current" }, { id: "document-landing", state: "todo" }] });

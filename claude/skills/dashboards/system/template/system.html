@@ -86,10 +86,10 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 
 /* KPIs */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px;margin:14px 0 18px}
-.kpi{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0}
-.kpi .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
-.kpi .v{font-size:22px;font-weight:700;letter-spacing:-.01em;margin-top:2px;font-variant-numeric:tabular-nums}
-.kpi .s{font-size:12px;color:var(--ink-2);margin-top:2px}
+.kpi-tile{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0}
+.kpi-tile .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.kpi-tile .v{font-size:22px;font-weight:700;letter-spacing:-.01em;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi-tile .s{font-size:12px;color:var(--ink-2);margin-top:2px}
 
 /* tabs + stage */
 .tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow-x:auto;overflow-y:hidden}
@@ -123,23 +123,23 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .linkbtn:hover{border-color:var(--ink)}
 .tchip{display:inline-block;font:11px var(--mono);padding:3px 6px;border:1px solid var(--line);border-radius:3px;margin:2px 4px 0 0;color:var(--ink-2)}
 .tchip.server{border-left:3px solid var(--server)}.tchip.client{border-left:3px solid var(--client)}
-/* Legends. Every tab carries one .key (the C4 tab's is .c4key): its colour grouping, then its line and shape encodings,
+/* Legends. Every tab carries one .legend (the C4 tab's is .c4-legend): its colour grouping, then its line and shape encodings,
    ending with planned. check-board.js fails a tab without a visible one. */
-.key{display:flex;flex-wrap:wrap;gap:8px 16px;margin:10px 0 0;font-size:12px;color:var(--ink-2)}
-.key span{display:inline-flex;align-items:center;gap:6px}
-.key i{display:inline-block;width:16px;height:11px;border-radius:3px;border:1.5px solid var(--ink-2);background:var(--surface);flex:none}
-.key i.pub{background:var(--surface-2)}.key i.std{border-style:dotted}.key i.pln{border-style:dashed;background:none;opacity:.6}
-.key i.srv{border-color:var(--server)}.key i.cli{border-color:var(--client)}.key i.wir{border-color:var(--wire)}
-.key i.pub.srv{background:var(--server-soft)}.key i.pub.cli{background:var(--client-soft)}.key i.pub.wir{background:var(--wire-soft)}
-.key i.con{border-color:var(--ink)}.key i.ext{border-color:var(--muted);background:var(--surface-2)}
-.key i.bs{border-left:4px solid var(--server)}.key i.bc{border-left:4px solid var(--client)}.key i.bw{border-left:4px solid var(--wire)}
-.key i.ph1{background:var(--ph-1);border-color:var(--ph-1)}.key i.ph2{background:var(--ph-2);border-color:var(--ph-2)}.key i.ph3{background:var(--ph-3);border-color:var(--ph-3)}
-.key i.ln{width:18px;height:0;border:0;border-top:2px solid var(--ink-2);border-radius:0;background:none}.key i.ln.dash{border-top-style:dashed}.key i.ln.ret{position:relative;border-top-width:1px;width:20px}.key i.ln.ret::after{content:"";position:absolute;right:0;top:-4px;width:6px;height:6px;border-top:1.2px solid var(--ink-2);border-right:1.2px solid var(--ink-2);transform:rotate(45deg)}.key i.ln.on{border-top:2.5px solid var(--on)}.key i.ln.off{border-top-color:var(--line)}
-.key i.hex{border:0;border-radius:0;background:var(--ink-2);clip-path:polygon(22% 0,78% 0,100% 50%,78% 100%,22% 100%,0 50%)}
-.key i.end{border-radius:1px;border-color:var(--line);border-left-width:4px;background:var(--surface-2)}
-.key i.band{border:0;background:var(--surface-2)}
-.key i.dot{width:10px;height:10px;border:0;border-radius:50%;background:var(--ink)}
-.key .pill{align-self:center}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin:10px 0 0;font-size:12px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:16px;height:11px;border-radius:3px;border:1.5px solid var(--ink-2);background:var(--surface);flex:none}
+.legend i.pub{background:var(--surface-2)}.legend i.std{border-style:dotted}.legend i.pln{border-style:dashed;background:none;opacity:.6}
+.legend i.srv{border-color:var(--server)}.legend i.cli{border-color:var(--client)}.legend i.wir{border-color:var(--wire)}
+.legend i.pub.srv{background:var(--server-soft)}.legend i.pub.cli{background:var(--client-soft)}.legend i.pub.wir{background:var(--wire-soft)}
+.legend i.con{border-color:var(--ink)}.legend i.ext{border-color:var(--muted);background:var(--surface-2)}
+.legend i.bs{border-left:4px solid var(--server)}.legend i.bc{border-left:4px solid var(--client)}.legend i.bw{border-left:4px solid var(--wire)}
+.legend i.ph1{background:var(--ph-1);border-color:var(--ph-1)}.legend i.ph2{background:var(--ph-2);border-color:var(--ph-2)}.legend i.ph3{background:var(--ph-3);border-color:var(--ph-3)}
+.legend i.ln{width:18px;height:0;border:0;border-top:2px solid var(--ink-2);border-radius:0;background:none}.legend i.ln.dash{border-top-style:dashed}.legend i.ln.ret{position:relative;border-top-width:1px;width:20px}.legend i.ln.ret::after{content:"";position:absolute;right:0;top:-4px;width:6px;height:6px;border-top:1.2px solid var(--ink-2);border-right:1.2px solid var(--ink-2);transform:rotate(45deg)}.legend i.ln.on{border-top:2.5px solid var(--on)}.legend i.ln.off{border-top-color:var(--line)}
+.legend i.hex{border:0;border-radius:0;background:var(--ink-2);clip-path:polygon(22% 0,78% 0,100% 50%,78% 100%,22% 100%,0 50%)}
+.legend i.end{border-radius:1px;border-color:var(--line);border-left-width:4px;background:var(--surface-2)}
+.legend i.band{border:0;background:var(--surface-2)}
+.legend i.dot{width:10px;height:10px;border:0;border-radius:50%;background:var(--ink)}
+.legend .pill{align-self:center}
 
 /* structure svg */
 .band{fill:var(--surface-2)}
@@ -239,12 +239,12 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .c4head .desc{font-size:12.5px;color:var(--ink-2)}
 .c4canvas{border:1px solid var(--line);border-radius:6px;padding:6px;background-color:var(--surface);background-image:radial-gradient(var(--line) 1px,transparent 1.2px);background-size:22px 22px;overflow-x:auto}
 .c4canvas svg{max-width:none}
-.c4key{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0 0;font-size:11.5px;color:var(--ink-2)}
-.c4key span{display:inline-flex;align-items:center;gap:6px}
-.c4key i{display:inline-block;width:16px;height:11px;border-radius:3px;border:1.5px solid rgba(0,0,0,.35)}
-.c4key i.arrow{width:18px;height:0;border:0;border-top:1.5px solid var(--rel);border-radius:0}
-.c4key i.arrow.dashed{border-top-style:dashed}
-.c4key i.frame{background:var(--surface-2);border:1.5px solid var(--line);border-radius:4px}
+.c4-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0 0;font-size:11.5px;color:var(--ink-2)}
+.c4-legend span{display:inline-flex;align-items:center;gap:6px}
+.c4-legend i{display:inline-block;width:16px;height:11px;border-radius:3px;border:1.5px solid rgba(0,0,0,.35)}
+.c4-legend i.arrow{width:18px;height:0;border:0;border-top:1.5px solid var(--rel);border-radius:0}
+.c4-legend i.arrow.dashed{border-top-style:dashed}
+.c4-legend i.frame{background:var(--surface-2);border:1.5px solid var(--line);border-radius:4px}
 .c4el{cursor:pointer}
 .c4el .card{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
 .c4el .hdr{stroke:none}
@@ -370,13 +370,13 @@ pre.dsl .c{color:var(--muted)} pre.dsl .k{color:var(--server);font-weight:600} p
 .chainprog{display:inline-flex;align-items:center;gap:6px;font:11px var(--mono);color:var(--ink-2);white-space:nowrap}
 .cbar{display:inline-block;width:60px;height:5px;border-radius:3px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;vertical-align:middle}
 .cbar i{display:block;height:100%;background:var(--good)}
-.key .cbar{width:40px}
-.key i.swk{width:10px;height:10px;border:0;border-radius:2px;background:var(--c,var(--muted))}
-.key i.barsk{height:6px;border:0;border-radius:0 3px 3px 0;background:var(--ink-2)}
-.key i.gapk{border:0;background:none;width:auto;height:auto;font-style:italic;color:var(--muted)}
-.key .badge{align-self:center}
+.legend .cbar{width:40px}
+.legend i.swk{width:10px;height:10px;border:0;border-radius:2px;background:var(--c,var(--muted))}
+.legend i.barsk{height:6px;border:0;border-radius:0 3px 3px 0;background:var(--ink-2)}
+.legend i.gapk{border:0;background:none;width:auto;height:auto;font-style:italic;color:var(--muted)}
+.legend .badge{align-self:center}
 /* the Guarantees' and the Context's legends (GUIDANCE.md §2), generated from what each section draws */
-.guarantees>.key,.context>.key{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-top:10px}
+.guarantees>.legend,.context>.legend{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-top:10px}
 .badge.planned{border-style:dashed}
 .badge.closed{color:var(--muted)}
 .tags{display:inline-flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
@@ -446,12 +446,12 @@ footer code{color:var(--ink-2)}
 
 <section class="kpis" aria-label="Key figures">
   <!-- fill: six counted facts, each with its basis in the sub-line. Count them; do not estimate. -->
-  <div class="kpi"><div class="l">Source</div><div class="v">n files</div><div class="s">n lines · package(s)</div></div>
-  <div class="kpi"><div class="l">Types</div><div class="v">n public</div><div class="s">n internal</div></div>
-  <div class="kpi"><div class="l">Threads</div><div class="v">n named</div><div class="s">how they split</div></div>
-  <div class="kpi"><div class="l">Contracts</div><div class="v">n</div><div class="s">interfaces · wire formats · protocols</div></div>
-  <div class="kpi"><div class="l">Tests</div><div class="v">n classes</div><div class="s">across n testing levels</div></div>
-  <div class="kpi"><div class="l">Open issues</div><div class="v">n</div><div class="s">n bugs · n planned · n untyped</div></div>
+  <div class="kpi-tile"><div class="l">Source</div><div class="v">n files</div><div class="s">n lines · package(s)</div></div>
+  <div class="kpi-tile"><div class="l">Types</div><div class="v">n public</div><div class="s">n internal</div></div>
+  <div class="kpi-tile"><div class="l">Threads</div><div class="v">n named</div><div class="s">how they split</div></div>
+  <div class="kpi-tile"><div class="l">Contracts</div><div class="v">n</div><div class="s">interfaces · wire formats · protocols</div></div>
+  <div class="kpi-tile"><div class="l">Tests</div><div class="v">n classes</div><div class="s">across n testing levels</div></div>
+  <div class="kpi-tile"><div class="l">Open issues</div><div class="v">n</div><div class="s">n bugs · n planned · n untyped</div></div>
 </section>
 
 <div class="tabs" role="tablist" aria-label="Views">
@@ -473,7 +473,7 @@ footer code{color:var(--ink-2)}
     <!-- fill: the legend names this board's colour groups. side = server | client | wire are the board's three hue slots
          (blue, purple, teal: registry slots 1 to 3, never a status hue) and keep their meaning on every tab; label them for what they are in this system (MODEL.sides
          holds the same names). Fill = public, outline = internal, dotted = standalone, dashed and faded = planned. -->
-    <div class="key"><span><i class="pub srv"></i>public · side A</span><span><i class="srv"></i>internal · side A</span><span><i class="pub cli"></i>public · side B</span><span><i class="cli"></i>internal · side B</span><span><i class="pub wir"></i>public · shared</span><span><i class="wir"></i>internal · shared</span><span><i class="std"></i>standalone, outside the stack</span><span><i class="pln"></i>planned, not built</span></div>
+    <div class="legend"><span><i class="pub srv"></i>public · side A</span><span><i class="srv"></i>internal · side A</span><span><i class="pub cli"></i>public · side B</span><span><i class="cli"></i>internal · side B</span><span><i class="pub wir"></i>public · shared</span><span><i class="wir"></i>internal · shared</span><span><i class="std"></i>standalone, outside the stack</span><span><i class="pln"></i>planned, not built</span></div>
   </section>
 
   <section class="view" role="tabpanel" id="p-c4" aria-labelledby="t-c4" hidden>
@@ -484,7 +484,7 @@ footer code{color:var(--ink-2)}
       <div class="c4main">
         <div class="c4head" id="c4-head"></div>
         <div class="c4canvas" id="c4-canvas"><svg id="svg-c4" viewBox="0 0 900 300" role="img" aria-label="C4 view"></svg></div>
-        <div class="c4key" id="c4-key"></div>
+        <div class="c4-legend" id="c4-key"></div>
         <pre class="dsl" id="dsl-view" hidden></pre>
       </div>
     </div>
@@ -504,7 +504,7 @@ footer code{color:var(--ink-2)}
       </div>
       <div class="tside"><h3>Side B</h3></div>
     </div>
-    <div class="key"><span><i class="bs"></i>side A</span><span><i class="bc"></i>side B</span><span><span class="pill eager">eager</span>created at start-up</span><span><span class="pill lazy">lazy</span>created on first use</span><span><span class="pill cond">if …</span>only under a condition</span><span><span class="pill planned">planned</span>planned, not built</span><span><i class="dot"></i>does the work (table below)</span></div>
+    <div class="legend"><span><i class="bs"></i>side A</span><span><i class="bc"></i>side B</span><span><span class="pill eager">eager</span>created at start-up</span><span><span class="pill lazy">lazy</span>created on first use</span><span><span class="pill cond">if …</span>only under a condition</span><span><span class="pill planned">planned</span>planned, not built</span><span><i class="dot"></i>does the work (table below)</span></div>
     <h2 style="margin-top:16px">Who sends what</h2>
     <p class="lede">Which thread performs each kind of outbound work. <!-- fill: keep or delete --></p>
     <div class="scroll"><table class="matrix">
@@ -522,7 +522,7 @@ footer code{color:var(--ink-2)}
     <p class="outcome" id="outcome"></p>
     <svg id="svg-flow" viewBox="0 0 980 580" role="img" aria-label="Decision path"></svg>
     <!-- generated from the flow on screen: its shapes, the outcome levels its ends use (status colours, each with its label), lit and faded, planned -->
-    <div class="key" id="flow-key"></div>
+    <div class="legend" id="flow-key"></div>
   </section>
 
   <section class="view" role="tabpanel" id="p-reliable" aria-labelledby="t-reliable" hidden>
@@ -536,7 +536,7 @@ footer code{color:var(--ink-2)}
     </div>
     <svg id="svg-seq" viewBox="0 0 1000 600" role="img" aria-label="Sequence diagram"></svg>
     <!-- generated: the lifeline owners present (their side's hue, as on Structure and Threads), the line encodings, planned -->
-    <div class="key" id="seq-key"></div>
+    <div class="legend" id="seq-key"></div>
   </section>
 
   <section class="view" role="tabpanel" id="p-lifecycles" aria-labelledby="t-lifecycles" hidden>
@@ -551,7 +551,7 @@ footer code{color:var(--ink-2)}
       <div class="card ph2"><h3>Rules</h3>
         <div class="callout"><b>Lock order</b>, re-entrancy, idempotency, ordering guarantees — one callout each, stated as the code enforces them.</div></div>
     </div>
-    <div class="key"><span><i class="ph1"></i>start · creation</span><span><i class="ph2"></i>run · steady state and its rules</span><span><i class="ph3"></i>stop · teardown</span><span><i class="pln"></i>planned, not built</span></div>
+    <div class="legend"><span><i class="ph1"></i>start · creation</span><span><i class="ph2"></i>run · steady state and its rules</span><span><i class="ph3"></i>stop · teardown</span><span><i class="pln"></i>planned, not built</span></div>
   </section>
 </div>
 
@@ -904,8 +904,10 @@ function parseDsl(src){
   });
   return M;
 }
+/* a count and its noun, "1 view", "2 views" */
+const plural=(n,one,many)=>`${n} ${Number(n)===1?one:(many||one+"s")}`;
 const C4=parseDsl(document.getElementById("dsl").textContent);
-$("#dsl-stats").textContent=`${C4.order.length} elements · ${C4.rels.length} relationships · ${C4.views.length} views`;
+$("#dsl-stats").textContent=`${plural(C4.order.length,"element")} · ${plural(C4.rels.length,"relationship")} · ${plural(C4.views.length,"view")}`;
 
 const el=id=>C4.elements[id];
 /* Planned, from the data (system/RULES.md §2, "Planned parts"): a part tied to a DSL element — a structure node through MODEL.c4 or its
@@ -1087,7 +1089,7 @@ function inspectC4(){
   if(!$("#dsl-view").hidden) return showDsl();
   const {v,R}=c4View, [lv,lname]=LEVEL[v.type], sel=$("#svg-c4 .c4el.sel"), cur=$("#svg-c4 .c4rel.cur");
   if(sel) selectC4(sel.dataset.id); else if(cur) selectC4Step(+cur.dataset.num); else if(v.type==="dynamic") c4StepList();
-  else inspect(`<div class="kicker">C4 · LEVEL ${lv} · ${lname.toUpperCase()}</div><div class="name">${esc(v.key)}</div><div class="vis">${R.els.length} elements · ${R.rels.length} relationships · from workspace.dsl</div><p>${esc(v.desc||"")}</p><p>Hover an element to trace its relationships; click it for its description, technology, tags and what it uses and is used by.</p>`);
+  else inspect(`<div class="kicker">C4 · LEVEL ${lv} · ${lname.toUpperCase()}</div><div class="name">${esc(v.key)}</div><div class="vis">${plural(R.els.length,"element")} · ${plural(R.rels.length,"relationship")} · from workspace.dsl</div><p>${esc(v.desc||"")}</p><p>Hover an element to trace its relationships; click it for its description, technology, tags and what it uses and is used by.</p>`);
 }
 function selectC4(id){
   const e=el(id); c4Sel=id;
@@ -1122,7 +1124,7 @@ function showDsl(){
   document.querySelectorAll("#c4-ladder .rung").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v==="dsl")));
   $("#c4-canvas").hidden=true; $("#c4-head").hidden=true; $("#c4-key").hidden=true; const pre=$("#dsl-view"); pre.hidden=false;
   if(!pre.dataset.done){ pre.dataset.done="1"; pre.innerHTML=document.getElementById("dsl").textContent.trim().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/(\/\/.*)$/gm,'<span class="c">$1</span>').replace(/^(\s*)(workspace|model|views|styles|element|person|softwareSystem|container|component|systemContext|dynamic|include|autoLayout|!identifiers)\b/gm,'$1<span class="k">$2</span>').replace(/("[^"]*")/g,'<span class="s">$1</span>'); }
-  inspect(`<div class="kicker">C4 · SOURCE</div><div class="name">workspace.dsl</div><div class="vis">${C4.order.length} elements · ${C4.rels.length} relationships · ${C4.views.length} views · ${C4.styles.length} styles</div><p>The committed file. It is edited when a run changes the structure and re-embedded here verbatim, and the views above follow. <code>structurizr-cli export -workspace workspace.dsl -format plantuml</code> renders the same model outside this board.</p>`);
+  inspect(`<div class="kicker">C4 · SOURCE</div><div class="name">workspace.dsl</div><div class="vis">${plural(C4.order.length,"element")} · ${plural(C4.rels.length,"relationship")} · ${plural(C4.views.length,"view")} · ${plural(C4.styles.length,"style")}</div><p>The committed file. It is edited when a run changes the structure and re-embedded here verbatim, and the views above follow. <code>structurizr-cli export -workspace workspace.dsl -format plantuml</code> renders the same model outside this board.</p>`);
 }
 (function buildLadderAndKey(){
   const host=$("#c4-ladder"), levels=C4.views.filter(v=>v.type!=="dynamic");
@@ -1296,9 +1298,9 @@ renderState();
    data-landed="n" data-total="m"></span>, is drawn here: "chain n of m landed" and its bar. */
 function sectionKeys(){
   document.querySelectorAll(".chainprog[data-total]").forEach(e=>{ const n=+e.dataset.landed||0, m=+e.dataset.total||0, pct=m?Math.round(100*n/m):0;
-    e.innerHTML=`chain ${n} of ${m} landed <span class="cbar" role="img" aria-label="${n} of ${m} units landed"><i style="width:${pct}%"></i></span>`; });
+    e.innerHTML=`chain ${n} of ${m} landed <span class="cbar" role="img" aria-label="${n} of ${plural(m,"unit")} landed"><i style="width:${pct}%"></i></span>`; });
   const put=(sec,id,entries)=>{ if(!sec) return; let k=document.getElementById(id); const html=entries.filter(Boolean).join("");
-    if(!html){ if(k) k.remove(); return; } if(!k){ k=document.createElement("div"); k.className="key"; k.id=id; sec.appendChild(k); } k.innerHTML=html; };
+    if(!html){ if(k) k.remove(); return; } if(!k){ k=document.createElement("div"); k.className="legend"; k.id=id; sec.appendChild(k); } k.innerHTML=html; };
   const G=document.querySelector("section.guarantees"), C=document.querySelector("section.context"), has=(s,q)=>!!(s&&s.querySelector(q));
   const swatches=(s,cls)=>typeof sysKey==="function"&&s?sysKey([...new Set([...s.querySelectorAll("[data-sys]")].map(e=>e.dataset.sys))],cls):"";
   put(G,"guarantees-key",[swatches(G,"swk"),

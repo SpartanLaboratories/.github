@@ -154,11 +154,11 @@ function elideNamed(p) {
   for (let i = ranges.length - 1; i >= 0; i--) p = p.slice(0, ranges[i].start) + "…" + p.slice(ranges[i].end);
   return p.replace(/…(?:\s*…)+/g, "…");
 }
-/* The label a reference shows, "(§4.2)": the statement's own label, else the heading's leading section number ("4.2", "A-3", "T-1"),
-   else the heading itself (shortened); until an excerpt is copied, the section number its anchor names (refNumber, below: read from
-   the referenced file's headings, or from the anchor alone and marked "?"), else the anchor. The board derives it the same way
-   (stmtLabel()). */
-const HEAD_NUM = /^((?:\d+\.)*\d+|[A-Z][A-Za-z0-9]?-[A-Za-z0-9]+)\.?(?=\s|$)/;
+/* The label a reference shows, "(§4.2)": the statement's own label, else the heading's leading section number ("4.2", "A-3", "T-1", or a
+   letter before a number: "R2", "R2.1"), else the heading itself (shortened); until an excerpt is copied, the section number its anchor
+   names (refNumber, below: read from the referenced file's headings, or from the anchor alone and marked "?"), else the anchor.
+   The board derives it the same way (stmtLabel()). */
+const HEAD_NUM = /^((?:\d+\.)*\d+|[A-Z]\d+(?:\.\d+)*|[A-Z][A-Za-z0-9]?-[A-Za-z0-9]+)\.?(?=\s|$)/;
 function refLabel(s) {
   if (s && typeof s.label === "string" && s.label.trim()) return s.label.trim();
   const h = s && s.excerpt && s.excerpt.heading, m = h && HEAD_NUM.exec(h);
@@ -498,7 +498,7 @@ const STEP_ORDER = ["sizing", "interview", "research", "architecture", "plan", "
    (TEAM_TASKS): current once the state boards finish, done just before the commit, so the committed board does not read that commit as in
    progress. A run's list need not name it (apply-event.js mergeTasks()). Another id is kept with the name the event gives. */
 const DOC_TASKS = [["documentation-review", "Documentation review"], ["reconcile-documentation", "Reconcile the documentation"], ["dokka-check", "Dokka check"],
-  ["reconcile-plan", "Reconcile the plan and its consequences"], ["readme-changelog", "README and CHANGELOG"], ["state-boards", "State boards"], ["document-landing", "Document-landing commit"]];
+  ["reconcile-plan", "Reconcile the plan and its consequences"], ["readme-changelog", "README and CHANGELOG"], ["state-boards", PN.TASK_NAME["state-boards"]], ["document-landing", PN.TASK_NAME["document-landing"]]];
 const DOC_TASK_NAMES = Object.fromEntries(DOC_TASKS);
 const DOC_LANDING_TASK = "document-landing", TEAM_TASKS = ["state-boards", DOC_LANDING_TASK];
 /* The land (admin-team/dashboards-skill/34, then 35): landing (the land accepted), merge (the pull request merged), then landed; before
@@ -731,10 +731,10 @@ function finishedSteps(R, status) {
    research; considered: the architecture on a tracking board, else the plan; verdict: the plan; built: the landing). The template's
    reconStep() is the same rule. */
 const TRAIL_STEP_WORDS = [["filing the units", "sub-issues"], ["creating the units", "boards"], ["the interview", "interview"], ["interview", "interview"], ["research", "research"], ["the architecture", "architecture"], ["architecture", "architecture"],
-  ["the plan", "plan"], ["plan", "plan"], ["the branch", "branch"], ["branch", "branch"], ["implementation", "implementation"], ["quality review", "qa"], ["qa", "qa"], ["remediation", "remediation"], ["the document step", "document"], ["document", "document"], ["the landing", "landing"], ["landing", "landing"], ["the state boards", "state-boards"], ["state boards", "state-boards"], ["the merge", "merge"], ["merge", "merge"], ["sizing", "sizing"]];
+  ["the plan", "plan"], ["plan", "plan"], ["the branch", "branch"], ["branch", "branch"], ["implementation", "implementation"], ["quality review", "qa"], ["qa", "qa"], ["the correction", "remediation"], ["the resolution", "remediation"], ["correction", "remediation"], ["resolution", "remediation"], ["remediation", "remediation"], ["the document step", "document"], ["document", "document"], ["the landing", "landing"], ["landing", "landing"], ["the state boards", "state-boards"], ["state boards", "state-boards"], ["the merge", "merge"], ["merge", "merge"], ["sizing", "sizing"]];
 const TRAIL_STEP_RE = [[/^(run started|sized|sizing|re-?sized)\b/i, "sizing"], [/^interview/i, "interview"], [/^(research|verification|findings)/i, "research"], [/^architecture/i, "architecture"],
   [/^(\d+ of \d+ units? filed|sub-issues filed)/i, "sub-issues"], [/^\d+ of \d+ unit boards? created/i, "boards"], [/^plan\b/i, "plan"], [/^branch\b/i, "branch"], [/^(S\d+\b|implementation\b|stage\b)/i, "implementation"],
-  [/^(?:qa pass|quality review)/i, "qa"], [/^remediation/i, "remediation"], [/^document\b/i, "document"], [/^state boards\b/i, "state-boards"], [/^merg(?:e|ing)\b/i, "merge"], [/^(landing|landed)\b/i, "landing"]];
+  [/^(?:qa pass|quality review)/i, "qa"], [/^(?:remediation|correction|resolution)\b/i, "remediation"], [/^document\b/i, "document"], [/^state boards\b/i, "state-boards"], [/^merg(?:e|ing)\b/i, "merge"], [/^(landing|landed)\b/i, "landing"]];
 function trailStep(label) {
   const s = String(label == null ? "" : label).replace(/`/g, "").replace(/\s+/g, " ").trim();
   const m = /^(?:halted|resumed|escalated)\s+(?:at|in|during)\s+(.+)$/i.exec(s);
@@ -1289,8 +1289,8 @@ function qaInPlace(w, qa) {
   const fixing = w.step === "remediation" || (w.step === "halted" && w.resume === "remediation");
   return [...qa.slice(0, -1), { ...last, route: "on-the-spot", inPlace: fixing ? "fixing" : "fixed" }];
 }
-/* the mark's words: "fixed in place · no 2nd pass", "fixing in place · no 3rd pass" (the pass after the one it answers) */
-const inPlaceWords = p => p && p.inPlace ? `${p.inPlace === "fixing" ? "fixing" : "fixed"} in place · no ${ordinal((parseInt(p.pass, 10) || 0) + 1)} pass` : "";
+/* the mark's words: "fixed in place · no additional review" (passnames.js inPlaceWords()) */
+const inPlaceWords = PN.inPlaceWords;
 /* A qa pass's number as an ordinal: 1st, 2nd, 3rd, 4th, … 11th, 12th, 13th, 21st (the repository work board's QA cell, an issue board's qa pills). */
 const ordinal = n => { const k = Math.abs(parseInt(n, 10)); if (!Number.isFinite(k)) return String(n); const t = k % 100, u = k % 10; return `${n}${t >= 11 && t <= 13 ? "th" : u === 1 ? "st" : u === 2 ? "nd" : u === 3 ? "rd" : "th"}`; };
 /* A dependency's two states (the repository work board's "Depends on"; an issue board's "depends on"; a tracking board's units; admin-team/
@@ -1561,8 +1561,8 @@ function glowMismatch(plan) {
    A landed board's last tile carries one line per visit of a run step, in the step panel's vocabulary (sizing, interview, research,
    plan, branch, implementation, qa, remediation, landing; a tracking board's own steps), in the order the run visited them, each with
    its start → end and its duration; a step the record says nothing of is no line, and the sub-line names it. A qa visit is named by its
-   pass ("qa · 1st pass"), a remediation visit by its loop ("remediation · loop 1", as the step panel numbers them), any other step
-   visited twice by its visit ("plan · visit 2"). The bar draws the visits whose both bounds carry a time, one segment each in the order
+   pass ("Quality Review 1"), a remediation visit by its route and the pass it answers ("Correction", "Correction of Quality Review 2";
+   passnames.js), any other step by its name, visited twice by its visit ("Plan · visit 2"). The bar draws the visits whose both bounds carry a time, one segment each in the order
    of the lines, sized by its time, coloured by the kind of work its step is (admin-team/dashboards-skill/34, in place of
    dashboards-skill/32's neutral ink ramp): planning, build, checking and landing, each its own hue family (TL_FAMILIES), one shade of
    it per step with a line, lighter to darker in the steps line's order (lighter to darker on a light surface, darker to lighter on a
@@ -1636,13 +1636,13 @@ function timelineSteps(plan, opts) {
   const bd = t => isTime(t) ? { t, how: "exact" } : null, seq = [], recon = [], left = [];
   /* 1. the visits the history froze, oldest first */
   steps.forEach(s => (Array.isArray(H[s]) ? H[s] : []).forEach(v => { if (!isObj(v)) return;
-    seq.push({ step: s, pass: s === "qa" ? passOf(v.qa) : s === "remediation" ? ((v.remediation && v.remediation.pass) || passOf(v.qa)) : null, from: bd(v.since), to: bd(v.ended) }); }));
+    seq.push({ step: s, pass: s === "qa" ? passOf(v.qa) : s === "remediation" ? ((v.remediation && v.remediation.pass) || passOf(v.qa)) : null, route: s === "remediation" ? ((v.remediation && v.remediation.route) || (Array.isArray(v.qa) && v.qa[0] && v.qa[0].route) || null) : null, from: bd(v.since), to: bd(v.ended) }); }));
   const tOf = v => Date.parse((v.to || v.from || { t: "" }).t) || 0;
   seq.sort((a, b) => tOf(a) - tOf(b) || idx(a.step) - idx(b.step));
   /* a step with no snapshot: a visit where the record names it (reconstructStep()), one per qa pass at qa and at remediation */
   steps.filter(s => !(Array.isArray(H[s]) && H[s].length) && !(live && (s === cur || !cur || idx(s) > idx(cur)))).forEach(s => {
     const R = reconstructStep(P, s), date = R.ended || null;
-    if ((s === "qa" || s === "remediation") && Array.isArray(R.qa) && R.qa.length) { R.qa.forEach(q => recon.push({ step: s, pass: Number.isInteger(q.pass) ? q.pass : null, from: null, to: s === "qa" ? bd(q.at) : null, date: q.at || q.date || date })); return; }
+    if ((s === "qa" || s === "remediation") && Array.isArray(R.qa) && R.qa.length) { R.qa.forEach(q => recon.push({ step: s, pass: Number.isInteger(q.pass) ? q.pass : null, route: s === "remediation" ? q.route || null : null, from: null, to: s === "qa" ? bd(q.at) : null, date: q.at || q.date || date })); return; }
     if (R.trail.length || R.milestones.length || R.sized || nonEmpty(R.interview) || nonEmpty(R.questions) || nonEmpty(R.stages) || R.units) recon.push({ step: s, pass: null, from: null, to: s === "sizing" ? bd(P.sized) : null, date });
     else left.push(s);
   });
@@ -1687,10 +1687,12 @@ function timelineSteps(plan, opts) {
   steps.forEach(s => { const vs = seq.filter(v => v.step === s), c = cs.find(x => x.step === s);
     if (vs.length === 1 && c && (!vs[0].from || (vs[0].from.how === "approx" && Date.parse(c.at) < Date.parse(vs[0].from.t))) && (!vs[0].to || Date.parse(c.at) <= Date.parse(vs[0].to.t))) vs[0].from = { t: c.at, how: "by", sha: c.sha || null }; });
   /* the lines: label, duration, family, shade */
-  const cnt = {}, nth = {}; seq.forEach(v => { cnt[v.step] = (cnt[v.step] || 0) + 1; });
+  const cnt = {}, nth = {}, TL_CTX = PN.ctxOf(w); seq.forEach(v => { cnt[v.step] = (cnt[v.step] || 0) + 1; });
   seq.forEach(v => { v.n = nth[v.step] = (nth[v.step] || 0) + 1;
-    v.label = v.step === "qa" ? (v.pass ? `qa · ${ordinal(v.pass)} pass` : cnt.qa > 1 ? `qa · visit ${v.n}` : "qa")
-      : v.step === "remediation" ? (v.pass || cnt.remediation > 1 ? `remediation · loop ${v.n}` : "remediation") : cnt[v.step] > 1 ? `${v.step} · visit ${v.n}` : v.step;
+    /* each by its name (passnames.js): "Quality Review 2", "Correction", "Correction of Quality Review 2", "Implementation · visit 2" */
+    const rt = v.route || TL_CTX.routeOf(v.pass) || TL_CTX.route;
+    v.label = v.step === "qa" ? (v.pass ? PN.passName(v.pass) : cnt.qa > 1 ? `${PN.PASS_NAME} · visit ${v.n}` : PN.PASS_NAME)
+      : v.step === "remediation" ? (v.pass ? PN.remediationName(rt, v.pass) : cnt.remediation > 1 ? `${PN.routeName(rt)} · visit ${v.n}` : PN.routeName(rt)) : cnt[v.step] > 1 ? `${PN.stepName(v.step)} · visit ${v.n}` : PN.stepName(v.step);
     v.approx = [v.from, v.to].some(b => b && b.how === "approx");
     const a = v.from && (v.from.how === "exact" || v.from.how === "approx") ? Date.parse(v.from.t) : null, b = v.to ? Date.parse(v.to.t) : null;
     v.ms = a != null && b != null ? b - a : null; if (v.ms != null && v.ms < 0) { v.ms = null; v.order = true; } });
@@ -1727,7 +1729,7 @@ function timelineTotal(T) { const ts = (T && Array.isArray(T.visits) ? T.visits 
 /* the sub-line's note of the visits not summed, and of the steps the record says nothing of */
 function timelineLeftOut(T) { const vs = (T && T.visits || []).filter(v => v.ms == null), o = vs.filter(v => v.order), u = vs.filter(v => !v.order);
   return [u.length ? `not summed: ${u.map(v => v.label).join(", ")} (a bound not recorded)` : "", o.length ? `not summed: ${o.map(v => v.label).join(", ")} (bounds out of order)` : "",
-    T && T.left && T.left.length ? `no record of: ${T.left.join(", ")}` : ""].filter(Boolean).join(" · "); }
+    T && T.left && T.left.length ? `no record of: ${T.left.map(s => PN.stepName(s)).join(", ")}` : ""].filter(Boolean).join(" · "); }
 /* the sub-line's note of the approximate bounds (asBuilt.approx, dashboards-skill/34): the visits timed with one, and the bounds where a
    recorded time was kept over a later or earlier arrival */
 function timelineApproxNote(T) { const vs = (T && T.visits || []), ap = vs.filter(v => v.approx).map(v => v.label), cl = [];

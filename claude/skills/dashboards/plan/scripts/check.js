@@ -89,13 +89,16 @@ function levelFail(data, file) {
   if (hits.length) fail(`${file} shows a work level, which a dashboard never does: ${hits.slice(0, 6).map(h => `${h.at} ("${h.hit}")`).join(", ")}${hits.length > 6 ? ` and ${hits.length - 6} more` : ""}; say what the work is instead (one system, a bug fix, docs only)`);
 }
 
-/* A qa pass is named "Quality Review N" on every board (passnames.js): a board not landed, or the repository work board (board.js generates it),
-   that still says "qa pass N" fails; every rewrite of a board rewords it (lib.js resolveBoard()), so embed.js clears the failure. A landed
-   board nothing has rewritten since keeps the wording it landed with: warned, never failed. An issue's title, quoted verbatim, is left out. */
+/* A board's names come from passnames.js (2026-11-05, 2026-11-06): a pass "Quality Review N", one not numbered "review", the qa step
+   "Quality Review", the remediation step "Correction" or "Resolution" by its route, the Document step's commit "Document commit". A board
+   not landed, or the repository work board (board.js generates it), that still holds an older wording ("qa pass N", "no new qa pass",
+   "qa next", "Halted at qa", "Remediation for …", "the remediation loop", "Document-landing commit") fails; every rewrite of a board
+   rewords it (lib.js resolveBoard()), so embed.js clears the failure. A landed board nothing has rewritten since keeps the wording it
+   landed with: warned, never failed. An issue's title, quoted verbatim, is left out. */
 function passWording(data, file, landed) {
   const hits = passRefsIn(data, "", [], titleSkip(data));
   if (!hits.length) return;
-  const msg = `QA PASS WORDING: ${file} names a qa pass "qa pass N": ${hits.slice(0, 6).map(h => `${h.at} ("${h.hit}")`).join(", ")}${hits.length > 6 ? ` and ${hits.length - 6} more` : ""}; a board names it "${PASS_NAME} N"`;
+  const msg = `BOARD WORDING: ${file} holds an older wording: ${hits.slice(0, 6).map(h => `${h.at} ("${h.hit}")`).join(", ")}${hits.length > 6 ? ` and ${hits.length - 6} more` : ""}; a board names a pass "${PASS_NAME} N", one not numbered "review", and each step by its name (plan/scripts/passnames.js)`;
   if (landed) warn(`${msg} (kept as it landed; any rewrite rewords it)`); else fail(`${msg} (run embed.js, which rewords it)`);
 }
 
@@ -994,7 +997,7 @@ function checkHtml(htmlPath, id, data, kindMeta) {
   if (!html.includes(`<meta name="dashboard" content="${kindMeta}">`)) fail(`${path.basename(htmlPath)} does not declare <meta name="dashboard" content="${kindMeta}">`);
   const panels = html.match(/<section[^>]*role="tabpanel"[\s\S]*?<\/section>/g) || [];
   if (!panels.length) fail(`${path.basename(htmlPath)} has no tab panels`);
-  let missing = 0; panels.forEach(p => { const pid = (p.match(/id="([^"]+)"/) || [])[1]; if (!/class="key"/.test(p)) { fail(`tab panel ${pid} has no legend (.key)`); missing++; } });
+  let missing = 0; panels.forEach(p => { const pid = (p.match(/id="([^"]+)"/) || [])[1]; if (!/class="(?:legend|key)"/.test(p)) { fail(`tab panel ${pid} has no legend (.legend)`); missing++; } });
   if (panels.length && !missing) ok(`${panels.length} tab panels, each with a legend`);
   if (kindMeta === "plan-board" && !/<section class="wip"/.test(html)) fail('the board has no WIP strip (<section class="wip">)');
   if (kindMeta === "plan-board" && !/id="p-impact"/.test(html)) warn("the board has no Impact tab: it is on a template older than the tab (plan/RULES.md §2, Impact); re-render it (copy plan/template/dashboard.html over it, then embed.js)");

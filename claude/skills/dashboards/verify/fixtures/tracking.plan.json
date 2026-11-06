@@ -722,7 +722,7 @@
       },
       "asBuilt": {
         "state": "complete",
-        "summary": "Verification fixture: implemented and qa passed on its branch, not merged yet."
+        "summary": "Verification fixture: implemented and the review approved on its branch, not merged yet."
       }
     },
     {

@@ -80,7 +80,7 @@ module.exports = function cases26(X) {
   { const c = [], d = dumpDom(wr(path.join(sc, "state", "sup", "index.html"), T.supersystem)), ds = dumpDom(wr(path.join(sc, "state", "sys", "index.html"), T.system));
     if (d == null) c.push(["a browser renders the boards (set CHROME)", false, "no Chrome or Edge"]);
     else {
-      const gk = inner(d, '<div class="key" id="guarantees-key">', "div"), ck = inner(d, '<div class="key" id="context-key">', "div");
+      const gk = inner(d, '<div class="legend" id="guarantees-key">', "div"), ck = inner(d, '<div class="legend" id="context-key">', "div");
       c.push(["the supersystem template's Guarantees legend: the system swatches and the dashed planned row", /class="swk"/.test(gk) && /dashed, faded: about a planned part/.test(gk) && /italic, muted/.test(gk), text(gk).slice(0, 200)]);
       c.push(["its Context legend: the system badges, the issue's state, the neutral bug badge, the chain bar", /class="sbar"/.test(ck) && /the issue's state on the tracker/.test(ck) && /labelled a bug/.test(ck) && /chain: units landed of all units/.test(ck), text(ck).slice(0, 240)]);
       c.push(["the roadmap's tracking issue shows its chain: \"chain 1 of 3 landed\" and its bar", /chain 1 of 3 landed <span class="cbar"[^>]*><i style="width:33%"><\/i>/.test(d), (d.match(/chain \d of \d landed.{0,80}/) || ["none"])[0]]);
@@ -94,7 +94,7 @@ module.exports = function cases26(X) {
       c.push(["the structure band is drawn only where MODEL.structure asks for one: none in the template", !/<rect[^>]*class="band"/.test(inner(ds, '<svg id="svg-structure"', "svg")), (inner(ds, '<svg id="svg-structure"', "svg").match(/<rect[^>]*class="band"[^>]*>/) || ["no band"])[0]]);
       const withBand = T.system.replace("    lanes:[[\"SYSTEM\",40,44,\"start\"]],", "    band:[430,48,140,400],\n    lanes:[[\"SYSTEM\",40,44,\"start\"]],"), db = dumpDom(wr(path.join(sc, "state", "band", "index.html"), withBand));
       c.push(["…and one where it does", /<rect[^>]*class="band"/.test(inner(db, '<svg id="svg-structure"', "svg")), (inner(db, '<svg id="svg-structure"', "svg").match(/<rect[^>]*class="band"[^>]*>/) || ["no band"])[0]]);
-      c.push(["the dead .kpi .seg-bar rules are gone from the system templates", !/\.kpi \.seg-bar/.test(T.system + T.supersystem), "CSS"]);
+      c.push(["the dead .kpi-tile .seg-bar rules are gone from the system templates", !/\.kpi-tile \.seg-bar/.test(T.system + T.supersystem), "CSS"]);
       /* the work-board link: committed when its file is there, the live view first when its marker loads */
       const repo = path.join(sc, "state", "repo"), page = path.join(repo, "docs", "dashboards", "index.html");
       fs.mkdirSync(path.join(repo, "docs", "plans", ".live"), { recursive: true }); fs.writeFileSync(path.join(repo, "docs", "plans", "index.html"), "<!doctype html><title>wb</title>");
@@ -140,7 +140,7 @@ module.exports = function cases26(X) {
     d = dumpDom(path.join(dir, "dashboard.html"));
     c.push(d == null ? ["on the board a statement's reference opens the copy at its section", false, NEEDS_BROWSER] : ["on the board a statement's reference opens the copy at its section", d == null || /<a class="sref" href="\.\.\/\.\.\/\.\.\/docs\/plans\/\.live\/docs\/38-handshake-empty-name\/plan\.html#[\w-]+"/.test(d), (d.match(/<a class="sref" href="[^"]+"/) || ["none"])[0]]);
     c.push(d == null ? ["…and the breadcrumb's work board the live view", false, NEEDS_BROWSER] : ["…and the breadcrumb's work board the live view", d == null || /href="\.\.\/\.\.\/\.\.\/docs\/plans\/\.live\/index\.html"[^>]*>repository work board/.test(crumbs(d)), crumbs(d)]);
-    c.push(d == null ? ["…and its Context's legend names the swatches it drew", false, NEEDS_BROWSER] : ["…and its Context's legend names the swatches it drew", d == null || /<div class="key" id="context-key">[\s\S]*?webtools-udp/.test(d), (d.match(/<div class="key" id="context-key">.{0,120}/) || ["none"])[0]]);
+    c.push(d == null ? ["…and its Context's legend names the swatches it drew", false, NEEDS_BROWSER] : ["…and its Context's legend names the swatches it drew", d == null || /<div class="legend" id="context-key">[\s\S]*?webtools-udp/.test(d), (d.match(/<div class="legend" id="context-key">.{0,120}/) || ["none"])[0]]);
     /* the progress notes: a fresh one and a stale one, under the live fixture's issue */
     const lv = JSON.parse(LIVEJ), ldir = path.join(tree, ...lv.folder.split("/")); lv.wip.updated = new Date().toISOString().replace(/\.\d+Z$/, "Z");
     fs.mkdirSync(ldir, { recursive: true }); fs.writeFileSync(path.join(ldir, "plan.json"), JSON.stringify(lv, null, 2) + "\n"); fs.writeFileSync(path.join(ldir, "dashboard.html"), T["plan-board"]); node(embedJs, ldir);

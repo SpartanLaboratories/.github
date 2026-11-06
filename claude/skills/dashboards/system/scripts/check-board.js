@@ -6,7 +6,8 @@
 //   node check-board.js <board.html> [--out <dir>] [--tab <tabId>] [--width 1400] [--height 1500] [--theme light|dark] [--frame <px>]
 //
 // Board kind: <meta name="dashboard" content="plan-board|work-board"> marks an issue board or the repository work board; anything else is a
-// system board. Exit code 0 when, for every kind: every tab rendered with a visible legend (.key, or .c4key on the C4 tab), the
+// system board. Exit code 0 when, for every kind: every tab rendered with a visible legend (.legend, .key on a board drawn before
+// dashboards-skill/41, or .c4-legend on the C4 tab, .c4key before it), the
 // Context section is headed exactly "Context", the footer is "Corresponds to <source>." and its authority sentence (GUIDANCE.md
 // §3), no link is a dead href="#", the board has no horizontal scroll at the width
 // checked, no work level is shown (levelrefs.js: "level 3", "L3", "level: 2" and the like, in any
@@ -161,20 +162,20 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
     if(e instanceof SVGElement){ if(SHAPES.has(e.tagName.toLowerCase())&&s.stroke!=="none"&&s.strokeDasharray&&s.strokeDasharray!=="none") dashed=parseFloat(s.strokeDasharray)>=3; }
     else dashed=SIDES.some(d=>s["border"+d+"Style"]==="dashed"&&parseFloat(s["border"+d+"Width"])>0)||(s.outlineStyle==="dashed"&&parseFloat(s.outlineWidth)>0);
     if(dashed&&!e.closest(PLANNED_SEL)){ const k=nameOf(e); if(!dashHits.has(k)) dashHits.set(k,where); } }); };
-  tabs.forEach(t=>{ try{ t.click(); dashScan("tab "+t.id); if(kind==="system"&&t.id==="t-c4"){ const rungs=[...document.querySelectorAll(".rung")]; rungs.forEach((r,i)=>{ r.click(); dashScan("tab t-c4, view "+(i+1)); }); if(rungs[0]) rungs[0].click(); } const p=document.getElementById(t.getAttribute("aria-controls")); if(p){ lvScan(textOf(p),"tab "+t.id); titleScan(); } const vis=p&&!p.hidden&&getComputedStyle(p).display!=="none"; const drawn=p?p.querySelectorAll("svg *, table, .card, .thread, .syscard, .cell, .bcard, .run").length:0; const keys=p?[...p.querySelectorAll(".key, .c4key")].filter(k=>shown(k)&&k.children.length).length:0; console.log("CHECK tab "+t.id+": "+(vis?"visible":"NOT VISIBLE")+" · "+drawn+" drawn nodes · "+(keys?"legend":"NO LEGEND (every tab needs a visible .key)")); }catch(err){ console.log("CHECK tab "+t.id+" threw: "+err.message); } });
+  tabs.forEach(t=>{ try{ t.click(); dashScan("tab "+t.id); if(kind==="system"&&t.id==="t-c4"){ const rungs=[...document.querySelectorAll(".rung")]; rungs.forEach((r,i)=>{ r.click(); dashScan("tab t-c4, view "+(i+1)); }); if(rungs[0]) rungs[0].click(); } const p=document.getElementById(t.getAttribute("aria-controls")); if(p){ lvScan(textOf(p),"tab "+t.id); titleScan(); } const vis=p&&!p.hidden&&getComputedStyle(p).display!=="none"; const drawn=p?p.querySelectorAll("svg *, table, .card, .thread, .syscard, .cell, .bcard, .run").length:0; const keys=p?[...p.querySelectorAll(".legend, .key, .c4-legend, .c4key")].filter(k=>shown(k)&&k.children.length).length:0; console.log("CHECK tab "+t.id+": "+(vis?"visible":"NOT VISIBLE")+" · "+drawn+" drawn nodes · "+(keys?"legend":"NO LEGEND (every tab needs a visible .legend)")); }catch(err){ console.log("CHECK tab "+t.id+" threw: "+err.message); } });
   if(kind==="system"){
     const g=document.querySelector(".guarantees"), b=g?[...g.querySelectorAll(".guarantee-card,.bubble")].filter(shown).map(x=>(x.querySelector("h3")||{}).firstChild):[];
     console.log("CHECK guarantees: "+(shown(g)&&b.length?b.length+" guarantee cards · "+b.map(n=>n?n.textContent.trim():"?").join(" · "):"MISSING (no visible .guarantees area with a .guarantee-card)"));
   }
   if(kind==="plan-board"){
-    const w=document.querySelector(".wip"), k=w?w.querySelector(".key"):null;
-    console.log("CHECK wip strip: "+(shown(w)&&w.textContent.trim()?"shown · step "+(w.dataset.step||"?")+(shown(k)&&k.children.length?" · legend":" · NO LEGEND (the strip needs its own .key)"):"MISSING (an issue board shows a visible .wip strip)"));
+    const w=document.querySelector(".wip"), k=w?w.querySelector(".legend, .key"):null;
+    console.log("CHECK wip strip: "+(shown(w)&&w.textContent.trim()?"shown · step "+(w.dataset.step||"?")+(shown(k)&&k.children.length?" · legend":" · NO LEGEND (the strip needs its own .legend)"):"MISSING (an issue board shows a visible .wip strip)"));
     /* The Impact tab shows the current best-known impact and no planning information (GUIDANCE.md §1; plan/RULES.md §2): nothing
        on it is dashed, no pill tells the planned impact from the as-built one, and no list of changes from the planned impact. */
     const ti=document.getElementById("t-impact"), ip=document.getElementById("p-impact");
     if(ti&&ip){ ti.click();
       const sides=["Top","Right","Bottom","Left"], dashed=[...ip.querySelectorAll("*")].filter(e=>{ if(!shown(e)) return false; const s=getComputedStyle(e); return sides.some(d=>s["border"+d+"Style"]==="dashed"&&parseFloat(s["border"+d+"Width"])>0)||(s.outlineStyle==="dashed"&&parseFloat(s.outlineWidth)>0); });
-      const pills=[...ip.querySelectorAll(".vp, .chip, .badge")].filter(e=>/^\\W*(planned impact|as built(, amended)?|not recorded)\\s*$/i.test(e.textContent.trim()));
+      const pills=[...ip.querySelectorAll(".verdict-pill, .vp, .chip, .badge")].filter(e=>/^\\W*(planned impact|as built(, amended)?|not recorded)\\s*$/i.test(e.textContent.trim()));
       const chg=/changes from the planned impact/i.test(ip.innerText);
       const what=[dashed.length?dashed.length+" dashed element"+(dashed.length>1?"s":"")+" ("+dashed.slice(0,3).map(e=>e.tagName.toLowerCase()+(e.className&&typeof e.className==="string"?"."+e.className.trim().split(/\\s+/).join("."):"")).join(", ")+")":"",pills.length?"a planned / as-built pill ("+pills[0].textContent.trim()+")":"",chg?"a changes-from-the-planned-impact list":""].filter(Boolean);
       console.log("CHECK impact: "+(what.length?"IMPACT SHOWS PLANNING: "+what.join("; ")+": the tab shows only the current best-known impact, one solid card style":"current impact only, nothing dashed"));
@@ -220,7 +221,7 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
      Guarantees, code and source views aside */
   if(kind==="system"){ const hits=new Set(); [document.querySelector("header"),document.querySelector(".kpis"),...document.querySelectorAll('[role="tabpanel"]'),gu].filter(Boolean).forEach(root=>{ const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement&&n.parentElement.closest("script,style,pre,code,#insp-body")?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT}); while(w.nextNode()){ const m=(w.currentNode.nodeValue||"").match(/(^|[^\\w&#])#\\d+\\b/g); if(m) m.forEach(x=>hits.add(x.slice(x.indexOf("#")))); } });
     if(hits.size) console.log("CHECK as-is: FEATURE MISSING: an as-is part that names no issue (template since dashboards-skill/26): "+[...hits].slice(0,6).join(", ")+" above the Context section; the issues belong in its roadmap and lists"); }
-  if(cx&&cx.querySelector(".badge,.sw,.vp")&&!shown(document.getElementById("context-key"))) console.log("CHECK layout: FEATURE MISSING: the Context's legend shown wherever its cards draw an encoding (template since dashboards-skill/26): its cards draw badges or swatches and no #context-key is shown");
+  if(cx&&cx.querySelector(".badge,.sw,.verdict-pill,.vp")&&!shown(document.getElementById("context-key"))) console.log("CHECK layout: FEATURE MISSING: the Context's legend shown wherever its cards draw an encoding (template since dashboards-skill/26): its cards draw badges or swatches and no #context-key is shown");
   if(kind==="system"&&gu&&gu.querySelector("[data-sys],.planned,.gap,.bars,.badge")&&!shown(document.getElementById("guarantees-key"))) console.log("CHECK layout: FEATURE MISSING: the Guarantees' legend shown wherever its guarantee cards draw an encoding (template since dashboards-skill/26): no #guarantees-key is shown");
   const want=${JSON.stringify(tab)}; const t=want?document.getElementById(want):tabs[0]; if(t) t.click();
   lvScan(textOf(document.body),"page"); titleScan();

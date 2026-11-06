@@ -23,14 +23,14 @@ module.exports = function casesQualityReview(X) {
   const guard = (title, fn) => { const c = []; try { fn(c); } catch (e) { c.push(["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]); } groups.push([title, c]); };
 
   guard("passnames.js: a qa pass named \"Quality Review N\", the older wording reworded, the rest left as written", c => {
-    const want = [["qa pass 1's fixes", "Quality Review 1's fixes"], ["Remediation for qa pass 1", "Remediation for Quality Review 1"], ["qa pass 2 fixes", "Quality Review 2 fixes"],
+    const want = [["qa pass 1's fixes", "Quality Review 1's fixes"], ["Remediation for qa pass 1", "Correction"], ["qa pass 2 fixes", "Quality Review 2 fixes"],
       ["QA pass 2 approved; the Document step follows.", "Quality Review 2 approved; the Document step follows."], ["after qa pass #3", "after Quality Review 3"],
       ["qa passes 1 and 2 found it", "Quality Reviews 1 and 2 found it"], ["the 2nd qa pass found it", "Quality Review 2 found it"], ["qa pass 1, 3 findings", "Quality Review 1, 3 findings"]];
     const bad = want.filter(([a, b]) => PN.renamePassText(a) !== b || PN.passRefs(a).length !== 1 || PN.passRefs(b).length);
     c.push(["each older form reads \"Quality Review N\", and the reworded text names no older form", !bad.length, js(bad.map(([a, b]) => [a, PN.renamePassText(a), b]))]);
-    const keep = ["no new qa pass", "the next qa pass", "a qa pass's verdict", "the `qa pass 1` field", "<code>qa pass 2</code>", "the qa-pass event", "1st pass · approved", "qa · 2nd pass", "pass 2 passed"];
+    const keep = ["the `qa pass 1` field", "<code>qa pass 2</code>", "the qa-pass event", "1st pass · approved", "qa · 2nd pass", "pass 2 passed"];
     const moved = keep.filter(s => PN.renamePassText(s) !== s || PN.passRefs(s).length);
-    c.push(["the qa pass with no number, code, the event's id and the ordinal pills are left as written", !moved.length, js(moved)]);
+    c.push(["code and the event's id are left as written (the qa pass with no number reads \"review\" since dashboards-skill/41: verify/cases-board-wording.js)", !moved.length, js(moved)]);
     c.push(["passName(), passNames(): the one name", PN.passName(2) === "Quality Review 2" && PN.passNames([1, 2]) === "Quality Reviews 1, 2" && PN.passNames([3]) === "Quality Review 3" && PN.PASS_NAME === "Quality Review", PN.passNames([1, 2])]);
     const plan = { schema: "plan-board/1", issueTitle: "Fix qa pass 2 crash", $comment: "qa pass 1", wip: { step: "qa", detail: "QA pass 1 running.", qa: [{ pass: 1, verdict: "running" }], event: { name: "qa-pass" }, history: { qa: [{ endedBy: "qa-pass", detail: "qa pass 1 fixes" }] } },
       trail: [{ label: "QA pass 1: changes requested" }], rows: [{ id: "a", unit: { title: "qa pass 3 title" }, asBuilt: { summary: "fixed after qa pass 1" } }] };
@@ -72,20 +72,20 @@ module.exports = function casesQualityReview(X) {
   guard("check.js fails a board not landed that says \"qa pass N\"; embed.js rewords it; a landed board is warned on, never failed", c => {
     const T = tree("check", building(), false), ck = () => run(CHECK, [T.dir]);
     const c1 = ck();
-    c.push(["a board in flight holding the older wording fails QA PASS WORDING, naming where", c1.status !== 0 && /^FAIL.*QA PASS WORDING: plan\.json names a qa pass "qa pass N": wip\.detail/m.test(c1.stdout), (c1.stdout.split(/\r?\n/).find(l => /QA PASS/.test(l)) || "").slice(0, 200)]);
+    c.push(["a board in flight holding the older wording fails BOARD WORDING, naming where", c1.status !== 0 && /^FAIL.*BOARD WORDING: plan\.json holds an older wording: wip\.detail/m.test(c1.stdout), (c1.stdout.split(/\r?\n/).find(l => /BOARD WORDING/.test(l)) || "").slice(0, 200)]);
     const e = run(EMBED, [T.dir]), p = JSON.parse(rd(path.join(T.dir, "plan.json"))), c2 = ck();
-    c.push(["embed.js rewords it (every rewrite does), and the board passes", e.status === 0 && !old(p).length && p.wip.detail === "Remediation for Quality Review 1: The fixes." && p.wip.remediation.steps[1].name === "Quality Review 2" && !/QA PASS WORDING/.test(c2.stdout), js([e.stderr, old(p), (c2.stdout.split(/\r?\n/).find(l => /QA PASS|^FAIL/.test(l)) || "")])]);
+    c.push(["embed.js rewords it (every rewrite does), and the board passes", e.status === 0 && !old(p).length && p.wip.detail === "Correction: The fixes." && p.wip.remediation.steps[1].name === "Quality Review 2" && !/BOARD WORDING/.test(c2.stdout), js([e.stderr, old(p), p.wip.detail, (c2.stdout.split(/\r?\n/).find(l => /BOARD WORDING|^FAIL/.test(l)) || "")])]);
     c.push(["…its identifiers left as they are: the qa-pass event, the qa step, the pass numbers", p.wip.event.name === "qa-pass" && p.wip.qa[0].pass === 1 && p.wip.remediation.pass === 1 && p.wip.steps.includes("qa"), js(p.wip.event)]);
     const L = copy(EX); L.trail = [...(L.trail || []), { date: L.asBuilt && L.asBuilt.date || "2026-10-27", column: "built", label: "QA pass 1: approved" }];
     const TL = tree("landed", L, false), c3 = run(CHECK, [TL.dir]);
-    c.push(["a landed board that says it is warned on, never failed: kept as it landed", c3.status === 0 && /^warn\s+QA PASS WORDING: .*kept as it landed/m.test(c3.stdout), (c3.stdout.split(/\r?\n/).filter(l => /QA PASS|^FAIL/.test(l)).join(" | ") || c3.stdout.slice(-300))]);
+    c.push(["a landed board that says it is warned on, never failed: kept as it landed", c3.status === 0 && /^warn\s+BOARD WORDING: .*kept as it landed/m.test(c3.stdout), (c3.stdout.split(/\r?\n/).filter(l => /BOARD WORDING|^FAIL/.test(l)).join(" | ") || c3.stdout.slice(-300))]);
   });
 
   guard("the fast path names every pass it writes \"Quality Review N\", and rewords the facts and the board it reads", c => {
     const T = tree("fast", building()), ev = evIn(T);
     const r1 = ev("implementation-stage", "2026-10-26T09:00:00Z", { remediation: { pass: 1, route: "remediation", steps: [{ name: "rookie-dev fixes", state: "done" }, { name: "qa pass 2", state: "current" }] }, stage: "qa pass 1 fixes done; qa pass 2 next", open: [{ text: "Doc gap from qa pass 1", resolved: true }] });
-    const w1 = r1.p.wip, t1 = r1.p.trail.filter(t => t && /^Remediation/.test(t.label)).slice(-1)[0] || {};
-    c.push(["a remediation report: its stage, sub-steps and trail entry in the new wording, the older facts reworded", r1.a.status === 0 && w1.remediation.steps[1].name === "Quality Review 2" && t1.label === "Remediation: Quality Review 1 fixes done; Quality Review 2 next" && !old(r1.p).length, js([r1.S.error, w1.remediation.steps, t1.label, old(r1.p)])]);
+    const w1 = r1.p.wip, t1 = r1.p.trail.filter(t => t && /^(?:Remediation|Correction|Resolution)/.test(t.label)).slice(-1)[0] || {};
+    c.push(["a remediation report: its stage, sub-steps and trail entry in the new wording, the older facts reworded", r1.a.status === 0 && w1.remediation.steps[1].name === "Quality Review 2" && t1.label === "Correction: Quality Review 1 fixes done; Quality Review 2 next" && !old(r1.p).length, js([r1.S.error, w1.remediation.steps, t1.label, old(r1.p)])]);
     c.push(["…the open point the board held as \"qa pass 1\" matched by its new wording and resolved, no second point", w1.open.length === 1 && /Quality Review 1/.test(w1.open[0].text) && !!w1.open[0].resolved, js(w1.open)]);
     c.push(["…the summary says what it reworded", (r1.S.applied || []).some(x => /"qa pass 1 fixes done|qa pass 2"/.test(x) && /Quality Review N/.test(x)) || (r1.S.applied || []).some(x => /Quality Review N/.test(x)), js((r1.S.applied || []).filter(x => /Quality Review/.test(x)))]);
     const r2 = ev("qa-pass", "2026-10-26T10:00:00Z", { qa: { pass: 2, verdict: "running" } }), r3 = ev("qa-pass", "2026-10-26T11:00:00Z", { qa: { pass: 2, verdict: "approved", note: "the 2nd qa pass found nothing new" } });
@@ -110,7 +110,7 @@ module.exports = function casesQualityReview(X) {
     const b = run(BOARD, ["--root", TL.root, "--no-gh"]), bj = fs.existsSync(path.join(TL.root, "docs", "plans", "board.json")) ? JSON.parse(rd(path.join(TL.root, "docs", "plans", "board.json"))) : null;
     c.push(["board.js: board.json carries no \"qa pass N\", a landed board's text included", b.status === 0 && !!bj && !old(bj).length, js([b.stderr && b.stderr.slice(0, 200), bj && old(bj)])]);
     const ck = run(CHECK, [path.join(TL.root, "docs", "plans")]);
-    c.push(["…and check.js passes it on that count", !/QA PASS WORDING/.test(ck.stdout), (ck.stdout.split(/\r?\n/).find(l => /QA PASS/.test(l)) || "")]);
+    c.push(["…and check.js passes it on that count", !/BOARD WORDING/.test(ck.stdout), (ck.stdout.split(/\r?\n/).find(l => /BOARD WORDING/.test(l)) || "")]);
   });
   return groups;
 };

@@ -209,7 +209,7 @@ dashed = planned, a legend on every tab). The groupings the system templates use
 | Sequence | the lifeline's owner: a side, the consumer, outside | the owning system, the consumer, outside |
 | Lifecycles | phase: start · run · stop | phase, named for the lifecycle (build · verify · release) |
 
-- The C4 tab's legend is `.c4key`; every other tab's is `.key`.
+- The C4 tab's legend is `.c4-legend`; every other tab's is `.legend`.
 - On a system board the groups are the hue slots `--server`, `--client` and `--wire` (slots 1 to 3
   of the shared palette); name them in `MODEL.sides` and the Structure legend.
 - On a supersystem or repository state board each top-level system takes a slot `--sys-1` … `--sys-6`
@@ -407,7 +407,7 @@ embeds runs one pass of the named mode, for looking at a single tab.
 
 `check-board.js` needs a local Chrome or Edge (it searches the usual install paths; set `CHROME=`
 to point at another). It clicks every tab and exits non-zero on a script error, a panel that does
-not render, a tab without a visible legend (`.key`, or `.c4key` on the C4 tab), a board without a
+not render, a tab without a visible legend (`.legend`, or `.c4-legend` on the C4 tab), a board without a
 visible Guarantees area holding at least one guarantee card, a Context section whose heading is not
 exactly "Context", a dead `href="#"` link, a horizontal scroll, a **dash that marks nothing
 planned** (`DASHED NOT PLANNED`: a dashed border, outline or SVG stroke, a dash of 3 px or more, on an

@@ -86,10 +86,10 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 
 /* KPIs */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px;margin:14px 0 18px}
-.kpi{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0}
-.kpi .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
-.kpi .v{font-size:22px;font-weight:700;letter-spacing:-.01em;margin-top:2px;font-variant-numeric:tabular-nums}
-.kpi .s{font-size:12px;color:var(--ink-2);margin-top:2px}
+.kpi-tile{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0}
+.kpi-tile .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.kpi-tile .v{font-size:22px;font-weight:700;letter-spacing:-.01em;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi-tile .s{font-size:12px;color:var(--ink-2);margin-top:2px}
 
 /* tabs + stage */
 .tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow-x:auto;overflow-y:hidden}
@@ -123,23 +123,23 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .linkbtn:hover{border-color:var(--ink)}
 .tchip{display:inline-block;font:11px var(--mono);padding:3px 6px;border:1px solid var(--line);border-radius:3px;margin:2px 4px 0 0;color:var(--ink-2)}
 .tchip.server{border-left:3px solid var(--server)}.tchip.client{border-left:3px solid var(--client)}
-/* Legends. Every tab carries one .key (the C4 tab's is .c4key): its colour grouping, then its line and shape encodings,
+/* Legends. Every tab carries one .legend (the C4 tab's is .c4-legend): its colour grouping, then its line and shape encodings,
    ending with planned. check-board.js fails a tab without a visible one. */
-.key{display:flex;flex-wrap:wrap;gap:8px 16px;margin:10px 0 0;font-size:12px;color:var(--ink-2)}
-.key span{display:inline-flex;align-items:center;gap:6px}
-.key i{display:inline-block;width:16px;height:11px;border-radius:3px;border:1.5px solid var(--ink-2);background:var(--surface);flex:none}
-.key i.pub{background:var(--surface-2)}.key i.std{border-style:dotted}.key i.pln{border-style:dashed;background:none;opacity:.6}
-.key i.srv{border-color:var(--server)}.key i.cli{border-color:var(--client)}.key i.wir{border-color:var(--wire)}
-.key i.pub.srv{background:var(--server-soft)}.key i.pub.cli{background:var(--client-soft)}.key i.pub.wir{background:var(--wire-soft)}
-.key i.con{border-color:var(--ink)}.key i.ext{border-color:var(--muted);background:var(--surface-2)}
-.key i.bs{border-left:4px solid var(--server)}.key i.bc{border-left:4px solid var(--client)}.key i.bw{border-left:4px solid var(--wire)}
-.key i.ph1{background:var(--ph-1);border-color:var(--ph-1)}.key i.ph2{background:var(--ph-2);border-color:var(--ph-2)}.key i.ph3{background:var(--ph-3);border-color:var(--ph-3)}
-.key i.ln{width:18px;height:0;border:0;border-top:2px solid var(--ink-2);border-radius:0;background:none}.key i.ln.dash{border-top-style:dashed}.key i.ln.ret{position:relative;border-top-width:1px;width:20px}.key i.ln.ret::after{content:"";position:absolute;right:0;top:-4px;width:6px;height:6px;border-top:1.2px solid var(--ink-2);border-right:1.2px solid var(--ink-2);transform:rotate(45deg)}.key i.ln.on{border-top:2.5px solid var(--on)}.key i.ln.off{border-top-color:var(--line)}
-.key i.hex{border:0;border-radius:0;background:var(--ink-2);clip-path:polygon(22% 0,78% 0,100% 50%,78% 100%,22% 100%,0 50%)}
-.key i.end{border-radius:1px;border-color:var(--line);border-left-width:4px;background:var(--surface-2)}
-.key i.band{border:0;background:var(--surface-2)}
-.key i.dot{width:10px;height:10px;border:0;border-radius:50%;background:var(--ink)}
-.key .pill{align-self:center}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin:10px 0 0;font-size:12px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:16px;height:11px;border-radius:3px;border:1.5px solid var(--ink-2);background:var(--surface);flex:none}
+.legend i.pub{background:var(--surface-2)}.legend i.std{border-style:dotted}.legend i.pln{border-style:dashed;background:none;opacity:.6}
+.legend i.srv{border-color:var(--server)}.legend i.cli{border-color:var(--client)}.legend i.wir{border-color:var(--wire)}
+.legend i.pub.srv{background:var(--server-soft)}.legend i.pub.cli{background:var(--client-soft)}.legend i.pub.wir{background:var(--wire-soft)}
+.legend i.con{border-color:var(--ink)}.legend i.ext{border-color:var(--muted);background:var(--surface-2)}
+.legend i.bs{border-left:4px solid var(--server)}.legend i.bc{border-left:4px solid var(--client)}.legend i.bw{border-left:4px solid var(--wire)}
+.legend i.ph1{background:var(--ph-1);border-color:var(--ph-1)}.legend i.ph2{background:var(--ph-2);border-color:var(--ph-2)}.legend i.ph3{background:var(--ph-3);border-color:var(--ph-3)}
+.legend i.ln{width:18px;height:0;border:0;border-top:2px solid var(--ink-2);border-radius:0;background:none}.legend i.ln.dash{border-top-style:dashed}.legend i.ln.ret{position:relative;border-top-width:1px;width:20px}.legend i.ln.ret::after{content:"";position:absolute;right:0;top:-4px;width:6px;height:6px;border-top:1.2px solid var(--ink-2);border-right:1.2px solid var(--ink-2);transform:rotate(45deg)}.legend i.ln.on{border-top:2.5px solid var(--on)}.legend i.ln.off{border-top-color:var(--line)}
+.legend i.hex{border:0;border-radius:0;background:var(--ink-2);clip-path:polygon(22% 0,78% 0,100% 50%,78% 100%,22% 100%,0 50%)}
+.legend i.end{border-radius:1px;border-color:var(--line);border-left-width:4px;background:var(--surface-2)}
+.legend i.band{border:0;background:var(--surface-2)}
+.legend i.dot{width:10px;height:10px;border:0;border-radius:50%;background:var(--ink)}
+.legend .pill{align-self:center}
 
 /* structure svg */
 .band{fill:var(--surface-2)}
@@ -239,12 +239,12 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .c4head .desc{font-size:12.5px;color:var(--ink-2)}
 .c4canvas{border:1px solid var(--line);border-radius:6px;padding:6px;background-color:var(--surface);background-image:radial-gradient(var(--line) 1px,transparent 1.2px);background-size:22px 22px;overflow-x:auto}
 .c4canvas svg{max-width:none}
-.c4key{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0 0;font-size:11.5px;color:var(--ink-2)}
-.c4key span{display:inline-flex;align-items:center;gap:6px}
-.c4key i{display:inline-block;width:16px;height:11px;border-radius:3px;border:1.5px solid rgba(0,0,0,.35)}
-.c4key i.arrow{width:18px;height:0;border:0;border-top:1.5px solid var(--rel);border-radius:0}
-.c4key i.arrow.dashed{border-top-style:dashed}
-.c4key i.frame{background:var(--surface-2);border:1.5px solid var(--line);border-radius:4px}
+.c4-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0 0;font-size:11.5px;color:var(--ink-2)}
+.c4-legend span{display:inline-flex;align-items:center;gap:6px}
+.c4-legend i{display:inline-block;width:16px;height:11px;border-radius:3px;border:1.5px solid rgba(0,0,0,.35)}
+.c4-legend i.arrow{width:18px;height:0;border:0;border-top:1.5px solid var(--rel);border-radius:0}
+.c4-legend i.arrow.dashed{border-top-style:dashed}
+.c4-legend i.frame{background:var(--surface-2);border:1.5px solid var(--line);border-radius:4px}
 .c4el{cursor:pointer}
 .c4el .card{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
 .c4el .hdr{stroke:none}
@@ -370,13 +370,13 @@ pre.dsl .c{color:var(--muted)} pre.dsl .k{color:var(--server);font-weight:600} p
 .chainprog{display:inline-flex;align-items:center;gap:6px;font:11px var(--mono);color:var(--ink-2);white-space:nowrap}
 .cbar{display:inline-block;width:60px;height:5px;border-radius:3px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;vertical-align:middle}
 .cbar i{display:block;height:100%;background:var(--good)}
-.key .cbar{width:40px}
-.key i.swk{width:10px;height:10px;border:0;border-radius:2px;background:var(--c,var(--muted))}
-.key i.barsk{height:6px;border:0;border-radius:0 3px 3px 0;background:var(--ink-2)}
-.key i.gapk{border:0;background:none;width:auto;height:auto;font-style:italic;color:var(--muted)}
-.key .badge{align-self:center}
+.legend .cbar{width:40px}
+.legend i.swk{width:10px;height:10px;border:0;border-radius:2px;background:var(--c,var(--muted))}
+.legend i.barsk{height:6px;border:0;border-radius:0 3px 3px 0;background:var(--ink-2)}
+.legend i.gapk{border:0;background:none;width:auto;height:auto;font-style:italic;color:var(--muted)}
+.legend .badge{align-self:center}
 /* the Guarantees' and the Context's legends (GUIDANCE.md §2), generated from what each section draws */
-.guarantees>.key,.context>.key{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-top:10px}
+.guarantees>.legend,.context>.legend{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-top:10px}
 .badge.planned{border-style:dashed}
 .badge.closed{color:var(--muted)}
 .tags{display:inline-flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
@@ -433,12 +433,12 @@ footer code{color:var(--ink-2)}
 </header>
 
 <section class="kpis" aria-label="Key figures">
-  <div class="kpi"><div class="l">Source</div><div class="v">36 files</div><div class="s">5,327 lines · one package</div></div>
-  <div class="kpi"><div class="l">Types</div><div class="v">18 public</div><div class="s">21 internal</div><div class="seg-bar" aria-hidden="true"><i style="width:46%;background:var(--ink)"></i><i style="width:54%;background:var(--line)"></i></div></div>
-  <div class="kpi"><div class="l">Threads</div><div class="v">11 named</div><div class="s">6 server · 5 client · all daemon</div><div class="seg-bar" aria-hidden="true"><i style="width:55%;background:var(--server)"></i><i style="width:45%;background:var(--client)"></i></div></div>
-  <div class="kpi"><div class="l">Datagram tags</div><div class="v">6 in use</div><div class="s">0x80 · 0x81 · 0x82 · 0x90 · 0xA0 · 0xA1</div></div>
-  <div class="kpi"><div class="l">Tests</div><div class="v">92 classes</div><div class="s">across all 7 testing levels</div></div>
-  <div class="kpi"><div class="l">Open issues</div><div class="v">11</div><div class="s">8 bugs · 1 planned system · 2 untyped</div></div>
+  <div class="kpi-tile"><div class="l">Source</div><div class="v">36 files</div><div class="s">5,327 lines · one package</div></div>
+  <div class="kpi-tile"><div class="l">Types</div><div class="v">18 public</div><div class="s">21 internal</div><div class="seg-bar" aria-hidden="true"><i style="width:46%;background:var(--ink)"></i><i style="width:54%;background:var(--line)"></i></div></div>
+  <div class="kpi-tile"><div class="l">Threads</div><div class="v">11 named</div><div class="s">6 server · 5 client · all daemon</div><div class="seg-bar" aria-hidden="true"><i style="width:55%;background:var(--server)"></i><i style="width:45%;background:var(--client)"></i></div></div>
+  <div class="kpi-tile"><div class="l">Datagram tags</div><div class="v">6 in use</div><div class="s">0x80 · 0x81 · 0x82 · 0x90 · 0xA0 · 0xA1</div></div>
+  <div class="kpi-tile"><div class="l">Tests</div><div class="v">92 classes</div><div class="s">across all 7 testing levels</div></div>
+  <div class="kpi-tile"><div class="l">Open issues</div><div class="v">11</div><div class="s">8 bugs · 1 planned system · 2 untyped</div></div>
 </section>
 
 <div class="tabs" role="tablist" aria-label="Views">
@@ -456,7 +456,7 @@ footer code{color:var(--ink-2)}
     <h2>Component map</h2>
     <p class="lede">Nesting is ownership. Click a box for its role, files and threads, and its place in the C4 model.</p>
     <svg id="svg-structure" viewBox="0 0 1000 612" role="img" aria-label="Component map of webtools-udp"></svg>
-    <div class="key"><span><i class="pub srv"></i>public · server</span><span><i class="srv"></i>internal · server</span><span><i class="pub cli"></i>public · client</span><span><i class="cli"></i>internal · client</span><span><i class="pub wir"></i>public · shared</span><span><i class="wir"></i>internal · shared</span><span><i class="std"></i>standalone, outside the stack</span><span><i class="pln"></i>planned, not built</span></div>
+    <div class="legend"><span><i class="pub srv"></i>public · server</span><span><i class="srv"></i>internal · server</span><span><i class="pub cli"></i>public · client</span><span><i class="cli"></i>internal · client</span><span><i class="pub wir"></i>public · shared</span><span><i class="wir"></i>internal · shared</span><span><i class="std"></i>standalone, outside the stack</span><span><i class="pln"></i>planned, not built</span></div>
   </section>
 
   <section class="view" role="tabpanel" id="p-c4" aria-labelledby="t-c4" hidden>
@@ -467,7 +467,7 @@ footer code{color:var(--ink-2)}
       <div class="c4main">
         <div class="c4head" id="c4-head"></div>
         <div class="c4canvas" id="c4-canvas"><svg id="svg-c4" viewBox="0 0 900 300" role="img" aria-label="C4 view"></svg></div>
-        <div class="c4key" id="c4-key"></div>
+        <div class="c4-legend" id="c4-key"></div>
         <pre class="dsl" id="dsl-view" hidden></pre>
       </div>
     </div>
@@ -493,7 +493,7 @@ footer code{color:var(--ink-2)}
         <div class="thread client" data-t="mcupc-retransmit" tabindex="0" role="button"><span class="n">mcupc-retransmit</span><span class="pill lazy">lazy</span><span class="r">the retransmit tick</span></div>
       </div>
     </div>
-    <div class="key"><span><i class="bs"></i>server endpoint · mcups-*</span><span><i class="bc"></i>client endpoint · mcupc-*</span><span><span class="pill eager">eager</span>created eagerly</span><span><span class="pill lazy">lazy</span>created on first use</span><span><span class="pill cond">if …</span>only under a condition</span><span><span class="pill planned">planned</span>planned, not built</span><span><i class="dot"></i>puts it on the wire (table below)</span></div>
+    <div class="legend"><span><i class="bs"></i>server endpoint · mcups-*</span><span><i class="bc"></i>client endpoint · mcupc-*</span><span><span class="pill eager">eager</span>created eagerly</span><span><span class="pill lazy">lazy</span>created on first use</span><span><span class="pill cond">if …</span>only under a condition</span><span><span class="pill planned">planned</span>planned, not built</span><span><i class="dot"></i>puts it on the wire (table below)</span></div>
     <h2 style="margin-top:16px">Outbound send paths</h2>
     <p class="lede">A reliable message's first send runs on the caller's thread; retransmits and acks on the side's retransmit thread.</p>
     <div class="scroll"><table class="matrix">
@@ -518,7 +518,7 @@ footer code{color:var(--ink-2)}
     <div class="ctl" id="flow-ctl"></div>
     <p class="outcome" id="outcome"></p>
     <svg id="svg-flow" viewBox="0 0 980 580" role="img" aria-label="Inbound dispatch flow"></svg>
-    <div class="key" id="flow-key"></div>
+    <div class="legend" id="flow-key"></div>
   </section>
 
   <section class="view" role="tabpanel" id="p-reliable" aria-labelledby="t-reliable" hidden>
@@ -531,7 +531,7 @@ footer code{color:var(--ink-2)}
       <span id="seq-pos" style="font:12px var(--mono);color:var(--muted)"></span>
     </div>
     <svg id="svg-seq" viewBox="0 0 1000 600" role="img" aria-label="Reliable channel sequence diagram"></svg>
-    <div class="key" id="seq-key"></div>
+    <div class="legend" id="seq-key"></div>
   </section>
 
   <section class="view" role="tabpanel" id="p-lifecycles" aria-labelledby="t-lifecycles" hidden>
@@ -568,7 +568,7 @@ footer code{color:var(--ink-2)}
         <div class="callout"><b>One dispatch executor per side</b> serialises unreliable <i>and</i> reliable delivery, so head-of-line blocking on the reliable plane also delays unreliable delivery to that connection.</div>
         <div class="callout"><code>reliableEngineFor</code>, <code>reliableEngine</code> and <code>ensureListening</code> are <code>@Synchronized</code>; <code>ensureListening</code> is idempotent.</div></div>
     </div>
-    <div class="key"><span><i class="ph1"></i>start · creation</span><span><i class="ph2"></i>run · the live state and the rules that hold</span><span><i class="ph3"></i>stop · teardown and the disconnect reasons</span><span><i class="pln"></i>planned, not built</span></div>
+    <div class="legend"><span><i class="ph1"></i>start · creation</span><span><i class="ph2"></i>run · the live state and the rules that hold</span><span><i class="ph3"></i>stop · teardown and the disconnect reasons</span><span><i class="pln"></i>planned, not built</span></div>
   </section>
 </div>
 
@@ -1494,7 +1494,7 @@ function sectionKeys(){
   document.querySelectorAll(".chainprog[data-total]").forEach(e=>{ const n=+e.dataset.landed||0, m=+e.dataset.total||0, pct=m?Math.round(100*n/m):0;
     e.innerHTML=`chain ${n} of ${m} landed <span class="cbar" role="img" aria-label="${n} of ${m} units landed"><i style="width:${pct}%"></i></span>`; });
   const put=(sec,id,entries)=>{ if(!sec) return; let k=document.getElementById(id); const html=entries.filter(Boolean).join("");
-    if(!html){ if(k) k.remove(); return; } if(!k){ k=document.createElement("div"); k.className="key"; k.id=id; sec.appendChild(k); } k.innerHTML=html; };
+    if(!html){ if(k) k.remove(); return; } if(!k){ k=document.createElement("div"); k.className="legend"; k.id=id; sec.appendChild(k); } k.innerHTML=html; };
   const G=document.querySelector("section.guarantees"), C=document.querySelector("section.context"), has=(s,q)=>!!(s&&s.querySelector(q));
   const swatches=(s,cls)=>typeof sysKey==="function"&&s?sysKey([...new Set([...s.querySelectorAll("[data-sys]")].map(e=>e.dataset.sys))],cls):"";
   put(G,"guarantees-key",[swatches(G,"swk"),

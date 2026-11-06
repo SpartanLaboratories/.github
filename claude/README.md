@@ -14,6 +14,7 @@ section of `CLAUDE.md`).
 | `agents/`       | `agents/`                      | Custom subagents (planner, architect, version-control-manager, qa, presenter, publisher, direction-manager, …) and the `admin-team` session brief |
 | `skills/`       | `skills/`                      | Custom skills (`resolve-issue`, `admin-team`, `dashboards`, `upgrade`) and installed third-party skills (`firecrawl*`, `vercel-connect`, `graphify`) |
 | `admin-team/`   | `admin-team/`                  | The admin team session's protocol, settings file and launchers  |
+| `nomenclature/` | `nomenclature/` | Shared vocabularies: `ui.md`, the names of interface elements (the boards, SpartanUI); `boards.md`, the names of the dashboards' boards and how they use those elements |
 | `commands/`     | root `*.md` prompt files       | Legacy release / update prompt files                            |
 
 ## Not included

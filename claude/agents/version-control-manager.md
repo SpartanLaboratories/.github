@@ -59,7 +59,10 @@ on a repo that *consumes* the project being edited — a downstream game repo,
 any dependent. Downstream work ("consumers must move to the new protocol") is
 not an issue you file; put it in the report as cross-repo coordination for the
 user. Never file an issue about the change you are currently landing — that is
-what the PR is for.
+what the PR is for. Never file one for comment resolution — a code comment or
+KDoc that needs rewording: the session that finds it fixes it on the spot, in
+its current change (global `CLAUDE.md`, "Spartan Labs libraries — surface
+issues"); a request for one is rejected, naming that rule.
 
 **Sub-issues of a level-4 plan** are the one same-repo exception, and only on
 the user's approval: when your caller passes a sub-issue list it says the user

@@ -1,42 +1,32 @@
 ---
 name: dashboards
 description: >-
-  The presenter's rules, templates, scripts and checks for a repository's two
-  sets of boards ("dashboard" is the umbrella; every member is a board): the
-  state boards under docs/dashboards/ (system, supersystem and repository state
-  boards), which show each system as it is at a named commit, and the work
-  boards under docs/plans/ (issue and tracking boards, the repository work
-  board), which show each issue's gap, the options considered, the verdict, the
-  as-built state, its downstream impact and the live work in progress of its
-  /resolve-issue run (on a tracking board, also the unit up next). GUIDANCE.md holds
-  the rules both sets share (colour coding first); system/RULES.md and
-  plan/RULES.md hold each set's own. Load it whenever you create, update,
-  review or check any board, its data file or its registry. The
-  presenter agent uses it as a service of the admin team session.
+  The presenter's rules, templates, scripts and checks for a repository's
+  dashboards: the state boards under docs/dashboards/ and the work boards under
+  docs/plans/, named in nomenclature/boards.md. GUIDANCE.md holds the rules both
+  sets share (colour coding first); system/RULES.md and plan/RULES.md hold each
+  set's own. Load it whenever you create, update, review or check any board, its
+  data file or its registry. The presenter agent uses it as a service of the
+  admin team session.
 ---
 
 # Dashboards
 
-Two sets of boards, one presenter, one shared rulebook. "Dashboard" is the umbrella; every member of either set is a **board**,
-never a "page" (`GUIDANCE.md`, "Dashboards and boards").
-
-| Set | Where in a repo | Its boards | Shows | Ruleset |
-|-----|-----------------|------------|-------|---------|
-| **State boards** | `docs/dashboards/` | the system board, the supersystem board, the repository state board; planned: the org project board, the intra-org dependency board | each system as it is at a named commit; planning is secondary context | `system/RULES.md` |
-| **Work boards** | `docs/plans/<issue>-<slug>/dashboard.html`, `docs/plans/index.html` | the issue board, the tracking board, the repository work board; planned: the org work board | each issue's gap, options, verdict, as-built state and downstream impact, with the live work in progress of its run; every run at once | `plan/RULES.md` |
+Two sets of boards, one presenter, one shared rulebook. The board terms (the umbrella "dashboard", the state boards and
+the work boards, each board's name, "board" and never "page") are in `../../nomenclature/boards.md`; the state boards follow
+`system/RULES.md`, the work boards `plan/RULES.md`.
 
 Nothing a board shows or its data carries names the pipeline's agents, sessions or roles, the approval flow or a work level
-(`GUIDANCE.md` §4); its elements are named by function (`GUIDANCE.md` §12: panel, card, tile, cell, row; pill, chip, badge, tag;
-ring, glow, arrow, tracer, legend; switch).
+(`GUIDANCE.md` §4); its elements take their names from the UI vocabulary, `../../nomenclature/ui.md` (`GUIDANCE.md` §12).
 
 ## Files
 
 | Path | What |
 |------|------|
-| `GUIDANCE.md` | The rules shared by both sets: the boards' names, colour coding, legends, planned/pending drawn dashed, themes, self-contained boards, facts (no work levels, no internal names), Context, divergence, checks, the landing flow (§11), the element vocabulary (§12). Read it first, every time. |
+| `GUIDANCE.md` | The rules shared by both sets: the boards' names, colour coding, legends, planned/pending drawn dashed, themes, self-contained boards, facts (no work levels, no internal names), Context, divergence, checks, the landing flow (§11), how the boards use the element vocabulary of `../../nomenclature/ui.md` (§12, pointing at `../../nomenclature/boards.md`). Read it first, every time. |
 | `system/RULES.md` | The state-board ruleset. `system/template/` (the system board, the supersystem and repository state board, the registry, a board's `state.json`), `system/scripts/` (`check-board.js`, the browser checker for every board, `embed.js`, `deviation.js`, `levelrefs.js` (the work-level forms, numbered and not, and `scrubLevels()`, which rewords a pipeline fact that names one), `namerefs.js` (the internal names a board never carries, `scrubNames()`, which rewords a pipeline fact that names one, and the `INTERNAL NAME` warnings), `palette.js` (the shared system palette and the status-hue rule), `apply-state.js`, the data-only path of a state board, below, with `statelib.js`, `features.js` (the per-board feature probes every check runs, `GUIDANCE.md` §8), `splice.js` (brings a state board, or a board with a declared divergence, onto its current template, three ways, migrating the names a board owns, `GUIDANCE.md` §11; the Document step's state-boards task runs it; `--verified` splices onto the template's recorded verified version instead, so a board can be brought up while the template is being edited, and a `--template` that is a cached version in `verify/history/` keeps its template's history as the merge bases), `history.js` (the template versions the splice merges from, read from `verify/history/` or rebuilt on demand, below), and `cliargs.js`, the strict option parser every script uses: an unknown option exits 2 with the usage, `--help` prints it), `system/examples/webtools-udp/`. |
 | `verify/` | `verify-templates.js`, which verifies every template once (the checks that need no browser, over the fixtures in `verify/fixtures/`: the case groups, `cases-26.js`, `cases-22.js`, `cases-23.js`, `cases-24.js`, `cases-27.js`, `cases-28.js`, `cases-29.js`, `cases-30.js`, `cases-31.js`, `cases-32.js`, `cases-33.js`, `cases-34.js`, `cases-35.js`, `cases-explicit-step.js`, `cases-timeline-fast-path.js`, `cases-timeline-waits.js`, `cases-timeline-outages.js` and `cases-foundation.js`, `cases-option-d.js`, `cases-fill.js`, `cases-work-levels.js`, `cases-archived-colours.js`, `cases-doc-landing.js`, `cases-switches.js` and `cases-quality-review.js`, which also run on their own, among them) and records its hash in `verified.json` when they pass, with each verified version kept in `verify/history/` for the splice. `verify/history/` is a local cache, kept out of the `.github` mirror: `system/scripts/history.js` rebuilds a recorded version whose file is missing from the mirror's git history (`SpartanLaboratories/.github`, `claude/skills/dashboards/<template path>`; from a local clone given with `--history-repo <path>` to `splice.js` or `verify-templates.js`, else through `gh api`), matched by its recorded LF-normalised sha256, and writes it back; a version nothing matches is warned on, and with none left the splice is two-way (`cases-27.js`). Boards made from a verified template are checked only where they deviate (`GUIDANCE.md` §8). Run it after every template change; a skill or template change gets no browser pass from the presenter, and the user checks it in a browser from what the presenter's report lists (`GUIDANCE.md` §8). `browser-view-follow.js`, the tracked board's follow of its view copy in headless Chrome, runs only when a person asks for it. |
-| `plan/RULES.md` | The work-board ruleset: the data model, the events that update a board, the WIP strip and its step panel (its finished steps clickable, each shown from its snapshot in `wip.history` or reconstructed), the Timeline's step visits (the time a run waited on the user or was not running drops out of them, unmentioned), the live updates, the repository work board. `plan/template/` (the issue board, its `plan.json` skeleton, the repository work board), `plan/scripts/` (`new.js`, the presenter's fallback for a foundation, `embed.js` (which also writes each board's live sidecar, `plan.js` or `board.js`), `check.js`, `board.js`, `mdcopy.js` (the rendered copies of the Markdown a board links, under the git-ignored `docs/plans/.live/docs/`), and `apply-event.js`, the fast path of a plan-board event, below; `timeline.js` (a landed board's Timeline step lines, and `--from-git` to record the merge's time and the branch's step commits on a board that landed before them; the fast path records both itself, `plan/RULES.md` §4, "The fast path owns the Timeline"); `testslib.js` (not a command), the Tests tab's data rules that `apply-event.js`, `embed.js` and `check.js` share; `fill.js`, how a fill writes: the presenter's fields merged onto the latest `plan.json` while events keep applying; `levels.js` (not a command), what a board holds of a work level; `passnames.js` (not a command), a qa pass named "Quality Review N": the name the scripts and the issue-board template compose, the older "qa pass N" reworded at every rewrite of a board, and check.js's QA PASS WORDING), `plan/examples/38-handshake-empty-name/`. |
+| `plan/RULES.md` | The work-board ruleset: the data model, the events that update a board, the WIP strip and its step panel (its finished steps clickable, each shown from its snapshot in `wip.history` or reconstructed), the Timeline's step visits (the time a run waited on the user or was not running drops out of them, unmentioned), the live updates, the repository work board. `plan/template/` (the issue board, its `plan.json` skeleton, the repository work board), `plan/scripts/` (`new.js`, the presenter's fallback for a foundation, `embed.js` (which also writes each board's live sidecar, `plan.js` or `board.js`), `check.js`, `board.js`, `mdcopy.js` (the rendered copies of the Markdown a board links, under the git-ignored `docs/plans/.live/docs/`), and `apply-event.js`, the fast path of a plan-board event, below; `timeline.js` (a landed board's Timeline step lines, and `--from-git` to record the merge's time and the branch's step commits on a board that landed before them; the fast path records both itself, `plan/RULES.md` §4, "The fast path owns the Timeline"); `testslib.js` (not a command), the Tests tab's data rules that `apply-event.js`, `embed.js` and `check.js` share; `fill.js`, how a fill writes: the presenter's fields merged onto the latest `plan.json` while events keep applying; `levels.js` (not a command), what a board holds of a work level; `passnames.js` (not a command), the names a board shows for the run's steps and its Quality Reviews ("Quality Review N", "Correction", "Resolution", "Document commit"): the names the scripts and the templates compose, an older wording reworded at every rewrite of a board, and check.js's BOARD WORDING), `plan/examples/38-handshake-empty-name/`. |
 
 ## The fast path of a plan-board event
 
@@ -45,7 +35,7 @@ At every `plan-board` request the admin team runs, itself:
     node ~/.claude/skills/dashboards/plan/scripts/apply-event.js --event <request.json> --worktree <path> [--repo <owner/repo>]
 
 It applies, deterministically and in a second or two, everything the event's facts alone decide (the board's foundation at a `sized` with no board, so it opens when the run starts, `plan/RULES.md` §4, "The foundation"; the step, the glow, the research
-questions, the stages and the derived as-built states, the halt, the qa passes (each named "Quality Review N", the older "qa pass N" in a fact reworded), the remediation, the open points (at every event), the
+questions, the stages and the derived as-built states, the halt, the qa passes (each named "Quality Review N"), the remediation (a Correction or a Resolution, by its route), every step by its name (an older wording in a fact, "qa pass N", "qa next", "the remediation loop", "Document-landing commit" and the like, reworded), the open points (at every event), the
 detail, the trail entry, the branch, a sub-issue's move on its tracking board, the statements' excerpts, the Tests tab from `facts.tests`, the
 Document step's `document` event and its tasks (its `state-boards` and `document-landing` tasks raised by the team), the team-raised `landing` and `merge`, the
 seeding at `sized` from the live view's copies of the previous landing, the team-raised `reseed` that ends a post-merge refresh, the copies of an open point's report and a qa pass's test report for

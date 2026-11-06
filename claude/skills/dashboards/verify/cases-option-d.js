@@ -94,7 +94,7 @@ module.exports = function casesOptionD(X) {
     c.push(["an event on it keeps its line: boards where it stands, no second sub-issues", up.a.status === 0 && P(Bo).wip.steps.filter(x => x === "sub-issues").length === 1 && P(Bo).wip.steps.includes("boards") && P(Bo).wip.step === "boards", js([up.S.error, P(Bo).wip.steps, P(Bo).wip.step])]);
     const tpl = rd(PB);
     c.push(["the template keeps the readers: the boards panel and the Timeline's steps", /boards:\(R,o\)=>/.test(tpl) && /"sub-issues","boards"/.test(tpl), "template"]);
-    c.push(["the template's next step after a filing is the first unit's run, and after a tracking plan's merge the filing", /implementation: the first unit's run/.test(tpl) && /sub-issues: each unit filed/.test(tpl), "nextStepOf"]);
+    c.push(["the template's next step after a filing is the first unit's run, and after a tracking plan's merge the filing", /\$\{STEP_NAME\.implementation\}: the first unit's run/.test(tpl) && /\$\{STEP_NAME\["sub-issues"\]\}: each unit filed/.test(tpl), "nextStepOf"]);
     if (X.dumpDom && X.NEEDS_BROWSER) { const d = X.dumpDom(path.join(Bo.dir, "dashboard.html"), "", "1400,1000"), panel = d && X.inner(d, '<div class="sp own', "div");
       c.push(d == null ? ["an older board at boards draws its own step panel", false, X.NEEDS_BROWSER] : ["an older board at boards draws its own step panel", /with a board/.test(panel || ""), (panel || "").slice(0, 200)]); }
   });

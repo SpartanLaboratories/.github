@@ -150,12 +150,12 @@ module.exports = function cases29(X) {
     c.push(["a browser renders the board (set CHROME)", d != null, "no Chrome or Edge found"]);
     if (d != null) {
       const cards = inner(d, '<div id="syscards">', "div"), card = slug => (cards.match(new RegExp(`<span class="syscard planned"[^>]*data-slug="${slug}"[\\s\\S]*?</span></div></span>`)) || [""])[0];
-      const g = card("system-gamma"), dl = card("system-delta"), key = text(inner(d, '<div class="key" id="systems-key">', "div"));
+      const g = card("system-gamma"), dl = card("system-delta"), key = text(inner(d, '<div class="legend" id="systems-key">', "div"));
       c.push(["the planned supersystem's card links its built parts' board and says \"planned supersystem · built in part\" (the template's words since dashboards-skill/35), not \"no board yet\"", /<div class="st">planned supersystem · built in part<\/div>/.test(g) && /<a href="system-gamma\/index\.html">its built parts' board<\/a>/.test(g) && !/no board yet/.test(g), text(g).slice(0, 220)]);
       c.push(["…as a link inside the card, the card itself a span (links do not nest: \"its plan\" is a link too)", /^<span class="syscard planned"/.test(g) && !/<a class="syscard planned"[^>]*data-slug="system-gamma"/.test(cards), g.slice(0, 120)]);
       c.push(["a planned system with no board still says \"planned · no board yet\", with no board link", /<div class="st">planned · no board yet<\/div>/.test(dl) && !/its built parts' board/.test(dl), text(dl).slice(0, 200)]);
       c.push(["the legend names both: \"planned: no board yet, or built in part: links its built parts' board\"", /planned: no board yet, or built in part: links its built parts' board/.test(key), key.slice(0, 300)]);
-      const base = dumpDom(SUP, "", "1400,1000"), bkey = text(inner(base, '<div class="key" id="systems-key">', "div"));
+      const base = dumpDom(SUP, "", "1400,1000"), bkey = text(inner(base, '<div class="legend" id="systems-key">', "div"));
       c.push(["with no planned supersystem board, the legend keeps \"planned: no board yet\" alone", /planned: no board yet(?!, or)/.test(bkey) && !/built parts/.test(bkey), bkey.slice(0, 200)]);
       const ck = cp.spawnSync(process.execPath, [checker, page, "--out", path.join(sc, "parts-page-check")], { encoding: "utf8" });
       c.push(["check-board.js's full pass passes the board (legends, dashes, keyboard, no dead link)", ck.status === 0, notRun(ck) ? NEEDS_BROWSER : (ck.stdout || "").split(/\r?\n/).filter(l => /FAIL|DEAD|LEGEND|MISSING/.test(l)).slice(0, 4).join(" | ") || "pass"]);

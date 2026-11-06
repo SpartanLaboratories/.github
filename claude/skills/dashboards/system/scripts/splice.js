@@ -23,7 +23,9 @@
 //   - a board with no state block gets one, from its registry entry (state.json written beside it when there is none);
 //   - the names of dashboards-skill/33 on what the board owns, outside its data blocks: the Guarantees' classes (bubbles, bubble →
 //     guarantee-cards, guarantee-card, in its HTML and its own CSS, and the word in its comments) and the placeholder marks ("<!-- presenter:", "// presenter:" →
-//     "fill:"), so a board brought onto the template keeps its Guarantees' look and carries no internal name in its comments.
+//     "fill:"), so a board brought onto the template keeps its Guarantees' look and carries no internal name in its comments; and the
+//     classes of dashboards-skill/41 (kpi → kpi-tile, vp → verdict-pill, key → legend, in its HTML and its own CSS), so its own tiles and
+//     legends keep their look on the template that renamed them.
 // An issue board or the repository work board is its template plus its data: the splice copies the template over the board and embeds the board's
 // data block; one that declares a divergence is merged three ways as above, the board outside its data block as one part.
 // The recorded versions are read through history.js: verify/history/ is a local cache, kept out of the .github mirror, and a version whose
@@ -108,6 +110,18 @@ const MIGRATE = [
   /* the template's own comment above the embedded DSL, as boards made before dashboards-skill/33 carry it */
   [/A verbatim copy of workspace\.dsl: the presenter re-embeds the file here on every run,/g, "A verbatim copy of workspace.dsl, re-embedded here on every run,", "the DSL block's comment reworded"],
   [/\/\/(\s*)presenter:/g, "//$1fill:", "line mark // presenter: → // fill:"],
+  /* the classes renamed to carry their element's type (dashboards-skill/41, decided 2026-11-06): .kpi → .kpi-tile, .vp → .verdict-pill,
+     .key → .legend, in the board's own HTML and CSS (its hand-written tiles and legends, a declared divergence's rules); a property access
+     (x.key) is no selector and is left alone */
+  [/(\bclass(?:Name)?="(?:[^"]*\s)?)kpi(?=[\s"])/g, "$1kpi-tile", "class kpi → kpi-tile"],
+  [/(\bclass(?:Name)?="(?:[^"]*\s)?)vp(?=[\s"])/g, "$1verdict-pill", "class vp → verdict-pill"],
+  [/(\bclass(?:Name)?="(?:[^"]*\s)?)key(?=[\s"])/g, "$1legend", "class key → legend"],
+  [/(?<![\w$\])])\.kpi(?![-\w$])/g, ".kpi-tile", "selector .kpi → .kpi-tile"],
+  [/(?<![\w$\])])\.vp(?![-\w$])/g, ".verdict-pill", "selector .vp → .verdict-pill"],
+  [/(?<![\w$\])])\.key(?![-\w$])/g, ".legend", "selector .key → .legend"],
+  /* and the C4 tab's legend, .c4key → .c4-legend (decided 2026-11-06, with the three above) */
+  [/(\bclass(?:Name)?="(?:[^"]*\s)?)c4key(?=[\s"])/g, "$1c4-legend", "class c4key → c4-legend"],
+  [/(?<![\w$\])])\.c4key(?![-\w$])/g, ".c4-legend", "selector .c4key → .c4-legend"],
 ];
 function migrateNames(h, report) {
   const parts = h.split(/(<script type="(?:application\/json|text\/plain)"[^>]*>[\s\S]*?<\/script>)/);

@@ -65,7 +65,7 @@ module.exports = function cases33(X) {
     const miss = found.filter(t => !N.nameRefs(t).length), wrong = fine.filter(t => N.nameRefs(t).length);
     c.push(["each internal form is found", !miss.length, js(miss)]);
     c.push(["a library's word, the qa step and the implementer are not", !wrong.length, js(wrong.map(t => [t, N.nameRefs(t)]))]);
-    const want = [["Accepted by the admin team, PR #9.", "Accepted, PR #9."], ["a planner re-pass, then rookie-dev's fixes", "a plan re-pass, then the fixes"], ["Relevant is what qa's test-inspector ran", "Relevant is what the qa pass's test inspection ran"],
+    const want = [["Accepted by the admin team, PR #9.", "Accepted, PR #9."], ["a planner re-pass, then rookie-dev's fixes", "a plan re-pass, then the fixes"], ["Relevant is what qa's test-inspector ran", "Relevant is what the review's test check ran"],
       ["Kept (the user's call).", "Kept."], ["rookie-dev: the 27 minor fixes", "the 27 minor fixes"], ["code-reviewer: no findings", "no findings"], ["Nine gaps await the planner's ruling", "Nine gaps await the ruling"], ["Two exclusions flagged by qa: x", "Two exclusions flagged: x"]];
     const bad = want.filter(([s, w]) => { const r = N.scrubNames(s); return r.text !== w || r.left.length; });
     c.push(["scrubNames(): the agent phrase dropped, a possessive the article, a role's work the work, a role label and an aside on the approval flow dropped", !bad.length, js(bad.map(([s, w]) => [s, N.scrubNames(s), w]))]);
@@ -109,7 +109,7 @@ module.exports = function cases33(X) {
     const q = planOf(r2, Q.folder);
     c.push(["the older route id a request carries is written as its neutral one, on the pass and the loop, and still means a plan re-pass", b.status === 0 && q.wip.qa[0].route === "re-plan-then-remediation" && q.wip.remediation.route === "re-plan-then-remediation" && q.wip.plan && q.wip.plan.state === "re-pass", js([b.status, q.wip.qa, q.wip.remediation, q.wip.plan, b.s.error])]);
     c.push(["the sub-steps' role labels are dropped (\"planner: rule on the gaps\" → \"rule on the gaps\", \"rookie-dev fixes\" → \"fixes\")", q.wip.remediation && js(q.wip.remediation.steps.map(x => x.name)) === js(["rule on the gaps", "fixes"]), js(q.wip.remediation && q.wip.remediation.steps)]);
-    c.push(["the detail names the route in neutral words", /a plan re-pass, then a remediation pass, then the next qa pass/.test(q.wip.detail || "") && !/planner|rookie/.test(q.wip.detail || ""), q.wip.detail]);
+    c.push(["the detail names the route in neutral words", /a Resolution: a plan re-pass, then the fixes, then the next review/.test(q.wip.detail || "") && !/planner|rookie/.test(q.wip.detail || ""), q.wip.detail]);
     const k = run(CHECK, [path.join(r2, ...Q.folder.split("/"))]);
     c.push(["check.js reads the neutral ids, and warns on no internal name", k.status === 0 && !/INTERNAL NAME/.test(k.stdout || ""), (k.stdout || "").split(/\r?\n/).filter(l => /INTERNAL|route|FAIL/.test(l)).join(" | ")]);
     /* the landing: neutral words */

@@ -137,8 +137,9 @@ const routeId = r => (typeof r === "string" && ROUTE_OLD[r]) || r;
 const STEP_ALIASES = { implement: "implementation", implementing: "implementation" };
 /* The column a step's trail entry sits in. */
 const STEP_COLUMN = { "sub-issues": "considered", boards: "considered", sizing: "gap", interview: "gap", research: "gap", architecture: "considered", plan: "verdict", branch: "built", implementation: "built", qa: "built", remediation: "built", document: "built", landing: "built", "state-boards": "built", merge: "built", landed: "built", cancelled: "built" };
-const STEP_WORDS = { "sub-issues": "filing the units as sub-issues", boards: "creating the units' boards", sizing: "sizing", interview: "the interview", research: "research", architecture: "the architecture", plan: "the plan", branch: "the branch", implementation: "implementation", qa: "qa", remediation: "remediation", document: "the Document step", landing: "the landing", "state-boards": "the state boards", merge: "the merge", landed: "landed" };
-const ROUTE_WORDS = { "on-the-spot": "minor fixes on the spot, then the Document step with no new qa pass", "remediation": "a remediation pass, then the next qa pass", "re-plan-then-remediation": "a plan re-pass, then a remediation pass, then the next qa pass" };
+/* every step in a sentence, and the routes, by their names (passnames.js: one home for each name a board shows) */
+const STEP_WORDS = lib.STEP_WORDS, stepWords = lib.stepWords;
+const ROUTE_WORDS = lib.ROUTE_WORDS;
 const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 const code = s => "`" + s + "`";
 
@@ -261,13 +262,13 @@ function applyEvent(orig, ev, facts, req, now) {
      sub-steps done and the current ones (several may run in parallel); from the facts alone, so the same event twice writes the same board */
   const remediationWording = () => {
     const R = w.remediation || {}, ss = R.steps || [], curs = ss.filter(x => x.state === "current"), dn = ss.filter(x => x.state === "done");
-    const said = txt(facts.stage, "stage"), pass = R.pass != null ? lib.passName(R.pass) : "the qa pass";
+    const said = txt(facts.stage, "stage"), name = lib.remediationName(R.route, R.pass);
     const names = curs.map(x => x.name).join(curs.length > 1 ? " | " : "");
     const what = said || [dn.length ? `${plural(dn.length, "sub-step")} done` : null, curs.length === 1 ? `${names} current` : curs.length ? `${curs.length} sub-steps current in parallel: ${names}` : ss.length ? "every sub-step done" : null].filter(Boolean).join("; ") || null;
-    note = note || (said || [dn.length ? `${dn.length} of ${ss.length} remediation sub-steps done` : null, curs.length === 1 ? "the next current" : curs.length ? `${curs.length} current in parallel` : null].filter(Boolean).join("; ") || `remediation for ${pass}`);
-    detail = detail || `Remediation for ${pass}${curs.length === 1 ? ": " + names : what ? ": " + what : ""}.`;
-    /* a facts.stage that names the pass itself ("Quality Review 1 fixes done; …", written so from "qa pass 1 fixes done") stands alone, after "Remediation:" */
-    trail = { column: "built", label: said && lib.PASS_RE.test(said) ? `Remediation: ${said}` : `Remediation for ${pass}${what ? ": " + what : ""}` };
+    note = note || (said || [dn.length ? `${dn.length} of ${plural(ss.length, "sub-step")} done` : null, curs.length === 1 ? "the next current" : curs.length ? `${curs.length} current in parallel` : null].filter(Boolean).join("; ") || name);
+    detail = detail || `${name}${curs.length === 1 ? ": " + names : what ? ": " + what : ""}.`;
+    /* the step by its route's name (passnames.js remediationName(): "Correction", a later one "Correction of Quality Review 2"), then what it reached */
+    trail = { column: "built", label: `${name}${what ? ": " + what : ""}` };
   };
 
   switch (ev) {
@@ -306,7 +307,7 @@ function applyEvent(orig, ev, facts, req, now) {
         });
       }
       detail = detail || `Waiting on you: ${waiting}`;
-      trail = { column: STEP_COLUMN[resume] || "built", label: `Halted at ${STEP_WORDS[resume] || resume}: waiting on you (${waiting})` };
+      trail = { column: STEP_COLUMN[resume] || "built", label: `Halted at ${stepWords(resume, lib.ctxOf(w))}: waiting on you (${waiting})` };
       break;
     }
     case "resumed": {
@@ -316,8 +317,8 @@ function applyEvent(orig, ev, facts, req, now) {
       w.resume = null; w.waitingOn = null; applied.push("wip.resume and wip.waitingOn cleared");
       setStep(step); setGlow(step);
       if (step === "interview" && (w.interview || []).some(q => q && q.answer == null)) enrich.push("resumed: the interview's answers are recorded from the user's reply");
-      detail = detail || `Resumed at ${STEP_WORDS[step] || step}.`;
-      trail = { column: STEP_COLUMN[step] || "built", label: `Resumed at ${STEP_WORDS[step] || step}` };
+      detail = detail || `Resumed at ${stepWords(step, lib.ctxOf(w))}.`;
+      trail = { column: STEP_COLUMN[step] || "built", label: `Resumed at ${stepWords(step, lib.ctxOf(w))}` };
       break;
     }
     case "research-planning": {
@@ -453,7 +454,7 @@ function applyEvent(orig, ev, facts, req, now) {
       if (Array.isArray(facts.open)) mergeOpen(w, facts, applied, txt, `implementation-stage ${reportedStage || ""}`.trim(), resolved, plan.folder, DIR, enrich);
       /* During remediation (facts.remediation, or a report while the board stands at remediation) the report answers a qa pass: its
          sub-steps are written whether or not the facts also carry the stages (which are then merged too, every one done), and the wording
-         follows the remediation, facts.stage first, never "qa next". */
+         follows the remediation, facts.stage first, never "Quality Review next". */
       const fixedBefore = new Set(((w.remediation || {}).steps || []).filter(x => x && x.state === "done").map(x => x.name));
       if (facts.remediation) setRemediation(w, facts.remediation, applied, enrich, txt);
       /* A report can change what the rows say while it finishes no stage (WebTools #67, the report of qa pass 1's fixes: every stage already done, a sub-step done,
@@ -502,9 +503,9 @@ function applyEvent(orig, ev, facts, req, now) {
          stage facts.stage names as current (WebTools #68: stage 1 reported done with facts.stage "stage-2", and its five classes read "stage-2");
          from the facts and the stages alone, so the same event twice gives the same stage */
       if (rep) reportedStage = rep.id;
-      note = note || [rep ? `${rep.id} reported done` : null, c ? `${c.id} current` : allDone && !past ? "qa next" : null].filter(Boolean).join("; ") || null;
-      detail = detail || (past ? w.detail || null : c ? `Implementation at ${c.id} of ${st.length}${rep ? `: ${rep.id} is done` : ""}; ${c.id} takes ${c.name}.` : allDone ? `Implementation done, ${plural(st.length, "stage")}; qa next.` : "Implementation.");
-      trail = { column: "built", label: c ? `${rep ? rep.id + " done; " : ""}${c.id} current: ${c.name}` : allDone ? `Implementation done (${plural(st.length, "stage")})${past ? "" : "; qa next"}` : "Implementation stage reported" };
+      note = note || [rep ? `${rep.id} reported done` : null, c ? `${c.id} current` : allDone && !past ? `${lib.PASS_NAME} next` : null].filter(Boolean).join("; ") || null;
+      detail = detail || (past ? w.detail || null : c ? `Implementation at ${c.id} of ${st.length}${rep ? `: ${rep.id} is done` : ""}; ${c.id} takes ${c.name}.` : allDone ? `Implementation done, ${plural(st.length, "stage")}; ${lib.PASS_NAME} next.` : "Implementation.");
+      trail = { column: "built", label: c ? `${rep ? rep.id + " done; " : ""}${c.id} current: ${c.name}` : allDone ? `Implementation done (${plural(st.length, "stage")})${past ? "" : `; ${lib.PASS_NAME} next`}` : "Implementation stage reported" };
       break;
     }
     case "qa-pass": {
@@ -545,7 +546,8 @@ function applyEvent(orig, ev, facts, req, now) {
       /* an open point the qa report raises (or settles) is kept as at an implementation stage (plan/RULES.md §3, wip.open) */
       if (Array.isArray(facts.open)) mergeOpen(w, facts, applied, txt, lib.passName(Q.pass), resolved, plan.folder, DIR, enrich);
       if (w.qaMax !== 3 && !Number.isInteger(w.qaMax)) w.qaMax = 3;
-      const counts = [...Object.entries(findings).filter(([, n]) => n).map(([k2, n]) => `${n} ${k2}`), ...Object.entries(severity).filter(([, n]) => n).map(([k2, n]) => `${n} ${k2}`)].join(", ");
+      /* what the pass returned, its findings (passnames.js findingsWords(): "18 findings (3 documentation, 15 code)") */
+      const counts = lib.findingsWords(findings, severity);
       const anyFinding = Object.values(findings).some(n => n > 0);
       if (verdict === "approved") {
         if (w.remediation) applied.push("wip.remediation cleared"); w.remediation = null;
@@ -560,10 +562,10 @@ function applyEvent(orig, ev, facts, req, now) {
         if (route === "re-plan-then-remediation") { w.plan = { state: "re-pass", from: "qa", pass: Q.pass, since: now }; applied.push(`wip.plan re-pass after qa pass ${Q.pass}`); }
         const step = after0 && STEPS.includes(after0) ? after0 : "remediation"; setStep(step); setGlow(step);
         enrich.push("qa-pass: the findings detail (the rows they touch, the pass's note) comes from the qa report");
-        detail = detail || `${lib.passName(Q.pass)}: changes requested${counts ? " (" + counts + ")" : ""}${route ? "; " + ROUTE_WORDS[route] : ""}.`;
+        detail = detail || `${lib.passName(Q.pass)}: changes requested${counts ? ", " + counts : ""}${route ? "; " + ROUTE_WORDS[route] : ""}.`;
       } else { setStep("qa"); setGlow("qa"); detail = detail || `${lib.passName(Q.pass)} running.`; }
       note = note || `${lib.passName(Q.pass)}: ${verdict}`;
-      trail = { column: "built", label: `${lib.passName(Q.pass)}: ${verdict === "changes-requested" ? "changes requested" : verdict}${counts ? " (" + counts + ")" : ""}` };
+      trail = { column: "built", label: `${lib.passName(Q.pass)}: ${verdict === "changes-requested" ? "changes requested" : verdict}${counts ? ", " + counts : ""}` };
       break;
     }
     case "escalated": {
@@ -575,7 +577,7 @@ function applyEvent(orig, ev, facts, req, now) {
       w.waitingOn = txt(facts.waitingOn, "waitingOn") || "A re-sizing of the issue.";
       enrich.push("escalated: the board follows the issue's new sizing");
       detail = detail || "Escalated: waiting on a re-sizing.";
-      trail = { column: STEP_COLUMN[resume] || "built", label: `Escalated at ${STEP_WORDS[resume] || resume}: waiting on a re-sizing` };
+      trail = { column: STEP_COLUMN[resume] || "built", label: `Escalated at ${stepWords(resume, lib.ctxOf(w))}: waiting on a re-sizing` };
       break;
     }
     case "cancelled": {
@@ -1002,7 +1004,7 @@ function applyParent(orig, sub, op, now) {
     if (!["complete", ...lib.UNIT_LANDED].includes(state)) {
       const had = row.asBuilt && typeof row.asBuilt.summary === "string" && row.asBuilt.summary.trim();
       /* a complete unit says what exists (check.js): with no summary yet, the plain fact; one written before is the presenter's to update */
-      row.asBuilt = { ...(row.asBuilt || {}), state: "complete", ...(had ? {} : { summary: `#${sub.issue}'s run passed qa; it is not merged yet.` }) };
+      row.asBuilt = { ...(row.asBuilt || {}), state: "complete", ...(had ? {} : { summary: `#${sub.issue}'s run: the ${lib.REVIEW} approved; it is not merged yet.` }) };
       applied.push(`#${plan.issue}: ${row.id} complete`);
       if (had) enrich.push(`#${plan.issue}: ${row.id}'s summary, now complete, comes from #${sub.issue}'s board`);
     }
@@ -1010,7 +1012,7 @@ function applyParent(orig, sub, op, now) {
     /* a landed unit says what exists (check.js): with no summary yet, or only the plain fact its qa pass wrote, the plain fact of its
        landing from the sub-issue's asBuilt; a summary written from the documents is the presenter's to update */
     const A = (sub && sub.asBuilt) || {}, m = A.merge || A.sha, s0 = row.asBuilt && typeof row.asBuilt.summary === "string" ? row.asBuilt.summary.trim() : "";
-    const had = s0 && s0 !== `#${sub.issue}'s run passed qa; it is not merged yet.`;
+    const had = s0 && ![`#${sub.issue}'s run passed qa; it is not merged yet.`, `#${sub.issue}'s run: the ${lib.REVIEW} approved; it is not merged yet.`].includes(s0);
     if (state !== "landed" || !had) { row.asBuilt = { ...(row.asBuilt || {}), state: "landed", ...(had ? {} : { summary: `#${sub.issue} landed${A.pr ? ` through PR #${A.pr}` : ""}${m ? ` as ${String(m).slice(0, 7)}` : ""}.` }) }; applied.push(`#${plan.issue}: ${row.id} landed${had ? "" : ", with the plain fact of its landing as its summary"}`); }
     if (cur.includes(cell)) { w.current = cur.filter(a => a !== cell); applied.push(`#${plan.issue}: ${row.id} out of wip.current`); }
     const left = lib.unitLeft(plan, row);
@@ -1023,7 +1025,7 @@ function applyParent(orig, sub, op, now) {
   lib.freezeSteps(orig, plan, op.kind === "start" ? "sized" : op.kind === "landed" ? "landed" : "qa-pass", now, null).forEach(x => applied.push(`#${plan.issue}: ${x}`));
   if (applied.length) {
     w.updated = now;
-    const words = { start: "started", complete: "complete: qa passed", landed: "landed" }[op.kind];
+    const words = { start: "started", complete: "complete: the review approved", landed: "landed" }[op.kind];
     const t = { date: now.slice(0, 10), column: "built", label: `#${sub.issue} ${words}` };
     plan.trail = Array.isArray(plan.trail) ? plan.trail : [];
     if (!plan.trail.some(x => x && x.date === t.date && x.column === t.column && x.label === t.label)) plan.trail.push(t);

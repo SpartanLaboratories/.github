@@ -145,7 +145,7 @@ module.exports = function casesLiveView(X) {
     const a3 = raise("landed", T3, M, { sha, merge: sha, mergedAt: T3 }), p3 = P(vS), html3 = rd(path.join(vS, "dashboard.html"));
     c.push(["landed, from the main checkout: built, the copy's <base> now the main checkout's folder", a3.status === 0 && p3.status === "built" && p3.wip.step === "landed" && /<base href="\.\.\/\.\.\/\.\.\/\.\.\/55-http-client-stack\/47-java-23-bytecode\/" data-live-view>/.test(html3), a3.raw + (html3.match(/<base [^>]*>/) || ["none"])[0]]);
     const lines = lib.timelineLines(lib.timelineSteps(p3)), has = (re) => lines.some(l => re.test(l));
-    c.push(["the Timeline: landing from its real time to the merge step's, then the merge to the merge's time, each once", has(/^landing.*09:10Z → .*09:12Z/) && has(/^merge.*09:12Z → .*09:12Z/) && lines.filter(l => /^landing/.test(l)).length === 1 && lines.filter(l => /^merge/.test(l)).length === 1, lines.filter(l => /^(document|landing|merge)/.test(l)).join(" | ")]);
+    c.push(["the Timeline: landing from its real time to the merge step's, then the merge to the merge's time, each once", has(/^Landing.*09:10Z → .*09:12Z/) && has(/^Merge.*09:12Z → .*09:12Z/) && lines.filter(l => /^Landing/.test(l)).length === 1 && lines.filter(l => /^Merge/.test(l)).length === 1, lines.filter(l => /^(Document|Landing|Merge)/.test(l)).join(" | ")]);
     const a1d = raise("landing", T1, M), a2d = raise("merge", T2, M), p3b = P(vS);
     c.push(["both raised again on the landed copy are duplicates: the trail not doubled", a1d.S.result === "duplicate" && a2d.S.result === "duplicate" && trailOf(p3b, /^Landing:/) === 1 && trailOf(p3b, /^Merge:/) === 1 && p3b.wip.step === "landed", a1d.raw + a2d.raw]);
     { const q0 = P(vS); q0.wip.detail = "Merged through PR #90: the landing's own record."; wr(path.join(vS, "plan.json"), JSON.stringify(q0, null, 2) + "\n"); run(EMBED, [vS]);
@@ -160,7 +160,7 @@ module.exports = function casesLiveView(X) {
     const b1a = raise("landing", T1, M), b1k = fs.existsSync(path.join(vS, "plan.json")) && fs.existsSync(path.join(vT, "dashboard.html"));
     c.push(["landing, after the merge: applied, and board.js --live leaves the tracking board's copy (it refused before, its copy removed under the check as no fresher)", b1a.status === 0 && b1a.S.result === "ok" && b1k && P(vS).wip.step === "landing" && P(vT).rows.find(r => r.id === "java-floor").unit.live.updated === T1, b1a.raw]);
     const b2a = raise("merge", T2, M), b3a = raise("landed", T3, M, { sha, merge: sha, mergedAt: T3 }), q = P(vS), ql = lib.timelineLines(lib.timelineSteps(q));
-    c.push(["merge and landed follow, the same Timeline; the main checkout clean", b2a.status === 0 && b3a.status === 0 && q.wip.step === "landed" && ql.some(l => /^landing.*09:10Z → .*09:12Z/.test(l)) && ql.some(l => /^merge.*09:12Z → .*09:12Z/.test(l)) && clean(M), b2a.raw + b3a.raw + ql.filter(l => /^(landing|merge)/.test(l)).join(" | ")]);
+    c.push(["merge and landed follow, the same Timeline; the main checkout clean", b2a.status === 0 && b3a.status === 0 && q.wip.step === "landed" && ql.some(l => /^Landing.*09:10Z → .*09:12Z/.test(l)) && ql.some(l => /^Merge.*09:12Z → .*09:12Z/.test(l)) && clean(M), b2a.raw + b3a.raw + ql.filter(l => /^(Landing|Merge)/.test(l)).join(" | ")]);
     /* a time not after the board's own stamp: said, as the live view drops such a copy */
     fs.rmSync(path.join(M, "docs", "plans", ".live", "view"), { recursive: true, force: true });
     const late = raise("landing", T0, M);

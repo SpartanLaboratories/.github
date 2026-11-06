@@ -2,7 +2,7 @@
 // implementation-stage and qa-pass rows), run by verify-templates.js (it passes its helpers in), or on its own with no browser:
 // node verify/cases-explicit-step.js [--out <dir>].
 // The defect (WebTools #66): every stage done moved the board to qa at the stage report, or the verdict closed the implementation visit with a
-// qa visit of no time, so implementation read 25 minutes too long and qa · 1st pass under a minute. An implementation-stage now moves no step of
+// qa visit of no time, so implementation read 25 minutes too long and Quality Review 1 under a minute. An implementation-stage now moves no step of
 // its own: facts.step has no effect and every stage done implies nothing, until the run's qa-pass with verdict "running" opens the qa visit at
 // its time; the verdict closes that same visit. Remediation alone stays recognised. A returned verdict with no running before it applies as it
 // stands, and says so. No case opens a browser. Each group returns [title, cases], a case [name, ok, detail].
@@ -50,7 +50,7 @@ module.exports = function casesExplicitStep(X) {
     const B = lay(board()), a = ev(B, "implementation-stage", { stage: "S2", stages: STG("done", "done") }, T1);
     c.push(["every stage done, no facts.step: the step stays implementation, its visit still running from its start", a.a.status === 0 && a.p.wip.step === "implementation" && a.p.wip.since === T0, js([a.a.status, a.p.wip.step, a.p.wip.since, a.S.error])]);
     c.push(["…no implementation visit frozen, no qa visit opened", !vis(a.p, "implementation").length && !vis(a.p, "qa").length, js(a.p.wip.history)]);
-    c.push(["…the whole As built column glows, and the wording still says qa comes next, as the run's next step", js(a.p.wip.current) === js(["built"]) && /qa next/.test(a.p.wip.detail), js([a.p.wip.current, a.p.wip.detail])]);
+    c.push(["…the whole As built column glows, and the wording still says the Quality Review comes next, as the run's next step", js(a.p.wip.current) === js(["built"]) && /Quality Review next/.test(a.p.wip.detail), js([a.p.wip.current, a.p.wip.detail])]);
     const Bq = lay(board()), q = ev(Bq, "implementation-stage", { step: "qa", stage: "S2", stages: STG("done", "done") }, T1);
     c.push(["facts.step \"qa\" with every stage done: ignored, the step stays, and the summary says so", q.a.status === 0 && q.p.wip.step === "implementation" && q.p.wip.since === T0 && (q.S.applied || []).some(x => /facts\.step "qa" ignored/.test(x)), js([q.p.wip.step, q.p.wip.since, q.S.applied])]);
     const Bm = lay(board()), m = ev(Bm, "implementation-stage", { step: "qa", stage: "S1", stages: STG("done", "current") }, T1);
@@ -83,7 +83,7 @@ module.exports = function casesExplicitStep(X) {
     c.push(["facts.step \"remediation\" beside facts.remediation: facts.remediation moves the step, the summary still names the step ignored", r2b.a.status === 0 && r2b.p.wip.step === "remediation" && r2b.p.wip.remediation.pass === 1 && (r2b.S.applied || []).some(x => IGN.test(x)), js([r2b.p.wip.step, r2b.S.applied, r2b.S.error])]);
     const B3 = lay(atRem()), r3 = ev(B3, "implementation-stage", { step: "qa", stage: "R1", stages: [...STG("done", "done"), { id: "R1", name: "The fixes", state: "done" }], rows: [] }, T3);
     c.push(["a facts.step \"qa\" after a remediation, its stages all done: ignored, the visit runs on, no qa visit", r3.a.status === 0 && r3.p.wip.step === "remediation" && r3.p.wip.since === T2 && !vis(r3.p, "remediation").length, js([r3.p.wip.step, r3.p.wip.since, r3.p.wip.history.remediation, r3.S.error])]);
-    c.push(["…its wording follows the remediation, never \"qa next\", and the stage is the remediation's", !/qa next/.test(js([r3.p.wip.detail, r3.p.wip.event, r3.p.trail.slice(-1)])) && /^Remediation/.test(r3.p.trail[r3.p.trail.length - 1].label), js([r3.p.wip.detail, r3.p.trail.slice(-1)])]);
+    c.push(["…its wording follows the remediation, never \"qa next\", and the stage is the remediation's", !/qa next/.test(js([r3.p.wip.detail, r3.p.wip.event, r3.p.trail.slice(-1)])) && /^(?:Correction|Resolution)/.test(r3.p.trail[r3.p.trail.length - 1].label), js([r3.p.wip.detail, r3.p.trail.slice(-1)])]);
     const B4 = lay(atRem()), r4 = ev(B4, "implementation-stage", { step: "qa", remediation: REM(1, "done") }, T3);
     c.push(["a facts.step \"qa\" beside facts.remediation: ignored, the sub-steps written", r4.a.status === 0 && r4.p.wip.step === "remediation" && r4.p.wip.since === T2 && r4.p.wip.remediation.steps[0].state === "done", js([r4.p.wip.step, r4.p.wip.remediation, r4.S.error])]);
     const B5 = lay(atRem()), r5 = ev(B5, "implementation-stage", { stage: "R1", stages: [...STG("done", "done"), { id: "R1", name: "The fixes", state: "current" }], rows: [EX.rows[0].id] }, T3);
@@ -109,7 +109,7 @@ module.exports = function casesExplicitStep(X) {
     const v2 = ev(B, "qa-pass", { qa: { pass: 2, verdict: "approved", test: 0, code: 0 } }, T4);
     c.push(["…and its verdict closes the second qa visit, no third", v2.a.status === 0 && js(vis(v2.p, "qa")) === js([[T1, T2, "qa-pass", "remediation"], [T3, T4, "qa-pass", "document"]]) && js(v2.p.wip.history.qa[1].qa.map(p => p.pass)) === js([2]), js([vis(v2.p, "qa"), v2.S.error])]);
     const L = lib.timelineLines(lib.timelineSteps(v2.p));
-    c.push(["the Timeline: implementation ends and qa · 1st pass starts at the running event, 25 min of qa, not under a minute", L.some(l => /^implementation \(build\): .*04:23Z · 55 min$/.test(l)) && L.some(l => /^qa · 1st pass \(checking\): .*04:23Z → .*04:48Z · 25 min$/.test(l)) && L.some(l => /^qa · 2nd pass \(checking\): .*04:58Z → .*05:10Z · 12 min$/.test(l)), L.join(" | ")]);
+    c.push(["the Timeline: implementation ends and Quality Review 1 starts at the running event, 25 min of qa, not under a minute", L.some(l => /^Implementation \(build\): .*04:23Z · 55 min$/.test(l)) && L.some(l => /^Quality Review 1 \(checking\): .*04:23Z → .*04:48Z · 25 min$/.test(l)) && L.some(l => /^Quality Review 2 \(checking\): .*04:58Z → .*05:10Z · 12 min$/.test(l)), L.join(" | ")]);
     /* a halt while the pass runs: the visit is split around the wait, the pass kept, no mark */
     const H = lay(board({ stages: STG("done", "done") }));
     ev(H, "qa-pass", { qa: { pass: 1, verdict: "running" } }, T1); ev(H, "halted", { waitingOn: "An answer." }, "2026-11-03T04:30:00Z"); ev(H, "resumed", {}, "2026-11-03T04:40:00Z");

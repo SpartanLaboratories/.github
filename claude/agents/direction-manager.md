@@ -34,8 +34,9 @@ You keep three things true and one list current:
   planning documents, dashboards, publishing, the mirror.
 - **The direction documents.** `~/.claude/CLAUDE.md`, `~/.claude/agents/*.md`
   (the admin team's own brief included), `~/.claude/skills/*/`,
-  `~/.claude/admin-team/PROTOCOL.md`, and the root prompt files. They must agree
-  with each other and with the decisions the user has made.
+  `~/.claude/admin-team/PROTOCOL.md`, `~/.claude/nomenclature/`, and the root
+  prompt files. They must agree with each other and with the decisions the user
+  has made.
 - **The idea hooks.** `~/.claude/admin-team/hooks.jsonl`, one line per hook:
   `{id, ts, source, area, text, links, status, note, feasibility, revisited}`;
   `status` is `open`, `decided`, `done` or `dropped`, `note` is a free-text

@@ -5,18 +5,10 @@ repository state board, an issue board, a tracking board, the repository work bo
 ruleset (`system/RULES.md`, `plan/RULES.md`) adds to them and never loosens
 them. A change to any of them is weighed for every dashboard type (§11).
 
-**Dashboards and boards.** "Dashboard" is the umbrella for two groups, and every member of either is a
-**board**, never a "page" (GitHub Pages is something else):
-
-| Group | Shows | Its boards |
-|-------|-------|------------|
-| **State boards** (`docs/dashboards/`, `system/RULES.md`) | what the code is and does at a named commit | the **system board**, the **supersystem board**, the **repository state board**; planned: the **org project board**, the **intra-org dependency board** |
-| **Work boards** (`docs/plans/`, `plan/RULES.md`) | how the work is going | the **issue board**, the **tracking board** (a tracking issue's issue board), the **repository work board**; planned: the **org work board** |
-
-A board's own word for itself, in its text and its labels, is "board"; the file names and the scripts follow
-(`system/scripts/check-board.js`). The kind ids the scripts and the data use — `plan-board` (an issue or a tracking
-board: the `<meta name="dashboard">`, `plan.json`'s `schema: "plan-board/1"` and the protocol's `plan-board` request)
-and `work-board` — are identifiers and keep their spelling.
+**Dashboards and boards.** The board terms (the umbrella "dashboard", its two groups, each board's name, "board"
+and never "page", the kind ids `plan-board` and `work-board`) are in
+[`nomenclature/boards.md`](../../nomenclature/boards.md), "Dashboards and boards". The state boards follow
+`system/RULES.md`, the work boards `plan/RULES.md`.
 
 ## 1. Colour coding
 
@@ -131,7 +123,7 @@ the same tag; its own board's header says it ("status ⊟ archived").
 
 **The decision not to run another qa pass: a neutral mark** (admin-team/dashboards-skill/31). A qa pass whose findings were fixed in
 place, with no further pass (its `on-the-spot` route), carries a small neutral mark beside its verdict pill, with its glyph and words:
-"✎ fixed in place · no 2nd pass" ("fixing" while the fixes are being made). It is a decision, not an outcome: it takes no status colour,
+"✎ fixed in place · no additional review" ("fixing" while the fixes are being made). It is a decision, not an outcome: it takes no status colour,
 and the pass keeps its own verdict pill (`plan/RULES.md` §5, "QA").
 
 **Steps: four kinds of work** (admin-team/dashboards-skill/34, in place of dashboards-skill/32's neutral ramp). An issue board's Timeline
@@ -148,7 +140,7 @@ coloured by the **kind of work** its step is, four hue families, each named in t
 
 The steps of a family take **distinct shades of it**, lighter to darker in the steps line's order on a light surface (darker to lighter on a
 dark one: the first step nearest the surface, the last the strongest), mixed between its two ends (`--wk-<family>-a`, `-b`); a family of one
-step takes the middle of its two ends; a step's repeats (qa · 2nd pass, remediation · loop 2) share its shade. The colour is the bar's
+step takes the middle of its two ends; a step's repeats (Quality Review 2, Correction of Quality Review 2) share its shade. The colour is the bar's
 segment and the **mark in front of each step line**: filled for a visit the bar draws, outlined for one it does not (a bound not recorded),
 and the tile's legend says so. The families stay clear of the status colours and the research scale (no green, yellow, orange, red or pink:
 every shade is in the system palette's hues, 175°–295°) and of the accent (the in-progress glow), and every shade is at least 3:1 against its
@@ -232,7 +224,7 @@ The elements these colours apply to are named in §12, one name per function.
 
 ## 2. Legends
 
-Every tab, panel or board shows a visible legend (`class="key"`) listing exactly the encodings
+Every tab, panel or board shows a visible legend (`class="legend"`) listing exactly the encodings
 it uses — the system swatches present, each status colour with its glyph and word, dashed,
 dotted, the in-progress glow, the up-next mark — and nothing it doesn't. A legend that promises
 an encoding the panel never draws is a defect; so is an encoding with no legend entry.
@@ -319,13 +311,13 @@ comments, the fixed text of its template — names the pipeline's agents, sessio
 researcher, verifier, interviewer, presenter, publisher, rookie-dev, version-control-manager or executor, qa as an agent,
 code-reviewer, documentation-reviewer, test-inspector), refers to the approval flow ("the user's call", "the user chose", "user
 answers") or states a work level (above). Say what happened instead: "accepted", "a plan re-pass", "the fixes", "the land is accepted and
-being merged". Fine are "the implementer" (whoever builds the change), the qa step and its passes ("Quality Review 2", the QA tile; below), the steps'
+being merged". Fine are "the implementer" (whoever builds the change), the qa step and its passes ("Quality Review 2", the Quality Reviews tile; below), the steps'
 own names (research, architecture, plan), a halt's "waiting on you", and a library's name that only coincides (OkHttp's `RoutePlanner`,
 a Reactive Streams `Publisher`, a `java.util.concurrent.Executor`: executor and publisher count only with the pipeline's verbs,
 "the executor commits", "the publisher released"). The data follows: the remediation routes' ids are `on-the-spot`,
 `remediation` and `re-plan-then-remediation` (the older `rookie-dev` and `planner-then-rookie-dev` are read alike), the template's
 placeholder mark is `fill:` (a `presenter:` mark is migrated by the splice), a progress note is labelled by the work it reports ("research
-· <slug>", "code review"). `apply-event.js` rewords a pipeline fact through `system/scripts/namerefs.js` `scrubNames()` before it
+· <slug>", "code check"). `apply-event.js` rewords a pipeline fact through `system/scripts/namerefs.js` `scrubNames()` before it
 writes it — the agent phrase dropped ("accepted by the admin team" → "accepted"), a possessive made the article ("the planner's re-pass"
 → "the re-pass"), a role's work named as the work ("a planner re-pass" → "a plan re-pass", "code-reviewer" → "code review"), an aside
 on the approval flow dropped — and leaves the text out, telling the presenter (`enrich: yes`), where a name no library uses would remain;
@@ -334,15 +326,22 @@ a word a library may use as well (the planner, the verifier) is written and name
 issue's title is quoted verbatim and left out of the scan. The pipeline's names stay in force everywhere else: in these rules, the
 scripts' summaries and the template's code (the progress notes' file names are the agents' own).
 
-**A qa pass is named "Quality Review N"** (admin-team/dashboards-skill/quality-review-label). A board names each pass of the qa step
-"Quality Review N" ("Quality Review 1's fixes", "Answering Quality Review 2"), never "qa pass N". The name is the scripts' and the
-template's, never free text's (`plan/scripts/passnames.js`, the template's `PASS_NAME`): `apply-event.js` composes every pass name it
-writes and rewords "qa pass N" in any text it takes from the facts, every rewrite of a board (`lib.js` `resolveBoard()`: `apply-event.js`,
-`embed.js`, `fill.js`, `new.js`) rewords the older wording the board already holds, and `board.js` rewords the repository work board it
-generates. `plan/scripts/check.js` fails a board not landed, and the repository work board, that still says "qa pass N" (`QA PASS
-WORDING`), and warns on a landed one, kept as it landed until something rewrites it. An issue's title, quoted verbatim, code and the data's
-keys and ids (the `qa-pass` event) are left as they are, and so are the qa pass named with no number ("no new qa pass") and the ordinal
-pills ("1st pass · approved"), each a wording of its own.
+**A qa pass is named "Quality Review N"** (admin-team/dashboards-skill/quality-review-label, admin-team/dashboards-skill/board-wording).
+A board shows the qa step as "Quality Review" and names each pass of it "Quality Review N" ("Quality Review 1 · approved", "Answering
+Quality Review 2"), never "qa pass N" or an ordinal; a pass named with no number is a "review" ("no additional review", "the next review",
+"the review approved"), and what a pass returns is its "findings" ("Quality Review 1: 18 findings"). The step that acts on the findings is
+named by its route: a "Correction" for the `on-the-spot` and `remediation` routes, a "Resolution" for `re-plan-then-remediation` (a route
+not recorded yet reads "Correction"); the one answering Quality Review 1 stands bare, a later one names the pass it answers ("Correction of
+Quality Review 2"), and none is called a "loop". Every other step goes by its name ("Implementation", "Document", "State boards"), the
+Document step's commit task by "Document commit", and an open point's "raised" by the step that raised it ("raised during Implementation,
+stage 3", "raised at Document"). The ids stay as they are: `qa`, `remediation`, `state-boards` and `document-landing` in the data and the
+events. The names are the scripts' and the templates', never free text's (`plan/scripts/passnames.js`, the templates' names block):
+`apply-event.js` composes every name it writes and rewords an older wording ("qa pass N", "no new qa pass", "qa next", "Halted at qa",
+"Remediation for …", "the remediation loop", "Document-landing commit") in any text it takes from the facts, every rewrite of a board
+(`lib.js` `resolveBoard()`: `apply-event.js`, `embed.js`, `fill.js`, `new.js`) rewords the older wording the board already holds, and
+`board.js` rewords the repository work board it generates. `plan/scripts/check.js` fails a board not landed, and the repository work
+board, that still holds an older wording (`BOARD WORDING`), and warns on a landed one, kept as it landed until something rewrites it. An
+issue's title, quoted verbatim, code and the data's keys and ids (the `qa-pass` event) are left as they are.
 
 **An issue's title is quoted verbatim** (admin-team/dashboards-skill/28). Wherever a board shows an issue's title — an issue board's issue
 line, a roadmap item, a follow-up, a work-board row, group, roadmap item or unscheduled issue, a state board's Context and its "last amended
@@ -518,7 +517,9 @@ steps, the Design tab, a sub-issue's roadmap naming its parent, a reference's se
 Document step, the dependency's build state from its code (dropped included), the Consequences tab, the build outputs' live copies, a fix's "fix
 to #n", the structure map's recorded height, a
 issue board's finished steps clickable, each unit row's label glowing on its own while it is filed, the Timeline tile's figure the sum of
-its visits, an issue's title quoted and marked, every qa pass and the one running as ordinals, the dependency pills — and
+its visits, an issue's title quoted and marked, every Quality Review and the one running, each by its number, every name from the template's names block (the
+steps, the Quality Reviews and what follows them; §4), the classes that carry their element's type (`.kpi-tile`, `.verdict-pill`, `.legend`,
+`.c4-legend`), the dependency pills — and
 the browser pass, on a board that gets one, the layout ones (the header's halves, the wide board, the legends shown). A missing feature fails, as `FEATURE MISSING:
 <feature> (template since dashboards-skill/N)`, **through a declared divergence too**: a divergence adds or argues a removal; it never
 excuses a board that lags its template. A landed or cancelled issue board is the exception: it is kept as it landed and never
@@ -590,11 +591,11 @@ never the accent (§1).
   while there is one): the repository work board only. Not to issue or tracking boards, which have no such columns (the branch is a header tag, and a
   unit's title links its board already), nor to the state boards, which list no runs.
 - **Every qa pass is shown, the pass running included** (the defect: a pass in progress was recorded nowhere `board.js` or the board read):
-  applied to the repository work board (`lib.js` `qaShown()`, a unit's from its own run, not the tracking board's `wip`), to issue boards (the QA tile,
-  the WIP strip's qa pills) and to tracking boards (each unit's run mirror). Not to the state boards, which show no run.
-- **QA pass numbers as ordinals** (1st, 2nd, 3rd): applied to the repository work board's QA cell and to issue and tracking boards' qa pills and QA
-  tile. The step panel's prose ("Answering Quality Review 1", a remediation sub-step "Quality Review 2") names each pass by its number (§4,
-  "A qa pass is named "Quality Review N""). Not to the state boards: no qa passes.
+  applied to the repository work board (`lib.js` `qaShown()`, a unit's from its own run, not the tracking board's `wip`), to issue boards (the Quality Reviews tile,
+  the WIP strip's Quality Review pills) and to tracking boards (each unit's run mirror). Not to the state boards, which show no run.
+- **Each Quality Review by its number** ("Quality Review 1 · approved"): applied to the repository work board's Quality Reviews cell and to issue
+  and tracking boards' Quality Review pills and Quality Reviews tile, as the step panel's prose names each ("Answering Quality Review 1", a remediation
+  sub-step "Quality Review 2"; §4, "A qa pass is named "Quality Review N""). Not to the state boards: no Quality Reviews.
 - **Depends on, with a build state and a locality; Blocks · enables** (§1, "Dependencies"): applied to the repository work board (two columns), to
   issue boards (the WIP strip's `wip.blockers`) and to tracking boards (each unit's dependencies and the units it holds up, in its
   inspector). Not to system, supersystem and repository state boards: a state board is as-is and names no issue above its Context, and its Context
@@ -602,8 +603,8 @@ never the accent (§1).
 
 **The decisions of admin-team/dashboards-skill/31**, each weighed for every type:
 
-- **The decision not to run another qa pass, shown** (§1; `plan/RULES.md` §5, "QA"): applied to the repository work board's QA column, plan
-  boards (the QA tile's sub-line, the WIP strip's qa pills) and tracking boards (each unit's run line, unit card and inspector), all from
+- **The decision not to run another qa pass, shown** (§1; `plan/RULES.md` §5, "QA"): applied to the repository work board's Quality Reviews column, plan
+  boards (the Quality Reviews tile's sub-line, the WIP strip's Quality Review pills) and tracking boards (each unit's run line, unit card and inspector), all from
   one rule (`lib.js` `qaShown()`, `qaInPlace()`, and the templates' copies). Not to the state boards: they show no run. A landed board is
   never re-rendered (§11, above), so a landed issue board shows the mark only if it is re-rendered for another reason; the repository work board shows
   it for every row whose pass records the route.
@@ -616,7 +617,7 @@ never the accent (§1).
 - **The Timeline tile: one line per visit of a run step, from the record only** (§1, "Steps"; `plan/RULES.md` §2, "The Timeline tile's
   legend"): its start → end and its duration in minutes, hours and minutes, or days and hours, never "same day"; a time from the
   board's snapshots, its sizing stamp and qa passes, the merge's time and the branch's step commits from git, a neighbour's bound, else
-  "—"; the bar one segment per timed visit, its legend one entry per visit; a landed board's Timeline across the KPI row. Applied to issue boards
+  "—"; the bar one segment per timed visit, its legend one entry per visit; a landed board's Timeline as wide as the KPI tiles below it. Applied to issue boards
   and tracking boards (a tracking board's own steps: sizing to its plan's landing and the filing of its units, then its units' runs as `implementation`), one rule in
   `lib.js` `timelineSteps()` and the template. Not to the repository work board: its Landed tile counts runs and says no time, so it has no "same
   day" to replace, and each run's steps are on its own board. Not to system, supersystem and repository state boards: their tiles are counted
@@ -650,9 +651,9 @@ never the accent (§1).
   and tracking boards, the boards with that tab; `#timeline` and `#p-timeline` still open it. The repository work board and the state boards
   have no such tab.
 - **The Timeline tab** (`plan/RULES.md` §2, "The Timeline tab"): right after Design, the Timeline tile at its top and the KPI tiles below it
-  (the KPI row leaves the board's head), each tile's tracer (§12) up to its steps, on every issue board, a board in flight showing its steps
+  (the KPI tiles leave the board's head), each tile's tracer (§12) up to its steps, on every issue board, a board in flight showing its steps
   so far, the running one to now. Applied to tracking boards with their own steps and tiles: Units sizing and research, Options research and
-  the architecture, Verdicts the architecture, As built implementation (its units' runs), and QA passes no tracer (a tracking board runs no
+  the architecture, Verdicts the architecture, As built implementation (its units' runs), and Quality Reviews no tracer (a tracking board runs no
   qa of its own). Not to the repository work board: one row per run, its tiles count runs and no step's time, each run's steps on its own
   board. Not to the state boards: hand-written counted tiles and no run.
 
@@ -669,7 +670,7 @@ reached its landing before the change):
    repository work board (`board.js --refresh-template`) and, for a tracking issue, its planned systems drawn dashed — every state board
    stamped "as-is at `<branch>` @ `<code-landing sha>`", the sha the request gives: the branch's last code commit, after the sync and the
    bump (`apply-state.js` `facts.document`). Only documents change after it, so nothing is restamped at the land; the boards land in the
-   same merge. The team makes `document-landing` current when the state boards finish and closes it just before the document-landing commit, which carries it closed.
+   same merge. The team makes `document-landing` (shown "Document commit") current when the state boards finish and closes it just before the document-landing commit, which carries it closed.
 2. **The land**: `landing` (the land accepted; every open point resolved by then, as none is committed open, `plan/RULES.md` §3) and
    `merge`, then `landed`. The board is committed by now, so both are raised into the view copies (`apply-event.js --view`), before the merge from the
    run's worktree or after it from the main checkout, with their real times and no tracked file written (`plan/RULES.md` §4, "The live view of a landing").
@@ -760,54 +761,17 @@ refresh on its branch: the committed repository work board, and the repository s
 
 - **A qa pass is named "Quality Review N"** (§4; `plan/RULES.md` §4, "The fast path"): applied to issue boards (the step panel, the
   remediation's sub-steps, the Tests tab's results, the trail and every fact text), to tracking boards (their own text and each unit's run
-  mirror) and to the repository work board's data (`board.js` rewords `board.json`, which `check.js` fails while it says "qa pass N"). A
-  landed board keeps the wording it landed with until something rewrites it, and `check.js` only warns on it. Not to the state boards: no qa
+  mirror) and to the repository work board's data (`board.js` rewords `board.json`, which `check.js` fails while it holds an older wording,
+  `BOARD WORDING`: "qa pass N", an unnumbered "qa pass", "qa" for the step, "Remediation for …" or a "remediation loop", "Document-landing
+  commit"). A landed board keeps the wording it landed with until something rewrites it, and `check.js` only warns on it. Not to the state boards: no qa
   passes.
 
 ## 12. Elements — one name per function
 
-Every visible element has one name, chosen by what it does, never by its look; the look follows
-§1 and §2. A compound name puts the subject first and the type last (`guarantee card`, `unit
-card`, `verdict pill`, `issue chip`, `step cell`, `KPI tile`), so the type vocabulary stays small.
-The templates' CSS classes and the data keys carry the type word (`.card`, `.pill`, `.chip`, …),
-so a reader can tell an element's kind from the markup without the board. "Bubble" names
-nothing: a Guarantees sub-area is a **guarantee card**, a tracking board's unit block in the WIP
-strip is a **unit card**, and a step in the step panel is a **step cell**.
-
-**Containers, by how much they hold**
-
-| Term | Function | Examples |
-|------|----------|----------|
-| **Panel** | A top-level region of a board with its own heading. | a tab's body, the Guarantees area, the Context section, the WIP strip, the step panel, the KPI row (an issue board's, in its Timeline tab) |
-| **Card** | A self-contained statement inside a panel, with a title and a body, readable alone. | a guarantee card, a Consequences entry, an As-built entry, a unit card |
-| **Tile** | A card whose body is one figure with its segmented bar and legend. | the KPI tiles, the repository work board's Runs and Landed tiles |
-| **Cell** | The intersection of a row and a column on a board table. | a Gap, Considered, Verdict or As built cell; a step cell |
-| **Row** | One subject across a board's columns. | an issue board's design point, a tracking board's unit |
-
-**Labels, by what they say**
-
-| Term | Function | Examples |
-|------|----------|----------|
-| **Pill** | A state word with its glyph, in a status colour. | a verdict pill, an as-built pill, a dependency pill, the research-state pill |
-| **Chip** | A reference that names or opens something, neutral. | an issue chip, the "part of" chip, a branch chip, the chain chip |
-| **Badge** | A count or classification fixed to a card's corner. | the effect, need and API-change badges |
-| **Tag** | Plain text over an element that classifies it without a status colour. | `Planned`, `UP NEXT`, `Context` |
-
-**Marks, by what they overlay**
-
-| Term | Function |
-|------|----------|
-| **Ring** | A border-only state on a cell (the research scale, §1). |
-| **Glow** | The interior in-progress accent on whatever is being worked on (§1). |
-| **Arrow** | The charging connector into a Verdict cell (§1). |
-| **Tracer** | A line from a KPI tile up to the part of the Timeline tile it belongs to (the steps that made the tile's figure), in their kind of work's colour, labelled with how long that part took; under 760 px its label alone, on the tile (§1, "Steps"; `plan/RULES.md` §2, "The Timeline tab"; dashboards-skill/34). |
-| **Legend** | The key for a colour grouping, one per tab or per tile (§2); an issue board's Timeline tile carries two, its kinds of work (one entry per family, with its steps' shades) and its step visits (one entry per visit, with its times; a wait on the user and a stretch when the run was not running have none, `plan/RULES.md` §2). |
-
-**Controls, by what they change**
-
-| Term | Function | Examples |
-|------|----------|----------|
-| **Switch** | A two-state control in the header that shows its state as a position: a track with a knob that slides to the side of the state shown, in the neutrals (never the accent or a status colour), a real toggle for the keyboard and assistive technology (`role="switch"`, `aria-checked`, the focus ring), its knob jumping rather than sliding under reduced motion (§1). | the theme switch (☀ light, ☾ night, §1, Themes), the inspector switch (§6) |
-
-A ruleset that needs an element none of these names describes adds the term here first, with its
-function, and uses it everywhere; it never reuses a term for a second function.
+Every visible element on a board takes its name from the UI vocabulary,
+[`nomenclature/ui.md`](../../nomenclature/ui.md): its basic elements, its specific elements and its
+naming rules. How the boards use them (each term's board elements, the boards' compound names and
+the CSS classes the templates give them) is in [`nomenclature/boards.md`](../../nomenclature/boards.md),
+"Board UI"; the look follows §1 and §2. A board element none of the vocabulary's terms describes
+takes no name until the user adds the term to `ui.md` (only the user adds or changes a term
+there); it is never named here.

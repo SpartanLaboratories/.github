@@ -53,8 +53,8 @@ module.exports = function casesTimelineOutages(X) {
     c.push(["wip.outages holds it; wip.waits is untouched", js(r.p.wip.outages) === js([{ step: "document", since: "2026-11-02T04:16:35Z", ended: "2026-11-03T00:00:03Z", reason: "session restart" }]) && r.p.wip.waits.length === 1, js([r.p.wip.outages, r.p.wip.waits])]);
     c.push(["no wip.event, no event note, no trail entry: the stretch is mentioned nowhere; wip.updated still moves", (r.p.trail || []).length === (plan.trail || []).length && !(r.p.trail || []).some(t => /not running|not counted/i.test(t.label || "")) && js(r.p.wip.event) === js(plan.wip.event) && r.p.wip.updated === "2026-11-03T00:19:00Z", js([(r.p.trail || []).slice(-1), r.p.wip.event, r.p.wip.updated])]);
     const T = lib.timelineSteps(r.p, { now: "2026-11-03T00:19:03Z" });
-    const v2 = T.visits.find(v => v.label === "document · visit 2"), v3 = T.visits.find(v => v.label === "document · visit 3");
-    c.push(["the Timeline: document · visit 1, 2 and 3 (running to now), nothing between them", /document · visit 1,document · visit 2,document · visit 3$/.test(rowsOf(T)) && v2.ms === (69 * MIN + 5000) && v3.open && v3.from.t === "2026-11-03T00:00:03Z" && v3.ms === 19 * MIN, js([rowsOf(T), v2 && v2.ms, v3 && v3.ms])]);
+    const v2 = T.visits.find(v => v.label === "Document · visit 2"), v3 = T.visits.find(v => v.label === "Document · visit 3");
+    c.push(["the Timeline: document · visit 1, 2 and 3 (running to now), nothing between them", /Document · visit 1,Document · visit 2,Document · visit 3$/.test(rowsOf(T)) && v2.ms === (69 * MIN + 5000) && v3.open && v3.from.t === "2026-11-03T00:00:03Z" && v3.ms === 19 * MIN, js([rowsOf(T), v2 && v2.ms, v3 && v3.ms])]);
     c.push(["the figure the visits alone; the line is on no bar segment: T.visits holds no stretch", lib.timelineTotal(T) === T.visits.filter(v => v.ms != null).reduce((n, v) => n + v.ms, 0) && !T.visits.some(v => v.outage || v.label === "run not running"), js(lib.timelineTotal(T))]);
     c.push(["the tile mentions neither the stretch nor the wait: no line, no note (lib.js has no timelineWaitNote())", silent(T) && lib.timelineWaitNote === undefined, js(lib.timelineLines(T))]);
     const again = apply(B, r.p, "run-restarted", F, "2026-11-03T00:25:00Z");
@@ -65,7 +65,7 @@ module.exports = function casesTimelineOutages(X) {
     const again2 = apply(B, q.p, "run-restarted", F, "2026-11-03T00:40:00Z");
     c.push(["the same bounds after a later event: still a duplicate", again2.a.status === 0 && again2.S.result === "duplicate" && js(again2.p) === js(q.p), js([again2.S.result])]);
     const ck = run(CHECK, [B.dir]); c.push(["check.js passes the board", ck.status === 0, (ck.stdout || "").split(/\r?\n/).filter(l => /^FAIL/.test(l)).join(" | ").slice(0, 400)]);
-    const tl = run(TIMELINE, [B.dir]); c.push(["timeline.js prints the visits alone: no line and no note for the stretch", tl.status === 0 && /document · visit 3/.test(tl.stdout) && !/run not running|not counted|waiting on you/.test(tl.stdout), (tl.stdout || "").slice(-400)]);
+    const tl = run(TIMELINE, [B.dir]); c.push(["timeline.js prints the visits alone: no line and no note for the stretch", tl.status === 0 && /Document · visit 3/.test(tl.stdout) && !/run not running|not counted|waiting on you/.test(tl.stdout), (tl.stdout || "").slice(-400)]);
   });
 
   /* 2. a closed visit, a wait, a gap; what is refused */
@@ -75,7 +75,7 @@ module.exports = function casesTimelineOutages(X) {
     c.push(["a closed visit cut: the first part ends at the start, the second keeps its end and the event that ended it", r.a.status === 0 && js(vis(r.p, "plan")) === js([["2026-11-01T17:10:00Z", "2026-11-01T18:00:00Z", "run-restarted", "session restart"], ["2026-11-01T20:00:00Z", "2026-11-01T21:31:00Z", "plan-accepted", null]]), js([vis(r.p, "plan"), r.S.error])]);
     c.push(["the running visit is left as it was", r.p.wip.since === "2026-11-02T03:07:30Z" && r.p.wip.step === "document", js([r.p.wip.since])]);
     const T = lib.timelineSteps(r.p, { now: "2026-11-02T05:00:00Z" });
-    c.push(["the Timeline: plan · visit 1, plan · visit 2, nothing between them", /plan · visit 1,plan · visit 2/.test(rowsOf(T)) && silent(T), rowsOf(T)]);
+    c.push(["the Timeline: plan · visit 1, plan · visit 2, nothing between them", /Plan · visit 1,Plan · visit 2/.test(rowsOf(T)) && silent(T), rowsOf(T)]);
     const r2 = apply(B, r.p, "run-restarted", { since: "2026-11-02T04:00:00Z", ended: "2026-11-02T04:10:00Z", ...reasonF }, "2026-11-03T00:20:00Z");
     c.push(["a second stretch, in the running visit: two lines, oldest first, the running visit starting at its end", r2.a.status === 0 && r2.p.wip.outages.map(x => x.since).join() === "2026-11-01T18:00:00Z,2026-11-02T04:00:00Z" && r2.p.wip.since === "2026-11-02T04:10:00Z", js([r2.p.wip.outages, r2.S.error])]);
     const T2 = lib.timelineSteps(r2.p, { now: "2026-11-02T05:00:00Z" });
@@ -92,7 +92,7 @@ module.exports = function casesTimelineOutages(X) {
     const BH = lay("halted", halted), h = apply(BH, halted, "run-restarted", { since: "2026-11-01T18:00:00Z", ended: "2026-11-01T19:00:00Z", ...reasonF }, "2026-11-01T19:05:00Z");
     c.push(["inside an open wait: the wait cut, its last part still open; no visit frozen; the board still stopped", h.a.status === 0 && js(h.p.wip.waits) === js([{ step: "plan", since: "2026-11-01T17:30:00Z", ended: "2026-11-01T18:00:00Z", by: "halted" }, { step: "plan", since: "2026-11-01T19:00:00Z", ended: null, by: "halted" }]) && vis(h.p, "plan").length === 1 && h.p.wip.step === "halted", js([h.p.wip.waits, vis(h.p, "plan"), h.S.error])]);
     const TH = lib.timelineSteps(h.p, { now: "2026-11-01T19:10:00Z" });
-    c.push(["…no visit runs and none is drawn at the stretch's end; the rows the plan's visit alone, nothing said of the wait or the stretch", !TH.visits.some(v => v.open) && TH.visits.filter(v => v.step === "plan").length === 1 && /plan$/.test(rowsOf(TH)) && silent(TH), js([rowsOf(TH), lib.timelineLines(TH)])]);
+    c.push(["…no visit runs and none is drawn at the stretch's end; the rows the plan's visit alone, nothing said of the wait or the stretch", !TH.visits.some(v => v.open) && TH.visits.filter(v => v.step === "plan").length === 1 && /Plan$/.test(rowsOf(TH)) && silent(TH), js([rowsOf(TH), lib.timelineLines(TH)])]);
     const res = apply(BH, h.p, "resumed", { step: "plan" }, "2026-11-01T19:30:00Z");
     c.push(["…the answer ends the last part; no visit frozen for the time inside the wait", res.a.status === 0 && vis(res.p, "plan").length === 1 && res.p.wip.since === "2026-11-01T19:30:00Z" && res.p.wip.waits[1].ended === "2026-11-01T19:30:00Z", js([vis(res.p, "plan"), res.p.wip.waits, res.S.error])]);
     /* a gap between visits */
@@ -132,7 +132,7 @@ module.exports = function casesTimelineOutages(X) {
     c.push(["the resumed applies: the wait from the question 10:40, cut around the stretch (10:40 → 11:00, 12:00 → 12:10)", q.a.status === 0 && js(q.p.wip.waits) === js([{ step: "implementation", since: "2026-11-05T10:40:00Z", ended: "2026-11-05T11:00:00Z", by: "open-points" }, { step: "implementation", since: "2026-11-05T12:00:00Z", ended: "2026-11-05T12:10:00Z", by: "open-points" }]), js([q.p.wip.waits, q.S.error])]);
     c.push(["…the visit the question interrupted ends at it, held, no longer at the stretch; the next starts at the answer", js(vis(q.p, "implementation")) === js([["2026-11-05T10:00:00Z", "2026-11-05T10:40:00Z", "implementation-stage", null]]) && q.p.wip.history.implementation[0].held === true && q.p.wip.since === "2026-11-05T12:10:00Z", js([vis(q.p, "implementation"), q.p.wip.since])]);
     const T = lib.timelineSteps(q.p, { now: "2026-11-05T12:20:00Z" });
-    c.push(["the Timeline: implementation 40 min, then 10 min so far; nothing said of the wait or the stretch", /implementation · visit 1,implementation · visit 2$/.test(rowsOf(T)) && T.visits.slice(-2).map(v => v.ms).join() === `${40 * MIN},${10 * MIN}` && silent(T), js(lib.timelineLines(T))]);
+    c.push(["the Timeline: implementation 40 min, then 10 min so far; nothing said of the wait or the stretch", /Implementation · visit 1,Implementation · visit 2$/.test(rowsOf(T)) && T.visits.slice(-2).map(v => v.ms).join() === `${40 * MIN},${10 * MIN}` && silent(T), js(lib.timelineLines(T))]);
     const again = apply(B, q.p, "resumed", { step: "implementation", open: open.map(o => ({ ...o, resolved: "confirmed" })) }, "2026-11-05T12:10:00Z");
     c.push(["the same resumed again: a duplicate", again.a.status === 0 && again.S.result === "duplicate", js(again.S.result)]);
     const ck = run(CHECK, [B.dir]); c.push(["check.js passes the board", ck.status === 0, (ck.stdout || "").split(/\r?\n/).filter(l => /^FAIL/.test(l)).join(" | ").slice(0, 400)]);
@@ -143,7 +143,7 @@ module.exports = function casesTimelineOutages(X) {
     const t = rd(PB), lines = t.split(/\r?\n/);
     const def = name => { const i = lines.findIndex(l => l.startsWith(`const ${name}=`) || l.startsWith(`function ${name}(`)); if (i < 0) throw new Error(`the template defines no ${name}`);
       let j = i + 1; while (j < lines.length && /^\s/.test(lines[j])) j++; return lines.slice(i, j).join("\n"); };
-    const names = ["ordinal", "STEP_ORDER", "histOf", "visitsOf", "shownOf", "WAIT_BY", "waitsOf", "outagesOf", "okStamp", "isTime", "TL_FAMILIES", "tlFamily", "tlShade", "timelineFamilies", "APPROX_SOURCES", "approxBounds", "timelineLanded", "timelineSteps", "timelineRows", "tlSpan", "timelineTotal"];
+    const names = ["PASS_NAME", "STEP_NAME", "ROUTE_NAME", "ROUTE_OLD", "routeName", "remediationName", "stepLabel", "routesOf", "STEP_ORDER", "histOf", "visitsOf", "shownOf", "WAIT_BY", "waitsOf", "outagesOf", "okStamp", "isTime", "TL_FAMILIES", "tlFamily", "tlShade", "timelineFamilies", "APPROX_SOURCES", "approxBounds", "timelineLanded", "timelineSteps", "timelineRows", "tlSpan", "timelineTotal"];
     const src = names.map(def).join("\n") + "\nconst reconStep=()=>({trail:[],milestones:[]});\nthis.api={timelineSteps,timelineRows,timelineTotal};";
     const box = {}; vm.createContext(box); vm.runInContext(src, box);
     const A = box.api, shape = T => js({ v: T.visits.map(v => [v.step, v.label, v.from && v.from.t, v.to && v.to.t, v.ms, !!v.open]) });
@@ -156,7 +156,7 @@ module.exports = function casesTimelineOutages(X) {
     [[B1, "a running visit after the stretch"], [B2, "a stretch inside a wait, the board stopped"]].forEach(([b, what]) => { const L = lib.timelineSteps(b, { now }), P = A.timelineSteps(b, now);
       c.push([`${what}: the template's Timeline is lib.js's (the visits, the rows, the figure), and neither holds a wait or a stretch`, shape(L) === shape(P) && lib.timelineTotal(L) === A.timelineTotal(P) && rowSh(lib.timelineRows(L)) === rowSh(A.timelineRows(P)) && !("waits" in P) && !("outages" in P) && A.timelineRows(P).every(r => r.visit), js([shape(L), shape(P)])]); });
     c.push(["the tile draws the visits alone: no wait or stretch line, mark or \"not counted\" note", /timelineRows\(T\)\.map\(r=>line\(r\.visit\)\)/.test(t) && !/oline=|wline=|class="tl-outage"|class="tl-wait"|\.tl-outk\{|\.tl-waitk\{|\.tl-outage|\.tl-wait\b|timelineWaitNote|hatched: run not running|yellow: waiting on you|The run waits on you: no step's time/.test(t), "timelineTile"]);
-    c.push(["a step's segment keeps a quarter of the old floor: 0.75 % of the figure (was 3 %) and 1 px (was 4 px)", /n:tsTot>0\?Math\.max\(v\.ms,tsTot\*0\.0075\):1/.test(t) && /\.kpi \.seg-bar i\.tp\{min-width:1px\}/.test(t), "tpParts · .seg-bar i.tp"]);
+    c.push(["a step's segment keeps a quarter of the old floor: 0.75 % of the figure (was 3 %) and 1 px (was 4 px)", /n:tsTot>0\?Math\.max\(v\.ms,tsTot\*0\.0075\):1/.test(t) && /\.kpi-tile \.seg-bar i\.tp\{min-width:1px\}/.test(t), "tpParts · .seg-bar i.tp"]);
     c.push(["the Context's events leave out an older run-restarted's trail entry", /\(PLAN\.trail\|\|\[\]\)\.filter\(t=>!\(t&&\/\^Run not running for \/\.test/.test(t), "events"]);
     c.push(["the bar takes the visits alone", /const tpParts=tsTimed\.map\(/.test(t) && /tsTimed=TS\.visits\.filter\(/.test(t), "tpParts"]);
     c.push(["the step panel reads a visit a stretch ended like any visit's end, its time only (no reason, no ending event); a halt still \"ended, waiting on you\"", /grp\(V\.held&&!V\.outage\?"ended, waiting on you":"ended",`<span class="nw">\$\{when\(V\.ended\)\}<\/span>\$\{V\.endedBy&&!V\.outage\?/.test(t) && !/ended, run not running/.test(t), "visitHtml"]);

@@ -108,6 +108,8 @@ confirmed with `gh repo view`), under the executor's filing rules:
 - never against a downstream consumer of the `surfacedIn` project (`rejected`; the sender reports
   the coordination need to the user);
 - never about the change the sender is landing;
+- never for comment resolution, a code comment or KDoc that needs rewording (`rejected`, naming
+  the rule; the sender fixes it on the spot, in its current change);
 - a defect the executor judges speculative is not filed (`rejected`, reported as a suspicion);
 - nothing Claude-internal is written: the title and body are reworded first;
 - an open issue that already covers it gets no second issue: `done` names that one.

@@ -38,6 +38,9 @@ it: send it a `file-issue` request (the `admin-team` skill) against the repo the
 (the library where the defect lives, not necessarily the one where it surfaced). Repos move between
 these orgs; confirm the current owner with `gh repo view <repo>` if unsure.
 
+Comment resolution gets no issue: a code comment or KDoc that needs rewording is fixed on the spot
+by the session that finds it, in its current change.
+
 ## Repository READMEs and CHANGELOGs — keep current
 
 Whenever your work changes what lands on a repository's `master` / `main` branch — a new
@@ -309,10 +312,10 @@ ruleset per set, the templates and the checks.
 `SpartanLaboratories/.github` holds a public copy of `~/.claude/` under `claude/`; its
 `claude/README.md` maps each mirrored path to its source. Whenever your work changes anything
 that copy covers — `CLAUDE.md`, `settings.json`, `hooks/`, `agents/`, `skills/` (including
-ones a tool installs, e.g. `graphify`), or the root `*.md` prompt files (`commands/`) — have the
-copy updated as part of the same change so it matches `~/.claude/` again: send the `admin team`
-session a `mirror-sync` request naming the changed paths (the `admin-team` skill), and it
-copies, scans and pushes.
+ones a tool installs, e.g. `graphify`), `nomenclature/`, or the root `*.md` prompt files
+(`commands/`) — have the copy updated as part of the same change so it matches `~/.claude/`
+again: send the `admin team` session a `mirror-sync` request naming the changed paths (the
+`admin-team` skill), and it copies, scans and pushes.
 
 - Commit straight to `main`; no branch or PR.
 - Never sync project auto-memory (`projects/*/memory/`): it is not mirrored.

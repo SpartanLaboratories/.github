@@ -39,7 +39,8 @@ module.exports = function casesProgressIndex(X) {
       c.push(["a listed slug is probed beside the known names, and a name unfit for a URL is not", n.join() === "planner,rookie-dev-s1,planner-reconcile", n.join()]);
       c.push(["no index: the known names alone", f({}, undefined).join() === "planner", ""]); }
     c.push(["each poll loads the issue's index, no cached copy", /progress\/\$\{issue\}\/index\.js\?t=\$\{Date\.now\(\)\}/.test(t) && /progNames\(R,await loadNoteNames\(n\)\)/.test(t), ""]);
-    const lab = /const NOTE_WORK=[^\n]*\nconst noteLabel=[^\n]*\n/.exec(t), label = lab && vm.runInNewContext(`${lab[0]};noteLabel`, {});
+    /* NOTE_WORK stands in the template's names block (dashboards-skill/41), noteLabel() beside the progress notes */
+    const nw = /const NOTE_WORK=[^\n]*\n/.exec(t), nl = /const noteLabel=[^\n]*\n/.exec(t), label = nw && nl && vm.runInNewContext(`${nw[0]}${nl[0]};noteLabel`, { PASS_NAME: "Quality Review" });
     c.push(["a slugged note is labelled by its work, never its file name", !!label && label("planner-reconcile") === "planning · reconcile" && label("nobody-knows") === "progress", label ? label("planner-reconcile") : ""]);
   });
 
