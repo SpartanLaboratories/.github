@@ -18,6 +18,7 @@
 //   "Before the outcome": partially-built with a summary is stored where the stages do not say otherwise (no stage decides the row, or they make it partially built too).
 //   Refused, exit 2 and nothing written: wip, trail, status, sized, branch, asBuilt, kind and the board's identity (schema, repo, issue, slug, folder), foundation
 //   and links (embed.js clears and writes them): the events own them. A work level (level, unit.level, proposedLevel) is dropped and named, never written (levels.js).
+//   A qa pass the fields name "qa pass N" is written "Quality Review N" (passnames.js), and so is one the board already holds, before the merge; named in notes.
 //   Two narrow ways into what the events own, each by what it names, so neither undoes an event:
 //   "trailAdd": [{ date, column, label, ref? }] appends trail entries, one already there skipped;
 //   "wip": { "stages": [{ id, rows }], "questions": [{ question, rows }], "interview": [{ text, answer }], "qa": [{ pass, note }],
@@ -28,6 +29,7 @@
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const lib = require("./lib.js");
+const { titleSkip } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
 
 const OWNED = ["wip", "trail", "status", "sized", "branch", "asBuilt", "kind", "schema", "repo", "issue", "slug", "folder", "foundation", "links"];
 const IDENTITY = ["id", "slug", "issue", "class", "question", "pass", "n"];
@@ -90,6 +92,9 @@ function mergeRow(cur, next, notes, plan) {
 function mergeFill(board, fields) {
   if (!isObj(fields)) throw new Refused("the fields are not a JSON object");
   const dropped = [], F = withoutLevels(fields, "", dropped), plan = JSON.parse(JSON.stringify(board)), merged = [], notes = [];
+  /* the qa passes by name, "Quality Review N" (passnames.js): the fill's own text and the board's, so an item named by its text still matches */
+  { const fr = lib.renamePassesIn(F, titleSkip(null, "plan-board")), br = lib.renamePasses(plan);
+    if (fr.length) notes.push(`the fill's ${fr.slice(0, 4).join(", ")}${fr.length > 4 ? ", …" : ""}: a qa pass written "${lib.PASS_NAME} N"`); br.forEach(l => notes.push(`the board: ${l}`)); }
   const bad = Object.keys(F).filter(k => OWNED.includes(k) && k !== "wip");
   if (bad.length) throw new Refused(`${bad.join(", ")}: the events own ${bad.length === 1 ? "it" : "them"}, and a fill writes none (fill.js's head says what it may write)`);
   if (F.wip !== undefined) { const off = isObj(F.wip) ? Object.keys(F.wip).filter(k => !WIP_KEYS.includes(k)) : ["(not an object)"]; if (off.length) throw new Refused(`wip.${off.join(", wip.")}: the events own ${off.length === 1 ? "it" : "them"}; a fill's wip names only ${WIP_KEYS.join(", ")}`); }

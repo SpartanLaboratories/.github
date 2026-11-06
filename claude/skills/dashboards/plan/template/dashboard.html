@@ -1048,14 +1048,19 @@ const OPT={
   deferred:{g:"◌",label:"deferred",cls:"warning", desc:"left open at plan time, settled in column 4",dash:true},
   declined:{g:"✕",label:"declined",cls:"critical",desc:"ruled out, with the trade-off"}};
 const QA={approved:{g:"✓",label:"approved",cls:"good"},"changes-requested":{g:"✕",label:"changes requested",cls:"critical"},running:{g:"…",label:"in progress",cls:"neutral",dash:true}};
+/* A qa pass by name: "Quality Review 2" (plan/scripts/passnames.js, the same name): every pass the board names by its number takes it from
+   here, never from free text; the board's data names it so too (every rewrite rewords it, check.js fails the older "qa pass 2"). Several:
+   "Quality Reviews 1, 2". */
+const PASS_NAME="Quality Review", passName=n=>`${PASS_NAME} ${n}`, passNames=l=>l.length===1?passName(l[0]):`${PASS_NAME}s ${l.join(", ")}`;
 /* The qa passes a run shows (dashboards-skill/30; plan/scripts/lib.js qaShown(), the same rule): every pass wip.qa records and the one
-   running, which wip.qa records only once its verdict arrives: at qa, the pass the remediation's current sub-step names ("qa pass 2"), else
+   running, which wip.qa records only once its verdict arrives: at qa, the pass the remediation's current sub-step names ("Quality Review 2",
+   or "qa pass 2" on a board written before), else
    the one after the last recorded; at remediation, the pass its current sub-step names. None after an approving pass or past qaMax. W is
    the board's wip or a unit's run mirror (unit.live). A pass's number reads as an ordinal: 1st, 2nd, 3rd. */
 const ordinal=n=>{ const k=Math.abs(parseInt(n,10)); if(!Number.isFinite(k)) return String(n); const t=k%100,u=k%10; return `${n}${t>=11&&t<=13?"th":u===1?"st":u===2?"nd":u===3?"rd":"th"}`; };
 function qaShown(W){ W=W||{}; const qa=(Array.isArray(W.qa)?W.qa:[]).filter(p=>p&&typeof p==="object").slice().sort((a,b)=>(a.pass||0)-(b.pass||0));
   if(qa.some(p=>p.verdict==="running")) return qa; const last=qa[qa.length-1]; if(last&&last.verdict==="approved") return qa;
-  const RE=/\bqa pass (\d+)\b/i, M=W.remediation&&typeof W.remediation==="object"?W.remediation:{}, cur=(Array.isArray(M.steps)?M.steps:[]).find(x=>x&&x.state==="current"&&RE.test(String(x.name||"")));
+  const RE=/\b(?:qa\s+pass|quality\s+review)\s+#?(\d+)\b/i, M=W.remediation&&typeof W.remediation==="object"?W.remediation:{}, cur=(Array.isArray(M.steps)?M.steps:[]).find(x=>x&&x.state==="current"&&RE.test(String(x.name||"")));
   const named=cur?parseInt(RE.exec(String(cur.name))[1],10):null, n=W.step==="qa"?(named||(last&&Number.isInteger(last.pass)?last.pass+1:1)):W.step==="remediation"?named:null, max=Number.isInteger(W.qaMax)&&W.qaMax>0?W.qaMax:null;
   if(n&&(!max||n<=max)&&!qa.some(p=>p.pass===n)&&(!last||!Number.isInteger(last.pass)||n>last.pass)){ qa.push({pass:n,verdict:"running"}); return qa; } return qaInPlace(W,qa); }
 /* The decision not to run another qa pass (dashboards-skill/31; plan/scripts/lib.js qaRoute(), qaInPlace(), the same rule): the
@@ -1322,7 +1327,7 @@ function qaBlock(p,keys){ const d=QA[p.verdict]||QA.running, f=p.findings||{}, s
   const kinds=["documentation","test","code"].filter(k=>f[k]!=null).map(k=>`${f[k]} ${k==="documentation"?"doc":k}`).join(" · "), sev=Object.entries(sv).map(([k,n])=>`${n} ${k}`).join(" · ");
   keys.add(`<span>${pill(d)} qa pass verdict</span>`);
   const rt=ROUTE[p.route];
-  return `<div class="sp-pass ${p.verdict==="approved"?"good":p.verdict==="changes-requested"?"critical":"run pend"}"><div class="ph">Pass ${esc(p.pass)} ${pill(d)}${p.date?` <span class="nw">${when(p.date)}</span>`:""}</div>${kinds?`<small>findings by kind: ${esc(kinds)}</small>`:""}${sev?`<small>by severity: ${esc(sev)}</small>`:""}${rt?`<small>route: ${esc(rt.label)}</small>`:""}${p.note?`<small>${rich(p.note)}</small>`:""}${p.report?`<small>the test report: <code>${esc(p.report)}</code> (a build output, not committed)${liveCopyLink(p.reportCopy,"its copy")}</small>`:""}</div>`; }
+  return `<div class="sp-pass ${p.verdict==="approved"?"good":p.verdict==="changes-requested"?"critical":"run pend"}"><div class="ph">${esc(passName(p.pass))} ${pill(d)}${p.date?` <span class="nw">${when(p.date)}</span>`:""}</div>${kinds?`<small>findings by kind: ${esc(kinds)}</small>`:""}${sev?`<small>by severity: ${esc(sev)}</small>`:""}${rt?`<small>route: ${esc(rt.label)}</small>`:""}${p.note?`<small>${rich(p.note)}</small>`:""}${p.report?`<small>the test report: <code>${esc(p.report)}</code> (a build output, not committed)${liveCopyLink(p.reportCopy,"its copy")}</small>`:""}</div>`; }
 const PANEL={
   sizing:R=>`<p>The issue is being sized: its systems and how much planning it takes.</p>${R.detail?`<p>${rich(R.detail)}</p>`:""}`,
   interview:(R,o,keys)=>{ const iv=Array.isArray(R.interview)?R.interview.filter(q=>q&&q.text):[];
@@ -1347,9 +1352,9 @@ const PANEL={
     return h; },
   architecture:(R,o)=>`<p>The architecture weighs the options and decomposes the work into its units; the step ends at its sign-off.</p>${o.options!=null?`<p class="sp-sum">${o.options} option${o.options===1?"":"s"} weighed so far</p>`:""}`,
   plan:(R,o,keys)=>{ const P=R.plan||{}, V=R.verdicts, re=P.state==="re-pass";
-    const first=re?`re-pass ${P.from==="qa"?`after qa pass ${esc(P.pass||"?")}`:P.from==="parent"?(o.parent?`from #${esc(o.parent)}'s plan`:"from the parent's plan"):P.from==="existing"?`verifying the existing plan${P.against?` against ${esc(P.against)}`:""}`:""}`:"plan writing";
+    const first=re?`re-pass ${P.from==="qa"?`after ${esc(passName(P.pass||"?"))}`:P.from==="parent"?(o.parent?`from #${esc(o.parent)}'s plan`:"from the parent's plan"):P.from==="existing"?`verifying the existing plan${P.against?` against ${esc(P.against)}`:""}`:""}`:"plan writing";
     let h=`<ol class="steps" aria-label="The plan's stages"><li class="cur${o.held?" held":" glow"}" aria-current="step"><span class="dot" aria-hidden="true"></span>${first}</li><li class="todo"><span class="dot" aria-hidden="true"></span>plan accepted</li></ol>`;
-    if(re) h+=`<p>${P.from==="qa"?`The plan is re-passed to answer qa pass ${esc(P.pass||"?")}'s findings${R.remediation&&routeKey(R.remediation.route)==="re-plan-then-remediation"?"; the fixes and the next qa pass follow":""}.`:P.from==="existing"?`The plan already written is verified${P.against?` against <code>${esc(P.against)}</code> as it stands now`:" against the code as it stands now"}, and each delta recorded.`:`The plan this unit takes from its parent's architecture is verified, and the unit's own written.`}</p>`;
+    if(re) h+=`<p>${P.from==="qa"?`The plan is re-passed to answer ${esc(passName(P.pass||"?"))}'s findings${R.remediation&&routeKey(R.remediation.route)==="re-plan-then-remediation"?"; the fixes and the next qa pass follow":""}.`:P.from==="existing"?`The plan already written is verified${P.against?` against <code>${esc(P.against)}</code> as it stands now`:" against the code as it stands now"}, and each delta recorded.`:`The plan this unit takes from its parent's architecture is verified, and the unit's own written.`}</p>`;
     if(V&&V.total) { h+=`<p class="sp-sum">${V.written} of ${V.total} verdict${V.total===1?"":"s"} written</p>`; if(o.unwritten&&o.unwritten.length&&V.written<V.total) h+=`<p>Still to write: ${o.unwritten.slice(0,6).map(esc).join(", ")}${o.unwritten.length>6?`, and ${o.unwritten.length-6} more`:""}.</p>`; }
     return h; },
   branch:()=>`<p>The plan is accepted; the branch is cut next and the build starts.</p>`,
@@ -1360,25 +1365,25 @@ const PANEL={
       h+=spList(sg.map((x,i)=>spItem(STAGE_DOT[x.state]||"todo",dotMark,`${x.id?`<b>${esc(x.id)}</b> `:""}${rich(x.name||"")}${x.state==="done"?" · done":x.state==="current"?" · in progress":" · to come"}`,(Array.isArray(x.rows)&&x.rows.length?`touches ${x.rows.map(id=>esc(o.rowName(id))).join(", ")}`:"")))); }
     return h; },
   qa:(R,o,keys)=>{ const qa=Array.isArray(R.qa)?R.qa:[], running=qa.length&&qa[qa.length-1].verdict==="running";
-    let h=`<p class="sp-sum">${running?`Pass ${esc(qa[qa.length-1].pass)}`:`Pass ${qa.length+1}`} running${R.qaMax?` · at most ${esc(R.qaMax)} passes`:""}</p>`;
+    let h=`<p class="sp-sum">${esc(passName(running?qa[qa.length-1].pass:qa.length+1))} running${R.qaMax?` · at most ${esc(R.qaMax)} passes`:""}</p>`;
     h+=qa.map(p=>qaBlock(p,keys)).join("");
     if(!running){ h+=qaBlock({pass:qa.length+1,verdict:"running"},keys); }
     return h; },
-  remediation:(R,o,keys)=>{ const qa=Array.isArray(R.qa)?R.qa:[], M=R.remediation||{}, last=qa.length?qa[qa.length-1]:null, n=M.pass||(last&&last.pass)||null, route=routeKey(M.route||(last&&last.route)||null), nx=`qa pass ${n?n+1:"n+1"}${R.qaMax?`, of at most ${R.qaMax}`:""}`;
+  remediation:(R,o,keys)=>{ const qa=Array.isArray(R.qa)?R.qa:[], M=R.remediation||{}, last=qa.length?qa[qa.length-1]:null, n=M.pass||(last&&last.pass)||null, route=routeKey(M.route||(last&&last.route)||null), nx=`${passName(n?n+1:"n+1")}${R.qaMax?`, of at most ${R.qaMax}`:""}`;
     /* while no sub-step is recorded, the loop the route takes (the default, when no route is recorded either) */
-    const dflt=route==="on-the-spot"?[{what:`Minor fixes for qa pass ${n||"n"}, made on the spot`,state:"current"},{what:"The Document step, with no new qa pass",state:"todo"}]
-      :route==="re-plan-then-remediation"?[{what:`Plan re-pass for qa pass ${n||"n"}'s findings`,state:"current"},{what:"Fixes",state:"todo"},{what:nx,state:"todo"}]
-      :route==="remediation"?[{what:`Fixes for qa pass ${n||"n"}'s findings`,state:"current"},{what:nx,state:"todo"}]
-      :[{what:`Fixes for the findings of qa pass ${n||"n"}: the implementer, with a plan re-pass first where the plan itself is wrong`,state:"current"},{what:nx,state:"todo"}];
+    const dflt=route==="on-the-spot"?[{what:`Minor fixes for ${passName(n||"n")}, made on the spot`,state:"current"},{what:"The Document step, with no new qa pass",state:"todo"}]
+      :route==="re-plan-then-remediation"?[{what:`Plan re-pass for ${passName(n||"n")}'s findings`,state:"current"},{what:"Fixes",state:"todo"},{what:nx,state:"todo"}]
+      :route==="remediation"?[{what:`Fixes for ${passName(n||"n")}'s findings`,state:"current"},{what:nx,state:"todo"}]
+      :[{what:`Fixes for the findings of ${passName(n||"n")}: the implementer, with a plan re-pass first where the plan itself is wrong`,state:"current"},{what:nx,state:"todo"}];
     const steps=Array.isArray(M.steps)&&M.steps.length?M.steps:dflt;
-    let h=`<p class="sp-sum">Answering qa pass ${esc(n||"?")}${last?` · ${(QA[last.verdict]||QA.running).label}`:""}</p>`;
+    let h=`<p class="sp-sum">Answering ${esc(passName(n||"?"))}${last?` · ${(QA[last.verdict]||QA.running).label}`:""}</p>`;
     if(ROUTE[route]) h+=`<p>Route: ${esc(ROUTE[route].label)}.</p>`;
     if(last) h+=qaBlock(last,keys);
     h+=spList(steps.map(x=>spItem(STAGE_DOT[x.state]||"todo",dotMark,`${rich(stepName(x))}${x.state==="done"?" · done":x.state==="current"?" · in progress":" · to come"}`,"")));
     if(!(Array.isArray(M.steps)&&M.steps.length)) h+=`<p>${ROUTE[route]?"The route's loop":"The pipeline's remediation loop"}; its sub-steps are recorded as they run.</p>`;
     /* the loops before this one, each frozen when it ended (wip.history.remediation, plan/RULES.md §3, "Finished steps") */
     const prev=visitsOf(R,"remediation").filter(V=>V.remediation&&V.remediation.pass!==n);
-    if(prev.length) h+=`<p class="sp-sum">Earlier loop${prev.length===1?"":"s"}</p>`+spList(prev.map(V=>spItem("done",dotMark,`Answering qa pass ${esc(V.remediation.pass)}${ROUTE[V.remediation.route]?` · ${esc(ROUTE[V.remediation.route].label)}`:""}`,V.ended?`ended ${when(V.ended)}`:"")));
+    if(prev.length) h+=`<p class="sp-sum">Earlier loop${prev.length===1?"":"s"}</p>`+spList(prev.map(V=>spItem("done",dotMark,`Answering ${esc(passName(V.remediation.pass))}${ROUTE[V.remediation.route]?` · ${esc(ROUTE[V.remediation.route].label)}`:""}`,V.ended?`ended ${when(V.ended)}`:"")));
     return h; },
   /* the landing in three steps (plan/RULES.md §4; dashboards-skill/34): "landing", the land accepted and the code, the version
      bump and the reconciled documents committed on the branch; "state-boards", the pre-merge refresh of the state boards on the branch and
@@ -1390,14 +1395,14 @@ const PANEL={
     let h=`<p>The documents are brought up to the build on the branch: the documentation reviewed and reconciled, the Dokka check, the plan and its consequences reconciled, the README and the CHANGELOG, and the state boards as built, then the document-landing commit that carries them.</p>`;
     /* the last qa pass's test report, a build output: plain text, its copy linked on this machine (dashboards-skill/35) */
     const lq=(Array.isArray(R.qa)?R.qa:[]).filter(p=>p&&p.report).slice(-1)[0];
-    if(lq) h+=`<p class="sp-when">The test report of qa pass ${esc(lq.pass)}: <code>${esc(lq.report)}</code> (a build output, not committed)${liveCopyLink(lq.reportCopy,"its copy")}</p>`;
+    if(lq) h+=`<p class="sp-when">The test report of ${esc(passName(lq.pass))}: <code>${esc(lq.report)}</code> (a build output, not committed)${liveCopyLink(lq.reportCopy,"its copy")}</p>`;
     if(!ts.length) return h+`<p>No task recorded yet.</p>`;
     const done=ts.filter(x=>x.state==="done").length, cur=ts.filter(x=>x.state==="current").length;
     h+=`<p class="sp-sum">${done} of ${ts.length} task${ts.length===1?"":"s"} done${cur>1?` · ${cur} in parallel`:""}</p>`;
     return h+spList(ts.map(x=>spItem(STAGE_DOT[x.state]||"todo",dotMark,`${rich(x.name||x.id||"")}${x.state==="done"?" · done":x.state==="current"?" · in progress":" · to come"}`,""))); },
   landing:R=>{ const qa=Array.isArray(R.qa)?R.qa:[], last=qa.length?qa[qa.length-1]:null, acc=!!(R.event&&R.event.name==="landing"), pr=acc&&/PR #(\d+)/.exec(String(R.event.note||"")), split=(R.steps||[]).includes("merge"), doc=(R.steps||[]).includes("document");
     if(doc) return `<p>The documents and the state boards are on the branch; ${acc?`the land is accepted${pr?` (${prlink(pr[1])})`:""}: the branch carries the code, the version bump, the reconciled documents and the state boards`:"the land follows"}; the merge is next.</p>`;
-    return `<p>The qa pass approved${last?` (pass ${esc(last.pass)})`:""}; ${split?(acc?`the land is accepted${pr?` (${prlink(pr[1])})`:""}: the branch brought up to date, the code, the version bump and the reconciled documents committed on it`:"the land follows: the branch brought up to date, the code, the version bump and the reconciled documents committed on it"):(acc?`the land is accepted and being merged${pr?` in ${prlink(pr[1])}`:""}, its state boards refreshed on the branch before the merge`:"the land follows: its state boards refreshed on the branch, then the merge")}.</p>`; },
+    return `<p>${last?`${esc(passName(last.pass))} approved`:"The qa pass approved"}; ${split?(acc?`the land is accepted${pr?` (${prlink(pr[1])})`:""}: the branch brought up to date, the code, the version bump and the reconciled documents committed on it`:"the land follows: the branch brought up to date, the code, the version bump and the reconciled documents committed on it"):(acc?`the land is accepted and being merged${pr?` in ${prlink(pr[1])}`:""}, its state boards refreshed on the branch before the merge`:"the land follows: its state boards refreshed on the branch, then the merge")}.</p>`; },
   "state-boards":R=>`<p>The pre-merge refresh: the state boards brought up on the branch as built, stamped at its head, and committed there in one board commit; the merge follows.</p>`,
   merge:R=>{ const pr=R.event&&R.event.name==="merge"&&/PR #(\d+)/.exec(String(R.event.note||"")); return `<p>The pull request${pr?` ${prlink(pr[1])}`:""} is being merged; landed follows the merge.</p>`; },
   "sub-issues":(R,o)=>`<p>The plan has landed: each unit of its architecture is filed as a sub-issue of this one. A unit's board appears when its run starts.</p>`+unitProgress(R,o,"filed"),
@@ -1463,10 +1468,10 @@ function finishedOf(R,status){ const w=R||{}, steps=Array.isArray(w.steps)&&w.st
   const cur=shownOf(w), i=cur?steps.indexOf(cur):-1;
   return steps.filter((s,j)=>s!=="landed"&&((i>=0&&j<i)||(s!==cur&&Array.isArray(H[s])&&H[s].length>0))); }
 const TRAIL_STEP_WORDS=[["filing the units","sub-issues"],["creating the units","boards"],["the interview","interview"],["interview","interview"],["research","research"],["the architecture","architecture"],["architecture","architecture"],
-  ["the plan","plan"],["plan","plan"],["the branch","branch"],["branch","branch"],["implementation","implementation"],["qa","qa"],["remediation","remediation"],["the document step","document"],["document","document"],["the landing","landing"],["landing","landing"],["the state boards","state-boards"],["state boards","state-boards"],["the merge","merge"],["merge","merge"],["sizing","sizing"]];
+  ["the plan","plan"],["plan","plan"],["the branch","branch"],["branch","branch"],["implementation","implementation"],["quality review","qa"],["qa","qa"],["remediation","remediation"],["the document step","document"],["document","document"],["the landing","landing"],["landing","landing"],["the state boards","state-boards"],["state boards","state-boards"],["the merge","merge"],["merge","merge"],["sizing","sizing"]];
 const TRAIL_STEP_RE=[[/^(run started|sized|sizing|re-?sized)\b/i,"sizing"],[/^interview/i,"interview"],[/^(research|verification|findings)/i,"research"],[/^architecture/i,"architecture"],
   [/^(\d+ of \d+ units? filed|sub-issues filed)/i,"sub-issues"],[/^\d+ of \d+ unit boards? created/i,"boards"],[/^plan\b/i,"plan"],[/^branch\b/i,"branch"],[/^(S\d+\b|implementation\b|stage\b)/i,"implementation"],
-  [/^qa pass/i,"qa"],[/^remediation/i,"remediation"],[/^document\b/i,"document"],[/^state boards\b/i,"state-boards"],[/^merg(?:e|ing)\b/i,"merge"],[/^(landing|landed)\b/i,"landing"]];
+  [/^(?:qa pass|quality review)/i,"qa"],[/^remediation/i,"remediation"],[/^document\b/i,"document"],[/^state boards\b/i,"state-boards"],[/^merg(?:e|ing)\b/i,"merge"],[/^(landing|landed)\b/i,"landing"]];
 function trailStep(label){ const s=String(label==null?"":label).replace(/`/g,"").replace(/\s+/g," ").trim();
   const m=/^(?:halted|resumed|escalated)\s+(?:at|in|during)\s+(.+)$/i.exec(s);
   if(m){ const t=m[1].toLowerCase(), hit=TRAIL_STEP_WORDS.find(([x])=>t.startsWith(x)); return hit?hit[1]:null; }
@@ -1507,14 +1512,14 @@ const PAST={
   research:(V,o,keys)=>PANEL.research(V,{...o,past:true},keys),
   architecture:V=>`<p>The architecture weighed the options and decomposed the work into its units.</p>`,
   plan:(V,o)=>{ const P=V.plan||{}, re=P.state==="re-pass", acc=V.endedBy==="plan-accepted";
-    const first=re?`re-pass ${P.from==="qa"?`after qa pass ${esc(P.pass||"?")}`:P.from==="parent"?(o.parent?`from #${esc(o.parent)}'s plan`:"from the parent's plan"):P.from==="existing"?`verifying the existing plan${P.against?` against ${esc(P.against)}`:""}`:""}`:"plan writing";
+    const first=re?`re-pass ${P.from==="qa"?`after ${esc(passName(P.pass||"?"))}`:P.from==="parent"?(o.parent?`from #${esc(o.parent)}'s plan`:"from the parent's plan"):P.from==="existing"?`verifying the existing plan${P.against?` against ${esc(P.against)}`:""}`:""}`:"plan writing";
     return `<ol class="steps" aria-label="The plan's stages"><li class="done"><span class="dot" aria-hidden="true"></span>${first}</li><li class="${acc?"done":"todo"}"><span class="dot" aria-hidden="true"></span>plan accepted</li></ol>${acc?"":`<p>The plan was not accepted in this visit.</p>`}`; },
   branch:V=>V.branch?`<p>The branch: <code>${esc(V.branch)}</code>.</p>`:`<p>No branch is recorded for this step.</p>`,
   implementation:(V,o,keys)=>{ const sg=Array.isArray(V.stages)?V.stages.filter(x=>x&&typeof x==="object"):[]; if(!sg.length) return `<p>No stage was recorded.</p>`;
     return `<p class="sp-sum">${sg.filter(x=>x.state==="done").length} of ${sg.length} stages done</p>`+pastItems(sg,o,keys); },
   qa:(V,o,keys)=>{ const qa=Array.isArray(V.qa)?V.qa.filter(p=>p&&typeof p==="object"):[]; return qa.length?qa.map(p=>qaBlock(p,keys)).join(""):`<p>No qa verdict was recorded in this visit.</p>`; },
   remediation:(V,o,keys)=>{ const M=V.remediation||{}, p=(Array.isArray(V.qa)?V.qa:[])[0], steps=Array.isArray(M.steps)?M.steps.filter(x=>x&&typeof x==="object"):[];
-    let h=`<p class="sp-sum">Answering qa pass ${esc(M.pass||"?")}</p>`; if(ROUTE[M.route]) h+=`<p>Route: ${esc(ROUTE[M.route].label)}.</p>`; if(p) h+=qaBlock(p,keys);
+    let h=`<p class="sp-sum">Answering ${esc(passName(M.pass||"?"))}</p>`; if(ROUTE[M.route]) h+=`<p>Route: ${esc(ROUTE[M.route].label)}.</p>`; if(p) h+=qaBlock(p,keys);
     return h+(steps.length?pastItems(steps,o,keys):`<p>No sub-step was recorded.</p>`); },
   document:(V,o,keys)=>{ const ts=V.document&&Array.isArray(V.document.tasks)?V.document.tasks.filter(x=>x&&typeof x==="object"):[]; if(!ts.length) return `<p>No task was recorded.</p>`;
     return `<p class="sp-sum">${ts.filter(x=>x.state==="done").length} of ${ts.length} task${ts.length===1?"":"s"} done</p>`+pastItems(ts,o,keys); },
@@ -1529,7 +1534,7 @@ const PAST={
 const VISIT_WORD={qa:"passes",remediation:"loops"};
 function visitHtml(S,V,i,n,o,keys){ const grp=(l,v)=>`<span><span class="l">${l}</span>${v}</span>`;
   let h=`<div class="sp-visit">`;
-  if(n>1) h+=`<h4>${S==="remediation"&&V.remediation?`Loop ${i+1} · qa pass ${esc(V.remediation.pass)}`:S==="qa"&&Array.isArray(V.qa)&&V.qa.length?`Pass ${V.qa.map(p=>esc(p.pass)).join(", ")}`:`Visit ${i+1} of ${n}`}</h4>`;
+  if(n>1) h+=`<h4>${S==="remediation"&&V.remediation?`Loop ${i+1} · ${esc(passName(V.remediation.pass))}`:S==="qa"&&Array.isArray(V.qa)&&V.qa.length?esc(passNames(V.qa.map(p=>p.pass))):`Visit ${i+1} of ${n}`}</h4>`;
   h+=(PAST[S]||PAST._)(V,o,keys);
   if(V.detail&&S!=="sizing") h+=`<p>${rich(V.detail)}</p>`;
   const op=(Array.isArray(V.open)?V.open:[]).filter(x=>x&&typeof x.text==="string"&&x.text.trim());
@@ -1550,7 +1555,7 @@ function reconHtml(S,rc,o,keys){ let h=""; const at=x=>x.date?when(x.date):"";
   if(S==="branch"&&rc.branch) h+=`<p>The branch: <code>${esc(rc.branch)}</code>.</p>`;
   if(S==="implementation"&&Array.isArray(rc.stages)&&rc.stages.length) h+=`<p class="sp-sum">The stages as the board holds them now</p>`+pastItems(rc.stages,o,keys);
   if(S==="qa"&&Array.isArray(rc.qa)&&rc.qa.length) h+=rc.qa.map(p=>qaBlock(p,keys)).join("");
-  if(S==="remediation"&&Array.isArray(rc.qa)&&rc.qa.length) h+=rc.qa.map(p=>`<p class="sp-sum">Answering qa pass ${esc(p.pass)}${ROUTE[p.route]?` · ${esc(ROUTE[p.route].label)}`:""}</p>`+qaBlock(p,keys)).join("");
+  if(S==="remediation"&&Array.isArray(rc.qa)&&rc.qa.length) h+=rc.qa.map(p=>`<p class="sp-sum">Answering ${esc(passName(p.pass))}${ROUTE[p.route]?` · ${esc(ROUTE[p.route].label)}`:""}</p>`+qaBlock(p,keys)).join("");
   if(["sub-issues","boards"].includes(S)&&rc.units) h+=(PAST[S])({units:rc.units});
   if(rc.milestones&&rc.milestones.length) h+=`<p class="sp-sum">Milestone${rc.milestones.length===1?"":"s"}</p>`+spList(rc.milestones.map(m=>spItem("done",dotMark,rich(m.label),[at(m),m.ref?refAt(m.ref,"",o.base):"",m.note?rich(m.note):""].filter(Boolean).join(" · "))));
   if(rc.trail&&rc.trail.length) h+=`<p class="sp-sum">The trail</p>`+spList(rc.trail.map(t=>spItem("done",dotMark,rich(t.label),[at(t),t.ref?refAt(t.ref,"",o.base):""].filter(Boolean).join(" · "))));
@@ -2220,7 +2225,7 @@ function testRows(x){ const ids=Array.isArray(x.e.rows)?x.e.rows.filter(v=>typeo
 /* a unit's number and title, the pair of plan/RULES.md §1: the number opens GitHub, the title its board's Tests tab */
 const unitPairTests=(r,sub)=>{ const b=unitTestsBoard(r), n=r.unit.issue; return `${r.unit.n!=null?esc(r.unit.n)+". ":""}${n?ext(ghUrl(n),"#"+esc(n))+" ":""}${b?`<a href="${esc(b)}#tests.${esc(sub)}" title="${n?"#"+esc(n)+": ":""}its board's Tests tab">${codeOnly(r.name)}</a>`:codeOnly(r.name)}`; };
 function testCard(x,used){ const e=x.e, lv=tlOf(e), rk=resOf(e), rows=testRows(x); used.levels.add(lv); used.res.add(rk);
-  return `<div class="tcard tl-${lv}" role="button" tabindex="0" data-tk="${esc(testKey(x))}" aria-label="${esc(e.class)}: ${esc(TLV[lv])}, ${esc(TRES[rk].label)}"><div class="th"><code class="cn" title="${esc(e.class)}">${esc(simpleName(e.class))}</code>${pill(TRES[rk],"",resWord(e))}</div>${pkgOf(e.class)?`<div class="pk">${esc(pkgOf(e.class))}</div>`:""}<div class="tm">${[e.module?esc(e.module):"",Number.isInteger(e.tests)?`${e.tests} test${e.tests===1?"":"s"}`:"tests not counted",e.stage?`stage ${esc(e.stage)}`:"",e.result&&e.result.pass?`qa pass ${esc(e.result.pass)}`:""].filter(Boolean).join(" · ")}</div>${resNote(e)?`<div class="tn">${rich(resNote(e))}</div>`:""}${rows?`<div class="tr">${rows}</div>`:""}${x.u?`<div class="tu">unit ${unitPairTests(x.u,x.sub)}</div>`:""}</div>`; }
+  return `<div class="tcard tl-${lv}" role="button" tabindex="0" data-tk="${esc(testKey(x))}" aria-label="${esc(e.class)}: ${esc(TLV[lv])}, ${esc(TRES[rk].label)}"><div class="th"><code class="cn" title="${esc(e.class)}">${esc(simpleName(e.class))}</code>${pill(TRES[rk],"",resWord(e))}</div>${pkgOf(e.class)?`<div class="pk">${esc(pkgOf(e.class))}</div>`:""}<div class="tm">${[e.module?esc(e.module):"",Number.isInteger(e.tests)?`${e.tests} test${e.tests===1?"":"s"}`:"tests not counted",e.stage?`stage ${esc(e.stage)}`:"",e.result&&e.result.pass?esc(passName(e.result.pass)):""].filter(Boolean).join(" · ")}</div>${resNote(e)?`<div class="tn">${rich(resNote(e))}</div>`:""}${rows?`<div class="tr">${rows}</div>`:""}${x.u?`<div class="tu">unit ${unitPairTests(x.u,x.sub)}</div>`:""}</div>`; }
 function testGroups(items,used){ return TLV_ORDER.map(lv=>{ const g=items.filter(x=>tlOf(x.e)===lv); if(!g.length) return ""; const n=g.reduce((s,x)=>s+(Number.isInteger(x.e.tests)?x.e.tests:0),0);
   return `<div class="tgroup"><h3 class="tlh"><i class="tlk tl-${lv}" aria-hidden="true"></i>${esc(TLV[lv])} <small>${g.length} class${g.length===1?"":"es"}${n?` · ${n} test${n===1?"":"s"}`:""}</small></h3><div class="tcards">${g.map(x=>testCard(x,used)).join("")}</div></div>`; }).join(""); }
 /* a tracking board's units, each with what the sub-tab holds of it and its title opening its own board's Tests tab */
@@ -2267,7 +2272,7 @@ const bindGoRow=root=>root.querySelectorAll("a[data-go-row]").forEach(a=>a.addEv
 function goRow(id){ show("t-design"); try{ history.replaceState(null,"","#design"); }catch(e){} select(id,"built"); const el=document.getElementById("row-"+id); if(el) el.scrollIntoView({block:"center"}); }
 function findTest(tk){ for(const s of TEST_SUBS){ const x=testItems(s.k).find(y=>testKey(y)===tk); if(x) return x; } return null; }
 function inspectTest(tk){ const x=findTest(tk); if(!x){ INSPECTED=null; inspect(DEFAULT_INSPECT.tests); return; } const e=x.e, lv=tlOf(e), r=e.result||{}, rows=testRows(x);
-  inspect(`<div class="kicker">TESTS · ${esc((TEST_SUBS.find(s=>s.k===x.sub)||{}).label||"").toUpperCase()}</div><div class="name"><code>${esc(e.class)}</code></div><div class="vis"><span class="tlchip"><i class="tlk tl-${lv}" aria-hidden="true"></i>${esc(TLV[lv])}</span> ${pill(TRES[resOf(e)],"",resWord(e))}</div>${e.path?`<p class="lead"><code>${esc(e.path)}</code></p>`:""}<dl>${e.module?`<dt>Module</dt><dd><code>${esc(e.module)}</code></dd>`:""}<dt>Tests</dt><dd>${Number.isInteger(e.tests)?esc(e.tests):"not counted"}</dd><dt>Latest result</dt><dd>${esc(resWord(e))}${r.pass?` · qa pass ${esc(r.pass)}`:""}${r.at?` · ${when(r.at)}`:""}${resNote(e)?`<br>${rich(resNote(e))}`:""}</dd>${rows?`<dt>Board rows it verifies</dt><dd>${rows}</dd>`:""}${e.stage?`<dt>Stage</dt><dd>${esc(e.stage)}</dd>`:""}${x.u?`<dt>Unit</dt><dd>${unitPairTests(x.u,x.sub)}</dd>`:""}</dl>`);
+  inspect(`<div class="kicker">TESTS · ${esc((TEST_SUBS.find(s=>s.k===x.sub)||{}).label||"").toUpperCase()}</div><div class="name"><code>${esc(e.class)}</code></div><div class="vis"><span class="tlchip"><i class="tlk tl-${lv}" aria-hidden="true"></i>${esc(TLV[lv])}</span> ${pill(TRES[resOf(e)],"",resWord(e))}</div>${e.path?`<p class="lead"><code>${esc(e.path)}</code></p>`:""}<dl>${e.module?`<dt>Module</dt><dd><code>${esc(e.module)}</code></dd>`:""}<dt>Tests</dt><dd>${Number.isInteger(e.tests)?esc(e.tests):"not counted"}</dd><dt>Latest result</dt><dd>${esc(resWord(e))}${r.pass?` · ${esc(passName(r.pass))}`:""}${r.at?` · ${when(r.at)}`:""}${resNote(e)?`<br>${rich(resNote(e))}`:""}</dd>${rows?`<dt>Board rows it verifies</dt><dd>${rows}</dd>`:""}${e.stage?`<dt>Stage</dt><dd>${esc(e.stage)}</dd>`:""}${x.u?`<dt>Unit</dt><dd>${unitPairTests(x.u,x.sub)}</dd>`:""}</dl>`);
   bindGoRow($("#insp-body")); }
 const stabs=[...document.querySelectorAll(".stab")];
 /* a sub-tab of the Tests tab; selecting one from elsewhere shows the Tests tab first (keep: a redraw, which leaves the tab as it is) */

@@ -266,7 +266,7 @@
     {
       "date": "2026-10-22",
       "column": "built",
-      "label": "Unit 1, #61: qa pass 1 changes requested (14 documentation, 9 test findings), remediated; qa pass 2 passed with six minor fixes",
+      "label": "Unit 1, #61: Quality Review 1 changes requested (14 documentation, 9 test findings), remediated; Quality Review 2 passed with six minor fixes",
       "ref": ""
     },
     {
@@ -435,7 +435,7 @@
           {
             "what": "The level selection was proven under `--test-dry-run`, without running a module's test body: the same 95 classes as the tags selected on `834ce4a`.",
             "why": "The testing rule runs only the tests that exercise a change; the change touches neither the modules' code nor their tests, and identical published output shows them unaffected.",
-            "when": "#61 amendment 1 · after qa pass 1",
+            "when": "#61 amendment 1 · after Quality Review 1",
             "ref": "c1fa76e"
           },
           {
@@ -459,7 +459,7 @@
           "db98325",
           "960cfa4"
         ],
-        "verified": "qa pass 1 changes requested (14 documentation, 9 test), pass 2 passed with six minor fixes; every build-logic task green from the root.",
+        "verified": "Quality Review 1 changes requested (14 documentation, 9 test), pass 2 passed with six minor fixes; every build-logic task green from the root.",
         "link": "61-build-logic/final-implementation.md"
       }
     },
@@ -484,7 +484,7 @@
           "step": "halted",
           "since": "2026-10-22T22:20:00Z",
           "updated": "2026-10-22T22:23:03Z",
-          "detail": "Verification fixture: qa pass 1 approved; the landing is next.",
+          "detail": "Verification fixture: Quality Review 1 approved; the landing is next.",
           "steps": [
             "sizing",
             "research",

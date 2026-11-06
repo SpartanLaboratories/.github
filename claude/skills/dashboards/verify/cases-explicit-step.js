@@ -41,7 +41,7 @@ module.exports = function casesExplicitStep(X) {
     return { a, S, p: JSON.parse(rd(path.join(B.dir, "plan.json"))) }; };
   const vis = (p, s) => ((p.wip.history || {})[s] || []).map(v => [v.since, v.ended, v.endedBy, v.to]);
   const warned = (r, re) => (r.S.warnings || []).some(w => re.test(w));
-  const NOSTART = /^QA START NOT RECORDED: qa pass \d+'s verdict came with no qa-pass verdict "running" before it/;
+  const NOSTART = /^QA START NOT RECORDED: Quality Review \d+'s verdict came with no qa-pass verdict "running" before it/;
   const REM = (pass, state) => ({ pass, route: "remediation", steps: [{ name: "The fixes", state }, { name: `qa pass ${pass + 1}`, state: "todo" }] });
   const atRem = over => board({ step: "remediation", since: T2, current: ["built"], stages: STG("done", "done"), remediation: REM(1, "current"), qa: [{ pass: 1, verdict: "changes-requested", date: "2026-11-03", at: T2, findings: { test: 2 }, route: "remediation" }],
     history: { implementation: [{ since: T0, ended: T1, endedBy: "qa-pass", to: "qa" }], qa: [{ since: T1, ended: T2, endedBy: "qa-pass", to: "remediation", qa: [{ pass: 1, verdict: "changes-requested" }] }] }, event: { name: "qa-pass", at: T2 }, ...(over || {}) });
@@ -64,7 +64,7 @@ module.exports = function casesExplicitStep(X) {
     const Ba = lay(board({ step: "halted", resume: "plan", waitingOn: "An answer.", since: T0, current: [], stages: [] })), al = ev(Ba, "resumed", { step: "implement" }, T1);
     c.push(["another event still reads the alias: a resumed's \"implement\" is the implementation step", al.a.status === 0 && al.p.wip.step === "implementation" && (al.S.applied || []).some(x => /facts\.step "implement" read as implementation/.test(x)), js([al.a.status, al.p.wip.step, al.S.applied, al.S.error])]);
     const Bq2 = lay(board({ step: "qa", since: T1, stages: STG("done", "current"), qa: [{ pass: 1, verdict: "running", date: "2026-11-03", at: T1, findings: {} }], detail: "QA pass 1 running.", event: { name: "qa-pass", at: T1 } })), l = ev(Bq2, "implementation-stage", { stage: "S2", stages: STG("done", "done") }, T2);
-    c.push(["a late report on a board at qa moves nothing back: the visit runs on, the detail kept, the stages merged, no \"qa next\"", l.a.status === 0 && l.p.wip.step === "qa" && l.p.wip.since === T1 && l.p.wip.detail === "QA pass 1 running." && l.p.wip.stages[1].state === "done" && !/qa next/.test(js(l.p.trail.slice(-1))) && !vis(l.p, "qa").length, js([l.p.wip.step, l.p.wip.since, l.p.wip.detail, l.p.trail.slice(-1), l.S.error])]);
+    c.push(["a late report on a board at qa moves nothing back: the visit runs on, the detail kept (an older board's \"QA pass 1\" named \"Quality Review 1\"), the stages merged, no \"qa next\"", l.a.status === 0 && l.p.wip.step === "qa" && l.p.wip.since === T1 && l.p.wip.detail === "Quality Review 1 running." && l.p.wip.stages[1].state === "done" && !/qa next/.test(js(l.p.trail.slice(-1))) && !vis(l.p, "qa").length, js([l.p.wip.step, l.p.wip.since, l.p.wip.detail, l.p.trail.slice(-1), l.S.error])]);
     const Bd = lay(board({ step: "document", since: T2, stages: STG("done", "current"), document: { tasks: [] } })), d = ev(Bd, "implementation-stage", { step: "qa", stage: "S2", stages: STG("done", "done") }, T3);
     c.push(["…nor on a board at the Document step", d.a.status === 0 && d.p.wip.step === "document" && d.p.wip.since === T2, js([d.p.wip.step, d.p.wip.since, d.S.error])]);
   });
@@ -132,7 +132,7 @@ module.exports = function casesExplicitStep(X) {
     const r2 = ev(B, "qa-pass", { qa: { pass: 2, verdict: "running" } }, T4), v2 = ev(B, "qa-pass", { qa: { pass: 2, verdict: "approved", test: 0, code: 0 } }, "2026-11-03T05:20:00Z");
     c.push(["a later pass with its running event: no mark of its own, the first pass's kept", r2.a.status === 0 && v2.a.status === 0 && !v2.p.wip.qa[1].startUnrecorded && v2.p.wip.qa[0].startUnrecorded === true && !warned(v2, NOSTART), js([v2.p.wip.qa.map(p => [p.pass, p.verdict, p.startUnrecorded]), v2.S.warnings])]);
     const Bt = lay(board({ stages: STG("done", "done") })), t = ev(Bt, "qa-pass", { qa: { pass: 1, verdict: "approved" } }, T2, []);
-    c.push(["the plain summary carries the line", t.a.status === 0 && /^warnings: .*QA START NOT RECORDED: qa pass 1/m.test(t.a.stdout), (t.a.stdout || "").split(/\r?\n/).filter(l => /^warnings/.test(l)).join(" ")]);
+    c.push(["the plain summary carries the line", t.a.status === 0 && /^warnings: .*QA START NOT RECORDED: Quality Review 1/m.test(t.a.stdout), (t.a.stdout || "").split(/\r?\n/).filter(l => /^warnings/.test(l)).join(" ")]);
     const Bq = lay(board({ step: "qa", since: T1, stages: STG("done", "done") })), q = ev(Bq, "qa-pass", { qa: { pass: 1, verdict: "approved" } }, T2);
     c.push(["a board already at qa with no running recorded for the pass: the same line", q.a.status === 0 && warned(q, NOSTART) && q.p.wip.qa[0].startUnrecorded === true, js([q.S.warnings, q.p.wip.qa])]);
     const bad = copy(v.p); bad.wip.qa[0].startUnrecorded = "yes"; const Bb = lay(bad), kb = run(CHECK, [Bb.dir]);

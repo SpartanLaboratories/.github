@@ -35,7 +35,7 @@
 // removed (plan/RULES.md §4, "The live view of a landing"). In every checkout it writes docs/plans/.live/boards.js, the newest board of
 // each issue on this machine as seen from that checkout, which every board opened from disk links through (plan/RULES.md §1, "The newest
 // board on this machine").
-// A row's qa lists every pass its board records and the pass running (lib.js qaShown(): at qa, or the remediation's current "qa pass n"
+// A row's qa lists every pass its board records and the pass running (lib.js qaShown(): at qa, or the remediation's current "Quality Review n"
 // sub-step); its waitsOn ("Depends on") each dependency with its build state (blocking while its code is not merged, clear once it is, pre-built,
 // dropped when it was closed as not planned; a duplicate takes its canonical issue's, dashboards-skill/35) and its locality, and its blocks
 // ("Blocks · enables") each issue it holds up with "hold" (blocks while this issue is open, enables once it is done), from the tracker's
@@ -391,6 +391,9 @@ const links = {}; [[repoKey, "docs/dashboards/index.html"], ["readme", "docs/pla
 const board = { schema: "work-board/1", repo, generated: now.toISOString().replace(/\.\d+Z$/, "Z"), asOf: now.toISOString().slice(0, 10), tree, links,
   ...(live ? { live: { worktrees: trees.length }, base: "../" } : {}),
   systems: [...used].map(sysInfo), groups: groups.filter(g => rows.some(r => r.group === g.key)), rows, roadmap, unscheduled };
+/* every qa pass a row's text names is "Quality Review N" (passnames.js), a landed board's older wording included: board.json is generated,
+   so it carries the new name; the issue titles stay as quoted */
+require("./passnames.js").renamePassesIn(board, require("../../system/scripts/levelrefs.js").titleSkip(board));
 fs.mkdirSync(outDir, { recursive: true });
 atomicWrite(jsonPath, JSON.stringify(board, null, 2) + "\n");
 // the live board is always the current template: it is regenerated at every event and never committed

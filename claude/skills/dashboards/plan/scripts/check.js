@@ -20,6 +20,7 @@ const { levelRefsIn, titleSkip, issueTitleRefs, titleDefect, nameTestLevels } = 
 const { nameRefsIn, commentRefs, nameWarning } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
 const { paletteCheck } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js"));
 const { boardLanded, workLevelFields, featureRun } = require("./levels.js");
+const { passRefsIn, PASS_NAME } = require("./passnames.js");
 const { unitTests, DEP_STATES, HOLD_STATES } = require("./lib.js");
 const { foundationFilling, WAIT_BY, HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, isTime, APPROX_SOURCES, timelineApproxNote, timelineSteps, tlSpan, timelineLines, timelineLeftOut, timelineTotal, unitInRun, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, fixOfBoard, foldedIn, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, viewSource, viewParts, viewBaseHref, viewedFolder, setViewLinks, opt, flag } = require("./lib.js");
 
@@ -86,6 +87,16 @@ function levelFail(data, file) {
   walkB(data, "");
   if (bare.length) warn(`BARE TEST LEVEL: ${file} writes a test level without its name: ${bare.slice(0, 4).join(", ")}${bare.length > 4 ? ", …" : ""}; write its named test level (GUIDANCE.md §4)`);
   if (hits.length) fail(`${file} shows a work level, which a dashboard never does: ${hits.slice(0, 6).map(h => `${h.at} ("${h.hit}")`).join(", ")}${hits.length > 6 ? ` and ${hits.length - 6} more` : ""}; say what the work is instead (one system, a bug fix, docs only)`);
+}
+
+/* A qa pass is named "Quality Review N" on every board (passnames.js): a board not landed, or the repository work board (board.js generates it),
+   that still says "qa pass N" fails; every rewrite of a board rewords it (lib.js resolveBoard()), so embed.js clears the failure. A landed
+   board nothing has rewritten since keeps the wording it landed with: warned, never failed. An issue's title, quoted verbatim, is left out. */
+function passWording(data, file, landed) {
+  const hits = passRefsIn(data, "", [], titleSkip(data));
+  if (!hits.length) return;
+  const msg = `QA PASS WORDING: ${file} names a qa pass "qa pass N": ${hits.slice(0, 6).map(h => `${h.at} ("${h.hit}")`).join(", ")}${hits.length > 6 ? ` and ${hits.length - 6} more` : ""}; a board names it "${PASS_NAME} N"`;
+  if (landed) warn(`${msg} (kept as it landed; any rewrite rewords it)`); else fail(`${msg} (run embed.js, which rewords it)`);
 }
 
 function checkPlan(plan, dir, root) {
@@ -546,6 +557,7 @@ function checkPlan(plan, dir, root) {
   const left = placeholders(plan, "", []);
   if (left.length) fail(`placeholders left from the template: ${left.slice(0, 8).join(", ")}${left.length > 8 ? ` and ${left.length - 8} more` : ""}`);
   levelFail(plan, "plan.json");
+  passWording(plan, "plan.json", boardLanded(plan));
   const lists = listings(plan, "", []);
   if (lists.length) fail(`code blocks over five lines in the data (the detail belongs in the Markdown, linked): ${lists.slice(0, 6).join(", ")}`);
   if (!out.fail.length) ok(`plan.json: ${tracking ? "tracking board, " : ""}${rows.length} rows, ${rows.reduce((n, r) => n + (r.options || []).length, 0)} options, status ${plan.status}, step ${(w || {}).step || "—"}`);
@@ -1061,6 +1073,7 @@ function checkBoard(dir) {
   if (rcs.length) ok(`board.json: impact reconciliation ${Object.keys(RECON_WORDS).map(k => `${rcs.filter(r => r.reconciliation.state === k).length} ${RECON_WORDS[k]}`).join(", ")}`);
   const left = placeholders(b, "", []); if (left.length) fail(`placeholders left: ${left.slice(0, 8).join(", ")}`);
   levelFail(b, "board.json");
+  passWording(b, "board.json", false);
   if (!out.fail.length) ok(`board.json: ${(b.rows || []).length} runs, ${(b.roadmap || []).length} roadmap items, ${(b.unscheduled || []).length} unscheduled issues`);
   checkHtml(path.join(dir, "index.html"), "board", b, "work-board");
 }

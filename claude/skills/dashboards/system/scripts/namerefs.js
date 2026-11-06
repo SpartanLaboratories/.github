@@ -2,7 +2,7 @@
 // (admin team, planner, plan-writer, architect, researcher, verifier, interviewer, presenter, publisher, rookie-dev,
 // version-control-manager or executor, qa as an agent, code-reviewer, documentation-reviewer, test-inspector), never refers to the
 // approval flow ("the user's call", "the user chose", "user answers"), and never states a work level (levelrefs.js). The implementer
-// ("the implementer", whoever builds the change), the qa step and its passes ("qa pass 2", "the QA tile"), the steps' own names
+// ("the implementer", whoever builds the change), the qa step and its passes ("Quality Review 2", passnames.js; "the QA tile"), the steps' own names
 // (research, architecture, plan) and a library's name that only coincides (OkHttp's `RoutePlanner`, a Reactive Streams `Publisher`, a
 // `java.util.concurrent.Executor`) are fine.
 // The forms come in two strengths: the names no library uses (UNAMBIGUOUS: admin team, plan-writer, rookie-dev, …) match wherever they

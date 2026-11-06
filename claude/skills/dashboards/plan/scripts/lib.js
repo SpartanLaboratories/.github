@@ -2,6 +2,8 @@
 "use strict";
 const fs = require("fs"), path = require("path");
 const LV = require("./levels.js");
+/* the qa passes by name, "Quality Review N" (passnames.js) */
+const PN = require("./passnames.js");
 
 /* The repository root: --root <dir>, else the current directory. It must hold docs/ (a plan set lives under docs/plans/). */
 function repoRoot(args) {
@@ -231,7 +233,8 @@ function copyExcerpts(plan, dir, opts) {
     const e = x.s.excerpt;
     if (!refresh && e && typeof e === "object" && e.ref === ref) return;
     const got = readRef(dir, ref); if (got.error) return;
-    const next = { ref, heading: got.section.heading, paragraph: got.section.paragraph, hash: got.section.hash };
+    /* the excerpt names a qa pass as the board does, "Quality Review N" (passnames.js); its hash is the section's, as written */
+    const next = { ref, heading: PN.renamePassText(got.section.heading), paragraph: PN.renamePassText(got.section.paragraph), hash: got.section.hash };
     if (JSON.stringify(e || null) === JSON.stringify(next)) return;
     x.s.excerpt = next; changes.push(`${x.at}: excerpt of ${ref} ${e ? "re-copied" : "copied"} (${got.section.hash})`);
   }
@@ -248,8 +251,9 @@ function excerptDrift(plan, dir) {
   }).filter(Boolean);
 }
 /* Everything embed.js resolves from the folders on disk before it embeds an issue board: the issue links and the units' runs
-   (linkIssueBoards()) and the statements' excerpts (copyExcerpts()). Returns one line per change. */
-function resolveBoard(plan, dir, opts) { return [...LV.dropWorkLevels(plan), ...clearFoundation(plan), ...fillRoadmap(plan, dir), ...linkIssueBoards(plan, dir), ...refreshSystems(plan, dir), ...linkShared(plan, dir), ...copyExcerpts(plan, dir, opts)]; }
+   (linkIssueBoards()) and the statements' excerpts (copyExcerpts()); last, every qa pass the board names is named "Quality Review N"
+   (passnames.js renamePasses()), whatever wrote it. Returns one line per change. */
+function resolveBoard(plan, dir, opts) { return [...LV.dropWorkLevels(plan), ...clearFoundation(plan), ...fillRoadmap(plan, dir), ...linkIssueBoards(plan, dir), ...refreshSystems(plan, dir), ...linkShared(plan, dir), ...copyExcerpts(plan, dir, opts), ...PN.renamePasses(plan)]; }
 /* ---------- The foundation (plan/RULES.md §4, "The foundation") ----------
    A board's first state, laid at sized: by apply-event.js on the fast path, by new.js on the presenter's fallback. foundationPlan() is the
    one laying: step null lays it not started, for the sized event to start in place (the fast path); a step lays it started (new.js).
@@ -727,10 +731,10 @@ function finishedSteps(R, status) {
    research; considered: the architecture on a tracking board, else the plan; verdict: the plan; built: the landing). The template's
    reconStep() is the same rule. */
 const TRAIL_STEP_WORDS = [["filing the units", "sub-issues"], ["creating the units", "boards"], ["the interview", "interview"], ["interview", "interview"], ["research", "research"], ["the architecture", "architecture"], ["architecture", "architecture"],
-  ["the plan", "plan"], ["plan", "plan"], ["the branch", "branch"], ["branch", "branch"], ["implementation", "implementation"], ["qa", "qa"], ["remediation", "remediation"], ["the document step", "document"], ["document", "document"], ["the landing", "landing"], ["landing", "landing"], ["the state boards", "state-boards"], ["state boards", "state-boards"], ["the merge", "merge"], ["merge", "merge"], ["sizing", "sizing"]];
+  ["the plan", "plan"], ["plan", "plan"], ["the branch", "branch"], ["branch", "branch"], ["implementation", "implementation"], ["quality review", "qa"], ["qa", "qa"], ["remediation", "remediation"], ["the document step", "document"], ["document", "document"], ["the landing", "landing"], ["landing", "landing"], ["the state boards", "state-boards"], ["state boards", "state-boards"], ["the merge", "merge"], ["merge", "merge"], ["sizing", "sizing"]];
 const TRAIL_STEP_RE = [[/^(run started|sized|sizing|re-?sized)\b/i, "sizing"], [/^interview/i, "interview"], [/^(research|verification|findings)/i, "research"], [/^architecture/i, "architecture"],
   [/^(\d+ of \d+ units? filed|sub-issues filed)/i, "sub-issues"], [/^\d+ of \d+ unit boards? created/i, "boards"], [/^plan\b/i, "plan"], [/^branch\b/i, "branch"], [/^(S\d+\b|implementation\b|stage\b)/i, "implementation"],
-  [/^qa pass/i, "qa"], [/^remediation/i, "remediation"], [/^document\b/i, "document"], [/^state boards\b/i, "state-boards"], [/^merg(?:e|ing)\b/i, "merge"], [/^(landing|landed)\b/i, "landing"]];
+  [/^(?:qa pass|quality review)/i, "qa"], [/^remediation/i, "remediation"], [/^document\b/i, "document"], [/^state boards\b/i, "state-boards"], [/^merg(?:e|ing)\b/i, "merge"], [/^(landing|landed)\b/i, "landing"]];
 function trailStep(label) {
   const s = String(label == null ? "" : label).replace(/`/g, "").replace(/\s+/g, " ").trim();
   const m = /^(?:halted|resumed|escalated)\s+(?:at|in|during)\s+(.+)$/i.exec(s);
@@ -829,7 +833,10 @@ function mirrorUnitRuns(plan, dir) {
 function unitTests(plan, dir) {
   if (!plan || plan.kind !== "tracking") return [];
   const TL = require("./testslib.js");
-  return (plan.rows || []).filter(r => r && r.unit && Number.isInteger(r.unit.issue)).map(r => { const sub = subIssuePlan(dir, r.unit); return { row: r, unit: r.unit, want: sub ? TL.testsMirror(sub) : null, have: r.unit.tests || null }; });
+  /* the mirror as the tracking board keeps it: its qa passes named "Quality Review N" (resolveBoard() renames them after the mirroring), so a
+     landed unit's board that still says "qa pass N" neither re-mirrors at every embed nor warns as differing */
+  const mirrored = sub => { const m = JSON.parse(JSON.stringify(TL.testsMirror(sub))); PN.renamePassesIn(m); return m; };
+  return (plan.rows || []).filter(r => r && r.unit && Number.isInteger(r.unit.issue)).map(r => { const sub = subIssuePlan(dir, r.unit); return { row: r, unit: r.unit, want: sub ? mirrored(sub) : null, have: r.unit.tests || null }; });
 }
 function mirrorUnitTests(plan, dir) {
   const changes = [];
@@ -1243,12 +1250,13 @@ function boardlessState(n, issueState, closing, linked, prs, branches, stateReas
    qaShown(w): the qa passes a run shows (plan/RULES.md §2, "The KPI tiles"; §5): every pass wip.qa records, oldest first, and the pass
    that is running. wip.qa records a running pass from its qa-pass with verdict "running" until its verdict replaces it (apply-event.js);
    with none recorded, one is derived here and added: { pass, verdict: "running" }. A pass is running while the run
-   is at qa (wip.step "qa"): the one the remediation loop's current sub-step names ("qa pass 2"), else the pass after the last recorded
+   is at qa (wip.step "qa"): the one the remediation loop's current sub-step names ("Quality Review 2"), else the pass after the last recorded
    one; or while the run is at remediation and that loop's current sub-step is a qa pass. None runs after an approving pass, past qaMax,
    or once the run has moved on (landing, landed, halted). w is a board's wip or a unit's run mirror (unit.live: step, qa, qaMax,
    remediation, history). The plan-board and work-board templates' qaShown() are the same rule, in the board's own runtime. The last pass
    shown carries inPlace when the run decided to fix its findings in place with no further pass (qaInPlace(), below). */
-const QA_PASS_RE = /\bqa pass (\d+)\b/i;
+/* the pass a remediation sub-step names, in either wording: "Quality Review 2", or "qa pass 2" as a board written before says it */
+const QA_PASS_RE = PN.PASS_RE;
 function qaShown(w) {
   w = w || {}; const qa = (Array.isArray(w.qa) ? w.qa : []).filter(p => p && typeof p === "object").slice().sort((a, b) => (a.pass || 0) - (b.pass || 0));
   if (qa.some(p => p.verdict === "running")) return qa;
@@ -1772,5 +1780,5 @@ function ghMergeTime(repo, pr, merge) {
   } catch (e) { return out; }
 }
 
-module.exports = { ...LV, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, HISTORY_FIELDS, HISTORY_STEPS, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+module.exports = { ...LV, ...PN, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, HISTORY_FIELDS, HISTORY_STEPS, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewBaseFolder, viewBaseHref, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, notYetLanded, landedPending, unitLeft, setViewLinks, viewedFolder, viewLink, landVisit, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

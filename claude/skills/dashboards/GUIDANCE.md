@@ -319,7 +319,7 @@ comments, the fixed text of its template — names the pipeline's agents, sessio
 researcher, verifier, interviewer, presenter, publisher, rookie-dev, version-control-manager or executor, qa as an agent,
 code-reviewer, documentation-reviewer, test-inspector), refers to the approval flow ("the user's call", "the user chose", "user
 answers") or states a work level (above). Say what happened instead: "accepted", "a plan re-pass", "the fixes", "the land is accepted and
-being merged". Fine are "the implementer" (whoever builds the change), the qa step and its passes ("qa pass 2", the QA tile), the steps'
+being merged". Fine are "the implementer" (whoever builds the change), the qa step and its passes ("Quality Review 2", the QA tile; below), the steps'
 own names (research, architecture, plan), a halt's "waiting on you", and a library's name that only coincides (OkHttp's `RoutePlanner`,
 a Reactive Streams `Publisher`, a `java.util.concurrent.Executor`: executor and publisher count only with the pipeline's verbs,
 "the executor commits", "the publisher released"). The data follows: the remediation routes' ids are `on-the-spot`,
@@ -333,6 +333,16 @@ a word a library may use as well (the planner, the verifier) is written and name
 `check-board.js` warn on any name left in a board (`INTERNAL NAME`), never failing it: the board is reworded at its next refresh. An
 issue's title is quoted verbatim and left out of the scan. The pipeline's names stay in force everywhere else: in these rules, the
 scripts' summaries and the template's code (the progress notes' file names are the agents' own).
+
+**A qa pass is named "Quality Review N"** (admin-team/dashboards-skill/quality-review-label). A board names each pass of the qa step
+"Quality Review N" ("Quality Review 1's fixes", "Answering Quality Review 2"), never "qa pass N". The name is the scripts' and the
+template's, never free text's (`plan/scripts/passnames.js`, the template's `PASS_NAME`): `apply-event.js` composes every pass name it
+writes and rewords "qa pass N" in any text it takes from the facts, every rewrite of a board (`lib.js` `resolveBoard()`: `apply-event.js`,
+`embed.js`, `fill.js`, `new.js`) rewords the older wording the board already holds, and `board.js` rewords the repository work board it
+generates. `plan/scripts/check.js` fails a board not landed, and the repository work board, that still says "qa pass N" (`QA PASS
+WORDING`), and warns on a landed one, kept as it landed until something rewrites it. An issue's title, quoted verbatim, code and the data's
+keys and ids (the `qa-pass` event) are left as they are, and so are the qa pass named with no number ("no new qa pass") and the ordinal
+pills ("1st pass · approved"), each a wording of its own.
 
 **An issue's title is quoted verbatim** (admin-team/dashboards-skill/28). Wherever a board shows an issue's title — an issue board's issue
 line, a roadmap item, a follow-up, a work-board row, group, roadmap item or unscheduled issue, a state board's Context and its "last amended
@@ -583,8 +593,8 @@ never the accent (§1).
   applied to the repository work board (`lib.js` `qaShown()`, a unit's from its own run, not the tracking board's `wip`), to issue boards (the QA tile,
   the WIP strip's qa pills) and to tracking boards (each unit's run mirror). Not to the state boards, which show no run.
 - **QA pass numbers as ordinals** (1st, 2nd, 3rd): applied to the repository work board's QA cell and to issue and tracking boards' qa pills and QA
-  tile. The step panel's prose ("Answering qa pass 1", a remediation sub-step "qa pass 2") keeps the pipeline's own words. Not to the
-  state boards: no qa passes.
+  tile. The step panel's prose ("Answering Quality Review 1", a remediation sub-step "Quality Review 2") names each pass by its number (§4,
+  "A qa pass is named "Quality Review N""). Not to the state boards: no qa passes.
 - **Depends on, with a build state and a locality; Blocks · enables** (§1, "Dependencies"): applied to the repository work board (two columns), to
   issue boards (the WIP strip's `wip.blockers`) and to tracking boards (each unit's dependencies and the units it holds up, in its
   inspector). Not to system, supersystem and repository state boards: a state board is as-is and names no issue above its Context, and its Context
@@ -745,6 +755,14 @@ refresh on its branch: the committed repository work board, and the repository s
   units' runs. A unit's finished visits, mirrored into the tracking board's step panel, read the same. Not to the repository work board: one row per
   run, it draws no Timeline and sums no step's time, and its `since` and `updated` follow the boards at each regeneration. Not to the state boards,
   which show no run's steps. Landed boards are not re-rendered for it.
+
+**The decision of admin-team/dashboards-skill/quality-review-label**, weighed for every type:
+
+- **A qa pass is named "Quality Review N"** (§4; `plan/RULES.md` §4, "The fast path"): applied to issue boards (the step panel, the
+  remediation's sub-steps, the Tests tab's results, the trail and every fact text), to tracking boards (their own text and each unit's run
+  mirror) and to the repository work board's data (`board.js` rewords `board.json`, which `check.js` fails while it says "qa pass N"). A
+  landed board keeps the wording it landed with until something rewrites it, and `check.js` only warns on it. Not to the state boards: no qa
+  passes.
 
 ## 12. Elements — one name per function
 

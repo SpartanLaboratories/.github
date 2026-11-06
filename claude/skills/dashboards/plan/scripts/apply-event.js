@@ -192,6 +192,9 @@ function applyEvent(orig, ev, facts, req, now) {
     /* a bare test level beside a test word is written as its named test level ("L2 test" → "L2 component test"; levelrefs.js
        nameTestLevels(), admin-team/dashboards-skill/35): a rewording the facts alone decide */
     if (!IDENT.has(field)) { const nt = nameTestLevels(s); if (nt.named.length) { s = nt.text; applied.push(`facts.${field}: ${nt.named.join(", ")} written as ${nt.named.length === 1 ? "its" : "their"} named test level`); } }
+    /* a qa pass is named "Quality Review N" (passnames.js renamePassText(); "qa pass 1's fixes" → "Quality Review 1's fixes"): a rewording
+       the facts alone decide, so neither a run nor a fill brings the older wording back */
+    if (!IDENT.has(field)) { const qr = lib.renamePassText(s); if (qr !== s) { applied.push(`facts.${field}: ${lib.passRefs(s).map(h => JSON.stringify(h)).join(", ")} written as "${lib.PASS_NAME} N"`); s = qr; } }
     if (levelRefs(s).length) {
       const el = [], r = IDENT.has(field) ? null : scrubLevels(s, { scope, elided: el });
       /* a bare "Ln" elided as a work level is warned on, so the elision is visible (dashboards-skill/35) */
@@ -258,13 +261,13 @@ function applyEvent(orig, ev, facts, req, now) {
      sub-steps done and the current ones (several may run in parallel); from the facts alone, so the same event twice writes the same board */
   const remediationWording = () => {
     const R = w.remediation || {}, ss = R.steps || [], curs = ss.filter(x => x.state === "current"), dn = ss.filter(x => x.state === "done");
-    const said = txt(facts.stage, "stage"), pass = R.pass != null ? `qa pass ${R.pass}` : "the qa pass";
+    const said = txt(facts.stage, "stage"), pass = R.pass != null ? lib.passName(R.pass) : "the qa pass";
     const names = curs.map(x => x.name).join(curs.length > 1 ? " | " : "");
     const what = said || [dn.length ? `${plural(dn.length, "sub-step")} done` : null, curs.length === 1 ? `${names} current` : curs.length ? `${curs.length} sub-steps current in parallel: ${names}` : ss.length ? "every sub-step done" : null].filter(Boolean).join("; ") || null;
     note = note || (said || [dn.length ? `${dn.length} of ${ss.length} remediation sub-steps done` : null, curs.length === 1 ? "the next current" : curs.length ? `${curs.length} current in parallel` : null].filter(Boolean).join("; ") || `remediation for ${pass}`);
     detail = detail || `Remediation for ${pass}${curs.length === 1 ? ": " + names : what ? ": " + what : ""}.`;
-    /* a facts.stage that names the pass itself ("qa pass 1 fixes done; …") stands alone, after "Remediation:" */
-    trail = { column: "built", label: said && /\bqa pass\b/i.test(said) ? `Remediation: ${said}` : `Remediation for ${pass}${what ? ": " + what : ""}` };
+    /* a facts.stage that names the pass itself ("Quality Review 1 fixes done; …", written so from "qa pass 1 fixes done") stands alone, after "Remediation:" */
+    trail = { column: "built", label: said && lib.PASS_RE.test(said) ? `Remediation: ${said}` : `Remediation for ${pass}${what ? ": " + what : ""}` };
   };
 
   switch (ev) {
@@ -495,6 +498,10 @@ function applyEvent(orig, ev, facts, req, now) {
          reported is facts.stage when it names a done stage, else the last done stage before the current one */
       const c = curStage(), ci = c ? st.indexOf(c) : st.length;
       const rep = st.find(x => x.id === facts.stage && x.state === "done") || st.slice(0, ci).reverse().find(x => x.state === "done") || null;
+      /* the Tests tab's classes take the stage reported done, the one the note names (plan/RULES.md §4, facts.tests: "the reported stage"), not a
+         stage facts.stage names as current (WebTools #68: stage 1 reported done with facts.stage "stage-2", and its five classes read "stage-2");
+         from the facts and the stages alone, so the same event twice gives the same stage */
+      if (rep) reportedStage = rep.id;
       note = note || [rep ? `${rep.id} reported done` : null, c ? `${c.id} current` : allDone && !past ? "qa next" : null].filter(Boolean).join("; ") || null;
       detail = detail || (past ? w.detail || null : c ? `Implementation at ${c.id} of ${st.length}${rep ? `: ${rep.id} is done` : ""}; ${c.id} takes ${c.name}.` : allDone ? `Implementation done, ${plural(st.length, "stage")}; qa next.` : "Implementation.");
       trail = { column: "built", label: c ? `${rep ? rep.id + " done; " : ""}${c.id} current: ${c.name}` : allDone ? `Implementation done (${plural(st.length, "stage")})${past ? "" : "; qa next"}` : "Implementation stage reported" };
@@ -526,14 +533,14 @@ function applyEvent(orig, ev, facts, req, now) {
       /* a returned verdict with no running before it for that pass still applies as it stands, and says so: the summary's warnings line and
          the entry's mark, which check.js warns on, so a pass whose start the run never signalled is not silent. A verdict sent again keeps
          the mark and says nothing new. */
-      if (verdict !== "running" && !had) { entry.startUnrecorded = true; WARNINGS.push(`QA START NOT RECORDED: qa pass ${Q.pass}'s verdict came with no qa-pass verdict "running" before it, so the pass's start is not on the record: its qa visit has no start of its own`); }
+      if (verdict !== "running" && !had) { entry.startUnrecorded = true; WARNINGS.push(`QA START NOT RECORDED: ${lib.passName(Q.pass)}'s verdict came with no qa-pass verdict "running" before it, so the pass's start is not on the record: its qa visit has no start of its own`); }
       else if (verdict !== "running" && had.startUnrecorded) entry.startUnrecorded = true;
       if (rep0) { const rp = openRefLocal(rep0.trim().replace(/\\/g, "/")).replace(/^\.\//, "");
-        if (!/^`/.test(rp)) { entry.report = rp; const cp0 = had && had.report === rp && had.reportCopy ? had.reportCopy : openCopyFor(rp, `qa pass ${Q.pass} test report`, plan.folder); if (cp0) entry.reportCopy = cp0; } }
+        if (!/^`/.test(rp)) { entry.report = rp; const cp0 = had && had.report === rp && had.reportCopy ? had.reportCopy : openCopyFor(rp, `${lib.passName(Q.pass)} test report`, plan.folder); if (cp0) entry.reportCopy = cp0; } }
       if (k < 0) w.qa.push(entry); else w.qa[k] = { ...(w.qa[k] && w.qa[k].note && !entry.note ? { note: w.qa[k].note } : {}), ...entry };
       w.qa.sort((a, b) => a.pass - b.pass); applied.push(`wip.qa pass ${Q.pass} ${verdict}`);
       /* an open point the qa report raises (or settles) is kept as at an implementation stage (plan/RULES.md §3, wip.open) */
-      if (Array.isArray(facts.open)) mergeOpen(w, facts, applied, txt, `qa pass ${Q.pass}`, resolved, plan.folder, DIR, enrich);
+      if (Array.isArray(facts.open)) mergeOpen(w, facts, applied, txt, lib.passName(Q.pass), resolved, plan.folder, DIR, enrich);
       if (w.qaMax !== 3 && !Number.isInteger(w.qaMax)) w.qaMax = 3;
       const counts = [...Object.entries(findings).filter(([, n]) => n).map(([k2, n]) => `${n} ${k2}`), ...Object.entries(severity).filter(([, n]) => n).map(([k2, n]) => `${n} ${k2}`)].join(", ");
       const anyFinding = Object.values(findings).some(n => n > 0);
@@ -543,17 +550,17 @@ function applyEvent(orig, ev, facts, req, now) {
         const after = Array.isArray(w.steps) && w.steps.length && !w.steps.includes("document") ? "landing" : "document";
         const step = after0 && STEPS.includes(after0) ? after0 : after; setStep(step); setGlow(step);
         if (anyFinding) enrich.push("qa-pass: the approving pass's findings detail comes from the qa report");
-        detail = detail || `QA pass ${Q.pass} approved; ${step === "document" ? "the Document step follows" : "the landing follows"}.`;
+        detail = detail || `${lib.passName(Q.pass)} approved; ${step === "document" ? "the Document step follows" : "the landing follows"}.`;
         if (plan.parent) parentOp = { kind: "complete" };
       } else if (verdict === "changes-requested") {
         setRemediation(w, { pass: Q.pass, ...(facts.remediation || {}), route }, applied, enrich, txt);
         if (route === "re-plan-then-remediation") { w.plan = { state: "re-pass", from: "qa", pass: Q.pass, since: now }; applied.push(`wip.plan re-pass after qa pass ${Q.pass}`); }
         const step = after0 && STEPS.includes(after0) ? after0 : "remediation"; setStep(step); setGlow(step);
         enrich.push("qa-pass: the findings detail (the rows they touch, the pass's note) comes from the qa report");
-        detail = detail || `QA pass ${Q.pass}: changes requested${counts ? " (" + counts + ")" : ""}${route ? "; " + ROUTE_WORDS[route] : ""}.`;
-      } else { setStep("qa"); setGlow("qa"); detail = detail || `QA pass ${Q.pass} running.`; }
-      note = note || `pass ${Q.pass}: ${verdict}`;
-      trail = { column: "built", label: `QA pass ${Q.pass}: ${verdict === "changes-requested" ? "changes requested" : verdict}${counts ? " (" + counts + ")" : ""}` };
+        detail = detail || `${lib.passName(Q.pass)}: changes requested${counts ? " (" + counts + ")" : ""}${route ? "; " + ROUTE_WORDS[route] : ""}.`;
+      } else { setStep("qa"); setGlow("qa"); detail = detail || `${lib.passName(Q.pass)} running.`; }
+      note = note || `${lib.passName(Q.pass)}: ${verdict}`;
+      trail = { column: "built", label: `${lib.passName(Q.pass)}: ${verdict === "changes-requested" ? "changes requested" : verdict}${counts ? " (" + counts + ")" : ""}` };
       break;
     }
     case "escalated": {
@@ -702,10 +709,10 @@ function applyEvent(orig, ev, facts, req, now) {
   if (facts.tests != null) {
     if (tracking) enrich.push("facts.tests on a tracking board: its units' boards record the tests (the presenter writes them there)");
     else { const qp = ev === "qa-pass" && facts.qa && Number.isInteger(facts.qa.pass) ? facts.qa.pass : null;
-      /* A remediation's report names no stage of plan.md: its classes take "qa pass n fixes", the pass the remediation answers, never the
-         report's free-text note ("qa pass 2 fixes done; reconciliation current" is a status, not a stage) */
+      /* A remediation's report names no stage of plan.md: its classes take "Quality Review n fixes", the pass the remediation answers, never the
+         report's free-text note ("Quality Review 2 fixes done; reconciliation current" is a status, not a stage) */
       const remPass = remed && w.remediation && Number.isInteger(w.remediation.pass) ? w.remediation.pass : null;
-      const r = TL.mergeTests(plan, facts.tests, { now, pass: qp, stage: ev === "implementation-stage" ? reportedStage || stageIdOf(facts.stage) || (remPass ? `qa pass ${remPass} fixes` : null) || (typeof facts.stage === "string" && facts.stage.trim() ? facts.stage.trim() : null) : null, ids, txt: v => txt(v, "tests.note") });
+      const r = TL.mergeTests(plan, facts.tests, { now, pass: qp, stage: ev === "implementation-stage" ? reportedStage || stageIdOf(facts.stage) || (remPass ? `${lib.passName(remPass)} fixes` : null) || (typeof facts.stage === "string" && facts.stage.trim() ? lib.renamePassText(facts.stage.trim()) : null) : null, ids, txt: v => txt(v, "tests.note") });
       applied.push(...r.applied); enrich.push(...r.notes.map(n => "tests: " + n)); }
   } else if (!tracking && testsDue)
     enrich.push(`the Tests tab: the event carries no facts.tests; ${ev === "qa-pass" ? "Relevant, Other and the results come from the qa report" : "Added and Amended come from the branch's diff against its base"}`);
@@ -846,7 +853,7 @@ function setRemediation(w, R, applied, enrich, txt) {
   const old0 = w.remediation && w.remediation.pass === R.pass ? w.remediation : {}, old = old0.route ? { ...old0, route: routeId(old0.route) } : old0;
   /* a sub-step's name: a work level in it (GUIDANCE.md §4) is elided ("…") rather than the step dropped, and the presenter is told */
   const stepName = (raw, i) => { const t = txt(raw, `remediation.steps[${i}].name`); if (t || typeof raw !== "string" || !raw.trim()) return t;
-    let s = raw.replace(/\s+/g, " ").trim(); levelRefs(s).forEach(h => { s = s.split(h).join("…"); }); s = scrubNames(s).text; nameRefs(s).forEach(h => { s = s.split(h).join("…"); }); return s; };
+    let s = lib.renamePassText(raw.replace(/\s+/g, " ").trim()); levelRefs(s).forEach(h => { s = s.split(h).join("…"); }); s = scrubNames(s).text; nameRefs(s).forEach(h => { s = s.split(h).join("…"); }); return s; };
   const steps = Array.isArray(R.steps) ? R.steps.map((s, i) => { const raw = s && (s.name || s.what), name = stepName(raw, i);
     if (!name) refuse(`facts.remediation.steps[${i}] has no name (got ${JSON.stringify(raw === undefined ? null : raw)})`);
     if (!SSTATES.includes(s.state)) refuse(`facts.remediation.steps[${i}].state ${JSON.stringify(s.state)} is not done, current or todo`);
@@ -1335,6 +1342,9 @@ async function main() {
     if (lib.landedPending(vp0)) { HELD.add(path.resolve(DIR)); HELD.add(path.resolve(path.dirname(DIR))); } }
   const text = laid ? null : fs.readFileSync(viewRead(DIR), "utf8"), eol = text && /\r\n/.test(text) ? "\r\n" : "\n";
   let orig = laid ? laid.plan : null; if (!laid) { try { orig = JSON.parse(text); } catch (e) { refuse(`${folder}/plan.json does not parse: ${e.message}`); } }
+  /* the board as read names its qa passes "Quality Review N" before the event applies (passnames.js renamePasses()), so an open point or an
+     entry the facts name again in the new wording matches the one it already holds, and the same event twice still changes nothing */
+  const renamed = lib.renamePasses(orig);
   S.issue = orig.issue;
   if (req.issue != null && req.issue !== orig.issue) refuse(`the request names issue #${req.issue}, the board is #${orig.issue}'s`);
   const repo = REPO_SLUG || req.github || null;
@@ -1363,7 +1373,7 @@ async function main() {
   const seeded = laid ? seededFirst : ev === "sized" && !VIEWING ? seedFromView(now) : [];
   const R = applyEvent(orig, ev, facts, req, now);
   if (laid) { S.laid = folder; S.applied.push(...laid.applied); S.enrich.push(...laid.enrich); }
-  S.applied.push(...R.applied); S.enrich.push(...R.enrich);
+  S.applied.push(...renamed, ...R.applied); S.enrich.push(...R.enrich);
   /* a view copy lives only while fresher than the board it stands for (board.js --live removes it otherwise): said, never lost in silence */
   if (VIEWING) { let tp = null; try { tp = JSON.parse(fs.readFileSync(planFile, "utf8")); } catch (e) { /* reported above */ } if (tp && !(String(lib.planStamp(R.plan)) > String(lib.planStamp(tp)))) WARNINGS.push(`VIEW COPY NOT FRESHER: the event's time ${now} is not after the board's own stamp ${lib.planStamp(tp)}, so the live view drops the copy: raise it with its real time`); }
 
