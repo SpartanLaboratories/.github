@@ -132,9 +132,8 @@ bump are committed; the documentation is reconciled). Everything is stamped at
 the code-landing sha the request names — "as-is at `<branch>` @ `<sha>`" — not
 at the branch's head, which later carries the document-landing commit. There
 are no "previous landing's corrections" here: a run's `sized` seeds them
-(plan-board mode, step 2). The land may ask for this job again when the base
-moved under a covered system after the sync; then stamp at the new code-landing
-sha the request names.
+(plan-board mode, step 2). The land never asks for this job again: a re-sync at
+the land leaves the boards stamped at the code-landing sha.
 
 1. **The changed systems' state boards**, as built: update each where it exists;
    create one only when the request names the system as getting one (the user's

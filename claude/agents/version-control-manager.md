@@ -137,9 +137,7 @@ A landing in executor mode is three requests, each its own spawn:
 - **`land`** lands a branch whose change set is already committed. Check the
   base has not moved since the sync; if it has, re-sync (the same merge) and,
   when the base moved under files the branch touches, report the paths under
-  **Overlap** for a `needs-rework` (the team re-runs its `state-boards` job
-  when the new changes touch a system the boards cover, and has its files
-  committed before the merge). Then push, open the PR, merge, post the
+  **Overlap** for a `needs-rework`. Then push, open the PR, merge, post the
   resolution comment, and delete the branch (local and remote) and the
   worktree you were given. No commit of the run's, no bump and no board commit
   happen in the land; the re-sync merge commit is the only commit it may add.

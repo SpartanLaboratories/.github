@@ -61,8 +61,8 @@ level ("level 3", "a level-4 tracking issue"). That covers the text you send in 
 facts (`detail`, `open`, `questions`, `reason`), which lands on the committed issue board. The
 project's own test levels (Level 2 component, 4a, …), "the implementer" (whoever builds the
 change) and a library's name that only coincides (OkHttp's `RoutePlanner`) are fine. Carry the
-rule in every brief to an agent that writes a document. A `commit` whose content breaks it
-(the document-landing commit of step 6 included) is blocked: the team commits nothing and
+rule in every brief to an agent that writes a document. A `commit` or `prepare-landing` whose
+content breaks it (the document-landing commit of step 6 included) is blocked: the team commits nothing and
 replies `needs-rework` with `result.finds` (`file:line`); reword each find and resend the same
 `id` with `attempt + 1`.
 
@@ -465,16 +465,14 @@ resolution comment's links), and `publish: true` only if **the user asked for a
 publish this run** (it lets the release use the budget's reserve; every
 version-bumping landing is considered for release regardless). The team:
 checks the base has not moved since the `prepare-landing` sync (if it has, it
-re-syncs; `needs-rework` on overlap; when the new changes touch a system the
-boards cover, the `state-boards` task of step 6 runs again and its files are
-committed before the merge); opens the PR; merges; posts the
+re-syncs; `needs-rework` on overlap); opens the PR; merges; posts the
 **issue-resolution comment** (steps taken + links to any plan/design docs); files
 an upstream issue if the work exposed one; deletes the branch and any worktree
 it allocated; considers the release — its publisher releases a moved
 published-module version to Maven Central when the monthly budget allows
 (`result.release` in the reply: `published`, `deferred`, `failed` or `none`);
 and shows the landed state in the live view. No board commit and no version
-bump happen in the land any more. Wait for the reply: a `needs-rework` means
+bump happen in the land. Wait for the reply: a `needs-rework` means
 the base moved under the run's files — re-verify and resend the same `id` with
 `attempt + 1`; a `needs-user` means a gate is waiting on the user at the
 team's console.

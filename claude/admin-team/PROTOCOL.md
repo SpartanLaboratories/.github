@@ -163,10 +163,10 @@ Same shape: one line, then a ```json block.
 |---------|---------|
 | `ack` | Queued. `lane` and `position` (0 = running). |
 | `progress` | Only for long actions; what step it is on. |
-| `done` | Finished. `result` carries SHAs, PR, merge commit, links, worktree path. For a `land`, `result.release` is `{status, coordinates, deploymentId, tags, releases, reason, used}` with `status` one of `published`, `deferred` (`reason`: `cap-reached`, `reserve-held`), `failed` (the user decides at the team's console) or `none` (no published module moved); `result.stateBoards` is `{commit}` only when the land had to rebuild the boards because the base moved under a covered system (`docs: refresh state boards for #<issue>`), else `null`; `result.corrections` lists the landed state the next run in the repository seeds onto its branch at `sized` (this landing's issue board as `landed`, its tracking board, the repository work board). |
+| `done` | Finished. `result` carries SHAs, PR, merge commit, links, worktree path. For a `land`, `result.release` is `{status, coordinates, deploymentId, tags, releases, reason, used}` with `status` one of `published`, `deferred` (`reason`: `cap-reached`, `reserve-held`), `failed` (the user decides at the team's console) or `none` (no published module moved); `result.corrections` lists the landed state the next run in the repository seeds onto its branch at `sized` (this landing's issue board as `landed`, its tracking board, the repository work board). |
 | `rejected` | Refused. `reason` names the rule. Fix the request and send a new `id`. |
 | `needs-user` | Waiting on the user at the team's console. `waitingOn` says for what. |
-| `needs-rework` | A `land` whose base moved under its files: `result.overlap` lists them; re-verify, then resend the same `id` with `attempt + 1` and a fresh `qa`. Or a `commit` or `land` whose content breaks the internal-names rule (below): nothing was committed, `result.finds` lists each `file:line` with its text; reword them, then resend the same `id` with `attempt + 1`. A find in a board the team generates is the team's to fix and is never sent back. |
+| `needs-rework` | A `prepare-landing` or `land` whose base moved under its files: `result.overlap` lists them; re-verify, then resend the same `id` with `attempt + 1` and a fresh `qa`. Or a `commit`, `prepare-landing` or `land` whose content breaks the internal-names rule (below): nothing was committed, `result.finds` lists each `file:line` with its text; reword them, then resend the same `id` with `attempt + 1`. A find in a board the team generates is the team's to fix and is never sent back. |
 | `warning` | Not a state change: another in-flight branch touches the same hand-written file (`result.paths`). |
 
 ## Rules both sides keep
@@ -185,6 +185,6 @@ Same shape: one line, then a ```json block.
   test-inspector), refers to the approval flow ("the user's call", "the user chose", "user
   answers") or states a work level ("level 3", "a level-4 tracking issue"). The project's own
   test levels, "the implementer" (whoever builds the change) and a library's name that only
-  coincides (OkHttp's `RoutePlanner`) are fine. The team scans before any `commit` or `land`
+  coincides (OkHttp's `RoutePlanner`) are fine. The team scans before any `commit`, `prepare-landing` or `land`
   commits anything (documents, boards and source-code comments, every line of each file the
   commit carries; code itself is not scanned); a find blocks it with `needs-rework`.
