@@ -54,6 +54,15 @@ module.exports = function casesQaStep(X) {
     const P4 = atQa(), B4 = lay(P4);
     const o = apply(B4, P4, { step: "plan", qa: { pass: 1, verdict: "changes-requested", test: 1, route: "re-plan-then-remediation" } }, "2026-11-02T01:00:00Z");
     c.push(["a returned verdict naming another step still takes it (an override, as before)", o.a.status === 0 && o.p.wip.step === "plan", js([o.a.status, o.p.wip.step, o.S.error])]);
+    /* WebTools #68, Quality Review 1: the run sent the report path as facts.qa.doc; a path there is the report, a count stays the documentation findings */
+    const P5 = atQa(), B5 = lay(P5);
+    const d = apply(B5, P5, { step: "qa", qa: { pass: 1, verdict: "CHANGES REQUESTED", test: 1, code: 0, severity: { minor: 1, other: 0 }, route: "on-the-spot", doc: "build/reports/tests/index.html" }, rows }, "2026-11-02T01:00:00Z");
+    const q5 = (d.p.wip.qa || [])[0] || {};
+    c.push(["the test report recorded from facts.qa.doc when it is the report's path, and no documentation count made of it", d.a.status === 0 && q5.report === "build/reports/tests/index.html" && !("documentation" in (q5.findings || {})), js([d.a.status, q5, d.S.error])]);
+    const P6 = atQa(), B6 = lay(P6);
+    const e = apply(B6, P6, { step: "qa", qa: { pass: 1, verdict: "CHANGES REQUESTED", doc: 3, test: 0, code: 0, route: "remediation" }, rows }, "2026-11-02T01:00:00Z");
+    const q6 = (e.p.wip.qa || [])[0] || {};
+    c.push(["…a count in facts.qa.doc stays the documentation findings, with no report", e.a.status === 0 && (q6.findings || {}).documentation === 3 && !q6.report, js([e.a.status, q6, e.S.error])]);
   });
   /* the Timeline tab's lede while the run waits on the user (plan/RULES.md §2, "Waits on the user are not active time"): no visit runs to now
      then, so the lede never says a step's time runs to now; and it says nothing of the wait either (decided 2026-11-05: time that is not

@@ -521,8 +521,11 @@ function applyEvent(orig, ev, facts, req, now) {
       /* a returned verdict's facts.step "qa" names the step the pass ran in, never the step after it: the step after is the verdict's
          (remediation, or the Document step), so the board never stays at qa with the whole As built column glowing once the pass is in */
       const after0 = verdict !== "running" && facts.step === "qa" ? null : facts.step;
-      /* the pass's test report: facts.qa.report, else the test report among facts.documents (the protocol carries the report path there) */
-      const rep0 = typeof Q.report === "string" && Q.report.trim() ? Q.report : (Array.isArray(facts.documents) ? facts.documents : []).find(d => typeof d === "string" && /(^|[\\/])reports[\\/]tests[\\/](.+[\\/])?index\.html?$/i.test(d.trim())) || null;
+      /* the pass's test report: facts.qa.report, else facts.qa.doc when it names the report rather than counting documentation findings (a run
+         sends the report path there, PROTOCOL.md's qa {pass, verdict, doc, …}; WebTools #68, Quality Review 1), else the test report among
+         facts.documents (the protocol carries the report path there) */
+      const isReport = d => typeof d === "string" && /(^|[\\/])reports[\\/]tests[\\/](.+[\\/])?index\.html?$/i.test(d.trim());
+      const rep0 = typeof Q.report === "string" && Q.report.trim() ? Q.report : isReport(Q.doc) ? Q.doc : (Array.isArray(facts.documents) ? facts.documents : []).find(isReport) || null;
       const entry = { pass: Q.pass, verdict, date: today, at: now, findings, ...(Object.keys(severity).length ? { severity } : {}), ...(verdict === "changes-requested" && route ? { route } : {}) };
       const qn = txt(Q.note, "qa.note"); if (qn) entry.note = qn;
       w.qa = Array.isArray(w.qa) ? w.qa : []; const k = w.qa.findIndex(x => x && x.pass === Q.pass);
