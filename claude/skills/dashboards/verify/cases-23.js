@@ -125,6 +125,22 @@ module.exports = function cases23(X) {
     /* the browser pass reads LEVEL_PATTERNS, so the new form has to be there too, as a string a RegExp takes */
     const inPats = LR.LEVEL_PATTERNS.map(([s, f]) => new RegExp(s, f)).filter(re => re.test("a later level-1 documentation change"));
     c.push(["…and LEVEL_PATTERNS, which the browser pass applies to the rendered text, carries the form once", inPats.length === 1, String(inPats.length)]);
+    /* a test entry headed by its test level after a comma (2026-11-05): a capitalised "Level n:" that a test word follows is the project's test
+       level (a Tests tab's ", Level 3: the reader against the real transport over loopback"); the listed work-level form stays a work level */
+    const te = [", Level 3: the reader against the real transport over loopback", "Tests, Level 3: one real request for many callers, on the production defaults", "8a4107a6d93e, Level 3: the integration flip and four admission tests.",
+      "(Level 2: the component cases for both origins)", "; Level 3: a real end-to-end call over loopback", ", Level 1: the gating tests", ", Level 2 : stubs only"];
+    const teBad = te.filter(s => LR.levelRefs(s).length || LR.scrubLevels(s, {}) !== s);
+    c.push(["a capitalised \"Level n:\" that a test word follows, after a comma, a semicolon or a bracket, is a test entry: never found, never reworded", !teBad.length, JSON.stringify(teBad.map(s => [s, LR.levelRefs(s), LR.scrubLevels(s, {})]))]);
+    const teBrowser = LR.LEVEL_PATTERNS.map(([s, f]) => new RegExp(JSON.parse(JSON.stringify(s)), f)).filter(re => re.test(te[0]));
+    c.push(["…and LEVEL_PATTERNS, as the browser pass reads them (JSON), leave the rendered test entry alone", !teBrowser.length, teBrowser.map(String).join(" | ").slice(0, 200)]);
+    const kept = [["(#61, level 3)", ", level 3)"], ["#55, level 2: a bug fix", ", level 2:"], ["(#55, Level 2: a bug fix)", ", Level 2:"], ["; Level 3: one system, additive", "; Level 3:"],
+      [", level 3: the reader against the real transport", ", level 3:"], [", level 3: tests", ", level 3:"], ["(#61, Level 3)", ", Level 3)"], [", Level 3, the reader against the real transport", ", Level 3,"],
+      ["(#61, Level 3: a fix). The real transport is tested", ", Level 3:"], [", Level 3: one system; tests later", ", Level 3:"], [", Level 3: a fix, Level 2: the component tests", ", Level 3:"],
+      ["a level-4 tracking issue", "level-4 tracking"], ["(level 2)", "(level 2)"], ["a level 3 feature", "level 3 feature"]];
+    const keptBad = kept.filter(([s, h]) => !LR.levelRefs(s).includes(h));
+    c.push(["…while every work-level form stays found: lowercase \"level n:\" (a test word after it or not), a \"Level n:\" with no test word in its own entry, \"(#61, Level 3)\", \"(level 2)\", \"a level-4 tracking issue\"", !keptBad.length, JSON.stringify(keptBad.map(([s, h]) => [s, LR.levelRefs(s), h]))]);
+    const mixed = LR.scrubLevels("a level-3 change, Level 3: the reader against the real transport", {});
+    c.push(["…and scrubLevels() rewords a work level beside a test entry and leaves the entry's \"Level 3:\" as it is", mixed === "a change, Level 3: the reader against the real transport" && LR.scrubLevels("(#61, level 3)", {}) === "(#61)", JSON.stringify([mixed, LR.scrubLevels("(#61, level 3)", {})])]);
     /* the fast path on a sub-issue's board and on an issue board */
     const sub = copy(LIVE); sub.folder = "docs/plans/55-http-client-stack/70-live-verification"; sub.parent = { issue: 55, board: null };
     sub.rows.forEach(r => { r.verdict = { kind: "build", summary: "Verification case: written.", steps: [{ id: "A", what: "x" }] }; });

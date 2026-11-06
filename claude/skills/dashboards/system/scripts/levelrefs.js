@@ -46,6 +46,15 @@ const TEST_LEVEL_SHORT = { 1: "gating", 2: "component", 3: "integration" };
    "the Level 3 pass", "Level 2 unit tests" are test levels) */
 const WORK_NOUNS = "change|changes|fix|fixes|feature|features|issue|issues|run|runs|work|plan|plans|planner|planners|planning|bump|label|labels|sub-issue|sub-issues|tracking|initiative|roadmap|re-pass|re-passes|repass|repasses|scope|sizing|pipeline|budget|qa";
 const SCOPE_WORDS = "inside|within|outside|beyond";
+/* A test entry headed by its test level (2026-11-05): a capitalised "Level n:" that a test word follows in the same entry is the project's
+   test level, never a work level, so the listed form "(#61, level 3)" / "#55, level 2: a bug fix" skips it where a list or a rendered tab
+   puts it after a comma (", Level 3: the reader against the real transport over loopback"). The test words are the vocabulary of the
+   boards' test entries: test and its forms, a test thing (suite, case, assertion, fixture, harness, mock, stub, fake), a test level's name
+   (and "end-to-end"), and the real-boundary words of an integration entry ("real", "loopback": "Level 3: one real request for many
+   callers"). The word follows the colon within the entry: before the next "level", a ";", a ")", a sentence's end or a line break, within
+   160 characters. A lowercase "level n:" and a "Level n:" with no test word after it stay work levels ("(#55, Level 2: a bug fix)"). */
+const TEST_ENTRY_WORDS = `${anyCase("tests?|testing|tested|suites?|cases?|assertions?|fixtures?|harness(?:es)?|mocks?|mocked|stubs?|stubbed|fakes?|real|loopback|end-to-end")}|${TEST_LEVEL_NAMES}`;
+const TEST_ENTRY = `(?!Level [1-4]\\s*:(?=(?:(?!${anyCase("level")}\\b|\\.(?:\\s|$))[^;)\\n]){0,160}?\\b(?:${TEST_ENTRY_WORDS})\\b))`;
 /* the words before "level" that make it another kind of level, never a work level */
 const OTHER_LEVEL = "test|testing|gating|component|integration|deterministic|e2e|non-functional|nonfunctional|uat|unit|log|logging|trace|debug|info|warn|error|c4|zoom|isolation|api|access|compression|nesting|indent|indentation|heading|top|sea|noise|power|signal|battery|volume|risk|severity|confidence|service|stability|support|maturity|privilege|security|trust|quality";
 const NOT_OTHER = `(?<!\\b(?:${OTHER_LEVEL})[- ])`;
@@ -78,7 +87,7 @@ const LEVEL_PATTERNS = [
   ["\\bre-?level(?:led|ed|ing|s)?\\b", "i"],                                               // "re-level", "relevelled"
   ["\\b(?:escalat\\w*|re-?sized?|sized|labelled|labeled) (?:to|as|at) level [1-4]\\b", "i"],  // "escalated to level 3"
   ["\\bat (?:its|their|his|her) own level\\b", "i"],                                       // "planned at its own level"
-  ["[(,;]\\s*level [1-4]\\s*[),;:]", "i"],                                                // "(#61, level 3)", "#55, level 2: a bug fix"
+  [`[(,;]\\s*${TEST_ENTRY}${anyCase("level")} [1-4]\\s*[),;:]`, ""],                        // "(#61, level 3)", "#55, level 2: a bug fix"; never a test entry (", Level 3: the reader against the real transport")
   [`\\b(?:${SCOPE_WORDS})\\s+(?:the\\s+)?level[- ][1-4]\\b${NOT_TEST_OR_TESTS}`, "i"],     // "inside level 3", "within the level-2 bounds"
   /* unnumbered (dashboards-skill/33) */
   [`\\b(?:recorded|proposed|assigned|sized)\\s+(?:work\\s+)?levels?\\b${NOT_TEST_OR_TESTS}`, "i"],                  // "Recorded level confirmed"
@@ -182,7 +191,7 @@ function scrubLevels(text, opts) {
   s = s.replace(new RegExp(`${NOT_OTHER}\\b(level)([ \\t]+(?:re-?checks?|checks?|confirmation|proposal)\\b(?![ \\t]*:))`, "gi"), (m, l, rest) => (/^L/.test(l) ? "Sizing" : "sizing") + rest);
   s = s.replace(/\b(issue|unit|run|sub-issue)(['’]s)\s+level\b/gi, "$1$2 sizing");
   s = s.replace(/\(\s*(?:the\s+)?(?:label(?:led|ed)?\s+)?level:?\s*[1-4]\s*\)/gi, "");
-  s = s.replace(/\s*[,;]\s*level [1-4]\s*(?=[),;:])/gi, "");
+  s = s.replace(new RegExp(`\\s*[,;]\\s*${TEST_ENTRY}${anyCase("level")} [1-4]\\s*(?=[),;:])`, "g"), "");   // a test entry's "Level 3:" stays
   s = s.replace(/\(\s*level [1-4]\s*\)/gi, "");
   s = s.replace(/\b(?:the\s+)?(?:label(?:led|ed)?\s+)?level:\s*[1-4]\b/gi, "");
   elide(new RegExp(`\\blevel[- ][1-4][- ](?=(?:${WORK_NOUNS})\\b${NOT_TEST_NEXT})`, "gi"));
