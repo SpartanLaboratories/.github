@@ -351,7 +351,9 @@ finding, or the parent architecture section (give the architecture a dated callo
 build changes what it describes). The record describes the state of the build, not the
 process that produced it: it names no qa pass, review round, remediation loop or other step
 of the run, and a change a review caused is recorded as the as-built state, and as a
-deviation where it departs from the plan, without saying a review caused it. Then bring
+deviation where it departs from the plan, without saying a review caused it; building to a
+plan re-passed on a review's finding is no deviation, the replaced version staying under
+`superseded/`. Then bring
 `consequences.md` up to date (an older folder keeps its `impact.md`), with its known gaps,
 the ones the build leaves open, and the outcome of the plan's assumptions and follow-ups:
 each assumption that failed and each follow-up still open, linked back to the plan. Known

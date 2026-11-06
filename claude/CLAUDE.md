@@ -183,7 +183,11 @@ Otherwise a level-2 fix writes a `consequences.md` only when it leaves a follow-
   `research/README.md`'s verification results. The file describes the state of the build, not
   the process that produced it: it names no qa pass, review round, remediation loop or other
   pipeline step, and a change a review caused is recorded as the as-built state, and as a
-  deviation where it departs from the plan, without saying a review caused it.
+  deviation where it departs from the plan, without saying a review caused it. A review's
+  findings get no record of their own: a finding fixed shows only as the as-built state (and
+  as a deviation where it departs from the plan); one that calls for a plan re-pass lives in
+  the re-passed plan, with the replaced version under `superseded/`, and building to it is no
+  deviation; one accepted rather than fixed is a known gap or follow-up in `consequences.md`.
 - **One home per fact.** `final-implementation.md` and `consequences.md` never restate each
   other; one links to the other. Neither writes a PR placeholder: the issue's resolution comment
   links the PR. No open point is committed open, whatever raised it: before
