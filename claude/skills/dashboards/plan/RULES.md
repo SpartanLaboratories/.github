@@ -1252,7 +1252,7 @@ branch does not hold; the summary names the boards it seeded (`seeded`) and thos
 summary warns (`VIEW COPY NOT YET LANDED`). A copy whose land is under way (no merge yet), and a tracking board's copy with one inside it, are left for the next `sized`.
 
 **What keeps a copy.** `board.js --live` keeps a copy no fresher than its tracked board, which no board follows, while it is merged with parts to resolve, while a unit inside it has not landed, and while a
-landed unit's record on the tracking board's copy is unfinished (`lib.js` `unitLeft()`). `--settled`, which `reseed` passes, drops this last hold.
+landed unit's record on the tracking board's copy is unfinished (`lib.js` `unitLeft()`), and while a finished copy's tracked board is one a `sized` seeded unfinished (`lib.js` `landedPending()` on the tracked board), with its tracking board's copy, so the enrichment finishing the record and the `landed` raised again leave `reseed` its copies. `--settled`, which `reseed` passes, drops these last two holds.
 
 **`reseed`**, team-raised at the end of every post-merge refresh, never with `--view`, naming no board, brings the finished state to the boards seeded during the refresh, in the main checkout and every worktree:
 

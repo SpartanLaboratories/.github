@@ -95,7 +95,8 @@ trees.forEach(t => findPlans(t).forEach(p => {
    fresher than the main checkout's tracked board stands in for it (the landed state the post-merge refresh wrote), its row's board
    link the copy's; its folder, links and Markdown are the tracked board's. A copy no fresher than the tracked board (the next landing
    committed its state), or one whose board is gone, is stale: removed, unless the post-merge refresh still writes it: merged with parts to resolve (lib.js landedPending()),
-   a tracking board's copy with a copy not yet landed inside it, or either side of a landed unit its tracking board's copy has not finished (lib.js unitLeft(); on the unit's side only while its tracked board ties the copy, as a seed leaves it). Such a copy is kept
+   a tracking board's copy with a copy not yet landed inside it, or either side of a landed unit its tracking board's copy has not finished (lib.js unitLeft(); on the unit's side only while its tracked board ties the copy, as a seed leaves it),
+   or a finished copy whose tracked board a sized seeded unfinished (landedPending() on the tracked board), with its tracking board's copy, until the reseed brings it there. Such a copy is kept
    but not shown, as a board only follows a fresher copy. --settled, which the event reseed passes at the end of the refresh, keeps only the first two. */
 const viewNotes = [];
 if (live) {
@@ -108,7 +109,10 @@ if (live) {
     const src = viewSource(vd), vp = read(path.join(vd, "plan.json")), tp = read(path.join(src, "plan.json")), rel = p => path.relative(root, p).split(path.sep).join("/");
     const inside = vp && copies.filter(d => d !== vd && d.startsWith(vd + path.sep)).map(d => read(path.join(d, "plan.json"))).filter(Boolean), outer = vp && read(path.join(path.dirname(vd), "plan.json"));
     const unfinished = (trk, sub) => { const r = trk && trk.kind === "tracking" && sub ? (trk.rows || []).find(x => x && x.unit && x.unit.issue === sub.issue) : null; return !!r && UNIT_LANDED.includes((r.asBuilt || {}).state) && unitLeft(trk, r).length > 0; };
-    const refreshing = vp && ((landedPending(vp) && tp && tp.status !== "built") || (vp.kind === "tracking" && inside.some(notYetLanded)) || (!flag(args, "settled") && (vp.kind === "tracking" ? inside.some(s => unfinished(vp, s)) : tp && planStamp(vp) === planStamp(tp) && unfinished(outer, vp))));
+    /* a finished copy whose tracked board a sized seeded unfinished: the refresh's reseed brings it there, so it stays until then, with its tracking board's copy */
+    const awaitsReseed = (v, t) => !!v && !!t && v.kind !== "tracking" && v.status === "built" && landedPending(t);
+    const insideAwaiting = () => copies.filter(d => d !== vd && d.startsWith(vd + path.sep)).some(d => awaitsReseed(read(path.join(d, "plan.json")), read(path.join(viewSource(d), "plan.json"))));
+    const refreshing = vp && ((landedPending(vp) && tp && tp.status !== "built") || (vp.kind === "tracking" && inside.some(notYetLanded)) || (!flag(args, "settled") && (vp.kind === "tracking" ? inside.some(s => unfinished(vp, s)) || insideAwaiting() : (tp && planStamp(vp) === planStamp(tp) && unfinished(outer, vp)) || awaitsReseed(vp, tp))));
     if (vp && tp && !(planStamp(vp) > planStamp(tp)) && refreshing) {
       viewNotes.push(`kept the view copy ${rel(vd)}/, not yet landed: its enrichment writes it, and no board follows it while it is no fresher`); return;
     }
