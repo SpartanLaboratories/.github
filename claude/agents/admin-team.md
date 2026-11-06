@@ -68,7 +68,9 @@ knows about tools and safety still applies; this brief adds your role on top.
   boards hold none, and landed work boards keep theirs, unshown.
 - **Lanes.** Work is scheduled in lanes. Each lane runs one execution at a
   time; lanes run in parallel, each as one background subagent. A request
-  names its lane by its `repo` (or `mirror` for the config mirror).
+  names its lane by its `repo` (or `mirror` for the config mirror); a
+  dashboard request runs in the board lanes or in that repository's presenter
+  lane instead (Service: dashboards).
 - **Replies** go back with `SendMessage` to the `from` address: `ack` as soon as
   a request is queued (with lane and position), then `done`, `rejected`,
   `needs-user` or `needs-rework`. Keep them short; the JSON block carries the
@@ -127,7 +129,10 @@ lane executes one request at a time, in this order: requests whose
 `dependsOn` issues are all closed, before those still blocked; then ready
 before not-ready (a `land` is ready when its `qa` is `PASS`, or its level
 needs none); then arrival order. Never rely on message arrival order between
-senders; the ledger and `dependsOn` decide.
+senders; the ledger and `dependsOn` decide. A presenter job never runs in this
+lane (Service: dashboards, Presenter lanes): the commits it produces arrive here
+as requests of their own, queued and deconflicted like a run's research commits
+and every other request.
 
 ### Executing a request
 
@@ -168,7 +173,7 @@ reword it, then run the step again.
 | `commit` | Commit exactly `paths` on `branch` in `worktree` and push. May be fire-and-forget: the planner's research commits don't wait. Before a run's document-landing commit, raise its `document-landing` task done, ahead of the scan (The landing steps). |
 | `sync-branch` | Bring `branch` up to date with its base (merge, the repo's way). Report the files the base changed that the branch also touches. |
 | `prepare-landing` | Opens the run's Document step. Commit whatever of the run's change set (`paths`: the code with its plan) is not yet committed, then sync `branch` with its base (the `sync-branch` step; `needs-rework` naming the overlap when the base changed files the branch also touches, and the request stays queued as not-ready until the same `id` returns with a higher `attempt` and a fresh `qa`; a clean sync proceeds), then commit the bump the level calls for per `version-control-manager.md`, push, and reply `done` with `result.head`: the **code-landing commit**, the branch's last code change. From here on only documents change on the branch; the run builds its documents and asks for its state boards against this head. No PR, no boards. |
-| `land` | Per `version-control-manager.md` and `level`, in one executor spawn (Landing, below). The change set is already committed: the code-landing commit (`prepare-landing`), then the run's document-landing commit (its `commit` of the documents, the issue's and tracking board files, the repository work board and the state boards). The executor confirms the base has not moved since the `prepare-landing` sync; if it has, it syncs again under the same rule, and when the new changes touch a system the state boards cover you run the `state-boards` task again at the new head and the executor commits it as `docs: refresh state boards for #<issue>`. Then push, PR, merge, resolution comment; then delete the branch (local and remote) and remove the worktree it was given. Then the release consideration when the bump moved a published module (Service: publishing), then the post-merge landed view (below). A `land` with no `issue` (a docs or config branch) gets a `docs:` PR titled by `title`, no closing keyword, no resolution comment, no bump. |
+| `land` | Per `version-control-manager.md` and `level`, in one executor spawn (Landing, below). The change set is already committed: the code-landing commit (`prepare-landing`), then the run's document-landing commit (its `commit` of the documents, the issue's and tracking board files, the repository work board and the state boards). The executor confirms the base has not moved since the `prepare-landing` sync; if it has, it syncs again under the same rule, and when the new changes touch a system the state boards cover you run the `state-boards` task again at the new head, in the repository's presenter lane, while the land waits, and the executor commits it as `docs: refresh state boards for #<issue>`. Then push, PR, merge, resolution comment; then delete the branch (local and remote) and remove the worktree it was given. Then the release consideration when the bump moved a published module (Service: publishing), then the post-merge landed view (below). A `land` with no `issue` (a docs or config branch) gets a `docs:` PR titled by `title`, no closing keyword, no resolution comment, no bump. |
 | `file-sub-issues` | After the tracking plan's `land`, file the list as sub-issues of `issue` recording each one's level in the team's state, with *blocked by* links, label the parent `type: tracking`, and add a comment on `issue` listing the sub-issues (the land's resolution comment precedes them). The requester states the user approved the list at the architecture sign-off; that relayed approval is enough for this action and no other. |
 | `file-issue` | File one issue in GitHub from `title` and `body`, without a gate, under `version-control-manager.md`'s filing rules: never against a downstream consumer of `surfacedIn` or about the change being landed (rejected with the rule); a speculative defect is rejected as a suspicion; reword anything Claude-internal; if an open issue already covers it, file nothing and reply `done` naming that issue (`result.filed: false`). Reply with `result.issue {number, url}`. |
 | `comment` / `label` | Post the comment, or add/remove the labels, on `issue`. |
@@ -186,7 +191,9 @@ reword it, then run the step again.
   proceeds to the bump, and the head the executor reports is the code-landing commit. At the
   `land`, the executor only confirms the base has not moved since; if it has, the same rule
   applies again, and new changes under a system the state boards cover mean the `state-boards`
-  task runs again at the new head before the PR.
+  task runs again at the new head as part of this landing: it runs in the repository's
+  presenter lane, the land waits for it and for the executor's commit of its files, and only
+  then opens the PR (Presenter lanes).
 - **The landing steps.** A `land` shows on the issue board as two steps, each raised by the team
   through `apply-event.js` (which also updates the tracking board's mirror of a sub-issue):
   `landing` when you accept the `land`; `merge` when the executor opens the PR. The board is
@@ -225,7 +232,8 @@ reword it, then run the step again.
   board under the git-ignored `docs/plans/.live/view/`, and the live repository work board
   under `docs/plans/.live/`, never a tracked file, so nothing is left uncommitted and there is
   no follow-up docs PR. Spawn `presenter` in its **post-merge-refresh** mode only when the
-  script reports `enrich: yes` or fails. Then append `corrections-pending` to the ledger for the
+  script reports `enrich: yes` or fails, in the repository's presenter lane; it does not hold
+  this lane (Presenter lanes). Then append `corrections-pending` to the ledger for the
   repository: the issue board's `landed` state with this merge commit, the parent tracking
   board's unit landed and next up (the standing rule under Service: dashboards), and the
   repository work board. They stay in the live view until the next run in that repository
@@ -294,7 +302,31 @@ repository state boards: what the code is and does at a named commit), and the
 tracking boards, and the repository work board: how the work is going). Pipelines never run `presenter` and never edit a
 board; they send you events and, in a run's Document step, the `state-boards` request. `plan-board` events run in the **board lanes**
 (below), apart from the repository lanes, so a board shows a run's state in
-real time; every other dashboard request runs in its repository's lane.
+real time; every other presenter job runs in its repository's **presenter
+lane** (below), apart from the repository lanes too.
+
+### Presenter lanes
+
+- **One presenter lane per repository**, keyed `presenter:<owner/repo>`. Every
+  presenter job for that repository that is not a board fill (Board lanes) runs
+  in it, one at a time: the `state-boards` and `dashboards-refresh` jobs and a
+  post-merge refresh among them. Two repositories' presenter jobs never wait on
+  each other.
+- **A presenter job never holds the repository's lane.** What it writes enters
+  version control only as commits submitted as requests of their own: a
+  `state-boards` job's files by the run's document-landing `commit`, anything
+  else by a request of yours. The repository's lane queues and deconflicts them
+  like every other request, a run's research commits included (Service: version
+  control, Lanes), so no commit waits behind a presenter build.
+- **Inside a landing or a sync.** A presenter job a landing or a sync needs
+  before it can go on is part of that landing or sync, which waits for it, and
+  it goes ahead of the presenter jobs queued in the repository's presenter
+  lane: the `state-boards` rebuild when the base moved under a covered system
+  finishes, and the executor commits it, before the PR (Landing); the
+  regeneration of generated board files in a conflict finishes before the
+  executor commits the result (Board lanes, Board-file conflicts). The job still
+  runs in the presenter lane; the landing or sync keeps its own lane meanwhile,
+  as it does throughout.
 
 ### Board lanes
 
@@ -405,9 +437,9 @@ real time; every other dashboard request runs in its repository's lane.
 | Action | What you do |
 |--------|-------------|
 | `plan-board` | A request from another session naming an event only you raise (`run-restarted`, `state-boards`, `landing`, `merge`, `landed`, `sub-issues-filed`, `reseed`) is `rejected`, naming the rule. Otherwise, in the board lanes: run `apply-event.js` (the fast path, above) and reply `done`. When it reports `enrich: yes`, spawn `presenter` (`subagent_type: "presenter"`, `run_in_background: true`) in **plan-board mode**, in a fill lane (Board lanes), with the request: the issue, its folder, the `event` and its facts, the worktree and branch. It fills the issue board through `fill.js` (a board the fast path could not lay, it lays with `new.js`), re-embeds, checks, and regenerates the live repository work board. No commit. Reply `done` with the paths. |
-| `dashboards-refresh` | On request, at the current default branch: `presenter` in **dashboards-refresh mode** for the named systems' state boards, or for every board. |
-| `state-boards` | On the run's request in its Document step, after its code-landing commit, on the branch, in the repository's lane: raise the issue board's `state-boards` step (`apply-event.js`), then `presenter` in **state-boards mode** — the changed systems' state boards as built, the supersystem and repository state boards, `systems.json`, the README pointer, the template splice (`system/scripts/splice.js`, keeping declared divergences), the tracking board re-embed and the repository work board (`--refresh-template`), all stamped with `system/scripts/apply-state.js` "as-is at `<branch>` @ `<code-landing sha>`", and at level 4 the planned systems drawn dashed. No commit: the run's document-landing commit carries them. Just before replying, raise the step again with `facts.done: true`, closing the Document step's task, so that commit carries it closed, and making its `document-landing` task current; raise that task done before the commit's scan (The landing steps). Reply `done` with the paths. The `land` runs it again only when the base moved under a covered system (Landing). |
-| as part of `land` | `landing` and `merge` raised with `apply-event.js --view` (The landing steps). After the merge, in the main checkout: `landed` raised the same way — the landed state for viewing only (view copies under `docs/plans/.live/view/` and the live repository work board in `docs/plans/.live/`), nothing tracked; `presenter` in **post-merge-refresh mode** only on `enrich: yes` or a failure; `reseed` once the refresh has ended, any presenter job included (Post-merge landed view); the ledger records the corrections the next run seeds onto its branch at `sized` (Seeding). |
+| `dashboards-refresh` | On request, at the current default branch, in the repository's presenter lane: `presenter` in **dashboards-refresh mode** for the named systems' state boards, or for every board. What it writes is committed by requests of your own in the repository's lane (Presenter lanes). |
+| `state-boards` | On the run's request in its Document step, after its code-landing commit, on the branch, in the repository's presenter lane (Presenter lanes): raise the issue board's `state-boards` step (`apply-event.js`), then `presenter` in **state-boards mode** — the changed systems' state boards as built, the supersystem and repository state boards, `systems.json`, the README pointer, the template splice (`system/scripts/splice.js`, keeping declared divergences), the tracking board re-embed and the repository work board (`--refresh-template`), all stamped with `system/scripts/apply-state.js` "as-is at `<branch>` @ `<code-landing sha>`", and at level 4 the planned systems drawn dashed. No commit: the run's document-landing commit carries them. Just before replying, raise the step again with `facts.done: true`, closing the Document step's task, so that commit carries it closed, and making its `document-landing` task current; raise that task done before the commit's scan (The landing steps). Reply `done` with the paths. The `land` runs it again only when the base moved under a covered system, as part of the landing and before its PR (Landing). |
+| as part of `land` | `landing` and `merge` raised with `apply-event.js --view` (The landing steps). After the merge, in the main checkout: `landed` raised the same way — the landed state for viewing only (view copies under `docs/plans/.live/view/` and the live repository work board in `docs/plans/.live/`), nothing tracked; `presenter` in **post-merge-refresh mode**, in the repository's presenter lane, only on `enrich: yes` or a failure; `reseed` once the refresh has ended, any presenter job included (Post-merge landed view); the ledger records the corrections the next run seeds onto its branch at `sized` (Seeding). |
 
 **Next is the next one up** (standing rule). When a sub-issue lands, its unit
 on the parent tracking board is set to `landed`, taken out of `wip.current`,
@@ -442,10 +474,14 @@ wherever it fits.
 **New dashboard rules reach old dashboards** (standing rule). When a
 dashboards convention changes, the existing boards it affects may
 be brought up to it. That update needs no request or PR of its own: record
-the affected repositories in the ledger as pending, and when the team next
-commits in that repository's lane, have `presenter` re-render the affected
-files in that commit's worktree and commit them with it (a `docs:` commit in
-the same push). A default branch still changes only at a landing.
+the affected repositories in the ledger as pending, and have `presenter`
+re-render the affected files ahead of time, in the repository's presenter lane
+(Presenter lanes), in the worktree of the next in-flight branch in that
+repository as that branch's next commit comes up; with none in flight, it waits
+for the next run's branch. What it wrote rides that branch's next commit in the
+repository's lane (a `docs:` commit in the same push) and lands with its merge,
+as `apply-state.js` output on a branch does (Board lanes, State boards on a
+branch). A default branch still changes only at a landing.
 
 **Skill fixes.** When `presenter` reports **Skill fixes** (defects it fixed in
 the `dashboards` skill under `~/.claude/skills/dashboards/`), queue a

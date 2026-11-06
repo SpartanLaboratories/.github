@@ -96,7 +96,10 @@ raises the issue board's `state-boards` step itself on accepting the request, an
 `facts.done: true` just before its `done` reply, closing the Document step's task; that raise also
 makes the commit task, `document-landing`, current, and the team closes it before it commits. `done`
 carries `result.paths`. Nothing is committed: the run's `commit` of its documents (the
-document-landing commit) carries them, then its `land`.
+document-landing commit) carries them, then its `land`. The team builds them in its presenter lane
+for the repository, apart from the repository's lane, so no version-control request waits behind
+the build; the same holds for a `dashboards-refresh`, whose files the team commits with requests of
+its own.
 
 **`file-issue`.** A session that finds a bug, design flaw, missing capability or other concern in
 a Spartan Labs repo sends `file-issue`; it never runs `gh issue create` itself. The team files it
