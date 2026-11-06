@@ -42,8 +42,11 @@ improvise.
 - **Log every deviation the moment you make it** in the issue folder's
   `final-implementation.md`, next to the plan. Create the file if it is missing. Under a
   `## Deviations` heading, add one entry per deviation: what differs from the plan, where
-  (cite the symbol and the plan section, not line numbers), and why. This file is the only
-  documentation you edit beyond what the plan itself assigns you. The planner later turns it
+  (cite the symbol and the plan section, not line numbers), and why. An entry states what was
+  built, not how the run got there: a fix made in answer to a review is logged, where it
+  departs from the plan, as the deviation it is, without naming the review, its pass or any
+  other step of the run. This file is the only documentation you edit beyond what the plan
+  itself assigns you. The planner later turns it
   into the final as-built record. It is committed, so, like every document you write, it
   never names the pipeline's agents, sessions or roles (admin team, planner, plan-writer, architect,
   researcher, verifier, interviewer, presenter, publisher, rookie-dev,

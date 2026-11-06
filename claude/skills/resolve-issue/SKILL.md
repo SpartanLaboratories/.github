@@ -346,8 +346,9 @@ on it):
 4. **Reconcile plan** (levels 2–4). Resume the **same `planner`** with
    `SendMessage` (its context is intact) to reconcile the plan with the build,
    per its "When resumed in the Document step's reconcile-plan task"
-   paragraph: `final-implementation.md` (every deviation from the plan, with its
-   secondary links), `consequences.md` (the known gaps the build leaves open,
+   paragraph: `final-implementation.md` (the state of the build, not the run's
+   steps: no qa pass or remediation named in it; every deviation from the plan,
+   with its secondary links), `consequences.md` (the known gaps the build leaves open,
    the outcome of the plan's assumptions and follow-ups, the sibling units), the
    earlier plan's `consequences.md` for a fix to earlier work, the parent's link
    line for a sub-issue, the "did not hold in the build" notes in

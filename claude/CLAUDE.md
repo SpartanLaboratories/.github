@@ -180,7 +180,10 @@ Otherwise a level-2 fix writes a `consequences.md` only when it leaves a follow-
   deviation, with its reasoning, the moment it makes it; the planner reconciles the file into
   the final as-built once implementation ends. A research claim the build disproved appears as
   the deviation it caused; one that caused none gets a "did not hold in the build" note in
-  `research/README.md`'s verification results.
+  `research/README.md`'s verification results. The file describes the state of the build, not
+  the process that produced it: it names no qa pass, review round, remediation loop or other
+  pipeline step, and a change a review caused is recorded as the as-built state, and as a
+  deviation where it departs from the plan, without saying a review caused it.
 - **One home per fact.** `final-implementation.md` and `consequences.md` never restate each
   other; one links to the other. Neither writes a PR placeholder: the issue's resolution comment
   links the PR. No open point is committed open, whatever raised it: before
