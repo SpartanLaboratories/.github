@@ -107,7 +107,16 @@ body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 var(--sans);pa
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .topbar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 12px;padding:18px 0 8px;font-size:12px;color:var(--muted);max-width:980px;margin:0 auto}
 .topbar code{overflow-wrap:anywhere}
-.themebtn{appearance:none;font:600 11px/1 var(--mono);padding:5px 9px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink-2);cursor:pointer;white-space:nowrap}
+/* the theme switch (GUIDANCE.md §1, Themes; §12, "Switch"): ☀ light at its left end, ☾ night at its right, the knob at the palette shown */
+.switch{appearance:none;display:inline-flex;align-items:center;gap:5px;font:600 11px/1 var(--mono);padding:3px 7px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.switch:hover{color:var(--ink);border-color:var(--ink-2)}
+.switch-track{position:relative;flex:none;width:28px;height:16px;border:1px solid var(--ink-2);border-radius:8px;background:var(--surface-2);transition:background-color .18s ease}
+.switch-knob{position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:var(--ink-2);transition:transform .18s ease}
+.switch[aria-checked="true"] .switch-track{background:color-mix(in srgb,var(--ink-2) 35%,var(--surface))}
+.switch[aria-checked="true"] .switch-knob{transform:translateX(12px);background:var(--ink)}
+.switch-end{font-size:12px;color:var(--muted)}
+.switch[aria-checked="false"] .switch-end.off,.switch[aria-checked="true"] .switch-end.on{color:var(--ink)}
+@media (prefers-reduced-motion:reduce){.switch-track,.switch-knob{transition:none}}
 main{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 28px 24px;max-width:980px;margin:0 auto;overflow-wrap:anywhere}
 a{color:var(--link)}
 h1,h2,h3,h4,h5,h6{line-height:1.3;margin:1.4em 0 .5em;text-wrap:balance}
@@ -129,7 +138,7 @@ footer{max-width:980px;margin:16px auto 0;font-size:12px;color:var(--muted)}
 </style>
 </head>
 <body>
-<div class="topbar"><span>${esc(repo || "")}${repo ? " › " : ""}<code>${esc(srcRel)}</code> · a rendered copy</span><button class="themebtn" id="theme" type="button"></button></div>
+<div class="topbar"><span>${esc(repo || "")}${repo ? " › " : ""}<code>${esc(srcRel)}</code> · a rendered copy</span><button class="switch" id="theme" type="button" role="switch" aria-checked="false"><span class="switch-end off" aria-hidden="true">☀</span><span class="switch-track" aria-hidden="true"><span class="switch-knob"></span></span><span class="switch-end on" aria-hidden="true">☾</span></button></div>
 <main>
 ${body}
 </main>
@@ -138,7 +147,7 @@ ${body}
 (function themeSwitch(){ var KEY="dashboards-theme", root=document.documentElement, btn=document.getElementById("theme"), mq=window.matchMedia?matchMedia("(prefers-color-scheme: dark)"):null;
   function chosen(){ try{ var t=localStorage.getItem(KEY); return t==="light"||t==="dark"?t:null; }catch(e){ return null; } }
   function now(){ return root.dataset.theme==="dark"||root.dataset.theme==="light"?root.dataset.theme:(mq&&mq.matches?"dark":"light"); }
-  function label(){ var t=now(); btn.textContent=t==="dark"?"\\u263e night":"\\u2600 light"; btn.setAttribute("aria-pressed",String(t==="dark")); btn.title="Theme: "+(t==="dark"?"night":"light")+(chosen()?"":", as the system setting")+". Click for "+(t==="dark"?"light":"night")+"."; }
+  function label(){ var t=now(); btn.setAttribute("aria-checked",String(t==="dark")); btn.setAttribute("aria-label","Night theme"+(chosen()?"":" (follows the system setting until clicked)")); btn.title="Theme: "+(t==="dark"?"night":"light")+(chosen()?"":", as the system setting")+". Click for "+(t==="dark"?"light":"night")+"."; }
   btn.addEventListener("click",function(){ var t=now()==="dark"?"light":"dark"; root.dataset.theme=t; try{ localStorage.setItem(KEY,t); }catch(e){} label(); });
   if(mq&&mq.addEventListener) mq.addEventListener("change",label); label(); })();
 </script>

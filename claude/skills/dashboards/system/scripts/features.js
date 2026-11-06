@@ -21,7 +21,7 @@ const need = (ok, why) => ok ? true : why;
 const FEATURES = [
   { id: "theme-prepaint", name: "the theme switch's choice applied before the first paint (a script in the head)", since: 17, types: ALL,
     test: h => need(/localStorage\.getItem\("dashboards-theme"\)/.test(head(h)), "no script in <head> reads localStorage \"dashboards-theme\"") },
-  { id: "theme-switch", name: "the theme switch (a light/night toggle that remembers the choice)", since: 17, types: ALL,
+  { id: "theme-switch", name: "the theme switch (light or night, the choice remembered)", since: 17, types: ALL,
     test: h => need(/"dashboards-theme"/.test(scripts(h)) && /localStorage\.setItem\(/.test(scripts(h)), "no script writes localStorage \"dashboards-theme\"") },
   { id: "dark-palette", name: "the dark palette, selected by the system setting and by the switch", since: 17, types: ALL,
     test: h => need(/prefers-color-scheme:\s*dark/.test(css(h)) && /:root\[data-theme="dark"\]/.test(css(h)), "the CSS lacks the prefers-color-scheme dark palette or :root[data-theme=\"dark\"]") },
@@ -227,6 +227,16 @@ const FEATURES = [
   { id: "structure-height", name: "the structure map 1000 wide, its height recorded on the board (MODEL.structure.h, at most 812)", since: 35, types: ["system"],
     notFor: { supersystem: "its Structure tab draws the systems in a layout of its own", "plan-board": "no structure map", "work-board": "no structure map" },
     test: h => need(/Number\(MODEL\.structure\.h\)/.test(scripts(h)), "the structure map is fixed at 1000×612 (MODEL.structure.h not read)") },
+  /* admin-team/dashboards-skill/theme-switch and /inspector-switch (the user's decisions of 2026-11-05), dated 39: the header's switches
+     (GUIDANCE.md §12, "Switch"). A board drawn before them keeps its theme button and has no inspector switch until its next rebuild (the
+     splice, its next event, board.js --refresh-template); a landed issue board is kept as it landed (§11). */
+  { id: "switch-look", name: "the theme switch drawn as a switch: a track with a knob that slides to the palette shown (role=switch, aria-checked), the knob still under reduced motion", since: 39, types: ALL,
+    test: h => { const s = scripts(h), c = css(h); return need(/class="switch-track"/.test(h) && /setAttribute\("role","switch"\)|role="switch"/.test(h) && /setAttribute\("aria-checked"/.test(s) && /\.switch-knob\{/.test(c) && /prefers-reduced-motion:\s*reduce\)\{\.switch-track,\.switch-knob\{transition:none\}/.test(c),
+      "the theme control is a button that reads its state as a word (☀ light, ☾ night), not a switch with a knob (.switch-track, .switch-knob, role=switch, aria-checked)"); } },
+  { id: "inspector-switch", name: "the inspector switch: shown by default, the choice remembered across boards and reloads, an item clicked while hidden showing it again, the tab taking the freed width", since: 39, types: ["system", "supersystem", "plan-board"],
+    notFor: { "work-board": "no inspector: one row per run, each run's detail on its own board" },
+    test: h => { const s = scripts(h), c = css(h); return need(/"dashboards-inspector"/.test(s) && /localStorage\.getItem\("dashboards-inspector"\)/.test(head(h)) && /function inspectorSwitch\(/.test(s) && /:root\[data-inspector="hidden"\] \.inspector\{display:none\}/.test(c) && /:root\[data-inspector="hidden"\] \.stage\{grid-template-columns:minmax\(0,1fr\)\}/.test(c),
+      "no inspector switch (inspectorSwitch(), localStorage \"dashboards-inspector\" read in the head, :root[data-inspector=\"hidden\"])"); } },
   /* admin-team/dashboards-skill/24 */
   { id: "finished-steps", name: "finished steps on the progress strip clickable: each shows its snapshot (wip.history) in the step panel, or what survives, reconstructed", since: 24, types: ["plan-board"],
     notFor: { system: "no progress strip: a state board shows the code at a commit, not a run's steps", supersystem: "no progress strip: a state board shows the code at a commit, not a run's steps", "work-board": "no progress strip: one row per run, each run's step as text; its steps are on its own board" },

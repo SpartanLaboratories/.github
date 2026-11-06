@@ -58,8 +58,19 @@ code{font-family:var(--mono);font-size:.92em;overflow-wrap:anywhere}
 .livechip.off .ld{background:none;border:1.5px solid var(--muted)}
 .livechip.na .ld{background:var(--muted)}
 @keyframes livepulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.65)}}
-.themebtn{appearance:none;font:600 11px/1 var(--mono);padding:5px 9px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink-2);cursor:pointer;white-space:nowrap}
-.themebtn:hover{color:var(--ink);border-color:var(--ink-2)}
+/* The header's switches (GUIDANCE.md §12, "Switch"): a track with a knob that slides to the side of the state shown, a real toggle
+   (role="switch", aria-checked) in the boards' neutrals, never the accent or a status colour. The theme switch's ends are ☀ light and
+   ☾ night, its knob at the palette shown. The
+   knob slides in a short transition, and jumps under reduced motion. */
+.switch{appearance:none;display:inline-flex;align-items:center;gap:5px;font:600 11px/1 var(--mono);padding:3px 7px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.switch:hover{color:var(--ink);border-color:var(--ink-2)}
+.switch-track{position:relative;flex:none;width:28px;height:16px;border:1px solid var(--ink-2);border-radius:8px;background:var(--surface-2);transition:background-color .18s ease}
+.switch-knob{position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:var(--ink-2);transition:transform .18s ease}
+.switch[aria-checked="true"] .switch-track{background:color-mix(in srgb,var(--ink-2) 35%,var(--surface))}
+.switch[aria-checked="true"] .switch-knob{transform:translateX(12px);background:var(--ink)}
+.switch-end{font-size:12px;color:var(--muted)}
+.switch[aria-checked="false"] .switch-end.off,.switch[aria-checked="true"] .switch-end.on{color:var(--ink)}
+@media (prefers-reduced-motion:reduce){.switch-track,.switch-knob{transition:none}}
 @media (prefers-reduced-motion:reduce){.livechip .ld{animation:none!important}}
 h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)}
 .function{color:var(--ink-2);margin:0 0 10px;max-width:78ch;font-size:15px}
@@ -251,7 +262,7 @@ footer code{color:var(--ink-2)}
 <body>
 <div class="page">
 <header>
-  <div class="topbar"><div class="crumbs" id="crumbs"></div><div class="tools"><span class="livechip" id="live"></span><button class="themebtn" id="theme" type="button"></button></div></div>
+  <div class="topbar"><div class="crumbs" id="crumbs"></div><div class="tools"><span class="livechip" id="live"></span><button class="switch" id="theme" type="button" role="switch" aria-checked="false"></button></div></div>
   <h1>Repository work board</h1>
   <p class="function" id="function"></p>
   <div class="chips" id="chips"></div>
@@ -463,15 +474,19 @@ function render(){
   $("#source-view").textContent=JSON.stringify(B,(k,v)=>k==="level"?undefined:v,2); /* a work level is never shown (GUIDANCE.md §4) */
   $("#source-key").innerHTML=`<span>this copy is replaced on every <code>board.js</code> run</span>`;
 }
-/* ---------- The theme switch (GUIDANCE.md §1, Themes) ----------
-   A light/night toggle in the header. Until it is clicked the board follows the system setting; a click picks the other palette and
-   remembers it (localStorage "dashboards-theme", shared by every dashboard of the same origin) across boards and reloads. It only
-   selects one of the two palettes the board defines: :root[data-theme]. The same code runs on every dashboard type. */
-(function themeSwitch(){ const KEY="dashboards-theme", root=document.documentElement, btn=document.getElementById("theme"), mq=window.matchMedia?matchMedia("(prefers-color-scheme: dark)"):null;
+/* ---------- The theme switch (GUIDANCE.md §1, Themes; §12, "Switch") ----------
+   A switch in the header: ☀ light at its left end, ☾ night at its right, the knob at the palette shown (aria-checked while night).
+   Until it is clicked the board follows the system setting; a click picks the other palette and remembers it (localStorage
+   "dashboards-theme", shared by every dashboard of the same origin) across boards and reloads. It only selects one of the two palettes
+   the board defines: :root[data-theme]. The same code runs on every dashboard type. */
+(function themeSwitch(){ const KEY="dashboards-theme", root=document.documentElement, mq=window.matchMedia?matchMedia("(prefers-color-scheme: dark)"):null;
+  let btn=document.getElementById("theme");
   if(!btn) return;
+  btn.className="switch"; btn.type="button"; btn.setAttribute("role","switch"); btn.removeAttribute("aria-pressed");
+  if(!btn.querySelector(".switch-track")) btn.innerHTML='<span class="switch-end off" aria-hidden="true">☀</span><span class="switch-track" aria-hidden="true"><span class="switch-knob"></span></span><span class="switch-end on" aria-hidden="true">☾</span>';
   const chosen=()=>{ try{ const t=localStorage.getItem(KEY); return t==="light"||t==="dark"?t:null; }catch(e){ return null; } };
   const now=()=>root.dataset.theme==="dark"||root.dataset.theme==="light"?root.dataset.theme:(mq&&mq.matches?"dark":"light");
-  const label=()=>{ const t=now(), word=t==="dark"?"night":"light"; btn.textContent=t==="dark"?"☾ night":"☀ light"; btn.setAttribute("aria-pressed",String(t==="dark"));
+  const label=()=>{ const t=now(), word=t==="dark"?"night":"light"; btn.setAttribute("aria-checked",String(t==="dark"));
     btn.title=`Theme: ${word}${chosen()?"":", as the system setting"}. Click for ${t==="dark"?"light":"night"}.`; btn.setAttribute("aria-label",`Night theme${chosen()?"":" (follows the system setting until clicked)"}`); };
   btn.addEventListener("click",()=>{ const t=now()==="dark"?"light":"dark"; root.dataset.theme=t; try{ localStorage.setItem(KEY,t); }catch(e){} label(); });
   if(mq&&mq.addEventListener) mq.addEventListener("change",label);

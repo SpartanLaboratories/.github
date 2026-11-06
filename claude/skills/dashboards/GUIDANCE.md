@@ -189,7 +189,8 @@ step is writing, a battery of accent segments filling left to right (held still,
 run waits on the user and under `prefers-reduced-motion`); and the **live indicator**'s dot in the
 header of an issue board or the live repository work board, ink, never a status or accent colour, which pulses
 while the view is live and changing and holds still after a quiet spell, while the run waits on the
-user, when its data cannot be read and under `prefers-reduced-motion`. Nothing else animates. The
+user, when its data cannot be read and under `prefers-reduced-motion`. Nothing else animates but a switch's knob (§12),
+which slides in a short transition when it is clicked and jumps under `prefers-reduced-motion`. The
 in-progress mark is exact: it marks every cell being worked on, however many, and nothing else; a whole column glows
 only while the rows being worked on are unknown, or while the work touches no row (an implementation stage that builds no row
 glows the whole As built column, `plan/RULES.md` §3). No check limits how many glow. While a tracking board files its units as
@@ -220,12 +221,12 @@ outlined only where the legend says what it means.
 **Themes.** Every colour is a token on `:root`, redefined for dark mode; status and system
 colours are validated for contrast in both themes (the `dataviz` skill's validator). Dark mode
 is selected, never computed by flipping. Every dashboard type — system, supersystem and repository
-boards, issue boards, tracking boards, the repository work board — carries a **theme switch** in its header, a
-light/night toggle right of the breadcrumb: until it is clicked the board follows the system setting
-(`prefers-color-scheme`); a click picks the other palette and remembers the choice across boards and
-reloads (`localStorage` key `dashboards-theme`, shared by every dashboard of the same origin, applied
-in the board's head before its first paint). It only selects one of the two palettes the board already
-defines (`:root[data-theme]`); it adds no colour.
+boards, issue boards, tracking boards, the repository work board — carries a **theme switch** in its header, right
+of the breadcrumb: a switch (§12) with ☀ light at its left end and ☾ night at its right, its knob at the palette shown
+(checked while night). Until it is clicked the board follows the system setting (`prefers-color-scheme`); a click picks
+the other palette and remembers the choice across boards and reloads (`localStorage` key `dashboards-theme`, shared by
+every dashboard of the same origin, applied in the board's head before its first paint). It only selects one of the two
+palettes the board already defines (`:root[data-theme]`); it adds no colour, and the switch itself is drawn in the neutrals.
 
 The elements these colours apply to are named in §12, one name per function.
 
@@ -411,7 +412,7 @@ so it is never smaller than in the 1280 px layout and never outgrows the screen.
 **The header.** Every dashboard type — system, supersystem and repository state boards, issue and tracking
 boards, the repository work board — lays its header out the same way. The topbar runs across the top: the
 breadcrumb, and right of it the live indicator (issue boards and the repository work board: the live repository work board follows the runs, the committed one
-reads "not live · as of" its generation; a state board has none) and the
+reads "not live · as of" its generation; a state board has none), the inspector switch (below) and the
 theme switch. From 940 px wide the rest is two halves: the **intro** — the title (on an issue board `#n · title`, its `#n` the link
 to the GitHub issue), on an issue board the issue line (the issue's title on GitHub, and nothing else), and the
 function paragraph — fills the **left half**, the function stretched across it rather than held to a
@@ -422,6 +423,15 @@ label before the value. A tag is a fact with its label (`<span class="ck">label<
 fact is one tag (the board's systems are one tag, each system with its swatch), and no tag repeats what the KPI tiles count or what
 the footer names (an issue board and the repository work board carry no "board" tag: their source is in the footer and the Source tab); a board's
 hand-written header keeps the same form (`system/RULES.md` §2).
+
+**The inspector switch** (admin-team/dashboards-skill/inspector-switch). Every board with an inspector — system, supersystem and
+repository state boards, issue and tracking boards — carries an **inspector switch** in its topbar, left of the theme switch and in
+its look (a switch, §12): the word "inspector", then the track, its knob right and its track filled while the inspector is shown. The
+inspector is shown when a board opens until the switch hides it; the choice is remembered across boards and reloads as the theme's
+is (`localStorage` key `dashboards-inspector`, shared by every dashboard of the same origin, applied in the board's head before its
+first paint). Hidden, the inspector leaves the stage and the tab's content takes its width. Clicking an item while it is hidden — a
+cell, a card, a component, a thread, a step, anything that writes into the inspector, a tab aside — shows it again and flips the
+switch to shown. The repository work board has no inspector, so no inspector switch.
 
 **Sidecars.** An issue board's `plan.js` (and the repository work board's `board.js`) is committed with its board: a clone opened from disk then polls it
 while the run is live, as the board on this machine does; the committed repository work board, which is not live, reads it but never polls.
@@ -488,7 +498,7 @@ A difference nobody declared is a warning: re-render the board from the template
 **Features.** A board is also held to every feature its template has, whatever its pass: `system/scripts/features.js` keeps one detector per
 template feature, tagged with the skill step that added it and the board types it applies to (and, for each type it does not fit, why).
 `check-board.js` (`--auto`, `--auto --no-browser` and its plain passes) and `check.js --auto` run the static ones on every board — the theme
-switch and its script before the first paint, the dark palette, the labelled tags, the 1500 px layout, the `BOARDS` map, the live
+switch, drawn as a switch (§12), and its script before the first paint, the inspector switch, the dark palette, the labelled tags, the 1500 px layout, the `BOARDS` map, the live
 indicator present or absent by type, one-line ledes, reduced motion wherever anything animates, a tabindex on every role=button, the
 tablist's keys, the state block, the as-is header, the legends of Guarantees and Context, the work-board link, the links from the data,
 the Markdown copies, the progress notes, every progress note drawn, whatever its name, a tracking board's steps, the KPI bars, the neutral bug badge, the chain, core subsystems, the tiles'
@@ -774,6 +784,12 @@ strip is a **unit card**, and a step in the step panel is a **step cell**.
 | **Arrow** | The charging connector into a Verdict cell (§1). |
 | **Tracer** | A line from a KPI tile up to the part of the Timeline tile it belongs to (the steps that made the tile's figure), in their kind of work's colour, labelled with how long that part took; under 760 px its label alone, on the tile (§1, "Steps"; `plan/RULES.md` §2, "The Timeline tab"; dashboards-skill/34). |
 | **Legend** | The key for a colour grouping, one per tab or per tile (§2); an issue board's Timeline tile carries two, its kinds of work (one entry per family, with its steps' shades) and its step visits (one entry per visit, with its times; a wait on the user and a stretch when the run was not running have none, `plan/RULES.md` §2). |
+
+**Controls, by what they change**
+
+| Term | Function | Examples |
+|------|----------|----------|
+| **Switch** | A two-state control in the header that shows its state as a position: a track with a knob that slides to the side of the state shown, in the neutrals (never the accent or a status colour), a real toggle for the keyboard and assistive technology (`role="switch"`, `aria-checked`, the focus ring), its knob jumping rather than sliding under reduced motion (§1). | the theme switch (☀ light, ☾ night, §1, Themes), the inspector switch (§6) |
 
 A ruleset that needs an element none of these names describes adds the term here first, with its
 function, and uses it everywhere; it never reuses a term for a second function.

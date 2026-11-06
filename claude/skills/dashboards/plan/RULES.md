@@ -1459,7 +1459,8 @@ legend names the swatches its cards drew. An older board laid before its run rea
 script every five seconds and redraws in place, keeping the scroll position and the tab, and its
 header's live indicator reads as a board's (§3, "Live updates"; the dot pulses while a run is active
 and changing). The committed repository work board is regenerated only at landings and does not poll: "not live
-· as of" its generation. Both carry the theme switch (`GUIDANCE.md` §1). The repository work board draws no step
+· as of" its generation. Both carry the theme switch (`GUIDANCE.md` §1), and no inspector switch: the board has no inspector
+(`GUIDANCE.md` §6). The repository work board draws no step
 panel, research ring or charging arrow: it is one row per run, and each run's detail is on its own
 board.
 

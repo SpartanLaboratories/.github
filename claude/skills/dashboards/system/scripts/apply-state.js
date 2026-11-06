@@ -242,10 +242,13 @@ async function main() {
   /* the registry */
   const edits = {};
   /* A planned supersystem whose board shows its built parts (dashboards-skill/29: "built in part") is stamped with them: the board names the
-     supersystem in its state, and a touched part that is built and shares the board restamps it, as the board now shows that part's code. */
+     supersystem in its state, and a touched part that is built and shares the board restamps it, as the board now shows that part's code.
+     So does a touched built part with a board of its own that the supersystem's board draws too (its registry c4 names an element of the
+     supersystem's DSL): the supersystem's board shows that part's code as well (WebTools #67, the call budget under webtools-http). */
   const statusNow = c => flips.get(c.slug) || c.status;
+  const drawnOn = (c, e, systems) => boardOf(c) === boardOf(e) || (!!e.dsl && !!c.c4 && typeof c.c4 === "object" && Object.prototype.hasOwnProperty.call(c.c4, e.dsl) && L.isAncestor(systems, e.slug, c.slug));
   const builtInPart = (e, systems) => e.kind === "supersystem" && !!boardOf(e)
-    && systems.some(c => c.slug !== e.slug && boardOf(c) === boardOf(e) && touched.has(c.slug) && statusNow(c) === "built");
+    && systems.some(c => c.slug !== e.slug && drawnOn(c, e, systems) && touched.has(c.slug) && statusNow(c) === "built");
   for (const slug of scope) {
     const e = bySlug(slug), f = {}, flip = flips.get(slug), status = flip || e.status;
     if (flip && flip !== e.status) { f.status = flip; S.applied.push(`${slug} ${flip}`); }

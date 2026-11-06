@@ -19,6 +19,7 @@
 //     is reported; on a board whose header lacks the template's chips drawn from state.json (id="chip-asis", "chip-written", "chip-version"),
 //     a hand-written "as-is at" chip is replaced by them, and a hand-written "version" chip whose value is the version alone by its
 //     placeholder (one that holds more is reported, for the presenter to split);
+//   - the head's script before the first paint (the theme switch's choice, and the inspector switch's) is the template's;
 //   - a board with no state block gets one, from its registry entry (state.json written beside it when there is none);
 //   - the names of dashboards-skill/33 on what the board owns, outside its data blocks: the Guarantees' classes (bubbles, bubble →
 //     guarantee-cards, guarantee-card, in its HTML and its own CSS, and the word in its comments) and the placeholder marks ("<!-- presenter:", "// presenter:" →
@@ -187,6 +188,14 @@ function main() {
     /* write the parts back, from the end of the board to its start */
     const edits = [[P.renderer.a, P.renderer.b, ren], [P.pre.a, P.pre.b, pre], ...P.styles.map((s, i) => i < css.length ? [s.a, s.b, css[i]] : null).filter(Boolean)].sort((x, y) => y[0] - x[0]);
     edits.forEach(([a, b, t]) => { h = h.slice(0, a) + t + h.slice(b); });
+    /* the head's script before the first paint: the template's (the theme switch's choice, and since dashboards-skill/39 the inspector
+       switch's), in place of the board's, or added before the first style block of a head that has none */
+    const prepaint = x => { const hd = (/<head>[\s\S]*?<\/head>/.exec(x) || [""])[0], m = /<script>[^<]*dashboards-theme[^<]*<\/script>/.exec(hd); return m ? m[0] : null; };
+    const tpp = prepaint(tpl), bpp = prepaint(h);
+    if (tpp && bpp !== tpp) {
+      if (bpp) h = h.replace(bpp, () => tpp); else h = h.replace(/(<head>[\s\S]*?)(<style>)/, (m, a, b) => `${a}${tpp}\n${b}`);
+      report.parts.push({ part: "the head's script before the first paint", how: bpp ? "replaced by the template's" : "added from the template" });
+    }
     /* the header's chips */
     h = h.replace(/<header>([\s\S]*?)<\/header>/, (m, inner) => "<header>" + inner.replace(/[ \t]*<span class="chip" id="chip-amended"[^>]*><\/span>\n?/, () => { report.chips.push("the \"last amended by\" chip removed: the renderer says it in the Context section"); return ""; })
       .replace(/<span class="chip([^"]*)"((?![^>]*\bid="chip-)[^>]*)>((?:(?!<span class="chip)[\s\S])*?)<\/span>(?=\s*(<span class="chip|<\/div>))/g, (all, cls, attrs, body) => {

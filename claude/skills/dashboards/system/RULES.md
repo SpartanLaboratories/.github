@@ -144,9 +144,9 @@ Context section; every count on the board is counted. Each chip is a tag, its la
 "platform"); the template's CSS shows the intro (crumbs, title, function) on the left half of a wide screen and the tags as cards in
 the right half beside it, and stacks them under 940 px (`GUIDANCE.md` §6, "The header"). A system board also carries its **visibility** as a tag ("visibility public", "internal · org", "internal · repo", the registry's, §7) and, when the system is archived, a "status ⊟ archived" tag (admin-team/dashboards-skill/35). A board written before the labels keeps its
 chips, which the same CSS lays out alike, until the splice (§8) relabels them where their content says what they are (a version, the
-as-is stamp, the C4 model, the systems count), removes an old "last amended by" chip and reports any other for the presenter to label. The header also carries the **theme switch**
-(`GUIDANCE.md` §1, Themes), a light/night toggle the template's renderer adds right of the
-breadcrumb; the presenter writes nothing for it. A system, supersystem or repository state board has **no
+as-is stamp, the C4 model, the systems count), removes an old "last amended by" chip and reports any other for the presenter to label. The header also carries the **inspector switch** and the
+**theme switch** (`GUIDANCE.md` §6, "The inspector switch"; §1, Themes; §12, "Switch"), which the template's renderer adds right of the
+breadcrumb; the presenter writes nothing for them. A system, supersystem or repository state board has **no
 live indicator**: it shows the code at a named commit and has no run to follow (`plan/RULES.md` §3,
 "Live updates").
 

@@ -77,7 +77,8 @@
 // by kind of work, approximate bounds, the landing in three steps, a sub-issue's roadmap, the Design tab. The live view of a landing
 // (verify/cases-live-view.js): apply-event.js --view (landed, and the land's landing and merge, before the merge and after it), the view copies and their <base> line, board.js --live opening them. The waits on
 // the user (verify/cases-timeline-waits.js): not active time and not mentioned, the step split into visits around each wait, the signals on the fast path. A
-// stretch when the run was not running (verify/cases-timeline-outages.js): not counted and not mentioned, the run-restarted event on the fast path. A
+// stretch when the run was not running (verify/cases-timeline-outages.js): not counted and not mentioned, the run-restarted event on the fast path. The
+// header's switches (verify/cases-switches.js): the theme switch drawn as a switch, the inspector switch where there is an inspector, the decision path's legend. A
 // template is recorded only when every check it runs passes: by default those that need no browser; with --browser its browser
 // passes and the rendered cases too.
 "use strict";
@@ -1325,14 +1326,15 @@ targets.filter(t => t.block === "plan").forEach(t => {
     lc.push(["F: the committed repository work board does not poll: not live · as of its generated time", /not live · as of/.test(text(inner(dC, '<span class="livechip[^"]*" id="live"[^>]*>', "span"))), text(inner(dC, '<span class="livechip[^"]*" id="live"[^>]*>', "span"))]);
   } else lc.push(["the rendered work board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
   /* G. the theme switch on every dashboard type: a click picks the other palette and remembers it; a later page applies the choice before
-     its first paint; before any click the board follows the system setting (the button says which) */
+     its first paint; before any click the board follows the system setting (the switch says which: since dashboards-skill/39 a switch,
+     role=switch, its knob at the palette shown and aria-checked while night) */
   if (chrome) {
-    const probe = `<script>window.addEventListener("load",()=>setTimeout(()=>{ const b=document.getElementById("theme"), r=document.documentElement; const before=(r.dataset.theme||"none")+"/"+(b?b.textContent:"no button"); if(b) b.click(); const after=r.dataset.theme+"/"+localStorage.getItem("dashboards-theme")+"/"+b.textContent; if(b) b.click(); document.body.dataset.theme=[before,after,r.dataset.theme+"/"+localStorage.getItem("dashboards-theme")].join("|"); },500));</script>`;
+    const probe = `<script>window.addEventListener("load",()=>setTimeout(()=>{ const b=document.getElementById("theme"), r=document.documentElement; const st=()=>b.getAttribute("role")+":"+b.getAttribute("aria-checked")+(b.querySelector(".switch-track .switch-knob")?"":"(no knob)"); const before=(r.dataset.theme||"none")+"/"+(b?st():"no switch"); if(b) b.click(); const after=r.dataset.theme+"/"+localStorage.getItem("dashboards-theme")+"/"+st(); if(b) b.click(); document.body.dataset.theme=[before,after,r.dataset.theme+"/"+localStorage.getItem("dashboards-theme")].join("|"); },500));</script>`;
     const pages = [["an issue board", ptpl, "plan", "plan/examples/38-handshake-empty-name/plan.json"], ["a tracking board", ptpl, "plan", "verify/fixtures/tracking.plan.json"], ["the repository work board", btpl, "board", "verify/fixtures/work-board.json"], ["a system board", tp("system/template/system.html"), null, null], ["a supersystem or repository state board", tp("system/template/supersystem.html"), null, null]];
     pages.forEach(([what, tpath, block, fx], i) => { if (!tpath) return; const html = fs.readFileSync(tpath, "utf8"), f = path.join(sc, "theme-" + i, block === "board" ? "index.html" : block ? "dashboard.html" : "index.html");
       fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, (block ? withData(html, block, fs.readFileSync(sk(fx), "utf8")) : html).replace("</body>", probe + "</body>"));
       const d = dumpDom(f), got = ((d || "").match(/data-theme="([^"]*)"/g) || []).map(x => x.slice(12, -1)).pop() || "";
-      lc.push([`G: ${what}: the theme switch follows the system setting until clicked, then picks the other palette and remembers it`, /^none\/☀ light\|dark\/dark\/☾ night\|light\/light$/.test(got) && /<head>[\s\S]*?localStorage\.getItem\("dashboards-theme"\)[\s\S]*?<\/head>/.test(html), got || "no probe result"]); });
+      lc.push([`G: ${what}: the theme switch follows the system setting until clicked, then picks the other palette and remembers it`, /^none\/switch:false\|dark\/dark\/switch:true\|light\/light$/.test(got) && /<head>[\s\S]*?localStorage\.getItem\("dashboards-theme"\)[\s\S]*?<\/head>/.test(html), got || "no probe result"]); });
   } else lc.push(["the theme switch (no browser found: set CHROME)", false, "no Chrome or Edge"]);
   report("the step panel, research rings, the charging arrow, live updates and the theme switch (dashboards-skill/17)", lc);
 }
@@ -2214,6 +2216,12 @@ catch (e) { report("a foundation on the fast path cases", [["the cases run to th
 [["./cases-option-d.js", "a tracking plan lands, then files"], ["./cases-fill.js", "a fill merges onto the latest board"], ["./cases-work-levels.js", "a board keeps no work level"], ["./cases-archived-colours.js", "an archived system holds no colour"]].forEach(([file, what0]) => {
   try { require(file)({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
   catch (e) { report(`${what0} cases`, [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); } });
+
+/* The header's switches (verify/cases-switches.js; admin-team/dashboards-skill/theme-switch and /inspector-switch, dated 39): the theme switch drawn as a
+   switch on every type and on the Markdown copies, the inspector switch where there is an inspector, both run against a stand-in for the DOM, the splice
+   carrying the head's script, and the decision path's legend naming planned only where drawn. Its rendered cases need --browser; it runs on its own too. */
+try { require("./cases-switches.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the header's switches cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 const today = new Date().toISOString().slice(0, 10);
 const COMMENT = "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last verification, when every check that needs no browser passed (its modes: \"--auto --no-browser\"; a run with --browser, made only when a person asks for it, lists the browser passes instead). check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.";
