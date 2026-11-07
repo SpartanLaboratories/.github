@@ -674,7 +674,18 @@ A board is alive while its run is. Its data carries:
   `research-started`, `verification-started` and `researched`, cleared with the questions;
 - `wip.interview` — the interview's questions, each `{text, options, answer, asked, answered}`, `options` the options the
   question offers (from the `halted` event's `facts.questions`, each a short string; left out when it offers none), `answer`
-  `null` while the question waits on the user;
+  the answer's gist, `null` until it is written, and `answered` when the answer came (the event that ended the halt, below, `wip.asked`);
+- `wip.asked` — the questions a halt in **any other step** put to the user (admin-team/dashboards/halt-questions, the user's decision of
+  2026-11-07, dated dashboards-skill/45; WebTools #69 halted in research with three questions and their options, and its board showed only
+  what it waited on), oldest first, each `{step, text, options, answer, asked, answered}`: the step it halted in (`wip.resume`), the question,
+  the options it offers (left out when it offers none), the answer's gist (`null` until a fill writes it), when it was put and when it was
+  answered. A question is **answered** once it has its gist or its `answered` time: the event that takes the board out of the halt, `resumed`
+  or any other but `cancelled`, marks every waiting question answered at its time, the interview's too (§4's `halted` / `resumed` row). Each
+  also rides on the **visit the halt ended** (`wip.history.<step>[n].asked`, without its `step`: the held visit of its step that ended last at
+  or before it was put, the run waiting all along; §3, "Finished steps"), brought up to its answer there too. Written by `apply-event.js` alone
+  (`lib.js` `answerQuestions()`, `syncAsked()`), and an answer's gist by `fill.js`; never by hand. `check.js` holds it to its form (§8) and
+  warns on a question still waiting while the board is not stopped. A halt recorded before it keeps what it
+  recorded (its wait line and its open points): nothing is backfilled;
 - `wip.plan` — the plan step's pass, `{state, from, pass, against, since}`: `writing`, or `re-pass` with
   `from` `parent` (a sub-issue verifying the plan its parent's architecture gave it), `qa` (a
   re-pass answering qa pass `pass`, the plan leg of a `re-plan-then-remediation` remediation) or `existing` (the planner
@@ -737,7 +748,7 @@ A board is alive while its run is. Its data carries:
 - `wip.history` — the finished steps' snapshots, each step an array of its visits (below, "Finished steps"), frozen by
   `apply-event.js` (and `new.js`'s sizing) and never written by hand.
 
-The fields of the step panel (`interview`, `research`, `questions`, `plan`, `stages`, `remediation`,
+The fields of the step panel (`interview`, `asked`, `research`, `questions`, `plan`, `stages`, `remediation`,
 `event`, `open`) are optional and written from the event's facts and the folder's documents, never guessed;
 a step with nothing recorded says so on the panel.
 
@@ -828,7 +839,7 @@ events, the documents, the trail), never guessed; each step's panel shows:
 
 | Step | The panel |
 |---|---|
-| `interview` | the interview's questions (`wip.interview`), each with the options it offers, answered (its answer's gist) or "waiting on you", and the count ("1 of 2 answered · 1 waiting") |
+| `interview` | the interview's questions (`wip.interview`), each with the options it offers, answered (its answer's gist, else when the answer came) or "waiting on you", and the count ("1 of 2 answered · 1 waiting") |
 | `research` | the research timeline **planning → research → verification** (done, current, to come, with when each began), "n questions drafted" while planning, then each question with its state pill, the rows it bears on, when it was sent or returned and its findings link, and the count returned. This timeline lives only here, not in the Considered column's head |
 | `architecture` | what the step does, and the options weighed so far |
 | `plan` | **plan writing → plan accepted**, or a **re-pass** (from the parent's plan, for a sub-issue; after Quality Review n, with the fixes and the next review to follow; verifying the existing plan against its base, e.g. `main`) in place of the writing; the verdicts written of the rows, and the rows still to write; the plan's link |
@@ -842,7 +853,8 @@ events, the documents, the trail), never guessed; each step's panel shows:
 | `landing` | that the land is accepted (with its pull request) and the branch carries the code, the version bump, the reconciled documents and the state boards; the merge next (on an older line: qa's approval and the branch brought up to date, the state boards next; with `landing` alone, the land accepted and being merged) |
 | `state-boards` | on an older line only (a board that reached its landing before admin-team/dashboards-skill/35): the pre-merge refresh, the state boards brought up on the branch as built and committed in one board commit; the merge next |
 | `merge` | the pull request being merged; `landed` next |
-| `halted`, `escalated` | what it waits on (the question, or the re-sizing), and the panel of the step it stopped in, **held still** (no breathing dot) |
+| `halted`, `escalated` | what it waits on (the question, or the re-sizing), the questions the halt put (below), and the panel of the step it stopped in, **held still** (no breathing dot) |
+| every step but `interview` | **the questions a halt in it put to you** (`wip.asked`; dashboards-skill/45), under the wait line and above the step's own panel, in **the list the interview's questions use**: "Asked at the halt: 0 of 3 questions answered · 3 waiting", each question with the options it offers under its text, answered (its gist, else when) or "waiting on you" (asked when). The live panel draws those still waiting and those the answer that began the visit running answered; an earlier visit's stay on its snapshot, shown when the step is picked as finished. The legend names them ("a question a halt put to you, answered or waiting") |
 | every step | the open points still open (`wip.open`), each with where it was raised and its link; the agents' **progress notes** (below) |
 
 **Progress notes.** Every agent of the `/resolve-issue` tree writes, every 10 minutes it runs, one line to
@@ -891,7 +903,8 @@ the run is back at qa); a cancelled board draws no steps, a board not started ha
   earlier question, §4's `halted` / `resumed` row), its last event, its last detail line, the open points still open — and the step's own facts as
   they stood (`lib.js` `HISTORY_FIELDS`): the interview's questions; the research phase and questions; the plan's pass; the branch; the
   stage list; at qa the passes of the visit; at remediation the loop (`remediation`) with the qa pass it answers; on a tracking board the
-  units filed or with a board (`units`). A fact is taken after the ending event unless that event cleared it or replaced it with the next
+  units filed or with a board (`units`); and on a visit a halt ended (`held`), whatever its step, the questions the halt put (`asked`, below `wip.asked`),
+  answered there once the halt ends. A fact is taken after the ending event unless that event cleared it or replaced it with the next
   visit's (`plan-accepted` clears the plan's pass; a new qa pass starts a new loop), then before. A visit ends when the step the panel
   shows changes; at remediation also when the qa pass it answers changes, so **each Correction or Resolution is a visit of its own** and a
   second never overwrites the first; and **every qa verdict is a visit of qa**, the pass it returned, even when the run reached it from
@@ -899,15 +912,15 @@ the run is back at qa); a cancelled board draws no steps, a board not started ha
   `new.js` lays it with a foundation of its own; the standing rule freezes a tracking board's own step its unit's start ends (`sub-issues`). Deterministic and
   idempotent, part of the fast path: the same event twice freezes nothing more. A step moved by hand freezes nothing, so the presenter
   that records a landing moves its board to `landed` through `apply-event.js` (`landed` once more, after every part is resolved), which freezes the landing step.
-- **The panel of a finished step** is its snapshot: each visit with its facts and its info cards (last event, since, ended and by what,
-  then), a remediation step as each visit apart, headed by its name, "Correction" (or "Resolution"), then "Correction of Quality Review 2", a qa step as each pass apart, headed "Quality Review N"; a stage or sub-step not done when the
+- **The panel of a finished step** is its snapshot: each visit with its facts, the questions the halt that ended it put (the step panel's list,
+  answered or waiting), and its info cards (last event, since, ended and by what, then), a remediation step as each visit apart, headed by its name, "Correction" (or "Resolution"), then "Correction of Quality Review 2", a qa step as each pass apart, headed "Quality Review N"; a stage or sub-step not done when the
   step ended is drawn dashed, its word saying so. A visit a break ended (`outage`) reads like any visit's end, its times only: no "by
   what" and no reason. While the run is at remediation again, its live panel lists the earlier Corrections and Resolutions ("Before this one").
 - **No snapshot: reconstructed.** A finished step with no snapshot (it ended before the snapshots, as WebTools #63's research and plan
   did) gets a **reduced panel**, labelled "reconstructed from the history" on its viewing line, from what survives: the trail entries and
   milestones that name the step (a label names its step by its leading words, a halt's or a resume's by the step named, `lib.js`
   `trailStep()`; a milestone that names none by its column: gap research, considered the architecture on a tracking board and the plan
-  elsewhere, verdict the plan, built the landing; a tracking board, which has no plan step, gives what names its plan to its landing), the interview's questions (`wip.interview`), the research questions the trail names
+  elsewhere, verdict the plan, built the landing; a tracking board, which has no plan step, gives what names its plan to its landing), the interview's questions (`wip.interview`), the questions a halt in the step put (`wip.asked`), the research questions the trail names
   with their findings, the branch, the stage list as the board holds it now (`wip.stages`), the qa passes (`wip.qa`; at remediation those
   that requested changes), the units, the run's start (`sized`). A step the history records nothing of says so. `lib.js`
   `reconstructStep()` and the template's `reconStep()` are the one rule.
@@ -961,7 +974,9 @@ questions, since and updated, its qa passes and its branch; (3) that unit's **st
 in place of the unit up next, which stays on the chain chip, its chain entry and its unit row — and
 only while no unit's run is mirrored, the up-next card with its UP NEXT tag and a "blocked by #n"
 tag for each blocker that has not landed; (4) **waiting on you**, a yellow card shown only
-while the tracking issue or a unit's run is halted, saying what each waits on and where it resumes.
+while the tracking issue or a unit's run is halted, saying what each waits on, the questions it waits on (a unit's by their text, their options
+in its step panel beside; the tracking issue's own with their options, as no panel of its own is drawn while it waits; dashboards-skill/45)
+and where it resumes.
 From 940 px the row is split in **fixed shares: the phase card 35 %, the unit in progress 25 %,
 its step panel 40 %**. Each further unit in progress takes a row of its own with its panel, the phase
 running down beside them all; the up-next card takes the unit's and the panel's shares (the panel's
@@ -998,7 +1013,7 @@ unit in progress. Two things say where the work is, and they never mix:
 - **Each unit in progress mirrors its own run**, as `unit.live` on its row: its sub-issue board's
   `wip` as the pipeline last left it — `step`, `since`, `updated`, `detail`, `steps`, `waitingOn`,
   `resume`, `qa` and `qaMax` — plus that board's `status` and
-  `branch`, and the step panel's facts that board records (`event`, `interview`, `research`,
+  `branch`, and the step panel's facts that board records (`event`, `interview`, `asked`, `research`,
   `questions`, `plan`, `stages`, `remediation`; at the plan step `verdicts`, the verdicts written of
   its rows; during the build `deviations`, the changes recorded; `rowNames`, the names of the rows
   its questions and stages name), so the tracking board draws the unit's step panel as its own board does. Nobody writes it by hand. `embed.js` writes it at every embed of the tracking board,
@@ -1012,7 +1027,7 @@ unit in progress. Two things say where the work is, and they never mix:
 
 The board shows the mirror wherever it shows the unit in progress: on the WIP strip, in the unit's
 own card with an accent edge, its step, its own steps line, its detail and its qa passes (a
-yellow edge, and its question in the "waiting on you" card, while its run is halted); in the
+yellow edge, and its questions in the "waiting on you" card, while its run is halted); in the
 unit's as-built cell and its card on the As built tab, as a run line (`▶ run at <step>`, or
 `⏸ waiting on you` with the step it resumes at, its latest qa pass, and when the board was
 updated); in the inspector's unit entry, in full; on its chain node, in place of its state; and in the Context roadmap. While a unit's run waits on the user its in-progress mark
@@ -1076,7 +1091,9 @@ mirror starts at the next one. The presenter checks both boards.
 trace (its row, below): `wip.event` is set to `{name, at}` (the event and its time, and a `note` where one helps, such as the question that
 returned), and the panel's facts the event carries are written: an interview question asked or
 answered into `wip.interview` (from `sized`, `halted` and `resumed` while the step is `interview`; `halted`'s
-`facts.questions` gives each question's text and its options),
+`facts.questions` gives each question's text and its options), a question a halt in **any other step** puts into `wip.asked` with the step
+it halted in (`halted`'s `facts.questions`, whatever the step; dashboards-skill/45), and every waiting question marked answered by the event
+that takes the board out of the halt (`resumed`, or any other but `cancelled`),
 the research phase and questions (below), the plan's pass into `wip.plan` (`writing` when the plan
 step starts; a `re-pass` from the parent's plan at a sub-issue's `sized`; after Quality Review n when a
 remediation's route is `re-plan-then-remediation` (older id `planner-then-rookie-dev`), the step `plan` while the plan is
@@ -1091,7 +1108,7 @@ embed writes the board's `plan.js` beside it (§1).
 | Event | When | What the presenter writes |
 |-------|------|---------------------------|
 | `sized` | step 1 done (levels 2–4) | on a folder with no board, `apply-event.js` lays the **foundation** itself and starts it in place (the step, its glow, the trail), the tracking board and the live repository work board with it ("The foundation", below; `new.js` with `--at` the event's time is the presenter's fallback when that run failed): issue, title, baseline, systems, status `planned`, `wip.step = interview`/`research`/`plan`, and `wip.current` from that step's row of the map (§3): nothing or the cell the interview's question concerns, `considered` for research (the whole column, until `research-started` names its questions), `considered` and `verdict` for a plan (a cell is the presenter's to name); milestones empty; on the repository work board. Behind it the presenter fills what reads as being written, in place, through `fill.js`, events applying meanwhile ("The fast path", below), from the issue and the documents: the function, and the rows with their Gap. For a sub-issue of a tracking issue whose parent board has passed `architecture-signed-off`, the Gap and Considered columns are filled at once from the parent's documents, with the `gap` and `considered` milestones: the gap from the parent's research README and architecture (the unit's row in the decomposition, the current-state section it rests on), the options from the alternatives the architecture weighed for this unit and the design decisions of its section, each with the verdict the architecture gave; such a board's columns read as being written only for as long as the fill takes, since its research and architecture happened in the parent's run. Also on the tracking board: its unit moves from `wip.next` to `wip.current` (`<unit-id>.built`), the following unit in landing order becomes `wip.next`, and `wip.step` is `implementation` (§3); the new board's "part of" chip opens the tracking board, and the tracking board's re-embed links the unit to the new board (§1) and, the unit being in `wip.current`, mirrors its run (§3). An older tracking issue's unit board, laid before its run, is started in place by the same event |
-| `halted` / `resumed` | a planner halt, a qa stop, a `needs-user` | `wip.step = halted` with what waits on the user, and `wip.resume` the step it halted in; `wip.current` stays as that step left it, and the board holds its glow still as a ring (§3); on resume, back to the step, with the glow that step's row of the map gives (a resumed plan verification: `considered` and `verdict`). The stop opens a wait on the user (`wip.waits`, §3), unless one is open already, and freezes the visit running, `held`, ending at the stop. The event that takes the board out of the stop, `resumed` or any other, ends the wait, and the step's next visit starts at its time (`wip.since`). A `resumed` on a board that is not stopped ends a wait that began at the board's last event (not itself a `resumed`) when that event left an open point unresolved or the `resumed` resolves one (`by: open-points`); the visit that event's question interrupted ends at it, `held`. With neither, no wait is recorded (§2, "Waits on the user are not active time"). A stretch when the run was not running recorded between that event and the `resumed` (`wip.outages`, `run-restarted`) cuts such a wait in two around it (§2, "A run not running is not active time"): the visit the stretch froze ends at the question instead, `held`, and loses its `outage`; a visit the stretch froze that began at or after the question is dropped; and the step's next visit starts at the `resumed`. For a sub-issue, its tracking board's `wip.step` does not change: the unit's mirror carries the halt, and its mark pauses (§3) |
+| `halted` / `resumed` | a planner halt, a qa stop, a `needs-user` | `wip.step = halted` with what waits on the user, and `wip.resume` the step it halted in; the questions the halt puts, at a halt in **any step** (`facts.questions`, `[{text, options?}]` or a bare string each; dashboards-skill/45), each with its options: into `wip.interview` at the interview (or `facts.step` `interview`), else into `wip.asked` with the step it halted in, and onto the visit the halt froze; a question already waiting is not put twice, and a halt while one waits adds its new questions to the same visit; the event that ends the halt (`resumed`, or any other but `cancelled`) marks every waiting question answered at its time, on the snapshots too, the gist left to a fill (the interview's answers stay an enrichment); `wip.current` stays as that step left it, and the board holds its glow still as a ring (§3); on resume, back to the step, with the glow that step's row of the map gives (a resumed plan verification: `considered` and `verdict`). The stop opens a wait on the user (`wip.waits`, §3), unless one is open already, and freezes the visit running, `held`, ending at the stop. The event that takes the board out of the stop, `resumed` or any other, ends the wait, and the step's next visit starts at its time (`wip.since`). A `resumed` on a board that is not stopped ends a wait that began at the board's last event (not itself a `resumed`) when that event left an open point unresolved or the `resumed` resolves one (`by: open-points`); the visit that event's question interrupted ends at it, `held`. With neither, no wait is recorded (§2, "Waits on the user are not active time"). A stretch when the run was not running recorded between that event and the `resumed` (`wip.outages`, `run-restarted`) cuts such a wait in two around it (§2, "A run not running is not active time"): the visit the stretch froze ends at the question instead, `held`, and loses its `outage`; a visit the stretch froze that began at or after the question is dropped; and the step's next visit starts at the `resumed`. For a sub-issue, its tracking board's `wip.step` does not change: the unit's mirror carries the halt, and its mark pauses (§3) |
 | `research-planning` | the planner starts writing its research questions (`facts.drafted`, the questions drafted so far, `0` at first) | `wip.research` `{phase: "planning", drafted, since: {planning}}`; `wip.step = research`; `wip.current` the whole Considered column (the fallback: no question is recorded yet); no row rings: the step panel shows the planning and "n questions drafted" (§3) |
 | `research-started` | the planner sends its research questions out (`facts.researching: [{question, rows}]`) | each question appended to `wip.questions` with `findings: null`, `state: "researching"` and `started`, the event's time; `wip.research.phase = research` (its `since`); `wip.step = research`; `wip.current` the union of the `<row-id>.considered` cells of the rows the questions being researched or verified name, or the whole Considered column by the fallback (§3, "Research: the rows being researched"). A follow-up researcher's `research-started` adds its question the same way, whatever the phase. On an issue board with no rows the event is refused by `check.js` (`NO ROWS AT RESEARCH`, §3), unless its foundation's Gap is still being written, which warns ("The foundation", below): the rows are named before the research starts |
 | `research-returned` | a researcher returns (`facts.returned: {question, findings}`) | that question's `findings` set to the findings path, its `state` `returned` (orange, with a check: awaiting verification) and `returned`, the event's time; a trail entry for the findings (`column` `gap`, a label naming the question, `ref` the findings path); `wip.current` recomputed: the question's rows stop glowing unless another active question names them, and once every question has returned, until the verification starts, the returned questions' rows (§3) |
@@ -1196,7 +1213,7 @@ stage and a qa pass, raised by the event's name where the point names none (dash
 state-boards task raised by the team, the seeding at `sized`, the copies of an open point's report and a qa pass's test report (from `facts.documents` too, admin-team/board/qa-step), and a bare
 test level written as its named one (dashboards-skill/35); the pre-merge stamp of the state
 boards (`facts.premerge`, `system/RULES.md` §10); the "last amended by" title of a state board, read from the issue board's own
-`issueTitle` when the event carries no `facts.title` and none is on record (`system/RULES.md` §10, `title`). A landed unit's plain-fact summary on its tracking board, so `landed` on a sub-issue passes `check.js` without the presenter; and the post-merge refresh's `landed` into the live view's copies (`--view`, "The live view of a landing", below). And every Timeline input (below, "The fast path owns the Timeline"): the merge's time from git in the main checkout or from the pull request where the worktree's git cannot tell it, recorded at the next run's seeding where nothing could, never an enrichment; the run's start at a foundation laid after its event (`new.js --at`); the running visit kept to the clock on the board. The land's own `landing` and `merge` into the view copies with their real times (`--view`, before the merge or after it, raised again a duplicate; "The live view of a landing", below). A board's foundation at `sized` on a folder with no board ("The foundation", above), so the board opens when the run starts.
+`issueTitle` when the event carries no `facts.title` and none is on record (`system/RULES.md` §10, `title`). A landed unit's plain-fact summary on its tracking board, so `landed` on a sub-issue passes `check.js` without the presenter; and the post-merge refresh's `landed` into the live view's copies (`--view`, "The live view of a landing", below). And every Timeline input (below, "The fast path owns the Timeline"): the merge's time from git in the main checkout or from the pull request where the worktree's git cannot tell it, recorded at the next run's seeding where nothing could, never an enrichment; the run's start at a foundation laid after its event (`new.js --at`); the running visit kept to the clock on the board. The land's own `landing` and `merge` into the view copies with their real times (`--view`, before the merge or after it, raised again a duplicate; "The live view of a landing", below). A board's foundation at `sized` on a folder with no board ("The foundation", above), so the board opens when the run starts. The questions a halt puts in any step, with their options, and their answer when the halt ends (dashboards-skill/45).
 
 **The fast path owns the Timeline.** Every input of an issue or tracking board's Timeline tile, its two legends, the Timeline tab's KPI
 tiles and their tracers is written by `apply-event.js` at its event, from the facts and git, and nothing about the Timeline is a reason to
@@ -1225,7 +1242,7 @@ Timeline input no event writes: it exists only on a board backfilled at the user
 | the research questions and phase (`research-planning`, `research-started`, `research-returned` with its findings in the trail, `verification-started`, `researched` setting them complete) | the Gap column and its milestone (`researched`) |
 | `wip.plan` (writing at the plan step, a re-pass from the parent or after a qa pass) | the Considered column (`architecture-signed-off`, `plan-accepted`), a tracking board's unit rows, the Verdict column, the milestones, the impact |
 | the branch (`branch-cut`); `wip.stages` from `facts.stages`, each with the rows `facts.stages[].rows` gives (the board's row ids only), else the rows the board records for it, else, for the one stage a remediation report adds (`facts.remediation`, or any report while the board stands at `remediation`), the rows the qa findings touch (`facts.rows`); two or more new remediation stages with no rows of their own stay for the presenter (`facts.rows` is then the union of every finding); the derived As built states `pending`, `in-progress`, `partially-built` (a partially built row only where it has a summary), never an outcome | the rows each stage touches (`plan.md`); at a stage's end, at a remediation sub-step's and at a report that names a deviation, its rows' summaries and outcomes (`as-planned`, `amended`, `deviated`), the deviations and impact changes from `final-implementation.md` |
-| `wip.open` from `facts.open`, at every event (raised by the event, or by the stage or the qa pass that names it; a resolved one recorded in the trail); `wip.interview` questions from `facts.questions` | the interview's answers |
+| `wip.open` from `facts.open`, at every event (raised by the event, or by the stage or the qa pass that names it; a resolved one recorded in the trail); `wip.interview` questions from `facts.questions`, and a halt's in any other step into `wip.asked`, each on the visit the halt ended, and every one marked answered when the halt ends (dashboards-skill/45) | the interview's answers' gist (a halt's, where the documents give one: `fill.js`'s `wip.asked`) |
 | `wip.qa` entries (pass, verdict, `running` included, counts by kind and severity, route, the `startUnrecorded` mark of a verdict with no `running` before it), `wip.qaMax`, `wip.remediation` (pass, route, steps: a work level in a step's name is reworded away as in any text from the facts, below, and elided "…" only where the rewording leaves one, never the step dropped; an `implementation-stage` during remediation — `facts.remediation`, or any report while the board stands at `remediation` — writes its sub-steps and, when it carries them, the stages too, and its trail entry and note follow the remediation, `facts.stage` first, never "qa next"); each pass named "Quality Review N" wherever the script writes it (`passnames.js` `passName()`), and "qa pass N" in any text it takes from the facts reworded to it (`renamePassText()`; `GUIDANCE.md` §4, "A qa pass is named "Quality Review N""); the rows the findings touch only from `facts.rows` | the findings' detail: the rows they touch, the pass's note |
 | the statements' excerpts not copied yet (as `embed.js` copies them) | the statements themselves (§2, "Statements") |
 | on a sub-issue, the standing rule on its tracking board: the unit's start (`sized`), `complete` (an approving qa pass), `landed`, `wip.next`, the chain's `wip.detail`; a unit's summary where it has none, or only the plain fact its qa pass wrote: the plain fact of its state ("#n's run passed qa; it is not merged yet.", and at `landed` "#n landed through PR #p as <merge>." from the sub-issue's `asBuilt`) | the unit's summary from the documents, its `impact.units` entry and its effect on the initiative's impact |
@@ -1560,7 +1577,8 @@ rows, findings, state}` (a kebab-case slug, row ids, `null` or a path, one of th
 whose state and findings disagree (`returned`, `verifying` or `complete` with no findings, `planning` or `researching`
 with findings); a `wip.event` whose name is not one of the events of §4 (`research-planning` and `verification-started`
 included); a `wip.research` whose phase is not `planning`, `research`, `verification` or `complete`, or whose `drafted` is not
-a count; a `wip.interview` question with no text; a `wip.plan` that is not `writing` or a `re-pass` naming where it comes
+a count; a `wip.interview` question with no text; a `wip.asked` question (dashboards-skill/45) with no text, a `step` that is not the
+step a run halts in, no `asked` time, an `answered` that is no time, an answer that is not its gist, or options that are not strings; a `wip.plan` that is not `writing` or a `re-pass` naming where it comes
 from (`parent`, or `qa` with its pass); a `wip.stages` or `wip.remediation.steps` entry without its name or state, or two
 current stages (several remediation sub-steps may be current, §3); a `wip.document` that is not `{tasks}`, or a task without its id or
 name, a task named twice, or a state not `done`, `current` or `todo`; a `wip.open` entry without its text or `raised`, with a `resolved`
@@ -1570,7 +1588,7 @@ on); a qa pass's `report` that is a machine-local path or a `reportCopy` not in 
 issue, or a `fixOf.board` that names no board; an as-built change's `link` that is not a link (checked as one); a
 `wip.history` (§3, "Finished steps") that is not a map of steps to arrays of visits, a step no snapshot is kept of, a visit whose
 `ended` is not an ISO date-time, whose `since` is after it or whose visits are not oldest first, an `endedBy` that is not an event of
-§4, a `to` that is not a step, or a frozen fact not in its live field's form (the interview, the research phase and questions, the plan's
+§4, a `to` that is not a step, or a frozen fact not in its live field's form (the interview, a halt's questions, the research phase and questions, the plan's
 pass, the branch, the stages, the qa passes, the remediation loop, the units); a
 `partially-built` unit row, or a partially built row without a summary; an `in-progress` or `partially-built` row on a built
 board; a `wip.interview` question's `options` that is not an array of strings; a `wip.qa` pass's or `wip.remediation`'s

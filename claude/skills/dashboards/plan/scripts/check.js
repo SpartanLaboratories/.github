@@ -645,6 +645,20 @@ function checkPanel(plan, w, ids, tracking, dir) {
         /* the options the question offers, from the halted event's facts.questions, each a short statement */
         if (q.options != null && (!Array.isArray(q.options) || q.options.some(o => !str(o)))) fail(`${at}.options must be an array of the options the question offers, each a non-empty string (got ${JSON.stringify(q.options)})`); } });
   }
+  /* the questions a halt in any other step put to the user (wip.asked, admin-team/dashboards/halt-questions, dated 45): each { step, text,
+     options, answer, asked, answered }, the step one the run halted in, put at a time; while the board is not stopped none waits (the event
+     that ended the halt answered them, lib.js answerQuestions()) */
+  if (w.asked != null) {
+    if (!Array.isArray(w.asked)) fail("wip.asked must be an array of the questions a halt put to the user, each { step, text, options, answer, asked, answered }");
+    else w.asked.forEach((q, j) => { const at = `wip.asked[${j}]`;
+      if (!q || typeof q !== "object" || !str(q.text)) { fail(`${at} needs its text (the question put)`); return; }
+      if (!STEPS.includes(q.step) || ["halted", "escalated", "cancelled", "landed"].includes(q.step)) fail(`${at}.step is the step the run halted in (got ${JSON.stringify(q.step)})`);
+      if (q.answer != null && !str(q.answer)) fail(`${at}.answer is the answer's gist, or null while it waits`);
+      if (!STAMP.test(String(q.asked))) fail(`${at}.asked is when the question was put, an ISO date-time (got ${JSON.stringify(q.asked)})`);
+      stampOk(q.answered, at + ".answered");
+      if (q.options != null && (!Array.isArray(q.options) || q.options.some(o => !str(o)))) fail(`${at}.options must be an array of the options the question offers, each a non-empty string (got ${JSON.stringify(q.options)})`);
+      if (!["halted", "escalated"].includes(w.step) && !require("./lib.js").qAnswered(q) && !["built", "abandoned"].includes(plan.status) && !["landed", "cancelled"].includes(w.step)) warn(`${at} still waits while the run is not stopped: the event that ended its halt marks it answered`); });
+  }
   const R = w.research;
   if (R != null) {
     if (typeof R !== "object" || Array.isArray(R) || !R_PHASES.includes(R.phase)) fail(`wip.research must be { phase, drafted, since }, phase one of ${R_PHASES.join(", ")} (got ${JSON.stringify(R)})`);
@@ -722,7 +736,7 @@ function checkPanel(plan, w, ids, tracking, dir) {
    (lib.js HISTORY_FIELDS) }. Held to its form: a step a snapshot is kept of, ISO stamps in order, the event that ended it, the step it
    moved to, each frozen fact in its live field's form. The steps the strip draws finished with no snapshot are reported: the board
    reconstructs them from the trail, the milestones, the stages and the qa passes. */
-const HIST_COMMON = ["since", "ended", "endedBy", "to", "held", "outage", "event", "detail", "open"];
+const HIST_COMMON = ["since", "ended", "endedBy", "to", "held", "outage", "event", "detail", "open", "asked"];
 function checkHistory(plan, w, stampOk) {
   const H = w.history, posI = v => Number.isInteger(v) && v > 0;
   if (H != null) {
@@ -749,6 +763,8 @@ function checkHistory(plan, w, stampOk) {
         const extra = Object.keys(V).filter(k => !HIST_COMMON.includes(k) && !(HISTORY_FIELDS[s] || []).includes(k));
         if (extra.length) warn(`${a} holds ${extra.map(k => `"${k}"`).join(", ")}, which a snapshot of ${s} does not keep (lib.js HISTORY_FIELDS: ${(HISTORY_FIELDS[s] || []).join(", ") || "none of its own"})`);
         if (V.interview != null && (!Array.isArray(V.interview) || V.interview.some(q => !q || !str(q.text)))) fail(`${a}.interview is the interview's questions as they stood, each { text, options, answer }`);
+        if (V.asked != null && (!Array.isArray(V.asked) || V.asked.some(q => !q || !str(q.text) || (q.options != null && (!Array.isArray(q.options) || q.options.some(o => !str(o))))))) fail(`${a}.asked is the questions the halt that ended the visit put to the user, each { text, options, answer, asked, answered }`);
+        else if (V.asked != null && !V.held) warn(`${a} holds the questions of a halt, but did not end at one (held)`);
         if (V.research != null && (typeof V.research !== "object" || !R_PHASES.includes(V.research.phase))) fail(`${a}.research is the research phase as it stood, { phase, drafted, since }`);
         if (V.questions != null && (!Array.isArray(V.questions) || V.questions.some(q => !q || !str(q.question)))) fail(`${a}.questions is the research questions as they stood, each { question, rows, findings, state }`);
         if (V.plan != null && (typeof V.plan !== "object" || !PLAN_PASSES.includes(V.plan.state))) fail(`${a}.plan is the plan's pass as it stood, { state, from, pass }`);

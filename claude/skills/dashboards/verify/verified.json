@@ -2,7 +2,7 @@
   "$comment": "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last verification, when every check that needs no browser passed (its modes: \"--auto --no-browser\"; a run with --browser, made only when a person asks for it, lists the browser passes instead). check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.",
   "templates": {
     "plan/template/dashboard.html": {
-      "sha256": "0f71a54eb3a288d506c8f7a10299a187863d7309d5fc652023014f36579bfe01",
+      "sha256": "d1b4ba09ac77d04a917ea7be62c136bf597449de98b1c1fb58fa2ed02cb78159",
       "verified": "2026-11-07",
       "fixtures": [
         "plan",
@@ -286,6 +286,11 @@
           "sha256": "0f71a54eb3a288d506c8f7a10299a187863d7309d5fc652023014f36579bfe01",
           "verified": "2026-11-07",
           "file": "dashboard/0f71a54eb3a2.html"
+        },
+        {
+          "sha256": "d1b4ba09ac77d04a917ea7be62c136bf597449de98b1c1fb58fa2ed02cb78159",
+          "verified": "2026-11-07",
+          "file": "dashboard/d1b4ba09ac77.html"
         }
       ]
     },

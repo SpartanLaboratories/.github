@@ -21,7 +21,7 @@
 // --json       print the summary as one JSON object instead of key: value lines
 // What it does: reads the request and <worktree>/<folder>/plan.json; applies the event (the step, the stages and the derived as-built
 // states, the research questions and phase, the glow, the halt and its resume, the open points, the qa passes, the remediation, the
-// interview's questions, the detail, wip.event and wip.updated, one trail entry, the branch; the snapshot of the step it ended, frozen
+// questions a halt puts to the user in any step (the interview's, and wip.asked) and their answer at the halt's end, the detail, wip.event and wip.updated, one trail entry, the branch; the snapshot of the step it ended, frozen
 // into wip.history.<step>, plan/RULES.md §3, "Finished steps"); re-renders the board onto the current
 // template when it is not the verified template plus its data (plan/RULES.md §4, "Every event re-renders the board"); embeds the
 // board (its data block and its plan.js sidecar); on a sub-issue applies the standing rule to its parent tracking board (a unit's
@@ -298,12 +298,17 @@ function applyEvent(orig, ev, facts, req, now) {
       if (w.resume !== resume) { w.resume = resume; applied.push(`wip.resume ${resume}`); }
       setStep("halted");
       if (w.waitingOn !== waiting) { w.waitingOn = waiting; applied.push("wip.waitingOn"); }
-      if (Array.isArray(facts.questions) && (resume === "interview" || facts.step === "interview")) {
-        w.interview = Array.isArray(w.interview) ? w.interview : [];
+      /* the questions the halt puts to the user, with the options each offers (admin-team/dashboards/halt-questions, dated 45): at a halt
+         in any step, the interview's into wip.interview, any other step's into wip.asked with the step it halted in; the same question
+         put again while it waits is no second one (the same event twice writes nothing more) */
+      if (Array.isArray(facts.questions)) {
+        const iv = resume === "interview" || facts.step === "interview", key = iv ? "interview" : "asked";
+        const list = w[key] = Array.isArray(w[key]) ? w[key] : [];
         facts.questions.forEach((q, i) => {
-          const text = txt(q && typeof q === "object" ? q.text : q, `questions[${i}].text`); if (!text || w.interview.some(x => x && x.text === text)) return;
+          const text = txt(q && typeof q === "object" ? q.text : q, `questions[${i}].text`); if (!text) return;
+          if (iv ? list.some(x => x && x.text === text) : list.some(x => x && x.text === text && x.step === resume && !lib.qAnswered(x))) return;
           const options = q && Array.isArray(q.options) ? q.options.map((o, j) => txt(o, `questions[${i}].options[${j}]`)).filter(Boolean) : [];
-          w.interview.push({ text, ...(options.length ? { options } : {}), answer: null, asked: now }); applied.push(`wip.interview + "${text.slice(0, 40)}"`);
+          list.push({ ...(iv ? {} : { step: resume }), text, ...(options.length ? { options } : {}), answer: null, asked: now }); applied.push(`wip.${key} + "${text.slice(0, 40)}"`);
         });
       }
       detail = detail || `Waiting on you: ${waiting}`;
@@ -741,7 +746,12 @@ function applyEvent(orig, ev, facts, req, now) {
     if (!plan.trail.some(x => x && x.label === t.label)) { plan.trail.push(t); applied.push("trail +1 (open point resolved)"); } });
   /* the finished step's snapshot (plan/RULES.md §3, "Finished steps"; admin-team/dashboards-skill/24): when the event ends the step the
      panel showed (or a remediation loop, or returns a qa verdict), its panel's facts are frozen into wip.history.<step>, as they stood */
+  /* the questions put at a halt are answered once the run is out of it: at a resumed, or at any other event that takes the board out of the
+     stop but cancelled (admin-team/dashboards/halt-questions, dated 45) */
+  { const was = stopped((orig.wip || {}).step); if (ev === "resumed" || (was && !stopped(w.step) && ev !== "cancelled")) applied.push(...lib.answerQuestions(w, now)); }
   applied.push(...lib.freezeSteps(orig, plan, ev, now, facts));
+  /* a halt's questions on the visit the halt ended, and every answer on the snapshots (lib.js syncAsked()) */
+  applied.push(...lib.syncAsked(w));
   return { plan, applied, enrich, parentOp };
 }
 

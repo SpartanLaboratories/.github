@@ -21,9 +21,10 @@
 //   A qa pass the fields name "qa pass N" is written "Quality Review N" (passnames.js), and so is one the board already holds, before the merge; named in notes.
 //   Two narrow ways into what the events own, each by what it names, so neither undoes an event:
 //   "trailAdd": [{ date, column, label, ref? }] appends trail entries, one already there skipped;
-//   "wip": { "stages": [{ id, rows }], "questions": [{ question, rows }], "interview": [{ text, answer }], "qa": [{ pass, note }],
+//   "wip": { "stages": [{ id, rows }], "questions": [{ question, rows }], "interview": [{ text, answer }], "asked": [{ text, step?, answer }], "qa": [{ pass, note }],
 //            "current": { "step": "<the step this glow is for>", "cells": ["<row-id>.<column>"] } } sets only those fields of the items it names, an item the board does not
-//   hold named and skipped, and the glow only while the board's step is still that step. Any other wip key is refused.
+//   hold named and skipped, and the glow only while the board's step is still that step. Any other wip key is refused. An answer's gist (the
+//   interview's, a halt's) is written on the snapshots that hold its question too (lib.js syncAsked()).
 // It keeps up what follows from new rows: a tracking board's wip.next once its unit rows first appear, the glow at research and at sub-issues.
 // Exit 0 when merged (the summary's check line says what still warns or fails), 1 when the fill would add a failure to the board (every file as it was), 2 on a usage error or a refused field.
 "use strict";
@@ -34,7 +35,7 @@ const { titleSkip } = require(path.resolve(__dirname, "..", "..", "system", "scr
 const OWNED = ["wip", "trail", "status", "sized", "branch", "asBuilt", "kind", "schema", "repo", "issue", "slug", "folder", "foundation", "links"];
 const IDENTITY = ["id", "slug", "issue", "class", "question", "pass", "n"];
 const LEVELS = new Set(["level", "proposedLevel"]);
-const WIP_KEYS = ["stages", "questions", "interview", "qa", "current"];
+const WIP_KEYS = ["stages", "questions", "interview", "asked", "qa", "current"];
 const UNIT_KEPT = ["issue", "board", "folder", "live"];
 const ROW_DERIVED = ["pending", "in-progress", "partially-built"];
 const isObj = v => v != null && typeof v === "object" && !Array.isArray(v);
@@ -119,6 +120,11 @@ function mergeFill(board, fields) {
     by("stages", "id", F.wip.stages, (h, x) => { h.rows = ownRows(x.rows); });
     by("questions", "question", F.wip.questions, (h, x) => { h.rows = ownRows(x.rows); });
     by("interview", "text", F.wip.interview, (h, x) => { if (x.answer !== undefined) h.answer = x.answer; });
+    /* a halt's question by its text (and its step, where the fill names one: the same text put in two steps) */
+    (Array.isArray(F.wip.asked) ? F.wip.asked : []).forEach(x => { const hit = (Array.isArray(w.asked) ? w.asked : []).filter(y => isObj(y) && isObj(x) && y.text === x.text && (x.step == null || y.step === x.step));
+      if (!hit.length) { notes.push(`wip.asked has no ${JSON.stringify((x || {}).text)}: skipped`); return; }
+      hit.forEach(h => { if (x.answer !== undefined) h.answer = x.answer; }); merged.push(`wip.asked ${String(x.text).slice(0, 40)}`); });
+    if (F.wip.interview || F.wip.asked) lib.syncAsked(w);
     by("qa", "pass", F.wip.qa, (h, x) => { if (x.note !== undefined) h.note = x.note; });
     if (isObj(F.wip.current)) { const C = F.wip.current, cells = Array.isArray(C.cells) ? C.cells.map(String) : [];
       if (typeof C.step !== "string") throw new Refused("wip.current names the step its glow is for ({ step, cells })");

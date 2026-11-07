@@ -712,6 +712,51 @@ function freezeSteps(pre, post, ev, now, facts) {
   }
   return out;
 }
+/* ---------- The questions put to you at a halt (admin-team/dashboards/halt-questions, dated dashboards-skill/45; plan/RULES.md §3, wip.asked) ----------
+   A halt in any step may put questions to the user, each with the options it offers (the halted event's facts.questions). An interview's go
+   into wip.interview, the interview's own field; a halt in any other step records its into wip.asked, oldest first, each { step, text,
+   options, answer, asked, answered }: the step it halted in, the question, the options it offers (left out when it offers none), the answer's
+   gist (null until a fill writes it), when it was put and when it was answered. The step panel draws both lists alike, in the panel of the step
+   they were put in. A halt's questions ride on the visit the halt ended (a snapshot's `asked`): the held visit of their step that ended last at
+   or before they were put, with no visit of any step ending between them (the run waited all along), so a finished step shows them. The
+   event that ends the halt's wait, resumed or any other but cancelled, marks every waiting question answered at its time (`answered`), the
+   interview's and the snapshots' with them; an answer's gist stays a fill's. Written by apply-event.js alone (a gist by fill.js), never by
+   hand; syncAsked() keeps the snapshots in step with the live lists, deterministic and idempotent. A halt recorded before this rule keeps
+   what it recorded: nothing is backfilled. */
+const qAnswered = q => isObj(q) && ((typeof q.answer === "string" && !!q.answer.trim()) || isTime(q.answered));
+const askedOf = w => (Array.isArray(w && w.asked) ? w.asked : []).filter(q => isObj(q) && typeof q.text === "string" && !!q.text.trim());
+/* every waiting question of the run, the interview's and a halt's, marked answered at `now`; returns the lines */
+function answerQuestions(w, now) {
+  const n = { interview: 0, asked: 0 };
+  ["interview", "asked"].forEach(k => (Array.isArray(w[k]) ? w[k] : []).forEach(q => { if (isObj(q) && typeof q.text === "string" && q.text.trim() && !qAnswered(q)) { q.answered = now; n[k]++; } }));
+  return Object.entries(n).filter(([, c]) => c).map(([k, c]) => `wip.${k}: ${c} question${c === 1 ? "" : "s"} answered at ${now}`);
+}
+/* the held visit a halt's question rides on, or null */
+function askedVisit(H, q) {
+  const T = Date.parse, at = T(q.asked), vs = Array.isArray(H[q.step]) ? H[q.step] : [];
+  const V = vs.filter(v => isObj(v) && v.held && isTime(v.ended) && T(v.ended) <= at).sort((a, b) => T(a.ended) - T(b.ended)).pop();
+  if (!V) return null;
+  const between = Object.values(H).flatMap(x => Array.isArray(x) ? x : []).some(v => isObj(v) && v !== V && isTime(v.ended) && T(v.ended) > T(V.ended) && T(v.ended) <= at);
+  return between ? null : V;
+}
+/* the snapshots kept in step with the live lists: each of a halt's questions on the visit it rides on (added, or brought up to its answer),
+   and the interview's answers on the interview's snapshots; returns the lines */
+function syncAsked(w) {
+  const H = historyOf(w), out = [];
+  askedOf(w).forEach(q => {
+    if (typeof q.step !== "string" || !isTime(q.asked)) return;
+    const V = askedVisit(H, q); if (!V) return;
+    const { step, ...rest } = q, list = V.asked = Array.isArray(V.asked) ? V.asked : [];
+    const i = list.findIndex(x => isObj(x) && x.text === q.text && x.asked === q.asked);
+    if (i < 0) { list.push(clone(rest)); out.push(`wip.history.${step}: a visit holds "${q.text.slice(0, 40)}"`); }
+    else if (JSON.stringify(list[i]) !== JSON.stringify(rest)) { list[i] = clone(rest); out.push(`wip.history.${step}: "${q.text.slice(0, 40)}" brought up to its answer`); }
+  });
+  const iv = (Array.isArray(w.interview) ? w.interview : []).filter(isObj);
+  (Array.isArray(H.interview) ? H.interview : []).forEach((V, j) => { if (!isObj(V) || !Array.isArray(V.interview)) return;
+    V.interview.forEach(x => { if (!isObj(x)) return; const live = iv.find(q => q.text === x.text); if (!live) return;
+      ["answer", "answered"].forEach(k => { if (live[k] != null && x[k] !== live[k]) { x[k] = clone(live[k]); out.push(`wip.history.interview[${j}]: "${String(x.text).slice(0, 40)}" ${k}`); } }); }); });
+  return out;
+}
 /* The steps of a board the strip draws as finished (their dots become buttons): every step before the one shown, every step on a board
    that has landed (but "landed" itself), and any step other than the one shown that holds a finished visit (a remediation loop while the
    run is back at qa). A cancelled board draws no steps; a board not started has none finished. R is a wip, or a unit's mirror. */
@@ -725,7 +770,7 @@ function finishedSteps(R, status) {
 /* ---------- A finished step with no snapshot: reconstructed from what survives (plan/RULES.md §3, "Finished steps") ----------
    A board whose steps ended before the snapshots (or a step moved by hand) shows a reduced panel for them, labelled "reconstructed from
    the history": the trail entries and milestones that name the step, and what the board still holds of it — the interview's questions
-   (wip.interview), the research questions the trail names (sent, returned with their findings), the branch, the stage list (wip.stages),
+   (wip.interview), a halt's questions in the step (wip.asked), the research questions the trail names (sent, returned with their findings), the branch, the stage list (wip.stages),
    the qa passes (wip.qa; at remediation the passes that requested changes), the units filed or with a board, the run's start (sized).
    A trail entry or milestone names its step by its leading words (trailStep()); a milestone that names none goes by its column (gap:
    research; considered: the architecture on a tracking board, else the plan; verdict: the plan; built: the landing). The template's
@@ -755,6 +800,8 @@ function reconstructStep(plan, step) {
     R.milestones.push({ date: m.date || null, label: m.label, ...(typeof m.ref === "string" && m.ref.trim() ? { ref: m.ref } : {}), ...(typeof m.note === "string" && m.note.trim() ? { note: m.note } : {}) }); later(m.date); });
   if (step === "sizing" && okDay(plan.sized)) { R.sized = plan.sized; later(plan.sized); }
   if (step === "interview" && nonEmpty(w.interview)) R.interview = clone(w.interview);
+  /* the questions a halt in the step put to the user (wip.asked, admin-team/dashboards/halt-questions) */
+  { const a = askedOf(w).filter(q => q.step === step).map(({ step: s0, ...q }) => clone(q)); if (a.length) R.asked = a; }
   if (step === "research") { const qs = [];
     R.trail.forEach(t => { const s = t.label.replace(/\s+/g, " "), sent = /^research started:/i.test(s), back = /^research returned:/i.test(s); if (!sent && !back) return;
       (s.match(/`([a-z0-9][a-z0-9-]*)`/g) || []).map(x => x.slice(1, -1)).forEach(q => { let have = qs.find(x => x.question === q); if (!have) { have = { question: q, findings: null }; qs.push(have); }
@@ -776,12 +823,12 @@ function reconstructSteps(plan) {
 }
 /* The step panel's facts of a board's run (plan/RULES.md §3, "The step panel"), as a unit's mirror carries them so the tracking
    board can draw that unit's step panel: only the fields the board records (none is written empty, so a mirror stays as small as
-   the run): the last event, the interview's questions, the research phase and questions, the plan's pass, the implementation
+   the run): the last event, the interview's questions, a halt's questions (asked), the research phase and questions, the plan's pass, the implementation
    stages, the remediation's sub-steps; at the plan step the verdicts written of the rows, in implementation and remediation the
    deviations recorded (the rows' as-built changes); and rowNames, the names of the rows the questions and stages name. */
 /* wip.history, the finished steps' snapshots (plan/RULES.md §3, "Finished steps"), rides along so the tracking board shows the unit's
    finished steps as its own board does; an empty history is left out. */
-const PANEL_FIELDS = ["event", "interview", "research", "questions", "plan", "stages", "remediation", "document", "open", "history"];
+const PANEL_FIELDS = ["event", "interview", "asked", "research", "questions", "plan", "stages", "remediation", "document", "open", "history"];
 function panelFacts(sub) {
   const w = (sub && sub.wip) || {}, out = {}, has = v => Array.isArray(v) ? v.length > 0 : v != null && typeof v === "object" && (v !== w.history || Object.values(v).some(x => Array.isArray(x) && x.length));
   PANEL_FIELDS.forEach(k => { if (has(w[k])) out[k] = w[k]; });
@@ -1782,5 +1829,5 @@ function ghMergeTime(repo, pr, merge) {
   } catch (e) { return out; }
 }
 
-module.exports = { ...LV, ...PN, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, HISTORY_FIELDS, HISTORY_STEPS, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+module.exports = { ...LV, ...PN, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, HISTORY_FIELDS, HISTORY_STEPS, qAnswered, askedOf, answerQuestions, syncAsked, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewBaseFolder, viewBaseHref, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, notYetLanded, landedPending, unitLeft, setViewLinks, viewedFolder, viewLink, landVisit, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

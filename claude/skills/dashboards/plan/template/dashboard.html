@@ -247,8 +247,11 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .sp-list li.todo .q{color:var(--muted)}
 .sp-list li.cur .dot{background:var(--accent);border-color:var(--accent);animation:glowdot 2s ease-in-out infinite}
 .sp-list li.cur .q{font-weight:600}
-/* an interview question's options, under its text */
+/* a question's options, under its text: the interview's, and a halt's in any other step */
 .sp-opts{margin:3px 0 0;padding-left:16px;font-weight:400;color:var(--ink-2)}
+/* the questions a halt put to you, in the panel of the step it halted in (plan/RULES.md §3, wip.asked) */
+.sp-asked{margin:6px 0 8px}
+.wipcard.wait li .wq{margin:3px 0 0;padding-left:16px;font-size:12.5px;color:var(--ink-2)}
 .sp-opts li{margin:1px 0}
 .sp.sp-held .sp-list li.cur .dot{animation:none;box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
 .sp-pass{border:1px solid var(--line);border-left:4px solid var(--sc,var(--line));border-radius:5px;padding:6px 10px;margin:6px 0 0}
@@ -1417,15 +1420,28 @@ function qaBlock(p,keys){ const d=QA[p.verdict]||QA.running, f=p.findings||{}, s
   keys.add(`<span>${pill(d)} ${REVIEW} verdict</span>`);
   const rt=ROUTE[p.route], nf=findingsTotal(f);
   return `<div class="sp-pass ${p.verdict==="approved"?"good":p.verdict==="changes-requested"?"critical":"run pend"}"><div class="ph">${esc(passName(p.pass))} ${pill(d)}${p.date?` <span class="nw">${when(p.date)}</span>`:""}</div>${kinds?`<small>${nf} finding${nf===1?"":"s"} by kind: ${esc(kinds)}</small>`:""}${sev?`<small>by severity: ${esc(sev)}</small>`:""}${rt?`<small>route: ${esc(rt.label)}</small>`:""}${p.note?`<small>${rich(p.note)}</small>`:""}${p.report?`<small>the test report: <code>${esc(p.report)}</code> (a build output, not committed)${liveCopyLink(p.reportCopy,"its copy")}</small>`:""}</div>`; }
+/* The questions put to you (plan/RULES.md §3, "The step panel"; dashboards-skill/45): the interview's
+   (wip.interview) and a halt's in any other step (wip.asked), drawn alike: each with the options it offers, answered (its answer's gist, or
+   when the answer came) or waiting on you, and the count. A question is answered once it has its gist or its answered time (the event that
+   ended the halt marks it, plan/scripts/lib.js answerQuestions()). */
+const qAnsweredOf=q=>!!q&&((q.answer!=null&&String(q.answer).trim()!=="")||okStamp(q.answered));
+const KEY_Q={interview:"an interview question, answered or waiting",asked:"a question a halt put to you, answered or waiting"};
+function questionsHtml(list,keys,kind,lead){ const done=list.filter(qAnsweredOf).length, n=list.length;
+  keys.add(`<span>${pill(IV.answered)} ${pill(IV.waiting)} ${KEY_Q[kind]||KEY_Q.interview}</span>`);
+  return `<p class="sp-sum">${lead?`${esc(lead)}: `:""}${done} of ${n} question${n===1?"":"s"} answered${n-done?` · ${n-done} waiting`:""}</p>`+spList(list.map(q=>{ const g=q.answer!=null&&String(q.answer).trim(), a=qAnsweredOf(q);
+    const ops=Array.isArray(q.options)?q.options.filter(x=>typeof x==="string"&&x.trim()):[];
+    return spItem("",pill(a?IV.answered:IV.waiting),`${rich(q.text)}${ops.length?`<ul class="sp-opts">${ops.map(x=>`<li>${rich(x)}</li>`).join("")}</ul>`:""}`,g?`answer: ${rich(q.answer)}${q.answered?` · ${when(q.answered)}`:""}`:a?`answered ${when(q.answered)}`:q.asked?`asked ${when(q.asked)}`:""); })); }
+/* a halt's questions the panel of step S draws (wip.asked): those still waiting, and those the answer that began the visit running answered;
+   an earlier visit's are on its snapshot (a finished step's panel) */
+const askedShown=(R,S)=>(Array.isArray(R&&R.asked)?R.asked:[]).filter(q=>q&&typeof q==="object"&&typeof q.text==="string"&&q.text.trim()&&q.step===S&&(!qAnsweredOf(q)||(okStamp(q.answered)&&okStamp(R.since)&&Date.parse(q.answered)>=Date.parse(R.since))));
+const askedBlock=(list,keys)=>list.length?`<div class="sp-asked">${questionsHtml(list,keys,"asked","Asked at the halt")}</div>`:"";
+/* the questions a halted run waits on, for the "waiting on you" card: the interview's while it halted there, else the halt's */
+const waitingQs=R=>{ const S=R&&R.step==="halted"?R.resume:null; if(!S) return []; return (S==="interview"?(Array.isArray(R.interview)?R.interview:[]):askedShown(R,S)).filter(q=>q&&q.text&&!qAnsweredOf(q)); };
 const PANEL={
   sizing:R=>`<p>The issue is being sized: its systems and how much planning it takes.</p>${R.detail?`<p>${rich(R.detail)}</p>`:""}`,
   interview:(R,o,keys)=>{ const iv=Array.isArray(R.interview)?R.interview.filter(q=>q&&q.text):[];
     if(!iv.length) return `<p>No interview question recorded yet.</p>`;
-    const done=iv.filter(q=>q.answer!=null&&String(q.answer).trim()).length;
-    keys.add(`<span>${pill(IV.answered)} ${pill(IV.waiting)} an interview question, answered or waiting</span>`);
-    return `<p class="sp-sum">${done} of ${iv.length} question${iv.length===1?"":"s"} answered${iv.length-done?` · ${iv.length-done} waiting`:""}</p>`+spList(iv.map(q=>{ const a=q.answer!=null&&String(q.answer).trim();
-      const ops=Array.isArray(q.options)?q.options.filter(x=>typeof x==="string"&&x.trim()):[];
-      return spItem("",pill(a?IV.answered:IV.waiting),`${rich(q.text)}${ops.length?`<ul class="sp-opts">${ops.map(x=>`<li>${rich(x)}</li>`).join("")}</ul>`:""}`,a?`answer: ${rich(q.answer)}${q.answered?` · ${when(q.answered)}`:""}`:q.asked?`asked ${when(q.asked)}`:""); })); },
+    return questionsHtml(iv,keys,"interview"); },
   research:(R,o,keys)=>{ const qs=questionsOf(R), Rs=R.research||{}, st=qs.map(qState);
     const phase=Rs.phase||(st.includes("verifying")?"verification":st.length&&st.every(x=>x==="complete")?"complete":st.some(x=>x!=="planning")?"research":st.length?"planning":"");
     const line=["planning","research","verification"], at=phase==="complete"?3:line.indexOf(phase);
@@ -1503,6 +1519,8 @@ function stepPanel(R,o){ o=o||{}; const k=R.step||"", held=["halted","escalated"
   let h=`<div class="sp${held?" sp-held":""}${o.own?" own":""}" data-step="${esc(S)}"${o.row?` style="--r:${o.row}"`:""} role="group" aria-label="${esc(o.label||"The current step")}: ${esc(title)}"><h3 class="sp-t">${esc(title)}</h3>`;
   if(k==="halted"){ h+=`<p class="sp-wait">⏸ Held still at ${esc(S?title:"its step")}: it waits on you for ${rich(R.waitingOn||R.detail||"(not stated)")}</p>`; }
   if(k==="escalated") h+=`<p class="sp-wait">⇧ Escalated from ${esc(S?title:"its step")}: held still while the issue's scope is re-decided.</p>`;
+  /* the questions a halt in this step put to you, with their options (wip.asked; the interview's are its own panel's) */
+  if(S!=="interview") h+=askedBlock(askedShown(R,S),keys);
   h+=(PANEL[S]||PANEL._)(R,opts,keys);
   /* the open points (wip.open, plan/RULES.md §3): raised during the run, shown at every step until resolved; the trail keeps them after */
   const op=(Array.isArray(R.open)?R.open:[]).filter(x=>x&&typeof x==="object"&&typeof x.text==="string"&&x.text.trim()&&!x.resolved);
@@ -1576,6 +1594,7 @@ function reconStep(P,s){ const w=(P&&P.wip)||{}, R={reconstructed:true,ended:nul
   (Array.isArray(P.milestones)?P.milestones:[]).forEach(m=>{ if(!m||typeof m.label!=="string"||!m.label.trim()||milestoneStep(P,m)!==s) return; R.milestones.push({date:m.date||null,label:m.label,...(typeof m.ref==="string"&&m.ref.trim()?{ref:m.ref}:{}),...(typeof m.note==="string"&&m.note.trim()?{note:m.note}:{})}); later(m.date); });
   if(s==="sizing"&&okStamp(P.sized)){ R.sized=P.sized; later(P.sized); }
   if(s==="interview"&&ne(w.interview)) R.interview=cp(w.interview);
+  { const a=(Array.isArray(w.asked)?w.asked:[]).filter(q=>q&&typeof q==="object"&&q.step===s&&typeof q.text==="string"&&q.text.trim()).map(q=>{ const {step,...x}=q; return cp(x); }); if(a.length) R.asked=a; }
   if(s==="research"){ const qs=[]; R.trail.forEach(t=>{ const x=t.label.replace(/\s+/g," "), sent=/^research started:/i.test(x), back=/^research returned:/i.test(x); if(!sent&&!back) return;
       (x.match(/`([a-z0-9][a-z0-9-]*)`/g)||[]).map(y=>y.slice(1,-1)).forEach(q=>{ let have=qs.find(y=>y.question===q); if(!have){ have={question:q,findings:null}; qs.push(have); } if(back&&t.ref) have.findings=t.ref; }); });
     if(qs.length) R.questions=qs; }
@@ -1625,6 +1644,8 @@ function visitHtml(S,V,i,n,o,keys){ const grp=(l,v)=>`<span><span class="l">${l}
   let h=`<div class="sp-visit">`;
   if(n>1) h+=`<h4>${S==="remediation"&&V.remediation?esc(remediationName(V.remediation.route,V.remediation.pass)):S==="qa"&&Array.isArray(V.qa)&&V.qa.length?esc(passNames(V.qa.map(p=>p.pass))):`Visit ${i+1} of ${n}`}</h4>`;
   h+=(PAST[S]||PAST._)(V,o,keys);
+  /* the questions the halt that ended this visit put to you (a snapshot's asked) */
+  if(Array.isArray(V.asked)) h+=askedBlock(V.asked.filter(q=>q&&typeof q.text==="string"&&q.text.trim()),keys);
   if(V.detail&&S!=="sizing") h+=`<p>${rich(V.detail)}</p>`;
   const op=(Array.isArray(V.open)?V.open:[]).filter(x=>x&&typeof x.text==="string"&&x.text.trim());
   if(op.length){ keys.add(KEY_OPEN); h+=`<div class="sp-open"><p class="sp-sum">${op.length} open point${op.length===1?"":"s"} when it ended</p>${spList(op.map(x=>spItem("",pill(OPEN_PT),rich(x.text),[x.raised?esc(raisedWords(x.raised)):"",x.ref?refAt(x.ref,"",o.base)+liveCopyLink(x.copy,"the report as raised"):""].filter(Boolean).join(" · "))))}</div>`; }
@@ -1639,6 +1660,7 @@ function visitHtml(S,V,i,n,o,keys){ const grp=(l,v)=>`<span><span class="l">${l}
 function reconHtml(S,rc,o,keys){ let h=""; const at=x=>x.date?when(x.date):"";
   if(S==="sizing"&&rc.sized) h+=`<p>Sized <span class="nw">${when(rc.sized)}</span>.</p>`;
   if(S==="interview"&&Array.isArray(rc.interview)&&rc.interview.length) h+=PANEL.interview({interview:rc.interview},o,keys);
+  if(Array.isArray(rc.asked)&&rc.asked.length) h+=askedBlock(rc.asked,keys);
   if(S==="research"&&Array.isArray(rc.questions)&&rc.questions.length){ h+=`<p class="sp-sum">${rc.questions.length} question${rc.questions.length===1?"":"s"} in the trail</p>`;
     h+=spList(rc.questions.map(q=>{ if(!q.findings) keys.add(KEY_PAST_TODO); return spItem(q.findings?"done":"todo",dotMark,`<code>${esc(q.question)}</code>`,q.findings?refAt(q.findings,"findings",o.base):"no findings in the trail"); })); }
   if(S==="branch"&&rc.branch) h+=`<p>The branch: <code>${esc(rc.branch)}</code>.</p>`;
@@ -1855,8 +1877,10 @@ function renderWip(){
     if(NEXT_ROW&&!panels.length&&!ownPanel){ const beside=act.length>0; if(!beside) rowN++; h+=`<div class="wipcard next upnext${beside?" beside":""}" data-sys="${esc(NEXT_ROW.system||"")}" style="--r:${beside?1:rowN}"><div class="wipcard-t"><span class="k">Up next · unit ${esc(NEXT_ROW.unit.n)}</span><span>${uref(NEXT_ROW)}</span> ${TAG_NEXT} ${blockedPill(NEXT_ROW)}</div><p class="note">Not started${openBlockers(NEXT_ROW).length?": it starts once its blockers have landed":""}.</p></div>`; }
     if(NEXT_ROW) legend.push(KEY_NEXT(NEXT_ROW));
     /* waiting on you: only while the tracking issue or a unit's run is halted */
-    const waits=[...(HALTED?[`<li><b>#${esc(PLAN.issue)}</b>, the tracking issue: ${rich(WIP.waitingOn||WIP.detail||"(not stated)")}${WIP.resume?`<small>resumes at ${esc(WIP.resume)}</small>`:""}</li>`]:[]),
-      ...act.filter(runHeld).map(r=>{ const L=runOf(r); return `<li>${uref(r)}: ${rich(L.waitingOn||L.detail||"(not stated)")}${L.resume?`<small>its run resumes at ${esc(L.resume)}</small>`:""}</li>`; })];
+    /* each with the questions it waits on (plan/RULES.md §3; dashboards-skill/45): a unit's by their text, their options in its step panel beside; the tracking issue's own with their options, as no panel of its own is drawn while it waits */
+    const ownQs=waitingQs(WIP), wq=(qs,opts)=>qs.length?`<ul class="wq">${qs.map(q=>{ const ops=opts&&Array.isArray(q.options)?q.options.filter(x=>typeof x==="string"&&x.trim()):[]; return `<li>${rich(q.text)}${ops.length?`<ul class="sp-opts">${ops.map(x=>`<li>${rich(x)}</li>`).join("")}</ul>`:""}</li>`; }).join("")}</ul>`:"";
+    const waits=[...(HALTED?[`<li><b>#${esc(PLAN.issue)}</b>, the tracking issue: ${rich(WIP.waitingOn||WIP.detail||"(not stated)")}${wq(ownQs,true)}${WIP.resume?`<small>resumes at ${esc(WIP.resume)}</small>`:""}</li>`]:[]),
+      ...act.filter(runHeld).map(r=>{ const L=runOf(r), qs=waitingQs(L); return `<li>${uref(r)}: ${rich(L.waitingOn||L.detail||"(not stated)")}${wq(qs,false)}${qs.some(q=>Array.isArray(q.options)&&q.options.length)?`<small>the options: in its step panel</small>`:""}${L.resume?`<small>its run resumes at ${esc(L.resume)}</small>`:""}</li>`; })];
     if(waits.length){ rowN++; h+=`<div class="wipcard wait" style="--r:${rowN}"><div class="wipcard-t"><span class="k">⏸ Waiting on you</span></div><ul>${waits.join("")}</ul></div>`; legend.push(`<span><i class="wait"></i>yellow card: waiting on you, and for what</span>`); }
     /* the phase runs down beside every row the others take; alone, it takes the whole row */
     h=`<div class="wipgrid">${phase.replace(/^<div class="wipcard phase([^"]*)"/,(m,c)=>`<div class="wipcard phase${c}${rowN?"":" solo"}" style="--rows:${Math.max(rowN,1)}"`)}${h}</div>`;

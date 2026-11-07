@@ -805,6 +805,18 @@ refresh on its branch: the committed repository work board, and the repository s
   `where` drops them inside its one code label (§12, "Code"). A landed board keeps its rendering (§11, "Re-rendering"); a board in
   flight takes it at its next event.
 
+**The decision of admin-team/dashboards/halt-questions** (the user's decision of 2026-11-07, dated dashboards-skill/45), weighed for every type:
+
+- **The questions a halt puts to you, in any step** (`plan/RULES.md` §3, `wip.asked`; §4, the `halted` / `resumed` row): each with the
+  options it offers, answered or waiting on you, in the list the interview's questions use, in the step panel of the step it halted in;
+  on the visit the halt ended, so a finished step shows them; answered when the halt ends. Applied to issue boards and to tracking boards:
+  a tracking board's own halt in its panel and its "waiting on you" card (with their options, as no panel of its own is drawn while it
+  waits), and each unit's run through its mirror, in the unit's step panel and, by their text, in the "waiting on you" card. Held by the
+  `halt-questions` probe. Not to the repository work board: one row per run, its wait one line ("Waiting on you: …"); the questions and
+  their options are on the run's own board, which the row opens. Not to the state boards: as-is, no run and no halt. A halt recorded before
+  it keeps what it recorded, never backfilled; a landed board keeps its rendering (§11, "Re-rendering"), and a board in flight takes it at
+  its next event.
+
 ## 12. Elements — one name per function
 
 Every visible element on a board takes its name from the UI vocabulary,
