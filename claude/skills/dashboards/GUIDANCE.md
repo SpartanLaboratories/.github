@@ -308,14 +308,11 @@ board still carries (`BARE TEST LEVEL`); anywhere else a bare "Ln" is a work lev
 (`LEVEL ELIDED`, its summary's `warnings`) so the elision is visible.
 
 **No internal names** (dashboards-skill/33). Nothing a board shows or its data carries — its text, its labels, its data blocks, its
-comments, the fixed text of its template — names the pipeline's agents, sessions or roles (admin team, planner, plan-writer, architect,
-researcher, verifier, interviewer, presenter, publisher, rookie-dev, version-control-manager or executor, qa as an agent,
-code-reviewer, documentation-reviewer, test-inspector), refers to the approval flow ("the user's call", "the user chose", "user
-answers") or states a work level (above). Say what happened instead: "accepted", "a plan re-pass", "the fixes", "the land is accepted and
-being merged". Fine are "the implementer" (whoever builds the change), the qa step and its passes ("Quality Review 2", the Quality Reviews tile; below), the steps'
-own names (research, architecture, plan), a halt's "waiting on you", and a library's name that only coincides (OkHttp's `RoutePlanner`,
-a Reactive Streams `Publisher`, a `java.util.concurrent.Executor`: executor and publisher count only with the pipeline's verbs,
-"the executor commits", "the publisher released"). The data follows: the remediation routes' ids are `on-the-spot`,
+comments, the fixed text of its template — names the pipeline's agents, sessions or roles, refers to the approval flow or states a work
+level (above), as [`nomenclature/internal-names.md`](../../nomenclature/internal-names.md) lists them with what is fine. Say what
+happened instead: "accepted", "a plan re-pass", "the fixes", "the land is accepted and being merged". Fine on a board as well are the
+steps' own names (research, architecture, plan) and a halt's "waiting on you"; executor and publisher count only with the pipeline's
+verbs, "the executor commits", "the publisher released". The data follows: the remediation routes' ids are `on-the-spot`,
 `remediation` and `re-plan-then-remediation` (the older `rookie-dev` and `planner-then-rookie-dev` are read alike), the template's
 placeholder mark is `fill:` (a `presenter:` mark is migrated by the splice), a progress note is labelled by the work it reports ("research
 · <slug>", "code check"). `apply-event.js` rewords a pipeline fact through `system/scripts/namerefs.js` `scrubNames()` before it

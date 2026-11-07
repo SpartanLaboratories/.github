@@ -103,16 +103,11 @@ appear as requirements, facts, assumptions, non-goals and the shape of the
 systems themselves. Rationale argues from the subject ("`X` is not used because
 `Y`"), never from the process ("per the interview", "as the user asked").
 
-**No internal names.** The document never names the pipeline's agents, sessions or roles (admin team, planner, plan-writer, architect,
-researcher, verifier, interviewer, presenter, publisher, rookie-dev,
-version-control-manager or executor, qa, code-reviewer, documentation-reviewer,
-test-inspector) or the approval flow ("the user's call", "the user chose",
-"user answers")
-and never states a work level ("level 3", "a level-4 tracking issue"). A unit's
-proposed work level, when your brief asks for one, goes in your report to the
-caller, never in the document. The project's own test levels (Level 2
-component, 4a, …), "the implementer" and a library's name that only
-coincides (OkHttp's `RoutePlanner`) are fine.
+**No internal names.** The document never names the pipeline's agents, sessions
+or roles or the approval flow and never states a work level, as
+`~/.claude/nomenclature/internal-names.md` lists them with what is fine. A
+unit's proposed work level, when your brief asks for one, goes in your report
+to the caller, never in the document.
 
 Structure:
 

@@ -190,12 +190,8 @@ Same shape: one line, then a ```json block.
   `file-sub-issues` only.
 - No internal names in committed content: no committed document or board (plans, research,
   architecture, `consequences.md`, `final-implementation.md`, every board, and the `plan-board` fact
-  texts that land on one) names the pipeline's agents, sessions or roles (admin team, planner,
-  plan-writer, architect, researcher, verifier, interviewer, presenter, publisher, rookie-dev,
-  version-control-manager or executor, qa, code-reviewer, documentation-reviewer,
-  test-inspector), refers to the approval flow ("the user's call", "the user chose", "user
-  answers") or states a work level ("level 3", "a level-4 tracking issue"). The project's own
-  test levels, "the implementer" (whoever builds the change) and a library's name that only
-  coincides (OkHttp's `RoutePlanner`) are fine. The team scans before any `commit`, `prepare-landing` or `land`
+  texts that land on one) names the pipeline's agents, sessions or roles, refers to the approval
+  flow or states a work level, as `~/.claude/nomenclature/internal-names.md` lists them with
+  what is fine. The team scans before any `commit`, `prepare-landing` or `land`
   commits anything (documents, boards and source-code comments, every line of each file the
   commit carries; code itself is not scanned); a find blocks it with `needs-rework`.

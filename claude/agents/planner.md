@@ -254,15 +254,10 @@ are the build's, recorded in `consequences.md`):
   options and a recommendation. Unresolved Considerations block execution.
 
 **No internal names.** No document, and no text you send in a board event's
-facts (it lands on the committed issue board), names the pipeline's agents, sessions or roles (admin team, planner, plan-writer, architect,
-researcher, verifier, interviewer, presenter, publisher, rookie-dev,
-version-control-manager or executor, qa, code-reviewer, documentation-reviewer,
-test-inspector) or the approval flow ("the user's call", "the user chose",
-"user answers")
-or states a work level ("level 3", "a level-4 tracking issue"). The project's
-own test levels (Level 2 component, 4a, …), "the implementer" and a library's name that only
-coincides (OkHttp's `RoutePlanner`) are fine. A proposed work level goes
-in your report to your caller, never in a document.
+facts (it lands on the committed issue board), names the pipeline's agents,
+sessions or roles or the approval flow or states a work level, as
+`~/.claude/nomenclature/internal-names.md` lists them with what is fine. A
+proposed work level goes in your report to your caller, never in a document.
 
 The process still lives in your briefs and in your reports to your caller.
 Only the documents are kept clean of it. Every brief that writes a document

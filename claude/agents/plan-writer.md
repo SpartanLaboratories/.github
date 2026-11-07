@@ -150,15 +150,10 @@ appear as requirements, facts, assumptions, non-goals and the concrete changes
 themselves. Rationale argues from the subject ("`X` is not used because `Y`"),
 never from the process ("per the interview", "as the user asked").
 
-**No internal names.** The plan never names the pipeline's agents, sessions or roles (admin team, planner, plan-writer, architect,
-researcher, verifier, interviewer, presenter, publisher, rookie-dev,
-version-control-manager or executor, qa, code-reviewer, documentation-reviewer,
-test-inspector) or the approval flow ("the user's call", "the user chose",
-"user answers")
-and never states a work level ("level 3", "a level-4 tracking issue"); say "the
-implementer", "the parent architecture", "this fix". The project's own test
-levels (Level 2 component, 4a, …) and a library's name that only
-coincides (OkHttp's `RoutePlanner`) are fine.
+**No internal names.** The plan never names the pipeline's agents, sessions or
+roles or the approval flow and never states a work level, as
+`~/.claude/nomenclature/internal-names.md` lists them with what is fine; say
+"the implementer", "the parent architecture", "this fix".
 
 **Structure** (drop what is irrelevant, keep the order):
 

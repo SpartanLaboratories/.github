@@ -81,7 +81,8 @@
 // header's switches (verify/cases-switches.js): the theme switch drawn as a switch, the inspector switch where there is an inspector, the decision path's legend. The
 // inspector's Hide button (verify/cases-inspector-hide.js): one state with the inspector switch, the focus moved to the switch. The C4 DSL
 // reader (verify/cases-dsl-keyword-id.js): a block keyword as an element's identifier read as the element, and check-board.js failing a DSL
-// its C4 views would trip on (DSL KEYWORD ID, DSL UNKNOWN ELEMENT). A
+// its C4 views would trip on (DSL KEYWORD ID, DSL UNKNOWN ELEMENT). The internal-names list's one home (verify/cases-internal-names.js):
+// nomenclature/internal-names.md §1 and §2 and namerefs.js's barred names and approval-flow phrases held equal. A
 // template is recorded only when every check it runs passes: by default those that need no browser; with --browser its browser
 // passes and the rendered cases too.
 "use strict";
@@ -2239,8 +2240,10 @@ catch (e) { report("a foundation on the fast path cases", [["the cases run to th
    toggle (verify/cases-file-tree.js, admin-team/dashboards/step-file-tree, dated 43). The Gap cell's marks, the evidence count label, the bold
    lead, the where chip and the baseline chip, and a row's where drawing its code spans as code (verify/cases-gap-marks.js,
    admin-team/dashboards/gap-marks, dated 44). The questions a halt puts to the user in any step, with their options, on the visit the halt
-   ended and answered when it ends (verify/cases-halt-questions.js, admin-team/dashboards/halt-questions, dated 45). Each runs on its own too. */
-[["./cases-design-tab-defects.js", "the Design tab's defects"], ["./cases-option-d.js", "a tracking plan lands, then files"], ["./cases-fill.js", "a fill merges onto the latest board"], ["./cases-work-levels.js", "a board keeps no work level"], ["./cases-archived-colours.js", "an archived system holds no colour"], ["./cases-quality-review.js", "a qa pass is named Quality Review N"], ["./cases-board-wording.js", "the board's names and classes"], ["./cases-code-label.js", "the code label and an option's signature"], ["./cases-file-tree.js", "a step's files nested by their folders"], ["./cases-gap-marks.js", "the Gap cell's marks"], ["./cases-halt-questions.js", "the questions a halt puts to you"]].forEach(([file, what0]) => {
+   ended and answered when it ends (verify/cases-halt-questions.js, admin-team/dashboards/halt-questions, dated 45). The internal-names list's one home: nomenclature/internal-names.md §1 and §2 held equal
+   to namerefs.js's barred names, each at its strength, and its approval-flow phrases (verify/cases-internal-names.js, the user's decision of
+   2026-11-07). Each runs on its own too. */
+[["./cases-design-tab-defects.js", "the Design tab's defects"], ["./cases-option-d.js", "a tracking plan lands, then files"], ["./cases-fill.js", "a fill merges onto the latest board"], ["./cases-work-levels.js", "a board keeps no work level"], ["./cases-archived-colours.js", "an archived system holds no colour"], ["./cases-quality-review.js", "a qa pass is named Quality Review N"], ["./cases-board-wording.js", "the board's names and classes"], ["./cases-code-label.js", "the code label and an option's signature"], ["./cases-file-tree.js", "a step's files nested by their folders"], ["./cases-gap-marks.js", "the Gap cell's marks"], ["./cases-halt-questions.js", "the questions a halt puts to you"], ["./cases-internal-names.js", "the internal-names list and namerefs.js agree"]].forEach(([file, what0]) => {
   try { require(file)({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
   catch (e) { report(`${what0} cases`, [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); } });
 

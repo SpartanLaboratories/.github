@@ -48,14 +48,9 @@ improvise.
   other step of the run. This file is the only documentation you edit beyond what the plan
   itself assigns you. The planner later turns it
   into the final as-built record. It is committed, so, like every document you write, it
-  never names the pipeline's agents, sessions or roles (admin team, planner, plan-writer, architect,
-  researcher, verifier, interviewer, presenter, publisher, rookie-dev,
-  version-control-manager or executor, qa, code-reviewer, documentation-reviewer,
-  test-inspector) or the approval flow ("the user's call", "the user chose",
-  "user answers") and never states a work
-  level ("level 3", "a level-4 tracking issue"); the project's own test levels (Level 2
-  component, 4a, …), "the implementer" and a library's name that only
-  coincides (OkHttp's `RoutePlanner`) are fine.
+  never names the pipeline's agents, sessions or roles or the approval flow and never
+  states a work level, as `~/.claude/nomenclature/internal-names.md` lists them with what
+  is fine.
 - **No version control, no release.** Never `git add` / `commit` / `push` /
   `branch` / `merge` / `rebase` / `tag`, never open or merge a PR, never run a
   publish or release task, never file an issue. Leave your changes in the

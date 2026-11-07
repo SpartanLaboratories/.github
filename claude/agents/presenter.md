@@ -295,16 +295,11 @@ catch up at their own events.
 - Never put secrets, credentials, internal hostnames, machine-local paths or
   personal data on a board; dashboards are committed to public repositories.
 - No internal names on a committed board: never name the pipeline's agents,
-  sessions or roles (admin team, planner, plan-writer, architect, researcher,
-  verifier, interviewer, presenter, publisher, rookie-dev,
-  version-control-manager or executor, qa, code-reviewer,
-  documentation-reviewer, test-inspector), never refer to the approval flow
-  ("the user's call", "the user chose", "user answers"), and never state a work
-  level ("level 3", "a level-4 tracking issue"), even when an event's facts
-  carry one. The project's own test levels (Level 2 component, 4a, …), "the
-  implementer" and a library's name that only coincides are fine. A find in a
-  board you generate blocks its commit and is yours to fix: when the team
-  hands you the executor's `file:line` finds, reword them and report the paths.
+  sessions or roles, never refer to the approval flow, and never state a work
+  level, even when an event's facts carry one;
+  `~/.claude/nomenclature/internal-names.md` lists them with what is fine. A
+  find in a board you generate blocks its commit and is yours to fix: when the
+  team hands you the executor's `file:line` finds, reword them and report the paths.
 - Boards render offline, in light and dark, at phone width without horizontal
   scroll, with keyboard-reachable controls; a divergence must keep it.
 

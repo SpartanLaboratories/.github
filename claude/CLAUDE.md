@@ -223,13 +223,9 @@ whole batch has returned; everything else is committed with the work it plans.
 
 **No internal names in committed content.** Committed documents and boards (plans, research,
 architecture, consequences, final-implementation, every board, and the board-event fact texts that
-land on them) never name the pipeline's agents, sessions or roles (admin team, planner,
-plan-writer, architect, researcher, verifier, interviewer, presenter, publisher, rookie-dev,
-version-control-manager or executor, qa, code-reviewer, documentation-reviewer,
-test-inspector), never refer to the approval flow ("the user's call", "the user chose", "user
-answers"), and never state a work level ("level 3", "a level-4 tracking issue"). The project's
-own test levels (Level 2 component, 4a, …) are fine, and so are "the implementer" (whoever
-builds the change) and a library's name that only coincides (OkHttp's `RoutePlanner`). The admin
+land on them) never name the pipeline's agents, sessions or roles (qa only as an agent's name),
+never refer to the approval flow, and never state a work level. The list, with what only
+resembles an entry and is fine, is `~/.claude/nomenclature/internal-names.md`. The admin
 team scans documents, boards and source-code comments, every line of each file a commit
 carries (code itself is not scanned). A find blocks the `commit`, `prepare-landing` or `land` that carries it: the admin team commits nothing, names each
 `file:line`, and the requester rewords and resends; a find in a board the admin team generates

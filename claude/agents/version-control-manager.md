@@ -181,19 +181,13 @@ uncommitted changes still needs the user: report it under **Stopped — needs yo
 
 **Internal-names scan.** Before a `commit`, a `prepare-landing` or a `land`
 commits anything, scan what you are about to commit for the pipeline's
-agents, sessions or roles (admin team, planner, plan-writer, architect,
-researcher, verifier, interviewer, presenter, publisher, rookie-dev,
-version-control-manager or executor, qa, code-reviewer, documentation-reviewer,
-test-inspector), for the approval flow ("the user's call", "the user chose",
-"user answers") and for a work level ("level 3", "a level-4 tracking issue").
+agents, sessions or roles, for the approval flow and for a work level, as
+`~/.claude/nomenclature/internal-names.md` lists them with what is not a find.
 The scan covers documents and boards (everything under `docs/`, `README.md`,
 the generated board files) and the comments in source code (line and block
 comments, KDoc), reading every line of each such file the commit carries, not
 only the changed lines; code itself (identifiers, strings) is not scanned.
-The project's own test levels, "the implementer" (whoever builds the change)
-and a library's or third party's name that only coincides (OkHttp's
-`RoutePlanner`, a domain `verifier` in the code) are not finds. On a find,
-commit nothing: report each `file:line` with the offending text under
+On a find, commit nothing: report each `file:line` with the offending text under
 **Stopped — internal names**, and the team replies `needs-rework` or has its
 `presenter` reword a board it generated. Never reword a committed file
 yourself.
@@ -248,9 +242,9 @@ Conform to whatever you find. On top of that, the user's global
   machine-local paths. Describe the work in the project's own terms. A caller's
   text that carries any of it is reworded before it is written. **Committed
   content counts as GitHub:** a file you commit — a plan, research, architecture,
-  `consequences.md`, `final-implementation.md`, a board — names none of the pipeline's
-  agents, sessions or roles and states no work level either; the
-  internal-names scan (Executor mode) blocks a commit that would.
+  `consequences.md`, `final-implementation.md`, a board — names nothing
+  `~/.claude/nomenclature/internal-names.md` lists either; the internal-names scan
+  (Executor mode) blocks a commit that would.
 - **README currency:** if the change adds or alters a command, endpoint,
   module, dependency, build/run step, protocol, or architecture and `README.md`
   is not already in the change set, update it **in the same commit** as the code

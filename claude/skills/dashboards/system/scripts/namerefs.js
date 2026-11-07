@@ -1,13 +1,12 @@
-// Internal names (GUIDANCE.md §4, "No internal names"; dashboards-skill/33): a board never names the pipeline's agents, sessions or roles
-// (admin team, planner, plan-writer, architect, researcher, verifier, interviewer, presenter, publisher, rookie-dev,
-// version-control-manager or executor, qa as an agent, code-reviewer, documentation-reviewer, test-inspector), never refers to the
-// approval flow ("the user's call", "the user chose", "user answers"), and never states a work level (levelrefs.js). The implementer
-// ("the implementer", whoever builds the change), the qa step and its passes ("Quality Review 2", passnames.js; "the QA tile"), the steps' own names
-// (research, architecture, plan) and a library's name that only coincides (OkHttp's `RoutePlanner`, a Reactive Streams `Publisher`, a
-// `java.util.concurrent.Executor`) are fine.
-// The forms come in two strengths: the names no library uses (UNAMBIGUOUS: admin team, plan-writer, rookie-dev, …) match wherever they
-// stand; the words a library may use as well (planner, architect, verifier, presenter) match only as an agent, after an article or "by"
-// ("the planner", "by the verifier"), as a possessive ("the presenter's"), as a label or a subject ("planner: …", "planner reconciles")
+// Internal names (GUIDANCE.md §4, "No internal names"; dashboards-skill/33): a board never names the pipeline's agents, sessions or roles,
+// never refers to the approval flow, and never states a work level (levelrefs.js). The terms and what is fine beside them have one home,
+// ~/.claude/nomenclature/internal-names.md (§1 the agents, sessions and roles; §2 the approval flow; §4 what is allowed); the lists below
+// are its copy for the scan, held equal to its §1 and §2 tables by verify/cases-internal-names.js. Fine as well are the steps' own names
+// (research, architecture, plan) and the qa step's passes by their names (passnames.js).
+// The forms come in two strengths: the names no library uses (UNAMBIGUOUS: admin team, plan-writer, rookie-dev, direction-manager, …)
+// match wherever they stand, "admin team" and "direction manager" with a space as well as a hyphen (no library uses either; in code a
+// `DirectionManager` is masked or one word); the words a library may use as well (planner, architect, verifier, presenter) match only as
+// an agent, after an article or "by" ("the planner", "by the verifier"), as a possessive ("the presenter's"), as a label or a subject ("planner: …", "planner reconciles")
 // or before a pipeline noun ("planner re-pass"), and never inside code (backticks, <code>) or as part of a longer word (RoutePlanner); the
 // two a concurrency or a reactive library uses all the time, executor and publisher, only with the pipeline's own verbs ("the executor
 // commits", "the publisher released"), so "the dispatcher and the executor" on a state board is left alone. "qa" matches only as an agent ("qa found", "qa
@@ -21,9 +20,15 @@
 // and its rendered text, warned) and by plan/scripts/apply-event.js, which rewords a fact text through scrubNames() before it is written,
 // and leaves it out, telling the presenter (enrich), where a name would remain.
 "use strict";
-const UNAMBIGUOUS = ["admin[- ]teams?", "plan-writers?", "rookie-devs?", "version-control-managers?", "code-reviewers?", "documentation-reviewers?", "test-inspectors?", "interviewers?", "researchers?"];
+/* internal-names.md §1, by strength: a name its "Allowed when" reads "never" for is UNAMBIGUOUS; a library's name that only coincides is
+   CONTEXTUAL or, for the two a concurrency or a reactive library uses all the time, VERB_ONLY; qa is barred as an agent's name only (AGENT_ONLY) */
+const UNAMBIGUOUS = ["admin[- ]teams?", "plan-writers?", "rookie-devs?", "version-control-managers?", "direction[- ]managers?", "code-reviewers?", "documentation-reviewers?", "test-inspectors?", "interviewers?", "researchers?"];
 const CONTEXTUAL = ["planners?", "architects?", "verifiers?", "presenters?"];
 /* executor and publisher: the pipeline's only with its verbs */
+const VERB_ONLY = ["executors?", "publishers?"];
+const AGENT_ONLY = ["qa"];
+/* internal-names.md §2: the approval flow's phrases, each matched by the forms below (a word between, the passive) */
+const APPROVAL_FLOW = ["the user's call", "the user chose", "user answers"];
 const PIPELINE_VERBS = "commits?|committed|pushe[sd]|push|merges?|merged|lands?|landed|files?|filed|releases?|released|publishe[sd]|defers?|deferred|tags?|tagged|confirms?|confirmed";
 const ROLE_NOUNS = "agent|agents|session|sessions|re-pass|re-passes|repass|step|verdict|report|reports|leg|lane|lanes|brief|fixes|pass";
 const CTX = CONTEXTUAL.join("|");
@@ -34,7 +39,7 @@ const NAME_PATTERNS = [
   [`\\b(?:${CTX})\\s+(?:${ROLE_NOUNS})\\b`, "i"],                                                           // "planner re-pass", "verifier report"
   [`(?:^|[.;:!?]\\s+|\\(\\s*)(?:${CTX})\\s+[a-z]+(?:s|ed)\\b`, "i"],                                             // "planner reconciles" (the role as the subject)
   [`(?:^|[;,]\\s*|\\(\\s*)(?:${CTX})\\s*:`, "i"],                                                                  // "planner: rule on the gaps" (the role as a label)
-  [`\\b(?:executors?|publishers?)['’]?s?\\s+(?:${PIPELINE_VERBS})\\b`, "i"],                                         // "the executor commits", "the publisher released"
+  [`\\b(?:${VERB_ONLY.join("|")})['’]?s?\\s+(?:${PIPELINE_VERBS})\\b`, "i"],                                         // "the executor commits", "the publisher released"
   [`\\bthe\\s+manager(?:['’]s\\b|\\s+(?:${PIPELINE_VERBS})\\b)`, "i"],                                                // "the manager's final call": the version-control-manager, shortened
   ["\\bqa\\s+(?:agent|agents|found|finds|flagged|flags|raised|raises|reported|reports|said|says|asked|asks|approved|approves|rejected|rejects|returned|returns|requested|requests|reviewer|team|has\\s+approved|had\\s+approved|has\\s+found|had\\s+found)\\b", "i"], // "qa found", "qa has approved"
   ["\\b(?:by|from)\\s+qa\\b(?!\\s+pass)", "i"],                                                             // "raised by qa", never "from qa pass 2"
@@ -99,7 +104,7 @@ function scrubNames(text) {
   if (typeof text === "string") text = scrubWaits(text);
   if (typeof text !== "string" || !nameRefs(text).length) return { text, left: [] };
   const cap = /^[A-Z]/.test(text.trim());
-  const ROLE = `(?:admin[- ]team|plan-writer|rookie-dev|version-control-manager|code-reviewer|documentation-reviewer|test-inspector|interviewer|researchers?|${CTX}|executors?|publishers?|qa)`;
+  const ROLE = `(?:admin[- ]team|plan-writer|rookie-dev|version-control-manager|direction[- ]manager|code-reviewer|documentation-reviewer|test-inspector|interviewer|researchers?|${CTX}|executors?|publishers?|qa)`;
   let s = text;
   /* an aside on the approval flow */
   s = s.replace(/\s*\(\s*(?:the\s+)?user['’]s\s+(?:call|choice|decision|approval|sign-?off|go-ahead)\s*\)/gi, "");
@@ -123,4 +128,4 @@ function scrubNames(text) {
 const unambiguous = hit => new RegExp(`\\b(?:${UNAMBIGUOUS.join("|")})\\b`, "i").test(hit) || /\buser\b/i.test(hit) || /\bqa\b/i.test(hit);
 /* the warning's line */
 const nameWarning = (where, hits) => `INTERNAL NAME: ${where} names ${[...new Set(hits)].slice(0, 6).map(h => JSON.stringify(h)).join(", ")}: a board never names the pipeline's agents, sessions or roles, nor the approval flow (GUIDANCE.md §4); reword it at the board's next refresh`;
-module.exports = { NAME_PATTERNS, UNAMBIGUOUS, CONTEXTUAL, nameRefs, nameSpans, nameRefsIn, commentRefs, scrubNames, waitRefs, scrubWaits, unambiguous, nameWarning };
+module.exports = { NAME_PATTERNS, UNAMBIGUOUS, CONTEXTUAL, VERB_ONLY, AGENT_ONLY, APPROVAL_FLOW, nameRefs, nameSpans, nameRefsIn, commentRefs, scrubNames, waitRefs, scrubWaits, unambiguous, nameWarning };

@@ -148,16 +148,10 @@ lane at a time. Read its report, append the outcome to the ledger, reply.
 **Internal names block a commit.** Committed content (every document and board:
 plans, research, architecture, `consequences.md`, `final-implementation.md`, the boards,
 and the board-event fact texts that land on them) never names the pipeline's
-agents, sessions or roles (admin team, planner, plan-writer, architect,
-researcher, verifier, interviewer, presenter, publisher, rookie-dev,
-version-control-manager or executor, qa, code-reviewer, documentation-reviewer,
-test-inspector), never refers to the approval flow ("the user's call", "the
-user chose", "user answers"), and never states a work level ("level 3", "a
-level-4 tracking issue"). The project's own test levels (Level 2 component, 4a,
-…) are fine, and so are "the implementer" (whoever builds the change) and a
-library's or third party's name that only coincides (OkHttp's `RoutePlanner`).
-Before a `commit`, a `prepare-landing` or a `land` commits anything, the
-executor scans what it is about to commit: documents and boards (`docs/`,
+agents, sessions or roles, never refers to the approval flow, and never states
+a work level, as `~/.claude/nomenclature/internal-names.md` lists them with
+what is fine. Before a `commit`, a `prepare-landing` or a `land` commits
+anything, the executor scans what it is about to commit: documents and boards (`docs/`,
 `README.md`, the generated board files) and the comments in source code, every
 line of each such file the commit carries (code itself is not scanned); on a find it commits nothing and reports each `file:line`. A
 find in a file the requester wrote is theirs: reply `needs-rework` with

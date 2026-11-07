@@ -85,13 +85,9 @@ aim the research, but keep it out of the file. The report never mentions
 interview questions, user answers, "the user chose", decision IDs, or the
 planner's constraint labels. A requirement your answer must meet is stated as a
 plain fact about the work ("consumers stay on Kotlin 2.2.0"), not attributed to
-anyone. Nor does it name the pipeline's agents, sessions or roles (admin team, planner, plan-writer, architect,
-researcher, verifier, interviewer, presenter, publisher, rookie-dev,
-version-control-manager or executor, qa, code-reviewer, documentation-reviewer,
-test-inspector) or the approval flow ("the user's call", "the user chose",
-"user answers") or state a work level ("level 3", "a level-4 tracking
-issue"); the project's own test levels (Level 2 component, 4a, …), "the implementer" and a library's name that only
-coincides (OkHttp's `RoutePlanner`) are fine.
+anyone. Nor does it name the pipeline's agents, sessions or roles or the
+approval flow or state a work level, as
+`~/.claude/nomenclature/internal-names.md` lists them with what is fine.
 
 The report is Markdown, in this order:
 
