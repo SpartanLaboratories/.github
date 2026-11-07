@@ -84,7 +84,8 @@ what it asks for waits for the user. It is fire-and-forget for the sender.
 **`prepare-landing`.** Opens a run's Document step, after its last qa verdict. The team syncs the
 branch with its base (merge, the repo's way; `needs-rework` with `result.overlap` when the base
 changed files the branch also touches: the run re-verifies with the change's own tests and resends
-the same `id` with `attempt + 1` and a fresh `qa`) and commits the version bump the level calls
+the same `id` with `attempt + 1` and a fresh `qa`; a conflict the team resolves itself is not sent
+back: `needs-rework`, below) and commits the version bump the level calls
 for; `done` carries `result.head`, the **code-landing commit**. From then on only documents change
 on the branch.
 
@@ -172,7 +173,7 @@ Same shape: one line, then a ```json block.
 | `done` | Finished. `result` carries SHAs, PR, merge commit, links, worktree path. For a `land`, `result.release` is `{status, coordinates, deploymentId, tags, releases, reason, used}` with `status` one of `published`, `deferred` (`reason`: `cap-reached`, `reserve-held`), `failed` (the user decides at the team's console) or `none` (no published module moved); `result.corrections` lists the landed state the next run in the repository seeds onto its branch at `sized` (this landing's issue board as `landed`, its tracking board, the repository work board). |
 | `rejected` | Refused. `reason` names the rule. Fix the request and send a new `id`. |
 | `needs-user` | Waiting on the user at the team's console. `waitingOn` says for what. |
-| `needs-rework` | A `prepare-landing` or `land` whose base moved under its files: `result.overlap` lists them; re-verify, then resend the same `id` with `attempt + 1` and a fresh `qa`. Or a `commit`, `prepare-landing` or `land` whose content breaks the internal-names rule (below): nothing was committed, `result.finds` lists each `file:line` with its text; reword them, then resend the same `id` with `attempt + 1`. A find in a board the team generates is the team's to fix and is never sent back. |
+| `needs-rework` | A `prepare-landing` or `land` whose base moved under its files: `result.overlap` lists them; re-verify, then resend the same `id` with `attempt + 1` and a fresh `qa`. A conflict only in generated board files (the work boards, or the state-board files under `docs/dashboards/`), or a `CHANGELOG.md` conflict where both sides only added entries, the team resolves itself and never sends back; any other conflict, every `README.md` conflict included, comes back this way. Or a `commit`, `prepare-landing` or `land` whose content breaks the internal-names rule (below): nothing was committed, `result.finds` lists each `file:line` with its text; reword them, then resend the same `id` with `attempt + 1`. A find in a board the team generates is the team's to fix and is never sent back. |
 | `warning` | Not a state change: another in-flight branch touches the same hand-written file (`result.paths`). |
 
 ## Rules both sides keep

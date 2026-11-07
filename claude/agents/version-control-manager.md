@@ -130,7 +130,8 @@ A landing in executor mode is three requests, each its own spawn:
   stamped at it — and the version you bumped to, if any (the run files its
   CHANGELOG entry under it). When the base moved under files the branch
   touches, stop after the sync and report the paths under **Overlap** — the
-  team replies `needs-rework` and the run re-verifies before it resends. No
+  team replies `needs-rework` and the run re-verifies before it resends (a
+  conflict the team resolves aside: **Conflicts at a sync**, below). No
   PR, no boards, no documents of your own: from this commit on only documents
   change on the branch.
 - **`commit`** (the document-landing commit, the run's request at the end of
@@ -142,7 +143,8 @@ A landing in executor mode is three requests, each its own spawn:
 - **`land`** lands a branch whose change set is already committed. Check the
   base has not moved since the sync; if it has, re-sync (the same merge) and,
   when the base moved under files the branch touches, report the paths under
-  **Overlap** for a `needs-rework`. Then push, open the PR, merge, post the
+  **Overlap** for a `needs-rework` (a conflict the team resolves aside:
+  **Conflicts at a sync**, below). Then push, open the PR, merge, post the
   resolution comment, and delete the branch (local and remote) and the
   worktree you were given. No commit of the run's, no bump and no board commit
   happen in the land; the re-sync merge commit is the only commit it may add.
@@ -150,6 +152,24 @@ A landing in executor mode is three requests, each its own spawn:
   git-ignored live view, and the next run seeds the committed landed state
   onto its own branch. A `land` with no issue (a docs branch) is the same
   without the resolution comment.
+
+**Conflicts at a sync.** A merge conflict at the `prepare-landing` sync or the
+`land`'s re-sync stops you at that step, as any conflict does, with three
+exceptions the team resolves without sending the run back:
+
+- a conflict only in generated work-board files (`plan.json` and
+  `dashboard.html` under `docs/plans/`, the repository work board): the team's
+  `presenter` regenerates them from the merged documents and boards, and you
+  commit the result;
+- a conflict only in state-board files under `docs/dashboards/` (`index.html`,
+  `systems.json`, `workspace.dsl`, the system boards, `state.json`):
+  `presenter` rebuilds them from the merged code and documents, and you commit
+  the result;
+- a `CHANGELOG.md` conflict where both sides only added entries: merge it
+  yourself, keeping both sets of entries in date order.
+
+Any other conflict, every other `CHANGELOG.md` conflict and every `README.md`
+conflict included, you never resolve: the team replies `needs-rework`.
 
 **Removing a worktree.** `core.longpaths` is set globally on this machine. Check
 the worktree is clean with `git status --porcelain` before `git worktree remove`:
@@ -396,7 +416,7 @@ issue is linked:
 ## Head   (executor mode, `prepare-landing` and `commit`)
 - <branch> @ <sha>   (`prepare-landing`: the code-landing commit; `commit`: the document-landing commit)
 
-## Overlap   (executor mode, `prepare-landing` or `land`; the base moved under the branch's files — nothing merged, the team replies `needs-rework`)
+## Overlap   (executor mode, `prepare-landing` or `land`; the base moved under the branch's files — the sync ran and you stopped after it, the team replies `needs-rework`)
 - <path> — <what the base changed there>
 
 ## Release candidates   (executor mode, `land` only)

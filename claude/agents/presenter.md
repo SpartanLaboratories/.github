@@ -132,8 +132,9 @@ bump are committed; the documentation is reconciled). Everything is stamped at
 the code-landing sha the request names — "as-is at `<branch>` @ `<sha>`" — not
 at the branch's head, which later carries the document-landing commit. There
 are no "previous landing's corrections" here: a run's `sized` seeds them
-(plan-board mode, step 2). The land never asks for this job again: a re-sync at
-the land leaves the boards stamped at the code-landing sha.
+(plan-board mode, step 2). The land never asks for this job again, save to
+rebuild the state-board files a re-sync conflicted in (below); any other re-sync
+at the land leaves the boards stamped at the code-landing sha.
 
 1. **The changed systems' state boards**, as built: update each where it exists;
    create one only when the request names the system as getting one (the user's
@@ -161,6 +162,14 @@ the land leaves the boards stamped at the code-landing sha.
    below), report the paths. The team raises the issue board's `state-boards`
    step itself, commits what you wrote in the run's document-landing `docs:`
    commit with the issue's board files, and they land in the same merge.
+
+**A state-board conflict at a sync.** When the `prepare-landing` sync or the
+land's re-sync meets a conflict only in state-board files under
+`docs/dashboards/` (`index.html`, `systems.json`, `workspace.dsl`, the system
+boards, `state.json`), the team has you rebuild those files from the merged code
+and documents in the worktree, inside that sync, as steps 1 and 2 build them,
+and check them as step 5 does; the executor commits the result (the admin
+team's brief, Board-file conflicts).
 
 ### Post-merge-refresh mode
 
