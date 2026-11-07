@@ -45,7 +45,7 @@ skill runs a different pipeline per level:
 | Step | Level 1 — no impact | Level 2 — small fix | Level 3 — small feature | Level 4 — multi-system |
 |------|---------------------|---------------------|-------------------------|------------------------|
 | 2. Plan | skipped | `planner` (level 2, Sonnet) | `planner` (level 3) | `planner` (level 4) |
-| 3. Branch | `admin team`: `setup-branch` | `admin team`: `setup-branch` | `admin team`: `setup-branch` | `admin team`: `setup-branch` |
+| 3. Branch | confirm the branch | confirm the branch; `branch-cut` | confirm the branch; `branch-cut` | confirm the branch; `branch-cut` |
 | 4. Implement | `rookie-dev` from the issue text | `rookie-dev`, test-first | `rookie-dev` | **skipped** |
 | 5. QA | `qa level:1` | `qa level:2` | `qa level:3` | **skipped** |
 | 6. Document | `admin team`: `prepare-landing` (sync, no bump); documentation review and reconcile; Dokka check; README only; `admin team`: `state-boards` | `admin team`: `prepare-landing` (sync, fix bump); documentation review and reconcile; Dokka check; `planner` reconciles the plan; README and CHANGELOG; `admin team`: `state-boards` | `admin team`: `prepare-landing` (sync, feature bump only with a downstream effect); documentation review and reconcile; Dokka check; `planner` reconciles the plan; README and CHANGELOG; `admin team`: `state-boards` | `admin team`: `prepare-landing` (sync, no bump); architecture and `consequences.md` confirmed final; `admin team`: `state-boards` draws the planned systems |
@@ -104,6 +104,14 @@ replies `needs-rework` with `result.finds` (`file:line`); reword each find and r
   user. The confirmed level is the run's level.
 - Check `git status` is clean. If it is not, stop and ask the user to settle
   the working tree first.
+- **Branch.** The run creates its topic branch now, or at the latest with its
+  first research commit. Now: send the admin team a `setup-branch` request
+  (the `admin-team` skill) with the issue reference, the **work level** and the
+  note "set up the branch only, and record the confirmed level if it differs",
+  and carry forward the branch name and base its `done` reply reports. With the
+  first research commit (levels 3–4): the team's executor creates the topic
+  branch for that `commit`. A run that makes no research commit (levels 1–2)
+  creates it now: step 3 never creates it.
 
 ## Tracking issues and run modes
 
@@ -236,15 +244,13 @@ to make the agreed edit.
   document path and the approved sub-issue list (level 4), plus the recommended
   approach.
 
-## 3. Branch — `admin team`: `setup-branch`
+## 3. Branch — confirm the branch, `branch-cut`
 
-Send the admin team a `setup-branch` request (the `admin-team` skill) with the
-issue reference, the **work level**, the plan document (if any), the note "set
-up the branch only, and record the confirmed
-level if it differs", and — for levels 3–4 — the research commit SHAs
-`planner` reported, which are the only commits so far. The team's executor
-creates the topic branch. Carry forward the branch name and base its `done`
-reply reports.
+Confirm the topic branch the run created when it was sized or with its first
+research commit (step 1), and carry forward its name and base; this step never
+creates the branch. Then, at levels 2–4, send the `branch-cut` event with the
+branch and the plan's stages ("Plan-board events" below). A run whose branch
+already exists still sends `branch-cut` after `plan-accepted`, with its stages.
 
 **Level 4:** go straight to step 6 (Document): its `prepare-landing` sync (no
 bump), the confirmation that the architecture and `consequences.md` are final,
@@ -421,7 +427,7 @@ sends none.
 | Research verified | `researched` | the research README path |
 | Level-4 sign-off | `architecture-signed-off` | the architecture path, the approved unit list |
 | Planner COMPLETE | `plan-accepted` | the plan path, consequences path |
-| Step 3 done | `branch-cut` | branch, worktree |
+| Step 3 done | `branch-cut` | branch, worktree, `stages`: every stage of the plan, its id and name |
 | Each rookie-dev report | `implementation-stage` | the stage, `stages`: every stage's id and name with its state (`done`, `current`, `todo`), `final-implementation.md` path, deviations; during a remediation loop also `remediation`: the qa pass it answers, the route (`on-the-spot` / `remediation` / `re-plan-then-remediation`) and its sub-steps with their state; `tests`: the test classes the stage added or amended (`added`/`amended`: class, module, testLevel, path, tests, rows). It names no `step` |
 | Just before each `qa` pass is spawned | `qa-pass` | `qa: {pass: N, verdict: "running"}`, `at` |
 | Each qa verdict | `qa-pass` | pass number, verdict, finding counts by kind (test, code) and by `severity` (`minor` — easily made, no fallout — and `other`), the route step 5 takes from them, `rows`: the board row ids the findings touch, report path; `tests`: what the qa run ran (`ran`: class, module, passed, failed, skipped) and the counts of the untouched modules' tests (`other.byModule`) from the test-inspector report |
