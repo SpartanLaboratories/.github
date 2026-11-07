@@ -440,7 +440,13 @@ inspector is shown when a board opens until the switch hides it; the choice is r
 is (`localStorage` key `dashboards-inspector`, shared by every dashboard of the same origin, applied in the board's head before its
 first paint). Hidden, the inspector leaves the stage and the tab's content takes its width. Clicking an item while it is hidden — a
 cell, a card, a component, a thread, a step, anything that writes into the inspector, a tab aside — shows it again and flips the
-switch to shown. The repository work board has no inspector, so no inspector switch.
+switch to shown. **The inspector's Hide button** (admin-team/dashboards/inspector-hide-button, the user's decision of 2026-11-07): the
+inspector itself carries a button (`ui.md`, Button) in its head, right of its heading — an eye struck through, an inline SVG drawn in the
+current text colour, and the word "Hide" beside it, in the boards' neutrals (never the accent or a status colour), its accessible name
+"Hide the inspector". It hides the inspector exactly as the switch does, driving the same remembered state, so the switch is always in
+step (unchecked once it is hidden); the focus moves to the inspector switch in the topbar, which, or an item clicked, shows it again. The
+switch stays. A board whose inspector was drawn before the button gets it from its renderer, its heading wrapped with it. The repository
+work board has no inspector, so no inspector switch and no Hide button.
 
 **Sidecars.** An issue board's `plan.js` (and the repository work board's `board.js`) is committed with its board: a clone opened from disk then polls it
 while the run is live, as the board on this machine does; the committed repository work board, which is not live, reads it but never polls.
@@ -507,7 +513,7 @@ A difference nobody declared is a warning: re-render the board from the template
 **Features.** A board is also held to every feature its template has, whatever its pass: `system/scripts/features.js` keeps one detector per
 template feature, tagged with the skill step that added it and the board types it applies to (and, for each type it does not fit, why).
 `check-board.js` (`--auto`, `--auto --no-browser` and its plain passes) and `check.js --auto` run the static ones on every board — the theme
-switch, drawn as a switch (§12), and its script before the first paint, the inspector switch, the dark palette, the labelled tags, the 1500 px layout, the `BOARDS` map, the live
+switch, drawn as a switch (§12), and its script before the first paint, the inspector switch, the inspector's Hide button, the dark palette, the labelled tags, the 1500 px layout, the `BOARDS` map, the live
 indicator present or absent by type, one-line ledes, reduced motion wherever anything animates, a tabindex on every role=button, the
 tablist's keys, the state block, the as-is header, the legends of Guarantees and Context, the work-board link, the links from the data,
 the Markdown copies, the progress notes, every progress note drawn, whatever its name, a tracking board's steps, the KPI bars, the neutral bug badge, the chain, core subsystems, the tiles'
@@ -816,6 +822,17 @@ refresh on its branch: the committed repository work board, and the repository s
   their options are on the run's own board, which the row opens. Not to the state boards: as-is, no run and no halt. A halt recorded before
   it keeps what it recorded, never backfilled; a landed board keeps its rendering (§11, "Re-rendering"), and a board in flight takes it at
   its next event.
+
+**The decision of admin-team/dashboards/inspector-hide-button** (the user's decision of 2026-11-07, dated dashboards-skill/46), weighed for every type:
+
+- **The inspector's Hide button** (§6, "The inspector switch"): an eye struck through and the word "Hide" right of the inspector's
+  heading, hiding the inspector through the inspector switch's one remembered state (`dashboards-inspector`), the switch kept in step and
+  the focus moved to it. Applied to every board with an inspector: system boards, supersystem and repository state boards (their renderer
+  adds it to an inspector drawn before it, so a board brought onto the template by the splice carries it without its HTML being rewritten),
+  issue boards and tracking boards (on a tracking board's Landing Order tab too, where the inspector stands under the graph). Held by the
+  `inspector-hide` probe. Not to the repository work board: it has no inspector, as it has no inspector switch (one row per run, each run's
+  detail on its own board). A landed board keeps its rendering (§11, "Re-rendering"); a board in flight takes it at its next event, a state
+  board at the Document step's state-boards task.
 
 ## 12. Elements — one name per function
 

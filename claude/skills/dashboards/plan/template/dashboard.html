@@ -397,6 +397,14 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 :root[data-inspector="hidden"] .stage{grid-template-columns:minmax(0,1fr)}
 :root[data-inspector="hidden"] .inspector{display:none}
 .inspector h2{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 8px}
+/* The inspector's head (GUIDANCE.md §6, "The inspector switch"): its heading, and at its right the Hide button, an eye struck through and
+   the word "Hide", which hides the inspector as the header's inspector switch does; a button in the boards' neutrals, never the accent or
+   a status colour, its focus ring the boards' own */
+.inspector .insp-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px}
+.inspector .insp-head h2{margin:0}
+.hide-button{appearance:none;display:inline-flex;align-items:center;gap:4px;flex:none;font:600 11px/1 var(--mono);padding:3px 7px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.hide-button:hover{color:var(--ink);border-color:var(--ink-2)}
+.hide-button svg{flex:none;width:14px;height:14px}
 .inspector .kicker{font:11px var(--mono);color:var(--muted);letter-spacing:.04em}
 .inspector .name{font-weight:700;font-size:15px;word-break:break-word}
 .inspector .vis{font-size:12px;color:var(--ink-2);margin:2px 0 8px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
@@ -914,7 +922,7 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
 </div>
 
 <aside class="inspector" id="inspector" aria-live="polite">
-  <h2>Inspector</h2>
+  <div class="insp-head"><h2>Inspector</h2><button class="hide-button" id="inspector-hide" type="button" aria-controls="inspector" aria-label="Hide the inspector"><svg class="hide-eye" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M1.5 8s2.4-4.5 6.5-4.5 6.5 4.5 6.5 4.5-2.4 4.5-6.5 4.5S1.5 8 1.5 8z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="8" cy="8" r="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M2.5 2.5l11 11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span class="hide-word">Hide</span></button></div>
   <div id="insp-body"><p>Select a cell, an option or a card to see its detail here.</p></div>
 </aside>
 </div>
@@ -2718,12 +2726,14 @@ tabKeys(stabs,id=>{ showTestsSub(id.replace("t-tests-","")); try{ history.replac
   if(mq&&mq.addEventListener) mq.addEventListener("change",label);
   if(window.MutationObserver) new MutationObserver(label).observe(root,{attributes:true,attributeFilter:["data-theme"]});
   label(); })();
-/* ---------- The inspector switch (GUIDANCE.md §6, "The inspector switch"; §12, "Switch") ----------
-   A switch in the header, left of the theme switch, that shows or hides the inspector (aria-checked while shown). Shown when a board
-   opens until hidden; the choice is remembered across boards and reloads (localStorage "dashboards-inspector", shared by every dashboard
-   of the same origin, applied in the head before the first paint, and again here for a board whose head predates it). Hidden, the tab
-   takes the inspector's width. An item clicked, or pressed with Enter or Space, while the inspector is hidden shows it and flips the
-   switch: whatever that gesture writes into the inspector, a tab or a switch aside, brings it back. */
+/* ---------- The inspector switch and the inspector's Hide button (GUIDANCE.md §6, "The inspector switch"; §12, "Switch") ----------
+   A switch in the header, left of the theme switch, that shows or hides the inspector (aria-checked while shown), and in the inspector's
+   head, right of its heading, the Hide button (an eye struck through and the word "Hide"), which hides it and moves the focus to the switch.
+   Both drive one state, so the switch is always in step. Shown when a board opens until hidden; the choice is remembered across boards
+   and reloads (localStorage "dashboards-inspector", shared by every dashboard of the same origin, applied in the head before the first
+   paint, and again here for a board whose head predates it). Hidden, the tab takes the inspector's width. An item clicked, or pressed with
+   Enter or Space, while the inspector is hidden shows it and flips the switch: whatever that gesture writes into the inspector, a tab, a
+   switch or the Hide button aside, brings it back. An inspector drawn before the Hide button gets it here, its heading wrapped with it. */
 (function inspectorSwitch(){ const KEY="dashboards-inspector", root=document.documentElement, ins=document.getElementById("inspector");
   if(!ins) return;
   let sw=document.getElementById("inspector-switch");
@@ -2735,10 +2745,16 @@ tabKeys(stabs,id=>{ showTestsSub(id.replace("t-tests-","")); try{ history.replac
   const label=()=>{ const s=shown(); sw.setAttribute("aria-checked",String(s)); sw.title=s?"Inspector shown. Click to hide it.":"Inspector hidden. Click to show it, or click an item."; };
   const set=s=>{ if(s) delete root.dataset.inspector; else root.dataset.inspector="hidden"; try{ localStorage.setItem(KEY,s?"shown":"hidden"); }catch(e){} label(); window.dispatchEvent(new Event("resize")); };
   sw.addEventListener("click",()=>set(!shown()));
+  let hb=document.getElementById("inspector-hide");
+  if(!hb&&ins.querySelector){ const h2=ins.querySelector(":scope>h2"); if(h2&&h2.parentNode){ const hd=document.createElement("div"); hd.className="insp-head"; h2.parentNode.insertBefore(hd,h2); hd.appendChild(h2); hb=document.createElement("button"); hb.id="inspector-hide"; hd.appendChild(hb); } }
+  if(hb){ hb.className="hide-button"; hb.type="button"; hb.setAttribute("aria-controls","inspector"); hb.setAttribute("aria-label","Hide the inspector");
+    hb.title="Hide the inspector. The inspector switch in the header, or a click on an item, shows it again.";
+    if(!hb.querySelector("svg")) hb.innerHTML='<svg class="hide-eye" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M1.5 8s2.4-4.5 6.5-4.5 6.5 4.5 6.5 4.5-2.4 4.5-6.5 4.5S1.5 8 1.5 8z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="8" cy="8" r="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M2.5 2.5l11 11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span class="hide-word">Hide</span>';
+    hb.addEventListener("click",()=>{ set(false); try{ sw.focus(); }catch(e){} }); }
   let gesture=null;
   const mark=e=>{ if(e.type==="keydown"&&e.key!=="Enter"&&e.key!==" ") return; gesture=e.target; setTimeout(()=>{ gesture=null; },0); };
   document.addEventListener("click",mark,true); document.addEventListener("keydown",mark,true);
-  if(window.MutationObserver) new MutationObserver(()=>{ const g=gesture; if(!g||shown()||!g.closest||g.closest('[role="tab"],[role="switch"]')) return; set(true); }).observe(ins,{childList:true,subtree:true,characterData:true});
+  if(window.MutationObserver) new MutationObserver(()=>{ const g=gesture; if(!g||shown()||!g.closest||g.closest('[role="tab"],[role="switch"],.hide-button')) return; set(true); }).observe(ins,{childList:true,subtree:true,characterData:true});
   label(); })();
 
 /* ---------- Live updates (plan/RULES.md §1, "plan.js"; §3, "Live updates") ----------

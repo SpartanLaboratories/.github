@@ -622,7 +622,8 @@ is the earliest a unit can start, an arrow runs from a unit to the units it bloc
 the full width of the content area, and the inspector sits **under it** on this tab, its sections as
 cards left to right in the inspector's own order (what was selected first, then one card per
 sub-heading; short ones at the end stacked in one column), wrapping on narrower screens and in one
-column on a phone. Every other tab keeps the inspector beside it. The tab was called Chain; a link to
+column on a phone. Every other tab keeps the inspector beside it. On every tab the inspector's head carries its Hide button
+(`GUIDANCE.md` §6, "The inspector switch"), which hides it as the header's inspector switch does. The tab was called Chain; a link to
 `#chain` still opens it.
 
 ## 3. Work in progress
@@ -1534,7 +1535,7 @@ legend names the swatches its cards drew. An older board laid before its run rea
 script every five seconds and redraws in place, keeping the scroll position and the tab, and its
 header's live indicator reads as a board's (§3, "Live updates"; the dot pulses while a run is active
 and changing). The committed repository work board is regenerated only at landings and does not poll: "not live
-· as of" its generation. Both carry the theme switch (`GUIDANCE.md` §1), and no inspector switch: the board has no inspector
+· as of" its generation. Both carry the theme switch (`GUIDANCE.md` §1), and no inspector switch or Hide button: the board has no inspector
 (`GUIDANCE.md` §6). The repository work board draws no step
 panel, research ring or charging arrow: it is one row per run, and each run's detail is on its own
 board.

@@ -252,6 +252,14 @@ const FEATURES = [
     notFor: { "work-board": "no inspector: one row per run, each run's detail on its own board" },
     test: h => { const s = scripts(h), c = css(h); return need(/"dashboards-inspector"/.test(s) && /localStorage\.getItem\("dashboards-inspector"\)/.test(head(h)) && /function inspectorSwitch\(/.test(s) && /:root\[data-inspector="hidden"\] \.inspector\{display:none\}/.test(c) && /:root\[data-inspector="hidden"\] \.stage\{grid-template-columns:minmax\(0,1fr\)\}/.test(c),
       "no inspector switch (inspectorSwitch(), localStorage \"dashboards-inspector\" read in the head, :root[data-inspector=\"hidden\"])"); } },
+  /* admin-team/dashboards/inspector-hide-button (the user's decision of 2026-11-07), dated 46: the inspector's Hide button (GUIDANCE.md §6,
+     "The inspector switch"), an eye struck through and the word "Hide" right of the inspector's heading, driving the inspector switch's
+     state and moving the focus to the switch. A board drawn before it gets the button from its renderer once its script is the template's
+     (the splice, its next event); a landed issue board is kept as it landed (§11). */
+  { id: "inspector-hide", name: "the inspector's Hide button: an eye struck through and the word \"Hide\" at the inspector's head, hiding it as the inspector switch does (the switch kept in step), the focus moved to the switch", since: 46, types: ["system", "supersystem", "plan-board"],
+    notFor: { "work-board": "no inspector: one row per run, each run's detail on its own board" },
+    test: h => { const s = scripts(h), c = css(h); return need(/let hb=document\.getElementById\("inspector-hide"\);/.test(s) && /hb\.setAttribute\("aria-label","Hide the inspector"\)/.test(s) && /hb\.addEventListener\("click",\(\)=>\{ set\(false\); try\{ sw\.focus\(\); \}catch\(e\)\{\} \}\);/.test(s) && /g\.closest\('\[role="tab"\],\[role="switch"\],\.hide-button'\)/.test(s) && /\.inspector \.insp-head\{display:flex;/.test(c) && /(?:^|\n)\.hide-button\{[^}]*color:var\(--ink-2\)/.test(c),
+      "the inspector has no Hide button (hb in inspectorSwitch(): #inspector-hide, its aria-label, set(false) and the switch focused; .insp-head, .hide-button)"); } },
   /* admin-team/dashboards/code-label-and-sigblock (the user's decisions of 2026-11-06 and 2026-11-07), dated 42: the code label on every type
      (GUIDANCE.md §12, "Code"), and an option's signature drawn beneath its name on an issue or tracking board (plan/RULES.md §2). A board drawn
      before them draws its code as bare mono text until its next rebuild (the splice, its next event, board.js --refresh-template); a landed

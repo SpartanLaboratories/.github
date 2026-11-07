@@ -146,7 +146,8 @@ the right half beside it, and stacks them under 940 px (`GUIDANCE.md` §6, "The 
 chips, which the same CSS lays out alike, until the splice (§8) relabels them where their content says what they are (a version, the
 as-is stamp, the C4 model, the systems count), removes an old "last amended by" chip and reports any other for the presenter to label. The header also carries the **inspector switch** and the
 **theme switch** (`GUIDANCE.md` §6, "The inspector switch"; §1, Themes; §12, "Switch"), which the template's renderer adds right of the
-breadcrumb; the presenter writes nothing for them. A system, supersystem or repository state board has **no
+breadcrumb, and the inspector its **Hide button** right of its heading (`GUIDANCE.md` §6), which the template's markup carries and the
+renderer adds to an inspector drawn before it; the presenter writes nothing for them. A system, supersystem or repository state board has **no
 live indicator**: it shows the code at a named commit and has no run to follow (`plan/RULES.md` §3,
 "Live updates").
 
