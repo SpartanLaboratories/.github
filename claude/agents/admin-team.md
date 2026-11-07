@@ -455,7 +455,11 @@ lane** (below), apart from the repository lanes too.
   `gh api graphql -f query='query{repository(owner:"<org>", name:"<repo>"){issue(number:<n>){parent{number title}}}}'`
   (CLAUDE.md, Planning documents) and give the parent's `<parent>-<slug>/` folder under
   `docs/plans/`, the one holding its `dashboard.html`, as `facts.tracking`; an issue with no
-  parent gets a `seed` with no unit mark.
+  parent gets a `seed` with no unit mark. When the parent exists but there is no tracking board
+  to mark (the parent's folder is missing under `docs/plans/`, holds an issue board rather than a
+  tracking board, has no row for this unit, or the parent is in another repository), send the
+  `seed` with no unit mark and tell the user about the missing tracking board; the corrections
+  still land.
 - **Streamlined.** `apply-event.js` lays a new board from the template (`presenter`
   with `new.js`, when that fails), and the checks cover only what deviates from it
   (`dashboards` skill, GUIDANCE).
