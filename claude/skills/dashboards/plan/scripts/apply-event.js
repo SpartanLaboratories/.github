@@ -44,6 +44,9 @@
 // board in that flow is its state-boards task), the land in two steps (landing, merge), an approving qa pass leading to the Document step;
 // seeding at sized (a run's tree, a worktree or the main checkout, branched after a landing starts the boards the main checkout's live view
 // shows landed, seedFromView());
+// the team-raised seed (admin-team/dashboards-skill/level-1-seed), the seeding alone, board-less as reseed is: a level-1 branch, which sends no sized and has no
+// board, carries the repository's pending corrections through it, with its own unit on its tracking board marked complete where facts.tracking and facts.unit
+// name it (seed());
 // an open point's report outside the tree copied when the point is raised, for the live view (runOpenJobs()), and every open point
 // resolved at the land (check.js fails one left open); a bare test level beside a test word written as its named test level, and a bare
 // "Ln" elsewhere elided as a work level with a warning (summary: warnings).
@@ -1107,7 +1110,7 @@ function seedFromView(now) {
   const copies = dirs.map(vd => { const rel = path.relative(vroot, vd).split(path.sep).join("/"), tracked = path.join(ROOT, "docs", "plans", ...rel.split("/"));
     return { vd, rel, tracked, vp: read(path.join(vd, "plan.json")), tp: read(path.join(tracked, "plan.json")) }; });
   const cand = copies
-    .filter(x => x.rel && x.vp && x.tp && x.vp.issue === x.tp.issue && path.resolve(x.tracked) !== path.resolve(DIR) && String(lib.planStamp(x.vp)) > String(lib.planStamp(x.tp)));
+    .filter(x => x.rel && x.vp && x.tp && x.vp.issue === x.tp.issue && (!DIR || path.resolve(x.tracked) !== path.resolve(DIR)) && String(lib.planStamp(x.vp)) > String(lib.planStamp(x.tp)));
   /* a copy not yet landed, and a tracking board's copy with one inside it, wait: the copy stays for the enrichment, and a later raise seeds it */
   const held = copies.filter(x => x.rel && lib.notYetLanded(x.vp) && !lib.landedPending(x.vp) && (!x.tp || String(lib.planStamp(x.vp)) > String(lib.planStamp(x.tp))));
   const waiting = cand.filter(x => held.some(y => y.rel === x.rel || y.rel.startsWith(x.rel + "/")));
@@ -1219,6 +1222,74 @@ async function reseed(now, req) {
   S.result = written.size ? "ok" : "nothing";
   if (!written.size) S.applied.push("no board holds a landing a sized seeded unfinished: nothing to re-seed");
 }
+/* The event seed (plan/RULES.md §4, "Seeding at sized"; admin-team/dashboards-skill/level-1-seed), team-raised at a level-1 run's state-boards request, never with --view,
+   naming no board: a level-1 run has no board and sends no sized, so its branch carries the repository's pending corrections through this event alone. It is the
+   seeding half of sized and nothing else: seedFromView() into --worktree from --main's view copies (the previous landing's issue board landed at its merge, its
+   tracking board's filed units, its unit landed and the next one up), then, where the facts name one, the run's own unit on its tracking board marked complete,
+   the state a unit gets at its approving review, its cell in wip.current as a unit's run holds it until it lands (facts { tracking: "docs/plans/<…>/<n>-<slug>",
+   unit: <issue>, state: "complete" }; its merge cannot be known yet, so the post-merge view marks it landed). Then every board written is checked and the worktree's
+   committed repository work board regenerated (board.js --refresh-template), with the live one. It lays no board, so it is named for what it does: seed, as reseed is
+   the refresh's follow-up to a seed. Raised again it finds nothing fresher and the unit already complete: result nothing, nothing written. */
+async function seed(now, req, facts) {
+  const has = k => Object.prototype.hasOwnProperty.call(facts, k) && facts[k] != null;
+  let mark = null;
+  if (has("tracking") || has("unit") || has("state")) {
+    const tf = typeof facts.tracking === "string" ? facts.tracking.replace(/\\/g, "/").replace(/\/+$/, "") : null, tfolder = tf && !/^docs\/plans\//.test(tf) ? `docs/plans/${tf}` : tf;
+    if (!tfolder || !/^docs\/plans\/(.+\/)?\d+-[a-z0-9][a-z0-9-]*$/.test(tfolder) || tfolder.split("/").includes("..")) refuse(`seed: facts.tracking ${JSON.stringify(facts.tracking || null)} is not docs/plans/[<parent>/]<issue>-<slug>, the tracking board's folder`);
+    if (!Number.isInteger(facts.unit) || facts.unit < 1) refuse(`seed: facts.unit ${JSON.stringify(facts.unit === undefined ? null : facts.unit)} is not the unit's issue number`);
+    const state = facts.state == null ? "complete" : facts.state;
+    if (state !== "complete") refuse(`seed: facts.state ${JSON.stringify(state)}: a seed marks its unit complete, the state of its approving review; the post-merge view marks it landed`);
+    mark = { folder: tfolder, dir: path.join(ROOT, ...tfolder.split("/")), unit: facts.unit };
+    if (!fs.existsSync(path.join(mark.dir, "plan.json"))) refuse(`seed: ${tfolder} holds no plan.json: there is no tracking board to mark #${facts.unit} on`);
+  }
+  try { lib.lockTree(ROOT, "apply-event.js seed"); } catch (e) { refuse(e.message); }
+  const seeded = seedFromView(now), written = [...seeded];
+  if (mark) {
+    const text = fs.readFileSync(path.join(mark.dir, "plan.json"), "utf8"), eol = /\r\n/.test(text) ? "\r\n" : "\n"; let pp;
+    try { pp = JSON.parse(text); } catch (e) { refuse(`${mark.folder}/plan.json does not parse: ${e.message}`); }
+    if (pp.kind !== "tracking") refuse(`seed: ${mark.folder} is #${pp.issue}'s issue board, not a tracking board`);
+    if (req.github && pp.repo && req.github !== pp.repo) refuse(`seed: the tracking board is ${pp.repo}'s, not ${req.github}'s`);
+    const row = (pp.rows || []).find(r => r && r.unit && r.unit.issue === mark.unit);
+    if (!row) refuse(`seed: the tracking board #${pp.issue} has no unit row for #${mark.unit}`);
+    const st = (row.asBuilt || {}).state || "pending", w = pp.wip = pp.wip || {}, cur = Array.isArray(w.current) ? w.current.map(String) : [], cell = row.id + ".built";
+    if (["built", "abandoned"].includes(pp.status) || ["landed", "cancelled"].includes(w.step)) refuse(`seed: the tracking board #${pp.issue} has landed or was cancelled: #${mark.unit} is not marked on it`);
+    if (["dropped", "deferred"].includes(st) || lib.leftForLater(row)) refuse(`seed: #${mark.unit}'s unit ${row.id} is ${["dropped", "deferred"].includes(st) ? st : "left for later"} on #${pp.issue}'s board: a unit outside the plan is not marked complete`);
+    if (lib.UNIT_LANDED.includes(st)) S.applied.push(`#${pp.issue}: ${row.id} has landed already: left`);
+    else {
+      /* the unit's run, as a sized would have started it: its cell in wip.current, where the approving review leaves it until it lands */
+      const entered = st === "pending" && !cur.includes(cell);
+      if (entered) w.current = [...cur, cell];
+      const P = applyParent(pp, { issue: mark.unit }, { kind: "complete" }, now);
+      if (entered) { P.applied.unshift(`#${pp.issue}: ${row.id} in wip.current, its run in progress`); P.plan.wip.updated = now; }
+      S.applied.push(...P.applied); S.enrich.push(...P.enrich);
+      if (P.applied.length && writeBoard(mark.dir, P.plan, eol, S.enrich, `#${mark.unit}'s unit on #${pp.issue}`) && !written.includes(mark.dir)) written.push(mark.dir);
+    }
+  }
+  if (!written.length) {
+    S.result = "nothing"; S.live = "untouched"; S.check = "nothing to check";
+    S.applied.push(`nothing to seed: no view copy is fresher than its tracked board with its merge in this branch's history${mark ? `, and #${mark.unit} is marked already` : ""}`);
+    return;
+  }
+  const cks = await Promise.all(written.map(d => run(path.join(__dirname, "check.js"), [d], ROOT)));
+  if (cks.some(c => c.status !== 0)) { S.check = `FAIL: ${cks.flatMap(c => c.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l))).slice(0, 6).join(" | ") || (cks.find(c => c.status !== 0).stderr || "").trim().split(/\r?\n/)[0]}`; throw new Error("check.js failed on a board the seed would write"); }
+  ["board.json", "index.html", "board.js"].forEach(f => stage(path.join(ROOT, "docs", "plans", f)));
+  const wb = await run(path.join(__dirname, "board.js"), ["--refresh-template", "--root", ROOT, ...(flag("no-gh") ? ["--no-gh"] : [])], ROOT);
+  if (wb.status !== 0) throw new Error(`board.js (the committed repository work board, after seeding) failed: ${(wb.stderr || wb.stdout).trim().split(/\r?\n/).slice(-1)[0]}`);
+  S.wrote.push("the repository work board: docs/plans/board.json, index.html, board.js (regenerated after seeding)");
+  if (flag("no-live")) S.live = "skipped (--no-live)";
+  else if (fs.existsSync(path.join(MAIN, "docs", "plans"))) {
+    const liveDir = path.join(MAIN, "docs", "plans", ".live");
+    ["board.json", "index.html", "board.js"].forEach(f => stage(path.join(liveDir, f)));
+    [...new Set([MAIN, ROOT])].forEach(t => ["index.js", "boards.js"].forEach(f => stage(path.join(t, "docs", "plans", ".live", f))));
+    const lv = await run(path.join(__dirname, "board.js"), ["--live", "--refresh-template", "--root", MAIN, ...(flag("no-gh") ? ["--no-gh"] : [])], MAIN);
+    if (lv.status !== 0) throw new Error(`board.js --live failed: ${(lv.stderr || lv.stdout).trim().split(/\r?\n/).slice(-1)[0]}`);
+    S.live = "regenerated docs/plans/.live/";
+  }
+  const warns = cks.reduce((n, c) => n + (c.stdout.match(/^warn/gm) || []).length, 0);
+  S.check = `pass (${plural(written.length, "board")}: ${plural(warns, "warning")})`;
+  S.defects = [...new Set(cks.flatMap(c => c.stdout.split(/\r?\n/).map(l => (l.match(/^warn\s+(ISSUE TITLE NAMES A WORK LEVEL: #[\d?]+)/) || [])[1]).filter(Boolean)))];
+  S.result = "ok";
+}
 /* A child process, as a promise of { status, stdout, stderr }. */
 const run = (file, a, cwd) => new Promise(res => { const c = cp.spawn(process.execPath, [file, ...a], { cwd, windowsHide: true }); let o = "", e = "";
   c.stdout.on("data", d => { o += d; }); c.stderr.on("data", d => { e += d; }); c.on("close", s => res({ status: s, stdout: o, stderr: e })); c.on("error", x => res({ status: 1, stdout: o, stderr: String(x) })); });
@@ -1327,6 +1398,16 @@ async function main() {
     if (!fs.existsSync(path.join(MAIN, "docs", "plans"))) refuse(`reseed: the main checkout ${MAIN} has no docs/plans/`);
     const at0 = opt("at") || facts.at || null; if (at0 && isNaN(Date.parse(at0))) refuse(`the event's time ${JSON.stringify(at0)} is not an ISO time`);
     return reseed((at0 ? new Date(at0) : new Date()).toISOString().replace(/\.\d+Z$/, "Z"), req);
+  }
+  if (ev === "seed") {
+    if (VIEWING) refuse("seed writes a run's tracked boards from the view copies, never the view copies: raise it without --view");
+    if (req.folder != null) refuse(`seed names no board: the run's unit on its tracking board is facts.tracking and facts.unit, not the request's folder ${JSON.stringify(req.folder)}`);
+    if (REPO_SLUG && req.github && REPO_SLUG !== req.github) refuse(`--repo ${REPO_SLUG} is not the request's github ${req.github}`);
+    ROOT = path.resolve(wt); MAIN = path.resolve(opt("main") || REPO_PATH || req.repo || ROOT);
+    if (!fs.existsSync(path.join(ROOT, "docs", "plans"))) refuse(`seed: the worktree ${ROOT} has no docs/plans/`);
+    if (!fs.existsSync(path.join(MAIN, "docs", "plans"))) refuse(`seed: the main checkout ${MAIN} has no docs/plans/`);
+    const at0 = opt("at") || facts.at || null; if (at0 && isNaN(Date.parse(at0))) refuse(`the event's time ${JSON.stringify(at0)} is not an ISO time`);
+    return seed((at0 ? new Date(at0) : new Date()).toISOString().replace(/\.\d+Z$/, "Z"), req, facts);
   }
   const folder = typeof req.folder === "string" ? req.folder.replace(/\\/g, "/").replace(/\/+$/, "") : null;
   if (!folder || !/^docs\/plans\/(.+\/)?\d+-[a-z0-9][a-z0-9-]*$/.test(folder) || folder.split("/").includes("..")) refuse(`the request's folder ${JSON.stringify(req.folder || null)} is not docs/plans/[<parent>/]<issue>-<slug>`);

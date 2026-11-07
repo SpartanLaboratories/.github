@@ -688,7 +688,9 @@ reached its landing before the change):
    **seeded at the next run's `sized`**: a run sized in a worktree branched after the landing starts those boards from the main checkout's
    view copies (`apply-event.js`, `plan/RULES.md` §4, "Seeding at sized"), so its branch carries the landed state in its document-landing commit.
    A merge that marks an issue landed on its own board does so for its parent too: both are seeded together. There is never a follow-up
-   docs pull request. A `sized` during the refresh seeds the copies as they stand and is not delayed; the team's `reseed`, at the end of every post-merge refresh, brings the
+   docs pull request. A level-1 run, which has no board and sends no `sized`, carries the same landed state through the team-raised `seed` at its
+   `state-boards` request (the seeding alone, its unit marked `complete` on its tracking board where it is one; `plan/RULES.md` §4, "Seeding at sized").
+   A `sized` during the refresh seeds the copies as they stand and is not delayed; the team's `reseed`, at the end of every post-merge refresh, brings the
    finished state to those boards, and does nothing when nothing raced. Until a later landing commits the state, a tracked board opened on this machine follows its fresher view
    copy in place, labelled the live view (`plan/RULES.md` §1).
 

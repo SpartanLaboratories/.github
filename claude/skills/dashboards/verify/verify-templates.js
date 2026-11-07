@@ -2206,6 +2206,12 @@ catch (e) { report("the progress notes' index cases", [["the cases run to the en
 try { require("./cases-doc-landing.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the document-landing and view-copy cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
+/* The team-raised seed (verify/cases-seed.js; admin-team/dashboards-skill/level-1-seed): the seeding of a sized alone, board-less, so a level-1 branch carries the
+   repository's pending corrections, its unit on its tracking board marked complete; no board laid; raised again, nothing; its refusals. It needs no browser, and runs
+   on its own too (node verify/cases-seed.js). */
+try { require("./cases-seed.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the seed cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
 /* A foundation on the fast path (verify/cases-foundation.js; admin-team/board/foundation-fast-path): a sized with no board lays it, applies the
    event, re-embeds the parent tracking board and regenerates the live repository work board; its facts each from the first source that tells
    it; a slug the registry does not know; a failure leaves nothing; the fill read from the data, a board past its plan's acceptance with its Gap
