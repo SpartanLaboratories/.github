@@ -79,7 +79,9 @@
 // the user (verify/cases-timeline-waits.js): not active time and not mentioned, the step split into visits around each wait, the signals on the fast path. A
 // stretch when the run was not running (verify/cases-timeline-outages.js): not counted and not mentioned, the run-restarted event on the fast path. The
 // header's switches (verify/cases-switches.js): the theme switch drawn as a switch, the inspector switch where there is an inspector, the decision path's legend. The
-// inspector's Hide button (verify/cases-inspector-hide.js): one state with the inspector switch, the focus moved to the switch. A
+// inspector's Hide button (verify/cases-inspector-hide.js): one state with the inspector switch, the focus moved to the switch. The C4 DSL
+// reader (verify/cases-dsl-keyword-id.js): a block keyword as an element's identifier read as the element, and check-board.js failing a DSL
+// its C4 views would trip on (DSL KEYWORD ID, DSL UNKNOWN ELEMENT). A
 // template is recorded only when every check it runs passes: by default those that need no browser; with --browser its browser
 // passes and the rendered cases too.
 "use strict";
@@ -2241,6 +2243,12 @@ catch (e) { report("the header's switches cases", [["the cases run to the end", 
 try { require("./cases-inspector-hide.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the inspector's Hide button cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
+/* The C4 DSL reader's keyword identifiers (verify/cases-dsl-keyword-id.js; admin-team/dashboards/dsl-keyword-id, a defect, dated 47): each
+   board's parseDsl() and statelib.js dslElements() read "model = component …" as the element, and check-board.js fails, without a browser,
+   an element named by a block keyword and a reference to an element the model does not define. It runs on its own too. */
+try { require("./cases-dsl-keyword-id.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the C4 DSL reader's keyword identifiers cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
 const today = new Date().toISOString().slice(0, 10);
 const COMMENT = "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last verification, when every check that needs no browser passed (its modes: \"--auto --no-browser\"; a run with --browser, made only when a person asks for it, lists the browser passes instead). check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.";
 targets.forEach(t => {
@@ -2257,7 +2265,7 @@ targets.forEach(t => {
          names); the rendering is the template plus its fixture, so it needs no browser pass either */
       const r = cp.spawnSync(process.execPath, [checker, page, ...(BROWSER ? ["--out", dir] : []), ...m], { encoding: "utf8" });
       const lines = (r.stdout || "").split(/\r?\n/);
-      results.push({ fixture: label, mode: m.join(" ") || "light", pass: r.status === 0, bad: lines.filter(l => !/^CHECK note:/.test(l) && /FAIL|ERROR|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM|STATE |EMBED DIFFERS|PART UNKNOWN|NOT RUN/.test(l)) });
+      results.push({ fixture: label, mode: m.join(" ") || "light", pass: r.status === 0, bad: lines.filter(l => !/^CHECK note:/.test(l) && /FAIL|ERROR|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM|STATE |EMBED DIFFERS|PART UNKNOWN|DSL KEYWORD ID|DSL UNKNOWN ELEMENT|NOT RUN/.test(l)) });
     });
   });
   const ok = results.every(r => r.pass);

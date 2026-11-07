@@ -118,6 +118,8 @@ function editRegistryText(text, reg, edits, top) {
 
 /* ---------- workspace.dsl: the elements, their tags, the as-is line ---------- */
 const TYPES = ["person", "softwareSystem", "container", "component"];
+/* the keywords that open a block of the DSL, by which the board's parseDsl() and dslElements() read a line */
+const DSL_BLOCKS = ["workspace", "model", "views", "styles"];
 const tok = l => { const out = [], re = /"([^"]*)"|(\S+)/g; let m; while ((m = re.exec(l))) out.push(m[1] !== undefined ? { s: m[1] } : { t: m[2] }); return out; };
 /* Every element of the model with its hierarchical id, line index and tags, read as the board's parseDsl() reads them. */
 function dslElements(text) {
@@ -130,7 +132,8 @@ function dslElements(text) {
     const opens = line.endsWith("{"); if (opens) line = line.slice(0, -1).trim();
     const T = tok(line); if (!T.length) { if (opens) stack.push({ kind: "anon" }); return; }
     const t0 = T[0].t;
-    if (["workspace", "model", "views", "styles"].includes(t0)) { if (opens) stack.push({ kind: t0 }); return; }
+    /* a block keyword followed by "=" is an identifier assigned an element ("model = component …"), never the block (dslProblems() fails it) */
+    if (DSL_BLOCKS.includes(t0) && !(T[1] && T[1].t === "=")) { if (opens) stack.push({ kind: t0 }); return; }
     if (t0 === "!identifiers" || inBlock("styles") || inBlock("views")) { if (opens) stack.push({ kind: "anon" }); return; }
     if (T.length >= 3 && T[1].t === "->") { if (opens) stack.push({ kind: "anon" }); return; }
     if (T.length >= 3 && T[1].t === "=" && TYPES.includes(T[2].t)) {
@@ -144,6 +147,41 @@ function dslElements(text) {
     if (opens) stack.push({ kind: "anon" });
   });
   return out;
+}
+/* What the board's C4 views would trip on, read as its parseDsl() reads the file (check-board.js fails each):
+   - DSL KEYWORD ID: an element whose identifier is a keyword that opens a block of the DSL ("model = component …"). The current readers take
+     it as the element, but a board's reader before the fix took the line for the block, dropped the element and crashed on the first
+     relationship or view that names it, and the file is meant to read the same in Structurizr: rename it;
+   - DSL UNKNOWN ELEMENT: a relationship, a view's scope or a dynamic view's step that names an element the model does not define (a typo,
+     an element left out, one dropped as above): the renderer looks the element up to draw it and fails on the C4 tab.
+   Returns [{ code, line (1-based), text }], empty when the file reads cleanly. */
+function dslProblems(text) {
+  const lines = norm(text).split("\n"), els = dslElements(text), ids = new Set(els.map(e => e.id)), stack = [], out = [];
+  const inBlock = k => stack.some(f => f.kind === k);
+  els.filter(e => DSL_BLOCKS.includes(e.ident)).forEach(e => out.push({ code: "DSL KEYWORD ID", line: e.line + 1,
+    text: `line ${e.line + 1} names the element ${e.id} by "${e.ident}", a keyword that opens a block of the DSL (${DSL_BLOCKS.join(", ")}): a reader may take the line for that block and drop the element; rename the identifier and its references` }));
+  const ref = (id, i, what) => { if (id && !ids.has(id)) out.push({ code: "DSL UNKNOWN ELEMENT", line: i + 1, text: `line ${i + 1}: ${what} names ${id}, which the model does not define: the C4 views cannot draw it; define the element or fix the reference` }); };
+  lines.forEach((raw, i) => {
+    let line = raw.trim(); if (!line || line.startsWith("//")) return;
+    if (line === "}") { stack.pop(); return; }
+    const opens = line.endsWith("{"); if (opens) line = line.slice(0, -1).trim();
+    const T = tok(line); if (!T.length) { if (opens) stack.push({ kind: "anon" }); return; }
+    const t0 = T[0].t;
+    if (DSL_BLOCKS.includes(t0) && !(T[1] && T[1].t === "=")) { if (opens) stack.push({ kind: t0 }); return; }
+    if (t0 === "!identifiers" || inBlock("styles")) { if (opens) stack.push({ kind: "anon" }); return; }
+    if (inBlock("views")) {
+      const cur = stack[stack.length - 1];
+      if (cur && cur.kind === "view" && cur.dynamic && T.length >= 3 && T[1].t === "->") { ref(T[0].t, i, "a dynamic view's step"); ref(T[2].t, i, "a dynamic view's step"); return; }
+      if (["systemContext", "container", "component", "dynamic"].includes(t0)) {
+        const scope = T[1] && T[1].t; if (!(t0 === "dynamic" && scope === "*")) ref(scope, i, `the ${t0} view's scope`);
+        if (opens) stack.push({ kind: "view", dynamic: t0 === "dynamic" }); return;
+      }
+      if (opens) stack.push({ kind: "anon" }); return;
+    }
+    if (T.length >= 3 && T[1].t === "->") { ref(T[0].t, i, "a relationship"); ref(T[2].t, i, "a relationship"); }
+    if (opens) stack.push({ kind: T.length >= 3 && T[1].t === "=" && TYPES.includes(T[2].t) ? "element" : "anon" });
+  });
+  return out.sort((a, b) => a.line - b.line);
 }
 /* The DSL with an element's Planned tag set (planned) or removed (built), and `add` tags added; null when the element is not there. */
 function setPlannedTag(text, id, planned, add) {
@@ -274,4 +312,4 @@ function codeStatus(reg, root, sha) {
   return out;
 }
 
-module.exports = { registryRoot, codePresence, codeStatus, stateText, norm, blockText, embedInto, findRegistry, isAncestor, inline, editRegistryText, dslElements, setPlannedTag, restampDsl, stateProblems, stateVsRegistry, partRefs };
+module.exports = { registryRoot, codePresence, codeStatus, stateText, norm, blockText, embedInto, findRegistry, isAncestor, inline, editRegistryText, dslElements, dslProblems, setPlannedTag, restampDsl, stateProblems, stateVsRegistry, partRefs };

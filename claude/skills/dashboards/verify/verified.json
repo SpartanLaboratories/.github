@@ -497,7 +497,7 @@
       ]
     },
     "system/template/system.html": {
-      "sha256": "75b6d13e5ebba0f4dc7ad08027ef503de9f49881a57c30b927054246a8573044",
+      "sha256": "861afb6b19f57cf8a5b129d306357888a12d7520f39cc88ea6d36413aae4568e",
       "verified": "2026-11-07",
       "fixtures": [
         "placeholder"
@@ -638,11 +638,16 @@
           "sha256": "75b6d13e5ebba0f4dc7ad08027ef503de9f49881a57c30b927054246a8573044",
           "verified": "2026-11-07",
           "file": "system/75b6d13e5ebb.html"
+        },
+        {
+          "sha256": "861afb6b19f57cf8a5b129d306357888a12d7520f39cc88ea6d36413aae4568e",
+          "verified": "2026-11-07",
+          "file": "system/861afb6b19f5.html"
         }
       ]
     },
     "system/template/supersystem.html": {
-      "sha256": "7afec6ded329c7965fd809303d3c1d02ee66f399ef3911d7809edc47894b1b9f",
+      "sha256": "0ad2bcd2510029b6224f704d424f496ccdf8458b98947c2cf5e1fdbd8747efc4",
       "verified": "2026-11-07",
       "fixtures": [
         "placeholder"
@@ -809,6 +814,11 @@
           "sha256": "7afec6ded329c7965fd809303d3c1d02ee66f399ef3911d7809edc47894b1b9f",
           "verified": "2026-11-07",
           "file": "supersystem/7afec6ded329.html"
+        },
+        {
+          "sha256": "0ad2bcd2510029b6224f704d424f496ccdf8458b98947c2cf5e1fdbd8747efc4",
+          "verified": "2026-11-07",
+          "file": "supersystem/0ad2bcd25100.html"
         }
       ]
     }

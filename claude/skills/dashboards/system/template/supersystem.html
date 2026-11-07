@@ -1087,7 +1087,8 @@ function parseDsl(src){
     const opens=line.endsWith("{"); if(opens) line=line.slice(0,-1).trim();
     const T=tok(line); if(!T.length){ if(opens) stack.push({kind:"anon"}); return; }
     const t0=T[0].t;
-    if(["workspace","model","views","styles"].includes(t0)){ if(opens) stack.push({kind:t0}); return; }
+    /* a block keyword followed by "=" is an identifier assigned an element ("model = component …"), never the block: read it below */
+    if(["workspace","model","views","styles"].includes(t0)&&!(T[1]&&T[1].t==="=")){ if(opens) stack.push({kind:t0}); return; }
     if(t0==="!identifiers") return;
     if(inBlock("styles")){ if(t0==="element"){ const props={}, body=T.slice(2).map(x=>x.t!==undefined?x.t:x.s).filter(x=>x!=="{"&&x!=="}"); for(let i=0;i+1<body.length;i+=2) props[body[i]]=body[i+1]; M.styles.push({tag:T[1].s,props}); } return; }
     if(inBlock("views")){

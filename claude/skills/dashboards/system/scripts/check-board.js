@@ -284,8 +284,10 @@ function boardLinks() {
 // (STATE UNREADABLE, STATE INVALID), one that differs from state.json beside the board (STATE EMBED DIFFERS), a state that names a system
 // the registry does not list or disagrees with its registry entry on the stamp, the last amendment or the version (STATE UNKNOWN SYSTEM,
 // STATE DISAGREES WITH REGISTRY), an embedded workspace.dsl or systems.json that differs from its file (DSL EMBED DIFFERS, REGISTRY EMBED
-// DIFFERS), and a part reference (data-part, part:) that names no element of the DSL and no system of the registry (PART UNKNOWN). A
-// page with no state block, on a template older than it, gets a note.
+// DIFFERS), a part reference (data-part, part:) that names no element of the DSL and no system of the registry (PART UNKNOWN), and an
+// embedded workspace.dsl its C4 views would trip on (statelib.js dslProblems(): an element named by a block keyword, DSL KEYWORD ID; a
+// relationship, view scope or dynamic step naming an element the model does not define, DSL UNKNOWN ELEMENT). A page with no state
+// block, on a template older than it, gets a note.
 function stateChecks() {
   if (/<meta name="dashboard" content="(plan-board|work-board)">/.test(src) || !src) return null;
   const L = require("./statelib.js"), { kindOf, templateFor } = require("./deviation.js"), kind = kindOf(src);
@@ -341,6 +343,7 @@ function stateChecks() {
   }
   const dsl = L.blockText(src, "dsl"), dslFile = path.join(dir, "workspace.dsl");
   if (dsl != null && fs.existsSync(dslFile) && L.norm(fs.readFileSync(dslFile, "utf8")).trim() !== dsl) problems.push("DSL EMBED DIFFERS: the embedded workspace.dsl is not the file beside the board: node embed.js workspace.dsl index.html dsl");
+  if (dsl != null) { const dp = L.dslProblems(dsl); dp.forEach(p => problems.push(`${p.code}: workspace.dsl ${p.text}`)); if (!dp.length) notes.push(`dsl: ${L.dslElements(dsl).length} elements, every reference defined, no keyword identifier`); }
   const sys = L.blockText(src, "systems");
   if (sys != null && reg && L.norm(fs.readFileSync(reg, "utf8")).trim() !== sys) problems.push("REGISTRY EMBED DIFFERS: the embedded systems.json is not docs/dashboards/systems.json: node embed.js <docs/dashboards/systems.json> index.html systems");
   const ids = new Set(dsl ? L.dslElements(dsl).map(x => x.id) : []);
