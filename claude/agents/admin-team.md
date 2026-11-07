@@ -450,7 +450,12 @@ lane** (below), apart from the repository lanes too.
   regenerates the committed repository work board and lays no board. Name the paths its summary
   lists (`seeded`, `wrote`) in your `state-boards` reply, for the run's document-landing commit,
   and append `corrections-seeded` as for a `sized`; they land with its merge
-  (`corrections-committed`).
+  (`corrections-committed`). Whether the issue is a unit you learn from GitHub: look up its
+  parent with
+  `gh api graphql -f query='query{repository(owner:"<org>", name:"<repo>"){issue(number:<n>){parent{number title}}}}'`
+  (CLAUDE.md, Planning documents) and give the parent's `<parent>-<slug>/` folder under
+  `docs/plans/`, the one holding its `dashboard.html`, as `facts.tracking`; an issue with no
+  parent gets a `seed` with no unit mark.
 - **Streamlined.** `apply-event.js` lays a new board from the template (`presenter`
   with `new.js`, when that fails), and the checks cover only what deviates from it
   (`dashboards` skill, GUIDANCE).
