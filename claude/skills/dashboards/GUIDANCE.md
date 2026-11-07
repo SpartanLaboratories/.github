@@ -519,7 +519,7 @@ to #n", the structure map's recorded height, a
 issue board's finished steps clickable, each unit row's label glowing on its own while it is filed, the Timeline tile's figure the sum of
 its visits, an issue's title quoted and marked, every Quality Review and the one running, each by its number, every name from the template's names block (the
 steps, the Quality Reviews and what follows them; §4), the classes that carry their element's type (`.kpi-tile`, `.verdict-pill`, `.legend`,
-`.c4-legend`), the dependency pills — and
+`.c4-legend`), the dependency pills, the code label, an option's signature beneath its name — and
 the browser pass, on a board that gets one, the layout ones (the header's halves, the wide board, the legends shown). A missing feature fails, as `FEATURE MISSING:
 <feature> (template since dashboards-skill/N)`, **through a declared divergence too**: a divergence adds or argues a removal; it never
 excuses a board that lags its template. A landed or cancelled issue board is the exception: it is kept as it landed and never
@@ -766,6 +766,22 @@ refresh on its branch: the committed repository work board, and the repository s
   commit"). A landed board keeps the wording it landed with until something rewrites it, and `check.js` only warns on it. Not to the state boards: no qa
   passes.
 
+**The decisions of admin-team/dashboards/code-label-and-sigblock** (dated dashboards-skill/42), each weighed for every type:
+
+- **The code label** (§12, "Code"): applied to every type — system boards, supersystem and repository state boards, issue and
+  tracking boards, the repository work board (committed and live) — in each of the four templates' CSS, one rule, and held by the
+  `code-label` feature probe. Not to the rendered Markdown copies (`mdcopy.js`), which are not boards and already draw a code span on a
+  fill, as GitHub does.
+- **An option's signature beneath its short name** (`plan/RULES.md` §2, "An option's signature"): applied to issue boards and tracking
+  boards, the boards with a Considered column — the Considered cell (and the inspector's "Weighed against" list, the same button), the
+  inspector and the Decisions table — and held by the `option-signature` probe. Not to the repository work board (one row per run, no
+  options) nor to the state boards (as-is: no options weighed). Boards written after it use the field; an option written before keeps
+  its name as it is, and draws as before.
+- **A name's code spans drawn as code**: the issue board's header title (a title taken from a unit row's name) and a state board's
+  "last amended by" title join the sites that already drew a row's name through `codeOnly()`. The repository work board draws only issue
+  titles, already through `pair()`. A landed board keeps its rendering (§11, "Re-rendering"), so a board drawn before shows its older
+  look until the user asks for it to be re-rendered.
+
 ## 12. Elements — one name per function
 
 Every visible element on a board takes its name from the UI vocabulary,
@@ -775,3 +791,13 @@ the CSS classes the templates give them) is in [`nomenclature/boards.md`](../../
 "Board UI"; the look follows §1 and §2. A board element none of the vocabulary's terms describes
 takes no name until the user adds the term to `ui.md` (only the user adds or changes a term
 there); it is never named here.
+
+**Code** (admin-team/dashboards/code-label-and-sigblock, dated dashboards-skill/42). Every inline code on every board — a
+`` `code` `` span in the data, a path, a sha, a branch, a class — is a **code label**, a plain label of `ui.md`: the surface-2 fill
+(`--surface-2`), a hairline border (`--hair`), 1 × 4 px padding and a 3 px radius, in both themes, so code reads as code and never as bold
+text; inside bold text (`b`, `strong`, an inspector's or a row's `.name`, `.nm`, a definition term, a table head) it keeps the normal
+weight. Inside a **chip, a pill or a tile** — a label or a figure already — it stays plain mono text: the templates select them by the
+type word each class carries (`boards.md`, "Board UI"). An option's signature (`plan/RULES.md` §2, "An option's signature") is the code
+label set as a block beneath the option's name (`code.codeblock`); until `ui.md` has a term for that element these rules name it only
+by what it is. A row's name, an option's and a title taken from either draw their `` `code` `` spans as code labels wherever they are
+drawn, never as literal backticks; an attribute (an `aria-label`, a `title`) takes the text with its backticks dropped.

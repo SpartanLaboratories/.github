@@ -42,7 +42,15 @@
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans);padding-block:0 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .page{max-width:1280px;margin:0 auto}
 a{color:inherit}
-code{font-family:var(--mono);font-size:.92em;overflow-wrap:anywhere}
+code{font-family:var(--mono);font-size:.92em;overflow-wrap:anywhere;background:var(--surface-2);border:1px solid var(--hair);padding:1px 4px;border-radius:3px}
+/* the code label (GUIDANCE.md §12, "Code"; dashboards-skill/42): every inline code drawn as a label of its own,
+   in both themes, at normal weight inside bold text; inside a chip, a pill or a tile (a label or a figure already: each class carries
+   its type word) it stays plain mono text */
+:is(b,strong,.name,.nm,dt,th) code{font-weight:400}
+:is([class*="chip"],[class*="pill"],[class*="tile"]) code{background:none;border:0;padding:0;border-radius:0}
+/* an option's signature, beneath its name: the code label set as a block (plan/RULES.md §2, "An option's signature") */
+code.codeblock{display:block;margin:3px 0;padding:3px 6px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.4;font-weight:400}
+.inspector .sigblock code.codeblock{font-size:12.5px;margin:5px 0 6px}
 h1,h2,h3{text-wrap:balance}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 
@@ -968,6 +976,11 @@ function linkRefs(t){ return esc(t).replace(/(^|[\s(>;,])(?:PR #(\d+)|([\w.-]+\/
 const rich=s=>String(s==null?"":s).split("`").map((part,i)=>i%2?`<code>${esc(part)}</code>`:linkRefs(part)).join("");
 /* The same without links, for text inside a button. */
 const codeOnly=s=>String(s==null?"":s).split("`").map((part,i)=>i%2?`<code>${esc(part)}</code>`:esc(part)).join("");
+/* An option's signature (plan/RULES.md §2, "An option's signature"; dashboards-skill/42): the option keeps a short
+   name and its signature, a field of its own, is drawn verbatim beneath it, code set as a block; an option without one draws its name alone. */
+const sigOf=o=>o&&typeof o.signature==="string"&&o.signature.trim()?o.signature:"";
+const sigCode=o=>sigOf(o)?`<code class="codeblock">${esc(sigOf(o))}</code>`:"";
+const sigText=o=>sigOf(o)?`, signature ${esc(sigOf(o))}`:"";
 /* a row's (or an option's) name, or a heading, as plain text for an aria-label or a title attribute: its code spans' backticks dropped,
    escaped; everywhere it is drawn the name goes through codeOnly() */
 const nameText=r=>esc(String(r&&typeof r==="object"?(r.name==null?"":r.name):r==null?"":r).replace(/`/g,""));
@@ -1648,7 +1661,7 @@ function renderHeader(){
   const segs=FOLDER.split("/").filter(Boolean).slice(2), segBoard=s=>{ const m=String(s).match(/^(\d+)-/); return m?boardOf(m[1]):null; };
   $("#crumbs").innerHTML=`${linkOr(sharedLink("repoBoard"),esc(PLAN.repo))} › ${wbLink("repository work board")}`+segs.map((s,i)=>i<segs.length-1&&segBoard(s)?` › <a href="${esc(segBoard(s))}">${esc(s)}</a>`:` › ${esc(s)}`).join("");
   /* the title's #n opens the GitHub issue (plan/RULES.md §1, "The board's own #n") */
-  $("#h1").innerHTML=`<a class="ghn" href="${esc(ghUrl(PLAN.issue))}" target="_blank" rel="noopener" title="#${esc(PLAN.issue)} on GitHub">#${esc(PLAN.issue)}</a> · ${esc(PLAN.title||"")}`;
+  $("#h1").innerHTML=`<a class="ghn" href="${esc(ghUrl(PLAN.issue))}" target="_blank" rel="noopener" title="#${esc(PLAN.issue)} on GitHub">#${esc(PLAN.issue)}</a> · ${codeOnly(PLAN.title||"")}`;
   $("#function").innerHTML=rich(PLAN.function);
   /* the intro's issue line: the issue's title on GitHub, and nothing else (the title's #n is the link) */
   /* the issue's title on GitHub, quoted verbatim and marked (dashboards-skill/28): a work level in it is the issue's defect, flagged */
@@ -2083,7 +2096,7 @@ setInterval(timelineTick,TL_TICK_MS); document.addEventListener("visibilitychang
 function rowTitle(r){ const u=r.unit; if(!u) return codeOnly(r.name);
   return `${u.n!=null?`${esc(u.n)}. `:""}${u.issue?pair(u.issue,r.name):codeOnly(r.name)}`; }
 function cellGap(r){ const g=r.gap||{}; return `<div class="cell gap${cellGlow(r.id,"gap")}" role="button" tabindex="0" data-row="${esc(r.id)}" data-col="gap" aria-label="Gap: ${nameText(r)}"><div class="kick">1 · GAP${g.kind?` <span class="kind">${esc(g.kind)}</span>`:""}</div><div class="sum">${rich(g.summary||"Not yet written.")}</div><div class="meta"><span>${(g.evidence||[]).length} evidence</span>${moreLink(g.link,"research")}</div></div>`; }
-function optButton(r,o){ const {def,word}=optDef(r,o); return `<button class="opt ${def.cls}${def.dash?" dashed":""}" data-row="${esc(r.id)}" data-opt="${esc(o.id)}" aria-label="${esc(word)}: ${nameText(o)}"><i aria-hidden="true">${def.g}</i><span><span class="vw">${esc(word)}</span><span>${codeOnly(o.name)}</span></span></button>`; }
+function optButton(r,o){ const {def,word}=optDef(r,o); return `<button class="opt ${def.cls}${def.dash?" dashed":""}" data-row="${esc(r.id)}" data-opt="${esc(o.id)}" aria-label="${esc(word)}: ${nameText(o)}${sigText(o)}"><i aria-hidden="true">${def.g}</i><span><span class="vw">${esc(word)}</span><span>${codeOnly(o.name)}${sigCode(o)}</span></span></button>`; }
 function cellConsidered(r){ const os=r.options||[]; const acc=os.find(o=>o.verdict==="accepted"||(o.verdict==="partial"&&o.chosen))||os[0]||{}, rs=RROWS.get(r.id);
   return `<div class="cell considered${rs?` rs rs-${rs}`:""}${cellGlow(r.id,"considered")}" role="group" data-row="${esc(r.id)}" data-col="considered" aria-label="Considered: ${nameText(r)}${rs?`, research ${esc(RS[rs].label)}`:""}"><div class="kick">2 · CONSIDERED <span class="kind">${os.length}</span>${rs?` ${rsPill(rs)}`:""}</div>${os.length?`<ul class="opts">${os.map(o=>`<li>${optButton(r,o)}</li>`).join("")}</ul>`:`<div class="sum">Not yet written.</div>`}${acc.link?`<div class="meta">${moreLink(acc.link,"alternatives")}</div>`:""}</div>`; }
 /* the Verdict cell: its statements (a list, each with its plan reference), or the paragraph a verdict written before them keeps */
@@ -2180,7 +2193,7 @@ function inspectGap(r){ const g=r.gap||{}, b=PLAN.baseline||{};
 function inspectOption(r,o){ if(!o){ inspect(`<div class="kicker">2 · CONSIDERED</div><div class="name">${codeOnly(r.name)}</div><p>No options recorded yet.</p>`); return; }
   const others=(r.options||[]).filter(x=>x!==o), {def,word,settled}=optDef(r,o);
   const whyLabel={accepted:"Why it was taken",partial:"What was taken, and what wasn't",deferred:"Why it was left open",declined:"Why it was declined"}[o.verdict]||"Why";
-  inspect(`<div class="kicker">2 · CONSIDERED</div><div class="name">${codeOnly(o.name)}</div><div class="vis">${pill(def,"",word)} ${codeOnly(r.name)}</div>${o.summary?`<p class="lead">${rich(o.summary)}</p>`:""}<dl>${o.why?`<dt>${whyLabel}</dt><dd>${rich(o.why)}</dd>`:""}${settled?`<dt>Settled in column 4</dt><dd>${rich(settled.change.what)}${settled.change.why?` — ${rich(settled.change.why)}`:""}${settled.change.ref?` · ${refHtml(settled.change.ref)}`:""}</dd>`:""}${o.wins?`<dt>Would have won if</dt><dd>${rich(o.wins)}</dd>`:""}${o.source?`<dt>Source</dt><dd>${refHtml(o.source)}</dd>`:""}${o.link?`<dt>Detail</dt><dd>${refHtml(o.link)}</dd>`:""}${others.length?`<dt>Weighed against</dt><dd><ul class="opts">${others.map(x=>`<li>${optButton(r,x)}</li>`).join("")}</ul></dd>`:""}</dl>`); }
+  inspect(`<div class="kicker">2 · CONSIDERED</div><div class="name">${codeOnly(o.name)}</div>${sigOf(o)?`<div class="sigblock">${sigCode(o)}</div>`:""}<div class="vis">${pill(def,"",word)} ${codeOnly(r.name)}</div>${o.summary?`<p class="lead">${rich(o.summary)}</p>`:""}<dl>${o.why?`<dt>${whyLabel}</dt><dd>${rich(o.why)}</dd>`:""}${settled?`<dt>Settled in column 4</dt><dd>${rich(settled.change.what)}${settled.change.why?` — ${rich(settled.change.why)}`:""}${settled.change.ref?` · ${refHtml(settled.change.ref)}`:""}</dd>`:""}${o.wins?`<dt>Would have won if</dt><dd>${rich(o.wins)}</dd>`:""}${o.source?`<dt>Source</dt><dd>${refHtml(o.source)}</dd>`:""}${o.link?`<dt>Detail</dt><dd>${refHtml(o.link)}</dd>`:""}${others.length?`<dt>Weighed against</dt><dd><ul class="opts">${others.map(x=>`<li>${optButton(r,x)}</li>`).join("")}</ul></dd>`:""}</dl>`); }
 function inspectVerdict(r){ const v=r.verdict||{}, w=verdictOf(r);
   inspect(`<div class="kicker">3 · VERDICT${w?` · ${w==="leave"?"LEAVE AS IS":"BUILD"}`:""}</div><div class="name">${codeOnly(r.name)}</div><div class="vis">${whereOf(r)}</div>${w&&stmtsOf(v).length?stmtsHtml(r,"verdict"):`<p class="lead">${w?rich(v.summary):"Not yet written."}</p>`}${v.defense?`<p>${rich(v.defense)}</p>`:""}<dl>${v.steps&&v.steps.length?`<dt>Steps</dt><dd><ol class="steps-list">${v.steps.map(s=>`<li><b>${esc(s.id||"·")}</b><span>${rich(s.what||"")}${s.files&&s.files.length?`<span class="files">${s.files.map(f=>`<code>${esc(f)}</code>`).join("")}</span>`:""}${s.check?`<span class="check">${rich(s.check)}</span>`:""}${s.link?` ${moreLink(s.link,"in the plan")}`:""}</span></li>`).join("")}</ol></dd>`:""}${v.tests&&v.tests.length?`<dt>Tests</dt><dd>${list(v.tests)}</dd>`:""}${v.leaves&&v.leaves.length?`<dt>Leaves to other units</dt><dd>${list(v.leaves)}</dd>`:""}${v.risks&&v.risks.length?`<dt>Risks and what bounds them</dt><dd>${list(v.risks)}</dd>`:""}${v.source?`<dt>Source</dt><dd>${refHtml(v.source)}</dd>`:""}${v.link?`<dt>Detail</dt><dd>${refHtml(v.link)}</dd>`:""}</dl>`); }
 function inspectBuilt(r){ const b=r.asBuilt||{}, st=stateOf(r), a=PLAN.asBuilt||{}, u=r.unit;
@@ -2196,7 +2209,7 @@ function renderDecisions(){
   $("#dec-ctl").innerHTML=`<label>show <span class="seg">${keys.filter(k=>k==="all"||counts[k]).map(k=>`<button data-f="${k}" aria-pressed="${decFilter===k}">${k} ${counts[k]}</button>`).join("")}</span></label>`;
   document.querySelectorAll("#dec-ctl button").forEach(b=>b.addEventListener("click",()=>{ decFilter=b.dataset.f; renderDecisions(); }));
   const rows=OPTS.filter(x=>decFilter==="all"||x.opt.verdict===decFilter);
-  $("#dec-table").innerHTML=`<thead><tr><th>Row</th><th>Option</th><th>Verdict</th><th>Why</th><th>Source</th></tr></thead><tbody>${rows.map(({row,opt})=>{ const {def,word}=optDef(row,opt); return `<tr data-sys="${esc(row.system||"")}" data-row="${esc(row.id)}" data-opt="${esc(opt.id)}" tabindex="0"><td>${codeOnly(row.name)}</td><td><b>${rich(opt.name)}</b>${opt.summary?`<div class="sub">${rich(opt.summary)}</div>`:""}</td><td>${pill(def,"",word)}</td><td>${rich(opt.why||"")}${opt.wins?`<div class="sub">Would have won if: ${rich(opt.wins)}</div>`:""}</td><td>${opt.source?refHtml(opt.source):""}</td></tr>`; }).join("")}</tbody>`;
+  $("#dec-table").innerHTML=`<thead><tr><th>Row</th><th>Option</th><th>Verdict</th><th>Why</th><th>Source</th></tr></thead><tbody>${rows.map(({row,opt})=>{ const {def,word}=optDef(row,opt); return `<tr data-sys="${esc(row.system||"")}" data-row="${esc(row.id)}" data-opt="${esc(opt.id)}" tabindex="0"><td>${codeOnly(row.name)}</td><td><b>${rich(opt.name)}</b>${sigCode(opt)}${opt.summary?`<div class="sub">${rich(opt.summary)}</div>`:""}</td><td>${pill(def,"",word)}</td><td>${rich(opt.why||"")}${opt.wins?`<div class="sub">Would have won if: ${rich(opt.wins)}</div>`:""}</td><td>${opt.source?refHtml(opt.source):""}</td></tr>`; }).join("")}</tbody>`;
   paint($("#dec-table"));
   document.querySelectorAll("#dec-table tbody tr").forEach(tr=>{ const go=()=>{ const r=ROWS.find(x=>x.id===tr.dataset.row); INSPECTED={k:"opt",row:tr.dataset.row,opt:tr.dataset.opt}; inspectOption(r,(r.options||[]).find(o=>o.id===tr.dataset.opt)); }; tr.addEventListener("click",e=>{ if(e.target.closest("a")) return; go(); }); tr.addEventListener("keydown",e=>{ if(e.key==="Enter") go(); }); });
   const used=new Set(OPTS.map(x=>optDef(x.row,x.opt).word.startsWith("deferred →")?"settled":x.opt.verdict));

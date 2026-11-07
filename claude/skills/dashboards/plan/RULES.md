@@ -222,6 +222,17 @@ number ("4.2", "A-3"), else the heading itself, or a `label` the statement sets.
 
 The **legend** of the Design tab and the As built tab names each adaptation mark it drew; the lede says the reference is clickable.
 
+### An option's signature
+
+An option whose name stands for a piece of API keeps a **short name** — the bare identifier in a `` `code` `` span (the bare
+`` `getOrLoad` ``), never its parameter list — and the signature goes in a field of its own, `signature`: the code as written, without
+backticks (`"getOrLoad(key, policy, maxAge, loader): Result<Lookup<V>>"`). The board draws it verbatim **beneath the name**, the code label
+set as a block (`GUIDANCE.md` §12, "Code"), in the Considered cell (and the inspector's "Weighed against" list, the same button), in
+the inspector under the option's name, and in the Decisions table's Option column; the option button's `aria-label` carries it too. A
+signature is code, never prose: the internal-name scan and the issue references leave it alone. It is optional: an option whose name
+stands for no signature has none, and an option written before the field keeps its name as it is and draws as before (admin-team/dashboards/code-label-and-sigblock).
+It is a short declaration, not a listing (§7).
+
 ### The KPI tiles
 
 The KPI tiles stand in the **Timeline tab** (below), under the Timeline tile; since admin-team/dashboards-skill/34 there is no KPI row in
@@ -1479,7 +1490,8 @@ board.
 ## 7. Writing
 
 Sentences, not fragments; present tense in columns 1–3, past tense in column 4; file paths and
-identifiers in `` `code` `` spans and issues as `#n` (the board links both); a cell's summary
+identifiers in `` `code` `` spans and issues as `#n` (the board links both); an option's name short, its signature in
+`signature` (§2, "An option's signature"); a cell's summary
 stands alone in two to four lines, and the detail link goes to the Markdown section that holds
 the rest. No code listings. Numbers only where they decide something. Never a work level
 (`GUIDANCE.md` §4): no "level 3", "L3" or "a level-3 change" anywhere on a board; say what the
@@ -1494,7 +1506,8 @@ without `asBuilt.sha` and `.date`; a `planned` plan with a non-pending part; a r
 name, system or gap summary; a row without options once the `considered` milestone exists, or
 without a verdict summary once the `verdict` milestone exists (a board between research and
 plan acceptance carries the Gap column alone); options without exactly one accepted (or
-chosen-partial) verdict; a declined, partial or deferred option without `why`; an amended or
+chosen-partial) verdict; a declined, partial or deferred option without `why`; an option's `signature` that is not a non-empty
+string (§2, "An option's signature"); an amended or
 deviated part without `changes[]`, or a change without `what` and `why`; a dropped part
 without a reason; a deferred part without an issue; a `sized` or a qa pass's `at` that is not a date or an ISO date-time, and a
 statement's `refNumber` not in its form (`{ref, label: "§n", from: headings | anchor}`, §2); a `wip.current` address that names no cell; a `wip.questions` that is not an array of `{question,
@@ -1580,7 +1593,7 @@ With `--auto` it reports the board's standing against its template (`system/scri
 the verified template plus its data (no browser pass), or a divergence (the full browser pass:
 light, dark, 520 px, a 390 px frame, a 1920 x 1080 desktop).
 
-Warns: a qa pass returned with no `running` before it (`QA START NOT RECORDED`, `wip.qa[].startUnrecorded`, §4; a mark that is not `true` fails); a `wip.history` visit holding a fact a snapshot of its step does not keep, and two remediation loops answering the same qa pass
+Warns: an option's `signature` wrapped in backticks, or one its name repeats (§2, "An option's signature"); a qa pass returned with no `running` before it (`QA START NOT RECORDED`, `wip.qa[].startUnrecorded`, §4; a mark that is not `true` fails); a `wip.history` visit holding a fact a snapshot of its step does not keep, and two remediation loops answering the same qa pass
 (§3, "Finished steps"; its `ok` line names the steps kept and those the board reconstructs); verdicts written before the statements, one paragraph each (one warning naming the rows: split them, §9); a statement whose
 reference names a section that is gone, whose excerpt is not copied yet, or whose section has changed since its excerpt was copied
 (§2, "Statements"); a statement's text that ends with its own "(§…)"; a verdict or an As built cell that keeps its summary beside

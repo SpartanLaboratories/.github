@@ -1010,7 +1010,7 @@ const ISSUE_UNLINKED = new Set(["$comment", "schema", "repo", "slug", "folder", 
   "branch", "step", "steps", "since", "updated", "state", "verdict", "column", "date", "sha", "merge", "version", "pr", "files", "n", "level", "current", "next",
   "resume", "qa", "qaMax", "pass", "findings", "question", "questions", "landing", "chosen", "settles", "when", "issueBoards",
   "event", "research", "phase", "drafted", "stages", "severity", "started", "returned", "asked", "answered", "verdicts", "deviations", "hash", "list", "links", "pages",
-  "class", "module", "path", "testLevel", "byModule", "rowNames", "base", "stage"]);
+  "class", "module", "path", "testLevel", "byModule", "rowNames", "base", "stage", "signature"]);
 const reEsc = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const UNIT_LANDED = ["landed", "as-planned", "amended", "deviated"];
 /* Left for later (plan/RULES.md §2, the As built tile; §3, the chain's progress): a row whose written verdict leaves it as is (kind

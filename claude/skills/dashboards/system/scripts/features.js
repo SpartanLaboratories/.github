@@ -252,6 +252,17 @@ const FEATURES = [
     notFor: { "work-board": "no inspector: one row per run, each run's detail on its own board" },
     test: h => { const s = scripts(h), c = css(h); return need(/"dashboards-inspector"/.test(s) && /localStorage\.getItem\("dashboards-inspector"\)/.test(head(h)) && /function inspectorSwitch\(/.test(s) && /:root\[data-inspector="hidden"\] \.inspector\{display:none\}/.test(c) && /:root\[data-inspector="hidden"\] \.stage\{grid-template-columns:minmax\(0,1fr\)\}/.test(c),
       "no inspector switch (inspectorSwitch(), localStorage \"dashboards-inspector\" read in the head, :root[data-inspector=\"hidden\"])"); } },
+  /* admin-team/dashboards/code-label-and-sigblock (the user's decisions of 2026-11-06 and 2026-11-07), dated 42: the code label on every type
+     (GUIDANCE.md §12, "Code"), and an option's signature drawn beneath its name on an issue or tracking board (plan/RULES.md §2). A board drawn
+     before them draws its code as bare mono text until its next rebuild (the splice, its next event, board.js --refresh-template); a landed
+     issue board is kept as it landed (§11). */
+  { id: "code-label", name: "the code label: every inline code a label of its own (the surface-2 fill, a hairline border, 1 × 4 px padding, 3 px radius), at normal weight inside bold text, plain inside a chip, a pill or a tile", since: 42, types: ALL,
+    test: h => { const c = css(h); return need(/(?:^|\n)code\{[^}]*background:var\(--surface-2\);border:1px solid var\(--hair\);padding:1px 4px;border-radius:3px\}/.test(c) && /:is\(b,strong,\.name,\.nm,dt,th\) code\{font-weight:400\}/.test(c) && /:is\(\[class\*="chip"\],\[class\*="pill"\],\[class\*="tile"\]\) code\{background:none;border:0;padding:0;border-radius:0\}/.test(c),
+      "inline code is bare mono text (no code{background:var(--surface-2);border:1px solid var(--hair);…}, or no normal weight inside bold text, or no plain code inside chips, pills and tiles)"); } },
+  { id: "option-signature", name: "an option's signature (its own field) drawn beneath its short name as a block of code, in the Considered cell, the inspector and the Decisions table", since: 42, types: ["plan-board"],
+    notFor: { system: "no options: a state board shows the code at a commit, not the options a run weighed", supersystem: "no options: a state board shows the code at a commit, not the options a run weighed", "work-board": "no options: one row per run, each run's options on its own board" },
+    test: h => { const s = scripts(h), c = css(h); return need(/const sigCode=o=>/.test(s) && /\$\{codeOnly\(o\.name\)\}\$\{sigCode\(o\)\}/.test(s) && /<div class="sigblock">\$\{sigCode\(o\)\}<\/div>/.test(s) && /<\/b>\$\{sigCode\(opt\)\}/.test(s) && /code\.codeblock\{display:block;/.test(c),
+      "an option's signature field is not drawn (sigCode() beneath the name in the Considered cell, the inspector's .sigblock, the Decisions table; code.codeblock)"); } },
   /* admin-team/dashboards-skill/24 */
   { id: "finished-steps", name: "finished steps on the progress strip clickable: each shows its snapshot (wip.history) in the step panel, or what survives, reconstructed", since: 24, types: ["plan-board"],
     notFor: { system: "no progress strip: a state board shows the code at a commit, not a run's steps", supersystem: "no progress strip: a state board shows the code at a commit, not a run's steps", "work-board": "no progress strip: one row per run, each run's step as text; its steps are on its own board" },

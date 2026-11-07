@@ -46,6 +46,17 @@ function placeholders(v, at, found) {
   else if (v && typeof v === "object") Object.keys(v).forEach(k => { if (k === "$comment") found.push(`${at ? at + "." : ""}$comment`); else placeholders(v[k], at ? `${at}.${k}` : k, found); });
   return found;
 }
+/* An option's signature (RULES §2, "An option's signature"; admin-team/dashboards/code-label-and-sigblock): an option keeps a short name and its
+   signature is a field of its own, the code as written, which the board draws verbatim beneath the name, set as a block. A signature that is
+   not a non-empty string fails; one wrapped in backticks, or one the name still repeats, is warned on. An option written before the field
+   keeps its name as it is (its data stays as it was written), so a name that carries a signature is not checked. */
+function checkSignature(o, oat) {
+  if (o.signature != null && !str(o.signature)) { fail(`${oat}.signature must be a non-empty string: the option's signature as written in the code (or leave it out)`); return; }
+  if (!str(o.signature)) return;
+  const s = o.signature.trim(), bare = s.split("(")[0].trim();
+  if (/^`[\s\S]*`$/.test(s)) warn(`${oat}.signature is wrapped in backticks; it is code already, drawn verbatim: write it without them`);
+  else if (str(o.name) && o.name.replace(/`/g, "").includes(s)) warn(`${oat}: the name repeats its signature; keep a short name (the bare \`${bare}\`) and the signature in signature alone`);
+}
 /* No listings (RULES §7): a string over five lines, or a fenced block over five lines, is a code block too long for a board. */
 function listings(v, at, found) {
   if (typeof v === "string") {
@@ -75,7 +86,7 @@ function levelFail(data, file) {
   /* No internal names (GUIDANCE.md §4; namerefs.js, dashboards-skill/33): every string the board carries is free of the pipeline's agents,
      sessions and roles and of the approval flow; an issue's title, quoted verbatim, is left out. A warning, never a failure: the board is
      reworded at its next refresh (apply-event.js scrubs the facts it writes) */
-  const names = nameRefsIn(data, "", [], titleSkip(data));
+  const tSkip = titleSkip(data), names = nameRefsIn(data, "", [], at => tSkip(at) || /^rows\[\d+\]\.options\[\d+\]\.signature$/.test(at));   // a signature is code, never prose
   if (names.length) warn(nameWarning(`${file} (${[...new Set(names.map(h => h.at))].slice(0, 4).join(", ")}${names.length > 4 ? ", …" : ""})`, names.map(h => h.hit)));
   const hits = levelRefsIn(data, "", [], titleSkip(data));
   // a decision's defence written as its work level ("Level 3: one system, additive"), the architecture's usual form
@@ -225,6 +236,7 @@ function checkPlan(plan, dir, root) {
       const oat = `${at}.options[${j}]`;
       if (!str(o.id) || !ID.test(o.id)) fail(`${oat}: id must be kebab-case`); else if (oids.has(o.id)) fail(`${oat}: duplicate option id`); else oids.add(o.id);
       if (!str(o.name)) fail(`${oat}: name is required`);
+      checkSignature(o, oat);
       if (!VERDICTS.includes(o.verdict)) fail(`${oat}: verdict must be one of ${VERDICTS.join(", ")}`);
       if (o.verdict === "accepted" || (o.verdict === "partial" && o.chosen === true)) chosen++;
       if (["declined", "partial", "deferred"].includes(o.verdict) && !str(o.why)) fail(`${oat}: a ${o.verdict} option needs "why"`);

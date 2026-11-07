@@ -2218,8 +2218,9 @@ catch (e) { report("a foundation on the fast path cases", [["the cases run to th
    (verify/cases-board-wording.js, admin-team/dashboards-skill/board-wording, dated 41). The defects found in the Design tab's review
    (verify/cases-design-tab-defects.js): a row's name through codeOnly() at every site and nameText() in its attributes, a letter-prefixed
    section number ("§R2"), a count and its noun agreeing on every template, a step's file list one path per line, and the scripts' messages in
-   the current vocabulary. Each runs on its own too. */
-[["./cases-design-tab-defects.js", "the Design tab's defects"], ["./cases-option-d.js", "a tracking plan lands, then files"], ["./cases-fill.js", "a fill merges onto the latest board"], ["./cases-work-levels.js", "a board keeps no work level"], ["./cases-archived-colours.js", "an archived system holds no colour"], ["./cases-quality-review.js", "a qa pass is named Quality Review N"], ["./cases-board-wording.js", "the board's names and classes"]].forEach(([file, what0]) => {
+   the current vocabulary. The code label on every template and an option's signature drawn beneath its short name (verify/cases-code-label.js,
+   admin-team/dashboards/code-label-and-sigblock, dated 42). Each runs on its own too. */
+[["./cases-design-tab-defects.js", "the Design tab's defects"], ["./cases-option-d.js", "a tracking plan lands, then files"], ["./cases-fill.js", "a fill merges onto the latest board"], ["./cases-work-levels.js", "a board keeps no work level"], ["./cases-archived-colours.js", "an archived system holds no colour"], ["./cases-quality-review.js", "a qa pass is named Quality Review N"], ["./cases-board-wording.js", "the board's names and classes"], ["./cases-code-label.js", "the code label and an option's signature"]].forEach(([file, what0]) => {
   try { require(file)({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
   catch (e) { report(`${what0} cases`, [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); } });
 
