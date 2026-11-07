@@ -132,9 +132,11 @@ bump are committed; the documentation is reconciled). Everything is stamped at
 the code-landing sha the request names — "as-is at `<branch>` @ `<sha>`" — not
 at the branch's head, which later carries the document-landing commit. There
 are no "previous landing's corrections" here: a run's `sized` seeds them
-(plan-board mode, step 2). The land never asks for this job again, save to
-rebuild the state-board files a re-sync conflicted in (below); any other re-sync
-at the land leaves the boards stamped at the code-landing sha.
+(plan-board mode, step 2), and for a level-1 run, which sends none, the team
+raises `seed` just before this job (the admin team's brief, Seeding). The land
+never asks for this job again, save to rebuild the state-board files a re-sync
+conflicted in (below); any other re-sync at the land leaves the boards stamped
+at the code-landing sha.
 
 1. **The changed systems' state boards**, as built: update each where it exists;
    create one only when the request names the system as getting one (the user's
@@ -187,7 +189,8 @@ replaces nothing there. The team raises `reseed` after this job. The committed
 landed state (the issue board, the tracking board, the repository work board) is
 seeded from this live view onto the next run's branch at its `sized`
 (plan-board mode, step 2) and committed by that run's document-landing commit,
-or carried by a level-1 landing before it (the admin team's brief, Seeding).
+or carried by a level-1 landing before it, through the team's `seed` (the
+admin team's brief, Seeding).
 
 ### Dashboards-refresh mode
 

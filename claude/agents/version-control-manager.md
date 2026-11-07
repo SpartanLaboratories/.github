@@ -138,7 +138,8 @@ A landing in executor mode is three requests, each its own spawn:
   its Document step) commits the documents the step wrote — the reconciled
   `final-implementation.md` and `consequences.md`, the README and CHANGELOG
   deltas, the issue's board files (`dashboard.html`, `plan.json`), its
-  tracking board's, the repository work board and the state-board files — as
+  tracking board's, the boards the team seeded onto the branch, the
+  repository work board and the state-board files — as
   `docs:` commits split per the guidelines below. Report the head sha.
 - **`land`** lands a branch whose change set is already committed. Check the
   base has not moved since the sync; if it has, re-sync (the same merge) and,

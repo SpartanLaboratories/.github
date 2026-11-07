@@ -95,12 +95,13 @@ boards on the branch (the changed systems' boards as built, the supersystem and 
 stamped "as-is at `<branch>` @ `<head>`"; at level 4 the planned systems are drawn dashed. It
 raises the issue board's `state-boards` step itself on accepting the request, and again with
 `facts.done: true` just before its `done` reply, closing the Document step's task; that raise also
-makes the commit task, `document-landing`, current, and the team closes it before it commits. `done`
-carries `result.paths`. Nothing is committed: the run's `commit` of its documents (the
-document-landing commit) carries them, then its `land`. The team builds them in its presenter lane
-for the repository, apart from the repository's lane, so no version-control request waits behind
-the build; the same holds for a `dashboards-refresh`, whose files the team commits with requests of
-its own.
+makes the commit task, `document-landing`, current, and the team closes it before it commits. A
+level-1 run has no issue board, so no step is raised: the team raises `seed` instead, seeding the
+repository's pending corrections onto the branch. `done` carries `result.paths`, the seeded paths
+included. Nothing is committed: the run's `commit` of its documents (the document-landing commit)
+carries them, then its `land`. The team builds them in its presenter lane for the repository, apart
+from the repository's lane, so no version-control request waits behind the build; the same holds for
+a `dashboards-refresh`, whose files the team commits with requests of its own.
 
 **`file-issue`.** A session that finds a bug, design flaw, missing capability or other concern in
 a Spartan Labs repo sends `file-issue`; it never runs `gh issue create` itself. The team files it
@@ -136,7 +137,7 @@ A `plan-board` event updates the issue's issue board and, for a sub-issue, its t
 
 | Field | Meaning |
 |-------|---------|
-| `event` | `sized`, `halted`, `resumed`, `researched`, `research-planning`, `research-started`, `research-returned`, `verification-started`, `architecture-signed-off`, `plan-accepted`, `branch-cut`, `implementation-stage`, `qa-pass`, `document`, `escalated`, `cancelled` (`state-boards`, `landing`, `merge`, `landed`, `sub-issues-filed`, `run-restarted` and `reseed` are raised by the team itself: `state-boards` when it accepts the run's `state-boards` request and, with `facts.done: true`, just before replying `done` to it, `landing` when it accepts the `land`, `merge` at the PR, `landed` after the merge, `sub-issues-filed` while `file-sub-issues` files a tracking plan's units, `run-restarted` when a run's request comes from a different session than its last request did or carries `restarted`, `reseed` at the end of every post-merge refresh; `landing`, `merge`, `landed` and `sub-issues-filed` go to the view copies, nothing tracked written). A `plan-board` request naming any of these seven from another session is `rejected`, naming this rule. |
+| `event` | `sized`, `halted`, `resumed`, `researched`, `research-planning`, `research-started`, `research-returned`, `verification-started`, `architecture-signed-off`, `plan-accepted`, `branch-cut`, `implementation-stage`, `qa-pass`, `document`, `escalated`, `cancelled` (`state-boards`, `landing`, `merge`, `landed`, `sub-issues-filed`, `run-restarted`, `reseed` and `seed` are raised by the team itself: `state-boards` when it accepts the run's `state-boards` request and, with `facts.done: true`, just before replying `done` to it, `landing` when it accepts the `land`, `merge` at the PR, `landed` after the merge, `sub-issues-filed` while `file-sub-issues` files a tracking plan's units, `run-restarted` when a run's request comes from a different session than its last request did or carries `restarted`, `reseed` at the end of every post-merge refresh, `seed` when it accepts a level-1 run's `state-boards` request (the seeding alone, onto the level-1 branch from the view copies, the issue's unit marked `complete` on its tracking board where it is one; it names no folder); `landing`, `merge`, `landed` and `sub-issues-filed` go to the view copies, nothing tracked written). A `plan-board` request naming any of these eight from another session is `rejected`, naming this rule. |
 | `folder` | `docs/plans/<…>/<issue>-<slug>` — the issue's plan folder, relative to the repo. |
 | `facts` | What the pipeline knows at this event, in plain fields: `step` (no effect on `implementation-stage`), `detail`, `waitingOn`, `stage`, `qa` (`{pass, verdict, doc, test, code, severity, route}`, `verdict` also `"running"`, sent just before each pass, `severity` `{minor, other}`, `route` as in `remediation`), `documents` (paths written or updated), `proposedLevel` (read by no script, never written), `reason`, `drafted` (questions drafted so far, at `research-planning`), `researching` (`[{question, rows}]`, at `research-started`), `returned` (`{question, findings}`, at `research-returned`), `questions` (`[{text, options?}]`, at a `halted` in any step: each question the halt puts to the user, with the options it offers; the event that ends the halt marks them answered), `stages` (`[{id, name, state}]`, `state` `done` | `current` | `todo`, at `implementation-stage`), `tasks` (`[{id, name, state}]`, the same states, at `document`; ids `documentation-review`, `reconcile-documentation`, `dokka-check`, `reconcile-plan`, `readme-changelog`, `state-boards`, `document-landing`; the last two are the team's: a run's list need not name them and cannot move them back), `remediation` (`{pass, route, steps: [{name, state}]}`, `route` `on-the-spot` | `remediation` | `re-plan-then-remediation` (the older `rookie-dev` and `planner-then-rookie-dev` are still read), during a remediation loop), `rows` (board row ids the findings or fixes touch, at `qa-pass` and during remediation), `open` (`[{text, raised, ref?, resolved?}]`, open points raised or resolved), `units`, `final` and, optional, `merge` and `pr` (team-raised, at `sub-issues-filed`), `at` (ISO time the event happened, any event), `tests` (optional, at `implementation-stage` and `qa-pass`): `{base, added: [{class, module, testLevel, path, tests, rows}], amended: […], relevant: […], ran: [{class, module, passed, failed, skipped}], other: {byModule: {<module>: {<level>: count | {classes, tests}}}}, drop: […]}`; `testLevel` is one of `1` `2` `3` `4a` `4b` `4c` `5`, and may be omitted when the class's package names the level folder. The presenter reads the folder's documents for everything else. |
 
@@ -150,12 +151,13 @@ for viewing only, into the git-ignored `docs/plans/.live/` of the main checkout 
 the repository carries the landed state (its issue board as `landed` with its merge commit, its
 tracking board's filed units, its unit landed and next up, the repository work board): the next
 run's `sized` seeds it onto its branch, and a level-1 branch, which sends no `sized`, carries the
-corrections still pending too. Between landings the live view is that local copy, regenerated
-after every board event, and a run's live state is on its own board in its worktree. A
-`plan-board` event runs in the team's board lanes, apart from the repository lanes, and commits
-nothing: an issue's board files are committed by the run's document-landing commit. On a topic
-branch that lands through a PR (the board's first creation, a docs branch), the repository work
-board files are ordinary paths and a `commit` may include them.
+corrections still pending too, through the `seed` the team raises at its `state-boards` request.
+Between landings the live view is that local copy, regenerated after every board event, and a run's
+live state is on its own board in its worktree. A `plan-board` event runs in the team's board lanes,
+apart from the repository lanes, and commits nothing: an issue's board files are committed by the
+run's document-landing commit. On a topic branch that lands through a PR (the board's first
+creation, a docs branch), the repository work board files are ordinary paths and a `commit` may
+include them.
 
 ## A reply
 

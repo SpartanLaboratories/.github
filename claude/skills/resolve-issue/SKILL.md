@@ -387,7 +387,10 @@ on it):
    repository work board, all stamped "as-is at `<branch>` @ `<code-landing
    sha>`"; at level 4 the planned systems drawn dashed. The team raises the
    issue board's `state-boards` step itself, also making the commit task
-   (`document-landing`) current, and replies `done` with the paths.
+   (`document-landing`) current, and replies `done` with the paths. At
+   **level 1**, which has no issue board, the team raises no step: it first
+   seeds the repository's pending corrections onto the branch, and the reply's
+   paths include them.
    A reply reporting `BLOCKED — system unresolved`: **stop** and ask the user
    which system the work belongs to; resend the same `id` with `attempt + 1`
    and the answer.
@@ -395,13 +398,14 @@ on it):
 Then the **document-landing commit**: send a `commit` request carrying every
 document the step wrote or changed (the reconciled plan documents, the README
 and CHANGELOG), the issue's board files, its tracking board's, the repository
-work board and the state-board files; the executor splits them per its
-guidelines, `docs:` type. Its `done` reply's sha is the **document-landing
-commit**. The team closes the board's commit task before it commits; send no
-`document` event after the `commit` request, because it would dirty the
-worktree. A `needs-rework` with `result.finds` means a file names the pipeline
-or a work level: reword each `file:line` (or have the agent that wrote it
-reword it) and resend the same `id` with `attempt + 1`. Then step 7.
+work board, the state-board files and every other path the `state-boards` reply
+names (at level 1, the boards seeded onto the branch); the executor splits them
+per its guidelines, `docs:` type. Its `done` reply's sha is the
+**document-landing commit**. The team closes the board's commit task before it
+commits; send no `document` event after the `commit` request, because it would
+dirty the worktree. A `needs-rework` with `result.finds` means a file names the
+pipeline or a work level: reword each `file:line` (or have the agent that wrote
+it reword it) and resend the same `id` with `attempt + 1`. Then step 7.
 
 The presenter is not a pipeline step: it runs as a service of the `admin team`
 session, building the state boards on the run's `state-boards` request (task 6)
@@ -464,7 +468,9 @@ run's boards with the previous landing's landed state — the parent tracking bo
 board as `landed` — from the main checkout's live view, so the run's branch
 carries them and they ride its document-landing commit. A level-1 run sends no
 `sized`, and its landing carries the repository's pending corrections all the
-same (the admin team's brief, Seeding). There is no separate corrections work
+same: the team seeds them onto its branch when it accepts its `state-boards`
+request, and the document-landing commit carries the paths the reply names
+(the admin team's brief, Seeding). There is no separate corrections work
 in any landing.
 
 ## 7. Land it — `admin team`: `land`
