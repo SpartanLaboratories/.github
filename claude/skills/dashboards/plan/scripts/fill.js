@@ -22,9 +22,12 @@
 //   Two narrow ways into what the events own, each by what it names, so neither undoes an event:
 //   "trailAdd": [{ date, column, label, ref? }] appends trail entries, one already there skipped;
 //   "wip": { "stages": [{ id, rows }], "questions": [{ question, rows }], "interview": [{ text, answer }], "asked": [{ text, step?, answer }], "qa": [{ pass, note }],
-//            "current": { "step": "<the step this glow is for>", "cells": ["<row-id>.<column>"] } } sets only those fields of the items it names, an item the board does not
-//   hold named and skipped, and the glow only while the board's step is still that step. Any other wip key is refused. An answer's gist (the
-//   interview's, a halt's) is written on the snapshots that hold its question too (lib.js syncAsked()).
+//            "current": { "step": "<the step this glow is for>", "cells": ["<row-id>.<column>"] }, "waitingOn": "<what waits on the user>" } sets only those
+//   fields of the items it names, an item the board does not hold named and skipped, and the glow only while the board's step is still that step. Any
+//   other wip key is refused. An answer's gist (the interview's, a halt's) is written on the snapshots that hold its question too (lib.js syncAsked()).
+//   wip.waitingOn is the text the fast path left out or wrote in its stead (plan/RULES.md §4, "A work level in the facts is reworded"): while the board
+//   is halted or escalated it is written, and the stop's own trail entry and a detail that quoted the old text follow it, so the record reads alike;
+//   once an event has taken the board out of the stop, the last stop's trail entry alone takes it, and a waitingOn and resume left standing are cleared.
 // It keeps up what follows from new rows: a tracking board's wip.next once its unit rows first appear, the glow at research and at sub-issues.
 // Exit 0 when merged (the summary's check line says what still warns or fails), 1 when the fill would add a failure to the board (every file as it was), 2 on a usage error or a refused field.
 "use strict";
@@ -35,7 +38,7 @@ const { titleSkip } = require(path.resolve(__dirname, "..", "..", "system", "scr
 const OWNED = ["wip", "trail", "status", "sized", "branch", "asBuilt", "kind", "schema", "repo", "issue", "slug", "folder", "foundation", "links"];
 const IDENTITY = ["id", "slug", "issue", "class", "question", "pass", "n"];
 const LEVELS = new Set(["level", "proposedLevel"]);
-const WIP_KEYS = ["stages", "questions", "interview", "asked", "qa", "current"];
+const WIP_KEYS = ["stages", "questions", "interview", "asked", "qa", "current", "waitingOn"];
 const UNIT_KEPT = ["issue", "board", "folder", "live"];
 const ROW_DERIVED = ["pending", "in-progress", "partially-built"];
 const isObj = v => v != null && typeof v === "object" && !Array.isArray(v);
@@ -129,6 +132,24 @@ function mergeFill(board, fields) {
     if (isObj(F.wip.current)) { const C = F.wip.current, cells = Array.isArray(C.cells) ? C.cells.map(String) : [];
       if (typeof C.step !== "string") throw new Refused("wip.current names the step its glow is for ({ step, cells })");
       if (lib.shownStep(w) === C.step) { w.current = cells; merged.push(`wip.current at ${C.step}`); } else notes.push(`wip.current was for ${C.step}; the board has moved on to ${lib.shownStep(w)}: left as the event set it`); }
+    /* what waits on the user, written by the presenter where the fast path could not write the run's own text (an internal name or a work level in
+       it). While the board waits: wip.waitingOn, and the stop's trail entry ("… waiting on you (<text>)") and a detail made of it ("Waiting on you:
+       <text>") follow it, so the record says one thing. Once an event has taken the board out of the stop: the last stop's trail entry alone, its
+       record, and a wip.waitingOn and wip.resume the event left standing cleared */
+    if (F.wip.waitingOn !== undefined) {
+      if (typeof F.wip.waitingOn !== "string" || !F.wip.waitingOn.trim()) throw new Refused("wip.waitingOn is a text: what waits on the user");
+      const now = F.wip.waitingOn.trim(), trail = Array.isArray(plan.trail) ? plan.trail : [], quoting = /waiting on you \(([\s\S]*)\)$/;
+      if (["halted", "escalated"].includes(w.step)) { const old = w.waitingOn;
+        if (old !== now) { w.waitingOn = now; merged.push("wip.waitingOn");
+          if (typeof old === "string" && old) {
+            if (w.detail === `Waiting on you: ${old}`) { w.detail = `Waiting on you: ${now}`; merged.push("wip.detail"); }
+            const t = trail.filter(x => isObj(x) && typeof x.label === "string" && x.label.endsWith(`waiting on you (${old})`)).pop();
+            if (t) { t.label = t.label.slice(0, t.label.length - old.length - 1) + now + ")"; merged.push("the stop's trail entry"); } } } }
+      else { const t = trail.filter(x => isObj(x) && typeof x.label === "string" && quoting.test(x.label)).pop();
+        if (!t) notes.push(`wip.waitingOn: the board is at ${w.step} and its trail records no stop: skipped`);
+        else if (t.label.match(quoting)[1] !== now) { t.label = t.label.replace(quoting, `waiting on you (${now})`); merged.push("the last stop's trail entry"); }
+        if (w.waitingOn != null || w.resume != null) { w.waitingOn = null; w.resume = null; merged.push("wip.waitingOn and wip.resume, left standing after the stop, cleared"); } }
+    }
   }
   /* what follows from new rows */
   const rowsNow = Array.isArray(plan.rows) ? plan.rows : [];

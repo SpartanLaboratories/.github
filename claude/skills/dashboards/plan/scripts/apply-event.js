@@ -756,6 +756,9 @@ function applyEvent(orig, ev, facts, req, now) {
      stop but cancelled (admin-team/dashboards/halt-questions, dated 45) */
   { const was = stopped((orig.wip || {}).step); if (ev === "resumed" || (was && !stopped(w.step) && ev !== "cancelled")) applied.push(...lib.answerQuestions(w, now)); }
   applied.push(...lib.freezeSteps(orig, plan, ev, now, facts));
+  /* what a stop waited on and the step it was to resume at end with the stop, whichever event takes the board out of it (lib.js waitSteps()'s
+     "resumed or any other"): an architecture-signed-off after a halt had left both standing */
+  if (stopped((orig.wip || {}).step) && !stopped(w.step) && (w.resume != null || w.waitingOn != null)) { w.resume = null; w.waitingOn = null; applied.push("wip.resume and wip.waitingOn cleared"); }
   /* a halt's questions on the visit the halt ended, and every answer on the snapshots (lib.js syncAsked()) */
   applied.push(...lib.syncAsked(w));
   return { plan, applied, enrich, parentOp };

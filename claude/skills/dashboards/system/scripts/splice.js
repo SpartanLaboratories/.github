@@ -15,7 +15,7 @@
 //     keep the board's values; a new one takes the template's default and is reported for the presenter to fill; the renderer's
 //     DEFAULT_INSPECT line stays the board's;
 //   - the header: a chip without its label is relabelled where its content says what it is (version, as-is, the C4 model, systems), the
-//     old "last amended by" chip is removed (the renderer says it in the Context section), labelled or not, and any other unlabelled chip
+//     old "last amended by" chip is removed (the renderer says it in the Context Panel), labelled or not, and any other unlabelled chip
 //     is reported; on a board whose header lacks the template's chips drawn from state.json (id="chip-asis", "chip-written", "chip-version"),
 //     a hand-written "as-is at" chip is replaced by them, and a hand-written "version" chip whose value is the version alone by its
 //     placeholder (one that holds more is reported, for the presenter to split);
@@ -211,15 +211,15 @@ function main() {
       report.parts.push({ part: "the head's script before the first paint", how: bpp ? "replaced by the template's" : "added from the template" });
     }
     /* the header's chips */
-    h = h.replace(/<header>([\s\S]*?)<\/header>/, (m, inner) => "<header>" + inner.replace(/[ \t]*<span class="chip" id="chip-amended"[^>]*><\/span>\n?/, () => { report.chips.push("the \"last amended by\" chip removed: the renderer says it in the Context section"); return ""; })
+    h = h.replace(/<header>([\s\S]*?)<\/header>/, (m, inner) => "<header>" + inner.replace(/[ \t]*<span class="chip" id="chip-amended"[^>]*><\/span>\n?/, () => { report.chips.push("the \"last amended by\" chip removed: the renderer says it in the Context Panel"); return ""; })
       .replace(/<span class="chip([^"]*)"((?![^>]*\bid="chip-)[^>]*)>((?:(?!<span class="chip)[\s\S])*?)<\/span>(?=\s*(<span class="chip|<\/div>))/g, (all, cls, attrs, body) => {
         /* a labelled chip: kept, unless it is one the template draws from state.json (the stamp, the version) or the old last amendment,
-           which names an issue above the Context section (GUIDANCE.md §5, "A state board is as-is") */
+           which names an issue above the Context Panel (GUIDANCE.md §5, "A state board is as-is") */
         if (/class="ck"/.test(body)) {
           const lab = ((/<span class="ck">([\s\S]*?)<\/span>/.exec(body) || [, ""])[1]).replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim().toLowerCase();
           const val = body.replace(/<span class="ck">[\s\S]*?<\/span>/, "").replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
           const pageHas = id => new RegExp(`id="${id}"`).test(inner), tplHas = id => new RegExp(`<header>[\\s\\S]*id="${id}"[\\s\\S]*</header>`).test(tpl);
-          if (/^last amended/.test(lab)) { report.chips.push(`removed: the labelled "last amended by" chip ${JSON.stringify(val.slice(0, 50))} (the last amendment is said in the Context section)`); return ""; }
+          if (/^last amended/.test(lab)) { report.chips.push(`removed: the labelled "last amended by" chip ${JSON.stringify(val.slice(0, 50))} (the last amendment is said in the Context Panel)`); return ""; }
           if (lab === "as-is at" && !pageHas("chip-asis") && tplHas("chip-asis")) {
             report.chips.push(`the hand-written "as-is at" chip ${JSON.stringify(val.slice(0, 50))} replaced by the template's, drawn from state.json`);
             return `<span class="chip" id="chip-asis" hidden></span>` + (tplHas("chip-written") && !pageHas("chip-written") ? `\n    <span class="chip" id="chip-written" hidden></span>` : ""); }
@@ -232,7 +232,7 @@ function main() {
         const t = body.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim(); let ck = null, b = body;
         if (/\bmodel\b/.test(cls)) ck = "C4 model";
         else if (/^as-is\b/i.test(t)) { ck = "as-is at"; b = body.replace(/as-is\s*(at\s*)?/i, ""); }
-        else if (/last amended/i.test(t)) { report.chips.push(`removed: ${JSON.stringify(t.slice(0, 50))} (the last amendment is said in the Context section)`); return ""; }
+        else if (/last amended/i.test(t)) { report.chips.push(`removed: ${JSON.stringify(t.slice(0, 50))} (the last amendment is said in the Context Panel)`); return ""; }
         else if (/^v?\d+\.\d+(\.\d+)?[a-z]?$/i.test(t)) ck = "version";
         else if (/\bsystems?\b/i.test(t) && /\d/.test(t)) ck = "systems";
         if (!ck) { report.chips.push(`left unlabelled: ${JSON.stringify(t.slice(0, 50))}: give it its label (<span class="ck">…</span>)`); return all; }

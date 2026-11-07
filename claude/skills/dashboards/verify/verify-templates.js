@@ -82,7 +82,9 @@
 // inspector's Hide button (verify/cases-inspector-hide.js): one state with the inspector switch, the focus moved to the switch. The C4 DSL
 // reader (verify/cases-dsl-keyword-id.js): a block keyword as an element's identifier read as the element, and check-board.js failing a DSL
 // its C4 views would trip on (DSL KEYWORD ID, DSL UNKNOWN ELEMENT). The internal-names list's one home (verify/cases-internal-names.js):
-// nomenclature/internal-names.md §1 and §2 and namerefs.js's barred names and approval-flow phrases held equal. A
+// nomenclature/internal-names.md §1 and §2 and namerefs.js's barred names and approval-flow phrases held equal. The marks' classes
+// (verify/cases-mark-classes.js): .fullpulse, .col-fullpulse, .colcell-fullpulse, .upnext-ring and .fillpulse, never the older .glow,
+// .glow-soft, .colglow, .upnext and .pulse, the mark-classes probe and check-board.js's count. A
 // template is recorded only when every check it runs passes: by default those that need no browser; with --browser its browser
 // passes and the rendered cases too.
 "use strict";
@@ -303,11 +305,11 @@ targets.filter(t => t.block === "plan").forEach(t => {
       rc.push(["the WIP strip shows the unit's run in its own card, halted, and what it waits on in the \"Waiting on you\" card", new RegExp(`class="wipcard unit halted" data-row="${plain.id}"`).test(wip) && /waiting on you/.test(run) && /Verification stub: a choice between two designs/.test(wait), (run || wip).slice(0, 400) || "no run bubble"]);
       rc.push(["the unit's as-built cell carries the run line, its mark paused", /class="run"/.test(cell) && /waiting on you/.test(cell) && / held"/.test(cell.slice(0, 200)), cell.slice(0, 500) || "no cell"]);
       /* an escalated unit run waits on the user too: its mark pauses to the ring alone, as a halt's does (GUIDANCE.md §1; plan/RULES.md
-         §3, the glow follows the step), on its as-built cell and on its bubble's current step */
+         §3, the FullPulse follows the step), on its as-built cell and on its bubble's current step */
       Object.assign(sub.wip, { step: "escalated", resume: "plan", updated: "2026-10-23T01:20:00Z", waitingOn: null }); writeSub(); node(embedJs, subDir);
       const domE = dumpDom(path.join(folder, "dashboard.html")) || "", wipE = inner(domE, '<section class="wip[^"]*"[^>]*>', "section"), runE = inner(wipE, `<div class="wipcard unit[^"]*" data-row="${plain.id}"[^>]*>`, "div");
       const cellE = ((domE.match(new RegExp(`<div class="cell built[^"]*"[^>]*data-row="${plain.id}"`)) || [""])[0]);
-      rc.push(["an escalated unit run pauses its mark too: the ring alone on its as-built cell and on its current step", / held"/.test(cellE) && !/ glow"/.test(cellE) && /class="cur held"/.test(runE) && !/class="cur glow"/.test(runE), `${cellE} · ${(runE.match(/<li class="cur[^"]*"/) || ["no current step"])[0]}`]);
+      rc.push(["an escalated unit run pauses its mark too: the ring alone on its as-built cell and on its current step", / held"/.test(cellE) && !/ fullpulse"/.test(cellE) && /class="cur held"/.test(runE) && !/class="cur fullpulse"/.test(runE), `${cellE} · ${(runE.match(/<li class="cur[^"]*"/) || ["no current step"])[0]}`]);
     } else rc.push(["the rendered tracking board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
     const d = data(); d.wip.current = d.wip.current.filter(a => a.split(".")[0] !== plain.id);
     fs.writeFileSync(path.join(folder, "plan.json"), JSON.stringify(d, null, 2) + "\n"); node(embedJs, folder);
@@ -547,10 +549,10 @@ targets.filter(t => t.block === "plan").forEach(t => {
 
     /* the bubbles and the branches */
     const wip = inner(dTl, '<section class="wip[^"]*"[^>]*>', "section"), chips = inner(dTl, '<div class="chips" id="chips">', "div");
-    nc.push(["a tracking board's WIP strip is bubbles: the phase, the unit in progress, that unit's step panel in place of up next, and waiting on you while halted", /class="wipcard phase"/.test(wip) && /class="wipcard unit halted"/.test(wip) && /class="sp sp-held" data-step="landing"/.test(wip) && !/class="wipcard next upnext"/.test(wip) && /class="wipcard wait"/.test(wip) && /UP NEXT/.test(wip), wip.slice(0, 300)]);
+    nc.push(["a tracking board's WIP strip is bubbles: the phase, the unit in progress, that unit's step panel in place of up next, and waiting on you while halted", /class="wipcard phase"/.test(wip) && /class="wipcard unit halted"/.test(wip) && /class="sp sp-held" data-step="landing"/.test(wip) && !/class="wipcard next upnext-ring"/.test(wip) && /class="wipcard wait"/.test(wip) && /UP NEXT/.test(wip), wip.slice(0, 300)]);
     const nm = copy(trk); nm.rows.forEach(r => { if (r.unit) delete r.unit.live; });
     const wipNm = inner(render("tracking-no-mirror", nm), '<section class="wip[^"]*"[^>]*>', "section");
-    nc.push(["with no unit's run mirrored, the up-next card stays, with its blocker", /class="wipcard next upnext beside"/.test(wipNm) && /blocked by/.test(inner(wipNm, '<div class="wipcard next upnext[^"]*"[^>]*>', "div")) && !/class="sp[ "]/.test(wipNm), wipNm.slice(0, 300)]);
+    nc.push(["with no unit's run mirrored, the up-next card stays, with its blocker", /class="wipcard next upnext-ring beside"/.test(wipNm) && /blocked by/.test(inner(wipNm, '<div class="wipcard next upnext-ring[^"]*"[^>]*>', "div")) && !/class="sp[ "]/.test(wipNm), wipNm.slice(0, 300)]);
     const run = copy(trk), jf = run.rows.find(r => r.unit && r.unit.live); Object.assign(jf.unit.live, { step: "landing", resume: null, waitingOn: null });
     const wipRun = inner(render("tracking-running", run), '<section class="wip[^"]*"[^>]*>', "section");
     nc.push(["no \"waiting on you\" bubble while nothing is halted", !/class="wipcard wait"/.test(wipRun) && /class="wipcard unit"/.test(wipRun), wipRun.slice(0, 300)]);
@@ -661,7 +663,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
   report(`a sub-issue born at sized under a signed-off tracking plan, on ${t.name}`, zc);
 });
 
-/* The glow follows the step (plan/RULES.md §3, the step-to-column map; lib.js GLOW_MAP). check.js keeps quiet on a board whose
+/* The FullPulse follows the step (plan/RULES.md §3, the step-to-column map; lib.js GLOW_MAP). check.js keeps quiet on a board whose
    wip.current is its step's row of the map and warns, naming the step's columns, on one that is not: an issue board at every step,
    a halted and an escalated board judged by wip.resume, a landed board not at all, and a tracking board in implementation (its
    units in progress, or nothing between units). new.js lays the foundation's wip.current from the map. The rendered page holds an
@@ -750,7 +752,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     return [step, want, got, r.status];
   });
   gc.push(["new.js lays wip.current from the map (research nothing on its rowless board, plan considered and verdict, interview nothing) and wip.questions empty", born.every(([, want, got, s]) => s === 0 && JSON.stringify(got) === JSON.stringify(want)), born.map(([st, w, g, s]) => `${st}: ${JSON.stringify(g)} (want ${JSON.stringify(w)}, exit ${s})`).join("; ")]);
-  report(`the glow follows the step on ${t.name}`, gc);
+  report(`the FullPulse follows the step on ${t.name}`, gc);
 });
 
 /* The impact's reconciliation state (plan/RULES.md §2, Impact; §5; §8), derived and never stored, in each runtime that derives or
@@ -1177,7 +1179,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     const dW = dumpDom(put("work-board/index.html", withData(tpl, "board", JSON.stringify(wb, null, 2))));
     if (dW == null) xc.push(["the rendered work board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
     else { const row = n => (dW.match(new RegExp(`<tr class="run[^"]*"[^>]*><td><span class="t"><a [^>]*>#${n}<[\\s\\S]*?</tr>`)) || [""])[0], key = inner(dW, '<div class="legend" id="runs-key">', "div");
-      xc.push(["the repository work board: not started dashed, in progress and merged solid, none glowing", /^<tr class="run nob"/.test(row(80)) && [81, 82, 83, 84].every(n => /^<tr class="run"/.test(row(n)) && !/glow/.test(row(n))) && /vp neutral dashed[^>]*><i aria-hidden="true">…<\/i>not started/.test(row(80)) && /vp neutral"><i aria-hidden="true">▸<\/i>in progress/.test(row(81)) && /vp good"><i aria-hidden="true">✓<\/i>merged · awaiting close/.test(row(83)), [80, 81, 83].map(n => text(row(n)).slice(0, 90)).join(" | ")]);
+      xc.push(["the repository work board: not started dashed, in progress and merged solid, none glowing", /^<tr class="run nob"/.test(row(80)) && [81, 82, 83, 84].every(n => /^<tr class="run"/.test(row(n)) && !/fullpulse/.test(row(n))) && /vp neutral dashed[^>]*><i aria-hidden="true">…<\/i>not started/.test(row(80)) && /vp neutral"><i aria-hidden="true">▸<\/i>in progress/.test(row(81)) && /vp good"><i aria-hidden="true">✓<\/i>merged · awaiting close/.test(row(83)), [80, 81, 83].map(n => text(row(n)).slice(0, 90)).join(" | ")]);
       xc.push(["the repository work board: a boardless row shows its pull request and, in progress, its branch; a merged one no branch", /PR #91<\/a> open/.test(row(82)) && /<code>docs\/issue-82-readme<\/code>/.test(row(82)) && /PR #92<\/a> merged/.test(row(83)) && !/<code>/.test(row(83)), text(row(82)).slice(0, 160)]);
       xc.push(["the legend names in progress and merged · awaiting close with where they came from", /in progress<\/span> no board: a branch or an open pull request refers to it/.test(key) && /merged · awaiting close<\/span> no board: its pull request merged, the issue still open/.test(key), text(key).slice(0, 400)]); } }
   report("dashed means only planned (solid furniture), rows left for later, boardless rows from the tracker", xc);
@@ -1235,9 +1237,9 @@ targets.filter(t => t.block === "plan").forEach(t => {
     /* A. the step panel */
     const sR = strip(D.research), pR = panel(D.research);
     lc.push(["A: an issue board's strip sits beside its step panel, half and half, the legend under both", /class="wip split"/.test(D.research) && /<div class="wiprow"><div class="wipmain">/.test(sR) && /class="sp" data-step="research"/.test(sR) && /<\/div><div class="legend">/.test(sR), sR.slice(0, 200)]);
-    lc.push(["A: research: the planning → research → verification timeline, research current", /aria-label="The research timeline"/.test(pR) && /<li class="done"><span class="dot"[^>]*><\/span>planning<\/li><li class="cur glow"[^>]*><span class="dot"[^>]*><\/span>research<\/li><li class="todo"><span class="dot"[^>]*><\/span>verification<\/li>/.test(pR), text(pR).slice(0, 200)]);
+    lc.push(["A: research: the research StepBar, planning → research → verification, research current", /aria-label="The research timeline"/.test(pR) && /<li class="done"><span class="dot"[^>]*><\/span>planning<\/li><li class="cur fullpulse"[^>]*><span class="dot"[^>]*><\/span>research<\/li><li class="todo"><span class="dot"[^>]*><\/span>verification<\/li>/.test(pR), text(pR).slice(0, 200)]);
     lc.push(["A: research: each question with its state and the count returned", /2 of 4 questions returned/.test(text(pR)) && (pR.match(/vp serious"><i aria-hidden="true">↻<\/i>researching/g) || []).length === 2 && (pR.match(/vp serious"><i aria-hidden="true">✓<\/i>returned/g) || []).length === 2 && /bears on no row/.test(pR), text(pR).slice(0, 300)]);
-    lc.push(["A: research-planning: the panel says planning and how many questions are drafted; no row rings", /Planning the research questions: 2 drafted so far/.test(text(panel(D.planning))) && /<li class="cur glow"[^>]*><span class="dot"[^>]*><\/span>planning/.test(panel(D.planning)) && !/class="cell considered[^"$]* rs /.test(D.planning), text(panel(D.planning)).slice(0, 200)]);
+    lc.push(["A: research-planning: the panel says planning and how many questions are drafted; no row rings", /Planning the research questions: 2 drafted so far/.test(text(panel(D.planning))) && /<li class="cur fullpulse"[^>]*><span class="dot"[^>]*><\/span>planning/.test(panel(D.planning)) && !/class="cell considered[^"$]* rs /.test(D.planning), text(panel(D.planning)).slice(0, 200)]);
     lc.push(["A: interview: the questions, answered or waiting, counted", /1 of 2 questions answered · 1 waiting/.test(text(panel(D.interview))) && /vp warning"><i aria-hidden="true">\?<\/i>waiting on you/.test(panel(D.interview)) && /answer: Refused/.test(text(panel(D.interview))), text(panel(D.interview)).slice(0, 300)]);
     const pP = panel(D.plan);
     lc.push(["A: plan: a re-pass after a qa pass, plan accepted to come, the verdicts written and those still to write", /re-pass after Quality Review 1/.test(text(pP)) && /<li class="todo"><span class="dot"[^>]*><\/span>plan accepted/.test(pP) && /3 of 11 verdicts written/.test(text(pP)) && /Still to write: /.test(text(pP)), text(pP).slice(0, 300)]);
@@ -1247,7 +1249,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     lc.push(["A: qa: each pass apart, its verdict, its finding counts by kind and by severity, the running pass", (pQ.match(/<div class="sp-pass /g) || []).length === 2 && /Quality Review 1 <span class="verdict-pill critical">/.test(pQ) && /findings by kind: 4 doc · 2 test · 1 code/.test(pQ) && /by severity: 2 major · 5 minor/.test(pQ) && /sp-pass run pend/.test(pQ) && /Quality Review 2 running · at most 3 passes/.test(text(pQ)), text(pQ).slice(0, 300)]);
     lc.push(["A: remediation: the qa pass it answers and its sub-steps, done, current, to come", /Answering Quality Review 1/.test(text(panel(D.remediation))) && /<li class="done">[\s\S]*?Planner re-pass of stage B/.test(panel(D.remediation)) && /<li class="cur">[\s\S]*?Implementer fixes/.test(panel(D.remediation)) && /<li class="todo">[\s\S]*?Quality Review 2/.test(panel(D.remediation)), text(panel(D.remediation)).slice(0, 300)]);
     const pH = panel(D.halted), pE = panel(D.escalated);
-    lc.push(["A: halted and escalated: what it waits on, the panel held still (no breathing dot)", /class="sp sp-held" data-step="plan"/.test(strip(D.halted)) && /Held still at plan: it waits on the user for Verification case: which refusal reply/.test(text(pH)) && /class="cur held"/.test(pH) && !/class="cur glow"/.test(pH) && /Escalated from plan: held still/.test(text(pE)) && /class="cur held"/.test(pE), text(pH).slice(0, 200)]);
+    lc.push(["A: halted and escalated: what it waits on, the panel held still (no breathing dot)", /class="sp sp-held" data-step="plan"/.test(strip(D.halted)) && /Held still at plan: it waits on the user for Verification case: which refusal reply/.test(text(pH)) && /class="cur held"/.test(pH) && !/class="cur fullpulse"/.test(pH) && /Escalated from plan: held still/.test(text(pE)) && /class="cur held"/.test(pE), text(pH).slice(0, 200)]);
     const dEx = render("v-landed", J("plan/examples/38-handshake-empty-name/plan.json"));
     lc.push(["A: a landed board has no current step: its strip runs across the row, no panel", !/class="wip split"/.test(dEx) && !/class="sp[ "]/.test(strip(dEx)), strip(dEx).slice(0, 160)]);
     /* the unit's step panel on a tracking board, from its mirror, which carries the panel's facts (lib.js panelFacts()) */
@@ -1285,7 +1287,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     const dL = render("live-redraw", LIVE, { side: B2, inject: pick, budget: 9000 });
     lc.push(["F: the board re-loads plan.js while the run is live and redraws in place: the new detail, the question returned", /Verification case: the run moved on\./.test(strip(dL)) && /3 of 4 returned/.test(strip(dL)), text(inner(strip(dL), '<div class="wipmain">', "div")).slice(0, 200)]);
     lc.push(["F: the redraw keeps the tab and what the inspector shows", /<button class="tab"[^>]*id="t-decisions"[^>]*aria-selected="true"/.test(dL) && /<div class="kicker">2 · CONSIDERED<\/div>/.test(inner(dL, '<aside class="inspector"[^>]*>', "aside")), text(inner(dL, '<aside class="inspector"[^>]*>', "aside")).slice(0, 120)]);
-    lc.push(["F: the live indicator: LIVE · updated n s ago, its dot pulsing, the counter restarted at the change", /livechip on pulse/.test(chipCls(dL)) && /LIVE · updated \d+ s ago/.test(text(chipOf(dL))), chipCls(dL) + " · " + text(chipOf(dL))]);
+    lc.push(["F: the live indicator: LIVE · updated n s ago, its dot pulsing, the counter restarted at the change", /livechip on fillpulse/.test(chipCls(dL)) && /LIVE · updated \d+ s ago/.test(text(chipOf(dL))), chipCls(dL) + " · " + text(chipOf(dL))]);
     const QL = copy(LIVE); QL.wip.updated = "2026-01-01T00:00:00Z"; QL.wip.since = "2026-01-01T00:00:00Z"; const dQ = render("live-quiet", QL, { budget: 6500 });
     lc.push(["F: with no change for a quiet spell it reads LIVE · no change for n min, the dot still", /^livechip on$/.test(chipCls(dQ)) && /LIVE · no change for \d+ (min|h)/.test(text(chipOf(dQ))), chipCls(dQ) + " · " + text(chipOf(dQ))]);
     const dU = render("live-unavailable", LIVE, { side: false, budget: 6500 });
@@ -1378,8 +1380,8 @@ targets.filter(t => t.block === "plan").forEach(t => {
   { const d = live((d, w) => { built(d); w.step = "implementation"; w.current = ids.map(id => id + ".built"); w.stages = [{ id: "A", name: "Everything at once", state: "current", rows: ids.slice() }]; });
     const c = chk(d);
     yc.push([`1: ${ids.length} exact As built cells glowing: check.js passes, quiet on the glow, no count limit`, c.status === 0 && /keeps the step-to-column map at "implementation"/.test(c.stdout) && !/glow at once|rows glow/.test(c.stdout), lines(c, /glow|^FAIL/) || "nothing"]);
-    if (chrome) { const dom = render("glow-all", d), n = (dom.match(/<div class="cell built[^"]* glow[ "]/g) || []).length, r = light("glow-all");
-      yc.push([`1: the board draws all ${ids.length} glowing cells, and check-board.js counts them with no limit`, n === ids.length && r.status === 0 && new RegExp(`CHECK glow: \\d+$`, "m").test(r.stdout) && !/TOO MANY/.test(r.stdout), `${n} drawn · ${lines(r, /CHECK glow|FAIL/)}`]); } }
+    if (chrome) { const dom = render("glow-all", d), n = (dom.match(/<div class="cell built[^"]* fullpulse[ "]/g) || []).length, r = light("glow-all");
+      yc.push([`1: the board draws all ${ids.length} glowing cells, and check-board.js counts them with no limit`, n === ids.length && r.status === 0 && new RegExp(`CHECK fullpulse: \\d+$`, "m").test(r.stdout) && !/TOO MANY/.test(r.stdout), `${n} drawn · ${lines(r, /CHECK fullpulse|FAIL/)}`]); } }
   { const g = lib.researchGlow(live((d, w) => { w.questions = [{ question: "q-one", rows: [ids[0], ids[1]], findings: "research/q-one.md", state: "returned" }, { question: "q-two", rows: [ids[2]], findings: "research/q-two.md", state: "returned" }]; }));
     yc.push(["1: lib.js researchGlow(): every question returned, the verification not started: the returned questions' rows, no fallback", !g.fallback && g.phase === "waiting" && JSON.stringify(g.current) === JSON.stringify(ids.slice(0, 3).map(id => id + ".considered")), JSON.stringify(g)]); }
   /* 2. closed as not planned */
@@ -1395,7 +1397,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     if (chrome) { const w2 = copy(wb), it = (w2.roadmap[0].items || [])[3]; it.state = "CLOSED"; it.stateReason = "NOT_PLANNED"; const r80 = w2.rows.find(r => r.issue === 80); r80.waitsOn = [{ issue: 85, state: "CLOSED", stateReason: "NOT_PLANNED" }];
       const f = path.join(sc, "wb", "index.html"); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, withData(BT, "board", JSON.stringify(w2, null, 2)));
       const dW = dumpDom(f), row = n => (dW.match(new RegExp(`<tr class="run[^"]*"[^>]*><td><span class="t"><a [^>]*>#${n}<[\\s\\S]*?</tr>`)) || [""])[0], key = inner(dW, '<div class="legend" id="runs-key">', "div");
-      yc.push(["2: the repository work board: the row closed as not planned reads \"closed · not planned\", solid and neutral, not glowing", /^<tr class="run"/.test(row(85)) && /vp neutral"><i aria-hidden="true">⊖<\/i>closed · not planned/.test(row(85)) && !/glow|landed/.test(row(85).replace(/<a [^>]*>[^<]*<\/a>/g, "")), text(row(85)).slice(0, 120)]);
+      yc.push(["2: the repository work board: the row closed as not planned reads \"closed · not planned\", solid and neutral, not glowing", /^<tr class="run"/.test(row(85)) && /vp neutral"><i aria-hidden="true">⊖<\/i>closed · not planned/.test(row(85)) && !/fullpulse|landed/.test(row(85).replace(/<a [^>]*>[^<]*<\/a>/g, "")), text(row(85)).slice(0, 120)]);
       yc.push(["2: its legend entry, and the Landed tile counts it apart", /closed · not planned<\/span> no board: closed on the tracker as not planned/.test(key) && /1 closed as not planned, not counted/.test(text(inner(dW, '<div class="kpis" id="kpis">', "div"))), text(key).slice(0, 300)]);
       yc.push(["2: a roadmap item and a waits-on entry closed as not planned say so", /<small>closed · not planned<\/small>/.test(dW) && /#85<\/a> (?:<span class="dep-pill"[^>]*>[\s\S]*?<\/span><\/span>)?<small>closed · not planned<\/small>/.test(row(80)), text(row(80)).slice(0, 160)]);
       const r = cp.spawnSync(process.execPath, [checker, f, "--out", path.dirname(f)], { encoding: "utf8" });
@@ -1736,15 +1738,15 @@ targets.filter(t => t.block === "plan").forEach(t => {
       kc.push(["F: a tracking board's Units bar names the top-level systems in its legend", /aria-label="Units by group/.test(uTile) && /webtools-http<\/span>/.test(uTile) && !/published test fixtures/.test(text(uTile)), text(uTile).slice(0, 220)]);
       /* E. the column glow */
       const bands = (dV.match(/<div class="band[^"]*"/g) || []);
-      kc.push(["E: a column address glows the column itself: its band glows and its head is washed, no cell of it glows", bands.filter(x => / glow-soft/.test(x)).length === 1 && /<div class="colhead phase colon" data-col="built">/.test(dV) && !/<div class="cell built[^"]*\b(glow|glow-soft|held)\b/.test(dV) && /<div class="cell built[^"]* colglow"/.test(dV), bands.join(" ")]);
+      kc.push(["E: a column address glows the column itself: its band glows and its head is washed, no cell of it glows", bands.filter(x => / col-fullpulse/.test(x)).length === 1 && /<div class="colhead phase colon" data-col="built">/.test(dV) && !/<div class="cell built[^"]*(?<![-\w])(fullpulse|col-fullpulse|held)(?![-\w])/.test(dV) && /<div class="cell built[^"]* colcell-fullpulse"/.test(dV), bands.join(" ")]);
       kc.push(["E: its legend entry names the column glow", /glow around a whole column/.test(inner(dV, '<div class="legend" id="design-key">', "div")), "legend"]);
       const dVb = render("qa-col-built", V, "built", "1400,1400");
-      kc.push(["E: on the As built tab the glow goes round the cards, never each card", /<div class="bcards colbox glow-soft" id="built-list">/.test(dVb) && !/<div class="bcard [^"]*\b(glow|glow-soft)\b/.test(dVb), (dVb.match(/<div class="bcards[^"]*" id="built-list">/) || [""])[0]]);
+      kc.push(["E: on the As built tab the glow goes round the cards, never each card", /<div class="bcards colbox col-fullpulse" id="built-list">/.test(dVb) && !/<div class="bcard [^"]*(?<![-\w])(fullpulse|col-fullpulse)(?![-\w])/.test(dVb), (dVb.match(/<div class="bcards[^"]*" id="built-list">/) || [""])[0]]);
       const H = copy(V); H.wip.step = "halted"; H.wip.resume = "qa"; H.wip.waitingOn = "Verification case: a question.";
       const dH = render("qa-col-held", H, "", "1400,1400");
-      kc.push(["E: halted, the column's glow holds still as the ring alone, with its legend entry", (dH.match(/<div class="band held"/g) || []).length === 1 && !/<div class="band[^"]* glow-soft/.test(dH) && /ring around a whole column/.test(inner(dH, '<div class="legend" id="design-key">', "div")), (dH.match(/<div class="band[^"]*"/g) || []).join(" ")]);
+      kc.push(["E: halted, the column's glow holds still as the ring alone, with its legend entry", (dH.match(/<div class="band held"/g) || []).length === 1 && !/<div class="band[^"]* col-fullpulse/.test(dH) && /ring around a whole column/.test(inner(dH, '<div class="legend" id="design-key">', "div")), (dH.match(/<div class="band[^"]*"/g) || []).join(" ")]);
       const dN = render("qa-col-narrow", V, "", "520,1400");
-      kc.push(["E: at phone width no column is drawn: no band, the column's cells carry the mark (colglow)", !/<div class="band/.test(dN) && /<div class="cell built[^"]* colglow"/.test(dN), "narrow"]);
+      kc.push(["E: at phone width no column is drawn: no band, the column's cells carry the mark (colcell-fullpulse)", !/<div class="band/.test(dN) && /<div class="cell built[^"]* colcell-fullpulse"/.test(dN), "narrow"]);
       ["qa-col", "qa-col-held"].forEach(k => { const r = light(k); kc.push([`E: the ${k} rendering passes check-board.js`, r.status === 0, lines(r, /FAIL|DASHED|ERROR|NO LEGEND/)]); });
       /* D. an issue board's roadmap item closed as a duplicate */
       const s2 = copy(SUB); const it = s2.roadmap.items[2]; it.state = "closed"; it.stateReason = "DUPLICATE";
@@ -2264,6 +2266,12 @@ catch (e) { report("the inspector's Hide button cases", [["the cases run to the 
    an element named by a block keyword and a reference to an element the model does not define. It runs on its own too. */
 try { require("./cases-dsl-keyword-id.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the C4 DSL reader's keyword identifiers cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
+/* The marks' classes (verify/cases-mark-classes.js; the user's nomenclature decisions of 2026-11-07, dated 48): the in-progress FullPulse,
+   the column's, the up-next Ring and the live dot's FillPulse each a class carrying its type word, on the issue board and repository work
+   board templates, the mark-classes probe failing a board drawn before, and check-board.js counting the marks. It runs on its own too. */
+try { require("./cases-mark-classes.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the marks' classes cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 const today = new Date().toISOString().slice(0, 10);
 const COMMENT = "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last verification, when every check that needs no browser passed (its modes: \"--auto --no-browser\"; a run with --browser, made only when a person asks for it, lists the browser passes instead). check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.";

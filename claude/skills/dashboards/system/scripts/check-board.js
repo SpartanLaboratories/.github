@@ -8,12 +8,12 @@
 // Board kind: <meta name="dashboard" content="plan-board|work-board"> marks an issue board or the repository work board; anything else is a
 // system board. Exit code 0 when, for every kind: every tab rendered with a visible legend (.legend, .key on a board drawn before
 // dashboards-skill/41, or .c4-legend on the C4 tab, .c4key before it), the
-// Context section is headed exactly "Context", the footer is "Corresponds to <source>." and its authority sentence (GUIDANCE.md
+// Context Panel is headed exactly "Context", the footer is "Corresponds to <source>." and its authority sentence (GUIDANCE.md
 // §3), no link is a dead href="#", the board has no horizontal scroll at the width
 // checked, no work level is shown (levelrefs.js: "level 3", "L3", "level: 2" and the like, in any
 // tab's text or the board's), no system colour falls in a status spectrum (palette.js: the --sys-N slots and a system board's
 // --server / --client / --wire, read from the board's CSS and, in the browser, as the theme of the pass computes them), and no
-// error fired. Then, by kind: a system board has a visible Guarantees area
+// error fired. Then, by kind: a system board has a visible Guarantees Panel
 // (.guarantees holding at least one .guarantee-card; .bubble on a board not yet spliced onto the template of dashboards-skill/33) and, when the board sits under a docs/dashboards/ with a systems.json in a git
 // work tree, no registry board or DSL file is git-ignored, and every entry of its BOARDS map (issue number → issue board) names a
 // board file that is there; an issue board has a visible WIP strip (.wip) with its own legend, and its
@@ -165,7 +165,7 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   tabs.forEach(t=>{ try{ t.click(); dashScan("tab "+t.id); if(kind==="system"&&t.id==="t-c4"){ const rungs=[...document.querySelectorAll(".rung")]; rungs.forEach((r,i)=>{ r.click(); dashScan("tab t-c4, view "+(i+1)); }); if(rungs[0]) rungs[0].click(); } const p=document.getElementById(t.getAttribute("aria-controls")); if(p){ lvScan(textOf(p),"tab "+t.id); titleScan(); } const vis=p&&!p.hidden&&getComputedStyle(p).display!=="none"; const drawn=p?p.querySelectorAll("svg *, table, .card, .thread, .syscard, .cell, .bcard, .run").length:0; const keys=p?[...p.querySelectorAll(".legend, .key, .c4-legend, .c4key")].filter(k=>shown(k)&&k.children.length).length:0; console.log("CHECK tab "+t.id+": "+(vis?"visible":"NOT VISIBLE")+" · "+drawn+" drawn nodes · "+(keys?"legend":"NO LEGEND (every tab needs a visible .legend)")); }catch(err){ console.log("CHECK tab "+t.id+" threw: "+err.message); } });
   if(kind==="system"){
     const g=document.querySelector(".guarantees"), b=g?[...g.querySelectorAll(".guarantee-card,.bubble")].filter(shown).map(x=>(x.querySelector("h3")||{}).firstChild):[];
-    console.log("CHECK guarantees: "+(shown(g)&&b.length?b.length+" guarantee cards · "+b.map(n=>n?n.textContent.trim():"?").join(" · "):"MISSING (no visible .guarantees area with a .guarantee-card)"));
+    console.log("CHECK guarantees: "+(shown(g)&&b.length?b.length+" guarantee cards · "+b.map(n=>n?n.textContent.trim():"?").join(" · "):"MISSING (no visible .guarantees Panel with a .guarantee-card)"));
   }
   if(kind==="plan-board"){
     const w=document.querySelector(".wip"), k=w?w.querySelector(".legend, .key"):null;
@@ -210,7 +210,7 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   while(tw.nextNode()){ const m=ZS.exec(tw.currentNode.nodeValue); if(m) raw.push(m[0]); }
   console.log("CHECK times: "+times.length+" local"+(badT.length?" · RAW UTC STAMP in a <time> without its UTC title ("+badT.slice(0,3).map(t=>t.getAttribute("datetime")).join(", ")+")":"")+(raw.length?" · RAW UTC STAMP shown as text ("+raw.slice(0,3).join(", ")+"): render it with when()":""));
   dashScan("page"); console.log("CHECK dashes: "+(dashHits.size?"DASHED NOT PLANNED: "+[...dashHits].slice(0,6).map(([k,w])=>k+" ("+w+")").join("; ")+": dashed means only planned or pending; draw it solid, or mark it planned":"every dashed element is planned or pending"));
-  const glow=document.querySelectorAll(".glow").length; console.log("CHECK glow: "+glow); /* reported, never limited: the glow names exactly what is being worked on (plan/RULES.md §3) */
+  const fullpulse=document.querySelectorAll(".fullpulse,.glow").length; console.log("CHECK fullpulse: "+fullpulse); /* reported, never limited: the in-progress FullPulse names exactly what is being worked on (plan/RULES.md §3); .glow is its class on a board drawn before the user's nomenclature decisions of 2026-11-07 (dashboards-skill/48) */
   /* the layout detectors (features.js LAYOUT): the header's two halves from 940 px, the board using most of a wide window, the Context's
      and the Guarantees' legends shown wherever their sections draw an encoding */
   const vw=document.documentElement.clientWidth, hd=document.querySelector("header"), h1=hd&&hd.querySelector("h1"), ch=hd&&hd.querySelector(".chips"), pg=document.querySelector(".page");
@@ -220,7 +220,7 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   /* a state board is as-is (GUIDANCE.md §5, §7): nothing above its Context names an issue, the header, the tiles, every tab drawn and the
      Guarantees, code and source views aside */
   if(kind==="system"){ const hits=new Set(); [document.querySelector("header"),document.querySelector(".kpis"),...document.querySelectorAll('[role="tabpanel"]'),gu].filter(Boolean).forEach(root=>{ const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement&&n.parentElement.closest("script,style,pre,code,#insp-body")?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT}); while(w.nextNode()){ const m=(w.currentNode.nodeValue||"").match(/(^|[^\\w&#])#\\d+\\b/g); if(m) m.forEach(x=>hits.add(x.slice(x.indexOf("#")))); } });
-    if(hits.size) console.log("CHECK as-is: FEATURE MISSING: an as-is part that names no issue (template since dashboards-skill/26): "+[...hits].slice(0,6).join(", ")+" above the Context section; the issues belong in its roadmap and lists"); }
+    if(hits.size) console.log("CHECK as-is: FEATURE MISSING: an as-is part that names no issue (template since dashboards-skill/26): "+[...hits].slice(0,6).join(", ")+" above the Context Panel; the issues belong in its roadmap and lists"); }
   if(cx&&cx.querySelector(".badge,.sw,.verdict-pill,.vp")&&!shown(document.getElementById("context-key"))) console.log("CHECK layout: FEATURE MISSING: the Context's legend shown wherever its cards draw an encoding (template since dashboards-skill/26): its cards draw badges or swatches and no #context-key is shown");
   if(kind==="system"&&gu&&gu.querySelector("[data-sys],.planned,.gap,.bars,.badge")&&!shown(document.getElementById("guarantees-key"))) console.log("CHECK layout: FEATURE MISSING: the Guarantees' legend shown wherever its guarantee cards draw an encoding (template since dashboards-skill/26): no #guarantees-key is shown");
   const want=${JSON.stringify(tab)}; const t=want?document.getElementById(want):tabs[0]; if(t) t.click();

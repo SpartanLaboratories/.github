@@ -417,7 +417,7 @@ pre.dsl .c{color:var(--muted)} pre.dsl .k{color:var(--server);font-weight:600} p
 .docs li{padding:4px 0;border-top:1px solid var(--hair)}
 .docs a{text-decoration:none;border-bottom:1px solid var(--line)}
 .docs a:hover{border-bottom-color:var(--ink)}
-/* the last amendment, said in the Context section (an issue: the part above Context names none) */
+/* the last amendment, said in the Context Panel (an issue: the part above Context names none) */
 .context .amended{font-size:12.5px;color:var(--ink-2);margin:-4px 0 10px;overflow-wrap:anywhere}
 .context .amended .ck{font:700 10px/1.2 var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-right:4px}
 .context .amended a{text-decoration:none;border-bottom:1px solid var(--line)}
@@ -441,7 +441,7 @@ footer code{color:var(--ink-2)}
     <!-- fill: the version, the as-is stamp, the last amendment and the "written at" mark are drawn from state.json (the state block
          below; system/RULES.md §2): write them there, never here. The as-is stamp reads "<ref> @ <sha> · <date>", or "<branch> @ <sha> ·
          not yet landed" on a feature branch; a date is shown as written, a UTC time (2026-10-23T01:55:00Z) in the viewer's local time
-         (GUIDANCE.md §6, "Times"). The last amendment is an issue: the renderer says it in the Context section, never here (the
+         (GUIDANCE.md §6, "Times"). The last amendment is an issue: the renderer says it in the Context Panel, never here (the
          part of the board above Context names no issue; system/RULES.md §2). "written at" shows only while the panels were written at another commit than the stamp names. Every
          other chip is hand-written, its label then its value. -->
     <span class="chip" id="chip-version" hidden></span>
@@ -832,7 +832,7 @@ const MODEL = {
     // drawn dashed and faded while the DSL element MODEL.c4 maps it to (or its own part:"<element id>") carries the Planned tag, so
     // apply-state.js marks it built in workspace.dsl alone; kind "planned" only for a box tied to no element.
     // d = what the inspector shows: role, vis, files (relative to the source root link below), threads (keys of MODEL.threads). No issue
-    // numbers: the part of the board above Context is as-is (system/RULES.md §2); the issues that plan a part are in the Context section.
+    // numbers: the part of the board above Context is as-is (system/RULES.md §2); the issues that plan a part are in the Context Panel.
     nodes:[
       {id:"sys",side:"server",vis:"pub",container:true,x:40,y:56,w:600,h:220,t:"SystemFacade",s:"public entry point · what it owns",
         d:{role:"What this type is for and what it owns.",vis:"public · class",files:["SystemFacade.kt"],threads:["main-worker"]}},
@@ -1289,7 +1289,7 @@ $("#seq-play").addEventListener("click",e=>{ const b=e.currentTarget; if(seq.tim
 /* ---------- The stamps (state.json) ----------
    The header's chips: the version (a system board), the as-is stamp ("<ref> @ <sha> · <date>", or "<branch> @ <sha> · not yet landed" while
    the board shows a feature branch) and, while the panels were written at another commit than the stamp names, "written at <sha>". A chip
-   with nothing to say is removed. The last amendment names an issue, so it is said in the Context section, never in the header: the board
+   with nothing to say is removed. The last amendment names an issue, so it is said in the Context Panel, never in the header: the board
    above Context is as-is and names no issue (system/RULES.md §2, §6); its number opens the GitHub issue, its title the issue board
    (linkIssues() resolves it at load). A header chip for it left by an older template is removed. */
 function renderState(){

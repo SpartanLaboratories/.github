@@ -71,6 +71,21 @@ module.exports = function casesFill(X) {
     c.push(["wip.current for the step the board is at", js(pw.wip.current) === js(["a.built"]), js(pw.wip.current)]);
     const stale = fill(Bw, { wip: { current: { step: "research", cells: ["b.considered"] } } });
     c.push(["wip.current for a step the board has left: left as the event set it, and said", stale.a.status === 0 && js(P(Bw).wip.current) === js(["a.built"]) && (stale.S.notes || []).some(x => /moved on/.test(x)), js([P(Bw).wip.current, stale.S.notes])]);
+
+    /* wip.waitingOn, while the board waits on the user: the text the fast path left out (an internal name in the run's own), the stop's trail entry and a detail quoting it with it */
+    { const { mergeFill: mf } = require(FILL), old = "The design is ready.", neu = "sign-off of the design";
+      const held = { kind: "issue", status: "planned", rows: [], trail: [{ date: "2026-11-03", column: "considered", label: `Halted at the architecture: waiting on you (${old})` }], wip: { step: "halted", resume: "architecture", waitingOn: old, detail: `Waiting on you: ${old}` } };
+      const m = mf(held, { wip: { waitingOn: neu } });
+      c.push(["wip.waitingOn while halted: written, the stop's trail entry and the detail quoting it follow", m.plan.wip.waitingOn === neu && m.plan.wip.detail === `Waiting on you: ${neu}` && m.plan.trail[0].label === `Halted at the architecture: waiting on you (${neu})` && held.wip.waitingOn === old, js([m.plan.wip, m.plan.trail, m.merged])]);
+      const going = mf({ ...held, wip: { ...held.wip, step: "document", detail: "Signed off." } }, { wip: { waitingOn: neu } });
+      c.push(["wip.waitingOn once out of the stop: the last stop's trail entry takes it, a waitingOn and resume left standing cleared, the detail left", going.plan.trail[0].label === `Halted at the architecture: waiting on you (${neu})` && going.plan.wip.waitingOn === null && going.plan.wip.resume === null && going.plan.wip.detail === "Signed off.", js([going.plan.wip, going.plan.trail, going.merged])]);
+      const never = mf({ ...held, trail: [], wip: { step: "research" } }, { wip: { waitingOn: neu } });
+      c.push(["wip.waitingOn on a board whose trail records no stop: skipped and said", never.plan.wip.waitingOn === undefined && never.notes.some(x => /records no stop/.test(x)), js([never.plan.wip, never.notes])]);
+      let refusedEmpty = false; try { mf(held, { wip: { waitingOn: " " } }); } catch (e) { refusedEmpty = /waitingOn/.test(e.message); }
+      c.push(["wip.waitingOn empty: refused", refusedEmpty, "refused"]);
+      /* the event that takes the board out of a stop clears what it waited on and where it was to resume, whichever event it is */
+      const Bh = laid(); ev(Bh, "halted", { waitingOn: "an answer on the scope", questions: ["Keep the scope?"] }, T(1)); const out = ev(Bh, "researched", {}, T(2)), ph = P(Bh);
+      c.push(["an event other than resumed that ends a halt clears wip.waitingOn and wip.resume", out.a.status === 0 && ph.wip.step !== "halted" && ph.wip.waitingOn === null && ph.wip.resume === null, js([out.S.error, ph.wip.step, ph.wip.waitingOn, ph.wip.resume])]); }
     ev(Bw, "implementation-stage", { stage: "S1", stages: [{ id: "S1", name: "One", state: "done" }, { id: "S2", name: "Two", state: "current" }] }, T(3));
     const sd = fill(Bw, { rows: [{ id: "a", asBuilt: { state: "pending", summary: "Written so far." } }] }), ra = P(Bw).rows.find(r => r.id === "a");
     c.push(["a row's derived state stands against a fill's that is no outcome; the summary is the fill's", sd.a.status === 0 && ra.asBuilt.summary === "Written so far." && ra.asBuilt.state !== "pending" === (P(Bw).rows.find(r => r.id === "a").asBuilt.state !== "pending"), js(ra.asBuilt)]);

@@ -17,7 +17,7 @@
 //                planned   or "<dsl path>:<element id>" (paths relative to docs/dashboards), or {dsl, id, tag} / {system}; a DSL element
 //                          marked built loses its Planned tag and takes `tag` when given; "planned" sets the Planned tag back
 //                version   {slug: version}, a version a system's build moved to
-//                title     the issue's title for the "last amended by" note (in the Context section), quoted verbatim; without it, a board
+//                title     the issue's title for the "last amended by" note (in the Context Panel), quoted verbatim; without it, a board
 //                          keeps the verbatim title its state.json already holds for the same issue (else one another board in scope holds
 //                          for it, else the issue board's own plan.json issueTitle, in the request's folder), and only with none of these
 //                          takes the folder's name less its number, noted as not the issue's own; one

@@ -1406,7 +1406,7 @@ function signedOffParent(dir, plan) {
 }
 /* The words for a state, shared by check.js and the repository work board's data. */
 const RECON_WORDS = { planned: "planned", partial: "partly reconciled", "as-built": "as built" };
-/* The step-to-column map (plan/RULES.md §3, "The glow follows the step"): what wip.current holds at each wip.step, written once
+/* The step-to-column map (plan/RULES.md §3, "The FullPulse follows the step"): what wip.current holds at each wip.step, written once
    for the scripts (check.js warns on a board that does not keep it; new.js lays the foundation's wip.current from it).
      none     nothing glows                                  sizing, branch, landing, merge, landed, cancelled (state-boards, an older line's)
      cells    the cell the question concerns, or nothing      interview (<row-id>.<column> addresses only, no whole column)

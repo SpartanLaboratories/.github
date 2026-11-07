@@ -418,7 +418,7 @@ pre.dsl .c{color:var(--muted)} pre.dsl .k{color:var(--server);font-weight:600} p
 .docs li{padding:4px 0;border-top:1px solid var(--hair)}
 .docs a{text-decoration:none;border-bottom:1px solid var(--line)}
 .docs a:hover{border-bottom-color:var(--ink)}
-/* the last amendment, said in the Context section (an issue: the part above Context names none) */
+/* the last amendment, said in the Context Panel (an issue: the part above Context names none) */
 .context .amended{font-size:12.5px;color:var(--ink-2);margin:-4px 0 10px;overflow-wrap:anywhere}
 .context .amended .ck{font:700 10px/1.2 var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-right:4px}
 .context .amended a{text-decoration:none;border-bottom:1px solid var(--line)}
@@ -502,7 +502,7 @@ footer code{color:var(--ink-2)}
     <!-- fill: the as-is stamp, the last amendment and the "written at" mark are drawn from state.json (the state block below;
          system/RULES.md §2): write them there, never here. The as-is stamp reads "<ref> @ <sha> · <date>", or "<branch> @ <sha> · not yet
          landed" while the board shows a feature branch; a UTC time is shown in the viewer's local time (GUIDANCE.md §6, "Times"). The last
-         amendment is an issue: the renderer says it in the Context section, never here (the part above Context names no issue). -->
+         amendment is an issue: the renderer says it in the Context Panel, never here (the part above Context names no issue). -->
     <span class="chip" id="chip-asis" hidden></span>
     <span class="chip" id="chip-written" hidden></span>
     <span class="chip model"><span class="ck">C4 model</span> <b>workspace.dsl</b> · <span id="dsl-stats">…</span></span>
@@ -1428,7 +1428,7 @@ $("#seq-play").addEventListener("click",e=>{ const b=e.currentTarget; if(seq.tim
 /* ---------- The stamps (state.json) ----------
    The header's chips: the version (a system board), the as-is stamp ("<ref> @ <sha> · <date>", or "<branch> @ <sha> · not yet landed" while
    the board shows a feature branch) and, while the panels were written at another commit than the stamp names, "written at <sha>". A chip
-   with nothing to say is removed. The last amendment names an issue, so it is said in the Context section, never in the header: the board
+   with nothing to say is removed. The last amendment names an issue, so it is said in the Context Panel, never in the header: the board
    above Context is as-is and names no issue (system/RULES.md §2, §6); its number opens the GitHub issue, its title the issue board
    (linkIssues() resolves it at load). A header chip for it left by an older template is removed. */
 function renderState(){

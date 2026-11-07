@@ -4,7 +4,7 @@ The state boards are the system board, the supersystem board and the repository 
 boards"; the org project board and the intra-org dependency board are planned). A system board shows a system **as it is**: what it does and how it is built, drawn from the code
 at a named commit. Under that comes what a consumer can rely on (the Guarantees), and under that
 the Context. The supersystem and repository state boards bind systems together and show how they
-interact. `GUIDANCE.md` applies throughout — colour coding, legends, dashed means planned, themes,
+interact. `GUIDANCE.md` applies throughout — colour coding, Legends, dashed means planned, themes,
 self-contained boards, facts, Context, divergence, checks, defects and hygiene are stated there
 and not repeated here. This file holds what is specific to the state boards.
 
@@ -31,18 +31,18 @@ This set ships, under `skills/dashboards/system/`:
 
 | Path | What it is |
 |---|---|
-| `template/system.html` | The system board: renderer CSS/JS plus documented placeholders for one system — the six core tabs with their legends, the guarantee cards, the Context cards. Copy it; never fill it in place. |
-| `template/supersystem.html` | The supersystem / repository state board: the Systems tab from the registry, the six core tabs as repository-level scaffolds in per-system colours, the C4 views from the DSL, Guarantees with one row per system, Context. |
+| `template/system.html` | The system board: renderer CSS/JS plus documented placeholders for one system — the six core Tabs with their Legends, the guarantee Cards, the Context Cards. Copy it; never fill it in place. |
+| `template/supersystem.html` | The supersystem / repository state board: the Systems Tab from the registry, the six core Tabs as repository-level scaffolds in per-system colours, the C4 views from the DSL, Guarantees with one Row per system, Context. |
 | `template/systems.json` | The registry's shape, with built and planned examples. |
 | `template/state.json` | A board's state: the stamp, version and last amendment its header draws (§2). |
-| `examples/webtools-udp/` | A complete system board and DSL for WebTools' `webtools-udp` — read it to see every panel, legend and guarantee card filled with real facts. |
+| `examples/webtools-udp/` | A complete system board and DSL for WebTools' `webtools-udp` — read it to see every Panel, Legend and guarantee Card filled with real facts. |
 | `scripts/embed.js` | Embeds `workspace.dsl` (block `dsl`), `systems.json` (block `systems`) or `state.json` (block `state`) verbatim into a board; `--check` verifies. |
 | `scripts/apply-state.js` | The data-only path of a state board (§10): restamps the boards a branch touches, marks parts built or planned in the DSL and the registry, re-embeds, checks without a browser; the admin team runs it. |
 | `scripts/statelib.js` | The state, DSL and registry reading and editing `apply-state.js` writes through and `check-board.js` checks with (not a command). |
 | `scripts/check-board.js` | The browser checker for **every** board, state and work boards alike (§9); it warns on an internal name a board carries (`GUIDANCE.md` §4, `namerefs.js`); `--auto` checks only what a board adds to its template; `--auto --no-browser` runs every check that needs no browser and names the pass it defers. |
 | `scripts/deviation.js` | How far a board deviates from its template (used by `--auto`; not a command). |
 | `scripts/features.js` | The per-board feature probes: one detector per template feature, its skill step and the board types it fits (`GUIDANCE.md` §8, "Features"; not a command). |
-| `scripts/splice.js` | Brings a state board onto its current template: the template's CSS, script before MODEL and renderer carried onto the board, three ways for a declared divergence, the board-filled lines and the board's own content kept, old chips relabelled, a missing state block added, the names of dashboards-skill/33 migrated (§8). The Document step's state-boards task runs it; `--verified` splices onto the template's recorded verified version instead of the file on disk, for a template being edited. Its merge bases come through `scripts/history.js`, which rebuilds a recorded version missing from the local `verify/history/` cache from the `.github` mirror's git history (`--history-repo <clone>`, else `gh api`) and warns on one it cannot find (§8). |
+| `scripts/splice.js` | Brings a state board onto its current template: the template's CSS, script before MODEL and renderer carried onto the board, three ways for a declared divergence, the board-filled lines and the board's own content kept, old Chips relabelled, a missing state block added, the names of dashboards-skill/33 migrated (§8). The Document step's state-boards task runs it; `--verified` splices onto the template's recorded verified version instead of the file on disk, for a template being edited. Its merge bases come through `scripts/history.js`, which rebuilds a recorded version missing from the local `verify/history/` cache from the `.github` mirror's git history (`--history-repo <clone>`, else `gh api`) and warns on one it cannot find (§8). |
 | `scripts/namerefs.js` | The internal names a board never carries (`GUIDANCE.md` §4): its copy of the list's one home, `../../../nomenclature/internal-names.md` §1 and §2, held equal to it by `verify/cases-internal-names.js`; the forms, `scrubNames()`, which `apply-event.js` runs on every fact text, and the warnings `check.js` and `check-board.js` give (not a command). |
 | `scripts/palette.js` | The shared system palette (six slots, light and dark), `colourSlots()` (the slot each system holds), and the status-hue rule that `check.js` and `check-board.js` apply (`GUIDANCE.md` §1; not a command). |
 | `../verify/verify-templates.js` | Verifies every template once with the fixtures in `../verify/fixtures/` and records its hash in `../verify/verified.json`; run it after any template change. |
@@ -51,7 +51,7 @@ This set ships, under `skills/dashboards/system/`:
 
 A system board is driven by three sources that the presenter keeps in step (`GUIDANCE.md` §3): its structure, its behaviour and
 its stamp.
-Everything else on the board is either rendered from them or is a hand-written panel of verified
+Everything else on the board is either rendered from them or is a hand-written Panel of verified
 facts.
 
 1. **`workspace.dsl` — structure.** A Structurizr workspace with hierarchical identifiers: the
@@ -59,7 +59,7 @@ facts.
    the system's types grouped as `component`s with tags `Public`, `Internal`, `Standalone` or
    `Planned`, relationships with a short description, the four views (`systemContext`,
    `container`, `component`, one `dynamic` view for the defining interaction) and the `styles`
-   block. The board parses it at load and renders the C4 tab from it: edit the file, then
+   block. The board parses it at load and renders the C4 Tab from it: edit the file, then
    `node scripts/embed.js workspace.dsl index.html dsl`. Identifiers are stable across runs; new
    elements get new identifiers. The parser covers this subset only — stay inside it (no
    `!include`, no `properties`, no `deployment` views, one element per line, relationships as
@@ -69,13 +69,13 @@ facts.
 2. **The board's `MODEL` — behaviour.** A JS object in the board with:
    - `sides`: the names of the board's colour groups — the three hue slots `server`, `client` and
      `wire` (blue, purple, teal: slots 1 to 3 of the shared palette, `GUIDANCE.md` §1) plus
-     `consumer` and `external` — which the inspector and the generated legends print;
+     `consumer` and `external` — which the inspector and the generated Legends print;
    - `structure`: the hand-placed component map (lanes, notes, nodes with positions on a
      canvas 1000 wide and `h` high, its height recorded on the board as `structure.h`: 612 by default, grown when the system needs
      the room up to **at most 812** (1000×812; admin-team/dashboards-skill/35), the renderer setting the map's viewBox from it and
      `check-board.js` failing a taller one, `STRUCTURE CANVAS TOO TALL`; a system that needs more is split into subsystems under a
      supersystem board; nesting is ownership; `pub`/`int` and the side are the visual encodings;
-     `kind` `standalone` draws a dotted box, `planned` a dashed, faded one; each node's `d` block
+     `kind` `standalone` draws a dotted Box, `planned` a dashed, faded one; each node's `d` block
      is what the inspector shows);
    - `threads`: every thread by name, its owning side, when it is created, what runs on it, what
      it sends;
@@ -88,17 +88,17 @@ facts.
    - `c4`: the map from map-node ids to DSL element ids, which cross-links the two views.
 
    The supersystem board's `MODEL` has the same shapes with a registry slug (`sys`) where a system
-   board has a side, plus `structure.deps` for the dependency arrows.
+   board has a side, plus `structure.deps` for the dependency Arrows.
 
 3. **`state.json` — the stamp.** `{slug, version, asIs {ref, sha, date, landed}, lastAmended {issue, title, sha}, written {sha}}`,
    beside the board and embedded verbatim (`node scripts/embed.js state.json index.html state`; `template/state.json` is its shape).
-   The header's version, as-is and "written at" chips are drawn from it, and the last amendment's note in the Context section (the part
+   The header's version, as-is and "written at" Chips are drawn from it, and the last amendment's note in the Context Panel (the part
    of the board above Context names no issue, `GUIDANCE.md` §5): the presenter writes those facts here and never in the HTML. `asIs` is the commit the board shows — the default branch's after a landing, or a feature branch's while that
-   branch's work is shown on it, `landed: false`, which the chip reads "as-is at <branch> @ <sha> · not yet landed" (§10); the date
+   branch's work is shown on it, `landed: false`, which the Chip reads "as-is at <branch> @ <sha> · not yet landed" (§10); the date
    is a date, or a UTC time the board shows in the viewer's zone. `lastAmended.title` is the issue's title, quoted verbatim (its slug while
    none is given), the link to its issue board (`GUIDANCE.md` §5).
-   `written.sha` is the commit at which the presenter last wrote the board's prose and figures (the function sentence, the KPI tiles,
-   the panels, the Guarantees, the Context); the presenter sets it to `asIs.sha` whenever it writes them, and while the two differ the
+   `written.sha` is the commit at which the presenter last wrote the board's prose and figures (the function sentence, the KPI Tiles,
+   the Panels, the Guarantees, the Context); the presenter sets it to `asIs.sha` whenever it writes them, and while the two differ the
    header shows "written at <sha>", so a restamp never claims prose nobody read again. The state agrees with the board's registry entry
    (§7) on `asIs`, the last amendment's issue and, on a system board, the version; `check-board.js` fails a difference. A supersystem or
    repository state board keeps the same file, its version `null`.
@@ -107,9 +107,9 @@ facts.
 
 - On a system board, a structure node mapped to a DSL element through `MODEL.c4` (or carrying its own `part`), and a thread, flow
   node, lifeline or sequence step carrying `part: "<element id>"`, are planned while that element carries the `Planned` tag.
-- On a supersystem or repository state board, an item with `sys` (a structure box, a thread, a flow's end, a lifeline) is planned while the
-  registry's entry for that system is `planned`, and one with `part` while its DSL element is; a dependency arrow while either end is.
-- A hand-written element about a planned part — a thread, a lifecycle step, a Guarantees row — carries `data-part="<element id>"`, or
+- On a supersystem or repository state board, an item with `sys` (a structure Box, a thread, a flow's end, a lifeline) is planned while the
+  registry's entry for that system is `planned`, and one with `part` while its DSL element is; a dependency Arrow while either end is.
+- A hand-written element about a planned part — a thread, a lifecycle step, a Guarantees Row — carries `data-part="<element id>"`, or
   on a supersystem or repository state board `data-part="sys:<slug>"`, and the renderer gives it the class `planned` while the data says so.
 - A planned DSL element names, before `Planned`, the tag it takes once built (`"Internal,Planned"`): marking it built removes
   `Planned`.
@@ -119,8 +119,8 @@ facts.
 - A literal `kind: "planned"` or `planned: true` still draws an item that no data stands for. `check-board.js` fails a `part` or
   `data-part` that names no element of the board's DSL and no system of its registry (`PART UNKNOWN`).
 
-Hand-written panels (threads list, send-paths matrix, lifecycles cards, the guarantee cards,
-the Context cards) and the header (function sentence, version, as-is stamp, last amended)
+Hand-written Panels (threads list, send-paths matrix, lifecycles Cards, the guarantee Cards,
+the Context Cards) and the header (function sentence, version, as-is stamp, last amended)
 complete the board. The template marks every placeholder with a `<!-- fill: … -->` comment (a board made before dashboards-skill/33
 carries `<!-- presenter: … -->`, which names an internal role, `GUIDANCE.md` §4: the splice migrates it to `fill:`).
 
@@ -137,44 +137,44 @@ anywhere else on the board.
 **The repository work board** (`GUIDANCE.md` §5): the script's `WORK_BOARD` line, a board-filled line like `BOARDS`, names the committed repository work board
 relative to the board (`"committed"`, or `null` while `docs/plans/index.html` is not there; `check-board.js` fails a dead one) and the live
 view's marker (`"live"`, `docs/plans/.live/index.js`). A hand-written `<a data-workboard>` opens the live view when its marker loads, else
-the committed board, else stays plain text; the renderer adds a line for it to the Plans and documents card when the board has none.
+the committed board, else stays plain text; the renderer adds a line for it to the Plans and documents Card when the board has none.
 The header names the ref and short SHA the board reflects, drawn from `state.json` (above), and no issue: the last amendment is said in the
-Context section; every count on the board is counted. Each chip is a tag, its label then its value,
+Context Panel; every count on the board is counted. Each Chip is a Tag, its label then its value,
 `<span class="chip"><span class="ck">version</span> <b>2.0.0a</b></span>` (a bare value such as the platform gets its label,
-"platform"); the template's CSS shows the intro (crumbs, title, function) on the left half of a wide screen and the tags as cards in
-the right half beside it, and stacks them under 940 px (`GUIDANCE.md` §6, "The header"). A system board also carries its **visibility** as a tag ("visibility public", "internal · org", "internal · repo", the registry's, §7) and, when the system is archived, a "status ⊟ archived" tag (admin-team/dashboards-skill/35). A board written before the labels keeps its
-chips, which the same CSS lays out alike, until the splice (§8) relabels them where their content says what they are (a version, the
-as-is stamp, the C4 model, the systems count), removes an old "last amended by" chip and reports any other for the presenter to label. The header also carries the **inspector switch** and the
-**theme switch** (`GUIDANCE.md` §6, "The inspector switch"; §1, Themes; §12, "Switch"), which the template's renderer adds right of the
-breadcrumb, and the inspector its **Hide button** right of its heading (`GUIDANCE.md` §6), which the template's markup carries and the
+"platform"); the template's CSS shows the intro (crumbs, title, function) on the left half of a wide screen and the Tags as Cards in
+the right half beside it, and stacks them under 940 px (`GUIDANCE.md` §6, "The header"). A system board also carries its **visibility** as a Tag ("visibility public", "internal · org", "internal · repo", the registry's, §7) and, when the system is archived, a "status ⊟ archived" Tag (admin-team/dashboards-skill/35). A board written before the labels keeps its
+Chips, which the same CSS lays out alike, until the splice (§8) relabels them where their content says what they are (a version, the
+as-is stamp, the C4 model, the systems count), removes an old "last amended by" Chip and reports any other for the presenter to label. The header also carries the **inspector Switch** and the
+**theme Switch** (`GUIDANCE.md` §6, "The inspector Switch"; §1, Themes; §12, "Switch"), which the template's renderer adds right of the
+breadcrumb, and the inspector its **Hide Button** right of its heading (`GUIDANCE.md` §6), which the template's markup carries and the
 renderer adds to an inspector drawn before it; the presenter writes nothing for them. A system, supersystem or repository state board has **no
 live indicator**: it shows the code at a named commit and has no run to follow (`plan/RULES.md` §3,
 "Live updates").
 
 ## 3. Tabs
 
-**Order on the board:** function first (the tabs), then the Guarantees area, then Context.
+**Order on the board:** function first (the Tabs), then the Guarantees Panel, then Context.
 
-**Core tabs.** Every board carries six — Structure, C4 model, Threads, Decision path, Sequence,
+**Core Tabs.** Every board carries six — Structure, C4 model, Threads, Decision path, Sequence,
 Lifecycles — each adapted to the board's level and named for what it shows (the example's
-Decision path is its "Datagram path"). Repository and supersystem boards put a **Systems** tab
-first and adapt the six (the Systems tab, admin-team/dashboards-skill/35: the systems grouped by visibility, far to near, each system with
-parts a panel holding its own card and its parts' cards, so a subsystem sits inside its supersystem, never beside it; an archived system
-in an Archived group apart; planned cards name their planning units with their issue boards, their planned placement, and a built card its
+Decision path is its "Datagram path"). Repository and supersystem boards put a **Systems** Tab
+first and adapt the six (the Systems Tab, admin-team/dashboards-skill/35: the systems grouped by visibility, far to near, each system with
+parts a Panel holding its own Card and its parts' Cards, so a subsystem sits inside its supersystem, never beside it; an archived system
+in an Archived group apart; planned Cards name their planning units with their issue boards, their planned placement, and a built Card its
 version, the Maven Central latest and a new, unreleased one; the renderer the WebTools repository state board carried as a divergence, now
 the template's): Structure shows how the systems compose and depend on each other;
 Threads the threads and processes across systems; Decision path a cross-system decision, such as
 which module a consumer picks; Sequence a cross-system interaction; Lifecycles the lifecycles
 that span systems, such as source to release.
 
-The tablist takes Left and Right, Home and End, with one tab in the Tab order (a roving tabindex). A tab's lede is one short line, and only for what its graphic and legend do not show (`GUIDANCE.md` §2):
+The tablist takes Left and Right, Home and End, with one Tab in the Tab order (a roving tabindex). A Tab's lede is one short line, and only for what its graphic and Legend do not show (`GUIDANCE.md` §2):
 what to click, a fact the picture cannot carry. On a wide desktop the board uses most of the window
 (`GUIDANCE.md` §6): the inspector widens to 360 px, the Guarantees run five to a row, and a diagram
 drawn to a fixed aspect (Structure, the decision path, the sequence) grows to at most 1280 px wide; the
-C4 canvas, the thread columns, the lifecycle cards and the Context take the rest. The inspector stays
-beside every tab and scrolls inside itself when its entry is taller than the window.
+C4 canvas, the thread columns, the lifecycle Cards and the Context take the rest. The inspector stays
+beside every Tab and scrolls inside itself when its entry is taller than the window.
 
-**Optional tabs.** Add one after the core tabs wherever content for it exists, on any board.
+**Optional Tabs.** Add one after the core Tabs wherever content for it exists, on any board.
 Candidates:
 
 - **Dependencies** — the module and artifact graph, `api` vs `implementation`, coordinates and
@@ -191,18 +191,18 @@ Candidates:
 - **Environment** — what the host must provide: the JDK floor, browsers, ports, network.
 
 Others at the presenter's discretion. Failure model, Extension points and Test levels are also
-guarantee cards: the guarantee card is the summary and always stays; the tab is for content that
-needs a diagram the summary cannot hold. Optional tabs have no scaffold — build them from the
-core tabs' renderers and CSS.
+guarantee Cards: the guarantee Card is the summary and always stays; the Tab is for content that
+needs a diagram the summary cannot hold. Optional Tabs have no scaffold — build them from the
+core Tabs' renderers and CSS.
 
-## 4. Each tab's colour plan
+## 4. Each Tab's colour plan
 
 `GUIDANCE.md` §1–§2 set the rule (one colour per system, status colours with glyph and word,
-dashed = planned, a legend on every tab). The groupings the system templates use:
+dashed = planned, a Legend on every Tab). The groupings the system templates use:
 
 | Tab | System board | Repository / supersystem board |
 |---|---|---|
-| Systems | — | grouped by **visibility** (§7: public, internal · org, internal · repo, unset; an Archived group apart), each group headed by its visibility chip, a neutral ramp near to far with its legend; each card in its system's colour; built solid, planned a dashed outline, archived a solid faded card with its ⊟ archived tag; a system's parts inside its panel |
+| Systems | — | grouped by **visibility** (§7: public, internal · org, internal · repo, unset; an Archived group apart), each group headed by its visibility Chip, a neutral ramp near to far with its Legend; each Card in its system's colour; built solid, planned a dashed outline, archived a solid faded Card with its ⊟ archived Tag; a system's parts inside its Panel |
 | Structure | side (hue) × public / internal (fill) | the system; nesting is composition |
 | C4 model | element kind from the DSL `styles`, incl. External and Planned | the same |
 | Threads | the owning side | the owning system |
@@ -210,9 +210,9 @@ dashed = planned, a legend on every tab). The groupings the system templates use
 | Sequence | the lifeline's owner: a side, the consumer, outside | the owning system, the consumer, outside |
 | Lifecycles | phase: start · run · stop | phase, named for the lifecycle (build · verify · release) |
 
-- The C4 tab's legend is `.c4-legend`; every other tab's is `.legend`.
+- The C4 Tab's Legend is `.c4-legend`; every other Tab's is `.legend`.
 - On a system board the groups are the hue slots `--server`, `--client` and `--wire` (slots 1 to 3
-  of the shared palette); name them in `MODEL.sides` and the Structure legend.
+  of the shared palette); name them in `MODEL.sides` and the Structure Legend.
 - On a supersystem or repository state board each top-level system takes a slot `--sys-1` … `--sys-6`
   in registry order (`sysColour(slug)`: a top-level system is one whose parent is not itself a
   system on the board; a child takes the slot of the highest live system on its parent chain; an archived system holds
@@ -227,24 +227,24 @@ dashed = planned, a legend on every tab). The groupings the system templates use
   status tokens carry outcomes (the Decision path's ends) and compatibility. A board never redefines
   a slot.
 - Further tokens on `:root`: the ordinal phase ramp `--ph-1` … `--ph-3` (classes `.ph1` …
-  `.ph3`), used by Lifecycles. A single series (the test-class bars) is neutral ink, not a hue.
+  `.ph3`), used by Lifecycles. A single series (the test-class Bars) is neutral ink, not a hue.
 - Nothing built is drawn dashed, and a dash means planned and nothing else (`GUIDANCE.md` §1):
-  standalone is dotted, a lazily started thread an outlined pill, the DSL's `Internal` style solid,
+  standalone is dotted, a lazily started thread an outlined Pill, the DSL's `Internal` style solid,
   and the diagram furniture solid — the sequence's and the C4 dynamic view's lifelines faint and
   solid, a return message a thin solid line told by its open arrowhead, the C4 boundary frame a
   faint solid outline. A planned lifeline, message, relationship or element is dashed on every view,
   the C4 dynamic view's included. `check-board.js` fails any other dash (§9).
 - A planned system appears on supersystem and repository state boards only, dashed and faded, never with a board of its own; it names no issue
-  above the Context section: its Systems card links its issue board by name ("its plan") where one exists, and the issue that plans it is
+  above the Context Panel: its Systems Card links its issue board by name ("its plan") where one exists, and the issue that plans it is
   on the Context's roadmap. It gets a board when its implementing issue lands.
-- A supersystem's subsystems are marked **core** (the greater system cannot exist without it) or **optional** on the Systems tab, with
-  their legend entries, as the registry's `core` says (§7); one not classified yet says so.
+- A supersystem's subsystems are marked **core** (the greater system cannot exist without it) or **optional** on the Systems Tab, with
+  their Legend entries, as the registry's `core` says (§7); one not classified yet says so.
 
 ## 5. Guarantees
 
-Every board carries a Guarantees area (`.guarantees`) below the tab stage and above Context. It is
-always visible, whatever tab is open, and is never a tab. It holds named guarantee cards, each a
-compact titled card (`.guarantee-card`) of three to five short lines read from the code, its KDoc and
+Every board carries a Guarantees Panel (`.guarantees`) below the Tab stage and above Context. It is
+always visible, whatever Tab is open, and is never a Tab. It holds named guarantee Cards, each a
+compact titled Card (`.guarantee-card`) of three to five short lines read from the code, its KDoc and
 its build. The seven standard ones:
 
 - **Failure model** — how failures reach a consumer (e.g. `kotlin.Result`), what the system
@@ -266,17 +266,17 @@ its build. The seven standard ones:
 - **Resources to close** — what a consumer must close or stop, and what leaks if they don't.
 - **On your classpath** — the `api` dependencies a consumer inherits.
 
-Add a guarantee card where the system has another guarantee worth stating. A fact that cannot be
-established is said in the card as a gap (`.gap`). Under the cards stands the Guarantees' legend, generated from what they draw (the
-system swatches, a planned row dashed, a gap, the test-level bars' one neutral series, a tier badge): nothing hand-written. On repository and supersystem boards each
-guarantee card covers every system, one row each (`.gtbl`, the system's swatch first); a planned system's
-row is tied to it (`data-part="sys:<slug>"`), dashed while the registry says planned, and says only that nothing is built yet; an
-archived system's row, tied the same way, is solid and faded with its ⊟ archived tag (admin-team/dashboards-skill/35), and states what
+Add a guarantee Card where the system has another guarantee worth stating. A fact that cannot be
+established is said in the Card as a gap (`.gap`). Under the Cards stands the Guarantees' Legend, generated from what they draw (the
+system swatches, a planned Row dashed, a gap, the test-level Bars' one neutral series, a tier Badge): nothing hand-written. On repository and supersystem boards each
+guarantee Card covers every system, one Row each (`.gtbl`, the system's swatch first); a planned system's
+Row is tied to it (`data-part="sys:<slug>"`), dashed while the registry says planned, and says only that nothing is built yet; an
+archived system's Row, tied the same way, is solid and faded with its ⊟ archived Tag (admin-team/dashboards-skill/35), and states what
 its last release still guarantees.
 
 ## 6. Context on a system board
 
-`GUIDANCE.md` §5 sets the section (headed exactly **Context**). On system boards its cards are:
+`GUIDANCE.md` §5 sets the section (headed exactly **Context**). On system boards its Cards are:
 
 - **Roadmap** — each roadmap item with the issues mapped to it, each issue with its number,
   title, quoted verbatim, and state, open or closed (the tracker's reason for a closed issue is the issue boards' and the repository work board's: a type divergence,
@@ -284,7 +284,7 @@ its last release still guarantees.
   flagged by `check-board.js`, `ISSUE TITLE NAMES A WORK LEVEL: #n`, never reworded or elided); the number opens the GitHub issue and
   the title the issue's board where one exists (`GUIDANCE.md` §5; the title written
   `<a data-board="N">`, §2 "Board links"); no GitHub ↗. A tracking issue shows its chain, written `<span class="chainprog"
-  data-landed="n" data-total="m"></span>` (the renderer draws "chain n of m landed" and its bar), from its tracking board. The last
+  data-landed="n" data-total="m"></span>` (the renderer draws "chain n of m landed" and its Bar), from its tracking board. The last
   amendment, drawn from `state.json`, opens the section as the same pair ("last amended by #n title"). A roadmap item is a tracking issue with its sub-issues,
   or an entry in a roadmap document the repository keeps, with the issues it names. On a system
   board, list the items that claim an issue touching the system, those issues under them, and how
@@ -295,8 +295,8 @@ its last release still guarantees.
   issue boards (`docs/plans/<issue>-<slug>/dashboard.html`) that amended the system are linked
   here, and the repository work board (`<a data-workboard>`, live first, §2).
 
-Date both issue lists. A bug badge is neutral, told by its ▲ and its word. Under the cards stands the Context's legend, generated
-from what they draw (the system badges, the issue's state, the bug badge, a planned badge, the chain bar).
+Date both issue lists. A bug Badge is neutral, told by its ▲ and its word. Under the Cards stands the Context's Legend, generated
+from what they draw (the system Badges, the issue's state, the bug Badge, a planned Badge, the chain Bar).
 
 ## 7. The registry
 
@@ -305,7 +305,7 @@ from what they draw (the system badges, the issue's state, the bug badge, a plan
 the tree, admin-team/dashboards-skill/35), `visibility` (on every system and supersystem: `public`, consumed by another organization;
 `internal-org`, consumed only by other repositories of the same GitHub organization; `internal-repo`, consumed only inside the repository;
 a part, a subsystem among them, takes its parent system's where it records none; the user's decision, recorded by the presenter at the
-repository's next `state-boards` task; a system with none yet stands in an "unset" group on the Systems tab and `check-board.js` warns,
+repository's next `state-boards` task; a system with none yet stands in an "unset" group on the Systems Tab and `check-board.js` warns,
 `VISIBILITY UNSET`, an archived one excepted; admin-team/dashboards-skill/35), `function`, `paths`,
 `version`, `core` (on a subsystem of a supersystem: `true` where the greater system cannot exist without it, `false` where it is
 optional or additive; from the parent's architecture, its decomposition, recorded by the presenter at `architecture-signed-off` or the
@@ -346,18 +346,18 @@ append rather than reorder.
    A version nothing matches is a `WARNING` in the report (say so in yours); with none left to read, the splice is two-way, the
    board against the current template alone, so check the parts it replaced.
    **Go off the template** (`GUIDANCE.md` §3): change only what the facts require — the DSL, the
-   `MODEL`, the hand-written panels, the header — and leave the template's CSS, tab set and
-   renderer script as they are. Anything beyond that (an optional tab, a removed core tab, a
+   `MODEL`, the hand-written Panels, the header — and leave the template's CSS, Tab set and
+   renderer script as they are. Anything beyond that (an optional Tab, a removed core Tab, a
    change to the renderer or CSS) is a divergence: declare it in the head with
    `<meta name="template-divergence" content="what and why">` and in the footer comment.
-3. Fill the DSL, then the `MODEL`, then the hand-written panels and header, from the code and the
+3. Fill the DSL, then the `MODEL`, then the hand-written Panels and header, from the code and the
    architecture documents, and `state.json` with the stamp (`written.sha` the commit you read). Tie every planned part to its data
    (§2, "Planned parts"). Re-embed the DSL and the state.
    The footer stays the template's one line, "Corresponds to `workspace.dsl`. Code is
    authoritative on any conflict." (a supersystem or repository state board: `docs/dashboards/systems.json`
    and `workspace.dsl`); no baseline, stamp or "maintained by" clause (`GUIDANCE.md` §3).
-4. Set each tab's colour plan and legend (§4).
-5. Fill the guarantee cards from the code: the `Result` and exception types and what retries;
+4. Set each Tab's colour plan and Legend (§4).
+5. Fill the guarantee Cards from the code: the `Result` and exception types and what retries;
    the public open and abstract types and interfaces, with their tier and opt-in markers; the
    test classes per `testing.<level>` package and the test report, `build/reports/tests/index.html`, named as plain text where
    present (§5); the version, what the build checks and the deprecation policy; the KDoc's thread
@@ -369,9 +369,9 @@ append rather than reorder.
    item claims are the unscheduled ones. Link the issue boards that amended the system. Fill `BOARDS`
    with every issue the board names whose `docs/plans/…/dashboard.html` exists in the tree (§2, "Board
    links").
-7. Add an optional tab wherever content for one exists (a declared divergence, step 2).
-8. Update the parents: the system's card and its place on every tab of the supersystem and
-   repository state boards, their Guarantees rows and registry copies; the supersystem DSL if an
+7. Add an optional Tab wherever content for one exists (a declared divergence, step 2).
+8. Update the parents: the system's Card and its place on every Tab of the supersystem and
+   repository state boards, their Guarantees Rows and registry copies; the supersystem DSL if an
    inter-system relationship changed.
 9. Check (§9) with `--auto`, look once at the screenshots it took (a diverging board's), fix.
 10. Report the paths, the as-is stamp, the divergences (with the argument for any removal) and
@@ -390,7 +390,7 @@ node scripts/check-board.js docs/dashboards/<slug>/index.html [--tab t-c4] [--ou
 
 **`--auto` is the usual mode** (`GUIDANCE.md` §8). The template is verified once, in the skill,
 by `verify/verify-templates.js`; `--auto` compares the board with it (`scripts/deviation.js`): its
-`<style>` blocks, its tab ids in order, its script before `MODEL` (from the main `<script>` to
+`<style>` blocks, its Tab ids in order, its script before `MODEL` (from the main `<script>` to
 `const MODEL = {`: the helpers, and on a supersystem or repository state board the Systems renderer),
 and its renderer script (everything after `MODEL`'s closing `};`, less the `DEFAULT_INSPECT`
 line, which is the board's own text). The script before `MODEL` is compared less its
@@ -405,15 +405,15 @@ changed since it was verified gets the **full pass**: light, dark, 520 px, a 390
 1920 x 1080 desktop. An
 undeclared difference is reported as one to declare or undo. `verify/verify-templates.js` tests
 this comparison on each system template. The plain form below the
-embeds runs one pass of the named mode, for looking at a single tab.
+embeds runs one pass of the named mode, for looking at a single Tab.
 
 `check-board.js` needs a local Chrome or Edge (it searches the usual install paths; set `CHROME=`
-to point at another). It clicks every tab and exits non-zero on a script error, a panel that does
-not render, a tab without a visible legend (`.legend`, or `.c4-legend` on the C4 tab), a board without a
-visible Guarantees area holding at least one guarantee card, a Context section whose heading is not
+to point at another). It clicks every Tab and exits non-zero on a script error, a Panel that does
+not render, a Tab without a visible Legend (`.legend`, or `.c4-legend` on the C4 Tab), a board without a
+visible Guarantees Panel holding at least one guarantee Card, a Context Panel whose heading is not
 exactly "Context", a dead `href="#"` link, a horizontal scroll, a **dash that marks nothing
 planned** (`DASHED NOT PLANNED`: a dashed border, outline or SVG stroke, a dash of 3 px or more, on an
-element that is not, and is not inside, one classed `planned`, `dashed` or `pln`, on every tab and every
+element that is not, and is not inside, one classed `planned`, `dashed` or `pln`, on every Tab and every
 C4 view; and, without a browser, a `workspace.dsl` element style with `border dashed` on a tag other than
 `Planned`; issue boards and the repository work board are held to the same rule with their own pending classes), a **system colour in a status
 spectrum** (`scripts/palette.js`: a `--sys-N`, `--server`, `--client` or `--wire` token, or its
@@ -461,7 +461,7 @@ the check is skipped with a note. `--theme dark` sets
 `data-theme="dark"`; `--width` sets the window (headless Chrome lays nothing out narrower than
 about 512 px); `--frame <px>` loads the board inside an iframe of that width, the harness for
 real phone widths. It never modifies the board: it writes a wrapper copy and a screenshot, named
-for the tab, theme and width, into the output directory.
+for the Tab, theme and width, into the output directory.
 
 The same script checks issue boards and the repository work board: a board that declares
 `<meta name="dashboard" content="plan-board">` or `content="work-board"` is held to those sets'
@@ -494,7 +494,7 @@ in. It reads `issue`, `branch` and `folder` from the request and these facts, ev
 | `ref` | at the Document step's state boards the branch (default: the request's `branch`); at a restamp after the merge, the default branch the merge is on (required there) |
 | `built`, `planned` | only for what has no code paths recorded (the code decides the rest, below): what the stage built (or, rarely, set back to planned): a registry slug; `"#<issue>"`, every system that issue alone plans (`plannedBy.issue`, or every unit's `subIssue`); `"<dsl path>:<element id>"` (paths under `docs/dashboards/`), or `{dsl, id, tag}` to give a component its built tag. A system marked takes its `c4` elements with it (§7) |
 | `version` | `{"<slug>": "<version>"}`, a version a system's build moved to |
-| `title` | the issue's title for the "last amended by" note (in the Context section), quoted verbatim (without it, the verbatim title already on record for the same issue, the board's `state.json` first, else another board's in scope, else the issue board's own `issueTitle` (the request's folder's `plan.json`, for the same issue); only with none of these the folder's name less its number, which the summary notes as not the issue's own); a title that names a work level is a defect in the issue (`GUIDANCE.md` §4): written as it stands, never reworded or elided, and flagged `ISSUE TITLE NAMES A WORK LEVEL: #n` in the summary's `issue defects` and notes, for the admin team to bring to the user to retitle on GitHub |
+| `title` | the issue's title for the "last amended by" note (in the Context Panel), quoted verbatim (without it, the verbatim title already on record for the same issue, the board's `state.json` first, else another board's in scope, else the issue board's own `issueTitle` (the request's folder's `plan.json`, for the same issue); only with none of these the folder's name less its number, which the summary notes as not the issue's own); a title that names a work level is a defect in the issue (`GUIDANCE.md` §4): written as it stands, never reworded or elided, and flagged `ISSUE TITLE NAMES A WORK LEVEL: #n` in the summary's `issue defects` and notes, for the admin team to bring to the user to retitle on GitHub |
 | `document` | `true` at the Document step's state-boards task (admin-team/dashboards-skill/35): every board the branch stamped, and every board in scope, stamped "`<branch>` @ `<sha>`" with no "not yet landed" at the code-landing sha `facts.sha` (refused without it), since they land with the merge as stamped |
 | `premerge` | the older name (dashboards-skill/33's pre-merge refresh), read as `document`; its `sha` defaults to the worktree's HEAD |
 | `landed` | `true` on a `state-boards` request that restamps after the merge, as the `landed` event does: the older flow, for a landing that refreshed no state board before its merge |
@@ -519,14 +519,14 @@ check, the time, and `enrich: yes|no` with `why`. Committing what it wrote is th
 
 | The script decides (from the request) | The presenter adds (from the code and documents), when `enrich: yes` |
 |---|---|
-| the stamp of each touched system, its supersystems and the repository: the registry's `asIs` and `lastAmended`, each board's `state.json` (`asIs`, `lastAmended`, `version`; `written` kept), the DSL's as-is line and its views' "as built at" commit | the prose and figures at the new commit — the function sentence, the KPI tiles, the panels, the Guarantees, the Context — and `written.sha` once it has read them again; until then the header says "written at <sha>" |
+| the stamp of each touched system, its supersystems and the repository: the registry's `asIs` and `lastAmended`, each board's `state.json` (`asIs`, `lastAmended`, `version`; `written` kept), the DSL's as-is line and its views' "as built at" commit | the prose and figures at the new commit — the function sentence, the KPI Tiles, the Panels, the Guarantees, the Context — and `written.sha` once it has read them again; until then the header says "written at <sha>" |
 | a part marked built or planned: its DSL element's `Planned` tag (and its built tag), a system's registry `status`; every board draws it from that data (§2, "Planned parts") | what the boards say of the part: its descriptions and labels, its threads, lifecycle and Guarantees text, its code paths in the registry; a part no element draws yet; a board for a newly built system, when the repository gives it one |
-| a system's `version` (`facts.version`) | the Compatibility & versioning card's wording |
+| a system's `version` (`facts.version`) | the Compatibility & versioning Card's wording |
 | the embedded copies (state, DSL, registry) of every board that carries them; `check-board.js --auto --no-browser` on each board it wrote | the browser pass the check names as deferred, on a board that diverges, at the presenter's next look (the Document step's state boards) |
-| — | a board on a template older than the state block, brought onto the template (its CSS, its script before `MODEL` and its renderer, the stamp chips, the state block); the script leaves such a board alone but for its embedded registry copy, and stamps only its registry entry |
+| — | a board on a template older than the state block, brought onto the template (its CSS, its script before `MODEL` and its renderer, the stamp Chips, the state block); the script leaves such a board alone but for its embedded registry copy, and stamps only its registry entry |
 
 `enrich: yes` whenever a part's status changes (its prose is the presenter's), a version moves, a part named is not in its DSL, a built component has no
 `Public`, `Internal` or `Standalone` tag, a built part sits inside a parent still planned (a DSL element or a registry entry), a board
-in scope is on a template older than the state block or missing from disk, at the Document step's state boards a board's panels were written before the
+in scope is on a template older than the state block or missing from disk, at the Document step's state boards a board's Panels were written before the
 branch's last stamp, or the request passes reasons of its own; `no` otherwise — a stage that only moves the stamp. A failed run
 leaves the whole request to the presenter.

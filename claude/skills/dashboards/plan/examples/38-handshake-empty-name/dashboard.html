@@ -54,7 +54,7 @@ h1,h2,h3{text-wrap:balance}
 .livechip:empty{display:none}
 .livechip .ld{width:8px;height:8px;border-radius:50%;background:var(--ink);flex:none}
 .livechip.on{color:var(--ink);border-color:var(--ink-2)}
-.livechip.on.pulse .ld{animation:livepulse 1.6s ease-in-out infinite}
+.livechip.on.fillpulse .ld{animation:livepulse 1.6s ease-in-out infinite}
 .livechip.off .ld{background:none;border:1.5px solid var(--muted)}
 .livechip.na .ld{background:var(--muted)}
 @keyframes livepulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.65)}}
@@ -133,8 +133,8 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .chain li a,.chain li span.u{display:inline-flex;align-items:center;gap:5px;font:11.5px var(--mono);padding:3px 7px;border:1px solid var(--line);border-left:4px solid var(--c,var(--muted));border-radius:4px;background:var(--surface);text-decoration:none;color:var(--ink-2)}
 .chain li.pending a,.chain li.pending span.u{border-style:dashed;border-left-style:solid}
 .chain li.done a{color:var(--ink)}
-.chain li.glow,.chain li.held,.chain li.upnext{border-radius:4px}
-.chain li.glow a,.chain li.glow span.u{background:transparent}
+.chain li.fullpulse,.chain li.held,.chain li.upnext-ring{border-radius:4px}
+.chain li.fullpulse a,.chain li.fullpulse span.u{background:transparent}
 .wip-facts{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;font-size:12.5px;color:var(--ink-2)}
 /* Info groups (plan/RULES.md §3): each fact of the strip, a bubble or the step panel is a small bubble of its own, its label before its
    value. */
@@ -217,7 +217,7 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .sp-list .dot{display:inline-block;width:11px;height:11px;border-radius:50%;background:var(--ink-2);border:2px solid var(--ink-2);vertical-align:-1px}
 .sp-list li.todo .dot{background:none;border:2px dashed var(--muted)}
 .sp-list li.todo .q{color:var(--muted)}
-.sp-list li.cur .dot{background:var(--accent);border-color:var(--accent);animation:glowdot 2s ease-in-out infinite}
+.sp-list li.cur .dot{background:var(--accent);border-color:var(--accent);animation:dot-fullpulse 2s ease-in-out infinite}
 .sp-list li.cur .q{font-weight:600}
 /* an interview question's options, under its text */
 .sp-opts{margin:3px 0 0;padding-left:16px;font-weight:400;color:var(--ink-2)}
@@ -250,26 +250,26 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 
 /* The two accent marks (GUIDANCE.md §1).
    In progress (wip.current): a solid accent ring inside the edge, an interior glow that breathes (~2 s) and a faint accent wash.
-   .glow-soft is the same, lighter, for a whole column at work. With reduced motion the interior glow holds still at its middle
+   .col-fullpulse is the same, lighter, for a whole column at work. With reduced motion the interior glow holds still at its middle
    strength; while the run waits on the user, halted or escalated, it stops (.held: the ring alone).
    Up next (wip.next, tracking boards): the mild outer glow the in-progress mark used before, held still, never animated, with
    the static UP NEXT tag. It is not work in progress, so it neither breathes nor counts as a glowing cell. */
-@keyframes glow{0%,100%{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 6px 2px color-mix(in srgb,var(--accent) 28%,transparent)}50%{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 22px 6px color-mix(in srgb,var(--accent) 52%,transparent)}}
-@keyframes glowsoft{0%,100%{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--accent) 70%,transparent),inset 0 0 4px 1px color-mix(in srgb,var(--accent) 18%,transparent)}50%{box-shadow:inset 0 0 0 1.5px var(--accent),inset 0 0 14px 3px color-mix(in srgb,var(--accent) 34%,transparent)}}
-@keyframes glowdot{0%,100%{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}50%{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent),0 0 10px 5px color-mix(in srgb,var(--accent) 55%,transparent)}}
-.glow{animation:glow 2s ease-in-out infinite;background-color:color-mix(in srgb,var(--accent) 7%,var(--surface))}
-.glow-soft{animation:glowsoft 2s ease-in-out infinite;background-color:color-mix(in srgb,var(--accent) 4%,var(--surface))}
-.steps li.cur.glow,.steps li.cur.held{animation:none;box-shadow:none;background:none}
-.steps li.cur.glow .dot{animation:glowdot 2s ease-in-out infinite}
+@keyframes fullpulse{0%,100%{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 6px 2px color-mix(in srgb,var(--accent) 28%,transparent)}50%{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 22px 6px color-mix(in srgb,var(--accent) 52%,transparent)}}
+@keyframes col-fullpulse{0%,100%{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--accent) 70%,transparent),inset 0 0 4px 1px color-mix(in srgb,var(--accent) 18%,transparent)}50%{box-shadow:inset 0 0 0 1.5px var(--accent),inset 0 0 14px 3px color-mix(in srgb,var(--accent) 34%,transparent)}}
+@keyframes dot-fullpulse{0%,100%{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}50%{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent),0 0 10px 5px color-mix(in srgb,var(--accent) 55%,transparent)}}
+.fullpulse{animation:fullpulse 2s ease-in-out infinite;background-color:color-mix(in srgb,var(--accent) 7%,var(--surface))}
+.col-fullpulse{animation:col-fullpulse 2s ease-in-out infinite;background-color:color-mix(in srgb,var(--accent) 4%,var(--surface))}
+.steps li.cur.fullpulse,.steps li.cur.held{animation:none;box-shadow:none;background:none}
+.steps li.cur.fullpulse .dot{animation:dot-fullpulse 2s ease-in-out infinite}
 .held{box-shadow:inset 0 0 0 2px var(--accent)}
 .steps li.cur.held .dot{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
-.upnext{box-shadow:0 0 0 1.5px color-mix(in srgb,var(--accent) 70%,transparent),0 0 12px 3px color-mix(in srgb,var(--accent) 32%,transparent)}
+.upnext-ring{box-shadow:0 0 0 1.5px color-mix(in srgb,var(--accent) 70%,transparent),0 0 12px 3px color-mix(in srgb,var(--accent) 32%,transparent)}
 .tag-next{display:inline-block;font:700 9.5px/1 var(--mono);letter-spacing:.08em;padding:3px 5px;border-radius:3px;border:1px solid var(--accent);color:var(--accent);background:var(--surface);white-space:nowrap}
 @media (prefers-reduced-motion:reduce){
-  .glow,.glow-soft,.steps li.cur.glow .dot{animation:none!important}
-  .glow{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 14px 4px color-mix(in srgb,var(--accent) 40%,transparent)}
-  .glow-soft{box-shadow:inset 0 0 0 1.5px var(--accent),inset 0 0 9px 2px color-mix(in srgb,var(--accent) 26%,transparent)}
-  .steps li.cur.glow .dot{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent),0 0 8px 3px color-mix(in srgb,var(--accent) 45%,transparent)}}
+  .fullpulse,.col-fullpulse,.steps li.cur.fullpulse .dot{animation:none!important}
+  .fullpulse{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 14px 4px color-mix(in srgb,var(--accent) 40%,transparent)}
+  .col-fullpulse{box-shadow:inset 0 0 0 1.5px var(--accent),inset 0 0 9px 2px color-mix(in srgb,var(--accent) 26%,transparent)}
+  .steps li.cur.fullpulse .dot{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent),0 0 8px 3px color-mix(in srgb,var(--accent) 45%,transparent)}}
 
 /* KPIs */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px;margin:14px 0 18px}
@@ -404,12 +404,12 @@ a.more:hover{text-decoration:underline}
 .colhead{position:sticky;top:0;z-index:2;background:var(--surface);padding:8px 8px 9px;border-bottom:3px solid var(--ink-2);box-shadow:-7px 0 0 var(--surface),7px 0 0 var(--surface)}
 .colhead.phase{background:var(--band);box-shadow:none;border-radius:6px 6px 0 0}
 .colhead:not(.phase){border-bottom-color:transparent}
-.colhead.glow{border-radius:4px}
+.colhead.fullpulse{border-radius:4px}
 /* Column-level glow (plan/RULES.md §3; GUIDANCE.md §1): a column address in wip.current (a whole column at work: qa, a stage that
    touches no row, research while its rows are unknown) is one glow on the column itself, its band, with an accent wash on its head,
    never each row's cell lit; held still as the ring alone while the run waits on the user; static under reduced motion. The narrow
    layout draws no columns, so there each of the column's cells carries it. On the As built tab the glow goes round the cards. */
-.board>.band.glow-soft{background:color-mix(in srgb,var(--accent) 5%,var(--band))}
+.board>.band.col-fullpulse{background:color-mix(in srgb,var(--accent) 5%,var(--band))}
 .board>.band.held{background:color-mix(in srgb,var(--accent) 3%,var(--band))}
 .colhead.phase.colon{background:color-mix(in srgb,var(--accent) 9%,var(--band));border-bottom-color:var(--accent)}
 .bcards.colbox{padding:8px;border-radius:8px}
@@ -423,7 +423,7 @@ a.more:hover{text-decoration:underline}
 .grouphead{grid-column:1/-1;margin:14px 0 0;font:700 11px var(--sans);text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
 .grouphead small{font:400 11px var(--mono);text-transform:none;letter-spacing:0}
 .rowlab{padding:10px 8px 10px 10px;border-left:4px solid var(--c,var(--muted));margin:8px 0;min-width:0}
-.rowlab.glow,.rowlab.held{border-radius:0 6px 6px 0}
+.rowlab.fullpulse,.rowlab.held{border-radius:0 6px 6px 0}
 .rowlab .nm{font-weight:700;font-size:13px;overflow-wrap:anywhere}
 .rowlab .wh{font:11px var(--mono);color:var(--muted);margin-top:3px;overflow-wrap:anywhere}
 .rowlab .sy{font-size:11px;color:var(--ink-2);margin-top:3px}
@@ -490,8 +490,8 @@ blockquote.excerpt p{margin:4px 0 0;color:var(--ink-2);font-size:12.5px}
 .opt:hover{border-color:var(--line)}
 .opt.sel{outline:2px solid var(--on)}
 @media (max-width:900px){
-  .board .cell.colglow{animation:glowsoft 2s ease-in-out infinite;background-color:color-mix(in srgb,var(--accent) 4%,var(--surface))}
-  .board .cell.colglow.colheld{animation:none;box-shadow:inset 0 0 0 2px var(--accent)}
+  .board .cell.colcell-fullpulse{animation:col-fullpulse 2s ease-in-out infinite;background-color:color-mix(in srgb,var(--accent) 4%,var(--surface))}
+  .board .cell.colcell-fullpulse.colheld{animation:none;box-shadow:inset 0 0 0 2px var(--accent)}
   .board{display:block}
   .colhead{display:none}
   .grouphead{margin-top:18px}
@@ -550,12 +550,12 @@ pre.src .k{color:var(--link);font-weight:600} pre.src .s{color:var(--ink-2)}
 .chainsvg .unit text.s{fill:var(--ink-2);font-size:10px}
 /* in progress: a thick accent stroke over an accent fill that breathes (the SVG form of the interior glow); up next: the mild
    outer glow, still, and the UP NEXT tag above the box */
-.chainsvg .unit.glow,.chainsvg .unit.held,.chainsvg .unit.upnext{animation:none;box-shadow:none;background:none}
-.chainsvg .unit.glow rect.box,.chainsvg .unit.held rect.box{stroke:var(--accent);stroke-width:2.5}
-.chainsvg .unit.glow rect.box{animation:svgglow 2s ease-in-out infinite}
-@keyframes svgglow{0%,100%{fill:color-mix(in srgb,var(--accent) 8%,var(--surface))}50%{fill:color-mix(in srgb,var(--accent) 30%,var(--surface))}}
-@media (prefers-reduced-motion:reduce){.chainsvg .unit.glow rect.box{animation:none;fill:color-mix(in srgb,var(--accent) 18%,var(--surface))}}
-.chainsvg .unit.upnext rect.box{stroke:color-mix(in srgb,var(--accent) 70%,transparent);stroke-width:1.5;filter:drop-shadow(0 0 4px color-mix(in srgb,var(--accent) 60%,transparent))}
+.chainsvg .unit.fullpulse,.chainsvg .unit.held,.chainsvg .unit.upnext-ring{animation:none;box-shadow:none;background:none}
+.chainsvg .unit.fullpulse rect.box,.chainsvg .unit.held rect.box{stroke:var(--accent);stroke-width:2.5}
+.chainsvg .unit.fullpulse rect.box{animation:svg-fullpulse 2s ease-in-out infinite}
+@keyframes svg-fullpulse{0%,100%{fill:color-mix(in srgb,var(--accent) 8%,var(--surface))}50%{fill:color-mix(in srgb,var(--accent) 30%,var(--surface))}}
+@media (prefers-reduced-motion:reduce){.chainsvg .unit.fullpulse rect.box{animation:none;fill:color-mix(in srgb,var(--accent) 18%,var(--surface))}}
+.chainsvg .unit.upnext-ring rect.box{stroke:color-mix(in srgb,var(--accent) 70%,transparent);stroke-width:1.5;filter:drop-shadow(0 0 4px color-mix(in srgb,var(--accent) 60%,transparent))}
 .chainsvg .unit rect.tagbox{fill:var(--surface);stroke:var(--accent);stroke-width:1}
 .chainsvg .unit text.tagtx{fill:var(--accent);font:700 9px var(--mono);letter-spacing:.08em}
 .chainsvg .unit.sel rect.box{stroke:var(--on);stroke-width:2.5}
@@ -684,10 +684,10 @@ footer{margin-top:28px;font-size:12px;color:var(--muted);border-top:1px solid va
 footer code{color:var(--ink-2)}
 footer a{text-decoration:none;border-bottom:1px solid var(--line)}
 /* the accent marks win over the surfaces they sit on (cells, cards and column heads set their own background) */
-.cell.glow,.bcard.glow,.colhead.glow{background-color:color-mix(in srgb,var(--accent) 7%,var(--surface))}
-.cell.glow-soft,.bcard.glow-soft,.colhead.glow-soft{background-color:color-mix(in srgb,var(--accent) 4%,var(--surface))}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}.colhead.glow{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 14px 4px color-mix(in srgb,var(--accent) 40%,transparent)}
-  .board .cell.colglow{animation:none!important;box-shadow:inset 0 0 0 1.5px var(--accent),inset 0 0 9px 2px color-mix(in srgb,var(--accent) 26%,transparent)}}
+.cell.fullpulse,.bcard.fullpulse,.colhead.fullpulse{background-color:color-mix(in srgb,var(--accent) 7%,var(--surface))}
+.cell.col-fullpulse,.bcard.col-fullpulse,.colhead.col-fullpulse{background-color:color-mix(in srgb,var(--accent) 4%,var(--surface))}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}.colhead.fullpulse{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 14px 4px color-mix(in srgb,var(--accent) 40%,transparent)}
+  .board .cell.colcell-fullpulse{animation:none!important;box-shadow:inset 0 0 0 1.5px var(--accent),inset 0 0 9px 2px color-mix(in srgb,var(--accent) 26%,transparent)}}
 /* Progress notes (plan/RULES.md §3, "The step panel"): each agent's own note of its work, an info group of the step panel; a note not
    updated for over 20 minutes is muted (its agent may have stopped). */
 .wip-facts>span.prog{border-left:3px solid var(--ink-2)}
@@ -3119,11 +3119,11 @@ const runKind=L=>L.step==="halted"?"halted":L.step==="escalated"?"escalated":L.s
 const runHeld=r=>{ const L=runOf(r); return !!L&&runKind(L)==="halted"; };
 const runPaused=r=>{ const L=runOf(r); return !!L&&["halted","escalated"].includes(runKind(L)); };
 const rowHeld=id=>runPaused(ROWS.find(x=>x.id===id));
-const glowCls=(strong,held)=>PAUSED||held?" held":strong?" glow":" glow-soft";
+const glowCls=(strong,held)=>PAUSED||held?" held":strong?" fullpulse":" col-fullpulse";
 /* A cell's in-progress mark: its own address glows; a column address glows the column itself (its band and head, layoutBands()), so the
-   cell only carries colglow, which the narrow layout, with no columns to draw, turns into the mark (plan/RULES.md §3). */
-function cellGlow(rowId,col){ if(CURRENT.includes(rowId+"."+col)) return glowCls(true,rowHeld(rowId)); if(CURRENT.includes(col)) return PAUSED?" colglow colheld":" colglow"; return ""; }
-const colGlowCls=col=>CURRENT.includes(col)?(PAUSED?" held":" glow-soft"):"";
+   cell only carries colcell-fullpulse, which the narrow layout, with no columns to draw, turns into the mark (plan/RULES.md §3). */
+function cellGlow(rowId,col){ if(CURRENT.includes(rowId+"."+col)) return glowCls(true,rowHeld(rowId)); if(CURRENT.includes(col)) return PAUSED?" colcell-fullpulse colheld":" colcell-fullpulse"; return ""; }
+const colGlowCls=col=>CURRENT.includes(col)?(PAUSED?" held":" col-fullpulse"):"";
 /* The next unit (wip.next, tracking boards): named, never in progress, never a unit left for later (lib.js nextUnit()). Its tag lists each blocker that has not landed; a blocker
    that is not a unit on this board counts as not landed, since the board cannot show it landed. */
 let NEXT_ROW=null;
@@ -3253,7 +3253,7 @@ const PANEL={
     const phase=Rs.phase||(st.includes("verifying")?"verification":st.length&&st.every(x=>x==="complete")?"complete":st.some(x=>x!=="planning")?"research":st.length?"planning":"");
     const line=["planning","research","verification"], at=phase==="complete"?3:line.indexOf(phase);
     /* a finished step's view (o.past): every phase it reached is done, nothing glows */
-    let h=`<ol class="steps" aria-label="The research timeline">${line.map((x,j)=>{ const c=o.past?(j<=at?"done":"todo"):j<at?"done":j===at?"cur":"todo"; return `<li class="${c}${c==="cur"?(o.held?" held":" glow"):""}"${c==="cur"?' aria-current="step"':""}><span class="dot" aria-hidden="true"></span>${x}</li>`; }).join("")}</ol>`;
+    let h=`<ol class="steps" aria-label="The research timeline">${line.map((x,j)=>{ const c=o.past?(j<=at?"done":"todo"):j<at?"done":j===at?"cur":"todo"; return `<li class="${c}${c==="cur"?(o.held?" held":" fullpulse"):""}"${c==="cur"?' aria-current="step"':""}><span class="dot" aria-hidden="true"></span>${x}</li>`; }).join("")}</ol>`;
     const began=line.filter(x=>Rs.since&&Rs.since[x]).map(x=>`${x} from <span class="nw">${when(Rs.since[x])}</span>`); if(began.length) h+=`<p class="sp-when">${began.join(" · ")}</p>`;
     if(at<0) h+=`<p>No research event recorded yet.</p>`;
     if(phase==="planning") h+=`<p class="sp-sum">Planning the research questions${Rs.drafted!=null?`: ${esc(Rs.drafted)} drafted so far`:""}.</p>`;
@@ -3265,7 +3265,7 @@ const PANEL={
   architecture:(R,o)=>`<p>The architecture weighs the options and decomposes the work into its units; it is signed off by the user.</p>${o.options!=null?`<p class="sp-sum">${o.options} option${o.options===1?"":"s"} weighed so far</p>`:""}`,
   plan:(R,o,keys)=>{ const P=R.plan||{}, V=R.verdicts, re=P.state==="re-pass";
     const first=re?`re-pass ${P.from==="qa"?`after qa pass ${esc(P.pass||"?")}`:P.from==="parent"?(o.parent?`from #${esc(o.parent)}'s plan`:"from the parent's plan"):P.from==="existing"?`verifying the existing plan${P.against?` against ${esc(P.against)}`:""}`:""}`:"plan writing";
-    let h=`<ol class="steps" aria-label="The plan's stages"><li class="cur${o.held?" held":" glow"}" aria-current="step"><span class="dot" aria-hidden="true"></span>${first}</li><li class="todo"><span class="dot" aria-hidden="true"></span>plan accepted</li></ol>`;
+    let h=`<ol class="steps" aria-label="The plan's stages"><li class="cur${o.held?" held":" fullpulse"}" aria-current="step"><span class="dot" aria-hidden="true"></span>${first}</li><li class="todo"><span class="dot" aria-hidden="true"></span>plan accepted</li></ol>`;
     if(re) h+=`<p>${P.from==="qa"?`The planner re-passes the plan to answer qa pass ${esc(P.pass||"?")}'s findings${R.remediation&&R.remediation.route==="planner-then-rookie-dev"?"; rookie-dev's fixes and the next qa pass follow":""}.`:P.from==="existing"?`The planner verifies the plan already written${P.against?` against <code>${esc(P.against)}</code> as it stands now`:" against the code as it stands now"}, and records each delta.`:`The planner verifies the plan this unit takes from its parent's architecture, and writes its own.`}</p>`;
     if(V&&V.total) { h+=`<p class="sp-sum">${V.written} of ${V.total} verdict${V.total===1?"":"s"} written</p>`; if(o.unwritten&&o.unwritten.length&&V.written<V.total) h+=`<p>Still to write: ${o.unwritten.slice(0,6).map(esc).join(", ")}${o.unwritten.length>6?`, and ${o.unwritten.length-6} more`:""}.</p>`; }
     return h; },
@@ -3525,7 +3525,7 @@ function stepsLine(steps,cur,o){ o=o||{}; const i=steps.indexOf(cur), held=o.hel
   return `<ol class="steps" aria-label="${esc(o.label||"Pipeline steps")}">${steps.map((s,j)=>{ const st=done||j<i?"done":j===i?"cur":"todo", dot=`<span class="dot" aria-hidden="true"></span>`;
     if(fin.has(s)&&st!=="cur"){ PICKS++; const sel=on===s;
       return `<li class="${st} pick${sel?" sel":""}"><button type="button" class="stepbtn" data-run="${esc(pk.key)}" data-step="${esc(s)}" aria-pressed="${sel}" aria-label="${esc(s)}: finished; ${sel?"shown in the step panel, press again for now":"show it in the step panel"}">${dot}${esc(s)}</button></li>`; }
-    return `<li class="${st}${st==="cur"&&!done&&!o.still?(held?" held":" glow"):""}"${st==="cur"?' aria-current="step"':""}>${dot}${esc(s)}</li>`; }).join("")}</ol>`; }
+    return `<li class="${st}${st==="cur"&&!done&&!o.still?(held?" held":" fullpulse"):""}"${st==="cur"?' aria-current="step"':""}>${dot}${esc(s)}</li>`; }).join("")}</ol>`; }
 /* ---------- Progress notes (plan/RULES.md §3, "The step panel") ----------
    Every agent of the run's tree writes docs/plans/.live/progress/<issue>/<name>.js in its checkout every 10 minutes it runs, one line
    setting window.PROGRESS["<name>"] to {agent, issue, started, at, done, left, eta}, and deletes it when it finishes. While the run is
@@ -3597,7 +3597,7 @@ function renderWip(){
     if(st==="escalated") ph+=`<p class="wip-wait">Escalated: the run waits while the issue's scope is re-decided.</p>`;
     ph+=own+(WIP.detail&&(!HALTED||WIP.waitingOn)?`<p class="wip-detail">${rich(WIP.detail)}</p>`:"");
     ph+=`<div class="wip-sub">The chain · ${C.landed} of ${C.M} units landed${C.complete?` · ${C.complete} complete, not merged`:""}${C.extra.length?` · ${esc(C.extra.join(" · "))}`:""}</div><span class="chip-bar" role="img" aria-label="${C.landed} of ${C.M} units landed"><i style="width:${C.pct}%"></i></span>`;
-    ph+=`<ol class="chain">${units.map(r=>{ const s=stateOf(r), on=rowActive(r), href=r.unit.issue?boardOf(r.unit.issue)||ghUrl(r.unit.issue):""; const inner=`${esc(r.unit.n!=null?r.unit.n:"")}${r.unit.issue?` · #${esc(r.unit.issue)}`:""} ${esc(r.unit.slug||r.id)}${s!=="pending"?` ${STATES[s].g}`:""}${isNext(r)?` ${TAG_NEXT}`:""}`; const tag=href?`<a href="${esc(href)}"${/^https?:/.test(href)?' target="_blank" rel="noopener"':""} data-sys="${esc(r.system)}">${inner}</a>`:`<span class="u" data-sys="${esc(r.system)}">${inner}</span>`; return `<li class="${s==="pending"?"pending":"done"}${on&&!LANDED?(PAUSED||runPaused(r)?" held":" glow"):isNext(r)?" upnext":""}">${tag}</li>`; }).join("")}</ol>`;
+    ph+=`<ol class="chain">${units.map(r=>{ const s=stateOf(r), on=rowActive(r), href=r.unit.issue?boardOf(r.unit.issue)||ghUrl(r.unit.issue):""; const inner=`${esc(r.unit.n!=null?r.unit.n:"")}${r.unit.issue?` · #${esc(r.unit.issue)}`:""} ${esc(r.unit.slug||r.id)}${s!=="pending"?` ${STATES[s].g}`:""}${isNext(r)?` ${TAG_NEXT}`:""}`; const tag=href?`<a href="${esc(href)}"${/^https?:/.test(href)?' target="_blank" rel="noopener"':""} data-sys="${esc(r.system)}">${inner}</a>`:`<span class="u" data-sys="${esc(r.system)}">${inner}</span>`; return `<li class="${s==="pending"?"pending":"done"}${on&&!LANDED?(PAUSED||runPaused(r)?" held":" fullpulse"):isNext(r)?" upnext-ring":""}">${tag}</li>`; }).join("")}</ol>`;
     const phase=ph+factsHtml+`</div>`; let rowN=0;
     legend.push(sysKey(units.map(r=>r.system)),units.some(r=>stateOf(r)==="pending")?`<span><i class="pln"></i>dashed: unit not built, or not started</span>`:"");
     [...new Set(units.map(stateOf))].filter(k=>k!=="pending").forEach(k=>legend.push(`<span>${badge(k)} ${esc(STATES[k].desc)}</span>`));
@@ -3635,7 +3635,7 @@ function renderWip(){
     const ownPanel=!LANDED&&!STOPPED&&["sub-issues","boards"].includes(ownStep);
     const ov=selFor("own");
     if(ownPanel){ rowN++; h+=ov?pastPanel(WIP,ov,{key:"own",own:true,cls:"own",keys:pkeys,row:rowN,rowName:id=>(ROWS.find(r=>r.id===id)||{}).name||id,label:`#${PLAN.issue}: the finished step shown`}):stepPanel(ownRun(),{issue:PLAN.issue,keys:pkeys,row:rowN,own:true,label:`#${PLAN.issue}: its own step`}); }
-    if(NEXT_ROW&&!panels.length&&!ownPanel){ const beside=act.length>0; if(!beside) rowN++; h+=`<div class="wb next upnext${beside?" beside":""}" data-sys="${esc(NEXT_ROW.system||"")}" style="--r:${beside?1:rowN}"><div class="wb-t"><span class="k">Up next · unit ${esc(NEXT_ROW.unit.n)}</span><span>${uref(NEXT_ROW)}</span> ${TAG_NEXT} ${blockedPill(NEXT_ROW)}</div><p class="note">Not started${openBlockers(NEXT_ROW).length?": it starts once its blockers have landed":""}.</p></div>`; }
+    if(NEXT_ROW&&!panels.length&&!ownPanel){ const beside=act.length>0; if(!beside) rowN++; h+=`<div class="wb next upnext-ring${beside?" beside":""}" data-sys="${esc(NEXT_ROW.system||"")}" style="--r:${beside?1:rowN}"><div class="wb-t"><span class="k">Up next · unit ${esc(NEXT_ROW.unit.n)}</span><span>${uref(NEXT_ROW)}</span> ${TAG_NEXT} ${blockedPill(NEXT_ROW)}</div><p class="note">Not started${openBlockers(NEXT_ROW).length?": it starts once its blockers have landed":""}.</p></div>`; }
     if(NEXT_ROW) legend.push(KEY_NEXT(NEXT_ROW));
     /* waiting on you: only while the tracking issue or a unit's run is halted */
     const waits=[...(HALTED?[`<li><b>#${esc(PLAN.issue)}</b>, the tracking issue: ${rich(WIP.waitingOn||WIP.detail||"(not stated)")}${WIP.resume?`<small>resumes at ${esc(WIP.resume)}</small>`:""}</li>`]:[]),
@@ -3788,8 +3788,8 @@ function cellConsidered(r){ const os=r.options||[]; const acc=os.find(o=>o.verdi
 const verdictBody=r=>{ const v=r.verdict||{}; return stmtsHtml(r,"verdict")||rich(v.summary||"Not yet written."); };
 /* the As built cell: one statement per verdict statement, marked with its adaptation; else the summary */
 const builtBody=(r,st)=>{ const b=r.asBuilt||{}; return stmtsHtml(r,"built")||rich(b.summary||(st==="pending"?"Not built yet.":"")); };
-/* the as-built cell's or card's marks: its own glow, the column's (colglow), or the up-next glow of the next unit */
-const builtMark=r=>{ const g=cellGlow(r.id,"built"); return g+(/ glow| held/.test(g)||!isNext(r)?"":" upnext"); };
+/* the as-built cell's or card's marks: its own glow, the column's (colcell-fullpulse), or the up-next glow of the next unit */
+const builtMark=r=>{ const g=cellGlow(r.id,"built"); return g+(/ fullpulse| held/.test(g)||!isNext(r)?"":" upnext-ring"); };
 function cellVerdict(r){ const v=r.verdict||{}, w=verdictOf(r), leave=w==="leave", chg=!w&&CHARGING(); return `<div class="cell verdict${leave?" leave":""}${chg?` charging${PAUSED?" still":""}`:""}${cellGlow(r.id,"verdict")}" role="button" tabindex="0" data-row="${esc(r.id)}" data-col="verdict" aria-label="Verdict: ${esc(r.name)}${w?"":", not yet written"}"><div class="kick">3 · VERDICT${w?` <span class="kind">${leave?"leave as is":"build"}</span>`:""}</div><div class="sum">${verdictBody(r)}</div><div class="meta"><span>${(v.steps||[]).length} steps · ${(v.tests||[]).length} tests · ${(v.risks||[]).length} risks</span>${moreLink(v.link,"plan")}</div></div>`; }
 function cellBuilt(r){ const st=stateOf(r), b=r.asBuilt||{}, S=STATES[st]; const extra=st==="deferred"&&b.issue?` → ${ilink(b.issue)}`:"";
   const link=b.link||(r.unit&&(r.unit.board||r.unit.folder))||"";
@@ -3908,7 +3908,7 @@ function renderBuilt(){
   /* a column address glows round the cards as a whole (plan/RULES.md §3), never each card */
   $("#built-list").className="bcards"+(CURRENT.includes("built")?" colbox"+colGlowCls("built"):"");
   $("#built-list").innerHTML=rows.length?rows.map(r=>{ const b=r.asBuilt||{}, st=stateOf(r);
-    return `<div class="bcard st-${st}${builtMark(r).replace(/ colglow( colheld)?/,"")}" data-sys="${esc(r.system||"")}" data-row="${esc(r.id)}" tabindex="0" role="button" aria-label="${esc(r.name)}: ${STATES[st].label}${isNext(r)?", up next":""}"><div class="bh"><span class="nm">${r.unit&&r.unit.n!=null?`${esc(r.unit.n)} · `:""}${esc(r.name)}</span>${badge(st,st==="deferred"&&b.issue?` → ${ilink(b.issue)}`:"")}${nextTags(r)}${r.where?`<span class="wh">${esc(r.where)}</span>`:""}</div>${stmtsOf(b).length?stmtsHtml(r,"built"):`<p>${rich(b.summary||(st==="pending"?"Not built yet.":""))}</p>`}${runLine(r)}${b.changes&&b.changes.length?`<ol class="changes">${b.changes.map(c=>`<li><b>${rich(c.what||"")}</b>${c.why?` — ${rich(c.why)}`:""}<small>${esc(c.when||"")}${c.ref?` · ${refHtml(c.ref)}`:""}</small></li>`).join("")}</ol>`:""}<div class="meta">${[b.commits&&b.commits.length?`commits ${b.commits.map(c=>refHtml(c)).join(" ")}`:"",b.files&&b.files.length?`${b.files.length} file${b.files.length>1?"s":""}`:"",b.verified?"verified":"",moreLink(b.link||(r.unit&&(r.unit.board||r.unit.folder)),r.unit?(r.unit.board?"board":"folder"):"record")].filter(Boolean).join(" · ")}</div></div>`; }).join(""):`<p class="lede">No row in this state.</p>`;
+    return `<div class="bcard st-${st}${builtMark(r).replace(/ colcell-fullpulse( colheld)?/,"")}" data-sys="${esc(r.system||"")}" data-row="${esc(r.id)}" tabindex="0" role="button" aria-label="${esc(r.name)}: ${STATES[st].label}${isNext(r)?", up next":""}"><div class="bh"><span class="nm">${r.unit&&r.unit.n!=null?`${esc(r.unit.n)} · `:""}${esc(r.name)}</span>${badge(st,st==="deferred"&&b.issue?` → ${ilink(b.issue)}`:"")}${nextTags(r)}${r.where?`<span class="wh">${esc(r.where)}</span>`:""}</div>${stmtsOf(b).length?stmtsHtml(r,"built"):`<p>${rich(b.summary||(st==="pending"?"Not built yet.":""))}</p>`}${runLine(r)}${b.changes&&b.changes.length?`<ol class="changes">${b.changes.map(c=>`<li><b>${rich(c.what||"")}</b>${c.why?` — ${rich(c.why)}`:""}<small>${esc(c.when||"")}${c.ref?` · ${refHtml(c.ref)}`:""}</small></li>`).join("")}</ol>`:""}<div class="meta">${[b.commits&&b.commits.length?`commits ${b.commits.map(c=>refHtml(c)).join(" ")}`:"",b.files&&b.files.length?`${b.files.length} file${b.files.length>1?"s":""}`:"",b.verified?"verified":"",moreLink(b.link||(r.unit&&(r.unit.board||r.unit.folder)),r.unit?(r.unit.board?"board":"folder"):"record")].filter(Boolean).join(" · ")}</div></div>`; }).join(""):`<p class="lede">No row in this state.</p>`;
   paint($("#built-list")); bindRefs($("#built-list"));
   document.querySelectorAll("#built-list .bcard").forEach(c=>{ const go=()=>{ INSPECTED={k:"built",row:c.dataset.row}; inspectBuilt(ROWS.find(x=>x.id===c.dataset.row)); }; c.addEventListener("click",e=>{ if(e.target.closest("a")) return; go(); }); c.addEventListener("keydown",e=>{ if(e.target!==c) return; if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } }); });
   const IC=impactChanges();
@@ -4195,7 +4195,7 @@ function renderChain(){
   const pos=new Map(); cols.forEach((c,i)=>(c||[]).forEach((r,j)=>{ const off=(maxRows-c.length)*(H+GY)/2; pos.set(r.id,{x:PAD+i*(W+GX),y:PAD+off+j*(H+GY)}); }));
   let s=`<svg class="chainsvg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Units and what blocks them"><defs><marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="arrow" d="M0,0 L8,4 L0,8 z"/></marker></defs>`;
   units.forEach(r=>(r.unit.blockedBy||[]).map(n=>byIssue.get(n)).filter(Boolean).forEach(b=>{ const p=pos.get(b.id), q=pos.get(r.id); const x1=p.x+W,y1=p.y+H/2,x2=q.x-2,y2=q.y+H/2,mx=(x1+x2)/2; s+=`<path class="edge${unitLanded(b)?"":" todo"}" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" marker-end="url(#arr)"/>`; }));
-  units.forEach(r=>{ const p=pos.get(r.id), st=stateOf(r), S=STATES[st], act=rowActive(r)&&!LANDED&&!STOPPED?(PAUSED||runPaused(r)?" held":" glow"):isNext(r)?" upnext":"", L=runOf(r);
+  units.forEach(r=>{ const p=pos.get(r.id), st=stateOf(r), S=STATES[st], act=rowActive(r)&&!LANDED&&!STOPPED?(PAUSED||runPaused(r)?" held":" fullpulse"):isNext(r)?" upnext-ring":"", L=runOf(r);
     s+=`<g class="unit ${S.cls}${st==="pending"?" pending":""}${act}" data-row="${esc(r.id)}" data-sys="${esc(r.system)}" tabindex="0" role="button" aria-label="Unit ${esc(r.unit.n)}: ${esc(r.name)}, ${S.label}${L?`, its run: ${esc(runShort(L).slice(2))}`:""}" transform="translate(${p.x},${p.y})"><rect class="box" width="${W}" height="${H}" rx="5"/><rect class="bar" width="5" height="${H}" rx="2"/>${st!=="pending"?`<rect class="st" x="${W-6}" width="6" height="${H}" rx="2"/>`:""}<text class="t" x="12" y="19">${esc(r.unit.n)} · ${esc((r.unit.slug||r.id).slice(0,chars))}</text><text class="s" x="12" y="37">${esc(fit(`#${r.unit.issue} · ${L?runShort(L):`${S.g} ${S.label}`}`,Math.floor((W-24)/6.2)))}</text>${isNext(r)?`<rect class="tagbox" x="${W-60}" y="-7" width="54" height="14" rx="3"/><text class="tagtx" x="${W-33}" y="3" text-anchor="middle">UP NEXT</text>`:""}</g>`; });
   s+=`</svg>`;
   $("#chain-frame").innerHTML=s; paint($("#chain-frame"));
@@ -4334,7 +4334,7 @@ function liveChip(){ const c=$("#live"); if(!c) return;
   if(!live){ const u=stamp!=null?new Date(stamp).toISOString().replace(/\.000Z$/,"Z"):null; c.className="livechip off"; c.innerHTML=`<span class="ld" aria-hidden="true"></span>not live${u?` · as of ${when(u)}`:""}`; c.title=runLive()?"A published copy: it shows the board as committed and does not follow the run.":"The run is not live: the board shows it as it ended."; return; }
   if(!LIVE.ok){ c.className="livechip on na"; c.innerHTML=`<span class="ld" aria-hidden="true"></span>LIVE · data unavailable`; c.title="plan.js beside this page cannot be read: run embed.js on the folder."; return; }
   const since=Date.now()-LIVE.last, quiet=since>LIVE_QUIET_MS;
-  c.className=`livechip on${quiet||PAUSED?"":" pulse"}`;
+  c.className=`livechip on${quiet||PAUSED?"":" fillpulse"}`;
   c.innerHTML=quiet?`<span class="ld" aria-hidden="true"></span>LIVE · no change for ${ago(since)}`:`<span class="ld" aria-hidden="true">●</span>LIVE · updated ${ago(since)} ago`;
   c.title=`Re-read from plan.js every ${LIVE_POLL_MS/1000} s${PAUSED?"; the run waits on the user":""}.`; }
 /* Everything the page draws from the plan, in place. */

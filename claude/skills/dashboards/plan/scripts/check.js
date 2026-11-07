@@ -473,7 +473,7 @@ function checkPlan(plan, dir, root) {
        is the only check on what glows */
     if ((w.step === "landed" || plan.status === "built") && cur.length) warn("a landed board has wip.current set; nothing glows once it has landed");
     if (w.step === "landed" && plan.status !== "built") fail('wip.step is "landed" but status is not "built"');
-    /* The glow follows the step (RULES §3, the step-to-column map; lib.js GLOW_MAP): wip.current holds what wip.step's row of the
+    /* The FullPulse follows the step (RULES §3, the step-to-column map; lib.js GLOW_MAP): wip.current holds what wip.step's row of the
        map gives it, a halted or escalated board what the step it stopped in gives (wip.resume), held still as a ring. */
     const gm = glowMismatch(plan);
     /* The research questions (RULES §3, "Research: the rows being researched"; §4, research-started and research-returned): each
@@ -512,7 +512,7 @@ function checkPlan(plan, dir, root) {
     }
     /* The step panel's facts (RULES §3, "The step panel"): each optional, each written from an event's facts or the folder's documents. */
     checkPanel(plan, w, ids, tracking, dir);
-    if (gm) warn(`wip.current ${JSON.stringify(cur)} does not match wip.step "${w.step}"${gm.via ? ` (it stopped in "${gm.step}", wip.resume, and keeps that step's glow as a still ring)` : ""}: at "${gm.step}" the map glows ${gm.want}; off the map: ${gm.bad.join(", ")} (plan/RULES.md §3, the glow follows the step)`);
+    if (gm) warn(`wip.current ${JSON.stringify(cur)} does not match wip.step "${w.step}"${gm.via ? ` (it stopped in "${gm.step}", wip.resume, and keeps that step's glow as a still ring)` : ""}: at "${gm.step}" the map glows ${gm.want}; off the map: ${gm.bad.join(", ")} (plan/RULES.md §3, the FullPulse follows the step)`);
     else if (!["built", "abandoned"].includes(plan.status) && w.step !== "landed" && !(["halted", "escalated"].includes(w.step) && !w.resume)) ok(`wip.current keeps the step-to-column map at "${w.step}"${["halted", "escalated"].includes(w.step) ? ` (the glow of "${w.resume}", the step it stopped in, held still)` : ""}`);
     /* wip.next (RULES §3): on a tracking board, always the next unit in landing order — the first unit row, in row order, that is
        pending, not in wip.current and not left for later (lib.js nextUnit()) — or null when none is left. It is never also current,

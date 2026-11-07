@@ -53,13 +53,13 @@ const FEATURES = [
     /* the block, and the header's as-is chip drawn from it (a hand-written stamp is never restamped) */
     test: h => { const hd = (/<header>([\s\S]*?)<\/header>/.exec(body(h)) || [, ""])[1], st = /<script type="application\/json" id="state">/.test(h);
       return need(st && /id="chip-asis"/.test(hd), st ? "the header's as-is chip is hand-written, not drawn from state.json (no id=\"chip-asis\")" : "no <script type=\"application/json\" id=\"state\"> block"); } },
-  { id: "as-is-header", name: "an as-is part that names no issue: the last amendment said in the Context section", since: 26, types: STATE,
+  { id: "as-is-header", name: "an as-is part that names no issue: the last amendment said in the Context Panel", since: 26, types: STATE,
     notFor: { "plan-board": "a board is the record of one issue", "work-board": "it lists the issues" },
     /* the header names no issue: no "last amended by" chip, the template's old placeholder or one written by hand, and no issue link
        (a GitHub issue, a data-board or a data-issue mark) */
     test: h => { const hd = (/<header>([\s\S]*?)<\/header>/.exec(body(h)) || [, ""])[1];
       const amended = /id="chip-amended"/.test(hd) || /<span class="ck">\s*last amended/i.test(hd), issue = /\/issues\/\d+|data-board=|data-issue=/.test(hd);
-      return need(!amended && !issue && /ctx-amended/.test(scripts(h)), amended ? "the header still carries a \"last amended by\" chip" : issue ? "the header names an issue (an issue link, data-board or data-issue)" : "the renderer does not say the last amendment in the Context section"); } },
+      return need(!amended && !issue && /ctx-amended/.test(scripts(h)), amended ? "the header still carries a \"last amended by\" chip" : issue ? "the header names an issue (an issue link, data-board or data-issue)" : "the renderer does not say the last amendment in the Context Panel"); } },
   { id: "guarantees-legend", name: "the Guarantees' legend (what its guarantee cards draw: swatches, planned rows, gaps)", since: 26, types: STATE,
     notFor: { "plan-board": "no Guarantees section", "work-board": "no Guarantees section" },
     test: h => need(/guarantees-key/.test(scripts(h)), "the renderer draws no Guarantees legend (sectionKeys())") },
@@ -293,6 +293,18 @@ const FEATURES = [
     notFor: { system: "no run: a state board shows the code at a commit, not a run's halts", supersystem: "no run: a state board shows the code at a commit, not a run's halts", "work-board": "one row per run, its wait one line; the questions and their options are on the run's own board" },
     test: h => { const s = scripts(h); return need(/function questionsHtml\(list,keys,kind,lead\)\{/.test(s) && /const askedShown=\(R,S\)=>/.test(s) && /if\(S!=="interview"\) h\+=askedBlock\(askedShown\(R,S\),keys\);/.test(s) && /if\(Array\.isArray\(V\.asked\)\) h\+=askedBlock\(/.test(s) && /const waitingQs=R=>/.test(s) && /qs=waitingQs\(L\)/.test(s),
       "a halt outside the interview shows only what it waits on: no questions with their options (questionsHtml(), askedShown() in stepPanel(), a visit's asked, waitingQs() on the waiting card)"); } },
+  /* the user's nomenclature decisions of 2026-11-07 (nomenclature/ui.md: "glow" retired; the Pulse marks and the Ring), dated 48: the marks'
+     classes carry their type word on an issue or tracking board and the repository work board (nomenclature/boards.md, "Board UI"): the
+     in-progress FullPulse .fullpulse (a whole column's .col-fullpulse, each cell of that column at phone width .colcell-fullpulse), the up-next
+     Ring .upnext-ring, the live indicator's FillPulse .fillpulse. Class names only, drawn as before: a board drawn before them draws the same
+     marks under .glow, .glow-soft, .colglow, .upnext and .pulse, its own CSS in it, until its next rebuild (its next event, board.js
+     --refresh-template); a landed issue board is kept as it landed (§11). */
+  { id: "mark-classes", name: "the marks' classes carry their type word: .fullpulse in progress (.col-fullpulse a whole column, .colcell-fullpulse its cells at phone width), .upnext-ring up next, .fillpulse the live dot (never .glow, .glow-soft, .colglow, .upnext, .pulse)", since: 48, types: BOARDS,
+    notFor: { system: "no work in progress, no unit up next and no live indicator: a state board shows the code at a commit", supersystem: "no work in progress, no unit up next and no live indicator: a state board shows the code at a commit" },
+    test: (h, k) => { const c = css(h), s = scripts(h), old = c.match(/\.(?:glow|glow-soft|colglow|upnext|pulse)(?![-\w])/g) || [];
+      const base = /\.fullpulse\{animation:fullpulse /.test(c) && /(?:^|\n)\.upnext-ring\{/.test(c) && /\.livechip\.on\.fillpulse \.ld\{/.test(c) && /" fillpulse"/.test(s) && /" fullpulse"/.test(s) && /" upnext-ring"/.test(s);
+      return need(!old.length && (k === "plan-board" ? base && /(?:^|\n)\.col-fullpulse\{animation:col-fullpulse /.test(c) && /\.board \.cell\.colcell-fullpulse\{/.test(c) : base),
+        `the board's marks keep the older classes (${[...new Set(old)].join(", ") || "no .fullpulse, .upnext-ring or .fillpulse"}): re-render it from the template`); } },
   /* admin-team/dashboards-skill/24 */
   { id: "finished-steps", name: "finished steps on the progress strip clickable: each shows its snapshot (wip.history) in the step panel, or what survives, reconstructed", since: 24, types: ["plan-board"],
     notFor: { system: "no progress strip: a state board shows the code at a commit, not a run's steps", supersystem: "no progress strip: a state board shows the code at a commit, not a run's steps", "work-board": "no progress strip: one row per run, each run's step as text; its steps are on its own board" },
