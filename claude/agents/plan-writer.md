@@ -136,12 +136,11 @@ to both:
   plus the issue title), never a bare "issue #1". For a feature with no issue,
   restate the request verbatim and note who asked and when. Link the
   architecture document and name which unit of it this plan covers.
-- **The commit / PR that will contain it** — which does not exist yet: state
-  the planned branch name, that the plan document is to be committed **in the
-  same commit as the implementation it describes** (or its first stage), and
-  leave `Commit: TBD` / `PR: TBD` for the executor. If you are revising a plan
-  whose implementation already landed, replace the placeholders with the real
-  SHA(s) and PR number.
+- **The branch that will contain it** — which does not exist yet: state the
+  planned branch name, and that the plan document is to be committed **in the
+  same commit as the implementation it describes** (or its first stage). Name
+  no commit or PR and leave no placeholder for them: the issue's resolution
+  comment links the PR.
 
 **Write the design, not its history.** The plan states what is true and what
 will be built. It never records how the plan was arrived at: no interview
@@ -164,8 +163,8 @@ coincides (OkHttp's `RoutePlanner`) are fine.
 **Structure** (drop what is irrelevant, keep the order):
 
 1. **Header** — the Association block: `Covers:`, `Architecture:` (doc path +
-   unit slug), `Branch:`, `Commit: TBD`, `PR: TBD`; one line on what this
-   plans; `Status: planning only`; target version/release if relevant.
+   unit slug), `Branch:`; one line on what this plans; `Status: planning
+   only`; target version/release if relevant.
 2. **Requirements** — goals and acceptance criteria for this unit, stated as
    plain requirements.
 3. **Current state** — what is known and confirmed: the baseline commit; for a
@@ -197,9 +196,8 @@ coincides (OkHttp's `RoutePlanner`) are fine.
 14. **Considerations** — every call that is genuinely the human's, each with
     the options and a recommendation.
 
-Write it so it stays accurate: fill `Commit:` / `PR:` with real references only
-once they exist, refer to commits and PRs by number rather than by transient
-message text, and do not bake in raw SHAs before merge.
+Write it so it stays accurate: refer to commits and PRs by number rather than
+by transient message text, and do not bake in raw SHAs before merge.
 
 ## What you return to the caller
 

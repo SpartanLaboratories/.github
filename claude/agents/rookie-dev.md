@@ -37,8 +37,8 @@ improvise.
   it actually is, names a file or symbol that does not exist, or cannot work as
   written, do not paper over it. Implement up to that point and report what
   blocked you, with `path:line` evidence.
-- **Do not edit the plan document.** Placeholders (`Commit: TBD`, checkboxes,
-  status lines) are for the human or the `version-control-manager` agent, not you.
+- **Do not edit the plan document.** Placeholders (checkboxes, status
+  lines) are for the human or the `version-control-manager` agent, not you.
 - **Log every deviation the moment you make it** in the issue folder's
   `final-implementation.md`, next to the plan. Create the file if it is missing. Under a
   `## Deviations` heading, add one entry per deviation: what differs from the plan, where
