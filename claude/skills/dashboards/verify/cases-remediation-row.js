@@ -131,6 +131,28 @@ module.exports = function casesRemediationRow(X) {
     c.push(["…a row with its outcome shows its statements alone", other && !/class="blead"/.test(other), other.slice(0, 200)]);
   });
 
+  /* a module's test task run whole over the board's own classes (WebTools #69, stage 1): "gatingTest (webtools-feeds)" and its two siblings
+     were listed in Relevant as unchanged tests, and the sixteen Added classes they ran stayed "not run yet" */
+  guard("testslib.js: a test task that passed whole over the board's own classes is their results", c => {
+    const at = "2026-11-06T23:12:54Z", o = { now: at, ids: new Set(ids), stage: "S1" };
+    const mk = () => ({ rows: EX.rows, tests: { updated: "2026-11-06T00:00:00Z", amended: [], relevant: [], added: [
+      { class: "AComponentTest", module: "f", testLevel: "2", tests: 3 }, { class: "BComponentTest", module: "f", testLevel: "2", tests: 5 },
+      { class: "CDeterministicTest", module: "f", testLevel: "4a", tests: 2 }, { class: "OtherComponentTest", module: "g", testLevel: "2", tests: 4 }] } });
+    c.push(["bareName reads \"<name> (<module>)\" as <name>", TL.bareName("gatingTest (webtools-feeds)", "webtools-feeds") === "gatingTest" && TL.bareName("gatingTest (x)", "webtools-feeds") === "gatingTest (x)", js(TL.bareName("gatingTest (webtools-feeds)", "webtools-feeds"))]);
+    const P = mk(); TL.mergeTests(P, { ran: [{ class: "componentTest (f)", module: "f", passed: 8, failed: 0, skipped: 0 }, { class: "deterministicTest (f)", module: "f", passed: 2, failed: 0, skipped: 0 }] }, o);
+    const A = P.tests.added, res = n => (A.find(x => x.class === n) || {}).result || {};
+    c.push(["each class of that module and level takes the result, passed whole with its own count", res("AComponentTest").passed === 3 && res("BComponentTest").passed === 5 && res("CDeterministicTest").passed === 2 && res("AComponentTest").state === "passed" && res("AComponentTest").at === at, js(A)]);
+    c.push(["…a class of another module is untouched, and no Relevant entry is added", !res("OtherComponentTest").state && !P.tests.relevant.length, js(P.tests)]);
+    c.push(["…and the same facts twice change nothing", !TL.mergeTests(P, { ran: [{ class: "componentTest (f)", module: "f", passed: 8, failed: 0, skipped: 0 }] }, o).changed, ""]);
+    const Q = mk(); Q.tests.relevant = [{ class: "componentTest (f)", module: "f", tests: 8, result: { state: "passed", passed: 8, failed: 0, skipped: 0, at } }];
+    TL.mergeTests(Q, { ran: [{ class: "componentTest", module: "f", passed: 8, failed: 0, skipped: 0 }] }, o);
+    c.push(["an earlier event's Relevant entry for the same run goes once its classes carry it", !Q.tests.relevant.length && Q.tests.added[0].result && Q.tests.added[0].result.passed === 3, js(Q.tests)]);
+    const F = mk(); TL.mergeTests(F, { ran: [{ class: "componentTest", module: "f", passed: 7, failed: 1, skipped: 0 }] }, o);
+    c.push(["a run with a failure stays a Relevant entry of its own, its classes untouched", F.tests.relevant.length === 1 && F.tests.relevant[0].result.state === "failed" && !F.tests.added[0].result, js(F.tests)]);
+    const M = mk(); TL.mergeTests(M, { ran: [{ class: "componentTest", module: "f", passed: 20, failed: 0, skipped: 0 }] }, o);
+    c.push(["a run counting more than the board's classes (other classes of the module) stays a Relevant entry, as before", M.tests.relevant.length === 1 && M.tests.relevant[0].tests === 20 && !M.tests.added[0].result, js(M.tests)]);
+  });
+
   /* a run's note (WebTools #65, qa pass 2): a failure the change did not cause, an untouched class of #62 timing out under parallel task runs,
      was drawn as the change's failure with nothing to say otherwise; the result now carries an optional note, shown on the card and in the
      inspector, taken by the fast path from facts.tests.ran[].note and replaced with the next result */
