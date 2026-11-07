@@ -13,7 +13,7 @@ description: >-
   state boards (docs/dashboards/) built to show what was built, or what is
   planned, as such. The admin team handles version control autonomously, releases every
   version-bumping landing to Maven Central within its monthly budget, stops only
-  at its gates - a history rewrite, deleting what it did not create - and reports
+  at its gates (see `admin-team.md`, "Gates and standing grants"), and reports
   downstream-consumer coordination rather than filing it. Use to
   make steady, reviewed progress through the issue backlog one issue at a time.
   Named on a planned tracking issue (a roadmap or other `type: tracking` issue
@@ -31,8 +31,9 @@ modes"). Follow the steps in order. Within a run, wait for each spawned agent to
 finish before starting the next. All version control runs through the
 **`admin team` session**: load the `admin-team` skill and send it requests
 (it launches the team if it is not running). The team's executor acts
-autonomously except at the team's gates — a history rewrite, deleting what
-it did not create — which the user confirms at the team's console; a **Maven
+autonomously except at the team's gates (see `admin-team.md`, "Gates and
+standing grants"), which the user confirms at the team's console; a request
+waiting on one comes back `needs-user`; a **Maven
 publish** is the team's own decision within its monthly budget, never yours
 to ask for; a **downstream-consumer issue** is never filed (reported
 instead), and **sub-issues** are filed only from a list the user approved. You
@@ -84,7 +85,7 @@ replies `needs-rework` with `result.finds` (`file:line`); reword each find and r
   shows, has no open PR already addressing it. If you skip the oldest for one of
   those reasons, say which and why, then take the next.
 - If there are no open issues, say so and stop.
-- **Handoff.** Look for `~/.claude/handoffs/<repo>-<issue>.md`; if present, read it, and set `restarted` on the first request.
+- **Handoff.** Look for `~/.claude/handoffs/<owner>-<repo>-<issue>.md` (e.g. `SpartanLaboratories-WebTools-66.md`); if present, read it, and set `restarted` on the first request.
 - Read the chosen issue in full: `gh issue view <n> --repo <repo> --comments`.
   An issue that is only partly done (an earlier tier/stage landed, more is
   open) still counts — this run's goal is the **next step**, not necessarily

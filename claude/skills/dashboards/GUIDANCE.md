@@ -19,7 +19,8 @@ one colour slot, assigned in registry order (six slots; a system's parts inherit
 colour). An archived system holds no slot; a live system keeps its place's slot, archived places
 still counted, so archiving one moves no other system's colour; a freed slot goes to the next
 system with none, and with none free a system is drawn neutral (`system/scripts/palette.js`
-`colourSlots()`). A system keeps that colour on **every tab of every board**: its card and rows on the system,
+`colourSlots()`); a seventh live top-level system with none free is drawn neutral too: re-parent
+it or add a slot. A system keeps that colour on **every tab of every board**: its card and rows on the system,
 supersystem and repository state boards, its rows on every issue board and on the repository work board. A reader who
 learns the colour once can follow the system everywhere. On a system board the three sides
 (`--server`, `--client`, `--wire`) are slots 1 to 3.

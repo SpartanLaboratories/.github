@@ -217,7 +217,8 @@ dashed = planned, a legend on every tab). The groupings the system templates use
   in registry order (`sysColour(slug)`: a top-level system is one whose parent is not itself a
   system on the board; a child takes the slot of the highest live system on its parent chain; an archived system holds
   no slot and is drawn neutral; a live system keeps its place's slot, archived places still counted;
-  a freed slot goes to the next system with none, and with none free a system is drawn neutral;
+  a freed slot goes to the next system with none, and with none free a system is drawn neutral; a
+  seventh live top-level system with none free is drawn neutral too: re-parent it or add a slot;
   `palette.js` `colourSlots()`), and every hand-written element about a system carries `data-sys="<slug>"` so
   `paintSystems()` colours it. The issue boards use the same slots (`plan/RULES.md`), so a system
   has one colour on both sets.
