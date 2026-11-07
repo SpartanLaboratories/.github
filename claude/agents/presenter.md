@@ -186,7 +186,8 @@ what you wrote with the `--auto` checkers and report the paths. To drop an
 replaces nothing there. The team raises `reseed` after this job. The committed
 landed state (the issue board, the tracking board, the repository work board) is
 seeded from this live view onto the next run's branch at its `sized`
-(plan-board mode, step 2) and committed by that run's document-landing commit.
+(plan-board mode, step 2) and committed by that run's document-landing commit,
+or carried by a level-1 landing before it (the admin team's brief, Seeding).
 
 ### Dashboards-refresh mode
 

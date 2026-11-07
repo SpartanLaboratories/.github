@@ -456,8 +456,10 @@ Considered filled behind it; no board is laid ahead of a run. It also seeds the
 run's boards with the previous landing's landed state — the parent tracking board
 (its filed units, its unit landed, the next one up) and the previously landed sibling's issue
 board as `landed` — from the main checkout's live view, so the run's branch
-carries them and they ride its document-landing commit. There is no separate
-corrections work in any landing.
+carries them and they ride its document-landing commit. A level-1 run sends no
+`sized`, and its landing carries the repository's pending corrections all the
+same (the admin team's brief, Seeding). There is no separate corrections work
+in any landing.
 
 ## 7. Land it — `admin team`: `land`
 

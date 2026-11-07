@@ -1308,7 +1308,8 @@ boards' Context links to the landing issue's board are written in the same Docum
 ### Seeding at sized
 
 A landing's state is shown in the main checkout's live view by the post-merge refresh, in view copies (below), and committed by the next
-run (admin-team/dashboards-skill/35, in place of the next landing's pre-merge corrections). When a run is **sized in a tree branched after
+run (admin-team/dashboards-skill/35, in place of the next landing's pre-merge corrections), or by a level-1 landing before it, which sends no
+`sized` and carries the repository's pending corrections from the same copies (the admin team's brief, Seeding). When a run is **sized in a tree branched after
 that landing** (its worktree, or the main checkout where the run works there), `apply-event.js` (at `sized`, never with `--view`) starts the boards the landing changed from the main checkout's view copies
 (`docs/plans/.live/view/`): each copy **fresher than the worktree's tracked board** (`lib.js` `planStamp()`) whose merge (`asBuilt.merge`,
 else `sha`) is in the worktree's history (`git merge-base --is-ancestor`) is written over the tracked board (its `plan.json`, its board and
@@ -1395,8 +1396,8 @@ docs/plans/.live/view/<folder> --fields <fields.json>`), or raises `landed` with
 - **The live repository work board opens the copies.** `board.js --live` reads every view copy fresher than the main checkout's tracked
   board (`lib.js` `planStamp()`, the later stamp; the tracked board on a tie) in place of that board, and links its row and its group to
   the copy; the folder and the Markdown stay the tracked board's.
-- **A copy lives until a branch commits its state.** The next run's `sized` seeds the same landed state into its branch ("Seeding at
-  sized", above); once that branch is merged, the tracked board is as fresh as the copy, and `board.js --live` removes the stale copy at its
+- **A copy lives until a branch commits its state.** The next run's `sized` seeds the same landed state into its branch, or a level-1
+  branch carries it ("Seeding at sized", above); once that branch is merged, the tracked board is as fresh as the copy, and `board.js --live` removes the stale copy at its
   next run. A copy whose tracked board is gone is removed too.
 
 ## 5. The repository work board

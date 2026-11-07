@@ -261,12 +261,13 @@ step, the `state-boards` request):
   `final-implementation.md` keep the details beside it. Board updates run in real time in the
   admin team's own board lanes and commit nothing; an issue board is committed by its
   landing. After the merge the admin team shows the landed state for viewing only, in the
-  git-ignored live view; nothing is left uncommitted. The next run in that repository carries
+  git-ignored live view; nothing is left uncommitted. A later landing in that repository carries
   that landed state (the issue board's `landed` with its merge commit, the tracking board's
-  filed units, its unit landed and next up, the repository work board) onto its branch when it is sized, and
-  it lands with it; there is never a follow-up docs PR. The repository work board on the
-  default branch changes only at landings; between them its live view is a local, git-ignored
-  copy in `docs/plans/.live/`.
+  filed units, its unit landed and next up, the repository work board) onto the default branch
+  with its merge: the next level 2–4 run takes it onto its branch when it is sized, and a
+  level-1 landing carries the corrections still pending in that repository; there is never a
+  follow-up docs PR. The repository work board on the default branch changes only at landings;
+  between them its live view is a local, git-ignored copy in `docs/plans/.live/`.
 
 The `dashboards` skill holds the shared guidance (`GUIDANCE.md`, colour coding first), one
 ruleset per set, the templates and the checks.

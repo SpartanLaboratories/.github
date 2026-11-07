@@ -146,14 +146,16 @@ A `plan-board` event updates the issue's issue board and, for a sub-issue, its t
 landing. Each run's `state-boards` task regenerates them on its branch, and its document-landing
 commit carries them. The team raises a land's `landing` and `merge`, and `landed` after the merge,
 for viewing only, into the git-ignored `docs/plans/.live/` of the main checkout (view copies under
-`.live/view/`); nothing is left uncommitted, there is no follow-up docs PR, and the next run in the
-repository seeds the landed state (its issue board as `landed` with its merge commit, its tracking
-board's filed units, its unit landed and next up, the repository work board) onto its branch at `sized`. Between landings the live view is
-that local copy, regenerated after every board event, and a run's live state is on its own
-board in its worktree. A `plan-board` event runs in the team's board lanes, apart from the
-repository lanes, and commits nothing: an issue's board files are committed by the run's
-document-landing commit. On a topic branch that lands through a PR (the board's first creation, a
-docs branch), the repository work board files are ordinary paths and a `commit` may include them.
+`.live/view/`); nothing is left uncommitted, there is no follow-up docs PR, and a later landing in
+the repository carries the landed state (its issue board as `landed` with its merge commit, its
+tracking board's filed units, its unit landed and next up, the repository work board): the next
+run's `sized` seeds it onto its branch, and a level-1 branch, which sends no `sized`, carries the
+corrections still pending too. Between landings the live view is that local copy, regenerated
+after every board event, and a run's live state is on its own board in its worktree. A
+`plan-board` event runs in the team's board lanes, apart from the repository lanes, and commits
+nothing: an issue's board files are committed by the run's document-landing commit. On a topic
+branch that lands through a PR (the board's first creation, a docs branch), the repository work
+board files are ordinary paths and a `commit` may include them.
 
 ## A reply
 
@@ -170,7 +172,7 @@ Same shape: one line, then a ```json block.
 |---------|---------|
 | `ack` | Queued. `lane` and `position` (0 = running). |
 | `progress` | Only for long actions; what step it is on. |
-| `done` | Finished. `result` carries SHAs, PR, merge commit, links, worktree path. For a `land`, `result.release` is `{status, coordinates, deploymentId, tags, releases, reason, used}` with `status` one of `published`, `deferred` (`reason`: `cap-reached`, `reserve-held`), `failed` (the user decides at the team's console) or `none` (no published module moved); `result.corrections` lists the landed state the next run in the repository seeds onto its branch at `sized` (this landing's issue board as `landed`, its tracking board, the repository work board). |
+| `done` | Finished. `result` carries SHAs, PR, merge commit, links, worktree path. For a `land`, `result.release` is `{status, coordinates, deploymentId, tags, releases, reason, used}` with `status` one of `published`, `deferred` (`reason`: `cap-reached`, `reserve-held`), `failed` (the user decides at the team's console) or `none` (no published module moved); `result.corrections` lists the landed state a later landing in the repository carries (this landing's issue board as `landed`, its tracking board, the repository work board): the next run's `sized` seeds it onto its branch, and a level-1 branch carries it too. |
 | `rejected` | Refused. `reason` names the rule. Fix the request and send a new `id`. |
 | `needs-user` | Waiting on the user at the team's console. `waitingOn` says for what. |
 | `needs-rework` | A `prepare-landing` or `land` whose base moved under its files: `result.overlap` lists them; re-verify, then resend the same `id` with `attempt + 1` and a fresh `qa`. A conflict only in generated board files (the work boards, or the state-board files under `docs/dashboards/`), or a `CHANGELOG.md` conflict where both sides only added entries, the team resolves itself and never sends back; any other conflict, every `README.md` conflict included, comes back this way. Or a `commit`, `prepare-landing` or `land` whose content breaks the internal-names rule (below): nothing was committed, `result.finds` lists each `file:line` with its text; reword them, then resend the same `id` with `attempt + 1`. A find in a board the team generates is the team's to fix and is never sent back. |
