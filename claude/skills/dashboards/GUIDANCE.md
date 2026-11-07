@@ -519,7 +519,7 @@ to #n", the structure map's recorded height, a
 issue board's finished steps clickable, each unit row's label glowing on its own while it is filed, the Timeline tile's figure the sum of
 its visits, an issue's title quoted and marked, every Quality Review and the one running, each by its number, every name from the template's names block (the
 steps, the Quality Reviews and what follows them; §4), the classes that carry their element's type (`.kpi-tile`, `.verdict-pill`, `.legend`,
-`.c4-legend`), the dependency pills, the code label, an option's signature beneath its name — and
+`.c4-legend`), the dependency pills, the code label, an option's signature beneath its name, a step's files nested by their folders — and
 the browser pass, on a board that gets one, the layout ones (the header's halves, the wide board, the legends shown). A missing feature fails, as `FEATURE MISSING:
 <feature> (template since dashboards-skill/N)`, **through a declared divergence too**: a divergence adds or argues a removal; it never
 excuses a board that lags its template. A landed or cancelled issue board is the exception: it is kept as it landed and never
@@ -782,6 +782,17 @@ refresh on its branch: the committed repository work board, and the repository s
   titles, already through `pair()`. A landed board keeps its rendering (§11, "Re-rendering"), so a board drawn before shows its older
   look until the user asks for it to be re-rendered.
 
+**The decision of admin-team/dashboards/step-file-tree** (dated dashboards-skill/43), weighed for every type:
+
+- **A step's files nested by their folders** (`plan/RULES.md` §2, "A step's files"): the module a heading, its source set a level under
+  it (`src/` left out), the folder path one line holding its files, each file a code label; every folder line a toggle, open at load, a
+  closed one counting its files. Applied to issue boards and tracking boards — the Verdict inspector's Steps and the As built inspector's
+  Files, the only file lists they draw — and held by the `file-tree` probe. Not to system boards: a component's source files in the
+  inspector are a few names under the system's one source root, each a link to its source, with no module or source set to nest. Not
+  to supersystem and repository state boards: a system's code paths are its registry's folders, one line, not a list of files. Not to the
+  repository work board: one row per run, no file list. A landed board keeps its rendering (§11, "Re-rendering"); a board in flight takes
+  it at its next event.
+
 ## 12. Elements — one name per function
 
 Every visible element on a board takes its name from the UI vocabulary,
@@ -799,5 +810,6 @@ text; inside bold text (`b`, `strong`, an inspector's or a row's `.name`, `.nm`,
 weight. Inside a **chip, a pill or a tile** — a label or a figure already — it stays plain mono text: the templates select them by the
 type word each class carries (`boards.md`, "Board UI"). An option's signature (`plan/RULES.md` §2, "An option's signature") is the code
 label set as a block beneath the option's name (`code.codeblock`); until `ui.md` has a term for that element these rules name it only
-by what it is. A row's name, an option's and a title taken from either draw their `` `code` `` spans as code labels wherever they are
+by what it is. A step's files nested by their folders (`plan/RULES.md` §2, "A step's files") draw each file as a code label and their
+folder lines as plain text; until `ui.md` has terms for the nesting and its folder toggles these rules name them only by what they are. A row's name, an option's and a title taken from either draw their `` `code` `` spans as code labels wherever they are
 drawn, never as literal backticks; an attribute (an `aria-label`, a `title`) takes the text with its backticks dropped.

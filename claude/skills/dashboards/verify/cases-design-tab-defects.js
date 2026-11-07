@@ -7,7 +7,8 @@
 // 2. A heading's leading section number may be a letter before a number ("R2", "R2.1"): the reference reads "(§R2)" (lib.js HEAD_NUM and
 //    the template's stmtLabel(), the one form), and embed.js reads it from the file's headings for an anchor "r2-…".
 // 3. A count and its noun agree: "1 step", "1 change", "1 commit", on every template that writes a count (plural()).
-// 4. A step's file list: one path per line, each its own <code>, never broken inside a path (the list scrolls in itself).
+// 4. A step's file list: each file its own <code>, never run on with a separator; since admin-team/dashboards/step-file-tree (dated 43) the
+//    list is nested by its folders (verify/cases-file-tree.js), which replaced the one-path-per-line list that scrolled in itself.
 // 5. The scripts' messages in the current vocabulary: check-board.js asks for a .legend; features.js says the work board is held to the
 //    board-wording feature; namerefs.js scrubNames() writes "code check", "test check", "the review's test check", "the review approved".
 // Each group returns [title, cases], a case [name, ok, detail].
@@ -80,10 +81,10 @@ module.exports = function casesDesignTabDefects(X) {
     c.push(["apply-event.js: a remediation's sub-steps counted as \"1 of 1 sub-step done\"", /`\$\{dn\.length\} of \$\{plural\(ss\.length, "sub-step"\)\} done`/.test(rd(sk("plan/scripts/apply-event.js"))), "apply-event.js"]);
   });
 
-  guard("a step's file list: one path per line, each its own <code>, never broken inside a path", c => {
-    c.push(["each path its own <code>, no separator between them", /<span class="files">\$\{s\.files\.map\(f=>`<code>\$\{esc\(f\)\}<\/code>`\)\.join\(""\)\}<\/span>/.test(PB) && !/s\.files\.map\(esc\)\.join/.test(PB), "the Verdict inspector's steps"]);
-    c.push(["…and the As built inspector's Files the same", /<dd><span class="files">\$\{b\.files\.map\(f=>`<code>\$\{esc\(f\)\}<\/code>`\)\.join\(""\)\}<\/span><\/dd>/.test(PB), "the As built inspector's files"]);
-    c.push(["a path is a line of its own and never wraps; a long one scrolls inside the list, never the board", /\.files\{display:block;max-width:100%;overflow-x:auto\}/.test(PB) && /\.files code\{display:block;white-space:nowrap;overflow-wrap:normal\}/.test(PB) && /\.steps-list li>span\{min-width:0\}/.test(PB) && !/\.steps-list \.files\{[^}]*overflow-wrap:anywhere/.test(PB), "CSS"]);
+  guard("a step's file list: each file its own <code>, never run on with a separator (nested by its folders since step-file-tree)", c => {
+    c.push(["the Verdict inspector's steps and the As built inspector's Files draw the nested list, no path joined to the next", /\$\{fileTree\(s\.files\)\}/.test(PB) && /<dt>Files<\/dt><dd>\$\{fileTree\(b\.files\)\}<\/dd>/.test(PB) && !/s\.files\.map\(esc\)\.join/.test(PB) && !/b\.files\.map\(esc\)\.join/.test(PB), "the two inspectors"]);
+    c.push(["each file its own <code> (the nested list's file lines)", /<li class="ft-file" title="\$\{esc\(k\.path\)\}"><code>\$\{ftWord\(k\.name\)\}<\/code><\/li>/.test(PB), "ftHtml()"]);
+    c.push(["a long path never widens the board: a folder line breaks after a \"/\", a file name between its words", /\.steps-list li>span\{min-width:0\}/.test(PB) && /\.ftree summary\{[^}]*overflow-wrap:anywhere\}/.test(PB) && /\.ftree \.ft-file\{overflow-wrap:anywhere\}/.test(PB), "CSS"]);
   });
 
   guard("the scripts' messages in the current vocabulary (check-board.js, features.js, namerefs.js)", c => {

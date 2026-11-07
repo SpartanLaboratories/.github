@@ -233,6 +233,27 @@ signature is code, never prose: the internal-name scan and the issue references 
 stands for no signature has none, and an option written before the field keeps its name as it is and draws as before (admin-team/dashboards/code-label-and-sigblock).
 It is a short declaration, not a listing (§7).
 
+### A step's files
+
+A verdict step's `files` and a row's `asBuilt.files` stay paths, as the plan and the as-built record write them. The inspector draws each list
+**nested by its folders** (the Verdict inspector's Steps, the As built inspector's Files), derived from the paths at render, with no data of
+its own (admin-team/dashboards/step-file-tree, dated dashboards-skill/43):
+
+- **The levels.** The module (the folders before `src/<set>/`, else the top folder) is a heading; its source set (`commonMain`, `jvmTest`, …)
+  a level under it, `src/` left out; the rest of the folder path one line holding its files; each file a code label (`GUIDANCE.md` §12,
+  "Code"). A file outside any module or source set sits at the level it belongs to (`.gitattributes` at the top, a module's
+  `build.gradle.kts` under its module), and a folder listed whole (a trailing `/`) stands as an entry of its parent.
+- **The order.** Inside a folder the files keep the list's order; folders come in the order of their first file; a folder with one file
+  keeps its own line; a path listed twice is drawn once.
+- **Every folder line toggles** what it holds — the module's, the source set's and the folder path's — by click and from the keyboard, open
+  at load; a closed one says how many files it holds ("· 3 files"). A redraw that shows the same content (a live update) keeps closed what
+  the reader closed.
+- **The look.** A guide line per level; every line carries its full path in its title; a folder line breaks after a "/", a file name between
+  the words of its camel case, so a long path never widens the inspector.
+
+The As built card keeps its count ("3 files"). The nesting is no grouping by colour, shade or dash, so no legend names it (`GUIDANCE.md` §2).
+A board drawn before it lists one full path per line until its next rebuild; a landed board keeps its rendering (`GUIDANCE.md` §11).
+
 ### The KPI tiles
 
 The KPI tiles stand in the **Timeline tab** (below), under the Timeline tile; since admin-team/dashboards-skill/34 there is no KPI row in
