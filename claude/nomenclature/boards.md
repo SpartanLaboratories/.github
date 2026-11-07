@@ -7,13 +7,23 @@ two rulesets); a section reference below (§1) is to `GUIDANCE.md`.
 
 ## Dashboards and boards
 
-"Dashboard" is the umbrella for two groups, and every member of either is a **board**, never a
-"page" (GitHub Pages is something else):
+"Dashboard" is the umbrella for two groups, and every member of either is a **board**:
 
 | Group | Shows | Its boards |
 |-------|-------|------------|
 | **State boards** (`docs/dashboards/`, [`system/RULES.md`](../skills/dashboards/system/RULES.md)) | what the code is and does at a named commit | the **system board**, the **supersystem board**, the **repository state board**; planned: the **org project board**, the **intra-org dependency board** |
 | **Work boards** (`docs/plans/`, [`plan/RULES.md`](../skills/dashboards/plan/RULES.md)) | how the work is going | the **issue board**, the **tracking board** (a tracking issue's issue board), the **repository work board**; planned: the **org work board** |
+
+What each board shows:
+
+| Board | Shows |
+|-------|-------|
+| **system board** | one system as built: its function first, in its Tabs, then what a consumer can rely on in the Guarantees Panel, then the Context Panel (the roadmap, the unscheduled issues, the plans) |
+| **supersystem board** | a group of systems and how they interact, its planned systems drawn dashed |
+| **repository state board** | the repository's systems and how they interact, its planned systems drawn dashed |
+| **issue board** | one issue: its gap, the options considered, the verdict and the as-built state, and, while its run is alive, the work in progress |
+| **tracking board** | a tracking issue's issue board, its Rows the tracking issue's units, each with its progress |
+| **repository work board** | every run in the repository at once, and the landed issues |
 
 A board's own word for itself, in its text and its labels, is "board"; the file names and the
 scripts follow (`check-board.js`). The kind ids the scripts and the data use are identifiers and
@@ -21,27 +31,32 @@ keep their spelling: `plan-board`, an issue or a tracking board (its `<meta name
 `plan.json`'s `schema: "plan-board/1"` and the `plan-board` request that updates it), and
 `work-board`.
 
+"Page" is retired: it never names a board (GitHub Pages is something else).
+
 ## Board UI
 
 Every visible element on a board takes its name from [`ui.md`](ui.md) and does what `ui.md`
 defines; the look follows the boards' colour coding and Legends (§1, §2). This section holds every
 board-specific use of a `ui.md` element.
 
-A board's compound names follow `ui.md`'s rule, subject first and type last: a Guarantees sub-area
-is a **guarantee Card**, the Panel that holds the WIP strip is the **WIP Panel** and a tracking
+A board's compound names follow `ui.md`'s rule, subject first and type last: a Card in the Guarantees
+Panel is a **guarantee Card**, the Panel that holds the WIP strip is the **WIP Panel** and a tracking
 board's unit block in it a **unit Card**, a step in the step Panel is a **step Cell**, and so on (a
 verdict Pill, an issue Chip, the KPI Tile).
 
 Where a template's CSS class names an element's kind it carries the type word, so a reader can tell
-the kind from the markup without the board: `.card`, `.chip`, `.badge`, `.cell`, `.ring`, `.glow`,
-`.arrow`, `.guarantee-card`, and `.kpi-tile` (a KPI Tile), `.verdict-pill` (a verdict Pill),
-`.dep-pill` (a DualStatePill) and `.legend` (a Legend).
+the kind from the markup without the board: `.card`, `.chip`, `.badge`, `.cell`, `.ring`, `.arrow`,
+`.guarantee-card`, and `.kpi-tile` (a KPI Tile), `.verdict-pill` (a verdict Pill), `.dep-pill` (a
+DualStatePill), `.legend` (a Legend), `.fullpulse` (a FullPulse: whatever is being worked on),
+`.col-fullpulse` (a whole column's FullPulse), `.colcell-fullpulse` (a Cell carrying its column's
+FullPulse at phone width), `.upnext-ring` (the up-next Ring) and `.fillpulse` (the live dot's
+FillPulse).
 
 Each row names a `ui.md` term and says how the boards use it; the term's definition is `ui.md`'s.
 
 | Term | How it's used here |
 |------|--------------------|
-| **Panel** | the Guarantees area, the Context section, the WIP Panel (the Panel that holds the WIP strip), the step Panel, a system Panel on the Systems Tab (its own Card the heading; a subsystem's inside its supersystem's), the inspector (§6): the side Panel that shows the selected item, a Hide Button right of its heading |
+| **Panel** | the Guarantees Panel (headed "Guarantees"), the Context Panel (headed "Context"), the WIP Panel (the Panel that holds the WIP strip), the step Panel, a system Panel on the Systems Tab (its own Card the heading; a subsystem's inside its supersystem's), the inspector (§6): the side Panel that shows the selected item, a Hide Button right of its heading |
 | **Tab** | each of a board's views, its heading in the board's row of Tab headings: a state board's six core Tabs, its optional ones and a supersystem or repository state board's Systems Tab; a work board's Tabs |
 | **Card** | a guarantee Card, a Consequences entry, an As-built entry, a unit Card |
 | **Tile** | the KPI Tiles, the Timeline Tile, the repository work board's Runs and Landed Tiles |

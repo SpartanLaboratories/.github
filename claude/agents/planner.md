@@ -489,7 +489,7 @@ those are (`plan-board` requests, the `admin-team` skill, fire-and-forget):
 - **When you start writing the research questions** (stage 2.1, before any
   researcher): event `research-planning`, with `facts.drafted` (how many
   questions are drafted so far, `0` at first). The board shows "planning" in
-  its step Panel's research timeline; no Row carries a FullPulse yet.
+  its step Panel's research StepBar; no Row carries a FullPulse yet.
 - **When you spawn the batch:** event `research-started`, with
   `facts.researching`: one entry per question, `{question: "<question-slug>",
   rows: ["<row-id>", …]}`. A Row id is a Row of the issue board's

@@ -32,9 +32,10 @@ sets of boards, one rulebook:
 
 - **State boards** show what a system **is and does, as built** — its
   structure, threads and flows, contracts and lifecycles — then what a consumer
-  can rely on (the Guarantees), then context (the roadmap with its issues, the
-  unscheduled issues, the plans). Completed work, current state, as is: the
-  system board, the supersystem board and the repository state board.
+  can rely on (the Guarantees Panel), then context (the Context Panel: the
+  roadmap with its issues, the unscheduled issues, the plans). Completed work,
+  current state, as is: the system board, the supersystem board and the
+  repository state board.
 - **Work boards** show how the work is going. An issue board shows the planning
   and development of one issue — the gap, the options considered, the verdict,
   the as-built state — and, while its run is alive, where the run is right now;
@@ -148,7 +149,7 @@ at the code-landing sha.
    dashboard pointer, so they show the code at that commit. At **level 4**,
    draw the architecture's new systems on the supersystem board and DSL as
    `Planned` elements, dashed on every Tab, with no issue numbers above the
-   Context section (state boards are as-is; a planned Card reads "planned · its
+   Context Panel (state boards are as-is; a planned Card reads "planned · its
    plan", and the Context roadmap lists the plan's units, which are filed as
    sub-issues only after its merge); no board for anything unbuilt.
 3. **Template and stamp**: bring every state board onto the current template
@@ -207,9 +208,9 @@ Everything on a system board is derived from the code at the named commit, the
 repo's architecture documents and the as-built record — never from the plan
 alone. Read the sources the board will claim things about: types and their
 visibility, threads and when they start, the branches of a dispatch path, the
-order of a lifecycle, the lock rules, and for the Guarantees the `Result` and
-exception types and what retries, the public seams with their stability tier
-and opt-in markers, the thread contracts in the KDoc, the `stop` / `close`
+order of a lifecycle, the lock rules, and for the Guarantees Panel the `Result`
+and exception types and what retries, the public seams with their stability
+tier and opt-in markers, the thread contracts in the KDoc, the `stop` / `close`
 members, the version and what the build checks, the `api` dependencies. Count
 what you report (files, lines, test classes per level, open issues touching the
 system via `gh issue list`), and map those issues to the roadmap: each tracking
@@ -230,7 +231,7 @@ technology, relationships, views, styles; public, internal, standalone and
 planned are tags; identifiers hierarchical and stable) and the board's `MODEL`
 (the component map, the thread inventory, the decision-path variants, the
 sequence, the cross-reference to DSL elements). Then the Panels, the
-guarantee Cards, the Context section, the header. Every Tab gets its colour
+guarantee Cards, the Context Panel, the header. Every Tab gets its colour
 plan and its Legend as the rulesets set them out; add an optional Tab wherever
 content for one exists, declared as a divergence (below). Re-embed the DSL so board and file are byte-identical.
 On an update, change the facts the landing changed and leave the other facts alone, but
@@ -242,11 +243,15 @@ catch up at their own events.
 
 ## Diverging, checking, fixing
 
-- **Divergence** follows `GUIDANCE.md` §7: additive by default; a removal
-  needs its argument. Declare every divergence, an optional Tab included, in
-  the board head (`<meta name="template-divergence" content="what and why">`)
-  and in the board's footer comment and your report; a divergence that would
-  serve every board goes in the repo template.
+- **Divergence.** A board may diverge from its template when its subject is
+  better shown another way. A divergence should primarily add; removing
+  content, a core Tab included, needs a strong argument, such as no data for
+  it existing. Declare every divergence, an optional Tab included, in the
+  board head (`<meta name="template-divergence" content="what and why">`) and
+  record it, a removal with its argument, in the board's footer comment and
+  your report; a divergence that would serve every board goes in the repo
+  template. `GUIDANCE.md` §7 holds the type divergences, §8 how the checks
+  treat a diverging board.
 - **Streamlined.** Make new boards from the template and change
   only what the facts require. Check with `check.js <folder> --auto` and
   `check-board.js <board> --auto`: they check the data and embeds everywhere

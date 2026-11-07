@@ -63,9 +63,9 @@ run, the Document step writes both the README delta and the entry.
 ## Work levels
 
 Every issue is sized to one of four **work levels**, recorded by the admin team in its local
-state, never on GitHub, and never stated in a committed board or document (work boards that landed
-before this rule keep theirs as unshown data, and state boards hold none). The level decides how much planning, implementation, QA and
-versioning the work gets; `/resolve-issue` and its agents scale to it.
+state, never on GitHub, and never stated in a committed board or document. The level decides how
+much planning, implementation, QA and versioning the work gets; `/resolve-issue` and its agents
+scale to it.
 
 | Level | What it is | Planning | Built this run? | Version bump |
 |-------|------------|----------|-----------------|--------------|
@@ -233,79 +233,11 @@ is the team's to fix.
 
 ## Dashboards — state boards and work boards
 
-"Dashboard" is the umbrella for two groups of **boards** (never "pages"): every repository
-keeps both, made and maintained by the `presenter` agent as a service of the `admin team`
-session (never by a pipeline step — `/resolve-issue` only sends it events and, in its Document
-step, the `state-boards` request):
-
-- **State boards** (`docs/dashboards/`): what the code is and does, the current state of each
-  system as it is at a named commit; planning is secondary context. The system board, the
-  supersystem board and the repository state board, and later the org project board and the
-  intra-org dependency board (planned). Built by the admin team on the run's request in its
-  Document step, on the branch, stamped at the code-landing commit (the synced, bumped code;
-  only documents change after it): the changed system's board, the repository and supersystem
-  state boards, `systems.json`, the README pointer, and at level 4 the planned systems drawn
-  dashed. The run's document-landing commit carries them, so they land in the same merge; the
-  stamp is never written into the merge commit.
-- **Work boards** (`docs/plans/`): how the work is going. The issue board
-  (`docs/plans/<issue>-<slug>/dashboard.html`), the tracking board (a tracking issue's issue
-  board), the repository work board (`docs/plans/index.html`), and later the org work board
-  (planned). An issue board opens when work on its issue begins: its foundation is laid in
-  seconds when a level 2–4 `/resolve-issue` run is sized, never ahead of that run, and is kept up
-  at every step transition to show the current work in progress; it records the gap, the options considered (accepted green,
-  declined red, partial yellow), the verdict and the as-built state, with the Cell being worked
-  on in a FullPulse. It is a general representation with little code; `plan.md` and
-  `final-implementation.md` keep the details beside it. Board updates run in real time in the
-  admin team's own board lanes and commit nothing; an issue board is committed by its
-  landing. After the merge the admin team shows the landed state for viewing only, in the
-  git-ignored live view; nothing is left uncommitted. A later landing in that repository carries
-  that landed state (the issue board's `landed` with its merge commit, the tracking board's
-  filed units, its unit landed and next up, the repository work board) onto the default branch
-  with its merge: the next level 2–4 run takes it onto its branch when it is sized, and a
-  level-1 landing carries the corrections still pending in that repository; there is never a
-  follow-up docs PR. The repository work board on the default branch changes only at landings;
-  between them its live view is a local, git-ignored copy in `docs/plans/.live/`.
-
-The `dashboards` skill holds the shared guidance (`GUIDANCE.md`, colour coding first), one
-ruleset per set, the templates and the checks.
-
-- **One system board per system**, `docs/dashboards/<system-slug>/index.html`: its function first, in
-  six core Tabs (structure, C4 model, threads, decision path, sequence, lifecycles), then a
-  section headed **Context** (never labelled "secondary"): the roadmap, each item listing the
-  issues mapped to it; the unscheduled issues no roadmap item claims; and the plans. Beside it,
-  `workspace.dsl` — the Structurizr C4 model of the system, embedded verbatim in the board, which
-  renders its C4 views from it.
-- **Supersystem boards and the repository state board** bind systems together and show how they interact:
-  `docs/dashboards/<supersystem-slug>/index.html` for a group of systems, and
-  `docs/dashboards/index.html` for the repository. They carry a Systems Tab and the same six
-  core Tabs, adapted to their level, and are refreshed on every run.
-- **Tabs.** Optional Tabs (the skill lists candidates; others at the presenter's discretion) are
-  added wherever content for them exists. Every Tab colours its content by a grouping that suits
-  it and shows a Legend for it; Planned is dashed on every Tab.
-- **Guarantees.** Every state board carries a Guarantees area below the Tabs and above Context, made of
-  named guarantee Cards: failure model, extension points, test levels, compatibility & versioning,
-  thread safety, resources to close, and what lands on a consumer's classpath — plus any other
-  that fits. On supersystem and repository state boards each guarantee Card covers every system.
-- **`docs/dashboards/systems.json`** is the registry: every system, its slug, function, code
-  paths, parent, status (`built` | `planned`), version and as-is stamp.
-- **As-is, never as planned.** A state board shows the code at the commit it names. Planned systems
-  appear only on supersystem boards, dashed and tagged `Planned` (a level-4 run adds them); a
-  system gets its own board when its implementing issue lands.
-- Boards are self-contained HTML (inline CSS/JS/SVG, no external resources, light and dark),
-  verified in a headless browser before landing when they diverge from their template; a board
-  that is a verified template plus its data gets no browser pass. A change to the `dashboards`
-  skill or its templates gets no browser pass from the presenter: its report lists what I should
-  check in a browser, and I verify it. A repository may keep its own template under
-  `docs/dashboards/_template/`, and a board may diverge from a template when the system is better
-  shown another way. A divergence should primarily add; removing content, a core Tab included,
-  needs a strong argument, such as no data for it existing. Either is recorded on the board and
-  in the presenter's report.
-- Dashboards are committed with the work they describe; the README points at `docs/dashboards/`.
-- **The presenter fixes dashboard defects at its own discretion**, without asking — on any board
-  and in the `dashboards` skill's templates, examples and scripts — and reports each skill fix
-  so the `.github` mirror is synced. Changing the conventions themselves stays my call. When a
-  convention changes, existing dashboards may be brought up to it; the update needs no commit or
-  PR of its own and rides the repository's next commit.
+"Dashboard" is the umbrella for two groups of **boards** that every repository keeps: the
+**state boards** (`docs/dashboards/`), what the code is and does at a named commit, and the
+**work boards** (`docs/plans/`), how the work is going. Each board is defined in
+`~/.claude/nomenclature/boards.md`. An issue board is a general representation with little code;
+`plan.md` and `final-implementation.md` keep the details beside it.
 
 ## Global Claude config — keep the `.github` mirror in sync
 
