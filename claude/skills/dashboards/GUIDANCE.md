@@ -793,6 +793,18 @@ refresh on its branch: the committed repository work board, and the repository s
   repository work board: one row per run, no file list. A landed board keeps its rendering (§11, "Re-rendering"); a board in flight takes
   it at its next event.
 
+**The decision of admin-team/dashboards/gap-marks** (dated dashboards-skill/44), weighed for every type:
+
+- **The Gap cell's marks** (`plan/RULES.md` §2, "The Gap cell"): the evidence count label in the cell's head (muted at zero), the bold
+  lead (the summary's first sentence), the where chip and the baseline chip in its foot, every one derived from the row's data. Applied to
+  issue boards and tracking boards, the boards with a Gap column (a tracking board's unit rows draw the same cell), and held by the
+  `gap-marks` probe. Not to the state boards: as-is, they show the code at a commit, not the gaps a run found; the gap a guarantee card
+  states (`.gap`, `system/RULES.md` §5) is what the board could not establish at its own stamped commit, with no evidence list, no
+  baseline and no row to place it. Not to the repository work board: one row per run, no Gap column. With it, a row's `where`
+  draws its `` `code` `` spans as code labels on the row label and the As built card, never as literal backticks, and the inspector's
+  `where` drops them inside its one code label (§12, "Code"). A landed board keeps its rendering (§11, "Re-rendering"); a board in
+  flight takes it at its next event.
+
 ## 12. Elements — one name per function
 
 Every visible element on a board takes its name from the UI vocabulary,

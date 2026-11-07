@@ -174,6 +174,27 @@ On a tracking issue's board the rows are its units. Four to twelve rows is usual
 Columns 1–3 are written once. A factual error found later is corrected in place and noted
 under `notes.corrections`; a change of mind goes in column 4, never into column 3.
 
+### The Gap cell
+
+The Gap cell carries four marks, each derived at render from data the row already holds, with no field of its own
+(admin-team/dashboards/gap-marks, dated dashboards-skill/44):
+
+- **The evidence count label**, in the cell's head after the gap's kind chip: "· 2 evidence", the length of `gap.evidence`, its figure
+  in ink and muted at zero. The count used to stand in the cell's foot.
+- **The bold lead**: the summary's first sentence in bold, so a reader can scan the column by first sentences. The first sentence ends
+  at ".", "!" or "?" and a space, outside a `` `code` `` span and not after "e.g.", "i.e.", "vs." or "cf."; a one-sentence summary keeps
+  none, since bolding all of it would set nothing apart. A gap written as one long sentence therefore shows no lead: write the gap's
+  claim first, in a sentence of its own, and its evidence after it.
+- **The where chip**, in the cell's foot: the row's `where`, as the row label's second line writes it, its `` `code` `` spans plain inside
+  the chip (`GUIDANCE.md` §12, "Code"); none for a row without one.
+- **The baseline chip**, beside it: "at <sha>", the board's `baseline.sha`, opening the commit; none on a board without a baseline sha.
+
+The where chip repeats the row label's second line and the baseline chip the header's baseline tag, on purpose: the cell reads
+whole on its own, at any width. The chips have the gap's kind chip's look, neutral and solid; each says what it is in words, and none is
+a grouping by colour, shade or dash, so no legend names them (`GUIDANCE.md` §2). The Gap inspector is unchanged: it already shows the
+row's place, the evidence "at <sha>" and the whole summary. A board drawn before the marks keeps the count in its foot until its next
+rebuild; a landed board keeps its rendering (`GUIDANCE.md` §11).
+
 ### Statements
 
 **The Verdict cell is a list of statements** (`verdict.statements`), never one paragraph of sentences joined by semicolons or
