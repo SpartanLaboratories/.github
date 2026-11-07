@@ -253,8 +253,8 @@ step, the `state-boards` request):
   (planned). An issue board opens when work on its issue begins: its foundation is laid in
   seconds when a level 2–4 `/resolve-issue` run is sized, never ahead of that run, and is kept up
   at every step transition to show the current work in progress; it records the gap, the options considered (accepted green,
-  declined red, partial yellow), the verdict and the as-built state, with the cell being worked
-  on glowing. It is a general representation with little code; `plan.md` and
+  declined red, partial yellow), the verdict and the as-built state, with the Cell being worked
+  on in a FullPulse. It is a general representation with little code; `plan.md` and
   `final-implementation.md` keep the details beside it. Board updates run in real time in the
   admin team's own board lanes and commit nothing; an issue board is committed by its
   landing. After the merge the admin team shows the landed state for viewing only, in the
@@ -270,22 +270,22 @@ The `dashboards` skill holds the shared guidance (`GUIDANCE.md`, colour coding f
 ruleset per set, the templates and the checks.
 
 - **One system board per system**, `docs/dashboards/<system-slug>/index.html`: its function first, in
-  six core tabs (structure, C4 model, threads, decision path, sequence, lifecycles), then a
+  six core Tabs (structure, C4 model, threads, decision path, sequence, lifecycles), then a
   section headed **Context** (never labelled "secondary"): the roadmap, each item listing the
   issues mapped to it; the unscheduled issues no roadmap item claims; and the plans. Beside it,
   `workspace.dsl` — the Structurizr C4 model of the system, embedded verbatim in the board, which
   renders its C4 views from it.
 - **Supersystem boards and the repository state board** bind systems together and show how they interact:
   `docs/dashboards/<supersystem-slug>/index.html` for a group of systems, and
-  `docs/dashboards/index.html` for the repository. They carry a Systems tab and the same six
-  core tabs, adapted to their level, and are refreshed on every run.
-- **Tabs.** Optional tabs (the skill lists candidates; others at the presenter's discretion) are
-  added wherever content for them exists. Every tab colours its content by a grouping that suits
-  it and shows a legend for it; Planned is dashed on every tab.
-- **Guarantees.** Every state board carries a Guarantees area below the tabs and above Context, made of
-  named guarantee cards: failure model, extension points, test levels, compatibility & versioning,
+  `docs/dashboards/index.html` for the repository. They carry a Systems Tab and the same six
+  core Tabs, adapted to their level, and are refreshed on every run.
+- **Tabs.** Optional Tabs (the skill lists candidates; others at the presenter's discretion) are
+  added wherever content for them exists. Every Tab colours its content by a grouping that suits
+  it and shows a Legend for it; Planned is dashed on every Tab.
+- **Guarantees.** Every state board carries a Guarantees area below the Tabs and above Context, made of
+  named guarantee Cards: failure model, extension points, test levels, compatibility & versioning,
   thread safety, resources to close, and what lands on a consumer's classpath — plus any other
-  that fits. On supersystem and repository state boards each guarantee card covers every system.
+  that fits. On supersystem and repository state boards each guarantee Card covers every system.
 - **`docs/dashboards/systems.json`** is the registry: every system, its slug, function, code
   paths, parent, status (`built` | `planned`), version and as-is stamp.
 - **As-is, never as planned.** A state board shows the code at the commit it names. Planned systems
@@ -297,7 +297,7 @@ ruleset per set, the templates and the checks.
   skill or its templates gets no browser pass from the presenter: its report lists what I should
   check in a browser, and I verify it. A repository may keep its own template under
   `docs/dashboards/_template/`, and a board may diverge from a template when the system is better
-  shown another way. A divergence should primarily add; removing content, a core tab included,
+  shown another way. A divergence should primarily add; removing content, a core Tab included,
   needs a strong argument, such as no data for it existing. Either is recorded on the board and
   in the presenter's report.
 - Dashboards are committed with the work they describe; the README points at `docs/dashboards/`.

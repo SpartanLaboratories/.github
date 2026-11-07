@@ -482,29 +482,29 @@ committed in one commit (see "Committing research") before verification
 starts. If a researcher fails, commit the files that were written, then
 re-run only the missing question.
 
-**Board events during research** (levels 2–4). The issue board glows on
-the rows actually being researched, so tell the admin team which those are
-(`plan-board` requests, the `admin-team` skill, fire-and-forget):
+**Board events during research** (levels 2–4). The issue board carries a
+FullPulse on the Rows actually being researched, so tell the admin team which
+those are (`plan-board` requests, the `admin-team` skill, fire-and-forget):
 
 - **When you start writing the research questions** (stage 2.1, before any
   researcher): event `research-planning`, with `facts.drafted` (how many
   questions are drafted so far, `0` at first). The board shows "planning" in
-  its step panel's research timeline; no row glows yet.
+  its step Panel's research timeline; no Row carries a FullPulse yet.
 - **When you spawn the batch:** event `research-started`, with
   `facts.researching`: one entry per question, `{question: "<question-slug>",
-  rows: ["<row-id>", …]}`. A row id is a row of the issue board's
+  rows: ["<row-id>", …]}`. A Row id is a Row of the issue board's
   `plan.json` (`rows[].id`, in the issue folder) whose Considered column the
   question bears on. Give `rows: []` for a question that bears on no existing
-  row (or when the board has no rows yet); the board then glows its whole
-  Considered column.
+  Row (or when the board has no Rows yet); the board then carries a FullPulse
+  on its whole Considered column.
 - **As each researcher returns:** event `research-returned`, with
   `facts.returned: {question: "<question-slug>", findings:
-  "<issue-folder>/research/<question-slug>.md"}`. Its rows show "returned,
+  "<issue-folder>/research/<question-slug>.md"}`. Its Rows show "returned,
   awaiting verification".
 - **When verification starts** (after the batch's findings are committed):
-  event `verification-started`. The researched rows show "verifying".
+  event `verification-started`. The researched Rows show "verifying".
 - **Once verification is done:** `researched`, as before (sent by your caller).
-  The researched rows show "complete" until the plan is accepted.
+  The researched Rows show "complete" until the plan is accepted.
 
 A follow-up researcher (2.4) sends its own `research-started` and
 `research-returned`.
@@ -779,7 +779,7 @@ architect at level 3" and what your check of the single plan changed.
 Note the time when you start (`date -u +%Y-%m-%dT%H:%M:%SZ`). After each step of your
 work, check the clock; once 10 minutes have passed since you started, and again every 10
 minutes after that, take a brief look at your own progress and write it where the issue
-board shows it in its step panel. This is the one file you may write besides your
+board shows it in its step Panel. This is the one file you may write besides your
 own outputs; it is never committed.
 
 - **Where:** in the repository checkout you work in (`git rev-parse --show-toplevel`),

@@ -46,7 +46,7 @@ dashed and never as built; on an issue board the first three columns are written
 once and the fourth records every difference, never a rewrite.
 
 Load the `dashboards` skill before anything else: `GUIDANCE.md` first (the
-shared rules — colour coding, legends, dashed means planned, the glow, facts,
+shared rules — colour coding, Legends, dashed means planned, the FullPulse, facts,
 Context, divergence, checks), then the ruleset of the set you are in
 (`system/RULES.md`, `plan/RULES.md`). This file says how to apply them in a
 job.
@@ -76,11 +76,11 @@ One event of one run (`plan/RULES.md` §4).
    `node ~/.claude/skills/dashboards/plan/scripts/fill.js <folder> --fields <fields.json> [--root <repo>] [--json]`:
    it merges your fields onto the latest `plan.json`, events applying meanwhile,
    then embeds and checks. Never write `plan.json` directly. Write the function
-   from the issue and the documents, and the rows with their Gap,
+   from the issue and the documents, and the Rows with their Gap,
    on a standalone issue as much as on a sub-issue: an issue board past its
-   plan's acceptance with no rows fails (`GAP UNWRITTEN`). On a sub-issue of a
+   plan's acceptance with no Rows fails (`GAP UNWRITTEN`). On a sub-issue of a
    signed-off tracking plan, fill its Considered column too, from the parent's
-   documents. On a tracking issue (level 4), the rows are its units once the
+   documents. On a tracking issue (level 4), the Rows are its units once the
    architecture is signed off, each linking to its sub-issue's folder once that
    unit's run has laid its board. Only when the fast path failed and its summary
    says so, lay the foundation with `plan/scripts/new.js`, `--at` the event's
@@ -94,12 +94,12 @@ One event of one run (`plan/RULES.md` §4).
    `wip.current`, and `wip.next` the next unit in landing order) and the
    previously landed sibling's issue board as `landed` (`status = built`,
    `asBuilt`, the `built` milestone with its merge commit, every pending part
-   resolved, the trail completed, the glow off). Read them from git and the
+   resolved, the trail completed, the FullPulse off). Read them from git and the
    live view, never from memory. They ride the run's document-landing commit,
    so no landing has a separate corrections pass.
 3. On every other event, the fast path has set `wip` from the event (step,
-   detail, what waits, the glowing cells, qa passes, blockers). Write what it
-   leaves through `fill.js`, as the ruleset's event table says: columns 1–3
+   detail, what waits, the Cells in a FullPulse, qa passes, blockers). Write what
+   it leaves through `fill.js`, as the ruleset's event table says: columns 1–3
    written once from the documents, column 4 kept up from
    `final-implementation.md`'s deviations.
 4. Keep it general: summaries, decisions, reasons, states, links to the
@@ -112,7 +112,7 @@ One event of one run (`plan/RULES.md` §4).
 6. On a sub-issue's approving `qa-pass`, the fast path sets its unit `complete`
    on the parent tracking board. On a tracking issue's
    `architecture-signed-off`, `fill.js` sets `wip.next` to the first unit when
-   your fill's unit rows first appear.
+   your fill's unit Rows first appear.
 7. `embed.js` the folder, `check.js <folder> --auto` it, fix, report the paths. Nothing is
    committed: the board lives in the worktree until its run's document-landing
    commit, at the end of the run's Document step.
@@ -147,8 +147,8 @@ at the code-landing sha.
    `systems.json` (rows, versions, as-is stamps, last amended) and the README's
    dashboard pointer, so they show the code at that commit. At **level 4**,
    draw the architecture's new systems on the supersystem board and DSL as
-   `Planned` elements, dashed on every tab, with no issue numbers above the
-   Context section (state boards are as-is; a planned card reads "planned · its
+   `Planned` elements, dashed on every Tab, with no issue numbers above the
+   Context section (state boards are as-is; a planned Card reads "planned · its
    plan", and the Context roadmap lists the plan's units, which are filed as
    sub-issues only after its merge); no board for anything unbuilt.
 3. **Template and stamp**: bring every state board onto the current template
@@ -229,9 +229,9 @@ else the skill's; copy, never edit a template in place. Fill the two sources:
 technology, relationships, views, styles; public, internal, standalone and
 planned are tags; identifiers hierarchical and stable) and the board's `MODEL`
 (the component map, the thread inventory, the decision-path variants, the
-sequence, the cross-reference to DSL elements). Then the panels, the
-guarantee cards, the Context section, the header. Every tab gets its colour
-plan and its legend as the rulesets set them out; add an optional tab wherever
+sequence, the cross-reference to DSL elements). Then the Panels, the
+guarantee Cards, the Context section, the header. Every Tab gets its colour
+plan and its Legend as the rulesets set them out; add an optional Tab wherever
 content for one exists, declared as a divergence (below). Re-embed the DSL so board and file are byte-identical.
 On an update, change the facts the landing changed and leave the other facts alone, but
 bring every state board (system, supersystem and repository state boards) up to the current
@@ -243,7 +243,7 @@ catch up at their own events.
 ## Diverging, checking, fixing
 
 - **Divergence** follows `GUIDANCE.md` §7: additive by default; a removal
-  needs its argument. Declare every divergence, an optional tab included, in
+  needs its argument. Declare every divergence, an optional Tab included, in
   the board head (`<meta name="template-divergence" content="what and why">`)
   and in the board's footer comment and your report; a divergence that would
   serve every board goes in the repo template.
@@ -312,7 +312,7 @@ catch up at their own events.
 - DSL: <path> — <n> elements · <n> relationships · <n> views (embedded copy identical: yes)
 
 ## Work boards
-- <docs/plans/<…>/dashboard.html> — <event> → status <…>, wip.step <…>, <n> rows, <n> pending
+- <docs/plans/<…>/dashboard.html> — <event> → status <…>, wip.step <…>, <n> Rows, <n> pending
 - repository work board: docs/plans/index.html — regenerated | untouched (no state-boards job)
 
 ## Verified

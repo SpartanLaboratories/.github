@@ -201,12 +201,13 @@ name, matched only as a whole word or a path segment (it is a prefix of the
 organisation names). Not finds: a standard install path
 (`C:/Program Files…`), the worktree-root fallback (`C:\wt\`, `admin-team.md`,
 Worktrees), a test fixture's made-up path, an example that names no real
-folder (such as the `D:/…` and `C:\Users\…` examples in this rule), and a
-match that is no path (an escaped quote such as `n:\"`, a regular
-expression). On a find, commit nothing: report each `file:line` under
-**Stopped — secret scan**, and the team replies `needs-rework`. The session
-that asked for the `mirror-sync` fixes the source in `~/.claude` and resends,
-as with the internal-names scan. Never fix a mirrored file yourself.
+folder (such as the `D:/…` and `C:\Users\…` examples in this rule), a URL
+(the drive-letter pattern matches `s:/` inside `https://`), and a match that
+is no path (an escaped quote such as `n:\"`, a regular expression). On a
+find, commit nothing: report each `file:line` under **Stopped — secret
+scan**, and the team replies `needs-rework`. The session that asked for the
+`mirror-sync` fixes the source in `~/.claude` and resends, as with the
+internal-names scan. Never fix a mirrored file yourself.
 
 A `land` in executor mode never publishes, tags or creates a GitHub release:
 those belong to the team's `publisher`, which decides every version-bumping

@@ -172,7 +172,7 @@ reword it, then run the step again.
 | `file-sub-issues` | After the tracking plan's `land`, file the list as sub-issues of `issue` recording each one's level in the team's state, with *blocked by* links, label the parent `type: tracking`, and add a comment on `issue` listing the sub-issues (the land's resolution comment precedes them). The requester states the user approved the list at the architecture sign-off; that relayed approval is enough for this action and no other. |
 | `file-issue` | File one issue in GitHub from `title` and `body`, without a gate, under `version-control-manager.md`'s filing rules: never against a downstream consumer of `surfacedIn`, about the change being landed, or for comment resolution, a code comment or KDoc that needs rewording (rejected with the rule); a request that mixes a defect with such wording gets the defect filed alone, its `done` naming the wording dropped; a speculative defect is rejected as a suspicion; reword anything Claude-internal; if an open issue already covers it, file nothing and reply `done` naming that issue (`result.filed: false`). Reply with `result.issue {number, url}`. |
 | `comment` / `label` | Post the comment, or add/remove the labels, on `issue`. |
-| `mirror-sync` | In the `mirror` lane: copy the listed `~/.claude` paths into the mirror clone, run the secret scan (`version-control-manager.md`, Executor mode), commit straight to `main`, push. On a find it commits nothing: reply `needs-rework` with `result.finds`, and the requester fixes the source in `~/.claude` and resends the same `id` with `attempt + 1`. Refuse any path the mirror README's "Not included" list excludes, the admin team's local state (`ledger.jsonl`, `state.json`, `hooks.jsonl`, `launch.lock`, `up`) included. |
+| `mirror-sync` | In the `mirror` lane: copy the listed `~/.claude` paths into the mirror clone, run the secret scan (`version-control-manager.md`, Executor mode), commit straight to `main`, push. On a find it commits nothing: reply `needs-rework` with `result.finds`, and the requester fixes the source in `~/.claude` and resends the same `id` with `attempt + 1`. When you queued the mirror-sync yourself, route the fix to the agent that made the edit (`direction-manager` for a direction document, `presenter` for a dashboards-skill file) and handle any other case yourself, case by case. Refuse any path the mirror README's "Not included" list excludes, the admin team's local state (`ledger.jsonl`, `state.json`, `hooks.jsonl`, `launch.lock`, `up`) included. |
 | `status` / `cancel` | Answered by you, not an executor. `cancel` drops a queued (not started) request from its sender. |
 
 ### Landing
@@ -343,7 +343,7 @@ lane** (below), apart from the repository lanes too.
   dashboards skill's `plan/scripts/apply-event.js`
   (`node ~/.claude/skills/dashboards/plan/scripts/apply-event.js --event <request.json> --worktree <path>`).
   It applies what the event's facts alone decide: the step, the stages, the research questions, the
-  glow, the wait state, the trail entry and open points. It then rewrites the board's `plan.js`,
+  FullPulse, the wait state, the trail entry and open points. It then rewrites the board's `plan.js`,
   re-embeds the parent tracking board and regenerates the live work board, in seconds. Reply `done` as
   soon as it exits clean. When its output says `enrich: yes`, queue a presenter run in plan-board mode
   in a fill lane (below), reply `progress`, then reply `done` when the presenter finishes. That
@@ -462,7 +462,7 @@ lane** (below), apart from the repository lanes too.
   `docs/plans/`, the one holding its `dashboard.html`, as `facts.tracking`; an issue with no
   parent gets a `seed` with no unit mark. When the parent exists but there is no tracking board
   to mark (the parent's folder is missing under `docs/plans/`, holds an issue board rather than a
-  tracking board, has no row for this unit, or the parent is in another repository), send the
+  tracking board, has no Row for this unit, or the parent is in another repository), send the
   `seed` with no unit mark and tell the user about the missing tracking board; the corrections
   still land.
 - **Streamlined.** `apply-event.js` lays a new board from the template (`presenter`

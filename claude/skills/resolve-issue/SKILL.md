@@ -422,7 +422,7 @@ sends none.
 | Step 1 sized (the run's first action after sizing) | `sized` | level, baseline sha, the issue's systems if known, the next step |
 | A planner halt, a `needs-user` reply, a qa stop | `halted` | what waits on the user; for every question it puts to the user, in any step, `questions`: each question's text (and its options, if any); then `resumed` with the answer's gist |
 | Research questions being drafted (sent by the planner itself) | `research-planning` | `drafted`: questions drafted so far |
-| A research batch spawned (sent by the planner itself) | `research-started` | `researching`: per question, its slug and the board row ids it bears on (`[]` for none) |
+| A research batch spawned (sent by the planner itself) | `research-started` | `researching`: per question, its slug and the board Row ids it bears on (`[]` for none) |
 | A researcher returned (sent by the planner itself) | `research-returned` | `returned`: the question slug and its findings path |
 | Verification of the findings starts (sent by the planner itself) | `verification-started` | — |
 | Research verified | `researched` | the research README path |
@@ -431,7 +431,7 @@ sends none.
 | Step 3 done | `branch-cut` | branch, worktree, `stages`: every stage of the plan, its id and name |
 | Each rookie-dev report | `implementation-stage` | the stage, `stages`: every stage's id and name with its state (`done`, `current`, `todo`), `final-implementation.md` path, deviations; during a remediation loop also `remediation`: the qa pass it answers, the route (`on-the-spot` / `remediation` / `re-plan-then-remediation`) and its sub-steps with their state; `tests`: the test classes the stage added or amended (`added`/`amended`: class, module, testLevel, path, tests, rows). It names no `step` |
 | Just before each `qa` pass is spawned | `qa-pass` | `qa: {pass: N, verdict: "running"}`, `at` |
-| Each qa verdict | `qa-pass` | pass number, verdict, finding counts by kind (test, code) and by `severity` (`minor` — easily made, no fallout — and `other`), the route step 5 takes from them, `rows`: the board row ids the findings touch, report path; `tests`: what the qa run ran (`ran`: class, module, passed, failed, skipped) and the counts of the untouched modules' tests (`other.byModule`) from the test-inspector report |
+| Each qa verdict | `qa-pass` | pass number, verdict, finding counts by kind (test, code) and by `severity` (`minor` — easily made, no fallout — and `other`), the route step 5 takes from them, `rows`: the board Row ids the findings touch, report path; `tests`: what the qa run ran (`ran`: class, module, passed, failed, skipped) and the counts of the untouched modules' tests (`other.byModule`) from the test-inspector report |
 | Step 6 starts, and each task change in it | `document` | `tasks`: every task's id and name with its state (`done`, `current`, `todo`), like `implementation-stage`'s `stages` — ids `documentation-review`, `reconcile-documentation`, `dokka-check`, `reconcile-plan`, `readme-changelog`, `state-boards` (the board adds `document-landing`, which the run need not send); once `prepare-landing` replied, the code-landing sha |
 | An escalation | `escalated` | the proposed level and evidence |
 | The run is abandoned | `cancelled` | the reason |
@@ -439,14 +439,14 @@ sends none.
 **Progress reviews.** Every agent in this run's tree writes a progress note every 10 minutes
 it runs (its agent file, "Progress review every 10 minutes"):
 `docs/plans/.live/progress/<issue>/<name>.js` in the checkout, git-ignored, deleted when the
-agent finishes. The board's step panel shows the notes live; they need no event. When you
+agent finishes. The board's step Panel shows the notes live; they need no event. When you
 brief a subagent, give it the issue number so it can name the file.
 
 On **every** event also send `at` (the ISO time the moment happened, so a queued
 event keeps its true time), and `open` whenever an open point is raised or
 resolved: `[{text, raised, ref?, resolved?}]` — e.g. a plan inconsistency the
 implementer raises for the planner, or an item left to the maintainer. During a
-remediation loop, `implementation-stage` also carries `rows`: the board row ids
+remediation loop, `implementation-stage` also carries `rows`: the board Row ids
 the fixes touch.
 
 The team raises the issue board's `state-boards` step itself inside the
