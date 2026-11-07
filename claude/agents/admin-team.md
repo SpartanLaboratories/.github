@@ -355,10 +355,11 @@ lane** (below), apart from the repository lanes too.
 - **State boards on a branch.** At every `implementation-stage`, after `apply-event.js`, run
   `node ~/.claude/skills/dashboards/system/scripts/apply-state.js --event <request.json> --worktree <path> --repo <owner/repo>`
   on the same request. It stamps the touched systems' state boards "as-is at `<branch>` @ `<sha>`
-  · not yet landed". What it writes rides the next commit in that repository's lane. On
-  `enrich: yes`, queue a presenter run. When it refuses a slug the registry does not list
-  (`BLOCKED — system unresolved`), reply `done` for the board and name the block and the slug in
-  the reply; the stamp waits, and the Document step stops and asks.
+  · not yet landed". What it writes stays in the working tree, uncommitted, until the Document
+  step's `state-boards` task rebuilds it and the run's document-landing commit carries it; no
+  implementation commit carries it. On `enrich: yes`, queue a presenter run. When it refuses a
+  slug the registry does not list (`BLOCKED — system unresolved`), reply `done` for the board and
+  name the block and the slug in the reply; the stamp waits, and the Document step stops and asks.
 - **A tracking plan's unit boards.** `file-sub-issues` follows the plan's merge, so its events are
   raised from the main checkout with `apply-event.js --view`, as `landed` is, and nothing tracked
   is written. While it files the units, raise `sub-issues-filed` for each unit as it is filed
@@ -489,9 +490,8 @@ re-render the affected files ahead of time, in the repository's presenter lane
 (Presenter lanes), in the worktree of the next in-flight branch in that
 repository as that branch's next commit comes up; with none in flight, it waits
 for the next run's branch. What it wrote rides that branch's next commit in the
-repository's lane (a `docs:` commit in the same push) and lands with its merge,
-as `apply-state.js` output on a branch does (Board lanes, State boards on a
-branch). A default branch still changes only at a landing.
+repository's lane (a `docs:` commit in the same push) and lands with its merge.
+A default branch still changes only at a landing.
 
 **Skill fixes.** When `presenter` reports **Skill fixes** (defects it fixed in
 the `dashboards` skill under `~/.claude/skills/dashboards/`), queue a

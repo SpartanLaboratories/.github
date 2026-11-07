@@ -504,8 +504,9 @@ or the files on disk outside a git work tree): a system with a path present is b
 (a fact the code contradicts is noted); a `partPaths` part likewise; then each supersystem, built once every core subsystem is. A system
 whose status changes is touched and stamped. An unclassified subsystem leaves its supersystem's status and asks the presenter.
 
-**Branch state boards ride the next commit** in that lane: what `apply-state.js` writes on a feature branch is committed with the
-branch's next commit (the pipeline's or the board's), not held for the landing; the landing restamps it to the merge.
+**Branch state boards wait for the Document step**: what `apply-state.js` writes on a feature branch at an implementation stage stays
+in the working tree, uncommitted, and no implementation commit carries it; the Document step's state-boards task rebuilds it at the
+code-landing sha, and the run's document-landing commit carries it.
 
 At the Document step's state boards (and at a restamp after the merge) it restamps every entry the branch stamped (`asIs.ref` the branch, `landed:
 false`) and every board of them. An event

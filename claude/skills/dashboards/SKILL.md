@@ -65,8 +65,9 @@ like WebTools; nothing changes on a failure (exit 1). Its summary ends the job w
 `why`) the presenter writes what only the code decides: the prose and figures at the new commit, what the boards say of a part now
 built, a board brought onto the template. Built or planned is the code's: a system (or a part with its own code paths) is built while one of its
 registry paths is present at the stamped commit, a supersystem once every core subsystem is; the facts decide only what has no code paths.
-What it writes on a feature branch rides the branch's next commit in that lane, not held for the landing. A board that lags its template is
-not refused: the summary asks the presenter to splice it. What the script decides and what the presenter adds is in `system/RULES.md` §10.
+What it writes on a feature branch at an implementation stage stays in the working tree, uncommitted, until the state-boards task rebuilds
+it and the run's document-landing commit carries it. A board that lags its template is not refused: the summary asks the presenter to
+splice it. What the script decides and what the presenter adds is in `system/RULES.md` §10.
 
 ## The landing flow
 
