@@ -192,6 +192,22 @@ On a find, commit nothing: report each `file:line` with the offending text under
 `presenter` reword a board it generated. Never reword a committed file
 yourself.
 
+**Secret scan.** Before a `mirror-sync` commits anything, scan every line of
+each file it is about to commit, not only the changed lines, for credentials
+(tokens, keys, passwords) and machine-local paths: any drive-letter path
+(`[A-Za-z]:[\\/]`, e.g. `D:/…` or `C:\Users\…`), a home or profile folder
+(`/c/Users/`, `/home/`, `AppData`), a scratchpad path, and the user's account
+name, matched only as a whole word or a path segment (it is a prefix of the
+organisation names). Not finds: a standard install path
+(`C:/Program Files…`), the worktree-root fallback (`C:\wt\`, `admin-team.md`,
+Worktrees), a test fixture's made-up path, an example that names no real
+folder (such as the `D:/…` and `C:\Users\…` examples in this rule), and a
+match that is no path (an escaped quote such as `n:\"`, a regular
+expression). On a find, commit nothing: report each `file:line` under
+**Stopped — secret scan**, and the team replies `needs-rework`. The session
+that asked for the `mirror-sync` fixes the source in `~/.claude` and resends,
+as with the internal-names scan. Never fix a mirrored file yourself.
+
 A `land` in executor mode never publishes, tags or creates a GitHub release:
 those belong to the team's `publisher`, which decides every version-bumping
 landing within the Maven Central budget. Instead, end the report with a
@@ -407,6 +423,9 @@ issue is linked:
 
 ## Stopped — internal names   (executor mode; nothing committed)
 - <file>:<line> — "<offending text>"
+
+## Stopped — secret scan   (executor mode, `mirror-sync`; nothing committed)
+- <file>:<line> — <credential | machine-local path>
 
 ## Head   (executor mode, `prepare-landing` and `commit`)
 - <branch> @ <sha>   (`prepare-landing`: the code-landing commit; `commit`: the document-landing commit)

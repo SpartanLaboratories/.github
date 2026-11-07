@@ -16,17 +16,21 @@ The list has two sections:
 - **One name, one element.** A term names one element and means what this file says wherever it
   is used: in a document, a word on screen, a type in code. An element that takes a name from
   this file does what the file defines; one that does something else takes another name.
+- **Every term is a proper noun**, written as one CamelCase word wherever it is used, prose
+  included; a one-word term is capitalised too: a Panel, a Card, a ShareBar. The same word in its
+  everyday sense, not naming the element, stays lower case (a line of prose, a group of steps).
 - **A library is bound by name only.** It need not build every element in this file, but an
   element it builds under a name from this file matches that name's definition.
 - **The two sections never share a name.** A basic element is never called by a specific
-  element's name, and a specific element is never called by a basic one's: a group with a
-  background is a group, and it is a panel only when it does what a panel does.
+  element's name, and a specific element is never called by a basic one's: a Group with a
+  background is a Group, and it is a Panel only when it does what a Panel does.
 - **Specific elements are named by function, never by look.** The look belongs to the consumer's
-  own rules (its colours, its legends, its motion).
-- **A compound name puts the subject first and the type last** (`status pill`, `link chip`,
-  `summary tile`, `step cell`), the type word taken from this file, so the type vocabulary stays
-  small. The subject is the consumer's.
-- **A word in neither section names no element.** "Bubble" is retired: what it named is a card.
+  own rules (its colours, its Legends, its motion).
+- **A compound name puts the subject first and the type last** (a status Pill, a link Chip, a
+  summary Tile), the type word taken from this file, so the type vocabulary stays small. The
+  subject is the consumer's.
+- **A word in neither section names no element.** "Bubble" is retired: what it named is a Card.
+  "Glow" is retired: what it named is a FillPulse.
 - **Adding a term.** An element none of these terms describes is added here first, in the
   section it belongs to, with its function and what it is built from, before any consumer names
   it. A term is never reused for a second element.
@@ -39,10 +43,10 @@ them.
 | Term | What it is |
 |------|------------|
 | **Box** | A rectangle with a fill colour, its corners square or rounded, up to a circle. |
-| **Text** | A run of characters in one style: font, size, colour and alignment. A glyph (☀, ✓) is text. |
+| **Text** | A run of characters in one style: font, size, colour and alignment. A glyph (☀, ✓) is Text. |
 | **Image** | A rectangle that shows a picture, raster or vector, as one unit. |
 | **Line** | A stroke along two or more points, straight or curved, with an optional head at either end. |
-| **Group** | Holds other elements and places them, with an optional background (a box behind its children) and opt-in clipping and scrolling. It has no look of its own beyond that background. |
+| **Group** | Holds other elements and places them, with an optional background (a Box behind its children) and opt-in clipping and scrolling. It has no look of its own beyond that background. |
 
 **What every basic element may carry:**
 
@@ -58,32 +62,38 @@ Composed from the basic elements. Each is named by what it does.
 
 **Containers, by how much they hold**
 
+A **TextBoard** is the element; **CodeBlock** is its kind, and a **Tab** is a kind of Panel.
+
 | Term | Function | Built from |
 |------|----------|------------|
-| **Panel** | A region that holds other elements under its own heading: a title, or the element that names what it holds (the tab that shows it, the card at its head). A panel may hold panels. | a Group, often with a background and an outline, its heading first or attached to it. A group with no heading is layout, not a panel. |
-| **Card** | A self-contained statement inside a panel, with a title and a body, readable alone. | a Box with an outline, holding a Group: a title (Text) over a body of Text and other elements, with any labels it carries. |
-| **Tile** | A card whose body is one figure with its legend. It may contain a bar (a ShareBar or a SlotBar) that draws the figure's parts. | a Box with an outline, holding a Group: a title (Text) over the figure (Text) and the legend's entries. |
-| **Cell** | The intersection of a row and a column in a table. | a Box, or a bare Group, at one row and one column, holding Text and other elements. |
-| **Row** | One subject across a table's columns. | a Group of cells in a line, led by its subject's name. |
+| **Panel** | A region that holds other elements under its own heading: a title, or the element that names what it holds (a Tab's heading, the control that shows it; the Card at its head). A Panel may hold Panels. | a Group, often with a background and an outline, its heading first or attached to it. A Group with no heading is layout, not a Panel. |
+| **Tab** | One of a set of Panels that share a place, only one shown at a time; its heading is the control that shows it. | a Panel, headed by an interactive Text or Box in a row of the set's headings. |
+| **Card** | A self-contained statement inside a Panel, with a title and a body, readable alone. | a Box with an outline, holding a Group: a title (Text) over a body of Text and other elements, with any Labels it carries. |
+| **Tile** | A Card whose body is one figure with its Legend. It may contain a Bar (a ShareBar or a SlotBar) that draws the figure's parts. | a Box with an outline, holding a Group: a title (Text) over the figure (Text) and the Legend's entries. |
+| **TextBoard** | A self-contained block of text inside a Panel, like a Card but holding only that text: no title, no other elements. | a Box with an outline holding Text, laid out on its own line. |
+| **CodeBlock** | A TextBoard whose text is code, shown verbatim and set apart as code: monospace, its whitespace kept, wrapping inside itself. | a TextBoard holding monospace Text, its whitespace kept. |
+| **Cell** | The intersection of a Row and a column in a table. | a Box, or a bare Group, at one Row and one column, holding Text and other elements. |
+| **Row** | One subject across a table's columns. | a Group of Cells in a line, led by its subject's name. |
 
 **Labels, by what they say**
 
-A **Label** is the element; **Pill**, **Chip**, **Badge** and **Tag** are its kinds. A label of none
-of them is a plain label.
+A **Label** is the element; **Pill**, **Chip**, **Badge**, **Tag** and **CodeLabel** are its
+kinds, and a **DualStatePill** is a kind of Pill. A Label of none of them is a plain label.
 
 | Term | Function | Built from |
 |------|----------|------------|
 | **Label** | A short text that names or states one thing. | Text, alone or on a Box. |
 | **Pill** | A state word with its glyph, in a status colour. | a Box outlined, and optionally tinted, in the status colour, holding Text: the glyph and the word. |
+| **DualStatePill** | A Pill that shows two independent states of one thing at once, each on its own scale. | a Box holding two parts side by side, each with its own Text and its own colour scale. |
 | **Chip** | A reference that names or opens something, neutral. | a Box with a neutral outline holding Text; interactive when it opens what it names. |
-| **Badge** | A count or classification fixed to a card's corner. | a small Box holding Text, placed on the corner. |
+| **Badge** | A count or classification fixed to a Card's corner. | a small Box holding Text, placed on the corner. |
 | **Tag** | Plain text over an element that classifies it without a status colour. | Text, alone or on an outlined Box, never in a status colour. |
+| **CodeLabel** | A short run of code inside text, set apart as code. | a Box with a faint fill and a hairline outline holding monospace Text. |
 
 **Bars, by what they measure**
 
 A **Bar** is the element; **ShareBar**, **SlotBar**, **StatBar** and **StepBar** are its kinds,
-and a **Timeline** is a kind of ShareBar. A kind's name is a proper noun, written as one CamelCase
-word wherever it is used, prose included.
+and a **Timeline** is a kind of ShareBar.
 
 | Term | Function | Built from |
 |------|----------|------------|
@@ -96,12 +106,17 @@ word wherever it is used, prose included.
 
 **Marks, by what they overlay**
 
+A **Pulse** is the element; **RingPulse**, **FillPulse** and **FullPulse** are its kinds.
+
 | Term | Function | Built from |
 |------|----------|------------|
 | **Ring** | A border-only state on an element: its outline changes, its fill does not. | the outline of the element it marks. |
-| **Glow** | The interior accent on whatever is in progress. | a tint of the element's fill, pulsing. |
+| **Pulse** | A breathing glow on an element: an accent that swells and fades in a slow, steady rhythm. | a tint or outline of the element, its strength animated in a loop, holding still at its middle strength when reduced motion is asked for. |
+| **RingPulse** | A Pulse on an element's outline. | the element's outline, its glow animated. |
+| **FillPulse** | A Pulse on an element's interior. | a tint of the element's fill, animated. |
+| **FullPulse** | A Pulse on both the outline and the interior at once. | a RingPulse and a FillPulse together. |
 | **Arrow** | A directed connector from one element into another, showing that the first leads to or feeds the second. | a Line with a head at the end it points to. |
-| **Tracer** | A line that ties a summary figure to the part of another element it was drawn from, labelled with that part's value. | a Line in the colour of what it traces, with Text at one end. |
+| **Tracer** | A Line that ties a summary figure to the part of another element it was drawn from, labelled with that part's value. | a Line in the colour of what it traces, with Text at one end. |
 | **Legend** | The key to a grouping by colour, shade or dash: one entry per value, each a sample and its name. | a Group of entries, each a small Box (the swatch) or a short Line, with Text. |
 
 **Controls, by what they change**

@@ -24,36 +24,44 @@ keep their spelling: `plan-board`, an issue or a tracking board (its `<meta name
 ## Board UI
 
 Every visible element on a board takes its name from [`ui.md`](ui.md) and does what `ui.md`
-defines; the look follows the boards' colour coding and legends (§1, §2). This section holds every
+defines; the look follows the boards' colour coding and Legends (§1, §2). This section holds every
 board-specific use of a `ui.md` element.
 
 A board's compound names follow `ui.md`'s rule, subject first and type last: a Guarantees sub-area
-is a **guarantee card**, a tracking board's unit block in the WIP strip is a **unit card**, a step
-in the step panel is a **step cell**, and so on (`verdict pill`, `issue chip`, `KPI tile`).
+is a **guarantee Card**, the Panel that holds the WIP strip is the **WIP Panel** and a tracking
+board's unit block in it a **unit Card**, a step in the step Panel is a **step Cell**, and so on (a
+verdict Pill, an issue Chip, the KPI Tile).
 
 Where a template's CSS class names an element's kind it carries the type word, so a reader can tell
 the kind from the markup without the board: `.card`, `.chip`, `.badge`, `.cell`, `.ring`, `.glow`,
-`.arrow`, `.guarantee-card`, `.dep-pill`, and `.kpi-tile` (a KPI tile), `.verdict-pill` (a verdict
-pill) and `.legend` (a legend).
+`.arrow`, `.guarantee-card`, and `.kpi-tile` (a KPI Tile), `.verdict-pill` (a verdict Pill),
+`.dep-pill` (a DualStatePill) and `.legend` (a Legend).
 
-| Term | On the boards |
-|------|---------------|
-| **Panel** | a tab's body (its tab the heading), the Guarantees area, the Context section, the WIP strip, the step panel, a system panel on the Systems tab (its own card the heading; a subsystem's inside its supersystem's) |
-| **Card** | a guarantee card, a Consequences entry, an As-built entry, a unit card |
-| **Tile** | the KPI tiles, the Timeline tile, the repository work board's Runs and Landed tiles |
-| **Cell** | a Gap, Considered, Verdict or As built cell; a step cell |
+Each row names a `ui.md` term and says how the boards use it; the term's definition is `ui.md`'s.
+
+| Term | How it's used here |
+|------|--------------------|
+| **Panel** | the Guarantees area, the Context section, the WIP Panel (the Panel that holds the WIP strip), the step Panel, a system Panel on the Systems Tab (its own Card the heading; a subsystem's inside its supersystem's), the inspector (§6): the side Panel that shows the selected item, a Hide Button right of its heading |
+| **Tab** | each of a board's views, its heading in the board's row of Tab headings: a state board's six core Tabs, its optional ones and a supersystem or repository state board's Systems Tab; a work board's Tabs |
+| **Card** | a guarantee Card, a Consequences entry, an As-built entry, a unit Card |
+| **Tile** | the KPI Tiles, the Timeline Tile, the repository work board's Runs and Landed Tiles |
+| **CodeBlock** | an option's signature, beneath its name |
+| **Cell** | a Gap, Considered, Verdict or As built Cell; a step Cell |
 | **Row** | an issue board's design point, a tracking board's unit |
-| **Pill** | a verdict pill, an as-built pill, a dependency pill, the research-state pill |
-| **Chip** | an issue chip, the "part of" chip, a branch chip, the chain chip |
-| **Badge** | the effect, need and API-change badges |
+| **Pill** | a verdict Pill, an as-built Pill, the research-state Pill |
+| **DualStatePill** | the dependency DualStatePill (§1, "Dependencies"): the build state on the status scale and the locality on a neutral ramp |
+| **Chip** | an issue Chip, the "part of" Chip, a branch Chip, the chain Chip |
+| **Badge** | the effect, need and API-change Badges |
 | **Tag** | `Planned`, `UP NEXT`, `Context` |
-| **ShareBar** | the tiles' bars, but the Quality Reviews tile's (a SlotBar) and the Timeline tile's (a Timeline) |
-| **Timeline** | the Timeline tile's bar: one part per timed step visit |
-| **SlotBar** | the Quality Reviews tile's bar: one slot per review allowed, filled in order by each review's result |
-| **StepBar** | the issue board's progress strip and the tracking board's WIP strip, their chevrons labelled with the step names; a tracking issue's chain on the state boards' roadmap and on the repository work board's rows, one chevron per unit labelled with the unit's name, on a line of its own like the strips |
-| **Ring** | the research scale on a Considered cell (§1) |
-| **Glow** | whatever is being worked on (§1) |
-| **Arrow** | the charging connector into a Verdict cell (§1); the connectors of a tracking board's units chain |
-| **Tracer** | from a KPI tile up to the part of the Timeline tile it belongs to (the steps that made the tile's figure), in their kind of work's colour, labelled with how long that part took; under 760 px its label alone, on the tile (§1, "Steps"; `plan/RULES.md` §2, "The Timeline tab") |
-| **Legend** | one per tab or per tile (§2); an issue board's Timeline tile carries two, its kinds of work (one entry per family, with its steps' shades) and its step visits (one entry per visit, with its times) |
-| **Switch** | the theme switch (☀ light, ☾ night, §1, Themes) and the inspector switch (§6), in the header, drawn in the neutrals (never the accent or a status colour), a real toggle (`role="switch"`, `aria-checked`, the focus ring), its knob jumping rather than sliding under reduced motion (§1) |
+| **CodeLabel** | every inline code: a `code` span in the data, a path, a sha, a branch, a class; plain inside a Chip, a Pill or a Tile |
+| **ShareBar** | the Tiles' Bars, but the Quality Reviews Tile's (a SlotBar) and the Timeline Tile's (a Timeline) |
+| **Timeline** | the Timeline Tile's Bar: one part per timed step visit |
+| **SlotBar** | the Quality Reviews Tile's Bar: one slot per review allowed, filled in order by each review's result |
+| **StepBar** | the WIP strip of an issue board (its progress strip) and of a tracking board, its chevrons labelled with the step names; a tracking issue's chain on the state boards' roadmap and on the repository work board's Rows, one chevron per unit labelled with the unit's name, on a line of its own like the WIP strip |
+| **Ring** | the research scale on a Considered Cell (§1); whatever is being worked on, while its run waits on the user (§1); the unit up next, a still outer Ring (§1) |
+| **FillPulse** | the live indicator's dot while the view is live and changing (§1, §6) |
+| **FullPulse** | whatever is being worked on (§1); while its run waits on the user, a Ring alone |
+| **Arrow** | the charging connector into a Verdict Cell (§1); the connectors of a tracking board's units chain |
+| **Tracer** | from a KPI Tile up to the part of the Timeline Tile it belongs to (the steps that made the Tile's figure), in their kind of work's colour, labelled with how long that part took; under 760 px its label alone, on the Tile (§1, "Steps"; `plan/RULES.md` §2, "The Timeline tab") |
+| **Legend** | one per Tab or per Tile (§2); an issue board's Timeline Tile carries two, its kinds of work (one entry per family, with its steps' shades) and its step visits (one entry per visit, with its times) |
+| **Switch** | the theme Switch (☀ light, ☾ night, §1, Themes) and the inspector Switch (§6), in the header, drawn in the neutrals (never the accent or a status colour), a real toggle (`role="switch"`, `aria-checked`, the focus ring), its knob jumping rather than sliding under reduced motion (§1) |
