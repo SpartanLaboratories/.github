@@ -47,6 +47,9 @@
 // the team-raised seed (admin-team/dashboards-skill/level-1-seed), the seeding alone, board-less as reseed is: a level-1 branch, which sends no sized and has no
 // board, carries the repository's pending corrections through it, with its own unit on its tracking board marked complete where facts.tracking and facts.unit
 // name it (seed());
+// the team-raised unit-landed (admin-team/dashboards-skill/level-1-landed), with --view after the merge, board-less as seed is: that level-1 unit landed
+// on its tracking board's view copy by the standing rule (unitLanded()); and at any unit's landing that is its tracking issue's last, the tracking
+// board's own landing once its impact is reconciled (lastUnitLanding()), else named for the presenter;
 // an open point's report outside the tree copied when the point is raised, for the live view (runOpenJobs()), and every open point
 // resolved at the land (check.js fails one left open); a bare test level beside a test word written as its named test level, and a bare
 // "Ln" elsewhere elided as a work level with a warning (summary: warnings).
@@ -1027,23 +1030,68 @@ function applyParent(orig, sub, op, now) {
     const A = (sub && sub.asBuilt) || {}, m = A.merge || A.sha, s0 = row.asBuilt && typeof row.asBuilt.summary === "string" ? row.asBuilt.summary.trim() : "";
     const had = s0 && ![`#${sub.issue}'s run passed qa; it is not merged yet.`, `#${sub.issue}'s run: the ${lib.REVIEW} approved; it is not merged yet.`].includes(s0);
     if (state !== "landed" || !had) { row.asBuilt = { ...(row.asBuilt || {}), state: "landed", ...(had ? {} : { summary: `#${sub.issue} landed${A.pr ? ` through PR #${A.pr}` : ""}${m ? ` as ${String(m).slice(0, 7)}` : ""}.` }) }; applied.push(`#${plan.issue}: ${row.id} landed${had ? "" : ", with the plain fact of its landing as its summary"}`); }
+    /* a unit with no board of its own records its landing on its row (merge, pr): no board of its holds it, and the next sized seeds the tracking board's copy only into a branch that holds that merge (seedFromView()) */
+    if (op.boardless && m && (row.asBuilt.merge !== m || (A.pr && row.asBuilt.pr !== A.pr))) { row.asBuilt = { ...row.asBuilt, merge: m, ...(A.pr ? { pr: A.pr } : {}) }; applied.push(`#${plan.issue}: ${row.id}'s merge ${String(m).slice(0, 7)} on its row`); }
     if (cur.includes(cell)) { w.current = cur.filter(a => a !== cell); applied.push(`#${plan.issue}: ${row.id} out of wip.current`); }
     const left = lib.unitLeft(plan, row);
-    if (left.length) enrich.push(`#${plan.issue}: the landed unit's ${left.join(", ")} ${left.length === 1 ? "comes" : "come"} from the sub-issue's board and documents`);
+    if (left.length) enrich.push(`#${plan.issue}: the landed unit's ${left.join(", ")} ${left.length === 1 ? "comes" : "come"} from ${op.boardless ? `its merge${A.pr ? ` (PR #${A.pr})` : ""}: the unit has no board or documents of its own` : "the sub-issue's board and documents"}`);
   }
   const nx = lib.nextUnit(plan), id = nx ? nx.id : null;
   if (w.next !== id) { w.next = id; applied.push(`#${plan.issue}: wip.next ${id}`); }
-  const d = chainDetail(plan); if (w.detail !== d) { w.detail = d; applied.push(`#${plan.issue}: wip.detail`); }
-  /* the tracking board's own step the unit's start ended (its plan's landing), frozen as any board's (plan/RULES.md §3, "Finished steps") */
-  lib.freezeSteps(orig, plan, op.kind === "start" ? "sized" : op.kind === "landed" ? "landed" : "qa-pass", now, null).forEach(x => applied.push(`#${plan.issue}: ${x}`));
+  /* the tracking issue's last unit (plan/RULES.md §3, "The units' own runs"; §2, Consequences): implementation spans its units' runs until the last
+     unit lands, then landed. The board lands at that unit's merge, as an issue board lands at its own (the landed event): status built, asBuilt the
+     last unit's merge (sha, merge, PR, date, the merge's time at), wip.step landed, nothing glowing; only once every part is resolved and the
+     initiative's impact is reconciled whole (basis as-built), which is the presenter's from the tracking folder's documents. Until then it stays at
+     implementation, every unit landed, and the summary names what is left; unit-landed raised again for that unit lands it then. */
+  const landing = op.kind === "landed" ? lastUnitLanding(plan, sub, now) : null;
+  if (landing && landing.enrich) enrich.push(landing.enrich);
+  const freezeAt = landing && landing.at ? landing.at : now;
+  if (landing && landing.land) {
+    const A = (sub && sub.asBuilt) || {}, m = A.merge || A.sha, pr = Number.isInteger(A.pr) ? A.pr : null;
+    plan.asBuilt = { ...(plan.asBuilt && typeof plan.asBuilt === "object" ? plan.asBuilt : {}), sha: m, merge: m, ...(pr ? { pr } : {}), date: (landing.mergedAt || now).slice(0, 10), ...(landing.mergedAt ? { at: landing.mergedAt } : {}) };
+    plan.status = "built"; w.step = "landed"; w.since = freezeAt; w.current = []; w.resume = null; w.waitingOn = null;
+    w.event = { name: "landed", at: now, note: `#${sub.issue}, its last unit, landed${pr ? " in PR #" + pr : ""}` };
+    applied.push(`#${plan.issue}: every unit landed: status built, asBuilt at #${sub.issue}'s merge ${String(m).slice(0, 7)}${landing.mergedAt ? "" : " (its time not recorded)"}, wip.step landed`);
+    if (!landing.mergedAt) WARNINGS.push(`landed: #${plan.issue}'s merge time (asBuilt.at) is not recorded: neither the facts (mergedAt) nor git here tell #${sub.issue}'s merge ${String(m).slice(0, 7)}; the next run's sized records it from git when it seeds this board`);
+  }
+  const d = landing && landing.land ? `Landed: ${landing.total} of ${plural(landing.total, "unit")}, the last #${sub.issue}${Number.isInteger(((sub || {}).asBuilt || {}).pr) ? " in PR #" + sub.asBuilt.pr : ""}.` : chainDetail(plan);
+  if (w.detail !== d) { w.detail = d; applied.push(`#${plan.issue}: wip.detail`); }
+  /* the tracking board's own step the unit's start ended (its plan's landing), frozen as any board's (plan/RULES.md §3, "Finished steps"); at its last
+     unit's landing, its implementation visit, ended at that unit's merge where its time is known */
+  lib.freezeSteps(orig, plan, op.kind === "start" ? "sized" : op.kind === "landed" ? "landed" : "qa-pass", freezeAt, null).forEach(x => applied.push(`#${plan.issue}: ${x}`));
   if (applied.length) {
     w.updated = now;
     const words = { start: "started", complete: "complete: the review approved", landed: "landed" }[op.kind];
     const t = { date: now.slice(0, 10), column: "built", label: `#${sub.issue} ${words}` };
     plan.trail = Array.isArray(plan.trail) ? plan.trail : [];
     if (!plan.trail.some(x => x && x.date === t.date && x.column === t.column && x.label === t.label)) plan.trail.push(t);
+    if (landing && landing.land) {
+      const A = sub.asBuilt || {}, m = A.merge || A.sha, pr = Number.isInteger(A.pr) ? A.pr : null;
+      const t2 = { date: now.slice(0, 10), column: "built", label: `Landed: every unit, the last #${sub.issue}${pr ? " in PR #" + pr : ""}, merge ${String(m).slice(0, 7)}`, ...(pr ? { ref: `PR #${pr}` } : {}) };
+      if (!plan.trail.some(x => x && x.label === t2.label)) plan.trail.push(t2);
+    }
   }
   return { plan, applied, enrich };
+}
+/* Whether a unit's landing is its tracking issue's last (plan/RULES.md §3), and whether the tracking board lands with it: { land, total, at, mergedAt }
+   when every counted unit has landed, no part is open and the initiative's impact is reconciled (or the board records none); { enrich } naming what is
+   left when every unit has landed but the board cannot land yet; null when a unit is still to land. The merge's time: the landing's asBuilt.at
+   (facts.mergedAt on a board-less unit), else git in the tree, then the main checkout. */
+function lastUnitLanding(plan, sub, now) {
+  const st = r => ((r.asBuilt || {}).state) || "pending", units = (plan.rows || []).filter(r => r && r.unit);
+  const counted = units.filter(r => !["dropped", "deferred"].includes(st(r)) && !lib.leftForLater(r));
+  if (!counted.length || !counted.every(r => lib.UNIT_LANDED.includes(st(r)))) return null;
+  if (plan.status === "built") return null;
+  const A = (sub && sub.asBuilt) || {}, m = [A.merge, A.sha].find(s => typeof s === "string" && /^[0-9a-f]{7,40}$/.test(s)), who = `#${plan.issue}: every unit has landed`;
+  if (!m) return { enrich: `${who}, but #${sub.issue}'s merge is not recorded: the tracking board lands at its last unit's merge (raise the event with facts.merge)` };
+  const open = (plan.rows || []).filter(r => r && ["pending", ...lib.BUILDING_STATES].includes(lib.recordedState(r)));
+  if (open.length) return { enrich: `${who}, but ${open.map(r => r.id).join(", ")} ${open.length === 1 ? "is" : "are"} still open: the tracking board lands once every part is resolved` };
+  const rec = lib.reconciliation(plan);
+  if (rec && rec.state !== "as-built") return { enrich: `${who}: the initiative's impact is reconciled whole from the tracking folder's consequences.md (impact.md in an older folder) and final-implementation.md where it has one, basis "as-built" (plan/RULES.md §2, Consequences); then unit-landed raised again for #${sub.issue} (--view) lands the tracking board at that merge` };
+  let mergedAt = lib.isTime(A.at) ? A.at : null;
+  if (!mergedAt) { const g = lib.gitTimes(ROOT, null, m); mergedAt = g.at || (MAIN && path.resolve(MAIN) !== path.resolve(ROOT || "") ? lib.gitTimes(MAIN, null, m).at : null) || null; }
+  const since = Date.parse(((plan.wip || {}).since) || 0) || 0, t = mergedAt ? Date.parse(mergedAt) : NaN;
+  return { land: true, total: counted.length, mergedAt, at: mergedAt && t >= since && t <= Date.parse(now) ? mergedAt : null };
 }
 /* The chain in one line (plan/RULES.md §3, "The units' own runs": wip.detail speaks for the chain). */
 function chainDetail(plan) {
@@ -1121,9 +1169,13 @@ function seedFromView(now) {
   const mergeOf = p => { const A = (p && p.asBuilt) || {}, L = (p && p.wip && p.wip.landing) || {}, m = [A.merge, A.sha, L.merge].find(s => typeof s === "string" && /^[0-9a-f]{7,40}$/.test(s)); return m || null; };
   /* a tracking copy that records no merge and is filing its units (or filed them): the plan's merge is what this tree's tracked board came from, so its filed units go on too */
   const filing = p => !!p && p.kind === "tracking" && lib.shownStep(p.wip || {}) === "sub-issues";
-  const ok = cand.filter(x => mergeOf(x.vp) && inHead(mergeOf(x.vp)));
-  cand.filter(x => !ok.includes(x) && !mergeOf(x.vp) && (filing(x.vp) || ok.some(y => y.rel.startsWith(x.rel + "/")))).forEach(x => ok.push(x));
-  cand.filter(x => !ok.includes(x)).forEach(x => S.applied.push(`not seeded: ${x.rel} (${mergeOf(x.vp) ? "its merge is not in this branch's history" : "no landing inside it seeded"})`));
+  /* a tracking copy holding a board-less unit's landing (unit-landed) that the tracked board lacks: that unit's merge, recorded on its row, is held to this branch's history too */
+  const boardless = x => x.vp.kind !== "tracking" ? [] : (x.vp.rows || []).filter(r => r && r.unit && lib.UNIT_LANDED.includes((r.asBuilt || {}).state) && /^[0-9a-f]{7,40}$/.test(String((r.asBuilt || {}).merge || "")))
+    .filter(r => { const t = ((x.tp.rows || []).find(y => y && y.id === r.id) || {}).asBuilt || {}; return !lib.UNIT_LANDED.includes(t.state); }).map(r => r.asBuilt.merge);
+  const blOk = x => boardless(x).every(inHead);
+  const ok = cand.filter(x => blOk(x) && (mergeOf(x.vp) ? inHead(mergeOf(x.vp)) : boardless(x).length > 0));
+  cand.filter(x => !ok.includes(x) && blOk(x) && !mergeOf(x.vp) && (filing(x.vp) || ok.some(y => y.rel.startsWith(x.rel + "/")))).forEach(x => ok.push(x));
+  cand.filter(x => !ok.includes(x)).forEach(x => S.applied.push(`not seeded: ${x.rel} (${!blOk(x) ? "a board-less unit's merge on it is not in this branch's history" : mergeOf(x.vp) ? "its merge is not in this branch's history" : "no landing inside it seeded"})`));
   ok.filter(x => lib.landedPending(x.vp)).forEach(x => WARNINGS.push(`VIEW COPY NOT YET LANDED: ${x.rel} seeded as it stands (status ${x.vp.status}, step ${lib.shownStep(x.vp.wip || {}) || "none"}, parts still to resolve): the copy is kept for the post-merge refresh; raise reseed when the refresh ends`));
   const out = [];
   ok.sort((a, b) => a.rel.split("/").length - b.rel.split("/").length).forEach(x => {
@@ -1156,6 +1208,21 @@ function seedFromView(now) {
    board. Its tracking board, whose wip the new run's events write, takes only what the landing owns: the unit's row as built (the unit landed, by the standing rule, and the copy's summary),
    its impact.units entry, its impact.changes entries and the copy's trail entries it lacks. A tracked board at its committed state (no sized seeded anything) is left alone, so a landing
    nothing raced does nothing. A copy still unfinished is warned on and left. board.js --live --settled then removes the copies no fresher, which the refresh no longer needs. */
+/* What a unit's landing owns on its tracking board, taken from the board's finished view copy (cp0, its row crow) onto a tracked board (merged, its row
+   row): the row as built, its impact.units entry, its impact.changes entries and the copy's trail entries the board lacks. Returns whether it changed. */
+function takeOwned(merged, cp0, row, crow) {
+  let changed = false;
+  const nextB = { ...(row.asBuilt || {}), ...(crow.asBuilt || {}) }; if (JSON.stringify(nextB) !== JSON.stringify(row.asBuilt || {})) { row.asBuilt = nextB; changed = true; }
+  const I = merged.impact, CI = cp0.impact;
+  if (I && typeof I === "object" && CI && typeof CI === "object") {
+    const cu = (Array.isArray(CI.units) ? CI.units : []).find(e => e && e.unit === row.id), us = Array.isArray(I.units) ? I.units : [];
+    if (cu && JSON.stringify(us.find(e => e && e.unit === row.id) || null) !== JSON.stringify(cu)) { I.units = [...us.filter(e => !(e && e.unit === row.id)), cu]; changed = true; }
+    const cs = (Array.isArray(CI.changes) ? CI.changes : []).filter(c => c && c.unit === row.id), hs = Array.isArray(I.changes) ? I.changes : [];
+    cs.forEach(c => { if (!hs.some(h => JSON.stringify(h) === JSON.stringify(c))) { const { changeKey } = require("./fill.js"), at = hs.findIndex(h => h && changeKey(h) === changeKey(c)); if (at >= 0) hs[at] = c; else hs.push(c); I.changes = hs; changed = true; } });
+  }
+  (Array.isArray(cp0.trail) ? cp0.trail : []).forEach(t => { merged.trail = Array.isArray(merged.trail) ? merged.trail : []; if (t && !merged.trail.some(h => h && h.date === t.date && h.column === t.column && h.label === t.label)) { merged.trail.push(t); changed = true; } });
+  return changed;
+}
 async function reseed(now, req) {
   const read = f => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch (e) { return null; } };
   const vroot = path.join(MAIN, ...lib.VIEW), dirs = []; const walk = d => { let es = []; try { es = fs.readdirSync(d, { withFileTypes: true }); } catch (e) { return; } if (fs.existsSync(path.join(d, "plan.json"))) dirs.push(d); es.filter(e => e.isDirectory()).forEach(e => walk(path.join(d, e.name))); };
@@ -1184,23 +1251,30 @@ async function reseed(now, req) {
       let pp; try { pp = JSON.parse(ptext); } catch (e) { continue; } if (pp.kind !== "tracking" || pp.issue !== x.vp.parent.issue) continue;
       const before = JSON.stringify(pp), P = applyParent(pp, x.vp, { kind: "landed" }, now), merged = P.plan, row = (merged.rows || []).find(r => r && r.unit && r.unit.issue === x.vp.issue);
       const cpy = copies.find(y => y.rel === path.dirname(x.rel).split(path.sep).join("/")), cp0 = cpy && cpy.vp, crow = cp0 && row && (cp0.rows || []).find(r => r && r.id === row.id);
-      let changed = false;
-      if (crow && row) {
-        const nextB = { ...(row.asBuilt || {}), ...(crow.asBuilt || {}) }; if (JSON.stringify(nextB) !== JSON.stringify(row.asBuilt || {})) { row.asBuilt = nextB; changed = true; }
-        const I = merged.impact, CI = cp0.impact;
-        if (I && typeof I === "object" && CI && typeof CI === "object") {
-          const cu = (Array.isArray(CI.units) ? CI.units : []).find(e => e && e.unit === row.id), us = Array.isArray(I.units) ? I.units : [];
-          if (cu && JSON.stringify(us.find(e => e && e.unit === row.id) || null) !== JSON.stringify(cu)) { I.units = [...us.filter(e => !(e && e.unit === row.id)), cu]; changed = true; }
-          const cs = (Array.isArray(CI.changes) ? CI.changes : []).filter(c => c && c.unit === row.id), hs = Array.isArray(I.changes) ? I.changes : [];
-          cs.forEach(c => { if (!hs.some(h => JSON.stringify(h) === JSON.stringify(c))) { const { changeKey } = require("./fill.js"), at = hs.findIndex(h => h && changeKey(h) === changeKey(c)); if (at >= 0) hs[at] = c; else hs.push(c); I.changes = hs; changed = true; } });
-        }
-        (Array.isArray(cp0.trail) ? cp0.trail : []).forEach(t => { merged.trail = Array.isArray(merged.trail) ? merged.trail : []; if (t && !merged.trail.some(h => h && h.date === t.date && h.column === t.column && h.label === t.label)) { merged.trail.push(t); changed = true; } });
-      }
+      const changed = crow && row ? takeOwned(merged, cp0, row, crow) : false;
       if (changed) { merged.wip = merged.wip || {}; merged.wip.updated = now; }
       if (changed || JSON.stringify(merged) !== before) {
         const eol = /\r\n/.test(ptext) ? "\r\n" : "\n"; writeBoard(up, merged, eol, S.enrich, `re-seeded ${path.relative(path.join(tree, "docs", "plans"), up).split(path.sep).join("/")}`); note(up);
         S.applied.push(`re-seeded #${merged.issue}: #${x.vp.issue}'s row, its impact entries and its trail; its wip left to the run's events`);
       }
+    }
+    /* a tracking board's copy that a board-less unit's landing wrote (unit-landed): no issue board's copy stands for that landing, so the copy itself is
+       read. A tracked tracking board a sized seeded with that unit landed and its record unfinished (lib.js unitLeft()) takes what the landing owns
+       (takeOwned()); one a sized seeded with every unit landed but not built, while the copy has landed, takes the copy whole: no unit of it runs any more */
+    for (const x of copies.filter(y => y.vp.kind === "tracking")) {
+      const tracked = path.join(tree, "docs", "plans", ...x.rel.split("/")); let tp = read(path.join(tracked, "plan.json")); if (!tp || tp.issue !== x.vp.issue || tp.kind !== "tracking") continue;
+      const st = r => ((r.asBuilt || {}).state) || "pending", counted = p => (p.rows || []).filter(r => r && r.unit && !["dropped", "deferred"].includes(st(r)) && !lib.leftForLater(r));
+      const whole = x.vp.status === "built" && tp.status !== "built" && counted(tp).length > 0 && counted(tp).every(r => lib.UNIT_LANDED.includes(st(r)));
+      const boardless = (x.vp.rows || []).filter(r => r && r.unit && lib.UNIT_LANDED.includes(st(r)) && !landedIssues.some(y => y.vp.issue === r.unit.issue) && !r.unit.board)
+        .map(r => ({ crow: r, row: (tp.rows || []).find(t => t && t.id === r.id) })).filter(p => p.row && lib.UNIT_LANDED.includes(st(p.row)) && lib.unitLeft(tp, p.row).length > 0);
+      if (!whole && !boardless.length) continue;
+      lib.lockTree(tree, "apply-event.js reseed"); tp = read(path.join(tracked, "plan.json")); if (!tp) continue;
+      const ptext = fs.readFileSync(path.join(tracked, "plan.json"), "utf8"), eol = /\r\n/.test(ptext) ? "\r\n" : "\n";
+      const note = d => { if (!written.has(tree)) written.set(tree, []); written.get(tree).push(d); S.seeded.push(path.relative(tree, d).split(path.sep).join("/")); };
+      if (whole) { writeBoard(tracked, JSON.parse(JSON.stringify(x.vp)), eol, S.enrich, `re-seeded ${x.rel}`); note(tracked); S.applied.push(`re-seeded ${x.rel}: landed with its last unit`); continue; }
+      let changed = false; boardless.forEach(p => { const row = (tp.rows || []).find(t => t && t.id === p.crow.id); if (row && takeOwned(tp, x.vp, row, p.crow)) changed = true; });
+      if (changed) { tp.wip = tp.wip || {}; tp.wip.updated = now; writeBoard(tracked, tp, eol, S.enrich, `re-seeded ${x.rel}`); note(tracked);
+        S.applied.push(`re-seeded #${tp.issue}: ${boardless.map(p => "#" + p.crow.unit.issue).join(", ")}'s row, impact entries and trail; its wip left to the run's events`); }
     }
   }
   /* the checks, the committed repository work board of each tree written, and the live one; nothing written, nothing regenerated, unless a copy is left to clear */
@@ -1238,7 +1312,7 @@ async function seed(now, req, facts) {
     if (!tfolder || !/^docs\/plans\/(.+\/)?\d+-[a-z0-9][a-z0-9-]*$/.test(tfolder) || tfolder.split("/").includes("..")) refuse(`seed: facts.tracking ${JSON.stringify(facts.tracking || null)} is not docs/plans/[<parent>/]<issue>-<slug>, the tracking board's folder`);
     if (!Number.isInteger(facts.unit) || facts.unit < 1) refuse(`seed: facts.unit ${JSON.stringify(facts.unit === undefined ? null : facts.unit)} is not the unit's issue number`);
     const state = facts.state == null ? "complete" : facts.state;
-    if (state !== "complete") refuse(`seed: facts.state ${JSON.stringify(state)}: a seed marks its unit complete, the state of its approving review; the post-merge view marks it landed`);
+    if (state !== "complete") refuse(`seed: facts.state ${JSON.stringify(state)}: a seed marks its unit complete, the state of its approving review; the post-merge view marks it landed (unit-landed, raised with --view after the merge)`);
     mark = { folder: tfolder, dir: path.join(ROOT, ...tfolder.split("/")), unit: facts.unit };
     if (!fs.existsSync(path.join(mark.dir, "plan.json"))) refuse(`seed: ${tfolder} holds no plan.json: there is no tracking board to mark #${facts.unit} on`);
   }
@@ -1288,6 +1362,64 @@ async function seed(now, req, facts) {
   const warns = cks.reduce((n, c) => n + (c.stdout.match(/^warn/gm) || []).length, 0);
   S.check = `pass (${plural(written.length, "board")}: ${plural(warns, "warning")})`;
   S.defects = [...new Set(cks.flatMap(c => c.stdout.split(/\r?\n/).map(l => (l.match(/^warn\s+(ISSUE TITLE NAMES A WORK LEVEL: #[\d?]+)/) || [])[1]).filter(Boolean)))];
+  S.result = "ok";
+}
+/* The event unit-landed (plan/RULES.md §4, "The live view of a landing"; admin-team/dashboards-skill/level-1-landed), team-raised after the merge of a
+   tracking issue's unit that has no board (a level-1 unit, marked complete at its seed), with --view, from the main checkout, naming no board: the
+   standing rule's landed move on the tracking board's view copy, as a sub-issue's landed makes it (applyParent()): the unit landed with the plain fact of
+   its landing as its summary, out of wip.current, wip.next the next unit in landing order or none, the chain's detail and one trail entry; and, at the
+   tracking issue's last unit, the tracking board's own landing where the rules let it land (lastUnitLanding()). Facts { tracking: "docs/plans/<…>/<n>-<slug>",
+   unit: <issue>, merge: <sha>, pr?: <n>, mergedAt?: <ISO time>, state?: "landed" }. It writes only the view copy and the live repository work board,
+   never a tracked file. Raised again it changes nothing (result nothing), unless the board can land now that its impact is reconciled. A unit with a board
+   of its own lands by its board's landed; unit-landed is refused for it until that has marked it, and then lands its tracking board only. */
+async function unitLanded(now, req, facts) {
+  const tf = typeof facts.tracking === "string" ? facts.tracking.replace(/\\/g, "/").replace(/\/+$/, "") : null, tfolder = tf && !/^docs\/plans\//.test(tf) ? `docs/plans/${tf}` : tf;
+  if (!tfolder || !/^docs\/plans\/(.+\/)?\d+-[a-z0-9][a-z0-9-]*$/.test(tfolder) || tfolder.split("/").includes("..")) refuse(`unit-landed: facts.tracking ${JSON.stringify(facts.tracking || null)} is not docs/plans/[<parent>/]<issue>-<slug>, the tracking board's folder`);
+  if (!Number.isInteger(facts.unit) || facts.unit < 1) refuse(`unit-landed: facts.unit ${JSON.stringify(facts.unit === undefined ? null : facts.unit)} is not the unit's issue number`);
+  if (facts.state != null && facts.state !== "landed") refuse(`unit-landed: facts.state ${JSON.stringify(facts.state)}: unit-landed marks its unit landed (a seed marks it complete)`);
+  const merge = typeof facts.merge === "string" && /^[0-9a-f]{7,40}$/.test(facts.merge) ? facts.merge : null;
+  if (!merge) refuse(`unit-landed: facts.merge ${JSON.stringify(facts.merge === undefined ? null : facts.merge)} is not the merge commit's sha: a unit lands at its merge`);
+  if (facts.pr != null && !(Number.isInteger(facts.pr) && facts.pr > 0)) refuse(`unit-landed: facts.pr ${JSON.stringify(facts.pr)} is not a pull request's number`);
+  if (facts.mergedAt != null && !lib.isTime(facts.mergedAt)) refuse(`unit-landed: facts.mergedAt ${JSON.stringify(facts.mergedAt)} is not an ISO date-time`);
+  const dir = path.join(ROOT, ...tfolder.split("/"));
+  if (!fs.existsSync(path.join(dir, "plan.json"))) refuse(`unit-landed: ${tfolder} holds no plan.json: there is no tracking board to mark #${facts.unit} on`);
+  try { lib.lockTree(ROOT, "apply-event.js unit-landed"); if (path.resolve(MAIN) !== path.resolve(ROOT)) lib.lockTree(MAIN, "apply-event.js unit-landed --view"); } catch (e) { refuse(e.message); }
+  const text = fs.readFileSync(viewRead(dir), "utf8"), eol = /\r\n/.test(text) ? "\r\n" : "\n"; let pp;
+  try { pp = JSON.parse(text); } catch (e) { refuse(`${tfolder}/plan.json does not parse: ${e.message}`); }
+  S.issue = pp.issue; S.board = tfolder;
+  if (pp.kind !== "tracking") refuse(`unit-landed: ${tfolder} is #${pp.issue}'s issue board, not a tracking board`);
+  if (req.github && pp.repo && req.github !== pp.repo) refuse(`unit-landed: the tracking board is ${pp.repo}'s, not ${req.github}'s`);
+  const row = (pp.rows || []).find(r => r && r.unit && r.unit.issue === facts.unit);
+  if (!row) refuse(`unit-landed: the tracking board #${pp.issue} has no unit row for #${facts.unit}`);
+  const st = (row.asBuilt || {}).state || "pending", w = pp.wip || {};
+  if (pp.status === "abandoned" || w.step === "cancelled") refuse(`unit-landed: the tracking board #${pp.issue} was cancelled: #${facts.unit} is not marked on it`);
+  if (["dropped", "deferred"].includes(st) || lib.leftForLater(row)) refuse(`unit-landed: #${facts.unit}'s unit ${row.id} is ${["dropped", "deferred"].includes(st) ? st : "left for later"} on #${pp.issue}'s board: a unit outside the plan does not land on it`);
+  const own = (() => { try { return fs.readdirSync(dir, { withFileTypes: true }).some(d => d.isDirectory() && d.name.startsWith(facts.unit + "-") && fs.existsSync(path.join(dir, d.name, "plan.json"))); } catch (e) { return false; } })();
+  if (own && !lib.UNIT_LANDED.includes(st)) refuse(`unit-landed: #${facts.unit} has a board of its own: its landed (raised on its board with --view) lands its unit`);
+  if (pp.status === "built" || w.step === "landed") { S.result = "nothing"; S.live = "untouched"; S.check = "nothing to check"; S.applied.push(`#${pp.issue} has landed already: nothing written`); return; }
+  /* the unit's landing, as a sub-issue's asBuilt carries it: the merge, the pull request, the merge's time */
+  const sub = { issue: facts.unit, asBuilt: { merge, ...(Number.isInteger(facts.pr) ? { pr: facts.pr } : {}), ...(facts.mergedAt ? { at: facts.mergedAt } : {}) } };
+  if (st === "pending") S.applied.push(`#${pp.issue}: ${row.id} was not marked complete: marked landed at its merge`);
+  const P = applyParent(pp, sub, { kind: "landed", boardless: !own }, now);
+  S.applied.push(...P.applied); S.enrich.push(...P.enrich);
+  if (!P.applied.length) { S.result = "nothing"; S.live = "untouched"; S.check = "nothing to check"; S.applied.push(`#${facts.unit} is landed on #${pp.issue} already: nothing written`); return; }
+  /* a view copy lives only while fresher than the board it stands for */
+  { let tp = null; try { tp = JSON.parse(fs.readFileSync(path.join(dir, "plan.json"), "utf8")); } catch (e) { /* reported above */ }
+    if (tp && !(String(lib.planStamp(P.plan)) > String(lib.planStamp(tp)))) WARNINGS.push(`VIEW COPY NOT FRESHER: the event's time ${now} is not after the board's own stamp ${lib.planStamp(tp)}, so the live view drops the copy: raise it with its real time`); }
+  writeBoard(dir, P.plan, eol, S.enrich, `#${facts.unit}'s unit on #${pp.issue}`);
+  const ck = await run(path.join(__dirname, "check.js"), [lib.viewDirOf(dir, MAIN), "--root", ROOT], ROOT);
+  if (ck.status !== 0) { S.check = `FAIL: ${ck.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l)).slice(0, 6).join(" | ") || (ck.stderr || "").trim().split(/\r?\n/)[0]}`; throw new Error("check.js failed on the tracking board's view copy"); }
+  S.check = `pass (tracking board: ${plural((ck.stdout.match(/^warn/gm) || []).length, "warning")})`;
+  S.defects = [...new Set(ck.stdout.split(/\r?\n/).map(l => (l.match(/^warn\s+(ISSUE TITLE NAMES A WORK LEVEL: #[\d?]+)/) || [])[1]).filter(Boolean))];
+  if (flag("no-live")) S.live = "skipped (--no-live)";
+  else {
+    const liveDir = path.join(MAIN, "docs", "plans", ".live");
+    ["board.json", "index.html", "board.js"].forEach(f => stage(path.join(liveDir, f)));
+    [...new Set([MAIN, ROOT])].forEach(t => ["index.js", "boards.js"].forEach(f => stage(path.join(t, "docs", "plans", ".live", f))));
+    const lv = await run(path.join(__dirname, "board.js"), ["--live", "--refresh-template", "--root", MAIN, ...(flag("no-gh") ? ["--no-gh"] : [])], MAIN);
+    if (lv.status !== 0) throw new Error(`board.js --live failed: ${(lv.stderr || lv.stdout).trim().split(/\r?\n/).slice(-1)[0]}`);
+    S.live = "regenerated docs/plans/.live/";
+  }
   S.result = "ok";
 }
 /* A child process, as a promise of { status, stdout, stderr }. */
@@ -1408,6 +1540,16 @@ async function main() {
     if (!fs.existsSync(path.join(MAIN, "docs", "plans"))) refuse(`seed: the main checkout ${MAIN} has no docs/plans/`);
     const at0 = opt("at") || facts.at || null; if (at0 && isNaN(Date.parse(at0))) refuse(`the event's time ${JSON.stringify(at0)} is not an ISO time`);
     return seed((at0 ? new Date(at0) : new Date()).toISOString().replace(/\.\d+Z$/, "Z"), req, facts);
+  }
+  if (ev === "unit-landed") {
+    if (!VIEWING) refuse("unit-landed writes the tracking board's view copy, never a tracked file: raise it with --view, from the main checkout, after the merge");
+    if (req.folder != null) refuse(`unit-landed names no board: the unit on its tracking board is facts.tracking and facts.unit, not the request's folder ${JSON.stringify(req.folder)}`);
+    if (REPO_SLUG && req.github && REPO_SLUG !== req.github) refuse(`--repo ${REPO_SLUG} is not the request's github ${req.github}`);
+    ROOT = path.resolve(wt); MAIN = path.resolve(opt("main") || REPO_PATH || req.repo || ROOT);
+    if (!fs.existsSync(path.join(MAIN, "docs", "plans"))) refuse(`--view: the main checkout ${MAIN} has no docs/plans/`);
+    if (!require("./mdcopy.js").liveWritable(MAIN)) refuse(`--view: docs/plans/.live/ is not git-ignored in ${MAIN} (add it to the main checkout's .git/info/exclude): no view copy written`);
+    const at0 = opt("at") || facts.at || req.at || null; if (at0 && isNaN(Date.parse(at0))) refuse(`the event's time ${JSON.stringify(at0)} is not an ISO time`);
+    return unitLanded((at0 ? new Date(at0) : new Date()).toISOString().replace(/\.\d+Z$/, "Z"), req, facts);
   }
   const folder = typeof req.folder === "string" ? req.folder.replace(/\\/g, "/").replace(/\/+$/, "") : null;
   if (!folder || !/^docs\/plans\/(.+\/)?\d+-[a-z0-9][a-z0-9-]*$/.test(folder) || folder.split("/").includes("..")) refuse(`the request's folder ${JSON.stringify(req.folder || null)} is not docs/plans/[<parent>/]<issue>-<slug>`);

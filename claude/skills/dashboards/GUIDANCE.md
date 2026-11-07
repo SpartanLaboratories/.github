@@ -690,7 +690,9 @@ reached its landing before the change):
    view copies (`apply-event.js`, `plan/RULES.md` §4, "Seeding at sized"), so its branch carries the landed state in its document-landing commit.
    A merge that marks an issue landed on its own board does so for its parent too: both are seeded together. There is never a follow-up
    docs pull request. A level-1 run, which has no board and sends no `sized`, carries the same landed state through the team-raised `seed` at its
-   `state-boards` request (the seeding alone, its unit marked `complete` on its tracking board where it is one; `plan/RULES.md` §4, "Seeding at sized").
+   `state-boards` request (the seeding alone, its unit marked `complete` on its tracking board where it is one; `plan/RULES.md` §4, "Seeding at sized"); after its merge the
+   post-merge refresh marks that unit landed on its tracking board's view copy through the team-raised `unit-landed` (`plan/RULES.md` §4, "The live view of a landing"),
+   and at a tracking issue's last unit the tracking board lands with it once its impact is reconciled (`plan/RULES.md` §3).
    A `sized` during the refresh seeds the copies as they stand and is not delayed; the team's `reseed`, at the end of every post-merge refresh, brings the
    finished state to those boards, and does nothing when nothing raced. Until a later landing commits the state, a tracked board opened on this machine follows its fresher view
    copy in place, labelled the live view (`plan/RULES.md` §1).
@@ -718,7 +720,7 @@ refresh on its branch: the committed repository work board, and the repository s
 - **The Document step** (`plan/RULES.md` §3, §4): issue boards and tracking boards (whose plan's land takes it before its landing); the
   repository work board shows it as a run's step and counts it active. Not to the state boards: no run steps.
 - **State boards built in the Document step; seeding at sized**: the state boards and the committed repository work board are written in the
-  Document step; the issue and tracking boards' landed state is seeded at the next run's sized.
+  Document step; the issue and tracking boards' landed state is seeded at the next run's sized (or a level-1 run's seed).
 - **The test report's neutral path** (`build/reports/tests/index.html`): issue boards (a qa pass's test report, plain text, linked to its copy
   in the live view) and the state boards' Test levels guarantee card (plain text: a build output, never committed, and a state board has no
   live view). Not to the repository work board: it shows no qa report.

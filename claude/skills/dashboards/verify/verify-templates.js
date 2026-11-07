@@ -2212,6 +2212,13 @@ catch (e) { report("the document-landing and view-copy cases", [["the cases run 
 try { require("./cases-seed.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the seed cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
+/* The team-raised unit-landed (verify/cases-unit-landed.js; admin-team/dashboards-skill/level-1-landed): after the merge of a unit with no board, with --view, the
+   standing rule's landed move on its tracking board's view copy alone; at the tracking issue's last unit (by unit-landed or a sub-issue's landed) the tracking board
+   lands once its impact is reconciled; the seeding gate on the unit's merge, the copy kept for its enrichment, reseed; its refusals. It needs no browser, and runs on
+   its own too (node verify/cases-unit-landed.js). */
+try { require("./cases-unit-landed.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the unit-landed cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
 /* A foundation on the fast path (verify/cases-foundation.js; admin-team/board/foundation-fast-path): a sized with no board lays it, applies the
    event, re-embeds the parent tracking board and regenerates the live repository work board; its facts each from the first source that tells
    it; a slug the registry does not know; a failure leaves nothing; the fill read from the data, a board past its plan's acceptance with its Gap

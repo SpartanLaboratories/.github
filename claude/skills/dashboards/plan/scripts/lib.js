@@ -1501,7 +1501,7 @@ function researchGlow(plan) {
    (RETIRED_EVENTS), read and drawn, which apply-event.js refuses: no unit's board is laid ahead of its run. */
 const RETIRED_EVENTS = ["boards-created"];
 const EVENTS = ["sized", "halted", "resumed", "research-planning", "research-started", "research-returned", "verification-started", "researched",
-  "architecture-signed-off", "sub-issues-filed", "boards-created", "plan-accepted", "branch-cut", "implementation-stage", "qa-pass", "document", "escalated", "landing", "state-boards", "merge", "landed", "cancelled", "run-restarted", "reseed", "seed"];
+  "architecture-signed-off", "sub-issues-filed", "boards-created", "plan-accepted", "branch-cut", "implementation-stage", "qa-pass", "document", "escalated", "landing", "state-boards", "merge", "landed", "cancelled", "run-restarted", "reseed", "seed", "unit-landed"];
 /* A row's as-built state before its outcome (plan/RULES.md §2, "Before the outcome"): derived from the implementation stages while the
    run is live. On an issue board, for a row wip.stages touches: "in-progress" when a current stage touches it, "partially-built" when a
    done stage touched it and a later stage still to come touches it, "pending" when only stages to come touch it; null otherwise (no
