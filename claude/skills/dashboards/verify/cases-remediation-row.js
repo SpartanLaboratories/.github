@@ -153,6 +153,52 @@ module.exports = function casesRemediationRow(X) {
     c.push(["a run counting more than the board's classes (other classes of the module) stays a Relevant entry, as before", M.tests.relevant.length === 1 && M.tests.relevant[0].tests === 20 && !M.tests.added[0].result, js(M.tests)]);
   });
 
+  /* a module's test task run with a whole class skipped (WebTools #69, Quality Review 1): nonfunctionalTest ran 52 passed and 1 skipped, the
+     class that needs JDK 11, and the whole-task rule refused any skip, so the run stayed a stray Relevant entry. It is now attributed by count:
+     the skipped count is the summed count of the classes whose latest result is skipped, the passed count that of the rest; counts alone cannot
+     tell which class skipped, so the summary says enrich: yes */
+  guard("testslib.js and apply-event.js: a test task with a class skipped whole is attributed by count, for the report to confirm", c => {
+    const at = "2026-11-06T23:40:00Z", o = { now: at, ids: new Set(ids), pass: 2 }, jdk = "Skipped: needs JDK 11 on the test JVM.";
+    const mk = () => ({ rows: EX.rows, tests: { updated: "2026-11-06T00:00:00Z", relevant: [], amended: [{ class: "x.testing.nonfunctional.LoadTest", module: "f", testLevel: "4c", tests: 22 }], added: [
+      { class: "x.testing.nonfunctional.SoakTest", module: "f", testLevel: "4c", tests: 30 },
+      { class: "x.testing.nonfunctional.Jdk11Test", module: "f", testLevel: "4c", tests: 1, result: { state: "skipped", passed: 0, failed: 0, skipped: 1, pass: 1, at: "2026-11-06T12:00:00Z", note: jdk } },
+      { class: "x.testing.component.AComponentTest", module: "f", testLevel: "2", tests: 3 }] } });
+    const cls = (P, n) => [...P.tests.added, ...P.tests.amended].find(x => x.class.endsWith("." + n)) || {}, res = (P, n) => cls(P, n).result || {};
+    const RUN = (p, k, extra) => ({ ran: [{ class: "nonfunctionalTest (f)", module: "f", passed: p, failed: 0, skipped: k, ...(extra || {}) }] });
+    const P = mk(), r = TL.mergeTests(P, RUN(52, 1), o);
+    c.push(["the rest take passed, each with its own count and the new Quality Review", res(P, "SoakTest").state === "passed" && res(P, "SoakTest").passed === 30 && res(P, "LoadTest").passed === 22 && res(P, "LoadTest").pass === 2 && res(P, "SoakTest").at === at, js(P.tests)]);
+    c.push(["…the class skipped whole keeps skipped, with the new Quality Review and its earlier note", res(P, "Jdk11Test").state === "skipped" && res(P, "Jdk11Test").skipped === 1 && res(P, "Jdk11Test").pass === 2 && res(P, "Jdk11Test").at === at && res(P, "Jdk11Test").note === jdk, js(cls(P, "Jdk11Test"))]);
+    c.push(["…no Relevant entry, the other level untouched", !P.tests.relevant.length && !res(P, "AComponentTest").state, js(P.tests.relevant)]);
+    c.push(["…and the summary flags the skip as attributed by count, to confirm from the report", r.changed && r.notes.some(x => /^nonfunctionalTest \(f\): skip attributed by count to Jdk11Test; confirm from the report$/.test(x)), js(r.notes)]);
+    c.push(["…and passes testsProblems()", !TL.testsProblems(P).fail.length, js(TL.testsProblems(P).fail)]);
+    const r2 = TL.mergeTests(P, RUN(52, 1), o);
+    c.push(["the same facts twice change nothing and flag nothing", !r2.changed && !r2.notes.length, js(r2)]);
+    const N = mk(); N.tests.relevant = [{ class: "nonfunctionalTest (f)", module: "f", tests: 53, result: { state: "passed", passed: 52, failed: 0, skipped: 1, pass: 1, at } }];
+    TL.mergeTests(N, RUN(52, 1), o);
+    c.push(["an earlier event's stray Relevant entry for the run goes once its classes carry it", !N.tests.relevant.length && res(N, "SoakTest").passed === 30, js(N.tests.relevant)]);
+    const W = mk(); delete W.tests.added[1].result.note;
+    TL.mergeTests(W, RUN(52, 1, { note: "The run's own note." }), o);
+    c.push(["a skipped class with no earlier note takes the run's note, as the passed ones do", res(W, "Jdk11Test").note === "The run's own note." && res(W, "SoakTest").note === "The run's own note.", js(W.tests.added)]);
+    const stray = (name, P, facts) => { const q = TL.mergeTests(P, facts, o); c.push([name, P.tests.relevant.length === 1 && !res(P, "SoakTest").state && res(P, "Jdk11Test").pass === 1 && !q.notes.some(x => /skip attributed/.test(x)), js(P.tests)]); };
+    stray("a skipped count the skipped classes do not account for (2, against 1) stays a Relevant entry, its classes untouched", mk(), RUN(51, 2));
+    stray("a passed count that is not the rest's (51 with 1 skipped) stays a Relevant entry", mk(), RUN(51, 1));
+    stray("a failure beside the skip stays a Relevant entry", mk(), { ran: [{ class: "nonfunctionalTest", module: "f", passed: 51, failed: 1, skipped: 1 }] });
+    const U = mk(); U.tests.added[1].result = { state: "passed", passed: 1, failed: 0, skipped: 0, pass: 1, at };
+    const qu = TL.mergeTests(U, RUN(52, 1), o);
+    c.push(["a skip with no class skipped before stays a Relevant entry (counts alone name no class)", U.tests.relevant.length === 1 && !res(U, "SoakTest").state && !qu.notes.some(x => /skip attributed/.test(x)), js(U.tests)]);
+    const T = mk(); delete T.tests.amended[0].tests;
+    TL.mergeTests(T, RUN(52, 1), o);
+    c.push(["a class with no test count stays the run a Relevant entry", T.tests.relevant.length === 1 && !res(T, "SoakTest").state, js(T.tests)]);
+    const Z = mk(), rz = TL.mergeTests(Z, RUN(53, 0), o);
+    c.push(["with no test skipped, a class skipped before passes with the rest, and nothing is flagged", res(Z, "Jdk11Test").state === "passed" && res(Z, "Jdk11Test").passed === 1 && !res(Z, "Jdk11Test").note && !Z.tests.relevant.length && !rz.notes.length, js(Z.tests.added)]);
+    /* the fast path: a qa-pass carrying the run says enrich: yes, with the why */
+    const B = atRem(); B.tests = mk().tests; B.tests.base = "master";
+    const L = lay(B), rq = wr(path.join(sc, "req-skip.json"), js({ v: 1, action: "plan-board", github: B.repo, issue: B.issue, event: "qa-pass", folder: B.folder,
+      facts: { step: "qa", qa: { pass: 2, verdict: "CHANGES REQUESTED", test: 1, code: 0, severity: { minor: 1, other: 0 }, route: "on-the-spot" }, rows: [R0], tests: RUN(52, 1) } }));
+    const a = run(APPLY, ["--event", rq, "--worktree", L.root, "--no-gh", "--no-live", "--at", at, "--json"]), S = parse(a), p = JSON.parse(rd(path.join(L.dir, "plan.json")));
+    c.push(["apply-event.js applies it and reports enrich: yes, its why the skip attributed by count to confirm from the report", a.status === 0 && S.enrich === "yes" && (S.why || []).some(x => /skip attributed by count to Jdk11Test; confirm from the report/.test(x)) && res(p, "Jdk11Test").state === "skipped" && res(p, "Jdk11Test").pass === 2 && res(p, "SoakTest").state === "passed" && !p.tests.relevant.length, (a.stderr || "").slice(0, 200) + js(S.why) + js(p.tests && p.tests.relevant)]);
+  });
+
   /* a run's note (WebTools #65, qa pass 2): a failure the change did not cause, an untouched class of #62 timing out under parallel task runs,
      was drawn as the change's failure with nothing to say otherwise; the result now carries an optional note, shown on the card and in the
      inspector, taken by the fast path from facts.tests.ran[].note and replaced with the next result */

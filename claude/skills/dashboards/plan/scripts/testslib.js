@@ -33,20 +33,31 @@ function bareName(cls, module) {
 }
 /* A module's test task, by the five-level testing hierarchy's level folders (gatingTest … uatTest), and the test level it runs. */
 const TASK_LEVEL = { gatingTest: "1", componentTest: "2", integrationTest: "3", deterministicTest: "4a", e2eTest: "4b", nonfunctionalTest: "4c", uatTest: "5" };
-/* A run of a module's test task that passed whole (no test failed or skipped) and counted exactly the tests of the board's own Added and
-   Amended classes of that module at that level: each of those classes passed whole, so the run is their results and no class of its own
-   (WebTools #69: a stage report sent "gatingTest (webtools-feeds)", "componentTest (webtools-feeds)" and "deterministicTest (webtools-feeds)"
-   for a new module whose every class was Added; the fast path listed the three tasks in Relevant, as unchanged tests, and left the sixteen
-   classes "not run yet"). Returns those classes, or null where the run cannot be attributed (a failure or a skip, another class in the
-   count, a class with no test count): the run then stays a Relevant entry of its own, as before. */
+/* A run of a module's test task with no failure that counted exactly the tests of the board's own Added and Amended classes of that module
+   at that level: the run is their results and no class of its own (WebTools #69: a stage report sent "gatingTest (webtools-feeds)",
+   "componentTest (webtools-feeds)" and "deterministicTest (webtools-feeds)" for a new module whose every class was Added; the fast path listed
+   the three tasks in Relevant, as unchanged tests, and left the sixteen classes "not run yet"). With no test skipped, each of those classes
+   passed whole. With tests skipped, the run is attributed only by whole-class skips (WebTools #69, Quality Review 1: nonfunctionalTest ran
+   52 passed and 1 skipped, the JDK 11 class, and stayed a stray Relevant entry): its skipped count must be the summed count of the classes
+   whose latest result is skipped, and its passed count the summed count of the rest; those keep skipped, the rest pass. Counts alone cannot
+   tell which class skipped, so the attribution is flagged (bySkip) for the report to confirm. Returns { passed, skipped, bySkip } (the
+   classes of each), or null where the run cannot be attributed (a failure, another class in the count, a class with no test count, a skip
+   the board's skipped classes do not account for): the run then stays a Relevant entry of its own, as before. */
 function taskClasses(T, e) {
   const lv = TASK_LEVEL[e && e.class]; if (!lv || !e.module || !e.result) return null;
-  const r = e.result; if (r.state !== "passed" || !count(r.passed) || (r.failed || 0) !== 0 || (r.skipped || 0) !== 0) return null;
+  const r = e.result, ps = count(r.passed) ? r.passed : 0, sk = count(r.skipped) ? r.skipped : 0;
+  if (!["passed", "skipped"].includes(r.state) || (r.failed || 0) !== 0 || ps + sk === 0) return null;
   const mine = ["added", "amended"].flatMap(k => (T[k] || []).filter(x => x && x.module === e.module && testLevelOf(x) === lv));
-  if (!mine.length || mine.some(x => !count(x.tests)) || mine.reduce((n, x) => n + x.tests, 0) !== r.passed) return null;
-  return mine;
+  if (!mine.length || mine.some(x => !count(x.tests))) return null;
+  const sum = xs => xs.reduce((n, x) => n + x.tests, 0);
+  if (sk === 0) return sum(mine) === ps ? { passed: mine, skipped: [], bySkip: false } : null;
+  const off = mine.filter(x => resultState(x.result) === "skipped"), on = mine.filter(x => !off.includes(x));
+  if (!off.length || sum(off) !== sk || sum(on) !== ps) return null;
+  return { passed: on, skipped: off, bySkip: true };
 }
 /* A class's identity across the lists: its module and its class name. */
+/* A class's name without its package. */
+const simpleName = c => String(c || "").split(".").pop();
 const testKey = e => `${(e && e.module) || ""}::${e && e.class}`;
 /* A result's state: its own when it is one, else what its counts say (a failure fails it). */
 function resultState(r) {
@@ -103,8 +114,8 @@ function normOther(x) {
 }
 /* Apply an event's facts.tests to a board (plan/RULES.md §4): each class of "added", "amended" and "relevant" upserted, a class kept in the
    highest list it has reached (Added, then Amended, then Relevant: a class added on the branch and changed later stays Added); "ran", the
-   classes qa's test-inspector ran with their results, sets each one's latest result and its count (the tests the run counted) and puts a class in no list into Relevant, a module's test task that passed whole
-   over the board's own classes being those classes' results (taskClasses()); "other"
+   classes qa's test-inspector ran with their results, sets each one's latest result and its count (the tests the run counted) and puts a class in no list into Relevant, a module's test task with no failure
+   over the board's own classes being those classes' results (taskClasses(); a skip attributed by count is a note, so enrich: yes); "other"
    replaces the counts (an empty one reports nothing new, so any earlier counts stay); "drop" removes classes from every list (a change reverted; one on no list is named in the summary, never passed over); "base" names the ref the diff is against. The same
    facts twice change nothing. Returns { changed, applied, notes }. o: { now, pass, stage, ids }. */
 function mergeTests(plan, ft, o) {
@@ -133,12 +144,17 @@ function mergeTests(plan, ft, o) {
   if (ft.ran != null && !Array.isArray(ft.ran)) notes.push("facts.tests.ran is not a list: not applied");
   (Array.isArray(ft.ran) ? ft.ran : []).forEach((x, i) => { const n = normEntry(x, o, true); if (!n.entry) { notes.push(`facts.tests.ran[${i}]: ${n.why}: not applied`); return; } notes.push(...n.notes);
     const own = taskClasses(T, n.entry);
-    if (own) { const R = n.entry.result;
-      own.forEach(cl => { const res = { state: "passed", passed: cl.tests, failed: 0, skipped: 0, ...(R.pass ? { pass: R.pass } : {}), at: R.at, ...(R.note ? { note: R.note } : {}) };
+    if (own) { const R = n.entry.result, was = applied.length;
+      own.passed.forEach(cl => { const res = { state: "passed", passed: cl.tests, failed: 0, skipped: 0, ...(R.pass ? { pass: R.pass } : {}), at: R.at, ...(R.note ? { note: R.note } : {}) };
         if (JSON.stringify(cl.result || null) !== JSON.stringify(res)) { cl.result = res; applied.push(`tests ${cl.class} passed (${n.entry.class})`); } });
+      /* a class skipped whole keeps skipped with this run's review number, and its earlier note (what the skip means: a JDK it needs) */
+      own.skipped.forEach(cl => { const nt = (cl.result && str(cl.result.note) ? cl.result.note : null) || R.note || null;
+        const res = { state: "skipped", passed: 0, failed: 0, skipped: cl.tests, ...(R.pass ? { pass: R.pass } : {}), at: R.at, ...(nt ? { note: nt } : {}) };
+        if (JSON.stringify(cl.result || null) !== JSON.stringify(res)) { cl.result = res; applied.push(`tests ${cl.class} skipped (${n.entry.class})`); } });
       /* the same run, left as a class of its own by an earlier event, goes: its classes carry it now */
       const before = T.relevant.length; T.relevant = T.relevant.filter(y => !(y && sameModule(y, n.entry) && bareName(y.class, y.module || n.entry.module) === n.entry.class));
       if (before > T.relevant.length) applied.push(`tests.relevant − ${n.entry.class} (${n.entry.module}): its classes carry the run`);
+      if (own.bySkip && applied.length > was) notes.push(`${n.entry.class} (${n.entry.module}): skip attributed by count to ${own.skipped.map(x => simpleName(x.class)).join(", ")}; confirm from the report`);
       return; }
     put("relevant", n.entry, true); });
   if (ft.other != null) { const ot = normOther(ft.other); if (!ot) notes.push("facts.tests.other is not { byModule: { <module>: { <test level>: count } } }: not applied"); else if (Object.keys(ot.byModule).length && JSON.stringify(T.other || null) !== JSON.stringify(ot)) { T.other = ot; applied.push("tests.other"); } }
@@ -218,4 +234,4 @@ function testsProblems(plan) {
 /* A unit row's mirror (unit.tests), as check.js holds it: an object of the same form. */
 function mirrorProblems(m, at) { if (m == null) return []; if (typeof m !== "object" || Array.isArray(m)) return [`${at}.unit.tests must be the mirror of the unit's board's tests (embed.js writes it)`]; const p = testsProblems({ tests: m, rows: [] }); return p.fail.filter(f => !/names no row/.test(f)).map(f => `${at}.unit.${f}`); }
 
-module.exports = { TEST_LISTS, TEST_LEVELS, TEST_LEVEL_SEGMENTS, TEST_RESULTS, bareName, testLevelOf, levelFromPath, testKey, resultState, testsBlock, hasTests, normEntry, normOther, mergeTests, testsMirror, testsProblems, mirrorProblems };
+module.exports = { TEST_LISTS, TEST_LEVELS, TEST_LEVEL_SEGMENTS, TEST_RESULTS, bareName, taskClasses, testLevelOf, levelFromPath, testKey, resultState, testsBlock, hasTests, normEntry, normOther, mergeTests, testsMirror, testsProblems, mirrorProblems };
