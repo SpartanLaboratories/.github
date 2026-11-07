@@ -134,10 +134,11 @@ comments or files itself, and never spawns `version-control-manager` directly.
 ## Session handoffs
 
 A session stopped with work unfinished leaves a handoff at `~/.claude/handoffs/<key>.md`. A session
-taking up that work reads it first, which also tells it the work was interrupted, then deletes it
-once its contents are acted on or recorded. The key is `admin-team` for the team and
-`<owner>-<repo>-<issue>` for a run (e.g. `SpartanLaboratories-WebTools-66`). A session with no
-issue has no handoff. Handoffs are local and never mirrored.
+taking up that work reads it first when it exists and has content, which also tells it the work was
+interrupted; an empty handoff means nothing to take up. Once its contents are acted on or recorded,
+the session clears it (empties the file) rather than deleting it. The key is `admin-team` for the
+team and `<owner>-<repo>-<issue>` for a run (e.g. `SpartanLaboratories-WebTools-66`). A session
+with no issue has no handoff. Handoffs are local and never mirrored.
 
 ## Planning documents — folder layout
 

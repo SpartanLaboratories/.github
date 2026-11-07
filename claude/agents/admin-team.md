@@ -233,10 +233,8 @@ reword it, then run the step again.
   It writes the landed state for viewing only: view copies of the issue board and its tracking
   board under the git-ignored `docs/plans/.live/view/`, and the live repository work board
   under `docs/plans/.live/`, never a tracked file, so nothing is left uncommitted and there is
-  no follow-up docs PR. A level-1 run has no board of its own: where its issue is a unit of a
-  tracking issue, the view marks that unit `landed` on the tracking board's view copy. Spawn
-  `presenter` in its **post-merge-refresh** mode only when the script reports `enrich: yes` or
-  fails, in the repository's presenter lane; it does not hold
+  no follow-up docs PR. Spawn `presenter` in its **post-merge-refresh** mode only when the
+  script reports `enrich: yes` or fails, in the repository's presenter lane; it does not hold
   this lane (Presenter lanes). Then append `corrections-pending` to the ledger for the
   repository: the issue board's `landed` state with this merge commit, the parent tracking
   board's unit landed and next up (the standing rule under Service: dashboards), and the
@@ -248,6 +246,16 @@ reword it, then run the step again.
   which does nothing when nothing raced (Seeding):
   `{"v":1,"action":"plan-board","github":"<owner/repo>","event":"reseed","facts":{}}`, then
   `node ~/.claude/skills/dashboards/plan/scripts/apply-event.js --event <reseed.json> --worktree <main checkout> --main <main checkout> --repo <owner/repo>`.
+  For a level-1 issue that is a unit of a tracking issue (no board; its `seed` marked it
+  `complete`), raise `unit-landed` in place of `landed`:
+  `{"v":1,"action":"plan-board","github":"<owner/repo>","event":"unit-landed","facts":{"tracking":"docs/plans/<…>/<n>-<slug>","unit":<issue>,"merge":"<merge sha>","pr":<n>,"mergedAt":"<ISO time>"}}`,
+  then
+  `node ~/.claude/skills/dashboards/plan/scripts/apply-event.js --event <unit-landed.json> --worktree <main checkout> --main <main checkout> --repo <owner/repo> --view`.
+  It writes the tracking board's view copy and the live repository work board only. On
+  `enrich: yes`, spawn `presenter` in its **post-merge-refresh** mode. At the tracking issue's
+  last unit, once the presenter has reconciled the initiative's impact, raise `unit-landed`
+  again: it lands the tracking board. Then `reseed` as usual. `corrections-pending` records the
+  tracking board, with its unit landed, and the board itself landed at the last unit.
 - **Overlap warning.** The ledger records the paths each in-flight branch
   touches (from `setup-branch`, `commit` and `land` requests). When two
   in-flight branches in one lane touch the same hand-written file, send both
@@ -466,17 +474,18 @@ lane** (below), apart from the repository lanes too.
 
 | Action | What you do |
 |--------|-------------|
-| `plan-board` | A request from another session naming an event only you raise (`run-restarted`, `state-boards`, `landing`, `merge`, `landed`, `sub-issues-filed`, `reseed`, `seed`) is `rejected`, naming the rule. Otherwise, in the board lanes: run `apply-event.js` (the fast path, above) and reply `done`. When it reports `enrich: yes`, spawn `presenter` (`subagent_type: "presenter"`, `run_in_background: true`) in **plan-board mode**, in a fill lane (Board lanes), with the request: the issue, its folder, the `event` and its facts, the worktree and branch. It fills the issue board through `fill.js` (a board the fast path could not lay, it lays with `new.js`), re-embeds, checks, and regenerates the live repository work board. No commit. Reply `done` with the paths. |
+| `plan-board` | A request from another session naming an event only you raise (`run-restarted`, `state-boards`, `landing`, `merge`, `landed`, `sub-issues-filed`, `reseed`, `seed`, `unit-landed`) is `rejected`, naming the rule. Otherwise, in the board lanes: run `apply-event.js` (the fast path, above) and reply `done`. When it reports `enrich: yes`, spawn `presenter` (`subagent_type: "presenter"`, `run_in_background: true`) in **plan-board mode**, in a fill lane (Board lanes), with the request: the issue, its folder, the `event` and its facts, the worktree and branch. It fills the issue board through `fill.js` (a board the fast path could not lay, it lays with `new.js`), re-embeds, checks, and regenerates the live repository work board. No commit. Reply `done` with the paths. |
 | `dashboards-refresh` | On request, at the current default branch, in the repository's presenter lane: `presenter` in **dashboards-refresh mode** for the named systems' state boards, or for every board. What it writes is committed by requests of your own in the repository's lane (Presenter lanes). |
 | `state-boards` | On the run's request in its Document step, after its code-landing commit, on the branch, in the repository's presenter lane (Presenter lanes): raise the issue board's `state-boards` step (`apply-event.js`), then `presenter` in **state-boards mode** — the changed systems' state boards as built, the supersystem and repository state boards, `systems.json`, the README pointer, the template splice (`system/scripts/splice.js`, keeping declared divergences), the tracking board re-embed and the repository work board (`--refresh-template`), all stamped with `system/scripts/apply-state.js` "as-is at `<branch>` @ `<code-landing sha>`", and at level 4 the planned systems drawn dashed. No commit: the run's document-landing commit carries them. Just before replying, raise the step again with `facts.done: true`, closing the Document step's task, so that commit carries it closed, and making its `document-landing` task current; raise that task done before the commit's scan (The landing steps). Reply `done` with the paths. A level-1 run has no issue board, so neither raise is made: raise `seed` first (Seeding), then run the presenter's job, whose repository work board is regenerated after the seed; the reply names the seed's paths with the presenter's. The `land` never runs it (Landing). |
-| as part of `land` | `landing` and `merge` raised with `apply-event.js --view` (The landing steps). After the merge, in the main checkout: `landed` raised the same way — the landed state for viewing only (view copies under `docs/plans/.live/view/` and the live repository work board in `docs/plans/.live/`), nothing tracked; `presenter` in **post-merge-refresh mode**, in the repository's presenter lane, only on `enrich: yes` or a failure; `reseed` once the refresh has ended, any presenter job included (Post-merge landed view); the ledger records the corrections a later landing carries: the next run's `sized` seeds them onto its branch, and a level-1 branch carries them too (Seeding). |
+| as part of `land` | `landing` and `merge` raised with `apply-event.js --view` (The landing steps). After the merge, in the main checkout: `landed` raised the same way, or `unit-landed` for a level-1 unit of a tracking issue (Post-merge landed view) — the landed state for viewing only (view copies under `docs/plans/.live/view/` and the live repository work board in `docs/plans/.live/`), nothing tracked; `presenter` in **post-merge-refresh mode**, in the repository's presenter lane, only on `enrich: yes` or a failure; `reseed` once the refresh has ended, any presenter job included (Post-merge landed view); the ledger records the corrections a later landing carries: the next run's `sized` seeds them onto its branch, and a level-1 branch carries them too (Seeding). |
 
 **Next is the next one up** (standing rule). When a sub-issue lands, its unit
 on the parent tracking board is set to `landed`, taken out of `wip.current`,
 and `wip.next` is set to the next unit in landing order (shown in the live view
 by the post-merge landed view, and committed by a later landing in the
 repository, as Seeding says); when that unit's run starts, the following unit
-becomes next. No request or event is needed: `landed` is the team's own state.
+becomes next. No request or event is needed: `landed` is the team's own state,
+and for a unit with no board, `unit-landed`, after its merge.
 
 **Repository work board.** `docs/plans/index.html` and `board.json` live on the default
 branch and change there **only at landings**: each run's `state-boards` task
@@ -494,8 +503,8 @@ final-implementation.md) and the
 event's facts; it invents nothing. A `plan-board` request for an issue with no
 plan folder (level 1) is `rejected`: level-1 work has no board of its own; it
 appears on the repository work board and, for a unit of a tracking issue, on
-its tracking board. Its landing still carries the repository's pending
-corrections (Seeding), through `seed`.
+its tracking board (`seed` and `unit-landed`, both team-raised). Its landing
+still carries the repository's pending corrections (Seeding), through `seed`.
 
 **Every improvement, every dashboard type** (standing rule). When you brief
 `presenter` on a dashboards convention change or improvement, have it consider
@@ -650,7 +659,7 @@ paths in the `mirror` lane. The hooks log is never in that sync.
 2. Rebuild `state.json` from `ledger.jsonl` (and `hooks` from `hooks.jsonl`); print the
    lanes, the publishing budgets, the number of open idea hooks and anything queued or
    waiting.
-3. Read `~/.claude/handoffs/admin-team.md` if present; the ledger stays the truth.
+3. Read `~/.claude/handoffs/admin-team.md` if present and not empty; the ledger stays the truth.
 4. Confirm the session is named `admin team` (`ListAgents` shows this session's
    name at the top). If it isn't, say so on the console: the user names
    sessions; you cannot.
