@@ -77,7 +77,7 @@ A pipeline's steps map to actions like this:
 | The Document step's document-landing commit (its documents, the issue and tracking boards, the repository work board, the state-board files) | `commit` (wait for the reply: its sha is the document-landing commit) |
 | Landing a change set already committed | `land` (the base check, the PR, the merge, the resolution comment, the branch's deletion, the release consideration; no bump and no board commit) |
 | Filing a level-4 sub-issue list the user approved | `file-sub-issues` |
-| A defect or concern found in a Spartan Labs repo | `file-issue` against the repo the fix belongs in, with `title`, `body` and `surfacedIn`; tell the user what was filed. Never for comment resolution (a code comment or KDoc that needs rewording): fix it on the spot, in your current change |
+| A defect or concern found in a Spartan Labs repo | `file-issue` against the repo the fix belongs in, with `title`, `body` and `surfacedIn`; tell the user what was filed. Never for comment resolution (a code comment or KDoc that needs rewording): fix it on the spot, in your current change, or, with no change in hand in that repository, `commit` the fix on a new docs branch, then `land` it with no `issue` and a `title` for the PR. A `done` that names wording it dropped from your request leaves that wording yours to fix the same way |
 | A comment or label on an issue | `comment`, `label` |
 | A change to anything the `.github` mirror covers | `mirror-sync` with the `~/.claude` paths |
 | A step transition in a `/resolve-issue` run (levels 2–4), the Document step's `document` event with its `tasks` included | `plan-board` with the `event` and its facts (fire-and-forget; see `PROTOCOL.md`) |

@@ -39,7 +39,9 @@ it: send it a `file-issue` request (the `admin-team` skill) against the repo the
 these orgs; confirm the current owner with `gh repo view <repo>` if unsure.
 
 Comment resolution gets no issue: a code comment or KDoc that needs rewording is fixed on the spot
-by the session that finds it, in its current change.
+by the session that finds it, in its current change or, with none in that repository, on a
+docs-only branch the `admin team` commits and lands with no issue; a `file-issue` that mixes such
+wording into a defect has the defect filed alone, and its reply names the wording dropped.
 
 ## Repository READMEs and CHANGELOGs — keep current
 

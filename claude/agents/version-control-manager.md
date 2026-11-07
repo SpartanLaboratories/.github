@@ -62,7 +62,9 @@ user. Never file an issue about the change you are currently landing — that is
 what the PR is for. Never file one for comment resolution — a code comment or
 KDoc that needs rewording: the session that finds it fixes it on the spot, in
 its current change (global `CLAUDE.md`, "Spartan Labs libraries — surface
-issues"); a request for one is rejected, naming that rule.
+issues"); a request for one is rejected, naming that rule. A request that
+mixes a real defect with such wording: file the defect only, strip the
+wording from the title and body, and name the part dropped in the report.
 
 **Sub-issues of a level-4 plan** are the one same-repo exception, and only on
 the user's approval: when your caller passes a sub-issue list it says the user

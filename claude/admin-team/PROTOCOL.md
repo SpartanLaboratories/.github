@@ -109,7 +109,11 @@ confirmed with `gh repo view`), under the executor's filing rules:
   the coordination need to the user);
 - never about the change the sender is landing;
 - never for comment resolution, a code comment or KDoc that needs rewording (`rejected`, naming
-  the rule; the sender fixes it on the spot, in its current change);
+  the rule; the sender fixes it on the spot, in its current change, or, with no change in hand
+  in that repository, sends a `commit` of the fix on a new docs branch, then a `land` with no
+  `issue` and a `title` for the PR);
+- a request that mixes a defect with such wording gets the defect filed alone: `done` names the
+  wording dropped, which the sender fixes as above;
 - a defect the executor judges speculative is not filed (`rejected`, reported as a suspicion);
 - nothing Claude-internal is written: the title and body are reworded first;
 - an open issue that already covers it gets no second issue: `done` names that one.
