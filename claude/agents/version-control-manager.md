@@ -156,8 +156,8 @@ answers there. If it still fails with a long-path error, `rm -rf` that allocated
 path, run `git worktree prune`, and log it in the report. A worktree with
 uncommitted changes still needs the user: report it under **Stopped — needs you**.
 
-**Internal-names scan.** Before a `commit` or a `prepare-landing` commits
-anything, scan what you are about to commit for the pipeline's
+**Internal-names scan.** Before a `commit`, a `prepare-landing` or a `land`
+commits anything, scan what you are about to commit for the pipeline's
 agents, sessions or roles (admin team, planner, plan-writer, architect,
 researcher, verifier, interviewer, presenter, publisher, rookie-dev,
 version-control-manager or executor, qa, code-reviewer, documentation-reviewer,
