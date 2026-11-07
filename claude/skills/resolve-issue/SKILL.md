@@ -58,7 +58,11 @@ researcher, verifier, interviewer, presenter, publisher, rookie-dev, version-con
 executor, qa, code-reviewer, documentation-reviewer, test-inspector), never refers to the
 approval flow ("the user's call", "the user chose", "user answers"), and never states a work
 level ("level 3", "a level-4 tracking issue"). That covers the text you send in `plan-board`
-facts (`detail`, `open`, `questions`, `reason`), which lands on the committed issue board. The
+facts (`detail`, `open`, `questions`, `reason`), which lands on the committed issue board. In
+every text a `plan-board` fact carries (detail, notes, `waitingOn`, questions and options, open
+points, a qa pass's note, remediation step names, tests), write a test level in full, naming
+the test ("the Level 3 integration tests", "Level 2 component tests"), never a bare "Level n"
+at the start of a clause, which the board's work-level scrub reads as a work level and trims. The
 project's own test levels (Level 2 component, 4a, …), "the implementer" (whoever builds the
 change) and a library's name that only coincides (OkHttp's `RoutePlanner`) are fine. Carry the
 rule in every brief to an agent that writes a document. A `commit` or `prepare-landing` whose
