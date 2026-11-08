@@ -159,7 +159,7 @@ window.dashboardLive&&window.dashboardLive("plan",
     {
       "date": "2026-10-20",
       "column": "built",
-      "label": "Quality Review 2: changes requested, 5 findings (4 documentation, 1 test; 5 low); Stage D added",
+      "label": "Quality Review 2: changes requested, 5 findings (5 low; 4 documentation, 1 test); Stage D added",
       "ref": ""
     },
     {

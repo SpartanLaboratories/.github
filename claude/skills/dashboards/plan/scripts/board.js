@@ -238,8 +238,10 @@ const chainOf = b => {
   const dropped = units.filter(r => st(r) === "dropped").length, deferred = units.filter(r => st(r) === "deferred").length, left = units.filter(leftForLater).length;
   const counted = units.filter(r => !["dropped", "deferred"].includes(st(r)) && !leftForLater(r)), landed = counted.filter(r => LANDED_STATES.has(st(r))).length;
   const cur = live ? units.filter(r => unitInRun(w.current, r.id)) : []; // a unit's label glowing while it is filed (<id>.units) is no run
-  const current = cur.map(r => { const own = r.unit.issue ? boardOf(r.unit.issue) : null, ow = own ? own.plan.wip || {} : null, L = r.unit.live || {};
-    return { issue: r.unit.issue || null, slug: r.unit.slug || r.id, step: (ow && ow.step) || L.step || null }; });
+  /* a unit at its fix step carries the route that names it, "Correction" or "Resolution" (board.html stepLabel(); admin-team/dashboards/call-5) */
+  const current = cur.map(r => { const own = r.unit.issue ? boardOf(r.unit.issue) : null, ow = own ? own.plan.wip || {} : null, L = r.unit.live || {}, run = ow && ow.step ? ow : L, step = run.step || null;
+    const route = step === "remediation" ? require("./passnames.js").ctxOf(run).route : null;
+    return { issue: r.unit.issue || null, slug: r.unit.slug || r.id, step, ...(route ? { route } : {}) }; });
   const nx = live && w.next ? units.find(r => r.id === w.next && st(r) === "pending" && !leftForLater(r)) : null;
   const next = nx ? { issue: nx.unit.issue || null, slug: nx.unit.slug || nx.id, blockedBy: unitBlockers(p, nx).filter(x => x.issue == null || !landedIssue(x.issue)) } : null;
   const started = landed > 0 || current.length > 0 || units.some(r => st(r) === "complete");

@@ -2,7 +2,7 @@
   "$comment": "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last verification, when every check that needs no browser passed (its modes: \"--auto --no-browser\"; a run with --browser, made only when a person asks for it, lists the browser passes instead). check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.",
   "templates": {
     "plan/template/dashboard.html": {
-      "sha256": "0ce851b873632a779cba34a1287853d006f9b9dbf1428a9a7f8d0b5da32cbccf",
+      "sha256": "1d7ed5d0ffae14cf1c51bea7b7e99a749080ef2a1816563cc1f45c8826417084",
       "verified": "2026-11-08",
       "fixtures": [
         "plan",
@@ -321,11 +321,16 @@
           "sha256": "0ce851b873632a779cba34a1287853d006f9b9dbf1428a9a7f8d0b5da32cbccf",
           "verified": "2026-11-08",
           "file": "dashboard/0ce851b87363.html"
+        },
+        {
+          "sha256": "1d7ed5d0ffae14cf1c51bea7b7e99a749080ef2a1816563cc1f45c8826417084",
+          "verified": "2026-11-08",
+          "file": "dashboard/1d7ed5d0ffae.html"
         }
       ]
     },
     "plan/template/board.html": {
-      "sha256": "ab932bcf2199333c9472c5bae8de818494870b688b1e6656a729e15be9eb17e9",
+      "sha256": "86fe1c385c4aae99dd47d031c63f88c7258cbe9f22c0521ae70e995bd173fd37",
       "verified": "2026-11-08",
       "fixtures": [
         "work-board",
@@ -533,6 +538,11 @@
           "sha256": "ab932bcf2199333c9472c5bae8de818494870b688b1e6656a729e15be9eb17e9",
           "verified": "2026-11-08",
           "file": "board/ab932bcf2199.html"
+        },
+        {
+          "sha256": "86fe1c385c4aae99dd47d031c63f88c7258cbe9f22c0521ae70e995bd173fd37",
+          "verified": "2026-11-08",
+          "file": "board/86fe1c385c4a.html"
         }
       ]
     },

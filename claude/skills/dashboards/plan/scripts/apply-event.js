@@ -607,7 +607,8 @@ function applyEvent(orig, ev, facts, req, now) {
       /* an open point the qa report raises (or settles) is kept as at an implementation stage (plan/RULES.md §3, wip.open) */
       if (Array.isArray(facts.open)) mergeOpen(w, facts, applied, txt, lib.passName(Q.pass), resolved, plan.folder, DIR, enrich);
       if (w.qaMax !== 3 && !Number.isInteger(w.qaMax)) w.qaMax = 3;
-      /* what the pass returned, its findings (passnames.js findingsWords(): "18 findings (3 documentation, 15 code)") */
+      /* what the pass returned, its findings line: the count, the severities, the kinds (passnames.js findingsWords(): "18 findings (2 minor,
+         16 other; 3 documentation, 15 code)"; admin-team/dashboards/call-5) */
       const counts = lib.findingsWords(findings, severity);
       const anyFinding = Object.values(findings).some(n => n > 0);
       if (verdict === "approved") {

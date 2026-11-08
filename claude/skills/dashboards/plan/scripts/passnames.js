@@ -18,7 +18,9 @@
 // review", "qa passed" → "the review approved"); "qa next", "Halted at qa" (→ "Quality Review next", "Halted at Quality Review");
 // "Remediation for Quality Review 1", "Remediation: …", "the remediation loop", "a remediation pass", "Halted at remediation" (→ the step's
 // name by its route; a halt's with no article, "Halted at Correction"); "Halted at the Correction of Quality Review 2", "Held still at the
-// Resolution" (→ "Halted at Correction", "Held still at Resolution": a halt names its fix step by its route alone); "Document-landing commit" (→ "Document commit"). What is not: an issue's title (quoted verbatim, levelrefs.js
+// Resolution" (→ "Halted at Correction", "Held still at Resolution": a halt names its fix step by its route alone); "Document-landing commit" (→ "Document commit");
+// a findings line with its kinds before its severities, "18 findings (3 documentation, 15 code; 2 minor, 16 other)" (→ "18 findings (2 minor,
+// 16 other; 3 documentation, 15 code)", admin-team/dashboards/call-5). What is not: an issue's title (quoted verbatim, levelrefs.js
 // titleSkip()), code in backticks, the data keys and identifiers (qa, pass, facts.qa, the qa-pass event, the remediation route's id).
 "use strict";
 const path = require("path");
@@ -61,10 +63,24 @@ const ROUTE_WORDS = { "on-the-spot": "minor fixes on the spot, then the Document
 const REMEDIATION_NOTE = "Correction or Resolution after a Quality Review; each step is recorded as it runs";
 /* the mark of a pass whose findings were fixed in place, with no pass after it */
 const inPlaceWords = p => p && p.inPlace ? `${p.inPlace === "fixing" ? "fixing" : "fixed"} in place · no additional ${REVIEW}` : "";
-/* a pass's findings: "18 findings" with their kinds ("3 documentation, 15 code") and severities */
+/* a pass's findings line (admin-team/dashboards/call-5, the user's decision of 2026-11-06): the count, then the severities, then the kinds,
+   "18 findings (2 minor, 16 other; 3 documentation, 15 code)". Severities minor, then other (a qa report's own words after them, as it
+   wrote them); kinds documentation, test, code; a zero count left out of both. The count is the kinds' sum, else the severities' where no
+   kind is counted. Nothing counted: "" (zero true: "0 findings" where a count is recorded, the step panel's line of a pass with none).
+   The templates' findingsWords() is this one (names:begin; verify/cases-findings-line.js holds the two equal). */
+const FINDING_KINDS = ["documentation", "test", "code"], FINDING_SEVERITIES = ["minor", "other"];
 const findingsTotal = f => Object.values(f || {}).filter(n => Number.isInteger(n) && n >= 0).reduce((a, b) => a + b, 0);
-const findingsWords = (f, sev) => { const kinds = Object.entries(f || {}).filter(([, n]) => Number.isInteger(n) && n > 0).map(([k, n]) => `${n} ${k}`), sv = Object.entries(sev || {}).filter(([, n]) => Number.isInteger(n) && n > 0).map(([k, n]) => `${n} ${k}`);
-  const t = findingsTotal(f); return t || sv.length ? `${t} finding${t === 1 ? "" : "s"}${kinds.length || sv.length ? ` (${[kinds.join(", "), sv.join(", ")].filter(Boolean).join("; ")})` : ""}` : ""; };
+const findingParts = (m, order) => { const r = k => order.indexOf(k) < 0 ? order.length : order.indexOf(k);
+  return Object.entries(m && typeof m === "object" ? m : {}).filter(([, n]) => Number.isInteger(n) && n > 0).sort((a, b) => r(a[0]) - r(b[0])).map(([k, n]) => `${n} ${k}`); };
+const findingsWords = (f, sev, zero) => { const sv = findingParts(sev, FINDING_SEVERITIES), kinds = findingParts(f, FINDING_KINDS), t = findingsTotal(f) || findingsTotal(sev);
+  const counted = [f, sev].some(m => m && typeof m === "object" && Object.values(m).some(n => Number.isInteger(n) && n >= 0));
+  return t || sv.length || (zero && counted) ? `${t} finding${t === 1 ? "" : "s"}${sv.length || kinds.length ? ` (${[sv.join(", "), kinds.join(", ")].filter(Boolean).join("; ")})` : ""}` : ""; };
+/* the findings line in the order before call-5, the kinds before the severities ("18 findings (3 documentation, 15 code; 2 minor, 16
+   other)"), as the scripts wrote it into a detail or a trail entry: reworded by every rewrite into the order above (OLDER, below) */
+const FINDINGS_OLD = /\b(\d+)\s+(findings?)\s+\(((?:\d+\s+(?:documentation|test|code))(?:,\s*\d+\s+(?:documentation|test|code))*);\s*(\d+\s+(?!(?:documentation|test|code)\b)[a-z][a-z-]*(?:,\s*\d+\s+(?!(?:documentation|test|code)\b)[a-z][a-z-]*)*)\)/g;
+const countsOf = s => { const m = {}; s.split(/\s*,\s*/).forEach(x => { const r = /^(\d+)\s+([a-z][a-z-]*)$/.exec(x.trim()); if (r) m[r[2]] = (m[r[2]] || 0) + +r[1]; }); return m; };
+const findingsReordered = (n, noun, kinds, sevs) => { const sv = findingParts(countsOf(sevs), FINDING_SEVERITIES), kd = findingParts(countsOf(kinds), FINDING_KINDS);
+  return `${n} ${noun}${sv.length || kd.length ? ` (${[sv.join(", "), kd.join(", ")].filter(Boolean).join("; ")})` : ""}`; };
 /* the progress notes, by the work they report (a note's file name is its writer's; the board shows the work) */
 const NOTE_WORK = { planner: "planning", interviewer: "interview", researcher: "research", verifier: "verification", architect: "architecture", "plan-writer": "plan writing",
   "rookie-dev": "implementation", "test-inspector": "test check", qa: PASS_NAME, "code-reviewer": "code check", "documentation-reviewer": "documentation review" };
@@ -114,6 +130,8 @@ const OLDER = [
   [/\b([Hh]alted|[Hh]eld\s+still)\s+(at|from|during|in)\s+the\s+(Correction|Resolution)(?:\s+of\s+Quality\s+Review\s+#?\d+)?(?![-\w])(?!\s+of\b)/g, (m, a, b, r) => `${a} ${b} ${r}`],
   [/\b(?:(the|a|an|each|every|this)\s+)?(?:remediation\s+(?:loop|pass)|loop\s+of\s+remediation)(s?)\b/gi, (m, art, pl, ctx) => `${art ? art.replace(/^an$/i, "a") + " " : ""}${routeName(ctx.route)}${pl}`],
   [/\bdocument-landing\s+commit\b/gi, m => cap("Document commit", m).replace(/^document/, "Document")],
+  /* a findings line with its kinds before its severities (admin-team/dashboards/call-5): the severities first */
+  [FINDINGS_OLD, (m, n, noun, kinds, sevs) => findingsReordered(n, noun, kinds, sevs)],
 ];
 /* the parts of a text outside code spans (`…`, <code>…</code>): code is not wording */
 const CODE = /(`[^`\n]*`|<code\b[^>]*>[\s\S]*?<\/code>)/gi;
@@ -178,5 +196,5 @@ function renamePasses(plan) {
 }
 
 module.exports = { PASS_NAME, REVIEW, passName, passNames, STEP_NAME, ROUTE_NAME, routeName, remediationName, stepName, STEP_WORDS, stepWords, haltWords, haltName, TASK_NAME, ROUTE_WORDS,
-  REMEDIATION_NOTE, inPlaceWords, findingsTotal, findingsWords, NOTE_WORK, PROGRESS_NOTE, EVENT_STEP, raisedWords, PASS_RE,
+  REMEDIATION_NOTE, inPlaceWords, FINDING_KINDS, FINDING_SEVERITIES, findingsTotal, findingsWords, NOTE_WORK, PROGRESS_NOTE, EVENT_STEP, raisedWords, PASS_RE,
   renamePassText, passRefs, passRefsIn, renamePassesIn, renamePasses, ctxOf };

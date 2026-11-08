@@ -49,7 +49,7 @@ module.exports = function casesBoardWording(X) {
     const ip = [{ pass: 1, inPlace: "fixed" }, { pass: 2, inPlace: "fixing" }].map(p => [N.inPlaceWords(p), W.inPlaceWords(p), PN.inPlaceWords(p)]);
     c.push(["the in-place mark: \"fixed in place · no additional review\", the same on every board", ip.every(([a, b, d]) => a === b && b === d) && ip[0][2] === "fixed in place · no additional review" && ip[1][2] === "fixing in place · no additional review", js(ip)]);
     c.push(["the Document step's commit task is named \"Document commit\" (lib.js DOC_TASKS)", lib.DOC_TASKS.find(t => t[0] === "document-landing")[1] === "Document commit" && PN.TASK_NAME["state-boards"] === "State boards", js(lib.DOC_TASKS.slice(-2))]);
-    c.push(["what a pass returns, its findings: \"18 findings (10 documentation, 8 test)\"", PN.findingsWords({ documentation: 10, test: 8, code: 0 }) === "18 findings (10 documentation, 8 test)" && PN.findingsWords({ code: 1 }, { minor: 1 }) === "1 finding (1 code; 1 minor)" && PN.findingsWords({ code: 0 }) === "", PN.findingsWords({ documentation: 10, test: 8, code: 0 })]);
+    c.push(["what a pass returns, its findings: \"18 findings (10 documentation, 8 test)\"", PN.findingsWords({ documentation: 10, test: 8, code: 0 }) === "18 findings (10 documentation, 8 test)" && PN.findingsWords({ code: 1 }, { minor: 1 }) === "1 finding (1 minor; 1 code)" && PN.findingsWords({ code: 0 }) === "", PN.findingsWords({ documentation: 10, test: 8, code: 0 })]);
   });
 
   guard("the older wording, reworded wherever a board holds it; code, ids and titles left as written", c => {

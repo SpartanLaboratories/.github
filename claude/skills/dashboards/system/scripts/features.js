@@ -300,7 +300,7 @@ const FEATURES = [
      event, the splice); a landed issue board is kept as it landed (§11). */
   { id: "halt-fix-step", name: "a halt during a fix step named by its route alone, \"Correction\" or \"Resolution\", never its pass (the step panel's wait line, a unit's run line, the waiting card's resumes-at)", since: 50, types: ["plan-board"],
     notFor: { system: "no run: a state board shows the code at a commit, not a run's halts", supersystem: "no run: a state board shows the code at a commit, not a run's halts", "work-board": "one row per run: a halted row shows the step \"Waiting on you\" and one line of what it waits on, never the step it halted in; the text it carries comes from board.json, which board.js words so" },
-    test: h => { const s = scripts(h); return need(/const haltLabel=\(s,c\)=>s==="remediation"\?routeName\(c&&c\.route\):stepLabel\(s,c\);/.test(s) && /Held still at \$\{esc\(S\?haltLabel\(S,runCtx\(R\)\):"its step"\)\}/.test(s) && /k==="halted"\?\(L\.resume\?`<span>at \$\{esc\(haltLabel\(L\.resume,runCtx\(L\)\)\)\}/.test(s) && /const resumeAt=\(s,c\)=>s==="remediation"\?haltLabel\(s,c\):s;/.test(s) && /its run resumes at \$\{esc\(resumeAt\(L\.resume,runCtx\(L\)\)\)\}/.test(s),
+    test: h => { const s = scripts(h); return need(/const haltLabel=\(s,c\)=>s==="remediation"\?routeName\(c&&c\.route\):stepLabel\(s,c\);/.test(s) && /Held still at \$\{esc\(S\?haltLabel\(S,runCtx\(R\)\):"its step"\)\}/.test(s) && /k==="halted"\?\(L\.resume\?`<span>at \$\{esc\(haltLabel\(L\.resume,runCtx\(L\)\)\)\}/.test(s) && /const resumeAt=\(s,c\)=>(?:s==="remediation"\?haltLabel\(s,c\):s|haltLabel\(s,c\));/.test(s) && /its run resumes at \$\{esc\(resumeAt\(L\.resume,runCtx\(L\)\)\)\}/.test(s),
       "a halt during a fix step is named with the pass it answers (\"Held still at Correction of Quality Review 2\"): no haltLabel() in the names block, the step panel's wait line, a unit's run line or the waiting card's resumes-at"); } },
   /* the user's nomenclature decisions of 2026-11-07 (nomenclature/ui.md: "glow" retired; the Pulse marks and the Ring), dated 48: the marks'
      classes carry their type word on an issue or tracking board and the repository work board (nomenclature/boards.md, "Board UI"): the
@@ -329,6 +329,27 @@ const FEATURES = [
       if (k === "work-board") return need(/const blockerRef=x=>x\.issue!=null\?ilink\(x\.issue,x\.repo\):/.test(s) && /blocked by \$\{r\.blockedBy\.map\(blockerRef\)/.test(s), "the up-next \"blocked by\" tag reads a blocker as an issue number only (blockerRef())");
       return need(/const blockerOf=x=>\{ if\(x&&typeof x==="object"&&Number\.isInteger\(x\.unit\)\)/.test(s) && /const bref=x=>/.test(s) && /units\.forEach\(r=>deps\(r\)\.forEach\(/.test(s) && /function openBlockers\(r\)\{[^\n]*blockersOf\(r\)/.test(s),
         "a unit's blockers are read as issue numbers only: no arrow, \"depends on\" or \"blocked by\" for a unit not filed yet (blockerOf(), blockersOf(), bref(), the Landing Order's deps())"); } },
+  /* admin-team/dashboards/call-5 (the user's decision of 2026-11-06, "Call 5"), dated 51: a Quality Review's findings line orders the count,
+     then the severities, then the kinds, "18 findings (2 minor, 16 other; 3 documentation, 15 code)", each zero left out (the names block's
+     findingsWords(), which is passnames.js findingsWords()): the step panel's Quality Review cards (a unit's through its mirror) and the WIP
+     panel's Quality Review Pills. The trail and the details are the data's: apply-event.js writes the line so and every rewrite rewords the
+     order before it. A board drawn before it shows the two lines it drew until its next rebuild (its next event, the splice); a landed issue
+     board is kept as it landed (§11). */
+  { id: "findings-line", name: "a Quality Review's findings line: the count, then the severities, then the kinds, \"18 findings (2 minor, 16 other; 3 documentation, 15 code)\" (the step panel's Quality Review cards, the WIP panel's Quality Review Pills)", since: 51, types: ["plan-board"],
+    notFor: { system: "no run: a state board shows the code at a commit, not a run's Quality Reviews", supersystem: "no run: a state board shows the code at a commit, not a run's Quality Reviews", "work-board": "one row per run: its Quality Reviews are Pills with no findings line; the text a row carries comes from board.json, which board.js rewords into the order" },
+    test: h => { const s = scripts(h); return need(/const FINDING_KINDS=\["documentation","test","code"\], FINDING_SEVERITIES=\["minor","other"\];/.test(s) && /const findingsWords=\(f,sev,zero\)=>/.test(s) && /function qaBlock\(p,keys\)\{ const d=QA\[p\.verdict\]\|\|QA\.running, fl=findingsWords\(p\.findings,p\.severity,true\);/.test(s) && /const d=QA\[p\.verdict\]\|\|QA\.running, fl=findingsWords\(p\.findings,p\.severity,true\); return `\$\{pill\(d,"",/.test(s) && !/finding\$\{nf===1\?"":"s"\} by kind:/.test(s),
+      "a Quality Review's findings drawn in two lines, the kinds first (\"18 findings by kind: 3 doc · 15 code\", \"by severity: 2 minor · 16 other\"): no findingsWords() in the names block, the step panel's Quality Review card or the WIP panel's Pills"); } },
+  /* admin-team/dashboards/call-5, two defects, dated 51: a run's step by its name, never its id, where a line still showed the id: the
+     "waiting on you" card's "resumes at" ("its run resumes at Implementation", a fix step by its route alone as before) and a tracking
+     board's chain summary ("#47 in progress (Correction of Quality Review 2)", as the unit's run Pill names it); on the repository work
+     board, the chain summary's fix step by the route board.js records for the unit ("in progress (Resolution)"). A board drawn before it
+     shows the id until its next rebuild (its next event, board.js --refresh-template); a landed issue board is kept as it landed (§11). */
+  { id: "run-step-names", name: "a run's step by its name where a line showed its id: the waiting card's \"resumes at\" and a tracking issue's chain summary (\"#47 in progress (Plan)\")", since: 51, types: ["plan-board", "work-board"],
+    notFor: { system: "no run: a state board shows the code at a commit, not a run's steps", supersystem: "no run: a state board shows the code at a commit, not a run's steps" },
+    test: (h, k) => { const s = scripts(h);
+      if (k === "work-board") return need(/const unitRunWord=u=>[^\n]*stepLabel\(u\.step,\{route:u\.route\|\|null\}\)/.test(s), "the chain summary names a unit's fix step \"Correction\" whatever its route (no route in unitRunWord())");
+      return need(/const resumeAt=\(s,c\)=>haltLabel\(s,c\);/.test(s) && /const runWord=r=>\{[^\n]*`in progress\$\{L\.step\?` \(\$\{esc\(stepLabel\(L\.step,runCtx\(L\)\)\)\}\)`:""\}`/.test(s),
+        "a run's step shown by its id (\"resumes at implementation\", \"in progress (remediation)\"): resumeAt() or the chain summary's runWord() without stepLabel()"); } },
 ];
 /* The layout detectors, run in the browser pass (check-board.js's probe), named here so the report and the rules list them. */
 const LAYOUT = [

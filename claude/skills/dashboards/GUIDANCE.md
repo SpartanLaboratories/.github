@@ -328,7 +328,14 @@ scripts' summaries and the template's code (the progress notes' file names are t
 **A qa pass is named "Quality Review N"** (admin-team/dashboards-skill/quality-review-label, admin-team/dashboards-skill/board-wording).
 A board shows the qa step as "Quality Review" and names each pass of it "Quality Review N" ("Quality Review 1 · approved", "Answering
 Quality Review 2"), never "qa pass N" or an ordinal; a pass named with no number is a "review" ("no additional review", "the next review",
-"the review approved"), and what a pass returns is its "findings" ("Quality Review 1: 18 findings"). The step that acts on the findings is
+"the review approved"), and what a pass returns is its "findings" ("Quality Review 1: 18 findings"). **Its findings line** orders the
+count, then the severities, then the kinds (admin-team/dashboards/call-5): "18 findings (2 minor, 16 other; 3 documentation, 15 code)",
+the severities minor, then other (a qa report's own words after them, as it wrote them), the kinds documentation, test, code, each zero
+left out, the count the kinds' sum (the severities' where no kind is counted); a pass that counted none reads "0 findings" in its card.
+One line wherever a pass's findings are worded — the trail entry and the detail `apply-event.js` writes, the step Panel's Quality Review
+card, the WIP Panel's Quality Review Pills, a tracking board's mirror of a unit's run — from `passnames.js` `findingsWords()` and the
+templates' copy of it; the order before it ("18 findings (3 documentation, 15 code; 2 minor, 16 other)") is an older wording, reworded
+by every rewrite as below. The step that acts on the findings is
 named by its route: a "Correction" for the `on-the-spot` and `remediation` routes, a "Resolution" for `re-plan-then-remediation` (a route
 not recorded yet reads "Correction"); the one answering Quality Review 1 stands bare, a later one names the pass it answers ("Correction of
 Quality Review 2"), and none is called a "loop". A halt during it names it by its route alone, with no pass: "Halted at Correction",
@@ -339,7 +346,8 @@ Document step's commit task by "Document commit", and an open point's "raised" b
 stage 3", "raised at Document"). The ids stay as they are: `qa`, `remediation`, `state-boards` and `document-landing` in the data and the
 events. The names are the scripts' and the templates', never free text's (`plan/scripts/passnames.js`, the templates' names block):
 `apply-event.js` composes every name it writes and rewords an older wording ("qa pass N", "no new qa pass", "qa next", "Halted at qa",
-"Remediation for …", "the remediation loop", "Halted at the Correction of Quality Review 2", "Document-landing commit") in any text it takes from the facts, every rewrite of a board
+"Remediation for …", "the remediation loop", "Halted at the Correction of Quality Review 2", "Document-landing commit", a findings line
+with its kinds before its severities) in any text it takes from the facts, every rewrite of a board
 (`lib.js` `resolveBoard()`: `apply-event.js`, `embed.js`, `fill.js`, `new.js`) rewords the older wording the board already holds, and
 `board.js` rewords the repository work board it generates. `plan/scripts/check.js` fails a board not landed, and the repository work
 board, that still holds an older wording (`BOARD WORDING`), and warns on a landed one, kept as it landed until something rewrites it. An
@@ -840,6 +848,31 @@ refresh on its branch: the committed repository work board, and the repository s
   it waits on, never the step it halted in, and the text it carries comes from `board.json`, which `board.js` rewords as it generates it.
   Not to the state boards: as-is, no run and no halt. A landed board keeps its rendering and its wording (§11, "Re-rendering"; `check.js`
   warns); a board in flight takes it at its next event.
+
+**The decision of admin-team/dashboards/call-5** (the user's decision of 2026-11-06, "Call 5", dated dashboards-skill/51), weighed for every type:
+
+- **A Quality Review's findings line: the count, then the severities, then the kinds** (§4, "A qa pass is named "Quality Review N""):
+  "18 findings (2 minor, 16 other; 3 documentation, 15 code)", each zero left out. Applied to issue boards and tracking boards: the
+  detail and the trail entry `apply-event.js` writes at a returned pass (`passnames.js` `findingsWords()`), the step Panel's Quality
+  Review card (one line where it drew "by kind:" and "by severity:" apart, the kinds abbreviated), the WIP Panel's Quality Review Pills,
+  and a tracking board's step Panel of a unit's run (its mirror, `unit.live`), drawn with the same card. The text a board carries in the order before it is
+  reworded by every rewrite and failed in flight (`BOARD WORDING`). Held by the `findings-line` probe. To the repository work board as
+  text only: its Rows draw each pass as a Pill with no count, and the detail a Row carries is reworded by `board.js` as it generates
+  `board.json`. The Quality Reviews Tile counts no findings (its slots and sub-line show each pass's result), so nothing there changes.
+  Not to the state boards: as-is, no run and no Quality Review.
+
+**Two defects with it** (dated dashboards-skill/51):
+
+- **A run's step by its name where a line still showed its id**: the "waiting on you" Card's "resumes at" ("its run resumes at
+  Implementation", never "implementation"; a fix step by its route alone, as call-3 set out) and a tracking board's chain summary ("#47
+  in progress (Plan)", a unit at its fix step named as its run Pill names it, "in progress (Correction of Quality Review 2)"). Applied to
+  issue boards and tracking boards (the names block's `stepLabel()`, `haltLabel()`), and to the repository work board's chain summary,
+  which named every unit's fix step "Correction": `board.js` now records the route of a unit at its fix step in the chain
+  (`chain.current[].route`), so it reads "in progress (Resolution)" where the route is a re-plan. Held by the `run-step-names` probe. Not
+  to the state boards: no run.
+
+  A landed board keeps its rendering and its wording (§11, "Re-rendering"; `check.js` warns); a board in flight takes both at its next
+  event, the committed repository work board at the Document step's state-boards task.
 
 **The decision of admin-team/dashboards/inspector-hide-button** (the user's decision of 2026-11-07, dated dashboards-skill/46), weighed for every type:
 

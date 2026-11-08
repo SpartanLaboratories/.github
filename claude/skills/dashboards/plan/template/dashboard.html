@@ -1148,6 +1148,13 @@ function raisedWords(raised){ const s=String(raised==null?"":raised).trim(); if(
   const st=EVENT_STEP[s]||(STEP_NAME[s]?s:null); return st?`raised at ${stepLabel(st)}`:`raised at ${s}`; }
 const inPlaceWords=p=>p&&p.inPlace?`${p.inPlace==="fixing"?"fixing":"fixed"} in place · no additional ${REVIEW}`:"";
 const findingsTotal=f=>Object.values(f||{}).filter(n=>Number.isInteger(n)&&n>=0).reduce((a,b)=>a+b,0);
+/* a Quality Review's findings line (dashboards-skill/51; passnames.js findingsWords()): the count, then the severities (minor,
+   other), then the kinds (documentation, test, code), each zero left out, "18 findings (2 minor, 16 other; 3 documentation, 15 code)" */
+const FINDING_KINDS=["documentation","test","code"], FINDING_SEVERITIES=["minor","other"];
+const findingParts=(m,order)=>{ const r=k=>order.indexOf(k)<0?order.length:order.indexOf(k); return Object.entries(m&&typeof m==="object"?m:{}).filter(([,n])=>Number.isInteger(n)&&n>0).sort((a,b)=>r(a[0])-r(b[0])).map(([k,n])=>`${n} ${k}`); };
+const findingsWords=(f,sev,zero)=>{ const sv=findingParts(sev,FINDING_SEVERITIES), kinds=findingParts(f,FINDING_KINDS), t=findingsTotal(f)||findingsTotal(sev);
+  const counted=[f,sev].some(m=>m&&typeof m==="object"&&Object.values(m).some(n=>Number.isInteger(n)&&n>=0));
+  return t||sv.length||(zero&&counted)?`${t} finding${t===1?"":"s"}${sv.length||kinds.length?` (${[sv.join(", "),kinds.join(", ")].filter(Boolean).join("; ")})`:""}`:""; };
 /* names:end */
 /* a run's remediation (wip, or a unit's mirror): its route and the pass it answers, the recorded ones else the last pass that requested changes */
 function runCtx(R){ R=R||{}; const M=R.remediation&&typeof R.remediation==="object"?R.remediation:null, cr=(Array.isArray(R.qa)?R.qa:[]).filter(p=>p&&p.verdict==="changes-requested"), last=cr[cr.length-1];
@@ -1433,11 +1440,12 @@ const stepTitle=(s,c)=>!s?"—":stepLabel(s,c);
 function spList(items){ return items.length?`<ol class="sp-list">${items.join("")}</ol>`:""; }
 const spItem=(cls,mark,body,sub)=>`<li class="${cls}">${mark}<span class="q">${body}${sub?`<small>${sub}</small>`:""}</span></li>`;
 const dotMark=`<span class="dot" aria-hidden="true"></span>`;
-function qaBlock(p,keys){ const d=QA[p.verdict]||QA.running, f=p.findings||{}, sv=p.severity||{};
-  const kinds=["documentation","test","code"].filter(k=>f[k]!=null).map(k=>`${f[k]} ${k==="documentation"?"doc":k}`).join(" · "), sev=Object.entries(sv).map(([k,n])=>`${n} ${k}`).join(" · ");
+/* a Quality Review's card: its verdict, its findings line (findingsWords(): "18 findings (2 minor, 16 other; 3 documentation, 15 code)",
+   "0 findings" where it counted none), its route, its note and its test report */
+function qaBlock(p,keys){ const d=QA[p.verdict]||QA.running, fl=findingsWords(p.findings,p.severity,true);
   keys.add(`<span>${pill(d)} ${REVIEW} verdict</span>`);
-  const rt=ROUTE[p.route], nf=findingsTotal(f);
-  return `<div class="sp-pass ${p.verdict==="approved"?"good":p.verdict==="changes-requested"?"critical":"run pend"}"><div class="ph">${esc(passName(p.pass))} ${pill(d)}${p.date?` <span class="nw">${when(p.date)}</span>`:""}</div>${kinds?`<small>${nf} finding${nf===1?"":"s"} by kind: ${esc(kinds)}</small>`:""}${sev?`<small>by severity: ${esc(sev)}</small>`:""}${rt?`<small>route: ${esc(rt.label)}</small>`:""}${p.note?`<small>${rich(p.note)}</small>`:""}${p.report?`<small>the test report: <code>${esc(p.report)}</code> (a build output, not committed)${liveCopyLink(p.reportCopy,"its copy")}</small>`:""}</div>`; }
+  const rt=ROUTE[p.route];
+  return `<div class="sp-pass ${p.verdict==="approved"?"good":p.verdict==="changes-requested"?"critical":"run pend"}"><div class="ph">${esc(passName(p.pass))} ${pill(d)}${p.date?` <span class="nw">${when(p.date)}</span>`:""}</div>${fl?`<small>${esc(fl)}</small>`:""}${rt?`<small>route: ${esc(rt.label)}</small>`:""}${p.note?`<small>${rich(p.note)}</small>`:""}${p.report?`<small>the test report: <code>${esc(p.report)}</code> (a build output, not committed)${liveCopyLink(p.reportCopy,"its copy")}</small>`:""}</div>`; }
 /* The questions put to you (plan/RULES.md §3, "The step panel"; dashboards-skill/45): the interview's
    (wip.interview) and a halt's in any other step (wip.asked), drawn alike: each with the options it offers, answered (its answer's gist, or
    when the answer came) or waiting on you, and the count. A question is answered once it has its gist or its answered time (the event that
@@ -1455,8 +1463,9 @@ const askedShown=(R,S)=>(Array.isArray(R&&R.asked)?R.asked:[]).filter(q=>q&&type
 const askedBlock=(list,keys)=>list.length?`<div class="sp-asked">${questionsHtml(list,keys,"asked","Asked at the halt")}</div>`:"";
 /* the questions a halted run waits on, for the "waiting on you" card: the interview's while it halted there, else the halt's */
 const waitingQs=R=>{ const S=R&&R.step==="halted"?R.resume:null; if(!S) return []; return (S==="interview"?(Array.isArray(R.interview)?R.interview:[]):askedShown(R,S)).filter(q=>q&&q.text&&!qAnsweredOf(q)); };
-/* the step a halted run resumes at, on the "waiting on you" card: a fix step by its route alone (haltLabel(); dashboards-skill/50), every other step as it was written */
-const resumeAt=(s,c)=>s==="remediation"?haltLabel(s,c):s;
+/* the step a halted run resumes at, on the "waiting on you" card: a fix step by its route alone (haltLabel(); dashboards-skill/50), every
+   other step by its name, "Implementation", "Architecture", never its id (dashboards-skill/51, dated 51) */
+const resumeAt=(s,c)=>haltLabel(s,c);
 const PANEL={
   sizing:R=>`<p>The issue is being sized: its systems and how much planning it takes.</p>${R.detail?`<p>${rich(R.detail)}</p>`:""}`,
   interview:(R,o,keys)=>{ const iv=Array.isArray(R.interview)?R.interview.filter(q=>q&&q.text):[];
@@ -1711,7 +1720,7 @@ const KEY_CHG=()=>`<span><i class="chg"></i>charging arrow: its verdict being wr
 
 /* ---------- Header, chips ---------- */
 /* The chain's progress (tracking boards, plan/RULES.md §3): in place of a status that reads "building" from the first unit's start to
-   the last unit's landing, "1 of 11 landed · #47 in progress (plan) · #62 up next". Units dropped or deferred are counted apart,
+   the last unit's landing, "1 of 11 landed · #47 in progress (Plan) · #62 up next". Units dropped or deferred are counted apart,
    not in the total. Each unit in wip.current carries its own run's step from its mirror (unit.live), so the chip follows every
    event of the unit's run; a unit whose run waits reads "waiting on you". The unit up next is tagged with each blocker that has not
    landed. Before any unit starts: "planned · 11 units"; once all have landed: "landed · 11 of 11". Every #n is a lone #n: it opens
@@ -1725,7 +1734,7 @@ function chainCounts(){ const units=ROWS.filter(r=>r.unit), out=k=>count(units,r
 function chainChip(){ const {units,landed,M,extra}=chainCounts();
   const cur=LANDED||STOPPED?[]:units.filter(rowActive);
   const done=LANDED||(M>0&&landed===M), started=landed>0||cur.length>0||units.some(r=>stateOf(r)==="complete");
-  const runWord=r=>{ const L=runOf(r); if(!L) return "in progress"; const k=runKind(L); return k==="halted"?"waiting on you":k==="escalated"?"escalated":k==="cancelled"?"run cancelled":`in progress (${esc(L.step||"?")})`; };
+  const runWord=r=>{ const L=runOf(r); if(!L) return "in progress"; const k=runKind(L); return k==="halted"?"waiting on you":k==="escalated"?"escalated":k==="cancelled"?"run cancelled":`in progress${L.step?` (${esc(stepLabel(L.step,runCtx(L)))})`:""}`; }; /* the unit's step by its name, as its run Pill names it (dashboards-skill/51) */
   const u=r=>r.unit.issue?ilink(r.unit.issue):esc(r.unit.slug||r.id);
   let txt;
   if(done) txt=[`<b>landed</b> · ${landed} of ${M}`,...extra];
@@ -1829,7 +1838,7 @@ function renderWip(){
   /* the board's own facts: its Quality Reviews, its blockers, its landing */
   const facts=[];
   const qa=LANDED||STOPPED?qaInPlace(WIP,(Array.isArray(WIP.qa)?WIP.qa:[]).filter(p=>p&&typeof p==="object"),true):qaShown(WIP);
-  if(qa.length) facts.push(`<span><span class="l">${PASS_NAME}s</span>${qa.map(p=>{ const d=QA[p.verdict]||QA.running, f=p.findings||{}, nf=findingsTotal(f); const n=["documentation","test","code"].filter(k=>f[k]!=null).map(k=>`${f[k]} ${k==="documentation"?"doc":k}`).join(" / "), sv=Object.entries(p.severity||{}).map(([k,c])=>`${c} ${k}`).join(" / "); return `${pill(d,"",`${passName(p.pass)} · ${d.label}`)}${n?` <small>${nf} finding${nf===1?"":"s"}: ${esc(n)}</small>`:""}${sv?` <small>${esc(sv)}</small>`:""}${p.inPlace?` ${inPlaceMark(p)}`:""}`; }).join(" ")}${WIP.qaMax?` <small>of at most ${esc(WIP.qaMax)}</small>`:""}</span>`);
+  if(qa.length) facts.push(`<span><span class="l">${PASS_NAME}s</span>${qa.map(p=>{ const d=QA[p.verdict]||QA.running, fl=findingsWords(p.findings,p.severity,true); return `${pill(d,"",`${passName(p.pass)} · ${d.label}`)}${fl?` <small>${esc(fl)}</small>`:""}${p.inPlace?` ${inPlaceMark(p)}`:""}`; }).join(" ")}${WIP.qaMax?` <small>of at most ${esc(WIP.qaMax)}</small>`:""}</span>`);
   /* what the run depends on, each with its pill, and what it holds up: blocks while the issue is open, enables once it has landed */
   const bl=WIP.blockers||{}, iref=x=>x.repo&&x.repo!==PLAN.repo?ilink(x.issue,x.repo):ilink(x.issue), holdK=PLAN.status==="built"?"enables":"blocks";
   if((bl.waitsOn||[]).length) facts.push(`<span><span class="l">depends on</span><span class="deplist">${bl.waitsOn.map(x=>`<span>${iref(x)} ${depPill(x)}</span>`).join("")}</span></span>`);

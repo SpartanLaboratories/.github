@@ -411,10 +411,11 @@ const holdOf=(x,r)=>HOLD[x.hold]?x.hold:r.state==="CLOSED"||stOf(r)==="landed"?"
 const pill=(d,word,extra)=>`<span class="verdict-pill ${d.c}${d.d?" dashed":""}${d.h?" hollow":""}${extra||""}"><i aria-hidden="true">${d.g}</i>${esc(word||d.l)}</span>`;
 const stOf=r=>STATUS[r.status]?r.status:"no-board";
 /* A tracking issue's state cell shows its chain's progress instead of a bare "building" (plan/RULES.md §3, "The chain's progress"):
-   "1 of 11 landed · #47 in progress (plan) · #62 up next", with a thin bar of units landed; "planned · 11 units" before any unit
+   "1 of 11 landed · #47 in progress (Plan) · #62 up next", with a thin bar of units landed; "planned · 11 units" before any unit
    starts; "landed · 11 of 11" once all have landed. A unit whose run waits reads "waiting on you". A halted, escalated or cancelled
-   tracking issue keeps its pill above the summary. */
-const unitRunWord=u=>u.step==="halted"?"waiting on you":u.step==="escalated"?"escalated":u.step==="cancelled"?"run cancelled":`in progress${u.step?` (${esc(stepLabel(u.step))})`:""}`;
+   tracking issue keeps its pill above the summary. A unit at its fix step is named by the route board.js records for it, "Correction"
+   or "Resolution" (dashboards-skill/51). */
+const unitRunWord=u=>u.step==="halted"?"waiting on you":u.step==="escalated"?"escalated":u.step==="cancelled"?"run cancelled":`in progress${u.step?` (${esc(stepLabel(u.step,{route:u.route||null}))})`:""}`;
 function chainText(c){ const extra=[c.dropped?`${c.dropped} dropped`:"",c.deferred?`${c.deferred} deferred`:"",c.left?`${c.left} left for later`:""].filter(Boolean);
   if(c.done) return [`<b>landed</b> · ${c.landed} of ${c.total}`,...extra].join(" · ");
   if(c.planned) return [`<b>planned</b> · ${c.total?`${c.total} unit${c.total===1?"":"s"}`:"no units yet"}`,...extra].join(" · ");
