@@ -14,7 +14,7 @@ Exempt are repositories kept for reference only, on which no work is done, and e
 | Dokka javadoc jar | Every library |
 | Project site, on GitHub Pages unless the repository is hosted elsewhere | Every repository |
 | Landing page | Every repository |
-| API reference at `/api/` | Every repository with Kotlin source |
+| API reference at `/api/`, or at `/docs/api/` where the site already uses `/api` | Every repository with Kotlin source |
 | Dokka job in CI | Every repository with Kotlin source |
 | Organization branding | Every repository |
 
@@ -48,7 +48,8 @@ A CI job runs `./gradlew dokkaGeneratePublicationHtml` on each build, so a broke
 - On GitHub Pages, a `pages.yml` workflow deploys the site through GitHub Actions on each push to the default
   branch. The repository's Pages source is set to GitHub Actions.
 - The workflow copies `website/` to the site root and the aggregated Dokka output, from
-  `build/dokka/html`, to `/api/`. It fails if that output is missing.
+  `build/dokka/html`, to `/api/`, or to `/docs/api/` where the site already uses `/api`. It fails if
+  that output is missing.
 - The workflow adds a `.nojekyll` file, because Dokka writes names that start with an underscore.
 - Deployments do not cancel one another, so that a cancelled run cannot leave the site out of date.
 
