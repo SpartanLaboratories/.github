@@ -40,7 +40,7 @@ Every convention plugin that configures publishing sets this, a multiplatform on
 
 ## Continuous integration
 
-A CI job runs `./gradlew dokkaGeneratePublicationHtml` on each build, so a broken KDoc link fails it.
+A CI job runs `./gradlew dokkaGeneratePublicationHtml` on each build. Every Dokka configuration, the root aggregate and each module, sets `dokkaPublications.configureEach { failOnWarning.set(true) }`, because without it a broken KDoc link is only a warning and the build passes.
 
 ## The site
 
