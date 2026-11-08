@@ -4,6 +4,9 @@ The SpartanLaboratories standard for API documentation and project websites. It 
 repository of the organization and of its sub-organizations, including SpartanLabsGaming.
 [MyGameTools](https://github.com/SpartanLabsGaming/MyGameTools) is the worked example.
 
+Exempt are repositories kept for reference only, on which no work is done, and each organization's
+`.github` repository.
+
 ## What each repository has
 
 | Requirement | Applies to |
