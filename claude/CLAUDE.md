@@ -330,6 +330,12 @@ opportunistically mid-phase. Weigh, per surface, how much a consumer actually ga
 stability and invariant-safety of leaving it shut; record the decision with its reasoning; and
 batch the ones decided "open" into the next major release, where breaking changes already ride.
 
+## API documentation and project sites
+
+Every repository of the organization and its sub-organizations follows the standard in
+`documentation/dokka.md` of [`SpartanLaboratories/.github`](https://github.com/SpartanLaboratories/.github/blob/main/documentation/dokka.md):
+a Dokka javadoc jar for libraries, and a GitHub Pages site with a landing page for every repository.
+
 ## Commenting & Documentation — Audience-Reach Model
 
 Choose the documentation form by **how far the reader is from the code**. Each concentric
