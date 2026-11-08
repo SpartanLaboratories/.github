@@ -245,7 +245,7 @@ types, threads, tests), not states, so there is nothing a Bar would divide.
 
 **Sections.** The Guarantees and the Context are Panels too: each carries a Legend under its guarantee Cards or its Cards, generated from what
 they draw (the system swatches, a planned Row dashed, a gap, the test-level Bars' one neutral series, the Badges and their meaning, a
-tracking issue's chain Bar, a board's unit states), and none where they draw no encoding.
+tracking issue's chain StepBar's states, a board's unit states), and none where they draw no encoding.
 
 **Ledes.** The Legend says what the encodings mean, so a Tab's lede does not: it is at most one
 short line, and only for what the graphic and its Legend do not show (what to click, a fact the
@@ -536,7 +536,7 @@ to #n", the structure map's recorded height, a
 issue board's finished steps clickable, each unit Row's label carrying its own FullPulse while it is filed, the Timeline Tile's figure the sum of
 its visits, an issue's title quoted and marked, every Quality Review and the one running, each by its number, every name from the template's names block (the
 steps, the Quality Reviews and what follows them; §4), the classes that carry their element's type (`.kpi-tile`, `.verdict-pill`, `.legend`,
-`.c4-legend`), the marks' classes (`.fullpulse`, `.upnext-ring`, `.fillpulse`), the dependency DualStatePills, the CodeLabel, an option's signature beneath its name, a step's files nested by their folders, the Verdict's section Chip and count Labels, a unit's PR and merge Chips — and
+`.c4-legend`), the marks' classes (`.fullpulse`, `.upnext-ring`, `.fillpulse`), the dependency DualStatePills, the CodeLabel, an option's signature beneath its name, a step's files nested by their folders, the Verdict's section Chip and count Labels, a unit's PR and merge Chips, the StepBar — and
 the browser pass, on a board that gets one, the layout ones (the header's halves, the wide board, the Legends shown). A missing feature fails, as `FEATURE MISSING:
 <feature> (template since dashboards-skill/N)`, **through a declared divergence too**: a divergence adds or argues a removal; it never
 excuses a board that lags its template. A landed or cancelled issue board is the exception: it is kept as it landed and never
@@ -955,6 +955,29 @@ on 2026-11-07), each weighed for every type:
 
 A landed board keeps its rendering (§11, "Re-rendering"); a board in flight takes the three marks at its next event, and the warning at its
 next check.
+
+**The decision of dashboards-skill/54** (the user's decisions of 2026-11-06 and 2026-11-07: the chain indicator a Bar kind named StepBar,
+labelled chevrons in order, each done, current or to come; the WIP strip's container a Panel and the strip itself the StepBar), weighed
+for every type:
+
+- **The StepBar** (`../../nomenclature/ui.md`, StepBar; `../../nomenclature/boards.md`, "Board UI"; `plan/RULES.md` §3, "The strip is a
+  StepBar"): the steps of a sequence in order, each a chevron with its name inside, on a line of its own; done solid in the strong
+  neutral, current solid, ink and bold, to come dashed and muted; an ordered list, the current step `aria-current="step"`, each state
+  said in words to a screen reader; tokens only, so light and dark follow the board's palette; wrapping inside itself at 390 px, a long
+  name inside its chevron, never widening the board. One CSS block, the same in the four templates. Applied to issue boards (the
+  progress strip, the step names inside, the current step carrying the FullPulse, the Ring alone while the run waits on you, as the
+  strip's dot did; a finished step's Button inside its chevron, the one shown ringed in ink), to tracking boards (their own steps on the
+  phase's Card and each unit's run on its Card, the same StepBar), to the repository work board (a tracking issue's units, one chevron per
+  unit with its name, on a row of their own under its Row, in place of the thin Bar of units landed; unmarked, as the unit at work
+  carries its FullPulse on its own Row; `board.js` writes `chain.units`) and to system, supersystem and repository state boards (a
+  tracking issue's chain on the roadmap, one chevron per unit with its name under the roadmap item, in place of the thin Bar; unmarked, as
+  a state board draws no work in progress; the names written into the chain's markup, `system/RULES.md` §6). Held by the `stepbar`
+  probe and `verify/cases-stepbar.js`, with the StepBar's marks in the `verify/fixtures/mark-classes/` fixture. Not applied, by the
+  decision's own list: the step Panel's research StepBar (`plan/RULES.md` §3: its dots kept), and a tracking board's header Chip of the
+  chain's progress with its phase Card's thin Bar and chain of unit Labels (the chain there is already drawn unit by unit, with its marks).
+  A landed board keeps its rendering (§11, "Re-rendering"); a board in flight takes it at its next event, the live repository work board
+  at its next regeneration, the committed one and the state boards at the Document step's state-boards task (the splice; a state board's
+  chain markup gains its units' names when the state-boards job next writes its roadmap, its units numbered until then).
 
 ## 12. Elements — one name per function
 

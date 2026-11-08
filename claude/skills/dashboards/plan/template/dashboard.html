@@ -157,6 +157,26 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .steps li.todo .dot{background:none;border:2px dashed var(--muted)}
 .steps li.cur{color:var(--ink);font-weight:700}
 .steps li.cur .dot{background:var(--accent);border-color:var(--accent)}
+/* The StepBar (nomenclature/ui.md, StepBar; dashboards-skill/54): the steps of a sequence in order, each a chevron with its name inside,
+   done, current or to come. An ordered list, the current step aria-current="step", each step's state said in words to a screen reader
+   (.sb-st). It stands on a line of its own and wraps inside itself at phone width, never widening the board; a long name wraps inside its
+   chevron. Done: solid, the strong neutral with a faint wash; current: solid, in ink and bold; to come: dashed and muted. Each chevron is
+   its list item clipped to the shape, its edge (::before) and its fill (::after) layered inside it, so a dashed edge and a mark follow the
+   chevron; each nests into the notch of the next. The same rules on every dashboard type that draws one. */
+.stepbar{list-style:none;margin:6px 0 2px;padding:0 0 0 7px;display:flex;flex-wrap:wrap;gap:4px 0;min-width:0;max-width:100%}
+.stepbar>li{--sb-edge:var(--ink-2);--sb-fill:color-mix(in srgb,var(--ink-2) 14%,var(--surface));--sb-w:1.5px;position:relative;z-index:0;display:flex;align-items:center;min-width:0;max-width:calc(100% + 7px);min-height:26px;margin-left:-7px;padding:4px 15px 4px 19px;font:11.5px/1.25 var(--mono);color:var(--ink);overflow-wrap:anywhere;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%,10px 50%)}
+.stepbar>li:first-child{padding-left:11px;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%)}
+.stepbar>li::before,.stepbar>li::after{content:"";position:absolute;inset:0;z-index:-2;background:var(--sb-edge)}
+.stepbar>li::after{z-index:-1;inset:var(--sb-w);background:var(--sb-fill);clip-path:polygon(1px 0,calc(100% - 9px) 0,100% 50%,calc(100% - 9px) 100%,1px 100%,10.5px 50%)}
+.stepbar>li:first-child::after{clip-path:polygon(0 0,calc(100% - 9px) 0,100% 50%,calc(100% - 9px) 100%,0 100%)}
+.stepbar>li.cur{--sb-edge:var(--ink);--sb-fill:color-mix(in srgb,var(--ink) 7%,var(--surface));--sb-w:2px;font-weight:700}
+.stepbar>li.todo{--sb-edge:repeating-linear-gradient(90deg,var(--muted) 0 5px,transparent 5px 9px);--sb-fill:var(--surface);color:var(--muted)}
+.stepbar .sb-st{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.legend i.sbk{position:relative;z-index:0;width:22px;height:12px;border:0;border-radius:0;background:none;--sb-edge:var(--ink-2);--sb-fill:color-mix(in srgb,var(--ink-2) 14%,var(--surface));--sb-w:1.5px;clip-path:polygon(0 0,calc(100% - 6px) 0,100% 50%,calc(100% - 6px) 100%,0 100%,6px 50%)}
+.legend i.sbk::before,.legend i.sbk::after{content:"";position:absolute;inset:0;z-index:-2;background:var(--sb-edge)}
+.legend i.sbk::after{z-index:-1;inset:var(--sb-w);background:var(--sb-fill);clip-path:polygon(1px 0,calc(100% - 5px) 0,100% 50%,calc(100% - 5px) 100%,1px 100%,6.5px 50%)}
+.legend i.sbk.cur{--sb-edge:var(--ink);--sb-fill:color-mix(in srgb,var(--ink) 7%,var(--surface));--sb-w:2px}
+.legend i.sbk.todo{--sb-edge:repeating-linear-gradient(90deg,var(--muted) 0 3px,transparent 3px 5px);--sb-fill:var(--surface)}
 .chain{list-style:none;margin:4px 0 2px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
 .chain li a,.chain li span.u{display:inline-flex;align-items:center;gap:5px;font:11.5px var(--mono);padding:3px 7px;border:1px solid var(--line);border-left:4px solid var(--c,var(--muted));border-radius:4px;background:var(--surface);text-decoration:none;color:var(--ink-2)}
 .chain li.pending a,.chain li.pending span.u{border-style:dashed;border-left-style:solid}
@@ -218,6 +238,7 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .run{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font:11px var(--mono);color:var(--muted)}
 .inspector .run{margin:0 0 4px}
 .inspector .steps{margin:6px 0 4px}
+.inspector .stepbar{margin:6px 0 4px}
 /* An issue board's strip and its step panel (plan/RULES.md §3, "The step panel"): the strip on the left half, the panel breaking the
    current step down on the right; one column below 940 px. The legend runs under both. A board that has landed or was cancelled
    has no current step and keeps the strip across the row. */
@@ -261,14 +282,10 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .sp-pass small{display:block;font:11px var(--mono);color:var(--ink-2);margin-top:3px}
 .sp p.sp-when{font:11px var(--mono);color:var(--muted);margin:0 0 4px}
 .sp-facts{margin-top:10px}
-/* Finished steps (plan/RULES.md §3, "Finished steps"): a finished step's dot on the strip is a button that shows the step in the panel;
-   the one shown is ringed in ink, never the accent (which marks the work in progress), and the panel opens with a line saying what it
-   shows and the way back. A board that has landed shows the picked step beside its landing. */
-.steps li>.stepbtn{appearance:none;display:inline-flex;align-items:center;font:inherit;color:inherit;background:none;border:0;padding:2px 3px;margin:-2px -3px;border-radius:4px;cursor:pointer;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
-.steps li>.stepbtn:hover{text-decoration-color:var(--ink)}
-.steps li.sel>.stepbtn{color:var(--ink);font-weight:700;text-decoration-color:var(--ink)}
-.steps li.sel .dot{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink)}
-.legend i.node.sel{box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--ink)}
+/* Finished steps (plan/RULES.md §3, "Finished steps"): a finished step's chevron on the strip holds a button that shows the step in the
+   panel; the one shown is ringed in ink, never the accent (which marks the work in progress), and the panel opens with a line saying what
+   it shows and the way back. A board that has landed shows the picked step beside its landing. The strip is a StepBar: its buttons' and
+   its ink Ring's rules stand with the StepBar's marks (dashboards-skill/54). */
 .sp-view{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;justify-content:space-between;margin:0 0 8px;padding:0 0 6px;border-bottom:1px solid var(--hair);font:11.5px var(--mono);color:var(--ink-2)}
 .sp-view b{color:var(--ink)}
 .sp-back{appearance:none;font:600 11px/1 var(--mono);padding:4px 9px;border:1px solid var(--ink-2);border-radius:10px;background:var(--surface);color:var(--ink);cursor:pointer;white-space:nowrap}
@@ -301,6 +318,23 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
   .fullpulse{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 14px 4px color-mix(in srgb,var(--accent) 40%,transparent)}
   .col-fullpulse{box-shadow:inset 0 0 0 1.5px var(--accent),inset 0 0 9px 2px color-mix(in srgb,var(--accent) 26%,transparent)}
   .steps li.cur.fullpulse .dot{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent),0 0 8px 3px color-mix(in srgb,var(--accent) 45%,transparent)}}
+/* The StepBar's marks (dashboards-skill/54; GUIDANCE.md §1): the current step at work carries the FullPulse, its edge the solid accent
+   Ring and its fill the accent wash breathing; while its run waits on you, the Ring alone, still (.held); under reduced motion the wash
+   holds at its middle strength. A finished step on the progress strip is a button showing it in the step panel; the one shown is ringed
+   in ink (.sel), never the accent. */
+@keyframes stepbar-fullpulse{0%,100%{background-color:color-mix(in srgb,var(--accent) 7%,var(--surface))}50%{background-color:color-mix(in srgb,var(--accent) 30%,var(--surface))}}
+.stepbar>li.cur.fullpulse,.stepbar>li.cur.held{animation:none;box-shadow:none;background:none;--sb-edge:var(--accent);--sb-w:2px}
+.stepbar>li.cur.fullpulse::after{animation:stepbar-fullpulse 2s ease-in-out infinite}
+.stepbar>li.cur.held{--sb-fill:var(--surface)}
+.stepbar>li>.stepbtn{appearance:none;display:inline;font:inherit;color:inherit;text-align:left;background:none;border:0;padding:0;margin:0;cursor:pointer;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px;overflow-wrap:anywhere}
+.stepbar>li>.stepbtn:hover{text-decoration-color:var(--ink)}
+.stepbar>li>.stepbtn:focus-visible{outline:2px solid var(--focus);outline-offset:1px;border-radius:2px}
+.stepbar>li.sel{--sb-edge:var(--ink);--sb-w:2.5px;font-weight:700}
+.stepbar>li.sel>.stepbtn{color:var(--ink);text-decoration-color:var(--ink)}
+.legend i.sbk.acc{--sb-edge:var(--accent);--sb-w:2px;--sb-fill:color-mix(in srgb,var(--accent) 22%,var(--surface))}
+.legend i.sbk.ring{--sb-edge:var(--accent);--sb-w:2px;--sb-fill:var(--surface)}
+.legend i.sbk.sel{--sb-edge:var(--ink);--sb-w:2.5px}
+@media (prefers-reduced-motion:reduce){.stepbar>li.cur.fullpulse::after{animation:none!important;background-color:color-mix(in srgb,var(--accent) 18%,var(--surface))}}
 
 /* KPIs */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px;margin:14px 0 18px}
@@ -1601,7 +1635,7 @@ const refAt=(ref,label,base)=>base&&typeof ref==="string"&&/^[\w.-][\w./-]*\.(?:
 const unitBase=r=>r&&r.unit&&relLink(r.unit.board)&&r.unit.board.includes("/")?r.unit.board.replace(/[^/]*$/,""):"";
 
 /* ---------- Finished steps (plan/RULES.md §3, "Finished steps"; dashboards-skill/24) ----------
-   A finished step's dot on the strip is a button: a click (Enter, Space) shows that step in the step panel, the dot stays ringed in ink
+   A finished step's chevron on the strip holds a button: a click (Enter, Space) shows that step in the step panel, the chevron stays ringed in ink
    (never the accent, which marks the work in progress), and a line above the panel says what it shows, with "back to now"; a second
    click, "back to now" or Escape returns. SEL is the selection, {run, step}: "own" (the board's own run) or a unit's issue (its mirror,
    unit.live), kept across the live redraw and dropped once the step is no longer finished there. The panel reads the step's snapshot,
@@ -1660,7 +1694,7 @@ function selRun(key){ if(key==="own") return STOPPED?null:{R:WIP,status:PLAN.sta
   const r=ROWS.find(x=>x.unit&&String(x.unit.issue)===key), L=r&&runOf(r); return L?{R:L,status:L.status,row:r}:null; }
 function checkSel(){ if(!SEL) return; const x=selRun(SEL.run); if(!x||!finishedOf(x.R,x.status).includes(SEL.step)) SEL=null; }
 const selFor=key=>SEL&&SEL.run===key?SEL.step:null;
-const KEY_SEL=`<span><i class="node sel"></i>ringed in ink: the finished step the panel shows</span>`;
+const KEY_SEL=`<span><i class="sbk sel"></i>ringed in ink: the finished step the panel shows</span>`;
 const KEY_PAST_TODO=`<span><i class="node hollow"></i>dashed: not done when the step ended</span>`;
 const pastWord=st=>st==="done"?" · done":st==="current"?" · in progress when the step ended":" · not started";
 const pastItems=(list,o,keys)=>spList(list.map(x=>{ const d=x.state==="done"; if(!d) keys.add(KEY_PAST_TODO); return spItem(d?"done":"todo",dotMark,`${x.id?`<b>${esc(x.id)}</b> `:""}${rich(stepName(x))}${pastWord(x.state)}`,Array.isArray(x.rows)&&x.rows.length?`touched ${x.rows.map(id=>codeOnly(o.rowName(id))).join(", ")}`:""); }));
@@ -1800,14 +1834,19 @@ function renderHeader(){
 
 /* ---------- The WIP strip (plan/RULES.md §3) ---------- */
 /* o (a unit's run): held (its run waits on you), still (no mark: the inspector's copy), label (the list's name). */
-/* pick (a run's finished steps, plan/RULES.md §3, "Finished steps"): { key, R, status }; each finished step's dot is a button that shows it
-   in the step panel, the one shown ringed in ink and pressed. */
+/* pick (a run's finished steps, plan/RULES.md §3, "Finished steps"): { key, R, status }; each finished step's chevron holds a button that
+   shows it in the step panel, the one shown ringed in ink and pressed. */
+/* The strip is a StepBar (dashboards-skill/54; nomenclature/ui.md, StepBar): the run's steps in order, each a chevron with the step's name
+   inside, done, current or to come; an ordered list, the current step aria-current="step" and each state said in words to a screen reader.
+   The current step carries the in-progress marks (GUIDANCE.md §1): the FullPulse, the Ring alone while the run waits on you. */
+const SB_STATE={done:"done",cur:"current",todo:"to come"};
+const sbState=st=>`<span class="sb-st">, ${SB_STATE[st]}</span>`;
 function stepsLine(steps,cur,o){ o=o||{}; const i=steps.indexOf(cur), held=o.held!=null?o.held:PAUSED, done=o.held!=null?false:LANDED, nm=s=>stepLabel(s,{route:(o.ctx||{}).route});
   const pk=o.pick&&!o.still?o.pick:null, fin=new Set(pk?finishedOf(pk.R,pk.status):[]), on=pk?selFor(pk.key):null;
-  return `<ol class="steps" aria-label="${esc(o.label||"Pipeline steps")}">${steps.map((s,j)=>{ const st=done||j<i?"done":j===i?"cur":"todo", dot=`<span class="dot" aria-hidden="true"></span>`;
+  return `<ol class="stepbar" aria-label="${esc(o.label||"Pipeline steps")}">${steps.map((s,j)=>{ const st=done||j<i?"done":j===i?"cur":"todo";
     if(fin.has(s)&&st!=="cur"){ PICKS++; const sel=on===s;
-      return `<li class="${st} pick${sel?" sel":""}"><button type="button" class="stepbtn" data-run="${esc(pk.key)}" data-step="${esc(s)}" aria-pressed="${sel}" aria-label="${esc(nm(s))}: finished; ${sel?"shown in the step panel, press again for now":"show it in the step panel"}">${dot}${esc(nm(s))}</button></li>`; }
-    return `<li class="${st}${st==="cur"&&!done&&!o.still?(held?" held":" fullpulse"):""}"${st==="cur"?' aria-current="step"':""}>${dot}${esc(nm(s))}</li>`; }).join("")}</ol>`; }
+      return `<li class="${st} pick${sel?" sel":""}"><button type="button" class="stepbtn" data-run="${esc(pk.key)}" data-step="${esc(s)}" aria-pressed="${sel}" aria-label="${esc(nm(s))}: finished; ${sel?"shown in the step panel, press again for now":"show it in the step panel"}">${esc(nm(s))}</button></li>`; }
+    return `<li class="${st}${st==="cur"&&!done&&!o.still?(held?" held":" fullpulse"):""}"${st==="cur"?' aria-current="step"':""}>${esc(nm(s))}${sbState(st)}</li>`; }).join("")}</ol>`; }
 /* ---------- Progress notes (plan/RULES.md §3, "The step panel") ----------
    Every part of the run writes docs/plans/.live/progress/<issue>/<name>.js in its checkout every 10 minutes it runs, one line
    setting window.PROGRESS["<name>"] to its note (who, issue, times, done, left, estimate), and deletes it when it finishes. While the run is
@@ -1955,8 +1994,8 @@ function renderWip(){
   legend.push(...pkeys);
   /* the strip's legend: exactly what it drew */
   const runHeldAny=runs.some(runHeld);
-  if(st!=="cancelled") legend.push(`<span><i class="node"></i>step done${PICKS?": click a finished step to see it in the panel":""}</span>`,SEL?KEY_SEL:"",LANDED?"":PAUSED?`<span><i class="hold"></i>current step, paused</span>`:`<span><i class="node acc"></i>ringed dot, breathing: the step at work now</span>`,LANDED?"":`<span><i class="node hollow"></i>dashed: step to come</span>`);
-  if(!PAUSED&&!LANDED&&runs.some(runPaused)) legend.push(`<span><i class="hold"></i>a unit's current step, paused</span>`);
+  if(st!=="cancelled") legend.push(`<span><i class="sbk"></i>step done${PICKS?": click a finished step to see it in the panel":""}</span>`,SEL?KEY_SEL:"",LANDED?"":PAUSED?`<span><i class="sbk ring"></i>current step, the Ring alone: paused while the run waits on you</span>`:`<span><i class="sbk acc"></i>current step, in a FullPulse: the step at work now</span>`,LANDED?"":`<span><i class="sbk todo"></i>dashed: step to come</span>`);
+  if(!PAUSED&&!LANDED&&runs.some(runPaused)) legend.push(`<span><i class="sbk ring"></i>a unit's current step, the Ring alone: paused while its run waits on you</span>`);
   if(runs.length) legend.push(`<span><i class="runbar"></i>accent edge: a unit in progress, its own run mirrored from its board</span>`);
   if(runHeldAny) legend.push(`<span><i class="runbar halt"></i>yellow edge: that run waits on you</span>`);
   if(runs.length) legend.push(runKeys(runs));

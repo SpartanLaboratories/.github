@@ -156,6 +156,26 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .steps li.todo .dot{background:none;border:2px dashed var(--muted)}
 .steps li.cur{color:var(--ink);font-weight:700}
 .steps li.cur .dot{background:var(--accent);border-color:var(--accent)}
+/* The StepBar (nomenclature/ui.md, StepBar; dashboards-skill/54): the steps of a sequence in order, each a chevron with its name inside,
+   done, current or to come. An ordered list, the current step aria-current="step", each step's state said in words to a screen reader
+   (.sb-st). It stands on a line of its own and wraps inside itself at phone width, never widening the board; a long name wraps inside its
+   chevron. Done: solid, the strong neutral with a faint wash; current: solid, in ink and bold; to come: dashed and muted. Each chevron is
+   its list item clipped to the shape, its edge (::before) and its fill (::after) layered inside it, so a dashed edge and a mark follow the
+   chevron; each nests into the notch of the next. The same rules on every dashboard type that draws one. */
+.stepbar{list-style:none;margin:6px 0 2px;padding:0 0 0 7px;display:flex;flex-wrap:wrap;gap:4px 0;min-width:0;max-width:100%}
+.stepbar>li{--sb-edge:var(--ink-2);--sb-fill:color-mix(in srgb,var(--ink-2) 14%,var(--surface));--sb-w:1.5px;position:relative;z-index:0;display:flex;align-items:center;min-width:0;max-width:calc(100% + 7px);min-height:26px;margin-left:-7px;padding:4px 15px 4px 19px;font:11.5px/1.25 var(--mono);color:var(--ink);overflow-wrap:anywhere;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%,10px 50%)}
+.stepbar>li:first-child{padding-left:11px;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%)}
+.stepbar>li::before,.stepbar>li::after{content:"";position:absolute;inset:0;z-index:-2;background:var(--sb-edge)}
+.stepbar>li::after{z-index:-1;inset:var(--sb-w);background:var(--sb-fill);clip-path:polygon(1px 0,calc(100% - 9px) 0,100% 50%,calc(100% - 9px) 100%,1px 100%,10.5px 50%)}
+.stepbar>li:first-child::after{clip-path:polygon(0 0,calc(100% - 9px) 0,100% 50%,calc(100% - 9px) 100%,0 100%)}
+.stepbar>li.cur{--sb-edge:var(--ink);--sb-fill:color-mix(in srgb,var(--ink) 7%,var(--surface));--sb-w:2px;font-weight:700}
+.stepbar>li.todo{--sb-edge:repeating-linear-gradient(90deg,var(--muted) 0 5px,transparent 5px 9px);--sb-fill:var(--surface);color:var(--muted)}
+.stepbar .sb-st{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.legend i.sbk{position:relative;z-index:0;width:22px;height:12px;border:0;border-radius:0;background:none;--sb-edge:var(--ink-2);--sb-fill:color-mix(in srgb,var(--ink-2) 14%,var(--surface));--sb-w:1.5px;clip-path:polygon(0 0,calc(100% - 6px) 0,100% 50%,calc(100% - 6px) 100%,0 100%,6px 50%)}
+.legend i.sbk::before,.legend i.sbk::after{content:"";position:absolute;inset:0;z-index:-2;background:var(--sb-edge)}
+.legend i.sbk::after{z-index:-1;inset:var(--sb-w);background:var(--sb-fill);clip-path:polygon(1px 0,calc(100% - 5px) 0,100% 50%,calc(100% - 5px) 100%,1px 100%,6.5px 50%)}
+.legend i.sbk.cur{--sb-edge:var(--ink);--sb-fill:color-mix(in srgb,var(--ink) 7%,var(--surface));--sb-w:2px}
+.legend i.sbk.todo{--sb-edge:repeating-linear-gradient(90deg,var(--muted) 0 3px,transparent 3px 5px);--sb-fill:var(--surface)}
 .chain{list-style:none;margin:4px 0 2px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
 .chain li a,.chain li span.u{display:inline-flex;align-items:center;gap:5px;font:11.5px var(--mono);padding:3px 7px;border:1px solid var(--line);border-left:4px solid var(--c,var(--muted));border-radius:4px;background:var(--surface);text-decoration:none;color:var(--ink-2)}
 .chain li.pending a,.chain li.pending span.u{border-style:dashed;border-left-style:solid}
@@ -217,6 +237,7 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .run{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font:11px var(--mono);color:var(--muted)}
 .inspector .run{margin:0 0 4px}
 .inspector .steps{margin:6px 0 4px}
+.inspector .stepbar{margin:6px 0 4px}
 /* An issue board's strip and its step panel (plan/RULES.md §3, "The step panel"): the strip on the left half, the panel breaking the
    current step down on the right; one column below 940 px. The legend runs under both. A board that has landed or was cancelled
    has no current step and keeps the strip across the row. */
@@ -260,14 +281,10 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .sp-pass small{display:block;font:11px var(--mono);color:var(--ink-2);margin-top:3px}
 .sp p.sp-when{font:11px var(--mono);color:var(--muted);margin:0 0 4px}
 .sp-facts{margin-top:10px}
-/* Finished steps (plan/RULES.md §3, "Finished steps"): a finished step's dot on the strip is a button that shows the step in the panel;
-   the one shown is ringed in ink, never the accent (which marks the work in progress), and the panel opens with a line saying what it
-   shows and the way back. A board that has landed shows the picked step beside its landing. */
-.steps li>.stepbtn{appearance:none;display:inline-flex;align-items:center;font:inherit;color:inherit;background:none;border:0;padding:2px 3px;margin:-2px -3px;border-radius:4px;cursor:pointer;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
-.steps li>.stepbtn:hover{text-decoration-color:var(--ink)}
-.steps li.sel>.stepbtn{color:var(--ink);font-weight:700;text-decoration-color:var(--ink)}
-.steps li.sel .dot{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink)}
-.legend i.node.sel{box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--ink)}
+/* Finished steps (plan/RULES.md §3, "Finished steps"): a finished step's chevron on the strip holds a button that shows the step in the
+   panel; the one shown is ringed in ink, never the accent (which marks the work in progress), and the panel opens with a line saying what
+   it shows and the way back. A board that has landed shows the picked step beside its landing. The strip is a StepBar: its buttons' and
+   its ink Ring's rules stand with the StepBar's marks (dashboards-skill/54). */
 .sp-view{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;justify-content:space-between;margin:0 0 8px;padding:0 0 6px;border-bottom:1px solid var(--hair);font:11.5px var(--mono);color:var(--ink-2)}
 .sp-view b{color:var(--ink)}
 .sp-back{appearance:none;font:600 11px/1 var(--mono);padding:4px 9px;border:1px solid var(--ink-2);border-radius:10px;background:var(--surface);color:var(--ink);cursor:pointer;white-space:nowrap}
@@ -300,6 +317,23 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
   .fullpulse{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 14px 4px color-mix(in srgb,var(--accent) 40%,transparent)}
   .col-fullpulse{box-shadow:inset 0 0 0 1.5px var(--accent),inset 0 0 9px 2px color-mix(in srgb,var(--accent) 26%,transparent)}
   .steps li.cur.fullpulse .dot{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent),0 0 8px 3px color-mix(in srgb,var(--accent) 45%,transparent)}}
+/* The StepBar's marks (dashboards-skill/54; GUIDANCE.md §1): the current step at work carries the FullPulse, its edge the solid accent
+   Ring and its fill the accent wash breathing; while its run waits on you, the Ring alone, still (.held); under reduced motion the wash
+   holds at its middle strength. A finished step on the progress strip is a button showing it in the step panel; the one shown is ringed
+   in ink (.sel), never the accent. */
+@keyframes stepbar-fullpulse{0%,100%{background-color:color-mix(in srgb,var(--accent) 7%,var(--surface))}50%{background-color:color-mix(in srgb,var(--accent) 30%,var(--surface))}}
+.stepbar>li.cur.fullpulse,.stepbar>li.cur.held{animation:none;box-shadow:none;background:none;--sb-edge:var(--accent);--sb-w:2px}
+.stepbar>li.cur.fullpulse::after{animation:stepbar-fullpulse 2s ease-in-out infinite}
+.stepbar>li.cur.held{--sb-fill:var(--surface)}
+.stepbar>li>.stepbtn{appearance:none;display:inline;font:inherit;color:inherit;text-align:left;background:none;border:0;padding:0;margin:0;cursor:pointer;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px;overflow-wrap:anywhere}
+.stepbar>li>.stepbtn:hover{text-decoration-color:var(--ink)}
+.stepbar>li>.stepbtn:focus-visible{outline:2px solid var(--focus);outline-offset:1px;border-radius:2px}
+.stepbar>li.sel{--sb-edge:var(--ink);--sb-w:2.5px;font-weight:700}
+.stepbar>li.sel>.stepbtn{color:var(--ink);text-decoration-color:var(--ink)}
+.legend i.sbk.acc{--sb-edge:var(--accent);--sb-w:2px;--sb-fill:color-mix(in srgb,var(--accent) 22%,var(--surface))}
+.legend i.sbk.ring{--sb-edge:var(--accent);--sb-w:2px;--sb-fill:var(--surface)}
+.legend i.sbk.sel{--sb-edge:var(--ink);--sb-w:2.5px}
+@media (prefers-reduced-motion:reduce){.stepbar>li.cur.fullpulse::after{animation:none!important;background-color:color-mix(in srgb,var(--accent) 18%,var(--surface))}}
 
 /* KPIs */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px;margin:14px 0 18px}
@@ -858,6 +892,12 @@ phone width (390 px), and with reduced motion asked for (the browser's rendering
 <h2><code>.fullpulse</code>: the step panel's current step and a unit Row's label</h2>
 <ol class="steps" aria-label="The research StepBar"><li class="done"><span class="dot" aria-hidden="true"></span>planning</li><li class="cur fullpulse" aria-current="step"><span class="dot" aria-hidden="true"></span>research</li><li class="todo"><span class="dot" aria-hidden="true"></span>verification</li></ol>
 <ol class="steps" aria-label="The research StepBar, held"><li class="done"><span class="dot" aria-hidden="true"></span>planning</li><li class="cur held" aria-current="step"><span class="dot" aria-hidden="true"></span>research (held)</li><li class="todo"><span class="dot" aria-hidden="true"></span>verification</li></ol>
+<h2><code>.fullpulse</code> and <code>.held</code> on a StepBar: the progress strip's current step</h2>
+<p class="why">The progress strip is a StepBar (dashboards-skill/54): a chevron per step with its name inside, done solid, to come dashed. The current step's chevron carries the FullPulse, its edge the accent Ring and its fill breathing; while the run waits on the user, the Ring alone (<code>.held</code>). Last, a tracking issue's chain as the state boards and the repository work board draw it: unmarked.</p>
+<ol class="stepbar" aria-label="Pipeline steps"><li class="done">sizing<span class="sb-st">, done</span></li><li class="done">research<span class="sb-st">, done</span></li><li class="cur fullpulse" aria-current="step">plan<span class="sb-st">, current</span></li><li class="todo">implementation<span class="sb-st">, to come</span></li><li class="todo">Quality Review<span class="sb-st">, to come</span></li><li class="todo">landing<span class="sb-st">, to come</span></li></ol>
+<ol class="stepbar" aria-label="Pipeline steps, held"><li class="done">sizing<span class="sb-st">, done</span></li><li class="done">research<span class="sb-st">, done</span></li><li class="cur held" aria-current="step">plan<span class="sb-st">, current</span></li><li class="todo">implementation<span class="sb-st">, to come</span></li><li class="todo">Quality Review<span class="sb-st">, to come</span></li><li class="todo">landing<span class="sb-st">, to come</span></li></ol>
+<ol class="stepbar" aria-label="Pipeline steps, a long name at phone width"><li class="done">sizing<span class="sb-st">, done</span></li><li class="done">research<span class="sb-st">, done</span></li><li class="cur fullpulse" aria-current="step">implementation of the transport layer and the outbound-URL guard<span class="sb-st">, current</span></li><li class="todo">Quality Review<span class="sb-st">, to come</span></li><li class="todo">landing<span class="sb-st">, to come</span></li></ol>
+<ol class="stepbar" aria-label="#55: its units in landing order"><li class="done">Shared build logic<span class="sb-st">, landed</span></li><li class="cur" aria-current="step">Java 11 floor<span class="sb-st">, in progress</span></li><li class="todo">webtools-http common core<span class="sb-st">, to come</span></li><li class="todo">Published test fixtures<span class="sb-st">, to come</span></li></ol>
 <div class="row"><div class="rowlab fullpulse" style="--c:var(--sys-1)"><div class="nm">a unit Row's label: <code>.fullpulse</code></div></div><div class="rowlab held" style="--c:var(--sys-2)"><div class="nm">held: <code>.held</code></div></div></div>
 <h2><code>.col-fullpulse</code> and <code>.colcell-fullpulse</code>: a whole column at work</h2>
 <p class="why">Wider than 900 px: one FullPulse on the Considered column itself, its band (<code>.col-fullpulse</code>) under a head washed in the accent, and its Cells unmarked. At 900 px or narrower no columns are drawn, so each of the column's Cells carries it instead (<code>.colcell-fullpulse</code>). The second board waits on the user: the band holds still (<code>.held</code>), each Cell at phone width the Ring alone (<code>.colheld</code>).</p>

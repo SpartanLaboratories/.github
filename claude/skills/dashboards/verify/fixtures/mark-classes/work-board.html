@@ -140,13 +140,37 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .legend i.nx{border-color:color-mix(in srgb,var(--accent) 70%,transparent);box-shadow:0 0 6px 2px color-mix(in srgb,var(--accent) 35%,transparent)}
 .verdict-pill{--sc:var(--muted);display:inline-flex;align-items:center;gap:5px;font:600 10.5px/1.2 var(--mono);padding:2px 6px;border-radius:3px;border:1px solid var(--line);border-left:3px solid var(--sc);background:color-mix(in srgb,var(--sc) 14%,var(--surface));color:var(--ink);white-space:nowrap}
 .verdict-pill i,.legend .verdict-pill i{font-style:normal;font-weight:700;display:inline;width:auto;height:auto;border:0;border-radius:0;background:none;box-shadow:none}
-/* a tracking issue's chain (plan/RULES.md §3, "The chain's progress"): the summary and a thin bar of units landed */
+/* a tracking issue's chain (plan/RULES.md §3, "The chain's progress"): the summary in its state cell, and its units as a StepBar on a row
+   of its own under it, across the table (dashboards-skill/54; a board.json written before the bar's units: the bar from its unit rows) */
 .chainsum{font-size:12px;color:var(--ink-2);line-height:1.4;min-width:0;overflow-wrap:anywhere}
 .chainsum b{color:var(--ink)}
 .chainsum a{text-decoration:none;border-bottom:1px solid var(--line)}
 .cbar{display:block;height:4px;margin-top:5px;border-radius:2px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;max-width:180px}
 .cbar i{display:block;height:100%;background:var(--good)}
 .legend .cbar{display:inline-block;width:40px;margin:0}
+/* The StepBar (nomenclature/ui.md, StepBar; dashboards-skill/54): the steps of a sequence in order, each a chevron with its name inside,
+   done, current or to come. An ordered list, the current step aria-current="step", each step's state said in words to a screen reader
+   (.sb-st). It stands on a line of its own and wraps inside itself at phone width, never widening the board; a long name wraps inside its
+   chevron. Done: solid, the strong neutral with a faint wash; current: solid, in ink and bold; to come: dashed and muted. Each chevron is
+   its list item clipped to the shape, its edge (::before) and its fill (::after) layered inside it, so a dashed edge and a mark follow the
+   chevron; each nests into the notch of the next. The same rules on every dashboard type that draws one. */
+.stepbar{list-style:none;margin:6px 0 2px;padding:0 0 0 7px;display:flex;flex-wrap:wrap;gap:4px 0;min-width:0;max-width:100%}
+.stepbar>li{--sb-edge:var(--ink-2);--sb-fill:color-mix(in srgb,var(--ink-2) 14%,var(--surface));--sb-w:1.5px;position:relative;z-index:0;display:flex;align-items:center;min-width:0;max-width:calc(100% + 7px);min-height:26px;margin-left:-7px;padding:4px 15px 4px 19px;font:11.5px/1.25 var(--mono);color:var(--ink);overflow-wrap:anywhere;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%,10px 50%)}
+.stepbar>li:first-child{padding-left:11px;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%)}
+.stepbar>li::before,.stepbar>li::after{content:"";position:absolute;inset:0;z-index:-2;background:var(--sb-edge)}
+.stepbar>li::after{z-index:-1;inset:var(--sb-w);background:var(--sb-fill);clip-path:polygon(1px 0,calc(100% - 9px) 0,100% 50%,calc(100% - 9px) 100%,1px 100%,10.5px 50%)}
+.stepbar>li:first-child::after{clip-path:polygon(0 0,calc(100% - 9px) 0,100% 50%,calc(100% - 9px) 100%,0 100%)}
+.stepbar>li.cur{--sb-edge:var(--ink);--sb-fill:color-mix(in srgb,var(--ink) 7%,var(--surface));--sb-w:2px;font-weight:700}
+.stepbar>li.todo{--sb-edge:repeating-linear-gradient(90deg,var(--muted) 0 5px,transparent 5px 9px);--sb-fill:var(--surface);color:var(--muted)}
+.stepbar .sb-st{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.legend i.sbk{position:relative;z-index:0;width:22px;height:12px;border:0;border-radius:0;background:none;--sb-edge:var(--ink-2);--sb-fill:color-mix(in srgb,var(--ink-2) 14%,var(--surface));--sb-w:1.5px;clip-path:polygon(0 0,calc(100% - 6px) 0,100% 50%,calc(100% - 6px) 100%,0 100%,6px 50%)}
+.legend i.sbk::before,.legend i.sbk::after{content:"";position:absolute;inset:0;z-index:-2;background:var(--sb-edge)}
+.legend i.sbk::after{z-index:-1;inset:var(--sb-w);background:var(--sb-fill);clip-path:polygon(1px 0,calc(100% - 5px) 0,100% 50%,calc(100% - 5px) 100%,1px 100%,6.5px 50%)}
+.legend i.sbk.cur{--sb-edge:var(--ink);--sb-fill:color-mix(in srgb,var(--ink) 7%,var(--surface));--sb-w:2px}
+.legend i.sbk.todo{--sb-edge:repeating-linear-gradient(90deg,var(--muted) 0 3px,transparent 3px 5px);--sb-fill:var(--surface)}
+.tbl tr.chainrow>td{border-top:0;padding:0 6px 10px;border-left:4px solid var(--c,var(--muted))}
+.tbl tr.chainrow .stepbar{margin:0}
+.tbl .stepbar>li{font-size:12px}
 .verdict-pill.good{--sc:var(--good)}.verdict-pill.warning{--sc:var(--warning)}.verdict-pill.serious{--sc:var(--serious)}.verdict-pill.critical{--sc:var(--critical)}
 .verdict-pill.neutral,.verdict-pill.hollow{background:var(--surface)}
 /* Depends on, and Blocks · enables (plan/RULES.md §5; dashboards-skill/30): each issue with a small pill of its state, glyph and word */
@@ -226,6 +250,8 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
   .tbl tr.run>td:nth-child(n+2)::before{display:block;font:600 10.5px/1.3 var(--sans);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
   .tbl tr.run>td:nth-child(2)::before{content:"State"}.tbl tr.run>td:nth-child(3)::before{content:"Now"}.tbl tr.run>td:nth-child(4)::before{content:"Quality Reviews"}.tbl tr.run>td:nth-child(5)::before{content:"Depends on"}.tbl tr.run>td:nth-child(6)::before{content:"Blocks · enables"}
   .tbl .verdict-pill,.tbl .qamark,.tbl .dep-pill{white-space:normal;max-width:100%}
+  .tbl tr.chainrow,.tbl tr.chainrow>td{display:block}
+  .tbl tr.chainrow>td{padding:0 10px 10px}
 }
 @media (min-width:600px) and (max-width:879.98px){
   .tbl tr.run{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
@@ -291,6 +317,9 @@ phone width (390 px), and with reduced motion asked for (the browser's rendering
 <div class="row"><span class="verdict-pill neutral dashed upnext-ring"><i aria-hidden="true">→</i>next · not started</span><span class="tag-next">UP NEXT</span></div>
 <h2><code>.fillpulse</code>: the live indicator's dot</h2>
 <div class="row"><span class="livechip on fillpulse"><span class="ld" aria-hidden="true">●</span>LIVE · updated 3 s ago</span><span class="livechip on"><span class="ld" aria-hidden="true"></span>LIVE · no change for 4 min</span><span class="livechip off"><span class="ld" aria-hidden="true"></span>not live</span></div>
+<h2>A tracking issue's chain: a StepBar on a row of its own, unmarked</h2>
+<p class="why">The unit at work carries its FullPulse on its own row; its chevron here is bold, never pulsing (dashboards-skill/54).</p>
+<ol class="stepbar" aria-label="#55: its units in landing order"><li class="done">Shared build logic<span class="sb-st">, landed</span></li><li class="cur" aria-current="step">Java 11 floor<span class="sb-st">, in progress</span></li><li class="todo">webtools-http common core<span class="sb-st">, to come</span></li><li class="todo">Published test fixtures<span class="sb-st">, to come</span></li><li class="todo">Outbound-URL policy<span class="sb-st">, to come</span></li></ol>
 <h2>The Legend entries, as the template words them</h2>
 <div class="legend"><span><i class="gl"></i>FullPulse, breathing: being worked on now</span><span><i class="hold"></i>Ring alone, still: being worked on, paused while the run waits on you</span><span><i class="nx"></i><span class="tag-next">UP NEXT</span> still outer Ring: the next unit, not started</span></div>
 </main>

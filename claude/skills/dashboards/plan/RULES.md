@@ -863,6 +863,18 @@ becomes `landed`, the FullPulse stops, and the strip shows the landing (PR, merg
 the Row: a landed or cancelled board has no current step and no Panel (a finished step picked on a landed board shows beside the
 landing, "Finished steps" below).
 
+**The strip is a StepBar** (dashboards-skill/54; `ui.md`, StepBar; the user's decisions of 2026-11-06 and 2026-11-07: the WIP strip's
+container is a Panel, the strip itself the StepBar). The run's steps in `wip.steps` order, each a **chevron with the step's name inside**
+(by its name, never its id), on a line of its own: **done** solid, the strong neutral with a faint wash; **current** solid, in ink and
+bold, carrying the in-progress marks where it did before — the FullPulse (its edge the accent Ring, its fill breathing), the Ring alone
+while the run waits on you, no mark in the inspector's still copy and none on a landed board, whose steps are all done; **to come**
+dashed and muted. A finished step's chevron holds its Button ("Finished steps", below), the one shown ringed in ink. An ordered list
+(`ol.stepbar`), the current step `aria-current="step"`, each step's state said in words to a screen reader; it wraps inside itself at
+phone width and a long name wraps inside its chevron, so it never widens the board. A tracking board draws the same StepBar for its
+own steps on its phase's Card and for each unit's run on the unit's Card. The Legend names each state it drew with a chevron key. The
+research StepBar of the step Panel (below) keeps its dots. A tracking issue's chain draws as a StepBar on the state boards' roadmap and on
+the repository work board's Rows (§5; `system/RULES.md` §6).
+
 **The step Panel.** The current step broken down in detail, from the facts the board records (the
 events, the documents, the trail), never guessed; each step's Panel shows:
 
@@ -1502,9 +1514,13 @@ rest by age; the in-progress mark on the Rows whose runs are active; the same sy
 unit reads `complete` once its Row is complete (qa passed, not merged) and `landed` once it has
 landed; a tracking issue's own Row shows its chain's progress (§3) in its state Cell, from
 `chain` in `board.json` (`total`, `landed`, `dropped`, `deferred`, `left` (left for later), `planned`, `done`, `current[]`
-with each unit's step from its freshest board, else the mirror, and `next` with its open
-blockers), instead of a bare "building", keeping its Pill above it only while the tracking issue
-itself is halted, escalated or cancelled; the unit a tracking board names in `wip.next` reads
+with each unit's step from its freshest board, else the mirror, `next` with its open
+blockers, and `units[]`, the counted units in landing order, each `{n, issue, name, state}`, its name the tracking board's Row name and
+its state `done` (landed), `current` (in a run, or complete and not merged) or `todo`), instead of a bare "building", keeping its Pill
+above it only while the tracking issue itself is halted, escalated or cancelled; under that Row, on a **row of its own across the
+table**, its units as a **StepBar** (dashboards-skill/54; §3, "The strip is a StepBar"): one chevron per unit with the unit's name
+inside, done, current or to come, unmarked (the unit at work carries its FullPulse on its own Row), the thin Bar of units landed it
+replaces; a `board.json` written before `units` draws it from the tracking issue's unit Rows, by their titles; the unit a tracking board names in `wip.next` reads
 "next · not started", with the
 up-next mark and a "blocked by #n" Tag for each blocker that has not landed (a unit of its tracking board not filed yet named by its slug, §3, `unit.blockedBy`), and is never active. A
 Row whose run waits on the user, **halted or escalated**, keeps its in-progress mark stopped to the

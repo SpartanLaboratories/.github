@@ -284,7 +284,12 @@ its last release still guarantees.
   flagged by `check-board.js`, `ISSUE TITLE NAMES A WORK LEVEL: #n`, never reworded or elided); the number opens the GitHub issue and
   the title the issue's board where one exists (`GUIDANCE.md` §5; the title written
   `<a data-board="N">`, §2 "Board links"); no GitHub ↗. A tracking issue shows its chain, written `<span class="chainprog"
-  data-landed="n" data-total="m"></span>` (the renderer draws "chain n of m landed" and its Bar), from its tracking board. The last
+  data-landed="n" data-total="m">` holding one `<span data-unit="done|current|todo">` per unit in landing order with the unit's name (its
+  tracking board's Row name; landed, in progress or to come; units dropped, deferred or left for later out of it, as they are out of m),
+  from its tracking board: the renderer draws "chain n of m landed" in the item and, on a line of its own under it, a **StepBar**
+  (dashboards-skill/54; `ui.md`, StepBar; `plan/RULES.md` §3, "The strip is a StepBar"), one chevron per unit with its name inside,
+  done solid, current bold, to come dashed, unmarked (a state board draws no work in progress); a chain written before the names
+  (`data-landed` and `data-total` alone) is drawn with its units numbered until the next state-boards job writes them. The last
   amendment, drawn from `state.json`, opens the section as the same pair ("last amended by #n title"). A roadmap item is a tracking issue with its sub-issues,
   or an entry in a roadmap document the repository keeps, with the issues it names. On a system
   board, list the items that claim an issue touching the system, those issues under them, and how
@@ -296,7 +301,7 @@ its last release still guarantees.
   here, and the repository work board (`<a data-workboard>`, live first, §2).
 
 Date both issue lists. A bug Badge is neutral, told by its ▲ and its word. Under the Cards stands the Context's Legend, generated
-from what they draw (the system Badges, the issue's state, the bug Badge, a planned Badge, the chain Bar).
+from what they draw (the system Badges, the issue's state, the bug Badge, a planned Badge, the chain StepBar's states).
 
 ## 7. The registry
 

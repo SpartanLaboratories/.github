@@ -12,7 +12,8 @@
 //    "in a FullPulse below", the research StepBar's aria-label names a StepBar, the supersystem sample note the Context Panel.
 // 5. The mark-class browser fixture, verify/fixtures/mark-classes/ (index.html: the issue and tracking boards' marks; work-board.html: the
 //    repository work board's): static and offline, each template's own <style> copied verbatim so it draws what a board draws, every mark
-//    class on an element beside the Legend entries as the template words them. A case fails it once it no longer matches the templates.
+//    class on an element beside the Legend entries as the template words them, the progress strip's StepBar with its current step's marks
+//    and a tracking issue's chain unmarked among them (dashboards-skill/54). A case fails it once it no longer matches the templates.
 // Each group returns [title, cases], a case [name, ok, detail].
 "use strict";
 const fs = require("fs"), path = require("path"), os = require("os");
@@ -83,6 +84,9 @@ ${[2, 3].map(n => `<div class="rowlab" style="--c:var(--sys-${n - 1});grid-colum
 </div></div>`;
   const bcards = cls => `<div class="bcards colbox${cls}"><div class="bcard st-pending" style="--c:var(--sys-1)"><b>an As built Card</b> (<code>${cls.trim()}</code> round the Cards)</div><div class="bcard st-pending" style="--c:var(--sys-2)"><b>another</b></div></div>`;
   const svgUnit = (x, cls, label, sys) => `<g class="unit ${cls}" transform="translate(${x},10)" style="--c:var(--sys-${sys})"><rect class="box" width="168" height="46" rx="5"/><rect class="bar" width="5" height="46" rx="2"/><text class="t" x="12" y="19">${label}</text><text class="s" x="12" y="37">${cls.split(" ").pop()}</text></g>`;
+  /* a StepBar as the templates write it (dashboards-skill/54): the issue board's stepsLine(), a chain's chainBar() and chainBars(); mark "" for none */
+  const sbar = (label, mark, names) => { const ns = names || ["sizing", "research", "plan", "implementation", "Quality Review", "landing"], at = names && !mark ? 1 : 2, W = mark ? { done: "done", cur: "current", todo: "to come" } : { done: "landed", cur: "in progress", todo: "to come" };
+    return `<ol class="stepbar" aria-label="${label}">${ns.map((n, i) => { const st = i < at ? "done" : i === at ? "cur" : "todo"; return `<li class="${st}${st === "cur" && mark ? " " + mark : ""}"${st === "cur" ? ' aria-current="step"' : ""}>${n}<span class="sb-st">, ${W[st]}</span></li>`; }).join("")}</ol>`; };
   const live = `<div class="row"><span class="livechip on fillpulse"><span class="ld" aria-hidden="true">●</span>LIVE · updated 3 s ago</span><span class="livechip on"><span class="ld" aria-hidden="true"></span>LIVE · no change for 4 min</span><span class="livechip off"><span class="ld" aria-hidden="true"></span>not live</span></div>`;
   const index = page("Mark classes: issue and tracking boards", style(D), `${head("Mark classes: issue and tracking boards", '<a href="work-board.html">the repository work board\'s marks</a>')}
 <h2><code>.fullpulse</code>: a Cell being worked on</h2>
@@ -91,6 +95,12 @@ ${[2, 3].map(n => `<div class="rowlab" style="--c:var(--sys-${n - 1});grid-colum
 <h2><code>.fullpulse</code>: the step panel's current step and a unit Row's label</h2>
 <ol class="steps" aria-label="The research StepBar"><li class="done"><span class="dot" aria-hidden="true"></span>planning</li><li class="cur fullpulse" aria-current="step"><span class="dot" aria-hidden="true"></span>research</li><li class="todo"><span class="dot" aria-hidden="true"></span>verification</li></ol>
 <ol class="steps" aria-label="The research StepBar, held"><li class="done"><span class="dot" aria-hidden="true"></span>planning</li><li class="cur held" aria-current="step"><span class="dot" aria-hidden="true"></span>research (held)</li><li class="todo"><span class="dot" aria-hidden="true"></span>verification</li></ol>
+<h2><code>.fullpulse</code> and <code>.held</code> on a StepBar: the progress strip's current step</h2>
+<p class="why">The progress strip is a StepBar (dashboards-skill/54): a chevron per step with its name inside, done solid, to come dashed. The current step's chevron carries the FullPulse, its edge the accent Ring and its fill breathing; while the run waits on the user, the Ring alone (<code>.held</code>). Last, a tracking issue's chain as the state boards and the repository work board draw it: unmarked.</p>
+${sbar("Pipeline steps", "fullpulse")}
+${sbar("Pipeline steps, held", "held")}
+${sbar("Pipeline steps, a long name at phone width", "fullpulse", ["sizing", "research", "implementation of the transport layer and the outbound-URL guard", "Quality Review", "landing"])}
+${sbar("#55: its units in landing order", "", ["Shared build logic", "Java 11 floor", "webtools-http common core", "Published test fixtures"])}
 <div class="row"><div class="rowlab fullpulse" style="--c:var(--sys-1)"><div class="nm">a unit Row's label: <code>.fullpulse</code></div></div><div class="rowlab held" style="--c:var(--sys-2)"><div class="nm">held: <code>.held</code></div></div></div>
 <h2><code>.col-fullpulse</code> and <code>.colcell-fullpulse</code>: a whole column at work</h2>
 <p class="why">Wider than 900 px: one FullPulse on the Considered column itself, its band (<code>.col-fullpulse</code>) under a head washed in the accent, and its Cells unmarked. At 900 px or narrower no columns are drawn, so each of the column's Cells carries it instead (<code>.colcell-fullpulse</code>). The second board waits on the user: the band holds still (<code>.held</code>), each Cell at phone width the Ring alone (<code>.colheld</code>).</p>
@@ -116,6 +126,9 @@ ${live}
 <div class="row"><span class="verdict-pill neutral dashed upnext-ring"><i aria-hidden="true">→</i>next · not started</span>${NEXT_TAG}</div>
 <h2><code>.fillpulse</code>: the live indicator's dot</h2>
 ${live}
+<h2>A tracking issue's chain: a StepBar on a row of its own, unmarked</h2>
+<p class="why">The unit at work carries its FullPulse on its own row; its chevron here is bold, never pulsing (dashboards-skill/54).</p>
+${sbar("#55: its units in landing order", "", ["Shared build logic", "Java 11 floor", "webtools-http common core", "Published test fixtures", "Outbound-URL policy"])}
 <h2>The Legend entries, as the template words them</h2>
 <div class="legend">${wKeys.join("")}</div>`);
   return { "index.html": index, "work-board.html": work };

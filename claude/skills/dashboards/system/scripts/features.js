@@ -317,7 +317,7 @@ const FEATURES = [
   /* admin-team/dashboards-skill/24 */
   { id: "finished-steps", name: "finished steps on the progress strip clickable: each shows its snapshot (wip.history) in the step panel, or what survives, reconstructed", since: 24, types: ["plan-board"],
     notFor: { system: "no progress strip: a state board shows the code at a commit, not a run's steps", supersystem: "no progress strip: a state board shows the code at a commit, not a run's steps", "work-board": "no progress strip: one row per run, each run's step as text; its steps are on its own board" },
-    test: h => { const s = scripts(h), c = css(h); return need(/function pastPanel\(/.test(s) && /class="stepbtn"/.test(s) && /function reconStep\(/.test(s) && /reconstructed from the history/.test(s) && /\.steps li\.sel \.dot\{/.test(c), "the strip's finished steps are not buttons, or the step panel cannot show a finished step's snapshot (pastPanel(), reconStep())"); } },
+    test: h => { const s = scripts(h), c = css(h); return need(/function pastPanel\(/.test(s) && /class="stepbtn"/.test(s) && /function reconStep\(/.test(s) && /reconstructed from the history/.test(s) && (/\.stepbar>li\.sel\{/.test(c) || /\.steps li\.sel \.dot\{/.test(c)), "the strip's finished steps are not buttons, or the step panel cannot show a finished step's snapshot (pastPanel(), reconStep())"); } },
   /* admin-team/dashboards/unit-blockers-before-filing, dated 49: a unit's blocker named by unit number ({ unit: k }) before the filing (plan/RULES.md §3,
      unit.blockedBy), drawn as a dependency between units: the Landing Order's arrows, the inspector's "depends on" and "blocks · enables", the
      up-next "blocked by" tag, a unit not filed yet named "unit k · its slug" and linked like any #n once filed; on the repository work board, the
@@ -376,6 +376,20 @@ const FEATURES = [
     notFor: { system: "no units: a state board shows the code at a commit, not a run's landings", supersystem: "no units: a state board shows the code at a commit, not a run's landings", "work-board": "one row per run: a run's pull request and merge are on its own board" },
     test: h => { const s = scripts(h), c = css(h); return need(/const landingOf=r=>/.test(s) && /const landingChips=r=>/.test(s) && /\$\{landingChips\(r\)\}<div class="sum">\$\{builtBody\(r,st\)\}<\/div>/.test(s) && /\.cell \.landing-chips :is\(\.pr-chip,\.merge-chip\)\{/.test(c),
       "a unit's As built cell names its landing in prose alone: no PR chip or merge chip (landingChips() in cellBuilt(), .landing-chips)"); } },
+  /* dashboards-skill/54 (the user's decisions of 2026-11-06 and 2026-11-07; nomenclature/ui.md, StepBar): the StepBar, the steps of a sequence
+     in order, each a chevron with its name inside, done, current or to come; an ordered list, the current step aria-current="step", each state
+     said in words to a screen reader, wrapping inside itself at phone width. An issue or tracking board's progress strip and WIP strip (the
+     step names; the current step's FullPulse, the Ring alone while held); a tracking issue's chain on the state boards' roadmap and on the
+     repository work board's rows, one chevron per unit with its name, on a line of its own, unmarked. A board drawn before it keeps its dots
+     and thin bars until its next rebuild (its next event, the splice, board.js --refresh-template); a landed issue board is kept as it landed
+     (GUIDANCE.md §11). */
+  { id: "stepbar", name: "the StepBar: labelled chevrons in order, each done, current or to come (an issue or tracking board's progress strip and WIP strip; a tracking issue's chain on the state boards' roadmap and the repository work board's rows)", since: 54, types: ALL,
+    test: (h, k) => { const s = scripts(h), c = css(h);
+      const look = /\.stepbar>li\{[^}]*clip-path:polygon\(/.test(c) && /\.stepbar>li\.todo\{--sb-edge:repeating-linear-gradient\(/.test(c) && /\.stepbar \.sb-st\{/.test(c);
+      const draw = k === "plan-board" ? /function stepsLine\(steps,cur,o\)\{/.test(s) && /return `<ol class="stepbar" aria-label=/.test(s) && /\.stepbar>li\.cur\.fullpulse::after\{animation:stepbar-fullpulse /.test(c)
+        : k === "work-board" ? /const chainBar=r=>/.test(s) && /<ol class="stepbar" aria-label=/.test(s) && /\$\{chainRow\(r\)\}/.test(s)
+        : /function chainBars\(\)\{/.test(s) && /bar\.className="stepbar"/.test(s) && /function sectionKeys\(\)\{\s*chainBars\(\);/.test(s);
+      return need(look && draw, k === "plan-board" ? "the progress strip is a line of dots, not a StepBar of labelled chevrons (stepsLine(), .stepbar)" : k === "work-board" ? "a tracking issue's chain is a thin bar in its state cell, not a StepBar of its units on a row of its own (chainBar(), chainRow(), .stepbar)" : "a tracking issue's chain on the roadmap is a thin bar, not a StepBar of its units under the item (chainBars(), .stepbar)"); } },
 ];
 /* The layout detectors, run in the browser pass (check-board.js's probe), named here so the report and the rules list them. */
 const LAYOUT = [

@@ -245,7 +245,11 @@ const chainOf = b => {
   const nx = live && w.next ? units.find(r => r.id === w.next && st(r) === "pending" && !leftForLater(r)) : null;
   const next = nx ? { issue: nx.unit.issue || null, slug: nx.unit.slug || nx.id, blockedBy: unitBlockers(p, nx).filter(x => x.issue == null || !landedIssue(x.issue)) } : null;
   const started = landed > 0 || current.length > 0 || units.some(r => st(r) === "complete");
-  return { total: counted.length, landed, dropped, deferred, left, planned: !started && p.status !== "built", done: p.status === "built" || (counted.length > 0 && landed === counted.length), current, next };
+  /* the chain's StepBar (dashboards-skill/54): the counted units in landing order, each its name (the tracking board's row name, the unit's
+     own), and done (landed), current (in a run, or complete and not merged) or todo (to come); dropped, deferred and left for later are out of it */
+  const bar = counted.map(r => ({ n: r.unit.n != null ? r.unit.n : null, issue: r.unit.issue || null, name: r.name || r.unit.slug || r.id,
+    state: LANDED_STATES.has(st(r)) ? "done" : cur.includes(r) || ["complete", "in-progress", "partially-built"].includes(st(r)) ? "current" : "todo" }));
+  return { total: counted.length, landed, dropped, deferred, left, planned: !started && p.status !== "built", done: p.status === "built" || (counted.length > 0 && landed === counted.length), current, next, units: bar };
 };
 
 /* Depends on, and Blocks · enables (plan/RULES.md §5; admin-team/dashboards-skill/30). A row's dependencies are the tracker's blocked-by

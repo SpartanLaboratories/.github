@@ -87,7 +87,9 @@
 // (verify/cases-mark-classes.js): .fullpulse, .col-fullpulse, .colcell-fullpulse, .upnext-ring and .fillpulse, never the older .glow,
 // .glow-soft, .colglow, .upnext and .pulse, the mark-classes probe and check-board.js's count; no "glow" a reader sees on any template or
 // the worked example (the Legend entries name the FullPulse and the Ring); the mark-class browser fixture, verify/fixtures/mark-classes/,
-// current with the templates. A
+// current with the templates. The StepBar (verify/cases-stepbar.js, dashboards-skill/54): the progress strip, the WIP strip and a tracking
+// issue's chain on the state boards' roadmap and the repository work board's rows, each labelled chevrons in order, done, current or to
+// come. A
 // template is recorded only when every check it runs passes: by default those that need no browser; with --browser its browser
 // passes and the rendered cases too.
 "use strict";
@@ -888,7 +890,9 @@ targets.filter(t => t.block === "board").forEach(t => {
     cases.push(["the Up next count links its units", new RegExp(`<a [^>]*>#${next.issue}</a> · not started`).test(kpis), kpis.slice(0, 400)]);
     /* the tracking issue's state cell shows its chain's progress in place of a bare "building" (plan/RULES.md §3) */
     const trow = (dom.match(new RegExp(`<tr class="run[^"]*"[^>]*><td><span class="t"><a [^>]*>#${track.issue}</a>[\\s\\S]*?</tr>`)) || [""])[0], cell = (trow.match(/<div class="chainsum">[\s\S]*?<\/div>/) || [""])[0];
-    cases.push([`#${track.issue}'s state cell reads its chain, not "building"`, /1 of 11 landed/.test(cell) && /#47<\/a> in progress \(implementation\)/.test(cell) && /#62<\/a> up next, blocked by <a /.test(cell) && /class="cbar"/.test(cell) && !/>building</.test(trow), cell.slice(0, 500) || trow.slice(0, 500)]);
+    cases.push([`#${track.issue}'s state cell reads its chain, not "building"`, /1 of 11 landed/.test(cell) && /#47<\/a> in progress \(implementation\)/.test(cell) && /#62<\/a> up next, blocked by <a /.test(cell) && !/>building</.test(trow), cell.slice(0, 500) || trow.slice(0, 500)]);
+    /* …and its units as a StepBar on a row of their own under it (dashboards-skill/54), in place of the thin bar */
+    cases.push([`#${track.issue}'s units drawn as a StepBar on a row of their own under its row, no thin bar`, !/class="cbar"/.test(cell) && dom.includes(trow + '<tr class="chainrow"><td colspan="6"><ol class="stepbar"'), (dom.slice(dom.indexOf(trow) + trow.length, dom.indexOf(trow) + trow.length + 200)) || "no row"]);
   } else cases.push(["the rendered work board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
   setup(tpl.replace("const ISSUE_BOARDS=", "const SUB_BOARDS=")); c = node(checkJs, dir, "--root", scratch);
   cases.push([`check.js warns on a template of the sub-issue rule alone and names #${track.issue}'s group heading`, new RegExp(`#${track.issue} has a board .*its group heading`).test(c.stdout), lines(c, /^warn/) || "no warning"]);
@@ -2312,6 +2316,13 @@ catch (e) { report("the C4 DSL reader's keyword identifiers cases", [["the cases
    "glow" a reader sees) and the mark-class browser fixture current with the templates. It runs on its own too. */
 try { require("./cases-mark-classes.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the marks' classes cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
+/* The StepBar (verify/cases-stepbar.js; dashboards-skill/54, the user's decisions of 2026-11-06 and 2026-11-07): the issue board's progress
+   strip and the tracking board's WIP strip, a tracking issue's chain on the state boards' roadmap and on the repository work board's rows,
+   each a StepBar of labelled chevrons, done, current or to come, the current step's marks where it carried them; one CSS block in the four
+   templates, board.js writing chain.units, the stepbar probe, and the fixture boards for a browser check. It runs on its own too. */
+try { require("./cases-stepbar.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the StepBar cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 const today = new Date().toISOString().slice(0, 10);
 const COMMENT = "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last verification, when every check that needs no browser passed (its modes: \"--auto --no-browser\"; a run with --browser, made only when a person asks for it, lists the browser passes instead). check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.";
