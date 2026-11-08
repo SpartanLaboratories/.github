@@ -536,7 +536,7 @@ to #n", the structure map's recorded height, a
 issue board's finished steps clickable, each unit Row's label carrying its own FullPulse while it is filed, the Timeline Tile's figure the sum of
 its visits, an issue's title quoted and marked, every Quality Review and the one running, each by its number, every name from the template's names block (the
 steps, the Quality Reviews and what follows them; §4), the classes that carry their element's type (`.kpi-tile`, `.verdict-pill`, `.legend`,
-`.c4-legend`), the marks' classes (`.fullpulse`, `.upnext-ring`, `.fillpulse`), the dependency DualStatePills, the CodeLabel, an option's signature beneath its name, a step's files nested by their folders — and
+`.c4-legend`), the marks' classes (`.fullpulse`, `.upnext-ring`, `.fillpulse`), the dependency DualStatePills, the CodeLabel, an option's signature beneath its name, a step's files nested by their folders, the Verdict's section Chip and count Labels, a unit's PR and merge Chips — and
 the browser pass, on a board that gets one, the layout ones (the header's halves, the wide board, the Legends shown). A missing feature fails, as `FEATURE MISSING:
 <feature> (template since dashboards-skill/N)`, **through a declared divergence too**: a divergence adds or argues a removal; it never
 excuses a board that lags its template. A landed or cancelled issue board is the exception: it is kept as it landed and never
@@ -924,6 +924,37 @@ refresh on its branch: the committed repository work board, and the repository s
   repository work board and the supersystem board, the worked example included; the system board's template had no such wording. Held
   by `verify/cases-mark-classes.js`, with `verify/fixtures/mark-classes/`, a static browser fixture of every mark class. A board drawn
   before keeps its wording until it is rebuilt, as above.
+
+**The decisions of dashboards-skill/53** (the user's approval of 2026-11-06 of the Design Tab's review, proposals 4, 6 and 7, run together
+on 2026-11-07), each weighed for every type:
+
+- **The Verdict's section Chip** (`plan/RULES.md` §2, "Statements"): a Verdict statement ends with its reference as a neutral, solid Chip,
+  "§R2", with the gap's kind Chip's look, never the link blue; a click opens the section's excerpt as the "(§4.2)" reference does, and a marked
+  one reads "§42?", named in the Legend. Applied to issue boards and tracking boards (a unit Row's verdict statements too): the Verdict Cell
+  and the Verdict inspector, which draws the Cell's list. Held by the `section-chip` probe. An As built statement keeps "(§4.2)": the
+  decision named the Verdict Cells. Not to the repository work board (one Row per run, no Verdict column) nor to the state boards (as-is: no
+  decisions, no plan sections to cite).
+- **The Verdict Cell's count Labels** (`plan/RULES.md` §2, "The Verdict Cell's count Labels"): its steps, tests and risks, each a count
+  Label as the Gap Cell's evidence is, the figure in ink and muted at zero. Applied to issue boards and tracking boards. Held by the
+  `verdict-count-labels` probe. The As built Cell's "2 changes · 3 commits" keeps its plain line: the decision named the Verdict Cell. Not to
+  the repository work board, whose counts are its KPI Tiles' figures and its Rows' chain summaries, nor to the state boards, whose Tiles are
+  counted facts written by hand: neither has a Cell foot of counts.
+- **A unit's landing on its As built Cell: the PR Chip and the merge Chip** (`plan/RULES.md` §3, "The units' landings"): copied from the
+  unit's own board into `unit.landing` by `embed.js` (`lib.js` `mirrorUnitLandings()`, at every embed of the tracking board, as `unit.tests`
+  is), or read from the Row's `asBuilt.pr` and `asBuilt.merge` for a unit with no board, which `unit-landed` writes; drawn above the
+  summary. Applied to tracking boards, the only type with unit Rows. Held by the `landing-chips` probe; `check.js` fails a `unit.landing` not
+  in its form and warns on one that lags the unit's board. Not to issue boards: their Rows are parts of one change, which lands once, in
+  the header's landed fact. Not to the repository work board: one Row per run, the run's pull request and merge on its own board. Not to
+  the state boards: as-is, no run's landing. The fast path's plain fact of a landing ("#66 landed through PR #89 as 8122af7.") still
+  writes the summary of a unit with none; the Chips stand beside it.
+- **`UNQUOTED PATH`** (`plan/RULES.md` §7): `check.js` warns on a path-shaped token outside a `` `code` `` span in a Row's evidence,
+  statements or summaries; it never fails, so a landed board's data stands, and the board guesses no path in prose. Applied to issue
+  boards and tracking boards, whose data holds those texts. Not to the repository work board: its text is issue titles, quoted verbatim
+  (§4), and each run's step. Not to the state boards: their text is markup written from the code with its paths set in `<code>` by hand,
+  and `check-board.js` reads no Markdown spans to tell a quoted path from an unquoted one.
+
+A landed board keeps its rendering (§11, "Re-rendering"); a board in flight takes the three marks at its next event, and the warning at its
+next check.
 
 ## 12. Elements — one name per function
 

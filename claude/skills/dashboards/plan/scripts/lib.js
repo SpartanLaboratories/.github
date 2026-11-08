@@ -1049,6 +1049,31 @@ function mirrorUnitTests(plan, dir) {
   });
   return changes;
 }
+/* The units' landings (plan/RULES.md §3, "The units' landings"; dashboards-skill/53): on a tracking board each unit row whose own board has
+   landed carries unit.landing { pr?, merge? }, that board's pull request and merge commit (its wip.landing, else its asBuilt, as its own
+   landed fact reads them), which the As built cell draws as the PR chip and the merge chip. Nobody writes it by hand: embed.js copies it from
+   the unit's plan.json in the same tree (its view copy where fresher) at every embed of the tracking board, and clears it where the unit's
+   board is not in the tree, has not landed or records neither. A unit with no board of its own keeps its landing on its row (asBuilt.merge,
+   asBuilt.pr, written by unit-landed) and carries no mirror. Returns [{ row, unit, want, have }]. */
+function unitLandingOf(sub) {
+  if (!sub || !LV.boardLanded(sub)) return null;
+  const L = (sub.wip && sub.wip.landing) || {}, A = sub.asBuilt || {};
+  const pr = [L.pr, A.pr].find(n => Number.isInteger(n) && n > 0) || null, merge = [L.merge, A.merge].find(s => typeof s === "string" && /^[0-9a-f]{7,40}$/i.test(s)) || null;
+  return pr || merge ? { ...(pr ? { pr } : {}), ...(merge ? { merge } : {}) } : null;
+}
+function unitLandings(plan, dir) {
+  if (!plan || plan.kind !== "tracking") return [];
+  return (plan.rows || []).filter(r => r && r.unit && Number.isInteger(r.unit.issue)).map(r => ({ row: r, unit: r.unit, want: unitLandingOf(subIssuePlan(dir, r.unit)), have: r.unit.landing || null }));
+}
+function mirrorUnitLandings(plan, dir) {
+  const changes = [];
+  unitLandings(plan, dir).forEach(x => {
+    if (JSON.stringify(x.have) === JSON.stringify(x.want)) return;
+    if (x.want) { x.unit.landing = x.want; changes.push(`#${x.unit.issue}: landing mirrored from its board${x.want.pr ? `, PR #${x.want.pr}` : ""}${x.want.merge ? `, merge ${x.want.merge.slice(0, 7)}` : ""}`); }
+    else if ("landing" in x.unit) { delete x.unit.landing; changes.push(`#${x.unit.issue}: landing mirror cleared (no board of its own in this tree, or it has not landed or records no landing)`); }
+  });
+  return changes;
+}
 const stampMs = s => { const t = Date.parse(String(s || "")); return isNaN(t) ? null : t; };
 /* The mirrors that lag their sub-issue's board (check.js warns on each): "missing" (in progress with a board, no mirror), "older"
    (unit.live.updated earlier than the board's wip.updated), "differs" (not older, other content), "orphan" (a mirror embed.js
@@ -1336,6 +1361,8 @@ function linkIssueBoards(plan, dir) {
   changes.push(...mirrorUnitRuns(plan, dir));
   // each unit's tests, from its own board, for the Tests tab (plan/RULES.md §2, "The Tests tab")
   changes.push(...mirrorUnitTests(plan, dir));
+  // each unit's landing, from its own board, for the As built cell's PR and merge chips (plan/RULES.md §3, "The units' landings")
+  changes.push(...mirrorUnitLandings(plan, dir));
   if (plan.parent && Number.isInteger(plan.parent.issue)) {
     const hit = parentBoard(dir, plan.parent), want = hit ? hit.board : null;
     if ((plan.parent.board || null) !== want) {
@@ -2014,4 +2041,4 @@ function ghMergeTime(repo, pr, merge) {
 }
 
 module.exports = { ...LV, ...PN, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, isUnitRef, blockerOf, mapUnitBlockers, HISTORY_FIELDS, HISTORY_STEPS, qAnswered, askedOf, answerQuestions, syncAsked, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, retimePlan, RETIME_NOT, retimeWords, retimeWhat, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, roadmapDocItem, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
-  trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewBaseFolder, viewBaseHref, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, notYetLanded, landedPending, unitLeft, setViewLinks, viewedFolder, viewLink, landVisit, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };
+  trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, unitLandingOf, unitLandings, mirrorUnitLandings, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewBaseFolder, viewBaseHref, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, notYetLanded, landedPending, unitLeft, setViewLinks, viewedFolder, viewLink, landVisit, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

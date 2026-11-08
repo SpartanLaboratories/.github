@@ -203,15 +203,18 @@ full stops: one decision per statement, as **bullets**, or **numbered** (`verdic
 the form itself says whether it does; the presenter chooses per content. Each statement is `{text, ref}`: `text` the decision in a
 sentence, and `ref` the plan paragraph it rests on, a **relative link** to that section of `plan.md` (or the `plan-<unit>.md` it
 came from; on a tracking board's unit Row, `architecture.md`'s section for the unit) with GitHub's heading anchor,
-`"plan.md#42-the-fix"`. The board ends the statement with the reference in parentheses, "(§4.2)": the heading's leading section
-number ("4.2", "A-3"), else the heading itself, or a `label` the statement sets. The text does not repeat it.
+`"plan.md#42-the-fix"`. The board ends the statement with the reference: the heading's leading section number ("4.2", "A-3",
+"R2"), else the heading itself, or a `label` the statement sets. The text does not repeat it. A Verdict statement draws it as its
+**section Chip**, "§4.2", neutral and solid with the gap's kind Chip's look, never the link blue (dashboards-skill/53); an As built
+statement in parentheses, "(§4.2)". Either opens the section's excerpt (below). The section Chip says what it is in its own text and is no grouping by colour, shade or dash, so no Legend names it (`GUIDANCE.md` §2); a marked one
+("§42?", below) is named in the Legend as the marked "(§42?)" is.
 
 - **Before the excerpt: the section number from the anchor.** Until `embed.js` has copied an excerpt (the file is not in the tree yet,
   or the heading is gone), the label is the section number the anchor names. GitHub's anchor drops a heading number's dots, so
   `42-the-fix` is §4.2 or §42: when the referenced Markdown is reachable from the board's folder, `embed.js` reads its headings and the
   heading number wins (the numbered heading whose number, its dots dropped, leads the anchor), written as the statement's `refNumber`
   `{ref, label, from: "headings"}`; only when the file is not there (or none of its numbered headings fits) is the anchor's leading
-  number taken as it stands, `from: "anchor"`, and **marked**: "(§42?)", with the reason in its title, in the inspector and in the
+  number taken as it stands, `from: "anchor"`, and **marked**: "(§42?)" (a Verdict statement's section Chip "§42?"), with the reason in its title, in the inspector and in the
   Legend of the Tab that draws it. The board, which reads no file, marks a reference with neither the same way. Nobody writes
   `refNumber` by hand; it goes once the excerpt is copied, and `check.js` warns on a marked one.
 
@@ -243,6 +246,11 @@ number ("4.2", "A-3"), else the heading itself, or a `label` the statement sets.
   and `check.js` warns, naming the Rows, until it is split (§9, "Splitting a board into statements").
 
 The **Legend** of the Design Tab and the As built Tab names each adaptation mark it drew; the lede says the reference is clickable.
+
+**The Verdict Cell's count Labels** (dashboards-skill/53): the Cell's foot counts its
+steps, tests and risks, "1 step · 0 tests · 2 risks", each a count Label as the Gap Cell's evidence is (§2, "The Gap Cell"), its figure
+in ink and muted at zero, the noun agreeing with the figure; derived at render, with no field of their own. No Legend names them (`GUIDANCE.md`
+§2). A board drawn before them keeps the plain line until its next rebuild; a landed board keeps its rendering (`GUIDANCE.md` §11).
 
 ### An option's signature
 
@@ -1050,6 +1058,16 @@ unit in progress. Two things say where the work is, and they never mix:
   that has no board in the tree, or a tracking board that has landed or was cancelled carries no
   mirror; `embed.js` clears one that is left. The mirror is generated, never merged: where two
   branches changed it, take either side and re-embed.
+- **The units' landings** (dashboards-skill/53): each unit whose own board has
+  landed carries `unit.landing` `{pr, merge}` on its Row, that board's pull request and merge commit (its `wip.landing`, else its
+  `asBuilt`, as its own landed fact reads them). The unit's As built Cell draws them above its summary as the **PR Chip** ("PR #89",
+  opening the pull request) and the **merge Chip** ("merge 8122af7", opening the commit), neutral and solid with the gap's kind Chip's
+  look; no Legend names them (`GUIDANCE.md` §2). Nobody writes `unit.landing` by hand: `embed.js` copies it at every embed of the
+  tracking board, landed units included, from the unit's board in the same tree (its view copy where that is fresher), and clears it
+  where the unit's board is not in the tree, has not landed or records neither; it is generated, never merged. A unit with no board
+  of its own keeps its landing on its Row (`asBuilt.merge`, `asBuilt.pr`, which `unit-landed` writes, §4) and draws the same Chips
+  from there. A board drawn before them names the landing in its summary alone until its next rebuild; a landed board keeps its
+  rendering (`GUIDANCE.md` §11).
 
 The board shows the mirror wherever it shows the unit in progress: on the WIP Panel, in the unit's
 own Card with an accent edge, its step, its own steps line, its detail and its qa passes (a
@@ -1633,6 +1651,12 @@ the rest. No code listings. Numbers only where they decide something. Never a wo
 work is (one system, a bug fix, docs only). The rule is about work levels only: a test level keeps
 its level label ("Level 2 — component", "L1 gating", "L4a deterministic"), and so does a C4 level.
 
+A path written outside a `` `code` `` span in a Row's evidence, statements or summaries draws as prose; `check.js` warns on it
+(`UNQUOTED PATH`, dashboards-skill/53), never fails, and the writer sets it in backticks.
+It reads a token as a path when it ends in a file extension, with an optional `:line` or `:line-line`, and holds a "/" or a line suffix,
+or ends in an extension no word of prose ends in (`.kt`, `.kts`, `.gradle`, `.md`, `.json`, …); a code span, a URL and a link's target
+are left alone. The board itself guesses no path in prose.
+
 ## 8. What `check.js` enforces
 
 Fails: schema/repo/issue/slug/title/function/baseline/status missing or bad; a slug that is not
@@ -1688,7 +1712,8 @@ but is not what its `unit.board` links, or a `unit.board` naming a board that do
 `parent.board` that is not the parent's board in the enclosing folder (a dead link, or another
 board); an `issueBoards` entry naming a board that does not exist (`embed.js` sets and clears
 all three, §1); a `unit.live` that is not an object, or carries a bad step, resume step or
-date; a bad date, sha, state, kind, verdict, step or column value; a placeholder left from the
+date; a `unit.landing` that is not `{pr, merge}` (a pull request's number, a commit sha, at least one of them) or sits on a board that is
+not a tracking board (§3, "The units' landings"); a bad date, sha, state, kind, verdict, step or column value; a placeholder left from the
 template; an embedded copy that differs from `plan.json`; a Panel without a Legend; a dead
 `href="#"`; a code block longer than five lines anywhere in the data; a work level named in any
 text of `plan.json` or `board.json` (`GUIDANCE.md` §4: "level: 2", "Label level: 3", "L3", "a level-3 change", "a level-3 re-pass",
@@ -1731,7 +1756,7 @@ With `--auto` it reports the board's standing against its template (`system/scri
 the verified template plus its data (no browser pass), or a divergence (the full browser pass:
 light, dark, 520 px, a 390 px frame, a 1920 x 1080 desktop).
 
-Warns: an option's `signature` wrapped in backticks, or one its name repeats (§2, "An option's signature"); a qa pass returned with no `running` before it (`QA START NOT RECORDED`, `wip.qa[].startUnrecorded`, §4; a mark that is not `true` fails); a `wip.history` visit holding a fact a snapshot of its step does not keep, and two remediation loops answering the same qa pass
+Warns: an option's `signature` wrapped in backticks, or one its name repeats (§2, "An option's signature"); a path outside a `` `code` `` span in a Row's evidence, statements or summaries (`UNQUOTED PATH`, §7); on a tracking board, a `unit.landing` that differs from the unit's board's landing, is missing for a unit whose board has landed, or would be cleared (`embed.js` fixes each, §3, "The units' landings"); a qa pass returned with no `running` before it (`QA START NOT RECORDED`, `wip.qa[].startUnrecorded`, §4; a mark that is not `true` fails); a `wip.history` visit holding a fact a snapshot of its step does not keep, and two remediation loops answering the same qa pass
 (§3, "Finished steps"; its `ok` line names the steps kept and those the board reconstructs); verdicts written before the statements, one paragraph each (one warning naming the Rows: split them, §9); a statement whose
 reference names a section that is gone, whose excerpt is not copied yet, or whose section has changed since its excerpt was copied
 (§2, "Statements"); a statement's text that ends with its own "(§…)"; a verdict or an As built Cell that keeps its summary beside

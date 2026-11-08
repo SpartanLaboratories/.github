@@ -364,6 +364,8 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .kpi-tile .legend.tl-steps>span.tl-note{display:block;color:var(--muted);margin-top:5px;break-inside:avoid}
 /* a statement's reference whose section number is read from its link's anchor alone (its file not there to read): "(§42?)" */
 .legend b.srefk{font:600 10.5px var(--mono);color:var(--link)}
+/* …and a Verdict statement's, drawn as its section chip: "§42?" (dashboards-skill/53) */
+.legend b.section-chip{font:600 10px/1.35 var(--mono);color:var(--ink-2);border:1px solid var(--line);border-radius:3px;padding:0 5px;letter-spacing:.04em}
 .legend i.segk.dash{background:none;border:1.5px dashed var(--sc,var(--muted));height:7px}
 .legend i.segk.slot{background:none;border:1px solid var(--line);height:7px}
 
@@ -551,6 +553,16 @@ a.more:hover{text-decoration:underline}
 .cell .sum b.gap-lead{font-weight:700}
 .cell .meta :is(.where-chip,.baseline-chip){font:600 10px var(--mono);color:var(--ink-2);border:1px solid var(--line);border-radius:3px;padding:1px 5px;letter-spacing:.04em;text-decoration:none;min-width:0;max-width:100%;overflow-wrap:anywhere}
 .cell .meta a.baseline-chip:hover{border-color:var(--ink-2);color:var(--ink)}
+/* The Verdict cell's count labels (plan/RULES.md §2, "Statements"; dashboards-skill/53): its steps, tests and risks, each a count label as the
+   Gap cell's evidence is, the figure in ink and muted at zero. */
+.cell .meta .count-label{letter-spacing:0}
+.cell .meta .count-label b{color:var(--ink);font-weight:700}
+.cell .meta .count-label.zero b{color:var(--muted);font-weight:400}
+/* A unit's landing on a tracking board's As built cell (plan/RULES.md §3, "The units' landings"; dashboards-skill/53): the PR chip and the
+   merge chip above the summary, copied from the unit's own board (unit.landing), neutral chips with the kind chip's look. */
+.cell .landing-chips{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 5px}
+.cell .landing-chips :is(.pr-chip,.merge-chip){font:600 10px var(--mono);color:var(--ink-2);border:1px solid var(--line);border-radius:3px;padding:1px 5px;letter-spacing:.04em;text-decoration:none;min-width:0;max-width:100%;overflow-wrap:anywhere}
+.cell .landing-chips a:is(.pr-chip,.merge-chip):hover{border-color:var(--ink-2);color:var(--ink)}
 .cell::before{content:"";position:absolute;left:calc(-1 * var(--cg) - 1px);top:50%;width:var(--cg);border-top:2px solid var(--ink-2)}
 .cell::after{content:"";position:absolute;left:-6px;top:calc(50% - 5px);width:10px;height:10px;border-radius:50%;background:var(--ink-2)}
 .cell.gap::before{display:none}
@@ -590,6 +602,10 @@ a.more:hover{text-decoration:underline}
 .stmts .n{font:600 10.5px var(--mono);color:var(--muted)}
 a.sref{font:600 10.5px var(--mono);color:var(--link);text-decoration:none;white-space:normal;overflow-wrap:anywhere;border-bottom:0!important}
 a.sref:hover{text-decoration:underline}
+/* The Verdict's section chip (plan/RULES.md §2, "Statements"; dashboards-skill/53): a Verdict statement's reference as a neutral chip,
+   "§R2", with the gap's kind chip's look, never the link blue; it opens the section's excerpt as the "(§4.2)" reference does. */
+a.section-chip{display:inline-block;font:600 10px/1.35 var(--mono);color:var(--ink-2);border:1px solid var(--line);border-radius:3px;padding:0 5px;letter-spacing:.04em;text-decoration:none;max-width:100%;overflow-wrap:anywhere;vertical-align:baseline;border-bottom:1px solid var(--line)!important}
+a.section-chip:hover,a.section-chip:focus-visible{border-color:var(--ink-2)!important;color:var(--ink)}
 .inspector .stmts{margin:0 0 8px;font-size:13px;color:var(--ink)}
 blockquote.excerpt{margin:2px 0 0;padding:6px 10px;border-left:3px solid var(--ink-2);background:var(--surface-2);border-radius:0 4px 4px 0;color:var(--ink)}
 blockquote.excerpt p{margin:4px 0 0;color:var(--ink-2);font-size:12.5px}
@@ -1255,9 +1271,13 @@ function stmtLabel(s){ if(s&&typeof s.label==="string"&&s.label.trim()) return s
   const n=refNumShown(s); if(n) return n.label+(n.from==="anchor"?"?":"");
   const a=String((s&&s.ref)||"").split("#")[1]; return a?"§ "+a:"§"; }
 const refMarkNote=s=>{ const n=refNumShown(s)||{label:"§"}, d=n.label.slice(1); return `the section number is read from the link's anchor alone: its file was not there to read, and the anchor drops a heading number's dots, so ${d} may be ${d.length>1?d.split("").join("."):d}`; };
-const stmtRef=(s,row,col,i)=>s&&typeof s.ref==="string"&&relLink(s.ref)?` <a class="sref" href="${esc(s.ref)}" data-row="${esc(row)}" data-col="${col}" data-i="${i}" title="${nameText(s.excerpt&&s.excerpt.heading?s.excerpt.heading:s.ref)}${refMarked(s)?` (${esc(refMarkNote(s))})`:""}: click for the section's excerpt">(${esc(stmtLabel(s))})</a>`:"";
+/* a Verdict statement ends with its section chip, "§R2" (dashboards-skill/53); an As built statement with its reference in parentheses, "(§4.2)" */
+const stmtRef=(s,row,col,i)=>{ if(!(s&&typeof s.ref==="string"&&relLink(s.ref))) return ""; const chip=col==="verdict";
+  return ` <a class="${chip?"section-chip":"sref"}" href="${esc(s.ref)}" data-row="${esc(row)}" data-col="${col}" data-i="${i}" title="${nameText(s.excerpt&&s.excerpt.heading?s.excerpt.heading:s.ref)}${refMarked(s)?` (${esc(refMarkNote(s))})`:""}: click for the section's excerpt">${chip?esc(stmtLabel(s)):`(${esc(stmtLabel(s))})`}</a>`; };
 /* the legend entry of a marked reference, where the statements drawn carry one */
-const refKey=list=>list.some(refMarked)?`<span><b class="srefk">(§n?)</b> a section number read from its link alone: the plan file was not there to tell §4.2 from §42</span>`:"";
+const REF_MARK_WHY="a section number read from its link alone: the plan file was not there to tell §4.2 from §42";
+/* verdict: the Verdict statements drawn (their section chips), built: the As built ones (their "(§n)" references) */
+const refKey=(verdict,built)=>(verdict.some(refMarked)?`<span><b class="section-chip">§n?</b> ${REF_MARK_WHY}</span>`:"")+((built||[]).some(refMarked)?`<span><b class="srefk">(§n?)</b> ${REF_MARK_WHY}</span>`:"");
 /* a cell's, a card's or the inspector's statements: the verdict's, or the as built ones with their marks; "" when the row has none */
 function stmtsHtml(r,col){ const x=col==="verdict"?r.verdict:r.asBuilt, all=stmtsRaw(x), num=((r.verdict||{}).list==="numbered");
   if(!all.some(stmtOk)) return "";
@@ -2195,6 +2215,18 @@ function rowTitle(r){ const u=r.unit; if(!u) return codeOnly(r.name);
    zero), the bold lead (the summary's first sentence in bold), and in its foot the where chip (the row's where) and the baseline chip
    ("at <sha>", the board's baseline, opening the commit). A row with no where, a board with no baseline sha, draws no chip for it. */
 const evidenceLabel=n=>`<span class="count-label${n?"":" zero"}">· <b>${n}</b> evidence</span>`;
+/* The Verdict cell's count labels (plan/RULES.md §2, "Statements"; dashboards-skill/53): its steps, tests and risks, each a count label as the
+   evidence count is, the figure in ink and muted at zero, the noun agreeing with it ("1 step", "0 tests") */
+const countLabel=(n,one,many)=>`<span class="count-label${Number(n)?"":" zero"}"><b>${esc(n)}</b> ${Number(n)===1?one:(many||one+"s")}</span>`;
+/* A unit's landing on a tracking board's As built cell (plan/RULES.md §3, "The units' landings"; dashboards-skill/53): the PR chip and the merge
+   chip, from unit.landing (embed.js copies it from the unit's own board) or, for a unit with no board, the row's asBuilt.pr and asBuilt.merge;
+   "" on a row that is no unit, or a unit that records neither */
+const landingOf=r=>{ if(!r||!r.unit) return {}; const L=r.unit.landing&&typeof r.unit.landing==="object"?r.unit.landing:{}, b=r.asBuilt||{}, pr=L.pr||b.pr, m=L.merge||b.merge;
+  return {pr:Number.isInteger(+pr)&&+pr>0?+pr:null, merge:typeof m==="string"&&/^[0-9a-f]{7,40}$/i.test(m)?m:null}; };
+const landingChips=r=>{ const {pr,merge}=landingOf(r); if(!pr&&!merge) return "";
+  const prC=pr?(REPO?`<a class="pr-chip" href="${esc(REPO)}/pull/${pr}" target="_blank" rel="noopener" title="the unit's pull request">PR #${pr}</a>`:`<span class="pr-chip" title="the unit's pull request">PR #${pr}</span>`):"";
+  const mC=merge?(REPO?`<a class="merge-chip" href="${esc(REPO)}/commit/${esc(merge)}" target="_blank" rel="noopener" title="the unit's merge commit ${esc(merge)}">merge ${esc(merge.slice(0,7))}</a>`:`<span class="merge-chip" title="the unit's merge commit ${esc(merge)}">merge ${esc(merge.slice(0,7))}</span>`):"";
+  return `<div class="landing-chips">${prC}${mC}</div>`; };
 const whereChip=r=>r&&r.where?`<span class="where-chip" title="where">${codeOnly(r.where)}</span>`:"";
 const baselineChip=b=>{ const sha=b&&b.sha?String(b.sha):""; if(!sha) return ""; const t=`the baseline${b.ref?`: ${esc(b.ref)}`:""}`; return /^[0-9a-f]{7,40}$/i.test(sha)&&REPO?`<a class="baseline-chip" href="${esc(REPO)}/commit/${esc(sha)}" target="_blank" rel="noopener" title="${t}">at ${esc(sha)}</a>`:`<span class="baseline-chip" title="${t}">at ${esc(sha)}</span>`; };
 /* The bold lead splits the summary as written, so each part keeps its code spans whole: the first sentence ends at ".", "!" or "?" and
@@ -2215,10 +2247,10 @@ const buildingLead=(r,st,cls)=>{ const b=r.asBuilt||{}; return (st==="in-progres
 const builtBody=(r,st)=>{ const b=r.asBuilt||{}, s=stmtsHtml(r,"built"); return s?buildingLead(r,st)+s:rich(b.summary||(st==="pending"?"Not built yet.":"")); };
 /* the as-built cell's or card's marks: its own FullPulse, the column's (colcell-fullpulse), or the up-next Ring of the next unit */
 const builtMark=r=>{ const g=cellGlow(r.id,"built"); return g+(/ fullpulse| held/.test(g)||!isNext(r)?"":" upnext-ring"); };
-function cellVerdict(r){ const v=r.verdict||{}, w=verdictOf(r), leave=w==="leave", chg=!w&&CHARGING(); return `<div class="cell verdict${leave?" leave":""}${chg?` charging${PAUSED?" still":""}`:""}${cellGlow(r.id,"verdict")}" role="button" tabindex="0" data-row="${esc(r.id)}" data-col="verdict" aria-label="Verdict: ${nameText(r)}${w?"":", not yet written"}"><div class="kick">3 · VERDICT${w?` <span class="kind">${leave?"leave as is":"build"}</span>`:""}</div><div class="sum">${verdictBody(r)}</div><div class="meta"><span>${plural((v.steps||[]).length,"step")} · ${plural((v.tests||[]).length,"test")} · ${plural((v.risks||[]).length,"risk")}</span>${moreLink(v.link,"plan")}</div></div>`; }
+function cellVerdict(r){ const v=r.verdict||{}, w=verdictOf(r), leave=w==="leave", chg=!w&&CHARGING(); return `<div class="cell verdict${leave?" leave":""}${chg?` charging${PAUSED?" still":""}`:""}${cellGlow(r.id,"verdict")}" role="button" tabindex="0" data-row="${esc(r.id)}" data-col="verdict" aria-label="Verdict: ${nameText(r)}${w?"":", not yet written"}"><div class="kick">3 · VERDICT${w?` <span class="kind">${leave?"leave as is":"build"}</span>`:""}</div><div class="sum">${verdictBody(r)}</div><div class="meta"><span>${countLabel((v.steps||[]).length,"step")} · ${countLabel((v.tests||[]).length,"test")} · ${countLabel((v.risks||[]).length,"risk")}</span>${moreLink(v.link,"plan")}</div></div>`; }
 function cellBuilt(r){ const st=stateOf(r), b=r.asBuilt||{}, S=STATES[st]; const extra=st==="deferred"&&b.issue?` → ${ilink(b.issue)}`:"";
   const link=b.link||(r.unit&&(unitHref(r)||r.unit.folder))||"";
-  return `<div class="cell built ${S.cls}${st==="pending"?" pending":""}${st==="deferred"?" deferred":""}${builtMark(r)}" role="button" tabindex="0" data-row="${esc(r.id)}" data-col="built" aria-label="As built: ${nameText(r)}, ${S.label}${isNext(r)?", up next":""}${runOf(r)?`, its run: ${esc(runShort(runOf(r)).slice(2))}`:""}"><div class="kick">4 · AS BUILT ${badge(st,extra)}${nextTags(r)}</div><div class="sum">${builtBody(r,st)}</div>${runLine(r)}<div class="meta"><span>${plural((b.changes||[]).length,"change")} · ${plural((b.commits||[]).length,"commit")}</span>${moreLink(link,r.unit?(unitHref(r)?"board":"folder"):"record")}</div></div>`; }
+  return `<div class="cell built ${S.cls}${st==="pending"?" pending":""}${st==="deferred"?" deferred":""}${builtMark(r)}" role="button" tabindex="0" data-row="${esc(r.id)}" data-col="built" aria-label="As built: ${nameText(r)}, ${S.label}${isNext(r)?", up next":""}${runOf(r)?`, its run: ${esc(runShort(runOf(r)).slice(2))}`:""}"><div class="kick">4 · AS BUILT ${badge(st,extra)}${nextTags(r)}</div>${landingChips(r)}<div class="sum">${builtBody(r,st)}</div>${runLine(r)}<div class="meta"><span>${plural((b.changes||[]).length,"change")} · ${plural((b.commits||[]).length,"commit")}</span>${moreLink(link,r.unit?(unitHref(r)?"board":"folder"):"record")}</div></div>`; }
 const GROUP_ORDER=["Code","Tests","Documents","Release","Left for later"];
 function grouped(){ const groups=[]; ROWS.forEach(r=>{ const g=r.group||""; let G=groups.find(x=>x.name===g); if(!G){ G={name:g,rows:[]}; groups.push(G); } G.rows.push(r); });
   /* an issue board orders its groups Code, Tests, Documents, Release, Left for later; a tracking board keeps landing order */
@@ -2228,7 +2260,7 @@ function renderBoard(){
   /* one line, for what the board does not draw (the columns, the colours and the marks are in the heads and the legend) */
   $("#design-lede").textContent=TRACKING
     ?"One row per unit, in landing order; each unit is planned and built on its own board. Click a cell for its detail."
-    :"Click a cell, an option or a statement's (§) reference for its detail and the Markdown section that holds the rest.";
+    :"Click a cell, an option or a statement's § reference for its detail and the Markdown section that holds the rest.";
   const ms=c=>(PLAN.milestones||[]).find(m=>m.column===c);
   let h=`<div class="colhead" data-col="units" aria-hidden="true"></div>`+COLS.map((c,i)=>{ const m=ms(c.key);
     const dt=m?`${esc(m.label)}${m.date?` · <span class="nw">${when(m.date)}</span>`:""}${m.ref?` · ${refHtml(m.ref)}`:""}`:FILLING.includes(c.key)?"being written":(c.key==="built"&&!LANDED?"not landed":"");
@@ -2255,7 +2287,7 @@ function renderBoard(){
     +(NEXT_ROW?KEY_NEXT(NEXT_ROW):"")
     +Q_ORDER.filter(x=>[...RROWS.values()].includes(x)).map(KEY_RS).join("")
     +(CHARGING()&&ROWS.some(r=>!verdictOf(r))?KEY_CHG():"")
-    +refKey(ROWS.flatMap(r=>[...stmtsOf(r.verdict),...stmtsOf(r.asBuilt)]));
+    +refKey(ROWS.flatMap(r=>stmtsOf(r.verdict)),ROWS.flatMap(r=>stmtsOf(r.asBuilt)));
 }
 /* The kind chips the Timeline draws, in its legend: the gap's kind (column 1) and the written verdict's (column 3), each a neutral,
    solid chip (GUIDANCE.md §1: a kind is a fact, not an outcome, and dashed means only planned or pending), listed only when drawn. */
@@ -2284,7 +2316,7 @@ function select(rowId,col,optId){
 }
 /* A statement's reference (plan/RULES.md §2, "Statements"): a plain click shows, in the inspector, the excerpt embed.js copied from the
    plan section it rests on, beside the link that opens the section; a modified click (a new tab, a new window) follows the link. */
-function bindRefs(root){ (root||document).querySelectorAll("a.sref").forEach(a=>a.addEventListener("click",e=>{ if(e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey) return;
+function bindRefs(root){ (root||document).querySelectorAll("a.sref,a.section-chip").forEach(a=>a.addEventListener("click",e=>{ if(e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey) return;
   e.preventDefault(); e.stopPropagation(); const cell=document.querySelector(`#board .cell[data-row="${CSS.escape(a.dataset.row)}"][data-col="${a.dataset.col}"]`);
   if(a.closest("#board")){ document.querySelectorAll("#board .cell.sel, #board .opt.sel").forEach(x=>x.classList.remove("sel")); if(cell) cell.classList.add("sel"); }
   inspectRef(a.dataset.row,a.dataset.col,+a.dataset.i); try{ history.replaceState(null,"","#"+a.dataset.row+"."+a.dataset.col+".s"+a.dataset.i); }catch(x){} })); }

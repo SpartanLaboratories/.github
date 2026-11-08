@@ -359,6 +359,23 @@ const FEATURES = [
     notFor: { system: "no run: a state board shows the code at a commit, not a run's progress notes", supersystem: "no run: a state board shows the code at a commit, not a run's progress notes", "work-board": "one row per run: it shows no progress notes; the text a row carries comes from board.json, which board.js rewords" },
     test: h => { const s = scripts(h); return need(/"documentation-reviewer":"documentation check"/.test(s) && /"code-reviewer":"code check"/.test(s) && /"test-inspector":"test check"/.test(s),
       "a Quality Review's checks labelled otherwise than \"documentation check\", \"code check\", \"test check\" (the names block's NOTE_WORK)"); } },
+  /* dashboards-skill/53 (the user's decisions of 2026-11-06, the Design tab's review, proposals 4 and 6): a Verdict statement's reference drawn
+     as its section chip ("§R2", neutral, never the link blue), the Verdict cell's counts as count labels (the figure in ink, muted at zero), and
+     a tracking board's unit As built cell carrying the PR chip and the merge chip of the unit's landing, copied from its own board (unit.landing,
+     plan/RULES.md §3, "The units' landings"). A board drawn before them keeps "(§4.2)" in the link blue, its plain counts and no chips until its
+     next rebuild (its next event, the splice); a landed issue board is kept as it landed (§11). */
+  { id: "section-chip", name: "a Verdict statement's reference drawn as its section chip, \"§R2\", neutral (never the link blue), opening the section's excerpt", since: 53, types: ["plan-board"],
+    notFor: { system: "no Verdict column: a state board shows the code at a commit, not a run's decisions", supersystem: "no Verdict column: a state board shows the code at a commit, not a run's decisions", "work-board": "no Verdict column: one row per run, each run's verdicts on its own board" },
+    test: h => { const s = scripts(h), c = css(h); return need(/const stmtRef=\(s,row,col,i\)=>\{[^\n]*const chip=col==="verdict";/.test(s) && /<a class="\$\{chip\?"section-chip":"sref"\}"/.test(s) && /querySelectorAll\("a\.sref,a\.section-chip"\)/.test(s) && /(?:^|\n)a\.section-chip\{[^}]*color:var\(--ink-2\);border:1px solid var\(--line\)/.test(c),
+      "a Verdict statement ends with \"(§4.2)\" in the link blue: no section chip (stmtRef() drawing a.section-chip for the verdict, bindRefs() binding it, a.section-chip{…})"); } },
+  { id: "verdict-count-labels", name: "the Verdict cell's steps, tests and risks as count labels, the figure in ink and muted at zero", since: 53, types: ["plan-board"],
+    notFor: { system: "no Verdict column: a state board shows the code at a commit, not a run's decisions", supersystem: "no Verdict column: a state board shows the code at a commit, not a run's decisions", "work-board": "no Verdict column: one row per run, each run's verdicts on its own board" },
+    test: h => { const s = scripts(h), c = css(h); return need(/const countLabel=\(n,one,many\)=>/.test(s) && /\$\{countLabel\(\(v\.steps\|\|\[\]\)\.length,"step"\)\} · \$\{countLabel\(\(v\.tests\|\|\[\]\)\.length,"test"\)\} · \$\{countLabel\(\(v\.risks\|\|\[\]\)\.length,"risk"\)\}/.test(s) && /\.cell \.meta \.count-label\.zero b\{/.test(c),
+      "the Verdict cell's counts are one plain line (no countLabel() for its steps, tests and risks, or no .cell .meta .count-label)"); } },
+  { id: "landing-chips", name: "a tracking board's unit As built cell carrying the PR chip and the merge chip of the unit's landing, copied from its own board", since: 53, types: ["plan-board"],
+    notFor: { system: "no units: a state board shows the code at a commit, not a run's landings", supersystem: "no units: a state board shows the code at a commit, not a run's landings", "work-board": "one row per run: a run's pull request and merge are on its own board" },
+    test: h => { const s = scripts(h), c = css(h); return need(/const landingOf=r=>/.test(s) && /const landingChips=r=>/.test(s) && /\$\{landingChips\(r\)\}<div class="sum">\$\{builtBody\(r,st\)\}<\/div>/.test(s) && /\.cell \.landing-chips :is\(\.pr-chip,\.merge-chip\)\{/.test(c),
+      "a unit's As built cell names its landing in prose alone: no PR chip or merge chip (landingChips() in cellBuilt(), .landing-chips)"); } },
 ];
 /* The layout detectors, run in the browser pass (check-board.js's probe), named here so the report and the rules list them. */
 const LAYOUT = [

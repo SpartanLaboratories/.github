@@ -21,7 +21,7 @@ const { nameRefsIn, commentRefs, nameWarning } = require(path.resolve(__dirname,
 const { paletteCheck } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js"));
 const { boardLanded, workLevelFields, featureRun } = require("./levels.js");
 const { passRefsIn, PASS_NAME } = require("./passnames.js");
-const { unitTests, DEP_STATES, HOLD_STATES, isUnitRef, unitFiled } = require("./lib.js");
+const { unitTests, unitLandings, DEP_STATES, HOLD_STATES, isUnitRef, unitFiled } = require("./lib.js");
 const { foundationFilling, WAIT_BY, HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, isTime, APPROX_SOURCES, timelineApproxNote, timelineSteps, tlSpan, timelineLines, timelineLeftOut, timelineTotal, unitInRun, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, fixOfBoard, foldedIn, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, viewSource, viewParts, viewBaseHref, viewedFolder, setViewLinks, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
@@ -45,6 +45,30 @@ function placeholders(v, at, found) {
   else if (Array.isArray(v)) v.forEach((x, i) => placeholders(x, `${at}[${i}]`, found));
   else if (v && typeof v === "object") Object.keys(v).forEach(k => { if (k === "$comment") found.push(`${at ? at + "." : ""}$comment`); else placeholders(v[k], at ? `${at}.${k}` : k, found); });
   return found;
+}
+/* Paths in code spans (RULES §7; dashboards-skill/53): a path-shaped token written outside a `code` span in a row's evidence, statements or
+   summaries draws as prose. check.js warns on it (UNQUOTED PATH), never fails, so a landed board's data stands as it landed; the writer sets
+   it in backticks. A token is path-shaped when it ends in a file extension, with an optional ":line" or ":line-line", and holds a "/" or a
+   line suffix, or ends in an extension no word of prose ends in (.kt, .kts, .gradle, .md, .json, .toml, .properties, .yml, .yaml, .xml): so
+   "Node.js" or a version is no path. A code span, a URL and a Markdown link's target are left alone. Returns the tokens, in order. */
+const PATH_EXT = "kt|kts|java|scala|groovy|gradle|js|mjs|cjs|ts|tsx|jsx|json|md|xml|ya?ml|toml|properties|html|css|sh|py|txt|sql|proto|cfg|conf|ini|dsl";
+const PATH_TOKEN = new RegExp(String.raw`(?<![\w./@-])((?:[\w.-]+/)*[\w-][\w.-]*\.(?:${PATH_EXT}))(:\d+(?:-\d+)?)?(?![\w/-])`, "g");
+const PATH_PLAIN_EXT = /\.(?:kt|kts|gradle|md|json|toml|properties|ya?ml|xml)$/i;
+function unquotedPaths(s) {
+  if (typeof s !== "string" || !s) return [];
+  const t = s.replace(/`[^`]*`/g, " ").replace(/\]\([^)]*\)/g, "] ").replace(/\b[a-z][a-z0-9+.-]*:\/\/\S+/gi, " ");
+  const out = []; let m; PATH_TOKEN.lastIndex = 0;
+  while ((m = PATH_TOKEN.exec(t))) if (m[1].includes("/") || m[2] || PATH_PLAIN_EXT.test(m[1])) out.push(m[1] + (m[2] || ""));
+  return out;
+}
+/* every row text the rule covers: the gap's summary and evidence, each option's summary, the verdict's and the as-built statements and summaries */
+function rowPathTexts(r, at) {
+  const g = (r && r.gap) || {}, v = (r && r.verdict) || {}, b = (r && r.asBuilt) || {}, out = [];
+  const add = (s, w) => { if (typeof s === "string") out.push([s, w]); };
+  add(g.summary, `${at}.gap.summary`); (Array.isArray(g.evidence) ? g.evidence : []).forEach((e, j) => add(e, `${at}.gap.evidence[${j}]`));
+  (Array.isArray(r && r.options) ? r.options : []).forEach((o, j) => add(o && o.summary, `${at}.options[${j}].summary`));
+  [["verdict", v], ["asBuilt", b]].forEach(([k, x]) => { add(x.summary, `${at}.${k}.summary`); (Array.isArray(x.statements) ? x.statements : []).forEach((s, j) => add(s && s.text, `${at}.${k}.statements[${j}].text`)); });
+  return out;
 }
 /* An option's signature (RULES §2, "An option's signature"; admin-team/dashboards/code-label-and-sigblock): an option keeps a short name and its
    signature is a field of its own, the code as written, which the board draws verbatim beneath the name, set as a block. A signature that is
@@ -336,6 +360,15 @@ function checkPlan(plan, dir, root) {
           if (L.resume != null && !STEPS.includes(L.resume)) fail(`${at}.unit.live.resume "${L.resume}" is not a step`);
         }
       }
+      // The unit's landing, mirrored from its own board by embed.js (RULES §3, "The units' landings"; dashboards-skill/53): { pr?, merge? }
+      if (u.landing != null) {
+        const L = u.landing;
+        if (typeof L !== "object" || Array.isArray(L) || (L.pr == null && L.merge == null)) fail(`${at}.unit.landing must be the mirror of the sub-issue board's landing, { pr?, merge? } (embed.js writes it)`);
+        else {
+          if (L.pr != null && !posInt(L.pr)) fail(`${at}.unit.landing.pr ${JSON.stringify(L.pr)} is not a pull request's number`);
+          if (L.merge != null && !SHA.test(String(L.merge))) fail(`${at}.unit.landing.merge ${JSON.stringify(L.merge)} is not a commit sha`);
+        }
+      }
     }
   });
 
@@ -577,6 +610,9 @@ function checkPlan(plan, dir, root) {
     if (up) { let tp = null; try { tp = JSON.parse(fs.readFileSync(path.join(viewedFolder(up), "plan.json"), "utf8")); } catch (e) { /* the parent's own check reports it */ }
       if (tp) staleUnitRuns(tp, up).filter(x => x.unit.issue === plan.issue && x.kind !== "orphan").forEach(x => warn(`the parent #${tp.issue}'s tracking board mirrors this run ${x.kind === "missing" ? "not at all" : x.kind === "older" ? `as of ${x.have.updated}, older than this board's ${x.want.updated}` : "with other content"}: run embed.js on this folder, which re-embeds it`)); }
   }
+  /* paths outside a code span in the rows' texts (RULES §7, dashboards-skill/53): one warning, its first sites named */
+  { const hits = []; rows.forEach((r, i) => rowPathTexts(r, `rows[${i}]${r && r.id ? ` (${r.id})` : ""}`).forEach(([s, w]) => unquotedPaths(s).forEach(p => hits.push(`${w} "${p}"`))));
+    if (hits.length) warn(`UNQUOTED PATH: ${hits.length} path${hits.length === 1 ? "" : "s"} outside a code span (RULES §7: file paths in \`code\` spans, so the board draws them as code): ${hits.slice(0, 6).join(", ")}${hits.length > 6 ? `, and ${hits.length - 6} more` : ""}; write each in backticks${boardLanded(plan) ? " (a landed board keeps its data as it landed)" : ""}`); }
   checkImpact(plan, dir, systems, rows, tracking);
   /* The Tests tab (RULES §2, "The Tests tab"): the board's tests block (testslib.js testsProblems()), a unit row's mirror of its board's
      (unit.tests, tracking boards only, written by embed.js), and a mirror that differs from the unit's board (fixed by embed.js). */
@@ -584,6 +620,10 @@ function checkPlan(plan, dir, root) {
     rows.forEach((r, i) => { if (!r || !r.unit || r.unit.tests == null) return; const at = `rows[${i}] (${r.id})`;
       if (!tracking) fail(`${at}.unit.tests on a board that is not a tracking board`); TL.mirrorProblems(r.unit.tests, at).forEach(fail); });
     if (tracking) unitTests(plan, dir).forEach(x => { if (JSON.stringify(x.have) !== JSON.stringify(x.want)) warn(`rows(${x.row.id}).unit.tests (#${x.unit.issue}) ${x.want ? (x.have ? "differs from its board's tests" : "is missing: its board records tests") : "is a mirror embed.js would clear (no board of the unit in this tree, or it records no tests)"}: run embed.js on this folder, or on the sub-issue's, which re-embeds this one`); }); }
+  /* The units' landings (RULES §3, "The units' landings"; dashboards-skill/53): unit.landing on a tracking board only, and a mirror that differs
+     from the unit's board (fixed by embed.js) */
+  rows.forEach((r, i) => { if (r && r.unit && r.unit.landing != null && !tracking) fail(`rows[${i}] (${r.id}).unit.landing on a board that is not a tracking board`); });
+  if (tracking) unitLandings(plan, dir).forEach(x => { if (JSON.stringify(x.have) !== JSON.stringify(x.want)) warn(`rows(${x.row.id}).unit.landing (#${x.unit.issue}) ${x.want ? (x.have ? "differs from its board's landing" : "is missing: its board has landed") : "is a mirror embed.js would clear (no board of the unit in this tree, or it has not landed)"}: run embed.js on this folder, or on the sub-issue's, which re-embeds this one`); });
   if (plan.roadmap && typeof plan.roadmap === "object") (plan.roadmap.items || []).forEach((x, i) => reasonCheck(x, `roadmap.items[${i}]`));
   (plan.followUps || []).forEach((f, i) => { if (!posInt(f.issue) && !str(f.name)) fail(`followUps[${i}] needs an issue number or, for an unfiled follow-up, a name`); });
   (plan.documents || []).forEach((d, i) => { if (!str(d.label) && !str(d.path)) fail(`documents[${i}] needs a label or a path`); checkLink(dir, d.path, `documents[${i}].path`); });
@@ -1199,4 +1239,4 @@ if (require.main === module) {
   if (!dir) { console.error("usage: node check.js <plan-folder | docs/plans> [--root <repo>] [--auto | --browser] [--out <dir>]"); process.exit(2); }
   process.exit(run(dir, args));
 }
-module.exports = { run };
+module.exports = { run, unquotedPaths, rowPathTexts };

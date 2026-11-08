@@ -363,6 +363,8 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .kpi-tile .legend.tl-steps>span.tl-note{display:block;color:var(--muted);margin-top:5px;break-inside:avoid}
 /* a statement's reference whose section number is read from its link's anchor alone (its file not there to read): "(§42?)" */
 .legend b.srefk{font:600 10.5px var(--mono);color:var(--link)}
+/* …and a Verdict statement's, drawn as its section chip: "§42?" (dashboards-skill/53) */
+.legend b.section-chip{font:600 10px/1.35 var(--mono);color:var(--ink-2);border:1px solid var(--line);border-radius:3px;padding:0 5px;letter-spacing:.04em}
 .legend i.segk.dash{background:none;border:1.5px dashed var(--sc,var(--muted));height:7px}
 .legend i.segk.slot{background:none;border:1px solid var(--line);height:7px}
 
@@ -550,6 +552,16 @@ a.more:hover{text-decoration:underline}
 .cell .sum b.gap-lead{font-weight:700}
 .cell .meta :is(.where-chip,.baseline-chip){font:600 10px var(--mono);color:var(--ink-2);border:1px solid var(--line);border-radius:3px;padding:1px 5px;letter-spacing:.04em;text-decoration:none;min-width:0;max-width:100%;overflow-wrap:anywhere}
 .cell .meta a.baseline-chip:hover{border-color:var(--ink-2);color:var(--ink)}
+/* The Verdict cell's count labels (plan/RULES.md §2, "Statements"; dashboards-skill/53): its steps, tests and risks, each a count label as the
+   Gap cell's evidence is, the figure in ink and muted at zero. */
+.cell .meta .count-label{letter-spacing:0}
+.cell .meta .count-label b{color:var(--ink);font-weight:700}
+.cell .meta .count-label.zero b{color:var(--muted);font-weight:400}
+/* A unit's landing on a tracking board's As built cell (plan/RULES.md §3, "The units' landings"; dashboards-skill/53): the PR chip and the
+   merge chip above the summary, copied from the unit's own board (unit.landing), neutral chips with the kind chip's look. */
+.cell .landing-chips{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 5px}
+.cell .landing-chips :is(.pr-chip,.merge-chip){font:600 10px var(--mono);color:var(--ink-2);border:1px solid var(--line);border-radius:3px;padding:1px 5px;letter-spacing:.04em;text-decoration:none;min-width:0;max-width:100%;overflow-wrap:anywhere}
+.cell .landing-chips a:is(.pr-chip,.merge-chip):hover{border-color:var(--ink-2);color:var(--ink)}
 .cell::before{content:"";position:absolute;left:calc(-1 * var(--cg) - 1px);top:50%;width:var(--cg);border-top:2px solid var(--ink-2)}
 .cell::after{content:"";position:absolute;left:-6px;top:calc(50% - 5px);width:10px;height:10px;border-radius:50%;background:var(--ink-2)}
 .cell.gap::before{display:none}
@@ -589,6 +601,10 @@ a.more:hover{text-decoration:underline}
 .stmts .n{font:600 10.5px var(--mono);color:var(--muted)}
 a.sref{font:600 10.5px var(--mono);color:var(--link);text-decoration:none;white-space:normal;overflow-wrap:anywhere;border-bottom:0!important}
 a.sref:hover{text-decoration:underline}
+/* The Verdict's section chip (plan/RULES.md §2, "Statements"; dashboards-skill/53): a Verdict statement's reference as a neutral chip,
+   "§R2", with the gap's kind chip's look, never the link blue; it opens the section's excerpt as the "(§4.2)" reference does. */
+a.section-chip{display:inline-block;font:600 10px/1.35 var(--mono);color:var(--ink-2);border:1px solid var(--line);border-radius:3px;padding:0 5px;letter-spacing:.04em;text-decoration:none;max-width:100%;overflow-wrap:anywhere;vertical-align:baseline;border-bottom:1px solid var(--line)!important}
+a.section-chip:hover,a.section-chip:focus-visible{border-color:var(--ink-2)!important;color:var(--ink)}
 .inspector .stmts{margin:0 0 8px;font-size:13px;color:var(--ink)}
 blockquote.excerpt{margin:2px 0 0;padding:6px 10px;border-left:3px solid var(--ink-2);background:var(--surface-2);border-radius:0 4px 4px 0;color:var(--ink)}
 blockquote.excerpt p{margin:4px 0 0;color:var(--ink-2);font-size:12.5px}
