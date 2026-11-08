@@ -419,7 +419,7 @@ function chainText(c){ const extra=[c.dropped?`${c.dropped} dropped`:"",c.deferr
   if(c.done) return [`<b>landed</b> · ${c.landed} of ${c.total}`,...extra].join(" · ");
   if(c.planned) return [`<b>planned</b> · ${c.total?`${c.total} unit${c.total===1?"":"s"}`:"no units yet"}`,...extra].join(" · ");
   return [`<b>${c.landed} of ${c.total} landed</b>`,...(c.current||[]).map(u=>`${u.issue?ilink(u.issue):esc(u.slug)} ${unitRunWord(u)}`),
-    c.next?`${c.next.issue?ilink(c.next.issue):esc(c.next.slug)} up next${(c.next.blockedBy||[]).length?`, blocked by ${c.next.blockedBy.map(x=>ilink(x.issue,x.repo)).join(", ")}`:""}`:"",...extra].filter(Boolean).join(" · "); }
+    c.next?`${c.next.issue?ilink(c.next.issue):esc(c.next.slug)} up next${(c.next.blockedBy||[]).length?`, blocked by ${c.next.blockedBy.map(blockerRef).join(", ")}`:""}`:"",...extra].filter(Boolean).join(" · "); }
 /* a run that waits on you, halted or escalated, on a row with a run board (its own, or its tracking board's unit row): its mark
    stopped to the Ring alone, still (GUIDANCE.md §1), never pulsing and never only the yellow Pill */
 const heldRow=r=>["halted","escalated"].includes(stOf(r))&&!!(r.board||r.parent);
@@ -431,8 +431,10 @@ const chainCell=(r,st)=>{ const c=r.chain, pct=c.total?Math.round(100*c.landed/c
 const RECON={planned:{g:"…",l:"impact planned",c:"neutral",d:1,desc:"the plan's impact, nothing reconciled yet"},partial:{g:"◐",l:"impact partly reconciled",c:"warning",desc:"changes recorded as the work lands"},"as-built":{g:"✓",l:"impact as built",c:"good",desc:"reconciled with the build"}};
 const reconOf=r=>r.reconciliation&&RECON[r.reconciliation.state]?r.reconciliation:null;
 const reconTag=r=>{ const x=reconOf(r); if(!x) return ""; const d=RECON[x.state]; return `<div class="tags">${pill(d,x.state==="partial"&&x.total?`${d.l} · ${x.landed} of ${x.total}`:"")}</div>`; };
-/* the "blocked by" tag of the unit up next: each blocker linked like any #n */
-const blockedTag=r=>(r.blockedBy||[]).length?`<span class="verdict-pill ${BLOCKED.c}"><i aria-hidden="true">${BLOCKED.g}</i>blocked by ${r.blockedBy.map(x=>ilink(x.issue,x.repo)).join(", ")}</span>`:"";
+/* the "blocked by" tag of the unit up next: each blocker linked like any #n; a unit of its tracking board not filed yet ({unit, slug}: no issue
+   to link) named by its slug */
+const blockerRef=x=>x.issue!=null?ilink(x.issue,x.repo):esc(x.slug||`unit ${x.unit}`);
+const blockedTag=r=>(r.blockedBy||[]).length?`<span class="verdict-pill ${BLOCKED.c}"><i aria-hidden="true">${BLOCKED.g}</i>blocked by ${r.blockedBy.map(blockerRef).join(", ")}</span>`:"";
 
 /* Links to the shared boards (GUIDANCE.md §5; plan/RULES.md §5): board.json "links", set by board.js from the files on disk, each relative
    to this board, absent while its file is not there (check.js fails one that is dead): the repository state board (repoBoard; repoPage on a board written before) and

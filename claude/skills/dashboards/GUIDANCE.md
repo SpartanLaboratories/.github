@@ -174,7 +174,8 @@ the in-progress mark of a connector):
 - **Up next** — the next unit of a tracking issue (`wip.next`), named but not started, carries a
   **still outer Ring**, an accent outline outside its edge, plus a static **UP NEXT**
   Tag. It never animates and never reads as building or active; a blocker that has not landed
-  adds a yellow "blocked by #n" Tag.
+  adds a yellow "blocked by #n" Tag (a unit not filed yet as an issue named "unit k · its slug", plain
+  text, until it is filed: `plan/RULES.md` §3, `unit.blockedBy`).
 
 Two more marks belong to the work in progress on an issue board, and to nothing else
 (`plan/RULES.md` §3): the **charging Arrow**, the connector into a Verdict Cell whose verdict the plan

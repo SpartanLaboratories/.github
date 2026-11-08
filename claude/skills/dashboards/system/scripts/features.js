@@ -309,6 +309,17 @@ const FEATURES = [
   { id: "finished-steps", name: "finished steps on the progress strip clickable: each shows its snapshot (wip.history) in the step panel, or what survives, reconstructed", since: 24, types: ["plan-board"],
     notFor: { system: "no progress strip: a state board shows the code at a commit, not a run's steps", supersystem: "no progress strip: a state board shows the code at a commit, not a run's steps", "work-board": "no progress strip: one row per run, each run's step as text; its steps are on its own board" },
     test: h => { const s = scripts(h), c = css(h); return need(/function pastPanel\(/.test(s) && /class="stepbtn"/.test(s) && /function reconStep\(/.test(s) && /reconstructed from the history/.test(s) && /\.steps li\.sel \.dot\{/.test(c), "the strip's finished steps are not buttons, or the step panel cannot show a finished step's snapshot (pastPanel(), reconStep())"); } },
+  /* admin-team/dashboards/unit-blockers-before-filing, dated 49: a unit's blocker named by unit number ({ unit: k }) before the filing (plan/RULES.md §3,
+     unit.blockedBy), drawn as a dependency between units: the Landing Order's arrows, the inspector's "depends on" and "blocks · enables", the
+     up-next "blocked by" tag, a unit not filed yet named "unit k · its slug" and linked like any #n once filed; on the repository work board, the
+     up-next tag naming such a blocker by its slug. A board drawn before it draws no arrow for such a blocker until its next rebuild (its next
+     event, board.js --refresh-template); a landed issue board is kept as it landed. */
+  { id: "unit-blockers", name: "a unit's dependencies on units not filed yet (unit.blockedBy { unit: k }): arrows on the Landing Order, \"depends on\", \"blocks · enables\" and the \"blocked by\" tag naming the unit until it is filed", since: 49, types: BOARDS,
+    notFor: { system: "no units: a state board shows the code at a commit, not a plan's units", supersystem: "no units: a state board's planned systems are drawn dashed, with no dependencies between a plan's units" },
+    test: (h, k) => { const s = scripts(h);
+      if (k === "work-board") return need(/const blockerRef=x=>x\.issue!=null\?ilink\(x\.issue,x\.repo\):/.test(s) && /blocked by \$\{r\.blockedBy\.map\(blockerRef\)/.test(s), "the up-next \"blocked by\" tag reads a blocker as an issue number only (blockerRef())");
+      return need(/const blockerOf=x=>\{ if\(x&&typeof x==="object"&&Number\.isInteger\(x\.unit\)\)/.test(s) && /const bref=x=>/.test(s) && /units\.forEach\(r=>deps\(r\)\.forEach\(/.test(s) && /function openBlockers\(r\)\{[^\n]*blockersOf\(r\)/.test(s),
+        "a unit's blockers are read as issue numbers only: no arrow, \"depends on\" or \"blocked by\" for a unit not filed yet (blockerOf(), blockersOf(), bref(), the Landing Order's deps())"); } },
 ];
 /* The layout detectors, run in the browser pass (check-board.js's probe), named here so the report and the rules list them. */
 const LAYOUT = [

@@ -28,7 +28,8 @@
 //   wip.waitingOn is the text the fast path left out or wrote in its stead (plan/RULES.md §4, "A work level in the facts is reworded"): while the board
 //   is halted or escalated it is written, and the stop's own trail entry and a detail that quoted the old text follow it, so the record reads alike;
 //   once an event has taken the board out of the stop, the last stop's trail entry alone takes it, and a waitingOn and resume left standing are cleared.
-// It keeps up what follows from new rows: a tracking board's wip.next once its unit rows first appear, the glow at research and at sub-issues.
+// It keeps up what follows from new rows: a tracking board's wip.next once its unit rows first appear, the glow at research and at sub-issues, and a unit's
+// blocker named by unit number ({ "unit": k }, plan/RULES.md §3, unit.blockedBy) written as its issue number once that unit is filed.
 // Exit 0 when merged (the summary's check line says what still warns or fails), 1 when the fill would add a failure to the board (every file as it was), 2 on a usage error or a refused field.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
@@ -154,6 +155,8 @@ function mergeFill(board, fields) {
   /* what follows from new rows */
   const rowsNow = Array.isArray(plan.rows) ? plan.rows : [];
   if (plan.kind === "tracking" && !hadUnits && rowsNow.some(r => r && r.unit) && w.next == null) { const nx = lib.nextUnit(plan); if (nx) { w.next = nx.id; merged.push(`wip.next ${nx.id}`); } }
+  /* a blocker the fill names by unit number ({ unit: k }) whose unit is filed already is written as its issue number (lib.js mapUnitBlockers()) */
+  if (F.rows) lib.mapUnitBlockers(plan).forEach(m => notes.push(`${m}: that unit is filed, so its issue number is written`));
   if (F.rows) { const st = lib.shownStep(w), stopped = ["halted", "escalated"].includes(w.step);
     if (st === "research") { const g = lib.researchGlow(plan).current; if (JSON.stringify(g) !== JSON.stringify(w.current || [])) { w.current = g; merged.push("wip.current, the research glow"); } }
     if (st === "sub-issues" && !stopped) { const g = lib.filingGlow(plan, st); if (JSON.stringify(g) !== JSON.stringify(w.current || [])) { w.current = g; merged.push("wip.current, the filing glow"); } } }

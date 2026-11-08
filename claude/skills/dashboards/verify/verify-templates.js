@@ -2207,6 +2207,13 @@ catch (e) { report("an explicit signal moves the step cases", [["the cases run t
 try { require("./cases-tracking-plan-events.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("a tracking issue's plan-accepted and branch-cut cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
+/* A tracking board's unit dependencies before its units are filed (verify/cases-unit-blockers.js; admin-team/dashboards/unit-blockers-before-filing,
+   dated 49, KotlinBottools #2): unit.blockedBy names a unit not filed yet by its number ({ unit: k }), check.js accepts it, sub-issues-filed and
+   fill.js write it as the issue number once that unit is filed, the template draws it (the Landing Order's arrows, "depends on", "blocked by")
+   and the repository work board names it by its slug. It needs no browser, and runs on its own too (node verify/cases-unit-blockers.js). */
+try { require("./cases-unit-blockers.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("a tracking board's unit dependencies before filing cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
 /* A tracking board's "plan" step and a nested tracking board's roadmap item (verify/cases-tracking-step-plan.js; admin-team/dashboards/tracking-step-plan,
    KotlinBottools #2): facts.step "plan" or "planning" on a tracking board reads as its architecture step (or the step it stands at past it) and opens no
    plan pass, an issue board unchanged; a tracking board with a parent takes plan.roadmap, the item carrying its section of the parent's roadmap.md,

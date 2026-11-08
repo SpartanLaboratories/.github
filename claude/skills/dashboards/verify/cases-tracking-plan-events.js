@@ -28,8 +28,10 @@ module.exports = function casesTrackingPlanEvents(X) {
   const parse = a => { try { return JSON.parse(a.stdout); } catch (e) { return { parseError: (a.stdout || a.stderr || "").slice(0, 300) }; } };
   let n = 0;
   const T = m => `2026-11-07T07:${String(m).padStart(2, "0")}:00Z`;
-  /* a tracking board at the step given, its units written and none filed */
-  const unfiled = (step, over) => { const p = copy(TRK); p.rows.forEach(r => { if (r.unit) { r.unit.board = null; r.unit.folder = null; r.unit.issue = null; r.unit.blockedBy = []; delete r.unit.live; r.asBuilt = { state: "pending", summary: "Not filed yet." }; } });
+  /* a tracking board at the step given, its units written and none filed, their dependencies by unit number (plan/RULES.md §3, unit.blockedBy;
+     admin-team/dashboards/unit-blockers-before-filing) */
+  const nOf = Object.fromEntries(TRK.rows.filter(r => r.unit).map(r => [r.unit.issue, r.unit.n]));
+  const unfiled = (step, over) => { const p = copy(TRK); p.rows.forEach(r => { if (r.unit) { r.unit.board = null; r.unit.folder = null; r.unit.issue = null; r.unit.blockedBy = (r.unit.blockedBy || []).map(i => ({ unit: nOf[i] })); delete r.unit.live; r.asBuilt = { state: "pending", summary: "Not filed yet." }; } });
     Object.assign(p, { status: "planned", asBuilt: null, sized: T(0), branch: null }); p.milestones = (p.milestones || []).filter(m => m.column !== "built"); if (p.impact) { p.impact.basis = "plan"; delete p.impact.changes; }
     Object.assign(p.wip, { step, since: T(1), updated: T(1), current: step === "architecture" ? ["considered"] : ["built"], next: null, landing: null, stages: [], steps: lib.STEPS_BY_LEVEL[4].slice(), history: {}, qa: [], waitingOn: null, resume: null, plan: null, questions: [], research: null, event: { name: step === "architecture" ? "researched" : "architecture-signed-off", at: T(1) }, ...(over || {}) }); return p; };
   const tree = p => { const root = path.join(sc, `t-${++n}`), dir = path.join(root, ...F0.split("/")); fs.mkdirSync(path.join(root, ".git", "info"), { recursive: true }); wr(path.join(root, ".git", "info", "exclude"), "docs/plans/.live/\n");

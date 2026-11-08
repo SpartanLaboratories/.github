@@ -1594,6 +1594,35 @@ const COLUMN_NAMES = { gap: "Gap", considered: "Considered", verdict: "Verdict",
    embed.js sets from the folders on disk); in row order, however many. A unit stops glowing once its issue is recorded; the team raises
    sub-issues-filed per unit, one or more at a time, and a final one that closes the step. */
 const unitFiled = r => Number.isInteger(r.unit.issue) && r.unit.issue > 0, unitBoarded = r => typeof r.unit.board === "string" && !!r.unit.board.trim();
+/* A unit's blocker (plan/RULES.md §3, unit.blockedBy; admin-team/dashboards/unit-blockers-before-filing): an issue number, or { unit: k }, a unit of the
+   same tracking board by its number (unit.n) while that unit has no issue yet, so a plan's dependencies between its units are on the board
+   before they are filed. sub-issues-filed, and a fill, map each { unit: k } whose unit is filed to its issue number (mapUnitBlockers()). The
+   template's blockersOf() and board.js read them by the same rule. */
+const isUnitRef = x => x != null && typeof x === "object" && !Array.isArray(x) && Number.isInteger(x.unit) && x.unit > 0;
+const unitNumbered = (plan, k) => ((plan && plan.rows) || []).filter(r => r && r.unit && r.unit.n === k);
+/* a blocker resolved: { issue, row, n }: its issue number (null for a unit not filed yet), the unit row it names on this board (null when none) and
+   that unit's number */
+function blockerOf(plan, x) {
+  if (isUnitRef(x)) { const r = unitNumbered(plan, x.unit)[0] || null; return { issue: r && unitFiled(r) ? r.unit.issue : null, row: r, n: x.unit }; }
+  const r = Number.isInteger(x) ? ((plan && plan.rows) || []).find(y => y && y.unit && y.unit.issue === x) || null : null;
+  return { issue: Number.isInteger(x) ? x : null, row: r, n: r && r.unit.n != null ? r.unit.n : null };
+}
+/* each { unit: k } whose unit now has its issue written as that issue's number, once; the lines it changed, for the event's or the fill's report */
+function mapUnitBlockers(plan) {
+  const out = [];
+  if (!plan || plan.kind !== "tracking") return out;
+  (Array.isArray(plan.rows) ? plan.rows : []).forEach(r => {
+    if (!r || !r.unit || !Array.isArray(r.unit.blockedBy) || !r.unit.blockedBy.some(isUnitRef)) return;
+    const next = []; let changed = false;
+    r.unit.blockedBy.forEach(x => {
+      const hits = isUnitRef(x) ? unitNumbered(plan, x.unit) : [], b = hits.length === 1 && hits[0] !== r && unitFiled(hits[0]) ? hits[0] : null;
+      if (b) { changed = true; if (!next.includes(b.unit.issue)) next.push(b.unit.issue); out.push(`${r.id}: unit.blockedBy unit ${x.unit} → #${b.unit.issue}`); }
+      else if (!next.some(y => JSON.stringify(y) === JSON.stringify(x))) next.push(x);
+    });
+    if (changed) r.unit.blockedBy = next;
+  });
+  return out;
+}
 function filingGlow(plan, step) {
   if (!plan || plan.kind !== "tracking" || !["sub-issues", "boards"].includes(step)) return [];
   const done = step === "sub-issues" ? unitFiled : unitBoarded;
@@ -1984,5 +2013,5 @@ function ghMergeTime(repo, pr, merge) {
   } catch (e) { return out; }
 }
 
-module.exports = { ...LV, ...PN, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, HISTORY_FIELDS, HISTORY_STEPS, qAnswered, askedOf, answerQuestions, syncAsked, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, retimePlan, RETIME_NOT, retimeWords, retimeWhat, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, roadmapDocItem, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+module.exports = { ...LV, ...PN, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, isUnitRef, blockerOf, mapUnitBlockers, HISTORY_FIELDS, HISTORY_STEPS, qAnswered, askedOf, answerQuestions, syncAsked, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, retimePlan, RETIME_NOT, retimeWords, retimeWhat, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, roadmapDocItem, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewBaseFolder, viewBaseHref, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, notYetLanded, landedPending, unitLeft, setViewLinks, viewedFolder, viewLink, landVisit, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

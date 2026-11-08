@@ -42,7 +42,7 @@
 // blocked-by links and the tracking boards' unit.blockedBy (plan/RULES.md §5; admin-team/dashboards-skill/30).
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), url = require("url");
-const { atomicWrite, repoRoot, flag, opt, registry, findPlans, VIEW, viewSource, treeRoot, planStamp, notYetLanded, landedPending, unitLeft, UNIT_LANDED, subIssueBoard, shownBranch, unitBranch, reconciliation, leftForLater, boardlessState, unitInRun, qaShown, depBuild, depLocality, holdState } = require("./lib.js");
+const { atomicWrite, repoRoot, flag, opt, registry, findPlans, VIEW, viewSource, treeRoot, planStamp, notYetLanded, landedPending, unitLeft, UNIT_LANDED, subIssueBoard, shownBranch, unitBranch, reconciliation, leftForLater, boardlessState, unitInRun, qaShown, depBuild, depLocality, holdState, blockerOf } = require("./lib.js");
 /* a pass's route written with its neutral id (GUIDANCE.md §4, "No internal names"): a board recorded before the rename keeps the older
    rookie-dev and planner-then-rookie-dev, read alike everywhere; board.json is generated, so it carries the neutral ones */
 const ROUTE_NEUTRAL = { "rookie-dev": "remediation", "planner-then-rookie-dev": "re-plan-then-remediation" };
@@ -228,6 +228,10 @@ const landedIssue = (n, other) => {
 /* A tracking issue's chain, for its row's state cell (plan/RULES.md §3, "The chain's progress"): units landed of all units (dropped,
    deferred and left-for-later units counted apart, lib.js leftForLater()), each unit in progress with its own run's step (from the unit's freshest board, else the
    tracking board's mirror, unit.live), and the unit up next with the blockers that have not landed. */
+/* a unit's blockers as the work board shows them (lib.js blockerOf(); admin-team/dashboards/unit-blockers-before-filing): { issue } for an issue,
+   { unit, slug } for a unit of its tracking board not filed yet, which board.html names by its slug, as it has no issue to link */
+const unitBlockers = (p, r) => (r.unit.blockedBy || []).map(x => blockerOf(p, x)).filter(x => x.issue != null || x.row)
+  .map(x => x.issue != null ? { issue: x.issue } : { unit: x.n, slug: x.row.unit.slug || x.row.id });
 const chainOf = b => {
   const p = b.plan, w = p.wip || {}, units = (p.rows || []).filter(r => r.unit), st = r => (r.asBuilt || {}).state || "pending";
   const live = !["built", "abandoned"].includes(p.status) && !["landed", "cancelled"].includes(w.step);
@@ -237,7 +241,7 @@ const chainOf = b => {
   const current = cur.map(r => { const own = r.unit.issue ? boardOf(r.unit.issue) : null, ow = own ? own.plan.wip || {} : null, L = r.unit.live || {};
     return { issue: r.unit.issue || null, slug: r.unit.slug || r.id, step: (ow && ow.step) || L.step || null }; });
   const nx = live && w.next ? units.find(r => r.id === w.next && st(r) === "pending" && !leftForLater(r)) : null;
-  const next = nx ? { issue: nx.unit.issue || null, slug: nx.unit.slug || nx.id, blockedBy: (nx.unit.blockedBy || []).filter(n => !landedIssue(n)).map(n => ({ issue: n })) } : null;
+  const next = nx ? { issue: nx.unit.issue || null, slug: nx.unit.slug || nx.id, blockedBy: unitBlockers(p, nx).filter(x => x.issue == null || !landedIssue(x.issue)) } : null;
   const started = landed > 0 || current.length > 0 || units.some(r => st(r) === "complete");
   return { total: counted.length, landed, dropped, deferred, left, planned: !started && p.status !== "built", done: p.status === "built" || (counted.length > 0 && landed === counted.length), current, next };
 };
@@ -251,7 +255,7 @@ const chainOf = b => {
    unit.blockedBy names it; each carries "hold" (lib.js holdState()): "blocks" while this issue is still open, "enables" once it is done
    (landed, or closed). */
 const doneIssue = (n, x) => x && x.repo ? x.state === "CLOSED" : landedIssue(n) || !!(x && x.state === "CLOSED");
-const unitsBlockedBy = n => boards.filter(b => b.plan.kind === "tracking").flatMap(b => (b.plan.rows || []).filter(r => r.unit && Number.isInteger(r.unit.issue) && (r.unit.blockedBy || []).includes(n)).map(r => r.unit.issue));
+const unitsBlockedBy = n => boards.filter(b => b.plan.kind === "tracking").flatMap(b => (b.plan.rows || []).filter(r => r.unit && Number.isInteger(r.unit.issue) && (r.unit.blockedBy || []).some(x => blockerOf(b.plan, x).issue === n)).map(r => r.unit.issue));
 const asRef = m => { const i = issueOf(m); return { issue: m, ...(i ? { state: i.state, ...reasonOf(i), ...(i.closedAt ? { closedAt: i.closedAt } : {}) } : {}),
   ...(i && i.state === "CLOSED" && i.stateReason === "DUPLICATE" ? { dupOf: (gq[m] ? canonicalOf(gq[m]) : null) || (dupGraph[m] ? ref(dupGraph[m]) : null) } : {}) }; };
 /* the tracking issue a row belongs to: itself when it is one, else its parent when that is one; null for a row outside every tracking issue */
@@ -267,7 +271,8 @@ const planOf = t => { const tb = boardOf(t), ks = new Set();
 const planStartOf = n => { const b = boardOf(n), i = issueOf(n); return (b && (b.plan.sized || (b.plan.baseline || {}).date)) || (i && i.createdAt) || null; };
 const unclassified = [];
 const dependsOn = (n, g) => { const u = unitRow(n), tracked = ((g.blockedBy || {}).nodes || []).map(ref);
-  const own = ((u && u.row.unit.blockedBy) || []).filter(m => Number.isInteger(m) && !tracked.some(t => t.issue === m && !t.repo)).map(asRef);
+  /* a blocker named by unit number is its unit's issue once filed; one not filed yet is no issue, and is left out here (the tracking board draws it) */
+  const own = ((u && u.row.unit.blockedBy) || []).map(x => blockerOf(u.board.plan, x).issue).filter(m => Number.isInteger(m) && !tracked.some(t => t.issue === m && !t.repo)).map(asRef);
   const t = trackingOf(n), plan = t ? planOf(t) : new Set(), start = planStartOf(t || n);
   const inPlan = x => !!t && x.issue !== t && plan.has(keyOf(x.issue, x.repo));
   return [...tracked, ...own].map(x => { const B = depBuild({ inPlan: inPlan(x), ...depFacts(x, inPlan), planStart: start, tracking: !!t }), Lc = depLocality(repo, x.repo || repo);
@@ -338,10 +343,10 @@ const rows = [...rowNums].map(n => {
   /* The next unit (wip.next): "next · not started", never building or active, tagged with each blocker that has not landed. */
   const nx = nextUnits.get(n);
   if (nx && row.status !== "landed") {
-    const own = (nx.row.unit.blockedBy || []).map(x => ({ issue: x })), tracked = ((g.blockedBy || {}).nodes || []).map(ref);
+    const own = unitBlockers(nx.board.plan, nx.row), tracked = ((g.blockedBy || {}).nodes || []).map(ref);
     const all = [...own, ...tracked.filter(t => !own.some(o => o.issue === t.issue && !t.repo))];
     Object.assign(row, { status: "next", active: false, step: null, qa: [], next: true,
-      blockedBy: all.filter(x => !landedIssue(x.issue, x.repo ? x : null)).map(x => ({ issue: x.issue, repo: x.repo })) });
+      blockedBy: all.filter(x => x.issue == null || !landedIssue(x.issue, x.repo ? x : null)).map(x => x.issue == null ? { unit: x.unit, slug: x.slug } : { issue: x.issue, repo: x.repo }) });
   }
   const si = sysInfo(row.system); row.systemName = si ? si.name : row.unassigned ? "no system" : null; // "unassigned": decided, not missing
   /* an archived system (registry status "archived", no longer developed; dashboards-skill/35): its rows say so; it holds no slot, so its swatch is neutral */

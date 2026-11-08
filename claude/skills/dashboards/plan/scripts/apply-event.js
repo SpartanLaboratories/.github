@@ -442,7 +442,12 @@ function applyEvent(orig, ev, facts, req, now) {
         const r = rows.find(y => y && y.id === id && y.unit); if (!r) { enrich.push(`sub-issues-filed names ${JSON.stringify(id)}, which is no unit row of the board`); return; }
         if (!Number.isInteger(n) || n <= 0) { enrich.push(`sub-issues-filed gives ${id} no issue number`); return; }
         if (r.unit.issue !== n) { r.unit.issue = n; applied.push(`${id}: unit.issue #${n}`); } });
+      /* a unit's dependencies named by unit number before the filing ({ unit: k }) become the blocker's issue number as each blocker is filed
+         (lib.js mapUnitBlockers(); admin-team/dashboards/unit-blockers-before-filing), so every unit links its blockers once they are filed */
+      lib.mapUnitBlockers(plan).forEach(m => applied.push(m));
       const units = rows.filter(r => r && r.unit), filed = units.filter(lib.unitFiled).length, final = facts.final === true, all = units.length > 0 && filed === units.length;
+      const stray = units.filter(r => (r.unit.blockedBy || []).some(lib.isUnitRef)).map(r => r.id);
+      if (final && all && stray.length) enrich.push(`sub-issues-filed closes the step, but ${stray.join(", ")} still name a blocker by a unit number no filed unit row carries: the presenter corrects unit.blockedBy`);
       if (!units.length) enrich.push("sub-issues-filed: the board has no unit rows yet: the presenter writes them from architecture.md");
       if (final && !all && units.length) enrich.push(`sub-issues-filed closes the step, but ${units.length - filed} of the ${plural(units.length, "unit")} have no issue yet: the step stays at sub-issues`);
       withUnitSteps(w, applied);

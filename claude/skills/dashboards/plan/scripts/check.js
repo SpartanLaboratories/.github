@@ -21,7 +21,7 @@ const { nameRefsIn, commentRefs, nameWarning } = require(path.resolve(__dirname,
 const { paletteCheck } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js"));
 const { boardLanded, workLevelFields, featureRun } = require("./levels.js");
 const { passRefsIn, PASS_NAME } = require("./passnames.js");
-const { unitTests, DEP_STATES, HOLD_STATES } = require("./lib.js");
+const { unitTests, DEP_STATES, HOLD_STATES, isUnitRef, unitFiled } = require("./lib.js");
 const { foundationFilling, WAIT_BY, HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, isTime, APPROX_SOURCES, timelineApproxNote, timelineSteps, tlSpan, timelineLines, timelineLeftOut, timelineTotal, unitInRun, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, fixOfBoard, foldedIn, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, viewSource, viewParts, viewBaseHref, viewedFolder, setViewLinks, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
@@ -300,7 +300,20 @@ function checkPlan(plan, dir, root) {
       const unfiledYet = line.includes("sub-issues") ? (line.includes(own) ? line.indexOf(own) <= line.indexOf("sub-issues") : !filingSeen) : ["architecture", "sub-issues"].includes(own);
       if (u.issue == null && unfiledYet && (((r.asBuilt || {}).state) || "pending") === "pending") { /* not filed yet */ }
       else if (!posInt(u.issue)) fail(`${at}.unit.issue must be the sub-issue's number${u.issue == null ? " (a unit is filed as a sub-issue before the tracking board leaves its \"sub-issues\" step)" : ""}`);
-      (u.blockedBy || []).forEach((n, j) => { if (!posInt(n)) fail(`${at}.unit.blockedBy[${j}] must be an issue number`); });
+      /* a blocker is an issue number, or { unit: k }, a unit of this board by its number while that unit has no issue yet (RULES §3, unit.blockedBy;
+         admin-team/dashboards/unit-blockers-before-filing): the dependencies between a plan's units are on the board before they are filed, and
+         sub-issues-filed writes each as its issue number once that unit is filed */
+      if (u.blockedBy != null && !Array.isArray(u.blockedBy)) fail(`${at}.unit.blockedBy must be a list`);
+      (Array.isArray(u.blockedBy) ? u.blockedBy : []).forEach((n, j) => { const bat = `${at}.unit.blockedBy[${j}]`;
+        if (isUnitRef(n)) {
+          const hits = rows.filter(y => y && y.unit && y.unit.n === n.unit);
+          if (Object.keys(n).length !== 1) fail(`${bat} is { "unit": n } and nothing else`);
+          if (!hits.length) fail(`${bat} names unit ${n.unit}, which no unit row of the board numbers (unit.n)`);
+          else if (hits.length > 1) fail(`${bat} names unit ${n.unit}, which ${hits.length} unit rows number (${hits.map(y => y.id).join(", ")}): unit.n tells the units apart`);
+          else if (hits[0] === r) fail(`${bat}: unit ${n.unit} names itself as its own blocker`);
+          else if (unitFiled(hits[0])) fail(`${bat} names unit ${n.unit}, filed as #${hits[0].unit.issue}: a filed unit is named by its issue number (sub-issues-filed writes it, and so does fill.js)`);
+        } else if (!posInt(n)) fail(`${bat} must be an issue number, or { "unit": n } for a unit of this board not filed yet`);
+        else if (n === u.issue) fail(`${bat}: #${n} names the unit itself as its own blocker`); });
       // The sub-issue's board (RULES §1): when its file exists in this tree the row links it, relative to this folder; a link to
       // a board that does not exist is dead. embed.js sets both from the folders on disk.
       const hit = subIssueBoard(dir, u);
