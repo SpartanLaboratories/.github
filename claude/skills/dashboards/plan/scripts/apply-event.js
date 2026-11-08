@@ -403,6 +403,8 @@ function applyEvent(orig, ev, facts, req, now) {
     case "architecture-signed-off": {
       if ((w.questions || []).length || w.research) applied.push("wip.questions and wip.research cleared");
       w.questions = []; w.research = null;
+      /* a tracking board has no plan step: a plan pass a sized at "plan" left standing is cleared here (KotlinBottools #2, admin-team/dashboards/tracking-plan-events) */
+      if (tracking && w.plan) { w.plan = null; applied.push("wip.plan cleared (a tracking board has no plan step)"); }
       /* a tracking board's own steps after its architecture: its plan's documents and its land; its units are filed after the merge */
       const next = tracking ? "document" : "landing";
       if (tracking) withUnitSteps(w, applied);
@@ -442,6 +444,18 @@ function applyEvent(orig, ev, facts, req, now) {
     case "plan-accepted": {
       if ((w.questions || []).length || w.research || w.plan) applied.push("wip.questions, wip.research and wip.plan cleared");
       w.questions = []; w.research = null; w.plan = null;
+      /* A tracking board has no plan, branch or build step before its units are filed (plan/RULES.md §3, §4): its run's plan-accepted
+         (the architecture final with its units) keeps it in its own line, never at branch, where a unit not yet filed fails the check
+         (KotlinBottools #2, admin-team/dashboards/tracking-plan-events). */
+      if (tracking) {
+        withUnitSteps(w, applied);
+        const next = trackingPlanStep(w); setStep(next); setGlow(next);
+        if (rows.some(r => r.unit) && w.next == null) { const nx = lib.nextUnit(plan); if (nx) { w.next = nx.id; applied.push(`wip.next ${nx.id}`); } }
+        enrich.push("plan-accepted on a tracking board: the unit rows' Considered and Verdict columns, the verdict milestone and the consequences come from architecture.md and consequences.md");
+        detail = detail || (next === "document" ? "Architecture final with its units; the plan's documents and its land are next, and its units are filed after the merge." : w.detail || null);
+        trail = { column: "verdict", label: "Architecture final, with its units", ref: docRef("architecture.md") };
+        break;
+      }
       setStep("branch"); setGlow("branch");
       enrich.push("plan-accepted: the Considered and Verdict columns, the verdict milestone and the consequences come from plan.md and consequences.md (impact.md in an older folder)");
       detail = detail || "Plan accepted; the branch is cut next.";
@@ -452,6 +466,21 @@ function applyEvent(orig, ev, facts, req, now) {
       const b = txt(facts.branch, "branch") || txt(req.branch, "branch");
       if (b && plan.branch !== b) { plan.branch = b; applied.push(`branch ${b}`); }
       if (!b && !plan.branch) enrich.push("branch-cut names no branch");
+      /* A tracking board's build is its units' runs, after their filing (plan/RULES.md §3): its run's branch-cut records the planning branch,
+         its facts.stages are the units its rows already hold, so no wip.stages are written and the board stays in its own line
+         (KotlinBottools #2, admin-team/dashboards/tracking-plan-events). */
+      if (tracking) {
+        withUnitSteps(w, applied);
+        const units = rows.filter(r => r && r.unit), said = Array.isArray(facts.stages) ? facts.stages.length : 0;
+        if (said) applied.push(`facts.stages: ${plural(said, "stage")}, read as the units; no wip.stages on a tracking board`);
+        if (!units.length) enrich.push("branch-cut on a tracking board with no unit rows yet: the presenter writes them from architecture.md");
+        else if (said && said !== units.length) enrich.push(`branch-cut names ${plural(said, "stage")} and the board holds ${plural(units.length, "unit row")}: the presenter checks the units against architecture.md`);
+        const next = trackingPlanStep(w); setStep(next); setGlow(next);
+        if (units.length && w.next == null) { const nx = lib.nextUnit(plan); if (nx) { w.next = nx.id; applied.push(`wip.next ${nx.id}`); } }
+        detail = detail || (next === "document" ? `Planning branch ${code(plan.branch || "?")} confirmed; the plan's documents and its land are next.` : w.detail || null);
+        trail = { column: "verdict", label: `Planning branch ${code(plan.branch || "?")} confirmed` };
+        break;
+      }
       mergeStages(w, facts, applied, enrich, true, ids);
       setStep("implementation"); setGlow("implementation");
       const c = curStage();
@@ -772,6 +801,14 @@ function withUnitSteps(w, applied) {
   if (!st.length || st.includes("sub-issues")) return;
   const at = st.indexOf("merge"); if (at < 0) return;
   st.splice(at + 1, 0, "sub-issues"); w.steps = st; applied.push("wip.steps: sub-issues after the merge");
+}
+/* The step a tracking board stands at once its architecture is final (its run's plan-accepted and branch-cut, admin-team/dashboards/tracking-plan-events):
+   the step it already stands at when that is past its architecture in its own line (the Document step, its land, the filing, its units' runs),
+   else its plan's documents (document), as architecture-signed-off moves it; a stop is ended there, as any event ends it. */
+function trackingPlanStep(w) {
+  const at = lib.shownStep(w), line = Array.isArray(w.steps) ? w.steps : [], arch = line.indexOf("architecture");
+  if (at && at !== "landed" && line.includes(at) && arch >= 0 && line.indexOf(at) > arch) return at;
+  return "document";
 }
 /* A tracking plan's own merge, from the facts (facts.merge, else a sha in facts.sha; facts.pr; facts.version; facts.date): wip.landing, as a tracking board has recorded it since dashboards-skill/35. */
 function recordPlanMerge(plan, w, facts, applied, txt) {

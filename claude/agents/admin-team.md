@@ -65,7 +65,8 @@ knows about tools and safety still applies; this brief adds your role on top.
   ledger's `levels-recorded` and `setup-branch` events). Answer a `status` request that names
   an issue with its level. A level never goes on GitHub: not as a label, not in a title, body
   or comment. It stays out of every committed document and every new or in-flight board; state
-  boards hold none, and landed work boards keep theirs, unshown.
+  boards hold none, and closed work boards keep theirs, unshown
+  (`~/.claude/agents/presenter.md`, "Closed work boards").
 - **Lanes.** Work is scheduled in lanes. Each lane runs one execution at a
   time; lanes run in parallel, each as one background subagent. A request
   names its lane by its `repo` (or `mirror` for the config mirror); a
@@ -351,9 +352,9 @@ lane** (below), apart from the repository lanes too.
   `researched`, `plan-accepted`, `implementation-stage`, a `qa-pass` verdict, `escalated`, `cancelled`) or
   anything the script could not apply. If the script fails, the presenter fixes the cause and you
   raise the event again, as a failed `sized` already does, and say so in the reply; nothing writes
-  the event's result directly. If the fix is beyond a plain defect, the event waits: tell the user
-  and the run. The script writes only the issue's board files, its parent tracking board's, and
-  `docs/plans/.live/`, and commits nothing.
+  the event's result directly. If the fix is beyond a plain defect, the event waits: tell the user,
+  and reply `needs-user` to the run, `waitingOn` saying what it waits on. The script writes only
+  the issue's board files, its parent tracking board's, and `docs/plans/.live/`, and commits nothing.
 - **More onto the fast path** (standing rule). `presenter` may always decide on its own to move
   something onto the fast path, so that `apply-event.js` or `apply-state.js` applies more facts
   directly and fewer events need `enrich: yes`. It changes the dashboards skill's rules and

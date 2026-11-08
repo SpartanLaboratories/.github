@@ -294,8 +294,8 @@ to 4, the `level: N` label), and nothing else. A dashboard never shows an issue'
 "level: 2", "a level-3 change" or "escalated to level 4", in a Chip, a Badge, a column, a chain
 node, a Legend, a lede or any text the presenter writes. Say what the work is instead: one
 system, a bug fix, docs only, a tracking issue. The work levels stay in force everywhere else.
-No board that has not landed holds a level (`check.js` fails `WORK LEVEL ON THE BOARD`) and state boards hold none; a landed work board keeps
-any it holds, and no board renders them, the Source Tab included (`plan/scripts/levels.js`). A pipeline fact that names one ("inside level 3",
+No board that has not landed holds a level (`check.js` fails `WORK LEVEL ON THE BOARD`) and state boards hold none; a closed work board keeps
+any it holds (`~/.claude/agents/presenter.md`, "Closed work boards"), and no board renders them, the Source Tab included (`plan/scripts/levels.js`). A pipeline fact that names one ("inside level 3",
 "a level-3 re-pass", "Label level: 3") is reworded before it is written — the scope phrase becomes the unit's or the issue's scope, the
 level is elided before its noun, the label dropped — and left out only where a work level would remain (`system/scripts/levelrefs.js`
 `scrubLevels()`, which `apply-event.js` and `apply-state.js` run); a quotation (a plan excerpt) elides it with "…" instead, as a quote
@@ -466,13 +466,9 @@ that gets one (§8), fails a zoned ISO stamp left as plain text outside code and
 ## 7. Divergence
 
 The global template is the general one; a repository may keep its own under
-`docs/dashboards/_template/` or `docs/plans/_template/`, and a board may diverge from a template
-when its subject is better shown another way. A divergence should primarily **add**. Removing
-content — a core Tab, a standard guarantee Card, a column, a Legend — needs a strong argument, such as
-no data for it existing, and the argument goes with it, in the board's footer comment and in the
-presenter's report. A board **declares** each divergence in its head, as
-`<meta name="template-divergence" content="what and why">`, so the checker knows what to check.
-When a divergence would serve every board in the repo, it goes in the repo template instead.
+`docs/dashboards/_template/` or `docs/plans/_template/`. When a board may diverge from a template,
+and how it declares and records the divergence, is the presenter's rule (`~/.claude/agents/presenter.md`,
+"Divergence"); §8 holds how the checks treat a diverging board.
 
 **Type divergences** are the rules' own, declared here for a whole board type rather than on a board: on **system, supersystem and
 repository state boards** an issue's state reads open or closed and never the tracker's reason ("closed · not planned", "closed · duplicate" are
@@ -565,7 +561,7 @@ other:
 | system, supersystem and repository state boards; the committed repository work board | at the **Document step's state-boards task** only, on the issue's branch before its land (`system/scripts/splice.js` for a state board: the template's CSS, script before MODEL and renderer carried onto the board, three ways for a declared divergence; `board.js --refresh-template` for the repository work board); before admin-team/dashboards-skill/35, at the pre-merge refresh inside the land |
 | the live repository work board | at **every event** (`board.js --live --refresh-template`: it is the template plus its data, never committed) |
 | an issue's board that is in flight, and its tracking board | at **its own events** (`apply-event.js` re-renders a board that is not the verified template plus its data) |
-| a landed issue board | **never**: it is the record of a finished run, kept as it landed |
+| a closed work board: an issue board or a tracking board whose issue is closed | **never** (`~/.claude/agents/presenter.md`, "Closed work boards") |
 
 **Finished steps, clickable** (admin-team/dashboards-skill/24): applied to issue boards and tracking boards (a tracking board for its
 own steps and for each unit in progress through its mirror), where the progress strip is (`plan/RULES.md` §3, "Finished steps"). Not to
@@ -846,6 +842,15 @@ refresh on its branch: the committed repository work board, and the repository s
   indicator. A board drawn before keeps the older classes in its own CSS and draws the same; a landed board keeps its rendering (§11,
   "Re-rendering"), a board in flight takes them at its next event, the committed repository work board at the Document step's
   state-boards task.
+- **The marks' visible wording** (the user's decision of 2026-11-07, admin-team/dashboards/visible-glow-wording): no "glow" a reader
+  sees on any board. The Legend entries name the FullPulse ("FullPulse, breathing", "FullPulse around a whole column"), the Ring alone
+  and the still outer Ring; a landed board's Legend says "nothing in a FullPulse"; the repository work board's Active now Tile says "in a
+  FullPulse below"; the research StepBar's aria-label names a StepBar; the supersystem template's sample thread note names the Context
+  Panel. Internal identifiers a reader never sees keep their names (`glowCls`, `cellGlow`, `colGlowCls`, `KEY_GLOW`, `KEY_COLGLOW`,
+  `GLOW_MAP`, `researchGlow()`, `filingGlow()`, the probe id `unit-filing-glow`). Applied to the issue and tracking boards, the
+  repository work board and the supersystem board, the worked example included; the system board's template had no such wording. Held
+  by `verify/cases-mark-classes.js`, with `verify/fixtures/mark-classes/`, a static browser fixture of every mark class. A board drawn
+  before keeps its wording until it is rebuilt, as above.
 
 ## 12. Elements — one name per function
 

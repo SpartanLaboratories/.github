@@ -291,9 +291,13 @@ function checkPlan(plan, dir, root) {
     if (r.unit) {
       const u = r.unit;
       if (!tracking) warn(`${at}: a unit row on a board whose kind is not tracking`);
-      /* a unit has no issue yet up to its tracking board's "sub-issues" step, by its place in the board's own line (RULES §3): a plan lands, then its units are filed */
+      /* a unit has no issue yet up to its tracking board's "sub-issues" step, by its place in the board's own line (RULES §3): a plan lands, then its units are filed.
+         A step outside a line that files after the merge (a run's plan-accepted or branch-cut once put one there) says nothing of the filing: the unit
+         stays unfiled until the sub-issues-filed events have filed it, so it fails only once the filing step has been visited (KotlinBottools #2,
+         admin-team/dashboards/tracking-plan-events). A line with no "sub-issues" step (an older board, filed at its sign-off) keeps its rule. */
       const own = ["halted", "escalated"].includes((plan.wip || {}).step) ? (plan.wip || {}).resume : (plan.wip || {}).step, line = Array.isArray((plan.wip || {}).steps) ? plan.wip.steps : [];
-      const unfiledYet = line.includes("sub-issues") && line.includes(own) ? line.indexOf(own) <= line.indexOf("sub-issues") : ["architecture", "sub-issues"].includes(own);
+      const histU = (plan.wip || {}).history && typeof plan.wip.history === "object" && !Array.isArray(plan.wip.history) ? plan.wip.history : {}, filingSeen = (Array.isArray(histU["sub-issues"]) && histU["sub-issues"].length > 0) || ((plan.wip || {}).event || {}).name === "sub-issues-filed";
+      const unfiledYet = line.includes("sub-issues") ? (line.includes(own) ? line.indexOf(own) <= line.indexOf("sub-issues") : !filingSeen) : ["architecture", "sub-issues"].includes(own);
       if (u.issue == null && unfiledYet && (((r.asBuilt || {}).state) || "pending") === "pending") { /* not filed yet */ }
       else if (!posInt(u.issue)) fail(`${at}.unit.issue must be the sub-issue's number${u.issue == null ? " (a unit is filed as a sub-issue before the tracking board leaves its \"sub-issues\" step)" : ""}`);
       (u.blockedBy || []).forEach((n, j) => { if (!posInt(n)) fail(`${at}.unit.blockedBy[${j}] must be an issue number`); });

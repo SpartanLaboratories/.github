@@ -238,7 +238,7 @@ On an update, change the facts the landing changed and leave the other facts alo
 bring every state board (system, supersystem and repository state boards) up to the current
 template in the state-boards job, and the committed repository work board there too (step 4):
 splice the template onto a board that declares
-divergences, keeping those divergences. Landed issue boards are not brought up; in-flight boards
+divergences, keeping those divergences. Closed work boards are not brought up (below); in-flight boards
 catch up at their own events.
 
 ## Diverging, checking, fixing
@@ -264,6 +264,12 @@ catch up at their own events.
   (system, supersystem and repository state boards, issue boards, tracking boards,
   the repository work board) and apply it wherever it fits; report where it was applied and
   where it was judged not to fit, with the reason.
+- **Closed work boards.** A work board whose issue is closed — an issue board
+  once its issue closes, a tracking board once its tracking issue closes — is
+  kept as it closed: it is the record of its issue's work, and once its closing
+  state is committed (the next landing carries it) it is not brought up to a
+  later rule, template or wording; what it holds that a newer rule forbids, a
+  work level among them, stays as data and is shown only as that rule allows.
 - **Defects** follow `GUIDANCE.md` §9: fix them where they live, at your own
   discretion, on boards and in the `dashboards` skill's templates, examples and
   scripts; after any template change run `verify/verify-templates.js`. List

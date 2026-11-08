@@ -84,7 +84,9 @@
 // its C4 views would trip on (DSL KEYWORD ID, DSL UNKNOWN ELEMENT). The internal-names list's one home (verify/cases-internal-names.js):
 // nomenclature/internal-names.md §1 and §2 and namerefs.js's barred names and approval-flow phrases held equal. The marks' classes
 // (verify/cases-mark-classes.js): .fullpulse, .col-fullpulse, .colcell-fullpulse, .upnext-ring and .fillpulse, never the older .glow,
-// .glow-soft, .colglow, .upnext and .pulse, the mark-classes probe and check-board.js's count. A
+// .glow-soft, .colglow, .upnext and .pulse, the mark-classes probe and check-board.js's count; no "glow" a reader sees on any template or
+// the worked example (the Legend entries name the FullPulse and the Ring); the mark-class browser fixture, verify/fixtures/mark-classes/,
+// current with the templates. A
 // template is recorded only when every check it runs passes: by default those that need no browser; with --browser its browser
 // passes and the rendered cases too.
 "use strict";
@@ -734,9 +736,9 @@ targets.filter(t => t.block === "plan").forEach(t => {
   const stepCls = dom => ((inner(dom || "", '<section class="wip[^"]*"[^>]*>', "section").match(/<li class="cur[^"]*"/)) || [""])[0];
   if (chrome) {
     put(at("escalated", [`${r0}.built`], "implementation"), edir); const dE = dumpDom(path.join(edir, "dashboard.html"));
-    gc.push(["an escalated board's glow is the ring alone, on its cell and its current step", / held"/.test(cellCls(dE)) && !/ glow"/.test(cellCls(dE)) && /cur held"/.test(stepCls(dE)), `${cellCls(dE)} · ${stepCls(dE)}`]);
+    gc.push(["an escalated board's FullPulse is the Ring alone, on its cell and its current step", / held"/.test(cellCls(dE)) && !/ fullpulse"/.test(cellCls(dE)) && /cur held"/.test(stepCls(dE)), `${cellCls(dE)} · ${stepCls(dE)}`]);
     put(at("implementation", [`${r0}.built`]), edir); const dI = dumpDom(path.join(edir, "dashboard.html"));
-    gc.push(["a running board's glow breathes, on its cell and its current step", / glow"/.test(cellCls(dI)) && /cur glow"/.test(stepCls(dI)), `${cellCls(dI)} · ${stepCls(dI)}`]);
+    gc.push(["a running board's FullPulse breathes, on its cell and its current step", / fullpulse"/.test(cellCls(dI)) && /cur fullpulse"/.test(stepCls(dI)), `${cellCls(dI)} · ${stepCls(dI)}`]);
   } else gc.push(["the rendered glow (no browser found: set CHROME)", false, "no Chrome or Edge"]);
   /* a tracking board: its units in progress, or nothing between units; never a unit's other cell */
   const tdir = path.join(scratch, ...trk.folder.split("/")), unitCur = (trk.wip.current || [])[0];
@@ -1237,7 +1239,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     /* A. the step panel */
     const sR = strip(D.research), pR = panel(D.research);
     lc.push(["A: an issue board's strip sits beside its step panel, half and half, the legend under both", /class="wip split"/.test(D.research) && /<div class="wiprow"><div class="wipmain">/.test(sR) && /class="sp" data-step="research"/.test(sR) && /<\/div><div class="legend">/.test(sR), sR.slice(0, 200)]);
-    lc.push(["A: research: the research StepBar, planning → research → verification, research current", /aria-label="The research timeline"/.test(pR) && /<li class="done"><span class="dot"[^>]*><\/span>planning<\/li><li class="cur fullpulse"[^>]*><span class="dot"[^>]*><\/span>research<\/li><li class="todo"><span class="dot"[^>]*><\/span>verification<\/li>/.test(pR), text(pR).slice(0, 200)]);
+    lc.push(["A: research: the research StepBar, planning → research → verification, research current", /aria-label="The research StepBar"/.test(pR) && /<li class="done"><span class="dot"[^>]*><\/span>planning<\/li><li class="cur fullpulse"[^>]*><span class="dot"[^>]*><\/span>research<\/li><li class="todo"><span class="dot"[^>]*><\/span>verification<\/li>/.test(pR), text(pR).slice(0, 200)]);
     lc.push(["A: research: each question with its state and the count returned", /2 of 4 questions returned/.test(text(pR)) && (pR.match(/vp serious"><i aria-hidden="true">↻<\/i>researching/g) || []).length === 2 && (pR.match(/vp serious"><i aria-hidden="true">✓<\/i>returned/g) || []).length === 2 && /bears on no row/.test(pR), text(pR).slice(0, 300)]);
     lc.push(["A: research-planning: the panel says planning and how many questions are drafted; no row rings", /Planning the research questions: 2 drafted so far/.test(text(panel(D.planning))) && /<li class="cur fullpulse"[^>]*><span class="dot"[^>]*><\/span>planning/.test(panel(D.planning)) && !/class="cell considered[^"$]* rs /.test(D.planning), text(panel(D.planning)).slice(0, 200)]);
     lc.push(["A: interview: the questions, answered or waiting, counted", /1 of 2 questions answered · 1 waiting/.test(text(panel(D.interview))) && /vp warning"><i aria-hidden="true">\?<\/i>waiting on you/.test(panel(D.interview)) && /answer: Refused/.test(text(panel(D.interview))), text(panel(D.interview)).slice(0, 300)]);
@@ -1325,7 +1327,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     const h2 = copy(h); h2.generated = "2026-10-25T09:00:00Z"; h2.rows.find(r => r.issue === 62).detail = "Verification case: the live repository work board moved on.";
     fs.writeFileSync(wf, withData(BT, "board", JSON.stringify(h, null, 2))); fs.writeFileSync(path.join(wdir, "board.js"), lib.sidecarText("board", JSON.stringify(h2, null, 2)));
     const dW = dumpDom(wf, "", null, 9000), row = (dW.match(/<tr class="run[^"]*"[^>]*><td><span class="t"><a [^>]*>#47<[\s\S]*?<\/tr>/) || [""])[0];
-    lc.push(["E: a halted run's row on the repository work board keeps the still ring, with its legend entry", /class="verdict-pill warning held"><i aria-hidden="true">⏸<\/i>waiting on you/.test(row) && /ring alone, still: being worked on, paused while the run waits on the user/.test(inner(dW, '<div class="legend" id="runs-key">', "div")), row.slice(0, 300)]);
+    lc.push(["E: a halted run's row on the repository work board keeps the still ring, with its legend entry", /class="verdict-pill warning held"><i aria-hidden="true">⏸<\/i>waiting on you/.test(row) && /Ring alone, still: being worked on, paused while the run waits on you/.test(inner(dW, '<div class="legend" id="runs-key">', "div")), row.slice(0, 300)]);
     lc.push(["F: the live repository work board re-loads board.js and redraws in place, LIVE · updated", /Verification case: the live repository work board moved on\./.test(dW) && /LIVE · updated \d+ s ago/.test(text(inner(dW, '<span class="livechip[^"]*" id="live"[^>]*>', "span"))), text(inner(dW, '<span class="livechip[^"]*" id="live"[^>]*>', "span"))]);
     const cf = path.join(sc, "wb-committed", "index.html"); fs.mkdirSync(path.dirname(cf), { recursive: true }); fs.writeFileSync(cf, withData(BT, "board", fs.readFileSync(sk("verify/fixtures/work-board.json"), "utf8")));
     const dC = dumpDom(cf);
@@ -1739,12 +1741,12 @@ targets.filter(t => t.block === "plan").forEach(t => {
       /* E. the column glow */
       const bands = (dV.match(/<div class="band[^"]*"/g) || []);
       kc.push(["E: a column address glows the column itself: its band glows and its head is washed, no cell of it glows", bands.filter(x => / col-fullpulse/.test(x)).length === 1 && /<div class="colhead phase colon" data-col="built">/.test(dV) && !/<div class="cell built[^"]*(?<![-\w])(fullpulse|col-fullpulse|held)(?![-\w])/.test(dV) && /<div class="cell built[^"]* colcell-fullpulse"/.test(dV), bands.join(" ")]);
-      kc.push(["E: its legend entry names the column glow", /glow around a whole column/.test(inner(dV, '<div class="legend" id="design-key">', "div")), "legend"]);
+      kc.push(["E: its legend entry names the column's FullPulse", /FullPulse around a whole column/.test(inner(dV, '<div class="legend" id="design-key">', "div")), "legend"]);
       const dVb = render("qa-col-built", V, "built", "1400,1400");
       kc.push(["E: on the As built tab the glow goes round the cards, never each card", /<div class="bcards colbox col-fullpulse" id="built-list">/.test(dVb) && !/<div class="bcard [^"]*(?<![-\w])(fullpulse|col-fullpulse)(?![-\w])/.test(dVb), (dVb.match(/<div class="bcards[^"]*" id="built-list">/) || [""])[0]]);
       const H = copy(V); H.wip.step = "halted"; H.wip.resume = "qa"; H.wip.waitingOn = "Verification case: a question.";
       const dH = render("qa-col-held", H, "", "1400,1400");
-      kc.push(["E: halted, the column's glow holds still as the ring alone, with its legend entry", (dH.match(/<div class="band held"/g) || []).length === 1 && !/<div class="band[^"]* col-fullpulse/.test(dH) && /ring around a whole column/.test(inner(dH, '<div class="legend" id="design-key">', "div")), (dH.match(/<div class="band[^"]*"/g) || []).join(" ")]);
+      kc.push(["E: halted, the column's FullPulse holds still as the Ring alone, with its legend entry", (dH.match(/<div class="band held"/g) || []).length === 1 && !/<div class="band[^"]* col-fullpulse/.test(dH) && /Ring around a whole column/.test(inner(dH, '<div class="legend" id="design-key">', "div")), (dH.match(/<div class="band[^"]*"/g) || []).join(" ")]);
       const dN = render("qa-col-narrow", V, "", "520,1400");
       kc.push(["E: at phone width no column is drawn: no band, the column's cells carry the mark (colcell-fullpulse)", !/<div class="band/.test(dN) && /<div class="cell built[^"]* colcell-fullpulse"/.test(dN), "narrow"]);
       ["qa-col", "qa-col-held"].forEach(k => { const r = light(k); kc.push([`E: the ${k} rendering passes check-board.js`, r.status === 0, lines(r, /FAIL|DASHED|ERROR|NO LEGEND/)]); });
@@ -2198,6 +2200,12 @@ catch (e) { report("a stretch when the run was not running cases", [["the cases 
 try { require("./cases-explicit-step.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("an explicit signal moves the step cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
+/* A tracking issue's run sending plan-accepted and branch-cut (verify/cases-tracking-plan-events.js; admin-team/dashboards/tracking-plan-events,
+   KotlinBottools #2): both keep a tracking board in its own line, its units not yet filed passing the check; branch-cut records the branch and
+   writes no stages. It needs no browser, and runs on its own too (node verify/cases-tracking-plan-events.js). */
+try { require("./cases-tracking-plan-events.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("a tracking issue's plan-accepted and branch-cut cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
 /* The progress notes' index (verify/cases-progress-index.js; admin-team/board/progress-index): every note a run writes reaches the step panel, its slug
    its writer's own; the watcher needs no event, runs only where .live is git-ignored and stops by itself. It needs no browser. */
 try { require("./cases-progress-index.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
@@ -2269,7 +2277,8 @@ catch (e) { report("the C4 DSL reader's keyword identifiers cases", [["the cases
 
 /* The marks' classes (verify/cases-mark-classes.js; the user's nomenclature decisions of 2026-11-07, dated 48): the in-progress FullPulse,
    the column's, the up-next Ring and the live dot's FillPulse each a class carrying its type word, on the issue board and repository work
-   board templates, the mark-classes probe failing a board drawn before, and check-board.js counting the marks. It runs on its own too. */
+   board templates, the mark-classes probe failing a board drawn before, and check-board.js counting the marks; the visible wording (no
+   "glow" a reader sees) and the mark-class browser fixture current with the templates. It runs on its own too. */
 try { require("./cases-mark-classes.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the marks' classes cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 

@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mark classes: issue and tracking boards</title>
+<!-- A static browser fixture of the dashboards skill (verify/cases-mark-classes.js, case group 5): every mark class, drawn by the template's
+     own styles, copied verbatim below. Generated: node verify/cases-mark-classes.js --fixture. Never hand-edit it. -->
+<style>
+/* Issue board template (dashboards skill, plan set: plan/RULES.md; shared rules: GUIDANCE.md). One issue's planning and
+   development record as a timeline: every row is a part of the change (on a tracking board, a unit), and its four cells are
+   the phases it passed through. 1 GAP what was missing at the baseline; 2 CONSIDERED every option weighed, with its verdict;
+   3 VERDICT the decision and its defence; 4 AS BUILT what exists and every change from the verdict. Columns 1-3 are written
+   once; column 4 records every difference. The WIP strip under the header shows where the run is right now; a finished step on it opens
+   that step, as it stood when it ended, in the step panel (wip.history). The Impact tab shows
+   what the change means downstream (plan.json "impact": effects, adaptation, API changes, conversion steps).
+   The board renders at load from plan.json, embedded verbatim below (plan/scripts/embed.js). Never hand-edit a board.
+   Tokens, header, chips, KPIs, tabs, stage, inspector, legends (.legend on every tab and on the strip), Context and footer are
+   the system templates'. Colour plan (GUIDANCE.md §1): --sys-1..6 are the systems' registry slots, identical to the system
+   boards'; --good / --warning / --serious / --critical are status, always beside a glyph and a word; --accent marks the work
+   in progress (a FullPulse: an accent Ring and an interior that breathe) and, on a tracking board, the next unit up (a still outer
+   Ring and an UP NEXT tag), and nothing else. --wk-<family>-a / -b are the kinds of work of a landed board's Timeline tile (planning, build,
+   checking, landing: each a hue family, clear of the status colours and the accent; a step's shade is a mix of its family's two ends).
+   Dashed = planned or pending, and nothing else. */
+:root{
+  --bg:#f3f5f8; --surface:#fcfcfd; --surface-2:#eef1f6; --ink:#0e1420; --ink-2:#4a5468; --muted:#7d879a;
+  --line:#dfe4ec; --hair:rgba(14,20,32,.10);
+  --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+  --accent:#6d47e0;
+  --on:#0e1420; --focus:#2a78d6; --link:#2a78d6;
+  --sys-1:#2a78d6;--sys-2:#653184;--sys-3:#0d7680;--sys-4:#1d2660;--sys-5:#9656aa;--sys-6:#1a9ec7;
+  --wk-planning-a:#5596de;--wk-planning-b:#1d5cab;--wk-build-a:#1f9294;--wk-build-b:#0c5c61;--wk-checking-a:#b67ad0;--wk-checking-b:#84409f;--wk-landing-a:#2e3d99;--wk-landing-b:#1d2870;
+  --wk-other-a:color-mix(in srgb,var(--ink) 40%,var(--surface));--wk-other-b:var(--ink);
+  --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:ui-monospace,"Cascadia Mono",Consolas,"SF Mono",monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--accent:#a58bff;--on:#eef1f6;--focus:#3987e5;--link:#6aa6f0;--sys-1:#3987e5;--sys-2:#8a44d8;--sys-3:#1f8089;--sys-4:#b4bef5;--sys-5:#a86fb8;--sys-6:#31b5f4;--wk-planning-a:#3a7fd0;--wk-planning-b:#80b6f0;--wk-build-a:#1a8a8c;--wk-build-b:#4cc4c2;--wk-checking-a:#a35cbd;--wk-checking-b:#d095e6;--wk-landing-a:#b8c4fa;--wk-landing-b:#d4dcfd;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--accent:#a58bff;--on:#eef1f6;--focus:#3987e5;--link:#6aa6f0;--sys-1:#3987e5;--sys-2:#8a44d8;--sys-3:#1f8089;--sys-4:#b4bef5;--sys-5:#a86fb8;--sys-6:#31b5f4;--wk-planning-a:#3a7fd0;--wk-planning-b:#80b6f0;--wk-build-a:#1a8a8c;--wk-build-b:#4cc4c2;--wk-checking-a:#a35cbd;--wk-checking-b:#d095e6;--wk-landing-a:#b8c4fa;--wk-landing-b:#d4dcfd;color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans);padding-block:0 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.page{max-width:1280px;margin:0 auto}
+a{color:inherit}
+code{font-family:var(--mono);font-size:.92em;overflow-wrap:anywhere;background:var(--surface-2);border:1px solid var(--hair);padding:1px 4px;border-radius:3px}
+/* the code label (GUIDANCE.md §12, "Code"; dashboards-skill/42): every inline code drawn as a label of its own,
+   in both themes, at normal weight inside bold text; inside a chip, a pill or a tile (a label or a figure already: each class carries
+   its type word) it stays plain mono text */
+:is(b,strong,.name,.nm,dt,th) code{font-weight:400}
+:is([class*="chip"],[class*="pill"],[class*="tile"]) code{background:none;border:0;padding:0;border-radius:0}
+/* an option's signature, beneath its name: the code label set as a block (plan/RULES.md §2, "An option's signature") */
+code.codeblock{display:block;margin:3px 0;padding:3px 6px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.4;font-weight:400}
+.inspector .sigblock code.codeblock{font-size:12.5px;margin:5px 0 6px}
+h1,h2,h3{text-wrap:balance}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+/* header */
+.crumbs{font-size:12px;color:var(--muted);padding-top:18px;overflow-wrap:anywhere}
+/* The header's tools, right of the breadcrumb: the live indicator (plan/RULES.md §3, "Live updates"), the inspector switch
+   (GUIDANCE.md §6) and the theme switch (§1, Themes). The live dot is ink, never a status or accent colour; it pulses while the run is live and changing, and
+   holds still after a quiet spell, while the run waits on you, when the data cannot be read, and under reduced motion. */
+.topbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;padding-top:18px}
+.topbar .crumbs{padding-top:0;min-width:0}
+.tools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-left:auto}
+.livechip{display:inline-flex;align-items:center;gap:6px;font:600 11px/1 var(--mono);letter-spacing:.03em;padding:5px 9px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink-2);white-space:nowrap}
+.livechip:empty{display:none}
+.livechip .ld{width:8px;height:8px;border-radius:50%;background:var(--ink);flex:none}
+.livechip.on{color:var(--ink);border-color:var(--ink-2)}
+.livechip.on.fillpulse .ld{animation:livepulse 1.6s ease-in-out infinite}
+.livechip.off .ld{background:none;border:1.5px solid var(--muted)}
+.livechip.na .ld{background:var(--muted)}
+.livechip a{color:inherit}
+/* an older copy of this board, while a newer one is on this machine (plan/RULES.md §1, "The newest board on this machine") */
+.newer{margin:8px 0 0;padding:7px 11px;border:1px solid var(--ink-2);border-radius:8px;background:var(--surface);color:var(--ink);font-size:13px;max-width:100%}
+.newer:empty{display:none}
+.newer.liveview{border-style:dashed}
+@keyframes livepulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.65)}}
+/* The header's switches (GUIDANCE.md §12, "Switch"): a track with a knob that slides to the side of the state shown, a real toggle
+   (role="switch", aria-checked) in the boards' neutrals, never the accent or a status colour. The theme switch's ends are ☀ light and
+   ☾ night, its knob at the palette shown; the inspector switch's knob stands right, its track filled, while the inspector is shown. The
+   knob slides in a short transition, and jumps under reduced motion. */
+.switch{appearance:none;display:inline-flex;align-items:center;gap:5px;font:600 11px/1 var(--mono);padding:3px 7px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.switch:hover{color:var(--ink);border-color:var(--ink-2)}
+.switch-track{position:relative;flex:none;width:28px;height:16px;border:1px solid var(--ink-2);border-radius:8px;background:var(--surface-2);transition:background-color .18s ease}
+.switch-knob{position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:var(--ink-2);transition:transform .18s ease}
+.switch[aria-checked="true"] .switch-track{background:color-mix(in srgb,var(--ink-2) 35%,var(--surface))}
+.switch[aria-checked="true"] .switch-knob{transform:translateX(12px);background:var(--ink)}
+.switch-end{font-size:12px;color:var(--muted)}
+.switch[aria-checked="false"] .switch-end.off,.switch[aria-checked="true"] .switch-end.on{color:var(--ink)}
+@media (prefers-reduced-motion:reduce){.switch-track,.switch-knob{transition:none}}
+@media (prefers-reduced-motion:reduce){.livechip .ld{animation:none!important}}
+.crumbs a{text-decoration:none}
+.crumbs a:hover{text-decoration:underline}
+h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono);overflow-wrap:anywhere}
+/* the title's #n is the GitHub issue's link (plan/RULES.md §1); the issue line under it is the issue's title on GitHub alone */
+h1 a.ghn{color:inherit;text-decoration:none;border-bottom:2px solid var(--line)}
+h1 a.ghn:hover{border-bottom-color:var(--ink)}
+.issueline:empty{display:none}
+.function{color:var(--ink-2);margin:0 0 10px;max-width:78ch;font-size:15px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 6px}
+.chip{font:12px/1 var(--mono);padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink-2);max-width:100%;overflow-wrap:anywhere}
+.chip b{color:var(--ink);font-weight:600}
+.chip a{text-decoration:none;border-bottom:1px solid var(--line)}
+.chip.status{border-left:3px solid var(--line)}
+.chip.status.planned{border-style:dashed}
+.chip.status.built{border-left-color:var(--good)}
+.chip.status.abandoned{border-left-color:var(--critical)}
+.chip[data-sys]{border-left:4px solid var(--c)}
+/* a tracking board's status chip is its chain's progress (plan/RULES.md §3, "The chain's progress"), with a thin bar of units landed */
+.chip.progress{line-height:1.45;padding:5px 8px}
+.chip.progress.done{border-left-color:var(--good)}
+.chip .cbar{display:block;height:4px;margin-top:4px;border-radius:2px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden}
+.chip .cbar i{display:block;height:100%;background:var(--good)}
+/* The header's two halves (GUIDANCE.md §6, "The header"): from 940 px the intro (the title, the issue line, the function) fills the
+   left half and the tags stand in the right half beside it, each a small card with its label over its value, growing to fill its line, a
+   long one across the half (.wide); under 940 px the two stack and the tags wrap as chips, the label before the value. The topbar (the breadcrumb, the
+   live indicator, the theme switch) runs across the top. The same rules on every dashboard type. */
+.issueline{font:12.5px/1.4 var(--mono);color:var(--ink-2);margin:0 0 8px;overflow-wrap:anywhere}
+.issueline a{text-decoration:none;border-bottom:1px solid var(--line)}
+.issueline a:hover{border-bottom-color:var(--ink)}
+.chip .ck{font:700 10px/1.2 var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.chip .sysl{display:inline-flex;align-items:center;margin-right:10px;white-space:nowrap}
+.chip .sysl:last-child{margin-right:0}
+@media (min-width:940px){
+  header{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto auto auto auto 1fr;column-gap:28px}
+  header>.topbar{grid-column:1/-1;grid-row:1}
+  header>.crumbs{grid-column:1;grid-row:1}
+  header>.systools{grid-column:2;grid-row:1;justify-self:end;align-self:start;float:none;margin:14px 0 4px}
+  header>h1{grid-column:1;grid-row:2}
+  header>.issueline{grid-column:1;grid-row:3}
+  header>.function{grid-column:1;grid-row:4;max-width:none}
+  header>.chips{grid-column:2;grid-row:2/-1;align-self:start;align-content:flex-start;gap:8px;margin:8px 0 6px}
+  header>.chips>.chip{display:block;flex:1 1 190px;padding:7px 10px 8px;font-size:12.5px;line-height:1.4;border-radius:6px}
+  header>.chips>.chip .ck{display:block;margin:0 0 2px}
+  header>.chips>.chip.wide{flex-basis:100%}
+}
+
+/* the WIP strip: where the run is right now */
+.wip{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px 10px;margin:12px 0 0}
+.wip.landed{border-left-color:var(--good)}
+.wip.halted{border-left-color:var(--warning);background:color-mix(in srgb,var(--warning) 12%,var(--surface))}
+.wip.escalated{border-left-color:var(--serious)}
+.wip.cancelled{border-left-color:var(--critical)}
+.wip-head{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;font-size:13px;color:var(--ink-2)}
+.wip-head .state{font-weight:700;color:var(--ink);font-size:14px}
+.wip-head .state i{font-style:normal;margin-right:5px}
+.wip-head .upd{font:11px var(--mono);color:var(--muted);margin-left:auto}
+.wip-detail{margin:6px 0 4px;font-size:13px;color:var(--ink);max-width:110ch}
+.wip-wait{margin:6px 0 4px;font-size:13px;color:var(--ink);font-weight:600}
+.wip-sub{font:700 10.5px var(--mono);letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin:8px 0 2px}
+.steps{list-style:none;margin:4px 0 2px;padding:0;display:flex;flex-wrap:wrap;gap:6px 0;align-items:center}
+.steps li{display:inline-flex;align-items:center;font:11.5px var(--mono);color:var(--ink-2);white-space:nowrap}
+.steps li+li::before{content:"";display:inline-block;width:16px;border-top:2px solid var(--ink-2);margin:0 4px}
+.steps li.todo+li::before,.steps li.cur+li.todo::before{border-top-style:dashed;border-top-color:var(--muted)}
+.steps .dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;flex:none;background:var(--ink-2);border:2px solid var(--ink-2)}
+.steps li.todo{color:var(--muted)}
+.steps li.todo .dot{background:none;border:2px dashed var(--muted)}
+.steps li.cur{color:var(--ink);font-weight:700}
+.steps li.cur .dot{background:var(--accent);border-color:var(--accent)}
+.chain{list-style:none;margin:4px 0 2px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.chain li a,.chain li span.u{display:inline-flex;align-items:center;gap:5px;font:11.5px var(--mono);padding:3px 7px;border:1px solid var(--line);border-left:4px solid var(--c,var(--muted));border-radius:4px;background:var(--surface);text-decoration:none;color:var(--ink-2)}
+.chain li.pending a,.chain li.pending span.u{border-style:dashed;border-left-style:solid}
+.chain li.done a{color:var(--ink)}
+.chain li.fullpulse,.chain li.held,.chain li.upnext-ring{border-radius:4px}
+.chain li.fullpulse a,.chain li.fullpulse span.u{background:transparent}
+.wip-facts{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;font-size:12.5px;color:var(--ink-2)}
+/* Info cards (plan/RULES.md §3): each fact of the strip, a card or the step panel is a small card of its own, its label before its
+   value. */
+.wip-facts>span{display:inline-flex;flex-wrap:wrap;gap:4px 6px;align-items:center;padding:4px 9px;border:1px solid var(--line);border-radius:6px;background:color-mix(in srgb,var(--ink) 3%,var(--surface));min-width:0;max-width:100%}
+.wip-facts .l{font:700 10.5px var(--mono);letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.wip-facts a,.wip-sub a,.verdict-pill a{text-decoration:none;border-bottom:1px solid var(--line)}
+.wip-sub a:hover,.verdict-pill a:hover{border-bottom-color:var(--ink)}
+.wip .legend{margin-top:8px;padding-top:6px;border-top:1px solid var(--hair)}
+/* A tracking board's unit in progress shows its own run, mirrored from its board (unit.live, plan/RULES.md §3): under its "In
+   progress" line an accent rule holds the unit's step, its steps, its detail and its qa passes (a yellow rule while the run waits
+   on you); its as-built cell and card carry a run line. */
+.unitrun .wip-head{font-size:12.5px}
+.unitrun .wip-detail,.unitrun .wip-wait{margin:4px 0 2px}
+/* A tracking board's WIP strip is a set of cards (plan/RULES.md §3): the tracking issue's own phase with the chain's progress,
+   one card per unit in progress with its run, that unit's step panel (or the unit up next while no unit's run is mirrored), and
+   "waiting on you" only while something is halted. From 940 px the row is split in fixed shares: the phase 35 %, the unit in
+   progress 25 %, its step panel 40 %; the phase runs down beside every unit's row, the up-next card and "waiting on you" take
+   the unit's and the panel's shares. Under 940 px they stack in that order. The legend runs under them all. */
+.wip.wipcards{background:none;border:0;padding:0}
+.wipgrid{display:grid;gap:10px;grid-template-columns:minmax(0,1fr);align-items:stretch}
+@media (min-width:940px){
+  .wipgrid{grid-template-columns:minmax(0,35fr) minmax(0,25fr) minmax(0,40fr)}
+  .wipgrid>.wipcard.phase{grid-column:1;grid-row:1/span var(--rows,1)}
+  .wipgrid>.wipcard.phase.solo{grid-column:1/-1}
+  .wipgrid>.wipcard.unit{grid-column:2;grid-row:var(--r,1)}
+  .wipgrid>.sp{grid-column:3;grid-row:var(--r,1)}
+  .wipgrid>.wipcard.next,.wipgrid>.wipcard.wait{grid-column:2/-1;grid-row:var(--r,1)}
+  .wipgrid>.wipcard.next.beside{grid-column:3}
+  .wipgrid>.sp.own{grid-column:2/-1}
+}
+.wipcard{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;min-width:0}
+.wipcard.phase.landed{border-left-color:var(--good)}
+.wipcard.phase.halted,.wipcard.wait{border-left-color:var(--warning);background:color-mix(in srgb,var(--warning) 12%,var(--surface))}
+.wipcard.phase.escalated{border-left-color:var(--serious)}
+.wipcard.phase.cancelled{border-left-color:var(--critical)}
+.wipcard.unit.halted{border-left-color:var(--warning)}
+.wipcard.unit.escalated{border-left-color:var(--serious)}
+.wipcard.next{border-style:dashed;border-left:4px solid var(--c,var(--muted))}
+.wipcard-t{font:600 12px var(--mono);color:var(--ink);margin:0 0 4px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.wipcard-t .k{font-size:10.5px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.wipcard-t a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}
+.wipcard-t a:hover{border-bottom-color:var(--ink)}
+.wipcard .wip-sub{margin-top:10px}
+.wipcard .chip-bar{display:block;height:5px;margin:4px 0 6px;border-radius:3px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;max-width:420px}
+.wipcard .chip-bar i{display:block;height:100%;background:var(--good)}
+.wipcard .run{margin-top:2px}
+.wipcard.wait ul{margin:4px 0 0;padding-left:18px;font-size:13px;color:var(--ink)}
+.wipcard.wait li{margin:4px 0}
+.wipcard.wait li small{display:block;font:11px var(--mono);color:var(--ink-2);margin-top:1px}
+.wipcard.wait a{text-decoration:none;border-bottom:1px solid var(--line)}
+.wipcard p.note{margin:6px 0 0;font-size:12.5px;color:var(--ink-2)}
+.wip.wipcards>.legend{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-top:8px}
+.run{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font:11px var(--mono);color:var(--muted)}
+.inspector .run{margin:0 0 4px}
+.inspector .steps{margin:6px 0 4px}
+/* An issue board's strip and its step panel (plan/RULES.md §3, "The step panel"): the strip on the left half, the panel breaking the
+   current step down on the right; one column below 940 px. The legend runs under both. A board that has landed or was cancelled
+   has no current step and keeps the strip across the row. */
+.wip.split{background:none;border:0;padding:0}
+.wiprow{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
+@media (max-width:940px){.wiprow{grid-template-columns:minmax(0,1fr)}}
+.wipmain{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;min-width:0}
+.wipmain.halted{border-left-color:var(--warning);background:color-mix(in srgb,var(--warning) 12%,var(--surface))}
+.wipmain.escalated{border-left-color:var(--serious)}
+.wip.split>.legend{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-top:8px}
+.sp{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--ink-2);border-radius:6px;padding:10px 14px;min-width:0;font-size:12.5px;color:var(--ink-2)}
+.sp.sp-held{border-left-color:var(--warning)}
+/* the panel's heading: the step's title alone */
+.sp-t{font:700 14px/1.3 var(--sans);color:var(--ink);margin:0 0 6px;letter-spacing:0}
+.sp p{margin:4px 0;color:var(--ink-2)}
+.sp p.sp-sum{color:var(--ink);font-weight:600}
+.sp p.sp-wait{color:var(--ink);font-weight:600}
+.sp a{text-decoration:none;border-bottom:1px solid var(--line)}
+.sp .steps{margin:6px 0 4px}
+.sp-list{list-style:none;margin:6px 0 2px;padding:0;display:grid;gap:4px}
+.sp-list>li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 8px;align-items:baseline;padding:4px 0;border-top:1px solid var(--hair);min-width:0}
+.sp-list>li:first-child{border-top:0}
+.sp-list .q{color:var(--ink);overflow-wrap:anywhere;min-width:0}
+.sp-list small{display:block;font:11px var(--mono);color:var(--muted);margin-top:1px;overflow-wrap:anywhere}
+.sp-list .dot{display:inline-block;width:11px;height:11px;border-radius:50%;background:var(--ink-2);border:2px solid var(--ink-2);vertical-align:-1px}
+.sp-list li.todo .dot{background:none;border:2px dashed var(--muted)}
+.sp-list li.todo .q{color:var(--muted)}
+.sp-list li.cur .dot{background:var(--accent);border-color:var(--accent);animation:dot-fullpulse 2s ease-in-out infinite}
+.sp-list li.cur .q{font-weight:600}
+/* a question's options, under its text: the interview's, and a halt's in any other step */
+.sp-opts{margin:3px 0 0;padding-left:16px;font-weight:400;color:var(--ink-2)}
+/* the questions a halt put to you, in the panel of the step it halted in (plan/RULES.md §3, wip.asked) */
+.sp-asked{margin:6px 0 8px}
+.wipcard.wait li .wq{margin:3px 0 0;padding-left:16px;font-size:12.5px;color:var(--ink-2)}
+.sp-opts li{margin:1px 0}
+.sp.sp-held .sp-list li.cur .dot{animation:none;box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
+.sp-pass{border:1px solid var(--line);border-left:4px solid var(--sc,var(--line));border-radius:5px;padding:6px 10px;margin:6px 0 0}
+.sp-pass.good{--sc:var(--good)}.sp-pass.critical{--sc:var(--critical)}
+.sp-pass.run{border-style:dashed;border-left-style:dashed;--sc:var(--muted)}
+.sp-pass .ph{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font:700 11px var(--mono);color:var(--ink)}
+.sp-pass small{display:block;font:11px var(--mono);color:var(--ink-2);margin-top:3px}
+.sp p.sp-when{font:11px var(--mono);color:var(--muted);margin:0 0 4px}
+.sp-facts{margin-top:10px}
+/* Finished steps (plan/RULES.md §3, "Finished steps"): a finished step's dot on the strip is a button that shows the step in the panel;
+   the one shown is ringed in ink, never the accent (which marks the work in progress), and the panel opens with a line saying what it
+   shows and the way back. A board that has landed shows the picked step beside its landing. */
+.steps li>.stepbtn{appearance:none;display:inline-flex;align-items:center;font:inherit;color:inherit;background:none;border:0;padding:2px 3px;margin:-2px -3px;border-radius:4px;cursor:pointer;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+.steps li>.stepbtn:hover{text-decoration-color:var(--ink)}
+.steps li.sel>.stepbtn{color:var(--ink);font-weight:700;text-decoration-color:var(--ink)}
+.steps li.sel .dot{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink)}
+.legend i.node.sel{box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--ink)}
+.sp-view{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;justify-content:space-between;margin:0 0 8px;padding:0 0 6px;border-bottom:1px solid var(--hair);font:11.5px var(--mono);color:var(--ink-2)}
+.sp-view b{color:var(--ink)}
+.sp-back{appearance:none;font:600 11px/1 var(--mono);padding:4px 9px;border:1px solid var(--ink-2);border-radius:10px;background:var(--surface);color:var(--ink);cursor:pointer;white-space:nowrap}
+.sp-back:hover{background:var(--surface-2)}
+.sp.past{border-left-color:var(--ink)}
+.sp-visit+.sp-visit{border-top:1px solid var(--line);margin-top:10px;padding-top:8px}
+.sp-visit>h4{font:700 10.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+.wipmain.landed{border-left-color:var(--good)}
+@media (prefers-reduced-motion:reduce){.sp-list li.cur .dot{animation:none!important;box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent),0 0 8px 3px color-mix(in srgb,var(--accent) 45%,transparent)}}
+
+/* The two accent marks (GUIDANCE.md §1).
+   In progress (wip.current): a FullPulse (.fullpulse), a solid accent Ring inside the edge, an interior that breathes (~2 s) and a
+   faint accent wash. .col-fullpulse is the same, lighter, for a whole column at work. With reduced motion the FullPulse holds still at
+   its middle strength; while the run waits on you, halted or escalated, it stops (.held: the Ring alone).
+   Up next (wip.next, tracking boards): a still outer Ring (.upnext-ring), never animated, with the static UP NEXT tag. It is not work
+   in progress, so it neither breathes nor counts as a cell at work. */
+@keyframes fullpulse{0%,100%{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 6px 2px color-mix(in srgb,var(--accent) 28%,transparent)}50%{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 22px 6px color-mix(in srgb,var(--accent) 52%,transparent)}}
+@keyframes col-fullpulse{0%,100%{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--accent) 70%,transparent),inset 0 0 4px 1px color-mix(in srgb,var(--accent) 18%,transparent)}50%{box-shadow:inset 0 0 0 1.5px var(--accent),inset 0 0 14px 3px color-mix(in srgb,var(--accent) 34%,transparent)}}
+@keyframes dot-fullpulse{0%,100%{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}50%{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent),0 0 10px 5px color-mix(in srgb,var(--accent) 55%,transparent)}}
+.fullpulse{animation:fullpulse 2s ease-in-out infinite;background-color:color-mix(in srgb,var(--accent) 7%,var(--surface))}
+.col-fullpulse{animation:col-fullpulse 2s ease-in-out infinite;background-color:color-mix(in srgb,var(--accent) 4%,var(--surface))}
+.steps li.cur.fullpulse,.steps li.cur.held{animation:none;box-shadow:none;background:none}
+.steps li.cur.fullpulse .dot{animation:dot-fullpulse 2s ease-in-out infinite}
+.held{box-shadow:inset 0 0 0 2px var(--accent)}
+.steps li.cur.held .dot{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
+.upnext-ring{box-shadow:0 0 0 1.5px color-mix(in srgb,var(--accent) 70%,transparent),0 0 12px 3px color-mix(in srgb,var(--accent) 32%,transparent)}
+.tag-next{display:inline-block;font:700 9.5px/1 var(--mono);letter-spacing:.08em;padding:3px 5px;border-radius:3px;border:1px solid var(--accent);color:var(--accent);background:var(--surface);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){
+  .fullpulse,.col-fullpulse,.steps li.cur.fullpulse .dot{animation:none!important}
+  .fullpulse{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 14px 4px color-mix(in srgb,var(--accent) 40%,transparent)}
+  .col-fullpulse{box-shadow:inset 0 0 0 1.5px var(--accent),inset 0 0 9px 2px color-mix(in srgb,var(--accent) 26%,transparent)}
+  .steps li.cur.fullpulse .dot{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent),0 0 8px 3px color-mix(in srgb,var(--accent) 45%,transparent)}}
+
+/* KPIs */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px;margin:14px 0 18px}
+.kpi-tile{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0}
+.kpi-tile .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.kpi-tile .v{font-size:22px;font-weight:700;letter-spacing:-.01em;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi-tile .v small{font-size:13px;font-weight:400;color:var(--ink-2)}
+.kpi-tile .s{font-size:12px;color:var(--ink-2);margin-top:2px}
+.kpi-tile .seg-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;gap:2px;margin-top:8px;background:var(--surface-2)}
+.kpi-tile .seg-bar i{display:block;height:100%;background:var(--ink-2)}
+.seg-bar i.good{background:var(--good)}.seg-bar i.warning{background:var(--warning)}.seg-bar i.serious{background:var(--serious)}.seg-bar i.critical{background:var(--critical)}.seg-bar i.neutral{background:var(--line)}.seg-bar i.left{background:var(--muted);opacity:.5}.seg-bar i.accent{background:var(--accent)}.seg-bar i.ink{background:var(--ink-2)}
+/* Every KPI tile carries a segmented bar (plan/RULES.md §2, "The KPI tiles"), each segment listed in the tiles' legend under them: a
+   system's colour (Rows, Units), a status colour (Options weighed, As built, QA passes), a neutral (Verdicts). Dashed is pending (an
+   option left open, a verdict not yet written); an empty slot is a qa pass not used, solid. */
+.seg-bar i.dash{background:none!important;border:1.5px dashed var(--sc,var(--muted));opacity:1}
+.seg-bar i.dash.warning{--sc:var(--warning)}
+.seg-bar i.slot{background:none!important;border:1px solid var(--line)}
+/* each tile carries the legend of its own bar (GUIDANCE.md §2), as the repository work board's do: no shared row under the tiles, so every tile
+   keeps its full share of the row */
+.kpi-tile .legend{margin-top:6px;gap:3px 10px;font-size:11px;line-height:1.3}
+.kpi-tile .legend span{gap:4px}
+.legend i.segk{width:16px;height:6px;border:0;border-radius:2px;background:var(--sc,var(--ink-2))}
+.legend i.segk.good{--sc:var(--good)}.legend i.segk.warning{--sc:var(--warning)}.legend i.segk.critical{--sc:var(--critical)}.legend i.segk.serious{--sc:var(--serious)}.legend i.segk.accent{--sc:var(--accent)}.legend i.segk.ink{--sc:var(--ink-2)}.legend i.segk.neutral{--sc:var(--line)}
+.legend i.segk.left{background:var(--muted);opacity:.5}
+/* The Timeline tile of a landed board (plan/RULES.md §2, "The KPI tiles"; dashboards-skill/32, coloured by dashboards-skill/34): one
+   segment per timed visit of a run step, sized by its time, in the colour of its kind of work (planning, build, checking, landing: the
+   --wk tokens, clear of the status colours and the accent, GUIDANCE.md §1), one shade of its family per step, a step's repeats sharing
+   it; a visit of no length keeps a sliver. Its legends: the families with their steps' shades, then the step lines, each led by its
+   step's mark (filled: its segment; outlined: a visit the bar does not draw), laid in columns down the row the tile takes across a
+   landed board's KPI row (four tiles above it). */
+.kpi-tile .seg-bar i.tp{min-width:1px}.legend i.segk.tp{--sc:var(--tp)}.legend i.segk.tl-out{background:none;box-shadow:inset 0 0 0 1.5px var(--tp)}
+.kpi-tile .legend.tl-fams{margin-top:8px;gap:3px 16px}
+.legend .tl-fam>i.segk.tf{width:26px;height:8px}
+.tl-fam>b{font-weight:600;color:var(--ink)}
+/* the Timeline tab (dashboards-skill/34): the Timeline tile across the tab, its bar at its foot; the KPI tiles below it in one row (two,
+   then one, on narrower screens), a gutter between them for the tracers, which are drawn from 760 px; under it each tile's tracer label
+   alone says the part and its time */
+.tl-stack{position:relative}
+.tl-tile>.kpi-tile{padding-bottom:22px}
+.tl-tile .seg-bar{margin-top:10px}
+#kpis{grid-template-columns:repeat(5,minmax(0,1fr));margin:74px 0 8px}
+@media (max-width:1100px){#kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:759.98px){#kpis{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:14px}.tracers{display:none}}
+@media (max-width:430px){#kpis{grid-template-columns:minmax(0,1fr)}}
+.tracers{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.tracers path{fill:none;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+.tracers circle{stroke:none}
+.kpi-tile .tracer-lab{display:flex;align-items:baseline;gap:6px;margin:-2px 0 6px;font-size:11px;line-height:1.3;color:var(--ink-2)}
+.kpi-tile .tracer-lab>i{flex:none;width:10px;height:10px;border-radius:50%;background:var(--tc);align-self:center}
+.kpi-tile .tracer-lab>b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.kpi-tile .tracer-lab.none>i{background:none;box-shadow:inset 0 0 0 1.5px var(--muted)}
+.legend i.trk{width:18px;height:10px;border:0;background:none;border-left:2px solid var(--ink-2);border-bottom:2px solid var(--ink-2);border-radius:0}
+.stage.solo{grid-template-columns:minmax(0,1fr)}.stage.solo .inspector{display:none}
+.kpi-tile .legend.tl-steps{display:block;columns:20rem;column-gap:28px;margin-top:8px}
+.kpi-tile .legend.tl-steps>span.tl-step{display:grid;grid-template-columns:16px minmax(0,10.5em) minmax(0,1fr) auto;align-items:baseline;gap:2px 8px;break-inside:avoid;padding:1.5px 0}
+.tl-step>i.segk{align-self:center}
+.tl-step>b{font-weight:600;color:var(--ink)}
+.tl-step>.tl-when{font-variant-numeric:tabular-nums}
+.tl-approx{color:var(--muted);font-weight:600}
+.tl-step>.tl-dur{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
+.kpi-tile .legend.tl-steps>span.tl-note{display:block;color:var(--muted);margin-top:5px;break-inside:avoid}
+/* a statement's reference whose section number is read from its link's anchor alone (its file not there to read): "(§42?)" */
+.legend b.srefk{font:600 10.5px var(--mono);color:var(--link)}
+.legend i.segk.dash{background:none;border:1.5px dashed var(--sc,var(--muted));height:7px}
+.legend i.segk.slot{background:none;border:1px solid var(--line);height:7px}
+
+/* tabs + stage */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow-x:auto;overflow-y:hidden}
+.tab{appearance:none;border:0;background:none;color:var(--ink-2);font:inherit;font-weight:600;padding:10px 14px;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.tab:hover{color:var(--ink)}
+.tab.model::after{content:" JSON";font:10px var(--mono);color:var(--muted);vertical-align:super}
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start}
+@media (max-width:940px){.stage{grid-template-columns:minmax(0,1fr)}.inspector{position:static;max-height:none}}
+/* the Landing Order tab: one column, the inspector under the graph, its sections as cards */
+.stage.below{grid-template-columns:minmax(0,1fr)}
+.stage.below .inspector{position:static;max-height:none;overflow:visible}
+.icards{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch}
+.icards>.icard,.icards>.icard-col{flex:1 1 250px;min-width:0;max-width:100%}
+.icards>.icard-head{flex:1.6 1 320px}
+.icard{background:color-mix(in srgb,var(--ink) 3%,var(--surface));border:1px solid var(--line);border-radius:6px;padding:10px 12px;min-width:0}
+.icard dl{margin:0}
+.icard dl>dt:first-child{margin-top:0}
+.icard-col{display:flex;flex-direction:column;gap:10px}
+.icard-col>.icard{flex:1 1 auto}
+@media (max-width:560px){.icards{flex-direction:column}.icards>.icard,.icards>.icard-col,.icards>.icard-head{flex:1 1 auto}}
+.stage>div{min-width:0}
+.view{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px;min-width:0}
+.view h2{font-size:15px;margin:0 0 4px}
+.view h2 small{font:11px var(--mono);color:var(--muted);font-weight:400}
+.lede{font-size:13px;color:var(--ink-2);margin:0 0 10px;max-width:90ch}
+.inspector{position:sticky;top:calc(12px + env(safe-area-inset-top,0px));background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px;min-width:0;max-height:calc(100vh - 24px);overflow:auto}
+/* The inspector switch (GUIDANCE.md §6, "The inspector switch"): hidden, the inspector leaves the stage and the tab takes its width */
+:root[data-inspector="hidden"] .stage{grid-template-columns:minmax(0,1fr)}
+:root[data-inspector="hidden"] .inspector{display:none}
+.inspector h2{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 8px}
+/* The inspector's head (GUIDANCE.md §6, "The inspector switch"): its heading, and at its right the Hide button, an eye struck through and
+   the word "Hide", which hides the inspector as the header's inspector switch does; a button in the boards' neutrals, never the accent or
+   a status colour, its focus ring the boards' own */
+.inspector .insp-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px}
+.inspector .insp-head h2{margin:0}
+.hide-button{appearance:none;display:inline-flex;align-items:center;gap:4px;flex:none;font:600 11px/1 var(--mono);padding:3px 7px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.hide-button:hover{color:var(--ink);border-color:var(--ink-2)}
+.hide-button svg{flex:none;width:14px;height:14px}
+.inspector .kicker{font:11px var(--mono);color:var(--muted);letter-spacing:.04em}
+.inspector .name{font-weight:700;font-size:15px;word-break:break-word}
+.inspector .vis{font-size:12px;color:var(--ink-2);margin:2px 0 8px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.inspector p{margin:0 0 8px;color:var(--ink-2);font-size:13px}
+.inspector p.lead{color:var(--ink)}
+.inspector dl{margin:0;font-size:12.5px}
+.inspector dt{color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-size:10.5px;margin-top:8px}
+.inspector dd{margin:2px 0 0;color:var(--ink-2)}
+.inspector dd ul,.inspector dd ol{margin:0;padding-left:16px}
+.inspector dd li{margin:2px 0}
+.inspector a{text-decoration:none;border-bottom:1px solid var(--line)}
+.inspector a:hover{border-bottom-color:var(--ink)}
+.steps-list{margin:4px 0 0;padding:0;list-style:none;font-size:12.5px}
+.steps-list li{display:grid;grid-template-columns:auto 1fr;gap:8px;padding:5px 0;border-top:1px solid var(--hair);color:var(--ink-2)}
+.steps-list li b{font-family:var(--mono);color:var(--ink);font-size:11.5px;white-space:nowrap}
+.steps-list li>span{min-width:0}
+/* A list of files nested by their folders (plan/RULES.md §2, "A step's files"; dated
+   dashboards-skill/43): the top folder (the module) a heading, its source set a sub-level (src/ left out), the rest of a folder path one
+   line holding its files, each file a code label; a guide line per level. Every folder line toggles (keyboard and click), open at load; a
+   closed one says how many files it holds. A folder line breaks after a "/", a file name between the words of its camel case. */
+.ftree{display:block;margin-top:3px;font:11px/1.45 var(--mono);color:var(--muted);min-width:0;max-width:100%}
+.ftree ul.ft-l{list-style:none;margin:0;padding:0}
+.ftree ul.ft-l ul.ft-l{margin:1px 0 0 4px;padding-left:9px;border-left:1px solid var(--line)}
+.ftree .ft-l>li{display:block;margin:2px 0 0;padding:0;border-top:0;min-width:0;color:inherit}
+.ftree summary{display:block;list-style:none;position:relative;padding-left:13px;cursor:pointer;border-radius:3px;overflow-wrap:anywhere}
+.ftree summary::-webkit-details-marker{display:none}
+.ftree summary::before{content:"\25BE";position:absolute;left:0;top:0;color:var(--ink-2)}
+.ftree details:not([open])>summary::before{content:"\25B8"}
+.ftree summary:hover{color:var(--ink)}
+.ftree .ft-n{display:none;color:var(--ink-2);font-weight:400}
+.ftree details:not([open])>summary>.ft-n{display:inline}
+.ftree .ft-mod>summary{font-weight:700;color:var(--ink)}
+.ftree .ft-set>summary{font-weight:600;color:var(--ink-2)}
+.ftree .ft-file{overflow-wrap:anywhere}
+.ftree .ft-file code{font-size:11px;color:var(--ink-2)}
+.steps-list .check{display:block;font-size:12px;margin-top:2px}
+.steps-list .check::before{content:"check: ";color:var(--muted)}
+a.more{font:11px var(--mono);color:var(--link);text-decoration:none;white-space:nowrap}
+/* An issue's #n opens its board when it has one (plan/RULES.md §1); the small GitHub link beside it, where there is room, opens
+   the issue. */
+a.gh{font:10.5px var(--mono);color:var(--muted);text-decoration:none;border-bottom:0!important;white-space:nowrap;text-transform:none;letter-spacing:0;font-weight:400}
+a.gh:hover{color:var(--link);text-decoration:underline}
+a.more:hover{text-decoration:underline}
+
+/* Legends: every tab, panel and the strip carry one .legend listing exactly the encodings drawn there (GUIDANCE.md §2). */
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin:10px 0 0;font-size:12px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:16px;height:11px;border-radius:3px;border:1.5px solid var(--ink-2);background:var(--surface);flex:none}
+.legend i.sbar{border-color:var(--line);border-left:4px solid var(--c)}
+.legend i.pln{border-style:dashed;background:none;border-color:var(--muted)}
+/* a cell's kind chip in the legend: the same neutral, solid chip the cell draws (a fact, not an outcome; dashed means only planned) */
+.legend .kind{font:600 10px var(--mono);color:var(--ink-2);border:1px solid var(--line);border-radius:3px;padding:1px 5px;letter-spacing:.04em}
+.legend i.node{width:10px;height:10px;border:0;border-radius:50%;background:var(--ink-2)}
+.legend i.node.hollow{background:none;border:2px dashed var(--muted)}
+.legend i.node.acc{background:var(--accent)}
+.legend i.ln{width:18px;height:0;border:0;border-top:2px solid var(--ink-2);border-radius:0;background:none}
+.legend i.ln.dash{border-top-style:dashed;border-top-color:var(--muted)}
+.legend i.gl{border:2px solid var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--surface));box-shadow:inset 0 0 4px 1px color-mix(in srgb,var(--accent) 60%,transparent)}
+.legend i.nx{border-color:color-mix(in srgb,var(--accent) 70%,transparent);box-shadow:0 0 6px 2px color-mix(in srgb,var(--accent) 35%,transparent)}
+.legend i.hold{border:2px solid var(--accent)}
+.legend i.wait{border-color:var(--warning);background:color-mix(in srgb,var(--warning) 25%,var(--surface))}
+.legend i.runbar{width:4px;height:14px;border:0;border-radius:0;background:var(--accent)}
+.legend i.runbar.halt{background:var(--warning)}
+.legend i.bar{height:6px;border:1px solid var(--line);background:linear-gradient(90deg,var(--good) 55%,var(--surface-2) 55%)}
+.legend .verdict-pill,.legend .badge{align-self:center}
+
+/* status pills: the colour is the left bar and a tint; the glyph and the word carry the meaning (never colour alone) */
+.verdict-pill{--sc:var(--muted);display:inline-flex;align-items:center;gap:5px;font:600 10.5px/1.2 var(--mono);padding:2px 6px;border-radius:3px;border:1px solid var(--line);border-left:3px solid var(--sc);background:color-mix(in srgb,var(--sc) 14%,var(--surface));color:var(--ink);white-space:nowrap;letter-spacing:.02em}
+.verdict-pill i,.legend .verdict-pill i{font-style:normal;font-weight:700;display:inline;width:auto;height:auto;border:0;border-radius:0;background:none;box-shadow:none}
+/* the decision not to run another qa pass (dashboards-skill/31): a small neutral mark beside the pass, its glyph and words */
+.qamark{display:inline-flex;align-items:center;gap:4px;font:600 10px/1.2 var(--mono);padding:2px 6px;border:1px solid var(--line);border-radius:3px;background:var(--surface);color:var(--ink-2);white-space:nowrap;max-width:100%}
+.qamark i,.legend .qamark i{font-style:normal;font-weight:700;display:inline;width:auto;height:auto;border:0;border-radius:0;background:none;box-shadow:none}
+.verdict-pill.good{--sc:var(--good)}.verdict-pill.warning{--sc:var(--warning)}.verdict-pill.serious{--sc:var(--serious)}.verdict-pill.critical{--sc:var(--critical)}
+.verdict-pill.neutral{--sc:var(--muted);background:var(--surface)}
+/* a dependency's pill (dashboards-skill/30): its build state, a status pill, and its locality, a neutral ramp from near (faint) to far (ink) */
+.dep-pill{display:inline-flex;align-items:stretch;white-space:nowrap;vertical-align:middle}
+.dep-pill>.verdict-pill{border-top-right-radius:0;border-bottom-right-radius:0}
+.loc{--lc:var(--muted);display:inline-flex;align-items:center;gap:4px;font:600 10px/1.2 var(--mono);padding:2px 5px;border:1px solid var(--line);border-left:3px solid var(--lc);border-radius:3px;background:var(--surface);color:var(--ink-2);white-space:nowrap}
+.dep-pill>.verdict-pill+.loc{border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-1px}
+.loc i,.legend .loc i{font-style:normal;font-weight:700;display:inline;width:auto;height:auto;border:0;background:none;box-shadow:none}
+.loc.l1{--lc:color-mix(in srgb,var(--ink) 22%,var(--surface))}.loc.l2{--lc:color-mix(in srgb,var(--ink) 45%,var(--surface))}.loc.l3{--lc:color-mix(in srgb,var(--ink) 70%,var(--surface))}.loc.l4{--lc:var(--ink)}
+.deplist{display:inline-flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
+/* the two as-built states before the outcomes (plan/RULES.md §2): in progress takes the accent, the work in progress's colour
+   (GUIDANCE.md §1); partially built the strong neutral, an outcome not reached yet. Both solid: they are not pending. */
+.verdict-pill.accent{--sc:var(--accent)}.verdict-pill.ink{--sc:var(--ink-2);background:var(--surface)}
+.verdict-pill.hollow{background:var(--surface)}
+.verdict-pill.dashed{border-style:dashed;border-left-style:dashed;color:var(--ink-2)}
+.badge{font:10px/1 var(--mono);padding:3px 6px;border-radius:3px;border:1px solid var(--line);white-space:nowrap;color:var(--ink-2);display:inline-flex;align-items:center;gap:5px}
+.badge[data-sys]{border-left:3px solid var(--c)}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--c,var(--muted));flex:none;vertical-align:-1px;margin-right:5px}
+
+/* the board: a label column and four phase columns; each row's cells joined by a connector, a node on each cell */
+/* The four phase columns read as columns: each sits on its own neutral band (.band, drawn behind the column from its head's
+   position by layoutBands(), so it follows the grid at every width), under a strong sticky head. The bands are layout, not an
+   encoding: no colour of their own (system and status colours keep their meaning), and nothing in the legend. Narrow layouts
+   stack the rows and draw no bands. */
+.board{--cg:18px;--band:color-mix(in srgb,var(--ink) 4.5%,var(--surface));display:grid;grid-template-columns:minmax(150px,190px) repeat(4,minmax(0,1fr));column-gap:var(--cg);align-items:stretch;position:relative}
+.board>.band{position:absolute;z-index:0;border-radius:8px;background:var(--band);border:1px solid var(--hair);pointer-events:none}
+.board>.rowlab,.board>.grouphead,.board>.cell{z-index:1}
+.board>.rowlab,.board>.grouphead{position:relative}
+.colhead{position:sticky;top:0;z-index:2;background:var(--surface);padding:8px 8px 9px;border-bottom:3px solid var(--ink-2);box-shadow:-7px 0 0 var(--surface),7px 0 0 var(--surface)}
+.colhead.phase{background:var(--band);box-shadow:none;border-radius:6px 6px 0 0}
+.colhead:not(.phase){border-bottom-color:transparent}
+.colhead.fullpulse{border-radius:4px}
+/* The column's FullPulse (plan/RULES.md §3; GUIDANCE.md §1): a column address in wip.current (a whole column at work: qa, a stage that
+   touches no row, research while its rows are unknown) is one FullPulse on the column itself, its band, with an accent wash on its head,
+   never each row's cell lit; held still as the Ring alone while the run waits on you; static under reduced motion. The narrow
+   layout draws no columns, so there each of the column's cells carries it (.colcell-fullpulse). On the As built tab the FullPulse goes
+   round the cards. */
+.board>.band.col-fullpulse{background:color-mix(in srgb,var(--accent) 5%,var(--band))}
+.board>.band.held{background:color-mix(in srgb,var(--accent) 3%,var(--band))}
+.colhead.phase.colon{background:color-mix(in srgb,var(--accent) 9%,var(--band));border-bottom-color:var(--accent)}
+.bcards.colbox{padding:8px;border-radius:8px}
+.legend i.colk{width:10px;height:16px}
+.nw{white-space:nowrap}
+.colhead .ph{font:700 12px var(--mono);letter-spacing:.1em;color:var(--ink)}
+.colhead .ph b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--ink);color:var(--surface);font-size:11px;letter-spacing:0;margin-right:6px;vertical-align:1px}
+.colhead .q{font-size:12px;color:var(--ink-2);margin-top:2px}
+.colhead .dt{font:11px var(--mono);color:var(--muted);margin-top:4px;overflow-wrap:anywhere}
+.colhead .dt a{text-decoration:none;border-bottom:1px solid var(--line)}
+.grouphead{grid-column:1/-1;margin:14px 0 0;font:700 11px var(--sans);text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.grouphead small{font:400 11px var(--mono);text-transform:none;letter-spacing:0}
+.rowlab{padding:10px 8px 10px 10px;border-left:4px solid var(--c,var(--muted));margin:8px 0;min-width:0}
+.rowlab.fullpulse,.rowlab.held{border-radius:0 6px 6px 0}
+.rowlab .nm{font-weight:700;font-size:13px;overflow-wrap:anywhere}
+.rowlab .wh{font:11px var(--mono);color:var(--muted);margin-top:3px;overflow-wrap:anywhere}
+.rowlab .sy{font-size:11px;color:var(--ink-2);margin-top:3px}
+.rowlab .nm a{text-decoration:none;border-bottom:1px solid var(--line)}
+.rowlab .nm a:hover{border-bottom-color:var(--ink)}
+.cell{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:9px 10px 8px;margin:8px 0;min-width:0;font-size:12.5px}
+.cell[role="button"]{cursor:pointer}
+.cell[role="button"]:hover{border-color:var(--ink-2)}
+.cell.sel{outline:2px solid var(--on);outline-offset:1px}
+.cell .kick{font:700 10px var(--mono);letter-spacing:.1em;color:var(--muted);margin-bottom:5px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.cell .kick .kind{color:var(--ink-2);border:1px solid var(--line);border-radius:3px;padding:1px 5px;letter-spacing:.04em;font-weight:600}
+.cell .sum{color:var(--ink);line-height:1.4;overflow-wrap:anywhere}
+.cell .meta{font:11px var(--mono);color:var(--muted);margin-top:6px;display:flex;flex-wrap:wrap;gap:2px 8px}
+/* The Gap cell's marks (plan/RULES.md §2, "The Gap cell"; dated dashboards-skill/44): the evidence count label in the head, its figure in
+   ink and muted at zero; the bold lead; the where chip and the baseline chip in the foot, neutral chips with the kind chip's look, code
+   inside them plain (GUIDANCE.md §12, "Code"). */
+.cell .kick .count-label{font-weight:400;letter-spacing:.04em;color:var(--muted)}
+.cell .kick .count-label b{color:var(--ink);font-weight:700}
+.cell .kick .count-label.zero b{color:var(--muted);font-weight:400}
+.cell .sum b.gap-lead{font-weight:700}
+.cell .meta :is(.where-chip,.baseline-chip){font:600 10px var(--mono);color:var(--ink-2);border:1px solid var(--line);border-radius:3px;padding:1px 5px;letter-spacing:.04em;text-decoration:none;min-width:0;max-width:100%;overflow-wrap:anywhere}
+.cell .meta a.baseline-chip:hover{border-color:var(--ink-2);color:var(--ink)}
+.cell::before{content:"";position:absolute;left:calc(-1 * var(--cg) - 1px);top:50%;width:var(--cg);border-top:2px solid var(--ink-2)}
+.cell::after{content:"";position:absolute;left:-6px;top:calc(50% - 5px);width:10px;height:10px;border-radius:50%;background:var(--ink-2)}
+.cell.gap::before{display:none}
+.cell.built{border-left:3px solid var(--sc,var(--line))}
+.cell.built.accent{--sc:var(--accent)}.cell.built.ink{--sc:var(--ink-2)}.cell.built.good{--sc:var(--good)}.cell.built.warning{--sc:var(--warning)}.cell.built.serious{--sc:var(--serious)}.cell.built.critical{--sc:var(--critical)}
+.cell.pending,.cell.deferred{border-style:dashed}
+.cell.pending::before{border-top-style:dashed;border-top-color:var(--muted)}
+.cell.pending::after,.cell.deferred::after{background:var(--surface);border:2px dashed var(--muted)}
+/* Research state (plan/RULES.md §3, "Research: the questions and their states"): a ring, never a fill, on the Considered cell of a
+   row the research questions name, in the research scale: red planning, orange researching, orange with a check returned
+   (awaiting verification), yellow verifying, green complete (kept until the plan is accepted); a pill in the cell's head says it with
+   its glyph and word. The ring is the cell's border, so the in-progress FullPulse (an inset shadow) sits inside it. */
+.cell.rs{border:2px solid var(--rc);padding:8px 9px 7px}
+.cell .kick .verdict-pill{max-width:100%;white-space:normal}
+.rs-planning{--rc:var(--critical)}.rs-researching,.rs-returned{--rc:var(--serious)}.rs-verifying{--rc:var(--warning)}.rs-complete{--rc:var(--good)}
+.legend i.ring{background:var(--surface);border:2.5px solid var(--rc);border-radius:4px}
+/* The charging arrow (plan/RULES.md §3, "The charging arrow"): during the plan step, the connector into a Verdict cell whose verdict is
+   not yet written is a battery of segments that fill left to right; it holds still, filled, while the run waits on you and under
+   reduced motion, and is the plain line again once the verdict is written. */
+.cell.verdict.charging::before{border-top:0;height:22px;top:calc(50% - 11px);left:calc(-1 * var(--cg) - 9px);width:calc(var(--cg) + 15px);z-index:2;clip-path:polygon(0 26%,64% 26%,64% 0,100% 50%,64% 100%,64% 74%,0 74%);
+  background:repeating-linear-gradient(90deg,var(--accent) 0 3px,transparent 3px 5px) 0 0/100% 100% no-repeat,repeating-linear-gradient(90deg,color-mix(in srgb,var(--accent) 32%,transparent) 0 3px,transparent 3px 5px);animation:charge 1.8s steps(8,end) infinite}
+.cell.verdict.charging::after{display:none}
+@keyframes charge{0%{background-size:0 100%,100% 100%}100%{background-size:100% 100%,100% 100%}}
+.cell.verdict.charging.still::before{animation:none}
+.legend i.chg{width:30px;height:18px;border:0;border-radius:0;clip-path:polygon(0 26%,64% 26%,64% 0,100% 50%,64% 100%,64% 74%,0 74%);background:repeating-linear-gradient(90deg,var(--accent) 0 3px,transparent 3px 5px)}
+@media (prefers-reduced-motion:reduce){.cell.verdict.charging::before{animation:none!important}}
+/* Statements (plan/RULES.md §2, "Statements"): a Verdict cell lists its statements, bullets or numbered, each ending with its "(§…)"
+   reference to the plan section it rests on (a link; a plain click shows that section's excerpt in the inspector); the As built cell
+   answers each with one statement marked with its adaptation, the as-built titles' glyph and word. */
+.stmts{margin:0;padding-left:17px;display:grid;gap:3px}
+.blead{margin:0 0 5px}
+.stmts>li{overflow-wrap:anywhere;padding-left:1px}
+.stmts.marked{list-style:none;padding-left:0}
+.stmts.marked>li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 6px;align-items:baseline}
+.stmts.marked>li>.verdict-pill{font-size:9.5px;padding:1px 5px}
+.stmts.marked.num>li{grid-template-columns:auto auto minmax(0,1fr)}
+.stmts .n{font:600 10.5px var(--mono);color:var(--muted)}
+a.sref{font:600 10.5px var(--mono);color:var(--link);text-decoration:none;white-space:normal;overflow-wrap:anywhere;border-bottom:0!important}
+a.sref:hover{text-decoration:underline}
+.inspector .stmts{margin:0 0 8px;font-size:13px;color:var(--ink)}
+blockquote.excerpt{margin:2px 0 0;padding:6px 10px;border-left:3px solid var(--ink-2);background:var(--surface-2);border-radius:0 4px 4px 0;color:var(--ink)}
+blockquote.excerpt p{margin:4px 0 0;color:var(--ink-2);font-size:12.5px}
+.opts{list-style:none;margin:0;padding:0;display:grid;gap:3px}
+.opts li{min-width:0}
+.opt{--sc:var(--muted);appearance:none;border:1px solid transparent;border-left:3px solid var(--sc);background:color-mix(in srgb,var(--sc) 10%,transparent);color:var(--ink);font:inherit;font-size:12px;line-height:1.35;text-align:left;padding:3px 6px;border-radius:3px;cursor:pointer;display:grid;grid-template-columns:14px minmax(0,1fr);gap:5px;align-items:start;width:100%;min-width:0;max-width:100%}
+.opt.good{--sc:var(--good)}.opt.warning{--sc:var(--warning)}.opt.critical{--sc:var(--critical)}
+.opt.dashed{border-left-style:dashed}
+.opt>i{font-style:normal;font-weight:700;font-size:11.5px;line-height:1.45}
+.opt>span{min-width:0;overflow-wrap:anywhere}
+.opt .vw{font:600 9.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin-right:5px}
+.opt.critical>span>span:last-child{color:var(--ink-2)}
+.opt:hover{border-color:var(--line)}
+.opt.sel{outline:2px solid var(--on)}
+@media (max-width:900px){
+  .board .cell.colcell-fullpulse{animation:col-fullpulse 2s ease-in-out infinite;background-color:color-mix(in srgb,var(--accent) 4%,var(--surface))}
+  .board .cell.colcell-fullpulse.colheld{animation:none;box-shadow:inset 0 0 0 2px var(--accent)}
+  .board{display:block}
+  .colhead{display:none}
+  .grouphead{margin-top:18px}
+  .rowlab{margin:14px 0 4px;padding:6px 10px}
+  .cell{margin:6px 0}
+  .cell::before,.cell::after{display:none}
+}
+
+/* controls, tables, cards */
+.ctl{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 10px;align-items:center}
+.ctl label{font-size:11px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px;align-items:center;text-transform:uppercase;letter-spacing:.06em;max-width:100%}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:5px;overflow:hidden;max-width:100%}
+.seg button{appearance:none;border:0;background:var(--surface);color:var(--ink-2);font:12px/1 var(--mono);padding:7px 9px;cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg button:hover:not([aria-pressed="true"]){background:var(--surface-2)}
+.scroll{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl th,.tbl td{text-align:left;padding:7px 6px;border-top:1px solid var(--hair);vertical-align:top}
+.tbl td{overflow-wrap:anywhere}
+.tbl th{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-top:0}
+.tbl tr[data-sys]>:first-child{border-left:4px solid var(--c)}
+.tbl tbody tr{cursor:pointer}
+.tbl tbody tr:hover{background:var(--surface-2)}
+.tbl .sub{font-size:12px;color:var(--ink-2);margin-top:2px}
+.tbl.dec{min-width:720px}
+.tbl.dec td:first-child{color:var(--ink-2);font-size:12px}
+.bcards{display:grid;gap:10px}
+.bcard{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 12px 10px 14px;border-left:4px solid var(--c,var(--muted));min-width:0;font-size:12.5px;color:var(--ink-2);cursor:pointer}
+.bcard.st-pending,.bcard.st-deferred{border-style:dashed;border-left-style:solid}
+.bcard .bh{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin-bottom:4px}
+.bcard .bh .nm{font-weight:700;color:var(--ink);font-size:13px}
+.bcard .bh .wh{font:11px var(--mono);color:var(--muted);overflow-wrap:anywhere}
+.bcard p{margin:4px 0 6px}
+.bcard .changes{margin:0;padding-left:18px}
+.bcard .changes li{margin:4px 0}
+.bcard .changes b{color:var(--ink);font-weight:600}
+.bcard .changes small{display:block;font:11px var(--mono);color:var(--muted);margin-top:1px}
+.bcard .meta{font:11px var(--mono);color:var(--muted);margin-top:6px;overflow-wrap:anywhere}
+.bcard .meta a{text-decoration:none;border-bottom:1px solid var(--line)}
+pre.src{margin:0;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:14px;font:12px/1.5 var(--mono);overflow:auto;color:var(--ink);max-height:70vh}
+pre.src .k{color:var(--link);font-weight:600} pre.src .s{color:var(--ink-2)}
+
+/* chain (tracking boards): the units as a dependency graph in landing order */
+.chainsvg{display:block;max-width:none}
+.chainsvg .edge{fill:none;stroke:var(--ink-2);stroke-width:1.4}
+.chainsvg .edge.todo{stroke:var(--muted);stroke-dasharray:5 4}
+.chainsvg .unit{cursor:pointer}
+.chainsvg .unit rect.box{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
+.chainsvg .unit.pending rect.box{stroke:var(--muted);stroke-dasharray:6 4}
+.chainsvg .unit rect.bar{fill:var(--c,var(--muted))}
+.chainsvg .unit rect.st{fill:var(--sc,var(--muted))}
+.chainsvg .unit.good{--sc:var(--good)}.chainsvg .unit.warning{--sc:var(--warning)}.chainsvg .unit.serious{--sc:var(--serious)}.chainsvg .unit.critical{--sc:var(--critical)}.chainsvg .unit.accent{--sc:var(--accent)}.chainsvg .unit.ink{--sc:var(--ink-2)}
+.chainsvg .unit text{fill:var(--ink);font:11px var(--mono)}
+.chainsvg .unit text.t{font:700 11.5px var(--sans)}
+.chainsvg .unit text.s{fill:var(--ink-2);font-size:10px}
+/* in progress: a thick accent stroke over an accent fill that breathes (the SVG form of the FullPulse); up next: the still outer
+   Ring and the UP NEXT tag above the box */
+.chainsvg .unit.fullpulse,.chainsvg .unit.held,.chainsvg .unit.upnext-ring{animation:none;box-shadow:none;background:none}
+.chainsvg .unit.fullpulse rect.box,.chainsvg .unit.held rect.box{stroke:var(--accent);stroke-width:2.5}
+.chainsvg .unit.fullpulse rect.box{animation:svg-fullpulse 2s ease-in-out infinite}
+@keyframes svg-fullpulse{0%,100%{fill:color-mix(in srgb,var(--accent) 8%,var(--surface))}50%{fill:color-mix(in srgb,var(--accent) 30%,var(--surface))}}
+@media (prefers-reduced-motion:reduce){.chainsvg .unit.fullpulse rect.box{animation:none;fill:color-mix(in srgb,var(--accent) 18%,var(--surface))}}
+.chainsvg .unit.upnext-ring rect.box{stroke:color-mix(in srgb,var(--accent) 70%,transparent);stroke-width:1.5;filter:drop-shadow(0 0 4px color-mix(in srgb,var(--accent) 60%,transparent))}
+.chainsvg .unit rect.tagbox{fill:var(--surface);stroke:var(--accent);stroke-width:1}
+.chainsvg .unit text.tagtx{fill:var(--accent);font:700 9px var(--mono);letter-spacing:.08em}
+.chainsvg .unit.sel rect.box{stroke:var(--on);stroke-width:2.5}
+.chainsvg .arrow{fill:var(--ink-2)}
+
+/* Impact (plan/RULES.md §2, "Impact"): who downstream is affected, what they must change, the public surface that moves and the
+   steps a consumer follows. Colour is compatibility first (GUIDANCE.md §1, the Impact tab's exception): a breaking entry is red,
+   a deprecation or other non-breaking change worth noting is yellow, and any other entry is in its system's colour (the left bar;
+   muted for a party outside the repository's systems). A red or yellow card keeps its system as a badge. The tab shows only the
+   current best-known impact and no planning information (GUIDANCE.md §1): every entry is one solid card, nothing on the tab is
+   dashed, and no pill tells planned from as built; the plan-versus-build story is on the As built tab. The effect, need and
+   API-change badges take the same red and yellow with their glyph and word; kinds and tiers stay neutral. */
+.icard.cmp{border-color:color-mix(in srgb,var(--sc) 80%,var(--line));border-left-color:var(--sc);background:color-mix(in srgb,var(--sc) 9%,var(--surface))}
+.icard.cmp.critical,.badge.critical,.legend i.cmpk.critical{--sc:var(--critical)}
+.icard.cmp.warning,.badge.warning,.legend i.cmpk.warning{--sc:var(--warning)}
+.badge.critical,.badge.warning{border-left:3px solid var(--sc);background:color-mix(in srgb,var(--sc) 16%,var(--surface));color:var(--ink);font-weight:600}
+.legend i.inb{border:1px solid var(--line);border-left:4px solid var(--ink-2)}
+.legend i.cmpk{border:1.5px solid color-mix(in srgb,var(--sc) 60%,var(--line));border-left:4px solid var(--sc);background:color-mix(in srgb,var(--sc) 12%,var(--surface))}
+.ihead{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:0 0 8px;font-size:12.5px;color:var(--ink-2)}
+.ihead a{text-decoration:none;border-bottom:1px solid var(--line)}
+.isum{margin:0 0 10px;max-width:110ch;color:var(--ink);font-size:13px}
+.inone{border:1px solid var(--line);border-left:4px solid var(--ink-2);border-radius:6px;padding:10px 12px;margin:0 0 12px;font-size:13px;color:var(--ink-2);max-width:110ch}
+.inone p{margin:0 0 4px}
+.inone p.lead{color:var(--ink);font-weight:600}
+.inone a{text-decoration:none;border-bottom:1px solid var(--line)}
+.isec{margin:14px 0 0}
+.isec h3{font-size:13px;margin:0 0 2px}
+.isec h3 small{font:400 11px var(--mono);color:var(--muted)}
+.isec .q{font-size:12px;color:var(--ink-2);margin:0 0 6px}
+.isec .empty{font-size:12.5px;color:var(--muted);margin:0;padding:6px 10px;border:1px solid var(--line);border-radius:6px}
+.icards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:10px}
+.bcard .bh .nm a{text-decoration:none;border-bottom:1px solid var(--line)}
+.icard .versions{font:11px var(--mono);color:var(--muted);margin-top:4px;overflow-wrap:anywhere}
+.icard.sel{outline:2px solid var(--on);outline-offset:1px}
+/* Impact changes from the plan, on the As built tab (plan/RULES.md §2, "As built"): how the impact differed from the plan, each
+   change in its system's colour (the left bar; muted for the impact as a whole or a party outside the repository's systems), solid,
+   and never in the Impact tab's compatibility red or yellow; each links the Impact card it changed. */
+.bimp{margin-top:18px}
+.bimp h4{font-size:12px;margin:10px 0 6px;color:var(--ink-2)}
+/* the reconciliation chip (plan/RULES.md §2, Impact: derived, never stored) beside the line saying how far it has got; a landed unit
+   whose effect on the impact is not recorded yet is drawn dashed, as pending */
+.bimp .q.recon{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.isec .empty+.empty{margin-top:6px}
+.isec .empty.pend{border-style:dashed}
+.bcard.ichg{cursor:default}
+.bcard.ichg .bh .nm{font-weight:600}
+.bcard .meta a.goimp{white-space:normal;overflow-wrap:anywhere}
+
+/* The Tests tab (plan/RULES.md §2, "The Tests tab"): four sub-tabs, Added, Amended, Relevant and Other; each class grouped and coloured
+   by its test level, a neutral ramp from L1 gating (faintest) to L5 UAT (full ink, in either theme), so no system colour and no status colour is spent on
+   it (GUIDANCE.md §1); its latest result a status pill (passed green, failed red, skipped neutral, not run yet dashed: pending); Other
+   counts only, solid neutral: not run, untouched by this change. */
+.tl-1{--tl:color-mix(in srgb,var(--ink) 20%,var(--surface))}.tl-2{--tl:color-mix(in srgb,var(--ink) 34%,var(--surface))}.tl-3{--tl:color-mix(in srgb,var(--ink) 48%,var(--surface))}
+.tl-4a{--tl:color-mix(in srgb,var(--ink) 60%,var(--surface))}.tl-4b{--tl:color-mix(in srgb,var(--ink) 70%,var(--surface))}.tl-4c{--tl:color-mix(in srgb,var(--ink) 80%,var(--surface))}
+.tl-5{--tl:var(--ink)}.tl-none{--tl:var(--line)}
+.stabs{margin:0 0 12px}
+.stabs .stab{appearance:none;border:0;background:var(--surface);color:var(--ink-2);font:12px/1 var(--mono);padding:7px 10px;cursor:pointer;border-right:1px solid var(--line)}
+.stabs .stab:last-child{border-right:0}
+.stabs .stab[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+.stabs .stab:hover:not([aria-selected="true"]){background:var(--surface-2)}
+.stabs .stab small{font-size:11px;margin-left:5px;opacity:.85}
+.tsub .empty{font-size:12.5px;color:var(--muted);margin:0 0 10px;padding:6px 10px;border:1px solid var(--line);border-radius:6px}
+.tsub .empty.pend{border-style:dashed}
+.tgroup{margin:0 0 14px}
+.tlh{font-size:12px;margin:0 0 6px;color:var(--ink-2);display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.tlh small{font:400 11px var(--mono);color:var(--muted)}
+i.tlk{display:inline-block;width:16px;height:11px;border-radius:3px;border:1px solid var(--line);border-left:6px solid var(--tl);background:var(--surface);flex:none}
+.legend i.tlk{border:1px solid var(--line);border-left:6px solid var(--tl)}
+.legend i.tbox{border:1px solid var(--line)}
+.tcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:8px}
+.tcard{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--tl);border-radius:6px;padding:8px 10px;min-width:0;font-size:12.5px;color:var(--ink-2);cursor:pointer}
+.tcard:hover{border-color:var(--ink-2);border-left-color:var(--tl)}
+.tcard.sel{outline:2px solid var(--on);outline-offset:1px}
+.tcard .th{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;justify-content:space-between}
+.tcard .cn{font:600 12px var(--mono);color:var(--ink);overflow-wrap:anywhere;min-width:0}
+.tcard .tm,.tcard .tr,.tcard .tu{font:11px var(--mono);color:var(--muted);margin-top:4px;overflow-wrap:anywhere}
+.tcard .tn{font-size:12px;color:var(--ink-2);margin-top:4px;overflow-wrap:anywhere}
+.tcard .pk{font:10.5px var(--mono);color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
+.tcard a,.tunits a{text-decoration:none;border-bottom:1px solid var(--line)}
+.tunits{list-style:none;margin:0 0 12px;padding:0;font-size:12.5px}
+.tunits li{padding:5px 0;border-top:1px solid var(--hair);overflow-wrap:anywhere;color:var(--ink-2)}
+.tunits li .verdict-pill{margin-left:4px}
+.tbl.tother{min-width:420px}
+.tbl.tother tbody tr{cursor:default}
+.tbl.tother td.n,.tbl.tother th.n{text-align:right;font-variant-numeric:tabular-nums}
+.tbl.tother th .tlk{margin-right:5px;vertical-align:-2px}
+.tother-u{font-size:12px;margin:12px 0 4px;color:var(--ink-2)}
+
+.tlchip{display:inline-flex;align-items:center;gap:5px;font:600 10.5px/1.2 var(--mono);color:var(--ink-2)}
+
+/* Wide desktop (16:9 screens): the board uses most of the window, so the timeline's four columns, the as-built cards and the impact
+   cards get room; at 1500 px and below the board keeps its 1280 px measure and the narrow layouts below 940 and 900 px apply. */
+@media (min-width:1500px){
+  .page{max-width:min(2400px,100%)}
+  .stage{grid-template-columns:minmax(0,1fr) 360px}
+  .board{grid-template-columns:minmax(170px,230px) repeat(4,minmax(0,1fr));--cg:24px}
+  .bcards{grid-template-columns:repeat(auto-fill,minmax(520px,1fr))}
+}
+
+/* context */
+.context{margin-top:24px}
+.context h2{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 10px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0}
+.card h3{font-size:13px;margin:0 0 8px}
+.card h3 small{font-weight:400;color:var(--muted);font-family:var(--mono);font-size:11px}
+.card .lede{margin:0}
+.trail{list-style:none;margin:0;padding:0;font-size:12.5px}
+.trail li{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;padding:5px 0;border-top:1px solid var(--hair);align-items:start}
+.trail .d{font:11px var(--mono);color:var(--muted);white-space:nowrap;padding-top:2px}
+.trail .ph{font:700 9.5px var(--mono);letter-spacing:.1em;color:var(--muted);margin-right:6px}
+.trail .t{color:var(--ink-2);min-width:0;overflow-wrap:anywhere}
+.trail .t b{color:var(--ink);font-weight:600}
+.trail .t a{text-decoration:none;border-bottom:1px solid var(--line)}
+.issues{list-style:none;margin:0;padding:0;font-size:12.5px}
+.issues li{display:block;padding:5px 0;border-top:1px solid var(--hair)}
+.issues span.nm>a:first-child,.rowlab .nm>a:first-child,.wip-sub a:first-of-type{font-family:var(--mono)}
+.issues span{color:var(--ink-2);min-width:0;overflow-wrap:anywhere}
+.issues span a{text-decoration:none;border-bottom:1px solid var(--line)}
+.docs{margin:0;padding:0;list-style:none;font-size:12.5px}
+.docs li{padding:4px 0;border-top:1px solid var(--hair);color:var(--ink-2);overflow-wrap:anywhere}
+.docs a{text-decoration:none;border-bottom:1px solid var(--line);color:var(--ink)}
+.docs a:hover{border-bottom-color:var(--ink)}
+.notes p{margin:0 0 6px;font-size:12.5px;color:var(--ink-2)}
+.notes ul{margin:0 0 6px;padding-left:18px;font-size:12.5px;color:var(--ink-2)}
+footer{margin-top:28px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+footer code{color:var(--ink-2)}
+footer a{text-decoration:none;border-bottom:1px solid var(--line)}
+/* the accent marks win over the surfaces they sit on (cells, cards and column heads set their own background) */
+.cell.fullpulse,.bcard.fullpulse,.colhead.fullpulse{background-color:color-mix(in srgb,var(--accent) 7%,var(--surface))}
+.cell.col-fullpulse,.bcard.col-fullpulse,.colhead.col-fullpulse{background-color:color-mix(in srgb,var(--accent) 4%,var(--surface))}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}.colhead.fullpulse{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 14px 4px color-mix(in srgb,var(--accent) 40%,transparent)}
+  .board .cell.colcell-fullpulse{animation:none!important;box-shadow:inset 0 0 0 1.5px var(--accent),inset 0 0 9px 2px color-mix(in srgb,var(--accent) 26%,transparent)}}
+/* Progress notes (plan/RULES.md §3, "The step panel"): each running part's own note of its work, an info card of the step panel; a note not
+   updated for over 20 minutes is muted (its writer may have stopped). */
+.wip-facts>span.prog{border-left:3px solid var(--ink-2)}
+.wip-facts>span.prog.stale{opacity:.55}
+.wip-facts>span.prog small{font:11px var(--mono);color:var(--muted)}
+.legend i.progk{border:1px solid var(--line);border-left:3px solid var(--ink-2);background:color-mix(in srgb,var(--ink) 3%,var(--surface))}
+.legend i.progk.stale{opacity:.55}
+/* the Context's legend (GUIDANCE.md §2): the encodings its cards draw */
+.context>.legend{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-top:10px}
+/* an archived system holds no colour (GUIDANCE.md §1): neutral through --muted, solid, faded */
+.sys-archived{opacity:.6;filter:saturate(.35)}
+</style>
+<style>
+/* the fixture's own layout, nothing a board draws */
+.fx{max-width:1180px;margin:0 auto;padding:12px 0}
+.fx h2{font-size:15px;margin:26px 0 4px}
+.fx h2 code,.fx .why code{font:600 12.5px var(--mono)}
+.fx .why{font-size:12.5px;color:var(--ink-2);margin:0 0 8px;max-width:110ch}
+.fx .row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+.fx .row>.cell,.fx .row>.rowlab,.fx .row>.bcards{width:240px;max-width:100%;box-sizing:border-box}
+.fx .board>.band{position:relative;z-index:0}
+.fx #fx-theme{font:600 12px var(--mono);padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);cursor:pointer}
+.fx #fx-theme:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.fx .scroll{overflow-x:auto}
+@media (max-width:900px){.fx .board>.band{display:none}}
+</style>
+</head>
+<body>
+<main class="fx">
+<h1>Mark classes: issue and tracking boards</h1>
+<p class="why">Each mark as a board draws it, with the template's own styles. Check it in light and dark (the button), at full width and at
+phone width (390 px), and with reduced motion asked for (the browser's rendering settings), where every mark holds still.</p>
+<p><button type="button" id="fx-theme">Switch light / dark</button> · <a href="work-board.html">the repository work board's marks</a></p>
+<h2><code>.fullpulse</code>: a Cell being worked on</h2>
+<p class="why">A FullPulse: a solid accent Ring inside the edge, a faint accent wash, the interior breathing (about 2 s). While the run waits on the user it stops to the Ring alone (<code>.held</code>).</p>
+<div class="row"><div class="cell gap">a Cell, no mark</div><div class="cell gap fullpulse"><code>.fullpulse</code></div><div class="cell gap held"><code>.held</code>: the Ring alone</div></div>
+<h2><code>.fullpulse</code>: the step panel's current step and a unit Row's label</h2>
+<ol class="steps" aria-label="The research StepBar"><li class="done"><span class="dot" aria-hidden="true"></span>planning</li><li class="cur fullpulse" aria-current="step"><span class="dot" aria-hidden="true"></span>research</li><li class="todo"><span class="dot" aria-hidden="true"></span>verification</li></ol>
+<ol class="steps" aria-label="The research StepBar, held"><li class="done"><span class="dot" aria-hidden="true"></span>planning</li><li class="cur held" aria-current="step"><span class="dot" aria-hidden="true"></span>research (held)</li><li class="todo"><span class="dot" aria-hidden="true"></span>verification</li></ol>
+<div class="row"><div class="rowlab fullpulse" style="--c:var(--sys-1)"><div class="nm">a unit Row's label: <code>.fullpulse</code></div></div><div class="rowlab held" style="--c:var(--sys-2)"><div class="nm">held: <code>.held</code></div></div></div>
+<h2><code>.col-fullpulse</code> and <code>.colcell-fullpulse</code>: a whole column at work</h2>
+<p class="why">Wider than 900 px: one FullPulse on the Considered column itself, its band (<code>.col-fullpulse</code>) under a head washed in the accent, and its Cells unmarked. At 900 px or narrower no columns are drawn, so each of the column's Cells carries it instead (<code>.colcell-fullpulse</code>). The second board waits on the user: the band holds still (<code>.held</code>), each Cell at phone width the Ring alone (<code>.colheld</code>).</p>
+<div class="scroll"><div class="board">
+<div class="colhead" style="grid-column:1;grid-row:1" aria-hidden="true"></div><div class="colhead phase" style="grid-column:2;grid-row:1"><div class="ph"><b>1</b>GAP</div></div><div class="colhead phase colon" style="grid-column:3;grid-row:1"><div class="ph"><b>2</b>CONSIDERED</div></div><div class="colhead phase" style="grid-column:4;grid-row:1"><div class="ph"><b>3</b>VERDICT</div></div><div class="colhead phase" style="grid-column:5;grid-row:1"><div class="ph"><b>4</b>AS BUILT</div></div>
+<div class="band col-fullpulse" style="grid-column:3;grid-row:1/4" aria-hidden="true"></div>
+<div class="rowlab" style="--c:var(--sys-1);grid-column:1;grid-row:2"><div class="nm">Row 1</div></div><div class="cell gap" style="grid-column:2;grid-row:2">a Cell</div><div class="cell considered colcell-fullpulse" style="grid-column:3;grid-row:2">a Cell of the column at work (<code>colcell-fullpulse</code>)</div><div class="cell verdict" style="grid-column:4;grid-row:2">a Cell</div><div class="cell built" style="grid-column:5;grid-row:2">a Cell</div>
+<div class="rowlab" style="--c:var(--sys-2);grid-column:1;grid-row:3"><div class="nm">Row 2</div></div><div class="cell gap" style="grid-column:2;grid-row:3">a Cell</div><div class="cell considered colcell-fullpulse" style="grid-column:3;grid-row:3">a Cell of the column at work (<code>colcell-fullpulse</code>)</div><div class="cell verdict" style="grid-column:4;grid-row:3">a Cell</div><div class="cell built" style="grid-column:5;grid-row:3">a Cell</div>
+</div></div>
+<div class="scroll"><div class="board">
+<div class="colhead" style="grid-column:1;grid-row:1" aria-hidden="true"></div><div class="colhead phase" style="grid-column:2;grid-row:1"><div class="ph"><b>1</b>GAP</div></div><div class="colhead phase colon" style="grid-column:3;grid-row:1"><div class="ph"><b>2</b>CONSIDERED</div></div><div class="colhead phase" style="grid-column:4;grid-row:1"><div class="ph"><b>3</b>VERDICT</div></div><div class="colhead phase" style="grid-column:5;grid-row:1"><div class="ph"><b>4</b>AS BUILT</div></div>
+<div class="band held" style="grid-column:3;grid-row:1/4" aria-hidden="true"></div>
+<div class="rowlab" style="--c:var(--sys-1);grid-column:1;grid-row:2"><div class="nm">Row 1</div></div><div class="cell gap" style="grid-column:2;grid-row:2">a Cell</div><div class="cell considered colcell-fullpulse colheld" style="grid-column:3;grid-row:2">a Cell of the column at work (<code>colcell-fullpulse colheld</code>)</div><div class="cell verdict" style="grid-column:4;grid-row:2">a Cell</div><div class="cell built" style="grid-column:5;grid-row:2">a Cell</div>
+<div class="rowlab" style="--c:var(--sys-2);grid-column:1;grid-row:3"><div class="nm">Row 2</div></div><div class="cell gap" style="grid-column:2;grid-row:3">a Cell</div><div class="cell considered colcell-fullpulse colheld" style="grid-column:3;grid-row:3">a Cell of the column at work (<code>colcell-fullpulse colheld</code>)</div><div class="cell verdict" style="grid-column:4;grid-row:3">a Cell</div><div class="cell built" style="grid-column:5;grid-row:3">a Cell</div>
+</div></div>
+<h2><code>.col-fullpulse</code>: round the As built Tab's Cards</h2>
+<div class="row"><div class="bcards colbox col-fullpulse"><div class="bcard st-pending" style="--c:var(--sys-1)"><b>an As built Card</b> (<code>col-fullpulse</code> round the Cards)</div><div class="bcard st-pending" style="--c:var(--sys-2)"><b>another</b></div></div><div class="bcards colbox held"><div class="bcard st-pending" style="--c:var(--sys-1)"><b>an As built Card</b> (<code>held</code> round the Cards)</div><div class="bcard st-pending" style="--c:var(--sys-2)"><b>another</b></div></div></div>
+<h2><code>.upnext-ring</code>: the unit up next</h2>
+<p class="why">A still outer Ring with the static UP NEXT Tag: never animated, never read as in progress.</p>
+<div class="row"><div class="cell built upnext-ring">an As built Cell: <code>.upnext-ring</code> <span class="tag-next">UP NEXT</span></div></div>
+<ol class="chain"><li class="done" style="--c:var(--sys-1)"><span class="u">1 · core</span></li><li class="fullpulse" style="--c:var(--sys-2)"><span class="u">2 · transport</span></li><li class="held" style="--c:var(--sys-3)"><span class="u">3 · held</span></li><li class="upnext-ring pending" style="--c:var(--sys-4)"><span class="u">4 · client</span></li></ol>
+<div class="scroll"><svg class="chainsvg" width="770" height="66" viewBox="0 0 770 66" role="img" aria-label="Units: in progress, held, up next, no mark"><g class="unit accent fullpulse" transform="translate(10,10)" style="--c:var(--sys-2)"><rect class="box" width="168" height="46" rx="5"/><rect class="bar" width="5" height="46" rx="2"/><text class="t" x="12" y="19">2 · transport</text><text class="s" x="12" y="37">fullpulse</text></g><g class="unit accent held" transform="translate(200,10)" style="--c:var(--sys-3)"><rect class="box" width="168" height="46" rx="5"/><rect class="bar" width="5" height="46" rx="2"/><text class="t" x="12" y="19">3 · held</text><text class="s" x="12" y="37">held</text></g><g class="unit ink pending upnext-ring" transform="translate(390,10)" style="--c:var(--sys-4)"><rect class="box" width="168" height="46" rx="5"/><rect class="bar" width="5" height="46" rx="2"/><text class="t" x="12" y="19">4 · client</text><text class="s" x="12" y="37">upnext-ring</text></g><g class="unit ink pending" transform="translate(580,10)" style="--c:var(--sys-5)"><rect class="box" width="168" height="46" rx="5"/><rect class="bar" width="5" height="46" rx="2"/><text class="t" x="12" y="19">5 · no mark</text><text class="s" x="12" y="37">pending</text></g></svg></div>
+<h2><code>.fillpulse</code>: the live indicator's dot</h2>
+<p class="why">Ink, never the accent: a FillPulse while the view is live and changing; still once it goes quiet, while the run waits on the user, or when it is not live.</p>
+<div class="row"><span class="livechip on fillpulse"><span class="ld" aria-hidden="true">●</span>LIVE · updated 3 s ago</span><span class="livechip on"><span class="ld" aria-hidden="true"></span>LIVE · no change for 4 min</span><span class="livechip off"><span class="ld" aria-hidden="true"></span>not live</span></div>
+<h2>The Legend entries, as the template words them</h2>
+<div class="legend"><span><i class="gl"></i>FullPulse, breathing: being worked on now</span><span><i class="hold"></i>Ring alone: being worked on, paused while the run waits on you</span><span><i class="gl colk"></i>FullPulse around a whole column (on the As built tab, around its cards; on a phone, on each of its cells): that column at work, no single row named</span><span><i class="hold colk"></i>Ring around a whole column: at work, paused while the run waits on you</span><span><i class="nx"></i><span class="tag-next">UP NEXT</span> still outer Ring: the next unit, not started</span></div>
+</main>
+<script>/* the fixture's light and dark switch: sets data-theme on the root, as the boards' theme Switch does, and remembers nothing */
+document.getElementById("fx-theme").addEventListener("click",function(){var r=document.documentElement,d=r.dataset.theme?r.dataset.theme==="dark":matchMedia("(prefers-color-scheme:dark)").matches;r.dataset.theme=d?"light":"dark";});</script>
+</body>
+</html>
