@@ -333,7 +333,8 @@ function applyEvent(orig, ev, facts, req, now) {
         });
       }
       detail = detail || `Waiting on you: ${waiting}`;
-      trail = { column: STEP_COLUMN[resume] || "built", label: `Halted at ${stepWords(resume, lib.ctxOf(w))}: waiting on you (${waiting})` };
+      /* a fix step by its route alone, "Halted at Correction", never its pass (passnames.js haltWords(); admin-team/dashboards/call-3) */
+      trail = { column: STEP_COLUMN[resume] || "built", label: `Halted at ${lib.haltWords(resume, lib.ctxOf(w))}: waiting on you (${waiting})` };
       break;
     }
     case "resumed": {

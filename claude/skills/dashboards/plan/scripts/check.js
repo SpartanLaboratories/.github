@@ -103,7 +103,8 @@ function levelFail(data, file) {
 /* A board's names come from passnames.js (2026-11-05, 2026-11-06): a pass "Quality Review N", one not numbered "review", the qa step
    "Quality Review", the remediation step "Correction" or "Resolution" by its route, the Document step's commit "Document commit". A board
    not landed, or the repository work board (board.js generates it), that still holds an older wording ("qa pass N", "no new qa pass",
-   "qa next", "Halted at qa", "Remediation for …", "the remediation loop", "Document-landing commit") fails; every rewrite of a board
+   "qa next", "Halted at qa", "Remediation for …", "the remediation loop", "Halted at the Correction of Quality Review 2" (a halt names its
+   fix step by its route alone; admin-team/dashboards/call-3), "Document-landing commit") fails; every rewrite of a board
    rewords it (lib.js resolveBoard()), so embed.js clears the failure. A landed board nothing has rewritten since keeps the wording it
    landed with: warned, never failed. An issue's title, quoted verbatim, is left out. */
 function passWording(data, file, landed) {

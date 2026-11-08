@@ -8,7 +8,8 @@
 //   - the qa step reads "Quality Review"; a pass, "Quality Review N" ("Quality Review 1 · approved"); one not numbered, "review" ("no
 //     additional review", "the next review", "the review approved"); what a pass returns, its "findings" ("Quality Review 1: 18 findings");
 //   - the remediation step is named by its route: "Correction" (on-the-spot, remediation), "Resolution" (re-plan-then-remediation); the
-//     first bare, a later one "Correction of Quality Review N" (the pass it answers, from 2 on); no "loop";
+//     first bare, a later one "Correction of Quality Review N" (the pass it answers, from 2 on); no "loop"; a halt during it names it by
+//     its route alone, "Halted at Correction", "Halted at Resolution", never the pass (admin-team/dashboards/call-3; haltWords(), haltName());
 //   - every other step by its reader name (STEP_NAME: "Implementation", "Document", "State boards"); the Document step's commit task,
 //     "Document commit"; an open point's "raised" by the step that raised it ("raised during Implementation, stage 3", "raised at Document").
 // The ids stay as they are: qa, remediation, state-boards and document-landing in the data and the events (code is not wording).
@@ -16,7 +17,8 @@
 // (→ "Quality Review 2"); "qa pass" with no number (→ "review": "no new qa pass" → "no additional review", "the next qa pass" → "the next
 // review", "qa passed" → "the review approved"); "qa next", "Halted at qa" (→ "Quality Review next", "Halted at Quality Review");
 // "Remediation for Quality Review 1", "Remediation: …", "the remediation loop", "a remediation pass", "Halted at remediation" (→ the step's
-// name by its route); "Document-landing commit" (→ "Document commit"). What is not: an issue's title (quoted verbatim, levelrefs.js
+// name by its route; a halt's with no article, "Halted at Correction"); "Halted at the Correction of Quality Review 2", "Held still at the
+// Resolution" (→ "Halted at Correction", "Held still at Resolution": a halt names its fix step by its route alone); "Document-landing commit" (→ "Document commit"). What is not: an issue's title (quoted verbatim, levelrefs.js
 // titleSkip()), code in backticks, the data keys and identifiers (qa, pass, facts.qa, the qa-pass event, the remediation route's id).
 "use strict";
 const path = require("path");
@@ -44,6 +46,12 @@ const STEP_WORDS = { "sub-issues": "filing the units as sub-issues", boards: "cr
   architecture: "the architecture", plan: "the plan", branch: "the branch", implementation: "implementation", qa: PASS_NAME, document: "the Document step",
   landing: "the landing", "state-boards": "the state boards", merge: "the merge", landed: "landed" };
 const stepWords = (step, ctx) => step === "remediation" ? `the ${stepName(step, ctx)}` : STEP_WORDS[step] || String(step || "");
+/* the step a halt names (admin-team/dashboards/call-3, the user's decision of 2026-11-06): a fix step by its route alone, with no pass and
+   no article, "Halted at Correction", "Halted at Resolution"; every other step as stepWords() (in a sentence) and stepName() (as a label)
+   name it, "Halted at Quality Review", "Halted at the plan". A resume and an escalation are no halt: "Resumed at the Correction of Quality
+   Review 2". The templates' haltLabel() is haltName() (verify/cases-halt-fix-step.js holds them equal). */
+const haltWords = (step, ctx) => step === "remediation" ? routeName(ctx && ctx.route) : stepWords(step, ctx);
+const haltName = (step, ctx) => step === "remediation" ? routeName(ctx && ctx.route) : stepName(step, ctx);
 /* the Document step's own tasks a board names (lib.js DOC_TASKS holds the rest) */
 const TASK_NAME = { "state-boards": "State boards", "document-landing": "Document commit" };
 /* the routes, said in a sentence (a qa pass's detail) and as a label (the step panel) */
@@ -99,7 +107,11 @@ const OLDER = [
   [/\bqa\s+starts\b/gi, () => `${PASS_NAME} starts`],
   [/\bRemediation\s+for\s+Quality\s+Review\s+(\d+)\b/gi, (m, n, ctx) => remediationName(ctx.routeOf(+n), +n)],
   [/^Remediation:\s*([\s\S]*)$/i, (m, rest, ctx) => { const n = (PASS_RE.exec(rest) || [])[1]; return `${n ? remediationName(ctx.routeOf(+n), +n) : remediationName(ctx.route, ctx.pass)}: ${rest}`; }],
-  [/\b(halted|resumed|escalated|held still)\s+(at|from|during|in)\s+remediation\b(?![-\w])/gi, (m, a, b, ctx) => `${a} ${b} the ${routeName(ctx.route)}`],
+  [/\b(halted|resumed|escalated|held still)\s+(at|from|during|in)\s+remediation\b(?![-\w])/gi, (m, a, b, ctx) => `${a} ${b} ${/^(?:halted|held still)$/i.test(a) ? "" : "the "}${routeName(ctx.route)}`],
+  /* a halt names its fix step by its route alone (admin-team/dashboards/call-3): "Halted at the Correction of Quality Review 2" → "Halted at
+     Correction", "Held still at the Resolution" → "Held still at Resolution"; the step's names as the scripts write them (capitalised), so a
+     text's own "halted at the resolution of the conflict" is not one; a resume and an escalation keep the visit's name */
+  [/\b([Hh]alted|[Hh]eld\s+still)\s+(at|from|during|in)\s+the\s+(Correction|Resolution)(?:\s+of\s+Quality\s+Review\s+#?\d+)?(?![-\w])(?!\s+of\b)/g, (m, a, b, r) => `${a} ${b} ${r}`],
   [/\b(?:(the|a|an|each|every|this)\s+)?(?:remediation\s+(?:loop|pass)|loop\s+of\s+remediation)(s?)\b/gi, (m, art, pl, ctx) => `${art ? art.replace(/^an$/i, "a") + " " : ""}${routeName(ctx.route)}${pl}`],
   [/\bdocument-landing\s+commit\b/gi, m => cap("Document commit", m).replace(/^document/, "Document")],
 ];
@@ -165,6 +177,6 @@ function renamePasses(plan) {
   return ch.length ? [`the older wording reworded: the passes named "${PASS_NAME} N", the steps by their names (${ch.slice(0, 4).join(", ")}${ch.length > 4 ? `, and ${ch.length - 4} more` : ""})`] : [];
 }
 
-module.exports = { PASS_NAME, REVIEW, passName, passNames, STEP_NAME, ROUTE_NAME, routeName, remediationName, stepName, STEP_WORDS, stepWords, TASK_NAME, ROUTE_WORDS,
+module.exports = { PASS_NAME, REVIEW, passName, passNames, STEP_NAME, ROUTE_NAME, routeName, remediationName, stepName, STEP_WORDS, stepWords, haltWords, haltName, TASK_NAME, ROUTE_WORDS,
   REMEDIATION_NOTE, inPlaceWords, findingsTotal, findingsWords, NOTE_WORK, PROGRESS_NOTE, EVENT_STEP, raisedWords, PASS_RE,
   renamePassText, passRefs, passRefsIn, renamePassesIn, renamePasses, ctxOf };

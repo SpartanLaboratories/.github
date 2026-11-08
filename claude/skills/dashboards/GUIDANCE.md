@@ -331,12 +331,15 @@ Quality Review 2"), never "qa pass N" or an ordinal; a pass named with no number
 "the review approved"), and what a pass returns is its "findings" ("Quality Review 1: 18 findings"). The step that acts on the findings is
 named by its route: a "Correction" for the `on-the-spot` and `remediation` routes, a "Resolution" for `re-plan-then-remediation` (a route
 not recorded yet reads "Correction"); the one answering Quality Review 1 stands bare, a later one names the pass it answers ("Correction of
-Quality Review 2"), and none is called a "loop". Every other step goes by its name ("Implementation", "Document", "State boards"), the
+Quality Review 2"), and none is called a "loop". A halt during it names it by its route alone, with no pass: "Halted at Correction",
+"Halted at Resolution", "Held still at Correction", never "Halted at the Resolution of Quality Review 2" (admin-team/dashboards/call-3);
+every other halt names its step as before ("Halted at Quality Review", "Halted at the plan"), and a resume, an escalation and the step
+Panel's heading keep the visit's name ("Resumed at the Correction of Quality Review 2"). Every other step goes by its name ("Implementation", "Document", "State boards"), the
 Document step's commit task by "Document commit", and an open point's "raised" by the step that raised it ("raised during Implementation,
 stage 3", "raised at Document"). The ids stay as they are: `qa`, `remediation`, `state-boards` and `document-landing` in the data and the
 events. The names are the scripts' and the templates', never free text's (`plan/scripts/passnames.js`, the templates' names block):
 `apply-event.js` composes every name it writes and rewords an older wording ("qa pass N", "no new qa pass", "qa next", "Halted at qa",
-"Remediation for …", "the remediation loop", "Document-landing commit") in any text it takes from the facts, every rewrite of a board
+"Remediation for …", "the remediation loop", "Halted at the Correction of Quality Review 2", "Document-landing commit") in any text it takes from the facts, every rewrite of a board
 (`lib.js` `resolveBoard()`: `apply-event.js`, `embed.js`, `fill.js`, `new.js`) rewords the older wording the board already holds, and
 `board.js` rewords the repository work board it generates. `plan/scripts/check.js` fails a board not landed, and the repository work
 board, that still holds an older wording (`BOARD WORDING`), and warns on a landed one, kept as it landed until something rewrites it. An
@@ -823,6 +826,20 @@ refresh on its branch: the committed repository work board, and the repository s
   their options are on the run's own board, which the Row opens. Not to the state boards: as-is, no run and no halt. A halt recorded before
   it keeps what it recorded, never backfilled; a landed board keeps its rendering (§11, "Re-rendering"), and a board in flight takes it at
   its next event.
+
+**The decision of admin-team/dashboards/call-3** (the user's decision of 2026-11-06, "Call 3 (b)", dated dashboards-skill/50), weighed for every type:
+
+- **A halt during a fix step names it by its route alone** (§4, "A qa pass is named "Quality Review N""): "Halted at Correction",
+  "Halted at Resolution", never the pass it answers ("Halted at the Resolution of Quality Review 2"); every other halt reads as before
+  ("Halted at Quality Review", "Halted at the plan"), and so does what is no halt: a resume, an escalation, the step Panel's heading, the
+  progress strip. Applied to issue boards and tracking boards: the halt's trail entry `apply-event.js` writes (`passnames.js`
+  `haltWords()`), the step Panel's wait line ("⏸ Held still at Correction: …"), a unit's run line on a tracking board ("waiting on you at
+  Resolution") and the "waiting on you" Card's "resumes at" (the names block's `haltLabel()`, which is `passnames.js` `haltName()`).
+  Every rewrite of a board rewords the wording before it in its data, and `check.js` fails it on a board in flight (`BOARD WORDING`).
+  Held by the `halt-fix-step` probe. Not to the repository work board: a halted Row shows the step "Waiting on you" and one line of what
+  it waits on, never the step it halted in, and the text it carries comes from `board.json`, which `board.js` rewords as it generates it.
+  Not to the state boards: as-is, no run and no halt. A landed board keeps its rendering and its wording (§11, "Re-rendering"; `check.js`
+  warns); a board in flight takes it at its next event.
 
 **The decision of admin-team/dashboards/inspector-hide-button** (the user's decision of 2026-11-07, dated dashboards-skill/46), weighed for every type:
 

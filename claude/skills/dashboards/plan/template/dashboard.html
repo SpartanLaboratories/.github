@@ -1136,6 +1136,8 @@ const routeName=r=>ROUTE_NAME[routeKey(r)]||ROUTE_NAME.remediation;
 const remediationName=(r,p)=>{ const n=parseInt(p,10); return Number.isInteger(n)&&n>1?`${routeName(r)} of ${passName(n)}`:routeName(r); };
 /* a step by its name; c {route, pass} names a remediation visit (no pass: the step, bare) */
 const stepLabel=(s,c)=>!s?"":s==="remediation"?(c&&c.pass!=null?remediationName(c.route,c.pass):routeName(c&&c.route)):STEP_NAME[s]||String(s);
+/* the step a halt names (dashboards-skill/50): a fix step by its route alone, "Correction" or "Resolution", never its pass; every other step by its name (passnames.js haltName()) */
+const haltLabel=(s,c)=>s==="remediation"?routeName(c&&c.route):stepLabel(s,c);
 const REMEDIATION_NOTE="Correction or Resolution after a Quality Review; each step is recorded as it runs";
 const PROGRESS_NOTE="a progress note: a report of the work as it happens";
 const NOTE_WORK={planner:"planning",interviewer:"interview",researcher:"research",verifier:"verification",architect:"architecture","plan-writer":"plan writing","rookie-dev":"implementation","test-inspector":"test check",qa:PASS_NAME,"code-reviewer":"code check","documentation-reviewer":"documentation review"};
@@ -1343,7 +1345,8 @@ function markKeys(addrs){ if(!addrs.length) return ""; const cells=addrs.filter(
   return (cells.length>held?KEY_GLOW:"")+(held?KEY_HELD:"")+(cols?(PAUSED?KEY_COLHELD:KEY_COLGLOW):""); }
 /* A unit's run: its pill, its last qa pass, the run line of its cell and card, its block on the strip, its legend entries. */
 function runPill(L){ const k=runKind(L), d=RUN[k]; return k==="run"?pill(d,"",`run at ${stepLabel(L.step,runCtx(L))||"?"}`):k==="escalated"?pill(d,"","escalated"):pill(d); }
-const runAt=L=>{ const k=runKind(L); return k==="halted"||k==="escalated"?(L.resume?`<span>at ${esc(stepLabel(L.resume,runCtx(L)))}</span>`:""):""; };
+/* where a waiting run stopped: a halt names a fix step by its route alone (haltLabel()), an escalation the step's visit */
+const runAt=L=>{ const k=runKind(L); return k==="halted"?(L.resume?`<span>at ${esc(haltLabel(L.resume,runCtx(L)))}</span>`:""):k==="escalated"?(L.resume?`<span>at ${esc(stepLabel(L.resume,runCtx(L)))}</span>`:""):""; };
 const lastQa=L=>{ const q=qaShown(L); return q.length?q[q.length-1]:null; };
 const qaPill=p=>{ const d=QA[p.verdict]||QA.running; return pill(d,"",`${passName(p.pass)} · ${d.label}`)+inPlaceMark(p); };
 function runLine(r){ const L=runOf(r); if(!L) return ""; const q=lastQa(L);
@@ -1452,6 +1455,8 @@ const askedShown=(R,S)=>(Array.isArray(R&&R.asked)?R.asked:[]).filter(q=>q&&type
 const askedBlock=(list,keys)=>list.length?`<div class="sp-asked">${questionsHtml(list,keys,"asked","Asked at the halt")}</div>`:"";
 /* the questions a halted run waits on, for the "waiting on you" card: the interview's while it halted there, else the halt's */
 const waitingQs=R=>{ const S=R&&R.step==="halted"?R.resume:null; if(!S) return []; return (S==="interview"?(Array.isArray(R.interview)?R.interview:[]):askedShown(R,S)).filter(q=>q&&q.text&&!qAnsweredOf(q)); };
+/* the step a halted run resumes at, on the "waiting on you" card: a fix step by its route alone (haltLabel(); dashboards-skill/50), every other step as it was written */
+const resumeAt=(s,c)=>s==="remediation"?haltLabel(s,c):s;
 const PANEL={
   sizing:R=>`<p>The issue is being sized: its systems and how much planning it takes.</p>${R.detail?`<p>${rich(R.detail)}</p>`:""}`,
   interview:(R,o,keys)=>{ const iv=Array.isArray(R.interview)?R.interview.filter(q=>q&&q.text):[];
@@ -1532,7 +1537,8 @@ function stepPanel(R,o){ o=o||{}; const k=R.step||"", held=["halted","escalated"
   const opts={...o,held}, title=stepTitle(S,runCtx(R));
   /* the heading is the step's title alone (plan/RULES.md §3, "The step panel"); a unit's panel names its unit to assistive technology */
   let h=`<div class="sp${held?" sp-held":""}${o.own?" own":""}" data-step="${esc(S)}"${o.row?` style="--r:${o.row}"`:""} role="group" aria-label="${esc(o.label||"The current step")}: ${esc(title)}"><h3 class="sp-t">${esc(title)}</h3>`;
-  if(k==="halted"){ h+=`<p class="sp-wait">⏸ Held still at ${esc(S?title:"its step")}: it waits on you for ${rich(R.waitingOn||R.detail||"(not stated)")}</p>`; }
+  /* a halt names a fix step by its route alone, "Held still at Correction" (haltLabel()); the heading keeps the visit's title */
+  if(k==="halted"){ h+=`<p class="sp-wait">⏸ Held still at ${esc(S?haltLabel(S,runCtx(R)):"its step")}: it waits on you for ${rich(R.waitingOn||R.detail||"(not stated)")}</p>`; }
   if(k==="escalated") h+=`<p class="sp-wait">⇧ Escalated from ${esc(S?title:"its step")}: held still while the issue's scope is re-decided.</p>`;
   /* the questions a halt in this step put to you, with their options (wip.asked; the interview's are its own panel's) */
   if(S!=="interview") h+=askedBlock(askedShown(R,S),keys);
@@ -1894,8 +1900,8 @@ function renderWip(){
     /* waiting on you: only while the tracking issue or a unit's run is halted */
     /* each with the questions it waits on (plan/RULES.md §3; dashboards-skill/45): a unit's by their text, their options in its step panel beside; the tracking issue's own with their options, as no panel of its own is drawn while it waits */
     const ownQs=waitingQs(WIP), wq=(qs,opts)=>qs.length?`<ul class="wq">${qs.map(q=>{ const ops=opts&&Array.isArray(q.options)?q.options.filter(x=>typeof x==="string"&&x.trim()):[]; return `<li>${rich(q.text)}${ops.length?`<ul class="sp-opts">${ops.map(x=>`<li>${rich(x)}</li>`).join("")}</ul>`:""}</li>`; }).join("")}</ul>`:"";
-    const waits=[...(HALTED?[`<li><b>#${esc(PLAN.issue)}</b>, the tracking issue: ${rich(WIP.waitingOn||WIP.detail||"(not stated)")}${wq(ownQs,true)}${WIP.resume?`<small>resumes at ${esc(WIP.resume)}</small>`:""}</li>`]:[]),
-      ...act.filter(runHeld).map(r=>{ const L=runOf(r), qs=waitingQs(L); return `<li>${uref(r)}: ${rich(L.waitingOn||L.detail||"(not stated)")}${wq(qs,false)}${qs.some(q=>Array.isArray(q.options)&&q.options.length)?`<small>the options: in its step panel</small>`:""}${L.resume?`<small>its run resumes at ${esc(L.resume)}</small>`:""}</li>`; })];
+    const waits=[...(HALTED?[`<li><b>#${esc(PLAN.issue)}</b>, the tracking issue: ${rich(WIP.waitingOn||WIP.detail||"(not stated)")}${wq(ownQs,true)}${WIP.resume?`<small>resumes at ${esc(resumeAt(WIP.resume,runCtx(WIP)))}</small>`:""}</li>`]:[]),
+      ...act.filter(runHeld).map(r=>{ const L=runOf(r), qs=waitingQs(L); return `<li>${uref(r)}: ${rich(L.waitingOn||L.detail||"(not stated)")}${wq(qs,false)}${qs.some(q=>Array.isArray(q.options)&&q.options.length)?`<small>the options: in its step panel</small>`:""}${L.resume?`<small>its run resumes at ${esc(resumeAt(L.resume,runCtx(L)))}</small>`:""}</li>`; })];
     if(waits.length){ rowN++; h+=`<div class="wipcard wait" style="--r:${rowN}"><div class="wipcard-t"><span class="k">⏸ Waiting on you</span></div><ul>${waits.join("")}</ul></div>`; legend.push(`<span><i class="wait"></i>yellow card: waiting on you, and for what</span>`); }
     /* the phase runs down beside every row the others take; alone, it takes the whole row */
     h=`<div class="wipgrid">${phase.replace(/^<div class="wipcard phase([^"]*)"/,(m,c)=>`<div class="wipcard phase${c}${rowN?"":" solo"}" style="--rows:${Math.max(rowN,1)}"`)}${h}</div>`;
