@@ -245,13 +245,14 @@ catch up at their own events.
 
 - **Divergence.** A board may diverge from its template when its subject is
   better shown another way. A divergence should primarily add; removing
-  content, a core Tab included, needs a strong argument, such as no data for
-  it existing. Declare every divergence, an optional Tab included, in the
-  board head (`<meta name="template-divergence" content="what and why">`) and
-  record it, a removal with its argument, in the board's footer comment and
-  your report; a divergence that would serve every board goes in the repo
-  template. `GUIDANCE.md` §7 holds the type divergences, §8 how the checks
-  treat a diverging board.
+  content (a core Tab, a standard guarantee Card, a column, a Legend) needs a
+  strong argument, such as no data for it existing. Declare every divergence,
+  an optional Tab included, in the board head
+  (`<meta name="template-divergence" content="what and why">`) so the checker
+  knows what to check, and record it, a removal with its argument, in the
+  board's footer comment and your report; a divergence that would serve every
+  board goes in the repo template. `GUIDANCE.md` §7 holds the type
+  divergences, §8 how the checks treat a diverging board.
 - **Streamlined.** Make new boards from the template and change
   only what the facts require. Check with `check.js <folder> --auto` and
   `check-board.js <board> --auto`: they check the data and embeds everywhere
