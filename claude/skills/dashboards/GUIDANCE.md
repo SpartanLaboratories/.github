@@ -644,7 +644,9 @@ never the accent (§1).
   keeps its line, its landing spanning to the merge.
 - **A sub-issue's roadmap named, never "no tracking parent"** (the defect: every unit board under a tracking issue kept `roadmap` null):
   applied to issue boards (`lib.js` `fillRoadmap()` at every embed, from the repository work board's data, else the parent tracking board;
-  the Card naming the parent while unset). A tracking board draws its roadmap from its own units and has no such gap. The repository work
+  the Card naming the parent while unset). A tracking board draws its roadmap from its own units; one nested under another tracking issue
+  names the parent's roadmap item it is too (admin-team/dashboards/tracking-step-plan: the same fill, its Roadmap item Card), and either
+  board's item links its section of the parent's `roadmap.md` where that document names it (`lib.js` `roadmapDocItem()`). The repository work
   board had its own: without the tracker (`board.js --no-gh`) a tracking issue's roadmap item listed no units; it now lists the tracking
   board's units. The state boards list the repository roadmap from the tracker and have no parent to miss.
 - **The four columns' Tab named Design** (`plan/RULES.md` §2, "The Tabs"), so it does not clash with the Timeline Tile: applied to issue

@@ -78,6 +78,7 @@
 // (verify/cases-live-view.js): apply-event.js --view (landed, and the land's landing and merge, before the merge and after it), the view copies and their <base> line, board.js --live opening them. The waits on
 // the user (verify/cases-timeline-waits.js): not active time and not mentioned, the step split into visits around each wait, the signals on the fast path. A
 // stretch when the run was not running (verify/cases-timeline-outages.js): not counted and not mentioned, the run-restarted event on the fast path. The
+// team-raised retime (verify/cases-retime.js): one event's recorded time corrected wherever the record holds it, one notes.corrections entry. The
 // header's switches (verify/cases-switches.js): the theme switch drawn as a switch, the inspector switch where there is an inspector, the decision path's legend. The
 // inspector's Hide button (verify/cases-inspector-hide.js): one state with the inspector switch, the focus moved to the switch. The C4 DSL
 // reader (verify/cases-dsl-keyword-id.js): a block keyword as an element's identifier read as the element, and check-board.js failing a DSL
@@ -2205,6 +2206,21 @@ catch (e) { report("an explicit signal moves the step cases", [["the cases run t
    writes no stages. It needs no browser, and runs on its own too (node verify/cases-tracking-plan-events.js). */
 try { require("./cases-tracking-plan-events.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("a tracking issue's plan-accepted and branch-cut cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
+/* A tracking board's "plan" step and a nested tracking board's roadmap item (verify/cases-tracking-step-plan.js; admin-team/dashboards/tracking-step-plan,
+   KotlinBottools #2): facts.step "plan" or "planning" on a tracking board reads as its architecture step (or the step it stands at past it) and opens no
+   plan pass, an issue board unchanged; a tracking board with a parent takes plan.roadmap, the item carrying its section of the parent's roadmap.md,
+   nothing invented where no source names it. Its rendered Card needs a browser; it runs on its own too (node verify/cases-tracking-step-plan.js). */
+try { require("./cases-tracking-step-plan.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("a tracking board's plan step and its parent's roadmap item cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
+/* The team-raised retime (verify/cases-retime.js; admin-team/dashboards/retime, KotlinBottools #2's sizing sent as midnight): one event's recorded time
+   corrected in every place the record holds it, with one notes.corrections entry; refused, nothing written, where the old time is not on record, another
+   event is named at it, it bounds a stretch when the run was not running, or the new one crosses a neighbouring bound; a day change moving its trail
+   entry; a landed board kept as it closed; a sub-issue's tracking board moving with it; --view; raised again, a duplicate. It needs no browser, and runs
+   on its own too (node verify/cases-retime.js). */
+try { require("./cases-retime.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the retime cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The progress notes' index (verify/cases-progress-index.js; admin-team/board/progress-index): every note a run writes reaches the step panel, its slug
    its writer's own; the watcher needs no event, runs only where .live is git-ignored and stops by itself. It needs no browser. */

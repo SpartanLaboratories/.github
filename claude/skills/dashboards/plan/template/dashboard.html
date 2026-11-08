@@ -2622,9 +2622,17 @@ function renderContext(){
   const cards=[];
   /* Roadmap: on a tracking board the item is this issue and its units; otherwise the parent tracking issue, if any. */
   const rm=PLAN.roadmap||null;
+  /* the roadmap item that claims this board, its section of the parent's roadmap.md where that document names it (lib.js
+     roadmapDocItem(); plan/RULES.md §2, "The Context's roadmap") */
+  const rmState=i=>i&&i.state?` · ${esc(String(i.state).toUpperCase()==="CLOSED"&&i.stateReason==="NOT_PLANNED"?"closed · not planned":String(i.state).toUpperCase()==="CLOSED"&&i.stateReason==="DUPLICATE"?"closed · duplicate":i.state)}`:"";
+  const rmSec=i=>i&&i.issue===PLAN.issue&&i.ref?` · ${refHtml(i.ref,i.section?`roadmap: ${i.section}`:"its roadmap section")}`:"";
   if(TRACKING){ const units=ROWS.filter(r=>r.unit);
+    /* a tracking board nested under another tracking issue names the parent's roadmap item it is (plan.roadmap, lib.js fillRoadmap()):
+       the parent, then this issue's item and where it stands among the parent's items; nothing where no source names it */
+    if(rm&&rm.issue){ const its=rm.items||[], k=its.findIndex(i=>i&&i.issue===PLAN.issue), me=k>=0?its[k]:null;
+      if(me) cards.push(`<div class="card"><h3>Roadmap item <small>#${esc(rm.issue)}${its.length>1?` · ${k+1} of ${plural(its.length,"item")}`:""}${rm.asOf?` · ${day(rm.asOf)}`:""}</small></h3><ul class="issues"><li><span class="nm">${rm.title?pair(rm.issue,rm.title,null,1):ilink(rm.issue)}</span></li><li><span class="nm">${me.title?pair(me.issue,me.title,null,1):ilink(me.issue)}${rmState(me)} · this board${rmSec(me)}</span></li></ul></div>`); }
     cards.push(`<div class="card"><h3>Roadmap <small>#${esc(PLAN.issue)} · ${plural(units.length,"unit")}${WIP.updated?` · ${day(WIP.updated)}`:""}</small></h3><ul class="issues">${units.map(r=>`<li><span class="nm">${esc(r.unit.n)}. ${r.unit.issue?pair(r.unit.issue,r.name):codeOnly(r.name)} · ${badge(stateOf(r))}${runOf(r)?` ${runPill(runOf(r))}`:""}${isNext(r)?` ${TAG_NEXT}`:""}</span></li>`).join("")}</ul></div>`); }
-  else if(rm&&rm.issue) cards.push(`<div class="card"><h3>Roadmap <small>${day(rm.asOf||"")}</small></h3><ul class="issues"><li><span class="nm">${rm.title?pair(rm.issue,rm.title,null,1):ilink(rm.issue)}</span></li>${(rm.items||[]).map(i=>`<li><span class="nm">${i.title?pair(i.issue,i.title,null,1):ilink(i.issue)}${i.state?` · ${esc(String(i.state).toUpperCase()==="CLOSED"&&i.stateReason==="NOT_PLANNED"?"closed · not planned":String(i.state).toUpperCase()==="CLOSED"&&i.stateReason==="DUPLICATE"?"closed · duplicate":i.state)}`:""}${i.issue===PLAN.issue?" · this board":""}</span></li>`).join("")}</ul></div>`);
+  else if(rm&&rm.issue) cards.push(`<div class="card"><h3>Roadmap <small>${day(rm.asOf||"")}</small></h3><ul class="issues"><li><span class="nm">${rm.title?pair(rm.issue,rm.title,null,1):ilink(rm.issue)}</span></li>${(rm.items||[]).map(i=>`<li><span class="nm">${i.title?pair(i.issue,i.title,null,1):ilink(i.issue)}${rmState(i)}${i.issue===PLAN.issue?" · this board":""}${rmSec(i)}</span></li>`).join("")}</ul></div>`);
   /* a sub-issue's board whose roadmap is not filled yet (embed.js fills it from the repository roadmap, lib.js fillRoadmap();
      dashboards-skill/34): its parent tracking issue claims it, so the card names the parent and its board; "no tracking parent" only
      where there is none */

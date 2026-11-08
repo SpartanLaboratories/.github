@@ -159,7 +159,7 @@ module.exports = function cases34(X) {
     c.push(["embed.js fills an unset roadmap (so new.js and every event do)", e.status === 0 && p.roadmap && p.roadmap.issue === 55 && /roadmap: unset → #55/.test(e.stdout), js([e.status, (e.stdout || "").split(/\r?\n/).filter(l => /roadmap/.test(l))])]);
     const kept = copy(p); kept.roadmap.items[0].title = "edited"; wr(path.join(me, "plan.json"), JSON.stringify(kept, null, 2) + "\n"); run(EMBED, [me]);
     c.push(["a roadmap already set is kept as it is", JSON.parse(rd(path.join(me, "plan.json"))).roadmap.items[0].title === "edited", "kept"]);
-    c.push(["a tracking board never takes one (its roadmap is its own units)", lib.roadmapFor(copy(TRK), up) === null, "tracking"]);
+    c.push(["a tracking board with no parent takes none (its roadmap is its own units; one nested under another tracking issue takes one: verify/cases-tracking-step-plan.js)", lib.roadmapFor(copy(TRK), up) === null, "tracking"]);
     const none = copy(u); delete none.parent; c.push(["an issue with no parent takes none", lib.roadmapFor(none, me) === null, "no parent"]);
     if (!chrome) { c.push(["the rendered card (no browser found: set CHROME)", false, "no Chrome or Edge"]); return; }
     const CX = 'const cs=[...document.querySelectorAll("#context .card")];const r=cs.find(x=>/^Roadmap/.test(x.querySelector("h3").textContent));document.body.dataset.r=JSON.stringify({t:r?r.textContent:"",a:r?[...r.querySelectorAll("a")].map(a=>a.getAttribute("href")):[]});';

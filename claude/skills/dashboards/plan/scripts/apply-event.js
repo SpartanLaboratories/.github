@@ -68,6 +68,11 @@
 // A stretch when the run was not running (run-restarted, facts { since, ended, reason }; team-raised; admin-team/board/timeline-outages): its
 // bounds from the facts alone, recorded once, whichever visit it falls in (lib.js outageSteps()); it bounds the visits and no board mentions
 // it (decided 2026-11-05: time that is not counted is not mentioned), so it writes no wip.event, no event note and no trail entry (wip.updated still moves).
+// One event's recorded time corrected (retime, facts { event, from, to, reason }; team-raised; admin-team/dashboards/retime): every place the record holds
+// the old time moves to the new one (lib.js retimePlan(): plan.sized, the visits and their snapshots, the waits, the questions, the Tests tab's results, on a
+// day change its trail entry's date; on a sub-issue its tracking board's record of it too), with one notes.corrections entry; refused, nothing written,
+// where the record does not hold the old time, another event is named at it, it bounds a stretch when the run was not running, or the new time crosses
+// any other recorded time. No wip.event, no note, no trail entry; a landed or cancelled board takes it, kept as it closed (not re-rendered). Raised again, a duplicate.
 "use strict";
 const T0 = Date.now();
 const fs = require("fs"), path = require("path"), cp = require("child_process");
@@ -141,6 +146,10 @@ const routeId = r => (typeof r === "string" && ROUTE_OLD[r]) || r;
 /* a step named in the run's own words (admin-team/board/timeline-waits): "implement", the pipeline's name of its implementation step. Any
    event that reads facts.step may use it; an implementation-stage reads none (its facts.step has no effect, applyEvent()) */
 const STEP_ALIASES = { implement: "implementation", implementing: "implementation" };
+/* a tracking board has no plan step (plan/RULES.md §3): its run's plan step is its architecture, so a facts.step in these words, on any
+   event, is read as the board's architecture step (trackingArchStep()) and never opens wip.plan (KotlinBottools #2,
+   admin-team/dashboards/tracking-step-plan). On an issue board "planning" stays unread: there it may name research's planning phase. */
+const TRACKING_PLAN_WORDS = new Set(["plan", "planning"]);
 /* The column a step's trail entry sits in. */
 const STEP_COLUMN = { "sub-issues": "considered", boards: "considered", sizing: "gap", interview: "gap", research: "gap", architecture: "considered", plan: "verdict", branch: "built", implementation: "built", qa: "built", remediation: "built", document: "built", landing: "built", "state-boards": "built", merge: "built", landed: "built", cancelled: "built" };
 /* every step in a sentence, and the routes, by their names (passnames.js: one home for each name a board shows) */
@@ -148,6 +157,8 @@ const STEP_WORDS = lib.STEP_WORDS, stepWords = lib.stepWords;
 const ROUTE_WORDS = lib.ROUTE_WORDS;
 const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 const code = s => "`" + s + "`";
+/* a retime's time as the record writes one: UTC, to the second */
+const retimeStamp = s => new Date(s).toISOString().replace(/\.\d+Z$/, "Z");
 
 /* One event, applied to a copy of the board. Deterministic: the same board, facts and time give the same result. Returns
    { plan, applied, enrich, parentOp } — parentOp the standing rule's move on the parent tracking board, or null. */
@@ -170,8 +181,9 @@ function applyEvent(orig, ev, facts, req, now) {
      "implement" is the implementation step); a facts.step that names no step is warned on, never dropped silently, and the step is derived
      from the event */
   if (typeof facts.step === "string" && facts.step.trim()) {
-    const said = facts.step.trim(), step = STEP_ALIASES[said.toLowerCase()] || said;
-    if (step !== facts.step) { facts = { ...facts, step }; applied.push(`facts.step ${JSON.stringify(said)} read as ${step}`); }
+    const said = facts.step.trim(), low = said.toLowerCase(), tplan = plan.kind === "tracking" && TRACKING_PLAN_WORDS.has(low);
+    const step = tplan ? trackingArchStep(w) : STEP_ALIASES[low] || said;
+    if (step !== facts.step) { facts = { ...facts, step }; applied.push(`facts.step ${JSON.stringify(said)} read as ${step}${tplan ? " (a tracking board has no plan step: its run's plan is its architecture)" : ""}`); }
     if (!STEPS.includes(step)) WARNINGS.push(`STEP UNKNOWN: facts.step ${JSON.stringify(said)} is no step of the board (${STEPS.join(", ")}): the step is derived from the event`);
   }
   /* a steps line written before the landing's three steps (dashboards-skill/34) takes state-boards and merge after its landing, at any
@@ -219,6 +231,8 @@ function applyEvent(orig, ev, facts, req, now) {
     enrich.push(`facts.${field} named an internal name, which a board never shows: written reworded (${shortJ(n.text)})`);
     return n.text;
   };
+  /* a step derived from the board, not the facts (sized, resumed): plan on a tracking board, an older board's, reads as its architecture step */
+  const tPlan = s => tracking && s === "plan" ? trackingArchStep(w) : s;
   const setStep = s => { if (w.step !== s) { w.step = s; w.since = now; applied.push(`wip.step ${s}`); } };
   const stopped = s => s === "halted" || s === "escalated";
   const curStage = () => (w.stages || []).find(x => x && x.state === "current") || null;
@@ -279,13 +293,14 @@ function applyEvent(orig, ev, facts, req, now) {
 
   switch (ev) {
     case "sized": {
-      const step = facts.step || (w.step === "sizing" || !w.step ? null : stopped(w.step) ? w.resume : w.step);
+      /* a tracking board's step a sized derives (no facts.step) is never plan either: an older board left there reads as its architecture */
+      const step = facts.step || tPlan(w.step === "sizing" || !w.step ? null : stopped(w.step) ? w.resume : w.step);
       if (!step || !["interview", "research", "plan", "architecture"].includes(step)) refuse(`sized names no step to start at (facts.step: interview, research or plan; got ${JSON.stringify(facts.step || null)})`);
       if (stopped(w.step)) { w.resume = null; w.waitingOn = null; }
       /* the run's start, kept once: the plan phase's first bound on the Timeline tile (plan/RULES.md §2, "The KPI tiles") */
       if (!lib.okStamp(plan.sized)) { plan.sized = now; applied.push(`sized ${now}`); }
       setStep(step); setGlow(step);
-      if (step === "plan" && !w.plan) { w.plan = plan.parent ? { state: "re-pass", from: "parent", since: now } : { state: "writing", since: now }; applied.push(`wip.plan ${w.plan.state}`); }
+      if (step === "plan" && !tracking && !w.plan) { w.plan = plan.parent ? { state: "re-pass", from: "parent", since: now } : { state: "writing", since: now }; applied.push(`wip.plan ${w.plan.state}`); }
       enrich.push(lib.foundationFilling(plan).function || lib.foundationFilling(plan).columns.length ? "sized: the foundation is laid and the event applied; what reads as being written comes from the issue and the documents: the function, the rows with their Gap and, for a sub-issue of a signed-off tracking plan, the Considered column, written in place on this board, as at any enrichment (embed.js clears plan.foundation)" : "sized: the function and, for a sub-issue of a signed-off tracking plan, the Gap and Considered columns come from the documents");
       detail = detail || `Sized; ${STEP_WORDS[step]} starts.`;
       /* a corrected sizing (a second sized with no event between, a request re-sent with corrected facts) adds no second entry where
@@ -323,7 +338,7 @@ function applyEvent(orig, ev, facts, req, now) {
     }
     case "resumed": {
       /* the step to return to: the facts', else the one the halt recorded; once resumed (the same event again), the step it is at */
-      const step = facts.step || w.resume || (!stopped(w.step) && w.event && w.event.name === "resumed" ? w.step : null);
+      const step = facts.step || tPlan(w.resume || (!stopped(w.step) && w.event && w.event.name === "resumed" ? w.step : null));
       if (!step || !STEPS.includes(step) || stopped(step)) refuse(`resumed names no step to return to (facts.step, or the board's wip.resume; got ${JSON.stringify(step || null)})`);
       w.resume = null; w.waitingOn = null; applied.push("wip.resume and wip.waitingOn cleared");
       setStep(step); setGlow(step);
@@ -393,7 +408,7 @@ function applyEvent(orig, ev, facts, req, now) {
       const step = facts.step || (tracking ? "architecture" : "plan");
       if (!["architecture", "plan"].includes(step)) refuse(`researched: the next step is architecture or plan (got ${JSON.stringify(step)})`);
       setStep(step);
-      if (step === "plan" && (!w.plan || w.plan.state !== "writing")) { w.plan = { state: "writing", since: now }; applied.push("wip.plan writing"); }
+      if (step === "plan" && !tracking && (!w.plan || w.plan.state !== "writing")) { w.plan = { state: "writing", since: now }; applied.push("wip.plan writing"); }
       setGlow(step);
       enrich.push("researched: the Gap column and its milestone come from research/README.md and the findings");
       detail = detail || `Research verified; ${STEP_WORDS[step]} next.`;
@@ -747,11 +762,47 @@ function applyEvent(orig, ev, facts, req, now) {
       note = null; /* no event note, not even one the facts carry, and no wip.event (below): the stretch is mentioned nowhere */
       break;
     }
+    /* One event's recorded time corrected (team-raised; admin-team/dashboards/retime; plan/RULES.md §4, the retime row): facts.event, the event
+       retimed, facts.from, the time the record holds for it, facts.to, the time it should hold, facts.reason, in plain words. Every place the
+       record holds the old time moves to the new one (lib.js retimePlan()), and one notes.corrections entry says so (plan/RULES.md §2: a
+       factual error is corrected in place under notes.corrections). It is refused, nothing written, where the record does not hold the old
+       time, where the new one would cross a neighbouring bound, or where another event is named at the same time. It writes no wip.event,
+       no event note and no trail entry of its own, and changes neither the step nor the detail; wip.updated moves, never back. A board
+       that has landed or was cancelled takes it too, kept as it closed otherwise (not re-rendered onto the template): a correction of a fact
+       is the one edit its written record takes. On a sub-issue, its tracking board's record of the same time moves with it (main()). Raised
+       again (its entry on record), it is a duplicate (main()). Nothing else in the facts is read. */
+    case "retime": {
+      const E = typeof facts.event === "string" ? facts.event.trim() : "";
+      if (!E) refuse("retime carries no facts.event, the event whose recorded time it corrects");
+      if (!lib.EVENTS.includes(E) || lib.RETIME_NOT.includes(E)) refuse(`retime: ${JSON.stringify(E)} is no event whose time a retime corrects (one of ${lib.EVENTS.filter(x => !lib.RETIME_NOT.includes(x)).join(", ")}; a stretch's bounds are its own facts)`);
+      if (!lib.isTime(facts.from) || !lib.isTime(facts.to)) refuse(`retime carries no facts.from and facts.to, the UTC ISO times the record holds and should hold (got ${JSON.stringify([facts.from || null, facts.to || null])})`);
+      const from = retimeStamp(facts.from), to = retimeStamp(facts.to);
+      if (from === to) refuse(`retime: facts.from and facts.to are the same time, ${to}: nothing to correct`);
+      if (Date.parse(to) > Date.parse(now)) refuse(`retime: facts.to ${to} is after the retime's own time ${now}: a time is never recorded ahead of the record`);
+      if (typeof facts.reason !== "string" || !facts.reason.trim()) refuse("retime carries no facts.reason (why the recorded time is wrong, in plain words)");
+      const r = lib.retimePlan(plan, { event: E, from, to });
+      if (r.refused) refuse(`retime: ${r.refused}`);
+      applied.push(...r.lines);
+      const reason = txt(facts.reason, "reason");
+      if (!reason) enrich.push("retime: its reason was left out of the correction's entry (above): the presenter words it");
+      const clock = s => `${s.slice(0, 10)} ${s.slice(11, 19)} UTC`;
+      const head = `${lib.retimeWords(E, tracking)} was recorded at ${clock(from)}${reason ? `: ${reason.replace(/[\s.;:,]+$/, "")}` : ""}. It is recorded at ${to.slice(0, 10) === from.slice(0, 10) ? `${to.slice(11, 19)} UTC` : clock(to)}`;
+      plan.notes = plan.notes && typeof plan.notes === "object" && !Array.isArray(plan.notes) ? plan.notes : {};
+      plan.notes.corrections = Array.isArray(plan.notes.corrections) ? plan.notes.corrections : [];
+      const entry = { what: lib.retimeWhat(head, r.words), when: today, retime: { event: E, from, to } };
+      plan.notes.corrections.push(entry);
+      applied.push("notes.corrections +1");
+      /* the sub-issue's tracking board takes the same move in main(), which may add its words to this entry */
+      if (plan.parent) parentOp = { kind: "retime", event: E, from, to, head, words: r.words, entry: plan.notes.corrections.length - 1 };
+      detail = w.detail || null;
+      note = null; /* no event note and no wip.event (below): the correction is said once, in its notes.corrections entry */
+      break;
+    }
     default: refuse(`unknown event ${JSON.stringify(ev)}`);
   }
   /* The Tests tab (plan/RULES.md §2, "The Tests tab"): an event that carries facts.tests has it applied (testslib.js mergeTests()); an
      implementation stage or a qa verdict without one leaves the tab to the presenter, from the branch's diff and the qa report */
-  if (facts.tests != null) {
+  if (facts.tests != null && ev !== "retime") {
     if (tracking) enrich.push("facts.tests on a tracking board: its units' boards record the tests (the presenter writes them there)");
     else { const qp = ev === "qa-pass" && facts.qa && Number.isInteger(facts.qa.pass) ? facts.qa.pass : null;
       /* A remediation's report names no stage of plan.md: its classes take "Quality Review n fixes", the pass the remediation answers, never the
@@ -763,13 +814,15 @@ function applyEvent(orig, ev, facts, req, now) {
     enrich.push(`the Tests tab: the event carries no facts.tests; ${ev === "qa-pass" ? "Relevant, Other and the results come from the qa report" : "Added and Amended come from the branch's diff against its base"}`);
   /* the fast path takes open points at every event (plan/RULES.md §4, "The fast path"; moved onto it in dashboards-skill/33): an
      implementation stage and a qa pass raise theirs above, any other event here, raised by the event's name */
-  if (Array.isArray(facts.open) && facts.open.length && !["implementation-stage", "qa-pass"].includes(ev)) mergeOpen(w, facts, applied, txt, ev, resolved, plan.folder, DIR, enrich);
+  if (Array.isArray(facts.open) && facts.open.length && !["implementation-stage", "qa-pass", "retime"].includes(ev)) mergeOpen(w, facts, applied, txt, ev, resolved, plan.folder, DIR, enrich);
   if (detail !== w.detail) { w.detail = detail; applied.push("wip.detail"); }
   const evRec = { name: ev, at: now, ...(note ? { note } : {}) };
   /* run-restarted leaves wip.event as it was (plan/RULES.md §4; decided 2026-11-05): it is no event of the run's, and a later resumed reads the
      run's own last event, never the break; wip.updated still moves */
-  if (ev !== "run-restarted") w.event = evRec;
-  w.updated = now;
+  /* retime leaves it too: it is a correction of the record, said in its notes.corrections entry; and its wip.updated never goes back (a
+     correction raised with an older time than the board's last write still changed the board after it) */
+  if (ev !== "run-restarted" && ev !== "retime") w.event = evRec;
+  w.updated = ev === "retime" && lib.isTime(w.updated) && Date.parse(w.updated) > Date.parse(now) ? w.updated : now;
   if (trail) {
     const t = { date: today, column: trail.column, label: trail.label, ...(trail.ref ? { ref: trail.ref } : {}) };
     plan.trail = Array.isArray(plan.trail) ? plan.trail : [];
@@ -809,6 +862,14 @@ function trackingPlanStep(w) {
   const at = lib.shownStep(w), line = Array.isArray(w.steps) ? w.steps : [], arch = line.indexOf("architecture");
   if (at && at !== "landed" && line.includes(at) && arch >= 0 && line.indexOf(at) > arch) return at;
   return "document";
+}
+/* The step a tracking board's "plan" names (TRACKING_PLAN_WORDS): its architecture, the step its run's plan is; once the board stands past
+   its architecture in its own line (signed off: the Document step, its land, the filing, its units' runs), the step it stands at, so a
+   "plan" sent then (a resumed after a halt in the run's plan step) never moves a signed-off board back (admin-team/dashboards/tracking-step-plan). */
+function trackingArchStep(w) {
+  const at = lib.shownStep(w), line = Array.isArray(w.steps) ? w.steps : [], arch = line.indexOf("architecture");
+  if (at && at !== "landed" && line.includes(at) && arch >= 0 && line.indexOf(at) > arch) return at;
+  return "architecture";
 }
 /* A tracking plan's own merge, from the facts (facts.merge, else a sha in facts.sha; facts.pr; facts.version; facts.date): wip.landing, as a tracking board has recorded it since dashboards-skill/35. */
 function recordPlanMerge(plan, w, facts, applied, txt) {
@@ -1147,8 +1208,10 @@ function chainDetail(plan) {
    data (plan/RULES.md §4: every event re-renders the board onto the current template). A board that declares a divergence, or a
    template not verified since it changed, is left as it is, and the presenter is told. */
 const emptyBlock = (html, id) => dev.norm(html).replace(/<base [^>]*data-live-view[^>]*>\n/, "").replace(new RegExp(`(<script type="application/json" id="${id}">)[\\s\\S]*?(</script>)`), "$1\n{}\n$2");
-function pageBase(pagePath, enrich, rel, tplOf) {
+function pageBase(pagePath, enrich, rel, tplOf, keep) {
   const html = fs.existsSync(pagePath) ? fs.readFileSync(pagePath, "utf8") : null, tplPath = dev.templateFor(tplOf || pagePath, "plan-board"), tpl = fs.readFileSync(tplPath, "utf8");
+  /* a retime on a board that has landed or was cancelled corrects its record and nothing else: the board is kept as it closed, never re-rendered onto a later template */
+  if (html != null && keep) return { html, rerendered: false };
   if (html != null && emptyBlock(html, "plan") === emptyBlock(tpl, "plan")) return { html, rerendered: false };
   if (html != null && /<meta name="template-divergence"/.test(html)) { enrich.push(`${rel} declares a divergence from the template: not re-rendered`); return { html, rerendered: false }; }
   if (!dev.verified(tplPath).ok) { enrich.push(`the template ${path.relative(dev.SKILL, tplPath).split(path.sep).join("/")} changed since it was verified: ${rel} not re-rendered (run verify/verify-templates.js)`); if (html == null) refuse(`${rel} has no board and the template is not verified`); return { html, rerendered: false }; }
@@ -1164,7 +1227,8 @@ function writeBoard(dir, data, eol, enrich, label) {
   const rel = path.relative(VIEWING ? MAIN : ROOT, path.join(to, "dashboard.html")).split(path.sep).join("/");
   lib.setViewLinks(VIEWING, MAIN); try { lib.resolveBoard(data, dir); } finally { lib.setViewLinks(false); }
   const json = (JSON.stringify(data, null, 2) + "\n").replace(/\n/g, eol);
-  const base = pageBase(fs.existsSync(path.join(to, "dashboard.html")) ? path.join(to, "dashboard.html") : path.join(dir, "dashboard.html"), enrich, rel, path.join(dir, "dashboard.html"));
+  const closed = ["built", "abandoned"].includes(data.status) || ["landed", "cancelled"].includes((data.wip || {}).step);
+  const base = pageBase(fs.existsSync(path.join(to, "dashboard.html")) ? path.join(to, "dashboard.html") : path.join(dir, "dashboard.html"), enrich, rel, path.join(dir, "dashboard.html"), EV === "retime" && closed);
   if (base.rerendered && fs.existsSync(path.join(to, "dashboard.html"))) S.rerendered.push(rel);
   let html = lib.writeBlock(base.html, "plan", json); const js = lib.sidecarText("plan", json);
   if (VIEWING) html = lib.withViewBase(html, to, dir);
@@ -1466,7 +1530,7 @@ async function unitLanded(now, req, facts) {
 const run = (file, a, cwd) => new Promise(res => { const c = cp.spawn(process.execPath, [file, ...a], { cwd, windowsHide: true }); let o = "", e = "";
   c.stdout.on("data", d => { o += d; }); c.stderr.on("data", d => { e += d; }); c.on("close", s => res({ status: s, stdout: o, stderr: e })); c.on("error", x => res({ status: 1, stdout: o, stderr: String(x) })); });
 
-let DIR = null, ROOT = null, MAIN = null, LAY_HINT = null;
+let DIR = null, ROOT = null, MAIN = null, LAY_HINT = null, EV = null;
 const VIEWING = flag("view");
 /* the board's data where --view reads it: its view copy when one is fresher than the tracked board, else the tracked plan.json */
 const HELD = new Set();
@@ -1559,7 +1623,9 @@ async function main() {
   if (!evFile || !wt) { console.error(`${USAGE}\n(--event and --worktree are required)`); process.exit(2); }
   const req = readRequest(evFile), facts = req.facts && typeof req.facts === "object" ? req.facts : {};
   if (req.action && req.action !== "plan-board") refuse(`the request's action is ${JSON.stringify(req.action)}, not plan-board`);
-  const ev = req.event || facts.event; S.event = ev || null;
+  /* a retime's facts.event is the event it retimes, never the request's: a request that names none, with a retime's facts, is not read as that event */
+  if (!req.event && (facts.from != null || facts.to != null)) refuse(`the request names no event: a retime is "event": "retime", and its facts.event (${JSON.stringify(facts.event || null)}) the event it retimes`);
+  const ev = req.event || facts.event; S.event = ev || null; EV = ev;
   /* retired: no unit's board is laid ahead of its run (plan/RULES.md §4); an older board's record of it is still read */
   if (lib.RETIRED_EVENTS.includes(ev)) refuse(`${ev} is retired: a unit's board is laid at its own sized, never ahead of its run`);
   if (!lib.EVENTS.includes(ev)) refuse(`the request names no plan-board event (got ${JSON.stringify(ev || null)}; one of ${lib.EVENTS.join(", ")})`);
@@ -1639,9 +1705,14 @@ async function main() {
   }
   /* a stretch when the run was not running is known by its bounds: raised again, whatever events came since, it changes nothing */
   if (ev === "run-restarted" && lib.hasOutage(orig.wip, facts.since, facts.ended)) { S.result = "duplicate"; S.applied.push(`${facts.since} → ${facts.ended} is already recorded: nothing written`); return; }
+  /* a retime is known by its correction's entry: raised again, whatever events came since, it changes nothing */
+  if (ev === "retime" && lib.isTime(facts.from) && lib.isTime(facts.to)) {
+    const k = { event: typeof facts.event === "string" ? facts.event.trim() : facts.event, from: retimeStamp(facts.from), to: retimeStamp(facts.to) };
+    if ((((orig.notes || {}).corrections) || []).some(x => x && x.retime && x.retime.event === k.event && x.retime.from === k.from && x.retime.to === k.to)) { S.result = "duplicate"; S.applied.push(`${k.event} ${k.from} → ${k.to} is already corrected: nothing written`); return; }
+  }
   /* the same event twice changes nothing: applied again at its own recorded time, it gives the board it left */
   const last = (orig.wip || {}).event;
-  if (ev !== "run-restarted" && last && last.name === ev && last.at) {
+  if (ev !== "run-restarted" && ev !== "retime" && last && last.name === ev && last.at) {
     const again = applyEvent(orig, ev, facts, req, last.at), a = JSON.parse(JSON.stringify(again.plan)), b = JSON.parse(JSON.stringify(orig));
     a.wip.updated = b.wip.updated = null;
     if (JSON.stringify(a) === JSON.stringify(b)) { S.result = "duplicate"; S.applied.push(`already applied at ${last.at}: nothing written`); return; }
@@ -1652,6 +1723,21 @@ async function main() {
   const R = applyEvent(orig, ev, facts, req, now);
   if (laid) { S.laid = folder; S.applied.push(...laid.applied); S.enrich.push(...laid.enrich); }
   S.applied.push(...renamed, ...R.applied); S.enrich.push(...R.enrich);
+  /* a sub-issue's retime: its tracking board's record of the same time moves with it (the unit's start, its review, its landing, which the
+     standing rule stamped there), under the same refusals; the one correction entry, on the sub-issue's board, says so */
+  let retimedParent = null;
+  if (R.parentOp && R.parentOp.kind === "retime") {
+    const up0 = lib.parentFolder(DIR, R.plan);
+    if (up0 && fs.existsSync(path.join(up0, "dashboard.html"))) {
+      let pp; try { pp = JSON.parse(fs.readFileSync(viewRead(up0), "utf8")); } catch (e) { refuse(`the parent tracking board's plan.json does not parse: ${e.message}`); }
+      const O = R.parentOp, P = lib.retimePlan(pp, { event: O.event, from: O.from, to: O.to, parentOf: R.plan.issue });
+      if (P.refused) refuse(`retime: ${P.refused}`);
+      if (P.moved.length) { const W = pp.wip = pp.wip || {}; if (!(lib.isTime(W.updated) && Date.parse(W.updated) > Date.parse(now))) W.updated = now;
+        R.plan.notes.corrections[O.entry].what = lib.retimeWhat(O.head, [...O.words, `#${pp.issue}'s record of it`]); }
+      S.applied.push(...P.lines.map(l => /^the tracking board/.test(l) ? l : `#${pp.issue}: ${l}`));
+      retimedParent = pp;
+    }
+  }
   /* a view copy lives only while fresher than the board it stands for (board.js --live removes it otherwise): said, never lost in silence */
   if (VIEWING) { let tp = null; try { tp = JSON.parse(fs.readFileSync(planFile, "utf8")); } catch (e) { /* reported above */ } if (tp && !(String(lib.planStamp(R.plan)) > String(lib.planStamp(tp)))) WARNINGS.push(`VIEW COPY NOT FRESHER: the event's time ${now} is not after the board's own stamp ${lib.planStamp(tp)}, so the live view drops the copy: raise it with its real time`); }
 
@@ -1664,12 +1750,13 @@ async function main() {
     if (up && fs.existsSync(path.join(up, "dashboard.html"))) {
       const ptext = fs.readFileSync(viewRead(up), "utf8"), peol = /\r\n/.test(ptext) ? "\r\n" : "\n";
       let pplan; try { pplan = JSON.parse(ptext); } catch (e) { throw new Error(`the parent tracking board's plan.json does not parse: ${e.message}`); }
-      if (R.parentOp) { const P = applyParent(pplan, R.plan, R.parentOp, now); pplan = P.plan; S.applied.push(...P.applied); S.enrich.push(...P.enrich); }
+      if (retimedParent) pplan = retimedParent;
+      else if (R.parentOp) { const P = applyParent(pplan, R.plan, R.parentOp, now); pplan = P.plan; S.applied.push(...P.applied); S.enrich.push(...P.enrich); }
       const prel = path.relative(ROOT, up).split(path.sep).join("/");
       S.parent = `${prel} (${writeBoard(up, pplan, peol, S.enrich, "parent") ? "re-embedded" : "unchanged"})`;
       /* with --view, the issue's copy once more, now that its parent's copy exists for its link to open (lib.js viewLink()) */
       if (VIEWING) writeBoard(DIR, R.plan, eol, [], "board");
-    } else if (R.plan.parent && R.parentOp) S.enrich.push(`the parent tracking board #${R.plan.parent.issue} is not in the enclosing folder: the standing rule is the presenter's`);
+    } else if (R.plan.parent && R.parentOp && R.parentOp.kind !== "retime") S.enrich.push(`the parent tracking board #${R.plan.parent.issue} is not in the enclosing folder: the standing rule is the presenter's`);
 
     /* check.js on every board written, and the live repository work board, at once */
     const at = d => VIEWING ? [lib.viewDirOf(d, MAIN), "--root", ROOT] : [d];
