@@ -10,7 +10,8 @@
 // 4. A step's file list: each file its own <code>, never run on with a separator; since admin-team/dashboards/step-file-tree (dated 43) the
 //    list is nested by its folders (verify/cases-file-tree.js), which replaced the one-path-per-line list that scrolled in itself.
 // 5. The scripts' messages in the current vocabulary: check-board.js asks for a .legend; features.js says the work board is held to the
-//    board-wording feature; namerefs.js scrubNames() writes "code check", "test check", "the review's test check", "the review approved".
+//    board-wording feature; namerefs.js scrubNames() writes "code check", "test check", "documentation check" (since dashboards-skill/52),
+//    "the review's test check", "the review approved".
 // Each group returns [title, cases], a case [name, ok, detail].
 "use strict";
 const fs = require("fs"), path = require("path"), os = require("os"), vm = require("vm");
@@ -93,9 +94,9 @@ module.exports = function casesDesignTabDefects(X) {
     const f = F.FEATURES.find(x => x.id === "quality-review"), wbWhy = f && f.notFor && f.notFor["work-board"] || "";
     c.push(["features.js: the work board's reason no longer calls its passes ordinals, and names the feature that holds it", !!wbWhy && !/ordinal/i.test(wbWhy) && /board-wording/.test(wbWhy) && F.FEATURES.some(x => x.id === "board-wording" && x.types.includes("work-board")), wbWhy]);
     const want = [["Relevant is what qa's test-inspector ran", "Relevant is what the review's test check ran"], ["the test-inspector report", "the test check report"], ["a code-reviewer pass", "a code check pass"],
-      ["the documentation-reviewer pass", "the documentation review pass"], ["qa approved it", "the review approved it"], ["qa has approved", "the review has approved"], ["code-reviewer: no findings", "no findings"]];
+      ["the documentation-reviewer pass", "the documentation check pass"], ["qa approved it", "the review approved it"], ["qa has approved", "the review has approved"], ["code-reviewer: no findings", "no findings"]];
     const bad = want.filter(([s, w]) => { const r = N.scrubNames(s); return r.text !== w || r.left.length; });
-    c.push(["scrubNames(): \"code check\", \"test check\", \"the review's test check\", \"the review approved\", each naming nothing left", !bad.length, js(bad.map(([s, w]) => [s, N.scrubNames(s), w]))]);
+    c.push(["scrubNames(): \"code check\", \"test check\", \"documentation check\" (dashboards-skill/52), \"the review's test check\", \"the review approved\", each naming nothing left", !bad.length, js(bad.map(([s, w]) => [s, N.scrubNames(s), w]))]);
     const PN = require(sk("plan/scripts/passnames.js"));
     c.push(["…in the progress notes' own words (passnames.js NOTE_WORK) and with no older pass wording for the renaming to catch", /"test-inspector": "test check"/.test(rd(sk("plan/scripts/passnames.js"))) && /"code-reviewer": "code check"/.test(rd(sk("plan/scripts/passnames.js"))) && want.every(([s]) => { const t = N.scrubNames(s).text; return PN.renamePassText(t) === t; }), "passnames.js"]);
   });

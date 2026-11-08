@@ -882,7 +882,7 @@ events, the documents, the trail), never guessed; each step's Panel shows:
 `docs/plans/.live/progress/<issue>/<name>.js` in its checkout — `(window.PROGRESS=window.PROGRESS||{})["<name>"]={"agent","issue","started","at",
 "done","left","eta"}` — and deletes it when it finishes (its agent file, "Progress review every 10 minutes"). While the run is live and the
 board is a local copy, every live poll reads the issue folder's `index.js`, kept by `plan/scripts/progress-index.js` with no event, and probes those names and the known ones (the template's `progNames()`; a missing file is no note), and the step Panel shows each note as an info Card: the work it
-reports, never the agent's name ("planning", "research · <slug>", "implementation · s2", "code check"; the template's `noteLabel()`,
+reports, never the agent's name ("planning", "research · <slug>", "implementation · s2"; a Quality Review's checks "documentation check", "code check", "test check", dashboards-skill/52; the template's `noteLabel()`,
 `GUIDANCE.md` §4: the file names are the agents' own, the label is not), how long it has run, what is done, what is left, its estimate and when it wrote. A note not updated for over 20 minutes is drawn muted, and
 the Legend names both ("a progress note: a report of the work as it happens"; "muted: no update for over 20 minutes"). A tracking board probes each unit in progress under the unit's issue (in the same checkout). The notes need no
 event and are never committed. The index's watcher is a detached process, one per checkout: it stops after 4 hours with no note, or when the progress folder is gone, and the next event restarts it; `DASHBOARDS_NO_WATCHER=1` starts none.
@@ -1297,7 +1297,7 @@ Timeline input no event writes: it exists only on a board backfilled at the user
 from the facts (the detail, a note, what waits on the user, an interview question and its options, an open point, a qa pass's note, a
 remediation sub-step's name) goes through `system/scripts/levelrefs.js` `scrubLevels()` when it names a work level, then through
 `system/scripts/namerefs.js` `scrubNames()` when it names an internal name (`GUIDANCE.md` §4, "No internal names": "accepted by the admin
-team" → "accepted", "a planner re-pass" → "a plan re-pass", "rookie-dev's fixes" → "the fixes", "code-reviewer" → "code review", "(the
+team" → "accepted", "a planner re-pass" → "a plan re-pass", "rookie-dev's fixes" → "the fixes", "code-reviewer" → "code check", "documentation-reviewer" → "documentation check", "(the
 user's call)" dropped; a text that still names one no library uses is left out, one that names a word a library may use as well, "the
 planner", "the verifier", is written and named for the presenter; the remediation routes' older ids are read as their neutral ones) (an identifier, the
 branch or the version, is never reworded: one that names a work level is left out, the presenter told):
@@ -1809,7 +1809,9 @@ defect in the issue, quoted verbatim, which the work-level failure above leaves 
 An older wording in any text of `plan.json` — a pass named "qa pass N" or "the 2nd qa pass", one with no number named a "qa pass" ("no new
 qa pass"), the qa step named "qa" ("qa next", "Halted at qa"), the remediation step named "Remediation for …" or a "remediation loop", a
 halt's fix step named with its pass or its article ("Halted at the Correction of Quality Review 2", "Held still at the Resolution"), the
-Document step's commit named "Document-landing commit" — fails a board not landed and `board.json`, and is a warning on a landed board,
+Document step's commit named "Document-landing commit", a findings line with its kinds before its severities, the documentation check
+under its label before dashboards-skill/52 ("the documentation review pass", lowercase as the scripts wrote it; the Document step's task
+"Documentation review" is not it) — fails a board not landed and `board.json`, and is a warning on a landed board,
 kept as it landed until something rewrites it, `BOARD WORDING` (`GUIDANCE.md` §4, "A qa pass is named "Quality Review N"";
 `passnames.js` `passRefsIn()`); an issue's title, quoted verbatim, is left out.
 

@@ -316,9 +316,11 @@ steps' own names (research, architecture, plan) and a halt's "waiting on you"; e
 verbs, "the executor commits", "the publisher released". The data follows: the remediation routes' ids are `on-the-spot`,
 `remediation` and `re-plan-then-remediation` (the older `rookie-dev` and `planner-then-rookie-dev` are read alike), the template's
 placeholder mark is `fill:` (a `presenter:` mark is migrated by the splice), a progress note is labelled by the work it reports ("research
-· <slug>", "code check"). `apply-event.js` rewords a pipeline fact through `system/scripts/namerefs.js` `scrubNames()` before it
+· <slug>", "code check"; a Quality Review's three checks "documentation check", "code check", "test check", dashboards-skill/52).
+`apply-event.js` rewords a pipeline fact through `system/scripts/namerefs.js` `scrubNames()` before it
 writes it — the agent phrase dropped ("accepted by the admin team" → "accepted"), a possessive made the article ("the planner's re-pass"
-→ "the re-pass"), a role's work named as the work ("a planner re-pass" → "a plan re-pass", "code-reviewer" → "code review"), an aside
+→ "the re-pass"), a role's work named as the work ("a planner re-pass" → "a plan re-pass", "code-reviewer" → "code check",
+"documentation-reviewer" → "documentation check", "qa's test-inspector" → "the review's test check": the progress notes' labels), an aside
 on the approval flow dropped — and leaves the text out, telling the presenter (`enrich: yes`), where a name no library uses would remain;
 a word a library may use as well (the planner, the verifier) is written and named for the presenter to look at. `check.js` and
 `check-board.js` warn on any name left in a board (`INTERNAL NAME`), never failing it: the board is reworded at its next refresh. An
@@ -335,7 +337,10 @@ left out, the count the kinds' sum (the severities' where no kind is counted); a
 One line wherever a pass's findings are worded — the trail entry and the detail `apply-event.js` writes, the step Panel's Quality Review
 card, the WIP Panel's Quality Review Pills, a tracking board's mirror of a unit's run — from `passnames.js` `findingsWords()` and the
 templates' copy of it; the order before it ("18 findings (3 documentation, 15 code; 2 minor, 16 other)") is an older wording, reworded
-by every rewrite as below. The step that acts on the findings is
+by every rewrite as below. **Its checks** go by the check (dashboards-skill/52): "documentation check", "code check", "test check" — the
+labels of the progress notes that report them and the words `scrubNames()` writes for the agents that run them; the documentation check's
+label before it, "documentation review" as the scripts wrote it (lowercase: "the documentation review pass"), is an older wording,
+reworded by every rewrite as below, and the Document step's task "Documentation review" is a task's name, not it. The step that acts on the findings is
 named by its route: a "Correction" for the `on-the-spot` and `remediation` routes, a "Resolution" for `re-plan-then-remediation` (a route
 not recorded yet reads "Correction"); the one answering Quality Review 1 stands bare, a later one names the pass it answers ("Correction of
 Quality Review 2"), and none is called a "loop". A halt during it names it by its route alone, with no pass: "Halted at Correction",
@@ -347,7 +352,7 @@ stage 3", "raised at Document"). The ids stay as they are: `qa`, `remediation`, 
 events. The names are the scripts' and the templates', never free text's (`plan/scripts/passnames.js`, the templates' names block):
 `apply-event.js` composes every name it writes and rewords an older wording ("qa pass N", "no new qa pass", "qa next", "Halted at qa",
 "Remediation for …", "the remediation loop", "Halted at the Correction of Quality Review 2", "Document-landing commit", a findings line
-with its kinds before its severities) in any text it takes from the facts, every rewrite of a board
+with its kinds before its severities, "the documentation review pass") in any text it takes from the facts, every rewrite of a board
 (`lib.js` `resolveBoard()`: `apply-event.js`, `embed.js`, `fill.js`, `new.js`) rewords the older wording the board already holds, and
 `board.js` rewords the repository work board it generates. `plan/scripts/check.js` fails a board not landed, and the repository work
 board, that still holds an older wording (`BOARD WORDING`), and warns on a landed one, kept as it landed until something rewrites it. An
@@ -873,6 +878,21 @@ refresh on its branch: the committed repository work board, and the repository s
 
   A landed board keeps its rendering and its wording (§11, "Re-rendering"; `check.js` warns); a board in flight takes both at its next
   event, the committed repository work board at the Document step's state-boards task.
+
+**The decision of dashboards-skill/52** (the user's decision of 2026-11-06), weighed for every type:
+
+- **A Quality Review's checks by the check: "documentation check", "code check", "test check"** (§4, "A qa pass is named "Quality
+  Review N"", "Its checks"): the documentation check's label was "documentation review"; the code check and the test check already read
+  so. None of the three was an agent's name (the note files are named by their agents, the labels never were), so it serves the one
+  wording of the three checks, not the internal-names rule. Applied to issue boards and tracking boards: the step Panel's progress notes
+  (the names block's `NOTE_WORK`, which is `passnames.js` `NOTE_WORK`; a tracking board labels each unit's notes the same), and the
+  trail and the details `apply-event.js` writes (`namerefs.js` `scrubNames()`: "documentation-reviewer" → "documentation check"). The
+  label before it in a board's text ("the documentation review pass", lowercase as the scripts wrote it) is reworded by every rewrite and
+  failed in flight (`BOARD WORDING`); the Document step's task "Documentation review" (`lib.js` `DOC_TASKS`) is a task's name and keeps
+  it. Held by the `check-labels` probe and `verify/cases-check-labels.js`. To the repository work board as text only: it shows no
+  progress notes, and the text a Row carries comes from `board.json`, which `board.js` rewords as it generates it. Not to the state
+  boards: as-is, no run and no Quality Review. A landed board keeps its rendering and its wording (§11, "Re-rendering"; `check.js`
+  warns); a board in flight takes both at its next event.
 
 **The decision of admin-team/dashboards/inspector-hide-button** (the user's decision of 2026-11-07, dated dashboards-skill/46), weighed for every type:
 

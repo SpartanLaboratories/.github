@@ -11,7 +11,9 @@
 //     first bare, a later one "Correction of Quality Review N" (the pass it answers, from 2 on); no "loop"; a halt during it names it by
 //     its route alone, "Halted at Correction", "Halted at Resolution", never the pass (admin-team/dashboards/call-3; haltWords(), haltName());
 //   - every other step by its reader name (STEP_NAME: "Implementation", "Document", "State boards"); the Document step's commit task,
-//     "Document commit"; an open point's "raised" by the step that raised it ("raised during Implementation, stage 3", "raised at Document").
+//     "Document commit"; an open point's "raised" by the step that raised it ("raised during Implementation, stage 3", "raised at Document");
+//   - a Quality Review's checks by the check, "documentation check", "code check", "test check" (dashboards-skill/52): the progress notes'
+//     labels (NOTE_WORK) and the words namerefs.js scrubNames() writes for the agents that run them.
 // The ids stay as they are: qa, remediation, state-boards and document-landing in the data and the events (code is not wording).
 // What is reworded: "qa pass 2", "QA pass 2", "qa pass #2", "qa passes 1 and 2" (→ "Quality Reviews 1 and 2"), "the 2nd qa pass"
 // (→ "Quality Review 2"); "qa pass" with no number (→ "review": "no new qa pass" → "no additional review", "the next qa pass" → "the next
@@ -20,8 +22,9 @@
 // name by its route; a halt's with no article, "Halted at Correction"); "Halted at the Correction of Quality Review 2", "Held still at the
 // Resolution" (→ "Halted at Correction", "Held still at Resolution": a halt names its fix step by its route alone); "Document-landing commit" (→ "Document commit");
 // a findings line with its kinds before its severities, "18 findings (3 documentation, 15 code; 2 minor, 16 other)" (→ "18 findings (2 minor,
-// 16 other; 3 documentation, 15 code)", admin-team/dashboards/call-5). What is not: an issue's title (quoted verbatim, levelrefs.js
-// titleSkip()), code in backticks, the data keys and identifiers (qa, pass, facts.qa, the qa-pass event, the remediation route's id).
+// 16 other; 3 documentation, 15 code)", admin-team/dashboards/call-5); the documentation check's older label as the scripts wrote it,
+// lowercase, "the documentation review pass" (→ "the documentation check pass", dashboards-skill/52). What is not: an issue's title (quoted
+// verbatim, levelrefs.js titleSkip()), the Document step's task "Documentation review" (its name, capitalised; lib.js DOC_TASKS), code in backticks, the data keys and identifiers (qa, pass, facts.qa, the qa-pass event, the remediation route's id).
 "use strict";
 const path = require("path");
 const { titleSkip } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
@@ -81,9 +84,13 @@ const FINDINGS_OLD = /\b(\d+)\s+(findings?)\s+\(((?:\d+\s+(?:documentation|test|
 const countsOf = s => { const m = {}; s.split(/\s*,\s*/).forEach(x => { const r = /^(\d+)\s+([a-z][a-z-]*)$/.exec(x.trim()); if (r) m[r[2]] = (m[r[2]] || 0) + +r[1]; }); return m; };
 const findingsReordered = (n, noun, kinds, sevs) => { const sv = findingParts(countsOf(sevs), FINDING_SEVERITIES), kd = findingParts(countsOf(kinds), FINDING_KINDS);
   return `${n} ${noun}${sv.length || kd.length ? ` (${[sv.join(", "), kd.join(", ")].filter(Boolean).join("; ")})` : ""}`; };
-/* the progress notes, by the work they report (a note's file name is its writer's; the board shows the work) */
+/* the progress notes, by the work they report (a note's file name is its writer's; the board shows the work). A Quality Review's three
+   checks read "documentation check", "code check", "test check" (dashboards-skill/52), the words scrubNames() writes for them too */
 const NOTE_WORK = { planner: "planning", interviewer: "interview", researcher: "research", verifier: "verification", architect: "architecture", "plan-writer": "plan writing",
-  "rookie-dev": "implementation", "test-inspector": "test check", qa: PASS_NAME, "code-reviewer": "code check", "documentation-reviewer": "documentation review" };
+  "rookie-dev": "implementation", "test-inspector": "test check", qa: PASS_NAME, "code-reviewer": "code check", "documentation-reviewer": "documentation check" };
+/* the documentation check's label before dashboards-skill/52, as the scripts wrote it (NOTE_WORK, scrubNames()): lowercase, so the
+   Document step's task "Documentation review" (lib.js DOC_TASKS) is not one; "reviewed" and "reviewer" are other words */
+const CHECK_LABEL_OLD = /\bdocumentation\s+review(s?)(?![-\w])/g;
 const PROGRESS_NOTE = "a progress note: a report of the work as it happens";
 /* an open point's "raised": the step that raised it by its reader name. A board records the event's id ("document", "qa-pass"), an
    implementation stage ("implementation-stage S3") or a pass ("Quality Review 1"); a text of the run's own is shown as it is */
@@ -132,6 +139,8 @@ const OLDER = [
   [/\bdocument-landing\s+commit\b/gi, m => cap("Document commit", m).replace(/^document/, "Document")],
   /* a findings line with its kinds before its severities (admin-team/dashboards/call-5): the severities first */
   [FINDINGS_OLD, (m, n, noun, kinds, sevs) => findingsReordered(n, noun, kinds, sevs)],
+  /* the documentation check by its label (dashboards-skill/52): "the documentation review pass" → "the documentation check pass" */
+  [CHECK_LABEL_OLD, (m, pl) => `documentation check${pl}`],
 ];
 /* the parts of a text outside code spans (`…`, <code>…</code>): code is not wording */
 const CODE = /(`[^`\n]*`|<code\b[^>]*>[\s\S]*?<\/code>)/gi;

@@ -104,13 +104,14 @@ function levelFail(data, file) {
    "Quality Review", the remediation step "Correction" or "Resolution" by its route, the Document step's commit "Document commit". A board
    not landed, or the repository work board (board.js generates it), that still holds an older wording ("qa pass N", "no new qa pass",
    "qa next", "Halted at qa", "Remediation for …", "the remediation loop", "Halted at the Correction of Quality Review 2" (a halt names its
-   fix step by its route alone; admin-team/dashboards/call-3), "Document-landing commit") fails; every rewrite of a board
+   fix step by its route alone; admin-team/dashboards/call-3), "Document-landing commit", the documentation check's older label "the
+   documentation review pass" (a Quality Review's checks read "documentation check", "code check", "test check"; dashboards-skill/52)) fails; every rewrite of a board
    rewords it (lib.js resolveBoard()), so embed.js clears the failure. A landed board nothing has rewritten since keeps the wording it
    landed with: warned, never failed. An issue's title, quoted verbatim, is left out. */
 function passWording(data, file, landed) {
   const hits = passRefsIn(data, "", [], titleSkip(data));
   if (!hits.length) return;
-  const msg = `BOARD WORDING: ${file} holds an older wording: ${hits.slice(0, 6).map(h => `${h.at} ("${h.hit}")`).join(", ")}${hits.length > 6 ? ` and ${hits.length - 6} more` : ""}; a board names a pass "${PASS_NAME} N", one not numbered "review", and each step by its name (plan/scripts/passnames.js)`;
+  const msg = `BOARD WORDING: ${file} holds an older wording: ${hits.slice(0, 6).map(h => `${h.at} ("${h.hit}")`).join(", ")}${hits.length > 6 ? ` and ${hits.length - 6} more` : ""}; a board names a pass "${PASS_NAME} N", one not numbered "review", each step by its name, and a Quality Review's checks "documentation check", "code check", "test check" (plan/scripts/passnames.js)`;
   if (landed) warn(`${msg} (kept as it landed; any rewrite rewords it)`); else fail(`${msg} (run embed.js, which rewords it)`);
 }
 

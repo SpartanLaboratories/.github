@@ -97,7 +97,8 @@ function commentRefs(html) {
 /* A fact text reworded so that it names no internal name, where a safe rewrite exists (plan/RULES.md §4, "The fast path"): the agent
    phrase is dropped ("accepted by the admin team" → "accepted"), a possessive becomes the article ("the planner's re-pass" → "the
    re-pass"), a role before its work becomes the work ("a planner re-pass" → "a plan re-pass", "rookie-dev's fixes" → "the fixes",
-   "code-reviewer" → "code check", "qa's test-inspector" → "the review's test check"), and an aside on the approval flow is dropped
+   "code-reviewer" → "code check", "documentation-reviewer" → "documentation check", "qa's test-inspector" → "the review's test check":
+   a Quality Review's checks by their progress notes' labels, plan/scripts/passnames.js NOTE_WORK, dashboards-skill/52), and an aside on the approval flow is dropped
    ("(the user's call)", "at the user's call"). Returns { text, left }: the reworded text, and the names still in it (none when it names none). The caller writes text when left is empty,
    leaves it out where an unambiguous name remains, and asks the presenter to look (enrich) either way. */
 function scrubNames(text) {
@@ -116,7 +117,7 @@ function scrubNames(text) {
   /* a role's work */
   s = s.replace(/\bplanner\s+(re-?pass(?:es)?|leg)\b/gi, "plan $1").replace(/\brookie-dev\s+(fix(?:es)?|pass(?:es)?|stage|stages)\b/gi, "$1")
     .replace(/\bqa['’]s\s+test-inspector\b/gi, "the review's test check").replace(/\btest-inspector\b/gi, "test check")
-    .replace(/\bcode-reviewer\b/gi, "code check").replace(/\bdocumentation-reviewer\b/gi, "documentation review")
+    .replace(/\bcode-reviewer\b/gi, "code check").replace(/\bdocumentation-reviewer\b/gi, "documentation check")
     .replace(/\bqa\s+(has|had)\s+approved\b/gi, "the review $1 approved").replace(/\bqa\s+approved\b/gi, "the review approved");
   /* a possessive: "the planner's re-pass" → "the re-pass", "rookie-dev's fixes" → "the fixes" */
   s = s.replace(new RegExp(`\\b(?:the\\s+)?${ROLE}['’]s\\s+`, "gi"), "the ");

@@ -1140,7 +1140,8 @@ const stepLabel=(s,c)=>!s?"":s==="remediation"?(c&&c.pass!=null?remediationName(
 const haltLabel=(s,c)=>s==="remediation"?routeName(c&&c.route):stepLabel(s,c);
 const REMEDIATION_NOTE="Correction or Resolution after a Quality Review; each step is recorded as it runs";
 const PROGRESS_NOTE="a progress note: a report of the work as it happens";
-const NOTE_WORK={planner:"planning",interviewer:"interview",researcher:"research",verifier:"verification",architect:"architecture","plan-writer":"plan writing","rookie-dev":"implementation","test-inspector":"test check",qa:PASS_NAME,"code-reviewer":"code check","documentation-reviewer":"documentation review"};
+/* a Quality Review's checks by the check, "documentation check", "code check", "test check" (dashboards-skill/52; passnames.js NOTE_WORK) */
+const NOTE_WORK={planner:"planning",interviewer:"interview",researcher:"research",verifier:"verification",architect:"architecture","plan-writer":"plan writing","rookie-dev":"implementation","test-inspector":"test check",qa:PASS_NAME,"code-reviewer":"code check","documentation-reviewer":"documentation check"};
 const EVENT_STEP={sized:"sizing","research-planning":"research","research-started":"research","research-returned":"research","research-verifying":"research","research-complete":"research",interview:"interview","architecture-signed-off":"architecture","sub-issues-filed":"sub-issues","boards-created":"boards","plan-accepted":"plan","branch-cut":"branch","implementation-stage":"implementation","qa-pass":"qa",document:"document",landing:"landing","state-boards":"state-boards",merge:"merge",landed:"landed"};
 function raisedWords(raised){ const s=String(raised==null?"":raised).trim(); if(!s) return ""; let m=/^implementation-stage(?:\s+(\S+))?$/i.exec(s);
   if(m) return `raised during ${STEP_NAME.implementation}${m[1]?`, stage ${/^S\d+$/i.test(m[1])?m[1].slice(1):m[1]}`:""}`;
@@ -1796,7 +1797,8 @@ function stepsLine(steps,cur,o){ o=o||{}; const i=steps.indexOf(cur), held=o.hel
    step panel: its work, how long it has run, what is done, what is left, its estimate and when it wrote; a note not updated for over 20
    minutes is drawn muted. A tracking board probes each unit in progress under the unit's own issue. The names below are
    file names only: a note is shown by the work it reports (noteLabel(), NOTE_WORK under names:begin: "research ·
-   <slug>", "implementation · s2", "code check"), never by its file's name (no internal names on a board, dashboards-skill/33). */
+   <slug>", "implementation · s2"; a Quality Review's checks "documentation check", "code check", "test check", dashboards-skill/52), never by
+   its file's name (no internal names on a board, dashboards-skill/33). */
 const AGENTS=["planner","interviewer","researcher","verifier","architect","plan-writer","rookie-dev","test-inspector","qa","code-reviewer","documentation-reviewer"];
 const noteLabel=name=>{ const n=String(name||""), b=Object.keys(NOTE_WORK).sort((x,y)=>y.length-x.length).find(k=>n===k||n.startsWith(k+"-")); return b?NOTE_WORK[b]+(n.length>b.length?" · "+n.slice(b.length+1):""):"progress"; };
 const PROG_STALE_MS=20*60000;

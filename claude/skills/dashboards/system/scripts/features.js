@@ -350,6 +350,15 @@ const FEATURES = [
       if (k === "work-board") return need(/const unitRunWord=u=>[^\n]*stepLabel\(u\.step,\{route:u\.route\|\|null\}\)/.test(s), "the chain summary names a unit's fix step \"Correction\" whatever its route (no route in unitRunWord())");
       return need(/const resumeAt=\(s,c\)=>haltLabel\(s,c\);/.test(s) && /const runWord=r=>\{[^\n]*`in progress\$\{L\.step\?` \(\$\{esc\(stepLabel\(L\.step,runCtx\(L\)\)\)\}\)`:""\}`/.test(s),
         "a run's step shown by its id (\"resumes at implementation\", \"in progress (remediation)\"): resumeAt() or the chain summary's runWord() without stepLabel()"); } },
+  /* dashboards-skill/52 (the user's decision of 2026-11-06): a Quality Review's checks are labelled by the check, "documentation check",
+     "code check", "test check": the progress notes the step panel shows (the names block's NOTE_WORK, which is passnames.js NOTE_WORK; a
+     tracking board's notes of each unit's run alike). The trail and the details are the data's: apply-event.js writes the label
+     (namerefs.js scrubNames()) and every rewrite rewords the older "documentation review". A board drawn before it labels a live note
+     "documentation review" until its next rebuild (its next event, the splice); a landed issue board is kept as it landed (§11). */
+  { id: "check-labels", name: "a Quality Review's checks labelled \"documentation check\", \"code check\", \"test check\" (the step panel's progress notes)", since: 52, types: ["plan-board"],
+    notFor: { system: "no run: a state board shows the code at a commit, not a run's progress notes", supersystem: "no run: a state board shows the code at a commit, not a run's progress notes", "work-board": "one row per run: it shows no progress notes; the text a row carries comes from board.json, which board.js rewords" },
+    test: h => { const s = scripts(h); return need(/"documentation-reviewer":"documentation check"/.test(s) && /"code-reviewer":"code check"/.test(s) && /"test-inspector":"test check"/.test(s),
+      "a Quality Review's checks labelled otherwise than \"documentation check\", \"code check\", \"test check\" (the names block's NOTE_WORK)"); } },
 ];
 /* The layout detectors, run in the browser pass (check-board.js's probe), named here so the report and the rules list them. */
 const LAYOUT = [
