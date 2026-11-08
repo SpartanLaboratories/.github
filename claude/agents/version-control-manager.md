@@ -349,6 +349,8 @@ issue is linked:
     "learned the endpoint from the datagram source; replied on the receiving
     socket; dropped `commonSendSocket`", not a diff dump. A few sentences or a
     short list.
+  - **A link to the PR that landed it** —
+    `https://github.com/<owner>/<repo>/pull/<n>`.
   - **Links to every `.md` file created or materially updated while resolving
     it** — the plan, the implementation/design doc, a UAT doc, an ADR, anything
     under `docs/` (normally the issue's `docs/plans/…/<number>-<slug>/` folder). Link each as
