@@ -19,11 +19,16 @@
 //   Refused, exit 2 and nothing written: wip, trail, status, sized, branch, asBuilt, kind and the board's identity (schema, repo, issue, slug, folder), foundation
 //   and links (embed.js clears and writes them): the events own them. A work level (level, unit.level, proposedLevel) is dropped and named, never written (levels.js).
 //   A qa pass the fields name "qa pass N" is written "Quality Review N" (passnames.js), and so is one the board already holds, before the merge; named in notes.
+//   An internal name (GUIDANCE.md §4; namerefs.js cleanWritten()) in the fields' text is reworded where a safe rewording exists, and named in notes; a text that
+//   would still name one no library uses is refused, exit 2 and nothing written, the field and the name said: the presenter rewords it. A wait on the user reads
+//   "waiting on you". An issue's title, quoted verbatim, an option's signature, which is code, and a $comment are left alone.
 //   Two narrow ways into what the events own, each by what it names, so neither undoes an event:
 //   "trailAdd": [{ date, column, label, ref? }] appends trail entries, one already there skipped;
+//   "trailFix": [{ "label": "<the entry as it reads>", "to": "<as it should read>" }] rewords trail entries already there, each found by its label; a label not there is
+//   named and skipped (for a text that should never have been written: an internal name, a work level);
 //   "wip": { "stages": [{ id, rows }], "questions": [{ question, rows }], "interview": [{ text, answer }], "asked": [{ text, step?, answer }], "qa": [{ pass, note }],
-//            "current": { "step": "<the step this glow is for>", "cells": ["<row-id>.<column>"] }, "waitingOn": "<what waits on the user>" } sets only those
-//   fields of the items it names, an item the board does not hold named and skipped, and the glow only while the board's step is still that step. Any
+//            "current": { "step": "<the step this glow is for>", "cells": ["<row-id>.<column>"] }, "waitingOn": "<what waits on the user>", "detail": "<the WIP line, reworded>" }
+//   sets only those fields of the items it names, an item the board does not hold named and skipped, and the glow only while the board's step is still that step. Any
 //   other wip key is refused. An answer's gist (the interview's, a halt's) is written on the snapshots that hold its question too (lib.js syncAsked()).
 //   wip.waitingOn is the text the fast path left out or wrote in its stead (plan/RULES.md §4, "A work level in the facts is reworded"): while the board
 //   is halted or escalated it is written, and the stop's own trail entry and a detail that quoted the old text follow it, so the record reads alike;
@@ -35,11 +40,12 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const lib = require("./lib.js");
 const { titleSkip } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
+const { cleanWritten } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
 
 const OWNED = ["wip", "trail", "status", "sized", "branch", "asBuilt", "kind", "schema", "repo", "issue", "slug", "folder", "foundation", "links"];
 const IDENTITY = ["id", "slug", "issue", "class", "question", "pass", "n"];
 const LEVELS = new Set(["level", "proposedLevel"]);
-const WIP_KEYS = ["stages", "questions", "interview", "asked", "qa", "current", "waitingOn"];
+const WIP_KEYS = ["stages", "questions", "interview", "asked", "qa", "current", "waitingOn", "detail"];
 const UNIT_KEPT = ["issue", "board", "folder", "live"];
 const ROW_DERIVED = ["pending", "in-progress", "partially-built"];
 const isObj = v => v != null && typeof v === "object" && !Array.isArray(v);
@@ -55,6 +61,23 @@ function withoutLevels(v, at, dropped) {
     /* a test class's own test level (tests.*.level) is no work level */
     if (LEVELS.has(k) && !/^tests\b/.test(at)) { dropped.push(here); return; }
     out[k] = withoutLevels(v[k], here, dropped); });
+  return out;
+}
+/* the text of the fields, through the writers' one rule (namerefs.js cleanWritten()): reworded where it can be, named in notes; a name no rewording removes is refused.
+   A key is skipped by the path skip() accepts: an issue's title, quoted verbatim, and an option's signature, which is code. */
+function withoutNames(v, at, skip, notes) {
+  if (Array.isArray(v)) return v.map((x, i) => withoutNames(x, `${at}[${i}]`, skip, notes));
+  if (typeof v === "string") {
+    if (skip(at)) return v;
+    const r = cleanWritten(v);
+    if (r.out) throw new Refused(`${at} names ${r.left.map(h => JSON.stringify(h)).join(", ")}, an internal name a board never shows (GUIDANCE.md §4): reword it and fill again`);
+    if (r.text !== v) notes.push(`${at}: an internal name reworded (${JSON.stringify(r.text.length > 80 ? r.text.slice(0, 79) + "…" : r.text)})`);
+    if (r.left.length) notes.push(`${at} names ${r.left.map(h => JSON.stringify(h)).join(", ")}: written as it is; reword it if it names the pipeline's role rather than the code's`);
+    return r.text;
+  }
+  if (!isObj(v)) return v;
+  const out = {};
+  Object.keys(v).forEach(k => { out[k] = k === "$comment" ? v[k] : withoutNames(v[k], at ? `${at}.${k}` : k, skip, notes); });
   return out;
 }
 /* A change's identity: a difference names its unit and the entry it changed and says what changed; "no change" is one per unit. A list a fill composed earlier
@@ -96,7 +119,7 @@ function mergeRow(cur, next, notes, plan) {
 /* The fill onto a board, in memory. Returns { plan, merged, notes, dropped }; throws Refused on a field the events own. */
 function mergeFill(board, fields) {
   if (!isObj(fields)) throw new Refused("the fields are not a JSON object");
-  const dropped = [], F = withoutLevels(fields, "", dropped), plan = JSON.parse(JSON.stringify(board)), merged = [], notes = [];
+  const dropped = [], notes = [], tSkip = titleSkip(null, "plan-board"), F = withoutNames(withoutLevels(fields, "", dropped), "", at => tSkip(at) || /^rows\[\d+\]\.options\[\d+\]\.signature$/.test(at) || /^trailFix\[\d+\]\.label$|^wip\.(?:interview|asked|questions|stages|qa)\[\d+\]\.(?:text|question|id|pass)$/.test(at), notes), plan = JSON.parse(JSON.stringify(board)), merged = [];
   /* the qa passes by name, "Quality Review N" (passnames.js): the fill's own text and the board's, so an item named by its text still matches */
   { const fr = lib.renamePassesIn(F, titleSkip(null, "plan-board")), br = lib.renamePasses(plan);
     if (fr.length) notes.push(`the fill's ${fr.slice(0, 4).join(", ")}${fr.length > 4 ? ", …" : ""}: a qa pass written "${lib.PASS_NAME} N"`); br.forEach(l => notes.push(`the board: ${l}`)); }
@@ -104,7 +127,7 @@ function mergeFill(board, fields) {
   if (bad.length) throw new Refused(`${bad.join(", ")}: the events own ${bad.length === 1 ? "it" : "them"}, and a fill writes none (fill.js's head says what it may write)`);
   if (F.wip !== undefined) { const off = isObj(F.wip) ? Object.keys(F.wip).filter(k => !WIP_KEYS.includes(k)) : ["(not an object)"]; if (off.length) throw new Refused(`wip.${off.join(", wip.")}: the events own ${off.length === 1 ? "it" : "them"}; a fill's wip names only ${WIP_KEYS.join(", ")}`); }
   const hadUnits = (plan.rows || []).some(r => r && r.unit);
-  Object.keys(F).filter(k => !["wip", "trailAdd"].includes(k)).forEach(k => {
+  Object.keys(F).filter(k => !["wip", "trailAdd", "trailFix"].includes(k)).forEach(k => {
     if (k === "rows" && Array.isArray(F.rows)) {
       if (F.rows.some(r => !isObj(r) || typeof r.id !== "string" || !r.id)) throw new Refused("rows: every row names its id");
       plan.rows = mergeList(Array.isArray(plan.rows) ? plan.rows : [], F.rows, "id", (c, n) => mergeRow(c, n, notes, plan));
@@ -116,6 +139,11 @@ function mergeFill(board, fields) {
     F.trailAdd.forEach(t => { if (!isObj(t) || typeof t.label !== "string" || !t.label.trim()) throw new Refused("trailAdd: every entry has a label");
       if (!plan.trail.some(x => x && x.date === t.date && x.column === t.column && x.label === t.label)) { plan.trail.push(t); n++; } });
     merged.push(`trail +${n}`); }
+  /* trailFix: a trail entry reworded in place, found by its label (a text that should never have been written) */
+  if (Array.isArray(F.trailFix)) { const trail = Array.isArray(plan.trail) ? plan.trail : [];
+    F.trailFix.forEach(t => { if (!isObj(t) || typeof t.label !== "string" || typeof t.to !== "string" || !t.to.trim()) throw new Refused("trailFix: every entry has a label and a to");
+      const hit = trail.filter(x => isObj(x) && x.label === t.label); if (!hit.length) { notes.push(`trailFix: no trail entry reads ${JSON.stringify(t.label)}: skipped`); return; }
+      hit.forEach(x => { x.label = t.to; }); merged.push(`trail reworded ${hit.length}`); }); }
   const w = plan.wip = isObj(plan.wip) ? plan.wip : {};
   if (isObj(F.wip)) {
     const by = (name, key, list, set) => { (Array.isArray(list) ? list : []).forEach(x => { const have = (Array.isArray(w[name]) ? w[name] : []).find(y => isObj(y) && y[key] === (x || {})[key]);
@@ -133,6 +161,7 @@ function mergeFill(board, fields) {
     if (isObj(F.wip.current)) { const C = F.wip.current, cells = Array.isArray(C.cells) ? C.cells.map(String) : [];
       if (typeof C.step !== "string") throw new Refused("wip.current names the step its glow is for ({ step, cells })");
       if (lib.shownStep(w) === C.step) { w.current = cells; merged.push(`wip.current at ${C.step}`); } else notes.push(`wip.current was for ${C.step}; the board has moved on to ${lib.shownStep(w)}: left as the event set it`); }
+    if (F.wip.detail !== undefined) { if (typeof F.wip.detail !== "string" || !F.wip.detail.trim()) throw new Refused("wip.detail is a text: the WIP line"); if (w.detail !== F.wip.detail) { w.detail = F.wip.detail; merged.push("wip.detail"); } }
     /* what waits on the user, written by the presenter where the fast path could not write the run's own text (an internal name or a work level in
        it). While the board waits: wip.waitingOn, and the stop's trail entry ("… waiting on you (<text>)") and a detail made of it ("Waiting on you:
        <text>") follow it, so the record says one thing. Once an event has taken the board out of the stop: the last stop's trail entry alone, its

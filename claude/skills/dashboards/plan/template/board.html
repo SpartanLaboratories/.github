@@ -397,9 +397,9 @@ const QA={approved:{g:"✓",l:"approved",c:"good"},"changes-requested":{g:"✕",
 const PASS_NAME="Quality Review", REVIEW="review", passName=n=>`${PASS_NAME} ${n}`;
 const STEP_NAME={sizing:"Sizing",interview:"Interview",research:"Research",architecture:"Architecture","sub-issues":"Sub-issues",boards:"Boards",plan:"Plan",branch:"Branch",implementation:"Implementation",qa:PASS_NAME,remediation:"Correction",document:"Document",landing:"Landing","state-boards":"State boards",merge:"Merge",landed:"Landed",halted:"Waiting on you",escalated:"Escalated",cancelled:"Cancelled"};
 const ROUTE_NAME={"on-the-spot":"Correction",remediation:"Correction","re-plan-then-remediation":"Resolution"};
-/* the routes' older ids, read as the new ones (dashboards-skill/33): a board.json written before them */
-const ROUTE_OLD={"rookie-dev":"remediation","planner-then-rookie-dev":"re-plan-then-remediation"};
-const routeName=r=>ROUTE_NAME[ROUTE_OLD[r]||r]||ROUTE_NAME.remediation;
+/* the routes' older ids, read as the new ones (dashboards-skill/33): a board.json written before them; an older id ends in -dev, and one starting plan re-passes the plan first */
+const routeKey=r=>typeof r==="string"&&/-dev$/.test(r)?(/^plan/.test(r)?"re-plan-then-remediation":"remediation"):r;
+const routeName=r=>ROUTE_NAME[routeKey(r)]||ROUTE_NAME.remediation;
 const stepLabel=(s,c)=>!s?"":s==="remediation"?routeName(c&&c.route):STEP_NAME[s]||String(s);
 const inPlaceWords=p=>p&&p.inPlace?`${p.inPlace==="fixing"?"fixing":"fixed"} in place · no additional ${REVIEW}`:"";
 /* names:end */

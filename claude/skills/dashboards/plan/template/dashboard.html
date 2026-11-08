@@ -1180,8 +1180,8 @@ const QA={approved:{g:"✓",label:"approved",cls:"good"},"changes-requested":{g:
 const PASS_NAME="Quality Review", REVIEW="review", passName=n=>`${PASS_NAME} ${n}`, passNames=l=>l.length===1?passName(l[0]):`${PASS_NAME}s ${l.join(", ")}`;
 const STEP_NAME={sizing:"Sizing",interview:"Interview",research:"Research",architecture:"Architecture","sub-issues":"Sub-issues",boards:"Boards",plan:"Plan",branch:"Branch",implementation:"Implementation",qa:PASS_NAME,remediation:"Correction",document:"Document",landing:"Landing","state-boards":"State boards",merge:"Merge",landed:"Landed",halted:"Waiting on you",escalated:"Escalated",cancelled:"Cancelled"};
 const ROUTE_NAME={"on-the-spot":"Correction",remediation:"Correction","re-plan-then-remediation":"Resolution"};
-/* the routes' older ids, read as the new ones (dashboards-skill/33): a board written before them */
-const ROUTE_OLD={"rookie-dev":"remediation","planner-then-rookie-dev":"re-plan-then-remediation"}, routeKey=r=>ROUTE_OLD[r]||r;
+/* the routes' older ids, read as the new ones (dashboards-skill/33): a board written before them; an older id ends in -dev, and one starting plan re-passes the plan first */
+const routeKey=r=>typeof r==="string"&&/-dev$/.test(r)?(/^plan/.test(r)?"re-plan-then-remediation":"remediation"):r;
 const routeName=r=>ROUTE_NAME[routeKey(r)]||ROUTE_NAME.remediation;
 const remediationName=(r,p)=>{ const n=parseInt(p,10); return Number.isInteger(n)&&n>1?`${routeName(r)} of ${passName(n)}`:routeName(r); };
 /* a step by its name; c {route, pass} names a remediation visit (no pass: the step, bare) */
@@ -1190,8 +1190,8 @@ const stepLabel=(s,c)=>!s?"":s==="remediation"?(c&&c.pass!=null?remediationName(
 const haltLabel=(s,c)=>s==="remediation"?routeName(c&&c.route):stepLabel(s,c);
 const REMEDIATION_NOTE="Correction or Resolution after a Quality Review; each step is recorded as it runs";
 const PROGRESS_NOTE="a progress note: a report of the work as it happens";
-/* a Quality Review's checks by the check, "documentation check", "code check", "test check" (dashboards-skill/52; passnames.js NOTE_WORK) */
-const NOTE_WORK={planner:"planning",interviewer:"interview",researcher:"research",verifier:"verification",architect:"architecture","plan-writer":"plan writing","rookie-dev":"implementation","test-inspector":"test check",qa:PASS_NAME,"code-reviewer":"code check","documentation-reviewer":"documentation check"};
+/* a progress note by the work it reports, [the stem its file name begins with, the label]: stems, so the board carries no file's name (noteLabel()). A Quality Review's checks by the check, "documentation check", "code check", "test check" (dashboards-skill/52; passnames.js NOTE_WORK, verify/cases-check-labels.js holds noteLabel() to it) */
+const NOTE_WORK=[["plann","planning"],["interview","interview"],["research","research"],["verif","verification"],["archit","architecture"],["plan-wr","plan writing"],["rookie-d","implementation"],["test-insp","test check"],["qa",PASS_NAME],["code-rev","code check"],["documentation-rev","documentation check"]];
 const EVENT_STEP={sized:"sizing","research-planning":"research","research-started":"research","research-returned":"research","research-verifying":"research","research-complete":"research",interview:"interview","architecture-signed-off":"architecture","sub-issues-filed":"sub-issues","boards-created":"boards","plan-accepted":"plan","branch-cut":"branch","implementation-stage":"implementation","qa-pass":"qa",document:"document",landing:"landing","state-boards":"state-boards",merge:"merge",landed:"landed"};
 function raisedWords(raised){ const s=String(raised==null?"":raised).trim(); if(!s) return ""; let m=/^implementation-stage(?:\s+(\S+))?$/i.exec(s);
   if(m) return `raised during ${STEP_NAME.implementation}${m[1]?`, stage ${/^S\d+$/i.test(m[1])?m[1].slice(1):m[1]}`:""}`;
@@ -1851,21 +1851,19 @@ function stepsLine(steps,cur,o){ o=o||{}; const i=steps.indexOf(cur), held=o.hel
    Every part of the run writes docs/plans/.live/progress/<issue>/<name>.js in its checkout every 10 minutes it runs, one line
    setting window.PROGRESS["<name>"] to its note (who, issue, times, done, left, estimate), and deletes it when it finishes. While the run is
    live and the board is a local copy, each live poll reads the names the issue's folder holds from its index.js (plan/scripts/progress-index.js
-   keeps it, with no event: a board from disk cannot list a folder, and a note's slug is its writer's own) and probes those and the names the
-   run is known to have: one per kind of work, one per research question, one per stage (a missing file is simply no note). Each note is an info card of the
+   keeps it, with no event: a board from disk cannot list a folder, and a note's slug is its writer's own) and probes those (a missing file is simply no note,
+   and with no index the panel lists none). Each note is an info card of the
    step panel: its work, how long it has run, what is done, what is left, its estimate and when it wrote; a note not updated for over 20
-   minutes is drawn muted. A tracking board probes each unit in progress under the unit's own issue. The names below are
-   file names only: a note is shown by the work it reports (noteLabel(), NOTE_WORK under names:begin: "research ·
+   minutes is drawn muted. A tracking board probes each unit in progress under the unit's own issue. The names are
+   file names only, none of them in this script: a note is shown by the work it reports (noteLabel(), NOTE_WORK under names:begin: "research ·
    <slug>", "implementation · s2"; a Quality Review's checks "documentation check", "code check", "test check", dashboards-skill/52), never by
    its file's name (no internal names on a board, dashboards-skill/33). */
-const AGENTS=["planner","interviewer","researcher","verifier","architect","plan-writer","rookie-dev","test-inspector","qa","code-reviewer","documentation-reviewer"];
-const noteLabel=name=>{ const n=String(name||""), b=Object.keys(NOTE_WORK).sort((x,y)=>y.length-x.length).find(k=>n===k||n.startsWith(k+"-")); return b?NOTE_WORK[b]+(n.length>b.length?" · "+n.slice(b.length+1):""):"progress"; };
+const noteLabel=name=>{ const n=String(name||""); for(const [s,w] of NOTE_WORK){ const m=new RegExp(`^${s}[a-z]*(?=-|$)`).exec(n); if(m) return w+(n.length>m[0].length?" · "+n.slice(m[0].length+1):""); } return "progress"; };
 const PROG_STALE_MS=20*60000;
 let PROG={};
 const KEY_PROG=`<span><i class="progk"></i>${esc(PROGRESS_NOTE)}</span>`;
 const KEY_PROG_STALE=`<span><i class="progk stale"></i>muted: no update for over 20 minutes</span>`;
-function progNames(R,listed){ R=R||{}; const qs=questionsOf(R).map(q=>"researcher-"+q.question), st=(Array.isArray(R.stages)?R.stages:[]).filter(x=>x&&x.id).map(x=>"rookie-dev-"+String(x.id).toLowerCase());
-  return [...new Set([...AGENTS,...qs,...st,...(Array.isArray(listed)?listed:[])])].filter(n=>typeof n==="string"&&/^[a-z0-9][a-z0-9-]*$/.test(n)); }
+function progNames(listed){ return [...new Set(Array.isArray(listed)?listed:[])].filter(n=>typeof n==="string"&&/^[a-z0-9][a-z0-9-]*$/.test(n)); }
 function loadNoteNames(issue){ return new Promise(res=>{ const k=String(issue), sc=document.createElement("script"); try{ if(window.PROGRESS_NAMES) delete window.PROGRESS_NAMES[k]; }catch(e){}
   sc.src=`${UP}docs/plans/.live/progress/${issue}/index.js?t=${Date.now()}`;
   sc.onload=()=>{ const v=(window.PROGRESS_NAMES||{})[k]; sc.remove(); res(Array.isArray(v)?v:[]); }; sc.onerror=()=>{ sc.remove(); res([]); }; document.head.appendChild(sc); }); }
@@ -1874,7 +1872,7 @@ function loadNote(issue,name){ return new Promise(res=>{ const sc=document.creat
   sc.onload=()=>{ const v=(window.PROGRESS||{})[name]; sc.remove(); res(v&&typeof v==="object"&&!Array.isArray(v)?v:null); }; sc.onerror=()=>{ sc.remove(); res(null); }; document.head.appendChild(sc); }); }
 async function pollProgress(){ if(!(runLive()&&LIVE_LOCAL)) return;
   const runs=[[PLAN.issue,WIP],...(TRACKING?ROWS.filter(r=>r.unit&&r.unit.issue&&runOf(r)).map(r=>[r.unit.issue,runOf(r)]):[])], next={};
-  for(const [n,R] of runs){ const names=progNames(R,await loadNoteNames(n)), got=await Promise.all(names.map(x=>loadNote(n,x))); names.forEach((x,i)=>{ if(got[i]) (next[n]=next[n]||{})[x]=got[i]; }); }
+  for(const [n] of runs){ const names=progNames(await loadNoteNames(n)), got=await Promise.all(names.map(x=>loadNote(n,x))); names.forEach((x,i)=>{ if(got[i]) (next[n]=next[n]||{})[x]=got[i]; }); }
   if(JSON.stringify(next)!==JSON.stringify(PROG)){ PROG=next; renderWip(); } }
 function progressHtml(issue,keys){ const notes=Object.entries(PROG[issue]||{}); if(!notes.length) return ""; const now=Date.now(), span=ms=>{ const m=Math.max(0,Math.round(ms/60000)); return m<90?`${m} min`:`${Math.round(m/60)} h`; };
   const items=notes.map(([name,p])=>{ const at=Date.parse(String(p.at||"")), st=Date.parse(String(p.started||"")), stale=isNaN(at)||now-at>PROG_STALE_MS; keys.add(KEY_PROG); if(stale) keys.add(KEY_PROG_STALE);

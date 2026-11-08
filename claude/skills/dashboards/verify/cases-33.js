@@ -42,8 +42,8 @@ module.exports = function cases33(X) {
       c.push([`${what}: the word "bubble" names nothing (no class, no function, no text)`, !/bubble/i.test(h), (h.match(/.{0,30}bubble.{0,30}/i) || [""])[0]]);
       const cm = N.commentRefs(h);
       c.push([`${what}: its comments name no internal role (the placeholder mark is fill:)`, !cm.length && !/<!--\s*presenter:|\/\/\s*presenter:/.test(h), js(cm)]);
-      /* the shown strings: the text outside scripts, and the template literals and strings of its scripts, less the progress notes' file names */
-      const body = text(h), strs = [...h.replace(/\/\*[\s\S]*?\*\//g, "").split(/\r?\n/).filter(l => !/const (AGENTS|NOTE_WORK|ROUTE_OLD)=|function progNames\(|^\s*\/\//.test(l)).join("\n").matchAll(/`([^`]*)`|"([^"\n]{12,})"/g)].map(m => m[1] || m[2]).join(" | ");
+      /* the shown strings: the text outside scripts, and the template literals and strings of its scripts */
+      const body = text(h), strs = [...h.replace(/\/\*[\s\S]*?\*\//g, "").split(/\r?\n/).filter(l => !/^\s*\/\//.test(l)).join("\n").matchAll(/`([^`]*)`|"([^"\n]{12,})"/g)].map(m => m[1] || m[2]).join(" | ");
       const hits = [...N.nameRefs(body), ...N.nameRefs(strs).filter(x => !/^admin-team$/i.test(x))];
       c.push([`${what}: no internal name in what it shows`, !hits.length, js([...new Set(hits)])]);
     });

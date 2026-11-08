@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="dashboard" content="org-work-board">
+<meta name="template" content="plan/template/org-board.html">
+<title>Org work board</title>
+<script>/* the theme switch's choice (GUIDANCE.md §1, Themes), applied before the first paint; none chosen: the system setting */try{var t=localStorage.getItem("dashboards-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
+<style>
+/* The org work board (plan/RULES.md, the org work board; shared rules: GUIDANCE.md; based on plan/template/board.html, the repository work board, and its
+   rules, plan/RULES.md §5). Every run in every repository of the organization at once: one repository Panel per repository, holding that
+   repository's runs as its own repository work board draws them (one row per issue that has an issue board or is sized for a run on the tracker, grouped
+   by tracking issue in landing order, then the rest by age, each tracking issue's units as a StepBar under its row) and its own Legend,
+   then an organization Panel per sub-organization with its repository Panels inside; the parent organization has no container of its own.
+   A template plus its data: board.json embedded verbatim below (plan/scripts/org-board.js). The committed board is a snapshot, regenerated at every landing in a repository on the board, read
+   from each repository's work-board data (its live view where one exists, else its committed board.json); the live view on this machine (docs/plans/.live/org-work-board/)
+   re-reads each sibling checkout's live data as it changes, so it never needs regenerating to follow a run. Never hand-edit a board.
+   Colour plan as on every board: --sys-1..6 are the registry slots. On this board they are each repository's own slots, so a colour is read
+   within its repository Panel, whose Legend names the systems it drew; status colours only beside a glyph and a word; the accent marks the
+   runs being worked on now (a FullPulse: an accent Ring and an interior that breathe) and the next unit up (a still outer Ring and an UP NEXT
+   tag); dashed = not started or no board yet. A row with no board takes its state from the tracker (plan/RULES.md §5, "Boardless rows").
+   Links depend on where the board is opened (the links block in the script): opened from disk, a link opens the live file in the sibling
+   checkout; on the website, the website's form of a link (one function, siteUrl()). */
+:root{
+  --bg:#f3f5f8; --surface:#fcfcfd; --surface-2:#eef1f6; --ink:#0e1420; --ink-2:#4a5468; --muted:#7d879a;
+  --line:#dfe4ec; --hair:rgba(14,20,32,.10);
+  --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+  --accent:#6d47e0; --on:#0e1420; --focus:#2a78d6; --link:#2a78d6;
+  --sys-1:#2a78d6;--sys-2:#653184;--sys-3:#0d7680;--sys-4:#1d2660;--sys-5:#9656aa;--sys-6:#1a9ec7;
+  --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:ui-monospace,"Cascadia Mono",Consolas,"SF Mono",monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--accent:#a58bff;--on:#eef1f6;--focus:#3987e5;--link:#6aa6f0;--sys-1:#3987e5;--sys-2:#8a44d8;--sys-3:#1f8089;--sys-4:#b4bef5;--sys-5:#a86fb8;--sys-6:#31b5f4;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--accent:#a58bff;--on:#eef1f6;--focus:#3987e5;--link:#6aa6f0;--sys-1:#3987e5;--sys-2:#8a44d8;--sys-3:#1f8089;--sys-4:#b4bef5;--sys-5:#a86fb8;--sys-6:#31b5f4;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans);padding-block:0 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.page{max-width:1280px;margin:0 auto}
+/* wide desktop (16:9 screens): the board uses most of the window, as the issue boards do (GUIDANCE.md §6) */
+@media (min-width:1500px){.page{max-width:min(2400px,100%)}}
+a{color:inherit}
+code{font-family:var(--mono);font-size:.92em;overflow-wrap:anywhere;background:var(--surface-2);border:1px solid var(--hair);padding:1px 4px;border-radius:3px}
+/* the code label (GUIDANCE.md §12, "Code"; dashboards-skill/42): every inline code drawn as a label of its own,
+   in both themes, at normal weight inside bold text; inside a chip, a pill or a tile (a label or a figure already: each class carries
+   its type word) it stays plain mono text */
+:is(b,strong,.name,.nm,dt,th) code{font-weight:400}
+:is([class*="chip"],[class*="pill"],[class*="tile"]) code{background:none;border:0;padding:0;border-radius:0}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.crumbs{font-size:12px;color:var(--muted);padding-top:18px}
+.crumbs a{text-decoration:none}
+/* The header's tools, right of the breadcrumb: the live indicator (the committed board reads "not live · snapshot", the live view follows the
+   checkouts) and the theme switch (GUIDANCE.md §1, Themes). The live dot is ink, never a status or accent colour. */
+.topbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;padding-top:18px}
+.topbar .crumbs{padding-top:0;min-width:0}
+.tools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-left:auto}
+.livechip{display:inline-flex;align-items:center;gap:6px;font:600 11px/1 var(--mono);letter-spacing:.03em;padding:5px 9px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink-2);white-space:nowrap}
+.livechip:empty{display:none}
+.livechip .ld{width:8px;height:8px;border-radius:50%;background:var(--ink);flex:none}
+.livechip.on{color:var(--ink);border-color:var(--ink-2)}
+.livechip.on.fillpulse .ld{animation:livepulse 1.6s ease-in-out infinite}
+.livechip.off .ld{background:none;border:1.5px solid var(--muted)}
+.livechip.na .ld{background:var(--muted)}
+.livechip a{color:inherit;text-decoration:none;border-bottom:1px solid var(--line)}
+@keyframes livepulse{0%,100%{opacity:1}50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.livechip .ld{animation:none!important}}
+/* The header's switches (GUIDANCE.md §12, "Switch"): a track with a knob that slides to the side of the state shown, a real toggle
+   (role="switch", aria-checked) in the boards' neutrals, never the accent or a status colour. The theme switch's ends are ☀ light and
+   ☾ night, its knob at the palette shown. The knob slides in a short transition, and jumps under reduced motion. */
+.switch{appearance:none;display:inline-flex;align-items:center;gap:5px;font:600 11px/1 var(--mono);padding:3px 7px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.switch:hover{color:var(--ink);border-color:var(--ink-2)}
+.switch-track{position:relative;flex:none;width:28px;height:16px;border:1px solid var(--ink-2);border-radius:8px;background:var(--surface-2);transition:background-color .18s ease}
+.switch-knob{position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:var(--ink-2);transition:transform .18s ease}
+.switch[aria-checked="true"] .switch-track{background:color-mix(in srgb,var(--ink-2) 35%,var(--surface))}
+.switch[aria-checked="true"] .switch-knob{transform:translateX(12px);background:var(--ink)}
+.switch-end{font-size:12px;color:var(--muted)}
+.switch[aria-checked="false"] .switch-end.off,.switch[aria-checked="true"] .switch-end.on{color:var(--ink)}
+@media (prefers-reduced-motion:reduce){.switch-track,.switch-knob{transition:none}}
+h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)}
+.function{color:var(--ink-2);margin:0 0 10px;max-width:78ch;font-size:15px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 6px}
+.chip{font:12px/1 var(--mono);padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink-2);max-width:100%;overflow-wrap:anywhere}
+.chip b{color:var(--ink);font-weight:600}
+/* The header's two halves (GUIDANCE.md §6, "The header"): from 940 px the intro (the title, the function) fills the left half and the
+   tags stand in the right half beside it, each a small card with its label over its value, growing to fill its line, a long one across
+   the half (.wide); under 940 px the two stack and the tags wrap as chips, the label before the value. The topbar (the breadcrumb, the
+   live indicator, the theme switch) runs across the top. The same rules on every dashboard type. */
+.chip .ck{font:700 10px/1.2 var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+@media (min-width:940px){
+  header{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto auto auto 1fr;column-gap:28px}
+  header>.topbar{grid-column:1/-1;grid-row:1}
+  header>h1{grid-column:1;grid-row:2}
+  header>.function{grid-column:1;grid-row:3;max-width:none}
+  header>.chips{grid-column:2;grid-row:2/-1;align-self:start;align-content:flex-start;gap:8px;margin:8px 0 6px}
+  header>.chips>.chip{display:block;flex:1 1 190px;padding:7px 10px 8px;font-size:12.5px;line-height:1.4;border-radius:6px}
+  header>.chips>.chip .ck{display:block;margin:0 0 2px}
+  header>.chips>.chip.wide{flex-basis:100%}
+}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0 18px}
+.kpi-tile{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0}
+.kpi-tile .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.kpi-tile .v{font-size:22px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi-tile .s{font-size:12px;color:var(--ink-2);margin-top:2px}
+/* A tile that counts states carries a segmented bar of them, its legend inside the tile (GUIDANCE.md §2, "Figures"): the Runs and the Landed
+   tiles. A tile that counts one state (active, waiting, up next, not started) has nothing to segment and carries none. */
+.kpi-tile .seg-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;gap:2px;margin-top:8px;background:var(--surface-2)}
+.kpi-tile .seg-bar i{display:block;height:100%;background:var(--ink-2)}
+.seg-bar i.good{background:var(--good)}.seg-bar i.warning{background:var(--warning)}.seg-bar i.serious{background:var(--serious)}.seg-bar i.critical{background:var(--critical)}.seg-bar i.neutral{background:var(--muted)}.seg-bar i.accent{background:var(--accent)}
+.seg-bar i.hollow{background:none!important;border:1.5px solid var(--good)}
+.seg-bar i.pln{background:none!important;border:1.5px dashed var(--muted)}
+.kpi-tile .legend{margin-top:6px;gap:4px 10px;font-size:11px}
+.legend i.segk{width:14px;height:6px;border:0;border-radius:2px;background:var(--sc,var(--ink-2))}
+.legend i.segk.good{--sc:var(--good)}.legend i.segk.warning{--sc:var(--warning)}.legend i.segk.serious{--sc:var(--serious)}.legend i.segk.critical{--sc:var(--critical)}.legend i.segk.neutral{--sc:var(--muted)}.legend i.segk.accent{--sc:var(--accent)}
+.legend i.segk.hollow{background:none;border:1.5px solid var(--good);height:7px}
+.legend i.segk.pln{background:none;border:1.5px dashed var(--muted);height:7px}
+/* the Context's legend (GUIDANCE.md §2): the encodings its cards draw */
+.context>.legend{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-top:10px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow-x:auto;overflow-y:hidden}
+.tab{appearance:none;border:0;background:none;color:var(--ink-2);font:inherit;font-weight:600;padding:10px 14px;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.tab.model::after{content:" JSON";font:10px var(--mono);color:var(--muted);vertical-align:super}
+.view{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px;min-width:0}
+.view h2{font-size:15px;margin:0 0 4px}
+.lede{font-size:13px;color:var(--ink-2);margin:0 0 10px;max-width:90ch}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin:10px 0 0;font-size:12px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:16px;height:11px;border-radius:3px;border:1.5px solid var(--ink-2);background:var(--surface);flex:none}
+.legend i.sbar{border-color:var(--line);border-left:4px solid var(--c)}
+.legend i.pln{border-style:dashed;background:none;border-color:var(--muted)}
+.legend i.gl{border:2px solid var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--surface));box-shadow:inset 0 0 4px 1px color-mix(in srgb,var(--accent) 60%,transparent)}
+.legend i.nx{border-color:color-mix(in srgb,var(--accent) 70%,transparent);box-shadow:0 0 6px 2px color-mix(in srgb,var(--accent) 35%,transparent)}
+.verdict-pill{--sc:var(--muted);display:inline-flex;align-items:center;gap:5px;font:600 10.5px/1.2 var(--mono);padding:2px 6px;border-radius:3px;border:1px solid var(--line);border-left:3px solid var(--sc);background:color-mix(in srgb,var(--sc) 14%,var(--surface));color:var(--ink);white-space:nowrap}
+.verdict-pill i,.legend .verdict-pill i{font-style:normal;font-weight:700;display:inline;width:auto;height:auto;border:0;border-radius:0;background:none;box-shadow:none}
+/* a tracking issue's chain (plan/RULES.md §3, "The chain's progress"): the summary in its state cell, and its units as a StepBar on a row
+   of its own under it, across the table (dashboards-skill/54; a board.json written before the bar's units: the bar from its unit rows) */
+.chainsum{font-size:12px;color:var(--ink-2);line-height:1.4;min-width:0;overflow-wrap:anywhere}
+.chainsum b{color:var(--ink)}
+.chainsum a{text-decoration:none;border-bottom:1px solid var(--line)}
+/* The StepBar (nomenclature/ui.md, StepBar; dashboards-skill/54): the steps of a sequence in order, each a chevron with its name inside,
+   done, current or to come. An ordered list, the current step aria-current="step", each step's state said in words to a screen reader
+   (.sb-st). It stands on a line of its own and wraps inside itself at phone width, never widening the board; a long name wraps inside its
+   chevron. Done: solid, the strong neutral with a faint wash; current: solid, in ink and bold; to come: dashed and muted. Each chevron is
+   its list item clipped to the shape, its edge (::before) and its fill (::after) layered inside it, so a dashed edge and a mark follow the
+   chevron; each nests into the notch of the next. The same rules on every dashboard type that draws one. */
+.stepbar{list-style:none;margin:6px 0 2px;padding:0 0 0 7px;display:flex;flex-wrap:wrap;gap:4px 0;min-width:0;max-width:100%}
+.stepbar>li{--sb-edge:var(--ink-2);--sb-fill:color-mix(in srgb,var(--ink-2) 14%,var(--surface));--sb-w:1.5px;position:relative;z-index:0;display:flex;align-items:center;min-width:0;max-width:calc(100% + 7px);min-height:26px;margin-left:-7px;padding:4px 15px 4px 19px;font:11.5px/1.25 var(--mono);color:var(--ink);overflow-wrap:anywhere;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%,10px 50%)}
+.stepbar>li:first-child{padding-left:11px;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%)}
+.stepbar>li::before,.stepbar>li::after{content:"";position:absolute;inset:0;z-index:-2;background:var(--sb-edge)}
+.stepbar>li::after{z-index:-1;inset:var(--sb-w);background:var(--sb-fill);clip-path:polygon(1px 0,calc(100% - 9px) 0,100% 50%,calc(100% - 9px) 100%,1px 100%,10.5px 50%)}
+.stepbar>li:first-child::after{clip-path:polygon(0 0,calc(100% - 9px) 0,100% 50%,calc(100% - 9px) 100%,0 100%)}
+.stepbar>li.cur{--sb-edge:var(--ink);--sb-fill:color-mix(in srgb,var(--ink) 7%,var(--surface));--sb-w:2px;font-weight:700}
+.stepbar>li.todo{--sb-edge:repeating-linear-gradient(90deg,var(--muted) 0 5px,transparent 5px 9px);--sb-fill:var(--surface);color:var(--muted)}
+.stepbar .sb-st{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.legend i.sbk{position:relative;z-index:0;width:22px;height:12px;border:0;border-radius:0;background:none;--sb-edge:var(--ink-2);--sb-fill:color-mix(in srgb,var(--ink-2) 14%,var(--surface));--sb-w:1.5px;clip-path:polygon(0 0,calc(100% - 6px) 0,100% 50%,calc(100% - 6px) 100%,0 100%,6px 50%)}
+.legend i.sbk::before,.legend i.sbk::after{content:"";position:absolute;inset:0;z-index:-2;background:var(--sb-edge)}
+.legend i.sbk::after{z-index:-1;inset:var(--sb-w);background:var(--sb-fill);clip-path:polygon(1px 0,calc(100% - 5px) 0,100% 50%,calc(100% - 5px) 100%,1px 100%,6.5px 50%)}
+.legend i.sbk.cur{--sb-edge:var(--ink);--sb-fill:color-mix(in srgb,var(--ink) 7%,var(--surface));--sb-w:2px}
+.legend i.sbk.todo{--sb-edge:repeating-linear-gradient(90deg,var(--muted) 0 3px,transparent 3px 5px);--sb-fill:var(--surface)}
+.tbl tr.chainrow>td{border-top:0;padding:0 6px 10px;border-left:4px solid var(--c,var(--muted))}
+.tbl tr.chainrow .stepbar{margin:0}
+.tbl .stepbar>li{font-size:12px}
+.verdict-pill.good{--sc:var(--good)}.verdict-pill.warning{--sc:var(--warning)}.verdict-pill.serious{--sc:var(--serious)}.verdict-pill.critical{--sc:var(--critical)}
+.verdict-pill.neutral,.verdict-pill.hollow{background:var(--surface)}
+/* Depends on, and Blocks · enables (plan/RULES.md §5; dashboards-skill/30): each issue with a small pill of its state, glyph and word */
+.deps{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+.dep{display:inline-flex;flex-wrap:wrap;align-items:center;gap:2px 5px;min-width:0}
+.dep .verdict-pill{font-size:9.5px;padding:1px 5px}
+/* one pill per dependency, two parts: its build state (a status pill) and its locality (a neutral ramp, faintest near, full ink far) */
+.dep-pill{display:inline-flex;align-items:stretch;border-radius:3px;white-space:nowrap}
+.dep-pill>.verdict-pill{border-top-right-radius:0;border-bottom-right-radius:0}
+.loc{--lc:var(--muted);display:inline-flex;align-items:center;gap:4px;font:600 9.5px/1.2 var(--mono);padding:1px 5px;border:1px solid var(--line);border-left:3px solid var(--lc);border-radius:3px;background:var(--surface);color:var(--ink-2);white-space:nowrap}
+.dep-pill>.verdict-pill+.loc{border-left-width:3px;border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-1px}
+.loc i{font-style:normal;font-weight:700}
+.loc.l1{--lc:color-mix(in srgb,var(--ink) 22%,var(--surface))}.loc.l2{--lc:color-mix(in srgb,var(--ink) 45%,var(--surface))}.loc.l3{--lc:color-mix(in srgb,var(--ink) 70%,var(--surface))}.loc.l4{--lc:var(--ink)}
+.legend .loc i,.legend .dep-pill i{display:inline;width:auto;height:auto;border:0;background:none;box-shadow:none}
+.verdict-pill.dashed{border-style:dashed;color:var(--ink-2)}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--c,var(--muted));flex:none;vertical-align:-1px;margin-right:5px}
+/* In progress (GUIDANCE.md §1): a FullPulse (.fullpulse), a solid accent Ring with an interior that breathes, over an accent wash. With
+   reduced motion it holds still at its middle strength. Up next: a still outer Ring (.upnext-ring), with the UP NEXT tag beside it. */
+@keyframes fullpulse{0%,100%{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 3px 1px color-mix(in srgb,var(--accent) 35%,transparent)}50%{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 9px 3px color-mix(in srgb,var(--accent) 65%,transparent)}}
+.verdict-pill.fullpulse,.fullpulse{animation:fullpulse 2s ease-in-out infinite;background:color-mix(in srgb,var(--accent) 16%,var(--surface));border-color:var(--accent);border-left-color:var(--sc,var(--accent))}
+@media (prefers-reduced-motion:reduce){.verdict-pill.fullpulse,.fullpulse{animation:none!important;box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 6px 2px color-mix(in srgb,var(--accent) 50%,transparent)}}
+/* A run that waits on you, halted or escalated, keeps its in-progress mark stopped to the Ring alone (GUIDANCE.md §1): still. */
+.verdict-pill.held{box-shadow:inset 0 0 0 2px var(--accent)}
+.legend i.hold{border:2px solid var(--accent)}
+.upnext-ring{box-shadow:0 0 0 1.5px color-mix(in srgb,var(--accent) 70%,transparent),0 0 9px 2px color-mix(in srgb,var(--accent) 30%,transparent)}
+.tag-next{display:inline-block;font:700 9.5px/1 var(--mono);letter-spacing:.08em;padding:3px 5px;border-radius:3px;border:1px solid var(--accent);color:var(--accent);background:var(--surface);white-space:nowrap;vertical-align:1px}
+.tags{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;margin-top:4px}
+.scroll{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:900px}
+.tbl th,.tbl td{text-align:left;padding:7px 6px;border-top:1px solid var(--hair);vertical-align:top}
+.tbl td{overflow-wrap:anywhere}
+.tbl th{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-top:0}
+.tbl tr.run>:first-child{border-left:4px solid var(--c,var(--muted))}
+/* the columns' shares (dashboards-skill/30: no branch or board column; the issue's title is its board's link, the branch is in the state) */
+.tbl thead th:nth-child(1){width:20%}.tbl thead th:nth-child(2){width:14%}.tbl thead th:nth-child(4){width:14%}.tbl thead th:nth-child(5){width:15%}.tbl thead th:nth-child(6){width:12%}
+.tbl tr.run.nob>:first-child{border-left-style:dashed}
+.tbl tr.grp th{padding-top:16px;font:700 11px var(--sans);color:var(--muted);letter-spacing:.07em;text-transform:uppercase}
+.tbl tr.grp th a{text-decoration:none;border-bottom:1px solid var(--line);text-transform:none;letter-spacing:0;font-family:var(--mono);font-weight:400}
+.tbl .t{color:var(--ink)}
+.tbl tr.grp th a+a{font:inherit;text-transform:inherit;letter-spacing:inherit;color:inherit}
+.tbl .sub{font-size:11.5px;color:var(--muted);margin-top:2px;font-family:var(--mono)}
+.tbl a{text-decoration:none;border-bottom:1px solid var(--line)}
+.tbl small{color:var(--ink-2)}
+/* The runs table's content, larger (dashboards-skill/31): every column but Now (the issue, the state with its branch, the qa
+   passes, Depends on, Blocks · enables), with their pills, scaled up to read comfortably and fill the room; Now keeps its size.
+   Under 880 px each run is a card of its cells, each labelled, so the board never scrolls sideways and nothing scrolls inside the table. */
+.tbl{font-size:14.5px;min-width:1000px}
+.tbl th,.tbl td{padding:9px 8px}
+.tbl th{font-size:11.5px}
+.tbl .t{font-size:15px;line-height:1.4}
+.tbl .sub{font-size:12.5px;margin-top:3px}
+.tbl small{font-size:12px}
+.tbl .verdict-pill{font-size:12px;padding:3px 8px;gap:6px}
+.tbl .dep .verdict-pill,.tbl .loc{font-size:11.5px;padding:2px 7px}
+.tbl .dep{gap:3px 6px}
+.tbl .deps{gap:6px}
+.tbl .tags{gap:5px 7px;margin-top:6px}
+.tbl .tag-next{font-size:11px;padding:4px 6px}
+.tbl .chainsum{font-size:13.5px}
+.tbl td:nth-child(3){font-size:12.5px}
+.tbl td:nth-child(3) .sub{font-size:11.5px}
+.tbl td:nth-child(3) small{font-size:inherit}
+@media (min-width:1500px){.tbl{font-size:15px}.tbl .t{font-size:15.5px}.tbl .verdict-pill{font-size:12.5px}.tbl .dep .verdict-pill,.tbl .loc{font-size:12px}.tbl .qamark{font-size:12px}.tbl .chainsum{font-size:14px}}
+@media (max-width:879.98px){
+  .tbl{min-width:0}
+  .tbl,.tbl tbody,.tbl tr.grp,.tbl tr.grp th{display:block}
+  .tbl thead{display:none}
+  .tbl tr.grp th{padding:16px 6px 6px}
+  .tbl tr.run{display:grid;grid-template-columns:minmax(0,1fr);border-top:1px solid var(--line);border-left:4px solid var(--c,var(--muted));padding:4px 0 6px}
+  .tbl tr.run.nob{border-left-style:dashed}
+  .tbl tr.run>:first-child{border-left:0}
+  .tbl tr.run>td{display:block;border-top:0;padding:5px 10px;min-width:0}
+  .tbl tr.run>td:empty{display:none}
+  .tbl tr.run>td:nth-child(2){order:1}.tbl tr.run>td:nth-child(4){order:2}.tbl tr.run>td:nth-child(3){order:3}.tbl tr.run>td:nth-child(5){order:4}.tbl tr.run>td:nth-child(6){order:5}
+  .tbl tr.run>td:nth-child(n+2)::before{display:block;font:600 10.5px/1.3 var(--sans);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+  .tbl tr.run>td:nth-child(2)::before{content:"State"}.tbl tr.run>td:nth-child(3)::before{content:"Now"}.tbl tr.run>td:nth-child(4)::before{content:"Quality Reviews"}.tbl tr.run>td:nth-child(5)::before{content:"Depends on"}.tbl tr.run>td:nth-child(6)::before{content:"Blocks · enables"}
+  .tbl .verdict-pill,.tbl .qamark,.tbl .dep-pill{white-space:normal;max-width:100%}
+  .tbl tr.chainrow,.tbl tr.chainrow>td{display:block}
+  .tbl tr.chainrow>td{padding:0 10px 10px}
+}
+@media (min-width:600px) and (max-width:879.98px){
+  .tbl tr.run{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .tbl tr.run>td:nth-child(1),.tbl tr.run>td:nth-child(3){grid-column:1/-1}
+}
+/* the decision not to run another qa pass (dashboards-skill/31): a small neutral mark beside the pass, its glyph and words */
+.qas{display:flex;flex-direction:column;gap:5px;align-items:flex-start}
+.qa1{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 6px;max-width:100%}
+.qamark{display:inline-flex;align-items:center;gap:4px;font:600 10.5px/1.2 var(--mono);padding:2px 6px;border:1px solid var(--line);border-radius:3px;background:var(--surface);color:var(--ink-2);white-space:nowrap}
+.tbl .qamark{font-size:11.5px;padding:2px 7px}
+.qamark i,.legend .qamark i{font-style:normal;font-weight:700;display:inline;width:auto;height:auto;border:0;background:none;box-shadow:none}
+.verdict-pill a,.kpi-tile .s a{text-decoration:none;border-bottom:1px solid var(--line)}
+pre.src{margin:0;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:14px;font:12px/1.5 var(--mono);overflow:auto;color:var(--ink);max-height:70vh}
+.context{margin-top:24px}
+.context h2{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 10px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0}
+.card h3{font-size:13px;margin:0 0 8px}
+.card h3 small{font-weight:400;color:var(--muted);font-family:var(--mono);font-size:11px}
+.issues{list-style:none;margin:0;padding:0;font-size:12.5px}
+.issues li{display:grid;grid-template-columns:minmax(0,1fr);gap:2px;padding:5px 0;border-top:1px solid var(--hair);align-items:start}
+.issues span.nm>a:first-of-type,.tbl .t>a:first-child,.grp>th>a:first-child{font-family:var(--mono);color:var(--ink-2)}
+.issues span{color:var(--ink-2);min-width:0;overflow-wrap:anywhere}
+.issues span a{text-decoration:none;border-bottom:1px solid var(--line)}
+.issues ul{grid-column:1/-1;list-style:none;margin:2px 0 0;padding:0 0 0 14px}
+.issues li.rp{border-top:0;padding-top:8px}
+.issues li.rp>b{font:600 12px var(--sans);color:var(--ink)}
+.docs{margin:0;padding:0;list-style:none;font-size:12.5px}
+.docs li{padding:4px 0;border-top:1px solid var(--hair);color:var(--ink-2)}
+.docs li.rp{border-top:0;padding-top:8px;font-weight:600;color:var(--ink)}
+.docs a{text-decoration:none;border-bottom:1px solid var(--line);color:var(--ink)}
+footer{margin-top:28px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+footer code{color:var(--ink-2)}
+/* an archived system (registry status "archived", dashboards-skill/35): neutral through its slot 0, solid, faded, a neutral tag beside its name */
+.sysarch,.sbar.arch{opacity:.6;filter:saturate(.35)}
+.archtag{display:inline-block;font:700 10px/1.2 var(--mono);letter-spacing:.04em;color:var(--ink-2);padding:1px 5px;border:1px solid var(--muted);border-radius:3px;background:var(--surface-2);margin-left:4px}
+/* The org work board's Panels. A repository Panel (.repo-panel): the repository's name (the link to it on GitHub), its default branch and
+   what the snapshot read, then its runs table and its own Legend, as its repository work board draws them; a repository with no
+   work-board data in the snapshot shows its head and says so (solid: nothing planned). An organization Panel (.org-panel): a sub-organization,
+   its repository Panels inside. Both are Panels (nomenclature/ui.md): a region under its own heading. */
+.repo-panel{border:1px solid var(--line);border-radius:6px;background:var(--bg);padding:10px;margin:0 0 14px;min-width:0}
+.repo-panel:last-child{margin-bottom:0}
+.repo-head{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 14px;min-width:0}
+.repo-head h3,.repo-head h4{font-size:17px;margin:0;font-family:var(--mono);letter-spacing:-.01em;overflow-wrap:anywhere}
+.repo-head :is(h3,h4) a{text-decoration:none;border-bottom:1px solid var(--line)}
+.repo-head :is(h3,h4) small{font:400 12px var(--mono);color:var(--muted);margin-left:8px}
+.repo-head .sub{font-size:12.5px;color:var(--ink-2);margin-top:4px;overflow-wrap:anywhere}
+.repo-head .sub a{text-decoration:none;border-bottom:1px solid var(--line)}
+.repo-head .stats{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.repo-head .stats .chip{padding:4px 7px;font-size:11.5px}
+.repo-panel>.scroll{margin-top:10px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:0 6px}
+.repo-panel>.legend{margin-top:8px;padding:0 4px}
+.repo-panel.empty .repo-head{border-color:var(--line)}
+.repo-panel.empty>.legend{padding:0 4px;margin-top:8px}
+.org-panel{border:2px solid var(--ink-2);border-radius:8px;padding:10px;margin:18px 0 0;background:var(--surface-2);min-width:0}
+.org-panel>.repo-head{margin-bottom:12px}
+.org-panel>.repo-head h3{font-size:19px}
+.repos-lede{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:14px 0 8px}
+</style>
+</head>
+<body>
+<div class="page">
+<header>
+  <div class="topbar"><div class="crumbs" id="crumbs"></div><div class="tools"><span class="livechip off" id="live"></span><button class="switch" id="theme" type="button" role="switch" aria-checked="false"></button></div></div>
+  <h1>Org work board</h1>
+  <p class="function" id="function"></p>
+  <div class="chips" id="chips"></div>
+</header>
+<div class="kpis" id="kpis"></div>
+<div class="tabs" role="tablist" aria-label="Views">
+  <button class="tab" role="tab" id="t-repos" aria-controls="p-repos" aria-selected="true">Repositories</button>
+  <button class="tab model" role="tab" id="t-source" aria-controls="p-source" aria-selected="false">Source</button>
+</div>
+<section class="view" role="tabpanel" id="p-repos" aria-labelledby="t-repos">
+  <h2>Every run in every repository, grouped by tracking issue in landing order, then the rest by age</h2>
+  <p class="lede" id="repos-lede"></p>
+  <div id="repos"></div>
+  <div class="legend" id="repos-key"></div>
+</section>
+<section class="view" role="tabpanel" id="p-source" aria-labelledby="t-source" hidden>
+  <h2>board.json <small>this board's data, embedded verbatim</small></h2>
+  <pre class="src" id="source-view" tabindex="0"></pre>
+  <div class="legend" id="source-key"></div>
+</section>
+<section class="context">
+  <h2>Context</h2>
+  <div class="cards" id="context"></div>
+</section>
+<footer id="footer"></footer>
+</div>
+
+<!-- A verbatim copy of board.json. Do not edit here. -->
+<script type="application/json" id="board">
+{}
+</script>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+/* Times (GUIDANCE.md §6, "Times"): stored as UTC ISO stamps; shown in the viewer's own time zone, with the zone's abbreviation,
+   as a <time> whose datetime and title hold the exact UTC value. A date alone stays a date; a stamp with no zone is shown as written. */
+const STAMP_RE=/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})$/;
+const utcIso=s=>{ const d=new Date(String(s).replace(" ","T")); return isNaN(d)?null:d.toISOString().replace(/\.000Z$/,"Z"); };
+const LOCAL_FMT={day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",timeZoneName:"short"};
+const when=v=>{ const s=String(v==null?"":v).trim(), u=STAMP_RE.test(s)&&utcIso(s); return u?`<time datetime="${u}" title="${u} (UTC)">${esc(new Date(u).toLocaleString(undefined,LOCAL_FMT))}</time>`:esc(s); };
+const day=v=>{ const s=String(v==null?"":v).trim(), u=STAMP_RE.test(s)&&utcIso(s); return u?`<time datetime="${u}" title="${u} (UTC)">${esc(new Date(u).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"}))}</time>`:esc(s); };
+
+/* board.json: the organization, its repositories (each with the work-board data read for it, or none), its sub-organizations with
+   theirs, and the public repositories not shown; a private repository is on no list. The renderer walks every repository; while it draws one, CUR is that repository (its
+   owner/name key, its data D, its rows and its systems), so the row rules below read as they do on a repository work board. */
+const B=JSON.parse(document.getElementById("board").textContent||"{}");
+const repoKey=r=>`${r.owner}/${r.name}`;
+const ALL_REPOS=[...(B.repositories||[]),...(B.organizations||[]).flatMap(o=>o.repositories||[])];
+const repoOf=k=>ALL_REPOS.find(r=>repoKey(r)===k)||null;
+let CUR=null, D={}, ROWS=[], SYS=[];
+function enter(r){ CUR=r; D=(r&&r.board)||{}; ROWS=D.rows||[]; SYS=D.systems||[]; }
+const ext=(h,t)=>`<a href="${esc(h)}" target="_blank" rel="noopener">${t}</a>`;
+/* ---------- Where this board is opened: links ----------
+   Opened from disk (a file: URL), the repositories are the sibling folders of OrganizationPage's checkout (the live view's "siblings", where it was generated with another
+   folder of checkouts): once the board has read a checkout's
+   work-board data (readSiblings(), below), a link to that repository's file opens the live file in that checkout, and a link to its repository work board
+   opens its live view. On the website a link takes the website's form. No served form exists yet: siteUrl() is the one function a later step changes when the
+   boards are served; it returns the full GitHub URL for now. A repository's "boards" map (board.json) holds each board with the ref it was found on: its
+   default branch, or its run's branch once that branch and the file are on GitHub; a board on neither is listed under "unlinked" and not linked on the website. */
+const LOCAL=location.protocol==="file:", SIB=B.siblings||(B.live?"../../../../../":"../../../../");
+const LIVE_DATA=new Map(); /* owner/name: { data, dir, json } the checkout's work-board data as last read, and the folder it came from */
+const siteUrl=(r,p,ref)=>`${r.url}/blob/${encodeURI(`${ref||r.defaultBranch}/${p}`)}`;
+const seen=r=>!!r&&LOCAL&&LIVE_DATA.has(repoKey(r));
+const atCheckout=(r,dir,rel)=>/^[a-z][a-z0-9+.-]*:/i.test(rel)?rel:`${SIB}${r.name}/${dir}/${rel}`;
+const localBoard=(r,n)=>{ const {data,dir}=LIVE_DATA.get(repoKey(r)), hit=[...(data.rows||[]),...(data.groups||[]),...(data.roadmap||[])].find(x=>x&&String(x.issue)===String(n)&&x.board); return hit?atCheckout(r,dir,hit.board):null; };
+/* a file of the repository: the live file in its checkout when the board was opened beside it, else the website's form */
+const repoFile=(r,k)=>{ const p=(r.links||{})[k]; if(seen(r)&&k==="workBoard") return atCheckout(r,LIVE_DATA.get(repoKey(r)).dir,"index.html"); if(!p) return ""; return seen(r)?`${SIB}${r.name}/${p}`:siteUrl(r,p); };
+/* Links to an issue and its board (plan/RULES.md §1, §5; GUIDANCE.md §5). Where an issue's number and its title appear together they are
+   two links, pair(): the number opens the GitHub issue and the title opens the issue's board, plain text while none is there. Where only
+   one link fits, ilink() opens the board when one is there and the GitHub issue otherwise. An issue of another repository is labelled
+   Repo#n; outside a repository Panel every issue is. */
+const keyOf=repo=>repo||(CUR?repoKey(CUR):null);
+const boardOf=(n,repo)=>{ const r=repoOf(keyOf(repo)); if(!r) return null; if(seen(r)){ const h=localBoard(r,n); if(h) return h; } const b=r.boards&&r.boards[String(n)]; return b?siteUrl(r,b.path,b.ref):null; };
+const ghUrl=(n,repo)=>`https://github.com/${keyOf(repo)}/issues/${n}`;
+const prUrl=(n,repo)=>`https://github.com/${keyOf(repo)}/pull/${n}`;
+const ilabel=(n,repo)=>{ const k=keyOf(repo); return `${!CUR||k!==repoKey(CUR)?esc(String(k||"").split("/")[1])+"#":"#"}${esc(n)}`; };
+const ilink=(n,repo)=>{ const b=boardOf(n,repo); return b?ext(b,ilabel(n,repo)):ext(ghUrl(n,repo),ilabel(n,repo)); };
+const codeOnly=s=>String(s==null?"":s).split("`").map((p,i)=>i%2?`<code>${esc(p)}</code>`:esc(p)).join("");
+const plural=(n,one,many)=>`${n} ${Number(n)===1?one:(many||one+"s")}`;
+/* every title pair() shows is the issue's own, quoted verbatim and marked data-issue-title (GUIDANCE.md §5) */
+const pair=(n,title,repo)=>{ const b=boardOf(n,repo), t=codeOnly(title), m=` data-issue-title="${esc(n)}"`; return `${ext(ghUrl(n,repo),ilabel(n,repo))} ${b?`<a href="${esc(b)}" target="_blank" rel="noopener" title="#${esc(n)}: its issue board"${m}>${t}</a>`:`<span${m}>${t}</span>`}`; };
+/* #n and owner/repo#n are linked in one pass; "PR #n" is a pull request, never an issue's board */
+const rich=s=>String(s==null?"":s).split("`").map((p,i)=>i%2?`<code>${esc(p)}</code>`:esc(p).replace(/(^|[\s(>;,])(?:PR #(\d+)|([\w.-]+\/[\w.-]+)#(\d+)|#(\d+))\b/g,(m,a,pr,r,rn,n)=>a+(pr?ext(prUrl(pr),`PR #${esc(pr)}`):r?ilink(rn,r):ilink(n)))).join("");
+const sysOf=sl=>SYS.find(s=>s.slug===sl);
+/* an archived system holds no slot (GUIDANCE.md §1): slot 0 is neutral; a repository's slots are its own registry's */
+const sysLit=s=>!!s&&s.status!=="archived"&&s.slot>=1&&s.slot<=6;
+const sysColour=sl=>{ const s=sysOf(sl); return sysLit(s)?`var(--sys-${s.slot})`:"var(--muted)"; };
+const swatch=sl=>`<span class="sw" style="--c:${sysColour(sl)}"></span>`;
+const STATUS={
+  landed:{g:"✓",l:"landed",c:"good"}, complete:{g:"☑",l:"complete · not merged",c:"good",h:1}, building:{g:"●",l:"building",c:"neutral"}, planning:{g:"●",l:"planning",c:"neutral"},
+  halted:{g:"⏸",l:"waiting on you",c:"warning"}, escalated:{g:"⇧",l:"escalated",c:"serious"}, abandoned:{g:"✕",l:"cancelled",c:"critical"},
+  next:{g:"→",l:"next · not started",c:"neutral",d:1}, "not-started":{g:"…",l:"not started",c:"neutral",d:1},
+  "in-progress":{g:"▸",l:"in progress",c:"neutral",desc:"no board: a branch or an open pull request refers to it"}, merged:{g:"✓",l:"merged · awaiting close",c:"good",desc:"no board: its pull request merged, the issue still open"},
+  "not-planned":{g:"⊖",l:"closed · not planned",c:"neutral",desc:"no board: closed on the tracker as not planned"},
+  duplicate:{g:"⊜",l:"closed · duplicate",c:"neutral",desc:"no board: closed on the tracker as a duplicate of another issue"},
+  "no-board":{g:"–",l:"no board",c:"neutral",d:1}};
+const closedWord=x=>x&&x.state==="CLOSED"?(x.stateReason==="NOT_PLANNED"?"closed · not planned":x.stateReason==="DUPLICATE"?"closed · duplicate":"closed"):"";
+const BLOCKED={g:"⊘",l:"blocked",c:"warning"};
+const TAG_NEXT=`<span class="tag-next">UP NEXT</span>`;
+const QA={approved:{g:"✓",l:"approved",c:"good"},"changes-requested":{g:"✕",l:"changes requested",c:"critical"},running:{g:"…",l:"in progress",c:"neutral",d:1}};
+/* names:begin. The names the board shows (plan/scripts/passnames.js, the same names): the qa step "Quality Review", a pass "Quality
+   Review N", one not numbered "review"; the remediation step by its route, "Correction" or "Resolution"; every other step by its name. */
+const PASS_NAME="Quality Review", REVIEW="review", passName=n=>`${PASS_NAME} ${n}`;
+const STEP_NAME={sizing:"Sizing",interview:"Interview",research:"Research",architecture:"Architecture","sub-issues":"Sub-issues",boards:"Boards",plan:"Plan",branch:"Branch",implementation:"Implementation",qa:PASS_NAME,remediation:"Correction",document:"Document",landing:"Landing","state-boards":"State boards",merge:"Merge",landed:"Landed",halted:"Waiting on you",escalated:"Escalated",cancelled:"Cancelled"};
+const ROUTE_NAME={"on-the-spot":"Correction",remediation:"Correction","re-plan-then-remediation":"Resolution"};
+/* the routes' older ids, read as the new ones: an older id ends in -dev, and one starting plan re-passes the plan first */
+const routeKey=r=>typeof r==="string"&&/-dev$/.test(r)?(/^plan/.test(r)?"re-plan-then-remediation":"remediation"):r;
+const routeName=r=>ROUTE_NAME[routeKey(r)]||ROUTE_NAME.remediation;
+const stepLabel=(s,c)=>!s?"":s==="remediation"?routeName(c&&c.route):STEP_NAME[s]||String(s);
+const inPlaceWords=p=>p&&p.inPlace?`${p.inPlace==="fixing"?"fixing":"fixed"} in place · no additional ${REVIEW}`:"";
+/* names:end */
+const rowCtx=r=>{ const cr=(Array.isArray(r&&r.qa)?r.qa:[]).filter(p=>p&&p.verdict==="changes-requested"); return {route:(cr[cr.length-1]||{}).route||null}; };
+/* The passes a row shows: every pass its board records and the one running (plan/scripts/lib.js qaShown()). */
+function qaShown(r){ const qa=(Array.isArray(r.qa)?r.qa:[]).filter(p=>p&&typeof p==="object"); if(qa.some(p=>p.verdict==="running")) return qa; const last=qa[qa.length-1];
+  if(last&&last.verdict==="approved") return qa; if(r.step==="qa"){ const n=last&&Number.isInteger(last.pass)?last.pass+1:1; if(!(r.qaMax&&n>r.qaMax)) return [...qa,{pass:n,verdict:"running"}]; }
+  return last&&!last.inPlace&&last.verdict==="changes-requested"&&last.route==="on-the-spot"?[...qa.slice(0,-1),{...last,inPlace:r.step==="remediation"?"fixing":"fixed"}]:qa; }
+const INPLACE={g:"✎",desc:{fixed:"the findings were fixed on the spot, and no additional review ran",fixing:"the findings are being fixed on the spot; no additional review will run"}};
+const inPlaceMark=p=>p&&p.inPlace?`<span class="qamark" title="${esc(INPLACE.desc[p.inPlace==="fixing"?"fixing":"fixed"])}"><i aria-hidden="true">${INPLACE.g}</i>${esc(inPlaceWords(p))}</span>`:"";
+/* A dependency's two states (board.json waitsOn[]: build and locality, derived by the repository's board.js): its build state, in the
+   status colours with a glyph and a word; its locality, a neutral ramp from near to far. A dependency no rule fits has no state drawn.
+   And what this issue does to the issues it holds up (blocks[].hold). */
+const DEP={blocking:{g:"⊘",l:"blocking",c:"warning",desc:"its code is not merged yet"},clear:{g:"✓",l:"clear",c:"good",desc:"its code is merged"},"pre-built":{g:"◼",l:"pre-built",c:"neutral",desc:"outside the plan, built before it started: the plan's outcome does not apply to it"},dropped:{g:"✕",l:"dropped",c:"critical",desc:"closed as not planned: its code will never arrive, and the plan needs another look"}};
+const LOC={"local-repository":{g:"⌂",l:"repo",s:1,desc:"this repository"},"local-organization":{g:"◇",l:"org",s:2,desc:"another repository of this organization"},"local-parent-org":{g:"△",l:"parent org",s:3,desc:"a repository of the parent organization"},external:{g:"↗",l:"external",s:4,desc:"outside both organizations, named by its owner"}};
+const locOf=x=>{ const me=CUR?repoKey(CUR):"", l=x.locality!==undefined?x.locality:(!x.repo||x.repo===me?"local-repository":(x.repo.split("/")[0]===me.split("/")[0]?"local-organization":null)); return !l?null:String(l).startsWith("external-")?{k:"external",name:String(l).slice(9)}:LOC[l]?{k:l}:null; };
+const locChip=(L,word)=>`<span class="loc l${LOC[L.k].s}"><i aria-hidden="true">${LOC[L.k].g}</i>${esc(word||(L.k==="external"&&L.name?`external · ${L.name}`:LOC[L.k].l))}</span>`;
+const depPill=x=>{ const d=DEP[x.build], L=locOf(x); return d||L?`<span class="dep-pill"${x.why||x.via?` title="${esc(x.why||`a duplicate: the state of ${x.via}`)}"`:""}>${d?pill(d):""}${L?locChip(L):""}</span>`:""; };
+const HOLD={blocks:{g:"⊘",l:"blocks",c:"warning",desc:"this issue is still open: it holds these issues up"},enables:{g:"→",l:"enables",c:"good",desc:"this issue is done: these issues can go ahead"}};
+const holdOf=(x,r)=>HOLD[x.hold]?x.hold:r.state==="CLOSED"||stOf(r)==="landed"?"enables":"blocks";
+const pill=(d,word,extra)=>`<span class="verdict-pill ${d.c}${d.d?" dashed":""}${d.h?" hollow":""}${extra||""}"><i aria-hidden="true">${d.g}</i>${esc(word||d.l)}</span>`;
+const stOf=r=>STATUS[r.status]?r.status:"no-board";
+/* A tracking issue's state cell shows its chain's progress (plan/RULES.md §3, "The chain's progress"). */
+const unitRunWord=u=>u.step==="halted"?"waiting on you":u.step==="escalated"?"escalated":u.step==="cancelled"?"run cancelled":`in progress${u.step?` (${esc(stepLabel(u.step,{route:u.route||null}))})`:""}`;
+function chainText(c){ const extra=[c.dropped?`${c.dropped} dropped`:"",c.deferred?`${c.deferred} deferred`:"",c.left?`${c.left} left for later`:""].filter(Boolean);
+  if(c.done) return [`<b>landed</b> · ${c.landed} of ${c.total}`,...extra].join(" · ");
+  if(c.planned) return [`<b>planned</b> · ${c.total?`${c.total} unit${c.total===1?"":"s"}`:"no units yet"}`,...extra].join(" · ");
+  return [`<b>${c.landed} of ${c.total} landed</b>`,...(c.current||[]).map(u=>`${u.issue?ilink(u.issue):esc(u.slug)} ${unitRunWord(u)}`),
+    c.next?`${c.next.issue?ilink(c.next.issue):esc(c.next.slug)} up next${(c.next.blockedBy||[]).length?`, blocked by ${c.next.blockedBy.map(blockerRef).join(", ")}`:""}`:"",...extra].filter(Boolean).join(" · "); }
+const heldRow=r=>["halted","escalated"].includes(stOf(r))&&!!(r.board||r.parent);
+const chainCell=(r,st)=>`${["halted","escalated","abandoned"].includes(st)?pill(STATUS[st],"",heldRow(r)?" held":""):""}<div class="chainsum">${chainText(r.chain)}</div>`;
+/* The chain's StepBar (dashboards-skill/54): one chevron per unit in landing order, done, current or to come; no mark, as the unit at
+   work carries its FullPulse on its own row. */
+const SB_STATE={done:"landed",cur:"in progress",todo:"to come"};
+const chainUnits=r=>{ const c=r.chain||{}; if(Array.isArray(c.units)) return c.units.filter(u=>u&&typeof u==="object").map(u=>({name:u.name||u.slug||(u.issue?`#${u.issue}`:""),st:u.state==="done"?"done":u.state==="current"?"cur":"todo"}));
+  return ROWS.filter(x=>x.parent===r.issue&&x.group===r.group&&stOf(x)!=="abandoned").sort((a,b)=>a.order-b.order).map(x=>{ const s=stOf(x); return {name:x.title||`#${x.issue}`,st:s==="landed"?"done":["building","complete","halted","escalated","planning","in-progress"].includes(s)?"cur":"todo"}; }); };
+const chainBar=r=>{ const us=chainUnits(r); return us.length?`<ol class="stepbar" aria-label="#${esc(r.issue)}: its units in landing order">${us.map(u=>`<li class="${u.st}"${u.st==="cur"?' aria-current="step"':""}>${codeOnly(u.name)}<span class="sb-st">, ${SB_STATE[u.st]}</span></li>`).join("")}</ol>`:""; };
+const chainRow=r=>{ const b=r.chain?chainBar(r):""; return b?`<tr class="chainrow" style="--c:${sysColour(r.system)}"><td colspan="6">${b}</td></tr>`:""; };
+/* The impact's reconciliation state of a row's board, as the repository's board.json carries it: planned dashed, partly reconciled
+   yellow, as built green, each with its glyph and word. */
+const RECON={planned:{g:"…",l:"impact planned",c:"neutral",d:1,desc:"the plan's impact, nothing reconciled yet"},partial:{g:"◐",l:"impact partly reconciled",c:"warning",desc:"changes recorded as the work lands"},"as-built":{g:"✓",l:"impact as built",c:"good",desc:"reconciled with the build"}};
+const reconOf=r=>r.reconciliation&&RECON[r.reconciliation.state]?r.reconciliation:null;
+const reconTag=r=>{ const x=reconOf(r); if(!x) return ""; const d=RECON[x.state]; return `<div class="tags">${pill(d,x.state==="partial"&&x.total?`${d.l} · ${x.landed} of ${x.total}`:"")}</div>`; };
+const blockerRef=x=>x.issue!=null?ilink(x.issue,x.repo):esc(x.slug||`unit ${x.unit}`);
+const blockedTag=r=>(r.blockedBy||[]).length?`<span class="verdict-pill ${BLOCKED.c}"><i aria-hidden="true">${BLOCKED.g}</i>blocked by ${r.blockedBy.map(blockerRef).join(", ")}</span>`:"";
+const linkOr=(href,text)=>href?ext(href,text):text;
+
+/* ---------- One repository's runs table and its Legend: the repository work board's Runs tab, inside its Panel ---------- */
+function runsTable(){
+  let h=`<thead><tr><th>Issue</th><th>State</th><th>Now</th><th>${PASS_NAME}s</th><th>Depends on</th><th>Blocks · enables</th></tr></thead><tbody>`;
+  (D.groups||[]).forEach(g=>{ const rs=ROWS.filter(r=>r.group===g.key).sort((a,b)=>a.order-b.order); if(!rs.length) return;
+    h+=`<tr class="grp"><th colspan="6">${g.issue?pair(g.issue,g.title):esc(g.title)}</th></tr>`;
+    rs.forEach(r=>{ const st=stOf(r), qa=qaShown(r);
+      const iss=(x,bub,dep)=>{ const cw=closedWord(x), say=cw&&!(dep&&x.build==="clear"&&cw==="closed"); return `<span class="dep">${ilink(x.issue,x.repo)} ${bub}${say?`<small>${esc(cw)}</small>`:""}</span>`; };
+      h+=`<tr class="run${st==="no-board"||st==="not-started"||st==="next"?" nob":""}" style="--c:${sysColour(r.system)}"><td><span class="t">${pair(r.issue,r.title)}</span><div class="sub"><span class="${r.systemArchived?"sysarch":""}">${swatch(r.system)}${esc(r.systemName||"no system recorded")}</span>${r.systemArchived?` <span class="archtag">⊟ archived</span>`:""}${r.parent?` · part of ${ilink(r.parent)}`:""}${r.fixOf?` · fix to ${ilink(r.fixOf)}`:""}</div></td><td>${r.chain?chainCell(r,st):pill(STATUS[st],"",r.active?" fullpulse":st==="next"?" upnext-ring":heldRow(r)?" held":"")}${st==="next"?`<div class="tags">${TAG_NEXT}${blockedTag(r)}</div>`:""}${reconTag(r)}${r.tracker&&r.tracker.pr?`<div class="sub">${ext(prUrl(r.tracker.pr.number),`PR #${esc(r.tracker.pr.number)}`)} ${r.tracker.pr.state==="MERGED"?"merged":"open"}</div>`:""}${r.step?`<div class="sub">step ${esc(stepLabel(r.step,rowCtx(r)))}</div>`:""}${r.branch?`<div class="sub">branch <code>${esc(r.branch)}</code></div>`:""}</td><td>${rich(r.detail||"")}${r.landed?`<div class="sub">${[r.landed.pr?ext(prUrl(r.landed.pr),`PR #${esc(r.landed.pr)}`):"",r.landed.version?esc(r.landed.version):"",r.landed.date?when(r.landed.date):""].filter(Boolean).join(" · ")}</div>`:""}</td><td>${qa.length?`<div class="qas">${qa.map(p=>{ const d=QA[p.verdict]||QA.running; return `<span class="qa1">${pill(d,`${passName(p.pass)} · ${d.l}`)}${inPlaceMark(p)}</span>`; }).join("")}</div>`:""}${qa.length&&r.qaMax?`<div class="sub">of at most ${esc(r.qaMax)}</div>`:""}</td><td>${(r.waitsOn||[]).length?`<div class="deps">${r.waitsOn.map(x=>iss(x,depPill(x),1)).join("")}</div>`:""}</td><td>${(r.blocks||[]).length?`<div class="deps">${r.blocks.map(x=>iss(x,pill(HOLD[holdOf(x,r)]))).join("")}</div>`:""}</td></tr>${chainRow(r)}`; }); });
+  return h+"</tbody>";
+}
+function runsLegend(){
+  const tops=new Map(); ROWS.filter(r=>!r.systemArchived).forEach(r=>{ const s=sysOf(r.system), k=sysLit(s)?s.slot:0; if(!tops.has(k)) tops.set(k,{c:sysColour(r.system),n:new Set()}); tops.get(k).n.add(k?(s.top||s.name):"no system colour"); });
+  const used=new Set(ROWS.filter(r=>!r.chain||["halted","escalated","abandoned"].includes(stOf(r))).map(stOf)), qv=new Set(ROWS.flatMap(r=>qaShown(r).map(p=>p.verdict))), dv=new Set(ROWS.flatMap(r=>(r.waitsOn||[]).map(x=>x.build).filter(k=>DEP[k]))), lv=new Set(ROWS.flatMap(r=>(r.waitsOn||[]).map(locOf).filter(Boolean).map(L=>L.k))), dn=ROWS.some(r=>(r.waitsOn||[]).some(x=>x.why)), hv=new Set(ROWS.flatMap(r=>(r.blocks||[]).map(x=>holdOf(x,r))));
+  return [...tops.values()].map(v=>`<span><i class="sbar" style="--c:${v.c}"></i>${esc([...v.n].join(", "))}</span>`).join("")+(ROWS.some(r=>r.systemArchived)?`<span><i class="sbar arch" style="--c:var(--muted)"></i><span class="archtag">⊟ archived</span>its system is archived: no longer developed, no colour of its own</span>`:"")+(()=>{ const sts=new Set(ROWS.filter(r=>r.chain).flatMap(r=>chainUnits(r).map(u=>u.st))); return (sts.has("done")?`<span><i class="sbk"></i>a tracking issue's unit, in landing order: landed</span>`:"")+(sts.has("cur")?`<span><i class="sbk cur"></i>bold: a unit in progress, or complete and not merged</span>`:"")+(sts.has("todo")?`<span><i class="sbk todo"></i>dashed: a unit to come</span>`:""); })()+Object.keys(STATUS).filter(k=>used.has(k)).map(k=>`<span>${pill(STATUS[k])}${STATUS[k].desc?` ${esc(STATUS[k].desc)}`:""}</span>`).join("")+[...qv].filter(v=>QA[v]).map(v=>`<span>${pill(QA[v])} ${v==="running"?`the ${REVIEW} running now`:`a ${REVIEW} verdict`}, by its ${PASS_NAME} number</span>`).join("")+["fixed","fixing"].map(k=>ROWS.flatMap(r=>qaShown(r)).find(p=>p.inPlace===k)).filter(Boolean).map(p=>`<span>${inPlaceMark(p)} ${esc(INPLACE.desc[p.inPlace])}</span>`).join("")+Object.keys(DEP).filter(k=>dv.has(k)).map(k=>`<span>${pill(DEP[k])} a dependency's build state: ${esc(DEP[k].desc)}</span>`).join("")+Object.keys(LOC).filter(k=>lv.has(k)).map(k=>`<span>${locChip({k},k==="external"?"external · name":"")} a dependency's locality: ${esc(LOC[k].desc)}</span>`).join("")+(dn?`<span>a dependency with no build state or locality drawn: no rule fits (its reason on hover)</span>`:"")+Object.keys(HOLD).filter(k=>hv.has(k)).map(k=>`<span>${pill(HOLD[k])} ${esc(HOLD[k].desc)}</span>`).join("")+(ROWS.some(r=>r.active)?`<span><i class="gl"></i>FullPulse, breathing: being worked on now</span>`:"")+(ROWS.some(heldRow)?`<span><i class="hold"></i>Ring alone, still: being worked on, paused while the run waits on you</span>`:"")+(used.has("next")?`<span><i class="nx"></i>${TAG_NEXT} still outer Ring: the next unit, not started</span>`:"")+(ROWS.some(r=>stOf(r)==="next"&&(r.blockedBy||[]).length)?`<span>${pill(BLOCKED,"blocked by #n")} a blocker of the next unit has not landed</span>`:"")+(used.has("no-board")||used.has("not-started")||used.has("next")?`<span><i class="pln"></i>dashed: not started</span>`:"")+Object.keys(RECON).filter(k=>ROWS.some(r=>(reconOf(r)||{}).state===k)).map(k=>`<span>${pill(RECON[k])} ${esc(RECON[k].desc)}</span>`).join("")+(ROWS.length?"":`<span>no runs recorded</span>`);
+}
+/* ---------- A repository Panel ---------- */
+const SOURCE_WORDS={live:"its live view",committed:"its committed repository work board"};
+function repoHead(r,lvl){ const H=lvl===4?"h4":"h3", src=r.source||null;
+  const facts=[src?`read from ${SOURCE_WORDS[src.view]||"its work-board data"} (<code>${esc(src.file)}</code>)${src.generated?`, generated ${when(src.generated)}`:""}${src.asOf?`, tracker as of ${day(src.asOf)}`:""}`:"no work-board data yet",
+    repoFile(r,"workBoard")?ext(repoFile(r,"workBoard"),"repository work board"):"",repoFile(r,"repoBoard")?ext(repoFile(r,"repoBoard"),"repository state board"):""].filter(Boolean);
+  const n=k=>ROWS.filter(x=>stOf(x)===k).length, stats=r.board?[`<span class="chip"><b>${ROWS.length}</b> ${ROWS.length===1?"run":"runs"}</span>`,n("landed")?`<span class="chip"><b>${n("landed")}</b> landed</span>`:"",ROWS.filter(x=>x.active).length?`<span class="chip"><b>${ROWS.filter(x=>x.active).length}</b> active now</span>`:"",n("halted")?`<span class="chip"><b>${n("halted")}</b> waiting on you</span>`:"",n("next")?`<span class="chip"><b>${n("next")}</b> up next</span>`:"",(r.unlinked||[]).length?`<span class="chip"><b>${r.unlinked.length}</b> ${r.unlinked.length===1?"board":"boards"} not on GitHub yet, not linked</span>`:""].filter(Boolean).join(""):"";
+  return `<div class="repo-head"><${H}>${ext(r.url,esc(r.name))}<small>${esc(r.owner)} · default branch <code>${esc(r.defaultBranch)}</code>${r.head?` @ <code>${esc(String(r.head).slice(0,7))}</code>`:""}</small></${H}><div class="sub">${facts.join(" · ")}</div>${stats?`<div class="stats">${stats}</div>`:""}</div>`; }
+function repoPanel(r,lvl){ enter(r); const id=`repo-${r.owner}-${r.name}`;
+  if(!r.board) return `<section class="repo-panel empty" id="${esc(id)}" aria-labelledby="${esc(id)}-h"><div id="${esc(id)}-h">${repoHead(r,lvl)}</div><div class="legend"><span>no runs recorded</span></div></section>`;
+  return `<section class="repo-panel" id="${esc(id)}" aria-labelledby="${esc(id)}-h"><div id="${esc(id)}-h">${repoHead(r,lvl)}</div><div class="scroll"><table class="tbl" aria-label="${esc(r.name)}: its runs">${runsTable()}</table></div><div class="legend">${runsLegend()}</div></section>`; }
+function orgPanel(o){ const id=`org-${o.owner}`, rs=o.repositories||[];
+  return `<section class="org-panel" id="${esc(id)}" aria-labelledby="${esc(id)}-h"><div class="repo-head" id="${esc(id)}-h"><h3>${ext(o.url,esc(o.owner))}<small>${o.parent?`sub-organization of ${esc(o.parent)} · `:""}${plural(rs.length,"repository","repositories")}</small></h3></div>${rs.map(r=>repoPanel(r,4)).join("")}</section>`; }
+
+function render(){
+  const org=B.organization||"", orgs=B.organizations||[], withData=ALL_REPOS.filter(r=>r.board), without=ALL_REPOS.filter(r=>!r.board);
+  $("#crumbs").innerHTML=`${linkOr(B.url,esc(org))} › org work board`;
+  $("#function").textContent=`Every planning and development run across the repositories of ${org}${orgs.length?` and of ${orgs.map(o=>o.owner).join(", ")}`:""}: where each is, what it depends on, what it blocks or enables, ${B.live?"followed live from each repository's checkout on this machine.":"as of the time stamped above; on a machine with the checkouts its live view follows them."}`;
+  document.title=`${org} · org work board`;
+  $("#repos-lede").textContent=B.live?"Each repository's runs are read from its checkout's live data every few seconds; a run's own detail is on its own board.":"Each repository's work-board data at the time stamped above; a run's live state is on its own board.";
+  const tag=(ck,v,cls)=>`<span class="chip${cls?" "+cls:""}"><span class="ck">${ck}</span> ${v}</span>`;
+  $("#chips").innerHTML=[B.live?tag("live view",`<b>${withData.filter(r=>LIVE_DATA.has(repoKey(r))||!LOCAL).length}</b> of ${withData.length} checkouts followed`):tag("snapshot",`<b>${when(B.generated||"")}</b>`),tag("repositories",`<b>${ALL_REPOS.length}</b> · ${withData.length} with work-board data, ${without.length} with none`),tag("organizations",`<b>${esc(org)}</b>${orgs.map(o=>` · ${esc(o.owner)}${o.parent?" (sub-organization)":""}`).join("")}`,"wide")].join("");
+  /* the KPI Tiles count every run of every repository; each issue is labelled Repo#n */
+  enter(null); const ALL=withData.flatMap(r=>(r.board.rows||[]).map(x=>({row:x,repo:repoKey(r)})));
+  const n=k=>ALL.filter(a=>stOf(a.row)===k).length, nexts=ALL.filter(a=>stOf(a.row)==="next"), tracking=withData.reduce((s,r)=>s+((r.board.roadmap||[]).length),0);
+  const RUNSEG=[["landed","good","landed"],["merged","good","merged · awaiting close"],["complete","hollow","complete · not merged"],["building","accent","building"],["planning","accent","planning"],["in-progress","accent","in progress, no board"],["halted","warning","waiting on you"],["escalated","serious","escalated"],["next","pln","next · not started"],["not-started","pln","not started"],["no-board","pln","no board"],["abandoned","critical","cancelled"],["not-planned","neutral","closed · not planned"],["duplicate","neutral","closed · duplicate"]];
+  const segOf=keys=>{ const parts=RUNSEG.filter(([k])=>keys.includes(k)).map(([k,c,l])=>({n:n(k),c,l:`${STATUS[k].g} ${l}`})).filter(p=>p.n);
+    return parts.length?`<div class="seg-bar" role="img" aria-label="${esc(parts.map(p=>`${p.n} ${p.l}`).join(", "))}">${parts.map(p=>`<i class="${p.c}" style="flex:${p.n}" title="${esc(`${p.n} ${p.l}`)}"></i>`).join("")}</div><div class="legend">${[...new Map(parts.map(p=>[p.c+p.l,p])).values()].map(p=>`<span><i class="segk ${p.c}"></i>${esc(p.l)}</span>`).join("")}</div>`:""; };
+  const bars={Runs:segOf(RUNSEG.map(x=>x[0])),Landed:segOf(["landed","complete","merged","not-planned","duplicate"])};
+  const ns=ALL.filter(a=>["not-started","no-board"].includes(stOf(a.row))), nso=ns.filter(a=>a.row.tracker||stOf(a.row)==="no-board").length, nsu=ns.length-nso;
+  $("#kpis").innerHTML=[["Runs",ALL.length,`${plural(tracking,"tracking issue")} in ${plural(withData.length,"repository","repositories")}`],["Active now",ALL.filter(a=>a.row.active).length,"in a FullPulse below"],["Waiting on you",n("halted"),"halted runs"],["Landed",n("landed"),[n("complete")?`${n("complete")} more complete, not merged`:"",n("merged")?`${n("merged")} merged, awaiting close`:"",n("not-planned")?`${n("not-planned")} closed as not planned, not counted`:"",n("duplicate")?`${n("duplicate")} closed as duplicates, not counted`:""].filter(Boolean).join(" · ")||"merged"],["Up next",nexts.length,{html:nexts.length?nexts.map(a=>ilink(a.row.issue,a.repo)).join(", ")+" · not started":"no unit named next"}],["Not started",ns.length,[nsu?`${plural(nsu,"unit")} of a tracking issue`:"",nso?`${plural(nso,"other issue")}, from the tracker`:""].filter(Boolean).join(" · ")||"none"]].map(([l,v,s])=>`<div class="kpi-tile"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s&&s.html!=null?s.html:esc(s)}</div>${bars[l]||""}</div>`).join("");
+  /* the repository Panels, then each sub-organization's Panel */
+  $("#repos-key").innerHTML=`<span>Each repository Panel's colours are its own registry's: read a colour inside its Panel, by the Legend at its foot</span>`;
+  $("#repos").innerHTML=`<p class="repos-lede">${esc(org)} · ${plural((B.repositories||[]).length,"repository","repositories")}</p>${(B.repositories||[]).map(r=>repoPanel(r,3)).join("")}${orgs.map(orgPanel).join("")}`;
+  /* the Context (GUIDANCE.md §5): the roadmap and the unscheduled issues of every repository, the boards and documents, the repositories not shown */
+  enter(null); const cards=[];
+  const perRepo=f=>withData.map(r=>{ enter(r); const body=f(r); enter(null); return body?`<li class="rp"><b>${esc(r.name)}</b><ul class="issues">${body}</ul></li>`:""; }).join("");
+  const rm=perRepo(r=>(D.roadmap||[]).map(m=>`<li><span class="nm">${pair(m.issue,m.title)} <small>${esc(closedWord(m)||(m.state||"").toLowerCase())}</small></span><ul class="issues">${(m.items||[]).map(i=>`<li><span class="nm">${i.title?pair(i.issue,i.title):ilink(i.issue)} <small>${esc(closedWord(i)||(i.state||"").toLowerCase())}</small></span></li>`).join("")}</ul></li>`).join(""));
+  cards.push(`<div class="card"><h3>Roadmap <small>${plural(tracking,"tracking issue")}</small></h3>${rm?`<ul class="issues">${rm}</ul>`:`<p class="lede">No tracking issue is open.</p>`}</div>`);
+  const unTotal=withData.reduce((s,r)=>s+((r.board.unscheduled||[]).length),0);
+  const un=perRepo(r=>(D.unscheduled||[]).map(i=>`<li><span class="nm">${swatch(i.system)}${pair(i.issue,i.title)}${i.labels&&i.labels.length?` <small>${esc(i.labels.join(" · "))}</small>`:""}</span></li>`).join(""));
+  cards.push(`<div class="card"><h3>Unscheduled issues <small>${unTotal} open</small></h3>${un?`<ul class="issues">${un}</ul>`:`<p class="lede">Every open issue sits on a roadmap item.</p>`}</div>`);
+  const docs=withData.map(r=>{ enter(r); const items=[repoFile(r,"workBoard")?`<li>${ext(repoFile(r,"workBoard"),"Repository work board")} — every run in the repository</li>`:"",repoFile(r,"repoBoard")?`<li>${ext(repoFile(r,"repoBoard"),"Repository state board")} — the repository as built</li>`:"",repoFile(r,"readme")?`<li>${ext(repoFile(r,"readme"),"docs/plans/README.md")} — how to read an issue board</li>`:"",...ROWS.filter(x=>boardOf(x.issue)).map(x=>`<li>${pair(x.issue,x.title)} — issue board</li>`)].filter(Boolean); enter(null); return `<li class="rp">${esc(r.name)}</li>${items.length?items.join(""):`<li>no board linked yet</li>`}`; }).join("");
+  cards.push(`<div class="card"><h3>Boards and documents</h3><ul class="docs">${docs}</ul></div>`);
+  const ns2=B.notShown||[];
+  cards.push(`<div class="card"><h3>Not shown <small>${plural(ns2.length,"entry","entries")}</small></h3>${ns2.length?`<ul class="docs">${ns2.map(x=>`<li>${x.url?ext(x.url,esc(x.repository)):esc(x.repository)}${x.why?` — ${esc(x.why)}`:""}</li>`).join("")}</ul>`:`<p class="lede">Every repository of the organization is shown.</p>`}</div>`);
+  $("#context").innerHTML=cards.join("");
+  /* the Context's legend (GUIDANCE.md §2): the system swatches its cards drew, by repository, and the muted one of an issue with no system */
+  const kh=withData.map(r=>{ enter(r); const tops=new Map(); (D.unscheduled||[]).forEach(i=>{ const s=sysOf(i.system), k=sysLit(s)?s.slot:0; if(!tops.has(k)) tops.set(k,{c:sysColour(i.system),n:new Set()}); tops.get(k).n.add(k?(s.top||s.name):"no system recorded"); }); enter(null);
+    return [...tops.values()].map(v=>`<span><i class="sbar" style="--c:${v.c}"></i>${esc(r.name)}: ${esc([...v.n].join(", "))}</span>`).join(""); }).join("");
+  let ck=document.getElementById("context-key"); if(!kh){ if(ck) ck.remove(); } else { if(!ck){ ck=document.createElement("div"); ck.className="legend"; ck.id="context-key"; $("#context").parentElement.appendChild(ck); } ck.innerHTML=kh; }
+  /* the footer (GUIDANCE.md §3): what the board corresponds to and what is authoritative */
+  $("#footer").innerHTML=`Corresponds to <code>docs/plans/${B.live?".live/":""}org-work-board/board.json</code>. Code and the Markdown beside this board are authoritative on any conflict.`;
+  $("#source-view").textContent=JSON.stringify(B,(k,v)=>k==="level"?undefined:v,2); /* a work level is never shown (GUIDANCE.md §4) */
+  $("#source-key").innerHTML=B.live?`<span>this board's data as generated; each repository Panel follows its checkout's live data</span>`:`<span>the snapshot written at the last landing, at the time stamped in the header</span>`;
+}
+/* ---------- The theme switch (GUIDANCE.md §1, Themes; §12, "Switch") ---------- */
+(function themeSwitch(){ const KEY="dashboards-theme", root=document.documentElement, mq=window.matchMedia?matchMedia("(prefers-color-scheme: dark)"):null;
+  let btn=document.getElementById("theme");
+  if(!btn) return;
+  btn.className="switch"; btn.type="button"; btn.setAttribute("role","switch"); btn.removeAttribute("aria-pressed");
+  if(!btn.querySelector(".switch-track")) btn.innerHTML='<span class="switch-end off" aria-hidden="true">☀</span><span class="switch-track" aria-hidden="true"><span class="switch-knob"></span></span><span class="switch-end on" aria-hidden="true">☾</span>';
+  const chosen=()=>{ try{ const t=localStorage.getItem(KEY); return t==="light"||t==="dark"?t:null; }catch(e){ return null; } };
+  const now=()=>root.dataset.theme==="dark"||root.dataset.theme==="light"?root.dataset.theme:(mq&&mq.matches?"dark":"light");
+  const label=()=>{ const t=now(), word=t==="dark"?"night":"light"; btn.setAttribute("aria-checked",String(t==="dark"));
+    btn.title=`Theme: ${word}${chosen()?"":", as the system setting"}. Click for ${t==="dark"?"light":"night"}.`; btn.setAttribute("aria-label",`Night theme${chosen()?"":" (follows the system setting until clicked)"}`); };
+  btn.addEventListener("click",()=>{ const t=now()==="dark"?"light":"dark"; root.dataset.theme=t; try{ localStorage.setItem(KEY,t); }catch(e){} label(); });
+  if(mq&&mq.addEventListener) mq.addEventListener("change",label);
+  if(window.MutationObserver) new MutationObserver(label).observe(root,{attributes:true,attributeFilter:["data-theme"]});
+  label(); })();
+
+const tabs=[...document.querySelectorAll(".tab")];
+function show(id){ tabs.forEach(t=>{ const on=t.id===id; t.setAttribute("aria-selected",String(on)); t.tabIndex=on?0:-1; document.getElementById(t.getAttribute("aria-controls")).hidden=!on; }); }
+tabs.forEach((t,i)=>{ t.addEventListener("click",()=>show(t.id)); });
+/* The tablist's keys (WAI-ARIA tabs; GUIDANCE.md §6): Left and Right move to the previous and next tab, Home and End to the first and the
+   last, each shown at once; only the selected tab is in the Tab order (a roving tabindex), so Tab moves on to the panel. */
+function tabKeys(list,go){ list.forEach((t,i)=>{ t.tabIndex=t.getAttribute("aria-selected")==="true"?0:-1; t.addEventListener("keydown",e=>{ const n=list.length, j={ArrowRight:(i+1)%n,ArrowLeft:(i+n-1)%n,Home:0,End:n-1}[e.key]; if(j==null) return; e.preventDefault(); list[j].focus(); go(list[j].id); }); }); }
+tabKeys(tabs,id=>show(id));
+/* ---------- The sibling checkouts, read (GUIDANCE.md §6; plan/RULES.md, the org work board) ----------
+   Opened from disk, the board loads each repository's work-board data from its checkout (its live view's board.js, else its committed board.js: a
+   script, as a page opened from disk cannot fetch a file). A checkout is read when the script ran and named the expected repository; that repository's links
+   then open the live files. In the live view (board.json "live") it is re-read every LIVE_POLL_MS and each Panel redraws in place when its data changed; the
+   committed snapshot reads it once, for the links only, and shows the snapshot's own data. Never on a website, which has no checkouts. The indicator reads as on the
+   repository work board: "LIVE · updated n s ago" while a run is active (the dot pulses), "LIVE · no change for n min" after a quiet spell, "LIVE · data unavailable" when no checkout could be read. */
+const LIVE_POLL_MS=5000, LIVE_QUIET_MS=5*60000;
+const LIVE={ok:true,last:0,timer:null,tick:null,liveHref:""};
+const isLive=()=>!!B.live&&LOCAL;
+const ago=ms=>{ const s=Math.max(0,Math.round(ms/1000)); return s<90?`${s} s`:s<5400?`${Math.round(s/60)} min`:`${Math.round(s/3600)} h`; };
+function liveChip(){ const c=$("#live"); if(!c) return;
+  if(!isLive()){ c.className="livechip off"; c.innerHTML=`<span class="ld" aria-hidden="true"></span>${B.live?"not live":"not live · snapshot"}${B.generated?` ${when(B.generated)}`:""}${LIVE.liveHref?` · <a href="${esc(LIVE.liveHref)}">live view</a>`:""}`; c.title=B.live?"A published copy of the live view: it does not follow the runs.":"The committed org work board, regenerated at every landing in a repository on the board: on a machine with the checkouts, its live view follows them."; return; }
+  if(!LIVE.ok){ c.className="livechip on na"; c.innerHTML=`<span class="ld" aria-hidden="true"></span>LIVE · data unavailable`; c.title="No sibling checkout's work-board data could be read."; return; }
+  const since=Date.now()-LIVE.last, quiet=since>LIVE_QUIET_MS, any=ALL_REPOS.some(r=>(r.board&&(r.board.rows||[]).some(x=>x.active)));
+  c.className=`livechip on${quiet||!any?"":" fillpulse"}`;
+  c.innerHTML=quiet?`<span class="ld" aria-hidden="true"></span>LIVE · no change for ${ago(since)}`:`<span class="ld" aria-hidden="true">●</span>LIVE · updated ${ago(since)} ago`;
+  c.title=`Re-read from the sibling checkouts every ${LIVE_POLL_MS/1000} s${any?"":"; no run is active"}.`; }
+const liveRepos=()=>ALL_REPOS.filter(r=>r.source&&r.source.file);
+let READING=null;
+window.dashboardLive=(id,data)=>{ if(id==="board"&&READING&&data&&data.repo===repoKey(READING.r)) READING.got=data; };
+/* a name kept out of the snapshot (a private repository's, elided from a title or a unit's name, org-board.js) stays out of what the live view draws from a checkout: its text as generated, wherever that is the shorter */
+function keepElided(d,e){ const titleOf=(list,x)=>(list||[]).find(y=>y&&y.issue===x.issue); const keep=(obj,key,from)=>{ if(obj&&from&&typeof from[key]==="string"&&from[key].includes("…")&&obj[key]!==from[key]) obj[key]=from[key]; };
+  (d.rows||[]).forEach(x=>{ const m=titleOf(e.rows,x); keep(x,"title",m); ((x.chain||{}).units||[]).forEach((u,j)=>keep(u,"name",m&&(((m.chain||{}).units||[])[j]||null))); });
+  (d.roadmap||[]).forEach(x=>{ const m=titleOf(e.roadmap,x); keep(x,"title",m); (x.items||[]).forEach(u=>keep(u,"title",titleOf(m&&m.items,u))); }); (d.unscheduled||[]).forEach(x=>keep(x,"title",titleOf(e.unscheduled,x))); }
+function applyData(r,data){ if(r.board) keepElided(data,r.board); r.board=data; r.source=Object.assign({},r.source,{generated:data.generated||null,asOf:data.asOf||null}); }
+function readSiblings(){ if(!LOCAL) return; let changed=false, any=false; const list=liveRepos().slice();
+  const next=()=>{ const r=list.shift(); if(!r){ if(isLive()){ LIVE.ok=any; if(changed) LIVE.last=Date.now(); liveChip(); } if(changed){ const y=window.scrollY,x=window.scrollX; render(); window.scrollTo(x,y); } return; }
+    const dir=r.source.file.replace(/\/[^/]*$/,""), sc=document.createElement("script"); READING={r,got:null}; sc.src=`${SIB}${r.name}/${dir}/board.js?t=${Date.now()}`;
+    const done=()=>{ const got=READING&&READING.got; sc.remove(); READING=null; if(got){ any=true; const j=JSON.stringify(got), k=repoKey(r), prev=LIVE_DATA.get(k); if(!prev||prev.json!==j){ LIVE_DATA.set(k,{data:got,dir,json:j}); changed=true; if(B.live) applyData(r,got); } } next(); };
+    sc.onload=done; sc.onerror=done; document.head.appendChild(sc); };
+  next(); }
+function startLive(){ const g=Date.parse(String(B.generated||"")); LIVE.last=isNaN(g)?Date.now():Math.min(Date.now(),g); liveChip();
+  if(LIVE.tick==null) LIVE.tick=setInterval(liveChip,1000);
+  if(isLive()&&!LIVE.timer) LIVE.timer=setInterval(readSiblings,LIVE_POLL_MS); }
+function liveMark(src,key,cb){ if(!LOCAL){ cb(null); return; } const sc=document.createElement("script"); sc.src=src+"?t="+Date.now();
+  sc.onload=()=>{ const v=(window.DASHBOARDS_LIVE||{})[key]; sc.remove(); cb(v==null?null:v); }; sc.onerror=()=>{ sc.remove(); cb(null); }; document.head.appendChild(sc); }
+render(); show(location.hash==="#source"?"t-source":"t-repos");
+startLive(); readSiblings();
+/* the committed board names the live view on this machine (docs/plans/.live/org-work-board/index.js, written with it) */
+if(!B.live) liveMark("../.live/org-work-board/index.js","orgBoard",h=>{ if(h){ LIVE.liveHref="../.live/org-work-board/"+String(h); liveChip(); } });
+</script>
+</body>
+</html>

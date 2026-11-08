@@ -143,7 +143,7 @@ module.exports = function casesTimelineOutages(X) {
     const t = rd(PB), lines = t.split(/\r?\n/);
     const def = name => { const i = lines.findIndex(l => l.startsWith(`const ${name}=`) || l.startsWith(`function ${name}(`)); if (i < 0) throw new Error(`the template defines no ${name}`);
       let j = i + 1; while (j < lines.length && /^\s/.test(lines[j])) j++; return lines.slice(i, j).join("\n"); };
-    const names = ["PASS_NAME", "STEP_NAME", "ROUTE_NAME", "ROUTE_OLD", "routeName", "remediationName", "stepLabel", "routesOf", "STEP_ORDER", "histOf", "visitsOf", "shownOf", "WAIT_BY", "waitsOf", "outagesOf", "okStamp", "isTime", "TL_FAMILIES", "tlFamily", "tlShade", "timelineFamilies", "APPROX_SOURCES", "approxBounds", "timelineLanded", "timelineSteps", "timelineRows", "tlSpan", "timelineTotal"];
+    const names = ["PASS_NAME", "STEP_NAME", "ROUTE_NAME", "routeKey", "routeName", "remediationName", "stepLabel", "routesOf", "STEP_ORDER", "histOf", "visitsOf", "shownOf", "WAIT_BY", "waitsOf", "outagesOf", "okStamp", "isTime", "TL_FAMILIES", "tlFamily", "tlShade", "timelineFamilies", "APPROX_SOURCES", "approxBounds", "timelineLanded", "timelineSteps", "timelineRows", "tlSpan", "timelineTotal"];
     const src = names.map(def).join("\n") + "\nconst reconStep=()=>({trail:[],milestones:[]});\nthis.api={timelineSteps,timelineRows,timelineTotal};";
     const box = {}; vm.createContext(box); vm.runInContext(src, box);
     const A = box.api, shape = T => js({ v: T.visits.map(v => [v.step, v.label, v.from && v.from.t, v.to && v.to.t, v.ms, !!v.open]) });

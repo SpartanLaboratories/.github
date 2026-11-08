@@ -69,6 +69,8 @@ module.exports = function cases35(X) {
     c.push(["…applied whole on the fast path (enrich: no)", e2.S.enrich === "no", js([e2.S.enrich, e2.S.why])]);
     const e3 = ev("state-boards", "2026-10-26T09:20:00Z");
     c.push(["state-boards, raised by the team in the Document step, is its state-boards task, current, the step staying at document", e3.a.status === 0 && e3.p.wip.step === "document" && ((e3.p.wip.document || {}).tasks || []).some(t => t.id === "state-boards" && t.state === "current"), js([e3.a.status, e3.p.wip.step, e3.p.wip.document])]);
+    const was3 = rd(path.join(T.dir, "plan.json")), e3b = ev("document", "2026-10-26T09:25:00Z", { tasks: [{ id: "document-landing", state: "done" }] });
+    c.push(["document naming document-landing done while tasks are open: refused, the open ids named, nothing written", e3b.a.status === 1 && js(e3b.S.unfinished) === js(["documentation-review", "dokka-check", "reconcile-plan", "state-boards"]) && rd(path.join(T.dir, "plan.json")) === was3, js([e3b.a.status, e3b.S.unfinished, e3b.S.error])]);
     const e4 = ev("landing", "2026-10-26T09:30:00Z", { pr: 91 });
     c.push(["landing with an open point still open: refused by check.js (OPEN POINT AT THE LAND), nothing written", e4.a.status === 1 && /OPEN POINT AT THE LAND/.test(e4.S.check || "") && e4.p.wip.step === "document", js([e4.a.status, e4.S.check, e4.p.wip.step])]);
     const e5 = ev("landing", "2026-10-26T09:31:00Z", { pr: 91, open: [{ text: "Verification case: a point to settle", resolved: "settled in the plan" }] });

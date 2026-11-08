@@ -124,7 +124,8 @@ function sectionOf(md, anchor) {
     if (fence) { if (f && f[1][0] === fence[0] && f[1].length >= fence.length && !f[2].trim()) fence = null; continue; }
     if (f) { if (para.length) break; fence = f[1]; continue; }
     if (!l.trim()) { if (para.length) break; continue; }
-    if (/^\s*\|/.test(l) || /^\s*<!--/.test(l)) { if (para.length) break; continue; }
+    /* a table, a comment or a thematic break (a "---" rule) is no prose: it ends a paragraph and is never the excerpt */
+    if (/^\s*\|/.test(l) || /^\s*<!--/.test(l) || /^ {0,3}([-*_])(?:\s*\1){2,}\s*$/.test(l)) { if (para.length) break; continue; }
     para.push(l.trim().replace(/^(?:[-*+]|\d+[.)])\s+/, () => para.length ? "· " : ""));
   }
   let p = para.join(" ").replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\*\*([^*]+)\*\*/g, "$1").replace(/__([^_]+)__/g, "$1").replace(/\s+/g, " ").trim();

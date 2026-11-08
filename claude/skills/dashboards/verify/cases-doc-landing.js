@@ -81,6 +81,34 @@ module.exports = function casesDocLanding(X) {
     c.push(["a board in flight with six tasks done takes it at its next document event, current", stateOf(e3.p, "document-landing") === "current" && tasks(e3.p).length === 7, js(tasks(e3.p))]);
   });
 
+  guard("the document-landing task named done: refused while another task on the list is not done, never at the land", c => {
+    const mixed = [{ id: "documentation-review", state: "current" }, { id: "reconcile-documentation", state: "todo" }, { id: "dokka-check", state: "done" }, { id: "reconcile-plan", state: "done" }, { id: "readme-changelog", state: "done" }, { id: "state-boards", state: "done" }];
+    const T = tree("refuse", building()), ev = evIn(T), e1 = ev("document", at(0), { tasks: mixed });
+    c.push(["a list that does not name it is not refused, tasks open", e1.a.status === 0 && stateOf(e1.p, "document-landing") === "current", js([e1.a.status, tasks(e1.p), e1.S.error])]);
+    const files = () => rd(path.join(T.dir, "plan.json")) + rd(path.join(T.dir, "dashboard.html")), was = files(), e2 = ev("document", at(1), { tasks: [{ id: "document-landing", state: "done" }] });
+    c.push(["naming it done with two tasks open: exit 1, the two named in the board's order", e2.a.status === 1 && e2.S.result === "failed" && js(e2.S.unfinished) === js(["documentation-review", "reconcile-documentation"]), js([e2.a.status, e2.S.result, e2.S.unfinished, e2.S.error])]);
+    c.push(["…nothing written, nothing to restore", files() === was && e2.S.restored === 0 && e2.S.wrote.length === 0 && stateOf(e2.p, "document-landing") === "current", js([files() === was, e2.S.restored, e2.S.wrote])]);
+    c.push(["…no enrichment asked of the presenter", e2.S.enrich === "no" && !/presenter applies/.test(js(e2.S.why)), js([e2.S.enrich, e2.S.why])]);
+    const t = run(APPLY, ["--event", path.join(sc, `rq-${n}.json`), "--worktree", T.root, "--no-live", "--no-gh", "--at", at(1)], { env }), lines = (t.stdout || "").split(/\r?\n/);
+    c.push(["…the summary's one line the team reads", t.status === 1 && lines.filter(l => l === "unfinished: documentation-review, reconcile-documentation").length === 1 && lines.filter(l => /^unfinished/.test(l)).length === 1, (t.stdout || t.stderr).slice(-400)]);
+    const e3 = ev("document", at(2), { tasks: [{ id: "document-landing", state: "current" }, { id: "documentation-review", state: "done" }] });
+    c.push(["naming it current or to come is no closing: not refused", e3.a.status === 0 && stateOf(e3.p, "documentation-review") === "done", js([e3.a.status, e3.S.error])]);
+    const e4 = ev("document", at(3), { tasks: [{ id: "document-landing", state: "done" }, { id: "reconcile-documentation", state: "current" }] });
+    c.push(["a task this event itself leaves open is counted: one named", e4.a.status === 1 && js(e4.S.unfinished) === js(["reconcile-documentation"]), js([e4.a.status, e4.S.unfinished])]);
+    const e5 = ev("document", at(4), { tasks: [{ id: "reconcile-documentation", state: "done" }, { id: "document-landing", state: "done" }] });
+    c.push(["the last open task closed in the same event: accepted, the state as merged", e5.a.status === 0 && e5.S.unfinished === null && tasks(e5.p).every(x => x.state === "done"), js([e5.a.status, e5.S.error, tasks(e5.p)])]);
+    const e6 = ev("state-boards", at(5)), e7 = ev("document", at(6), { tasks: [{ id: "document-landing", state: "done" }] });
+    c.push(["the state boards raised anew: closing it again is refused until they finish", e6.a.status === 0 && e7.a.status === 1 && js(e7.S.unfinished) === js(["state-boards"]), js([e6.a.status, e7.a.status, e7.S.unfinished])]);
+    const T2 = tree("refuse-absent", building()), ev2 = evIn(T2), a1 = ev2("document", at(0), { tasks: [{ id: "documentation-review", state: "done" }, { id: "state-boards", state: "done" }] }), a2 = ev2("document", at(1), { tasks: [{ id: "document-landing", state: "done" }] });
+    c.push(["a task absent from the list does not count (no Dokka check here): accepted", a1.a.status === 0 && a2.a.status === 0 && js(tasks(a2.p).map(x => x.id)) === js(["documentation-review", "state-boards", "document-landing"]) && stateOf(a2.p, "document-landing") === "done", js([a1.a.status, a2.a.status, a2.S.error, tasks(a2.p)])]);
+    const open = () => { const x = building(); x.wip.step = "document"; x.wip.document = { tasks: [{ id: "documentation-review", name: lib.DOC_TASK_NAMES["documentation-review"], state: "current" }, { id: "document-landing", name: lib.DOC_TASK_NAMES["document-landing"], state: "current" }] }; return x; };
+    ["landing", "merge"].forEach(name => { const e = evIn(tree("refuse-" + name, open()))(name, at(0), { pr: 91 });
+      c.push([`${name} with a task open: closed by the land, no refusal, the other task as it was`, e.a.status === 0 && e.S.unfinished === null && stateOf(e.p, "document-landing") === "done" && stateOf(e.p, "documentation-review") === "current", js([e.a.status, e.S.error, e.S.check, tasks(e.p)])]); });
+    const atMerge = open(); atMerge.rows = copy(EX.rows); atMerge.impact = { ...(atMerge.impact || {}), basis: "as-built" }; Object.assign(atMerge.wip, { step: "merge", current: [], since: "2026-10-26T08:50:00Z", updated: "2026-10-26T08:50:00Z", event: { name: "merge", at: "2026-10-26T08:50:00Z" } });
+    const e8 = evIn(tree("refuse-landed", atMerge))("landed", at(0), { pr: 90, sha: "abcdef1", merge: "abcdef2", date: "2026-10-26", mergedAt: "2026-10-26T09:22:00Z" });
+    c.push(["landed with a task open: closed by the land, no refusal", e8.a.status === 0 && e8.S.unfinished === null && stateOf(e8.p, "document-landing") === "done", js([e8.a.status, e8.S.error, e8.S.check, tasks(e8.p)])]);
+  });
+
   /* a repository with a tracking board and a merged unit; the sub-issue's copy raised landed with its parts still to resolve */
   const seedTree = (name) => {
     const main = path.join(sc, name), tdir = path.join(main, "docs", "plans", "55-http-client-stack"), sdir = path.join(tdir, "47-java-23-bytecode");

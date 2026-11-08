@@ -87,19 +87,19 @@ require("../../system/scripts/cliargs.js").strict(args, { usage: USAGE, valued: 
 const opt = n => lib.opt(args, n, null), flag = n => lib.flag(args, n);
 
 /* the summary, printed at the end whatever happens */
-const S = { result: null, event: null, issue: null, board: null, laid: null, applied: [], enrich: [], rerendered: [], wrote: [], view: [], seeded: [], parent: null, live: null, check: null, warnings: [], defects: [], error: null, restored: 0 };
+const S = { result: null, event: null, issue: null, board: null, laid: null, applied: [], enrich: [], rerendered: [], wrote: [], view: [], seeded: [], parent: null, live: null, check: null, warnings: [], defects: [], error: null, restored: 0, unfinished: null };
 /* the fast path's own warnings (a bare "Ln" elided as a work level, dashboards-skill/35): printed under "warnings" and counted on the check line */
 const WARNINGS = S.warnings;
 const say = () => {
   S.ms = Date.now() - T0;
   S.warnings.splice(0, S.warnings.length, ...new Set(S.warnings));
   if (S.warnings.length && S.check && !/fast-path warning/.test(S.check)) S.check += ` · ${S.warnings.length} fast-path warning${S.warnings.length === 1 ? "" : "s"} (below)`;
-  const enrich = S.enrich.length ? "yes" : "no";
-  if (flag("json")) { console.log(JSON.stringify({ ...S, enrich, why: S.enrich.length ? S.enrich : ["the event's facts decide everything it writes"] })); return; }
+  const enrich = S.enrich.length ? "yes" : "no", noWork = S.unfinished ? "no enrichment: the run reports those tasks' true states and the event is raised again" : "the event's facts decide everything it writes";
+  if (flag("json")) { console.log(JSON.stringify({ ...S, enrich, why: S.enrich.length ? S.enrich : [noWork] })); return; }
   const L = [["apply-event", S.result], ["event", S.event], ["issue", S.issue != null ? "#" + S.issue : null], ["board", S.board], ["laid", S.laid],
-    ["applied", S.applied.join("; ") || "nothing"], ["enrich", enrich], ["why", S.enrich.length ? S.enrich.join("; ") : "the event's facts decide everything it writes"],
+    ["applied", S.applied.join("; ") || "nothing"], ["enrich", enrich], ["why", S.enrich.length ? S.enrich.join("; ") : noWork],
     ["rerendered", S.rerendered.join(", ") || "none"], ["wrote", S.wrote.join(", ") || "nothing"], ["view", VIEWING ? S.view.join(", ") || "nothing" : null], ["seeded", S.seeded.length ? S.seeded.join(", ") : null], ["parent", S.parent || "none"], ["live", S.live || "untouched"],
-    ["check", S.check || "not run"], ["warnings", S.warnings.length ? S.warnings.map(w => "warn " + w).join(" | ") : null], ["issue defects", S.defects.length ? S.defects.join(" | ") : null], ["error", S.error], ["restored", S.error ? `${S.restored} file${S.restored === 1 ? "" : "s"}, as they were` : null], ["time", `${S.ms} ms`]];
+    ["check", S.check || "not run"], ["warnings", S.warnings.length ? S.warnings.map(w => "warn " + w).join(" | ") : null], ["issue defects", S.defects.length ? S.defects.join(" | ") : null], ["error", S.error], ["unfinished", S.unfinished ? S.unfinished.join(", ") : null], ["restored", S.error ? `${S.restored} file${S.restored === 1 ? "" : "s"}, as they were` : null], ["time", `${S.ms} ms`]];
   L.filter(([, v]) => v != null).forEach(([k, v]) => console.log(`${k}: ${v}`));
 };
 class Refusal extends Error {}
@@ -665,7 +665,7 @@ function applyEvent(orig, ev, facts, req, now) {
        tasks may run in parallel). The admin team raises the state-boards task itself when it accepts the run's state-boards request: a
        "state-boards" event on a board in this flow is that task, current (below). The document-landing task is the team's too: state-boards
        with facts.done moves it to current, and the team raises this event naming it done, just before the executor commits, so the committed
-       board carries it closed. This event never moves either of the two back (mergeTasks()), so a run's list, which may lack them or carry
+       board carries it closed; naming it done is refused while another task on the list is not done (mergeTasks()). This event never moves either of the two back (mergeTasks()), so a run's list, which may lack them or carry
        an older state, cannot undo them. Applied whole on the fast path: the step, the tasks, the glow, the detail and the trail entry; nothing
        needs the documents. */
     case "document": {
@@ -931,7 +931,10 @@ function mergeStages(w, facts, applied, enrich, first, ids, remed = !!facts.reme
    the state boards are done, so the list never reads "every task done" before that commit; a board with no such task and no new event keeps
    its list. how.forward (the document event): the event moves neither back, so a run's list, written from what it knows, undoes neither.
    how.boards (the team's state-boards event): the state boards done move the commit from to come to current; the state boards raised again
-   (a land that asks for them anew, the base having moved) put it back to come, since another commit follows them. */
+   (a land that asks for them anew, the base having moved) put it back to come, since another commit follows them.
+   The document event naming the document-landing task done is refused while another task on the list, as this event leaves it, is not done (plan/RULES.md §4,
+   "document"): nothing is written, and the summary's unfinished line names those ids. A task absent from the list does not count. closeLandingCommit() is outside this
+   check: by the land the commit is made. */
 const TASK_ORDER = ["todo", "current", "done"];
 function mergeTasks(w, list, applied, enrich, txt, how = {}) {
   const have = w.document && typeof w.document === "object" && Array.isArray(w.document.tasks) ? w.document.tasks.filter(x => x && typeof x === "object") : [];
@@ -954,6 +957,10 @@ function mergeTasks(w, list, applied, enrich, txt, how = {}) {
   }
   const rank = id => { if (id === lib.DOC_LANDING_TASK) return Infinity; const k = lib.DOC_TASKS.findIndex(([d]) => d === id); return k < 0 ? lib.DOC_TASKS.length : k; };
   out.sort((a, b) => (rank(a.id) === rank(b.id) ? 0 : rank(a.id) - rank(b.id)));
+  if (how.forward && (Array.isArray(list) ? list : []).some(t => t && t.id === lib.DOC_LANDING_TASK && t.state === "done")) {
+    const open = out.filter(x => x.id !== lib.DOC_LANDING_TASK && x.state !== "done").map(x => x.id);
+    if (open.length) { S.unfinished = open; refuse(`document: ${lib.DOC_LANDING_TASK} cannot be named done while another task on the board's list is not done`); }
+  }
   if (!out.length) enrich.push("document carries no facts.tasks: the step panel lists none until the tasks are reported");
   const next = { tasks: out };
   if (JSON.stringify(next) !== JSON.stringify(w.document || null)) { w.document = next; applied.push(`wip.document ${out.map(x => x.id + " " + x.state).join(", ") || "(no tasks)"}`); }
@@ -1823,7 +1830,8 @@ async function main() {
 main().then(() => { say(); process.exit(0); }, e => {
   S.result = "failed"; S.error = e.message;
   try { S.restored = rollback(); } catch (x) { S.error += `; the rollback failed too: ${x.message}`; }
-  if (!S.enrich.includes("the event was not applied: the presenter applies it")) S.enrich.unshift("the event was not applied: the presenter applies it");
+  /* an unfinished Document step is the run's to report, not a defect for the presenter (mergeTasks()) */
+  if (!S.unfinished && !S.enrich.includes("the event was not applied: the presenter applies it")) S.enrich.unshift("the event was not applied: the presenter applies it");
   if (LAY_HINT) { S.laid = null; [S.applied, S.enrich].forEach(l => l.splice(0, l.length, ...l.filter(x => !/^foundation laid|^sized: the foundation is laid/.test(x)))); S.enrich.push(LAY_HINT); }
   say(); process.exit(1);
 });

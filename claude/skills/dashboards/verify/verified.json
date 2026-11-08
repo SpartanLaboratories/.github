@@ -2,7 +2,7 @@
   "$comment": "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last verification, when every check that needs no browser passed (its modes: \"--auto --no-browser\"; a run with --browser, made only when a person asks for it, lists the browser passes instead). check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.",
   "templates": {
     "plan/template/dashboard.html": {
-      "sha256": "ffbe87bfb53416ad9dd5e818767fb98cce2da59efb9d6703d6ad7128f64b3254",
+      "sha256": "8c651841d644bf3020d087de0c47c3362de3afde207dcd750520a1f2b7dbc885",
       "verified": "2026-11-08",
       "fixtures": [
         "plan",
@@ -346,11 +346,16 @@
           "sha256": "ffbe87bfb53416ad9dd5e818767fb98cce2da59efb9d6703d6ad7128f64b3254",
           "verified": "2026-11-08",
           "file": "dashboard/ffbe87bfb534.html"
+        },
+        {
+          "sha256": "8c651841d644bf3020d087de0c47c3362de3afde207dcd750520a1f2b7dbc885",
+          "verified": "2026-11-08",
+          "file": "dashboard/8c651841d644.html"
         }
       ]
     },
     "plan/template/board.html": {
-      "sha256": "5d2c8aa9e13095d10ff46c2f4dde817b5e5f683c805942ae02e7540fec06ed6c",
+      "sha256": "30fd67e9c85bbdb96bdf74e2e37d01627919215f74795af46e18fdc729197309",
       "verified": "2026-11-08",
       "fixtures": [
         "work-board",
@@ -568,6 +573,11 @@
           "sha256": "5d2c8aa9e13095d10ff46c2f4dde817b5e5f683c805942ae02e7540fec06ed6c",
           "verified": "2026-11-08",
           "file": "board/5d2c8aa9e130.html"
+        },
+        {
+          "sha256": "30fd67e9c85bbdb96bdf74e2e37d01627919215f74795af46e18fdc729197309",
+          "verified": "2026-11-08",
+          "file": "board/30fd67e9c85b.html"
         }
       ]
     },
@@ -919,6 +929,39 @@
           "sha256": "7d72089e55782774eeba155e20ea60407ee06fff673d8befaeb12e43ae2bf4a5",
           "verified": "2026-11-08",
           "file": "supersystem/7d72089e5578.html"
+        }
+      ]
+    },
+    "plan/template/org-board.html": {
+      "sha256": "4ac48fd061da85b33c85f1d9419e8a9c8834173d6608db1dbe3b886dbc94e0ee",
+      "verified": "2026-11-08",
+      "fixtures": [
+        "org-work-board",
+        "placeholder"
+      ],
+      "modes": [
+        "--auto --no-browser"
+      ],
+      "history": [
+        {
+          "sha256": "b8b0158c14e9454cb1f4811e7312d15cf73f84e10fcc1dbdc8f900176fc90ddf",
+          "verified": "2026-11-08",
+          "file": "org-board/b8b0158c14e9.html"
+        },
+        {
+          "sha256": "199511b3439443f2162031e07cc5a861b975839aedf29b7f8715d71c38703d57",
+          "verified": "2026-11-08",
+          "file": "org-board/199511b34394.html"
+        },
+        {
+          "sha256": "7396447f7eec6f3ebb7dc76c93919e4dd0b04fd584d7941023c271f8ea7c6909",
+          "verified": "2026-11-08",
+          "file": "org-board/7396447f7eec.html"
+        },
+        {
+          "sha256": "4ac48fd061da85b33c85f1d9419e8a9c8834173d6608db1dbe3b886dbc94e0ee",
+          "verified": "2026-11-08",
+          "file": "org-board/4ac48fd061da.html"
         }
       ]
     }

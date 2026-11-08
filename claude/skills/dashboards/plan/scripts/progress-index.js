@@ -53,7 +53,7 @@ function watchable(root) {
 const stampFile = root => path.join(dirOf(root), ".watcher.json");
 function readStamp(root) { try { return JSON.parse(fs.readFileSync(stampFile(root), "utf8")); } catch (e) { return null; } }
 function alive(st) { if (!st || !Number.isInteger(st.pid) || !(Date.now() - st.at < FRESH_MS)) return false; try { process.kill(st.pid, 0); return true; } catch (e) { return false; } }
-/* Start the watcher unless one is alive; the index is written now either way. Never throws: at worst a board misses a slugged note. */
+/* Start the watcher unless one is alive; the index is written now either way. Never throws: at worst a board lists no notes until the next event writes the index. */
 function ensureWatcher(root) {
   try {
     root = path.resolve(root);

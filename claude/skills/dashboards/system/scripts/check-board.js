@@ -5,7 +5,7 @@
 //
 //   node check-board.js <board.html> [--out <dir>] [--tab <tabId>] [--width 1400] [--height 1500] [--theme light|dark] [--frame <px>]
 //
-// Board kind: <meta name="dashboard" content="plan-board|work-board"> marks an issue board or the repository work board; anything else is a
+// Board kind: <meta name="dashboard" content="plan-board|work-board|org-work-board"> marks an issue board or the repository work board; anything else is a
 // system board. Exit code 0 when, for every kind: every tab rendered with a visible legend (.legend, .key on a board drawn before
 // dashboards-skill/41, or .c4-legend on the C4 tab, .c4key before it), the
 // Context Panel is headed exactly "Context", the footer is "Corresponds to <source>." and its authority sentence (GUIDANCE.md
@@ -153,7 +153,7 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   /* Dashed means only planned or pending (GUIDANCE.md §1), on every tab of every kind: a dashed border or outline, or a dashed SVG
      stroke (a dash of 3 px or more; shorter is dotted: standalone or conditional), on an element that is not, and is not inside, one
      marked planned or pending by the kind's own classes. Diagram furniture (lifelines, returns, boundary frames) is solid. */
-  const PLANNED_SEL=kind==="plan-board"?".planned,.pending,.deferred,.todo,.dashed,.pln,.hollow,.dash,.next,.st-pending,.st-deferred,.pend":kind==="work-board"?".dashed,.pln,.nob":".planned,.dashed,.pln";
+  const PLANNED_SEL=kind==="plan-board"?".planned,.pending,.deferred,.todo,.dashed,.pln,.hollow,.dash,.next,.st-pending,.st-deferred,.pend":kind==="work-board"||kind==="org-work-board"?".dashed,.pln,.nob":".planned,.dashed,.pln";
   const dashHits=new Map(), SIDES=["Top","Right","Bottom","Left"], SHAPES=new Set(["line","path","rect","polygon","polyline","circle","ellipse"]);
   const seen=e=>e.getClientRects().length>0&&getComputedStyle(e).visibility!=="hidden";
   const clsOf=e=>String(e.getAttribute("class")||"").trim().split(/\\s+/).filter(Boolean).map(c=>"."+c).join("");
@@ -241,7 +241,7 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
 // registry puts in it. --no-index tests the rules alone, so a tracked file under an ignored folder still fails (the next file
 // added there would not be). Outside a git work tree the check is skipped with a note.
 function registryIgnored() {
-  if (/<meta name="dashboard" content="(plan-board|work-board)">/.test(src)) return null;
+  if (/<meta name="dashboard" content="(plan-board|work-board|org-work-board)">/.test(src)) return null;
   let dir = path.dirname(path.resolve(page)), reg = null;
   for (;;) {
     if (path.basename(dir) === "dashboards" && fs.existsSync(path.join(dir, "systems.json"))) { reg = path.join(dir, "systems.json"); break; }
@@ -269,7 +269,7 @@ function registryIgnored() {
 // issue board relative to the board, filled by the presenter on its one line. A link never points at a file that is not there, so an
 // entry whose file is missing fails (DEAD BOARD LINK), and so does a map that is not plain JSON (keys and paths in double quotes).
 function boardLinks() {
-  if (/<meta name="dashboard" content="(plan-board|work-board)">/.test(src)) return null;
+  if (/<meta name="dashboard" content="(plan-board|work-board|org-work-board)">/.test(src)) return null;
   const m = src.match(/^const BOARDS=(.*?);\s*(\/\/.*)?$/m);
   if (!m) return { note: "board links: no BOARDS map (a board on a template older than the board-link rule)", problems: [] };
   let map; try { map = JSON.parse(m[1]); } catch (e) { return { note: "", problems: [`BOARDS UNREADABLE: const BOARDS=${m[1].slice(0, 80)} is not plain JSON (${e.message})`] }; }
@@ -289,7 +289,7 @@ function boardLinks() {
 // relationship, view scope or dynamic step naming an element the model does not define, DSL UNKNOWN ELEMENT). A page with no state
 // block, on a template older than it, gets a note.
 function stateChecks() {
-  if (/<meta name="dashboard" content="(plan-board|work-board)">/.test(src) || !src) return null;
+  if (/<meta name="dashboard" content="(plan-board|work-board|org-work-board)">/.test(src) || !src) return null;
   const L = require("./statelib.js"), { kindOf, templateFor } = require("./deviation.js"), kind = kindOf(src);
   const notes = [], problems = [], dir = path.dirname(path.resolve(page)), reg = L.findRegistry(page);
   let R = null; if (reg) { try { R = JSON.parse(fs.readFileSync(reg, "utf8")); } catch (e) { /* the registry check reports it */ } }
@@ -384,7 +384,7 @@ function titleChecks() {
   const { levelRefs, issueTitleRefs, titleDefect } = require("./levelrefs.js"), L = require("./statelib.js"), notes = [];
   const flag = x => notes.push("warning: " + titleDefect(x));
   ["plan", "board", "state"].forEach(id => { const t = L.blockText(src, id); if (t == null) return; try { issueTitleRefs(JSON.parse(t)).forEach(flag); } catch (e) { /* the data checks report it */ } });
-  if (!/<meta name="dashboard" content="(plan-board|work-board)">/.test(src)) {
+  if (!/<meta name="dashboard" content="(plan-board|work-board|org-work-board)">/.test(src)) {
     const html = src.replace(/<script[\s\S]*?<\/script>/g, "").replace(/<!--[\s\S]*?-->/g, "");
     [...html.matchAll(/<a\b[^>]*\bdata-board="(\d+)"[^>]*>([\s\S]*?)<\/a>/g)].forEach(m => { const title = m[2].replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim(), hits = levelRefs(title);
       if (hits.length) flag({ issue: +m[1], at: `the Context's <a data-board="${m[1]}">`, title, hits }); });
@@ -394,13 +394,13 @@ function titleChecks() {
 // Internal names (GUIDANCE.md §4, "No internal names"; namerefs.js; dashboards-skill/33), read without a browser: the strings of a board's
 // data blocks (plan, board, state; an issue's title, quoted verbatim, left out), its HTML comments (the old "presenter:" placeholder marks
 // included) and the text of its hand-written HTML (a state board's header, panels, Guarantees and Context; code left out). Each is a
-// warning, INTERNAL NAME, never a problem of the board: the board is reworded at its next refresh.
+// warning, INTERNAL NAME, never a problem of the board: text a board stores is corrected where it is stored, an issue or tracking board's through fill.js (GUIDANCE.md §4).
 function nameChecks() {
   if (!src || /<meta name="dashboard" content="doc-copy">/.test(src)) return null;
   const N = require("./namerefs.js"), L = require("./statelib.js"), { titleSkip } = require("./levelrefs.js"), notes = [];
   ["plan", "board", "state"].forEach(id => { const t = L.blockText(src, id); if (t == null) return; try { const d = JSON.parse(t), h = N.nameRefsIn(d, "", [], titleSkip(d)); if (h.length) notes.push("warning: " + N.nameWarning(`its ${id} data (${[...new Set(h.map(x => x.at))].slice(0, 4).join(", ")})`, h.map(x => x.hit))); } catch (e) { /* the data checks report it */ } });
   const c = N.commentRefs(src); if (c.length) notes.push("warning: " + N.nameWarning("its comments", c));
-  if (!/<meta name="dashboard" content="(plan-board|work-board)">/.test(src)) {
+  if (!/<meta name="dashboard" content="(plan-board|work-board|org-work-board)">/.test(src)) {
     const text = src.replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<style[\s\S]*?<\/style>/g, " ").replace(/<!--[\s\S]*?-->/g, " ").replace(/<(code|pre)\b[^>]*>[\s\S]*?<\/\1>/g, " ")
       .replace(/<a\b[^>]*\bdata-board="\d+"[^>]*>[\s\S]*?<\/a>/g, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&rsquo;/g, "'").replace(/\s+/g, " ");
     const h = N.nameRefs(text); if (h.length) notes.push("warning: " + N.nameWarning("its text", h));
@@ -410,7 +410,7 @@ function nameChecks() {
 // The links a state board's hand-written HTML makes (GUIDANCE.md §5: a link never points at a file that is not there): every relative
 // href outside its scripts, from the board's folder, when the board sits in a repository's docs/; and its WORK_BOARD's committed board.
 function deadLinks() {
-  if (!src || /<meta name="dashboard" content="(plan-board|work-board|doc-copy)">/.test(src)) return null;
+  if (!src || /<meta name="dashboard" content="(plan-board|work-board|org-work-board|doc-copy)">/.test(src)) return null;
   const { repoRootOf } = (() => { try { return { repoRootOf: p => { for (let d = path.dirname(path.resolve(p)); ; d = path.dirname(d)) { if (fs.existsSync(path.join(d, "docs", "dashboards")) || fs.existsSync(path.join(d, "docs", "plans"))) return d; if (path.dirname(d) === d) return null; } } }; } catch (e) { return { repoRootOf: () => null }; } })();
   const dir = path.dirname(path.resolve(page)), problems = [], notes = [];
   const wb = (src.match(/^const WORK_BOARD=(.*?);\s*(\/\/.*)?$/m) || [])[1];
@@ -430,7 +430,7 @@ const shot = path.join(out, base + (tab ? "." + tab : "") + (theme ? "." + theme
 fs.writeFileSync(wrapperPath, wrapped);
 // An issue board or the repository work board re-loads its live sidecar (plan.js, board.js) from beside the board while its run is live: the wrapper
 // gets a copy beside it, so the pass sees the board as a reader would; a copy left by another board is removed.
-["plan.js", "board.js"].forEach(f => { const side = path.join(path.dirname(path.resolve(page)), f); const copy = path.join(out, f); if (/<meta name="dashboard" content="(plan-board|work-board)">/.test(src) && fs.existsSync(side)) fs.copyFileSync(side, copy); else if (fs.existsSync(copy)) fs.unlinkSync(copy); });
+["plan.js", "board.js"].forEach(f => { const side = path.join(path.dirname(path.resolve(page)), f); const copy = path.join(out, f); if (/<meta name="dashboard" content="(plan-board|work-board|org-work-board)">/.test(src) && fs.existsSync(side)) fs.copyFileSync(side, copy); else if (fs.existsSync(copy)) fs.unlinkSync(copy); });
 let target = wrapperPath;
 if (frame) {
   // The harness: the wrapped page inside an iframe of the phone width.

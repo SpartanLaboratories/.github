@@ -313,9 +313,11 @@ Runs after the last `qa` verdict — `PASS`, or `CHANGES REQUESTED` with every
 fix minor and fixed on the spot — and at level 4 straight after step 3. From
 its first task on, only documents change on the branch. Report it on the issue
 board with the `document` event (see "Plan-board events" below): send it when
-the step starts and at every task change, with `tasks` listing every task's id,
-name and state. The tasks, in this order (the levels that skip one are named
-on it):
+the step starts and at every task change, so each task's state stays current,
+with `tasks` giving the id, name and state of every task the level and the
+repository apply to; a task they do not, such as the Dokka check where Dokka
+is not used, stays out of the list and does not count. The tasks, in this
+order (the levels that skip one are named on it):
 
 0. **Open — `admin team`: `prepare-landing`.** Send a `prepare-landing` request
    (the `admin-team` skill) with the fields a `land` carries: the issue, the
@@ -392,17 +394,26 @@ on it):
    which system the work belongs to; resend the same `id` with `attempt + 1`
    and the answer.
 
-Then the **document-landing commit**: send a `commit` request carrying every
-document the step wrote or changed (the reconciled plan documents, the README
-and CHANGELOG), the issue's board files, its tracking board's, the repository
-work board, the state-board files and every other path the `state-boards` reply
-names (at level 1, the boards seeded onto the branch); the executor splits them
-per its guidelines, `docs:` type. Its `done` reply's sha is the
-**document-landing commit**. The team closes the board's commit task before it
-commits; send no `document` event after the `commit` request, because it would
-dirty the worktree. A `needs-rework` with `result.finds` means a file names the
-pipeline or a work level: reword each `file:line` (or have the agent that wrote
-it reword it) and resend the same `id` with `attempt + 1`. Then step 7.
+Then the **document-landing commit**. First finish any task that is truly
+unfinished, then send the final `document` event, with each task in its true
+state, and wait for its `done` before sending the `commit`: the team commits
+nothing while another task on the issue board is not done (a level-1 run has
+no issue board, so it sends no such event and the check does not apply). Then
+send a `commit` request carrying every document the step wrote or changed (the
+reconciled plan documents, the README and CHANGELOG), the issue's board files,
+its tracking board's, the repository work board, the state-board files and
+every other path the `state-boards` reply names (at level 1, the boards seeded
+onto the branch); the executor splits them per its guidelines, `docs:` type. Its `done` reply's
+sha is the **document-landing commit**. The team closes the board's commit task
+before it commits; send no `document` event after the `commit` request, because
+it would dirty the worktree, save the one the reply below calls for. A
+`needs-rework` with `result.unfinished` means another task on the board is not
+done, naming each, and nothing was committed: finish any that is truly
+unfinished, send a `document` event with their true states, wait for its
+`done`, then resend the same `id` with `attempt + 1`. A
+`needs-rework` with `result.finds` means a file names the pipeline or a work
+level: reword each `file:line` (or have the agent that wrote it reword it) and
+resend the same `id` with `attempt + 1`. Then step 7.
 
 The presenter is not a pipeline step: it runs as a service of the `admin team`
 session, building the state boards on the run's `state-boards` request (task 6)
@@ -432,7 +443,7 @@ sends none.
 | Each rookie-dev report | `implementation-stage` | the stage, `stages`: every stage's id and name with its state (`done`, `current`, `todo`), `final-implementation.md` path, deviations; during a remediation loop also `remediation`: the qa pass it answers, the route (`on-the-spot` / `remediation` / `re-plan-then-remediation`) and its sub-steps with their state; `tests`: the test classes the stage added or amended (`added`/`amended`: class, module, testLevel, path, tests, rows). It names no `step` |
 | Just before each `qa` pass is spawned | `qa-pass` | `qa: {pass: N, verdict: "running"}`, `at` |
 | Each qa verdict | `qa-pass` | pass number, verdict, finding counts by kind (test, code) and by `severity` (`minor` — easily made, no fallout — and `other`), the route step 5 takes from them, `rows`: the board Row ids the findings touch, report path; `tests`: what the qa run ran (`ran`: class, module, passed, failed, skipped) and the counts of the untouched modules' tests (`other.byModule`) from the test-inspector report |
-| Step 6 starts, and each task change in it | `document` | `tasks`: every task's id and name with its state (`done`, `current`, `todo`), like `implementation-stage`'s `stages` — ids `documentation-review`, `reconcile-documentation`, `dokka-check`, `reconcile-plan`, `readme-changelog`, `state-boards` (the board adds `document-landing`, which the run need not send); once `prepare-landing` replied, the code-landing sha |
+| Step 6 starts, each task change in it, and once more before the document-landing commit | `document` | `tasks`: every applicable task's id and name with its state (`done`, `current`, `todo`), like `implementation-stage`'s `stages` — ids `documentation-review`, `reconcile-documentation`, `dokka-check`, `reconcile-plan`, `readme-changelog`, `state-boards` (the board adds `document-landing`, which the run need not send); once `prepare-landing` replied, the code-landing sha |
 | An escalation | `escalated` | the proposed level and evidence |
 | The run is abandoned | `cancelled` | the reason |
 

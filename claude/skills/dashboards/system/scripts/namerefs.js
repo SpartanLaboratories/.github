@@ -19,6 +19,8 @@
 // Used by plan/scripts/check.js (every string of plan.json and board.json, warned), by check-board.js (a board's data blocks, its comments
 // and its rendered text, warned) and by plan/scripts/apply-event.js, which rewords a fact text through scrubNames() before it is written,
 // and leaves it out, telling the presenter (enrich), where a name would remain.
+// Every other writer goes through the same rule: fill.js (cleanWritten(), a name no rewording removes refused) and board.js and org-board.js
+// (cleanWorkBoard(), the text a work board copies from a board's data).
 "use strict";
 /* internal-names.md §1, by strength: a name its "Allowed when" reads "never" for is UNAMBIGUOUS; a library's name that only coincides is
    CONTEXTUAL or, for the two a concurrency or a reactive library uses all the time, VERB_ONLY; qa is barred as an agent's name only (AGENT_ONLY) */
@@ -127,6 +129,30 @@ function scrubNames(text) {
 }
 /* a hit no library would use: the text is left out rather than written with it */
 const unambiguous = hit => new RegExp(`\\b(?:${UNAMBIGUOUS.join("|")})\\b`, "i").test(hit) || /\buser\b/i.test(hit) || /\bqa\b/i.test(hit);
+/* The one rule of a writer (plan/RULES.md §4; GUIDANCE.md §4): a text a board will show, reworded where a safe rewording exists, a wait on
+   the user written "waiting on you", left out where a name no library uses would remain. Returns { text, left, out }: text is what to write
+   (null when out), left the names still in it, out true where it must not be written. apply-event.js's txt() and cleanText() are this rule. */
+function cleanWritten(text) {
+  if (typeof text !== "string" || !text.trim()) return { text, left: [], out: false };
+  const n = scrubNames(text), out = n.left.some(unambiguous);
+  return { text: out ? null : n.text, left: n.left, out };
+}
+/* The repository work board's own text (GUIDANCE.md §4): every row's detail, each pass's note and each chain unit's name, the prose board.js and
+   org-board.js copy from a board's data, whatever wrote it and however long ago: a text written before the names were kept out, or by a writer that
+   let one through, is reworded here and never reaches a work board. A title is an issue's own, quoted verbatim, and no path, branch or id is prose.
+   A text that cannot be reworded gives way: "Waiting on you." on a halted row, nothing elsewhere. Returns what it reworded or left out: [{ at, was, now }]. */
+function cleanWorkBoard(board) {
+  const changed = [], one = (holder, key, at) => {
+    const v = holder[key]; if (typeof v !== "string" || !v) return;
+    const r = cleanWritten(v); let now = r.out ? (/^waiting on you\b/i.test(scrubWaits(v)) ? "Waiting on you." : "") : r.text;
+    if (now !== v) { holder[key] = now; changed.push({ at, was: v, now }); } };
+  (Array.isArray(board && board.rows) ? board.rows : []).forEach((r, i) => { if (!r || typeof r !== "object") return;
+    one(r, "detail", `rows[${i}].detail`);
+    (Array.isArray(r.qa) ? r.qa : []).forEach((p, j) => { if (p && typeof p === "object") one(p, "note", `rows[${i}].qa[${j}].note`); });
+    const units = r.chain && Array.isArray(r.chain.units) ? r.chain.units : [];
+    units.forEach((u, j) => { if (u && typeof u === "object") one(u, "name", `rows[${i}].chain.units[${j}].name`); }); });
+  return changed;
+}
 /* the warning's line */
-const nameWarning = (where, hits) => `INTERNAL NAME: ${where} names ${[...new Set(hits)].slice(0, 6).map(h => JSON.stringify(h)).join(", ")}: a board never names the pipeline's agents, sessions or roles, nor the approval flow (GUIDANCE.md §4); reword it at the board's next refresh`;
-module.exports = { NAME_PATTERNS, UNAMBIGUOUS, CONTEXTUAL, VERB_ONLY, AGENT_ONLY, APPROVAL_FLOW, nameRefs, nameSpans, nameRefsIn, commentRefs, scrubNames, waitRefs, scrubWaits, unambiguous, nameWarning };
+const nameWarning = (where, hits) => `INTERNAL NAME: ${where} names ${[...new Set(hits)].slice(0, 6).map(h => JSON.stringify(h)).join(", ")}: a board never names the pipeline's agents, sessions or roles, nor the approval flow (GUIDANCE.md §4); correct the text where the board stores it, an issue or tracking board's through fill.js`;
+module.exports = { NAME_PATTERNS, UNAMBIGUOUS, CONTEXTUAL, VERB_ONLY, AGENT_ONLY, APPROVAL_FLOW, nameRefs, nameSpans, nameRefsIn, commentRefs, scrubNames, waitRefs, scrubWaits, unambiguous, nameWarning, cleanWritten, cleanWorkBoard };

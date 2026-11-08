@@ -37,9 +37,9 @@ module.exports = function casesCheckLabels(X) {
     const got = Object.keys(LABELS).map(k => [k, PN.NOTE_WORK[k]]);
     c.push(["passnames.js NOTE_WORK: \"documentation check\", \"code check\", \"test check\"", got.every(([k, v]) => v === LABELS[k]), js(got)]);
     const nw = /const NOTE_WORK=[^\n]*\n/.exec(PB), nl = /const noteLabel=[^\n]*\n/.exec(PB);
-    const T = nw && vm.runInNewContext(`${nw[0]};NOTE_WORK`, { PASS_NAME: PN.PASS_NAME });
-    c.push(["the issue-board template's names block NOTE_WORK is passnames.js's", !!T && js(Object.entries(T).sort()) === js(Object.entries(PN.NOTE_WORK).sort()), js(T)]);
     const label = nw && nl && vm.runInNewContext(`${nw[0]}${nl[0]};noteLabel`, { PASS_NAME: PN.PASS_NAME });
+    const each = label ? Object.entries(PN.NOTE_WORK).flatMap(([k, v]) => [[k, label(k), v], [k + "-a-slug", label(k + "-a-slug"), v + " · a-slug"]]) : [];
+    c.push(["the template's noteLabel() reads every name of passnames.js NOTE_WORK, plain and slugged, as passnames.js labels it", !!label && each.every(([, g, w]) => g === w), js(each.filter(([, g, w]) => g !== w))]);
     const probes = [["documentation-reviewer", "documentation check"], ["code-reviewer", "code check"], ["test-inspector", "test check"], ["documentation-reviewer-2", "documentation check · 2"], ["qa", "Quality Review"]];
     const lg = label ? probes.map(([n, w]) => [n, label(n), w]) : [];
     c.push(["noteLabel(): each check's note by its label (a slugged one too), the pass's own by its name", !!label && lg.every(([, g, w]) => g === w), js(lg)]);
@@ -121,7 +121,7 @@ module.exports = function casesCheckLabels(X) {
   guard("the feature probe (check-labels): found on the template, missed on one labelled before it, for its types only", c => {
     const miss = (h, k) => F.probe(h, k).find(m => m.id === "check-labels");
     c.push(["the issue-board template has it", !miss(PB, "plan-board"), js(F.probe(PB, "plan-board").map(F.line))]);
-    const before = PB.replace('"documentation-reviewer":"documentation check"', '"documentation-reviewer":"documentation review"'), m = miss(before, "plan-board");
+    const before = PB.replace('["documentation-rev","documentation check"]', '["documentation-rev","documentation review"]'), m = miss(before, "plan-board");
     c.push(["missed on a template that labels the documentation check \"documentation review\" (FEATURE MISSING, since dashboards-skill/52)", before !== PB && !!m && /dashboards-skill\/52/.test(F.line(m)), m ? F.line(m) : "not missed"]);
     const f = F.FEATURES.find(x => x.id === "check-labels") || {};
     c.push(["it applies to issue and tracking boards only; the repository work board and the state boards each with its reason", js(f.types) === js(["plan-board"]) && ["system", "supersystem", "work-board"].every(k => f.notFor && f.notFor[k] && F.applicable(k).every(x => x.id !== "check-labels")) && f.since === 52, js([f.types, f.notFor, f.since])]);

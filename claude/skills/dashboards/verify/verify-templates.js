@@ -118,9 +118,11 @@ const sk = p => path.join(SKILL, ...p.split("/"));
 /* Each template, the block its data goes in (none for system templates, which carry their own sample content), and its fixtures. */
 const PLAN_FIX = [sk("plan/examples/38-handshake-empty-name/plan.json"), sk("verify/fixtures/tracking.plan.json"), sk("verify/fixtures/sub-issue.plan.json"), sk("verify/fixtures/live-issue.plan.json"), null];
 const BOARD_FIX = [sk("verify/fixtures/work-board.json"), sk("verify/fixtures/work-board-live.json"), null];
+const ORG_FIX = [sk("verify/fixtures/org-work-board.json"), null];
 const SETS = [
   { name: "plan/template/dashboard.html", file: "dashboard.html", dir: "docs/plans/_template", block: "plan", fixtures: PLAN_FIX },
   { name: "plan/template/board.html", file: "board.html", dir: "docs/plans/_template", block: "board", fixtures: BOARD_FIX },
+  { name: "plan/template/org-board.html", file: "org-board.html", dir: "docs/plans/_template", block: "board", fixtures: ORG_FIX },
   { name: "system/template/system.html", file: "system.html", dir: "docs/dashboards/_template", block: null, fixtures: [null] },
   { name: "system/template/supersystem.html", file: "supersystem.html", dir: "docs/dashboards/_template", block: null, fixtures: [null] },
 ];
@@ -839,7 +841,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
   report(`the derived reconciliation state on ${t.name}`, rc);
 });
 /* board.js writes the derived state into board.json, and the repository work board shows it */
-targets.filter(t => t.block === "board").forEach(t => {
+targets.filter(t => t.block === "board" && t.file === "board.html").forEach(t => {
   const tpl = fs.readFileSync(t.path, "utf8"), wc = [], repo = path.join(out, "reconciliation-board"); fs.rmSync(repo, { recursive: true, force: true });
   const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x));
   const ex = J("plan/examples/38-handshake-empty-name/plan.json"), trk = J("verify/fixtures/tracking.plan.json"), ptpl = fs.readFileSync(sk("plan/template/dashboard.html"), "utf8");
@@ -869,7 +871,7 @@ targets.filter(t => t.block === "board").forEach(t => {
   report(`the derived reconciliation state on ${t.name}`, wc);
 });
 
-targets.filter(t => t.block === "board").forEach(t => {
+targets.filter(t => t.block === "board" && t.file === "board.html").forEach(t => {
   const tpl = fs.readFileSync(t.path, "utf8"), b = JSON.parse(fs.readFileSync(sk("verify/fixtures/work-board.json"), "utf8"));
   const scratch = path.join(out, "issue-links-work-board"), dir = path.join(scratch, "docs", "plans");
   const setup = html => { fs.rmSync(scratch, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
@@ -908,7 +910,7 @@ targets.filter(t => t.block === "board").forEach(t => {
      written <a data-board="7"> opens it and a lone <a data-issue="7"> opens it; with none, the title is plain text and a lone #n opens
      the GitHub issue; the supersystem's planned card and inspector link "planned by #7" through ilink(); check-board.js fails a BOARDS
      entry whose file is not there, and passes the one that is. */
-targets.filter(t => !t.block || t.block === "board").forEach(t => {
+targets.filter(t => !t.block || (t.block === "board" && t.file === "board.html")).forEach(t => {
   const tpl = fs.readFileSync(t.path, "utf8"), cc = [], sc = path.join(out, "conventions-" + path.basename(t.file, ".html"));
   fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
   const text = h => (h || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/\s+/g, " ").trim();
@@ -2323,6 +2325,11 @@ catch (e) { report("the marks' classes cases", [["the cases run to the end", fal
    templates, board.js writing chain.units, the stepbar probe, and the fixture boards for a browser check. It runs on its own too. */
 try { require("./cases-stepbar.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the StepBar cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
+/* The org work board (verify/cases-org-board.js): the generator's two forms, a private repository named nowhere, a board linked on its default branch or its run's branch or
+   not at all, the links' form by where the board is opened, check.js's kind and the writers' one path for internal names. It needs no browser, and runs on its own too (node verify/cases-org-board.js). */
+try { require("./cases-org-board.js")({ sk, out, node, stub, withData, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { console.log(`FAILED   the org work board's cases: ${e.message}`); linkFailures++; }
 
 const today = new Date().toISOString().slice(0, 10);
 const COMMENT = "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last verification, when every check that needs no browser passed (its modes: \"--auto --no-browser\"; a run with --browser, made only when a person asks for it, lists the browser passes instead). check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.";

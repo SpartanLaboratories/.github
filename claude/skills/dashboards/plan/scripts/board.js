@@ -408,6 +408,9 @@ const board = { schema: "work-board/1", repo, generated: now.toISOString().repla
 /* every qa pass a row's text names is "Quality Review N" (passnames.js), a landed board's older wording included: board.json is generated,
    so it carries the new name; the issue titles stay as quoted */
 require("./passnames.js").renamePassesIn(board, require("../../system/scripts/levelrefs.js").titleSkip(board));
+/* no internal names on a work board (GUIDANCE.md §4; namerefs.js cleanWorkBoard()): a row's detail, a pass's note and a chain unit's name are copied from a
+   board's data, whatever wrote it and however long ago, so they are reworded here, on the one path every repository work board comes from */
+const cleaned = require("../../system/scripts/namerefs.js").cleanWorkBoard(board);
 fs.mkdirSync(outDir, { recursive: true });
 atomicWrite(jsonPath, JSON.stringify(board, null, 2) + "\n");
 // the live board is always the current template: it is regenerated at every event and never committed
@@ -446,5 +449,6 @@ if (live) {
 }
 console.log(`${live ? `live board, ${trees.length} worktree${trees.length === 1 ? "" : "s"}: ` : ""}board.json: ${rows.length} runs in ${board.groups.length} groups, ${roadmap.length} roadmap items, ${unscheduled.length} unscheduled issues; index.html embedded`);
 const noSys = [...new Set([...rows.filter(r => !r.system && !r.unassigned && !trackingNums.has(r.issue)).map(r => "#" + r.issue), ...unscheduled.filter(u => !u.system && !u.unassigned).map(u => "#" + u.issue)])];
+cleaned.forEach(x => console.log(`internal names: ${x.at} ${x.now ? "reworded" : "left out"}: ${JSON.stringify(x.was)}${x.now ? ` → ${JSON.stringify(x.now)}` : ""}`));
 if (unclassified.length) console.log(`dependencies no state rule fits (left with no build state or locality, never given one): ${unclassified.join(" · ")}`);
 if (noSys.length) console.log(`no system recorded for ${noSys.join(", ")}: set "system" (or "unassigned": true, for no system) on those entries in board.json once, and board.js keeps it`);

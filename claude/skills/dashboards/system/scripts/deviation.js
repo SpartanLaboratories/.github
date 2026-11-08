@@ -21,6 +21,7 @@ const SKILL = path.resolve(__dirname, "..", "..");
 const TEMPLATES = {
   "plan-board": { file: "dashboard.html", skill: "plan/template/dashboard.html", repo: "docs/plans/_template", block: "plan" },
   "work-board": { file: "board.html", skill: "plan/template/board.html", repo: "docs/plans/_template", block: "board" },
+  "org-work-board": { file: "org-board.html", skill: "plan/template/org-board.html", repo: "docs/plans/_template", block: "board" },
   "system": { file: "system.html", skill: "system/template/system.html", repo: "docs/dashboards/_template" },
   "supersystem": { file: "supersystem.html", skill: "system/template/supersystem.html", repo: "docs/dashboards/_template" },
 };
@@ -30,7 +31,7 @@ const sha = s => crypto.createHash("sha256").update(norm(s)).digest("hex");
 /* The board's kind: the dashboard meta, then an explicit template meta, then the Systems tab that only supersystem boards carry. */
 function kindOf(html) {
   const m = (html.match(/<meta name="dashboard" content="([^"]+)">/) || [])[1];
-  if (m === "plan-board" || m === "work-board") return m;
+  if (m === "plan-board" || m === "work-board" || m === "org-work-board") return m;
   const t = (html.match(/<meta name="template" content="([^"]+)">/) || [])[1];
   if (t && /supersystem/.test(t)) return "supersystem";
   if (t && /system\.html|system\/system/.test(t)) return "system";

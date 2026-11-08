@@ -2,6 +2,7 @@
 // Check an issue board or the repository work board against plan/RULES.md §8, then (with --browser) in headless Chrome.
 //   node check.js <plan-folder>          plan.json keeps the rules and dashboard.html embeds it verbatim
 //   node check.js docs/plans             the repository work board: board.json and index.html
+//   node check.js docs/plans/org-work-board   the org work board (schema org-work-board/1; docs/plans/.live/org-work-board/ too): board.json, index.html, no sidecar
 //   options: --root <repo> (default: found above the folder, the first one holding docs/plans)
 //            --browser [--out <dir>]     also run system/scripts/check-board.js: light, dark, 520 px, a 390 px frame and 1920 x 1080
 //            --auto [--out <dir>]        the usual mode (GUIDANCE.md §8): the data and the embed as always, then the browser pass
@@ -108,8 +109,8 @@ function checkLink(dir, ref, at) {
 function levelFail(data, file) {
   issueTitleRefs(data).forEach(x => warn(titleDefect(x)));
   /* No internal names (GUIDANCE.md §4; namerefs.js, dashboards-skill/33): every string the board carries is free of the pipeline's agents,
-     sessions and roles and of the approval flow; an issue's title, quoted verbatim, is left out. A warning, never a failure: the board is
-     reworded at its next refresh (apply-event.js scrubs the facts it writes) */
+     sessions and roles and of the approval flow; an issue's title, quoted verbatim, is left out. A warning, never a failure: text a board
+     already stores is corrected through fill.js (GUIDANCE.md §4; apply-event.js scrubs the facts it writes) */
   const tSkip = titleSkip(data), names = nameRefsIn(data, "", [], at => tSkip(at) || /^rows\[\d+\]\.options\[\d+\]\.signature$/.test(at));   // a signature is code, never prose
   if (names.length) warn(nameWarning(`${file} (${[...new Set(names.map(h => h.at))].slice(0, 4).join(", ")}${names.length > 4 ? ", …" : ""})`, names.map(h => h.hit)));
   const hits = levelRefsIn(data, "", [], titleSkip(data));
@@ -1076,11 +1077,13 @@ function checkHtml(htmlPath, id, data, kindMeta) {
   let embedded; try { embedded = JSON.parse(body); } catch (e) { fail("the embedded copy does not parse: " + e.message); return; }
   if (JSON.stringify(embedded) !== JSON.stringify(data)) fail(`the embedded copy differs from ${id}.json: run embed.js`); else ok(`${path.basename(htmlPath)} embeds ${id}.json verbatim`);
   /* the live sidecar (RULES §1, "plan.js"): the data file as a script beside the board, which the board re-loads while its run is live */
-  const side = readSidecar(path.join(path.dirname(htmlPath), SIDECAR[id]), id);
-  if (side.error === "missing") warn(`${SIDECAR[id]} is missing beside the board: its live view has nothing to re-load (run embed.js, which writes it)`);
-  else if (side.error) fail(`${SIDECAR[id]} is ${side.error}: run embed.js`);
-  else if (JSON.stringify(side.data) !== JSON.stringify(data)) fail(`${SIDECAR[id]} differs from ${id}.json: run embed.js`);
-  else ok(`${SIDECAR[id]} carries ${id}.json`);
+  if (kindMeta !== "org-work-board") {
+    const side = readSidecar(path.join(path.dirname(htmlPath), SIDECAR[id]), id);
+    if (side.error === "missing") warn(`${SIDECAR[id]} is missing beside the board: its live view has nothing to re-load (run embed.js, which writes it)`);
+    else if (side.error) fail(`${SIDECAR[id]} is ${side.error}: run embed.js`);
+    else if (JSON.stringify(side.data) !== JSON.stringify(data)) fail(`${SIDECAR[id]} differs from ${id}.json: run embed.js`);
+    else ok(`${SIDECAR[id]} carries ${id}.json`);
+  }
   if (!html.includes(`<meta name="dashboard" content="${kindMeta}">`)) fail(`${path.basename(htmlPath)} does not declare <meta name="dashboard" content="${kindMeta}">`);
   const panels = html.match(/<section[^>]*role="tabpanel"[\s\S]*?<\/section>/g) || [];
   if (!panels.length) fail(`${path.basename(htmlPath)} has no tab panels`);
@@ -1183,6 +1186,35 @@ function browser(page, outDir, modes) {
   });
 }
 
+/* The org work board (plan/scripts/org-board.js; plan/template/org-board.html): an organization's repositories, each with its work-board data; no sidecar (the
+   committed snapshot embeds its data; the live view re-reads each sibling checkout itself). A repository is public: a private one is on no list. */
+function checkOrgBoard(dir) {
+  const b = JSON.parse(fs.readFileSync(path.join(dir, "board.json"), "utf8"));
+  if (b.schema !== "org-work-board/1") fail(`board.json schema must be "org-work-board/1" (got ${JSON.stringify(b.schema)})`);
+  ["organization", "url", "generated"].forEach(k => { if (!str(b[k])) fail(`board.json needs ${k}`); });
+  if (!Array.isArray(b.repositories) || !Array.isArray(b.organizations)) fail("board.json needs repositories and organizations");
+  const orgs = b.organizations || [], repos = [...(b.repositories || []), ...orgs.flatMap(o => o.repositories || [])];
+  orgs.forEach((o, i) => { if (!str(o.owner) || !str(o.parent) || !Array.isArray(o.repositories)) fail(`organizations[${i}] needs owner, parent and repositories (only a sub-organization has an organization Panel; the parent has none)`); });
+  if (!repos.length) fail("board.json lists no repository");
+  const REPO_PATH = /^[^:]+$/;
+  repos.forEach((r, i) => { const at = `repositories (${r.owner}/${r.name})`;
+    if (!str(r.owner) || !str(r.name) || !str(r.defaultBranch) || !/^https:\/\/github\.com\//.test(String(r.url))) fail(`repositories[${i}] needs owner, name, defaultBranch and its https://github.com/ url`);
+    if (r.visibility !== undefined && r.visibility !== "public") fail(`${at}: a private repository is dropped from the board and its data`);
+    Object.entries(r.links || {}).forEach(([k, p]) => { if (typeof p !== "string" || !p.trim() || !REPO_PATH.test(p)) fail(`${at}.links.${k} must be a path in the repository (the board chooses the link's form where it is opened; got ${JSON.stringify(p)})`); });
+    Object.entries(r.boards || {}).forEach(([n, x]) => { if (!x || typeof x !== "object" || !str(x.path) || !str(x.ref) || !REPO_PATH.test(x.path)) fail(`${at}.boards[${n}] must be { path, ref }: the board chooses the link's form where it is opened (got ${JSON.stringify(x)})`); });
+    (r.unlinked || []).forEach((u, j) => { if (!posInt(u.issue) || !str(u.path) || !str(u.why)) fail(`${at}.unlinked[${j}] needs issue, path and why`); });
+    if (r.board != null && r.board.schema !== "work-board/1") fail(`${at}.board must be a repository work board's data (work-board/1), or null`);
+    if (r.board) {
+      (r.board.rows || []).forEach((x, j) => { if (!posInt(x.issue) || !str(x.title)) fail(`${at}: rows[${j}] needs issue and title`); ["board", "folder"].forEach(k => { const p = x[k]; if (typeof p === "string" && (/^[a-z][a-z0-9+.-]*:/i.test(p) || p.startsWith("/"))) fail(`${at}: rows[${j}].${k} holds a machine's path (GUIDANCE.md §10)`); }); });
+      levelFail(r.board, `board.json (${r.name})`); passWording(r.board, `board.json (${r.name})`, false);
+    } });
+  (b.notShown || []).forEach((x, i) => { if (!str(x.repository) || !/^https:\/\//.test(String(x.url)) || /private/i.test(String(x.why))) fail(`notShown[${i}] needs a public repository's name, url and why (a private repository is named nowhere; got ${JSON.stringify(x)})`); });
+  const { repositories, organizations, ...top } = b; levelFail(top, "board.json");
+  if (fs.existsSync(path.join(dir, "board.js"))) fail("the org work board has no sidecar: it embeds its data, and the live view reads each checkout itself; remove board.js");
+  if (!out.fail.length) ok(`board.json: ${repos.length} repositories in ${1 + orgs.length} organization${orgs.length ? "s" : ""}, ${repos.filter(r => r.board).length} with work-board data; ${b.live ? "the live view" : "the committed snapshot"}`);
+  checkHtml(path.join(dir, "index.html"), "board", b, "org-work-board");
+}
+
 function findRoot(dir, args) {
   const given = opt(args, "root", null); if (given) return path.resolve(given);
   for (let d = path.resolve(dir); ; d = path.dirname(d)) { if (fs.existsSync(path.join(d, "docs", "plans"))) return d; if (path.dirname(d) === d) return null; }
@@ -1190,7 +1222,9 @@ function findRoot(dir, args) {
 function run(dir, args) {
   args = args || [];
   const root = findRoot(dir, args), isBoard = fs.existsSync(path.join(dir, "board.json"));
-  if (isBoard) checkBoard(dir);
+  let isOrg = false; if (isBoard) { try { isOrg = JSON.parse(fs.readFileSync(path.join(dir, "board.json"), "utf8")).schema === "org-work-board/1"; } catch (e) { /* checkBoard reports it */ } }
+  if (isOrg) checkOrgBoard(dir);
+  else if (isBoard) checkBoard(dir);
   else {
     const jsonPath = path.join(dir, "plan.json");
     if (!fs.existsSync(jsonPath)) { fail(`${jsonPath} is missing`); return report(); }
@@ -1213,7 +1247,7 @@ function run(dir, args) {
   else if (flag(args, "auto") && fs.existsSync(page)) {
     /* the board's features (system/scripts/features.js; GUIDANCE.md §8): every template feature its type takes, whatever its browser pass and
        through a declared divergence too */
-    { const F = require(path.resolve(__dirname, "..", "..", "system", "scripts", "features.js")), k = isBoard ? "work-board" : "plan-board", miss = F.probe(fs.readFileSync(page, "utf8"), k);
+    { const F = require(path.resolve(__dirname, "..", "..", "system", "scripts", "features.js")), k = isBoard ? (isOrg ? "org-work-board" : "work-board") : "plan-board", miss = F.probe(fs.readFileSync(page, "utf8"), k);
       /* a landed or cancelled issue board is kept as it landed, never re-rendered (GUIDANCE.md §11): its newer features are no failure */
       let closed = false; if (!isBoard) { try { closed = ["built", "abandoned"].includes(JSON.parse(fs.readFileSync(path.join(dir, "plan.json"), "utf8")).status); } catch (e) { /* reported above */ } }
       miss.forEach(m => (closed ? ok : fail)((closed ? "features (kept as it landed): " : "") + F.line(m))); if (!miss.length) ok(`features: every one of the ${F.applicable(k).length} a ${k} takes`); }

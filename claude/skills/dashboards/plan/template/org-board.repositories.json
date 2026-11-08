@@ -1,0 +1,11 @@
+{
+  "$comment": "The org work board's repositories (plan/scripts/org-board.js), in the order the board shows them. Each is a folder of the checkouts folder org-board.js reads. A private repository is dropped from the board and its data, by its visibility on GitHub; none is named here. A repository of the organization that is on no list here and is not private, archived or a .github repository is named in the generator's summary (unaccounted).",
+  "owner": "SpartanLaboratories",
+  "url": "https://github.com/SpartanLaboratories",
+  "repositories": ["WebTools", "KotlinBottools", "SpartanGraphics", "SpartanUI", "GeneralTools", "MagicBot", "OrganizationPage"],
+  "organizations": [
+    { "owner": "SpartanLabsGaming", "parent": "SpartanLaboratories", "url": "https://github.com/SpartanLabsGaming",
+      "repositories": ["MyGameTools", "MyGameServer", "MyGameClient", "RivenFell"] }
+  ],
+  "referenceOnly": ["GKB", "GKB2", "BotTools"]
+}

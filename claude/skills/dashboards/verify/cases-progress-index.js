@@ -32,16 +32,16 @@ module.exports = function casesProgressIndex(X) {
 
   guard("the progress notes' index: the template reads it", c => {
     const t = fs.readFileSync(PB, "utf8");
-    const m = /function progNames\(R,listed\)\{[\s\S]*?\n[^\n]*\}\n/.exec(t);
+    const m = /function progNames\(listed\)\{[^\n]*\}\n/.exec(t);
     c.push(["progNames takes the listed names", !!m, ""]);
-    if (m) { const ctx = { questionsOf: () => [], AGENTS: ["planner"] }; const f = vm.runInNewContext(`${m[0]};progNames`, ctx);
-      const n = f({ stages: [{ id: "S1" }] }, ["planner-reconcile", "bad name", 3, "<x>"]);
-      c.push(["a listed slug is probed beside the known names, and a name unfit for a URL is not", n.join() === "planner,rookie-dev-s1,planner-reconcile", n.join()]);
-      c.push(["no index: the known names alone", f({}, undefined).join() === "planner", ""]); }
-    c.push(["each poll loads the issue's index, no cached copy", /progress\/\$\{issue\}\/index\.js\?t=\$\{Date\.now\(\)\}/.test(t) && /progNames\(R,await loadNoteNames\(n\)\)/.test(t), ""]);
+    if (m) { const f = vm.runInNewContext(`${m[0]};progNames`, {});
+      const n = f(["planner-reconcile", "qa", "qa", "bad name", 3, "<x>"]);
+      c.push(["each listed name is probed once, and a name unfit for a URL is not", n.join() === "planner-reconcile,qa", n.join()]);
+      c.push(["no index: no names to probe, the template holding none of its own", f(undefined).length === 0 && !/const AGENTS=/.test(t), ""]); }
+    c.push(["each poll loads the issue's index, no cached copy", /progress\/\$\{issue\}\/index\.js\?t=\$\{Date\.now\(\)\}/.test(t) && /progNames\(await loadNoteNames\(n\)\)/.test(t), ""]);
     /* NOTE_WORK stands in the template's names block (dashboards-skill/41), noteLabel() beside the progress notes */
     const nw = /const NOTE_WORK=[^\n]*\n/.exec(t), nl = /const noteLabel=[^\n]*\n/.exec(t), label = nw && nl && vm.runInNewContext(`${nw[0]}${nl[0]};noteLabel`, { PASS_NAME: "Quality Review" });
-    c.push(["a slugged note is labelled by its work, never its file name", !!label && label("planner-reconcile") === "planning · reconcile" && label("nobody-knows") === "progress", label ? label("planner-reconcile") : ""]);
+    c.push(["a slugged note is labelled by its work, never its file name", !!label && label("planner-reconcile") === "planning · reconcile" && label("researcher-blast-radius") === "research · blast-radius" && label("rookie-dev-s2") === "implementation · s2" && label("nobody-knows") === "progress", label ? label("planner-reconcile") : ""]);
   });
 
   guard("the progress notes' index: the watcher", c => {

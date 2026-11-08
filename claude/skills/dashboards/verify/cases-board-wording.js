@@ -36,7 +36,7 @@ module.exports = function casesBoardWording(X) {
     c.push(["the issue-board template and the work-board template each carry a names block that runs on its own", !!N && !!W && typeof N.stepLabel === "function" && typeof W.stepLabel === "function", js([!!N, !!W])]);
     if (!N || !W) return;
     const same = (a, b) => js(a) === js(b);
-    c.push(["the issue board's PASS_NAME, STEP_NAME, ROUTE_NAME, NOTE_WORK and EVENT_STEP are passnames.js's", N.PASS_NAME === PN.PASS_NAME && N.REVIEW === PN.REVIEW && same(N.STEP_NAME, PN.STEP_NAME) && same(N.ROUTE_NAME, PN.ROUTE_NAME) && same(N.NOTE_WORK, PN.NOTE_WORK) && same(N.EVENT_STEP, PN.EVENT_STEP), js([N.PASS_NAME, N.STEP_NAME && N.STEP_NAME.qa])]);
+    c.push(["the issue board's PASS_NAME, STEP_NAME, ROUTE_NAME and EVENT_STEP are passnames.js's (its NOTE_WORK: verify/cases-check-labels.js)", N.PASS_NAME === PN.PASS_NAME && N.REVIEW === PN.REVIEW && same(N.STEP_NAME, PN.STEP_NAME) && same(N.ROUTE_NAME, PN.ROUTE_NAME) && same(N.EVENT_STEP, PN.EVENT_STEP), js([N.PASS_NAME, N.STEP_NAME && N.STEP_NAME.qa])]);
     c.push(["…and its legend words: the Correction's line and the progress note's", N.REMEDIATION_NOTE === PN.REMEDIATION_NOTE && N.PROGRESS_NOTE === PN.PROGRESS_NOTE && PN.REMEDIATION_NOTE === "Correction or Resolution after a Quality Review; each step is recorded as it runs" && PN.PROGRESS_NOTE === "a progress note: a report of the work as it happens", js([N.REMEDIATION_NOTE, N.PROGRESS_NOTE])]);
     const probes = [["remediation", 1], ["remediation", 2], ["on-the-spot", 1], ["re-plan-then-remediation", 1], ["re-plan-then-remediation", 3], [null, 2], ["planner-then-rookie-dev", 2]];
     const rn = probes.map(([r, p]) => [N.remediationName(r, p), PN.remediationName(r, p)]);
@@ -50,6 +50,15 @@ module.exports = function casesBoardWording(X) {
     c.push(["the in-place mark: \"fixed in place · no additional review\", the same on every board", ip.every(([a, b, d]) => a === b && b === d) && ip[0][2] === "fixed in place · no additional review" && ip[1][2] === "fixing in place · no additional review", js(ip)]);
     c.push(["the Document step's commit task is named \"Document commit\" (lib.js DOC_TASKS)", lib.DOC_TASKS.find(t => t[0] === "document-landing")[1] === "Document commit" && PN.TASK_NAME["state-boards"] === "State boards", js(lib.DOC_TASKS.slice(-2))]);
     c.push(["what a pass returns, its findings: \"18 findings (10 documentation, 8 test)\"", PN.findingsWords({ documentation: 10, test: 8, code: 0 }) === "18 findings (10 documentation, 8 test)" && PN.findingsWords({ code: 1 }, { minor: 1 }) === "1 finding (1 minor; 1 code)" && PN.findingsWords({ code: 0 }) === "", PN.findingsWords({ documentation: 10, test: 8, code: 0 })]);
+  });
+
+  guard("the pipeline's agent names: on no template of any board type, the older routes still read", c => {
+    const AGENT = /\b(?:planner|interviewer|researcher|verifier|architect|plan-writer|rookie-dev|test-inspector|code-reviewer|documentation-reviewer)\b/i;
+    const paths = [...new Set([...targets.map(t => t.path), PB, WB, tp("plan/template/org-board.html"), tp("plan/template/plan.json")])].filter(f => fs.existsSync(f));
+    paths.forEach(f => { const t = rd(f), m = AGENT.exec(t); c.push([`${path.relative(sk(""), f).split(path.sep).join("/")} carries none`, !m, m ? t.slice(Math.max(0, m.index - 40), m.index + 40) : ""]); });
+    const blocks = [["the issue board", PB], ["the work board", WB], ["the org work board", tp("plan/template/org-board.html")]].filter(([, f]) => fs.existsSync(f));
+    blocks.forEach(([what, f]) => { const B = namesOf(rd(f)), got = [["rookie-dev", "Correction"], ["planner-then-rookie-dev", "Resolution"], ["remediation", "Correction"], ["re-plan-then-remediation", "Resolution"], ["on-the-spot", "Correction"], [null, "Correction"]].map(([r, w]) => [r, B.routeName(r), w, PN.routeName(r)]);
+      c.push([`${what}: an older route reads as passnames.js reads it`, got.every(([, a, w, p]) => a === w && a === p), js(got)]); });
   });
 
   guard("the older wording, reworded wherever a board holds it; code, ids and titles left as written", c => {

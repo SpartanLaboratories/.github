@@ -11,6 +11,9 @@
 "use strict";
 
 const ALL = ["system", "supersystem", "plan-board", "work-board"], STATE = ["system", "supersystem"], BOARDS = ["plan-board", "work-board"];
+/* the org work board (plan/template/org-board.html) is a fifth kind of board, built on the repository work board's rules: the shared features it takes, by id (each detector's own
+   types list is left as it is, as a type outside TYPES needs no reason on the others), then its own at the end of FEATURES. */
+const ORG = "org-work-board", ORG_TAKES = ["theme-prepaint", "theme-switch", "dark-palette", "wide-1500", "one-line-ledes", "reduced-motion", "keyboard-buttons", "tab-keys", "context-legend", "switch-look", "code-label", "board-ui-classes", "level-phrases"];
 const head = h => (/<head>([\s\S]*?)<\/head>/.exec(h) || [, ""])[1];
 const css = h => [...h.matchAll(/<style>([\s\S]*?)<\/style>/g)].map(m => m[1]).join("\n");
 const scripts = h => [...h.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].filter(m => !/type="(application\/json|text\/plain)"/.test(m[0].slice(0, 60))).map(m => m[1]).join("\n");
@@ -78,7 +81,7 @@ const FEATURES = [
     test: h => need(/docs\/plans\/\.live\/progress\//.test(scripts(h)), "the step panel does not load the progress notes") },
   { id: "progress-index", name: "every progress note drawn, whatever its name: the names read from the issue's progress index", since: 35, types: ["plan-board"],
     notFor: { system: "no step panel: a state board shows no run", supersystem: "no step panel: a state board shows no run", "work-board": "one row per run: each run's detail is on its own board" },
-    test: h => need(/progress\/\$\{issue\}\/index\.js/.test(scripts(h)) && /progNames\(R,await loadNoteNames\(n\)\)/.test(scripts(h)), "the step panel probes fixed names only, so a note with a slug of its own is never drawn") },
+    test: h => need(/progress\/\$\{issue\}\/index\.js/.test(scripts(h)) && /progNames\((?:R,)?await loadNoteNames\(n\)\)/.test(scripts(h)), "the step panel probes fixed names only, so a note with a slug of its own is never drawn") },
   { id: "tracking-steps", name: "a tracking board's own steps: its plan's land, then its units filed (sub-issues)", since: 26, types: ["plan-board"],
     notFor: { system: "no run steps", supersystem: "no run steps", "work-board": "it shows each run's step as text" },
     test: h => need(/"sub-issues":\(R,o\)/.test(scripts(h)), "the step panel has no sub-issues step") },
@@ -357,7 +360,7 @@ const FEATURES = [
      "documentation review" until its next rebuild (its next event, the splice); a landed issue board is kept as it landed (§11). */
   { id: "check-labels", name: "a Quality Review's checks labelled \"documentation check\", \"code check\", \"test check\" (the step panel's progress notes)", since: 52, types: ["plan-board"],
     notFor: { system: "no run: a state board shows the code at a commit, not a run's progress notes", supersystem: "no run: a state board shows the code at a commit, not a run's progress notes", "work-board": "one row per run: it shows no progress notes; the text a row carries comes from board.json, which board.js rewords" },
-    test: h => { const s = scripts(h); return need(/"documentation-reviewer":"documentation check"/.test(s) && /"code-reviewer":"code check"/.test(s) && /"test-inspector":"test check"/.test(s),
+    test: h => { const s = scripts(h); return need(/(?:"documentation-reviewer":|\["documentation-rev",)"documentation check"/.test(s) && /(?:"code-reviewer":|\["code-rev",)"code check"/.test(s) && /(?:"test-inspector":|\["test-insp",)"test check"/.test(s),
       "a Quality Review's checks labelled otherwise than \"documentation check\", \"code check\", \"test check\" (the names block's NOTE_WORK)"); } },
   /* dashboards-skill/53 (the user's decisions of 2026-11-06, the Design tab's review, proposals 4 and 6): a Verdict statement's reference drawn
      as its section chip ("§R2", neutral, never the link blue), the Verdict cell's counts as count labels (the figure in ink, muted at zero), and
@@ -390,6 +393,12 @@ const FEATURES = [
         : k === "work-board" ? /const chainBar=r=>/.test(s) && /<ol class="stepbar" aria-label=/.test(s) && /\$\{chainRow\(r\)\}/.test(s)
         : /function chainBars\(\)\{/.test(s) && /bar\.className="stepbar"/.test(s) && /function sectionKeys\(\)\{\s*chainBars\(\);/.test(s);
       return need(look && draw, k === "plan-board" ? "the progress strip is a line of dots, not a StepBar of labelled chevrons (stepsLine(), .stepbar)" : k === "work-board" ? "a tracking issue's chain is a thin bar in its state cell, not a StepBar of its units on a row of its own (chainBar(), chainRow(), .stepbar)" : "a tracking issue's chain on the roadmap is a thin bar, not a StepBar of its units under the item (chainBars(), .stepbar)"); } },
+  { id: "org-panels", name: "a repository Panel per repository, each with its Legend; an organization Panel per sub-organization, none for the parent", since: 55, types: [ORG], notFor: { system: "the org work board's own", supersystem: "the org work board's own", "plan-board": "the org work board's own", "work-board": "the org work board's own" },
+    test: h => { const s = scripts(h); return need(/class="repo-panel/.test(s) && /class="org-panel/.test(s) && /class="legend">\$\{runsLegend\(\)\}/.test(s) && /repo-panel empty[\s\S]{0,240}class="legend"/.test(s), "the renderer does not draw a repository Panel and its Legend, or an organization Panel, for every repository"); } },
+  { id: "org-links-by-opened", name: "links by where the board is opened: the live files in the sibling checkouts from disk, the website's form (one function, siteUrl()) otherwise", since: 55, types: [ORG], notFor: { system: "the org work board's own", supersystem: "the org work board's own", "plan-board": "the org work board's own", "work-board": "the org work board's own" },
+    test: h => { const s = scripts(h); return need(/const siteUrl=\(/.test(s) && /location\.protocol==="file:"/.test(s) && /const seen=/.test(s) && /const repoFile=/.test(s), "no siteUrl() or no choice of link form by where the board was opened"); } },
+  { id: "org-follows-checkouts", name: "the live view follows the sibling checkouts as they change: their live data read again every few seconds, each Panel redrawn in place", since: 55, types: [ORG], notFor: { system: "the org work board's own", supersystem: "the org work board's own", "plan-board": "the org work board's own", "work-board": "the org work board's own" },
+    test: h => { const s = scripts(h); return need(/function readSiblings\(\)/.test(s) && /setInterval\(readSiblings,LIVE_POLL_MS\)/.test(s) && /const isLive=\(\)=>!!B\.live&&LOCAL/.test(s) && /\.live\/org-work-board\/index\.js/.test(s), "the board does not follow the sibling checkouts' live data, or does not name its live view"); } }
 ];
 /* The layout detectors, run in the browser pass (check-board.js's probe), named here so the report and the rules list them. */
 const LAYOUT = [
@@ -400,7 +409,7 @@ const LAYOUT = [
 ];
 const sinceOf = f => `dashboards-skill/${f.since}`;
 /* the detectors that apply to a board type */
-const applicable = kind => FEATURES.filter(f => f.types.includes(kind));
+const applicable = kind => FEATURES.filter(f => f.types.includes(kind) || (kind === ORG && ORG_TAKES.includes(f.id)));
 /* The missing features of a board: [{ id, name, since, why }] — empty when the board carries every feature its type takes. */
 function probe(html, kind) {
   return applicable(kind).map(f => { let r; try { r = f.test(String(html).replace(/\r\n/g, "\n"), kind); } catch (e) { r = "the detector failed: " + e.message; } return r === true ? null : { id: f.id, name: f.name, since: sinceOf(f), why: r }; }).filter(Boolean);

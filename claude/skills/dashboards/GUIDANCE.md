@@ -1,12 +1,12 @@
 # Dashboard guidance — the rules both sets share
 
 These rules apply to every board the presenter makes: a system board, a supersystem or
-repository state board, an issue board, a tracking board, the repository work board. A
+repository state board, an issue board, a tracking board, the repository work board, the org work board. A
 ruleset (`system/RULES.md`, `plan/RULES.md`) adds to them and never loosens
 them. A change to any of them is weighed for every dashboard type (§11).
 
 **Dashboards and boards.** The board terms (the umbrella "dashboard", its two groups, each board's name, "board"
-and never "page", the kind ids `plan-board` and `work-board`) are in
+and never "page", the kind ids `plan-board`, `work-board` and `org-work-board`) are in
 [`nomenclature/boards.md`](../../nomenclature/boards.md), "Dashboards and boards". The state boards follow
 `system/RULES.md`, the work boards `plan/RULES.md`.
 
@@ -24,6 +24,10 @@ it or add a slot. A system keeps that colour on **every Tab of every board**: it
 supersystem and repository state boards, its Rows on every issue board and on the repository work board. A reader who
 learns the colour once can follow the system everywhere. On a system board the three sides
 (`--server`, `--client`, `--wire`) are slots 1 to 3.
+
+**The org work board.** It holds several repositories at once, so a system colour there means one thing per repository Panel, not
+per board: each repository Panel draws its repository's own colours, the same colour in two Panels may be two systems, and each
+Panel's Legend names them (`plan/RULES.md` §10).
 
 **Status spectra are reserved.** Wherever a view needs two colour schemes and a yellow–orange–red
 or green–yellow–red spectrum fits a status, that spectrum carries the status, and every other
@@ -322,10 +326,16 @@ writes it — the agent phrase dropped ("accepted by the admin team" → "accept
 → "the re-pass"), a role's work named as the work ("a planner re-pass" → "a plan re-pass", "code-reviewer" → "code check",
 "documentation-reviewer" → "documentation check", "qa's test-inspector" → "the review's test check": the progress notes' labels), an aside
 on the approval flow dropped — and leaves the text out, telling the presenter (`enrich: yes`), where a name no library uses would remain;
-a word a library may use as well (the planner, the verifier) is written and named for the presenter to look at. `check.js` and
-`check-board.js` warn on any name left in a board (`INTERNAL NAME`), never failing it: the board is reworded at its next refresh. An
+a word a library may use as well (the planner, the verifier) is written and named for the presenter to look at. `board.js`, `org-board.js`
+and `fill.js` are writers under the same rule (`namerefs.js` `cleanWritten()`): `fill.js` rewords the text it is given and refuses, naming the
+field and the name, a text that would still hold a name no library uses, for the presenter to reword; `board.js` and `org-board.js` pass the
+prose a work board copies from a board's data (a Row's detail, a pass's note, a chain unit's name) through `cleanWorkBoard()`, whatever wrote
+it and however long ago, and a text it cannot reword gives way ("Waiting on you." on a halted Row, nothing elsewhere). `check.js` and
+`check-board.js` warn on any name left in a board (`INTERNAL NAME`), never failing it: text a board already stores is corrected through
+`fill.js` (`wip.waitingOn`, `wip.detail`, `trailFix`; `plan/RULES.md` §4, "A fill merges, so events keep applying"). An
 issue's title is quoted verbatim and left out of the scan. The pipeline's names stay in force everywhere else: in these rules, the
-scripts' summaries and the template's code (the progress notes' file names are the agents' own).
+scripts' summaries and the template's code (the progress notes' file names are the agents' own, and the template holds only the stems that map them to the work they report, never a file's name). The org work board keeps no rewording table
+of its own: a source of its text that carries a name is fixed at that source (`plan/RULES.md` §10).
 
 **A qa pass is named "Quality Review N"** (admin-team/dashboards-skill/quality-review-label, admin-team/dashboards-skill/board-wording).
 A board shows the qa step as "Quality Review" and names each pass of it "Quality Review N" ("Quality Review 1 · approved", "Answering
@@ -360,7 +370,7 @@ issue's title, quoted verbatim, code and the data's keys and ids (the `qa-pass` 
 
 **An issue's title is quoted verbatim** (admin-team/dashboards-skill/28). Wherever a board shows an issue's title — an issue board's issue
 line, a roadmap item, a follow-up, a work-board Row, group, roadmap item or unscheduled issue, a state board's Context and its "last amended
-by" note — it is the issue's own, never reworded and never elided. Work levels are internal to the pipeline and never part of an issue, so
+by" note — it is the issue's own, never reworded and never elided; on the org work board a private repository's name in it is elided (`plan/RULES.md` §10). Work levels are internal to the pipeline and never part of an issue, so
 a title that names one is a **defect in the issue**, not in the board: `plan/scripts/check.js` (on `plan.json` and `board.json`) and
 `system/scripts/check-board.js` (a state board's Context titles and `lastAmended.title`, and in its browser pass every title the board marks
 `data-issue-title`) flag it, `ISSUE TITLE NAMES A WORK LEVEL: #n`, as a warning and never fail the board for it, and `apply-event.js` and
@@ -515,7 +525,7 @@ gets a browser pass before landing only when it diverges from its template:
 | The board | Checked |
 |---|---|
 | any board | its data and its rules (`check.js`), the embedded copy matching its data file (on an issue board and the repository work board, its live sidecar too), no dead `href="#"`, no external resource, no work level in its text (§4: its data, and its rendered text on a browser pass), no system colour in a status spectrum (§1); a warning, never a failure, on an internal name left in its data, its comments or its text (§4, `INTERNAL NAME`) |
-| a board that is a verified template plus its data: an issue board or the repository work board, or a system, supersystem or repository state board whose CSS, Tabs and script — before `MODEL` (less its board-filled lines, such as `REPO` and `SRC`) and after it — are the verified template's | nothing more: no browser pass |
+| a board that is a verified template plus its data: an issue board, the repository work board or the org work board, or a system, supersystem or repository state board whose CSS, Tabs and script — before `MODEL` (less its board-filled lines, such as `REPO` and `SRC`) and after it — are the verified template's | nothing more: no browser pass |
 | a board that diverges — declared, undeclared, made from an older template — or whose template changed since it was verified | the full pass: light, dark, 520 px, a 390 px frame, a 1920 x 1080 desktop |
 
 A difference nobody declared is a warning: re-render the board from the template, or declare it
@@ -542,6 +552,11 @@ the browser pass, on a board that gets one, the layout ones (the header's halves
 excuses a board that lags its template. A landed or cancelled issue board is the exception: it is kept as it landed and never
 re-rendered (§11), so its newer features are reported, not failed. `verify/verify-templates.js` holds every template to every detector that applies to it and needs no browser. The fix is
 the splice (§11). On the data-only path (`apply-state.js`) the misses are notes and `enrich: yes`, never a refused stamp.
+The org work board is a kind of its own (`org-work-board`, `plan/RULES.md` §10), held to the features `features.js` names for it: of those above, the
+theme Switch, drawn as a Switch, and its script before the first paint, the dark palette, the 1500 px layout, one-line ledes, reduced motion, a tabindex on
+every role=button, the tablist's keys, the Legend of Context, the CodeLabel, the classes that carry their element's type and no work level in its data; and its own,
+a repository Panel per repository with its Legend and an organization Panel per sub-organization, its links by where it is opened, and its live view following
+the sibling checkouts.
 
 Then the presenter looks once at the screenshots of the boards that had a browser pass, for what
 a script cannot see: a Legend that doesn't match its Panel, clipped Labels, overlaps, a Card off
@@ -563,8 +578,8 @@ Dashboards live in public repositories.
 ## 11. One change, every dashboard type
 
 Every convention change or improvement made for one dashboard type is considered for every other
-type — system boards, supersystem and repository state boards, issue boards, tracking boards and the repository
-work board — and applied wherever it fits: in this file when it is shared, in each ruleset, template,
+type — system boards, supersystem and repository state boards, issue boards, tracking boards, the repository
+work board and the org work board — and applied wherever it fits: in this file when it is shared, in each ruleset, template,
 script and check it touches, with `verify/verify-templates.js` run after the template changes. Where
 it does not fit a type, the reason is stated. The presenter's report names, for each change, the
 types it was applied to and the types it was judged not to fit, with the reason, and the boards
@@ -577,6 +592,7 @@ other:
 |---|---|
 | system, supersystem and repository state boards; the committed repository work board | at the **Document step's state-boards task** only, on the issue's branch before its land (`system/scripts/splice.js` for a state board: the template's CSS, script before MODEL and renderer carried onto the board, three ways for a declared divergence; `board.js --refresh-template` for the repository work board); before admin-team/dashboards-skill/35, at the pre-merge refresh inside the land |
 | the live repository work board | at **every event** (`board.js --live --refresh-template`: it is the template plus its data, never committed) |
+| the org work board | at **every landing in a repository on the board**, when it is regenerated and committed (`plan/RULES.md` §10) |
 | an issue's board that is in flight, and its tracking board | at **its own events** (`apply-event.js` re-renders a board that is not the verified template plus its data) |
 | a closed work board: an issue board or a tracking board whose issue is closed | **never** (`~/.claude/agents/presenter.md`, "Closed work boards") |
 
@@ -708,6 +724,7 @@ reached its landing before the change):
    A `sized` during the refresh seeds the copies as they stand and is not delayed; the team's `reseed`, at the end of every post-merge refresh, brings the
    finished state to those boards, and does nothing when nothing raced. Until a later landing commits the state, a tracked board opened on this machine follows its fresher view
    copy in place, labelled the live view (`plan/RULES.md` §1).
+5. **The org work board** is regenerated and committed at every landing in a repository on the board (`plan/RULES.md` §10; the admin team's brief, Service: dashboards).
 
 A **planning-docs landing** — a docs pull request that resolves no issue (a plan folder, a roadmap document) — takes a small state-boards
 refresh on its branch: the committed repository work board, and the repository state board where the repository has one.

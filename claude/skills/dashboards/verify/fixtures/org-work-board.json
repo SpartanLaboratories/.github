@@ -1,0 +1,58 @@
+{
+  "schema": "org-work-board/1",
+  "organization": "acme",
+  "url": "https://github.com/acme",
+  "generated": "2026-11-08T12:00:00Z",
+  "repositories": [
+    {
+      "owner": "acme",
+      "name": "widgets",
+      "url": "https://github.com/acme/widgets",
+      "defaultBranch": "main",
+      "head": "1a74516b0c0a4d1f9d6c1e7e0f4ac2d9b1f2c3a4",
+      "source": { "file": "docs/plans/.live/board.json", "view": "live", "generated": "2026-11-08T11:58:00Z", "asOf": "2026-11-08" },
+      "links": { "workBoard": "docs/plans/index.html", "repoBoard": "docs/dashboards/index.html" },
+      "boards": { "7": { "path": "docs/plans/7-parser/dashboard.html", "ref": "main" }, "8": { "path": "docs/plans/8-cache/dashboard.html", "ref": "feat/8-cache" } },
+      "unlinked": [{ "issue": 9, "path": "docs/plans/9-stream/dashboard.html", "branch": "feat/9-stream", "why": "on feat/9-stream, not on GitHub yet" }],
+      "board": {
+        "schema": "work-board/1",
+        "repo": "acme/widgets",
+        "generated": "2026-11-08T11:58:00Z",
+        "asOf": "2026-11-08",
+        "base": "../",
+        "systems": [{ "slug": "widgets-core", "name": "widgets-core", "slot": 1, "top": "widgets-core", "status": "built" }, { "slug": "widgets-cli", "name": "widgets-cli", "slot": 2, "top": "widgets-cli", "status": "built" }],
+        "groups": [{ "key": "all", "title": "Runs", "issue": null }],
+        "rows": [
+          { "issue": 7, "title": "Parser rejects an empty header", "state": "CLOSED", "stateReason": "COMPLETED", "created": "2026-10-01", "parent": null, "waitsOn": [], "blocks": [], "board": "../7-parser/dashboard.html", "folder": "../7-parser/", "branch": null, "system": "widgets-core", "systemName": "widgets-core", "step": "landed", "detail": "Merged through PR #11.", "qa": [{ "pass": 1, "verdict": "approved", "note": "two findings fixed" }], "qaMax": 3, "status": "landed", "active": false, "group": "all", "order": 1, "landed": { "pr": 11, "merge": "abc1234", "version": "1.2.0", "date": "2026-10-20" }, "reconciliation": null },
+          { "issue": 8, "title": "Add a read-through cache", "state": "OPEN", "created": "2026-10-10", "parent": null, "waitsOn": [], "blocks": [], "board": "../8-cache/dashboard.html", "folder": "../8-cache/", "branch": "feat/8-cache", "system": "widgets-cli", "systemName": "widgets-cli", "step": "implementation", "detail": "Stage 2 of 4.", "qa": [], "qaMax": 3, "status": "building", "active": true, "group": "all", "order": 2, "reconciliation": null },
+          { "issue": 9, "title": "Stream large responses", "state": "OPEN", "created": "2026-10-12", "parent": null, "waitsOn": [{ "issue": 7, "state": "CLOSED", "build": "clear", "locality": "local-repository" }], "blocks": [], "board": "../9-stream/dashboard.html", "folder": "../9-stream/", "branch": "feat/9-stream", "system": "widgets-core", "systemName": "widgets-core", "step": "halted", "detail": "Waiting on you: which buffer size to ship.", "qa": [], "qaMax": 3, "status": "halted", "active": false, "group": "all", "order": 3, "reconciliation": null }
+        ],
+        "roadmap": [],
+        "unscheduled": []
+      }
+    },
+    {
+      "owner": "acme",
+      "name": "empty-repo",
+      "url": "https://github.com/acme/empty-repo",
+      "defaultBranch": "main",
+      "head": "abcdef0123456789abcdef0123456789abcdef01",
+      "source": null,
+      "links": {},
+      "boards": {},
+      "unlinked": [],
+      "board": null
+    }
+  ],
+  "organizations": [
+    {
+      "owner": "acme-games",
+      "parent": "acme",
+      "url": "https://github.com/acme-games",
+      "repositories": [
+        { "owner": "acme-games", "name": "engine", "url": "https://github.com/acme-games/engine", "defaultBranch": "master", "head": "0123456789abcdef0123456789abcdef01234567", "source": null, "links": {}, "boards": {}, "unlinked": [], "board": null }
+      ]
+    }
+  ],
+  "notShown": [{ "repository": "acme/.github", "url": "https://github.com/acme/.github", "why": "the organization's .github repository" }]
+}

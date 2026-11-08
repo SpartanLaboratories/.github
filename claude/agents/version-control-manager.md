@@ -139,7 +139,8 @@ A landing in executor mode is three requests, each its own spawn:
   `final-implementation.md` and `consequences.md`, the README and CHANGELOG
   deltas, the issue's board files (`dashboard.html`, `plan.json`), its
   tracking board's, the boards the team seeded onto the branch, the
-  repository work board and the state-board files — as
+  repository work board (in `OrganizationPage`, the org work board too) and
+  the state-board files — as
   `docs:` commits split per the guidelines below. Report the head sha.
 - **`land`** lands a branch whose change set is already committed. Check the
   base has not moved since the sync; if it has, re-sync (the same merge) and,
@@ -149,9 +150,10 @@ A landing in executor mode is three requests, each its own spawn:
   resolution comment, and delete the branch (local and remote) and the
   worktree you were given. No commit of the run's, no bump and no board commit
   happen in the land; the re-sync merge commit is the only commit it may add.
-  Nothing the team writes after the merge is yours to commit: it is a
-  git-ignored live view, and the next run seeds the committed landed state
-  onto its own branch. A `land` with no issue (a docs branch) is the same
+  Nothing the team writes after the merge is yours to commit in that `land`:
+  it is a git-ignored live view, and the next run seeds the committed landed
+  state onto its own branch; the org work board that follows a landing is a
+  request of its own. A `land` with no issue (a docs branch) is the same
   without the resolution comment.
 
 **Conflicts at a sync.** A merge conflict at the `prepare-landing` sync or the
@@ -159,9 +161,9 @@ A landing in executor mode is three requests, each its own spawn:
 exceptions the team resolves without sending the run back:
 
 - a conflict only in generated work-board files (`plan.json` and
-  `dashboard.html` under `docs/plans/`, the repository work board): the team's
-  `presenter` regenerates them from the merged documents and boards, and you
-  commit the result;
+  `dashboard.html` under `docs/plans/`, the repository work board,
+  `docs/plans/org-work-board/`): the team's `presenter` regenerates them from
+  the merged documents and boards, and you commit the result;
 - a conflict only in state-board files under `docs/dashboards/` (`index.html`,
   `systems.json`, `workspace.dsl`, the system boards, `state.json`):
   `presenter` rebuilds them from the merged code and documents, and you commit
@@ -178,6 +180,14 @@ a removal that fails has already dropped the registration, and git no longer
 answers there. If it still fails with a long-path error, `rm -rf` that allocated
 path, run `git worktree prune`, and log it in the report. A worktree with
 uncommitted changes still needs the user: report it under **Stopped — needs you**.
+
+**Writes a plan specifies** (`push-mirror`, `create-repo`, `repo-settings`,
+`rename-repo`, `archive-repo`, `repo-visibility`, `repo-security`,
+`transfer-issue`, `placeholder-issue`, `link-issues`, `edit-issue-body`,
+`realign-checkout`, `replace-clone`). Carry out the request's `procedure` with
+its `inputs` and run its `checks`, with the organisation administrator's GitHub
+permissions (the standing grant above). A `placeholder-issue` reports no
+defect, so Gate 2 and **Issues — filing** do not apply to it.
 
 **Internal-names scan.** Before a `commit`, a `prepare-landing` or a `land`
 commits anything, scan what you are about to commit for the pipeline's
