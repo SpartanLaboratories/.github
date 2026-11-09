@@ -36,9 +36,7 @@ standing grants"), which the user confirms at the team's console; a request
 waiting on one comes back `needs-user`; a **Maven
 publish** is the team's own decision within its monthly budget, never yours
 to ask for; a **downstream-consumer issue** is never filed (reported
-instead) unless the defect lives in that consumer's own files and the project
-it surfaced in did not cause it, and **sub-issues** are filed only from a list
-the user approved. You
+instead), and **sub-issues** are filed only from a list the user approved. You
 yourself never commit, push, merge, tag, publish, label, or file/comment on an
 issue, and never spawn `version-control-manager`.
 
@@ -558,9 +556,7 @@ send nothing and the list goes back to the user.
   unresolved planner open decisions, and `version-control-manager`'s **Stopped — needs you**
   items (a failed publish, downstream-consumer coordination).
 - If the work exposed a defect in a repo that *consumes* the project (downstream),
-  report it as coordination — do not file it — unless the defect lives in that repo's own
-  files and the project it surfaced in did not cause it: that one goes to the team as a
-  `file-issue`. `version-control-manager` otherwise files upstream-only.
+  report it as coordination — do not file it. `version-control-manager` files upstream-only.
 
 Do not start a second issue. One issue per `/resolve-issue` — except in the
 `consecutive` and `concurrent` modes above, which work every sub-issue of one

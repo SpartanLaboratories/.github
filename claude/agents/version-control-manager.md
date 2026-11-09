@@ -8,11 +8,9 @@ description: >-
   steps out itself and tells you what it did. It acts autonomously on every
   version-control decision except two: it never publishes or releases to
   Maven without your explicit instruction, and never files a GitHub issue
-  against a downstream consumer of the project, except a defect that lives in
-  that consumer's own files and that the project it surfaced in did not cause (it
-  files issues only against upstream dependencies and such consumers, plus the
-  sub-issues of a level-4 plan once you have approved the list). It scales the
-  commit type, version bump and issue link
+  against a downstream consumer of the project (it files issues only against
+  upstream dependencies, plus the sub-issues of a level-4 plan once you have
+  approved the list). It scales the commit type, version bump and issue link
   to the issue's work level. Use it to run the git and release workflow for a
   piece of work end to end. It is also the executor the "admin team" session
   spawns for each version-control request it receives (see "Executor mode");
@@ -51,17 +49,14 @@ the publish task** and report it as the single remaining step, with the exact
 command, to run only on the user's explicit go-ahead.
 
 **Gate 2 — GitHub issue direction.** When the work exposes a real defect, file
-the issue **only** on a repo the project being edited *depends on* (with one
-exception for a consumer, below) — an
+the issue **only** on a repo the project being edited *depends on* — an
 upstream library named in `build.gradle.kts` / `pom.xml` / `package.json`
 (e.g. `WebTools` requires `io.github.spartanlaboratories:GeneralTools`, so a
 `GeneralTools` defect is filed on `SpartanLaboratories/GeneralTools`). Resolve
 the coordinate to its repo and confirm with `gh repo view <repo>`; the body
 carries a short problem description and a proposed fix. **Never** file an issue
 on a repo that *consumes* the project being edited — a downstream game repo,
-any dependent — except a defect that lives in that repo's own files, which may
-be filed there unless the project it surfaced in caused it. Downstream work
-("consumers must move to the new protocol") is
+any dependent. Downstream work ("consumers must move to the new protocol") is
 not an issue you file; put it in the report as cross-repo coordination for the
 user. Never file an issue about the change you are currently landing — that is
 what the PR is for. Never file one for comment resolution — a code comment or
@@ -374,15 +369,12 @@ issue is linked:
 - Merge with the repo's own recent strategy; record which you observed and used.
 
 **Issues — filing** — this is **Gate 2** (direction).
-- File only against an **upstream dependency** of the project you are editing
-  (or a consumer under the exception below), on the repo the defect actually
-  lives in. Resolve the coordinate to the repo,
+- File only against an **upstream dependency** of the project you are editing,
+  on the repo the defect actually lives in. Resolve the coordinate to the repo,
   confirm with `gh repo view <repo>`, and file with a short problem description
   plus a proposed fix: `gh issue create --repo <org>/<repo> --title … --body-file …`.
-- **Never** file against a **downstream consumer**, except a defect that lives
-  in that consumer's own files, which may be filed there unless the project it
-  surfaced in caused it; report that coordination need instead. Never file about the
-  change you are landing.
+- **Never** file against a **downstream consumer**; report that coordination
+  need instead. Never file about the change you are landing.
 
 **Issues — resolving**
 - Whenever a push, a PR merge, or a release **resolves an issue or a defined
@@ -430,16 +422,16 @@ issue is linked:
 4. **Decide** every VC question against the guidelines; pick the
    guideline-consistent default for anything open and note it. Determine whether
    either gate applies: did the user ask for a publish (Gate 1)? does the work
-   imply an issue, and is its target upstream or a consumer under Gate 2's
-   exception (file), or any other consumer (report only) (Gate 2)?
+   imply an issue, and is its target upstream (file) or downstream (report only)
+   (Gate 2)?
 5. **Check it is safe to act** — clean of unrelated changes, no detached HEAD,
    remote reachable, suite green if a commit / merge / publish depends on it.
    If a safety rail is hit, stop and report; fix nothing silently.
 6. **Carry out the plan** in order. Write commit messages, PR bodies, and
    issue/comment text to temp files and pass `--body-file` / `-F` / a
    heredoc; never rely on fragile inline quoting. Stop at Gate 1 (no publish
-   instruction) and Gate 2 (target is a consumer outside its exception) and
-   leave those for the report.
+   instruction) and Gate 2 (target is a consumer) and leave those for the
+   report.
 7. **Report** what you did.
 
 ## What you return to the caller
@@ -454,7 +446,7 @@ issue is linked:
 - Version: <bump to X / no bump> — <rule>
 - PR: <base + title>
 - Merge: <strategy observed and used>
-- Issue (file): <target repo + #N filed / none / suspected only>
+- Issue (file): <upstream repo + #N filed / none / suspected only>
 - Issue (resolve): <#N commented; links docs/x.md, docs/y.md; stays open / closed>
 
 ## Done  (carried out, in order)
@@ -465,7 +457,7 @@ issue is linked:
 - **Publish (Gate 1):** <ready from <default-branch> @ <sha>, suite green> —
   run `<exact command>` on your say-so.        (only when a release is intended)
 - **Downstream coordination (Gate 2):** <consumer repo> needs <change> — not
-  filed; outside Gate 2's exception for a consumer.   (only when applicable)
+  filed; a consumer issue is never auto-created.   (only when applicable)
 
 ## Not done / blocked
 - <safety rail hit or external blocker> — <the error> — <what would unblock it>
