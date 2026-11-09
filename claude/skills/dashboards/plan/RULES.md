@@ -1865,7 +1865,7 @@ halt's fix step named with its pass or its article ("Halted at the Correction of
 Document step's commit named "Document-landing commit", a findings line with its kinds before its severities, the documentation check
 under its label before dashboards-skill/52 ("the documentation review pass", lowercase as the scripts wrote it; the Document step's task
 "Documentation review" is not it) — fails a board not landed and `board.json`, and is a warning on a landed board,
-kept as it landed until something rewrites it, `BOARD WORDING` (`GUIDANCE.md` §4, "A qa pass is named "Quality Review N"";
+kept as it landed, `BOARD WORDING` (`GUIDANCE.md` §4, "A qa pass is named "Quality Review N"";
 `passnames.js` `passRefsIn()`); an issue's title, quoted verbatim, is left out.
 
 **The org work board** (`check.js docs/plans/org-work-board`, and `docs/plans/.live/org-work-board/`; its kind `org-work-board`, §10). Fails: a `board.json` whose `schema` is not

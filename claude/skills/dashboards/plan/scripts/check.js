@@ -20,7 +20,7 @@ const fs = require("fs"), path = require("path"), cp = require("child_process"),
 const { levelRefsIn, titleSkip, issueTitleRefs, titleDefect, nameTestLevels } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
 const { nameRefsIn, commentRefs, nameWarning } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
 const { paletteCheck } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js"));
-const { boardLanded, workLevelFields, featureRun } = require("./levels.js");
+const { boardLanded, boardClosed, workLevelFields, featureRun } = require("./levels.js");
 const { passRefsIn, PASS_NAME } = require("./passnames.js");
 const { unitTests, unitLandings, DEP_STATES, HOLD_STATES, isUnitRef, unitFiled } = require("./lib.js");
 const { foundationFilling, WAIT_BY, HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, isTime, APPROX_SOURCES, timelineApproxNote, timelineSteps, tlSpan, timelineLines, timelineLeftOut, timelineTotal, unitInRun, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, fixOfBoard, foldedIn, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, viewSource, viewParts, viewBaseHref, viewedFolder, setViewLinks, opt, flag } = require("./lib.js");
@@ -103,7 +103,7 @@ function checkLink(dir, ref, at) {
 }
 
 /* No work levels on a dashboard (GUIDANCE.md §4): every string the board renders is free of a work-level reference
-   (system/scripts/levelrefs.js). The numeric fields an older landed board may keep (level, unit.level, proposedLevel; levels.js) are not text. An issue's
+   (system/scripts/levelrefs.js). The numeric fields an older closed board may keep (level, unit.level, proposedLevel; levels.js) are not text. An issue's
    title is quoted verbatim (admin-team/dashboards-skill/28): one that names a work level is a defect in the issue, flagged ISSUE TITLE
    NAMES A WORK LEVEL: #n as a warning, never a failure of the board (levelrefs.js issueTitleRefs()). */
 function levelFail(data, file) {
@@ -153,8 +153,8 @@ function checkPlan(plan, dir, root) {
   ["title", "function"].forEach(k => { if (!str(plan[k])) fail(`${k} is required`); });
   if (!STATUS.includes(plan.status)) fail(`status must be one of ${STATUS.join(", ")}`);
   if (plan.kind != null && !["issue", "tracking"].includes(plan.kind)) fail(`kind must be issue or tracking (got ${JSON.stringify(plan.kind)})`);
-  /* a work level is never kept on a board not landed (levels.js; every rewrite drops it); a landed work board keeps what it holds */
-  { const lv = workLevelFields(plan); if (lv.length && !boardLanded(plan)) fail(`WORK LEVEL ON THE BOARD: ${lv.join(", ")}: a board not landed keeps no work level; the request and the team's local state hold it (run embed.js, which drops it)`); else if (lv.length) ok(`a landed board keeps the work level it landed with (${lv.join(", ")}), never shown`); }
+  /* a work level is never kept on an open board (levels.js; every rewrite drops it); a closed work board, landed or cancelled, keeps what it holds */
+  { const lv = workLevelFields(plan); if (lv.length && !boardClosed(plan)) fail(`WORK LEVEL ON THE BOARD: ${lv.join(", ")}: an open board keeps no work level; the request and the team's local state hold it (run embed.js, which drops it)`); else if (lv.length) ok(`a closed board keeps the work level it holds (${lv.join(", ")}), never shown`); }
   const b = plan.baseline || {};
   if (!str(b.ref) || !str(b.sha) || !str(b.date)) fail("baseline needs ref, sha and date");
   if (str(b.sha) && !SHA.test(b.sha)) fail(`baseline.sha "${b.sha}" is not a commit sha`);

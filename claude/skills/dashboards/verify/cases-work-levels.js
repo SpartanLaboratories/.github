@@ -1,7 +1,7 @@
 // The cases of "a board keeps no work level" (plan/scripts/levels.js; admin-team/dashboards-skill/option-d-and-decisions; plan/RULES.md §2), and of the labels and the two event-note
 // defects that came with it, run by verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-work-levels.js [--out <dir>].
-// A level is read from the request, else the team's local state, for the kind and the steps line of a laying, and never written. A board not landed drops what it still holds at
-// any rewrite, and check.js fails one that holds any; a landed work board keeps them, whatever rewrites it, and check.js never fails it. Each group returns [title, cases].
+// A level is read from the request, else the team's local state, for the kind and the steps line of a laying, and never written. An open board drops what it still holds at
+// any rewrite, and check.js fails one that holds any; a closed work board, landed or cancelled, keeps them, whatever rewrites it, and check.js never fails it. Each group returns [title, cases].
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 
@@ -51,7 +51,7 @@ module.exports = function casesWorkLevels(X) {
     c.push(["a unit's mirror carries none", lv.proposedLevel === undefined, js(lv.proposedLevel)]);
   });
 
-  guard("a board not landed drops them at any rewrite and check.js fails it; a landed one keeps them and check.js never fails it", c => {
+  guard("an open board drops them at any rewrite and check.js fails it; a closed one, landed or cancelled, keeps them and check.js never fails it", c => {
     const rL = root0(), dL = put(rL, oldLive()), ck0 = run(CHECK, [dL], { env });
     c.push(["check.js fails a board not landed that holds them, naming the fields", ck0.status === 1 && /FAIL\s+WORK LEVEL ON THE BOARD: level, wip\.proposedLevel/.test(ck0.stdout), (ck0.stdout || "").split(/\r?\n/).filter(l => /^FAIL/.test(l)).join(" | ").slice(0, 300)]);
     const e = ev(rL, oldLive().folder, "halted", { waitingOn: "An answer." }, T(5));
@@ -62,12 +62,23 @@ module.exports = function casesWorkLevels(X) {
 
     /* landed */
     const rB = root0(), dB = put(rB, oldLanded()), ckB = run(CHECK, [dB], { env });
-    c.push(["check.js passes a landed board that holds them, and says so", ckB.status === 0 && /a landed board keeps the work level it landed with/.test(ckB.stdout), (ckB.stdout || "").split(/\r?\n/).filter(l => /^FAIL|landed board keeps/.test(l)).join(" | ").slice(0, 300)]);
+    c.push(["check.js passes a landed board that holds them, and says so", ckB.status === 0 && /a closed board keeps the work level it holds/.test(ckB.stdout), (ckB.stdout || "").split(/\r?\n/).filter(l => /^FAIL|closed board keeps/.test(l)).join(" | ").slice(0, 300)]);
     const bytes = rd(path.join(dB, "plan.json")), emB = run(EMBED, [dB], { env }), afterB = JSON.parse(rd(path.join(dB, "plan.json")));
     c.push(["embed.js on a landed board keeps them", emB.status === 0 && afterB.level === 3 && afterB.wip.proposedLevel === 3, js([afterB.level, afterB.wip.proposedLevel])]);
     const rewrite = ev(rB, EX.folder, "landed", { pr: 90, sha: "abcdef1", merge: "abcdef1", date: "2026-10-22" }, T(9));
     c.push(["the landed event on it: it keeps them, as a landed board", rewrite.a.status === 0 && rewrite.p.level === 3 && rewrite.p.wip.proposedLevel === 3 && rewrite.p.status === "built", js([rewrite.S.error, rewrite.p && rewrite.p.level])]);
     c.push(["boardLanded(): status built or step landed; a cancelled board and a tracking board with units in flight are not", lib.boardLanded({ status: "built", wip: {} }) && lib.boardLanded({ status: "building", wip: { step: "landed" } }) && !lib.boardLanded({ status: "abandoned", wip: { step: "cancelled" } }) && !lib.boardLanded({ kind: "tracking", status: "building", wip: { step: "implementation" } }), "lib"]);
+    c.push(["boardClosed(): landed or cancelled; a tracking board with units in flight is open", lib.boardClosed({ status: "built", wip: {} }) && lib.boardClosed({ status: "building", wip: { step: "landed" } }) && lib.boardClosed({ status: "abandoned", wip: {} }) && lib.boardClosed({ status: "building", wip: { step: "cancelled" } }) && !lib.boardClosed({ kind: "tracking", status: "building", wip: { step: "implementation" } }), "lib"]);
+    /* cancelled: closed too, but never landed */
+    const rC = root0(), oc = oldLive(), dC = put(rC, oc), cn = ev(rC, oc.folder, "cancelled", { reason: "Not needed." }, T(9));
+    c.push(["the cancelled event on a board holding them: status abandoned, and it keeps them", cn.a.status === 0 && cn.p.status === "abandoned" && cn.p.level === 3 && cn.p.wip.proposedLevel === 4, js([cn.S.error, cn.S.check, cn.p && cn.p.status, cn.p && cn.p.level])]);
+    const ckC = run(CHECK, [dC], { env });
+    c.push(["check.js passes a cancelled board that holds them, and says so", ckC.status === 0 && /a closed board keeps the work level it holds/.test(ckC.stdout) && !/WORK LEVEL ON THE BOARD/.test(ckC.stdout), (ckC.stdout || "").split(/\r?\n/).filter(l => /^FAIL|closed board keeps/.test(l)).join(" | ").slice(0, 300)]);
+    const emC = run(EMBED, [dC], { env }), afterC = JSON.parse(rd(path.join(dC, "plan.json")));
+    c.push(["embed.js on a cancelled board keeps them", emC.status === 0 && afterC.level === 3 && afterC.wip.proposedLevel === 4, js([afterC.level, afterC.wip.proposedLevel])]);
+    c.push(["a cancelled board is still not a landed one", lib.boardLanded(afterC) === false, js([afterC.status, afterC.wip.step])]);
+    const cTrk = oldTrack(); cTrk.status = "abandoned"; cTrk.wip.step = "cancelled";
+    c.push(["dropWorkLevels() leaves a cancelled board alone, a tracking board's unit levels too", !lib.dropWorkLevels(cTrk).length && cTrk.level === 4 && cTrk.rows.filter(r => r.unit).every(r => r.unit.level === 3), js(lib.workLevelFields(cTrk))]);
     /* a run in flight whose board already dropped them: its landing re-adds nothing */
     const rD = root0(), pD = copy(EX); pD.status = "building"; Object.assign(pD.wip, { step: "merge", since: T(8), updated: T(8), current: [], event: { name: "merge", at: T(8) } }); put(rD, pD); run(EMBED, [path.join(rD, ...EX.folder.split("/"))], { env });
     const ld = ev(rD, EX.folder, "landed", { pr: 91, sha: "abcdef1", merge: "abcdef1", date: "2026-11-03", mergedAt: T(9) }, T(9));
@@ -75,11 +86,11 @@ module.exports = function casesWorkLevels(X) {
 
     /* a tracking board with units in flight */
     const rT = root0(), dT = put(rT, oldTrack()), ckT = run(CHECK, [dT], { env });
-    c.push(["a tracking board with units in flight is not landed: check.js fails it, naming unit.level", ckT.status === 1 && /WORK LEVEL ON THE BOARD: level, rows \([^)]+\)\.unit\.level/.test(ckT.stdout), (ckT.stdout || "").split(/\r?\n/).filter(l => /^FAIL/.test(l)).join(" | ").slice(0, 300)]);
+    c.push(["a tracking board with units in flight is open: check.js fails it, naming unit.level", ckT.status === 1 && /WORK LEVEL ON THE BOARD: level, rows \([^)]+\)\.unit\.level/.test(ckT.stdout), (ckT.stdout || "").split(/\r?\n/).filter(l => /^FAIL/.test(l)).join(" | ").slice(0, 300)]);
     const emT = run(EMBED, [dT], { env }), pT = JSON.parse(rd(path.join(dT, "plan.json")));
     c.push(["…embed.js drops them, the mirrors' too", emT.status === 0 && !lib.workLevelFields(pT).length, js(lib.workLevelFields(pT))]);
     const fx = copy(LIVE); fx.level = 3;
-    c.push(["a seed's copy that has landed keeps them: dropWorkLevels() leaves a landed board alone and takes them from one not landed", !lib.dropWorkLevels(oldLanded()).length && !!lib.dropWorkLevels(fx).length, "lib"]);
+    c.push(["a seed's copy that has closed keeps them: dropWorkLevels() leaves a closed board alone and takes them from an open one", !lib.dropWorkLevels(oldLanded()).length && !!lib.dropWorkLevels(fx).length, "lib"]);
   });
 
   guard("the release warnings read the board's kind and steps line, never a level", c => {

@@ -298,7 +298,7 @@ to 4, the `level: N` label), and nothing else. A dashboard never shows an issue'
 "level: 2", "a level-3 change" or "escalated to level 4", in a Chip, a Badge, a column, a chain
 node, a Legend, a lede or any text the presenter writes. Say what the work is instead: one
 system, a bug fix, docs only, a tracking issue. The work levels stay in force everywhere else.
-No board that has not landed holds a level (`check.js` fails `WORK LEVEL ON THE BOARD`) and state boards hold none; a closed work board keeps
+No open work board holds a level (`check.js` fails `WORK LEVEL ON THE BOARD`) and state boards hold none; a closed work board keeps
 any it holds (`~/.claude/agents/presenter.md`, "Closed work boards"), and no board renders them, the Source Tab included (`plan/scripts/levels.js`). A pipeline fact that names one ("inside level 3",
 "a level-3 re-pass", "Label level: 3") is reworded before it is written — the scope phrase becomes the unit's or the issue's scope, the
 level is elided before its noun, the label dropped — and left out only where a work level would remain (`system/scripts/levelrefs.js`
@@ -364,7 +364,7 @@ events. The names are the scripts' and the templates', never free text's (`plan/
 with its kinds before its severities, "the documentation review pass") in any text it takes from the facts, every rewrite of a board
 (`lib.js` `resolveBoard()`: `apply-event.js`, `embed.js`, `fill.js`, `new.js`) rewords the older wording the board already holds, and
 `board.js` rewords the repository work board it generates. `plan/scripts/check.js` fails a board not landed, and the repository work
-board, that still holds an older wording (`BOARD WORDING`), and warns on a landed one, kept as it landed until something rewrites it. An
+board, that still holds an older wording (`BOARD WORDING`), and warns on a landed one, kept as it landed. An
 issue's title, quoted verbatim, code and the data's keys and ids (the `qa-pass` event) are left as they are.
 
 **An issue's title is quoted verbatim** (admin-team/dashboards-skill/28). Wherever a board shows an issue's title — an issue board's issue
@@ -638,7 +638,7 @@ never the accent (§1).
 - **The decision not to run another qa pass, shown** (§1; `plan/RULES.md` §5, "QA"): applied to the repository work board's Quality Reviews column, plan
   boards (the Quality Reviews Tile's sub-line, the WIP Panel's Quality Review Pills) and tracking boards (each unit's run line, unit Card and inspector), all from
   one rule (`lib.js` `qaShown()`, `qaInPlace()`, and the templates' copies). Not to the state boards: they show no run. A landed board is
-  never re-rendered (§11, above), so a landed issue board shows the mark only if it is re-rendered for another reason; the repository work board shows
+  never re-rendered (§11, above); the repository work board shows
   it for every Row whose pass records the route.
 - **The Runs Tab's content larger, but Now** (`plan/RULES.md` §5, "Its columns"): the repository work board only, the one dashboard with a runs
   table. Not to issue or tracking boards: their Rows are a timeline grid whose sizes the board's own rules set, and a tracking board's
@@ -653,8 +653,7 @@ never the accent (§1).
   and tracking boards (a tracking board's own steps: sizing to its plan's landing and the filing of its units, then its units' runs as `implementation`), one rule in
   `lib.js` `timelineSteps()` and the template. Not to the repository work board: its Landed Tile counts runs and says no time, so it has no "same
   day" to replace, and each run's steps are on its own board. Not to system, supersystem and repository state boards: their Tiles are counted
-  facts written by hand and show no run. A landed board is re-rendered for it only where the user asks (§11, above: WebTools #63's board
-  was).
+  facts written by hand and show no run. A landed board is not re-rendered for it (§11, above).
 
 **The decisions of admin-team/dashboards-skill/34**, each weighed for every type:
 
@@ -664,8 +663,7 @@ never the accent (§1).
   planning; its plan's landing landing; implementation, its units' runs, build; a tracking board runs no qa of its own, so it draws no checking),
   one rule in `lib.js` `TL_FAMILIES`, `tlFamily()`, `tlShade()` and the template. Not to the repository work board: it has no Timeline Tile
   (one Row per run, its step as text; its Landed Tile counts runs). Not to system, supersystem and repository state boards: their Tiles are
-  counted facts written by hand and show no run's steps. A landed board is re-rendered for it only where the user asks (WebTools #63's board
-  was).
+  counted facts written by hand and show no run's steps. A landed board is not re-rendered for it.
 - **Approximate bounds** (§1; `plan/RULES.md` §2, rule 5): applied to issue and tracking boards, the boards with a Timeline Tile, and used only
   where the user asks for a board to be backfilled (WebTools #63's was, from the times its updates reached the team). Not to the repository
   work board or the state boards: no Timeline Tile.
@@ -802,7 +800,7 @@ refresh on its branch: the committed repository work board, and the repository s
   remediation's sub-steps, the Tests Tab's results, the trail and every fact text), to tracking boards (their own text and each unit's run
   mirror) and to the repository work board's data (`board.js` rewords `board.json`, which `check.js` fails while it holds an older wording,
   `BOARD WORDING`: "qa pass N", an unnumbered "qa pass", "qa" for the step, "Remediation for …" or a "remediation loop", "Document-landing
-  commit"). A landed board keeps the wording it landed with until something rewrites it, and `check.js` only warns on it. Not to the state boards: no qa
+  commit"). A landed board keeps the wording it landed with, and `check.js` only warns on it. Not to the state boards: no qa
   passes.
 
 **The decisions of admin-team/dashboards/code-label-and-sigblock** (dated dashboards-skill/42), each weighed for every type:
@@ -819,7 +817,7 @@ refresh on its branch: the committed repository work board, and the repository s
 - **A name's code spans drawn as code**: the issue board's header title (a title taken from a unit Row's name) and a state board's
   "last amended by" title join the sites that already drew a Row's name through `codeOnly()`. The repository work board draws only issue
   titles, already through `pair()`. A landed board keeps its rendering (§11, "Re-rendering"), so a board drawn before shows its older
-  look until the user asks for it to be re-rendered.
+  look.
 
 **The decision of admin-team/dashboards/step-file-tree** (dated dashboards-skill/43), weighed for every type:
 

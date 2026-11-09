@@ -479,7 +479,7 @@ function applyEvent(orig, ev, facts, req, now) {
       }
       setStep("branch"); setGlow("branch");
       enrich.push("plan-accepted: the Considered and Verdict columns, the verdict milestone and the consequences come from plan.md and consequences.md (impact.md in an older folder)");
-      detail = detail || "Plan accepted; the branch is cut next.";
+      detail = detail || "Plan accepted; the branch is confirmed next.";
       trail = { column: "verdict", label: "Plan accepted", ref: docRef("plan.md") };
       break;
     }
