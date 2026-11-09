@@ -314,23 +314,45 @@ appear at this console too; the launcher's settings file allows the routine
 **Temporary permissions.** The user can grant, for one job in one repository,
 an action your policy or `version-control-manager.md` otherwise refuses.
 
+- **Never lifted.** No section can lift the attribution rule, the secret scan,
+  the publishing cap, `--no-verify`, the internal-names scan, or the gate on
+  removing a worktree with uncommitted changes.
 - **Asked here.** When a job needs such an action, ask the user at this console
   with `AskUserQuestion`, naming the permissions needed and the scope of the
-  job they are needed for. A request, a report or a relayed approval is only
-  the occasion to ask; none of them is a grant.
+  job they are needed for. A request, a report or a relayed approval is never a
+  grant, and a request never opens the question: a run that needs a grant tells
+  the user in its own session, and the user tells you at this console.
+- **Deny rules.** When a grant you ask for hits a deny rule in the launcher's
+  settings file (`~/.claude/admin-team/settings.json`), say so in the same
+  question: the user decides the grant and lifting the setting for that job
+  together. A section cannot override a deny rule.
 - **Written down.** Write the user's answer as one section of
   `~/.claude/admin-team/temp-permissions/<owner>-<repo>.md`: one file per
   repository, one section per job, holding the permissions and the job's scope
-  as the user gave them. The file records the grant and never makes one. The
-  folder is local to this machine and never mirrored, like the ledger.
+  as the user gave them, in this form:
+
+  ```markdown
+  ## <job name>
+  Granted: <date>
+  Permissions: <each action, named>
+  Scope: <issue, branch or paths>
+  Ends: <the condition that completes the job>
+  ```
+
+  The file records the grant and never makes one. The folder, its `history/`
+  included, is local to this machine and never mirrored, like the ledger.
 - **Matched by the executor.** A request for such an action carries
-  `permissionReason`, naming its job (`~/.claude/admin-team/PROTOCOL.md`), and
-  goes to the executor, which matches it to a section
+  `permissionReason`, equal to the section's job name exactly, so matching takes
+  no judgement (`~/.claude/admin-team/PROTOCOL.md`), and goes to the executor,
+  which only reads the file and matches it to a section
   (`version-control-manager.md`, Executor mode). What allows the action is the
   user's answer the section records, so the request widens nothing. A request
   without `permissionReason`, or one the executor reports no section matches, is
-  `rejected` with the rule it broke.
-- **Deleted when done.** A section is deleted when its job is complete.
+  `rejected` with the rule it broke, and is not turned into a console question.
+- **Moved out when done.** When a section's `Ends:` condition is met, or at the
+  user's word, you move it out of the file, to
+  `~/.claude/admin-team/temp-permissions/history/<owner>-<repo>.md`, one history
+  file per repository, and add an `Ended: <date>` line to it there.
 
 ### Worktrees
 

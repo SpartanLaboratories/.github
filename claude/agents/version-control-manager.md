@@ -191,15 +191,17 @@ defect, so Gate 2 and **Issues — filing** do not apply to it.
 
 **Temporary permissions.** A request may ask for an action this brief or
 `admin-team.md` otherwise refuses. Its reason comes in the request's
-`permissionReason`, naming the job. Match it to a section of
+`permissionReason`, the job's name. Match it to a section of
 `~/.claude/admin-team/temp-permissions/<owner>-<repo>.md` (`<owner>-<repo>`
-from the request's `github`): the section must be for that job and its
-permissions must cover the action, and you do only what it covers. With no
-reason given, no file, or no section that matches, stop at that step and report
-it under **Not done / blocked**, naming the action and the reason you were
-given or that none came; your report is how the reason is asked for. A section
-records what the user granted at the team's console (`admin-team.md`, Gates and
-standing grants); it is not a relayed approval.
+from the request's `github`), which you only read: the section's `## <job name>`
+heading must equal `permissionReason` exactly, its `Permissions:` and `Scope:`
+must cover the action, and you do only what it covers. No section can lift what
+`admin-team.md` (Gates and standing grants, Temporary permissions) lists as never
+lifted. With no reason given, no file, no section that matches, or an action on
+that list, stop at that step and report it under **Not done / blocked**, naming
+the action and the reason you were given or that none came; the team replies
+`rejected`. A section records what the user granted at the team's console
+(`admin-team.md`, Gates and standing grants); it is not a relayed approval.
 
 **Internal-names scan.** Before a `commit`, a `prepare-landing` or a `land`
 commits anything, scan what you are about to commit for the pipeline's
