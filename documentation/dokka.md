@@ -47,6 +47,8 @@ A CI job runs `./gradlew dokkaGeneratePublicationHtml` on each build. Every Dokk
 - A `website/` folder holds the hand-written landing page.
 - On GitHub Pages, a `pages.yml` workflow deploys the site through GitHub Actions on each push to the default
   branch. The repository's Pages source is set to GitHub Actions.
+- The workflow grants `contents: read` by default, and `pages: write` and `id-token: write` on the
+  deploy job only, so the build job that runs Gradle holds no deploy token.
 - The workflow copies `website/` to the site root and the aggregated Dokka output, from
   `build/dokka/html`, to `/api/`, or to `/docs/api/` where the site already uses `/api`. It fails if
   that output is missing.
