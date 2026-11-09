@@ -206,15 +206,15 @@ came from; on a tracking board's unit Row, `architecture.md`'s section for the u
 `"plan.md#42-the-fix"`. The board ends the statement with the reference: the heading's leading section number ("4.2", "A-3",
 "R2"), else the heading itself, or a `label` the statement sets. The text does not repeat it. A Verdict statement draws it as its
 **section Chip**, "§4.2", neutral and solid with the gap's kind Chip's look, never the link blue (dashboards-skill/53); an As built
-statement in parentheses, "(§4.2)". Either opens the section's excerpt (below). The section Chip says what it is in its own text and is no grouping by colour, shade or dash, so no Legend names it (`GUIDANCE.md` §2); a marked one
-("§42?", below) is named in the Legend as the marked "(§42?)" is.
+statement draws the same Chip (the user's decision of 2026-11-08, recorded at 2026-11-09T02:11:59Z in the ledger). It opens the section's excerpt (below). The section Chip says what it is in its own text and is no grouping by colour, shade or dash, so no Legend names it (`GUIDANCE.md` §2); a marked one
+("§42?", below) is named in the Legend.
 
 - **Before the excerpt: the section number from the anchor.** Until `embed.js` has copied an excerpt (the file is not in the tree yet,
   or the heading is gone), the label is the section number the anchor names. GitHub's anchor drops a heading number's dots, so
   `42-the-fix` is §4.2 or §42: when the referenced Markdown is reachable from the board's folder, `embed.js` reads its headings and the
   heading number wins (the numbered heading whose number, its dots dropped, leads the anchor), written as the statement's `refNumber`
   `{ref, label, from: "headings"}`; only when the file is not there (or none of its numbered headings fits) is the anchor's leading
-  number taken as it stands, `from: "anchor"`, and **marked**: "(§42?)" (a Verdict statement's section Chip "§42?"), with the reason in its title, in the inspector and in the
+  number taken as it stands, `from: "anchor"`, and **marked**: the statement's section Chip reads "§42?", with the reason in its title, in the inspector and in the
   Legend of the Tab that draws it. The board, which reads no file, marks a reference with neither the same way. Nobody writes
   `refNumber` by hand; it goes once the excerpt is copied, and `check.js` warns on a marked one.
 
@@ -250,7 +250,7 @@ The **Legend** of the Design Tab and the As built Tab names each adaptation mark
 **The Verdict Cell's count Labels** (dashboards-skill/53): the Cell's foot counts its
 steps, tests and risks, "1 step · 0 tests · 2 risks", each a count Label as the Gap Cell's evidence is (§2, "The Gap Cell"), its figure
 in ink and muted at zero, the noun agreeing with the figure; derived at render, with no field of their own. No Legend names them (`GUIDANCE.md`
-§2). A board drawn before them keeps the plain line until its next rebuild; a landed board keeps its rendering (`GUIDANCE.md` §11).
+§2). **The As built Cell's foot** counts its changes and commits the same way, "2 changes · 3 commits" as count Labels (the user's decision of 2026-11-08). A board drawn before them keeps the plain line until its next rebuild; a landed board keeps its rendering (`GUIDANCE.md` §11).
 
 ### An option's signature
 
@@ -872,8 +872,10 @@ dashed and muted. A finished step's chevron holds its Button ("Finished steps", 
 (`ol.stepbar`), the current step `aria-current="step"`, each step's state said in words to a screen reader; it wraps inside itself at
 phone width and a long name wraps inside its chevron, so it never widens the board. A tracking board draws the same StepBar for its
 own steps on its phase's Card and for each unit's run on the unit's Card. The Legend names each state it drew with a chevron key. The
-research StepBar of the step Panel (below) keeps its dots. A tracking issue's chain draws as a StepBar on the state boards' roadmap and on
+research StepBar of the step Panel (below) is this same StepBar, its phases' names inside, its current phase in the FullPulse or the Ring alone. A tracking issue's chain draws as a StepBar on the state boards' roadmap and on
 the repository work board's Rows (§5; `system/RULES.md` §6).
+
+**The chain is a StepBar** (the user's decision of 2026-11-08). A tracking board draws its own chain, the counted units in landing order, as a StepBar in two places: `done` where the unit landed, current where its run is under way or it is complete and not merged, to come else; dropped, deferred and left-for-later units stand out of it, counted apart beside it, as on the repository work board and the roadmap. On the **phase's Card** each chevron is the unit's name (linking its board or its issue), with its system's swatch and the marks the chain's entries carried: the FullPulse on a unit at work, the Ring alone while held, the unit up next's dashes in the accent with its UP NEXT Tag; a complete unit carries its ✔. The Legend names the states it drew with chevron keys. In the **header's chain Chip** the StepBar stands under the sentence in place of the thin Bar, unmarked, each chevron the unit's issue number, a lone #n as the sentence's are (a unit with no issue its number or slug, its name in the title). The phase's Card keeps the thin green Bar and its count line; nothing but the chain moved.
 
 **The step Panel.** The current step broken down in detail, from the facts the board records (the
 events, the documents, the trail), never guessed; each step's Panel shows:
@@ -884,7 +886,7 @@ events, the documents, the trail), never guessed; each step's Panel shows:
 | `research` | the research StepBar **planning → research → verification** (done, current, to come, with when each began), "n questions drafted" while planning, then each question with its state Pill, the Rows it bears on, when it was sent or returned and its findings link, and the count returned. This StepBar lives only here, not in the Considered column's head |
 | `architecture` | what the step does, and the options weighed so far |
 | `plan` | **plan writing → plan accepted**, or a **re-pass** (from the parent's plan, for a sub-issue; after Quality Review n, with the fixes and the next review to follow; verifying the existing plan against its base, e.g. `main`) in place of the writing; the verdicts written of the Rows, and the Rows still to write; the plan's link |
-| `branch` | the plan accepted, the plan's stages being fixed on the branch |
+| `branch` | the plan accepted; the branch is confirmed next |
 | `implementation` | the stages of `plan.md` (`wip.stages`), done, current and to come, with the Rows each touches; the deviations recorded so far |
 | `qa` | each pass apart: its number, its verdict, its findings line (the count, then the severities, minor and other, then the kinds, "18 findings (2 minor, 16 other; 3 documentation, 15 code)", each zero left out, "0 findings" for a pass that counted none; `GUIDANCE.md` §4), the route it sent the run on, its note; the pass running; the most passes allowed |
 | `remediation` | headed by its name, a Correction or a Resolution (`GUIDANCE.md` §4, "A qa pass is named "Quality Review N""): the Quality Review it answers, its route, and its sub-steps (`wip.remediation.steps`; while none is recorded, the route's steps and the line "Correction or Resolution after a Quality Review; each step is recorded as it runs": minor fixes on the spot, then the Document step with no additional review; the fixes, then the next Quality Review; a plan re-pass, the fixes, then the next Quality Review; and with no route the fixes, with a plan re-pass first where the plan itself is wrong, then the next Quality Review) |
@@ -1009,7 +1011,7 @@ While the run waits on the user the dot holds still. The live repository work bo
 
 **A tracking board's strip is a set of Cards** once it has units: (1) the tracking issue's own
 phase — its step, steps line and detail — with the chain's progress (landed of all, complete, the
-thin green Bar) and the chain of units, its blockers and its landing; (2) one Card per unit in
+thin green Bar) and the chain of units as a StepBar (above, "The chain is a StepBar"), its blockers and its landing; (2) one Card per unit in
 progress, with its own run (below): the run Pill, its own steps line, its detail, its open research
 questions, since and updated, its qa passes and its branch; (3) that unit's **step Panel** (above),
 in place of the unit up next, which stays on the chain Chip, its chain entry and its unit Row — and
@@ -1074,7 +1076,7 @@ unit in progress. Two things say where the work is, and they never mix:
   landed carries `unit.landing` `{pr, merge}` on its Row, that board's pull request and merge commit (its `wip.landing`, else its
   `asBuilt`, as its own landed fact reads them). The unit's As built Cell draws them above its summary as the **PR Chip** ("PR #89",
   opening the pull request) and the **merge Chip** ("merge 8122af7", opening the commit), neutral and solid with the gap's kind Chip's
-  look; no Legend names them (`GUIDANCE.md` §2). Nobody writes `unit.landing` by hand: `embed.js` copies it at every embed of the
+  look; no Legend names them (`GUIDANCE.md` §2). The unit's Card on the As built Tab and its inspector draw the same two Chips, above its statements (the user's decision of 2026-11-08). Nobody writes `unit.landing` by hand: `embed.js` copies it at every embed of the
   tracking board, landed units included, from the unit's board in the same tree (its view copy where that is fresher), and clears it
   where the unit's board is not in the tree, has not landed or records neither; it is generated, never merged. A unit with no board
   of its own keeps its landing on its Row (`asBuilt.merge`, `asBuilt.pr`, which `unit-landed` writes, §4) and draws the same Chips
@@ -1095,7 +1097,7 @@ with the chain, each unit in progress with its run, the unit up next, then waiti
 
 **The chain's progress (tracking boards).** A tracking board's `status` stays `building` from its
 first unit's start to its last unit's landing, so its header does not show it. In place of the
-status Chip it shows the chain's progress, with a thin green Bar of units landed:
+status Chip it shows the chain's progress, with a StepBar of its units (above, "The chain is a StepBar") under the sentence:
 
 > chain **1 of 11 landed** · #47 in progress (Plan) · #62 up next, blocked by #47
 
@@ -1520,7 +1522,7 @@ its state `done` (landed), `current` (in a run, or complete and not merged) or `
 above it only while the tracking issue itself is halted, escalated or cancelled; under that Row, on a **row of its own across the
 table**, its units as a **StepBar** (dashboards-skill/54; §3, "The strip is a StepBar"): one chevron per unit with the unit's name
 inside, done, current or to come, unmarked (the unit at work carries its FullPulse on its own Row), the thin Bar of units landed it
-replaces; a `board.json` written before `units` draws it from the tracking issue's unit Rows, by their titles; the unit a tracking board names in `wip.next` reads
+replaces; a `board.json` written before `units` draws it from the tracking issue's unit Rows, by their titles, and an issue that owns sub-issues with no `units` to draw (a tracking issue with no board, drawn as a line of the tree with no Row, among them) draws it from the tree (**The issue tree**, below); the unit a tracking board names in `wip.next` reads
 "next · not started", with the
 up-next mark and a "blocked by #n" Tag for each blocker that has not landed (a unit of its tracking board not filed yet named by its slug, §3, `unit.blockedBy`), and is never active. A
 Row whose run waits on the user, **halted or escalated**, keeps its in-progress mark stopped to the
@@ -1549,6 +1551,7 @@ reason), and an open sub-issue with no run reads "not started", dashed; a parent
 tracking issue's group heading gives way to its Row, and the rest stay under their group's heading ("Other runs, oldest first"), an issue with no parent at the tree's root; an issue whose parent is on no list stays at the
 root and keeps its "part of #n" (nested, a Row needs no "part of": its indentation says it). Children in landing order: a Row by its `order`, a roadmap item by its place on the tracker. Each level with children
 has a **Button** (`.tw`, a real button, keyboard-reachable, with `aria-expanded` and a label naming the issue and its count): its level's Rows and their StepBars show or hide, deeper levels keeping their own state.
+**Every level that owns sub-issues shows its chain's StepBar** in the one place, on the row of its own under its line, a tracking issue with no Row as much as one with a Row, at any depth, so a chain's chevron can be a tracking issue with a chain of its own (the user's direction of 2026-11-08). A chain its tracking board records (`chain.units`) is drawn as recorded; any other is read from the tree, nothing invented: one chevron per sub-issue in landing order, its title inside, its state from its Row, else from the tracker: landed or merged, or closed as completed, is done; at work (`building`, `planning`, `halted`, `escalated`, `complete` or `in-progress`), or a sub-issue with anything done or at work under it, is current; else to come. Cancelled, not planned and duplicate are out of the chain, as they are out of its count, a line with no state on record is left out rather than guessed, and an issue nested only by its folder is no sub-issue. An issue with no sub-issue data at all shows no StepBar. The state Cell of a line with no Row keeps the tracker's word; only a tracking board's `chain` carries the progress summary.
 A level is **open by default while something below it is in flight** (a Row `active`, or `building`, `planning`, `halted`, `escalated`, `complete`, `in-progress` or `next`), shut when nothing is, so a landed chain folds to its one Row and the
 work under way is always in view; the user's choice is kept in the browser (`localStorage`) and survives a live redraw and a reload. The tree's lines and indentation are neutral (a system's colour stays on the Row's edge, a status on its Pill), its Button has its own Legend entry,
 at phone width it indents each Row's Card (the guide lines drop); a long chain indents no more than four steps. The code is one block, the same in `plan/template/board.html` and `org-board.html`, held equal by `verify/cases-org-board.js`.
@@ -1814,7 +1817,7 @@ whose own board records its impact while `impact.units` has no entry for it, and
 the plan's once its unit has landed; a board with no Consequences Tab (a template older than the Tab:
 re-render it); a gap without evidence; a build verdict without named steps (unit Rows of a tracking
 board are exempt: their steps live in the sub-issue's plan); a Row's system not in `systems`;
-more than six colour groups (a system's parts share their parent's slot, so count top-level
+more than twelve colour groups (a system's parts share their parent's slot, so count top-level
 systems, not Rows); a missing milestone; a `wip.current` that does not match `wip.step`'s Row of
 the step-to-column map (§3) — a halted or escalated board's by `wip.resume`'s row, a board that has
 landed or was abandoned not at all; during research, a Cell outside the open questions' Rows, or one

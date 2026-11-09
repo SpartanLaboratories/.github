@@ -330,7 +330,7 @@ function stateChecks() {
         if (e.visibility != null && !VIS.includes(e.visibility)) problems.push(`REGISTRY INVALID: ${e.slug}'s visibility ${JSON.stringify(e.visibility)} is not public, internal-org or internal-repo`); });
       /* the colours (GUIDANCE.md §1; palette.js colourSlots()): an archived system holds none; a live one left with no slot is drawn neutral, and said */
       { const P = require(path.join(__dirname, "palette.js")), C = P.colourSlots(all), folded = all.filter(e => e.kind !== "repo" && e.status !== "archived" && !C.slot(e.slug) && C.holder(e.slug) && C.holder(e.slug).slug === e.slug).map(e => e.slug);
-        if (folded.length) notes.push(`warning: SYSTEM COLOUR FOLDED: ${folded.join(", ")} found no free slot of the six (archived systems hold none): drawn neutral`); }
+        if (folded.length) notes.push(`warning: SYSTEM COLOUR FOLDED: ${folded.join(", ")} found no free slot of the ${P.PALETTE.light.length} (archived systems hold none): drawn neutral`); }
       const unset = drawn.filter(e => e.kind !== "repo" && e.status !== "archived" && !visOf(e)).map(e => e.slug);
       if (unset.length) notes.push(`warning: VISIBILITY UNSET: ${unset.join(", ")} ${unset.length === 1 ? "records" : "record"} no visibility in systems.json (public, internal-org or internal-repo; a part takes its parent's): the Systems tab draws ${unset.length === 1 ? "it" : "them"} in the "unset" group`); }
     drawn.forEach(e => { const d = code.systems.get(e.slug);

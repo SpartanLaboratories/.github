@@ -1,7 +1,7 @@
 // The cases of dashboards-skill/53, the approved proposals of the Design tab's review (the user's approval of 2026-11-06: proposals 4, 6 and
 // 7), run by verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-design-tab-proposals.js [--out <dir>].
 // 1. The Verdict's section chip (plan/RULES.md §2, "Statements"): a Verdict statement's reference drawn as a neutral chip, "§R2" (never the
-//    link blue, no parentheses), a marked one "§42?" named in the legend; an As built statement keeps "(§4.2)"; a click on either opens the
+//    link blue, no parentheses), a marked one "§42?" named in the legend; an As built statement ends with the same chip (the user's decision of 2026-11-08); a click on either opens the
 //    section's excerpt (bindRefs()).
 // 2. The Verdict cell's count labels (plan/RULES.md §2, "The Verdict Cell's count Labels"): its steps, tests and risks each a count label, the
 //    figure in ink and muted at zero, the noun agreeing with it.
@@ -40,20 +40,20 @@ module.exports = function casesDesignTabProposals(X) {
     vm.runInContext(block(h, "const countLabel=", "\nconst whereChip=").replace(/^const /gm, "var "), x);
     return x; };
 
-  guard("the Verdict's section chip: \"§R2\", neutral, opening the excerpt; an As built statement keeps \"(§4.2)\" (the issue-board template)", c => {
+  guard("the section chip: \"§R2\", neutral, opening the excerpt, on Verdict and As built statements (the issue-board template)", c => {
     const H = ctx(PB);
     const s = { text: "The port stays generic.", ref: "plan.md#r2-the-port", excerpt: { heading: "R2. The port and its contract", paragraph: "…", hash: "x" } };
     const v = H.stmtRef(s, "port", "verdict", 0), b = H.stmtRef(s, "port", "built", 0);
     c.push(["a Verdict statement's reference is a section chip reading \"§R2\", no parentheses", /^ <a class="section-chip" href="plan\.md#r2-the-port" data-row="port" data-col="verdict" data-i="0" title="R2\. The port and its contract: click for the section's excerpt">§R2<\/a>$/.test(v), v]);
-    c.push(["an As built statement keeps its reference in parentheses, \"(§R2)\", in the link's look", /^ <a class="sref" href="plan\.md#r2-the-port"[^>]*>\(§R2\)<\/a>$/.test(b), b]);
+    c.push(["an As built statement ends with the same section chip, no parentheses, on its own row and column", /^ <a class="section-chip" href="plan\.md#r2-the-port" data-row="port" data-col="built" data-i="0" title="R2\. The port and its contract: click for the section's excerpt">§R2<\/a>$/.test(b), b]);
     const m = { text: "x", ref: "gone.md#42-the-fix" }, mv = H.stmtRef(m, "port", "verdict", 1);
     c.push(["a marked reference (its number from the anchor alone) reads \"§42?\" on its chip, the reason in its title", />§42\?<\/a>$/.test(mv) && /read from the link's anchor alone/.test(mv), mv]);
     c.push(["no reference, or one that is no relative link, draws no chip", H.stmtRef({ text: "x" }, "p", "verdict", 0) === "" && H.stmtRef({ text: "x", ref: "https://example.com/a#b" }, "p", "verdict", 0) === "", "\"\""]);
     const kV = H.refKey([m], []), kB = H.refKey([], [m]), k0 = H.refKey([s], [s]);
-    c.push(["the legend names the marked chip \"§n?\" for a Verdict statement, \"(§n?)\" for an As built one, and nothing when none is marked", /<b class="section-chip">§n\?<\/b> a section number read from its link alone/.test(kV) && !/\(§n\?\)/.test(kV) && /<b class="srefk">\(§n\?\)<\/b>/.test(kB) && !/section-chip/.test(kB) && k0 === "", js([kV, kB, k0])]);
+    c.push(["the legend names the marked chip \"§n?\" for Verdict and As built statements alike, and nothing when none is marked", /<b class="section-chip">§n\?<\/b> a section number read from its link alone/.test(kV) && /<b class="section-chip">§n\?<\/b>/.test(kB) && k0 === "" && !/srefk/.test(PB), js([kV, kB, k0])]);
     const s2 = code(PB);
     c.push(["the legend is fed the Verdict statements and the As built ones apart", /\+refKey\(ROWS\.flatMap\(r=>stmtsOf\(r\.verdict\)\),ROWS\.flatMap\(r=>stmtsOf\(r\.asBuilt\)\)\);/.test(s2), "renderBoard()"]);
-    c.push(["a click on a section chip opens the excerpt as a \"(§4.2)\" reference does (bindRefs() binds both)", /function bindRefs\(root\)\{ \(root\|\|document\)\.querySelectorAll\("a\.sref,a\.section-chip"\)/.test(s2), "bindRefs()"]);
+    c.push(["a click on a section chip opens the excerpt (bindRefs() binds it), and no statement keeps a parenthesised reference", /function bindRefs\(root\)\{ \(root\|\|document\)\.querySelectorAll\("a\.section-chip"\)/.test(s2) && !/\bsref\b/.test(s2), "bindRefs()"]);
     const css = (PB.match(/<style>([\s\S]*?)<\/style>/) || [])[1] || "", chip = (/(?:^|\n)a\.section-chip\{([^}]*)\}/.exec(css) || [])[1] || "";
     c.push(["the chip is neutral: the kind chip's ink and hairline, never the link blue", /color:var\(--ink-2\)/.test(chip) && /border:1px solid var\(--line\)/.test(chip) && !/--link/.test(chip) && /\.legend b\.section-chip\{[^}]*color:var\(--ink-2\)/.test(css), chip]);
     c.push(["code inside the chip stays plain (the code label's rule for a chip)", /:is\(\[class\*="chip"\],\[class\*="pill"\],\[class\*="tile"\]\) code\{background:none;border:0;padding:0;border-radius:0\}/.test(css), "CSS"]);
@@ -65,7 +65,7 @@ module.exports = function casesDesignTabProposals(X) {
     c.push(["a count label: the figure bold, the noun agreeing with it", H.countLabel(1, "step") === '<span class="count-label"><b>1</b> step</span>' && H.countLabel(2, "risk") === '<span class="count-label"><b>2</b> risks</span>' && H.countLabel(3, "class", "classes") === '<span class="count-label"><b>3</b> classes</span>', js([H.countLabel(1, "step"), H.countLabel(2, "risk")])]);
     c.push(["muted at zero", H.countLabel(0, "test") === '<span class="count-label zero"><b>0</b> tests</span>', H.countLabel(0, "test")]);
     c.push(["the Verdict cell's foot draws its three counts as count labels", /<div class="meta"><span>\$\{countLabel\(\(v\.steps\|\|\[\]\)\.length,"step"\)\} · \$\{countLabel\(\(v\.tests\|\|\[\]\)\.length,"test"\)\} · \$\{countLabel\(\(v\.risks\|\|\[\]\)\.length,"risk"\)\}<\/span>\$\{moreLink\(v\.link,"plan"\)\}<\/div>/.test(PB), "cellVerdict()"]);
-    c.push(["the As built cell keeps its plain line (the decision named the Verdict cell)", /<span>\$\{plural\(\(b\.changes\|\|\[\]\)\.length,"change"\)\} · \$\{plural\(\(b\.commits\|\|\[\]\)\.length,"commit"\)\}<\/span>/.test(PB), "cellBuilt()"]);
+    c.push(["the As built cell's foot draws its changes and commits as count labels too (the user's decision of 2026-11-08)", /<div class="meta"><span>\$\{countLabel\(\(b\.changes\|\|\[\]\)\.length,"change"\)\} · \$\{countLabel\(\(b\.commits\|\|\[\]\)\.length,"commit"\)\}<\/span>/.test(PB), "cellBuilt()"]);
     const css = (PB.match(/<style>([\s\S]*?)<\/style>/) || [])[1] || "";
     c.push(["the CSS: the figure in ink, muted at zero, in the cell's foot as in the Gap cell's head", /\.cell \.meta \.count-label b\{color:var\(--ink\);font-weight:700\}/.test(css) && /\.cell \.meta \.count-label\.zero b\{color:var\(--muted\);font-weight:400\}/.test(css) && /\.cell \.kick \.count-label\.zero b\{/.test(css), "CSS"]);
   });
@@ -121,7 +121,8 @@ module.exports = function casesDesignTabProposals(X) {
     c.push(["nothing on a unit that records no landing, nor on a row that is no unit", H.landingChips({ unit: { issue: 62 }, asBuilt: { state: "pending" } }) === "" && H.landingChips({ asBuilt: { pr: 5, merge: "abc1234" } }) === "", "\"\""]);
     c.push(["the As built cell draws them above its summary", /\$\{nextTags\(r\)\}<\/div>\$\{landingChips\(r\)\}<div class="sum">\$\{builtBody\(r,st\)\}<\/div>/.test(PB), "cellBuilt()"]);
     const css = (PB.match(/<style>([\s\S]*?)<\/style>/) || [])[1] || "";
-    c.push(["the chips neutral, with the kind chip's look", /\.cell \.landing-chips :is\(\.pr-chip,\.merge-chip\)\{font:600 10px var\(--mono\);color:var\(--ink-2\);border:1px solid var\(--line\)/.test(css), "CSS"]);
+    c.push(["the chips neutral, with the kind chip's look, wherever they stand", /(?:^|\n)\.landing-chips :is\(\.pr-chip,\.merge-chip\)\{font:600 10px var\(--mono\);color:var\(--ink-2\);border:1px solid var\(--line\)/.test(css), "CSS"]);
+    c.push(["the As built Tab's Card and the inspector draw them too, above the statements (the user's decision of 2026-11-08)", /<\/div>\$\{landingChips\(r\)\}\$\{stmtsOf\(b\)\.length\?buildingLead\(r,st,"blead"\)/.test(PB) && /\$\{esc\(STATES\[st\]\.desc\)\}<\/div>\$\{landingChips\(r\)\}\$\{stmtsOf\(b\)\.length\?buildingLead\(r,st,"lead"\)/.test(PB), "renderBuilt(), inspectBuilt()"]);
   });
 
   guard("check.js warns on a path outside a code span in a row's texts (UNQUOTED PATH), never fails", c => {
@@ -144,9 +145,12 @@ module.exports = function casesDesignTabProposals(X) {
     c.push(["each is a feature of dashboards-skill/53, for the issue and tracking boards, with its reason for every other type", fs53.length === 3 && fs53.every(f => f.since === 53 && js(f.types) === js(["plan-board"]) && ["system", "supersystem", "work-board"].every(k => f.notFor && typeof f.notFor[k] === "string" && f.notFor[k].length > 20)), js(fs53.map(f => [f.id, f.since, f.types]))]);
     const miss = F.probe(PB, "plan-board").filter(m => ids.includes(m.id));
     c.push(["the issue-board template carries all three", !miss.length, js(miss)]);
-    const old = PB.replace(/const stmtRef=\(s,row,col,i\)=>\{[^\n]*\n[^\n]*\n/, 'const stmtRef=(s,row,col,i)=>"";\n').replace(/\$\{countLabel\(/g, "${plural(").replace("${landingChips(r)}", "");
+    const old = PB.replace(/const stmtRef=\(s,row,col,i\)=>\{[^\n]*\n[^\n]*\n/, 'const stmtRef=(s,row,col,i)=>"";\n').replace(/\$\{countLabel\(/g, "${plural(").split("${landingChips(r)}").join("");
     const lost = F.probe(old, "plan-board").map(m => m.id).filter(id => ids.includes(id));
     c.push(["a template without them is told which it lacks", js(lost) === js(ids), js(lost)]);
+    const fBuilt = F.FEATURES.find(f => f.id === "as-built-marks");
+    c.push(["the As built marks are one feature, dated dashboards-skill/57, for the issue and tracking boards", !!fBuilt && fBuilt.since === 57 && js(fBuilt.types) === js(["plan-board"]) && ["system", "supersystem", "work-board"].every(k => typeof (fBuilt.notFor || {})[k] === "string"), js(fBuilt && fBuilt.types)]);
+    c.push(["…found on the template, named when one mark is lost", !F.probe(PB, "plan-board").some(m => m.id === "as-built-marks") && F.probe(PB.replace('${landingChips(r)}${stmtsOf(b).length?buildingLead(r,st,"blead")', '${stmtsOf(b).length?buildingLead(r,st,"blead")'), "plan-board").some(m => m.id === "as-built-marks"), "probe"]);
     c.push(["the other templates are not held to them", [[WB, "work-board"], [SYS, "system"], [SUP, "supersystem"]].every(([h, k]) => !F.applicable(k).some(f => ids.includes(f.id))), "work-board, system, supersystem"]);
   });
   return groups;

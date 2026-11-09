@@ -53,7 +53,7 @@ const flag = (args, name) => args.includes("--" + name);
 /* The registry's colour slots, computed exactly as the system boards compute them (system/template/supersystem.html, sysColour;
    system/scripts/palette.js colourSlots()): the systems in registry order without the repo entry; a top-level system is one whose parent is
    not itself such a system; tops take slots 1..6 by their place, a child takes its top-level ancestor's slot; an archived system holds no slot
-   (0, neutral), and the slot its place frees goes to the next system with none, a seventh top-level system first; with none left it is 0 too.
+   (0, neutral), and the slot its place frees goes to the next system with none, a thirteenth top-level system first; with none left it is 0 too.
    The repo entry itself, when a row names it, is neutral (slot 0). */
 /* A system's board, as the registry (docs/dashboards/systems.json) and the boards' systems entries record it (dashboards-skill/33): the key
    "board"; a file written before reads "page" alike, so an older registry, plan.json or board.json still loads. */

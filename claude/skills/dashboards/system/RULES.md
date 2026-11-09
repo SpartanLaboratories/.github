@@ -44,7 +44,7 @@ This set ships, under `skills/dashboards/system/`:
 | `scripts/features.js` | The per-board feature probes: one detector per template feature, its skill step and the board types it fits (`GUIDANCE.md` §8, "Features"; not a command). |
 | `scripts/splice.js` | Brings a state board onto its current template: the template's CSS, script before MODEL and renderer carried onto the board, three ways for a declared divergence, the board-filled lines and the board's own content kept, old Chips relabelled, a missing state block added, the names of dashboards-skill/33 migrated (§8). The Document step's state-boards task runs it; `--verified` splices onto the template's recorded verified version instead of the file on disk, for a template being edited. Its merge bases come through `scripts/history.js`, which rebuilds a recorded version missing from the local `verify/history/` cache from the `.github` mirror's git history (`--history-repo <clone>`, else `gh api`) and warns on one it cannot find (§8). |
 | `scripts/namerefs.js` | The internal names a board never carries (`GUIDANCE.md` §4): its copy of the list's one home, `../../../nomenclature/internal-names.md` §1 and §2, held equal to it by `verify/cases-internal-names.js`; the forms, `scrubNames()`, which `apply-event.js` runs on every fact text, and the warnings `check.js` and `check-board.js` give (not a command). |
-| `scripts/palette.js` | The shared system palette (six slots, light and dark), `colourSlots()` (the slot each system holds), and the status-hue rule that `check.js` and `check-board.js` apply (`GUIDANCE.md` §1; not a command). |
+| `scripts/palette.js` | The shared system palette (twelve slots, light and dark), `colourSlots()` (the slot each system holds), and the status-hue rule that `check.js` and `check-board.js` apply (`GUIDANCE.md` §1; not a command). |
 | `../verify/verify-templates.js` | Verifies every template once with the fixtures in `../verify/fixtures/` and records its hash in `../verify/verified.json`; run it after any template change. |
 
 ## 2. The sources of a system board
@@ -212,12 +212,12 @@ dashed = planned, a Legend on every Tab). The groupings the system templates use
 - The C4 Tab's Legend is `.c4-legend`; every other Tab's is `.legend`.
 - On a system board the groups are the hue slots `--server`, `--client` and `--wire` (slots 1 to 3
   of the shared palette); name them in `MODEL.sides` and the Structure Legend.
-- On a supersystem or repository state board each top-level system takes a slot `--sys-1` … `--sys-6`
+- On a supersystem or repository state board each top-level system takes a slot `--sys-1` … `--sys-12`
   in registry order (`sysColour(slug)`: a top-level system is one whose parent is not itself a
   system on the board; a child takes the slot of the highest live system on its parent chain; an archived system holds
   no slot and is drawn neutral; a live system keeps its place's slot, archived places still counted;
   a freed slot goes to the next system with none, and with none free a system is drawn neutral; a
-  seventh live top-level system with none free is drawn neutral too: re-parent it or add a slot;
+  thirteenth live top-level system with none free is drawn neutral too: re-parent it or add a slot;
   `palette.js` `colourSlots()`), and every hand-written element about a system carries `data-sys="<slug>"` so
   `paintSystems()` colours it. The issue boards use the same slots (`plan/RULES.md`), so a system
   has one colour on both sets.
@@ -351,8 +351,8 @@ append rather than reorder.
    **Go off the template** (`GUIDANCE.md` §3): change only what the facts require — the DSL, the
    `MODEL`, the hand-written Panels, the header — and leave the template's CSS, Tab set and
    renderer script as they are. Anything beyond that (an optional Tab, a removed core Tab, a
-   change to the renderer or CSS) is a divergence: declare it in the head with
-   `<meta name="template-divergence" content="what and why">` and in the footer comment.
+   change to the renderer or CSS) is a divergence: how it is declared and recorded is the presenter's rule
+   (`~/.claude/agents/presenter.md`, "Divergence").
 3. Fill the DSL, then the `MODEL`, then the hand-written Panels and header, from the code and the
    architecture documents, and `state.json` with the stamp (`written.sha` the commit you read). Tie every planned part to its data
    (§2, "Planned parts"). Re-embed the DSL and the state.

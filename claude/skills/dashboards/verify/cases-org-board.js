@@ -164,6 +164,40 @@ if(v===undefined)process.exit(1);process.stdout.write(typeof v==="string"?v:JSON
     X.P.set("r#2", false); const after = X.FL(X.F(rows, groups, road), "r#"), a2 = n => after.find(e => e.x && e.x.issue === n);
     c.push(["a choice kept in this browser overrides the default: #2 shut, its units hidden, #1 still open", a2(2).open === false && a2(21).hidden === true && a2(3).hidden === false, js({ o: a2(2).open, h: a2(21).hidden })]);
     c.push(["a line with no Row is drawn from the tracker: open sub-issue not started (dashed), closed as not planned by its reason, an open tracking issue with children by its own state word", X.BU(forest.nodes.find(x => x.issue === 3)) === "not-started" && X.BU(forest.nodes.find(x => x.issue === 4)) === "not-planned" && X.BU(forest.nodes.find(x => x.issue === 1)) === null, "statuses"]);
+    /* every level that owns sub-issues shows its chain's StepBar, in both templates, from real data only (plan/RULES.md §5) */
+    [["org work board", O], ["repository work board", W]].forEach(([nm, T]) => {
+      const cu = T.indexOf("const chainUnits="), cr = T.indexOf("const chainRow="), chainCode = T.slice(cu, T.indexOf("\n", cr));
+      const ctxOf = rs => { const ctx = vm.createContext({ esc: x => String(x == null ? "" : x), codeOnly: x => String(x), plural: (n, one, many) => n + " " + (n === 1 ? one : (many || one + "s")), STATUS: { "not-started": { l: "not started" }, "not-planned": { l: "np" }, duplicate: { l: "d" } }, stOf: r => r.status, pill: d => "PILL:" + d.l, pair: (n, t) => "#" + n + " " + t, ilink: n => "#" + n, closedWord: () => "", sysColour: () => "var(--muted)", ROWS: rs, SB_STATE: { done: "landed", cur: "in progress", todo: "to come" }, TREE_KEY: "k", localStorage: { getItem: () => null, setItem: () => {} }, document: { addEventListener() {} } }); vm.runInContext(chainCode + "\n" + block(T) + "\nthis.F=issueForest; this.FL=treeFlat; this.CH=treeChain; this.CR=chainRow; this.BARE=treeBare; this.CU=chainUnits;", ctx); return ctx; };
+      const rs = [
+        { issue: 2, title: "Phase 0", parent: 1, group: "1", order: 1, status: "building" },
+        { issue: 21, title: "Prep", parent: 2, group: "2", order: 1, status: "landed" },
+        { issue: 22, title: "Rehearsal", parent: 2, group: "2", order: 2, status: "building", active: true },
+        { issue: 23, title: "Merged", parent: 2, group: "2", order: 3, status: "merged" },
+        { issue: 24, title: "Cancelled", parent: 2, group: "2", order: 4, status: "abandoned" },
+        { issue: 30, title: "Recorded", parent: null, group: "other", order: 9, status: "building", chain: { units: [{ name: "From its board", state: "current" }] } },
+        { issue: 31, title: "Unit", parent: 30, group: "other", order: 10, status: "not-started" },
+        { issue: 40, title: "Host", parent: null, group: "other", order: 0, status: "landed", folder: "../40-host/" },
+        { issue: 42, title: "Folded in", parent: null, group: "other", order: 2, status: "planning", folder: "../40-host/42-folded/" } ];
+      const rd2 = [
+        { issue: 1, title: "Consolidation", state: "OPEN", items: [{ issue: 2, title: "Phase 0", state: "OPEN" }, { issue: 3, title: "Phase 1", state: "OPEN" }, { issue: 4, title: "Dropped", state: "CLOSED", stateReason: "NOT_PLANNED" }, { issue: 5, title: "Done", state: "CLOSED", stateReason: "COMPLETED" }, { issue: 6, title: null }] },
+        { issue: 7, title: "No sub-issue data", state: "OPEN", items: [] },
+        { issue: 8, title: "Outer", state: "OPEN", items: [{ issue: 9, title: "Inner", state: "OPEN" }, { issue: 11, title: "Untouched", state: "OPEN" }] },
+        { issue: 9, title: "Inner", state: "OPEN", items: [{ issue: 10, title: "Closed under it", state: "CLOSED" }] } ];
+      const gs = [{ key: "1", issue: 1, title: "Consolidation" }, { key: "2", issue: 2, title: "Phase 0" }, { key: "other", issue: null, title: "Other" }];
+      const X = ctxOf(rs), f = X.F(rs, gs, rd2), fl = X.FL(f, "r#"), en = n => fl.find(e => e.x && e.x.issue === n), nd = n => f.nodes.find(x => x.issue === n), chain = n => X.CH(nd(n)).map(u => u.name + ":" + u.st).join();
+      const liOf = h => (h.match(/<li class="[a-z]+"/g) || []).map(s => s.slice(11, -1)).join();
+      c.push([`${nm}: #1, a tracking issue with no Row, chains its sub-issues from the tree: its Row's state, the tracker's, nesting a tracking issue; not planned out, a line with no state out`, chain(1) === "Phase 0:cur,Phase 1:todo,Done:done", chain(1)]);
+      const bar1 = X.CR(nd(1), en(1));
+      c.push([`${nm}: its StepBar is a row of its own across the table, as #2's is`, /^<tr class="chainrow"[^>]*><td colspan="6"><ol class="stepbar" aria-label="#1: its units in landing order">/.test(bar1) && liOf(bar1) === "cur,todo,done" && !/<ol class="stepbar" data-tree-d/.test(bar1), bar1.slice(0, 160)]);
+      c.push([`${nm}: the line with no Row emits it right after itself, so it hides with the line`, X.BARE(en(1)).includes('</td><td></td><td></td><td></td><td></td></tr><tr class="chainrow"') && /<tr class="run/.test(X.BARE(en(1))), X.BARE(en(1)).slice(-220)]);
+      c.push([`${nm}: a nested tracking issue with a Row and no recorded units chains from the tree, merged done, cancelled out, indented at its depth`, chain(2) === "Prep:done,Rehearsal:cur,Merged:done" && /<ol class="stepbar" data-tree-d style="--d:1"/.test(X.CR(nd(2).row, en(2))), chain(2)]);
+      c.push([`${nm}: a chain its board records is drawn as recorded, not from the tree`, X.CU(nd(30).row, nd(30)).map(u => u.name).join() === "From its board", js(X.CU(nd(30).row, nd(30)))]);
+      c.push([`${nm}: a bare sub-issue is at work once anything under it is done or at work, else to come`, chain(8) === "Inner:cur,Untouched:todo", chain(8)]);
+      c.push([`${nm}: a tracking issue with no sub-issue data shows no StepBar`, X.CR(nd(7), en(7)) === "" && !/chainrow/.test(X.BARE(en(7))), X.CR(nd(7), en(7))]);
+      c.push([`${nm}: an issue nested only by its folder owns no sub-issue for the chain`, en(42).up === "40" && chain(40) === "" && X.CR(nd(40).row, en(40)) === "", chain(40)]);
+      c.push([`${nm}: a hidden level's StepBar is hidden with it`, /<tr class="chainrow"[^>]* hidden>/.test(X.CR(nd(2).row, { ...en(2), hidden: true })), X.CR(nd(2).row, { ...en(2), hidden: true }).slice(0, 80)]);
+      c.push([`${nm}: the Legend names the states of every chain drawn, from the tree`, /forest\.nodes\.flatMap\(x=>chainUnits\(x\.row\|\|x,x\)\.map\(u=>u\.st\)\)/.test(T), "the Legend reads Rows with a chain only"]);
+    });
     const WF = F => F.replace(/\s+/g, " ");
     c.push(["the org work board's rows carry the tree's depth and Button, and a repository Panel its own Button", /treeAttrs\(e\)/.test(O) && /treeBtn\(e\)/.test(O) && /repoBtn\(r,/.test(O) && /aria-controls="\$\{esc\(id\)\}-tree \$\{esc\(id\)\}-key"/.test(O), "no tree in the rows"]);
     c.push(["the repository work board's rows carry them too", /treeAttrs\(e\)/.test(W) && /treeBtn\(e\)/.test(W) && /treeFlat\(forest,""\)/.test(W), "no tree in the rows"]);

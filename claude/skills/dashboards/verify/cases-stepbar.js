@@ -6,7 +6,9 @@
 //     the current step carrying the in-progress marks where it did before (the FullPulse; the Ring alone while the run waits on you);
 //   - a tracking issue's chain on the state boards' roadmap (system, supersystem and repository state boards) and on the repository work
 //     board's rows, one chevron per unit with the unit's name inside, on a line of its own; no mark (the state boards draw no work in
-//     progress; on the repository work board the unit at work carries its FullPulse on its own row).
+//     progress; on the repository work board the unit at work carries its FullPulse on its own row);
+//   - the step panel's research indicator and a tracking board's own chain, on its phase's card (each chevron the unit's name with its marks) and in
+//     its header chain chip, in place of the thin bar, unmarked (the user's decisions of 2026-11-08; plan/RULES.md §3, "The chain is a StepBar").
 // Every StepBar is an ordered list, the current step aria-current="step", each state said in words to a screen reader; it works in light
 // and dark (tokens only), and wraps inside itself at 390 px, never widening the board.
 // 1. The StepBar's look: one CSS block, the same in the four templates; the issue board's marks and finished-step buttons.
@@ -89,7 +91,44 @@ module.exports = function casesStepBar(X) {
     c.push(["no dot left in the strip: the chevron is the mark", !/class="dot"/.test(live + picked), "no .dot"]);
     const lg = T["plan-board"];
     c.push(["the strip's Legend: chevron keys for done, the step at work in a FullPulse, the Ring alone while paused, to come dashed, and the one shown", /<span><i class="sbk"><\/i>step done\$\{PICKS\?": click a finished step to see it in the panel":""\}<\/span>/.test(lg) && /<i class="sbk acc"><\/i>current step, in a FullPulse: the step at work now/.test(lg) && /<i class="sbk ring"><\/i>current step, the Ring alone: paused while the run waits on you/.test(lg) && /<i class="sbk todo"><\/i>dashed: step to come/.test(lg) && /const KEY_SEL=`<span><i class="sbk sel"><\/i>ringed in ink: the finished step the panel shows<\/span>`;/.test(lg), "the Legend"]);
-    c.push(["the research StepBar in the step panel is left as it is (a list of dots, its own rules)", /aria-label="The research StepBar"/.test(lg) && /<ol class="steps" aria-label="The research StepBar">/.test(lg), "the research StepBar"]);
+    c.push(["the research indicator in the step panel is a StepBar, its phases inside, the current one marked, its state in words", /<ol class="stepbar" aria-label="The research StepBar">/.test(lg) && !/<ol class="steps" aria-label="The research StepBar">/.test(lg) && /c==="cur"\?\(o\.held\?" held":" fullpulse"\):""\}"\$\{c==="cur"\?' aria-current="step"':""\}>\$\{x\}\$\{sbState\(c\)\}<\/li>/.test(lg), "the research StepBar"]);
+    c.push(["its panel gives it room (.sp .stepbar)", /\.sp \.stepbar\{margin:6px 0 4px\}/.test(css(lg)), ".sp .stepbar"]);
+  });
+
+  /* ---------- 2a. a tracking board's own chain as a StepBar (the user's decisions of 2026-11-08) ---------- */
+  guard("a tracking board's chain: a StepBar on its phase's card, with its marks, and in its header chain chip, unmarked", c => {
+    const W = T["plan-board"], src = between(W, "const chainUnitState=", "join(\"\")}</ol>`; }");
+    c.push(["the template holds chainUnitState() and chainSteps()", !!src, src ? "found" : "not found"]);
+    if (!src) return;
+    const esc = s => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    const ROWS = [
+      { id: "a", name: "Shared build logic", system: "sys-a", unit: { n: 1, issue: 61, slug: "build-logic" }, st: "landed" },
+      { id: "b", name: "Java 11 floor", system: "sys-b", unit: { n: 2, issue: 62, slug: "java-floor" }, st: "in-progress", on: true },
+      { id: "c", name: "Common `core`", system: "sys-a", unit: { n: 3, issue: 63, slug: "core" }, st: "complete" },
+      { id: "d", name: "Client", system: "sys-b", unit: { n: 4, slug: "client" }, st: "pending", next: true },
+      { id: "e", name: "Later", system: "sys-a", unit: { n: 5, issue: 65, slug: "later" }, st: "pending" }];
+    const draw = (rows, o, g) => { const ctx = vm.createContext({ esc, ROWS: rows, PLAN: { issue: 55 }, STATES: { complete: { g: "✔" } }, TAG_NEXT: '<span class="tag-next">UP NEXT</span>', LANDED: !!(g || {}).landed, STOPPED: false, PAUSED: !!(g || {}).paused,
+      unitLanded: r => r.st === "landed", rowActive: r => !!r.on, stateOf: r => r.st, isNext: r => !!r.next, runPaused: r => !!r.held, boardOf: n => n === 61 ? "61-x/dashboard.html" : null, ghUrl: n => "https://github.com/o/r/issues/" + n, ilink: n => `<a href="#${n}">#${n}</a>`, codeOnly: s => esc(s).replace(/`([^`]+)`/g, "<code>$1</code>"), nameText: r => esc(r.name), out: null });
+      vm.runInContext(src + "\nout=chainSteps(ROWS," + js(o || {}) + ");", ctx); return ctx.out; };
+    const ph = draw(ROWS, { marks: true }), L = lis(ph);
+    c.push(["the phase's card: an ordered StepBar with its label, a chevron per unit", /^<ol class="stepbar" aria-label="#55: its units in landing order">/.test(ph) && L.length === 5, ph.slice(0, 90)]);
+    c.push(["done where landed; current where at work or complete and not merged; to come else", js(L.map(x => x.cls.split(" ")[0])) === js(["done", "cur", "cur", "todo", "todo"]), js(L.map(x => x.cls))]);
+    c.push(["each chevron the unit's name linking its board or its issue, the system's swatch beside it", /<i class="sb-sys" data-sys="sys-a" aria-hidden="true"><\/i><a href="61-x\/dashboard\.html">Shared build logic<\/a>/.test(L[0].body) && /<a href="https:\/\/github\.com\/o\/r\/issues\/62" target="_blank" rel="noopener">Java 11 floor<\/a>/.test(L[1].body), js([L[0].body, L[1].body])]);
+    c.push(["a code span in the name drawn as code; a unit with no issue its name unlinked", /<code>core<\/code>/.test(L[2].body) && /<\/i>Client<span class="tag-next">/.test(L[3].body), js([L[2].body, L[3].body])]);
+    c.push(["a unit at work in the FullPulse, the state said in words, aria-current", L[1].cls === "cur fullpulse" && /aria-current="step"/.test(L[1].attrs) && /<span class="sb-st">, in progress<\/span>$/.test(L[1].body), js(L[1])]);
+    c.push(["a unit whose run waits on you: the Ring alone (held)", lis(draw(ROWS.map(r => r.id === "b" ? { ...r, held: true } : r), { marks: true }))[1].cls === "cur held", "held"]);
+    c.push(["a complete unit: current, its glyph beside its name, no mark", L[2].cls === "cur" && /<span class="sb-g" aria-hidden="true">✔<\/span><span class="sb-st">, complete, not merged<\/span>$/.test(L[2].body), L[2].body]);
+    c.push(["the unit up next: the to-come chevron carrying the still mark and its UP NEXT tag", L[3].cls === "todo upnext-ring" && /<span class="tag-next">UP NEXT<\/span><span class="sb-st">, to come<\/span>$/.test(L[3].body), js(L[3])]);
+    const hd = draw(ROWS), H = lis(hd);
+    c.push(["the header's chain chip: unmarked, each chevron the unit's lone #n (a unit with no issue its number), the name in its title", H.length === 5 && /^<a href="#61">#61<\/a><span class="sb-st">, landed<\/span>$/.test(H[0].body) && !/fullpulse|held|upnext/.test(hd) && H[3].body.startsWith("4<") && H.every(x => /title="/.test(x.attrs)) && /title="Java 11 floor"/.test(H[1].attrs), js(H.slice(0, 3))]);
+    c.push(["a landed board: every chevron done, nothing current", js(lis(draw(ROWS.map(r => ({ ...r, st: "landed", on: false, next: false })), { marks: true }, { landed: true })).map(x => x.cls)) === js(["done", "done", "done", "done", "done"]), "landed"]);
+    c.push(["no units: no StepBar drawn", draw([], { marks: true }) === "", "nothing"]);
+    c.push(["the header chip: a block carrying the sentence then the StepBar, the thin bar gone", /return `<div class="chip status progress wide\$\{done\?" done":!started\?" planned":""\}"><span class="ck">tracking issue · chain<\/span> \$\{txt\.filter\(Boolean\)\.join\(" · "\)\}\$\{chainSteps\(counted\)\}<\/div>`; \}/.test(W) && !/class="cbar"/.test(W) && !/\.chip \.cbar/.test(css(W)), "chainChip()"]);
+    c.push(["the phase's card draws the counted units with its marks, in place of the chain of unit labels", /ph\+=chainSteps\(C\.counted,\{marks:true\}\);/.test(W) && !/<ol class="chain">/.test(W) && !/(?:^|\n)\.chain\{/.test(css(W)), "renderWip()"]);
+    c.push(["the phase's card keeps its thin Bar of units landed and its Legend entry", /<span class="chip-bar" role="img"/.test(W) && /green bar: units landed of all units/.test(W), "chip-bar"]);
+    c.push(["its Legend names the chevrons it drew", /cs\.has\("done"\)\?`<span><i class="sbk"><\/i>a unit, in landing order: landed<\/span>`/.test(W) && /<i class="sbk cur"><\/i>bold: a unit in progress, or complete and not merged/.test(W) && /cs\.has\("todo"\)\?`<span><i class="sbk todo"><\/i>dashed: a unit to come<\/span>`/.test(W), "the Legend"]);
+    c.push(["the up-next mark on a chevron: to-come dashes in the accent, never animated", /\.stepbar>li\.upnext-ring\{box-shadow:none;--sb-edge:repeating-linear-gradient\(90deg,color-mix\(in srgb,var\(--accent\) 70%,transparent\)/.test(css(W)), "the mark"]);
+    c.push(["the feature probe (stepbar-chains) passes the template, and names a board drawn before", !F.probe(W, "plan-board").some(m => m.id === "stepbar-chains") && F.probe(W.replace('<ol class="stepbar" aria-label="The research StepBar">', '<ol class="steps" aria-label="The research StepBar">'), "plan-board").some(m => m.id === "stepbar-chains"), "probe"]);
   });
 
   /* ---------- 3. the repository work board ---------- */
@@ -113,6 +152,7 @@ module.exports = function casesStepBar(X) {
     const [rowHtml, cell] = evalWith(bj, row), L = lis(rowHtml);
     c.push(["a row of its own under the tracking issue's row, across the six columns, holding the StepBar", /^<tr class="chainrow"><td colspan="6"><ol class="stepbar" aria-label="#55: its units in landing order">/.test(rowHtml) && /<\/ol><\/td><\/tr>$/.test(rowHtml), rowHtml.slice(0, 120)]);
     c.push(["one chevron per unit, the unit's name inside, the states in words, the unit in progress aria-current and unmarked", L.length === 11 && L[0].cls === "done" && /^Shared build logic<span class="sb-st">, landed<\/span>$/.test(L[0].body) && L[1].cls === "cur" && /aria-current="step"/.test(L[1].attrs) && L[2].cls === "todo" && /, to come</.test(L[2].body) && !/fullpulse|held|upnext/.test(rowHtml), js(L.slice(0, 3))]);
+    c.push(["a row with no chain and no tree node draws no StepBar: nothing to read", evalWith(bj, { issue: 999, chain: null })[0] === "", "drew one"]);
     c.push(["the state cell keeps the chain's summary, and no thin bar", cell === '<div class="chainsum">summary</div>' && !/cbar/.test(cell), cell]);
     const WB = JSON.parse(rd(sk("verify/fixtures/work-board.json"))), r0 = WB.rows.find(r => r.chain), [old] = evalWith(WB, r0), O = lis(old);
     c.push(["a board.json written before chain.units: the StepBar from the tracking issue's unit rows, in their order, by their titles", !!r0 && !(r0.chain || {}).units && O.length === WB.rows.filter(r => r.parent === r0.issue).length && O[0].cls === "done" && O[1].cls === "cur" && O[2].cls === "todo" && /^Build: move shared configuration/.test(O[0].body) && /<code>build-logic<\/code>/.test(O[0].body), js(O.slice(0, 3).map(x => [x.cls, x.body.slice(0, 50)]))]);

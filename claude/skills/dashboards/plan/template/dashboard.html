@@ -17,7 +17,7 @@
    what the change means downstream (plan.json "impact": effects, adaptation, API changes, conversion steps).
    The board renders at load from plan.json, embedded verbatim below (plan/scripts/embed.js). Never hand-edit a board.
    Tokens, header, chips, KPIs, tabs, stage, inspector, legends (.legend on every tab and on the strip), Context and footer are
-   the system templates'. Colour plan (GUIDANCE.md §1): --sys-1..6 are the systems' registry slots, identical to the system
+   the system templates'. Colour plan (GUIDANCE.md §1): --sys-1..12 are the systems' registry slots, identical to the system
    boards'; --good / --warning / --serious / --critical are status, always beside a glyph and a word; --accent marks the work
    in progress (a FullPulse: an accent Ring and an interior that breathe) and, on a tracking board, the next unit up (a still outer
    Ring and an UP NEXT tag), and nothing else. --wk-<family>-a / -b are the kinds of work of a landed board's Timeline tile (planning, build,
@@ -29,14 +29,14 @@
   --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
   --accent:#6d47e0;
   --on:#0e1420; --focus:#2a78d6; --link:#2a78d6;
-  --sys-1:#2a78d6;--sys-2:#653184;--sys-3:#0d7680;--sys-4:#1d2660;--sys-5:#9656aa;--sys-6:#1a9ec7;
+  --sys-1:#2a78d6;--sys-2:#653184;--sys-3:#0d7680;--sys-4:#1d2660;--sys-5:#9656aa;--sys-6:#1a9ec7;--sys-7:#203d4b;--sys-8:#7700c7;--sys-9:#008a81;--sys-10:#7780f8;--sys-11:#271ea9;--sys-12:#09534e;
   --wk-planning-a:#5596de;--wk-planning-b:#1d5cab;--wk-build-a:#1f9294;--wk-build-b:#0c5c61;--wk-checking-a:#b67ad0;--wk-checking-b:#84409f;--wk-landing-a:#2e3d99;--wk-landing-b:#1d2870;
   --wk-other-a:color-mix(in srgb,var(--ink) 40%,var(--surface));--wk-other-b:var(--ink);
   --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:ui-monospace,"Cascadia Mono",Consolas,"SF Mono",monospace;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--accent:#a58bff;--on:#eef1f6;--focus:#3987e5;--link:#6aa6f0;--sys-1:#3987e5;--sys-2:#8a44d8;--sys-3:#1f8089;--sys-4:#b4bef5;--sys-5:#a86fb8;--sys-6:#31b5f4;--wk-planning-a:#3a7fd0;--wk-planning-b:#80b6f0;--wk-build-a:#1a8a8c;--wk-build-b:#4cc4c2;--wk-checking-a:#a35cbd;--wk-checking-b:#d095e6;--wk-landing-a:#b8c4fa;--wk-landing-b:#d4dcfd;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--accent:#a58bff;--on:#eef1f6;--focus:#3987e5;--link:#6aa6f0;--sys-1:#3987e5;--sys-2:#8a44d8;--sys-3:#1f8089;--sys-4:#b4bef5;--sys-5:#a86fb8;--sys-6:#31b5f4;--wk-planning-a:#3a7fd0;--wk-planning-b:#80b6f0;--wk-build-a:#1a8a8c;--wk-build-b:#4cc4c2;--wk-checking-a:#a35cbd;--wk-checking-b:#d095e6;--wk-landing-a:#b8c4fa;--wk-landing-b:#d4dcfd;color-scheme:dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--accent:#a58bff;--on:#eef1f6;--focus:#3987e5;--link:#6aa6f0;--sys-1:#3987e5;--sys-2:#8a44d8;--sys-3:#1f8089;--sys-4:#b4bef5;--sys-5:#a86fb8;--sys-6:#31b5f4;--sys-7:#9ae2f4;--sys-8:#c790d0;--sys-9:#11978e;--sys-10:#245eff;--sys-11:#8365bd;--sys-12:#00c7ba;--wk-planning-a:#3a7fd0;--wk-planning-b:#80b6f0;--wk-build-a:#1a8a8c;--wk-build-b:#4cc4c2;--wk-checking-a:#a35cbd;--wk-checking-b:#d095e6;--wk-landing-a:#b8c4fa;--wk-landing-b:#d4dcfd;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--accent:#a58bff;--on:#eef1f6;--focus:#3987e5;--link:#6aa6f0;--sys-1:#3987e5;--sys-2:#8a44d8;--sys-3:#1f8089;--sys-4:#b4bef5;--sys-5:#a86fb8;--sys-6:#31b5f4;--sys-7:#9ae2f4;--sys-8:#c790d0;--sys-9:#11978e;--sys-10:#245eff;--sys-11:#8365bd;--sys-12:#00c7ba;--wk-planning-a:#3a7fd0;--wk-planning-b:#80b6f0;--wk-build-a:#1a8a8c;--wk-build-b:#4cc4c2;--wk-checking-a:#a35cbd;--wk-checking-b:#d095e6;--wk-landing-a:#b8c4fa;--wk-landing-b:#d4dcfd;color-scheme:dark}
 
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans);padding-block:0 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -106,11 +106,11 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .chip.status.built{border-left-color:var(--good)}
 .chip.status.abandoned{border-left-color:var(--critical)}
 .chip[data-sys]{border-left:4px solid var(--c)}
-/* a tracking board's status chip is its chain's progress (plan/RULES.md §3, "The chain's progress"), with a thin bar of units landed */
+/* a tracking board's status chip is its chain's progress (plan/RULES.md §3, "The chain's progress"), with a StepBar of its units */
 .chip.progress{line-height:1.45;padding:5px 8px}
 .chip.progress.done{border-left-color:var(--good)}
-.chip .cbar{display:block;height:4px;margin-top:4px;border-radius:2px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden}
-.chip .cbar i{display:block;height:100%;background:var(--good)}
+.chip .stepbar{margin:6px 0 1px}
+.chip .stepbar>li{min-height:20px;padding:2px 14px 2px 18px;font-size:10.5px}
 /* The header's two halves (GUIDANCE.md §6, "The header"): from 940 px the intro (the title, the issue line, the function) fills the
    left half and the tags stand in the right half beside it, each a small card with its label over its value, growing to fill its line, a
    long one across the half (.wide); under 940 px the two stack and the tags wrap as chips, the label before the value. The topbar (the breadcrumb, the
@@ -177,12 +177,6 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .legend i.sbk::after{z-index:-1;inset:var(--sb-w);background:var(--sb-fill);clip-path:polygon(1px 0,calc(100% - 5px) 0,100% 50%,calc(100% - 5px) 100%,1px 100%,6.5px 50%)}
 .legend i.sbk.cur{--sb-edge:var(--ink);--sb-fill:color-mix(in srgb,var(--ink) 7%,var(--surface));--sb-w:2px}
 .legend i.sbk.todo{--sb-edge:repeating-linear-gradient(90deg,var(--muted) 0 3px,transparent 3px 5px);--sb-fill:var(--surface)}
-.chain{list-style:none;margin:4px 0 2px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
-.chain li a,.chain li span.u{display:inline-flex;align-items:center;gap:5px;font:11.5px var(--mono);padding:3px 7px;border:1px solid var(--line);border-left:4px solid var(--c,var(--muted));border-radius:4px;background:var(--surface);text-decoration:none;color:var(--ink-2)}
-.chain li.pending a,.chain li.pending span.u{border-style:dashed;border-left-style:solid}
-.chain li.done a{color:var(--ink)}
-.chain li.fullpulse,.chain li.held,.chain li.upnext-ring{border-radius:4px}
-.chain li.fullpulse a,.chain li.fullpulse span.u{background:transparent}
 .wip-facts{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;font-size:12.5px;color:var(--ink-2)}
 /* Info cards (plan/RULES.md §3): each fact of the strip, a card or the step panel is a small card of its own, its label before its
    value. */
@@ -258,6 +252,7 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .sp p.sp-wait{color:var(--ink);font-weight:600}
 .sp a{text-decoration:none;border-bottom:1px solid var(--line)}
 .sp .steps{margin:6px 0 4px}
+.sp .stepbar{margin:6px 0 4px}
 .sp-list{list-style:none;margin:6px 0 2px;padding:0;display:grid;gap:4px}
 .sp-list>li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 8px;align-items:baseline;padding:4px 0;border-top:1px solid var(--hair);min-width:0}
 .sp-list>li:first-child{border-top:0}
@@ -331,6 +326,15 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .stepbar>li>.stepbtn:focus-visible{outline:2px solid var(--focus);outline-offset:1px;border-radius:2px}
 .stepbar>li.sel{--sb-edge:var(--ink);--sb-w:2.5px;font-weight:700}
 .stepbar>li.sel>.stepbtn{color:var(--ink);text-decoration-color:var(--ink)}
+/* A tracking issue's chain (plan/RULES.md §3, "The chain is a StepBar"): a chevron's link to its unit's board or issue, its unit's system swatch,
+   and the unit up next, its to-come dashes in the accent with its UP NEXT tag: the still mark, which never breathes. */
+.stepbar>li>a{color:inherit;border-bottom:0;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px;overflow-wrap:anywhere}
+.stepbar>li>a:hover{text-decoration-color:var(--ink)}
+.stepbar>li>a:focus-visible{outline:2px solid var(--focus);outline-offset:1px;border-radius:2px}
+.stepbar>li>.sb-sys{flex:none;width:8px;height:8px;border-radius:2px;margin-right:5px;background:var(--c,var(--muted))}
+.stepbar>li>.sb-g{flex:none;margin-left:5px}
+.stepbar>li>.tag-next{flex:none;margin-left:6px}
+.stepbar>li.upnext-ring{box-shadow:none;--sb-edge:repeating-linear-gradient(90deg,color-mix(in srgb,var(--accent) 70%,transparent) 0 5px,transparent 5px 9px);--sb-w:2px}
 .legend i.sbk.acc{--sb-edge:var(--accent);--sb-w:2px;--sb-fill:color-mix(in srgb,var(--accent) 22%,var(--surface))}
 .legend i.sbk.ring{--sb-edge:var(--accent);--sb-w:2px;--sb-fill:var(--surface)}
 .legend i.sbk.sel{--sb-edge:var(--ink);--sb-w:2.5px}
@@ -396,8 +400,7 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .tl-approx{color:var(--muted);font-weight:600}
 .tl-step>.tl-dur{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
 .kpi-tile .legend.tl-steps>span.tl-note{display:block;color:var(--muted);margin-top:5px;break-inside:avoid}
-/* a statement's reference whose section number is read from its link's anchor alone (its file not there to read): "(§42?)" */
-.legend b.srefk{font:600 10.5px var(--mono);color:var(--link)}
+/* a statement's reference whose section number is read from its link's anchor alone (its file not there to read): "§42?" */
 /* …and a Verdict statement's, drawn as its section chip: "§42?" (dashboards-skill/53) */
 .legend b.section-chip{font:600 10px/1.35 var(--mono);color:var(--ink-2);border:1px solid var(--line);border-radius:3px;padding:0 5px;letter-spacing:.04em}
 .legend i.segk.dash{background:none;border:1.5px dashed var(--sc,var(--muted));height:7px}
@@ -594,9 +597,10 @@ a.more:hover{text-decoration:underline}
 .cell .meta .count-label.zero b{color:var(--muted);font-weight:400}
 /* A unit's landing on a tracking board's As built cell (plan/RULES.md §3, "The units' landings"; dashboards-skill/53): the PR chip and the
    merge chip above the summary, copied from the unit's own board (unit.landing), neutral chips with the kind chip's look. */
-.cell .landing-chips{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 5px}
-.cell .landing-chips :is(.pr-chip,.merge-chip){font:600 10px var(--mono);color:var(--ink-2);border:1px solid var(--line);border-radius:3px;padding:1px 5px;letter-spacing:.04em;text-decoration:none;min-width:0;max-width:100%;overflow-wrap:anywhere}
-.cell .landing-chips a:is(.pr-chip,.merge-chip):hover{border-color:var(--ink-2);color:var(--ink)}
+.landing-chips{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 5px}
+.inspector .landing-chips,.bcard .landing-chips{margin:0 0 6px}
+.landing-chips :is(.pr-chip,.merge-chip){font:600 10px var(--mono);color:var(--ink-2);border:1px solid var(--line);border-radius:3px;padding:1px 5px;letter-spacing:.04em;text-decoration:none;min-width:0;max-width:100%;overflow-wrap:anywhere}
+.landing-chips a:is(.pr-chip,.merge-chip):hover{border-color:var(--ink-2);color:var(--ink)}
 .cell::before{content:"";position:absolute;left:calc(-1 * var(--cg) - 1px);top:50%;width:var(--cg);border-top:2px solid var(--ink-2)}
 .cell::after{content:"";position:absolute;left:-6px;top:calc(50% - 5px);width:10px;height:10px;border-radius:50%;background:var(--ink-2)}
 .cell.gap::before{display:none}
@@ -623,7 +627,7 @@ a.more:hover{text-decoration:underline}
 .cell.verdict.charging.still::before{animation:none}
 .legend i.chg{width:30px;height:18px;border:0;border-radius:0;clip-path:polygon(0 26%,64% 26%,64% 0,100% 50%,64% 100%,64% 74%,0 74%);background:repeating-linear-gradient(90deg,var(--accent) 0 3px,transparent 3px 5px)}
 @media (prefers-reduced-motion:reduce){.cell.verdict.charging::before{animation:none!important}}
-/* Statements (plan/RULES.md §2, "Statements"): a Verdict cell lists its statements, bullets or numbered, each ending with its "(§…)"
+/* Statements (plan/RULES.md §2, "Statements"): a Verdict cell lists its statements, bullets or numbered, each ending with its section chip
    reference to the plan section it rests on (a link; a plain click shows that section's excerpt in the inspector); the As built cell
    answers each with one statement marked with its adaptation, the as-built titles' glyph and word. */
 .stmts{margin:0;padding-left:17px;display:grid;gap:3px}
@@ -634,10 +638,8 @@ a.more:hover{text-decoration:underline}
 .stmts.marked>li>.verdict-pill{font-size:9.5px;padding:1px 5px}
 .stmts.marked.num>li{grid-template-columns:auto auto minmax(0,1fr)}
 .stmts .n{font:600 10.5px var(--mono);color:var(--muted)}
-a.sref{font:600 10.5px var(--mono);color:var(--link);text-decoration:none;white-space:normal;overflow-wrap:anywhere;border-bottom:0!important}
-a.sref:hover{text-decoration:underline}
 /* The Verdict's section chip (plan/RULES.md §2, "Statements"; dashboards-skill/53): a Verdict statement's reference as a neutral chip,
-   "§R2", with the gap's kind chip's look, never the link blue; it opens the section's excerpt as the "(§4.2)" reference does. */
+   "§R2", with the gap's kind chip's look, never the link blue; it opens the section's excerpt. */
 a.section-chip{display:inline-block;font:600 10px/1.35 var(--mono);color:var(--ink-2);border:1px solid var(--line);border-radius:3px;padding:0 5px;letter-spacing:.04em;text-decoration:none;max-width:100%;overflow-wrap:anywhere;vertical-align:baseline;border-bottom:1px solid var(--line)!important}
 a.section-chip:hover,a.section-chip:focus-visible{border-color:var(--ink-2)!important;color:var(--ink)}
 .inspector .stmts{margin:0 0 8px;font-size:13px;color:var(--ink)}
@@ -1305,13 +1307,13 @@ function stmtLabel(s){ if(s&&typeof s.label==="string"&&s.label.trim()) return s
   const n=refNumShown(s); if(n) return n.label+(n.from==="anchor"?"?":"");
   const a=String((s&&s.ref)||"").split("#")[1]; return a?"§ "+a:"§"; }
 const refMarkNote=s=>{ const n=refNumShown(s)||{label:"§"}, d=n.label.slice(1); return `the section number is read from the link's anchor alone: its file was not there to read, and the anchor drops a heading number's dots, so ${d} may be ${d.length>1?d.split("").join("."):d}`; };
-/* a Verdict statement ends with its section chip, "§R2" (dashboards-skill/53); an As built statement with its reference in parentheses, "(§4.2)" */
-const stmtRef=(s,row,col,i)=>{ if(!(s&&typeof s.ref==="string"&&relLink(s.ref))) return ""; const chip=col==="verdict";
-  return ` <a class="${chip?"section-chip":"sref"}" href="${esc(s.ref)}" data-row="${esc(row)}" data-col="${col}" data-i="${i}" title="${nameText(s.excerpt&&s.excerpt.heading?s.excerpt.heading:s.ref)}${refMarked(s)?` (${esc(refMarkNote(s))})`:""}: click for the section's excerpt">${chip?esc(stmtLabel(s)):`(${esc(stmtLabel(s))})`}</a>`; };
+/* a Verdict or an As built statement ends with its section chip, "§R2" (plan/RULES.md §2, "Statements") */
+const stmtRef=(s,row,col,i)=>{ if(!(s&&typeof s.ref==="string"&&relLink(s.ref))) return "";
+  return ` <a class="section-chip" href="${esc(s.ref)}" data-row="${esc(row)}" data-col="${col}" data-i="${i}" title="${nameText(s.excerpt&&s.excerpt.heading?s.excerpt.heading:s.ref)}${refMarked(s)?` (${esc(refMarkNote(s))})`:""}: click for the section's excerpt">${esc(stmtLabel(s))}</a>`; };
 /* the legend entry of a marked reference, where the statements drawn carry one */
 const REF_MARK_WHY="a section number read from its link alone: the plan file was not there to tell §4.2 from §42";
-/* verdict: the Verdict statements drawn (their section chips), built: the As built ones (their "(§n)" references) */
-const refKey=(verdict,built)=>(verdict.some(refMarked)?`<span><b class="section-chip">§n?</b> ${REF_MARK_WHY}</span>`:"")+((built||[]).some(refMarked)?`<span><b class="srefk">(§n?)</b> ${REF_MARK_WHY}</span>`:"");
+/* one entry for the statements drawn, Verdict and As built alike: both end with the section chip */
+const refKey=(...lists)=>lists.flat().some(refMarked)?`<span><b class="section-chip">§n?</b> ${REF_MARK_WHY}</span>`:"";
 /* a cell's, a card's or the inspector's statements: the verdict's, or the as built ones with their marks; "" when the row has none */
 function stmtsHtml(r,col){ const x=col==="verdict"?r.verdict:r.asBuilt, all=stmtsRaw(x), num=((r.verdict||{}).list==="numbered");
   if(!all.some(stmtOk)) return "";
@@ -1344,7 +1346,7 @@ function optDef(r,o){ const s=o.verdict==="deferred"?settlement(r,o):null; const
 let SYSTEMS=[];
 const sysOf=slug=>SYSTEMS.find(s=>s.slug===slug);
 /* an archived system holds no slot (GUIDANCE.md §1): neutral, whatever an entry written before it was archived records */
-const sysLit=s=>!!s&&s.status!=="archived"&&s.slot>=1&&s.slot<=6;
+const sysLit=s=>!!s&&s.status!=="archived"&&s.slot>=1&&s.slot<=12;
 function sysColour(slug){ const s=sysOf(slug); return sysLit(s)?`var(--sys-${s.slot})`:"var(--muted)"; }
 const sysName=slug=>{ const s=sysOf(slug); return s?s.name:(slug||"—"); };
 function paint(root){ (root||document).querySelectorAll("[data-sys]").forEach(e=>{ e.style.setProperty("--c",sysColour(e.dataset.sys)); const s=sysOf(e.dataset.sys); e.classList.toggle("sys-archived",!!s&&s.status==="archived"); }); }
@@ -1530,7 +1532,7 @@ const PANEL={
     const phase=Rs.phase||(st.includes("verifying")?"verification":st.length&&st.every(x=>x==="complete")?"complete":st.some(x=>x!=="planning")?"research":st.length?"planning":"");
     const line=["planning","research","verification"], at=phase==="complete"?3:line.indexOf(phase);
     /* a finished step's view (o.past): every phase it reached is done, nothing glows */
-    let h=`<ol class="steps" aria-label="The research StepBar">${line.map((x,j)=>{ const c=o.past?(j<=at?"done":"todo"):j<at?"done":j===at?"cur":"todo"; return `<li class="${c}${c==="cur"?(o.held?" held":" fullpulse"):""}"${c==="cur"?' aria-current="step"':""}><span class="dot" aria-hidden="true"></span>${x}</li>`; }).join("")}</ol>`;
+    let h=`<ol class="stepbar" aria-label="The research StepBar">${line.map((x,j)=>{ const c=o.past?(j<=at?"done":"todo"):j<at?"done":j===at?"cur":"todo"; return `<li class="${c}${c==="cur"?(o.held?" held":" fullpulse"):""}"${c==="cur"?' aria-current="step"':""}>${x}${sbState(c)}</li>`; }).join("")}</ol>`;
     const began=line.filter(x=>Rs.since&&Rs.since[x]).map(x=>`${x} from <span class="nw">${when(Rs.since[x])}</span>`); if(began.length) h+=`<p class="sp-when">${began.join(" · ")}</p>`;
     if(at<0) h+=`<p>No research event recorded yet.</p>`;
     if(phase==="planning") h+=`<p class="sp-sum">Planning the research questions${Rs.drafted!=null?`: ${esc(Rs.drafted)} drafted so far`:""}.</p>`;
@@ -1546,7 +1548,7 @@ const PANEL={
     if(re) h+=`<p>${P.from==="qa"?`The plan is re-passed to answer ${esc(passName(P.pass||"?"))}'s findings${R.remediation&&routeKey(R.remediation.route)==="re-plan-then-remediation"?`; the fixes and the next ${REVIEW} follow`:""}.`:P.from==="existing"?`The plan already written is verified${P.against?` against <code>${esc(P.against)}</code> as it stands now`:" against the code as it stands now"}, and each delta recorded.`:`The plan this unit takes from its parent's architecture is verified, and the unit's own written.`}</p>`;
     if(V&&V.total) { h+=`<p class="sp-sum">${V.written} of ${V.total} verdict${V.total===1?"":"s"} written</p>`; if(o.unwritten&&o.unwritten.length&&V.written<V.total) h+=`<p>Still to write: ${o.unwritten.slice(0,6).map(codeOnly).join(", ")}${o.unwritten.length>6?`, and ${o.unwritten.length-6} more`:""}.</p>`; }
     return h; },
-  branch:()=>`<p>The plan is accepted; the branch is cut next and the build starts.</p>`,
+  branch:()=>`<p>Plan accepted; the branch is confirmed next.</p>`,
   implementation:(R,o)=>{ const sg=Array.isArray(R.stages)?R.stages.filter(x=>x&&typeof x==="object"):[];
     let h=""; if(!sg.length) h+=`<p>Its stages are in the plan; none recorded here yet.</p>`;
     else { const cur=sg.findIndex(x=>x.state==="current"), done=sg.filter(x=>x.state==="done").length;
@@ -1785,8 +1787,20 @@ const KEY_CHG=()=>`<span><i class="chg"></i>charging arrow: its verdict being wr
 function chainCounts(){ const units=ROWS.filter(r=>r.unit), out=k=>count(units,r=>stateOf(r)===k);
   const counted=units.filter(r=>!["dropped","deferred"].includes(stateOf(r))&&!leftForLater(r)), landed=count(counted,unitLanded), M=counted.length, left=count(units,leftForLater);
   const extra=[out("dropped")?`${out("dropped")} dropped`:"",out("deferred")?`${out("deferred")} deferred`:"",left?`${left} left for later`:""].filter(Boolean);
-  return {units,landed,M,extra,complete:out("complete"),pct:M?Math.round(100*landed/M):0}; }
-function chainChip(){ const {units,landed,M,extra}=chainCounts();
+  return {units,counted,landed,M,extra,complete:out("complete"),pct:M?Math.round(100*landed/M):0}; }
+/* The chain is a StepBar (plan/RULES.md §3, "The chain is a StepBar"): the counted units in landing order, one chevron each, done where landed,
+   current where the unit's run is under way or it is complete and not merged, to come else; dropped, deferred and left for later stand out of it,
+   counted apart beside it. The phase's Card draws it with each chevron the unit's name linking its board or issue, its system's swatch and its
+   marks (o.marks: the FullPulse, the Ring alone while held, the still up-next mark with its Tag). The header's chain Chip draws it unmarked, each
+   chevron the unit's issue number the sentence beside it names (a lone #n, opening the board). */
+const chainUnitState=r=>unitLanded(r)?"done":(rowActive(r)&&!LANDED&&!STOPPED)||["complete","in-progress","partially-built"].includes(stateOf(r))?"cur":"todo";
+function chainSteps(rows,o){ o=o||{}; if(!rows.length) return "";
+  return `<ol class="stepbar" aria-label="#${esc(PLAN.issue)}: its units in landing order">${rows.map(r=>{ const st=chainUnitState(r), on=rowActive(r)&&!LANDED&&!STOPPED, comp=st==="cur"&&stateOf(r)==="complete", next=!!o.marks&&st==="todo"&&isNext(r);
+    const mark=!o.marks?"":on?(PAUSED||runPaused(r)?" held":" fullpulse"):next?" upnext-ring":"", word=st==="done"?"landed":comp?"complete, not merged":st==="cur"?"in progress":"to come";
+    const href=r.unit.issue?boardOf(r.unit.issue)||ghUrl(r.unit.issue):"", nm=codeOnly(r.name||r.unit.slug||r.id);
+    const label=o.marks?(href?`<a href="${esc(href)}"${/^https?:/.test(href)?' target="_blank" rel="noopener"':""}>${nm}</a>`:nm):r.unit.issue?ilink(r.unit.issue):esc(r.unit.n!=null?r.unit.n:(r.unit.slug||r.id));
+    return `<li class="${st}${mark}"${st==="cur"?' aria-current="step"':""}${o.marks?"":` title="${nameText(r)}"`}>${o.marks?`<i class="sb-sys" data-sys="${esc(r.system||"")}" aria-hidden="true"></i>`:""}${label}${comp?`<span class="sb-g" aria-hidden="true">${STATES.complete.g}</span>`:""}${next?TAG_NEXT:""}<span class="sb-st">, ${word}</span></li>`; }).join("")}</ol>`; }
+function chainChip(){ const {units,counted,landed,M,extra}=chainCounts();
   const cur=LANDED||STOPPED?[]:units.filter(rowActive);
   const done=LANDED||(M>0&&landed===M), started=landed>0||cur.length>0||units.some(r=>stateOf(r)==="complete");
   const runWord=r=>{ const L=runOf(r); if(!L) return "in progress"; const k=runKind(L); return k==="halted"?"waiting on you":k==="escalated"?"escalated":k==="cancelled"?"run cancelled":`in progress${L.step?` (${esc(stepLabel(L.step,runCtx(L)))})`:""}`; }; /* the unit's step by its name, as its run Pill names it (dashboards-skill/51) */
@@ -1796,8 +1810,7 @@ function chainChip(){ const {units,landed,M,extra}=chainCounts();
   else if(STOPPED) txt=[`<b>cancelled</b> · ${landed} of ${M} landed`,...extra];
   else if(!started) txt=[`<b>planned</b> · ${M?`${M} unit${M===1?"":"s"}`:"no units yet"}`,...extra];
   else txt=[`<b>${landed} of ${M} landed</b>`,...cur.map(r=>`${u(r)} ${runWord(r)}`),NEXT_ROW?`${u(NEXT_ROW)} up next${openBlockers(NEXT_ROW).length?`, blocked by ${openBlockers(NEXT_ROW).map(bref).join(", ")}`:""}`:"",...extra];
-  const pct=chainCounts().pct;
-  return `<span class="chip status progress wide${done?" done":!started?" planned":""}"><span class="ck">tracking issue · chain</span> ${txt.filter(Boolean).join(" · ")}<span class="cbar" role="img" aria-label="${landed} of ${plural(M,"unit")} landed"><i style="width:${pct}%"></i></span></span>`; }
+  return `<div class="chip status progress wide${done?" done":!started?" planned":""}"><span class="ck">tracking issue · chain</span> ${txt.filter(Boolean).join(" · ")}${chainSteps(counted)}</div>`; }
 let OPTS=[];
 const count=(arr,f)=>arr.filter(f).length;
 function renderHeader(){
@@ -1925,10 +1938,9 @@ function renderWip(){
     if(st==="escalated") ph+=`<p class="wip-wait">Escalated: the run waits while the issue's scope is re-decided.</p>`;
     ph+=own+(WIP.detail&&(!HALTED||WIP.waitingOn)?`<p class="wip-detail">${rich(WIP.detail)}</p>`:"");
     ph+=`<div class="wip-sub">The chain · ${C.landed} of ${plural(C.M,"unit")} landed${C.complete?` · ${C.complete} complete, not merged`:""}${C.extra.length?` · ${esc(C.extra.join(" · "))}`:""}</div><span class="chip-bar" role="img" aria-label="${C.landed} of ${plural(C.M,"unit")} landed"><i style="width:${C.pct}%"></i></span>`;
-    ph+=`<ol class="chain">${units.map(r=>{ const s=stateOf(r), on=rowActive(r), href=r.unit.issue?boardOf(r.unit.issue)||ghUrl(r.unit.issue):""; const inner=`${esc(r.unit.n!=null?r.unit.n:"")}${r.unit.issue?` · #${esc(r.unit.issue)}`:""} ${esc(r.unit.slug||r.id)}${s!=="pending"?` ${STATES[s].g}`:""}${isNext(r)?` ${TAG_NEXT}`:""}`; const tag=href?`<a href="${esc(href)}"${/^https?:/.test(href)?' target="_blank" rel="noopener"':""} data-sys="${esc(r.system)}">${inner}</a>`:`<span class="u" data-sys="${esc(r.system)}">${inner}</span>`; return `<li class="${s==="pending"?"pending":"done"}${on&&!LANDED?(PAUSED||runPaused(r)?" held":" fullpulse"):isNext(r)?" upnext-ring":""}">${tag}</li>`; }).join("")}</ol>`;
+    ph+=chainSteps(C.counted,{marks:true});
     const phase=ph+factsHtml+`</div>`; let rowN=0;
-    legend.push(sysKey(units.map(r=>r.system)),units.some(r=>stateOf(r)==="pending")?`<span><i class="pln"></i>dashed: unit not built, or not started</span>`:"");
-    [...new Set(units.map(stateOf))].filter(k=>k!=="pending").forEach(k=>legend.push(`<span>${badge(k)} ${esc(STATES[k].desc)}</span>`));
+    { const cs=new Set(C.counted.map(chainUnitState)); legend.push(sysKey(C.counted.map(r=>r.system)),cs.has("done")?`<span><i class="sbk"></i>a unit, in landing order: landed</span>`:"",cs.has("cur")?`<span><i class="sbk cur"></i>bold: a unit in progress, or complete and not merged${C.counted.some(r=>stateOf(r)==="complete")?` (${STATES.complete.g})`:""}</span>`:"",cs.has("todo")?`<span><i class="sbk todo"></i>dashed: a unit to come</span>`:""); }
     if(C.M) legend.push(`<span><i class="bar"></i>green bar: units landed of all units</span>`);
     /* the tracking issue's own finished step, picked on its phase's steps line (plan/RULES.md §3, "Finished steps"): a row of its own
        beside the phase, first, in the unit's and the panel's shares; at its own sub-issues or boards step it takes the own panel's place */
@@ -2287,7 +2299,7 @@ const builtMark=r=>{ const g=cellGlow(r.id,"built"); return g+(/ fullpulse| held
 function cellVerdict(r){ const v=r.verdict||{}, w=verdictOf(r), leave=w==="leave", chg=!w&&CHARGING(); return `<div class="cell verdict${leave?" leave":""}${chg?` charging${PAUSED?" still":""}`:""}${cellGlow(r.id,"verdict")}" role="button" tabindex="0" data-row="${esc(r.id)}" data-col="verdict" aria-label="Verdict: ${nameText(r)}${w?"":", not yet written"}"><div class="kick">3 · VERDICT${w?` <span class="kind">${leave?"leave as is":"build"}</span>`:""}</div><div class="sum">${verdictBody(r)}</div><div class="meta"><span>${countLabel((v.steps||[]).length,"step")} · ${countLabel((v.tests||[]).length,"test")} · ${countLabel((v.risks||[]).length,"risk")}</span>${moreLink(v.link,"plan")}</div></div>`; }
 function cellBuilt(r){ const st=stateOf(r), b=r.asBuilt||{}, S=STATES[st]; const extra=st==="deferred"&&b.issue?` → ${ilink(b.issue)}`:"";
   const link=b.link||(r.unit&&(unitHref(r)||r.unit.folder))||"";
-  return `<div class="cell built ${S.cls}${st==="pending"?" pending":""}${st==="deferred"?" deferred":""}${builtMark(r)}" role="button" tabindex="0" data-row="${esc(r.id)}" data-col="built" aria-label="As built: ${nameText(r)}, ${S.label}${isNext(r)?", up next":""}${runOf(r)?`, its run: ${esc(runShort(runOf(r)).slice(2))}`:""}"><div class="kick">4 · AS BUILT ${badge(st,extra)}${nextTags(r)}</div>${landingChips(r)}<div class="sum">${builtBody(r,st)}</div>${runLine(r)}<div class="meta"><span>${plural((b.changes||[]).length,"change")} · ${plural((b.commits||[]).length,"commit")}</span>${moreLink(link,r.unit?(unitHref(r)?"board":"folder"):"record")}</div></div>`; }
+  return `<div class="cell built ${S.cls}${st==="pending"?" pending":""}${st==="deferred"?" deferred":""}${builtMark(r)}" role="button" tabindex="0" data-row="${esc(r.id)}" data-col="built" aria-label="As built: ${nameText(r)}, ${S.label}${isNext(r)?", up next":""}${runOf(r)?`, its run: ${esc(runShort(runOf(r)).slice(2))}`:""}"><div class="kick">4 · AS BUILT ${badge(st,extra)}${nextTags(r)}</div>${landingChips(r)}<div class="sum">${builtBody(r,st)}</div>${runLine(r)}<div class="meta"><span>${countLabel((b.changes||[]).length,"change")} · ${countLabel((b.commits||[]).length,"commit")}</span>${moreLink(link,r.unit?(unitHref(r)?"board":"folder"):"record")}</div></div>`; }
 const GROUP_ORDER=["Code","Tests","Documents","Release","Left for later"];
 function grouped(){ const groups=[]; ROWS.forEach(r=>{ const g=r.group||""; let G=groups.find(x=>x.name===g); if(!G){ G={name:g,rows:[]}; groups.push(G); } G.rows.push(r); });
   /* an issue board orders its groups Code, Tests, Documents, Release, Left for later; a tracking board keeps landing order */
@@ -2353,7 +2365,7 @@ function select(rowId,col,optId){
 }
 /* A statement's reference (plan/RULES.md §2, "Statements"): a plain click shows, in the inspector, the excerpt embed.js copied from the
    plan section it rests on, beside the link that opens the section; a modified click (a new tab, a new window) follows the link. */
-function bindRefs(root){ (root||document).querySelectorAll("a.sref,a.section-chip").forEach(a=>a.addEventListener("click",e=>{ if(e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey) return;
+function bindRefs(root){ (root||document).querySelectorAll("a.section-chip").forEach(a=>a.addEventListener("click",e=>{ if(e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey) return;
   e.preventDefault(); e.stopPropagation(); const cell=document.querySelector(`#board .cell[data-row="${CSS.escape(a.dataset.row)}"][data-col="${a.dataset.col}"]`);
   if(a.closest("#board")){ document.querySelectorAll("#board .cell.sel, #board .opt.sel").forEach(x=>x.classList.remove("sel")); if(cell) cell.classList.add("sel"); }
   inspectRef(a.dataset.row,a.dataset.col,+a.dataset.i); try{ history.replaceState(null,"","#"+a.dataset.row+"."+a.dataset.col+".s"+a.dataset.i); }catch(x){} })); }
@@ -2373,7 +2385,7 @@ function inspectOption(r,o){ if(!o){ inspect(`<div class="kicker">2 · CONSIDERE
 function inspectVerdict(r){ const v=r.verdict||{}, w=verdictOf(r);
   inspect(`<div class="kicker">3 · VERDICT${w?` · ${w==="leave"?"LEAVE AS IS":"BUILD"}`:""}</div><div class="name">${codeOnly(r.name)}</div><div class="vis">${whereOf(r)}</div>${w&&stmtsOf(v).length?stmtsHtml(r,"verdict"):`<p class="lead">${w?rich(v.summary):"Not yet written."}</p>`}${v.defense?`<p>${rich(v.defense)}</p>`:""}<dl>${v.steps&&v.steps.length?`<dt>Steps</dt><dd><ol class="steps-list">${v.steps.map(s=>`<li><b>${esc(s.id||"·")}</b><span>${rich(s.what||"")}${fileTree(s.files)}${s.check?`<span class="check">${rich(s.check)}</span>`:""}${s.link?` ${moreLink(s.link,"in the plan")}`:""}</span></li>`).join("")}</ol></dd>`:""}${v.tests&&v.tests.length?`<dt>Tests</dt><dd>${list(v.tests)}</dd>`:""}${v.leaves&&v.leaves.length?`<dt>Leaves to other units</dt><dd>${list(v.leaves)}</dd>`:""}${v.risks&&v.risks.length?`<dt>Risks and what bounds them</dt><dd>${list(v.risks)}</dd>`:""}${v.source?`<dt>Source</dt><dd>${refHtml(v.source)}</dd>`:""}${v.link?`<dt>Detail</dt><dd>${refHtml(v.link)}</dd>`:""}</dl>`); }
 function inspectBuilt(r){ const b=r.asBuilt||{}, st=stateOf(r), a=PLAN.asBuilt||{}, u=r.unit;
-  inspect(`<div class="kicker">4 · AS BUILT${a.sha?` · AT ${esc(a.sha).toUpperCase()}`:""}</div><div class="name">${codeOnly(r.name)}</div><div class="vis">${badge(st,st==="deferred"&&b.issue?` → ${ilink(b.issue)}`:"")} ${esc(STATES[st].desc)}</div>${stmtsOf(b).length?buildingLead(r,st,"lead")+stmtsHtml(r,"built"):`<p class="lead">${rich(b.summary||(st==="pending"?"Not built yet.":""))}</p>`}<dl>${b.changes&&b.changes.length?`<dt>Changes from the verdict</dt><dd><ol>${b.changes.map(c=>`<li><b>${rich(c.what||"")}</b>${c.why?` — ${rich(c.why)}`:""}${c.when||c.ref||c.link?`<br><small>${esc(c.when||"")}${c.ref?` · ${refHtml(c.ref)}`:""}${c.link?` · ${refHtml(c.link,"the reason")}`:""}</small>`:""}</li>`).join("")}</ol></dd>`:""}${ftTree(b.files).kids.length?`<dt>Files</dt><dd>${fileTree(b.files)}</dd>`:""}${b.tests?`<dt>Tests</dt><dd>${rich(b.tests)}</dd>`:""}${b.commits&&b.commits.length?`<dt>Commits</dt><dd>${b.commits.map(c=>refHtml(c)).join(" · ")}</dd>`:""}${b.verified?`<dt>Verified</dt><dd>${rich(b.verified)}</dd>`:""}${b.issue?`<dt>Moved to</dt><dd>${ilink(b.issue)}</dd>`:""}${u?`<dt>Unit</dt><dd>${esc(u.n)}. ${u.issue?pair(u.issue,u.slug||r.id):esc(u.slug||"")}${u.blockedBy&&u.blockedBy.length?`<br>depends on <span class="deplist">${unitDeps(r).map(x=>`<span>${bref(x)} ${depPill(x)}</span>`).join("")}</span>`:""}${unitHolds(r).length?`<br>blocks · enables <span class="deplist">${unitHolds(r).map(x=>`<span>${bref(x)} ${pill(HOLD[unitLanded(r)?"enables":"blocks"])}</span>`).join("")}</span>`:""}${(u.blockedBy||[]).length||unitHolds(r).length?`<div class="legend">${depKeys(unitDeps(r),unitHolds(r).length?[unitLanded(r)?"enables":"blocks"]:[]).join("")}</div>`:""}${u.versions?`<br>versions: ${rich(u.versions)}`:""}${u.branch&&!unitLanded(r)?`<br>branch <code>${esc(u.branch)}</code>`:""}${u.board?"":`<br>${u.folder?refHtml(u.folder,"its folder"):"no plan folder yet"}`}</dd>`:""}${runOf(r)?inspectRun(r):""}${b.link?`<dt>Detail</dt><dd>${refHtml(b.link)}</dd>`:""}</dl>`); }
+  inspect(`<div class="kicker">4 · AS BUILT${a.sha?` · AT ${esc(a.sha).toUpperCase()}`:""}</div><div class="name">${codeOnly(r.name)}</div><div class="vis">${badge(st,st==="deferred"&&b.issue?` → ${ilink(b.issue)}`:"")} ${esc(STATES[st].desc)}</div>${landingChips(r)}${stmtsOf(b).length?buildingLead(r,st,"lead")+stmtsHtml(r,"built"):`<p class="lead">${rich(b.summary||(st==="pending"?"Not built yet.":""))}</p>`}<dl>${b.changes&&b.changes.length?`<dt>Changes from the verdict</dt><dd><ol>${b.changes.map(c=>`<li><b>${rich(c.what||"")}</b>${c.why?` — ${rich(c.why)}`:""}${c.when||c.ref||c.link?`<br><small>${esc(c.when||"")}${c.ref?` · ${refHtml(c.ref)}`:""}${c.link?` · ${refHtml(c.link,"the reason")}`:""}</small>`:""}</li>`).join("")}</ol></dd>`:""}${ftTree(b.files).kids.length?`<dt>Files</dt><dd>${fileTree(b.files)}</dd>`:""}${b.tests?`<dt>Tests</dt><dd>${rich(b.tests)}</dd>`:""}${b.commits&&b.commits.length?`<dt>Commits</dt><dd>${b.commits.map(c=>refHtml(c)).join(" · ")}</dd>`:""}${b.verified?`<dt>Verified</dt><dd>${rich(b.verified)}</dd>`:""}${b.issue?`<dt>Moved to</dt><dd>${ilink(b.issue)}</dd>`:""}${u?`<dt>Unit</dt><dd>${esc(u.n)}. ${u.issue?pair(u.issue,u.slug||r.id):esc(u.slug||"")}${u.blockedBy&&u.blockedBy.length?`<br>depends on <span class="deplist">${unitDeps(r).map(x=>`<span>${bref(x)} ${depPill(x)}</span>`).join("")}</span>`:""}${unitHolds(r).length?`<br>blocks · enables <span class="deplist">${unitHolds(r).map(x=>`<span>${bref(x)} ${pill(HOLD[unitLanded(r)?"enables":"blocks"])}</span>`).join("")}</span>`:""}${(u.blockedBy||[]).length||unitHolds(r).length?`<div class="legend">${depKeys(unitDeps(r),unitHolds(r).length?[unitLanded(r)?"enables":"blocks"]:[]).join("")}</div>`:""}${u.versions?`<br>versions: ${rich(u.versions)}`:""}${u.branch&&!unitLanded(r)?`<br>branch <code>${esc(u.branch)}</code>`:""}${u.board?"":`<br>${u.folder?refHtml(u.folder,"its folder"):"no plan folder yet"}`}</dd>`:""}${runOf(r)?inspectRun(r):""}${b.link?`<dt>Detail</dt><dd>${refHtml(b.link)}</dd>`:""}</dl>`); }
 /* the inspector's entry for a unit's run, from its mirror: the pill, its qa passes, the step, its steps (no mark) and its detail */
 function inspectRun(r){ const L=runOf(r);
   return `<dt>Its run now · from its board</dt><dd><div class="run">${runPill(L)}${runAt(L)}${qaShown(L).map(qaPill).join("")}</div>step <b>${esc(stepLabel(L.step,runCtx(L))||"—")}</b>${L.since?` since ${when(L.since)}`:""}${L.updated?` · updated ${when(L.updated)}`:""}${L.branch?` · branch <code>${esc(L.branch)}</code>`:""}${runBlock(r,true)}</dd>`; }
@@ -2402,7 +2414,7 @@ function renderBuilt(){
   /* a column address glows round the cards as a whole (plan/RULES.md §3), never each card */
   $("#built-list").className="bcards"+(CURRENT.includes("built")?" colbox"+colGlowCls("built"):"");
   $("#built-list").innerHTML=rows.length?rows.map(r=>{ const b=r.asBuilt||{}, st=stateOf(r);
-    return `<div class="bcard st-${st}${builtMark(r).replace(/ colcell-fullpulse( colheld)?/,"")}" data-sys="${esc(r.system||"")}" data-row="${esc(r.id)}" tabindex="0" role="button" aria-label="${nameText(r)}: ${STATES[st].label}${isNext(r)?", up next":""}"><div class="bh"><span class="nm">${r.unit&&r.unit.n!=null?`${esc(r.unit.n)} · `:""}${codeOnly(r.name)}</span>${badge(st,st==="deferred"&&b.issue?` → ${ilink(b.issue)}`:"")}${nextTags(r)}${r.where?`<span class="wh">${codeOnly(r.where)}</span>`:""}</div>${stmtsOf(b).length?buildingLead(r,st,"blead")+stmtsHtml(r,"built"):`<p>${rich(b.summary||(st==="pending"?"Not built yet.":""))}</p>`}${runLine(r)}${b.changes&&b.changes.length?`<ol class="changes">${b.changes.map(c=>`<li><b>${rich(c.what||"")}</b>${c.why?` — ${rich(c.why)}`:""}<small>${esc(c.when||"")}${c.ref?` · ${refHtml(c.ref)}`:""}</small></li>`).join("")}</ol>`:""}<div class="meta">${[b.commits&&b.commits.length?`commits ${b.commits.map(c=>refHtml(c)).join(" ")}`:"",b.files&&b.files.length?`${b.files.length} file${b.files.length>1?"s":""}`:"",b.verified?"verified":"",moreLink(b.link||(r.unit&&(unitHref(r)||r.unit.folder)),r.unit?(unitHref(r)?"board":"folder"):"record")].filter(Boolean).join(" · ")}</div></div>`; }).join(""):`<p class="lede">No row in this state.</p>`;
+    return `<div class="bcard st-${st}${builtMark(r).replace(/ colcell-fullpulse( colheld)?/,"")}" data-sys="${esc(r.system||"")}" data-row="${esc(r.id)}" tabindex="0" role="button" aria-label="${nameText(r)}: ${STATES[st].label}${isNext(r)?", up next":""}"><div class="bh"><span class="nm">${r.unit&&r.unit.n!=null?`${esc(r.unit.n)} · `:""}${codeOnly(r.name)}</span>${badge(st,st==="deferred"&&b.issue?` → ${ilink(b.issue)}`:"")}${nextTags(r)}${r.where?`<span class="wh">${codeOnly(r.where)}</span>`:""}</div>${landingChips(r)}${stmtsOf(b).length?buildingLead(r,st,"blead")+stmtsHtml(r,"built"):`<p>${rich(b.summary||(st==="pending"?"Not built yet.":""))}</p>`}${runLine(r)}${b.changes&&b.changes.length?`<ol class="changes">${b.changes.map(c=>`<li><b>${rich(c.what||"")}</b>${c.why?` — ${rich(c.why)}`:""}<small>${esc(c.when||"")}${c.ref?` · ${refHtml(c.ref)}`:""}</small></li>`).join("")}</ol>`:""}<div class="meta">${[b.commits&&b.commits.length?`commits ${b.commits.map(c=>refHtml(c)).join(" ")}`:"",b.files&&b.files.length?`${b.files.length} file${b.files.length>1?"s":""}`:"",b.verified?"verified":"",moreLink(b.link||(r.unit&&(unitHref(r)||r.unit.folder)),r.unit?(unitHref(r)?"board":"folder"):"record")].filter(Boolean).join(" · ")}</div></div>`; }).join(""):`<p class="lede">No row in this state.</p>`;
   paint($("#built-list")); bindRefs($("#built-list"));
   document.querySelectorAll("#built-list .bcard").forEach(c=>{ const go=()=>{ INSPECTED={k:"built",row:c.dataset.row}; inspectBuilt(ROWS.find(x=>x.id===c.dataset.row)); }; c.addEventListener("click",e=>{ if(e.target.closest("a")) return; go(); }); c.addEventListener("keydown",e=>{ if(e.target!==c) return; if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } }); });
   const IC=impactChanges();

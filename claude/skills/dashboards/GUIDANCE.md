@@ -15,11 +15,11 @@ and never "page", the kind ids `plan-board`, `work-board` and `org-work-board`) 
 Colour means one thing per board, and the same thing on every board of a repo.
 
 **Categorical: one colour per system.** Every live system in `docs/dashboards/systems.json` holds
-one colour slot, assigned in registry order (six slots; a system's parts inherit its parent's
+one colour slot, assigned in registry order (twelve slots; a system's parts inherit its parent's
 colour). An archived system holds no slot; a live system keeps its place's slot, archived places
 still counted, so archiving one moves no other system's colour; a freed slot goes to the next
 system with none, and with none free a system is drawn neutral (`system/scripts/palette.js`
-`colourSlots()`); a seventh live top-level system with none free is drawn neutral too: re-parent
+`colourSlots()`); a thirteenth live top-level system with none free is drawn neutral too: re-parent
 it or add a slot. A system keeps that colour on **every Tab of every board**: its Card and Rows on the system,
 supersystem and repository state boards, its Rows on every issue board and on the repository work board. A reader who
 learns the colour once can follow the system everywhere. On a system board the three sides
@@ -33,8 +33,8 @@ Panel's Legend names them (`plan/RULES.md` §10).
 or green–yellow–red spectrum fits a status, that spectrum carries the status, and every other
 colour indicator on the view avoids it. The issue boards colour an option's status green, yellow
 and red, and the Consequences Tab colours compatibility yellow and red (orange where useful), so the
-system palette leaves out green, yellow, orange, amber, red and pink: its six slots are blues, a
-teal, an indigo and purples, the same on every board and in both themes
+system palette leaves out green, yellow, orange, amber, red and pink: its twelve slots are blues,
+teals, indigos and purples, the same on every board and in both themes
 (`system/scripts/palette.js` holds them; hex per slot, light / dark):
 
 | Slot | Name | Light | Dark |
@@ -45,10 +45,16 @@ teal, an indigo and purples, the same on every board and in both themes
 | 4 | indigo | `#1d2660` | `#b4bef5` |
 | 5 | orchid | `#9656aa` | `#a86fb8` |
 | 6 | sky | `#1a9ec7` | `#31b5f4` |
+| 7 | harbour | `#203d4b` | `#9ae2f4` |
+| 8 | violet | `#7700c7` | `#c790d0` |
+| 9 | lagoon | `#008a81` | `#11978e` |
+| 10 | cobalt | `#7780f8` | `#245eff` |
+| 11 | iris | `#271ea9` | `#8365bd` |
+| 12 | fjord | `#09534e` | `#00c7ba` |
 
 Every slot is at least 3:1 against its theme's Card surface, and the slots were chosen for their
 distance from each other in normal vision and under protanopia, deuteranopia and tritanopia, and
-from the accent and the neutrals. A system colour is in a status spectrum when it is chromatic
+from the accent and the neutrals. Slots 7 to 12 hold that distance inside the same hue band by lightness as much as by hue (the closest pair is CIEDE2000 10.8 light and 9.4 dark in normal vision, 5.7 and 5.2 under the three deficiencies, the 5.2 a pair of the first six); the Legend names every system either way. A system colour is in a status spectrum when it is chromatic
 (HSL saturation 0.15 or more) and its hue is outside 175°–295°; `check.js` and `check-board.js` fail
 such a slot, and warn on a slot that is not the shared palette's.
 
@@ -945,12 +951,11 @@ on 2026-11-07), each weighed for every type:
 - **The Verdict's section Chip** (`plan/RULES.md` §2, "Statements"): a Verdict statement ends with its reference as a neutral, solid Chip,
   "§R2", with the gap's kind Chip's look, never the link blue; a click opens the section's excerpt as the "(§4.2)" reference does, and a marked
   one reads "§42?", named in the Legend. Applied to issue boards and tracking boards (a unit Row's verdict statements too): the Verdict Cell
-  and the Verdict inspector, which draws the Cell's list. Held by the `section-chip` probe. An As built statement keeps "(§4.2)": the
-  decision named the Verdict Cells. Not to the repository work board (one Row per run, no Verdict column) nor to the state boards (as-is: no
+  and the Verdict inspector, which draws the Cell's list. Held by the `section-chip` probe. As built statements carry it too since the user's decision of 2026-11-08 (below). Not to the repository work board (one Row per run, no Verdict column) nor to the state boards (as-is: no
   decisions, no plan sections to cite).
 - **The Verdict Cell's count Labels** (`plan/RULES.md` §2, "The Verdict Cell's count Labels"): its steps, tests and risks, each a count
   Label as the Gap Cell's evidence is, the figure in ink and muted at zero. Applied to issue boards and tracking boards. Held by the
-  `verdict-count-labels` probe. The As built Cell's "2 changes · 3 commits" keeps its plain line: the decision named the Verdict Cell. Not to
+  `verdict-count-labels` probe. The As built Cell's "2 changes · 3 commits" takes them since the user's decision of 2026-11-08 (below). Not to
   the repository work board, whose counts are its KPI Tiles' figures and its Rows' chain summaries, nor to the state boards, whose Tiles are
   counted facts written by hand: neither has a Cell foot of counts.
 - **A unit's landing on its As built Cell: the PR Chip and the merge Chip** (`plan/RULES.md` §3, "The units' landings"): copied from the
@@ -961,6 +966,10 @@ on 2026-11-07), each weighed for every type:
   the header's landed fact. Not to the repository work board: one Row per run, the run's pull request and merge on its own board. Not to
   the state boards: as-is, no run's landing. The fast path's plain fact of a landing ("#66 landed through PR #89 as 8122af7.") still
   writes the summary of a unit with none; the Chips stand beside it.
+
+**The As built marks** (the user's decision of 2026-11-08, ledger 2026-11-09T02:11:59Z: extend the Verdict marks to As built), weighed for every type:
+
+- **The section Chip on As built statements**: the Cell, the As built Tab's Card and the inspector, in place of the parenthesised "(§4.2)" in the link blue. **The changes and commits count Labels** on the As built Cell's foot. **The PR and merge Chips** on the As built Tab's Card and the inspector, as well as the Cell. Held by the `as-built-marks` probe. Applied to issue boards and tracking boards, the only types with As built statements and a changes line; the PR and merge Chips to tracking boards alone, as issue-board Rows carry no landing of their own. Not to the repository work board or the org work board, whose Rows have no As built Cell, nor to the state boards, as-is and without statements.
 - **`UNQUOTED PATH`** (`plan/RULES.md` §7): `check.js` warns on a path-shaped token outside a `` `code` `` span in a Row's evidence,
   statements or summaries; it never fails, so a landed board's data stands, and the board guesses no path in prose. Applied to issue
   boards and tracking boards, whose data holds those texts. Not to the repository work board: its text is issue titles, quoted verbatim
@@ -986,9 +995,7 @@ for every type:
   carries its FullPulse on its own Row; `board.js` writes `chain.units`) and to system, supersystem and repository state boards (a
   tracking issue's chain on the roadmap, one chevron per unit with its name under the roadmap item, in place of the thin Bar; unmarked, as
   a state board draws no work in progress; the names written into the chain's markup, `system/RULES.md` §6). Held by the `stepbar`
-  probe and `verify/cases-stepbar.js`, with the StepBar's marks in the `verify/fixtures/mark-classes/` fixture. Not applied, by the
-  decision's own list: the step Panel's research StepBar (`plan/RULES.md` §3: its dots kept), and a tracking board's header Chip of the
-  chain's progress with its phase Card's thin Bar and chain of unit Labels (the chain there is already drawn unit by unit, with its marks).
+  probe and `verify/cases-stepbar.js`, with the StepBar's marks in the `verify/fixtures/mark-classes/` fixture. Since the user's decisions of 2026-11-08 (`plan/RULES.md` §3, "The chain is a StepBar") the step Panel's research indicator and a tracking board's own chain are StepBars too: on the phase's Card (the unit's name inside, its system swatch and its marks) and in the header's chain Chip under its sentence, in place of the thin Bar (unmarked, each chevron the unit's issue number). The phase Card keeps its thin Bar and count line. Held by the `stepbar-chains` probe. Only issue and tracking boards hold a step Panel or a tracking board's chain: not to the repository work board, the org work board or the state boards, whose chains were StepBars already.
   A landed board keeps its rendering (§11, "Re-rendering"); a board in flight takes it at its next event, the live repository work board
   at its next regeneration, the committed one and the state boards at the Document step's state-boards task (the splice; a state board's
   chain markup gains its units' names when the state-boards job next writes its roadmap, its units numbered until then).

@@ -2,7 +2,7 @@
   "$comment": "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last verification, when every check that needs no browser passed (its modes: \"--auto --no-browser\"; a run with --browser, made only when a person asks for it, lists the browser passes instead). check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.",
   "templates": {
     "plan/template/dashboard.html": {
-      "sha256": "8c651841d644bf3020d087de0c47c3362de3afde207dcd750520a1f2b7dbc885",
+      "sha256": "71c6441fd7a8248803185cc2d6e104433415a0febd15708ae754ce918af6c861",
       "verified": "2026-11-09",
       "fixtures": [
         "plan",
@@ -351,11 +351,16 @@
           "sha256": "8c651841d644bf3020d087de0c47c3362de3afde207dcd750520a1f2b7dbc885",
           "verified": "2026-11-08",
           "file": "dashboard/8c651841d644.html"
+        },
+        {
+          "sha256": "71c6441fd7a8248803185cc2d6e104433415a0febd15708ae754ce918af6c861",
+          "verified": "2026-11-09",
+          "file": "dashboard/71c6441fd7a8.html"
         }
       ]
     },
     "plan/template/board.html": {
-      "sha256": "461e24e34d55e403a146947e8a87c323e35edc3f27294a35ee4f962b87c58bfe",
+      "sha256": "5450b9c4d89ec6b634ef223e44bbb4b9611c4d6e517cd4fffa4f642f3117a82d",
       "verified": "2026-11-09",
       "fixtures": [
         "work-board",
@@ -583,6 +588,16 @@
           "sha256": "461e24e34d55e403a146947e8a87c323e35edc3f27294a35ee4f962b87c58bfe",
           "verified": "2026-11-09",
           "file": "board/461e24e34d55.html"
+        },
+        {
+          "sha256": "92c2b3176c8dba967bb25000081ffa85f252eb7de3bf93671cae226e5736f2bd",
+          "verified": "2026-11-09",
+          "file": "board/92c2b3176c8d.html"
+        },
+        {
+          "sha256": "5450b9c4d89ec6b634ef223e44bbb4b9611c4d6e517cd4fffa4f642f3117a82d",
+          "verified": "2026-11-09",
+          "file": "board/5450b9c4d89e.html"
         }
       ]
     },
@@ -752,7 +767,7 @@
       ]
     },
     "system/template/supersystem.html": {
-      "sha256": "706c4765e28291e96e1a8004a265b53f0518d6db5f1d686e5260d37bf3dbee01",
+      "sha256": "5b36bef42d1107404a801fe8d11bc8ad425cf5ffa1c30de1752bc530bcd2a3c5",
       "verified": "2026-11-09",
       "fixtures": [
         "placeholder"
@@ -944,11 +959,16 @@
           "sha256": "706c4765e28291e96e1a8004a265b53f0518d6db5f1d686e5260d37bf3dbee01",
           "verified": "2026-11-09",
           "file": "supersystem/706c4765e282.html"
+        },
+        {
+          "sha256": "5b36bef42d1107404a801fe8d11bc8ad425cf5ffa1c30de1752bc530bcd2a3c5",
+          "verified": "2026-11-09",
+          "file": "supersystem/5b36bef42d11.html"
         }
       ]
     },
     "plan/template/org-board.html": {
-      "sha256": "0315e3da51c1406a093eb43f4592600bc3125e18eddacc9ba38af99e66187d43",
+      "sha256": "c63b0eec6af65bdb6d7c8a132e0149997e36f8edfc34d5dfdcbb70c1ad019e86",
       "verified": "2026-11-09",
       "fixtures": [
         "org-work-board",
@@ -982,6 +1002,16 @@
           "sha256": "0315e3da51c1406a093eb43f4592600bc3125e18eddacc9ba38af99e66187d43",
           "verified": "2026-11-09",
           "file": "org-board/0315e3da51c1.html"
+        },
+        {
+          "sha256": "a53b82aefe987c5cc51d43a442badb120ff9e4b388bbe2fb146b02ff93788d3b",
+          "verified": "2026-11-09",
+          "file": "org-board/a53b82aefe98.html"
+        },
+        {
+          "sha256": "c63b0eec6af65bdb6d7c8a132e0149997e36f8edfc34d5dfdcbb70c1ad019e86",
+          "verified": "2026-11-09",
+          "file": "org-board/c63b0eec6af6.html"
         }
       ]
     }

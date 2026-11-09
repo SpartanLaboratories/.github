@@ -80,7 +80,7 @@ module.exports = function casesDesignTabDefects(X) {
     });
     /* the Verdict cell's counts are count labels since dashboards-skill/53 (verify/cases-design-tab-proposals.js), their nouns agreeing as plural()'s do */
     const CL = helpers(PB, ["esc", "countLabel"]);
-    c.push(["the Verdict cell's counts through countLabel(), the As built cell's through plural()", /\$\{countLabel\(\(v\.steps\|\|\[\]\)\.length,"step"\)\} · \$\{countLabel\(\(v\.tests\|\|\[\]\)\.length,"test"\)\} · \$\{countLabel\(\(v\.risks\|\|\[\]\)\.length,"risk"\)\}/.test(PB) && /\$\{plural\(\(b\.changes\|\|\[\]\)\.length,"change"\)\} · \$\{plural\(\(b\.commits\|\|\[\]\)\.length,"commit"\)\}/.test(PB) && /<b>1<\/b> step<\/span>$/.test(CL.countLabel(1, "step")) && /<b>2<\/b> steps<\/span>$/.test(CL.countLabel(2, "step")), "dashboard.html"]);
+    c.push(["the Verdict cell's counts through countLabel(), the As built cell's through countLabel() too", /\$\{countLabel\(\(v\.steps\|\|\[\]\)\.length,"step"\)\} · \$\{countLabel\(\(v\.tests\|\|\[\]\)\.length,"test"\)\} · \$\{countLabel\(\(v\.risks\|\|\[\]\)\.length,"risk"\)\}/.test(PB) && /\$\{countLabel\(\(b\.changes\|\|\[\]\)\.length,"change"\)\} · \$\{countLabel\(\(b\.commits\|\|\[\]\)\.length,"commit"\)\}/.test(PB) && /<b>1<\/b> step<\/span>$/.test(CL.countLabel(1, "step")) && /<b>2<\/b> steps<\/span>$/.test(CL.countLabel(2, "step")), "dashboard.html"]);
     c.push(["apply-event.js: a remediation's sub-steps counted as \"1 of 1 sub-step done\"", /`\$\{dn\.length\} of \$\{plural\(ss\.length, "sub-step"\)\} done`/.test(rd(sk("plan/scripts/apply-event.js"))), "apply-event.js"]);
   });
 

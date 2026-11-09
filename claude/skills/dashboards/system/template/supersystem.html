@@ -10,7 +10,7 @@
 /* Supersystem / repository state board template (dashboards skill, system set: system/RULES.md): the Systems tab first, then the six core tabs adapted to the
    level (how the systems compose, run, decide, interact and live), the guarantee cards with one row per system, then Context.
    Draft A2: the C4 model tab is rendered at runtime from the Structurizr DSL embedded below (a verbatim copy of workspace.dsl).
-   Colour plan: --sys-1..6 are the systems' slots (registry order, see sysColour), --ph-1..3 the ordinal phase ramp
+   Colour plan: --sys-1..12 are the systems' slots (registry order, see sysColour), --ph-1..3 the ordinal phase ramp
    (Lifecycles), --good / --warning / --serious / --critical are status (outcomes only, always beside a label). Dashed = planned, and nothing else: lifelines, returns and frames are solid. */
 :root{
   --bg:#f3f5f8; --surface:#fcfcfd; --surface-2:#eef1f6; --ink:#0e1420; --ink-2:#4a5468; --muted:#7d879a;
@@ -447,12 +447,12 @@ footer code{color:var(--ink-2)}
 </style>
 <style>
 /* System colours: one categorical slot per top-level system, in registry order (sysColour below); a child system takes its
-   top-level ancestor's slot, and the seventh top-level system on folds into the neutral --muted. Everything drawn for a system
+   top-level ancestor's slot, and the thirteenth top-level system on folds into the neutral --muted. Everything drawn for a system
    sets --c from its slot, so a system keeps one colour on every tab. Palette slots 7 and 8 stay unused here: violet is the
    phase ramp, red sits next to critical. */
-:root{--sys-1:#2a78d6;--sys-2:#653184;--sys-3:#0d7680;--sys-4:#1d2660;--sys-5:#9656aa;--sys-6:#1a9ec7}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--sys-1:#3987e5;--sys-2:#8a44d8;--sys-3:#1f8089;--sys-4:#b4bef5;--sys-5:#a86fb8;--sys-6:#31b5f4}}
-:root[data-theme="dark"]{--sys-1:#3987e5;--sys-2:#8a44d8;--sys-3:#1f8089;--sys-4:#b4bef5;--sys-5:#a86fb8;--sys-6:#31b5f4}
+:root{--sys-1:#2a78d6;--sys-2:#653184;--sys-3:#0d7680;--sys-4:#1d2660;--sys-5:#9656aa;--sys-6:#1a9ec7;--sys-7:#203d4b;--sys-8:#7700c7;--sys-9:#008a81;--sys-10:#7780f8;--sys-11:#271ea9;--sys-12:#09534e}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--sys-1:#3987e5;--sys-2:#8a44d8;--sys-3:#1f8089;--sys-4:#b4bef5;--sys-5:#a86fb8;--sys-6:#31b5f4;--sys-7:#9ae2f4;--sys-8:#c790d0;--sys-9:#11978e;--sys-10:#245eff;--sys-11:#8365bd;--sys-12:#00c7ba}}
+:root[data-theme="dark"]{--sys-1:#3987e5;--sys-2:#8a44d8;--sys-3:#1f8089;--sys-4:#b4bef5;--sys-5:#a86fb8;--sys-6:#31b5f4;--sys-7:#9ae2f4;--sys-8:#c790d0;--sys-9:#11978e;--sys-10:#245eff;--sys-11:#8365bd;--sys-12:#00c7ba}
 .syscards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
 .syscard{display:block;text-decoration:none;color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0;border-top:3px solid var(--c,var(--muted))}
 .syscard:hover{border-color:var(--ink-2)}
@@ -892,10 +892,10 @@ $("#sys-count").textContent=`${SYSTEMS.filter(s=>s.status==="built").length} bui
 /* ---------- System colours ----------
    One categorical slot per top-level system (one whose parent is not itself on this board), by its place in registry order; a child takes its
    top-level ancestor's slot. An archived system holds no slot and is drawn neutral, solid and faded; what its place frees goes to the next
-   system with none (a seventh top-level system on), so archiving one moves no other system's colour (system/scripts/palette.js colourSlots(),
+   system with none (a thirteenth top-level system on), so archiving one moves no other system's colour (system/scripts/palette.js colourSlots(),
    the same rule). Six slots: a system with none left, and any slug the registry does not know, fold into the neutral "other". Every element drawn for a system sets --c from here — paintSystems() does it for hand-written [data-sys]
    elements — so a system keeps one colour on every tab. */
-const SLOTS=6, bySlug=slug=>SYSTEMS.find(s=>s.slug===slug);
+const SLOTS=12, bySlug=slug=>SYSTEMS.find(s=>s.slug===slug);
 function sysTop(slug){ const s=bySlug(slug); if(!s||s.status==="archived") return null; let h=s,c=s; while(bySlug(c.parent)){ c=bySlug(c.parent); if(c.status!=="archived") h=c; } return h; }
 const TOPS=SYSTEMS.filter(s=>!bySlug(s.parent));
 const SLOT_OF=(()=>{ const m=new Map(), hs=[...new Set(SYSTEMS.map(s=>sysTop(s.slug)).filter(Boolean))]; hs.forEach(h=>{ const i=TOPS.indexOf(h); if(i>=0&&i<SLOTS) m.set(h.slug,i+1); });

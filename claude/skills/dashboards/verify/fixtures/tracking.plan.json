@@ -287,6 +287,7 @@
         "n": 1,
         "slug": "build-logic",
         "issue": 61,
+        "landing": { "pr": 89, "merge": "8122af7aa" },
         "blockedBy": [],
         "versions": "none: published POMs and metadata identical",
         "branch": "feat/issue-61-build-logic",

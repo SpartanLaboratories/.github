@@ -16,7 +16,7 @@
    what the change means downstream (plan.json "impact": effects, adaptation, API changes, conversion steps).
    The board renders at load from plan.json, embedded verbatim below (plan/scripts/embed.js). Never hand-edit a board.
    Tokens, header, chips, KPIs, tabs, stage, inspector, legends (.legend on every tab and on the strip), Context and footer are
-   the system templates'. Colour plan (GUIDANCE.md §1): --sys-1..6 are the systems' registry slots, identical to the system
+   the system templates'. Colour plan (GUIDANCE.md §1): --sys-1..12 are the systems' registry slots, identical to the system
    boards'; --good / --warning / --serious / --critical are status, always beside a glyph and a word; --accent marks the work
    in progress (a FullPulse: an accent Ring and an interior that breathe) and, on a tracking board, the next unit up (a still outer
    Ring and an UP NEXT tag), and nothing else. --wk-<family>-a / -b are the kinds of work of a landed board's Timeline tile (planning, build,
@@ -28,14 +28,14 @@
   --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
   --accent:#6d47e0;
   --on:#0e1420; --focus:#2a78d6; --link:#2a78d6;
-  --sys-1:#2a78d6;--sys-2:#653184;--sys-3:#0d7680;--sys-4:#1d2660;--sys-5:#9656aa;--sys-6:#1a9ec7;
+  --sys-1:#2a78d6;--sys-2:#653184;--sys-3:#0d7680;--sys-4:#1d2660;--sys-5:#9656aa;--sys-6:#1a9ec7;--sys-7:#203d4b;--sys-8:#7700c7;--sys-9:#008a81;--sys-10:#7780f8;--sys-11:#271ea9;--sys-12:#09534e;
   --wk-planning-a:#5596de;--wk-planning-b:#1d5cab;--wk-build-a:#1f9294;--wk-build-b:#0c5c61;--wk-checking-a:#b67ad0;--wk-checking-b:#84409f;--wk-landing-a:#2e3d99;--wk-landing-b:#1d2870;
   --wk-other-a:color-mix(in srgb,var(--ink) 40%,var(--surface));--wk-other-b:var(--ink);
   --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:ui-monospace,"Cascadia Mono",Consolas,"SF Mono",monospace;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--accent:#a58bff;--on:#eef1f6;--focus:#3987e5;--link:#6aa6f0;--sys-1:#3987e5;--sys-2:#8a44d8;--sys-3:#1f8089;--sys-4:#b4bef5;--sys-5:#a86fb8;--sys-6:#31b5f4;--wk-planning-a:#3a7fd0;--wk-planning-b:#80b6f0;--wk-build-a:#1a8a8c;--wk-build-b:#4cc4c2;--wk-checking-a:#a35cbd;--wk-checking-b:#d095e6;--wk-landing-a:#b8c4fa;--wk-landing-b:#d4dcfd;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--accent:#a58bff;--on:#eef1f6;--focus:#3987e5;--link:#6aa6f0;--sys-1:#3987e5;--sys-2:#8a44d8;--sys-3:#1f8089;--sys-4:#b4bef5;--sys-5:#a86fb8;--sys-6:#31b5f4;--wk-planning-a:#3a7fd0;--wk-planning-b:#80b6f0;--wk-build-a:#1a8a8c;--wk-build-b:#4cc4c2;--wk-checking-a:#a35cbd;--wk-checking-b:#d095e6;--wk-landing-a:#b8c4fa;--wk-landing-b:#d4dcfd;color-scheme:dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--accent:#a58bff;--on:#eef1f6;--focus:#3987e5;--link:#6aa6f0;--sys-1:#3987e5;--sys-2:#8a44d8;--sys-3:#1f8089;--sys-4:#b4bef5;--sys-5:#a86fb8;--sys-6:#31b5f4;--sys-7:#9ae2f4;--sys-8:#c790d0;--sys-9:#11978e;--sys-10:#245eff;--sys-11:#8365bd;--sys-12:#00c7ba;--wk-planning-a:#3a7fd0;--wk-planning-b:#80b6f0;--wk-build-a:#1a8a8c;--wk-build-b:#4cc4c2;--wk-checking-a:#a35cbd;--wk-checking-b:#d095e6;--wk-landing-a:#b8c4fa;--wk-landing-b:#d4dcfd;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10141b;--surface:#171c25;--surface-2:#1f2530;--ink:#eef1f6;--ink-2:#b8c0ce;--muted:#8a93a5;--line:#2a313d;--hair:rgba(255,255,255,.10);--accent:#a58bff;--on:#eef1f6;--focus:#3987e5;--link:#6aa6f0;--sys-1:#3987e5;--sys-2:#8a44d8;--sys-3:#1f8089;--sys-4:#b4bef5;--sys-5:#a86fb8;--sys-6:#31b5f4;--sys-7:#9ae2f4;--sys-8:#c790d0;--sys-9:#11978e;--sys-10:#245eff;--sys-11:#8365bd;--sys-12:#00c7ba;--wk-planning-a:#3a7fd0;--wk-planning-b:#80b6f0;--wk-build-a:#1a8a8c;--wk-build-b:#4cc4c2;--wk-checking-a:#a35cbd;--wk-checking-b:#d095e6;--wk-landing-a:#b8c4fa;--wk-landing-b:#d4dcfd;color-scheme:dark}
 
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans);padding-block:0 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -105,11 +105,11 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .chip.status.built{border-left-color:var(--good)}
 .chip.status.abandoned{border-left-color:var(--critical)}
 .chip[data-sys]{border-left:4px solid var(--c)}
-/* a tracking board's status chip is its chain's progress (plan/RULES.md §3, "The chain's progress"), with a thin bar of units landed */
+/* a tracking board's status chip is its chain's progress (plan/RULES.md §3, "The chain's progress"), with a StepBar of its units */
 .chip.progress{line-height:1.45;padding:5px 8px}
 .chip.progress.done{border-left-color:var(--good)}
-.chip .cbar{display:block;height:4px;margin-top:4px;border-radius:2px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden}
-.chip .cbar i{display:block;height:100%;background:var(--good)}
+.chip .stepbar{margin:6px 0 1px}
+.chip .stepbar>li{min-height:20px;padding:2px 14px 2px 18px;font-size:10.5px}
 /* The header's two halves (GUIDANCE.md §6, "The header"): from 940 px the intro (the title, the issue line, the function) fills the
    left half and the tags stand in the right half beside it, each a small card with its label over its value, growing to fill its line, a
    long one across the half (.wide); under 940 px the two stack and the tags wrap as chips, the label before the value. The topbar (the breadcrumb, the
@@ -176,12 +176,6 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .legend i.sbk::after{z-index:-1;inset:var(--sb-w);background:var(--sb-fill);clip-path:polygon(1px 0,calc(100% - 5px) 0,100% 50%,calc(100% - 5px) 100%,1px 100%,6.5px 50%)}
 .legend i.sbk.cur{--sb-edge:var(--ink);--sb-fill:color-mix(in srgb,var(--ink) 7%,var(--surface));--sb-w:2px}
 .legend i.sbk.todo{--sb-edge:repeating-linear-gradient(90deg,var(--muted) 0 3px,transparent 3px 5px);--sb-fill:var(--surface)}
-.chain{list-style:none;margin:4px 0 2px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
-.chain li a,.chain li span.u{display:inline-flex;align-items:center;gap:5px;font:11.5px var(--mono);padding:3px 7px;border:1px solid var(--line);border-left:4px solid var(--c,var(--muted));border-radius:4px;background:var(--surface);text-decoration:none;color:var(--ink-2)}
-.chain li.pending a,.chain li.pending span.u{border-style:dashed;border-left-style:solid}
-.chain li.done a{color:var(--ink)}
-.chain li.fullpulse,.chain li.held,.chain li.upnext-ring{border-radius:4px}
-.chain li.fullpulse a,.chain li.fullpulse span.u{background:transparent}
 .wip-facts{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;font-size:12.5px;color:var(--ink-2)}
 /* Info cards (plan/RULES.md §3): each fact of the strip, a card or the step panel is a small card of its own, its label before its
    value. */
@@ -257,6 +251,7 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .sp p.sp-wait{color:var(--ink);font-weight:600}
 .sp a{text-decoration:none;border-bottom:1px solid var(--line)}
 .sp .steps{margin:6px 0 4px}
+.sp .stepbar{margin:6px 0 4px}
 .sp-list{list-style:none;margin:6px 0 2px;padding:0;display:grid;gap:4px}
 .sp-list>li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 8px;align-items:baseline;padding:4px 0;border-top:1px solid var(--hair);min-width:0}
 .sp-list>li:first-child{border-top:0}
@@ -330,6 +325,15 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .stepbar>li>.stepbtn:focus-visible{outline:2px solid var(--focus);outline-offset:1px;border-radius:2px}
 .stepbar>li.sel{--sb-edge:var(--ink);--sb-w:2.5px;font-weight:700}
 .stepbar>li.sel>.stepbtn{color:var(--ink);text-decoration-color:var(--ink)}
+/* A tracking issue's chain (plan/RULES.md §3, "The chain is a StepBar"): a chevron's link to its unit's board or issue, its unit's system swatch,
+   and the unit up next, its to-come dashes in the accent with its UP NEXT tag: the still mark, which never breathes. */
+.stepbar>li>a{color:inherit;border-bottom:0;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px;overflow-wrap:anywhere}
+.stepbar>li>a:hover{text-decoration-color:var(--ink)}
+.stepbar>li>a:focus-visible{outline:2px solid var(--focus);outline-offset:1px;border-radius:2px}
+.stepbar>li>.sb-sys{flex:none;width:8px;height:8px;border-radius:2px;margin-right:5px;background:var(--c,var(--muted))}
+.stepbar>li>.sb-g{flex:none;margin-left:5px}
+.stepbar>li>.tag-next{flex:none;margin-left:6px}
+.stepbar>li.upnext-ring{box-shadow:none;--sb-edge:repeating-linear-gradient(90deg,color-mix(in srgb,var(--accent) 70%,transparent) 0 5px,transparent 5px 9px);--sb-w:2px}
 .legend i.sbk.acc{--sb-edge:var(--accent);--sb-w:2px;--sb-fill:color-mix(in srgb,var(--accent) 22%,var(--surface))}
 .legend i.sbk.ring{--sb-edge:var(--accent);--sb-w:2px;--sb-fill:var(--surface)}
 .legend i.sbk.sel{--sb-edge:var(--ink);--sb-w:2.5px}
@@ -395,8 +399,7 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .tl-approx{color:var(--muted);font-weight:600}
 .tl-step>.tl-dur{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
 .kpi-tile .legend.tl-steps>span.tl-note{display:block;color:var(--muted);margin-top:5px;break-inside:avoid}
-/* a statement's reference whose section number is read from its link's anchor alone (its file not there to read): "(§42?)" */
-.legend b.srefk{font:600 10.5px var(--mono);color:var(--link)}
+/* a statement's reference whose section number is read from its link's anchor alone (its file not there to read): "§42?" */
 /* …and a Verdict statement's, drawn as its section chip: "§42?" (dashboards-skill/53) */
 .legend b.section-chip{font:600 10px/1.35 var(--mono);color:var(--ink-2);border:1px solid var(--line);border-radius:3px;padding:0 5px;letter-spacing:.04em}
 .legend i.segk.dash{background:none;border:1.5px dashed var(--sc,var(--muted));height:7px}
@@ -593,9 +596,10 @@ a.more:hover{text-decoration:underline}
 .cell .meta .count-label.zero b{color:var(--muted);font-weight:400}
 /* A unit's landing on a tracking board's As built cell (plan/RULES.md §3, "The units' landings"; dashboards-skill/53): the PR chip and the
    merge chip above the summary, copied from the unit's own board (unit.landing), neutral chips with the kind chip's look. */
-.cell .landing-chips{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 5px}
-.cell .landing-chips :is(.pr-chip,.merge-chip){font:600 10px var(--mono);color:var(--ink-2);border:1px solid var(--line);border-radius:3px;padding:1px 5px;letter-spacing:.04em;text-decoration:none;min-width:0;max-width:100%;overflow-wrap:anywhere}
-.cell .landing-chips a:is(.pr-chip,.merge-chip):hover{border-color:var(--ink-2);color:var(--ink)}
+.landing-chips{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 5px}
+.inspector .landing-chips,.bcard .landing-chips{margin:0 0 6px}
+.landing-chips :is(.pr-chip,.merge-chip){font:600 10px var(--mono);color:var(--ink-2);border:1px solid var(--line);border-radius:3px;padding:1px 5px;letter-spacing:.04em;text-decoration:none;min-width:0;max-width:100%;overflow-wrap:anywhere}
+.landing-chips a:is(.pr-chip,.merge-chip):hover{border-color:var(--ink-2);color:var(--ink)}
 .cell::before{content:"";position:absolute;left:calc(-1 * var(--cg) - 1px);top:50%;width:var(--cg);border-top:2px solid var(--ink-2)}
 .cell::after{content:"";position:absolute;left:-6px;top:calc(50% - 5px);width:10px;height:10px;border-radius:50%;background:var(--ink-2)}
 .cell.gap::before{display:none}
@@ -622,7 +626,7 @@ a.more:hover{text-decoration:underline}
 .cell.verdict.charging.still::before{animation:none}
 .legend i.chg{width:30px;height:18px;border:0;border-radius:0;clip-path:polygon(0 26%,64% 26%,64% 0,100% 50%,64% 100%,64% 74%,0 74%);background:repeating-linear-gradient(90deg,var(--accent) 0 3px,transparent 3px 5px)}
 @media (prefers-reduced-motion:reduce){.cell.verdict.charging::before{animation:none!important}}
-/* Statements (plan/RULES.md §2, "Statements"): a Verdict cell lists its statements, bullets or numbered, each ending with its "(§…)"
+/* Statements (plan/RULES.md §2, "Statements"): a Verdict cell lists its statements, bullets or numbered, each ending with its section chip
    reference to the plan section it rests on (a link; a plain click shows that section's excerpt in the inspector); the As built cell
    answers each with one statement marked with its adaptation, the as-built titles' glyph and word. */
 .stmts{margin:0;padding-left:17px;display:grid;gap:3px}
@@ -633,10 +637,8 @@ a.more:hover{text-decoration:underline}
 .stmts.marked>li>.verdict-pill{font-size:9.5px;padding:1px 5px}
 .stmts.marked.num>li{grid-template-columns:auto auto minmax(0,1fr)}
 .stmts .n{font:600 10.5px var(--mono);color:var(--muted)}
-a.sref{font:600 10.5px var(--mono);color:var(--link);text-decoration:none;white-space:normal;overflow-wrap:anywhere;border-bottom:0!important}
-a.sref:hover{text-decoration:underline}
 /* The Verdict's section chip (plan/RULES.md §2, "Statements"; dashboards-skill/53): a Verdict statement's reference as a neutral chip,
-   "§R2", with the gap's kind chip's look, never the link blue; it opens the section's excerpt as the "(§4.2)" reference does. */
+   "§R2", with the gap's kind chip's look, never the link blue; it opens the section's excerpt. */
 a.section-chip{display:inline-block;font:600 10px/1.35 var(--mono);color:var(--ink-2);border:1px solid var(--line);border-radius:3px;padding:0 5px;letter-spacing:.04em;text-decoration:none;max-width:100%;overflow-wrap:anywhere;vertical-align:baseline;border-bottom:1px solid var(--line)!important}
 a.section-chip:hover,a.section-chip:focus-visible{border-color:var(--ink-2)!important;color:var(--ink)}
 .inspector .stmts{margin:0 0 8px;font-size:13px;color:var(--ink)}
@@ -890,8 +892,8 @@ phone width (390 px), and with reduced motion asked for (the browser's rendering
 <p class="why">A FullPulse: a solid accent Ring inside the edge, a faint accent wash, the interior breathing (about 2 s). While the run waits on the user it stops to the Ring alone (<code>.held</code>).</p>
 <div class="row"><div class="cell gap">a Cell, no mark</div><div class="cell gap fullpulse"><code>.fullpulse</code></div><div class="cell gap held"><code>.held</code>: the Ring alone</div></div>
 <h2><code>.fullpulse</code>: the step panel's current step and a unit Row's label</h2>
-<ol class="steps" aria-label="The research StepBar"><li class="done"><span class="dot" aria-hidden="true"></span>planning</li><li class="cur fullpulse" aria-current="step"><span class="dot" aria-hidden="true"></span>research</li><li class="todo"><span class="dot" aria-hidden="true"></span>verification</li></ol>
-<ol class="steps" aria-label="The research StepBar, held"><li class="done"><span class="dot" aria-hidden="true"></span>planning</li><li class="cur held" aria-current="step"><span class="dot" aria-hidden="true"></span>research (held)</li><li class="todo"><span class="dot" aria-hidden="true"></span>verification</li></ol>
+<ol class="stepbar" aria-label="The research StepBar"><li class="done">planning<span class="sb-st">, done</span></li><li class="cur fullpulse" aria-current="step">research<span class="sb-st">, current</span></li><li class="todo">verification<span class="sb-st">, to come</span></li></ol>
+<ol class="stepbar" aria-label="The research StepBar, held"><li class="done">planning<span class="sb-st">, done</span></li><li class="cur held" aria-current="step">research (held)<span class="sb-st">, current</span></li><li class="todo">verification<span class="sb-st">, to come</span></li></ol>
 <h2><code>.fullpulse</code> and <code>.held</code> on a StepBar: the progress strip's current step</h2>
 <p class="why">The progress strip is a StepBar (dashboards-skill/54): a chevron per step with its name inside, done solid, to come dashed. The current step's chevron carries the FullPulse, its edge the accent Ring and its fill breathing; while the run waits on the user, the Ring alone (<code>.held</code>). Last, a tracking issue's chain as the state boards and the repository work board draw it: unmarked.</p>
 <ol class="stepbar" aria-label="Pipeline steps"><li class="done">sizing<span class="sb-st">, done</span></li><li class="done">research<span class="sb-st">, done</span></li><li class="cur fullpulse" aria-current="step">plan<span class="sb-st">, current</span></li><li class="todo">implementation<span class="sb-st">, to come</span></li><li class="todo">Quality Review<span class="sb-st">, to come</span></li><li class="todo">landing<span class="sb-st">, to come</span></li></ol>
@@ -918,7 +920,8 @@ phone width (390 px), and with reduced motion asked for (the browser's rendering
 <h2><code>.upnext-ring</code>: the unit up next</h2>
 <p class="why">A still outer Ring with the static UP NEXT Tag: never animated, never read as in progress.</p>
 <div class="row"><div class="cell built upnext-ring">an As built Cell: <code>.upnext-ring</code> <span class="tag-next">UP NEXT</span></div></div>
-<ol class="chain"><li class="done" style="--c:var(--sys-1)"><span class="u">1 · core</span></li><li class="fullpulse" style="--c:var(--sys-2)"><span class="u">2 · transport</span></li><li class="held" style="--c:var(--sys-3)"><span class="u">3 · held</span></li><li class="upnext-ring pending" style="--c:var(--sys-4)"><span class="u">4 · client</span></li></ol>
+<ol class="stepbar" aria-label="A tracking board's chain on its phase's Card"><li class="done"><i class="sb-sys" style="--c:var(--sys-1)" aria-hidden="true"></i><a href="#">core</a><span class="sb-st">, landed</span></li><li class="cur fullpulse" aria-current="step"><i class="sb-sys" style="--c:var(--sys-2)" aria-hidden="true"></i><a href="#">transport</a><span class="sb-st">, in progress</span></li><li class="cur held" aria-current="step"><i class="sb-sys" style="--c:var(--sys-3)" aria-hidden="true"></i><a href="#">held</a><span class="sb-st">, in progress</span></li><li class="cur" aria-current="step"><i class="sb-sys" style="--c:var(--sys-10)" aria-hidden="true"></i><a href="#">complete, not merged</a><span class="sb-g" aria-hidden="true">✔</span><span class="sb-st">, complete, not merged</span></li><li class="todo upnext-ring"><i class="sb-sys" style="--c:var(--sys-4)" aria-hidden="true"></i><a href="#">client</a><span class="tag-next">UP NEXT</span><span class="sb-st">, to come</span></li><li class="todo"><i class="sb-sys" style="--c:var(--sys-12)" aria-hidden="true"></i><a href="#">feeds</a><span class="sb-st">, to come</span></li></ol>
+<div class="chip status progress wide" style="margin-top:8px"><span class="ck">tracking issue · chain</span> <b>1 of 8 landed</b> · <a href="#">#22</a> in progress (Plan) · <a href="#">#23</a> up next, blocked by <a href="#">#22</a><ol class="stepbar" aria-label="The header's chain Chip: unmarked"><li class="done"><a href="#">#21</a><span class="sb-st">, landed</span></li><li class="cur" aria-current="step"><a href="#">#22</a><span class="sb-st">, in progress</span></li><li class="todo"><a href="#">#23</a><span class="sb-st">, to come</span></li><li class="todo"><a href="#">#24</a><span class="sb-st">, to come</span></li><li class="todo"><a href="#">#25</a><span class="sb-st">, to come</span></li></ol></div>
 <div class="scroll"><svg class="chainsvg" width="770" height="66" viewBox="0 0 770 66" role="img" aria-label="Units: in progress, held, up next, no mark"><g class="unit accent fullpulse" transform="translate(10,10)" style="--c:var(--sys-2)"><rect class="box" width="168" height="46" rx="5"/><rect class="bar" width="5" height="46" rx="2"/><text class="t" x="12" y="19">2 · transport</text><text class="s" x="12" y="37">fullpulse</text></g><g class="unit accent held" transform="translate(200,10)" style="--c:var(--sys-3)"><rect class="box" width="168" height="46" rx="5"/><rect class="bar" width="5" height="46" rx="2"/><text class="t" x="12" y="19">3 · held</text><text class="s" x="12" y="37">held</text></g><g class="unit ink pending upnext-ring" transform="translate(390,10)" style="--c:var(--sys-4)"><rect class="box" width="168" height="46" rx="5"/><rect class="bar" width="5" height="46" rx="2"/><text class="t" x="12" y="19">4 · client</text><text class="s" x="12" y="37">upnext-ring</text></g><g class="unit ink pending" transform="translate(580,10)" style="--c:var(--sys-5)"><rect class="box" width="168" height="46" rx="5"/><rect class="bar" width="5" height="46" rx="2"/><text class="t" x="12" y="19">5 · no mark</text><text class="s" x="12" y="37">pending</text></g></svg></div>
 <h2><code>.fillpulse</code>: the live indicator's dot</h2>
 <p class="why">Ink, never the accent: a FillPulse while the view is live and changing; still once it goes quiet, while the run waits on the user, or when it is not live.</p>

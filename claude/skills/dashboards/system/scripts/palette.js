@@ -1,8 +1,8 @@
 // The shared system palette and the status-hue rule (GUIDANCE.md §1). Not a command: check.js, check-board.js and
 // verify/verify-templates.js use it.
 //
-// System colours are the same on every tab and on every board (system, supersystem, repository, issue boards, work board): six
-// registry slots, --sys-1 … --sys-6 in registry order (colourSlots(): an archived system holds none), and on a system board its three sides --server / --client / --wire, which
+// System colours are the same on every tab and on every board (system, supersystem, repository, issue boards, work board): twelve
+// registry slots, --sys-1 … --sys-12 in registry order (colourSlots(): an archived system holds none), and on a system board its three sides --server / --client / --wire, which
 // are slots 1 to 3. The status spectra are reserved: green–yellow–red for outcomes (an issue board's options and as-built states)
 // and yellow–orange–red for compatibility (the Impact tab). So no system colour falls in them: no green, yellow, orange, amber,
 // red or pink. A chromatic colour (HSL saturation of STATUS_MIN_SAT or more) whose hue is outside ALLOWED_HUES is in a status
@@ -13,9 +13,9 @@
    every slot is at least 3:1 against its theme's card surface. Chosen for distance from each other in normal vision and under
    protanopia, deuteranopia and tritanopia (CIEDE2000), and from the accent (#6d47e0 / #a58bff) and the neutrals. */
 const PALETTE = {
-  names: ["blue", "purple", "teal", "indigo", "orchid", "sky"],
-  light: ["#2a78d6", "#653184", "#0d7680", "#1d2660", "#9656aa", "#1a9ec7"],
-  dark: ["#3987e5", "#8a44d8", "#1f8089", "#b4bef5", "#a86fb8", "#31b5f4"],
+  names: ["blue", "purple", "teal", "indigo", "orchid", "sky", "harbour", "violet", "lagoon", "cobalt", "iris", "fjord"],
+  light: ["#2a78d6", "#653184", "#0d7680", "#1d2660", "#9656aa", "#1a9ec7", "#203d4b", "#7700c7", "#008a81", "#7780f8", "#271ea9", "#09534e"],
+  dark: ["#3987e5", "#8a44d8", "#1f8089", "#b4bef5", "#a86fb8", "#31b5f4", "#9ae2f4", "#c790d0", "#11978e", "#245eff", "#8365bd", "#00c7ba"],
 };
 /* A system board's sides are slots 1 to 3; their -soft fills are tints of the same hues. */
 const SIDES = { server: 1, client: 2, wire: 3 };
@@ -79,7 +79,7 @@ function paletteCheck(html) {
    the supersystem template's sysColour. A system's colour is held by the highest live system on its parent chain, and a child takes that one's;
    an archived system (status "archived") holds none and is drawn neutral (slot 0). A live top-level system keeps the slot of its place among the
    top-level systems in registry order, archived ones counted, so archiving one moves no other system's colour; what an archived system's place
-   freed goes to the next system that has none (a seventh top-level system on, a live child of an archived one), lowest slot first, and only when
+   freed goes to the next system that has none (a thirteenth top-level system on, a live child of an archived one), lowest slot first, and only when
    no slot is left does a system fold into the neutral. Returns { slot(slug) (0 when none), holder(slug) (the system whose colour it is, or null) }. */
 function colourSlots(list, max) {
   const M = max || PALETTE.light.length, systems = (Array.isArray(list) ? list : []).filter(s => s && s.kind !== "repo"), by = slug => systems.find(s => s.slug === slug);

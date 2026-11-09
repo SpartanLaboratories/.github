@@ -2039,7 +2039,7 @@ git status --short                     # only docs, README.md (and final-impleme
 ## 11. Version control
 
 - **Branch:** `fix/issue-38-handshake-empty-name` (exists; do not create another).
-- **Commit sequence** (each a coherent unit; the `manager` agent performs the commits, the
+- **Commit sequence** (each a coherent unit; the `version-control-manager` agent performs the commits, the
   PR and the version bump):
 
   | # | Contents | Message (suggested) |
@@ -2049,7 +2049,7 @@ git status --short                     # only docs, README.md (and final-impleme
   | 3 | C-1..C-4 and D-1..D-3 (production KDoc, the `#49` FIXME, `//region` markers) plus the updated `plan.md`, `architecture.md` and `impact.md` | `docs: state the exact registration and failure contracts of the malformed Iam refusal (Issue #38)` |
   | 4 | C-T1..C-T8 and D-4 (tests at levels 1, 2, 3, 4a, 4b, 4c) | `test: cover the remaining malformed Iam paths at every level (Issue #38)` |
   | 5 | B-1..B-6 as corrected by C-D and D-5, with every line reference recomputed in C-B and D-6 (protocol doc, architecture doc, README) | `docs: describe the malformed Iam refusal and refresh the protocol line references (Issue #38)` |
-  | 6 | version bump to `2.0.0a` (the manager's `build:` commit; it also moves the README install snippet to `2.0.0a`) | the manager's convention |
+  | 6 | version bump to `2.0.0a` (the version-control-manager's `build:` commit; it also moves the README install snippet to `2.0.0a`) | the version-control-manager's convention |
 
   Commits 3 and 4 touch only `webtools-udp/src` and the plan documents; Commit 5 touches
   only `README.md` and `docs/`. Commit 5 comes last because its line references are
@@ -2069,7 +2069,7 @@ git status --short                     # only docs, README.md (and final-impleme
   committed with the commit that contains it.
 - **No attribution of any kind** on any commit or PR: no `Co-Authored-By`, no
   `Claude-Session`, no "Generated with Claude Code", no trailers or footers.
-- **After the PR merges:** the manager deletes the merged branch locally and on the remote.
+- **After the PR merges:** the version-control-manager deletes the merged branch locally and on the remote.
   `Commit:` and `PR:` in this plan's header are filled with the real SHA(s) and PR number
   once they exist (SHAs by number after merge, not before).
 
@@ -2134,7 +2134,7 @@ doc's known-gap paragraph; #54 adds its guard in `receiveLoop` and around `onReg
 5. Stage D (§18), on Stage C's uncommitted tree: D-1..D-6, then D-7. Then Commit 3
    (C-1..C-4, D-1..D-3, plan documents), Commit 4 (C-T1..C-T8, D-4), Commit 5 (Stage B
    with C-D, C-B, D-5, D-6).
-6. The manager commits the version bump to `2.0.0a`, opens the PR, and deletes the branch
+6. The version-control-manager commits the version bump to `2.0.0a`, opens the PR, and deletes the branch
    after merge.
 
 Follow-ups (not part of this change): #41, #49, #52, #53, #54, #56, #57 as in §4.
@@ -3306,7 +3306,7 @@ git status --short     # only README.md and docs/ (plus final-implementation.md 
 ```
 
 Commit 5 (§11) stages, by path, `README.md`, `docs/webtools-udp-protocol.md` and
-`docs/webtools-udp-architecture.md`. The manager then makes the version-bump commit to
+`docs/webtools-udp-architecture.md`. The version-control-manager then makes the version-bump commit to
 `2.0.0a`, whose README install snippet moves to `2.0.0a` with it.
 
 ## 18. Stage D — wording and one test probe

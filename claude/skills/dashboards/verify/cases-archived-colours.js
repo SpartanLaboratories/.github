@@ -21,23 +21,40 @@ module.exports = function casesArchivedColours(X) {
 
   guard("colourSlots(): an archived system holds none; archiving moves no one; a freed slot goes to the next with none", c => {
     c.push(["a registry with no archived system: as it always was, a top's slot its place, a child its top's", js(slots([S("a", null), S("b", null), S("b1", "b")], ["a", "b", "b1"])) === js([1, 2, 2]), "slots"]);
-    c.push(["a seventh top-level system with none free folds into the neutral", js(slots(["a", "b", "c", "d", "e", "f", "g"].map(x => S(x, null)), ["f", "g"])) === js([6, 0]), "slots"]);
+    c.push(["a thirteenth top-level system with none free folds into the neutral", js(slots("abcdefghijklm".split("").map(x => S(x, null)), ["l", "m"])) === js([12, 0]), "slots"]);
+    /* a repository entry is no system: the systems listed under it are top-level, each its own colour (the user's decision of 2026-11-08; KotlinBottools' ten planned systems) */
+    const repoTen = [{ slug: "kotlinbottools", name: "KotlinBottools", kind: "repo", parent: null, status: "built" }, ...["toolchain", "backups-and-manifests", "legacy-data-copy", "rewrite-pipeline", "privacy-gate", "residual-exposure", "cleanup", "repository-swap", "clone-realignment", "repository-hygiene"].map(x => S(x, "kotlinbottools", "planned"))];
+    c.push(["ten systems under a repository entry: ten colours, none folded to the neutral", js(slots(repoTen, repoTen.slice(1).map(s => s.slug))) === js([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]), js(slots(repoTen, repoTen.slice(1).map(s => s.slug)))]);
     const now = slots(WT, ["webtools-udp", "webtools-scraping", "webtools-browser", "gradle-build", "js-commoncheck", "webtools-http", "webtools-http-core", "webtools-feeds"]);
     c.push(["WebTools today: archived neutral, every live system where it stood", js(now) === js([1, 0, 0, 4, 4, 5, 5, 6]), js(now)]);
     const w = [...WT, S("webtools-common", "webtools", "planned")];
-    c.push(["webtools-common appended: slot 2 (purple), the first freed, the others unmoved", js(slots(w, ["webtools-common", "webtools-udp", "gradle-build", "webtools-http", "webtools-feeds"])) === js([2, 1, 4, 5, 6]) && P.PALETTE.names[1] === "purple", js(slots(w, ["webtools-common"]))]);
+    c.push(["webtools-common appended: slot 7, its own place, the others unmoved", js(slots(w, ["webtools-common", "webtools-udp", "gradle-build", "webtools-http", "webtools-feeds"])) === js([7, 1, 4, 5, 6]) && P.PALETTE.names[6] === "harbour", js(slots(w, ["webtools-common"]))]);
     c.push(["an archived child holds none, under a live top", js(slots([S("a", null), S("a1", "a", "archived"), S("a2", "a")], ["a", "a1", "a2"])) === js([1, 0, 1]), "slots"]);
     c.push(["a live child of an archived top is a system with no colour yet: the freed slot goes to it", js(slots([S("x", null, "archived"), S("x1", "x"), S("b", null)], ["x", "x1", "b"])) === js([0, 1, 2]), "slots"]);
-    const seven = ["a", "b", "c", "d", "e", "f"].map(x => S(x, null)); seven[1].status = "archived"; seven.push(S("g", null), S("h", null));
-    c.push(["two systems past the sixth and one slot freed: the first takes it, the second folds", js(slots(seven, ["g", "h"])) === js([2, 0]), "slots"]);
+    const seven = "abcdefghijkl".split("").map(x => S(x, null)); seven[1].status = "archived"; seven.push(S("m", null), S("n", null));
+    c.push(["two systems past the twelfth and one slot freed: the first takes it, the second folds", js(slots(seven, ["m", "n"])) === js([2, 0]), "slots"]);
     const R = reg(WT);
     c.push(["lib.js registry() gives an archived system slot 0, and it is its own top", R.info("webtools-browser").slot === 0 && R.info("webtools-browser").top === "webtools-browser" && R.info("webtools-browser").status === "archived", js(R.info("webtools-browser"))]);
     c.push(["…a live one its place", R.info("webtools-http-core").slot === 5 && R.info("webtools-http-core").top === "webtools-http", js(R.info("webtools-http-core"))]);
   });
 
+  guard("the twelve system colour slots: light and dark, off the status spectra, 3:1 on the surfaces, and in every template that draws them", c => {
+    const hex = v => [1, 3, 5].map(i => parseInt(v.slice(i, i + 2), 16)), lin = c => { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }, lum = rgb => { const [r, g, b] = rgb.map(lin); return 0.2126 * r + 0.7152 * g + 0.0722 * b; }, cr = (a, b) => { const x = lum(hex(a)), y = lum(hex(b)); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+    const P2 = P.PALETTE, slots12 = P2.light.length === 12 && P2.dark.length === 12 && P2.names.length === 12;
+    c.push(["the palette holds twelve slots, each named, the first six unchanged", slots12 && P2.light.slice(0, 6).join() === "#2a78d6,#653184,#0d7680,#1d2660,#9656aa,#1a9ec7" && P2.dark.slice(0, 6).join() === "#3987e5,#8a44d8,#1f8089,#b4bef5,#a86fb8,#31b5f4", js(P2.names)]);
+    c.push(["every slot of both themes stays off the status spectra (hue 175–295°)", [...P2.light, ...P2.dark].every(v => !P.inStatusHue(v)), js([...P2.light, ...P2.dark].filter(v => P.inStatusHue(v)))]);
+    c.push(["every slot at least 3:1 against its theme's Card surface, the six added against the page background and the Card's darker fill too", P2.light.every(v => cr(v, "#fcfcfd") >= 3) && P2.dark.every(v => cr(v, "#171c25") >= 3) && P2.light.slice(6).every(v => cr(v, "#f3f5f8") >= 3) && P2.dark.slice(6).every(v => cr(v, "#10141b") >= 3 && cr(v, "#1f2530") >= 3), js([...P2.light.map(v => [v, cr(v, "#fcfcfd").toFixed(1)]), ...P2.dark.map(v => [v, cr(v, "#171c25").toFixed(1)])])]);
+    c.push(["no two slots share a colour in a theme", new Set(P2.light).size === 12 && new Set(P2.dark).size === 12, "distinct"]);
+    const check = (name, rel, dark) => { const h = rd(tp(rel)), found = n => new RegExp("--sys-" + n + "\\s*:\\s*" + (dark ? P2.dark[n - 1] : P2.light[n - 1]).replace("#", "#")).test(h); c.push([name + ": --sys-1 to --sys-12, in " + (dark ? "dark" : "light"), [...Array(12).keys()].every(i => found(i + 1)), "tokens"]); };
+    [["the issue and tracking board template", "plan/template/dashboard.html"], ["the repository work board template", "plan/template/board.html"], ["the org work board template", "plan/template/org-board.html"], ["the supersystem and repository state board template", "system/template/supersystem.html"]].forEach(([n, rel]) => { check(n, rel, false); check(n, rel, true); });
+    const lit = rel => /s\.slot<=12/.test(rd(tp(rel))); c.push(["the work boards draw a system up to slot 12", ["plan/template/dashboard.html", "plan/template/board.html", "plan/template/org-board.html"].every(lit), "sysLit()"]);
+    c.push(["the feature probe (twelve-slots) passes the templates", !F.probe(rd(tp("plan/template/dashboard.html")), "plan-board").some(m => m.id === "twelve-slots") && !F.probe(rd(tp("plan/template/board.html")), "work-board").some(m => m.id === "twelve-slots") && !F.probe(rd(tp("system/template/supersystem.html")), "supersystem").some(m => m.id === "twelve-slots"), "probe"]);
+    c.push(["…and names a board drawn with six", F.probe(rd(tp("plan/template/board.html")).replace(/--sys-12:#[0-9a-f]+/g, ""), "work-board").some(m => m.id === "twelve-slots"), "probe"]);
+  });
+
   guard("every board type takes it: the templates, the in-flight boards, check-board.js", c => {
     /* the supersystem template's own runtime of the rule, evaluated against the same registries */
-    const sup = rd(tp("system/template/supersystem.html")), start = sup.indexOf("const SLOTS=6"), end = sup.indexOf("function sysColour");
+    const sup = rd(tp("system/template/supersystem.html")), start = sup.indexOf("const SLOTS=12"), end = sup.indexOf("function sysColour");
     const runRule = list => { const fn = new Function("SYSTEMS", `${sup.slice(start, end)}; return slug => { const n=sysSlot(slug); return n; };`); return fn(list.filter(s => s.kind !== "repo")); };
     const lists = [WT, [...WT, S("webtools-common", "webtools", "planned")], [S("x", null, "archived"), S("x1", "x"), S("b", null)], ["a", "b", "c", "d", "e", "f", "g", "h"].map((x, i) => S(x, null, i === 1 ? "archived" : "built"))];
     c.push(["the supersystem template's rule and colourSlots() agree on every slug", lists.every(l => { const a = runRule(l), C = P.colourSlots(l); return l.filter(s => s.kind !== "repo").every(s => a(s.slug) === C.slot(s.slug)); }), js(lists.map(l => { const a = runRule(l); return l.filter(s => s.kind !== "repo").map(s => [s.slug, a(s.slug), P.colourSlots(l).slot(s.slug)]); }).slice(0, 1))]);

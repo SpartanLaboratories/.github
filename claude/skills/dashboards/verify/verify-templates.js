@@ -268,7 +268,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
       cases.push([`a unit with no board keeps its title as plain text ("${nx.unit.n}. #${nx.unit.issue} ${nx.name}")`, new RegExp(`^${nx.unit.n}\\. <a href="https://github\\.com/[^"]+/issues/${nx.unit.issue}"[^>]*>#${nx.unit.issue}</a> [^<]`).test(noB), noB.slice(0, 300) || "no unit row"]);
       /* the unit up next stays on the chain chip and the unit row (the step panel of the unit in progress takes its bubble): the chip
          links #${nx} to GitHub (no board) and its "blocked by" to the blocker's board */
-      const chip = inner(dom, '<span class="chip status progress[^"]*">', "span");
+      const chip = inner(dom, '<div class="chip status progress[^"]*">', "div");
       cases.push([`the chain chip's "up next" links #${nx.unit.issue} to GitHub (no board) and its "blocked by" opens #${plain.unit.issue}'s board`, chip.includes(`/issues/${nx.unit.issue}"`) && /up next, blocked by/.test(chip) && chip.includes(`href="${plain.unit.folder}dashboard.html"`), chip.slice(0, 500) || "no chain chip"]);
     } else cases.push(["the rendered tracking board (no browser found: set CHROME)", false, "no Chrome or Edge"]);
   }
@@ -403,18 +403,19 @@ targets.filter(t => t.block === "plan").forEach(t => {
   const fxC = JSON.parse(fs.readFileSync(sk("verify/fixtures/tracking.plan.json"), "utf8"));
   const text = h => (h || "").replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
   const chipOf = (name, d) => { const f = path.join(cScratch, name + ".html"); fs.writeFileSync(f, withData(tpl, "plan", JSON.stringify(d, null, 2))); const dom = dumpDom(f); if (dom == null) return null;
-    const m = /<span class="chip status[^"]*">/.exec(dom); return m ? m[0] + inner(dom, '<span class="chip status[^"]*">', "span") : ""; };
+    const m = /<(span|div) class="chip status[^"]*">/.exec(dom); return m ? m[0] + inner(dom, m[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), m[1]) : ""; };
+  const chipText = c => text(String(c || "").replace(/<ol class="stepbar"[\s\S]*?<\/ol>/, ""));
   const variant = f => { const d = JSON.parse(JSON.stringify(fxC)); f(d); return d; };
   const c0 = chipOf("as-is", fxC);
   if (c0 == null) cc.push(["the rendered chain chip (no browser found: set CHROME)", false, "no Chrome or Edge"]);
   else {
-    cc.push(["a tracking board's chip reads the chain: landed of all, the unit waiting on you, the unit up next and its blocker", /^tracking issue · chain 1 of 11 landed · #47 waiting on you · #62 up next, blocked by #47$/.test(text(c0)) && /class="cbar"[^>]*><i style="width:9%"/.test(c0) && !/building/.test(text(c0)), text(c0) || "no chip"]);
+    cc.push(["a tracking board's chip reads the chain: landed of all, the unit waiting on you, the unit up next and its blocker", /^tracking issue · chain 1 of 11 landed · #47 waiting on you · #62 up next, blocked by #47$/.test(chipText(c0)) && /<ol class="stepbar" aria-label="#55: its units in landing order">/.test(c0) && !/building/.test(chipText(c0)), chipText(c0) || "no chip"]);
     const c1 = chipOf("run-at-plan", variant(d => { d.rows.find(r => r.id === "java-floor").unit.live.step = "plan"; d.rows.find(r => r.id === "java-floor").unit.live.resume = null; }));
-    cc.push(["a unit whose run goes on reads its step from its mirror", /#47 in progress \(plan\)/.test(text(c1)), text(c1)]);
+    cc.push(["a unit whose run goes on reads its step from its mirror", /#47 in progress \(plan\)/.test(chipText(c1)), chipText(c1)]);
     const c2 = chipOf("planned", variant(d => { d.status = "planned"; d.rows.forEach(r => { r.asBuilt = { state: "pending", summary: "" }; delete r.unit.live; }); d.wip.step = "landing"; d.wip.current = []; d.wip.next = d.rows[0].id; }));
-    cc.push(["before any unit starts it reads \"planned · M units\"", text(c2) === "tracking issue · chain planned · 11 units", text(c2)]);
+    cc.push(["before any unit starts it reads \"planned · M units\"", chipText(c2) === "tracking issue · chain planned · 11 units", chipText(c2)]);
     const c3 = chipOf("all-landed", variant(d => { d.status = "built"; d.asBuilt = { ref: "master", sha: "abcdef1", date: "2026-10-23" }; d.rows.forEach(r => { r.asBuilt = { state: "landed", summary: "Landed." }; delete r.unit.live; }); d.wip.step = "landed"; d.wip.current = []; d.wip.next = null; }));
-    cc.push(["once every unit has landed it reads \"landed · M of M\"", text(c3) === "tracking issue · chain landed · 11 of 11" && /width:100%/.test(c3), text(c3)]);
+    cc.push(["once every unit has landed it reads \"landed · M of M\"", chipText(c3) === "tracking issue · chain landed · 11 of 11" && !/<li class="(?:cur|todo)/.test(c3), chipText(c3)]);
     const c4 = chipOf("issue-board", JSON.parse(fs.readFileSync(sk("plan/examples/38-handshake-empty-name/plan.json"), "utf8")));
     cc.push(["an issue board keeps its status chip", /^status built$/.test(text(c4)), text(c4)]);
   }
@@ -1247,9 +1248,9 @@ targets.filter(t => t.block === "plan").forEach(t => {
     /* A. the step panel */
     const sR = strip(D.research), pR = panel(D.research);
     lc.push(["A: an issue board's strip sits beside its step panel, half and half, the legend under both", /class="wip split"/.test(D.research) && /<div class="wiprow"><div class="wipmain">/.test(sR) && /class="sp" data-step="research"/.test(sR) && /<\/div><div class="legend">/.test(sR), sR.slice(0, 200)]);
-    lc.push(["A: research: the research StepBar, planning → research → verification, research current", /aria-label="The research StepBar"/.test(pR) && /<li class="done"><span class="dot"[^>]*><\/span>planning<\/li><li class="cur fullpulse"[^>]*><span class="dot"[^>]*><\/span>research<\/li><li class="todo"><span class="dot"[^>]*><\/span>verification<\/li>/.test(pR), text(pR).slice(0, 200)]);
+    lc.push(["A: research: the research StepBar, planning → research → verification, research current", /aria-label="The research StepBar"/.test(pR) && /<ol class="stepbar" aria-label="The research StepBar"><li class="done">planning<span class="sb-st">, done<\/span><\/li><li class="cur fullpulse" aria-current="step">research<span class="sb-st">, current<\/span><\/li><li class="todo">verification<span class="sb-st">, to come<\/span><\/li><\/ol>/.test(pR), text(pR).slice(0, 200)]);
     lc.push(["A: research: each question with its state and the count returned", /2 of 4 questions returned/.test(text(pR)) && (pR.match(/vp serious"><i aria-hidden="true">↻<\/i>researching/g) || []).length === 2 && (pR.match(/vp serious"><i aria-hidden="true">✓<\/i>returned/g) || []).length === 2 && /bears on no row/.test(pR), text(pR).slice(0, 300)]);
-    lc.push(["A: research-planning: the panel says planning and how many questions are drafted; no row rings", /Planning the research questions: 2 drafted so far/.test(text(panel(D.planning))) && /<li class="cur fullpulse"[^>]*><span class="dot"[^>]*><\/span>planning/.test(panel(D.planning)) && !/class="cell considered[^"$]* rs /.test(D.planning), text(panel(D.planning)).slice(0, 200)]);
+    lc.push(["A: research-planning: the panel says planning and how many questions are drafted; no row rings", /Planning the research questions: 2 drafted so far/.test(text(panel(D.planning))) && /<li class="cur fullpulse" aria-current="step">planning<span class="sb-st">, current<\/span><\/li>/.test(panel(D.planning)) && !/class="cell considered[^"$]* rs /.test(D.planning), text(panel(D.planning)).slice(0, 200)]);
     lc.push(["A: interview: the questions, answered or waiting, counted", /1 of 2 questions answered · 1 waiting/.test(text(panel(D.interview))) && /vp warning"><i aria-hidden="true">\?<\/i>waiting on you/.test(panel(D.interview)) && /answer: Refused/.test(text(panel(D.interview))), text(panel(D.interview)).slice(0, 300)]);
     const pP = panel(D.plan);
     lc.push(["A: plan: a re-pass after a qa pass, plan accepted to come, the verdicts written and those still to write", /re-pass after Quality Review 1/.test(text(pP)) && /<li class="todo"><span class="dot"[^>]*><\/span>plan accepted/.test(pP) && /3 of 11 verdicts written/.test(text(pP)) && /Still to write: /.test(text(pP)), text(pP).slice(0, 300)]);
@@ -1890,7 +1891,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     /* A, B, C, E: a tracking board, its unit halted (phase, unit, its panel, waiting on you) */
     const fT = plan("tracking", TRK), dT = wide(fT), RT = rects(dT), nT = rects(narrow(fT)), chipsT = inner(dT, '<div class="chips" id="chips">', "div");
     hc.push(["A: a tracking board's header in two halves, stacked under 940 px", halves(RT, ["header>h1", "#issueline", "header .function"]) && stacked(nT, "header .function"), JSON.stringify(RT && RT["header .chips"])]);
-    hc.push(["B: the chain tag names the tracking issue and runs across the half; no separate \"tracking issue\" chip", /<span class="chip status progress wide[^"]*"><span class="ck">tracking issue · chain<\/span>/.test(chipsT) && !/<span class="chip"><b>tracking issue<\/b><\/span>/.test(chipsT) && !!RT && Math.abs(RT[".chip.progress"][4] - RT["header .chips"][4]) <= 2, JSON.stringify(RT && [RT[".chip.progress"], RT["header .chips"]])]);
+    hc.push(["B: the chain tag names the tracking issue and runs across the half; no separate \"tracking issue\" chip", /<div class="chip status progress wide[^"]*"><span class="ck">tracking issue · chain<\/span>/.test(chipsT) && !/<span class="chip"><b>tracking issue<\/b><\/span>/.test(chipsT) && !!RT && Math.abs(RT[".chip.progress"][4] - RT["header .chips"][4]) <= 2, JSON.stringify(RT && [RT[".chip.progress"], RT["header .chips"]])]);
     const G = RT && RT[".wipgrid"], share = b => G && b ? (b[4] + 10 * 2 / 3) / G[4] : 0;
     hc.push(["C: the WIP row in fixed shares: the phase 35 %, the unit in progress 25 %, its step panel 40 %", !!G && Math.abs(share(RT[".wipgrid>.wipcard.phase"]) - 0.35) < 0.02 && Math.abs(share(RT[".wipgrid>.wipcard.unit"]) - 0.25) < 0.02 && Math.abs(share(RT[".wipgrid>.sp"]) - 0.40) < 0.02 && RT[".wipgrid>.wipcard.unit"][1] === RT[".wipgrid>.wipcard.phase"][1] && RT[".wipgrid>.sp"][1] === RT[".wipgrid>.wipcard.phase"][1], JSON.stringify(RT && [G, RT[".wipgrid>.wipcard.phase"], RT[".wipgrid>.wipcard.unit"], RT[".wipgrid>.sp"]])]);
     hc.push(["C: the phase runs down beside \"waiting on you\", which takes the unit's and the panel's shares under them", !!RT && !!RT[".wipgrid>.wipcard.wait"] && Math.abs(RT[".wipgrid>.wipcard.wait"][3] - RT[".wipgrid>.wipcard.phase"][3]) <= 1 && RT[".wipgrid>.wipcard.wait"][0] === RT[".wipgrid>.wipcard.unit"][0] && Math.abs(RT[".wipgrid>.wipcard.wait"][2] - RT[".wipgrid>.sp"][2]) <= 1, JSON.stringify(RT && [RT[".wipgrid>.wipcard.phase"], RT[".wipgrid>.wipcard.wait"]])]);
