@@ -127,10 +127,10 @@ A landing in executor mode is three requests, each its own spawn:
   commit; none at levels 1 and 4). Report the branch's head sha under
   **Head** — it is the run's **code-landing commit**, and every state board is
   stamped at it — and the version you bumped to, if any (the run files its
-  CHANGELOG entry under it). When the base moved under files the branch
-  touches, stop after the sync and report the paths under **Overlap** — the
-  team replies `needs-rework` and the run re-verifies before it resends (what
-  the team resolves aside: **Conflicts at a sync**, below). No
+  CHANGELOG entry under it). When the base changed files the branch also
+  touches and the merge came out clean, go on and report the paths under
+  **Overlap**, as information; a conflict stops you at the sync (**Conflicts
+  at a sync**, below). No
   PR, no boards, no documents of your own: from this commit on only documents
   change on the branch.
 - **`commit`** (the document-landing commit, the run's request at the end of
@@ -142,10 +142,10 @@ A landing in executor mode is three requests, each its own spawn:
   the state-board files — as
   `docs:` commits split per the guidelines below. Report the head sha.
 - **`land`** lands a branch whose change set is already committed. Check the
-  base has not moved since the sync; if it has, re-sync (the same merge) and,
-  when the base moved under files the branch touches, report the paths under
-  **Overlap** for a `needs-rework` (what the team resolves aside:
-  **Conflicts at a sync**, below). Then push, open the PR, merge, post the
+  base has not moved since the sync; if it has, re-sync (the same merge),
+  report any files the base changed that the branch also touches under
+  **Overlap**, as information, and go on; a conflict stops you there
+  (**Conflicts at a sync**, below). Then push, open the PR, merge, post the
   resolution comment, and delete the branch (local and remote) and the
   worktree you were given. No commit of the run's, no bump and no board commit
   happen in the land; the re-sync merge commit is the only commit it may add.
@@ -172,15 +172,16 @@ these kinds, alone or mixed:
   first, then the branch's, group by group. Both sides adding a section for
   the same version is not this case: it goes back to the run.
 
-When the base changed state-board files or `CHANGELOG.md` the branch also
-changed and they merged cleanly, the run is not sent back either: `presenter`
-rebuilds the state boards, inside the merge (`git merge --no-commit`), so the
-merge commit carries them, and for the `CHANGELOG.md` you go on.
+A merge with no conflict goes on, whatever files the base and the branch both
+changed, code included. When those files include the work-board or state-board
+files above, `presenter` regenerates them, inside the merge
+(`git merge --no-commit`), so the merge commit carries them.
 
 Any other conflict, every other `CHANGELOG.md` conflict and every `README.md`
-conflict included, you never resolve: the team replies `needs-rework`. On a
-`README.md` or other `CHANGELOG.md` conflict, leave the merge open and report
-the files under **Overlap**, each marked `conflict`: the run fixes the markers
+conflict included, you never resolve: report its files under **Overlap**, each
+marked `conflict`, and the team replies `needs-rework`. On a
+`README.md` or other `CHANGELOG.md` conflict, leave the merge open: the run
+fixes the markers
 in its own files and resends, and you finish the merge.
 
 **A confirm-only `setup-branch`** (its `notes` say "confirm only"; a run's Branch
@@ -487,7 +488,7 @@ issue is linked:
 ## Head   (executor mode, `prepare-landing`, `commit` and a confirm-only `setup-branch`)
 - <branch> @ <sha>   (`prepare-landing`: the code-landing commit; `commit`: the document-landing commit; a confirm-only `setup-branch`: the branch's head, with its base)
 
-## Overlap   (executor mode, `prepare-landing` or `land`; the base moved under the branch's files — the sync ran and you stopped after it, the team replies `needs-rework`)
+## Overlap   (executor mode, `prepare-landing` or `land`; the files the base changed that the branch also touches, as information: a clean merge goes on; a file in a conflict is marked `conflict`, and the team replies `needs-rework` unless it resolves the conflict itself)
 - <path> — <what the base changed there>
 
 ## Release candidates   (executor mode, `land` only)

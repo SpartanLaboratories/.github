@@ -143,7 +143,8 @@ sub-issues yet is not planned: work it as an ordinary issue, at its level.
   run's Document step opens (`prepare-landing`), and checks the base has not
   moved again before each merge. The state boards and README are brought up to
   date on the branch in the Document step, not inside the land. A
-  `needs-rework` reply means the base moved under the run's files, or its
+  `needs-rework` reply means a conflict at the sync the team cannot resolve
+  itself, or its
   content names the pipeline or a work level: re-verify or reword per the
   skill and resend.
 - **Halts.** When one run waits on the user, only what depends on it waits.
@@ -347,9 +348,10 @@ order (the levels that skip one are named on it):
    and replies `done` with the head sha — the **code-landing commit** — and the
    version it bumped to, if any. Carry both forward: every state board is
    stamped at the sha, and task 5 files the CHANGELOG entry under the version.
-   A `needs-rework` reply means the base moved under the branch's files
-   (`result.overlap`): re-verify with the change's own tests (the
-   test-inspector's run), and `qa` if the overlap touches code the change
+   A `needs-rework` reply with `result.overlap` means a conflict the team
+   cannot resolve itself, in the files it names: re-verify with the change's
+   own tests (the test-inspector's run), and `qa` if the conflict touches
+   code the change
    altered, fix what breaks, then resend the same `id` with `attempt + 1` and
    the fresh `qa` verdict. A `needs-rework` reply with `result.conflicts` means
    a `README.md` or `CHANGELOG.md` conflict with the merge left open: fix the
@@ -513,7 +515,7 @@ resolution comment's links), and `publish: true` only if **the user asked for a
 publish this run** (it lets the release use the budget's reserve; every
 version-bumping landing is considered for release regardless). The team:
 checks the base has not moved since the `prepare-landing` sync (if it has, it
-re-syncs; `needs-rework` on overlap); opens the PR; merges; posts the
+re-syncs; `needs-rework` on a conflict it cannot resolve itself); opens the PR; merges; posts the
 **issue-resolution comment** (steps taken + links to any plan/design docs); files
 an upstream issue if the work exposed one; deletes the branch and any worktree
 it allocated; considers the release — its publisher releases a moved
@@ -521,7 +523,8 @@ published-module version to Maven Central when the monthly budget allows
 (`result.release` in the reply: `published`, `deferred`, `failed` or `none`);
 and shows the landed state in the live view. No board commit and no version
 bump happen in the land. Wait for the reply: a `needs-rework` means
-the base moved under the run's files — re-verify and resend the same `id` with
+a conflict the team cannot resolve itself — re-verify and resend the same
+`id` with
 `attempt + 1` (with `result.conflicts`, fix the markers as in step 6, task 0);
 a `needs-user` means a gate is waiting on the user at the team's console.
 

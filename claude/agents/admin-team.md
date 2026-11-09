@@ -203,7 +203,7 @@ board (`dashboards` skill, `plan/RULES.md` §10).
 | `allocate-worktree` | `git worktree add` at `<worktree-root>\<repo>-<issue>` (Worktrees, below), from the current default branch. Reply with the path. |
 | `commit` | Commit exactly `paths` on `branch` in `worktree` and push. May be fire-and-forget: the planner's research commits don't wait. Before a run's document-landing commit, raise its `document-landing` task done, ahead of the scan; a refused raise blocks the commit (The landing steps). |
 | `sync-branch` | Bring `branch` up to date with its base (merge, the repo's way). Report the files the base changed that the branch also touches. |
-| `prepare-landing` | Opens the run's Document step. Commit whatever of the run's change set (`paths`: the code with its plan) is not yet committed, then sync `branch` with its base (the `sync-branch` step; `needs-rework` naming the overlap when the base changed files the branch also touches, save what the team resolves (Landing), and the request stays queued as not-ready until the same `id` returns with a higher `attempt` and a fresh `qa`; a clean sync proceeds), then commit the bump the level calls for per `version-control-manager.md`, push, and reply `done` with `result.head`: the **code-landing commit**, the branch's last code change. From here on only documents change on the branch; the run builds its documents and asks for its state boards against this head. No PR, no boards. |
+| `prepare-landing` | Opens the run's Document step. Commit whatever of the run's change set (`paths`: the code with its plan) is not yet committed, then sync `branch` with its base (the `sync-branch` step; a clean merge proceeds, whatever files the base and the branch both touch; `needs-rework` naming the files on a conflict, save what the team resolves (Landing), and the request stays queued as not-ready until the same `id` returns with a higher `attempt` and a fresh `qa`), then commit the bump the level calls for per `version-control-manager.md`, push, and reply `done` with `result.head`: the **code-landing commit**, the branch's last code change. From here on only documents change on the branch; the run builds its documents and asks for its state boards against this head. No PR, no boards. |
 | `land` | Per `version-control-manager.md` and `level`, in one executor spawn (Landing, below). The change set is already committed: the code-landing commit (`prepare-landing`), then the run's document-landing commit (its `commit` of the documents, the issue's and tracking board files, the boards seeded onto the branch, the repository work board and the state boards). The executor confirms the base has not moved since the `prepare-landing` sync; if it has, it syncs again under the same rule, and that re-sync merge commit is the only commit the land adds: no bump, no board commit. Then push, PR, merge, resolution comment; then delete the branch (local and remote) and remove the worktree it was given. Then the release consideration when the bump moved a published module (Service: publishing), then the post-merge landed view (below). A `land` with no `issue` (a docs or config branch) gets a `docs:` PR titled by `title`, no closing keyword, no resolution comment, no bump. |
 | `file-sub-issues` | After the tracking plan's `land`, file the list as sub-issues of `issue` recording each one's level in the team's state, with *blocked by* links, label the parent `type: tracking`, and add a comment on `issue` listing the sub-issues (the land's resolution comment precedes them). The requester states the user approved the list at the architecture sign-off; that relayed approval is enough for this action and no other. |
 | `file-issue` | File one issue in GitHub from `title` and `body`, without a gate, under `version-control-manager.md`'s filing rules: never against a downstream consumer of `surfacedIn`, about the change being landed, or for comment resolution, a code comment or KDoc that needs rewording (rejected with the rule); a request that mixes a defect with such wording gets the defect filed alone, its `done` naming the wording dropped; a speculative defect is rejected as a suspicion; reword anything Claude-internal; if an open issue already covers it, file nothing and reply `done` naming that issue (`result.filed: false`). Reply with `result.issue {number, url}`. |
@@ -233,19 +233,21 @@ board (`dashboards` skill, `plan/RULES.md` §10).
 ### Landing
 
 - **Synced at `prepare-landing`.** The sync runs when the run's Document step opens, not at the
-  `land`: if the base has changed files or modules the branch also touches, reply `needs-rework`
-  naming the overlap and leave the request queued as not-ready until the requester sends the
+  `land`: a merge with no conflict proceeds, whatever files or modules the base and the branch
+  both touch, code included, and the executor reports those files as information. On a conflict
+  the team cannot resolve itself, reply `needs-rework` naming the files and leave the request
+  queued as not-ready until the requester sends the
   same `id` with a higher `attempt` and a fresh `qa`. The pipeline re-verifies with the change's
   own tests; you never run a change's tests, and you never edit code to resolve a conflict,
   with two exceptions, one kind or both, when every conflicted file is one of them: generated
   board files (Board lanes, Board-file conflicts), and a `CHANGELOG.md` where both sides only
   added entries, which the executor merges (`version-control-manager.md`, Conflicts at a sync).
-  A base that changed the same state-board files or `CHANGELOG.md` and merged cleanly is the
-  team's too, and the run is not sent back: `presenter` rebuilds the state boards (Board-file
-  conflicts) and a `CHANGELOG.md` proceeds. Any other `CHANGELOG.md` conflict and every
+  Generated board files the base also changed that merged cleanly are the team's too:
+  `presenter` regenerates them inside the merge (Board-file
+  conflicts). Any other `CHANGELOG.md` conflict and every
   `README.md` conflict is `needs-rework` with `result.conflicts` naming the files: the merge
   stays open, the run fixes the markers in its own files and resends, and the executor
-  finishes the merge. A clean sync with no overlap
+  finishes the merge. A clean sync
   proceeds to the bump, and the head the executor reports is the code-landing commit. At the
   `land`, the executor only confirms the base has not moved since; if it has, the same rule
   applies again, and a clean re-sync proceeds to the PR.
@@ -449,8 +451,8 @@ lane** (below), apart from the repository lanes too.
 - **Inside a landing or a sync.** A presenter job a landing or a sync needs
   before it can go on is part of that landing or sync, which waits for it, and
   it goes ahead of the presenter jobs queued in the repository's presenter
-  lane: the regeneration of generated board files in a conflict, work boards or
-  state boards, or of state boards after a clean overlap, finishes before the
+  lane: the regeneration of generated board files, work boards or state boards,
+  in a conflict or after a clean overlap, finishes before the
   executor commits the result (Board lanes,
   Board-file conflicts). The job still
   runs in the presenter lane; the landing or sync keeps its own lane meanwhile,
@@ -525,7 +527,8 @@ lane** (below), apart from the repository lanes too.
   `docs/plans/`, the repository work board, `docs/plans/org-work-board/`), it is
   not `needs-rework`: `presenter` regenerates those files from the merged
   documents and boards (`embed.js`, `board.js`, `org-board.js`) and the executor
-  commits the result. A conflict in
+  commits the result; work-board files the base also changed that merged
+  cleanly (Landing) are regenerated the same way. A conflict in
   state-board files under `docs/dashboards/` (`index.html`, `systems.json`,
   `workspace.dsl`, the system boards, `state.json`) is not `needs-rework`
   either: `presenter` rebuilds them from the merged code and documents, stamped
