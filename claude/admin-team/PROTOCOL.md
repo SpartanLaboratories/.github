@@ -75,6 +75,7 @@ one fenced ```json block:
 | `relationships` | `link-issues` | `[{op, kind, from, to}]`: `op` is `add` or `remove`, `kind` is `sub-issue` or `blocked-by`, `from` and `to` are `owner/repo#n`. For `sub-issue`, `from` is the parent; for `blocked-by`, `from` is the issue that is blocked. |
 | `notes` | optional | Anything the executor should know, in one line. |
 | `restarted` | optional, any request | `{"reason": "..."}`, set by a session that found its handoff, present and not empty (`~/.claude/CLAUDE.md`), on its first request. A session that takes a run up without a handoff sets none: the team sees the change of session itself. |
+| `permissionReason` | on a request for an action the team's policy otherwise refuses | The job the action serves, which the executor matches to a section of the repository's temporary-permissions file (the `admin-team` agent brief, Gates and standing grants). It grants nothing: with no matching section the request is `rejected`. |
 
 ### Actions
 

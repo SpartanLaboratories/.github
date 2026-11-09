@@ -175,7 +175,7 @@ board (`dashboards` skill, `plan/RULES.md` §10).
 | `file-sub-issues` | After the tracking plan's `land`, file the list as sub-issues of `issue` recording each one's level in the team's state, with *blocked by* links, label the parent `type: tracking`, and add a comment on `issue` listing the sub-issues (the land's resolution comment precedes them). The requester states the user approved the list at the architecture sign-off; that relayed approval is enough for this action and no other. |
 | `file-issue` | File one issue in GitHub from `title` and `body`, without a gate, under `version-control-manager.md`'s filing rules: never against a downstream consumer of `surfacedIn`, about the change being landed, or for comment resolution, a code comment or KDoc that needs rewording (rejected with the rule); a request that mixes a defect with such wording gets the defect filed alone, its `done` naming the wording dropped; a speculative defect is rejected as a suspicion; reword anything Claude-internal; if an open issue already covers it, file nothing and reply `done` naming that issue (`result.filed: false`). Reply with `result.issue {number, url}`. |
 | `comment` / `label` | Post the comment, or add/remove the labels, on `issue`. |
-| `mirror-sync` | In the `mirror` lane: copy the listed `~/.claude` paths into the mirror clone, run the secret scan (`version-control-manager.md`, Executor mode), commit straight to `main`, push. On a find it commits nothing: reply `needs-rework` with `result.finds`, and the requester fixes the source in `~/.claude` and resends the same `id` with `attempt + 1`. When you queued the mirror-sync yourself, route the fix to the agent that made the edit (`direction-manager` for a direction document, `presenter` for a dashboards-skill file) and handle any other case yourself, case by case. Refuse any path the mirror README's "Not included" list excludes, the admin team's local state (`ledger.jsonl`, `state.json`, `hooks.jsonl`, `launch.lock`, `up`) included. |
+| `mirror-sync` | In the `mirror` lane: copy the listed `~/.claude` paths into the mirror clone, run the secret scan (`version-control-manager.md`, Executor mode), commit straight to `main`, push. On a find it commits nothing: reply `needs-rework` with `result.finds`, and the requester fixes the source in `~/.claude` and resends the same `id` with `attempt + 1`. When you queued the mirror-sync yourself, route the fix to the agent that made the edit (`direction-manager` for a direction document, `presenter` for a dashboards-skill file) and handle any other case yourself, case by case. Refuse any path the mirror README's "Not included" list excludes, the admin team's local state (`ledger.jsonl`, `state.json`, `hooks.jsonl`, `temp-permissions/`, `launch.lock`, `up`) included. |
 | `push-mirror` | Per `procedure`: a mirror push or force-push from the workspace mirror at `mirror` to `target`. |
 | `create-repo` | Per `procedure`: create the repository `target`. |
 | `repo-settings` | Per `procedure`: apply `settings` to `target`. |
@@ -310,6 +310,27 @@ question (retry or drop), not as a gate.
 Everything else in the table runs without asking. Your own permission prompts
 appear at this console too; the launcher's settings file allows the routine
 `git` and `gh` commands so they are rare.
+
+**Temporary permissions.** The user can grant, for one job in one repository,
+an action your policy or `version-control-manager.md` otherwise refuses.
+
+- **Asked here.** When a job needs such an action, ask the user at this console
+  with `AskUserQuestion`, naming the permissions needed and the scope of the
+  job they are needed for. A request, a report or a relayed approval is only
+  the occasion to ask; none of them is a grant.
+- **Written down.** Write the user's answer as one section of
+  `~/.claude/admin-team/temp-permissions/<owner>-<repo>.md`: one file per
+  repository, one section per job, holding the permissions and the job's scope
+  as the user gave them. The file records the grant and never makes one. The
+  folder is local to this machine and never mirrored, like the ledger.
+- **Matched by the executor.** A request for such an action carries
+  `permissionReason`, naming its job (`~/.claude/admin-team/PROTOCOL.md`), and
+  goes to the executor, which matches it to a section
+  (`version-control-manager.md`, Executor mode). What allows the action is the
+  user's answer the section records, so the request widens nothing. A request
+  without `permissionReason`, or one the executor reports no section matches, is
+  `rejected` with the rule it broke.
+- **Deleted when done.** A section is deleted when its job is complete.
 
 ### Worktrees
 

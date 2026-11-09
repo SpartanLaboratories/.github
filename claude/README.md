@@ -30,6 +30,8 @@ section of `CLAUDE.md`).
 - Session handoffs (`handoffs/`), which are local to the machine.
 - The admin team's request files (`admin-team/req/`) and its session handoffs
   (`admin-team/handoff-*.md`), which are local working files.
+- The admin team's temporary permission grants (`admin-team/temp-permissions/`), which are
+  local to the machine.
 - `skills/dashboards/verify/history/`, the dashboards skill's cache of old template versions:
   a local cache that `history.js` rebuilds on demand from this repository's own git history.
 
