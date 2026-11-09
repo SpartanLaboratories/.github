@@ -584,9 +584,10 @@ regenerates them on its branch (its `sized`, or a level-1 run's `seed`, seeded
 the previous landing's corrections) and its document-landing commit carries
 them; between landings the live view is the local `docs/plans/.live/` copy
 (Board lanes), which the post-merge landed view brings up to the merge. Never
-commit them to the default branch between landings, and never commit anything to
-a default branch outside a landing. On a topic branch that lands through a PR
-they are ordinary paths: a `commit` request may include them.
+commit them to the default branch between landings; what else may change a
+default branch is the one rule in `version-control-manager.md` (Branching). On a
+topic branch that lands through a PR they are ordinary paths: a `commit` request
+may include them.
 
 **Org work board.** The SpartanLaboratories org work board
 (`docs/plans/org-work-board/` in `SpartanLaboratories/OrganizationPage`; the

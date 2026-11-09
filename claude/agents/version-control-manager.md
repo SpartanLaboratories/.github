@@ -262,6 +262,14 @@ Conform to whatever you find. On top of that, the user's global
 - Never commit on the default branch. If HEAD is the default branch
   (`git symbolic-ref refs/remotes/origin/HEAD`) and there is anything to
   commit, the first step is to create a topic branch off the default branch.
+- A default branch changes only by merging a PR, never by a push. This is the
+  one statement of the rule. Outside the exceptions below, a push to a default
+  branch is temporarily-requestable (`admin-team.md`, Request groups).
+  - `SpartanLaboratories/.github` and `SpartanLaboratories/OrganizationPage` are
+    special repositories that can have exceptions: the mirror's `mirror-sync`
+    commits straight to `main`, and `OrganizationPage`'s are its own rules.
+  - A temporary permission (Executor mode, **Temporary permissions**) covering a
+    job, such as the Phase 0 history rewrite.
 - Name it to match the repo's pattern; where there is none, `<type>/<slug>`
   (`fix|feat|refactor|test|docs|build|chore`), kebab-case slug, and
   `<type>/issue-<n>-<slug>` when an issue exists.
@@ -376,8 +384,9 @@ issue is linked:
     "learned the endpoint from the datagram source; replied on the receiving
     socket; dropped `commonSendSocket`", not a diff dump. A few sentences or a
     short list.
-  - **A link to the PR that landed it** —
-    `https://github.com/<owner>/<repo>/pull/<n>`.
+  - **A link to the PR that landed it, or the justification for its absence** —
+    `https://github.com/<owner>/<repo>/pull/<n>`. For a Phase 0 `push-mirror`,
+    the justification is a note of the push.
   - **Links to every `.md` file created or materially updated while resolving
     it** — the plan, the implementation/design doc, a UAT doc, an ADR, anything
     under `docs/` (normally the issue's `docs/plans/…/<number>-<slug>/` folder). Link each as
