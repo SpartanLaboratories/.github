@@ -4,6 +4,7 @@
     "agents/direction-manager.md",
     "agents/verifier.md",
     "agents/code-reviewer.md",
+    "agents/interviewer.md",
     "shared/progress-review.md"
   ],
   "codes": {
@@ -38,6 +39,16 @@
         "Progress review every 10 minutes (when you run inside a /resolve-issue run)": "P"
       }
     },
+    "agents/interviewer.md": {
+      "acronym": "IV",
+      "sections": {
+        "The rule you exist to enforce": "E",
+        "How to work": "W",
+        "What you return to the caller": "R",
+        "Hard boundaries": "B",
+        "Progress review every 10 minutes (when you run inside a /resolve-issue run)": "P"
+      }
+    },
     "shared/progress-review.md": {
       "acronym": "SH",
       "sections": {
@@ -45,7 +56,7 @@
       }
     }
   },
-  "highWaterMark": 34,
+  "highWaterMark": 39,
   "splinterMarks": {},
   "retiredIds": []
 }
