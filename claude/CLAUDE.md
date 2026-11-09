@@ -99,8 +99,8 @@ comments or files itself, and never spawns `version-control-manager` directly.
 
 - It schedules by lane (one per repository, plus the mirror), orders by dependency, brings a
   branch up to date with its base when the run's Document step opens (`prepare-landing`, which
-  also commits the version bump and reports the code-landing commit), and hands a base that
-  moved under a branch's files back to the pipeline to re-verify. It spawns
+  also commits the version bump and reports the code-landing commit), and hands a conflict at a
+  sync that it cannot resolve itself back to the pipeline. It spawns
   `version-control-manager` as the executor of each request.
 - **Its one gate** — removing a worktree with uncommitted changes — is confirmed by me at its
   console or in the Remote Control app, never by a relayed approval. Its executor holds every
