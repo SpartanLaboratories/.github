@@ -1936,15 +1936,17 @@ targets.filter(t => t.block === "plan").forEach(t => {
    - the templates: the header's stamp chips are drawn from the state block, the "written at" chip only while the panels lag the stamp;
      a part tied to a DSL element (MODEL.c4, data-part) or to a planned system (sys, data-part="sys:<slug>") is drawn planned from the
      data alone, and solid once the data says built;
-   - an implementation stage that marks a DSL part built: systems.json, state.json, the DSL's as-is line and views, the embedded copies
-     restamped "<branch> @ <sha> · not yet landed", the issue as the last amendment, enrich yes; check-board.js --auto --no-browser
+   - a state-boards request that marks a DSL part built: systems.json, state.json, the DSL's as-is line and views, the embedded copies
+     restamped "<branch> @ <sha>", the issue as the last amendment, enrich yes; check-board.js --auto --no-browser
      passing every board; the rendered page showing the stamp and the part solid;
-   - a stage that marks nothing: enrich no; the same request twice: "duplicate", every file byte for byte as the first left it;
+   - a request that marks nothing: enrich no; the same request twice: "duplicate", every file byte for byte as the first left it;
    - "#9" marking the system planned by that issue alone built: its registry status, its DSL element, the Systems card and the rows
      tied to it solid, enrich yes; a version moved through facts.version; the registry's own layout kept;
-   - the landing restamp: every entry the branch stamped now "<ref> @ <merge>", "landed" gone, the DSL line without "not yet landed";
+   - the landing restamp: every entry the branch stamped now "<ref> @ <merge>";
+   - a stale stamp from before (asIs.landed false, the DSL's ", not yet landed") overwritten at the Document step, on an entry the request
+     does not name too, and on the default branch no entry swept in for carrying the ref;
    - refusals and rollback: an unknown system (BLOCKED — system unresolved) and a board the check fails, each exit 1 with every file as
-     it was; an event that moves no code skipped; a board on an older template left alone, enrich yes;
+     it was; a plan-board event other than landed skipped (implementation-stage among them); a board on an older template left alone, enrich yes;
    - check-board.js --no-browser failing a state that disagrees with its registry, a state block that is not its state.json and a part
      reference that names nothing, and needing --auto;
    - timing: one request well under five seconds. */
@@ -1988,7 +1990,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     const req = (o, facts) => { const f = path.join(sc, `req-${++n}.json`); fs.writeFileSync(f, "state\n\n```json\n" + JSON.stringify({ v: 1, github: "acme/widgets", issue: 9, branch: "feat/issue-9-next-part", folder: "docs/plans/9-next-part", ...o, facts }, null, 2) + "\n```\n"); return f; };
     const apply = f => { const t = Date.now(), r = cp.spawnSync(process.execPath, [AS, "--event", f, "--worktree", tree, "--json"], { encoding: "utf8" }); let s; try { s = JSON.parse((r.stdout || "").trim().split(/\r?\n/).pop()); } catch (e) { s = { result: "unparsed", error: (r.stdout || "") + (r.stderr || "") }; } s.status = r.status; s.ms = Date.now() - t; return s; };
     const nb = p => cp.spawnSync(process.execPath, [checker, p, "--auto", "--no-browser"], { encoding: "utf8" });
-    const stage = (sha, extra) => req({ action: "plan-board", event: "implementation-stage" }, { at: "2026-10-25T12:00:00Z", sha, ...extra });
+    const stage = (sha, extra) => req({ action: "state-boards" }, { at: "2026-10-25T12:00:00Z", sha, ...extra });
     build();
     vc.push(["a browser renders the boards (set CHROME)", !!chrome, "no Chrome or Edge found"]);
     const before = snap(), d0 = dumpDom(path.join(A, "index.html"));
@@ -1996,26 +1998,26 @@ targets.filter(t => t.block === "plan").forEach(t => {
     vc.push(d0 == null ? ["a structure node mapped to a Planned DSL element, and a data-part, are drawn planned", false, NEEDS_BROWSER] : ["a structure node mapped to a Planned DSL element, and a data-part, are drawn planned", d0 == null || /<g class="node server int planned"[^>]*data-id="next"/.test(d0) && /<li data-part="repo\.sys\.next" class="planned">/.test(d0), (d0 || "").match(/<g class="node[^"]*"[^>]*data-id="next"/) + ""]);
     [["the repository state board", path.join(D, "index.html")], ["the system board", path.join(A, "index.html")]].forEach(([w, p]) => { const r = nb(p); vc.push([`check-board.js --auto --no-browser passes ${w} as written`, r.status === 0 && /PASS \(no browser\)/.test(r.stdout) && /browser pass deferred/.test(r.stdout), (r.stdout || "").split(/\r?\n/).filter(l => /state|FAIL|PASS/.test(l)).join(" | ")]); });
 
-    /* an implementation stage marking the DSL part built */
+    /* a state-boards request marking the DSL part built */
     const s1 = apply(stage("2222222abcdef0", { built: ["system-alpha/workspace.dsl:repo.sys.next"] }));
     const R1 = J("systems.json"), a1 = R1.systems.find(e => e.slug === "system-alpha"), st1 = J("system-alpha/state.json");
-    const branchStamp = { ref: "feat/issue-9-next-part", sha: "2222222", date: "2026-10-25T12:00:00Z", landed: false };
-    vc.push(["a stage that builds a part: applied, enrich yes (the part's prose is the presenter's)", s1.status === 0 && s1.result === "ok" && s1.enrich === "yes" && s1.why.some(x => /repo\.sys\.next marked built/.test(x)), JSON.stringify([s1.result, s1.enrich, s1.why, s1.error])]);
-    vc.push(["the registry, the state and the repository's own entry are stamped with the branch, not yet landed, the issue as last amendment", same(a1.asIs, branchStamp) && same(R1.systems.find(e => e.slug === "repo").asIs, branchStamp) && same(st1.asIs, branchStamp) && st1.lastAmended.issue === 9 && st1.lastAmended.title === "next-part" && same(st1.written, { sha: "1111111" }) && same(R1.systems.find(e => e.slug === "system-beta").asIs, stamp), JSON.stringify([a1.asIs, st1])]);
+    const branchStamp = { ref: "feat/issue-9-next-part", sha: "2222222", date: "2026-10-25T12:00:00Z" };
+    vc.push(["a request that builds a part: applied, enrich yes (the part's prose is the presenter's)", s1.status === 0 && s1.result === "ok" && s1.enrich === "yes" && s1.why.some(x => /repo\.sys\.next marked built/.test(x)), JSON.stringify([s1.result, s1.enrich, s1.why, s1.error])]);
+    vc.push(["the registry, the state and the repository's own entry are stamped with the branch, the issue as last amendment", same(a1.asIs, branchStamp) && same(R1.systems.find(e => e.slug === "repo").asIs, branchStamp) && same(st1.asIs, branchStamp) && st1.lastAmended.issue === 9 && st1.lastAmended.title === "next-part" && same(st1.written, { sha: "1111111" }) && same(R1.systems.find(e => e.slug === "system-beta").asIs, stamp), JSON.stringify([a1.asIs, st1])]);
     vc.push(["the registry keeps its own layout: one entry per line", rd("systems.json").split("\n").length === before[path.join("docs", "dashboards", "systems.json")].split("\n").length, rd("systems.json").slice(0, 200)]);
-    vc.push(["the DSL part loses its Planned tag and keeps its built tag; the as-is line and the views name the branch", /next = component "Planned part" "Issue #9: the next part\." "proposed" "Internal"$/m.test(rd("system-alpha/workspace.dsl")) && /^\/\/ As-is at widgets feat\/issue-9-next-part 2222222 \(2026-10-25, not yet landed\)/m.test(rd("system-alpha/workspace.dsl")) && /as built at feat\/issue-9-next-part 2222222\./.test(rd("system-alpha/workspace.dsl")), rd("system-alpha/workspace.dsl").split("\n").filter(l => /next =|As-is|as built/.test(l)).join(" | ")]);
+    vc.push(["the DSL part loses its Planned tag and keeps its built tag; the as-is line and the views name the branch", /next = component "Planned part" "Issue #9: the next part\." "proposed" "Internal"$/m.test(rd("system-alpha/workspace.dsl")) && /^\/\/ As-is at widgets feat\/issue-9-next-part 2222222 \(2026-10-25\)/m.test(rd("system-alpha/workspace.dsl")) && /as built at feat\/issue-9-next-part 2222222\./.test(rd("system-alpha/workspace.dsl")), rd("system-alpha/workspace.dsl").split("\n").filter(l => /next =|As-is|as built/.test(l)).join(" | ")]);
     vc.push(["every board carries its files verbatim: state, DSL, registry", L.blockText(rd("system-alpha/index.html"), "state") === rd("system-alpha/state.json").trim() && L.blockText(rd("system-alpha/index.html"), "dsl") === rd("system-alpha/workspace.dsl").trim() && L.blockText(rd("index.html"), "systems") === rd("systems.json").trim() && L.blockText(rd("index.html"), "state") === rd("state.json").trim(), "embedded copies"]);
     vc.push(["its check ran without a browser and passed", /^pass, no browser \(2 boards/.test(s1.check || ""), s1.check]);
     const d1 = dumpDom(path.join(A, "index.html"));
-    vc.push(d1 == null ? ["the rendered page: \"as-is at <branch> @ <sha> · not yet landed\", \"written at\" the old commit, the part solid", false, NEEDS_BROWSER] : ["the rendered page: \"as-is at <branch> @ <sha> · not yet landed\", \"written at\" the old commit, the part solid", d1 == null || /id="chip-asis"><span class="ck">as-is at<\/span> <b>feat\/issue-9-next-part @ 2222222<\/b> · not yet landed<\/span>/.test(d1) && /id="chip-written"><span class="ck">written at<\/span> <b>1111111<\/b>/.test(d1) && /<g class="node server int"[^>]*data-id="next"/.test(d1) && /<li data-part="repo\.sys\.next"( class="")?>/.test(d1), text(inner(d1, '<div class="chips">', "div")).slice(0, 260)]);
+    vc.push(d1 == null ? ["the rendered page: \"as-is at <branch> @ <sha>\" and its date, \"written at\" the old commit, the part solid", false, NEEDS_BROWSER] : ["the rendered page: \"as-is at <branch> @ <sha>\" and its date, \"written at\" the old commit, the part solid", d1 == null || /id="chip-asis"><span class="ck">as-is at<\/span> <b>feat\/issue-9-next-part @ 2222222<\/b> · (?!not yet landed)<time /.test(d1) && /id="chip-written"><span class="ck">written at<\/span> <b>1111111<\/b>/.test(d1) && /<g class="node server int"[^>]*data-id="next"/.test(d1) && /<li data-part="repo\.sys\.next"( class="")?>/.test(d1), text(inner(d1, '<div class="chips">', "div")).slice(0, 260)]);
     const dr = dumpDom(path.join(D, "index.html"));
-    vc.push(dr == null ? ["the repository state board: its own stamp, and the Systems card of the touched system, not yet landed", false, NEEDS_BROWSER] : ["the repository state board: its own stamp, and the Systems card of the touched system, not yet landed", dr == null || /id="chip-asis"><span class="ck">as-is at<\/span> <b>feat\/issue-9-next-part @ 2222222<\/b> · not yet landed/.test(dr) && /data-slug="system-alpha"[\s\S]{0,700}as-is feat\/issue-9-next-part @ 2222222 · not yet landed/.test(dr), text(inner(dr, '<div class="syscards" id="syscards">', "div")).slice(0, 260)]);
+    vc.push(dr == null ? ["the repository state board: its own stamp, and the Systems card of the touched system", false, NEEDS_BROWSER] : ["the repository state board: its own stamp, and the Systems card of the touched system", dr == null || /id="chip-asis"><span class="ck">as-is at<\/span> <b>feat\/issue-9-next-part @ 2222222<\/b> · (?!not yet landed)<time /.test(dr) && /data-slug="system-alpha"[\s\S]{0,700}as-is feat\/issue-9-next-part @ 2222222 · (?!not yet landed)<time /.test(dr), text(inner(dr, '<div class="syscards" id="syscards">', "div")).slice(0, 260)]);
 
-    /* the same request twice; a stage that marks nothing */
+    /* the same request twice; a request that marks nothing */
     const k1 = snap(), s1b = apply(path.join(sc, `req-${n}.json`));
     vc.push(["the same request twice: duplicate, every file as the first run left it", s1b.status === 0 && s1b.result === "duplicate" && same(snap(), k1), JSON.stringify([s1b.result, s1b.wrote])]);
     const s2 = apply(stage("3333333", { systems: ["system-alpha"] }));
-    vc.push(["a stage that marks nothing: restamped, enrich no", s2.status === 0 && s2.result === "ok" && s2.enrich === "no" && J("system-alpha/state.json").asIs.sha === "3333333", JSON.stringify([s2.result, s2.enrich, s2.why])]);
+    vc.push(["a request that marks nothing: restamped, enrich no", s2.status === 0 && s2.result === "ok" && s2.enrich === "no" && J("system-alpha/state.json").asIs.sha === "3333333", JSON.stringify([s2.result, s2.enrich, s2.why])]);
     vc.push(["one request is well under five seconds", s1.ms < 5000 && s2.ms < 5000, `${s1.ms} ms, ${s2.ms} ms`]);
 
     /* "#9": the system that issue alone plans, and a version */
@@ -2029,9 +2031,33 @@ targets.filter(t => t.block === "plan").forEach(t => {
     /* the landing */
     const s4 = apply(req({ action: "plan-board", event: "landed" }, { at: "2026-10-26T09:00:00Z", merge: "5555555", ref: "main", pr: 12 }));
     const R4 = J("systems.json"), landedStamp = { ref: "main", sha: "5555555", date: "2026-10-26T09:00:00Z" };
-    vc.push(["the landing restamps every entry the branch stamped at the merge, \"landed\" gone", s4.status === 0 && ["repo", "system-alpha", "system-gamma"].every(s => same(R4.systems.find(e => e.slug === s).asIs, landedStamp)) && same(J("system-alpha/state.json").asIs, landedStamp) && same(R4.systems.find(e => e.slug === "system-beta").asIs, stamp), JSON.stringify([s4.result, s4.error, R4.systems.map(e => e.asIs)])]);
-    vc.push(["the landed DSL line drops \"not yet landed\"", /^\/\/ As-is at widgets main 5555555 \(2026-10-26\),/m.test(rd("system-alpha/workspace.dsl")) && /as built at main 5555555\./.test(rd("system-alpha/workspace.dsl")), rd("system-alpha/workspace.dsl").split("\n")[1]]);
+    vc.push(["the landing restamps every entry the branch stamped at the merge", s4.status === 0 && ["repo", "system-alpha", "system-gamma"].every(s => same(R4.systems.find(e => e.slug === s).asIs, landedStamp)) && same(J("system-alpha/state.json").asIs, landedStamp) && same(R4.systems.find(e => e.slug === "system-beta").asIs, stamp), JSON.stringify([s4.result, s4.error, R4.systems.map(e => e.asIs)])]);
+    vc.push(["the landed DSL line names the merge", /^\/\/ As-is at widgets main 5555555 \(2026-10-26\),/m.test(rd("system-alpha/workspace.dsl")) && /as built at main 5555555\./.test(rd("system-alpha/workspace.dsl")), rd("system-alpha/workspace.dsl").split("\n")[1]]);
     vc.push(["at the landing, panels written before the branch's last stamp ask for the presenter", s4.enrich === "yes" && s4.why.some(x => /written at 1111111/.test(x)), JSON.stringify(s4.why)]);
+
+    /* a stale stamp from before the code went (asIs.landed false, the DSL's ", not yet landed"): overwritten whole at the Document step, on the
+       registry, every state.json, the DSLs and the embedded copies, on entries the request does not name too; no code reads the field now */
+    vc.push(["no template reads the old stamp any more", [sup, sys].every(h => !/not yet landed|landed===false/.test(h)), "templates"]);
+    build();
+    { const BR = "feat/issue-9-next-part", old = 'As-is at widgets main 1111111 (2026-10-20)', neu = `As-is at widgets ${BR} 2222222 (2026-10-25, not yet landed)`, staleSt = t => t.replace('"asIs": {"ref": "main", "sha": "1111111", "date": "2026-10-20"}', `"asIs": {"ref": "${BR}", "sha": "2222222", "date": "2026-10-25T12:00:00Z", "landed": false}`);
+      fs.writeFileSync(path.join(D, "systems.json"), rd("systems.json").replace(/"asIs": \{"ref": "main", "sha": "1111111", "date": "2026-10-20"\}/g, `"asIs": {"ref": "${BR}", "sha": "2222222", "date": "2026-10-25T12:00:00Z", "landed": false}`));
+      [["state.json", "workspace.dsl", "index.html"], ["system-alpha/state.json", "system-alpha/workspace.dsl", "system-alpha/index.html"]].forEach(([sf, df, bf]) => {
+        const st = staleSt(rd(sf)), dsl = rd(df).replace(old, neu); fs.writeFileSync(path.join(D, sf), st); fs.writeFileSync(path.join(D, df), dsl);
+        fs.writeFileSync(path.join(D, bf), L.embedInto(L.embedInto(rd(bf), "state", st), "dsl", dsl)); }); }
+    const staleBefore = rd("systems.json"), sDoc = apply(req({ action: "state-boards" }, { document: true, at: "2026-10-26T08:00:00Z", sha: "6666666", systems: ["repo"] }));
+    const RD = J("systems.json"), docStamp = { ref: "feat/issue-9-next-part", sha: "6666666", date: "2026-10-26T08:00:00Z" };
+    const staleLeft = ["systems.json", "state.json", "workspace.dsl", "index.html", "system-alpha/state.json", "system-alpha/workspace.dsl", "system-alpha/index.html"].filter(f => /"landed": *false|not yet landed/.test(rd(f)));
+    vc.push(["the fixture holds the stale stamps (three entries in the registry)", (staleBefore.match(/"landed": false/g) || []).length === 3, String((staleBefore.match(/"landed": false/g) || []).length)]);
+    vc.push(["the Document step overwrites a stale stamp whole, on an entry the request does not name too (registry, state.json)", sDoc.status === 0 && ["repo", "system-alpha", "system-beta"].every(s => same(RD.systems.find(e => e.slug === s).asIs, docStamp)) && same(J("system-alpha/state.json").asIs, docStamp) && same(J("state.json").asIs, docStamp), JSON.stringify([sDoc.status, sDoc.result, sDoc.error, sDoc.systems, RD.systems.map(e => e.asIs)])]);
+    vc.push(["nothing of the stale stamp survives in any file: registry, state, DSL, the embedded copies", staleLeft.length === 0, staleLeft.join(", ")]);
+    vc.push(["the DSL's as-is line takes the plain stamp", /^\/\/ As-is at widgets feat\/issue-9-next-part 6666666 \(2026-10-26\), alpha/m.test(rd("system-alpha/workspace.dsl")), rd("system-alpha/workspace.dsl").split("\n")[1]]);
+    /* on the default branch every entry carries the ref: none is swept in for that, at the Document step or after a merge in the main checkout */
+    build();
+    const sMain = apply(req({ action: "state-boards", branch: "main", base: "main" }, { document: true, at: "2026-10-26T08:00:00Z", sha: "7777777", systems: ["repo"] }));
+    vc.push(["on the default branch the Document step stamps what it names, and sweeps no other entry in", sMain.status === 0 && J("systems.json").systems.find(e => e.slug === "repo").asIs.sha === "7777777" && same(J("systems.json").systems.find(e => e.slug === "system-alpha").asIs, stamp), JSON.stringify([sMain.result, sMain.systems, sMain.error])]);
+    build();
+    const sLand = apply(req({ action: "plan-board", event: "landed", branch: "main" }, { at: "2026-10-26T09:00:00Z", merge: "8888888", ref: "main", systems: ["repo"] }));
+    vc.push(["a landed restamp from the main checkout sweeps no other entry in", sLand.status === 0 && J("systems.json").systems.find(e => e.slug === "repo").asIs.sha === "8888888" && same(J("systems.json").systems.find(e => e.slug === "system-alpha").asIs, stamp), JSON.stringify([sLand.result, sLand.systems, sLand.error])]);
 
     /* refusals, rollback, skips */
     build(); const b0 = snap();
@@ -2042,7 +2068,9 @@ targets.filter(t => t.block === "plan").forEach(t => {
     vc.push(["a board the check fails: exit 1, every file put back", s6.status === 1 && /check-board\.js failed/.test(s6.error || "") && /PART UNKNOWN: sys:nope/.test(s6.check || "") && same(snap(), b1), JSON.stringify([s6.error, s6.check, s6.restored])]);
     build(); const b2 = snap();
     const s7 = apply(req({ action: "plan-board", event: "qa-pass" }, { at: "2026-10-25T12:00:00Z" }));
-    vc.push(["an event that moves no code is skipped, nothing written", s7.status === 0 && s7.result === "skipped" && same(snap(), b2), JSON.stringify([s7.result, s7.applied])]);
+    vc.push(["a plan-board event other than landed is skipped, nothing written", s7.status === 0 && s7.result === "skipped" && same(snap(), b2), JSON.stringify([s7.result, s7.applied])]);
+    const s7b = apply(req({ action: "plan-board", event: "implementation-stage" }, { at: "2026-10-25T12:00:00Z", sha: "2222222", systems: ["system-alpha"] }));
+    vc.push(["an implementation stage stamps nothing any more: skipped, nothing written", s7b.status === 0 && s7b.result === "skipped" && same(snap(), b2), JSON.stringify([s7b.result, s7b.applied])]);
     const oldPage = fs.readFileSync(path.join(A, "index.html"), "utf8").replace(/<!-- The board's state\.[\s\S]*?<script type="application\/json" id="state">[\s\S]*?<\/script>\n\n/, "");
     fs.writeFileSync(path.join(A, "index.html"), oldPage);
     const s8 = apply(stage("2222222", { systems: ["system-alpha"] }));

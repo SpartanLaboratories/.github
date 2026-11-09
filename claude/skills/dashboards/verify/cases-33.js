@@ -189,7 +189,7 @@ module.exports = function cases33(X) {
     const ap = f => { const r = run(AS, ["--event", f, "--worktree", root, "--json"]); let s = {}; try { s = JSON.parse(r.stdout.trim().split(/\r?\n/).pop()); } catch (x) { s = { error: r.stdout + r.stderr }; } s.status = r.status; return s; };
     let s = ap(rq("state-pages", { sha: "2222222" }));
     const R1 = JSON.parse(rd(path.join(D, "systems.json"))).systems.find(e => e.slug === "system-alpha");
-    c.push(["a state-pages request (the older action name) still applies: the branch's stamp, not yet landed", s.status === 0 && R1.asIs.ref === "feat/9" && R1.asIs.landed === false, js([s.status, s.result, s.error, R1.asIs])]);
+    c.push(["a state-pages request (the older action name) still applies: the branch's stamp", s.status === 0 && R1.asIs.ref === "feat/9" && !("landed" in R1.asIs), js([s.status, s.result, s.error, R1.asIs])]);
     s = ap(rq("state-boards", { sha: "3333333", premerge: true }));
     const R2 = JSON.parse(rd(path.join(D, "systems.json"))).systems.find(e => e.slug === "system-alpha"), S2 = JSON.parse(L.blockText(rd(path.join(D, "index.html")), "state") || "{}");
     c.push(["the pre-merge stamp: the branch at the head named, with no \"not yet landed\", on the registry and the repository state board", s.status === 0 && R2.asIs.ref === "feat/9" && R2.asIs.sha === "3333333" && !("landed" in R2.asIs) && S2.asIs && S2.asIs.sha === "3333333" && !("landed" in S2.asIs) && /^feat\/9 @ 3333333 · /.test(s.stamp || ""), js([s.status, s.result, s.stamp, s.error, R2.asIs, S2.asIs])]);

@@ -943,7 +943,7 @@ function sysCard(s){
   const plan=planned&&(s.plannedBy||{}).issue&&boardOf(s.plannedBy.issue);
   const meta=(planned
     ? [plan?`planned · <a href="${esc(plan)}">its plan</a>`:"planned", ...(partsBoard?[`<a href="${esc(own)}">its built parts' board</a>`]:[]), ...unitsOf(s).map(unitLink), ...((s.plannedBy||{}).placement?[`placement <code>${esc(s.plannedBy.placement)}</code>`]:[])]
-    : [esc(s.version?`v${s.version}`+(s.published&&s.published!==s.version?` (Central ${s.published})`:"")+(s.unreleased?" · unreleased":""):(s.toolchain||"")), s.asIs?`as-is ${esc(s.asIs.ref)} @ ${esc(s.asIs.sha)} · ${s.asIs.landed===false?"not yet landed":when(s.asIs.date)}`:""]).concat(role?[`<b class="role">${esc(role)}</b>`]:[]).filter(Boolean);
+    : [esc(s.version?`v${s.version}`+(s.published&&s.published!==s.version?` (Central ${s.published})`:"")+(s.unreleased?" · unreleased":""):(s.toolchain||"")), s.asIs?`as-is ${esc(s.asIs.ref)} @ ${esc(s.asIs.sha)} · ${when(s.asIs.date)}`:""]).concat(role?[`<b class="role">${esc(role)}</b>`]:[]).filter(Boolean);
   // A built system the repository gives no board yet is a card, not a link (never a dead href="#").
   const tag=linked?"a":"span", href=linked?` href="${esc(own)}"`:"";
   /* an archived system (status "archived": no longer developed) is a solid, faded card with its ⊟ archived tag, never dashed (dashed is planned) */
@@ -1447,8 +1447,8 @@ $("#seq-next").addEventListener("click",()=>gotoStep(seq.cur+1));
 $("#seq-play").addEventListener("click",e=>{ const b=e.currentTarget; if(seq.timer){ clearInterval(seq.timer); seq.timer=null; b.textContent="play"; b.setAttribute("aria-pressed","false"); } else { seq.timer=setInterval(()=>gotoStep(seq.cur+1),1600); b.textContent="pause"; b.setAttribute("aria-pressed","true"); } });
 
 /* ---------- The stamps (state.json) ----------
-   The header's chips: the version (a system board), the as-is stamp ("<ref> @ <sha> · <date>", or "<branch> @ <sha> · not yet landed" while
-   the board shows a feature branch) and, while the panels were written at another commit than the stamp names, "written at <sha>". A chip
+   The header's chips: the version (a system board), the as-is stamp ("<ref> @ <sha> · <date>")
+   and, while the panels were written at another commit than the stamp names, "written at <sha>". A chip
    with nothing to say is removed. The last amendment names an issue, so it is said in the Context Panel, never in the header: the board
    above Context is as-is and names no issue (system/RULES.md §2, §6); its number opens the GitHub issue, its title the issue board
    (linkIssues() resolves it at load). A header chip for it left by an older template is removed. */
@@ -1456,7 +1456,7 @@ function renderState(){
   const S=STATE||{}, a=S.asIs||{}, la=S.lastAmended||{}, w=S.written||{};
   const set=(id,html)=>{ const e=document.getElementById(id); if(!e) return; if(!html){ e.remove(); return; } e.hidden=false; e.innerHTML=html; };
   set("chip-version",S.version?`<span class="ck">version</span> <b>${esc(S.version)}</b>`:"");
-  set("chip-asis",a.sha?`<span class="ck">as-is at</span> <b>${esc(a.ref||"?")} @ ${esc(a.sha)}</b> · ${a.landed===false?"not yet landed":when(a.date)}`:"");
+  set("chip-asis",a.sha?`<span class="ck">as-is at</span> <b>${esc(a.ref||"?")} @ ${esc(a.sha)}</b> · ${when(a.date)}`:"");
   set("chip-written",w.sha&&a.sha&&w.sha!==a.sha?`<span class="ck">written at</span> <b>${esc(w.sha)}</b>`:"");
   const old=document.getElementById("chip-amended"); if(old) old.remove();
   const ctx=document.querySelector("section.context"); let p=document.getElementById("ctx-amended");

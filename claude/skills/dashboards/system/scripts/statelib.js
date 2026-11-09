@@ -3,7 +3,7 @@
 // check-board.js checks with it.
 //
 //   state.json      beside each board, embedded verbatim as <script type="application/json" id="state">: the board's own stamp
-//                   ({slug, version, asIs {ref, sha, date, landed}, lastAmended {issue, title, sha}, written {sha}})
+//                   ({slug, version, asIs {ref, sha, date}, lastAmended {issue, title, sha}, written {sha}})
 //   workspace.dsl   beside each board, embedded as id="dsl": a part is planned while its element carries the Planned tag
 //   systems.json    docs/dashboards/systems.json, embedded as id="systems" in supersystem and repository state boards: a system is
 //                   planned while its entry's status is "planned"
@@ -203,13 +203,13 @@ function setPlannedTag(text, id, planned, add) {
   }
   return lines.join("\n");
 }
-/* The DSL restamped: the header's "// As-is at <repo> <ref> <sha> (<date>…)" line takes the new ref, sha and date (", not yet landed" on a
-   branch), and the old sha in the views' descriptions ("… as built at <sha>.") takes the new one. Returns {text, line} (line: the as-is
+/* The DSL restamped: the header's "// As-is at <repo> <ref> <sha> (<date>…)" line takes the new ref, sha and date, whatever its parentheses
+   held, and the old sha in the views' descriptions ("… as built at <sha>.") takes the new one. Returns {text, line} (line: the as-is
    line was found and rewritten). */
 function restampDsl(text, oldSha, asIs, oldRef) {
   let t = norm(text), line = false;
   const day = String(asIs.date || "").slice(0, 10), rx = x => String(x).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  t = t.replace(/^(\/\/ As-is at \S+ )(\S+) (\S+) \(([^)]*)\)/m, (_, head) => { line = true; return `${head}${asIs.ref} ${asIs.sha} (${day}${asIs.landed === false ? ", not yet landed" : ""})`; });
+  t = t.replace(/^(\/\/ As-is at \S+ )(\S+) (\S+) \(([^)]*)\)/m, (_, head) => { line = true; return `${head}${asIs.ref} ${asIs.sha} (${day})`; });
   if (oldSha && /^[0-9a-f]{7,40}$/.test(oldSha) && oldSha !== asIs.sha) {
     const v = t.search(/^\s*views\s*\{/m), re = new RegExp(`${oldRef ? `(?:${rx(oldRef)} )?` : ""}\\b${oldSha}\\b`, "g");
     if (v >= 0) t = t.slice(0, v) + t.slice(v).replace(re, m => (oldRef && m.startsWith(oldRef + " ") ? asIs.ref + " " : "") + asIs.sha);
@@ -227,7 +227,7 @@ function stateProblems(s) {
   str(s.slug, "slug");
   if (s.version != null && typeof s.version !== "string") p.push("version is neither a string nor null");
   if (!s.asIs || typeof s.asIs !== "object") p.push("asIs is not an object");
-  else { str(s.asIs.ref, "asIs.ref"); str(s.asIs.sha, "asIs.sha"); str(s.asIs.date, "asIs.date"); if (s.asIs.landed != null && typeof s.asIs.landed !== "boolean") p.push("asIs.landed is not true or false"); }
+  else { str(s.asIs.ref, "asIs.ref"); str(s.asIs.sha, "asIs.sha"); str(s.asIs.date, "asIs.date"); }
   if (s.lastAmended != null) {
     if (typeof s.lastAmended !== "object") p.push("lastAmended is not an object");
     else { if (!Number.isInteger(s.lastAmended.issue)) p.push("lastAmended.issue is not an issue number"); ["title", "sha"].forEach(k => { if (s.lastAmended[k] != null && typeof s.lastAmended[k] !== "string") p.push(`lastAmended.${k} is not a string`); }); }
@@ -239,7 +239,7 @@ function stateProblems(s) {
 function stateVsRegistry(s, e, kind) {
   const d = [], a = s.asIs || {}, b = e.asIs || {}, la = s.lastAmended || {}, lb = e.lastAmended || {};
   const cmp = (f, x, y) => { if (JSON.stringify(x == null ? null : x) !== JSON.stringify(y == null ? null : y)) d.push([f, x, y]); };
-  cmp("asIs.ref", a.ref, b.ref); cmp("asIs.sha", a.sha, b.sha); cmp("asIs.date", a.date, b.date); cmp("asIs.landed", a.landed !== false, b.landed !== false);
+  cmp("asIs.ref", a.ref, b.ref); cmp("asIs.sha", a.sha, b.sha); cmp("asIs.date", a.date, b.date);
   cmp("lastAmended.issue", la.issue, lb.issue);
   if (kind === "system") cmp("version", s.version, e.version);
   return d;

@@ -98,7 +98,7 @@ module.exports = function cases29(X) {
       fs.writeFileSync(path.join(tree, "docs", "plans", "9-next-part", "plan.json"), JSON.stringify({ issue: 9, systems: ["system-alpha"] }, null, 2) + "\n");
     };
     let n = 0;
-    const apply = facts => { const f = wr(path.join(sc, `state-req-${++n}.json`), JSON.stringify({ v: 1, action: "plan-board", event: "implementation-stage", github: "acme/widgets", issue: 9, branch: "feat/issue-9-next-part", folder: "docs/plans/9-next-part", facts: { at: "2026-10-25T12:00:00Z", sha: "2222222abcdef0", ...facts } }, null, 2));
+    const apply = facts => { const f = wr(path.join(sc, `state-req-${++n}.json`), JSON.stringify({ v: 1, action: "state-boards", github: "acme/widgets", issue: 9, branch: "feat/issue-9-next-part", folder: "docs/plans/9-next-part", facts: { at: "2026-10-25T12:00:00Z", sha: "2222222abcdef0", ...facts } }, null, 2));
       const r = cp.spawnSync(process.execPath, [AS, "--event", f, "--worktree", tree, "--json"], { encoding: "utf8" }); let s; try { s = JSON.parse((r.stdout || "").trim().split(/\r?\n/).pop()); } catch (e) { s = { result: "unparsed", error: (r.stdout || "") + (r.stderr || "") }; } s.status = r.status; return s; };
     const titles = () => [path.join(A, "state.json"), path.join(D, "state.json")].map(f => (JSON.parse(rd(f)).lastAmended || {}).title);
     const embedded = () => [path.join(A, "index.html"), path.join(D, "index.html")].every(p => L.blockText(rd(p), "state") === rd(path.join(path.dirname(p), "state.json")).trim());

@@ -308,11 +308,11 @@ function stateChecks() {
     if (s) {
       L.stateProblems(s).forEach(p => problems.push(`STATE INVALID: ${p}`));
       const side = path.join(dir, "state.json");
-      if (fs.existsSync(side)) { if (L.norm(fs.readFileSync(side, "utf8")).trim() !== st) problems.push("STATE EMBED DIFFERS: the state block is not state.json beside the board: node embed.js state.json index.html state"); else notes.push(`state: ${s.slug} at ${(s.asIs || {}).ref} @ ${(s.asIs || {}).sha}${(s.asIs || {}).landed === false ? " · not yet landed" : ""}, embedded from state.json`); }
+      if (fs.existsSync(side)) { if (L.norm(fs.readFileSync(side, "utf8")).trim() !== st) problems.push("STATE EMBED DIFFERS: the state block is not state.json beside the board: node embed.js state.json index.html state"); else notes.push(`state: ${s.slug} at ${(s.asIs || {}).ref} @ ${(s.asIs || {}).sha}, embedded from state.json`); }
       else notes.push("state: no state.json beside the board (the template's own sample)");
       const e = R && Array.isArray(R.systems) ? R.systems.find(x => x.slug === s.slug) : null;
       if (R && !e) problems.push(`STATE UNKNOWN SYSTEM: the state names ${JSON.stringify(s.slug)}, which docs/dashboards/systems.json does not list`);
-      else if (e) { const d = L.stateVsRegistry(s, e, kind); d.forEach(([f, a, b]) => problems.push(`STATE DISAGREES WITH REGISTRY: ${f} is ${JSON.stringify(a)} on the board and ${JSON.stringify(b)} in systems.json`)); if (!d.length) notes.push(`state: ${s.slug} at ${(s.asIs || {}).ref} @ ${(s.asIs || {}).sha}${(s.asIs || {}).landed === false ? " (not yet landed)" : ""}, as systems.json has it`); }
+      else if (e) { const d = L.stateVsRegistry(s, e, kind); d.forEach(([f, a, b]) => problems.push(`STATE DISAGREES WITH REGISTRY: ${f} is ${JSON.stringify(a)} on the board and ${JSON.stringify(b)} in systems.json`)); if (!d.length) notes.push(`state: ${s.slug} at ${(s.asIs || {}).ref} @ ${(s.asIs || {}).sha}, as systems.json has it`); }
     }
   }
   /* Built or planned is the code's (system/RULES.md §7, §10): every system the board draws whose code paths the registry records, its
