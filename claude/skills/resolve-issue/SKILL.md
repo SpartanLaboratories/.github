@@ -147,8 +147,7 @@ sub-issues yet is not planned: work it as an ordinary issue, at its level.
   `needs-rework` reply means the base moved under the run's files, or its
   content names the pipeline or a work level: re-verify or reword per the
   skill and resend.
-- **Halts.** When one run stops for the user — a planner halt, an escalation,
-  a `qa` failure, a `version-control-manager` "needs you" item — only what depends on it waits.
+- **Halts.** When one run waits on the user, only what depends on it waits.
   `consecutive` waits at that sub-issue; `concurrent` keeps running every
   sub-issue that does not depend on it and starts nothing it blocks until it
   lands. Ask the user's questions one at a time, each saying which sub-issue
@@ -170,6 +169,22 @@ the level it proposes, and ask the user. On a new level, resume from step 2 at
 that level, carrying forward whatever is still valid (the branch, any plan).
 Never finish bigger work under a smaller level, and never re-level without the
 user. The same applies to the **diff check** in step 4.
+
+## Halted — at any step
+
+A run is **halted** when nothing is being actioned. That is the whole test: no
+kind of wait (a planner halt, a `qa` stop, a `needs-user` reply) halts a run by
+itself.
+
+- One action is being worked on and it waits on the user: nothing is being
+  actioned, so the run is halted.
+- Several lanes of work run in parallel and one item waits on the user: the
+  other lanes are still being actioned, so there is no halt.
+- Those lanes come to a stopping point and only the lane waiting on the user
+  remains: nothing is being actioned, so the run is halted then.
+
+Send the `halted` event when the run becomes halted, not when the wait begins
+(see "Plan-board events" below).
 
 ## 2. Plan — `planner`  (levels 2–4)
 
@@ -431,7 +446,7 @@ sends none.
 | Moment | `event` | Facts |
 |--------|---------|-------|
 | Step 1 sized (the run's first action after sizing) | `sized` | level, baseline sha, the issue's systems if known, the next step |
-| A planner halt, a `needs-user` reply, a qa stop | `halted` | what waits on the user; for every question it puts to the user, in any step, `questions`: each question's text (and its options, if any); then `resumed` with the answer's gist |
+| The run is halted (see "Halted — at any step") | `halted` | what waits on the user; for every question it puts to the user, in any step, `questions`: each question's text (and its options, if any); then `resumed` with the answer's gist |
 | Research questions being drafted (sent by the planner itself) | `research-planning` | `drafted`: questions drafted so far |
 | A research batch spawned (sent by the planner itself) | `research-started` | `researching`: per question, its slug and the board Row ids it bears on (`[]` for none) |
 | A researcher returned (sent by the planner itself) | `research-returned` | `returned`: the question slug and its findings path |
