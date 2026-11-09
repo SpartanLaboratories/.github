@@ -62,9 +62,9 @@ one fenced ```json block:
 | `subIssues` | `file-sub-issues` | The approved list: `[{title, level, blockedBy: [unit numbers], body}]` in landing order. |
 | `body`, `labels` | `comment`, `label` | The comment body (a path to a file, or text); labels to add/remove `{add: [], remove: []}`. |
 | `title`, `body`, `surfacedIn` | `file-issue` | The new issue's title and body (a path to a file, or text): the problem and a proposed fix. `surfacedIn` is the `owner/repo` (with `#n` when an issue was in hand) where the defect was found; the filing direction is judged from it. Optional `labels` `{add: []}`. |
-| `procedure`, `inputs`, `checks` | `push-mirror`, `create-repo`, `repo-settings`, `rename-repo`, `archive-repo`, `repo-visibility`, `repo-security`, `transfer-issue`, `placeholder-issue`, `link-issues`, `edit-issue-body`, `realign-checkout`, `replace-clone` | The plan's procedure for the write (a path to a file, or text); its inputs (paths, ids, expected tallies); the checks it runs and the results they must give. |
+| `procedure`, `inputs`, `checks` | `push-mirror`, `create-repo`, `repo-settings`, `rename-repo`, `archive-repo`, `repo-visibility`, `repo-security`, `transfer-issue`, `placeholder-issue`, `link-issues`, `edit-issue-body`, `realign-checkout`, `replace-clone`, `create-label`, `create-milestone`, `create-issue`, `close-issue`, `reopen-issue`, `fixture-pull-request` | The plan's procedure for the write (a path to a file, or text); its inputs (paths, ids, expected tallies); the checks it runs and the results they must give. |
 | `mirror` | `push-mirror` | Absolute path of the workspace mirror to push from. Forward slashes. |
-| `target` | `push-mirror`, `create-repo`, `repo-settings`, `rename-repo`, `archive-repo`, `repo-visibility`, `repo-security`, `transfer-issue`, `placeholder-issue`, `edit-issue-body`; a request under `permissionReason` for another repository | The `owner/repo` the write applies to; for `transfer-issue`, the repository the issue moves to; for a request under `permissionReason`, the other repository its section's `Scope:` names (`permissionReason`, below). |
+| `target` | `push-mirror`, `create-repo`, `repo-settings`, `rename-repo`, `archive-repo`, `repo-visibility`, `repo-security`, `transfer-issue`, `placeholder-issue`, `edit-issue-body`, `create-label`, `create-milestone`, `create-issue`, `close-issue`, `reopen-issue`, `fixture-pull-request`; a request under `permissionReason` for another repository | The `owner/repo` the write applies to; for `transfer-issue`, the repository the issue moves to; for a request under `permissionReason`, the other repository its section's `Scope:` names (`permissionReason`, below). |
 | `source` | `transfer-issue` | The `owner/repo` the issue moves from; `issue` is its number there. |
 | `newName` | `rename-repo` | The repository's new name. |
 | `settings` | `repo-settings` | The settings to apply. |
@@ -72,6 +72,7 @@ one fenced ```json block:
 | `security` | `repo-security` | The security settings to apply. |
 | `title`, `body`, `number` | `placeholder-issue` | The placeholder's title and body (a path to a file, or text); the number it must land on. |
 | `body` | `edit-issue-body` | The new body of `issue` (a path to a file, or text). |
+| `number` | `close-issue`, `reopen-issue`, `create-issue` | For `close-issue` and `reopen-issue`, the issue to change. For `create-issue`, the first number it makes; the issue bodies are in `inputs.files`. |
 | `relationships` | `link-issues` | `[{op, kind, from, to}]`: `op` is `add` or `remove`, `kind` is `sub-issue` or `blocked-by`, `from` and `to` are `owner/repo#n`. For `sub-issue`, `from` is the parent; for `blocked-by`, `from` is the issue that is blocked. |
 | `notes` | optional | Anything the executor should know, in one line. |
 | `restarted` | optional, any request | `{"reason": "..."}`, set by a session that found its handoff, present and not empty (`~/.claude/CLAUDE.md`), on its first request. A session that takes a run up without a handoff sets none: the team sees the change of session itself. |
@@ -86,7 +87,8 @@ Version control: `setup-branch` · `allocate-worktree` · `commit` · `sync-bran
 `land` · `file-sub-issues` · `file-issue` · `comment` · `label` · `mirror-sync` · `status` · `cancel` ·
 `push-mirror` · `create-repo` · `repo-settings` · `rename-repo` · `archive-repo` · `repo-visibility` ·
 `repo-security` · `transfer-issue` · `placeholder-issue` · `link-issues` · `edit-issue-body` ·
-`realign-checkout` · `replace-clone`
+`realign-checkout` · `replace-clone` · `create-label` · `create-milestone` · `create-issue` ·
+`close-issue` · `reopen-issue` · `fixture-pull-request`
 
 Dashboards (the work boards and the state boards): `plan-board` · `state-boards` · `dashboards-refresh`
 
@@ -144,10 +146,12 @@ existing issue). The sender tells the user what was filed.
 
 **`push-mirror`, `create-repo`, `repo-settings`, `rename-repo`, `archive-repo`, `repo-visibility`,
 `repo-security`, `transfer-issue`, `placeholder-issue`, `link-issues`, `edit-issue-body`,
-`realign-checkout`, `replace-clone`.** Writes a plan specifies step by step. The request carries the
-plan's `procedure`, `inputs` and `checks`; the team carries them out with the organisation
-administrator's GitHub permissions, and the sender verifies each write by reading GitHub or the
-checkout before its next step.
+`realign-checkout`, `replace-clone`, `create-label`, `create-milestone`, `create-issue`,
+`close-issue`, `reopen-issue`, `fixture-pull-request`.** Writes a plan specifies step by step. The
+request carries the plan's `procedure`, `inputs` and `checks`; the team carries them out with the
+organisation administrator's GitHub permissions, and the sender verifies each write by reading
+GitHub or the checkout before its next step. A `fixture-pull-request` is a branch, a commit, the
+pull request and its merge, in the job's own scope.
 
 Publishing has no action: the team raises it itself inside `land` (the release consideration of
 every bump that moved a published module) and at its consideration points (startup, a landing, a
