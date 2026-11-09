@@ -182,5 +182,7 @@ own outputs; it is never committed.
   `(window.PROGRESS=window.PROGRESS||{})["<name>"]={"agent":"<name>","issue":<n>,"started":"<ISO>","at":"<ISO now>","done":"<what you have finished, one short sentence>","left":"<what is still to do, one short sentence>","eta":"<your honest estimate, e.g. ~10 min>"};`
   Keep each text under 200 characters, plain facts, no work level named, no local paths,
   no secrets.
+- **While building a stage whose table names steps,** add `"step":"<step-id>"` to the note,
+  the id of the step you are on, and rewrite the note when you move to the next step.
 - **When you finish,** delete your file, so the board shows only work in progress.
 - Writing it never replaces your report, and a failure to write it is not a reason to stop.

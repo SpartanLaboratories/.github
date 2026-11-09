@@ -47,7 +47,8 @@ that ends a Verdict statement ("§4.2", opening the section's excerpt) is its **
 landed unit's pull request and merge commit on its As built Cell ("PR #89", "merge 8122af7", each
 opening what it names) are its **PR Chip** and **merge Chip**, a figure and its noun in a Cell's head
 or foot (the Gap Cell's "· 2 evidence", the Verdict Cell's "1 step · 0 tests · 2 risks", the figure
-muted at zero) is a **count Label**, and so on (a verdict Pill, an issue Chip, the KPI Tile).
+muted at zero) is a **count Label**, the Chip headed "Now" that holds the run's latest report in the
+step Panel is the **Now Chip**, and so on (a verdict Pill, an issue Chip, the KPI Tile).
 
 Where a template's CSS class names an element's kind it carries the type word, so a reader can tell
 the kind from the markup without the board: `.card`, `.chip`, `.badge`, `.cell`, `.ring`, `.arrow`,
@@ -78,7 +79,7 @@ Each row names a `ui.md` term and says how the boards use it; the term's definit
 | **ShareBar** | the Tiles' Bars, but the Quality Reviews Tile's (a SlotBar) and the Timeline Tile's (a Timeline) |
 | **Timeline** | the Timeline Tile's Bar: one part per timed step visit |
 | **SlotBar** | the Quality Reviews Tile's Bar: one slot per review allowed, filled in order by each review's result |
-| **StepBar** | the WIP strip of an issue board (its progress strip) and of a tracking board, its chevrons labelled with the step names; a tracking issue's chain on the state boards' roadmap and on the repository work board's Rows, one chevron per unit labelled with the unit's name, on a line of its own like the WIP strip |
+| **StepBar** | the WIP strip of an issue board (its progress strip) and of a tracking board, its chevrons labelled with the step names; the research indicator (planning, research, verification) and the plan step's StepBar (plan writing, plan accepted) in the step Panel, their chevrons labelled with those names; a tracking board's own chain on the phase's Card, one chevron per unit labelled with the unit's name, and in the header's chain Chip under its sentence, one chevron per unit labelled with the unit's issue number; a tracking issue's chain on the state boards' roadmap and on the repository work board's Rows, one chevron per unit labelled with the unit's name, on a line of its own like the WIP strip |
 | **Ring** | the research scale on a Considered Cell (§1); whatever is being worked on, while its run waits on the user (§1); the unit up next, a still outer Ring (§1) |
 | **FillPulse** | the live indicator's dot while the view is live and changing (§1, §6) |
 | **FullPulse** | whatever is being worked on (§1); while its run waits on the user, a Ring alone |

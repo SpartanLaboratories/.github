@@ -103,6 +103,13 @@ versioning rules.
    mutability (`val`/`var`, immutable versus mutable collections), and its
    concurrency assumptions.
 5. **Stage it** if the unit is large: ordered, independently landable steps.
+   Every plan with stages carries one Markdown table with the columns `id`,
+   `name`, `brief`, `kind`, `steps`. `id` is the stage's id, as in its heading
+   and the events. `brief` is one line saying what the stage establishes; it
+   goes on the board verbatim, so it names no work level and no internal name.
+   `kind` is `work` (it builds) or `check` (its outcome is a pass or fail:
+   tests, a build, tooling, an action). `steps` is the stage's steps separated
+   by `;`, each `<step-id>` or `<step-id>: <its name>`; empty when it has none.
 6. **Plan the tests** against the 5-level hierarchy — level, package, path, and
    the specific behaviours each test locks down. Call out what genuinely cannot
    be tested automatically.

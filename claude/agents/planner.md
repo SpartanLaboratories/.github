@@ -649,7 +649,8 @@ single-plan ones.
    - **Standards are met** in each plan: file-by-file concreteness, signatures
      carrying their error handling and mutability, the 5-level test plan with
      level *and* path, documentation rings and README currency, version
-     control.
+     control, and, in a plan with stages, the stage table as `plan-writer.md`
+     step 5 requires it.
 
 3. **Fix what you find**, editing the plan documents directly. What you checked
    and changed goes in your report to your caller, not in a document. A shared

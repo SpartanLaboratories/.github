@@ -513,10 +513,10 @@ lane** (below), apart from the repository lanes too.
   already a wait and needs nothing. A gap between events from the same session is never read as a
   break, and there is no threshold. What it does to the board: `plan/RULES.md` §2 and §4.
 - **Issue defects.** When `apply-event.js` or `apply-state.js` prints an `issue defects:`
-  line (an issue title that names a work level), queue a retitle of that issue in its
-  repository's lane, removing the work level, under the executor's standing permission to
-  remove Claude-internal information from GitHub. The boards pick up the new title at their
-  next event.
+  line (an issue title that names a work level), or a presenter report passes one on, queue
+  a retitle of that issue in its repository's lane, removing the work level, under the
+  executor's standing permission to remove Claude-internal information from GitHub. The
+  boards pick up the new title at their next event.
 - **One board-update lane** for the whole machine: every `plan-board` event
   for a board that exists, in arrival order. It never waits on a repository
   lane.
