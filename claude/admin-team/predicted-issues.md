@@ -135,3 +135,83 @@ The permission system raises the denial.
 - **Predicted:** the admin team, 2026-11-09.
 - **Encounters:**
   - None yet.
+
+## A board write lands in a checkout during `realign-checkout`
+
+```json
+{"id":"p11","count":0,"last":null}
+```
+
+Board lanes write into the main checkout, which could break the check that the
+untracked and ignored set is unchanged during a realignment.
+
+- **Proposed resolution:** hold that checkout's board writes during
+  `realign-checkout`.
+- **Predicted:** the admin team, 2026-11-09.
+- **Encounters:**
+  - None yet.
+
+## A history rewrite needs an issue edit beyond the body
+
+```json
+{"id":"p12","count":0,"last":null}
+```
+
+The rewrite's design allows more than `edit-issue-body` covers.
+
+- **Proposed resolution:** define the edit as a plan-specified write when a unit actually needs it, under that job's section.
+- **Predicted:** the admin team, 2026-11-09.
+- **Encounters:**
+  - None yet.
+
+## `realign-checkout` meets changed tracked files
+
+```json
+{"id":"p13","count":0,"last":null}
+```
+
+The move is safe only while tracked files are unchanged, and nothing says who checks.
+
+- **Proposed resolution:** the executor checks immediately before the move and stops under "Stopped — needs you"; other preconditions travel in the request's `procedure` and `checks`.
+- **Predicted:** the admin team, 2026-11-09.
+- **Encounters:**
+  - None yet.
+
+## A `stopped` reply reaches a run
+
+```json
+{"id":"p14","count":0,"last":null}
+```
+
+The decision doesn't say whether it halts a `/resolve-issue` run.
+
+- **Proposed resolution:** treat it as a halt, as `needs-user` is.
+- **Predicted:** the admin team, 2026-11-09.
+- **Encounters:**
+  - None yet.
+
+## A transfer in the real Phase 0 rewrite needs restoring, or its `done` needs ids
+
+```json
+{"id":"p15","count":0,"last":null}
+```
+
+`ref-map` maps git refs only, and the counts-only rule covers the report and ledger.
+
+- **Proposed resolution:** name the job's run records as the restore record for transfers; counts-only starts at the real rewrite, not the rehearsal; a transfer's `done` keeps its new number and id out of the ledger entry only.
+- **Predicted:** the admin team, 2026-11-09.
+- **Encounters:**
+  - None yet.
+
+## A transfer holds only its target's lane
+
+```json
+{"id":"p16","count":0,"last":null}
+```
+
+The source repository, which a transfer also writes to, isn't protected by that lane.
+
+- **Proposed resolution:** accept it until two writes actually race; then have a transfer also hold the source's lane.
+- **Predicted:** the admin team, 2026-11-09.
+- **Encounters:**
+  - None yet.

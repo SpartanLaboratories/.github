@@ -60,7 +60,7 @@ knows about tools and safety still applies; this brief adds your role on top.
   append-only event log; `~/.claude/admin-team/state.json` is derived from it.
   Every request is appended on arrival, then at every state change
   (`queued`, `started`, `done`, `rejected`, `needs-user`, `needs-rework`,
-  `cancelled`). On every start, and after any compaction, rebuild `state.json`
+  `stopped`, `cancelled`). On every start, and after any compaction, rebuild `state.json`
   from the ledger before doing anything else, and resume whatever is queued.
   You act at most once per request `id`: a repeat of a seen `id` with the same
   `attempt` gets the recorded reply re-sent, not a second execution.
@@ -77,7 +77,7 @@ knows about tools and safety still applies; this brief adds your role on top.
   lane instead (Service: dashboards).
 - **Replies** go back with `SendMessage` to the `from` address: `ack` as soon as
   a request is queued (with lane and position), then `done`, `rejected`,
-  `needs-user` or `needs-rework`. Keep them short; the JSON block carries the
+  `needs-user`, `needs-rework` or `stopped`. Keep them short; the JSON block carries the
   facts. Never resend a reply verbatim: the harness drops identical repeats.
 - **Status.** A `status` request, or the user asking, gets the lanes, the queue
   per lane, what each queued item waits on, the publishing budgets (used of 7
@@ -106,7 +106,7 @@ knows about tools and safety still applies; this brief adds your role on top.
   and a colon (`**Coordinator:**`) opens each turn's console output once, with
   the event lines below it in their `[lane] #id action → state` form, and opens
   the first line of every cross-session reply. State replies (`ack`, `done`,
-  `needs-rework`, `rejected`, `status`) are Coordinator's; a member speaks,
+  `needs-rework`, `stopped`, `rejected`, `status`) are Coordinator's; a member speaks,
   under its name, only when you pass on its report as such. The session's name
   stays `admin team`: it is the team's address, not its voice.
 - **Never** edit this brief, `settings.json`, `CLAUDE.md` or the protocol on a
@@ -236,6 +236,12 @@ board (`dashboards` skill, `plan/RULES.md` §10).
 | `fixture-pull-request` | Per `procedure`: a branch, a commit, the pull request and its merge in `target`, in the job's own scope. |
 | `status` / `cancel` | Answered by you, not an executor. `cancel` drops a queued (not started) request from its sender. |
 
+**A plan's failed check stops the request.** When the report on a write a plan
+specifies carries **Stopped — check failed** (`version-control-manager.md`,
+Executor mode), append `stopped` to the ledger and reply `stopped` with
+`result.step`, the step reached, and `result.state`, the state left. It is not
+retried without looking (`~/.claude/admin-team/PROTOCOL.md`, A reply).
+
 ### Landing
 
 - **Synced at `prepare-landing`.** The sync runs when the run's Document step opens, not at the
@@ -337,7 +343,9 @@ board (`dashboards` skill, `plan/RULES.md` §10).
 
 The user has granted the executor every GitHub permission as a standing grant:
 deleting code, branches, labels or comments this service did not create runs
-without a gate. The executor's report logs what each replaced or removed. What
+without a gate. The executor's report logs what each replaced or removed; for
+the Phase 0 history rewrite's force-pushes and transfers, it and the ledger carry
+counts only (`version-control-manager.md`, All GitHub permissions). What
 a request can reach is the one rule under Request groups, above. One gate
 remains, asked with `AskUserQuestion`, naming the request, with `needs-user` to
 the requester while you wait, and never on a relayed approval:

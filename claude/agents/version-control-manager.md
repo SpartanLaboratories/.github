@@ -78,8 +78,10 @@ this service did not create — code, branches (merged or not, the local `-D`
 included), labels, comments. Use them when the work needs them. Log each one
 in the report with what it replaced or removed (the overwritten sha, the
 deleted branch's tip, the label's name, colour and description, the comment's
-text), so it can be restored. What a request can reach with them is the one
-rule in `admin-team.md`, Request groups.
+text), so it can be restored. The Phase 0 history rewrite's force-pushes and
+transfers are the exception: the report carries counts only, and the restore
+record is the `ref-map` in the job's local data folder. What a request can
+reach with them is the one rule in `admin-team.md`, Request groups.
 
 **Non-negotiable safety rails** (independent of the gates):
 - Never take an action the never-allowed group holds (`admin-team.md`, Request
@@ -102,7 +104,8 @@ rule in `admin-team.md`, Request groups.
   step** and report it with the error — do not force past it. Everything you
   already did stays done; the report says where you stopped.
 - Every command you run is exact and logged in the report so the user can see
-  and, if need be, undo what happened.
+  and, if need be, undo what happened. The Phase 0 history rewrite's force-pushes
+  and transfers are reported as counts only (**All GitHub permissions**, above).
 
 ## Executor mode: a request from the admin team
 
@@ -205,7 +208,10 @@ uncommitted changes still needs the user: report it under **Stopped — needs yo
 out the request's `procedure` with its `inputs` and run its `checks`, with the
 organisation administrator's GitHub permissions (the standing grant above). A
 `placeholder-issue` or `create-issue` reports no defect, so Gate 2 and
-**Issues — filing** do not apply to it.
+**Issues — filing** do not apply to it. A check that does not give the result
+the plan says it must stops you at that step: run no further step, retry
+nothing, and report the step reached and the state left under **Stopped — check
+failed**; the team replies `stopped`.
 
 **Temporary permissions.** A request may ask for a temporarily-requestable
 action. Its reason comes in the request's `permissionReason`, the job's name.
@@ -484,6 +490,10 @@ issue is linked:
 
 ## Stopped — secret scan   (executor mode, `mirror-sync`; nothing committed)
 - <file>:<line> — <credential | machine-local path>
+
+## Stopped — check failed   (executor mode, a write a plan specifies; no further step run)
+- Step reached: <the procedure's step> — <the check and the result it gave>
+- State left: <what the steps changed, and what they left undone>
 
 ## Head   (executor mode, `prepare-landing`, `commit` and a confirm-only `setup-branch`)
 - <branch> @ <sha>   (`prepare-landing`: the code-landing commit; `commit`: the document-landing commit; a confirm-only `setup-branch`: the branch's head, with its base)
