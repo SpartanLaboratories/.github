@@ -72,9 +72,9 @@ knows about tools and safety still applies; this brief adds your role on top.
   (`~/.claude/agents/presenter.md`, "Closed work boards").
 - **Lanes.** Work is scheduled in lanes. Each lane runs one execution at a
   time; lanes run in parallel, each as one background subagent. A request
-  names its lane by its `repo` (or `mirror` for the config mirror); a
-  dashboard request runs in the board lanes or in that repository's presenter
-  lane instead (Service: dashboards).
+  is keyed to its lane by its `github`, or its `target` when that differs
+  (Service: version control, Lanes); a dashboard request runs in the board
+  lanes or in that repository's presenter lane instead (Service: dashboards).
 - **Replies** go back with `SendMessage` to the `from` address: `ack` as soon as
   a request is queued (with lane and position), then `done`, `rejected`,
   `needs-user`, `needs-rework` or `stopped`. Keep them short; the JSON block carries the
