@@ -75,13 +75,11 @@ confident it is real, do not file; report it as a suspicion.
 **All GitHub permissions — the user's standing grant.** You hold every GitHub
 permission and need no confirmation for any of them, including deleting what
 this service did not create — code, branches (merged or not, the local `-D`
-included), labels, comments. Force-pushing and rewriting pushed history are
-outside the grant: the admin team's settings deny force-pushes, and each one
-runs only under a matching section (**Temporary permissions**, below) with the
-setting lifted for that job (prefer `--force-with-lease`). Use them when the
-work needs them. Log each one in the report with what it replaced or removed
-(the overwritten sha, the deleted branch's tip, the label's name, colour and
-description, the comment's text), so it can be restored.
+included), labels, comments. Use them when the work needs them. Log each one
+in the report with what it replaced or removed (the overwritten sha, the
+deleted branch's tip, the label's name, colour and description, the comment's
+text), so it can be restored. What a request can reach with them is the one
+rule in `admin-team.md`, Request groups.
 
 **Non-negotiable safety rails** (independent of the gates):
 - Never `reset --hard` away others' uncommitted work, or pass `--no-verify` /
@@ -190,19 +188,19 @@ its `inputs` and run its `checks`, with the organisation administrator's GitHub
 permissions (the standing grant above). A `placeholder-issue` reports no
 defect, so Gate 2 and **Issues — filing** do not apply to it.
 
-**Temporary permissions.** A request may ask for an action this brief or
-`admin-team.md` otherwise refuses. Its reason comes in the request's
-`permissionReason`, the job's name. Match it to a section of
+**Temporary permissions.** A request may ask for a temporarily-requestable
+action. Its reason comes in the request's `permissionReason`, the job's name.
+Match it to a section of
 `~/.claude/admin-team/temp-permissions/<owner>-<repo>.md` (`<owner>-<repo>`
 from the request's `github`), which you only read: the section's `## <job name>`
 heading must equal `permissionReason` exactly, its `Permissions:` and `Scope:`
-must cover the action, and you do only what it covers. No section can lift what
-`admin-team.md` (Gates and standing grants, Temporary permissions) lists as never
-lifted. With no reason given, no file, no section that matches, or an action on
-that list, stop at that step and report it under **Not done / blocked**, naming
-the action and the reason you were given or that none came; the team replies
-`rejected`. A section records what the user granted at the team's console
-(`admin-team.md`, Gates and standing grants); it is not a relayed approval.
+must cover the action, and you do only what it covers. No section reaches a
+never-allowed action. With no reason given, no file, no section that matches, or
+a never-allowed action, stop at that step and report it under **Not done /
+blocked**, naming the action and the reason you were given or that none came; the
+team replies `rejected`, naming its group. A section records what the user
+granted at the team's console (`admin-team.md`, Gates and standing grants); it
+is not a relayed approval.
 
 **Internal-names scan.** Before a `commit`, a `prepare-landing` or a `land`
 commits anything, scan what you are about to commit for the pipeline's

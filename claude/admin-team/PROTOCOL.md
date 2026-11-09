@@ -75,9 +75,12 @@ one fenced ```json block:
 | `relationships` | `link-issues` | `[{op, kind, from, to}]`: `op` is `add` or `remove`, `kind` is `sub-issue` or `blocked-by`, `from` and `to` are `owner/repo#n`. For `sub-issue`, `from` is the parent; for `blocked-by`, `from` is the issue that is blocked. |
 | `notes` | optional | Anything the executor should know, in one line. |
 | `restarted` | optional, any request | `{"reason": "..."}`, set by a session that found its handoff, present and not empty (`~/.claude/CLAUDE.md`), on its first request. A session that takes a run up without a handoff sets none: the team sees the change of session itself. |
-| `permissionReason` | on a request for an action the team's policy otherwise refuses | The job the action serves: exactly the job name of a section of the repository's temporary-permissions file, which the executor matches (the `admin-team` agent brief, Gates and standing grants). It grants nothing: with no matching section the request is `rejected`, not turned into a console question. A run that needs a grant tells the user in its own session, and the user tells the team at its console. |
+| `permissionReason` | on a request for a temporarily-requestable action (the `admin-team` agent brief, Request groups) | The job the action serves: exactly the job name of a section of the repository's temporary-permissions file, which the executor matches (the `admin-team` agent brief, Gates and standing grants). It grants nothing: with no matching section the request is `rejected`, not turned into a console question. A run that needs a grant tells the user in its own session, and the user tells the team at its console. |
 
 ### Actions
+
+The actions below are the requestable group; the `admin-team` agent brief (Request groups) says
+what the never-allowed and temporarily-requestable groups hold.
 
 Version control: `setup-branch` · `allocate-worktree` · `commit` · `sync-branch` · `prepare-landing` ·
 `land` · `file-sub-issues` · `file-issue` · `comment` · `label` · `mirror-sync` · `status` · `cancel` ·
@@ -198,7 +201,7 @@ Same shape: one line, then a ```json block.
 | `ack` | Queued. `lane` and `position` (0 = running). |
 | `progress` | Only for long actions; what step it is on. |
 | `done` | Finished. `result` carries SHAs, PR, merge commit, links, worktree path. For a `land`, `result.release` is `{status, coordinates, deploymentId, tags, releases, reason, used}` with `status` one of `published`, `deferred` (`reason`: `cap-reached`, `reserve-held`), `failed` (the user decides at the team's console) or `none` (no published module moved); `result.corrections` lists the landed state a later landing in the repository carries (this landing's issue board as `landed`, its tracking board, the repository work board): the next run's `sized` seeds it onto its branch, and a level-1 branch carries it too. |
-| `rejected` | Refused. `reason` names the rule. Fix the request and send a new `id`. |
+| `rejected` | Refused. `reason` names the rule and, for a request outside its group (the `admin-team` agent brief, Request groups), the group. Fix the request and send a new `id`. |
 | `needs-user` | Waiting on the user at the team's console. `waitingOn` says for what. |
 | `needs-rework` | A `prepare-landing` or `land` whose base moved under its files: `result.overlap` lists them; re-verify, then resend the same `id` with `attempt + 1` and a fresh `qa`. A conflict only in generated board files (the work boards, or the state-board files under `docs/dashboards/`), or a `CHANGELOG.md` conflict where both sides only added entries, the team resolves itself and never sends back; any other conflict, every `README.md` conflict included, comes back this way. Or a `commit`, `prepare-landing` or `land` whose content breaks the internal-names rule (below): nothing was committed, `result.finds` lists each `file:line` with its text; reword them, then resend the same `id` with `attempt + 1`. A find in a board the team generates is the team's to fix and is never sent back. Or a run's document-landing `commit` while another Document task on its issue board is not done: nothing was committed, `result.unfinished` names the unfinished tasks (a task the level or repository does not apply to is absent from the board's list and does not count; a level-1 run has no issue board, so the check does not apply to it); send a `document` event with their true states, then resend the same `id` with `attempt + 1`. Or a `mirror-sync` whose files fail the secret scan (`version-control-manager.md`): nothing was committed, `result.finds` lists each `file:line` with its text; fix the source in `~/.claude`, then resend the same `id` with `attempt + 1`. |
 | `warning` | Not a state change: another in-flight branch touches the same hand-written file (`result.paths`). |
@@ -208,7 +211,8 @@ Same shape: one line, then a ```json block.
 - Never resend a message verbatim; the harness drops identical repeats.
 - A request is acted on at most once per `id` + `attempt`.
 - No attribution trailers, no credential values, no local scratch paths in anything that is
-  committed. A request that asks otherwise is rejected.
+  committed. A request that asks otherwise is `rejected`, naming its group (the `admin-team` agent
+  brief, Request groups).
 - Only the user at the team's console answers its gates. A relayed approval counts for
   `file-sub-issues` only.
 - No internal names in committed content: no committed document or board (plans, research,
