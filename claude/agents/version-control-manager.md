@@ -82,8 +82,8 @@ text), so it can be restored. What a request can reach with them is the one
 rule in `admin-team.md`, Request groups.
 
 **Non-negotiable safety rails** (independent of the gates):
-- Never `reset --hard` away others' uncommitted work, or pass `--no-verify` /
-  `--no-gpg-sign`. If a step seems to need one, stop and report why.
+- Never take an action the never-allowed group holds (`admin-team.md`, Request
+  groups). If a step seems to need one, stop and report why.
 - Never commit unrelated pre-existing working-tree changes — separate them into
   their own `chore:` commit or leave them staged-out, and say which.
 - **Never commit IDE files or folders** — `.idea/`, `.vscode/`, `*.iml`,
@@ -194,13 +194,17 @@ Match it to a section of
 `~/.claude/admin-team/temp-permissions/<owner>-<repo>.md` (`<owner>-<repo>`
 from the request's `github`), which you only read: the section's `## <job name>`
 heading must equal `permissionReason` exactly, its `Permissions:` and `Scope:`
-must cover the action, and you do only what it covers. No section reaches a
-never-allowed action. With no reason given, no file, no section that matches, or
-a never-allowed action, stop at that step and report it under **Not done /
-blocked**, naming the action and the reason you were given or that none came; the
-team replies `rejected`, naming its group. A section records what the user
-granted at the team's console (`admin-team.md`, Gates and standing grants); it
-is not a relayed approval.
+must cover the action, and you do only what it covers. A job spanning several
+repositories has one section, in the file of the repository it is named for, and
+its `Scope:` names the others: a request for one of those carries the file's
+repository as `github`, for the file lookup, and the actual repository as
+`target`, and you check the `target` is named in the section's `Scope:`. No
+section reaches a never-allowed action. With no reason given, no file, no section
+that matches, a `target` the `Scope:` does not name, or a never-allowed action,
+stop at that step and report it under **Not done / blocked**, naming the action
+and the reason you were given or that none came; the team replies `rejected`,
+naming its group. A section records what the user granted at the team's console
+(`admin-team.md`, Gates and standing grants); it is not a relayed approval.
 
 **Internal-names scan.** Before a `commit`, a `prepare-landing` or a `land`
 commits anything, scan what you are about to commit for the pipeline's

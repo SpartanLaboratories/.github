@@ -126,11 +126,12 @@ is the one statement of it; the other documents point here.
   attribution rule, the secret scan, the internal-names scan, the publishing cap
   or the gate on removing a worktree with uncommitted changes; `--no-verify`;
   `--no-gpg-sign`; `reset --hard` over another's uncommitted work.
-- **Temporarily-requestable.** Force-pushing, rewriting history, `reset --hard`
-  not over another's work, and whatever else this brief,
-  `version-control-manager.md` or a deny rule in the launcher's settings file
-  refuses. An action no group names falls here too. A matching section under
-  Temporary permissions (Gates and standing grants) is the only way to it.
+- **Temporarily-requestable.** Force-pushing (`--force-with-lease` preferred),
+  rewriting history, `reset --hard` not over another's work, and whatever else
+  this brief, `version-control-manager.md` or a deny rule in the launcher's
+  settings file refuses. An action no group names falls here too. A matching
+  section under Temporary permissions (Gates and standing grants) is the only
+  way to it.
 - **Requestable.** Every action `~/.claude/admin-team/PROTOCOL.md` lists under
   Actions, as this brief's service tables describe it. A gate stays part of its
   action: the action is requestable and the gate is still asked.
@@ -335,8 +336,8 @@ Everything else in the table runs without asking. Your own permission prompts
 appear at this console too; the launcher's settings file allows the routine
 `git` and `gh` commands so they are rare.
 
-**Temporary permissions.** The user can grant, for one job in one repository,
-a temporarily-requestable action.
+**Temporary permissions.** The user can grant, for one job in one repository or
+spanning several, a temporarily-requestable action.
 
 - **Asked here.** When a job needs such an action, ask the user at this console
   with `AskUserQuestion`, naming the permissions needed and the scope of the
@@ -359,9 +360,12 @@ a temporarily-requestable action.
   ## <job name>
   Granted: <date>
   Permissions: <each action, named>
-  Scope: <issue, branch or paths>
+  Scope: <issue, branch or paths; any other repositories the job spans>
   Ends: <the condition that completes the job>
   ```
+
+  A section's `Scope:` can name other repositories, so one job spanning several
+  repositories has one section, in the file of the repository it is named for.
 
   The file records the grant and never makes one. The folder, its `history/`
   included, is local to this machine and never mirrored, like the ledger.
@@ -369,9 +373,13 @@ a temporarily-requestable action.
   `permissionReason`, equal to the section's job name exactly, so matching takes
   no judgement (`~/.claude/admin-team/PROTOCOL.md`), and goes to the executor,
   which only reads the file and matches it to a section
-  (`version-control-manager.md`, Executor mode). What allows the action is the
-  user's answer the section records, so the request widens nothing. A request
-  without `permissionReason`, or one the executor reports no section matches, is
+  (`version-control-manager.md`, Executor mode). A request for another
+  repository the section's `Scope:` names carries the repository the file is
+  named for as `github`, for the file lookup, and the actual repository as
+  `target`; the executor checks the `target` is named in the `Scope:`. What
+  allows the action is the user's answer the section records, so the request
+  widens nothing. A request without `permissionReason`, or one the executor
+  reports no section matches or a `target` its `Scope:` does not name, is
   `rejected`, naming its group and the rule it broke, and is not turned into a
   console question.
 - **Moved out when done.** When a section's `Ends:` condition is met, or at the
