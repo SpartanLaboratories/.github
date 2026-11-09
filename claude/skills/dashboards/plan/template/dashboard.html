@@ -148,15 +148,6 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .wip-detail{margin:6px 0 4px;font-size:13px;color:var(--ink);max-width:110ch}
 .wip-wait{margin:6px 0 4px;font-size:13px;color:var(--ink);font-weight:600}
 .wip-sub{font:700 10.5px var(--mono);letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin:8px 0 2px}
-.steps{list-style:none;margin:4px 0 2px;padding:0;display:flex;flex-wrap:wrap;gap:6px 0;align-items:center}
-.steps li{display:inline-flex;align-items:center;font:11.5px var(--mono);color:var(--ink-2);white-space:nowrap}
-.steps li+li::before{content:"";display:inline-block;width:16px;border-top:2px solid var(--ink-2);margin:0 4px}
-.steps li.todo+li::before,.steps li.cur+li.todo::before{border-top-style:dashed;border-top-color:var(--muted)}
-.steps .dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;flex:none;background:var(--ink-2);border:2px solid var(--ink-2)}
-.steps li.todo{color:var(--muted)}
-.steps li.todo .dot{background:none;border:2px dashed var(--muted)}
-.steps li.cur{color:var(--ink);font-weight:700}
-.steps li.cur .dot{background:var(--accent);border-color:var(--accent)}
 /* The StepBar (nomenclature/ui.md, StepBar; dashboards-skill/54): the steps of a sequence in order, each a chevron with its name inside,
    done, current or to come. An ordered list, the current step aria-current="step", each step's state said in words to a screen reader
    (.sb-st). It stands on a line of its own and wraps inside itself at phone width, never widening the board; a long name wraps inside its
@@ -220,8 +211,6 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .wipcard-t a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}
 .wipcard-t a:hover{border-bottom-color:var(--ink)}
 .wipcard .wip-sub{margin-top:10px}
-.wipcard .chip-bar{display:block;height:5px;margin:4px 0 6px;border-radius:3px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;max-width:420px}
-.wipcard .chip-bar i{display:block;height:100%;background:var(--good)}
 .wipcard .run{margin-top:2px}
 .wipcard.wait ul{margin:4px 0 0;padding-left:18px;font-size:13px;color:var(--ink)}
 .wipcard.wait li{margin:4px 0}
@@ -231,7 +220,6 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .wip.wipcards>.legend{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-top:8px}
 .run{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font:11px var(--mono);color:var(--muted)}
 .inspector .run{margin:0 0 4px}
-.inspector .steps{margin:6px 0 4px}
 .inspector .stepbar{margin:6px 0 4px}
 /* An issue board's strip and its step panel (plan/RULES.md §3, "The step panel"): the strip on the left half, the panel breaking the
    current step down on the right; one column below 940 px. The legend runs under both. A board that has landed or was cancelled
@@ -251,7 +239,6 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .sp p.sp-sum{color:var(--ink);font-weight:600}
 .sp p.sp-wait{color:var(--ink);font-weight:600}
 .sp a{text-decoration:none;border-bottom:1px solid var(--line)}
-.sp .steps{margin:6px 0 4px}
 .sp .stepbar{margin:6px 0 4px}
 .sp-list{list-style:none;margin:6px 0 2px;padding:0;display:grid;gap:4px}
 .sp-list>li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 8px;align-items:baseline;padding:4px 0;border-top:1px solid var(--hair);min-width:0}
@@ -267,6 +254,58 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .sp-opts{margin:3px 0 0;padding-left:16px;font-weight:400;color:var(--ink-2)}
 /* the questions a halt put to you, in the panel of the step it halted in (plan/RULES.md §3, wip.asked) */
 .sp-asked{margin:6px 0 8px}
+/* the stage list of the WIP Panel, the collapsing items of the step Panel (plan/RULES.md §3, "The stage list", "Collapsing"), the Now Chip */
+.stg-strip{margin-top:10px;padding-top:2px;border-top:1px solid var(--hair)}
+.stg-rows{list-style:none;margin:5px 0 0;padding:0;display:grid;gap:0}
+.stg-row{display:grid;grid-template-columns:2.2em minmax(0,1fr) auto;gap:1px 8px;align-items:baseline;padding:5px 8px;border-top:1px solid var(--hair);border-radius:0;min-width:0;cursor:pointer}
+.stg-row:first-child{border-top:0}
+.stg-row:not(.fullpulse):hover{background:var(--surface-2)}
+.stg-row.cur{border-top-color:transparent;border-radius:5px}
+.stg-row.cur+.stg-row{border-top-color:transparent}
+.stg-row .id{font:700 12px var(--mono);color:var(--ink)}
+.stg-open{appearance:none;background:none;border:0;padding:0;margin:0;font:600 13px/1.35 var(--sans);text-align:left;color:var(--ink);cursor:pointer;min-width:0;overflow-wrap:anywhere}
+.stg-open:focus-visible{outline:2px solid var(--focus);outline-offset:1px;border-radius:2px}
+.stg-row .br{grid-column:2/-1;font-size:12px;line-height:1.35;color:var(--ink-2);overflow-wrap:anywhere;min-width:0}
+.stg-row .br code{font-size:11px}
+.stg-row.todo .id,.stg-row.todo .stg-open{color:var(--ink-2)}
+.stg-list>li{display:block;padding:0}
+.stg-s{display:flex;align-items:center;gap:8px;padding:6px 2px;border-radius:3px;min-width:0}
+summary.stg-s{list-style:none;cursor:pointer}
+summary.stg-s::-webkit-details-marker{display:none}
+summary.stg-s:hover{background:var(--surface-2)}
+summary.stg-s:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.stg-s .id{font:700 12px var(--mono);color:var(--ink)}
+.stg-s .nm{flex:1 1 auto;color:var(--ink);min-width:0;overflow-wrap:anywhere}
+.stg-list li.todo>details>.stg-s .nm,.stg-list li.todo>details>.stg-s .id,.stg-list li.todo>.stg-s .nm,.stg-list li.todo>.stg-s .id{color:var(--ink-2)}
+.stg-list li.cur>details>.stg-s .nm,.stg-list li.cur>.stg-s .nm{font-weight:600}
+.stg-s .ct{font:11px var(--mono);color:var(--muted);white-space:nowrap}
+.stg-s .chev{flex:none;width:1em;text-align:center;font:11px/1 var(--mono);color:var(--muted);transition:transform .12s;display:inline-block}
+.stg-d[open]>summary .chev{transform:rotate(90deg)}
+.stg-b{padding:2px 2px 9px 28px;font-size:12.5px;color:var(--ink-2)}
+.stg-b p{margin:2px 0 6px}
+.stg-b .wip-facts{margin:6px 0 0}
+.stg-h{font:700 10.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:7px 0 3px}
+.stg-h .verdict-pill{text-transform:none;letter-spacing:.02em;margin-left:6px}
+.stg-rl{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.stg-rl>li{min-width:0}
+.stg-rl .rn{color:var(--ink);overflow-wrap:anywhere}
+.sp .stg-rl small{display:block;font:11.5px/1.35 var(--sans);color:var(--ink-2);margin-top:1px;overflow-wrap:anywhere}
+.stg-steps{list-style:none;margin:2px 0 6px;padding:0;display:grid;gap:3px}
+.stg-steps>li{display:flex;align-items:center;gap:7px;min-width:0;font-size:12.5px;color:var(--ink-2)}
+.stg-steps>li .q{min-width:0;overflow-wrap:anywhere}
+.stg-steps .sdot{flex:none;width:9px;height:9px;border-radius:50%;background:var(--ink-2);border:2px solid var(--ink-2)}
+.stg-steps>li.todo .sdot{background:none;border:2px dashed var(--muted)}
+.stg-steps>li.unk .sdot{background:none;border:1px solid var(--line)}
+.stg-steps>li.cur{color:var(--ink);font-weight:600}
+.stg-steps>li.cur .sdot{background:var(--accent);border-color:var(--accent);animation:dot-fullpulse 2s ease-in-out infinite}
+.sp.sp-held .stg-steps>li.cur .sdot{animation:none;box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
+@media (prefers-reduced-motion:reduce){.stg-steps>li.cur .sdot{animation:none}}
+.sp-now{margin:6px 0 8px}
+.chip.now{display:block;font:13px/1.4 var(--sans);color:var(--ink);padding:6px 9px}
+.chip.now .ck{margin-right:6px}
+.legend .chip.now{display:inline-block;padding:2px 6px;font-size:10px}
+@media (prefers-reduced-motion:reduce){.stg-s .chev{transition:none}}
+@media (max-width:520px){.stg-s .ct{display:none}.stg-b{padding-left:6px}}
 .wipcard.wait li .wq{margin:3px 0 0;padding-left:16px;font-size:12.5px;color:var(--ink-2)}
 .sp-opts li{margin:1px 0}
 .sp.sp-held .sp-list li.cur .dot{animation:none;box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
@@ -287,7 +326,12 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .sp-back:hover{background:var(--surface-2)}
 .sp.past{border-left-color:var(--ink)}
 .sp-visit+.sp-visit{border-top:1px solid var(--line);margin-top:10px;padding-top:8px}
-.sp-visit>h4{font:700 10.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+.sp-visit h4{font:700 10.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+details.sp-visit>summary h4{margin:0;flex:none}
+details.sp-visit>summary .nm{font-size:12.5px;color:var(--ink-2)}
+.sp-vb{padding:2px 0 4px}
+.stg-row.static{cursor:default}
+.stg-row .stg-nm{font:600 13px/1.35 var(--sans);color:var(--ink);min-width:0;overflow-wrap:anywhere}
 .wipmain.landed{border-left-color:var(--good)}
 @media (prefers-reduced-motion:reduce){.sp-list li.cur .dot{animation:none!important;box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent),0 0 8px 3px color-mix(in srgb,var(--accent) 45%,transparent)}}
 
@@ -302,17 +346,13 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 @keyframes dot-fullpulse{0%,100%{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}50%{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent),0 0 10px 5px color-mix(in srgb,var(--accent) 55%,transparent)}}
 .fullpulse{animation:fullpulse 2s ease-in-out infinite;background-color:color-mix(in srgb,var(--accent) 7%,var(--surface))}
 .col-fullpulse{animation:col-fullpulse 2s ease-in-out infinite;background-color:color-mix(in srgb,var(--accent) 4%,var(--surface))}
-.steps li.cur.fullpulse,.steps li.cur.held{animation:none;box-shadow:none;background:none}
-.steps li.cur.fullpulse .dot{animation:dot-fullpulse 2s ease-in-out infinite}
 .held{box-shadow:inset 0 0 0 2px var(--accent)}
-.steps li.cur.held .dot{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
 .upnext-ring{box-shadow:0 0 0 1.5px color-mix(in srgb,var(--accent) 70%,transparent),0 0 12px 3px color-mix(in srgb,var(--accent) 32%,transparent)}
 .tag-next{display:inline-block;font:700 9.5px/1 var(--mono);letter-spacing:.08em;padding:3px 5px;border-radius:3px;border:1px solid var(--accent);color:var(--accent);background:var(--surface);white-space:nowrap}
 @media (prefers-reduced-motion:reduce){
-  .fullpulse,.col-fullpulse,.steps li.cur.fullpulse .dot{animation:none!important}
+  .fullpulse,.col-fullpulse{animation:none!important}
   .fullpulse{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 14px 4px color-mix(in srgb,var(--accent) 40%,transparent)}
-  .col-fullpulse{box-shadow:inset 0 0 0 1.5px var(--accent),inset 0 0 9px 2px color-mix(in srgb,var(--accent) 26%,transparent)}
-  .steps li.cur.fullpulse .dot{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent),0 0 8px 3px color-mix(in srgb,var(--accent) 45%,transparent)}}
+  .col-fullpulse{box-shadow:inset 0 0 0 1.5px var(--accent),inset 0 0 9px 2px color-mix(in srgb,var(--accent) 26%,transparent)}}
 /* The StepBar's marks (dashboards-skill/54; GUIDANCE.md §1): the current step at work carries the FullPulse, its edge the solid accent
    Ring and its fill the accent wash breathing; while its run waits on you, the Ring alone, still (.held); under reduced motion the wash
    holds at its middle strength. A finished step on the progress strip is a button showing it in the step panel; the one shown is ringed
@@ -507,7 +547,6 @@ a.more:hover{text-decoration:underline}
 .legend i.wait{border-color:var(--warning);background:color-mix(in srgb,var(--warning) 25%,var(--surface))}
 .legend i.runbar{width:4px;height:14px;border:0;border-radius:0;background:var(--accent)}
 .legend i.runbar.halt{background:var(--warning)}
-.legend i.bar{height:6px;border:1px solid var(--line);background:linear-gradient(90deg,var(--good) 55%,var(--surface-2) 55%)}
 .legend .verdict-pill,.legend .badge{align-self:center}
 
 /* status pills: the colour is the left bar and a tint; the glyph and the word carry the meaning (never colour alone) */
@@ -1346,12 +1385,15 @@ function optDef(r,o){ const s=o.verdict==="deferred"?settlement(r,o):null; const
 let SYSTEMS=[];
 const sysOf=slug=>SYSTEMS.find(s=>s.slug===slug);
 /* an archived system holds no slot (GUIDANCE.md §1): neutral, whatever an entry written before it was archived records */
-const sysLit=s=>!!s&&s.status!=="archived"&&s.slot>=1&&s.slot<=12;
-function sysColour(slug){ const s=sysOf(slug); return sysLit(s)?`var(--sys-${s.slot})`:"var(--muted)"; }
+/* a system named Internal Tooling, and every system under it (top names it), takes no slot and is drawn in the plain ink (GUIDANCE.md §1; palette.js isPlainName()) */
+const sysPlain=s=>!!s&&s.status!=="archived"&&/^internal tooling$/i.test(String(s.top||s.name||"").trim());
+const sysLit=s=>sysPlain(s)||(!!s&&s.status!=="archived"&&s.slot>=1&&s.slot<=12);
+const sysK=s=>sysPlain(s)?"plain":s.slot;
+function sysColour(slug){ const s=sysOf(slug); return sysPlain(s)?"var(--ink)":sysLit(s)?`var(--sys-${s.slot})`:"var(--muted)"; }
 const sysName=slug=>{ const s=sysOf(slug); return s?s.name:(slug||"—"); };
 function paint(root){ (root||document).querySelectorAll("[data-sys]").forEach(e=>{ e.style.setProperty("--c",sysColour(e.dataset.sys)); const s=sysOf(e.dataset.sys); e.classList.toggle("sys-archived",!!s&&s.status==="archived"); }); }
 /* Legend: one entry per colour group present (a system's parts share their top-level system's slot). */
-function sysKey(slugs,cls){ const seen=new Map(); slugs.forEach(sl=>{ const s=sysOf(sl)||{slug:sl,name:sl}; const arch=s.status==="archived", k=sysLit(s)?"s"+s.slot:arch?"a":"n"; const nm=sysLit(s)?(s.top||s.name):arch?`${s.name} (⊟ archived)`:`${s.name} (no system colour)`; if(!seen.has(k)) seen.set(k,{c:sysColour(sl),names:new Set()}); seen.get(k).names.add(nm); });
+function sysKey(slugs,cls){ const seen=new Map(); slugs.forEach(sl=>{ const s=sysOf(sl)||{slug:sl,name:sl}; const arch=s.status==="archived", k=sysLit(s)?"s"+sysK(s):arch?"a":"n"; const nm=sysLit(s)?(s.top||s.name):arch?`${s.name} (⊟ archived)`:`${s.name} (no system colour)`; if(!seen.has(k)) seen.set(k,{c:sysColour(sl),names:new Set()}); seen.get(k).names.add(nm); });
   return [...seen.values()].map(v=>`<span><i class="${cls||"sbar"}" style="--c:${v.c}"></i>${esc([...v.names].join(", "))}</span>`).join(""); }
 
 /* ---------- Work in progress: the glowing cells ----------
@@ -1471,7 +1513,6 @@ function researchFact(w){ const qs=questionsOf(w), R=w&&w.research;
 const OPEN_PT={g:"!",label:"open",cls:"warning"};
 const KEY_OPEN=`<span>${pill(OPEN_PT)} an open point raised during the run, not resolved yet</span>`;
 const IV={answered:{g:"✓",label:"answered",cls:"neutral"},waiting:{g:"?",label:"waiting on you",cls:"warning"}};
-const STAGE_DOT={done:"done",current:"cur",todo:"todo"};
 const OWN_PANEL_STEPS=["document","landing","state-boards","merge","sub-issues","boards"];
 const NEXT_STEP={qa:`${STEP_NAME.document}, or a Correction or Resolution if the ${REVIEW} requests changes`,remediation:`${PASS_NAME}: the next ${REVIEW}`,document:STEP_NAME.landing,landing:STEP_NAME.merge,"state-boards":STEP_NAME.merge,"merge":STEP_NAME.landed,"boards":`${STEP_NAME.landing}: the tracking plan's own`};
 /* A tracking board's own step after its plan's merge (plan/RULES.md §3): "sub-issues", each unit being filed as a sub-issue; on an older board also
@@ -1524,7 +1565,7 @@ const waitingQs=R=>{ const S=R&&R.step==="halted"?R.resume:null; if(!S) return [
    other step by its name, "Implementation", "Architecture", never its id (dashboards-skill/51, dated 51) */
 const resumeAt=(s,c)=>haltLabel(s,c);
 const PANEL={
-  sizing:R=>`<p>The issue is being sized: its systems and how much planning it takes.</p>${R.detail?`<p>${rich(R.detail)}</p>`:""}`,
+  sizing:R=>`<p>The issue is being sized: its systems and how much planning it takes.</p>`,
   interview:(R,o,keys)=>{ const iv=Array.isArray(R.interview)?R.interview.filter(q=>q&&q.text):[];
     if(!iv.length) return `<p>No interview question recorded yet.</p>`;
     return questionsHtml(iv,keys,"interview"); },
@@ -1544,17 +1585,14 @@ const PANEL={
   architecture:(R,o)=>`<p>The architecture weighs the options and decomposes the work into its units; the step ends at its sign-off.</p>${o.options!=null?`<p class="sp-sum">${o.options} option${o.options===1?"":"s"} weighed so far</p>`:""}`,
   plan:(R,o,keys)=>{ const P=R.plan||{}, V=R.verdicts, re=P.state==="re-pass";
     const first=re?`re-pass ${P.from==="qa"?`after ${esc(passName(P.pass||"?"))}`:P.from==="parent"?(o.parent?`from #${esc(o.parent)}'s plan`:"from the parent's plan"):P.from==="existing"?`verifying the existing plan${P.against?` against ${esc(P.against)}`:""}`:""}`:"plan writing";
-    let h=`<ol class="steps" aria-label="The plan's stages"><li class="cur${o.held?" held":" fullpulse"}" aria-current="step"><span class="dot" aria-hidden="true"></span>${first}</li><li class="todo"><span class="dot" aria-hidden="true"></span>plan accepted</li></ol>`;
+    let h=`<ol class="stepbar" aria-label="The plan StepBar"><li class="cur${o.held?" held":" fullpulse"}" aria-current="step">${first}${sbState("cur")}</li><li class="todo">plan accepted${sbState("todo")}</li></ol>`;
     if(re) h+=`<p>${P.from==="qa"?`The plan is re-passed to answer ${esc(passName(P.pass||"?"))}'s findings${R.remediation&&routeKey(R.remediation.route)==="re-plan-then-remediation"?`; the fixes and the next ${REVIEW} follow`:""}.`:P.from==="existing"?`The plan already written is verified${P.against?` against <code>${esc(P.against)}</code> as it stands now`:" against the code as it stands now"}, and each delta recorded.`:`The plan this unit takes from its parent's architecture is verified, and the unit's own written.`}</p>`;
     if(V&&V.total) { h+=`<p class="sp-sum">${V.written} of ${V.total} verdict${V.total===1?"":"s"} written</p>`; if(o.unwritten&&o.unwritten.length&&V.written<V.total) h+=`<p>Still to write: ${o.unwritten.slice(0,6).map(codeOnly).join(", ")}${o.unwritten.length>6?`, and ${o.unwritten.length-6} more`:""}.</p>`; }
     return h; },
   branch:()=>`<p>Plan accepted; the branch is confirmed next.</p>`,
-  implementation:(R,o)=>{ const sg=Array.isArray(R.stages)?R.stages.filter(x=>x&&typeof x==="object"):[];
-    let h=""; if(!sg.length) h+=`<p>Its stages are in the plan; none recorded here yet.</p>`;
-    else { const cur=sg.findIndex(x=>x.state==="current"), done=sg.filter(x=>x.state==="done").length;
-      h+=`<p class="sp-sum">${cur>=0?`Stage ${esc(sg[cur].id||cur+1)} of ${sg.length}`:`${done} of ${plural(sg.length,"stage")} done`}${cur>=0?` · ${done} done`:""}</p>`;
-      h+=spList(sg.map((x,i)=>spItem(STAGE_DOT[x.state]||"todo",dotMark,`${x.id?`<b>${esc(x.id)}</b> `:""}${rich(x.name||"")}${x.state==="done"?" · done":x.state==="current"?" · in progress":" · to come"}`,(Array.isArray(x.rows)&&x.rows.length?`touches ${x.rows.map(id=>codeOnly(o.rowName(id))).join(", ")}`:"")))); }
-    return h; },
+  implementation:(R,o,keys)=>{ const sg=stgList(R); if(!sg.length) return `<p>Its stages are in the plan; none recorded here yet.</p>`;
+    const cur=sg.findIndex(x=>x.state==="current"), done=sg.filter(x=>x.state==="done").length;
+    return `<p class="sp-sum">${cur>=0?`Stage ${esc(sg[cur].id||cur+1)} of ${sg.length}`:`${done} of ${plural(sg.length,"stage")} done`}${cur>=0?` · ${done} done`:""}</p>`+stageItems(R,sg,o,keys); },
   qa:(R,o,keys)=>{ const qa=Array.isArray(R.qa)?R.qa:[], running=qa.length&&qa[qa.length-1].verdict==="running";
     let h=`<p class="sp-sum">${esc(passName(running?qa[qa.length-1].pass:qa.length+1))} running${R.qaMax?` · at most ${esc(R.qaMax)} ${REVIEW}s`:""}</p>`;
     h+=qa.map(p=>qaBlock(p,keys)).join("");
@@ -1570,7 +1608,7 @@ const PANEL={
     let h=`<p class="sp-sum">Answering ${esc(passName(n||"?"))}${last?` · ${(QA[last.verdict]||QA.running).label}`:""}</p>`;
     if(ROUTE[route]) h+=`<p>Route: ${esc(ROUTE[route].label)}.</p>`;
     if(last) h+=qaBlock(last,keys);
-    h+=spList(steps.map(x=>spItem(STAGE_DOT[x.state]||"todo",dotMark,`${rich(stepName(x))}${x.state==="done"?" · done":x.state==="current"?" · in progress":" · to come"}`,"")));
+    h+=subItems(steps,o,keys,"remediation","sub-step");
     if(!(Array.isArray(M.steps)&&M.steps.length)) h+=`<p>${esc(REMEDIATION_NOTE)}.</p>`;
     /* the Corrections and Resolutions before this one, each frozen when it ended (wip.history.remediation, plan/RULES.md §3, "Finished steps") */
     const prev=visitsOf(R,"remediation").filter(V=>V.remediation&&V.remediation.pass!==n);
@@ -1582,7 +1620,7 @@ const PANEL={
      before them) reads its landing as all three. */
   /* the Document step (plan/RULES.md §3, §4; dashboards-skill/35), between qa and the land: its tasks (wip.document.tasks), done, current
      (several may run in parallel) and to come, the state boards among them */
-  document:(R,o)=>{ const ts=R.document&&Array.isArray(R.document.tasks)?R.document.tasks.filter(x=>x&&typeof x==="object"):[];
+  document:(R,o,keys)=>{ const ts=R.document&&Array.isArray(R.document.tasks)?R.document.tasks.filter(x=>x&&typeof x==="object"):[];
     let h=`<p>The documents are brought up to the build on the branch: the documentation reviewed and reconciled, the Dokka check, the plan and its consequences reconciled, the README and the CHANGELOG, and the state boards as built, then the Document commit that carries them.</p>`;
     /* the last qa pass's test report, a build output: plain text, its copy linked on this machine (dashboards-skill/35) */
     const lq=(Array.isArray(R.qa)?R.qa:[]).filter(p=>p&&p.report).slice(-1)[0];
@@ -1590,7 +1628,7 @@ const PANEL={
     if(!ts.length) return h+`<p>No task recorded yet.</p>`;
     const done=ts.filter(x=>x.state==="done").length, cur=ts.filter(x=>x.state==="current").length;
     h+=`<p class="sp-sum">${done} of ${ts.length} task${ts.length===1?"":"s"} done${cur>1?` · ${cur} in parallel`:""}</p>`;
-    return h+spList(ts.map(x=>spItem(STAGE_DOT[x.state]||"todo",dotMark,`${rich(x.name||x.id||"")}${x.state==="done"?" · done":x.state==="current"?" · in progress":" · to come"}`,""))); },
+    return h+subItems(ts,o,keys,"document","task"); },
   landing:R=>{ const qa=Array.isArray(R.qa)?R.qa:[], last=qa.length?qa[qa.length-1]:null, acc=!!(R.event&&R.event.name==="landing"), pr=acc&&/PR #(\d+)/.exec(String(R.event.note||"")), split=(R.steps||[]).includes("merge"), doc=(R.steps||[]).includes("document");
     if(doc) return `<p>The documents and the state boards are on the branch; ${acc?`the land is accepted${pr?` (${prlink(pr[1])})`:""}: the branch carries the code, the version bump, the reconciled documents and the state boards`:"the land follows"}; the merge is next.</p>`;
     return `<p>${last?`${esc(passName(last.pass))} approved`:`The ${REVIEW} approved`}; ${split?(acc?`the land is accepted${pr?` (${prlink(pr[1])})`:""}: the branch brought up to date, the code, the version bump and the reconciled documents committed on it`:"the land follows: the branch brought up to date, the code, the version bump and the reconciled documents committed on it"):(acc?`the land is accepted and being merged${pr?` in ${prlink(pr[1])}`:""}, its state boards refreshed on the branch before the merge`:"the land follows: its state boards refreshed on the branch, then the merge")}.</p>`; },
@@ -1598,7 +1636,72 @@ const PANEL={
   merge:R=>{ const pr=R.event&&R.event.name==="merge"&&/PR #(\d+)/.exec(String(R.event.note||"")); return `<p>The pull request${pr?` ${prlink(pr[1])}`:""} is being merged; landed follows the merge.</p>`; },
   "sub-issues":(R,o)=>`<p>The plan has landed: each unit of its architecture is filed as a sub-issue of this one. A unit's board appears when its run starts.</p>`+unitProgress(R,o,"filed"),
   boards:(R,o)=>`<p>Each unit's board was created ahead of its run, from this issue's documents: its Gap and Considered columns, not started.</p>`+unitProgress(R,o,"boards"),
-  _:R=>R.detail?`<p>${rich(R.detail)}</p>`:`<p>Nothing recorded for this step.</p>`};
+  _:R=>R.detail?"":`<p>Nothing recorded for this step.</p>`};
+/* ---------- The stage list and the collapsing items (plan/RULES.md §3, "The stage list", "Collapsing") ----------
+   The WIP Panel lists each stage of the run at the implementation step: its number, name and status, and its brief, the plan's stage table's
+   wording copied verbatim at branch-cut (a plan with no table gives no brief); a tracking board's unit Card lists the number, the name and the
+   status alone. A click on a stage opens it in the step Panel. The step Panel's stages, a remediation's sub-steps, the Document step's tasks and
+   a finished Implementation view are collapsing items: number, name, status; the active ones open, the others closed, a reader's choice kept
+   across the live redraw (DISC_OPEN, by key). A finished stage's status Pill: kind "work" neutral, "done"; kind "check" the result its closing
+   event reported, green or red; no result recorded reads as a work stage does. */
+const NOW_KEY_CHIP=`<span class="chip now"><span class="ck">Now</span></span>`;
+const KEY_NOW=`<span>${NOW_KEY_CHIP} the run's latest report, pulsing while it works, still while it waits on you</span>`;
+const STG_PILL={done:{g:"✓",label:"done",cls:"ink"},passed:{g:"✓",label:"passed",cls:"good"},failed:{g:"✕",label:"failed",cls:"critical"},current:STATES["in-progress"],todo:{g:"…",label:"to come",cls:"neutral",dash:true}};
+const STG_WORD={done:n=>`a ${n} finished`,passed:n=>`a check ${n} that passed`,failed:n=>`a check ${n} that failed`,current:n=>`a ${n} at work now`,todo:n=>`dashed: a ${n} to come`};
+const stgState=x=>x.state==="done"?(x.kind==="check"&&STG_PILL[x.result]?x.result:"done"):x.state==="current"?"current":"todo";
+const stgCls=x=>x.state==="done"?"done":x.state==="current"?"cur":"todo";
+function stgPill(x,keys,noun){ const c=stgState(x); if(keys) keys.add(`<span>${pill(STG_PILL[c])} ${STG_WORD[c](noun)}</span>`); return pill(STG_PILL[c]); }
+const stgList=R=>Array.isArray(R&&R.stages)?R.stages.filter(x=>x&&typeof x==="object"):[];
+const KEY_DISC=`<span><span class="mono" aria-hidden="true">▸</span> click a row to open or close its detail</span>`;
+const KEY_STG_OPEN=`<span><span class="mono" aria-hidden="true">▸</span> click a stage to open it in the step Panel</span>`;
+const KEY_STG_RUN=`<span><i class="gl"></i>a stage in a FullPulse: at work now</span>`;
+const KEY_STG_HELD=`<span><i class="hold"></i>a stage, the Ring alone: paused while the run waits on you</span>`;
+const KEY_STG_STEP=`<span><i class="gl"></i>the step of the stage at work now, from the run's progress note</span>`;
+/* the stages at a glance, in the WIP Panel. o: run, the key of the run ("own" or a unit's issue); compact, on a tracking board's unit Card */
+function stageStrip(R,step,keys,held,o){ const sg=stgList(R); if(step!=="implementation"||!sg.length) return "";
+  const cur=sg.find(x=>x.state==="current"), done=sg.filter(x=>x.state==="done").length;
+  if(cur) keys.add(held?KEY_STG_HELD:KEY_STG_RUN); keys.add(KEY_STG_OPEN);
+  return `<div class="stg-strip" role="group" aria-label="The plan's stages at a glance"><div class="wip-sub">Stages · ${done} of ${sg.length} done${cur?` · ${esc(cur.id)} ${held?"paused":"in progress"}`:""}</div><ol class="stg-rows">${sg.map(x=>{ const c=stgCls(x), nm=codeOnly(x.name||""), plain=String(x.name||"").replace(/`/g,"");
+    return `<li class="stg-row ${c}${x.state==="current"?(held?" held":" fullpulse"):""}" data-run="${esc(o.run)}" data-stage="${esc(x.id)}"><b class="id">${esc(x.id)}</b><button type="button" class="stg-open" aria-label="${esc(x.id)} ${esc(plain)}: open it in the step Panel">${nm}</button>${stgPill(x,keys,"stage")}${!o.compact&&x.brief?`<span class="br">${rich(x.brief)}</span>`:""}</li>`; }).join("")}</ol></div>`; }
+/* the item state a reader chose, by key; the active ones open by default */
+const DISC_OPEN=new Map();
+document.addEventListener("click",e=>{ const s=e.target.closest&&e.target.closest("summary.stg-s"); if(s&&s.parentElement.dataset.key) DISC_OPEN.set(s.parentElement.dataset.key,!s.parentElement.open); },true);
+function discItem(o){ const open=DISC_OPEN.has(o.key)?DISC_OPEN.get(o.key):!!o.cur, head=`${dotMark}${o.id?`<b class="id">${esc(o.id)}</b>`:""}<span class="nm">${o.name}</span>${o.meta?`<span class="ct">${o.meta}</span>`:""}${o.pill}`;
+  return `<li class="${o.cls}"${o.stage?` data-stage="${esc(o.stage)}"`:""}>${o.body?`<details class="stg-d" data-key="${esc(o.key)}"${open?" open":""}><summary class="stg-s">${head}<span class="chev" aria-hidden="true">▸</span></summary><div class="stg-b">${o.body}</div></details>`:`<div class="stg-s stg-plain">${head}<span class="chev" aria-hidden="true"></span></div>`}</li>`; }
+const discList=items=>items.length?`<ol class="sp-list stg-list">${items.join("")}</ol>`:"";
+const stgChip=(l,v)=>`<span><span class="l">${l}</span>${v}</span>`;
+const stampChips=x=>[okStamp(x.started)?stgChip("started",`<span class="nw">${when(x.started)}</span>`):"",okStamp(x.finished)&&x.state==="done"?stgChip("finished",`<span class="nw">${when(x.finished)}</span>`):""].filter(Boolean);
+const reportHtml=x=>x.state==="done"&&typeof x.report==="string"&&x.report.trim()?`<div class="stg-h">At its end</div><p>${rich(x.report)}</p>`:"";
+/* the position inside the current stage: the stage's steps (the stage table's), the current one the step a live progress note names (docs/plans/.live/progress/, its "step"); on a board with no note the steps stand unmarked */
+function stageStepsHtml(x,o,keys){ const st=Array.isArray(x.steps)?x.steps.filter(s=>s&&typeof s.id==="string"):[]; if(!st.length) return "";
+  const said=Object.values(PROG[o.issue]||{}).map(p=>p&&p.step).filter(s=>typeof s==="string"), at=st.map((s,i)=>said.includes(s.id)?i:-1).filter(i=>i>=0), first=at.length?Math.min(...at):-1;
+  if(at.length) keys.add(KEY_STG_STEP);
+  return `<div class="stg-h">Inside the stage</div><ol class="stg-steps">${st.map((s,i)=>{ const c=!at.length?"unk":at.includes(i)?"cur":i<first?"done":"todo"; return `<li class="${c}"${c==="cur"?' aria-current="step"':""}><i class="sdot" aria-hidden="true"></i><span class="q">${codeOnly(s.name||s.id)}</span></li>`; }).join("")}</ol>`; }
+/* a stage's detail, opened in the step Panel: at its end its report; while it runs where it stands; the Rows it touches, as they stand on this board; when it started and finished; its section of the plan */
+function stageBody(R,x,o,keys){ const local=o.own||o.issue===PLAN.issue, rows=Array.isArray(x.rows)?x.rows:[]; let h=reportHtml(x);
+  if(x.state==="current"&&!o.past) h+=stageStepsHtml(x,o,keys);
+  if(rows.length){ const rs=rows.map(id=>{ const r=local?ROWS.find(y=>y.id===id):null; return {id,r,s:r?stateOf(r):null,sum:r&&r.asBuilt&&r.asBuilt.summary}; }), states=[...new Set(rs.map(y=>y.s).filter(Boolean))], one=states.length===1?states[0]:null;
+    states.forEach(s=>keys.add(`<span>${badge(s)} ${esc(STATES[s].desc)}</span>`));
+    h+=`<div class="stg-h">${o.past||x.state==="done"?"Touched":x.state==="todo"?"Will touch":"Touches"} ${rows.length} Row${rows.length===1?"":"s"}${one?` ${badge(one)}`:""}</div><ul class="stg-rl">${rs.map(y=>`<li>${y.s&&!one?badge(y.s)+" ":""}<span class="rn">${codeOnly(o.rowName(y.id))}</span>${y.sum?`<small>${rich(y.sum)}</small>`:""}</li>`).join("")}</ul>`; }
+  const fx=stampChips(x); if(typeof x.ref==="string"&&x.ref.trim()) fx.push(stgChip("in the plan",refAt(x.ref,"plan.md · "+x.id,o.base)));
+  if(fx.length) h+=`<div class="wip-facts">${fx.join("")}</div>`;
+  return h; }
+/* a sub-step's or a task's detail: its report and its times, where they were recorded */
+function itemBody(x){ const fx=stampChips(x); return reportHtml(x)+(fx.length?`<div class="wip-facts">${fx.join("")}</div>`:""); }
+const discKey=(o,what,id)=>`${o.past?`past:${o.key||"own"}:${o.visit==null?"r":o.visit}`:`live:${o.issue}`}:${what}:${id}`;
+/* the stages of a run, collapsing: the live step Panel (o.past unset: the current stage open) and a finished Implementation view (o.past: every one closed) */
+function stageItems(R,sg,o,keys){ if(sg.length) keys.add(KEY_DISC);
+  return discList(sg.map(x=>{ const n=Array.isArray(x.rows)?x.rows.length:0, kx=o.past&&x.state!=="done"; if(kx) keys.add(KEY_PAST_TODO);
+    return discItem({key:discKey(o,"stage",x.id||x.name),cls:o.past?(x.state==="done"?"done":"todo"):stgCls(x),id:x.id,stage:x.id,name:rich(x.name||""),meta:n?`${n} Row${n===1?"":"s"}`:"",pill:kx?pill(STG_PILL.todo,"",pastPill(x.state)):stgPill(x,keys,"stage"),cur:!o.past&&x.state==="current",body:stageBody(R,x,o,keys)}); })); }
+/* a remediation's sub-steps or the Document step's tasks, collapsing */
+function subItems(list,o,keys,what,noun){ if(list.length) keys.add(KEY_DISC);
+  return discList(list.map((x,i)=>{ const kx=o.past&&x.state!=="done"; if(kx) keys.add(KEY_PAST_TODO);
+    return discItem({key:discKey(o,what,x.id||stepName(x)||i),cls:o.past?(x.state==="done"?"done":"todo"):stgCls(x),name:rich(stepName(x)||x.id||""),pill:kx?pill(STG_PILL.todo,"",pastPill(x.state)):stgPill(x,keys,noun),cur:!o.past&&x.state==="current",body:itemBody(x)}); })); }
+const pastPill=st=>st==="current"?"in progress when the step ended":"not started";
+/* a click on a stage of the WIP Panel opens it in the step Panel, back from a finished step where one was shown */
+function openStage(run,stage){ const issue=run==="own"?PLAN.issue:run, key=`live:${issue}:stage:${stage}`; if(SEL&&SEL.run===run) SEL=null; DISC_OPEN.set(key,true); renderWip();
+  const d=[...document.querySelectorAll("#wip details.stg-d")].find(x=>x.dataset.key===key); if(d){ d.open=true; const s=d.querySelector("summary"); s.focus({preventScroll:true}); s.scrollIntoView({block:"nearest"}); } }
+
 function stepPanel(R,o){ o=o||{}; const k=R.step||"", held=["halted","escalated"].includes(k), S=held?(R.resume||""):k, keys=o.keys||new Set();
   const opts={...o,held}, title=stepTitle(S,runCtx(R));
   /* the heading is the step's title alone (plan/RULES.md §3, "The step panel"); a unit's panel names its unit to assistive technology */
@@ -1607,7 +1710,10 @@ function stepPanel(R,o){ o=o||{}; const k=R.step||"", held=["halted","escalated"
   if(k==="halted"){ h+=`<p class="sp-wait">⏸ Held still at ${esc(S?haltLabel(S,runCtx(R)):"its step")}: it waits on you for ${rich(R.waitingOn||R.detail||"(not stated)")}</p>`; }
   if(k==="escalated") h+=`<p class="sp-wait">⇧ Escalated from ${esc(S?title:"its step")}: held still while the issue's scope is re-decided.</p>`;
   /* the questions a halt in this step put to you, with their options (wip.asked; the interview's are its own panel's) */
-  if(S!=="interview") h+=askedBlock(askedShown(R,S),keys);
+  /* the latest report (wip.detail) as the pulsing Now Chip, where the answered questions stood: a question still waiting stays, the answered ones are
+     on the finished visit's snapshot (plan/RULES.md §3, "The Now Chip") */
+  if(R.detail&&(k!=="halted"||R.waitingOn)){ keys.add(KEY_NOW); h+=`<p class="sp-now"><span class="chip now${held?" held":" fullpulse"}"><span class="ck">Now</span> ${rich(R.detail)}</span></p>`; }
+  if(S!=="interview") h+=askedBlock(askedShown(R,S).filter(q=>!qAnsweredOf(q)),keys);
   h+=(PANEL[S]||PANEL._)(R,opts,keys);
   /* the open points (wip.open, plan/RULES.md §3): raised during the run, shown at every step until resolved; the trail keeps them after */
   const op=(Array.isArray(R.open)?R.open:[]).filter(x=>x&&typeof x==="object"&&typeof x.text==="string"&&x.text.trim()&&!x.resolved);
@@ -1698,8 +1804,6 @@ function checkSel(){ if(!SEL) return; const x=selRun(SEL.run); if(!x||!finishedO
 const selFor=key=>SEL&&SEL.run===key?SEL.step:null;
 const KEY_SEL=`<span><i class="sbk sel"></i>ringed in ink: the finished step the panel shows</span>`;
 const KEY_PAST_TODO=`<span><i class="node hollow"></i>dashed: not done when the step ended</span>`;
-const pastWord=st=>st==="done"?" · done":st==="current"?" · in progress when the step ended":" · not started";
-const pastItems=(list,o,keys)=>spList(list.map(x=>{ const d=x.state==="done"; if(!d) keys.add(KEY_PAST_TODO); return spItem(d?"done":"todo",dotMark,`${x.id?`<b>${esc(x.id)}</b> `:""}${rich(stepName(x))}${pastWord(x.state)}`,Array.isArray(x.rows)&&x.rows.length?`touched ${x.rows.map(id=>codeOnly(o.rowName(id))).join(", ")}`:""); }));
 /* each step's finished visit, from its snapshot */
 const PAST={
   sizing:V=>`<p>Sized${V.to?`: the run starts at ${esc(V.to)}`:""}.</p>`,
@@ -1708,16 +1812,16 @@ const PAST={
   architecture:V=>`<p>The architecture weighed the options and decomposed the work into its units.</p>`,
   plan:(V,o)=>{ const P=V.plan||{}, re=P.state==="re-pass", acc=V.endedBy==="plan-accepted";
     const first=re?`re-pass ${P.from==="qa"?`after ${esc(passName(P.pass||"?"))}`:P.from==="parent"?(o.parent?`from #${esc(o.parent)}'s plan`:"from the parent's plan"):P.from==="existing"?`verifying the existing plan${P.against?` against ${esc(P.against)}`:""}`:""}`:"plan writing";
-    return `<ol class="steps" aria-label="The plan's stages"><li class="done"><span class="dot" aria-hidden="true"></span>${first}</li><li class="${acc?"done":"todo"}"><span class="dot" aria-hidden="true"></span>plan accepted</li></ol>${acc?"":`<p>The plan was not accepted in this visit.</p>`}`; },
+    return `<ol class="stepbar" aria-label="The plan StepBar"><li class="done">${first}${sbState("done")}</li><li class="${acc?"done":"todo"}">plan accepted${sbState(acc?"done":"todo")}</li></ol>${acc?"":`<p>The plan was not accepted in this visit.</p>`}`; },
   branch:V=>V.branch?`<p>The branch: <code>${esc(V.branch)}</code>.</p>`:`<p>No branch is recorded for this step.</p>`,
   implementation:(V,o,keys)=>{ const sg=Array.isArray(V.stages)?V.stages.filter(x=>x&&typeof x==="object"):[]; if(!sg.length) return `<p>No stage was recorded.</p>`;
-    return `<p class="sp-sum">${sg.filter(x=>x.state==="done").length} of ${plural(sg.length,"stage")} done</p>`+pastItems(sg,o,keys); },
+    return `<p class="sp-sum">${sg.filter(x=>x.state==="done").length} of ${plural(sg.length,"stage")} done</p>`+stageItems(V,sg,{...o,past:true},keys); },
   qa:(V,o,keys)=>{ const qa=Array.isArray(V.qa)?V.qa.filter(p=>p&&typeof p==="object"):[]; return qa.length?qa.map(p=>qaBlock(p,keys)).join(""):`<p>No ${REVIEW} verdict was recorded in this visit.</p>`; },
   remediation:(V,o,keys)=>{ const M=V.remediation||{}, p=(Array.isArray(V.qa)?V.qa:[])[0], steps=Array.isArray(M.steps)?M.steps.filter(x=>x&&typeof x==="object"):[];
     let h=`<p class="sp-sum">Answering ${esc(passName(M.pass||"?"))}</p>`; if(ROUTE[M.route]) h+=`<p>Route: ${esc(ROUTE[M.route].label)}.</p>`; if(p) h+=qaBlock(p,keys);
-    return h+(steps.length?pastItems(steps,o,keys):`<p>No sub-step was recorded.</p>`); },
+    return h+(steps.length?subItems(steps,{...o,past:true},keys,"remediation","sub-step"):`<p>No sub-step was recorded.</p>`); },
   document:(V,o,keys)=>{ const ts=V.document&&Array.isArray(V.document.tasks)?V.document.tasks.filter(x=>x&&typeof x==="object"):[]; if(!ts.length) return `<p>No task was recorded.</p>`;
-    return `<p class="sp-sum">${ts.filter(x=>x.state==="done").length} of ${ts.length} task${ts.length===1?"":"s"} done</p>`+pastItems(ts,o,keys); },
+    return `<p class="sp-sum">${ts.filter(x=>x.state==="done").length} of ${ts.length} task${ts.length===1?"":"s"} done</p>`+subItems(ts,{...o,past:true},keys,"document","task"); },
   landing:V=>{ const pr=V.event&&V.event.name==="landing"&&/PR #(\d+)/.exec(String(V.event.note||"")), steps=PLAN.wip&&Array.isArray(PLAN.wip.steps)?PLAN.wip.steps:[], split=steps.includes("merge");
     if(steps.includes("document")) return `<p>The land was accepted${pr?` (${prlink(pr[1])})`:""}: the branch carried the code, the version bump, the reconciled documents and the state boards.</p>`;
     return split?`<p>The ${REVIEW} had approved; the land was accepted${pr?` (${prlink(pr[1])})`:""}: the branch brought up to date, the code, the version bump and the reconciled documents committed on it.</p>`:`<p>The ${REVIEW} had approved; ${V.event&&V.event.name==="landing"?`the land was accepted${pr?` and merged in ${prlink(pr[1])}`:" and merged"}`:"the merge followed"}.</p>`; },
@@ -1728,9 +1832,9 @@ const PAST={
   _:V=>V.detail?`<p>${rich(V.detail)}</p>`:""};
 const VISIT_WORD={qa:`${REVIEW}s`,remediation:"visits"};
 function visitHtml(S,V,i,n,o,keys){ const grp=(l,v)=>`<span><span class="l">${l}</span>${v}</span>`;
-  let h=`<div class="sp-visit">`;
-  if(n>1) h+=`<h4>${S==="remediation"&&V.remediation?esc(remediationName(V.remediation.route,V.remediation.pass)):S==="qa"&&Array.isArray(V.qa)&&V.qa.length?esc(passNames(V.qa.map(p=>p.pass))):`Visit ${i+1} of ${n}`}</h4>`;
-  h+=(PAST[S]||PAST._)(V,o,keys);
+  /* several visits collapse, the latest open (plan/RULES.md §3, "Finished steps"); one visit stands open, with no head of its own */
+  let h="";
+  h+=(PAST[S]||PAST._)(V,{...o,visit:i},keys);
   /* the questions the halt that ended this visit put to you (a snapshot's asked) */
   if(Array.isArray(V.asked)) h+=askedBlock(V.asked.filter(q=>q&&typeof q.text==="string"&&q.text.trim()),keys);
   if(V.detail&&S!=="sizing") h+=`<p>${rich(V.detail)}</p>`;
@@ -1742,7 +1846,37 @@ function visitHtml(S,V,i,n,o,keys){ const grp=(l,v)=>`<span><span class="l">${l}
        2026-11-05); a halt stays, as the outcome of the visit it ends */
     grp(V.held&&!V.outage?"ended, waiting on you":"ended",`<span class="nw">${when(V.ended)}</span>${V.endedBy&&!V.outage?` · by <code>${esc(V.endedBy)}</code>`:""}`),
     V.to&&V.to!==S?grp("then",esc(stepLabel(V.to,{route:runCtx(V).route}))):""].filter(Boolean);
-  return h+`<div class="wip-facts sp-facts">${info.join("")}</div></div>`; }
+  h+=`<div class="wip-facts sp-facts">${info.join("")}</div>`;
+  if(n<2) return `<div class="sp-visit">${h}</div>`;
+  const key=visitKey(o.key||"own",S,i), open=DISC_OPEN.has(key)?DISC_OPEN.get(key):i===n-1, gist=visitGist(S,V); keys.add(KEY_DISC);
+  return `<details class="stg-d sp-visit" data-key="${esc(key)}" data-visit="${i}"${open?" open":""}><summary class="stg-s"><h4>${esc(visitName(S,V,i,n))}</h4><span class="nm">${esc(gist)}</span>${visitEnd(V,keys)}<span class="chev" aria-hidden="true">▸</span></summary><div class="sp-vb">${h}</div></details>`; }
+/* a visit's name, short account and how it ended: the head of its collapsing item in the step Panel and its row in the WIP Panel's brief */
+const visitKey=(run,S,i)=>`past:${run}:${S}:visit:${i}`;
+const visitName=(S,V,i,n)=>S==="remediation"&&V.remediation?remediationName(V.remediation.route,V.remediation.pass):S==="qa"&&Array.isArray(V.qa)&&V.qa.length?passNames(V.qa.map(p=>p.pass)):`Visit ${i+1} of ${n}`;
+function visitGist(S,V){ const of=a=>Array.isArray(a)?a.filter(x=>x&&typeof x==="object"):[], done=x=>x.state==="done", cnt=(a,word,verb,f)=>a.length?`${a.filter(f||done).length} of ${plural(a.length,word)} ${verb}`:"";
+  if(S==="implementation") return cnt(of(V.stages),"stage","done");
+  if(S==="remediation") return cnt(of((V.remediation||{}).steps),"sub-step","done");
+  if(S==="document") return cnt(of((V.document||{}).tasks),"task","done");
+  if(S==="research") return cnt(questionsOf(V),"question","returned",q=>q.findings!=null);
+  if(S==="interview") return cnt(of(V.interview),"question","answered",qAnsweredOf);
+  if(S==="qa"){ const p=of(V.qa)[0]; return p?findingsWords(p.findings,p.severity,true)||"":""; }
+  if(S==="plan") return V.endedBy==="plan-accepted"?"plan accepted":V.endedBy?"not accepted in this visit":"";
+  if(S==="branch") return V.branch?`branch ${V.branch}`:"";
+  if(V.units) return `${V.units.done} of ${plural(V.units.total,"unit")}`;
+  return ""; }
+const VISIT_HELD={g:"⏸",label:"waited on you",cls:"neutral"};
+const KEY_VISIT_HELD=`<span>${pill(VISIT_HELD)} the visit ended at a question put to you</span>`;
+function visitEnd(V,keys){ const p=Array.isArray(V.qa)?V.qa.filter(x=>x&&typeof x==="object")[0]:null; if(p&&QA[p.verdict]){ keys.add(`<span>${pill(QA[p.verdict])} ${REVIEW} verdict</span>`); return pill(QA[p.verdict]); } if(V.held&&!V.outage){ keys.add(KEY_VISIT_HELD); return pill(VISIT_HELD); } return ""; }
+/* the finished step at a glance, in the WIP Panel beside its step Panel (plan/RULES.md §3, "Finished steps"): a row per visit, its account, how it ended and its last report; a click on a row opens that visit in the step Panel. */
+function pastBrief(R,S,o){ const vs=visitsOf(R,S), keys=o.keys, title=stepTitle(S,{route:runCtx(R).route}); if(vs.length) { const n=vs.length, ended=vs[n-1].ended;
+    return `<div class="stg-strip sp-brief" role="group" aria-label="${esc(title)}: the finished step at a glance"><div class="wip-sub">${esc(title)} · finished${n>1?` · ${n} ${VISIT_WORD[S]||"visits"}`:""}${okStamp(ended)?` · <span class="nw">${when(ended)}</span>`:""}</div><ol class="stg-rows">${vs.map((V,i)=>{ const named=n>1&&(S==="qa"||S==="remediation"), gist=visitGist(S,V), head=named?visitName(S,V,i,n):(gist||visitName(S,V,i,n));
+      const tail=okStamp(V.ended)?`<span class="nw">ended ${when(V.ended)}</span>`:"", text=[named&&gist?esc(gist):"",V.detail&&S!=="sizing"?rich(V.detail):"",tail].filter(Boolean).join(" · ");
+      return `<li class="stg-row done${n>1?"":" static"}"${n>1?` data-run="${esc(o.key||"own")}" data-step="${esc(S)}" data-visit="${i}"`:""}><b class="id">${i+1}</b>${n>1?`<button type="button" class="stg-open" aria-label="Visit ${i+1}: ${esc(head)}: open it in the step Panel">${esc(head)}</button>`:`<span class="stg-nm">${esc(head)}</span>`}${visitEnd(V,keys)}${text?`<span class="br">${text}</span>`:""}</li>`; }).join("")}</ol></div>`; }
+  const rc=pastRecon(R,S,o), parts=[rc.trail&&rc.trail.length?plural(rc.trail.length,"trail entry").replace("entrys","entries"):"",rc.milestones&&rc.milestones.length?plural(rc.milestones.length,"milestone"):"",visitGist(S,rc)].filter(Boolean);
+  return `<div class="stg-strip sp-brief" role="group" aria-label="${esc(title)}: the finished step at a glance"><div class="wip-sub">${esc(title)} · finished · reconstructed from the history</div><p class="wip-detail">${parts.length?esc(parts.join(" · ")):"The history records nothing for this step."}</p></div>`; }
+/* a click on a row of the brief opens that visit in the step Panel */
+function openVisit(run,S,i){ const key=visitKey(run,S,i); DISC_OPEN.set(key,true); renderWip();
+  const d=[...document.querySelectorAll("#wip details.sp-visit")].find(x=>x.dataset.key===key); if(d){ d.open=true; const s=d.querySelector("summary"); s.focus({preventScroll:true}); s.scrollIntoView({block:"nearest"}); } }
 /* a finished step with no snapshot: what survives, reduced */
 function reconHtml(S,rc,o,keys){ let h=""; const at=x=>x.date?when(x.date):"";
   if(S==="sizing"&&rc.sized) h+=`<p>Sized <span class="nw">${when(rc.sized)}</span>.</p>`;
@@ -1751,7 +1885,7 @@ function reconHtml(S,rc,o,keys){ let h=""; const at=x=>x.date?when(x.date):"";
   if(S==="research"&&Array.isArray(rc.questions)&&rc.questions.length){ h+=`<p class="sp-sum">${rc.questions.length} question${rc.questions.length===1?"":"s"} in the trail</p>`;
     h+=spList(rc.questions.map(q=>{ if(!q.findings) keys.add(KEY_PAST_TODO); return spItem(q.findings?"done":"todo",dotMark,`<code>${esc(q.question)}</code>`,q.findings?refAt(q.findings,"findings",o.base):"no findings in the trail"); })); }
   if(S==="branch"&&rc.branch) h+=`<p>The branch: <code>${esc(rc.branch)}</code>.</p>`;
-  if(S==="implementation"&&Array.isArray(rc.stages)&&rc.stages.length) h+=`<p class="sp-sum">The stages as the board holds them now</p>`+pastItems(rc.stages,o,keys);
+  if(S==="implementation"&&Array.isArray(rc.stages)&&rc.stages.length) h+=`<p class="sp-sum">The stages as the board holds them now</p>`+stageItems(null,rc.stages,{...o,past:true},keys);
   if(S==="qa"&&Array.isArray(rc.qa)&&rc.qa.length) h+=rc.qa.map(p=>qaBlock(p,keys)).join("");
   if(S==="remediation"&&Array.isArray(rc.qa)&&rc.qa.length) h+=rc.qa.map(p=>`<p class="sp-sum">Answering ${esc(passName(p.pass))}${ROUTE[p.route]?` · ${esc(ROUTE[p.route].label)}`:""}</p>`+qaBlock(p,keys)).join("");
   if(["sub-issues","boards"].includes(S)&&rc.units) h+=(PAST[S])({units:rc.units});
@@ -1759,8 +1893,9 @@ function reconHtml(S,rc,o,keys){ let h=""; const at=x=>x.date?when(x.date):"";
   if(rc.trail&&rc.trail.length) h+=`<p class="sp-sum">The trail</p>`+spList(rc.trail.map(t=>spItem("done",dotMark,rich(t.label),[at(t),t.ref?refAt(t.ref,"",o.base):""].filter(Boolean).join(" · "))));
   return h||`<p>The history records nothing for this step.</p>`; }
 /* The panel of a finished step S of the run R: its visits (each Correction or Resolution, each Quality Review apart) or its reconstruction, under the viewing line. */
+const pastRecon=(R,S,o)=>o.own?reconStep(PLAN,S):(R.recon&&R.recon[S])||{reconstructed:true,ended:null,trail:[],milestones:[]};
 function pastPanel(R,S,o){ o=o||{}; const keys=o.keys||new Set(), vs=visitsOf(R,S);
-  const rc=vs.length?null:o.own?reconStep(PLAN,S):(R.recon&&R.recon[S])||{reconstructed:true,ended:null,trail:[],milestones:[]};
+  const rc=vs.length?null:pastRecon(R,S,o);
   const ended=vs.length?vs[vs.length-1].ended:rc.ended, who=o.unitIssue?`#${esc(o.unitIssue)}'s `:"", title=stepTitle(S,{route:runCtx(R).route});
   let h=`<div class="${["sp","past",o.cls].filter(Boolean).join(" ")}" data-step="${esc(S)}" data-view="${rc?"reconstructed":"snapshot"}"${o.row?` style="--r:${o.row}"`:""} role="group" aria-label="${esc(o.label||"The finished step shown")}: ${esc(title)}">`;
   h+=`<p class="sp-view"><span>viewing: <b>${who}${esc(title)}</b>${ended?` · finished <span class="nw">${when(ended)}</span>`:""}${rc?" · reconstructed from the history":vs.length>1?` · ${vs.length} ${VISIT_WORD[S]||"visits"}`:""}</span><button type="button" class="sp-back" data-run="${esc(o.key||"own")}">back to now</button></p>`;
@@ -1783,11 +1918,11 @@ const KEY_CHG=()=>`<span><i class="chg"></i>charging arrow: its verdict being wr
    landed. Before any unit starts: "planned · 11 units"; once all have landed: "landed · 11 of 11". Every #n is a lone #n: it opens
    the issue's board when there is one (ilink). */
 /* The chain's counts, shared by the header chip and the WIP strip's phase card: units landed of the units counted (dropped and
-   deferred ones apart), the units in progress, and the percentage the bar fills. */
+   deferred ones apart), and the units in progress. */
 function chainCounts(){ const units=ROWS.filter(r=>r.unit), out=k=>count(units,r=>stateOf(r)===k);
   const counted=units.filter(r=>!["dropped","deferred"].includes(stateOf(r))&&!leftForLater(r)), landed=count(counted,unitLanded), M=counted.length, left=count(units,leftForLater);
   const extra=[out("dropped")?`${out("dropped")} dropped`:"",out("deferred")?`${out("deferred")} deferred`:"",left?`${left} left for later`:""].filter(Boolean);
-  return {units,counted,landed,M,extra,complete:out("complete"),pct:M?Math.round(100*landed/M):0}; }
+  return {units,counted,landed,M,extra,complete:out("complete")}; }
 /* The chain is a StepBar (plan/RULES.md §3, "The chain is a StepBar"): the counted units in landing order, one chevron each, done where landed,
    current where the unit's run is under way or it is complete and not merged, to come else; dropped, deferred and left for later stand out of it,
    counted apart beside it. The phase's Card draws it with each chevron the unit's name linking its board or issue, its system's swatch and its
@@ -1895,7 +2030,7 @@ function renderWip(){
   const w=$("#wip"), st=STEP||"—"; w.className="wip"; w.dataset.step=st;
   /* the finished step shown (SEL), kept while it is still finished; the focus on a strip button survives the redraw */
   PICKS=0; checkSel();
-  const fa=document.activeElement, refocus=fa&&w.contains(fa)?(fa.classList.contains("stepbtn")?["pick",fa.dataset.run,fa.dataset.step]:fa.classList.contains("sp-back")?["back"]:null):null;
+  const fa=document.activeElement, refocus=fa&&w.contains(fa)?(fa.classList.contains("stepbtn")?["pick",fa.dataset.run,fa.dataset.step]:fa.classList.contains("sp-back")?["back"]:fa.matches("summary.stg-s")?["disc",fa.parentElement.dataset.key]:fa.classList.contains("stg-open")?(fa.parentElement.dataset.visit!=null?["stgv",fa.parentElement.dataset.run,fa.parentElement.dataset.visit]:["stg",fa.parentElement.dataset.run,fa.parentElement.dataset.stage]):null):null;
   const special=STEP_SPECIAL[LANDED?"landed":st];
   if(special) w.classList.add(special.cls);
   const steps=WIP.steps&&WIP.steps.length?WIP.steps:STEP_ORDER;
@@ -1904,6 +2039,8 @@ function renderWip(){
   /* the head line's "since" is left out while the board's own step panel is drawn beside it: the panel says it (plan/RULES.md §3) */
   const units0=TRACKING?ROWS.filter(r=>r.unit):[];
   const ownPanelShown=!LANDED&&!STOPPED&&(units0.length?OWN_PANEL_STEPS.includes(ownStep):!NOT_STARTED);
+  /* the latest report is said once, by the live step Panel beside it (its Now Chip, plan/RULES.md §3); a strip with no live Panel beside it keeps it */
+  const detailHere=WIP.detail&&(!HALTED||WIP.waitingOn)&&!(ownPanelShown&&!selFor("own"));
   const since=WIP.since&&(!ownPanelShown||selFor("own"))?` · since <span class="nw">${when(WIP.since)}</span>`:"";
   const headLine=`<div class="wip-head">${head}<span>step <b>${esc(stepLabel(LANDED?"landed":st,runCtx(WIP)))}</b>${since}</span>${WIP.updated?`<span class="upd">updated ${when(WIP.updated)}</span>`:""}</div>`;
   const legend=[];
@@ -1936,12 +2073,11 @@ function renderWip(){
     runs=act.filter(runOf);
     let ph=`<div class="wipcard phase${special?" "+special.cls:""}"><div class="wipcard-t"><span class="k">#${esc(PLAN.issue)} · the tracking issue's own phase</span></div>${headLine}`;
     if(st==="escalated") ph+=`<p class="wip-wait">Escalated: the run waits while the issue's scope is re-decided.</p>`;
-    ph+=own+(WIP.detail&&(!HALTED||WIP.waitingOn)?`<p class="wip-detail">${rich(WIP.detail)}</p>`:"");
-    ph+=`<div class="wip-sub">The chain · ${C.landed} of ${plural(C.M,"unit")} landed${C.complete?` · ${C.complete} complete, not merged`:""}${C.extra.length?` · ${esc(C.extra.join(" · "))}`:""}</div><span class="chip-bar" role="img" aria-label="${C.landed} of ${plural(C.M,"unit")} landed"><i style="width:${C.pct}%"></i></span>`;
+    ph+=own+(detailHere?`<p class="wip-detail">${rich(WIP.detail)}</p>`:"");
+    ph+=`<div class="wip-sub">The chain · ${C.landed} of ${plural(C.M,"unit")} landed${C.complete?` · ${C.complete} complete, not merged`:""}${C.extra.length?` · ${esc(C.extra.join(" · "))}`:""}</div>`;
     ph+=chainSteps(C.counted,{marks:true});
-    const phase=ph+factsHtml+`</div>`; let rowN=0;
+    const phase=ph+factsHtml+(selFor("own")?pastBrief(WIP,selFor("own"),{key:"own",own:true,keys:pkeys}):"")+`</div>`; let rowN=0;
     { const cs=new Set(C.counted.map(chainUnitState)); legend.push(sysKey(C.counted.map(r=>r.system)),cs.has("done")?`<span><i class="sbk"></i>a unit, in landing order: landed</span>`:"",cs.has("cur")?`<span><i class="sbk cur"></i>bold: a unit in progress, or complete and not merged${C.counted.some(r=>stateOf(r)==="complete")?` (${STATES.complete.g})`:""}</span>`:"",cs.has("todo")?`<span><i class="sbk todo"></i>dashed: a unit to come</span>`:""); }
-    if(C.M) legend.push(`<span><i class="bar"></i>green bar: units landed of all units</span>`);
     /* the tracking issue's own finished step, picked on its phase's steps line (plan/RULES.md §3, "Finished steps"): a row of its own
        beside the phase, first, in the unit's and the panel's shares; at its own sub-issues or boards step it takes the own panel's place */
     const ovRow=selFor("own");
@@ -1955,12 +2091,14 @@ function renderWip(){
         if(held) b+=`<p class="note">What it waits on is under “Waiting on you”.</p>`;
         if(k==="escalated") b+=`<p class="wip-wait">Escalated: the run waits while the issue's scope is re-decided.</p>`;
         if(k!=="cancelled") b+=stepsLine(L.steps&&L.steps.length?L.steps:STEP_ORDER,held||k==="escalated"?(L.resume||""):L.step,{held:held||k==="escalated",ctx:runCtx(L),label:`#${r.unit.issue}: its pipeline steps`,pick:{key:String(r.unit.issue),R:L,status:L.status}});
-        if(L.detail) b+=`<p class="wip-detail">${rich(L.detail)}</p>`;
+        if(L.detail&&selFor(String(r.unit.issue))) b+=`<p class="wip-detail">${rich(L.detail)}</p>`;
         /* no "since" group while the unit's step panel is drawn beside the card (it always is, from its mirror): the panel says it */
         const f=[researchFact(L),L.updated?`<span><span class="l">updated</span><span class="nw">${when(L.updated)}</span></span>`:"",
           qaShown(L).length?`<span><span class="l">${PASS_NAME}s</span>${qaShown(L).map(qaPill).join(" ")}${L.qaMax?` <small>of at most ${esc(L.qaMax)}</small>`:""}</span>`:"",
           L.branch&&!unitLanded(r)?`<span><span class="l">branch</span><code>${esc(L.branch)}</code></span>`:""].filter(Boolean);
         if(f.length) b+=`<div class="wip-facts">${f.join("")}</div>`;
+        b+=stageStrip(L,held||k==="escalated"?(L.resume||""):L.step,pkeys,held||k==="escalated",{run:String(r.unit.issue),compact:true});
+        if(selFor(String(r.unit.issue))) b+=pastBrief(L,selFor(String(r.unit.issue)),{key:String(r.unit.issue),keys:pkeys});
       }
       h+=b+`</div>`;
       /* the unit's step panel beside it, from its mirror (plan/RULES.md §3), in place of the up-next card */
@@ -1990,7 +2128,7 @@ function renderWip(){
     if(HALTED) h+=`<p class="wip-wait">Waiting on you: ${rich(WIP.waitingOn||WIP.detail||"(not stated)")}</p>`;
     if(st==="escalated") h+=`<p class="wip-wait">Escalated: the run waits while the issue's scope is re-decided.</p>`;
     /* while halted the wait line shows waitingOn, falling back to the detail: the detail is drawn too unless it is that fallback */
-    h+=own+(WIP.detail&&(!HALTED||WIP.waitingOn)?`<p class="wip-detail">${rich(WIP.detail)}</p>`:"")+factsHtml;
+    h+=own+(detailHere?`<p class="wip-detail">${rich(WIP.detail)}</p>`:"")+factsHtml+stageStrip(WIP,shownStep,pkeys,HALTED||st==="escalated",{run:"own"})+(selFor("own")?pastBrief(WIP,selFor("own"),{key:"own",own:true,keys:pkeys}):"");
     if(HALTED) legend.push(`<span><i class="wait"></i>yellow strip: waiting on you</span>`);
     /* the strip on the left half, the step panel on the right (plan/RULES.md §3); a landed or cancelled board has no current step */
     if(NOT_STARTED) h+=`<p class="wip-detail">Its board was laid from ${PLAN.parent&&PLAN.parent.issue?`${ilink(PLAN.parent.issue)}'s`:"its tracking issue's"} documents; its run starts when it is sized.</p>`;
@@ -2018,11 +2156,11 @@ function renderWip(){
   [...new Set(runs.flatMap(r=>qaShown(runOf(r))).map(p=>p.verdict))].filter(v=>QA[v]&&!latest.has(v)).forEach(v=>legend.push(`<span>${pill(QA[v],"",`${passName("N")} · ${QA[v].label}`)} an earlier ${PASS_NAME} of the unit's run</span>`));
   w.innerHTML=h+`<div class="legend">${[...new Set(legend.filter(Boolean))].join("")}</div>`;
   paint(w);
-  if(refocus){ const b=refocus[0]==="back"?w.querySelector(".sp-back"):[...w.querySelectorAll(".stepbtn")].find(x=>x.dataset.run===refocus[1]&&x.dataset.step===refocus[2]); if(b) b.focus(); }
+  if(refocus){ const b=refocus[0]==="back"?w.querySelector(".sp-back"):refocus[0]==="disc"?[...w.querySelectorAll("summary.stg-s")].find(x=>x.parentElement.dataset.key===refocus[1]):refocus[0]==="stg"||refocus[0]==="stgv"?[...w.querySelectorAll(".stg-row")].filter(x=>x.dataset.run===refocus[1]&&(refocus[0]==="stg"?x.dataset.stage===refocus[2]:x.dataset.visit===refocus[2])).map(x=>x.querySelector(".stg-open"))[0]:[...w.querySelectorAll(".stepbtn")].find(x=>x.dataset.run===refocus[1]&&x.dataset.step===refocus[2]); if(b) b.focus(); }
 }
 /* the finished steps' buttons and "back to now" (plan/RULES.md §3, "Finished steps"): one listener on the strip, which outlives its redraws */
 (function(){ const w=$("#wip"); if(!w) return;
-  w.addEventListener("click",e=>{ const b=e.target.closest(".stepbtn"); if(b&&w.contains(b)){ pickStep(b.dataset.run,b.dataset.step); return; } if(e.target.closest(".sp-back")) backToNow(); });
+  w.addEventListener("click",e=>{ const b=e.target.closest(".stepbtn"); if(b&&w.contains(b)){ pickStep(b.dataset.run,b.dataset.step); return; } if(e.target.closest(".sp-back")){ backToNow(); return; } const g=e.target.closest(".stg-row[data-stage]"); if(g&&w.contains(g)&&!e.target.closest("a")){ openStage(g.dataset.run,g.dataset.stage); return; } const v=e.target.closest(".stg-row[data-visit]"); if(v&&w.contains(v)&&!e.target.closest("a")) openVisit(v.dataset.run,v.dataset.step,v.dataset.visit); });
   w.addEventListener("keydown",e=>{ if(e.key==="Escape"&&SEL){ e.preventDefault(); backToNow(); } }); })();
 
 /* ---------- KPIs ---------- */

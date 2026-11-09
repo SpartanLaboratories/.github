@@ -896,12 +896,15 @@ $("#sys-count").textContent=`${SYSTEMS.filter(s=>s.status==="built").length} bui
    the same rule). Six slots: a system with none left, and any slug the registry does not know, fold into the neutral "other". Every element drawn for a system sets --c from here — paintSystems() does it for hand-written [data-sys]
    elements — so a system keeps one colour on every tab. */
 const SLOTS=12, bySlug=slug=>SYSTEMS.find(s=>s.slug===slug);
-function sysTop(slug){ const s=bySlug(slug); if(!s||s.status==="archived") return null; let h=s,c=s; while(bySlug(c.parent)){ c=bySlug(c.parent); if(c.status!=="archived") h=c; } return h; }
-const TOPS=SYSTEMS.filter(s=>!bySlug(s.parent));
+/* a system named Internal Tooling, and every system under it, takes no slot and no place, and is drawn in the plain ink (GUIDANCE.md §1; palette.js isPlainName()) */
+function sysPlainOf(slug){ let c=bySlug(slug), n=0; if(!c||c.status==="archived") return null; while(c&&n++<64){ if(c.status!=="archived"&&/^internal tooling$/i.test(String(c.name||"").trim())) return c; c=bySlug(c.parent); } return null; }
+function sysPlain(slug){ return !!sysPlainOf(slug); }
+function sysTop(slug){ const s=bySlug(slug); if(!s||s.status==="archived"||sysPlain(slug)) return null; let h=s,c=s; while(bySlug(c.parent)){ c=bySlug(c.parent); if(c.status!=="archived") h=c; } return h; }
+const TOPS=SYSTEMS.filter(s=>!bySlug(s.parent)&&!sysPlain(s.slug));
 const SLOT_OF=(()=>{ const m=new Map(), hs=[...new Set(SYSTEMS.map(s=>sysTop(s.slug)).filter(Boolean))]; hs.forEach(h=>{ const i=TOPS.indexOf(h); if(i>=0&&i<SLOTS) m.set(h.slug,i+1); });
   const free=[]; for(let n=1;n<=SLOTS;n++) if(![...m.values()].includes(n)) free.push(n); hs.filter(h=>!m.has(h.slug)).forEach(h=>{ if(free.length) m.set(h.slug,free.shift()); }); return m; })();
 const sysSlot=slug=>{ const h=sysTop(slug); return (h&&SLOT_OF.get(h.slug))||0; };
-function sysColour(slug){ const n=sysSlot(slug); return n?`var(--sys-${n})`:"var(--muted)"; }
+function sysColour(slug){ if(sysPlain(slug)) return "var(--ink)"; const n=sysSlot(slug); return n?`var(--sys-${n})`:"var(--muted)"; }
 const isArchivedSys=slug=>{ const s=bySlug(slug); return !!s&&s.status==="archived"; };
 /* Planned, from the data (system/RULES.md §2, "Planned parts"): an item tied to a system (sys:"slug" on a structure box, a thread, a flow's
    end, a lifeline; data-part="sys:<slug>" on hand-written HTML) is planned while the registry says the system is, so apply-state.js
@@ -916,8 +919,8 @@ function applyParts(root){ (root||document).querySelectorAll("[data-part]").forE
   document.querySelectorAll(".thread[data-t]").forEach(e=>{ const t=MODEL.threads[e.dataset.t]; if(t) e.classList.toggle("planned",isPlanned(t)); }); }
 function paintSystems(root){ (root||document).querySelectorAll("[data-sys]").forEach(e=>{ e.style.setProperty("--c",sysColour(e.dataset.sys)); e.classList.toggle("archived",isArchivedSys(e.dataset.sys)); }); }
 /* Legend entries for a set of systems: one per top-level system, in slot order, then "other" when any folded. */
-function sysKey(slugs,cls){ const hs=[...new Set(slugs.map(sysTop).filter(Boolean))].filter(h=>sysSlot(h.slug)).sort((a,b)=>sysSlot(a.slug)-sysSlot(b.slug)), arch=slugs.some(isArchivedSys), more=slugs.some(s=>!sysSlot(s)&&!isArchivedSys(s));
-  return hs.map(t=>`<span><i class="${cls||"sys"}" style="--c:${sysColour(t.slug)}"></i>${esc(t.name)}</span>`).join("")+(arch?`<span><i class="${cls||"sys"} archived" style="--c:var(--muted)"></i><span class="archtag">⊟ archived</span> neutral, no colour of its own</span>`:"")+(more?`<span><i class="${cls||"sys"}" style="--c:var(--muted)"></i>other systems</span>`:""); }
+function sysKey(slugs,cls){ const hs=[...new Set(slugs.map(sysTop).filter(Boolean))].filter(h=>sysSlot(h.slug)).sort((a,b)=>sysSlot(a.slug)-sysSlot(b.slug)), arch=slugs.some(isArchivedSys), more=slugs.some(s=>!sysSlot(s)&&!isArchivedSys(s)&&!sysPlain(s)), plain=[...new Set(slugs.map(sysPlainOf).filter(Boolean))];
+  return hs.map(t=>`<span><i class="${cls||"sys"}" style="--c:${sysColour(t.slug)}"></i>${esc(t.name)}</span>`).join("")+plain.map(t=>`<span><i class="${cls||"sys"}" style="--c:var(--ink)"></i>${esc(t.name)}</span>`).join("")+(arch?`<span><i class="${cls||"sys"} archived" style="--c:var(--muted)"></i><span class="archtag">⊟ archived</span> neutral, no colour of its own</span>`:"")+(more?`<span><i class="${cls||"sys"}" style="--c:var(--muted)"></i>other systems</span>`:""); }
 
 /* The Systems tab (system/RULES.md §3, §7; dashboards-skill/35, promoted from the WebTools repository state board): the systems
    grouped by their visibility (the registry's "visibility": public, consumed by another organization; internal-org, consumed only by other
@@ -1396,7 +1399,7 @@ function renderFlow(){
 /* The legend for the flow on screen: shapes, then each end colour with the systems or levels that use it, lit and faded, and planned
    only where a node is (an edge is drawn planned only beside a planned node). */
 function flowKey(F){
-  const ends=new Map(); Object.values(F.nodes).filter(n=>n.k==="t").forEach(n=>{ const c=endCol(n), l=ends.get(c)||[], name=n.sys?((sysTop(n.sys)||{}).name||n.sys):n.lvl; if(name&&!l.includes(name)) l.push(name); ends.set(c,l); });
+  const ends=new Map(); Object.values(F.nodes).filter(n=>n.k==="t").forEach(n=>{ const c=endCol(n), l=ends.get(c)||[], name=n.sys?((sysPlainOf(n.sys)||sysTop(n.sys)||{}).name||n.sys):n.lvl; if(name&&!l.includes(name)) l.push(name); ends.set(c,l); });
   $("#flow-key").innerHTML=`<span><i class="hex"></i>decision</span><span><i></i>step</span>`+[...ends].map(([c,l])=>`<span><i class="end" style="border-left-color:${c}"></i>ends · ${esc(l.join(" · ")||"outcome")}</span>`).join("")+`<span><i class="ln on"></i>the path these inputs take</span><span><i class="ln off"></i>not taken</span>`+(Object.values(F.nodes).some(isPlanned)?`<span><i class="pln"></i>planned, not built</span>`:"");
 }
 function highlightFlow(){

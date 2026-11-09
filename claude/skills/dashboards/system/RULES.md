@@ -37,7 +37,7 @@ This set ships, under `skills/dashboards/system/`:
 | `template/state.json` | A board's state: the stamp, version and last amendment its header draws (§2). |
 | `examples/webtools-udp/` | A complete system board and DSL for WebTools' `webtools-udp` — read it to see every Panel, Legend and guarantee Card filled with real facts. |
 | `scripts/embed.js` | Embeds `workspace.dsl` (block `dsl`), `systems.json` (block `systems`) or `state.json` (block `state`) verbatim into a board; `--check` verifies. |
-| `scripts/apply-state.js` | The data-only path of a state board (§10): restamps the boards a branch touches, marks parts built or planned in the DSL and the registry, re-embeds, checks without a browser; the admin team runs it. |
+| `scripts/apply-state.js` | The data-only path of a state board (§10): restamps the boards a branch touches, marks parts built or planned in the DSL and the registry, re-embeds, checks without a browser; the presenter runs it in its `state-boards` mode. |
 | `scripts/statelib.js` | The state, DSL and registry reading and editing `apply-state.js` writes through and `check-board.js` checks with (not a command). |
 | `scripts/check-board.js` | The browser checker for **every** board, state and work boards alike (§9); it warns on an internal name a board carries (`GUIDANCE.md` §4, `namerefs.js`); `--auto` checks only what a board adds to its template; `--auto --no-browser` runs every check that needs no browser and names the pass it defers. |
 | `scripts/deviation.js` | How far a board deviates from its template (used by `--auto`; not a command). |
@@ -90,7 +90,7 @@ facts.
    The supersystem board's `MODEL` has the same shapes with a registry slug (`sys`) where a system
    board has a side, plus `structure.deps` for the dependency Arrows.
 
-3. **`state.json` — the stamp.** `{slug, version, asIs {ref, sha, date}, lastAmended {issue, title, sha}, written {sha}}`,
+3. **`state.json` — the stamp.** `{slug, version, asIs {ref, sha, date}, lastAmended {issue, title, sha}, written {sha}}`, and `colour: "plain"` on a system under Internal Tooling (`GUIDANCE.md` §1; `apply-state.js` writes it from the registry),
    beside the board and embedded verbatim (`node scripts/embed.js state.json index.html state`; `template/state.json` is its shape).
    The header's version, as-is and "written at" Chips are drawn from it, and the last amendment's note in the Context Panel (the part
    of the board above Context names no issue, `GUIDANCE.md` §5): the presenter writes those facts here and never in the HTML. `asIs` is the commit the board shows (§10); the date
@@ -485,7 +485,7 @@ keeps its own side's commit: a system the base changed, the code-landing commit 
 repository and supersystem boards take this run's code-landing commit, for now (at a `prepare-landing` sync, before that commit exists, the state-boards
 task that follows stamps them). The merge commit is never the stamp.
 
-The admin team writes their data alone. At the Document step's state-boards task (`facts.document`; `premerge`, the older pre-merge
+The presenter writes their data alone. At the Document step's state-boards task (`facts.document`; `premerge`, the older pre-merge
 refresh, read alike; a `state-boards` request, `state-pages`, its older name, read alike), it runs:
 
     node ~/.claude/skills/dashboards/system/scripts/apply-state.js --event <request.json> --worktree <path> [--repo <owner/repo>]
@@ -515,11 +515,11 @@ An event that moves no code (any plan-board event but `implementation-stage` and
 `docs/dashboards/systems.json` has nothing to stamp. It reads git (HEAD, the commit's time) and never writes it; it writes only under
 `docs/dashboards/`, every file through a temporary file and a rename, and on any failure puts every file back (exit 1). The same
 request twice changes nothing (`duplicate`). Its summary names the stamp, the systems, what it applied, the files it wrote, the
-check, the time, and `enrich: yes|no` with `why`. Committing what it wrote is the admin team's.
+check, the time, and `enrich: yes|no` with `why`, which tell the presenter what is left to write. Committing what it wrote is the admin team's.
 
 | The script decides (from the request) | The presenter adds (from the code and documents), when `enrich: yes` |
 |---|---|
-| the stamp of each touched system, its supersystems and the repository: the registry's `asIs` and `lastAmended`, each board's `state.json` (`asIs`, `lastAmended`, `version`; `written` kept), the DSL's as-is line and its views' "as built at" commit | the prose and figures at the new commit — the function sentence, the KPI Tiles, the Panels, the Guarantees, the Context — and `written.sha` once it has read them again; until then the header says "written at <sha>" |
+| the stamp of each touched system, its supersystems and the repository: the registry's `asIs` and `lastAmended` (an entry merely carried by the branch's earlier stamp, not named by the facts or the board, is restamped and keeps its last amendment: its issue did not change it), each board's `state.json` (`asIs`, `lastAmended`, `version`; `written` kept), the DSL's as-is line and its views' "as built at" commit | the prose and figures at the new commit — the function sentence, the KPI Tiles, the Panels, the Guarantees, the Context — and `written.sha` once it has read them again; until then the header says "written at <sha>" |
 | a part marked built or planned: its DSL element's `Planned` tag (and its built tag), a system's registry `status`; every board draws it from that data (§2, "Planned parts") | what the boards say of the part: its descriptions and labels, its threads, lifecycle and Guarantees text, its code paths in the registry; a part no element draws yet; a board for a newly built system, when the repository gives it one |
 | a system's `version` (`facts.version`) | the Compatibility & versioning Card's wording |
 | the embedded copies (state, DSL, registry) of every board that carries them; `check-board.js --auto --no-browser` on each board it wrote | the browser pass the check names as deferred, on a board that diverges, at the presenter's next look (the Document step's state boards) |

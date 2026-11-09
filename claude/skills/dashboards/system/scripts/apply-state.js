@@ -51,7 +51,7 @@
 const boardOf = e => e && (typeof e.board === "string" && e.board.trim() ? e.board : typeof e.page === "string" && e.page.trim() ? e.page : null);
 const T0 = Date.now();
 const fs = require("fs"), path = require("path"), cp = require("child_process");
-const L = require("./statelib.js");
+const L = require("./statelib.js"), PAL = require("./palette.js");
 const { levelRefs, titleDefect } = require("./levelrefs.js");
 
 const USAGE = "usage: node apply-state.js --event <request.json> --worktree <path> [--repo <owner/repo>] [--at <ISO time>] [--json]";
@@ -183,7 +183,10 @@ async function main() {
   /* every entry the branch stamped earlier, named or not: its stamp is replaced whole below (registry, state.json, the DSL's as-is line), so
      nothing of an earlier stamp outlives the request. Never on the default branch, where every entry carries the ref and most did not change */
   const defaultBranch = facts.base || req.base || (git(ROOT, ["symbolic-ref", "--short", "refs/remotes/origin/HEAD"]) || "").replace(/^origin\//, "") || null;
-  if (landed && branch !== defaultBranch && (premerge || branch !== ref)) reg.systems.filter(e => e.asIs && e.asIs.ref === branch).forEach(e => touched.add(e.slug));
+  /* such an entry is restamped and nothing more: it was not amended by this issue, so its last amendment stays (a repository's first boards are all stamped
+     with the branch, and the systems the issue did not change took "last amended by #N" from this line) */
+  const carried = new Set();
+  if (landed && branch !== defaultBranch && (premerge || branch !== ref)) reg.systems.filter(e => e.asIs && e.asIs.ref === branch && !touched.has(e.slug)).forEach(e => { touched.add(e.slug); carried.add(e.slug); });
   const unknown = [...touched].filter(s => !bySlug(s));
   if (unknown.length) refuse(`BLOCKED — system unresolved: ${unknown.join(", ")} ${unknown.length === 1 ? "is" : "are"} not in docs/dashboards/systems.json (its systems: ${reg.systems.map(e => e.slug).join(", ")})`);
 
@@ -232,10 +235,13 @@ async function main() {
     if (!core.length) { if (near) S.enrich.push(`${e.slug}: none of its subsystems is core: its status is left ${e.status}`); return; }
     const st = core.every(c => after0(c.slug) === "built") ? "built" : "planned";
     if (st !== e.status) addEntry(e, st === "planned"); });
-  flips.forEach((_, s) => touched.add(s));
-  elems.forEach(x => { const o = dslOwner(x.dsl); if (!o) refuse(`${x.dsl} is no board's workspace.dsl in the registry`); touched.add(o.slug); });
+  flips.forEach((_, s) => { touched.add(s); if (bySlug(s) && flips.get(s) !== bySlug(s).status) carried.delete(s); });
+  elems.forEach(x => { const o = dslOwner(x.dsl); if (!o) refuse(`${x.dsl} is no board's workspace.dsl in the registry`); touched.add(o.slug); if (x.why !== "code") carried.delete(o.slug); });
   if (facts.version != null && (typeof facts.version !== "object" || Array.isArray(facts.version))) refuse("facts.version names a version per system: {\"<slug>\": \"<version>\"}");
-  Object.keys(facts.version || {}).forEach(s => { if (!bySlug(s)) refuse(`facts.version names ${s}, which the registry does not list`); touched.add(s); });
+  Object.keys(facts.version || {}).forEach(s => { if (!bySlug(s)) refuse(`facts.version names ${s}, which the registry does not list`); touched.add(s); carried.delete(s); });
+  /* what this issue amended: a touched entry not merely carried by the branch's stamp, and the supersystems above it and the repository's entry, whose boards show it */
+  const amended = new Set([...touched].filter(s => !carried.has(s)));
+  const isAmended = e => amended.has(e.slug) || ((e.kind === "repo" || e.kind === "supersystem") && [...amended].some(s => e.kind === "repo" || L.isAncestor(reg.systems, e.slug, s)));
   if (!touched.size) { S.result = "no-systems"; S.enrich.push("the request names no system the branch touches (facts.systems) and the issue's board records none: the presenter decides which"); return; }
 
   /* every board that shows a touched system: its own, its supersystems', the repository's */
@@ -258,7 +264,7 @@ async function main() {
     if (flip && flip !== e.status) { f.status = flip; S.applied.push(`${slug} ${flip}`); }
     if (status === "planned" && !builtInPart(e, reg.systems)) { if (touched.has(slug) && !flip) S.notes.push(`${slug} is planned: nothing built to stamp`); if (Object.keys(f).length) edits[slug] = f; continue; }
     if (JSON.stringify(e.asIs || null) !== JSON.stringify(asIs)) f.asIs = asIs;
-    if (S.issue != null) { const la = { issue: S.issue, sha, ...(e.lastAmended && e.lastAmended.issue === S.issue && e.lastAmended.note ? { note: e.lastAmended.note } : {}) }; if (JSON.stringify(e.lastAmended || null) !== JSON.stringify(la)) f.lastAmended = la; }
+    if (S.issue != null && isAmended(e)) { const la = { issue: S.issue, sha, ...(e.lastAmended && e.lastAmended.issue === S.issue && e.lastAmended.note ? { note: e.lastAmended.note } : {}) }; if (JSON.stringify(e.lastAmended || null) !== JSON.stringify(la)) f.lastAmended = la; }
     const v = (facts.version || {})[slug]; if (v != null && v !== e.version) { f.version = String(v); S.applied.push(`${slug} version ${v}`); S.enrich.push(`${slug} moved to ${v}: the Compatibility & versioning card says it in the presenter's words`); }
     if (Object.keys(f).length) edits[slug] = f;
   }
@@ -312,9 +318,11 @@ async function main() {
       const old = s.asIs || {}, la = s.lastAmended || {};
       if (!s.written && old.sha) s.written = { sha: old.sha };
       s.asIs = asIs;
-      if (S.issue != null) { const title = factTitle || keptTitle(la) || sharedTitle || boardTitle || slugTitle; if (title && title === slugTitle && !factTitle) slugUsed = true;
+      if (S.issue != null && isAmended(e)) { const title = factTitle || keptTitle(la) || sharedTitle || boardTitle || slugTitle; if (title && title === slugTitle && !factTitle) slugUsed = true;
         s.lastAmended = { issue: S.issue, ...(title ? { title } : {}), sha }; }
-      if (e.kind === "system") s.version = e.version == null ? null : e.version;
+      if (e.kind === "system") { s.version = e.version == null ? null : e.version;
+        /* a system under Internal Tooling draws its board in the plain ink (GUIDANCE.md §1): the registry decides, the board reads state.colour */
+        if (PAL.colourSlots(R.systems).plain(e.slug)) s.colour = "plain"; else delete s.colour; }
       const stText = L.stateText(s);
       if (put(stFile, inEol(stText, st0.eol))) S.wrote.push(path.relative(ROOT, stFile).split(path.sep).join("/"));
       if (!had) S.notes.push(`${rel}: state.json written beside it from its state block`);

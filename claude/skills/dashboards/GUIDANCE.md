@@ -25,6 +25,8 @@ supersystem and repository state boards, its Rows on every issue board and on th
 learns the colour once can follow the system everywhere. On a system board the three sides
 (`--server`, `--client`, `--wire`) are slots 1 to 3.
 
+**The plain system: Internal Tooling** (the user's decision of 2026-11-09, for every repository). A system named Internal Tooling (a supersystem) and all its subsystems are drawn in the theme's plain ink (`--ink`: black on a light board, the plain ink of a dark one), on every Tab of every board. It takes no colour slot and no place among the top-level systems, so no other system's colour moves for it (`system/scripts/palette.js` `colourSlots()`, `isPlainName()`). The name is the rule; the registry records no flag. On its own system board the three sides draw in the ink, told apart by their labels (`apply-state.js` writes `state.colour` from the registry); every Legend names it. An archived one is drawn as any archived system.
+
 **The org work board.** It holds several repositories at once, so a system colour there means one thing per repository Panel, not
 per board: each repository Panel draws its repository's own colours, the same colour in two Panels may be two systems, and each
 Panel's Legend names them (`plan/RULES.md` §10).
@@ -65,12 +67,12 @@ its ruleset; the shared scale is:
 
 | Colour | Meaning | Examples |
 |--------|---------|----------|
-| **green** (`--good`) | accepted, done as decided, passing | an accepted option; an `as-planned` part; a passing qa gate; a `complete` unit (qa passed, drawn outlined: not merged yet) and a `landed` one (merged); an impact reconciled as built |
+| **green** (`--good`) | accepted, done as decided, passing | an accepted option; an `as-planned` part; a passing qa gate; a `check` stage that passed; a `complete` unit (qa passed, drawn outlined: not merged yet) and a `landed` one (merged); an impact reconciled as built |
 | **yellow** (`--warning`) | in between: partly adopted, amended, waiting | a `partial` option; an `amended` part; an option left `deferred` at plan time; a halt, "waiting on you"; an impact partly reconciled |
-| **red** (`--critical`) | declined, dropped, failing | a `declined` option; a `dropped` part; a failing gate |
+| **red** (`--critical`) | declined, dropped, failing | a `declined` option; a `dropped` part; a failing gate; a `check` stage that failed |
 | **orange** (`--serious`) | changed course | a `deviated` part (the decision itself changed) |
 | **accent** (`--accent`) | being worked on: the in-progress mark | an `in-progress` part (a current stage builds it; a unit whose run is under way), solid, beside the FullPulse |
-| **strong neutral** (`--ink-2`, solid) | partly done, no outcome yet | a `partially-built` part: a finished stage built part of it, a later stage builds the rest |
+| **strong neutral** (`--ink-2`, solid) | partly done, no outcome yet | a `partially-built` part: a finished stage built part of it, a later stage builds the rest; a finished `work` stage, a sub-step or a task, "✓ done", which is no outcome (`plan/RULES.md` §3, "The stage list") |
 | **neutral** (ink/grey) | no outcome yet, or not applicable | a `pending` part; a `deferred` part (with its issue); an impact still planned (dashed); an issue closed as not planned or as a duplicate ("closed · not planned", "closed · duplicate": never landed; issue boards and the repository work board only, §7); a `bug` label ("▲ bug": a Label, not an outcome); counts and facts |
 
 **The exception: compatibility on the Consequences Tab** (named the Impact Tab before admin-team/dashboards-skill/35; its ids, its
@@ -595,7 +597,7 @@ other:
 
 | Board | Brought onto the current template |
 |---|---|
-| system, supersystem and repository state boards; the committed repository work board | at the **Document step's state-boards task**, on the issue's branch before its land, where each landing does it (`system/scripts/splice.js` for a state board: the template's CSS, script before MODEL and renderer carried onto the board, three ways for a declared divergence; `board.js --refresh-template` for the repository work board); before admin-team/dashboards-skill/35, at the pre-merge refresh inside the land. A run's branch may also take the re-render mid-run, ahead of the Document step |
+| system, supersystem and repository state boards; the committed repository work board | at the **Document step's state-boards task**, on the issue's branch before its land, where each landing does it (`system/scripts/splice.js` for a state board: the template's CSS, script before MODEL and renderer carried onto the board, three ways for a declared divergence; `board.js --refresh-template` for the repository work board); before admin-team/dashboards-skill/35, at the pre-merge refresh inside the land. The committed repository work board also at a run's **`sized`** (or a level-1 run's `seed`) that seeds the previous landing's state, in that run's tree (`board.js --refresh-template`; `plan/RULES.md` §4, "Seeding at sized"). A run's branch may also take the re-render mid-run, ahead of the Document step |
 | the live repository work board | at **every event** (`board.js --live --refresh-template`: it is the template plus its data, never committed) |
 | the org work board | at **every landing in a repository on the board**, when it is regenerated and committed (`plan/RULES.md` §10) |
 | an issue's board that is in flight, and its tracking board | at **its own events** (`apply-event.js` re-renders a board that is not the verified template plus its data) |

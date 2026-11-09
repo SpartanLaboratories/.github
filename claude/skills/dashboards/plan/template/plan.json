@@ -89,6 +89,15 @@
         "id": "A",
         "name": "<the stage, as plan.md names it>",
         "state": "current",
+        "brief": "<what the stage establishes: the plan's stage table, copied verbatim at branch-cut>",
+        "kind": "work",
+        "steps": [
+          {
+            "id": "<step-id>",
+            "name": "<its name>"
+          }
+        ],
+        "ref": "plan.md#<its-heading>",
         "rows": [
           "<row-id>"
         ]

@@ -147,15 +147,6 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .wip-detail{margin:6px 0 4px;font-size:13px;color:var(--ink);max-width:110ch}
 .wip-wait{margin:6px 0 4px;font-size:13px;color:var(--ink);font-weight:600}
 .wip-sub{font:700 10.5px var(--mono);letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin:8px 0 2px}
-.steps{list-style:none;margin:4px 0 2px;padding:0;display:flex;flex-wrap:wrap;gap:6px 0;align-items:center}
-.steps li{display:inline-flex;align-items:center;font:11.5px var(--mono);color:var(--ink-2);white-space:nowrap}
-.steps li+li::before{content:"";display:inline-block;width:16px;border-top:2px solid var(--ink-2);margin:0 4px}
-.steps li.todo+li::before,.steps li.cur+li.todo::before{border-top-style:dashed;border-top-color:var(--muted)}
-.steps .dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;flex:none;background:var(--ink-2);border:2px solid var(--ink-2)}
-.steps li.todo{color:var(--muted)}
-.steps li.todo .dot{background:none;border:2px dashed var(--muted)}
-.steps li.cur{color:var(--ink);font-weight:700}
-.steps li.cur .dot{background:var(--accent);border-color:var(--accent)}
 /* The StepBar (nomenclature/ui.md, StepBar; dashboards-skill/54): the steps of a sequence in order, each a chevron with its name inside,
    done, current or to come. An ordered list, the current step aria-current="step", each step's state said in words to a screen reader
    (.sb-st). It stands on a line of its own and wraps inside itself at phone width, never widening the board; a long name wraps inside its
@@ -219,8 +210,6 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .wipcard-t a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}
 .wipcard-t a:hover{border-bottom-color:var(--ink)}
 .wipcard .wip-sub{margin-top:10px}
-.wipcard .chip-bar{display:block;height:5px;margin:4px 0 6px;border-radius:3px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;max-width:420px}
-.wipcard .chip-bar i{display:block;height:100%;background:var(--good)}
 .wipcard .run{margin-top:2px}
 .wipcard.wait ul{margin:4px 0 0;padding-left:18px;font-size:13px;color:var(--ink)}
 .wipcard.wait li{margin:4px 0}
@@ -230,7 +219,6 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .wip.wipcards>.legend{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-top:8px}
 .run{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font:11px var(--mono);color:var(--muted)}
 .inspector .run{margin:0 0 4px}
-.inspector .steps{margin:6px 0 4px}
 .inspector .stepbar{margin:6px 0 4px}
 /* An issue board's strip and its step panel (plan/RULES.md §3, "The step panel"): the strip on the left half, the panel breaking the
    current step down on the right; one column below 940 px. The legend runs under both. A board that has landed or was cancelled
@@ -250,7 +238,6 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .sp p.sp-sum{color:var(--ink);font-weight:600}
 .sp p.sp-wait{color:var(--ink);font-weight:600}
 .sp a{text-decoration:none;border-bottom:1px solid var(--line)}
-.sp .steps{margin:6px 0 4px}
 .sp .stepbar{margin:6px 0 4px}
 .sp-list{list-style:none;margin:6px 0 2px;padding:0;display:grid;gap:4px}
 .sp-list>li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 8px;align-items:baseline;padding:4px 0;border-top:1px solid var(--hair);min-width:0}
@@ -266,6 +253,58 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .sp-opts{margin:3px 0 0;padding-left:16px;font-weight:400;color:var(--ink-2)}
 /* the questions a halt put to you, in the panel of the step it halted in (plan/RULES.md §3, wip.asked) */
 .sp-asked{margin:6px 0 8px}
+/* the stage list of the WIP Panel, the collapsing items of the step Panel (plan/RULES.md §3, "The stage list", "Collapsing"), the Now Chip */
+.stg-strip{margin-top:10px;padding-top:2px;border-top:1px solid var(--hair)}
+.stg-rows{list-style:none;margin:5px 0 0;padding:0;display:grid;gap:0}
+.stg-row{display:grid;grid-template-columns:2.2em minmax(0,1fr) auto;gap:1px 8px;align-items:baseline;padding:5px 8px;border-top:1px solid var(--hair);border-radius:0;min-width:0;cursor:pointer}
+.stg-row:first-child{border-top:0}
+.stg-row:not(.fullpulse):hover{background:var(--surface-2)}
+.stg-row.cur{border-top-color:transparent;border-radius:5px}
+.stg-row.cur+.stg-row{border-top-color:transparent}
+.stg-row .id{font:700 12px var(--mono);color:var(--ink)}
+.stg-open{appearance:none;background:none;border:0;padding:0;margin:0;font:600 13px/1.35 var(--sans);text-align:left;color:var(--ink);cursor:pointer;min-width:0;overflow-wrap:anywhere}
+.stg-open:focus-visible{outline:2px solid var(--focus);outline-offset:1px;border-radius:2px}
+.stg-row .br{grid-column:2/-1;font-size:12px;line-height:1.35;color:var(--ink-2);overflow-wrap:anywhere;min-width:0}
+.stg-row .br code{font-size:11px}
+.stg-row.todo .id,.stg-row.todo .stg-open{color:var(--ink-2)}
+.stg-list>li{display:block;padding:0}
+.stg-s{display:flex;align-items:center;gap:8px;padding:6px 2px;border-radius:3px;min-width:0}
+summary.stg-s{list-style:none;cursor:pointer}
+summary.stg-s::-webkit-details-marker{display:none}
+summary.stg-s:hover{background:var(--surface-2)}
+summary.stg-s:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.stg-s .id{font:700 12px var(--mono);color:var(--ink)}
+.stg-s .nm{flex:1 1 auto;color:var(--ink);min-width:0;overflow-wrap:anywhere}
+.stg-list li.todo>details>.stg-s .nm,.stg-list li.todo>details>.stg-s .id,.stg-list li.todo>.stg-s .nm,.stg-list li.todo>.stg-s .id{color:var(--ink-2)}
+.stg-list li.cur>details>.stg-s .nm,.stg-list li.cur>.stg-s .nm{font-weight:600}
+.stg-s .ct{font:11px var(--mono);color:var(--muted);white-space:nowrap}
+.stg-s .chev{flex:none;width:1em;text-align:center;font:11px/1 var(--mono);color:var(--muted);transition:transform .12s;display:inline-block}
+.stg-d[open]>summary .chev{transform:rotate(90deg)}
+.stg-b{padding:2px 2px 9px 28px;font-size:12.5px;color:var(--ink-2)}
+.stg-b p{margin:2px 0 6px}
+.stg-b .wip-facts{margin:6px 0 0}
+.stg-h{font:700 10.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:7px 0 3px}
+.stg-h .verdict-pill{text-transform:none;letter-spacing:.02em;margin-left:6px}
+.stg-rl{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.stg-rl>li{min-width:0}
+.stg-rl .rn{color:var(--ink);overflow-wrap:anywhere}
+.sp .stg-rl small{display:block;font:11.5px/1.35 var(--sans);color:var(--ink-2);margin-top:1px;overflow-wrap:anywhere}
+.stg-steps{list-style:none;margin:2px 0 6px;padding:0;display:grid;gap:3px}
+.stg-steps>li{display:flex;align-items:center;gap:7px;min-width:0;font-size:12.5px;color:var(--ink-2)}
+.stg-steps>li .q{min-width:0;overflow-wrap:anywhere}
+.stg-steps .sdot{flex:none;width:9px;height:9px;border-radius:50%;background:var(--ink-2);border:2px solid var(--ink-2)}
+.stg-steps>li.todo .sdot{background:none;border:2px dashed var(--muted)}
+.stg-steps>li.unk .sdot{background:none;border:1px solid var(--line)}
+.stg-steps>li.cur{color:var(--ink);font-weight:600}
+.stg-steps>li.cur .sdot{background:var(--accent);border-color:var(--accent);animation:dot-fullpulse 2s ease-in-out infinite}
+.sp.sp-held .stg-steps>li.cur .sdot{animation:none;box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
+@media (prefers-reduced-motion:reduce){.stg-steps>li.cur .sdot{animation:none}}
+.sp-now{margin:6px 0 8px}
+.chip.now{display:block;font:13px/1.4 var(--sans);color:var(--ink);padding:6px 9px}
+.chip.now .ck{margin-right:6px}
+.legend .chip.now{display:inline-block;padding:2px 6px;font-size:10px}
+@media (prefers-reduced-motion:reduce){.stg-s .chev{transition:none}}
+@media (max-width:520px){.stg-s .ct{display:none}.stg-b{padding-left:6px}}
 .wipcard.wait li .wq{margin:3px 0 0;padding-left:16px;font-size:12.5px;color:var(--ink-2)}
 .sp-opts li{margin:1px 0}
 .sp.sp-held .sp-list li.cur .dot{animation:none;box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
@@ -286,7 +325,12 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .sp-back:hover{background:var(--surface-2)}
 .sp.past{border-left-color:var(--ink)}
 .sp-visit+.sp-visit{border-top:1px solid var(--line);margin-top:10px;padding-top:8px}
-.sp-visit>h4{font:700 10.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+.sp-visit h4{font:700 10.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+details.sp-visit>summary h4{margin:0;flex:none}
+details.sp-visit>summary .nm{font-size:12.5px;color:var(--ink-2)}
+.sp-vb{padding:2px 0 4px}
+.stg-row.static{cursor:default}
+.stg-row .stg-nm{font:600 13px/1.35 var(--sans);color:var(--ink);min-width:0;overflow-wrap:anywhere}
 .wipmain.landed{border-left-color:var(--good)}
 @media (prefers-reduced-motion:reduce){.sp-list li.cur .dot{animation:none!important;box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent),0 0 8px 3px color-mix(in srgb,var(--accent) 45%,transparent)}}
 
@@ -301,17 +345,13 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 @keyframes dot-fullpulse{0%,100%{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}50%{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent),0 0 10px 5px color-mix(in srgb,var(--accent) 55%,transparent)}}
 .fullpulse{animation:fullpulse 2s ease-in-out infinite;background-color:color-mix(in srgb,var(--accent) 7%,var(--surface))}
 .col-fullpulse{animation:col-fullpulse 2s ease-in-out infinite;background-color:color-mix(in srgb,var(--accent) 4%,var(--surface))}
-.steps li.cur.fullpulse,.steps li.cur.held{animation:none;box-shadow:none;background:none}
-.steps li.cur.fullpulse .dot{animation:dot-fullpulse 2s ease-in-out infinite}
 .held{box-shadow:inset 0 0 0 2px var(--accent)}
-.steps li.cur.held .dot{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
 .upnext-ring{box-shadow:0 0 0 1.5px color-mix(in srgb,var(--accent) 70%,transparent),0 0 12px 3px color-mix(in srgb,var(--accent) 32%,transparent)}
 .tag-next{display:inline-block;font:700 9.5px/1 var(--mono);letter-spacing:.08em;padding:3px 5px;border-radius:3px;border:1px solid var(--accent);color:var(--accent);background:var(--surface);white-space:nowrap}
 @media (prefers-reduced-motion:reduce){
-  .fullpulse,.col-fullpulse,.steps li.cur.fullpulse .dot{animation:none!important}
+  .fullpulse,.col-fullpulse{animation:none!important}
   .fullpulse{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 14px 4px color-mix(in srgb,var(--accent) 40%,transparent)}
-  .col-fullpulse{box-shadow:inset 0 0 0 1.5px var(--accent),inset 0 0 9px 2px color-mix(in srgb,var(--accent) 26%,transparent)}
-  .steps li.cur.fullpulse .dot{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent),0 0 8px 3px color-mix(in srgb,var(--accent) 45%,transparent)}}
+  .col-fullpulse{box-shadow:inset 0 0 0 1.5px var(--accent),inset 0 0 9px 2px color-mix(in srgb,var(--accent) 26%,transparent)}}
 /* The StepBar's marks (dashboards-skill/54; GUIDANCE.md §1): the current step at work carries the FullPulse, its edge the solid accent
    Ring and its fill the accent wash breathing; while its run waits on you, the Ring alone, still (.held); under reduced motion the wash
    holds at its middle strength. A finished step on the progress strip is a button showing it in the step panel; the one shown is ringed
@@ -506,7 +546,6 @@ a.more:hover{text-decoration:underline}
 .legend i.wait{border-color:var(--warning);background:color-mix(in srgb,var(--warning) 25%,var(--surface))}
 .legend i.runbar{width:4px;height:14px;border:0;border-radius:0;background:var(--accent)}
 .legend i.runbar.halt{background:var(--warning)}
-.legend i.bar{height:6px;border:1px solid var(--line);background:linear-gradient(90deg,var(--good) 55%,var(--surface-2) 55%)}
 .legend .verdict-pill,.legend .badge{align-self:center}
 
 /* status pills: the colour is the left bar and a tint; the glyph and the word carry the meaning (never colour alone) */

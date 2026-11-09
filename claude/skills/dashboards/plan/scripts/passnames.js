@@ -3,8 +3,8 @@
 // STEP_NAME, ROUTE_NAME, …), which verify/cases-board-wording.js holds equal to this one. Never free text: the fast path (apply-event.js)
 // writes every name it composes from here and rewords every fact text it writes (renamePassText()); every rewrite of a board (lib.js
 // resolveBoard(): apply-event.js, embed.js, fill.js, new.js) rewords what the board already holds (renamePasses()); board.js rewords the
-// repository work board it generates; check.js fails a board not landed that still holds an older wording and warns on a landed one, kept
-// as it landed until something rewrites it (passRefsIn()).
+// repository work board it generates; check.js fails a board not landed that still holds an older wording and warns on a landed one
+// (passRefsIn()).
 //   - the qa step reads "Quality Review"; a pass, "Quality Review N" ("Quality Review 1 · approved"); one not numbered, "review" ("no
 //     additional review", "the next review", "the review approved"); what a pass returns, its "findings" ("Quality Review 1: 18 findings");
 //   - the remediation step is named by its route: "Correction" (on-the-spot, remediation), "Resolution" (re-plan-then-remediation); the

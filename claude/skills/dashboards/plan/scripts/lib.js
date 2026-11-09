@@ -50,6 +50,72 @@ function lockTree(root, what) {
 const opt = (args, name, dflt) => { const i = args.indexOf("--" + name); return i >= 0 && args[i + 1] != null && !args[i + 1].startsWith("--") ? args[i + 1] : dflt; };
 const flag = (args, name) => args.includes("--" + name);
 
+/* ---------- The plan's stage table (plan/RULES.md §3, "The stage table"): the Markdown table a plan carries, its columns id, name, brief, kind and steps.
+   The fast path copies it onto wip.stages at branch-cut, the brief verbatim. A step in the steps column is "<step-id>" or "<step-id>: <its name>",
+   separated by ";" or ",". Returns { stages: [{ id, name, brief, kind, steps: [{ id, name }] }], problems: [...] } for the first such table outside a
+   fenced block, or null when the text has none. */
+const STAGE_TABLE_COLS = ["id", "name", "brief", "kind", "steps"], STAGE_KINDS = ["work", "check"], STAGE_STEP_ID = /^[A-Za-z0-9][\w.-]*$/;
+const mdRowCells = l => { const out = []; let c = ""; const s = l.trim(); for (let i = 0; i < s.length; i++) { if (s[i] === "\\" && s[i + 1] === "|") { c += "|"; i++; } else if (s[i] === "|") { out.push(c.trim()); c = ""; } else c += s[i]; } out.push(c.trim()); if (out[0] === "") out.shift(); if (out[out.length - 1] === "") out.pop(); return out; };
+function stageTable(md) {
+  const lines = String(md == null ? "" : md).split(/\r?\n/), problems = []; let fence = null;
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i], f = l.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+    if (fence) { if (f && f[1][0] === fence[0] && f[1].length >= fence.length && !f[2].trim()) fence = null; continue; }
+    if (f && !(f[1][0] === "`" && f[2].includes("`"))) { fence = f[1]; continue; }
+    if (!/^\s*\|/.test(l)) continue;
+    const head = mdRowCells(l).map(c => c.toLowerCase());
+    if (!STAGE_TABLE_COLS.every(c => head.includes(c)) || !/^[\s|:-]+$/.test(lines[i + 1] || "")) continue;
+    const stages = [];
+    for (let j = i + 2; j < lines.length && /^\s*\|/.test(lines[j]); j++) {
+      const cells = mdRowCells(lines[j]), get = c => (cells[head.indexOf(c)] || "").trim();
+      const id = get("id").replace(/`/g, ""), name = get("name"), brief = get("brief"), kind = get("kind").replace(/`/g, "").toLowerCase();
+      if (!id || !name) { problems.push(`line ${j + 1}: a row with no id or no name`); continue; }
+      if (!STAGE_KINDS.includes(kind)) problems.push(`${id}: its kind ${JSON.stringify(kind)} is neither work nor check`);
+      const raw = get("steps"), steps = /^[—–-]*$/.test(raw) ? [] : raw.split(/\s*(?:;|,|<br\s*\/?>)\s*/i).map(x => x.replace(/`/g, "").trim()).filter(Boolean).flatMap(x => { const m = /^([^:\s]+)(?:\s*:\s*(.+))?$/.exec(x); if (!m || !STAGE_STEP_ID.test(m[1])) { problems.push(`${id}: the step ${JSON.stringify(x)} is not "<step-id>" or "<step-id>: <its name>"`); return []; } return [{ id: m[1], name: (m[2] || m[1]).trim() }]; });
+      stages.push({ id, name, ...(brief ? { brief } : {}), ...(STAGE_KINDS.includes(kind) ? { kind } : {}), steps });
+    }
+    return { stages, problems };
+  }
+  return null;
+}
+/* The section of a plan a stage's heading opens ("#### S3 — The walk"), as a link from the board's folder, or null when no heading names the stage. */
+function stageRef(md, file, id) {
+  const re = new RegExp("^(?:stage\\s+)?" + reEsc(id) + "(?![\\w.-])", "i"), h = mdHeadings(md).find(x => re.test(String(x.text).replace(/`/g, "").trim()));
+  return h ? `${file}#${h.slug}` : null;
+}
+/* The stage table of a board's folder: its plan.md, else every plan-<unit>.md in name order, an id's first row kept. Each row also carries ref, its section of
+   the plan. null when no plan there has the table. */
+function planStageTable(dir) {
+  let names = []; try { names = fs.readdirSync(dir).filter(n => /^plan(-[\w.-]+)?\.md$/.test(n)).sort((a, b) => (a === "plan.md" ? -1 : b === "plan.md" ? 1 : a < b ? -1 : 1)); } catch (e) { return null; }
+  let got = null;
+  names.forEach(n => { let md = null; try { md = fs.readFileSync(path.join(dir, n), "utf8"); } catch (e) { return; }
+    const T = stageTable(md); if (!T) return; got = got || { stages: [], problems: [] }; got.problems.push(...T.problems);
+    T.stages.forEach(s => { if (!got.stages.some(x => x.id === s.id)) { const ref = stageRef(md, n, s.id); got.stages.push({ ...s, ...(ref ? { ref } : {}) }); } }); });
+  return got;
+}
+/* The record of one stage, remediation sub-step or Document task, from the events (plan/RULES.md §3, "The record of a stage"): started when it first goes current, finished and
+   its report when it goes done, a reopened one losing what its end recorded. x is the entry as this event leaves it, old as the board held it (or undefined), now the event's time, report the
+   event's own detail (wip.detail, or nothing when it says none). The same event twice writes the same record: only a change of state stamps. */
+function stampItem(x, old, now, report) {
+  const was = old && old.state;
+  if (old) ["started", "finished", "report", "result"].forEach(k => { if (old[k] != null && x[k] == null) x[k] = old[k]; });
+  if (x.state === "todo") { delete x.started; delete x.finished; delete x.report; delete x.result; return x; }
+  if (x.state === "current") { if (!x.started && now) x.started = now; if (was === "done" || was === "todo") { delete x.finished; delete x.report; delete x.result; } return x; }
+  if (x.state === "done" && was !== "done") { if (now) x.finished = now; if (report) x.report = report; else delete x.report; }
+  return x;
+}
+/* A board whose stages were recorded before the record: what its frozen visits and last event say ("S2 reported done; S3 current", plan/scripts/apply-event.js's note), written only
+   where a stage has nothing yet. */
+function backfillStages(w) {
+  const sg = Array.isArray(w.stages) ? w.stages.filter(isObj) : []; if (!sg.length) return [];
+  const H = historyOf(w), V = [...(Array.isArray(H.implementation) ? H.implementation : []), { event: w.event, detail: w.detail }], out = [], of = id => sg.find(x => x.id === id);
+  V.forEach(v => { const e = v && v.event; if (!isObj(e) || e.name !== "implementation-stage" || !isTime(e.at)) return;
+    const m = /^(\S+) reported done(?:; (\S+) current)?/.exec(String(e.note || "")); if (!m) return;
+    const d = of(m[1]), c = m[2] && of(m[2]);
+    if (d && d.state === "done" && !d.finished) { d.finished = e.at; out.push(`${d.id} finished`); if (!d.report && typeof v.detail === "string" && v.detail.trim() && !/^Implementation( at | done|\.)/.test(v.detail)) { d.report = v.detail; out.push(`${d.id} report`); } }
+    if (c && c.state !== "todo" && !c.started) { c.started = e.at; out.push(`${c.id} started`); } });
+  return out;
+}
 /* The registry's colour slots, computed exactly as the system boards compute them (system/template/supersystem.html, sysColour;
    system/scripts/palette.js colourSlots()): the systems in registry order without the repo entry; a top-level system is one whose parent is
    not itself such a system; tops take slots 1..6 by their place, a child takes its top-level ancestor's slot; an archived system holds no slot
@@ -74,8 +140,8 @@ function registry(root) {
   const info = slug => {
     const s = by(slug);
     if (!s) { const r = all.find(x => x.slug === slug); return r ? { slug, name: r.name, slot: 0, top: r.name, status: r.status || "built", board: boardOf(r) } : null; }
-    const t = colours.holder(slug);
-    return { slug, name: s.name, slot: colours.slot(slug), top: t ? t.name : s.name, status: s.status, board: boardOf(s) };
+    const t = colours.holder(slug), p = colours.plain(slug);
+    return { slug, name: s.name, slot: colours.slot(slug), top: p ? p.name : t ? t.name : s.name, status: s.status, board: boardOf(s), ...(p ? { plain: true } : {}) };
   };
   return { reg, info };
 }
@@ -346,7 +412,9 @@ function refreshSystems(plan, dir) {
     if (typeof i.status === "string" && s.status !== i.status) { out.push(`systems ${s.slug}: status ${s.status} → ${i.status}`); s.status = i.status; }
     const key = Object.prototype.hasOwnProperty.call(s, "board") || !Object.prototype.hasOwnProperty.call(s, "page") ? "board" : "page", b = i.board || null;
     if ((s[key] || null) !== b) { out.push(`systems ${s.slug}: ${key} ${s[key] || null} → ${b}`); s[key] = b; }
-    if (Number.isInteger(i.slot) && (s.slot || 0) !== i.slot) { out.push(`systems ${s.slug}: slot ${s.slot || 0} → ${i.slot}`); s.slot = i.slot; } });
+    if (Number.isInteger(i.slot) && (s.slot || 0) !== i.slot) { out.push(`systems ${s.slug}: slot ${s.slot || 0} → ${i.slot}`); s.slot = i.slot; }
+    /* a plain system's top is what the boards read its plain ink from (palette.js isPlainName()) */
+    if (i.plain && s.top !== i.top) { out.push(`systems ${s.slug}: top ${s.top || null} → ${i.top}`); s.top = i.top; } });
   return out;
 }
 /* An issue board's roadmap (plan/RULES.md §5, "An issue board's Context"; admin-team/dashboards-skill/34, the defect: every unit board
@@ -2041,5 +2109,5 @@ function ghMergeTime(repo, pr, merge) {
   } catch (e) { return out; }
 }
 
-module.exports = { ...LV, ...PN, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, isUnitRef, blockerOf, mapUnitBlockers, HISTORY_FIELDS, HISTORY_STEPS, qAnswered, askedOf, answerQuestions, syncAsked, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, retimePlan, RETIME_NOT, retimeWords, retimeWhat, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, roadmapDocItem, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+module.exports = { ...LV, ...PN, stageTable, planStageTable, stampItem, backfillStages, STAGE_KINDS, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, isUnitRef, blockerOf, mapUnitBlockers, HISTORY_FIELDS, HISTORY_STEPS, qAnswered, askedOf, answerQuestions, syncAsked, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, retimePlan, RETIME_NOT, retimeWords, retimeWhat, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, roadmapDocItem, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, unitLandingOf, unitLandings, mirrorUnitLandings, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewBaseFolder, viewBaseHref, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, notYetLanded, landedPending, unitLeft, setViewLinks, viewedFolder, viewLink, landVisit, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

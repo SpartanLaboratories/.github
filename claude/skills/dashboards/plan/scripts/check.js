@@ -193,7 +193,7 @@ function checkPlan(plan, dir, root) {
   const systems = Array.isArray(plan.systems) ? plan.systems : [];
   systems.forEach((s, i) => { if (!str(s.slug) || !str(s.name)) fail(`systems[${i}] needs slug and name`); if (s.slot != null && !(Number.isInteger(s.slot) && s.slot >= 0 && s.slot <= SLOTS)) fail(`systems[${i}].slot must be 0 to ${SLOTS}`); });
   // Colour groups, not rows (plan/RULES.md §8): a system's parts share their top-level system's slot.
-  const groups = new Set(systems.filter(s => s.status !== "archived").map(s => s.top || s.name || s.slug)); // an archived system holds no slot
+  const groups = new Set(systems.filter(s => s.status !== "archived" && !require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js")).isPlainName(s.top || s.name)).map(s => s.top || s.name || s.slug)); // an archived or a plain system holds no slot
   if (groups.size > SLOTS) warn(`more than ${SLOTS} colour groups on one board (${groups.size} top-level systems)`);
   const reg = root ? registry(root) : null;
   if (reg) systems.forEach((s, i) => { const r = reg.info(s.slug); if (!r) warn(`systems[${i}] "${s.slug}" is not in docs/dashboards/systems.json`); else if (r.slot !== (s.slot || 0) && !(r.status === "archived" && boardLanded(plan))) warn(`systems[${i}] "${s.slug}" has slot ${s.slot}, the registry gives ${r.slot}: its colour would differ from the system boards'`); });
@@ -747,7 +747,17 @@ function checkPanel(plan, w, ids, tracking, dir) {
         if (!str(x.id) && !str(x.name)) fail(`${at} needs its id or name (the stage of plan.md)`);
         if (!STAGE_STATES.includes(x.state)) fail(`${at}.state must be one of ${STAGE_STATES.join(", ")}`);
         (Array.isArray(x.rows) ? x.rows : []).forEach(r => { if (!ids.has(r)) warn(`${at} names row "${r}", which is not a row of this board`); }); });
-      if (w.stages.filter(x => x && x.state === "current").length > 1) fail("wip.stages has more than one \"current\" stage"); }
+      if (w.stages.filter(x => x && x.state === "current").length > 1) fail("wip.stages has more than one \"current\" stage");
+      /* what the plan's stage table and the events wrote on a stage (plan/RULES.md §3): each held to its form */
+      w.stages.forEach((x, j) => { if (!x || typeof x !== "object") return; const at = `wip.stages[${j}]`;
+        if (x.brief != null && !str(x.brief)) fail(`${at}.brief is the plan's stage table's text`);
+        if (x.kind != null && !["work", "check"].includes(x.kind)) fail(`${at}.kind must be work or check`);
+        if (x.steps != null && (!Array.isArray(x.steps) || x.steps.some(s => !s || !str(s.id) || !str(s.name)))) fail(`${at}.steps must be the stage table's steps, each { id, name }`);
+        if (x.result != null && !["passed", "failed"].includes(x.result)) fail(`${at}.result must be passed or failed`);
+        if (x.result != null && x.kind !== "check") fail(`${at}.result is recorded on a stage that is not a check`);
+        ["started", "finished"].forEach(k => { if (x[k] != null && !isTime(x[k])) fail(`${at}.${k} must be a UTC ISO time`); });
+        if (x.report != null && !str(x.report)) fail(`${at}.report must be the stage's closing report`); });
+    }
   }
   /* wip.open (RULES §3): the open points raised during the run, each { text, raised, ref, resolved }: shown in the step panel until
      resolved, then kept in the trail */

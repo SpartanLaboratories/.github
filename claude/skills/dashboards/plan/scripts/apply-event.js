@@ -502,7 +502,7 @@ function applyEvent(orig, ev, facts, req, now) {
         trail = { column: "verdict", label: `Planning branch ${code(plan.branch || "?")} confirmed` };
         break;
       }
-      mergeStages(w, facts, applied, enrich, true, ids);
+      mergeStages(w, facts, applied, enrich, true, ids, !!facts.remediation, { now, report: detail, txt });
       setStep("implementation"); setGlow("implementation");
       const c = curStage();
       detail = detail || `Branch ${code(plan.branch || "?")} cut; implementation starts${c ? ` at ${c.id}: ${c.name}` : ""}.`;
@@ -517,7 +517,7 @@ function applyEvent(orig, ev, facts, req, now) {
          sub-steps are written whether or not the facts also carry the stages (which are then merged too, every one done), and the wording
          follows the remediation, facts.stage first, never "Quality Review next". */
       const fixedBefore = new Set(((w.remediation || {}).steps || []).filter(x => x && x.state === "done").map(x => x.name));
-      if (facts.remediation) setRemediation(w, facts.remediation, applied, enrich, txt);
+      if (facts.remediation) setRemediation(w, facts.remediation, applied, enrich, txt, { now, report: detail });
       /* A report can change what the rows say while it finishes no stage (WebTools #67, the report of qa pass 1's fixes: every stage already done, a sub-step done,
          a new deviation D7, and it said enrich: no): a remediation sub-step it finishes, or a deviation it names, needs the documents too (plan/RULES.md §4,
          "The fast path"). From the board and the facts alone, so the same report twice asks nothing new of the sub-steps. */
@@ -536,7 +536,7 @@ function applyEvent(orig, ev, facts, req, now) {
         break;
       }
       const before = JSON.parse(JSON.stringify(w.stages || []));
-      mergeStages(w, facts, applied, enrich, false, ids, remed);
+      mergeStages(w, facts, applied, enrich, false, ids, remed, { now, report: detail, txt });
       const st = w.stages || [], done = st.filter(x => x.state === "done" && !before.some(y => y.id === x.id && y.state === "done"));
       /* the derived as-built states (plan/RULES.md §2, "Before the outcome"): never an outcome; an outcome a row already records stays */
       rows.forEach(r => {
@@ -620,7 +620,7 @@ function applyEvent(orig, ev, facts, req, now) {
         detail = detail || `${lib.passName(Q.pass)} approved; ${step === "document" ? "the Document step follows" : "the landing follows"}.`;
         if (plan.parent) parentOp = { kind: "complete" };
       } else if (verdict === "changes-requested") {
-        setRemediation(w, { pass: Q.pass, ...(facts.remediation || {}), route }, applied, enrich, txt);
+        setRemediation(w, { pass: Q.pass, ...(facts.remediation || {}), route }, applied, enrich, txt, { now });
         if (route === "re-plan-then-remediation") { w.plan = { state: "re-pass", from: "qa", pass: Q.pass, since: now }; applied.push(`wip.plan re-pass after qa pass ${Q.pass}`); }
         const step = after0 && STEPS.includes(after0) ? after0 : "remediation"; setStep(step); setGlow(step);
         enrich.push("qa-pass: the findings detail (the rows they touch, the pass's note) comes from the qa report");
@@ -672,7 +672,7 @@ function applyEvent(orig, ev, facts, req, now) {
       if (["built", "abandoned"].includes(plan.status) || ["landed", "cancelled"].includes(w.step)) refuse(`document: the board has ${plan.status === "abandoned" || w.step === "cancelled" ? "been cancelled" : "landed"} already`);
       if (stopped(w.step)) { w.resume = null; w.waitingOn = null; applied.push("wip.resume and wip.waitingOn cleared"); }
       if (Array.isArray(w.steps) && !w.steps.includes("document")) { const ls = lib.documentSteps(w.steps, null); if (ls !== w.steps && ls.includes("document")) { w.steps = ls; applied.push("wip.steps: the Document step before the landing, merge after it"); } }
-      mergeTasks(w, facts.tasks, applied, enrich, txt, { forward: true });
+      mergeTasks(w, facts.tasks, applied, enrich, txt, { forward: true, now, report: detail });
       setStep("document"); setGlow("document");
       ({ note, detail, trail } = documentWording(w, note, detail, txt(facts.task, "task")));
       break;
@@ -689,13 +689,13 @@ function applyEvent(orig, ev, facts, req, now) {
       if (ev === "state-boards" && docFlow) {
         if (stopped(w.step)) { w.resume = null; w.waitingOn = null; applied.push("wip.resume and wip.waitingOn cleared"); }
         const t0 = Array.isArray(facts.tasks) ? facts.tasks : [], given = t0.some(x => x && x.id === "state-boards");
-        mergeTasks(w, given ? t0 : [...t0, { id: "state-boards", state: facts.done === true ? "done" : "current" }], applied, enrich, txt, { boards: true });
+        mergeTasks(w, given ? t0 : [...t0, { id: "state-boards", state: facts.done === true ? "done" : "current" }], applied, enrich, txt, { boards: true, now });
         setStep("document"); setGlow("document");
         ({ note, detail, trail } = documentWording(w, note, detail, "the state boards"));
         break;
       }
       if (stopped(w.step)) { w.resume = null; w.waitingOn = null; applied.push("wip.resume and wip.waitingOn cleared"); }
-      if (ev !== "state-boards") closeLandingCommit(w, applied);
+      if (ev !== "state-boards") closeLandingCommit(w, applied, now);
       setStep(ev); setGlow(ev);
       const pr = Number.isInteger(facts.pr) && facts.pr > 0 ? facts.pr : null, inPr = pr ? " in PR #" + pr : "";
       const say = { landing: [`land accepted${pr ? ", PR #" + pr : ""}`, ln.includes("document") ? `Landing: the land accepted${inPr}; the branch carries the code, the version bump, the reconciled documents and the state boards.` : `Landing: the branch brought up to date; the code, the version bump and the reconciled documents committed on it.`, `Landing: the land accepted${inPr}`],
@@ -716,7 +716,7 @@ function applyEvent(orig, ev, facts, req, now) {
         trail = { column: "built", label: `The plan landed${pr0 ? " in PR #" + pr0 : ""}${m0 ? ", merge " + String(m0).slice(0, 7) : ""}`, ...(pr0 ? { ref: `PR #${pr0}` } : {}) };
         break;
       }
-      closeLandingCommit(w, applied);
+      closeLandingCommit(w, applied, now);
       const A = plan.asBuilt && typeof plan.asBuilt === "object" ? plan.asBuilt : {};
       const sha = [facts.sha, facts.merge].find(s => typeof s === "string" && /^[0-9a-f]{7,40}$/.test(s)), pr = Number.isInteger(facts.pr) ? facts.pr : null;
       const next = { ...A, ...(sha ? { sha } : {}), ...(typeof facts.merge === "string" && /^[0-9a-f]{7,40}$/.test(facts.merge) ? { merge: facts.merge } : {}), ...(pr ? { pr } : {}),
@@ -890,11 +890,29 @@ function recordPlanMerge(plan, w, facts, applied, txt) {
    remediation report adds (facts.remediation, or any report while the board stands at remediation), the rows the qa findings touch (facts.rows, the board's ids):
    the remediation's own stage then carries every finding, so its rows are exact. Two or more new stages in one report share facts.rows
    between them in a way only the documents tell, so they stay for the presenter, as a plan stage's rows do (WebTools #65, R1 and R2). */
-function mergeStages(w, facts, applied, enrich, first, ids, remed = !!facts.remediation) {
+/* A stage's result (a stage of kind check): facts.stages[i].result, or facts.result when this event finishes that one stage: what its closing event reports, "passed" or "failed" (green or red, plan/RULES.md §3); nothing else is read. */
+const RESULT_OF = v => { const t = String(v == null ? "" : v).trim().toLowerCase(); return /^(pass|passed|ok|green|good|success|succeeded)$/.test(t) ? "passed" : /^(fail|failed|red|bad|failure)$/.test(t) ? "failed" : null; };
+/* Stage fields a merge keeps: copied at branch-cut from the plan's stage table (brief, kind, steps, ref), recorded from the events (started, finished, report, result). */
+const STAGE_KEEP = ["brief", "kind", "steps", "ref", "started", "finished", "report", "result"];
+/* The brief goes on the board as the plan writes it, or not at all: a plan's text that names a work level, an internal name or an older pass wording is the plan's to reword, never reworded here (GUIDANCE.md §4). */
+function tableFields(T, enrich) {
+  const nope = s => levelRefs(s).length ? "a work level" : nameRefs(s).some(unambiguous) ? "an internal name" : lib.passRefs(s).length ? "an older wording of a review" : null;
+  const f = { ...(T.kind ? { kind: T.kind } : {}), ...(T.steps && T.steps.length ? { steps: T.steps } : {}), ...(T.ref ? { ref: T.ref } : {}) };
+  if (T.brief) { const bad = nope(T.brief); if (bad) enrich.push(`the plan's stage table: ${T.id}'s brief names ${bad}, which a board never shows: left off the board; the plan is reworded`); else f.brief = T.brief; }
+  return f;
+}
+function mergeStages(w, facts, applied, enrich, first, ids, remed = !!facts.remediation, how = {}) {
   const have = Array.isArray(w.stages) ? w.stages : [];
+  /* the plan's stage table (plan/RULES.md §3), copied at branch-cut on the fast path; a plan without it gives no brief */
+  const planTable = first ? lib.planStageTable(DIR) : null, table = planTable ? planTable.stages : [];
+  /* a board from before the record: what its earlier events said, before this event's own stamps */
+  const bf0 = first ? [] : lib.backfillStages(w); if (bf0.length) applied.push(`wip.stages from the earlier events: ${bf0.join(", ")}`);
+  if (planTable) { planTable.problems.forEach(p => WARNINGS.push(`STAGE TABLE: ${p}`)); }
+  if ((!Array.isArray(facts.stages) || !facts.stages.length) && !have.length && table.length) facts = { ...facts, stages: table.map(s => ({ id: s.id, name: s.name })) };
   if (!Array.isArray(facts.stages) || !facts.stages.length) {
     if (!have.length) enrich.push("the stages of plan.md, with the rows each touches, come from plan.md");
-    else if (first && !have.some(x => x.state === "current")) { const t = have.find(x => x.state !== "done"); if (t) { t.state = "current"; applied.push(`wip.stages ${t.id} current`); } }
+    else if (first && !have.some(x => x.state === "current")) { const t = have.find(x => x.state !== "done"); if (t) { t.state = "current"; lib.stampItem(t, { ...t, state: "todo" }, how.now, null); applied.push(`wip.stages ${t.id} current`); } }
+    if (first && table.length) { let n = 0; have.forEach(x => { const T = table.find(y => y && y.id === x.id); if (T) { Object.assign(x, tableFields(T, enrich)); n++; } }); if (n) applied.push(`wip.stages: ${plural(n, "stage")} from the plan's stage table`); }
     return;
   }
   const out = facts.stages.map((s, i) => {
@@ -910,8 +928,17 @@ function mergeStages(w, facts, applied, enrich, first, ids, remed = !!facts.reme
       if (off.length) enrich.push(`facts.stages[${i}] (${s.id}) names rows not on the board (${off.map(x => JSON.stringify(x)).join(", ")}): not written`);
       rows = [...new Set(ok)]; given = true;
     }
-    return { id: s.id, name, state, rows, given };
+    const keep = {}; STAGE_KEEP.forEach(k => { if (old[k] != null) keep[k] = old[k]; });
+    return { id: s.id, name, state, rows, ...keep, given };
   });
+  if (first && table.length) { let n = 0; out.forEach(x => { const T = table.find(y => y && y.id === x.id); if (T) { Object.assign(x, tableFields(T, enrich)); n++; } }); if (n) applied.push(`wip.stages: ${plural(n, "stage")} from the plan's stage table`); }
+  /* the record per stage, from this event (lib.js stampItem()); a stage a board already shows done at branch-cut keeps its end unknown */
+  { const ofOld = id => have.find(x => x && x.id === id);
+    out.forEach(x => lib.stampItem(x, ofOld(x.id) || (first ? { state: x.state } : undefined), how.now, how.report));
+    const fresh0 = out.filter(x => x.state === "done" && !(ofOld(x.id) && ofOld(x.id).state === "done"));
+    out.forEach(x => { if (x.state !== "done") return; const said = (facts.stages.find(s => s && s.id === x.id) || {}).result, given = RESULT_OF(said) || (fresh0.length === 1 && fresh0[0] === x ? RESULT_OF(facts.result) : null);
+      if (x.kind === "check") { if (given) x.result = given; else if (fresh0.includes(x) && !x.result) WARNINGS.push(`STAGE RESULT: ${x.id} is a check stage and its closing event names no result (facts.stages[].result, passed or failed): it reads done, neutral`); }
+      else if (RESULT_OF(said)) WARNINGS.push(`STAGE RESULT: ${x.id} is not a check stage: its result was left off`); }); }
   const fresh = out.filter(x => !x.given && !have.some(y => y && y.id === x.id));
   const fr = Array.isArray(facts.rows) ? [...new Set(facts.rows.filter(x => typeof x === "string" && (!ids || ids.has(x))))] : [];
   if (remed && fresh.length === 1 && fr.length) { fresh[0].rows = fr; fresh[0].given = true; applied.push(`wip.stages ${fresh[0].id} rows from facts.rows (${fr.join(", ")})`); }
@@ -962,14 +989,16 @@ function mergeTasks(w, list, applied, enrich, txt, how = {}) {
     if (open.length) { S.unfinished = open; refuse(`document: ${lib.DOC_LANDING_TASK} cannot be named done while another task on the board's list is not done`); }
   }
   if (!out.length) enrich.push("document carries no facts.tasks: the step panel lists none until the tasks are reported");
+  /* the record per task, from the events (lib.js stampItem()) */
+  out.forEach(x => lib.stampItem(x, have.find(y => y.id === x.id), how.now, how.report));
   const next = { tasks: out };
   if (JSON.stringify(next) !== JSON.stringify(w.document || null)) { w.document = next; applied.push(`wip.document ${out.map(x => x.id + " " + x.state).join(", ") || "(no tasks)"}`); }
 }
 /* The land has begun, so the document-landing commit is made: a task still open (its raise missed) closes with the land's event, in the
    view copies and the frozen Document step alike. A board with no such task keeps its list. */
-function closeLandingCommit(w, applied) {
+function closeLandingCommit(w, applied, now) {
   const t = ((w.document && Array.isArray(w.document.tasks)) ? w.document.tasks : []).find(x => x && x.id === lib.DOC_LANDING_TASK);
-  if (t && t.state !== "done") { t.state = "done"; applied.push(`wip.document ${lib.DOC_LANDING_TASK} done (the land has begun)`); }
+  if (t && t.state !== "done") { lib.stampItem(Object.assign(t, { state: "done" }), { ...t, state: "current" }, now, null); applied.push(`wip.document ${lib.DOC_LANDING_TASK} done (the land has begun)`); }
 }
 /* the note, the detail and the trail entry of a Document step event, from its tasks alone (the same event twice writes the same board) */
 function documentWording(w, note, detail, said) {
@@ -981,7 +1010,7 @@ function documentWording(w, note, detail, said) {
     trail: { column: "built", label: `Document: ${curWords || count || "the step begins"}` } };
 }
 /* wip.remediation from the facts: {pass, route, steps: [{name, state}]}. */
-function setRemediation(w, R, applied, enrich, txt) {
+function setRemediation(w, R, applied, enrich, txt, how = {}) {
   if (!R || !Number.isInteger(R.pass)) refuse("the remediation names no qa pass (facts.remediation.pass)");
   /* the route's neutral id, whatever the request or the board carried (routeId()) */
   R = { ...R, ...(R.route != null ? { route: routeId(R.route) } : {}) };
@@ -993,7 +1022,7 @@ function setRemediation(w, R, applied, enrich, txt) {
   const steps = Array.isArray(R.steps) ? R.steps.map((s, i) => { const raw = s && (s.name || s.what), name = stepName(raw, i);
     if (!name) refuse(`facts.remediation.steps[${i}] has no name (got ${JSON.stringify(raw === undefined ? null : raw)})`);
     if (!SSTATES.includes(s.state)) refuse(`facts.remediation.steps[${i}].state ${JSON.stringify(s.state)} is not done, current or todo`);
-    return { name, state: s.state }; }) : old.steps;
+    return lib.stampItem({ name, state: s.state }, (Array.isArray(old.steps) ? old.steps : []).find(y => y && (y.name || y.what) === name), how.now, how.report); }) : old.steps;
   /* several sub-steps may be current at once: a remediation's legs can run in parallel (rookie-dev's minor fixes beside the planner's
      ruling, WebTools #63 qa pass 1); each glows in the step panel. A sub-step has one state, so one done or to do is never current.
      The implementation stages keep at most one current (mergeStages). */
