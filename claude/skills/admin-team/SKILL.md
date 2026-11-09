@@ -86,6 +86,9 @@ A pipeline's steps map to actions like this:
 | An issue transfer, or a placeholder issue | `transfer-issue`, `placeholder-issue` |
 | Sub-issue and "blocked by" relationships | `link-issues` |
 | An issue-body edit | `edit-issue-body` |
+| Labels or milestones a plan creates | `create-label`, `create-milestone` |
+| Issues a plan creates, or an issue it closes or reopens | `create-issue`, `close-issue`, `reopen-issue` |
+| A fixture pull request | `fixture-pull-request` |
 | A checkout's realignment, or its replacement by a fresh clone | `realign-checkout`, `replace-clone` |
 | A step transition in a `/resolve-issue` run (levels 2–4), the Document step's `document` event with its `tasks` included | `plan-board` with the `event` and its facts (fire-and-forget; see `PROTOCOL.md`) |
 | A dashboard refresh on request | `dashboards-refresh` |

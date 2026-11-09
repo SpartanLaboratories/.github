@@ -80,8 +80,7 @@ one fenced ```json block:
 
 ### Actions
 
-The actions below are the requestable group; the `admin-team` agent brief (Request groups) says
-what the never-allowed and temporarily-requestable groups hold.
+The `admin-team` agent brief (Request groups) says what each group holds, the actions below included.
 
 Version control: `setup-branch` · `allocate-worktree` · `commit` · `sync-branch` · `prepare-landing` ·
 `land` · `file-sub-issues` · `file-issue` · `comment` · `label` · `mirror-sync` · `status` · `cancel` ·

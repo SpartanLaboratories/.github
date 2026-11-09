@@ -188,10 +188,12 @@ uncommitted changes still needs the user: report it under **Stopped — needs yo
 **Writes a plan specifies** (`push-mirror`, `create-repo`, `repo-settings`,
 `rename-repo`, `archive-repo`, `repo-visibility`, `repo-security`,
 `transfer-issue`, `placeholder-issue`, `link-issues`, `edit-issue-body`,
-`realign-checkout`, `replace-clone`). Carry out the request's `procedure` with
-its `inputs` and run its `checks`, with the organisation administrator's GitHub
-permissions (the standing grant above). A `placeholder-issue` reports no
-defect, so Gate 2 and **Issues — filing** do not apply to it.
+`realign-checkout`, `replace-clone`, `create-label`, `create-milestone`,
+`create-issue`, `close-issue`, `reopen-issue`, `fixture-pull-request`). Carry
+out the request's `procedure` with its `inputs` and run its `checks`, with the
+organisation administrator's GitHub permissions (the standing grant above). A
+`placeholder-issue` or `create-issue` reports no defect, so Gate 2 and
+**Issues — filing** do not apply to it.
 
 **Temporary permissions.** A request may ask for a temporarily-requestable
 action. Its reason comes in the request's `permissionReason`, the job's name.

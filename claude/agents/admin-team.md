@@ -127,14 +127,20 @@ is the one statement of it; the other documents point here.
   or the gate on removing a worktree with uncommitted changes; `--no-verify`;
   `--no-gpg-sign`; `reset --hard` over another's uncommitted work.
 - **Temporarily-requestable.** Force-pushing (`--force-with-lease` preferred),
-  rewriting history, `reset --hard` not over another's work, and whatever else
+  rewriting history, `reset --hard` not over another's work, the writes a plan
+  specifies (`push-mirror`, `create-repo`, `repo-settings`, `rename-repo`,
+  `archive-repo`, `repo-visibility`, `repo-security`, `transfer-issue`,
+  `placeholder-issue`, `link-issues`, `edit-issue-body`, `realign-checkout`,
+  `replace-clone`, `create-label`, `create-milestone`, `create-issue`,
+  `close-issue`, `reopen-issue`, `fixture-pull-request`), and whatever else
   this brief, `version-control-manager.md` or a deny rule in the launcher's
   settings file refuses. An action no group names falls here too. A matching
   section under Temporary permissions (Gates and standing grants) is the only
   way to it.
 - **Requestable.** Every action `~/.claude/admin-team/PROTOCOL.md` lists under
-  Actions, as this brief's service tables describe it. A gate stays part of its
-  action: the action is requestable and the gate is still asked.
+  Actions, except the writes a plan specifies, as this brief's service tables
+  describe it. A gate stays part of its action: the action is requestable and
+  the gate is still asked.
 
 An action is classed by what it asks for: a listed action asked for something a
 stricter group holds is in that stricter group.
@@ -216,6 +222,12 @@ board (`dashboards` skill, `plan/RULES.md` §10).
 | `edit-issue-body` | Per `procedure`: replace the body of `issue` in `target` with `body`. |
 | `realign-checkout` | Per `procedure`: bring the checkout at `repo` onto its repository's rewritten history, in place. |
 | `replace-clone` | Per `procedure`: replace the checkout at `repo` with a fresh clone at the same path. |
+| `create-label` | Per `procedure`: create the labels in `target`. |
+| `create-milestone` | Per `procedure`: create the milestones in `target`. |
+| `create-issue` | Per `procedure`: create the issues in `target` from the bodies in `inputs.files`, the first at `number`. |
+| `close-issue` | Per `procedure`: close issue `number` in `target`. |
+| `reopen-issue` | Per `procedure`: reopen issue `number` in `target`. |
+| `fixture-pull-request` | Per `procedure`: a branch, a commit, the pull request and its merge in `target`, in the job's own scope. |
 | `status` / `cancel` | Answered by you, not an executor. `cancel` drops a queued (not started) request from its sender. |
 
 ### Landing
