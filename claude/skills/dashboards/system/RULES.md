@@ -90,11 +90,10 @@ facts.
    The supersystem board's `MODEL` has the same shapes with a registry slug (`sys`) where a system
    board has a side, plus `structure.deps` for the dependency Arrows.
 
-3. **`state.json` — the stamp.** `{slug, version, asIs {ref, sha, date, landed}, lastAmended {issue, title, sha}, written {sha}}`,
+3. **`state.json` — the stamp.** `{slug, version, asIs {ref, sha, date}, lastAmended {issue, title, sha}, written {sha}}`,
    beside the board and embedded verbatim (`node scripts/embed.js state.json index.html state`; `template/state.json` is its shape).
    The header's version, as-is and "written at" Chips are drawn from it, and the last amendment's note in the Context Panel (the part
-   of the board above Context names no issue, `GUIDANCE.md` §5): the presenter writes those facts here and never in the HTML. `asIs` is the commit the board shows — the default branch's after a landing, or a feature branch's while that
-   branch's work is shown on it, `landed: false`, which the Chip reads "as-is at <branch> @ <sha> · not yet landed" (§10); the date
+   of the board above Context names no issue, `GUIDANCE.md` §5): the presenter writes those facts here and never in the HTML. `asIs` is the commit the board shows (§10); the date
    is a date, or a UTC time the board shows in the viewer's zone. `lastAmended.title` is the issue's title, quoted verbatim (its slug while
    none is given), the link to its issue board (`GUIDANCE.md` §5).
    `written.sha` is the commit at which the presenter last wrote the board's prose and figures (the function sentence, the KPI Tiles,
@@ -315,8 +314,7 @@ repository's next `state-boards` task; a system with none yet stands in an "unse
 `version`, `core` (on a subsystem of a supersystem: `true` where the greater system cannot exist without it, `false` where it is
 optional or additive; from the parent's architecture, its decomposition, recorded by the presenter at `architecture-signed-off` or the
 Document step's state boards; never guessed), `partPaths` (`{"<element id>": ["<code path>", …]}`: a part of the system's board with code paths of its
-own), `asIs {ref, sha, date, landed}` (`landed: false` while the stamp is a feature branch's, §10; absent once it is the default
-branch's), `lastAmended {issue, sha}`, `board` (the system's board, relative to `docs/dashboards/`; a registry written before
+own), `asIs {ref, sha, date}`, `lastAmended {issue, sha}`, `board` (the system's board, relative to `docs/dashboards/`; a registry written before
 dashboards-skill/33 says `page`, which every script and template reads alike: rename it at the Document step's state boards, where every state
 board is spliced onto the template that reads `board`), `dsl`, and for a planned system `plannedBy {issue, architecture}` (and `units`, each
 with its `subIssue`) and `c4`, a map from each DSL that draws it (its path under `docs/dashboards/`) to its element there,
@@ -474,18 +472,16 @@ rules instead of the Guarantees rule (`plan/RULES.md`).
 
 ## 10. State boards on a branch: the data-only path
 
-A state board — a system, supersystem or repository state board — may show a feature branch's work while it happens, at the implementation
-stages, before it lands: the boards of the systems the branch touches, and the shared boards (the supersystems above them, the
-repository state board, `systems.json`) as far as those systems appear on them. Each of their stamps reads "as-is at <branch> @ <sha> · not
-yet landed" (`asIs.landed: false`, §2, §7); in the **Document step**, its **state-boards task** (admin-team/dashboards-skill/35; the
-presenter's `state-boards` mode) builds them on the branch "as-is at `<branch>` @ `<sha>`", with no "not yet landed", at the
-**code-landing sha** the request gives — the branch's last code commit, after the sync and the version bump. Only documents change after
-it, so nothing is restamped at the land, and they land with the merge (`GUIDANCE.md` §11, "The landing flow"). Nothing else changes: the
-board shows the code at the commit it names, built solid and planned dashed.
+A state board — a system, supersystem or repository state board — shows a branch's work once, in the **Document step**: its
+**state-boards task** (admin-team/dashboards-skill/35; the presenter's `state-boards` mode) builds on the branch the boards of the systems
+the branch touches, and the shared boards (the supersystems above them, the repository state board, `systems.json`) as far as those
+systems appear on them, each stamped "as-is at `<branch>` @ `<sha>`" at the **code-landing sha** the request gives — the branch's last
+code commit, after the sync and the version bump. Only documents change after it, so nothing is restamped at the land, and they land with
+the merge (`GUIDANCE.md` §11, "The landing flow"). Nothing else changes: the board shows the code at the commit it names, built solid and
+planned dashed.
 
-The admin team keeps them current with data alone. At every `implementation-stage` request (the plan-board request it gives
-`plan/scripts/apply-event.js`, or a `state-boards` request of its own; `state-pages`, its older name, is read alike), and at the
-Document step's state-boards task (`facts.document`; `premerge`, the older pre-merge refresh, read alike), it runs:
+The admin team writes their data alone. At the Document step's state-boards task (`facts.document`; `premerge`, the older pre-merge
+refresh, read alike; a `state-boards` request, `state-pages`, its older name, read alike), it runs:
 
     node ~/.claude/skills/dashboards/system/scripts/apply-state.js --event <request.json> --worktree <path> [--repo <owner/repo>]
 
@@ -500,7 +496,7 @@ in. It reads `issue`, `branch` and `folder` from the request and these facts, ev
 | `built`, `planned` | only for what has no code paths recorded (the code decides the rest, below): what the stage built (or, rarely, set back to planned): a registry slug; `"#<issue>"`, every system that issue alone plans (`plannedBy.issue`, or every unit's `subIssue`); `"<dsl path>:<element id>"` (paths under `docs/dashboards/`), or `{dsl, id, tag}` to give a component its built tag. A system marked takes its `c4` elements with it (§7) |
 | `version` | `{"<slug>": "<version>"}`, a version a system's build moved to |
 | `title` | the issue's title for the "last amended by" note (in the Context Panel), quoted verbatim (without it, the verbatim title already on record for the same issue, the board's `state.json` first, else another board's in scope, else the issue board's own `issueTitle` (the request's folder's `plan.json`, for the same issue); only with none of these the folder's name less its number, which the summary notes as not the issue's own); a title that names a work level is a defect in the issue (`GUIDANCE.md` §4): written as it stands, never reworded or elided, and flagged `ISSUE TITLE NAMES A WORK LEVEL: #n` in the summary's `issue defects` and notes, for the admin team to bring to the user to retitle on GitHub |
-| `document` | `true` at the Document step's state-boards task (admin-team/dashboards-skill/35): every board the branch stamped, and every board in scope, stamped "`<branch>` @ `<sha>`" with no "not yet landed" at the code-landing sha `facts.sha` (refused without it), since they land with the merge as stamped |
+| `document` | `true` at the Document step's state-boards task (admin-team/dashboards-skill/35): every board in scope stamped "`<branch>` @ `<sha>`" at the code-landing sha `facts.sha` (refused without it), since they land with the merge as stamped |
 | `premerge` | the older name (dashboards-skill/33's pre-merge refresh), read as `document`; its `sha` defaults to the worktree's HEAD |
 | `landed` | `true` on a `state-boards` request that restamps after the merge, as the `landed` event does: the older flow, for a landing that refreshed no state board before its merge |
 | `enrich` | reasons the team already knows need the presenter, passed through |
@@ -510,13 +506,7 @@ or the files on disk outside a git work tree): a system with a path present is b
 (a fact the code contradicts is noted); a `partPaths` part likewise; then each supersystem, built once every core subsystem is. A system
 whose status changes is touched and stamped. An unclassified subsystem leaves its supersystem's status and asks the presenter.
 
-**Branch state boards wait for the Document step**: what `apply-state.js` writes on a feature branch at an implementation stage stays
-in the working tree, uncommitted, and no implementation commit carries it; the Document step's state-boards task rebuilds it at the
-code-landing sha, and the run's document-landing commit carries it.
-
-At the Document step's state boards (and at a restamp after the merge) it restamps every entry the branch stamped (`asIs.ref` the branch, `landed:
-false`) and every board of them. An event
-that moves no code (any plan-board event but `implementation-stage` and `landed`) is skipped, and a repository with no
+An event that moves no code (any plan-board event but `implementation-stage` and `landed`) is skipped, and a repository with no
 `docs/dashboards/systems.json` has nothing to stamp. It reads git (HEAD, the commit's time) and never writes it; it writes only under
 `docs/dashboards/`, every file through a temporary file and a rename, and on any failure puts every file back (exit 1). The same
 request twice changes nothing (`duplicate`). Its summary names the stamp, the systems, what it applied, the files it wrote, the

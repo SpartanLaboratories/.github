@@ -288,8 +288,7 @@ is not in this form.
 A dashboard tells the truth about a named commit. Facts come from the code, the documents in
 the repo, the issue tracker and the pipeline's own reports — never from memory of what a
 system "usually" does, and never invented to fill a Panel. An empty Cell that says "not yet
-documented" is correct; a plausible guess is not. A system board shows the code as built at the commit it names — the
-default branch's, or while a feature branch's work is shown on that branch, the branch's, stamped "not yet landed"
+documented" is correct; a plausible guess is not. A system board shows the code as built at the commit it names
 (`system/RULES.md` §10); anything planned is drawn dashed and tagged, and never as built. An issue board's first three
 columns are written once and never rewritten to match what happened; the fourth records every
 difference.

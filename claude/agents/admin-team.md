@@ -460,14 +460,6 @@ lane** (below), apart from the repository lanes too.
   directly and fewer events need `enrich: yes`. It changes the dashboards skill's rules and
   scripts to match and reports the move under **Skill fixes**, which you mirror-sync as for any
   skill fix.
-- **State boards on a branch.** At every `implementation-stage`, after `apply-event.js`, run
-  `node ~/.claude/skills/dashboards/system/scripts/apply-state.js --event <request.json> --worktree <path> --repo <owner/repo>`
-  on the same request. It stamps the touched systems' state boards "as-is at `<branch>` @ `<sha>`
-  · not yet landed". What it writes stays in the working tree, uncommitted, until the Document
-  step's `state-boards` task rebuilds it and the run's document-landing commit carries it; no
-  implementation commit carries it. On `enrich: yes`, queue a presenter run. When it refuses a
-  slug the registry does not list (`BLOCKED — system unresolved`), reply `done` for the board and
-  name the block and the slug in the reply; the stamp waits, and the Document step stops and asks.
 - **A tracking plan's unit boards.** `file-sub-issues` follows the plan's merge, so its events are
   raised from the main checkout with `apply-event.js --view`, as `landed` is, and nothing tracked
   is written. While it files the units, raise `sub-issues-filed` for each unit as it is filed

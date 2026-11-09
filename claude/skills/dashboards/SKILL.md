@@ -51,23 +51,20 @@ own call (the standing rule there), changing the rules and the scripts to match 
 
 ## The data-only path of a state board
 
-At every `implementation-stage` request on a branch, and at the Document step's state-boards task (`facts.document`), the admin team runs, itself:
+At the Document step's state-boards task (`facts.document`), the admin team runs, itself:
 
     node ~/.claude/skills/dashboards/system/scripts/apply-state.js --event <request.json> --worktree <path> [--repo <owner/repo>]
 
 It stamps the boards of the systems the branch touches and the shared boards (their supersystems, the repository state board,
-`systems.json`) "as-is at <branch> @ <sha> · not yet landed" (in the Document step, `facts.document`, "as-is at <branch> @ <sha>" at the
-code-landing sha the request gives, the branch's last code commit after the sync and the bump, as they land with the merge; `facts.premerge`,
-the older pre-merge refresh, read alike), marks the
+`systems.json`) "as-is at <branch> @ <sha>" at the code-landing sha the request gives, the branch's last code commit after the sync and
+the bump, as they land with the merge (`facts.premerge`, the older pre-merge refresh, read alike), marks the
 parts the request names built or planned in the DSL and the registry (every board draws a part planned from that data), re-embeds,
 and checks every board it wrote without a browser pass (`check-board.js --auto --no-browser`), in well under a second on a repository
 like WebTools; nothing changes on a failure (exit 1). Its summary ends the job when it says `enrich: no`; with `enrich: yes` (and
 `why`) the presenter writes what only the code decides: the prose and figures at the new commit, what the boards say of a part now
 built, a board brought onto the template. Built or planned is the code's: a system (or a part with its own code paths) is built while one of its
 registry paths is present at the stamped commit, a supersystem once every core subsystem is; the facts decide only what has no code paths.
-What it writes on a feature branch at an implementation stage stays in the working tree, uncommitted, until the state-boards task rebuilds
-it and the run's document-landing commit carries it. A board that lags its template is not refused: the summary asks the presenter to
-splice it. What the script decides and what the presenter adds is in `system/RULES.md` §10.
+A board that lags its template is not refused: the summary asks the presenter to splice it. What the script decides and what the presenter adds is in `system/RULES.md` §10.
 
 ## The landing flow
 
