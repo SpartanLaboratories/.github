@@ -590,7 +590,7 @@ other:
 
 | Board | Brought onto the current template |
 |---|---|
-| system, supersystem and repository state boards; the committed repository work board | at the **Document step's state-boards task** only, on the issue's branch before its land (`system/scripts/splice.js` for a state board: the template's CSS, script before MODEL and renderer carried onto the board, three ways for a declared divergence; `board.js --refresh-template` for the repository work board); before admin-team/dashboards-skill/35, at the pre-merge refresh inside the land |
+| system, supersystem and repository state boards; the committed repository work board | at the **Document step's state-boards task**, on the issue's branch before its land, where each landing does it (`system/scripts/splice.js` for a state board: the template's CSS, script before MODEL and renderer carried onto the board, three ways for a declared divergence; `board.js --refresh-template` for the repository work board); before admin-team/dashboards-skill/35, at the pre-merge refresh inside the land. A run's branch may also take the re-render mid-run, ahead of the Document step |
 | the live repository work board | at **every event** (`board.js --live --refresh-template`: it is the template plus its data, never committed) |
 | the org work board | at **every landing in a repository on the board**, when it is regenerated and committed (`plan/RULES.md` §10) |
 | an issue's board that is in flight, and its tracking board | at **its own events** (`apply-event.js` re-renders a board that is not the verified template plus its data) |
