@@ -69,8 +69,8 @@ const paletteLines = () => [`CHECK palette: ${palette.tokens} system-colour toke
 /* The checks that need no browser, on every pass (--auto and --no-browser included): the registry's git-ignore check, the board links,
    and the board's data (the state block, the embedded copies of state.json, workspace.dsl and systems.json, the part references). */
 const src = fs.existsSync(page) ? fs.readFileSync(page, "utf8") : "";
-const regCheck = registryIgnored(), boardCheck = boardLinks(), stateCheck = stateChecks(), featureCheck = featureChecks(), linkCheck = deadLinks(), titleCheck = titleChecks(), nameCheck = nameChecks();
-const staticChecks = [regCheck, boardCheck, stateCheck, linkCheck, featureCheck, titleCheck, nameCheck].filter(Boolean);
+const regCheck = registryIgnored(), boardCheck = boardLinks(), stateCheck = stateChecks(), featureCheck = featureChecks(), linkCheck = deadLinks(), titleCheck = titleChecks(), nameCheck = nameChecks(), termCheck = termChecks();
+const staticChecks = [regCheck, boardCheck, stateCheck, linkCheck, featureCheck, titleCheck, nameCheck, termCheck].filter(Boolean);
 const staticLines = () => staticChecks.flatMap(c => [...(c.note ? ["CHECK " + c.note] : []), ...(c.notes || []).map(n => "CHECK " + n), ...c.problems.map(p => "CHECK " + p)]);
 const staticProblems = staticChecks.flatMap(c => c.problems);
 
@@ -406,6 +406,14 @@ function nameChecks() {
     const h = N.nameRefs(text); if (h.length) notes.push("warning: " + N.nameWarning("its text", h));
   }
   return { note: `internal names: ${notes.length ? notes.length + " warning" + (notes.length === 1 ? "" : "s") : "none"}`, notes, problems: [] };
+}
+// The element names (GUIDANCE.md §12, "The names, checked"; termrefs.js), read without a browser from the board's data block and its HTML: each a warning, never a problem.
+function termChecks() {
+  if (!src || /<meta name="dashboard" content="doc-copy">/.test(src)) return null;
+  const T = require("./termrefs.js"), L = require("./statelib.js");
+  let data = null; ["plan", "board", "state"].forEach(id => { const t = L.blockText(src, id); if (t == null || data) return; try { data = JSON.parse(t); } catch (e) { /* the data checks report it */ } });
+  const notes = T.boardWarnings("the board", data || {}, src).map(l => "warning: " + l);
+  return { note: `element names: ${notes.length ? notes.length + " warning" + (notes.length === 1 ? "" : "s") : "none"}`, notes, problems: [] };
 }
 // The links a state board's hand-written HTML makes (GUIDANCE.md §5: a link never points at a file that is not there): every relative
 // href outside its scripts, from the board's folder, when the board sits in a repository's docs/; and its WORK_BOARD's committed board.

@@ -19,6 +19,7 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { levelRefsIn, titleSkip, issueTitleRefs, titleDefect, nameTestLevels } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
 const { nameRefsIn, commentRefs, nameWarning } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
+const { boardWarnings: termWarnings } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "termrefs.js"));
 const { paletteCheck, PALETTE } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "palette.js"));
 const SLOTS = PALETTE.light.length;
 const { boardLanded, boardClosed, workLevelFields, featureRun } = require("./levels.js");
@@ -1112,6 +1113,9 @@ function checkHtml(htmlPath, id, data, kindMeta) {
   pal.problems.forEach(p => fail(`palette: ${p}`)); pal.warnings.forEach(w => warn(`palette: ${w}`));
   if (!pal.problems.length) ok(`palette: ${pal.tokens} system-colour tokens, none in a status spectrum`);
   { const c = commentRefs(html); if (c.length) warn(nameWarning(`the comments of ${path.basename(htmlPath)}`, c)); }
+  /* The element names (GUIDANCE.md §12, "The names, checked"; system/scripts/termrefs.js): a banned word, a capitalised element name in neither glossary list, a class that
+     names an element's kind without its type word, read from the glossary and warned on, never failed */
+  termWarnings(path.basename(htmlPath), data, html).forEach(warn);
   if (kindMeta === "plan-board") issueLinkWarnings(data, viewSource(path.dirname(htmlPath)) || path.dirname(htmlPath), html);
   if (kindMeta === "work-board") workBoardLinkWarnings(data, html);
 }

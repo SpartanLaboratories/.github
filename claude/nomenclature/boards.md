@@ -14,6 +14,10 @@ two rulesets); a section reference below (§1) is to `GUIDANCE.md`.
 | **State boards** (`docs/dashboards/`, [`system/RULES.md`](../skills/dashboards/system/RULES.md)) | what the code is and does at a named commit | the **system board**, the **supersystem board**, the **repository state board**; planned: the **org project board**, the **intra-org dependency board** |
 | **Work boards** (`docs/plans/`, [`plan/RULES.md`](../skills/dashboards/plan/RULES.md)) | how the work is going | the **issue board**, the **tracking board** (a tracking issue's issue board), the **repository work board**, the **org work board** (one board for the organization, in `OrganizationPage`) |
 
+```jsonl
+{"term":"board","not":["Page"],"allow":["GitHub Pages"]}
+```
+
 What each board shows:
 
 | Board | Shows |
@@ -65,6 +69,7 @@ Each row names a `ui.md` term and says how the boards use it; the term's definit
 |------|--------------------|
 | **Panel** | the Guarantees Panel (headed "Guarantees"), the Context Panel (headed "Context"), the WIP Panel (the Panel that holds the WIP strip), the step Panel, a system Panel on the Systems Tab (its own Card the heading; a subsystem's inside its supersystem's), the org work board's repository Panel and organization Panel (a sub-organization's repository Panels inside its organization Panel), the inspector (§6): the side Panel that shows the selected item, a Hide Button right of its heading |
 | **Tab** | each of a board's views, its heading in the board's row of Tab headings: a state board's six core Tabs, its optional ones and a supersystem or repository state board's Systems Tab; a work board's Tabs |
+| **Disclosure** | a stage of the step Panel, a remediation's sub-step, a Document task, a finished step's visit, a finished Implementation view (`plan/RULES.md` §3, "Collapsing") |
 | **Card** | a guarantee Card, a Consequences entry, an As-built entry, a unit Card |
 | **Tile** | the KPI Tiles, the Timeline Tile, the repository work board's Runs and Landed Tiles |
 | **CodeBlock** | an option's signature, beneath its name |

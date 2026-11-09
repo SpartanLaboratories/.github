@@ -68,12 +68,17 @@ A **TextBoard** is the element; **CodeBlock** is its kind, and a **Tab** is a ki
 |------|----------|------------|
 | **Panel** | A region that holds other elements under its own heading: a title, or the element that names what it holds (a Tab's heading, the control that shows it; the Card at its head). A Panel may hold Panels. | a Group, often with a background and an outline, its heading first or attached to it. A Group with no heading is layout, not a Panel. |
 | **Tab** | One of a set of Panels that share a place, only one shown at a time; its heading is the control that shows it. | a Panel, headed by an interactive Text or Box in a row of the set's headings. |
+| **Disclosure** | A region whose body is shown or hidden in place by its own heading, independently of its neighbours; a Panel whose heading is interactive. | a Panel whose heading is interactive. |
 | **Card** | A self-contained statement inside a Panel, with a title and a body, readable alone. | a Box with an outline, holding a Group: a title (Text) over a body of Text and other elements, with any Labels it carries. |
 | **Tile** | A Card whose body is one figure with its Legend. It may contain a Bar (a ShareBar or a SlotBar) that draws the figure's parts. | a Box with an outline, holding a Group: a title (Text) over the figure (Text) and the Legend's entries. |
 | **TextBoard** | A self-contained block of text inside a Panel, like a Card but holding only that text: no title, no other elements. | a Box with an outline holding Text, laid out on its own line. |
 | **CodeBlock** | A TextBoard whose text is code, shown verbatim and set apart as code: monospace, its whitespace kept, wrapping inside itself. | a TextBoard holding monospace Text, its whitespace kept. |
 | **Cell** | The intersection of a Row and a column in a table. | a Box, or a bare Group, at one Row and one column, holding Text and other elements. |
 | **Row** | One subject across a table's columns. | a Group of Cells in a line, led by its subject's name. |
+
+```jsonl
+{"term":"Card","not":["Bubble"]}
+```
 
 **Labels, by what they say**
 
@@ -118,6 +123,10 @@ A **Pulse** is the element; **RingPulse**, **FillPulse** and **FullPulse** are i
 | **Arrow** | A directed connector from one element into another, showing that the first leads to or feeds the second. | a Line with a head at the end it points to. |
 | **Tracer** | A Line that ties a summary figure to the part of another element it was drawn from, labelled with that part's value. | a Line in the colour of what it traces, with Text at one end. |
 | **Legend** | The key to a grouping by colour, shade or dash: one entry per value, each a sample and its name. | a Group of entries, each a small Box (the swatch) or a short Line, with Text. |
+
+```jsonl
+{"term":"FillPulse","not":["Glow"]}
+```
 
 **Controls, by what they change**
 
