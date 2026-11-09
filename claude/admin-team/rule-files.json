@@ -1,7 +1,8 @@
 {
   "index": "nomenclature/rule-index.md",
   "files": [
-    "agents/direction-manager.md"
+    "agents/direction-manager.md",
+    "agents/verifier.md"
   ],
   "codes": {
     "agents/direction-manager.md": {
@@ -13,8 +14,18 @@
         "How you write": "H",
         "Report": "R"
       }
+    },
+    "agents/verifier.md": {
+      "acronym": "VF",
+      "sections": {
+        "Input": "I",
+        "For each claim": "C",
+        "What you return": "R",
+        "Hard boundaries": "B",
+        "Progress review every 10 minutes  (when you run inside a /resolve-issue run)": "P"
+      }
     }
   },
-  "highWaterMark": 22,
+  "highWaterMark": 27,
   "retiredIds": []
 }
