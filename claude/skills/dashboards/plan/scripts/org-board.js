@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Regenerate the org work board (plan/RULES.md, the org work board): every run in every repository of the organization at once.
-//   node org-board.js [--root <checkout>] [--checkouts <folder>] [--config <repositories.json>]
+//   node org-board.js [--root <checkout>] [--checkouts <folder>] [--config <repositories.json>] [--live-only]
 // The root, where it writes, is the organization's page checkout (OrganizationPage) or a worktree of it, --root else the current directory. --checkouts names the folder that holds the
 // repositories' checkouts, and is needed where the root has none of them beside it (a worktree under another folder); by default they are the root's sibling folders. One command:
 // run it after every landing in a repository on the board. It reads each repository's work-board data (its docs/plans/.live/board.json where it exists, else its committed docs/plans/board.json) and
@@ -9,6 +9,7 @@
 //   docs/plans/.live/org-work-board/{board.json,index.html,index.js}   the live view of this machine, git-ignored (docs/plans/.live/, the checkout's .git/info/exclude, the line
 //                                                              added if it is missing); opened from disk it re-reads each sibling checkout's live data as it changes
 //                                                              (template, readSiblings()), so nothing has to regenerate it to follow a run.
+// --live-only writes the live view alone, for looking at the board in a checkout whose tracked files must stay as they are (the committed snapshot left untouched).
 // GitHub is read, never written (gh: each repository's visibility, default branch and files, and any run branch a board's file is on); the source repositories are read and
 // nothing else: no git command that changes a checkout runs. Exit 0 with the summary (JSON) on stdout, 1 when a repository cannot be read or the board fails its checks.
 // A private repository is dropped from the board and its data, by its visibility on GitHub, and the output is held to naming none. A repository's own colours stay
@@ -19,8 +20,9 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const lib = require("./lib.js"), N = require("../../system/scripts/namerefs.js");
 const args = process.argv.slice(2);
-require("../../system/scripts/cliargs.js").strict(args, { usage: "usage: node org-board.js [--root <checkout>] [--checkouts <folder>] [--config <repositories.json>]\nRegenerates the org work board's committed snapshot and its live view.", valued: ["root", "checkouts", "config"], flags: [], max: 0 });
+require("../../system/scripts/cliargs.js").strict(args, { usage: "usage: node org-board.js [--root <checkout>] [--checkouts <folder>] [--config <repositories.json>] [--live-only]\nRegenerates the org work board's committed snapshot and its live view; --live-only, the live view alone.", valued: ["root", "checkouts", "config"], flags: ["live-only"], max: 0 });
 let root; try { root = lib.repoRoot(args); } catch (e) { console.error(e.message); process.exit(2); }
+const LIVE_ONLY = args.includes("--live-only");
 const SNAP_DIR = path.join(root, "docs", "plans", "org-work-board"), LIVE_DIR = path.join(root, "docs", "plans", ".live", "org-work-board");
 const named = lib.opt(args, "checkouts", null), SIBLINGS = named ? path.resolve(named) : path.dirname(root);
 if (named && !fs.statSync(SIBLINGS, { throwIfNoEntry: false })?.isDirectory()) { console.error(`--checkouts: ${SIBLINGS} is not a folder`); process.exit(2); }
@@ -167,13 +169,13 @@ function main() {
   /* nothing is written until the whole board reads clean of the private repositories */
   const sib = siblingsHref(), liveBoard = { ...board, live: true, ...(sib ? { siblings: sib } : {}) }, hits = privateRefs(JSON.stringify(liveBoard), privates);
   if (hits.length) throw new Error(`the board would name a private repository (${hits.length}): nothing written; find where the data names it`);
-  const wrote = { snapshot: writeBoard(SNAP_DIR, board) };
+  const wrote = LIVE_ONLY ? {} : { snapshot: writeBoard(SNAP_DIR, board) };
   ensureExcluded();
   wrote.live = writeBoard(LIVE_DIR, liveBoard);
   fs.writeFileSync(path.join(LIVE_DIR, "index.js"), "/* docs/plans/.live/org-work-board/index.js: the live org work board on this machine (plan/scripts/org-board.js). Never committed. */\n(window.DASHBOARDS_LIVE=window.DASHBOARDS_LIVE||{}).orgBoard=\"index.html\";\n");
   /* the checks on both forms; the committed snapshot in --auto, as every board before its commit (GUIDANCE.md §8) */
-  const checked = [SNAP_DIR, LIVE_DIR].map(d => { const c = cp.spawnSync(process.execPath, [path.join(__dirname, "check.js"), d, ...(d === SNAP_DIR ? ["--auto"] : [])], { encoding: "utf8", windowsHide: true, stdio: ["ignore", "pipe", "pipe"] }); const lines = (c.stdout || "").split(/\r?\n/); return { path: path.relative(root, d).split(path.sep).join("/"), status: c.status, fail: lines.filter(l => /^FAIL/.test(l)), warn: lines.filter(l => /^warn/.test(l)) }; });
-  console.log(JSON.stringify({ generated, snapshot: SNAP_DIR, live: LIVE_DIR, bytes: { json: wrote.snapshot.json.length, html: wrote.snapshot.html.length },
+  const checked = (LIVE_ONLY ? [LIVE_DIR] : [SNAP_DIR, LIVE_DIR]).map(d => { const c = cp.spawnSync(process.execPath, [path.join(__dirname, "check.js"), d, ...(d === SNAP_DIR ? ["--auto"] : [])], { encoding: "utf8", windowsHide: true, stdio: ["ignore", "pipe", "pipe"] }); const lines = (c.stdout || "").split(/\r?\n/); return { path: path.relative(root, d).split(path.sep).join("/"), status: c.status, fail: lines.filter(l => /^FAIL/.test(l)), warn: lines.filter(l => /^warn/.test(l)) }; });
+  console.log(JSON.stringify({ generated, snapshot: LIVE_ONLY ? null : SNAP_DIR, live: LIVE_DIR, bytes: { json: (wrote.snapshot || wrote.live).json.length, html: (wrote.snapshot || wrote.live).html.length },
     repositories: all.map(r => ({ repo: `${r.owner}/${r.name}`, branch: r.defaultBranch, head: r.head.slice(0, 7), source: r.source && r.source.file, rows: r.board ? (r.board.rows || []).length : 0, boards: Object.keys(r.boards).length, unlinked: r.unlinked, links: Object.keys(r.links) })),
     notShown: notShown.map(x => x.repository), unaccounted, check: checked }, null, 2));
   process.exit(checked.some(c => c.status !== 0) ? 1 : 0);

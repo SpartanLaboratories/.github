@@ -116,7 +116,7 @@ module.exports = function casesStepBar(X) {
     c.push(["the state cell keeps the chain's summary, and no thin bar", cell === '<div class="chainsum">summary</div>' && !/cbar/.test(cell), cell]);
     const WB = JSON.parse(rd(sk("verify/fixtures/work-board.json"))), r0 = WB.rows.find(r => r.chain), [old] = evalWith(WB, r0), O = lis(old);
     c.push(["a board.json written before chain.units: the StepBar from the tracking issue's unit rows, in their order, by their titles", !!r0 && !(r0.chain || {}).units && O.length === WB.rows.filter(r => r.parent === r0.issue).length && O[0].cls === "done" && O[1].cls === "cur" && O[2].cls === "todo" && /^Build: move shared configuration/.test(O[0].body) && /<code>build-logic<\/code>/.test(O[0].body), js(O.slice(0, 3).map(x => [x.cls, x.body.slice(0, 50)]))]);
-    c.push(["the rows emit it under the tracking issue's row; the narrow layout stacks it as a block", /<\/td><\/tr>\$\{chainRow\(r\)\}`; \}\); \}\);/.test(W) && /\.tbl tr\.chainrow,\.tbl tr\.chainrow>td\{display:block\}/.test(css(W)), "chainRow(r)"]);
+    c.push(["the rows emit it under the tracking issue's row; the narrow layout stacks it as a block", /<\/td><\/tr>\$\{chainRow\(r,e\)\}`; \}\);/.test(W) && /\.tbl tr\.chainrow,\.tbl tr\.chainrow>td\{display:block\}/.test(css(W)), "chainRow(r)"]);
     c.push(["its Legend: the chain's states it drew (landed, in progress, to come), in place of the thin bar", /a tracking issue's unit, in landing order: landed/.test(W) && /<i class="sbk cur"><\/i>bold: a unit in progress, or complete and not merged/.test(W) && /<i class="sbk todo"><\/i>dashed: a unit to come/.test(W) && !/class="cbar"/.test(W.replace(/<style>[\s\S]*?<\/style>/g, "")), "the Legend"]);
   });
 

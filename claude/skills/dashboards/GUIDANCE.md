@@ -540,7 +540,7 @@ the Markdown copies, the progress notes, every progress note drawn, whatever its
 Legends inside each Tile, no "board" Tag, the title's `#n`, "since" said once by the step Panel, the larger charging Arrow, the landing
 step, the Tests Tab, the Timeline Tile's Legend of step visits and its kinds of work, approximate bounds, the Timeline Tab and its Tracers, the landing's
 steps, the Design Tab, a sub-issue's roadmap naming its parent, a reference's section number before its excerpt, no work level in the board's data, the
-Document step, the dependency's build state from its code (dropped included), the Consequences Tab, the build outputs' live copies, a fix's "fix
+Document step, the dependency's build state from its code (dropped included), the issue tree (each repository's issues nested by the real sub-issue chain, every level with children collapsible, on the repository work board and the org work board; `plan/RULES.md` §5), the Consequences Tab, the build outputs' live copies, a fix's "fix
 to #n", the structure map's recorded height, a
 issue board's finished steps clickable, each unit Row's label carrying its own FullPulse while it is filed, the Timeline Tile's figure the sum of
 its visits, an issue's title quoted and marked, every Quality Review and the one running, each by its number, every name from the template's names block (the

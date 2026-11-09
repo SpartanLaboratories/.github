@@ -206,7 +206,7 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .tbl th{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-top:0}
 .tbl tr.run>:first-child{border-left:4px solid var(--c,var(--muted))}
 /* the columns' shares (dashboards-skill/30: no branch or board column; the issue's title is its board's link, the branch is in the state) */
-.tbl thead th:nth-child(1){width:20%}.tbl thead th:nth-child(2){width:14%}.tbl thead th:nth-child(4){width:14%}.tbl thead th:nth-child(5){width:15%}.tbl thead th:nth-child(6){width:12%}
+.tbl thead th:nth-child(1){width:22%}.tbl thead th:nth-child(2){width:14%}.tbl thead th:nth-child(4){width:14%}.tbl thead th:nth-child(5){width:15%}.tbl thead th:nth-child(6){width:12%}
 .tbl tr.run.nob>:first-child{border-left-style:dashed}
 .tbl tr.grp th{padding-top:16px;font:700 11px var(--sans);color:var(--muted);letter-spacing:.07em;text-transform:uppercase}
 .tbl tr.grp th a{text-decoration:none;border-bottom:1px solid var(--line);text-transform:none;letter-spacing:0;font-family:var(--mono);font-weight:400}
@@ -258,6 +258,31 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
   .tbl tr.run>td:nth-child(1),.tbl tr.run>td:nth-child(3){grid-column:1/-1}
 }
 /* the decision not to run another qa pass (dashboards-skill/31): a small neutral mark beside the pass, its glyph and words */
+/* tree-css:begin. The issue tree (plan/RULES.md §5, §10): a repository's Rows nested by the real sub-issue chain, to any depth, indented by depth (at most four steps, so a long chain never squeezes
+   the title away) with neutral guide lines, a Button on every Row that owns sub-issues. The system colour stays on the Row's edge; nothing here is a status. */
+.tbl tr[hidden]{display:none!important}
+/* the State and Quality Review pills wrap as the narrow layout does, so the tree's indent never starves the Now column */
+.tbl td:nth-child(2) .verdict-pill,.tbl td:nth-child(4) .verdict-pill{white-space:normal}
+.tbl tr.run[data-node]{--tx:calc(8px + min(var(--d,0),4)*16px);--ty:7px}
+.tbl tr.run[data-node]>td:first-child{position:relative;padding-left:calc(var(--tx) + 28px)}
+.tbl tr.run[data-kids] .t{font-weight:600}
+.tg{position:absolute;top:0;bottom:0;left:calc(20px + min(var(--i),4)*16px);width:6px;pointer-events:none}
+.tg.v,.tg.t,.tg.l{border-left:1px solid var(--line)}
+.tg.l{bottom:auto;height:19px}
+.tg.t::after,.tg.l::after{content:"";position:absolute;left:0;top:18px;width:6px;border-top:1px solid var(--line)}
+.tw{position:absolute;left:var(--tx);top:var(--ty);width:24px;height:24px;display:grid;place-items:center;padding:0;border:1px solid transparent;border-radius:4px;background:transparent;color:var(--ink-2);cursor:pointer;font:600 16px/1 var(--mono)}
+.tw::before{content:"\25B8"}
+.tw[aria-expanded="true"]::before{content:"\25BE"}
+.tw:hover{border-color:var(--line);background:var(--surface-2);color:var(--ink)}
+.tw:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.twk{font:600 12px/1 var(--mono);color:var(--ink-2)}
+.tbl ol.stepbar[data-tree-d]{margin-left:calc(min(var(--d,0),4)*16px)}
+@media (max-width:879.98px){
+  .tbl tr.run[data-node]{--tx:8px;--ty:2px;margin-left:calc(min(var(--d,0),4)*14px)}
+  .tg{display:none}
+  .tbl ol.stepbar[data-tree-d]{margin-left:0}
+}
+/* tree-css:end */
 .qas{display:flex;flex-direction:column;gap:5px;align-items:flex-start}
 .qa1{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 6px;max-width:100%}
 .qamark{display:inline-flex;align-items:center;gap:4px;font:600 10.5px/1.2 var(--mono);padding:2px 6px;border:1px solid var(--line);border-radius:3px;background:var(--surface);color:var(--ink-2);white-space:nowrap}

@@ -192,7 +192,7 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
 .tbl th{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-top:0}
 .tbl tr.run>:first-child{border-left:4px solid var(--c,var(--muted))}
 /* the columns' shares (dashboards-skill/30: no branch or board column; the issue's title is its board's link, the branch is in the state) */
-.tbl thead th:nth-child(1){width:20%}.tbl thead th:nth-child(2){width:14%}.tbl thead th:nth-child(4){width:14%}.tbl thead th:nth-child(5){width:15%}.tbl thead th:nth-child(6){width:12%}
+.tbl thead th:nth-child(1){width:22%}.tbl thead th:nth-child(2){width:14%}.tbl thead th:nth-child(4){width:14%}.tbl thead th:nth-child(5){width:15%}.tbl thead th:nth-child(6){width:12%}
 .tbl tr.run.nob>:first-child{border-left-style:dashed}
 .tbl tr.grp th{padding-top:16px;font:700 11px var(--sans);color:var(--muted);letter-spacing:.07em;text-transform:uppercase}
 .tbl tr.grp th a{text-decoration:none;border-bottom:1px solid var(--line);text-transform:none;letter-spacing:0;font-family:var(--mono);font-weight:400}
@@ -243,6 +243,31 @@ h1{font-size:28px;margin:4px 0 2px;letter-spacing:-.01em;font-family:var(--mono)
   .tbl tr.run>td:nth-child(1),.tbl tr.run>td:nth-child(3){grid-column:1/-1}
 }
 /* the decision not to run another qa pass (dashboards-skill/31): a small neutral mark beside the pass, its glyph and words */
+/* tree-css:begin. The issue tree (plan/RULES.md §5, §10): a repository's Rows nested by the real sub-issue chain, to any depth, indented by depth (at most four steps, so a long chain never squeezes
+   the title away) with neutral guide lines, a Button on every Row that owns sub-issues. The system colour stays on the Row's edge; nothing here is a status. */
+.tbl tr[hidden]{display:none!important}
+/* the State and Quality Review pills wrap as the narrow layout does, so the tree's indent never starves the Now column */
+.tbl td:nth-child(2) .verdict-pill,.tbl td:nth-child(4) .verdict-pill{white-space:normal}
+.tbl tr.run[data-node]{--tx:calc(8px + min(var(--d,0),4)*16px);--ty:7px}
+.tbl tr.run[data-node]>td:first-child{position:relative;padding-left:calc(var(--tx) + 28px)}
+.tbl tr.run[data-kids] .t{font-weight:600}
+.tg{position:absolute;top:0;bottom:0;left:calc(20px + min(var(--i),4)*16px);width:6px;pointer-events:none}
+.tg.v,.tg.t,.tg.l{border-left:1px solid var(--line)}
+.tg.l{bottom:auto;height:19px}
+.tg.t::after,.tg.l::after{content:"";position:absolute;left:0;top:18px;width:6px;border-top:1px solid var(--line)}
+.tw{position:absolute;left:var(--tx);top:var(--ty);width:24px;height:24px;display:grid;place-items:center;padding:0;border:1px solid transparent;border-radius:4px;background:transparent;color:var(--ink-2);cursor:pointer;font:600 16px/1 var(--mono)}
+.tw::before{content:"\25B8"}
+.tw[aria-expanded="true"]::before{content:"\25BE"}
+.tw:hover{border-color:var(--line);background:var(--surface-2);color:var(--ink)}
+.tw:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.twk{font:600 12px/1 var(--mono);color:var(--ink-2)}
+.tbl ol.stepbar[data-tree-d]{margin-left:calc(min(var(--d,0),4)*16px)}
+@media (max-width:879.98px){
+  .tbl tr.run[data-node]{--tx:8px;--ty:2px;margin-left:calc(min(var(--d,0),4)*14px)}
+  .tg{display:none}
+  .tbl ol.stepbar[data-tree-d]{margin-left:0}
+}
+/* tree-css:end */
 .qas{display:flex;flex-direction:column;gap:5px;align-items:flex-start}
 .qa1{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 6px;max-width:100%}
 .qamark{display:inline-flex;align-items:center;gap:4px;font:600 10.5px/1.2 var(--mono);padding:2px 6px;border:1px solid var(--line);border-radius:3px;background:var(--surface);color:var(--ink-2);white-space:nowrap}
@@ -294,6 +319,9 @@ footer code{color:var(--ink-2)}
 .org-panel{border:2px solid var(--ink-2);border-radius:8px;padding:10px;margin:18px 0 0;background:var(--surface-2);min-width:0}
 .org-panel>.repo-head{margin-bottom:12px}
 .org-panel>.repo-head h3{font-size:19px}
+.repo-head :is(h3,h4):has(>.tw){display:flex;flex-wrap:wrap;align-items:center}
+.repo-head .tw{position:static;flex:none;margin:0 6px 0 -4px}
+.repo-panel>[hidden]{display:none}
 .repos-lede{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:14px 0 8px}
 </style>
 </head>
@@ -311,7 +339,7 @@ footer code{color:var(--ink-2)}
   <button class="tab model" role="tab" id="t-source" aria-controls="p-source" aria-selected="false">Source</button>
 </div>
 <section class="view" role="tabpanel" id="p-repos" aria-labelledby="t-repos">
-  <h2>Every run in every repository, grouped by tracking issue in landing order, then the rest by age</h2>
+  <h2>Every run in every repository, each repository's issues as a tree of its sub-issue chain, then the rest by age</h2>
   <p class="lede" id="repos-lede"></p>
   <div id="repos"></div>
   <div class="legend" id="repos-key"></div>
@@ -448,7 +476,7 @@ const SB_STATE={done:"landed",cur:"in progress",todo:"to come"};
 const chainUnits=r=>{ const c=r.chain||{}; if(Array.isArray(c.units)) return c.units.filter(u=>u&&typeof u==="object").map(u=>({name:u.name||u.slug||(u.issue?`#${u.issue}`:""),st:u.state==="done"?"done":u.state==="current"?"cur":"todo"}));
   return ROWS.filter(x=>x.parent===r.issue&&x.group===r.group&&stOf(x)!=="abandoned").sort((a,b)=>a.order-b.order).map(x=>{ const s=stOf(x); return {name:x.title||`#${x.issue}`,st:s==="landed"?"done":["building","complete","halted","escalated","planning","in-progress"].includes(s)?"cur":"todo"}; }); };
 const chainBar=r=>{ const us=chainUnits(r); return us.length?`<ol class="stepbar" aria-label="#${esc(r.issue)}: its units in landing order">${us.map(u=>`<li class="${u.st}"${u.st==="cur"?' aria-current="step"':""}>${codeOnly(u.name)}<span class="sb-st">, ${SB_STATE[u.st]}</span></li>`).join("")}</ol>`:""; };
-const chainRow=r=>{ const b=r.chain?chainBar(r):""; return b?`<tr class="chainrow" style="--c:${sysColour(r.system)}"><td colspan="6">${b}</td></tr>`:""; };
+const chainRow=(r,e)=>{ const b=r.chain?chainBar(r):""; return b?`<tr class="chainrow" style="--c:${sysColour(r.system)}"${e&&e.hidden?" hidden":""}><td colspan="6">${e&&e.depth?b.replace('<ol class="stepbar"',`<ol class="stepbar" data-tree-d style="--d:${e.depth}"`):b}</td></tr>`:""; };
 /* The impact's reconciliation state of a row's board, as the repository's board.json carries it: planned dashed, partly reconciled
    yellow, as built green, each with its glyph and word. */
 const RECON={planned:{g:"…",l:"impact planned",c:"neutral",d:1,desc:"the plan's impact, nothing reconciled yet"},partial:{g:"◐",l:"impact partly reconciled",c:"warning",desc:"changes recorded as the work lands"},"as-built":{g:"✓",l:"impact as built",c:"good",desc:"reconciled with the build"}};
@@ -458,31 +486,92 @@ const blockerRef=x=>x.issue!=null?ilink(x.issue,x.repo):esc(x.slug||`unit ${x.un
 const blockedTag=r=>(r.blockedBy||[]).length?`<span class="verdict-pill ${BLOCKED.c}"><i aria-hidden="true">${BLOCKED.g}</i>blocked by ${r.blockedBy.map(blockerRef).join(", ")}</span>`:"";
 const linkOr=(href,text)=>href?ext(href,text):text;
 
+const TREE_KEY="dashboards-tree-org";
+/* tree:begin. The issue tree (plan/RULES.md §5, §10). A repository's Rows nest by the real sub-issue chain, to any depth, from the data the board already holds: a Row's parent, else the
+   roadmap entry that lists it, else the folder its board sits in (docs/plans mirrors the chain; a fix's folder sits in the fixed issue's, but a fix is no sub-issue, so it never nests by its
+   folder). A tracking issue with no Row of its own, and a roadmap item with no run yet, are lines of the tree; nothing is invented for them (the tracker's own state, in its words). An issue
+   whose parent is on no list sits at the root and keeps "part of #n". Every level with children has a Button. A level is open by default while something below it is in flight, and each
+   choice is kept in this browser (localStorage), so a live redraw keeps it. The block is the same in both work-board templates (held equal by verify/cases-org-board.js). */
+const TREE_BUSY=new Set(["building","planning","halted","escalated","complete","in-progress","next"]);
+const treePref=new Map();
+try{ const s=JSON.parse(localStorage.getItem(TREE_KEY)||"{}"); Object.keys(s).forEach(k=>treePref.set(k,!!s[k])); }catch(e){ /* no storage: the defaults hold */ }
+const treeSave=()=>{ try{ localStorage.setItem(TREE_KEY,JSON.stringify(Object.fromEntries(treePref))); }catch(e){} };
+/* the issue a folder's chain names as the folder's parent: its next-to-last numbered segment */
+const treeFolderParent=f=>{ const m=String(f||"").replace(/\\/g,"/").split("/").filter(s=>/^\d+-/.test(s)); return m.length>1?Number(m[m.length-2].split("-")[0]):null; };
+function issueForest(rows,groups,road){
+  const N=new Map(), of=n=>{ let x=N.get(n); if(!x){ x={issue:n,row:null,title:null,parent:null,state:null,stateReason:null,at:null,kids:[],up:null,head:null}; N.set(n,x); } return x; };
+  rows.forEach(r=>{ const x=of(r.issue); x.row=r; x.title=r.title; if(r.parent) x.parent=r.parent; });
+  groups.forEach(g=>{ if(g.issue==null) return; const x=of(g.issue); if(!x.title) x.title=g.title; });
+  road.forEach(m=>{ const x=of(m.issue); if(!x.title) x.title=m.title; x.state=m.state||x.state; x.stateReason=m.stateReason||x.stateReason;
+    (m.items||[]).forEach((i,k)=>{ const c=of(i.issue); c.at=k+1; if(!c.title) c.title=i.title||null; if(!c.state){ c.state=i.state||null; c.stateReason=i.stateReason||null; } if(c.parent==null) c.parent=m.issue; }); });
+  rows.forEach(r=>{ const x=N.get(r.issue); if(x.parent==null&&!r.fixOf){ const p=treeFolderParent(r.folder); if(p!=null&&p!==x.issue&&N.has(p)) x.parent=p; } });
+  const nodes=[...N.values()];
+  /* a link that would close a loop is not drawn */
+  nodes.forEach(x=>{ if(x.parent==null||!N.has(x.parent)) return; for(let a=N.get(x.parent),i=0;a&&i<=nodes.length;a=a.parent==null?null:N.get(a.parent),i++) if(a===x) return; x.up=N.get(x.parent); x.up.kids.push(x); });
+  /* children in landing order: a Row by its order, a roadmap item by its place on the tracker */
+  const ord=x=>x.row&&Number.isFinite(x.row.order)?x.row.order:x.at!=null?x.at:1e6;
+  nodes.forEach(x=>x.kids.sort((a,b)=>ord(a)-ord(b)||(a.row?0:1)-(b.row?0:1)||a.issue-b.issue));
+  /* the roots: the tracking issues in the groups' order, then any other tracking issue, then the rest under their own group's heading */
+  const rk=x=>{ const own=groups.findIndex(g=>g.issue===x.issue); if(own>=0) return [0,own,0]; const gi=x.row?groups.findIndex(g=>g.key===x.row.group):-1; if(gi>=0&&groups[gi].issue==null){ x.head=groups[gi]; return [2,gi,ord(x)]; } return [1,gi<0?groups.length:gi,x.row?ord(x):x.issue]; };
+  const keyed=nodes.filter(x=>!x.up).map(x=>[rk(x),x]).sort(([a],[b])=>a[0]-b[0]||a[1]-b[1]||a[2]-b[2]);
+  return {nodes,roots:keyed.map(([,x])=>x)};
+}
+const treeBusy=x=>!!((x.row&&(x.row.active||TREE_BUSY.has(stOf(x.row))))||x.kids.some(treeBusy));
+const treeOpen=(k,x)=>treePref.has(k)?treePref.get(k):treeBusy(x);
+/* the tree, depth first, as the table's flat Rows; a heading entry ({head}) where the rest begin */
+function treeFlat(f,scope){ const out=[]; let last=null;
+  const walk=(x,depth,rails,isLast,up,vis)=>{ const k=scope+x.issue, open=x.kids.length?treeOpen(k,x):false; out.push({x,k,depth,rails,last:isLast,up,open,hidden:!vis});
+    x.kids.forEach((c,i)=>walk(c,depth+1,depth?[...rails,!isLast]:[],i===x.kids.length-1,String(x.issue),vis&&open)); };
+  f.roots.forEach(x=>{ if(x.head&&x.head!==last){ out.push({head:x.head}); last=x.head; } walk(x,0,[],true,"",true); });
+  return out; }
+/* a Row's tree attributes; its depth goes on the Row's style (--d) */
+const treeAttrs=e=>` data-node="${esc(e.x.issue)}" data-up="${esc(e.up)}"${e.x.kids.length?" data-kids":""}${e.hidden?" hidden":""}`;
+const treeWord=n=>plural(n,"sub-issue");
+const treeBtn=e=>{ const x=e.x, n=x.kids.length; return n?`<button type="button" class="tw" data-tw="${esc(e.k)}" data-of="#${esc(x.issue)}, ${esc(treeWord(n))}" aria-expanded="${e.open}" aria-label="${e.open?"Collapse":"Expand"} #${esc(x.issue)}, ${esc(treeWord(n))}" title="${e.open?"Collapse":"Expand"} #${esc(x.issue)}, ${esc(treeWord(n))}"></button>`:""; };
+/* the guide lines, drawn after the cell's content and placed by CSS: a rail for each open ancestor column, then this Row's own tee or elbow */
+const treeGuides=e=>e.depth?`${e.rails.map((c,i)=>c?`<span class="tg v" style="--i:${i}"></span>`:"").join("")}<span class="tg ${e.last?"l":"t"}" style="--i:${e.depth-1}"></span>`:"";
+/* what is under a level: its direct sub-issues, and what is at work, waiting, up next and landed below it; a tracking Row with children counts only through them */
+const treeCount=(x,p)=>x.kids.length?x.kids.reduce((s,c)=>s+treeCount(c,p),0)||(x.row&&p(x.row)?1:0):(x.row&&p(x.row)?1:0);
+const treeBelow=x=>{ let w=0; x.kids.forEach(c=>{ w+=treeCount(c,r=>!!r.active); }); const sum=p=>x.kids.reduce((s,c)=>s+treeCount(c,p),0), wait=sum(r=>["halted","escalated"].includes(stOf(r))), nx=sum(r=>stOf(r)==="next"), ld=sum(r=>stOf(r)==="landed");
+  return `<div class="sub">${[treeWord(x.kids.length),w?`${w} at work`:"",wait?`${wait} waiting on you`:"",nx?`${nx} up next`:"",ld?`${ld} landed`:""].filter(Boolean).join(" · ")}</div>`; };
+/* a line with no Row of its own: the tracker's state, and "not started" (dashed) for an open sub-issue with no run; a closing reason as the status Legend names it */
+const treeBareStatus=x=>x.state==="CLOSED"?(x.stateReason==="NOT_PLANNED"?"not-planned":x.stateReason==="DUPLICATE"?"duplicate":null):(!x.kids.length&&x.state==="OPEN"?"not-started":null);
+function treeBare(e){ const x=e.x, st=treeBareStatus(x), word=closedWord(x)||String(x.state||"").toLowerCase();
+  return `<tr class="run${st==="not-started"?" nob":""}" style="--d:${e.depth}"${treeAttrs(e)}><td>${treeBtn(e)}<span class="t">${x.title?pair(x.issue,x.title):ilink(x.issue)}</span>${x.kids.length?treeBelow(x):""}${treeGuides(e)}</td><td>${st?pill(STATUS[st]):word?`<small>${esc(word)}</small>`:""}</td><td></td><td></td><td></td><td></td></tr>`; }
+const treeUsed=f=>f.nodes.filter(x=>!x.row).map(treeBareStatus).filter(Boolean);
+const treeLegend=f=>f.nodes.some(x=>x.kids.length)?`<span><span class="twk" aria-hidden="true">▾ ▸</span> an issue that owns sub-issues, indented under it: its Button hides or shows them, each kept in this browser</span>`:"";
+function treeSync(tbl){ const on=new Map(); tbl.querySelectorAll("tr.run[data-node]").forEach(tr=>{ const up=tr.dataset.up, show=!up||on.get(up)===true; tr.hidden=!show; const b=tr.querySelector(":scope>td>button.tw"); on.set(tr.dataset.node,show&&!!b&&b.getAttribute("aria-expanded")==="true"); const nx=tr.nextElementSibling; if(nx&&nx.classList.contains("chainrow")) nx.hidden=!show; }); }
+const treeFocus=()=>{ const a=document.activeElement; return a&&a.dataset&&a.dataset.tw||null; };
+const treeRefocus=k=>{ if(!k) return; const t=[...document.querySelectorAll("button.tw")].find(b=>b.dataset.tw===k); if(t) t.focus(); };
+document.addEventListener("click",ev=>{ const b=ev.target.closest&&ev.target.closest("button.tw"); if(!b) return; const open=b.getAttribute("aria-expanded")!=="true", word=open?"Collapse":"Expand"; b.setAttribute("aria-expanded",String(open)); if(b.dataset.of){ b.setAttribute("aria-label",`${word} ${b.dataset.of}`); b.title=`${word} ${b.dataset.of}`; }
+  treePref.set(b.dataset.tw,open); treeSave(); (b.getAttribute("aria-controls")||"").split(/\s+/).filter(Boolean).forEach(id=>{ const t=document.getElementById(id); if(t) t.hidden=!open; }); const tb=b.closest("table"); if(tb) treeSync(tb); });
+/* tree:end */
 /* ---------- One repository's runs table and its Legend: the repository work board's Runs tab, inside its Panel ---------- */
 function runsTable(){
   let h=`<thead><tr><th>Issue</th><th>State</th><th>Now</th><th>${PASS_NAME}s</th><th>Depends on</th><th>Blocks · enables</th></tr></thead><tbody>`;
-  (D.groups||[]).forEach(g=>{ const rs=ROWS.filter(r=>r.group===g.key).sort((a,b)=>a.order-b.order); if(!rs.length) return;
-    h+=`<tr class="grp"><th colspan="6">${g.issue?pair(g.issue,g.title):esc(g.title)}</th></tr>`;
-    rs.forEach(r=>{ const st=stOf(r), qa=qaShown(r);
+  treeFlat(issueForest(ROWS,D.groups||[],D.roadmap||[]),`${repoKey(CUR)}#`).forEach(e=>{ if(e.head){ const g=e.head; h+=`<tr class="grp"><th colspan="6">${esc(g.title)}</th></tr>`; return; } if(!e.x.row){ h+=treeBare(e); return; } const r=e.x.row;
+    const st=stOf(r), qa=qaShown(r);
       const iss=(x,bub,dep)=>{ const cw=closedWord(x), say=cw&&!(dep&&x.build==="clear"&&cw==="closed"); return `<span class="dep">${ilink(x.issue,x.repo)} ${bub}${say?`<small>${esc(cw)}</small>`:""}</span>`; };
-      h+=`<tr class="run${st==="no-board"||st==="not-started"||st==="next"?" nob":""}" style="--c:${sysColour(r.system)}"><td><span class="t">${pair(r.issue,r.title)}</span><div class="sub"><span class="${r.systemArchived?"sysarch":""}">${swatch(r.system)}${esc(r.systemName||"no system recorded")}</span>${r.systemArchived?` <span class="archtag">⊟ archived</span>`:""}${r.parent?` · part of ${ilink(r.parent)}`:""}${r.fixOf?` · fix to ${ilink(r.fixOf)}`:""}</div></td><td>${r.chain?chainCell(r,st):pill(STATUS[st],"",r.active?" fullpulse":st==="next"?" upnext-ring":heldRow(r)?" held":"")}${st==="next"?`<div class="tags">${TAG_NEXT}${blockedTag(r)}</div>`:""}${reconTag(r)}${r.tracker&&r.tracker.pr?`<div class="sub">${ext(prUrl(r.tracker.pr.number),`PR #${esc(r.tracker.pr.number)}`)} ${r.tracker.pr.state==="MERGED"?"merged":"open"}</div>`:""}${r.step?`<div class="sub">step ${esc(stepLabel(r.step,rowCtx(r)))}</div>`:""}${r.branch?`<div class="sub">branch <code>${esc(r.branch)}</code></div>`:""}</td><td>${rich(r.detail||"")}${r.landed?`<div class="sub">${[r.landed.pr?ext(prUrl(r.landed.pr),`PR #${esc(r.landed.pr)}`):"",r.landed.version?esc(r.landed.version):"",r.landed.date?when(r.landed.date):""].filter(Boolean).join(" · ")}</div>`:""}</td><td>${qa.length?`<div class="qas">${qa.map(p=>{ const d=QA[p.verdict]||QA.running; return `<span class="qa1">${pill(d,`${passName(p.pass)} · ${d.l}`)}${inPlaceMark(p)}</span>`; }).join("")}</div>`:""}${qa.length&&r.qaMax?`<div class="sub">of at most ${esc(r.qaMax)}</div>`:""}</td><td>${(r.waitsOn||[]).length?`<div class="deps">${r.waitsOn.map(x=>iss(x,depPill(x),1)).join("")}</div>`:""}</td><td>${(r.blocks||[]).length?`<div class="deps">${r.blocks.map(x=>iss(x,pill(HOLD[holdOf(x,r)]))).join("")}</div>`:""}</td></tr>${chainRow(r)}`; }); });
+      h+=`<tr class="run${st==="no-board"||st==="not-started"||st==="next"?" nob":""}" style="--c:${sysColour(r.system)};--d:${e.depth}"${treeAttrs(e)}><td>${treeBtn(e)}<span class="t">${pair(r.issue,r.title)}</span>${e.x.kids.length?treeBelow(e.x):""}<div class="sub"><span class="${r.systemArchived?"sysarch":""}">${swatch(r.system)}${esc(r.systemName||"no system recorded")}</span>${r.systemArchived?` <span class="archtag">⊟ archived</span>`:""}${r.parent&&!e.x.up?` · part of ${ilink(r.parent)}`:""}${r.fixOf?` · fix to ${ilink(r.fixOf)}`:""}</div>${treeGuides(e)}</td><td>${r.chain?chainCell(r,st):pill(STATUS[st],"",r.active?" fullpulse":st==="next"?" upnext-ring":heldRow(r)?" held":"")}${st==="next"?`<div class="tags">${TAG_NEXT}${blockedTag(r)}</div>`:""}${reconTag(r)}${r.tracker&&r.tracker.pr?`<div class="sub">${ext(prUrl(r.tracker.pr.number),`PR #${esc(r.tracker.pr.number)}`)} ${r.tracker.pr.state==="MERGED"?"merged":"open"}</div>`:""}${r.step?`<div class="sub">step ${esc(stepLabel(r.step,rowCtx(r)))}</div>`:""}${r.branch?`<div class="sub">branch <code>${esc(r.branch)}</code></div>`:""}</td><td>${rich(r.detail||"")}${r.landed?`<div class="sub">${[r.landed.pr?ext(prUrl(r.landed.pr),`PR #${esc(r.landed.pr)}`):"",r.landed.version?esc(r.landed.version):"",r.landed.date?when(r.landed.date):""].filter(Boolean).join(" · ")}</div>`:""}</td><td>${qa.length?`<div class="qas">${qa.map(p=>{ const d=QA[p.verdict]||QA.running; return `<span class="qa1">${pill(d,`${passName(p.pass)} · ${d.l}`)}${inPlaceMark(p)}</span>`; }).join("")}</div>`:""}${qa.length&&r.qaMax?`<div class="sub">of at most ${esc(r.qaMax)}</div>`:""}</td><td>${(r.waitsOn||[]).length?`<div class="deps">${r.waitsOn.map(x=>iss(x,depPill(x),1)).join("")}</div>`:""}</td><td>${(r.blocks||[]).length?`<div class="deps">${r.blocks.map(x=>iss(x,pill(HOLD[holdOf(x,r)]))).join("")}</div>`:""}</td></tr>${chainRow(r,e)}`; });
   return h+"</tbody>";
 }
 function runsLegend(){
   const tops=new Map(); ROWS.filter(r=>!r.systemArchived).forEach(r=>{ const s=sysOf(r.system), k=sysLit(s)?s.slot:0; if(!tops.has(k)) tops.set(k,{c:sysColour(r.system),n:new Set()}); tops.get(k).n.add(k?(s.top||s.name):"no system colour"); });
-  const used=new Set(ROWS.filter(r=>!r.chain||["halted","escalated","abandoned"].includes(stOf(r))).map(stOf)), qv=new Set(ROWS.flatMap(r=>qaShown(r).map(p=>p.verdict))), dv=new Set(ROWS.flatMap(r=>(r.waitsOn||[]).map(x=>x.build).filter(k=>DEP[k]))), lv=new Set(ROWS.flatMap(r=>(r.waitsOn||[]).map(locOf).filter(Boolean).map(L=>L.k))), dn=ROWS.some(r=>(r.waitsOn||[]).some(x=>x.why)), hv=new Set(ROWS.flatMap(r=>(r.blocks||[]).map(x=>holdOf(x,r))));
-  return [...tops.values()].map(v=>`<span><i class="sbar" style="--c:${v.c}"></i>${esc([...v.n].join(", "))}</span>`).join("")+(ROWS.some(r=>r.systemArchived)?`<span><i class="sbar arch" style="--c:var(--muted)"></i><span class="archtag">⊟ archived</span>its system is archived: no longer developed, no colour of its own</span>`:"")+(()=>{ const sts=new Set(ROWS.filter(r=>r.chain).flatMap(r=>chainUnits(r).map(u=>u.st))); return (sts.has("done")?`<span><i class="sbk"></i>a tracking issue's unit, in landing order: landed</span>`:"")+(sts.has("cur")?`<span><i class="sbk cur"></i>bold: a unit in progress, or complete and not merged</span>`:"")+(sts.has("todo")?`<span><i class="sbk todo"></i>dashed: a unit to come</span>`:""); })()+Object.keys(STATUS).filter(k=>used.has(k)).map(k=>`<span>${pill(STATUS[k])}${STATUS[k].desc?` ${esc(STATUS[k].desc)}`:""}</span>`).join("")+[...qv].filter(v=>QA[v]).map(v=>`<span>${pill(QA[v])} ${v==="running"?`the ${REVIEW} running now`:`a ${REVIEW} verdict`}, by its ${PASS_NAME} number</span>`).join("")+["fixed","fixing"].map(k=>ROWS.flatMap(r=>qaShown(r)).find(p=>p.inPlace===k)).filter(Boolean).map(p=>`<span>${inPlaceMark(p)} ${esc(INPLACE.desc[p.inPlace])}</span>`).join("")+Object.keys(DEP).filter(k=>dv.has(k)).map(k=>`<span>${pill(DEP[k])} a dependency's build state: ${esc(DEP[k].desc)}</span>`).join("")+Object.keys(LOC).filter(k=>lv.has(k)).map(k=>`<span>${locChip({k},k==="external"?"external · name":"")} a dependency's locality: ${esc(LOC[k].desc)}</span>`).join("")+(dn?`<span>a dependency with no build state or locality drawn: no rule fits (its reason on hover)</span>`:"")+Object.keys(HOLD).filter(k=>hv.has(k)).map(k=>`<span>${pill(HOLD[k])} ${esc(HOLD[k].desc)}</span>`).join("")+(ROWS.some(r=>r.active)?`<span><i class="gl"></i>FullPulse, breathing: being worked on now</span>`:"")+(ROWS.some(heldRow)?`<span><i class="hold"></i>Ring alone, still: being worked on, paused while the run waits on you</span>`:"")+(used.has("next")?`<span><i class="nx"></i>${TAG_NEXT} still outer Ring: the next unit, not started</span>`:"")+(ROWS.some(r=>stOf(r)==="next"&&(r.blockedBy||[]).length)?`<span>${pill(BLOCKED,"blocked by #n")} a blocker of the next unit has not landed</span>`:"")+(used.has("no-board")||used.has("not-started")||used.has("next")?`<span><i class="pln"></i>dashed: not started</span>`:"")+Object.keys(RECON).filter(k=>ROWS.some(r=>(reconOf(r)||{}).state===k)).map(k=>`<span>${pill(RECON[k])} ${esc(RECON[k].desc)}</span>`).join("")+(ROWS.length?"":`<span>no runs recorded</span>`);
+  const forest=issueForest(ROWS,D.groups||[],D.roadmap||[]), used=new Set([...ROWS.filter(r=>!r.chain||["halted","escalated","abandoned"].includes(stOf(r))).map(stOf),...treeUsed(forest)]), qv=new Set(ROWS.flatMap(r=>qaShown(r).map(p=>p.verdict))), dv=new Set(ROWS.flatMap(r=>(r.waitsOn||[]).map(x=>x.build).filter(k=>DEP[k]))), lv=new Set(ROWS.flatMap(r=>(r.waitsOn||[]).map(locOf).filter(Boolean).map(L=>L.k))), dn=ROWS.some(r=>(r.waitsOn||[]).some(x=>x.why)), hv=new Set(ROWS.flatMap(r=>(r.blocks||[]).map(x=>holdOf(x,r))));
+  return treeLegend(forest)+[...tops.values()].map(v=>`<span><i class="sbar" style="--c:${v.c}"></i>${esc([...v.n].join(", "))}</span>`).join("")+(ROWS.some(r=>r.systemArchived)?`<span><i class="sbar arch" style="--c:var(--muted)"></i><span class="archtag">⊟ archived</span>its system is archived: no longer developed, no colour of its own</span>`:"")+(()=>{ const sts=new Set(ROWS.filter(r=>r.chain).flatMap(r=>chainUnits(r).map(u=>u.st))); return (sts.has("done")?`<span><i class="sbk"></i>a tracking issue's unit, in landing order: landed</span>`:"")+(sts.has("cur")?`<span><i class="sbk cur"></i>bold: a unit in progress, or complete and not merged</span>`:"")+(sts.has("todo")?`<span><i class="sbk todo"></i>dashed: a unit to come</span>`:""); })()+Object.keys(STATUS).filter(k=>used.has(k)).map(k=>`<span>${pill(STATUS[k])}${STATUS[k].desc?` ${esc(STATUS[k].desc)}`:""}</span>`).join("")+[...qv].filter(v=>QA[v]).map(v=>`<span>${pill(QA[v])} ${v==="running"?`the ${REVIEW} running now`:`a ${REVIEW} verdict`}, by its ${PASS_NAME} number</span>`).join("")+["fixed","fixing"].map(k=>ROWS.flatMap(r=>qaShown(r)).find(p=>p.inPlace===k)).filter(Boolean).map(p=>`<span>${inPlaceMark(p)} ${esc(INPLACE.desc[p.inPlace])}</span>`).join("")+Object.keys(DEP).filter(k=>dv.has(k)).map(k=>`<span>${pill(DEP[k])} a dependency's build state: ${esc(DEP[k].desc)}</span>`).join("")+Object.keys(LOC).filter(k=>lv.has(k)).map(k=>`<span>${locChip({k},k==="external"?"external · name":"")} a dependency's locality: ${esc(LOC[k].desc)}</span>`).join("")+(dn?`<span>a dependency with no build state or locality drawn: no rule fits (its reason on hover)</span>`:"")+Object.keys(HOLD).filter(k=>hv.has(k)).map(k=>`<span>${pill(HOLD[k])} ${esc(HOLD[k].desc)}</span>`).join("")+(ROWS.some(r=>r.active)?`<span><i class="gl"></i>FullPulse, breathing: being worked on now</span>`:"")+(ROWS.some(heldRow)?`<span><i class="hold"></i>Ring alone, still: being worked on, paused while the run waits on you</span>`:"")+(used.has("next")?`<span><i class="nx"></i>${TAG_NEXT} still outer Ring: the next unit, not started</span>`:"")+(ROWS.some(r=>stOf(r)==="next"&&(r.blockedBy||[]).length)?`<span>${pill(BLOCKED,"blocked by #n")} a blocker of the next unit has not landed</span>`:"")+(used.has("no-board")||used.has("not-started")||used.has("next")?`<span><i class="pln"></i>dashed: not started</span>`:"")+Object.keys(RECON).filter(k=>ROWS.some(r=>(reconOf(r)||{}).state===k)).map(k=>`<span>${pill(RECON[k])} ${esc(RECON[k].desc)}</span>`).join("")+(ROWS.length?"":`<span>no runs recorded</span>`);
 }
 /* ---------- A repository Panel ---------- */
 const SOURCE_WORDS={live:"its live view",committed:"its committed repository work board"};
+const repoBtn=(r,id)=>{ if(!r.board) return ""; const k=repoKey(r), open=treeRepoOpen(k), n=ROWS.length, of=`${r.name}, ${n} ${n===1?"run":"runs"}`; return `<button type="button" class="tw" data-tw="${esc(k)}" data-of="${esc(of)}" aria-expanded="${open}" aria-controls="${esc(id)}-tree ${esc(id)}-key" aria-label="${open?"Collapse":"Expand"} ${esc(of)}" title="${open?"Collapse":"Expand"} ${esc(of)}"></button>`; };
+const treeRepoOpen=k=>treePref.get(k)!==false;
 function repoHead(r,lvl){ const H=lvl===4?"h4":"h3", src=r.source||null;
   const facts=[src?`read from ${SOURCE_WORDS[src.view]||"its work-board data"} (<code>${esc(src.file)}</code>)${src.generated?`, generated ${when(src.generated)}`:""}${src.asOf?`, tracker as of ${day(src.asOf)}`:""}`:"no work-board data yet",
     repoFile(r,"workBoard")?ext(repoFile(r,"workBoard"),"repository work board"):"",repoFile(r,"repoBoard")?ext(repoFile(r,"repoBoard"),"repository state board"):""].filter(Boolean);
   const n=k=>ROWS.filter(x=>stOf(x)===k).length, stats=r.board?[`<span class="chip"><b>${ROWS.length}</b> ${ROWS.length===1?"run":"runs"}</span>`,n("landed")?`<span class="chip"><b>${n("landed")}</b> landed</span>`:"",ROWS.filter(x=>x.active).length?`<span class="chip"><b>${ROWS.filter(x=>x.active).length}</b> active now</span>`:"",n("halted")?`<span class="chip"><b>${n("halted")}</b> waiting on you</span>`:"",n("next")?`<span class="chip"><b>${n("next")}</b> up next</span>`:"",(r.unlinked||[]).length?`<span class="chip"><b>${r.unlinked.length}</b> ${r.unlinked.length===1?"board":"boards"} not on GitHub yet, not linked</span>`:""].filter(Boolean).join(""):"";
-  return `<div class="repo-head"><${H}>${ext(r.url,esc(r.name))}<small>${esc(r.owner)} · default branch <code>${esc(r.defaultBranch)}</code>${r.head?` @ <code>${esc(String(r.head).slice(0,7))}</code>`:""}</small></${H}><div class="sub">${facts.join(" · ")}</div>${stats?`<div class="stats">${stats}</div>`:""}</div>`; }
+  return `<div class="repo-head"><${H}>${repoBtn(r,`repo-${r.owner}-${r.name}`)}${ext(r.url,esc(r.name))}<small>${esc(r.owner)} · default branch <code>${esc(r.defaultBranch)}</code>${r.head?` @ <code>${esc(String(r.head).slice(0,7))}</code>`:""}</small></${H}><div class="sub">${facts.join(" · ")}</div>${stats?`<div class="stats">${stats}</div>`:""}</div>`; }
 function repoPanel(r,lvl){ enter(r); const id=`repo-${r.owner}-${r.name}`;
   if(!r.board) return `<section class="repo-panel empty" id="${esc(id)}" aria-labelledby="${esc(id)}-h"><div id="${esc(id)}-h">${repoHead(r,lvl)}</div><div class="legend"><span>no runs recorded</span></div></section>`;
-  return `<section class="repo-panel" id="${esc(id)}" aria-labelledby="${esc(id)}-h"><div id="${esc(id)}-h">${repoHead(r,lvl)}</div><div class="scroll"><table class="tbl" aria-label="${esc(r.name)}: its runs">${runsTable()}</table></div><div class="legend">${runsLegend()}</div></section>`; }
+  return `<section class="repo-panel" id="${esc(id)}" aria-labelledby="${esc(id)}-h"><div id="${esc(id)}-h">${repoHead(r,lvl)}</div><div class="scroll" id="${esc(id)}-tree"${treeRepoOpen(repoKey(r))?"":" hidden"}><table class="tbl" aria-label="${esc(r.name)}: its runs">${runsTable()}</table></div><div class="legend" id="${esc(id)}-key"${treeRepoOpen(repoKey(r))?"":" hidden"}>${runsLegend()}</div></section>`; }
 function orgPanel(o){ const id=`org-${o.owner}`, rs=o.repositories||[];
   return `<section class="org-panel" id="${esc(id)}" aria-labelledby="${esc(id)}-h"><div class="repo-head" id="${esc(id)}-h"><h3>${ext(o.url,esc(o.owner))}<small>${o.parent?`sub-organization of ${esc(o.parent)} · `:""}${plural(rs.length,"repository","repositories")}</small></h3></div>${rs.map(r=>repoPanel(r,4)).join("")}</section>`; }
 
@@ -505,7 +594,7 @@ function render(){
   $("#kpis").innerHTML=[["Runs",ALL.length,`${plural(tracking,"tracking issue")} in ${plural(withData.length,"repository","repositories")}`],["Active now",ALL.filter(a=>a.row.active).length,"in a FullPulse below"],["Waiting on you",n("halted"),"halted runs"],["Landed",n("landed"),[n("complete")?`${n("complete")} more complete, not merged`:"",n("merged")?`${n("merged")} merged, awaiting close`:"",n("not-planned")?`${n("not-planned")} closed as not planned, not counted`:"",n("duplicate")?`${n("duplicate")} closed as duplicates, not counted`:""].filter(Boolean).join(" · ")||"merged"],["Up next",nexts.length,{html:nexts.length?nexts.map(a=>ilink(a.row.issue,a.repo)).join(", ")+" · not started":"no unit named next"}],["Not started",ns.length,[nsu?`${plural(nsu,"unit")} of a tracking issue`:"",nso?`${plural(nso,"other issue")}, from the tracker`:""].filter(Boolean).join(" · ")||"none"]].map(([l,v,s])=>`<div class="kpi-tile"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s&&s.html!=null?s.html:esc(s)}</div>${bars[l]||""}</div>`).join("");
   /* the repository Panels, then each sub-organization's Panel */
   $("#repos-key").innerHTML=`<span>Each repository Panel's colours are its own registry's: read a colour inside its Panel, by the Legend at its foot</span>`;
-  $("#repos").innerHTML=`<p class="repos-lede">${esc(org)} · ${plural((B.repositories||[]).length,"repository","repositories")}</p>${(B.repositories||[]).map(r=>repoPanel(r,3)).join("")}${orgs.map(orgPanel).join("")}`;
+  const treeFocused=treeFocus(); $("#repos").innerHTML=`<p class="repos-lede">${esc(org)} · ${plural((B.repositories||[]).length,"repository","repositories")}</p>${(B.repositories||[]).map(r=>repoPanel(r,3)).join("")}${orgs.map(orgPanel).join("")}`; treeRefocus(treeFocused);
   /* the Context (GUIDANCE.md §5): the roadmap and the unscheduled issues of every repository, the boards and documents, the repositories not shown */
   enter(null); const cards=[];
   const perRepo=f=>withData.map(r=>{ enter(r); const body=f(r); enter(null); return body?`<li class="rp"><b>${esc(r.name)}</b><ul class="issues">${body}</ul></li>`:""; }).join("");

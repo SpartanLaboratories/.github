@@ -355,7 +355,7 @@
       ]
     },
     "plan/template/board.html": {
-      "sha256": "30fd67e9c85bbdb96bdf74e2e37d01627919215f74795af46e18fdc729197309",
+      "sha256": "461e24e34d55e403a146947e8a87c323e35edc3f27294a35ee4f962b87c58bfe",
       "verified": "2026-11-09",
       "fixtures": [
         "work-board",
@@ -578,6 +578,11 @@
           "sha256": "30fd67e9c85bbdb96bdf74e2e37d01627919215f74795af46e18fdc729197309",
           "verified": "2026-11-08",
           "file": "board/30fd67e9c85b.html"
+        },
+        {
+          "sha256": "461e24e34d55e403a146947e8a87c323e35edc3f27294a35ee4f962b87c58bfe",
+          "verified": "2026-11-09",
+          "file": "board/461e24e34d55.html"
         }
       ]
     },
@@ -943,7 +948,7 @@
       ]
     },
     "plan/template/org-board.html": {
-      "sha256": "4ac48fd061da85b33c85f1d9419e8a9c8834173d6608db1dbe3b886dbc94e0ee",
+      "sha256": "0315e3da51c1406a093eb43f4592600bc3125e18eddacc9ba38af99e66187d43",
       "verified": "2026-11-09",
       "fixtures": [
         "org-work-board",
@@ -972,6 +977,11 @@
           "sha256": "4ac48fd061da85b33c85f1d9419e8a9c8834173d6608db1dbe3b886dbc94e0ee",
           "verified": "2026-11-08",
           "file": "org-board/4ac48fd061da.html"
+        },
+        {
+          "sha256": "0315e3da51c1406a093eb43f4592600bc3125e18eddacc9ba38af99e66187d43",
+          "verified": "2026-11-09",
+          "file": "org-board/0315e3da51c1.html"
         }
       ]
     }

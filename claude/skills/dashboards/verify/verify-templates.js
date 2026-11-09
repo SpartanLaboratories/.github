@@ -884,14 +884,15 @@ targets.filter(t => t.block === "board" && t.file === "board.html").forEach(t =>
   cases.push(["check.js is silent on the current template", c.status === 0 && !warned(c), lines(c, /^(FAIL|warn)/)]);
   const dom = dumpDom(path.join(dir, "index.html"));
   if (dom != null) {
-    const grp = (dom.match(/<tr class="grp">[\s\S]*?<\/tr>/) || [""])[0], kpis = inner(dom, '<div class="kpis" id="kpis">', "div");
-    const row = (dom.match(new RegExp(`<tr class="run[^"]*"[^>]*><td><span class="t"><a [^>]*>#${next.issue}<[\\s\\S]*?</tr>`)) || [""])[0];
-    cases.push([`the group heading links #${track.issue}'s number to GitHub and its title to its board, with no GitHub ↗`, grp.includes(`/issues/${track.issue}"`) && grp.includes(`href="${track.board}"`) && !/class="gh"/.test(grp), grp.slice(0, 400)]);
-    cases.push([`"part of #${track.issue}" opens its board`, new RegExp(`part of <a href="${track.board.replace(/[.]/g, "\\.")}"`).test(row), row.slice(0, 600)]);
+    const kpis = inner(dom, '<div class="kpis" id="kpis">', "div");
+    const row = (dom.match(new RegExp(`<tr class="run[^"]*"[^>]*><td>(?:<button[^>]*></button>)?<span class="t"><a [^>]*>#${next.issue}<[\\s\\S]*?</tr>`)) || [""])[0];
+    const trow0 = (dom.match(new RegExp(`<tr class="run[^"]*"[^>]*><td>(?:<button[^>]*></button>)?<span class="t"><a [^>]*>#${track.issue}</a>[\\s\\S]*?</tr>`)) || [""])[0];
+    cases.push([`#${track.issue}'s number links GitHub and its title its board, as the first line of its own tree, with no GitHub ↗ and no group heading for it`, trow0.includes(`/issues/${track.issue}"`) && trow0.includes(`href="${track.board}"`) && !/class="gh"/.test(trow0), trow0.slice(0, 400)]);
+    cases.push([`#${next.issue}, a unit of #${track.issue}, is its tree child, so no "part of" line; "part of" stays only where the parent is not drawn`, !/part of </.test(row) && /data-up="${track.issue}"/.test(row), row.slice(0, 600)]);
     cases.push([`the "blocked by" tag of #${next.issue} links #${next.blockedBy[0].issue}`, /blocked by <a /.test(row), row.slice(0, 600)]);
     cases.push(["the Up next count links its units", new RegExp(`<a [^>]*>#${next.issue}</a> · not started`).test(kpis), kpis.slice(0, 400)]);
     /* the tracking issue's state cell shows its chain's progress in place of a bare "building" (plan/RULES.md §3) */
-    const trow = (dom.match(new RegExp(`<tr class="run[^"]*"[^>]*><td><span class="t"><a [^>]*>#${track.issue}</a>[\\s\\S]*?</tr>`)) || [""])[0], cell = (trow.match(/<div class="chainsum">[\s\S]*?<\/div>/) || [""])[0];
+    const trow = trow0, cell = (trow.match(/<div class="chainsum">[\s\S]*?<\/div>/) || [""])[0];
     cases.push([`#${track.issue}'s state cell reads its chain, not "building"`, /1 of 11 landed/.test(cell) && /#47<\/a> in progress \(implementation\)/.test(cell) && /#62<\/a> up next, blocked by <a /.test(cell) && !/>building</.test(trow), cell.slice(0, 500) || trow.slice(0, 500)]);
     /* …and its units as a StepBar on a row of their own under it (dashboards-skill/54), in place of the thin bar */
     cases.push([`#${track.issue}'s units drawn as a StepBar on a row of their own under its row, no thin bar`, !/class="cbar"/.test(cell) && dom.includes(trow + '<tr class="chainrow"><td colspan="6"><ol class="stepbar"'), (dom.slice(dom.indexOf(trow) + trow.length, dom.indexOf(trow) + trow.length + 200)) || "no row"]);

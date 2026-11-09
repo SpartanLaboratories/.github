@@ -1509,7 +1509,7 @@ one Row per issue that has a board or a `level:` label (the label only decides w
 Rows; no level is written to `board.json` or shown), and one per unit of a tracking board —
 its status, `wip.step` and detail, qa passes, what it depends on, its blockers and what it
 blocks, its branch (never a merged one, §3), its tracking parent, and for a fix to an earlier plan's work the issue it fixes (`fixOf`,
-"fix to #n", §1); grouped by tracking issue in landing order, then the
+"fix to #n", §1); nested as the **issue tree** (below), in landing order, then the
 rest by age; the in-progress mark on the Rows whose runs are active; the same system colours. A
 unit reads `complete` once its Row is complete (qa passed, not merged) and `landed` once it has
 landed; a tracking issue's own Row shows its chain's progress (§3) in its state Cell, from
@@ -1540,6 +1540,18 @@ board, a tracking issue's as much as a sub-issue's (plain text while it has none
 waits-on and blocks lists, the "blocked by" Tags, the Up next count, any `#n` in the text — opens the board when one exists and
 GitHub otherwise. There is no separate GitHub ↗ link: every issue with a board has a Row whose number opens GitHub. `board.js`
 sets a Row's board only when its file exists.
+
+**The issue tree** (the user's direction of 2026-11-08). A repository's issues are drawn as a tree, the real sub-issue chain to any depth (repository, tracking issue, tracking issue, units), on the
+repository work board's Runs Tab and in each repository Panel of the org work board (§10). A Row nests under its `parent`, else under the roadmap entry that lists it, else by the next-to-last numbered folder of its
+`folder` (the `docs/plans/` folders mirror the chain). A fix's folder sits inside the fixed issue's, but a fix is no sub-issue, so a Row with `fixOf` never nests by its folder. The tree is drawn from the
+`board.json` the board already holds, nothing invented: a tracking issue with no Row of its own and a roadmap item with no run yet are lines of the tree, with the tracker's own state in its words ("open", "closed" and its
+reason), and an open sub-issue with no run reads "not started", dashed; a parent's Row carries its count of sub-issues and what is at work, waiting, up next and landed below it, each counted from the tree's leaves; a
+tracking issue's group heading gives way to its Row, and the rest stay under their group's heading ("Other runs, oldest first"), an issue with no parent at the tree's root; an issue whose parent is on no list stays at the
+root and keeps its "part of #n" (nested, a Row needs no "part of": its indentation says it). Children in landing order: a Row by its `order`, a roadmap item by its place on the tracker. Each level with children
+has a **Button** (`.tw`, a real button, keyboard-reachable, with `aria-expanded` and a label naming the issue and its count): its level's Rows and their StepBars show or hide, deeper levels keeping their own state.
+A level is **open by default while something below it is in flight** (a Row `active`, or `building`, `planning`, `halted`, `escalated`, `complete`, `in-progress` or `next`), shut when nothing is, so a landed chain folds to its one Row and the
+work under way is always in view; the user's choice is kept in the browser (`localStorage`) and survives a live redraw and a reload. The tree's lines and indentation are neutral (a system's colour stays on the Row's edge, a status on its Pill), its Button has its own Legend entry,
+at phone width it indents each Row's Card (the guide lines drop); a long chain indents no more than four steps. The code is one block, the same in `plan/template/board.html` and `org-board.html`, held equal by `verify/cases-org-board.js`.
 
 **Its columns** (admin-team/dashboards-skill/30): **Issue** (its number and title, the title the link to its board: there is no
 board or folder column), **State** (the state Pill, the reconciliation Chip, the pull request, the step, and the Row's **branch**
@@ -1907,17 +1919,17 @@ board, `GUIDANCE.md` §3) and `board.json` (its data, `schema: "org-work-board/1
 
 **The generator.**
 
-    node ~/.claude/skills/dashboards/plan/scripts/org-board.js [--root <checkout>] [--checkouts <folder>] [--config <repositories.json>]
+    node ~/.claude/skills/dashboards/plan/scripts/org-board.js [--root <checkout>] [--checkouts <folder>] [--config <repositories.json>] [--live-only]
 
-It writes both forms of the board, the committed one and the live view, from one reading. `--root` names where it writes, the `OrganizationPage` checkout or a worktree of it, else
+It writes both forms of the board, the committed one and the live view, from one reading; `--live-only` writes the live view alone, for looking at the board in a checkout whose tracked files must stay as they are. `--root` names where it writes, the `OrganizationPage` checkout or a worktree of it, else
 the current directory. `--checkouts` names the folder that holds the repositories' checkouts, where the root has none of them beside it (a worktree under another folder); by
 default they are the root's sibling folders. `--config` names another list than the one beside it. It reads GitHub and the source repositories and changes neither, runs `check.js`
 on both forms, and exits 1 when a repository cannot be read or the board fails its checks.
 
 **Its layout.** First the organization's repositories, directly on the board, one **repository Panel** each; then one **organization
 Panel** per sub-organization, with that organization's repository Panels inside. The parent organization has no Panel of its own. A
-repository Panel shows that repository's runs, its landed issues and its tracking chains, each linking to that repository's boards; a
-repository with no data shows its Panel empty.
+repository Panel shows that repository's runs, its landed issues and its tracking chains as an **issue tree** (§5, "The issue tree"), each linking to that repository's boards, with a Button on its head (the tree's root level) that hides or shows the Panel's table and Legend, open by default; a
+repository with no data shows its Panel empty, and no Button.
 
 **What is left out.** Every `.github` repository and every archived, reference-only or private repository. A private repository is named
 nowhere on the board. What decides it is the repository's visibility on GitHub, read at every generation: a dependency on one is dropped with it, its name in a public

@@ -133,6 +133,44 @@ if(v===undefined)process.exit(1);process.stdout.write(typeof v==="string"?v:JSON
     c.push(["the website's form of a link is one function, siteUrl()", (tpl.match(/\/blob\//g) || []).length === 1 && /const siteUrl=/.test(tpl) && !/https:\/\/github\.com\/\$\{[^}]+\}\/blob/.test(tpl), "more than one place builds a website link"]);
     c.push(["the committed board and the live view share the template; a live view is only re-read on disk", /const isLive=\(\)=>!!B\.live&&LOCAL/.test(tpl) && /function readSiblings\(\)\{ if\(!LOCAL\) return;/.test(tpl), "no"]);
   });
+  guard("the issue tree (plan/RULES.md §5, §10): the real sub-issue chain to any depth, in both work-board templates, one block", c => {
+    const W = rd(sk("plan/template/board.html")), O = rd(TPL), block = t => (/\/\* tree:begin[\s\S]*?\/\* tree:end \*\//.exec(t) || [""])[0], css = t => (/\/\* tree-css:begin[\s\S]*?\/\* tree-css:end \*\//.exec(t) || [""])[0];
+    c.push(["the tree's code is the same block in the repository work board and the org work board", !!block(O) && block(W) === block(O), "the blocks differ"]);
+    c.push(["so are its styles", !!css(O) && css(W) === css(O), "the blocks differ"]);
+    const vm = require("vm"), mk = () => { const st = {}; const ctx = vm.createContext({ esc: x => String(x == null ? "" : x), plural: (n, one, many) => n + " " + (n === 1 ? one : (many || one + "s")), STATUS: { "not-started": { g: "…", l: "not started" }, "not-planned": { g: "⊖", l: "closed · not planned" }, duplicate: { g: "⊜", l: "closed · duplicate" } }, stOf: r => r.status, pill: d => "PILL:" + d.l, pair: (n, t) => "#" + n + " " + t, ilink: n => "#" + n, closedWord: x => x && x.state === "CLOSED" ? (x.stateReason === "NOT_PLANNED" ? "closed · not planned" : x.stateReason === "DUPLICATE" ? "closed · duplicate" : "closed") : "", TREE_KEY: "k", localStorage: { getItem: k => st[k] || null, setItem: (k, v) => { st[k] = v; } }, document: { addEventListener() {} }, out: null }); vm.runInContext(block(O).replace("const TREE_BUSY", "this.TREE_BUSY_MARK=1; const TREE_BUSY") + "\nthis.F=issueForest; this.FL=treeFlat; this.BU=treeBareStatus; this.P=treePref; this.BUSY=treeBusy; this.OF=x=>x;", ctx); return ctx; };
+    const rows = [
+      { issue: 2, title: "Phase 0", parent: 1, group: "1", order: 1, status: "building", active: false },
+      { issue: 21, title: "Prep", parent: 2, group: "2", order: 1, status: "landed" },
+      { issue: 22, title: "Rehearsal", parent: 2, group: "2", order: 2, status: "building", active: true },
+      { issue: 40, title: "Standalone", parent: null, group: "other", order: 0, status: "landed", folder: "../40-standalone/" },
+      { issue: 41, title: "A fix", parent: null, group: "other", order: 1, status: "building", folder: "../40-standalone/41-fix/", fixOf: 40 },
+      { issue: 42, title: "Folded in", parent: null, group: "other", order: 2, status: "planning", folder: "../40-standalone/42-folded/" },
+      { issue: 50, title: "Unit of a tracking issue on no list", parent: 99, group: "other", order: 3, status: "planning", folder: "../99-gone/50-unit/" },
+      { issue: 60, title: "Landed chain", parent: null, group: "other", order: 4, status: "landed" },
+      { issue: 61, title: "Landed unit", parent: 60, group: "other", order: 5, status: "landed" } ];
+    const groups = [{ key: "1", issue: 1, title: "Consolidation" }, { key: "2", issue: 2, title: "Phase 0" }, { key: "other", issue: null, title: "Other runs" }];
+    const road = [{ issue: 1, title: "Consolidation", state: "OPEN", items: [{ issue: 2, title: "Phase 0", state: "OPEN" }, { issue: 3, title: "Phase 1", state: "OPEN" }, { issue: 4, title: "Dropped", state: "CLOSED", stateReason: "NOT_PLANNED" }] }, { issue: 7, title: "Another tracking issue", state: "OPEN", items: [] }];
+    const X = mk(), forest = X.F(rows, groups, road), flat = X.FL(forest, "r#"), of = n => flat.find(e => e.x && e.x.issue === n);
+    c.push(["#1, with no Row of its own, owns #2 (a Row) and #3, #4 (roadmap items with no run), in landing order", of(1) && of(1).depth === 0 && of(2).depth === 1 && of(2).up === "1" && forest.nodes.find(x => x.issue === 1).kids.map(k => k.issue).join() === "2,3,4", flat.map(e => e.x ? e.x.issue + ":" + e.depth : "head").join()]);
+    c.push(["#2 owns #21 and #22 at depth 2: to any depth", of(21).depth === 2 && of(22).depth === 2 && of(21).up === "2" && forest.nodes.find(x => x.issue === 2).kids.map(k => k.issue).join() === "21,22", "#21, #22"]);
+    c.push(["a roadmap issue with no Row and no children is a root, after the tracking groups, before the rest", of(7) && of(7).depth === 0 && flat.findIndex(e => e.x && e.x.issue === 7) < flat.findIndex(e => e.x && e.x.issue === 40), js(flat.map(e => e.x && e.x.issue))]);
+    c.push(["an issue with no parent sits at the root, under its group's heading", of(40).depth === 0 && of(40).up === "" && flat.some(e => e.head && e.head.key === "other") && flat.findIndex(e => e.head && e.head.key === "other") < flat.findIndex(e => e.x && e.x.issue === 40), js({ i: of(40).x.issue, d: of(40).depth, up: of(40).up })]);
+    c.push(["the folder hierarchy nests a Row with no parent", of(42).up === "40", js({ i: of(42).x.issue, d: of(42).depth, up: of(42).up })]);
+    c.push(["a fix never nests by its folder: it is no sub-issue", of(41).up === "" && of(41).depth === 0, js({ i: of(41).x.issue, d: of(41).depth, up: of(41).up })]);
+    c.push(["an issue whose parent is on no list stays at the root, keeping the parent (\"part of\")", of(50).up === "" && forest.nodes.find(x => x.issue === 50).up === null && forest.nodes.find(x => x.issue === 50).parent === 99, js({ i: of(50).x.issue, d: of(50).depth, up: of(50).up })]);
+    const loop = X.F([{ issue: 8, parent: 9, group: "other", order: 0, status: "landed" }, { issue: 9, parent: 8, group: "other", order: 1, status: "landed" }], [{ key: "other", issue: null, title: "Other runs" }], []);
+    c.push(["a loop in the data draws no link, and both issues show", loop.roots.map(x => x.issue).sort().join() === "8,9", js(loop.roots.map(x => x.issue))]);
+    c.push(["by default a level is open while something below it is in flight (#1, #2), and shut when nothing is (#40's chain landed, #60)", of(1).open === true && of(2).open === true && of(22).hidden === false && of(60).open === false && of(61).hidden === true, [of(1).open, of(60).open, of(61).hidden].join()]);
+    X.P.set("r#2", false); const after = X.FL(X.F(rows, groups, road), "r#"), a2 = n => after.find(e => e.x && e.x.issue === n);
+    c.push(["a choice kept in this browser overrides the default: #2 shut, its units hidden, #1 still open", a2(2).open === false && a2(21).hidden === true && a2(3).hidden === false, js({ o: a2(2).open, h: a2(21).hidden })]);
+    c.push(["a line with no Row is drawn from the tracker: open sub-issue not started (dashed), closed as not planned by its reason, an open tracking issue with children by its own state word", X.BU(forest.nodes.find(x => x.issue === 3)) === "not-started" && X.BU(forest.nodes.find(x => x.issue === 4)) === "not-planned" && X.BU(forest.nodes.find(x => x.issue === 1)) === null, "statuses"]);
+    const WF = F => F.replace(/\s+/g, " ");
+    c.push(["the org work board's rows carry the tree's depth and Button, and a repository Panel its own Button", /treeAttrs\(e\)/.test(O) && /treeBtn\(e\)/.test(O) && /repoBtn\(r,/.test(O) && /aria-controls="\$\{esc\(id\)\}-tree \$\{esc\(id\)\}-key"/.test(O), "no tree in the rows"]);
+    c.push(["the repository work board's rows carry them too", /treeAttrs\(e\)/.test(W) && /treeBtn\(e\)/.test(W) && /treeFlat\(forest,""\)/.test(W), "no tree in the rows"]);
+    c.push(["each Row hides with its StepBar, and the Legend names the Button", /nx\.classList\.contains\("chainrow"\)/.test(O) && /treeLegend\(forest\)/.test(O) && /treeLegend\(forest\)/.test(W), "no"]);
+    c.push(["the Button is a real button, keyboard-reachable, named and stated for assistive technology", /<button type="button" class="tw"/.test(O) && /aria-expanded="\$\{e\.open\}"/.test(O) && /aria-label="/.test(O), "no"]);
+  });
+
   return groups;
 };
 
