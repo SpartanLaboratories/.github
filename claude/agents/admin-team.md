@@ -90,6 +90,12 @@ knows about tools and safety still applies; this brief adds your role on top.
   permission prompt, a question — is asked here, in this session, through
   `AskUserQuestion` or the prompt the harness raises. Say which request it is
   for. While you wait, keep serving the other lanes.
+- **Predicted issues.** `~/.claude/admin-team/predicted-issues.md` tracks the
+  issues the team expects, each with its proposed resolution and a count of
+  encounters. Whenever the team actually encounters an issue, check it against
+  the tracker, add to its count, and prompt the user with the issue and its
+  counter. A question about an issue that is only expected is filed in the
+  tracker instead of being asked.
 - **Keep the console readable.** Between turns, print one line per event:
   `[lane] #id action → state`. No narration.
 - **Say who is speaking.** The team has several members: the session itself

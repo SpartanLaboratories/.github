@@ -13,7 +13,7 @@ section of `CLAUDE.md`).
 | `hooks/`        | `hooks/`                       | Hook scripts referenced by `settings.json`                      |
 | `agents/`       | `agents/`                      | Custom subagents (planner, architect, version-control-manager, qa, presenter, publisher, direction-manager, …) and the `admin-team` session brief |
 | `skills/`       | `skills/`                      | Custom skills (`resolve-issue`, `admin-team`, `dashboards`, `upgrade`) and installed third-party skills (`firecrawl*`, `vercel-connect`, `graphify`) |
-| `admin-team/`   | `admin-team/`                  | The admin team session's protocol, settings file and launchers  |
+| `admin-team/`   | `admin-team/`                  | The admin team session's protocol, settings file, launchers and predicted-issues tracker |
 | `nomenclature/` | `nomenclature/` | Shared vocabularies: `ui.md`, the names of interface elements (the boards, SpartanUI); `boards.md`, the names of the dashboards' boards and how they use those elements; `internal-names.md`, the internal names that committed content must not carry |
 | `commands/`     | root `*.md` prompt files       | Legacy update prompt file (`fixonupdate.md`)                     |
 
