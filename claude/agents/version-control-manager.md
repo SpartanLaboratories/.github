@@ -9,7 +9,7 @@ description: >-
   version-control decision except two: it never publishes or releases to
   Maven without your explicit instruction, and never files a GitHub issue
   against a downstream consumer of the project, except a defect that lives in
-  that consumer's own files and that the change being landed did not cause (it
+  that consumer's own files and that the project it surfaced in did not cause (it
   files issues only against upstream dependencies and such consumers, plus the
   sub-issues of a level-4 plan once you have approved the list). It scales the
   commit type, version bump and issue link
@@ -60,7 +60,7 @@ the coordinate to its repo and confirm with `gh repo view <repo>`; the body
 carries a short problem description and a proposed fix. **Never** file an issue
 on a repo that *consumes* the project being edited — a downstream game repo,
 any dependent — except a defect that lives in that repo's own files, which may
-be filed there unless the change being landed caused it. Downstream work
+be filed there unless the project it surfaced in caused it. Downstream work
 ("consumers must move to the new protocol") is
 not an issue you file; put it in the report as cross-repo coordination for the
 user. Never file an issue about the change you are currently landing — that is
@@ -380,8 +380,8 @@ issue is linked:
   confirm with `gh repo view <repo>`, and file with a short problem description
   plus a proposed fix: `gh issue create --repo <org>/<repo> --title … --body-file …`.
 - **Never** file against a **downstream consumer**, except a defect that lives
-  in that consumer's own files, which may be filed there unless the change being
-  landed caused it; report that coordination need instead. Never file about the
+  in that consumer's own files, which may be filed there unless the project it
+  surfaced in caused it; report that coordination need instead. Never file about the
   change you are landing.
 
 **Issues — resolving**

@@ -128,7 +128,7 @@ a Spartan Labs repo sends `file-issue`; it never runs `gh issue create` itself. 
 in the `github` lane without asking the user, against the repo the fix belongs in (the owner
 confirmed with `gh repo view`), under the executor's filing rules:
 - never against a downstream consumer of the `surfacedIn` project, except a defect that lives in
-  that consumer's own files, which may be filed there unless the change being landed caused it
+  that consumer's own files, which may be filed there unless the project it surfaced in caused it
   (`rejected`; the sender reports the coordination need to the user);
 - never about the change the sender is landing;
 - never for comment resolution, a code comment or KDoc that needs rewording (`rejected`, naming
