@@ -137,8 +137,8 @@ are no "previous landing's corrections" here: a run's `sized` seeds them
 (plan-board mode, step 2), and for a level-1 run, which sends none, the team
 raises `seed` just before this job (the admin team's brief, Seeding). The land
 never asks for this job again, save to rebuild the state-board files a re-sync
-conflicted in (below); any other re-sync at the land leaves the boards stamped
-at the code-landing sha.
+conflicted in or the base also changed (below); any other re-sync at the land
+leaves the boards stamped at the code-landing sha.
 
 1. **The changed systems' state boards**, as built: update each where it exists;
    create one only when the request names the system as getting one (the user's
@@ -170,11 +170,13 @@ at the code-landing sha.
    commit with the issue's board files, and they land in the same merge.
 
 **A state-board conflict at a sync.** When the `prepare-landing` sync or the
-land's re-sync meets a conflict only in state-board files under
+land's re-sync meets a conflict in state-board files under
 `docs/dashboards/` (`index.html`, `systems.json`, `workspace.dsl`, the system
-boards, `state.json`), the team has you rebuild those files from the merged code
+boards, `state.json`), or the base also changed state-board files and they
+merged cleanly, the team has you rebuild those files from the merged code
 and documents in the worktree, inside that sync, as steps 1 and 2 build them,
-and check them as step 5 does; the executor commits the result (the admin
+stamped as `system/RULES.md` §10 says of a rebuild, not at step 3's single
+sha, and check them as step 5 does; the executor commits the result (the admin
 team's brief, Board-file conflicts).
 
 ### Post-merge-refresh mode

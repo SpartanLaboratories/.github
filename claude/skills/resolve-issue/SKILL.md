@@ -101,14 +101,13 @@ replies `needs-rework` with `result.finds` (`file:line`); reword each find and r
   user. The confirmed level is the run's level.
 - Check `git status` is clean. If it is not, stop and ask the user to settle
   the working tree first.
-- **Branch.** The run creates its topic branch now, or at the latest with its
-  first research commit. Now: send the admin team a `setup-branch` request
-  (the `admin-team` skill) with the issue reference, the **work level** and the
-  note "set up the branch only, and record the confirmed level if it differs",
-  and carry forward the branch name and base its `done` reply reports. With the
-  first research commit (levels 3–4): the team's executor creates the topic
-  branch for that `commit`. A run that makes no research commit (levels 1–2)
-  creates it now: step 3 never creates it.
+- **Branch.** Every run, at every level, creates its topic branch now: send the
+  admin team a `setup-branch` request (the `admin-team` skill) with the issue
+  reference, the **work level** and the note "set up the branch only, and
+  record the confirmed level if it differs", and carry forward the branch name
+  and base its `done` reply reports. A research commit that reaches the team
+  before the branch exists still gets one from the team's executor, as a
+  backstop; step 3 never creates it.
 
 ## Tracking issues and run modes
 
@@ -258,9 +257,13 @@ to make the agreed edit.
 
 ## 3. Branch — confirm the branch, `branch-cut`
 
-Confirm the topic branch the run created when it was sized or with its first
-research commit (step 1), and carry forward its name and base; this step never
-creates the branch. Then, at levels 2–4, send the `branch-cut` event with the
+Confirm the topic branch the run created when it was sized (step 1): send the
+admin team a confirm-only `setup-branch` request with the issue reference, the
+**work level**, the `branch` and the note "confirm only: never create the
+branch, and record the confirmed level if it differs", and carry forward the
+name, base and head its `done` reply reports; this step never creates the
+branch. A `needs-rework` reply means the branch does not exist and nothing was
+created. Then, at levels 2–4, send the `branch-cut` event with the
 branch and the plan's stages ("Plan-board events" below). A run whose branch
 already exists still sends `branch-cut` after `plan-accepted`, with its stages.
 
@@ -348,7 +351,10 @@ order (the levels that skip one are named on it):
    (`result.overlap`): re-verify with the change's own tests (the
    test-inspector's run), and `qa` if the overlap touches code the change
    altered, fix what breaks, then resend the same `id` with `attempt + 1` and
-   the fresh `qa` verdict.
+   the fresh `qa` verdict. A `needs-rework` reply with `result.conflicts` means
+   a `README.md` or `CHANGELOG.md` conflict with the merge left open: fix the
+   markers in those files in the worktree and resend the same `id` with
+   `attempt + 1`; the team's executor finishes the merge.
 1. **Documentation review** (levels 1–3). Spawn `documentation-reviewer` over
    the change set (`git diff <base-branch>...HEAD`). It reports findings only;
    keep its report.
@@ -516,8 +522,8 @@ published-module version to Maven Central when the monthly budget allows
 and shows the landed state in the live view. No board commit and no version
 bump happen in the land. Wait for the reply: a `needs-rework` means
 the base moved under the run's files — re-verify and resend the same `id` with
-`attempt + 1`; a `needs-user` means a gate is waiting on the user at the
-team's console.
+`attempt + 1` (with `result.conflicts`, fix the markers as in step 6, task 0);
+a `needs-user` means a gate is waiting on the user at the team's console.
 
 **Level 4** lands the planning documents only: a `docs:` PR that says
 `Refs #<n>` — never `Closes` — and no version bump. After the `done` reply,

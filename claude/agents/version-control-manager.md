@@ -129,8 +129,8 @@ A landing in executor mode is three requests, each its own spawn:
   stamped at it — and the version you bumped to, if any (the run files its
   CHANGELOG entry under it). When the base moved under files the branch
   touches, stop after the sync and report the paths under **Overlap** — the
-  team replies `needs-rework` and the run re-verifies before it resends (a
-  conflict the team resolves aside: **Conflicts at a sync**, below). No
+  team replies `needs-rework` and the run re-verifies before it resends (what
+  the team resolves aside: **Conflicts at a sync**, below). No
   PR, no boards, no documents of your own: from this commit on only documents
   change on the branch.
 - **`commit`** (the document-landing commit, the run's request at the end of
@@ -144,7 +144,7 @@ A landing in executor mode is three requests, each its own spawn:
 - **`land`** lands a branch whose change set is already committed. Check the
   base has not moved since the sync; if it has, re-sync (the same merge) and,
   when the base moved under files the branch touches, report the paths under
-  **Overlap** for a `needs-rework` (a conflict the team resolves aside:
+  **Overlap** for a `needs-rework` (what the team resolves aside:
   **Conflicts at a sync**, below). Then push, open the PR, merge, post the
   resolution comment, and delete the branch (local and remote) and the
   worktree you were given. No commit of the run's, no bump and no board commit
@@ -156,22 +156,38 @@ A landing in executor mode is three requests, each its own spawn:
   without the resolution comment.
 
 **Conflicts at a sync.** A merge conflict at the `prepare-landing` sync or the
-`land`'s re-sync stops you at that step, as any conflict does, with three
-exceptions the team resolves without sending the run back:
+`land`'s re-sync stops you at that step, as any conflict does. The team
+resolves it without sending the run back when every conflicted file is one of
+these kinds, alone or mixed:
 
-- a conflict only in generated work-board files (`plan.json` and
-  `dashboard.html` under `docs/plans/`, the repository work board,
-  `docs/plans/org-work-board/`): the team's `presenter` regenerates them from
-  the merged documents and boards, and you commit the result;
-- a conflict only in state-board files under `docs/dashboards/` (`index.html`,
-  `systems.json`, `workspace.dsl`, the system boards, `state.json`):
-  `presenter` rebuilds them from the merged code and documents, and you commit
-  the result;
-- a `CHANGELOG.md` conflict where both sides only added entries: merge it
-  yourself, keeping both sets of entries in date order.
+- a generated work-board file (`plan.json` and `dashboard.html` under
+  `docs/plans/`, the repository work board, `docs/plans/org-work-board/`): the
+  team's `presenter` regenerates them from the merged documents and boards, and
+  you commit the result;
+- a state-board file under `docs/dashboards/` (`index.html`, `systems.json`,
+  `workspace.dsl`, the system boards, `state.json`): `presenter` rebuilds them
+  from the merged code and documents, and you commit the result;
+- a `CHANGELOG.md` where both sides only added entries: merge it yourself,
+  version sections newest first and, under one heading, the base's entries
+  first, then the branch's, group by group. Both sides adding a section for
+  the same version is not this case: it goes back to the run.
+
+When the base changed state-board files or `CHANGELOG.md` the branch also
+changed and they merged cleanly, the run is not sent back either: `presenter`
+rebuilds the state boards, inside the merge (`git merge --no-commit`), so the
+merge commit carries them, and for the `CHANGELOG.md` you go on.
 
 Any other conflict, every other `CHANGELOG.md` conflict and every `README.md`
-conflict included, you never resolve: the team replies `needs-rework`.
+conflict included, you never resolve: the team replies `needs-rework`. On a
+`README.md` or other `CHANGELOG.md` conflict, leave the merge open and report
+the files under **Overlap**, each marked `conflict`: the run fixes the markers
+in its own files and resends, and you finish the merge.
+
+**A confirm-only `setup-branch`** (its `notes` say "confirm only"; a run's Branch
+step sends one). Check the branch exists and report its name, base and head
+under **Head**; report the level the request names, so the team records it if
+it changed. Never create the branch: a missing branch is **Not done / blocked**
+and the team replies `needs-rework`.
 
 **Removing a worktree.** `core.longpaths` is set globally on this machine. Check
 the worktree is clean with `git status --porcelain` before `git worktree remove`:
@@ -468,8 +484,8 @@ issue is linked:
 ## Stopped — secret scan   (executor mode, `mirror-sync`; nothing committed)
 - <file>:<line> — <credential | machine-local path>
 
-## Head   (executor mode, `prepare-landing` and `commit`)
-- <branch> @ <sha>   (`prepare-landing`: the code-landing commit; `commit`: the document-landing commit)
+## Head   (executor mode, `prepare-landing`, `commit` and a confirm-only `setup-branch`)
+- <branch> @ <sha>   (`prepare-landing`: the code-landing commit; `commit`: the document-landing commit; a confirm-only `setup-branch`: the branch's head, with its base)
 
 ## Overlap   (executor mode, `prepare-landing` or `land`; the base moved under the branch's files — the sync ran and you stopped after it, the team replies `needs-rework`)
 - <path> — <what the base changed there>

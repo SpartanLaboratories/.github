@@ -703,7 +703,7 @@ reached its landing before the change):
    boards, `systems.json`, the README's pointer, the splice onto the current template, the tracking board's re-embed, the committed
    repository work board (`board.js --refresh-template`) and, for a tracking issue, its planned systems drawn dashed — every state board
    stamped "as-is at `<branch>` @ `<code-landing sha>`", the sha the request gives: the branch's last code commit, after the sync and the
-   bump (`apply-state.js` `facts.document`). Only documents change after it, so nothing is restamped at the land; the boards land in the
+   bump (`apply-state.js` `facts.document`). Only documents change after it, so nothing is restamped at the land, save a rebuild a re-sync needs (`system/RULES.md` §10); the boards land in the
    same merge. The team makes `document-landing` (shown "Document commit") current when the state boards finish and closes it just before the document-landing commit, which carries it closed.
 2. **The land**: `landing` (the land accepted; every open point resolved by then, as none is committed open, `plan/RULES.md` §3) and
    `merge`, then `landed`. The board is committed by now, so both are raised into the view copies (`apply-event.js --view`), before the merge from the

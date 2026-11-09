@@ -476,9 +476,14 @@ A state board — a system, supersystem or repository state board — shows a br
 **state-boards task** (admin-team/dashboards-skill/35; the presenter's `state-boards` mode) builds on the branch the boards of the systems
 the branch touches, and the shared boards (the supersystems above them, the repository state board, `systems.json`) as far as those
 systems appear on them, each stamped "as-is at `<branch>` @ `<sha>`" at the **code-landing sha** the request gives — the branch's last
-code commit, after the sync and the version bump. Only documents change after it, so nothing is restamped at the land, and they land with
+code commit, after the sync and the version bump. Only documents change after it, so nothing is restamped at the land, save a rebuild a re-sync needs (below), and they land with
 the merge (`GUIDANCE.md` §11, "The landing flow"). Nothing else changes: the board shows the code at the commit it names, built solid and
 planned dashed.
+
+**A rebuild at a sync.** When a sync rebuilds state boards from the merged code and documents (the admin team's brief, Board-file conflicts), each system
+keeps its own side's commit: a system the base changed, the code-landing commit of the landing that changed it; one this run changed, this run's. The
+repository and supersystem boards take this run's code-landing commit, for now (at a `prepare-landing` sync, before that commit exists, the state-boards
+task that follows stamps them). The merge commit is never the stamp.
 
 The admin team writes their data alone. At the Document step's state-boards task (`facts.document`; `premerge`, the older pre-merge
 refresh, read alike; a `state-boards` request, `state-pages`, its older name, read alike), it runs:
