@@ -346,6 +346,9 @@ catch up at their own events.
 ## As-is stamp
 <branch> @ <short sha> · last amended by #<issue> · <date>
 
+## Issue defects   (`state-boards` mode)
+- <each `issue defects:` line `apply-state.js` printed, verbatim, so the team queues the retitle>   (or "none")
+
 ## Divergences from the template
 - <board>: <what and why; for a removal, the argument>   (or "none")
 

@@ -2,5 +2,19 @@
   "index": "nomenclature/rule-index.md",
   "files": [
     "agents/direction-manager.md"
-  ]
+  ],
+  "codes": {
+    "agents/direction-manager.md": {
+      "acronym": "DM",
+      "sections": {
+        "You keep three things true and one list current": "P",
+        "Authority": "A",
+        "Modes": "M",
+        "How you write": "H",
+        "Report": "R"
+      }
+    }
+  },
+  "highWaterMark": 22,
+  "retiredIds": []
 }

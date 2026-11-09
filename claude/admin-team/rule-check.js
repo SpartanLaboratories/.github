@@ -1,13 +1,26 @@
 #!/usr/bin/env node
 // Checks the rule files listed in rule-files.json and keeps the rule index.
 //
-//   node rule-check.js           check; exit 1 on any finding, the index included
-//   node rule-check.js --write   check, then rewrite the index; a file with
-//                                findings leaves the index as it is
+//   node rule-check.js           check; exit 1 on any finding, a stale index, a
+//                                stale code and a stale high-water mark included
+//   node rule-check.js --write   check, then correct the codes in the rule files,
+//                                raise the high-water mark and rewrite the index;
+//                                any finding leaves every file as it is
 //
 // A rule is a Markdown heading whose next line is a JSON line
-//   {"name":"<the heading's text>","id":"R-0001"}
-// with the body starting on the line after. Sections are the `##` headings.
+//   {"name":"<the heading's text>","code":"A-DM-A-1","id":5}
+// with the body starting on the line after. Sections are the `##` headings; a
+// `##` heading with a JSON line is a section that is one rule. Pointers read
+// `R-<id> (Name)`.
+//
+// `id` is permanent. Every number from 1 to the highest in use is either in use
+// or in `retiredIds`, so a new id can only be above `highWaterMark`.
+//
+// `code` follows the rule's location and is never written by hand: the kind
+// letter from the file's path, the file's acronym and the section's letter from
+// the `codes` table in rule-files.json, then the rule's position in its section,
+// which a section holding a single rule leaves out.
+//
 // Paths in the config are relative to the directory above this script.
 
 const fs = require('fs');
@@ -18,8 +31,8 @@ const CONFIG = path.join(__dirname, 'rule-files.json');
 
 const HEADING = /^(#{1,6})[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/;
 const FENCE = /^ {0,3}(`{3,}|~{3,})/;
-const ID_FORM = /^R-\d{4,}$/;
 const JSON_LINE = /^\{\s*"name"\s*:/;
+const KINDS = 'A agent, S skill, N nomenclature, G global, O organization, R repo';
 
 /** GitHub's heading anchor, without the per-file de-duplication suffix. */
 function slug(text) {
@@ -86,6 +99,10 @@ function parse(file, relPath, findings) {
       const count = seenAnchors.get(base) || 0;
       seenAnchors.set(base, count + 1);
       const anchor = count === 0 ? base : `${base}-${count}`;
+      if (headingMatch[1].length === 2) {
+        section = text;
+        sections.push(text);
+      }
       const next = lines[i + 1];
       if (next !== undefined && JSON_LINE.test(next)) {
         const heading = i + 1;
@@ -96,17 +113,25 @@ function parse(file, relPath, findings) {
           findings.push(`${relPath}:${i + 1}: malformed JSON line`);
           continue;
         }
-        if (typeof meta.name !== 'string' || typeof meta.id !== 'string' || !ID_FORM.test(meta.id)) {
-          findings.push(`${relPath}:${i + 1}: JSON line needs a string name and an id like R-0001`);
+        if (Object.keys(meta).join() !== 'name,code,id' || typeof meta.name !== 'string'
+          || typeof meta.code !== 'string' || !Number.isSafeInteger(meta.id) || meta.id < 1) {
+          findings.push(`${relPath}:${i + 1}: JSON line needs a string name, a string code and a plain whole-number id, in that order`);
           continue;
         }
         if (meta.name !== text) {
           findings.push(`${relPath}:${i + 1}: JSON name "${meta.name}" differs from its heading "${text}"`);
         }
-        rules.push({ id: meta.id, name: meta.name, anchor, file: relPath, line: heading, section });
-      } else if (headingMatch[1].length === 2) {
-        section = text;
-        sections.push(text);
+        rules.push({
+          id: meta.id,
+          ref: `R-${meta.id}`,
+          name: meta.name,
+          code: meta.code,
+          anchor,
+          file: relPath,
+          line: heading,
+          jsonIndex: i,
+          section,
+        });
       }
       continue;
     }
@@ -125,11 +150,12 @@ function parse(file, relPath, findings) {
   return { lines, masked, rules, sections };
 }
 
-/** Reads every pointer `R-0142 (Name)` in a file and checks it against the known rules. */
+/** Reads every pointer `R-142 (Name)` in a file and checks it against the known rules. */
 function checkPointers(relPath, lines, masked, known, findings) {
   const raw = lines.join('\n');
   const text = masked.join('\n');
-  const pointer = /\bR-\d{4,}\b/g;
+  // The lookbehind keeps a code ending in section letter R and a number, A-DM-R-1, from reading as a pointer.
+  const pointer = /(?<![\w-])R-\d+\b/g;
   let match;
   while ((match = pointer.exec(text)) !== null) {
     const id = match[0];
@@ -165,6 +191,60 @@ function checkPointers(relPath, lines, masked, known, findings) {
   }
 }
 
+/** The leading letter of a file's codes, from where it lives; null for a file of none of the six kinds. */
+function kindLetter(relPath) {
+  if (relPath === 'CLAUDE.md') return 'G';
+  if (/^agents\/[^/]+\.md$/.test(relPath)) return 'A';
+  if (/^skills\//.test(relPath)) return 'S';
+  if (/^nomenclature\//.test(relPath)) return 'N';
+  return null; // O and R name files outside this root, which no path here can show
+}
+
+/** Works out each rule's code from where it sits. A gap in the table is a finding; no code is guessed. */
+function assignCodes(relPath, rules, sections, table, findings) {
+  const kind = kindLetter(relPath);
+  if (!kind) findings.push(`${relPath}: file kind is none of ${KINDS}; put it to the user`);
+  const acronym = table && table.acronym;
+  const goodAcronym = typeof acronym === 'string' && /^[A-Z]+$/.test(acronym);
+  if (!goodAcronym) findings.push(`${relPath}: needs an acronym in the codes table of rule-files.json`);
+
+  const letters = new Map(Object.entries((table && table.sections) || {}));
+  const owner = new Map();
+  for (const [name, letter] of letters) {
+    if (typeof letter !== 'string' || !/^[A-Z]$/.test(letter)) {
+      findings.push(`${relPath}: section "${name}" needs a single capital letter, has "${letter}"`);
+    } else if (owner.has(letter)) {
+      findings.push(`${relPath}: sections "${owner.get(letter)}" and "${name}" both map to letter ${letter}`);
+    } else {
+      owner.set(letter, name);
+    }
+  }
+  sections.forEach((name, i) => {
+    if (sections.indexOf(name) !== i) findings.push(`${relPath}: section "${name}" appears twice, two sections map to one letter`);
+  });
+
+  const groups = new Map();
+  for (const rule of rules) {
+    if (!rule.section) {
+      findings.push(`${rule.file}:${rule.line}: rule outside any section has no code`);
+      continue;
+    }
+    if (!groups.has(rule.section)) groups.set(rule.section, []);
+    groups.get(rule.section).push(rule);
+  }
+  for (const [name, group] of groups) {
+    const letter = letters.get(name);
+    if (!letter) {
+      findings.push(`${relPath}: section "${name}" has no letter in the codes table of rule-files.json`);
+      continue;
+    }
+    if (!kind || !goodAcronym) continue;
+    group.forEach((rule, i) => {
+      rule.expected = `${kind}-${acronym}-${letter}${group.length === 1 ? '' : `-${i + 1}`}`;
+    });
+  }
+}
+
 /** The index text for the parsed files, in config order. */
 function renderIndex(parsed, indexPath) {
   const out = [
@@ -186,7 +266,7 @@ function renderIndex(parsed, indexPath) {
       if (group.rules.length === 0) continue;
       if (group.name) out.push(`### ${group.name}`, '');
       for (const rule of group.rules) {
-        out.push(`- [${rule.id}](${link}#${rule.anchor}) ${rule.name}`);
+        out.push(`- [${rule.ref}](${link}#${rule.anchor}) \`${rule.code}\` ${rule.name}`);
       }
       out.push('');
     }
@@ -196,19 +276,34 @@ function renderIndex(parsed, indexPath) {
 
 function main() {
   const write = process.argv.includes('--write');
-  const config = JSON.parse(fs.readFileSync(CONFIG, 'utf8'));
+  const configText = fs.readFileSync(CONFIG, 'utf8');
+  const config = JSON.parse(configText);
   const findings = [];
+
+  const markIsGood = Number.isSafeInteger(config.highWaterMark) && config.highWaterMark >= 0;
+  if (!markIsGood) findings.push('admin-team/rule-files.json: highWaterMark needs a whole number');
+  const mark = markIsGood ? config.highWaterMark : 0;
+  const retiredIsGood = Array.isArray(config.retiredIds)
+    && config.retiredIds.every((id) => Number.isSafeInteger(id) && id > 0);
+  if (!retiredIsGood) findings.push('admin-team/rule-files.json: retiredIds needs a list of plain whole numbers');
+  const retired = new Set(retiredIsGood ? config.retiredIds : []);
+
   const parsed = [];
   const known = new Map();
+  const codes = (config.codes && typeof config.codes === 'object') ? config.codes : {};
   for (const relPath of config.files) {
     const result = parse(fs.readFileSync(path.join(ROOT, relPath), 'utf8'), relPath, findings);
     parsed.push({ relPath, ...result });
+    assignCodes(relPath, result.rules, result.sections, codes[relPath], findings);
     for (const rule of result.rules) {
-      const previous = known.get(rule.id);
+      const previous = known.get(rule.ref);
       if (previous) {
-        findings.push(`${rule.file}:${rule.line}: duplicate id ${rule.id}, also ${previous.file}:${previous.line}`);
+        findings.push(`${rule.file}:${rule.line}: duplicate id ${rule.ref}, also ${previous.file}:${previous.line}; a new id goes above the high-water mark ${mark}`);
       } else {
-        known.set(rule.id, rule);
+        known.set(rule.ref, rule);
+      }
+      if (retired.has(rule.id)) {
+        findings.push(`${rule.file}:${rule.line}: id ${rule.ref} is retired and may not reappear`);
       }
     }
   }
@@ -216,14 +311,54 @@ function main() {
     checkPointers(relPath, lines, masked, known, findings);
   }
 
+  const inUse = new Set(parsed.flatMap(({ rules }) => rules.map((rule) => rule.id)));
+  const highest = Math.max(0, ...inUse);
+  for (let id = 1; id <= Math.max(mark, highest); id += 1) {
+    if (!inUse.has(id) && !retired.has(id)) {
+      findings.push(`admin-team/rule-files.json: id R-${id} is neither in use nor retired`);
+    }
+  }
+
+  const stale = [];
+  const codeOwners = new Map();
+  for (const entry of parsed) {
+    for (const rule of entry.rules) {
+      if (rule.expected === undefined) continue;
+      const other = codeOwners.get(rule.expected);
+      if (other) findings.push(`${rule.file}:${rule.line}: code ${rule.expected} is also ${other.file}:${other.line}`);
+      else codeOwners.set(rule.expected, rule);
+      if (rule.code !== rule.expected) {
+        stale.push({ entry, rule, was: rule.code });
+        rule.code = rule.expected;
+      }
+    }
+  }
+
   const expected = renderIndex(parsed, config.index);
   const indexFile = path.join(ROOT, config.index);
   const current = fs.existsSync(indexFile) ? fs.readFileSync(indexFile, 'utf8') : null;
   if (write && findings.length === 0) {
+    const touched = new Set();
+    for (const { entry, rule } of stale) {
+      entry.lines[rule.jsonIndex] = JSON.stringify({ name: rule.name, code: rule.code, id: rule.id });
+      touched.add(entry);
+    }
+    for (const entry of touched) {
+      fs.writeFileSync(path.join(ROOT, entry.relPath), entry.lines.join('\n'));
+    }
+    if (stale.length > 0) console.log(`corrected ${stale.length} code(s) in ${touched.size} file(s)`);
+    if (highest > mark) {
+      fs.writeFileSync(CONFIG, configText.replace(/("highWaterMark"\s*:\s*)\d+/, `$1${highest}`));
+      console.log(`raised the high-water mark from ${mark} to ${highest}`);
+    }
     if (current !== expected) fs.writeFileSync(indexFile, expected);
     console.log(`${current === expected ? 'unchanged' : 'wrote'} ${config.index}`);
-  } else if (!write && current !== expected) {
-    findings.push(`${config.index}: out of date, run with --write`);
+  } else if (!write) {
+    for (const { rule, was } of stale) {
+      findings.push(`${rule.file}:${rule.jsonIndex + 1}: stale code "${was}", the location gives "${rule.code}", run with --write`);
+    }
+    if (highest > mark) findings.push(`admin-team/rule-files.json: high-water mark ${mark} is below id R-${highest}, run with --write`);
+    if (current !== expected) findings.push(`${config.index}: out of date, run with --write`);
   }
 
   const rules = parsed.reduce((sum, { rules: list }) => sum + list.length, 0);

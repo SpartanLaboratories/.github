@@ -125,7 +125,8 @@ comments or files itself, and never spawns `version-control-manager` directly.
   hooks. Any session may send it a `log-hook` request for an idea I should revisit; a hook
   changes nothing until I decide it. A direction document changes only through the team, as
   an edit I direct at its console or as the propagation of a decision I have already made
-  into the documents that implement it; a new rule is never set without my direction.
+  into the documents that implement it; a new rule is never set without my direction. The
+  format of a rule file is in `~/.claude/Structure-Policy.md`.
 - If it is not running, the requesting session launches it with `~/.claude/admin-team/launch.cmd`
   under the launch lock (the skill does this): a minimized, Remote Control-enabled session started
   with `--agent admin-team`. Resume after a restart with `claude --resume "admin team"`.

@@ -9,6 +9,7 @@ section of `CLAUDE.md`).
 | Path            | Source in `~/.claude/`         | Contents                                                        |
 |-----------------|--------------------------------|-----------------------------------------------------------------|
 | `CLAUDE.md`     | `CLAUDE.md`                    | Global instructions applied to every project                    |
+| `Structure-Policy.md` | `Structure-Policy.md`    | Structure policy: the format direction documents use as rule files |
 | `settings.json` | `settings.json`                | Global settings: permissions, hooks, auto-mode rules            |
 | `hooks/`        | `hooks/`                       | Hook scripts referenced by `settings.json`                      |
 | `agents/`       | `agents/`                      | Custom subagents (planner, architect, version-control-manager, qa, presenter, publisher, direction-manager, …) and the `admin-team` session brief |

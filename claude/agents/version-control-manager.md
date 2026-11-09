@@ -261,6 +261,13 @@ scan**, and the team replies `needs-rework`. The session that asked for the
 `mirror-sync` fixes the source in `~/.claude` and resends, as with the
 internal-names scan. Never fix a mirrored file yourself.
 
+**Rule check.** Before a `mirror-sync` that lists a rule file (a path
+`~/.claude/admin-team/rule-files.json` names under `files`) commits anything,
+run `node ~/.claude/admin-team/rule-check.js`, without `--write`. On a failure
+(exit 1), commit nothing: report each finding the checker printed under
+**Stopped — rule check**, and the team replies `needs-rework`, as with the
+secret scan.
+
 A `land` in executor mode never publishes, tags or creates a GitHub release:
 those belong to the team's `publisher`, which decides every version-bumping
 landing within the Maven Central budget. Instead, end the report with a
@@ -490,6 +497,9 @@ issue is linked:
 
 ## Stopped — secret scan   (executor mode, `mirror-sync`; nothing committed)
 - <file>:<line> — <credential | machine-local path>
+
+## Stopped — rule check   (executor mode, `mirror-sync`; nothing committed)
+- <the checker's finding line>
 
 ## Stopped — check failed   (executor mode, a write a plan specifies; no further step run)
 - Step reached: <the procedure's step> — <the check and the result it gave>
