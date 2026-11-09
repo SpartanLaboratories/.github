@@ -13,6 +13,7 @@ section of `CLAUDE.md`).
 | `settings.json` | `settings.json`                | Global settings: permissions, hooks, auto-mode rules            |
 | `hooks/`        | `hooks/`                       | Hook scripts referenced by `settings.json`                      |
 | `agents/`       | `agents/`                      | Custom subagents (planner, architect, version-control-manager, qa, presenter, publisher, direction-manager, …) and the `admin-team` session brief |
+| `shared/`       | `shared/`                      | Rules several agents share                                      |
 | `skills/`       | `skills/`                      | Custom skills (`resolve-issue`, `admin-team`, `dashboards`, `upgrade`) and installed third-party skills (`firecrawl*`, `vercel-connect`, `graphify`) |
 | `admin-team/`   | `admin-team/`                  | The admin team session's protocol, settings file, launchers, predicted-issues tracker, and the rule checker (`rule-check.js`) with its config (`rule-files.json`) |
 | `nomenclature/` | `nomenclature/` | Shared vocabularies: `ui.md`, the names of interface elements (the boards, SpartanUI); `boards.md`, the names of the dashboards' boards and how they use those elements; `internal-names.md`, the internal names that committed content must not carry; `rule-index.md`, the index of rules the rule checker generates |

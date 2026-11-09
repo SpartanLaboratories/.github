@@ -16,10 +16,17 @@
 // `id` is permanent. Every number from 1 to the highest in use is either in use
 // or in `retiredIds`, so a new id can only be above `highWaterMark`.
 //
+// A splinter is a part of a rule that needs pointing at. Its `id` is a string of
+// parent and part, "26-1", its pointer reads `R-26-1 (Name)`, and its parent must
+// be a rule. Parts are permanent like ids: every part from 1 to the highest used
+// is in use or in `retiredIds` as "26-1", and `splinterMarks` keeps each parent's
+// highest part, so a new part can only be above it.
+//
 // `code` follows the rule's location and is never written by hand: the kind
 // letter from the file's path, the file's acronym and the section's letter from
 // the `codes` table in rule-files.json, then the rule's position in its section,
-// which a section holding a single rule leaves out.
+// which a section holding a single rule leaves out. A splinter's code is its
+// parent's plus `-<n>`, its position among that parent's splinters.
 //
 // Paths in the config are relative to the directory above this script.
 
@@ -32,6 +39,7 @@ const CONFIG = path.join(__dirname, 'rule-files.json');
 const HEADING = /^(#{1,6})[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/;
 const FENCE = /^ {0,3}(`{3,}|~{3,})/;
 const JSON_LINE = /^\{\s*"name"\s*:/;
+const SPLINTER_ID = /^([1-9]\d*)-([1-9]\d*)$/;
 const KINDS = 'A agent, S skill, N nomenclature, G global, O organization, R repo';
 
 /** GitHub's heading anchor, without the per-file de-duplication suffix. */
@@ -113,9 +121,11 @@ function parse(file, relPath, findings) {
           findings.push(`${relPath}:${i + 1}: malformed JSON line`);
           continue;
         }
+        const splinter = typeof meta.id === 'string' ? SPLINTER_ID.exec(meta.id) : null;
+        const wholeId = Number.isSafeInteger(meta.id) && meta.id >= 1;
         if (Object.keys(meta).join() !== 'name,code,id' || typeof meta.name !== 'string'
-          || typeof meta.code !== 'string' || !Number.isSafeInteger(meta.id) || meta.id < 1) {
-          findings.push(`${relPath}:${i + 1}: JSON line needs a string name, a string code and a plain whole-number id, in that order`);
+          || typeof meta.code !== 'string' || !(wholeId || splinter)) {
+          findings.push(`${relPath}:${i + 1}: JSON line needs a string name, a string code and a plain whole-number id or a "<parent>-<part>" splinter id, in that order`);
           continue;
         }
         if (meta.name !== text) {
@@ -124,6 +134,8 @@ function parse(file, relPath, findings) {
         rules.push({
           id: meta.id,
           ref: `R-${meta.id}`,
+          parent: splinter ? Number(splinter[1]) : null,
+          part: splinter ? Number(splinter[2]) : null,
           name: meta.name,
           code: meta.code,
           anchor,
@@ -150,12 +162,12 @@ function parse(file, relPath, findings) {
   return { lines, masked, rules, sections };
 }
 
-/** Reads every pointer `R-142 (Name)` in a file and checks it against the known rules. */
+/** Reads every pointer `R-142 (Name)` or `R-142-1 (Name)` in a file and checks it against the known rules. */
 function checkPointers(relPath, lines, masked, known, findings) {
   const raw = lines.join('\n');
   const text = masked.join('\n');
   // The lookbehind keeps a code ending in section letter R and a number, A-DM-R-1, from reading as a pointer.
-  const pointer = /(?<![\w-])R-\d+\b/g;
+  const pointer = /(?<![\w-])R-\d+(?:-\d+)?\b/g;
   let match;
   while ((match = pointer.exec(text)) !== null) {
     const id = match[0];
@@ -193,7 +205,7 @@ function checkPointers(relPath, lines, masked, known, findings) {
 
 /** The leading letter of a file's codes, from where it lives; null for a file of none of the six kinds. */
 function kindLetter(relPath) {
-  if (relPath === 'CLAUDE.md') return 'G';
+  if (relPath === 'CLAUDE.md' || /^shared\//.test(relPath)) return 'G';
   if (/^agents\/[^/]+\.md$/.test(relPath)) return 'A';
   if (/^skills\//.test(relPath)) return 'S';
   if (/^nomenclature\//.test(relPath)) return 'N';
@@ -229,6 +241,7 @@ function assignCodes(relPath, rules, sections, table, findings) {
       findings.push(`${rule.file}:${rule.line}: rule outside any section has no code`);
       continue;
     }
+    if (rule.part !== null) continue; // a splinter takes its parent's code, in assignSplinterCodes
     if (!groups.has(rule.section)) groups.set(rule.section, []);
     groups.get(rule.section).push(rule);
   }
@@ -243,6 +256,58 @@ function assignCodes(relPath, rules, sections, table, findings) {
       rule.expected = `${kind}-${acronym}-${letter}${group.length === 1 ? '' : `-${i + 1}`}`;
     });
   }
+}
+
+/** Gives each splinter its parent's code plus its position among the parent's splinters; a parent must be a rule. */
+function assignSplinterCodes(parsed, known, findings) {
+  const positions = new Map();
+  for (const { rules } of parsed) {
+    for (const rule of rules) {
+      if (rule.part === null) continue;
+      const parent = known.get(`R-${rule.parent}`);
+      if (!parent) {
+        findings.push(`${rule.file}:${rule.line}: splinter ${rule.ref} has no parent, R-${rule.parent} is not a rule in any listed file`);
+        continue;
+      }
+      const position = (positions.get(rule.parent) || 0) + 1;
+      positions.set(rule.parent, position);
+      if (parent.expected !== undefined) rule.expected = `${parent.expected}-${position}`;
+    }
+  }
+}
+
+/** Checks every parent's parts against the retired list and its mark, and returns the marks they should read. */
+function checkParts(parsed, retired, marks, findings) {
+  const used = new Map();
+  const gone = new Map();
+  const note = (map, parent, part) => {
+    if (!map.has(parent)) map.set(parent, new Set());
+    map.get(parent).add(part);
+  };
+  for (const { rules } of parsed) {
+    for (const rule of rules) {
+      if (rule.part !== null) note(used, rule.parent, rule.part);
+    }
+  }
+  for (const id of retired) {
+    const splinter = typeof id === 'string' ? SPLINTER_ID.exec(id) : null;
+    if (splinter) note(gone, Number(splinter[1]), Number(splinter[2]));
+  }
+  const next = { ...marks };
+  const parents = new Set([...used.keys(), ...gone.keys(), ...Object.keys(marks).map(Number)]);
+  for (const parent of parents) {
+    const inUse = used.get(parent) || new Set();
+    const retiredParts = gone.get(parent) || new Set();
+    const top = Math.max(0, ...inUse, ...retiredParts);
+    const mark = marks[parent] || 0;
+    for (let part = 1; part <= Math.max(top, mark); part += 1) {
+      if (!inUse.has(part) && !retiredParts.has(part)) {
+        findings.push(`admin-team/rule-files.json: splinter R-${parent}-${part} is neither in use nor retired`);
+      }
+    }
+    if (top > mark) next[parent] = top;
+  }
+  return next;
 }
 
 /** The index text for the parsed files, in config order. */
@@ -284,9 +349,16 @@ function main() {
   if (!markIsGood) findings.push('admin-team/rule-files.json: highWaterMark needs a whole number');
   const mark = markIsGood ? config.highWaterMark : 0;
   const retiredIsGood = Array.isArray(config.retiredIds)
-    && config.retiredIds.every((id) => Number.isSafeInteger(id) && id > 0);
-  if (!retiredIsGood) findings.push('admin-team/rule-files.json: retiredIds needs a list of plain whole numbers');
+    && config.retiredIds.every((id) => (Number.isSafeInteger(id) && id > 0)
+      || (typeof id === 'string' && SPLINTER_ID.test(id)));
+  if (!retiredIsGood) findings.push('admin-team/rule-files.json: retiredIds needs a list of whole numbers and "<parent>-<part>" splinter ids');
   const retired = new Set(retiredIsGood ? config.retiredIds : []);
+  const marksAreGood = config.splinterMarks !== null && typeof config.splinterMarks === 'object'
+    && !Array.isArray(config.splinterMarks)
+    && Object.entries(config.splinterMarks).every(([parent, top]) => /^[1-9]\d*$/.test(parent)
+      && Number.isSafeInteger(top) && top > 0);
+  if (!marksAreGood) findings.push('admin-team/rule-files.json: splinterMarks needs an object of parent id to highest part');
+  const marks = marksAreGood ? config.splinterMarks : {};
 
   const parsed = [];
   const known = new Map();
@@ -307,17 +379,20 @@ function main() {
       }
     }
   }
+  assignSplinterCodes(parsed, known, findings);
   for (const { relPath, lines, masked } of parsed) {
     checkPointers(relPath, lines, masked, known, findings);
   }
 
-  const inUse = new Set(parsed.flatMap(({ rules }) => rules.map((rule) => rule.id)));
+  const inUse = new Set(parsed.flatMap(({ rules }) => rules.filter((rule) => rule.part === null).map((rule) => rule.id)));
   const highest = Math.max(0, ...inUse);
   for (let id = 1; id <= Math.max(mark, highest); id += 1) {
     if (!inUse.has(id) && !retired.has(id)) {
       findings.push(`admin-team/rule-files.json: id R-${id} is neither in use nor retired`);
     }
   }
+  const nextMarks = checkParts(parsed, retired, marks, findings);
+  const raisedMarks = Object.keys(nextMarks).filter((parent) => nextMarks[parent] !== marks[parent]);
 
   const stale = [];
   const codeOwners = new Map();
@@ -347,10 +422,16 @@ function main() {
       fs.writeFileSync(path.join(ROOT, entry.relPath), entry.lines.join('\n'));
     }
     if (stale.length > 0) console.log(`corrected ${stale.length} code(s) in ${touched.size} file(s)`);
+    let nextConfig = configText;
     if (highest > mark) {
-      fs.writeFileSync(CONFIG, configText.replace(/("highWaterMark"\s*:\s*)\d+/, `$1${highest}`));
+      nextConfig = nextConfig.replace(/("highWaterMark"\s*:\s*)\d+/, `$1${highest}`);
       console.log(`raised the high-water mark from ${mark} to ${highest}`);
     }
+    if (raisedMarks.length > 0) {
+      nextConfig = nextConfig.replace(/("splinterMarks"\s*:\s*)\{[^}]*\}/, `$1${JSON.stringify(nextMarks)}`);
+      console.log(`raised the splinter marks of ${raisedMarks.map((parent) => `R-${parent}`).join(', ')}`);
+    }
+    if (nextConfig !== configText) fs.writeFileSync(CONFIG, nextConfig);
     if (current !== expected) fs.writeFileSync(indexFile, expected);
     console.log(`${current === expected ? 'unchanged' : 'wrote'} ${config.index}`);
   } else if (!write) {
@@ -358,6 +439,9 @@ function main() {
       findings.push(`${rule.file}:${rule.jsonIndex + 1}: stale code "${was}", the location gives "${rule.code}", run with --write`);
     }
     if (highest > mark) findings.push(`admin-team/rule-files.json: high-water mark ${mark} is below id R-${highest}, run with --write`);
+    for (const parent of raisedMarks) {
+      findings.push(`admin-team/rule-files.json: splinter mark of R-${parent} is below part ${nextMarks[parent]}, run with --write`);
+    }
     if (current !== expected) findings.push(`${config.index}: out of date, run with --write`);
   }
 

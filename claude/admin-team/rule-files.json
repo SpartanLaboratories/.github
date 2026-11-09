@@ -2,7 +2,8 @@
   "index": "nomenclature/rule-index.md",
   "files": [
     "agents/direction-manager.md",
-    "agents/verifier.md"
+    "agents/verifier.md",
+    "shared/progress-review.md"
   ],
   "codes": {
     "agents/direction-manager.md": {
@@ -24,8 +25,15 @@
         "Hard boundaries": "B",
         "Progress review every 10 minutes  (when you run inside a /resolve-issue run)": "P"
       }
+    },
+    "shared/progress-review.md": {
+      "acronym": "SH",
+      "sections": {
+        "Progress review every 10 minutes (when you run inside a /resolve-issue run)": "P"
+      }
     }
   },
-  "highWaterMark": 27,
+  "highWaterMark": 28,
+  "splinterMarks": {},
   "retiredIds": []
 }
