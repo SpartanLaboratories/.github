@@ -42,13 +42,18 @@ board-specific use of a `ui.md` element.
 
 A board's compound names follow `ui.md`'s rule, subject first and type last: a Card in the Guarantees
 Panel is a **guarantee Card**, the Panel that holds the WIP strip is the **WIP Panel** and a tracking
-board's unit block in it a **unit Card**, a step in the step Panel is a **step Cell**, and so on (a
-verdict Pill, an issue Chip, the KPI Tile).
+board's unit block in it a **unit Card**, a step in the step Panel is a **step Cell**, the reference
+that ends a Verdict statement ("§4.2", opening the section's excerpt) is its **section Chip**, a
+landed unit's pull request and merge commit on its As built Cell ("PR #89", "merge 8122af7", each
+opening what it names) are its **PR Chip** and **merge Chip**, a figure and its noun in a Cell's head
+or foot (the Gap Cell's "· 2 evidence", the Verdict Cell's "1 step · 0 tests · 2 risks", the figure
+muted at zero) is a **count Label**, and so on (a verdict Pill, an issue Chip, the KPI Tile).
 
 Where a template's CSS class names an element's kind it carries the type word, so a reader can tell
 the kind from the markup without the board: `.card`, `.chip`, `.badge`, `.cell`, `.ring`, `.arrow`,
 `.guarantee-card`, and `.kpi-tile` (a KPI Tile), `.verdict-pill` (a verdict Pill), `.dep-pill` (a
-DualStatePill), `.legend` (a Legend), `.fullpulse` (a FullPulse: whatever is being worked on),
+DualStatePill), `.legend` (a Legend), `.stepbar` (a StepBar),
+`.fullpulse` (a FullPulse: whatever is being worked on),
 `.col-fullpulse` (a whole column's FullPulse), `.colcell-fullpulse` (a Cell carrying its column's
 FullPulse at phone width), `.upnext-ring` (the up-next Ring) and `.fillpulse` (the live dot's
 FillPulse).
