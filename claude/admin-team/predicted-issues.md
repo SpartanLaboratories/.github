@@ -215,3 +215,21 @@ The source repository, which a transfer also writes to, isn't protected by that 
 - **Predicted:** the admin team, 2026-11-09.
 - **Encounters:**
   - None yet.
+
+## A build fails on an npm registry timeout (504)
+
+```json
+{"id":"p17","count":2,"last":"2026-11-09"}
+```
+
+OrganizationPage's Kotlin/JS install step depends on the package registry, and `kotlin-js-store/yarn.lock` isn't committed (#12).
+
+- **Proposed resolution:** rerun the failed job and let this count.
+- **Potential resolution:** cache the Yarn packages in CI, so a build rarely needs the registry. Committing the lock file (#12) would not stop these failures.
+- **Resolution attempts:**
+  - 2026-11-09, staging #7: one rerun; cleared.
+  - 2026-11-09, push CI on PR #16: two reruns; cleared.
+- **Predicted:** the admin team, on encountering it, 2026-11-09.
+- **Encounters:**
+  - 2026-11-09: staging OrganizationPage#7 at 16faca3; cleared on one retry.
+  - 2026-11-09: push CI on PR #16; cleared on the third attempt.

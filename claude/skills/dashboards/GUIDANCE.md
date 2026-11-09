@@ -531,7 +531,7 @@ gets a browser pass before landing only when it diverges from its template:
 
 | The board | Checked |
 |---|---|
-| any board | its data and its rules (`check.js`), the embedded copy matching its data file (on an issue board and the repository work board, its live sidecar too), no dead `href="#"`, no external resource, no work level in its text (§4: its data, and its rendered text on a browser pass), no system colour in a status spectrum (§1); a warning, never a failure, on an internal name left in its data, its comments or its text (§4, `INTERNAL NAME`) |
+| any board | its data and its rules (`check.js`), the embedded copy matching its data file (on an issue board and the repository work board, its live sidecar too), no dead `href="#"`, no external resource, no work level in its text (§4: its data, and its rendered text on a browser pass), no system colour in a status spectrum (§1); a warning, never a failure, on an internal name left in its data, its comments or its text (§4, `INTERNAL NAME`) and on an element name the glossary does not hold (§12, "The names, checked": `TERM BANNED WORD`, `TERM UNKNOWN NAME`, `TERM CLASS`) |
 | a board that is a verified template plus its data: an issue board, the repository work board or the org work board, or a system, supersystem or repository state board whose CSS, Tabs and script — before `MODEL` (less its board-filled lines, such as `REPO` and `SRC`) and after it — are the verified template's | nothing more: no browser pass |
 | a board that diverges — declared, undeclared, made from an older template — or whose template changed since it was verified | the full pass: light, dark, 520 px, a 390 px frame, a 1920 x 1080 desktop |
 
@@ -1002,15 +1002,21 @@ for every type:
   at its next regeneration, the committed one and the state boards at the Document step's state-boards task (the splice; a state board's
   chain markup gains its units' names when the state-boards job next writes its roadmap, its units numbered until then).
 
+- **The element names, checked** (the user's decision of 2026-11-09; §12, "The names, checked"): applied to the issue boards, the tracking boards, the repository work board and the org work board through `check.js`, and to the system, supersystem and repository state boards through `check-board.js`. Every type shares the one scan.
+
 ## 12. Elements — one name per function
 
 Every visible element on a board takes its name from the UI vocabulary,
 [`nomenclature/ui.md`](../../nomenclature/ui.md): its basic elements, its specific elements and its
 naming rules. How the boards use them (each term's board elements, the boards' compound names and
 the CSS classes the templates give them) is in [`nomenclature/boards.md`](../../nomenclature/boards.md),
-"Board UI"; the look follows §1 and §2. A board element none of the vocabulary's terms describes
-takes no name until the user adds the term to `ui.md` (only the user adds or changes a term
-there); it is never named here.
+"Board UI"; the look follows §1 and §2. A board element none of `ui.md`'s terms describes takes
+no name from that file until the term is added to it, and a term is added or changed in `ui.md`
+only with the user's permission (`~/.claude/agents/presenter.md`, Hard boundaries); it is never
+named here. The presenter adds and changes the terms of `boards.md` at its own discretion (the
+same brief).
+
+**The names, checked** (the user's decision of 2026-11-09). The glossary is the only home of the names, and `system/scripts/termrefs.js` holds none of them: it parses the first Cell of every `| **Term** | … |` row of `ui.md` and `boards.md`, keying on the row and never on what follows a heading; the lines of the JSON-lines blocks after the tables (`{"term":"Card","not":["Bubble"]}`, a line for a term with something the table does not say, chiefly the words it rules out; `"allow"` a longer name that holds one and is something else); `boards.md`'s compound-names paragraph; and its CSS class list. A ruled-out word comes only from what those files already rule out. `check.js` and `check-board.js` warn, and never fail, on three things: `TERM BANNED WORD`, a ruled-out word used, as written and capitalised, since a term is a proper noun and the everyday word stays lower case (`ui.md`, Naming); `TERM UNKNOWN NAME`, a capitalised element name in neither list, a CamelCase word or a Capitalised compound ending in a type word of `ui.md`'s section 2; `TERM CLASS`, a class naming an element's kind without its type word (a listed compound's or class's subject, or a retired word of a `ui.md` term), unless it always stands beside a class that carries a type word. The scan reads the text a board shows and its generated data, and leaves out a quoted issue title, an option's signature, code and data keys, as the wording checks do; text a script draws in the browser is read through the data it draws from. `verify/cases-termrefs.js` holds it.
 
 **Code** (admin-team/dashboards/code-label-and-sigblock, dated dashboards-skill/42). Every inline code on every board — a
 `` `code` `` span in the data, a path, a sha, a branch, a class — is a **CodeLabel**, a kind of Label in `ui.md`: the surface-2 fill

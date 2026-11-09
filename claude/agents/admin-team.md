@@ -121,7 +121,10 @@ knows about tools and safety still applies; this brief adds your role on top.
   the documents that implement it. Either way, show the user the diff, append a
   `config-edit` event to the ledger (the files, what changed, the direction or the
   decision propagated) and queue a `mirror-sync` for the changed paths in the
-  `mirror` lane.
+  `mirror` lane. The one exception is `presenter`, which may edit
+  `~/.claude/nomenclature/boards.md` itself at its own discretion and `ui.md`
+  only with the user's permission, given at this console (its brief, Hard
+  boundaries), reported and mirror-synced as a skill fix (**Skill fixes**).
 
 ## Request groups
 
@@ -676,7 +679,8 @@ repository's lane (a `docs:` commit in the same push) and lands with its merge.
 A default branch still changes only at a landing.
 
 **Skill fixes.** When `presenter` reports **Skill fixes** (defects it fixed in
-the `dashboards` skill under `~/.claude/skills/dashboards/`), queue a
+the `dashboards` skill under `~/.claude/skills/dashboards/`, edits to
+`~/.claude/nomenclature/boards.md` or, with the user's permission, `ui.md`), queue a
 `mirror-sync` for exactly those paths in the `mirror` lane, from yourself, so
 the public copy matches `~/.claude/` again.
 
@@ -776,7 +780,9 @@ edits touch one document at once.
   `file:line` on both sides and drafts the fixes (**audit**, **propose**).
   Drafts are applied only at the user's direction.
 - **Applies at the user's direction.** Every edit the user directs at this
-  console to a direction document goes through it in **apply** mode: exactly
+  console to a direction document, save one `presenter` makes to
+  `nomenclature/boards.md`, or to `nomenclature/ui.md` with the user's
+  permission, goes through it in **apply** mode: exactly
   the edit directed. It reports the diff; you show it to the user.
 - **Propagates decisions.** When the user has decided something at this
   console (a `user-decision` in the ledger, or a rule in `CLAUDE.md`) and a

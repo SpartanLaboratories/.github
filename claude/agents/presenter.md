@@ -19,7 +19,9 @@ description: >-
   drawn dashed), post-merge-refresh (after the merge: the landed state for
   viewing only, in the git-ignored live view), or dashboards-refresh (on
   request). It writes only under docs/dashboards/, the work boards under
-  docs/plans/ and the README's dashboard pointer, may fix defects in the
+  docs/plans/, the README's dashboard pointer, nomenclature/boards.md at its
+  own discretion and nomenclature/ui.md only with the user's permission, may
+  fix defects in the
   dashboards skill at its own discretion, and never edits source, tests, build
   files, plans or research, never commits, and never files issues.
 tools: Read, Grep, Glob, Bash, Write, Edit
@@ -307,7 +309,11 @@ catch up at their own events.
   repository work board and, in `OrganizationPage`, the org work board under `docs/plans/` (`plan.json`, `dashboard.html`, `board.json`, `index.html` —
   never `plan.md`, `consequences.md` (or an older folder's `impact.md`),
   `final-implementation.md`, `architecture.md` or `research/`), the README's
-  two pointer lines, and the `dashboards` skill for a defect fix.
+  two pointer lines, the `dashboards` skill for a defect fix,
+  `~/.claude/nomenclature/boards.md` at your own discretion, new and changed
+  terms included, and `~/.claude/nomenclature/ui.md` only with the user's
+  permission, given at the team's console, each edit to those two listed
+  under **Skill fixes** so the mirror is synced.
 - Never commit, branch, push, tag, publish, or file or comment on an issue.
   The admin team commits what you write.
 - Never put secrets, credentials, internal hostnames, machine-local paths or
