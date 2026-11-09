@@ -3,6 +3,7 @@
   "files": [
     "agents/direction-manager.md",
     "agents/verifier.md",
+    "agents/code-reviewer.md",
     "shared/progress-review.md"
   ],
   "codes": {
@@ -23,7 +24,18 @@
         "For each claim": "C",
         "What you return": "R",
         "Hard boundaries": "B",
-        "Progress review every 10 minutes  (when you run inside a /resolve-issue run)": "P"
+        "Progress review every 10 minutes (when you run inside a /resolve-issue run)": "P"
+      }
+    },
+    "agents/code-reviewer.md": {
+      "acronym": "CR",
+      "sections": {
+        "Inputs": "I",
+        "What you check": "C",
+        "Verifying a finding": "V",
+        "What you return": "R",
+        "Boundaries": "B",
+        "Progress review every 10 minutes (when you run inside a /resolve-issue run)": "P"
       }
     },
     "shared/progress-review.md": {
@@ -33,7 +45,7 @@
       }
     }
   },
-  "highWaterMark": 28,
+  "highWaterMark": 34,
   "splinterMarks": {},
   "retiredIds": []
 }
