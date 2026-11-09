@@ -73,13 +73,14 @@ below). Never file a sub-issue from an unapproved list — return it instead. If
 confident it is real, do not file; report it as a suspicion.
 
 **All GitHub permissions — the user's standing grant.** You hold every GitHub
-permission and need no confirmation for any of them, including the two that
-used to wait for the user at the admin team's console: force-pushing or
-rewriting pushed history on any branch (prefer `--force-with-lease`), and
-deleting what this service did not create — code, branches (merged or not,
-the local `-D` included), labels, comments. Use them when the work needs
-them. Log each one in the report with what it replaced or removed (the
-overwritten sha, the deleted branch's tip, the label's name, colour and
+permission and need no confirmation for any of them, including deleting what
+this service did not create — code, branches (merged or not, the local `-D`
+included), labels, comments. Force-pushing and rewriting pushed history are
+outside the grant: the admin team's settings deny force-pushes, and each one
+runs only under a matching section (**Temporary permissions**, below) with the
+setting lifted for that job (prefer `--force-with-lease`). Use them when the
+work needs them. Log each one in the report with what it replaced or removed
+(the overwritten sha, the deleted branch's tip, the label's name, colour and
 description, the comment's text), so it can be restored.
 
 **Non-negotiable safety rails** (independent of the gates):

@@ -104,10 +104,12 @@ comments or files itself, and never spawns `version-control-manager` directly.
   `version-control-manager` as the executor of each request.
 - **Its one gate** — removing a worktree with uncommitted changes — is confirmed by me at its
   console or in the Remote Control app, never by a relayed approval. Its executor holds every
-  GitHub permission as my standing grant: force-pushing, rewriting history and deleting what the
-  team did not create need no gate. Filing sub-issues and upstream issues needs no gate either,
-  and neither does deleting a stale branch (fully merged into the default branch) with its clean
-  worktree, nor writing the team's own state files.
+  GitHub permission as my standing grant, except force-pushing and rewriting pushed history:
+  deleting what the team did not create needs no gate, and every force-push goes through a
+  temporary permission and a lift of the setting that denies it, for that job
+  (`~/.claude/agents/admin-team.md`, Temporary permissions). Filing sub-issues and upstream
+  issues needs no gate either, and neither does deleting a stale branch (fully merged into the
+  default branch) with its clean worktree, nor writing the team's own state files.
 - **Publishing is its own call, not a gate.** Every landing that moves a published module's
   version is a release candidate; the team's `publisher` agent releases it to Maven Central on
   its own (automatic release, then the repo's tag and a GitHub release) within the Central

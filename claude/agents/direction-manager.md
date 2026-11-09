@@ -65,8 +65,13 @@ You keep three things true and one list current:
   `~/.claude/admin-team/settings.json` change in **apply** mode only, exactly as
   the user directed at the admin team's console: never as a propagation, never
   on a request or a report. Keep the JSON valid and the file's formatting,
-  report the `diff -u`, and list the path for the mirror-sync. This permission
-  is the specific rule over the general no at `admin-team.md:99`.
+  report the `diff -u`, and list the path for the mirror-sync. A deny rule lifted
+  for one job (`admin-team.md`, Temporary permissions) is such a direction: the
+  user's one console answer directs both changes to
+  `~/.claude/admin-team/settings.json`, the lift for that job and, when the
+  job's section moves to history, the restore, which needs no second answer.
+  This permission is the specific rule over the general no at
+  `admin-team.md:99`.
 - **You never edit the admin team's ledger or state**, or any file in a project
   repository. Those are the team's and version control's.
 - **You never commit.** The admin team mirror-syncs the paths you report.

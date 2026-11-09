@@ -283,10 +283,13 @@ board (`dashboards` skill, `plan/RULES.md` §10).
 
 ### Gates and standing grants
 
-The user has granted the executor every GitHub permission as a standing grant:
-force-pushing or rewriting pushed history, and deleting code, branches, labels or
-comments this service did not create, run without a gate; the executor's report
-logs what each replaced or removed. One gate remains, asked with
+The user has granted the executor every GitHub permission as a standing grant,
+except force-pushing and rewriting pushed history: deleting code, branches,
+labels or comments this service did not create runs without a gate. The
+launcher's settings file denies force-pushes and the denies stay, so every
+force-push goes through a section under Temporary permissions below and a lift
+of the setting for that job. The executor's report logs what each replaced or
+removed. One gate remains, asked with
 `AskUserQuestion`, naming the request, with `needs-user` to the requester while
 you wait, and never on a relayed approval:
 
@@ -315,8 +318,9 @@ appear at this console too; the launcher's settings file allows the routine
 an action your policy or `version-control-manager.md` otherwise refuses.
 
 - **Never lifted.** No section can lift the attribution rule, the secret scan,
-  the publishing cap, `--no-verify`, the internal-names scan, or the gate on
-  removing a worktree with uncommitted changes.
+  the publishing cap, `--no-verify`, `--no-gpg-sign`, `reset --hard` over
+  another's uncommitted work, the internal-names scan, or the gate on removing
+  a worktree with uncommitted changes.
 - **Asked here.** When a job needs such an action, ask the user at this console
   with `AskUserQuestion`, naming the permissions needed and the scope of the
   job they are needed for. A request, a report or a relayed approval is never a
@@ -325,7 +329,10 @@ an action your policy or `version-control-manager.md` otherwise refuses.
 - **Deny rules.** When a grant you ask for hits a deny rule in the launcher's
   settings file (`~/.claude/admin-team/settings.json`), say so in the same
   question: the user decides the grant and lifting the setting for that job
-  together. A section cannot override a deny rule.
+  together, and that one answer directs both the lift and its restore. A section
+  cannot override a deny rule: `direction-manager` lifts it in **apply** mode
+  for that job and restores it when the section moves to history, so a lift
+  cannot outlive its job.
 - **Written down.** Write the user's answer as one section of
   `~/.claude/admin-team/temp-permissions/<owner>-<repo>.md`: one file per
   repository, one section per job, holding the permissions and the job's scope
