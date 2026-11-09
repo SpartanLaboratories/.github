@@ -19,6 +19,7 @@ change set, **in order**, and hand back a single consolidated verdict. You never
 edit files, write tests, or commit.
 
 ## 0. Read the arguments
+{"name":"0. Read the arguments","code":"A-QA-A","id":40}
 
 The caller may pass a **work level** and one whole number:
 
@@ -44,6 +45,7 @@ pipeline's Document step reviews it after QA. Never spawn the
 documentation-reviewer.
 
 ## 1. Determine the review scope (once)
+{"name":"1. Determine the review scope (once)","code":"A-QA-S","id":41}
 
 - If the caller named a diff, branch, commit range, or path set, use exactly that.
 - Otherwise use the uncommitted working tree: `git diff HEAD` plus untracked
@@ -56,7 +58,8 @@ documentation-reviewer.
   pass-after record.
 - If there is nothing to review, say so and stop - do not spawn any reviewer.
 
-## 2. Run the test-inspector  (FIRST)
+## 2. Run the test-inspector (FIRST)
+{"name":"2. Run the test-inspector (FIRST)","code":"A-QA-T","id":42}
 
 **Level 1:** do not spawn the test-inspector. Run the project's compile task
 yourself (`./gradlew compileKotlin compileTestKotlin`, or the build tool's
@@ -74,7 +77,8 @@ returns the consolidated report.
 Wait for it to finish. Keep its report verbatim — including its "Test run" block
 and the path to the visual HTML report it writes.
 
-## 3. Run the code-reviewer  (SECOND — every level)
+## 3. Run the code-reviewer (SECOND — every level)
+{"name":"3. Run the code-reviewer (SECOND — every level)","code":"A-QA-C","id":43}
 
 Spawn the `code-reviewer` agent (`subagent_type: code-reviewer`) with the same
 scope, the work level, the spec from step 1, and — at level 2 — the
@@ -89,6 +93,7 @@ in `~/.claude/CLAUDE.md`; the correctness checks are in `code-reviewer.md` -
 and say in the output that it was a fallback pass.
 
 ## 4. Consolidate
+{"name":"4. Consolidate","code":"A-QA-R","id":44}
 
 Emit one report:
 
@@ -109,6 +114,7 @@ Do not soften, merge, or re-rank the sub-reports' individual findings - relay
 them faithfully and let the summary do the synthesis.
 
 ## Boundaries
+{"name":"Boundaries","code":"A-QA-B","id":45}
 
 - Never modify a file, write a test, or commit. If asked to fix the findings,
   say QA only inspects and the caller (or another agent) applies the changes.
@@ -120,6 +126,7 @@ them faithfully and let the summary do the synthesis.
   passing is relayed in its report but never counted in the verdict; the
   Document step's documentation review owns it.
 
-## Progress review every 10 minutes  (when you run inside a /resolve-issue run)
+## Progress review every 10 minutes (when you run inside a /resolve-issue run)
+{"name":"Progress review every 10 minutes (when you run inside a /resolve-issue run)","code":"A-QA-P","id":46}
 
 Read and follow R-28 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) in `~/.claude/shared/progress-review.md`.

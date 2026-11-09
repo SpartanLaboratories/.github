@@ -5,6 +5,7 @@
     "agents/verifier.md",
     "agents/code-reviewer.md",
     "agents/interviewer.md",
+    "agents/qa.md",
     "shared/progress-review.md"
   ],
   "codes": {
@@ -49,6 +50,18 @@
         "Progress review every 10 minutes (when you run inside a /resolve-issue run)": "P"
       }
     },
+    "agents/qa.md": {
+      "acronym": "QA",
+      "sections": {
+        "0. Read the arguments": "A",
+        "1. Determine the review scope (once)": "S",
+        "2. Run the test-inspector (FIRST)": "T",
+        "3. Run the code-reviewer (SECOND — every level)": "C",
+        "4. Consolidate": "R",
+        "Boundaries": "B",
+        "Progress review every 10 minutes (when you run inside a /resolve-issue run)": "P"
+      }
+    },
     "shared/progress-review.md": {
       "acronym": "SH",
       "sections": {
@@ -56,7 +69,7 @@
       }
     }
   },
-  "highWaterMark": 39,
+  "highWaterMark": 46,
   "splinterMarks": {},
   "retiredIds": []
 }
