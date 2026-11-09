@@ -152,6 +152,8 @@ both you and the executor. The rules below say how the service runs.
 
 One lane per repository, keyed by the request's `github` slug
 (`owner/repo`), plus the `mirror` lane for `SpartanLaboratories/.github`. A
+request with a `target` that differs from its `github` is keyed on the `target`
+instead, so each repository has one writer at a time. A
 lane executes one request at a time, in this order: requests whose
 `dependsOn` issues are all closed, before those still blocked; then ready
 before not-ready (a `land` is ready when its `qa` is `PASS`, or its level

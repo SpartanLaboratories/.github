@@ -46,7 +46,7 @@ one fenced ```json block:
 | `attempt` | yes | Starts at 1. |
 | `from` | yes | The sender's session name, as `ListAgents` shows it. The reply goes here. |
 | `repo` | yes (not `status`, `file-issue` or `log-hook`) | Absolute path of the main checkout. Forward slashes. |
-| `github` | yes (not `status` or `log-hook`) | `owner/repo`; also the lane key. `SpartanLaboratories/.github` for `mirror-sync`; for `file-issue`, the repo the fix belongs in. |
+| `github` | yes (not `status` or `log-hook`) | `owner/repo`; also the lane key, unless the request has a `target` that differs from it, when the `target` is the lane key, so each repository has one writer at a time. `SpartanLaboratories/.github` for `mirror-sync`; for `file-issue`, the repo the fix belongs in. |
 | `action` | yes | One of the actions below. |
 | `issue` | per action | The issue number. Omit it on a `land` of a branch that resolves no issue (a docs or config branch): then give `title` for the PR, and the landing has no closing keyword and no resolution comment. |
 | `level` | `setup-branch`, `prepare-landing`, `state-boards`, `land`; optional on a `plan-board` `sized` | The work level, 1–4. On a `plan-board` `sized` it is read and never written. |
@@ -64,7 +64,7 @@ one fenced ```json block:
 | `title`, `body`, `surfacedIn` | `file-issue` | The new issue's title and body (a path to a file, or text): the problem and a proposed fix. `surfacedIn` is the `owner/repo` (with `#n` when an issue was in hand) where the defect was found; the filing direction is judged from it. Optional `labels` `{add: []}`. |
 | `procedure`, `inputs`, `checks` | `push-mirror`, `create-repo`, `repo-settings`, `rename-repo`, `archive-repo`, `repo-visibility`, `repo-security`, `transfer-issue`, `placeholder-issue`, `link-issues`, `edit-issue-body`, `realign-checkout`, `replace-clone` | The plan's procedure for the write (a path to a file, or text); its inputs (paths, ids, expected tallies); the checks it runs and the results they must give. |
 | `mirror` | `push-mirror` | Absolute path of the workspace mirror to push from. Forward slashes. |
-| `target` | `push-mirror`, `create-repo`, `repo-settings`, `rename-repo`, `archive-repo`, `repo-visibility`, `repo-security`, `transfer-issue`, `placeholder-issue`, `edit-issue-body` | The `owner/repo` the write applies to; for `transfer-issue`, the repository the issue moves to. |
+| `target` | `push-mirror`, `create-repo`, `repo-settings`, `rename-repo`, `archive-repo`, `repo-visibility`, `repo-security`, `transfer-issue`, `placeholder-issue`, `edit-issue-body`; a request under `permissionReason` for another repository | The `owner/repo` the write applies to; for `transfer-issue`, the repository the issue moves to; for a request under `permissionReason`, the other repository its section's `Scope:` names (`permissionReason`, below). |
 | `source` | `transfer-issue` | The `owner/repo` the issue moves from; `issue` is its number there. |
 | `newName` | `rename-repo` | The repository's new name. |
 | `settings` | `repo-settings` | The settings to apply. |
