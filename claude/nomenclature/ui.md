@@ -62,17 +62,11 @@ Composed from the basic elements. Each is named by what it does.
 
 **Containers, by how much they hold**
 
-A **TextBoard** is the element; **CodeBlock** is its kind, and a **Tab** is a kind of Panel.
-
 | Term | Function | Built from |
 |------|----------|------------|
 | **Panel** | A region that holds other elements under its own heading: a title, or the element that names what it holds (a Tab's heading, the control that shows it; the Card at its head). A Panel may hold Panels. | a Group, often with a background and an outline, its heading first or attached to it. A Group with no heading is layout, not a Panel. |
-| **Tab** | One of a set of Panels that share a place, only one shown at a time; its heading is the control that shows it. | a Panel, headed by an interactive Text or Box in a row of the set's headings. |
-| **Disclosure** | A region whose body is shown or hidden in place by its own heading, independently of its neighbours; a Panel whose heading is interactive. | a Panel whose heading is interactive. |
 | **Card** | A self-contained statement inside a Panel, with a title and a body, readable alone. | a Box with an outline, holding a Group: a title (Text) over a body of Text and other elements, with any Labels it carries. |
-| **Tile** | A Card whose body is one figure with its Legend. It may contain a Bar (a ShareBar or a SlotBar) that draws the figure's parts. | a Box with an outline, holding a Group: a title (Text) over the figure (Text) and the Legend's entries. |
 | **TextBoard** | A self-contained block of text inside a Panel, like a Card but holding only that text: no title, no other elements. | a Box with an outline holding Text, laid out on its own line. |
-| **CodeBlock** | A TextBoard whose text is code, shown verbatim and set apart as code: monospace, its whitespace kept, wrapping inside itself. | a TextBoard holding monospace Text, its whitespace kept. |
 | **Cell** | The intersection of a Row and a column in a table. | a Box, or a bare Group, at one Row and one column, holding Text and other elements. |
 | **Row** | One subject across a table's columns. | a Group of Cells in a line, led by its subject's name. |
 
@@ -80,53 +74,89 @@ A **TextBoard** is the element; **CodeBlock** is its kind, and a **Tab** is a ki
 {"term":"Card","not":["Bubble"]}
 ```
 
-**Labels, by what they say**
+- Kinds of Panel:
 
-A **Label** is the element; **Pill**, **Chip**, **Badge**, **Tag** and **CodeLabel** are its
-kinds, and a **DualStatePill** is a kind of Pill. A Label of none of them is a plain label.
+  | Term | Function | Built from |
+  |------|----------|------------|
+  | **Tab** | One of a set of Panels that share a place, only one shown at a time; its heading is the control that shows it. | a Panel, headed by an interactive Text or Box in a row of the set's headings. |
+  | **Disclosure** | A region whose body is shown or hidden in place by its own heading, independently of its neighbours; a Panel whose heading is interactive. | a Panel whose heading is interactive. |
+
+- Kinds of Card:
+
+  | Term | Function | Built from |
+  |------|----------|------------|
+  | **Tile** | A Card whose body is one figure with its Legend. It may contain a Bar (a ShareBar or a SlotBar) that draws the figure's parts. | a Box with an outline, holding a Group: a title (Text) over the figure (Text) and the Legend's entries. |
+
+- Kinds of TextBoard:
+
+  | Term | Function | Built from |
+  |------|----------|------------|
+  | **CodeBlock** | A TextBoard whose text is code, shown verbatim and set apart as code: monospace, its whitespace kept, wrapping inside itself. | a TextBoard holding monospace Text, its whitespace kept. |
+
+**Labels, by what they say**
 
 | Term | Function | Built from |
 |------|----------|------------|
 | **Label** | A short text that names or states one thing. | Text, alone or on a Box. |
-| **Pill** | A state word with its glyph, in a status colour. | a Box outlined, and optionally tinted, in the status colour, holding Text: the glyph and the word. |
-| **DualStatePill** | A Pill that shows two independent states of one thing at once, each on its own scale. | a Box holding two parts side by side, each with its own Text and its own colour scale. |
-| **Chip** | A reference that names or opens something, neutral. | a Box with a neutral outline holding Text; interactive when it opens what it names. |
-| **Badge** | A count or classification fixed to a Card's corner. | a small Box holding Text, placed on the corner. |
-| **Tag** | Plain text over an element that classifies it without a status colour. | Text, alone or on an outlined Box, never in a status colour. |
-| **CodeLabel** | A short run of code inside text, set apart as code. | a Box with a faint fill and a hairline outline holding monospace Text. |
+
+- Kinds of Label; a Label of none of them is a plain label:
+
+  | Term | Function | Built from |
+  |------|----------|------------|
+  | **Pill** | A state word with its glyph, in a status colour. | a Box outlined, and optionally tinted, in the status colour, holding Text: the glyph and the word. |
+  | **Chip** | A reference that names or opens something, neutral. | a Box with a neutral outline holding Text; interactive when it opens what it names. |
+  | **Badge** | A count or classification fixed to a Card's corner. | a small Box holding Text, placed on the corner. |
+  | **Tag** | Plain text over an element that classifies it without a status colour. | Text, alone or on an outlined Box, never in a status colour. |
+  | **CodeLabel** | A short run of code inside text, set apart as code. | a Box with a faint fill and a hairline outline holding monospace Text. |
+
+  - Kinds of Pill:
+
+    | Term | Function | Built from |
+    |------|----------|------------|
+    | **DualStatePill** | A Pill that shows two independent states of one thing at once, each on its own scale. | a Box holding two parts side by side, each with its own Text and its own colour scale. |
 
 **Bars, by what they measure**
-
-A **Bar** is the element; **ShareBar**, **SlotBar**, **StatBar** and **StepBar** are its kinds,
-and a **Timeline** is a kind of ShareBar.
 
 | Term | Function | Built from |
 |------|----------|------------|
 | **Bar** | A strip that shows how a whole stands along one axis: its parts, its slots or its steps. | a Group of Boxes along one axis, the whole its length. |
-| **ShareBar** | The parts of a total, each as long as its share of it. | a Group of Boxes in a row, one per part. |
-| **Timeline** | A ShareBar of time: the steps' shares of the total time spent. | a Group of Boxes in a row, one per step, each as long as its share of the time. |
-| **SlotBar** | Outcomes out of a maximum, one slot each. | a Group of Boxes in a row, one per slot up to the maximum, each showing its outcome or left empty. |
-| **StatBar** | A value out of its total. | a Group of two Boxes: the whole, and over it the value's length. |
-| **StepBar** | The steps of a sequence in order, and where things stand: each step done, current or to come. | a Group of chevron-shaped Boxes in a row, one per step, each holding a Text label or none. |
+
+- Kinds of Bar:
+
+  | Term | Function | Built from |
+  |------|----------|------------|
+  | **ShareBar** | The parts of a total, each as long as its share of it. | a Group of Boxes in a row, one per part. |
+  | **SlotBar** | Outcomes out of a maximum, one slot each. | a Group of Boxes in a row, one per slot up to the maximum, each showing its outcome or left empty. |
+  | **StatBar** | A value out of its total. | a Group of two Boxes: the whole, and over it the value's length. |
+  | **StepBar** | The steps of a sequence in order, and where things stand: each step done, current or to come. | a Group of chevron-shaped Boxes in a row, one per step, each holding a Text label or none. |
+
+  - Kinds of ShareBar:
+
+    | Term | Function | Built from |
+    |------|----------|------------|
+    | **Timeline** | A ShareBar of time: the steps' shares of the total time spent. | a Group of Boxes in a row, one per step, each as long as its share of the time. |
 
 **Marks, by what they overlay**
-
-A **Pulse** is the element; **RingPulse**, **FillPulse** and **FullPulse** are its kinds.
 
 | Term | Function | Built from |
 |------|----------|------------|
 | **Ring** | A border-only state on an element: its outline changes, its fill does not. | the outline of the element it marks. |
 | **Pulse** | A breathing glow on an element: an accent that swells and fades in a slow, steady rhythm. | a tint or outline of the element, its strength animated in a loop, holding still at its middle strength when reduced motion is asked for. |
-| **RingPulse** | A Pulse on an element's outline. | the element's outline, its glow animated. |
-| **FillPulse** | A Pulse on an element's interior. | a tint of the element's fill, animated. |
-| **FullPulse** | A Pulse on both the outline and the interior at once. | a RingPulse and a FillPulse together. |
 | **Arrow** | A directed connector from one element into another, showing that the first leads to or feeds the second. | a Line with a head at the end it points to. |
 | **Tracer** | A Line that ties a summary figure to the part of another element it was drawn from, labelled with that part's value. | a Line in the colour of what it traces, with Text at one end. |
 | **Legend** | The key to a grouping by colour, shade or dash: one entry per value, each a sample and its name. | a Group of entries, each a small Box (the swatch) or a short Line, with Text. |
 
-```jsonl
-{"term":"FillPulse","not":["Glow"]}
-```
+- Kinds of Pulse:
+
+  | Term | Function | Built from |
+  |------|----------|------------|
+  | **RingPulse** | A Pulse on an element's outline. | the element's outline, its glow animated. |
+  | **FillPulse** | A Pulse on an element's interior. | a tint of the element's fill, animated. |
+  | **FullPulse** | A Pulse on both the outline and the interior at once. | a RingPulse and a FillPulse together. |
+
+  ```jsonl
+  {"term":"FillPulse","not":["Glow"]}
+  ```
 
 **Controls, by what they change**
 
