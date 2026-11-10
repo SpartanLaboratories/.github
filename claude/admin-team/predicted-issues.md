@@ -233,3 +233,16 @@ OrganizationPage's Kotlin/JS install step depends on the package registry, and `
 - **Encounters:**
   - 2026-11-09: staging OrganizationPage#7 at 16faca3; cleared on one retry.
   - 2026-11-09: push CI on PR #16; cleared on the third attempt.
+
+## A run stamps a board event with a time it did not happen at
+
+```json
+{"id":"p18","count":1,"last":"2026-11-10"}
+```
+
+A run sends `facts.at` rounded or estimated (the user: this happens at every session start) instead of read from the clock, so the board records a wait or a visit at the wrong time, and a later event can fall inside it. A retime needs the user's direction and never reorders the record, so a later event inside the wrong stretch can block it.
+
+- **Resolution (decided by the user, 2026-11-10):** a run reads every event's `facts.at` from the clock (`date -u +%FT%TZ`), never rounding or estimating it; when an event's `facts.at` is missing or more than 2 minutes from its arrival, the team stamps the arrival time (`apply-event.js --arrived`) and tells the run.
+- **Predicted:** the admin team, on encountering it, 2026-11-10.
+- **Encounters:**
+  - 2026-11-10: KotlinBottools #23, `halted` sent as 02:00:00Z (arrived 01:52:22Z) and `resumed` as 02:30:00Z (arrived 02:01:54Z); `research-planning` at 02:04:54Z falls inside the recorded wait.

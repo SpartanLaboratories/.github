@@ -477,8 +477,9 @@ agent finishes. The board's step Panel shows the notes live; they need no event.
 brief a subagent, give it the issue number so it can name the file.
 
 On **every** event also send `at` (the ISO time the moment happened, so a queued
-event keeps its true time), and `open` whenever an open point is raised or
-resolved: `[{text, raised, ref?, resolved?}]` — e.g. a plan inconsistency the
+event keeps its true time; read it from the clock with `date -u +%FT%TZ` at that
+moment, never rounded or estimated), and `open` whenever an open point is raised
+or resolved: `[{text, raised, ref?, resolved?}]` — e.g. a plan inconsistency the
 implementer raises for the planner, or an item left to the maintainer. During a
 remediation loop, `implementation-stage` also carries `rows`: the board Row ids
 the fixes touch.

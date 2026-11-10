@@ -1265,7 +1265,7 @@ with no reasoning, so the admin team runs it itself at every `plan-board` reques
 (well under five seconds on a board like WebTools #62, the live repository work board included); the presenter then **enriches** the board
 with what needs the folder's documents, only when the script says so.
 
-    node ~/.claude/skills/dashboards/plan/scripts/apply-event.js --event <request.json> --worktree <path> [--repo <owner/repo>]
+    node ~/.claude/skills/dashboards/plan/scripts/apply-event.js --event <request.json> --worktree <path> [--repo <owner/repo>] [--arrived <UTC ISO time>]
 
 **A fill merges, so events keep applying.** The presenter writes through `fill.js`, never to `plan.json` directly. Composing a fill takes minutes, and
 events apply during it: the script merges the fields it is handed, a partial `plan.json`, onto the board as it stands then, under the short lock it shares with
@@ -1286,6 +1286,18 @@ temporary file and a rename, and on any failure every file is put back as it was
 second run reports `duplicate`): what it writes depends on the board, the facts and the event's time (`--at`, `facts.at`, else
 now), never on what changed. Its summary on stdout (key: value lines, or one JSON object with `--json`) names what it applied, the
 files it wrote, the check, the live board, the time, and `enrich: yes|no` with `why`.
+
+**The event's time.** A run sends `facts.at`, the time the event happened, read from the clock at that moment, never rounded or estimated;
+runs have sent it guessed or rounded all the same. So the team raises every run's event with `--arrived <UTC ISO time>`, the request's
+arrival time: a `facts.at` that is **missing**, or **more than 2 minutes** from the arrival time (either way, `ARRIVAL_TOLERANCE_S`, the
+one named tolerance in `apply-event.js`), is replaced by the arrival time before anything reads it, so every stamp the event writes takes
+it, and the summary's `arrival` line says so (`facts.at <sent> replaced by arrival <arrived> (off by <n> s, over 2 min)`, or `facts.at
+missing: stamped at arrival <arrived>`; in `--json`, the `arrival` field), for the team to tell the run in its reply. A `facts.at` within
+the tolerance is kept, with no line. A `facts.at` that is no ISO time is not replaced: the event is refused, naming it, as without the
+option. `--at`, when given, still wins (the line says the time was not held). The team-raised events (`run-restarted`, `retime`,
+`state-boards`, `landing`, `merge`, `landed`, `sub-issues-filed`, `reseed`, `seed`, `unit-landed`) and backfills are raised without
+`--arrived`, and keep the times they are given; without the option nothing changes. An `--arrived` that is no ISO time with its zone is a
+usage error (exit 2). The cases: `verify/cases-arrival.js`.
 
 **More onto the fast path (the presenter's standing rule).** The presenter may always decide, on its own, to move something onto the
 fast path, so that `apply-event.js` (or `system/scripts/apply-state.js`) applies more facts directly and fewer events need `enrich:

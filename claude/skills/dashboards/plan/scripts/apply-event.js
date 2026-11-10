@@ -3,7 +3,7 @@
 // deterministically and with no reasoning, so the admin team can run it itself in well under five seconds; what needs the folder's
 // documents is left to the presenter, who enriches the board afterwards (the summary's "enrich" line says whether, and why).
 //   node apply-event.js --event <request.json> --worktree <path> [--repo <owner/repo>] [--main <checkout>] [--at <ISO time>]
-//                       [--view] [--no-live] [--no-gh] [--json]
+//                       [--arrived <UTC ISO time>] [--view] [--no-live] [--no-gh] [--json]
 // --event      the admin-team protocol's plan-board request (action, event, folder, facts; the message's fenced json block, or the
 //              JSON alone)
 // --worktree   the worktree the issue's board lives in; the board is <worktree>/<folder>
@@ -11,6 +11,10 @@
 //              accepted too, read as --main
 // --main       the repository's main checkout, where the live repository work board lives (default: the request's repo, else the worktree)
 // --at         the event's time (default: facts.at, else now); every stamp the event writes takes it
+// --arrived    the request's arrival time at the team, given for a run's event (team-raised events and backfills go without it): a facts.at
+//              that is missing, or more than ARRIVAL_TOLERANCE_S (2 minutes) from it, is replaced by the arrival time, and the summary's
+//              "arrival" line says so, for the team to tell the run; a facts.at within it is kept. --at, when given, still wins
+//              (plan/RULES.md §4, "The event's time")
 // --view       the live view only (the land's landing and merge, the post-merge refresh's landed, plan/RULES.md §4, "The live view of a
 //              landing"): every board it would write in place (the issue's, its parent tracking board) is written as its view copy under the
 //              main checkout's git-ignored docs/plans/.live/view/<folder under docs/plans>/ instead, and read from that copy where one is
@@ -81,13 +85,18 @@ const dev = require(path.resolve(__dirname, "..", "..", "system", "scripts", "de
 const { levelRefs, scrubLevels, nameTestLevels } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
 const { nameRefs, scrubNames, scrubWaits, unambiguous } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
 
-const USAGE = "usage: node apply-event.js --event <request.json> --worktree <path> [--repo <owner/repo>] [--main <checkout>] [--at <ISO time>] [--view] [--no-live] [--no-gh] [--json]";
+const USAGE = "usage: node apply-event.js --event <request.json> --worktree <path> [--repo <owner/repo>] [--main <checkout>] [--at <ISO time>] [--arrived <UTC ISO time>] [--view] [--no-live] [--no-gh] [--json]";
 const args = process.argv.slice(2);
-require("../../system/scripts/cliargs.js").strict(args, { usage: USAGE, valued: ["event", "worktree", "repo", "main", "at"], flags: ["view", "no-live", "no-gh", "json"], max: 0 });
+require("../../system/scripts/cliargs.js").strict(args, { usage: USAGE, valued: ["event", "worktree", "repo", "main", "at", "arrived"], flags: ["view", "no-live", "no-gh", "json"], max: 0 });
 const opt = n => lib.opt(args, n, null), flag = n => lib.flag(args, n);
+/* The event's time held to its arrival (plan/RULES.md §4, "The event's time"): a run's facts.at further than this many seconds from the
+   request's arrival time (--arrived) is taken for guessed or rounded, and the arrival time stamps the event instead */
+const ARRIVAL_TOLERANCE_S = 120;
+const ARRIVED = opt("arrived");
+if (ARRIVED != null && (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/.test(ARRIVED) || isNaN(Date.parse(ARRIVED)))) { console.error(`${USAGE}\n(--arrived takes the request's arrival time as an ISO time with its zone, e.g. 2026-11-09T14:03:27Z; got ${JSON.stringify(ARRIVED)})`); process.exit(2); }
 
 /* the summary, printed at the end whatever happens */
-const S = { result: null, event: null, issue: null, board: null, laid: null, applied: [], enrich: [], rerendered: [], wrote: [], view: [], seeded: [], parent: null, live: null, check: null, warnings: [], defects: [], error: null, restored: 0, unfinished: null };
+const S = { result: null, event: null, arrival: null, issue: null, board: null, laid: null, applied: [], enrich: [], rerendered: [], wrote: [], view: [], seeded: [], parent: null, live: null, check: null, warnings: [], defects: [], error: null, restored: 0, unfinished: null };
 /* the fast path's own warnings (a bare "Ln" elided as a work level, dashboards-skill/35): printed under "warnings" and counted on the check line */
 const WARNINGS = S.warnings;
 const say = () => {
@@ -96,7 +105,7 @@ const say = () => {
   if (S.warnings.length && S.check && !/fast-path warning/.test(S.check)) S.check += ` · ${S.warnings.length} fast-path warning${S.warnings.length === 1 ? "" : "s"} (below)`;
   const enrich = S.enrich.length ? "yes" : "no", noWork = S.unfinished ? "no enrichment: the run reports those tasks' true states and the event is raised again" : "the event's facts decide everything it writes";
   if (flag("json")) { console.log(JSON.stringify({ ...S, enrich, why: S.enrich.length ? S.enrich : [noWork] })); return; }
-  const L = [["apply-event", S.result], ["event", S.event], ["issue", S.issue != null ? "#" + S.issue : null], ["board", S.board], ["laid", S.laid],
+  const L = [["apply-event", S.result], ["event", S.event], ["arrival", S.arrival], ["issue", S.issue != null ? "#" + S.issue : null], ["board", S.board], ["laid", S.laid],
     ["applied", S.applied.join("; ") || "nothing"], ["enrich", enrich], ["why", S.enrich.length ? S.enrich.join("; ") : noWork],
     ["rerendered", S.rerendered.join(", ") || "none"], ["wrote", S.wrote.join(", ") || "nothing"], ["view", VIEWING ? S.view.join(", ") || "nothing" : null], ["seeded", S.seeded.length ? S.seeded.join(", ") : null], ["parent", S.parent || "none"], ["live", S.live || "untouched"],
     ["check", S.check || "not run"], ["warnings", S.warnings.length ? S.warnings.map(w => "warn " + w).join(" | ") : null], ["issue defects", S.defects.length ? S.defects.join(" | ") : null], ["error", S.error], ["unfinished", S.unfinished ? S.unfinished.join(", ") : null], ["restored", S.error ? `${S.restored} file${S.restored === 1 ? "" : "s"}, as they were` : null], ["time", `${S.ms} ms`]];
@@ -1661,10 +1670,27 @@ function layFoundation(req, facts, folder, now) {
   applied.push(`foundation laid: title from ${cleanText(facts.title) ? "the event" : cleanText(row && row.name) ? "the parent's unit row" : "the folder's name"}, the issue's title from ${!issueTitle ? "nothing yet" : issueTitle === facts.issueTitle ? "the event" : issueTitle === G.title ? "the tracker" : "the parent's unit row"}, the function ${given ? "from the event" : `a stand-in from ${[body ? "the tracker" : null, !body && unitWords ? "the parent's unit row" : null, gap ? "the unit row's gap" : null, sysWords ? "the registry" : null].filter(Boolean).join(" and ") || "the folder's name"}`}`);
   return { plan, applied, enrich };
 }
+/* The event's time held to its arrival (plan/RULES.md §4, "The event's time"): with --arrived, a facts.at that is missing, or further than
+   ARRIVAL_TOLERANCE_S from the arrival time, is replaced by the arrival time, in the facts every path below reads, and the summary's arrival
+   line says so; one within it is kept, with no line. A facts.at that is no ISO time is left for the refusal that names it; --at still wins.
+   Without --arrived (team-raised events, backfills) nothing changes. */
+function holdToArrival(facts) {
+  if (ARRIVED == null) return;
+  const arrived = new Date(ARRIVED).toISOString().replace(/\.\d+Z$/, "Z");
+  if (opt("at")) { S.arrival = `not held: --at ${opt("at")} given (arrival ${arrived})`; return; }
+  const sent = facts.at;
+  if (sent == null || (typeof sent === "string" && !sent.trim())) { facts.at = arrived; S.arrival = `facts.at missing: stamped at arrival ${arrived}`; return; }
+  if (typeof sent !== "string" || isNaN(Date.parse(sent))) return;
+  const off = Math.abs(Date.parse(sent) - Date.parse(arrived)) / 1000;
+  if (off <= ARRIVAL_TOLERANCE_S) return;
+  facts.at = arrived;
+  S.arrival = `facts.at ${sent} replaced by arrival ${arrived} (off by ${Math.ceil(off)} s, over ${ARRIVAL_TOLERANCE_S / 60} min)`;
+}
 async function main() {
   const evFile = opt("event"), wt = opt("worktree");
   if (!evFile || !wt) { console.error(`${USAGE}\n(--event and --worktree are required)`); process.exit(2); }
   const req = readRequest(evFile), facts = req.facts && typeof req.facts === "object" ? req.facts : {};
+  holdToArrival(facts);
   if (req.action && req.action !== "plan-board") refuse(`the request's action is ${JSON.stringify(req.action)}, not plan-board`);
   /* a retime's facts.event is the event it retimes, never the request's: a request that names none, with a retime's facts, is not read as that event */
   if (!req.event && (facts.from != null || facts.to != null)) refuse(`the request names no event: a retime is "event": "retime", and its facts.event (${JSON.stringify(facts.event || null)}) the event it retimes`);
