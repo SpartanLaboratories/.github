@@ -3,11 +3,13 @@
 //   - the terms: the first Cell of every "| **Term** | … |" row of either file. It keys on the row, never on what follows a heading, so the rule lines
 //     ({"name":…}) those headings will carry change nothing.
 //   - what a table does not say: the lines of the JSON-lines blocks after the tables, {"term":"Card","not":["Bubble"],"allow":["…"]}, a line for a term with something to say:
-//     "not" the words that term rules out, "allow" a longer name that holds a ruled-out word and is something else. A fenced line that is no term line is left alone.
+//     "not" the words that term rules out, "allow" a longer name that holds a ruled-out word and is something else, "case":"any" (the one value) its words ruled out in
+//     any case, its "allow" read the same way. A fenced line that is no term line is left alone.
 //   - the compound names: boards.md's compound-names paragraph ("A board's compound names …"), with the capitalised compounds of the rows' Cells.
 //   - the classes: boards.md's CSS class list ("Where a template's CSS class …").
 // The scan, warnings only (it never fails a board; check.js and check-board.js print its lines):
-//   TERM BANNED WORD   a word a term rules out, used. As written, capitalised (a plural too): a term is a proper noun, and the everyday word stays lower case (ui.md, Naming).
+//   TERM BANNED WORD   a word a term rules out, used. As written, capitalised (a plural too): a term is a proper noun, and the everyday word stays lower case (ui.md, Naming);
+//                      a term whose line says "case":"any" rules its words out in any case.
 //   TERM UNKNOWN NAME  a capitalised element name in neither list: a CamelCase word or a Capitalised compound ending in a type word of ui.md's section 2.
 //   TERM CLASS         a CSS class that names an element's kind without its type word: a listed compound's subject, a listed class's subject, or a retired word of a
 //                      ui.md term, unless it always stands beside a class that carries a type word (class="chip now", class="cell verdict").
@@ -25,7 +27,7 @@ function glossaryDir(given) {
     .find(d => fs.existsSync(path.join(d, "ui.md")) && fs.existsSync(path.join(d, "boards.md"))) || null;
 }
 const cellsOf = line => line.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|").map(c => c.trim());
-/* A file's rows and term lines, wherever they stand: { rows: [{ term, cells, line }], lines: [{ term, not, allow, line }], problems: [] } */
+/* A file's rows and term lines, wherever they stand: { rows: [{ term, cells, line }], lines: [{ term, not, allow, case, line }], problems: [] } */
 function readFile(text, name) {
   const rows = [], lines = [], problems = []; let fence = false;
   String(text).replace(/\r\n/g, "\n").split("\n").forEach((line, i) => {
@@ -35,7 +37,8 @@ function readFile(text, name) {
       let o; try { o = JSON.parse(t); } catch (e) { problems.push(`${name}:${i + 1}: a fenced line is not JSON: ${t.slice(0, 80)}`); return; }
       if (!o || typeof o.term !== "string") return;   // a rule line, {"name":…}, stands beside the term lines
       const list = k => { if (o[k] === undefined) return []; if (Array.isArray(o[k]) && o[k].every(x => typeof x === "string" && x.trim())) return o[k]; problems.push(`${name}:${i + 1}: "${k}" of ${o.term} is not a list of words`); return []; };
-      lines.push({ term: o.term, not: list("not"), allow: list("allow"), line: i + 1 }); return;
+      let cs = null; if (o.case === "any") cs = "any"; else if (o.case !== undefined) problems.push(`${name}:${i + 1}: "case" of ${o.term} is not "any": ${JSON.stringify(o.case)}`);
+      lines.push({ term: o.term, not: list("not"), allow: list("allow"), case: cs, line: i + 1 }); return;
     }
     if (!/^\s*\|/.test(line)) return;
     const cells = cellsOf(line), m = /^\*\*([^*]+?)\*\*/.exec(cells[0]);
@@ -58,10 +61,10 @@ function basicTerms(uiText) {
 /* The glossary, parsed from the two files' texts: every name it holds comes from them. */
 function parseGlossary(uiText, boardsText) {
   const ui = readFile(uiText, "ui.md"), boards = readFile(boardsText, "boards.md"), problems = [...ui.problems, ...boards.problems];
-  const terms = new Map(), get = t => { if (!terms.has(t)) terms.set(t, { term: t, files: [], not: [], allow: [] }); return terms.get(t); };
+  const terms = new Map(), get = t => { if (!terms.has(t)) terms.set(t, { term: t, files: [], not: [], allow: [], case: null }); return terms.get(t); };
   [[ui, "ui.md"], [boards, "boards.md"]].forEach(([f, name]) => {
     f.rows.forEach(r => { const x = get(r.term); if (!x.files.includes(name)) x.files.push(name); });
-    f.lines.forEach(l => { const x = get(l.term); if (!x.files.includes(name)) x.files.push(name); l.not.forEach(w => { if (!x.not.includes(w)) x.not.push(w); }); l.allow.forEach(w => { if (!x.allow.includes(w)) x.allow.push(w); }); });
+    f.lines.forEach(l => { const x = get(l.term); if (!x.files.includes(name)) x.files.push(name); if (l.case) x.case = l.case; l.not.forEach(w => { if (!x.not.includes(w)) x.not.push(w); }); l.allow.forEach(w => { if (!x.allow.includes(w)) x.allow.push(w); }); });
   });
   /* the type words: ui.md's one-word terms, section 2 only, the longest first */
   const basic = basicTerms(uiText), uiTerms = ui.rows.map(r => r.term).filter(t => /^[A-Z][A-Za-z]*$/.test(t)), typeWords = uiTerms.filter(t => !basic.has(t)).sort((a, b) => b.length - a.length);
@@ -111,7 +114,8 @@ const FUNCTION_WORDS = new Set("The A An This That These Those Each Every Its No
 function matchers(G) {
   if (G.__m) return G.__m;
   const typeRe = G.typeWords.map(escRe).join("|"), banned = [];
-  G.terms.forEach(t => t.not.forEach(w => banned.push({ word: w, term: t.term, re: new RegExp(`\\b${escRe(w)}s?\\b`, "g"), allow: t.allow.map(a => new RegExp(escRe(a), "g")) })));
+  /* case-sensitive, save a term whose line says "case":"any": its words and its allowed names then match in any case */
+  G.terms.forEach(t => { const fl = t.case === "any" ? "gi" : "g"; t.not.forEach(w => banned.push({ word: w, term: t.term, re: new RegExp(`\\b${escRe(w)}s?\\b`, fl), allow: t.allow.map(a => new RegExp(escRe(a), fl)) })); });
   const known = new Set([...G.names].map(n => n.toLowerCase())); G.terms.forEach(t => known.add(t.term.toLowerCase()));
   return (G.__m = { banned, known,
     compound: new RegExp(`\\b([A-Z][\\w-]*(?: [A-Z][\\w-]*)*) (${typeRe})s?\\b`, "g"),

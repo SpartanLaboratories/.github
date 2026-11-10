@@ -30,7 +30,8 @@ The list has two sections:
   summary Tile), the type word taken from this file, so the type vocabulary stays small. The
   subject is the consumer's.
 - **A word in neither section names no element.** "Bubble" is retired: what it named is a Card.
-  "Glow" is retired: what it named is a FillPulse.
+  "Glow" is retired: what it named is a FillPulse. A term line with `"case":"any"` rules its
+  words out in lower case too.
 - **Adding a term.** An element none of these terms describes is added here first, in the
   section it belongs to, with its function and what it is built from, before any consumer names
   it. A term is never reused for a second element.

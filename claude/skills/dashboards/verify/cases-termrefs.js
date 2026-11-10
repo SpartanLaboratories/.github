@@ -5,7 +5,8 @@
 // 2. The parser keys on the rows: a rule line ({"name":…}) under a heading, a table row inside a fence, a bad line (named), a missing paragraph (named).
 // 3. The scan: a banned word, the everyday lower-case word left alone, the allowed longer name, code, a capitalised name in neither list, a listed one, a sentence's first word.
 // 4. The classes: a subject without its type word, a class beside its type word, a retired word, a template's class list read from the markup and the selectors.
-// 5. check.js and check-board.js warn and fail nothing for it; a quoted title, a signature and a key are left out.
+// 5. A term line's "case": case-sensitive by default, "case":"any" in any case (lower case, plural), its "allow" still exempting, a bad value named.
+// 6. check.js and check-board.js warn and fail nothing for it; a quoted title, a signature and a key are left out.
 // Each group returns [title, cases], a case [name, ok, detail].
 "use strict";
 const fs = require("fs"), path = require("path"), os = require("os"), cp = require("child_process");
@@ -29,7 +30,7 @@ module.exports = function casesTermrefs(X) {
     const seeds = lines.flatMap(([n, f]) => f.lines.flatMap(l => l.not.map(w => ({ n, w, text: n === "ui.md" ? ui : boards }))));
     const unsourced = seeds.filter(s => !new RegExp(`"${s.w}" is retired`).test(s.text)).map(s => `${s.n}: ${s.w}`);
     c.push(["every ruled-out word is one its own file says is retired: none invented", seeds.length > 0 && !unsourced.length, js(unsourced)]);
-    c.push(["the seeds read: Card not Bubble, FillPulse not Glow, board not Page (GitHub Pages allowed)", js(G.terms.get("Card").not) === '["Bubble"]' && js(G.terms.get("FillPulse").not) === '["Glow"]' && js(G.terms.get("board").not) === '["Page"]' && js(G.terms.get("board").allow) === '["GitHub Pages"]', js([...G.terms.values()].filter(t => t.not.length))]);
+    c.push(["the seeds read: Card not Bubble, FillPulse not Glow, board not Page (GitHub Pages allowed)", js(G.terms.get("Card").not) === '["Bubble"]' && G.terms.get("Card").case === null && js(G.terms.get("FillPulse").not) === '["Glow"]' && G.terms.get("FillPulse").case === null && js(G.terms.get("board").not) === '["Page"]' && js(G.terms.get("board").allow) === '["GitHub Pages"]' && G.terms.get("board").case === null, js([...G.terms.values()].filter(t => t.not.length))]);
     const names = ["WIP Panel", "Now Chip", "KPI Tile", "Guarantees Panel", "Context Panel", "Timeline Tile", "Quality Reviews Tile", "Verdict Cell", "As built Cell", "Hide Button"], gone = names.filter(n => !G.names.has(n));
     c.push(["the capitalised compounds are read from the compound-names paragraph and the rows", !gone.length && !G.names.has("Panel Panel"), js([gone, [...G.names]])]);
     const sub = ["guarantee", "wip", "unit", "verdict", "kpi", "dep", "upnext"], gone2 = sub.filter(s => !G.subjects.has(s));
@@ -71,6 +72,21 @@ module.exports = function casesTermrefs(X) {
     c.push(["a subject and a retired word are named; a class with, or standing beside, a type word is not", !wrong.length, js(wrong)]);
     const pb = rd(sk("plan/template/dashboard.html"));
     c.push(["the current template's class list is read from its markup and its selectors", T.classesOf(pb).has("kpi-tile") && T.classesOf(pb).has("stepbar"), ""]);
+  });
+
+  guard("a term line's case: case-sensitive by default, \"case\":\"any\" in any case", c => {
+    const ui = ["## 2. Specific", "", "| Term | Function |", "|---|---|", "| **Card** | A statement. |", "| **Panel** | Holds. |", "", "```jsonl",
+      '{"term":"Card","not":["Bubble"],"allow":["Bubble Tea"]}', '{"term":"Panel","not":["Glow"],"allow":["Glow Stick"],"case":"any"}', "```"].join("\n");
+    const boards = ["## B", "", "A board's compound names follow the rule: a **status Card**, and so on (a KPI Card).", "", "Where a template's CSS class names an element's kind: `.card`."].join("\n");
+    const g = T.parseGlossary(ui, boards), hit = t => T.termRefs(t, g).banned.map(b => b.hit);
+    c.push(["a line's case is read: none by default, \"any\" when it says so; no problem", g.terms.get("Card").case === null && g.terms.get("Panel").case === "any" && !g.problems.length, js([g.terms.get("Card"), g.terms.get("Panel"), g.problems])]);
+    const cases = [["a Bubble, two Bubbles", ["Bubble", "Bubbles"]], ["a bubble, two bubbles, BUBBLE", []], ["a Glow, a glow, GLOW", ["Glow", "glow", "GLOW"]], ["two glows, two Glows", ["glows", "Glows"]],
+      ["a glow stick, a GLOW STICK, a Glow Stick", []], ["a glow stick and a glow", ["glow"]], ["a Bubble Tea and a bubble tea", []], ["`glow` and [x](glow.md)", []], ["aglow, glowing", []]];
+    const wrong = cases.filter(([t, b]) => js(hit(t)) !== js(b)).map(([t, b]) => [t, hit(t), b]);
+    c.push(["case-sensitive by default; \"case\":\"any\" matches lower case, capitals and the plural; \"allow\" still exempts, in any case for that term", !wrong.length, js(wrong)]);
+    const bad = T.parseGlossary(ui.replace('"case":"any"', '"case":"Any"').replace('"allow":["Bubble Tea"]', '"allow":["Bubble Tea"],"case":true'), boards);
+    const named = ['"case" of Panel is not "any": "Any"', '"case" of Card is not "any": true'];
+    c.push(["a bad case value is named, and the term stays case-sensitive", named.every(n => bad.problems.some(p => p.includes(n))) && bad.terms.get("Panel").case === null && !T.termRefs("a glow", bad).banned.length, js(bad.problems)]);
   });
 
   guard("check.js and check-board.js warn on the names and fail nothing for them", c => {
