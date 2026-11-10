@@ -480,9 +480,10 @@ On **every** event also send `at` (the ISO time the moment happened, so a queued
 event keeps its true time; read it from the clock with `date -u +%FT%TZ` at that
 moment, never rounded or estimated), and `open` whenever an open point is raised
 or resolved: `[{text, raised, ref?, resolved?}]` — e.g. a plan inconsistency the
-implementer raises for the planner, or an item left to the maintainer. During a
-remediation loop, `implementation-stage` also carries `rows`: the board Row ids
-the fixes touch.
+implementer raises for the planner, or an item left to the maintainer; read
+`raised` and `resolved` from the clock the same way, at the moment the point is
+raised or resolved. During a remediation loop, `implementation-stage` also
+carries `rows`: the board Row ids the fixes touch.
 
 The team raises the issue board's `state-boards` step itself inside the
 `state-boards` request of step 6, the commit task (`document-landing`) inside

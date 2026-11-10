@@ -13,7 +13,9 @@
 // --at         the event's time (default: facts.at, else now); every stamp the event writes takes it
 // --arrived    the request's arrival time at the team, given for a run's event (team-raised events and backfills go without it): a facts.at
 //              that is missing, or more than ARRIVAL_TOLERANCE_S (2 minutes) from it, is replaced by the arrival time, and the summary's
-//              "arrival" line says so, for the team to tell the run; a facts.at within it is kept. --at, when given, still wins
+//              "arrival" line says so, for the team to tell the run; a facts.at within it is kept. The same holds for the raised time of
+//              each open point the event newly raises and the resolved time of each it newly resolves (facts.open; a point carried forward
+//              with what the board holds is not read), each replacement named on the arrival line. --at, when given, still wins
 //              (plan/RULES.md §4, "The event's time")
 // --view       the live view only (the land's landing and merge, the post-merge refresh's landed, plan/RULES.md §4, "The live view of a
 //              landing"): every board it would write in place (the issue's, its parent tracking board) is written as its view copy under the
@@ -101,6 +103,8 @@ const S = { result: null, event: null, arrival: null, issue: null, board: null, 
 const WARNINGS = S.warnings;
 const say = () => {
   S.ms = Date.now() - T0;
+  /* the open points' times held to the arrival (holdOpenTime()) join the event's own on the one arrival line */
+  if (OPEN_HELD.size) S.arrival = [S.arrival, ...OPEN_HELD].filter(Boolean).join("; ");
   S.warnings.splice(0, S.warnings.length, ...new Set(S.warnings));
   if (S.warnings.length && S.check && !/fast-path warning/.test(S.check)) S.check += ` · ${S.warnings.length} fast-path warning${S.warnings.length === 1 ? "" : "s"} (below)`;
   const enrich = S.enrich.length ? "yes" : "no", noWork = S.unfinished ? "no enrichment: the run reports those tasks' true states and the event is raised again" : "the event's facts decide everything it writes";
@@ -1083,13 +1087,34 @@ function openCopyFor(raw, text, folder) {
   OPEN_JOBS.push({ src, whole, rel });
   return rel;
 }
+/* An open point's times held to the event's arrival (plan/RULES.md §4, "The event's time"): with --arrived and no --at, the `raised` time
+   of a point this event newly raises (one not on wip.open) and the `resolved` time of one it newly resolves (on the board unresolved, or
+   resolved with another value, so the same event raised again finds the time it left) is replaced by the arrival time when missing (`true`,
+   for resolved) or further than ARRIVAL_TOLERANCE_S from the arrival, and the summary's arrival line names each (the point, the field, the
+   time sent, the time used). A point carried forward with what the board holds is not read; a value that is no time (a stage's label for
+   raised, a sentence for resolved) is kept. A raised time is never stored (wip.open.raised names the event or stage that raised it), so
+   holding it only tells the run its clock reading was off. The lines are kept once, however often the event is applied (the duplicate
+   check applies it twice). */
+const OPEN_HELD = new Set();
+function holdOpenTime(v, field, text) {
+  if (ARRIVED == null || opt("at")) return v;
+  const arrived = new Date(ARRIVED).toISOString().replace(/\.\d+Z$/, "Z"), who = `open point "${text.slice(0, 40)}"`;
+  if (v == null || v === true || (typeof v === "string" && !v.trim())) { OPEN_HELD.add(`${who} ${field} missing: stamped at arrival ${arrived}`); return arrived; }
+  if (typeof v !== "string" || !OPEN_TIME.test(v.trim()) || isNaN(Date.parse(v))) return v;
+  const off = Math.abs(Date.parse(v) - Date.parse(arrived)) / 1000;
+  if (off <= ARRIVAL_TOLERANCE_S) return v;
+  OPEN_HELD.add(`${who} ${field} ${v} replaced by arrival ${arrived} (off by ${Math.ceil(off)} s, over ${ARRIVAL_TOLERANCE_S / 60} min)`);
+  return arrived;
+}
 function mergeOpen(w, facts, applied, txt, raised, resolved, folder, dir, enrich) {
   w.open = Array.isArray(w.open) ? w.open : [];
   facts.open.forEach((o, i) => {
     const text = txt(o && typeof o === "object" ? o.text : o, `open[${i}].text`); if (!text) return;
-    const res = o && (o.resolved === true ? true : txt(o.resolved, `open[${i}].resolved`));
+    let res = o && (o.resolved === true ? true : txt(o.resolved, `open[${i}].resolved`));
     let have = w.open.find(x => x && x.text === text);
-    const said = txt(o && o.raised, `open[${i}].raised`), by = said && !OPEN_TIME.test(said) ? said : raised;
+    if (res && (!have || have.resolved !== res)) res = holdOpenTime(res, "resolved", text);
+    const sent = o && typeof o === "object" ? o.raised : null;
+    const said = txt(have ? sent : holdOpenTime(sent, "raised", text), `open[${i}].raised`), by = said && !OPEN_TIME.test(said) ? said : raised;
     if (!have) { const raw = o && typeof o.ref === "string" && o.ref.trim() ? openRefLocal(o.ref) : null, ref = raw ? openRefText(openRef(raw, folder), dir, enrich) : null;
       const copy = raw && ref !== openRef(raw, folder) ? openCopyFor(raw, text, folder) : null;
       have = { text, raised: by, ...(ref ? { ref } : {}), ...(copy ? { copy } : {}) }; w.open.push(have); applied.push(`wip.open + "${text.slice(0, 40)}"${copy ? " (its report copied for the live view)" : ""}`); }

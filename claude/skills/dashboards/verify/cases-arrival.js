@@ -2,7 +2,9 @@
 // verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-arrival.js [--out <dir>].
 // The trigger: runs sent facts.at guessed or rounded, at every session start. The team passes each run's event with its arrival time,
 // apply-event.js --arrived <UTC ISO>: a facts.at that is missing, or more than ARRIVAL_TOLERANCE_S (2 minutes) from the arrival, is
-// replaced by the arrival time and the summary's arrival line says so; one within it is kept, with no line. Without --arrived (team-raised
+// replaced by the arrival time and the summary's arrival line says so; one within it is kept, with no line. The raised time of an open point
+// the event newly raises and the resolved time of one it newly resolves are held the same way, each replacement named on the arrival line,
+// a point carried forward with the board's times not read (KotlinBottools #23). Without --arrived (team-raised
 // events, backfills) nothing changes; --at still wins; an --arrived that is no ISO time with its zone is a usage error. No case opens a
 // browser. Each group returns [title, cases], a case [name, ok, detail].
 "use strict";
@@ -40,6 +42,19 @@ module.exports = function casesArrival(X) {
     let p = null; try { p = JSON.parse(rd(path.join(B.dir, "plan.json"))); } catch (e) { /* none */ }
     return { a, S, p, stamp: p && p.wip && p.wip.event && p.wip.event.name === "implementation-stage" ? p.wip.event.at : null }; };
   const arrivalLines = a => (a.stdout || "").split(/\r?\n/).filter(l => /^arrival: /.test(l));
+  /* the open points' times (KotlinBottools #23): one implementation-stage with facts.open, on a fresh board whose wip.open is
+     `held` (the points carried from before); `at` the facts.at sent; `again` raises the same request a second time on the same board */
+  const evOpen = (at, open, flags, held, again) => { const B = lay(); if (held) { const p0 = JSON.parse(rd(path.join(B.dir, "plan.json"))); p0.wip.open = held;
+      wr(path.join(B.dir, "plan.json"), JSON.stringify(p0, null, 2) + "\n"); const e = run(EMBED, [B.dir]); if (e.status !== 0) throw new Error("embed: " + (e.stdout + e.stderr).slice(-300)); }
+    const facts = { stage: "S1", stages: STG("done", "current"), at, open };
+    const rq = wr(path.join(sc, `req-${++n}.json`), js({ v: 1, action: "plan-board", github: B.plan.repo, issue: B.plan.issue, event: "implementation-stage", folder: B.plan.folder, facts }));
+    const go = () => run(APPLY, ["--event", rq, "--worktree", B.root, "--no-gh", "--no-live", "--json", ...(flags || [])]);
+    const a = go(), S = parse(a), a2 = again ? go() : null, S2 = a2 ? parse(a2) : null;
+    let p = null; try { p = JSON.parse(rd(path.join(B.dir, "plan.json"))); } catch (e) { /* none */ }
+    const pt = t => p && p.wip && (p.wip.open || []).find(x => x && x.text === t) || null;
+    return { a, S, a2, S2, p, pt }; };
+  const P1 = "A plan inconsistency the build met in stage one.", P2 = "A second point, carried from an earlier stage.";
+  const who = t => `open point "${t.slice(0, 40)}"`;
 
   guard("apply-event.js --arrived: a facts.at within 2 minutes of the arrival is kept, with no arrival line", c => {
     const w = ev(sec(-90), ["--arrived", A, "--json"]);
@@ -88,7 +103,59 @@ module.exports = function casesArrival(X) {
       c.push([`--arrived ${JSON.stringify(bad)}: exit 2, the usage names it, nothing written`, u.a.status === 2 && /--arrived takes the request's arrival time/.test(u.a.stderr) && u.stamp === null, js([u.a.status, (u.a.stderr || "").split(/\r?\n/).slice(-1)[0]])]);
     });
     const src = rd(APPLY);
+    c.push(["the open points' times are held by the same named tolerance", /function holdOpenTime\([^)]*\) \{[\s\S]*?off <= ARRIVAL_TOLERANCE_S[\s\S]*?\n\}/.test(src), ""]);
     c.push(["the tolerance is one named constant, 120 s", /^const ARRIVAL_TOLERANCE_S = 120;$/m.test(src) && (src.match(/\b120\b/g) || []).length === 1, ""]);
+  });
+
+  guard("apply-event.js --arrived: an open point's raised and resolved times, newly sent, more than 2 minutes off are replaced by the arrival time, each named", c => {
+    const r = evOpen(sec(-30), [{ text: P1, raised: sec(-600) }], ["--arrived", A]);
+    c.push(["a newly raised point's raised time 600 s off: replaced, the arrival line names the point, the field, the time sent and the time used",
+      r.a.status === 0 && r.S.arrival === `${who(P1)} raised ${sec(-600)} replaced by arrival ${A} (off by 600 s, over 2 min)` && !!r.pt(P1) && !/^\d{4}-/.test(r.pt(P1).raised) && r.pt(P1).resolved == null,
+      js([r.a.status, r.S.arrival, r.pt(P1), r.S.error])]);
+    const s = evOpen(sec(-30), [{ text: P1, raised: "2026-11-03T01:00:00Z", resolved: sec(-300) }], ["--arrived", A], [{ text: P1, raised: "implementation-stage S1" }]);
+    c.push(["a newly resolved point (on the board unresolved) with its resolved time 300 s off: resolved at the arrival, the line names only the resolved time (its old raised time is carried)",
+      s.a.status === 0 && s.pt(P1) && s.pt(P1).resolved === A && s.pt(P1).raised === "implementation-stage S1" && s.S.arrival === `${who(P1)} resolved ${sec(-300)} replaced by arrival ${A} (off by 300 s, over 2 min)` && !js(s.p).includes(sec(-300)),
+      js([s.a.status, s.pt(P1), s.S.arrival, s.S.error])]);
+    const b = evOpen(sec(-30), [{ text: P1, raised: sec(-900), resolved: sec(-400) }], ["--arrived", A]);
+    c.push(["a point raised and resolved in the same event: both times held, two replacements on the one arrival line",
+      b.a.status === 0 && b.pt(P1) && b.pt(P1).resolved === A && b.S.arrival === `${who(P1)} resolved ${sec(-400)} replaced by arrival ${A} (off by 400 s, over 2 min); ${who(P1)} raised ${sec(-900)} replaced by arrival ${A} (off by 900 s, over 2 min)`,
+      js([b.pt(P1), b.S.arrival, b.S.error])]);
+    const f = evOpen("2026-11-03T00:00:00Z", [{ text: P1, raised: sec(-30), resolved: "2026-11-03T04:00:00Z" }], ["--arrived", A]);
+    c.push(["with facts.at held as well: the event's line first, then the open point's, on the one arrival line",
+      f.a.status === 0 && f.S.arrival === `facts.at 2026-11-03T00:00:00Z replaced by arrival ${A} (off by 18000 s, over 2 min); ${who(P1)} resolved 2026-11-03T04:00:00Z replaced by arrival ${A} (off by 3600 s, over 2 min)` && f.pt(P1).resolved === A,
+      js([f.S.arrival, f.pt(P1), f.S.error])]);
+    const d = evOpen(sec(-30), [{ text: P1, raised: sec(-600), resolved: sec(-300) }], ["--arrived", A], null, true);
+    c.push(["the same event raised again with the same arrival: a duplicate, the board keeps the arrival time it was given",
+      d.a.status === 0 && d.a2.status === 0 && d.S2.result === "duplicate" && d.pt(P1).resolved === A, js([d.S2.result, d.pt(P1), d.S2.error])]);
+  });
+
+  guard("apply-event.js --arrived: an open point's times within 2 minutes are kept; a point carried forward is not read", c => {
+    const k = evOpen(sec(-30), [{ text: P1, raised: sec(-100), resolved: sec(-110) }], ["--arrived", A]);
+    c.push(["raised 100 s and resolved 110 s before the arrival: kept as sent, no arrival line", k.a.status === 0 && k.pt(P1) && k.pt(P1).resolved === sec(-110) && k.S.arrival == null, js([k.pt(P1), k.S.arrival, k.S.error])]);
+    const OLD = "2026-11-03T01:00:00Z";
+    const cf = evOpen(sec(-30), [{ text: P1, raised: OLD, resolved: OLD }, { text: P2, raised: OLD }], ["--arrived", A],
+      [{ text: P1, raised: "implementation-stage S1", resolved: OLD }, { text: P2, raised: "implementation-stage S1" }]);
+    c.push(["a resolved point and an open one carried forward with the board's times, 4 hours before the arrival: untouched, no arrival line",
+      cf.a.status === 0 && cf.pt(P1).resolved === OLD && cf.pt(P2) && cf.pt(P2).resolved == null && cf.S.arrival == null, js([cf.pt(P1), cf.pt(P2), cf.S.arrival, cf.S.error])]);
+    const sn = evOpen(sec(-30), [{ text: P1, raised: "implementation-stage S1", resolved: "Settled by the plan's amendment." }], ["--arrived", A]);
+    c.push(["a value that is no time (a stage's label for raised, a sentence for resolved): kept, no arrival line", sn.a.status === 0 && sn.pt(P1).resolved === "Settled by the plan's amendment." && sn.S.arrival == null, js([sn.pt(P1), sn.S.arrival, sn.S.error])]);
+  });
+
+  guard("apply-event.js --arrived: a newly resolved point with no resolved time, and a newly raised one with no raised time, are stamped at the arrival", c => {
+    const m = evOpen(sec(-30), [{ text: P1, resolved: true }], ["--arrived", A], [{ text: P1, raised: "implementation-stage S1" }]);
+    c.push(["resolved: true on a point the board holds open: resolved at the arrival, the line says the time was missing",
+      m.a.status === 0 && m.pt(P1) && m.pt(P1).resolved === A && m.S.arrival === `${who(P1)} resolved missing: stamped at arrival ${A}`, js([m.pt(P1), m.S.arrival, m.S.error])]);
+    const r = evOpen(sec(-30), [{ text: P2 }], ["--arrived", A]);
+    c.push(["a newly raised point with no raised time: the line says it was missing; the board names the event that raised it", r.a.status === 0 && r.pt(P2) && !!r.pt(P2).raised && r.S.arrival === `${who(P2)} raised missing: stamped at arrival ${A}`, js([r.pt(P2), r.S.arrival, r.S.error])]);
+  });
+
+  guard("apply-event.js: an open point's times without --arrived, or with --at, are kept as sent", c => {
+    const o = evOpen(sec(-30), [{ text: P1, raised: sec(-600), resolved: sec(-300) }], []);
+    c.push(["no --arrived: the resolved time kept as sent, no arrival line", o.a.status === 0 && o.pt(P1).resolved === sec(-300) && o.S.arrival == null, js([o.pt(P1), o.S.arrival, o.S.error])]);
+    const t = evOpen(sec(-30), [{ text: P1, resolved: true }], []);
+    c.push(["no --arrived, resolved: true: kept true", t.a.status === 0 && t.pt(P1).resolved === true && t.S.arrival == null, js([t.pt(P1), t.S.arrival])]);
+    const a = evOpen(sec(-30), [{ text: P1, raised: sec(-600), resolved: sec(-300) }], ["--at", "2026-11-03T04:00:00Z", "--arrived", A]);
+    c.push(["--at with --arrived: the resolved time kept as sent, the line says only that the time was not held", a.a.status === 0 && a.pt(P1).resolved === sec(-300) && /^not held: --at 2026-11-03T04:00:00Z given \(arrival 2026-11-03T05:00:00Z\)$/.test(a.S.arrival || ""), js([a.pt(P1), a.S.arrival, a.S.error])]);
   });
 
   return groups;

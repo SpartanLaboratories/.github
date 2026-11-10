@@ -47,7 +47,8 @@ enriches the board from the folder's documents, writing through `fill.js`, so ev
 reference into the plan, `plan/RULES.md` §2), the outcomes, the consequences (`consequences.md`, `impact.md` in an older folder), what
 the foundation at `sized` reads as being written (the function, the Rows with their Gap, a sub-issue's Considered column).
 A run's event is raised with `--arrived`, its arrival time: a `facts.at` that is missing or more than 2 minutes from it is replaced by the
-arrival time, and the summary's `arrival` line says so; team-raised events and backfills go without it and keep their given times
+arrival time, and so is the `raised` or `resolved` time of each open point the event newly raises or resolves (`facts.open`; a point
+carried forward is not read), and the summary's `arrival` line names each replacement; team-raised events and backfills go without it and keep their given times
 (`plan/RULES.md` §4, "The event's time").
 What the script decides and what the presenter adds is in `plan/RULES.md` §4, "The fast path". The presenter may move more onto it at its
 own call (the standing rule there), changing the rules and the scripts to match and reporting it as a skill fix.

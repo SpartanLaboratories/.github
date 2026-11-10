@@ -1294,7 +1294,16 @@ one named tolerance in `apply-event.js`), is replaced by the arrival time before
 it, and the summary's `arrival` line says so (`facts.at <sent> replaced by arrival <arrived> (off by <n> s, over 2 min)`, or `facts.at
 missing: stamped at arrival <arrived>`; in `--json`, the `arrival` field), for the team to tell the run in its reply. A `facts.at` within
 the tolerance is kept, with no line. A `facts.at` that is no ISO time is not replaced: the event is refused, naming it, as without the
-option. `--at`, when given, still wins (the line says the time was not held). The team-raised events (`run-restarted`, `retime`,
+option. **The open points' times** are held the same way (KotlinBottools #23: a resolved time sent as an estimate, and as the report's
+time): in `facts.open`, the `raised` time of a point the event **newly raises** (one not on `wip.open`) and the `resolved` time of one it
+**newly resolves** (on the board unresolved, or resolved with another value, so the same event raised again finds the time it left and is
+a duplicate), when missing (`resolved: true`, for a resolution) or more than 2 minutes from the arrival, are replaced by the arrival time,
+and the `arrival` line names each replacement after the event's own, joined by `; ` (`open point "<text>" <raised|resolved> <sent>
+replaced by arrival <arrived> (off by <n> s, over 2 min)`, or `open point "<text>" <field> missing: stamped at arrival <arrived>`). A point
+carried forward with what the board already holds is not read, and a value that is no time (a stage's label for `raised`, a sentence for
+`resolved`) is kept. A `raised` time is never stored, as `wip.open.raised` names the event or stage that raised it, so holding it only
+tells the run its clock reading was off. A resolved time recorded wrong all the same is corrected through `fill.js` (§4, the fill's
+`wip.open`), as before. `--at`, when given, still wins (the line says the time was not held, the open points' times included). The team-raised events (`run-restarted`, `retime`,
 `state-boards`, `landing`, `merge`, `landed`, `sub-issues-filed`, `reseed`, `seed`, `unit-landed`) and backfills are raised without
 `--arrived`, and keep the times they are given; without the option nothing changes. An `--arrived` that is no ISO time with its zone is a
 usage error (exit 2). The cases: `verify/cases-arrival.js`.
