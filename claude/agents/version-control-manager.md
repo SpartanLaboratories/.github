@@ -213,8 +213,9 @@ the plan says it must stops you at that step: run no further step, retry
 nothing, and report the step reached and the state left under **Stopped — check
 failed**; the team replies `stopped`. A `realign-checkout` also checks,
 immediately before the move and whatever its `checks` say, that the checkout's
-tracked files are unchanged: on any change, move nothing and report it under
-**Stopped — check failed**.
+tracked files are unchanged (`git status --porcelain --untracked-files=no`
+prints nothing): on any change, move nothing and report it under **Stopped —
+check failed**.
 
 **Temporary permissions.** A request may ask for a temporarily-requestable
 action. Its reason comes in the request's `permissionReason`, the job's name.
