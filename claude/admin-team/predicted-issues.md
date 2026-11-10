@@ -170,9 +170,9 @@ The rewrite's design allows more than `edit-issue-body` covers.
 {"id":"p13","count":0,"last":null}
 ```
 
-The move is safe only while tracked files are unchanged, and nothing says who checks.
+The move is safe only while tracked files are unchanged.
 
-- **Proposed resolution:** the executor checks immediately before the move and stops under "Stopped — needs you"; other preconditions travel in the request's `procedure` and `checks`.
+- **Resolution (decided by the user, 2026-11-10):** the executor checks that the checkout's tracked files are unchanged immediately before the move; on any change it moves nothing and the team replies `stopped`; other preconditions travel in the request's `procedure` and `checks`.
 - **Predicted:** the admin team, 2026-11-09.
 - **Encounters:**
   - None yet.

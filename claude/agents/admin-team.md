@@ -229,7 +229,7 @@ board (`dashboards` skill, `plan/RULES.md` §10).
 | `placeholder-issue` | Per `procedure`: create a closed issue in `target` from `title` and `body`, at `number`. |
 | `link-issues` | Per `procedure`: add or remove each of `relationships`. |
 | `edit-issue-body` | Per `procedure`: replace the body of `issue` in `target` with `body`. |
-| `realign-checkout` | Per `procedure`: bring the checkout at `repo` onto its repository's rewritten history, in place. |
+| `realign-checkout` | Per `procedure`: bring the checkout at `repo` onto its repository's rewritten history, in place, once the executor has checked, immediately before the move, that its tracked files are unchanged (`version-control-manager.md`, Executor mode). |
 | `replace-clone` | Per `procedure`: replace the checkout at `repo` with a fresh clone at the same path. |
 | `create-label` | Per `procedure`: create the labels in `target`. |
 | `create-milestone` | Per `procedure`: create the milestones in `target`. |

@@ -156,7 +156,9 @@ existing issue). The sender tells the user what was filed.
 request carries the plan's `procedure`, `inputs` and `checks`; the team carries them out with the
 organisation administrator's GitHub permissions, and the sender verifies each write by reading
 GitHub or the checkout before its next step. A `fixture-pull-request` is a branch, a commit, the
-pull request and its merge, in the job's own scope.
+pull request and its merge, in the job's own scope. Immediately before a `realign-checkout` moves the
+checkout, the team checks that its tracked files are unchanged, whatever the `checks` say; on any
+change it moves nothing and replies `stopped`.
 
 Publishing has no action: the team raises it itself inside `land` (the release consideration of
 every bump that moved a published module) and at its consideration points (startup, a landing, a
