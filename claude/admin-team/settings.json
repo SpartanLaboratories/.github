@@ -42,9 +42,7 @@
       "Bash(./gradlew:*)",
       "Bash(git tag:*)",
       "Bash(gh release:*)",
-      "Bash(curl:*)",
-      "Bash(gh api orgs/SpartanLaboratories/repos -f name=phase0-rehearsal-a :*)",
-      "Bash(gh api orgs/SpartanLaboratories/repos -f name=phase0-rehearsal-b :*)"
+      "Bash(curl:*)"
     ],
     "deny": [
       "Bash(git push --force:*)",
