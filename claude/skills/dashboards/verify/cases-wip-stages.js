@@ -108,6 +108,26 @@ module.exports = function casesWipStages(X) {
     c.push(["a Document task: started at its event, finished with its report, the next started", d2.a.status === 0 && TS[0].started === T1 && TS[0].finished === T2 && TS[0].report === "The review is done." && TS[1].started === T2, js([TS, d2.S.error])]);
   });
 
+  /* ---------- 2b. the ids' case, a comma inside a step's name, and the catch-up (KotlinBottools #23: the plan's "S0" against the run's "s0") ---------- */
+  guard("the stage table: a row matched to its stage whatever the id's case, a step's name holding a comma, a board that missed the table caught up", c => {
+    const T = lib.stageTable("| id | name | brief | kind | steps |\n|---|---|---|---|---|\n| S0 | Ready | b | check | ready: Pins, data copy, backups; tests: Walk tool, shell scripts |\n| S1 | Next | c | work | a, b |\n");
+    c.push(["a cell with a semicolon splits on it alone: a name keeps its commas", !!T && js(T.stages[0].steps) === js([{ id: "ready", name: "Pins, data copy, backups" }, { id: "tests", name: "Walk tool, shell scripts" }]) && !T.problems.length, js(T)]);
+    c.push(["a cell with no semicolon still splits on commas", !!T && js(T.stages[1].steps) === js([{ id: "a", name: "a" }, { id: "b", name: "b" }]), js(T && T.stages[1].steps)]);
+    c.push(["stageRow(): an id matched whatever its case and backticks", lib.stageRow(T.stages, "s0") === T.stages[0] && lib.stageRow(T.stages, "`S1`") === T.stages[1] && lib.stageRow(T.stages, "s9") === null, ""]);
+    const lower = STAGES.map(x => ({ id: x.id.toLowerCase(), name: x.name }));
+    const plan = atBranch(), B = lay("case", plan), a = apply(B, plan, "branch-cut", { branch: "feat/x", stages: lower }, T0), [s1, s2, s3] = a.p.wip.stages;
+    c.push(["branch-cut with the stages' ids in lower case: each still takes its row", a.a.status === 0 && s1.id === "s1" && s1.brief === "the tool `saved` and checked | both ways" && s3.kind === "check" && s2.ref === "plan.md#s2--the-walk", js(a.p.wip.stages)]);
+    /* a board laid as the earlier fast path left it: its stages with nothing of the table */
+    const bare = copy(a.p); bare.wip.stages.forEach(x => { delete x.brief; delete x.kind; delete x.steps; delete x.ref; });
+    const C = lay("catchup", bare), b = apply(C, bare, "implementation-stage", { stage: "s1", detail: "s1 is done.", stages: [{ id: "s1", name: "Local readiness", state: "done" }, { id: "s2", name: "The walk", state: "current" }, { id: "s3", name: "Link check", state: "todo" }] }, T1);
+    c.push(["the next event catches up a board that missed the table", b.a.status === 0 && b.p.wip.stages[0].brief === s1.brief && b.p.wip.stages[2].kind === "check" && (b.S.applied || []).some(x => /caught up/.test(x)), js([b.S.applied, b.p.wip.stages.map(x => x.brief)])]);
+    const again = apply(C, b.p, "implementation-stage", { stage: "s2", detail: "s2 is done.", stages: [{ id: "s1", name: "Local readiness", state: "done" }, { id: "s2", name: "The walk", state: "done" }, { id: "s3", name: "Link check", state: "current" }] }, T2);
+    c.push(["a board that holds the table is not caught up again", again.a.status === 0 && !(again.S.applied || []).some(x => /caught up/.test(x)), js(again.S.applied)]);
+    const D = lay("catchup-fill", bare), ff = wr(path.join(sc, "fill-catchup.json"), js({ notes: {} }));
+    const f = run(sk("plan/scripts/fill.js"), [D.dir, "--fields", ff, "--root", D.root, "--json"]), FS = parse(f), fp = JSON.parse(rd(path.join(D.dir, "plan.json")));
+    c.push(["a fill catches up a board that missed the table", f.status === 0 && fp.wip.stages[0].brief === s1.brief && js(fp.wip.stages[1].steps) === js(s2.steps) && (FS.merged || []).some(x => /caught up/.test(x)), js([f.status, FS.merged, FS.error])]);
+  });
+
   /* ---------- 3. check.js ---------- */
   guard("check.js holds the stage fields to their form", c => {
     const bad = patch => { const plan = flight({ step: "implementation", since: T0, updated: T0, current: ["built"], event: { name: "implementation-stage", at: T0 }, stages: [{ id: "S1", name: "One", state: "current", rows: [], ...patch }], history: { sizing: [{ since: null, ended: "2026-11-08T08:00:00Z", endedBy: "sized", to: "implementation" }] } }), B = lay("chk-" + (nreq++), plan, false); const k = run(CHECK, [B.dir, "--auto"]); return (k.stdout + k.stderr); };

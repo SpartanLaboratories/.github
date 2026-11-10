@@ -27,25 +27,30 @@
 //   "trailFix": [{ "label": "<the entry as it reads>", "to": "<as it should read>" }] rewords trail entries already there, each found by its label; a label not there is
 //   named and skipped (for a text that should never have been written: an internal name, a work level);
 //   "wip": { "stages": [{ id, rows }], "questions": [{ question, rows }], "interview": [{ text, answer }], "asked": [{ text, step?, answer }], "qa": [{ pass, note }],
-//            "current": { "step": "<the step this glow is for>", "cells": ["<row-id>.<column>"] }, "waitingOn": "<what waits on the user>", "detail": "<the WIP line, reworded>" }
+//            "current": { "step": "<the step this glow is for>", "cells": ["<row-id>.<column>"] }, "waitingOn": "<what waits on the user>", "detail": "<the WIP line, reworded>",
+//            "open": [{ text, resolved }] }
 //   sets only those fields of the items it names, an item the board does not hold named and skipped, and the glow only while the board's step is still that step. Any
-//   other wip key is refused. An answer's gist (the interview's, a halt's) is written on the snapshots that hold its question too (lib.js syncAsked()).
+//   other wip key is refused. wip.open corrects the time an open point already resolved was recorded at (a factual correction, plan/RULES.md §2: the fill also
+//   writes its notes.corrections entry), on every snapshot that holds the point with the same time; an open point not resolved yet is refused (resolving is the events'),
+//   and so is a time that is no UTC ISO time or is after wip.updated. An answer's gist (the interview's, a halt's) is written on the snapshots that hold its question too (lib.js syncAsked()).
 //   wip.waitingOn is the text the fast path left out or wrote in its stead (plan/RULES.md §4, "A work level in the facts is reworded"): while the board
 //   is halted or escalated it is written, and the stop's own trail entry and a detail that quoted the old text follow it, so the record reads alike;
 //   once an event has taken the board out of the stop, the last stop's trail entry alone takes it, and a waitingOn and resume left standing are cleared.
-// It keeps up what follows from new rows: a tracking board's wip.next once its unit rows first appear, the glow at research and at sub-issues, and a unit's
+// It catches up the plan's stage table on a board whose stages carry none of it (lib.js catchUpStageTable()), and keeps up what follows from new rows: a tracking board's wip.next once its unit rows first appear, the glow at research and at sub-issues, and a unit's
 // blocker named by unit number ({ "unit": k }, plan/RULES.md §3, unit.blockedBy) written as its issue number once that unit is filed.
 // Exit 0 when merged (the summary's check line says what still warns or fails), 1 when the fill would add a failure to the board (every file as it was), 2 on a usage error or a refused field.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const lib = require("./lib.js");
-const { titleSkip } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
-const { cleanWritten } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
+const { titleSkip, levelRefs } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
+const { cleanWritten, nameRefs, unambiguous } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
+/* why a brief of the plan's stage table cannot be shown (apply-event.js stageNope()), or null */
+const stageNope = s => levelRefs(s).length ? "a work level" : nameRefs(s).some(unambiguous) ? "an internal name" : lib.passRefs(s).length ? "an older wording of a review" : null;
 
 const OWNED = ["wip", "trail", "status", "sized", "branch", "asBuilt", "kind", "schema", "repo", "issue", "slug", "folder", "foundation", "links"];
 const IDENTITY = ["id", "slug", "issue", "class", "question", "pass", "n"];
 const LEVELS = new Set(["level", "proposedLevel"]);
-const WIP_KEYS = ["stages", "questions", "interview", "asked", "qa", "current", "waitingOn", "detail"];
+const WIP_KEYS = ["stages", "questions", "interview", "asked", "qa", "current", "waitingOn", "detail", "open"];
 const UNIT_KEPT = ["issue", "board", "folder", "live"];
 const ROW_DERIVED = ["pending", "in-progress", "partially-built"];
 const isObj = v => v != null && typeof v === "object" && !Array.isArray(v);
@@ -117,9 +122,9 @@ function mergeRow(cur, next, notes, plan) {
   return out;
 }
 /* The fill onto a board, in memory. Returns { plan, merged, notes, dropped }; throws Refused on a field the events own. */
-function mergeFill(board, fields) {
+function mergeFill(board, fields, planDir) {
   if (!isObj(fields)) throw new Refused("the fields are not a JSON object");
-  const dropped = [], notes = [], tSkip = titleSkip(null, "plan-board"), F = withoutNames(withoutLevels(fields, "", dropped), "", at => tSkip(at) || /^rows\[\d+\]\.options\[\d+\]\.signature$/.test(at) || /^trailFix\[\d+\]\.label$|^wip\.(?:interview|asked|questions|stages|qa)\[\d+\]\.(?:text|question|id|pass)$/.test(at), notes), plan = JSON.parse(JSON.stringify(board)), merged = [];
+  const dropped = [], notes = [], tSkip = titleSkip(null, "plan-board"), F = withoutNames(withoutLevels(fields, "", dropped), "", at => tSkip(at) || /^rows\[\d+\]\.options\[\d+\]\.signature$/.test(at) || /^trailFix\[\d+\]\.label$|^wip\.(?:interview|asked|questions|stages|qa|open)\[\d+\]\.(?:text|question|id|pass)$/.test(at), notes), plan = JSON.parse(JSON.stringify(board)), merged = [];
   /* the qa passes by name, "Quality Review N" (passnames.js): the fill's own text and the board's, so an item named by its text still matches */
   { const fr = lib.renamePassesIn(F, titleSkip(null, "plan-board")), br = lib.renamePasses(plan);
     if (fr.length) notes.push(`the fill's ${fr.slice(0, 4).join(", ")}${fr.length > 4 ? ", …" : ""}: a qa pass written "${lib.PASS_NAME} N"`); br.forEach(l => notes.push(`the board: ${l}`)); }
@@ -158,6 +163,18 @@ function mergeFill(board, fields) {
       hit.forEach(h => { if (x.answer !== undefined) h.answer = x.answer; }); merged.push(`wip.asked ${String(x.text).slice(0, 40)}`); });
     if (F.wip.interview || F.wip.asked) lib.syncAsked(w);
     by("qa", "pass", F.wip.qa, (h, x) => { if (x.note !== undefined) h.note = x.note; });
+    /* an open point's recorded resolution time corrected (a factual error, RULES §2): by its text, on wip.open and on every snapshot holding the same record */
+    (Array.isArray(F.wip.open) ? F.wip.open : []).forEach(x => {
+      if (!isObj(x) || typeof x.text !== "string" || !lib.isTime(x.resolved)) throw new Refused("wip.open: every entry names an open point by its text and the UTC ISO time it was resolved at ({ text, resolved })");
+      const hit = (Array.isArray(w.open) ? w.open : []).find(y => isObj(y) && y.text === x.text);
+      if (!hit) { notes.push(`wip.open has no ${JSON.stringify(x.text)}: skipped`); return; }
+      if (!lib.isTime(hit.resolved)) throw new Refused(`wip.open ${JSON.stringify(x.text)} is not resolved: an event resolves an open point, a fill only corrects the time it was recorded at`);
+      if (lib.isTime(w.updated) && Date.parse(x.resolved) > Date.parse(w.updated)) throw new Refused(`wip.open ${JSON.stringify(x.text)}: ${x.resolved} is after the board's last event (${w.updated})`);
+      if (hit.resolved === x.resolved) return;
+      const old = hit.resolved; let n = 0;
+      const fix = list => (Array.isArray(list) ? list : []).forEach(y => { if (isObj(y) && y.text === x.text && y.resolved === old) { y.resolved = x.resolved; n++; } });
+      fix(w.open); Object.values(isObj(w.history) ? w.history : {}).forEach(vs => (Array.isArray(vs) ? vs : []).forEach(v => isObj(v) && fix(v.open)));
+      merged.push(`wip.open resolved ${old} → ${x.resolved} (${n} record${n === 1 ? "" : "s"})`); });
     if (isObj(F.wip.current)) { const C = F.wip.current, cells = Array.isArray(C.cells) ? C.cells.map(String) : [];
       if (typeof C.step !== "string") throw new Refused("wip.current names the step its glow is for ({ step, cells })");
       if (lib.shownStep(w) === C.step) { w.current = cells; merged.push(`wip.current at ${C.step}`); } else notes.push(`wip.current was for ${C.step}; the board has moved on to ${lib.shownStep(w)}: left as the event set it`); }
@@ -181,6 +198,8 @@ function mergeFill(board, fields) {
         if (w.waitingOn != null || w.resume != null) { w.waitingOn = null; w.resume = null; merged.push("wip.waitingOn and wip.resume, left standing after the stop, cleared"); } }
     }
   }
+  /* a board whose branch-cut read no row of the plan's stage table catches it up (lib.js catchUpStageTable(), as the next event would) */
+  if (planDir && !["built", "abandoned"].includes(plan.status)) { const enr = [], n = lib.catchUpStageTable(w, planDir, stageNope, enr); if (n) merged.push(`wip.stages: ${n} from the plan's stage table, caught up`); enr.forEach(x => notes.push(x)); }
   /* what follows from new rows */
   const rowsNow = Array.isArray(plan.rows) ? plan.rows : [];
   if (plan.kind === "tracking" && !hadUnits && rowsNow.some(r => r && r.unit) && w.next == null) { const nx = lib.nextUnit(plan); if (nx) { w.next = nx.id; merged.push(`wip.next ${nx.id}`); } }
@@ -215,7 +234,7 @@ function main() {
   /* everything below is read here, under the lock: the latest board, whatever the events wrote while the fill was composed */
   const text = fs.readFileSync(planFile, "utf8"), eol = /\r\n/.test(text) ? "\r\n" : "\n"; let board;
   try { board = JSON.parse(text); } catch (e) { S.fill = "failed"; S.error = `plan.json does not parse: ${e.message}`; say(1); }
-  let R; try { R = mergeFill(board, fields); } catch (e) { if (!(e instanceof Refused)) throw e; S.fill = "refused"; S.error = e.message; say(2); }
+  let R; try { R = mergeFill(board, fields, lib.viewSource(dir) || dir); } catch (e) { if (!(e instanceof Refused)) throw e; S.fill = "refused"; S.error = e.message; say(2); }
   Object.assign(S, { merged: R.merged, notes: R.notes, dropped: R.dropped });
   const { embed } = require("./embed.js"), src = lib.viewSource(dir) || dir, up = lib.parentFolder(src, R.plan), upCopy = up && src !== dir ? (lib.viewOf(up, lib.viewParts(dir).root) || {}).dir : up;
   const snap = snapshot([dir, ...(upCopy && fs.existsSync(path.join(upCopy, "plan.json")) ? [upCopy] : [])]);

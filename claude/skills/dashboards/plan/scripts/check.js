@@ -43,8 +43,10 @@ const str = v => typeof v === "string" && v.trim().length > 0;
 const posInt = v => Number.isInteger(v) && v > 0;
 
 /* Template leftovers: a value written <like this>, an <issue>/<slug>/<sha>/<YYYY-MM-DD> token, or a $comment key. */
+/* A template placeholder left in the data: a whole value in angle brackets, or a named one (<issue>, <slug>, <sha>, …) as a word of its own, so a
+   quoted "<shape>" is no placeholder (KotlinBottools #23: an excerpt of a plan section that prints `ok    <shape>`). */
 function placeholders(v, at, found) {
-  if (typeof v === "string") { if (/^<[^>]*>$/.test(v.trim()) || /<(issue|slug|YYYY-MM-DD|sha|owner\/name)[^>]*>/.test(v)) found.push(at); }
+  if (typeof v === "string") { if (/^<[^>]*>$/.test(v.trim()) || /<(issue|slug|YYYY-MM-DD|sha|owner\/name)\b[^>]*>/.test(v)) found.push(at); }
   else if (Array.isArray(v)) v.forEach((x, i) => placeholders(x, `${at}[${i}]`, found));
   else if (v && typeof v === "object") Object.keys(v).forEach(k => { if (k === "$comment") found.push(`${at ? at + "." : ""}$comment`); else placeholders(v[k], at ? `${at}.${k}` : k, found); });
   return found;

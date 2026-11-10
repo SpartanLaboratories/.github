@@ -904,12 +904,8 @@ const RESULT_OF = v => { const t = String(v == null ? "" : v).trim().toLowerCase
 /* Stage fields a merge keeps: copied at branch-cut from the plan's stage table (brief, kind, steps, ref), recorded from the events (started, finished, report, result). */
 const STAGE_KEEP = ["brief", "kind", "steps", "ref", "started", "finished", "report", "result"];
 /* The brief goes on the board as the plan writes it, or not at all: a plan's text that names a work level, an internal name or an older pass wording is the plan's to reword, never reworded here (GUIDANCE.md §4). */
-function tableFields(T, enrich) {
-  const nope = s => levelRefs(s).length ? "a work level" : nameRefs(s).some(unambiguous) ? "an internal name" : lib.passRefs(s).length ? "an older wording of a review" : null;
-  const f = { ...(T.kind ? { kind: T.kind } : {}), ...(T.steps && T.steps.length ? { steps: T.steps } : {}), ...(T.ref ? { ref: T.ref } : {}) };
-  if (T.brief) { const bad = nope(T.brief); if (bad) enrich.push(`the plan's stage table: ${T.id}'s brief names ${bad}, which a board never shows: left off the board; the plan is reworded`); else f.brief = T.brief; }
-  return f;
-}
+const stageNope = s => levelRefs(s).length ? "a work level" : nameRefs(s).some(unambiguous) ? "an internal name" : lib.passRefs(s).length ? "an older wording of a review" : null;
+const tableFields = (T, enrich) => lib.stageTableFields(T, stageNope, enrich);
 function mergeStages(w, facts, applied, enrich, first, ids, remed = !!facts.remediation, how = {}) {
   const have = Array.isArray(w.stages) ? w.stages : [];
   /* the plan's stage table (plan/RULES.md §3), copied at branch-cut on the fast path; a plan without it gives no brief */
@@ -917,11 +913,13 @@ function mergeStages(w, facts, applied, enrich, first, ids, remed = !!facts.reme
   /* a board from before the record: what its earlier events said, before this event's own stamps */
   const bf0 = first ? [] : lib.backfillStages(w); if (bf0.length) applied.push(`wip.stages from the earlier events: ${bf0.join(", ")}`);
   if (planTable) { planTable.problems.forEach(p => WARNINGS.push(`STAGE TABLE: ${p}`)); }
+  /* a board whose branch-cut read no row of the table (the ids' case, before lib.js stageRow()) catches it up at its next event */
+  if (!first) { const n = lib.catchUpStageTable(w, DIR, stageNope, enrich); if (n) applied.push(`wip.stages: ${plural(n, "stage")} from the plan's stage table, caught up`); }
   if ((!Array.isArray(facts.stages) || !facts.stages.length) && !have.length && table.length) facts = { ...facts, stages: table.map(s => ({ id: s.id, name: s.name })) };
   if (!Array.isArray(facts.stages) || !facts.stages.length) {
     if (!have.length) enrich.push("the stages of plan.md, with the rows each touches, come from plan.md");
     else if (first && !have.some(x => x.state === "current")) { const t = have.find(x => x.state !== "done"); if (t) { t.state = "current"; lib.stampItem(t, { ...t, state: "todo" }, how.now, null); applied.push(`wip.stages ${t.id} current`); } }
-    if (first && table.length) { let n = 0; have.forEach(x => { const T = table.find(y => y && y.id === x.id); if (T) { Object.assign(x, tableFields(T, enrich)); n++; } }); if (n) applied.push(`wip.stages: ${plural(n, "stage")} from the plan's stage table`); }
+    if (first && table.length) { let n = 0; have.forEach(x => { const T = lib.stageRow(table, x.id); if (T) { Object.assign(x, tableFields(T, enrich)); n++; } }); if (n) applied.push(`wip.stages: ${plural(n, "stage")} from the plan's stage table`); }
     return;
   }
   const out = facts.stages.map((s, i) => {
@@ -940,7 +938,7 @@ function mergeStages(w, facts, applied, enrich, first, ids, remed = !!facts.reme
     const keep = {}; STAGE_KEEP.forEach(k => { if (old[k] != null) keep[k] = old[k]; });
     return { id: s.id, name, state, rows, ...keep, given };
   });
-  if (first && table.length) { let n = 0; out.forEach(x => { const T = table.find(y => y && y.id === x.id); if (T) { Object.assign(x, tableFields(T, enrich)); n++; } }); if (n) applied.push(`wip.stages: ${plural(n, "stage")} from the plan's stage table`); }
+  if (first && table.length) { let n = 0; out.forEach(x => { const T = lib.stageRow(table, x.id); if (T) { Object.assign(x, tableFields(T, enrich)); n++; } }); if (n) applied.push(`wip.stages: ${plural(n, "stage")} from the plan's stage table`); }
   /* the record per stage, from this event (lib.js stampItem()); a stage a board already shows done at branch-cut keeps its end unknown */
   { const ofOld = id => have.find(x => x && x.id === id);
     out.forEach(x => lib.stampItem(x, ofOld(x.id) || (first ? { state: x.state } : undefined), how.now, how.report));
@@ -1606,7 +1604,7 @@ function cleanText(v) {
   if (levelRefs(s).length) { s = scrubLevels(s, { scope: "issue", elided: [] }); if (!s || levelRefs(s).length) return null; }
   s = scrubWaits(s);
   if (nameRefs(s).length) { const n = scrubNames(s); if (n.left.some(unambiguous)) return null; s = n.text; }
-  return /<(issue|slug|YYYY-MM-DD|sha|owner\/name)/.test(s) || /^<[^>]*>$/.test(s) ? null : s;
+  return /<(issue|slug|YYYY-MM-DD|sha|owner\/name)\b/.test(s) || /^<[^>]*>$/.test(s) ? null : s;
 }
 function layFoundation(req, facts, folder, now) {
   const name = path.basename(DIR), issue = parseInt(name, 10), applied = [], enrich = [];

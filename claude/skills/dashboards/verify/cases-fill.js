@@ -48,6 +48,20 @@ module.exports = function casesFill(X) {
     c.push(["an event after the fill keeps the fill's rows and function", e3.a.status === 0 && P(Bs).rows.length === 1 && P(Bs).function === composed.function, js(e3.S.error)]);
   });
 
+  guard("wip.open: a fill corrects the time a resolved open point was recorded at, never resolves one (KotlinBottools #23)", c => {
+    const B = laid(); fill(B, { function: "What this run does, from the issue.", rows: [ROW("headers", "No cache headers are read.")] });
+    const e1 = ev(B, "research-planning", { drafted: 0, open: [{ text: "Access is not granted yet." }, { text: "Still open." }] }, T(1));
+    const e2 = ev(B, "research-planning", { drafted: 1, open: [{ text: "Access is not granted yet.", resolved: T(2) }] }, T(3));
+    const p0 = P(B), had = (p0.wip.open || []).find(x => x.text === "Access is not granted yet.");
+    c.push(["the events record the point resolved at the time they were given", e1.a.status === 0 && e2.a.status === 0 && had && had.resolved === T(2), js([e1.S.error, e2.S.error, p0.wip.open])]);
+    const ok = fill(B, { notes: { corrections: [{ what: "corrected", when: "2026-11-03" }] }, wip: { open: [{ text: "Access is not granted yet.", resolved: "2026-11-03T11:02:30Z" }] } }), p1 = P(B);
+    c.push(["the resolved time corrected, the event times and the step untouched", ok.a.status === 0 && p1.wip.open.find(x => x.text === "Access is not granted yet.").resolved === "2026-11-03T11:02:30Z" && p1.wip.updated === p0.wip.updated && p1.wip.since === p0.wip.since && js(p1.trail) === js(p0.trail), js([ok.S, p1.wip.open])]);
+    const open = fill(B, { wip: { open: [{ text: "Still open.", resolved: T(2) }] } });
+    c.push(["an open point not resolved yet is refused, nothing written", open.a.status === 2 && /not resolved/.test(open.S.error || "") && !P(B).wip.open.find(x => x.text === "Still open.").resolved, js(open.S)]);
+    const late = fill(B, { wip: { open: [{ text: "Access is not granted yet.", resolved: T(9) }] } });
+    c.push(["a time after the board's last event is refused", late.a.status === 2 && /after the board's last event/.test(late.S.error || ""), js(late.S)]);
+  });
+
   guard("what a fill may write, what stands against it, what it may not", c => {
     const B = laid(); fill(B, { function: "F.", rows: [ROW("a", "Gap a."), ROW("b", "Gap b.")] });
     ev(B, "research-started", { researching: [{ question: "q", rows: ["a"] }] }, T(1));
