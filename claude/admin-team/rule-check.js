@@ -22,11 +22,19 @@
 // is in use or in `retiredIds` as "26-1", and `splinterMarks` keeps each parent's
 // highest part, so a new part can only be above it.
 //
+// A pointer rule is a rule whose whole body points at one other rule, its target.
+// Its `id` is a string of target and part, "28-1", like a splinter's, and the two
+// share the target's parts: a part is one or the other, never both, so the
+// retired list and the marks above hold both. A rule with a string id is a
+// splinter when it sits in its parent's section and a pointer rule anywhere else;
+// a pointer rule's body is one paragraph whose only pointer is to its target.
+//
 // `code` follows the rule's location and is never written by hand: the kind
 // letter from the file's path, the file's acronym and the section's letter from
 // the `codes` table in rule-files.json, then the rule's position in its section,
 // which a section holding a single rule leaves out. A splinter's code is its
-// parent's plus `-<n>`, its position among that parent's splinters.
+// parent's plus `-<n>`, its position among that parent's splinters; a pointer
+// rule's code follows its own location, as a plain rule's does.
 //
 // Paths in the config are relative to the directory above this script.
 
@@ -79,6 +87,7 @@ function parse(file, relPath, findings) {
   const rules = [];
   const sections = [];
   const seenAnchors = new Map();
+  const headings = [];
   let section = null;
   let start = 0;
   if (lines[0] === '---') {
@@ -102,6 +111,7 @@ function parse(file, relPath, findings) {
 
     const headingMatch = line.match(HEADING);
     if (headingMatch) {
+      headings.push(i);
       const text = headingMatch[2];
       const base = slug(text);
       const count = seenAnchors.get(base) || 0;
@@ -125,7 +135,7 @@ function parse(file, relPath, findings) {
         const wholeId = Number.isSafeInteger(meta.id) && meta.id >= 1;
         if (Object.keys(meta).join() !== 'name,code,id' || typeof meta.name !== 'string'
           || typeof meta.code !== 'string' || !(wholeId || splinter)) {
-          findings.push(`${relPath}:${i + 1}: JSON line needs a string name, a string code and a plain whole-number id or a "<parent>-<part>" splinter id, in that order`);
+          findings.push(`${relPath}:${i + 1}: JSON line needs a string name, a string code and a plain whole-number id or a "<parent>-<part>" splinter or pointer-rule id, in that order`);
           continue;
         }
         if (meta.name !== text) {
@@ -136,6 +146,7 @@ function parse(file, relPath, findings) {
           ref: `R-${meta.id}`,
           parent: splinter ? Number(splinter[1]) : null,
           part: splinter ? Number(splinter[2]) : null,
+          kind: splinter ? null : 'rule', // a string id is a splinter or a pointer rule, told apart in classifyParts
           name: meta.name,
           code: meta.code,
           anchor,
@@ -158,6 +169,10 @@ function parse(file, relPath, findings) {
       chars.fill(' ', from, to);
     }
     if (chars) masked[i] = chars.join('');
+  }
+  for (const rule of rules) {
+    const next = headings.find((index) => index > rule.jsonIndex);
+    rule.bodyEnd = next === undefined ? lines.length : next; // the body runs from jsonIndex + 1 to here
   }
   return { lines, masked, rules, sections };
 }
@@ -205,7 +220,7 @@ function checkPointers(relPath, lines, masked, known, findings) {
 
 /** The leading letter of a file's codes, from where it lives; null for a file of none of the six kinds. */
 function kindLetter(relPath) {
-  if (relPath === 'CLAUDE.md' || /^shared\//.test(relPath)) return 'G';
+  if (relPath === 'CLAUDE.md' || relPath === 'Structure-Policy.md' || /^shared\//.test(relPath)) return 'G';
   if (/^agents\/[^/]+\.md$/.test(relPath)) return 'A';
   if (/^skills\//.test(relPath)) return 'S';
   if (/^nomenclature\//.test(relPath)) return 'N';
@@ -241,7 +256,7 @@ function assignCodes(relPath, rules, sections, table, findings) {
       findings.push(`${rule.file}:${rule.line}: rule outside any section has no code`);
       continue;
     }
-    if (rule.part !== null) continue; // a splinter takes its parent's code, in assignSplinterCodes
+    if (rule.kind !== 'rule' && rule.kind !== 'pointer') continue; // a splinter takes its parent's code, in assignSplinterCodes
     if (!groups.has(rule.section)) groups.set(rule.section, []);
     groups.get(rule.section).push(rule);
   }
@@ -258,17 +273,49 @@ function assignCodes(relPath, rules, sections, table, findings) {
   }
 }
 
-/** Gives each splinter its parent's code plus its position among the parent's splinters; a parent must be a rule. */
-function assignSplinterCodes(parsed, known, findings) {
-  const positions = new Map();
-  for (const { rules } of parsed) {
+/**
+ * Tells each string id's rule a splinter, in its parent's section, or a pointer rule, anywhere else, and
+ * checks a pointer rule's body: one paragraph whose only pointer is to its target. The target must be a rule.
+ */
+function classifyParts(parsed, known, findings) {
+  const pointer = /(?<![\w-])R-\d+(?:-\d+)?\b/g;
+  for (const { masked, rules } of parsed) {
     for (const rule of rules) {
       if (rule.part === null) continue;
       const parent = known.get(`R-${rule.parent}`);
       if (!parent) {
-        findings.push(`${rule.file}:${rule.line}: splinter ${rule.ref} has no parent, R-${rule.parent} is not a rule in any listed file`);
+        findings.push(`${rule.file}:${rule.line}: ${rule.ref} has no parent or target, R-${rule.parent} is not a rule in any listed file`);
         continue;
       }
+      if (parent.file === rule.file && parent.section === rule.section) {
+        rule.kind = 'splinter';
+        continue;
+      }
+      rule.kind = 'pointer';
+      const body = masked.slice(rule.jsonIndex + 1, rule.bodyEnd);
+      const filled = body.map((line, i) => (line.trim() === '' ? -1 : i)).filter((i) => i !== -1);
+      if (filled.length === 0) {
+        findings.push(`${rule.file}:${rule.line}: pointer rule ${rule.ref} has an empty body, expected a pointer to R-${rule.parent}`);
+        continue;
+      }
+      if (filled[filled.length - 1] - filled[0] + 1 !== filled.length) {
+        findings.push(`${rule.file}:${rule.line}: pointer rule ${rule.ref} has a body of more than one paragraph; its whole body points at R-${rule.parent}`);
+      }
+      const targets = body.join('\n').match(pointer) || [];
+      if (targets.length !== 1 || targets[0] !== `R-${rule.parent}`) {
+        findings.push(`${rule.file}:${rule.line}: pointer rule ${rule.ref} points at ${targets.length === 0 ? 'no rule' : targets.join(', ')}; its body points at R-${rule.parent} and at no other rule`);
+      }
+    }
+  }
+}
+
+/** Gives each splinter its parent's code plus its position among the parent's splinters. */
+function assignSplinterCodes(parsed, known) {
+  const positions = new Map();
+  for (const { rules } of parsed) {
+    for (const rule of rules) {
+      if (rule.kind !== 'splinter') continue;
+      const parent = known.get(`R-${rule.parent}`);
       const position = (positions.get(rule.parent) || 0) + 1;
       positions.set(rule.parent, position);
       if (parent.expected !== undefined) rule.expected = `${parent.expected}-${position}`;
@@ -302,7 +349,7 @@ function checkParts(parsed, retired, marks, findings) {
     const mark = marks[parent] || 0;
     for (let part = 1; part <= Math.max(top, mark); part += 1) {
       if (!inUse.has(part) && !retiredParts.has(part)) {
-        findings.push(`admin-team/rule-files.json: splinter R-${parent}-${part} is neither in use nor retired`);
+        findings.push(`admin-team/rule-files.json: part R-${parent}-${part}, a splinter or a pointer rule, is neither in use nor retired`);
       }
     }
     if (top > mark) next[parent] = top;
@@ -351,13 +398,13 @@ function main() {
   const retiredIsGood = Array.isArray(config.retiredIds)
     && config.retiredIds.every((id) => (Number.isSafeInteger(id) && id > 0)
       || (typeof id === 'string' && SPLINTER_ID.test(id)));
-  if (!retiredIsGood) findings.push('admin-team/rule-files.json: retiredIds needs a list of whole numbers and "<parent>-<part>" splinter ids');
+  if (!retiredIsGood) findings.push('admin-team/rule-files.json: retiredIds needs a list of whole numbers and "<parent>-<part>" splinter or pointer-rule ids');
   const retired = new Set(retiredIsGood ? config.retiredIds : []);
   const marksAreGood = config.splinterMarks !== null && typeof config.splinterMarks === 'object'
     && !Array.isArray(config.splinterMarks)
     && Object.entries(config.splinterMarks).every(([parent, top]) => /^[1-9]\d*$/.test(parent)
       && Number.isSafeInteger(top) && top > 0);
-  if (!marksAreGood) findings.push('admin-team/rule-files.json: splinterMarks needs an object of parent id to highest part');
+  if (!marksAreGood) findings.push('admin-team/rule-files.json: splinterMarks needs an object of parent or target id to highest part');
   const marks = marksAreGood ? config.splinterMarks : {};
 
   const parsed = [];
@@ -366,7 +413,6 @@ function main() {
   for (const relPath of config.files) {
     const result = parse(fs.readFileSync(path.join(ROOT, relPath), 'utf8'), relPath, findings);
     parsed.push({ relPath, ...result });
-    assignCodes(relPath, result.rules, result.sections, codes[relPath], findings);
     for (const rule of result.rules) {
       const previous = known.get(rule.ref);
       if (previous) {
@@ -379,7 +425,11 @@ function main() {
       }
     }
   }
-  assignSplinterCodes(parsed, known, findings);
+  classifyParts(parsed, known, findings);
+  for (const { relPath, rules, sections } of parsed) {
+    assignCodes(relPath, rules, sections, codes[relPath], findings);
+  }
+  assignSplinterCodes(parsed, known);
   for (const { relPath, lines, masked } of parsed) {
     checkPointers(relPath, lines, masked, known, findings);
   }

@@ -162,11 +162,9 @@ A direction document states the
 rule, not its history: no "previously", no "as decided on", no dated callouts.
 The ledger keeps the history.
 
-### One home per rule
-{"name":"One home per rule","code":"A-DM-H-2","id":17}
-State a rule once, where its owner reads it, and point
-at it from everywhere else. When you find it twice, keep the better one and
-replace the other with a pointer.
+### Keep the single source
+{"name":"Keep the single source","code":"A-DM-H-2","id":"17-1"}
+Everything you write keeps R-17 (Single source).
 
 ### Verify the facts before writing them
 {"name":"Verify the facts before writing them","code":"A-DM-H-3","id":18}

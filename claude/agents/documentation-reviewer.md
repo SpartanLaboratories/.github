@@ -157,6 +157,6 @@ Never modify a file. Never run builds or tests. If asked to fix the findings,
 explain that you only review and the caller applies the changes.
 
 ## Progress review every 10 minutes (when you run inside a /resolve-issue run)
-{"name":"Progress review every 10 minutes (when you run inside a /resolve-issue run)","code":"A-DR-P","id":52}
+{"name":"Progress review every 10 minutes (when you run inside a /resolve-issue run)","code":"A-DR-P","id":"28-5"}
 
 Read and follow R-28 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) in `~/.claude/shared/progress-review.md`.

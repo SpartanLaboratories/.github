@@ -127,6 +127,6 @@ them faithfully and let the summary do the synthesis.
   Document step's documentation review owns it.
 
 ## Progress review every 10 minutes (when you run inside a /resolve-issue run)
-{"name":"Progress review every 10 minutes (when you run inside a /resolve-issue run)","code":"A-QA-P","id":46}
+{"name":"Progress review every 10 minutes (when you run inside a /resolve-issue run)","code":"A-QA-P","id":"28-4"}
 
 Read and follow R-28 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) in `~/.claude/shared/progress-review.md`.

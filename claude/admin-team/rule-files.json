@@ -7,7 +7,8 @@
     "agents/interviewer.md",
     "agents/qa.md",
     "agents/documentation-reviewer.md",
-    "shared/progress-review.md"
+    "shared/progress-review.md",
+    "Structure-Policy.md"
   ],
   "codes": {
     "agents/direction-manager.md": {
@@ -78,9 +79,23 @@
       "sections": {
         "Progress review every 10 minutes (when you run inside a /resolve-issue run)": "P"
       }
+    },
+    "Structure-Policy.md": {
+      "acronym": "SP",
+      "sections": {
+        "Single source": "S",
+        "Sections": "E",
+        "A rule": "A",
+        "`id`": "I",
+        "Splinters": "L",
+        "`code`": "C",
+        "Pointers": "P",
+        "The index": "X",
+        "The checker": "H"
+      }
     }
   },
-  "highWaterMark": 52,
-  "splinterMarks": {},
-  "retiredIds": []
+  "highWaterMark": 60,
+  "splinterMarks": {"17":1,"28":5},
+  "retiredIds": [27, 34, 39, 46, 52]
 }

@@ -91,6 +91,6 @@ findings.
   build directory.
 
 ## Progress review every 10 minutes (when you run inside a /resolve-issue run)
-{"name":"Progress review every 10 minutes (when you run inside a /resolve-issue run)","code":"A-CR-P","id":34}
+{"name":"Progress review every 10 minutes (when you run inside a /resolve-issue run)","code":"A-CR-P","id":"28-2"}
 
 Read and follow R-28 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) in `~/.claude/shared/progress-review.md`.

@@ -117,6 +117,6 @@ Markdown, in this order. Nothing else — no design, no file-by-file, no plan.
   is one sentence of judgement, not a design.
 
 ## Progress review every 10 minutes (when you run inside a /resolve-issue run)
-{"name":"Progress review every 10 minutes (when you run inside a /resolve-issue run)","code":"A-IV-P","id":39}
+{"name":"Progress review every 10 minutes (when you run inside a /resolve-issue run)","code":"A-IV-P","id":"28-3"}
 
 Read and follow R-28 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) in `~/.claude/shared/progress-review.md`.
