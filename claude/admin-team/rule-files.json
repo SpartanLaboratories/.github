@@ -6,6 +6,7 @@
     "agents/code-reviewer.md",
     "agents/interviewer.md",
     "agents/qa.md",
+    "agents/documentation-reviewer.md",
     "shared/progress-review.md"
   ],
   "codes": {
@@ -62,6 +63,16 @@
         "Progress review every 10 minutes (when you run inside a /resolve-issue run)": "P"
       }
     },
+    "agents/documentation-reviewer.md": {
+      "acronym": "DR",
+      "sections": {
+        "The standard you enforce": "S",
+        "What is NOT a finding": "N",
+        "How to work": "W",
+        "Report format": "R",
+        "Progress review every 10 minutes (when you run inside a /resolve-issue run)": "P"
+      }
+    },
     "shared/progress-review.md": {
       "acronym": "SH",
       "sections": {
@@ -69,7 +80,7 @@
       }
     }
   },
-  "highWaterMark": 46,
+  "highWaterMark": 52,
   "splinterMarks": {},
   "retiredIds": []
 }

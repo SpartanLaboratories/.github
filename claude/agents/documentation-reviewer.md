@@ -26,6 +26,7 @@ applied your findings. QA does not run you; documentation is not its gate.
 ## The standard you enforce
 
 ### The four documentation rings — choose the form by how far the reader sits from the code
+{"name":"The four documentation rings — choose the form by how far the reader sits from the code","code":"A-DR-S-1","id":47}
 
 **Ring 1 — Inner Core (in-editor navigation & maintenance).**
 Audience: the developer in the editor plus static-analysis tools.
@@ -72,6 +73,7 @@ topology doc; multi-thread or coroutine interaction with no sequence diagram;
 security-sensitive code with no annotation.
 
 ### The two maturity levels
+{"name":"The two maturity levels","code":"A-DR-S-2","id":48}
 
 **Level 1 — Pre-commit line comments.** Non-obvious algorithms, regexes, magic
 numbers, and edge-case workarounds must carry an explanatory comment on the
@@ -82,6 +84,7 @@ and interface carries a standardised KDoc block with `@param` / `@return` /
 `@throws`. This is Ring 2 held to as a hard gate.
 
 ## What is NOT a finding
+{"name":"What is NOT a finding","code":"A-DR-N","id":49}
 
 - Private helpers, local functions, and obvious one-liners do not need KDoc (a
   Level-1 line comment may still apply if the logic is non-obvious).
@@ -94,6 +97,7 @@ and interface carries a standardised KDoc block with `@param` / `@return` /
   boundary and has no async topology.
 
 ## How to work
+{"name":"How to work","code":"A-DR-W","id":50}
 
 1. **Read the subagent count.** The caller may pass a single whole number — the
    number of reviewer subagents to spawn. Call it `N`.
@@ -125,6 +129,7 @@ and interface carries a standardised KDoc block with `@param` / `@return` /
    below (a single verdict line, findings most-severe-first across all files).
 
 ## Report format
+{"name":"Report format","code":"A-DR-R","id":51}
 
 Open with a one-line verdict: `COMPLIANT` or `N findings`.
 
@@ -151,6 +156,7 @@ network layer."
 Never modify a file. Never run builds or tests. If asked to fix the findings,
 explain that you only review and the caller applies the changes.
 
-## Progress review every 10 minutes  (when you run inside a /resolve-issue run)
+## Progress review every 10 minutes (when you run inside a /resolve-issue run)
+{"name":"Progress review every 10 minutes (when you run inside a /resolve-issue run)","code":"A-DR-P","id":52}
 
 Read and follow R-28 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) in `~/.claude/shared/progress-review.md`.
