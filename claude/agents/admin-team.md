@@ -482,10 +482,12 @@ lane** (below), apart from the repository lanes too.
 - **Fast path.** Apply every plan-board event first yourself, in the board-update lane, by running the
   dashboards skill's `plan/scripts/apply-event.js`
   (`node ~/.claude/skills/dashboards/plan/scripts/apply-event.js --event <request.json> --worktree <path>`),
-  with `--arrived <the request's arrival time>` for a run's event: a `facts.at`, or a `raised` or
-  `resolved` time of an open point the event newly raises or resolves, that is missing or more than
-  2 minutes from it is replaced by the arrival time, and your reply names each time replaced. A point
-  carried forward with the times the board already holds is not checked.
+  with `--arrived <the request's arrival time>` for a run's event: a `facts.at` that is missing or
+  more than 2 minutes from it is replaced by the arrival time. A `raised` or `resolved` time of an
+  open point the event newly raises or resolves is kept when it is not after the arrival (plus the
+  2-minute tolerance) and not before the last event that still showed the point open; only a time
+  outside those bounds, or a missing one, is replaced by the arrival time. Your reply names each
+  time replaced. A point carried forward with the times the board already holds is not checked.
   It applies what the event's facts alone decide: the step, the stages, the research questions, the
   FullPulse, the wait state, the trail entry and open points. It then rewrites the board's `plan.js`,
   re-embeds the parent tracking board and regenerates the live work board, in seconds. Reply `done` as

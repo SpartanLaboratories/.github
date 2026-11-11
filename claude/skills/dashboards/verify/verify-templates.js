@@ -79,8 +79,8 @@
 // the user (verify/cases-timeline-waits.js): not active time and not mentioned, the step split into visits around each wait, the signals on the fast path. A
 // stretch when the run was not running (verify/cases-timeline-outages.js): not counted and not mentioned, the run-restarted event on the fast path. The
 // team-raised retime (verify/cases-retime.js): one event's recorded time corrected wherever the record holds it, one notes.corrections entry. The
-// event's time held to its arrival (verify/cases-arrival.js): apply-event.js --arrived replacing a facts.at missing or more than 2 minutes off, and a newly raised or
-// resolved open point's time the same way. The
+// event's time held to its arrival (verify/cases-arrival.js): apply-event.js --arrived replacing a facts.at missing or more than 2 minutes off, and holding a newly raised or
+// resolved open point's time to bounds (not after the arrival plus the tolerance, not before the last event that still showed the point open; a missing one stamped). The
 // header's switches (verify/cases-switches.js): the theme switch drawn as a switch, the inspector switch where there is an inspector, the decision path's legend. The
 // inspector's Hide button (verify/cases-inspector-hide.js): one state with the inspector switch, the focus moved to the switch. The C4 DSL
 // reader (verify/cases-dsl-keyword-id.js): a block keyword as an element's identifier read as the element, and check-board.js failing a DSL
@@ -2269,7 +2269,10 @@ catch (e) { report("the retime cases", [["the cases run to the end", false, Stri
 
 /* The event's time held to its arrival (verify/cases-arrival.js; plan/RULES.md §4, "The event's time"; runs sent facts.at guessed or rounded): with
    apply-event.js --arrived, a facts.at that is missing or more than 2 minutes from the arrival time is replaced by it and the summary's arrival line
-   says so, one within it kept, and so is a newly raised or resolved open point's time (a carried point not read); without --arrived nothing changes; --at still wins; a bad --arrived a usage error. It needs no browser, and runs on
+   says so, one within it kept. A newly raised or resolved open point's time is held to bounds instead (decided 2026-11-11): kept when it is not after the arrival plus
+   the tolerance and, for a resolved time, not before the last event that still showed the point open (the board's last event, where it is a report of the run's),
+   replaced by the arrival time only outside them, the line naming the bound it crossed, and stamped when missing (a carried point not read; a newly raised one bound
+   from above alone). Without --arrived nothing changes; --at still wins; a bad --arrived a usage error. It needs no browser, and runs on
    its own too (node verify/cases-arrival.js). */
 try { require("./cases-arrival.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the event's time held to its arrival cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }

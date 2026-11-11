@@ -13,9 +13,12 @@
 // --at         the event's time (default: facts.at, else now); every stamp the event writes takes it
 // --arrived    the request's arrival time at the team, given for a run's event (team-raised events and backfills go without it): a facts.at
 //              that is missing, or more than ARRIVAL_TOLERANCE_S (2 minutes) from it, is replaced by the arrival time, and the summary's
-//              "arrival" line says so, for the team to tell the run; a facts.at within it is kept. The same holds for the raised time of
-//              each open point the event newly raises and the resolved time of each it newly resolves (facts.open; a point carried forward
-//              with what the board holds is not read), each replacement named on the arrival line. --at, when given, still wins
+//              "arrival" line says so, for the team to tell the run; a facts.at within it is kept. The raised time of each open point the
+//              event newly raises and the resolved time of each it newly resolves (facts.open; a point carried forward with what the board
+//              holds is not read) are held to bounds, not to closeness: a missing one is stamped at the arrival time; one is kept when it is
+//              not after the arrival plus the tolerance and, for a resolved time, not before the last event that still showed the point
+//              open (the board's last event, wip.event); only one outside those bounds is replaced by the arrival time, each stamp and
+//              replacement named on the arrival line with its reason. --at, when given, still wins
 //              (plan/RULES.md §4, "The event's time")
 // --view       the live view only (the land's landing and merge, the post-merge refresh's landed, plan/RULES.md §4, "The live view of a
 //              landing"): every board it would write in place (the issue's, its parent tracking board) is written as its view copy under the
@@ -92,7 +95,8 @@ const args = process.argv.slice(2);
 require("../../system/scripts/cliargs.js").strict(args, { usage: USAGE, valued: ["event", "worktree", "repo", "main", "at", "arrived"], flags: ["view", "no-live", "no-gh", "json"], max: 0 });
 const opt = n => lib.opt(args, n, null), flag = n => lib.flag(args, n);
 /* The event's time held to its arrival (plan/RULES.md §4, "The event's time"): a run's facts.at further than this many seconds from the
-   request's arrival time (--arrived) is taken for guessed or rounded, and the arrival time stamps the event instead */
+   request's arrival time (--arrived) is taken for guessed or rounded, and the arrival time stamps the event instead. An open point's raised
+   or resolved time is held to bounds instead (holdOpenTime()), and this is how far after the arrival its upper bound lies */
 const ARRIVAL_TOLERANCE_S = 120;
 const ARRIVED = opt("arrived");
 if (ARRIVED != null && (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/.test(ARRIVED) || isNaN(Date.parse(ARRIVED)))) { console.error(`${USAGE}\n(--arrived takes the request's arrival time as an ISO time with its zone, e.g. 2026-11-09T14:03:27Z; got ${JSON.stringify(ARRIVED)})`); process.exit(2); }
@@ -103,7 +107,7 @@ const S = { result: null, event: null, arrival: null, issue: null, board: null, 
 const WARNINGS = S.warnings;
 const say = () => {
   S.ms = Date.now() - T0;
-  /* the open points' times held to the arrival (holdOpenTime()) join the event's own on the one arrival line */
+  /* the open points' times stamped or replaced at the arrival (holdOpenTime()) join the event's own on the one arrival line */
   if (OPEN_HELD.size) S.arrival = [S.arrival, ...OPEN_HELD].filter(Boolean).join("; ");
   S.warnings.splice(0, S.warnings.length, ...new Set(S.warnings));
   if (S.warnings.length && S.check && !/fast-path warning/.test(S.check)) S.check += ` · ${S.warnings.length} fast-path warning${S.warnings.length === 1 ? "" : "s"} (below)`;
@@ -1087,24 +1091,47 @@ function openCopyFor(raw, text, folder) {
   OPEN_JOBS.push({ src, whole, rel });
   return rel;
 }
-/* An open point's times held to the event's arrival (plan/RULES.md §4, "The event's time"): with --arrived and no --at, the `raised` time
-   of a point this event newly raises (one not on wip.open) and the `resolved` time of one it newly resolves (on the board unresolved, or
-   resolved with another value, so the same event raised again finds the time it left) is replaced by the arrival time when missing (`true`,
-   for resolved) or further than ARRIVAL_TOLERANCE_S from the arrival, and the summary's arrival line names each (the point, the field, the
-   time sent, the time used). A point carried forward with what the board holds is not read; a value that is no time (a stage's label for
+/* An open point's times held to bounds (plan/RULES.md §4, "The event's time"; decided 2026-11-11, in place of the 2-minute closeness of the
+   day before, which replaced a time a run had read at the moment and reported in a later event: KotlinBottools #23). With --arrived and no
+   --at, the `raised` time of a point this event newly raises (one not on wip.open) and the `resolved` time of one it newly resolves (on the
+   board unresolved, or resolved with another value, so the same event raised again finds the time it left) is: stamped at the arrival time
+   when missing (`true`, for resolved); kept when it is not after the arrival plus ARRIVAL_TOLERANCE_S and not before `lower`, the last event
+   that still showed the point open (lastShown()); replaced by the arrival time only outside those bounds. The summary's arrival line names
+   each stamp and replacement (the point, the field, the time sent, the time used, the bound it crossed); a kept time adds nothing. A newly
+   raised point has no earlier event showing it open, so only the upper bound binds it: its raised time, and its resolved time when the same
+   event resolves it. `own` is the time the board holds the point resolved at: where it is this very arrival, the event's first application
+   stamped it, and it stays whatever the bounds say now (the event's own record is by then the board's last event), so the same event raised
+   again changes nothing. A point carried forward with what the board holds is not read; a value that is no time (a stage's label for
    raised, a sentence for resolved) is kept. A raised time is never stored (wip.open.raised names the event or stage that raised it), so
    holding it only tells the run its clock reading was off. The lines are kept once, however often the event is applied (the duplicate
    check applies it twice). */
 const OPEN_HELD = new Set();
-function holdOpenTime(v, field, text) {
+function holdOpenTime(v, field, text, lower, own) {
   if (ARRIVED == null || opt("at")) return v;
   const arrived = new Date(ARRIVED).toISOString().replace(/\.\d+Z$/, "Z"), who = `open point "${text.slice(0, 40)}"`;
   if (v == null || v === true || (typeof v === "string" && !v.trim())) { OPEN_HELD.add(`${who} ${field} missing: stamped at arrival ${arrived}`); return arrived; }
   if (typeof v !== "string" || !OPEN_TIME.test(v.trim()) || isNaN(Date.parse(v))) return v;
-  const off = Math.abs(Date.parse(v) - Date.parse(arrived)) / 1000;
-  if (off <= ARRIVAL_TOLERANCE_S) return v;
-  OPEN_HELD.add(`${who} ${field} ${v} replaced by arrival ${arrived} (off by ${Math.ceil(off)} s, over ${ARRIVAL_TOLERANCE_S / 60} min)`);
+  const t = Date.parse(v), latest = Date.parse(arrived) + ARRIVAL_TOLERANCE_S * 1000;
+  /* a last event stamped after the latest time this check keeps is no bound: no time could meet both */
+  const why = t > latest ? "after the arrival" : lower && Date.parse(lower.at) <= latest && t < Date.parse(lower.at) ? `before ${lower.what}, ${lower.at}` : null;
+  if (!why) return own === arrived ? arrived : v;
+  OPEN_HELD.add(`${who} ${field} ${v} replaced by arrival ${arrived} (${why})`);
   return arrived;
+}
+/* The last event that still showed an open point open (plan/RULES.md §4, "The event's time"), the lower bound of the time it is resolved
+   at: the board's last event, wip.event, read before this event writes its own. With the point on wip.open unresolved, that event, the
+   latest the board took, left it there, and a run reports a resolution in its next event, so one earlier than it would have been in that
+   event's report. It is what the board stores: it keeps no time for the raising itself (wip.open.raised is a label, a trail entry holds a
+   date alone) nor for an event that listed the point again, and a finished step's snapshot (wip.history) is never later than the last
+   event. A point the board holds resolved with another value is bounded by the same event, named for what it is. No bound (null) where the
+   board holds no such time: no last event, one with no time, or one the team raised (TEAM_RAISED), which is no report of the run's, so the
+   run may have resolved the point before it and say so only in its next event; holdOpenTime() drops one stamped after the latest time it
+   keeps as well. */
+const TEAM_RAISED = ["run-restarted", "retime", "state-boards", "landing", "merge", "landed", "sub-issues-filed", "reseed", "seed", "unit-landed"];
+function lastShown(w, have) {
+  const e = w && w.event;
+  if (!e || !lib.isTime(e.at) || TEAM_RAISED.includes(e.name)) return null;
+  return { at: e.at, what: have.resolved ? "the board's last event" : "the point was last shown open" };
 }
 function mergeOpen(w, facts, applied, txt, raised, resolved, folder, dir, enrich) {
   w.open = Array.isArray(w.open) ? w.open : [];
@@ -1112,7 +1139,7 @@ function mergeOpen(w, facts, applied, txt, raised, resolved, folder, dir, enrich
     const text = txt(o && typeof o === "object" ? o.text : o, `open[${i}].text`); if (!text) return;
     let res = o && (o.resolved === true ? true : txt(o.resolved, `open[${i}].resolved`));
     let have = w.open.find(x => x && x.text === text);
-    if (res && (!have || have.resolved !== res)) res = holdOpenTime(res, "resolved", text);
+    if (res && (!have || have.resolved !== res)) res = holdOpenTime(res, "resolved", text, have ? lastShown(w, have) : null, have ? have.resolved : null);
     const sent = o && typeof o === "object" ? o.raised : null;
     const said = txt(have ? sent : holdOpenTime(sent, "raised", text), `open[${i}].raised`), by = said && !OPEN_TIME.test(said) ? said : raised;
     if (!have) { const raw = o && typeof o.ref === "string" && o.ref.trim() ? openRefLocal(o.ref) : null, ref = raw ? openRefText(openRef(raw, folder), dir, enrich) : null;
