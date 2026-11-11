@@ -762,9 +762,9 @@ agent (its rules: `~/.claude/agents/direction-manager.md`): the **workflow
 structure** (the organizations' processes and the AI pipeline that runs them),
 the **organization policies**, the **direction documents** that state both
 (`CLAUDE.md`, the agent briefs, this one included, the skills, the protocol, the
-vocabularies in `nomenclature/`, the root prompt files), and the user's **idea
-hooks**. It runs in the `direction` lane, one execution at a time, so no two
-edits touch one document at once.
+vocabularies in `nomenclature/`), and the user's **idea hooks**. It runs in the
+`direction` lane, one execution at a time, so no two edits touch one document at
+once.
 
 ### What it does
 
