@@ -304,3 +304,16 @@ The `resolve-issue` skill (step 5) lets a run go on to the Document step and lan
 - **Predicted:** the admin team, on encountering it, 2026-11-11.
 - **Encounters:**
   - 2026-11-11: KotlinBottools #23, its `land` (qa pass 1 CHANGES REQUESTED, five minor findings fixed on the spot).
+
+## A history rewrite leaves a tracking board's recorded merge outside the branch's history
+
+```json
+{"id":"p23","count":1,"last":"2026-11-11"}
+```
+
+At a `sized`, `apply-event.js` seeds a board from its view copy only when the merge the board records is in the branch's history. After a history rewrite a tracking board still records its plan's merge commit from before the rewrite, so its copy is not seeded. The standing-rule move then written to the tracked board makes it as fresh as the copy, and `board.js --live` removes the copy as stale, with the copy's record of the last landing (the landed unit's as-built summary and its impact).
+
+- **Proposed resolution (not decided):** the presenter is asked to propose one: recognise a merge whose commit a rewrite replaced, or never remove a copy that was not seeded.
+- **Predicted:** the admin team, on encountering it, 2026-11-11.
+- **Encounters:**
+  - 2026-11-11: KotlinBottools #24's `sized`: the tracking board's view copy was not seeded and was removed; the presenter restored its facts onto the tracked board from a backup it had taken.

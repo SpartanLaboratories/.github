@@ -738,10 +738,10 @@ A board is alive while its run is. Its data carries:
   with the name its event gives, `document-landing` staying last), each `done` · `current` · `todo`, several current at once where they run in parallel; written by the
   `document` event, the `state-boards` and `document-landing` tasks raised by the team itself (§4), a task the level or repository does not apply to absent from the list;
 - `wip.event` — the last event the board took, `{name, at, note}` (§4);
-- `wip.open` — the run's **open points**, each `{text, raised, ref, resolved}`: a point raised during the run that someone
+- `wip.open` — the run's **open points**, each `{text, raised, ref, resolved, shownOpen}`: a point raised during the run that someone
   must settle, such as a plan inconsistency the implementer raised for the planner; `raised` the event or stage that raised it
   ("implementation-stage S2"), shown by its step's name ("raised during Implementation, stage 2", "raised at Document"), `ref` an optional link to where it is recorded, `resolved` how it was settled (a sentence, or
-  `true`), left out while it is open. The step Panel lists the open ones at every step; once resolved the presenter records it
+  `true`), left out while it is open, `shownOpen` the UTC time of the last event of the run's that showed the point open: the event that raised it, or a later one whose `facts.open` lists it again unresolved (never moved back, and never by a team-raised event); `apply-event.js` writes it, and it bounds the point's `resolved` time at the arrival check (§4, "The event's time"). A point raised before the field has none until an event lists it again. The step Panel lists the open ones at every step; once resolved the presenter records it
   in the trail (a label quoting it, or its `ref`) and may drop it from the list. **A `ref` to a file outside the tree** (a build output,
   such as a test report) is plain text on the committed board, as a link never points at a file that is not there; when the point is raised
   the fast path takes a **copy** of the file as it stands (an HTML report's `index.html` with its folder, a small one) under the git-ignored
@@ -1308,23 +1308,22 @@ it left and is a duplicate) is **stamped** at the arrival time when it is missin
 is not after the arrival time plus the tolerance (the upper bound, by the same `ARRIVAL_TOLERANCE_S`) and not before the last event that
 still showed the point open (the lower bound); and **replaced** by the arrival time only when it lies outside those bounds.
 
-**The lower bound is read from `wip.event`**, the board's last event, before the event writes its own: with the point on `wip.open`
-unresolved, that event, the latest the board took, still showed it open, and a run reports a resolution in its next event, so one earlier
-than that event would have been in its report. It is the record the board stores: the board keeps no time for the raising itself
-(`wip.open.raised` is a label, a trail entry holds a date alone) nor for an event that listed the point again, and a finished step's
-snapshot (`wip.history`) is never later than the last event. Where the board holds no such time, only the upper bound applies: no last
-event, or one with no time; a last event the team raised (the events named below), which is no report of the run's, so the run may have
-resolved the point before it and say so only in its next event; a last event stamped after the arrival plus the tolerance, a time no
-bound keeps. An event of the run's own that came after a resolution and did not report it does bound it: the true time is then replaced,
-the run is told, and the time is corrected through `fill.js`. **A newly raised point** has no earlier event showing it open, so only the
+**The lower bound is the point's `shownOpen`** (§3): the last event of the run's that showed it open, so an event that came after the
+raising and did not list the point does not bound its resolution. A point raised before the field stores none: its bound is the board's
+last event, `wip.event`, read before the event writes its own, where it is a report of the run's (the rule before the field); where the
+board holds no such time, only the upper bound applies: no last event, or one with no time; a last event the team raised (the events
+named below), which is no report of the run's, so the run may have resolved the point before it and say so only in its next event; a
+last event stamped after the arrival plus the tolerance, a time no bound keeps. An event of the run's own that came after a resolution
+and listed the point again unresolved does bound it, as any later event of the run's does a point raised before the field: the true
+time is then replaced, the run is told, and the time is corrected through `fill.js`. **A newly raised point** has no earlier event showing it open, so only the
 upper bound binds it: its `raised` time, and its `resolved` time when the same event resolves it. A point the board holds resolved with
-another value is bounded by the same last event; and a resolved time the board holds at this very arrival is the event's own stamp, from
+another value is bounded by the same time; and a resolved time the board holds at this very arrival is the event's own stamp, from
 its first application, and stays, so the same event raised again is a duplicate whatever the order of the board's times.
 
 The `arrival` line names each stamp and replacement after the event's own, joined by `; `, with the bound it crossed: `open point
 "<text>" <raised|resolved> <sent> replaced by arrival <arrived> (after the arrival)`, `open point "<text>" resolved <sent> replaced by
 arrival <arrived> (before the point was last shown open, <the last event's time>)` (`before the board's last event, <its time>` for a
-point the board held resolved), or `open point "<text>" <field> missing: stamped at arrival <arrived>`; `<text>` is the point's first 40
+point the board held resolved with no `shownOpen`), or `open point "<text>" <field> missing: stamped at arrival <arrived>`; `<text>` is the point's first 40
 characters, and a kept time adds nothing to the line. A point carried forward with what the board already holds is not read, and a value
 that is no time (a stage's label for `raised`, a sentence for `resolved`) is kept. A `raised` time is never stored, as `wip.open.raised`
 names the event or stage that raised it, so holding it only tells the run its clock reading was off. A resolved time recorded wrong all
@@ -1455,6 +1454,7 @@ repository work boards; a `sized` raised again is a duplicate, and one raised af
 seeds, so nothing else writes them. The tracked boards then tie their copies, so `board.js --live` removes the copies, unless one is kept (below); a run cancelled there and its
 changes discarded rebuilds them by raising `landing`, `merge` and `landed` with `--view` again. Nothing is seeded from a copy whose merge the
 branch does not hold; the summary names the boards it seeded (`seeded`) and those it left. Every seeded board is checked with the issue's.
+A landed or cancelled board is seeded on the page it closed with, never re-rendered (`GUIDANCE.md` §8 and §11, "Re-rendering").
 
 **A seed during a refresh.** A `sized` that meets the post-merge refresh is not delayed: a copy merged with parts to resolve (`lib.js` `landedPending()`) is seeded as it stands, and the
 summary warns (`VIEW COPY NOT YET LANDED`). A copy whose land is under way (no merge yet), and a tracking board's copy with one inside it, are left for the next `sized`.
@@ -1769,7 +1769,7 @@ step a run halts in, no `asked` time, an `answered` that is no time, an answer t
 from (`parent`, or `qa` with its pass); a `wip.stages` or `wip.remediation.steps` entry without its name or state, or two
 current stages (several remediation sub-steps may be current, §3); a stage's `brief` or `report` not a string, a `kind` not `work` or `check`, `steps` not `{id, name}` entries, `started` or `finished` no time, a `result` not `passed` or `failed` or on a stage that is no check; a `wip.document` that is not `{tasks}`, or a task without its id or
 name, a task named twice, or a state not `done`, `current` or `todo`; a `wip.open` entry without its text or `raised`, with a `resolved`
-that is neither `true` nor a sentence, or a `copy` not in its form, and an open point still open at the land (`landing`, `state-boards`,
+that is neither `true` nor a sentence, a `copy` not in its form, or a `shownOpen` that is not a UTC ISO time, and an open point still open at the land (`landing`, `state-boards`,
 `merge`, or a halt there: `OPEN POINT AT THE LAND`, admin-team/dashboards-skill/35; a landed board that kept one from before is warned
 on); a qa pass's `report` that is a machine-local path or a `reportCopy` not in its form; a `fixOf` not in its form, naming the board's own
 issue, or a `fixOf.board` that names no board; an as-built change's `link` that is not a link (checked as one); a

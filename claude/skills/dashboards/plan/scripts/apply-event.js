@@ -17,7 +17,8 @@
 //              event newly raises and the resolved time of each it newly resolves (facts.open; a point carried forward with what the board
 //              holds is not read) are held to bounds, not to closeness: a missing one is stamped at the arrival time; one is kept when it is
 //              not after the arrival plus the tolerance and, for a resolved time, not before the last event that still showed the point
-//              open (the board's last event, wip.event); only one outside those bounds is replaced by the arrival time, each stamp and
+//              open (the point's shownOpen, stored by the events that showed it open; the board's last event, wip.event, for a point
+//              raised before the field); only one outside those bounds is replaced by the arrival time, each stamp and
 //              replacement named on the arrival line with its reason. --at, when given, still wins
 //              (plan/RULES.md §4, "The event's time")
 // --view       the live view only (the land's landing and merge, the post-merge refresh's landed, plan/RULES.md §4, "The live view of a
@@ -529,7 +530,7 @@ function applyEvent(orig, ev, facts, req, now) {
     case "implementation-stage": {
       if (plan.status === "planned") { plan.status = "building"; applied.push("status building"); }
       reportedStage = stageIdOf(facts.stage) || (curStage() || {}).id || null;
-      if (Array.isArray(facts.open)) mergeOpen(w, facts, applied, txt, `implementation-stage ${reportedStage || ""}`.trim(), resolved, plan.folder, DIR, enrich);
+      if (Array.isArray(facts.open)) mergeOpen(w, facts, applied, txt, `implementation-stage ${reportedStage || ""}`.trim(), resolved, plan.folder, DIR, enrich, now, ev);
       /* During remediation (facts.remediation, or a report while the board stands at remediation) the report answers a qa pass: its
          sub-steps are written whether or not the facts also carry the stages (which are then merged too, every one done), and the wording
          follows the remediation, facts.stage first, never "Quality Review next". */
@@ -625,7 +626,7 @@ function applyEvent(orig, ev, facts, req, now) {
       if (k < 0) w.qa.push(entry); else w.qa[k] = { ...(w.qa[k] && w.qa[k].note && !entry.note ? { note: w.qa[k].note } : {}), ...entry };
       w.qa.sort((a, b) => a.pass - b.pass); applied.push(`wip.qa pass ${Q.pass} ${verdict}`);
       /* an open point the qa report raises (or settles) is kept as at an implementation stage (plan/RULES.md §3, wip.open) */
-      if (Array.isArray(facts.open)) mergeOpen(w, facts, applied, txt, lib.passName(Q.pass), resolved, plan.folder, DIR, enrich);
+      if (Array.isArray(facts.open)) mergeOpen(w, facts, applied, txt, lib.passName(Q.pass), resolved, plan.folder, DIR, enrich, now, ev);
       if (w.qaMax !== 3 && !Number.isInteger(w.qaMax)) w.qaMax = 3;
       /* what the pass returned, its findings line: the count, the severities, the kinds (passnames.js findingsWords(): "18 findings (2 minor,
          16 other; 3 documentation, 15 code)"; admin-team/dashboards/call-5) */
@@ -842,7 +843,7 @@ function applyEvent(orig, ev, facts, req, now) {
     enrich.push(`the Tests tab: the event carries no facts.tests; ${ev === "qa-pass" ? "Relevant, Other and the results come from the qa report" : "Added and Amended come from the branch's diff against its base"}`);
   /* the fast path takes open points at every event (plan/RULES.md §4, "The fast path"; moved onto it in dashboards-skill/33): an
      implementation stage and a qa pass raise theirs above, any other event here, raised by the event's name */
-  if (Array.isArray(facts.open) && facts.open.length && !["implementation-stage", "qa-pass", "retime"].includes(ev)) mergeOpen(w, facts, applied, txt, ev, resolved, plan.folder, DIR, enrich);
+  if (Array.isArray(facts.open) && facts.open.length && !["implementation-stage", "qa-pass", "retime"].includes(ev)) mergeOpen(w, facts, applied, txt, ev, resolved, plan.folder, DIR, enrich, now, ev);
   if (detail !== w.detail) { w.detail = detail; applied.push("wip.detail"); }
   const evRec = { name: ev, at: now, ...(note ? { note } : {}) };
   /* run-restarted leaves wip.event as it was (plan/RULES.md §4; decided 2026-11-05): it is no event of the run's, and a later resumed reads the
@@ -1139,22 +1140,31 @@ function holdOpenTime(v, field, text, lower, own) {
   return arrived;
 }
 /* The last event that still showed an open point open (plan/RULES.md §4, "The event's time"), the lower bound of the time it is resolved
-   at: the board's last event, wip.event, read before this event writes its own. With the point on wip.open unresolved, that event, the
-   latest the board took, left it there, and a run reports a resolution in its next event, so one earlier than it would have been in that
-   event's report. It is what the board stores: it keeps no time for the raising itself (wip.open.raised is a label, a trail entry holds a
-   date alone) nor for an event that listed the point again, and a finished step's snapshot (wip.history) is never later than the last
-   event. A point the board holds resolved with another value is bounded by the same event, named for what it is. No bound (null) where the
-   board holds no such time: no last event, one with no time, or one the team raised (TEAM_RAISED), which is no report of the run's, so the
+   at: the point's own shownOpen (mergeOpen(), below), the time of the last event of the run's that raised it or listed it again unresolved
+   (the user's approval of 2026-11-11). A point raised before the field existed stores none: its bound is the board's last event, wip.event,
+   read before this event writes its own, the bound before the field (stricter: an event of the run's that did not list the point still
+   bounds it). A point the board holds resolved with another value is bounded by the same time, named for what it is. No bound (null) where
+   the board holds no such time: no last event, one with no time, or one the team raised (TEAM_RAISED), which is no report of the run's, so the
    run may have resolved the point before it and say so only in its next event; holdOpenTime() drops one stamped after the latest time it
    keeps as well. */
 const TEAM_RAISED = ["run-restarted", "retime", "state-boards", "landing", "merge", "landed", "sub-issues-filed", "reseed", "seed", "unit-landed"];
 function lastShown(w, have) {
+  /* the time the point stores (shownOpen, below): the last event of the run's that showed it open, the bound as decided */
+  if (have && lib.isTime(have.shownOpen)) return { at: have.shownOpen, what: "the point was last shown open" };
   const e = w && w.event;
   if (!e || !lib.isTime(e.at) || TEAM_RAISED.includes(e.name)) return null;
   return { at: e.at, what: have.resolved ? "the board's last event" : "the point was last shown open" };
 }
-function mergeOpen(w, facts, applied, txt, raised, resolved, folder, dir, enrich) {
+/* An open point's shownOpen (the user's approval of 2026-11-11, of the proposal of the same day; plan/RULES.md §4, "The event's time"): the
+   time of the last event of the run's that showed the point open, the lower bound of the time it is resolved at. The event that raises it
+   writes it (the event's own time, after its arrival is held), and every later event of the run's whose facts.open lists the point again
+   unresolved moves it to that event's time, never back. A team-raised event (TEAM_RAISED) is no report of the run's and moves nothing. A
+   point raised before the field existed has none until an event lists it again: its bound is then the board's last event, as before
+   (lastShown()). */
+const shownAt = (now, ev) => lib.isTime(now) && !TEAM_RAISED.includes(ev) ? now : null;
+function mergeOpen(w, facts, applied, txt, raised, resolved, folder, dir, enrich, now, ev) {
   w.open = Array.isArray(w.open) ? w.open : [];
+  const shown = shownAt(now, ev);
   facts.open.forEach((o, i) => {
     const text = txt(o && typeof o === "object" ? o.text : o, `open[${i}].text`); if (!text) return;
     let res = o && (o.resolved === true ? true : txt(o.resolved, `open[${i}].resolved`));
@@ -1164,7 +1174,8 @@ function mergeOpen(w, facts, applied, txt, raised, resolved, folder, dir, enrich
     const said = txt(have ? sent : holdOpenTime(sent, "raised", text), `open[${i}].raised`), by = said && !OPEN_TIME.test(said) ? said : raised;
     if (!have) { const raw = o && typeof o.ref === "string" && o.ref.trim() ? openRefLocal(o.ref) : null, ref = raw ? openRefText(openRef(raw, folder), dir, enrich) : null;
       const copy = raw && ref !== openRef(raw, folder) ? openCopyFor(raw, text, folder) : null;
-      have = { text, raised: by, ...(ref ? { ref } : {}), ...(copy ? { copy } : {}) }; w.open.push(have); applied.push(`wip.open + "${text.slice(0, 40)}"${copy ? " (its report copied for the live view)" : ""}`); }
+      have = { text, raised: by, ...(ref ? { ref } : {}), ...(copy ? { copy } : {}), ...(shown ? { shownOpen: shown } : {}) }; w.open.push(have); applied.push(`wip.open + "${text.slice(0, 40)}"${copy ? " (its report copied for the live view)" : ""}`); }
+    else if (shown && !res && !have.resolved && (!lib.isTime(have.shownOpen) || Date.parse(shown) > Date.parse(have.shownOpen))) { have.shownOpen = shown; applied.push(`wip.open "${text.slice(0, 40)}" shown open at ${shown}`); }
     if (res && have.resolved !== res) { have.resolved = res; applied.push(`wip.open resolved "${text.slice(0, 40)}"`); resolved.push(have); }
   });
 }
@@ -1333,7 +1344,7 @@ function chainDetail(plan) {
 const emptyBlock = (html, id) => dev.norm(html).replace(/<base [^>]*data-live-view[^>]*>\n/, "").replace(new RegExp(`(<script type="application/json" id="${id}">)[\\s\\S]*?(</script>)`), "$1\n{}\n$2");
 function pageBase(pagePath, enrich, rel, tplOf, keep) {
   const html = fs.existsSync(pagePath) ? fs.readFileSync(pagePath, "utf8") : null, tplPath = dev.templateFor(tplOf || pagePath, "plan-board"), tpl = fs.readFileSync(tplPath, "utf8");
-  /* a retime on a board that has landed or was cancelled corrects its record and nothing else: the board is kept as it closed, never re-rendered onto a later template */
+  /* a board that closed before this event (writeBoard(): a seeding, a reseed, a retime) is kept as it closed, never re-rendered onto a later template */
   if (html != null && keep) return { html, rerendered: false };
   if (html != null && emptyBlock(html, "plan") === emptyBlock(tpl, "plan")) return { html, rerendered: false };
   if (html != null && /<meta name="template-divergence"/.test(html)) { enrich.push(`${rel} declares a divergence from the template: not re-rendered`); return { html, rerendered: false }; }
@@ -1351,7 +1362,15 @@ function writeBoard(dir, data, eol, enrich, label) {
   lib.setViewLinks(VIEWING, MAIN); try { lib.resolveBoard(data, dir); } finally { lib.setViewLinks(false); }
   const json = (JSON.stringify(data, null, 2) + "\n").replace(/\n/g, eol);
   const closed = ["built", "abandoned"].includes(data.status) || ["landed", "cancelled"].includes((data.wip || {}).step);
-  const base = pageBase(fs.existsSync(path.join(to, "dashboard.html")) ? path.join(to, "dashboard.html") : path.join(dir, "dashboard.html"), enrich, rel, path.join(dir, "dashboard.html"), EV === "retime" && closed);
+  /* a board that closed before this event (written by a seeding, a reseed or a retime; never by the landed, cancelled or unit-landed that
+     closes it) is kept as it closed (GUIDANCE.md §8, §11; the presenter's "Closed work boards"): never re-rendered onto a later template. A
+     seeding writes it from its view copy, so the page it keeps is the view copy's, as it landed (its live view's <base> line left out); with
+     no view copy, the page on disk */
+  const closedBefore = closed && !["landed", "cancelled", "unit-landed"].includes(EV);
+  const vf = closedBefore && !VIEWING ? path.join(lib.viewDirOf(dir, MAIN || ROOT), "dashboard.html") : null;
+  const asClosed = vf && fs.existsSync(vf) ? fs.readFileSync(vf, "utf8").replace(/<base [^>]*data-live-view[^>]*>\r?\n/, "") : null;
+  const base = asClosed != null ? { html: asClosed, rerendered: false }
+    : pageBase(fs.existsSync(path.join(to, "dashboard.html")) ? path.join(to, "dashboard.html") : path.join(dir, "dashboard.html"), enrich, rel, path.join(dir, "dashboard.html"), closedBefore);
   if (base.rerendered && fs.existsSync(path.join(to, "dashboard.html"))) S.rerendered.push(rel);
   let html = lib.writeBlock(base.html, "plan", json); const js = lib.sidecarText("plan", json);
   if (VIEWING) html = lib.withViewBase(html, to, dir);

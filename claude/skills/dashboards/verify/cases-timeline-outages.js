@@ -220,6 +220,21 @@ module.exports = function casesTimelineOutages(X) {
     const F = require(sk("system/scripts/features.js")), f = F.FEATURES.find(x => x.id === "timeline-split-pass"), tn = t.replace(/\r\n/g, "\n");
     const before = tn.replace("+(pk&&cnt[pk]>1?` · visit ${part[pk]=(part[pk]||0)+1}`:\"\")", "");
     c.push(["the feature probe finds the parts' names on the template, misses them on one without, and says why the other types do not fit", !!f && before !== tn && f.test(tn, "plan-board") === true && f.test(before, "plan-board") !== true && js(f.types) === js(["plan-board"]) && ["system", "supersystem", "work-board"].every(k => typeof (f.notFor || {})[k] === "string"), js(f && f.types)]);
+    /* 7. the same names in a finished step's Panel headings and its brief (the user's confirmation of 2026-11-11, p21 reading 2; plan/RULES.md
+       §3, "The Panel of a finished step"): visitName() heads each visit of a finished step as the Legend names it */
+    const box2 = {}; vm.createContext(box2);
+    vm.runInContext(["PASS_NAME", "ROUTE_NAME", "routeKey", "routeName", "remediationName", "visitPassKey", "visitName"].map(def).join("\n") + "\nthis.api={visitName};", box2);
+    const heads = (S, vs) => vs.map((V, i) => box2.api.visitName(S, V, i, vs.length, vs));
+    const H6 = v.p.wip.history, legend = T => T.visits.filter(x => (x.step === "qa" || x.step === "remediation") && !x.open).map(x => x.label);
+    const panel = [...heads("qa", H6.qa), ...heads("remediation", H6.remediation)].sort(), leg = legend(lib.timelineSteps(v.p, { now: "2026-11-04T12:05:00Z" })).sort();
+    c.push(["7: a finished step's Panel heads the parts of a split pass as the Legend names them (the stretch-split board)", js(panel) === js(leg) && heads("qa", H6.qa).join() === "Quality Review 1 · visit 1,Quality Review 1 · visit 2,Quality Review 2 · visit 1,Quality Review 2 · visit 2" && heads("remediation", H6.remediation).join() === "Correction · visit 1,Correction · visit 2", js([panel, leg])]);
+    const WH = W.wip.history;
+    c.push(["7: …and on the board a wait split, with a pass and a Correction no wait split kept bare", heads("qa", WH.qa).join() === "Quality Review 1 · visit 1,Quality Review 1 · visit 2,Quality Review 2" && heads("remediation", WH.remediation).join() === "Correction,Correction of Quality Review 2 · visit 1,Correction of Quality Review 2 · visit 2", js([heads("qa", WH.qa), heads("remediation", WH.remediation)])]);
+    c.push(["7: any other step keeps \"Visit i of n\"; a visit with no pass recorded keeps its plain name", heads("implementation", [{}, {}]).join() === "Visit 1 of 2,Visit 2 of 2" && heads("qa", [{ qa: [] }, { qa: [] }]).join() === "Visit 1 of 2,Visit 2 of 2", js([heads("implementation", [{}, {}]), heads("qa", [{ qa: [] }, { qa: [] }])])]);
+    c.push(["7: the step Panel and the WIP Panel's brief both pass the step's visits to visitName()", tn.includes("vs.map((V,i)=>visitHtml(S,V,i,vs.length,o,keys,vs)).join(\"\")") && tn.includes("<h4>${esc(visitName(S,V,i,n,vs))}</h4>") && tn.includes("head=named?visitName(S,V,i,n,vs):(gist||visitName(S,V,i,n,vs))"), "pastPanel · visitHtml · pastBrief"]);
+    const fp = F.FEATURES.find(x => x.id === "panel-split-pass"), noPanel = tn.replace("return same.length>1?`${name} · visit ${same.indexOf(V)+1}`:name;", "return name;");
+    c.push(["7: the feature probe finds the Panel's names on the template, misses them on one without, and says why the other types do not fit", !!fp && noPanel !== tn && fp.test(tn, "plan-board") === true && fp.test(noPanel, "plan-board") !== true && js(fp.types) === js(["plan-board"]) && ["system", "supersystem", "work-board"].every(k => typeof (fp.notFor || {})[k] === "string"), js(fp && fp.types)]);
+    c.push(["7: the board for a browser check: a stretch split both Quality Reviews and the first Correction (open it, click the finished Quality Review step)", fs.existsSync(path.join(B.dir, "dashboard.html")), path.join(B.dir, "dashboard.html")]);
   });
   return groups;
 };

@@ -1831,7 +1831,7 @@ const PAST={
   boards:V=>V.units?`<p class="sp-sum">${V.units.done} of ${V.units.total} unit${V.units.total===1?"":"s"} with a board</p>`:"",
   _:V=>V.detail?`<p>${rich(V.detail)}</p>`:""};
 const VISIT_WORD={qa:`${REVIEW}s`,remediation:"visits"};
-function visitHtml(S,V,i,n,o,keys){ const grp=(l,v)=>`<span><span class="l">${l}</span>${v}</span>`;
+function visitHtml(S,V,i,n,o,keys,vs){ const grp=(l,v)=>`<span><span class="l">${l}</span>${v}</span>`;
   /* several visits collapse, the latest open (plan/RULES.md §3, "Finished steps"); one visit stands open, with no head of its own */
   let h="";
   h+=(PAST[S]||PAST._)(V,{...o,visit:i},keys);
@@ -1849,10 +1849,15 @@ function visitHtml(S,V,i,n,o,keys){ const grp=(l,v)=>`<span><span class="l">${l}
   h+=`<div class="wip-facts sp-facts">${info.join("")}</div>`;
   if(n<2) return `<div class="sp-visit">${h}</div>`;
   const key=visitKey(o.key||"own",S,i), open=DISC_OPEN.has(key)?DISC_OPEN.get(key):i===n-1, gist=visitGist(S,V); keys.add(KEY_DISC);
-  return `<details class="stg-d sp-visit" data-key="${esc(key)}" data-visit="${i}"${open?" open":""}><summary class="stg-s"><h4>${esc(visitName(S,V,i,n))}</h4><span class="nm">${esc(gist)}</span>${visitEnd(V,keys)}<span class="chev" aria-hidden="true">▸</span></summary><div class="sp-vb">${h}</div></details>`; }
+  return `<details class="stg-d sp-visit" data-key="${esc(key)}" data-visit="${i}"${open?" open":""}><summary class="stg-s"><h4>${esc(visitName(S,V,i,n,vs))}</h4><span class="nm">${esc(gist)}</span>${visitEnd(V,keys)}<span class="chev" aria-hidden="true">▸</span></summary><div class="sp-vb">${h}</div></details>`; }
 /* a visit's name, short account and how it ended: the head of its collapsing item in the step Panel and its row in the WIP Panel's brief */
 const visitKey=(run,S,i)=>`past:${run}:${S}:visit:${i}`;
-const visitName=(S,V,i,n)=>S==="remediation"&&V.remediation?remediationName(V.remediation.route,V.remediation.pass):S==="qa"&&Array.isArray(V.qa)&&V.qa.length?passNames(V.qa.map(p=>p.pass)):`Visit ${i+1} of ${n}`;
+/* the parts of one pass's visit a wait or a break split, headed as the Timeline Tile's Legend names them, by the pass and the part, "Quality Review 1 ·
+   visit 2", "Correction · visit 1" (plan/RULES.md §3, "The Panel of a finished step"): the visits of the step (vs)
+   with the same pass, counted in order; the Legend's key, a qa visit's first pass, a remediation visit's pass */
+const visitPassKey=(S,V)=>S==="remediation"&&V&&V.remediation&&V.remediation.pass?`remediation#${V.remediation.pass}`:S==="qa"&&V&&Array.isArray(V.qa)&&V.qa[0]&&Number.isInteger(V.qa[0].pass)?`qa#${V.qa[0].pass}`:null;
+const visitName=(S,V,i,n,vs)=>{ const name=S==="remediation"&&V.remediation?remediationName(V.remediation.route,V.remediation.pass):S==="qa"&&Array.isArray(V.qa)&&V.qa.length?passNames(V.qa.map(p=>p.pass)):`Visit ${i+1} of ${n}`;
+  const k=visitPassKey(S,V), same=k&&Array.isArray(vs)?vs.filter(x=>visitPassKey(S,x)===k):[]; return same.length>1?`${name} · visit ${same.indexOf(V)+1}`:name; };
 function visitGist(S,V){ const of=a=>Array.isArray(a)?a.filter(x=>x&&typeof x==="object"):[], done=x=>x.state==="done", cnt=(a,word,verb,f)=>a.length?`${a.filter(f||done).length} of ${plural(a.length,word)} ${verb}`:"";
   if(S==="implementation") return cnt(of(V.stages),"stage","done");
   if(S==="remediation") return cnt(of((V.remediation||{}).steps),"sub-step","done");
@@ -1869,7 +1874,7 @@ const KEY_VISIT_HELD=`<span>${pill(VISIT_HELD)} the visit ended at a question pu
 function visitEnd(V,keys){ const p=Array.isArray(V.qa)?V.qa.filter(x=>x&&typeof x==="object")[0]:null; if(p&&QA[p.verdict]){ keys.add(`<span>${pill(QA[p.verdict])} ${REVIEW} verdict</span>`); return pill(QA[p.verdict]); } if(V.held&&!V.outage){ keys.add(KEY_VISIT_HELD); return pill(VISIT_HELD); } return ""; }
 /* the finished step at a glance, in the WIP Panel beside its step Panel (plan/RULES.md §3, "Finished steps"): a row per visit, its account, how it ended and its last report; a click on a row opens that visit in the step Panel. */
 function pastBrief(R,S,o){ const vs=visitsOf(R,S), keys=o.keys, title=stepTitle(S,{route:runCtx(R).route}); if(vs.length) { const n=vs.length, ended=vs[n-1].ended;
-    return `<div class="stg-strip sp-brief" role="group" aria-label="${esc(title)}: the finished step at a glance"><div class="wip-sub">${esc(title)} · finished${n>1?` · ${n} ${VISIT_WORD[S]||"visits"}`:""}${okStamp(ended)?` · <span class="nw">${when(ended)}</span>`:""}</div><ol class="stg-rows">${vs.map((V,i)=>{ const named=n>1&&(S==="qa"||S==="remediation"), gist=visitGist(S,V), head=named?visitName(S,V,i,n):(gist||visitName(S,V,i,n));
+    return `<div class="stg-strip sp-brief" role="group" aria-label="${esc(title)}: the finished step at a glance"><div class="wip-sub">${esc(title)} · finished${n>1?` · ${n} ${VISIT_WORD[S]||"visits"}`:""}${okStamp(ended)?` · <span class="nw">${when(ended)}</span>`:""}</div><ol class="stg-rows">${vs.map((V,i)=>{ const named=n>1&&(S==="qa"||S==="remediation"), gist=visitGist(S,V), head=named?visitName(S,V,i,n,vs):(gist||visitName(S,V,i,n,vs));
       const tail=okStamp(V.ended)?`<span class="nw">ended ${when(V.ended)}</span>`:"", text=[named&&gist?esc(gist):"",V.detail&&S!=="sizing"?rich(V.detail):"",tail].filter(Boolean).join(" · ");
       return `<li class="stg-row done${n>1?"":" static"}"${n>1?` data-run="${esc(o.key||"own")}" data-step="${esc(S)}" data-visit="${i}"`:""}><b class="id">${i+1}</b>${n>1?`<button type="button" class="stg-open" aria-label="Visit ${i+1}: ${esc(head)}: open it in the step Panel">${esc(head)}</button>`:`<span class="stg-nm">${esc(head)}</span>`}${visitEnd(V,keys)}${text?`<span class="br">${text}</span>`:""}</li>`; }).join("")}</ol></div>`; }
   const rc=pastRecon(R,S,o), parts=[rc.trail&&rc.trail.length?plural(rc.trail.length,"trail entry").replace("entrys","entries"):"",rc.milestones&&rc.milestones.length?plural(rc.milestones.length,"milestone"):"",visitGist(S,rc)].filter(Boolean);
@@ -1900,7 +1905,7 @@ function pastPanel(R,S,o){ o=o||{}; const keys=o.keys||new Set(), vs=visitsOf(R,
   let h=`<div class="${["sp","past",o.cls].filter(Boolean).join(" ")}" data-step="${esc(S)}" data-view="${rc?"reconstructed":"snapshot"}"${o.row?` style="--r:${o.row}"`:""} role="group" aria-label="${esc(o.label||"The finished step shown")}: ${esc(title)}">`;
   h+=`<p class="sp-view"><span>viewing: <b>${who}${esc(title)}</b>${ended?` · finished <span class="nw">${when(ended)}</span>`:""}${rc?" · reconstructed from the history":vs.length>1?` · ${vs.length} ${VISIT_WORD[S]||"visits"}`:""}</span><button type="button" class="sp-back" data-run="${esc(o.key||"own")}">back to now</button></p>`;
   h+=`<h3 class="sp-t">${esc(title)}</h3>`;
-  h+=vs.length?vs.map((V,i)=>visitHtml(S,V,i,vs.length,o,keys)).join(""):reconHtml(S,rc,o,keys);
+  h+=vs.length?vs.map((V,i)=>visitHtml(S,V,i,vs.length,o,keys,vs)).join(""):reconHtml(S,rc,o,keys);
   return h+`</div>`; }
 /* The strip's finished-step buttons: a click shows the step, a second click (or "back to now", or Escape) returns. Focus stays on the
    dot that was clicked, the live redraw included. */

@@ -762,7 +762,7 @@ function checkPanel(plan, w, ids, tracking, dir) {
         if (x.report != null && !str(x.report)) fail(`${at}.report must be the stage's closing report`); });
     }
   }
-  /* wip.open (RULES §3): the open points raised during the run, each { text, raised, ref, resolved }: shown in the step panel until
+  /* wip.open (RULES §3): the open points raised during the run, each { text, raised, ref, resolved, shownOpen }: shown in the step panel until
      resolved, then kept in the trail */
   if (w.open != null) {
     if (!Array.isArray(w.open)) fail('wip.open must be an array of open points, each { "text": "…", "raised": "<event or stage>", "ref": "<link>", "resolved": "<how>" }');
@@ -771,6 +771,10 @@ function checkPanel(plan, w, ids, tracking, dir) {
       if (!str(x.raised)) fail(`${at}.raised names the event or stage that raised it (e.g. "implementation-stage S2")`);
       if (x.ref != null) { if (!str(x.ref)) fail(`${at}.ref is a link to where the point is recorded, or left out`); else checkLink(dir, x.ref, `${at}.ref`); }
       if (x.resolved != null && x.resolved !== true && !str(x.resolved)) fail(`${at}.resolved is how it was resolved (a sentence, or true), or left out while it is open`);
+      /* shownOpen (the user's approval of 2026-11-11): the time of the last event of the run's that showed the point open, the lower bound of its
+         resolved time at the arrival check (apply-event.js mergeOpen()); a UTC ISO time (an event's, so not held to the board's other times,
+         which a run's events may give out of order); left out on a point raised before the field */
+      if (x.shownOpen != null && !(isTime(x.shownOpen) && /Z$/.test(x.shownOpen))) fail(`${at}.shownOpen is the UTC ISO time of the last event that showed the point open (apply-event.js writes it), or left out (got ${JSON.stringify(x.shownOpen)})`);
       /* the copy of the report the point was raised against (dashboards-skill/35): a path under docs/plans/.live/open/, which the live view links */
       if (x.copy != null && (!str(x.copy) || !/^[\w.-]+(\/[\w.-]+)*$/.test(x.copy) || x.copy.split("/").includes(".."))) fail(`${at}.copy is the path of its report's copy under docs/plans/.live/open/ (apply-event.js takes it), or left out (got ${JSON.stringify(x.copy)})`);
       /* no open point is committed open (RULES §3, wip.open; admin-team/dashboards-skill/35): from the landing on (landing, state-boards,

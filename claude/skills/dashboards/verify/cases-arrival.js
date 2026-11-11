@@ -6,8 +6,9 @@
 // the event newly raises and the resolved time of one it newly resolves are held to bounds, not to closeness (decided 2026-11-11;
 // KotlinBottools #23: a run reads them from the clock at the moment and reports them in its next event, many minutes later, and the
 // closeness replaced a true reading): a missing one is stamped at the arrival; one is kept when it is not after the arrival plus the
-// tolerance and, for a resolved time, not before the last event that still showed the point open (the board's last event, wip.event, where
-// it is a report of the run's); only one outside those bounds is replaced by the arrival time, the arrival line naming the bound it
+// tolerance and, for a resolved time, not before the last event that still showed the point open (the point's shownOpen, the time of the
+// last event of the run's that raised it or listed it again unresolved, the user's approval of 2026-11-11; on a point raised before the
+// field, the board's last event, wip.event, where it is a report of the run's); only one outside those bounds is replaced by the arrival time, the arrival line naming the bound it
 // crossed. A newly raised point has no earlier event showing it open, so only the upper bound binds it; a point carried forward with the
 // board's times is not read. Without --arrived (team-raised events, backfills) nothing changes; --at still wins; an --arrived that is no
 // ISO time with its zone is a usage error. No case opens a browser. Each group returns [title, cases], a case [name, ok, detail].
@@ -145,12 +146,18 @@ module.exports = function casesArrival(X) {
     const g = resolveOn(raisedOn(R), sec(-30), [{ text: P1, resolved: "2026-11-03T01:00:00Z" }], ["--arrived", A]);
     c.push(["a rounded guess, hours before the point was raised: replaced the same way",
       g.a.status === 0 && g.pt(P1) && g.pt(P1).resolved === A && g.S.arrival === `${who(P1)} resolved 2026-11-03T01:00:00Z replaced by arrival ${A} (before the point was last shown open, ${R})`, js([g.pt(P1), g.S.arrival, g.S.error])]);
-    /* the bound is the board's last event, the latest record it holds of the point open: a later report that left the point open moves it */
+    /* the bound is the last event that still showed the point open, the point's shownOpen (the user's approval of 2026-11-11): a later report
+       that lists the point again unresolved moves it; one that does not list it moves nothing (before the field, the board's last event did) */
     const B2 = raisedOn(R), R2 = sec(-900), mid = send(B2, { stage: "S1", stages: STG("current", "todo"), at: R2, detail: "Stage one, a second report." }, []);
     const l = resolveOn(B2, sec(-30), [{ text: P1, resolved: sec(-1200) }], ["--arrived", A]);
-    c.push(["a later report of the run left the point open: a resolved time after the raising but before that report is replaced, the reason naming the report's time",
-      mid.a.status === 0 && ((mid.p.wip || {}).event || {}).at === R2 && l.a.status === 0 && l.pt(P1) && l.pt(P1).resolved === A && l.S.arrival === `${who(P1)} resolved ${sec(-1200)} replaced by arrival ${A} (before the point was last shown open, ${R2})`,
-      js([mid.a.status, mid.S.error, l.pt(P1), l.S.arrival, l.S.error])]);
+    c.push(["a later report of the run that did not list the point: it did not show it open, so a resolved time after the raising and before that report is kept, no arrival line",
+      mid.a.status === 0 && ((mid.p.wip || {}).event || {}).at === R2 && mid.pt(P1).shownOpen === R && l.a.status === 0 && l.pt(P1) && l.pt(P1).resolved === sec(-1200) && l.S.arrival == null,
+      js([mid.a.status, mid.S.error, mid.pt(P1), l.pt(P1), l.S.arrival, l.S.error])]);
+    const B3 = raisedOn(R), mid3 = send(B3, { stage: "S1", stages: STG("current", "todo"), at: R2, detail: "Stage one, a second report.", open: [{ text: P1 }] }, []);
+    const l3 = resolveOn(B3, sec(-30), [{ text: P1, resolved: sec(-1200) }], ["--arrived", A]);
+    c.push(["a later report of the run that listed the point again unresolved: it showed it open, so the same resolved time, before that report, is replaced, the reason naming the report's time",
+      mid3.a.status === 0 && mid3.pt(P1).shownOpen === R2 && l3.a.status === 0 && l3.pt(P1) && l3.pt(P1).resolved === A && l3.S.arrival === `${who(P1)} resolved ${sec(-1200)} replaced by arrival ${A} (before the point was last shown open, ${R2})`,
+      js([mid3.a.status, mid3.S.error, mid3.pt(P1), l3.pt(P1), l3.S.arrival, l3.S.error])]);
     const t = evOpen("2026-11-03T00:00:00Z", [{ text: P1, resolved: sec(300) }], ["--arrived", A], [{ text: P1, raised: "implementation-stage S1" }]);
     c.push(["with facts.at held as well: the event's line first, then the open point's, on the one arrival line",
       t.a.status === 0 && t.S.arrival === `facts.at 2026-11-03T00:00:00Z replaced by arrival ${A} (off by 18000 s, over 2 min); ${who(P1)} resolved ${sec(300)} replaced by arrival ${A} (after the arrival)` && t.pt(P1).resolved === A,
@@ -240,6 +247,41 @@ module.exports = function casesArrival(X) {
     const a = resolveOn(raisedOn(R), sec(-30), [{ text: P1, resolved: sec(-3600) }, { text: P2, raised: sec(900), resolved: sec(600) }], ["--at", "2026-11-03T04:40:00Z", "--arrived", A]);
     c.push(["--at with --arrived: the same times kept as sent, the line says only that the time was not held",
       a.a.status === 0 && a.pt(P1) && a.pt(P1).resolved === sec(-3600) && a.pt(P2) && a.pt(P2).resolved === sec(600) && /^not held: --at 2026-11-03T04:40:00Z given \(arrival 2026-11-03T05:00:00Z\)$/.test(a.S.arrival || ""), js([a.a.status, a.pt(P1), a.pt(P2), a.S.arrival, a.S.error])]);
+  });
+
+  /* an open point's shownOpen (the user's approval of 2026-11-11 of the proposal to store a time on each open point): the time of the last
+     event of the run's that showed the point open, written by the event that raises it and moved by each later one that lists it again
+     unresolved, never back, never by a team-raised event; the lower bound of its resolved time. A point from before the field has none until
+     an event lists it again, and is bounded by the board's last event meanwhile (the group above, "where the board holds no time") */
+  guard("apply-event.js: an open point stores shownOpen, the time of the last event that showed it open, and its resolved time is bounded by it", c => {
+    const CHECK = sk("plan/scripts/check.js");
+    const k = evOpen("2026-11-03T00:00:00Z", [{ text: P1 }], ["--arrived", A]);
+    c.push(["the event that raises a point writes shownOpen, the event's own time as held to its arrival (here the arrival, facts.at being 5 hours off)",
+      k.a.status === 0 && k.pt(P1) && k.pt(P1).shownOpen === A && k.pt(P1).shownOpen === k.p.wip.event.at, js([k.a.status, k.pt(P1), k.p && k.p.wip.event, k.S.error])]);
+    const r = raisedOn(R), x = JSON.parse(rd(path.join(r.dir, "plan.json"))).wip.open.find(o => o.text === P1);
+    c.push(["without --arrived the event's time as sent", !!x && x.shownOpen === R, js(x)]);
+    const d = send(boardWith(), { stage: "S1", stages: STG("current", "todo"), at: sec(-30), open: [{ text: P1 }] }, ["--arrived", A], true);
+    c.push(["the same event raised again: a duplicate, shownOpen unchanged", d.a.status === 0 && d.S2 && d.S2.result === "duplicate" && d.pt(P1).shownOpen === sec(-30), js([d.S.result, d.S2 && d.S2.result, d.pt(P1)])]);
+    /* a point from before the field: none until an event lists it again; then the bound is that event */
+    const HELD = [{ text: P1, raised: "implementation-stage S1" }], B = boardWith(HELD, { name: "implementation-stage", at: sec(-1500) });
+    const lst = send(B, { stage: "S1", stages: STG("current", "todo"), at: sec(-1200), detail: "Stage one, a second report.", open: [{ text: P1 }] }, ["--arrived", sec(-1190)]);
+    const res = resolveOn(B, sec(-30), [{ text: P1, resolved: sec(-1300) }], ["--arrived", A]);
+    c.push(["a point from before the field, listed again unresolved: it takes that event's time, and a resolved time before it is replaced, the reason naming it",
+      lst.a.status === 0 && lst.pt(P1).shownOpen === sec(-1200) && res.a.status === 0 && res.pt(P1).resolved === A && res.S.arrival === `${who(P1)} resolved ${sec(-1300)} replaced by arrival ${A} (before the point was last shown open, ${sec(-1200)})`,
+      js([lst.pt(P1), lst.S.error, res.pt(P1), res.S.arrival, res.S.error])]);
+    const old = send(boardWith(HELD), { stage: "S1", stages: STG("done", "current"), at: sec(-30), detail: "Stage one done." }, ["--arrived", A]);
+    c.push(["a point from before the field that no event lists: no shownOpen written (none is guessed)", old.a.status === 0 && old.pt(P1) && !("shownOpen" in old.pt(P1)), js(old.pt(P1))]);
+    const src = rd(APPLY);
+    c.push(["a team-raised event moves no shownOpen, and a later listing never moves it back (the script's rule)", /const shownAt = \(now, ev\) => lib\.isTime\(now\) && !TEAM_RAISED\.includes\(ev\) \? now : null;/.test(src) && src.includes("Date.parse(shown) > Date.parse(have.shownOpen)"), "apply-event.js shownAt(), mergeOpen()"]);
+    /* a retime of the event that raised it moves the stored time with it */
+    const RT = raisedOn(R), rq = wr(path.join(sc, `req-${++n}.json`), js({ v: 1, action: "plan-board", github: RT.plan.repo, issue: RT.plan.issue, event: "retime", folder: RT.plan.folder, facts: { event: "implementation-stage", from: R, to: sec(-1860), reason: "the run's clock read a minute late" } }));
+    const rt = run(APPLY, ["--event", rq, "--worktree", RT.root, "--no-gh", "--no-live", "--json"]), rp = JSON.parse(rd(path.join(RT.dir, "plan.json"))), rpt = rp.wip.open.find(o => o.text === P1);
+    c.push(["a retime of the event that raised the point moves its shownOpen too", rt.status === 0 && rpt && rpt.shownOpen === sec(-1860), js([rt.status, (rt.stdout || "").slice(-300), rpt])]);
+    /* check.js holds the field to its form */
+    const bad = (val, re) => { const Bc = boardWith([{ text: P1, raised: "implementation-stage S1", shownOpen: val }]), ck = run(CHECK, [Bc.dir]); return ck.status !== 0 && re.test(ck.stdout || ""); };
+    c.push(["check.js fails a shownOpen that is no UTC time", bad("yesterday", /wip\.open\[0\]\.shownOpen is the UTC ISO time/) && bad("2026-11-03T04:00:00+02:00", /wip\.open\[0\]\.shownOpen is the UTC ISO time/), "check.js wip.open"]);
+    const good = boardWith([{ text: P1, raised: "implementation-stage S1", shownOpen: T0 }]), gk = run(CHECK, [good.dir]);
+    c.push(["check.js passes a board whose point carries it, and one from before the field without it", gk.status === 0 && run(CHECK, [boardWith(HELD).dir]).status === 0, (gk.stdout || "").split(/\r?\n/).filter(l => /^FAIL/.test(l)).join(" | ")]);
   });
 
   return groups;

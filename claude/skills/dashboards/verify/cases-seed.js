@@ -98,6 +98,22 @@ module.exports = function casesSeed(X) {
     const s = seed(B, wt, {}, "2026-10-26T10:00:00Z", ["--no-live"]);
     c.push(["nothing seeded from a copy whose merge is not in this branch's history", s.a.status === 0 && !(s.S.seeded || []).some(x => /47-java-23-bytecode/.test(x)) && (s.S.applied || []).some(x => /merge is not in this branch's history/.test(x)), js([s.a.status, s.S.result, s.S.seeded, s.S.applied, s.S.error])]);
   });
+  /* a closed board is kept as it closed (GUIDANCE.md §8, §11): the seeding writes a landed board from its view copy and keeps the copy's page,
+     never re-rendering it onto a later template (KotlinBottools #23, seeded at #24's sized on 2026-11-11, had been re-rendered) */
+  guard("seed: a landed board is seeded on the page it landed with, never re-rendered onto a later template", c => {
+    const B = landedRepo("seed-closed"), wt = path.join(sc, "seed-closed-tree"); fs.rmSync(wt, { recursive: true, force: true });
+    if (git(B.main, "worktree", "add", "-q", "-b", "docs/closed", wt).status !== 0) { c.push(["git worktree add", false, "failed"]); return; }
+    /* the view copy's page made from an older template: a mark in its template part */
+    const vf = path.join(B.vS, "dashboard.html"), MARK = "<!-- verification case: the template this board landed with -->";
+    wr(vf, rd(vf).replace("</body>", MARK + "\n</body>"));
+    const s = seed(B, wt, {}, "2026-10-26T10:00:00Z", ["--no-live"]), wS = path.join(wt, ...SF.split("/")), page = rd(path.join(wS, "dashboard.html"));
+    c.push(["the landed board seeded on its view copy's page: the older template kept, its data the copy's, no live-view <base> line, not named as re-rendered",
+      s.a.status === 0 && (s.S.seeded || []).some(x => /47-java-23-bytecode/.test(x)) && page.includes(MARK) && !lib.VIEW_BASE_RE.test(page) && !/47-java-23-bytecode\/dashboard\.html/.test(js(s.S.rerendered || "")) && P(wS).status === "built",
+      js([s.a.status, s.S.result, s.S.seeded, s.S.rerendered, page.includes(MARK), s.S.error])]);
+    c.push(["…its page embeds its data verbatim", run(EMBED, [wS, "--check"], { env }).status === 0, "embed.js --check"]);
+    const wT = path.join(wt, ...TF.split("/")), strip = h => h.replace(/\r\n/g, "\n").replace(/<script type="application\/json" id="plan">[\s\S]*?<\/script>/, "");
+    c.push(["…the tracking board, still in flight, is on the current template", strip(rd(path.join(wT, "dashboard.html"))) === strip(rd(PB)), "the tracking board's page"]);
+  });
   return groups;
 };
 
