@@ -69,6 +69,12 @@ module.exports = function casesFindingsLine(X) {
     c.push(["the detail: \"Quality Review 1: changes requested, " + LINE + "; a Correction, then the next review.\"", q.a.status === 0 && q.p.wip.detail === `Quality Review 1: changes requested, ${LINE}; a Correction, then the next review.`, js([q.S.error, q.p.wip.detail])]);
     c.push(["the trail entry: \"Quality Review 1: changes requested, " + LINE + "\"", last(q.p).label === `Quality Review 1: changes requested, ${LINE}`, last(q.p).label]);
     c.push(["the pass keeps its counts as data, by kind and by severity", js(q.p.wip.qa[0].findings) === js({ documentation: 3, code: 15 }) && js(q.p.wip.qa[0].severity) === js({ other: 16, minor: 2 }), js([q.p.wip.qa[0].findings, q.p.wip.qa[0].severity])]);
+    /* the counts by kind nested as facts.qa.findings, as a run may send them (KotlinBottools #23): read as the flat ones, a flat count winning */
+    const T2 = tree("fast-nested", building()), ev2 = evIn(T2);
+    ev2("implementation-stage", "2026-10-26T09:00:00Z", { stages: [{ id: "S2", state: "done" }] });
+    ev2("qa-pass", "2026-10-26T10:00:00Z", { qa: { pass: 1, verdict: "running" } });
+    const q2 = ev2("qa-pass", "2026-10-26T11:00:00Z", { qa: { pass: 1, verdict: "CHANGES REQUESTED", findings: { test: 2, code: 3 }, code: 4, severity: { minor: 6, other: 0 }, route: "on-the-spot" } });
+    c.push(["nested counts (facts.qa.findings) are kept by kind too, a flat count winning", q2.a.status === 0 && js(q2.p.wip.qa[0].findings) === js({ test: 2, code: 4 }), js([q2.S.error, q2.p.wip.qa[0].findings])]);
     const ck = run(CHECK, [T.dir]);
     c.push(["the board holds no older wording, and check.js finds none (no BOARD WORDING)", !old(q.p).length && !/BOARD WORDING/.test(ck.stdout + ck.stderr), js(old(q.p))]);
   });

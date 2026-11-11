@@ -592,7 +592,10 @@ function applyEvent(orig, ev, facts, req, now) {
       const v = String(Q.verdict || "").toLowerCase();
       const verdict = /^(approved?|pass(ed)?|ok)$/.test(v) ? "approved" : /change|fail|reject|request/.test(v) ? "changes-requested" : /running/.test(v) ? "running" : null;
       if (!verdict) refuse(`facts.qa.verdict ${JSON.stringify(Q.verdict)} is not approved, changes-requested or running`);
-      const findings = {}; [["documentation", Q.documentation != null ? Q.documentation : Q.doc], ["test", Q.test], ["code", Q.code]].forEach(([k, n]) => { if (Number.isInteger(n) && n >= 0) findings[k] = n; });
+      /* the counts by kind: flat (facts.qa {doc, test, code}, the protocol's form), else nested as facts.qa.findings {documentation|doc, test, code}, which a run
+         may send; a flat count wins (KotlinBottools #23, Quality Review 1: its nested counts had been dropped, the findings line left with no kinds) */
+      const QF = Q.findings && typeof Q.findings === "object" && !Array.isArray(Q.findings) ? Q.findings : {}, pick = (...v) => v.find(n => n != null);
+      const findings = {}; [["documentation", pick(Q.documentation, Q.doc, QF.documentation, QF.doc)], ["test", pick(Q.test, QF.test)], ["code", pick(Q.code, QF.code)]].forEach(([k, n]) => { if (Number.isInteger(n) && n >= 0) findings[k] = n; });
       const severity = {}; if (Q.severity && typeof Q.severity === "object") Object.keys(Q.severity).forEach(k => { if (Number.isInteger(Q.severity[k]) && Q.severity[k] >= 0) severity[k] = Q.severity[k]; });
       const route = routeId(Q.route || (facts.remediation || {}).route || null);
       if (route && !ROUTES.includes(route)) refuse(`facts.qa.route ${JSON.stringify(route)} is not one of ${ROUTES.join(", ")}`);
