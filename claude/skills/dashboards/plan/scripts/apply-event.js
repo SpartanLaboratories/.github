@@ -535,7 +535,16 @@ function applyEvent(orig, ev, facts, req, now) {
          sub-steps are written whether or not the facts also carry the stages (which are then merged too, every one done), and the wording
          follows the remediation, facts.stage first, never "Quality Review next". */
       const fixedBefore = new Set(((w.remediation || {}).steps || []).filter(x => x && x.state === "done").map(x => x.name));
-      if (facts.remediation) setRemediation(w, facts.remediation, applied, enrich, txt, { now, report: detail });
+      /* a late report on a board already at qa or past it moves nothing back (plan/RULES.md §4, the implementation-stage row), a remediation's
+         included (KotlinBottools #24: a Correction's report sent while Quality Review 2 ran had moved the board back to the Correction): its
+         sub-steps are still recorded on the remediation they belong to, while the board holds it, and nothing else of the remediation is opened again */
+      const stood = stopped(w.step) ? w.resume : w.step, past = ["qa", "document", "landing", "state-boards", "merge", "landed", "cancelled"].includes(stood);
+      const remNow = remed && !past;
+      if (facts.remediation) {
+        if (!past || (w.remediation && w.remediation.pass === facts.remediation.pass)) setRemediation(w, facts.remediation, applied, enrich, txt, { now, report: detail });
+        else applied.push(`facts.remediation (Quality Review ${facts.remediation.pass}'s fixes) not written: the board stands at ${stood}, past that remediation, and holds no record of it to add to`);
+        if (past) applied.push(`a late remediation report: the board stays at ${stood}`);
+      }
       /* A report can change what the rows say while it finishes no stage (WebTools #67, the report of qa pass 1's fixes: every stage already done, a sub-step done,
          a new deviation D7, and it said enrich: no): a remediation sub-step it finishes, or a deviation it names, needs the documents too (plan/RULES.md §4,
          "The fast path"). From the board and the facts alone, so the same report twice asks nothing new of the sub-steps. */
@@ -548,6 +557,10 @@ function applyEvent(orig, ev, facts, req, now) {
         if (fixed.length) testsDue = true;
       };
       if (remed && !Array.isArray(facts.stages)) {
+        /* the stages, which it does not report, still follow the plan as it stands (refreshStageTable()) */
+        if (Array.isArray(w.stages) && w.stages.length) { const PT = lib.planStageTable(DIR); refreshStageTable(w.stages, PT ? PT.stages : [], facts, enrich, applied); }
+        /* a late one (above) keeps the step, its glow and the WIP line, and records its sub-steps and its trail entry */
+        if (!remNow) { reportWithoutStage(); detail = detail || w.detail || null; remediationWording(); break; }
         setStep("remediation"); setGlow("remediation");
         reportWithoutStage();
         remediationWording();
@@ -570,10 +583,9 @@ function applyEvent(orig, ev, facts, req, now) {
       const allDone = st.length > 0 && st.every(x => x.state === "done");
       /* the step: remediation when the report is one, else implementation, every stage done or not (only the run's qa-pass with verdict
          "running" moves it on); a late report on a board already at qa or past it moves nothing back */
-      const stood = stopped(w.step) ? w.resume : w.step, past = ["qa", "document", "landing", "state-boards", "merge", "landed", "cancelled"].includes(stood);
-      const step = remed ? "remediation" : past ? stood : "implementation";
+      const step = remNow ? "remediation" : past ? stood : "implementation";
       setStep(step); setGlow(step);
-      if (remed) { remediationWording(); break; }
+      if (remNow) { remediationWording(); break; }
       /* the wording comes from the facts alone, never from what changed, so the same event twice writes the same board: the stage
          reported is facts.stage when it names a done stage, else the last done stage before the current one */
       const c = curStage(), ci = c ? st.indexOf(c) : st.length;
@@ -919,19 +931,50 @@ const STAGE_KEEP = ["brief", "kind", "steps", "ref", "started", "finished", "rep
 /* The brief goes on the board as the plan writes it, or not at all: a plan's text that names a work level, an internal name or an older pass wording is the plan's to reword, never reworded here (GUIDANCE.md §4). */
 const stageNope = s => levelRefs(s).length ? "a work level" : nameRefs(s).some(unambiguous) ? "an internal name" : lib.passRefs(s).length ? "an older wording of a review" : null;
 const tableFields = (T, enrich) => lib.stageTableFields(T, stageNope, enrich);
+/* After branch-cut the plan's stage table may say something else than the stages hold: a plan revised during a Correction (KotlinBottools #24,
+   its plan re-passed after Quality Review 1, "S2 — The six files" become "S2 — The seven files") kept the first plan's link, briefs and steps.
+   So every later stage event brings each stage the table names to its row, where the table says something else: its steps and link, and its
+   brief verbatim, or none where the plan has none to show (stageNope()). Its kind stays as branch-cut copied it: a check stage's recorded result
+   rests on it, and a revision that turns a stage into another kind is the presenter's to read. A stage the table does not name, or a plan with no table, takes the
+   steps the event gives (facts.stages[i].steps: ids, or {id, name}), a step's name kept from the board where it has one. A finished visit's record
+   (wip.history) is a copy of its own and keeps what it ran to. The same event twice changes nothing more. */
+const STEP_ID = /^[A-Za-z0-9][\w.-]*$/;
+function refreshStageTable(list, table, facts, enrich, applied) {
+  const sig = x => JSON.stringify(["brief", "steps", "ref"].map(k => x[k] == null ? null : x[k]));
+  let n = 0;
+  list.forEach(x => {
+    if (!x || typeof x !== "object") return;
+    const was = sig(x), T = lib.stageRow(table, x.id), said = [];
+    if (T) {
+      const f = tableFields(T, said);
+      ["steps", "ref"].forEach(k => { if (f[k] != null) x[k] = f[k]; });
+      if (f.brief != null) x.brief = f.brief; else delete x.brief;
+    } else {
+      const s = (Array.isArray(facts.stages) ? facts.stages : []).find(y => y && lib.stageKey(y.id) === lib.stageKey(x.id));
+      const old = Array.isArray(x.steps) ? x.steps : [];
+      const given = s && Array.isArray(s.steps) ? s.steps.map(y => typeof y === "string" ? { id: y.trim(), name: null } : y && typeof y === "object" && typeof y.id === "string" ? { id: y.id.trim(), name: typeof y.name === "string" && y.name.trim() ? y.name.trim() : null } : null)
+        .filter(y => y && STEP_ID.test(y.id)).map(y => ({ id: y.id, name: y.name || ((old.find(o => o && o.id === y.id) || {}).name) || y.id })) : null;
+      if (given && given.length) x.steps = given;
+    }
+    if (sig(x) !== was) { n++; enrich.push(...said); }
+  });
+  if (n) applied.push(`wip.stages: ${plural(n, "stage")} brought to the plan's stage table as it stands now, or to the steps the event gives`);
+}
 function mergeStages(w, facts, applied, enrich, first, ids, remed = !!facts.remediation, how = {}) {
   const have = Array.isArray(w.stages) ? w.stages : [];
   /* the plan's stage table (plan/RULES.md §3), copied at branch-cut on the fast path; a plan without it gives no brief */
-  const planTable = first ? lib.planStageTable(DIR) : null, table = planTable ? planTable.stages : [];
+  /* read again at every later stage event too, so a plan revised during a Correction reaches the stages (refreshStageTable(), below) */
+  const planTable = lib.planStageTable(DIR), table = planTable ? planTable.stages : [];
   /* a board from before the record: what its earlier events said, before this event's own stamps */
   const bf0 = first ? [] : lib.backfillStages(w); if (bf0.length) applied.push(`wip.stages from the earlier events: ${bf0.join(", ")}`);
-  if (planTable) { planTable.problems.forEach(p => WARNINGS.push(`STAGE TABLE: ${p}`)); }
+  if (planTable && first) { planTable.problems.forEach(p => WARNINGS.push(`STAGE TABLE: ${p}`)); }
   /* a board whose branch-cut read no row of the table (the ids' case, before lib.js stageRow()) catches it up at its next event */
   if (!first) { const n = lib.catchUpStageTable(w, DIR, stageNope, enrich); if (n) applied.push(`wip.stages: ${plural(n, "stage")} from the plan's stage table, caught up`); }
-  if ((!Array.isArray(facts.stages) || !facts.stages.length) && !have.length && table.length) facts = { ...facts, stages: table.map(s => ({ id: s.id, name: s.name })) };
+  if (first && (!Array.isArray(facts.stages) || !facts.stages.length) && !have.length && table.length) facts = { ...facts, stages: table.map(s => ({ id: s.id, name: s.name })) };
   if (!Array.isArray(facts.stages) || !facts.stages.length) {
     if (!have.length) enrich.push("the stages of plan.md, with the rows each touches, come from plan.md");
     else if (first && !have.some(x => x.state === "current")) { const t = have.find(x => x.state !== "done"); if (t) { t.state = "current"; lib.stampItem(t, { ...t, state: "todo" }, how.now, null); applied.push(`wip.stages ${t.id} current`); } }
+    if (!first) refreshStageTable(have, table, facts, enrich, applied);
     if (first && table.length) { let n = 0; have.forEach(x => { const T = lib.stageRow(table, x.id); if (T) { Object.assign(x, tableFields(T, enrich)); n++; } }); if (n) applied.push(`wip.stages: ${plural(n, "stage")} from the plan's stage table`); }
     return;
   }
@@ -952,6 +995,7 @@ function mergeStages(w, facts, applied, enrich, first, ids, remed = !!facts.reme
     return { id: s.id, name, state, rows, ...keep, given };
   });
   if (first && table.length) { let n = 0; out.forEach(x => { const T = lib.stageRow(table, x.id); if (T) { Object.assign(x, tableFields(T, enrich)); n++; } }); if (n) applied.push(`wip.stages: ${plural(n, "stage")} from the plan's stage table`); }
+  if (!first) refreshStageTable(out, table, facts, enrich, applied);
   /* the record per stage, from this event (lib.js stampItem()); a stage a board already shows done at branch-cut keeps its end unknown */
   { const ofOld = id => have.find(x => x && x.id === id);
     out.forEach(x => lib.stampItem(x, ofOld(x.id) || (first ? { state: x.state } : undefined), how.now, how.report));

@@ -2240,6 +2240,13 @@ catch (e) { report("a stretch when the run was not running cases", [["the cases 
 try { require("./cases-explicit-step.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("an explicit signal moves the step cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
+/* Two defects of KotlinBottools #24's run (verify/cases-stage-revision.js; admin-team/dashboards/stage-revision): every stage event after
+   branch-cut brings the stages to the plan's stage table as it stands, or to the event's steps where the table names no such stage, so a plan
+   revised during a Correction reaches them, a finished visit's record keeping what it ran to; and a late report on a board already at qa or past
+   it moves nothing back, a remediation's included. It needs no browser, and runs on its own too (node verify/cases-stage-revision.js). */
+try { require("./cases-stage-revision.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the stage table after a plan revision; a late report at Quality Review cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
 /* A tracking issue's run sending plan-accepted and branch-cut (verify/cases-tracking-plan-events.js; admin-team/dashboards/tracking-plan-events,
    KotlinBottools #2): both keep a tracking board in its own line, its units not yet filed passing the check; branch-cut records the branch and
    writes no stages. It needs no browser, and runs on its own too (node verify/cases-tracking-plan-events.js). */
