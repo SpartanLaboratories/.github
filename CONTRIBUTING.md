@@ -18,7 +18,6 @@ module layout, build and test commands, where its version lives, and how it publ
 - [Merge strategy](#merge-strategy)
 - [Code, tests, and documentation](#code-tests-and-documentation)
 - [Versioning](#versioning)
-- [Releasing](#releasing)
 - [Deployment environments](#deployment-environments)
 - [Security](#security)
 
@@ -184,20 +183,6 @@ keep lettered fixes effective:
 
 A Maven POM carries no `strictly`; a Maven consumer gets the version its own declaration names
 and must request a lettered version explicitly.
-
-## Releasing
-
-1. All target changes are merged to the default branch and CI is green.
-2. `git switch -c release/1.10.0` — bump the version wherever the repository keeps it, move the
-   `CHANGELOG.md` `[Unreleased]` entries under a new `[1.10.0]` heading with today's date, and
-   update the link references.
-3. PR → merge. The merge commit is `chore(release): 1.10.0`.
-4. Tag the merge with a `v`-prefixed annotated tag — `git tag -a v1.10.0 -m "Release 1.10.0"` —
-   then `git push origin <default-branch> --follow-tags`.
-5. A release workflow creates the GitHub Release from the tag.
-6. **Publishing to a package registry (e.g. Maven Central) is manual.** It is irreversible and
-   stays a deliberate human action — no registry credentials live in CI. The repository's
-   `CONTRIBUTING.md` gives the exact command.
 
 ## Deployment environments
 
