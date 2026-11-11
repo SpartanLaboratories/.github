@@ -2301,6 +2301,12 @@ catch (e) { report("the seed cases", [["the cases run to the end", false, String
 try { require("./cases-unit-landed.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the unit-landed cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
+/* The built milestone on the fast path (verify/cases-built-milestone.js; admin-team/dashboards/built-milestone-fast-path): landed writes it from the landing's
+   record, once, a built milestone already there kept, none without a merge sha; the tracking board's own landing at its last unit is in verify/cases-unit-landed.js.
+   It needs no browser, and runs on its own too (node verify/cases-built-milestone.js). */
+try { require("./cases-built-milestone.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the built-milestone cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
 /* A foundation on the fast path (verify/cases-foundation.js; admin-team/board/foundation-fast-path): a sized with no board lays it, applies the
    event, re-embeds the parent tracking board and regenerates the live repository work board; its facts each from the first source that tells
    it; a slug the registry does not know; a failure leaves nothing; the fill read from the data, a board past its plan's acceptance with its Gap

@@ -750,6 +750,7 @@ function applyEvent(orig, ev, facts, req, now) {
       if (mt.applied) applied.push(mt.applied);
       if (mt.warn) WARNINGS.push(mt.warn);
       plan.asBuilt = next; applied.push("asBuilt");
+      builtMilestone(plan, next, next.merge || sha, x => applied.push(x));
       /* the board is built, and its step landed, only once every part is resolved and the merge is recorded (check.js); until the
          pre-merge refresh resolves them it stays at the landing, its merge recorded */
       /* a row's recorded state: the outcome its as-built statements derive, else its stored state (plan/RULES.md §2, "Statements") */
@@ -1012,6 +1013,22 @@ function mergeTasks(w, list, applied, enrich, txt, how = {}) {
   const next = { tasks: out };
   if (JSON.stringify(next) !== JSON.stringify(w.document || null)) { w.document = next; applied.push(`wip.document ${out.map(x => x.id + " " + x.state).join(", ") || "(no tasks)"}`); }
 }
+/* The built milestone (plan/RULES.md §4, the landed row; admin-team/dashboards/built-milestone-fast-path): the merge, from the landing's record
+   alone, on the fast path: "Merged", its pull request as the ref and "merged as <sha>" as the note, dated by the merge's time (UTC) where it is
+   recorded, else by asBuilt.date. Written once: a built milestone already on the board (a release's, one written before) is left as it is, so the
+   same event twice changes nothing. No merge sha or no date, nothing written: the merge is the landing's (its facts, or the merge already
+   recorded), never asBuilt.sha alone, which on a board in flight is its baseline. */
+function builtMilestone(plan, A, merge, push) {
+  const m = String(merge || "");
+  if (!/^[0-9a-f]{7,40}$/.test(m)) return;
+  const ms = Array.isArray(plan.milestones) ? plan.milestones : [];
+  if (ms.some(x => x && x.column === "built")) return;
+  const date = /^\d{4}-\d{2}-\d{2}T/.test(String(A.at || "")) ? String(A.at).slice(0, 10) : String(A.date || "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+  const pr = Number.isInteger(A.pr) && A.pr > 0 ? A.pr : null;
+  plan.milestones = [...ms, { column: "built", label: "Merged", date, ...(pr ? { ref: `PR #${pr}` } : {}), note: `merged as ${m.slice(0, 7)}` }];
+  push(`the built milestone: merged as ${m.slice(0, 7)}`);
+}
 /* The land has begun, so the document-landing commit is made: a task still open (its raise missed) closes with the land's event, in the
    view copies and the frozen Document step alike. A board with no such task keeps its list. */
 function closeLandingCommit(w, applied, now) {
@@ -1256,6 +1273,7 @@ function applyParent(orig, sub, op, now) {
     const A = (sub && sub.asBuilt) || {}, m = A.merge || A.sha, pr = Number.isInteger(A.pr) ? A.pr : null;
     plan.asBuilt = { ...(plan.asBuilt && typeof plan.asBuilt === "object" ? plan.asBuilt : {}), sha: m, merge: m, ...(pr ? { pr } : {}), date: (landing.mergedAt || now).slice(0, 10), ...(landing.mergedAt ? { at: landing.mergedAt } : {}) };
     plan.status = "built"; w.step = "landed"; w.since = freezeAt; w.current = []; w.resume = null; w.waitingOn = null;
+    builtMilestone(plan, plan.asBuilt, m, x => applied.push(`#${plan.issue}: ${x}`));
     w.event = { name: "landed", at: now, note: `#${sub.issue}, its last unit, landed${pr ? " in PR #" + pr : ""}` };
     applied.push(`#${plan.issue}: every unit landed: status built, asBuilt at #${sub.issue}'s merge ${String(m).slice(0, 7)}${landing.mergedAt ? "" : " (its time not recorded)"}, wip.step landed`);
     if (!landing.mergedAt) WARNINGS.push(`landed: #${plan.issue}'s merge time (asBuilt.at) is not recorded: neither the facts (mergedAt) nor git here tell #${sub.issue}'s merge ${String(m).slice(0, 7)}; the next run's sized records it from git when it seeds this board`);
