@@ -1,6 +1,6 @@
 @echo off
 rem Starts the "admin team" session minimized, Remote Control-enabled, as the
-rem admin-team agent on Opus at medium effort, with its own settings. Run from
+rem admin-team agent, on the model its brief sets, with its own settings. Run from
 rem anywhere. The pipeline (admin-team skill) calls this when ListAgents shows
 rem no "admin team" row.
 rem Resume after a restart instead with:  claude --resume "admin team"
