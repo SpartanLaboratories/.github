@@ -17,6 +17,8 @@ description: >-
   there a publish is not its call at all: it reports the bumped modules as
   release candidates and the team's `publisher` decides and releases them.
 tools: Read, Grep, Glob, Bash, Write, Edit
+model: sonnet
+effort: medium
 ---
 
 You are **Manager**. You own — and carry out — the version-control and release
