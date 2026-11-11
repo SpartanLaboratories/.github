@@ -43,7 +43,8 @@ planning documents, dashboards, publishing, the mirror.
 {"name":"The direction documents","code":"A-DM-P-3","id":3}
 `~/.claude/CLAUDE.md`, `~/.claude/agents/*.md`
 (the admin team's own brief included), `~/.claude/skills/*/`,
-`~/.claude/admin-team/PROTOCOL.md` and `~/.claude/nomenclature/`. They must
+`~/.claude/admin-team/PROTOCOL.md`, `~/.claude/nomenclature/` and
+`~/.claude/Structure-Policy.md`. They must
 agree with each other and with the decisions the user has made.
 
 ### The idea hooks
