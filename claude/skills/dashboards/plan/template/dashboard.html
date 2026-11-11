@@ -2236,11 +2236,13 @@ function timelineSteps(P,now){ const w=(P&&P.wip)||{}, H=histOf(w), steps=(Array
   approxBounds(seq,A,adj);
   const cs=(Array.isArray(A.commits)?A.commits:[]).filter(c=>c&&isTime(c.at)&&typeof c.step==="string").sort((a,b)=>Date.parse(a.at)-Date.parse(b.at));
   steps.forEach(s=>{ const vs=seq.filter(v=>v.step===s), c=cs.find(x=>x.step===s); if(vs.length===1&&c&&(!vs[0].from||(vs[0].from.how==="approx"&&Date.parse(c.at)<Date.parse(vs[0].from.t)))&&(!vs[0].to||Date.parse(c.at)<=Date.parse(vs[0].to.t))) vs[0].from={t:c.at,how:"by",sha:c.sha||null}; });
-  const cnt={}, nth={}, TLC=routesOf(w); seq.forEach(v=>{ cnt[v.step]=(cnt[v.step]||0)+1; });
+  /* a pass's parts a wait or a break split, counted apart and each named by the pass and its part, "Quality Review 1 · visit 2" (lib.js timelineSteps(), the same rule) */
+  const passKey=v=>(v.step==="qa"||v.step==="remediation")&&v.pass?`${v.step}#${v.pass}`:null;
+  const cnt={}, nth={}, part={}, TLC=routesOf(w); seq.forEach(v=>{ cnt[v.step]=(cnt[v.step]||0)+1; const pk=passKey(v); if(pk) cnt[pk]=(cnt[pk]||0)+1; });
   seq.forEach(v=>{ v.n=nth[v.step]=(nth[v.step]||0)+1;
-    /* each by its name (names:begin; lib.js timelineSteps(), the same rule): "Quality Review 2", "Correction of Quality Review 2", "Plan · visit 2" */
-    const rt=v.route||TLC.routeOf(v.pass)||TLC.route;
-    v.label=v.step==="qa"?(v.pass?passName(v.pass):cnt.qa>1?`${PASS_NAME} · visit ${v.n}`:PASS_NAME):v.step==="remediation"?(v.pass?remediationName(rt,v.pass):cnt.remediation>1?`${routeName(rt)} · visit ${v.n}`:routeName(rt)):cnt[v.step]>1?`${stepLabel(v.step)} · visit ${v.n}`:stepLabel(v.step);
+    /* each by its name (names:begin; lib.js timelineSteps(), the same rule): "Quality Review 2", "Correction of Quality Review 2", "Plan · visit 2", a pass's parts "Quality Review 1 · visit 2" */
+    const rt=v.route||TLC.routeOf(v.pass)||TLC.route, pk=passKey(v);
+    v.label=(v.step==="qa"?(v.pass?passName(v.pass):cnt.qa>1?`${PASS_NAME} · visit ${v.n}`:PASS_NAME):v.step==="remediation"?(v.pass?remediationName(rt,v.pass):cnt.remediation>1?`${routeName(rt)} · visit ${v.n}`:routeName(rt)):cnt[v.step]>1?`${stepLabel(v.step)} · visit ${v.n}`:stepLabel(v.step))+(pk&&cnt[pk]>1?` · visit ${part[pk]=(part[pk]||0)+1}`:"");
     v.approx=[v.from,v.to].some(x=>x&&x.how==="approx");
     const a=v.from&&(v.from.how==="exact"||v.from.how==="approx")?Date.parse(v.from.t):null, b=v.to?Date.parse(v.to.t):null; v.ms=a!=null&&b!=null?b-a:null; if(v.ms!=null&&v.ms<0){ v.ms=null; v.order=true; } });
   const lined=[...new Set(seq.map(v=>v.step))].sort((x,y)=>idx(x)-idx(y));
@@ -2756,7 +2758,12 @@ const IMP_CHANGE={added:{g:"+",label:"added"},changed:{g:"~",label:"changed",cls
 const IMP_TIER={"stable-core":"Stable Core","supported-extension":"Supported Extension",experimental:"Experimental",internal:"internal"};
 /* release.unreleased: the artifact is new and has never been released, so no existing version moves; its first release is its own */
 const UNRELEASED="new, unreleased: its first release is its own";
+/* release.nothingPublished: the change touches no published artifact, as consequences.md's published-artifacts section records, so no version moves */
+const NOTHING_PUBLISHED="nothing published";
 const IMP_BUMP={none:"no version moves",fix:"fix · a bugfix release",feat:"feat · a feature release",major:"major · a breaking release"};
+/* the version Badge's words: the bump, then the mark (release.unreleased, release.nothingPublished; a mark that is not true is not drawn), then the
+   version; short, a unit Card's, "new, unreleased" alone */
+const releaseWords=(rel,short)=>[IMP_BUMP[rel.bump],rel.unreleased===true?(short?"new, unreleased":UNRELEASED):"",rel.nothingPublished===true?NOTHING_PUBLISHED:"",rel.version||""].filter(Boolean).join(" · ");
 const ibadge=(d,word,cls)=>{ const c=cls!==undefined?cls:d.cls||""; return `<span class="badge${c?" "+c:""}"><b aria-hidden="true">${esc(d.g)}</b>${esc(word||d.label)}</span>`; };
 /* a required adaptation's badge takes its entry's colour: red where not adapting breaks, yellow otherwise */
 const needCls=x=>x.need==="required"?COMPAT[compatOf("adaptation",x)].cls:"";
@@ -2777,14 +2784,14 @@ function compatParts(c,tags,slug){ if(c==="compatible") return {cls:"",pre:"",sy
 function impCard(key,x,i){ const S=IMP_SECTIONS.find(s=>s.key===key), tags=S.tags(x).filter(Boolean), slug=impSlug(x), c=compatOf(key,x), P=compatParts(c,tags,key==="conversion"?null:slug);
   return `<div class="bcard icard${P.cls}" data-sys="${esc(slug)}" data-imp="${key}.${i}" data-compat="${c}" tabindex="0" role="button" aria-label="${esc(S.title)}: ${esc(String(S.head(x,i)||"").replace(/`/g,""))}${c==="compatible"?"":`, ${COMPAT[c].label}`}"><div class="bh"><span class="nm">${rich(S.head(x,i)||"")}</span>${P.pre}${tags.join("")}${P.sys}</div><p>${rich(key==="conversion"?x.what:x.summary)}</p>${x.link?`<div class="meta">${moreLink(x.link,"detail")}</div>`:""}</div>`; }
 function impUnitCard(r,e){ const u=r.unit, c=compatOf("unit",e), P=compatParts(c,[],r.system||"");
-  return `<div class="bcard icard${P.cls}" data-sys="${esc(r.system||"")}" data-imp="unit.${esc(r.id)}" data-compat="${c}" tabindex="0" role="button" aria-label="Unit ${esc(u.n)}: ${nameText(r)}${e?"":", not recorded yet"}${c==="compatible"?"":`, ${COMPAT[c].label}`}"><div class="bh"><span class="nm">${esc(u.n)}. ${u.issue?pair(u.issue,u.slug||r.id):esc(u.slug||r.id)}</span>${P.pre}${e&&e.release&&IMP_BUMP[e.release.bump]?`<span class="badge">${esc(IMP_BUMP[e.release.bump])}${e.release.unreleased===true?" · new, unreleased":""}${e.release.version?` · ${esc(e.release.version)}`:""}</span>`:""}${P.sys}</div><p>${e?rich(e.summary||""):"Not recorded yet: summarised from the unit's own impact once its plan is accepted."}</p>${u.versions?`<div class="versions">versions: ${rich(u.versions)}</div>`:""}${e&&e.link?`<div class="meta">${moreLink(e.link,"detail")}</div>`:""}</div>`; }
+  return `<div class="bcard icard${P.cls}" data-sys="${esc(r.system||"")}" data-imp="unit.${esc(r.id)}" data-compat="${c}" tabindex="0" role="button" aria-label="Unit ${esc(u.n)}: ${nameText(r)}${e?"":", not recorded yet"}${c==="compatible"?"":`, ${COMPAT[c].label}`}"><div class="bh"><span class="nm">${esc(u.n)}. ${u.issue?pair(u.issue,u.slug||r.id):esc(u.slug||r.id)}</span>${P.pre}${e&&e.release&&IMP_BUMP[e.release.bump]?`<span class="badge">${esc(releaseWords(e.release,true))}</span>`:""}${P.sys}</div><p>${e?rich(e.summary||""):"Not recorded yet: summarised from the unit's own impact once its plan is accepted."}</p>${u.versions?`<div class="versions">versions: ${rich(u.versions)}</div>`:""}${e&&e.link?`<div class="meta">${moreLink(e.link,"detail")}</div>`:""}</div>`; }
 function renderImpact(){
   const I=IMPACT, units=TRACKING?ROWS.filter(r=>r.unit):[];
   const uEntries=new Map((I&&Array.isArray(I.units)?I.units:[]).map(e=>[e.unit,e]));
   $("#impact-lede").textContent="The change's impact as best known now. How it differed from the plan is on the As built tab.";
   let h="";
   const rel=I&&I.release&&IMP_BUMP[I.release.bump]?I.release:null;
-  const head=[rel?`<span class="badge">version · ${esc(IMP_BUMP[rel.bump])}${rel.unreleased===true?` · ${esc(UNRELEASED)}`:""}${rel.version?` · ${esc(rel.version)}`:""}</span>`:"",rel&&rel.note?`<span>${rich(rel.note)}</span>`:"",
+  const head=[rel?`<span class="badge">version · ${esc(releaseWords(rel))}</span>`:"",rel&&rel.note?`<span>${rich(rel.note)}</span>`:"",
     I&&I.source?`<span>source ${refHtml(I.source)}</span>`:"",I&&I.link?moreLink(I.link,"detail"):""].filter(Boolean);
   h+=`<div class="ihead">${head.join("")}</div>`;
   if(I&&I.summary) h+=`<p class="isum">${rich(I.summary)}</p>`;
@@ -2804,6 +2811,8 @@ function renderImpact(){
   const slugs=[...IMP_SECTIONS.flatMap(s=>impItems(s.key).map(impSlug)).filter(Boolean),...units.map(r=>r.system)];
   const outside=IMP_SECTIONS.some(s=>impItems(s.key).some(x=>!impSlug(x)));
   const used=(k,f)=>[...new Set(impItems(k).map(f).filter(Boolean))];
+  /* a release mark drawn on the version Badge or on a unit Card's */
+  const relMark=k=>(rel&&rel[k]===true)||units.some(r=>{ const e=uEntries.get(r.id); return !!(e&&e.release&&IMP_BUMP[e.release.bump]&&e.release[k]===true); });
   /* compatibility first: the red and yellow cards drawn, and the pill where a card carries one */
   const cards=[...document.querySelectorAll("#impact-body .icard")], cmpUsed=k=>cards.filter(c=>c.dataset.compat===k);
   const cmpKey=k=>{ const cs=cmpUsed(k); if(!cs.length) return ""; const C=COMPAT[k];
@@ -2815,13 +2824,13 @@ function renderImpact(){
     +used("adaptation",x=>IMP_NEED[x.need]?x.need+"|"+needCls(x):null).map(kc=>{ const [k,c]=kc.split("|"); return `<span>${ibadge(IMP_NEED[k],k==="none"?"":`${IMP_NEED[k].label} change`,c)} what a consumer must change${c==="critical"?": not adapting breaks it":c==="warning"?": it does not break":""}</span>`; }).join("")
     +used("api",x=>IMP_CHANGE[x.change]?x.change:null).map(k=>`<span>${ibadge(IMP_CHANGE[k])} API change</span>`).join("")
     +(impItems("api").length?`<span><span class="badge">Stable Core</span> stability tier</span>`:"")
-    +(rel?`<span><span class="badge">version · …</span> the release this change takes${rel.unreleased===true?"; new, unreleased: the artifact has no release yet, so no existing version moves":""}</span>`:"");
+    +(rel?`<span><span class="badge">version · …</span> the release this change takes${relMark("unreleased")?"; new, unreleased: the artifact has no release yet, so no existing version moves":""}${relMark("nothingPublished")?"; nothing published: the change touches no published artifact, so no version moves":""}</span>`:"");
   if(noneBox) key+=`<span><i class="inb"></i>box: no downstream impact recorded${I?"":" yet"}</span>`;
   $("#impact-key").innerHTML=key; paint($("#impact-key"));
 }
 function inspectImpact(ref){ const [k,...rest]=String(ref).split("."), id=rest.join(".");
   if(k==="unit"){ const r=ROWS.find(x=>x.id===id); if(!r) return; const e=((IMPACT||{}).units||[]).find(x=>x.unit===id), u=r.unit;
-    inspect(`<div class="kicker">IMPACT · UNIT ${esc(u.n)}</div><div class="name">${codeOnly(r.name)}</div><div class="vis">${whereOf(r)}</div><p class="lead">${e?rich(e.summary||""):"Not recorded yet."}</p><dl>${e&&e.release&&IMP_BUMP[e.release.bump]?`<dt>Version</dt><dd>${esc(IMP_BUMP[e.release.bump])}${e.release.unreleased===true?` · ${esc(UNRELEASED)}`:""}${e.release.version?` · ${esc(e.release.version)}`:""}</dd>`:""}${u.versions?`<dt>Versions in the architecture</dt><dd>${rich(u.versions)}</dd>`:""}<dt>Its issue</dt><dd>${u.issue?pair(u.issue,u.slug||r.id):"—"}</dd>${e&&e.source?`<dt>Source</dt><dd>${refHtml(e.source)}</dd>`:""}${e&&e.link?`<dt>Detail</dt><dd>${refHtml(e.link)}</dd>`:""}</dl>`); return; }
+    inspect(`<div class="kicker">IMPACT · UNIT ${esc(u.n)}</div><div class="name">${codeOnly(r.name)}</div><div class="vis">${whereOf(r)}</div><p class="lead">${e?rich(e.summary||""):"Not recorded yet."}</p><dl>${e&&e.release&&IMP_BUMP[e.release.bump]?`<dt>Version</dt><dd>${esc(releaseWords(e.release))}</dd>`:""}${u.versions?`<dt>Versions in the architecture</dt><dd>${rich(u.versions)}</dd>`:""}<dt>Its issue</dt><dd>${u.issue?pair(u.issue,u.slug||r.id):"—"}</dd>${e&&e.source?`<dt>Source</dt><dd>${refHtml(e.source)}</dd>`:""}${e&&e.link?`<dt>Detail</dt><dd>${refHtml(e.link)}</dd>`:""}</dl>`); return; }
   const S=IMP_SECTIONS.find(s=>s.key===k), i=parseInt(id,10), x=impItems(k)[i]; if(!S||!x) return;
   inspect(`<div class="kicker">IMPACT · ${esc(S.title).toUpperCase()}</div><div class="name">${rich(S.head(x,i)||"")}</div><div class="vis">${compatOf(k,x)!=="compatible"?pill(COMPAT[compatOf(k,x)]):""}${S.tags(x).filter(Boolean).join("")}</div><p class="lead">${rich(k==="conversion"?x.what:x.summary)}</p><dl><dt>System</dt><dd>${impSlug(x)?`<span class="sw" data-sys="${esc(x.system)}"></span>${esc(sysName(x.system))}`:"outside this repository's systems"}</dd>${x.tier!==undefined&&k==="api"?`<dt>Stability tier</dt><dd>${x.tier&&IMP_TIER[x.tier]?esc(IMP_TIER[x.tier]):"not stated"}</dd>`:""}${IMPACT.source?`<dt>Source</dt><dd>${refHtml(IMPACT.source)}</dd>`:""}${x.link?`<dt>Detail</dt><dd>${refHtml(x.link)}</dd>`:""}</dl>`); }
 

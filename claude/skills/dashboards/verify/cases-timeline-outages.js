@@ -4,7 +4,9 @@
 // 2026-11-05): no line, mark, note or trail entry on any board, never a bar segment, never summed, the step split into visits around it. Recorded only when a
 // restart is known (a reported one, or a run's request from a different session), by the team-raised run-restarted event, its bounds from
 // the facts alone, on the fast path, idempotent; it falls in the
-// running visit, a closed one, a wait, or a gap. lib.js timelineSteps() and the template's copy agree. No case here opens a browser. Each
+// running visit, a closed one, a wait, or a gap. lib.js timelineSteps() and the template's copy agree. The first part of a closed visit a
+// stretch cuts keeps what names its pass, a qa visit's included, and the parts of a split qa or remediation visit read "Quality Review 1 ·
+// visit 1", "Quality Review 1 · visit 2" in the Timeline Tile's Legend (group 6; the user's decisions of 2026-11-11, p21 choices 7 and 8). No case here opens a browser. Each
 // group returns [title, cases], a case [name, ok, detail].
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os"), vm = require("vm");
@@ -162,6 +164,62 @@ module.exports = function casesTimelineOutages(X) {
     c.push(["the step panel reads a visit a stretch ended like any visit's end, its time only (no reason, no ending event); a halt still \"ended, waiting on you\"", /grp\(V\.held&&!V\.outage\?"ended, waiting on you":"ended",`<span class="nw">\$\{when\(V\.ended\)\}<\/span>\$\{V\.endedBy&&!V\.outage\?/.test(t) && !/ended, run not running/.test(t), "visitHtml"]);
     const F = require(sk("system/scripts/features.js")), f = F.FEATURES.find(x => x.id === "timeline-uncounted-silent"), old = t + '\n<script>const oline=x=>`<span class="tl-outage">`;</script>\n';
     c.push(["the feature detector holds issue and tracking boards to it, fails a board that still draws the line, and says why the others do not fit", f && f.test(t.replace(/\r\n/g, "\n"), "plan-board") === true && f.test(old, "plan-board") !== true && !F.FEATURES.some(x => x.id === "timeline-outages") && js(f.types) === js(["plan-board"]) && ["system", "supersystem", "work-board"].every(k => f.notFor[k]), js(f && f.types)]);
+  });
+
+  /* 6. a qa or remediation visit split in parts (the user's decisions of 2026-11-11, p21 choices 7 and 8): the first part of a closed visit a
+     stretch cuts keeps what names its pass, a qa visit's included (its pass, as it stood at the cut: running); the parts of a split qa or
+     remediation visit read "Quality Review 1 · visit 1", "Quality Review 1 · visit 2" in the Timeline Tile's Legend, the pattern other steps
+     use, whether a stretch or a wait split it; lib.js and the template alike; a pass no stretch or wait split keeps its bare name */
+  guard("a qa or remediation visit split in parts: the first part of a cut visit keeps its pass, and the parts read \"Quality Review 1 · visit 1\", \"· visit 2\"", c => {
+    const row = EX.rows[0].id, QA1 = { pass: 1, verdict: "changes-requested", date: "2026-11-04", at: "2026-11-04T11:00:00Z", findings: { code: 2 }, severity: { minor: 0, other: 2 }, route: "remediation" };
+    const plan = flight({ step: "remediation", since: "2026-11-04T11:00:00Z", updated: "2026-11-04T11:00:00Z", current: [`${row}.built`], event: { name: "qa-pass", at: "2026-11-04T11:00:00Z" }, qa: [QA1], qaMax: 3,
+      remediation: { pass: 1, route: "remediation", steps: [] },
+      history: { sizing: [{ since: null, ended: "2026-11-04T09:00:00Z", endedBy: "sized", to: "plan" }], plan: [{ since: "2026-11-04T09:00:00Z", ended: "2026-11-04T09:30:00Z", endedBy: "plan-accepted", to: "branch" }],
+        branch: [{ since: "2026-11-04T09:30:00Z", ended: "2026-11-04T09:40:00Z", endedBy: "branch-cut", to: "implementation" }], implementation: [{ since: "2026-11-04T09:40:00Z", ended: "2026-11-04T10:00:00Z", endedBy: "qa-pass", to: "qa" }],
+        qa: [{ since: "2026-11-04T10:00:00Z", ended: "2026-11-04T11:00:00Z", endedBy: "qa-pass", to: "remediation", event: { name: "qa-pass", at: "2026-11-04T10:00:00Z", note: "Quality Review 1: running" }, qa: [QA1] }] } });
+    const B = lay("split-pass", plan);
+    const r = apply(B, plan, "run-restarted", { since: "2026-11-04T10:20:00Z", ended: "2026-11-04T10:40:00Z", ...reasonF }, "2026-11-04T11:10:00Z"), H = r.p.wip.history.qa || [];
+    c.push(["a closed qa visit cut: two parts, the first ending at the stretch's start, the second keeping the visit's end", r.a.status === 0 && js(vis(r.p, "qa")) === js([["2026-11-04T10:00:00Z", "2026-11-04T10:20:00Z", "run-restarted", "session restart"], ["2026-11-04T10:40:00Z", "2026-11-04T11:00:00Z", "qa-pass", null]]), js([vis(r.p, "qa"), r.S.error])]);
+    c.push(["…the first part keeps its pass, as it stood at the cut (running); the verdict, its findings and its route stay with the second", js((H[0] || {}).qa) === js([{ pass: 1, verdict: "running" }]) && js((H[1] || {}).qa) === js([QA1]), js([(H[0] || {}).qa, (H[1] || {}).qa])]);
+    const T = lib.timelineSteps(r.p, { now: "2026-11-04T11:20:00Z" });
+    c.push(["the Timeline Tile's Legend: \"Quality Review 1 · visit 1\", \"Quality Review 1 · visit 2\", then the Correction, nothing between them", /Implementation,Quality Review 1 · visit 1,Quality Review 1 · visit 2,Correction$/.test(rowsOf(T)) && silent(T), rowsOf(T)]);
+    /* the Correction answers the pass, then a stretch cuts it once closed */
+    const q = apply(B, r.p, "qa-pass", { qa: { pass: 2, verdict: "running" } }, "2026-11-04T11:30:00Z");
+    const r2 = apply(B, q.p, "run-restarted", { since: "2026-11-04T11:05:00Z", ended: "2026-11-04T11:15:00Z", ...reasonF }, "2026-11-04T11:32:00Z"), HR = r2.p.wip.history.remediation || [];
+    c.push(["a closed Correction cut: both parts keep the remediation they answer", q.a.status === 0 && r2.a.status === 0 && HR.length === 2 && HR.every(v => v.remediation && v.remediation.pass === 1), js([vis(r2.p, "remediation"), HR.map(v => v.remediation), q.S.error, r2.S.error])]);
+    /* the running pass, cut while it runs, then its verdict */
+    const r3 = apply(B, r2.p, "run-restarted", { since: "2026-11-04T11:40:00Z", ended: "2026-11-04T11:50:00Z", ...reasonF }, "2026-11-04T11:52:00Z");
+    const T3 = lib.timelineSteps(r3.p, { now: "2026-11-04T11:55:00Z" });
+    c.push(["the running pass cut: \"Quality Review 2 · visit 1\" closed at the stretch, \"Quality Review 2 · visit 2\" running to now; the Corrections \"Correction · visit 1\", \"· visit 2\"",
+      r3.a.status === 0 && /Quality Review 1 · visit 1,Quality Review 1 · visit 2,Correction · visit 1,Correction · visit 2,Quality Review 2 · visit 1,Quality Review 2 · visit 2$/.test(rowsOf(T3)) && T3.visits[T3.visits.length - 1].open, rowsOf(T3)]);
+    const v = apply(B, r3.p, "qa-pass", { qa: { pass: 2, verdict: "approved", findings: {} } }, "2026-11-04T12:00:00Z");
+    const T4 = lib.timelineSteps(v.p, { now: "2026-11-04T12:05:00Z" });
+    c.push(["…its verdict closes the second part: both still name Quality Review 2", v.a.status === 0 && /Quality Review 2 · visit 1,Quality Review 2 · visit 2,Document$/.test(rowsOf(T4)), rowsOf(T4)]);
+    const ck = run(CHECK, [B.dir]); c.push(["check.js passes the board", ck.status === 0, (ck.stdout || "").split(/\r?\n/).filter(l => /^FAIL/.test(l)).join(" | ").slice(0, 400)]);
+    const tl = run(TIMELINE, [B.dir]); c.push(["timeline.js prints the parts by their names", tl.status === 0 && /Quality Review 1 · visit 2/.test(tl.stdout) && /Correction · visit 2/.test(tl.stdout) && /Quality Review 2 · visit 1/.test(tl.stdout), (tl.stdout || "").slice(-500)]);
+    /* a wait splits a pass too, and a pass no wait or stretch split keeps its bare name */
+    const W = { status: "building", wip: { step: "document", since: "2026-11-04T13:00:00Z", steps: STEPS, waits: [{ step: "qa", since: "2026-11-04T10:20:00Z", ended: "2026-11-04T10:30:00Z", by: "halted" }, { step: "remediation", since: "2026-11-04T12:10:00Z", ended: "2026-11-04T12:20:00Z", by: "halted" }],
+      qa: [{ ...QA1 }, { pass: 2, verdict: "changes-requested", at: "2026-11-04T12:00:00Z", route: "on-the-spot" }],
+      history: { sizing: [{ since: null, ended: "2026-11-04T09:00:00Z" }], implementation: [{ since: "2026-11-04T09:40:00Z", ended: "2026-11-04T10:00:00Z" }],
+        qa: [{ since: "2026-11-04T10:00:00Z", ended: "2026-11-04T10:20:00Z", held: true, qa: [{ pass: 1, verdict: "running" }] }, { since: "2026-11-04T10:30:00Z", ended: "2026-11-04T11:00:00Z", qa: [{ ...QA1 }] }, { since: "2026-11-04T11:30:00Z", ended: "2026-11-04T12:00:00Z", qa: [{ pass: 2, verdict: "changes-requested", route: "on-the-spot" }] }],
+        remediation: [{ since: "2026-11-04T11:00:00Z", ended: "2026-11-04T11:30:00Z", remediation: { pass: 1, route: "remediation" } }, { since: "2026-11-04T12:00:00Z", ended: "2026-11-04T12:10:00Z", held: true, remediation: { pass: 2, route: "on-the-spot" } }, { since: "2026-11-04T12:20:00Z", ended: "2026-11-04T13:00:00Z", remediation: { pass: 2, route: "on-the-spot" } }] } } };
+    const TW = lib.timelineSteps(W, { now: "2026-11-04T13:10:00Z" });
+    c.push(["a wait splits them alike: \"Quality Review 1 · visit 1\", \"· visit 2\"; \"Correction of Quality Review 2 · visit 1\", \"· visit 2\"; Quality Review 2 and the first Correction, unsplit, bare",
+      /Implementation,Quality Review 1 · visit 1,Quality Review 1 · visit 2,Correction,Quality Review 2,Correction of Quality Review 2 · visit 1,Correction of Quality Review 2 · visit 2,Document$/.test(rowsOf(TW)), rowsOf(TW)]);
+    /* the template's copy of the rule names them the same */
+    const t = rd(PB), lines = t.split(/\r?\n/);
+    const def = name => { const i = lines.findIndex(l => l.startsWith(`const ${name}=`) || l.startsWith(`function ${name}(`)); if (i < 0) throw new Error(`the template defines no ${name}`);
+      let j = i + 1; while (j < lines.length && /^\s/.test(lines[j])) j++; return lines.slice(i, j).join("\n"); };
+    const names = ["PASS_NAME", "STEP_NAME", "ROUTE_NAME", "routeKey", "routeName", "remediationName", "stepLabel", "routesOf", "STEP_ORDER", "histOf", "visitsOf", "shownOf", "WAIT_BY", "waitsOf", "outagesOf", "okStamp", "isTime", "TL_FAMILIES", "tlFamily", "tlShade", "timelineFamilies", "APPROX_SOURCES", "approxBounds", "timelineLanded", "timelineSteps", "timelineRows", "tlSpan", "timelineTotal"];
+    const box = {}; vm.createContext(box); vm.runInContext(names.map(def).join("\n") + "\nconst reconStep=()=>({trail:[],milestones:[]});\nthis.api={timelineSteps};", box);
+    /* the qa and remediation visits (the template's reconstruction is stubbed here, so a step with no snapshot is lib.js's alone) */
+    const lab = T => js(T.visits.filter(x => x.step === "qa" || x.step === "remediation").map(x => x.label));
+    [[r3.p, "2026-11-04T11:55:00Z", "the board a stretch split"], [v.p, "2026-11-04T12:05:00Z", "its pass's verdict"], [W, "2026-11-04T13:10:00Z", "a board a wait split"]].forEach(([b, now, what]) => {
+      const L = lib.timelineSteps(b, { now }), P = box.api.timelineSteps(b, now);
+      c.push([`${what}: the template names the parts as lib.js does`, lab(L) === lab(P), js([lab(L), lab(P)])]); });
+    const F = require(sk("system/scripts/features.js")), f = F.FEATURES.find(x => x.id === "timeline-split-pass"), tn = t.replace(/\r\n/g, "\n");
+    const before = tn.replace("+(pk&&cnt[pk]>1?` · visit ${part[pk]=(part[pk]||0)+1}`:\"\")", "");
+    c.push(["the feature probe finds the parts' names on the template, misses them on one without, and says why the other types do not fit", !!f && before !== tn && f.test(tn, "plan-board") === true && f.test(before, "plan-board") !== true && js(f.types) === js(["plan-board"]) && ["system", "supersystem", "work-board"].every(k => typeof (f.notFor || {})[k] === "string"), js(f && f.types)]);
   });
   return groups;
 };

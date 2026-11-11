@@ -697,9 +697,13 @@ const outagesOf = w => (Array.isArray(w && w.outages) ? w.outages : []).filter(x
 const hasOutage = (w, since, ended) => isTime(since) && isTime(ended) && outagesOf(w).some(x => Date.parse(x.since) === Date.parse(since) && Date.parse(x.ended) === Date.parse(ended));
 /* The stretch O { since, ended, reason } written into post.wip (post is changed in place; pre the board before the event). What it falls in:
    a wait on the user (the wait is cut in two around it; no visit runs then), the visit still running (frozen at its start, wip.since its
-   end), a visit already closed (cut in two: the first part ends at its start and keeps only what names the pass, the second keeps the visit's
-   snapshot and its end), or a gap between visits (the record alone). A recorded time strictly inside it says the run was active: refused, as
+   end), a visit already closed (cut in two: the first part ends at its start and keeps only what names its pass, the plan's pass, the
+   remediation it answers and, a qa visit's included, the qa pass it ran, as it stood at the cut: running, its verdict, findings and route
+   being the second part's (plan/RULES.md §4, the run-restarted row; p21 choice 8, the user's decision of 2026-11-11); the second keeps the
+   visit's snapshot and its end), or a gap between visits (the record alone). A recorded time strictly inside it says the run was active: refused, as
    the facts and the record disagree. Returns { lines, step } or { refused }. */
+/* a qa visit's passes as they stood when a stretch cut it: each pass by its number, running (its verdict came at the visit's end) */
+const passAtCut = q => { const ps = (Array.isArray(q) ? q : []).filter(p => p && Number.isInteger(p.pass)); return ps.length ? { qa: ps.map(p => ({ pass: p.pass, verdict: "running" })) } : {}; };
 function outageSteps(pre, post, O, ev) {
   const b = post.wip, T = x => Date.parse(x), s = T(O.since), e = T(O.ended), within = t => isTime(t) && T(t) > s && T(t) < e;
   const H = historyOf(b), cur = shownStep(b), stop = isStopped(b.step), mark = O.reason || true, lines = [];
@@ -728,7 +732,7 @@ function outageSteps(pre, post, O, ev) {
     if (hold && (!isTime(hold.V.since) || T(hold.V.since) <= s)) {
       const { st, V } = hold, { held, ...rest } = V; step = st;
       const lead = !(isTime(V.since) && T(V.since) === s), tail = T(V.ended) !== e || !lead;
-      const parts = !tail ? [{ ...rest, ended: O.since, outage: mark }] : [...(lead ? [{ since: V.since == null ? null : V.since, ended: O.since, endedBy: ev, to: st, ...(V.plan ? { plan: V.plan } : {}), ...(V.remediation ? { remediation: V.remediation } : {}), outage: mark }] : []), { ...V, since: O.ended }];
+      const parts = !tail ? [{ ...rest, ended: O.since, outage: mark }] : [...(lead ? [{ since: V.since == null ? null : V.since, ended: O.since, endedBy: ev, to: st, ...(V.plan ? { plan: V.plan } : {}), ...(V.remediation ? { remediation: V.remediation } : {}), ...(st === "qa" ? passAtCut(V.qa) : {}), outage: mark }] : []), { ...V, since: O.ended }];
       H[st].splice(H[st].indexOf(V), 1, ...parts); lines.push(`wip.history.${st}: a closed visit cut around the stretch`);
     } else { const before = entries.filter(x => isTime(x.V.ended) && T(x.V.ended) <= s).sort((x, y) => T(y.V.ended) - T(x.V.ended))[0]; step = before ? before.st : cur; }
   }
@@ -1909,7 +1913,8 @@ function glowMismatch(plan) {
    plan, branch, implementation, qa, remediation, landing; a tracking board's own steps), in the order the run visited them, each with
    its start → end and its duration; a step the record says nothing of is no line, and the sub-line names it. A qa visit is named by its
    pass ("Quality Review 1"), a remediation visit by its route and the pass it answers ("Correction", "Correction of Quality Review 2";
-   passnames.js), any other step by its name, visited twice by its visit ("Plan · visit 2"). The bar draws the visits whose both bounds carry a time, one segment each in the order
+   passnames.js), any other step by its name, visited twice by its visit ("Plan · visit 2"); the parts of one pass's visit a wait or a break
+   split by the pass and the part ("Quality Review 1 · visit 2"). The bar draws the visits whose both bounds carry a time, one segment each in the order
    of the lines, sized by its time, coloured by the kind of work its step is (admin-team/dashboards-skill/34, in place of
    dashboards-skill/32's neutral ink ramp): planning, build, checking and landing, each its own hue family (TL_FAMILIES), one shade of
    it per step with a line, lighter to darker in the steps line's order (lighter to darker on a light surface, darker to lighter on a
@@ -2034,12 +2039,18 @@ function timelineSteps(plan, opts) {
   steps.forEach(s => { const vs = seq.filter(v => v.step === s), c = cs.find(x => x.step === s);
     if (vs.length === 1 && c && (!vs[0].from || (vs[0].from.how === "approx" && Date.parse(c.at) < Date.parse(vs[0].from.t))) && (!vs[0].to || Date.parse(c.at) <= Date.parse(vs[0].to.t))) vs[0].from = { t: c.at, how: "by", sha: c.sha || null }; });
   /* the lines: label, duration, family, shade */
-  const cnt = {}, nth = {}, TL_CTX = PN.ctxOf(w); seq.forEach(v => { cnt[v.step] = (cnt[v.step] || 0) + 1; });
+  /* a qa or remediation visit with its pass: the parts of one pass a wait or a break split are counted apart (passKey), each named by the
+     pass and its part, "Quality Review 1 · visit 1", "Quality Review 1 · visit 2" (plan/RULES.md §2, the Timeline Tile's Legend; p21 choice
+     7, the user's decision of 2026-11-11) */
+  const passKey = v => (v.step === "qa" || v.step === "remediation") && v.pass ? `${v.step}#${v.pass}` : null;
+  const cnt = {}, nth = {}, part = {}, TL_CTX = PN.ctxOf(w); seq.forEach(v => { cnt[v.step] = (cnt[v.step] || 0) + 1; const pk = passKey(v); if (pk) cnt[pk] = (cnt[pk] || 0) + 1; });
   seq.forEach(v => { v.n = nth[v.step] = (nth[v.step] || 0) + 1;
-    /* each by its name (passnames.js): "Quality Review 2", "Correction", "Correction of Quality Review 2", "Implementation · visit 2" */
-    const rt = v.route || TL_CTX.routeOf(v.pass) || TL_CTX.route;
-    v.label = v.step === "qa" ? (v.pass ? PN.passName(v.pass) : cnt.qa > 1 ? `${PN.PASS_NAME} · visit ${v.n}` : PN.PASS_NAME)
-      : v.step === "remediation" ? (v.pass ? PN.remediationName(rt, v.pass) : cnt.remediation > 1 ? `${PN.routeName(rt)} · visit ${v.n}` : PN.routeName(rt)) : cnt[v.step] > 1 ? `${PN.stepName(v.step)} · visit ${v.n}` : PN.stepName(v.step);
+    /* each by its name (passnames.js): "Quality Review 2", "Correction", "Correction of Quality Review 2", "Implementation · visit 2", a pass's
+       parts "Quality Review 1 · visit 2" */
+    const rt = v.route || TL_CTX.routeOf(v.pass) || TL_CTX.route, pk = passKey(v);
+    v.label = (v.step === "qa" ? (v.pass ? PN.passName(v.pass) : cnt.qa > 1 ? `${PN.PASS_NAME} · visit ${v.n}` : PN.PASS_NAME)
+      : v.step === "remediation" ? (v.pass ? PN.remediationName(rt, v.pass) : cnt.remediation > 1 ? `${PN.routeName(rt)} · visit ${v.n}` : PN.routeName(rt)) : cnt[v.step] > 1 ? `${PN.stepName(v.step)} · visit ${v.n}` : PN.stepName(v.step))
+      + (pk && cnt[pk] > 1 ? ` · visit ${part[pk] = (part[pk] || 0) + 1}` : "");
     v.approx = [v.from, v.to].some(b => b && b.how === "approx");
     const a = v.from && (v.from.how === "exact" || v.from.how === "approx") ? Date.parse(v.from.t) : null, b = v.to ? Date.parse(v.to.t) : null;
     v.ms = a != null && b != null ? b - a : null; if (v.ms != null && v.ms < 0) { v.ms = null; v.order = true; } });

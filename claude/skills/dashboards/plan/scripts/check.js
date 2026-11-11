@@ -862,7 +862,8 @@ function checkHistory(plan, w, stampOk) {
    difference from the plan in changes[]). The
    vocabularies are checked; a built board's impact is the as-built one and a planned board's the plan's. Warnings: impact.md in
    the folder while the tab is empty; a release that does not fit the level (a level-3 bump needs a downstream effect, and a
-   level-3 change with none says so); a breaking effect or a removed surface without a major release; on a tracking board, a unit
+   level-3 change with none says so; neither counts an effect where release.nothingPublished records that the change touches no
+   published artifact); a breaking effect or a removed surface without a major release; on a tracking board, a unit
    whose own board records its impact while this board has no entry for it, or an entry still the plan's once the unit landed. */
 const IMP_BASES = ["plan", "as-built"], IMP_BUMPS = ["none", "fix", "feat", "major"], IMP_KINDS = ["consumer", "system", "repository", "artifact", "operator"];
 const IMP_EFFECTS = ["none", "additive", "behaviour", "breaking"], IMP_NEEDS = ["none", "optional", "required"], IMP_CHANGES = ["added", "changed", "deprecated", "removed"];
@@ -951,10 +952,19 @@ function checkImpact(plan, dir, systems, rows, tracking) {
   if (unrel && bump && bump !== "none") warn(`impact.release.unreleased says the artifact is new and unreleased, so no existing version moves, but release.bump is ${bump}: keep bump "none" (its first release is its own), or drop the mark`);
   if (unrel && !ds.some(x => x.kind === "artifact")) warn("impact.release.unreleased marks a new, unreleased artifact, but no downstream entry of kind artifact records it: add one (who: the artifact, effect additive)");
   if (unrel) ok("impact: release.unreleased — the artifact is new and unreleased; no existing version moves (the release warnings are quiet)");
+  /* release.nothingPublished (RULES §2, Consequences): the change touches no published artifact (no module it changes is a published
+     module, as consequences.md's published-artifacts section records), so no consumer of a published artifact can see a difference
+     and no version moves. It quiets the two release warnings below, whatever the downstream entries record, and is held to its form:
+     true, with no bump, and not beside release.unreleased, which says an artifact will be published. */
+  const unpub = !!rel && typeof rel === "object" && rel.nothingPublished === true;
+  if (rel && typeof rel === "object" && rel.nothingPublished != null && rel.nothingPublished !== true) fail(`impact.release.nothingPublished is true (the change touches no published artifact) or left out (got ${JSON.stringify(rel.nothingPublished)})`);
+  if (unpub && bump && bump !== "none") warn(`impact.release.nothingPublished says the change touches no published artifact, so no version moves, but release.bump is ${bump}: keep bump "none", or drop the mark`);
+  if (unpub && unrel) warn("impact.release.nothingPublished says the change touches no published artifact, but release.unreleased marks a new artifact to be released: keep one of the two");
+  if (unpub) ok("impact: release.nothingPublished — the change touches no published artifact; no version moves (the release warnings are quiet)");
   /* the board's kind and steps line tell its run (levels.js featureRun()): a small feature's release rules */
   const feature = featureRun(plan);
-  if (feature && bump === "none" && effect && !unrel) warn("a level-3 change with a downstream effect takes a feat: release; release.bump is none (a new artifact that has never been released: mark it with impact.release.unreleased: true)");
-  if (feature && bump === "none" && !str(I.none) && !unrel) warn("a level-3 change with no version bump says explicitly that it has no downstream effect (impact.none), or marks a new, unreleased artifact (impact.release.unreleased: true)");
+  if (feature && bump === "none" && effect && !unrel && !unpub) warn("a level-3 change with a downstream effect takes a feat: release; release.bump is none (a new artifact that has never been released: mark it with impact.release.unreleased: true)");
+  if (feature && bump === "none" && !str(I.none) && !unrel && !unpub) warn("a level-3 change with no version bump says explicitly that it has no downstream effect (impact.none), or marks a new, unreleased artifact (impact.release.unreleased: true)");
   if (feature && bump === "feat" && !effect && str(I.none)) warn("a level-3 change bumps only with a downstream effect, but impact.none says it has none");
   if (breaking.length && !tracking && bump && bump !== "major") warn(`a breaking entry (${breaking.slice(0, 3).join(", ")}) rides in a major release; release.bump is ${bump}`);
   if (tracking && bump && bump !== "none") warn("a level-4 plan moves no version itself (docs only): its units' releases go in impact.units");
@@ -972,6 +982,15 @@ function checkImpact(plan, dir, systems, rows, tracking) {
     if (e.release != null && (typeof e.release !== "object" || !IMP_BUMPS.includes(e.release.bump))) fail(`${at}.release.bump must be one of ${IMP_BUMPS.join(", ")}`);
     else if (e.release != null && e.release.unreleased != null && e.release.unreleased !== true) fail(`${at}.release.unreleased is true (the unit's artifact is new and unreleased) or left out`);
     else if (e.release != null && e.release.unreleased === true && e.release.bump !== "none") warn(`${at}.release.unreleased marks a new, unreleased artifact, but its bump is ${e.release.bump}: keep bump "none"`);
+    /* a unit entry's release takes release.nothingPublished as the change's does (RULES §2, Consequences): true or left out, with no bump, and
+       not beside release.unreleased; an entry of kind artifact beside it is no contradiction (an artifact may be deployed and never
+       published), so nothing is said of one */
+    if (e.release && typeof e.release === "object" && IMP_BUMPS.includes(e.release.bump)) { const R = e.release;
+      if (R.nothingPublished != null && R.nothingPublished !== true) fail(`${at}.release.nothingPublished is true (the unit touches no published artifact) or left out (got ${JSON.stringify(R.nothingPublished)})`);
+      else if (R.nothingPublished === true) {
+        if (R.bump !== "none") warn(`${at}.release.nothingPublished says the unit touches no published artifact, so no version moves, but its bump is ${R.bump}: keep bump "none", or drop the mark`);
+        if (R.unreleased === true) warn(`${at}.release.nothingPublished says the unit touches no published artifact, but release.unreleased marks a new artifact to be released: keep one of the two`);
+      } }
     if (e.changes != null) { if (!Array.isArray(e.changes)) fail(`${at}.changes must be an array`);
       else { e.changes.forEach((c, j) => { const cat = `${at}.changes[${j}]`; if (!c || typeof c !== "object") fail(`${cat} must be an object`);
         else { if (!str(c.what) || !str(c.why)) fail(`${cat}: "what" and "why" are required`); if (c.ref && /^[0-9a-f]+$/.test(c.ref) && !SHA.test(c.ref)) fail(`${cat}.ref "${c.ref}" is not a commit sha`);

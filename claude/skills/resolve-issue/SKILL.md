@@ -81,7 +81,7 @@ replies `needs-rework` with `result.finds` (`file:line`); reword each find and r
   shows, has no open PR already addressing it. If you skip the oldest for one of
   those reasons, say which and why, then take the next.
 - If there are no open issues, say so and stop.
-- **Handoff.** Look for `~/.claude/handoffs/<owner>-<repo>-<issue>.md` (e.g. `SpartanLaboratories-WebTools-66.md`); if present and not empty, read it, and set `restarted` on the first request, with the run's own clock readings (`~/.claude/admin-team/PROTOCOL.md`, `restarted`).
+- **Handoff.** Look for `~/.claude/handoffs/<owner>-<repo>-<issue>.md` (e.g. `SpartanLaboratories-WebTools-66.md`); if present and not empty, read it, and set `restarted` on the first request, with the run's own clock readings (`~/.claude/admin-team/PROTOCOL.md`, `restarted`). With no handoff, set it all the same when you find the run already in progress, its board or its branch for example: that is how you know you are taking a run up.
 - Read the chosen issue in full: `gh issue view <n> --repo <repo> --comments`.
   An issue that is only partly done (an earlier tier/stage landed, more is
   open) still counts — this run's goal is the **next step**, not necessarily
