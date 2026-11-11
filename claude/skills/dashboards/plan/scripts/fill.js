@@ -36,7 +36,7 @@
 //   wip.waitingOn is the text the fast path left out or wrote in its stead (plan/RULES.md §4, "A work level in the facts is reworded"): while the board
 //   is halted or escalated it is written, and the stop's own trail entry and a detail that quoted the old text follow it, so the record reads alike;
 //   once an event has taken the board out of the stop, the last stop's trail entry alone takes it, and a waitingOn and resume left standing are cleared.
-// It catches up the plan's stage table on a board whose stages carry none of it (lib.js catchUpStageTable()), and keeps up what follows from new rows: a tracking board's wip.next once its unit rows first appear, the glow at research and at sub-issues, and a unit's
+// It catches up the plan's stage table on a board whose stages carry none of it (lib.js catchUpStageTable()), and keeps up what follows from new rows: a tracking board's wip.next once its unit rows first appear, the glow at research and at sub-issues (and at implementation, from the rows a fill names for the current stage, when it sets no glow itself), and a unit's
 // blocker named by unit number ({ "unit": k }, plan/RULES.md §3, unit.blockedBy) written as its issue number once that unit is filed.
 // Exit 0 when merged (the summary's check line says what still warns or fails), 1 when the fill would add a failure to the board (every file as it was), 2 on a usage error or a refused field.
 "use strict";
@@ -178,6 +178,12 @@ function mergeFill(board, fields, planDir) {
     if (isObj(F.wip.current)) { const C = F.wip.current, cells = Array.isArray(C.cells) ? C.cells.map(String) : [];
       if (typeof C.step !== "string") throw new Refused("wip.current names the step its glow is for ({ step, cells })");
       if (lib.shownStep(w) === C.step) { w.current = cells; merged.push(`wip.current at ${C.step}`); } else notes.push(`wip.current was for ${C.step}; the board has moved on to ${lib.shownStep(w)}: left as the event set it`); }
+    /* the stages' rows named at implementation, with no glow of the fill's own: the glow follows the map (lib.js glowFor()'s issue-board rule),
+       the As built cells of the rows the current stage touches, or the whole column when it touches none (KotlinBottools #24's branch-cut) */
+    if (Array.isArray(F.wip.stages) && !isObj(F.wip.current) && plan.kind !== "tracking" && w.step === "implementation") {
+      const cs = (Array.isArray(w.stages) ? w.stages : []).find(x => isObj(x) && x.state === "current");
+      const own = cs ? ownRows(cs.rows).map(id => id + ".built") : [], g = own.length ? own : ["built"];
+      if (cs && JSON.stringify(g) !== JSON.stringify(w.current || [])) { w.current = g; merged.push(`wip.current, the rows stage ${cs.id} touches`); } }
     if (F.wip.detail !== undefined) { if (typeof F.wip.detail !== "string" || !F.wip.detail.trim()) throw new Refused("wip.detail is a text: the WIP line"); if (w.detail !== F.wip.detail) { w.detail = F.wip.detail; merged.push("wip.detail"); } }
     /* what waits on the user, written by the presenter where the fast path could not write the run's own text (an internal name or a work level in
        it). While the board waits: wip.waitingOn, and the stop's trail entry ("… waiting on you (<text>)") and a detail made of it ("Waiting on you:

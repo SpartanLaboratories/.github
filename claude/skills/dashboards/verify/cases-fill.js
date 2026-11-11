@@ -175,6 +175,24 @@ const reader = async () => { while (!stop) { for (const f of ["plan.json"]) { tr
     c.push(["the board checks after the race, its embedded copy and sidecar the file", run(CHECK, [Bc.dir], { env }).status === 0 && run(EMBED, [Bc.dir, "--check"], { env }).status === 0, (run(CHECK, [Bc.dir], { env }).stdout || "").split(/\r?\n/).filter(l => /^FAIL/.test(l)).join(" | ").slice(0, 300)]);
     c.push(["the lock is released", !fs.existsSync(path.join(Bc.root, "docs", "plans", ".live", ".boards.lock")), "lock"]);
   });
+
+  guard("the stages' rows named at implementation: the FullPulse follows the map (KotlinBottools #24's branch-cut)", c => {
+    const B = laid(); fill(B, { function: "F.", rows: [ROW("a", "Gap a."), ROW("b", "Gap b.")] });
+    const at = (cur, stages) => { const p = P(B); p.wip.step = "implementation"; p.wip.current = cur; p.wip.stages = stages; wr(path.join(B.dir, "plan.json"), JSON.stringify(p, null, 2) + "\n"); };
+    const S = (s1, s2) => [{ id: "S1", name: "One", state: s1, rows: [] }, { id: "S2", name: "Two", state: s2, rows: [] }];
+    at(["built"], S("current", "todo"));
+    const f1 = fill(B, { wip: { stages: [{ id: "S1", rows: ["a"] }, { id: "S2", rows: ["b"] }] } });
+    c.push(["the current stage's rows named: their As built cells carry the FullPulse, not the whole column", f1.a.status === 0 && js(P(B).wip.current) === js(["a.built"]), js([f1.S.merged, P(B).wip.current])]);
+    at(["built"], S("current", "todo"));
+    const f2 = fill(B, { wip: { stages: [{ id: "S1", rows: [] }, { id: "S2", rows: ["b"] }] } });
+    c.push(["a current stage named with no rows keeps the whole column", f2.a.status === 0 && js(P(B).wip.current) === js(["built"]), js(P(B).wip.current)]);
+    at(["built"], S("current", "todo"));
+    const f3 = fill(B, { wip: { stages: [{ id: "S1", rows: ["a"] }], current: { step: "implementation", cells: ["b.built"] } } });
+    c.push(["a glow the fill sets itself wins", f3.a.status === 0 && js(P(B).wip.current) === js(["b.built"]), js(P(B).wip.current)]);
+    at(["built"], S("done", "done")); const p0 = P(B); p0.wip.step = "qa"; wr(path.join(B.dir, "plan.json"), JSON.stringify(p0, null, 2) + "\n");
+    const f4 = fill(B, { wip: { stages: [{ id: "S1", rows: ["a"] }] } });
+    c.push(["past implementation the glow stays the event's", f4.a.status === 0 && js(P(B).wip.current) === js(["built"]), js(P(B).wip.current)]);
+  });
   return groups;
 };
 

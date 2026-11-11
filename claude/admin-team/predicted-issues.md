@@ -317,3 +317,16 @@ At a `sized`, `apply-event.js` seeds a board from its view copy only when the me
 - **Predicted:** the admin team, on encountering it, 2026-11-11.
 - **Encounters:**
   - 2026-11-11: KotlinBottools #24's `sized`: the tracking board's view copy was not seeded and was removed; the presenter restored its facts onto the tracked board from a backup it had taken.
+
+## The arrival check replaces the true time of an event the run can only send late
+
+```json
+{"id":"p24","count":1,"last":"2026-11-11"}
+```
+
+A run learns that research has ended only when its planning agent returns, which is after the plan is written. It sends `researched` then, with the time the research ended. That time is more than 2 minutes before the event's arrival, so the arrival check (`apply-event.js --arrived`) replaces it with the arrival time. The next event, `plan-accepted`, sent in the same moment and holding a time a few seconds earlier, then falls before it: the board shows research running through the whole of the plan's writing, and the plan's visit takes bounds that match no event.
+
+- **Resolution (decided by the user, 2026-11-11):** the planning agent sends `researched` itself at the moment the research ends, as it sends the other research events, so the event is never sent late; the arrival check stays as it is. The board of the encounter is corrected to the time the run read. (Loosening the check for an event's own time, as for open-point times in p19, was not chosen.)
+- **Predicted:** the admin team, on encountering it, 2026-11-11.
+- **Encounters:**
+  - 2026-11-11: KotlinBottools #24: `researched` read at 19:42:46Z and sent with `plan-accepted` at 20:17:33Z; it was stamped 20:17:33Z, and `plan-accepted` holds 20:17:03Z.
