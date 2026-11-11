@@ -8,5 +8,5 @@ setlocal
 set "HOME_DIR=%USERPROFILE%\.claude\admin-team"
 if not exist "%HOME_DIR%\ledger.jsonl" type nul > "%HOME_DIR%\ledger.jsonl"
 cd /d "%HOME_DIR%"
-start "admin team" /min claude -n "admin team" --remote-control --agent admin-team --model opus --effort medium --settings "%HOME_DIR%\settings.json"
+start "admin team" /min claude -n "admin team" --remote-control --agent admin-team --settings "%HOME_DIR%\settings.json"
 endlocal
