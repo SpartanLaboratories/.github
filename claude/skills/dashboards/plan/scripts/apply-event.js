@@ -1384,8 +1384,8 @@ function writeBoard(dir, data, eol, enrich, label) {
    copies under the main checkout's git-ignored docs/plans/.live/view/ (the issue board landed at its merge, its parent tracking board's
    unit landed and the next one up). When a run is sized in a worktree branched after that landing, the boards it shows start from those
    copies, so the new branch carries the landed state from its first commit: every view copy fresher than the worktree's tracked board
-   (lib.js planStamp()) whose merge (asBuilt.merge, else sha, on a tracking board wip.landing.merge) is in the worktree's history (git merge-base --is-ancestor), and a copy with no
-   merge of its own (a tracking board) filing its units or with a seeded copy inside its folder, is written over the tracked board (plan.json, dashboard.html,
+   (lib.js planStamp()) whose merge (asBuilt.merge, else sha; on a tracking board filing its units its plan's, wip.landing.merge) is in the worktree's history (git merge-base --is-ancestor), and a copy with no
+   merge of its own (a tracking board past its filing, until it lands) with a seeded copy inside its folder, or one filing its units with none recorded, is written over the tracked board (plan.json, dashboard.html,
    plan.js; its links resolved from the tracked folder, never into .live/). A landed sub-issue seeded without its tracking board's copy
    marks its unit landed on the tracked tracking board by the standing rule (applyParent()): a merge that marks an issue landed on its own
    board does so for its parent too, and both are seeded together. It reads nothing of the issue's own board, so a sized on a folder with no
@@ -1415,13 +1415,17 @@ function seedFromView(now) {
   const mergeOf = p => { const A = (p && p.asBuilt) || {}, L = (p && p.wip && p.wip.landing) || {}, m = [A.merge, A.sha, L.merge].find(s => typeof s === "string" && /^[0-9a-f]{7,40}$/.test(s)); return m || null; };
   /* a tracking copy that records no merge and is filing its units (or filed them): the plan's merge is what this tree's tracked board came from, so its filed units go on too */
   const filing = p => !!p && p.kind === "tracking" && lib.shownStep(p.wip || {}) === "sub-issues";
+  /* the merge a copy is held to: an issue board's own (mergeOf()); a tracking board's own only while it files its units (its plan's merge, wip.landing) or once it
+     has landed (asBuilt, its last unit's merge). Past its filing, its plan's merge gates nothing: the copy goes on with a unit copy inside it that is seeded, or with
+     its board-less units' merges (KotlinBottools #2, whose plan's merge a history rewrite left outside every branch, refused at #24's sized on 2026-11-11, p23) */
+  const gateOf = p => { if (!p || p.kind !== "tracking" || filing(p)) return mergeOf(p); const A = p.asBuilt || {}; return [A.merge, A.sha].find(s => typeof s === "string" && /^[0-9a-f]{7,40}$/.test(s)) || null; };
   /* a tracking copy holding a board-less unit's landing (unit-landed) that the tracked board lacks: that unit's merge, recorded on its row, is held to this branch's history too */
   const boardless = x => x.vp.kind !== "tracking" ? [] : (x.vp.rows || []).filter(r => r && r.unit && lib.UNIT_LANDED.includes((r.asBuilt || {}).state) && /^[0-9a-f]{7,40}$/.test(String((r.asBuilt || {}).merge || "")))
     .filter(r => { const t = ((x.tp.rows || []).find(y => y && y.id === r.id) || {}).asBuilt || {}; return !lib.UNIT_LANDED.includes(t.state); }).map(r => r.asBuilt.merge);
   const blOk = x => boardless(x).every(inHead);
-  const ok = cand.filter(x => blOk(x) && (mergeOf(x.vp) ? inHead(mergeOf(x.vp)) : boardless(x).length > 0));
-  cand.filter(x => !ok.includes(x) && blOk(x) && !mergeOf(x.vp) && (filing(x.vp) || ok.some(y => y.rel.startsWith(x.rel + "/")))).forEach(x => ok.push(x));
-  cand.filter(x => !ok.includes(x)).forEach(x => S.applied.push(`not seeded: ${x.rel} (${!blOk(x) ? "a board-less unit's merge on it is not in this branch's history" : mergeOf(x.vp) ? "its merge is not in this branch's history" : "no landing inside it seeded"})`));
+  const ok = cand.filter(x => blOk(x) && (gateOf(x.vp) ? inHead(gateOf(x.vp)) : boardless(x).length > 0));
+  cand.filter(x => !ok.includes(x) && blOk(x) && !gateOf(x.vp) && (filing(x.vp) || ok.some(y => y.rel.startsWith(x.rel + "/")))).forEach(x => ok.push(x));
+  cand.filter(x => !ok.includes(x)).forEach(x => S.applied.push(`not seeded: ${x.rel} (${!blOk(x) ? "a board-less unit's merge on it is not in this branch's history" : gateOf(x.vp) ? "its merge is not in this branch's history" : "no landing inside it seeded"})`));
   ok.filter(x => lib.landedPending(x.vp)).forEach(x => WARNINGS.push(`VIEW COPY NOT YET LANDED: ${x.rel} seeded as it stands (status ${x.vp.status}, step ${lib.shownStep(x.vp.wip || {}) || "none"}, parts still to resolve): the copy is kept for the post-merge refresh; raise reseed when the refresh ends`));
   const out = [];
   ok.sort((a, b) => a.rel.split("/").length - b.rel.split("/").length).forEach(x => {
@@ -1437,12 +1441,19 @@ function seedFromView(now) {
     }
     writeBoard(x.tracked, x.vp, eol, S.enrich, `seeded ${x.rel}`); out.push(x.tracked); S.seeded.push(`docs/plans/${x.rel}`);
   });
-  /* the parent of a landed sub-issue seeded alone: its unit landed by the standing rule */
+  /* the parent of a landed sub-issue seeded alone: its unit landed by the standing rule; and where the parent's copy holds that landing (its unit's
+     row landed there) but was not seeded with it, what the landing owns is taken from the copy as reseed() takes it (takeOwned(): the row as built, its
+     impact.units entry, its impact.changes entries, the copy's trail entries the board lacks), so the record is not lost once the tracked board is as
+     fresh as the copy and board.js --live removes it (KotlinBottools #2 at #24's sized, 2026-11-11, p23); the run's events keep wip */
   ok.filter(x => (x.vp.status === "built" || lib.landedPending(x.vp)) && x.vp.parent && Number.isInteger(x.vp.parent.issue)).forEach(x => {
     const up = path.dirname(x.tracked); if (out.includes(up) || !fs.existsSync(path.join(up, "plan.json"))) return;
     const text = fs.readFileSync(path.join(up, "plan.json"), "utf8"), eol = /\r\n/.test(text) ? "\r\n" : "\n"; let pp; try { pp = JSON.parse(text); } catch (e) { return; }
     if (pp.issue !== x.vp.parent.issue || pp.kind !== "tracking") return;
     const P = applyParent(pp, x.vp, { kind: "landed" }, now); S.applied.push(...P.applied.map(a => `seeded: ${a}`)); S.enrich.push(...P.enrich);
+    const live = !["built", "abandoned"].includes(P.plan.status) && !["landed", "cancelled"].includes((P.plan.wip || {}).step);
+    const pc = copies.find(y => y.rel === path.posix.dirname(x.rel) && y.vp && y.vp.kind === "tracking" && y.vp.issue === pp.issue), row = (P.plan.rows || []).find(r => r && r.unit && r.unit.issue === x.vp.issue);
+    const crow = pc && row && (pc.vp.rows || []).find(r => r && r.id === row.id && lib.UNIT_LANDED.includes((r.asBuilt || {}).state));
+    if (live && crow && takeOwned(P.plan, pc.vp, row, crow)) { P.plan.wip = P.plan.wip || {}; P.plan.wip.updated = now; P.applied.push(`#${pp.issue}: #${x.vp.issue}'s row, its impact entries and its trail from its tracking board's copy`); S.applied.push(`seeded: #${pp.issue}: #${x.vp.issue}'s row, its impact entries and its trail from ${pc.rel}'s copy, which was not seeded; its wip left to the run's events`); }
     if (P.applied.length) { writeBoard(up, P.plan, eol, S.enrich, `seeded ${path.relative(path.join(ROOT, "docs", "plans"), up).split(path.sep).join("/")}`); out.push(up); S.seeded.push(path.relative(ROOT, up).split(path.sep).join("/") + " (its unit landed)"); }
   });
   if (out.length) S.applied.push(`seeded ${out.length} board${out.length === 1 ? "" : "s"} from the live view (the previous landing's state)`);

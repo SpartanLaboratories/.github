@@ -28,14 +28,14 @@ module.exports = function casesSeed(X) {
   const P = d => JSON.parse(rd(path.join(d, "plan.json")));
   const TF = "docs/plans/55-http-client-stack", SF = `${TF}/47-java-23-bytecode`;
   /* a repository whose #47 (a unit of #55) is built and at its Document step, committed as its merge; then landed into the view copies */
-  const landedRepo = name => {
+  const landedRepo = (name, trkEdit) => {
     const main = path.join(sc, name), tdir = path.join(main, ...TF.split("/")), sdir = path.join(main, ...SF.split("/"));
     if (git(sc, "init", "-q", "-b", "master", main).status !== 0) throw new Error("git init failed");
     wr(path.join(main, ".git", "info", "exclude"), "docs/plans/.live/\n");
     const sub = copy(EX); Object.assign(sub, { issue: 47, slug: "47-java-23-bytecode", folder: SF, parent: { issue: 55 }, status: "building", asBuilt: { ref: "master", sha: sub.baseline.sha, date: sub.baseline.date } });
     delete sub.issueBoards; sub.milestones = sub.milestones.filter(m => m.column !== "built"); sub.impact = { ...(sub.impact || {}), basis: "as-built" };
     sub.wip = { ...sub.wip, step: "document", since: "2026-10-26T09:20:00Z", updated: "2026-10-26T09:20:00Z", current: ["built"], questions: [], research: null, open: [], event: { name: "document", at: "2026-10-26T09:20:00Z" }, steps: STEPS };
-    const trk = copy(TRK); trk.wip.updated = "2026-10-26T09:00:00Z";
+    const trk = copy(TRK); trk.wip.updated = "2026-10-26T09:00:00Z"; if (trkEdit) trkEdit(trk);
     wr(path.join(tdir, "plan.json"), JSON.stringify(trk, null, 2) + "\n"); wr(path.join(tdir, "dashboard.html"), rd(PB)); wr(path.join(sdir, "plan.json"), JSON.stringify(sub, null, 2) + "\n"); wr(path.join(sdir, "dashboard.html"), rd(PB));
     run(EMBED, [sdir], { env }); run(EMBED, [tdir], { env });
     git(main, "add", "-A"); git(main, "commit", "-q", "-m", "the merge");
@@ -113,6 +113,41 @@ module.exports = function casesSeed(X) {
     c.push(["…its page embeds its data verbatim", run(EMBED, [wS, "--check"], { env }).status === 0, "embed.js --check"]);
     const wT = path.join(wt, ...TF.split("/")), strip = h => h.replace(/\r\n/g, "\n").replace(/<script type="application\/json" id="plan">[\s\S]*?<\/script>/, "");
     c.push(["…the tracking board, still in flight, is on the current template", strip(rd(path.join(wT, "dashboard.html"))) === strip(rd(PB)), "the tracking board's page"]);
+  });
+  /* p23 (KotlinBottools #2 at #24's sized, 2026-11-11): a tracking board past its filing whose plan's merge (wip.landing.merge) no branch holds, as after a
+     history rewrite, is seeded with its landed unit's copy: its plan's merge gates only its filing */
+  const GONE = "1a74516a28c14f22d642d6adb3000aca264b6731";
+  guard("seed: a tracking board past its filing is seeded with its landed unit's copy, though its plan's merge is in no branch's history (p23)", c => {
+    const B = landedRepo("seed-gone", t => { t.wip.landing = { pr: 20, merge: GONE }; }), wt = path.join(sc, "seed-gone-tree"); fs.rmSync(wt, { recursive: true, force: true });
+    c.push(["the plan's merge is no commit of this repository, and the tracking board's copy carries it", git(B.main, "cat-file", "-e", GONE + "^{commit}").status !== 0 && (P(B.vT).wip.landing || {}).merge === GONE, js(P(B.vT).wip.landing)]);
+    if (git(B.main, "worktree", "add", "-q", "-b", "docs/gone", wt).status !== 0) { c.push(["git worktree add", false, "failed"]); return; }
+    const s = seed(B, wt, {}, "2026-10-26T10:00:00Z", ["--no-live"]), wT = path.join(wt, ...TF.split("/")), pt = P(wT);
+    c.push(["both seeded: the landed sub-issue at its merge and its tracking board's copy with it", s.a.status === 0 && s.S.result === "ok" && (s.S.seeded || []).some(x => /47-java-23-bytecode/.test(x)) && (s.S.seeded || []).includes(TF) && !(s.S.applied || []).some(x => /^not seeded: 55-http-client-stack \(/.test(x)), js([s.a.status, s.S.result, s.S.seeded, s.S.applied, s.S.error])]);
+    c.push(["…the tracked tracking board is the copy (its stamp and its wip): the unit landed, the plan's merge kept as recorded", pt.wip.updated === P(B.vT).wip.updated && pt.wip.detail === P(B.vT).wip.detail && (pt.rows.find(r => r.id === "java-floor").asBuilt || {}).state === "landed" && (pt.wip.landing || {}).merge === GONE, js([pt.rows.find(r => r.id === "java-floor").asBuilt, pt.wip.landing])]);
+    c.push(["…check.js passes on it", run(CHECK, [wT], { env }).status === 0, run(CHECK, [wT], { env }).stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ")]);
+  });
+  /* p23's second layer: a tracking board's copy refused (here for a board-less unit's merge the branch does not hold) while its landed sub-issue is seeded
+     alone still gives up what that landing owns: the row as built, its impact.units entry, its impact.changes entries and its trail; never another unit's, never wip */
+  guard("seed: a refused tracking copy still gives up what the seeded landing owns (p23)", c => {
+    const B = landedRepo("seed-owned"), wt = path.join(sc, "seed-owned-tree"); fs.rmSync(wt, { recursive: true, force: true });
+    const MS = "Verification case: #47 landed, the Java 11 floor on the three artifacts, as the post-merge refresh wrote it.", MU = "Verification case: the floor as built: class files major 55 on all three artifacts.";
+    const MC = "Verification case: the floor applies through the convention plugin, as the landing reconciled it.", MT = "Verification case: #47's record reconciled";
+    const v = P(B.vT), fr = v.rows.find(r => r.id === "java-floor"), ts = v.rows.find(r => r.id === "test-support");
+    fr.asBuilt = { ...fr.asBuilt, summary: MS };
+    v.impact.units = v.impact.units.map(u => u.unit === "java-floor" ? { ...u, basis: "as-built", summary: MU } : u);
+    v.impact.changes = [...(v.impact.changes || []), { what: MC, why: "Verification case: the build-logic unit's landing moved the floor's home.", when: "#47 landing", unit: "java-floor", entry: "downstream.1", system: "webtools" }];
+    v.trail = [...(v.trail || []), { date: "2026-10-26", column: "built", label: MT, ref: "" }];
+    ts.asBuilt = { state: "landed", summary: "#63 landed as 1a74516.", merge: GONE };
+    v.wip.detail = "Verification case: the copy's own detail.";
+    wr(path.join(B.vT, "plan.json"), JSON.stringify(v, null, 2) + "\n");
+    if (git(B.main, "worktree", "add", "-q", "-b", "docs/owned", wt).status !== 0) { c.push(["git worktree add", false, "failed"]); return; }
+    const s = seed(B, wt, {}, "2026-10-26T10:00:00Z", ["--no-live"]), wT = path.join(wt, ...TF.split("/")), pt = P(wT), row = id => pt.rows.find(r => r.id === id);
+    c.push(["the tracking board's copy refused, the sub-issue seeded alone", s.a.status === 0 && s.S.result === "ok" && (s.S.applied || []).some(x => /^not seeded: 55-http-client-stack \(a board-less unit's merge/.test(x)) && (s.S.seeded || []).some(x => /47-java-23-bytecode/.test(x)), js([s.a.status, s.S.result, s.S.seeded, s.S.applied, s.S.error])]);
+    c.push(["…the landed unit's row as built taken from the copy", (row("java-floor").asBuilt || {}).state === "landed" && row("java-floor").asBuilt.summary === MS, js(row("java-floor").asBuilt)]);
+    c.push(["…its impact.units entry and its impact.changes entry taken", (pt.impact.units.find(u => u.unit === "java-floor") || {}).summary === MU && (pt.impact.changes || []).some(x => x.what === MC), js([pt.impact.units.find(u => u.unit === "java-floor"), (pt.impact.changes || []).map(x => x.what)])]);
+    c.push(["…the copy's trail entry taken, once", pt.trail.filter(t => t.label === MT).length === 1, js(pt.trail.slice(-3))]);
+    c.push(["…nothing of the refused unit's landing, and the copy's wip left alone", (row("test-support").asBuilt || {}).state !== "landed" && pt.wip.detail !== v.wip.detail, js([row("test-support").asBuilt, pt.wip.detail])]);
+    c.push(["…check.js passes on it", run(CHECK, [wT], { env }).status === 0, run(CHECK, [wT], { env }).stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ")]);
   });
   return groups;
 };

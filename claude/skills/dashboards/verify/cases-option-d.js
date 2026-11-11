@@ -79,6 +79,23 @@ module.exports = function casesOptionD(X) {
     c.push(["a late sub-issues-filed on a board at its units' runs leaves the step where it stands", late.a.status === 0 && P(Bz).wip.step === "implementation" && P(Bz).wip.current.includes(ids[0] + ".built"), js([late.S.error, P(Bz).wip.step, P(Bz).wip.current])]);
   });
 
+  /* p23: a tracking board's plan's merge gates its copy only while it files its units; past the filing a landed unit's copy carries it (cases-seed.js) */
+  guard("a filing's copy is still held to its plan's merge: not seeded while the branch lacks it, seeded once it holds it (p23)", c => {
+    const B = tree(before()); ev(B, "architecture-signed-off", {}, T(1)); ev(B, "document", {}, T(2)); const M = commit(B.root, "the plan's merge"), ids = units(P(B)).map(r => r.id);
+    ev(B, "landing", { pr: 60 }, T(3), ["--view"]); ev(B, "merge", { pr: 60 }, T(4), ["--view"]); ev(B, "landed", { pr: 60, merge: M, date: "2026-11-03" }, T(5), ["--view"]);
+    ev(B, "sub-issues-filed", { final: true, units: ids.map((id, i) => ({ unit: id, issue: 62 + i })) }, T(6), ["--view"]);
+    const vf = path.join(B.root, "docs", "plans", ".live", "view", ...F0.split("/").slice(2), "plan.json"), v = viewOf(B), GONE = "1a74516a28c14f22d642d6adb3000aca264b6731";
+    c.push(["the copy files its units with the plan's merge recorded", v.wip.step === "sub-issues" && (v.wip.landing || {}).merge === M, js([v.wip.step, v.wip.landing])]);
+    const wtRoot = path.join(sc, `wt-${++n}`); git(B.root, "worktree", "add", "-q", "-b", "feat/p23", wtRoot); const Bw = { root: wtRoot, dir: path.join(wtRoot, ...F0.split("/")) }, was = rd(path.join(Bw.dir, "plan.json"));
+    const seedIt = at => { const q = wr(path.join(sc, `req-${++n}.json`), js({ v: 1, action: "plan-board", github: TRK.repo, event: "seed", facts: {} })); const a = run(APPLY, ["--event", q, "--worktree", Bw.root, "--main", B.root, "--no-gh", "--no-live", "--at", at, "--json"], { env }); return { a, S: parse(a) }; };
+    wr(vf, JSON.stringify({ ...v, wip: { ...v.wip, landing: { ...v.wip.landing, merge: GONE } } }, null, 2) + "\n");
+    const s1 = seedIt(T(10));
+    c.push(["a filing copy whose plan's merge the branch does not hold is not seeded, and says why", s1.a.status === 0 && !(s1.S.seeded || []).includes(F0) && (s1.S.applied || []).some(x => /^not seeded: .* \(its merge is not in this branch's history\)/.test(x)) && rd(path.join(Bw.dir, "plan.json")) === was, js([s1.a.status, s1.S.result, s1.S.seeded, s1.S.applied, s1.S.error])]);
+    wr(vf, JSON.stringify(v, null, 2) + "\n");
+    const s2 = seedIt(T(11));
+    c.push(["…with the plan's merge in the branch, it is seeded: its units filed", s2.a.status === 0 && (s2.S.seeded || []).includes(F0) && units(P(Bw)).every(r => r.unit.issue > 0), js([s2.a.status, s2.S.result, s2.S.seeded, s2.S.error])]);
+  });
+
   guard("no board ahead of its run: boards-created refused, no batch mode; an older board's boards step still reads", c => {
     const B = tree(before()), was = rd(path.join(B.dir, "plan.json")), r = ev(B, "boards-created", { final: true }, T(1));
     c.push(["a boards-created request is refused, nothing written", r.a.status === 1 && /boards-created is retired/.test(r.S.error || "") && rd(path.join(B.dir, "plan.json")) === was, js([r.a.status, r.S.error])]);

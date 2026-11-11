@@ -1443,12 +1443,18 @@ that landing** (its worktree, or the main checkout where the run works there), `
 (`docs/plans/.live/view/`): each copy **fresher than the worktree's tracked board** (`lib.js` `planStamp()`) whose merge (`asBuilt.merge`,
 else `sha`) is in the worktree's history (`git merge-base --is-ancestor`) is written over the tracked board (its `plan.json`, its board and
 its `plan.js`, its links resolved from the tracked folder, never into `.live/`), and a copy with no merge of its own — the parent tracking
-board, its unit landed and the next one up — with it. **A merge that marks an issue landed on its own board marks it landed on its parent
+board, its unit landed and the next one up — with it. A tracking board's own merge is its plan's (`wip.landing.merge`) only while it files
+its units (`wip.step` `sub-issues`), and its last unit's (`asBuilt.merge`) once it has landed: a copy filing its units is seeded only into a
+branch that holds its plan's merge, where it records one, and past its filing its plan's merge gates nothing, so a tracking board whose
+plan's merge no branch holds (as after a history rewrite) is still seeded with its landed unit's copy. **A merge that marks an issue landed on its own board marks it landed on its parent
 too: both are seeded together** — a landed sub-issue seeded without its tracking board's copy marks its unit landed on the tracked tracking
-board by the standing rule (§3). Then the worktree's committed repository work board is regenerated (`board.js --refresh-template`), so the
+board by the standing rule (§3). Where the tracking board's copy holds that landing (its unit's Row landed there) but is not seeded with it,
+the tracked tracking board, unless it has landed or was cancelled, also takes from the copy what the landing owns, as `reseed` takes it
+(below). Then the worktree's committed repository work board is regenerated (`board.js --refresh-template`), so the
 new branch carries the previous landing's state — the issue board `landed` at its merge, the tracking board's filed units, its unit landed and next up, the
 repository work board — in its document-landing commit. A tracking board's copy holding the landing of a unit with no board (`unit-landed`, its merge on the unit's Row as
-`asBuilt.merge`) is seeded only into a branch whose history holds that merge too. **The seed comes before the issue's own board**: a `sized` on a folder with no board yet
+`asBuilt.merge`) is seeded only into a branch whose history holds that merge too; past its filing, until it has landed, that merge alone seeds it,
+and where the copy holds several such landings the tracked board lacks, every one's merge must be in the branch's history. **The seed comes before the issue's own board**: a `sized` on a folder with no board yet
 seeds first, then lays the foundation ("The foundation", above), under the same staged set, checking every seeded board and regenerating the committed and the live
 repository work boards; a `sized` raised again is a duplicate, and one raised after a failed laying and the presenter's `new.js` seeds then. **A run in the main checkout seeds its tracked boards like a worktree's**, uncommitted, as its foundation is, and they ride its branch; `--view` never
 seeds, so nothing else writes them. The tracked boards then tie their copies, so `board.js --live` removes the copies, unless one is kept (below); a run cancelled there and its
