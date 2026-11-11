@@ -520,9 +520,13 @@ lane** (below), apart from the repository lanes too.
   `run-restarted` through `apply-event.js`, once when both hold: `since` the run's own last request
   in the ledger before it (the team's entries do not count), `ended` that request, `reason` in plain
   words, the field's when it carries one, else that the session ended and a new session took the
-  run up. Once a `land` has been sent no restart is recorded, and a stop that sent `halted` is
-  already a wait and needs nothing. A gap between events from the same session is never read as a
-  break, and there is no threshold. What it does to the board: `plan/RULES.md` §2 and §4.
+  run up. When `restarted` carries the run's own clock readings (`~/.claude/admin-team/PROTOCOL.md`,
+  `restarted`), each takes the place of its ledger bound when it falls between the ledger's bounds,
+  `since` ≤ `lastActive` < `resumed` ≤ `ended`: `lastActive` becomes `since` and `resumed` becomes
+  `ended`. A reading outside them is ignored and the ledger's bound kept. Once a `land` has been
+  sent no restart is recorded, and a stop that sent `halted` is already a wait and needs nothing. A
+  gap between events from the same session is never read as a break, and there is no threshold.
+  What it does to the board: `plan/RULES.md` §2 and §4.
 - **Issue defects.** When `apply-event.js` or `apply-state.js` prints an `issue defects:`
   line (an issue title that names a work level), or a presenter report passes one on, queue
   a retitle of that issue in its repository's lane, removing the work level, under the
