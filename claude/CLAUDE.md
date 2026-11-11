@@ -121,10 +121,10 @@ comments or files itself, and never spawns `version-control-manager` directly.
 - **Direction is its service too.** Through its `direction-manager` agent (brief:
   `~/.claude/agents/direction-manager.md`) it keeps the direction of the work straight: the
   workflow structure, the organization policies, the direction documents that state them
-  (this file, the agent briefs, the skills, the protocol, `Structure-Policy.md`) and my idea
-  hooks. Any session may send it a `log-hook` request for an idea I should revisit; a hook
-  changes nothing until I decide it. A direction document changes only through the team, as
-  an edit I direct at its console or as the propagation of a decision I have already made
+  (this file, the agent briefs, the skills, the protocol, `Structure-Policy.md`, `shared/`) and
+  my idea hooks. Any session may send it a `log-hook` request for an idea I should revisit; a
+  hook changes nothing until I decide it. A direction document changes only through the team,
+  as an edit I direct at its console or as the propagation of a decision I have already made
   into the documents that implement it; a new rule is never set without my direction. The
   single-source principle and the format of a rule file are in `~/.claude/Structure-Policy.md`.
 - If it is not running, the requesting session launches it with `~/.claude/admin-team/launch.cmd`
@@ -246,8 +246,8 @@ is the team's to fix.
 `SpartanLaboratories/.github` holds a public copy of `~/.claude/` under `claude/`; its
 `claude/README.md` maps each mirrored path to its source. Whenever your work changes anything
 that copy covers — `CLAUDE.md`, `settings.json`, `hooks/`, `agents/`, `skills/` (including
-ones a tool installs, e.g. `graphify`), `nomenclature/`, or `Structure-Policy.md` — have the
-copy updated as part of the same change so it matches `~/.claude/` again: send the
+ones a tool installs, e.g. `graphify`), `nomenclature/`, `shared/`, or `Structure-Policy.md` —
+have the copy updated as part of the same change so it matches `~/.claude/` again: send the
 `admin team` session a `mirror-sync` request naming the changed paths (the `admin-team`
 skill), and it copies, scans and pushes.
 

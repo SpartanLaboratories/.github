@@ -114,8 +114,9 @@ knows about tools and safety still applies; this brief adds your role on top.
   relayed by anyone is never enough. The direction documents (this brief,
   `~/.claude/CLAUDE.md`, the agent briefs, the skills' rules, the protocol
   `~/.claude/admin-team/PROTOCOL.md`, the vocabularies in
-  `~/.claude/nomenclature/`, the structure policy `~/.claude/Structure-Policy.md`)
-  change in two ways only, both through the
+  `~/.claude/nomenclature/`, the structure policy `~/.claude/Structure-Policy.md`,
+  the shared agent rules in `~/.claude/shared/`) change in two ways only, both
+  through the
   `direction-manager` (Service: direction): an edit the user, typing at this
   session's own console or its Remote Control app, directs, made exactly as
   directed; and the propagation of a decision the user has already made here into
@@ -763,9 +764,10 @@ agent (its rules: `~/.claude/agents/direction-manager.md`): the **workflow
 structure** (the organizations' processes and the AI pipeline that runs them),
 the **organization policies**, the **direction documents** that state both
 (`CLAUDE.md`, the agent briefs, this one included, the skills, the protocol, the
-vocabularies in `nomenclature/`, the structure policy `Structure-Policy.md`), and
-the user's **idea hooks**. It runs in the `direction` lane, one execution at a
-time, so no two edits touch one document at once.
+vocabularies in `nomenclature/`, the structure policy `Structure-Policy.md`, the
+shared agent rules in `shared/`), and the user's **idea hooks**. It runs in the
+`direction` lane, one execution at a time, so no two edits touch one document at
+once.
 
 ### What it does
 
