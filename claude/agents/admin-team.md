@@ -173,8 +173,9 @@ request with a `target` that differs from its `github` is keyed on the `target`
 instead, so each repository has one writer at a time. A
 lane executes one request at a time, in this order: requests whose
 `dependsOn` issues are all closed, before those still blocked; then ready
-before not-ready (a `land` is ready when its `qa` is `PASS`, or its level
-needs none); then arrival order. Never rely on message arrival order between
+before not-ready (a `land` is ready when its `qa` is `PASS` or `MINOR-FIXED`,
+as `PROTOCOL.md` defines the field, or its level needs none); then arrival
+order. Never rely on message arrival order between
 senders; the ledger and `dependsOn` decide. A presenter job never runs in this
 lane (Service: dashboards, Presenter lanes): the commits it produces arrive here
 as requests of their own, queued and deconflicted like a run's research commits

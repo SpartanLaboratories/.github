@@ -341,8 +341,9 @@ order (the levels that skip one are named on it):
 0. **Open — `admin team`: `prepare-landing`.** Send a `prepare-landing` request
    (the `admin-team` skill) with the fields a `land` carries: the issue, the
    **work level**, the branch and worktree, the change set (`paths`), the `qa`
-   verdict (`NONE` for level 4), `publish` (true only if the user asked for a
-   publish this run) and the versions. The team's executor commits the change
+   verdict as the `qa` field of `~/.claude/admin-team/PROTOCOL.md` writes it
+   (`NONE` for level 4), `publish` (true only if the user asked for a publish
+   this run) and the versions. The team's executor commits the change
    set, syncs the branch with its base (a merge, the repository's way), decides
    and commits the version bump the level calls for (none at levels 1 and 4),
    and replies `done` with the head sha — the **code-landing commit** — and the
@@ -511,9 +512,10 @@ in any landing.
 The change set is already committed: the code-landing commit (step 6, task 0)
 and the document-landing commit (end of step 6). Send the admin team a `land`
 request with the **work level**, the branch and worktree, the code-landing and
-document-landing shas, the `qa` verdict (`NONE` for level 4), the plan or
-architecture document, every `.md` file created or updated this run (for the
-resolution comment's links), and `publish: true` only if **the user asked for a
+document-landing shas, the `qa` verdict as for `prepare-landing` (step 6,
+task 0), the plan or architecture document, every `.md` file created or
+updated this run (for the resolution comment's links), and `publish: true`
+only if **the user asked for a
 publish this run** (it lets the release use the budget's reserve; every
 version-bumping landing is considered for release regardless). The team:
 checks the base has not moved since the `prepare-landing` sync (if it has, it

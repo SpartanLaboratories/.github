@@ -54,7 +54,7 @@ one fenced ```json block:
 | `worktree` | per action | Where the branch is checked out. The main checkout unless allocated. |
 | `paths` | `commit`, `land`, `mirror-sync` | Exact paths to commit (or, for `land`, the change set). |
 | `plan`, `docs`, `dashboards` | `land` | The plan document; every `.md` created or updated this run; the dashboard paths, if any, the run wants refreshed. The state boards are built by the team on the run's `state-boards` request in its Document step, not by the run. |
-| `qa` | `prepare-landing`, `land` | `PASS`, or `NONE` for levels that run no qa. |
+| `qa` | `prepare-landing`, `land` | The run's last qa verdict: `PASS`; `MINOR-FIXED` when it was `CHANGES REQUESTED` with every fix minor and fixed on the spot (the `resolve-issue` skill, step 5); or `NONE` for levels that run no qa. |
 | `head` | `state-boards`, `land` | The code-landing commit `prepare-landing` reported. |
 | `systems` | `state-boards` | The slugs of the systems the change touched. |
 | `dependsOn` | optional | Issues that must be closed first, `owner/repo#n`. |
