@@ -503,8 +503,11 @@ those are (`plan-board` requests, the `admin-team` skill, fire-and-forget):
   awaiting verification".
 - **When verification starts** (after the batch's findings are committed):
   event `verification-started`. The researched Rows show "verifying".
-- **Once verification is done:** `researched`, as before (sent by your caller).
-  The researched Rows show "complete" until the plan is accepted.
+- **When the research ends** (2.4: the summary written and committed, before
+  the next stage starts): event `researched`, with `facts.documents` (the
+  `research/README.md` path), `facts.detail` and `facts.step` (the step that
+  comes next: `architecture` at level 4, else `plan`). The researched Rows show
+  "complete" until the plan is accepted.
 
 A follow-up researcher (2.4) sends its own `research-started` and
 `research-returned`.
@@ -561,7 +564,8 @@ downstream.
 - **Halt if research changes the picture.** If research overturns an interview
   answer, or turns up a decision that is genuinely the user's (product scope, an
   API break, a release-timing call) and would change the design, return the
-  `HALT — research` shape below and stop. Otherwise continue to stage 3. On
+  `HALT — research` shape below and stop. Otherwise send `researched` (see
+  "Board events during research", 2.2) and continue to stage 3. On
   resume, restate each answer in one line as a binding constraint, fold it into
   the summary as a plain statement about the work, have that committed, then
   start stage 3.

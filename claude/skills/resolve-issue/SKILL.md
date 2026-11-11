@@ -460,7 +460,7 @@ sends none.
 | A research batch spawned (sent by the planner itself) | `research-started` | `researching`: per question, its slug and the board Row ids it bears on (`[]` for none) |
 | A researcher returned (sent by the planner itself) | `research-returned` | `returned`: the question slug and its findings path |
 | Verification of the findings starts (sent by the planner itself) | `verification-started` | — |
-| Research verified | `researched` | the research README path |
+| Research verified (sent by the planner itself) | `researched` | the research README path |
 | Level-4 sign-off | `architecture-signed-off` | the architecture path, the approved unit list |
 | Planner COMPLETE | `plan-accepted` | the plan path, consequences path |
 | Step 3 done | `branch-cut` | branch, worktree, `stages`: every stage of the plan, its id and name |
