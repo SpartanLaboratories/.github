@@ -105,22 +105,26 @@ if (live) {
     if (fs.existsSync(path.join(d, "plan.json"))) copies.push(d); ents.filter(e => e.isDirectory()).forEach(e => walk(path.join(d, e.name))); };
   walk(vroot);
   const read = f => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch (e) { return null; } };
+  /* deepest first, so a copy inside a tracking board's copy is settled (kept or removed) before the tracking board's copy asks what is inside it: a unit's copy removed
+     in this run as stale no longer keeps its tracking board's copy for a land that is no longer under way in the view (KotlinBottools #23's catch-up, 2026-11-11) */
+  copies.sort((a, b) => b.split(path.sep).length - a.split(path.sep).length);
+  const removed = new Set();
   copies.forEach(vd => {
     const src = viewSource(vd), vp = read(path.join(vd, "plan.json")), tp = read(path.join(src, "plan.json")), rel = p => path.relative(root, p).split(path.sep).join("/");
-    const inside = vp && copies.filter(d => d !== vd && d.startsWith(vd + path.sep)).map(d => read(path.join(d, "plan.json"))).filter(Boolean), outer = vp && read(path.join(path.dirname(vd), "plan.json"));
+    const inside = vp && copies.filter(d => d !== vd && !removed.has(d) && d.startsWith(vd + path.sep)).map(d => read(path.join(d, "plan.json"))).filter(Boolean), outer = vp && read(path.join(path.dirname(vd), "plan.json"));
     const unfinished = (trk, sub) => { const r = trk && trk.kind === "tracking" && sub ? (trk.rows || []).find(x => x && x.unit && x.unit.issue === sub.issue) : null; return !!r && UNIT_LANDED.includes((r.asBuilt || {}).state) && unitLeft(trk, r).length > 0; };
     /* a landed unit with no board of its own (a level-1 unit, landed by unit-landed) whose record the tracking board's copy has not finished: no copy of the
        unit's stands for it, so the tracking board's copy is kept for its enrichment, as for a sub-issue's */
     const boardlessLeft = trk => (trk.rows || []).some(r => r && r.unit && !r.unit.board && UNIT_LANDED.includes((r.asBuilt || {}).state) && !inside.some(s => s.issue === r.unit.issue) && unitLeft(trk, r).length > 0);
     /* a finished copy whose tracked board a sized seeded unfinished: the refresh's reseed brings it there, so it stays until then, with its tracking board's copy */
     const awaitsReseed = (v, t) => !!v && !!t && v.kind !== "tracking" && v.status === "built" && landedPending(t);
-    const insideAwaiting = () => copies.filter(d => d !== vd && d.startsWith(vd + path.sep)).some(d => awaitsReseed(read(path.join(d, "plan.json")), read(path.join(viewSource(d), "plan.json"))));
+    const insideAwaiting = () => copies.filter(d => d !== vd && !removed.has(d) && d.startsWith(vd + path.sep)).some(d => awaitsReseed(read(path.join(d, "plan.json")), read(path.join(viewSource(d), "plan.json"))));
     const refreshing = vp && ((landedPending(vp) && tp && tp.status !== "built") || (vp.kind === "tracking" && inside.some(notYetLanded)) || (!flag(args, "settled") && (vp.kind === "tracking" ? inside.some(s => unfinished(vp, s)) || insideAwaiting() || boardlessLeft(vp) : (tp && planStamp(vp) === planStamp(tp) && unfinished(outer, vp)) || awaitsReseed(vp, tp))));
     if (vp && tp && !(planStamp(vp) > planStamp(tp)) && refreshing) {
       viewNotes.push(`kept the view copy ${rel(vd)}/, not yet landed: its enrichment writes it, and no board follows it while it is no fresher`); return;
     }
     if (!vp || !tp || !(planStamp(vp) > planStamp(tp))) {
-      ["plan.json", "dashboard.html", "plan.js"].forEach(f => fs.rmSync(path.join(vd, f), { force: true }));
+      removed.add(vd); ["plan.json", "dashboard.html", "plan.js"].forEach(f => fs.rmSync(path.join(vd, f), { force: true }));
       for (let d = vd; path.relative(vroot, d) && !path.relative(vroot, d).startsWith(".."); d = path.dirname(d)) { try { fs.rmdirSync(d); } catch (e) { break; } }
       viewNotes.push(`removed the stale view copy ${rel(vd)}/ (${!tp ? "its board is gone" : !vp ? "it does not parse" : "the tracked board is as fresh"})`); return;
     }

@@ -91,6 +91,14 @@ module.exports = function casesLiveView(X) {
     c.push(["a copy no fresher than its tracked board is removed, and the row opens the tracked board again", b2.status === 0 && !fs.existsSync(path.join(vsub, "plan.json")) && r47b.board === "../55-http-client-stack/47-java-23-bytecode/dashboard.html" && /removed the stale view copy/.test(b2.stdout), js([b2.status, fs.existsSync(vsub), r47b.board, b2.stdout.split(/\r?\n/).filter(l => /view copy/.test(l))])]);
   });
 
+  guard("board.js --live: a unit's copy in flight, removed as stale, no longer keeps its tracking board's copy in the same run", c => {
+    /* the tracked boards caught up to their copies (an in-flight run's events raised with --view meanwhile): both copies tie their tracked boards */
+    lay(); fs.rmSync(path.join(root, "docs", "plans", ".live"), { recursive: true, force: true });
+    [[sdir, vsub], [tdir, vtrk]].forEach(([d, v]) => ["plan.json", "dashboard.html", "plan.js"].forEach(f => wr(path.join(v, f), rd(path.join(d, f)))));
+    const b = run(BOARD, ["--live", "--no-gh", "--root", root], { cwd: root }), lines = b.stdout.split(/\r?\n/).filter(l => /view copy/.test(l));
+    c.push(["both copies are removed in one run, the unit's first", b.status === 0 && !fs.existsSync(path.join(vsub, "plan.json")) && !fs.existsSync(path.join(vtrk, "plan.json")) && lines.length === 2 && lines.every(l => /removed the stale view copy/.test(l)) && /47-java-23-bytecode/.test(lines[0]), js([b.status, fs.existsSync(path.join(vtrk, "plan.json")), lines])]);
+  });
+
   guard("apply-event.js --view: the land's landing and merge, before the merge and after it, nothing tracked written (plan/RULES.md §4, \"The live view of a landing\")", c => {
     const g = (cwd, ...a) => cp.spawnSync("git", ["-C", cwd, ...a], { encoding: "utf8" }), clean = d => g(d, "status", "--porcelain").stdout.trim() === "";
     const M = path.join(sc, "land-main"), W = path.join(sc, "land-wt"), SUB = ["docs", "plans", "55-http-client-stack", "47-java-23-bytecode"], TR = SUB.slice(0, 3);
