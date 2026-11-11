@@ -26,9 +26,9 @@ The list has two sections:
   background is a Group, and it is a Panel only when it does what a Panel does.
 - **Specific elements are named by function, never by look.** The look belongs to the consumer's
   own rules (its colours, its Legends, its motion).
-- **A compound name puts the subject first and the type last** (a status Pill, a link Chip, a
-  summary Tile), the type word taken from this file, so the type vocabulary stays small. The
-  subject is the consumer's.
+- **A compound name (also called a joint term) puts the subject first and the type last** (a
+  status Pill, a link Chip, a summary Tile), the type word taken from this file, so the type
+  vocabulary stays small. The subject is the consumer's.
 - **A word in neither section names no element.** "Bubble" is retired: what it named is a Card.
   "Glow" is retired: what it named is a FillPulse. A term line with `"case":"any"` rules its
   words out in lower case too.
