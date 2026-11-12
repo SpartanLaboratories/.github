@@ -1,0 +1,31 @@
+{
+  "index": "rule-index.md",
+  "url": "https://github.com/SpartanLaboratories/.github/blob/main/",
+  "roots": {
+    "S": {
+      "main": "Structure.md",
+      "ownSections": "C",
+      "listed": {
+        "scripts/rule-check.js": { "segment": "C", "id": 100 },
+        "scripts/rule-fetch.js": { "segment": "F", "id": 101 },
+        "scripts/rule-lib.js": { "segment": "L", "id": 103 },
+        "rule-index.md": { "segment": "I", "id": 102 }
+      },
+      "files": {
+        "Structure.md": { "sections": {
+          "Single source": "SS", "Files and folders": "FF", "Sections": "SE", "A rule": "AR",
+          "`id`": "ID", "Splinters": "SP", "Pointer rules": "PR", "`code`": "CO", "Pointers": "PO",
+          "The indexes": "IX", "The checker": "CH", "The fetch script": "FS", "The placement test": "PT"
+        } }
+      },
+      "folders": {
+        "scripts": { "segment": "S" }
+      }
+    }
+  },
+  "notConverted": [],
+  "ids": {
+    "marks": { "1": 1, "2": 10, "3": 103, "4": 1012, "5": 0 },
+    "retired": []
+  }
+}
