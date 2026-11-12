@@ -127,14 +127,14 @@ The permission system raises the denial.
 ## A count changes in this mirrored file
 
 ```json
-{"id":"p10","count":0,"last":null}
+{"id":"p10","count":1,"last":"2026-11-12"}
 ```
 
 - **Proposed resolution:** the coordinator writes the count and the change rides
   the next `mirror-sync`, so the public copy lags slightly.
 - **Predicted:** the admin team, 2026-11-09.
 - **Encounters:**
-  - None yet.
+  - 2026-11-12: the entry for a procedure not run as one shell was added; it rides the next mirror-sync.
 
 ## A board write lands in a checkout during `realign-checkout`
 
@@ -237,7 +237,7 @@ OrganizationPage's Kotlin/JS install step depends on the package registry, and `
 ## A run stamps a board event with a time it did not happen at
 
 ```json
-{"id":"p18","count":4,"last":"2026-11-11"}
+{"id":"p18","count":5,"last":"2026-11-12"}
 ```
 
 A run sends `facts.at` rounded or estimated (the user: this happens at every session start) instead of read from the clock, so the board records a wait or a visit at the wrong time, and a later event can fall inside it. A retime needs the user's direction and never reorders the record, so a later event inside the wrong stretch can block it.
@@ -251,6 +251,7 @@ A run sends `facts.at` rounded or estimated (the user: this happens at every ses
   - 2026-11-10: KotlinBottools #23 (new session): an open point's `resolved` sent as 20:05:00Z, an estimate (the grant was 20:08:36Z); the run corrected it itself. The arrival check covers `facts.at` only, not the times inside `open`.
   - 2026-11-10: KotlinBottools #23: two open points sent as `resolved` at 21:31:54Z, the report time; they were resolved earlier, at the plan amendment, with no clock reading kept. The run flagged it itself; the board keeps the report time with a correction note.
   - 2026-11-11: KotlinBottools #23, after the run was told to read the clock when a point is resolved: an open point sent as `resolved` at 02:04:06Z, the report time; it was resolved before the push into the fresh repository began (01:43:09Z in the ledger), with no clock reading kept. The run flagged it itself; the board's live view records 01:43:09Z as the latest it can have been, with a correction note. The arrival check could not catch it: the report arrived 33 seconds after its own time.
+  - 2026-11-12: the admin team itself, in its ledger: after its restart it wrote its own entries’ `ts` by hand from 17:48Z on, and the stamps ran up to 23 minutes ahead of the clock (19:00Z written at 18:37Z); the scheme’s working copies cited two of those stamps as decision times. Requests’ arrival stamps, taken from the transcript, were right. Corrected by a `ledger-correction` event with the true times from the session transcript; from then on every `ts` is read from `date -u`.
 
 ## The arrival check replaces an open-point time that was read at the moment
 
@@ -373,3 +374,16 @@ The protocol gives `facts.tasks` at `document`. A run that stops for a question 
 - **Predicted:** the admin team, on encountering it, 2026-11-12.
 - **Encounters:**
   - 2026-11-12: KotlinBottools #24: `halted` at 01:59:34Z carried the five tasks; the board kept the documentation check current.
+
+## A plan's procedure is not run as one shell
+
+```json
+{"id":"p28","count":1,"last":"2026-11-12"}
+```
+
+A write a plan specifies carries a `procedure`, a list of commands the plan means to run in one shell, in order, so that a guard that stops ends the whole procedure before its write. The team's brief to the executor said only to run the commands in order, and from the fourth request of a series also asked for a value the procedure does not print. Executors then ran entries in separate calls, or added a read to an entry. Every guard passed and every result matched, so nothing wrong was written, but a stopping guard would not have ended the run by the shell's own exit.
+
+- **Resolution (the team's own brief, changed on the encounter, 2026-11-12):** the executor writes the procedure's entries unchanged, in order, to one script and runs it with a single call; it adds nothing to it, and anything else it wants to read goes in a separate call that writes nothing; if it cannot run the procedure as one shell it runs none of it and reports. The team tells the requester what the earlier reports show, for its record of departures. Whether `version-control-manager.md` (Executor mode) should state the one-shell rule itself is proposed, not decided.
+- **Predicted:** the admin team, on encountering it, 2026-11-12.
+- **Encounters:**
+  - 2026-11-12: KotlinBottools #25: the nineteen `edit-issue-body` requests; the run raised it at the nineteenth, after the eighteenth's reply said its first entry ran in a call of its own.

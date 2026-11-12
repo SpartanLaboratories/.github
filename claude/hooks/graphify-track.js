@@ -10,8 +10,8 @@
 //   post   PostToolUse and PostToolUseFailure for Bash, Grep, Read and Glob: a graph query
 //          (the use), a search or a file read (the baseline), with the size returned.
 //   stop   SubagentStop: the agent's self-report line, when its last message carries one.
-// The reminders are logged by graphify-track.sh; the totals, and the lines the admin team adds
-// for graph upkeep, are ~/.claude/admin-team/graphify-totals.js's.
+// The reminders are logged by graphify-track.sh; the totals, and the lines the Graphify Manager
+// adds for graph upkeep, are ~/.claude/admin-team/graphify/graphify-totals.js's.
 'use strict';
 const t0 = Date.now();
 const fs = require('fs');

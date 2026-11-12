@@ -50,5 +50,10 @@
       "Bash(git push --force-with-lease:*)",
       "Bash(git reset --hard:*)"
     ]
+  },
+  "autoMode": {
+    "allow": [
+      "Installing graphify's post-commit and post-checkout git hooks by running `~/.claude/admin-team/graphify/graphify-hooks.py`, with the Python that `graphify-out/.graphify_python` names, in the main checkout of a repository that has a `graphify-out/graph.json` — the user's standing decision graphify/hooks-standing: every repository with a graphify graph also gets these two hooks, with no merge driver and no tracked file"
+    ]
   }
 }

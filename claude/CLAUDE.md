@@ -271,8 +271,9 @@ is the team's to fix.
 `SpartanLaboratories/.github` holds a public copy of `~/.claude/` under `claude/`; its
 `claude/README.md` maps each mirrored path to its source. Whenever your work changes anything
 that copy covers — `CLAUDE.md`, `settings.json`, `hooks/`, `agents/`, `skills/` (including
-ones a tool installs, e.g. `graphify`), `nomenclature/`, `shared/`, or `Structure-Policy.md` —
-have the copy updated as part of the same change so it matches `~/.claude/` again: send the
+ones a tool installs, e.g. `graphify`), `nomenclature/`, `shared/`, `Structure-Policy.md`, or
+`admin-team/` (less the local state the README's "Not included" list leaves out) — have the
+copy updated as part of the same change so it matches `~/.claude/` again: send the
 `admin team` session a `mirror-sync` request naming the changed paths (the `admin-team`
 skill), and it copies, scans and pushes.
 

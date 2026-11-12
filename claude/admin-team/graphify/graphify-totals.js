@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// graphify-totals.js: the totals of the temporary graphify usage tracker, and the admin team's
-// way to add what graph upkeep cost.
+// graphify-totals.js: the totals of the temporary graphify usage tracker, and the Graphify
+// Manager's way to add what graph upkeep cost.
 //
 //   node graphify-totals.js [--json]
 //       Totals per pipeline run and overall from ~/.claude/admin-team/graphify-usage.jsonl.
@@ -35,7 +35,7 @@ if (args[0] === 'add') {
     console.error('usage: graphify-totals.js add <build|refresh|label> <repo> <tokens> [note ...]');
     process.exit(2);
   }
-  const rec = { ts: new Date().toISOString(), session: null, agent_id: null, agent: 'admin-team', repo,
+  const rec = { ts: new Date().toISOString(), session: null, agent_id: null, agent: 'graphify-manager', repo,
     tool: null, kind: 'upkeep', work, tokens, note: note.length ? note.join(' ') : null };
   fs.appendFileSync(LOG, JSON.stringify(rec) + '\n');
   console.log(JSON.stringify(rec));
@@ -186,6 +186,6 @@ out.push('');
 out.push(`Overall, ${all.from || '-'} to ${all.to || '-'}:`);
 out.push(block(all, 2));
 const up = Object.entries(overall.upkeep.by).map(([k, v]) => `${k} ${v}`).join(', ');
-out.push(`  upkeep ${overall.upkeep.tokens} model tokens as reported by the admin team${up ? ` (${up})` : ''}`);
+out.push(`  upkeep ${overall.upkeep.tokens} model tokens as reported by the Graphify Manager${up ? ` (${up})` : ''}`);
 out.push(`  net    estimate after upkeep: ~${all.estimate.net_after_upkeep_tokens} tokens`);
 console.log(out.join('\n'));
