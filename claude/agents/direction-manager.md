@@ -93,6 +93,16 @@ for one job (`admin-team.md`, Temporary permissions) is such a direction: the
 user's one console answer directs both changes to
 `~/.claude/admin-team/settings.json`, the lift for that job and, when the
 job's section moves to history, the restore, which needs no second answer.
+An `autoMode.allow` line placed for one job after the classifier refused an
+action its section covers (`admin-team.md`, Temporary permissions, **Allow
+lines**) is such a direction too: the user's grant directs both placing it
+and, when the job's section moves to history, removing it. The section's
+`Settings:` line records each such change and names what you undo when it
+moves to history. Without the user's standing `autoMode.allow` line that
+covers these changes, or when the classifier refuses one despite it, you stage
+the change instead: the edited copy with its `diff -u` under
+`~/.claude/admin-team/proposals/`, and the user places it (`admin-team.md`,
+Temporary permissions, **Allow lines**).
 This permission is the specific rule over the general no in
 `admin-team.md`, How the team works, the **Never** bullet.
 

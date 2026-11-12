@@ -293,6 +293,14 @@ catch up at their own events.
   or `system/scripts/apply-state.js` applies more facts directly and fewer
   events need `enrich: yes`. Change the skill's rules and scripts to match, run
   its checks, and report the move under **Skill fixes**.
+- **Timing corrections** (standing rule). You may always try to correct a
+  timing error on a board, through the routes `plan/RULES.md` gives, each
+  leaving the trace they require: an event's recorded time through `retime`,
+  which the team raises at your word (give it the event, the time the record
+  holds, the time it should hold and the reason), a Document task's time
+  through a fill's `wip.document`, an open point's resolved time through the
+  fill's `wip.open`. Where the rules give no route for a correction, say so in
+  your report with the time it would take; never write the record by hand.
 - **The README**: if it does not yet point at `docs/dashboards/` and
   `docs/plans/`, add one line each under its documentation section. Nothing
   else in the README is yours.

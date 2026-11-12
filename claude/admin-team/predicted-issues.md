@@ -103,8 +103,23 @@ The route is "New dashboard rules reach old dashboards" in `admin-team.md`.
 
 The permission system raises the denial.
 
-- **Proposed resolution:** retry once at the user's word; if denied again, a
-  narrow temporary allow rule or the user runs it.
+- **Resolution (decided by the user, 2026-11-12, for an action under a temporary
+  grant):** only after the refusal, the direction manager places one
+  `autoMode.allow` line for the action, no broader than the grant's section and
+  naming the repository, the action's exact command, the request id, the
+  section, what it does not cover and when it is removed; the section's
+  `Settings:` line records it. The team asks the user for a restart, and on
+  the user's yes writes its handoff and ends its session; the user or the next
+  requesting session's launcher brings it back, and the team reruns the request
+  from its ledger under the request's id with `attempt + 1`, its reply carrying
+  the raised attempt. Without the user's standing allow line, or on a refusal
+  despite it, the direction manager stages the change with its diff under
+  `admin-team/proposals/` and the user places it. The line is removed when the
+  section moves to history (`agents/admin-team.md`, Gates and standing grants,
+  Temporary permissions, **Allow lines**).
+- **Proposed resolution (an action under no temporary grant):** retry once at
+  the user's word; if denied again, a narrow temporary allow rule or the user
+  runs it.
 - **Predicted:** the admin team, seeding this list from the encounters below,
   2026-11-09.
 - **Encounters:**
@@ -119,7 +134,7 @@ The permission system raises the denial.
     team’s settings themselves.
   - 2026-11-12: the same request, retried with that allow line in the settings file: refused
     again, at the call that runs the script. An `autoMode.allow` line placed while the team
-    is running did not clear it.
+    is running did not clear it. After a restart of the team, the same request ran clean.
 
 ## An encountered issue is not in this tracker
 
@@ -250,7 +265,7 @@ OrganizationPage's Kotlin/JS install step depends on the package registry, and `
 {"id":"p18","count":6,"last":"2026-11-12"}
 ```
 
-A run sends `facts.at` rounded or estimated (the user: this happens at every session start) instead of read from the clock, so the board records a wait or a visit at the wrong time, and a later event can fall inside it. A retime needs the user's direction and never reorders the record, so a later event inside the wrong stretch can block it.
+A run sends `facts.at` rounded or estimated (the user: this happens at every session start) instead of read from the clock, so the board records a wait or a visit at the wrong time, and a later event can fall inside it. A retime is raised by the team at the presenter's word (`~/.claude/agents/presenter.md`, "Timing corrections") and never reorders the record, so a later event inside the wrong stretch can block it.
 
 - **Resolution (decided by the user, 2026-11-10):** a run reads every event's `facts.at` from the clock (`date -u +%FT%TZ`), never rounding or estimating it; when an event's `facts.at` is missing or more than 2 minutes from its arrival, the team stamps the arrival time (`apply-event.js --arrived`) and tells the run.
 - **Extended (the user, 2026-11-10):** the same 2-minute arrival check covers the `raised` and `resolved` times of the open points an event newly raises or resolves.
@@ -262,7 +277,7 @@ A run sends `facts.at` rounded or estimated (the user: this happens at every ses
   - 2026-11-10: KotlinBottools #23: two open points sent as `resolved` at 21:31:54Z, the report time; they were resolved earlier, at the plan amendment, with no clock reading kept. The run flagged it itself; the board keeps the report time with a correction note.
   - 2026-11-11: KotlinBottools #23, after the run was told to read the clock when a point is resolved: an open point sent as `resolved` at 02:04:06Z, the report time; it was resolved before the push into the fresh repository began (01:43:09Z in the ledger), with no clock reading kept. The run flagged it itself; the board's live view records 01:43:09Z as the latest it can have been, with a correction note. The arrival check could not catch it: the report arrived 33 seconds after its own time.
   - 2026-11-12: the admin team itself, in its ledger: after its restart it wrote its own entries’ `ts` by hand from 17:48Z on, and the stamps ran up to 23 minutes ahead of the clock (19:00Z written at 18:37Z); the scheme’s working copies cited two of those stamps as decision times. Requests’ arrival stamps, taken from the transcript, were right. Corrected by a `ledger-correction` event with the true times from the session transcript; from then on every `ts` is read from `date -u`.
-  - 2026-11-12: KotlinBottools #25: the stage event closing the second stage carried `at` 21:45:14Z, the clock at the report; the run’s own report in the same event says the stage ended at 21:44:16Z. The arrival check kept it (28 seconds before arrival), so the board records the stage’s end 58 seconds late. The run kept the true reading and named it; a retime waits on the user.
+  - 2026-11-12: KotlinBottools #25: the stage event closing the second stage carried `at` 21:45:14Z, the clock at the report; the run’s own report in the same event says the stage ended at 21:44:16Z. The arrival check kept it (28 seconds before arrival), so the board records the stage’s end 58 seconds late. The run kept the true reading and named it; corrected by retime the same day, under the user's standing rule for the presenter.
 
 ## The arrival check replaces an open-point time that was read at the moment
 
@@ -333,7 +348,7 @@ At a `sized`, `apply-event.js` seeds a board from its view copy only when the me
 ## The arrival check replaces the true time of an event the run can only send late
 
 ```json
-{"id":"p24","count":2,"last":"2026-11-12"}
+{"id":"p24","count":3,"last":"2026-11-12"}
 ```
 
 A run learns that research has ended only when its planning agent returns, which is after the plan is written. It sends `researched` then, with the time the research ended. That time is more than 2 minutes before the event's arrival, so the arrival check (`apply-event.js --arrived`) replaces it with the arrival time. The next event, `plan-accepted`, sent in the same moment and holding a time a few seconds earlier, then falls before it: the board shows research running through the whole of the plan's writing, and the plan's visit takes bounds that match no event.
@@ -343,6 +358,7 @@ A run learns that research has ended only when its planning agent returns, which
 - **Encounters:**
   - 2026-11-11: KotlinBottools #24: `researched` read at 19:42:46Z and sent with `plan-accepted` at 20:17:33Z; it was stamped 20:17:33Z, and `plan-accepted` holds 20:17:03Z.
   - 2026-11-12: KotlinBottools #25: the event closing the pre-flip gate, read at 22:19:35Z, arrived at 22:21:55Z, after the run had sent its visibility request (22:20:15Z); it was stamped 22:21:55Z, so the board records the gate’s end 140 seconds late and the next stage’s start after its first request. Here the run could have sent the event before going on.
+  - 2026-11-12: KotlinBottools #25: eight step events for S9 to S11, each read from the clock at its step, were sent together in one report at 23:29:24Z; S9.gate, S9.batches and S9.feeds (23:20:02Z, 23:23:48Z, 23:24:03Z) were stamped with the arrival time, after S9’s own end. A retime is refused (it would cross the stage’s end). The run was told to send each step event as its step ends.
 
 ## A board write fails on Windows while another process reads the file
 
@@ -464,3 +480,22 @@ A `step-complete` becomes the board's last event. A later `resumed` that ends an
 - **Predicted:** the presenter, on building nested stage steps, 2026-11-12.
 - **Encounters:**
   - None yet.
+
+## An edit of the team's own files is refused as [Self-Modification]
+
+```json
+{"id":"p34","count":6,"last":"2026-11-12"}
+```
+
+The session's auto mode classifier refuses a tool call by which the team changes its own briefs, protocol, skill rules or settings, with the reason "[Self-Modification]". It judges each call: on the same day most of the direction manager's edits to the same files went in. The refused ones were bulk shell copies over the briefs and edits that loosen what the team itself may do (a permission line in its settings, the rule on what may be pushed straight to `main`, the direction manager's own scope, who may direct a retime). A subagent's conversation holds the team's brief to it, not the user's words at the console, and a sentence written into the team's brief did not change the outcome.
+
+- **Resolution (decided by the user, 2026-11-12, for the direction manager's edits to the team's settings file under a temporary grant):** a standing `autoMode.allow` line, placed by the user by hand once, covers placing and removing a temporary allow line and lifting and restoring a deny rule; without that line, or on a refusal despite it, the direction manager stages the change with its diff under `admin-team/proposals/` and the user places it (`agents/admin-team.md`, Gates and standing grants, Temporary permissions, **Allow lines**).
+- **Resolution (as practised on the encounters, 2026-11-12, for every other edit; a standing fix is not decided):** the agent stops at the refusal and tries no other route; it stages the edited file as a copy with its diff under `admin-team/proposals/`; the team tells the user and gives them the copy command; the user places the file, and the team then records the `config-edit` and mirror-syncs. A half-applied change is said file by file, and its mirror-sync is held until it is whole. A standing allow line for the direction manager's other directed edits was offered and not taken up.
+- **Predicted:** the admin team, on encountering it, 2026-11-12.
+- **Encounters:**
+  - 2026-11-12: the Graphify Manager's apply: one shell command copying the staged briefs into place; the same edits then went in file by file.
+  - 2026-11-12: W37 (the structure scheme's changes to the team's rules) as a shell script; nothing written.
+  - 2026-11-12: a temporary allow line for KotlinBottools #25 in the team's settings file; staged, placed by the user.
+  - 2026-11-12: W37 retried by Edit: two changes went in, the change to the straight-to-`main` rule was refused; the rest placed by the user.
+  - 2026-11-12: the sentence on the direction manager's scope in the team's brief; staged, placed by the user.
+  - 2026-11-12: the presenter's timing rule: it went into the presenter's brief; the matching edits to the protocol, the dashboards rules and the dashboards skill were refused and staged.

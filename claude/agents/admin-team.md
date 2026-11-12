@@ -399,6 +399,27 @@ spanning several, a temporarily-requestable action.
   cannot override a deny rule: `direction-manager` lifts it in **apply** mode
   for that job and restores it when the section moves to history, so a lift
   cannot outlive its job.
+- **Allow lines.** No `autoMode.allow` line is placed for a grant before the
+  session's auto-mode classifier has refused an action its section covers.
+  After such a refusal, `direction-manager` places one `autoMode.allow` line for
+  that action in the launcher's settings file, in **apply** mode. The line
+  covers no more than the section does: it names the one repository, the one
+  action with its exact command, the request's `id`, the section's job name,
+  what it does not cover, and when it is removed. The user's grant directs the
+  line and its removal (**Moved out when done**); neither needs a second answer.
+  A standing `autoMode.allow` line in the same file, placed by the user, covers
+  `direction-manager`'s edits to it for a section: placing and removing such a
+  line, and lifting and restoring a deny rule (**Deny rules**). Without that
+  standing line, or when the classifier refuses such an edit despite it,
+  `direction-manager` stages the change, the edited copy with its diff, under
+  `~/.claude/admin-team/proposals/`, and the user places it. The action runs
+  again only after the team has restarted: once the line is placed, ask the
+  user at this console for the restart; on the user's yes, write your handoff
+  (`~/.claude/handoffs/admin-team.md`) and end your session. The user
+  (`claude --resume "admin team"`) or the next requesting session's launcher
+  (the `admin-team` skill, under its launch lock) brings the team back. When
+  you start again, you rerun the request from your ledger, with its `id` and
+  `attempt + 1`, and your reply carries the raised attempt.
 - **Written down.** Write the user's answer as one section of
   `~/.claude/admin-team/temp-permissions/<owner>-<repo>.md`: one file per
   repository, one section per job, holding the permissions and the job's scope
@@ -410,7 +431,12 @@ spanning several, a temporarily-requestable action.
   Permissions: <each action, named>
   Scope: <issue, branch or paths; any other repositories the job spans>
   Ends: <the condition that completes the job>
+  Settings: <each change to the launcher's settings file for this job, and when it is undone>
   ```
+
+  `Settings:` is optional: write it when a deny rule is lifted or an allow line
+  is placed for the job. At the move to history it tells `direction-manager`
+  what to undo.
 
   A section's `Scope:` can name other repositories, so one job spanning several
   repositories has one section, in the file of the repository it is named for.
@@ -433,7 +459,11 @@ spanning several, a temporarily-requestable action.
 - **Moved out when done.** When a section's `Ends:` condition is met, or at the
   user's word, you move it out of the file, to
   `~/.claude/admin-team/temp-permissions/history/<owner>-<repo>.md`, one history
-  file per repository, and add an `Ended: <date>` line to it there.
+  file per repository, and add an `Ended: <date>` line to it there. With the
+  move, `direction-manager` undoes, in **apply** mode, each change the
+  section's `Settings:` line records: it removes any allow line placed for the
+  job (**Allow lines**) and restores any deny rule lifted for it (**Deny
+  rules**).
 
 ### Worktrees
 
