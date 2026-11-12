@@ -283,6 +283,8 @@ and its `state-boards` task, which draws the planned systems dashed.
   test, run it and record it failing, then fix; commit nothing".
 - **Level 3:** spawn `rookie-dev` with the plan document path, the work level,
   and "implement it on the current branch; commit nothing".
+- **Levels 2–3, a plan whose stage table names steps:** also give `rookie-dev`
+  the fields its step events need (`rookie-dev.md`, "Step events").
 
 **Steps laid out during a stage.** The run may add steps to a stage in the
 plan's stage table, or nest steps under one of its steps, when they only lay
@@ -472,7 +474,7 @@ sends none.
 | Step 3 done | `branch-cut` | branch, worktree, `stages`: every stage of the plan, its id and name |
 | Each rookie-dev report | `implementation-stage` | the stage, `stages`: every stage's id and name with its state (`done`, `current`, `todo`), `final-implementation.md` path, deviations; a closing check stage's entry in `stages` also carries `result` (`passed` or `failed`), and the stage's report goes in `detail`, as its end report; during a remediation loop also `remediation`: the qa pass it answers, the route (`on-the-spot` / `remediation` / `re-plan-then-remediation`) and its sub-steps with their state; `tests`: the test classes the stage added or amended (`added`/`amended`: class, module, testLevel, path, tests, rows). It names no `step` |
 | The plan's stage table revised while a stage runs (steps added, or a step given steps of its own) | `implementation-stage` | `stages` as they stand, none closed, so the board reads the revised table and its nested steps; `detail`, the run's latest report. It names no `step` |
-| Each step the plan's stage table names completes, at any depth (one event per step, however long the list) | `step-complete` | `stage`, the stage's id; `stepId`, the step's id; no `detail` and no report. It names no `step` |
+| Each step the plan's stage table names completes, at any depth (one event per step, however long the list) | `step-complete` | `stage`, the stage's id; `stepId`, the step's id; no `detail` and no report. It names no `step`. The run sends it for a step it carries out itself; `rookie-dev` sends it for its own (`rookie-dev.md`, "Step events"), and the run sends only those its report lists under **Steps not sent**, once it returns |
 | Just before each `qa` pass is spawned | `qa-pass` | `qa: {pass: N, verdict: "running"}`, `at` |
 | Each qa verdict | `qa-pass` | pass number, verdict, finding counts by kind (test, code) and by `severity` (`minor` — easily made, no fallout — and `other`), the route step 5 takes from them, `rows`: the board Row ids the findings touch, report path; `tests`: what the qa run ran (`ran`: class, module, passed, failed, skipped) and the counts of the untouched modules' tests (`other.byModule`) from the test-inspector report |
 | Step 6 starts, each task change in it, and once more before the document-landing commit | `document` | `tasks`: every applicable task's id and name with its state (`done`, `current`, `todo`), like `implementation-stage`'s `stages` — ids `documentation-review`, `reconcile-documentation`, `dokka-check`, `reconcile-plan`, `readme-changelog`, `state-boards` (the board adds `document-landing`, which the run need not send); once `prepare-landing` replied, the code-landing sha |

@@ -14,7 +14,7 @@ description: >-
   greenfield design, open-ended refactors, or plans with unresolved open
   decisions. It does not commit, branch, open PRs, tag, publish, or file
   issues.
-tools: Read, Grep, Glob, Write, Edit, Bash
+tools: Read, Grep, Glob, Write, Edit, Bash, SendMessage
 effort: high
 ---
 
@@ -57,6 +57,8 @@ improvise.
   working tree and report; the caller handles version control.
 - `Bash` is for building and testing your own changes, plus read-only `git` /
   `grep` to orient — nothing that mutates history or a remote.
+- **Your one message is a step's completion** ("Step events", below).
+  `SendMessage` is for nothing else.
 
 ## Work levels
 
@@ -160,10 +162,36 @@ work level.
   anything ambiguous. This is the important part; be specific.
 - **Deviations:** anywhere the result differs from the plan's letter, and why. Each one is
   also logged in `final-implementation.md`.
+- **Steps not sent:** each step whose `step-complete` you could not send, with
+  its stage, its id and the time it completed.
 - **Left for the caller:** version control (branch / commit / PR), and any
   follow-up the plan defers.
 
 Keep the report short. The blockers list is what matters.
+
+## Step events  (when you run inside a /resolve-issue run)
+
+When the plan's stage table names steps, report each one's completion to the
+`admin team` as it happens: at the completion of each step of a stage, at any
+depth (a step with steps of its own once its last one is done), send that
+step's `step-complete`, then, before you start on the next step. Never at the
+end of your run, never batched.
+
+- **What you send:** a `plan-board` request (`~/.claude/admin-team/PROTOCOL.md`)
+  with `SendMessage(to: "admin team")`, under the fields your caller gives you
+  (`from`, its session name, and `repo`, `github`, `issue` and `folder`):
+  `v: 1`, `id` `<from>/<issue>/step-<stage-id>-<step-id>`, `attempt: 1`,
+  `action: "plan-board"`, `event: "step-complete"` and `facts: {stage, stepId,
+  at}`, `at` read from the clock with `date -u +%FT%TZ` at that moment.
+- **You send nothing else**, to the team or anyone: no other event, request or
+  question.
+- **The reply is not yours.** You send under your caller's address, so the
+  reply lands in its conversation (the `admin-team` skill, "Subagents"); do
+  not wait for one. When the send itself fails (the team is not running, say),
+  do not retry it and do not launch the team: go on with the work and list the
+  step under **Steps not sent**. Without the fields from your caller, send
+  nothing and list every step you complete there. A step event never stops
+  your work.
 
 ## Progress review every 10 minutes  (when you run inside a /resolve-issue run)
 
