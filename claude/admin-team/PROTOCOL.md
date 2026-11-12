@@ -52,7 +52,7 @@ one fenced ```json block:
 | `level` | `setup-branch`, `prepare-landing`, `state-boards`, `land`; optional on a `plan-board` `sized` | The work level, 1–4. On a `plan-board` `sized` it is read and never written. |
 | `branch` | per action | The topic branch. |
 | `worktree` | per action | Where the branch is checked out. The main checkout unless allocated. |
-| `paths` | `commit`, `land`, `mirror-sync` | Exact paths to commit (or, for `land`, the change set). |
+| `paths` | `commit`, `land`, `mirror-sync` | Exact paths to commit (or, for `land`, the change set). A `mirror-sync`'s paths are of two kinds: a `~/.claude` path, and a working-copy file of S, P or D with its path in the organization repository. |
 | `plan`, `docs`, `dashboards` | `land` | The plan document; every `.md` created or updated this run; the dashboard paths, if any, the run wants refreshed. The state boards are built by the team on the run's `state-boards` request in its Document step, not by the run. |
 | `qa` | `prepare-landing`, `land` | The run's last qa verdict: `PASS`; `MINOR-FIXED` when it was `CHANGES REQUESTED` with every fix minor and fixed on the spot (the `resolve-issue` skill, step 5); or `NONE` for levels that run no qa. |
 | `head` | `state-boards`, `land` | The code-landing commit `prepare-landing` reported. |

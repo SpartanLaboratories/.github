@@ -250,13 +250,16 @@ commits anything, scan what you are about to commit for the pipeline's
 agents, sessions or roles, for the approval flow and for a work level, as
 `~/.claude/nomenclature/internal-names.md` lists them with what is not a find.
 The scan covers documents and boards (everything under `docs/`, `README.md`,
-the generated board files) and the comments in source code (line and block
-comments, KDoc), reading every line of each such file the commit carries, not
-only the changed lines; code itself (identifiers, strings) is not scanned.
-On a find, commit nothing: report each `file:line` with the offending text under
-**Stopped — internal names**, and the team replies `needs-rework` or has its
-`presenter` reword a board it generated. Never reword a committed file
-yourself.
+the generated board files and, in `SpartanLaboratories/.github`,
+`Structure.md`, `POLICY.md`, `DESIGN.md` and every file of the Policy and
+Design folders) and the comments in source code (line and block comments,
+KDoc), the scripts in that repository's `scripts/` among them, reading every
+line of each such file the commit carries, not only the changed lines; code
+itself (identifiers, strings) is not scanned. It applies to a `mirror-sync`
+that carries those files as to a `commit`. On a find, commit nothing: report
+each `file:line` with the offending text under **Stopped — internal names**,
+and the team replies `needs-rework` or has its `presenter` reword a board it
+generated. Never reword a committed file yourself.
 
 **Secret scan.** Before a `mirror-sync` commits anything, scan every line of
 each file it is about to commit, not only the changed lines, for credentials
@@ -277,10 +280,21 @@ internal-names scan. Never fix a mirrored file yourself.
 
 **Rule check.** Before a `mirror-sync` that lists a rule file (a path
 `~/.claude/admin-team/rule-files.json` names under `files`) commits anything,
-run `node ~/.claude/admin-team/rule-check.js`, without `--write`. On a failure
-(exit 1), commit nothing: report each finding the checker printed under
-**Stopped — rule check**, and the team replies `needs-rework`, as with the
-secret scan.
+run `node ~/.claude/admin-team/rule-check.js`, without `--write`. Once the
+mirror clone holds the organization repository's checker,
+`scripts/rule-check.js`, every `mirror-sync` also runs it there: first
+`node scripts/rule-check.js --write --policies <clone>`, the run the
+`mirror-sync` row orders (`admin-team.md`), then, after the scans, the same
+without `--write`. While `~/.claude/admin-team/rule-files.json` has no `roots`,
+both runs read G from a stand-in passed as `--claude <stand-in>`: a temporary
+folder outside `~/.claude` holding a copy of `~/.claude/CLAUDE.md` with the
+line `{"name":"<its # title>","code":"G","id":4}` added after its `#` title,
+and `admin-team/rule-files.json` registering that file alone, not converted:
+`{"index":"../rule-index.md","roots":{"G":{"main":"CLAUDE.md","ownSections":"C","listed":{},"files":{},"folders":{}}},"notConverted":["CLAUDE.md"],"ids":{"marks":{"1":4},"retired":[]}}`.
+The G index the `--write` run writes there goes with the folder; nothing is
+written under `~/.claude`. On a failure (exit 1) of any run, commit nothing:
+report each finding the checker printed under **Stopped — rule check**, and
+the team replies `needs-rework`, as with the secret scan.
 
 A `land` in executor mode never publishes, tags or creates a GitHub release:
 those belong to the team's `publisher`, which decides every version-bumping
@@ -312,8 +326,13 @@ Conform to whatever you find. On top of that, the user's global
   one statement of the rule. Outside the exceptions below, a push to a default
   branch is temporarily-requestable (`admin-team.md`, Request groups).
   - `SpartanLaboratories/.github` and `SpartanLaboratories/OrganizationPage` are
-    special repositories that can have exceptions: the mirror's `mirror-sync`
-    commits straight to `main`, and `OrganizationPage`'s are its own rules.
+    special repositories that can have exceptions. In `.github` the mirror's
+    `mirror-sync` and every change to the pages and scripts of S, P and D (the
+    files outside `claude/`) commit straight to `main`, each after the secret
+    scan and the rule check (Executor mode, **Rule check**), with the checker's
+    `--write` run in the copy being committed, never in the standing checkout,
+    which is pulled afterwards, and its diff shown to the user at the admin
+    team's console before the push. `OrganizationPage`'s are its own rules.
   - A temporary permission (Executor mode, **Temporary permissions**) covering a
     job, such as the Phase 0 history rewrite.
 - Name it to match the repo's pattern; where there is none, `<type>/<slug>`

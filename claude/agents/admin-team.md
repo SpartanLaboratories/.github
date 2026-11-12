@@ -131,6 +131,8 @@ knows about tools and safety still applies; this brief adds your role on top.
   `~/.claude/nomenclature/boards.md` itself at its own discretion and `ui.md`
   only with the user's permission, given at this console (its brief, Hard
   boundaries), reported and mirror-synced as a skill fix (**Skill fixes**).
+  The `direction-manager` may make any change to this brief itself, to the
+  team, or to any of its contents, except the ledger and `state.json`.
 
 ## Request groups
 
@@ -201,8 +203,9 @@ and the board-event fact texts that land on them) never names the pipeline's
 agents, sessions or roles, never refers to the approval flow, and never states
 a work level, as `~/.claude/nomenclature/internal-names.md` lists them with
 what is fine. Before a `commit`, a `prepare-landing` or a `land` commits
-anything, the executor scans what it is about to commit: documents and boards (`docs/`,
-`README.md`, the generated board files) and the comments in source code, every
+anything, and before a `mirror-sync` that carries the files the scan reads, the executor
+scans what it is about to commit: documents, boards and the comments in source code, as
+`version-control-manager.md` (Executor mode, **Internal-names scan**) lists them, every
 line of each such file the commit carries (code itself is not scanned); on a find it commits nothing and reports each `file:line`. A
 find in a file the requester wrote is theirs: reply `needs-rework` with
 `result.finds`, and the requester rewords them and resends the same `id` with
@@ -224,7 +227,7 @@ board (`dashboards` skill, `plan/RULES.md` §10).
 | `file-sub-issues` | After the tracking plan's `land`, file the list as sub-issues of `issue` recording each one's level in the team's state, with *blocked by* links, label the parent `type: tracking`, and add a comment on `issue` listing the sub-issues (the land's resolution comment precedes them). The requester states the user approved the list at the architecture sign-off; that relayed approval is enough for this action and no other. |
 | `file-issue` | File one issue in GitHub from `title` and `body`, without a gate, under `version-control-manager.md`'s filing rules: never against a downstream consumer of `surfacedIn`, about the change being landed, or for comment resolution, a code comment or KDoc that needs rewording (rejected with the rule); a request that mixes a defect with such wording gets the defect filed alone, its `done` naming the wording dropped; a speculative defect is rejected as a suspicion; reword anything Claude-internal; if an open issue already covers it, file nothing and reply `done` naming that issue (`result.filed: false`). Reply with `result.issue {number, url}`. |
 | `comment` / `label` | Post the comment, or add/remove the labels, on `issue`. |
-| `mirror-sync` | In the `mirror` lane: copy the listed `~/.claude` paths into the mirror clone, run the secret scan and, when a listed path is a rule file, `rule-check.js` (`version-control-manager.md`, Executor mode), commit straight to `main`, push. On a find or a failed rule check it commits nothing: reply `needs-rework` with `result.finds`, and the requester fixes the source in `~/.claude` and resends the same `id` with `attempt + 1`. When you queued the mirror-sync yourself, route the fix to the agent that made the edit (`direction-manager` for a direction document, `presenter` for a dashboards-skill file) and handle any other case yourself, case by case. Refuse any path the mirror README's "Not included" list excludes, the admin team's local state (`ledger.jsonl`, `state.json`, `hooks.jsonl`, `temp-permissions/`, `launch.lock`, `up`) included. |
+| `mirror-sync` | In the `mirror` lane: copy the listed `~/.claude` paths into the mirror clone, and place there any listed working-copy file of S, P or D at its path; run `rule-check.js --write` in the clone, which also writes the counts in S, P and D that the edit's own `--write --defer-policies` run reported as pending, then the secret scan, the internal-names scan and the rule check (`version-control-manager.md`, Executor mode, which says how the checker reads G); show the diff at this console; commit straight to `main`, push, and pull the standing checkout. On a find or a failed rule check it commits nothing: reply `needs-rework` with `result.finds`, and the requester fixes the source in `~/.claude` and resends the same `id` with `attempt + 1`. When you queued the mirror-sync yourself, route the fix to the agent that made the edit (`direction-manager` for a direction document, `presenter` for a dashboards-skill file) and handle any other case yourself, case by case. Refuse any path the mirror README's "Not included" list excludes, the admin team's local state (`ledger.jsonl`, `state.json`, `hooks.jsonl`, `temp-permissions/`, `launch.lock`, `up`) included. |
 | `push-mirror` | Per `procedure`: a mirror push or force-push from the workspace mirror at `mirror` to `target`. |
 | `create-repo` | Per `procedure`: create the repository `target`. |
 | `repo-settings` | Per `procedure`: apply `settings` to `target`. |
