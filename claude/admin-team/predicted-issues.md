@@ -98,7 +98,7 @@ The route is "New dashboard rules reach old dashboards" in `admin-team.md`.
 ## A publish, or a repository creation, is denied with [Create Public Surface]
 
 ```json
-{"id":"p8","count":3,"last":"2026-11-12"}
+{"id":"p8","count":5,"last":"2026-11-12"}
 ```
 
 The permission system raises the denial.
@@ -114,6 +114,12 @@ The permission system raises the denial.
   - 2026-11-12: KotlinBottools #25, the change of the repository to public under its
     temporary grant: the executor’s single call was refused before it reached GitHub;
     nothing ran and the repository stayed private. Put to the user.
+  - 2026-11-12: the same request, retried at the user’s word: refused again, at the call
+    that writes the script; nothing ran. The user then placed a narrow allow line in the
+    team’s settings themselves.
+  - 2026-11-12: the same request, retried with that allow line in the settings file: refused
+    again, at the call that runs the script. An `autoMode.allow` line placed while the team
+    is running did not clear it.
 
 ## An encountered issue is not in this tracker
 
