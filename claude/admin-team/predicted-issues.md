@@ -237,7 +237,7 @@ OrganizationPage's Kotlin/JS install step depends on the package registry, and `
 ## A run stamps a board event with a time it did not happen at
 
 ```json
-{"id":"p18","count":5,"last":"2026-11-12"}
+{"id":"p18","count":6,"last":"2026-11-12"}
 ```
 
 A run sends `facts.at` rounded or estimated (the user: this happens at every session start) instead of read from the clock, so the board records a wait or a visit at the wrong time, and a later event can fall inside it. A retime needs the user's direction and never reorders the record, so a later event inside the wrong stretch can block it.
@@ -252,6 +252,7 @@ A run sends `facts.at` rounded or estimated (the user: this happens at every ses
   - 2026-11-10: KotlinBottools #23: two open points sent as `resolved` at 21:31:54Z, the report time; they were resolved earlier, at the plan amendment, with no clock reading kept. The run flagged it itself; the board keeps the report time with a correction note.
   - 2026-11-11: KotlinBottools #23, after the run was told to read the clock when a point is resolved: an open point sent as `resolved` at 02:04:06Z, the report time; it was resolved before the push into the fresh repository began (01:43:09Z in the ledger), with no clock reading kept. The run flagged it itself; the board's live view records 01:43:09Z as the latest it can have been, with a correction note. The arrival check could not catch it: the report arrived 33 seconds after its own time.
   - 2026-11-12: the admin team itself, in its ledger: after its restart it wrote its own entries’ `ts` by hand from 17:48Z on, and the stamps ran up to 23 minutes ahead of the clock (19:00Z written at 18:37Z); the scheme’s working copies cited two of those stamps as decision times. Requests’ arrival stamps, taken from the transcript, were right. Corrected by a `ledger-correction` event with the true times from the session transcript; from then on every `ts` is read from `date -u`.
+  - 2026-11-12: KotlinBottools #25: the stage event closing the second stage carried `at` 21:45:14Z, the clock at the report; the run’s own report in the same event says the stage ended at 21:44:16Z. The arrival check kept it (28 seconds before arrival), so the board records the stage’s end 58 seconds late. The run kept the true reading and named it; a retime waits on the user.
 
 ## The arrival check replaces an open-point time that was read at the moment
 

@@ -110,6 +110,12 @@ versioning rules.
    `kind` is `work` (it builds) or `check` (its outcome is a pass or fail:
    tests, a build, tooling, an action). `steps` is the stage's steps separated
    by `;`, each `<step-id>` or `<step-id>: <its name>`; empty when it has none.
+   A stage with a step made of steps of its own writes `below` in its `steps`
+   cell instead, and its steps follow the table, in stage order, as a
+   Markdown list under the line `**Steps of <stage-id>**`: one item per step,
+   its id in backticks, then `: ` and its name, each step's own steps indented
+   two spaces under it, to any depth, in the order they run. A step's id is
+   unique within its stage.
 6. **Plan the tests** against the 5-level hierarchy — level, package, path, and
    the specific behaviours each test locks down. Call out what genuinely cannot
    be tested automatically.
