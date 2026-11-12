@@ -331,7 +331,7 @@ What goes in it, and who writes it:
 | `research/<question-slug>.md` | each `researcher`, one file each (stage 2) |
 | `consequences.md` | you: what the change does to its surroundings and leaves behind — published artifacts, blast radius, adoption, sibling units, neighbouring issues, follow-ups and known gaps (end of stage 4); you reconcile it when resumed in the Document step's reconcile-plan task |
 | `final-implementation.md` | the implementer appends each deviation and its reasoning as it happens; you reconcile it when resumed in the Document step's reconcile-plan task |
-| `superseded/<name>-<YYYY-MM-DD>.md` | you, when a document is replaced; put a "superseded by" note at its top |
+| `superseded/<name>-<YYYY-MM-DD>.md` | you, when a document is replaced; put a "superseded by" note at its top and rewrite its relative links |
 
 Give every subagent the **exact path** it writes to. Its brief's read-only boundary then
 reads: *change no file except the one you own at `<path>`*.

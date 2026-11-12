@@ -206,7 +206,8 @@ Otherwise a level-2 fix writes a `consequences.md` only when it leaves a follow-
   the findings.
 - `research/<question-slug>.md`: one file per researcher subagent, written by that researcher.
 - `superseded/<name>-<YYYY-MM-DD>.md`: a replaced version of any of the above, with a
-  "superseded by" note at its top.
+  "superseded by" note at its top and its relative links rewritten, when it is made, to resolve
+  from `superseded/`.
 - Anything else specific to that one issue's resolution, e.g. a UAT record.
 
 **A tracking issue's folder** holds its own documents (a phase plan, an initiative draft, a
