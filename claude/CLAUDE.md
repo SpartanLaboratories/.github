@@ -159,6 +159,12 @@ repository without one it asks nothing.
   version-control action.
 - The graph orients; it does not verify. A fact still rests on the code read or the command run
   (Never Guess Intent — Ask).
+- **Temporary: the graphify tracker.** While the admin team tracks what the graph costs and
+  saves, every agent of a `/resolve-issue` run in such a repository ends its report with one line:
+  `graphify: <q> queries; replaced <s> searches, <r> file reads`. `<q>` counts the graph queries
+  it ran (`graphify query`, `path` or `explain`), a query that spared nothing included; `<s>` and
+  `<r>` the searches and file reads they spared it. The line stays in the report, out of every
+  committed document and board.
 
 ## Planning documents — folder layout
 

@@ -11,11 +11,11 @@ section of `CLAUDE.md`).
 | `CLAUDE.md`     | `CLAUDE.md`                    | Global instructions applied to every project                    |
 | `Structure-Policy.md` | `Structure-Policy.md`    | Structure policy: the format direction documents use as rule files |
 | `settings.json` | `settings.json`                | Global settings: permissions, hooks, auto-mode rules            |
-| `hooks/`        | `hooks/`                       | Hook scripts referenced by `settings.json`                      |
+| `hooks/`        | `hooks/`                       | Hook scripts referenced by `settings.json`, including the graphify usage tracker (`graphify-track.js`, `graphify-track.sh`) |
 | `agents/`       | `agents/`                      | Custom subagents (planner, architect, version-control-manager, qa, presenter, publisher, direction-manager, …) and the `admin-team` session brief |
 | `shared/`       | `shared/`                      | Rules several agents share                                      |
 | `skills/`       | `skills/`                      | Custom skills (`resolve-issue`, `admin-team`, `dashboards`, `upgrade`) and installed third-party skills (`firecrawl*`, `vercel-connect`, `graphify`) |
-| `admin-team/`   | `admin-team/`                  | The admin team session's protocol, settings file, launchers, predicted-issues tracker, and the rule checker (`rule-check.js`) with its config (`rule-files.json`) |
+| `admin-team/`   | `admin-team/`                  | The admin team session's protocol, settings file, launchers, predicted-issues tracker, the rule checker (`rule-check.js`) with its config (`rule-files.json`), and the graphify usage totals script (`graphify-totals.js`) |
 | `nomenclature/` | `nomenclature/` | Shared vocabularies: `ui.md`, the names of interface elements (the boards, SpartanUI); `boards.md`, the names of the dashboards' boards and how they use those elements; `internal-names.md`, the internal names that committed content must not carry; `rule-index.md`, the index of rules the rule checker generates |
 
 ## Not included
@@ -24,7 +24,8 @@ section of `CLAUDE.md`).
   `history.jsonl`, `sessions/`, …).
 - Anthropic's auto-synced skill bundle (`skills/synced/`).
 - The admin team session's local state (`admin-team/ledger.jsonl`, `state.json`, `hooks.jsonl`,
-  `launch.lock`, `up`), which holds machine-local paths; `proposals/`, working drafts;
+  `launch.lock`, `up`) and the graphify usage log (`admin-team/graphify-usage.jsonl`), which hold
+  machine-local paths and local usage data; `proposals/`, working drafts;
   `backups/`, local bundles of this repository's own earlier history; and `scrub-memory.py`,
   local tooling.
 - Projects' auto-memory (`projects/*/memory/`) is not mirrored.

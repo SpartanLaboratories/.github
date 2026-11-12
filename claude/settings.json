@@ -42,7 +42,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -f graphify-out/graph.json ] && command -v graphify >/dev/null 2>&1; then graphify hook-guard search; else cat >/dev/null 2>&1; fi; exit 0",
+            "command": "if [ -f graphify-out/graph.json ] && command -v graphify >/dev/null 2>&1; then IFS= read -r -d '' i; s=$EPOCHREALTIME; o=$(graphify hook-guard search <<<\"$i\"); e=$EPOCHREALTIME; if [ -n \"$o\" ]; then printf '%s\\n' \"$o\"; . \"$HOME/.claude/hooks/graphify-track.sh\" search 2>/dev/null; fi; else cat >/dev/null 2>&1; fi; exit 0",
             "shell": "bash",
             "timeout": 10
           }
@@ -53,9 +53,50 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -f graphify-out/graph.json ] && command -v graphify >/dev/null 2>&1; then graphify hook-guard read; else cat >/dev/null 2>&1; fi; exit 0",
+            "command": "if [ -f graphify-out/graph.json ] && command -v graphify >/dev/null 2>&1; then IFS= read -r -d '' i; s=$EPOCHREALTIME; o=$(graphify hook-guard read <<<\"$i\"); e=$EPOCHREALTIME; if [ -n \"$o\" ]; then printf '%s\\n' \"$o\"; . \"$HOME/.claude/hooks/graphify-track.sh\" read 2>/dev/null; fi; else cat >/dev/null 2>&1; fi; exit 0",
             "shell": "bash",
             "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|Grep|Read|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f graphify-out/graph.json ] && command -v graphify >/dev/null 2>&1; then node \"$HOME/.claude/hooks/graphify-track.js\" post >/dev/null 2>&1; else cat >/dev/null 2>&1; fi; exit 0",
+            "shell": "bash",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash|Grep|Read|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f graphify-out/graph.json ] && command -v graphify >/dev/null 2>&1; then node \"$HOME/.claude/hooks/graphify-track.js\" post >/dev/null 2>&1; else cat >/dev/null 2>&1; fi; exit 0",
+            "shell": "bash",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f graphify-out/graph.json ] && command -v graphify >/dev/null 2>&1; then node \"$HOME/.claude/hooks/graphify-track.js\" stop >/dev/null 2>&1; else cat >/dev/null 2>&1; fi; exit 0",
+            "shell": "bash",
+            "timeout": 10,
+            "async": true
           }
         ]
       }
