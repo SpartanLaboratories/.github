@@ -142,6 +142,24 @@ the session clears it (empties the file) rather than deleting it. The key is `ad
 team and `<owner>-<repo>-<issue>` for a run (e.g. `SpartanLaboratories-WebTools-66`). A session
 with no issue has no handoff. Handoffs are local and never mirrored.
 
+## graphify — the code knowledge graph
+
+A repository with a `graphify-out/graph.json` has a local knowledge graph of its code: god nodes,
+community structure and cross-file relationships. This section applies only there; in a
+repository without one it asks nothing.
+
+- For a codebase question, first run `graphify query "<question>"`; `graphify path "<A>" "<B>"`
+  answers a relationship and `graphify explain "<concept>"` a focused concept. Each returns a
+  scoped subgraph, usually much smaller than `graphify-out/GRAPH_REPORT.md` or raw grep output.
+- When `graphify-out/wiki/index.md` exists, use it for broad navigation instead of browsing the
+  sources. Read `GRAPH_REPORT.md` only for a broad architecture review, or when query, path and
+  explain do not surface enough.
+- After changing code in that checkout, run `graphify update .` to keep the graph current (code
+  only, no API cost). It writes only under the local `graphify-out/`, so it is no
+  version-control action.
+- The graph orients; it does not verify. A fact still rests on the code read or the command run
+  (Never Guess Intent — Ask).
+
 ## Planning documents — folder layout
 
 Every plan lives under `docs/plans/`, in a folder hierarchy that mirrors the repo's GitHub

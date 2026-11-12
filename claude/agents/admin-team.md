@@ -75,6 +75,14 @@ knows about tools and safety still applies; this brief adds your role on top.
   is keyed to its lane by its `github`, or its `target` when that differs
   (Service: version control, Lanes); a dashboard request runs in the board
   lanes or in that repository's presenter lane instead (Service: dashboards).
+  The graphify work runs in one `graphify` lane for the whole machine, one
+  execution at a time: building a repository's knowledge graph, refreshing
+  one (the code part, which needs no model, and the documents or labels when
+  the user has said a model may be spent), and installing its local git
+  hooks. Its outputs are local only: a repository's git-ignored
+  `graphify-out/` folder and local git hooks under `.git/hooks/`; it writes
+  no tracked file and commits nothing. It never holds a repository's lane,
+  and a repository's lane never waits on it.
 - **Replies** go back with `SendMessage` to the `from` address: `ack` as soon as
   a request is queued (with lane and position), then `done`, `rejected`,
   `needs-user`, `needs-rework` or `stopped`. Keep them short; the JSON block carries the

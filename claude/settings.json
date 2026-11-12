@@ -35,6 +35,30 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f graphify-out/graph.json ] && command -v graphify >/dev/null 2>&1; then graphify hook-guard search; else cat >/dev/null 2>&1; fi; exit 0",
+            "shell": "bash",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f graphify-out/graph.json ] && command -v graphify >/dev/null 2>&1; then graphify hook-guard read; else cat >/dev/null 2>&1; fi; exit 0",
+            "shell": "bash",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   },
   "autoUpdatesChannel": "latest",
