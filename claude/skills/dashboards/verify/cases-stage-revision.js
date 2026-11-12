@@ -71,6 +71,8 @@ module.exports = function casesStageRevision(X) {
     c.push(["a remediation report with no stages: the stages are brought to the table too", r.a.status === 0 && S2(r.p).ref === "plan.md#s2--the-seven-files", js([r.S.error, S2(r.p).ref])]);
     /* the plan unchanged: nothing changes */
     const Bu = lay(board(), V1.replace("The the", "The")), u = ev(Bu, "implementation-stage", { stage: "S1", stages: STG("current", "todo", { S2: { name: "The six files" } }), remediation: REM(1, "done", "current") }, T3);
+    const Bk = lay(board(), V2.replace("| S1 | Baseline | The baseline is as recorded | check |", "| S1 | Baseline | The baseline is as recorded | work |")), k = ev(Bk, "implementation-stage", { stage: "S1", stages: STG("current", "todo"), remediation: REM(1, "done", "current") }, T3);
+    c.push(["a revised table that makes S1 a work stage: the kind kept, and the change named for the presenter", k.a.status === 0 && (k.p.wip.stages[0] || {}).kind === "check" && k.S.enrich === "yes" && (k.S.why || []).some(x => /now makes S1 a work stage; the board keeps it a check stage/.test(x)), js([k.S.error, (k.p.wip.stages[0] || {}).kind, k.S.why])]);
     c.push(["the plan as the stages hold it (but the brief, which the plan words otherwise): only what differs moves", u.a.status === 0 && S2(u.p).ref === OLD[1].ref && js(S2(u.p).steps) === js(OLD[1].steps), js([u.S.error, S2(u.p)])]);
   });
 
@@ -78,13 +80,20 @@ module.exports = function casesStageRevision(X) {
     const atQa = over => board({ step: "qa", since: T4, updated: T4, remediation: REM(1, "done", "current"), stages: OLD.map(s => ({ ...copy(s), state: "done", rows: [], finished: T3 })),
       qa: [{ pass: 1, verdict: "changes-requested", date: "2026-11-11", at: T2, findings: { test: 11 }, route: "re-plan-then-remediation" }, { pass: 2, verdict: "running", date: "2026-11-11", at: T4 }],
       history: { implementation: [{ since: T0, ended: T1, endedBy: "qa-pass", to: "qa" }], qa: [{ since: T1, ended: T2, endedBy: "qa-pass", to: "remediation" }], remediation: [{ since: T2, ended: T4, endedBy: "qa-pass", to: "qa" }] },
-      event: { name: "qa-pass", at: T4 }, ...(over || {}) });
+      event: { name: "qa-pass", at: T4 }, detail: "Quality Review 2 running.", ...(over || {}) });
     const B = lay(atQa(), V2), a = ev(B, "implementation-stage", { stage: "S2", stages: STG("done", "done", { S1: { result: "passed" } }), remediation: REM(1, "done", "done") }, T5);
     c.push(["a Correction's report with stages, sent while Quality Review 2 runs: the board stays at qa, the visit running from its start", a.a.status === 0 && a.p.wip.step === "qa" && a.p.wip.since === T4, js([a.a.status, a.S.error, a.p.wip.step, a.p.wip.since])]);
     c.push(["…no qa visit frozen, no remediation visit opened", ((a.p.wip.history.qa || []).length === 1) && ((a.p.wip.history.remediation || []).length === 1), js(a.p.wip.history)]);
     c.push(["…the sub-steps recorded on the remediation the board holds", js((a.p.wip.remediation.steps || []).map(x => x.state)) === js(["done", "done"]), js(a.p.wip.remediation)]);
     c.push(["…the check stage's result recorded", ((a.p.wip.stages || []).find(s => s.id === "S1") || {}).result === "passed", js(a.p.wip.stages)]);
     c.push(["…the summary says the board stays", (a.S.applied || []).some(x => /a late remediation report: the board stays at qa/.test(x)), js(a.S.applied)]);
+    c.push(["…and the WIP line is the one the step wrote, though the report carries no detail", a.p.wip.detail === "Quality Review 2 running.", js(a.p.wip.detail)]);
+    const Bl = lay(atQa({ stages: OLD.map((s, i) => ({ ...copy(s), state: i ? "current" : "done", rows: [], ...(i ? { started: T3 } : { finished: T3 }) })) }), V2);
+    const l = ev(Bl, "implementation-stage", { stage: "S2", detail: "S2 is done: the seven files hold their bytes.", stages: STG("done", "done"), remediation: REM(1, "done", "done") }, T5);
+    c.push(["a late report with a detail: the WIP line kept, \"Quality Review 2 running.\"", l.a.status === 0 && l.p.wip.step === "qa" && l.p.wip.detail === "Quality Review 2 running.", js([l.S.error, l.p.wip.step, l.p.wip.detail])]);
+    c.push(["…its detail recorded on the stage it closes, and the summary says the line was kept", (S2(l.p).report === "S2 is done: the seven files hold their bytes.") && (l.S.applied || []).some(x => /wip\.detail kept: a late report/.test(x)), js([S2(l.p), l.S.applied])]);
+    const Bm = lay(atQa(), V2), mm = ev(Bm, "implementation-stage", { stage: "S1", detail: "Results added.", stages: STG("done", "done", { S1: { result: "passed" } }) }, T5);
+    c.push(["a late report that closes nothing new, with a detail: the WIP line kept too", mm.a.status === 0 && mm.p.wip.detail === "Quality Review 2 running." && mm.p.wip.step === "qa", js([mm.S.error, mm.p.wip.detail])]);
     const Bn = lay(atQa(), V2), b = ev(Bn, "implementation-stage", { remediation: REM(1, "done", "done") }, T5);
     c.push(["a Correction's report with no stages, at qa: the board stays at qa too", b.a.status === 0 && b.p.wip.step === "qa" && b.p.wip.since === T4 && (b.p.wip.history.qa || []).length === 1, js([b.S.error, b.p.wip.step, b.p.wip.since])]);
     const Bd = lay(atQa({ step: "document", since: T5, remediation: null, document: { tasks: [] } }), V2), d = ev(Bd, "implementation-stage", { remediation: REM(1, "done", "done") }, "2026-11-11T22:00:00Z");

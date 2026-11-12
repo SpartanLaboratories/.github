@@ -2247,6 +2247,12 @@ catch (e) { report("an explicit signal moves the step cases", [["the cases run t
 try { require("./cases-stage-revision.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the stage table after a plan revision; a late report at Quality Review cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
+/* A board file's atomic write while a reader holds it (verify/cases-atomic-write.js; KotlinBottools #24, p25): the rename a Windows reader refuses
+   is retried with a growing, jittered pause for up to 15 s, the write still atomic, and fails as before once that is spent. It needs no browser,
+   and runs on its own too (node verify/cases-atomic-write.js). */
+try { require("./cases-atomic-write.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("a board file's atomic write while a reader holds it cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
 /* A tracking issue's run sending plan-accepted and branch-cut (verify/cases-tracking-plan-events.js; admin-team/dashboards/tracking-plan-events,
    KotlinBottools #2): both keep a tracking board in its own line, its units not yet filed passing the check; branch-cut records the branch and
    writes no stages. It needs no browser, and runs on its own too (node verify/cases-tracking-plan-events.js). */

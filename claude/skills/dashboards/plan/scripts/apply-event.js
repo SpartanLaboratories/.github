@@ -287,6 +287,8 @@ function applyEvent(orig, ev, facts, req, now) {
       else if (full) enrich.push("the rows the qa findings touch are not known from the facts: the whole As built column glows until the presenter names them"); }
   };
   let detail = txt(facts.detail, "detail"), note = txt(facts.note, "note"), trail = null, parentOp = null;
+  /* a late report keeps the WIP line the step wrote (keepLine, the implementation-stage case below) */
+  let keepLine = false;
   /* the Tests tab is due an update when a stage is reported done or a qa pass returns its verdict (plan/RULES.md §2, "The Tests tab") */
   let testsDue = false;
   const research = () => (w.research = w.research && typeof w.research === "object" ? w.research : { phase: null, drafted: 0, since: {} });
@@ -540,6 +542,10 @@ function applyEvent(orig, ev, facts, req, now) {
          sub-steps are still recorded on the remediation they belong to, while the board holds it, and nothing else of the remediation is opened again */
       const stood = stopped(w.step) ? w.resume : w.step, past = ["qa", "document", "landing", "state-boards", "merge", "landed", "cancelled"].includes(stood);
       const remNow = remed && !past;
+      /* the WIP line is the step's, and a late report moves nothing back, that line included (KotlinBottools #24, event 24/18: the stage results'
+         sentence had replaced "Quality Review 2 running"): its detail goes where it belongs, into the record of each stage or sub-step it closes
+         (their report, mergeStages() and setRemediation()), never onto the line */
+      if (past) keepLine = true;
       if (facts.remediation) {
         if (!past || (w.remediation && w.remediation.pass === facts.remediation.pass)) setRemediation(w, facts.remediation, applied, enrich, txt, { now, report: detail });
         else applied.push(`facts.remediation (Quality Review ${facts.remediation.pass}'s fixes) not written: the board stands at ${stood}, past that remediation, and holds no record of it to add to`);
@@ -856,7 +862,8 @@ function applyEvent(orig, ev, facts, req, now) {
   /* the fast path takes open points at every event (plan/RULES.md §4, "The fast path"; moved onto it in dashboards-skill/33): an
      implementation stage and a qa pass raise theirs above, any other event here, raised by the event's name */
   if (Array.isArray(facts.open) && facts.open.length && !["implementation-stage", "qa-pass", "retime"].includes(ev)) mergeOpen(w, facts, applied, txt, ev, resolved, plan.folder, DIR, enrich, now, ev);
-  if (detail !== w.detail) { w.detail = detail; applied.push("wip.detail"); }
+  if (keepLine) { if (detail != null && detail !== w.detail) applied.push("wip.detail kept: a late report, its detail recorded on the stages it closes"); }
+  else if (detail !== w.detail) { w.detail = detail; applied.push("wip.detail"); }
   const evRec = { name: ev, at: now, ...(note ? { note } : {}) };
   /* run-restarted leaves wip.event as it was (plan/RULES.md §4; decided 2026-11-05): it is no event of the run's, and a later resumed reads the
      run's own last event, never the break; wip.updated still moves */
@@ -948,6 +955,8 @@ function refreshStageTable(list, table, facts, enrich, applied) {
     if (T) {
       const f = tableFields(T, said);
       ["steps", "ref"].forEach(k => { if (f[k] != null) x[k] = f[k]; });
+      /* the kind stays (above), but a revised table that gives another is never dropped silently: the presenter reads it */
+      if (f.kind && x.kind && f.kind !== x.kind) enrich.push(`the plan's stage table now makes ${x.id} a ${f.kind} stage; the board keeps it a ${x.kind} stage, as branch-cut copied it and its recorded result rests on it: read the revised plan and correct it on the board where the change is meant`);
       if (f.brief != null) x.brief = f.brief; else delete x.brief;
     } else {
       const s = (Array.isArray(facts.stages) ? facts.stages : []).find(y => y && lib.stageKey(y.id) === lib.stageKey(x.id));

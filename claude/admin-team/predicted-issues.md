@@ -330,3 +330,33 @@ A run learns that research has ended only when its planning agent returns, which
 - **Predicted:** the admin team, on encountering it, 2026-11-11.
 - **Encounters:**
   - 2026-11-11: KotlinBottools #24: `researched` read at 19:42:46Z and sent with `plan-accepted` at 20:17:33Z; it was stamped 20:17:33Z, and `plan-accepted` holds 20:17:03Z.
+
+## A board write fails on Windows while another process reads the file
+
+```json
+{"id":"p25","count":0,"last":null}
+```
+
+The board scripts write a board file by writing a temporary file and renaming it over the old one. On Windows the rename is refused (`EPERM`, `EBUSY` or `EACCES`) while another process has the old file open. The scripts retry a refused rename: for 3 seconds until 2026-11-12 (0.5 seconds in `apply-state.js`), for 15 seconds with growing, uneven pauses since (`renameInto()` in the dashboards skill's `plan/scripts/lib.js`). When the retries run out the write fails with the old file intact, nothing half written, and the event is not applied.
+
+What was measured (the presenter, 2026-11-11 and 2026-11-12): a reader that reopens the file every 2 ms kept one rename refused for 11 seconds in one run, mostly for under 0.6 seconds, and once for the whole 15 seconds; a reader that opens it every 20 ms held a rename for at most 17 ms over 60 writes. The live board re-reads its data every few seconds. The cause of the long refusals is not proven. The skill's verification meets the failure in its case "event and fill at the same time", whose reader reopens the file in a tight loop: 5 of 25 runs, with either budget.
+
+- **Proposed resolution (not decided).** Three options, which can be combined:
+  - **(a) Retry only.** Installed on 2026-11-12 as a plain defect fix. The file is always there, old or new. It does not cure the verification's case.
+  - **(b) Move the old file aside.** After about 1.5 seconds of refusals, move the old file aside, move the new one in and delete the old one. The verification's case then passed 20 of 20 runs, the fallback used 6 times. The content is still never half written, but a reader that does not hold the boards' lock can find no file at all for a moment (once in 963 reads). The rules' sentence that every file is written through a temporary file and a rename (`plan/RULES.md` and `system/RULES.md` of the dashboards skill) would need a clause saying so. It changes what a reader can rely on, so it is the user's decision; it is kept as an experiment outside the skill.
+  - **(c) Pace the verification case's reader** as a live reader is paced (about every 20 ms). It keeps what the case proves: hundreds of reads still fall between the writes, so a half-written read would show, and "no write lost" does not depend on the reader. Stable as measured, not proven.
+- **Predicted:** the presenter, from the skill's verification, 2026-11-11. Not yet met in live work.
+- **Encounters:** none.
+
+## A run sends a test level by name and the fast path drops it
+
+```json
+{"id":"p26","count":1,"last":"2026-11-12"}
+```
+
+The protocol gives a test class's `testLevel` as one of `1` `2` `3` `4a` `4b` `4c` `5`. A run sent the level folders' names instead (`gating`, `component`, `integration`, `nonfunctional`). The fast path read none of them and, as the classes' paths name no level folder, stored no level at all, without saying so in its summary: the Tests Tab showed every class with no test level until the fill set them by hand.
+
+- **Proposed resolution (not decided):** the fast path names in its summary every `testLevel` it cannot read, and the reply passes that on to the run; whether it also reads the level folders' names as their levels is the presenter's call (the standing rule on moving more onto the fast path). The run is told to send the protocol's values.
+- **Predicted:** the admin team, on encountering it, 2026-11-12.
+- **Encounters:**
+  - 2026-11-12: KotlinBottools #24, the stage report after the plan's second revision: 14 classes sent with level names; the fill set the levels from the event's facts.

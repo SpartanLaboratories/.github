@@ -93,7 +93,8 @@ module.exports = function cases35(X) {
     c.push(["nameTestLevels(): L2 component test, tests (L3 integration), regression test (L2 component), L1 gating tests; named and L4 left", n("L2 test") === "L2 component test" && n("tests (L3)") === "tests (L3 integration)" && n("regression test (L2)") === "regression test (L2 component)" && n("L1 tests") === "L1 gating tests" && n("L2 component test") === "L2 component test" && n("the L4 tests") === "the L4 tests", js([n("L2 test"), n("tests (L3)"), n("regression test (L2)")])]);
     const el = []; const s = LR.scrubLevels("Run the L3 checks", { elided: el });
     c.push(["scrubLevels(): a bare Ln elsewhere is elided, and reported", s === "Run the checks" && js(el) === js(["L3"]), js([s, el])]);
-    const T = tree("levels", building()), e = evIn(T)("implementation-stage", "2026-10-26T09:00:00Z", { detail: "Run the L3 checks; the L2 test added" });
+    /* a board in implementation: the example keeps its landed step, and a late report keeps the WIP line (KotlinBottools #24) */
+    const T = tree("levels", (() => { const b = building(); b.wip = { ...b.wip, step: "implementation" }; return b; })()), e = evIn(T)("implementation-stage", "2026-10-26T09:00:00Z", { detail: "Run the L3 checks; the L2 test added" });
     c.push(["the fast path writes the named test level and warns on the elision (warnings: LEVEL ELIDED)", e.a.status === 0 && e.p.wip.detail === "Run the checks; the L2 component test added" && (e.S.warnings || []).some(w => /^LEVEL ELIDED: facts\.detail: "L3"/.test(w)) && /fast-path warning/.test(e.S.check || ""), js([e.a.status, e.p.wip.detail, e.S.warnings, e.S.check])]);
     const b = building(); b.function = b.function + " Its L2 test covers it.";
     const B2 = tree("levels-bare", b), k = run(CHECK, [B2.dir]);

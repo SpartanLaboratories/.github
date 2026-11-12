@@ -77,11 +77,11 @@ const refuse = m => { throw new Refusal(m); };
 /* Files: every write is staged (its old bytes kept) and atomic (a temporary file, then a rename); rollback() puts every staged file back.
    A rename can meet a file a browser holds open for a moment (Windows): it is retried briefly. */
 const staged = new Map();
-const sleep = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 function atomicWrite(file, data) {
   const tmp = path.join(path.dirname(file), `.${path.basename(file)}.${process.pid}.tmp`);
   fs.writeFileSync(tmp, data);
-  for (let i = 0; ; i++) { try { fs.renameSync(tmp, file); return; } catch (e) { if (i >= 20 || !["EPERM", "EBUSY", "EACCES"].includes(e.code)) { try { fs.unlinkSync(tmp); } catch (x) { /* gone */ } throw e; } sleep(25); } }
+  /* the boards' one rename into position, retried while a reader holds the file (plan/scripts/lib.js renameInto()) */
+  return require(path.resolve(__dirname, "..", "..", "plan", "scripts", "lib.js")).renameInto(tmp, file);
 }
 function put(file, text) {
   if (!staged.has(file)) staged.set(file, fs.existsSync(file) ? fs.readFileSync(file) : null);
