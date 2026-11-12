@@ -221,6 +221,7 @@ function applyEvent(orig, ev, facts, req, now) {
   /* the step the facts name on any other event, in the run's own words where they differ from the board's (admin-team/board/timeline-waits:
      "implement" is the implementation step); a facts.step that names no step is warned on, never dropped silently, and the step is derived
      from the event */
+  if (ev === "step-complete" && typeof facts.step === "string" && facts.step.trim()) { applied.push(`facts.step ${JSON.stringify(facts.step.trim())} ignored: a step-complete moves no step`); facts = factsWith(facts, null, ["step"]); }
   if (typeof facts.step === "string" && facts.step.trim()) {
     const said = facts.step.trim(), low = said.toLowerCase(), tplan = plan.kind === "tracking" && TRACKING_PLAN_WORDS.has(low);
     const step = tplan ? trackingArchStep(w) : STEP_ALIASES[low] || said;
@@ -232,7 +233,7 @@ function applyEvent(orig, ev, facts, req, now) {
   /* a steps line written before the Document step (dashboards-skill/35) takes it before its landing, and merge after it, at any event of a
      board in flight whose run has not reached its landing; a run at its landing or past it keeps the three landing steps of
      dashboards-skill/34 (lib.js documentSteps()); a landed or cancelled board keeps its line */
-  if (Array.isArray(w.steps) && !["built", "abandoned"].includes(plan.status) && !["landed", "cancelled"].includes(w.step)) { const ls = lib.documentSteps(w.steps, lib.shownStep(w)); if (ls !== w.steps) { w.steps = ls; applied.push(`wip.steps: ${ls.includes("document") ? "the Document step before the landing, merge after it" : "state-boards and merge after the landing"}`); } }
+  if (ev !== "step-complete" && Array.isArray(w.steps) && !["built", "abandoned"].includes(plan.status) && !["landed", "cancelled"].includes(w.step)) { const ls = lib.documentSteps(w.steps, lib.shownStep(w)); if (ls !== w.steps) { w.steps = ls; applied.push(`wip.steps: ${ls.includes("document") ? "the Document step before the landing, merge after it" : "state-boards and merge after the landing"}`); } }
   const rows = Array.isArray(plan.rows) ? plan.rows : [], ids = new Set(rows.map(r => r && r.id)), tracking = plan.kind === "tracking";
   /* a text from the facts, as one line; a work level in it (GUIDANCE.md §4) is never written: the phrase is reworded or elided
      (levelrefs.js scrubLevels(): "inside level 3" → "inside the unit's scope" on a sub-issue's board, "the issue's" elsewhere; "a
@@ -900,6 +901,25 @@ function applyEvent(orig, ev, facts, req, now) {
       note = null; /* no event note and no wip.event (below): the correction is said once, in its notes.corrections entry */
       break;
     }
+    /* A step of a stage completes (plan/RULES.md §3, "The record of a step"; the run's, one event per step): on the fast path alone, enrich: no. The step
+       facts.stepId names, at any depth of the stage facts.stage names (each matched as a stage's id is, case and backticks aside), done at the event's
+       time, every step under it with it, and each step it lies under whose steps are now all done (lib.js completeStep()). Nothing else moves: no
+       trail entry, no detail, no step, stage or row state, no glow; wip.event and wip.updated as every event. A stage or step the board does not hold
+       writes nothing and is warned on (STEP COMPLETE), as does a board that has landed or was cancelled; a step already done keeps its first time
+       (a duplicate). */
+    case "step-complete": {
+      const sid = typeof facts.stage === "string" ? facts.stage.replace(/`/g, "").trim() : "", pid = typeof facts.stepId === "string" ? facts.stepId.replace(/`/g, "").trim() : "";
+      if (!sid || !pid) refuse(`step-complete carries no ${!sid ? "facts.stage (the stage's id)" : "facts.stepId (the id of the step that completed)"}`);
+      detail = w.detail; note = null;
+      if (["built", "abandoned"].includes(plan.status) || ["landed", "cancelled"].includes(w.step)) { WARNINGS.push(`STEP COMPLETE: ${sid} ${pid}: the board has ${plan.status === "abandoned" || w.step === "cancelled" ? "been cancelled" : "landed"}, kept as it closed: nothing written`); return { plan: orig, applied, enrich, parentOp: null, nothing: true }; }
+      const st = (Array.isArray(w.stages) ? w.stages : []).find(x => x && typeof x === "object" && lib.stageKey(x.id) === lib.stageKey(sid));
+      if (!st) { WARNINGS.push(`STEP COMPLETE: the board holds no stage ${JSON.stringify(sid)}${(w.stages || []).length ? ` (its stages: ${w.stages.map(x => x && x.id).filter(Boolean).join(", ")})` : " (it records no stages)"}: nothing written`); return { plan: orig, applied, enrich, parentOp: null, nothing: true }; }
+      const r = lib.completeStep(st, pid, now);
+      if (!r.found) { WARNINGS.push(`STEP COMPLETE: stage ${st.id} holds no step ${JSON.stringify(pid)}${(st.steps || []).length ? "" : " (it records no steps)"}: nothing written`); return { plan: orig, applied, enrich, parentOp: null, nothing: true }; }
+      if (!r.marked.length) return { plan: orig, applied, enrich, parentOp: null, unchanged: true };
+      applied.push(`wip.stages ${st.id}: ${r.marked.join(", ")} done at ${now}${st.state === "todo" ? " (a stage still to come: kept for it)" : ""}`);
+      break;
+    }
     default: refuse(`unknown event ${JSON.stringify(ev)}`);
   }
   /* The Tests tab (plan/RULES.md §2, "The Tests tab"): an event that carries facts.tests has it applied (testslib.js mergeTests()); an
@@ -1016,6 +1036,8 @@ function refreshStageTable(list, table, facts, enrich, applied) {
     const was = sig(x), T = lib.stageRow(table, x.id), said = [];
     if (T) {
       const f = tableFields(T, said);
+      /* the steps by the table, each keeping its record by its id at any depth (lib.js carrySteps(); plan/RULES.md §3, "The record of a step") */
+      if (f.steps != null) f.steps = lib.carrySteps(f.steps, x.steps);
       ["steps", "ref"].forEach(k => { if (f[k] != null) x[k] = f[k]; });
       /* the kind stays (above), but a revised table that gives another is never dropped silently: the presenter reads it */
       if (f.kind && x.kind && f.kind !== x.kind) enrich.push(`the plan's stage table now makes ${x.id} a ${f.kind} stage; the board keeps it a ${x.kind} stage, as branch-cut copied it and its recorded result rests on it: read the revised plan and correct it on the board where the change is meant`);
@@ -1023,9 +1045,11 @@ function refreshStageTable(list, table, facts, enrich, applied) {
     } else {
       const s = (Array.isArray(facts.stages) ? facts.stages : []).find(y => y && lib.stageKey(y.id) === lib.stageKey(x.id));
       const old = Array.isArray(x.steps) ? x.steps : [];
-      const given = s && Array.isArray(s.steps) ? s.steps.map(y => typeof y === "string" ? { id: y.trim(), name: null } : y && typeof y === "object" && typeof y.id === "string" ? { id: y.id.trim(), name: typeof y.name === "string" && y.name.trim() ? y.name.trim() : null } : null)
-        .filter(y => y && STEP_ID.test(y.id)).map(y => ({ id: y.id, name: y.name || ((old.find(o => o && o.id === y.id) || {}).name) || y.id })) : null;
-      if (given && given.length) x.steps = given;
+      /* the event's steps, nested to any depth as the plan nests them ({id, name, steps?}, or an id), a name kept from the board where the event gives none */
+      const read = L => (Array.isArray(L) ? L : []).map(y => typeof y === "string" ? { id: y.trim(), name: null, steps: [] } : y && typeof y === "object" && typeof y.id === "string" ? { id: y.id.trim(), name: typeof y.name === "string" && y.name.trim() ? y.name.trim() : null, steps: y.steps } : null)
+        .filter(y => y && STEP_ID.test(y.id)).map(y => { const k = read(y.steps); return { id: y.id, name: y.name || lib.stepNameOf(old, y.id) || y.id, ...(k.length ? { steps: k } : {}) }; });
+      const given = s && Array.isArray(s.steps) ? read(s.steps) : null;
+      if (given && given.length) x.steps = lib.carrySteps(given, old);
     }
     if (sig(x) !== was) { n++; enrich.push(...said); }
   });
@@ -2002,12 +2026,16 @@ async function main() {
   if (ev !== "run-restarted" && ev !== "retime" && last && last.name === ev && last.at) {
     const again = applyEvent(orig, ev, facts, req, last.at), a = JSON.parse(JSON.stringify(again.plan)), b = JSON.parse(JSON.stringify(orig));
     a.wip.updated = b.wip.updated = null;
-    if (JSON.stringify(a) === JSON.stringify(b)) { S.result = "duplicate"; S.applied.push(`already applied at ${last.at}: nothing written`); return; }
+    /* a step-complete that writes nothing (a stage or step the board does not hold) is said as such below, never as a duplicate */
+    if (!again.nothing && JSON.stringify(a) === JSON.stringify(b)) { S.result = "duplicate"; S.applied.push(`already applied at ${last.at}: nothing written`); return; }
   }
   /* seeding at sized (plan/RULES.md §4, "Seeding at sized"; admin-team/dashboards-skill/35): a run sized in a worktree branched after a
      landing starts from the landed state the main checkout's live view shows, so the branch carries it from its first commit */
   const seeded = laid ? seededFirst : ev === "sized" && !VIEWING ? seedFromView(now) : [];
   const R = applyEvent(orig, ev, facts, req, now);
+  /* a step-complete that names what the board does not hold writes nothing (a warning, not a refusal); one already recorded keeps its first time */
+  if (R.nothing) { S.result = "nothing"; S.live = "untouched"; S.check = "nothing to check"; S.applied.push("nothing written"); return; }
+  if (R.unchanged) { S.result = "duplicate"; S.applied.push(`${facts.stepId} is recorded done already: its first time kept, nothing written`); return; }
   if (laid) { S.laid = folder; S.applied.push(...laid.applied); S.enrich.push(...laid.enrich); }
   S.applied.push(...renamed, ...R.applied); S.enrich.push(...R.enrich);
   /* a sub-issue's retime: its tracking board's record of the same time moves with it (the unit's start, its review, its landing, which the

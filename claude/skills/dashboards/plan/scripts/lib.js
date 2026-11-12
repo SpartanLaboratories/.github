@@ -72,7 +72,7 @@ const flag = (args, name) => args.includes("--" + name);
 
 /* ---------- The plan's stage table (plan/RULES.md §3, "The stage table"): the Markdown table a plan carries, its columns id, name, brief, kind and steps.
    The fast path copies it onto wip.stages at branch-cut, the brief verbatim. A step in the steps column is "<step-id>" or "<step-id>: <its name>",
-   separated by ";" or "," (by ";" alone in a cell that holds one, so a step's name may hold a comma). Returns { stages: [{ id, name, brief, kind, steps: [{ id, name }] }], problems: [...] } for the first such table outside a
+   separated by ";" or "," (by ";" alone in a cell that holds one, so a step's name may hold a comma); a cell that says "below" takes the nested list under "**Steps of <id>**" after the table (stepsBelow()). Returns { stages: [{ id, name, brief, kind, steps: [{ id, name, steps? }] }], problems: [...] } for the first such table outside a
    fenced block, or null when the text has none. */
 const STAGE_TABLE_COLS = ["id", "name", "brief", "kind", "steps"], STAGE_KINDS = ["work", "check"], STAGE_STEP_ID = /^[A-Za-z0-9][\w.-]*$/;
 const mdRowCells = l => { const out = []; let c = ""; const s = l.trim(); for (let i = 0; i < s.length; i++) { if (s[i] === "\\" && s[i + 1] === "|") { c += "|"; i++; } else if (s[i] === "|") { out.push(c.trim()); c = ""; } else c += s[i]; } out.push(c.trim()); if (out[0] === "") out.shift(); if (out[out.length - 1] === "") out.pop(); return out; };
@@ -91,12 +91,115 @@ function stageTable(md) {
       const id = get("id").replace(/`/g, ""), name = get("name"), brief = get("brief"), kind = get("kind").replace(/`/g, "").toLowerCase();
       if (!id || !name) { problems.push(`line ${j + 1}: a row with no id or no name`); continue; }
       if (!STAGE_KINDS.includes(kind)) problems.push(`${id}: its kind ${JSON.stringify(kind)} is neither work nor check`);
-      const raw = get("steps"), steps = /^[—–-]*$/.test(raw) ? [] : raw.split(raw.includes(";") ? /\s*(?:;|<br\s*\/?>)\s*/i : /\s*(?:,|<br\s*\/?>)\s*/i).map(x => x.replace(/`/g, "").trim()).filter(Boolean).flatMap(x => { const m = /^([^:\s]+)(?:\s*:\s*(.+))?$/.exec(x); if (!m || !STAGE_STEP_ID.test(m[1])) { problems.push(`${id}: the step ${JSON.stringify(x)} is not "<step-id>" or "<step-id>: <its name>"`); return []; } return [{ id: m[1], name: (m[2] || m[1]).trim() }]; });
+      const raw = get("steps");
+      /* a step made of steps: "below" in the cell, the steps in the list under "**Steps of <id>**" after the table (stepsBelow()) */
+      if (raw.replace(/`/g, "").trim().toLowerCase() === "below") { stages.push({ id, name, ...(brief ? { brief } : {}), ...(STAGE_KINDS.includes(kind) ? { kind } : {}), steps: [], below: true }); continue; }
+      const steps = /^[—–-]*$/.test(raw) ? [] : raw.split(raw.includes(";") ? /\s*(?:;|<br\s*\/?>)\s*/i : /\s*(?:,|<br\s*\/?>)\s*/i).map(x => x.replace(/`/g, "").trim()).filter(Boolean).flatMap(x => { const m = /^([^:\s]+)(?:\s*:\s*(.+))?$/.exec(x); if (!m || !STAGE_STEP_ID.test(m[1])) { problems.push(`${id}: the step ${JSON.stringify(x)} is not "<step-id>" or "<step-id>: <its name>"`); return []; } return [{ id: m[1], name: (m[2] || m[1]).trim() }]; });
       stages.push({ id, name, ...(brief ? { brief } : {}), ...(STAGE_KINDS.includes(kind) ? { kind } : {}), steps });
     }
+    let end = i + 2; while (end < lines.length && /^\s*\|/.test(lines[end])) end++;
+    const lists = stepsBelow(lines, end, problems);
+    stages.forEach(s => { const k = stageKey(s.id);
+      if (s.below) { delete s.below; const L = lists.get(k); if (L) { s.steps = L.steps; L.used = true; } else problems.push(`${s.id}: its steps cell says "below", and no list under "**Steps of ${s.id}**" follows the table`); } });
+    lists.forEach(L => { if (L.used) return; const st = stages.find(s => stageKey(s.id) === L.key);
+      problems.push(st ? `${st.id}: a list under "**Steps of ${L.said}**" (line ${L.line}), and its steps cell is not "below": the list is left unread` : `the list under "**Steps of ${L.said}**" (line ${L.line}) names no stage of the table: left unread`); });
     return { stages, problems };
   }
   return null;
+}
+/* Steps nest (plan/RULES.md §3, "The stage table"; ~/.claude/agents/plan-writer.md step 5): after the table and before the next heading, a line
+   "**Steps of <stage-id>**" and a Markdown list under it, each item "`<step-id>`" or "`<step-id>`: <its name>", an item indented under another one of
+   its steps, to any depth. The depth is the indent beyond the list's first item, two spaces a level (a tab four spaces); an item deeper than one level
+   under the one before it is read one level under it, and named. Returns a Map of stage key -> { key, said, line, steps: [{ id, name, steps? }] }; an
+   item out of form, an id twice in one stage and a jump of depth are named in problems, and read as far as they hold (an item that cannot be read is
+   left out with its own steps). A lazy continuation line (indented, no marker) adds to the item before it, as Markdown reads it. */
+const STEPS_OF = /^\s*\*\*\s*Steps of\s+(.+?)\s*:?\s*\*\*\s*:?\s*$/i, STEP_ITEM = /^([ \t]*)[-*+]\s+(.*)$/, HEADING = /^ {0,3}#{1,6}(\s|$)/;
+const indentOf = s => [...s].reduce((n, ch) => n + (ch === "\t" ? 4 : 1), 0);
+function stepsBelow(lines, from, problems) {
+  const out = new Map(); let fence = null;
+  for (let j = from; j < lines.length; j++) {
+    const l = lines[j], f = l.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+    if (fence) { if (f && f[1][0] === fence[0] && f[1].length >= fence.length && !f[2].trim()) fence = null; continue; }
+    if (f && !(f[1][0] === "`" && f[2].includes("`"))) { fence = f[1]; continue; }
+    if (HEADING.test(l)) break;
+    const m = STEPS_OF.exec(l); if (!m) continue;
+    const said = m[1].replace(/`/g, "").trim(), key = stageKey(said), L = { key, said, line: j + 1, steps: [] };
+    if (out.has(key)) { problems.push(`${said}: a second list under "**Steps of ${said}**" (line ${j + 1}): left unread`); continue; }
+    out.set(key, L);
+    const seen = new Set(), stack = []; let base = null, prev = -1, last = null, k = j + 1;
+    for (; k < lines.length; k++) {
+      const t = lines[k];
+      if (!t.trim()) continue;
+      if (HEADING.test(t) || STEPS_OF.test(t)) break;
+      const it = STEP_ITEM.exec(t);
+      if (!it) { if (last && /^[ \t]+\S/.test(t)) { last.node && (last.node.name = (last.node.name + " " + t.trim()).trim()); continue; } break; }
+      const ind = indentOf(it[1]); if (base == null) base = ind;
+      let d = Math.max(0, Math.floor((ind - base) / 2));
+      if (d > prev + 1) { problems.push(`${said}: line ${k + 1}: an item indented ${d - prev} levels under the one before it, read as one level under it`); d = prev + 1; }
+      const text = it[2].trim(), q = /^`([^`]+)`(?:\s*:\s*(.*))?$/.exec(text), b = q ? null : /^([^:\s`]+)(?:\s*:\s*(.+))?$/.exec(text);
+      let node = null;
+      const parent = d > 0 ? stack[d - 1] : undefined;
+      if (d > 0 && !parent) problems.push(`${said}: line ${k + 1}: a step under an item that was not read: left out`);
+      else if (!q && !b) problems.push(`${said}: line ${k + 1}: the item ${JSON.stringify(text)} is not "\`<step-id>\`" or "\`<step-id>\`: <its name>": left out with its steps`);
+      else {
+        const id = (q ? q[1] : b[1]).trim(), name = ((q ? q[2] : b[2]) || "").trim() || id;
+        if (!STAGE_STEP_ID.test(id)) problems.push(`${said}: line ${k + 1}: the step id ${JSON.stringify(id)} is not an id: left out with its steps`);
+        else if (seen.has(stageKey(id))) problems.push(`${said}: line ${k + 1}: the step ${id} twice in the stage: the second left out with its steps`);
+        else {
+          if (!q) problems.push(`${said}: line ${k + 1}: the step id ${id} is not in backticks ("\`<step-id>\`: <its name>"): read as it stands`);
+          seen.add(stageKey(id)); node = { id, name };
+          if (parent) (parent.steps = parent.steps || []).push(node); else L.steps.push(node);
+        }
+      }
+      stack.length = d; stack[d] = node; prev = d; last = { node };
+    }
+    if (base == null) problems.push(`${said}: "**Steps of ${said}**" (line ${j + 1}) has no list under it`);
+    j = k - 1;
+  }
+  return out;
+}
+/* ---------- The record of a step (plan/RULES.md §3, "The record of a step"): from the run's step-complete events, a step done with its time,
+   { id, name, steps?, state: "done", finished }, at any depth of its stage's steps. ---------- */
+const stepKids = s => s && Array.isArray(s.steps) ? s.steps.filter(x => x != null && typeof x === "object" && !Array.isArray(x)) : [];
+function walkSteps(list, fn, up = []) { (Array.isArray(list) ? list : []).forEach(s => { if (s == null || typeof s !== "object" || Array.isArray(s)) return; fn(s, up); walkSteps(s.steps, fn, [...up, s]); }); }
+const stepDone = s => !!s && s.state === "done";
+const laterTime = (a, b) => !a ? b : !b ? a : Date.parse(b) > Date.parse(a) ? b : a;
+/* a step's form, its fields in their order: { id, name, steps?, state?, finished? } (steps left out when empty; state only "done", with its time) */
+function stepShape(s) {
+  const kids = stepKids(s).map(stepShape);
+  return { id: s.id, name: s.name, ...(kids.length ? { steps: kids } : {}), ...(stepDone(s) && s.finished ? { state: "done", finished: s.finished } : {}) };
+}
+/* the records made whole: a done step's steps not yet done take its time; a step whose steps are all done is done, with the latest of their times.
+   Returns the number of steps it marked. */
+function settleSteps(list) {
+  let n = 0;
+  const down = (L, at) => L.forEach(s => { if (at && !stepDone(s)) { s.state = "done"; s.finished = at; n++; } down(stepKids(s), stepDone(s) ? s.finished : null); });
+  down(stepKids({ steps: list }), null);
+  const up = s => { const K = stepKids(s); if (!K.length) return; K.forEach(up); if (!stepDone(s) && K.every(stepDone)) { s.state = "done"; s.finished = K.reduce((a, k) => laterTime(a, k.finished), null); n++; } };
+  stepKids({ steps: list }).forEach(up);
+  return n;
+}
+/* fresh steps (the plan's table read again, or an event's) take the records the board holds, by the step's id at any depth (case and backticks aside, as a
+   stage's); a step the fresh list drops takes its record with it. Returns the steps in their form. */
+function carrySteps(fresh, old) {
+  const rec = new Map(); walkSteps(old, s => { if (stepDone(s) && s.finished) rec.set(stageKey(s.id), s.finished); });
+  const out = (Array.isArray(fresh) ? fresh : []).filter(s => s && typeof s === "object").map(s => JSON.parse(JSON.stringify(s)));
+  walkSteps(out, s => { delete s.state; delete s.finished; const f = rec.get(stageKey(s.id)); if (f) { s.state = "done"; s.finished = f; } });
+  settleSteps(out);
+  return out.map(stepShape);
+}
+/* a step's name by its id, at any depth of a stage's steps, or null */
+function stepNameOf(list, id) { let n = null; walkSteps(list, s => { if (n == null && stageKey(s.id) === stageKey(id) && typeof s.name === "string" && s.name.trim()) n = s.name; }); return n; }
+/* the record of one step-complete on its stage: the step stageKey(id) names, at any depth, done at `at`, every step under it not yet done with it, and each
+   step it lies under whose steps are now all done. Returns { found, marked: [ids] }; a step already done keeps its first time (marked empty). */
+function completeStep(stage, id, at) {
+  let hit = null; walkSteps(stage && stage.steps, (s, up) => { if (!hit && stageKey(s.id) === stageKey(id)) hit = { s, up }; });
+  if (!hit) return { found: false, marked: [] };
+  const marked = [], mark = s => { if (!stepDone(s)) { s.state = "done"; s.finished = at; marked.push(s.id); } };
+  mark(hit.s); walkSteps(hit.s.steps, mark);
+  [...hit.up].reverse().forEach(p => { if (!stepDone(p) && stepKids(p).every(stepDone)) mark(p); });
+  if (marked.length) stage.steps = stage.steps.map(stepShape);
+  return { found: true, marked };
 }
 /* The section of a plan a stage's heading opens ("#### S3 — The walk"), as a link from the board's folder, or null when no heading names the stage. */
 function stageRef(md, file, id) {
@@ -870,7 +973,7 @@ function retimePlan(plan, o) {
 const RETIME_WORDS = { sized: "The sizing", halted: "The halt", resumed: "The return from the halt", escalated: "The escalation", "research-planning": "The start of the research questions",
   "research-started": "The research's start", "research-returned": "A research question's return", "verification-started": "The verification's start", researched: "The research's verification",
   "architecture-signed-off": "The architecture's sign-off", "sub-issues-filed": "The filing of the units as sub-issues", "boards-created": "The creation of the units' boards", "plan-accepted": "The plan's acceptance",
-  "branch-cut": "The branch cut", "implementation-stage": "An implementation stage's report", "qa-pass": `A ${PN.PASS_NAME}`, document: "A Document step report", landing: "The land's acceptance",
+  "branch-cut": "The branch cut", "implementation-stage": "An implementation stage's report", "step-complete": "A step's completion", "qa-pass": `A ${PN.PASS_NAME}`, document: "A Document step report", landing: "The land's acceptance",
   "state-boards": "The state boards' task", merge: "The merge", landed: "The landing", cancelled: "The cancellation" };
 const retimeWords = (ev, tracking) => tracking && ev === "plan-accepted" ? "The architecture's final" : RETIME_WORDS[ev] || `The ${ev} event`;
 /* the correction's entry: what was recorded and why, what it is now, and what moved with it */
@@ -1825,7 +1928,7 @@ function researchGlow(plan) {
    (RETIRED_EVENTS), read and drawn, which apply-event.js refuses: no unit's board is laid ahead of its run. */
 const RETIRED_EVENTS = ["boards-created"];
 const EVENTS = ["sized", "halted", "resumed", "research-planning", "research-started", "research-returned", "verification-started", "researched",
-  "architecture-signed-off", "sub-issues-filed", "boards-created", "plan-accepted", "branch-cut", "implementation-stage", "qa-pass", "document", "escalated", "landing", "state-boards", "merge", "landed", "cancelled", "run-restarted", "reseed", "seed", "unit-landed", "retime"];
+  "architecture-signed-off", "sub-issues-filed", "boards-created", "plan-accepted", "branch-cut", "implementation-stage", "step-complete", "qa-pass", "document", "escalated", "landing", "state-boards", "merge", "landed", "cancelled", "run-restarted", "reseed", "seed", "unit-landed", "retime"];
 /* A row's as-built state before its outcome (plan/RULES.md §2, "Before the outcome"): derived from the implementation stages while the
    run is live. On an issue board, for a row wip.stages touches: "in-progress" when a current stage touches it, "partially-built" when a
    done stage touched it and a later stage still to come touches it, "pending" when only stages to come touch it; null otherwise (no
@@ -2160,5 +2263,5 @@ function ghMergeTime(repo, pr, merge) {
   } catch (e) { return out; }
 }
 
-module.exports = { ...LV, ...PN, renameInto, RENAME_BUDGET_MS, stageTable, planStageTable, stageKey, stageRow, stageTableFields, catchUpStageTable, stampItem, backfillStages, STAGE_KINDS, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, isUnitRef, blockerOf, mapUnitBlockers, HISTORY_FIELDS, HISTORY_STEPS, qAnswered, askedOf, answerQuestions, syncAsked, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, retimePlan, RETIME_NOT, retimeWords, retimeWhat, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, roadmapDocItem, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+module.exports = { ...LV, ...PN, renameInto, RENAME_BUDGET_MS, stageTable, stepsBelow, stepKids, walkSteps, stepShape, settleSteps, carrySteps, stepNameOf, completeStep, planStageTable, stageKey, stageRow, stageTableFields, catchUpStageTable, stampItem, backfillStages, STAGE_KINDS, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, isUnitRef, blockerOf, mapUnitBlockers, HISTORY_FIELDS, HISTORY_STEPS, qAnswered, askedOf, answerQuestions, syncAsked, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, retimePlan, RETIME_NOT, retimeWords, retimeWhat, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, roadmapDocItem, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, unitLandingOf, unitLandings, mirrorUnitLandings, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewBaseFolder, viewBaseHref, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, notYetLanded, landedPending, unitLeft, setViewLinks, viewedFolder, viewLink, landVisit, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

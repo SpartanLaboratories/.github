@@ -755,7 +755,16 @@ function checkPanel(plan, w, ids, tracking, dir) {
       w.stages.forEach((x, j) => { if (!x || typeof x !== "object") return; const at = `wip.stages[${j}]`;
         if (x.brief != null && !str(x.brief)) fail(`${at}.brief is the plan's stage table's text`);
         if (x.kind != null && !["work", "check"].includes(x.kind)) fail(`${at}.kind must be work or check`);
-        if (x.steps != null && (!Array.isArray(x.steps) || x.steps.some(s => !s || !str(s.id) || !str(s.name)))) fail(`${at}.steps must be the stage table's steps, each { id, name }`);
+        /* the stage table's steps, nested to any depth, each with its record once it completed (plan/RULES.md §3, "The record of a step") */
+        if (x.steps != null) { if (!Array.isArray(x.steps)) fail(`${at}.steps must be the stage table's steps, each { id, name }`); else { const seen = new Set();
+          const one = (s, p) => { if (!s || typeof s !== "object" || Array.isArray(s) || !str(s.id) || !str(s.name)) { fail(`${at}.steps must be the stage table's steps, each { id, name } (with steps of its own in the same form where it has any): ${p} is not`); return; }
+            const k = s.id.replace(/`/g, "").trim().toLowerCase(); if (seen.has(k)) warn(`${p}: the step ${s.id} twice in the stage: a step-complete records the first`); seen.add(k);
+            if (s.state != null && s.state !== "done") fail(`${p}.state is only "done", once a step-complete recorded it (got ${JSON.stringify(s.state)}): a step at work or to come is derived, never stored`);
+            if (s.state === "done" && !isTime(s.finished)) fail(`${p} is done and records no finished time (a UTC ISO time, the step-complete's)`);
+            if (s.finished != null && s.state !== "done") fail(`${p}.finished is recorded on a step that is not done`);
+            if (s.finished != null && s.state === "done" && !isTime(s.finished)) fail(`${p}.finished must be a UTC ISO time`);
+            if (s.steps != null) { if (!Array.isArray(s.steps)) fail(`${p}.steps must be its steps, each { id, name }`); else s.steps.forEach((y, i) => one(y, `${p}.steps[${i}]`)); } };
+          x.steps.forEach((s, i) => one(s, `${at}.steps[${i}]`)); } }
         if (x.result != null && !["passed", "failed"].includes(x.result)) fail(`${at}.result must be passed or failed`);
         if (x.result != null && x.kind !== "check") fail(`${at}.result is recorded on a stage that is not a check`);
         ["started", "finished"].forEach(k => { if (x[k] != null && !isTime(x[k])) fail(`${at}.${k} must be a UTC ISO time`); });

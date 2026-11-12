@@ -419,3 +419,42 @@ For a `realign-checkout` the executor checks that the checkout's tracked files a
 - **Predicted:** the direction manager, on applying the one-shell rule, 2026-11-12; filed here at the user's word.
 - **Encounters:**
   - None yet.
+
+## A report sent while a run is halted ends the halt on the board
+
+```json
+{"id":"p31","count":0,"last":null}
+```
+
+Any event but `cancelled` ends a halt (`plan/RULES.md` §4). A run that revises its stage table, or whose implementer closes a stage, while the board shows it halted would send an `implementation-stage`, and the board would leave the halt: the step back at `implementation`, the wait ended, though the question is still open.
+
+- **Proposed resolution:** a run sends no stage report while it is halted; it sends it after its `resumed`. If that proves too narrow, an `implementation-stage` whose stage states are unchanged leaves a halt standing; that would change the rule and is the user's to decide.
+- **Predicted:** the presenter, on building nested stage steps, 2026-11-12.
+- **Encounters:**
+  - None yet.
+
+## A stale repeat of a stage's closing event reopens a later stage
+
+```json
+{"id":"p32","count":0,"last":null}
+```
+
+`facts.stages` gives every stage's state, and a stage named `current` again loses its end. A closing event sent a second time with the states as they were when it was first sent, after a later stage has closed, names that later stage `current`: the board reopens it and loses its end time, report and result. Its step records survive. A repeat with the states as the board has them changes nothing.
+
+- **Proposed resolution:** a repeat is sent with the stages as they stand, never as they stood; the implementer's "Events not sent" carry each event's own facts, so the run sends them in order before anything later. If one still arrives stale, the presenter restores the stage's record from the event that closed it.
+- **Predicted:** the presenter, on building nested stage steps, 2026-11-12.
+- **Encounters:**
+  - None yet.
+
+## Step events move the start of a later open-points wait
+
+```json
+{"id":"p33","count":0,"last":null}
+```
+
+A `step-complete` becomes the board's last event. A later `resumed` that ends an open-points wait starts that wait at the board's last event; with step events after the event that raised the point, the wait starts later than it did, and a little of it is counted as work.
+
+- **Proposed resolution:** the wait starts at the event that raised the point, not at the board's last event; a small skill fix at the presenter's discretion when it is first seen.
+- **Predicted:** the presenter, on building nested stage steps, 2026-11-12.
+- **Encounters:**
+  - None yet.

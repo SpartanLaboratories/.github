@@ -290,16 +290,33 @@ summary.stg-s:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
 .stg-rl>li{min-width:0}
 .stg-rl .rn{color:var(--ink);overflow-wrap:anywhere}
 .sp .stg-rl small{display:block;font:11.5px/1.35 var(--sans);color:var(--ink-2);margin-top:1px;overflow-wrap:anywhere}
+/* a stage's steps, nested to any depth (plan/RULES.md §3, "The stage list", "Collapsing"): each its number, its name and its mark; a step with steps of its own a Disclosure */
 .stg-steps{list-style:none;margin:2px 0 6px;padding:0;display:grid;gap:3px}
-.stg-steps>li{display:flex;align-items:center;gap:7px;min-width:0;font-size:12.5px;color:var(--ink-2)}
-.stg-steps>li .q{min-width:0;overflow-wrap:anywhere}
+.stg-steps .stg-steps{margin:1px 0 4px 4px;padding-left:13px;border-left:1px solid var(--hair)}
+.stg-steps li{display:block;min-width:0;font-size:12.5px;color:var(--ink-2)}
+.stg-steps .stp{display:flex;align-items:center;gap:7px;min-width:0;padding:1px 2px}
+.stg-steps summary.stp{padding:3px 2px}
+.stg-steps .stp .id{font:600 11px var(--mono);color:var(--ink-2);white-space:nowrap}
+.stg-steps .stp .q{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+.stg-steps li>.stp .q,.stg-steps li>details>.stp .q{font-weight:inherit;color:inherit}
+.stg-steps .stp .count-label{flex:none;font:11px var(--mono);color:var(--muted);white-space:nowrap}
+.stg-steps .stp .count-label b{color:var(--ink);font-weight:700}
+.stg-steps .stp .count-label.zero b{color:var(--muted);font-weight:400}
+.stg-steps .stp-st{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .stg-steps .sdot{flex:none;width:9px;height:9px;border-radius:50%;background:var(--ink-2);border:2px solid var(--ink-2)}
-.stg-steps>li.todo .sdot{background:none;border:2px dashed var(--muted)}
-.stg-steps>li.unk .sdot{background:none;border:1px solid var(--line)}
-.stg-steps>li.cur{color:var(--ink);font-weight:600}
-.stg-steps>li.cur .sdot{background:var(--accent);border-color:var(--accent);animation:dot-fullpulse 2s ease-in-out infinite}
-.sp.sp-held .stg-steps>li.cur .sdot{animation:none;box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
-@media (prefers-reduced-motion:reduce){.stg-steps>li.cur .sdot{animation:none}}
+.stg-steps li.todo>.stp .sdot,.stg-steps li.todo>details>.stp .sdot{background:none;border:2px dashed var(--muted)}
+.stg-steps li.unk>.stp .sdot,.stg-steps li.unk>details>.stp .sdot{background:none;border:1px solid var(--line)}
+.stg-steps li.cur>.stp,.stg-steps li.cur>details>.stp{color:var(--ink);font-weight:600}
+.stg-steps li.cur>.stp .id,.stg-steps li.cur>details>.stp .id{color:var(--ink)}
+.stg-steps li.cur>.stp .sdot,.stg-steps li.cur>details>.stp .sdot{background:var(--accent);border-color:var(--accent);animation:dot-fullpulse 2s ease-in-out infinite}
+.sp.sp-held .stg-steps li.cur>.stp .sdot,.sp.sp-held .stg-steps li.cur>details>.stp .sdot{animation:none;box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
+@media (prefers-reduced-motion:reduce){.stg-steps li.cur>.stp .sdot,.stg-steps li.cur>details>.stp .sdot{animation:none}}
+@media (max-width:520px){.stg-steps .stg-steps{padding-left:8px}.stg-steps .stp .count-label{white-space:normal}}
+.legend i.sdot{width:9px;height:9px;border-radius:50%;background:var(--ink-2);border:2px solid var(--ink-2)}
+.legend i.sdot.todo{background:none;border:2px dashed var(--muted)}
+.legend i.sdot.unk{background:none;border:1px solid var(--line)}
+.legend i.sdot.cur{background:var(--accent);border-color:var(--accent)}
+.legend i.sdot.held{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
 .sp-now{margin:6px 0 8px}
 .chip.now{display:block;font:13px/1.4 var(--sans);color:var(--ink);padding:6px 9px}
 .chip.now .ck{margin-right:6px}
@@ -1656,7 +1673,7 @@ const KEY_DISC=`<span><span class="mono" aria-hidden="true">▸</span> click a r
 const KEY_STG_OPEN=`<span><span class="mono" aria-hidden="true">▸</span> click a stage to open it in the step Panel</span>`;
 const KEY_STG_RUN=`<span><i class="gl"></i>a stage in a FullPulse: at work now</span>`;
 const KEY_STG_HELD=`<span><i class="hold"></i>a stage, the Ring alone: paused while the run waits on you</span>`;
-const KEY_STG_STEP=`<span><i class="gl"></i>the step of the stage at work now, from the run's progress note</span>`;
+const KEY_STEP={done:`<span><i class="sdot"></i>a step done</span>`,cur:`<span><i class="sdot cur"></i>a step at work now: the one a progress note names, else the first not done, and every step it lies under</span>`,held:`<span><i class="sdot held"></i>a step at work, the Ring alone: paused while the run waits on you</span>`,todo:`<span><i class="sdot todo"></i>dashed: a step to come</span>`,unk:`<span><i class="sdot unk"></i>a step of a stage not started, unmarked</span>`};
 /* the stages at a glance, in the WIP Panel. o: run, the key of the run ("own" or a unit's issue); compact, on a tracking board's unit Card */
 function stageStrip(R,step,keys,held,o){ const sg=stgList(R); if(step!=="implementation"||!sg.length) return "";
   const cur=sg.find(x=>x.state==="current"), done=sg.filter(x=>x.state==="done").length;
@@ -1672,14 +1689,48 @@ const discList=items=>items.length?`<ol class="sp-list stg-list">${items.join(""
 const stgChip=(l,v)=>`<span><span class="l">${l}</span>${v}</span>`;
 const stampChips=x=>[okStamp(x.started)?stgChip("started",`<span class="nw">${when(x.started)}</span>`):"",okStamp(x.finished)&&x.state==="done"?stgChip("finished",`<span class="nw">${when(x.finished)}</span>`):""].filter(Boolean);
 const reportHtml=x=>x.state==="done"&&typeof x.report==="string"&&x.report.trim()?`<div class="stg-h">At its end</div><p>${rich(x.report)}</p>`:"";
-/* the position inside the current stage: the stage's steps (the stage table's), the current one the step a live progress note names (docs/plans/.live/progress/, its "step"); on a board with no note the steps stand unmarked */
-function stageStepsHtml(x,o,keys){ const st=Array.isArray(x.steps)?x.steps.filter(s=>s&&typeof s.id==="string"):[]; if(!st.length) return "";
-  const said=Object.values(PROG[o.issue]||{}).map(p=>p&&p.step).filter(s=>typeof s==="string"), at=st.map((s,i)=>said.includes(s.id)?i:-1).filter(i=>i>=0), first=at.length?Math.min(...at):-1;
-  if(at.length) keys.add(KEY_STG_STEP);
-  return `<div class="stg-h">Inside the stage</div><ol class="stg-steps">${st.map((s,i)=>{ const c=!at.length?"unk":at.includes(i)?"cur":i<first?"done":"todo"; return `<li class="${c}"${c==="cur"?' aria-current="step"':""}><i class="sdot" aria-hidden="true"></i><span class="q">${codeOnly(s.name||s.id)}</span></li>`; }).join("")}</ol>`; }
+/* ---------- A stage's steps, nested (plan/RULES.md §3, "The record of a step", "The stage list", "Collapsing") [steps-block] ----------
+   Each step by its number (the stage's place in wip.stages, then the step's place among the steps beside it at each depth, joined by "-": 2-3-19) and its
+   name, never its id. Done: a stored record (a step-complete), or any step of a done stage. In the current stage the steps the live progress notes name
+   ("step") and every step they lie under are at work; with no note naming one, the first step not done, at its innermost depth, and every step it lies
+   under; the rest to come. A stage still to come lists its steps unmarked (plan/RULES.md §3, dated 61), but for a step already recorded done (a step-complete may come before
+   the run reports the stage before it closed), drawn done. A step with steps of its own is a
+   Disclosure: its number, name, mark and a count Label of the steps directly under it ("19 steps"; "11 of 19 done" once one is done or at work; "· at
+   2-3-12", the innermost step at work, while the step at work is under it), open only while the step at work is under it, the reader's choice kept
+   (DISC_OPEN, by its key); a leaf a plain row. */
+const stepKids=s=>Array.isArray(s&&s.steps)?s.steps.filter(y=>y&&typeof y==="object"&&!Array.isArray(y)&&typeof y.id==="string"):[];
+const stepKey=id=>String(id==null?"":id).replace(/`/g,"").trim().toLowerCase();
+const STEP_SR={done:"done",cur:"at work",todo:"to come",unk:"not started"};
+/* the marks of a stage's steps, a Map of each step to done, cur, todo or unk: mode "cur" (the current stage, said the ids the live notes name), "done", "todo" (not started: unmarked, a recorded step done) */
+function stepMarks(x,said,mode){ const M=new Map(), walk=(L,f,up)=>L.forEach(s=>{ f(s,up); walk(stepKids(s),f,[...up,s]); }), top=stepKids(x), dn=s=>s.state==="done";
+  if(mode!=="cur"){ walk(top,s=>M.set(s,mode==="done"||dn(s)?"done":"unk"),[]); return M; }
+  walk(top,s=>M.set(s,dn(s)?"done":"todo"),[]);
+  const want=new Set((said||[]).map(stepKey)), hits=[]; walk(top,(s,up)=>{ if(!dn(s)&&want.has(stepKey(s.id))) hits.push([...up,s]); },[]);
+  if(!hits.length){ const first=(L,up)=>{ for(const s of L){ if(dn(s)) continue; const k=stepKids(s); if(!k.length) return [...up,s]; return first(k,[...up,s])||[...up,s]; } return null; }, f=first(top,[]); if(f) hits.push(f); }
+  hits.forEach(p=>p.forEach(y=>{ if(M.get(y)!=="done") M.set(y,"cur"); }));
+  return M; }
+/* the number of the innermost step at work under s, or null */
+function stepInner(s,M,num){ let c=s,n=num; for(;;){ const K=stepKids(c), i=K.findIndex(k=>M.get(k)==="cur"); if(i<0) return c===s?null:n; c=K[i]; n=`${n}-${i+1}`; } }
+function stepsList(L,ctx,pre){ return `<ol class="stg-steps">${L.map((s,i)=>stepLi(s,ctx,`${pre}-${i+1}`)).join("")}</ol>`; }
+function stepLi(s,ctx,num){ const m=ctx.M.get(s)||"unk", K=stepKids(s), aria=m==="cur"?' aria-current="step"':"", sr=`<span class="stp-st">, ${STEP_SR[m]}</span>`;
+  ctx.used.add(m); const head=`<i class="sdot" aria-hidden="true"></i><b class="id">${esc(num)}</b><span class="q">${codeOnly(s.name||s.id)}</span>`;
+  if(!K.length) return `<li class="${m}"${aria}><div class="stp">${head}${sr}</div></li>`;
+  ctx.disc=true; const d=K.filter(k=>ctx.M.get(k)==="done").length, wk=K.some(k=>ctx.M.get(k)==="cur"), at=m==="cur"?stepInner(s,ctx.M,num):null;
+  const ct=`<span class="count-label${!d&&wk?" zero":""}">${!d&&!wk?`<b>${K.length}</b> step${K.length===1?"":"s"}`:`<b>${d}</b> of ${K.length} done`}${at?` · at ${esc(at)}`:""}</span>`;
+  const key=`${ctx.key}:step:${ctx.stage}/${s.id}`, open=DISC_OPEN.has(key)?DISC_OPEN.get(key):m==="cur";
+  return `<li class="${m}"${aria}><details class="stg-d stp-d" data-key="${esc(key)}"${open?" open":""}><summary class="stg-s stp">${head}${ct}${sr}<span class="chev" aria-hidden="true">▸</span></summary>${stepsList(K,ctx,num)}</details></li>`; }
+/* a stage's steps in the step Panel: the current stage's under "Inside the stage", a done one's and one not started under "Its steps"; no, the stage's number */
+function stageStepsHtml(x,o,keys,no,mode){ const st=stepKids(x); if(!st.length) return "";
+  const said=mode==="cur"?Object.values(PROG[o.issue]||{}).map(p=>p&&p.step).filter(v=>typeof v==="string"):[], M=stepMarks(x,said,mode), ctx={M,key:discKey(o,"stage",x.id||x.name),stage:x.id||x.name,used:new Set(),disc:false};
+  const h=`<div class="stg-h">${mode==="cur"?"Inside the stage":"Its steps"}</div>${stepsList(st,ctx,String(no))}`;
+  ["done","cur","todo","unk"].forEach(m=>{ if(ctx.used.has(m)) keys.add(m==="cur"&&o.held?KEY_STEP.held:KEY_STEP[m]); });
+  if(ctx.disc) keys.add(KEY_DISC);
+  return h; }
+/* [/steps-block] */
 /* a stage's detail, opened in the step Panel: at its end its report; while it runs where it stands; the Rows it touches, as they stand on this board; when it started and finished; its section of the plan */
 function stageBody(R,x,o,keys){ const local=o.own||o.issue===PLAN.issue, rows=Array.isArray(x.rows)?x.rows:[]; let h=reportHtml(x);
-  if(x.state==="current"&&!o.past) h+=stageStepsHtml(x,o,keys);
+  /* its steps: the current stage's at work, a done one's all done, one still to come unmarked; a finished view lists only a done stage's */
+  { const mode=x.state==="done"?"done":o.past?null:x.state==="current"?"cur":"todo"; if(mode) h+=stageStepsHtml(x,o,keys,o.no||1,mode); }
   if(rows.length){ const rs=rows.map(id=>{ const r=local?ROWS.find(y=>y.id===id):null; return {id,r,s:r?stateOf(r):null,sum:r&&r.asBuilt&&r.asBuilt.summary}; }), states=[...new Set(rs.map(y=>y.s).filter(Boolean))], one=states.length===1?states[0]:null;
     states.forEach(s=>keys.add(`<span>${badge(s)} ${esc(STATES[s].desc)}</span>`));
     h+=`<div class="stg-h">${o.past||x.state==="done"?"Touched":x.state==="todo"?"Will touch":"Touches"} ${rows.length} Row${rows.length===1?"":"s"}${one?` ${badge(one)}`:""}</div><ul class="stg-rl">${rs.map(y=>`<li>${y.s&&!one?badge(y.s)+" ":""}<span class="rn">${codeOnly(o.rowName(y.id))}</span>${y.sum?`<small>${rich(y.sum)}</small>`:""}</li>`).join("")}</ul>`; }
@@ -1691,8 +1742,8 @@ function itemBody(x){ const fx=stampChips(x); return reportHtml(x)+(fx.length?`<
 const discKey=(o,what,id)=>`${o.past?`past:${o.key||"own"}:${o.visit==null?"r":o.visit}`:`live:${o.issue}`}:${what}:${id}`;
 /* the stages of a run, collapsing: the live step Panel (o.past unset: the current stage open) and a finished Implementation view (o.past: every one closed) */
 function stageItems(R,sg,o,keys){ if(sg.length) keys.add(KEY_DISC);
-  return discList(sg.map(x=>{ const n=Array.isArray(x.rows)?x.rows.length:0, kx=o.past&&x.state!=="done"; if(kx) keys.add(KEY_PAST_TODO);
-    return discItem({key:discKey(o,"stage",x.id||x.name),cls:o.past?(x.state==="done"?"done":"todo"):stgCls(x),id:x.id,stage:x.id,name:rich(x.name||""),meta:n?`${n} Row${n===1?"":"s"}`:"",pill:kx?pill(STG_PILL.todo,"",pastPill(x.state)):stgPill(x,keys,"stage"),cur:!o.past&&x.state==="current",body:stageBody(R,x,o,keys)}); })); }
+  return discList(sg.map((x,i)=>{ const n=Array.isArray(x.rows)?x.rows.length:0, kx=o.past&&x.state!=="done"; if(kx) keys.add(KEY_PAST_TODO);
+    return discItem({key:discKey(o,"stage",x.id||x.name),cls:o.past?(x.state==="done"?"done":"todo"):stgCls(x),id:x.id,stage:x.id,name:rich(x.name||""),meta:n?`${n} Row${n===1?"":"s"}`:"",pill:kx?pill(STG_PILL.todo,"",pastPill(x.state)):stgPill(x,keys,"stage"),cur:!o.past&&x.state==="current",body:stageBody(R,x,{...o,no:i+1},keys)}); })); }
 /* a remediation's sub-steps or the Document step's tasks, collapsing */
 function subItems(list,o,keys,what,noun){ if(list.length) keys.add(KEY_DISC);
   return discList(list.map((x,i)=>{ const kx=o.past&&x.state!=="done"; if(kx) keys.add(KEY_PAST_TODO);

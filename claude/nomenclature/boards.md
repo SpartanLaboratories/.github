@@ -50,8 +50,8 @@ board's unit block in it a **unit Card**, a step in the step Panel is a **step C
 that ends a Verdict statement ("§4.2", opening the section's excerpt) is its **section Chip**, a
 landed unit's pull request and merge commit on its As built Cell ("PR #89", "merge 8122af7", each
 opening what it names) are its **PR Chip** and **merge Chip**, a figure and its noun in a Cell's head
-or foot (the Gap Cell's "· 2 evidence", the Verdict Cell's "1 step · 0 tests · 2 risks", the figure
-muted at zero) is a **count Label**, the Chip headed "Now" that holds the run's latest report in the
+or foot (the Gap Cell's "· 2 evidence", the Verdict Cell's "1 step · 0 tests · 2 risks", a stage's step with steps of its own in the step Panel,
+"11 of 19 done · at 2-3-12", the figure muted at zero) is a **count Label**, the Chip headed "Now" that holds the run's latest report in the
 step Panel is the **Now Chip**, and so on (a verdict Pill, an issue Chip, the KPI Tile).
 
 Where a template's CSS class names an element's kind it carries the type word, so a reader can tell

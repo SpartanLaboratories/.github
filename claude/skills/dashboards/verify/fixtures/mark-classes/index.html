@@ -289,16 +289,33 @@ summary.stg-s:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
 .stg-rl>li{min-width:0}
 .stg-rl .rn{color:var(--ink);overflow-wrap:anywhere}
 .sp .stg-rl small{display:block;font:11.5px/1.35 var(--sans);color:var(--ink-2);margin-top:1px;overflow-wrap:anywhere}
+/* a stage's steps, nested to any depth (plan/RULES.md §3, "The stage list", "Collapsing"): each its number, its name and its mark; a step with steps of its own a Disclosure */
 .stg-steps{list-style:none;margin:2px 0 6px;padding:0;display:grid;gap:3px}
-.stg-steps>li{display:flex;align-items:center;gap:7px;min-width:0;font-size:12.5px;color:var(--ink-2)}
-.stg-steps>li .q{min-width:0;overflow-wrap:anywhere}
+.stg-steps .stg-steps{margin:1px 0 4px 4px;padding-left:13px;border-left:1px solid var(--hair)}
+.stg-steps li{display:block;min-width:0;font-size:12.5px;color:var(--ink-2)}
+.stg-steps .stp{display:flex;align-items:center;gap:7px;min-width:0;padding:1px 2px}
+.stg-steps summary.stp{padding:3px 2px}
+.stg-steps .stp .id{font:600 11px var(--mono);color:var(--ink-2);white-space:nowrap}
+.stg-steps .stp .q{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+.stg-steps li>.stp .q,.stg-steps li>details>.stp .q{font-weight:inherit;color:inherit}
+.stg-steps .stp .count-label{flex:none;font:11px var(--mono);color:var(--muted);white-space:nowrap}
+.stg-steps .stp .count-label b{color:var(--ink);font-weight:700}
+.stg-steps .stp .count-label.zero b{color:var(--muted);font-weight:400}
+.stg-steps .stp-st{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .stg-steps .sdot{flex:none;width:9px;height:9px;border-radius:50%;background:var(--ink-2);border:2px solid var(--ink-2)}
-.stg-steps>li.todo .sdot{background:none;border:2px dashed var(--muted)}
-.stg-steps>li.unk .sdot{background:none;border:1px solid var(--line)}
-.stg-steps>li.cur{color:var(--ink);font-weight:600}
-.stg-steps>li.cur .sdot{background:var(--accent);border-color:var(--accent);animation:dot-fullpulse 2s ease-in-out infinite}
-.sp.sp-held .stg-steps>li.cur .sdot{animation:none;box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
-@media (prefers-reduced-motion:reduce){.stg-steps>li.cur .sdot{animation:none}}
+.stg-steps li.todo>.stp .sdot,.stg-steps li.todo>details>.stp .sdot{background:none;border:2px dashed var(--muted)}
+.stg-steps li.unk>.stp .sdot,.stg-steps li.unk>details>.stp .sdot{background:none;border:1px solid var(--line)}
+.stg-steps li.cur>.stp,.stg-steps li.cur>details>.stp{color:var(--ink);font-weight:600}
+.stg-steps li.cur>.stp .id,.stg-steps li.cur>details>.stp .id{color:var(--ink)}
+.stg-steps li.cur>.stp .sdot,.stg-steps li.cur>details>.stp .sdot{background:var(--accent);border-color:var(--accent);animation:dot-fullpulse 2s ease-in-out infinite}
+.sp.sp-held .stg-steps li.cur>.stp .sdot,.sp.sp-held .stg-steps li.cur>details>.stp .sdot{animation:none;box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
+@media (prefers-reduced-motion:reduce){.stg-steps li.cur>.stp .sdot,.stg-steps li.cur>details>.stp .sdot{animation:none}}
+@media (max-width:520px){.stg-steps .stg-steps{padding-left:8px}.stg-steps .stp .count-label{white-space:normal}}
+.legend i.sdot{width:9px;height:9px;border-radius:50%;background:var(--ink-2);border:2px solid var(--ink-2)}
+.legend i.sdot.todo{background:none;border:2px dashed var(--muted)}
+.legend i.sdot.unk{background:none;border:1px solid var(--line)}
+.legend i.sdot.cur{background:var(--accent);border-color:var(--accent)}
+.legend i.sdot.held{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
 .sp-now{margin:6px 0 8px}
 .chip.now{display:block;font:13px/1.4 var(--sans);color:var(--ink);padding:6px 9px}
 .chip.now .ck{margin-right:6px}
