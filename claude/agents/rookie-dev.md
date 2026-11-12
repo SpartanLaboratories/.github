@@ -57,7 +57,7 @@ improvise.
   working tree and report; the caller handles version control.
 - `Bash` is for building and testing your own changes, plus read-only `git` /
   `grep` to orient — nothing that mutates history or a remote.
-- **Your one message is a step's completion** ("Step events", below).
+- **Your only messages are your board events** ("Board events", below).
   `SendMessage` is for nothing else.
 
 ## Work levels
@@ -162,36 +162,45 @@ work level.
   anything ambiguous. This is the important part; be specific.
 - **Deviations:** anywhere the result differs from the plan's letter, and why. Each one is
   also logged in `final-implementation.md`.
-- **Steps not sent:** each step whose `step-complete` you could not send, with
-  its stage, its id and the time it completed.
+- **Events not sent:** each board event you could not send, with its event and
+  the facts it would have carried, its `at` included.
 - **Left for the caller:** version control (branch / commit / PR), and any
   follow-up the plan defers.
 
 Keep the report short. The blockers list is what matters.
 
-## Step events  (when you run inside a /resolve-issue run)
+## Board events  (when you run inside a /resolve-issue run)
 
-When the plan's stage table names steps, report each one's completion to the
-`admin team` as it happens: at the completion of each step of a stage, at any
-depth (a step with steps of its own once its last one is done), send that
-step's `step-complete`, then, before you start on the next step. Never at the
-end of your run, never batched.
+While you build a plan that has a stage table, report its progress to the
+`admin team` as it happens, each event the moment it happens: never at the end
+of your run, never batched.
 
-- **What you send:** a `plan-board` request (`~/.claude/admin-team/PROTOCOL.md`)
+- **Each step's completion.** When the table names steps, at the completion
+  of each step of a stage, at any depth (a step with steps of its own once its
+  last one is done), send that step's `step-complete`, then, before you start
+  on the next step: `facts: {stage, stepId, at}`.
+- **Each stage's end.** When a stage ends, send its closing
+  `implementation-stage`, then, before you start on the next stage, with the
+  facts the `resolve-issue` skill's "Plan-board events" table gives it
+  (`~/.claude/skills/resolve-issue/SKILL.md`): every stage's state as it
+  stands, the closed one `done` and the next, if any, `current`; your report
+  for the stage as its `detail`, in the project's own terms (it lands on the
+  board: no internal name, no work level); the `tests` of that stage alone.
+- **How you send:** a `plan-board` request (`~/.claude/admin-team/PROTOCOL.md`)
   with `SendMessage(to: "admin team")`, under the fields your caller gives you
   (`from`, its session name, and `repo`, `github`, `issue` and `folder`):
-  `v: 1`, `id` `<from>/<issue>/step-<stage-id>-<step-id>`, `attempt: 1`,
-  `action: "plan-board"`, `event: "step-complete"` and `facts: {stage, stepId,
-  at}`, `at` read from the clock with `date -u +%FT%TZ` at that moment.
+  `v: 1`, `attempt: 1`, `action: "plan-board"`, the `event`, its `facts` with
+  `at` read from the clock with `date -u +%FT%TZ` at the moment it happened,
+  and an `id` `<from>/<issue>/<stage-id>-<step-id>-<at>` for a step,
+  `<from>/<issue>/<stage-id>-end-<at>` for a stage, `<at>` its digits alone.
 - **You send nothing else**, to the team or anyone: no other event, request or
-  question.
+  question. A remediation pass and a Document-step pass send none.
 - **The reply is not yours.** You send under your caller's address, so the
   reply lands in its conversation (the `admin-team` skill, "Subagents"); do
   not wait for one. When the send itself fails (the team is not running, say),
   do not retry it and do not launch the team: go on with the work and list the
-  step under **Steps not sent**. Without the fields from your caller, send
-  nothing and list every step you complete there. A step event never stops
-  your work.
+  event under **Events not sent**. Without the fields from your caller, send
+  nothing and list every event there. A board event never stops your work.
 
 ## Progress review every 10 minutes  (when you run inside a /resolve-issue run)
 

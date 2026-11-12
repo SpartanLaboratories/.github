@@ -98,7 +98,7 @@ The route is "New dashboard rules reach old dashboards" in `admin-team.md`.
 ## A publish, or a repository creation, is denied with [Create Public Surface]
 
 ```json
-{"id":"p8","count":2,"last":"2026-11-09"}
+{"id":"p8","count":3,"last":"2026-11-12"}
 ```
 
 The permission system raises the denial.
@@ -111,6 +111,9 @@ The permission system raises the denial.
   - 2026-11-09: WebTools #99 publish; cleared on retry.
   - 2026-11-09: `phase0-rehearsal-a` repository creation; cleared under a narrow
     allow rule.
+  - 2026-11-12: KotlinBottools #25, the change of the repository to public under its
+    temporary grant: the executor’s single call was refused before it reached GitHub;
+    nothing ran and the repository stayed private. Put to the user.
 
 ## An encountered issue is not in this tracker
 
@@ -127,7 +130,7 @@ The permission system raises the denial.
 ## A count changes in this mirrored file
 
 ```json
-{"id":"p10","count":1,"last":"2026-11-12"}
+{"id":"p10","count":2,"last":"2026-11-12"}
 ```
 
 - **Proposed resolution:** the coordinator writes the count and the change rides
@@ -135,6 +138,7 @@ The permission system raises the denial.
 - **Predicted:** the admin team, 2026-11-09.
 - **Encounters:**
   - 2026-11-12: the entry for a procedure not run as one shell was added; it rides the next mirror-sync.
+  - 2026-11-12: two expected issues of the one-shell rule were added and one count changed; they ride the next mirror-sync.
 
 ## A board write lands in a checkout during `realign-checkout`
 
@@ -323,7 +327,7 @@ At a `sized`, `apply-event.js` seeds a board from its view copy only when the me
 ## The arrival check replaces the true time of an event the run can only send late
 
 ```json
-{"id":"p24","count":1,"last":"2026-11-11"}
+{"id":"p24","count":2,"last":"2026-11-12"}
 ```
 
 A run learns that research has ended only when its planning agent returns, which is after the plan is written. It sends `researched` then, with the time the research ended. That time is more than 2 minutes before the event's arrival, so the arrival check (`apply-event.js --arrived`) replaces it with the arrival time. The next event, `plan-accepted`, sent in the same moment and holding a time a few seconds earlier, then falls before it: the board shows research running through the whole of the plan's writing, and the plan's visit takes bounds that match no event.
@@ -332,6 +336,7 @@ A run learns that research has ended only when its planning agent returns, which
 - **Predicted:** the admin team, on encountering it, 2026-11-11.
 - **Encounters:**
   - 2026-11-11: KotlinBottools #24: `researched` read at 19:42:46Z and sent with `plan-accepted` at 20:17:33Z; it was stamped 20:17:33Z, and `plan-accepted` holds 20:17:03Z.
+  - 2026-11-12: KotlinBottools #25: the event closing the pre-flip gate, read at 22:19:35Z, arrived at 22:21:55Z, after the run had sent its visibility request (22:20:15Z); it was stamped 22:21:55Z, so the board records the gate’s end 140 seconds late and the next stage’s start after its first request. Here the run could have sent the event before going on.
 
 ## A board write fails on Windows while another process reads the file
 
@@ -388,3 +393,29 @@ A write a plan specifies carries a `procedure`, a list of commands the plan mean
 - **Predicted:** the admin team, on encountering it, 2026-11-12.
 - **Encounters:**
   - 2026-11-12: KotlinBottools #25: the nineteen `edit-issue-body` requests; the run raised it at the nineteenth, after the eighteenth's reply said its first entry ran in a call of its own.
+
+## An executor cannot run a plan's procedure as one shell
+
+```json
+{"id":"p29","count":0,"last":null}
+```
+
+`version-control-manager.md` (Executor mode) has a plan-specified write's procedure run as one shell, and has the executor run none of it and report why when it cannot. The rule names no part of the report for that, and the part decides how the team replies to the sender.
+
+- **Proposed resolution:** the executor reports it under **Not done / blocked**: nothing ran, so it is a blocker and not a failed check. The team tells the sender the request was not carried out and why, and the sender may send it again once the cause is fixed; it is not a `stopped`, which is for a procedure that got partway and leaves a state to read first.
+- **Predicted:** the direction manager, on applying the one-shell rule, 2026-11-12; filed here at the user's word.
+- **Encounters:**
+  - None yet.
+
+## `realign-checkout`'s own check meets the one-shell rule
+
+```json
+{"id":"p30","count":0,"last":null}
+```
+
+For a `realign-checkout` the executor checks that the checkout's tracked files are unchanged "immediately before the move", whatever the request's `checks` say. Under the one-shell rule the procedure runs as one script with nothing added, so that check cannot sit inside it: it is immediately before the move only when the move is the procedure's first write.
+
+- **Proposed resolution:** the check runs in a separate read-only call just before the single call that runs the procedure, and the procedure is expected to carry its own guard before the move; the rule's wording would become "immediately before running the procedure". Nothing is added to the script, so "add nothing" keeps no exception.
+- **Predicted:** the direction manager, on applying the one-shell rule, 2026-11-12; filed here at the user's word.
+- **Encounters:**
+  - None yet.
