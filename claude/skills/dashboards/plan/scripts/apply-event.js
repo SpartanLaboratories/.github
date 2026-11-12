@@ -132,7 +132,8 @@ const refuse = m => { throw new Refusal(m); };
    "unread" line (in --json, the unread field) names each key the event carried that no path read, so the team's reply can pass it on to the run
    (a fact sent at the wrong event, a misspelt key, a field the board has no place for). A copy of the facts with a key set or dropped
    (factsWith()) stays tracked and reads no key itself, as a spread would read every one. facts.at counts as read: --at, when given, overrides it
-   knowingly. Nothing is named for an event that was refused or found a duplicate (its first application named them). */
+   knowingly. Only an event that applied (result ok) names any: none is named for an event that was refused or failed, found a duplicate (its
+   first application named them) or wrote nothing (result nothing or no-board). */
 const FACTS_READ = new Set(), FACTS_RAW = new WeakMap();
 let FACTS_KEYS = null;
 function trackFacts(o) {

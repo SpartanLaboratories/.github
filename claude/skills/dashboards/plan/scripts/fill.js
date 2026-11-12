@@ -28,11 +28,19 @@
 //   named and skipped (for a text that should never have been written: an internal name, a work level);
 //   "wip": { "stages": [{ id, rows }], "questions": [{ question, rows }], "interview": [{ text, answer }], "asked": [{ text, step?, answer }], "qa": [{ pass, note }],
 //            "current": { "step": "<the step this glow is for>", "cells": ["<row-id>.<column>"] }, "waitingOn": "<what waits on the user>", "detail": "<the WIP line, reworded>",
-//            "open": [{ text, resolved }] }
+//            "open": [{ text, resolved }], "document": [{ id, started?, finished?, reason }] }
 //   sets only those fields of the items it names, an item the board does not hold named and skipped, and the glow only while the board's step is still that step. Any
 //   other wip key is refused. wip.open corrects the time an open point already resolved was recorded at (a factual correction, plan/RULES.md §2: the fill also
 //   writes its notes.corrections entry), on every snapshot that holds the point with the same time; an open point not resolved yet is refused (resolving is the events'),
-//   and so is a time that is no UTC ISO time or is after wip.updated. An answer's gist (the interview's, a halt's) is written on the snapshots that hold its question too (lib.js syncAsked()).
+//   and so is a time that is no UTC ISO time or is after wip.updated.
+//   wip.document corrects the recorded start and/or finish of a task of the Document step, by its id, on an issue board and a tracking board alike (a factual
+//   correction, plan/RULES.md §2; correctTaskTimes()): the task on wip.document, and each saved visit copy in wip.history that holds it, shown as the corrected
+//   times put it at that visit's end (a copy's task done once its finish is at or before the visit's end, current once its start is, else to come); the fill writes
+//   one notes.corrections entry itself, from the entries' reasons, { what, when, taskTimes: [{ id, field, from, to }] }. It corrects times only: refused, nothing
+//   written, a key other than id, started, finished and reason, an entry naming no time or no reason, a task id the board does not hold or named twice, a time
+//   that is no UTC ISO time or is after wip.updated, a start on a task still to come or a finish on a task not done (that would change its state), a finish
+//   before the task's start, and a time outside the Document step's own bounds (its first visit's start; while the step runs wip.updated, else its last
+//   visit's end). The same correction again writes nothing. An answer's gist (the interview's, a halt's) is written on the snapshots that hold its question too (lib.js syncAsked()).
 //   wip.waitingOn is the text the fast path left out or wrote in its stead (plan/RULES.md §4, "A work level in the facts is reworded"): while the board
 //   is halted or escalated it is written, and the stop's own trail entry and a detail that quoted the old text follow it, so the record reads alike;
 //   once an event has taken the board out of the stop, the last stop's trail entry alone takes it, and a waitingOn and resume left standing are cleared.
@@ -50,7 +58,8 @@ const stageNope = s => levelRefs(s).length ? "a work level" : nameRefs(s).some(u
 const OWNED = ["wip", "trail", "status", "sized", "branch", "asBuilt", "kind", "schema", "repo", "issue", "slug", "folder", "foundation", "links"];
 const IDENTITY = ["id", "slug", "issue", "class", "question", "pass", "n"];
 const LEVELS = new Set(["level", "proposedLevel"]);
-const WIP_KEYS = ["stages", "questions", "interview", "asked", "qa", "current", "waitingOn", "detail", "open"];
+const WIP_KEYS = ["stages", "questions", "interview", "asked", "qa", "current", "waitingOn", "detail", "open", "document"];
+const TASK_KEYS = ["id", "started", "finished", "reason"];
 const UNIT_KEPT = ["issue", "board", "folder", "live"];
 const ROW_DERIVED = ["pending", "in-progress", "partially-built"];
 const isObj = v => v != null && typeof v === "object" && !Array.isArray(v);
@@ -121,10 +130,87 @@ function mergeRow(cur, next, notes, plan) {
   if (isObj(cur.unit) && isObj(next.unit)) UNIT_KEPT.forEach(k => { if (cur.unit[k] != null && next.unit[k] !== cur.unit[k]) { out.unit[k] = cur.unit[k]; if (next.unit[k] !== undefined) notes.push(`${id}: unit.${k} stays ${JSON.stringify(cur.unit[k])}, the filing's or embed.js's`); } });
   return out;
 }
+/* A Document task's recorded start or finish corrected (a factual error, plan/RULES.md §2; KotlinBottools #24, a halt whose tasks the board did not
+   yet read, so the next event stamped them 11 minutes late): fields.wip.document, [{ id, started?, finished?, reason }]. Every entry is checked before
+   anything changes, so a refusal writes nothing. The task on wip.document takes the times; each saved visit copy in wip.history holding the task takes a
+   time it held the old value of, and shows the task as the corrected times put it at the visit's end (done once its finish is at or before that end,
+   current once its start is, else to come), so the step panel and the finished step's view agree. One notes.corrections entry says what moved, from
+   what to what, and why. It never changes the live task's state, name or order, and never adds or removes a task. */
+const STAMP = s => new Date(s).toISOString().replace(/\.\d+Z$/, "Z");
+function correctTaskTimes(plan, w, list, merged) {
+  if (!Array.isArray(list) || !list.length) throw new Refused("wip.document: a list of the tasks whose times are corrected ([{ id, started?, finished?, reason }])");
+  const live = isObj(w.document) && Array.isArray(w.document.tasks) ? w.document.tasks.filter(isObj) : [];
+  const H = isObj(w.history) ? w.history : {}, DV = (Array.isArray(H.document) ? H.document : []).filter(isObj), T = Date.parse;
+  /* the Document step's own bounds: its first visit's start; while it runs (or a stop holds it), the board's last event, else its last visit's end */
+  const running = lib.shownStep(w) === "document";
+  const starts = [...DV.map(v => v.since), running ? w.since : null].filter(lib.isTime).sort((a, b) => T(a) - T(b));
+  const ends = DV.map(v => v.ended).filter(lib.isTime).sort((a, b) => T(a) - T(b));
+  const lo = starts[0] || null, hi = running ? (lib.isTime(w.updated) ? w.updated : null) : (ends[ends.length - 1] || (lib.isTime(w.updated) ? w.updated : null));
+  const seen = new Set(), todo = [];
+  list.forEach((x, i) => {
+    const at = `wip.document[${i}]`;
+    if (!isObj(x)) throw new Refused(`${at}: each entry names a task by its id and the times corrected ({ id, started?, finished?, reason })`);
+    const off = Object.keys(x).filter(k => !TASK_KEYS.includes(k));
+    if (off.length) throw new Refused(`${at}: ${off.join(", ")}: a fill corrects a task's times only (id, started, finished, reason); its state, name and order are the events'`);
+    if (typeof x.id !== "string" || !x.id.trim()) throw new Refused(`${at} names no task id`);
+    const t = live.find(y => y.id === x.id);
+    if (!t) throw new Refused(`${at}: the board's Document step holds no task ${JSON.stringify(x.id)}${live.length ? ` (it holds ${live.map(y => y.id).join(", ")})` : ""}: a fill never adds a task`);
+    if (seen.has(x.id)) throw new Refused(`${at}: task ${x.id} is named twice`); seen.add(x.id);
+    if (x.started === undefined && x.finished === undefined) throw new Refused(`${at} (${x.id}) names no time: started, finished or both`);
+    ["started", "finished"].forEach(k => { if (x[k] !== undefined && !lib.isTime(x[k])) throw new Refused(`${at}.${k} ${JSON.stringify(x[k])} is no UTC ISO time`); });
+    if (typeof x.reason !== "string" || !x.reason.trim()) throw new Refused(`${at} (${x.id}) gives no reason: the correction's entry says why the time was wrong`);
+    const s = x.started !== undefined ? STAMP(x.started) : t.started, f = x.finished !== undefined ? STAMP(x.finished) : t.finished;
+    if (x.started !== undefined && t.state === "todo") throw new Refused(`${at}: task ${x.id} is to come, with no start to correct: a start would change its state, which the events own`);
+    if (x.finished !== undefined && t.state !== "done") throw new Refused(`${at}: task ${x.id} is ${t.state}, with no finish to correct: a finish would change its state, which the events own`);
+    [["started", s], ["finished", f]].forEach(([k, v]) => { if (x[k] === undefined) return;
+      if (lib.isTime(w.updated) && T(v) > T(w.updated)) throw new Refused(`${at}.${k} ${v} is after the board's last event (${w.updated})`);
+      if (lo && T(v) < T(lo)) throw new Refused(`${at}.${k} ${v} is before the Document step began (${lo})`);
+      if (hi && T(v) > T(hi)) throw new Refused(`${at}.${k} ${v} is after the Document step ended (${hi})`); });
+    if (lib.isTime(s) && lib.isTime(f) && T(f) < T(s)) throw new Refused(`${at}: task ${x.id} would finish (${f}) before it started (${s})`);
+    todo.push({ t, x, s, f });
+  });
+  const moved = [], visits = new Set(), clock = v => `${v.slice(0, 10)} ${v.slice(11, 19)} UTC`;
+  todo.forEach(({ t, x, s, f }) => {
+    const ch = [];
+    if (x.started !== undefined && t.started !== s) ch.push({ field: "started", from: t.started || null, to: s });
+    if (x.finished !== undefined && t.finished !== f) ch.push({ field: "finished", from: t.finished || null, to: f });
+    if (!ch.length) return;
+    ch.forEach(c => { t[c.field] = c.to; });
+    /* the saved copies: a time held at its old value moves; the task's state at the visit's end follows from the corrected times */
+    Object.keys(H).forEach(st => (Array.isArray(H[st]) ? H[st] : []).forEach((v, i) => {
+      const c = isObj(v) && isObj(v.document) && Array.isArray(v.document.tasks) ? v.document.tasks.find(y => isObj(y) && y.id === t.id) : null; if (!c) return;
+      const was = JSON.stringify(c);
+      ch.forEach(m => { if (c[m.field] != null && c[m.field] === m.from) c[m.field] = m.to; });
+      if (lib.isTime(v.ended)) { const end = T(v.ended), S0 = lib.isTime(t.started) ? T(t.started) : null, F0 = t.state === "done" && lib.isTime(t.finished) ? T(t.finished) : null;
+        const drop = (...ks) => ks.forEach(k => delete c[k]);
+        if (ch.some(m => m.field === "finished")) {
+          if (F0 != null && F0 <= end && c.state !== "done") { c.state = "done"; c.finished = t.finished; if (!c.started && t.started) c.started = t.started; }
+          else if (c.state === "done" && c.finished === t.finished && F0 != null && F0 > end) { c.state = "current"; drop("finished", "report", "result"); } }
+        if (ch.some(m => m.field === "started")) {
+          if (S0 != null && S0 <= end && c.state === "todo") { c.state = "current"; c.started = t.started; }
+          else if (c.state !== "todo" && c.started === t.started && S0 != null && S0 > end) { c.state = "todo"; drop("started", "finished", "report", "result"); } } }
+      if (JSON.stringify(c) !== was) visits.add(`the ${st === "document" ? "Document" : st} step's visit ${i + 1}`);
+    }));
+    ch.forEach(c => moved.push({ id: t.id, name: t.name || t.id, ...c, reason: x.reason.trim().replace(/[\s.;:,]+$/, "") }));
+  });
+  if (!moved.length) return;
+  /* the entry: per reason, what was recorded and when, then what it is now; the saved copies that moved with it */
+  const word = m => `${m.name}'s ${m.field === "started" ? "start" : "finish"}`, list2 = a => a.length < 3 ? a.join(" and ") : `${a.slice(0, -1).join(", ")} and ${a[a.length - 1]}`;
+  const sentences = [...new Set(moved.map(m => m.reason))].map(r => { const g = moved.filter(m => m.reason === r);
+    const same = g.every(m => m.from === g[0].from && m.to === g[0].to), toW = m => m.from && m.from.slice(0, 10) === m.to.slice(0, 10) ? `${m.to.slice(11, 19)} UTC` : clock(m.to);
+    if (same) return `${list2(g.map(word))} ${g.length > 1 ? "were" : "was"} ${g[0].from ? `recorded at ${clock(g[0].from)}` : "not recorded"}: ${r}. ${g.length > 1 ? "They are" : "It is"} recorded at ${toW(g[0])}`;
+    return `${list2(g.map(m => `${word(m)} was ${m.from ? `recorded at ${clock(m.from)}` : "not recorded"}`))}: ${r}. ${list2(g.map(m => `${word(m)} is recorded at ${toW(m)}`)).replace(/^./, ch => ch.toUpperCase())}`; });
+  const vs = [...visits];
+  const what = `In the Document step, ${sentences.join(". ")}${vs.length ? `; the saved record of ${list2(vs)} moves with ${moved.length > 1 ? "them" : "it"}` : ""}.`;
+  plan.notes = isObj(plan.notes) ? plan.notes : {};
+  plan.notes.corrections = Array.isArray(plan.notes.corrections) ? plan.notes.corrections : [];
+  plan.notes.corrections.push({ what, when: new Date().toISOString().slice(0, 10), taskTimes: moved.map(({ id, field, from, to }) => ({ id, field, from, to })) });
+  merged.push(`wip.document ${moved.map(m => `${m.id} ${m.field} ${m.from || "none"} → ${m.to}`).join(", ")} (${vs.length} saved cop${vs.length === 1 ? "y" : "ies"})`, "notes.corrections +1");
+}
 /* The fill onto a board, in memory. Returns { plan, merged, notes, dropped }; throws Refused on a field the events own. */
 function mergeFill(board, fields, planDir) {
   if (!isObj(fields)) throw new Refused("the fields are not a JSON object");
-  const dropped = [], notes = [], tSkip = titleSkip(null, "plan-board"), F = withoutNames(withoutLevels(fields, "", dropped), "", at => tSkip(at) || /^rows\[\d+\]\.options\[\d+\]\.signature$/.test(at) || /^trailFix\[\d+\]\.label$|^wip\.(?:interview|asked|questions|stages|qa|open)\[\d+\]\.(?:text|question|id|pass)$/.test(at), notes), plan = JSON.parse(JSON.stringify(board)), merged = [];
+  const dropped = [], notes = [], tSkip = titleSkip(null, "plan-board"), F = withoutNames(withoutLevels(fields, "", dropped), "", at => tSkip(at) || /^rows\[\d+\]\.options\[\d+\]\.signature$/.test(at) || /^trailFix\[\d+\]\.label$|^wip\.(?:interview|asked|questions|stages|qa|open|document)\[\d+\]\.(?:text|question|id|pass)$/.test(at), notes), plan = JSON.parse(JSON.stringify(board)), merged = [];
   /* the qa passes by name, "Quality Review N" (passnames.js): the fill's own text and the board's, so an item named by its text still matches */
   { const fr = lib.renamePassesIn(F, titleSkip(null, "plan-board")), br = lib.renamePasses(plan);
     if (fr.length) notes.push(`the fill's ${fr.slice(0, 4).join(", ")}${fr.length > 4 ? ", …" : ""}: a qa pass written "${lib.PASS_NAME} N"`); br.forEach(l => notes.push(`the board: ${l}`)); }
@@ -175,6 +261,7 @@ function mergeFill(board, fields, planDir) {
       const fix = list => (Array.isArray(list) ? list : []).forEach(y => { if (isObj(y) && y.text === x.text && y.resolved === old) { y.resolved = x.resolved; n++; } });
       fix(w.open); Object.values(isObj(w.history) ? w.history : {}).forEach(vs => (Array.isArray(vs) ? vs : []).forEach(v => isObj(v) && fix(v.open)));
       merged.push(`wip.open resolved ${old} → ${x.resolved} (${n} record${n === 1 ? "" : "s"})`); });
+    if (F.wip.document !== undefined) correctTaskTimes(plan, w, F.wip.document, merged);
     if (isObj(F.wip.current)) { const C = F.wip.current, cells = Array.isArray(C.cells) ? C.cells.map(String) : [];
       if (typeof C.step !== "string") throw new Refused("wip.current names the step its glow is for ({ step, cells })");
       if (lib.shownStep(w) === C.step) { w.current = cells; merged.push(`wip.current at ${C.step}`); } else notes.push(`wip.current was for ${C.step}; the board has moved on to ${lib.shownStep(w)}: left as the event set it`); }
