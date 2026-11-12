@@ -83,6 +83,9 @@
 // day change its trail entry's date; on a sub-issue its tracking board's record of it too), with one notes.corrections entry; refused, nothing written,
 // where the record does not hold the old time, another event is named at it, it bounds a stretch when the run was not running, or the new time crosses
 // any other recorded time. No wip.event, no note, no trail entry; a landed or cancelled board takes it, kept as it closed (not re-rendered). Raised again, a duplicate.
+// A halt in the Document step applies the facts.tasks it carries as a document event does, stamped at the halt's time, the halt otherwise
+// unchanged (admin-team/dashboards-skill/halt-tasks, KotlinBottools #24); the summary's "unread" line names every fact the event carried and no
+// path of it read, so none is dropped in silence (admin-team/dashboards-skill/unread-facts; trackFacts()).
 "use strict";
 const T0 = Date.now();
 const fs = require("fs"), path = require("path"), cp = require("child_process");
@@ -103,7 +106,7 @@ const ARRIVED = opt("arrived");
 if (ARRIVED != null && (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/.test(ARRIVED) || isNaN(Date.parse(ARRIVED)))) { console.error(`${USAGE}\n(--arrived takes the request's arrival time as an ISO time with its zone, e.g. 2026-11-09T14:03:27Z; got ${JSON.stringify(ARRIVED)})`); process.exit(2); }
 
 /* the summary, printed at the end whatever happens */
-const S = { result: null, event: null, arrival: null, issue: null, board: null, laid: null, applied: [], enrich: [], rerendered: [], wrote: [], view: [], seeded: [], parent: null, live: null, check: null, warnings: [], defects: [], error: null, restored: 0, unfinished: null };
+const S = { result: null, event: null, arrival: null, unread: [], issue: null, board: null, laid: null, applied: [], enrich: [], rerendered: [], wrote: [], view: [], seeded: [], parent: null, live: null, check: null, warnings: [], defects: [], error: null, restored: 0, unfinished: null };
 /* the fast path's own warnings (a bare "Ln" elided as a work level, dashboards-skill/35): printed under "warnings" and counted on the check line */
 const WARNINGS = S.warnings;
 const say = () => {
@@ -111,17 +114,36 @@ const say = () => {
   /* the open points' times stamped or replaced at the arrival (holdOpenTime()) join the event's own on the one arrival line */
   if (OPEN_HELD.size) S.arrival = [S.arrival, ...OPEN_HELD].filter(Boolean).join("; ");
   S.warnings.splice(0, S.warnings.length, ...new Set(S.warnings));
+  /* the facts the event carried and did not read (unreadFacts()): only once it applied, when every path it takes has read what it reads */
+  S.unread = S.result === "ok" ? unreadFacts() : [];
   if (S.warnings.length && S.check && !/fast-path warning/.test(S.check)) S.check += ` · ${S.warnings.length} fast-path warning${S.warnings.length === 1 ? "" : "s"} (below)`;
   const enrich = S.enrich.length ? "yes" : "no", noWork = S.unfinished ? "no enrichment: the run reports those tasks' true states and the event is raised again" : "the event's facts decide everything it writes";
   if (flag("json")) { console.log(JSON.stringify({ ...S, enrich, why: S.enrich.length ? S.enrich : [noWork] })); return; }
   const L = [["apply-event", S.result], ["event", S.event], ["arrival", S.arrival], ["issue", S.issue != null ? "#" + S.issue : null], ["board", S.board], ["laid", S.laid],
-    ["applied", S.applied.join("; ") || "nothing"], ["enrich", enrich], ["why", S.enrich.length ? S.enrich.join("; ") : noWork],
+    ["applied", S.applied.join("; ") || "nothing"], ["unread", S.unread.length ? `${S.unread.map(k => "facts." + k).join(", ")} (carried by the event and not read by it: nothing on the board came from ${S.unread.length === 1 ? "it" : "them"})` : null], ["enrich", enrich], ["why", S.enrich.length ? S.enrich.join("; ") : noWork],
     ["rerendered", S.rerendered.join(", ") || "none"], ["wrote", S.wrote.join(", ") || "nothing"], ["view", VIEWING ? S.view.join(", ") || "nothing" : null], ["seeded", S.seeded.length ? S.seeded.join(", ") : null], ["parent", S.parent || "none"], ["live", S.live || "untouched"],
     ["check", S.check || "not run"], ["warnings", S.warnings.length ? S.warnings.map(w => "warn " + w).join(" | ") : null], ["issue defects", S.defects.length ? S.defects.join(" | ") : null], ["error", S.error], ["unfinished", S.unfinished ? S.unfinished.join(", ") : null], ["restored", S.error ? `${S.restored} file${S.restored === 1 ? "" : "s"}, as they were` : null], ["time", `${S.ms} ms`]];
   L.filter(([, v]) => v != null).forEach(([k, v]) => console.log(`${k}: ${v}`));
 };
 class Refusal extends Error {}
 const refuse = m => { throw new Refusal(m); };
+/* The facts the event carries and does not read (admin-team/dashboards-skill/unread-facts): never dropped in silence. Every top-level key of the
+   request's facts is recorded as any path of this run reads it (trackFacts(), a Proxy over the facts); once the event has applied, the summary's
+   "unread" line (in --json, the unread field) names each key the event carried that no path read, so the team's reply can pass it on to the run
+   (a fact sent at the wrong event, a misspelt key, a field the board has no place for). A copy of the facts with a key set or dropped
+   (factsWith()) stays tracked and reads no key itself, as a spread would read every one. facts.at counts as read: --at, when given, overrides it
+   knowingly. Nothing is named for an event that was refused or found a duplicate (its first application named them). */
+const FACTS_READ = new Set(), FACTS_RAW = new WeakMap();
+let FACTS_KEYS = null;
+function trackFacts(o) {
+  const p = new Proxy(o, { get(t, k, r) { if (typeof k === "string" && Object.prototype.hasOwnProperty.call(t, k)) FACTS_READ.add(k); return Reflect.get(t, k, r); } });
+  FACTS_RAW.set(p, o); return p;
+}
+function factsWith(f, set, drop) {
+  const o = Object.assign({}, FACTS_RAW.get(f) || f); (drop || []).forEach(k => delete o[k]); Object.assign(o, set || {});
+  return FACTS_RAW.has(f) ? trackFacts(o) : o;
+}
+const unreadFacts = () => (FACTS_KEYS || []).filter(k => k !== "at" && !FACTS_READ.has(k));
 
 /* Files: every write is staged (its old bytes kept) and atomic (a temporary file, then a rename); rollback() puts every staged file
    back. A rename can meet a file a browser holds open for a moment (Windows): it is retried briefly. */
@@ -190,7 +212,7 @@ function applyEvent(orig, ev, facts, req, now) {
      for the running event. */
   let remed = false;
   if (ev === "implementation-stage") {
-    const said = typeof facts.step === "string" ? facts.step.trim() : "", { step: dropped, ...rest } = facts;
+    const said = typeof facts.step === "string" ? facts.step.trim() : "", rest = factsWith(facts, null, ["step"]);
     remed = !!facts.remediation || (["halted", "escalated"].includes(w.step) ? w.resume : w.step) === "remediation";
     facts = rest;
     if (said) applied.push(`facts.step ${JSON.stringify(said)} ignored: an implementation-stage moves no step of its own`);
@@ -201,7 +223,7 @@ function applyEvent(orig, ev, facts, req, now) {
   if (typeof facts.step === "string" && facts.step.trim()) {
     const said = facts.step.trim(), low = said.toLowerCase(), tplan = plan.kind === "tracking" && TRACKING_PLAN_WORDS.has(low);
     const step = tplan ? trackingArchStep(w) : STEP_ALIASES[low] || said;
-    if (step !== facts.step) { facts = { ...facts, step }; applied.push(`facts.step ${JSON.stringify(said)} read as ${step}${tplan ? " (a tracking board has no plan step: its run's plan is its architecture)" : ""}`); }
+    if (step !== facts.step) { facts = factsWith(facts, { step }); applied.push(`facts.step ${JSON.stringify(said)} read as ${step}${tplan ? " (a tracking board has no plan step: its run's plan is its architecture)" : ""}`); }
     if (!STEPS.includes(step)) WARNINGS.push(`STEP UNKNOWN: facts.step ${JSON.stringify(said)} is no step of the board (${STEPS.join(", ")}): the step is derived from the event`);
   }
   /* a steps line written before the landing's three steps (dashboards-skill/34) takes state-boards and merge after its landing, at any
@@ -287,6 +309,8 @@ function applyEvent(orig, ev, facts, req, now) {
       else if (full) enrich.push("the rows the qa findings touch are not known from the facts: the whole As built column glows until the presenter names them"); }
   };
   let detail = txt(facts.detail, "detail"), note = txt(facts.note, "note"), trail = null, parentOp = null;
+  /* the Document step's tasks a halt in it applied (the halted case below), so the visit the halt ended holds them as reported */
+  let haltTasks = false;
   /* a late report keeps the WIP line the step wrote (keepLine, the implementation-stage case below) */
   let keepLine = false;
   /* the Tests tab is due an update when a stage is reported done or a qa pass returns its verdict (plan/RULES.md §2, "The Tests tab") */
@@ -351,6 +375,25 @@ function applyEvent(orig, ev, facts, req, now) {
           const options = q && Array.isArray(q.options) ? q.options.map((o, j) => txt(o, `questions[${i}].options[${j}]`)).filter(Boolean) : [];
           list.push({ ...(iv ? {} : { step: resume }), text, ...(options.length ? { options } : {}), answer: null, asked: now }); applied.push(`wip.${key} + "${text.slice(0, 40)}"`);
         });
+      }
+      /* the Document step's tasks a halt in it carries (admin-team/dashboards-skill/halt-tasks): the protocol gives facts.tasks at document, and
+         a run that halts in the Document step may send them with the halt, as it reports where it stopped. They are applied as a document event
+         applies them (mergeTasks(), forward: the team's tasks never moved back), each task that changes state stamped at the halt's time and a
+         task done taking the halt's own detail as its report, so the panel the wait shows says what the run reported. The halt stays a halt:
+         its step, wait, questions and trail entry are as without them, and no task entry of its own is added to the trail. A list the Document
+         step would refuse (a task with no id or state, the commit named done before the rest) is not applied, the halt still is, and the
+         summary warns. A halt in any other step does not read them: the summary's unread line names them. */
+      if (resume === "document" && Array.isArray(facts.tasks) && facts.tasks.length) {
+        const before = JSON.stringify(w.document || null), keep = S.unfinished;
+        try {
+          mergeTasks(w, facts.tasks, applied, enrich, txt, { forward: true, now, report: detail });
+          haltTasks = true;
+          if (JSON.stringify(w.document || null) !== before) applied.push("wip.document: the tasks taken from a halted event in the Document step (the protocol gives them at document)");
+        } catch (e) {
+          if (!(e instanceof Refusal)) throw e;
+          S.unfinished = keep;
+          WARNINGS.push(`HALT TASKS NOT APPLIED: the halt's facts.tasks were not applied (${e.message}); the halt was; the run reports the tasks' true states at its next document event`);
+        }
       }
       detail = detail || `Waiting on you: ${waiting}`;
       /* a fix step by its route alone, "Halted at Correction", never its pass (passnames.js haltWords(); admin-team/dashboards/call-3) */
@@ -900,6 +943,10 @@ function applyEvent(orig, ev, facts, req, now) {
      stop but cancelled (admin-team/dashboards/halt-questions, dated 45) */
   { const was = stopped((orig.wip || {}).step); if (ev === "resumed" || (was && !stopped(w.step) && ev !== "cancelled")) applied.push(...lib.answerQuestions(w, now)); }
   applied.push(...lib.freezeSteps(orig, plan, ev, now, facts));
+  /* a halt's Document tasks on the visit that halt ended (haltTasks): the freeze takes them where it freezes the visit now; a halt raised
+     again, its visit frozen before it carried them, brings that visit's snapshot to them */
+  if (haltTasks && w.document) { const HD = w.history && typeof w.history === "object" && Array.isArray(w.history.document) ? w.history.document : [], V = HD.find(v => v && v.held && v.ended === now && v.endedBy === "halted");
+    if (V && JSON.stringify(V.document || null) !== JSON.stringify(w.document)) { V.document = JSON.parse(JSON.stringify(w.document)); applied.push("wip.history.document: the visit the halt ended holds the tasks the halt reported"); } }
   /* what a stop waited on and the step it was to resume at end with the stop, whichever event takes the board out of it (lib.js waitSteps()'s
      "resumed or any other"): an architecture-signed-off after a halt had left both standing */
   if (stopped((orig.wip || {}).step) && !stopped(w.step) && (w.resume != null || w.waitingOn != null)) { w.resume = null; w.waitingOn = null; applied.push("wip.resume and wip.waitingOn cleared"); }
@@ -993,7 +1040,7 @@ function mergeStages(w, facts, applied, enrich, first, ids, remed = !!facts.reme
   if (planTable && first) { planTable.problems.forEach(p => WARNINGS.push(`STAGE TABLE: ${p}`)); }
   /* a board whose branch-cut read no row of the table (the ids' case, before lib.js stageRow()) catches it up at its next event */
   if (!first) { const n = lib.catchUpStageTable(w, DIR, stageNope, enrich); if (n) applied.push(`wip.stages: ${plural(n, "stage")} from the plan's stage table, caught up`); }
-  if (first && (!Array.isArray(facts.stages) || !facts.stages.length) && !have.length && table.length) facts = { ...facts, stages: table.map(s => ({ id: s.id, name: s.name })) };
+  if (first && (!Array.isArray(facts.stages) || !facts.stages.length) && !have.length && table.length) facts = factsWith(facts, { stages: table.map(s => ({ id: s.id, name: s.name })) });
   if (!Array.isArray(facts.stages) || !facts.stages.length) {
     if (!have.length) enrich.push("the stages of plan.md, with the rows each touches, come from plan.md");
     else if (first && !have.some(x => x.state === "current")) { const t = have.find(x => x.state !== "done"); if (t) { t.state = "current"; lib.stampItem(t, { ...t, state: "todo" }, how.now, null); applied.push(`wip.stages ${t.id} current`); } }
@@ -1857,7 +1904,9 @@ function holdToArrival(facts) {
 async function main() {
   const evFile = opt("event"), wt = opt("worktree");
   if (!evFile || !wt) { console.error(`${USAGE}\n(--event and --worktree are required)`); process.exit(2); }
-  const req = readRequest(evFile), facts = req.facts && typeof req.facts === "object" ? req.facts : {};
+  const req = readRequest(evFile), raw = req.facts && typeof req.facts === "object" && !Array.isArray(req.facts) ? req.facts : {};
+  FACTS_KEYS = Object.keys(raw);
+  const facts = trackFacts(raw);
   holdToArrival(facts);
   if (req.action && req.action !== "plan-board") refuse(`the request's action is ${JSON.stringify(req.action)}, not plan-board`);
   /* a retime's facts.event is the event it retimes, never the request's: a request that names none, with a retime's facts, is not read as that event */

@@ -360,3 +360,16 @@ The protocol gives a test class's `testLevel` as one of `1` `2` `3` `4a` `4b` `4
 - **Predicted:** the admin team, on encountering it, 2026-11-12.
 - **Encounters:**
   - 2026-11-12: KotlinBottools #24, the stage report after the plan's second revision: 14 classes sent with level names; the fill set the levels from the event's facts.
+
+## A run sends the Document step's tasks on a `halted` event, which reads none
+
+```json
+{"id":"p27","count":1,"last":"2026-11-12"}
+```
+
+The protocol gives `facts.tasks` at `document`. A run that stops for a question in its Document step sent the tasks' new states with the `halted` event instead (the documentation check done, the next task current). The fast path applied the halt and its questions and did not read the tasks, without saying so: the board showed the finished task as current through the wait.
+
+- **Resolution (a skill defect, fixed at the presenter's discretion on 2026-11-12):** the fast path now names, on an `unread` line of its summary, every fact an event carried and did not read; a `halted` event sent in the Document step applies its tasks, as a tolerance, and says so. The protocol still gives the tasks at `document`. The board of the encounter keeps two task times 11 minutes late (the end of the documentation check and the start of the next task): the rules give no way to correct one task's time, and a correction path is proposed, not decided.
+- **Predicted:** the admin team, on encountering it, 2026-11-12.
+- **Encounters:**
+  - 2026-11-12: KotlinBottools #24: `halted` at 01:59:34Z carried the five tasks; the board kept the documentation check current.
