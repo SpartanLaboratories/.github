@@ -208,7 +208,15 @@ uncommitted changes still needs the user: report it under **Stopped — needs yo
 `realign-checkout`, `replace-clone`, `create-label`, `create-milestone`,
 `create-issue`, `close-issue`, `reopen-issue`, `fixture-pull-request`). Carry
 out the request's `procedure` with its `inputs` and run its `checks`, with the
-organisation administrator's GitHub permissions (the standing grant above). A
+organisation administrator's GitHub permissions (the standing grant above). The
+procedure runs as one shell: write its entries unchanged, in their order, to
+one script and run it with a single call, so that a guard that stops ends the
+whole procedure before its write. Add nothing to it: no shell option, command
+or read. Anything else you want to read, such as a value for your report, goes
+in a separate call that is not part of the procedure and writes nothing. If you
+cannot run the procedure as one shell, run none of it and report why. Your
+report says the procedure ran as one call with its entries unchanged, and gives
+its exit code with the lines it printed. A
 `placeholder-issue` or `create-issue` reports no defect, so Gate 2 and
 **Issues — filing** do not apply to it. A check that does not give the result
 the plan says it must stops you at that step: run no further step, retry
