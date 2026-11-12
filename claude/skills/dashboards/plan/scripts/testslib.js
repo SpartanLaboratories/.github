@@ -68,15 +68,30 @@ function resultState(r) {
 const testsBlock = plan => plan && plan.tests && typeof plan.tests === "object" && !Array.isArray(plan.tests) ? plan.tests : null;
 const hasTests = t => !!t && (TEST_LISTS.some(k => Array.isArray(t[k]) && t[k].length) || !!(t.other && t.other.byModule && typeof t.other.byModule === "object" && Object.keys(t.other.byModule).length));
 
-/* One class from the facts, normalised: { entry } or { why } when it cannot be used. o: { ids (the board's row ids), stage, pass, now }. */
+/* A testLevel as the facts give it, read (KotlinBottools #24: a run sent "gating", "component", "integration" and "nonfunctional", the level
+   folders' names, and all fourteen classes were stored with no level and nothing said). Returns { level, as }: as "level" (one of
+   TEST_LEVELS); "name" (a level folder's name, testing.<segment>, read as its level: a tolerance, not the protocol, so the summary says so);
+   "unread" (neither: no level, and the summary names it); null where none was given. */
+function readLevel(v) {
+  if (v == null || (typeof v === "string" && !v.trim())) return { level: null, as: null };
+  const l = String(v).trim().toLowerCase();
+  if (TEST_LEVELS.includes(l)) return { level: l, as: "level" };
+  const seg = l.replace(/^testing[./\\]/, "");
+  if (Object.prototype.hasOwnProperty.call(TEST_LEVEL_SEGMENTS, seg)) return { level: TEST_LEVEL_SEGMENTS[seg], as: "name" };
+  return { level: null, as: "unread" };
+}
+/* One class from the facts, normalised: { entry, notes, given } or { why } when it cannot be used; given { level, as, raw, path } is how its
+   testLevel was read (readLevel(); path the level its path names where the value was not read), for the summary. o: { ids (the board's row
+   ids), stage, pass, now }: o.stage the stage the event reports for its classes, null where it reports several at once (mergeTests() then
+   gives each class with none its stage, o.stages). */
 function normEntry(x, o, withResult) {
   if (!x || typeof x !== "object" || Array.isArray(x)) return { why: "not an object" };
   const cls = str(x.class) ? x.class.trim() : str(x.name) ? x.name.trim() : null;
   if (!cls) return { why: "no class" };
   const e = { class: str(x.module) ? bareName(cls, x.module) : cls };
   if (str(x.module)) e.module = x.module.trim();
-  const lv = x.testLevel != null ? String(x.testLevel) : x.level != null ? String(x.level) : null;
-  const level = lv && TEST_LEVELS.includes(lv) ? lv : levelFromPath({ path: x.path, class: cls });
+  const raw = x.testLevel != null ? x.testLevel : x.level != null ? x.level : null, rd = readLevel(raw);
+  const level = rd.level || levelFromPath({ path: x.path, class: cls });
   if (level) e.testLevel = level;
   if (str(x.path)) e.path = x.path.trim().replace(/\\/g, "/");
   if (count(x.tests)) e.tests = x.tests;
@@ -97,7 +112,7 @@ function normEntry(x, o, withResult) {
     const nt = str(R.note) ? (typeof o.txt === "function" ? o.txt(R.note) : R.note.replace(/\s+/g, " ").trim()) : null;
     e.result = { state: r.state, ...["passed", "failed", "skipped"].reduce((a, k) => (r[k] != null ? { ...a, [k]: r[k] } : a), {}), ...(r.pass ? { pass: r.pass } : {}), at: r.at, ...(nt ? { note: nt } : {}) };
   }
-  return { entry: e, notes };
+  return { entry: e, notes, given: { ...rd, raw, path: rd.level ? null : level } };
 }
 /* The other tests' counts: { byModule: { <module>: { <level or "none">: n | { classes, tests } } } }; { byModule: {} } when the facts' report nothing (an empty byModule, or modules with no count: PROTOCOL.md allows it); null when they are not that shape. */
 function normOther(x) {
@@ -117,10 +132,19 @@ function normOther(x) {
    classes qa's test-inspector ran with their results, sets each one's latest result and its count (the tests the run counted) and puts a class in no list into Relevant, a module's test task with no failure
    over the board's own classes being those classes' results (taskClasses(); a skip attributed by count is a note, so enrich: yes); "other"
    replaces the counts (an empty one reports nothing new, so any earlier counts stay); "drop" removes classes from every list (a change reverted; one on no list is named in the summary, never passed over); "base" names the ref the diff is against. The same
-   facts twice change nothing. Returns { changed, applied, notes }. o: { now, pass, stage, ids }. */
+   facts twice change nothing. Returns { changed, applied, notes, warnings }: notes what a presenter must look at (enrich: yes), warnings what
+   the fast path read otherwise than sent, or changed, said in its summary (a testLevel given by a level folder's name, read as its level; a
+   recorded testLevel another event changes, with the level held and the level sent). o: { now, pass, stage, stages, ids }.
+   The stage (plan/RULES.md §4, facts.tests): an event that reports one stage for its classes gives o.stage, and each class it names takes it,
+   as before. One that reports several stages done at once (KotlinBottools #24: S1 to S5 run again in a remediation; every class was stamped
+   S5, "S3 python" included, and the stages already on the board overwritten) gives o.stage null and o.stages { label, list: [{ id, steps }],
+   fallback }: a class keeps the stage the board records unless its own entry names one (facts.tests.<list>[].stage); a class with none takes
+   the one reported stage whose steps name it ("S3 python": stage S3, step python; a bare step id where only one of them has it), else
+   o.stages.fallback (a remediation's "Quality Review n fixes", the stage a remediation report naming no stage gives), else none, said for the
+   presenter. */
 function mergeTests(plan, ft, o) {
-  const applied = [], notes = [];
-  if (!ft || typeof ft !== "object" || Array.isArray(ft)) return { changed: false, applied, notes: ["facts.tests is not an object: not applied"] };
+  const applied = [], notes = [], warnings = [];
+  if (!ft || typeof ft !== "object" || Array.isArray(ft)) return { changed: false, applied, notes: ["facts.tests is not an object: not applied"], warnings };
   const before = JSON.stringify(testsBlock(plan));
   const T = testsBlock(plan) ? JSON.parse(before) : {};
   TEST_LISTS.forEach(k => { T[k] = Array.isArray(T[k]) ? T[k] : []; });
@@ -134,15 +158,34 @@ function mergeTests(plan, ft, o) {
   const find = e => { for (const k of TEST_LISTS) { let i = T[k].findIndex(x => x && testKey(x) === testKey(e)); if (i < 0) { const hits = T[k].map((x, j) => loose(x, e) ? j : -1).filter(j => j >= 0); if (hits.length === 1) i = hits[0]; } if (i >= 0) return { k, i }; } return null; };
   /* the merged class keeps its qualified name, whichever side gave it */
   const merge = (old, e) => { const m = { ...old, ...e }; if (old.rows || e.rows) m.rows = [...new Set([...(old.rows || []), ...(e.rows || [])])]; if (old.module && !e.module) m.module = old.module; if (String(old.class).includes(".") && !String(e.class).includes(".")) m.class = old.class; return m; };
+  /* the stage of a class the event names none for, when it reports several at once (above) */
+  const MS = o && !o.stage && o.stages && Array.isArray(o.stages.list) && o.stages.list.length ? o.stages : null, stageless = [];
+  const stepIds = st => (Array.isArray(st.steps) ? st.steps : []).map(s => String(typeof s === "string" ? s : (s && (s.id || s.name)) || "").trim().toLowerCase()).filter(Boolean);
+  const stageByStep = e => {
+    const n = String(e.class || "").trim().toLowerCase(), sp = n.search(/[\s:/]/), head = sp > 0 ? n.slice(0, sp) : null, tail = sp > 0 ? n.slice(sp).replace(/^[\s:/]+/, "") : null;
+    /* "<stage id> <step id>" first, the stage its own name gives; else a bare step id one stage alone has */
+    const own = MS.list.filter(st => head && String(st.id).toLowerCase() === head && stepIds(st).includes(tail));
+    if (own.length === 1) return own[0].id;
+    const bare = MS.list.filter(st => stepIds(st).includes(n));
+    return bare.length === 1 ? bare[0].id : null; };
+  const stageOf = (e, old) => { if (!MS || e.stage || (old && old.stage)) return;
+    const s = stageByStep(e) || MS.fallback || null; if (s) e.stage = s; else stageless.push(e.class); };
+  /* a recorded test level another event changes: the latest facts win (a qa pass's run names the level the class ran at), never silently */
+  const relevel = (old, e) => { if (old.testLevel && e.testLevel && String(old.testLevel) !== String(e.testLevel)) warnings.push(`TEST LEVEL CHANGED: ${old.class}${old.module ? ` (${old.module})` : ""}: the board held test level ${old.testLevel}, the event sent ${e.testLevel}; written ${e.testLevel}`); };
   const put = (k, e, resultOnly) => { const w = find(e);
-    if (!w) { T[k].push(e); applied.push(`tests.${k} + ${e.class}`); return; }
-    const old = T[w.k][w.i], merged = resultOnly ? { ...old, ...(e.result ? { result: e.result } : {}), ...(old.testLevel || !e.testLevel ? {} : { testLevel: e.testLevel }), ...(e.tests == null || old.tests === e.tests ? {} : { tests: e.tests }), ...(old.path || !e.path ? {} : { path: e.path }) } : merge(old, e);
+    if (!w) { if (!resultOnly) stageOf(e, null); T[k].push(e); applied.push(`tests.${k} + ${e.class}`); return; }
+    const old = T[w.k][w.i]; relevel(old, e); if (!resultOnly) stageOf(e, old);
+    const merged = resultOnly ? { ...old, ...(e.result ? { result: e.result } : {}), ...(e.testLevel ? { testLevel: e.testLevel } : {}), ...(e.tests == null || old.tests === e.tests ? {} : { tests: e.tests }), ...(old.path || !e.path ? {} : { path: e.path }) } : merge(old, e);
     if (rank[k] > rank[w.k]) { T[w.k].splice(w.i, 1); T[k].push(merged); applied.push(`tests: ${e.class} ${w.k} → ${k}`); }
     else if (JSON.stringify(merged) !== JSON.stringify(old)) { T[w.k][w.i] = merged; applied.push(`tests.${w.k} ${e.class}${resultOnly && e.result ? " " + e.result.state : ""}`); } };
+  /* how each testLevel was read, said once per event (readLevel()) */
+  const byName = new Map(), unread = new Map(), given = n => { const g = n.given || {}, key = JSON.stringify(g.raw);
+    if (g.as === "name") { if (!byName.has(key)) byName.set(key, { raw: g.raw, level: g.level, classes: [] }); byName.get(key).classes.push(n.entry.class); }
+    else if (g.as === "unread") { if (!unread.has(key)) unread.set(key, { raw: g.raw, classes: [] }); unread.get(key).classes.push(n.entry.class + (g.path ? ` (its path: ${g.path})` : "")); } };
   TEST_LISTS.forEach(k => { if (ft[k] != null && !Array.isArray(ft[k])) { notes.push(`facts.tests.${k} is not a list: not applied`); return; }
-    (ft[k] || []).forEach((x, i) => { const n = normEntry(x, o, false); if (!n.entry) { notes.push(`facts.tests.${k}[${i}]: ${n.why}: not applied`); return; } notes.push(...n.notes); put(k, n.entry, false); }); });
+    (ft[k] || []).forEach((x, i) => { const n = normEntry(x, o, false); if (!n.entry) { notes.push(`facts.tests.${k}[${i}]: ${n.why}: not applied`); return; } notes.push(...n.notes); given(n); put(k, n.entry, false); }); });
   if (ft.ran != null && !Array.isArray(ft.ran)) notes.push("facts.tests.ran is not a list: not applied");
-  (Array.isArray(ft.ran) ? ft.ran : []).forEach((x, i) => { const n = normEntry(x, o, true); if (!n.entry) { notes.push(`facts.tests.ran[${i}]: ${n.why}: not applied`); return; } notes.push(...n.notes);
+  (Array.isArray(ft.ran) ? ft.ran : []).forEach((x, i) => { const n = normEntry(x, o, true); if (!n.entry) { notes.push(`facts.tests.ran[${i}]: ${n.why}: not applied`); return; } notes.push(...n.notes); given(n);
     const own = taskClasses(T, n.entry);
     if (own) { const R = n.entry.result, was = applied.length;
       own.passed.forEach(cl => { const res = { state: "passed", passed: cl.tests, failed: 0, skipped: 0, ...(R.pass ? { pass: R.pass } : {}), at: R.at, ...(R.note ? { note: R.note } : {}) };
@@ -159,9 +202,13 @@ function mergeTests(plan, ft, o) {
     put("relevant", n.entry, true); });
   if (ft.other != null) { const ot = normOther(ft.other); if (!ot) notes.push("facts.tests.other is not { byModule: { <module>: { <test level>: count } } }: not applied"); else if (Object.keys(ot.byModule).length && JSON.stringify(T.other || null) !== JSON.stringify(ot)) { T.other = ot; applied.push("tests.other"); } }
   (Array.isArray(ft.drop) ? ft.drop : []).forEach(x => { const e = typeof x === "string" ? { class: x } : x && typeof x === "object" && str(x.class) ? { class: x.class, ...(str(x.module) ? { module: x.module } : {}) } : null; if (!e) return; const w = find(e); if (w) { T[w.k].splice(w.i, 1); applied.push(`tests.${w.k} − ${e.class}`); } else applied.push(`tests.drop ${e.class}: on no list of the board, nothing to remove`); });
+  const few = xs => xs.length > 4 ? `${xs.slice(0, 4).join(", ")} and ${xs.length - 4} more` : xs.join(", ");
+  if (byName.size) warnings.push(`TEST LEVEL BY NAME: testLevel given as a level folder's name, not as a test level (${TEST_LEVELS.join(", ")}), read as its level: ${[...byName.values()].map(v => `${JSON.stringify(v.raw)} as ${v.level} (${few(v.classes)})`).join("; ")}`);
+  if (unread.size) notes.push(`testLevel not read, neither a test level (${TEST_LEVELS.join(", ")}) nor a level folder's name: ${[...unread.values()].map(v => `${JSON.stringify(v.raw)} (${few(v.classes)})`).join("; ")}; each class takes the level its path or package names, else none: the run sends the level, or the presenter sets it from the report`);
+  if (stageless.length) notes.push(`${MS.label || "several stages"} reported done at once, and no stage's steps name ${few(stageless)}: no stage written; the presenter names it from the report`);
   const changed = JSON.stringify(T) !== before && (before !== "null" || hasTests(T) || !!T.base);
   if (changed) { T.updated = o.now; const ordered = { ...(T.base ? { base: T.base } : {}), updated: T.updated }; TEST_LISTS.forEach(k => { ordered[k] = T[k]; }); if (T.other) ordered.other = T.other; plan.tests = ordered; }
-  return { changed, applied, notes };
+  return { changed, applied, notes, warnings };
 }
 /* A unit's mirror on its tracking board (unit.tests): its board's tests block as it stands, with rowNames, the names of the rows its
    classes verify, so the tracking board names them as the unit's own board does; null when that board records none. */
@@ -234,4 +281,4 @@ function testsProblems(plan) {
 /* A unit row's mirror (unit.tests), as check.js holds it: an object of the same form. */
 function mirrorProblems(m, at) { if (m == null) return []; if (typeof m !== "object" || Array.isArray(m)) return [`${at}.unit.tests must be the mirror of the unit's board's tests (embed.js writes it)`]; const p = testsProblems({ tests: m, rows: [] }); return p.fail.filter(f => !/names no row/.test(f)).map(f => `${at}.unit.${f}`); }
 
-module.exports = { TEST_LISTS, TEST_LEVELS, TEST_LEVEL_SEGMENTS, TEST_RESULTS, bareName, taskClasses, testLevelOf, levelFromPath, testKey, resultState, testsBlock, hasTests, normEntry, normOther, mergeTests, testsMirror, testsProblems, mirrorProblems };
+module.exports = { TEST_LISTS, TEST_LEVELS, TEST_LEVEL_SEGMENTS, TEST_RESULTS, bareName, taskClasses, testLevelOf, levelFromPath, readLevel, testKey, resultState, testsBlock, hasTests, normEntry, normOther, mergeTests, testsMirror, testsProblems, mirrorProblems };

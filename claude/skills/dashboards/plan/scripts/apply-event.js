@@ -256,7 +256,7 @@ function applyEvent(orig, ev, facts, req, now) {
   const curStage = () => (w.stages || []).find(x => x && x.state === "current") || null;
   /* a facts.stage that is a stage's id ("S5"), else null: a sentence such as "S5 done; S6 current" is not an id */
   const stageIdOf = v => { const t = typeof v === "string" ? v.trim() : ""; return t && (w.stages || []).some(x => x && x.id === t) ? t : null; };
-  let reportedStage = null;
+  let reportedStage = null, testStages = null;
   const builtCells = list => [...new Set((list || []).map(String).filter(id => ids.has(id)))].map(id => id + ".built");
   const factRows = () => Array.isArray(facts.rows) ? facts.rows.filter(x => typeof x === "string") : null;
   /* wip.current for a step, by the step-to-column map (plan/RULES.md §3; lib.js GLOW_MAP) */
@@ -575,6 +575,17 @@ function applyEvent(orig, ev, facts, req, now) {
       const before = JSON.parse(JSON.stringify(w.stages || []));
       mergeStages(w, facts, applied, enrich, false, ids, remed, { now, report: detail, txt });
       const st = w.stages || [], done = st.filter(x => x.state === "done" && !before.some(y => y.id === x.id && y.state === "done"));
+      /* Several stages reported done at once (KotlinBottools #24: S1 to S5 run again in a remediation, and the Tests tab's classes all took
+         S5): the stages this event finished (each finished at the event's time, so the same event twice reads the same), else, where it
+         finished none, the stages the facts list done when the report is a remediation's or its facts.stage names no done stage. Its
+         classes then take no single stage (testslib.js mergeTests(), o.stages): a class keeps the stage it has, and one with none takes the
+         reported stage whose steps name it, else the remediation's fixes, else none, said */
+      { const here = st.filter(x => x.state === "done" && x.finished === now), FS = Array.isArray(facts.stages) ? facts.stages : [], said = FS.filter(s => s && s.state === "done").map(s => s.id);
+        const named = said.includes(typeof facts.stage === "string" ? facts.stage.trim() : null);
+        const many = here.length >= 2 ? here.map(x => x.id) : !here.length && said.length >= 2 && (remed || !named) ? said : null;
+        if (many) testStages = { label: `${many.slice(0, -1).join(", ")} and ${many[many.length - 1]}`,
+          list: many.map(id => { const b = st.find(x => x.id === id) || {}, f = FS.find(s => s && s.id === id) || {};
+            return { id, steps: [...(Array.isArray(b.steps) ? b.steps : []), ...(Array.isArray(f.steps) ? f.steps : [])] }; }) }; }
       /* the derived as-built states (plan/RULES.md §2, "Before the outcome"): never an outcome; an outcome a row already records stays */
       rows.forEach(r => {
         const s = lib.stagedState(plan, r), have = lib.recordedState(r);
@@ -855,8 +866,11 @@ function applyEvent(orig, ev, facts, req, now) {
       /* A remediation's report names no stage of plan.md: its classes take "Quality Review n fixes", the pass the remediation answers, never the
          report's free-text note ("Quality Review 2 fixes done; reconciliation current" is a status, not a stage) */
       const remPass = remed && w.remediation && Number.isInteger(w.remediation.pass) ? w.remediation.pass : null;
-      const r = TL.mergeTests(plan, facts.tests, { now, pass: qp, stage: ev === "implementation-stage" ? reportedStage || stageIdOf(facts.stage) || (remPass ? `${lib.passName(remPass)} fixes` : null) || (typeof facts.stage === "string" && facts.stage.trim() ? lib.renamePassText(facts.stage.trim()) : null) : null, ids, txt: v => txt(v, "tests.note") });
-      applied.push(...r.applied); enrich.push(...r.notes.map(n => "tests: " + n)); }
+      /* an event that reports several stages done at once names no one stage for its classes (testStages, above) */
+      const fixes = remPass ? `${lib.passName(remPass)} fixes` : null;
+      const r = TL.mergeTests(plan, facts.tests, { now, pass: qp, stage: ev === "implementation-stage" && !testStages ? reportedStage || stageIdOf(facts.stage) || fixes || (typeof facts.stage === "string" && facts.stage.trim() ? lib.renamePassText(facts.stage.trim()) : null) : null, stages: ev === "implementation-stage" && testStages ? { ...testStages, fallback: fixes } : null, ids, txt: v => txt(v, "tests.note") });
+      /* what it read otherwise than sent, or changed (a level by its folder's name, a recorded level replaced), is said under warnings */
+      applied.push(...r.applied); enrich.push(...r.notes.map(n => "tests: " + n)); (r.warnings || []).forEach(x => WARNINGS.push(x)); }
   } else if (!tracking && testsDue)
     enrich.push(`the Tests tab: the event carries no facts.tests; ${ev === "qa-pass" ? "Relevant, Other and the results come from the qa report" : "Added and Amended come from the branch's diff against its base"}`);
   /* the fast path takes open points at every event (plan/RULES.md §4, "The fast path"; moved onto it in dashboards-skill/33): an

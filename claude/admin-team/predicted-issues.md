@@ -356,7 +356,7 @@ What was measured (the presenter, 2026-11-11 and 2026-11-12): a reader that reop
 
 The protocol gives a test class's `testLevel` as one of `1` `2` `3` `4a` `4b` `4c` `5`. A run sent the level folders' names instead (`gating`, `component`, `integration`, `nonfunctional`). The fast path read none of them and, as the classes' paths name no level folder, stored no level at all, without saying so in its summary: the Tests Tab showed every class with no test level until the fill set them by hand.
 
-- **Proposed resolution (not decided):** the fast path names in its summary every `testLevel` it cannot read, and the reply passes that on to the run; whether it also reads the level folders' names as their levels is the presenter's call (the standing rule on moving more onto the fast path). The run is told to send the protocol's values.
+- **Resolution (a skill defect, fixed at the presenter's discretion on 2026-11-12):** the fast path now reads a level folder's name as its level, as a tolerance, and says so in its summary (`TEST LEVEL BY NAME`); a value that is neither a level nor a name is not read and is named for the presenter. The protocol's values stay `1` to `5`, and the run was told to send them.
 - **Predicted:** the admin team, on encountering it, 2026-11-12.
 - **Encounters:**
   - 2026-11-12: KotlinBottools #24, the stage report after the plan's second revision: 14 classes sent with level names; the fill set the levels from the event's facts.

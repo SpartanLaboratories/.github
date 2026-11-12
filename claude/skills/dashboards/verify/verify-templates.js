@@ -2253,6 +2253,13 @@ catch (e) { report("the stage table after a plan revision; a late report at Qual
 try { require("./cases-atomic-write.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("a board file's atomic write while a reader holds it cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
+/* An event's facts.tests read as sent, and a remediation halted and resumed (verify/cases-tests-facts.js; KotlinBottools #24): a testLevel given
+   as a level folder's name read as its level and said, one not read named; an event reporting several stages done at once stamping no class
+   with the last one; a recorded test level another event changes said with the level held and sent; check.js counting a visit ended by a
+   halt with the visit that resumes it. It needs no browser, and runs on its own too (node verify/cases-tests-facts.js). */
+try { require("./cases-tests-facts.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("an event's facts.tests read as sent cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+
 /* A tracking issue's run sending plan-accepted and branch-cut (verify/cases-tracking-plan-events.js; admin-team/dashboards/tracking-plan-events,
    KotlinBottools #2): both keep a tracking board in its own line, its units not yet filed passing the check; branch-cut records the branch and
    writes no stages. It needs no browser, and runs on its own too (node verify/cases-tracking-plan-events.js). */

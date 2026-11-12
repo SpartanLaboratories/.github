@@ -852,7 +852,12 @@ function checkHistory(plan, w, stampOk) {
         if (V.remediation != null && (typeof V.remediation !== "object" || (V.remediation.pass != null && !posI(V.remediation.pass)))) fail(`${a}.remediation is the remediation loop as it stood, { pass, route, steps }`);
         if (V.units != null && (typeof V.units !== "object" || !Number.isInteger(V.units.done) || !Number.isInteger(V.units.total))) fail(`${a}.units is { done, total }, the units filed (or with a board) when the step ended`);
       });
-      if (s === "remediation") { const ps = vs.filter(V => V && !V.outage).map(V => V.remediation && V.remediation.pass).filter(Boolean); if (new Set(ps).size !== ps.length) warn(`${at}: two visits answer the same qa pass (${ps.join(", ")}): each remediation loop answers a pass of its own`); }
+      /* one loop per qa pass: a visit ended by a halt (endedBy halted, or held: the run waited on the user) and the visit that resumes the
+         same pass after it are one loop, cut by the wait (KotlinBottools #24: Quality Review 1's remediation halted on a question, answered,
+         then resumed; the two visits read as two loops) */
+      if (s === "remediation") { const live = vs.filter(V => V && !V.outage), passOf = V => V && V.remediation && V.remediation.pass;
+        const loops = live.filter((V, j) => passOf(V) && !(j > 0 && passOf(live[j - 1]) === passOf(V) && (live[j - 1].endedBy === "halted" || live[j - 1].held === true)));
+        const ps = loops.map(passOf); if (new Set(ps).size !== ps.length) warn(`${at}: two visits answer the same qa pass (${live.map(passOf).filter(Boolean).join(", ")}): each remediation loop answers a pass of its own`); }
     });
   }
   const fin = finishedSteps(w, plan.status), Hs = H && typeof H === "object" && !Array.isArray(H) ? H : {};
