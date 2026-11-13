@@ -10,8 +10,8 @@
 //    agent's name only" AGENT_ONLY (qa). A row that allows anything else has no strength in the script (an exception is brought to the user
 //    first) and is named. The §2 table (the approval flow) and APPROVAL_FLOW hold the same phrases.
 // 2. Each name and phrase found as its strength says, and §4's allowed words found nowhere: "the direction manager" with a space as well;
-//    a name in backticks found, a longer word that contains one not; a fenced block read as before (its lines scanned in a text, a
-//    rendered <pre><code> left out).
+//    a name in backticks found, a longer word that contains one not; a fenced block counted as backticks are, in a text and rendered
+//    (<pre><code>) alike (the user's decision of 2026-11-13, dashboards/scan-forms).
 // 3. The parity fails where they differ: a row added to the list's table and an alias added to a row (each written into the list's text in
 //    its four-column shape and read back), a name dropped from the script, a "never" name made contextual, a phrase added to the list.
 // 4. namerefs.js's header points at the list and no longer repeats it.
@@ -120,9 +120,13 @@ module.exports = function casesInternalNames(X) {
       ["the `Planner` type", true], ["the archivist's hook", true], ["two archivists", true], ["the solution architect", true], ["Presenters", true],
       ["uses OkHttp's `RoutePlanner`", false], ["an `ExecutorService`", false], ["RoutePlanner picks a route", false], ["plannerConfig", false], ["planner_id", false]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);
     c.push(["every name a whole word wherever it stands, in backticks too; a longer word that contains one is not a find", !strict.length, js(strict.map(([t, w]) => [t, w, N.nameRefs(t)]))]);
-    /* fenced blocks: not decided, so read as before: a fence's lines in a text are scanned as any other line, a rendered <pre><code> is left out */
-    const fence = [["```kotlin\nval planner = RoutePlanner()\n```", true], ["<pre><code>the planner reruns it</code></pre>", false], ["<code>planner</code>", true]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);
-    c.push(["a fenced block read as before: its lines in a text scanned, a rendered <pre><code> left out; an inline <code> counts as backticks do", !fence.length, js(fence.map(([t, w]) => [t, w, N.nameRefs(t)]))]);
+    /* the user's decision of 2026-11-13, dashboards/scan-forms: a fenced block counts as backticks do, in a text and rendered (<pre><code>) alike, so the board scripts and the commit scan agree */
+    const fence = [["```kotlin\nval planner = RoutePlanner()\n```", true], ["<pre><code>the planner reruns it</code></pre>", true], ["<pre><code class=\"lang-kotlin\">val executor = pool()</code></pre>", true],
+      ["<pre><code>val p = RoutePlanner()</code></pre>", false], ["<code>planner</code>", true]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);
+    c.push(["a fenced block counts as backticks do: its lines in a text and a rendered <pre><code> scanned, a longer word in it no find; an inline <code> counts as well", !fence.length, js(fence.map(([t, w]) => [t, w, N.nameRefs(t)]))]);
+    const span = "<pre><code>the planner reruns it</code></pre>", sp = N.nameSpans(span);
+    c.push(["nameSpans() finds what nameRefs() finds, a rendered fenced block included", sp.length === N.nameRefs(span).length && sp.length === 1 && span.slice(sp[0].index, sp[0].end) === "planner", js(sp)]);
+    c.push(["a wait on the user, no name of the list, keeps its reading: a rendered fenced block left out of it, a text's found", !N.waitRefs("<pre><code>waiting on the user</code></pre>").length && N.waitRefs("waiting on the user").length === 1, js(N.waitRefs("<pre><code>waiting on the user</code></pre>"))]);
     const sc = [["accepted by the direction manager", "accepted"], ["The direction manager's hook stands.", "The hook stands."]].filter(([s, w]) => { const r = N.scrubNames(s); return r.text !== w || r.left.length; });
     c.push(["scrubNames(): the direction manager's agent phrase dropped, its possessive the article", !sc.length, js(sc.map(([s, w]) => [s, N.scrubNames(s), w]))]);
   });

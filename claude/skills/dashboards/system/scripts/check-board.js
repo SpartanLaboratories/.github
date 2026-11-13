@@ -393,7 +393,8 @@ function titleChecks() {
 }
 // Internal names (GUIDANCE.md §4, "No internal names"; namerefs.js; dashboards-skill/33), read without a browser: the strings of a board's
 // data blocks (plan, board, state; an issue's title, quoted verbatim, left out), its HTML comments (the old "presenter:" placeholder marks
-// included) and the text of its hand-written HTML (a state board's header, panels, Guarantees and Context; an inline <code> counts as a name in backticks does, a <pre> block is left out as before). Each is a
+// included) and the text of its hand-written HTML (a state board's header, panels, Guarantees and Context; an inline <code> counts as a name in backticks does, and so does a <pre> block, a rendered fenced block,
+// the user's decision of 2026-11-13, dashboards/scan-forms, so this scan and the commit scan agree). Each is a
 // warning, INTERNAL NAME, never a problem of the board: text a board stores is corrected where it is stored, an issue or tracking board's through fill.js (GUIDANCE.md §4).
 function nameChecks() {
   if (!src || /<meta name="dashboard" content="doc-copy">/.test(src)) return null;
@@ -401,7 +402,7 @@ function nameChecks() {
   ["plan", "board", "state"].forEach(id => { const t = L.blockText(src, id); if (t == null) return; try { const d = JSON.parse(t), h = N.nameRefsIn(d, "", [], titleSkip(d)); if (h.length) notes.push("warning: " + N.nameWarning(`its ${id} data (${[...new Set(h.map(x => x.at))].slice(0, 4).join(", ")})`, h.map(x => x.hit))); } catch (e) { /* the data checks report it */ } });
   const c = N.commentRefs(src); if (c.length) notes.push("warning: " + N.nameWarning("its comments", c));
   if (!/<meta name="dashboard" content="(plan-board|work-board|org-work-board)">/.test(src)) {
-    const text = src.replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<style[\s\S]*?<\/style>/g, " ").replace(/<!--[\s\S]*?-->/g, " ").replace(/<pre\b[^>]*>[\s\S]*?<\/pre>/g, " ")
+    const text = src.replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<style[\s\S]*?<\/style>/g, " ").replace(/<!--[\s\S]*?-->/g, " ")
       .replace(/<a\b[^>]*\bdata-board="\d+"[^>]*>[\s\S]*?<\/a>/g, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&rsquo;/g, "'").replace(/\s+/g, " ");
     const h = N.nameRefs(text); if (h.length) notes.push("warning: " + N.nameWarning("its text", h));
   }

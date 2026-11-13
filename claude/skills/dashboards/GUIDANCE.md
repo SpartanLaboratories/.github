@@ -325,7 +325,9 @@ level (above), as [`nomenclature/internal-names.md`](../../nomenclature/internal
 happened instead: "accepted", "a plan re-pass", "the fixes", "the land is accepted and being merged". Fine on a board as well are the
 steps' own names (research, architecture, plan) and a halt's "waiting on you". Every name the list bars counts as a whole word wherever
 it stands, in backticks too, whatever the words around it ("the dispatcher and the executor" as much as "the executor commits"); a longer
-word that contains one (`RoutePlanner`, `ExecutorService`) does not. The data follows: the remediation routes' ids are `on-the-spot`,
+word that contains one (`RoutePlanner`, `ExecutorService`) does not. A fenced code block counts as backticks do, a rendered one on a board
+(`<pre><code>`) included, so the board scripts and the commit scan, which reads every line of a board file, agree (the user's decision of
+2026-11-13, dashboards/scan-forms). The data follows: the remediation routes' ids are `on-the-spot`,
 `remediation` and `re-plan-then-remediation` (the older `rookie-dev` and `planner-then-rookie-dev` are read alike), the template's
 placeholder mark is `fill:` (a `presenter:` mark is migrated by the splice), a progress note is labelled by the work it reports ("research
 · <slug>", "code check"; a Quality Review's three checks "documentation check", "code check", "test check", dashboards-skill/52).

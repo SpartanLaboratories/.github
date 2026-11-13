@@ -6,8 +6,8 @@
 // Every name the list's §1 bars "never" (BARRED) matches as a whole word wherever it stands (the user's decision of 2026-11-13): no
 // surrounding word lets one through, "the dispatcher and the executor" is a find as "the planner" is, and "admin team" and "direction
 // manager" match with a space as well as a hyphen. A name in backticks or an inline <code> element counts as it does anywhere else; a
-// longer word that contains one is not a find (RoutePlanner, ExecutorService, a `DirectionManager`), as the list says. A fenced block keeps
-// its reading from before: in a text its lines are scanned as any other, rendered (<pre><code>) it is left out. "qa" matches only as an
+// longer word that contains one is not a find (RoutePlanner, ExecutorService, a `DirectionManager`), as the list says. A fenced block counts
+// as backticks do, in a text and rendered on a board (<pre><code>) alike (the user's decision of 2026-11-13, dashboards/scan-forms). "qa" matches only as an
 // agent ("qa found", "qa has approved", "by qa", "qa's"), never as the step or its passes. The version-control-manager shortened matches as
 // "the manager's" or "the manager" with a pipeline verb, never "Selenium Manager". The approval flow matches with a word between ("the
 // user's two answers") and in the passive ("signed off by the user").
@@ -39,25 +39,25 @@ const NAME_PATTERNS = [
   ["\\b(?:signed\\s+off|approved|decided|chosen|answered)\\s+by\\s+the\\s+user\\b", "i"],                  // "signed off by the user"
 ];
 const REGEXES = NAME_PATTERNS.map(([s, f]) => new RegExp(s, f + "g"));
-/* a backtick span and an inline <code> element are scanned as the rest (internal-names.md); a rendered fenced block, <pre><code>, is left
-   out as before, and a fenced block in a text is scanned line by line as before (whether a fence counts is not decided) */
+/* a backtick span, an inline <code> element and a fenced block, in a text or rendered on a board (<pre><code>), are scanned as the rest
+   (internal-names.md; the user's decision of 2026-11-13, dashboards/scan-forms), so the board scripts and the commit scan, which reads
+   every line of a board file, agree. A wait on the user (waitRefs(), below) is no name of the list and keeps its reading: a rendered
+   fenced block is left out of it. */
 const FENCED = /(<pre\b[^>]*>\s*)<code\b[^>]*>[\s\S]*?<\/code>/gi;
 const prose = t => String(t).replace(FENCED, "$1 ");
 /* Every internal name in a text, as the matched strings. */
 function nameRefs(text) {
   const out = [];
   if (typeof text !== "string" || !text) return out;
-  const t = prose(text);
-  REGEXES.forEach(re => { re.lastIndex = 0; let m; while ((m = re.exec(t))) out.push(m[0]); });
+  REGEXES.forEach(re => { re.lastIndex = 0; let m; while ((m = re.exec(text))) out.push(m[0]); });
   return out;
 }
-/* Every internal name in a text as its span, { index, end }, in the text as given (a rendered fenced block masked to spaces of the same
-   length, so the offsets hold): lib.js sectionOf() elides the clause around each from a plan excerpt, as it elides a work level. */
+/* Every internal name in a text as its span, { index, end }, in the text as given, the same finds as nameRefs(): lib.js sectionOf() elides
+   the clause around each from a plan excerpt, as it elides a work level. */
 function nameSpans(text) {
   const out = [];
   if (typeof text !== "string" || !text) return out;
-  const t = text.replace(FENCED, (m, pre) => pre + " ".repeat(m.length - pre.length));
-  REGEXES.forEach(re => { re.lastIndex = 0; let m; while ((m = re.exec(t))) out.push({ index: m.index, end: m.index + m[0].length }); });
+  REGEXES.forEach(re => { re.lastIndex = 0; let m; while ((m = re.exec(text))) out.push({ index: m.index, end: m.index + m[0].length }); });
   return out.sort((a, b) => a.index - b.index);
 }
 /* A wait on the user in a fact or a comment: its wording is "waiting on you" (GUIDANCE.md §4). */
