@@ -251,10 +251,12 @@ agents, sessions or roles, for the approval flow and for a work level, as
 `~/.claude/nomenclature/internal-names.md` lists them with what is not a find.
 The scan covers documents and boards (everything under `docs/`, `README.md`,
 the generated board files and, in `SpartanLaboratories/.github`,
-`Structure.md`, `POLICY.md`, `DESIGN.md` and every file of the Policy and
-Design folders) and the comments in source code (line and block comments,
-KDoc), the scripts in that repository's `scripts/` among them, reading every
-line of each such file the commit carries, not only the changed lines; code
+`Structure.md`, `POLICY.md`, `DESIGN.md`, every file of the Policy and Design
+folders and every Markdown file of S, P and D outside `claude/`,
+`scripts/INDEX.md` and `rule-index.md` among them) and the comments in source
+code (line and block comments, KDoc), the scripts in that repository's
+`scripts/` among them, reading every line of each such file the commit
+carries, not only the changed lines; code
 itself (identifiers, strings) is not scanned. It applies to a `mirror-sync`
 that carries those files as to a `commit`. On a find, commit nothing: report
 each `file:line` with the offending text under **Stopped — internal names**,

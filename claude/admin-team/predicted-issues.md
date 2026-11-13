@@ -499,3 +499,16 @@ The session's auto mode classifier refuses a tool call by which the team changes
   - 2026-11-12: W37 retried by Edit: two changes went in, the change to the straight-to-`main` rule was refused; the rest placed by the user.
   - 2026-11-12: the sentence on the direction manager's scope in the team's brief; staged, placed by the user.
   - 2026-11-12: the presenter's timing rule: it went into the presenter's brief; the matching edits to the protocol, the dashboards rules and the dashboards skill were refused and staged.
+
+## A name the scan bars is in a string a script prints
+
+```json
+{"id":"p35","count":1,"last":"2026-11-13"}
+```
+
+The internal-names scan reads documents, boards and the comments in source code; code itself is not scanned. A message a script prints is code, so a name the list bars can reach a public repository in it without a find.
+
+- **Proposed resolution:** put to the user as a choice of the work that carries the script: reword the strings in a later commit, leave them, or have the scan also read the strings a script prints.
+- **Predicted:** the admin team, on encountering it, 2026-11-13.
+- **Encounters:**
+  - 2026-11-13: the organization repository, the first commit of its structure files: two messages the checker and the fetch script print name the admin team (`scripts/rule-check.js:668`, `scripts/rule-fetch.js:31`). The files were the bytes the user had approved and the scan held no find, so the commit went out; the user was told at the console.
