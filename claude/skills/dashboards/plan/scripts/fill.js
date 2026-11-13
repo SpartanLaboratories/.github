@@ -45,7 +45,8 @@
 //   is halted or escalated it is written, and the stop's own trail entry and a detail that quoted the old text follow it, so the record reads alike;
 //   once an event has taken the board out of the stop, the last stop's trail entry alone takes it, and a waitingOn and resume left standing are cleared.
 // It catches up the plan's stage table on a board whose stages carry none of it (lib.js catchUpStageTable()), and keeps up what follows from new rows: a tracking board's wip.next once its unit rows first appear, the glow at research and at sub-issues (and at implementation, from the rows a fill names for the current stage, when it sets no glow itself), and a unit's
-// blocker named by unit number ({ "unit": k }, plan/RULES.md §3, unit.blockedBy) written as its issue number once that unit is filed.
+// blocker named by unit number ({ "unit": k }, plan/RULES.md §3, unit.blockedBy) written as its issue number once that unit is filed; and a row it brings onto a
+// planned board with no asBuilt is laid pending ({ "state": "pending" }), as every part of a planned board is.
 // Exit 0 when merged (the summary's check line says what still warns or fails), 1 when the fill would add a failure to the board (every file as it was), 2 on a usage error or a refused field.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
@@ -295,6 +296,9 @@ function mergeFill(board, fields, planDir) {
   if (planDir && !["built", "abandoned"].includes(plan.status)) { const enr = [], n = lib.catchUpStageTable(w, planDir, stageNope, enr); if (n) merged.push(`wip.stages: ${n} from the plan's stage table, caught up`); enr.forEach(x => notes.push(x)); }
   /* what follows from new rows */
   const rowsNow = Array.isArray(plan.rows) ? plan.rows : [];
+  /* a row the fill brings onto a planned board with no asBuilt is pending, as every part of a planned board is and the events derive it
+     (KotlinBottools #39's first fill, refused for its rows' missing asBuilt) */
+  if (F.rows && plan.status === "planned") rowsNow.forEach(r => { if (isObj(r) && !isObj(r.asBuilt)) { r.asBuilt = { state: "pending" }; merged.push(`rows ${r.id}: asBuilt pending (a planned board's parts are pending)`); } });
   if (plan.kind === "tracking" && !hadUnits && rowsNow.some(r => r && r.unit) && w.next == null) { const nx = lib.nextUnit(plan); if (nx) { w.next = nx.id; merged.push(`wip.next ${nx.id}`); } }
   /* a blocker the fill names by unit number ({ unit: k }) whose unit is filed already is written as its issue number (lib.js mapUnitBlockers()) */
   if (F.rows) lib.mapUnitBlockers(plan).forEach(m => notes.push(`${m}: that unit is filed, so its issue number is written`));

@@ -470,9 +470,10 @@ function resolveBoard(plan, dir, opts) { return [...LV.dropWorkLevels(plan), ...
    STEPS_BY_LEVEL, read at the laying from the level the request (or the team's local state) tells and never kept on the board (levels.js): a
    tracking issue runs its own steps up to its architecture, the Document step before its plan's land, the land's two steps, landing and merge
    (admin-team/dashboards-skill/35), then "sub-issues", its units filed after the merge; then "implementation" spans its units' runs, each on its
-   own board laid at its own sized, from the first unit's start until the last unit lands, and "landed" follows (§3). */
+   own board laid at its own sized, from the first unit's start until the last unit lands, and "landed" follows (§3). A small fix runs no research
+   (nothing is sent for it), so its line has no research step and its sized names plan; a small feature's line has the interview and the research. */
 const STEPS_BY_LEVEL = {
-  2: ["sizing", "research", "plan", "branch", "implementation", "qa", "remediation", "document", "landing", "merge", "landed"],
+  2: ["sizing", "plan", "branch", "implementation", "qa", "remediation", "document", "landing", "merge", "landed"],
   3: ["sizing", "interview", "research", "plan", "branch", "implementation", "qa", "remediation", "document", "landing", "merge", "landed"],
   4: ["sizing", "interview", "research", "architecture", "document", "landing", "merge", "sub-issues", "implementation", "landed"]};
 /* a system's entry on a board: the registry's, else (a slug the registry does not know) the slug itself, in the neutral colour, with no board */
@@ -879,7 +880,7 @@ const RETIME_NOT = ["run-restarted", "reseed", "seed", "unit-landed", "retime", 
 /* the trail entry an event writes (apply-event.js), by its label; on a tracking board, a unit's entry by its number */
 const RETIME_TRAIL = { sized: /^(?:sized|run started|re-?sized)\b/i, halted: /^halted\b/i, resumed: /^resumed\b/i, escalated: /^escalated\b/i,
   "research-planning": /^research planning\b/i, "research-started": /^research started\b/i, "research-returned": /^research returned\b/i,
-  "verification-started": /^verification started\b/i, researched: /^research verified\b/i, "architecture-signed-off": /^architecture signed off\b/i,
+  "verification-started": /^verification started\b/i, researched: /^(?:research verified|nothing to research)\b/i, "architecture-signed-off": /^architecture signed off\b/i,
   "sub-issues-filed": /^\d+ of \d+ units? filed\b/i, "boards-created": /^\d+ of \d+ unit boards? created\b/i, "plan-accepted": /^(?:plan accepted|architecture final)\b/i,
   "branch-cut": /^(?:planning )?branch\b/i, "implementation-stage": /^(?:[\w.-]+ done; |[\w.-]+ current: |implementation\b|correction\b|resolution\b)/i,
   "qa-pass": /^(?:quality review \d+|qa pass \d+)/i, document: /^document\b/i, "state-boards": /^(?:document|state boards)\b/i, landing: /^landing\b/i,
@@ -1233,7 +1234,7 @@ function finishedSteps(R, status) {
    reconStep() is the same rule. */
 const TRAIL_STEP_WORDS = [["filing the units", "sub-issues"], ["creating the units", "boards"], ["the interview", "interview"], ["interview", "interview"], ["research", "research"], ["the architecture", "architecture"], ["architecture", "architecture"],
   ["the plan", "plan"], ["plan", "plan"], ["the branch", "branch"], ["branch", "branch"], ["implementation", "implementation"], ["quality review", "qa"], ["qa", "qa"], ["the correction", "remediation"], ["the resolution", "remediation"], ["correction", "remediation"], ["resolution", "remediation"], ["remediation", "remediation"], ["the document step", "document"], ["document", "document"], ["the landing", "landing"], ["landing", "landing"], ["the state boards", "state-boards"], ["state boards", "state-boards"], ["the merge", "merge"], ["merge", "merge"], ["sizing", "sizing"]];
-const TRAIL_STEP_RE = [[/^(run started|sized|sizing|re-?sized)\b/i, "sizing"], [/^interview/i, "interview"], [/^(research|verification|findings)/i, "research"], [/^architecture/i, "architecture"],
+const TRAIL_STEP_RE = [[/^(run started|sized|sizing|re-?sized)\b/i, "sizing"], [/^interview/i, "interview"], [/^(research|verification|findings|nothing to research)/i, "research"], [/^architecture/i, "architecture"],
   [/^(\d+ of \d+ units? filed|sub-issues filed)/i, "sub-issues"], [/^\d+ of \d+ unit boards? created/i, "boards"], [/^plan\b/i, "plan"], [/^branch\b/i, "branch"], [/^(S\d+\b|implementation\b|stage\b)/i, "implementation"],
   [/^(?:qa pass|quality review)/i, "qa"], [/^(?:remediation|correction|resolution)\b/i, "remediation"], [/^document\b/i, "document"], [/^state boards\b/i, "state-boards"], [/^merg(?:e|ing)\b/i, "merge"], [/^(landing|landed)\b/i, "landing"]];
 function trailStep(label) {
@@ -1245,7 +1246,9 @@ function trailStep(label) {
 const MILESTONE_STEP = { gap: "research", verdict: "plan", built: "landing" };
 /* a tracking board has no plan step of its own: its plan lands at its landing step, so an entry naming the plan is its landing's */
 const boardStep = (plan, s) => plan && plan.kind === "tracking" && s === "plan" ? "landing" : s;
-const milestoneStep = (plan, m) => boardStep(plan, trailStep(m && m.label) || (m && m.column === "considered" ? (plan.kind === "tracking" ? "architecture" : "plan") : MILESTONE_STEP[m && m.column] || null));
+/* a small fix's line has no research step (STEPS_BY_LEVEL): what the research step would hold there (its gap milestone) is its plan step's */
+const lineStep = (plan, s) => s === "research" && plan && plan.wip && Array.isArray(plan.wip.steps) && plan.wip.steps.length && !plan.wip.steps.includes("research") ? "plan" : s;
+const milestoneStep = (plan, m) => boardStep(plan, lineStep(plan, trailStep(m && m.label) || (m && m.column === "considered" ? (plan.kind === "tracking" ? "architecture" : "plan") : MILESTONE_STEP[m && m.column] || null)));
 const okDay = v => typeof v === "string" && /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?Z)?$/.test(v) && !isNaN(Date.parse(v));
 function reconstructStep(plan, step) {
   const w = (plan && plan.wip) || {}, R = { reconstructed: true, ended: null, trail: [], milestones: [] };
@@ -1951,6 +1954,35 @@ function mapUnitBlockers(plan) {
   });
   return out;
 }
+/* A filed unit's pending summary while its run has not started (plan/RULES.md §4, the sub-issues-filed row; KotlinBottools #27, whose four unit
+   rows still said "Not filed yet…" after their filing): "Filed as #n; its run has not started." and when it starts: "It starts first." for the
+   unit up next with no blocker, "It starts once #39 has landed." by its blockers (a blocker not filed yet by its unit number), else "No other unit
+   blocks it.". filedSummaries() writes it on every filed unit row that is pending, has no board and no run, and whose summary is empty, is the
+   one written before the filing (it opens "Not filed yet"), or is one of these written before; any other summary is the presenter's (it may
+   name the blockers in words, "#39, the workspace tools") and is kept. Returns one line per summary written. */
+const FILED_SUMMARY = /^Filed as #\d+; its run has not started\. (?:It starts first|It starts once (?:#\d+|unit \d+)(?:, (?:#\d+|unit \d+))*(?: and (?:#\d+|unit \d+))? ha(?:s|ve) landed|No other unit blocks it)\.$/;
+function filedSummary(plan, r) {
+  const bl = (Array.isArray(r.unit.blockedBy) ? r.unit.blockedBy : []).map(x => isUnitRef(x) ? `unit ${x.unit}` : Number.isInteger(x) && x > 0 ? `#${x}` : null).filter(Boolean);
+  const list = bl.length < 3 ? bl.join(" and ") : `${bl.slice(0, -1).join(", ")} and ${bl[bl.length - 1]}`;
+  const when = bl.length ? `It starts once ${list} ${bl.length === 1 ? "has" : "have"} landed.` : nextUnit(plan) === r ? "It starts first." : "No other unit blocks it.";
+  return `Filed as #${r.unit.issue}; its run has not started. ${when}`;
+}
+function filedSummaries(plan) {
+  const out = [];
+  if (!plan || plan.kind !== "tracking") return out;
+  (Array.isArray(plan.rows) ? plan.rows : []).forEach(r => {
+    if (!r || !r.unit || !unitFiled(r) || unitBoarded(r) || r.unit.live) return;
+    const ab = r.asBuilt && typeof r.asBuilt === "object" ? r.asBuilt : null;
+    if (ab && (ab.state || "pending") !== "pending") return;
+    const have = ab && typeof ab.summary === "string" ? ab.summary.trim() : "";
+    if (have && !/^not filed yet\b/i.test(have) && !FILED_SUMMARY.test(have)) return;
+    const want = filedSummary(plan, r);
+    if (have === want) return;
+    r.asBuilt = { ...(ab || { state: "pending" }), summary: want };
+    out.push(`${r.id}: asBuilt.summary "${want}"`);
+  });
+  return out;
+}
 function filingGlow(plan, step) {
   if (!plan || plan.kind !== "tracking" || !["sub-issues", "boards"].includes(step)) return [];
   const done = step === "sub-issues" ? unitFiled : unitBoarded;
@@ -2348,5 +2380,5 @@ function ghMergeTime(repo, pr, merge) {
   } catch (e) { return out; }
 }
 
-module.exports = { ...LV, ...PN, renameInto, RENAME_BUDGET_MS, stageTable, stepsBelow, stepKids, walkSteps, stepShape, settleSteps, carrySteps, stepNameOf, completeStep, planStageTable, stageKey, stageRow, stageTableFields, catchUpStageTable, stampItem, backfillStages, STAGE_KINDS, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, isUnitRef, blockerOf, mapUnitBlockers, HISTORY_FIELDS, HISTORY_STEPS, qAnswered, askedOf, answerQuestions, syncAsked, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, retimePlan, RETIME_NOT, retimeWords, retimeWhat, TEAM_RECORDS, rewordPlan, rewordDigest, rewordWhat, docCommitDone, landSent, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, roadmapDocItem, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+module.exports = { ...LV, ...PN, renameInto, RENAME_BUDGET_MS, stageTable, stepsBelow, stepKids, walkSteps, stepShape, settleSteps, carrySteps, stepNameOf, completeStep, planStageTable, stageKey, stageRow, stageTableFields, catchUpStageTable, stampItem, backfillStages, STAGE_KINDS, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, isUnitRef, blockerOf, mapUnitBlockers, filedSummary, filedSummaries, HISTORY_FIELDS, HISTORY_STEPS, qAnswered, askedOf, answerQuestions, syncAsked, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, retimePlan, RETIME_NOT, retimeWords, retimeWhat, TEAM_RECORDS, rewordPlan, rewordDigest, rewordWhat, docCommitDone, landSent, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, roadmapDocItem, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, unitLandingOf, unitLandings, mirrorUnitLandings, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewBaseFolder, viewBaseHref, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, notYetLanded, landedPending, unitLeft, setViewLinks, viewedFolder, viewLink, landVisit, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

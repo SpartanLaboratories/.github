@@ -151,7 +151,7 @@ module.exports = function cases26(X) {
     const dp = dumpDom(path.join(ldir, "dashboard.html"), "", null, 6000), sp = inner(dp, '<div class="wip-facts sp-prog"', "div");
     c.push(dp == null ? ["the step panel shows each agent's note as an info card: the work it reports (never the agent's name), elapsed, done, left, ETA, as of", false, NEEDS_BROWSER] : ["the step panel shows each agent's note as an info card: the work it reports (never the agent's name), elapsed, done, left, ETA, as of", dp == null || /class="prog"><span class="l">planning<\/span><small>2\d min in<\/small> done: Read the three findings files\. · left: Write the verification section\. · ETA ~10 min <small>as of/.test(sp), text(sp).slice(0, 240)]);
     c.push(dp == null ? ["a note not updated for over 20 minutes is muted, and the legend names both", false, NEEDS_BROWSER] : ["a note not updated for over 20 minutes is muted, and the legend names both", dp == null || /class="prog stale"><span class="l">research · blast-radius/.test(sp) && !/planner|researcher/.test(text(sp)) && /a progress note: an agent's own report/.test(dp) && /muted: no update for over 20 minutes/.test(dp), text(sp).slice(0, 200)]);
-    c.push(["the progress notes are probed only by a live board: none on the landed example", !/class="prog/.test(inner(d || "", '<section class="wip"', "section")), "the example board"]);
+    c.push(["the progress notes are probed only by a live board: none on the landed example", !/class="prog/.test(inner(d || "", '<section class="wip', "section")), "the example board"]);
     groups.push(["links to files that exist, live first (issue boards); the rendered Markdown copies; the agents' progress notes in the step panel", c]); }
 
   /* F, G. the tracking issue's unit boards and its steps after the architecture */
@@ -182,7 +182,7 @@ module.exports = function cases26(X) {
     const k = node(checkJs, path.join(tdir, "62-http-core"), "--root", tree);
     c.push(["check.js passes it (its Gap and Considered still to write: a warning)", k.status === 0 && /no rows/.test(k.stdout), (k.stdout || "").split(/\r?\n/).filter(l => /^FAIL|no rows/.test(l)).join(" | ")]);
     const dN = dumpDom(path.join(tdir, "62-http-core", "dashboard.html"));
-    c.push(dN == null ? ["a laid board reads \"Not started\", with no step panel", false, NEEDS_BROWSER] : ["a laid board reads \"Not started\", with no step panel", dN == null || /Not started/.test(text(inner(dN, '<section class="wip"', "section"))) && !/<div class="sp"/.test(dN), text(inner(dN, '<section class="wip"', "section")).slice(0, 160)]);
+    c.push(dN == null ? ["a laid board reads \"Not started\", with no step panel", false, NEEDS_BROWSER] : ["a laid board reads \"Not started\", with no step panel", dN == null || /Not started/.test(text(inner(dN, '<section class="wip', "section"))) && !/<div class="sp"/.test(dN), text(inner(dN, '<section class="wip', "section")).slice(0, 160)]);
     s = ev(62, "sized", { at: "2026-10-25T15:00:00Z", step: "research" }, F0 + "/62-http-core");
     c.push(["a later sized starts the laid board in place, and the unit on its tracking board", s.status === 0 && s.result === "ok" && J(F0 + "/62-http-core").wip.step === "research" && J(F0).wip.current.includes("http-core.built"), JSON.stringify([s.result, s.error, J(F0 + "/62-http-core").wip.step, J(F0).wip.current])]);
     const wb = run(sk("plan/scripts/board.js"), ["--root", tree, "--no-gh"]), bj = JSON.parse(rd(path.join(tree, "docs", "plans", "board.json")));

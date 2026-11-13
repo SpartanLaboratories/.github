@@ -347,11 +347,18 @@ function applyEvent(orig, ev, facts, req, now) {
     trail = { column: "built", label: `${name}${what ? ": " + what : ""}` };
   };
 
+  /* a small fix runs no research, so its steps line has no research step (lib.js STEPS_BY_LEVEL; plan/RULES.md §3, §4): an event that would put
+     the board at research on such a line is refused, never answered by putting the step back, which would show research on a small fix. A line
+     with no steps recorded (an older board) is not judged. */
+  const noResearchStep = Array.isArray(w.steps) && w.steps.length > 0 && !w.steps.includes("research");
+  const refuseResearch = what => refuse(`${what}: this board's steps line has no research step (a small fix runs no research, and nothing is sent for it), so the event does not apply: a small fix's sized names plan`);
+  if (noResearchStep && ["research-planning", "research-started", "research-returned", "verification-started", "researched"].includes(ev)) refuseResearch(ev);
   switch (ev) {
     case "sized": {
       /* a tracking board's step a sized derives (no facts.step) is never plan either: an older board left there reads as its architecture */
       const step = facts.step || tPlan(w.step === "sizing" || !w.step ? null : stopped(w.step) ? w.resume : w.step);
       if (!step || !["interview", "research", "plan", "architecture"].includes(step)) refuse(`sized names no step to start at (facts.step: interview, research or plan; got ${JSON.stringify(facts.step || null)})`);
+      if (step === "research" && noResearchStep) refuseResearch("sized names research");
       if (stopped(w.step)) { w.resume = null; w.waitingOn = null; }
       /* the run's start, kept once: the plan phase's first bound on the Timeline tile (plan/RULES.md §2, "The KPI tiles") */
       if (!lib.okStamp(plan.sized)) { plan.sized = now; applied.push(`sized ${now}`); }
@@ -477,18 +484,28 @@ function applyEvent(orig, ev, facts, req, now) {
     }
     case "researched": {
       const q = qs(), none = q.filter(x => x.findings == null);
+      /* nothing to research (the user's decision of 2026-11-13, batch-4/q-2 (a); plan/RULES.md §4, the researched row): a researched that names no
+         documents, on a board that records no research question, says the run decided there was nothing to research. The board moves on at the
+         event's time and records that, never a research that left no record: wip.research.nothing, its own detail and trail entry, and no
+         enrichment from research documents that do not exist (the Gap was written at sized, from the issue and the code). */
+      const docs = (Array.isArray(facts.documents) ? facts.documents : typeof facts.documents === "string" ? [facts.documents] : []).filter(x => typeof x === "string" && x.trim());
+      const nothing = !docs.length && !q.length;
       q.filter(x => x.findings != null && x.state !== "complete").forEach(x => { x.state = "complete"; });
       if (q.length) applied.push("wip.questions complete");
       if (none.length) enrich.push(`questions with no findings recorded (${none.map(x => x.question).join(", ")}) cannot be complete`);
       setPhase("complete");
+      if (nothing) { const r = research(); if (r.nothing !== true) { r.nothing = true; applied.push("wip.research.nothing: nothing to research"); } }
+      else if (w.research && w.research.nothing) { delete w.research.nothing; applied.push("wip.research.nothing cleared: research recorded"); }
       const step = facts.step || (tracking ? "architecture" : "plan");
       if (!["architecture", "plan"].includes(step)) refuse(`researched: the next step is architecture or plan (got ${JSON.stringify(step)})`);
       setStep(step);
-      if (step === "plan" && !tracking && (!w.plan || w.plan.state !== "writing")) { w.plan = { state: "writing", since: now }; applied.push("wip.plan writing"); }
+      /* the plan step's pass opens as writing where none stands; a re-pass already standing (from the parent's plan at a sub-issue's sized, after a
+         Quality Review, or verifying an existing plan) is kept, never overwritten by the research's end */
+      if (step === "plan" && !tracking && !(w.plan && ["writing", "re-pass"].includes(w.plan.state))) { w.plan = { state: "writing", since: now }; applied.push("wip.plan writing"); }
       setGlow(step);
-      enrich.push("researched: the Gap column and its milestone come from research/README.md and the findings");
-      detail = detail || `Research verified; ${STEP_WORDS[step]} next.`;
-      trail = { column: "gap", label: `Research verified; ${STEP_WORDS[step]} next`, ref: docRef("research/README.md") };
+      if (!nothing) enrich.push("researched: the Gap column and its milestone come from research/README.md and the findings");
+      detail = detail || (nothing ? `Nothing to research; ${STEP_WORDS[step]} next.` : `Research verified; ${STEP_WORDS[step]} next.`);
+      trail = nothing ? { column: "gap", label: `Nothing to research; ${STEP_WORDS[step]} next` } : { column: "gap", label: `Research verified; ${STEP_WORDS[step]} next`, ref: docRef("research/README.md") };
       break;
     }
     case "architecture-signed-off": {
@@ -521,6 +538,10 @@ function applyEvent(orig, ev, facts, req, now) {
       /* a unit's dependencies named by unit number before the filing ({ unit: k }) become the blocker's issue number as each blocker is filed
          (lib.js mapUnitBlockers(); admin-team/dashboards/unit-blockers-before-filing), so every unit links its blockers once they are filed */
       lib.mapUnitBlockers(plan).forEach(m => applied.push(m));
+      /* each filed unit whose run has not started reads as filed: its pending summary, still the one written before the filing ("Not filed yet…"),
+         or one this event wrote before (lib.js filedSummary()), becomes "Filed as #n; its run has not started." and when it starts, by its
+         blockers; a summary written otherwise (the presenter's, naming its blockers in words) is kept (KotlinBottools #27's four unit rows) */
+      lib.filedSummaries(plan).forEach(m => applied.push(m));
       const units = rows.filter(r => r && r.unit), filed = units.filter(lib.unitFiled).length, final = facts.final === true, all = units.length > 0 && filed === units.length;
       const stray = units.filter(r => (r.unit.blockedBy || []).some(lib.isUnitRef)).map(r => r.id);
       if (final && all && stray.length) enrich.push(`sub-issues-filed closes the step, but ${stray.join(", ")} still name a blocker by a unit number no filed unit row carries: the presenter corrects unit.blockedBy`);
@@ -1915,7 +1936,8 @@ function cleanText(v) {
   if (levelRefs(s).length) { s = scrubLevels(s, { scope: "issue", elided: [] }); if (!s || levelRefs(s).length) return null; }
   s = scrubWaits(s);
   if (nameRefs(s).length) { const n = scrubNames(s); if (n.left.some(unambiguous)) return null; s = n.text; }
-  return /<(issue|slug|YYYY-MM-DD|sha|owner\/name)\b/.test(s) || /^<[^>]*>$/.test(s) ? null : s;
+  /* a template placeholder is never laid; one inside a code span is quoted text, as check.js placeholders() reads it */
+  return /<(issue|slug|YYYY-MM-DD|sha|owner\/name)\b/.test(s.replace(/`[^`\n]*`/g, " ")) || /^<[^>]*>$/.test(s) ? null : s;
 }
 function layFoundation(req, facts, folder, now) {
   const name = path.basename(DIR), issue = parseInt(name, 10), applied = [], enrich = [];

@@ -44,11 +44,13 @@ const posInt = v => Number.isInteger(v) && v > 0;
 
 /* Template leftovers: a value written <like this>, an <issue>/<slug>/<sha>/<YYYY-MM-DD> token, or a $comment key. */
 /* A template placeholder left in the data: a whole value in angle brackets, or a named one (<issue>, <slug>, <sha>, …) as a word of its own, so a
-   quoted "<shape>" is no placeholder (KotlinBottools #23: an excerpt of a plan section that prints `ok    <shape>`). */
+   quoted "<shape>" is no placeholder (KotlinBottools #23: an excerpt of a plan section that prints `ok    <shape>`). Quoted text is never a
+   placeholder: a statement's excerpt (embed.js copies it from the documents; the template holds none), nor a code span, so a path pattern a
+   document or a writer quotes, `docs/plans/<number>-<slug>/`, is no leftover (KotlinBottools #27's Verdict excerpts). */
 function placeholders(v, at, found) {
-  if (typeof v === "string") { if (/^<[^>]*>$/.test(v.trim()) || /<(issue|slug|YYYY-MM-DD|sha|owner\/name)\b[^>]*>/.test(v)) found.push(at); }
+  if (typeof v === "string") { const t = v.replace(/`[^`\n]*`/g, " "); if (/^<[^>]*>$/.test(v.trim()) || /<(issue|slug|YYYY-MM-DD|sha|owner\/name)\b[^>]*>/.test(t)) found.push(at); }
   else if (Array.isArray(v)) v.forEach((x, i) => placeholders(x, `${at}[${i}]`, found));
-  else if (v && typeof v === "object") Object.keys(v).forEach(k => { if (k === "$comment") found.push(`${at ? at + "." : ""}$comment`); else placeholders(v[k], at ? `${at}.${k}` : k, found); });
+  else if (v && typeof v === "object") Object.keys(v).forEach(k => { if (k === "$comment") found.push(`${at ? at + "." : ""}$comment`); else if (k !== "excerpt") placeholders(v[k], at ? `${at}.${k}` : k, found); });
   return found;
 }
 /* Paths in code spans (RULES §7; dashboards-skill/53): a path-shaped token written outside a `code` span in a row's evidence, statements or
@@ -331,6 +333,8 @@ function checkPlan(plan, dir, root) {
       const unfiledYet = line.includes("sub-issues") ? (line.includes(own) ? line.indexOf(own) <= line.indexOf("sub-issues") : !filingSeen) : ["architecture", "sub-issues"].includes(own);
       if (u.issue == null && unfiledYet && (((r.asBuilt || {}).state) || "pending") === "pending") { /* not filed yet */ }
       else if (!posInt(u.issue)) fail(`${at}.unit.issue must be the sub-issue's number${u.issue == null ? " (a unit is filed as a sub-issue before the tracking board leaves its \"sub-issues\" step)" : ""}`);
+      /* a filed unit's summary says it is filed (RULES §4, the sub-issues-filed row; lib.js filedSummaries()): one still reading "Not filed yet" is stale */
+      if (posInt(u.issue) && !["built", "abandoned"].includes(plan.status) && /^\s*not filed yet\b/i.test(String((r.asBuilt || {}).summary || ""))) warn(`UNIT SUMMARY STALE: ${at} is filed as #${u.issue}, but its summary still says it is not filed: sub-issues-filed writes "Filed as #${u.issue}; its run has not started." (raise it again), or write the summary`);
       /* a blocker is an issue number, or { unit: k }, a unit of this board by its number while that unit has no issue yet (RULES §3, unit.blockedBy;
          admin-team/dashboards/unit-blockers-before-filing): the dependencies between a plan's units are on the board before they are filed, and
          sub-issues-filed writes each as its issue number once that unit is filed */
@@ -734,6 +738,9 @@ function checkPanel(plan, w, ids, tracking, dir) {
       if (R.phase === "verification" && !st.includes("verifying") && !st.includes("researching")) warn("wip.research is at \"verification\", but no question is verifying: verification-started sets the returned questions \"verifying\"");
       if (R.phase === "complete" && st.some(x => x !== "complete")) warn("wip.research is \"complete\", but a question is not: researched sets every question complete");
       if (["research", "verification"].includes(R.phase) && !qs.length) warn(`wip.research is at "${R.phase}", but no question is recorded: research-started records them`);
+      /* nothing to research (RULES §4, the researched row): a researched that names no documents on a board with no question records it */
+      if (R.nothing != null && R.nothing !== true) fail(`wip.research.nothing is true (a researched with nothing to research), or absent (got ${JSON.stringify(R.nothing)})`);
+      else if (R.nothing === true && (R.phase !== "complete" || qs.length)) warn(`wip.research says there was nothing to research, but ${qs.length ? `${qs.length} research question${qs.length === 1 ? " is" : "s are"} recorded` : `its phase is "${R.phase}"`}: researched records nothing to research only where no question was recorded, and completes the phase`);
     }
   }
   if (w.plan != null) {
@@ -1140,7 +1147,7 @@ function checkHtml(htmlPath, id, data, kindMeta) {
   if (!panels.length) fail(`${path.basename(htmlPath)} has no tab panels`);
   let missing = 0; panels.forEach(p => { const pid = (p.match(/id="([^"]+)"/) || [])[1]; if (!/class="(?:legend|key)"/.test(p)) { fail(`tab panel ${pid} has no legend (.legend)`); missing++; } });
   if (panels.length && !missing) ok(`${panels.length} tab panels, each with a legend`);
-  if (kindMeta === "plan-board" && !/<section class="wip"/.test(html)) fail('the board has no WIP strip (<section class="wip">)');
+  if (kindMeta === "plan-board" && !/<section class="wip[ "]/.test(html)) fail('the board has no WIP strip (<section class="wip wip-panel">)');
   if (kindMeta === "plan-board" && !/id="p-impact"/.test(html)) warn("the board has no Impact tab: it is on a template older than the tab (plan/RULES.md §2, Impact); re-render it (copy plan/template/dashboard.html over it, then embed.js)");
   if (!/<title>/.test(html)) fail("the board has no <title>");
   if (/href="#"/.test(html)) fail('the board has a dead href="#" link');

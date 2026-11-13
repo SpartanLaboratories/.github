@@ -4,7 +4,7 @@
 // that run failed (its summary names the event's time for --at), after which the event is raised again.
 //   node new.js <issue> <slug> [--root <repo>] [--parent <folder under docs/plans>] [--fix-of <landed issue>] [--kind issue|tracking] [--level 2|3|4]
 //               [--title "Short name"] [--issue-title "The issue's title"] [--function "One paragraph"]
-//               [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems slug,slug] [--step research] [--repo owner/name]
+//               [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems slug,slug] [--step <step>] [--repo owner/name]
 //               [--at <ISO time>]   the sized event's time, the run's start (plan.sized, wip.since); default now
 // The repository root is --root, else the current directory. Systems take their names and colour slots from
 // docs/dashboards/systems.json. Refuses to overwrite. Anything not given stays a <placeholder> that check.js refuses.
@@ -15,7 +15,7 @@
 // A unit's board is laid at its own sized, never ahead of its run: there is no batch mode.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
-const { repoRoot, opt, registry, signedOffParent, boardFolders, systemEntry, foundationPlan, atomicWrite, lockTree } = require("./lib.js");
+const { repoRoot, opt, registry, signedOffParent, boardFolders, systemEntry, foundationPlan, atomicWrite, lockTree, STEPS_BY_LEVEL } = require("./lib.js");
 const { embed } = require("./embed.js");
 
 const args = process.argv.slice(2);
@@ -53,7 +53,11 @@ const level = opt(args, "grade", null) || opt(args, "level", null), kind = opt(a
 const AT = opt(args, "at", null);
 if (AT != null && (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?Z$/.test(AT) || isNaN(Date.parse(AT)))) { console.error(`--at ${JSON.stringify(AT)} is not an ISO UTC time (YYYY-MM-DDTHH:MM[:SS]Z)`); process.exit(2); }
 const now = (AT ? new Date(AT) : new Date()).toISOString().replace(/\.\d+Z$/, "Z");
-const step = opt(args, "step", "research"); // its wip.current comes from the step-to-column map (plan/RULES.md §3): lib.js glowFor()
+/* the step it starts at, by default the research where its steps line has one, else the plan: a small fix runs no research, so its line has
+   none and a --step research on it is refused (plan/RULES.md §3, §4) */
+const line = STEPS_BY_LEVEL[level ? parseInt(level, 10) : null] || STEPS_BY_LEVEL[kind === "tracking" ? 4 : 3];
+const step = opt(args, "step", line.includes("research") ? "research" : "plan"); // its wip.current comes from the step-to-column map (plan/RULES.md §3): lib.js glowFor()
+if (step === "research" && !line.includes("research")) { console.error("--step research: a small fix's steps line has no research step (it runs no research); lay it at plan"); process.exit(2); }
 const plan = foundationPlan(skeleton, {
   repo, issue, name, rel, kind, step, now,
   level: level ? parseInt(level, 10) : null,

@@ -57,7 +57,7 @@ step Panel is the **Now Chip**, and so on (a verdict Pill, an issue Chip, the KP
 Where a template's CSS class names an element's kind it carries the type word, so a reader can tell
 the kind from the markup without the board: `.card`, `.chip`, `.badge`, `.cell`, `.ring`, `.arrow`,
 `.guarantee-card`, and `.kpi-tile` (a KPI Tile), `.verdict-pill` (a verdict Pill), `.dep-pill` (a
-DualStatePill), `.legend` (a Legend), `.stepbar` (a StepBar),
+DualStatePill), `.legend` (a Legend), `.stepbar` (a StepBar), `.wip-panel` (the WIP Panel), `.unit-card` (a unit Card in a tracking board's chain),
 `.fullpulse` (a FullPulse: whatever is being worked on),
 `.col-fullpulse` (a whole column's FullPulse), `.colcell-fullpulse` (a Cell carrying its column's
 FullPulse at phone width), `.upnext-ring` (the up-next Ring) and `.fillpulse` (the live dot's

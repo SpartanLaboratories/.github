@@ -135,11 +135,11 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 }
 
 /* the WIP strip: where the run is right now */
-.wip{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px 10px;margin:12px 0 0}
-.wip.landed{border-left-color:var(--good)}
-.wip.halted{border-left-color:var(--warning);background:color-mix(in srgb,var(--warning) 12%,var(--surface))}
-.wip.escalated{border-left-color:var(--serious)}
-.wip.cancelled{border-left-color:var(--critical)}
+.wip-panel{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px 10px;margin:12px 0 0}
+.wip-panel.landed{border-left-color:var(--good)}
+.wip-panel.halted{border-left-color:var(--warning);background:color-mix(in srgb,var(--warning) 12%,var(--surface))}
+.wip-panel.escalated{border-left-color:var(--serious)}
+.wip-panel.cancelled{border-left-color:var(--critical)}
 .wip-head{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;font-size:13px;color:var(--ink-2)}
 .wip-head .state{font-weight:700;color:var(--ink);font-size:14px}
 .wip-head .state i{font-style:normal;margin-right:5px}
@@ -174,7 +174,7 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .wip-facts .l{font:700 10.5px var(--mono);letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
 .wip-facts a,.wip-sub a,.verdict-pill a{text-decoration:none;border-bottom:1px solid var(--line)}
 .wip-sub a:hover,.verdict-pill a:hover{border-bottom-color:var(--ink)}
-.wip .legend{margin-top:8px;padding-top:6px;border-top:1px solid var(--hair)}
+.wip-panel .legend{margin-top:8px;padding-top:6px;border-top:1px solid var(--hair)}
 /* A tracking board's unit in progress shows its own run, mirrored from its board (unit.live, plan/RULES.md §3): under its "In
    progress" line an accent rule holds the unit's step, its steps, its detail and its qa passes (a yellow rule while the run waits
    on you); its as-built cell and card carry a run line. */
@@ -185,7 +185,7 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
    "waiting on you" only while something is halted. From 940 px the row is split in fixed shares: the phase 35 %, the unit in
    progress 25 %, its step panel 40 %; the phase runs down beside every unit's row, the up-next card and "waiting on you" take
    the unit's and the panel's shares. Under 940 px they stack in that order. The legend runs under them all. */
-.wip.wipcards{background:none;border:0;padding:0}
+.wip-panel.wipcards{background:none;border:0;padding:0}
 .wipgrid{display:grid;gap:10px;grid-template-columns:minmax(0,1fr);align-items:stretch}
 @media (min-width:940px){
   .wipgrid{grid-template-columns:minmax(0,35fr) minmax(0,25fr) minmax(0,40fr)}
@@ -216,20 +216,20 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .wipcard.wait li small{display:block;font:11px var(--mono);color:var(--ink-2);margin-top:1px}
 .wipcard.wait a{text-decoration:none;border-bottom:1px solid var(--line)}
 .wipcard p.note{margin:6px 0 0;font-size:12.5px;color:var(--ink-2)}
-.wip.wipcards>.legend{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-top:8px}
+.wip-panel.wipcards>.legend{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-top:8px}
 .run{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font:11px var(--mono);color:var(--muted)}
 .inspector .run{margin:0 0 4px}
 .inspector .stepbar{margin:6px 0 4px}
 /* An issue board's strip and its step panel (plan/RULES.md §3, "The step panel"): the strip on the left half, the panel breaking the
    current step down on the right; one column below 940 px. The legend runs under both. A board that has landed or was cancelled
    has no current step and keeps the strip across the row. */
-.wip.split{background:none;border:0;padding:0}
+.wip-panel.split{background:none;border:0;padding:0}
 .wiprow{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
 @media (max-width:940px){.wiprow{grid-template-columns:minmax(0,1fr)}}
 .wipmain{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;min-width:0}
 .wipmain.halted{border-left-color:var(--warning);background:color-mix(in srgb,var(--warning) 12%,var(--surface))}
 .wipmain.escalated{border-left-color:var(--serious)}
-.wip.split>.legend{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-top:8px}
+.wip-panel.split>.legend{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-top:8px}
 .sp{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--ink-2);border-radius:6px;padding:10px 14px;min-width:0;font-size:12.5px;color:var(--ink-2)}
 .sp.sp-held{border-left-color:var(--warning)}
 /* the panel's heading: the step's title alone */
@@ -761,26 +761,26 @@ pre.src .k{color:var(--link);font-weight:600} pre.src .s{color:var(--ink-2)}
 .chainsvg{display:block;max-width:none}
 .chainsvg .edge{fill:none;stroke:var(--ink-2);stroke-width:1.4}
 .chainsvg .edge.todo{stroke:var(--muted);stroke-dasharray:5 4}
-.chainsvg .unit{cursor:pointer}
-.chainsvg .unit rect.box{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
-.chainsvg .unit.pending rect.box{stroke:var(--muted);stroke-dasharray:6 4}
-.chainsvg .unit rect.bar{fill:var(--c,var(--muted))}
-.chainsvg .unit rect.st{fill:var(--sc,var(--muted))}
-.chainsvg .unit.good{--sc:var(--good)}.chainsvg .unit.warning{--sc:var(--warning)}.chainsvg .unit.serious{--sc:var(--serious)}.chainsvg .unit.critical{--sc:var(--critical)}.chainsvg .unit.accent{--sc:var(--accent)}.chainsvg .unit.ink{--sc:var(--ink-2)}
-.chainsvg .unit text{fill:var(--ink);font:11px var(--mono)}
-.chainsvg .unit text.t{font:700 11.5px var(--sans)}
-.chainsvg .unit text.s{fill:var(--ink-2);font-size:10px}
+.chainsvg .unit-card{cursor:pointer}
+.chainsvg .unit-card rect.box{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
+.chainsvg .unit-card.pending rect.box{stroke:var(--muted);stroke-dasharray:6 4}
+.chainsvg .unit-card rect.bar{fill:var(--c,var(--muted))}
+.chainsvg .unit-card rect.st{fill:var(--sc,var(--muted))}
+.chainsvg .unit-card.good{--sc:var(--good)}.chainsvg .unit-card.warning{--sc:var(--warning)}.chainsvg .unit-card.serious{--sc:var(--serious)}.chainsvg .unit-card.critical{--sc:var(--critical)}.chainsvg .unit-card.accent{--sc:var(--accent)}.chainsvg .unit-card.ink{--sc:var(--ink-2)}
+.chainsvg .unit-card text{fill:var(--ink);font:11px var(--mono)}
+.chainsvg .unit-card text.t{font:700 11.5px var(--sans)}
+.chainsvg .unit-card text.s{fill:var(--ink-2);font-size:10px}
 /* in progress: a thick accent stroke over an accent fill that breathes (the SVG form of the FullPulse); up next: the still outer
    Ring and the UP NEXT tag above the box */
-.chainsvg .unit.fullpulse,.chainsvg .unit.held,.chainsvg .unit.upnext-ring{animation:none;box-shadow:none;background:none}
-.chainsvg .unit.fullpulse rect.box,.chainsvg .unit.held rect.box{stroke:var(--accent);stroke-width:2.5}
-.chainsvg .unit.fullpulse rect.box{animation:svg-fullpulse 2s ease-in-out infinite}
+.chainsvg .unit-card.fullpulse,.chainsvg .unit-card.held,.chainsvg .unit-card.upnext-ring{animation:none;box-shadow:none;background:none}
+.chainsvg .unit-card.fullpulse rect.box,.chainsvg .unit-card.held rect.box{stroke:var(--accent);stroke-width:2.5}
+.chainsvg .unit-card.fullpulse rect.box{animation:svg-fullpulse 2s ease-in-out infinite}
 @keyframes svg-fullpulse{0%,100%{fill:color-mix(in srgb,var(--accent) 8%,var(--surface))}50%{fill:color-mix(in srgb,var(--accent) 30%,var(--surface))}}
-@media (prefers-reduced-motion:reduce){.chainsvg .unit.fullpulse rect.box{animation:none;fill:color-mix(in srgb,var(--accent) 18%,var(--surface))}}
-.chainsvg .unit.upnext-ring rect.box{stroke:color-mix(in srgb,var(--accent) 70%,transparent);stroke-width:1.5;filter:drop-shadow(0 0 4px color-mix(in srgb,var(--accent) 60%,transparent))}
-.chainsvg .unit rect.tagbox{fill:var(--surface);stroke:var(--accent);stroke-width:1}
-.chainsvg .unit text.tagtx{fill:var(--accent);font:700 9px var(--mono);letter-spacing:.08em}
-.chainsvg .unit.sel rect.box{stroke:var(--on);stroke-width:2.5}
+@media (prefers-reduced-motion:reduce){.chainsvg .unit-card.fullpulse rect.box{animation:none;fill:color-mix(in srgb,var(--accent) 18%,var(--surface))}}
+.chainsvg .unit-card.upnext-ring rect.box{stroke:color-mix(in srgb,var(--accent) 70%,transparent);stroke-width:1.5;filter:drop-shadow(0 0 4px color-mix(in srgb,var(--accent) 60%,transparent))}
+.chainsvg .unit-card rect.tagbox{fill:var(--surface);stroke:var(--accent);stroke-width:1}
+.chainsvg .unit-card text.tagtx{fill:var(--accent);font:700 9px var(--mono);letter-spacing:.08em}
+.chainsvg .unit-card.sel rect.box{stroke:var(--on);stroke-width:2.5}
 .chainsvg .arrow{fill:var(--ink-2)}
 
 /* Impact (plan/RULES.md §2, "Impact"): who downstream is affected, what they must change, the public surface that moves and the

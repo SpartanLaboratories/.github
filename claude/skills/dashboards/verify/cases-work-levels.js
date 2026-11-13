@@ -37,9 +37,9 @@ module.exports = function casesWorkLevels(X) {
     c.push(["the template's skeleton has no level, no unit.level", tpl.level === undefined && !js(tpl.rows).includes('"level"'), "plan/template/plan.json"]);
     c.push(["its $comment no longer offers them as data", !/keep the work level as data only/.test(tpl.$comment), "$comment"]);
     c.push(["the fixtures and the example carry none", ![EX, TRK, LIVE].some(p => lib.workLevelFields(p).length), js([EX, TRK, LIVE].map(lib.workLevelFields))]);
-    const r2 = root0(), L2 = ev(r2, "docs/plans/70-a-fix", "sized", { step: "research", baseline: "abc1234" }, T(1), { extra: { level: 2 } });
-    c.push(["a level in the request gives the steps line, a small fix's with no interview; never written", L2.a.status === 0 && !L2.p.wip.steps.includes("interview") && !lib.workLevelFields(L2.p).length && L2.p.kind === "issue", js([L2.S.error, L2.p && L2.p.wip.steps, L2.p && L2.p.level])]);
-    const r3 = root0(), L3 = ev(r3, "docs/plans/71-from-state", "sized", { step: "research", baseline: "abc1234" }, T(1), { env: envState });
+    const r2 = root0(), L2 = ev(r2, "docs/plans/70-a-fix", "sized", { step: "plan", baseline: "abc1234" }, T(1), { extra: { level: 2 } });
+    c.push(["a level in the request gives the steps line, a small fix's with no interview and no research; never written", L2.a.status === 0 && !L2.p.wip.steps.includes("interview") && !L2.p.wip.steps.includes("research") && !lib.workLevelFields(L2.p).length && L2.p.kind === "issue", js([L2.S.error, L2.p && L2.p.wip.steps, L2.p && L2.p.level])]);
+    const r3 = root0(), L3 = ev(r3, "docs/plans/71-from-state", "sized", { step: "plan", baseline: "abc1234" }, T(1), { env: envState });
     c.push(["none in the request: the team's local state, levels[\"owner/repo#n\"]", L3.a.status === 0 && !L3.p.wip.steps.includes("interview"), js(L3.p && L3.p.wip.steps)]);
     const r4 = root0(), L4 = ev(r4, "docs/plans/72-an-initiative", "sized", { step: "research", baseline: "abc1234" }, T(1), { env: envState });
     c.push(["level 4 in the state: a tracking board, its own steps line, no level", L4.a.status === 0 && L4.p.kind === "tracking" && js(L4.p.wip.steps) === js(lib.STEPS_BY_LEVEL[4]) && !lib.workLevelFields(L4.p).length, js([L4.p && L4.p.kind, L4.p && L4.p.wip.steps])]);

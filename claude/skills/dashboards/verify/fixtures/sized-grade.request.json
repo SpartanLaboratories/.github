@@ -13,7 +13,7 @@
   "grade": 2,
   "facts": {
     "at": "2026-11-13T09:00:00Z",
-    "step": "research",
+    "step": "plan",
     "baseline": "abc1234",
     "grade": 2,
     "detail": "Recorded grade confirmed: a grade-2 fix inside grade 2, re-graded to grade 2."
