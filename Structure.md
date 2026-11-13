@@ -191,11 +191,11 @@ item is reached only by an id pointer; a document outside the system is named by
 section. Text in code spans and fenced blocks is not read as a pointer.
 
 On the pages of S, P and D a pointer is the text of a Markdown link to its target, e.g.
-`[R-1041 (Testing)](testing/README.md)`; a link to a section or a rule goes to its heading's
-anchor, e.g. `testing/README.md#run-only-the-tests-that-exercise-the-change`. The checker derives
-the anchor from the heading as GitHub does and verifies the link against the id. The repository's
-`README.md` and `profile/README.md` are outside the system and link by file. Nothing on these
-pages points into G.
+`[R-1041 (Testing)](policy/testing/README.md)`; a link to a section or a rule goes to its heading's
+anchor, e.g. `policy/testing/README.md#run-only-the-tests-that-exercise-the-change`. The checker
+derives the anchor from the heading as GitHub does and verifies the link against the id. The
+repository's `README.md` and `profile/README.md` are outside the system and link by file. Nothing
+on these pages points into G.
 
 In a converted rule file the checker reports a Markdown link to a file inside the system, whether
 relative or written as the full address the register gives for that file's repository, and a quoted

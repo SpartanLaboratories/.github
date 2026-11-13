@@ -1,0 +1,72 @@
+# Dokka and project sites
+<!-- {"name":"Dokka and project sites","code":"P-D-DK","id":104} -->
+
+The SpartanLaboratories standard for API documentation and project websites. It covers every
+repository of the organization and of its sub-organizations, including SpartanLabsGaming.
+[MyGameTools](https://github.com/SpartanLabsGaming/MyGameTools) is the worked example.
+
+Exempt are repositories kept for reference only, on which no work is done, and each organization's
+`.github` repository.
+
+## What each repository has
+<!-- {"name":"What each repository has","code":"P-D-DK-WR","id":1016} -->
+
+| Requirement | Applies to |
+|-------------|------------|
+| Dokka javadoc jar | Every library |
+| Project site, on GitHub Pages unless the repository is hosted elsewhere | Every repository |
+| Landing page | Every repository |
+| API reference at `/api/`, or at `/docs/api/` where the site already uses `/api` | Every repository with Kotlin source |
+| Dokka job in CI | Every repository with Kotlin source |
+| Organization branding | Every repository |
+
+## Generating the documentation
+<!-- {"name":"Generating the documentation","code":"P-D-DK-GD","id":1017} -->
+
+- Use Dokka 2 in its V2 plugin mode.
+- In a build with a convention plugin for published modules, apply Dokka there, so that every
+  published module gets it the same way.
+- Aggregate the modules of a multi-module build into one Dokka publication at the root project.
+  Declare each module with `dokka(project(":module"))`.
+- Keep the Kotlin plugins on the root project's plugin classpath with `apply false`. Without this,
+  Dokka and the Kotlin Gradle plugin load in different classloaders and the modules render empty.
+
+## The javadoc jar
+<!-- {"name":"The javadoc jar","code":"P-D-DK-JJ","id":1018} -->
+
+A library publishes the Dokka output as its javadoc jar, never an empty placeholder:
+
+```kotlin
+JavadocJar.Dokka("dokkaGeneratePublicationHtml")
+```
+
+Every convention plugin that configures publishing sets this, a multiplatform one included.
+
+## Continuous integration
+<!-- {"name":"Continuous integration","code":"P-D-DK-CI","id":1019} -->
+
+A CI job runs `./gradlew dokkaGeneratePublicationHtml` on each build. Every Dokka configuration, the root aggregate and each module, sets `dokkaPublications.configureEach { failOnWarning.set(true) }`, because without it a broken KDoc link is only a warning and the build passes.
+
+## The site
+<!-- {"name":"The site","code":"P-D-DK-SI","id":1020} -->
+
+- A `website/` folder holds the hand-written landing page.
+- On GitHub Pages, a `pages.yml` workflow deploys the site through GitHub Actions on each push to the default
+  branch. The repository's Pages source is set to GitHub Actions.
+- The workflow grants `contents: read` by default, and `pages: write` and `id-token: write` on the
+  deploy job only, so the build job that runs Gradle holds no deploy token.
+- The workflow copies `website/` to the site root and the aggregated Dokka output, from
+  `build/dokka/html`, to `/api/`, or to `/docs/api/` where the site already uses `/api`. It fails if
+  that output is missing.
+- The workflow adds a `.nojekyll` file, because Dokka writes names that start with an underscore.
+- Deployments do not cancel one another, so that a cancelled run cannot leave the site out of date.
+
+## Branding
+<!-- {"name":"Branding","code":"P-D-DK-BR","id":1021} -->
+
+- Logos live in `docs/brand/`, and the Dokka stylesheet in `docs/dokka/styles/`.
+- Each repository uses the logo of the organization that owns it: Spartan Laboratories, or Spartan
+  Gaming.
+- In a multi-module build, apply the theme in each module's Dokka configuration as well as at the
+  root. Each module renders its own pages with its own configuration, and the root block styles
+  only the aggregate index page.
