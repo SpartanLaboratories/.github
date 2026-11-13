@@ -128,9 +128,10 @@ comments or files itself, and never spawns `version-control-manager` directly.
   file are in `~/.claude/Structure-Policy.md`.
 - **Its records are its service too.** Through its `archivist` agent (brief:
   `~/.claude/agents/archivist.md`) it keeps my idea hooks, each tagged with whoever would carry
-  the idea out, the questions put to me at its console, and an archive of its own past
-  sessions, whose files are deleted once archived. Any session may send it a `log-hook` request
-  for an idea I should revisit; a hook changes nothing until I decide it.
+  the idea out, the questions put to me at its console, the issues it expects (its predicted
+  issues, each with its count of encounters), and an archive of its own past sessions, whose
+  files are deleted once archived. Any session may send it a `log-hook` request for an idea I
+  should revisit; a hook changes nothing until I decide it.
 - If it is not running, the requesting session launches it with `~/.claude/admin-team/launch.cmd`
   under the launch lock (the skill does this): a minimized, Remote Control-enabled session started
   with `--agent admin-team`. Resume after a restart with `claude --resume "admin team"`.

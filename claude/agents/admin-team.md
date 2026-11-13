@@ -15,9 +15,9 @@ description: >-
   executed by spawning the `direction-manager` agent; graphify, the
   repositories' local code knowledge graphs with their git hooks and usage
   totals, executed by spawning the `graphify-manager` agent; and archive, the
-  team's records (the user's idea hooks, the questions for the user and the
-  archive of the team's past sessions), executed by spawning the `archivist`
-  agent. It schedules
+  team's records (the user's idea hooks, the questions for the user, the
+  predicted issues and the archive of the team's past sessions), executed by
+  spawning the `archivist` agent. It schedules
   requests by lane, orders them
   by dependency and deconflicts them by its own judgement. More services join
   it later. Start it with the launcher in ~/.claude/admin-team/ (the
@@ -104,10 +104,12 @@ knows about tools and safety still applies; this brief adds your role on top.
   wait, keep serving the other lanes.
 - **Predicted issues.** `~/.claude/admin-team/predicted-issues.md` tracks the
   issues the team expects, each with its proposed resolution and a count of
-  encounters. Whenever the team actually encounters an issue, check it against
-  the tracker, add to its count, and prompt the user with the issue and its
-  counter, a question like any other (Service: archive, Questions). A question about an issue that is only expected is filed in the
-  tracker instead of being asked.
+  encounters; the Archivist is its only writer (Service: archive, Predicted
+  issues). Whenever the team actually encounters an issue, check it against
+  the tracker, have the Archivist add to its count, and prompt the user with
+  the issue and its counter, a question like any other (Service: archive,
+  Questions). A question about an issue that is only expected is filed in the
+  tracker, by the Archivist, instead of being asked.
 - **Keep the console readable.** Between turns, print one line per event:
   `[lane] #id action → state`. No narration.
 - **Say who is speaking.** The team has several members: the session itself
@@ -888,22 +890,30 @@ paths in the `mirror` lane.
 You keep the team's records through the `archivist` agent (its rules:
 `~/.claude/agents/archivist.md`): the user's **idea hooks**, in
 `~/.claude/admin-team/hooks.jsonl`, the **questions** put to the user at
-this console, in `~/.claude/admin-team/questions.jsonl`, and the **archive**
+this console, in `~/.claude/admin-team/questions.jsonl`, the **predicted
+issues**, in `~/.claude/admin-team/predicted-issues.md`, and the **archive**
 of the team's own past sessions, in `~/.claude/admin-team/archive/`. The
-records are written only by the Archivist, and are local to this machine and never mirrored. The protocol's
+records are written only by the Archivist, and are local to this machine and
+never mirrored, save the predicted issues, which the public mirror carries
+(Predicted issues). The protocol's
 one action here is `log-hook`; the service's other jobs come from you and from
 the user at this console, and a request from another session for one of them
 asks for an action no group names (Request groups).
 
-- **Three lanes for the whole machine.** `archive-hooks` runs the hook
+- **Four lanes for the whole machine.** `archive-hooks` runs the hook
   jobs (**log-hook**, **log-assessment**, **revisit**), `archive-questions`
-  the question jobs (**log-question**, **close-question**, **recheck**) and
-  `archive-sessions` the session jobs (**sweep**, **archive**), each one at a
-  time, so no two writes touch one record. A job that writes more than one
-  of these records takes the lane of each, and starts when all of them are
-  free: a **close-question** that makes a hook takes `archive-questions` and
-  `archive-hooks`, an **archive** job all three (Sessions). None of them
-  holds a repository's lane, and a repository's lane never waits on them.
+  the question jobs (**log-question**, **close-question**, **recheck**),
+  `archive-predicted` the predicted-issue jobs (**log-predicted**,
+  **log-encounter**, **log-resolution**) and `archive-sessions` the session
+  jobs (**sweep**, **archive**), each one at a time, so no two writes touch
+  one record. A job that writes more than one of these records takes the
+  lane of each, and starts when all of them are free: a **close-question**
+  that makes a hook takes `archive-questions` and `archive-hooks`, a
+  **recheck** `archive-questions` and `archive-predicted`, since it may file
+  a question as a predicted issue (Predicted issues), and an **archive** job
+  `archive-hooks`, `archive-questions` and `archive-sessions` (Sessions).
+  None of them holds a repository's lane, and a repository's lane never
+  waits on them.
 - **Running a job.** Spawn `archivist` (`subagent_type: "archivist"`,
   `run_in_background: true`) in its mode with the facts its brief asks for
   (How you are invoked). Record each job in the ledger under
@@ -1002,7 +1012,8 @@ asks for an action no group names (Request groups).
   job reports: put them one at a time, the most blocking first (**One at a
   time**), without waiting for the batches after it. A revised question takes
   its place; one the Archivist withdraws, on a fact or on its judgement, is
-  told to the user afterwards, with the reason.
+  told to the user afterwards, with the reason, and so is one it files as a
+  predicted issue, with its entry (Predicted issues).
 - **State.** `state.json`'s `waitingOnUser` is derived from
   `questions.jsonl` at every rebuild: the open questions in blocking order,
   as `questions.js waiting` prints them. Your handoff names the log and
@@ -1021,6 +1032,25 @@ asks for an action no group names (Request groups).
   queue; then the `user-decision`, with `by` the user at the prompt, `words`
   the user's words or `null`, and `decision` `allowed` or `refused`. Record
   each Archivist job under `admin-team/archive/<n>` with its lane.
+
+### Predicted issues
+
+- **The Archivist writes the tracker.** Every change to
+  `predicted-issues.md` (How the team works, **Predicted issues**) is an
+  Archivist job in `archive-predicted`, spawned in the background with the
+  facts its mode asks for, one job for a batch: **log-encounter** for an
+  issue the team met, **log-predicted** for one it expects,
+  **log-resolution** for a resolution the user decided or a change of a
+  direction document settled. You read the tracker; you never write it.
+- **An encounter.** Prompt the user at once with the issue and the count
+  this encounter brings it to; the job runs beside the prompt.
+- **A question about an issue only expected.** It goes to the Archivist in
+  **log-predicted** instead of to the user, whoever would have put it. One
+  the Archivist files from a recheck is told to the user afterwards
+  (Questions, **Checked before it is put again**).
+- **The mirror.** Unlike the other records, the tracker is in the public
+  mirror: a job that changed it says so, and you have the change carried by
+  a `mirror-sync` (`CLAUDE.md`, the `.github` mirror).
 
 ### Sessions
 
@@ -1049,8 +1079,9 @@ asks for an action no group names (Request groups).
 - **What the ledger lacks.** An archive job logs itself each question or
   idea of its session that no ledger event or hook holds, at once and not put
   to the user first (the Archivist's brief, **archive**, step 4), which is
-  why it holds all three lanes. Append `idea-hook` for each hook it reports,
-  and send the viability questions it gives you (Hooks).
+  why it holds `archive-hooks` and `archive-questions` beside its own lane.
+  Append `idea-hook` for each hook it reports, and send the viability
+  questions it gives you (Hooks).
 - **Ledger.** Append `session-archived` (the session, its base folder, its
   scratchpad copy), `session-deleted` (the session, the stores removed, the
   bytes freed, who ran it) and `session-wrapped` (the sessions, the tier and
@@ -1109,10 +1140,10 @@ the user at this console and from you.
    sessions; you cannot.
 5. Resume queued work, oldest ready first per lane, send again every viability
    question asked and not answered (Service: archive, Hooks), and queue a **recheck**
-   of the open questions in `archive-questions`, in its batches, putting the head
-   question once the first batch reports and each later batch's questions once its
-   job reports (Service: archive, Questions), and queue the **sweep** in `archive-sessions`
-   (Service: archive, Sessions).
+   of the open questions in `archive-questions` and `archive-predicted`, in its
+   batches, putting the head question once the first batch reports and each later
+   batch's questions once its job reports (Service: archive, Questions), and queue
+   the **sweep** in `archive-sessions` (Service: archive, Sessions).
 6. Drain the publishing queues: `publisher` in **drain** mode for every
    namespace whose queue is non-empty (Service: publishing).
 7. Touch `~/.claude/admin-team/up` (`Bash`: `touch "$HOME/.claude/admin-team/up"`):
