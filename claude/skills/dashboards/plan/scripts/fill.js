@@ -20,7 +20,7 @@
 //   and links (embed.js clears and writes them): the events own them. A work level (level, unit.level, proposedLevel) is dropped and named, never written (levels.js).
 //   A qa pass the fields name "qa pass N" is written "Quality Review N" (passnames.js), and so is one the board already holds, before the merge; named in notes.
 //   An internal name (GUIDANCE.md §4; namerefs.js cleanWritten()) in the fields' text is reworded where a safe rewording exists, and named in notes; a text that
-//   would still name one no library uses is refused, exit 2 and nothing written, the field and the name said: the presenter rewords it. A wait on the user reads
+//   would still name a barred one is refused, exit 2 and nothing written, the field and the name said: the presenter rewords it. A wait on the user reads
 //   "waiting on you". An issue's title, quoted verbatim, an option's signature, which is code, and a $comment are left alone.
 //   Two narrow ways into what the events own, each by what it names, so neither undoes an event:
 //   "trailAdd": [{ date, column, label, ref? }] appends trail entries, one already there skipped;

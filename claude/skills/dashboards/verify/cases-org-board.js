@@ -110,7 +110,7 @@ if(v===undefined)process.exit(1);process.stdout.write(typeof v==="string"?v:JSON
     const m = fill.mergeFill(base, { wip: { waitingOn: "C2, by the planner's fixes", detail: "Waiting on you: a re-pass" }, trailFix: [{ label: "the planner's verification", to: "the plan's verification" }], rows: [{ id: "x", gap: { summary: "the planner's note" } }] });
     c.push(["fill.js rewords a safe form, wip.detail and a trail entry through its narrow ways", m.plan.wip.waitingOn === "C2, by the fixes" && m.plan.wip.detail === "Waiting on you: a re-pass" && m.plan.trail[0].label === "the plan's verification" && m.plan.rows[0].gap.summary === "the note" && m.notes.some(n => /internal name reworded/.test(n)), js(m.plan.wip) + m.notes.join("|")]);
     let refused = ""; try { fill.mergeFill(base, { rows: [{ id: "x", gap: { summary: "under the admin-team model" } }] }); } catch (e) { refused = e.message; }
-    c.push(["fill.js refuses a text that would still name one no library uses, naming the field", /rows\[0\]\.gap\.summary names .*admin-team/.test(refused), refused]);
+    c.push(["fill.js refuses a text that would still name a barred one, naming the field", /rows\[0\]\.gap\.summary names .*admin-team/.test(refused), refused]);
     c.push(["a Refused is what a fill exits 2 on", /e instanceof Refused/.test(rd(sk("plan/scripts/fill.js"))), "fill.js"]);
     const G = rd(GEN); c.push(["the generator holds no rewording table", !/REWORD\b|reworded\s*:/.test(G) && !/under the single-writer model/.test(G), "the old table or reworded[] is still there"]);
   });

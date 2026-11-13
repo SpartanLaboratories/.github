@@ -3,16 +3,14 @@
 // ~/.claude/nomenclature/internal-names.md (§1 the agents, sessions and roles; §2 the approval flow; §4 what is allowed); the lists below
 // are its copy for the scan, held equal to its §1 and §2 tables by verify/cases-internal-names.js. Fine as well are the steps' own names
 // (research, architecture, plan) and the qa step's passes by their names (passnames.js).
-// The forms come in two strengths: the names no library uses (UNAMBIGUOUS: admin team, plan-writer, rookie-dev, direction-manager, …)
-// match wherever they stand, "admin team" and "direction manager" with a space as well as a hyphen (no library uses either; in code a
-// `DirectionManager` is masked or one word); the words a library may use as well (planner, architect, verifier, presenter) match only as
-// an agent, after an article or "by" ("the planner", "by the verifier"), as a possessive ("the presenter's"), as a label or a subject ("planner: …", "planner reconciles")
-// or before a pipeline noun ("planner re-pass"), and never inside code (backticks, <code>) or as part of a longer word (RoutePlanner); the
-// two a concurrency or a reactive library uses all the time, executor and publisher, only with the pipeline's own verbs ("the executor
-// commits", "the publisher released"), so "the dispatcher and the executor" on a state board is left alone. "qa" matches only as an agent ("qa found", "qa
-// has approved", "by qa", "qa's"), never as the step or its passes. The version-control-manager shortened matches as "the manager's" or
-// "the manager" with a pipeline verb, never "Selenium Manager"; "confirms" counts among the pipeline's verbs ("the executor confirms the
-// branch"). The approval flow matches with a word between ("the user's two answers") and in the passive ("signed off by the user").
+// Every name the list's §1 bars "never" (BARRED) matches as a whole word wherever it stands (the user's decision of 2026-11-13): no
+// surrounding word lets one through, "the dispatcher and the executor" is a find as "the planner" is, and "admin team" and "direction
+// manager" match with a space as well as a hyphen. A name in backticks or an inline <code> element counts as it does anywhere else; a
+// longer word that contains one is not a find (RoutePlanner, ExecutorService, a `DirectionManager`), as the list says. A fenced block keeps
+// its reading from before: in a text its lines are scanned as any other, rendered (<pre><code>) it is left out. "qa" matches only as an
+// agent ("qa found", "qa has approved", "by qa", "qa's"), never as the step or its passes. The version-control-manager shortened matches as
+// "the manager's" or "the manager" with a pipeline verb, never "Selenium Manager". The approval flow matches with a word between ("the
+// user's two answers") and in the passive ("signed off by the user").
 // A wait on the user, in a fact or a comment, reads "waiting on you" (§4's wording for a halt): waitRefs() finds "waiting on the user", "waits on
 // the user" and "wait on the user" in a board's data and comments and scrubWaits() rewords a fact; nameRefs() leaves it alone, as it is the
 // fixed text of the templates' status labels (plan/RULES.md §2, §3).
@@ -22,26 +20,16 @@
 // Every other writer goes through the same rule: fill.js (cleanWritten(), a name no rewording removes refused) and board.js and org-board.js
 // (cleanWorkBoard(), the text a work board copies from a board's data).
 "use strict";
-/* internal-names.md §1, by strength: a name its "Allowed when" reads "never" for is UNAMBIGUOUS; a library's name that only coincides is
-   CONTEXTUAL or, for the two a concurrency or a reactive library uses all the time, VERB_ONLY; qa is barred as an agent's name only (AGENT_ONLY) */
-const UNAMBIGUOUS = ["admin[- ]teams?", "plan-writers?", "rookie-devs?", "version-control-managers?", "direction[- ]managers?", "code-reviewers?", "documentation-reviewers?", "test-inspectors?", "interviewers?", "researchers?"];
-const CONTEXTUAL = ["planners?", "architects?", "verifiers?", "presenters?"];
-/* executor and publisher: the pipeline's only with its verbs */
-const VERB_ONLY = ["executors?", "publishers?"];
+/* internal-names.md §1: a name its "Allowed when" reads "never" for is BARRED, a whole word wherever it stands (singular and plural, any
+   case, a possessive by its name); qa is barred as an agent's name only (AGENT_ONLY) */
+const BARRED = ["admin[- ]teams?", "planners?", "plan-writers?", "architects?", "researchers?", "verifiers?", "interviewers?", "presenters?", "publishers?", "rookie-devs?",
+  "version-control-managers?", "executors?", "direction[- ]managers?", "archivists?", "code-reviewers?", "documentation-reviewers?", "test-inspectors?"];
 const AGENT_ONLY = ["qa"];
 /* internal-names.md §2: the approval flow's phrases, each matched by the forms below (a word between, the passive) */
 const APPROVAL_FLOW = ["the user's call", "the user chose", "user answers"];
 const PIPELINE_VERBS = "commits?|committed|pushe[sd]|push|merges?|merged|lands?|landed|files?|filed|releases?|released|publishe[sd]|defers?|deferred|tags?|tagged|confirms?|confirmed";
-const ROLE_NOUNS = "agent|agents|session|sessions|re-pass|re-passes|repass|step|verdict|report|reports|leg|lane|lanes|brief|fixes|pass";
-const CTX = CONTEXTUAL.join("|");
 const NAME_PATTERNS = [
-  [`\\b(?:${UNAMBIGUOUS.join("|")})\\b`, "i"],                                                             // "the admin team", "rookie-dev's fixes"
-  [`\\b(?:the|a|an|by|to|from|our|its|each|every|no)\\s+(?:${CTX})\\b(?![\`(])`, "i"],                     // "the planner", "by the executor"
-  [`\\b(?:${CTX})['’]s\\b`, "i"],                                                                          // "the presenter's"
-  [`\\b(?:${CTX})\\s+(?:${ROLE_NOUNS})\\b`, "i"],                                                           // "planner re-pass", "verifier report"
-  [`(?:^|[.;:!?]\\s+|\\(\\s*)(?:${CTX})\\s+[a-z]+(?:s|ed)\\b`, "i"],                                             // "planner reconciles" (the role as the subject)
-  [`(?:^|[;,]\\s*|\\(\\s*)(?:${CTX})\\s*:`, "i"],                                                                  // "planner: rule on the gaps" (the role as a label)
-  [`\\b(?:${VERB_ONLY.join("|")})['’]?s?\\s+(?:${PIPELINE_VERBS})\\b`, "i"],                                         // "the executor commits", "the publisher released"
+  [`\\b(?:${BARRED.join("|")})\\b`, "i"],                                                                  // "the admin team", "rookie-dev's fixes", "the planner", "an `Executor`"
   [`\\bthe\\s+manager(?:['’]s\\b|\\s+(?:${PIPELINE_VERBS})\\b)`, "i"],                                                // "the manager's final call": the version-control-manager, shortened
   ["\\bqa\\s+(?:agent|agents|found|finds|flagged|flags|raised|raises|reported|reports|said|says|asked|asks|approved|approves|rejected|rejects|returned|returns|requested|requests|reviewer|team|has\\s+approved|had\\s+approved|has\\s+found|had\\s+found)\\b", "i"], // "qa found", "qa has approved"
   ["\\b(?:by|from)\\s+qa\\b(?!\\s+pass)", "i"],                                                             // "raised by qa", never "from qa pass 2"
@@ -51,8 +39,10 @@ const NAME_PATTERNS = [
   ["\\b(?:signed\\s+off|approved|decided|chosen|answered)\\s+by\\s+the\\s+user\\b", "i"],                  // "signed off by the user"
 ];
 const REGEXES = NAME_PATTERNS.map(([s, f]) => new RegExp(s, f + "g"));
-/* code is never prose: backtick spans and <code> elements are left out of the scan */
-const prose = t => String(t).replace(/`[^`\n]*`/g, " ").replace(/<code\b[^>]*>[\s\S]*?<\/code>/gi, " ");
+/* a backtick span and an inline <code> element are scanned as the rest (internal-names.md); a rendered fenced block, <pre><code>, is left
+   out as before, and a fenced block in a text is scanned line by line as before (whether a fence counts is not decided) */
+const FENCED = /(<pre\b[^>]*>\s*)<code\b[^>]*>[\s\S]*?<\/code>/gi;
+const prose = t => String(t).replace(FENCED, "$1 ");
 /* Every internal name in a text, as the matched strings. */
 function nameRefs(text) {
   const out = [];
@@ -61,12 +51,12 @@ function nameRefs(text) {
   REGEXES.forEach(re => { re.lastIndex = 0; let m; while ((m = re.exec(t))) out.push(m[0]); });
   return out;
 }
-/* Every internal name in a text as its span, { index, end }, in the text as given (code masked to spaces of the same length, so the
-   offsets hold): lib.js sectionOf() elides the clause around each from a plan excerpt, as it elides a work level. */
+/* Every internal name in a text as its span, { index, end }, in the text as given (a rendered fenced block masked to spaces of the same
+   length, so the offsets hold): lib.js sectionOf() elides the clause around each from a plan excerpt, as it elides a work level. */
 function nameSpans(text) {
   const out = [];
   if (typeof text !== "string" || !text) return out;
-  const t = text.replace(/`[^`\n]*`/g, m => " ".repeat(m.length)).replace(/<code\b[^>]*>[\s\S]*?<\/code>/gi, m => " ".repeat(m.length));
+  const t = text.replace(FENCED, (m, pre) => pre + " ".repeat(m.length - pre.length));
   REGEXES.forEach(re => { re.lastIndex = 0; let m; while ((m = re.exec(t))) out.push({ index: m.index, end: m.index + m[0].length }); });
   return out.sort((a, b) => a.index - b.index);
 }
@@ -91,7 +81,7 @@ function commentRefs(html) {
   String(html || "").replace(/<(script|style)\b([^>]*)>([\s\S]*?)<\/\1>/gi, (m, tag, attrs, body) => {
     if (!/^script$/i.test(tag) || !/\btype\s*=\s*["'](?!text\/javascript|module)/i.test(attrs)) (body.match(/\/\*[\s\S]*?\*\//g) || []).forEach(one);
     return " ";
-  }).replace(/<!--([\s\S]*?)-->/g, (m, c) => { one(c); if (/^\s*presenter:/i.test(c)) out.push("presenter:"); return ""; });
+  }).replace(/<!--([\s\S]*?)-->/g, (m, c) => { if (/^\s*presenter:/i.test(c)) { out.push("presenter:"); one(c.replace(/^\s*presenter:/i, " ")); } else one(c); return ""; });
   /* the placeholder mark on a board-filled line of the script before MODEL ("// presenter:"), committed with every state board */
   (String(html || "").match(/\/\/\s*presenter:/g) || []).forEach(() => out.push("// presenter:"));
   return out;
@@ -102,12 +92,12 @@ function commentRefs(html) {
    "code-reviewer" → "code check", "documentation-reviewer" → "documentation check", "qa's test-inspector" → "the review's test check":
    a Quality Review's checks by their progress notes' labels, plan/scripts/passnames.js NOTE_WORK, dashboards-skill/52), and an aside on the approval flow is dropped
    ("(the user's call)", "at the user's call"). Returns { text, left }: the reworded text, and the names still in it (none when it names none). The caller writes text when left is empty,
-   leaves it out where an unambiguous name remains, and asks the presenter to look (enrich) either way. */
+   leaves it out where a barred name remains, and asks the presenter to look (enrich) either way. */
 function scrubNames(text) {
   if (typeof text === "string") text = scrubWaits(text);
   if (typeof text !== "string" || !nameRefs(text).length) return { text, left: [] };
   const cap = /^[A-Z]/.test(text.trim());
-  const ROLE = `(?:admin[- ]team|plan-writer|rookie-dev|version-control-manager|direction[- ]manager|code-reviewer|documentation-reviewer|test-inspector|interviewer|researchers?|${CTX}|executors?|publishers?|qa)`;
+  const ROLE = `(?:${BARRED.join("|")}|qa)`;
   let s = text;
   /* an aside on the approval flow */
   s = s.replace(/\s*\(\s*(?:the\s+)?user['’]s\s+(?:call|choice|decision|approval|sign-?off|go-ahead)\s*\)/gi, "");
@@ -127,10 +117,10 @@ function scrubNames(text) {
   if (cap && /^[a-z]/.test(s)) s = s[0].toUpperCase() + s.slice(1);
   return { text: s, left: nameRefs(s) };
 }
-/* a hit no library would use: the text is left out rather than written with it */
-const unambiguous = hit => new RegExp(`\\b(?:${UNAMBIGUOUS.join("|")})\\b`, "i").test(hit) || /\buser\b/i.test(hit) || /\bqa\b/i.test(hit);
+/* a hit no rewording lets through, a barred name, the approval flow or qa as an agent: the text is left out rather than written with it */
+const unambiguous = hit => new RegExp(`\\b(?:${BARRED.join("|")})\\b`, "i").test(hit) || /\buser\b/i.test(hit) || /\bqa\b/i.test(hit);
 /* The one rule of a writer (plan/RULES.md §4; GUIDANCE.md §4): a text a board will show, reworded where a safe rewording exists, a wait on
-   the user written "waiting on you", left out where a name no library uses would remain. Returns { text, left, out }: text is what to write
+   the user written "waiting on you", left out where a barred name would remain. Returns { text, left, out }: text is what to write
    (null when out), left the names still in it, out true where it must not be written. apply-event.js's txt() and cleanText() are this rule. */
 function cleanWritten(text) {
   if (typeof text !== "string" || !text.trim()) return { text, left: [], out: false };
@@ -155,4 +145,4 @@ function cleanWorkBoard(board) {
 }
 /* the warning's line */
 const nameWarning = (where, hits) => `INTERNAL NAME: ${where} names ${[...new Set(hits)].slice(0, 6).map(h => JSON.stringify(h)).join(", ")}: a board never names the pipeline's agents, sessions or roles, nor the approval flow (GUIDANCE.md §4); correct the text where the board stores it, an issue or tracking board's through fill.js`;
-module.exports = { NAME_PATTERNS, UNAMBIGUOUS, CONTEXTUAL, VERB_ONLY, AGENT_ONLY, APPROVAL_FLOW, nameRefs, nameSpans, nameRefsIn, commentRefs, scrubNames, waitRefs, scrubWaits, unambiguous, nameWarning, cleanWritten, cleanWorkBoard };
+module.exports = { NAME_PATTERNS, BARRED, AGENT_ONLY, APPROVAL_FLOW, nameRefs, nameSpans, nameRefsIn, commentRefs, scrubNames, waitRefs, scrubWaits, unambiguous, nameWarning, cleanWritten, cleanWorkBoard };

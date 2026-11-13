@@ -57,14 +57,16 @@ module.exports = function cases33(X) {
   });
 
   /* 2. the forms and the scrub */
-  guard("namerefs.js: the internal names found, a library's word left alone, scrubNames()'s safe rewrites; levelrefs.js's unnumbered mention (dashboards-skill/33)", c => {
+  guard("namerefs.js: the internal names found, a longer word that contains one left alone, scrubNames()'s safe rewrites; levelrefs.js's unnumbered mention (dashboards-skill/33)", c => {
     const found = ["accepted by the admin team", "the planner reconciled it", "rookie-dev's fixes", "qa found two issues", "the presenter's call", "the user's call", "the user chose B", "planner: rule on the gaps", "planner reconciles", "a code-reviewer pass", "the test-inspector report", "two researchers still out", "a planner re-pass",
-      "the executor confirms it (P1)", "the manager's final call", "the user's two answers at the interview", "it is signed off by the user"];
-    const fine = ["uses OkHttp's `RoutePlanner`", "RoutePlanner picks a route", "runs on an `Executor`", "a single-thread executor drains the queue", "the event publisher emits", "qa pass 2 approved", "the QA tile", "from qa pass 1", "the implementer added a test", "waiting on the user", "the research step", "the architecture", "the bytecode verifier rejects it", "Level 2 — component",
+      "the executor confirms it (P1)", "the manager's final call", "the user's two answers at the interview", "it is signed off by the user",
+      /* every name a whole word wherever it stands, in backticks too (the user's decision of 2026-11-13) */
+      "runs on an `Executor`", "a single-thread executor drains the queue", "the event publisher emits", "the bytecode verifier rejects it", "the archivist kept the hook"];
+    const fine = ["uses OkHttp's `RoutePlanner`", "RoutePlanner picks a route", "an `ExecutorService` drains the queue", "qa pass 2 approved", "the QA tile", "from qa pass 1", "the implementer added a test", "waiting on the user", "the research step", "the architecture", "Level 2 — component",
       "Selenium Manager resolves the driver", "Selenium Manager's cache", "the step ends at its sign-off"];
     const miss = found.filter(t => !N.nameRefs(t).length), wrong = fine.filter(t => N.nameRefs(t).length);
     c.push(["each internal form is found", !miss.length, js(miss)]);
-    c.push(["a library's word, the qa step and the implementer are not", !wrong.length, js(wrong.map(t => [t, N.nameRefs(t)]))]);
+    c.push(["a longer word that contains a name, the qa step and the implementer are not", !wrong.length, js(wrong.map(t => [t, N.nameRefs(t)]))]);
     const want = [["Accepted by the admin team, PR #9.", "Accepted, PR #9."], ["a planner re-pass, then rookie-dev's fixes", "a plan re-pass, then the fixes"], ["Relevant is what qa's test-inspector ran", "Relevant is what the review's test check ran"],
       ["Kept (the user's call).", "Kept."], ["rookie-dev: the 27 minor fixes", "the 27 minor fixes"], ["code-reviewer: no findings", "no findings"], ["Nine gaps await the planner's ruling", "Nine gaps await the ruling"], ["Two exclusions flagged by qa: x", "Two exclusions flagged: x"]];
     const bad = want.filter(([s, w]) => { const r = N.scrubNames(s); return r.text !== w || r.left.length; });
@@ -84,7 +86,7 @@ module.exports = function cases33(X) {
     const cmHtml = '<style>/* each researcher writes */</style><script>/* the admin-team/board step; the run waits on the user */ const a="rookie-dev"; // planner\n</script><script type="application/json" id="plan">{"x":"/* the planner */"}</script><!-- plan-writer -->';
     const cmHits = N.commentRefs(cmHtml);
     c.push(["commentRefs(): the block comments of styles and scripts and the HTML comments; a script's code, its // lines and its data blocks are left alone", js(cmHits) === js(["researcher", "admin-team", "waits on the user", "plan-writer"]), js(cmHits)]);
-    c.push(["unambiguous(): a name no library uses, the approval flow and qa as an agent are; a library's word is not", N.unambiguous("rookie-dev") && N.unambiguous("user's call") && N.unambiguous("qa found") && !N.unambiguous("the planner") && !N.unambiguous("an executor"), "unambiguous"]);
+    c.push(["unambiguous(): every barred name, the approval flow and qa as an agent are; the manager shortened is not", N.unambiguous("rookie-dev") && N.unambiguous("user's call") && N.unambiguous("qa found") && N.unambiguous("planner") && N.unambiguous("executor") && !N.unambiguous("the manager's"), "unambiguous"]);
     const lv = [["Recorded level confirmed.", "Recorded sizing confirmed."], ["the level was confirmed", "the sizing was confirmed"], ["the level re-check passed", "the sizing re-check passed"], ["the issue's level", "the issue's sizing"], ["proposed level 3 confirmed", "proposed sizing confirmed"]];
     const lvBad = lv.filter(([s, w]) => !LR.levelRefs(s).length || LR.scrubLevels(s, {}) !== w);
     c.push(["levelrefs.js: an unnumbered work-level mention is found and reworded (\"Recorded level confirmed\" → \"Recorded sizing confirmed\")", !lvBad.length, js(lvBad.map(([s, w]) => [s, LR.levelRefs(s), LR.scrubLevels(s, {}), w]))]);
@@ -99,7 +101,7 @@ module.exports = function cases33(X) {
     const a = apply(root, req(path.join(sc, "halt.json"), { github: H.repo, issue: H.issue, event: "halted", folder: H.folder, facts: { waitingOn: "A choice between two designs, accepted by the admin team (the user's call).", detail: "rookie-dev is out on S2", open: [{ text: "Open: the cache's eviction rule, flagged by qa", ref: "plan.md" }] } }), "2026-10-25T12:00:00Z");
     const p = planOf(root, H.folder), all = js(p.wip) + js(p.trail);
     c.push(["what waits on the user, reworded: the agent phrase and the aside dropped", a.status === 0 && p.wip.waitingOn === "A choice between two designs, accepted.", js([a.status, p.wip.waitingOn, a.s.error])]);
-    c.push(["a text that still names a role no library uses is left out, and the presenter told (enrich)", a.s.enrich === "yes" && (a.s.why || []).some(x => /facts\.detail names "rookie-dev", an internal name a board never shows: not written/.test(x)) && !/rookie-dev/.test(all), js(a.s.why)]);
+    c.push(["a text that still names a barred role is left out, and the presenter told (enrich)", a.s.enrich === "yes" && (a.s.why || []).some(x => /facts\.detail names "rookie-dev", an internal name a board never shows: not written/.test(x)) && !/rookie-dev/.test(all), js(a.s.why)]);
     c.push(["the open point of an event that is not a stage or a qa pass is applied (the fast path's standing rule), raised by the event, reworded", (p.wip.open || []).some(o => o.text === "Open: the cache's eviction rule, flagged" && o.raised === "halted") && !(a.s.why || []).some(x => /is not applied by the fast path/.test(x)), js([p.wip.open, a.s.why])]);
     c.push(["nothing the event wrote names an internal name or the approval flow", !N.nameRefsIn(p, "", [], LR.titleSkip(p)).length, js(N.nameRefsIn(p, "", [], LR.titleSkip(p)))]);
     /* the routes */
@@ -123,14 +125,14 @@ module.exports = function cases33(X) {
     const P = copy(LIVE); P.folder = "docs/plans/74-warn"; P.issue = 74; P.slug = "74-warn"; P.wip.detail = "The presenter writes the verdicts; accepted by the admin team.";
     const root = tree("warn", [P]), dir = path.join(root, ...P.folder.split("/"));
     const k = run(CHECK, [dir]);
-    c.push(["check.js on a plan.json naming the presenter and the admin team: a warning, the board passing", k.status === 0 && /warn\s+INTERNAL NAME: plan\.json \(wip\.detail\) names /.test(k.stdout || "") && /"The presenter"/.test(k.stdout || "") && /"admin team"/.test(k.stdout || ""), (k.stdout || "").split(/\r?\n/).filter(l => /INTERNAL/.test(l)).join(" | ") || String(k.status)]);
+    c.push(["check.js on a plan.json naming the presenter and the admin team: a warning, the board passing", k.status === 0 && /warn\s+INTERNAL NAME: plan\.json \(wip\.detail\) names /.test(k.stdout || "") && /"presenter"/.test(k.stdout || "") && /"admin team"/.test(k.stdout || ""), (k.stdout || "").split(/\r?\n/).filter(l => /INTERNAL/.test(l)).join(" | ") || String(k.status)]);
     const P2 = copy(LIVE); P2.folder = "docs/plans/75-clean"; P2.issue = 75; P2.slug = "75-clean"; const r2 = tree("clean", [P2]), k2 = run(CHECK, [path.join(r2, ...P2.folder.split("/"))]);
     c.push(["…and none on the clean fixture rendered from the current template (its comments and data)", k2.status === 0 && !/INTERNAL NAME/.test(k2.stdout || ""), (k2.stdout || "").split(/\r?\n/).filter(l => /INTERNAL/.test(l)).join(" | ") || "none"]);
     /* a state board written before: a presenter: mark and a name in its hand-written text */
     const h = rd(SYS).replace("<!-- fill: ", "<!-- presenter: ").replace("<h1>", "<h1 title=\"x\">").replace("</footer>", "</footer><p hidden>Reworded by the planner at the landing.</p>");
     const f = wr(path.join(sc, "state", "docs", "dashboards", "alpha", "index.html"), h);
     const b = run(checker, [f, "--auto", "--no-browser"]);
-    c.push(["check-board.js --auto --no-browser on a state board with a presenter: comment and \"the planner\" in its text: warnings, the board not failed for them", /CHECK warning: INTERNAL NAME: its comments names "presenter:"/.test(b.stdout || "") && /CHECK warning: INTERNAL NAME: its text names "the planner"/.test(b.stdout || "") && !/^CHECK INTERNAL NAME/m.test(b.stdout || ""), (b.stdout || "").split(/\r?\n/).filter(l => /INTERNAL|^FAIL|^PASS/.test(l)).join(" | ")]);
+    c.push(["check-board.js --auto --no-browser on a state board with a presenter: comment and \"planner\" in its text: warnings, the board not failed for them", /CHECK warning: INTERNAL NAME: its comments names "presenter:"/.test(b.stdout || "") && /CHECK warning: INTERNAL NAME: its text names "planner"/.test(b.stdout || "") && !/^CHECK INTERNAL NAME/m.test(b.stdout || ""), (b.stdout || "").split(/\r?\n/).filter(l => /INTERNAL|^FAIL|^PASS/.test(l)).join(" | ")]);
     const ok = run(checker, [wr(path.join(sc, "state2", "docs", "dashboards", "alpha", "index.html"), rd(SYS)), "--auto", "--no-browser"]);
     c.push(["…and none on the current system template", !/INTERNAL NAME/.test(ok.stdout || ""), (ok.stdout || "").split(/\r?\n/).filter(l => /INTERNAL/.test(l)).join(" | ") || "none"]);
     /* a board rendered before keeps its footer's "beside this page" until it is re-rendered (a landed board never is): the check takes it */

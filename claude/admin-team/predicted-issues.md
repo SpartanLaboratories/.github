@@ -139,14 +139,15 @@ The permission system raises the denial.
 ## An encountered issue is not in this tracker
 
 ```json
-{"id":"p9","count":0,"last":null}
+{"id":"p9","count":1,"last":"2026-11-13"}
 ```
 
 - **Proposed resolution:** add it as a new entry with count 1, then prompt the
   user with it and its counter.
 - **Predicted:** the admin team, 2026-11-09.
 - **Encounters:**
-  - None yet.
+  - 2026-11-13: a member could not stop a background search it had started; added as
+    "A member's attempt to stop its own background process is refused".
 
 ## A count changes in this mirrored file
 
@@ -528,3 +529,16 @@ Since 2026-11-13 the internal-names list holds no exception for a library’s na
 - **Predicted:** the admin team, on recording the decision, 2026-11-13.
 - **Encounters:**
   - 2026-11-13: the organization repository, the commit that opens Policy: the documentation standard’s page names its outer ring’s readers as “system architects” (`policy/documentation/audience-reach.md:58` in the prepared package). Found before the commit was sent and put to the user at the console.
+
+## A member's attempt to stop its own background process is refused
+
+```json
+{"id":"p37","count":1,"last":"2026-11-13"}
+```
+
+A member starts a long search or script in the background, finishes its job without it, and tries to stop it. The permission system refuses the stop, and the process keeps running after the member has reported. The team cannot stop it for the member: doing what a member was refused is the member's refusal carried around the permission system.
+
+- **Proposed resolution:** the team checks, read only, whether the process is still running, and tells the user what it is, what started it and its process id; it stops it only at the user's word at the console. A process the team's own shell started is the team's to stop. Members are briefed to run searches in the foreground with a bounded pattern.
+- **Predicted:** the admin team, on meeting it, 2026-11-13.
+- **Encounters:**
+  - 2026-11-13: the Archivist's first backlog run left a search over the ledger running (a pattern with two wide repeats on very long lines); its stop was refused as interfering with workloads. Put to the user at the console.

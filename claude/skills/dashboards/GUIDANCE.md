@@ -323,8 +323,9 @@ board still carries (`BARE TEST LEVEL`); anywhere else a bare "Ln" is a work lev
 comments, the fixed text of its template — names the pipeline's agents, sessions or roles, refers to the approval flow or states a work
 level (above), as [`nomenclature/internal-names.md`](../../nomenclature/internal-names.md) lists them with what is fine. Say what
 happened instead: "accepted", "a plan re-pass", "the fixes", "the land is accepted and being merged". Fine on a board as well are the
-steps' own names (research, architecture, plan) and a halt's "waiting on you"; executor and publisher count only with the pipeline's
-verbs, "the executor commits", "the publisher released". The data follows: the remediation routes' ids are `on-the-spot`,
+steps' own names (research, architecture, plan) and a halt's "waiting on you". Every name the list bars counts as a whole word wherever
+it stands, in backticks too, whatever the words around it ("the dispatcher and the executor" as much as "the executor commits"); a longer
+word that contains one (`RoutePlanner`, `ExecutorService`) does not. The data follows: the remediation routes' ids are `on-the-spot`,
 `remediation` and `re-plan-then-remediation` (the older `rookie-dev` and `planner-then-rookie-dev` are read alike), the template's
 placeholder mark is `fill:` (a `presenter:` mark is migrated by the splice), a progress note is labelled by the work it reports ("research
 · <slug>", "code check"; a Quality Review's three checks "documentation check", "code check", "test check", dashboards-skill/52).
@@ -332,10 +333,10 @@ placeholder mark is `fill:` (a `presenter:` mark is migrated by the splice), a p
 writes it — the agent phrase dropped ("accepted by the admin team" → "accepted"), a possessive made the article ("the planner's re-pass"
 → "the re-pass"), a role's work named as the work ("a planner re-pass" → "a plan re-pass", "code-reviewer" → "code check",
 "documentation-reviewer" → "documentation check", "qa's test-inspector" → "the review's test check": the progress notes' labels), an aside
-on the approval flow dropped — and leaves the text out, telling the presenter (`enrich: yes`), where a name no library uses would remain;
-a word a library may use as well (the planner, the verifier) is written and named for the presenter to look at. `board.js`, `org-board.js`
+on the approval flow dropped — and leaves the text out, telling the presenter (`enrich: yes`), where a barred name would remain.
+`board.js`, `org-board.js`
 and `fill.js` are writers under the same rule (`namerefs.js` `cleanWritten()`): `fill.js` rewords the text it is given and refuses, naming the
-field and the name, a text that would still hold a name no library uses, for the presenter to reword; `board.js` and `org-board.js` pass the
+field and the name, a text that would still hold a barred name, for the presenter to reword; `board.js` and `org-board.js` pass the
 prose a work board copies from a board's data (a Row's detail, a pass's note, a chain unit's name) through `cleanWorkBoard()`, whatever wrote
 it and however long ago, and a text it cannot reword gives way ("Waiting on you." on a halted Row, nothing elsewhere). `check.js` and
 `check-board.js` warn on any name left in a board (`INTERNAL NAME`), never failing it: text a board already stores is corrected through

@@ -5,12 +5,13 @@
 // is, Allowed when: the Name is the row's heading, a CamelCase proper noun (AdminTeam, PlanWriter, QA) that is not scanned, and the Aliases
 // are the forms the scan bars (version-control-manager and executor for VersionControlManager), each in bold. §2 to §4 keep their Term column.
 // 1. Parity, in the style of cases-board-wording.js's passnames parity: the aliases of the list's §1 table and namerefs.js's
-//    barred names (UNAMBIGUOUS, CONTEXTUAL, VERB_ONLY, AGENT_ONLY) hold the same names, a hyphen and a space read alike; each at the strength
-//    its row allows: "never" a name no library uses (UNAMBIGUOUS, matched wherever it stands), a library's name that only coincides any
-//    strength (CONTEXTUAL or VERB_ONLY where a library uses the word; UNAMBIGUOUS where the form is the pipeline's alone, as
-//    version-control-manager), "barred as an agent's name only" AGENT_ONLY (qa). The §2 table (the approval flow) and APPROVAL_FLOW hold
-//    the same phrases.
-// 2. Each name and phrase found as its strength says, and §4's allowed words found nowhere: "the direction manager" with a space as well.
+//    barred names (BARRED, AGENT_ONLY) hold the same names, a hyphen and a space read alike; each at the strength its row allows: "never"
+//    BARRED (a whole word wherever it stands, the user's decision of 2026-11-13: no word that only coincides is let through), "barred as an
+//    agent's name only" AGENT_ONLY (qa). A row that allows anything else has no strength in the script (an exception is brought to the user
+//    first) and is named. The §2 table (the approval flow) and APPROVAL_FLOW hold the same phrases.
+// 2. Each name and phrase found as its strength says, and §4's allowed words found nowhere: "the direction manager" with a space as well;
+//    a name in backticks found, a longer word that contains one not; a fenced block read as before (its lines scanned in a text, a
+//    rendered <pre><code> left out).
 // 3. The parity fails where they differ: a row added to the list's table and an alias added to a row (each written into the list's text in
 //    its four-column shape and read back), a name dropped from the script, a "never" name made contextual, a phrase added to the list.
 // 4. namerefs.js's header points at the list and no longer repeats it.
@@ -39,13 +40,13 @@ const key = s => String(s).toLowerCase().replace(/\[- \]/g, "-").replace(/s\?$/,
 /* the script's barred names by strength */
 function scriptNames(N) {
   const out = [];
-  [["unambiguous", N.UNAMBIGUOUS], ["contextual", N.CONTEXTUAL], ["verb-only", N.VERB_ONLY], ["agent-only", N.AGENT_ONLY]].forEach(([strength, list]) =>
+  [["barred", N.BARRED], ["contextual", N.CONTEXTUAL], ["verb-only", N.VERB_ONLY], ["agent-only", N.AGENT_ONLY]].forEach(([strength, list]) =>
     (list || []).forEach(src => out.push({ key: key(src), src, strength })));
   return out;
 }
-/* the strengths a row of §1 allows */
+/* the strengths a row of §1 allows: none for a row whose "Allowed when" is anything else (the script has no strength for an exception) */
 const strengthsFor = row => /agent's name only/i.test(`${row.what} ${row.allowed}`) ? ["agent-only"]
-  : /^never\.?$/i.test(row.allowed.trim()) ? ["unambiguous"] : ["unambiguous", "contextual", "verb-only"];
+  : /^never\.?$/i.test(row.allowed.trim()) ? ["barred"] : [];
 /* Every difference between the list and the script: [] when they agree. */
 function parity(list, N) {
   const diffs = [], S = scriptNames(N), seen = new Map();
@@ -55,7 +56,7 @@ function parity(list, N) {
   listed.forEach(({ name, row }, k) => {
     const s = seen.get(k);
     if (!s) diffs.push(`the list's §1 names "${name}", namerefs.js does not bar it`);
-    else if (!strengthsFor(row).includes(s.strength)) diffs.push(`"${name}" is ${s.strength} in namerefs.js, its row allows ${strengthsFor(row).join(" or ")} ("${row.allowed}")`);
+    else if (!strengthsFor(row).includes(s.strength)) diffs.push(`"${name}" is ${s.strength} in namerefs.js, its row allows ${strengthsFor(row).join(" or ") || "no strength the script has"} ("${row.allowed}")`);
   });
   S.forEach(s => { if (!listed.has(s.key)) diffs.push(`namerefs.js bars ${s.src}, the list's §1 does not name it`); });
   const a = new Map(list.approval.map(p => [key(p), p])), b = new Map((N.APPROVAL_FLOW || []).map(p => [key(p), p]));
@@ -70,13 +71,14 @@ function behaviour(list, N) {
   list.roles.forEach(row => row.names.forEach(name => {
     const s = S.get(key(name)); if (!s) return;
     const spaced = name.replace(/-/g, " "), Cap = name[0].toUpperCase() + name.slice(1).replace(/-(\w)/g, (m, x) => x.toUpperCase());
-    const probes = s.strength === "unambiguous" ? [[`the ${name} confirmed it`, true], [name, true], [`by the ${name}`, true], [`\`${Cap}\``, false]]
-      : s.strength === "contextual" ? [[`the ${name}`, true], [`by the ${name}`, true], [`the ${name}'s re-pass`, true], [`\`${Cap}\``, false], [`Route${Cap}`, false]]
-      : s.strength === "verb-only" ? [[`the ${name} committed`, true], [`the dispatcher and the ${name}`, false], [`a \`${Cap}\``, false]]
+    /* barred: a whole word wherever it stands, with or without an article or a verb, plural, possessive, any case, in backticks; never
+       inside a longer word (RoutePlanner, ExecutorService) */
+    const probes = s.strength === "barred" ? [[`the ${name} confirmed it`, true], [name, true], [`by the ${name}`, true], [`the dispatcher and the ${name}`, true], [`two ${name}s`, true],
+        [`the ${name}'s note`, true], [name.toUpperCase(), true], [`a \`${name}\``, true], [`a \`${Cap}\``, !/-/.test(name)], [`Route${Cap}`, false], [`${Cap}Service`, false]]
       : [[`${name} found two gaps`, true], [`raised by ${name}`, true], [`the ${name} step`, false], ["Quality Review 2 · approved", false], [`from ${name} pass 2`, false]];
-    if (s.strength === "unambiguous" && spaced !== name) probes.push([`the ${spaced} confirmed it`, /^(admin|direction)-/.test(name)]);
+    if (s.strength === "barred" && spaced !== name) probes.push([`the ${spaced} confirmed it`, /^(admin|direction)-/.test(name)]);
     probes.forEach(([t, want]) => { if (hit(t) !== want) bad.push(`${s.strength} "${name}": "${t}" ${want ? "not found" : "found"} (${JSON.stringify(N.nameRefs(t))})`); });
-    if (s.strength === "unambiguous" && !N.nameRefs(`the ${name} confirmed it`).every(h => N.unambiguous(h))) bad.push(`"${name}" found, but not as a name no library uses (unambiguous())`);
+    if (s.strength === "barred" && !N.nameRefs(`the ${name} confirmed it`).every(h => N.unambiguous(h))) bad.push(`"${name}" found, but not as a name no rewording lets through (unambiguous())`);
   }));
   list.approval.forEach(p => { const h = N.nameRefs(p); if (!h.length || !h.every(x => N.unambiguous(x))) bad.push(`the approval flow's "${p}" ${h.length ? "not unambiguous()" : "not found"} (${JSON.stringify(h)})`); });
   list.allowed.forEach(t => { const h = N.nameRefs(t); if (h.length) bad.push(`§4's allowed "${t}" found: ${JSON.stringify(h)}`); });
@@ -102,15 +104,25 @@ module.exports = function casesInternalNames(X) {
     const d = parity(L, N);
     c.push(["§1's names are namerefs.js's barred names, each at the strength its row allows; §2's phrases its APPROVAL_FLOW", !d.length, js(d)]);
     const qa = scriptNames(N).find(s => s.key === "qa"), dm = scriptNames(N).find(s => s.key === "direction-manager");
-    c.push(["qa barred as an agent's name only; direction-manager a name no library uses", !!qa && qa.strength === "agent-only" && !!dm && dm.strength === "unambiguous", js([qa, dm])]);
+    c.push(["qa barred as an agent's name only; direction-manager barred wherever it stands", !!qa && qa.strength === "agent-only" && !!dm && dm.strength === "barred", js([qa, dm])]);
+    const six = ["planner", "architect", "verifier", "presenter", "publisher", "executor", "archivist"].map(n => scriptNames(N).find(s => s.key === n));
+    c.push(["planner, architect, verifier, presenter, publisher and executor barred as the others are, and the archivist with them (the user's decision of 2026-11-13)", six.every(s => s && s.strength === "barred") && !(N.CONTEXTUAL || []).length && !(N.VERB_ONLY || []).length, js(six)]);
   });
 
   guard("each name found as its strength says, the approval flow's phrases found, §4's allowed words found nowhere", c => {
     if (!L) { c.push(["the list is read", false, `not found: ${js(candidates)}`]); return; }
     const b = behaviour(L, N);
     c.push(["every §1 name and §2 phrase found as its strength says; every §4 row names nothing", !b.length, js(b)]);
-    const dm = [["the direction manager confirmed it", true], ["the direction-manager reported", true], ["direction managers", true], ["the `DirectionManager` turns", false], ["a DirectionManager", false]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);
-    c.push(["\"the direction manager\" with a space found as well as the hyphen; `DirectionManager` in code and as one word left alone", !dm.length, js(dm)]);
+    const dm = [["the direction manager confirmed it", true], ["the direction-manager reported", true], ["direction managers", true], ["the `DirectionManager` turns", false], ["a DirectionManager", false], ["the `direction-manager` turns", true]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);
+    c.push(["\"the direction manager\" with a space found as well as the hyphen, in backticks too; `DirectionManager` as one word left alone", !dm.length, js(dm)]);
+    /* the user's decision of 2026-11-13: a name in backticks counts, a longer word that contains one does not; no surrounding word lets one through */
+    const strict = [["the planner reconciled it", true], ["a single-thread executor drains the queue", true], ["the event publisher emits", true], ["the bytecode verifier rejects it", true], ["runs on an `Executor`", true],
+      ["the `Planner` type", true], ["the archivist's hook", true], ["two archivists", true], ["the solution architect", true], ["Presenters", true],
+      ["uses OkHttp's `RoutePlanner`", false], ["an `ExecutorService`", false], ["RoutePlanner picks a route", false], ["plannerConfig", false], ["planner_id", false]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);
+    c.push(["every name a whole word wherever it stands, in backticks too; a longer word that contains one is not a find", !strict.length, js(strict.map(([t, w]) => [t, w, N.nameRefs(t)]))]);
+    /* fenced blocks: not decided, so read as before: a fence's lines in a text are scanned as any other line, a rendered <pre><code> is left out */
+    const fence = [["```kotlin\nval planner = RoutePlanner()\n```", true], ["<pre><code>the planner reruns it</code></pre>", false], ["<code>planner</code>", true]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);
+    c.push(["a fenced block read as before: its lines in a text scanned, a rendered <pre><code> left out; an inline <code> counts as backticks do", !fence.length, js(fence.map(([t, w]) => [t, w, N.nameRefs(t)]))]);
     const sc = [["accepted by the direction manager", "accepted"], ["The direction manager's hook stands.", "The hook stands."]].filter(([s, w]) => { const r = N.scrubNames(s); return r.text !== w || r.left.length; });
     c.push(["scrubNames(): the direction manager's agent phrase dropped, its possessive the article", !sc.length, js(sc.map(([s, w]) => [s, N.scrubNames(s), w]))]);
   });
@@ -124,14 +136,14 @@ module.exports = function casesInternalNames(X) {
     const added = parseList(md.replace(row1, `${row1}\n| **ReleaseCaptain** | **release-captain** | The agent that cuts a release. | never |`));
     /* an alias added to a row */
     const alias = parseList(md.replace(vcmRow, vcmRow.replace("**executor**", "**executor**, **vc-manager**")));
-    const less = Object.assign({}, N, { UNAMBIGUOUS: N.UNAMBIGUOUS.filter(s => key(s) !== "direction-manager") });
-    const ctx = Object.assign({}, N, { UNAMBIGUOUS: N.UNAMBIGUOUS.filter(s => key(s) !== "rookie-dev"), CONTEXTUAL: [...N.CONTEXTUAL, "rookie-devs?"] });
-    const qa = Object.assign({}, N, { AGENT_ONLY: [], UNAMBIGUOUS: [...N.UNAMBIGUOUS, "qa"] });
+    const less = Object.assign({}, N, { BARRED: N.BARRED.filter(s => key(s) !== "direction-manager") });
+    const ctx = Object.assign({}, N, { BARRED: N.BARRED.filter(s => key(s) !== "rookie-dev"), CONTEXTUAL: [...(N.CONTEXTUAL || []), "rookie-devs?"] });
+    const qa = Object.assign({}, N, { AGENT_ONLY: [], BARRED: [...N.BARRED, "qa"] });
     const phrase = copy(L); phrase.approval.push("the user signed off");
     const addedD = parity(added, N);
     c.push(["a row added in the four-column shape is read by its alias, its Name not scanned", addedD.some(x => /"release-captain"/.test(x)) && !addedD.some(x => /ReleaseCaptain/.test(x)), js(addedD)]);
     const probes = [["a row added to the list", addedD, /release-captain/], ["an alias added to a row", parity(alias, N), /"vc-manager"/], ["direction-manager dropped from the script", parity(L, less), /direction-manager/],
-      ["a \"never\" name made contextual", parity(L, ctx), /rookie-dev.*contextual/], ["qa barred wherever it stands", parity(L, qa), /qa.*unambiguous/], ["a phrase added to the list", parity(phrase, N), /signed off/]];
+      ["a \"never\" name made contextual", parity(L, ctx), /rookie-dev.*contextual/], ["qa barred wherever it stands", parity(L, qa), /qa.*barred/], ["a phrase added to the list", parity(phrase, N), /signed off/]];
     const wrong = probes.filter(([, d, re]) => !d.some(x => re.test(x)));
     c.push(["each difference named: a row added, an alias added, a name dropped, a strength changed, qa beyond an agent's name, a phrase added", !wrong.length, js(wrong.map(([w, d]) => [w, d]))]);
   });

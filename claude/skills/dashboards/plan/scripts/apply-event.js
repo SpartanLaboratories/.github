@@ -254,8 +254,8 @@ function applyEvent(orig, ev, facts, req, now) {
   const IDENT = new Set(["branch", "version"]);
   /* then an internal name (GUIDANCE.md §4, "No internal names"; namerefs.js scrubNames(), dashboards-skill/33): the pipeline's agents,
      sessions and roles and the approval flow are never written either: "accepted by the admin team" → "accepted", "a planner re-pass"
-     → "a plan re-pass", "rookie-dev's fixes" → "the fixes", "(the user's call)" dropped; a text that still names one no library uses is
-     left out, and one that names a word a library may use as well (the planner, the verifier) is written and named for the presenter */
+     → "a plan re-pass", "rookie-dev's fixes" → "the fixes", "(the user's call)" dropped; a text that still names a barred name, whatever
+     the words around it, is left out and named for the presenter */
   const shortJ = r => JSON.stringify(r.length > 80 ? r.slice(0, 79) + "…" : r);
   const txt = (v, field) => {
     if (typeof v !== "string" || !v.trim()) return null;
