@@ -15,6 +15,7 @@ from one has a gap, which is recorded as an issue in that repository and closed 
 | Subject | Policy |
 |---------|--------|
 | Documentation | [R-11 (Documentation)](policy/documentation/INDEX.md) |
+| Testing | [R-12 (Testing — Named Test Sets)](policy/testing/README.md) |
 
 ## Conduct and security
 <!-- {"name":"Conduct and security","code":"P-C-CS","id":1015} -->
