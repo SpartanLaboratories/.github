@@ -1946,7 +1946,8 @@ function layFoundation(req, facts, folder, now) {
   if (within && !said && !fix) enrich.push(`#${issue} sits inside #${within}'s folder, and #${within} is no tracking issue: its parent and any fixOf are the presenter's to record`);
   const row = upPlan && parentN && upPlan.issue === parentN ? (upPlan.rows || []).find(r => r && r.unit && r.unit.issue === issue) || null : null, unit = row ? row.unit : null;
   /* the level, read for the kind and the steps line and never kept on the board (levels.js): the request's, an older unit row's, else the team's local state */
-  const lv = [req.level, facts.level, unit && unit.level, lib.localLevel(repo, issue)].find(v => [1, 2, 3, 4].includes(v)), level = lv != null ? lv : null;
+  /* the request's grade first, then its level (the user's decision of 2026-11-13, vocabulary/choice-1-live-keys (a); level read until the rule rework's L12) */
+  const lv = [req.grade, facts.grade, req.level, facts.level, unit && unit.level, lib.localLevel(repo, issue)].find(v => [1, 2, 3, 4].includes(v)), level = lv != null ? lv : null;
   const kind = facts.kind === "tracking" || facts.kind === "issue" ? facts.kind : level === 4 || facts.step === "architecture" ? "tracking" : "issue";
   /* the systems: the event's slugs, else the unit row's. A slug the registry does not know yields to the parent's unit row's system where the
      registry knows that one (WebTools #66: the run sent webtools-http-response-cache, the registry and the unit row say webtools-http-cache),

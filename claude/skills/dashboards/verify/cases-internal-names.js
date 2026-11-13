@@ -152,6 +152,21 @@ module.exports = function casesInternalNames(X) {
     c.push(["each difference named: a row added, an alias added, a name dropped, a strength changed, qa beyond an agent's name, a phrase added", !wrong.length, js(wrong.map(([w, d]) => [w, d]))]);
   });
 
+  /* the user's decision of 2026-11-13 (vocabulary/choice-2-grade-reach (a)): every form of "grade" is barred, as the list's §3 lists it; the
+     boards' scrub (levelrefs.js) finds each form the list names, its terms and the forms quoted beside them. A list before that edit names none. */
+  guard("§3's grades: every form of a grade the list names is found by the boards' scrub (levelrefs.js)", c => {
+    if (!file) { c.push(["the list is read", false, `not found: ${js(candidates)}`]); return; }
+    const m = /^## 3\.[^\n]*\n([\s\S]*?)(?=^## |(?![\s\S]))/m.exec(fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n"));
+    c.push(["§3 is found", !!m, file]); if (!m) return;
+    const rows = m[1].split("\n").filter(l => /^\|/.test(l) && !/^\|\s*-/.test(l)).map(l => l.replace(/^\|/, "").replace(/\|\s*$/, "").split("|").map(x => x.trim())).filter(cells => !/^term$/i.test(cells[0]));
+    const forms = [];
+    rows.forEach(([term, what]) => { const bold = [...String(term).matchAll(/\*\*(.+?)\*\*/g)].map(x => x[1].replace(/^["“]|["”]$/g, "").trim());
+      if (!bold.some(b => /grad/i.test(b))) return;
+      forms.push(...bold, ...[...String(what || "").matchAll(/["“]([^"”]+)["”]/g)].map(x => x[1]).filter(q => /grad/i.test(q))); });
+    const LR = require(sk("system/scripts/levelrefs.js")), missed = forms.filter(f => !LR.levelRefs(f).length);
+    c.push([forms.length ? `every form of a grade §3 names is found (${forms.length}: ${forms.join(", ")})` : "§3 names no grade yet: nothing to hold", !missed.length, js(missed)]);
+  });
+
   guard("namerefs.js's header points at the list and no longer repeats it", c => {
     const head = fs.readFileSync(NR, "utf8").split(/"use strict";/)[0];
     c.push(["the header names nomenclature/internal-names.md as the list's one home", /nomenclature\/internal-names\.md/.test(head) && /one home/.test(head), head.slice(0, 200)]);

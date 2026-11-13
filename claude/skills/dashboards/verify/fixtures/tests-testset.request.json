@@ -1,0 +1,27 @@
+{
+  "$comment": "An implementation-stage request in the new keys (the user's decisions of 2026-11-13: vocabulary/decided-set (3), choice-1-live-keys (a)): each class's set as testSet, by its name, and the other tests' counts keyed by the set's name (other.byModule.<set>), where a request before them carries testLevel and the level. verify/cases-tests-facts.js replays its facts on the example board and its old twin's (testSet renamed testLevel, each set's name its level), and holds the two boards' Tests tabs equal.",
+  "v": 1,
+  "id": "acme-widgets/38/9",
+  "attempt": 1,
+  "from": "acme-widgets-38",
+  "action": "plan-board",
+  "event": "implementation-stage",
+  "facts": {
+    "at": "2026-11-13T10:00:00Z",
+    "stage": "S2",
+    "stages": [
+      { "id": "S1", "name": "Baseline", "state": "done" },
+      { "id": "S2", "name": "Local checks", "state": "done" },
+      { "id": "S3", "name": "Scans", "state": "current" }
+    ],
+    "tests": {
+      "added": [
+        { "class": "com.acme.testing.component.NameCheckTest", "module": "core", "testSet": "component", "tests": 4 },
+        { "class": "com.acme.testing.integration.HandshakeTest", "module": "core", "testSet": "integration", "tests": 2 },
+        { "class": "PropertyCheck", "module": "core", "testSet": "deterministic", "tests": 3 },
+        { "class": "LoadCheck", "module": "core", "testSet": "nonfunctional", "tests": 1 }
+      ],
+      "other": { "byModule": { "core": { "gating": 5, "component": { "classes": 3, "tests": 12 }, "e2e": 1 } } }
+    }
+  }
+}

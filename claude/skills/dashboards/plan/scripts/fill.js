@@ -57,7 +57,7 @@ const stageNope = s => levelRefs(s).length ? "a work level" : nameRefs(s).some(u
 
 const OWNED = ["wip", "trail", "status", "sized", "branch", "asBuilt", "kind", "schema", "repo", "issue", "slug", "folder", "foundation", "links"];
 const IDENTITY = ["id", "slug", "issue", "class", "question", "pass", "n"];
-const LEVELS = new Set(["level", "proposedLevel"]);
+const LEVELS = new Set(["level", "proposedLevel", "grade", "proposedGrade"]);   // a grade is a work level under its new name (vocabulary/choice-1-live-keys (a))
 const WIP_KEYS = ["stages", "questions", "interview", "asked", "qa", "current", "waitingOn", "detail", "open", "document"];
 const TASK_KEYS = ["id", "started", "finished", "reason"];
 const UNIT_KEPT = ["issue", "board", "folder", "live"];

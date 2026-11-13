@@ -1,0 +1,21 @@
+{
+  "$comment": "A sized request in the new keys (the user's decisions of 2026-11-13: vocabulary/choice-1-live-keys (a)): the issue's grade in the request and its facts, where a request before them carries level. verify/cases-work-levels.js lays a board from it and from its old twin (grade renamed level), and holds the two boards equal; its detail names the grade, which the board never shows (levelrefs.js scrubGrades()).",
+  "v": 1,
+  "id": "acme-widgets/80/1",
+  "attempt": 1,
+  "from": "acme-widgets-80",
+  "action": "plan-board",
+  "github": "acme/widgets",
+  "branch": "fix/issue-80-empty-name",
+  "issue": 80,
+  "event": "sized",
+  "folder": "docs/plans/80-empty-name",
+  "grade": 2,
+  "facts": {
+    "at": "2026-11-13T09:00:00Z",
+    "step": "research",
+    "baseline": "abc1234",
+    "grade": 2,
+    "detail": "Recorded grade confirmed: a grade-2 fix inside grade 2, re-graded to grade 2."
+  }
+}

@@ -5,7 +5,8 @@
 // and fourteen classes were stored with no level; an event that reported S1 to S5 done at once stamped every class with S5, "S3 python"
 // included, over the stage the board recorded; a qa pass's run naming another test level than the one recorded (S4 log-filter: 3 held, 4a
 // run) was passed over in silence; and check.js warned "two visits answer the same qa pass" where the first visit had ended at a halt and the
-// second resumed the same remediation. Each group returns [title, cases], a case [name, ok, detail].
+// second resumed the same remediation. A testSet (the user's decisions of 2026-11-13: tests are in named sets) is read beside a testLevel, and
+// the other tests' counts keyed by a set's name beside a level's (verify/fixtures/tests-testset.request.json). Each group returns [title, cases], a case [name, ok, detail].
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 
@@ -120,6 +121,35 @@ module.exports = function casesTestsFacts(X) {
     c.push(["two loops of pass 1 with no halt between: still warned", /two visits answer the same qa pass \(1, 1, 2\)/.test(twice), twice || "no warning"]);
     const apart = chk([vis(1, "2026-10-25T10:00:00Z", "2026-10-25T10:10:00Z", "halted", { held: true }), vis(2, "2026-10-25T10:30:00Z", "2026-10-25T11:00:00Z", "qa-pass"), vis(1, "2026-10-25T12:00:00Z", "2026-10-25T12:30:00Z", "qa-pass")]);
     c.push(["a halted visit of pass 1 not resumed next (pass 2 between) is still its own loop: warned", /two visits answer the same qa pass/.test(apart), apart || "no warning"]);
+  });
+
+  /* 5. a testSet beside a testLevel (the user's decisions of 2026-11-13: vocabulary/decided-set (3), choice-1-live-keys (a)) */
+  guard("testslib.js: a testSet is read beside a testLevel, by its name, and the other tests' counts keyed by a set's name beside a level's; a testLevel is read as before", c => {
+    const o = { now: "2026-11-13T01:00:00Z", ids: new Set(ids) }, m = (cl0, extra) => ({ class: cl0, module: "m", tests: 1, ...extra });
+    const P = { rows: EX.rows, tests: null }, r = TL.mergeTests(P, { added: [m("A", { testSet: "gating" }), m("B", { testSet: "Integration" }), m("C", { testSet: "testing.e2e" }), m("D", { testSet: "nonfunctional" }), m("E", { testSet: "uat" }), m("F", { testSet: "deterministic" }), m("G", { testSet: "component" })] }, o);
+    const got = ((P.tests || {}).added || []).map(e => e.testLevel).join();
+    c.push(["the seven names read as the test level the board records for each: gating 1, integration 3, e2e 4b, nonfunctional 4c, uat 5, deterministic 4a, component 2", got === "1,3,4b,4c,5,4a,2", got]);
+    c.push(["…with nothing said: a set's name is the rule, so no TEST LEVEL BY NAME and no note", !(r.warnings || []).length && !r.notes.length, js([r.warnings, r.notes])]);
+    const P2 = { rows: EX.rows, tests: null }; TL.mergeTests(P2, { added: [m("A", { testSet: "integration", testLevel: "1" }), m("B", { testSet: " ", testLevel: "4a" }), m("C", { testSet: "3" })] }, o);
+    const got2 = ((P2.tests || {}).added || []).map(e => e.testLevel).join();
+    c.push(["a testSet before a testLevel; an empty testSet leaves the testLevel read; a testSet sent as a number read as that level", got2 === "3,4a,3", got2]);
+    const P3 = { rows: EX.rows, tests: null }, r3 = TL.mergeTests(P3, { added: [m("S2 odd", { testSet: "fast" }), { class: "com.acme.testing.uat.FooTest", module: "m", testSet: "smoke", tests: 2 }] }, o);
+    const a3 = ((P3.tests || {}).added || []), n3 = r3.notes.join(" | ");
+    c.push(["a testSet that is neither a name nor a number is not read, and named for the presenter, with the set its path names where it names one", !(a3.find(e => e.class === "S2 odd") || {}).testLevel && (a3.find(e => /FooTest/.test(e.class)) || {}).testLevel === "5" && /testSet not read/.test(n3) && /"fast" \(S2 odd\)/.test(n3) && /"smoke" \(com\.acme\.testing\.uat\.FooTest \(its path: 5\)\)/.test(n3), js([a3.map(e => [e.class, e.testLevel]), r3.notes])]);
+    c.push(["…in its own note: the testLevel's note is not said for it", !r3.notes.some(x => /^testLevel not read/.test(x)), js(r3.notes)]);
+    const P4 = { rows: EX.rows, tests: null }; TL.mergeTests(P4, { other: { byModule: { core: { gating: 5, component: { classes: 3, tests: 12 }, "4b": 1 }, api: { "2": 7 } } } }, o);
+    c.push(["other.byModule keyed by a set's name read as its level's, beside a count keyed by a level", js((P4.tests || {}).other) === js({ byModule: { api: { "2": 7 }, core: { "1": 5, "2": { classes: 3, tests: 12 }, "4b": 1 } } }), js((P4.tests || {}).other)]);
+    const P5 = { rows: EX.rows, tests: null }; TL.mergeTests(P5, { other: { byModule: { core: { integration: 2, "3": 9 } } } }, o);
+    c.push(["…a set's name before its level where both are sent", js(((P5.tests || {}).other || {}).byModule) === js({ core: { "3": 2 } }), js((P5.tests || {}).other)]);
+    /* the request fixture through the fast path, beside its old twin: testSet renamed testLevel and each name its level, the counts keyed by level */
+    const RQ = J("verify/fixtures/tests-testset.request.json"), twin = copy(RQ.facts), SEG = TL.TEST_LEVEL_SEGMENTS;
+    twin.tests.added.forEach(e => { e.testLevel = SEG[e.testSet]; delete e.testSet; });
+    Object.keys(twin.tests.other.byModule).forEach(md => { twin.tests.other.byModule[md] = Object.fromEntries(Object.entries(twin.tests.other.byModule[md]).map(([k, v]) => [SEG[k] || k, v])); });
+    const dN = building("implementation", ["done", "current", "todo"]), BN = lay(dN), eN = ev(BN, dN, RQ.event, RQ.facts, RQ.facts.at);
+    const dO = building("implementation", ["done", "current", "todo"]), BO = lay(dO), eO = ev(BO, dO, RQ.event, twin, RQ.facts.at);
+    const lvN = RQ.facts.tests.added.map(e => cls(eN.p, e.class).testLevel).join();
+    c.push(["the request fixture (verify/fixtures/tests-testset.request.json) through apply-event.js: each class at its set's level, the counts by level", eN.a.status === 0 && lvN === "2,3,4a,4c" && js(eN.p.tests.other.byModule.core) === js({ "1": 5, "2": { classes: 3, tests: 12 }, "4b": 1 }), js([eN.S.error, lvN, eN.p.tests && eN.p.tests.other])]);
+    c.push(["…its old twin (testLevel, the counts by level) writes the same Tests tab, with the same summary", eO.a.status === 0 && js(eN.p.tests) === js(eO.p.tests) && js(eN.S.warnings || []) === js(eO.S.warnings || []) && js(eN.S.why || []) === js(eO.S.why || []), js([eO.S.error, eN.S.warnings, eO.S.warnings])]);
   });
   return groups;
 };

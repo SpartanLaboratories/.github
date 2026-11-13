@@ -95,6 +95,48 @@ const LEVEL_PATTERNS = [
   [`${NOT_OTHER}\\blevel[ \\t]+(?:re-?checks?|checks?|confirmation|proposal)\\b(?![ \\t]*:)`, "i"],                 // "the level re-check"; on one line, never a "check:" label ("test: every level" beside "check: …")
   ["\\b(?:issue|unit|run|sub-issue)['’]s\\s+level\\b", "i"],                                                           // "the issue's level"
 ];
+/* Grades (the user's decisions of 2026-11-13: vocabulary/decided-set (1), choice-2-grade-reach (a)): the size of an issue's work is its
+   grade, and the word in every form is barred from what a board shows, numbered or not, in any case, a hyphenated compound included:
+   "grade 3", "grade: 2", "a grade-4 issue", "graded", "grading", "re-grade", "regraded", "the recorded grade", "work grade",
+   "carrier-grade". No other sense of the word is let through, so no heuristic stands beside it as the test, C4 and KDoc heuristics stand
+   beside "level" above. A match is the word with the hyphenated compound it stands in and the number after it; a longer word that only
+   holds the letters ("upgrade", "degrade", "centigrade", "Gradle", "gradient") and an identifier ("proposedGrade") are not the word. The
+   work-level forms above stay matched beside it, until the rule rework's L12. */
+const GRADE_WORD = "(?:re-?)?grad(?:e|es|ed|ing)";
+const GRADE_PATTERNS = [
+  [`(?<![\\w-])(?:[a-z0-9]+-)*${GRADE_WORD}(?:-[a-z0-9]+)*(?![\\w-])(?:[ \\t]*:?[ \\t]*[1-4]\\b)?`, "i"],   // "grade 3", "a grade-4 issue", "re-graded", "carrier-grade"
+];
+LEVEL_PATTERNS.push(...GRADE_PATTERNS);
+/* A pipeline fact's grade reworded as scrubLevels() rewords a work level, before it: the scope phrase ("inside grade 3") becomes the unit's or
+   the issue's scope, "escalated to grade 4" reads "escalated", "at its own grade" "on its own", "re-graded" "re-sized", "graded" "sized",
+   "grading" "sizing", "the work grade" "the sizing", "the recorded grade: 3" "the recorded sizing", the label ("grade: 3", "(grade 3)",
+   "(#61, grade 3)") is dropped with its punctuation, a numbered grade before a noun is elided ("a grade-3 re-pass" → "a re-pass", "a grade 3
+   issue" → "an issue"), and the word left unnumbered reads "sizing" ("the grade re-check" → "the sizing re-check"). A hyphenated compound
+   ("carrier-grade") and a numbered grade no rule above takes have no rewording: they stay, scrubLevels() returns null, and the caller
+   leaves the text out and tells the presenter. Its elision marks the article to mend as scrubLevels()'s does, and scrubLevels() mends it. */
+function scrubGrades(s, scope) {
+  const NB = "(?<![\\w-])", NA = "(?![\\w-])";
+  const elide = re => { s = s.replace(re, (m, ...a) => { const off = a[a.length - 2], src = a[a.length - 1], before = src.slice(0, off), after = src.slice(off + m.length);
+    const art = /\b(an?)\s+$/i.exec(before); if (!art) return "";
+    const want = /^\s*[aeiou]/i.test(after) && !/^\s*(?:u[nb]i|use|eu|one)/i.test(after) ? "an" : "a";
+    return art[1].toLowerCase() === want ? "" : `\u0000${want}\u0000`; }); };
+  const caseOf = (m, w) => m === m.toUpperCase() && /[A-Z]/.test(m) ? w.toUpperCase() : /^[A-Z]/.test(m) ? w[0].toUpperCase() + w.slice(1) : w;
+  s = s.replace(new RegExp(`${NB}(${SCOPE_WORDS})\\s+(?:the\\s+)?grade[- ][1-4]\\b(?:\\s+(?:scope|bounds|limits|work)${NA})?`, "gi"), (m, w) => `${w} ${scope}`);
+  s = s.replace(new RegExp(`${NB}(escalat\\w*|re-?sized?|sized|labelled|labeled)\\s+(?:to|as|at)\\s+grade\\s+[1-4]\\b`, "gi"), "$1");
+  s = s.replace(new RegExp(`${NB}at (its|their|his|her) own grade${NA}`, "gi"), "on $1 own");
+  s = s.replace(new RegExp(`${NB}(re-?)grad(e|es|ed|ing)(?:\\s+(?:to|as|at)\\s+(?:grade\\s+)?[1-4]\\b)?${NA}`, "gi"), (m, r, e) => caseOf(m, `re-siz${e.toLowerCase()}`));
+  s = s.replace(new RegExp(`${NB}grad(ed|ing)(?:\\s+(?:to|as|at)\\s+(?:grade\\s+)?[1-4]\\b)?${NA}`, "gi"), (m, e) => caseOf(m, `siz${e.toLowerCase()}`));
+  s = s.replace(new RegExp(`${NB}(?:work|issue|tracking)[- ](grades?)${NA}`, "gi"), (m, g) => caseOf(m, /s$/i.test(g) ? "sizings" : "sizing"));
+  s = s.replace(new RegExp(`${NB}(recorded|proposed|assigned|sized)\\s+(?:work\\s+)?(grades?)(?:[:\\s]+[1-4]\\b)?${NA}`, "gi"), (m, w, g) => `${w} ${/s$/i.test(g) ? "sizings" : "sizing"}`);
+  s = s.replace(/\(\s*(?:the\s+)?(?:label(?:led|ed)?\s+)?grade:?\s*[1-4]\s*\)/gi, "");
+  s = s.replace(/\s*[,;]\s*grade:?\s*[1-4]\s*(?=[),;:])/gi, "");
+  s = s.replace(new RegExp(`${NB}(?:the\\s+)?(?:label(?:led|ed)?\\s+)?grade:\\s*[1-4]\\b`, "gi"), "");
+  elide(new RegExp(`${NB}grade-[1-4][- ](?=[a-z])`, "gi"));
+  elide(new RegExp(`(?<=\\b(?:an?|another|later|next|the|this|that|each|every|its|their)\\s+)grade [1-4] (?=[a-z])`, "gi"));
+  /* the word left unnumbered, out of a compound: "the grade", "grades" */
+  s = s.replace(new RegExp(`${NB}(grades?)${NA}(?![ \\t]*:?[ \\t]*[1-4]\\b)`, "gi"), (m, g) => caseOf(m, /s$/i.test(g) ? "sizings" : "sizing"));
+  return s;
+}
 const REGEXES = LEVEL_PATTERNS.map(([s, f]) => new RegExp(s, f + "g"));
 /* Every work-level reference in a text, as the matched strings. */
 function levelRefs(text) {
@@ -178,6 +220,8 @@ function scrubLevels(text, opts) {
     const art = /\b(an?)\s+$/i.exec(before); if (!art) return "";
     const want = /^\s*[aeiou]/i.test(after) && !/^\s*(?:u[nb]i|use|eu|one)/i.test(after) ? "an" : "a";
     return art[1].toLowerCase() === want ? "" : `\u0000${want}\u0000`; }); };
+  /* a grade first (scrubGrades(), above); the work level's forms then as before */
+  s = scrubGrades(s, scope);
   s = s.replace(new RegExp(`\\b(${SCOPE_WORDS})\\s+(?:the\\s+)?level[- ][1-4]\\b(?:\\s+(?:scope|bounds|limits|work))?${NOT_TEST_OR_TESTS}`, "gi"), (m, w) => `${w} ${scope}`);
   s = s.replace(/\b(escalat\w*|re-?sized?|sized|labelled|labeled)\s+(?:to|as|at)\s+level\s+[1-4]\b/gi, "$1");
   s = s.replace(/\bat (its|their|his|her) own level\b/gi, "on $1 own");
@@ -222,4 +266,4 @@ function nameTestLevels(text) {
 }
 /* the bare test levels a text still carries ("L2 test"): check.js warns, naming the named form to write */
 const bareTestLevels = text => nameTestLevels(text).named;
-module.exports = { LEVEL_PATTERNS, levelRefs, levelRefsIn, scrubLevels, nameTestLevels, bareTestLevels, TITLE_PATHS, dataKind, isTitlePath, titleSkip, issueTitleRefs, quotedTitles, titleDefect };
+module.exports = { LEVEL_PATTERNS, GRADE_PATTERNS, levelRefs, levelRefsIn, scrubLevels, nameTestLevels, bareTestLevels, TITLE_PATHS, dataKind, isTitlePath, titleSkip, issueTitleRefs, quotedTitles, titleDefect };

@@ -489,7 +489,7 @@ A `step-complete` becomes the board's last event. A later `resumed` that ends an
 ## An edit of the team's own files is refused as [Self-Modification]
 
 ```json
-{"id":"p34","count":8,"last":"2026-11-13"}
+{"id":"p34","count":9,"last":"2026-11-13"}
 ```
 
 The session's auto mode classifier refuses a tool call by which the team changes its own briefs, protocol, skill rules or settings, with the reason "[Self-Modification]". It judges each call: on the same day most of the direction manager's edits to the same files went in. The refused ones were bulk shell copies over the briefs and edits that loosen what the team itself may do (a permission line in its settings, the rule on what may be pushed straight to `main`, the direction manager's own scope, who may direct a retime). A subagent's conversation holds the team's brief to it, not the user's words at the console, and a sentence written into the team's brief did not change the outcome.
@@ -506,6 +506,7 @@ The session's auto mode classifier refuses a tool call by which the team changes
   - 2026-11-12: the presenter's timing rule: it went into the presenter's brief; the matching edits to the protocol, the dashboards rules and the dashboards skill were refused and staged.
   - 2026-11-13: the lift of a deny rule for a temporary grant (KotlinBottools #26): the team's start of the direction manager's job was itself refused, in a session that began before the standing line was placed; staged, for the user to place.
   - 2026-11-13: the approved change giving the presenter its own rules (four briefs at once): four of the five changes to the team’s brief went in, the fifth was refused, and the other three briefs were not started; the four staged copies are for the user to place. The changes were sent as one batch, so the refusal did not stop the two after it.
+  - 2026-11-13: the approved session-archive change to the Archivist’s brief: the scripts and the first three changes went in, the change that adds the modes that archive and delete was refused; the rest of that brief, the team’s brief and CLAUDE.md were not started; the staged copies are for the user to place.
 
 ## A name the scan bars is in a string a script prints
 

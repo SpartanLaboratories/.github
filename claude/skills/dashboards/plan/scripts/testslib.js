@@ -80,6 +80,19 @@ function readLevel(v) {
   if (Object.prototype.hasOwnProperty.call(TEST_LEVEL_SEGMENTS, seg)) return { level: TEST_LEVEL_SEGMENTS[seg], as: "name" };
   return { level: null, as: "unread" };
 }
+/* A testSet as the facts give it (the user's decisions of 2026-11-13: vocabulary/decided-set (3), choice-1-live-keys (a)): tests are in
+   named sets, sent as testSet, one of the seven names (testing.<name> read alike, in any case), read as the test level the board records
+   for that set (TEST_LEVEL_SEGMENTS) with nothing said, as "set". A testSet sent as a number is read as readLevel() reads it; a value that
+   is neither is "unread", as there. A testLevel sent instead is read as before (readLevel()), until the rule rework's L12. */
+function readSet(v) {
+  if (v == null || (typeof v === "string" && !v.trim())) return { level: null, as: null };
+  const seg = String(v).trim().toLowerCase().replace(/^testing[./\\]/, "");
+  if (Object.prototype.hasOwnProperty.call(TEST_LEVEL_SEGMENTS, seg)) return { level: TEST_LEVEL_SEGMENTS[seg], as: "set" };
+  const rd = readLevel(v);
+  return rd.as === "level" ? rd : { level: null, as: "unread" };
+}
+/* The set's name a test level holds (the inverse of TEST_LEVEL_SEGMENTS): "3" → "integration" */
+const SET_OF_LEVEL = Object.fromEntries(Object.entries(TEST_LEVEL_SEGMENTS).map(([name, lv]) => [lv, name]));
 /* One class from the facts, normalised: { entry, notes, given } or { why } when it cannot be used; given { level, as, raw, path } is how its
    testLevel was read (readLevel(); path the level its path names where the value was not read), for the summary. o: { ids (the board's row
    ids), stage, pass, now }: o.stage the stage the event reports for its classes, null where it reports several at once (mergeTests() then
@@ -90,7 +103,10 @@ function normEntry(x, o, withResult) {
   if (!cls) return { why: "no class" };
   const e = { class: str(x.module) ? bareName(cls, x.module) : cls };
   if (str(x.module)) e.module = x.module.trim();
-  const raw = x.testLevel != null ? x.testLevel : x.level != null ? x.level : null, rd = readLevel(raw);
+  /* a testSet first (readSet()), else the testLevel (or level) as before */
+  const bySet = x.testSet != null && !(typeof x.testSet === "string" && !x.testSet.trim());
+  const key = bySet ? "testSet" : x.testLevel != null ? "testLevel" : x.level != null ? "level" : null;
+  const raw = bySet ? x.testSet : x.testLevel != null ? x.testLevel : x.level != null ? x.level : null, rd = bySet ? readSet(raw) : readLevel(raw);
   const level = rd.level || levelFromPath({ path: x.path, class: cls });
   if (level) e.testLevel = level;
   if (str(x.path)) e.path = x.path.trim().replace(/\\/g, "/");
@@ -112,7 +128,7 @@ function normEntry(x, o, withResult) {
     const nt = str(R.note) ? (typeof o.txt === "function" ? o.txt(R.note) : R.note.replace(/\s+/g, " ").trim()) : null;
     e.result = { state: r.state, ...["passed", "failed", "skipped"].reduce((a, k) => (r[k] != null ? { ...a, [k]: r[k] } : a), {}), ...(r.pass ? { pass: r.pass } : {}), at: r.at, ...(nt ? { note: nt } : {}) };
   }
-  return { entry: e, notes, given: { ...rd, raw, path: rd.level ? null : level } };
+  return { entry: e, notes, given: { ...rd, raw, key, path: rd.level ? null : level } };
 }
 /* The other tests' counts: { byModule: { <module>: { <level or "none">: n | { classes, tests } } } }; { byModule: {} } when the facts' report nothing (an empty byModule, or modules with no count: PROTOCOL.md allows it); null when they are not that shape. */
 function normOther(x) {
@@ -122,7 +138,8 @@ function normOther(x) {
   if (Object.values(m).some(lv => !lv || typeof lv !== "object" || Array.isArray(lv))) return null;
   const out = {};
   Object.keys(m).sort().forEach(md => { const lv = m[md]; if (!lv || typeof lv !== "object" || Array.isArray(lv)) return; const row = {};
-    [...TEST_LEVELS, "none"].forEach(k => { const v = lv[k]; if (count(v)) row[k] = v; else if (v && typeof v === "object" && count(v.classes)) row[k] = { classes: v.classes, ...(count(v.tests) ? { tests: v.tests } : {}) }; });
+    /* a count keyed by its set's name (other.byModule.<set>) is read as its test level's, before one keyed by the level */
+    [...TEST_LEVELS, "none"].forEach(k => { const named = SET_OF_LEVEL[k] && lv[SET_OF_LEVEL[k]], v = count(named) || (named && typeof named === "object" && count(named.classes)) ? named : lv[k]; if (count(v)) row[k] = v; else if (v && typeof v === "object" && count(v.classes)) row[k] = { classes: v.classes, ...(count(v.tests) ? { tests: v.tests } : {}) }; });
     if (Object.keys(row).length) out[md] = row; });
   if (!Object.keys(out).length) return Object.values(m).every(lv => !Object.keys(lv).length) ? { byModule: {} } : null;
   return { byModule: out, ...(str(x.source) ? { source: x.source.trim() } : {}) };
@@ -181,7 +198,7 @@ function mergeTests(plan, ft, o) {
   /* how each testLevel was read, said once per event (readLevel()) */
   const byName = new Map(), unread = new Map(), given = n => { const g = n.given || {}, key = JSON.stringify(g.raw);
     if (g.as === "name") { if (!byName.has(key)) byName.set(key, { raw: g.raw, level: g.level, classes: [] }); byName.get(key).classes.push(n.entry.class); }
-    else if (g.as === "unread") { if (!unread.has(key)) unread.set(key, { raw: g.raw, classes: [] }); unread.get(key).classes.push(n.entry.class + (g.path ? ` (its path: ${g.path})` : "")); } };
+    else if (g.as === "unread") { const u = g.key === "testSet" ? unreadSet : unread; if (!u.has(key)) u.set(key, { raw: g.raw, classes: [] }); u.get(key).classes.push(n.entry.class + (g.path ? ` (its path: ${g.path})` : "")); } }, unreadSet = new Map();
   TEST_LISTS.forEach(k => { if (ft[k] != null && !Array.isArray(ft[k])) { notes.push(`facts.tests.${k} is not a list: not applied`); return; }
     (ft[k] || []).forEach((x, i) => { const n = normEntry(x, o, false); if (!n.entry) { notes.push(`facts.tests.${k}[${i}]: ${n.why}: not applied`); return; } notes.push(...n.notes); given(n); put(k, n.entry, false); }); });
   if (ft.ran != null && !Array.isArray(ft.ran)) notes.push("facts.tests.ran is not a list: not applied");
@@ -205,6 +222,7 @@ function mergeTests(plan, ft, o) {
   const few = xs => xs.length > 4 ? `${xs.slice(0, 4).join(", ")} and ${xs.length - 4} more` : xs.join(", ");
   if (byName.size) warnings.push(`TEST LEVEL BY NAME: testLevel given as a level folder's name, not as a test level (${TEST_LEVELS.join(", ")}), read as its level: ${[...byName.values()].map(v => `${JSON.stringify(v.raw)} as ${v.level} (${few(v.classes)})`).join("; ")}`);
   if (unread.size) notes.push(`testLevel not read, neither a test level (${TEST_LEVELS.join(", ")}) nor a level folder's name: ${[...unread.values()].map(v => `${JSON.stringify(v.raw)} (${few(v.classes)})`).join("; ")}; each class takes the level its path or package names, else none: the run sends the level, or the presenter sets it from the report`);
+  if (unreadSet.size) notes.push(`testSet not read, neither a set's name (${Object.keys(TEST_LEVEL_SEGMENTS).join(", ")}) nor a set's old number (${TEST_LEVELS.join(", ")}): ${[...unreadSet.values()].map(v => `${JSON.stringify(v.raw)} (${few(v.classes)})`).join("; ")}; each class takes the set its path or package names, else none: the run sends the set, or the presenter sets it from the report`);
   if (stageless.length) notes.push(`${MS.label || "several stages"} reported done at once, and no stage's steps name ${few(stageless)}: no stage written; the presenter names it from the report`);
   const changed = JSON.stringify(T) !== before && (before !== "null" || hasTests(T) || !!T.base);
   if (changed) { T.updated = o.now; const ordered = { ...(T.base ? { base: T.base } : {}), updated: T.updated }; TEST_LISTS.forEach(k => { ordered[k] = T[k]; }); if (T.other) ordered.other = T.other; plan.tests = ordered; }
@@ -281,4 +299,4 @@ function testsProblems(plan) {
 /* A unit row's mirror (unit.tests), as check.js holds it: an object of the same form. */
 function mirrorProblems(m, at) { if (m == null) return []; if (typeof m !== "object" || Array.isArray(m)) return [`${at}.unit.tests must be the mirror of the unit's board's tests (embed.js writes it)`]; const p = testsProblems({ tests: m, rows: [] }); return p.fail.filter(f => !/names no row/.test(f)).map(f => `${at}.unit.${f}`); }
 
-module.exports = { TEST_LISTS, TEST_LEVELS, TEST_LEVEL_SEGMENTS, TEST_RESULTS, bareName, taskClasses, testLevelOf, levelFromPath, readLevel, testKey, resultState, testsBlock, hasTests, normEntry, normOther, mergeTests, testsMirror, testsProblems, mirrorProblems };
+module.exports = { TEST_LISTS, TEST_LEVELS, TEST_LEVEL_SEGMENTS, TEST_RESULTS, bareName, taskClasses, testLevelOf, levelFromPath, readLevel, readSet, SET_OF_LEVEL, testKey, resultState, testsBlock, hasTests, normEntry, normOther, mergeTests, testsMirror, testsProblems, mirrorProblems };

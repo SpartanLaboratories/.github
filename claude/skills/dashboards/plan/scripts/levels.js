@@ -18,11 +18,13 @@ const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 function workLevelFields(plan) {
   if (!plan || typeof plan !== "object") return [];
   const out = [];
-  if (own(plan, "level")) out.push("level");
-  if (plan.wip && typeof plan.wip === "object" && own(plan.wip, "proposedLevel")) out.push("wip.proposedLevel");
+  /* a grade (the user's decision of 2026-11-13, vocabulary/choice-1-live-keys (a): grade and proposedGrade beside level and proposedLevel)
+     is a work level under its new name: never kept either */
+  ["level", "grade"].forEach(k => { if (own(plan, k)) out.push(k); });
+  ["proposedLevel", "proposedGrade"].forEach(k => { if (plan.wip && typeof plan.wip === "object" && own(plan.wip, k)) out.push(`wip.${k}`); });
   unitRows(plan).forEach(r => {
-    if (own(r.unit, "level")) out.push(`rows (${r.id}).unit.level`);
-    if (r.unit.live && typeof r.unit.live === "object" && own(r.unit.live, "proposedLevel")) out.push(`rows (${r.id}).unit.live.proposedLevel`);
+    ["level", "grade"].forEach(k => { if (own(r.unit, k)) out.push(`rows (${r.id}).unit.${k}`); });
+    ["proposedLevel", "proposedGrade"].forEach(k => { if (r.unit.live && typeof r.unit.live === "object" && own(r.unit.live, k)) out.push(`rows (${r.id}).unit.live.${k}`); });
   });
   return out;
 }
@@ -30,15 +32,16 @@ function workLevelFields(plan) {
 function dropWorkLevels(plan) {
   if (!plan || boardClosed(plan)) return [];
   const had = workLevelFields(plan); if (!had.length) return [];
-  delete plan.level;
-  if (plan.wip && typeof plan.wip === "object") delete plan.wip.proposedLevel;
-  unitRows(plan).forEach(r => { delete r.unit.level; if (r.unit.live && typeof r.unit.live === "object") delete r.unit.live.proposedLevel; });
+  delete plan.level; delete plan.grade;
+  if (plan.wip && typeof plan.wip === "object") { delete plan.wip.proposedLevel; delete plan.wip.proposedGrade; }
+  unitRows(plan).forEach(r => { delete r.unit.level; delete r.unit.grade; if (r.unit.live && typeof r.unit.live === "object") { delete r.unit.live.proposedLevel; delete r.unit.live.proposedGrade; } });
   return [`the work level dropped (${had.join(", ")}): a board keeps none`];
 }
 /* The team's local record of an issue's level, or null: no file, no entry, or a machine without the team. DASHBOARDS_ADMIN_STATE points elsewhere (the verify cases). */
 function localLevel(repo, issue) {
   const file = process.env.DASHBOARDS_ADMIN_STATE || path.join(os.homedir(), ".claude", "admin-team", "state.json");
-  try { const v = (JSON.parse(fs.readFileSync(file, "utf8")).levels || {})[`${repo}#${issue}`]; return [1, 2, 3, 4].includes(v) ? v : null; } catch (e) { return null; }
+  /* the state's grades first, then its levels (the user's decision of 2026-11-13, vocabulary/choice-1-live-keys (a); the levels read until the rule rework's L12) */
+  try { const st = JSON.parse(fs.readFileSync(file, "utf8")), k = `${repo}#${issue}`, v = [(st.grades || {})[k], (st.levels || {})[k]].find(x => [1, 2, 3, 4].includes(x)); return v != null ? v : null; } catch (e) { return null; }
 }
 /* a board's run, as its steps line tells it: a small feature's line has an interview, a small fix's has none; a tracking issue is its kind */
 const featureRun = plan => !!plan && plan.kind !== "tracking" && Array.isArray((plan.wip || {}).steps) && plan.wip.steps.includes("interview");
