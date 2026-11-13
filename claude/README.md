@@ -15,7 +15,7 @@ section of `CLAUDE.md`).
 | `agents/`       | `agents/`                      | Custom subagents (planner, architect, version-control-manager, qa, presenter, publisher, direction-manager, graphify-manager, archivist, …) and the `admin-team` session brief |
 | `shared/`       | `shared/`                      | Rules several agents share                                      |
 | `skills/`       | `skills/`                      | Custom skills (`resolve-issue`, `admin-team`, `dashboards`, `upgrade`) and installed third-party skills (`firecrawl*`, `vercel-connect`, `graphify`) |
-| `admin-team/`   | `admin-team/`                  | The admin team session's protocol, settings file, launchers, predicted-issues tracker, the rule checker (`rule-check.js`) with its config (`rule-files.json`), the graphify folder (`graphify/`): the git-hook installer (`graphify-hooks.py`) and the usage totals script (`graphify-totals.js`), and the Archivist's scripts (`archivist/`): the question log's reader (`questions.js`) with its tests (`test/`) |
+| `admin-team/`   | `admin-team/`                  | The admin team session's protocol, settings file, launchers, predicted-issues tracker, the rule checker (`rule-check.js`) with its config (`rule-files.json`), the graphify folder (`graphify/`): the git-hook installer (`graphify-hooks.py`) and the usage totals script (`graphify-totals.js`), and the Archivist's scripts (`archivist/`): the question log's reader (`questions.js`), the session scripts (`sessions.js`, `extract-session.js`, `scratch-copy.js`, `delete-session.js`, `archive.js`, `lib.js`) and their tests (`test/`) |
 | `nomenclature/` | `nomenclature/` | Shared vocabularies: `ui.md`, the names of interface elements (the boards, SpartanUI); `boards.md`, the names of the dashboards' boards and how they use those elements; `internal-names.md`, the internal names that committed content must not carry; `rule-index.md`, the index of rules the rule checker generates |
 
 ## Not included
@@ -24,7 +24,7 @@ section of `CLAUDE.md`).
   `history.jsonl`, `sessions/`, …).
 - Anthropic's auto-synced skill bundle (`skills/synced/`).
 - The admin team session's local state (`admin-team/ledger.jsonl`, `state.json`, `hooks.jsonl`,
-  `questions.jsonl`, `launch.lock`, `up`) and the graphify usage log (`admin-team/graphify-usage.jsonl`), which hold
+  `questions.jsonl`, the session archive `archive/`, `launch.lock`, `up`) and the graphify usage log (`admin-team/graphify-usage.jsonl`), which hold
   machine-local paths and local usage data; `proposals/`, working drafts;
   `backups/`, local bundles of this repository's own earlier history; and `scrub-memory.py`,
   local tooling.
