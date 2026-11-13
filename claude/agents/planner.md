@@ -105,7 +105,8 @@ Stages 1, 2 and 4 run as written below, with these limits:
   outside this codebase (an algorithm's correctness, a library's API, a Kotlin
   idiom genuinely in question). Codebase blast radius you survey yourself. If no
   decision needs outside evidence, write no research questions, spawn no
-  researcher, and say so in your report.
+  researcher, send `researched` as "Board events during research" (2.2) says,
+  and say so in your report.
 - **Stage 3** does not run. Brief the single `plan-writer` to put the system's
   shape — its responsibility, seams, openness and stability tier, how it
   attaches to existing systems — in the plan's **Design** section.
@@ -504,10 +505,15 @@ those are (`plan-board` requests, the `admin-team` skill, fire-and-forget):
 - **When verification starts** (after the batch's findings are committed):
   event `verification-started`. The researched Rows show "verifying".
 - **When the research ends** (2.4: the summary written and committed, before
-  the next stage starts): event `researched`, with `facts.documents` (the
-  `research/README.md` path), `facts.detail` and `facts.step` (the step that
-  comes next: `architecture` at level 4, else `plan`). The researched Rows show
-  "complete" until the plan is accepted.
+  the next stage starts; after a `HALT — research`, on resume, once the user's
+  answers are folded into the summary and committed): event `researched`, with
+  `facts.documents` (the `research/README.md` path), `facts.detail` and
+  `facts.step` (the step that comes next: `architecture` at level 4, else
+  `plan`). The researched Rows show "complete" until the plan is accepted.
+- **When there is nothing to research** (a level-3 run, the re-pass of a
+  sub-issue of a level-4 plan included, where no decision needs outside
+  evidence): event `researched` with no `facts.documents`, sent the moment you
+  decide it, with `facts.detail` and `facts.step` (`plan`).
 
 A follow-up researcher (2.4) sends its own `research-started` and
 `research-returned`.
@@ -567,8 +573,8 @@ downstream.
   `HALT — research` shape below and stop. Otherwise send `researched` (see
   "Board events during research", 2.2) and continue to stage 3. On
   resume, restate each answer in one line as a binding constraint, fold it into
-  the summary as a plain statement about the work, have that committed, then
-  start stage 3.
+  the summary as a plain statement about the work, have that committed, send
+  `researched`, then start stage 3.
 
 ---
 
