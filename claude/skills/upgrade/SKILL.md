@@ -67,7 +67,7 @@ Load the `admin-team` skill and send it a `file-issue` request:
 - `github` and `surfacedIn`: this repo's `owner/repo`.
 - `title`: `Upgrade <library> from <current> to <latest>`.
 - `body`, in the project's own terms — the issue is on GitHub, so it names no
-  work level, agent, pipeline or session:
+  grade, agent, pipeline or session:
   - where the library is pinned (the manifest paths) and the current and
     target versions;
   - what changed between them, each point with its source (release notes,

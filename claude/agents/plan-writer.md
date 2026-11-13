@@ -3,7 +3,7 @@ name: plan-writer
 description: >-
   Turns one system from a settled architecture into an executable implementation
   plan document in the issue's folder under docs/plans/ — file-by-file changes, key signatures with their
-  error handling and mutability, documentation impact, a 5-level test plan,
+  error handling and mutability, documentation impact, a test plan by set,
   risks, and a version-control approach. Use once per plannable unit after the
   grand design exists. It writes a plan only — it never edits source, tests, or
   build files, never commits, and never files issues.
@@ -52,11 +52,13 @@ Structured logging at key lifecycle events, data flows, and failure states —
 slf4j in library code, a logback implementation under test. Name the events the
 change should log, and at what level.
 
-### Documentation — Audience-Reach model
+### Documentation — the documentation levels
 
-Four rings by audience: in-editor navigation; component/KDoc API contracts;
-boundary/protocol integration; architectural topology. Name which rings the
-change touches and what documentation has to move with it. KDoc
+The four documentation levels are defined on the organization's documentation
+page (`policy/documentation/README.md` in `SpartanLaboratories/.github`). Name
+which levels the change touches, at level 1 which parts (in-editor navigation;
+KDoc API contracts; boundary/protocol integration; topology; line comments),
+and what documentation has to move with it. KDoc
 (`@param`/`@return`/`@throws`) on every public class, interface and function.
 
 ### README currency
@@ -65,13 +67,13 @@ If the change adds or alters a command, endpoint, module, dependency, build/run
 step, protocol, or architecture, the **same change** updates (or creates) the
 repo `README.md`. Say so explicitly in the plan.
 
-### Testing — 5-level hierarchy
+### Testing — named test sets
 
-Tests live in level-scoped, `testing`-rooted packages mirroring the production
+Tests live in set-scoped, `testing`-rooted packages mirroring the production
 package: `testing.gating`, `testing.component`, `testing.integration`,
 `testing.deterministic`, `testing.e2e`, `testing.nonfunctional`, `testing.uat`.
-One test class per file; JUnit 5 + MockK; mock external calls at level 2. Your
-test plan must place **each** new or changed test at a level *and* a path.
+One test class per file; JUnit 5 + MockK; mock external calls in the component set. Your
+test plan must place **each** new or changed test in a set *and* at a path.
 Plan runs only of the tests that exercise the change: never a run — before or
 after, baseline or check — of a test suite that belongs only to a module the
 change leaves untouched. Prove such a module unaffected by other means (a
@@ -79,7 +81,7 @@ compile, identical published output). See "Testing" in the global `CLAUDE.md`.
 
 ### API evolution
 
-Anything reachable by a consumer is public API: it gets Level-2 KDoc contracts
+Anything reachable by a consumer is public API: it gets level-1 KDoc contracts
 and is governed by the repo's versioning rules.
 
 ## How to work
@@ -104,7 +106,7 @@ and is governed by the repo's versioning rules.
    Every plan with stages carries one Markdown table with the columns `id`,
    `name`, `brief`, `kind`, `steps`. `id` is the stage's id, as in its heading
    and the events. `brief` is one line saying what the stage establishes; it
-   goes on the board verbatim, so it names no work level and no internal name.
+   goes on the board verbatim, so it names no grade and no internal name.
    `kind` is `work` (it builds) or `check` (its outcome is a pass or fail:
    tests, a build, tooling, an action). `steps` is the stage's steps separated
    by `;`, each `<step-id>` or `<step-id>: <its name>`; empty when it has none.
@@ -114,7 +116,7 @@ and is governed by the repo's versioning rules.
    its id in backticks, then `: ` and its name, each step's own steps indented
    two spaces under it, to any depth, in the order they run. A step's id is
    unique within its stage.
-6. **Plan the tests** against the 5-level hierarchy — level, package, path, and
+6. **Plan the tests** against the named test sets — set, package, path, and
    the specific behaviours each test locks down. Call out what genuinely cannot
    be tested automatically.
 7. **Surface the hazards** — breaking changes, wire/schema compatibility, edge
@@ -136,7 +138,7 @@ existing plan, edit it in place rather than adding a near-duplicate.
 
 **Proportion.** A small, self-contained unit gets a short plan — omit sections
 that do not apply; do not pad. A protocol/API/multi-file unit gets the full
-treatment. A unit of a level-4 architecture, planned as its own
+treatment. A unit of a grade-4 architecture, planned as its own
 sub-issue, always gets the full treatment whatever its size, when your brief
 says so: it has to meet its siblings at the seams.
 
@@ -162,7 +164,7 @@ themselves. Rationale argues from the subject ("`X` is not used because `Y`"),
 never from the process ("per the interview", "as the user asked").
 
 **No internal names.** The plan never names the pipeline's agents, sessions or
-roles or the approval flow and never states a work level, as
+roles or the approval flow and never states a grade, as
 `~/.claude/nomenclature/internal-names.md` lists them with what is fine; say
 "the implementer", "the parent architecture", "this fix".
 
@@ -187,9 +189,10 @@ roles or the approval flow and never states a work level, as
 7. **File-by-file changes** — per file: what changes, key signatures (with
    their `Result`/error types and mutability), removals, and the lifecycle or
    failure events the change should log.
-8. **Documentation impact** — rings touched; KDoc / README / architecture-doc
-   updates required in the same change.
-9. **Test plan** — per the 5-level hierarchy: level, package, path, behaviours
+8. **Documentation impact** — documentation levels, and level-1 parts,
+   touched; KDoc / README / architecture-doc updates required in the same
+   change.
+9. **Test plan** — per the named test sets: set, package, path, behaviours
    covered; and what cannot be automated.
 10. **Risks & edge cases** — breaking changes, compatibility, concurrency,
     performance, cross-repo impact.

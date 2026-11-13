@@ -60,28 +60,28 @@ adds no entry. The publisher reads a version's section as its GitHub release not
 notes of a version that ships name any superseded version it includes. In a `/resolve-issue`
 run, the Document step writes both the README delta and the entry.
 
-## Work levels
+## Work grades
 
-Every issue is sized to one of four **work levels**, recorded by the admin team in its local
-state, never on GitHub, and never stated in a committed board or document. The level decides how
-much planning, implementation, QA and versioning the work gets; `/resolve-issue` and its agents
-scale to it.
+Every issue is graded (the word is defined in `~/.claude/nomenclature/vocabulary.md`): its grade
+is recorded by the admin team in its local state, never on GitHub, and never stated in a committed
+board or document. The grade decides how much planning, implementation, QA and versioning the
+work gets; `/resolve-issue` and its agents scale to it.
 
-| Level | What it is | Planning | Built this run? | Version bump |
+| Grade | What it is | Planning | Built this run? | Version bump |
 |-------|------------|----------|-----------------|--------------|
 | 1 | **No impact** — comments, KDoc, Markdown docs only. No executable line changes. | none; no plan folder | yes | none |
 | 2 | **Small fix** — a bug fix that changes no public API, persisted or shared state, or wire format, and stays local to one component. | short `plan.md` (root cause, fix, regression test) | yes, test-first | `fix:` — MinorChange or trailing letter |
 | 3 | **Small feature** — new or changed behaviour inside **one** system: additive public API, a new class or option. | interview, targeted research, one `plan.md` | yes | `feat:` — Feature release, **only with a downstream effect**; otherwise none |
-| 4 | **Large feature / roadmap** — anything that spans **more than one** system. | full pipeline up to the architecture; **plan only** | **no** — each system becomes a sub-issue, resolved later at its own level | none (docs only) |
+| 4 | **Large feature / roadmap** — anything that spans **more than one** system. | full pipeline up to the architecture; **plan only** | **no** — each system becomes a sub-issue, resolved later at its own grade | none (docs only) |
 
-- **The level is re-checked when work starts.** If the issue, or the code it touches, says
-  the recorded level is wrong, or none is recorded, propose a level with the evidence and ask
-  me. Never re-level silently.
-- **Escalate, don't stretch.** When work turns out bigger than its level (a level-1 change
-  needs code, a level-2 fix changes public API or state, a level-3 feature needs a second
-  system), stop and ask me to re-level it. Never quietly do bigger work under a smaller level.
-- A breaking change is never level 1 or 2.
-- **A level-3 bump needs a downstream effect.** A level-3 change bumps the version only when a
+- **The grade is re-checked when work starts.** If the issue, or the code it touches, says
+  the recorded grade is wrong, or none is recorded, propose a grade with the evidence and ask
+  me. Never re-grade silently.
+- **Escalate, don't stretch.** When work turns out bigger than its grade (a grade-1 change
+  needs code, a grade-2 fix changes public API or state, a grade-3 feature needs a second
+  system), stop and ask me to re-grade it. Never quietly do bigger work under a smaller grade.
+- A breaking change is never grade 1 or 2.
+- **A grade-3 bump needs a downstream effect.** A grade-3 change bumps the version only when a
   consumer of a published artifact would see a difference: its API, behaviour, dependencies, or
   the artifact itself. One with no downstream effect, such as a build, CI or tooling change
   whose published output is identical, moves no version and takes the commit type that fits its
@@ -114,7 +114,7 @@ comments or files itself, and never spawns `version-control-manager` directly.
   its own (automatic release, then the repo's tag and a GitHub release) within the Central
   budget: 7 release events per namespace per calendar month (one Sonatype organization per
   GitHub organization: `io.github.spartanlaboratories`, `io.github.spartanlabsgaming`), 2 of
-  them held for level-2 fixes and `publish: true` landings except in the month's last 3 days.
+  them held for grade-2 fixes and `publish: true` landings except in the month's last 3 days.
   What does not fit is deferred and re-evaluated at the next consideration point; a deferred
   version a later landing superseded collapses into the latest. Backlog older than the service
   is mine to publish by hand.
@@ -190,13 +190,13 @@ its folder.
 issue gets its own `<number>-<slug>/` subfolder inside the host issue's folder, as a sub-issue
 would, and its documents go there.
 
-**A fix to an earlier plan's work.** When a level-2 fix corrects code an earlier issue's plan
+**A fix to an earlier plan's work.** When a grade-2 fix corrects code an earlier issue's plan
 built, the fix's folder goes inside that issue's folder, as a folded-in issue's would, unless the
 fix is a GitHub sub-issue, whose folder follows its own sub-issue chain. Either way, the earlier
 issue's `consequences.md` takes the fix's follow-ups and known gaps, each naming the fix; notes
 what the fix made no longer current, with a link to the fix; and marks closed, with a link, any
 follow-up or known gap the fix closes. These are the only edits a landed document takes.
-Otherwise a level-2 fix writes a `consequences.md` only when it leaves a follow-up or known gap.
+Otherwise a grade-2 fix writes a `consequences.md` only when it leaves a follow-up or known gap.
 
 **An issue folder holds only that issue's resolution:**
 - `draft.md`: the draft plan.
@@ -243,7 +243,7 @@ Otherwise a level-2 fix writes a `consequences.md` only when it leaves a follow-
 **A tracking issue's folder** holds its own documents (a phase plan, an initiative draft, a
 design spanning several of its sub-issues) loose beside its sub-issue folders.
 
-**Level 1 work has no folder.** A comment- or doc-only change is recorded by its PR and the
+**Grade 1 work has no folder.** A comment- or doc-only change is recorded by its PR and the
 issue's resolution comment alone.
 
 **Plans need an issue.** Before planning new work that has no issue, ask me to file one. An
@@ -257,7 +257,7 @@ whole batch has returned; everything else is committed with the work it plans.
 **No internal names in committed content.** Committed documents and boards (plans, research,
 architecture, consequences, final-implementation, every board, and the board-event fact texts that
 land on them) never name the pipeline's agents, sessions or roles (qa only as an agent's name),
-never refer to the approval flow, and never state a work level. The list, with what only
+never refer to the approval flow, and never state a grade. The list, with what only
 resembles an entry and is fine, is `~/.claude/nomenclature/internal-names.md`. The admin
 team scans documents, boards and source-code comments, every line of each file a commit
 carries (code itself is not scanned). A find blocks the `commit`, `prepare-landing` or `land` that carries it: the admin team commits nothing, names each
@@ -335,22 +335,22 @@ depends on what kind of type it is:
 - **Additive and opt-in.** A new capability must leave an existing consumer that ignores it
   behaving exactly as before. Extension is something a consumer opts into.
 - **Keep extension points supported.** Anything reachable by a consumer is public API: it gets
-  Level-2 KDoc contracts (see the Audience-Reach model below) and is governed by the repo's
+  level-1 KDoc contracts (see the documentation levels below) and is governed by the repo's
   versioning rules.
 
 ### Stability — three tiers
 
 More extension surface means more that cannot change without a major bump, so public surface is
-sorted into three tiers:
+sorted into three named tiers:
 
-1. **Stable Core** — the core functionality the library exists to provide. Full semver
+- **Stable Core** — the core functionality the library exists to provide. Full semver
    guarantee; changes only in a major.
-2. **Supported Extension** — a seam for a **likely but non-core** need: something a fair number
+- **Supported Extension** — a seam for a **likely but non-core** need: something a fair number
    of consumers will want, that is not what the library is fundamentally for. Marked
    `@SupportedExtension`. It carries the **same semver guarantee as Stable Core** — the tier
    marks *purpose*, not a weaker promise. Its shipped implementations double as the **worked
    examples** of how to extend that seam, so write them to be read as examples.
-3. **Experimental** — a seam whose shape has not been proven by a real consumer yet. Gate it
+- **Experimental** — a seam whose shape has not been proven by a real consumer yet. Gate it
    behind a Kotlin `@RequiresOptIn` marker so use is a deliberate opt-in, and say in its KDoc
    that it may change in a minor. Graduate it once a consumer has actually built against it,
    and record the promotion in the CHANGELOG.
@@ -372,45 +372,19 @@ Every repository of the organization and its sub-organizations follows the stand
 a Dokka javadoc jar for libraries, and a project site with a landing page for every repository,
 on GitHub Pages unless it is hosted elsewhere.
 
-## Commenting & Documentation — Audience-Reach Model
+## Commenting & Documentation — Documentation Levels
 
-Choose the documentation form by **how far the reader is from the code**. Each concentric
-ring widens the audience. Apply to all code generation, refactoring, and review.
+Documentation sits at one of four **levels** (the word is defined in
+`~/.claude/nomenclature/vocabulary.md`). Every repository of the organization and its
+sub-organizations follows the standard in `policy/documentation/README.md` of
+[`SpartanLaboratories/.github`](https://github.com/SpartanLaboratories/.github/blob/main/policy/documentation/README.md):
+the four levels, what sits at each and the order they are written and reviewed in, and what
+documentation in code carries. Apply it to all code generation, refactoring, and review.
 
-### The four rings
+## Testing — Named Test Sets
 
-1. **Inner Core — In-Editor Navigation & Maintenance**
-   - Audience: the active developer + IDE / static-analysis tools.
-   - Use: `//region` / `//endregion` blocks, `// TODO:` / `// FIXME:`, `@formatter:off`
-     blocks, language-injection hints (`//language=JSON`, etc.).
-
-2. **Component Ring — API Contracts & Interface Boundaries** (module / domain)
-   - Audience: internal consumers and peer developers integrating with the component.
-   - Purpose: state explicit behavioral contracts *without* revealing implementation detail.
-   - Use: Dokka / KDoc (`@param`, `@return`, `@throws`), `@Deprecated` with `ReplaceWith` /
-     replacement paths, documented pure-function & immutability guarantees.
-
-3. **Boundary Ring — System Integration & Protocols** (cross-service / network)
-   - Audience: infrastructure teams, API-gateway maintainers, integration developers.
-   - Purpose: document non-obvious side effects, serialization behavior, external dependencies.
-
-4. **Architectural Outer Layer — System Topology & Lifecycle** (organization-wide)
-   - Audience: system architects, security reviewers, AI agents, new-engineer onboarding.
-   - Purpose: long-term system health, structural intent, security/compliance.
-   - Use: Structurizr (C4 model as code), embedded PlantUML / Mermaid sequence diagrams for
-     coroutine flows, security/compliance annotations.
-
-### Two maturity levels
-
-- **Level 1 — Pre-Commit Line Comments** (active during feature development): inline comments
-  for local clarity — explain non-obvious algorithms, regexes, and edge-case workarounds on
-  the lines above the relevant code before opening a PR.
-- **Level 2 — Public API KDoc Standard**: standardized KDoc block comments on every top-level
-  class, public method, and interface — `@param`, `@return`, `@throws`.
-
-## Testing — 5-Level Hierarchy
-
-Structure tests along these levels. Lower levels run first / most often; higher levels gate
+Structure tests along these **sets** (the word is defined in
+`~/.claude/nomenclature/vocabulary.md`). Earlier sets run first / most often; later sets gate
 release.
 
 **Run only the tests that exercise the change.** Never run a test suite that belongs only to a
@@ -419,50 +393,50 @@ QA gate. A module whose code is untouched (say, only its build file moved onto s
 logic) is proven unaffected by other means, such as identical published output; the tests of a
 module that depends on the changed code do exercise it and still run.
 
-1. **Local Development Gating / Pre-Commit Validation** (active until the WIP is finished)
+- **gating — Local Development Gating / Pre-Commit Validation** (active until the WIP is finished)
    - Validate changes locally before integration to catch regressions.
    - Covers new and changed classes/functions in the local workspace, before committing.
 
-2. **Isolated Component Behaviour / Business Logic Validation**
+- **component — Isolated Component Behaviour / Business Logic Validation**
    - Comprehensive unit tests for related classes; **mock all external calls**.
    - Functional-group and class-level testing of isolated behavior with no external side effects.
 
-3. **Integration & External Interfaces Test**
+- **integration — Integration & External Interfaces Test**
    - Boundary conditions and data exchange with actual or simulated external interfaces
      (API gateways, databases, third-party services).
    - Validates data flow across system boundaries and component interfaces.
 
-4. **Comprehensive Project-Wide Testing Hierarchy**
-   - **4a — Deterministic Logic / Input→Output Mapping**: verify pure, stateless functions
-     where input X always yields output Y with no side effects.
-   - **4b — End-to-End System Integration**: verify full application flows and data
+- **The project-wide sets — Comprehensive Project-Wide Testing**, three sets side by side:
+   - **deterministic — Deterministic Logic / Input→Output Mapping**: verify pure, stateless
+     functions where input X always yields output Y with no side effects.
+   - **e2e — End-to-End System Integration**: verify full application flows and data
      integration across the complete system stack.
-   - **4c — Non-Functional Validation**: scalability, robustness, security, accessibility
-     (a11y), and performance — beyond functional correctness.
+   - **nonfunctional — Non-Functional Validation**: scalability, robustness, security,
+     accessibility (a11y), and performance — beyond functional correctness.
 
-5. **User Acceptance (UAT) / Exploratory Evaluation**
+- **uat — User Acceptance (UAT) / Exploratory Evaluation**
    - Human or AI assessment for product fit and business-value gating.
    - Interactive testing of mock implementations and full functional environments to
      determine release readiness.
 
-### Separate each level by folder / package
+### Separate each set by folder / package
 
-Keep every level in its own test source folder and package so a level can be run, skipped,
+Keep every set in its own test source folder and package so a set can be run, skipped,
 or gated independently. Under the test source root (`src/test/<lang>/`), place tests in a
-`testing`-rooted package segment per level, mirroring the production package below it:
+`testing`-rooted package segment per set, mirroring the production package below it:
 
-| Level | Package segment            | Folder                          |
-|-------|----------------------------|---------------------------------|
-| 1     | `testing.gating`           | `.../testing/gating/`           |
-| 2     | `testing.component`        | `.../testing/component/`        |
-| 3     | `testing.integration`      | `.../testing/integration/`      |
-| 4a    | `testing.deterministic`    | `.../testing/deterministic/`    |
-| 4b    | `testing.e2e`              | `.../testing/e2e/`              |
-| 4c    | `testing.nonfunctional`    | `.../testing/nonfunctional/`    |
-| 5     | `testing.uat`              | `.../testing/uat/`              |
+| Set             | Package segment            | Folder                          |
+|-----------------|----------------------------|---------------------------------|
+| gating          | `testing.gating`           | `.../testing/gating/`           |
+| component       | `testing.component`        | `.../testing/component/`        |
+| integration     | `testing.integration`      | `.../testing/integration/`      |
+| deterministic   | `testing.deterministic`    | `.../testing/deterministic/`    |
+| e2e             | `testing.e2e`              | `.../testing/e2e/`              |
+| nonfunctional   | `testing.nonfunctional`    | `.../testing/nonfunctional/`    |
+| uat             | `testing.uat`              | `.../testing/uat/`              |
 
-Example: `com.acme.order.OrderCalculator` → its level-2 tests live in
-`com.acme.testing.component.order.OrderCalculatorTest`. Do not mix levels in one folder;
+Example: `com.acme.order.OrderCalculator` → its component tests live in
+`com.acme.testing.component.order.OrderCalculatorTest`. Do not mix sets in one folder;
 one test class per file still applies. Where a build tool supports it, bind each folder to
-its own test task/tag (e.g. JUnit `@Tag`, a Gradle source set) so CI can run level 1–2 on
-every commit and reserve 4–5 for release gates.
+its own test task/tag (e.g. JUnit `@Tag`, a Gradle source set) so CI can run the gating and
+component sets on every commit and reserve the project-wide sets and uat for release gates.

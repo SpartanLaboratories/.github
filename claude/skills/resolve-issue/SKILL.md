@@ -3,10 +3,10 @@ name: resolve-issue
 description: >-
   Work the oldest open GitHub issue in the current repo toward resolution, or
   pass a specific issue number to work that one. Sizes the issue to a work
-  level (its level as the admin team records it, re-checked against the issue and the code) and
-  scales the pipeline to it: a level-1 doc/comment change skips planning, a
-  level-2 small fix gets a short test-first plan, a level-3 small feature gets
-  the interview-research-plan pipeline, and level-4 multi-system work is
+  grade (its grade as the admin team records it, re-checked against the issue and the code) and
+  scales the pipeline to it: a grade-1 doc/comment change skips planning, a
+  grade-2 small fix gets a short test-first plan, a grade-3 small feature gets
+  the interview-research-plan pipeline, and grade-4 multi-system work is
   planned to the architecture only and split into sub-issues, with nothing
   built. After QA, a Document step reconciles the documentation, the plan's
   as-built record, the README and the CHANGELOG, and has the repository's
@@ -40,28 +40,27 @@ instead), and **sub-issues** are filed only from a list the user approved. You
 yourself never commit, push, merge, tag, publish, label, or file/comment on an
 issue, and never spawn `version-control-manager`.
 
-The work levels are defined in "Work levels" in the global `CLAUDE.md`. This
-skill runs a different pipeline per level:
+The grades are defined in "Work grades" in the global `CLAUDE.md`. This
+skill runs a different pipeline per grade:
 
-| Step | Level 1 — no impact | Level 2 — small fix | Level 3 — small feature | Level 4 — multi-system |
+| Step | Grade 1 — no impact | Grade 2 — small fix | Grade 3 — small feature | Grade 4 — multi-system |
 |------|---------------------|---------------------|-------------------------|------------------------|
-| 2. Plan | skipped | `planner` (level 2, Sonnet) | `planner` (level 3) | `planner` (level 4) |
+| 2. Plan | skipped | `planner` (grade 2, Sonnet) | `planner` (grade 3) | `planner` (grade 4) |
 | 3. Branch | confirm the branch | confirm the branch; `branch-cut` | confirm the branch; `branch-cut` | confirm the branch; `branch-cut` |
 | 4. Implement | `rookie-dev` from the issue text | `rookie-dev`, test-first | `rookie-dev` | **skipped** |
-| 5. QA | `qa level:1` | `qa level:2` | `qa level:3` | **skipped** |
+| 5. QA | `qa grade:1` | `qa grade:2` | `qa grade:3` | **skipped** |
 | 6. Document | `admin team`: `prepare-landing` (sync, no bump); documentation review and reconcile; Dokka check; README only; `admin team`: `state-boards` | `admin team`: `prepare-landing` (sync, fix bump); documentation review and reconcile; Dokka check; `planner` reconciles the plan; README and CHANGELOG; `admin team`: `state-boards` | `admin team`: `prepare-landing` (sync, feature bump only with a downstream effect); documentation review and reconcile; Dokka check; `planner` reconciles the plan; README and CHANGELOG; `admin team`: `state-boards` | `admin team`: `prepare-landing` (sync, no bump); architecture and `consequences.md` confirmed final; `admin team`: `state-boards` draws the planned systems |
 | 7. Land | `admin team`: `land` | `admin team`: `land` | `admin team`: `land` | `admin team`: `land` (docs PR with `Refs`) then `file-sub-issues` |
 
 **No internal names in committed content.** Every document and board this run commits (plans,
 research, architecture, `consequences.md`, `final-implementation.md`, the issue board) never names
 the pipeline's agents, sessions or roles, never refers to the approval flow, and never states a
-work level, as `~/.claude/nomenclature/internal-names.md` lists them with what is fine. That
+grade, as `~/.claude/nomenclature/internal-names.md` lists them with what is fine. That
 covers the text you send in `plan-board` facts (`detail`, `open`, `questions`, `reason`), which
 lands on the committed issue board. In
 every text a `plan-board` fact carries (detail, notes, `waitingOn`, questions and options, open
-points, a qa pass's note, remediation step names, tests), write a test level in full, naming
-the test ("the Level 3 integration tests", "Level 2 component tests"), never a bare "Level n"
-at the start of a clause, which the board's work-level scrub reads as a work level and trims.
+points, a qa pass's note, remediation step names, tests), name a test by its set ("the
+integration tests", "component tests"), never by a number.
 Carry the rule in every brief to an agent that writes a document. A `commit`, `prepare-landing` or `land` whose
 content breaks it (the document-landing commit of step 6 included) is blocked: the team commits nothing and
 replies `needs-rework` with `result.finds` (`file:line`); reword each find and resend the same
@@ -88,25 +87,25 @@ keep").
   An issue that is only partly done (an earlier tier/stage landed, more is
   open) still counts — this run's goal is the **next step**, not necessarily
   the whole issue.
-- **Size it.** Ask the admin team for the issue's recorded level (a `status`
-  request naming the issue; levels are kept in its local state, never on GitHub),
+- **Size it.** Ask the admin team for the issue's recorded grade (a `status`
+  request naming the issue; grades are kept in its local state, never on GitHub),
   then re-check it yourself
   against the issue text and the code it names: which files and systems it
   touches, whether it changes executable code at all, public API, persisted or
   shared state, or a wire format, and whether it spans more than one system.
-  Settle on a level with that evidence, one line per point.
-- Tell the user the issue number, title, the **level** (label and your check),
+  Settle on a grade with that evidence, one line per point.
+- Tell the user the issue number, title, the **grade** (label and your check),
   and a one-line statement of what you intend to do this run, and **confirm
   before proceeding** — this run creates branches and commits and posts a
   comment. If the label is **missing** or your check **disagrees** with it, say
-  so plainly with the evidence and ask which level to use; never pick for the
-  user. The confirmed level is the run's level.
+  so plainly with the evidence and ask which grade to use; never pick for the
+  user. The confirmed grade is the run's grade.
 - Check `git status` is clean. If it is not, stop and ask the user to settle
   the working tree first.
-- **Branch.** Every run, at every level, creates its topic branch now: send the
+- **Branch.** Every run, at every grade, creates its topic branch now: send the
   admin team a `setup-branch` request (the `admin-team` skill) with the issue
-  reference, the **work level** and the note "set up the branch only, and
-  record the confirmed level if it differs", and carry forward the branch name
+  reference, the **grade** and the note "set up the branch only, and
+  record the confirmed grade if it differs", and carry forward the branch name
   and base its `done` reply reports. A research commit that reaches the team
   before the branch exists still gets one from the team's executor, as a
   backstop; step 3 never creates it.
@@ -114,8 +113,8 @@ keep").
 ## Tracking issues and run modes
 
 A **planned tracking issue** is an open issue labelled `type: tracking` (a
-roadmap or a level-4 plan) that has open sub-issues. A tracking issue with no
-sub-issues yet is not planned: work it as an ordinary issue, at its level.
+roadmap or a grade-4 plan) that has open sub-issues. A tracking issue with no
+sub-issues yet is not planned: work it as an ordinary issue, at its grade.
 
 - **Order.** The landing order comes from the sub-issues' *blocked by* links;
   ties keep the order of the tracking issue's sub-issue list. A sub-issue is
@@ -132,7 +131,7 @@ sub-issues yet is not planned: work it as an ordinary issue, at its level.
 - **A mode word with no number** takes the oldest open planned tracking issue.
 - **Nested plans.** A sub-issue that is itself a planned tracking issue is
   expanded into its own sub-issues, in the same mode. A sub-issue that turns
-  out to be level 4 is planned as usual; once the user approves its sub-issues
+  out to be grade 4 is planned as usual; once the user approves its sub-issues
   and they are filed, they take its place in the chain.
 - **Isolation.** `consecutive` works in the main checkout, one sub-issue at a
   time. `concurrent` gives each in-flight sub-issue its own git worktree: an
@@ -147,14 +146,14 @@ sub-issues yet is not planned: work it as an ordinary issue, at its level.
   date on the branch in the Document step, not inside the land. A
   `needs-rework` reply means a conflict at the sync the team cannot resolve
   itself, or its
-  content names the pipeline or a work level: re-verify or reword per the
+  content names the pipeline or a grade: re-verify or reword per the
   skill and resend.
 - **Halts.** When one run waits on the user, only what depends on it waits.
   `consecutive` waits at that sub-issue; `concurrent` keeps running every
   sub-issue that does not depend on it and starts nothing it blocks until it
   lands. Ask the user's questions one at a time, each saying which sub-issue
   it is for.
-- **Per sub-issue,** steps 1–8 apply unchanged, including the level re-check:
+- **Per sub-issue,** steps 1–8 apply unchanged, including the grade re-check:
   a label the check disagrees with is still the user's call. Invoking a mode
   is the user's go-ahead for every run in the chain, so no per-issue
   "shall I proceed".
@@ -164,13 +163,14 @@ sub-issues yet is not planned: work it as an ordinary issue, at its level.
 
 ## Escalation — at any step
 
-Any agent may report `ESCALATE — level`: the work is bigger than its level (a
-level-1 change needs code, a level-2 fix changes public API or state, a level-3
+Any agent may report `ESCALATE — grade`: the work is bigger than its grade (a
+grade-1 change needs code, a grade-2 fix changes public API or state, a grade-3
 feature needs a second system). When one does, **stop**, relay the evidence and
-the level it proposes, and ask the user. On a new level, resume from step 2 at
-that level, carrying forward whatever is still valid (the branch, any plan).
-Never finish bigger work under a smaller level, and never re-level without the
-user. The same applies to the **diff check** in step 4.
+the grade it proposes, and ask the user. On a new grade, resume from step 2 at
+that grade, carrying forward whatever is still valid (the branch, any plan).
+Never finish bigger work under a smaller grade, and never re-grade without the
+user. An agent that reports `ESCALATE — level` instead means the same. The same
+applies to the **diff check** in step 4.
 
 ## Halted — at any step
 
@@ -188,22 +188,22 @@ itself.
 Send the `halted` event when the run becomes halted, not when the wait begins
 (see "Plan-board events" below).
 
-## 2. Plan — `planner`  (levels 2–4)
+## 2. Plan — `planner`  (grades 2–4)
 
-**Level 1 skips this step.** The issue text is the spec.
+**Grade 1 skips this step.** The issue text is the spec.
 
 Spawn `planner` with the repo-qualified issue reference (`<owner>/<repo>#<n>`),
-the issue text, and the confirmed **work level**. For level 2, pass
-`model: "sonnet"`; levels 3 and 4 use the planner's own model. The planner
-scales its pipeline to the level (see `planner.md`, "Work levels") and writes
+the issue text, and the confirmed **grade**. For grade 2, pass
+`model: "sonnet"`; grades 3 and 4 use the planner's own model. The planner
+scales its pipeline to the grade (see `planner.md`, "Work grades") and writes
 into the issue's folder under `docs/plans/` (see "Planning documents — folder
 layout" in the global `CLAUDE.md`).
 
-A **level-3 sub-issue of a level-4 plan** gets the planner's detailed re-pass:
+A **grade-3 sub-issue of a grade-4 plan** gets the planner's detailed re-pass:
 pass the parent issue reference and the path to its `architecture.md`. The
 planner re-validates the unit's slice against the code as it is now, including
 siblings that have landed, and writes a full implementation plan; steps 3–7
-then implement it in the same run as for any level-3 issue. A re-pass that
+then implement it in the same run as for any grade-3 issue. A re-pass that
 finds the parent architecture no longer fits halts with a proposed amendment —
 relay it to the user and wait.
 
@@ -219,13 +219,13 @@ these shapes; route on it:
   fresh `planner`, which would lose the interview and the research.
 - **`HALT — research`** — research overturned an answer or raised a new
   decision. Relay it as for the interview and resume the same planner.
-- **`HALT — architecture`** (level 4) — the grand design needs sign-off. Relay
+- **`HALT — architecture`** (grade 4) — the grand design needs sign-off. Relay
   the architecture document path, the decomposition, the proposed sub-issues,
   and any open decisions; wait for the user to approve or ask for changes; then
   resume the same planner with `SendMessage`.
-- **`ESCALATE — level`** — see "Escalation" above.
-- **`COMPLETE`** — the plan is drafted (levels 2–3), or the architecture is
-  signed off and the sub-issue list is final (level 4). Continue to step 3.
+- **`ESCALATE — grade`** — see "Escalation" above.
+- **`COMPLETE`** — the plan is drafted (grades 2–3), or the architecture is
+  signed off and the sub-issue list is final (grade 4). Continue to step 3.
 
 A halt is not a failure and not a reason to fill in the gap yourself.
 
@@ -233,7 +233,7 @@ Always run this step for the issue at hand, even when a **broader/epic plan**
 already exists that covers it as one item among several (e.g. a phase/epic
 plan listing issues #46–#50). That parent plan is input for `planner`, not a
 substitute for an issue-specific plan — pass it along as context, but still
-have `planner` produce a plan for this issue's own scope at this issue's level.
+have `planner` produce a plan for this issue's own scope at this issue's grade.
 
 If instead an **issue-specific plan document already exists** for this exact
 issue (its own doc, scoped to just this issue, not a multi-issue epic plan),
@@ -255,38 +255,38 @@ to make the agreed edit.
 
 - If the returned **Considerations** list is non-empty, **stop**: relay it to
   the user and wait. Do not guess a design.
-- Otherwise keep the plan document path (levels 2–3), or the architecture
-  document path and the approved sub-issue list (level 4), plus the recommended
+- Otherwise keep the plan document path (grades 2–3), or the architecture
+  document path and the approved sub-issue list (grade 4), plus the recommended
   approach.
 
 ## 3. Branch — confirm the branch, `branch-cut`
 
 Confirm the topic branch the run created when it was sized (step 1): send the
 admin team a confirm-only `setup-branch` request with the issue reference, the
-**work level**, the `branch` and the note "confirm only: never create the
-branch, and record the confirmed level if it differs", and carry forward the
+**grade**, the `branch` and the note "confirm only: never create the
+branch, and record the confirmed grade if it differs", and carry forward the
 name, base and head its `done` reply reports; this step never creates the
 branch. A `needs-rework` reply means the branch does not exist and nothing was
-created. Then, at levels 2–4, send the `branch-cut` event with the
+created. Then, at grades 2–4, send the `branch-cut` event with the
 branch and the plan's stages ("Plan-board events" below). A run whose branch
 already exists still sends `branch-cut` after `plan-accepted`, with its stages.
 
-**Level 4:** go straight to step 6 (Document): its `prepare-landing` sync (no
+**Grade 4:** go straight to step 6 (Document): its `prepare-landing` sync (no
 bump), the confirmation that the architecture and `consequences.md` are final,
 and its `state-boards` task, which draws the planned systems dashed.
 
-## 4. Implement — `rookie-dev`  (levels 1–3)
+## 4. Implement — `rookie-dev`  (grades 1–3)
 
-- **Level 1:** spawn `rookie-dev` with the issue text as its spec, the work
-  level, and "comment and documentation changes only — no executable line may
-  change; if the issue needs one, stop and report `ESCALATE — level`; commit
+- **Grade 1:** spawn `rookie-dev` with the issue text as its spec, the work
+  grade, and "comment and documentation changes only — no executable line may
+  change; if the issue needs one, stop and report `ESCALATE — grade`; commit
   nothing".
-- **Level 2:** spawn `rookie-dev` with the plan document path, the work level,
+- **Grade 2:** spawn `rookie-dev` with the plan document path, the grade,
   and "implement it on the current branch, **test-first**: write the regression
   test, run it and record it failing, then fix; commit nothing".
-- **Level 3:** spawn `rookie-dev` with the plan document path, the work level,
+- **Grade 3:** spawn `rookie-dev` with the plan document path, the grade,
   and "implement it on the current branch; commit nothing".
-- **Levels 2–3, a plan with a stage table:** also give `rookie-dev` the fields
+- **Grades 2–3, a plan with a stage table:** also give `rookie-dev` the fields
   its board events need (`rookie-dev.md`, "Board events").
 
 **Steps laid out during a stage.** The run may add steps to a stage in the
@@ -300,23 +300,23 @@ Then:
 - If its report has a **Not done / blocked** list, **stop**: relay it and offer
   the user either one `planner` re-pass to resolve the gap or to hand back as
   is. Do not fill in the missing design yourself.
-- If it reports `ESCALATE — level`, see "Escalation".
+- If it reports `ESCALATE — grade`, see "Escalation".
 - **Diff check.** Run `git diff <base-branch> --stat` and read the diff against
-  the level: level 1 touches only comments, KDoc and Markdown; level 2 changes
+  the grade: grade 1 touches only comments, KDoc and Markdown; grade 2 changes
   no public signature, persisted or shared state, or wire format, and stays in
-  one component; level 3 stays inside one system. If the diff crosses its
-  level, **stop and ask the user** with the evidence, as for an escalation.
+  one component; grade 3 stays inside one system. If the diff crosses its
+  grade, **stop and ask the user** with the evidence, as for an escalation.
 
-## 5. QA — `qa`  (levels 1–3)
+## 5. QA — `qa`  (grades 1–3)
 
-Spawn `qa` with `level:<N>` over the change set (`git diff <base-branch>...HEAD`
-plus untracked files), the plan document path (or, for level 1, the issue text)
-and, for level 2, `rookie-dev`'s recorded fail-before/pass-after test run. QA
+Spawn `qa` with `grade:<N>` over the change set (`git diff <base-branch>...HEAD`
+plus untracked files), the plan document path (or, for grade 1, the issue text)
+and, for grade 2, `rookie-dev`'s recorded fail-before/pass-after test run. QA
 gates the **tests and the code** only — the test-inspector and the code-reviewer
-(level 1: the code-reviewer alone, checking that the diff is comments and
+(grade 1: the code-reviewer alone, checking that the diff is comments and
 documentation only and matches the issue); documentation is reviewed in step 6.
 Keep its gate verdict, the test-inspector **Test run** block, the code review,
-and the path to the visual test report. At levels 2–3, just before each pass,
+and the path to the visual test report. At grades 2–3, just before each pass,
 this one and every re-run, send the `qa-pass` event with `verdict: "running"`
 ("Plan-board events" below).
 
@@ -337,26 +337,30 @@ this one and every re-run, send the `qa-pass` event with `verdict: "running"`
   the loop as above. If the third pass still fails, stop and hand the user the
   findings, the report path, and the branch as it stands.
 
-## 6. Document  (every level)
+## 6. Document  (every grade)
 
 Runs after the last `qa` verdict — `PASS`, or `CHANGES REQUESTED` with every
-fix minor and fixed on the spot — and at level 4 straight after step 3. From
-its first task on, only documents change on the branch. Report it on the issue
+fix minor and fixed on the spot — and at grade 4 straight after step 3. From
+its first task on, only documents change on the branch, and the Dokka
+configuration a level-2 documentation finding needs (task 2). Report it on the issue
 board with the `document` event (see "Plan-board events" below): send it when
 the step starts and at every task change, so each task's state stays current,
-with `tasks` giving the id, name and state of every task the level and the
+with `tasks` giving the id, name and state of every task the grade and the
 repository apply to; a task they do not, such as the Dokka check where Dokka
 is not used, stays out of the list and does not count. The tasks, in this
-order (the levels that skip one are named on it):
+order (the grades that skip one are named on it), which follows the
+documentation levels: the inline documentation and the API reference (tasks 1
+to 3), then the plan documents, README and CHANGELOG (tasks 4 and 5), then the
+boards (task 6):
 
 0. **Open — `admin team`: `prepare-landing`.** Send a `prepare-landing` request
    (the `admin-team` skill) with the fields a `land` carries: the issue, the
-   **work level**, the branch and worktree, the change set (`paths`), the `qa`
+   **grade**, the branch and worktree, the change set (`paths`), the `qa`
    verdict as the `qa` field of `~/.claude/admin-team/PROTOCOL.md` writes it
-   (`NONE` for level 4), `publish` (true only if the user asked for a publish
+   (`NONE` for grade 4), `publish` (true only if the user asked for a publish
    this run) and the versions. The team's executor commits the change
    set, syncs the branch with its base (a merge, the repository's way), decides
-   and commits the version bump the level calls for (none at levels 1 and 4),
+   and commits the version bump the grade calls for (none at grades 1 and 4),
    and replies `done` with the head sha — the **code-landing commit** — and the
    version it bumped to, if any. Carry both forward: every state board is
    stamped at the sha, and task 5 files the CHANGELOG entry under the version.
@@ -369,16 +373,18 @@ order (the levels that skip one are named on it):
    a `README.md` or `CHANGELOG.md` conflict with the merge left open: fix the
    markers in those files in the worktree and resend the same `id` with
    `attempt + 1`; the team's executor finishes the merge.
-1. **Documentation review** (levels 1–3). Spawn `documentation-reviewer` over
-   the change set (`git diff <base-branch>...HEAD`). It reports findings only;
-   keep its report.
-2. **Reconcile documentation** (levels 1–3). Spawn `rookie-dev` for a short
+1. **Documentation review** (grades 1–3). Spawn `documentation-reviewer` over
+   the change set (`git diff <base-branch>...HEAD`). It reviews the inline
+   documentation (documentation level 1) before the generated API reference
+   (documentation level 2), and reports findings only; keep its report.
+2. **Reconcile documentation** (grades 1–3). Spawn `rookie-dev` for a short
    pass that applies the findings to the inline documentation (KDoc, line
-   comments) and to any document the findings name, changing **no behaviour,
-   API or test**. Then spawn `documentation-reviewer` once more. Findings left
+   comments), to any document the findings name and, for a level-2 finding,
+   to the Dokka configuration it names, changing **no behaviour, API or
+   test**. Then spawn `documentation-reviewer` once more. Findings left
    after that second review are fixed on the spot (a short `rookie-dev` pass,
    or wording directly) with no further review.
-3. **Dokka check** (levels 1–3, only where the repository applies the
+3. **Dokka check** (grades 1–3, only where the repository applies the
    `org.jetbrains.dokka` plugin in a build file or convention plugin — today
    MyGameTools does, with Dokka 2 in its V2 plugin mode; WebTools, GeneralTools
    and MyGameServer do not). Run the repository's Dokka task — `dokkaGenerate`
@@ -387,7 +393,7 @@ order (the levels that skip one are named on it):
    none about undocumented public API or unresolved KDoc links among them.
    Nothing from it is committed; its output is build output. A failure goes
    back to task 2, then the check runs again.
-4. **Reconcile plan** (levels 2–4). Resume the **same `planner`** with
+4. **Reconcile plan** (grades 2–4). Resume the **same `planner`** with
    `SendMessage` (its context is intact) to reconcile the plan with the build,
    per its "When resumed in the Document step's reconcile-plan task"
    paragraph: `final-implementation.md` (the state of the build, not the run's
@@ -399,9 +405,9 @@ order (the levels that skip one are named on it):
    `research/README.md`, and every open point this run raised settled — as a
    deviation in `final-implementation.md`, or as a follow-up or known gap in
    `consequences.md`. **No open point is committed open**, whatever raised it.
-   At **level 4** the planner wrote `consequences.md` at sign-off; the task only
+   At **grade 4** the planner wrote `consequences.md` at sign-off; the task only
    confirms the architecture and `consequences.md` are final.
-5. **README and CHANGELOG** (levels 1–3). Spawn `rookie-dev` for a short pass
+5. **README and CHANGELOG** (grades 1–3). Spawn `rookie-dev` for a short pass
    from the plan's **Documentation impact** section and the as-built record
    (`final-implementation.md`): the README delta the global "Repository READMEs
    — keep current" rule calls for, proportional (none when the change leaves
@@ -410,19 +416,19 @@ order (the levels that skip one are named on it):
    / `### Deprecated` / `### Security`) — under `## [X.Y.Z] - <date>` when
    `prepare-landing` bumped a version (pass `rookie-dev` the version from its
    `done` reply), else under `## [Unreleased]` — creating `CHANGELOG.md` if the
-   repository has none. **Level 1** updates the README only, no CHANGELOG
+   repository has none. **Grade 1** updates the README only, no CHANGELOG
    entry.
 6. **State boards — `admin team`: `state-boards`.** Send a `state-boards`
-   request with the issue, the **work level**, the branch and worktree, the
+   request with the issue, the **grade**, the branch and worktree, the
    systems the change touched and the code-landing sha. The team's presenter
    builds, on the branch: the changed systems' state boards as built, the
    supersystem and repository state boards, `systems.json`, the README's
    dashboard pointer, the template splice, the tracking board re-embed and the
    repository work board, all stamped "as-is at `<branch>` @ `<code-landing
-   sha>`"; at level 4 the planned systems drawn dashed. The team raises the
+   sha>`"; at grade 4 the planned systems drawn dashed. The team raises the
    issue board's `state-boards` step itself, also making the commit task
    (`document-landing`) current, and replies `done` with the paths. At
-   **level 1**, which has no issue board, the team raises no step: it first
+   **grade 1**, which has no issue board, the team raises no step: it first
    seeds the repository's pending corrections onto the branch, and the reply's
    paths include them.
    A reply reporting `BLOCKED — system unresolved`: **stop** and ask the user
@@ -432,13 +438,15 @@ order (the levels that skip one are named on it):
 Then the **document-landing commit**. First finish any task that is truly
 unfinished, then send the final `document` event, with each task in its true
 state, and wait for its `done` before sending the `commit`: the team commits
-nothing while another task on the issue board is not done (a level-1 run has
+nothing while another task on the issue board is not done (a grade-1 run has
 no issue board, so it sends no such event and the check does not apply). Then
 send a `commit` request carrying every document the step wrote or changed (the
-reconciled plan documents, the README and CHANGELOG), the issue's board files,
+reconciled plan documents, the README and CHANGELOG), any Dokka configuration
+task 2 changed, the issue's board files,
 its tracking board's, the repository work board, the state-board files and
-every other path the `state-boards` reply names (at level 1, the boards seeded
-onto the branch); the executor splits them per its guidelines, `docs:` type. Its `done` reply's
+every other path the `state-boards` reply names (at grade 1, the boards seeded
+onto the branch); the executor splits them per its guidelines, `docs:` type, and the Dokka
+configuration as its own `build:` commit. Its `done` reply's
 sha is the **document-landing commit**. The team closes the board's commit task
 before it commits; send no `document` event after the `commit` request, because
 it would dirty the worktree, save the one the reply below calls for. A
@@ -447,7 +455,7 @@ done, naming each, and nothing was committed: finish any that is truly
 unfinished, send a `document` event with their true states, wait for its
 `done`, then resend the same `id` with `attempt + 1`. A
 `needs-rework` with `result.finds` means a file names the pipeline or a work
-level: reword each `file:line` (or have the agent that wrote it reword it) and
+grade: reword each `file:line` (or have the agent that wrote it reword it) and
 resend the same `id` with `attempt + 1`. Then step 7.
 
 The presenter is not a pipeline step: it runs as a service of the `admin team`
@@ -455,33 +463,33 @@ session, building the state boards on the run's `state-boards` request (task 6)
 and keeping the **issue board** true from the `plan-board` events you send at
 each step transition (see "Plan-board events" below).
 
-## Plan-board events  (levels 2–4, every run)
+## Plan-board events  (grades 2–4, every run)
 
 At each of these moments send the admin team a `plan-board` request (the
 `admin-team` skill; fire-and-forget) with the `event` and the facts you have.
 The presenter keeps the issue's board — `docs/plans/<…>/<issue>-<slug>/dashboard.html`
-— and the repository work board true from it. Level 1 has no plan folder and
+— and the repository work board true from it. Grade 1 has no plan folder and
 sends none.
 
 | Moment | `event` | Facts |
 |--------|---------|-------|
-| Step 1 sized (the run's first action after sizing) | `sized` | level, baseline sha, the issue's systems if known, the next step |
+| Step 1 sized (the run's first action after sizing) | `sized` | grade, baseline sha, the issue's systems if known, the next step |
 | The run is halted (see "Halted — at any step") | `halted` | what waits on the user; for every question it puts to the user, in any step, `questions`: each question's text (and its options, if any); then `resumed` with the answer's gist |
 | Research questions being drafted (sent by the planner itself) | `research-planning` | `drafted`: questions drafted so far |
 | A research batch spawned (sent by the planner itself) | `research-started` | `researching`: per question, its slug and the board Row ids it bears on (`[]` for none) |
 | A researcher returned (sent by the planner itself) | `research-returned` | `returned`: the question slug and its findings path |
 | Verification of the findings starts (sent by the planner itself) | `verification-started` | — |
 | Research verified, or nothing to research (sent by the planner itself, when `planner.md`, "Board events during research", says) | `researched` | the research README path; none when nothing was researched |
-| Level-4 sign-off | `architecture-signed-off` | the architecture path, the approved unit list |
+| Grade-4 sign-off | `architecture-signed-off` | the architecture path, the approved unit list |
 | Planner COMPLETE | `plan-accepted` | the plan path, consequences path |
 | Step 3 done | `branch-cut` | branch, worktree, `stages`: every stage of the plan, its id and name |
-| A stage of the plan's stage table ends; each rookie-dev report on a plan without one, and each remediation report | `implementation-stage` | the stage, `stages`: every stage's id and name with its state (`done`, `current`, `todo`), `final-implementation.md` path, deviations; a closing check stage's entry in `stages` also carries `result` (`passed` or `failed`), and the stage's report goes in `detail`, as its end report, written by whoever carries the stage out; during a remediation loop also `remediation`: the qa pass it answers, the route (`on-the-spot` / `remediation` / `re-plan-then-remediation`) and its sub-steps with their state; `tests`: the test classes the stage added or amended (`added`/`amended`: class, module, testLevel, path, tests, rows). It names no `step`. A stage's end is sent by `rookie-dev` for the stages it builds (`rookie-dev.md`, "Board events"), and by the run for a stage it carries out itself, when the stage ends and before its next request. When `rookie-dev` returns, the run sends no `implementation-stage` for a stage it reported: only the events its report lists under **Events not sent**, and its own (a remediation's report, a halt, an escalation) |
+| A stage of the plan's stage table ends; each rookie-dev report on a plan without one, and each remediation report | `implementation-stage` | the stage, `stages`: every stage's id and name with its state (`done`, `current`, `todo`), `final-implementation.md` path, deviations; a closing check stage's entry in `stages` also carries `result` (`passed` or `failed`), and the stage's report goes in `detail`, as its end report, written by whoever carries the stage out; during a remediation loop also `remediation`: the qa pass it answers, the route (`on-the-spot` / `remediation` / `re-plan-then-remediation`) and its sub-steps with their state; `tests`: the test classes the stage added or amended (`added`/`amended`: class, module, testSet, path, tests, rows). It names no `step`. A stage's end is sent by `rookie-dev` for the stages it builds (`rookie-dev.md`, "Board events"), and by the run for a stage it carries out itself, when the stage ends and before its next request. When `rookie-dev` returns, the run sends no `implementation-stage` for a stage it reported: only the events its report lists under **Events not sent**, and its own (a remediation's report, a halt, an escalation) |
 | The plan's stage table revised while a stage runs (steps added, or a step given steps of its own) | `implementation-stage` | `stages` as they stand, none closed, so the board reads the revised table and its nested steps; `detail`, the run's latest report. It names no `step` |
 | Each step the plan's stage table names completes, at any depth (one event per step, however long the list) | `step-complete` | `stage`, the stage's id; `stepId`, the step's id; no `detail` and no report. It names no `step`. The run sends it for a step it carries out itself, when the step completes and before its next request; `rookie-dev` sends it for its own (`rookie-dev.md`, "Board events"), and the run sends only those its report lists under **Events not sent**, once it returns |
 | Just before each `qa` pass is spawned | `qa-pass` | `qa: {pass: N, verdict: "running"}`, `at` |
 | Each qa verdict | `qa-pass` | pass number, verdict, finding counts by kind (test, code) and by `severity` (`minor` — easily made, no fallout — and `other`), the route step 5 takes from them, `rows`: the board Row ids the findings touch, report path; `tests`: what the qa run ran (`ran`: class, module, passed, failed, skipped) and the counts of the untouched modules' tests (`other.byModule`) from the test-inspector report |
 | Step 6 starts, each task change in it, and once more before the document-landing commit | `document` | `tasks`: every applicable task's id and name with its state (`done`, `current`, `todo`), like `implementation-stage`'s `stages` — ids `documentation-review`, `reconcile-documentation`, `dokka-check`, `reconcile-plan`, `readme-changelog`, `state-boards` (the board adds `document-landing`, which the run need not send); once `prepare-landing` replied, the code-landing sha |
-| An escalation | `escalated` | the proposed level and evidence |
+| An escalation | `escalated` | the proposed grade and evidence |
 | The run is abandoned | `cancelled` | the reason |
 
 **Progress reviews.** Every agent in this run's tree writes a progress note every 10 minutes
@@ -520,7 +528,7 @@ Considered filled behind it; no board is laid ahead of a run. It also seeds the
 run's boards with the previous landing's landed state — the parent tracking board
 (its filed units, its unit landed, the next one up) and the previously landed sibling's issue
 board as `landed` — from the main checkout's live view, so the run's branch
-carries them and they ride its document-landing commit. A level-1 run sends no
+carries them and they ride its document-landing commit. A grade-1 run sends no
 `sized`, and its landing carries the repository's pending corrections all the
 same: the team seeds them onto its branch when it accepts its `state-boards`
 request, and the document-landing commit carries the paths the reply names
@@ -531,7 +539,7 @@ in any landing.
 
 The change set is already committed: the code-landing commit (step 6, task 0)
 and the document-landing commit (end of step 6). Send the admin team a `land`
-request with the **work level**, the branch and worktree, the code-landing and
+request with the **grade**, the branch and worktree, the code-landing and
 document-landing shas, the `qa` verdict as for `prepare-landing` (step 6,
 task 0), the plan or architecture document, every `.md` file created or
 updated this run (for the resolution comment's links), and `publish: true`
@@ -552,10 +560,10 @@ a conflict the team cannot resolve itself — re-verify and resend the same
 `attempt + 1` (with `result.conflicts`, fix the markers as in step 6, task 0);
 a `needs-user` means a gate is waiting on the user at the team's console.
 
-**Level 4** lands the planning documents only: a `docs:` PR that says
+**Grade 4** lands the planning documents only: a `docs:` PR that says
 `Refs #<n>` — never `Closes` — and no version bump. After the `done` reply,
 send a `file-sub-issues` request with the **user-approved** list: the team
-files each as a sub-issue of this issue, records its proposed level in its own state (never on GitHub), and
+files each as a sub-issue of this issue, records its proposed grade in its own state (never on GitHub), and
 its landing-order dependencies as *blocked by* links, labels this issue
 `type: tracking`, and adds a comment listing the sub-issues. The issue stays
 open. If the user has not approved the list,
@@ -570,9 +578,9 @@ send nothing and the list goes back to the user.
 
 ## 8. Report
 
-- The issue, its **work level**, and whether it is now **resolved**, a **step
-  taken** (with what remains), or — level 4 — **planned**, with the sub-issues
-  filed and their levels.
+- The issue, its **grade**, and whether it is now **resolved**, a **step
+  taken** (with what remains), or — grade 4 — **planned**, with the sub-issues
+  filed and their grades.
 - The plan or architecture document and any other `.md` files, with their
   merged links.
 - The `qa` verdict, the code review's verdict, and the visual test-report path.

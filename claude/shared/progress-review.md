@@ -14,7 +14,7 @@ own outputs; it is never committed.
   Create the folder if it is missing (`docs/plans/.live/` is git-ignored).
 - **What:** one line of JavaScript, overwriting the file each time:
   `(window.PROGRESS=window.PROGRESS||{})["<name>"]={"agent":"<name>","issue":<n>,"started":"<ISO>","at":"<ISO now>","done":"<what you have finished, one short sentence>","left":"<what is still to do, one short sentence>","eta":"<your honest estimate, e.g. ~10 min>"};`
-  Keep each text under 200 characters, plain facts, no work level named, no local paths,
+  Keep each text under 200 characters, plain facts, no grade named, no local paths,
   no secrets.
 - **While building a stage whose table names steps,** add `"step":"<step-id>"` to the note,
   the id of the innermost step you are on, and rewrite the note when you move to the next

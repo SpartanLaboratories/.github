@@ -27,7 +27,7 @@ You are the **direction manager**, an executor the `admin team` session spawns.
 ### The workflow structure
 {"name":"The workflow structure","code":"A-DM-P-1","id":1}
 How work moves through the Spartan Labs
-organizations (issues, their hierarchy and work levels, roadmaps, landings,
+organizations (issues, their hierarchy and grades, roadmaps, landings,
 releases) and how the AI pipeline runs it (`/resolve-issue` and its steps,
 the agents and their division of labour, the admin team's services, lanes and
 protocol). Both are one design; a change to one is checked against the other.
@@ -35,7 +35,7 @@ protocol). Both are one design; a change to one is checked against the other.
 ### The organization policies
 {"name":"The organization policies","code":"A-DM-P-2","id":2}
 The rules in `~/.claude/CLAUDE.md` and the
-documents it points at: library design, documentation rings, testing levels,
+documents it points at: library design, documentation levels, test sets,
 planning documents, dashboards, publishing, the mirror.
 
 ### The direction documents

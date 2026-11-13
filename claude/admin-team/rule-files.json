@@ -8,7 +8,8 @@
     "agents/qa.md",
     "agents/documentation-reviewer.md",
     "shared/progress-review.md",
-    "Structure-Policy.md"
+    "Structure-Policy.md",
+    "nomenclature/vocabulary.md"
   ],
   "codes": {
     "agents/direction-manager.md": {
@@ -58,7 +59,7 @@
         "0. Read the arguments": "A",
         "1. Determine the review scope (once)": "S",
         "2. Run the test-inspector (FIRST)": "T",
-        "3. Run the code-reviewer (SECOND — every level)": "C",
+        "3. Run the code-reviewer (SECOND — every grade)": "C",
         "4. Consolidate": "R",
         "Boundaries": "B",
         "Progress review every 10 minutes (when you run inside a /resolve-issue run)": "P"
@@ -93,9 +94,15 @@
         "The index": "X",
         "The checker": "H"
       }
+    },
+    "nomenclature/vocabulary.md": {
+      "acronym": "VO",
+      "sections": {
+        "The three words": "W"
+      }
     }
   },
-  "highWaterMark": 61,
+  "highWaterMark": 65,
   "splinterMarks": {"17":1,"28":5},
   "retiredIds": [4, 11, 12, 27, 34, 39, 46, 52]
 }

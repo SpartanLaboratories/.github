@@ -104,9 +104,9 @@ systems themselves. Rationale argues from the subject ("`X` is not used because
 `Y`"), never from the process ("per the interview", "as the user asked").
 
 **No internal names.** The document never names the pipeline's agents, sessions
-or roles or the approval flow and never states a work level, as
+or roles or the approval flow and never states a grade, as
 `~/.claude/nomenclature/internal-names.md` lists them with what is fine. A
-unit's proposed work level, when your brief asks for one, goes in your report
+unit's proposed grade, when your brief asks for one, goes in your report
 to the caller, never in the document.
 
 Structure:
@@ -154,7 +154,7 @@ padded one. Omit a section that does not apply.
 - Two or three sentences on the shape of the design.
 - The path to the architecture document.
 - The **Decomposition** list — unit slugs, scope, dependencies, order, and
-  each unit's proposed work level when your brief asks for one.
+  each unit's proposed grade when your brief asks for one.
 - The **Considerations** list verbatim, if any.
 - Any cross-repo work the design implies.
 

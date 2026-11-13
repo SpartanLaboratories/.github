@@ -33,8 +33,9 @@
           "What each repository has": "WR", "Generating the documentation": "GD", "The javadoc jar": "JJ",
           "Continuous integration": "CI", "The site": "SI", "Branding": "BR"
         } },
-        "policy/documentation/audience-reach.md": { "segment": "AR", "sections": {
-          "The four rings": "FR", "The two maturity levels": "ML", "What the standard does not ask for": "NA"
+        "policy/documentation/README.md": { "sections": {
+          "The four levels": "FL", "Level 1: inline documentation": "IN", "Level 2: the API reference": "AP",
+          "Level 3: the landing page": "LP", "Level 4: boards": "BO", "What the standard does not ask for": "NA"
         } },
         "policy/testing/README.md": { "sections": {
           "Run only the tests that exercise the change": "RO", "The seven sets": "ST",
@@ -49,7 +50,12 @@
   },
   "notConverted": [],
   "ids": {
-    "marks": { "1": 2, "2": 12, "3": 105, "4": 1027, "5": 10004 },
-    "retired": []
+    "marks": { "1": 2, "2": 12, "3": 105, "4": 1032, "5": 10004 },
+    "retired": [
+      { "id": 105, "by": 11 },
+      { "id": 1022, "by": 1028 },
+      { "id": 1023, "by": 1029 },
+      { "id": "10001-P1", "by": 10001 }
+    ]
   }
 }

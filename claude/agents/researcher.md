@@ -86,7 +86,7 @@ interview questions, user answers, "the user chose", decision IDs, or the
 planner's constraint labels. A requirement your answer must meet is stated as a
 plain fact about the work ("consumers stay on Kotlin 2.2.0"), not attributed to
 anyone. Nor does it name the pipeline's agents, sessions or roles or the
-approval flow or state a work level, as
+approval flow or state a grade, as
 `~/.claude/nomenclature/internal-names.md` lists them with what is fine.
 
 The report is Markdown, in this order:

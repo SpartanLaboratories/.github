@@ -97,7 +97,7 @@ is never counted.
 ## The rule
 
 Let `used` be the month's usage, `cap` 7 and `reserve` 2. A candidate is
-**reserve-eligible** when it is a **level-2 fix** release or its landing
+**reserve-eligible** when it is a **grade-2 fix** release or its landing
 carried `publish: true` (the user asked for it that run). Then:
 
 - `used >= cap` → **defer** (`cap-reached`).
@@ -219,7 +219,7 @@ and tells the team so at its console.
 ## Usage — <namespace>, <YYYY-MM>
 ledger <n> · central <n> (<clusters>) · user-stated <n or none> → used <n>
 
-## Decision — <repo> #<issue> (level <n>, publish flag <true|false>)
+## Decision — <repo> #<issue> (grade <n>, publish flag <true|false>)
 <publish | defer (<reason>) | drop (<reason>)> — <clause of the rule>, used <n> of 7 (<k> reserved, last-3-days <yes|no>)
 
 ## Done  (consider: the release; drain: one block per candidate)
