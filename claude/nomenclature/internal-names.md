@@ -47,7 +47,8 @@ known aliases. The aliases are what the scan matches.
 | **Publisher** | **publisher** | The admin team's agent that releases to Maven Central. | never |
 | **RookieDev** | **rookie-dev** | The agent that implements code from a plan. | never |
 | **VersionControlManager** | **version-control-manager**, **executor** | The admin team's agent that executes each version-control request. | never |
-| **DirectionManager** | **direction-manager** | The admin team's agent that keeps the direction documents and the idea hooks. | never |
+| **DirectionManager** | **direction-manager** | The admin team's agent that keeps the direction documents. | never |
+| **Archivist** | **archivist** | The admin team's agent that keeps the team's records, the idea hooks among them. | never |
 | **QA** | **qa** | The agent that runs the quality gate. Barred as an agent's name only. | the qa step, its passes and its data keys (section 4) |
 | **CodeReviewer** | **code-reviewer** | The agent that reviews a change set for correctness. | never |
 | **DocumentationReviewer** | **documentation-reviewer** | The agent that reviews code against the documentation standard. | never |
