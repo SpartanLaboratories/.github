@@ -106,7 +106,7 @@ function main() {
   if (!sid || !dest || sid.startsWith('--') || dest.startsWith('--')) { console.error('usage: extract-session.js <id> <folder>'); return 2; }
   if (!L.ID_RE.test(sid)) { console.error(`REFUSED: ${sid} is not a session id`); return 1; }
   const P = L.paths();
-  let c; try { c = L.classify(P); } catch (e) { console.error(`STOP: ${e.message}`); return 2; }
+  let c; try { c = L.classify(P, Date.now(), { only: sid }); } catch (e) { console.error(`STOP: ${e.message}`); return 2; }
   const row = c.rows.find(r => r.id === sid);
   if (!row) { console.error(`REFUSED: ${sid} is not an admin team session or remains`); return 1; }
   if (['running', 'held', 'foreign'].includes(row.class)) { console.error(`REFUSED: ${sid} is ${row.class}`); return 1; }

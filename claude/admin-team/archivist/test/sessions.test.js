@@ -150,6 +150,27 @@ r = run('sessions.js', []);
 ok(r.code === 2 && /more than one live admin-team record/.test(r.out), 'sessions: two live admin-team records stop it');
 fs.rmSync(path.join(ROOT, 'sessions', '4.json'));
 
+// ---- the id filter and the sizes ------------------------------------------------------
+// The scripts' own functions, in this process, read the same fixture.
+process.argv.push(...COMMON);
+const L = require(path.join(BIN, 'lib.js'));
+const P = L.paths();
+const full = j(run('sessions.js', ['--json'])).rows;
+const byId = Object.fromEntries(full.map(x => [x.id, x]));
+const named = full.map(x => j(run('sessions.js', ['--id', x.id, '--json'])).rows || []);
+ok(named.every((rs, i) => rs.length === 1 && rs[0].id === full[i].id && rs[0].class === full[i].class && rs[0].quiet === full[i].quiet)
+  && ['running', 'held', 'kept', 'foreign', 'candidate'].every(k => named.some(rs => rs[0] && rs[0].class === k)), 'id filter: with its id named, every session gets the class and quiet of the full sweep, the kept one included');
+ok(full.every(x => L.classify(P, Date.now(), { only: x.id }).rows.every(y => y.class === byId[y.id].class && (y.id === x.id ? y.quiet === byId[y.id].quiet : y.quiet === null))), 'id filter: every row keeps its class; only the named row is walked, the others have quiet null');
+fs.utimesSync(path.join(HASH, S.s3, 'scratchpad', 'x.txt'), new Date(), new Date());
+r = j(run('sessions.js', ['--id', S.s1, '--json']));
+ok(r.rows[0].quiet === true && j(run('sessions.js', ['--json'])).rows.find(x => x.id === S.s3).quiet === false, 'id filter: a fresh store in another session leaves the named one quiet; the full sweep still shows it fresh');
+ageTree(path.join(HASH, S.s3), 3600e3);
+const walkedSize = id => L.stores(P, id).reduce((n, s) => n + L.walk(s.path).bytes, 0);
+r = j(run('sessions.js', ['--json', '--sizes']));
+ok(r.rows.length === full.length && r.rows.every(x => x.bytes === walkedSize(x.id)) && r.rows.find(x => x.id === S.s2).bytes > 3 * 1048576, 'sizes: the sweep\'s sizes are those of a walk of each row\'s stores');
+ok(j(run('sessions.js', ['--id', S.s2, '--json', '--sizes'])).rows[0].bytes === walkedSize(S.s2), 'sizes: --id with --sizes gives the same size');
+ok(!/ MB \[/.test(run('sessions.js', []).out) && / MB \[/.test(run('sessions.js', ['--sizes']).out), 'sizes: printed only with --sizes');
+
 // ---- extract-session.js ----------------------------------------------------------
 const base = n => path.join(ARCHIVE, 'sessions', 'base', n);
 const B1 = base(`2026-11-01-${S.s1.slice(0, 8)}`);
@@ -227,6 +248,51 @@ put(path.join(HASH, S.s1, 'stray'), 'x'); ageTree(path.join(HASH, S.s1), 3600e3)
 ok(refused(S.s1, null, /more than scratchpad/), 'delete refuses: a temp folder holding more than scratchpad/ and tasks/');
 fs.rmSync(path.join(HASH, S.s1, 'stray'));
 ageTree(path.join(HASH, S.s1), 3600e3); ageTree(path.join(ARCHIVE), 3600e3);
+const deep = path.join(HASH, S.s1, 'scratchpad', 'k25', 'deep', 'b.txt');
+fs.utimesSync(deep, new Date(), new Date());
+ok(refused(S.s1, null, /last 10 minutes/), 'delete refuses: a file deep in the named session\'s temp folder changed in the last 10 minutes');
+ageTree(path.join(HASH, S.s1), 3600e3);
+fs.utimesSync(path.join(HASH, S.s3, 'scratchpad', 'x.txt'), new Date(), new Date());
+r = run('delete-session.js', [S.s1, '--confirm', S.s1, '--dry-run']);
+ok(r.code === 0 && j(r).removed.length === 6 && j(run('sessions.js', ['--json'])).rows.find(x => x.id === S.s3).quiet === false, 'delete: a fresh store in another session does not refuse the named one; the full sweep still shows it fresh');
+ageTree(path.join(HASH, S.s3), 3600e3);
+
+// ---- delete-session.js in this process: its own verification, the last check -------------
+// Every way to start a child process is counted from here to the end of the block.
+const cp = require('child_process'); const spawned = []; const unpatched = {};
+for (const k of ['exec', 'execFile', 'execFileSync', 'execSync', 'fork', 'spawn', 'spawnSync']) {
+  unpatched[k] = cp[k]; cp[k] = function (...a) { spawned.push(k); return unpatched[k].apply(this, a); };
+}
+const D = require(path.join(BIN, 'delete-session.js'));
+const classifyS1 = () => L.classify(P, Date.now(), { only: S.s1 });
+const manifestS1 = path.join(ARCHIVE, 'scratch', S.s1, 'MANIFEST.json');
+fs.renameSync(manifestS1, path.join(DIR, 'm.json'));
+let pf = D.planFor(P, classifyS1(), S.s1);
+ok(/does not verify \(no manifest\)/.test(pf.refused || ''), 'delete in process: refuses a copy that does not verify (no manifest)');
+fs.renameSync(path.join(DIR, 'm.json'), manifestS1);
+const relCopy = path.join(ARCHIVE, 'scratch', S.s1, 'scratchpad', 'cited-rel.json');
+fs.writeFileSync(relCopy, 'tampered');
+pf = D.planFor(P, classifyS1(), S.s1);
+ok(/does not verify .*copy scratchpad.cited-rel\.json/.test(pf.refused || ''), 'delete in process: refuses a changed copy');
+fs.writeFileSync(relCopy, '{"cited":"relatively, in span"}');
+pf = D.planFor(P, classifyS1(), S.s1);
+ok(pf.plan && pf.plan.length === 6, 'delete in process: plans the removal once the copy verifies');
+ok(spawned.length === 0, 'delete in process: verifies the copy without starting a child process');
+const outs = []; const log = console.log;
+const capture = f => { outs.length = 0; console.log = s => outs.push(String(s)); try { return f(); } finally { console.log = log; } };
+const allS1 = () => [t1, path.join(PROJECT, S.s1), path.join(ROOT, 'file-history', S.s1), path.join(ROOT, 'session-env', S.s1), path.join(HASH, S.s1), path.join(OLD, S.s1), deep].every(exists);
+let c1 = classifyS1();
+fs.utimesSync(deep, new Date(), new Date());
+let code = capture(() => D.deleteOne(P, c1, S.s1, false));
+ok(c1.rows.find(x => x.id === S.s1).quiet === true && code === 1 && /last 10 minutes, at the last check before removal/.test(outs.join()) && allS1(), 'delete: a store changed after the first quiet check is caught by the last check, and nothing is removed');
+ageTree(path.join(HASH, S.s1), 3600e3);
+c1 = classifyS1();
+put(path.join(ROOT, 'sessions', '6.json'), JSON.stringify({ pid: process.pid, sessionId: S.s1, name: 'resumed' }));
+code = capture(() => D.deleteOne(P, c1, S.s1, false));
+ok(code === 1 && /held by a live process, at the last check before removal/.test(outs.join()) && allS1(), 'delete: a live record that names it after the first check is caught by the last check, and nothing is removed');
+fs.rmSync(path.join(ROOT, 'sessions', '6.json'));
+ok(spawned.length === 0, 'delete in process: no child process started in the whole block');
+for (const k of Object.keys(unpatched)) cp[k] = unpatched[k];
 
 // ---- delete-session.js: dry run, then the deletion ---------------------------------------
 r = run('delete-session.js', [S.s1, '--confirm', S.s1, '--dry-run']);
@@ -272,6 +338,8 @@ run('extract-session.js', [S.s3, B3]); put(path.join(B3, 'summary.md'), '2026-11
 run('extract-session.js', [S.m2, BM2]); put(path.join(BM2, 'summary.md'), new Date(Date.now() - 3600e3).toISOString().slice(0, 10) + HEADS);
 run('scratch-copy.js', [S.s3, '--copy']); run('archive.js', ['index', B3]); run('archive.js', ['index', BM2]);
 ageTree(path.join(DIR, 'home'), 3600e3); ageTree(path.join(DIR, 'tmp'), 3600e3);
+const cr = L.classify(P, Date.now(), { only: x => x.class === 'ready' });
+ok(cr.rows.filter(x => x.class === 'ready').length === 3 && cr.rows.every(x => (x.class === 'ready') === (x.quiet !== null)), '--all-ready: only the ready rows are walked');
 r = run('delete-session.js', ['--all-ready', '--dry-run']);
 let lines = r.out.trim().split('\n').map(l => JSON.parse(l));
 ok(r.code === 1 && lines.length === 3 && lines.filter(x => x.dryRun).length === 2 && lines.some(x => x.id === S.fresh && /does not verify/.test(x.refused)) && exists(path.join(PROJECT, S.s3 + '.jsonl')), '--all-ready --dry-run: lists every ready session, goes on past a refusal, removes nothing');

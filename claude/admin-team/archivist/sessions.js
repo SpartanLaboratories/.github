@@ -9,6 +9,8 @@
 // team's folder that is not an admin team session), ready (archived and
 // verified, its files not yet deleted), candidate (older: to archive).
 // `quiet` is false when any of its stores changed in the last 10 minutes.
+// With --id only that session's stores are walked; without it, every row's,
+// once, and --sizes takes the bytes from that walk.
 // --orphans adds the temp folders of ids no session owns (no transcript or
 // folder in any project folder, no live record), with their file count:
 // delete-session.js --orphans removes those that hold no file and are quiet.
@@ -19,13 +21,13 @@ const L = require('./lib');
 
 function main() {
   const P = L.paths();
-  let c;
-  try { c = L.classify(P); } catch (e) { console.error(`STOP: ${e.message}`); return 2; }
   const only = L.opt('--id', null);
+  let c;
+  try { c = L.classify(P, Date.now(), { only }); } catch (e) { console.error(`STOP: ${e.message}`); return 2; }
   let rows = c.rows;
   if (only) rows = rows.filter(r => r.id === only);
   if (L.flag('--sizes')) {
-    for (const r of rows) r.bytes = L.stores(P, r.id).reduce((n, s) => n + L.walk(s.path).bytes, 0);
+    for (const r of rows) r.bytes = c.bytes.get(r.id);
   }
   if (L.flag('--json')) {
     const out = { running: c.running, held: c.held, stale: c.stale.map(s => s.file), rows };

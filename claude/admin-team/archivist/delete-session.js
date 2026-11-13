@@ -14,9 +14,13 @@
 // there, has the sha256 the index recorded; none of its stores changed in the
 // last 10 minutes; and, when it left temp folders, its scratchpad copy
 // verifies against the manifest, a description written for every item too
-// large to copy. Then it removes, in this order, each store that exists: its
-// temp folders (scratchpad and task outputs), ~/.claude/file-history/<id>/,
-// ~/.claude/session-env/<id>/, the session's folder and, last, its transcript.
+// large to copy. Just before the removal it classifies the session again and
+// walks its stores once more, and refuses it if it is no longer older or a
+// store changed in the last 10 minutes. Only the stores of the session named,
+// or with --all-ready of the sessions ready, are walked. Then it removes, in
+// this order, each store that exists: its temp folders (scratchpad and task
+// outputs), ~/.claude/file-history/<id>/, ~/.claude/session-env/<id>/, the
+// session's folder and, last, its transcript.
 // --all-ready runs the same checks for each session it takes, one at a time,
 // and goes on past a refusal.
 //
@@ -33,19 +37,26 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const { execFileSync } = require('child_process');
 const L = require('./lib');
+const SC = require('./scratch-copy');
 
 function say(o) { console.log(JSON.stringify(o)); }
+
+// The class checks: why the row may not be deleted, or null.
+function classRefusal(P, row, id) {
+  if (!row) return `${id} is not an admin team session or remains in ${P.project}`;
+  if (row.class === 'foreign') return `${id} is not an admin team session`;
+  if (row.class === 'running') return `${id} is the running session`;
+  if (row.class === 'held') return `${id} is held by a live process`;
+  if (row.class === 'kept') return `${id} is the session kept, the most recent to end`;
+  return null;
+}
 
 // Every check for one session; the paths to remove, or the reason it may not.
 function planFor(P, c, id) {
   const row = c.rows.find(r => r.id === id);
-  if (!row) return { refused: `${id} is not an admin team session or remains in ${P.project}` };
-  if (row.class === 'foreign') return { refused: `${id} is not an admin team session` };
-  if (row.class === 'running') return { refused: `${id} is the running session` };
-  if (row.class === 'held') return { refused: `${id} is held by a live process` };
-  if (row.class === 'kept') return { refused: `${id} is the session kept, the most recent to end` };
+  const why = classRefusal(P, row, id);
+  if (why) return { refused: why };
   const ix = L.readIndex(P).find(l => l.id === id);
   if (!ix || !ix.verified) return { refused: `${id} has no verified archive in the index` };
   const transcript = path.join(P.project, id + '.jsonl');
@@ -60,12 +71,7 @@ function planFor(P, c, id) {
   let described = [];
   if (temps.length) {
     let v;
-    try {
-      const args = [path.join(__dirname, 'scratch-copy.js'), id, '--verify', '--root', P.root, '--temp', P.temp, '--project', P.project, '--archive', P.archive];
-      v = JSON.parse(execFileSync(process.execPath, args, { encoding: 'utf8' }));
-    } catch (e) {
-      try { v = JSON.parse(String(e.stdout)); } catch (x) { v = { verified: false, why: e.message }; }
-    }
+    try { v = SC.verify(P, id); } catch (e) { v = { verified: false, why: e.message }; }
     if (!v.verified) return { refused: `${id}: the scratchpad copy does not verify (${v.why || (v.bad || []).join(', ')})` };
     described = v.described || [];
   }
@@ -99,9 +105,24 @@ function removeAll(plan, dry) {
   return removed;
 }
 
+// The last check, just before the removal: the session classified again and
+// its stores walked once more, so a class or a store that changed since
+// planFor's checks refuses it. Why it may not, or null.
+function recheck(P, id) {
+  let c;
+  try { c = L.classify(P, Date.now(), { only: id }); } catch (e) { return e.message; }
+  const row = c.rows.find(r => r.id === id);
+  const why = classRefusal(P, row, id);
+  if (why) return `${why}, at the last check before removal`;
+  if (row.quiet !== true) return `${id}: a store changed in the last 10 minutes, at the last check before removal`;
+  return null;
+}
+
 function deleteOne(P, c, id, dry) {
   const p = planFor(P, c, id);
   if (p.refused) { say({ id, refused: p.refused }); return 1; }
+  const last = recheck(P, id);
+  if (last) { say({ id, refused: last }); return 1; }
   const removed = removeAll(p.plan, dry);
   say({ id, dryRun: dry, at: new Date().toISOString(), removed, bytes: removed.reduce((n, r) => n + r.bytes, 0),
     described: p.described, staleRecords: p.staleRecords });
@@ -135,7 +156,8 @@ function main() {
   const P = L.paths();
   const all = L.flag('--all-ready'); const orph = L.flag('--orphans');
   if (orph) return orphans(P, dry);
-  let c; try { c = L.classify(P); } catch (e) { say({ refused: e.message }); return 1; }
+  const only = all ? (r => r.class === 'ready') : (process.argv[2] || '');
+  let c; try { c = L.classify(P, Date.now(), { only }); } catch (e) { say({ refused: e.message }); return 1; }
   if (all) {
     const done = new Set(L.readIndex(P).filter(l => l.deleted).map(l => l.id));
     const ready = c.rows.filter(r => r.class === 'ready' && !done.has(r.id));
@@ -150,4 +172,5 @@ function main() {
   return deleteOne(P, c, id, dry);
 }
 
-process.exitCode = main();
+if (require.main === module) process.exitCode = main();
+module.exports = { planFor, recheck, deleteOne };

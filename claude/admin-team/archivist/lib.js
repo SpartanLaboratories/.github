@@ -166,7 +166,12 @@ function readIndex(P) { return readJsonl(path.join(P.archive, 'index.jsonl')); }
 
 // Every admin team session and remains in the team's project folder, with its
 // class. Throws when more than one live record names an admin-team agent.
-function classify(P, now = Date.now()) {
+// The live records and every transcript are read in full on every call, so
+// the classes are the same whatever opts.only says. opts.only, an id or a test
+// of a row that sees its class, limits which rows' stores are walked: a row
+// not walked has quiet null. Without it every row is walked. The result's
+// bytes maps each walked row's id to the bytes its stores hold.
+function classify(P, now = Date.now(), opts = {}) {
   const live = liveRecords(P);
   const teamLive = live.filter(r => r.alive && r.agent === 'admin-team');
   if (teamLive.length > 1) {
@@ -194,20 +199,29 @@ function classify(P, now = Date.now()) {
   }
   const inactive = rows.filter(r => r.kind === 'session' && r.team && r.id !== running && !held.has(r.id));
   const kept = inactive.reduce((a, b) => (!a || (b.to || '') > (a.to || '') ? b : a), null);
+  const only = opts.only === undefined || opts.only === null ? null
+    : typeof opts.only === 'function' ? opts.only : (r => r.id === opts.only);
+  const bytes = new Map();
   for (const r of rows) {
-    const st = stores(P, r.id);
-    r.quiet = st.every(s => walk(s.path).newest < now - QUIET_MS);
-    r.stores = st.map(s => s.store);
     const ix = index.get(r.id);
-    if (!r.team) r.class = 'foreign';
-    else if (r.id === running) r.class = 'running';
-    else if (held.has(r.id)) r.class = 'held';
-    else if (kept && r.id === kept.id) r.class = 'kept';
-    else if (ix && ix.verified) r.class = 'ready';
-    else r.class = 'candidate';
+    let cls;
+    if (!r.team) cls = 'foreign';
+    else if (r.id === running) cls = 'running';
+    else if (held.has(r.id)) cls = 'held';
+    else if (kept && r.id === kept.id) cls = 'kept';
+    else if (ix && ix.verified) cls = 'ready';
+    else cls = 'candidate';
+    const st = stores(P, r.id);
+    if (!only || only(Object.assign({}, r, { class: cls }))) {
+      const w = st.map(s => walk(s.path));
+      r.quiet = w.every(x => x.newest < now - QUIET_MS);
+      bytes.set(r.id, w.reduce((n, x) => n + x.bytes, 0));
+    } else r.quiet = null;
+    r.stores = st.map(s => s.store);
+    r.class = cls;
   }
   rows.sort((a, b) => String(a.from || a.to).localeCompare(String(b.from || b.to)));
-  return { running, held: [...held], stale, rows };
+  return { running, held: [...held], stale, rows, bytes };
 }
 
 // A path to remove must be exactly <parent>/<id><suffix>, and no link.

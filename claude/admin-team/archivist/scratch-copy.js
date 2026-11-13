@@ -122,11 +122,33 @@ function filesUnder(p) {
   return { files: out, links };
 }
 
+// Every copied file against the manifest and its source, and a description
+// for every item over the cap. Reads only. delete-session.js calls it too, in
+// its own process, after its own class checks.
+function verify(P, id) {
+  const dest = path.join(P.archive, 'scratch', id);
+  const manifestPath = path.join(dest, 'MANIFEST.json');
+  if (!fs.existsSync(manifestPath)) return { id, verified: false, why: 'no manifest' };
+  const m = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  const bad = [];
+  for (const it of m.items.filter(x => x.over)) {
+    const d = path.join(dest, it.description);
+    if (!fs.existsSync(d) || !fs.readFileSync(d, 'utf8').trim()) bad.push(`no description ${it.description}`);
+  }
+  for (const it of m.items.filter(x => !x.over)) for (const f of it.files) {
+    const copy = path.join(dest, f.rel);
+    if (!fs.existsSync(copy) || L.sha256File(copy) !== f.sha256) bad.push(`copy ${f.rel}`);
+    const src = path.join(it.temp, f.rel);
+    if (fs.existsSync(src) && L.sha256File(src) !== f.sha256) bad.push(`source changed ${f.rel}`);
+  }
+  return { id, verified: bad.length === 0, described: m.items.filter(x => x.over).map(x => x.item), bad };
+}
+
 function main() {
   const id = process.argv[2];
   if (!id || !L.ID_RE.test(id)) { console.error('usage: scratch-copy.js <id> --list|--copy|--verify [--cap-mb 100]'); return 2; }
   const P = L.paths();
-  let c; try { c = L.classify(P); } catch (e) { console.error(`STOP: ${e.message}`); return 2; }
+  let c; try { c = L.classify(P, Date.now(), { only: id }); } catch (e) { console.error(`STOP: ${e.message}`); return 2; }
   const row = c.rows.find(r => r.id === id);
   if (!row) { console.error(`REFUSED: ${id} is not an admin team session or remains`); return 1; }
   if (['running', 'held', 'kept', 'foreign'].includes(row.class)) { console.error(`REFUSED: ${id} is ${row.class}`); return 1; }
@@ -134,21 +156,9 @@ function main() {
   const manifestPath = path.join(dest, 'MANIFEST.json');
 
   if (L.flag('--verify')) {
-    if (!fs.existsSync(manifestPath)) { console.log(JSON.stringify({ id, verified: false, why: 'no manifest' })); return 1; }
-    const m = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-    const bad = [];
-    for (const it of m.items.filter(x => x.over)) {
-      const d = path.join(dest, it.description);
-      if (!fs.existsSync(d) || !fs.readFileSync(d, 'utf8').trim()) bad.push(`no description ${it.description}`);
-    }
-    for (const it of m.items.filter(x => !x.over)) for (const f of it.files) {
-      const copy = path.join(dest, f.rel);
-      if (!fs.existsSync(copy) || L.sha256File(copy) !== f.sha256) bad.push(`copy ${f.rel}`);
-      const src = path.join(it.temp, f.rel);
-      if (fs.existsSync(src) && L.sha256File(src) !== f.sha256) bad.push(`source changed ${f.rel}`);
-    }
-    console.log(JSON.stringify({ id, verified: bad.length === 0, described: m.items.filter(x => x.over).map(x => x.item), bad }));
-    return bad.length ? 1 : 0;
+    const v = verify(P, id);
+    console.log(JSON.stringify(v));
+    return v.verified ? 0 : 1;
   }
 
   const ptrs = findPointers(P, id, { from: row.from, to: row.to });
@@ -203,4 +213,4 @@ function main() {
 }
 
 if (require.main === module) process.exitCode = main();
-module.exports = { findPointers, resolve };
+module.exports = { findPointers, resolve, verify };
