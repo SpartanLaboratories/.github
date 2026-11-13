@@ -513,3 +513,16 @@ The internal-names scan reads documents, boards and the comments in source code;
 - **Encounters:**
   - 2026-11-13: the organization repository, the first commit of its structure files: two messages the checker and the fetch script print name the admin team (`scripts/rule-check.js:668`, `scripts/rule-fetch.js:31`). The files were the bytes the user had approved and the scan held no find, so the commit went out; the user was told at the console.
   - 2026-11-13: the same messages: reworded at the user’s choice, in the commit that carried the checker’s line-ending fix (`054c0d7`): each says what to do without naming who does it. Not a second encounter.
+
+## A library’s own name that matches a barred name stops a commit
+
+```json
+{"id":"p36","count":1,"last":"2026-11-13"}
+```
+
+Since 2026-11-13 the internal-names list holds no exception for a library’s name that only coincides with a barred name (the user’s decision: any case for an exception is brought to the user first). A document, a board or a code comment that names OkHttp’s `RoutePlanner`, a Reactive Streams `Publisher`, a `java.util.concurrent.Executor` or a domain `verifier` is now a find, and the scan reads every line of each file a commit carries, so a file that already holds such a name stops the next commit that touches it. The dashboards skill’s `namerefs.js` holds its own copy of the list and must follow it, or the boards and the commit scan disagree.
+
+- **Proposed resolution:** the team puts each such find to the user at the console, with the file, the line and the library the name belongs to, before the commit goes on; how an exception the user gives is recorded is still to be decided.
+- **Predicted:** the admin team, on recording the decision, 2026-11-13.
+- **Encounters:**
+  - 2026-11-13: the organization repository, the commit that opens Policy: the documentation standard’s page names its outer ring’s readers as “system architects” (`policy/documentation/audience-reach.md:58` in the prepared package). Found before the commit was sent and put to the user at the console.
