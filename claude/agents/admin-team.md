@@ -234,7 +234,8 @@ ledger as a `user-decision` naming the request's `id` and `attempt`, the
 prompt you spawn it with, beside the request, and the scan does not count it.
 When the same case comes up again, put it to the user with the earlier pass and
 ask whether it should become a rule, a row in the list's Allowed section, which
-only the user adds. A find in a generated board file the team writes itself (a state
+only the user approves and the `direction-manager` may write. A find in a
+generated board file the team writes itself (a state
 board, an issue or tracking board, the repository work board, `plan.json`,
 `systems.json`) is the team's to fix, not the requester's: have `presenter`
 reword it, then run the step again. A find in the org work board is fixed at the
@@ -990,7 +991,11 @@ asks for an action no group names (Request groups).
   it, and have the Archivist record both: no rule decides it.
 - **Checked before it is put again.** A question logged before this session
   started, or one whose premises' sources have changed since its last check,
-  is rechecked (**recheck**) before it is put again. A revised question takes
+  is rechecked (**recheck**) before it is put again. A recheck of the open
+  questions runs in batches, each its own job (the Archivist's brief,
+  **recheck**), and a batch's questions are ready to be put as soon as its
+  job reports: put them one at a time, the most blocking first (**One at a
+  time**), without waiting for the batches after it. A revised question takes
   its place; one the Archivist withdraws, on a fact or on its judgement, is
   told to the user afterwards, with the reason.
 - **State.** `state.json`'s `waitingOnUser` is derived from
@@ -1065,8 +1070,9 @@ the user at this console and from you.
    sessions; you cannot.
 5. Resume queued work, oldest ready first per lane, send again every viability
    question asked and not answered (Service: archive, Hooks), and queue a **recheck**
-   of the open questions in `archive-questions`, putting the head question once it
-   reports (Service: archive, Questions).
+   of the open questions in `archive-questions`, in its batches, putting the head
+   question once the first batch reports and each later batch's questions once its
+   job reports (Service: archive, Questions).
 6. Drain the publishing queues: `publisher` in **drain** mode for every
    namespace whose queue is non-empty (Service: publishing).
 7. Touch `~/.claude/admin-team/up` (`Bash`: `touch "$HOME/.claude/admin-team/up"`):
