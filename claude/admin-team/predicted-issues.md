@@ -139,7 +139,7 @@ The permission system raises the denial.
 ## An encountered issue is not in this tracker
 
 ```json
-{"id":"p9","count":2,"last":"2026-11-13"}
+{"id":"p9","count":3,"last":"2026-11-13"}
 ```
 
 - **Proposed resolution:** add it as a new entry with count 1, then prompt the
@@ -150,6 +150,9 @@ The permission system raises the denial.
     "A member's attempt to stop its own background process is refused".
   - 2026-11-13: a force-push a temporary grant covers was denied by the permission system;
     added as "A push a grant covers is denied with [Git Destructive]".
+  - 2026-11-13: a read-only query of the running processes' command lines was denied
+    by the auto mode classifier with no reason given; added as "A read-only query of
+    the running processes is denied".
 
 ## A count changes in this mirrored file
 
@@ -157,8 +160,10 @@ The permission system raises the denial.
 {"id":"p10","count":2,"last":"2026-11-12"}
 ```
 
-- **Proposed resolution:** the coordinator writes the count and the change rides
-  the next `mirror-sync`, so the public copy lags slightly.
+- **Resolution (decided by the user, 2026-11-13, and settled by the change of the
+  team's brief that day):** the Archivist, the tracker's only writer, writes the
+  count, and the change rides the next `mirror-sync`, so the public copy lags
+  slightly (`agents/admin-team.md`, Service: archive, Predicted issues).
 - **Predicted:** the admin team, 2026-11-09.
 - **Encounters:**
   - 2026-11-12: the entry for a procedure not run as one shell was added; it rides the next mirror-sync.
@@ -575,3 +580,16 @@ Once the presenter handles its own rules, its brief among them, the session's au
 - **Predicted:** the user, at the console, 2026-11-13 (asked what should happen in that case: "expected issue").
 - **Encounters:**
   - None yet.
+
+## A read-only query of the running processes is denied
+
+```json
+{"id":"p40","count":1,"last":"2026-11-13"}
+```
+
+The team checks, read only, whether a member's job left a process behind (the entry "A member's attempt to stop its own background process is refused" has it do so). The session's auto mode classifier denied a query of the running processes' command lines (PowerShell `Get-CimInstance Win32_Process`) with no reason given. It is neither an edit of the team's own files nor a member's attempt to stop its own process.
+
+- **Proposed resolution:** as practised on the encounter: the query is not retried another way, and the user is told at the console. No standing route is proposed yet.
+- **Predicted:** the admin team, on meeting it, 2026-11-13.
+- **Encounters:**
+  - 2026-11-13: the Coordinator's query, made to confirm an Archivist job had left no process behind, was denied with no reason given and not retried another way; a process list without command lines showed one node process the team could not identify. Told to the user at the console.

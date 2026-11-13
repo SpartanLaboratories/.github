@@ -241,8 +241,9 @@ do not have `planner` redo the design from scratch. Spawn `planner` to
 **verify** the existing draft instead: re-check its factual/codebase claims
 against current `master` and sanity-check its design decisions, then report a
 verdict plus any concrete additions or modifications — not a rewritten plan
-document. Only fall back to a full replan if verification turns up the draft
-being unsound or badly stale.
+document. The verification runs no research and sends no `researched`; the
+run's `sized` names `plan` as its next step. Only fall back to a full replan if
+verification turns up the draft being unsound or badly stale.
 
 When this verification pass comes back with recommended additions or
 modifications, **relay them to the user and wait for a decision before**
