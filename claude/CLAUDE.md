@@ -120,13 +120,16 @@ comments or files itself, and never spawns `version-control-manager` directly.
   is mine to publish by hand.
 - **Direction is its service too.** Through its `direction-manager` agent (brief:
   `~/.claude/agents/direction-manager.md`) it keeps the direction of the work straight: the
-  workflow structure, the organization policies, the direction documents that state them
-  (this file, the agent briefs, the skills, the protocol, `Structure-Policy.md`, `shared/`) and
-  my idea hooks. Any session may send it a `log-hook` request for an idea I should revisit; a
-  hook changes nothing until I decide it. A direction document changes only through the team,
-  as an edit I direct at its console or as the propagation of a decision I have already made
-  into the documents that implement it; a new rule is never set without my direction. The
-  single-source principle and the format of a rule file are in `~/.claude/Structure-Policy.md`.
+  workflow structure, the organization policies and the direction documents that state them
+  (this file, the agent briefs, the skills, the protocol, `Structure-Policy.md`, `shared/`). A
+  direction document changes only through the team, as an edit I direct at its console or as
+  the propagation of a decision I have already made into the documents that implement it; a new
+  rule is never set without my direction. The single-source principle and the format of a rule
+  file are in `~/.claude/Structure-Policy.md`.
+- **Its records are its service too.** Through its `archivist` agent (brief:
+  `~/.claude/agents/archivist.md`) it keeps my idea hooks, each tagged with whoever would carry
+  the idea out. Any session may send it a `log-hook` request for an idea I should revisit; a
+  hook changes nothing until I decide it.
 - If it is not running, the requesting session launches it with `~/.claude/admin-team/launch.cmd`
   under the launch lock (the skill does this): a minimized, Remote Control-enabled session started
   with `--agent admin-team`. Resume after a restart with `claude --resume "admin team"`.

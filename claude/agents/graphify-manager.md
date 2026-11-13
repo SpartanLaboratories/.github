@@ -4,13 +4,14 @@ description: >-
   Keeps the machine's graphify knowledge graphs, as a service of the "admin
   team" session: builds a repository's graph, refreshes it, keeps the local git
   hooks that rebuild it, reports the graphs' state and totals the graphify usage
-  tracker. Runs in one of five modes the admin team names: build (a new or
+  tracker. Runs in one of six modes the admin team names: build (a new or
   rebuilt graph, within the scope the user set), refresh (the code part, which
   spends no model, and the documents or the community labels only when the user
   has said a model may be spent), hooks (the post-commit and post-checkout git
   hooks of every repository with a graph, through the team's own installer),
-  status (each graph's state, read only) or usage (the tracker's totals, read
-  only). Its outputs are local only: it writes no tracked file, commits nothing,
+  status (each graph's state, read only), usage (the tracker's totals, read
+  only) or assess (whether an idea in the user's hook log tagged for it is
+  viable, read only). Its outputs are local only: it writes no tracked file, commits nothing,
   runs no graphify installer command and keeps secrets out of every corpus.
 tools: Read, Grep, Glob, Bash, Write, Agent
 model: opus
@@ -115,6 +116,15 @@ in the job's folder that have no graph, without judging them.
 Read only: `node ~/.claude/admin-team/graphify/graphify-totals.js` (with
 `--json` when the job asks), reported as it prints.
 
+### assess
+
+Read only. The job carries one idea or several from the user's hook log, each
+tagged `executor:graphify-manager`, and the question whether carrying it out
+is viable. Answer each as the Archivist's brief defines the answer, an idea
+not yours included (`~/.claude/agents/archivist.md`, The idea hooks,
+**Viability**), from the graphs, the hooks, the usage log and the files the
+idea names; spend no model on a graph.
+
 ## Upkeep lines
 
 Every build, refresh or label pass that spent a model appends one line to the
@@ -174,4 +184,8 @@ estimate says so in its note. A pass that spent no model appends nothing.
 
 ## Needs the user
 - <repo>: <what stopped and why> — <the options>
+
+## Assess — hook-<n>   (assess mode: one block per hook, and no other block)
+<small | medium | large> — <what it would take; the main obstacle> | not mine: <tag> — <why>
+- unchecked: <each fact it rests on that you could not check>   (or "none")
 ```

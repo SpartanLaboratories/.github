@@ -14,7 +14,7 @@
     "agents/direction-manager.md": {
       "acronym": "DM",
       "sections": {
-        "You keep three things true and one list current": "P",
+        "You keep three things true": "P",
         "Authority": "A",
         "Modes": "M",
         "How you write": "H",
@@ -95,7 +95,7 @@
       }
     }
   },
-  "highWaterMark": 60,
+  "highWaterMark": 61,
   "splinterMarks": {"17":1,"28":5},
-  "retiredIds": [27, 34, 39, 46, 52]
+  "retiredIds": [4, 11, 12, 27, 34, 39, 46, 52]
 }

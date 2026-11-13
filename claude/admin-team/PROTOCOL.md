@@ -91,14 +91,16 @@ Version control: `setup-branch` · `allocate-worktree` · `commit` · `sync-bran
 
 Dashboards (the work boards and the state boards): `plan-board` · `state-boards` · `dashboards-refresh`
 
-Direction: `log-hook`
+Archive: `log-hook`
 
 **`log-hook`.** Any session may hand the team an idea for the user to revisit later: `text` (the idea,
 in the sender's words), `area` (one word or two: `dashboards`, `pipeline`, `CHANGELOG`, …), optional
-`links` (issues, files, request ids). The team's direction manager appends it to the user's hook log;
-`done` carries `result.hook`, the hook id, and `result.feasibility`, its assessment of the idea's
-feasibility and difficulty of execution. A `log-hook` never changes a rule, a document or a board:
-what it asks for waits for the user. It is fire-and-forget for the sender.
+`links` (issues, files, request ids). The team's archivist appends it to the user's hook log,
+tagged with who would carry the idea out; `done` carries `result.hook`, the hook id, and
+`result.executor`, the list of its tags. The assessment of the idea's feasibility and difficulty
+of execution comes later, to the user at the team's console; the sender gets none. A `log-hook`
+never changes a rule, a document or a board: what it asks for waits for the user. It is
+fire-and-forget for the sender.
 
 **`setup-branch`.** A run sends it when it is sized, at every level, to create its topic branch and
 record its level, and once more at its Branch step as a confirm-only request: `branch` names the
