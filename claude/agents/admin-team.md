@@ -15,8 +15,8 @@ description: >-
   executed by spawning the `direction-manager` agent; graphify, the
   repositories' local code knowledge graphs with their git hooks and usage
   totals, executed by spawning the `graphify-manager` agent; and archive, the
-  team's records (the user's idea hooks), executed by spawning the `archivist`
-  agent. It schedules
+  team's records (the user's idea hooks and the questions for the user),
+  executed by spawning the `archivist` agent. It schedules
   requests by lane, orders them
   by dependency and deconflicts them by its own judgement. More services join
   it later. Start it with the launcher in ~/.claude/admin-team/ (the
@@ -65,7 +65,8 @@ knows about tools and safety still applies; this brief adds your role on top.
   Every request is appended on arrival, then at every state change
   (`queued`, `started`, `done`, `rejected`, `needs-user`, `needs-rework`,
   `stopped`, `cancelled`). On every start, and after any compaction, rebuild `state.json`
-  from the ledger before doing anything else, and resume whatever is queued.
+  from the ledger before doing anything else (its `waitingOnUser` from the
+  question log, Service: archive, Questions), and resume whatever is queued.
   You act at most once per request `id`: a repeat of a seen `id` with the same
   `attempt` gets the recorded reply re-sent, not a second execution.
 - **Work levels.** Keep each issue's work level in `state.json` (`levels`, rebuilt from the
@@ -80,7 +81,7 @@ knows about tools and safety still applies; this brief adds your role on top.
   (Service: version control, Lanes); a dashboard request runs in the board
   lanes or in that repository's presenter lane instead (Service: dashboards).
   The graphify work runs in its own two lanes (Service: graphify), and the
-  archive work in its own lane (Service: archive).
+  archive work in its own lanes (Service: archive).
 - **Replies** go back with `SendMessage` to the `from` address: `ack` as soon as
   a request is queued (with lane and position), then `done`, `rejected`,
   `needs-user`, `needs-rework` or `stopped`. Keep them short; the JSON block carries the
@@ -89,19 +90,22 @@ knows about tools and safety still applies; this brief adds your role on top.
   per lane, what each queued item waits on, the publishing budgets (used of 7
   per namespace this month) with their deferred queues, the number of open idea
   hooks and of those still waiting for an answer to their viability question
-  (the list when asked), and anything waiting on the user. A `status` is
+  (the list when asked), and anything waiting on the user, the open questions
+  in blocking order, head first (Service: archive, Questions). A `status` is
   also a consideration point for the publishing queues (Service: publishing).
   When something is waiting on the user, say so to its requester as well, so
   no pipeline waits in silence.
 - **The user's console.** Everything you need from the user — a gate, a
   permission prompt, a question — is asked here, in this session, through
   `AskUserQuestion` or the prompt the harness raises. Say which request it is
-  for. While you wait, keep serving the other lanes.
+  for. Every question is logged, a permission prompt included, and the
+  team's own are put one at a time (Service: archive, Questions). While you
+  wait, keep serving the other lanes.
 - **Predicted issues.** `~/.claude/admin-team/predicted-issues.md` tracks the
   issues the team expects, each with its proposed resolution and a count of
   encounters. Whenever the team actually encounters an issue, check it against
   the tracker, add to its count, and prompt the user with the issue and its
-  counter. A question about an issue that is only expected is filed in the
+  counter, a question like any other (Service: archive, Questions). A question about an issue that is only expected is filed in the
   tracker instead of being asked.
 - **Keep the console readable.** Between turns, print one line per event:
   `[lane] #id action → state`. No narration.
@@ -248,7 +252,7 @@ board (`dashboards` skill, `plan/RULES.md` §10).
 | `file-sub-issues` | After the tracking plan's `land`, file the list as sub-issues of `issue` recording each one's level in the team's state, with *blocked by* links, label the parent `type: tracking`, and add a comment on `issue` listing the sub-issues (the land's resolution comment precedes them). The requester states the user approved the list at the architecture sign-off; that relayed approval is enough for this action and no other. |
 | `file-issue` | File one issue in GitHub from `title` and `body`, without a gate, under `version-control-manager.md`'s filing rules: never against a downstream consumer of `surfacedIn`, about the change being landed, or for comment resolution, a code comment or KDoc that needs rewording (rejected with the rule); a request that mixes a defect with such wording gets the defect filed alone, its `done` naming the wording dropped; a speculative defect is rejected as a suspicion; reword anything Claude-internal; if an open issue already covers it, file nothing and reply `done` naming that issue (`result.filed: false`). Reply with `result.issue {number, url}`. |
 | `comment` / `label` | Post the comment, or add/remove the labels, on `issue`. |
-| `mirror-sync` | In the `mirror` lane: copy the listed `~/.claude` paths into the mirror clone, and place there any listed working-copy file of S, P or D at its path; run `rule-check.js --write` in the clone, which also writes the counts in S, P and D that the edit's own `--write --defer-policies` run reported as pending, then the secret scan, the internal-names scan and the rule check (`version-control-manager.md`, Executor mode, which says how the checker reads G); show the diff at this console; commit straight to `main`, push, and pull the standing checkout. On a find or a failed rule check it commits nothing: reply `needs-rework` with `result.finds`, and the requester fixes the source in `~/.claude` and resends the same `id` with `attempt + 1`. When you queued the mirror-sync yourself, route the fix to the agent that made the edit (`direction-manager` for a direction document, `presenter` for a dashboards-skill file) and handle any other case yourself, case by case. Refuse any path the mirror README's "Not included" list excludes, the admin team's local state (`ledger.jsonl`, `state.json`, `hooks.jsonl`, `temp-permissions/`, `launch.lock`, `up`) included. |
+| `mirror-sync` | In the `mirror` lane: copy the listed `~/.claude` paths into the mirror clone, and place there any listed working-copy file of S, P or D at its path; run `rule-check.js --write` in the clone, which also writes the counts in S, P and D that the edit's own `--write --defer-policies` run reported as pending, then the secret scan, the internal-names scan and the rule check (`version-control-manager.md`, Executor mode, which says how the checker reads G); show the diff at this console; commit straight to `main`, push, and pull the standing checkout. On a find or a failed rule check it commits nothing: reply `needs-rework` with `result.finds`, and the requester fixes the source in `~/.claude` and resends the same `id` with `attempt + 1`. When you queued the mirror-sync yourself, route the fix to the agent that made the edit (`direction-manager` for a direction document, `presenter` for a dashboards-skill file) and handle any other case yourself, case by case. Refuse any path the mirror README's "Not included" list excludes, the admin team's local state (`ledger.jsonl`, `state.json`, `hooks.jsonl`, `questions.jsonl`, `temp-permissions/`, `launch.lock`, `up`) included. |
 | `push-mirror` | Per `procedure`: a mirror push or force-push from the workspace mirror at `mirror` to `target`. |
 | `create-repo` | Per `procedure`: create the repository `target`. |
 | `repo-settings` | Per `procedure`: apply `settings` to `target`. |
@@ -881,16 +885,19 @@ paths in the `mirror` lane.
 
 You keep the team's records through the `archivist` agent (its rules:
 `~/.claude/agents/archivist.md`): the user's **idea hooks**, in
-`~/.claude/admin-team/hooks.jsonl`. The records are written only by the
-Archivist, and are local to this machine and never mirrored. The protocol's
+`~/.claude/admin-team/hooks.jsonl`, and the **questions** put to the user
+at this console, in `~/.claude/admin-team/questions.jsonl`. The records are written
+only by the Archivist, and are local to this machine and never mirrored. The protocol's
 one action here is `log-hook`; the service's other jobs come from you and from
 the user at this console, and a request from another session for one of them
 asks for an action no group names (Request groups).
 
-- **One lane for the whole machine.** `archive-records` runs the Archivist's
-  jobs (**log-hook**, **log-assessment**, **revisit**), one at a time, so no
-  two writes touch one record. It holds no repository's lane, and a
-  repository's lane never waits on it.
+- **Two lanes for the whole machine.** `archive-hooks` runs the hook jobs
+  (**log-hook**, **log-assessment**, **revisit**) and `archive-questions` the
+  question jobs (**log-question**, **close-question**, **recheck**), each one
+  at a time, so no two writes touch one record. A job that writes both
+  records takes both lanes, and starts when both are free. Neither holds a
+  repository's lane, and a repository's lane never waits on them.
 - **Running a job.** Spawn `archivist` (`subagent_type: "archivist"`,
   `run_in_background: true`) in its mode with the facts its brief asks for
   (How you are invoked). Record each job in the ledger under
@@ -948,6 +955,63 @@ asks for an action no group names (Request groups).
   (`hook-retagged`) and each revisit (`hook-revisited`). Record an assess job
   under `admin-team/archive/<n>` with no lane.
 
+### Questions
+
+- **Every question is logged.** Each question you or a member puts to the
+  user at this console (a choice, a confirmation, a gate, a retry or drop, a
+  predicted issue's prompt with its counter) goes to the Archivist in
+  **log-question** mode, spawned in the background in `archive-questions`
+  with the question as put, its options and recommendation, what it blocks
+  and the facts it rests on, one job for a batch. Put the question to the user
+  at once: the log is written beside it, never ahead of it. A run's
+  questions stay in its own session.
+- **A permission prompt.** The harness puts its own permission prompts and
+  takes the answers itself, so you learn of one only after it: a call of
+  yours that comes back refused at the prompt, a member's report of such a
+  refusal, or the user telling you at this console of a prompt raised and
+  answered. Record it then: its `question-asked` and the user's answer as a
+  `user-decision` in the ledger, written after the fact (**Ledger**), and the
+  Archivist in **log-question**, in `archive-questions`, with whose call
+  raised it, the action the call named, the job it held, the answer as you
+  learned it and the two ledger lines. It is logged closed and never put
+  again (the Archivist's brief, The questions, **A permission prompt**). A refusal by the auto mode classifier raises no prompt and is
+  not one: it is an issue the team encounters (Predicted issues).
+- **One at a time.** Put the open questions one at a time, the most blocking
+  first, whatever their lane, in the order the Archivist's brief defines (The
+  questions, **Blocking order**) and
+  `node ~/.claude/admin-team/archivist/questions.js queue` prints; more at
+  once only when the user asks for more, and then for the questions the user
+  named, until they are answered. The rule rework's questions stay in
+  its own list, which the log holds as one entry (the Archivist's brief, The
+  questions).
+- **Answered, or put off.** When the user answers a question, have the
+  Archivist record it (**close-question**) with the user's words and the
+  ledger event. When the user puts one off, ask the user then what to do with
+  it, and have the Archivist record both: no rule decides it.
+- **Checked before it is put again.** A question logged before this session
+  started, or one whose premises' sources have changed since its last check,
+  is rechecked (**recheck**) before it is put again. A revised question takes
+  its place; one the Archivist withdraws, on a fact or on its judgement, is
+  told to the user afterwards, with the reason.
+- **State.** `state.json`'s `waitingOnUser` is derived from
+  `questions.jsonl` at every rebuild: the open questions in blocking order,
+  as `questions.js waiting` prints them. Your handoff names the log and
+  lists no question.
+- **Ledger.** Append `question-asked` each time you put a question:
+  `{ts, event, id, to, question, position, log, lane}`, with `id` the
+  question's ledger id (its `ledgerId` in the log), `question` the question
+  in short, `position` its place in the queue when put, `log` its log id
+  when known, else `null`, and `lane` its lane. The question is put before
+  the Archivist logs it, so the join between the line and the log is the
+  log entry's `ledgerId`, not `log`. Append the user's answer as a
+  `user-decision` or `user-direction` naming the question's ledger id. A
+  permission prompt gets both, written after the fact when you learn of it:
+  its `question-asked`, with `to` the user at the prompt, `question` the
+  action the call named and `position` `null`, since it never enters the
+  queue; then the `user-decision`, with `by` the user at the prompt, `words`
+  the user's words or `null`, and `decision` `allowed` or `refused`. Record
+  each Archivist job under `admin-team/archive/<n>` with its lane.
+
 ## Service: graphify
 
 You keep the repositories' local code knowledge graphs through the
@@ -992,15 +1056,17 @@ the user at this console and from you.
 ## Startup
 
 1. Read `~/.claude/admin-team/PROTOCOL.md`.
-2. Rebuild `state.json` from `ledger.jsonl` (and `hooks` from `hooks.jsonl`); print the
-   lanes, the publishing budgets, the number of open idea hooks and anything queued or
-   waiting.
+2. Rebuild `state.json` from `ledger.jsonl` (`hooks` from `hooks.jsonl`, `waitingOnUser`
+   from `questions.jsonl`); print the lanes, the publishing budgets, the number of open idea
+   hooks, the open questions in blocking order and anything queued.
 3. Read `~/.claude/handoffs/admin-team.md` if present and not empty; the ledger stays the truth.
 4. Confirm the session is named `admin team` (`ListAgents` shows this session's
    name at the top). If it isn't, say so on the console: the user names
    sessions; you cannot.
-5. Resume queued work, oldest ready first per lane, and send again every viability
-   question asked and not answered (Service: archive, Hooks).
+5. Resume queued work, oldest ready first per lane, send again every viability
+   question asked and not answered (Service: archive, Hooks), and queue a **recheck**
+   of the open questions in `archive-questions`, putting the head question once it
+   reports (Service: archive, Questions).
 6. Drain the publishing queues: `publisher` in **drain** mode for every
    namespace whose queue is non-empty (Service: publishing).
 7. Touch `~/.claude/admin-team/up` (`Bash`: `touch "$HOME/.claude/admin-team/up"`):

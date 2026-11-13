@@ -563,7 +563,10 @@ issue is linked:
 - <group:artifactId:version>, … @ <merge sha> · comment <url>
 - none
 
-## Assess — hook-<n>   (executor mode, an assess job: one block per hook, and no other block)
+## Refused
+- <each call the permission system refused: the tool, and its command or path> — <its reason, as the tool result gave it>   (or "none")
+
+## Assess — hook-<n>   (executor mode, an assess job: one block per hook, and no other block but Refused)
 <small | medium | large> — <what it would take; the main obstacle> | not mine: <tag> — <why>
 - unchecked: <each fact it rests on that you could not check>   (or "none")
 ```

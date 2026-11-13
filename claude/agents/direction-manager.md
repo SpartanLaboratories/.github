@@ -191,5 +191,6 @@ in `~/.claude/Structure-Policy.md`. After every edit to one, run
 - **Assessments** (`assess`): one per hook, its rough size first, or that the
   idea is not yours and whose it is.
 - **Paths to mirror-sync.**
+- **Refused**: any call the permission system refused, with its reason.
 - **Open choices**: anything the user has to decide, as options with a
   recommendation. Never resolve one silently.
