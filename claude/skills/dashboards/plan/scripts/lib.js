@@ -875,7 +875,7 @@ function outageSteps(pre, post, O, ev) {
    it to that sub-issue's tracking board: there the event is the unit's, so the board need not name it, and it changes nothing where the
    board holds no such time. Returns { refused } or { lines, moved, words }: the paths moved and what they are, in words, for the
    correction's entry. The board's unit rows (their mirrors, rebuilt at every embed) and its asBuilt (git's facts) are never moved. */
-const RETIME_NOT = ["run-restarted", "reseed", "seed", "unit-landed", "retime"];
+const RETIME_NOT = ["run-restarted", "reseed", "seed", "unit-landed", "retime", "reword"];
 /* the trail entry an event writes (apply-event.js), by its label; on a tracking board, a unit's entry by its number */
 const RETIME_TRAIL = { sized: /^(?:sized|run started|re-?sized)\b/i, halted: /^halted\b/i, resumed: /^resumed\b/i, escalated: /^escalated\b/i,
   "research-planning": /^research planning\b/i, "research-started": /^research started\b/i, "research-returned": /^research returned\b/i,
@@ -980,6 +980,91 @@ const retimeWords = (ev, tracking) => tracking && ev === "plan-accepted" ? "The 
 const retimeWhat = (head, words) => { const w = (words || []).filter(Boolean), list = w.length < 3 ? w.join(" and ") : `${w.slice(0, -1).join(", ")} and ${w[w.length - 1]}`;
   const many = w.length > 1 || /^the visits\b|\b(?:times|results)$/.test(w[0] || "");
   return `${head}${list ? `; ${list} move${many ? "" : "s"} with it` : ""}.`; };
+/* ---------- The events whose record is the team's (admin-team/dashboards-skill/reword-event; plan/RULES.md §4, the retime and reword rows) ----------
+   A run's own events are every event but these: the team raises them itself (a stretch when the run was not running, the corrections, the Document
+   step's two team tasks, the land's steps, the filing of a tracking plan's units, the seedings). A run never retimes or rewords one of them; the
+   team, at the presenter's word, may retime one (not run-restarted, reseed, seed, unit-landed: RETIME_NOT), and rewords none (their text is
+   composed by the scripts from the team's facts, never a run's report). The open choice of 2026-11-13, built to its recommendation: the
+   event's name marks it the team's, as this list does, since the board stores no sender per event. */
+const TEAM_RECORDS = ["run-restarted", "retime", "reword", "state-boards", "landing", "merge", "landed", "sub-issues-filed", "reseed", "seed", "unit-landed"];
+/* ---------- One event's recorded text reworded (reword; admin-team/dashboards-skill/reword-event, the user's decisions of 2026-11-13; plan/RULES.md §4, the reword row) ----------
+   A run's report, a halt's question or what it waits on, as the event wrote it, is held in several places at once: the report closing several
+   stages is each of those stages' report, the remediation's steps repeat the report that closed them, the step's detail is the report, and each
+   finished visit's snapshot keeps its own copy. rewordPlan() finds the event's own places by the stamps the event wrote (o.event its name, o.at
+   the time the record holds for it):
+     - a report: any record in wip (a stage, a step, a remediation step, a Document task, in wip or a snapshot) whose `finished` is that time;
+     - the detail (and what it waits on, wip.waitingOn) of wip, or of a visit's snapshot, whose `event` is { name, at } that event;
+     - a question's text and options: any record in wip (wip.asked, wip.interview, a snapshot's asked) whose `asked` is that time;
+     - a Quality Review's note, for qa-pass: wip.qa (or a snapshot's) whose `at` is that time;
+   and the copies of what one of those places held, whole (the same string anywhere in wip or the trail), and the event's own trail entry and
+   event note where they hold the passage. Every place that holds o.from takes o.to (every occurrence; an empty o.to takes the passage out with
+   one adjacent run of spaces). Nothing else: no time, no step, no state; the rows (columns 1 to 3, written once, and the presenter's column 4),
+   the title, the function, the notes, the impact, the tests and the open points (wip.open, corrected through fill.js) are never searched.
+   Refused, changing nothing: when the record holds no such event's places; when none of them holds o.from (the refusal says where o.from is
+   held instead); when another event is named at the same time and a place found by its time alone holds it (whose text it is cannot be told);
+   when a text would be left empty. Returns { refused } or { lines, paths, words, was }: was the texts reworded, as they read before. */
+const REWORD_PLACE = { report: "the report", detail: "the detail it wrote", waitingOn: "what it waited on", question: "a question it put", option: "an option of a question it put", note: "the review's note" };
+function rewordPlan(plan, o) {
+  const w = isObj(plan.wip) ? plan.wip : {}, T = o.at, E = o.event, from = o.from, to = o.to, anchors = [];
+  const walk = (v, p, fn) => { if (Array.isArray(v)) v.forEach((x, i) => walk(x, `${p}[${i}]`, fn)); else if (isObj(v)) { fn(v, p); Object.keys(v).forEach(k => walk(v[k], `${p}.${k}`, fn)); } };
+  walk(w, "wip", (x, p) => {
+    if (x.finished === T && typeof x.report === "string") anchors.push({ obj: x, key: "report", path: `${p}.report`, kind: "report", byTime: true, label: x.id || x.name || null, snap: /^wip\.history\./.test(p) });
+    if (isObj(x.event) && x.event.name === E && x.event.at === T) {
+      if (typeof x.detail === "string") anchors.push({ obj: x, key: "detail", path: `${p}.detail`, kind: "detail", byTime: false, snap: /^wip\.history\./.test(p) });
+      if (p === "wip" && typeof x.waitingOn === "string") anchors.push({ obj: x, key: "waitingOn", path: `${p}.waitingOn`, kind: "waitingOn", byTime: false });
+    }
+    if (x.asked === T && typeof x.text === "string") { anchors.push({ obj: x, key: "text", path: `${p}.text`, kind: "question", byTime: true, snap: /^wip\.history\./.test(p) });
+      (Array.isArray(x.options) ? x.options : []).forEach((s, i) => { if (typeof s === "string") anchors.push({ obj: x.options, key: i, path: `${p}.options[${i}]`, kind: "option", byTime: true, snap: /^wip\.history\./.test(p) }); }); }
+    if (E === "qa-pass" && x.at === T && Number.isInteger(x.pass) && typeof x.note === "string") anchors.push({ obj: x, key: "note", path: `${p}.note`, kind: "note", byTime: true, snap: /^wip\.history\./.test(p) });
+  });
+  const named = namedTimes(plan), others = [...new Set(named.filter(x => x.at === T && x.name !== E && x.name !== "run-restarted").map(x => x.name))];
+  const hits = anchors.filter(a => a.obj[a.key].includes(from));
+  if (!hits.length) {
+    /* where the passage is held instead, in words, for the refusal */
+    const where = []; const look = (v, p) => { if (typeof v === "string") { if (v.includes(from)) where.push(p); } else if (Array.isArray(v)) v.forEach((x, i) => look(x, `${p}[${i}]`)); else if (isObj(v)) Object.keys(v).forEach(k => look(v[k], p ? `${p}.${k}` : k)); };
+    look(plan, "");
+    const why = p => /^rows\b/.test(p) ? "a Row's text (columns 1 to 3 are written once; column 4 is the presenter's, through fill.js)" : /^wip\.open\b/.test(p) ? "an open point (corrected through fill.js, wip.open)"
+      : /^(?:title|issueTitle|function|notes|impact|milestones|tests|links|systems|roadmap)\b/.test(p) ? "no run's recorded text" : "the record of another event (name that event and the time the record holds for it)";
+    const of = anchors.length ? `the record of ${E} at ${T} (${anchors.length} place${anchors.length === 1 ? "" : "s"}) holds no ${JSON.stringify(from.length > 60 ? from.slice(0, 59) + "…" : from)}` : `the record holds no text of ${E} at ${T}${named.some(x => x.name === E) ? ` (${E} is recorded at ${[...new Set(named.filter(x => x.name === E).map(x => x.at))].slice(0, 4).join(", ")})` : ""}`;
+    return { refused: `${of}${where.length ? `; it is held at ${where.slice(0, 3).join(", ")}${where.length > 3 ? ` and ${where.length - 3} more` : ""}: ${why(where[0])}` : anchors.length ? "; it is held nowhere in the record" : ""}` };
+  }
+  if (others.length && hits.some(a => a.byTime)) return { refused: `${others[0]} is recorded at the same time, ${T}, as ${E}: whose text a place found by that time holds cannot be told` };
+  /* the replacement: every occurrence; an empty to takes the passage out with one adjacent run of spaces */
+  const rep = s => { if (to !== "") return s.split(from).join(to);
+    let r = s, i; while ((i = r.indexOf(from)) >= 0) { let a = i, b = i + from.length; if (/\s/.test(r[b] || "")) { while (/\s/.test(r[b] || "")) b++; } else if (a > 0 && /\s/.test(r[a - 1])) { while (a > 0 && /\s/.test(r[a - 1])) a--; } r = r.slice(0, a) + r.slice(b); }
+    return r; };
+  const whole = new Set(hits.map(a => a.obj[a.key])), places = new Map();
+  hits.forEach(a => places.set(a.path, a));
+  /* the copies, whole, anywhere in wip; the event's trail entry and its event notes where they hold the passage */
+  walk(w, "wip", (x, p) => Object.keys(x).forEach(k => { const v = x[k]; if (typeof v === "string" && whole.has(v) && !places.has(`${p}.${k}`)) places.set(`${p}.${k}`, { obj: x, key: k, path: `${p}.${k}`, kind: "copy" });
+    if (Array.isArray(v)) v.forEach((s, i) => { if (typeof s === "string" && whole.has(s) && !places.has(`${p}.${k}[${i}]`)) places.set(`${p}.${k}[${i}]`, { obj: v, key: i, path: `${p}.${k}[${i}]`, kind: "copy" }); });
+    if (k === "event" && isObj(v) && v.name === E && v.at === T && typeof v.note === "string" && v.note.includes(from)) places.set(`${p}.event.note`, { obj: v, key: "note", path: `${p}.event.note`, kind: "copy" }); }));
+  const tr = Array.isArray(plan.trail) ? plan.trail : [], re = RETIME_TRAIL[E] || null;
+  tr.forEach((x, i) => { if (!isObj(x) || typeof x.label !== "string") return;
+    if (whole.has(x.label) || (re && x.date === T.slice(0, 10) && re.test(x.label.replace(/`/g, "").trim()) && x.label.includes(from))) places.set(`trail[${i}].label`, { obj: x, key: "label", path: `trail[${i}].label`, kind: "copy" }); });
+  const L = [...places.values()].filter(a => typeof a.obj[a.key] === "string" && a.obj[a.key].includes(from));
+  const emptied = L.find(a => !rep(a.obj[a.key]).trim());
+  if (emptied) return { refused: `${emptied.path} would be left empty: a reword changes a passage of a text, never the whole of it (send the text it should read)` };
+  L.forEach(a => { a.obj[a.key] = rep(a.obj[a.key]); });
+  /* what was reworded, in words (the correction's entry): the places of the board as it stands, the snapshots' copies counted with them */
+  const live = hits.filter(a => !a.snap), shown = live.length ? live : hits, kinds = [];
+  const ids = [...new Set(shown.filter(a => a.kind === "report" && a.label).map(a => a.label))];
+  shown.forEach(a => { const k = a.kind === "report" ? (ids.length ? `the report that closed ${listWords(ids)}` : REWORD_PLACE.report) : REWORD_PLACE[a.kind]; if (k && !kinds.includes(k)) kinds.push(k); });
+  return { lines: [`${L.length} place${L.length === 1 ? "" : "s"} reworded: ${L.map(a => a.path).join(", ")}`], paths: L.map(a => a.path), words: kinds, was: [...whole] };
+}
+const listWords = w => w.length < 3 ? w.join(" and ") : `${w.slice(0, -1).join(", ")} and ${w[w.length - 1]}`;
+/* a reword's passages as the correction's entry keeps them: a digest, so the entry identifies the reword (and a reword raised again is a
+   duplicate) without carrying the withdrawn wording back onto the board */
+const rewordDigest = s => "sha256:" + require("crypto").createHash("sha256").update(String(s)).digest("hex").slice(0, 12);
+/* the correction's entry: which text of which event, why, and what the passage reads now */
+const rewordWhat = (ev, tracking, at, places, reason, to) => {
+  const clock = `${at.slice(0, 10)} ${at.slice(11, 19)} UTC`;
+  return `${retimeWords(ev, tracking)} of ${clock} is reworded${places.length ? ` in ${listWords(places)}` : ""}${reason ? `: ${reason.replace(/[\s.;:,]+$/, "")}` : ""}. ${to ? `The passage now reads "${to.trim()}"${/[.!?]$/.test(to.trim()) ? "" : "."}` : "The passage is taken out."}`; };
+/* a board's Document commit recorded: its document-landing task done (a reword comes before it: the user's rule of 2026-11-13) */
+const docCommitDone = w => !!(isObj(w) && isObj(w.document) && Array.isArray(w.document.tasks) && w.document.tasks.some(t => isObj(t) && t.id === DOC_LANDING_TASK && t.state === "done"));
+/* a board's land sent: the land's first step recorded, or the board closed (a run's retime comes before it: the user's rule of 2026-11-13) */
+const landSent = (plan, w) => ["built", "abandoned"].includes(plan && plan.status) || ["landing", "merge", "landed", "cancelled"].includes(w && w.step) || (isObj(w) && ["landing", "merge"].includes(w.resume))
+  || ["landing", "merge"].some(s => (historyOf(w)[s] || []).length);
 /* a visit's start: the end of the visit before it (visits follow each other), or the answer that ended a wait since, or the end of a
    stretch when the run was not running, whichever is later, never after the visit's own end; with none (a board older than the snapshots),
    the fallback, the panel's "since" */
@@ -1928,7 +2013,7 @@ function researchGlow(plan) {
    (RETIRED_EVENTS), read and drawn, which apply-event.js refuses: no unit's board is laid ahead of its run. */
 const RETIRED_EVENTS = ["boards-created"];
 const EVENTS = ["sized", "halted", "resumed", "research-planning", "research-started", "research-returned", "verification-started", "researched",
-  "architecture-signed-off", "sub-issues-filed", "boards-created", "plan-accepted", "branch-cut", "implementation-stage", "step-complete", "qa-pass", "document", "escalated", "landing", "state-boards", "merge", "landed", "cancelled", "run-restarted", "reseed", "seed", "unit-landed", "retime"];
+  "architecture-signed-off", "sub-issues-filed", "boards-created", "plan-accepted", "branch-cut", "implementation-stage", "step-complete", "qa-pass", "document", "escalated", "landing", "state-boards", "merge", "landed", "cancelled", "run-restarted", "reseed", "seed", "unit-landed", "retime", "reword"];
 /* A row's as-built state before its outcome (plan/RULES.md §2, "Before the outcome"): derived from the implementation stages while the
    run is live. On an issue board, for a row wip.stages touches: "in-progress" when a current stage touches it, "partially-built" when a
    done stage touched it and a later stage still to come touches it, "pending" when only stages to come touch it; null otherwise (no
@@ -2263,5 +2348,5 @@ function ghMergeTime(repo, pr, merge) {
   } catch (e) { return out; }
 }
 
-module.exports = { ...LV, ...PN, renameInto, RENAME_BUDGET_MS, stageTable, stepsBelow, stepKids, walkSteps, stepShape, settleSteps, carrySteps, stepNameOf, completeStep, planStageTable, stageKey, stageRow, stageTableFields, catchUpStageTable, stampItem, backfillStages, STAGE_KINDS, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, isUnitRef, blockerOf, mapUnitBlockers, HISTORY_FIELDS, HISTORY_STEPS, qAnswered, askedOf, answerQuestions, syncAsked, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, retimePlan, RETIME_NOT, retimeWords, retimeWhat, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, roadmapDocItem, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+module.exports = { ...LV, ...PN, renameInto, RENAME_BUDGET_MS, stageTable, stepsBelow, stepKids, walkSteps, stepShape, settleSteps, carrySteps, stepNameOf, completeStep, planStageTable, stageKey, stageRow, stageTableFields, catchUpStageTable, stampItem, backfillStages, STAGE_KINDS, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, isUnitRef, blockerOf, mapUnitBlockers, HISTORY_FIELDS, HISTORY_STEPS, qAnswered, askedOf, answerQuestions, syncAsked, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, retimePlan, RETIME_NOT, retimeWords, retimeWhat, TEAM_RECORDS, rewordPlan, rewordDigest, rewordWhat, docCommitDone, landSent, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, roadmapDocItem, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, unitLandingOf, unitLandings, mirrorUnitLandings, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewBaseFolder, viewBaseHref, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, notYetLanded, landedPending, unitLeft, setViewLinks, viewedFolder, viewLink, landVisit, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

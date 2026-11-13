@@ -83,6 +83,12 @@
 // day change its trail entry's date; on a sub-issue its tracking board's record of it too), with one notes.corrections entry; refused, nothing written,
 // where the record does not hold the old time, another event is named at it, it bounds a stretch when the run was not running, or the new time crosses
 // any other recorded time. No wip.event, no note, no trail entry; a landed or cancelled board takes it, kept as it closed (not re-rendered). Raised again, a duplicate.
+// One event's recorded text reworded (reword, facts { event, recordedAt, from, to, reason }; admin-team/dashboards-skill/reword-event): every place the
+// event's record holds the passage (lib.js rewordPlan(): its reports by their finished time, its detail, its questions by their asked time, a review's
+// note, every whole copy, its trail entry; on a sub-issue the tracking board's mirror at the re-embed), one notes.corrections entry keeping the passages as
+// digests; refused before nothing is written where the record does not hold it, the event is the team's, the new wording breaks the writers' rule, or the
+// board is past its Document commit. Both corrections may be the run's own (raised with --arrived, RUN_SENT; the user's decision of 2026-11-13): its own
+// events only, a retime until its land is sent, a clock reading to the second, never later than the event's arrival can have been.
 // A halt in the Document step applies the facts.tasks it carries as a document event does, stamped at the halt's time, the halt otherwise
 // unchanged (admin-team/dashboards-skill/halt-tasks, KotlinBottools #24); the summary's "unread" line names every fact the event carried and no
 // path of it read, so none is dropped in silence (admin-team/dashboards-skill/unread-facts; trackFacts()).
@@ -92,7 +98,7 @@ const fs = require("fs"), path = require("path"), cp = require("child_process");
 const lib = require("./lib.js"), TL = require("./testslib.js");
 const dev = require(path.resolve(__dirname, "..", "..", "system", "scripts", "deviation.js"));
 const { levelRefs, scrubLevels, nameTestLevels } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
-const { nameRefs, scrubNames, scrubWaits, unambiguous } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
+const { nameRefs, scrubNames, scrubWaits, unambiguous, cleanWritten: cleanWrittenOf } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
 
 const USAGE = "usage: node apply-event.js --event <request.json> --worktree <path> [--repo <owner/repo>] [--main <checkout>] [--at <ISO time>] [--arrived <UTC ISO time>] [--view] [--no-live] [--no-gh] [--json]";
 const args = process.argv.slice(2);
@@ -103,6 +109,10 @@ const opt = n => lib.opt(args, n, null), flag = n => lib.flag(args, n);
    or resolved time is held to bounds instead (holdOpenTime()), and this is how far after the arrival its upper bound lies */
 const ARRIVAL_TOLERANCE_S = 120;
 const ARRIVED = opt("arrived");
+/* a run's own request: every run's event is raised with --arrived, a team-raised one without it (plan/RULES.md §4, "The event's time"), so a
+   retime or reword raised with it is the run's own correction, held to the limits of the user's decision of 2026-11-13 (the open choice of that
+   day, built to its recommendation: the board stores no sender, and --arrived is the one mark the team gives every run's event) */
+const RUN_SENT = ARRIVED != null;
 if (ARRIVED != null && (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/.test(ARRIVED) || isNaN(Date.parse(ARRIVED)))) { console.error(`${USAGE}\n(--arrived takes the request's arrival time as an ISO time with its zone, e.g. 2026-11-09T14:03:27Z; got ${JSON.stringify(ARRIVED)})`); process.exit(2); }
 
 /* the summary, printed at the end whatever happens */
@@ -883,6 +893,18 @@ function applyEvent(orig, ev, facts, req, now) {
       if (from === to) refuse(`retime: facts.from and facts.to are the same time, ${to}: nothing to correct`);
       if (Date.parse(to) > Date.parse(now)) refuse(`retime: facts.to ${to} is after the retime's own time ${now}: a time is never recorded ahead of the record`);
       if (typeof facts.reason !== "string" || !facts.reason.trim()) refuse("retime carries no facts.reason (why the recorded time is wrong, in plain words)");
+      /* a run's own retime (raised, as every run's event, with --arrived; the user's decision of 2026-11-13, dashboards/run-sent-corrections): only
+         for its own events (never the team's records, lib.js TEAM_RECORDS), only until its land is sent, and, the bounds the user did not state,
+         built to their recommendation (open choices of 2026-11-13): its facts.to a clock reading to the second, as `date -u +%FT%TZ` writes it,
+         and never later than the event's arrival can have been, its recorded time plus the arrival tolerance (an event happens before it is sent,
+         and its recorded time is its arrival, or within the tolerance of it). Earlier, a time is bounded as every retime's is: never past a
+         neighbouring recorded time. */
+      if (RUN_SENT) {
+        if (lib.TEAM_RECORDS.includes(E)) refuse(`retime: ${E} is the team's record, and a run retimes only its own events (the team corrects its own at the presenter's word)`);
+        if (lib.landSent(plan, w)) refuse("retime: the board's land has been sent, and a run's retime comes before it (the presenter may still have one raised)");
+        if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(String(facts.to).trim())) refuse(`retime: facts.to ${JSON.stringify(facts.to)} is no clock reading to the second in UTC, as \`date -u +%FT%TZ\` writes one: a run's retime sends the time it read`);
+        if (Date.parse(to) > Date.parse(from) + ARRIVAL_TOLERANCE_S * 1000) refuse(`retime: facts.to ${to} is later than ${E}'s arrival can have been (its recorded time ${from} plus ${ARRIVAL_TOLERANCE_S / 60} min): an event happens before it is sent`);
+      }
       const r = lib.retimePlan(plan, { event: E, from, to });
       if (r.refused) refuse(`retime: ${r.refused}`);
       applied.push(...r.lines);
@@ -897,6 +919,52 @@ function applyEvent(orig, ev, facts, req, now) {
       applied.push("notes.corrections +1");
       /* the sub-issue's tracking board takes the same move in main(), which may add its words to this entry */
       if (plan.parent) parentOp = { kind: "retime", event: E, from, to, head, words: r.words, entry: plan.notes.corrections.length - 1 };
+      detail = w.detail || null;
+      note = null; /* no event note and no wip.event (below): the correction is said once, in its notes.corrections entry */
+      break;
+    }
+    /* One event's recorded text reworded (admin-team/dashboards-skill/reword-event; the user's decisions of 2026-11-13, dashboards/reword-event
+       and dashboards/run-sent-corrections; plan/RULES.md §4, the reword row): facts.event, the run's event whose text it is, facts.recordedAt,
+       the time the record holds for it, facts.from, the passage as the record holds it, facts.to, what it should read (empty to take it out),
+       facts.reason, in plain words. Sent by the run for its own events, or raised by the team at the presenter's word; either way only before
+       the board's Document commit, never on a board that has landed or was cancelled, never for the team's records (lib.js TEAM_RECORDS). Every
+       place the record holds the passage takes the new wording (lib.js rewordPlan()), and one notes.corrections entry says so, keeping the
+       passages as digests (the withdrawn wording never returns to the board through its note). facts.to is held to the writers' one rule and
+       refused, never reworded, where it would carry a work level, an internal name, an older wording of a step's name or a bare test level: a
+       reword writes the wording it was asked to write, or none. No wip.event, no event note, no trail entry of its own; the step, the times, the
+       FullPulse and the states do not change; wip.updated moves, never back. On a sub-issue the tracking board's mirror of the run follows
+       at its re-embed (main()). Raised again (its entry on record), a duplicate (main()). Nothing else in the facts is read. */
+    case "reword": {
+      const E = typeof facts.event === "string" ? facts.event.trim() : "";
+      if (!E) refuse("reword carries no facts.event, the event whose recorded text it rewords");
+      if (!lib.EVENTS.includes(E)) refuse(`reword: ${JSON.stringify(E)} is no plan-board event`);
+      if (lib.TEAM_RECORDS.includes(E)) refuse(`reword: ${E} is the team's record, composed from the team's facts: a reword corrects a run's own text (one of ${lib.EVENTS.filter(x => !lib.TEAM_RECORDS.includes(x) && !lib.RETIRED_EVENTS.includes(x)).join(", ")})`);
+      if (!lib.isTime(facts.recordedAt)) refuse(`reword carries no facts.recordedAt, the UTC ISO time the record holds for ${E} (got ${JSON.stringify(facts.recordedAt || null)})`);
+      if (typeof facts.from !== "string" || !facts.from.trim()) refuse("reword carries no facts.from, the passage as the record holds it");
+      if (typeof facts.to !== "string") refuse("reword carries no facts.to, what the passage should read (an empty string takes it out)");
+      if (facts.to === facts.from) refuse("reword: facts.from and facts.to are the same text: nothing to reword");
+      if (typeof facts.reason !== "string" || !facts.reason.trim()) refuse("reword carries no facts.reason (why the text is reworded, in plain words)");
+      if (["built", "abandoned"].includes(plan.status) || ["landed", "cancelled"].includes(w.step)) refuse(`reword: the board has ${plan.status === "abandoned" || w.step === "cancelled" ? "been cancelled" : "landed"}, and a closed board is kept as it closed: a reword comes before the Document commit`);
+      if (lib.docCommitDone(w)) refuse("reword: the board's Document commit is recorded done, and a reword comes before it");
+      /* the new wording under the writers' one rule (GUIDANCE.md §4): refused rather than reworded, so what is written is what was asked */
+      const to = facts.to, bad = [];
+      if (levelRefs(to).length) bad.push(`a work level (${levelRefs(to).map(h => JSON.stringify(h)).join(", ")})`);
+      const cw = cleanWrittenOf(to); if (cw.out) bad.push(`an internal name (${cw.left.map(h => JSON.stringify(h)).join(", ")})`);
+      if (lib.passRefs(to).length) bad.push(`an older wording of a step's name (${lib.passRefs(to).map(h => JSON.stringify(h)).join(", ")}; write "${lib.PASS_NAME} N" and the names passnames.js gives)`);
+      if (nameTestLevels(to).named.length) bad.push(`a bare test level (${nameTestLevels(to).named.join(", ")}; write the named test level)`);
+      if (bad.length) refuse(`reword: facts.to carries ${bad.join(", ")}, which a board never shows: send the wording it should read`);
+      if (!cw.out && cw.left.length) WARNINGS.push(`REWORD NAME: facts.to names ${cw.left.map(h => JSON.stringify(h)).join(", ")}: written as sent; reword it if it names the pipeline's role rather than the code's`);
+      const at = retimeStamp(facts.recordedAt), r = lib.rewordPlan(plan, { event: E, at, from: facts.from, to });
+      if (r.refused) refuse(`reword: ${r.refused}`);
+      applied.push(...r.lines);
+      const reason = txt(facts.reason, "reason");
+      if (!reason) enrich.push("reword: its reason was left out of the correction's entry (above): the presenter words it");
+      plan.notes = plan.notes && typeof plan.notes === "object" && !Array.isArray(plan.notes) ? plan.notes : {};
+      plan.notes.corrections = Array.isArray(plan.notes.corrections) ? plan.notes.corrections : [];
+      plan.notes.corrections.push({ what: lib.rewordWhat(E, tracking, at, r.words, reason, to), when: today, reword: { event: E, at, from: lib.rewordDigest(facts.from), to: lib.rewordDigest(to) } });
+      applied.push("notes.corrections +1");
+      /* the tracking board's mirror of this run is rebuilt from this board at its re-embed (main()), which checks that it follows */
+      if (plan.parent) parentOp = { kind: "reword", from: facts.from, was: r.was, entry: plan.notes.corrections.length - 1, words: r.words, event: E, at, reason, to };
       detail = w.detail || null;
       note = null; /* no event note and no wip.event (below): the correction is said once, in its notes.corrections entry */
       break;
@@ -924,7 +992,7 @@ function applyEvent(orig, ev, facts, req, now) {
   }
   /* The Tests tab (plan/RULES.md §2, "The Tests tab"): an event that carries facts.tests has it applied (testslib.js mergeTests()); an
      implementation stage or a qa verdict without one leaves the tab to the presenter, from the branch's diff and the qa report */
-  if (facts.tests != null && ev !== "retime") {
+  if (facts.tests != null && ev !== "retime" && ev !== "reword") {
     if (tracking) enrich.push("facts.tests on a tracking board: its units' boards record the tests (the presenter writes them there)");
     else { const qp = ev === "qa-pass" && facts.qa && Number.isInteger(facts.qa.pass) ? facts.qa.pass : null;
       /* A remediation's report names no stage of plan.md: its classes take "Quality Review n fixes", the pass the remediation answers, never the
@@ -939,7 +1007,7 @@ function applyEvent(orig, ev, facts, req, now) {
     enrich.push(`the Tests tab: the event carries no facts.tests; ${ev === "qa-pass" ? "Relevant, Other and the results come from the qa report" : "Added and Amended come from the branch's diff against its base"}`);
   /* the fast path takes open points at every event (plan/RULES.md §4, "The fast path"; moved onto it in dashboards-skill/33): an
      implementation stage and a qa pass raise theirs above, any other event here, raised by the event's name */
-  if (Array.isArray(facts.open) && facts.open.length && !["implementation-stage", "qa-pass", "retime"].includes(ev)) mergeOpen(w, facts, applied, txt, ev, resolved, plan.folder, DIR, enrich, now, ev);
+  if (Array.isArray(facts.open) && facts.open.length && !["implementation-stage", "qa-pass", "retime", "reword"].includes(ev)) mergeOpen(w, facts, applied, txt, ev, resolved, plan.folder, DIR, enrich, now, ev);
   if (keepLine) { if (detail != null && detail !== w.detail) applied.push("wip.detail kept: a late report, its detail recorded on the stages it closes"); }
   else if (detail !== w.detail) { w.detail = detail; applied.push("wip.detail"); }
   const evRec = { name: ev, at: now, ...(note ? { note } : {}) };
@@ -947,8 +1015,9 @@ function applyEvent(orig, ev, facts, req, now) {
      run's own last event, never the break; wip.updated still moves */
   /* retime leaves it too: it is a correction of the record, said in its notes.corrections entry; and its wip.updated never goes back (a
      correction raised with an older time than the board's last write still changed the board after it) */
-  if (ev !== "run-restarted" && ev !== "retime") w.event = evRec;
-  w.updated = ev === "retime" && lib.isTime(w.updated) && Date.parse(w.updated) > Date.parse(now) ? w.updated : now;
+  /* reword likewise: a correction of the record's wording, said in its one entry */
+  if (!["run-restarted", "retime", "reword"].includes(ev)) w.event = evRec;
+  w.updated = ["retime", "reword"].includes(ev) && lib.isTime(w.updated) && Date.parse(w.updated) > Date.parse(now) ? w.updated : now;
   if (trail) {
     const t = { date: today, column: trail.column, label: trail.label, ...(trail.ref ? { ref: trail.ref } : {}) };
     plan.trail = Array.isArray(plan.trail) ? plan.trail : [];
@@ -1286,7 +1355,7 @@ function holdOpenTime(v, field, text, lower, own) {
    the board holds no such time: no last event, one with no time, or one the team raised (TEAM_RAISED), which is no report of the run's, so the
    run may have resolved the point before it and say so only in its next event; holdOpenTime() drops one stamped after the latest time it
    keeps as well. */
-const TEAM_RAISED = ["run-restarted", "retime", "state-boards", "landing", "merge", "landed", "sub-issues-filed", "reseed", "seed", "unit-landed"];
+const TEAM_RAISED = ["run-restarted", "retime", "reword", "state-boards", "landing", "merge", "landed", "sub-issues-filed", "reseed", "seed", "unit-landed"];
 function lastShown(w, have) {
   /* the time the point stores (shownOpen, below): the last event of the run's that showed it open, the bound as decided */
   if (have && lib.isTime(have.shownOpen)) return { at: have.shownOpen, what: "the point was last shown open" };
@@ -1910,6 +1979,22 @@ function layFoundation(req, facts, folder, now) {
   applied.push(`foundation laid: title from ${cleanText(facts.title) ? "the event" : cleanText(row && row.name) ? "the parent's unit row" : "the folder's name"}, the issue's title from ${!issueTitle ? "nothing yet" : issueTitle === facts.issueTitle ? "the event" : issueTitle === G.title ? "the tracker" : "the parent's unit row"}, the function ${given ? "from the event" : `a stand-in from ${[body ? "the tracker" : null, !body && unitWords ? "the parent's unit row" : null, gap ? "the unit row's gap" : null, sysWords ? "the registry" : null].filter(Boolean).join(" and ") || "the folder's name"}`}`);
   return { plan, applied, enrich };
 }
+/* A reword in a tracking board's mirror of a unit's run (main()): every string under holder[key] that the reworded board's wip no longer holds and
+   that holds the passage takes the board's own string where one of the same place exists, else the passage taken out as the board took it.
+   Simplest and exact: the mirror is a copy of the board's run, so each mirrored string holding the passage is replaced by the board's string
+   at the same path when there is one. Returns how many strings it changed. */
+function rewordStrings(holder, key, from, wip) {
+  let n = 0;
+  const at = (o, p) => p.reduce((x, k) => (x == null ? undefined : x[k]), o);
+  const walk = (o, k, p) => { const v = o[k];
+    if (typeof v === "string") { if (v.includes(from)) { const b = at(wip, p); if (typeof b === "string" && !b.includes(from)) { o[k] = b; n++; } } }
+    else if (Array.isArray(v)) v.forEach((x, i) => walk(v, i, [...p, i]));
+    else if (v && typeof v === "object") Object.keys(v).forEach(j => walk(v, j, [...p, j])); };
+  walk(holder, key, []);
+  return n;
+}
+/* whether a mirror still holds one of the texts a reword changed, whole, as it read before (another event's text holding the same passage is not the reword's) */
+function mirrorHolds(v, was) { return typeof v === "string" ? was.has(v) : Array.isArray(v) ? v.some(x => mirrorHolds(x, was)) : v && typeof v === "object" ? Object.keys(v).some(k => mirrorHolds(v[k], was)) : false; }
 /* The event's time held to its arrival (plan/RULES.md §4, "The event's time"): with --arrived, a facts.at that is missing, or further than
    ARRIVAL_TOLERANCE_S from the arrival time, is replaced by the arrival time, in the facts every path below reads, and the summary's arrival
    line says so; one within it is kept, with no line. A facts.at that is no ISO time is left for the refusal that names it; --at still wins.
@@ -1935,7 +2020,7 @@ async function main() {
   holdToArrival(facts);
   if (req.action && req.action !== "plan-board") refuse(`the request's action is ${JSON.stringify(req.action)}, not plan-board`);
   /* a retime's facts.event is the event it retimes, never the request's: a request that names none, with a retime's facts, is not read as that event */
-  if (!req.event && (facts.from != null || facts.to != null)) refuse(`the request names no event: a retime is "event": "retime", and its facts.event (${JSON.stringify(facts.event || null)}) the event it retimes`);
+  if (!req.event && (facts.from != null || facts.to != null)) refuse(`the request names no event: a retime is "event": "retime" (a reword "event": "reword"), and its facts.event (${JSON.stringify(facts.event || null)}) the event it corrects`);
   const ev = req.event || facts.event; S.event = ev || null; EV = ev;
   /* retired: no unit's board is laid ahead of its run (plan/RULES.md §4); an older board's record of it is still read */
   if (lib.RETIRED_EVENTS.includes(ev)) refuse(`${ev} is retired: a unit's board is laid at its own sized, never ahead of its run`);
@@ -2021,9 +2106,14 @@ async function main() {
     const k = { event: typeof facts.event === "string" ? facts.event.trim() : facts.event, from: retimeStamp(facts.from), to: retimeStamp(facts.to) };
     if ((((orig.notes || {}).corrections) || []).some(x => x && x.retime && x.retime.event === k.event && x.retime.from === k.from && x.retime.to === k.to)) { S.result = "duplicate"; S.applied.push(`${k.event} ${k.from} → ${k.to} is already corrected: nothing written`); return; }
   }
+  /* a reword is known by its correction's entry (its event, its recorded time and the digests of its two passages): raised again, a duplicate */
+  if (ev === "reword" && typeof facts.event === "string" && lib.isTime(facts.recordedAt) && typeof facts.from === "string" && typeof facts.to === "string") {
+    const k = { event: facts.event.trim(), at: retimeStamp(facts.recordedAt), from: lib.rewordDigest(facts.from), to: lib.rewordDigest(facts.to) };
+    if ((((orig.notes || {}).corrections) || []).some(x => x && x.reword && x.reword.event === k.event && x.reword.at === k.at && x.reword.from === k.from && x.reword.to === k.to)) { S.result = "duplicate"; S.applied.push(`${k.event} at ${k.at}: the reword is already on record: nothing written`); return; }
+  }
   /* the same event twice changes nothing: applied again at its own recorded time, it gives the board it left */
   const last = (orig.wip || {}).event;
-  if (ev !== "run-restarted" && ev !== "retime" && last && last.name === ev && last.at) {
+  if (!["run-restarted", "retime", "reword"].includes(ev) && last && last.name === ev && last.at) {
     const again = applyEvent(orig, ev, facts, req, last.at), a = JSON.parse(JSON.stringify(again.plan)), b = JSON.parse(JSON.stringify(orig));
     a.wip.updated = b.wip.updated = null;
     /* a step-complete that writes nothing (a stage or step the board does not hold) is said as such below, never as a duplicate */
@@ -2053,6 +2143,21 @@ async function main() {
       retimedParent = pp;
     }
   }
+  /* a sub-issue's reword: its tracking board's mirror of the run (unit.live) is rebuilt from the reworded board at the re-embed below; the
+     passage is taken out of the mirror here too, so it follows even where the mirror is not rebuilt, and the one entry says so. After the
+     write, a mirror that still holds the passage fails the event (nothing written) */
+  let rewordMirror = null;
+  if (R.parentOp && R.parentOp.kind === "reword") {
+    const up0 = lib.parentFolder(DIR, R.plan);
+    if (up0 && fs.existsSync(path.join(up0, "dashboard.html"))) {
+      let pp; try { pp = JSON.parse(fs.readFileSync(viewRead(up0), "utf8")); } catch (e) { refuse(`the parent tracking board's plan.json does not parse: ${e.message}`); }
+      const O = R.parentOp, units = (pp.rows || []).filter(r => r && r.unit && r.unit.issue === R.plan.issue && r.unit.live);
+      const sub = O.to === "" ? null : O.to, n = units.reduce((a, r) => a + rewordStrings(r.unit, "live", O.from, R.plan.wip), 0);
+      if (n) { R.plan.notes.corrections[O.entry].what = lib.rewordWhat(O.event, R.plan.kind === "tracking", O.at, [...O.words, `#${pp.issue}'s mirror of it`], O.reason, sub || "");
+        S.applied.push(`#${pp.issue}: the mirror of the run: ${n} place${n === 1 ? "" : "s"} reworded (rebuilt from the board at its re-embed)`); }
+      rewordMirror = { pp, was: new Set(O.was) };
+    }
+  }
   /* a view copy lives only while fresher than the board it stands for (board.js --live removes it otherwise): said, never lost in silence */
   if (VIEWING) { let tp = null; try { tp = JSON.parse(fs.readFileSync(planFile, "utf8")); } catch (e) { /* reported above */ } if (tp && !(String(lib.planStamp(R.plan)) > String(lib.planStamp(tp)))) WARNINGS.push(`VIEW COPY NOT FRESHER: the event's time ${now} is not after the board's own stamp ${lib.planStamp(tp)}, so the live view drops the copy: raise it with its real time`); }
 
@@ -2066,12 +2171,16 @@ async function main() {
       const ptext = fs.readFileSync(viewRead(up), "utf8"), peol = /\r\n/.test(ptext) ? "\r\n" : "\n";
       let pplan; try { pplan = JSON.parse(ptext); } catch (e) { throw new Error(`the parent tracking board's plan.json does not parse: ${e.message}`); }
       if (retimedParent) pplan = retimedParent;
+      else if (rewordMirror) pplan = rewordMirror.pp;
       else if (R.parentOp) { const P = applyParent(pplan, R.plan, R.parentOp, now); pplan = P.plan; S.applied.push(...P.applied); S.enrich.push(...P.enrich); }
       const prel = path.relative(ROOT, up).split(path.sep).join("/");
-      S.parent = `${prel} (${writeBoard(up, pplan, peol, S.enrich, "parent") ? "re-embedded" : "unchanged"})`;
+      const wroteParent = writeBoard(up, pplan, peol, S.enrich, "parent");
+      if (rewordMirror && (pplan.rows || []).some(r => r && r.unit && r.unit.issue === R.plan.issue && mirrorHolds(r.unit.live, rewordMirror.was)))
+        throw new Error(`reword: the tracking board #${pplan.issue}'s mirror of the run still holds a reworded text as it read before, after its re-embed`);
+      S.parent = `${prel} (${wroteParent ? "re-embedded" : "unchanged"})`;
       /* with --view, the issue's copy once more, now that its parent's copy exists for its link to open (lib.js viewLink()) */
       if (VIEWING) writeBoard(DIR, R.plan, eol, [], "board");
-    } else if (R.plan.parent && R.parentOp && R.parentOp.kind !== "retime") S.enrich.push(`the parent tracking board #${R.plan.parent.issue} is not in the enclosing folder: the standing rule is the presenter's`);
+    } else if (R.plan.parent && R.parentOp && !["retime", "reword"].includes(R.parentOp.kind)) S.enrich.push(`the parent tracking board #${R.plan.parent.issue} is not in the enclosing folder: the standing rule is the presenter's`);
 
     /* check.js on every board written, and the live repository work board, at once */
     const at = d => VIEWING ? [lib.viewDirOf(d, MAIN), "--root", ROOT] : [d];

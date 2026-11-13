@@ -1004,6 +1004,20 @@ for every type:
 
 - **The element names, checked** (the user's decision of 2026-11-09; §12, "The names, checked"): applied to the issue boards, the tracking boards, the repository work board and the org work board through `check.js`, and to the system, supersystem and repository state boards through `check-board.js`. Every type shares the one scan.
 
+**The decisions of 2026-11-13** (dashboards/reword-event, dashboards/run-sent-corrections; admin-team/dashboards-skill/reword-event), weighed for every type:
+
+- **`reword`: one event's recorded text reworded** (`plan/RULES.md` §4, the reword row): every place the record holds the passage, the copies with it, one
+  `notes.corrections` entry that keeps the withdrawn wording off the board; before the board's Document commit, for a run's own events only. Applied to issue
+  boards and tracking boards, whose `wip` holds a run's reports, questions and details (a tracking board's own run, before its plan's Document commit), and to a
+  tracking board's mirror of a unit's run, which follows its unit's board at the re-embed. Not to the repository work board or the org work board: they
+  store no run's text of their own, only what `board.js` and `org-board.js` copy from the boards at each regeneration, so a reword reaches them at their
+  next one. Not to system, supersystem and repository state boards: they record no run's events, and their text is the code's at a commit, rewritten by
+  the state-boards job.
+- **A run corrects its own record** (`retime` and `reword` sent by the run, `plan/RULES.md` §4, their rows): its own events only, a `reword` until its
+  Document commit, a `retime` until its land is sent; the presenter keeps its right to have either raised. Applied to issue boards and tracking boards
+  (a tracking board's own run sends them for its own events; a unit's run corrects its own board, never its tracking board, whose mirror follows). Not to
+  the repository work board, the org work board or the state boards, for the reasons above.
+
 ## 12. Elements — one name per function
 
 Every visible element on a board takes its name from the UI vocabulary,

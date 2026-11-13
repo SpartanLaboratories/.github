@@ -91,6 +91,7 @@ A pipeline's steps map to actions like this:
 | A fixture pull request | `fixture-pull-request` |
 | A checkout's realignment, or its replacement by a fresh clone | `realign-checkout`, `replace-clone` |
 | A step transition in a `/resolve-issue` run (levels 2–4), the Document step's `document` event with its `tasks` included | `plan-board` with the `event` and its facts (fire-and-forget; see `PROTOCOL.md`) |
+| A wrong time or wording in a run's own board record: one of its own events' times until its `land` is sent (and whenever a reply says the arrival check replaced its reading, with its own clock reading and the reason), one of its own recorded texts before its document-landing commit | `plan-board` with `retime` or `reword`, for the run's own events only (their facts and refusals: `PROTOCOL.md`, `plan-board` fields) |
 | A dashboard refresh on request | `dashboards-refresh` |
 | An idea the user should revisit later | `log-hook` with `text` (the idea, in your words), `area` and optional `links`; no `repo` or `github` (fire-and-forget). The `done` reply carries `result.hook`, the hook id, and `result.feasibility`, its assessment of the idea |
 | Where is my request | `status` |

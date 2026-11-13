@@ -269,6 +269,7 @@ A run sends `facts.at` rounded or estimated (the user: this happens at every ses
 
 - **Resolution (decided by the user, 2026-11-10):** a run reads every event's `facts.at` from the clock (`date -u +%FT%TZ`), never rounding or estimating it; when an event's `facts.at` is missing or more than 2 minutes from its arrival, the team stamps the arrival time (`apply-event.js --arrived`) and tells the run.
 - **Extended (the user, 2026-11-10):** the same 2-minute arrival check covers the `raised` and `resolved` times of the open points an event newly raises or resolves.
+- **Further resolution (decided by the user, 2026-11-13):** a run may correct its own events' recorded times itself, sending `retime` until its `land` is sent, and a run whose reading the arrival check replaced sends one with its own clock reading and the reason; the arrival check stays as it is. A retime still never reorders the record, so a correction a later event blocks stays refused, and a time the run never read from the clock has no reading to restore.
 - **Predicted:** the admin team, on encountering it, 2026-11-10.
 - **Encounters:**
   - 2026-11-10: KotlinBottools #23, `halted` sent as 02:00:00Z (arrived 01:52:22Z) and `resumed` as 02:30:00Z (arrived 02:01:54Z); `research-planning` at 02:04:54Z falls inside the recorded wait.
@@ -354,6 +355,7 @@ At a `sized`, `apply-event.js` seeds a board from its view copy only when the me
 A run learns that research has ended only when its planning agent returns, which is after the plan is written. It sends `researched` then, with the time the research ended. That time is more than 2 minutes before the event's arrival, so the arrival check (`apply-event.js --arrived`) replaces it with the arrival time. The next event, `plan-accepted`, sent in the same moment and holding a time a few seconds earlier, then falls before it: the board shows research running through the whole of the plan's writing, and the plan's visit takes bounds that match no event.
 
 - **Resolution (decided by the user, 2026-11-11):** the planning agent sends `researched` itself at the moment the research ends, as it sends the other research events, so the event is never sent late; the arrival check stays as it is. The board of the encounter is corrected to the time the run read. (Loosening the check for an event's own time, as for open-point times in p19, was not chosen.)
+- **Further resolution (decided by the user, 2026-11-13):** a run whose true time the arrival check replaced sends a `retime` itself, with its own clock reading and the reason, until its `land` is sent; the arrival check stays as it is. A retime never moves a time across another recorded time, so where a later event already holds an earlier time (the first and third encounters) the run's retime is refused as the team's would be.
 - **Predicted:** the admin team, on encountering it, 2026-11-11.
 - **Encounters:**
   - 2026-11-11: KotlinBottools #24: `researched` read at 19:42:46Z and sent with `plan-accepted` at 20:17:33Z; it was stamped 20:17:33Z, and `plan-accepted` holds 20:17:03Z.

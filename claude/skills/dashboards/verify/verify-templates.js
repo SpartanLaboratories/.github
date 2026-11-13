@@ -78,7 +78,8 @@
 // (verify/cases-live-view.js): apply-event.js --view (landed, and the land's landing and merge, before the merge and after it), the view copies and their <base> line, board.js --live opening them. The waits on
 // the user (verify/cases-timeline-waits.js): not active time and not mentioned, the step split into visits around each wait, the signals on the fast path. A
 // stretch when the run was not running (verify/cases-timeline-outages.js): not counted and not mentioned, the run-restarted event on the fast path. The
-// team-raised retime (verify/cases-retime.js): one event's recorded time corrected wherever the record holds it, one notes.corrections entry. The
+// team-raised retime (verify/cases-retime.js): one event's recorded time corrected wherever the record holds it, one notes.corrections entry. Reword
+// (verify/cases-reword.js): one event's recorded text reworded wherever the record holds it, one entry; a run's own retime and reword held to its limits. The
 // event's time held to its arrival (verify/cases-arrival.js): apply-event.js --arrived replacing a facts.at missing or more than 2 minutes off, and holding a newly raised or
 // resolved open point's time to bounds (not after the arrival plus the tolerance, not before the last event that still showed the point open; a missing one stamped). The
 // header's switches (verify/cases-switches.js): the theme switch drawn as a switch, the inspector switch where there is an inspector, the decision path's legend. The
@@ -2287,6 +2288,11 @@ catch (e) { report("a tracking board's plan step and its parent's roadmap item c
    on its own too (node verify/cases-retime.js). */
 try { require("./cases-retime.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the retime cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
+/* reword, one event's recorded text reworded, and a run's own retime and reword (verify/cases-reword.js; admin-team/dashboards-skill/reword-event, the
+   user's decisions of 2026-11-13, KotlinBottools #25's four texts): every place the event's record holds the passage reworded, one notes.corrections
+   entry, the refusals, the duplicate, the tracking board's mirror, --view, and the run's limits. Runs on its own too (node verify/cases-reword.js). */
+try { require("./cases-reword.js")({ sk, out, targets }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { report("the reword cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The event's time held to its arrival (verify/cases-arrival.js; plan/RULES.md §4, "The event's time"; runs sent facts.at guessed or rounded): with
    apply-event.js --arrived, a facts.at that is missing or more than 2 minutes from the arrival time is replaced by it and the summary's arrival line

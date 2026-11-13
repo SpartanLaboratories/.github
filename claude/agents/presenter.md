@@ -299,8 +299,16 @@ catch up at their own events.
   which the team raises at your word (give it the event, the time the record
   holds, the time it should hold and the reason), a Document task's time
   through a fill's `wip.document`, an open point's resolved time through the
-  fill's `wip.open`. Where the rules give no route for a correction, say so in
-  your report with the time it would take; never write the record by hand.
+  fill's `wip.open`. A run may also send `retime` itself for its own events,
+  until its `land` is sent. Where the rules give no route for a correction, say
+  so in your report with the time it would take; never write the record by hand.
+- **Wording corrections** (standing rule). When a run asks, before its
+  document-landing commit, for one of its recorded texts to read otherwise,
+  have it reworded through `reword`, which the team raises at your word (give
+  it the event, the time the record holds for it, the passage as the record
+  holds it, what it should read, empty to take it out, and the reason in plain
+  words); a run may also send it itself for its own events. Never reword a
+  record by hand; what `reword` refuses is in `plan/RULES.md` §4, its row.
 - **The README**: if it does not yet point at `docs/dashboards/` and
   `docs/plans/`, add one line each under its documentation section. Nothing
   else in the README is yours.

@@ -498,6 +498,13 @@ implementer raises for the planner, or an item left to the maintainer; read
 raised or resolved. During a remediation loop, `implementation-stage` also
 carries `rows`: the board Row ids the fixes touch.
 
+**Correcting your own record.** The run corrects its own events on its own
+board, never the team's, through two more events: `retime` for an event's
+recorded time, until it sends `land`, and `reword` for its recorded text, until
+the document-landing commit. When the team's reply says the arrival check
+replaced an event's `at`, send a `retime` with your own clock reading and the
+reason. Their facts and limits: `PROTOCOL.md`, `plan-board` fields.
+
 The team raises the issue board's `state-boards` step itself inside the
 `state-boards` request of step 6, the commit task (`document-landing`) inside
 that request and the `commit` after it, and `landed` itself inside `land`; the
