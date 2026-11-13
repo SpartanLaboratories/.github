@@ -584,7 +584,7 @@ Once the presenter handles its own rules, its brief among them, the session's au
 ## A read-only query of the running processes is denied
 
 ```json
-{"id":"p40","count":2,"last":"2026-11-13"}
+{"id":"p40","count":3,"last":"2026-11-13"}
 ```
 
 The team checks, read only, whether a member's job left a process behind (the entry "A member's attempt to stop its own background process is refused" has it do so). The session's auto mode classifier denied a query of the running processes' command lines (PowerShell `Get-CimInstance Win32_Process`) with no reason given. It is neither an edit of the team's own files nor a member's attempt to stop its own process.
@@ -594,3 +594,4 @@ The team checks, read only, whether a member's job left a process behind (the en
 - **Encounters:**
   - 2026-11-13: the Coordinator's query, made to confirm an Archivist job had left no process behind, was denied with no reason given and not retried another way; a process list without command lines showed one node process the team could not identify. Told to the user at the console.
   - 2026-11-13: the graphify manager's query, filtered on the graph tool's name and made in a code-only refresh of a repository after a landing to see whether a hook's rebuild was still running, was denied with no reason given; the member stopped and tried no other route. The Coordinator read with `tasklist` that no such process was running, and the refresh, run again as a new job, finished clean. Told to the user at the console.
+  - 2026-11-13: an Archivist's query of the node processes, made at the end of a session archive job, after all its steps had passed, to identify one running node process it had not started, was denied with no reason given; it stopped and tried no other route. Told to the user at the console.
