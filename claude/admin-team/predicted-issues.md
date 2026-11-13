@@ -584,12 +584,13 @@ Once the presenter handles its own rules, its brief among them, the session's au
 ## A read-only query of the running processes is denied
 
 ```json
-{"id":"p40","count":1,"last":"2026-11-13"}
+{"id":"p40","count":2,"last":"2026-11-13"}
 ```
 
 The team checks, read only, whether a member's job left a process behind (the entry "A member's attempt to stop its own background process is refused" has it do so). The session's auto mode classifier denied a query of the running processes' command lines (PowerShell `Get-CimInstance Win32_Process`) with no reason given. It is neither an edit of the team's own files nor a member's attempt to stop its own process.
 
-- **Proposed resolution:** as practised on the encounter: the query is not retried another way, and the user is told at the console. No standing route is proposed yet.
+- **Proposed resolution:** as practised on the encounters: the one whose query is refused stops and tries no other route, and the user is told at the console. The Coordinator then reads the process list with `tasklist`, filtered on the image name, which is allowed, and states what it found in the next job's prompt. No standing route is decided.
 - **Predicted:** the admin team, on meeting it, 2026-11-13.
 - **Encounters:**
   - 2026-11-13: the Coordinator's query, made to confirm an Archivist job had left no process behind, was denied with no reason given and not retried another way; a process list without command lines showed one node process the team could not identify. Told to the user at the console.
+  - 2026-11-13: the graphify manager's query, filtered on the graph tool's name and made in a code-only refresh of a repository after a landing to see whether a hook's rebuild was still running, was denied with no reason given; the member stopped and tried no other route. The Coordinator read with `tasklist` that no such process was running, and the refresh, run again as a new job, finished clean. Told to the user at the console.
