@@ -595,3 +595,56 @@ The team checks, read only, whether a member's job left a process behind (the en
   - 2026-11-13: the Coordinator's query, made to confirm an Archivist job had left no process behind, was denied with no reason given and not retried another way; a process list without command lines showed one node process the team could not identify. Told to the user at the console.
   - 2026-11-13: the graphify manager's query, filtered on the graph tool's name and made in a code-only refresh of a repository after a landing to see whether a hook's rebuild was still running, was denied with no reason given; the member stopped and tried no other route. The Coordinator read with `tasklist` that no such process was running, and the refresh, run again as a new job, finished clean. Told to the user at the console.
   - 2026-11-13: an Archivist's query of the node processes, made at the end of a session archive job, after all its steps had passed, to identify one running node process it had not started, was denied with no reason given; it stopped and tried no other route. Told to the user at the console.
+
+## The permission system refuses the Archivist's deletion
+
+```json
+{"id":"p41","count":0,"last":null}
+```
+
+An archive job's `delete-session.js` deletion, or a sweep's `--orphans` removal of empty orphan temp folders, is refused by the permission system.
+
+- **Proposed resolution:** as the team's brief places it (`agents/admin-team.md`, Service: archive, Sessions): after the first refusal, the direction manager places a `permissions.allow` rule for `delete-session.js` in the team's settings file, at the user's direction; after a second, an `autoMode.allow` line the same way; after a third, the user is given the command to run (one session, `--all-ready`, or `--orphans`), and sweep and archive jobs keep their deletion held.
+- **Open:** whether the hold after a third refusal also covers the sweep's removal of empty orphan folders. a) It does, as placed; b) sweeps keep trying to remove leftover folders. No recommendation.
+- **Predicted:** the admin team, 2026-11-13.
+- **Encounters:**
+  - None yet.
+
+## A fact text quotes code whose identifier is a barred name
+
+```json
+{"id":"p42","count":0,"last":null}
+```
+
+For example a rendered code block with a variable named `executor`. Today the fast path leaves such a text off the board and `fill.js` refuses it.
+
+- **Proposed resolution:** a) reword the sample; b) leave the text out (what happens now); c) keep it with a warning. No recommendation.
+- **Predicted:** the presenter, 2026-11-13.
+- **Encounters:**
+  - None yet.
+
+## A wait phrase inside a rendered code block
+
+```json
+{"id":"p43","count":0,"last":null}
+```
+
+"Waiting on the user" inside a rendered fenced block is left out of the wait check today (`namerefs.js` `waitRefs()` blanks fenced blocks).
+
+- **Proposed resolution:** a) keep that; b) count it. No recommendation.
+- **Predicted:** the presenter, 2026-11-13.
+- **Encounters:**
+  - None yet.
+
+## A session's temp folder holds an `images/` folder, and its deletion is refused
+
+```json
+{"id":"p44","count":1,"last":"2026-11-13"}
+```
+
+A console session where an image is pasted keeps the attachment in an `images/` folder of its temp folder, beside `scratchpad/` and `tasks/`. `delete-session.js` knows only those two as the session's temp stores, so an archive job's step 7 refuses the whole deletion ("holds more than scratchpad/ and tasks/: images"), and the session stays archived but not deleted.
+
+- **Proposed resolution:** put to the user: a) the scripts (`delete-session.js`, and `scratch-copy.js` if it should copy them) recognise a session's `images/` as one of its stores, then step 7 reruns (recommended: any console session where an image is pasted hits this); b) as a, and `scratch-copy.js` keeps `images/` in the archive; c) the user removes the file by hand, then step 7 reruns; d) leave the session archived but not deleted for now.
+- **Predicted:** the admin team, on meeting it, 2026-11-13.
+- **Encounters:**
+  - 2026-11-13: an archive job's step 7 refused an archived session's temp folder, which held one pasted attachment (`images/1.png`, 22,670 bytes) beside its scratchpad and task outputs. Nothing was deleted; 5,452 MB stays on disk. Put to the user at the console.

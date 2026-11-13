@@ -908,12 +908,14 @@ asks for an action no group names (Request groups).
   `archive-predicted` the predicted-issue jobs (**log-predicted**,
   **log-encounter**, **log-resolution**) and `archive-sessions` the session
   jobs (**sweep**, **archive**), each one at a time, so no two writes touch
-  one record. A job that writes more than one of these records takes the
-  lane of each, and starts when all of them are free: a **close-question**
-  that makes a hook takes `archive-questions` and `archive-hooks`, a
-  **recheck** `archive-questions` and `archive-predicted`, since it may file
-  a question as a predicted issue (Predicted issues), and an **archive** job
-  `archive-hooks`, `archive-questions` and `archive-sessions` (Sessions).
+  one record. A job holds only its own record's lane. A write it needs to
+  another of these records it reports, with the facts that record's mode
+  needs, and goes on with its own work (the Archivist's brief, How you are
+  invoked); you queue that write as a separate job in that record's lane:
+  the hook a **close-question** makes, in `archive-hooks`; the question a
+  **recheck** files as a predicted issue, in `archive-predicted` (Predicted
+  issues); the questions and ideas an **archive** job finds no ledger event
+  or hook holds, in `archive-questions` and `archive-hooks` (Sessions).
   None of them holds a repository's lane, and a repository's lane never
   waits on them.
 - **Running a job.** Spawn `archivist` (`subagent_type: "archivist"`,
@@ -956,7 +958,9 @@ asks for an action no group names (Request groups).
   open hooks oldest first, one at a time, each with its tags, what has
   changed since and the options with a recommendation, and first gives you
   the questions to send for any hook not yet assessed. The user's decision
-  goes on the hook (`revisited`, the new `status`).
+  goes on the hook (`revisited`, the new `status`). The Archivist may also
+  mark a hook `done` itself when it assesses the hook's work complete (its
+  brief, The idea hooks).
 - **A decided hook.** Each part of the work a decision calls for goes to the
   member its tag names, in that member's own mode and lane:
   `direction-manager` in **apply** or **propose** (Service: direction), which
@@ -1090,12 +1094,13 @@ asks for an action no group names (Request groups).
   session or, with `--all-ready`, for every session ready, and with
   `--orphans` for the empty orphans, and sweep and archive jobs keep their
   deletion held.
-- **What the ledger lacks.** An archive job logs itself each question or
-  idea of its session that no ledger event or hook holds, at once and not put
-  to the user first (the Archivist's brief, **archive**, step 4), which is
-  why it holds `archive-hooks` and `archive-questions` beside its own lane.
-  Append `idea-hook` for each hook it reports, and send the viability
-  questions it gives you (Hooks).
+- **What the ledger lacks.** An archive job reports each question or idea
+  of its session that no ledger event or hook holds (the Archivist's brief,
+  **archive**, step 4) and holds only `archive-sessions`: queue at once a
+  **log-question** job in `archive-questions` for its questions and a
+  **log-hook** job in `archive-hooks` for its ideas, none put to the user
+  first. Append `idea-hook` for each hook the log-hook job reports, and send
+  the viability questions it gives you (Hooks).
 - **Ledger.** Append `session-archived` (the session, its base folder, its
   scratchpad copy), `session-deleted` (the session, the stores removed, the
   bytes freed, who ran it) and `session-wrapped` (the sessions, the tier and
@@ -1154,7 +1159,7 @@ the user at this console and from you.
    sessions; you cannot.
 5. Resume queued work, oldest ready first per lane, send again every viability
    question asked and not answered (Service: archive, Hooks), and queue a **recheck**
-   of the open questions in `archive-questions` and `archive-predicted`, in its
+   of the open questions in `archive-questions`, in its
    batches, putting the head question once the first batch reports and each later
    batch's questions once its job reports (Service: archive, Questions), and queue
    the **sweep** in `archive-sessions` (Service: archive, Sessions).
