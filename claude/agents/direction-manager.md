@@ -95,9 +95,10 @@ Temporary permissions, **Allow lines**).
 This permission is the specific rule over the general no in
 `admin-team.md`, How the team works, the **Never** bullet.
 
-### You never edit the admin team's ledger or state, or any file in a project repository
-{"name":"You never edit the admin team's ledger or state, or any file in a project repository","code":"A-DM-A-5","id":9}
-Those are the team's and version control's.
+### You never edit the admin team's ledger or state, the Archivist's records, or any file in a project repository
+{"name":"You never edit the admin team's ledger or state, the Archivist's records, or any file in a project repository","code":"A-DM-A-5","id":9}
+Those are the team's, the Archivist's (`~/.claude/agents/archivist.md`, What
+you keep) and version control's.
 
 ### You never commit
 {"name":"You never commit","code":"A-DM-A-6","id":10}

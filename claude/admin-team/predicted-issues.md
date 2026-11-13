@@ -139,7 +139,7 @@ The permission system raises the denial.
 ## An encountered issue is not in this tracker
 
 ```json
-{"id":"p9","count":1,"last":"2026-11-13"}
+{"id":"p9","count":2,"last":"2026-11-13"}
 ```
 
 - **Proposed resolution:** add it as a new entry with count 1, then prompt the
@@ -148,6 +148,8 @@ The permission system raises the denial.
 - **Encounters:**
   - 2026-11-13: a member could not stop a background search it had started; added as
     "A member's attempt to stop its own background process is refused".
+  - 2026-11-13: a force-push a temporary grant covers was denied by the permission system;
+    added as "A push a grant covers is denied with [Git Destructive]".
 
 ## A count changes in this mirrored file
 
@@ -487,7 +489,7 @@ A `step-complete` becomes the board's last event. A later `resumed` that ends an
 ## An edit of the team's own files is refused as [Self-Modification]
 
 ```json
-{"id":"p34","count":6,"last":"2026-11-12"}
+{"id":"p34","count":7,"last":"2026-11-13"}
 ```
 
 The session's auto mode classifier refuses a tool call by which the team changes its own briefs, protocol, skill rules or settings, with the reason "[Self-Modification]". It judges each call: on the same day most of the direction manager's edits to the same files went in. The refused ones were bulk shell copies over the briefs and edits that loosen what the team itself may do (a permission line in its settings, the rule on what may be pushed straight to `main`, the direction manager's own scope, who may direct a retime). A subagent's conversation holds the team's brief to it, not the user's words at the console, and a sentence written into the team's brief did not change the outcome.
@@ -502,6 +504,7 @@ The session's auto mode classifier refuses a tool call by which the team changes
   - 2026-11-12: W37 retried by Edit: two changes went in, the change to the straight-to-`main` rule was refused; the rest placed by the user.
   - 2026-11-12: the sentence on the direction manager's scope in the team's brief; staged, placed by the user.
   - 2026-11-12: the presenter's timing rule: it went into the presenter's brief; the matching edits to the protocol, the dashboards rules and the dashboards skill were refused and staged.
+  - 2026-11-13: the lift of a deny rule for a temporary grant (KotlinBottools #26): the team's start of the direction manager's job was itself refused, in a session that began before the standing line was placed; staged, for the user to place.
 
 ## A name the scan bars is in a string a script prints
 
@@ -542,3 +545,29 @@ A member starts a long search or script in the background, finishes its job with
 - **Predicted:** the admin team, on meeting it, 2026-11-13.
 - **Encounters:**
   - 2026-11-13: the Archivist's first backlog run left a search over the ledger running (a pattern with two wide repeats on very long lines); its stop was refused as interfering with workloads. Put to the user at the console.
+
+## A push a grant covers is denied with [Git Destructive]
+
+```json
+{"id":"p38","count":1,"last":"2026-11-13"}
+```
+
+The executor runs a plan's push under a temporary grant, as one shell holding the plan's procedure, and the session's auto mode classifier denies the call with the reason "[Git Destructive]" before any entry runs. The grant's section in the permissions file does not reach the classifier, and lifting a deny rule in the settings file does not either: the two are separate checks.
+
+- **Proposed resolution:** the rule for a refused action under a grant (`agents/admin-team.md`, Gates and standing grants, Temporary permissions, **Allow lines**): nothing else is tried; one `autoMode.allow` line for that action, naming the repository, the exact command, the request's `id` and the job, is placed by the direction manager or staged for the user to place; the team restarts and runs the same `id` again with `attempt + 1`. A job with more than one such push meets the refusal once per push unless the user places the lines together.
+- **Predicted:** the admin team, on meeting it, 2026-11-13.
+- **Encounters:**
+  - 2026-11-13: KotlinBottools #26, the push of one branch to the first of its two repositories, with an explicit lease, after the deny rule on that form had been lifted in the settings file without a restart. Nothing was pushed. Put to the user at the console with the line staged.
+
+## The presenter's edit of its own brief is refused as [Self-Modification]
+
+```json
+{"id":"p39","count":0,"last":null}
+```
+
+Once the presenter handles its own rules, its brief among them, the session's auto mode classifier may refuse its edit of that brief, as it has refused the direction manager's edits of the team's own files (the entry "An edit of the team's own files is refused as [Self-Modification]").
+
+- **Proposed resolution:** as practised for the direction manager: the presenter stops at the refusal and tries no other route; it stages the edited copy with its diff under `admin-team/proposals/`; the team tells the user and gives the copy command; the user places the file; the team records the `config-edit` and mirror-syncs.
+- **Predicted:** the user, at the console, 2026-11-13 (asked what should happen in that case: "expected issue").
+- **Encounters:**
+  - None yet.
