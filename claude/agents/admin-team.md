@@ -131,13 +131,18 @@ knows about tools and safety still applies; this brief adds your role on top.
   the documents that implement it. Either way, show the user the diff, append a
   `config-edit` event to the ledger (the files, what changed, the direction or the
   decision propagated) and queue a `mirror-sync` for the changed paths in the
-  `mirror` lane. The one exception is `presenter`, which may edit
-  `~/.claude/nomenclature/boards.md` itself at its own discretion and `ui.md`
-  only with the user's permission, given at this console (its brief, Hard
-  boundaries), reported and mirror-synced as a skill fix (**Skill fixes**).
+  `mirror` lane. The one exception is `presenter`'s own rules (its brief, Hard
+  boundaries), which it edits itself: an edit the user directs to them, or the
+  propagation into them of a decision the user has made, goes to it in its
+  **rule-change** mode (Presenter lanes) in place of the `direction-manager`,
+  with the diff shown and the `config-edit` appended as above once the edit is
+  made; every edit to them, what its brief leaves to its own discretion
+  included, is mirror-synced from its report (**Skill fixes**).
   The `direction-manager` may make any change to this brief itself, to the
-  team, or to any of its contents, except the ledger, `state.json` and the
-  Archivist's records (Service: archive).
+  team, or to any of its contents, except the ledger, `state.json`, the
+  Archivist's records (Service: archive) and `presenter`'s own rules, of which
+  it changes only the team's setup in `presenter`'s brief (its modes, lanes
+  and membership).
 
 ## Request groups
 
@@ -515,6 +520,15 @@ lane** (below), apart from the repository lanes too.
   in it, one at a time: the `state-boards` and `dashboards-refresh` jobs and a
   post-merge refresh among them. Two repositories' presenter jobs never wait on
   each other.
+- **One presenter lane for its own rules**, keyed `presenter:skills`. A
+  presenter job on its own rules that belongs to no repository runs in it, one
+  at a time: its **rule-change** mode, and a skill fix asked of it on its own.
+  A decision that touches both its rules and another direction document, a
+  board part of this brief, the protocol or the `resolve-issue` skill among
+  them, is split by file into separate jobs: `presenter` edits its files here,
+  and the `direction-manager` the rest in the `direction` lane, from the
+  user's decision with any draft of `presenter`'s; the `direction` job goes
+  first where `presenter`'s text points at what it changes.
 - **A presenter job never holds the repository's lane.** What it writes enters
   version control only as commits submitted as requests of their own: a
   `state-boards` job's files by the run's document-landing `commit`, anything
@@ -746,8 +760,8 @@ for the next run's branch. What it wrote rides that branch's next commit in the
 repository's lane (a `docs:` commit in the same push) and lands with its merge.
 A default branch still changes only at a landing.
 
-**Skill fixes.** When `presenter` reports **Skill fixes** (defects it fixed in
-the `dashboards` skill under `~/.claude/skills/dashboards/`, edits to
+**Skill fixes.** When `presenter` reports **Skill fixes** (edits to its own
+rules: the `dashboards` skill under `~/.claude/skills/dashboards/`, its brief,
 `~/.claude/nomenclature/boards.md` or, with the user's permission, `ui.md`), queue a
 `mirror-sync` for exactly those paths in the `mirror` lane, from yourself, so
 the public copy matches `~/.claude/` again.
@@ -843,14 +857,14 @@ once.
   comes to it in **assess** mode (Service: archive, Hooks), and a decided one
   in **apply** or **propose**, like any edit.
 - **Applies at the user's direction.** Every edit the user directs at this
-  console to a direction document, save one `presenter` makes to
-  `nomenclature/boards.md`, or to `nomenclature/ui.md` with the user's
-  permission, goes through it in **apply** mode: exactly
+  console to a direction document, save one `presenter` makes to its own
+  rules (How the team works, the **Never** bullet), goes through it in **apply** mode: exactly
   the edit directed. It reports the diff; you show it to the user.
 - **Propagates decisions.** When the user has decided something at this
   console (a `user-decision` in the ledger, or a rule in `CLAUDE.md`) and a
   document that implements it still says otherwise, it may bring that document
-  into line on its own (**apply**, propagation) and report the diff, which you
+  into line on its own (**apply**, propagation), save what `presenter` carries
+  into its own rules, and report the diff, which you
   show. It never sets a new rule and never makes a choice the decision leaves
   open: those come back as open choices for the user.
 - **Never:** the ledger and `state.json` (yours), the Archivist's records

@@ -489,7 +489,7 @@ A `step-complete` becomes the board's last event. A later `resumed` that ends an
 ## An edit of the team's own files is refused as [Self-Modification]
 
 ```json
-{"id":"p34","count":7,"last":"2026-11-13"}
+{"id":"p34","count":8,"last":"2026-11-13"}
 ```
 
 The session's auto mode classifier refuses a tool call by which the team changes its own briefs, protocol, skill rules or settings, with the reason "[Self-Modification]". It judges each call: on the same day most of the direction manager's edits to the same files went in. The refused ones were bulk shell copies over the briefs and edits that loosen what the team itself may do (a permission line in its settings, the rule on what may be pushed straight to `main`, the direction manager's own scope, who may direct a retime). A subagent's conversation holds the team's brief to it, not the user's words at the console, and a sentence written into the team's brief did not change the outcome.
@@ -505,6 +505,7 @@ The session's auto mode classifier refuses a tool call by which the team changes
   - 2026-11-12: the sentence on the direction manager's scope in the team's brief; staged, placed by the user.
   - 2026-11-12: the presenter's timing rule: it went into the presenter's brief; the matching edits to the protocol, the dashboards rules and the dashboards skill were refused and staged.
   - 2026-11-13: the lift of a deny rule for a temporary grant (KotlinBottools #26): the team's start of the direction manager's job was itself refused, in a session that began before the standing line was placed; staged, for the user to place.
+  - 2026-11-13: the approved change giving the presenter its own rules (four briefs at once): four of the five changes to the team’s brief went in, the fifth was refused, and the other three briefs were not started; the four staged copies are for the user to place. The changes were sent as one batch, so the refusal did not stop the two after it.
 
 ## A name the scan bars is in a string a script prints
 
@@ -536,7 +537,7 @@ Since 2026-11-13 the internal-names list holds no exception for a library’s na
 ## A member's attempt to stop its own background process is refused
 
 ```json
-{"id":"p37","count":1,"last":"2026-11-13"}
+{"id":"p37","count":2,"last":"2026-11-13"}
 ```
 
 A member starts a long search or script in the background, finishes its job without it, and tries to stop it. The permission system refuses the stop, and the process keeps running after the member has reported. The team cannot stop it for the member: doing what a member was refused is the member's refusal carried around the permission system.
@@ -545,6 +546,7 @@ A member starts a long search or script in the background, finishes its job with
 - **Predicted:** the admin team, on meeting it, 2026-11-13.
 - **Encounters:**
   - 2026-11-13: the Archivist's first backlog run left a search over the ledger running (a pattern with two wide repeats on very long lines); its stop was refused as interfering with workloads. Put to the user at the console.
+  - 2026-11-13: the executor of a mirror-sync started an empty script in the background by mistake; its stop was refused, and the process was still running when it reported. Checked read only and told to the user at the console with its process ids.
 
 ## A push a grant covers is denied with [Git Destructive]
 

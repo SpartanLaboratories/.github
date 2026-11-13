@@ -44,7 +44,10 @@ planning documents, dashboards, publishing, the mirror.
 (the admin team's own brief included), `~/.claude/skills/*/`,
 `~/.claude/admin-team/PROTOCOL.md`, `~/.claude/nomenclature/`,
 `~/.claude/Structure-Policy.md` and `~/.claude/shared/`. They must
-agree with each other and with the decisions the user has made.
+agree with each other and with the decisions the user has made. The
+presenter's own rules among them are its to edit (`presenter.md`, Hard
+boundaries): you audit them with the rest, and edit only the team's setup in
+its brief (its modes, lanes and membership).
 
 ## Authority
 
