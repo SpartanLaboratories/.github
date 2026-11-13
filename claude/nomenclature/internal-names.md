@@ -14,14 +14,20 @@ flow) and [`levelrefs.js`](../skills/dashboards/system/scripts/levelrefs.js) (th
 which keep them off the boards.
 
 Only the user adds or changes a term in this file. A case for an exception to anything the list
-bars is brought to the user first.
+bars is brought to the user first: how the case is put, and how an exception the user grants is
+recorded, is in the admin team's brief ([`admin-team.md`](../agents/admin-team.md), "Internal
+names block a commit").
+
+A barred name in backticks counts in a document or a comment as it does anywhere else. A longer
+word that contains one, such as `RoutePlanner` or `ExecutorService`, is not a find.
 
 The list has four sections:
 
 1. **The pipeline's agents, sessions and roles.**
 2. **The approval flow.**
 3. **Work levels.**
-4. **Allowed**, the words that only resemble an entry above.
+4. **Allowed**, the words that only resemble an entry above, and the exceptions the user has made
+   a rule.
 
 ## 1. The pipeline's agents, sessions and roles
 

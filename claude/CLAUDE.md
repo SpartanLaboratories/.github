@@ -255,7 +255,8 @@ never refer to the approval flow, and never state a work level. The list, with w
 resembles an entry and is fine, is `~/.claude/nomenclature/internal-names.md`. The admin
 team scans documents, boards and source-code comments, every line of each file a commit
 carries (code itself is not scanned). A find blocks the `commit`, `prepare-landing` or `land` that carries it: the admin team commits nothing, names each
-`file:line`, and the requester rewords and resends; a find in a board the admin team generates
+`file:line`, and the requester rewords and resends, or resends asking for an exception, which the
+list says goes to me first; a find in a board the admin team generates
 is the team's to fix.
 
 ## Dashboards — state boards and work boards

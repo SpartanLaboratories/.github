@@ -65,7 +65,9 @@ at the start of a clause, which the board's work-level scrub reads as a work lev
 Carry the rule in every brief to an agent that writes a document. A `commit`, `prepare-landing` or `land` whose
 content breaks it (the document-landing commit of step 6 included) is blocked: the team commits nothing and
 replies `needs-rework` with `result.finds` (`file:line`); reword each find and resend the same
-`id` with `attempt + 1`.
+`id` with `attempt + 1`. With a reason to keep a find, resend it asking for an exception instead,
+which waits on the user as `needs-user` (`~/.claude/admin-team/PROTOCOL.md`, "Rules both sides
+keep").
 
 ## 1. Pick and size the issue
 

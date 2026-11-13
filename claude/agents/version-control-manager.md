@@ -248,7 +248,8 @@ naming its group. A section records what the user granted at the team's console
 **Internal-names scan.** Before a `commit`, a `prepare-landing` or a `land`
 commits anything, scan what you are about to commit for the pipeline's
 agents, sessions or roles, for the approval flow and for a work level, as
-`~/.claude/nomenclature/internal-names.md` lists them with what is not a find.
+`~/.claude/nomenclature/internal-names.md` lists them, with how they are matched
+and what is not a find.
 The scan covers documents and boards (everything under `docs/`, `README.md`,
 the generated board files and, in `SpartanLaboratories/.github`,
 `Structure.md`, `POLICY.md`, `DESIGN.md`, every file of the Policy and Design
@@ -258,7 +259,9 @@ code (line and block comments, KDoc), the scripts in that repository's
 `scripts/` among them, reading every line of each such file the commit
 carries, not only the changed lines; code
 itself (identifiers, strings) is not scanned. It applies to a `mirror-sync`
-that carries those files as to a `commit`. On a find, commit nothing: report
+that carries those files as to a `commit`. A find the team passes, by its
+`file:line` and text, in the prompt it spawns you with for this request, is not
+a find (`admin-team.md`, "Internal names block a commit"). On a find, commit nothing: report
 each `file:line` with the offending text under **Stopped — internal names**,
 and the team replies `needs-rework` or has its `presenter` reword a board it
 generated. Never reword a committed file yourself.

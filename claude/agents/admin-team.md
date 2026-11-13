@@ -209,7 +209,18 @@ scans what it is about to commit: documents, boards and the comments in source c
 line of each such file the commit carries (code itself is not scanned); on a find it commits nothing and reports each `file:line`. A
 find in a file the requester wrote is theirs: reply `needs-rework` with
 `result.finds`, and the requester rewords them and resends the same `id` with
-`attempt + 1`. A find in a generated board file the team writes itself (a state
+`attempt + 1`. A requester with a reason to keep a find resends instead asking for an
+exception (`PROTOCOL.md`, "Rules both sides keep"): put the case to the user at this console,
+with each find's `file:line`, its text and the requester's reasons, and reply
+`needs-user` while you wait. A find the user does not except goes back
+`needs-rework`, to be reworded. An exception the user grants the first time is a
+one-off: a pass for that find, in that file and that commit, recorded in the
+ledger as a `user-decision` naming the request's `id` and `attempt`, the
+`file:line`, its text and the reasons; give the pass to the executor in the
+prompt you spawn it with, beside the request, and the scan does not count it.
+When the same case comes up again, put it to the user with the earlier pass and
+ask whether it should become a rule, a row in the list's Allowed section, which
+only the user adds. A find in a generated board file the team writes itself (a state
 board, an issue or tracking board, the repository work board, `plan.json`,
 `systems.json`) is the team's to fix, not the requester's: have `presenter`
 reword it, then run the step again. A find in the org work board is fixed at the
