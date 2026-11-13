@@ -10,7 +10,7 @@ terms; the process lives in the briefs and in the reports.
 The list is read by the admin team's internal-names scan, which blocks a commit that carries a
 find, and by the dashboards skill's
 [`namerefs.js`](../skills/dashboards/system/scripts/namerefs.js) (the names and the approval
-flow) and [`levelrefs.js`](../skills/dashboards/system/scripts/levelrefs.js) (the work levels),
+flow) and [`levelrefs.js`](../skills/dashboards/system/scripts/levelrefs.js) (the grades),
 which keep them off the boards.
 
 Only the user adds or changes a term in this file. A case for an exception to anything the list
@@ -25,7 +25,7 @@ The list has four sections:
 
 1. **The pipeline's agents, sessions and roles.**
 2. **The approval flow.**
-3. **Work levels.**
+3. **Work grades.**
 4. **Allowed**, the words that only resemble an entry above, and the exceptions the user has made
    a rule.
 
@@ -37,7 +37,7 @@ known aliases. The aliases are what the scan matches.
 | Name | Aliases | What it is | Allowed when |
 |------|---------|------------|--------------|
 | **AdminTeam** | **admin team** | The long-lived session every other session sends requests to: version control, the boards, publishing and direction. | never |
-| **Planner** | **planner** | The agent that designs a feature or a fix, scaled to its work level. | never |
+| **Planner** | **planner** | The agent that designs a feature or a fix, scaled to its grade. | never |
 | **PlanWriter** | **plan-writer** | The agent that turns one system of a settled architecture into an implementation plan. | never |
 | **Architect** | **architect** | The agent that produces the grand design for a piece of work. | never |
 | **Researcher** | **researcher** | The agent that answers one research question and writes its findings file. | never |
@@ -52,7 +52,7 @@ known aliases. The aliases are what the scan matches.
 | **QA** | **qa** | The agent that runs the quality gate. Barred as an agent's name only. | the qa step, its passes and its data keys (section 4) |
 | **CodeReviewer** | **code-reviewer** | The agent that reviews a change set for correctness. | never |
 | **DocumentationReviewer** | **documentation-reviewer** | The agent that reviews code against the documentation standard. | never |
-| **TestInspector** | **test-inspector** | The agent that audits a change set against the testing hierarchy. | never |
+| **TestInspector** | **test-inspector** | The agent that audits a change set against the test sets. | never |
 
 ## 2. The approval flow
 
@@ -62,18 +62,17 @@ known aliases. The aliases are what the scan matches.
 | **"the user chose"** | A decision the user made. | never |
 | **"user answers"** | The user's answers to the pipeline's questions. | never |
 
-## 3. Work levels
+## 3. Work grades
 
 | Term | What it is | Allowed when |
 |------|------------|--------------|
-| **"level 3"** | A work level stated by its number ([`CLAUDE.md`](../CLAUDE.md), "Work levels"). | the project's own test levels, the documentation standard's maturity levels (section 4) |
-| **"a level-4 tracking issue"** | A work level stated of an issue or a unit. | never |
+| **"grade 3"** | A grade stated by its number ([`CLAUDE.md`](../CLAUDE.md), "Work grades"). | never |
+| **"a grade-4 tracking issue"** | A grade stated of an issue or a unit. | never |
+| **"the recorded grade"** | The word in any other form: "grade", "grades", "graded", "re-grade", "work grade", and a hyphenated compound such as "carrier-grade". | never |
 
 ## 4. Allowed
 
 | Term | What it is |
 |------|------------|
-| **The project's own test levels** | Level 2 component, 4a, …: the testing hierarchy's levels, never a work level. |
-| **The documentation standard's maturity levels** | Level 1, line comments; Level 2, KDoc contracts: never a work level. |
 | **"the implementer"** | Whoever builds the change. |
 | **The qa step, its passes and its data keys** | "Quality Review 2", the Quality Reviews tile. |

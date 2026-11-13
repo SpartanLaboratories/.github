@@ -538,7 +538,7 @@ Since 2026-11-13 the internal-names list holds no exception for a library’s na
 ## A member's attempt to stop its own background process is refused
 
 ```json
-{"id":"p37","count":2,"last":"2026-11-13"}
+{"id":"p37","count":3,"last":"2026-11-13"}
 ```
 
 A member starts a long search or script in the background, finishes its job without it, and tries to stop it. The permission system refuses the stop, and the process keeps running after the member has reported. The team cannot stop it for the member: doing what a member was refused is the member's refusal carried around the permission system.
@@ -548,6 +548,7 @@ A member starts a long search or script in the background, finishes its job with
 - **Encounters:**
   - 2026-11-13: the Archivist's first backlog run left a search over the ledger running (a pattern with two wide repeats on very long lines); its stop was refused as interfering with workloads. Put to the user at the console.
   - 2026-11-13: the executor of a mirror-sync started an empty script in the background by mistake; its stop was refused, and the process was still running when it reported. Checked read only and told to the user at the console with its process ids.
+  - 2026-11-13: the graphify manager’s code-only refresh of a second repository left a check command running in the background (it called python with no path, which hung); the member has no tool to stop it, so no stop was tried or refused. Checked read only and told to the user at the console with its process ids.
 
 ## A push a grant covers is denied with [Git Destructive]
 
