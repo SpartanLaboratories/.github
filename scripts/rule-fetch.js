@@ -22,13 +22,11 @@
 // Front matter is stripped from a printed file; --keep-front-matter keeps it.
 // Exit 0 when it printed what was asked (a retired id's replacement included); 1 for an id
 // nobody holds, or a register it cannot read; 2 when the variable is absent or a checkout it
-// needs is missing, with one line naming the checkout and the request that brings it.
+// needs is missing, with one line naming the checkout and what to do.
 
 const fs = require('fs');
 const path = require('path');
 const L = require('./rule-lib');
-
-const ASK = 'ask the admin team for the checkout with the policies-checkout request';
 
 function parseArgs(argv) {
   const a = { pointer: null, follow: false, where: null, old: null, list: false, policies: null, claude: null, keepFrontMatter: false, bad: [] };
@@ -64,9 +62,9 @@ function main(argv, deps = {}) {
     return 1;
   }
   const v = L.readVariable(L.POLICIES_VARIABLE, { env: deps.env, readStored: deps.readStored });
-  if (!a.policies && !v.value) { out(`${L.POLICIES_VARIABLE} is not set: there is no checkout of the organization repository; ${ASK}.`); return 2; }
+  if (!a.policies && !v.value) { out(`${L.POLICIES_VARIABLE} is not set: there is no checkout of the organization repository; set it to one.`); return 2; }
   const policies = path.resolve(a.policies || v.value);
-  if (!fs.existsSync(policies)) { out(`${policies}: the checkout of the organization repository is missing; ${ASK}.`); return 2; }
+  if (!fs.existsSync(policies)) { out(`${policies}: the checkout of the organization repository is missing; clone it there.`); return 2; }
   const claude = L.claudeRoot(a.claude, policies);
   const files = new L.Files();
   const sys = L.buildSystem({ policies, claude, standing: v.value ? path.resolve(v.value) : policies, files, env: deps.env, readStored: deps.readStored });
@@ -75,7 +73,7 @@ function main(argv, deps = {}) {
   for (const p of sys.places) for (const r of p.register.ids.retired) retired.set(L.idKey(r.id), r.by);
   const missing = () => {
     const repos = [...new Set(sys.notChecked.map(n => `${n.repo} (expected at ${n.checkout}, or where ${n.variable} says)`))];
-    return repos.length ? `the checkout of ${repos.join(', ')} is missing and may hold it; ${ASK} for it.` : null;
+    return repos.length ? `the checkout of ${repos.join(', ')} is missing and may hold it; clone it beside the organization repository's checkout.` : null;
   };
   const nameOf = (id) => { const it = sys.items.get(L.idKey(id)); return it ? `R-${L.idKey(id)} (${it.heading})` : `R-${L.idKey(id)}`; };
 

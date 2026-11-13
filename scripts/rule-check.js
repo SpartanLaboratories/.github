@@ -266,7 +266,9 @@ function check(ctx) {
     const current = files.exists(indexAbs) ? files.read(indexAbs) : null;
     const table = place.key === 'G' ? (ctx.oldTableText !== undefined ? ctx.oldTableText : L.readOldTable(current).text) : null;
     const want = renderIndex(sys, place, indexAbs, table);
-    if (current !== want) changes.push({ abs: indexAbs, place, kind: 'index', what: `${indexAbs}: out of date`, text: want });
+    // Line endings are not compared: a checkout may write the index with CRLF.
+    const lf = (t) => t.replace(/\r\n/g, '\n');
+    if (current === null || lf(current) !== lf(want)) changes.push({ abs: indexAbs, place, kind: 'index', what: `${indexAbs}: out of date`, text: want });
   }
 
   // ---- what --write would change, and where it may write: R-1010 (The checker)
@@ -665,7 +667,7 @@ function main(argv, deps = {}) {
   }
   const preFindings = [];
   const v = L.readVariable(L.POLICIES_VARIABLE, { env: deps.env, readStored: deps.readStored });
-  if (!v.value) preFindings.push(`${L.POLICIES_VARIABLE} is not set, in the process or as a stored user value; ask the admin team for the checkout with the policies-checkout request (Structure.md, The checker)`);
+  if (!v.value) preFindings.push(`${L.POLICIES_VARIABLE} is not set, in the process or as a stored user value; set it to a checkout of this repository (Structure.md, The checker)`);
   const standing = v.value ? path.resolve(v.value) : null;
   const policies = args.policies ? path.resolve(args.policies) : standing;
   if (!policies || !fs.existsSync(policies)) {
