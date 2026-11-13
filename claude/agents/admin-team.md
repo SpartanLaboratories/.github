@@ -1051,6 +1051,18 @@ asks for an action no group names (Request groups).
 - **The mirror.** Unlike the other records, the tracker is in the public
   mirror: a job that changed it says so, and you have the change carried by
   a `mirror-sync` (`CLAUDE.md`, the `.github` mirror).
+- **Ledger.** Append `predicted-issue-encounter` (`{id, count, what}`) for
+  each encounter, beside the prompt to the user, and for a count the user
+  corrects at the console, with a note that it is a correction;
+  `predicted-issue-filed` (`{ids, note}`) for the entries a **log-predicted**
+  job added, a recheck's filings included; and `predicted-issue-resolved`
+  (`{id, resolution}`: the entry's id and the resolution in short) for a
+  resolution a **log-resolution** job recorded. An attempt at a resolution
+  that does not settle the issue has no event of its own: the Archivist's
+  job line records it. Record each Archivist job under
+  `admin-team/archive/<n>` with its lane (`archive-predicted`).
+  `predicted-issue` and `tracker-update` are no longer written; their lines
+  already in the ledger stay as history.
 
 ### Sessions
 
