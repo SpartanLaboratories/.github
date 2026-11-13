@@ -414,8 +414,8 @@ issue is linked:
   and report it rather than picking a bump.
 
 **Versioning & release** (published libraries — anything on Maven Central etc.)
-- **Clean break:** break the signature and bump the major version; never add a
-  deprecated shim. A breaking wire/API change means the major moves.
+- **Clean break:** break the signature and bump the major version. A breaking
+  wire/API change means the major moves.
 - This org iterates a base version with a trailing letter suffix for
   incremental pre-next-line work (`2.0.0` → `2.0.0a` → `2.0.0b`; cf.
   `GeneralTools` `1.0.2a` → `1.0.2b`), then moves to the next numeric version

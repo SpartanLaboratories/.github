@@ -79,10 +79,8 @@ compile, identical published output). See "Testing" in the global `CLAUDE.md`.
 
 ### API evolution
 
-For published libraries (anything on Maven Central), prefer a clean break and a
-major bump over adding deprecated shims. Anything reachable by a consumer is
-public API: it gets Level-2 KDoc contracts and is governed by the repo's
-versioning rules.
+Anything reachable by a consumer is public API: it gets Level-2 KDoc contracts
+and is governed by the repo's versioning rules.
 
 ## How to work
 
