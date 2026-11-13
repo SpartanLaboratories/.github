@@ -361,7 +361,7 @@ batch the ones decided "open" into the next major release, where breaking change
 ## API documentation and project sites
 
 Every repository of the organization and its sub-organizations follows the standard in
-`documentation/dokka.md` of [`SpartanLaboratories/.github`](https://github.com/SpartanLaboratories/.github/blob/main/documentation/dokka.md):
+`policy/documentation/dokka.md` of [`SpartanLaboratories/.github`](https://github.com/SpartanLaboratories/.github/blob/main/policy/documentation/dokka.md):
 a Dokka javadoc jar for libraries, and a project site with a landing page for every repository,
 on GitHub Pages unless it is hosted elsewhere.
 
