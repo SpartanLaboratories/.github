@@ -58,7 +58,7 @@ known aliases. The aliases are what the scan matches.
 
 | Term | What it is | Allowed when |
 |------|------------|--------------|
-| **"level 3"** | A work level stated by its number ([`CLAUDE.md`](../CLAUDE.md), "Work levels"). | the project's own test levels (section 4) |
+| **"level 3"** | A work level stated by its number ([`CLAUDE.md`](../CLAUDE.md), "Work levels"). | the project's own test levels, the documentation standard's maturity levels (section 4) |
 | **"a level-4 tracking issue"** | A work level stated of an issue or a unit. | never |
 
 ## 4. Allowed
@@ -66,6 +66,7 @@ known aliases. The aliases are what the scan matches.
 | Term | What it is |
 |------|------------|
 | **The project's own test levels** | Level 2 component, 4a, …: the testing hierarchy's levels, never a work level. |
+| **The documentation standard's maturity levels** | Level 1, line comments; Level 2, KDoc contracts: never a work level. |
 | **"the implementer"** | Whoever builds the change. |
 | **A library's name that only coincides** | OkHttp's `RoutePlanner`, a Reactive Streams `Publisher`, a `java.util.concurrent.Executor`, a domain `verifier` in the code. |
 | **The qa step, its passes and its data keys** | "Quality Review 2", the Quality Reviews tile. |

@@ -512,3 +512,4 @@ The internal-names scan reads documents, boards and the comments in source code;
 - **Predicted:** the admin team, on encountering it, 2026-11-13.
 - **Encounters:**
   - 2026-11-13: the organization repository, the first commit of its structure files: two messages the checker and the fetch script print name the admin team (`scripts/rule-check.js:668`, `scripts/rule-fetch.js:31`). The files were the bytes the user had approved and the scan held no find, so the commit went out; the user was told at the console.
+  - 2026-11-13: the same messages: reworded at the user’s choice, in the commit that carried the checker’s line-ending fix (`054c0d7`): each says what to do without naming who does it. Not a second encounter.
