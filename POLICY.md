@@ -14,8 +14,10 @@ from one has a gap, which is recorded as an issue in that repository and closed 
 
 | Subject | Policy |
 |---------|--------|
+| Issues, branches, commits, pull requests and merges | [R-130 (Contributing to Spartan Labs Projects)](CONTRIBUTING.md) |
 | Documentation | [R-11 (Documentation levels)](policy/documentation/README.md) |
 | Testing | [R-12 (Testing — Named Test Sets)](policy/testing/README.md) |
+| Versions and stability | [R-25 (Versioning)](policy/version/README.md), [R-131 (Stability tiers)](policy/version/stability-tiers.md) |
 
 ## Conduct and security
 <!-- {"name":"Conduct and security","code":"P-C-CS","id":1015} -->

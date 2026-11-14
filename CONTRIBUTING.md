@@ -1,4 +1,5 @@
 # Contributing to Spartan Labs Projects
+<!-- {"name":"Contributing to Spartan Labs Projects","code":"P-H","id":130} -->
 
 This is the working agreement for every Spartan Labs repository, in both the
 [`SpartanLabsGaming`](https://github.com/SpartanLabsGaming) and
@@ -10,24 +11,26 @@ A repository may add its own `CONTRIBUTING.md` for technology-specific rules: co
 module layout, build and test commands, where its version lives, and how it publishes. That file
 **supplements** this baseline and links back to it; it does not restate or override it.
 
-- [Before you start](#before-you-start)
-- [Planning large work](#planning-large-work)
-- [Branching model](#branching-model)
-- [Commit messages](#commit-messages)
-- [Pull requests](#pull-requests)
-- [Merge strategy](#merge-strategy)
-- [Code, tests, and documentation](#code-tests-and-documentation)
-- [Versioning](#versioning)
-- [Deployment environments](#deployment-environments)
-- [Security](#security)
+- [R-1062 (Before you start)](#before-you-start)
+- [R-1063 (Planning large work)](#planning-large-work)
+- [R-1064 (Branching model)](#branching-model)
+- [R-1065 (Commit messages)](#commit-messages)
+- [R-1066 (Pull requests)](#pull-requests)
+- [R-1067 (Merge strategy)](#merge-strategy)
+- [R-1068 (Code, tests, and documentation)](#code-tests-and-documentation)
+- [R-25-P1 (Versioning)](#versioning)
+- [R-1069 (Deployment environments)](#deployment-environments)
+- [R-1070 (Security)](#security)
 
 ## Before you start
+<!-- {"name":"Before you start","code":"P-H-BS","id":1062} -->
 
 - Search existing issues and discussions before opening new work.
 - Use the repository's issue templates and describe the problem, expected outcome, and relevant
   context.
 
 ## Planning large work
+<!-- {"name":"Planning large work","code":"P-H-PL","id":1063} -->
 
 Every unit of work starts as an issue. When one design spans **more than one PR** (a roadmap
 phase, or a system of systems), it also gets a **tracking issue** above those issues. GitHub
@@ -72,6 +75,7 @@ closed → Done*, and *PR merged → Done*. A Project may include issues from ot
 when an initiative depends on them.
 
 ## Branching model
+<!-- {"name":"Branching model","code":"P-H-BM","id":1064} -->
 
 Trunk-based development. The default branch is always releasable and never receives direct
 commits — branch protection enforces this.
@@ -89,6 +93,7 @@ Branch off the latest default branch. Keep branches short-lived — hours to a c
 There is no `develop` branch and there are no per-environment branches.
 
 ## Commit messages
+<!-- {"name":"Commit messages","code":"P-H-CM","id":1065} -->
 
 [Conventional Commits](https://www.conventionalcommits.org/):
 
@@ -105,12 +110,13 @@ There is no `develop` branch and there are no per-environment branches.
 - **Breaking changes:** `feat(x)!:` in the subject **and** a `BREAKING CHANGE:` footer
 - Reference issues in the body (`Refs #2`); the PR that implements an issue closes it
   (`Closes #2`). Planning and doc PRs only reference it — see
-  [Planning large work](#planning-large-work)
+  [R-1063 (Planning large work)](#planning-large-work)
 
 Commits on your own branch may be rough — tidy them with an interactive rebase before the PR
 is ready for review.
 
 ## Pull requests
+<!-- {"name":"Pull requests","code":"P-H-PR","id":1066} -->
 
 Every change reaches the default branch through a PR. Even solo.
 
@@ -128,6 +134,7 @@ was validated, and call out breaking changes, migrations, and follow-up work. A 
 approving review becomes required once a second person is on the repository.
 
 ## Merge strategy
+<!-- {"name":"Merge strategy","code":"P-H-MS","id":1067} -->
 
 **Semi-linear history.** Rebase locally, merge publicly.
 
@@ -144,47 +151,22 @@ approving review becomes required once a second person is on the repository.
   ```
 
 ## Code, tests, and documentation
+<!-- {"name":"Code, tests, and documentation","code":"P-H-CT","id":1068} -->
 
-Follow the conventions established by the target repository. Add or update tests at the
-appropriate levels. Preserve compatibility unless a breaking change is intentional and
-documented. Update user-facing documentation — including the `README.md` — whenever the public
-behavior, API, build, or operational workflow changes.
+Follow the conventions established by the target repository. Add or update tests in the
+appropriate sets ([R-12 (Testing — Named Test Sets)](policy/testing/README.md)).
+Preserve compatibility unless a breaking change is intentional and documented. Update user-facing
+documentation ([R-11 (Documentation levels)](policy/documentation/README.md)) — including the
+`README.md` — whenever the public behavior, API, build, or operational workflow changes.
 
 ## Versioning
+<!-- {"name":"Versioning","code":"P-H-25-P1","id":"25-P1"} -->
 
-`Major.Feature.MinorChange`, optionally a trailing letter for a bug fix (e.g. `1.5.2a`). Each
-repository's `CONTRIBUTING.md` says where its version lives and which artifacts share it.
-
-| Change | Bump | Example |
-| --- | --- | --- |
-| `feat:` | Feature release | `1.9.0` → `1.10.0` |
-| `fix:` / `perf:` | MinorChange, or a trailing letter | `1.9.0` → `1.9.1` / `1.9.0a` |
-| `feat!:` / `BREAKING CHANGE:` | Major release | `1.9.0` → `2.0.0` |
-| `docs` / `chore` / `ci` / `test` / `build` / `refactor` | none — rides the next release | |
-
-### Lettered versions in dependency graphs
-
-Gradle orders a version with an extra non-numeric part *below* the same version without it:
-`1.5.2a` < `1.5.2` (Gradle's "Version ordering" rules). So when a dependency graph asks for both,
-Gradle's conflict resolution picks the plain release and silently drops the bug fix. Three rules
-keep lettered fixes effective:
-
-1. **A library pins a lettered version with `strictly`.** When a Spartan Labs library depends
-   on a lettered version of another Spartan Labs artifact, including a multi-module library's
-   umbrella on its own modules, it declares the pin with Gradle's `strictly`
-   (`version { strictly("1.5.2a") }`). The pin is then carried in the published Gradle Module
-   Metadata, cannot be out-ranked by a plain version elsewhere in a consumer's graph, and a
-   conflict fails the consumer's build instead of downgrading.
-2. **A consumer requests a lettered version with `strictly`** on its side, for the same reason.
-3. **Keep strict pins current.** Gradle warns that `strictly` in a library affects downstream
-   consumers: a graph that asks for a newer version of a strictly pinned module fails to resolve
-   until the library bumps its pin. Bump the pin in the next release after the pinned artifact
-   moves.
-
-A Maven POM carries no `strictly`; a Maven consumer gets the version its own declaration names
-and must request a lettered version explicitly.
+The version scheme, and how a lettered version is pinned in a dependency graph, are
+[R-25 (Versioning)](policy/version/README.md).
 
 ## Deployment environments
+<!-- {"name":"Deployment environments","code":"P-H-DE","id":1069} -->
 
 Environments (dev / staging / production) are **GitHub Environments**, never branches. A
 release is one immutable tagged artifact promoted from one environment to the next; only
@@ -193,6 +175,7 @@ registry is production, and a `-SNAPSHOT` publish from the default branch is the
 analogue for downstream projects.
 
 ## Security
+<!-- {"name":"Security","code":"P-H-SE","id":1070} -->
 
 Do not report vulnerabilities in public issues. Follow the repository's `SECURITY.md` policy or
 contact <spartaksingh95@gmail.com>.

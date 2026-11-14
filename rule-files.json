@@ -29,6 +29,11 @@
         "POLICY.md": { "sections": {
           "What a policy is": "WP", "The policies": "PO", "Conduct and security": "CS"
         } },
+        "CONTRIBUTING.md": { "segment": "H", "sections": {
+          "Before you start": "BS", "Planning large work": "PL", "Branching model": "BM",
+          "Commit messages": "CM", "Pull requests": "PR", "Merge strategy": "MS",
+          "Code, tests, and documentation": "CT", "Deployment environments": "DE", "Security": "SE"
+        } },
         "policy/documentation/dokka.md": { "segment": "DK", "sections": {
           "What each repository has": "WR", "Generating the documentation": "GD", "The javadoc jar": "JJ",
           "Continuous integration": "CI", "The site": "SI", "Branding": "BR"
@@ -40,17 +45,24 @@
         "policy/testing/README.md": { "sections": {
           "Run only the tests that exercise the change": "RO", "The seven sets": "ST",
           "Separate each set by folder / package": "SF"
+        } },
+        "policy/version/README.md": { "sections": {
+          "The scheme": "SC", "Lettered versions in dependency graphs": "LV"
+        } },
+        "policy/version/stability-tiers.md": { "segment": "ST", "sections": {
+          "Three tiers": "TT", "Retroactive changes to already-closed surfaces": "RC"
         } }
       },
       "folders": {
         "policy/documentation": { "segment": "D" },
-        "policy/testing": { "segment": "T" }
+        "policy/testing": { "segment": "T" },
+        "policy/version": { "segment": "V" }
       }
     }
   },
   "notConverted": [],
   "ids": {
-    "marks": { "1": 2, "2": 12, "3": 105, "4": 1032, "5": 10004 },
+    "marks": { "1": 2, "2": 25, "3": 131, "4": 1074, "5": 10029 },
     "retired": [
       { "id": 105, "by": 11 },
       { "id": 1022, "by": 1028 },
