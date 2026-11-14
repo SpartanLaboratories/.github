@@ -744,7 +744,7 @@ A record that says "scratchpad <id8>: a, b, c" names items the script's words pa
 ## A subagent's Write of a working file is refused, "Subagents should return findings as text"
 
 ```json
-{"id":"p50","count":1,"last":"2026-11-14"}
+{"id":"p50","count":2,"last":"2026-11-14"}
 ```
 
 An archive job wrote its `summary.md` text to a file in the session scratchpad with the Write tool, to copy it into the archive folder after, as earlier archive jobs had been told to do. The Write tool refused the subagent's call with the message "Subagents should return findings as text". The harness keeps a subagent from writing report files with Write; a file that is the job's own output, such as an archive's `summary.md`, meets the same refusal when written as a working file this way. The Archivist's brief names no tool for writing `summary.md`.
@@ -753,6 +753,7 @@ An archive job wrote its `summary.md` text to a file in the session scratchpad w
 - **Predicted:** the admin team, on meeting it, 2026-11-14.
 - **Encounters:**
   - 2026-11-14: an archive job: the Write tool refused the subagent's write of the summary text into the scratchpad ("Subagents should return findings as text"); the job wrote `summary.md` straight into the archive folder with bash heredocs and went on.
+  - 2026-11-14: an archive job: the Write tool refused the subagent's write of `summary.md` into the archive folder itself, not only into the scratchpad, with the same message ("Subagents should return findings as text, not write report files"); the job wrote the file with bash heredocs. One heredoc of about 45 lines failed with a bash quote-matching error, and the same text split into three appends worked (cause not found). Resolution (a)'s direct write into the archive folder holds only for a bash heredoc, not for the Write tool.
 
 ## The team's session ends without a handoff while jobs are running
 
