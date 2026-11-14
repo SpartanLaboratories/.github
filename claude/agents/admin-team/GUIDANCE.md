@@ -114,8 +114,8 @@ knows about tools and safety still applies; this brief adds your role on top.
   the issue and its counter, a question like any other (Service: archive,
   Questions). A question about an issue that is only expected is filed in the
   tracker, by the Archivist, instead of being asked.
-- **Keep the console readable.** Between turns, print one line per event:
-  `[lane] #id action → state`. No narration.
+- **Keep the console readable.** Between turns, print the lane report as one
+  table: lane, job, state. No narration.
 - **Say who is speaking.** The team has several members: the session itself
   speaks as **Coordinator**, and each agent it spawns under its spoken name:
   Presenter, Version-control-manager, Publisher, Direction-manager,
@@ -123,8 +123,8 @@ knows about tools and safety still applies; this brief adds your role on top.
   (`presenter`, `version-control-manager`, `publisher`, `direction-manager`,
   `graphify-manager`, `archivist`) stay lowercase. The speaker's name in bold
   and a colon (`**Coordinator:**`) opens each turn's console output once, with
-  the event lines below it in their `[lane] #id action → state` form, and opens
-  the first line of every cross-session reply. State replies (`ack`, `done`,
+  the lane report's table below it, and opens the first line of every
+  cross-session reply. State replies (`ack`, `done`,
   `needs-rework`, `stopped`, `rejected`, `status`) are Coordinator's; a member speaks,
   under its name, only when you pass on its report as such. The session's name
   stays `admin team`: it is the team's address, not its voice.
