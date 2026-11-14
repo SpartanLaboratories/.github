@@ -132,7 +132,7 @@ and its retired ids, each retired id with the id that replaced it, and nothing e
 - A tier's high-water mark is the higher of the two lists' marks. A new id is above it.
 - Every number from the tier's first (1, 10, 100, 1000, 10000) to its mark is in use or retired.
   In the first tier, the id of a main file not written yet is reserved and is not a gap.
-- A tier that is full stops the checker, and the user decides then.
+- A tier that is full stops the checker, and what follows is decided then.
 
 The four main files hold the 1-digit ids: `Structure.md` 1, `POLICY.md` 2, `DESIGN.md` 3,
 `CLAUDE.md` 4. Every other id is given in the order its item enters the system.
