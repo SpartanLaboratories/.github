@@ -156,8 +156,9 @@ approving review becomes required once a second person is on the repository.
 Follow the conventions established by the target repository. Add or update tests in the
 appropriate sets ([R-12 (Testing — Named Test Sets)](policy/testing/README.md)).
 Preserve compatibility unless a breaking change is intentional and documented. Update user-facing
-documentation ([R-11 (Documentation levels)](policy/documentation/README.md)) — including the
-`README.md` — whenever the public behavior, API, build, or operational workflow changes.
+documentation ([R-11 (Documentation levels)](policy/documentation/README.md)) whenever the public
+behavior, API, build, or operational workflow changes. The `README.md` follows
+[R-135 (READMEs and CHANGELOGs)](policy/documentation/readme-changelog.md).
 
 ## Versioning
 <!-- {"name":"Versioning","code":"P-H-25-P1","id":"25-P1"} -->

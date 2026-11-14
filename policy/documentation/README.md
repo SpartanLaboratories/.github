@@ -36,6 +36,7 @@ Issue and pull-request text is the tracker's record and sits at no level.
 <!-- {"name":"In-editor navigation and maintenance","code":"P-D-IN-1","id":10000} -->
 
 - Long files are grouped with `//region` / `//endregion`.
+- Imports are grouped as [R-137 (Commenting)](commenting.md) sets out.
 - A `// TODO:` or `// FIXME:` says what is to be done, and ideally references the issue tracker.
 - Hand-aligned blocks sit between `@formatter:off` and `@formatter:on`.
 - A string literal in an embedded language (SQL, GLSL, JSON, a regular expression, a shader)
@@ -91,13 +92,15 @@ Dokka generates the API reference from the KDoc of level 1. The reference follow
 <!-- {"name":"Level 3: the landing page","code":"P-D-LP","id":1031} -->
 
 The project site's hand-written landing page follows [R-104 (Dokka and project sites)](dokka.md).
-A landing page, a README or a plan's `consequences.md` can present the KDoc's prose rather than the
-source.
+READMEs and CHANGELOGs follow [R-135 (READMEs and CHANGELOGs)](readme-changelog.md). Plan documents
+follow [R-138 (Planning documents)](planning-documents.md). A landing page, a README or a plan's
+`consequences.md` can present the KDoc's prose rather than the source.
 
 ## Level 4: boards
 <!-- {"name":"Level 4: boards","code":"P-D-BO","id":1032} -->
 
-System topology is modelled as code with Structurizr (the C4 model).
+System topology is modelled as code with Structurizr (the C4 model). The role of the boards as
+documentation is [R-136 (Boards as documentation)](boards.md).
 
 ## What the standard does not ask for
 <!-- {"name":"What the standard does not ask for","code":"P-D-NA","id":1024,"pointerMark":1} -->
