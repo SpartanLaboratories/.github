@@ -11,8 +11,10 @@
 // that arrived while the session was busy is stored as an attachment record of
 // type queued_command, not as a user record, and is read with the rest, in
 // transcript order. For remains, which have no transcript, it holds a listing
-// of the folder and the subagents' final reports. Refuses a running, held or
-// foreign session.
+// of the folder and the subagents' final reports. meta.json's
+// remoteControlLinks holds the session's Remote Control links, the url of each
+// bridge_status record, each once, in transcript order: [] for a session that
+// has none, null for remains. Refuses a running, held or foreign session.
 
 'use strict';
 const fs = require('fs');
@@ -64,6 +66,16 @@ function inputEntry(ts, t, origin, typed, counts) {
   if (t.includes('<task-notification')) { counts.taskNotifications++; return `### ${ts} Task notification\n\n${t}\n`; }
   if (kind === 'human' || typed) { counts.userTyped++; return `### ${ts} User\n\n${t}\n`; }
   return null;
+}
+
+// The session's Remote Control links: the url of each bridge_status record,
+// each once, in transcript order.
+function remoteControlLinks(records) {
+  const out = [];
+  for (const r of records) {
+    if (r.type === 'system' && r.subtype === 'bridge_status' && typeof r.url === 'string' && r.url && !out.includes(r.url)) out.push(r.url);
+  }
+  return out;
 }
 
 function extractSession(P, id, transcript) {
@@ -144,6 +156,7 @@ function main() {
     meta.transcriptBytes = fs.statSync(t).size;
     meta.transcriptSha256 = L.sha256File(t);
     meta.records = e.records.length;
+    meta.remoteControlLinks = remoteControlLinks(e.records);
     meta.counts = e.counts;
   } else {
     const listing = [];
@@ -155,7 +168,7 @@ function main() {
       else listing.push(`- ${path.relative(folderPath, cur).replace(/\\/g, '/')} (${st.size} bytes)`);
     }
     body = `# Remains — ${sid}\n\nNo transcript is left. Last change ${row.to}.\n\n## What the folder holds\n\n${listing.sort().join('\n')}\n`;
-    meta.transcriptBytes = null; meta.transcriptSha256 = null;
+    meta.transcriptBytes = null; meta.transcriptSha256 = null; meta.remoteControlLinks = null;
     meta.counts = { files: listing.length };
   }
   if (subs.length) {
@@ -171,4 +184,4 @@ function main() {
 }
 
 if (require.main === module) process.exitCode = main();
-module.exports = { extractSession };
+module.exports = { extractSession, remoteControlLinks };

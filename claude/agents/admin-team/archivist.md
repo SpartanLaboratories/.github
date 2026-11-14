@@ -299,7 +299,8 @@ points at:
   - `summary.md`, yours (**archive**, step 3), with an `## Open points` and
     a `## Relevant to a current session` heading.
   - `meta.json`: the extraction's counts, the transcript's size and sha256,
-    the stores and their sizes.
+    the session's Remote Control links (`remoteControlLinks`), the stores
+    and their sizes.
 - `sessions/wrapped-<k>/<nnnn>.md`, a session of tier `k`: tier 1 is
   **wrapped**, tier 2 **double-wrapped**, and so on.
 - `scratch/<id>/`: what an open record points at in that session's
@@ -358,7 +359,8 @@ scratchpad, task outputs and pasted images in the temp folder, with a spent
 commit message (`msg.txt`) or a verification run's log (`verify-full.log`)
 left loose beside them, once what an open record points at is copied into the
 archive. Its lines in `~/.claude/history.jsonl` stay, and so does its Remote
-Control entry on claude.ai, which the user removes in the app.
+Control entry on claude.ai, which the user removes in the app; the entry's
+link stays in the session's `meta.json` (`remoteControlLinks`).
 
 **What an open record points at.** Whatever, in that session's scratchpad or
 task outputs, is named by a line of the ledger, `state.json`, an open
@@ -610,9 +612,12 @@ The scripts are in `~/.claude/admin-team/archivist/`.
    asking the user, once steps 1 to 6 have passed. It checks everything
    again itself, removes the five stores, and prints what it removed; record
    that with `archive.js record-deletion`, and report the session's Remote
-   Control entry as left standing (**What a deletion removes**), named by
-   the session's title and span in `meta.json`; for remains, which hold no
-   title, say so. When your prompt says the deletion is held, stop before
+   Control entry as left standing (**What a deletion removes**), by its link
+   in `meta.json`, each link `remoteControlLinks` lists, with the session's
+   title and span. When `meta.json` lists no link or has no
+   `remoteControlLinks`, and for remains, which hold neither link nor title,
+   name it by what `meta.json` holds of its title and span, and say what it
+   lacks. When your prompt says the deletion is held, stop before
    this step and report the session ready, with its stores and their sizes.
    `--all-ready` is the user's own route, never yours.
 8. **Tiers.** `archive.js plan`, and each wrap due, oldest first:
@@ -673,8 +678,9 @@ call and the reason, and try no other route.
   mirror-sync.
 - **Sessions** (sweep, archive): each session with its class; for archive
   the folder, the verification, the scratchpad items copied and described,
-  what was removed and its size, each Remote Control entry left standing
-  (step 7), the wraps done, and what the ledger lacked;
+  what was removed and its size, each Remote Control entry left standing,
+  by its link or, without one, by its title and span (step 7), the wraps
+  done, and what the ledger lacked;
   for sweep the orphans removed and left.
 - **For other lanes**: each write a job needs to another of your records
   (**How you are invoked**), with the facts its mode needs and the lane it

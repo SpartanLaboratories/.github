@@ -589,7 +589,7 @@ solid). The lede says only what to click.
 last time it changed; each class `{class, module, testSet, path, tests, rows, stage, result}` — `class` its (fully qualified) name,
 `module` its module, `testSet` its test set by its name, one of `gating` `component` `integration` `deterministic` `e2e` `nonfunctional`
 `uat` (or absent: then the set folder its path or package names, `testing.<segment>`, else no set; a set's old number sent instead of its
-name is read as its set; a value that is neither is not read, the class then takes the level its path or package names, and is named for
+name is read as its set; a value that is neither is not read, the class then takes the set its path or package names, and is named for
 the presenter (`enrich: yes`)), `tests` its test count, `rows` the ids of the board Rows it verifies, `stage` the implementation
 stage that added or changed it, `result` `{state, passed, failed, skipped, pass, at, note}` its latest run (`state` `passed` · `failed` ·
 `skipped` · `not-run`; `pass` the qa pass; `note`, optional, what the result means where its state alone would mislead, such as a failure the

@@ -67,7 +67,14 @@ function transcript(id, day, team, extra) {
   put(path.join(ROOT, 'file-history', id, 'v1'), 'old file');
   fs.mkdirSync(path.join(ROOT, 'session-env', id), { recursive: true });
 }
-transcript(S.s1, '01', true); transcript(S.s2, '02', true); transcript(S.s3, '03', true);
+// S3 holds Remote Control records as a team transcript does: a bridge-session
+// record repeated, and a bridge_status record per link; one link twice.
+const RC1 = 'https://claude.ai/code/session_fixtureLinkA'; const RC2 = 'https://claude.ai/code/session_fixtureLinkB';
+const rcStatus = (h, url) => ({ type: 'system', subtype: 'bridge_status', content: `/remote-control is active · ${url}`, url, isMeta: false, timestamp: `2026-11-03T${h}:00:00.000Z` });
+transcript(S.s1, '01', true); transcript(S.s2, '02', true);
+transcript(S.s3, '03', true, [{ type: 'bridge-session', bridgeSessionId: 'cse_fixtureLinkA', lastSequenceNum: 0 }, rcStatus('10', RC1),
+  { type: 'bridge-session', bridgeSessionId: 'cse_fixtureLinkA', lastSequenceNum: 0 }, rcStatus('11', RC1), rcStatus('12', RC2),
+  { type: 'system', subtype: 'bridge_status', content: 'no link', timestamp: '2026-11-03T12:30:00.000Z' }]);
 transcript(S.kept, '10', true); transcript(S.run, '12', true); transcript(S.held, '05', true);
 transcript(S.foreign, '04', false); transcript(S.fresh, '06', true);
 for (const m of [S.m1, S.m2]) { put(path.join(PROJECT, m, 'subagents', 'agent-b.meta.json'), '{"agentType":"planner"}'); put(path.join(PROJECT, m, 'tool-results', 'x.txt'), 'x'); fs.mkdirSync(path.join(ROOT, 'session-env', m), { recursive: true }); }
@@ -198,6 +205,9 @@ ok(run('extract-session.js', [S.orphan, base('z')]).code === 1, 'extract: refuse
 const BM = base(`2026-10-01-${S.m1.slice(0, 8)}`);
 r = run('extract-session.js', [S.m1, BM]);
 ok(r.code === 0 && fs.readFileSync(path.join(BM, 'conversation.md'), 'utf8').includes('tool-results/x.txt'), 'extract: remains get a listing of their folder');
+const metaOf = f => JSON.parse(fs.readFileSync(path.join(f, 'meta.json'), 'utf8'));
+ok(Array.isArray(metaOf(B1).remoteControlLinks) && metaOf(B1).remoteControlLinks.length === 0, 'extract: a session with no Remote Control record has no link');
+ok(metaOf(BM).remoteControlLinks === null, 'extract: remains have no Remote Control link to read');
 
 // Input that arrived while the session was busy: queued_command attachments,
 // read in transcript order with the rest. A transcript outside the project
@@ -405,6 +415,10 @@ ok(r.code === 0 && !exists(path.join(PROJECT, S.m1)) && !exists(path.join(HASH, 
 const B3 = base(`2026-11-03-${S.s3.slice(0, 8)}`);
 const BM2 = base(`2026-10-02-${S.m2.slice(0, 8)}`);
 run('extract-session.js', [S.s3, B3]); put(path.join(B3, 'summary.md'), '2026-11-03' + HEADS);
+const m3 = JSON.parse(fs.readFileSync(path.join(B3, 'meta.json'), 'utf8'));
+ok(JSON.stringify(m3.remoteControlLinks) === JSON.stringify([RC1, RC2]), 'extract: meta.json holds each Remote Control link once, in transcript order');
+ok(m3.from === '2026-11-03T10:00:00.000Z' && m3.to === '2026-11-03T14:00:00.000Z' && m3.counts.team === 2 && m3.counts.toolCalls === 3, 'extract: Remote Control records change neither the span nor the counts');
+ok(!fs.readFileSync(path.join(B3, 'conversation.md'), 'utf8').includes('fixtureLink'), 'extract: the links stay out of conversation.md');
 run('extract-session.js', [S.m2, BM2]); put(path.join(BM2, 'summary.md'), new Date(Date.now() - 3600e3).toISOString().slice(0, 10) + HEADS);
 run('scratch-copy.js', [S.s3, '--copy']); run('archive.js', ['index', B3]); run('archive.js', ['index', BM2]);
 ageTree(path.join(DIR, 'home'), 3600e3); ageTree(path.join(DIR, 'tmp'), 3600e3);
