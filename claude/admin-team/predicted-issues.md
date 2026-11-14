@@ -139,7 +139,7 @@ The permission system raises the denial.
 ## An encountered issue is not in this tracker
 
 ```json
-{"id":"p9","count":15,"last":"2026-11-14"}
+{"id":"p9","count":16,"last":"2026-11-14"}
 ```
 
 - **Proposed resolution:** add it as a new entry with count 1, then prompt the
@@ -189,6 +189,10 @@ The permission system raises the denial.
     behind its plan-accepted was still writing the rows' verdicts, and the board's check
     failed; added as "A stage-end event arrives before the fill behind plan-accepted has
     written the verdicts".
+  - 2026-11-14: a direction manager's read-only PowerShell read of a user-level environment
+    variable was refused by the auto mode classifier as "[Undermining Oversight]", a case none
+    of the entries for refused reads holds; added as "A read-only PowerShell read of the
+    machine's configuration is refused as [Undermining Oversight]".
 
 ## A count changes in this mirrored file
 
@@ -875,3 +879,35 @@ A run's `plan-accepted` is applied on the fast path at once, and the fill behind
 - **Predicted:** the admin team, on meeting it, 2026-11-14.
 - **Encounters:**
   - 2026-11-14: a run's `plan-accepted` was applied on the fast path at 07:09Z and its fill started in a fill lane; the branch-cut applied at 07:10Z; the implementer's first stage ended at 07:13:03Z and its implementation-stage event arrived at 07:13:45Z, with the fill still running. The check failed on six rows lacking a verdict; the event was not applied and the board stayed at status planned with the first stage current. The Coordinator held that event, and the next stage's end which arrived a minute later, to raise them again in order, with their own times, once the fill has finished; step-complete events kept applying, one for a stage not yet current kept for it. The run was told its events wait and need no resend.
+
+## A read-only PowerShell read of the machine's configuration is refused as [Undermining Oversight]
+
+```json
+{"id":"p59","count":2,"last":"2026-11-14"}
+```
+
+A member, or the Coordinator itself, makes one read-only PowerShell call to learn a fact about the machine's own setup (a user-level environment variable, the installed desktop app's package and start-menu entry), and the session's auto mode classifier refuses it, giving the reason "[Undermining Oversight]". It is neither a query of the running processes (the entry "A read-only query of the running processes is denied"), nor an edit of the team's own files (the entry "An edit of the team's own files is refused as [Self-Modification]"), nor a search of the Claude Code binary (the entry "A read-only search of the Claude Code binary is refused as [Undermining Oversight]"), though it draws the same reason as the last. Both encounters are kept in one entry: the same kind of call, a read-only PowerShell read of the machine's configuration, drew the same reason. Not checked: what in each call drew the refusal, and whether the same read by another route (the shell's own variable, a file read) is reliably allowed.
+
+- **Proposed resolution:** as practised on the encounters: the one whose call is refused stops, tries no other route and reports the call and the reason, and the user is told at the console. No standing route is decided; the user decided "no standing rule" for the search of the binary (the entry "A read-only search of the Claude Code binary is refused as [Undermining Oversight]"), which does not reach this case on its own.
+- **Predicted:** the admin team, on meeting it, 2026-11-14.
+- **Encounters:**
+  - 2026-11-14: a direction manager's job in the rule rework made one read-only PowerShell call reading the user-level value of `SPARTAN_ORG_POLICIES`; the classifier refused it as "[Undermining Oversight]". The job did not need it (the shell variable was set) and tried no other route; its report names the refusal.
+  - 2026-11-14: the Coordinator's own call ran PowerShell `Get-AppxPackage` and `Get-StartApps`, filtered on the desktop app's name and read only, to learn its package name, install location and start-menu id for a script the user had asked for; the classifier refused it as "[Undermining Oversight]". The Coordinator tried no other route; the fact was not needed in the end.
+
+## A commit that carries a landed document or a closed board holding a phrase the widened internal-names list now lists is blocked by the scan
+
+```json
+{"id":"p60","count":0,"last":null}
+```
+
+Section 2 of the internal-names list, the approval flow, was widened on 2026-11-14 to every form the boards' scan matches, and the commit scan reads every line of each file a commit carries. A file that landed before the widening and holds such a phrase therefore stops the next commit that carries it, though none is in a commit yet. Known holders:
+
+- Three closed WebTools boards carry "it is signed off by the user" in their embedded renderer: `docs/plans/38-handshake-empty-name/dashboard.html:2394`, `docs/plans/55-http-client-stack/47-java-23-bytecode/dashboard.html:1807`, `docs/plans/55-http-client-stack/61-build-logic/dashboard.html:2427` (WebTools `master` at `b62e2af`; the three issues closed, the boards kept as they closed). A later commit that carries one of them again, a re-embed or a seeded copy, would be blocked on that line.
+- The dashboards skill's example board (`skills/dashboards/plan/examples/38-handshake-empty-name/dashboard.html:3265`) and template snapshots under `skills/dashboards/verify/history/dashboard/` hold the same sentence: 15 of them read on 2026-11-14, where the report that found them counted 16.
+- Landed documents with finds under the widened list, counted when the list was drafted: in MyGameTools #77's landed documents, 36 new finds and 9 that were finds already.
+
+- **Resolution (decided by the user at the console, 2026-11-14, "a", to point D, landed documents with finds, of the question on the widened list):** a find in a landed document takes the existing exception route: a one-off pass from the user the first time it blocks, and a question about a standing row if it recurs; no new rule (the entry "A library’s own name that matches a barred name stops a commit" holds that route). A rewording sweep and a new Allowed row were not chosen.
+- **Not settled (a closed board the team itself generates):** the decision names landed documents. For a closed board, two rules meet: a find in a board the team generates is the team's to fix, and a closed board is kept as it closed. Which gives way is the user's choice when it is first met; nothing is decided here.
+- **Predicted:** the admin team, on widening the list, 2026-11-14.
+- **Encounters:**
+  - None yet.
