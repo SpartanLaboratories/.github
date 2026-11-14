@@ -19,10 +19,10 @@ or `gh` command that writes, and you never spawn `version-control-manager` yours
 
 ## 1. Find the team
 
-Call `ListAgents`. The team is the peer row named **`admin team`**; which row
-it is when more than one carries the name, the address you send to then, and
-when it counts as not listed are `PROTOCOL.md`, "Finding the team". If it is
-listed, go to step 3.
+Read the live session records in `~/.claude/sessions/`. Which record is the
+team's, the address you send to, read from that record, and when the team
+counts as not listed (step 2) are `PROTOCOL.md`, "Finding the team". If you
+find it, go to step 3.
 
 ## 2. Launch it if it is not listed
 
@@ -124,7 +124,8 @@ send is not yours; ignore it.
 
 ## 6. Subagents
 
-A subagent sends under its parent session's address, and the reply lands in
+A subagent has no `ListAgents`: it finds the team by its record, as step 1
+says. It sends under its parent session's address, and the reply lands in
 the parent's conversation, not the subagent's. So a subagent that needs a
 result (a worktree path, say) asks its caller to request it; a subagent whose
 request needs no answer (the planner's research `commit`) sends it and goes

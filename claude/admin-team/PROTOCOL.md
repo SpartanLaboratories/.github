@@ -6,9 +6,10 @@ answers. Both sides read this file. The `admin-team` skill wraps the sending sid
 
 ## Finding the team
 
-- `ListAgents` lists the session as `admin team`. Send with `SendMessage(to: "admin team")`.
-- When it lists more than one row named `admin team`, the team is the one that is not
-  `offline`: send with `SendMessage(to: "admin team [<ref>]")`, the ref read from that listing.
+- The team is the session whose live record in `~/.claude/sessions/` (`<pid>.json`) has
+  `agent` `admin-team`. Send to that session's own address, read from its record, never to its
+  name: `SendMessage(to: "uds:<messagingSocketPath>")`, with the record's
+  `messagingSocketPath`. A subagent, which has no `ListAgents`, finds the team the same way.
 - If no row named `admin team` is listed, or every one is `offline`, run
   `~/.claude/admin-team/launch.cmd` (the `admin-team` skill does this under a launch lock) and
   wait until one that is not `offline` is listed. Never do version control yourself instead.

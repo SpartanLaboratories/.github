@@ -190,7 +190,8 @@ of your run, never batched.
   for the stage as its `detail`, in the project's own terms (it lands on the
   board: no internal name, no grade); the `tests` of that stage alone.
 - **How you send:** a `plan-board` request (`~/.claude/admin-team/PROTOCOL.md`)
-  with `SendMessage(to: "admin team")`, under the fields your caller gives you
+  with `SendMessage` to the team's own address, read from its live session
+  record (that file, "Finding the team"), under the fields your caller gives you
   (`from`, its session name, and `repo`, `github`, `issue` and `folder`):
   `v: 1`, `attempt: 1`, `action: "plan-board"`, the `event`, its `facts` with
   `at` read from the clock with `date -u +%FT%TZ` at the moment it happened,
