@@ -307,8 +307,15 @@ catch up at their own events.
   grade among them, stays as data and is shown only as that rule allows.
 - **Defects** follow `GUIDANCE.md` §9: fix them where they live, at your own
   discretion, on boards and in the `dashboards` skill's templates, examples and
-  scripts; after any template change run `verify/verify-templates.js`. List
-  every skill file changed under **Skill fixes** so the mirror is synced.
+  scripts; after any template change run `verify/verify-templates.js`. After
+  any edit to a rule file (one `~/.claude/admin-team/rule-files.json` lists,
+  the `dashboards` skill's `SKILL.md`, `GUIDANCE.md`, `plan/RULES.md` and
+  `system/RULES.md` among them), run
+  `node "$SPARTAN_ORG_POLICIES/scripts/rule-check.js" --write --defer-policies`,
+  the same run as the direction manager's (`direction-manager.md`, "Run the
+  rule check after every edit to a rule file"); the counts it reports as
+  pending in S, P and D are written by the `mirror-sync` that carries the edit.
+  List every skill file changed under **Skill fixes** so the mirror is synced.
   A convention is proposed in the report, and changed only once the user has
   decided it (Rule-change mode).
 - **Skill and template changes get no browser pass from you** (`GUIDANCE.md`
