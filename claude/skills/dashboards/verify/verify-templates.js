@@ -65,7 +65,7 @@
 // it rebuilt on demand from the mirror's git history (system/scripts/history.js; the case groups read the old versions through it too, from a
 // local clone with --history-repo, else through gh api), and the splice's warning and two-way fallback when nothing matches. And the decisions
 // of dashboards-skill/28 (verify/cases-28.js): the Timeline tile's figure the sum of its phases, an issue's title quoted verbatim and one naming
-// a work level flagged (ISSUE TITLE NAMES A WORK LEVEL: #n) on every type, NO ROWS AT RESEARCH, each unit row's label glowing on its own while
+// a grade, or its old name, flagged (ISSUE TITLE NAMES A GRADE: #n) on every type, NO ROWS AT RESEARCH, each unit row's label glowing on its own while
 // it is filed and its board created, and this run's feature probes. And the defects of dashboards-skill/29 (verify/cases-29.js): splice.js
 // onto the recorded verified version (--verified) and a cached version as --template keeping its template's history, apply-state.js keeping
 // a verbatim lastAmended.title, and a planned supersystem's card linking its built parts' board. And the repository work board's columns of
@@ -394,9 +394,9 @@ targets.filter(t => t.block === "plan").forEach(t => {
       ic.push(["a tracking board shows the initiative's planned impact as solid cards with no standing pill, and a unit entry whose title opens the unit's board", !/planned impact/.test(p) && !/icard[^"]*planned/.test(p) && /class="bcard icard"/.test(p) && /<h3>Units/.test(p) && p.includes(`/issues/${bu.unit.issue}"`) && p.includes(`href="${bu.unit.board}"`), p.slice(0, 300)]); } }
   { const d = JSON.parse(JSON.stringify(ex)); d.notes = { ...d.notes, sizing: "Verification case: a level-3 change (#61, level 3), shown as L3." };
     const dir = page("38-levels", d), c = node(checkJs, dir, "--root", iScratch);
-    ic.push(["check.js fails a board whose text names a work level", c.status === 1 && /shows a work level/.test(c.stdout), lines(c, /^FAIL/) || "no failure"]);
+    ic.push(["check.js fails a board whose text names a grade's old name, a work level", c.status === 1 && /shows a grade/.test(c.stdout), lines(c, /^FAIL/) || "no failure"]);
     const r = cp.spawnSync(process.execPath, [checker, path.join(dir, "dashboard.html"), "--out", iScratch], { encoding: "utf8" });
-    ic.push(["check-board.js reports a work level the board shows", r.status === 1 && /LEVEL REFERENCE/.test(r.stdout || ""), notRun(r) ? NEEDS_BROWSER : (r.stdout || "").split(/\r?\n/).filter(l => /work levels|FAIL/.test(l)).join(" | ")]); }
+    ic.push(["check-board.js reports a work level the board shows", r.status === 1 && /GRADE REFERENCE/.test(r.stdout || ""), notRun(r) ? NEEDS_BROWSER : (r.stdout || "").split(/\r?\n/).filter(l => /grades|FAIL/.test(l)).join(" | ")]); }
   report(`the Impact tab and the work-level guard on ${t.name}`, ic);
 
   /* The chain's progress (plan/RULES.md §3): a tracking board's status chip reads the chain, not "building". Rendered from the
@@ -1795,7 +1795,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
       const rq = path.join(sc, "qa62.json"); fs.writeFileSync(rq, JSON.stringify({ ...req, issue: 70, folder, $comment: undefined }));
       const run = (...a) => cp.spawnSync(process.execPath, [sk("plan/scripts/apply-event.js"), "--event", rq, "--worktree", qdir, "--no-live", "--json", ...a], { encoding: "utf8" });
       const r = run("--repo", "SpartanLaboratories/WebTools"), s = JSON.parse((r.stdout || "{}").trim().split(/\r?\n/).pop() || "{}"), d = JSON.parse(fs.readFileSync(path.join(bdir, "plan.json"), "utf8")), M = d.wip.remediation || {};
-      kc.push(["the WebTools #62 qa-pass event applies: its remediation steps kept by name (\"L1 per-type gating\" included), its open point kept", r.status === 0 && s.result === "ok" && (M.steps || []).length === 2 && /L1 per-type gating/.test(M.steps[1].name) && M.route === "on-the-spot" && (d.wip.open || []).some(o => /test-scope exclusions/.test(o.text)) && d.wip.step === "remediation",
+      kc.push(["the WebTools #62 qa-pass event applies: its remediation steps kept by name (\"L1 per-type gating\" written by its set's name, \"per-type gating\"), its open point kept", r.status === 0 && s.result === "ok" && (M.steps || []).length === 2 && /\(per-type gating, e2e composite\)/.test(M.steps[1].name) && !/L1 per-type/.test(M.steps[1].name) && M.route === "on-the-spot" && (d.wip.open || []).some(o => /test-scope exclusions/.test(o.text)) && d.wip.step === "remediation",
         `${s.result} · ${s.error || ""} · ${JSON.stringify(M).slice(0, 200)}`]);
       kc.push(["the same event's detail and qa pass are written from its facts (changes requested, 27 minor and 2 other, on the spot)", /^Code review PASS/.test(d.wip.detail || "") && d.wip.qa[0].verdict === "changes-requested" && d.wip.qa[0].severity.other === 2 && d.wip.qa[0].route === "on-the-spot", (d.wip.detail || "").slice(0, 80)]);
       const r2 = run("--repo", qdir), s2 = JSON.parse((r2.stdout || "{}").trim().split(/\r?\n/).pop() || "{}");
@@ -2097,7 +2097,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     /* the title is the issue's, quoted verbatim (dashboards-skill/28, in place of dashboards-skill/23's rewording): one that names a work
        level is a defect in the issue, written as it stands and flagged in the summary, and the boards still pass */
     build(); const sT = apply(stage("3333333abcdef0", { systems: ["system-alpha"], title: "Next part, inside level 3 (level 3)" })), stT = J("system-alpha/state.json");
-    vc.push(["a title that names a work level is quoted verbatim as the last amendment, flagged as a defect in the issue (dashboards-skill/28)", sT.status === 0 && stT.lastAmended.title === "Next part, inside level 3 (level 3)" && (sT.notes || []).some(x => /^ISSUE TITLE NAMES A WORK LEVEL: #\d+ \(facts\.title: /.test(x)) && (sT.defects || []).length === 1 && /pass/.test(String(sT.check)), JSON.stringify([sT.result, stT.lastAmended, sT.notes, sT.defects, sT.check, sT.error])]);
+    vc.push(["a title that names a work level is quoted verbatim as the last amendment, flagged as a defect in the issue (dashboards-skill/28)", sT.status === 0 && stT.lastAmended.title === "Next part, inside level 3 (level 3)" && (sT.notes || []).some(x => /^ISSUE TITLE NAMES A GRADE: #\d+ \(facts\.title: /.test(x)) && (sT.defects || []).length === 1 && /pass/.test(String(sT.check)), JSON.stringify([sT.result, stT.lastAmended, sT.notes, sT.defects, sT.check, sT.error])]);
     build(); const sU = apply(stage("4444444abcdef0", { systems: ["system-alpha"], title: "Label level: 3" })), stU = J("system-alpha/state.json");
     vc.push(["a title that is nothing but a work level is quoted as it stands too, never replaced by the folder's slug (dashboards-skill/28)", sU.status === 0 && stU.lastAmended.title === "Label level: 3" && (sU.defects || []).length === 1, JSON.stringify([sU.result, stU.lastAmended, sU.error])]);
   } catch (e) { vc.push(["the cases run to the end", false, String(e.stack).split(String.fromCharCode(10)).slice(0, 3).join(" ")]); }
@@ -2435,7 +2435,7 @@ targets.forEach(t => {
          names); the rendering is the template plus its fixture, so it needs no browser pass either */
       const r = cp.spawnSync(process.execPath, [checker, page, ...(BROWSER ? ["--out", dir] : []), ...m], { encoding: "utf8" });
       const lines = (r.stdout || "").split(/\r?\n/);
-      results.push({ fixture: label, mode: m.join(" ") || "light", pass: r.status === 0, bad: lines.filter(l => !/^CHECK note:/.test(l) && /FAIL|ERROR|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM|STATE |EMBED DIFFERS|PART UNKNOWN|DSL KEYWORD ID|DSL UNKNOWN ELEMENT|NOT RUN/.test(l)) });
+      results.push({ fixture: label, mode: m.join(" ") || "light", pass: r.status === 0, bad: lines.filter(l => !/^CHECK note:/.test(l) && /FAIL|ERROR|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL|GRADE REFERENCE|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM|STATE |EMBED DIFFERS|PART UNKNOWN|DSL KEYWORD ID|DSL UNKNOWN ELEMENT|NOT RUN/.test(l)) });
     });
   });
   const ok = results.every(r => r.pass);

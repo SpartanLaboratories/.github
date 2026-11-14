@@ -66,7 +66,7 @@ An answer must give, with `path:line` on master `85cfbbe`:
 - every production call site of `HandshakeProtocol.parseHandshake`, `isHandshake` and
   `extraTokenCount`, every use of the `Handshake` class, and the path from the listener
   loop to `HandshakeCoordinator.handleHandshake`;
-- every test, at every level of the repo's five-level test layout, that sends a bare
+- every test, in every one of the repo's seven test sets, that sends a bare
   `Iam` or an `Iam` with an empty slot, or asserts what happens to one: what it asserts
   today and whether this work changes it (two are known: `HandshakeCoordinatorTest`
   "a nameless Iam fails and registers nothing", and `MultiConnectionUDPServerTest.kt:248`,
@@ -273,7 +273,7 @@ Two tests whose titles say "bare Iam" actually send `Iam alice`; they pin an abs
 credential and stay. The parse tests (`HandshakeProtocolTest`,
 `HandshakeProtocolGatingTest`) follow the new return type of `parseHandshake`.
 
-New cases belong at levels 1, 2, 3 and 4a. Any level-4b case sends from a raw socket,
+New cases belong in the gating, component, integration and deterministic sets. Any e2e case sends from a raw socket,
 because `MultiConnectionUDPClient.handshake("")` fails locally once #52 lands. Component
 tests pass pre-trimmed text, because only `CommonChannel` trims
 ([inventory §4, §10](codebase-blast-radius.md)).

@@ -95,17 +95,17 @@ module.exports = function casesTestsFacts(X) {
   });
 
   /* 3. a level a later event sends otherwise */
-  guard("testslib.js: a recorded test level that a later event sends otherwise is replaced, and said with the level held and the level sent (KotlinBottools #24)", c => {
+  guard("testslib.js: a recorded test set that a later event sends otherwise is replaced, and said with the set held and the set sent (KotlinBottools #24)", c => {
     const P = { rows: EX.rows, tests: { base: "master", updated: "2026-11-02T00:00:00Z", added: [cl("S4 log-filter", "3", { stage: "S4" })], amended: [], relevant: [] } };
     const r = TL.mergeTests(P, { ran: [{ class: "S4 log-filter", module: "plan procedure", testLevel: "4a", passed: 4, failed: 0, skipped: 0 }] }, { now: "2026-11-02T01:00:00Z", pass: 3, ids: new Set(ids) });
     const e = P.tests.added[0];
     c.push(["a qa pass's run naming 4a for a class held at 3: the run's level written, its result with it", e.testLevel === "4a" && e.result && e.result.state === "passed" && e.result.pass === 3, js(e)]);
-    c.push(["…and said: the class, the level held and the level sent", (r.warnings || []).some(x => /TEST LEVEL CHANGED: S4 log-filter \(plan procedure\): the board held test level 3, the event sent 4a; written 4a/.test(x)), js(r.warnings)]);
+    c.push(["…and said: the class, the set held and the set sent, each by its name", (r.warnings || []).some(x => /TEST SET CHANGED: S4 log-filter \(plan procedure\): the board held the set integration, the event sent deterministic; written deterministic/.test(x)), js(r.warnings)]);
     const r2 = TL.mergeTests(P, { ran: [{ class: "S4 log-filter", module: "plan procedure", testLevel: "4a", passed: 4, failed: 0, skipped: 0 }] }, { now: "2026-11-02T01:00:00Z", pass: 3, ids: new Set(ids) });
     c.push(["…the same facts again change nothing and say nothing", !r2.changed && !(r2.warnings || []).length, js([r2.changed, r2.warnings])]);
     const P2 = { rows: EX.rows, tests: { added: [cl("S4 scans", "3")], amended: [], relevant: [] } };
     const r3 = TL.mergeTests(P2, { amended: [cl("S4 scans", "2")] }, { now: "2026-11-02T01:00:00Z", stage: "S4", ids: new Set(ids) });
-    c.push(["an implementation stage's facts that change a recorded level are said the same way", P2.tests.added[0].testLevel === "2" && (r3.warnings || []).some(x => /S4 scans .*held test level 3, the event sent 2/.test(x)), js([P2.tests.added[0], r3.warnings])]);
+    c.push(["an implementation stage's facts that change a recorded level are said the same way", P2.tests.added[0].testLevel === "2" && (r3.warnings || []).some(x => /S4 scans .*held the set integration, the event sent component/.test(x)), js([P2.tests.added[0], r3.warnings])]);
     const r4 = TL.mergeTests({ rows: EX.rows, tests: { added: [cl("S4 x", "3")], amended: [], relevant: [] } }, { ran: [{ class: "S4 x", module: "plan procedure", passed: 3 }] }, { now: "2026-11-02T01:00:00Z", pass: 1, ids: new Set(ids) });
     c.push(["a run that names no level keeps the recorded one, with nothing said", !(r4.warnings || []).length, js(r4.warnings)]);
   });

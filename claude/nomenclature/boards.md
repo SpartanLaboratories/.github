@@ -75,7 +75,6 @@ defines it.
 
 | Term | Its purpose on the boards |
 |------|---------------------------|
-| **Tag** | a header fact with its label (the branch, the systems, a system board's visibility); "UP NEXT" on the unit up next; "⊟ archived" on a system no longer developed; "blocked by #n" on the unit up next while a blocker has not landed, drawn in a status colour, the waiting colour (yellow) |
 | **CodeLabel** | every inline code: a `code` span in the data, a path, a sha, a branch, a class; plain inside a Chip, a Pill or a Tile |
 | **Tracer** | from a KPI Tile up to the part of the Timeline Tile it belongs to (the steps that made the Tile's figure), in their kind of work's colour, labelled with how long that part took; under 760 px its label alone, on the Tile (§1, "Steps"; `plan/RULES.md` §2, "The Timeline tab") |
 
@@ -88,9 +87,10 @@ defines it.
 | **Cell** | a Gap, Considered, Verdict or As built Cell; a step Cell |
 | **Tab** | each of a board's views, its heading in the board's row of Tab headings: a state board's six core Tabs, its optional ones and a supersystem or repository state board's Systems Tab; a work board's Tabs |
 | **Tile** | the KPI Tiles, an issue board's counts, each with the Bar of what it counts; the Timeline Tile, the time the run took, step visit by step visit; the repository work board's Runs Tile, every run by its state, and its Landed Tile, the runs that have landed |
-| **Pill** | a verdict Pill, the verdict on an option weighed or on a quality review; an as-built Pill, a Row's as-built state; the research-state Pill, the state of a Row's research, in the head of its Considered Cell |
+| **Pill** | a verdict Pill, the verdict on an option weighed or on a quality review; an as-built Pill, a Row's as-built state; the research-state Pill, the state of a Row's research, in the head of its Considered Cell; the blocked Pill, "⊘ blocked by #n" on the unit up next while a blocker has not landed, in the waiting colour (yellow), drawn by the templates from the unit's blockers alone |
 | **Chip** | an issue Chip, an issue by its number, opening its board, or the GitHub issue while it has none; the "part of" Chip, the parent issue, in the header; a branch Chip, the run's branch, in the header; the chain Chip, a tracking board's chain in its header: how many units have landed, which are in progress and which is up next; the org work board's unlinked Chip, saying a board is not linked yet |
 | **Badge** | on a Consequences Card, the effect Badge, how a downstream party is affected; the need Badge, whether a consumer must change to adopt it; the API-change Badge, whether a public surface was added, changed, deprecated or removed |
+| **Tag** | a header fact with its label (the branch, the systems, a system board's visibility); "UP NEXT" on the unit up next; "⊟ archived" on a system no longer developed |
 | **DualStatePill** | the dependency DualStatePill (§1, "Dependencies"): the build state on the status scale and the locality on a neutral ramp |
 | **Ring** | the research Ring, the research scale on a Considered Cell (§1); the up-next Ring, a still outer Ring on the unit up next (§1); whatever is being worked on, while its run waits on the user (§1) |
 | **Arrow** | the charging Arrow, the connector into a Verdict Cell (§1); the connectors of a tracking board's units chain |

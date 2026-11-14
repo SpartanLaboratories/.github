@@ -1,5 +1,5 @@
 // Internal names (GUIDANCE.md §4, "No internal names"; dashboards-skill/33): a board never names the pipeline's agents, sessions or roles,
-// never refers to the approval flow, and never states a work level (levelrefs.js). The terms and what is fine beside them have one home,
+// never refers to the approval flow, and never states a grade (levelrefs.js). The terms and what is fine beside them have one home,
 // ~/.claude/nomenclature/internal-names.md (§1 the agents, sessions and roles; §2 the approval flow; §4 what is allowed); the lists below
 // are its copy for the scan, held equal to its §1 and §2 tables by verify/cases-internal-names.js. Fine as well are the steps' own names
 // (research, architecture, plan) and the qa step's passes by their names (passnames.js).
@@ -53,7 +53,7 @@ function nameRefs(text) {
   return out;
 }
 /* Every internal name in a text as its span, { index, end }, in the text as given, the same finds as nameRefs(): lib.js sectionOf() elides
-   the clause around each from a plan excerpt, as it elides a work level. */
+   the clause around each from a plan excerpt, as it elides a grade. */
 function nameSpans(text) {
   const out = [];
   if (typeof text !== "string" || !text) return out;

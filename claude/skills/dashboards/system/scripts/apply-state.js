@@ -21,8 +21,8 @@
 //                          keeps the verbatim title its state.json already holds for the same issue (else one another board in scope holds
 //                          for it, else the issue board's own plan.json issueTitle, in the request's folder), and only with none of these
 //                          takes the folder's name less its number, noted as not the issue's own; one
-//                          that names a work level is a defect in the issue, written as it stands and flagged ISSUE TITLE NAMES A WORK
-//                          LEVEL: #n in the notes
+//                          that names a grade is a defect in the issue, written as it stands and flagged ISSUE TITLE NAMES A
+//                          GRADE: #n in the notes
 //                document  true for the Document step's state-boards task (admin-team/dashboards-skill/35): every board the branch stamped,
 //                          and every board in scope, stamped "<ref> @ <sha>": ref the branch (facts.ref, else the
 //                          request's branch), sha the code-landing sha the request gives (facts.sha, required: the branch's last code
@@ -156,20 +156,20 @@ async function main() {
   S.stamp = `${ref} @ ${sha} · ${date}`;
   const folder = typeof req.folder === "string" ? req.folder.replace(/\\/g, "/").replace(/\/+$/, "") : null;
   if (folder && (folder.split("/").includes("..") || !/^docs\/plans\//.test(folder))) refuse(`the request's folder ${JSON.stringify(folder)} is not under docs/plans/`);
-  /* the title is the issue's, quoted verbatim: never reworded, never elided (GUIDANCE.md §4, §5; admin-team/dashboards-skill/28). Work
-     levels are never part of an issue, so a title that names one is a defect in the issue: written as it stands and flagged, ISSUE TITLE
-     NAMES A WORK LEVEL: #n, in the summary's notes, for the team to bring to the user to retitle on GitHub */
+  /* the title is the issue's, quoted verbatim: never reworded, never elided (GUIDANCE.md §4, §5; admin-team/dashboards-skill/28). Grades
+     are never part of an issue, so a title that names one is a defect in the issue: written as it stands and flagged, ISSUE TITLE
+     NAMES A GRADE: #n, in the summary's notes, for the team to bring to the user to retitle on GitHub */
   /* which title a board's last amendment takes (dashboards-skill/29): facts.title when the event carries it; else the verbatim title the
      board's state.json already holds for the same issue (never overwritten by a folder name); else one another board in scope holds for it;
      else the issue board's own issueTitle (the request's folder's plan.json, for the same issue: quoted from GitHub when the board was laid);
      only with none of these the folder's name less its number, which is not the issue's own and is noted so */
   const slugTitle = folder ? path.basename(folder).replace(/^\d+-/, "") || null : null;
   const factTitle = typeof facts.title === "string" && facts.title.trim() ? facts.title.replace(/\s+/g, " ").trim() : null;
-  if (factTitle && levelRefs(factTitle).length) { S.notes.push(titleDefect({ issue: S.issue, at: "facts.title", title: factTitle, hits: levelRefs(factTitle) })); S.defects.push(`ISSUE TITLE NAMES A WORK LEVEL: #${S.issue != null ? S.issue : "?"}`); }
+  if (factTitle && levelRefs(factTitle).length) { S.notes.push(titleDefect({ issue: S.issue, at: "facts.title", title: factTitle, hits: levelRefs(factTitle) })); S.defects.push(`ISSUE TITLE NAMES A GRADE: #${S.issue != null ? S.issue : "?"}`); }
   let boardTitle = null;
   if (!factTitle && folder && fs.existsSync(path.join(ROOT, ...folder.split("/"), "plan.json"))) {
     try { const b = JSON.parse(fs.readFileSync(path.join(ROOT, ...folder.split("/"), "plan.json"), "utf8")); if (b && b.issue === S.issue && typeof b.issueTitle === "string" && b.issueTitle.trim()) boardTitle = b.issueTitle.replace(/\s+/g, " ").trim(); } catch (e) { /* refused below, where the board's systems are read */ }
-    if (boardTitle && levelRefs(boardTitle).length) { S.notes.push(titleDefect({ issue: S.issue, at: `${folder}/plan.json issueTitle`, title: boardTitle, hits: levelRefs(boardTitle) })); S.defects.push(`ISSUE TITLE NAMES A WORK LEVEL: #${S.issue != null ? S.issue : "?"}`); }
+    if (boardTitle && levelRefs(boardTitle).length) { S.notes.push(titleDefect({ issue: S.issue, at: `${folder}/plan.json issueTitle`, title: boardTitle, hits: levelRefs(boardTitle) })); S.defects.push(`ISSUE TITLE NAMES A GRADE: #${S.issue != null ? S.issue : "?"}`); }
   }
   const keptTitle = la => la && la.issue === S.issue && typeof la.title === "string" && la.title.trim() && la.title !== slugTitle ? la.title : null;
 

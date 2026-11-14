@@ -186,7 +186,7 @@ Test churn for (iii), against (i)/(ii) at zero:
   `Malformed(NAME_MISSING)`; `HandshakeProtocolTest.kt:55-58` (the `IllegalArgumentException` type) is removed;
   the empty-list and non-`Iam` tests (`:45-53`) assert `assertFailsWith<IllegalArgumentException>` because the
   verb is now a documented precondition.
-- New (level 4a): a truth table over token lists, including the three defects, `["Iam","bob","tok","","x"]` valid with
+- New (deterministic): a truth table over token lists, including the three defects, `["Iam","bob","tok","","x"]` valid with
   credential `tok`, and `["Iam\tbob"]` failing the precondition (and `isHandshake` false).
 
 The precondition (`require`) mirrors the current KDoc ("The caller is expected to have already matched [VERB]") and
@@ -300,7 +300,7 @@ private fun handleHandshake(origin: InetSocketAddress, tokens: List<String>): Re
   is the one place that trims; a second `trim()` in the coordinator would hide a violated contract and would make the
   coordinator accept lines the real wire path never delivers. Consequence for tests: component tests feed
   pre-trimmed text, and the "trailing space on the wire is accepted" case (`Iam bob ` -> trimmed `Iam bob`, valid) is
-  a level-3 raw-socket test, not a level-2 one. The two-argument `accept(origin, text)` overload (`:240`) does not
+  an integration raw-socket test, not a component one. The two-argument `accept(origin, text)` overload (`:240`) does not
   trim; making it mirror production would remove the trap for test authors but is a test-seam change outside this
   work, so it is left alone and documented in its KDoc.
 
@@ -373,7 +373,7 @@ Comparison:
   `Iam x` already draws 12 bytes for 5, so the marginal gain is small but nonzero. Option 3: same as Option 2 for two shapes.
   RFC 6347 and WireGuard both choose silence for exactly this reason.
 - **Simplicity.** Option 2 is the least code; Option 1 is one extra `when` arm; Option 3 is the most (a second rule).
-- **Test and doc cost.** Options 1 and 2 each add three level-2 cases (one per shape) and one protocol-doc row
+- **Test and doc cost.** Options 1 and 2 each add three component cases (one per shape) and one protocol-doc row
   ("registered origin: malformed line -> silence" or "-> `REGISTERED 2`"). Option 3 adds the same three cases plus a
   doc passage explaining why one shape is treated differently. None flips an existing test; none sends a malformed
   line from a registered origin today.

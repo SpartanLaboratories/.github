@@ -623,7 +623,7 @@ footer code{color:var(--ink-2)}
     <p class="lede">Lifecycles that span systems, from source to a release, and each system's version line. <!-- fill: cards are examples of shape; keep what the repository has. Phase classes ph1 / ph2 / ph3 are first / middle / last phase; name them in the legend. A row about one system starts with its swatch (<span class="sw" data-sys="slug">). --></p>
     <div class="lgrid">
       <div class="card"><h3>Source to release <small>the path every module takes</small></h3>
-        <ol class="steps"><li class="ph1">source</li><li class="ph1">compile</li><li class="ph2">level tests</li><li class="ph2">checks</li><li class="ph3">sign</li><li class="ph3">publish</li><li class="ph3">Maven Central</li></ol>
+        <ol class="steps"><li class="ph1">source</li><li class="ph1">compile</li><li class="ph2">tests by set</li><li class="ph2">checks</li><li class="ph3">sign</li><li class="ph3">publish</li><li class="ph3">Maven Central</li></ol>
         <div class="callout ph3"><b>A fact worth a callout</b> — who releases, on what trigger, with its source.</div></div>
       <div class="card ph3"><h3>Version lines <small>one per system</small></h3>
         <table class="tbl"><thead><tr><th>System</th><th>Version</th><th>Moves by</th></tr></thead><tbody>
@@ -661,9 +661,9 @@ footer code{color:var(--ink-2)}
         <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td><code>Port</code> <span class="badge">Experimental · @MarkerName</span></td></tr>
         <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td>planned — nothing built yet</td></tr>
       </tbody></table></div>
-    <div class="guarantee-card"><h3>Test levels <small>n classes</small></h3>
-      <!-- fill: test classes per system per test level, counted from each system's testing.<level> packages and headed by its test level and package name ("L1 gating" … "L5 UAT"); test levels are not work levels (GUIDANCE.md §4); link the test report when one exists -->
-      <div class="scroll"><table class="gtbl"><thead><tr><th>System</th><th class="n">L1 gating</th><th class="n">L2 component</th><th class="n">L3 integration</th><th class="n">L4a deterministic</th><th class="n">L4b e2e</th><th class="n">L4c non-functional</th><th class="n">L5 UAT</th></tr></thead><tbody>
+    <div class="guarantee-card"><h3>Test sets <small>n classes</small></h3>
+      <!-- fill: test classes per system per named test set, counted from each system's testing.<set> packages and headed by the set's name, never a number ("gating" … "uat"); link the test report when one exists -->
+      <div class="scroll"><table class="gtbl"><thead><tr><th>System</th><th class="n">gating</th><th class="n">component</th><th class="n">integration</th><th class="n">deterministic</th><th class="n">e2e</th><th class="n">nonfunctional</th><th class="n">uat</th></tr></thead><tbody>
         <tr><th><span class="sw" data-sys="system-alpha"></span>system-alpha</th><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td></tr>
         <tr><th><span class="sw" data-sys="system-beta"></span>system-beta</th><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td><td class="n">n</td></tr>
         <tr data-part="sys:system-gamma"><th><span class="sw" data-sys="system-gamma"></span>system-gamma</th><td colspan="7">planned — no tests yet</td></tr>
@@ -701,7 +701,7 @@ footer code{color:var(--ink-2)}
     <div class="card"><h3>Roadmap <small>n items · YYYY-MM-DD</small></h3>
       <!-- fill: every roadmap item: a tracking issue with its sub-issues (gh issue view <n> --json subIssues,parent), or an
            entry in a roadmap document the repository keeps, with the issues it names. Under each, every issue mapped to it:
-           number, title, state (never a work level: GUIDANCE.md §4) and the system it touches (a badge with data-sys); planned systems point at
+           number, title, state (never its sizing: GUIDANCE.md §4) and the system it touches (a badge with data-sys); planned systems point at
            their architecture documents. Number and title are two links (GUIDANCE.md §5): the number opens the GitHub issue, the
            title, written <a data-board="N">, opens the issue's board and stays plain text while it has none (BOARDS in the
            script). -->
@@ -881,8 +881,8 @@ const ilink=n=>{ const b=boardOf(n); return b?`<a href="${esc(b)}" title="#${esc
 const pair=(n,title)=>{ const b=boardOf(n); return `<a href="${ghIssue(n)}" target="_blank" rel="noopener">#${esc(n)}</a> ${b?`<a href="${esc(b)}" title="#${esc(n)}: its issue board">${esc(title)}</a>`:esc(title)}`; };
 function linkIssues(root){ const r=root||document;
   /* a title written <a data-board="N"> is the issue's own, quoted verbatim, and keeps its mark, data-issue-title, once resolved (a link to
-     its board, or plain text while it has none): a work level in it is a defect in the issue, flagged by check-board.js (ISSUE TITLE NAMES
-     A WORK LEVEL: #n), never shown as the board's (GUIDANCE.md §5; dashboards-skill/28) */
+     its board, or plain text while it has none): a sizing named in it is a defect in the issue, flagged by check-board.js,
+     never shown as the board's (GUIDANCE.md §5; dashboards-skill/28) */
   r.querySelectorAll("a[data-board]").forEach(a=>{ const n=a.dataset.board, b=boardOf(n); if(b){ a.href=b; a.title=`#${n}: its issue board`; a.dataset.issueTitle=n; } else { const t=document.createElement("span"); t.dataset.issueTitle=n; t.append(...a.childNodes); a.replaceWith(t); } });
   r.querySelectorAll("a[data-issue]").forEach(a=>{ const n=a.dataset.issue, b=boardOf(n); a.href=b||ghIssue(n); if(b) a.title=`#${n}: its issue board`; else { a.target="_blank"; a.rel="noopener"; } }); }
 window.addEventListener("DOMContentLoaded",()=>linkIssues());
@@ -1470,7 +1470,7 @@ renderState();
 
 /* ---------- The Guarantees' and the Context's legends (GUIDANCE.md §2) ----------
    Generated from what each section draws, so a hand-written guarantee card or card needs no legend of its own: the system swatches present, a
-   planned (dashed, faded) row, a gap, the one neutral series of the test-level bars, the badges and their meaning, a tracking issue's
+   planned (dashed, faded) row, a gap, the one neutral series of the test-set bars, the badges and their meaning, a tracking issue's
    chain's StepBar. A section that draws no encoding shows no legend. */
 /* A tracking issue's chain on the roadmap (dashboards-skill/54; nomenclature/ui.md, StepBar), written <span class="chainprog"
    data-landed="n" data-total="m"> holding one <span data-unit="done|current|todo">its name</span> per unit in landing order: drawn
@@ -1494,7 +1494,7 @@ function sectionKeys(){
   const G=document.querySelector("section.guarantees"), C=document.querySelector("section.context"), has=(s,q)=>!!(s&&s.querySelector(q));
   const swatches=(s,cls)=>typeof sysKey==="function"&&s?sysKey([...new Set([...s.querySelectorAll("[data-sys]")].map(e=>e.dataset.sys))],cls):"";
   put(G,"guarantees-key",[swatches(G,"swk"),
-    has(G,".bars")?`<span><i class="barsk"></i>test classes per level: one series, one neutral fill</span>`:"",
+    has(G,".bars")?`<span><i class="barsk"></i>test classes per set: one series, one neutral fill</span>`:"",
     has(G,".planned")?`<span><i class="pln"></i>dashed, faded: about a planned part, nothing built yet</span>`:"",
     has(G,".archived")?`<span><span class="archtag">⊟ archived</span> solid, faded: an archived system, no longer developed</span>`:"",
     has(G,".gap")?`<span><i class="gapk">gap</i>italic, muted: not established, said as a gap</span>`:"",

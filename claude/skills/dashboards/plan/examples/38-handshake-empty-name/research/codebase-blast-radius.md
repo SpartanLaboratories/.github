@@ -7,7 +7,7 @@ under `webtools-udp/src/test/kotlin/com/spartanlabs/testing/` are abbreviated `t
 
 ## 1. Question
 
-What does the change touch (production files, tests at each of the five levels, KDoc blocks, docs), which
+What does the change touch (production files, tests in each of the seven sets, KDoc blocks, docs), which
 `File.kt:N` references in `docs/webtools-udp-protocol.md` are out of date and what are their correct ranges,
 and which neighbouring code follows the new rule versus stays as it is?
 
@@ -96,22 +96,22 @@ distinguishes them without any new type (idiomatic Kotlin; the representation is
 
 ### 4.1 Tests that send a bare `Iam` or an `Iam` with an empty slot, or assert what happens to one
 
-Levels are by package segment and `@Tag`; the Gradle tasks in root `build.gradle.kts:44-62` select on the tag.
+Sets are by package segment and `@Tag`; the Gradle tasks in root `build.gradle.kts:44-62` select on the tag.
 
-| `path:line` | Level (package / `@Tag`) | Sends | Asserts today | Verdict |
+| `path:line` | Set (package / `@Tag`) | Sends | Asserts today | Verdict |
 |---|---|---|---|---|
-| `test/component/webtools/udp/HandshakeCoordinatorTest.kt:238-246` "a nameless Iam fails and registers nothing" | 2 / `testing.component` / `component` | `accept(originA, "Iam")` | `isFailure`; `coordinator.size == 0`; `sent.isEmpty()` | **changes.** Expect `sent == [REFUSED <reason> to originA]`; `size == 0`; `created`, `admitCalls`, `registeredNames` empty. The `isFailure` assertion is replaced by whatever `handleHandshake` returns for an unknown origin's refusal (Question 2). Rename: it no longer "fails" |
-| `test/integration/webtools/udp/MultiConnectionUDPServerTest.kt:245-259` (`@Order(11)`), element `"Iam"` at `:248` | 3 / `testing.integration` / `integration` | bare `"Iam"` from a fresh socket via `assertNoReplyTo` (`:94-102`), next to `""`, `"   "`, `"HELLO world"` | `SocketTimeoutException` within 500 ms (`NO_REPLY_TIMEOUT_MILLIS`, `:380`) | **changes.** Drop `"Iam"` from the list (the other three stay silent); add an exchange through `handshakeFrom` (`:89-92`) expecting `REFUSED <reason>` (receive buffer 1024 B, `:73`). A refused line adds no connection, so later `@Order` tests that count `connectedClients` are unaffected |
-| `test/deterministic/webtools/udp/HandshakeProtocolTest.kt:40-43` "parseHandshake rejects a verb-only line" | 4a / `testing.deterministic` / `deterministic` | `parseHandshake(listOf("Iam"))` | `isFailure` | stays if `parseHandshake` still returns `Result.failure` for a missing name slot; changes only if the parse outcome type changes (Question 2) |
-| `HandshakeProtocolTest.kt:55-58` "parseHandshake failure carries an IllegalArgumentException" | 4a | `parseHandshake(listOf("Iam"))` | `assertIs<IllegalArgumentException>(exceptionOrNull())` | stays only if the failure type stays `IllegalArgumentException` (Question 2) |
-| `HandshakeProtocolTest.kt:45-48`, `:75-78` | 4a | `emptyList()`; `extraTokenCount(listOf("Iam"))` | failure; `0` | stays (not malformed-slot cases) |
-| `HandshakeProtocolTest.kt:94-103` "isHandshake truth table" | 4a | `listOf("Iam")` among others | `isHandshake(listOf("Iam")) == true` (`:97`) | **stays**: a bare `Iam` is still a handshake line; it is malformed, not unrecognised. Add `listOf("Iam", "")` (true) and `listOf("Iam\tbob")` (false) |
-| `test/gating/webtools/udp/HandshakeProtocolGatingTest.kt:27-30` "a nameless Iam is rejected" | 1 / `testing.gating` / `gating` | `parseHandshake(listOf("Iam"))` | `isFailure` | same rule as `HandshakeProtocolTest.kt:40-43` |
-| `test/component/.../HandshakeCoordinatorTest.kt:150-157` "admit receives an empty credential for a bare Iam" | 2 | `"Iam alice"` (name present, credential **absent**) | `admit` gets `("alice", originA, "")` | **stays.** The title says "bare Iam" but the line is not malformed; it is the pin that an absent credential is not malformed |
-| `test/integration/.../MultiConnectionUDPServerAdmissionTest.kt:93-100` "the default branch sees an empty credential for a bare Iam" | 3 | `"Iam alice"` | `REGISTERED 2`; `seenCredentials.contains("")` | **stays** (same wording trap) |
-| `HandshakeCoordinatorTest.kt:129-139` "the credential slot is claimed and only tokens past it are ignored" | 2 | `"Iam carol 10.0.0.9 junk"` | registers `carol`, credential `10.0.0.9`, `extraTokenCount == 1` | **stays**; natural neighbour for the `Iam bob tok  x` case |
-| `test/integration/.../MultiConnectionUDPClientProbeTest.kt:64` | 3 | (fake peer that replies) | replies `REGISTERED 2` to `text == "Iam"` or `startsWith("Iam ")` | **stays**: a stand-in server for client tests, not a parser under test |
-| `test/integration/.../MultiConnectionUDPServerTest.kt:250` | 3 | `"Iam " + "z".repeat(4096)` | well-formed; server stays responsive | stays |
+| `test/component/webtools/udp/HandshakeCoordinatorTest.kt:238-246` "a nameless Iam fails and registers nothing" | component / `testing.component` / `component` | `accept(originA, "Iam")` | `isFailure`; `coordinator.size == 0`; `sent.isEmpty()` | **changes.** Expect `sent == [REFUSED <reason> to originA]`; `size == 0`; `created`, `admitCalls`, `registeredNames` empty. The `isFailure` assertion is replaced by whatever `handleHandshake` returns for an unknown origin's refusal (Question 2). Rename: it no longer "fails" |
+| `test/integration/webtools/udp/MultiConnectionUDPServerTest.kt:245-259` (`@Order(11)`), element `"Iam"` at `:248` | integration / `testing.integration` / `integration` | bare `"Iam"` from a fresh socket via `assertNoReplyTo` (`:94-102`), next to `""`, `"   "`, `"HELLO world"` | `SocketTimeoutException` within 500 ms (`NO_REPLY_TIMEOUT_MILLIS`, `:380`) | **changes.** Drop `"Iam"` from the list (the other three stay silent); add an exchange through `handshakeFrom` (`:89-92`) expecting `REFUSED <reason>` (receive buffer 1024 B, `:73`). A refused line adds no connection, so later `@Order` tests that count `connectedClients` are unaffected |
+| `test/deterministic/webtools/udp/HandshakeProtocolTest.kt:40-43` "parseHandshake rejects a verb-only line" | deterministic / `testing.deterministic` / `deterministic` | `parseHandshake(listOf("Iam"))` | `isFailure` | stays if `parseHandshake` still returns `Result.failure` for a missing name slot; changes only if the parse outcome type changes (Question 2) |
+| `HandshakeProtocolTest.kt:55-58` "parseHandshake failure carries an IllegalArgumentException" | deterministic | `parseHandshake(listOf("Iam"))` | `assertIs<IllegalArgumentException>(exceptionOrNull())` | stays only if the failure type stays `IllegalArgumentException` (Question 2) |
+| `HandshakeProtocolTest.kt:45-48`, `:75-78` | deterministic | `emptyList()`; `extraTokenCount(listOf("Iam"))` | failure; `0` | stays (not malformed-slot cases) |
+| `HandshakeProtocolTest.kt:94-103` "isHandshake truth table" | deterministic | `listOf("Iam")` among others | `isHandshake(listOf("Iam")) == true` (`:97`) | **stays**: a bare `Iam` is still a handshake line; it is malformed, not unrecognised. Add `listOf("Iam", "")` (true) and `listOf("Iam\tbob")` (false) |
+| `test/gating/webtools/udp/HandshakeProtocolGatingTest.kt:27-30` "a nameless Iam is rejected" | gating / `testing.gating` / `gating` | `parseHandshake(listOf("Iam"))` | `isFailure` | same rule as `HandshakeProtocolTest.kt:40-43` |
+| `test/component/.../HandshakeCoordinatorTest.kt:150-157` "admit receives an empty credential for a bare Iam" | component | `"Iam alice"` (name present, credential **absent**) | `admit` gets `("alice", originA, "")` | **stays.** The title says "bare Iam" but the line is not malformed; it is the pin that an absent credential is not malformed |
+| `test/integration/.../MultiConnectionUDPServerAdmissionTest.kt:93-100` "the default branch sees an empty credential for a bare Iam" | integration | `"Iam alice"` | `REGISTERED 2`; `seenCredentials.contains("")` | **stays** (same wording trap) |
+| `HandshakeCoordinatorTest.kt:129-139` "the credential slot is claimed and only tokens past it are ignored" | component | `"Iam carol 10.0.0.9 junk"` | registers `carol`, credential `10.0.0.9`, `extraTokenCount == 1` | **stays**; natural neighbour for the `Iam bob tok  x` case |
+| `test/integration/.../MultiConnectionUDPClientProbeTest.kt:64` | integration | (fake peer that replies) | replies `REGISTERED 2` to `text == "Iam"` or `startsWith("Iam ")` | **stays**: a stand-in server for client tests, not a parser under test |
+| `test/integration/.../MultiConnectionUDPServerTest.kt:250` | integration | `"Iam " + "z".repeat(4096)` | well-formed; server stays responsive | stays |
 
 No existing test sends a malformed line **from a registered origin**; the registered-origin behaviour has no
 current coverage to flip. The other ~50 `accept(origin, "Iam <name>")` calls and every `handshake("<name>")`
@@ -120,16 +120,16 @@ and `\t`/`\n` literals returned nothing). The `uat` package holds only a comment
 
 ### 4.2 Where new cases naturally belong
 
-| Level | Existing class | New cases (not written here) |
+| Set | Existing class | New cases (not written here) |
 |---|---|---|
-| 1 gating | `test/gating/.../HandshakeCoordinatorGatingTest.kt` (`@Tag("gating")`; `coordinator(replies, ...)` helper `:33-49`, refusal test `:51-63`) | one smoke: malformed `Iam` from an unknown origin gets `REFUSED`, `size == 0` |
-| 1 gating | `test/gating/.../HandshakeProtocolGatingTest.kt` | one empty-name case beside `:27-30` |
-| 2 component | `test/component/.../HandshakeCoordinatorTest.kt` (fakes: `recordingAdmit` `:57-62`, `admitCalls`, `sent`, `created`, `registeredNames`, `disconnects`) | bare `Iam`; empty name (`Iam  x`); empty credential (`Iam bob  tok`); `Iam bob tok  x` accepted with credential `tok`; absent credential accepted; malformed line does not supersede a same-name registration (`disconnects` empty); `admit` and `onRegistered` never called; reply addressed only to the origin; registered origin with each of the three lines (registration untouched, no `REFUSED`; reply per Consideration C1); log content via `captureLogsOf(HandshakeCoordinator::class.java)` (`test/support/.../LogCapture.kt:23`) asserting the raw line is absent |
-| 2 component | `test/component/.../FramingComponentTest.kt:179-191` (existing "unframed hello ... pre-2.0 WARN" test) | `Iam<TAB>bob` is not a handshake: takes the unframed WARN path, registers nothing |
-| 3 integration | `test/integration/.../MultiConnectionUDPServerTest.kt:245-259` (flip) and `MultiConnectionUDPServerAdmissionTest.kt` (raw-socket `exchange`, `:55-62`; `GuardedServer.seenCredentials`) | the flipped bare-`Iam` exchange; `admit` is never consulted for a malformed line |
-| 4a deterministic | `test/deterministic/.../HandshakeProtocolTest.kt` | truth table of the validity rule over token lists, including `["Iam","bob","tok","","x"]` accepted and `["Iam\tbob"]` unrecognised |
-| 4b e2e (optional) | `test/e2e/.../MultiConnectionUDPHandshakeRefusalE2ETest.kt` (its tests all use `MultiConnectionUDPClient`; no raw-socket helper yet) | raw `DatagramSocket` send of a malformed line and a `REFUSED` read. It cannot use `MultiConnectionUDPClient.handshake("", ...)` because #52 will make that fail locally. `MultiConnectionUDPServerE2ETest.kt:44-94` already has a private raw `Client` (`send`, `recv`) if reuse is preferred |
-| 4c nonfunctional (optional) | `test/nonfunctional/.../MultiConnectionUDPServerAdmissionNonFunctionalTest.kt:103-125` ("a burst of refusals leaves no registrations") and `HandshakeNonFunctionalTest.kt:62-85` | a malformed-line burst leaves no registrations and the server still accepts a good client |
+| gating | `test/gating/.../HandshakeCoordinatorGatingTest.kt` (`@Tag("gating")`; `coordinator(replies, ...)` helper `:33-49`, refusal test `:51-63`) | one smoke: malformed `Iam` from an unknown origin gets `REFUSED`, `size == 0` |
+| gating | `test/gating/.../HandshakeProtocolGatingTest.kt` | one empty-name case beside `:27-30` |
+| component | `test/component/.../HandshakeCoordinatorTest.kt` (fakes: `recordingAdmit` `:57-62`, `admitCalls`, `sent`, `created`, `registeredNames`, `disconnects`) | bare `Iam`; empty name (`Iam  x`); empty credential (`Iam bob  tok`); `Iam bob tok  x` accepted with credential `tok`; absent credential accepted; malformed line does not supersede a same-name registration (`disconnects` empty); `admit` and `onRegistered` never called; reply addressed only to the origin; registered origin with each of the three lines (registration untouched, no `REFUSED`; reply per Consideration C1); log content via `captureLogsOf(HandshakeCoordinator::class.java)` (`test/support/.../LogCapture.kt:23`) asserting the raw line is absent |
+| component | `test/component/.../FramingComponentTest.kt:179-191` (existing "unframed hello ... pre-2.0 WARN" test) | `Iam<TAB>bob` is not a handshake: takes the unframed WARN path, registers nothing |
+| integration | `test/integration/.../MultiConnectionUDPServerTest.kt:245-259` (flip) and `MultiConnectionUDPServerAdmissionTest.kt` (raw-socket `exchange`, `:55-62`; `GuardedServer.seenCredentials`) | the flipped bare-`Iam` exchange; `admit` is never consulted for a malformed line |
+| deterministic | `test/deterministic/.../HandshakeProtocolTest.kt` | truth table of the validity rule over token lists, including `["Iam","bob","tok","","x"]` accepted and `["Iam\tbob"]` unrecognised |
+| e2e (optional) | `test/e2e/.../MultiConnectionUDPHandshakeRefusalE2ETest.kt` (its tests all use `MultiConnectionUDPClient`; no raw-socket helper yet) | raw `DatagramSocket` send of a malformed line and a `REFUSED` read. It cannot use `MultiConnectionUDPClient.handshake("", ...)` because #52 will make that fail locally. `MultiConnectionUDPServerE2ETest.kt:44-94` already has a private raw `Client` (`send`, `recv`) if reuse is preferred |
+| nonfunctional (optional) | `test/nonfunctional/.../MultiConnectionUDPServerAdmissionNonFunctionalTest.kt:103-125` ("a burst of refusals leaves no registrations") and `HandshakeNonFunctionalTest.kt:62-85` | a malformed-line burst leaves no registrations and the server still accepts a good client |
 
 ## 5. Line references in `docs/webtools-udp-protocol.md`
 
@@ -311,7 +311,7 @@ No other production or test code tokenises an `Iam` line.
   (`:240`) and the `bytes, text` form do not. Kotlin's `split(' ')` keeps a trailing empty string for text ending
   in the delimiter, so a component test that passes `"Iam bob "` sees an empty credential slot (malformed), while the
   same bytes on the wire are trimmed to `Iam bob` (accepted). Test inputs must be pre-trimmed, or the trim case
-  must be tested at level 3.
+  must be tested in the integration set.
 - **P3. A bare `Iam` is also what `handshake("")` sends** (`Iam ` trims to `Iam`), and `handshake("", credential="tok")`
   sends `Iam  tok` (empty name). After #52 neither can be produced by the library client, so no end-to-end test
   through `MultiConnectionUDPClient` can reach the new branch; use a raw socket.
@@ -346,7 +346,7 @@ Both options leave the registration untouched, never send `REFUSED`, and run the
   reply to a previously silent input and lets any `Iam`-led datagram, malformed or not, draw a reply from a
   registered origin.
 - Tests: neither option flips an existing test (none sends a malformed line from a registered origin). Either
-  adds three level-2 cases (one per malformed shape) asserting registration intact, `size` unchanged, no
+  adds three component cases (one per malformed shape) asserting registration intact, `size` unchanged, no
   `REFUSED`, and either `sent.isEmpty()` (A) or `sent == [REGISTERED 2]` (B).
 - Docs: protocol doc §3 and the `:321` row, README `:123-127`, and the `accept` / class KDoc each state the choice.
 - **Recommendation: Option A.**
@@ -356,7 +356,7 @@ Both options leave the registration untouched, never send `REFUSED`, and run the
 `MultiConnectionUDPServer.kt` (`:15-23`, `:43-54`, `:355-383`) and `HandshakeWireFormat.kt` (`:35-39`, `:52-57`)
 carry sentences that become incomplete (refusal only through `admit`; "well-formed"). Editing them is
 documentation of enforced behaviour, not an API change, but it shifts rows 3, 6, 11, 12, 13 and 37 of §5.
-Options: edit both (recommended; the Level-2 KDoc standard and the public `admit` contract should describe the
+Options: edit both (recommended; the level-1 KDoc standard and the public `admit` contract should describe the
 refusal), or leave both and accept that `admit`'s KDoc under-describes which lines reach it. If the `admit` KDoc
 gains "`name` is never empty", that is a new documented guarantee consumers will rely on; the recommendation is
 to state it, because the enforcement is what the work delivers.
@@ -366,8 +366,8 @@ to state it, because the enforcement is what the work delivers.
 Scope the change as: code in `HandshakeProtocol.kt` and `HandshakeCoordinator.kt`; KDoc in those two plus
 `MultiConnectionUDPServer.kt` and `HandshakeWireFormat.kt`; the living docs (`docs/webtools-udp-protocol.md` §3 and
 §8, the architecture handshake node `:112`, the README handshake sections `:104-135` and `:217-250`); the two
-flipped tests; new cases at levels 1, 2, 3 (the flip plus one `admit`-never-consulted case) and 4a, with an optional
-raw-socket 4b case. Leave `MultiConnectionUDPClient`, `handshakeMessage`, `CommonChannel`, `isHandshake`,
+flipped tests; new cases in the gating, component, integration (the flip plus one `admit`-never-consulted case) and deterministic
+sets, with an optional raw-socket e2e case. Leave `MultiConnectionUDPClient`, `handshakeMessage`, `CommonChannel`, `isHandshake`,
 `extraTokenCount` and all non-`Iam` code alone. Refresh all 21 stale protocol-doc references in one pass at the end,
 after the `main/` edits, using §5's anchors; the 11 stale ones in unedited files can be corrected independently
 of the code. Report (do not fix) the architecture-doc `:52` reference and the `ChannelByteGuardIntegrationTest.kt:25`
@@ -378,10 +378,10 @@ contradict the single-space invariant above.
 ## 13. Lens notes
 
 - **Best systems.** Not applicable to an inventory; the refusal semantics are Questions 2 and 3.
-- **Conventions.** Tests live per level under `testing.<level>` with the `@Tag` the Gradle task selects
-  (`build.gradle.kts:44-62`); test classes carry a one-line level comment; the protocol doc cites code as
+- **Conventions.** Tests live per set under `testing.<set>` with the `@Tag` the Gradle task selects
+  (`build.gradle.kts:44-62`); test classes carry a one-line set comment; the protocol doc cites code as
   `File.kt:N` (symbol-only for `Rtt.kt`, line 275) and is evergreen (the #14 finalisation plan records that the
-  #38 fix "must update the as-built notes"); KDoc follows the Level-2 standard.
+  #38 fix "must update the as-built notes"); KDoc follows the level-1 standard.
 - **Idiomatic Kotlin.** `Result` stays the expected-failure channel; `tokens.getOrNull(CREDENTIAL_INDEX)` separates absent
   from empty at `HandshakeProtocol.kt:58`; `HandshakeProtocol` stays a pure `internal object`.
 

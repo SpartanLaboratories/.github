@@ -375,7 +375,7 @@ const ext=(h,t)=>`<a href="${esc(h)}" target="_blank" rel="noopener">${t}</a>`;
 /* Links to an issue and its board (plan/RULES.md §1, §5; GUIDANCE.md §5). Where an issue's number and its title appear together
    (a row, a group heading, a roadmap item, an unscheduled issue) they are two links, pair(): the number opens the GitHub issue and
    the title opens the issue's board, plain text while it has none. Where only one link fits (the "part of" line, the waits-on and
-   blocks lists, the "blocked by" tags, the Up next count, any #n in the text) ilink() opens the board when one exists and the
+   blocks lists, the "blocked by" Pills, the Up next count, any #n in the text) ilink() opens the board when one exists and the
    GitHub issue otherwise. board.js sets a row's "board" only when the board's file exists. */
 /* one Map, refilled by derive(): its name is the marker of the widened link rule (lib.js linkRule()) */
 const ISSUE_BOARDS=new Map();
@@ -392,8 +392,8 @@ const ilink=(n,repo)=>{ const b=boardOf(n,repo); return b?`<a href="${esc(b)}" t
 const codeOnly=s=>String(s==null?"":s).split("`").map((p,i)=>i%2?`<code>${esc(p)}</code>`:esc(p)).join("");
 /* a count and its noun, "1 unit", "2 units" */
 const plural=(n,one,many)=>`${n} ${Number(n)===1?one:(many||one+"s")}`;
-/* every title pair() shows is the issue's own, quoted verbatim and marked data-issue-title (GUIDANCE.md §5; dashboards-skill/28): a work
-   level in it is a defect in the issue, which the checks flag (ISSUE TITLE NAMES A WORK LEVEL: #n) rather than fail the board */
+/* every title pair() shows is the issue's own, quoted verbatim and marked data-issue-title (GUIDANCE.md §5; dashboards-skill/28): a
+   sizing named in it is a defect in the issue, which the checks flag rather than fail the board */
 const pair=(n,title,repo)=>{ const b=boardOf(n,repo), t=codeOnly(title), m=` data-issue-title="${esc(n)}"`; return `${ext(ghUrl(n,repo),ilabel(n,repo))} ${b?`<a href="${esc(b)}" title="#${esc(n)}: its issue board"${m}>${t}</a>`:`<span${m}>${t}</span>`}`; };
 /* #n and owner/repo#n are linked in one pass; "PR #n" is a pull request, never an issue's board */
 const rich=s=>String(s==null?"":s).split("`").map((p,i)=>i%2?`<code>${esc(p)}</code>`:esc(p).replace(/(^|[\s(>;,])(?:PR #(\d+)|([\w.-]+\/[\w.-]+)#(\d+)|#(\d+))\b/g,(m,a,pr,r,rn,n)=>a+(pr?ext(`https://github.com/${B.repo}/pull/${pr}`,`PR #${esc(pr)}`):r?ilink(rn,r):ilink(n)))).join("");
@@ -416,6 +416,8 @@ const STATUS={
 /* an issue's closed state in a list (a roadmap item, a waits-on or blocks entry): "closed · not planned" when the tracker closed it as
    not planned, "closed · duplicate" when it closed it as a duplicate, "closed" otherwise, nothing while it is open */
 const closedWord=x=>x&&x.state==="CLOSED"?(x.stateReason==="NOT_PLANNED"?"closed · not planned":x.stateReason==="DUPLICATE"?"closed · duplicate":"closed"):"";
+/* The blocked-by mark is a Pill (nomenclature/boards.md, Pill: the blocked Pill), as ui.md defines one: a state word with its glyph, in a
+   status colour, the waiting colour. The template draws it from the row's blockedBy alone, so no enrichment writes it. */
 const BLOCKED={g:"⊘",l:"blocked",c:"warning"};
 const TAG_NEXT=`<span class="tag-next">UP NEXT</span>`;
 const QA={approved:{g:"✓",l:"approved",c:"good"},"changes-requested":{g:"✕",l:"changes requested",c:"critical"},running:{g:"…",l:"in progress",c:"neutral",d:1}};
@@ -496,10 +498,10 @@ const chainRow=(r,e)=>{ const b=chainBar(r,e&&e.x); return b?`<tr class="chainro
 const RECON={planned:{g:"…",l:"impact planned",c:"neutral",d:1,desc:"the plan's impact, nothing reconciled yet"},partial:{g:"◐",l:"impact partly reconciled",c:"warning",desc:"changes recorded as the work lands"},"as-built":{g:"✓",l:"impact as built",c:"good",desc:"reconciled with the build"}};
 const reconOf=r=>r.reconciliation&&RECON[r.reconciliation.state]?r.reconciliation:null;
 const reconTag=r=>{ const x=reconOf(r); if(!x) return ""; const d=RECON[x.state]; return `<div class="tags">${pill(d,x.state==="partial"&&x.total?`${d.l} · ${x.landed} of ${x.total}`:"")}</div>`; };
-/* the "blocked by" tag of the unit up next: each blocker linked like any #n; a unit of its tracking board not filed yet ({unit, slug}: no issue
+/* the "blocked by" Pill of the unit up next: each blocker linked like any #n; a unit of its tracking board not filed yet ({unit, slug}: no issue
    to link) named by its slug */
 const blockerRef=x=>x.issue!=null?ilink(x.issue,x.repo):esc(x.slug||`unit ${x.unit}`);
-const blockedTag=r=>(r.blockedBy||[]).length?`<span class="verdict-pill ${BLOCKED.c}"><i aria-hidden="true">${BLOCKED.g}</i>blocked by ${r.blockedBy.map(blockerRef).join(", ")}</span>`:"";
+const blockedPill=r=>(r.blockedBy||[]).length?`<span class="verdict-pill ${BLOCKED.c}"><i aria-hidden="true">${BLOCKED.g}</i>blocked by ${r.blockedBy.map(blockerRef).join(", ")}</span>`:"";
 
 /* Links to the shared boards (GUIDANCE.md §5; plan/RULES.md §5): board.json "links", set by board.js from the files on disk, each relative
    to this board, absent while its file is not there (check.js fails one that is dead): the repository state board (repoBoard; repoPage on a board written before) and
@@ -612,7 +614,7 @@ function render(){
     const st=stOf(r), qa=qaShown(r);
       /* "closed" beside a clear dependency says nothing its pill does not: only a closing reason is kept there */
       const iss=(x,bub,dep)=>{ const cw=closedWord(x), say=cw&&!(dep&&x.build==="clear"&&cw==="closed"); return `<span class="dep-item">${ilink(x.issue,x.repo)} ${bub}${say?`<small>${esc(cw)}</small>`:""}</span>`; };
-      h+=`<tr class="run${st==="no-board"||st==="not-started"||st==="next"?" nob":""}" data-sys="${esc(r.system||"")}" style="--d:${e.depth}"${treeAttrs(e)}><td>${treeBtn(e)}<span class="t">${pair(r.issue,r.title)}</span>${e.x.kids.length?treeBelow(e.x):""}<div class="sub"><span class="${r.systemArchived?"sysarch":""}"><span class="sw" data-sys="${esc(r.system||"")}"></span>${esc(r.systemName||"no system recorded")}</span>${r.systemArchived?` <span class="archtag">⊟ archived</span>`:""}${r.parent&&!e.x.up?` · part of ${ilink(r.parent)}`:""}${r.fixOf?` · fix to ${ilink(r.fixOf)}`:""}</div>${treeGuides(e)}</td><td>${r.chain?chainCell(r,st):pill(STATUS[st],"",r.active?" fullpulse":st==="next"?" upnext-ring":heldRow(r)?" held":"")}${st==="next"?`<div class="tags">${TAG_NEXT}${blockedTag(r)}</div>`:""}${reconTag(r)}${r.tracker&&r.tracker.pr?`<div class="sub">${ext(`https://github.com/${B.repo}/pull/${r.tracker.pr.number}`,`PR #${esc(r.tracker.pr.number)}`)} ${r.tracker.pr.state==="MERGED"?"merged":"open"}</div>`:""}${r.step?`<div class="sub">step ${esc(stepLabel(r.step,rowCtx(r)))}</div>`:""}${r.branch?`<div class="sub">branch <code>${esc(r.branch)}</code></div>`:""}</td><td>${rich(r.detail||"")}${r.landed?`<div class="sub">${[r.landed.pr?`PR #${esc(r.landed.pr)}`:"",r.landed.version?esc(r.landed.version):"",r.landed.date?when(r.landed.date):""].filter(Boolean).join(" · ")}</div>`:""}</td><td>${qa.length?`<div class="qas">${qa.map(p=>{ const d=QA[p.verdict]||QA.running; return `<span class="qa1">${pill(d,`${passName(p.pass)} · ${d.l}`)}${inPlaceMark(p)}</span>`; }).join("")}</div>`:""}${qa.length&&r.qaMax?`<div class="sub">of at most ${esc(r.qaMax)}</div>`:""}</td><td>${(r.waitsOn||[]).length?`<div class="deps">${r.waitsOn.map(x=>iss(x,depPill(x),1)).join("")}</div>`:""}</td><td>${(r.blocks||[]).length?`<div class="deps">${r.blocks.map(x=>iss(x,pill(HOLD[holdOf(x,r)]))).join("")}</div>`:""}</td></tr>${chainRow(r,e)}`; });
+      h+=`<tr class="run${st==="no-board"||st==="not-started"||st==="next"?" nob":""}" data-sys="${esc(r.system||"")}" style="--d:${e.depth}"${treeAttrs(e)}><td>${treeBtn(e)}<span class="t">${pair(r.issue,r.title)}</span>${e.x.kids.length?treeBelow(e.x):""}<div class="sub"><span class="${r.systemArchived?"sysarch":""}"><span class="sw" data-sys="${esc(r.system||"")}"></span>${esc(r.systemName||"no system recorded")}</span>${r.systemArchived?` <span class="archtag">⊟ archived</span>`:""}${r.parent&&!e.x.up?` · part of ${ilink(r.parent)}`:""}${r.fixOf?` · fix to ${ilink(r.fixOf)}`:""}</div>${treeGuides(e)}</td><td>${r.chain?chainCell(r,st):pill(STATUS[st],"",r.active?" fullpulse":st==="next"?" upnext-ring":heldRow(r)?" held":"")}${st==="next"?`<div class="tags">${TAG_NEXT}${blockedPill(r)}</div>`:""}${reconTag(r)}${r.tracker&&r.tracker.pr?`<div class="sub">${ext(`https://github.com/${B.repo}/pull/${r.tracker.pr.number}`,`PR #${esc(r.tracker.pr.number)}`)} ${r.tracker.pr.state==="MERGED"?"merged":"open"}</div>`:""}${r.step?`<div class="sub">step ${esc(stepLabel(r.step,rowCtx(r)))}</div>`:""}${r.branch?`<div class="sub">branch <code>${esc(r.branch)}</code></div>`:""}</td><td>${rich(r.detail||"")}${r.landed?`<div class="sub">${[r.landed.pr?`PR #${esc(r.landed.pr)}`:"",r.landed.version?esc(r.landed.version):"",r.landed.date?when(r.landed.date):""].filter(Boolean).join(" · ")}</div>`:""}</td><td>${qa.length?`<div class="qas">${qa.map(p=>{ const d=QA[p.verdict]||QA.running; return `<span class="qa1">${pill(d,`${passName(p.pass)} · ${d.l}`)}${inPlaceMark(p)}</span>`; }).join("")}</div>`:""}${qa.length&&r.qaMax?`<div class="sub">of at most ${esc(r.qaMax)}</div>`:""}</td><td>${(r.waitsOn||[]).length?`<div class="deps">${r.waitsOn.map(x=>iss(x,depPill(x),1)).join("")}</div>`:""}</td><td>${(r.blocks||[]).length?`<div class="deps">${r.blocks.map(x=>iss(x,pill(HOLD[holdOf(x,r)]))).join("")}</div>`:""}</td></tr>${chainRow(r,e)}`; });
   $("#runs").innerHTML=h+"</tbody>"; paint($("#runs")); treeRefocus(treeFocused);
   const tops=new Map(); ROWS.filter(r=>!r.systemArchived).forEach(r=>{ const s=sysOf(r.system), k=sysLit(s)?sysK(s):0; if(!tops.has(k)) tops.set(k,{c:sysColour(r.system),n:new Set()}); tops.get(k).n.add(k?(s.top||s.name):"no system colour"); });
   const used=new Set([...ROWS.filter(r=>!r.chain||["halted","escalated","abandoned"].includes(stOf(r))).map(stOf),...treeUsed(forest)]), qv=new Set(ROWS.flatMap(r=>qaShown(r).map(p=>p.verdict))), dv=new Set(ROWS.flatMap(r=>(r.waitsOn||[]).map(x=>x.build).filter(k=>DEP[k]))), lv=new Set(ROWS.flatMap(r=>(r.waitsOn||[]).map(locOf).filter(Boolean).map(L=>L.k))), dn=ROWS.some(r=>(r.waitsOn||[]).some(x=>x.why)), hv=new Set(ROWS.flatMap(r=>(r.blocks||[]).map(x=>holdOf(x,r))));
@@ -630,7 +632,7 @@ function render(){
   if(!kh){ if(ck) ck.remove(); } else { if(!ck){ ck=document.createElement("div"); ck.className="legend"; ck.id="context-key"; $("#context").parentElement.appendChild(ck); } ck.innerHTML=kh; }
   /* the footer (GUIDANCE.md §3): what the board corresponds to and what is authoritative; nothing more */
   $("#footer").innerHTML=`Corresponds to <code>docs/plans/${B.live?".live/":""}board.json</code>. Code and the Markdown beside this board are authoritative on any conflict.`;
-  $("#source-view").textContent=JSON.stringify(B,(k,v)=>k==="level"?undefined:v,2); /* a work level is never shown (GUIDANCE.md §4) */
+  $("#source-view").textContent=JSON.stringify(B,(k,v)=>k==="level"?undefined:v,2); /* the sizing an older row holds is never shown (GUIDANCE.md §4) */
   $("#source-key").innerHTML=`<span>this copy is replaced on every <code>board.js</code> run</span>`;
 }
 /* ---------- The theme switch (GUIDANCE.md §1, Themes; §12, "Switch") ----------

@@ -8,7 +8,8 @@
 "use strict";
 
 const TEST_LISTS = ["added", "amended", "relevant"];
-/* The five-level testing hierarchy's levels (CLAUDE.md, "Testing — 5-Level Hierarchy"): test levels, never work levels (GUIDANCE.md §4). */
+/* The named test sets (CLAUDE.md, "Testing — Named Test Sets"), as the board's stored testLevel holds them: each set by its old number, in
+   the sets' order (a board shows each by its name, GUIDANCE.md §1; the stored key keeps its name and numbers as built). */
 const TEST_LEVELS = ["1", "2", "3", "4a", "4b", "4c", "5"];
 const TEST_LEVEL_SEGMENTS = { gating: "1", component: "2", integration: "3", deterministic: "4a", e2e: "4b", nonfunctional: "4c", uat: "5" };
 const TEST_RESULTS = ["passed", "failed", "skipped", "not-run"];
@@ -31,7 +32,7 @@ function bareName(cls, module) {
   const s = " (" + m + ")"; if (c.endsWith(s) && c.length > s.length) return c.slice(0, -s.length).trim();
   return c;
 }
-/* A module's test task, by the five-level testing hierarchy's level folders (gatingTest … uatTest), and the test level it runs. */
+/* A module's test task, by the test sets' folders (gatingTest … uatTest), and the set it runs, as testLevel holds it. */
 const TASK_LEVEL = { gatingTest: "1", componentTest: "2", integrationTest: "3", deterministicTest: "4a", e2eTest: "4b", nonfunctionalTest: "4c", uatTest: "5" };
 /* A run of a module's test task with no failure that counted exactly the tests of the board's own Added and Amended classes of that module
    at that level: the run is their results and no class of its own (WebTools #69: a stage report sent "gatingTest (webtools-feeds)",
@@ -151,7 +152,7 @@ function normOther(x) {
    replaces the counts (an empty one reports nothing new, so any earlier counts stay); "drop" removes classes from every list (a change reverted; one on no list is named in the summary, never passed over); "base" names the ref the diff is against. The same
    facts twice change nothing. Returns { changed, applied, notes, warnings }: notes what a presenter must look at (enrich: yes), warnings what
    the fast path read otherwise than sent, or changed, said in its summary (a testLevel given by a level folder's name, read as its level; a
-   recorded testLevel another event changes, with the level held and the level sent). o: { now, pass, stage, stages, ids }.
+   recorded testLevel another event changes, with the set held and the set sent, TEST SET CHANGED). o: { now, pass, stage, stages, ids }.
    The stage (plan/RULES.md §4, facts.tests): an event that reports one stage for its classes gives o.stage, and each class it names takes it,
    as before. One that reports several stages done at once (KotlinBottools #24: S1 to S5 run again in a remediation; every class was stamped
    S5, "S3 python" included, and the stages already on the board overwritten) gives o.stage null and o.stages { label, list: [{ id, steps }],
@@ -187,8 +188,10 @@ function mergeTests(plan, ft, o) {
     return bare.length === 1 ? bare[0].id : null; };
   const stageOf = (e, old) => { if (!MS || e.stage || (old && old.stage)) return;
     const s = stageByStep(e) || MS.fallback || null; if (s) e.stage = s; else stageless.push(e.class); };
-  /* a recorded test level another event changes: the latest facts win (a qa pass's run names the level the class ran at), never silently */
-  const relevel = (old, e) => { if (old.testLevel && e.testLevel && String(old.testLevel) !== String(e.testLevel)) warnings.push(`TEST LEVEL CHANGED: ${old.class}${old.module ? ` (${old.module})` : ""}: the board held test level ${old.testLevel}, the event sent ${e.testLevel}; written ${e.testLevel}`); };
+  /* a recorded test set another event changes: the latest facts win (a qa pass's run names the set the class ran in), never silently; the
+     message names each set by its name (SET_OF_LEVEL), never by the number testLevel stores */
+  const setName = v => SET_OF_LEVEL[String(v)] || String(v);
+  const relevel = (old, e) => { if (old.testLevel && e.testLevel && String(old.testLevel) !== String(e.testLevel)) warnings.push(`TEST SET CHANGED: ${old.class}${old.module ? ` (${old.module})` : ""}: the board held the set ${setName(old.testLevel)}, the event sent ${setName(e.testLevel)}; written ${setName(e.testLevel)}`); };
   const put = (k, e, resultOnly) => { const w = find(e);
     if (!w) { if (!resultOnly) stageOf(e, null); T[k].push(e); applied.push(`tests.${k} + ${e.class}`); return; }
     const old = T[w.k][w.i]; relevel(old, e); if (!resultOnly) stageOf(e, old);

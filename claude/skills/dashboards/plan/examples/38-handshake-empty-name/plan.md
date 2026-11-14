@@ -84,14 +84,14 @@ it on a single U+0020. A line whose first token is exactly `Iam` is a handshake 
    `docs/webtools-udp-protocol.md` (21 of 37 on `85cfbbe`); the architecture doc's `:52`
    and handshake node; the README's handshake sections. Historical plan documents outside
    this issue's folder are not edited.
-10. **Level-2 KDoc** is updated everywhere a public KDoc says refusal comes only from
+10. **Level-1 KDoc** is updated everywhere a public KDoc says refusal comes only from
     `admit`, that every other `Iam` is well-formed, or that `REFUSED` never reaches a
     session.
 11. **Test housekeeping:** the raw NUL and SOH bytes at `test/component/.../HandshakeCoordinatorTest.kt:577`
     become the escapes `"\u0000\u0001"` (first edit to that file); the comment at
     `test/integration/.../ChannelByteGuardIntegrationTest.kt:25` gets the current line range
     of the raw-socket peer in `FramingNonFunctionalTest.kt`.
-12. **Tests** at levels 1, 2, 3, 4a and 4c as in §8. The two tests that assert silence for
+12. **Tests** in the gating, component, integration, deterministic and nonfunctional sets as in §8. The two tests that assert silence for
     a bare `Iam` flip to expecting `REFUSED malformed`.
 
 **Acceptance.** Each of the three malformed shapes, from an unknown origin and from a
@@ -108,7 +108,7 @@ protocol doc points at what its prose says.
 
 Baseline `85cfbbe` (branch `9b1fff7` adds Markdown only). Baseline test run on this
 checkout, all green: `gatingTest` 77, `componentTest` 223, `deterministicTest` 89,
-`integrationTest` 110, `nonfunctionalTest` 62 (the e2e and uat levels were not run).
+`integrationTest` 110, `nonfunctionalTest` 62 (the e2e and uat sets were not run).
 
 **Path from the socket to the handshake.**
 - `main/MultiConnectionUDPServer.kt:326-340` `receiveLoop` calls
@@ -968,14 +968,14 @@ Also `git diff --stat` shows only the four `main/` files.
 ## 8. Tests — Stage A (A-7)
 
 Conventions followed (read from the existing suites): `kotlin.test` assertions with
-`org.junit.jupiter.api.Tag`; the level `@Tag` on every class; hand-written recording fakes
+`org.junit.jupiter.api.Tag`; the set's `@Tag` on every class; hand-written recording fakes
 (`FakeConnection`, `FakePeriodicSchedule`) under `test/support/webtools/udp/`; log
 assertions through `captureLogsOf`/`hasEventAt`/`hasWarnContaining`
 (`test/support/webtools/udp/LogCapture.kt`); one test class per file; component tests pass
 **pre-trimmed** text (`accept(origin, text)` does not trim). MockK is not used by these
 suites. Every socket-level case sends from a raw `DatagramSocket`, never from
 `MultiConnectionUDPClient.handshake("", …)` (#52 will make that call fail locally).
-Test inputs `"Iam bob "` (trailing space) appear only at level 3, where `CommonChannel`
+Test inputs `"Iam bob "` (trailing space) appear only in the integration set, where `CommonChannel`
 trims it to `Iam bob`.
 
 Naming trap: `HandshakeCoordinatorTest` "admit receives an empty credential for a bare Iam"
@@ -983,7 +983,7 @@ Naming trap: `HandshakeCoordinatorTest` "admit receives an empty credential for 
 credential for a bare Iam" (`:93-100`) send `Iam alice` — an absent credential, not a
 malformed line. They stay unchanged.
 
-### T-1 Level 1 — `test/gating/webtools/udp/HandshakeProtocolGatingTest.kt` (replace the whole file)
+### T-1 gating — `test/gating/webtools/udp/HandshakeProtocolGatingTest.kt` (replace the whole file)
 
 ```kotlin
 package com.spartanlabs.testing.gating.webtools.udp
@@ -998,8 +998,8 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-// Level 1 - a fast pre-commit smoke over the handshake rules. No I/O, sub-millisecond.
-// The exhaustive input->output mapping lives in the Level 4a deterministic suite.
+// gating - a fast pre-commit smoke over the handshake rules. No I/O, sub-millisecond.
+// The exhaustive input->output mapping lives in the deterministic suite.
 @Tag("gating")
 class HandshakeProtocolGatingTest {
 
@@ -1056,7 +1056,7 @@ Changed tests: the first three of the old file (`.getOrThrow()` -> `assertIs<Han
 the old "a nameless Iam is rejected" -> asserts the name-missing defect). New: empty-name
 and the reply bytes. Net +2 tests (5 -> 7).
 
-### T-2 Level 1 — `test/gating/webtools/udp/HandshakeCoordinatorGatingTest.kt` (one new test)
+### T-2 gating — `test/gating/webtools/udp/HandshakeCoordinatorGatingTest.kt` (one new test)
 
 Insert immediately before the existing
 `@Test fun \`an admitted Iam with a credential registers and the credential reaches admit\`()`
@@ -1079,7 +1079,7 @@ Insert immediately before the existing
 
 No new imports (`assertEquals`, `assertTrue`, `InetSocketAddress` are present).
 
-### T-3 Level 2 — `test/component/webtools/udp/HandshakeCoordinatorTest.kt`
+### T-3 component — `test/component/webtools/udp/HandshakeCoordinatorTest.kt`
 
 A-1 must have landed. Edits in file order:
 
@@ -1265,7 +1265,7 @@ A-1 must have landed. Edits in file order:
 `assertFalse`, `assertNull`, `assertContentEquals` are already imported. Net: 1 test
 renamed and flipped, 10 new -> component +10 here.
 
-### T-4 Level 2 — `test/component/webtools/udp/FramingComponentTest.kt`
+### T-4 component — `test/component/webtools/udp/FramingComponentTest.kt`
 
 Three edits and one test:
 1. Add `import kotlin.test.assertEquals` between `assertContentEquals` (`:17`) and
@@ -1293,7 +1293,7 @@ Three edits and one test:
 
 Existing tests are unaffected (the recording sender replaces a no-op one). Component +1.
 
-### T-5 Level 3 — `test/integration/webtools/udp/MultiConnectionUDPServerTest.kt` (flip, in place)
+### T-5 integration — `test/integration/webtools/udp/MultiConnectionUDPServerTest.kt` (flip, in place)
 
 In the `@Order(11)` test (`:246-259`), replace the first statement (`:248`):
 
@@ -1310,7 +1310,7 @@ new:
 The test name stays. A refused line registers nothing, so later `@Order` tests that count
 `connectedClients` are unaffected. Count unchanged.
 
-### T-6 Level 3 — `test/integration/webtools/udp/MultiConnectionUDPServerAdmissionTest.kt` (four new tests)
+### T-6 integration — `test/integration/webtools/udp/MultiConnectionUDPServerAdmissionTest.kt` (four new tests)
 
 Insert after `the default branch sees an empty credential for a bare Iam` (`:93-100`) and
 before `a socket refused once can retry successfully on the same socket`. No new imports.
@@ -1366,7 +1366,7 @@ before `a socket refused once can retry successfully on the same socket`. No new
 
 Integration +4 (110 -> 114).
 
-### T-7 Level 4a — `test/deterministic/webtools/udp/HandshakeProtocolTest.kt` (replace the whole file)
+### T-7 deterministic — `test/deterministic/webtools/udp/HandshakeProtocolTest.kt` (replace the whole file)
 
 ```kotlin
 package com.spartanlabs.testing.deterministic.webtools.udp
@@ -1383,7 +1383,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-// Level 4a - exhaustive input -> output mapping for every pure function in HandshakeProtocol.
+// deterministic - exhaustive input -> output mapping for every pure function in HandshakeProtocol.
 @Tag("deterministic")
 class HandshakeProtocolTest {
 
@@ -1543,7 +1543,7 @@ Removed: "parseHandshake rejects a verb-only line / an empty token list / a non-
 no longer exist; the same inputs are asserted as `Malformed`/`NotAHandshake`). Net 13 -> 19
 tests (+6).
 
-### T-8 Level 4c — `test/nonfunctional/webtools/udp/MultiConnectionUDPServerAdmissionNonFunctionalTest.kt` (one new test)
+### T-8 nonfunctional — `test/nonfunctional/webtools/udp/MultiConnectionUDPServerAdmissionNonFunctionalTest.kt` (one new test)
 
 Insert after `a burst of refusals leaves no registrations and the server still accepts a good client`
 (`:103-125`), before `a slow admit serialises handshakes`. In the `private companion object`
@@ -1583,15 +1583,15 @@ add `const val MALFORMED_BURST = 600`. No new imports.
 The final `good` handshake succeeding is the liveness proof for the listener thread
 (requirement 8). Nonfunctional +1 (62 -> 63).
 
-### T-9 Levels 4b and 5
+### T-9 e2e and uat
 
-- **Level 4b (e2e):** added in Stage C (§17, C-T7): a real default server and a real
+- **e2e:** added in Stage C (§17, C-T7): a real default server and a real
   `MultiConnectionUDPClient`, pinning that an empty name fails fast with a typed `malformed`
   refusal until #52 rejects it locally. Any e2e case that needs a malformed line other than
   the library client's own sends it from a raw `DatagramSocket`
   (`MultiConnectionUDPServerE2ETest.kt:44-94` has a private raw `Client`).
-- **Level 5 (uat):** no UAT step. The change's only observable surface is the wire reply
-  and the server log, and the level-3, 4b and 4c tests exercise both end to end over real
+- **uat:** no UAT step. The change's only observable surface is the wire reply
+  and the server log, and the integration, e2e and nonfunctional tests exercise both end to end over real
   loopback sockets; a manual pass would repeat those exchanges without adding product-fit
   information.
 - **Not automatable:** the readability/accuracy of the documentation edits (Stage B) and
@@ -1607,7 +1607,7 @@ The final `good` handshake succeeding is the liveness proof for the listener thr
 ./gradlew.bat :webtools-udp:test
 ```
 
-All must end `BUILD SUCCESSFUL`. Expected per-level counts after Stage A (sum the `tests=`
+All must end `BUILD SUCCESSFUL`. Expected per-set counts after Stage A (sum the `tests=`
 attribute of `webtools-udp/build/test-results/<task>/*.xml`): gating **80** (77+3),
 component **234** (223+11), deterministic **95** (89+6), integration **114** (110+4),
 nonfunctional **63** (62+1), e2e **33** (unchanged), uat **13** (unchanged). After Stage C
@@ -1640,7 +1640,7 @@ Audience-Reach rings touched:
 **README currency.** The wire behaviour changes (a new reply, a new rule for `admit`), so
 `README.md` is updated in the same PR (Stage B, B-6): the message table, the retransmit /
 credential paragraph, the `admit` paragraph and "Handshake screening & credentials".
-Historical plans under `docs/plans/` outside this folder are not edited. Level-2 KDoc
+Historical plans under `docs/plans/` outside this folder are not edited. Level-1 KDoc
 (`@param`/`@return`) is present on every new internal function and type.
 
 ## 10. File-by-file changes — Stage B (living documents)
@@ -2047,7 +2047,7 @@ git status --short                     # only docs, README.md (and final-impleme
   | 1 | A-1, A-2, plus `docs/plans/38-handshake-empty-name/plan.md`, `architecture.md` and `impact.md` | `test: escape the raw NUL/SOH bytes in HandshakeCoordinatorTest and refresh a stale line reference (Issue #38)` |
   | 2 | A-3..A-7 (code, KDoc, tests) | `fix: refuse a malformed Iam with REFUSED malformed instead of accepting or ignoring it (Issue #38)` |
   | 3 | C-1..C-4 and D-1..D-3 (production KDoc, the `#49` FIXME, `//region` markers) plus the updated `plan.md`, `architecture.md` and `impact.md` | `docs: state the exact registration and failure contracts of the malformed Iam refusal (Issue #38)` |
-  | 4 | C-T1..C-T8 and D-4 (tests at levels 1, 2, 3, 4a, 4b, 4c) | `test: cover the remaining malformed Iam paths at every level (Issue #38)` |
+  | 4 | C-T1..C-T8 and D-4 (tests in the gating, component, integration, deterministic, e2e and nonfunctional sets) | `test: cover the remaining malformed Iam paths in every set (Issue #38)` |
   | 5 | B-1..B-6 as corrected by C-D and D-5, with every line reference recomputed in C-B and D-6 (protocol doc, architecture doc, README) | `docs: describe the malformed Iam refusal and refresh the protocol line references (Issue #38)` |
   | 6 | version bump to `2.0.0a` (the version-control-manager's `build:` commit; it also moves the README install snippet to `2.0.0a`) | the version-control-manager's convention |
 
@@ -2088,7 +2088,7 @@ git status --short                     # only docs, README.md (and final-impleme
   trace; today's bare `Iam` already costs a stack-trace WARN), one WARN per reflected
   reply on a registered library client.
 - **No throw path.** The parse is total; `routeUnframed` is an exhaustive `when`; every new
-  return is `Result.success` or `send`'s `Result`. The 4c burst test and the final `good`
+  return is `Result.success` or `send`'s `Result`. The nonfunctional burst test and the final `good`
   handshake prove the listener survives. `admit` throwing remains handled as today; a
   throwing `onClientConnect` is still #54.
 - **Unchanged quirks.** A spoofed malformed line still refreshes a registered origin's
@@ -2164,7 +2164,7 @@ assign a stability tier; the one open-ended wording choice (the reason text) is 
 
 Stage C states the exact registration and failure contracts in the KDoc, marks the #49
 defect where it lives, adds `//region` navigation to `HandshakeCoordinator.kt`, widens the
-tests at every automated level, and corrects four protocol-doc passages. It starts from the
+tests in every automated set, and corrects four protocol-doc passages. It starts from the
 branch at Commit 2 (`1605bdd`) with Stage B's three documents edited but uncommitted.
 
 - **Commit order:** its production and test edits (Commits 3 and 4) land before Stage B's
@@ -2575,11 +2575,11 @@ and `impact.md`.
 
 ### C-T Tests (Commit 4)
 
-The conventions are as in §8: `kotlin.test` with the level `@Tag` on the class, the fakes and
-`LogCapture` under `test/support/`, pre-trimmed text at level 2, raw sockets for any
-malformed line at levels 3 and 4c.
+The conventions are as in §8: `kotlin.test` with the set's `@Tag` on the class, the fakes and
+`LogCapture` under `test/support/`, pre-trimmed text in the component set, raw sockets for any
+malformed line in the integration and nonfunctional sets.
 
-**C-T1 — Level 1, `test/gating/webtools/udp/HandshakeProtocolGatingTest.kt` (+2).** Insert
+**C-T1 — gating, `test/gating/webtools/udp/HandshakeProtocolGatingTest.kt` (+2).** Insert
 two tests after the name-empty test (`:39-45`):
 
 ```text
@@ -2614,7 +2614,7 @@ new:
 
 No new imports.
 
-**C-T2 — Level 1, `test/gating/webtools/udp/HandshakeCoordinatorGatingTest.kt` (+1 test,
+**C-T2 — gating, `test/gating/webtools/udp/HandshakeCoordinatorGatingTest.kt` (+1 test,
 +1 assertion).**
 
 First, insert a registered-origin case after the unknown-origin malformed test (`:65-76`):
@@ -2673,7 +2673,7 @@ new:
 
 No new imports.
 
-**C-T3 — Level 2, `test/component/webtools/udp/HandshakeCoordinatorTest.kt` (1 renamed and
+**C-T3 — component, `test/component/webtools/udp/HandshakeCoordinatorTest.kt` (1 renamed and
 strengthened, +1).** A `0x00`-led datagram is unframed, so it is routed as a non-handshake
 and never reaches `deliverData`. The existing test (`:729-735`) is renamed after what it
 exercises, and a `0x90` case reaches `deliverData` with no handler bound:
@@ -2718,7 +2718,7 @@ new:
 `captureLogsOf`, `hasEventAt`, `TransportWireFormat` and `HandshakeCoordinator` are
 already imported.
 
-**C-T4 — Level 3, `test/integration/webtools/udp/MultiConnectionUDPServerAdmissionTest.kt`
+**C-T4 — integration, `test/integration/webtools/udp/MultiConnectionUDPServerAdmissionTest.kt`
 (+1 test, +1 exchange).**
 
 First, the registered-socket test (`:116-127`) also sends an empty-credential line:
@@ -2762,7 +2762,7 @@ new:
 
 No new imports.
 
-**C-T5 and C-T6 — Level 4a, `test/deterministic/webtools/udp/HandshakeProtocolTest.kt` (+1,
+**C-T5 and C-T6 — deterministic, `test/deterministic/webtools/udp/HandshakeProtocolTest.kt` (+1,
 1 renamed).**
 
 First, the verb check runs before any slot check. Insert after the not-a-handshake test
@@ -2796,7 +2796,7 @@ new:
 
 `\t` is the Kotlin escape text, as the file already holds it.
 
-**C-T7 — Level 4b, `test/e2e/webtools/udp/MultiConnectionUDPHandshakeRefusalE2ETest.kt`
+**C-T7 — e2e, `test/e2e/webtools/udp/MultiConnectionUDPHandshakeRefusalE2ETest.kt`
 (+1).** This test pins how the library client's empty name reaches the server today, and
 flips when #52 lands.
 
@@ -2804,11 +2804,11 @@ First, the class comment (`:19-21`):
 
 ```text
 old:
-// Level 4b - a real MultiConnectionUDPClient against a real MultiConnectionUDPServer subclass
+// e2e - a real MultiConnectionUDPClient against a real MultiConnectionUDPServer subclass
 // over loopback, proving the admit() refusal path surfaces as a typed HandshakeRefusedException
 // on the client and that a refused newcomer never disturbs an established connection.
 new:
-// Level 4b - a real MultiConnectionUDPClient against a real MultiConnectionUDPServer subclass
+// e2e - a real MultiConnectionUDPClient against a real MultiConnectionUDPServer subclass
 // over loopback, proving the admit() refusal path surfaces as a typed HandshakeRefusedException
 // on the client, that a refused newcomer never disturbs an established connection, and that a
 // malformed line built from an empty name is refused the same way.
@@ -2871,7 +2871,7 @@ new:
 Each client calls `handshake` once, because a second call on one client is outside its
 contract. No new imports.
 
-**C-T8a — Level 4c,
+**C-T8a — nonfunctional,
 `test/nonfunctional/webtools/udp/MultiConnectionUDPServerAdmissionNonFunctionalTest.kt` (+1,
 and a named settle constant).** Five edits, top to bottom.
 
@@ -2894,12 +2894,12 @@ import com.spartanlabs.webtools.udp.TransportWireFormat
 
 ```text
 old:
-// Level 4c - robustness / security / timing properties of the admit() screening hook over a
+// nonfunctional - robustness / security / timing properties of the admit() screening hook over a
 // real socket: the credential arrives verbatim, a throwing admit never wedges the listener,
 // a refusal burst leaks no state, a slow admit serialises handshakes (documented cost), and
 // a multi-line refusal reason is collapsed to one wire line.
 new:
-// Level 4c - robustness / security / timing properties of the admit() screening hook over a
+// nonfunctional - robustness / security / timing properties of the admit() screening hook over a
 // real socket: the credential arrives verbatim, a throwing admit never wedges the listener,
 // a refusal burst leaks no state, a malformed-handshake burst - from strangers and from a
 // registered socket - draws exactly one refusal per datagram and never reaches admit, a slow
@@ -2996,7 +2996,7 @@ Two notes on the new test:
 - **Library members it uses:** `DatagramSocket.send(String)` and `recv(Int)` are this
   class's helpers; `peer.receive` is the JDK method.
 
-**C-T8b — Level 4c, `test/nonfunctional/webtools/udp/HandshakeNonFunctionalTest.kt` (+1).**
+**C-T8b — nonfunctional, `test/nonfunctional/webtools/udp/HandshakeNonFunctionalTest.kt` (+1).**
 Four edits, top to bottom.
 
 1. **Imports.**
@@ -3027,10 +3027,10 @@ import kotlin.test.assertTrue
 
 ```text
 old:
-// Level 4c - non-functional properties of the multiplexed handshake / data path: the reply
+// nonfunctional - non-functional properties of the multiplexed handshake / data path: the reply
 // is only ever addressed to the datagram source; the server binds exactly one socket
 new:
-// Level 4c - non-functional properties of the multiplexed handshake / data path: the reply
+// nonfunctional - non-functional properties of the multiplexed handshake / data path: the reply
 // is only ever addressed to the datagram source; a hostile malformed line draws one bounded
 // reply to its origin and never reaches the log; the server binds exactly one socket
 ```
@@ -3103,7 +3103,7 @@ git diff --stat -- webtools-udp/src/test     # exactly the eight test files name
 All must end `BUILD SUCCESSFUL`. Expected counts, summed from the `tests=` attributes in
 `webtools-udp/build/test-results/<task>/*.xml`:
 
-| Level | Count | Change |
+| Set | Count | Change |
 |---|---|---|
 | gating | **83** | 80 + 3 |
 | component | **235** | 234 + 1 |
@@ -3319,7 +3319,7 @@ document edits are applied but not yet committed.
 | D-1 | `main/HandshakeProtocol.kt` | 3 |
 | D-2 | `main/HandshakeWireFormat.kt` | 3 |
 | D-3 | `main/MultiConnectionUDPServer.kt` | 3 |
-| D-4 | the 4c admission test | 4 |
+| D-4 | the nonfunctional admission test | 4 |
 | D-5 | protocol doc | 5 |
 | D-6 | protocol and architecture docs | 5 |
 
@@ -3447,7 +3447,7 @@ new:
  * dedicated `mcups-liveness` daemon thread periodically reports any connection
 ```
 
-### D-4 4c test — the registered peer is probed through the registry
+### D-4 nonfunctional test — the registered peer is probed through the registry
 
 File: `test/nonfunctional/webtools/udp/MultiConnectionUDPServerAdmissionNonFunctionalTest.kt`.
 

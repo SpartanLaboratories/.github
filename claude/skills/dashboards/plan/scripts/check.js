@@ -108,10 +108,10 @@ function checkLink(dir, ref, at) {
   if (m[2] && /\.md$/.test(m[1]) && !headingSlugs(fs.readFileSync(file, "utf8")).has(m[2].slice(1))) warn(`${at}: ${m[1]} has no heading ${m[2]}`);
 }
 
-/* No work levels on a dashboard (GUIDANCE.md §4): every string the board renders is free of a work-level reference
-   (system/scripts/levelrefs.js). The numeric fields an older closed board may keep (level, unit.level, proposedLevel; levels.js) are not text. An issue's
-   title is quoted verbatim (admin-team/dashboards-skill/28): one that names a work level is a defect in the issue, flagged ISSUE TITLE
-   NAMES A WORK LEVEL: #n as a warning, never a failure of the board (levelrefs.js issueTitleRefs()). */
+/* No grades on a dashboard (GUIDANCE.md §4): every string the board renders is free of a grade reference, and until the rule rework's
+   L12 of its old name, a work level (system/scripts/levelrefs.js). The numeric fields an older closed board may keep (level, unit.level, proposedLevel; levels.js) are not text. An issue's
+   title is quoted verbatim (admin-team/dashboards-skill/28): one that names a grade is a defect in the issue, flagged ISSUE TITLE
+   NAMES A GRADE: #n as a warning, never a failure of the board (levelrefs.js issueTitleRefs()). */
 function levelFail(data, file) {
   issueTitleRefs(data).forEach(x => warn(titleDefect(x)));
   /* No internal names (GUIDANCE.md §4; namerefs.js, dashboards-skill/33): every string the board carries is free of the pipeline's agents,
@@ -120,15 +120,15 @@ function levelFail(data, file) {
   const tSkip = titleSkip(data), names = nameRefsIn(data, "", [], at => tSkip(at) || /^rows\[\d+\]\.options\[\d+\]\.signature$/.test(at));   // a signature is code, never prose
   if (names.length) warn(nameWarning(`${file} (${[...new Set(names.map(h => h.at))].slice(0, 4).join(", ")}${names.length > 4 ? ", …" : ""})`, names.map(h => h.hit)));
   const hits = levelRefsIn(data, "", [], titleSkip(data));
-  // a decision's defence written as its work level ("Level 3: one system, additive"), the architecture's usual form
+  // a decision's defence written as its grade's old name ("Level 3: one system, additive"), the older architectures' usual form
   (data.rows || []).forEach((r, i) => { const d = (r && r.verdict || {}).defense; if (typeof d === "string" && /^\s*level [1-4]\b(?![a-c])\s*[:.]/i.test(d)) hits.push({ at: `rows[${i}].verdict.defense`, hit: d.slice(0, 9) }); });
-  /* a bare test level beside a test word ("L2 test", admin-team/dashboards-skill/35) is no work level, but a board writes a test level with
-     its name: warned, naming the form to write (levelrefs.js nameTestLevels()) */
-  const bare = []; const walkB = (v, at) => { if (typeof v === "string") { const n = nameTestLevels(v); if (n.named.length) bare.push(`${at} ("${n.named.join(", ")}" → "${(n.text.match(/\bL[1-3] (?:gating|component|integration)\b/) || [""])[0]}")`); }
+  /* a test set written by its old number ("L2 test", "L2 component", admin-team/dashboards-skill/35) is no work level, but a board calls
+     a set by its name, never by a number: warned, naming the set's name to write (levelrefs.js nameTestLevels()) */
+  const bare = []; const walkB = (v, at) => { if (typeof v === "string") { const n = nameTestLevels(v); if (n.named.length) bare.push(`${at} ("${n.named.join(", ")}" → "${n.as.join(", ")}")`); }
     else if (Array.isArray(v)) v.forEach((x, i) => walkB(x, `${at}[${i}]`)); else if (v && typeof v === "object") Object.keys(v).forEach(k => { if (k !== "$comment") walkB(v[k], at ? `${at}.${k}` : k); }); };
   walkB(data, "");
-  if (bare.length) warn(`BARE TEST LEVEL: ${file} writes a test level without its name: ${bare.slice(0, 4).join(", ")}${bare.length > 4 ? ", …" : ""}; write its named test level (GUIDANCE.md §4)`);
-  if (hits.length) fail(`${file} shows a work level, which a dashboard never does: ${hits.slice(0, 6).map(h => `${h.at} ("${h.hit}")`).join(", ")}${hits.length > 6 ? ` and ${hits.length - 6} more` : ""}; say what the work is instead (one system, a bug fix, docs only)`);
+  if (bare.length) warn(`TEST SET BY NUMBER: ${file} writes a test set by its number: ${bare.slice(0, 4).join(", ")}${bare.length > 4 ? ", …" : ""}; write the set's name (GUIDANCE.md §4)`);
+  if (hits.length) fail(`${file} shows a grade, which a dashboard never does: ${hits.slice(0, 6).map(h => `${h.at} ("${h.hit}")`).join(", ")}${hits.length > 6 ? ` and ${hits.length - 6} more` : ""}; say what the work is instead (one system, a bug fix, docs only)`);
 }
 
 /* A board's names come from passnames.js (2026-11-05, 2026-11-06): a pass "Quality Review N", one not numbered "review", the qa step
@@ -159,8 +159,8 @@ function checkPlan(plan, dir, root) {
   ["title", "function"].forEach(k => { if (!str(plan[k])) fail(`${k} is required`); });
   if (!STATUS.includes(plan.status)) fail(`status must be one of ${STATUS.join(", ")}`);
   if (plan.kind != null && !["issue", "tracking"].includes(plan.kind)) fail(`kind must be issue or tracking (got ${JSON.stringify(plan.kind)})`);
-  /* a work level is never kept on an open board (levels.js; every rewrite drops it); a closed work board, landed or cancelled, keeps what it holds */
-  { const lv = workLevelFields(plan); if (lv.length && !boardClosed(plan)) fail(`WORK LEVEL ON THE BOARD: ${lv.join(", ")}: an open board keeps no work level; the request and the team's local state hold it (run embed.js, which drops it)`); else if (lv.length) ok(`a closed board keeps the work level it holds (${lv.join(", ")}), never shown`); }
+  /* a grade is never kept on an open board (levels.js; every rewrite drops it); a closed work board, landed or cancelled, keeps what it holds */
+  { const lv = workLevelFields(plan); if (lv.length && !boardClosed(plan)) fail(`GRADE ON THE BOARD: ${lv.join(", ")}: an open board keeps no grade; the request and the team's local state hold it (run embed.js, which drops it)`); else if (lv.length) ok(`a closed board keeps the grade it holds (${lv.join(", ")}), never shown`); }
   const b = plan.baseline || {};
   if (!str(b.ref) || !str(b.sha) || !str(b.date)) fail("baseline needs ref, sha and date");
   if (str(b.sha) && !SHA.test(b.sha)) fail(`baseline.sha "${b.sha}" is not a commit sha`);
@@ -886,8 +886,8 @@ function checkHistory(plan, w, stampOk) {
    on a tracking board each unit's landing) and, from the landing on (a tracking board's last unit's), "as-built" (reconciled, each
    difference from the plan in changes[]). The
    vocabularies are checked; a built board's impact is the as-built one and a planned board's the plan's. Warnings: impact.md in
-   the folder while the tab is empty; a release that does not fit the level (a level-3 bump needs a downstream effect, and a
-   level-3 change with none says so; neither counts an effect where release.nothingPublished records that the change touches no
+   the folder while the tab is empty; a release that does not fit the grade (a grade-3 bump needs a downstream effect, and a
+   grade-3 change with none says so; neither counts an effect where release.nothingPublished records that the change touches no
    published artifact); a breaking effect or a removed surface without a major release; on a tracking board, a unit
    whose own board records its impact while this board has no entry for it, or an entry still the plan's once the unit landed. */
 const IMP_BASES = ["plan", "as-built"], IMP_BUMPS = ["none", "fix", "feat", "major"], IMP_KINDS = ["consumer", "system", "repository", "artifact", "operator"];
@@ -988,11 +988,11 @@ function checkImpact(plan, dir, systems, rows, tracking) {
   if (unpub) ok("impact: release.nothingPublished — the change touches no published artifact; no version moves (the release warnings are quiet)");
   /* the board's kind and steps line tell its run (levels.js featureRun()): a small feature's release rules */
   const feature = featureRun(plan);
-  if (feature && bump === "none" && effect && !unrel && !unpub) warn("a level-3 change with a downstream effect takes a feat: release; release.bump is none (a new artifact that has never been released: mark it with impact.release.unreleased: true)");
-  if (feature && bump === "none" && !str(I.none) && !unrel && !unpub) warn("a level-3 change with no version bump says explicitly that it has no downstream effect (impact.none), or marks a new, unreleased artifact (impact.release.unreleased: true)");
-  if (feature && bump === "feat" && !effect && str(I.none)) warn("a level-3 change bumps only with a downstream effect, but impact.none says it has none");
+  if (feature && bump === "none" && effect && !unrel && !unpub) warn("a grade-3 change with a downstream effect takes a feat: release; release.bump is none (a new artifact that has never been released: mark it with impact.release.unreleased: true)");
+  if (feature && bump === "none" && !str(I.none) && !unrel && !unpub) warn("a grade-3 change with no version bump says explicitly that it has no downstream effect (impact.none), or marks a new, unreleased artifact (impact.release.unreleased: true)");
+  if (feature && bump === "feat" && !effect && str(I.none)) warn("a grade-3 change bumps only with a downstream effect, but impact.none says it has none");
   if (breaking.length && !tracking && bump && bump !== "major") warn(`a breaking entry (${breaking.slice(0, 3).join(", ")}) rides in a major release; release.bump is ${bump}`);
-  if (tracking && bump && bump !== "none") warn("a level-4 plan moves no version itself (docs only): its units' releases go in impact.units");
+  if (tracking && bump && bump !== "none") warn("a grade-4 plan moves no version itself (docs only): its units' releases go in impact.units");
   /* units: tracking boards only, one entry per unit row */
   const us = I.units == null ? [] : Array.isArray(I.units) ? I.units : (fail("impact.units must be an array"), []);
   if (us.length && !tracking) fail("impact.units is for a tracking board's units; an issue board has none");
@@ -1243,7 +1243,7 @@ function browser(page, outDir, modes) {
     const label = extra.join(" ") || "light";
     const res = (r.stdout || "").trim().split(/\r?\n/);
     if (r.status === 0) ok(`browser (${label}): PASS · ${(res.find(l => l.startsWith("screenshot:")) || "").replace("screenshot: ", "")}`);
-    else fail(`browser (${label}): ${res.filter(l => /FAIL|ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|GIT-IGNORED|REGISTRY UNREADABLE/.test(l)).join(" | ") || (r.stderr || "").trim()}`);
+    else fail(`browser (${label}): ${res.filter(l => /FAIL|ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG|DEAD|TOO MANY|HORIZONTAL|GRADE REFERENCE|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|GIT-IGNORED|REGISTRY UNREADABLE/.test(l)).join(" | ") || (r.stderr || "").trim()}`);
   });
 }
 

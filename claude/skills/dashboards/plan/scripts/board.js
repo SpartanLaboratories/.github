@@ -113,7 +113,7 @@ if (live) {
     const src = viewSource(vd), vp = read(path.join(vd, "plan.json")), tp = read(path.join(src, "plan.json")), rel = p => path.relative(root, p).split(path.sep).join("/");
     const inside = vp && copies.filter(d => d !== vd && !removed.has(d) && d.startsWith(vd + path.sep)).map(d => read(path.join(d, "plan.json"))).filter(Boolean), outer = vp && read(path.join(path.dirname(vd), "plan.json"));
     const unfinished = (trk, sub) => { const r = trk && trk.kind === "tracking" && sub ? (trk.rows || []).find(x => x && x.unit && x.unit.issue === sub.issue) : null; return !!r && UNIT_LANDED.includes((r.asBuilt || {}).state) && unitLeft(trk, r).length > 0; };
-    /* a landed unit with no board of its own (a level-1 unit, landed by unit-landed) whose record the tracking board's copy has not finished: no copy of the
+    /* a landed unit with no board of its own (a grade-1 unit, landed by unit-landed) whose record the tracking board's copy has not finished: no copy of the
        unit's stands for it, so the tracking board's copy is kept for its enrichment, as for a sub-issue's */
     const boardlessLeft = trk => (trk.rows || []).some(r => r && r.unit && !r.unit.board && UNIT_LANDED.includes((r.asBuilt || {}).state) && !inside.some(s => s.issue === r.unit.issue) && unitLeft(trk, r).length > 0);
     /* a finished copy whose tracked board a sized seeded unfinished: the refresh's reseed brings it there, so it stays until then, with its tracking board's copy */

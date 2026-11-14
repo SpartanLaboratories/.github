@@ -17,7 +17,7 @@
 //   complete or landed unit stays so), and unit.issue, unit.board, unit.folder and unit.live once set (the filing and embed.js write them). One exception, plan/RULES.md §2,
 //   "Before the outcome": partially-built with a summary is stored where the stages do not say otherwise (no stage decides the row, or they make it partially built too).
 //   Refused, exit 2 and nothing written: wip, trail, status, sized, branch, asBuilt, kind and the board's identity (schema, repo, issue, slug, folder), foundation
-//   and links (embed.js clears and writes them): the events own them. A work level (level, unit.level, proposedLevel) is dropped and named, never written (levels.js).
+//   and links (embed.js clears and writes them): the events own them. A grade (level, unit.level, proposedLevel, grade, proposedGrade) is dropped and named, never written (levels.js).
 //   A qa pass the fields name "qa pass N" is written "Quality Review N" (passnames.js), and so is one the board already holds, before the merge; named in notes.
 //   An internal name (GUIDANCE.md §4; namerefs.js cleanWritten()) in the fields' text is reworded where a safe rewording exists, and named in notes; a text that
 //   would still name a barred one is refused, exit 2 and nothing written, the field and the name said: the presenter rewords it. A wait on the user reads
@@ -25,7 +25,7 @@
 //   Two narrow ways into what the events own, each by what it names, so neither undoes an event:
 //   "trailAdd": [{ date, column, label, ref? }] appends trail entries, one already there skipped;
 //   "trailFix": [{ "label": "<the entry as it reads>", "to": "<as it should read>" }] rewords trail entries already there, each found by its label; a label not there is
-//   named and skipped (for a text that should never have been written: an internal name, a work level);
+//   named and skipped (for a text that should never have been written: an internal name, a grade);
 //   "wip": { "stages": [{ id, rows }], "questions": [{ question, rows }], "interview": [{ text, answer }], "asked": [{ text, step?, answer }], "qa": [{ pass, note }],
 //            "current": { "step": "<the step this glow is for>", "cells": ["<row-id>.<column>"] }, "waitingOn": "<what waits on the user>", "detail": "<the WIP line, reworded>",
 //            "open": [{ text, resolved }], "document": [{ id, started?, finished?, reason }] }
@@ -41,7 +41,7 @@
 //   that is no UTC ISO time or is after wip.updated, a start on a task still to come or a finish on a task not done (that would change its state), a finish
 //   before the task's start, and a time outside the Document step's own bounds (its first visit's start; while the step runs wip.updated, else its last
 //   visit's end). The same correction again writes nothing. An answer's gist (the interview's, a halt's) is written on the snapshots that hold its question too (lib.js syncAsked()).
-//   wip.waitingOn is the text the fast path left out or wrote in its stead (plan/RULES.md §4, "A work level in the facts is reworded"): while the board
+//   wip.waitingOn is the text the fast path left out or wrote in its stead (plan/RULES.md §4, "A grade in the facts is reworded"): while the board
 //   is halted or escalated it is written, and the stop's own trail entry and a detail that quoted the old text follow it, so the record reads alike;
 //   once an event has taken the board out of the stop, the last stop's trail entry alone takes it, and a waitingOn and resume left standing are cleared.
 // It catches up the plan's stage table on a board whose stages carry none of it (lib.js catchUpStageTable()), and keeps up what follows from new rows: a tracking board's wip.next once its unit rows first appear, the glow at research and at sub-issues (and at implementation, from the rows a fill names for the current stage, when it sets no glow itself), and a unit's
@@ -54,11 +54,11 @@ const lib = require("./lib.js");
 const { titleSkip, levelRefs } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
 const { cleanWritten, nameRefs, unambiguous } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
 /* why a brief of the plan's stage table cannot be shown (apply-event.js stageNope()), or null */
-const stageNope = s => levelRefs(s).length ? "a work level" : nameRefs(s).some(unambiguous) ? "an internal name" : lib.passRefs(s).length ? "an older wording of a review" : null;
+const stageNope = s => levelRefs(s).length ? "a grade" : nameRefs(s).some(unambiguous) ? "an internal name" : lib.passRefs(s).length ? "an older wording of a review" : null;
 
 const OWNED = ["wip", "trail", "status", "sized", "branch", "asBuilt", "kind", "schema", "repo", "issue", "slug", "folder", "foundation", "links"];
 const IDENTITY = ["id", "slug", "issue", "class", "question", "pass", "n"];
-const LEVELS = new Set(["level", "proposedLevel", "grade", "proposedGrade"]);   // a grade is a work level under its new name (vocabulary/choice-1-live-keys (a))
+const LEVELS = new Set(["level", "proposedLevel", "grade", "proposedGrade"]);   // level is a grade's old key, read until the rule rework's L12 (vocabulary/choice-1-live-keys (a))
 const WIP_KEYS = ["stages", "questions", "interview", "asked", "qa", "current", "waitingOn", "detail", "open", "document"];
 const TASK_KEYS = ["id", "started", "finished", "reason"];
 const UNIT_KEPT = ["issue", "board", "folder", "live"];
@@ -67,13 +67,13 @@ const isObj = v => v != null && typeof v === "object" && !Array.isArray(v);
 class Refused extends Error {}
 
 const identityOf = list => IDENTITY.find(k => list.every(x => isObj(x) && x[k] != null));
-/* the fields with their keys read: a work level found anywhere is dropped and named */
+/* the fields with their keys read: a grade found anywhere is dropped and named */
 function withoutLevels(v, at, dropped) {
   if (Array.isArray(v)) return v.map((x, i) => withoutLevels(x, `${at}[${i}]`, dropped));
   if (!isObj(v)) return v;
   const out = {};
   Object.keys(v).forEach(k => { const here = at ? `${at}.${k}` : k;
-    /* a test class's own test level (tests.*.level) is no work level */
+    /* a test class's own set, an older tests.*.level, is no grade */
     if (LEVELS.has(k) && !/^tests\b/.test(at)) { dropped.push(here); return; }
     out[k] = withoutLevels(v[k], here, dropped); });
   return out;
@@ -273,7 +273,7 @@ function mergeFill(board, fields, planDir) {
       const own = cs ? ownRows(cs.rows).map(id => id + ".built") : [], g = own.length ? own : ["built"];
       if (cs && JSON.stringify(g) !== JSON.stringify(w.current || [])) { w.current = g; merged.push(`wip.current, the rows stage ${cs.id} touches`); } }
     if (F.wip.detail !== undefined) { if (typeof F.wip.detail !== "string" || !F.wip.detail.trim()) throw new Refused("wip.detail is a text: the WIP line"); if (w.detail !== F.wip.detail) { w.detail = F.wip.detail; merged.push("wip.detail"); } }
-    /* what waits on the user, written by the presenter where the fast path could not write the run's own text (an internal name or a work level in
+    /* what waits on the user, written by the presenter where the fast path could not write the run's own text (an internal name or a grade in
        it). While the board waits: wip.waitingOn, and the stop's trail entry ("… waiting on you (<text>)") and a detail made of it ("Waiting on you:
        <text>") follow it, so the record says one thing. Once an event has taken the board out of the stop: the last stop's trail entry alone, its
        record, and a wip.waitingOn and wip.resume the event left standing cleared */
@@ -320,7 +320,7 @@ function main() {
   require("../../system/scripts/cliargs.js").strict(args, { usage: USAGE, valued: ["fields", "root"], flags: ["json"], min: 1, max: 1 });
   const given = args.find((a, i) => !a.startsWith("--") && !(i > 0 && ["--fields", "--root"].includes(args[i - 1]))), fieldsFile = lib.opt(args, "fields", null), json = lib.flag(args, "json");
   const S = { fill: null, board: given, merged: [], notes: [], dropped: [], check: null, error: null };
-  const say = code => { if (json) console.log(JSON.stringify(S)); else [["fill", S.fill], ["board", S.board], ["merged", S.merged.join(", ") || "nothing"], ["notes", S.notes.join(" | ") || null], ["dropped", S.dropped.length ? `${S.dropped.join(", ")}: a work level is never written` : null], ["check", S.check], ["error", S.error]].filter(([, v]) => v != null).forEach(([k, v]) => console.log(`${k}: ${v}`)); process.exit(code); };
+  const say = code => { if (json) console.log(JSON.stringify(S)); else [["fill", S.fill], ["board", S.board], ["merged", S.merged.join(", ") || "nothing"], ["notes", S.notes.join(" | ") || null], ["dropped", S.dropped.length ? `${S.dropped.join(", ")}: a grade is never written` : null], ["check", S.check], ["error", S.error]].filter(([, v]) => v != null).forEach(([k, v]) => console.log(`${k}: ${v}`)); process.exit(code); };
   if (!given || !fieldsFile) { console.error(USAGE); process.exit(2); }
   const base = lib.opt(args, "root", null), dir = path.resolve(base || process.cwd(), given), planFile = path.join(dir, "plan.json");
   if (!fs.existsSync(planFile)) { S.fill = "refused"; S.error = `${given} holds no plan.json: the board is laid by its sized event`; say(2); }

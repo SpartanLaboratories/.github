@@ -138,8 +138,8 @@ const FEATURES = [
     notFor: { system: "no run steps", supersystem: "no run steps", "work-board": "it shows each run's step and detail as text" },
     /* the wording of dashboards-skill/33 ("the land is accepted and being merged"), or the older one on a board rendered before it */
     test: h => need(/the land is accepted and being merged|admin team has accepted the land/.test(scripts(h)), "the landing step panel does not read the landing event") },
-  { id: "tests-tab", name: "the Tests tab (Added, Amended, Relevant, Other; by test level, with results and the rows verified)", since: 22, types: ["plan-board"],
-    notFor: { system: "a state board shows the code at a commit, not one change's tests (its Guarantees count the test levels)", supersystem: "a state board shows the code at a commit, not one change's tests (its Guarantees count the test levels)", "work-board": "one row per run: each run's tests are on its own board" },
+  { id: "tests-tab", name: "the Tests tab (Added, Amended, Relevant, Other; by test set, with results and the rows verified)", since: 22, types: ["plan-board"],
+    notFor: { system: "a state board shows the code at a commit, not one change's tests (its Guarantees count the test sets)", supersystem: "a state board shows the code at a commit, not one change's tests (its Guarantees count the test sets)", "work-board": "one row per run: each run's tests are on its own board" },
     test: h => { const b = body(h), s = scripts(h); return need(/id="t-tests"/.test(b) && ["added", "amended", "relevant", "other"].every(k => new RegExp(`id="t-tests-${k}"`).test(b)) && /function renderTests\(/.test(s), "no Tests tab with its four sub-tabs (Added, Amended, Relevant, Other)"); } },
   /* admin-team/dashboards-skill/23 */
   { id: "timeline-phases", name: "the Timeline tile's bar on a landed board: the time per phase in neutral ink shades, each phase in its legend, a phase with no bound named", since: 23, types: ["plan-board"],
@@ -149,12 +149,12 @@ const FEATURES = [
   { id: "ref-number", name: "a reference's section number before its excerpt: from its file's headings (refNumber), else its anchor's number marked \"?\"", since: 23, types: ["plan-board"],
     notFor: { system: "no statements with plan references", supersystem: "no statements with plan references", "work-board": "no statements: one row per run" },
     test: h => { const s = scripts(h); return need(/const refNumShown=/.test(s) && /refMarked\(/.test(s) && /\.(?:key|legend) b\.(?:srefk|section-chip)\{/.test(css(h)), "a reference with no excerpt still reads its whole anchor (\"§ 42-the-fix\"), with no section number from refNumber"); } },
-  { id: "level-phrases", name: "no work level in the board's data, its scope and re-pass phrases included (\"inside level 3\", \"a level-3 re-pass\", \"Label level: 3\")", since: 23, types: ALL,
-    /* an issue's title is quoted verbatim and left out of the scan (dashboards-skill/28): one that names a work level is a defect in the
-       issue, flagged by check.js and check-board.js (ISSUE TITLE NAMES A WORK LEVEL: #n), never a missing feature of the board */
+  { id: "level-phrases", name: "no grade in the board's data, nor its old name, its scope and re-pass phrases included (\"inside grade 3\", \"a level-3 re-pass\", \"Label grade: 3\")", since: 23, types: ALL,
+    /* an issue's title is quoted verbatim and left out of the scan (dashboards-skill/28): one that names a grade is a defect in the
+       issue, flagged by check.js and check-board.js (ISSUE TITLE NAMES A GRADE: #n), never a missing feature of the board */
     test: h => { const { levelRefs, levelRefsIn, titleSkip } = require("./levelrefs.js"), hits = [];
       [...h.matchAll(/<script type="(application\/json|text\/plain)"[^>]*>([\s\S]*?)<\/script>/g)].forEach(m => { if (m[1] === "text/plain") levelRefs(m[2]).forEach(x => hits.push(x)); else { try { const d = JSON.parse(m[2]); levelRefsIn(d, "", [], titleSkip(d)).forEach(x => hits.push(x.hit)); } catch (e) { /* the embed checks report a block that does not parse */ } } });
-      return need(!hits.length, `its data names a work level ${hits.slice(0, 3).map(x => JSON.stringify(x)).join(", ")}: reword it (levelrefs.js scrubLevels()), never write it`); } },
+      return need(!hits.length, `its data names a grade ${hits.slice(0, 3).map(x => JSON.stringify(x)).join(", ")}: reword it (levelrefs.js scrubLevels()), never write it`); } },
   /* admin-team/dashboards-skill/28 */
   { id: "unit-filing-glow", name: "each unit row's label glowing on its own while its sub-issue, then its board, is made (<unit-id>.units)", since: 28, types: ["plan-board"],
     notFor: { system: "no units and no run", supersystem: "no units and no run", "work-board": "it marks runs: filing is the tracking issue's own step, on its own row, and a unit's row glows only once its run is under way" },
@@ -163,7 +163,7 @@ const FEATURES = [
     notFor: { system: "its tiles are hand-written counted facts: a state board shows no run's phases", supersystem: "no KPI tiles", "work-board": "one row per run and no Timeline tile: each run's phases are on its own board" },
     /* the sum of the phases drawn (dashboards-skill/28), or of the visits drawn (dashboards-skill/32) */
     test: h => { const s = scripts(h); return need(/function timelineTotal\(/.test(s) && (/tlDuration\(timelineTotal\(TP\)\)/.test(s) || /tlSpan\(tot\)/.test(s)), "the Timeline tile's figure is the span from baseline to built, not the sum of its phases (timelineTotal())"); } },
-  { id: "issue-title-quoted", name: "an issue's title quoted verbatim and marked (data-issue-title), so a work level in it is flagged as a defect in the issue, not shown as the board's", since: 28, types: ALL,
+  { id: "issue-title-quoted", name: "an issue's title quoted verbatim and marked (data-issue-title), so a grade in it is flagged as a defect in the issue, not shown as the board's", since: 28, types: ALL,
     test: (h, k) => { const s = scripts(h);
       if (k === "plan-board") return need(/data-issue-title=/.test(s) && /\$\("#issueline"\)\.innerHTML=PLAN\.issueTitle\?`<span data-issue-title=/.test(s), "the renderer quotes no issue title marked data-issue-title (the issue line, the roadmap, the follow-ups)");
       if (k === "work-board") return need(/data-issue-title=/.test(s), "the renderer quotes no issue title marked data-issue-title (the rows, the groups, the roadmap, the unscheduled issues)");

@@ -55,7 +55,7 @@ module.exports = function casesWorkLevels(X) {
 
   guard("an open board drops them at any rewrite and check.js fails it; a closed one, landed or cancelled, keeps them and check.js never fails it", c => {
     const rL = root0(), dL = put(rL, oldLive()), ck0 = run(CHECK, [dL], { env });
-    c.push(["check.js fails a board not landed that holds them, naming the fields", ck0.status === 1 && /FAIL\s+WORK LEVEL ON THE BOARD: level, wip\.proposedLevel/.test(ck0.stdout), (ck0.stdout || "").split(/\r?\n/).filter(l => /^FAIL/.test(l)).join(" | ").slice(0, 300)]);
+    c.push(["check.js fails a board not landed that holds them, naming the fields", ck0.status === 1 && /FAIL\s+GRADE ON THE BOARD: level, wip\.proposedLevel/.test(ck0.stdout), (ck0.stdout || "").split(/\r?\n/).filter(l => /^FAIL/.test(l)).join(" | ").slice(0, 300)]);
     const e = ev(rL, oldLive().folder, "halted", { waitingOn: "An answer." }, T(5));
     c.push(["an event reads it without failing and drops them", e.a.status === 0 && !lib.workLevelFields(e.p).length && e.p.wip.step === "halted", js([e.S.error, e.S.check, lib.workLevelFields(e.p || {})])]);
     c.push(["…its embedded copy and sidecar too", !/"proposedLevel"/.test(rd(path.join(dL, "plan.js"))) && !/"proposedLevel"/.test(lib.readBlock(rd(path.join(dL, "dashboard.html")), "plan")), "embed"]);
@@ -64,7 +64,7 @@ module.exports = function casesWorkLevels(X) {
 
     /* landed */
     const rB = root0(), dB = put(rB, oldLanded()), ckB = run(CHECK, [dB], { env });
-    c.push(["check.js passes a landed board that holds them, and says so", ckB.status === 0 && /a closed board keeps the work level it holds/.test(ckB.stdout), (ckB.stdout || "").split(/\r?\n/).filter(l => /^FAIL|closed board keeps/.test(l)).join(" | ").slice(0, 300)]);
+    c.push(["check.js passes a landed board that holds them, and says so", ckB.status === 0 && /a closed board keeps the grade it holds/.test(ckB.stdout), (ckB.stdout || "").split(/\r?\n/).filter(l => /^FAIL|closed board keeps/.test(l)).join(" | ").slice(0, 300)]);
     const bytes = rd(path.join(dB, "plan.json")), emB = run(EMBED, [dB], { env }), afterB = JSON.parse(rd(path.join(dB, "plan.json")));
     c.push(["embed.js on a landed board keeps them", emB.status === 0 && afterB.level === 3 && afterB.wip.proposedLevel === 3, js([afterB.level, afterB.wip.proposedLevel])]);
     const rewrite = ev(rB, EX.folder, "landed", { pr: 90, sha: "abcdef1", merge: "abcdef1", date: "2026-10-22" }, T(9));
@@ -75,7 +75,7 @@ module.exports = function casesWorkLevels(X) {
     const rC = root0(), oc = oldLive(), dC = put(rC, oc), cn = ev(rC, oc.folder, "cancelled", { reason: "Not needed." }, T(9));
     c.push(["the cancelled event on a board holding them: status abandoned, and it keeps them", cn.a.status === 0 && cn.p.status === "abandoned" && cn.p.level === 3 && cn.p.wip.proposedLevel === 4, js([cn.S.error, cn.S.check, cn.p && cn.p.status, cn.p && cn.p.level])]);
     const ckC = run(CHECK, [dC], { env });
-    c.push(["check.js passes a cancelled board that holds them, and says so", ckC.status === 0 && /a closed board keeps the work level it holds/.test(ckC.stdout) && !/WORK LEVEL ON THE BOARD/.test(ckC.stdout), (ckC.stdout || "").split(/\r?\n/).filter(l => /^FAIL|closed board keeps/.test(l)).join(" | ").slice(0, 300)]);
+    c.push(["check.js passes a cancelled board that holds them, and says so", ckC.status === 0 && /a closed board keeps the grade it holds/.test(ckC.stdout) && !/GRADE ON THE BOARD/.test(ckC.stdout), (ckC.stdout || "").split(/\r?\n/).filter(l => /^FAIL|closed board keeps/.test(l)).join(" | ").slice(0, 300)]);
     const emC = run(EMBED, [dC], { env }), afterC = JSON.parse(rd(path.join(dC, "plan.json")));
     c.push(["embed.js on a cancelled board keeps them", emC.status === 0 && afterC.level === 3 && afterC.wip.proposedLevel === 4, js([afterC.level, afterC.wip.proposedLevel])]);
     c.push(["a cancelled board is still not a landed one", lib.boardLanded(afterC) === false, js([afterC.status, afterC.wip.step])]);
@@ -88,7 +88,7 @@ module.exports = function casesWorkLevels(X) {
 
     /* a tracking board with units in flight */
     const rT = root0(), dT = put(rT, oldTrack()), ckT = run(CHECK, [dT], { env });
-    c.push(["a tracking board with units in flight is open: check.js fails it, naming unit.level", ckT.status === 1 && /WORK LEVEL ON THE BOARD: level, rows \([^)]+\)\.unit\.level/.test(ckT.stdout), (ckT.stdout || "").split(/\r?\n/).filter(l => /^FAIL/.test(l)).join(" | ").slice(0, 300)]);
+    c.push(["a tracking board with units in flight is open: check.js fails it, naming unit.level", ckT.status === 1 && /GRADE ON THE BOARD: level, rows \([^)]+\)\.unit\.level/.test(ckT.stdout), (ckT.stdout || "").split(/\r?\n/).filter(l => /^FAIL/.test(l)).join(" | ").slice(0, 300)]);
     const emT = run(EMBED, [dT], { env }), pT = JSON.parse(rd(path.join(dT, "plan.json")));
     c.push(["…embed.js drops them, the mirrors' too", emT.status === 0 && !lib.workLevelFields(pT).length, js(lib.workLevelFields(pT))]);
     const fx = copy(LIVE); fx.level = 3;
@@ -98,8 +98,8 @@ module.exports = function casesWorkLevels(X) {
   guard("the release warnings read the board's kind and steps line, never a level", c => {
     const base = over => { const p = copy(LIVE); p.impact = { basis: "plan", summary: "x", none: null, release: { bump: "none", version: null }, downstream: [] }; Object.assign(p.wip, over || {}); return p; };
     const warnFor = p => run(CHECK, [put(root0(), p)], { env }).stdout || "";
-    c.push(["a feature's line (it has an interview): a bump of none says it has no downstream effect", /a level-3 change with no version bump says explicitly/.test(warnFor(base({ steps: lib.STEPS_BY_LEVEL[3].slice() }))), "warn"]);
-    c.push(["a fix's line (no interview): no such warning", !/a level-3 change with no version bump/.test(warnFor(base({ steps: lib.STEPS_BY_LEVEL[2].slice() }))), "warn"]);
+    c.push(["a feature's line (it has an interview): a bump of none says it has no downstream effect", /a grade-3 change with no version bump says explicitly/.test(warnFor(base({ steps: lib.STEPS_BY_LEVEL[3].slice() }))), "warn"]);
+    c.push(["a fix's line (no interview): no such warning", !/a grade-3 change with no version bump/.test(warnFor(base({ steps: lib.STEPS_BY_LEVEL[2].slice() }))), "warn"]);
   });
 
   guard("the labels: a board says \"waiting on you\"", c => {
@@ -176,13 +176,13 @@ module.exports = function casesWorkLevels(X) {
   guard("a board that holds a grade is held as one that holds a level: an open one fails check.js and drops it at any rewrite, a closed one keeps it; a fill drops it", c => {
     const gradeLive = () => { const p = copy(LIVE); p.grade = 3; p.wip.proposedGrade = 4; return p; };
     const rL = root0(), dL = put(rL, gradeLive()), ck = run(CHECK, [dL], { env });
-    c.push(["check.js fails a board not landed that holds them, naming the fields", ck.status === 1 && /FAIL\s+WORK LEVEL ON THE BOARD: grade, wip\.proposedGrade/.test(ck.stdout), (ck.stdout || "").split(/\r?\n/).filter(l => /^FAIL/.test(l)).join(" | ").slice(0, 300)]);
+    c.push(["check.js fails a board not landed that holds them, naming the fields", ck.status === 1 && /FAIL\s+GRADE ON THE BOARD: grade, wip\.proposedGrade/.test(ck.stdout), (ck.stdout || "").split(/\r?\n/).filter(l => /^FAIL/.test(l)).join(" | ").slice(0, 300)]);
     const em = run(EMBED, [dL], { env }), after = JSON.parse(rd(path.join(dL, "plan.json")));
     c.push(["embed.js drops them on a board not landed, and check.js then passes it", em.status === 0 && !lib.workLevelFields(after).length && after.grade === undefined && run(CHECK, [dL], { env }).status === 0, (em.stdout || "").slice(0, 200)]);
     const trk = copy(TRK); trk.rows.filter(r => r.unit).forEach(r => { r.unit.grade = 3; if (r.unit.live) r.unit.live.proposedGrade = 4; });
     c.push(["a tracking board's unit.grade and its mirror's proposedGrade are named", lib.workLevelFields(trk).some(f => /\.unit\.grade$/.test(f)), js(lib.workLevelFields(trk))]);
     const landed = copy(EX); landed.grade = 3; const rB = root0(), dB = put(rB, landed), ckB = run(CHECK, [dB], { env });
-    c.push(["a landed board keeps it, and check.js passes it, saying so", ckB.status === 0 && /a closed board keeps the work level it holds \(grade\)/.test(ckB.stdout), (ckB.stdout || "").split(/\r?\n/).filter(l => /^FAIL|closed board keeps/.test(l)).join(" | ").slice(0, 300)]);
+    c.push(["a landed board keeps it, and check.js passes it, saying so", ckB.status === 0 && /a closed board keeps the grade it holds \(grade\)/.test(ckB.stdout), (ckB.stdout || "").split(/\r?\n/).filter(l => /^FAIL|closed board keeps/.test(l)).join(" | ").slice(0, 300)]);
     const old = oldLive(); old.grade = 2; const both = lib.workLevelFields(old);
     c.push(["a board holding both: the level's fields first, as before, then the grade's", js(both) === js(["level", "grade", "wip.proposedLevel"]), js(both)]);
     const FILL = sk("plan/scripts/fill.js"), rF = root0(); ev(rF, "docs/plans/89-fill", "sized", { step: "research", baseline: "abc1234" }, T(1));
@@ -213,13 +213,13 @@ module.exports = function casesWorkLevels(X) {
     c.push(["a compound, and a numbered grade no rule takes, have no rewording: null, so the text is left out and the presenter told", !left.length, js(left.map(s => [s, LR.scrubLevels(s, {})]))]);
     /* the work-level forms, and what they leave alone, unchanged */
     const lvFound = ["a level-3 change", "inside level 3", "level: 2", "re-levelled", "the work level", "Recorded level confirmed", "(#61, level 3)", "escalated to level 4", "a later level-1 documentation change"];
-    const lvLeft = ["L1 gating", "Level 2 component tests", "Level-2 KDoc", "LEVEL 1 · SYSTEM CONTEXT", "the Level-4c suite", "log level kept", "top-level", ", Level 3: the reader against the real transport"];
+    const lvLeft = ["L1 gating", "Level 2 component tests", "Level-2 KDoc", "level-1 KDoc contracts", "a level-1 KDoc change", "LEVEL 1 · SYSTEM CONTEXT", "the Level-4c suite", "log level kept", "top-level", ", Level 3: the reader against the real transport"];
     c.push(["the work-level forms still found", lvFound.every(t => LR.levelRefs(t).length), js(lvFound.filter(t => !LR.levelRefs(t).length))]);
     c.push(["…and the test, C4, KDoc and ordinary levels still left alone", !lvLeft.some(t => LR.levelRefs(t).length), js(lvLeft.filter(t => LR.levelRefs(t).length).map(t => [t, LR.levelRefs(t)]))]);
     const lvScrub = [["a level-3 re-pass", "a re-pass"], ["inside level 3", "inside the issue's scope"], ["re-levelled", "re-sized"], ["Label level: 3", null]].filter(([s, w]) => LR.scrubLevels(s, {}) !== w);
     c.push(["…and reworded as before", !lvScrub.length, js(lvScrub.map(([s, w]) => [s, LR.scrubLevels(s, {}), w]))]);
     const t0 = { schema: "plan-board/1", issueTitle: "Make the client carrier-grade", rows: [{ id: "a", name: "grade 3" }] }, hits = LR.levelRefsIn(t0, "", [], LR.titleSkip(t0)), tr = LR.issueTitleRefs(t0);
-    c.push(["a board's data: a grade found as a work level is, an issue's title quoted verbatim flagged as a defect in the issue, not failed", js(hits.map(h => h.at)) === js(["rows[0].name"]) && tr.length === 1 && /ISSUE TITLE NAMES A WORK LEVEL/.test(LR.titleDefect(tr[0])), js([hits, tr])]);
+    c.push(["a board's data: a grade found as a work level is, an issue's title quoted verbatim flagged as a defect in the issue, not failed", js(hits.map(h => h.at)) === js(["rows[0].name"]) && tr.length === 1 && /^ISSUE TITLE NAMES A GRADE: #\?/.test(LR.titleDefect(tr[0])) && LR.TITLE_DEFECT.test("warn  ISSUE TITLE NAMES A WORK LEVEL: #70") && LR.TITLE_DEFECT.test(LR.titleDefect(tr[0])), js([hits, tr])]);
   });
   return groups;
 };

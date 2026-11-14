@@ -180,17 +180,17 @@ Candidates:
 - **Dependencies** — the module and artifact graph, `api` vs `implementation`, coordinates and
   versions, third-party libraries.
 - **Runtime** — threads, child processes, sockets and ports, and who opens and closes each.
-- **Build & release** — source → build → level tests → sign and publish → Maven Central, with
+- **Build & release** — source → build → tests by set → sign and publish → Maven Central, with
   each module's version.
 - **Choose-a-module path** — the consumer's decision tree for which artifact to depend on.
 - **Trust boundaries** — where untrusted input enters and what checks it.
 - **Failure model** — how failures reach a consumer, and what retries.
 - **Extension points** — the public seams with their stability tier and opt-in marker.
-- **Test levels** — test classes per module per level of the 5-level hierarchy.
+- **Test sets** — test classes per module per named test set.
 - **Wire & stored formats** — what crosses a boundary or persists, and its layout.
 - **Environment** — what the host must provide: the JDK floor, browsers, ports, network.
 
-Others at the presenter's discretion. Failure model, Extension points and Test levels are also
+Others at the presenter's discretion. Failure model, Extension points and Test sets are also
 guarantee Cards: the guarantee Card is the summary and always stays; the Tab is for content that
 needs a diagram the summary cannot hold. Optional Tabs have no scaffold — build them from the
 core Tabs' renderers and CSS.
@@ -251,10 +251,9 @@ its build. The seven standard ones:
   retries itself and what it surfaces.
 - **Extension points** — the public seams with their stability tier (Stable Core / Supported
   Extension / Experimental) and opt-in marker.
-- **Test levels** — test classes per level of the 5-level hierarchy, read from the package
-  layout and labelled by the test level and its name ("L1 gating", "L2 component", "L3
-  integration", "L4a deterministic", "L4b e2e", "L4c non-functional", "L5 UAT"); test levels are
-  not work levels and keep their level labels (`GUIDANCE.md` §4); name the test report,
+- **Test sets** — test classes per named test set, read from the package layout and labelled
+  by the set's name, never a number ("gating", "component", "integration", "deterministic",
+  "e2e", "nonfunctional", "uat"; `GUIDANCE.md` §4); name the test report,
   `build/reports/tests/index.html`, where one exists, as plain text: a build output, never committed, so never a link on a state
   board, which has no live view (admin-team/dashboards-skill/35; an issue board links its copy in the live view, `plan/RULES.md` §3).
 - **Compatibility & versioning** — the current version; how versions move (a trailing letter for
@@ -268,7 +267,7 @@ its build. The seven standard ones:
 
 Add a guarantee Card where the system has another guarantee worth stating. A fact that cannot be
 established is said in the Card as a gap (`.gap`). Under the Cards stands the Guarantees' Legend, generated from what they draw (the
-system swatches, a planned Row dashed, a gap, the test-level Bars' one neutral series, a tier Badge): nothing hand-written. On repository and supersystem boards each
+system swatches, a planned Row dashed, a gap, the test-set Bars' one neutral series, a tier Badge): nothing hand-written. On repository and supersystem boards each
 guarantee Card covers every system, one Row each (`.gtbl`, the system's swatch first); a planned system's
 Row is tied to it (`data-part="sys:<slug>"`), dashed while the registry says planned, and says only that nothing is built yet; an
 archived system's Row, tied the same way, is solid and faded with its ⊟ archived Tag (admin-team/dashboards-skill/35), and states what
@@ -280,8 +279,8 @@ its last release still guarantees.
 
 - **Roadmap** — each roadmap item with the issues mapped to it, each issue with its number,
   title, quoted verbatim, and state, open or closed (the tracker's reason for a closed issue is the issue boards' and the repository work board's: a type divergence,
-  `GUIDANCE.md` §7), never its work level (`GUIDANCE.md` §4: a title that names one is a defect in the issue, quoted as it stands and
-  flagged by `check-board.js`, `ISSUE TITLE NAMES A WORK LEVEL: #n`, never reworded or elided); the number opens the GitHub issue and
+  `GUIDANCE.md` §7), never its grade (`GUIDANCE.md` §4: a title that names one is a defect in the issue, quoted as it stands and
+  flagged by `check-board.js`, `ISSUE TITLE NAMES A GRADE: #n`, never reworded or elided); the number opens the GitHub issue and
   the title the issue's board where one exists (`GUIDANCE.md` §5; the title written
   `<a data-board="N">`, §2 "Board links"); no GitHub ↗. A tracking issue shows its chain, written `<span class="chainprog"
   data-landed="n" data-total="m">` holding one `<span data-unit="done|current|todo">` per unit in landing order with the unit's name (its
@@ -363,7 +362,7 @@ append rather than reorder.
 4. Set each Tab's colour plan and Legend (§4).
 5. Fill the guarantee Cards from the code: the `Result` and exception types and what retries;
    the public open and abstract types and interfaces, with their tier and opt-in markers; the
-   test classes per `testing.<level>` package and the test report, `build/reports/tests/index.html`, named as plain text where
+   test classes per `testing.<set>` package and the test report, `build/reports/tests/index.html`, named as plain text where
    present (§5); the version, what the build checks and the deprecation policy; the KDoc's thread
    contracts; the `stop` / `close` members and what they free; the `api` dependencies from the
    build file or the published POM.
@@ -435,10 +434,10 @@ board links and the git-ignore check, and names the browser pass the board would
 full pass for a divergence), which it leaves to the presenter's next look.
 
 **Issue titles, quoted verbatim** (`GUIDANCE.md` §4, §5; admin-team/dashboards-skill/28). A title the board quotes — the Context's
-`<a data-board="N">title</a>` and the state's `lastAmended.title` — is the issue's own and is never reworded or elided. Work levels are never
-part of an issue, so one that names a work level is a defect in the issue, not in the board: on every pass, without a browser and in it,
-`check-board.js` flags it, `ISSUE TITLE NAMES A WORK LEVEL: #n`, as a warning (the browser pass reads a title by its `data-issue-title`
-mark, which `linkIssues()` keeps on the resolved link or plain text, and leaves its text out of the work-level scan), and never fails the
+`<a data-board="N">title</a>` and the state's `lastAmended.title` — is the issue's own and is never reworded or elided. Grades are never
+part of an issue, so one that names a grade, or its old name, a work level, is a defect in the issue, not in the board: on every pass,
+without a browser and in it, `check-board.js` flags it, `ISSUE TITLE NAMES A GRADE: #n`, as a warning (the browser pass reads a title by
+its `data-issue-title` mark, which `linkIssues()` keeps on the resolved link or plain text, and leaves its text out of the grade scan), and never fails the
 board for it; the admin team brings it to the user to retitle on GitHub.
 
 **No dead board link.** On a system, supersystem or repository state board, `check-board.js` reads the `BOARDS`
@@ -501,7 +500,7 @@ in. It reads `issue`, `branch` and `folder` from the request and these facts, ev
 | `ref` | at the Document step's state boards the branch (default: the request's `branch`); at a restamp after the merge, the default branch the merge is on (required there) |
 | `built`, `planned` | only for what has no code paths recorded (the code decides the rest, below): what the stage built (or, rarely, set back to planned): a registry slug; `"#<issue>"`, every system that issue alone plans (`plannedBy.issue`, or every unit's `subIssue`); `"<dsl path>:<element id>"` (paths under `docs/dashboards/`), or `{dsl, id, tag}` to give a component its built tag. A system marked takes its `c4` elements with it (§7) |
 | `version` | `{"<slug>": "<version>"}`, a version a system's build moved to |
-| `title` | the issue's title for the "last amended by" note (in the Context Panel), quoted verbatim (without it, the verbatim title already on record for the same issue, the board's `state.json` first, else another board's in scope, else the issue board's own `issueTitle` (the request's folder's `plan.json`, for the same issue); only with none of these the folder's name less its number, which the summary notes as not the issue's own); a title that names a work level is a defect in the issue (`GUIDANCE.md` §4): written as it stands, never reworded or elided, and flagged `ISSUE TITLE NAMES A WORK LEVEL: #n` in the summary's `issue defects` and notes, for the admin team to bring to the user to retitle on GitHub |
+| `title` | the issue's title for the "last amended by" note (in the Context Panel), quoted verbatim (without it, the verbatim title already on record for the same issue, the board's `state.json` first, else another board's in scope, else the issue board's own `issueTitle` (the request's folder's `plan.json`, for the same issue); only with none of these the folder's name less its number, which the summary notes as not the issue's own); a title that names a grade is a defect in the issue (`GUIDANCE.md` §4): written as it stands, never reworded or elided, and flagged `ISSUE TITLE NAMES A GRADE: #n` in the summary's `issue defects` and notes, for the admin team to bring to the user to retitle on GitHub |
 | `document` | `true` at the Document step's state-boards task (admin-team/dashboards-skill/35): every board in scope stamped "`<branch>` @ `<sha>`" at the code-landing sha `facts.sha` (refused without it), since they land with the merge as stamped |
 | `premerge` | the older name (dashboards-skill/33's pre-merge refresh), read as `document`; its `sha` defaults to the worktree's HEAD |
 | `landed` | `true` on a `state-boards` request that restamps after the merge, as the `landed` event does: the older flow, for a landing that refreshed no state board before its merge |

@@ -220,7 +220,7 @@ function planStageTable(dir) {
 const stageKey = id => String(id == null ? "" : id).replace(/`/g, "").trim().toLowerCase();
 const stageRow = (table, id) => (Array.isArray(table) ? table : []).find(y => y && stageKey(y.id) === stageKey(id)) || null;
 /* What a row of the table writes onto its stage: the kind, the steps, the plan section, and the brief verbatim or not at all. nope(text) names why a brief cannot be
-   shown (a work level, an internal name, an older wording of a review), or null; the brief is then left off and said through enrich. */
+   shown (a grade, an internal name, an older wording of a review), or null; the brief is then left off and said through enrich. */
 function stageTableFields(T, nope, enrich) {
   const f = { ...(T.kind ? { kind: T.kind } : {}), ...(T.steps && T.steps.length ? { steps: T.steps } : {}), ...(T.ref ? { ref: T.ref } : {}) };
   if (T.brief) { const bad = nope ? nope(T.brief) : null; if (bad) { if (enrich) enrich.push("the plan's stage table: " + T.id + "'s brief names " + bad + ", which a board never shows: left off the board; the plan is reworded"); } else f.brief = T.brief; }
@@ -316,7 +316,7 @@ function mdHeadings(md) {
    sectionOf() reads that section: its heading, its first paragraph (the first block of prose under the heading, fenced code and tables
    skipped, Markdown links and emphasis reduced to their text, one line, at most 600 characters) and a hash of the whole section, from
    its heading to the next heading of the same or a higher level, line endings and trailing spaces normalised. The paragraph is what the
-   board shows, so a work level in it (GUIDANCE.md §4) is elided ("…"), and so is a clause naming an internal name (elideNamed(),
+   board shows, so a grade in it (GUIDANCE.md §4) is elided ("…"), and so is a clause naming an internal name (elideNamed(),
    below); the hash is of the section as written. */
 const STMT_REF = /^((?:\.\.\/|\.\/)?(?:[\w.-]+\/)*[\w.-]+\.md)#([\w\p{L}\p{N}-]+)$/u;
 const parseRef = ref => { const m = typeof ref === "string" ? STMT_REF.exec(ref.trim()) : null; return m ? { file: m[1], anchor: m[2] } : null; };
@@ -600,7 +600,7 @@ function roadmapFor(plan, dir) {
    tracked folder, named <parent>-<slug>), and in it the one heading whose own text (to the next heading) links into the board's folder
    ("](<folder>/…)"), else the one heading that is the issue's title, or its title before the first ": ". Several headings that fit, or
    none, name nothing: nothing is guessed. Returns { ref, section }: the section, relative to the board's folder, with GitHub's anchor
-   ("../roadmap.md#phase-0--history-rewrite"), and its heading, its code spans' backticks dropped; a heading that names a work level or an
+   ("../roadmap.md#phase-0--history-rewrite"), and its heading, its code spans' backticks dropped; a heading that names a grade or an
    internal name gives the ref alone (GUIDANCE.md §4). */
 function roadmapDocItem(plan, dir) {
   if (!plan || !isObj(plan.parent) || !Number.isInteger(plan.parent.issue)) return null;
@@ -970,7 +970,7 @@ function retimePlan(plan, o) {
   if (trailAt >= 0) words.push("its trail entry");
   return { lines, moved: P, words };
 }
-/* the event a retime corrects, as the correction's entry names it (no internal name, no work level) */
+/* the event a retime corrects, as the correction's entry names it (no internal name, no grade) */
 const RETIME_WORDS = { sized: "The sizing", halted: "The halt", resumed: "The return from the halt", escalated: "The escalation", "research-planning": "The start of the research questions",
   "research-started": "The research's start", "research-returned": "A research question's return", "verification-started": "The verification's start", researched: "The research's verification",
   "architecture-signed-off": "The architecture's sign-off", "sub-issues-filed": "The filing of the units as sub-issues", "boards-created": "The creation of the units' boards", "plan-accepted": "The plan's acceptance",

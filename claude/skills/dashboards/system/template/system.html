@@ -484,7 +484,7 @@ footer code{color:var(--ink-2)}
   <div class="kpi-tile"><div class="l">Types</div><div class="v">n public</div><div class="s">n internal</div></div>
   <div class="kpi-tile"><div class="l">Threads</div><div class="v">n named</div><div class="s">how they split</div></div>
   <div class="kpi-tile"><div class="l">Contracts</div><div class="v">n</div><div class="s">interfaces · wire formats · protocols</div></div>
-  <div class="kpi-tile"><div class="l">Tests</div><div class="v">n classes</div><div class="s">across n testing levels</div></div>
+  <div class="kpi-tile"><div class="l">Tests</div><div class="v">n classes</div><div class="s">across n test sets</div></div>
   <div class="kpi-tile"><div class="l">Open issues</div><div class="v">n</div><div class="s">n bugs · n planned · n untyped</div></div>
 </section>
 
@@ -601,7 +601,7 @@ footer code{color:var(--ink-2)}
        commit the header names. A fact that cannot be established is written as a gap (<span class="gap">…</span>), never
        guessed. Add a guarantee card where the system has another guarantee worth stating; removing a standard one is a divergence
        (a strong argument, such as no data for it existing, recorded in the footer). A guarantee card that colours anything uses the
-       board's colour plan and says what the colour means. Failure model, Extension points and Test levels may also get a full
+       board's colour plan and says what the colour means. Failure model, Extension points and Test sets may also get a full
        optional tab when they need a diagram this summary cannot hold; the guarantee card stays. -->
   <h2>Guarantees</h2>
   <div class="guarantee-cards">
@@ -613,13 +613,13 @@ footer code{color:var(--ink-2)}
       <!-- fill: each public seam (open or abstract class, interface, hook, strategy parameter) with its stability tier —
            Stable Core, Supported Extension (@SupportedExtension) or Experimental (name its @RequiresOptIn marker) -->
       <ul><li><code>SeamType</code> — what a consumer overrides or supplies <span class="badge">Stable Core</span></li></ul></div>
-    <div class="guarantee-card"><h3>Test levels <small>n classes</small></h3>
-      <!-- fill: test classes per level of the 5-level hierarchy, counted from the testing.<level> packages; one row per level
-           that exists, labelled by its test level and package name ("L1 gating", "L2 component", … "L4a deterministic", … "L5 UAT"); test levels are not work levels (GUIDANCE.md §4); width = count / max. Name the test report, build/reports/tests/index.html, as plain text when one exists: a build output, never committed, so never a link on this board. -->
-      <div class="bars" role="table" aria-label="Test classes per testing level">
-        <span class="lbl">L1 gating</span><span class="trk"><span class="fil" style="width:100%"></span></span><span class="val">n</span>
+    <div class="guarantee-card"><h3>Test sets <small>n classes</small></h3>
+      <!-- fill: test classes per named test set, counted from the testing.<set> packages; one row per set
+           that exists, labelled by the set's name, never a number ("gating", "component", … "deterministic", … "uat"); width = count / max. Name the test report, build/reports/tests/index.html, as plain text when one exists: a build output, never committed, so never a link on this board. -->
+      <div class="bars" role="table" aria-label="Test classes per test set">
+        <span class="lbl">gating</span><span class="trk"><span class="fil" style="width:100%"></span></span><span class="val">n</span>
       </div>
-      <p>Packages <code>….testing.&lt;level&gt;.…</code>; run one level with <code>./gradlew gatingTest</code>, …</p></div>
+      <p>Packages <code>….testing.&lt;set&gt;.…</code>; run one set with <code>./gradlew gatingTest</code>, …</p></div>
     <div class="guarantee-card"><h3>Compatibility &amp; versioning</h3>
       <!-- fill: the current version; how versions move here (a trailing letter for a bug fix, the third number for an
            addition, a major for a break); what the build checks (an ABI dump, where one exists — else say it is not checked);
@@ -647,7 +647,7 @@ footer code{color:var(--ink-2)}
     <div class="card"><h3>Roadmap <small>n items · YYYY-MM-DD</small></h3>
       <!-- fill: each roadmap item that claims an issue touching this system. A roadmap item is a tracking issue with its
            sub-issues (gh issue view <n> --json subIssues,parent), or an entry in a roadmap document the repository keeps, with
-           the issues it names. Under each item, its issues that touch this system: number, title and state (never a work level:
+           the issues it names. Under each item, its issues that touch this system: number, title and state (never its sizing:
            GUIDANCE.md §4); then how many of its issues touch other systems. No item claims one: say so in a single line.
            Number and title are two links (GUIDANCE.md §5): the number opens the GitHub issue, the title, written
            <a data-board="N">, opens the issue's board and stays plain text while it has none (BOARDS in the script). -->
@@ -661,7 +661,7 @@ footer code{color:var(--ink-2)}
     <div class="card"><h3>Unscheduled issues <small>n open · YYYY-MM-DD</small></h3>
       <!-- fill: only the open issues touching this system that no roadmap item claims (the open issues from gh issue list,
            minus every issue the Roadmap card lists); badges: bug (neutral, with its ▲), planned (dashed) and the type; an issue's state reads open or closed, never the tracker's reason
-           (a type divergence: system/RULES.md §6); never a work level (GUIDANCE.md §4) -->
+           (a type divergence: system/RULES.md §6); never its sizing (GUIDANCE.md §4) -->
       <ul class="issues">
         <li><a href="https://github.com/ORG/REPO/issues/N" target="_blank" rel="noopener">#N</a><span><a data-board="N">Issue title</a></span><span class="tags"><span class="badge bug">bug</span></span></li>
       </ul></div>
@@ -822,8 +822,8 @@ const ilink=n=>{ const b=boardOf(n); return b?`<a href="${esc(b)}" title="#${esc
 const pair=(n,title)=>{ const b=boardOf(n); return `<a href="${ghIssue(n)}" target="_blank" rel="noopener">#${esc(n)}</a> ${b?`<a href="${esc(b)}" title="#${esc(n)}: its issue board">${esc(title)}</a>`:esc(title)}`; };
 function linkIssues(root){ const r=root||document;
   /* a title written <a data-board="N"> is the issue's own, quoted verbatim, and keeps its mark, data-issue-title, once resolved (a link to
-     its board, or plain text while it has none): a work level in it is a defect in the issue, flagged by check-board.js (ISSUE TITLE NAMES
-     A WORK LEVEL: #n), never shown as the board's (GUIDANCE.md §5; dashboards-skill/28) */
+     its board, or plain text while it has none): a sizing named in it is a defect in the issue, flagged by check-board.js,
+     never shown as the board's (GUIDANCE.md §5; dashboards-skill/28) */
   r.querySelectorAll("a[data-board]").forEach(a=>{ const n=a.dataset.board, b=boardOf(n); if(b){ a.href=b; a.title=`#${n}: its issue board`; a.dataset.issueTitle=n; } else { const t=document.createElement("span"); t.dataset.issueTitle=n; t.append(...a.childNodes); a.replaceWith(t); } });
   r.querySelectorAll("a[data-issue]").forEach(a=>{ const n=a.dataset.issue, b=boardOf(n); a.href=b||ghIssue(n); if(b) a.title=`#${n}: its issue board`; else { a.target="_blank"; a.rel="noopener"; } }); }
 window.addEventListener("DOMContentLoaded",()=>linkIssues());
@@ -1331,7 +1331,7 @@ renderState();
 
 /* ---------- The Guarantees' and the Context's legends (GUIDANCE.md §2) ----------
    Generated from what each section draws, so a hand-written guarantee card or card needs no legend of its own: the system swatches present, a
-   planned (dashed, faded) row, a gap, the one neutral series of the test-level bars, the badges and their meaning, a tracking issue's
+   planned (dashed, faded) row, a gap, the one neutral series of the test-set bars, the badges and their meaning, a tracking issue's
    chain's StepBar. A section that draws no encoding shows no legend. */
 /* A tracking issue's chain on the roadmap (dashboards-skill/54; nomenclature/ui.md, StepBar), written <span class="chainprog"
    data-landed="n" data-total="m"> holding one <span data-unit="done|current|todo">its name</span> per unit in landing order: drawn
@@ -1355,7 +1355,7 @@ function sectionKeys(){
   const G=document.querySelector("section.guarantees"), C=document.querySelector("section.context"), has=(s,q)=>!!(s&&s.querySelector(q));
   const swatches=(s,cls)=>typeof sysKey==="function"&&s?sysKey([...new Set([...s.querySelectorAll("[data-sys]")].map(e=>e.dataset.sys))],cls):"";
   put(G,"guarantees-key",[swatches(G,"swk"),
-    has(G,".bars")?`<span><i class="barsk"></i>test classes per level: one series, one neutral fill</span>`:"",
+    has(G,".bars")?`<span><i class="barsk"></i>test classes per set: one series, one neutral fill</span>`:"",
     has(G,".planned")?`<span><i class="pln"></i>dashed, faded: about a planned part, nothing built yet</span>`:"",
     has(G,".gap")?`<span><i class="gapk">gap</i>italic, muted: not established, said as a gap</span>`:"",
     has(G,".badge")?`<span><span class="badge">tier</span>a fact: a stability tier, a marker, neutral</span>`:""]);

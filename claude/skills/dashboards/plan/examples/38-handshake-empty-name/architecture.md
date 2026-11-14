@@ -83,7 +83,7 @@ handshake line. The work makes the server refuse a malformed one.
    line reference in the protocol doc is refreshed after the code and KDoc edits (21 of
    37 are stale on `85cfbbe`). The architecture doc's `:52` reference
    (`MultiConnectionUDPServer.kt:254`, now `:260`) is refreshed and its handshake node
-   reworded. The README's handshake sections are updated. Level-2 KDoc is updated
+   reworded. The README's handshake sections are updated. Level-1 KDoc is updated
    wherever a public KDoc says refusal comes only from `admit` or that every other `Iam`
    is well-formed. The historical plan documents under `docs/plans/` are not edited.
 10. **Test housekeeping.** The comment at `test/integration/.../ChannelByteGuardIntegrationTest.kt:25`
@@ -93,8 +93,8 @@ handshake line. The work makes the server refuse a malformed one.
     `"\u0000\u0001"`, which give the same string.
 11. **Tests.** The two tests that assert silence for a bare `Iam` flip to expecting
     `REFUSED` (`HandshakeCoordinatorTest` "a nameless Iam fails and registers nothing";
-    `MultiConnectionUDPServerTest.kt:248`). New cases go at levels 1, 2, 3 and 4a. Any
-    level-4b case sends from a raw socket, because #52 will make
+    `MultiConnectionUDPServerTest.kt:248`). New cases go in the gating, component, integration and
+    deterministic sets. Any e2e case sends from a raw socket, because #52 will make
     `MultiConnectionUDPClient.handshake("", …)` fail locally.
 
 **Acceptance.** Each of the three malformed shapes, from an unknown origin and from a
@@ -219,7 +219,7 @@ handshake prose is at `README.md:103-135` and `:217-251`.
   (`accept` stamps before classifying, `:147-152`). Unchanged; recorded in §12.
 - The two-argument `accept(origin, text)` overload (`:240-241`), a test seam, still does
   not trim. Component tests pass pre-trimmed text; the trailing-space-on-the-wire case
-  (`Iam bob ` → trimmed `Iam bob`, accepted) is tested at level 3 through the real
+  (`Iam bob ` → trimmed `Iam bob`, accepted) is tested in the integration set through the real
   socket path.
 - A version bump, release notes, and anything under `docs/plans/` other than this
   issue's folder.
@@ -342,7 +342,7 @@ What crosses each boundary:
 | `HandshakeWireFormat` | Code unchanged; `refusedMessage` is called once more, at `HandshakeProtocol` init. KDoc updated (§5.3). |
 | `MultiConnectionUDPClient` | Unchanged. `handshake()` already maps any `REFUSED` to `HandshakeRefusedException`; the session listener's unframed-drop WARN is what a registered client sees if a forged source draws `REFUSED malformed` to its address. |
 | `Admission`, `HandshakeRefusedException` | Unchanged; a malformed refusal is not an `Admission`. |
-| Test support `LogCapture` (`test/support/.../LogCapture.kt:23`) | Used by the level-2 cases to assert the WARN carries no payload text. |
+| Test support `LogCapture` (`test/support/.../LogCapture.kt:23`) | Used by the component cases to assert the WARN carries no payload text. |
 
 ### Adoption verdicts — every site that recognises or tokenises an `Iam` line
 
@@ -472,20 +472,20 @@ documents that describe it. It is planned in `plan.md`.
     that file.
   - The comment fix at `ChannelByteGuardIntegrationTest.kt:25`.
 - **Tests.** The two flips, and new cases at:
-  - **level 1:** `HandshakeProtocolGatingTest`, `HandshakeCoordinatorGatingTest`;
-  - **level 2:**
+  - **gating:** `HandshakeProtocolGatingTest`, `HandshakeCoordinatorGatingTest`;
+  - **component:**
     - `HandshakeCoordinatorTest`: the three shapes from an unknown and from a registered
       origin, `Iam bob tok  x`, an absent credential, no supersede, no `admit`, no
       `onRegistered`, the reply addressed to the origin only, and the log content via
       `LogCapture`;
     - `FramingComponentTest`: `Iam<TAB>bob` takes the unframed path;
-  - **level 3:** the `MultiConnectionUDPServerTest` flip; `MultiConnectionUDPServerAdmissionTest`
+  - **integration:** the `MultiConnectionUDPServerTest` flip; `MultiConnectionUDPServerAdmissionTest`
     with `admit` never consulted; the trailing-space-trimmed case;
-  - **level 4a:** the `HandshakeProtocolTest` truth table and the reply bytes;
-  - **level 4c:** a burst case mirroring `MultiConnectionUDPServerAdmissionNonFunctionalTest.kt:104`,
+  - **deterministic:** the `HandshakeProtocolTest` truth table and the reply bytes;
+  - **nonfunctional:** a burst case mirroring `MultiConnectionUDPServerAdmissionNonFunctionalTest.kt:104`,
     proving the listener survives a malformed burst (requirement 8).
 
-  A 4b case is not required; if one is added, it sends from a raw socket.
+  An e2e case is not required; if one is added, it sends from a raw socket.
 
 **Stage B — living documents, after Stage A's line numbers are final.**
 - **Protocol doc §3:** the rule, the registered-origin trade-off, the known #53 gap, the
@@ -526,7 +526,7 @@ documentation pass can be reviewed separately.
   stack trace, so the per-line cost falls). Client side: one WARN per reflected
   `REFUSED malformed` a registered library client receives. Both are #41's surface.
 - **No throw path, by construction.** The parse is total, the routing is an exhaustive
-  `when`, and every new return is a `Result` from `send` or `Result.success`. The 4c
+  `when`, and every new return is a `Result` from `send` or `Result.success`. The nonfunctional
   burst case proves the listener survives. The general guard remains #54.
 - **Liveness refresh by a spoofed malformed line.** `accept` stamps a registered
   origin's `lastInboundAt` before classification, so a forged malformed line keeps a

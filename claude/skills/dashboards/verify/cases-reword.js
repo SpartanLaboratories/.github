@@ -122,10 +122,12 @@ module.exports = function casesReword(X) {
     no("a passage held nowhere", W("implementation-stage", T1, "no such words anywhere", "x"), /held nowhere in the record/);
     no("the team's record (state-boards)", W("state-boards", T1, P, N), /state-boards is the team's record/);
     no("the team's record (landing)", W("landing", T1, P, N), /landing is the team's record/);
-    no("a new wording naming a work level", W("implementation-stage", T1, P, "a level-3 change declined it"), /carries a work level/);
+    no("a new wording naming a grade's old name, a work level", W("implementation-stage", T1, P, "a level-3 change declined it"), /carries a grade/);
+    no("a new wording naming a grade", W("implementation-stage", T1, P, "a grade-3 change declined it"), /carries a grade/);
     no("a new wording naming an internal name", W("implementation-stage", T1, P, "the admin team declined it"), /carries an internal name/);
     no("a new wording in an older step name", W("implementation-stage", T1, P, "qa pass 2 declined it"), /older wording of a step's name/);
-    no("a new wording with a bare test level", W("implementation-stage", T1, P, "the L2 test declined it"), /bare test level/);
+    no("a new wording with a test set by number", W("implementation-stage", T1, P, "the L2 test declined it"), /test set by number \(L2; write the set's name\)/);
+    no("a new wording with a test set by number beside its name", W("implementation-stage", T1, P, "the L2 component test declined it"), /test set by number \(L2;/);
     no("a text left empty", W("implementation-stage", T2, R2, ""), /would be left empty/);
     { const r = apply(B, plan, null, W("implementation-stage", T1, P, N), NOW); c.push(["a request naming no event, with a reword's facts: never read as facts.event", r.a.status === 1 && /names no event/.test(r.S.error || "") && files(B) === f0, js([r.S.error])]); }
     /* another event named at the same time: a report found by its time alone cannot be told */

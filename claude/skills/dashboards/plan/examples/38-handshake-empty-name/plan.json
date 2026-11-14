@@ -297,8 +297,8 @@
           }
         ],
         "tests": [
-          "Level 1 — `HandshakeProtocolGatingTest`, replaced: every outcome",
-          "Level 4a — `HandshakeProtocolTest`, replaced: the truth table, totality, the reply bytes, the #53 gap pinned"
+          "gating — `HandshakeProtocolGatingTest`, replaced: every outcome",
+          "deterministic — `HandshakeProtocolTest`, replaced: the truth table, totality, the reply bytes, the #53 gap pinned"
         ],
         "risks": [
           "Nothing public changes: `HandshakeParse`, `HandshakeDefect` and the constant are `internal` inside an `internal object`"
@@ -376,7 +376,7 @@
           "1605bdd",
           "d3807b0"
         ],
-        "verified": "All levels pass; `grep -rn getOrThrow` on the two parse tests prints nothing.",
+        "verified": "All sets pass; `grep -rn getOrThrow` on the two parse tests prints nothing.",
         "link": "final-implementation.md#code"
       }
     },
@@ -484,10 +484,10 @@
           }
         ],
         "tests": [
-          "Level 1 — `HandshakeCoordinatorGatingTest`, one new test",
-          "Level 2 — `HandshakeCoordinatorTest`: the three shapes from unknown and registered origins, `Iam bob tok  x`, no supersede, no `admit`, no `onRegistered`, the reply addressed to the origin only, the log content",
-          "Level 3 — the `MultiConnectionUDPServerTest` flip; `MultiConnectionUDPServerAdmissionTest`: `admit` never consulted, the trailing space trimmed",
-          "Level 4c — a malformed burst leaves the listener alive"
+          "gating — `HandshakeCoordinatorGatingTest`, one new test",
+          "component — `HandshakeCoordinatorTest`: the three shapes from unknown and registered origins, `Iam bob tok  x`, no supersede, no `admit`, no `onRegistered`, the reply addressed to the origin only, the log content",
+          "integration — the `MultiConnectionUDPServerTest` flip; `MultiConnectionUDPServerAdmissionTest`: `admit` never consulted, the trailing space trimmed",
+          "nonfunctional — a malformed burst leaves the listener alive"
         ],
         "risks": [
           "Reflection: a forged source that knows a registered client's `ip:port` can make the server send it 17-byte datagrams at the sender's rate; payload ratio 5.7 on a 3-byte trigger, inside the range `admit` refusals already produce; no state created; stated in the protocol doc with #57",
@@ -579,7 +579,7 @@
           "1605bdd",
           "d3807b0"
         ],
-        "verified": "A hostile CR/LF line stays out of the log (4c); the listener survives a malformed burst and the registration count is unchanged.",
+        "verified": "A hostile CR/LF line stays out of the log (nonfunctional); the listener survives a malformed burst and the registration count is unchanged.",
         "link": "final-implementation.md#code"
       }
     },
@@ -680,13 +680,13 @@
             "files": [
               "main/HandshakeProtocol.kt"
             ],
-            "check": "Level 4a asserts the bytes equal `REFUSED malformed`",
+            "check": "The deterministic set asserts the bytes equal `REFUSED malformed`",
             "link": "plan.md#a-3-mainhandshakeprotocolkt--replace-the-whole-file"
           }
         ],
         "tests": [
-          "Level 4a — the reply bytes equal `REFUSED malformed`",
-          "Level 3 — a bare `Iam` over a real socket gets `REFUSED malformed`"
+          "deterministic — the reply bytes equal `REFUSED malformed`",
+          "integration — a bare `Iam` over a real socket gets `REFUSED malformed`"
         ],
         "risks": [
           "If the release label or the reason ever changed, every KDoc and protocol-doc mention changes with it"
@@ -737,7 +737,7 @@
         "commits": [
           "1605bdd"
         ],
-        "verified": "4a asserts the bytes; 3 and 4b observe the reply over loopback.",
+        "verified": "The deterministic set asserts the bytes; the integration and e2e sets observe the reply over loopback.",
         "link": "final-implementation.md#behaviour"
       }
     },
@@ -899,7 +899,7 @@
     {
       "id": "tests",
       "group": "Tests",
-      "name": "Test coverage, levels 1 to 4c",
+      "name": "Test coverage, gating to nonfunctional",
       "system": "webtools-udp",
       "where": "test/gating · component · integration · deterministic · e2e · nonfunctional",
       "gap": {
@@ -917,16 +917,16 @@
       "options": [
         {
           "id": "levels-1-4c",
-          "name": "Flip the two silence tests; new cases at levels 1, 2, 3, 4a and 4c",
+          "name": "Flip the two silence tests; new cases in the gating, component, integration, deterministic and nonfunctional sets",
           "summary": "Nine test steps, T-1 to T-9, with expected counts after Stage A: gating 80, component 234, deterministic 95, integration 114, nonfunctional 63.",
           "verdict": "accepted",
-          "why": "Each level pins a different claim: the parse table (4a), the routing and the log contract (2), the wire (3), listener survival under a burst (4c).",
+          "why": "Each set pins a different claim: the parse table (deterministic), the routing and the log contract (component), the wire (integration), listener survival under a burst (nonfunctional).",
           "source": "plan.md §8",
           "link": "plan.md#8-tests--stage-a-a-7"
         },
         {
           "id": "e2e-4b",
-          "name": "A level-4b case through the library client",
+          "name": "An e2e case through the library client",
           "summary": "A library client with an empty name gets a typed `malformed` refusal.",
           "verdict": "deferred",
           "why": "Optional in the plan: once #52 makes `handshake(\"\")` fail locally the case stops reaching the server, so every socket-level test of the new branch sends from a raw `DatagramSocket` instead.",
@@ -934,9 +934,9 @@
         },
         {
           "id": "uat-l5",
-          "name": "A level-5 UAT step",
+          "name": "A uat step",
           "verdict": "declined",
-          "why": "The change's observable surface is the wire reply and the server log, which the level-3, 4b and 4c tests exercise end to end over real loopback sockets.",
+          "why": "The change's observable surface is the wire reply and the server log, which the integration, e2e and nonfunctional tests exercise end to end over real loopback sockets.",
           "source": "plan.md §8 T-9; confirmed by the maintainer at Quality Review 1"
         }
       ],
@@ -944,47 +944,47 @@
         "kind": "build",
         "statements": [
           {
-            "text": "Levels 1 and 4a: `HandshakeProtocolGatingTest` and `HandshakeProtocolTest` are replaced, and the coordinator gains one gating test.",
+            "text": "Gating and deterministic: `HandshakeProtocolGatingTest` and `HandshakeProtocolTest` are replaced, and the coordinator gains one gating test.",
             "ref": "plan.md#8-tests--stage-a-a-7",
             "excerpt": {
               "ref": "plan.md#8-tests--stage-a-a-7",
               "heading": "8. Tests — Stage A (A-7)",
-              "paragraph": "Conventions followed (read from the existing suites): `kotlin.test` assertions with `org.junit.jupiter.api.Tag`; the level `@Tag` on every class; hand-written recording fakes (`FakeConnection`, `FakePeriodicSchedule`) under `test/support/webtools/udp/`; log assertions through `captureLogsOf`/`hasEventAt`/`hasWarnContaining` (`test/support/webtools/udp/LogCapture.kt`); one test class per file; component tests pass pre-trimmed text (`accept(origin, text)` does not trim). MockK is not used by these suites. Every socket-level case sends from a raw `DatagramSocket`, never from …",
-              "hash": "36a137c3b0de"
+              "paragraph": "Conventions followed (read from the existing suites): `kotlin.test` assertions with `org.junit.jupiter.api.Tag`; the set's `@Tag` on every class; hand-written recording fakes (`FakeConnection`, `FakePeriodicSchedule`) under `test/support/webtools/udp/`; log assertions through `captureLogsOf`/`hasEventAt`/`hasWarnContaining` (`test/support/webtools/udp/LogCapture.kt`); one test class per file; component tests pass pre-trimmed text (`accept(origin, text)` does not trim). MockK is not used by these suites. Every socket-level case sends from a raw `DatagramSocket`, never from …",
+              "hash": "d67ed234b9e0"
             }
           },
           {
-            "text": "Level 2: the component cases for both origins with `LogCapture` on the WARN, and `FramingComponentTest` for `Iam<TAB>bob`.",
-            "ref": "plan.md#t-3-level-2--testcomponentwebtoolsudphandshakecoordinatortestkt",
+            "text": "Component: the component cases for both origins with `LogCapture` on the WARN, and `FramingComponentTest` for `Iam<TAB>bob`.",
+            "ref": "plan.md#t-3-component--testcomponentwebtoolsudphandshakecoordinatortestkt",
             "excerpt": {
-              "ref": "plan.md#t-3-level-2--testcomponentwebtoolsudphandshakecoordinatortestkt",
-              "heading": "T-3 Level 2 — `test/component/webtools/udp/HandshakeCoordinatorTest.kt`",
+              "ref": "plan.md#t-3-component--testcomponentwebtoolsudphandshakecoordinatortestkt",
+              "heading": "T-3 component — `test/component/webtools/udp/HandshakeCoordinatorTest.kt`",
               "paragraph": "A-1 must have landed. Edits in file order:",
-              "hash": "8a4107a6d93e"
+              "hash": "ae082827522b"
             }
           },
           {
-            "text": "Level 3: the integration flip and four admission tests.",
-            "ref": "plan.md#t-5-level-3--testintegrationwebtoolsudpmulticonnectionudpservertestkt-flip-in-place",
+            "text": "Integration: the integration flip and four admission tests.",
+            "ref": "plan.md#t-5-integration--testintegrationwebtoolsudpmulticonnectionudpservertestkt-flip-in-place",
             "excerpt": {
-              "ref": "plan.md#t-5-level-3--testintegrationwebtoolsudpmulticonnectionudpservertestkt-flip-in-place",
-              "heading": "T-5 Level 3 — `test/integration/webtools/udp/MultiConnectionUDPServerTest.kt` (flip, in place)",
+              "ref": "plan.md#t-5-integration--testintegrationwebtoolsudpmulticonnectionudpservertestkt-flip-in-place",
+              "heading": "T-5 integration — `test/integration/webtools/udp/MultiConnectionUDPServerTest.kt` (flip, in place)",
               "paragraph": "In the `@Order(11)` test (`:246-259`), replace the first statement (`:248`):",
-              "hash": "a19b6815d0ec"
+              "hash": "39c7d31d5130"
             }
           },
           {
-            "text": "Level 4c: a malformed burst mirroring `MultiConnectionUDPServerAdmissionNonFunctionalTest:104`.",
-            "ref": "plan.md#t-8-level-4c--testnonfunctionalwebtoolsudpmulticonnectionudpserveradmissionnonfunctionaltestkt-one-new-test",
+            "text": "Nonfunctional: a malformed burst mirroring `MultiConnectionUDPServerAdmissionNonFunctionalTest:104`.",
+            "ref": "plan.md#t-8-nonfunctional--testnonfunctionalwebtoolsudpmulticonnectionudpserveradmissionnonfunctionaltestkt-one-new-test",
             "excerpt": {
-              "ref": "plan.md#t-8-level-4c--testnonfunctionalwebtoolsudpmulticonnectionudpserveradmissionnonfunctionaltestkt-one-new-test",
-              "heading": "T-8 Level 4c — `test/nonfunctional/webtools/udp/MultiConnectionUDPServerAdmissionNonFunctionalTest.kt` (one new test)",
+              "ref": "plan.md#t-8-nonfunctional--testnonfunctionalwebtoolsudpmulticonnectionudpserveradmissionnonfunctionaltestkt-one-new-test",
+              "heading": "T-8 nonfunctional — `test/nonfunctional/webtools/udp/MultiConnectionUDPServerAdmissionNonFunctionalTest.kt` (one new test)",
               "paragraph": "Insert after `a burst of refusals leaves no registrations and the server still accepts a good client` (`:103-125`), before `a slow admit serialises handshakes`. In the `private companion object` add `const val MALFORMED_BURST = 600`. No new imports.",
-              "hash": "d1b19e78b70f"
+              "hash": "024d831f31fa"
             }
           }
         ],
-        "defense": "Every acceptance clause in the plan has a test at the level that can observe it; the burst test proves requirement 8 (no throw path) instead of arguing it.",
+        "defense": "Every acceptance clause in the plan has a test in the set that can observe it; the burst test proves requirement 8 (no throw path) instead of arguing it.",
         "steps": [
           {
             "id": "A-7 · T-1..T-9",
@@ -999,7 +999,7 @@
               "test/deterministic/webtools/udp/HandshakeProtocolTest.kt",
               "test/nonfunctional/webtools/udp/MultiConnectionUDPServerAdmissionNonFunctionalTest.kt"
             ],
-            "check": "the §8.1 level runs end BUILD SUCCESSFUL with the expected counts",
+            "check": "the §8.1 set runs end BUILD SUCCESSFUL with the expected counts",
             "link": "plan.md#8-tests--stage-a-a-7"
           }
         ],
@@ -1016,14 +1016,14 @@
         "state": "amended",
         "statements": [
           {
-            "text": "Built in Commit 2; Quality Review 1 added gating cases for the `CREDENTIAL_EMPTY` and `NotAHandshake` arms, deterministic cases for the verb check, and the deferred 4b e2e test. Gating 83 (+6), deterministic 96 (+7), e2e 34 (+1); all pass.",
+            "text": "Built in Commit 2; Quality Review 1 added gating cases for the `CREDENTIAL_EMPTY` and `NotAHandshake` arms, deterministic cases for the verb check, and the deferred e2e test. Gating 83 (+6), deterministic 96 (+7), e2e 34 (+1); all pass.",
             "state": "amended",
             "ref": "final-implementation.md#tests",
             "excerpt": {
               "ref": "final-implementation.md#tests",
               "heading": "Tests",
-              "paragraph": "A 4c test waits on a named constant, not a bare `Thread.sleep`. All runs pass.",
-              "hash": "0c62e2b9a0f0"
+              "paragraph": "A nonfunctional test waits on a named constant, not a bare `Thread.sleep`. All runs pass.",
+              "hash": "fdcc53b8fc80"
             }
           },
           {
@@ -1033,8 +1033,8 @@
             "excerpt": {
               "ref": "final-implementation.md#tests",
               "heading": "Tests",
-              "paragraph": "A 4c test waits on a named constant, not a bare `Thread.sleep`. All runs pass.",
-              "hash": "0c62e2b9a0f0"
+              "paragraph": "A nonfunctional test waits on a named constant, not a bare `Thread.sleep`. All runs pass.",
+              "hash": "fdcc53b8fc80"
             }
           },
           {
@@ -1044,19 +1044,19 @@
             "excerpt": {
               "ref": "final-implementation.md#tests",
               "heading": "Tests",
-              "paragraph": "A 4c test waits on a named constant, not a bare `Thread.sleep`. All runs pass.",
-              "hash": "0c62e2b9a0f0"
+              "paragraph": "A nonfunctional test waits on a named constant, not a bare `Thread.sleep`. All runs pass.",
+              "hash": "fdcc53b8fc80"
             }
           },
           {
-            "text": "Nonfunctional 65 (+3): two more 4c tests, the burst including a registered socket (probed through the registry after Quality Review 2) and a hostile CR/LF line.",
+            "text": "Nonfunctional 65 (+3): two more nonfunctional tests, the burst including a registered socket (probed through the registry after Quality Review 2) and a hostile CR/LF line.",
             "state": "amended",
             "ref": "final-implementation.md#tests",
             "excerpt": {
               "ref": "final-implementation.md#tests",
               "heading": "Tests",
-              "paragraph": "A 4c test waits on a named constant, not a bare `Thread.sleep`. All runs pass.",
-              "hash": "0c62e2b9a0f0"
+              "paragraph": "A nonfunctional test waits on a named constant, not a bare `Thread.sleep`. All runs pass.",
+              "hash": "fdcc53b8fc80"
             }
           }
         ],
@@ -1080,7 +1080,7 @@
             "ref": "c6be0f2"
           },
           {
-            "what": "The deferred 4b e2e test was added: a library client with an empty name gets a typed `malformed` refusal, pinned until #52.",
+            "what": "The deferred e2e test was added: a library client with an empty name gets a typed `malformed` refusal, pinned until #52.",
             "why": "Maintainer decision at Quality Review 1: it pins the client-visible behaviour and flips when #52 makes the call fail locally.",
             "when": "Stage C · Quality Review 1",
             "ref": "c6be0f2",
@@ -1090,13 +1090,13 @@
             }
           },
           {
-            "what": "Two 4c tests: a burst that includes a registered socket, and a hostile CR/LF line that must stay out of the log.",
+            "what": "Two nonfunctional tests: a burst that includes a registered socket, and a hostile CR/LF line that must stay out of the log.",
             "why": "Quality Review 1, test finding 8.",
             "when": "Stage C · Quality Review 1",
             "ref": "c6be0f2"
           },
           {
-            "what": "A bare `Thread.sleep(200)` in a 4c test became the named constant `CONNECT_SETTLE_MILLIS` with a comment.",
+            "what": "A bare `Thread.sleep(200)` in a nonfunctional test became the named constant `CONNECT_SETTLE_MILLIS` with a comment.",
             "why": "Quality Review 1, documentation finding 8.",
             "when": "Stage C · Quality Review 1",
             "ref": "c6be0f2"
@@ -1112,7 +1112,7 @@
           "1605bdd",
           "c6be0f2"
         ],
-        "verified": "All automated levels pass; the plan's expected counts after Stage C match the final tree.",
+        "verified": "All automated sets pass; the plan's expected counts after Stage C match the final tree.",
         "link": "final-implementation.md#tests"
       }
     },
@@ -1174,7 +1174,7 @@
               "ref": "plan.md#14-sequencing--follow-ups",
               "heading": "14. Sequencing & follow-ups",
               "paragraph": "A-1, A-2, then Commit 1 (with this plan, `architecture.md` and `impact.md`). · A-3, A-4, A-5, A-6 (`compileKotlin`), then A-7 tests, then the §8.1 checks, then Commit 2. · Stage B: B-0 pre-checks, B-1 and B-2 (compute), B-3..B-6 (edit), B-7 (check). Its commit waits for Stage C. · Stage C (§17): C-0, C-1..C-4 then C-5; C-T1..C-T8 then C-6; C-D (document corrections), C-B (recompute every reference), C-7 (checks). · Stage D (§18), on Stage C's uncommitted tree: D-1..D-6, then D-7. Then Commit 3 (C-1..C-4, D-1..D-3, plan documents), Commit 4 (C-T1..C-T8, D-4), Commit 5 (Stage B with C-D, C-B, …",
-              "hash": "662f030b84d9"
+              "hash": "1df3798a299c"
             }
           }
         ],
@@ -1216,7 +1216,7 @@
               "ref": "final-implementation.md#1-commits",
               "heading": "1. Commits",
               "paragraph": "The source commits (2 to 4) come before the documents (5), so every document line reference is computed from the final sources.",
-              "hash": "e9612c0155b4"
+              "hash": "3245dcebf8ad"
             }
           },
           {
@@ -1227,7 +1227,7 @@
               "ref": "final-implementation.md#1-commits",
               "heading": "1. Commits",
               "paragraph": "The source commits (2 to 4) come before the documents (5), so every document line reference is computed from the final sources.",
-              "hash": "e9612c0155b4"
+              "hash": "3245dcebf8ad"
             }
           },
           {
@@ -1238,7 +1238,7 @@
               "ref": "final-implementation.md#1-commits",
               "heading": "1. Commits",
               "paragraph": "The source commits (2 to 4) come before the documents (5), so every document line reference is computed from the final sources.",
-              "hash": "e9612c0155b4"
+              "hash": "3245dcebf8ad"
             }
           }
         ],
@@ -1585,7 +1585,7 @@
               "ref": "plan.md#14-sequencing--follow-ups",
               "heading": "14. Sequencing & follow-ups",
               "paragraph": "A-1, A-2, then Commit 1 (with this plan, `architecture.md` and `impact.md`). · A-3, A-4, A-5, A-6 (`compileKotlin`), then A-7 tests, then the §8.1 checks, then Commit 2. · Stage B: B-0 pre-checks, B-1 and B-2 (compute), B-3..B-6 (edit), B-7 (check). Its commit waits for Stage C. · Stage C (§17): C-0, C-1..C-4 then C-5; C-T1..C-T8 then C-6; C-D (document corrections), C-B (recompute every reference), C-7 (checks). · Stage D (§18), on Stage C's uncommitted tree: D-1..D-6, then D-7. Then Commit 3 (C-1..C-4, D-1..D-3, plan documents), Commit 4 (C-T1..C-T8, D-4), Commit 5 (Stage B with C-D, C-B, …",
-              "hash": "662f030b84d9"
+              "hash": "1df3798a299c"
             }
           }
         ],
@@ -1617,7 +1617,7 @@
               "ref": "final-implementation.md#1-commits",
               "heading": "1. Commits",
               "paragraph": "The source commits (2 to 4) come before the documents (5), so every document line reference is computed from the final sources.",
-              "hash": "e9612c0155b4"
+              "hash": "3245dcebf8ad"
             }
           }
         ],
@@ -1689,13 +1689,13 @@
             }
           },
           {
-            "text": "A 4a test pins today's behaviour and flips when #53 lands.",
-            "ref": "plan.md#t-7-level-4a--testdeterministicwebtoolsudphandshakeprotocoltestkt-replace-the-whole-file",
+            "text": "A deterministic test pins today's behaviour and flips when #53 lands.",
+            "ref": "plan.md#t-7-deterministic--testdeterministicwebtoolsudphandshakeprotocoltestkt-replace-the-whole-file",
             "excerpt": {
-              "ref": "plan.md#t-7-level-4a--testdeterministicwebtoolsudphandshakeprotocoltestkt-replace-the-whole-file",
-              "heading": "T-7 Level 4a — `test/deterministic/webtools/udp/HandshakeProtocolTest.kt` (replace the whole file)",
+              "ref": "plan.md#t-7-deterministic--testdeterministicwebtoolsudphandshakeprotocoltestkt-replace-the-whole-file",
+              "heading": "T-7 deterministic — `test/deterministic/webtools/udp/HandshakeProtocolTest.kt` (replace the whole file)",
               "paragraph": "Removed: \"parseHandshake rejects a verb-only line / an empty token list / a non-Iam verb\" and \"parseHandshake failure carries an IllegalArgumentException\" (the `Result` and the exception no longer exist; the same inputs are asserted as `Malformed`/`NotAHandshake`). Net 13 -> 19 tests (+6).",
-              "hash": "269e73b9c701"
+              "hash": "d8b1977924b1"
             }
           }
         ],
@@ -1707,11 +1707,11 @@
             "files": [
               "test/deterministic/webtools/udp/HandshakeProtocolTest.kt"
             ],
-            "link": "plan.md#t-7-level-4a--testdeterministicwebtoolsudphandshakeprotocoltestkt-replace-the-whole-file"
+            "link": "plan.md#t-7-deterministic--testdeterministicwebtoolsudphandshakeprotocoltestkt-replace-the-whole-file"
           }
         ],
         "tests": [
-          "Level 4a — the pinning test"
+          "deterministic — the pinning test"
         ],
         "risks": [],
         "source": "plan.md §4, §12",
@@ -1728,7 +1728,7 @@
               "ref": "impact.md#6-follow-ups",
               "heading": "6. Follow-ups",
               "paragraph": "",
-              "hash": "74601f32cf32"
+              "hash": "3b951ad326c7"
             }
           },
           {
@@ -1743,14 +1743,14 @@
             }
           },
           {
-            "text": "The 4a test `parseHandshake accepts non-space whitespace inside a name - known gap tracked as 53` pins it.",
+            "text": "The deterministic test `parseHandshake accepts non-space whitespace inside a name - known gap tracked as 53` pins it.",
             "state": "as-planned",
             "ref": "final-implementation.md#tests",
             "excerpt": {
               "ref": "final-implementation.md#tests",
               "heading": "Tests",
-              "paragraph": "A 4c test waits on a named constant, not a bare `Thread.sleep`. All runs pass.",
-              "hash": "0c62e2b9a0f0"
+              "paragraph": "A nonfunctional test waits on a named constant, not a bare `Thread.sleep`. All runs pass.",
+              "hash": "fdcc53b8fc80"
             }
           }
         ],
@@ -1837,24 +1837,24 @@
               "ref": "impact.md#6-follow-ups",
               "heading": "6. Follow-ups",
               "paragraph": "",
-              "hash": "74601f32cf32"
+              "hash": "3b951ad326c7"
             }
           },
           {
-            "text": "Pinned harder than planned: Quality Review 1 added the 4b e2e test, which fails fast with a typed `malformed` refusal and flips when #52 lands.",
+            "text": "Pinned harder than planned: Quality Review 1 added the e2e test, which fails fast with a typed `malformed` refusal and flips when #52 lands.",
             "state": "amended",
             "ref": "final-implementation.md#tests",
             "excerpt": {
               "ref": "final-implementation.md#tests",
               "heading": "Tests",
-              "paragraph": "A 4c test waits on a named constant, not a bare `Thread.sleep`. All runs pass.",
-              "hash": "0c62e2b9a0f0"
+              "paragraph": "A nonfunctional test waits on a named constant, not a bare `Thread.sleep`. All runs pass.",
+              "hash": "fdcc53b8fc80"
             }
           }
         ],
         "changes": [
           {
-            "what": "The 4b e2e test `a nameless handshake fails fast with a typed malformed refusal and registers nothing`.",
+            "what": "The e2e test `a nameless handshake fails fast with a typed malformed refusal and registers nothing`.",
             "why": "Maintainer decision at Quality Review 1.",
             "when": "Stage C · Quality Review 1",
             "ref": "c6be0f2"
@@ -1990,7 +1990,7 @@
   "followUps": [
     {
       "issue": 52,
-      "note": "Client-side handshake validation. Makes the library client unable to send a malformed line; why the socket-level tests here use a raw socket. The 4b test pins today's behaviour and flips when #52 lands."
+      "note": "Client-side handshake validation. Makes the library client unable to send a malformed line; why the socket-level tests here use a raw socket. The e2e test pins today's behaviour and flips when #52 lands."
     },
     {
       "issue": 53,
@@ -2068,7 +2068,7 @@
         "when": "re-templating, 2026-10-22"
       },
       {
-        "what": "The tests row's as-built register gains Quality Review 1's documentation finding 8 (the `Thread.sleep` constant), which the register had missed; the deferred 4b option is marked as settled by Quality Review 1's decision.",
+        "what": "The tests row's as-built register gains Quality Review 1's documentation finding 8 (the `Thread.sleep` constant), which the register had missed; the deferred e2e option is marked as settled by Quality Review 1's decision.",
         "when": "re-templating, 2026-10-22"
       }
     ]

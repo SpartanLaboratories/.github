@@ -17,7 +17,7 @@
 | 1 | `56a2121` | A-1, A-2: test housekeeping (the NUL/SOH escapes in `HandshakeCoordinatorTest.kt`, the comment range in `ChannelByteGuardIntegrationTest.kt`), with `plan.md`, `architecture.md`, `impact.md` |
 | 2 | `1605bdd` | A-3..A-7: the parse outcome, the routing, KDoc, tests |
 | 3 | `d3807b0` | C-1..C-4, D-1..D-3: production KDoc contracts, the `#49` marker, `//region`s, with the updated plan documents |
-| 4 | `c6be0f2` | C-T1..C-T8, D-4: tests at levels 1, 2, 3, 4a, 4b and 4c |
+| 4 | `c6be0f2` | C-T1..C-T8, D-4: tests in the gating, component, integration, deterministic, e2e and nonfunctional sets |
 | 5 | `16d6849` | Stage B with C-D, C-B, D-5, D-6: the protocol doc, the architecture doc, the README |
 
 The source commits (2 to 4) come before the documents (5), so every document line reference
@@ -104,17 +104,17 @@ refreshes its liveness stamp.
 
 ### Tests
 
-| Level | `85cfbbe` | Final | Added or changed |
+| Set | `85cfbbe` | Final | Added or changed |
 |---|---|---|---|
-| 1 gating | 77 | 83 | every parse outcome (valid, each defect, not a handshake); the unknown- and registered-origin malformed cases; the non-`Iam` drop sends nothing |
-| 2 component | 223 | 235 | the three shapes from unknown and registered origins; extra tokens; the send failure; the WARN content; the extra-token DEBUG; `Iam<TAB>bob` stays unframed; a test named for `deliverData` that never reached it renamed after what it does, plus a real `deliverData` no-handler test |
-| 3 integration | 110 | 115 | a bare `Iam` gets `REFUSED malformed`; all three shapes over a real socket; a registered socket's malformed lines, an empty credential among them; a trailing space trimmed; an empty extra token; a retry on the same socket after a malformed refusal |
-| 4a deterministic | 89 | 96 | the parse truth table, totality, the verb check before any slot check, the reply bytes, the #53 gap pinned |
-| 4b e2e | 33 | 34 | a library client with an empty name gets a typed `malformed` refusal, pinned until #52 |
-| 4c nonfunctional | 62 | 65 | a malformed burst; a burst that includes a registered socket (one reply per datagram; the peer probed through the registry with `pushToAll`, no `onClientDisconnect`, only the registering line reaching `admit`); a hostile CR/LF line stays out of the log |
-| 5 uat | 13 | 13 | unchanged; skipped, as before: the wire reply and the server log are exercised end to end at levels 3, 4b and 4c |
+| gating | 77 | 83 | every parse outcome (valid, each defect, not a handshake); the unknown- and registered-origin malformed cases; the non-`Iam` drop sends nothing |
+| component | 223 | 235 | the three shapes from unknown and registered origins; extra tokens; the send failure; the WARN content; the extra-token DEBUG; `Iam<TAB>bob` stays unframed; a test named for `deliverData` that never reached it renamed after what it does, plus a real `deliverData` no-handler test |
+| integration | 110 | 115 | a bare `Iam` gets `REFUSED malformed`; all three shapes over a real socket; a registered socket's malformed lines, an empty credential among them; a trailing space trimmed; an empty extra token; a retry on the same socket after a malformed refusal |
+| deterministic | 89 | 96 | the parse truth table, totality, the verb check before any slot check, the reply bytes, the #53 gap pinned |
+| e2e | 33 | 34 | a library client with an empty name gets a typed `malformed` refusal, pinned until #52 |
+| nonfunctional | 62 | 65 | a malformed burst; a burst that includes a registered socket (one reply per datagram; the peer probed through the registry with `pushToAll`, no `onClientDisconnect`, only the registering line reaching `admit`); a hostile CR/LF line stays out of the log |
+| uat | 13 | 13 | unchanged; skipped, as before: the wire reply and the server log are exercised end to end in the integration, e2e and nonfunctional sets |
 
-A 4c test waits on a named constant, not a bare `Thread.sleep`. All runs pass.
+A nonfunctional test waits on a named constant, not a bare `Thread.sleep`. All runs pass.
 
 ### Documents
 
@@ -142,7 +142,7 @@ bump.
 
 ## 4. Verification
 
-- **Tests:** the counts in §2, with every automated level passing.
+- **Tests:** the counts in §2, with every automated set passing.
 - **Line references.** The C-7 reference check and D-7's checks were run on the final tree:
   - every `File.kt:N` reference into an edited file prints the first and last lines its
     prose describes;

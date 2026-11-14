@@ -828,7 +828,7 @@ pre.src .k{color:var(--link);font-weight:600} pre.src .s{color:var(--ink-2)}
 .bcard .meta a.goimp{white-space:normal;overflow-wrap:anywhere}
 
 /* The Tests tab (plan/RULES.md §2, "The Tests tab"): four sub-tabs, Added, Amended, Relevant and Other; each class grouped and coloured
-   by its test level, a neutral ramp from L1 gating (faintest) to L5 UAT (full ink, in either theme), so no system colour and no status colour is spent on
+   by its test set, a neutral ramp from gating (faintest) to uat (full ink, in either theme), so no system colour and no status colour is spent on
    it (GUIDANCE.md §1); its latest result a status pill (passed green, failed red, skipped neutral, not run yet dashed: pending); Other
    counts only, solid neutral: not run, untouched by this change. */
 .tl-1{--tl:color-mix(in srgb,var(--ink) 20%,var(--surface))}.tl-2{--tl:color-mix(in srgb,var(--ink) 34%,var(--surface))}.tl-3{--tl:color-mix(in srgb,var(--ink) 48%,var(--surface))}
@@ -994,7 +994,7 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
   </section>
 
   <section class="view" role="tabpanel" id="p-tests" aria-labelledby="t-tests" hidden>
-    <h2>Tests: what the change adds, amends and runs, by test level</h2>
+    <h2>Tests: what the change adds, amends and runs, by test set</h2>
     <p class="lede" id="tests-lede"></p>
     <div class="seg stabs" role="tablist" aria-label="Tests" id="tests-tabs">
       <button class="stab" role="tab" id="t-tests-added" aria-controls="p-tests-added" aria-selected="true">Added</button>
@@ -1081,7 +1081,7 @@ const ext=(href,text)=>`<a href="${esc(href)}" target="_blank" rel="noopener">${
 /* Links to an issue and its board (plan/RULES.md §1; GUIDANCE.md §5). Where an issue's number and its title appear together (a unit
    row, the WIP strip's unit lines, the inspector's unit entry, a roadmap item, a follow-up with a title, an impact unit card) they
    are two links, pair(): the number opens the GitHub issue and the title opens the issue's board, plain text while it has none.
-   Where only one link fits (the "part of" chip, the breadcrumb, a chain entry, a "blocked by" tag, a deferred badge, a follow-up
+   Where only one link fits (the "part of" chip, the breadcrumb, a chain entry, a "blocked by" Pill, a deferred badge, a follow-up
    without a title, any #n in the text) ilink() opens the board when one exists and the GitHub issue otherwise; ghlink(), the small
    GitHub ↗ link, sits beside such a lone #n only where the issue cannot be reached otherwise (the "part of" chip, a follow-up).
    This issue's own #n opens GitHub. Never a file that is not there: embed.js sets each board link from the folders on disk, as a
@@ -1109,8 +1109,8 @@ const ilabel=(n,repo)=>`${repo&&repo!==PLAN.repo?esc(repo.split("/")[1])+"#":"#"
 const ilink=(n,repo)=>{ const b=boardOf(n,repo); return b?`<a href="${esc(b)}" title="#${esc(n)}: its issue board">${ilabel(n,repo)}</a>`:ext(ghUrl(n,repo),ilabel(n,repo)); };
 /* pair(): an issue's number and its title together, as two links (plan/RULES.md §1, "Number and title"): the number opens the
    GitHub issue and the title opens the issue's board, plain text while it has none. With q, the title is the issue's own, quoted
-   verbatim (GUIDANCE.md §5; dashboards-skill/28) and marked data-issue-title: a work level in it is a defect in the issue, which the
-   checks flag (ISSUE TITLE NAMES A WORK LEVEL: #n) rather than fail the board; a unit's name, the board's own, takes no mark. */
+   verbatim (GUIDANCE.md §5; dashboards-skill/28) and marked data-issue-title: a sizing named in it is a defect in the issue, which the
+   checks flag rather than fail the board; a unit's name, the board's own, takes no mark. */
 const pair=(n,title,repo,q)=>{ const b=boardOf(n,repo), t=codeOnly(title), m=q?` data-issue-title="${esc(n)}"`:""; return `${ext(ghUrl(n,repo),ilabel(n,repo))} ${b?`<a href="${esc(b)}" title="#${esc(n)}: its issue board"${m}>${t}</a>`:m?`<span${m}>${t}</span>`:t}`; };
 const ghlink=(n,repo)=>boardOf(n,repo)?`<a class="gh" href="${esc(ghUrl(n,repo))}" target="_blank" rel="noopener" title="#${esc(n)} on GitHub" aria-label="#${esc(n)} on GitHub">GitHub ↗</a>`:"";
 const clink=sha=>ext(`${REPO}/commit/${sha}`,`<code>${esc(sha)}</code>`);
@@ -1453,6 +1453,8 @@ const isNext=r=>!!NEXT_ROW&&r===NEXT_ROW;
    stops once the unit has landed; the trail keeps every branch's history. */
 let ownStep="", PLAN_LANDED=false, SHOW_BRANCH=false;
 const TAG_NEXT=`<span class="tag-next">UP NEXT</span>`;
+/* The blocked-by mark is a Pill (nomenclature/boards.md, Pill: the blocked Pill), as ui.md defines one: a state word with its glyph, in a
+   status colour, the waiting colour. The template draws it from unit.blockedBy and the landed units alone, so no enrichment writes it. */
 const BLOCKED={g:"⊘",label:"blocked",cls:"warning"};
 const blockedPill=r=>{ const o=openBlockers(r); return o.length?pill(BLOCKED,` by ${o.map(bref).join(", ")}`,"blocked"):""; };
 const nextTags=r=>isNext(r)?`${TAG_NEXT} ${blockedPill(r)}`:"";
@@ -2019,7 +2021,7 @@ function renderHeader(){
   $("#h1").innerHTML=`<a class="ghn" href="${esc(ghUrl(PLAN.issue))}" target="_blank" rel="noopener" title="#${esc(PLAN.issue)} on GitHub">#${esc(PLAN.issue)}</a> · ${codeOnly(PLAN.title||"")}`;
   $("#function").innerHTML=rich(PLAN.function);
   /* the intro's issue line: the issue's title on GitHub, and nothing else (the title's #n is the link) */
-  /* the issue's title on GitHub, quoted verbatim and marked (dashboards-skill/28): a work level in it is the issue's defect, flagged */
+  /* the issue's title on GitHub, quoted verbatim and marked (dashboards-skill/28): a sizing named in it is the issue's defect, flagged */
   $("#issueline").innerHTML=PLAN.issueTitle?`<span data-issue-title="${esc(PLAN.issue)}">${rich(PLAN.issueTitle)}</span>`:"";
   const b=PLAN.baseline||{}, a=PLAN.asBuilt;
   const statusText={planned:"planned · nothing built",building:"building",built:"built",abandoned:"abandoned"}[PLAN.status]||PLAN.status;
@@ -2626,17 +2628,17 @@ function renderBuilt(){
 }
 
 /* ---------- Tests (plan/RULES.md §2, "The Tests tab") ----------
-   plan.json "tests": {base, updated, added[], amended[], relevant[], other: {byModule: {<module>: {<level>: n | {classes, tests}}}}}, each
+   plan.json "tests": {base, updated, added[], amended[], relevant[], other: {byModule: {<module>: {<set>: n | {classes, tests}}}}}, each
    class {class, module, testLevel, path, tests, rows[], stage, result: {state, passed, failed, skipped, pass, at}}. Added and Amended come
    from the branch's diff against its base and grow with each implementation stage; Relevant is what the review's test check ran on the change
-   beyond them, arriving with each qa pass, as the results do; Other counts every other test class per module and test level, never run
+   beyond them, arriving with each qa pass, as the results do; Other counts every other test class per module and test set, never run
    for this change. A tracking board records none of its own: it sums its units' (unit.tests, which embed.js mirrors from each unit's
-   board), each unit a click away. Each class is grouped and coloured by its test level (the hierarchy's L1 gating to L5 UAT, a neutral
-   ramp: GUIDANCE.md §1), with its test count, its latest result and the board rows it verifies. lib.js TEST_LEVELS, testLevelOf() and
+   board), each unit a click away. Each class is grouped and coloured by its test set (gating to uat, in the sets' order, a neutral
+   ramp: GUIDANCE.md §1; the stored testLevel holds each by its old number, and the board shows its name, never the number), with its test count, its latest result and the board rows it verifies. lib.js TEST_LEVELS, testLevelOf() and
    mergeTests() are the same rules for the scripts. */
 const TEST_SUBS=[{k:"added",label:"Added"},{k:"amended",label:"Amended"},{k:"relevant",label:"Relevant"},{k:"other",label:"Other"}];
 const TLV_ORDER=["1","2","3","4a","4b","4c","5","none"];
-const TLV={"1":"L1 gating","2":"L2 component","3":"L3 integration","4a":"L4a deterministic","4b":"L4b end-to-end","4c":"L4c non-functional","5":"L5 UAT","none":"no test level"};
+const TLV={"1":"gating","2":"component","3":"integration","4a":"deterministic","4b":"e2e","4c":"nonfunctional","5":"uat","none":"no test set"};
 const TLV_SEG={gating:"1",component:"2",integration:"3",deterministic:"4a",e2e:"4b",nonfunctional:"4c",uat:"5"};
 const tlOf=e=>{ const v=e&&e.testLevel!=null?String(e.testLevel):""; if(TLV[v]&&v!=="none") return v; const m=/(?:^|[./\\])testing[./\\](gating|component|integration|deterministic|e2e|nonfunctional|uat)(?:[./\\]|$)/.exec(String((e&&(e.path||e.class))||"")); return m?TLV_SEG[m[1]]:"none"; };
 const TRES={passed:{g:"✓",label:"passed",cls:"good"},failed:{g:"✕",label:"failed",cls:"critical"},skipped:{g:"↷",label:"skipped",cls:"neutral"},"not-run":{g:"…",label:"not run yet",cls:"neutral",dash:true},untouched:{g:"⊘",label:"not run: untouched by this change",cls:"neutral"}};
@@ -2685,7 +2687,7 @@ function otherTable(T,used){ const m=otherOf(T); if(!m) return ""; const mods=Ob
 const TEST_EMPTY={added:"No test class added on the branch yet: Added grows with each implementation stage, from the branch's diff against its base.",
   amended:"No existing test class changed on the branch yet: Amended grows with each implementation stage, from the same diff.",
   relevant:`Nothing recorded yet: Relevant arrives with each ${REVIEW}, the tests it ran beyond Added and Amended.`,
-  other:`Not counted yet: every other test, per module and test level, is counted with the ${REVIEW}.`};
+  other:`Not counted yet: every other test, per module and test set, is counted with the ${REVIEW}.`};
 function renderTests(){
   const T=testsOf();
   $("#tests-lede").textContent=TRACKING?"Every unit's tests, summed; a unit's title opens its own board's Tests tab.":"Click a class for its detail and the board rows it verifies.";
@@ -2924,7 +2926,7 @@ function renderChain(){
 /* ---------- Source ---------- */
 const DATA_ONLY=["level","proposedLevel"];
 function renderSource(){
-  /* a work level an older landed board still holds (level, unit.level, proposedLevel) is never shown (GUIDANCE.md §4; plan/scripts/levels.js) */
+  /* the sizing an older landed board still holds (level, unit.level, proposedLevel) is never shown (GUIDANCE.md §4; plan/scripts/levels.js) */
   const j=esc(JSON.stringify(PLAN,(k,v)=>DATA_ONLY.includes(k)?undefined:v,2));
   $("#source-view").innerHTML=j.replace(/^(\s*)(&quot;[^&]*?&quot;)(:)/gm,'$1<span class="k">$2</span>$3').replace(/(:\s)(&quot;.*&quot;)(,?)$/gm,'$1<span class="s">$2</span>$3');
   $("#source-key").innerHTML=`<span><b style="color:var(--link)">"key"</b> a field</span><span><b>"text"</b> a value</span><span>this copy is replaced on every <code>embed.js</code> run</span>`;
@@ -2995,7 +2997,7 @@ derive();
 /* ---------- Tabs and deep links ---------- */
 if(!TRACKING){ const t=$("#t-landing-order"), p=$("#p-landing-order"); if(t) t.remove(); if(p) p.remove(); }
 const tabs=[...document.querySelectorAll(".tab")];
-const DEFAULT_INSPECT={design:"<p>Click a cell for its detail: the gap's evidence, an option's reasons, the verdict's steps, tests and risks, or the as-built changes with their reasons. Each cell links the Markdown section that holds the rest.</p>",decisions:"<p>Click a row for the option's full reasons and the options it was weighed against.</p>",built:"<p>Click a card for the row's files, commits, verification and every change from the verdict. Each impact change opens the Impact card it changed.</p>",impact:"<p>Click a card for its detail: the party affected or the surface that moves, its system, its tier, and the Markdown section that holds the rest.</p>",tests:"<p>Click a class for its detail: its path, its module and test level, its test count, its latest result and the board rows it verifies.</p>","landing-order":"<p>Click a unit for its as-built state, its issue and its board or folder, and its run in full.</p>",source:"<p>The committed <code>plan.json</code>. Edit the file, then run <code>plan/scripts/embed.js</code> on the folder.</p>"};
+const DEFAULT_INSPECT={design:"<p>Click a cell for its detail: the gap's evidence, an option's reasons, the verdict's steps, tests and risks, or the as-built changes with their reasons. Each cell links the Markdown section that holds the rest.</p>",decisions:"<p>Click a row for the option's full reasons and the options it was weighed against.</p>",built:"<p>Click a card for the row's files, commits, verification and every change from the verdict. Each impact change opens the Impact card it changed.</p>",impact:"<p>Click a card for its detail: the party affected or the surface that moves, its system, its tier, and the Markdown section that holds the rest.</p>",tests:"<p>Click a class for its detail: its path, its module and test set, its test count, its latest result and the board rows it verifies.</p>","landing-order":"<p>Click a unit for its as-built state, its issue and its board or folder, and its run in full.</p>",source:"<p>The committed <code>plan.json</code>. Edit the file, then run <code>plan/scripts/embed.js</code> on the folder.</p>"};
 let CUR_TAB="";
 function show(id,keep){
   const name0=id.replace("t-",""); CUR_TAB=name0;

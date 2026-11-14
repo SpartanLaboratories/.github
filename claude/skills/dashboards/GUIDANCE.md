@@ -105,9 +105,9 @@ as a Chip on the As built Tab and on the repository work board, never on the Con
 dashed, partly reconciled yellow, as built green, each with its glyph and word (`plan/RULES.md` §2,
 Consequences).
 
-**Test levels: a neutral ramp.** On an issue board's Tests Tab (`plan/RULES.md` §2) a test class is coloured by its test level, the
-five-level testing hierarchy's L1 gating to L5 UAT, as a ramp of neutrals from the faintest (L1) to the full ink (L5), in either theme, each with its level label:
-the levels are an order, not systems or outcomes, so they take neither a system slot nor a status colour, and the class's latest result
+**Test sets: a neutral ramp.** On an issue board's Tests Tab (`plan/RULES.md` §2) a test class is coloured by its test set, the
+named test sets gating to uat in their order, as a ramp of neutrals from the faintest (gating) to the full ink (uat), in either theme, each
+with its set's name, never a number: the sets are an order, not systems or outcomes, so they take neither a system slot nor a status colour, and the class's latest result
 keeps the status scale (passed green, failed red, each with its glyph and word).
 
 **Dependencies: a DualStatePill, the status scale and a neutral ramp** (admin-team/dashboards-skill/30; the build state redefined by dashboards-skill/35). A
@@ -186,7 +186,7 @@ the in-progress mark of a connector):
 - **Up next** — the next unit of a tracking issue (`wip.next`), named but not started, carries a
   **still outer Ring**, an accent outline outside its edge, plus a static **UP NEXT**
   Tag. It never animates and never reads as building or active; a blocker that has not landed
-  adds a yellow "blocked by #n" Tag (a unit not filed yet as an issue named "unit k · its slug", plain
+  adds a yellow "blocked by #n" Pill, the blocked Pill (a unit not filed yet as an issue named "unit k · its slug", plain
   text, until it is filed: `plan/RULES.md` §3, `unit.blockedBy`).
 
 Two more marks belong to the work in progress on an issue board, and to nothing else
@@ -256,7 +256,7 @@ nothing to segment and carries none, and so do the system boards' hand-written T
 types, threads, tests), not states, so there is nothing a Bar would divide.
 
 **Sections.** The Guarantees and the Context are Panels too: each carries a Legend under its guarantee Cards or its Cards, generated from what
-they draw (the system swatches, a planned Row dashed, a gap, the test-level Bars' one neutral series, the Badges and their meaning, a
+they draw (the system swatches, a planned Row dashed, a gap, the test-set Bars' one neutral series, the Badges and their meaning, a
 tracking issue's chain StepBar's states, a board's unit states), and none where they draw no encoding.
 
 **Ledes.** The Legend says what the encodings mean, so a Tab's lede does not: it is at most one
@@ -301,27 +301,32 @@ documented" is correct; a plausible guess is not. A system board shows the code 
 columns are written once and never rewritten to match what happened; the fourth records every
 difference.
 
-**No work levels.** The rule covers only the **work levels** of the `/resolve-issue` pipeline (level 1
-to 4, the `level: N` label), and nothing else. A dashboard never shows an issue's work level: no "level 3", "L3",
-"level: 2", "a level-3 change" or "escalated to level 4", in a Chip, a Badge, a column, a chain
-node, a Legend, a lede or any text the presenter writes. Say what the work is instead: one
-system, a bug fix, docs only, a tracking issue. The work levels stay in force everywhere else.
-No open work board holds a level (`check.js` fails `WORK LEVEL ON THE BOARD`) and state boards hold none; a closed work board keeps
-any it holds (`~/.claude/agents/presenter.md`, "Closed work boards"), and no board renders them, the Source Tab included (`plan/scripts/levels.js`). A pipeline fact that names one ("inside level 3",
-"a level-3 re-pass", "Label level: 3") is reworded before it is written — the scope phrase becomes the unit's or the issue's scope, the
-level is elided before its noun, the label dropped — and left out only where a work level would remain (`system/scripts/levelrefs.js`
-`scrubLevels()`, which `apply-event.js` and `apply-state.js` run); a quotation (a plan excerpt) elides it with "…" instead, as a quote
-is never reworded. An unnumbered mention is a work level too: "Recorded level confirmed", "the proposed level", "the level
-re-check", "the issue's level" read "Recorded sizing confirmed" and the like (dashboards-skill/33); a test level's, a log level's and a
-C4 level's words are not touched. **A bare "Ln"** (admin-team/dashboards-skill/35): beside a test word ("L2 test", "tests (L3)", "regression
-test (L2)") it is a test level written short, never a work level, and the fast path writes it as its named test level ("L2 component test",
-"tests (L3 integration)"; L4 has no single name and stands as written; `levelrefs.js` `nameTestLevels()`), and `check.js` warns on one a
-board still carries (`BARE TEST LEVEL`); anywhere else a bare "Ln" is a work level, elided by the rewording, and the fast path warns
-(`LEVEL ELIDED`, its summary's `warnings`) so the elision is visible.
+**No grades.** The rule covers only the **grades** of the `/resolve-issue` pipeline (grade 1 to 4, the size of an issue's work:
+[`nomenclature/vocabulary.md`](../../nomenclature/vocabulary.md), "grade"), in every form, and nothing else. A dashboard never shows an
+issue's grade: no "grade 3", "a grade-3 change", "graded" or "re-graded", in a Chip, a Badge, a column, a chain node, a Legend, a lede
+or any text the presenter writes; until the rule rework's L12 the grade's old name, the work level ("level 3", "L3", "level: 2", "a
+level-3 change", "escalated to level 4"), is kept off the boards alike. Say what the work is instead: one system, a bug fix, docs
+only, a tracking issue. The grades stay in force everywhere else.
+No open work board holds a grade (`check.js` fails `GRADE ON THE BOARD`: the field `level`, its old key, or `grade`) and state boards
+hold none; a closed work board keeps any it holds (`~/.claude/agents/presenter.md`, "Closed work boards"), and no board renders them,
+the Source Tab included (`plan/scripts/levels.js`). A pipeline fact that names one ("inside grade 3", "a grade-3 re-pass", "Label
+grade: 3", and in the old words "inside level 3") is reworded before it is written — the scope phrase becomes the unit's or the
+issue's scope, the grade is elided before its noun, the label dropped — and left out only where a grade would remain
+(`system/scripts/levelrefs.js` `scrubLevels()`, which `apply-event.js` and `apply-state.js` run); a quotation (a plan excerpt) elides
+it with "…" instead, as a quote is never reworded. An unnumbered mention is one too: "the recorded grade", "graded", and in the old
+words "Recorded level confirmed", "the proposed level", "the level re-check", "the issue's level" read "the recorded sizing", "sized",
+"Recorded sizing confirmed" and the like (dashboards-skill/33); a log level's, a C4 level's and a documentation level's words are not
+touched, nor the old test levels a landed document keeps. **A test set is called by its name, never by a number**
+([`nomenclature/vocabulary.md`](../../nomenclature/vocabulary.md), "set"; admin-team/dashboards-skill/35): a set written by its old
+number ("L2 test", "tests (L3)", "regression test (L2)", "L2 component test", "L4a deterministic") is never a work level, and the
+fast path writes it by its set's name ("component test", "tests (integration)", "deterministic"; "L4", the three project-wide sets
+together, "project-wide"; `levelrefs.js` `nameTestLevels()`), and `check.js` warns on one a board still carries (`TEST SET BY
+NUMBER`); anywhere else a bare "Ln" is a work level, elided by the rewording, and the fast path warns (`GRADE ELIDED`, its summary's
+`warnings`) so the elision is visible.
 
 **No internal names** (dashboards-skill/33). Nothing a board shows or its data carries — its text, its Labels, its data blocks, its
-comments, the fixed text of its template — names the pipeline's agents, sessions or roles, refers to the approval flow or states a work
-level (above), as [`nomenclature/internal-names.md`](../../nomenclature/internal-names.md) lists them with what is fine. Say what
+comments, the fixed text of its template — names the pipeline's agents, sessions or roles, refers to the approval flow or states a
+grade (above), as [`nomenclature/internal-names.md`](../../nomenclature/internal-names.md) lists them with what is fine. Say what
 happened instead: "accepted", "a plan re-pass", "the fixes", "the land is accepted and being merged". Fine on a board as well are the
 steps' own names (research, architecture, plan) and a halt's "waiting on you". Every name the list bars counts as a whole word wherever
 it stands, in backticks too, whatever the words around it ("the dispatcher and the executor" as much as "the executor commits"); a longer
@@ -380,21 +385,21 @@ issue's title, quoted verbatim, code and the data's keys and ids (the `qa-pass` 
 
 **An issue's title is quoted verbatim** (admin-team/dashboards-skill/28). Wherever a board shows an issue's title — an issue board's issue
 line, a roadmap item, a follow-up, a work-board Row, group, roadmap item or unscheduled issue, a state board's Context and its "last amended
-by" note — it is the issue's own, never reworded and never elided; on the org work board a private repository's name in it is elided (`plan/RULES.md` §10). Work levels are internal to the pipeline and never part of an issue, so
-a title that names one is a **defect in the issue**, not in the board: `plan/scripts/check.js` (on `plan.json` and `board.json`) and
+by" note — it is the issue's own, never reworded and never elided; on the org work board a private repository's name in it is elided (`plan/RULES.md` §10). Grades are internal to the pipeline and never part of an issue, so
+a title that names one, or its old name, a work level, is a **defect in the issue**, not in the board: `plan/scripts/check.js` (on `plan.json` and `board.json`) and
 `system/scripts/check-board.js` (a state board's Context titles and `lastAmended.title`, and in its browser pass every title the board marks
-`data-issue-title`) flag it, `ISSUE TITLE NAMES A WORK LEVEL: #n`, as a warning and never fail the board for it, and `apply-event.js` and
+`data-issue-title`) flag it, `ISSUE TITLE NAMES A GRADE: #n` (until the rule rework's L12 the older `ISSUE TITLE NAMES A WORK LEVEL: #n`
+is read beside it), as a warning and never fail the board for it, and `apply-event.js` and
 `apply-state.js` name it in their summary's `issue defects`; the admin team brings it to the user to retitle on GitHub. The rule above
-holds for everything else on the board, the quoted titles' text aside (`levelrefs.js` `issueTitleRefs()`, `titleSkip()`). The test
-levels of the five-level testing hierarchy and the C4 model's levels are not work levels: the rule
-does not touch them, and they keep their level labels — "L1 gating", "L2 component", "L4a
-deterministic", "L5 UAT", "Level 2 — component", "Level 1 · System Context". `plan/scripts/check.js`
-fails a board whose text names a work level, and the browser pass, on a board that gets one (a
-divergence, §8), fails a board that shows one (`system/scripts/levelrefs.js` holds the forms; it
-matches work-level forms only, never a test level's or a C4 level's label, and never "Level 3"
-alone). On a board that gets no browser pass, `check.js`'s scan of the data holds an issue board
-and the repository work board; a work level in a state board's text is found by the admin team's
-scan of the commit that carries it, which blocks that commit.
+holds for everything else on the board, the quoted titles' text aside (`levelrefs.js` `issueTitleRefs()`, `titleSkip()`). The C4
+model's levels and the documentation levels are no grade: the rule does not touch them ("Level 1 · System Context", "level-1
+KDoc"), nor the old test levels a landed document keeps and a board quotes ("Level 2 — component", "L1 gating"), which the fast
+path writes by their set's name wherever it writes a fact (above). `plan/scripts/check.js` fails a board whose text names a grade or
+its old name, and the browser pass, on a board that gets one (a divergence, §8), fails a board that shows one (`GRADE REFERENCE`;
+`system/scripts/levelrefs.js` holds the forms; it matches the grade's and the old work-level forms only, never an old test level's,
+a documentation level's or a C4 level's label, and never "Level 3" alone). On a board that gets no browser pass, `check.js`'s scan of
+the data holds an issue board and the repository work board; a grade in a state board's text is found by the admin team's scan of
+the commit that carries it, which blocks that commit.
 
 ## 5. Context, roadmap, work
 
@@ -411,7 +416,7 @@ title opens the issue's own board, or stays plain text while it has none. An iss
 presenter's, is not a quotation. A tracking board's
 unit Row is the example: `1. #61 Shared build logic`, where `#61` opens issue 61 on GitHub and
 "Shared build logic" opens its board. Where **only one link fits** — a bare `#n` in text, a
-chain node, a "blocked by #n" Tag, a deferred Badge, the "part of #n" Chip — the `#n` opens the
+chain node, a "blocked by #n" Pill, a deferred Badge, the "part of #n" Chip — the `#n` opens the
 issue's board when one exists and the GitHub issue while none does. A small "GitHub ↗" link
 sits beside such a lone `#n` only where the board offers no other way to reach the issue, on an issue board (a system board has none, §7). A link
 never points at a file that is not there (`plan/RULES.md` §1).
@@ -534,7 +539,7 @@ gets a browser pass before landing only when it diverges from its template:
 
 | The board | Checked |
 |---|---|
-| any board | its data and its rules (`check.js`), the embedded copy matching its data file (on an issue board and the repository work board, its live sidecar too), no dead `href="#"`, no external resource, no work level in its text (§4: its data, and its rendered text on a browser pass), no system colour in a status spectrum (§1); a warning, never a failure, on an internal name left in its data, its comments or its text (§4, `INTERNAL NAME`) and on an element name the glossary does not hold (§12, "The names, checked": `TERM BANNED WORD`, `TERM UNKNOWN NAME`, `TERM CLASS`) |
+| any board | its data and its rules (`check.js`), the embedded copy matching its data file (on an issue board and the repository work board, its live sidecar too), no dead `href="#"`, no external resource, no grade in its text (§4: its data, and its rendered text on a browser pass), no system colour in a status spectrum (§1); a warning, never a failure, on an internal name left in its data, its comments or its text (§4, `INTERNAL NAME`) and on an element name the glossary does not hold (§12, "The names, checked": `TERM BANNED WORD`, `TERM UNKNOWN NAME`, `TERM CLASS`) |
 | a board that is a verified template plus its data: an issue board, the repository work board or the org work board, or a system, supersystem or repository state board whose CSS, Tabs and script — before `MODEL` (less its board-filled lines, such as `REPO` and `SRC`) and after it — are the verified template's | nothing more: no browser pass |
 | a board that diverges — declared, undeclared, made from an older template — or whose template changed since it was verified | the full pass: light, dark, 520 px, a 390 px frame, a 1920 x 1080 desktop |
 
@@ -550,7 +555,7 @@ tablist's keys, the state block, the as-is header, the Legends of Guarantees and
 the Markdown copies, the progress notes, every progress note drawn, whatever its name, a tracking board's steps, the KPI Bars, the neutral bug Badge, the chain, core subsystems, the Tiles'
 Legends inside each Tile, no "board" Tag, the title's `#n`, "since" said once by the step Panel, the larger charging Arrow, the landing
 step, the Tests Tab, the Timeline Tile's Legend of step visits and its kinds of work, approximate bounds, the Timeline Tab and its Tracers, the landing's
-steps, the Design Tab, a sub-issue's roadmap naming its parent, a reference's section number before its excerpt, no work level in the board's data, the
+steps, the Design Tab, a sub-issue's roadmap naming its parent, a reference's section number before its excerpt, no grade in the board's data, the
 Document step, the dependency's build state from its code (dropped included), the issue tree (each repository's issues nested by the real sub-issue chain, every level with children collapsible, on the repository work board and the org work board; `plan/RULES.md` §5), the Consequences Tab, the build outputs' live copies, a fix's "fix
 to #n", the structure map's recorded height, a
 issue board's finished steps clickable, each unit Row's label carrying its own FullPulse while it is filed, the Timeline Tile's figure the sum of
@@ -564,7 +569,7 @@ re-rendered (§11), so its newer features are reported, not failed. `verify/veri
 the splice (§11). On the data-only path (`apply-state.js`) the misses are notes and `enrich: yes`, never a refused stamp.
 The org work board is a kind of its own (`org-work-board`, `plan/RULES.md` §10), held to the features `features.js` names for it: of those above, the
 theme Switch, drawn as a Switch, and its script before the first paint, the dark palette, the 1500 px layout, one-line ledes, reduced motion, a tabindex on
-every role=button, the tablist's keys, the Legend of Context, the CodeLabel, the classes that carry their element's type and no work level in its data; and its own,
+every role=button, the tablist's keys, the Legend of Context, the CodeLabel, the classes that carry their element's type and no grade in its data; and its own,
 a repository Panel per repository with its Legend and an organization Panel per sub-organization, its links by where it is opened, and its live view following
 the sibling checkouts.
 
@@ -600,7 +605,7 @@ other:
 
 | Board | Brought onto the current template |
 |---|---|
-| system, supersystem and repository state boards; the committed repository work board | at the **Document step's state-boards task**, on the issue's branch before its land, where each landing does it (`system/scripts/splice.js` for a state board: the template's CSS, script before MODEL and renderer carried onto the board, three ways for a declared divergence; `board.js --refresh-template` for the repository work board); before admin-team/dashboards-skill/35, at the pre-merge refresh inside the land. The committed repository work board also at a run's **`sized`** (or a level-1 run's `seed`) that seeds the previous landing's state, in that run's tree (`board.js --refresh-template`; `plan/RULES.md` §4, "Seeding at sized"). A run's branch may also take the re-render mid-run, ahead of the Document step |
+| system, supersystem and repository state boards; the committed repository work board | at the **Document step's state-boards task**, on the issue's branch before its land, where each landing does it (`system/scripts/splice.js` for a state board: the template's CSS, script before MODEL and renderer carried onto the board, three ways for a declared divergence; `board.js --refresh-template` for the repository work board); before admin-team/dashboards-skill/35, at the pre-merge refresh inside the land. The committed repository work board also at a run's **`sized`** (or a grade-1 run's `seed`) that seeds the previous landing's state, in that run's tree (`board.js --refresh-template`; `plan/RULES.md` §4, "Seeding at sized"). A run's branch may also take the re-render mid-run, ahead of the Document step |
 | the live repository work board | at **every event** (`board.js --live --refresh-template`: it is the template plus its data, never committed) |
 | the org work board | at **every landing in a repository on the board**, when it is regenerated and committed (`plan/RULES.md` §10) |
 | an issue's board that is in flight, and its tracking board | at **its own events** (`apply-event.js` re-renders a board that is not the verified template plus its data) |
@@ -618,7 +623,7 @@ never the accent (§1).
   tracking boards (one Tile, one rule: `lib.js` `timelineTotal()`, the template's `timelineTotal()`). Not to the repository work board, which has no
   Timeline Tile (one Row per run), nor to system, supersystem and repository state boards, whose Tiles are hand-written counted facts and show no
   run's phases.
-- **An issue's title is quoted verbatim; one that names a work level is flagged as the issue's defect** (§4): applied to every type — plan
+- **An issue's title is quoted verbatim; one that names a grade is flagged as the issue's defect** (§4): applied to every type — plan
   and tracking boards (the issue line, the roadmap, the follow-ups), the repository work board (its Rows, groups, roadmap and unscheduled issues), and
   system, supersystem and repository state boards (the Context's titles and the "last amended by" note), each title marked `data-issue-title`.
 - **A board at research with no Rows is a defect** (`NO ROWS AT RESEARCH`, `plan/RULES.md` §3, §8; a warning while its foundation's Gap is being written): applied to issue boards and sub-issues'
@@ -725,7 +730,7 @@ reached its landing before the change):
    **seeded at the next run's `sized`**: a run sized in a worktree branched after the landing starts those boards from the main checkout's
    view copies (`apply-event.js`, `plan/RULES.md` §4, "Seeding at sized"), so its branch carries the landed state in its document-landing commit.
    A merge that marks an issue landed on its own board does so for its parent too: both are seeded together. There is never a follow-up
-   docs pull request. A level-1 run, which has no board and sends no `sized`, carries the same landed state through the team-raised `seed` at its
+   docs pull request. A grade-1 run, which has no board and sends no `sized`, carries the same landed state through the team-raised `seed` at its
    `state-boards` request (the seeding alone, its unit marked `complete` on its tracking board where it is one; `plan/RULES.md` §4, "Seeding at sized"); after its merge the
    post-merge refresh marks that unit landed on its tracking board's view copy through the team-raised `unit-landed` (`plan/RULES.md` §4, "The live view of a landing"),
    and at a tracking issue's last unit the tracking board lands with it once its impact is reconciled (`plan/RULES.md` §3).
@@ -748,7 +753,7 @@ refresh on its branch: the committed repository work board, and the repository s
   at most one current. Not to the repository work board or the state boards: no step Panel.
 - **Open points: a build output linked live, none committed open** (`plan/RULES.md` §3, `wip.open`): issue and tracking boards (a unit's
   mirror carries its points). The repository work board shows no open point; the state boards no run.
-- **A bare "Ln"** (§4): every type, as the work-level rule is (the fast path's facts on issue and tracking boards; the checks on every board).
+- **A test set by its name, never a number; a bare "Ln"** (§4): every type, as the grade rule is (the fast path's facts on issue and tracking boards; the checks on every board; the Tests Tab's and the state boards' Test sets Card's labels).
 - **Consequences** (§1; `plan/RULES.md` §2): the issue and tracking boards' Tab and the documents they read; the repository work board's
   reconciliation Chip keeps its words (it names the impact, the data the Tab draws). Not to the state boards: no such Tab.
 - **A fix to an earlier plan's work** (`plan/RULES.md` §1): issue boards ("fix to #n") and the repository work board (its Row's "fix to #n");
@@ -757,9 +762,9 @@ refresh on its branch: the committed repository work board, and the repository s
 - **The Document step** (`plan/RULES.md` §3, §4): issue boards and tracking boards (whose plan's land takes it before its landing); the
   repository work board shows it as a run's step and counts it active. Not to the state boards: no run steps.
 - **State boards built in the Document step; seeding at sized**: the state boards and the committed repository work board are written in the
-  Document step; the issue and tracking boards' landed state is seeded at the next run's sized (or a level-1 run's seed).
+  Document step; the issue and tracking boards' landed state is seeded at the next run's sized (or a grade-1 run's seed).
 - **The test report's neutral path** (`build/reports/tests/index.html`): issue boards (a qa pass's test report, plain text, linked to its copy
-  in the live view) and the state boards' Test levels guarantee Card (plain text: a build output, never committed, and a state board has no
+  in the live view) and the state boards' Test sets guarantee Card (plain text: a build output, never committed, and a state board has no
   live view). Not to the repository work board: it shows no qa report.
 - **The structure map's height recorded** (`system/RULES.md` §2): system boards only, the type with a hand-placed structure map.
 - **The Systems Tab by visibility; archived** (§1, "Visibility", "Archived"; `system/RULES.md` §3, §7): the repository and supersystem

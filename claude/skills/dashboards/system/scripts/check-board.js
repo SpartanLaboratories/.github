@@ -10,7 +10,7 @@
 // dashboards-skill/41, or .c4-legend on the C4 tab, .c4key before it), the
 // Context Panel is headed exactly "Context", the footer is "Corresponds to <source>." and its authority sentence (GUIDANCE.md
 // §3), no link is a dead href="#", the board has no horizontal scroll at the width
-// checked, no work level is shown (levelrefs.js: "level 3", "L3", "level: 2" and the like, in any
+// checked, no grade is shown (levelrefs.js: "grade 3", "graded" and, until the rule rework's L12, "level 3", "L3", "level: 2" and the like, in any
 // tab's text or the board's), no system colour falls in a status spectrum (palette.js: the --sys-N slots and a system board's
 // --server / --client / --wire, read from the board's CSS and, in the browser, as the theme of the pass computes them), and no
 // error fired. Then, by kind: a system board has a visible Guarantees Panel
@@ -98,7 +98,7 @@ if (args.includes("--auto")) {
   modes.forEach(m => {
     const r = cp.spawnSync(process.execPath, [__filename, page, ...rest, ...m], { encoding: "utf8" });
     const lines = (r.stdout || "").trim().split(/\r?\n/), label = m.join(" ") || "light";
-    const bad = lines.filter(l => !/^CHECK note:/.test(l) && !(r.status === 0 && /FEATURE MISSING/.test(l))).filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM|GIT-IGNORED|DEAD BOARD LINK|DEAD LINK|BOARDS UNREADABLE|STATE |EMBED DIFFERS|PART UNKNOWN|FEATURE MISSING|STATUS DISAGREES WITH CODE|STRUCTURE CANVAS|REGISTRY INVALID|FAIL/.test(l));
+    const bad = lines.filter(l => !/^CHECK note:/.test(l) && !(r.status === 0 && /FEATURE MISSING/.test(l))).filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|GRADE REFERENCE|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM|GIT-IGNORED|DEAD BOARD LINK|DEAD LINK|BOARDS UNREADABLE|STATE |EMBED DIFFERS|PART UNKNOWN|FEATURE MISSING|STATUS DISAGREES WITH CODE|STRUCTURE CANVAS|REGISTRY INVALID|FAIL/.test(l));
     console.log(`CHECK pass ${label}: ${r.status === 0 ? "PASS" : "FAIL"} · ${(lines.find(l => l.startsWith("screenshot:")) || "").replace("screenshot: ", "")}`);
     bad.forEach(l => console.log("  " + l));
     if (r.status !== 0) failed++;
@@ -124,7 +124,7 @@ const browsers = [
 ];
 const { LEVEL_PATTERNS, quotedTitles } = require("./levelrefs.js");
 /* the issue titles the board's data quotes (dashboards-skill/28): a Source view prints them JSON-quoted, and the browser pass leaves them out
-   of its work-level scan there, as it leaves out the titles the board marks data-issue-title */
+   of its grade scan there, as it leaves out the titles the board marks data-issue-title */
 const QUOTED = (() => { const L = require("./statelib.js"), all = []; ["plan", "board", "state"].forEach(id => { const t = L.blockText(src, id); if (t == null) return; try { all.push(...quotedTitles(JSON.parse(t))); } catch (e) { /* the data checks report it */ } });
   return [...new Set(all)].filter(t => t).map(t => JSON.stringify(t)); })();
 const browser = process.env.CHROME && fs.existsSync(process.env.CHROME) ? process.env.CHROME : browsers.find(b => fs.existsSync(b));
@@ -140,12 +140,12 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   console.log("CHECK kind: "+kind);
   const shown=e=>!!e&&e.offsetParent!==null;
   const tabs=[...document.querySelectorAll('[role="tab"]')]; console.log("CHECK tabs: "+tabs.length);
-  /* work levels are never shown (levelrefs.js): the text of every tab, then of the whole board, is scanned */
+  /* grades are never shown, nor their old name, a work level (levelrefs.js): the text of every tab, then of the whole board, is scanned */
   const LV=${JSON.stringify(LEVEL_PATTERNS)}.map(([s,f])=>new RegExp(s,f+"g")), lvHits=new Set();
   const lvScan=(txt,where)=>LV.forEach(re=>{ re.lastIndex=0; let m; while((m=re.exec(txt||""))) lvHits.add(where+": “"+m[0]+"”"); });
   /* An issue's title is quoted verbatim and marked data-issue-title (GUIDANCE.md §5; dashboards-skill/28): its text is left out of the
-     scan above (textOf() reads a part's rendered text with the titles hidden), and a work level in it is a defect in the issue, flagged
-     by number, ISSUE TITLE NAMES A WORK LEVEL: #n, never a failure of the board (the title's own words are not printed: they are the issue's) */
+     scan above (textOf() reads a part's rendered text with the titles hidden), and a grade in it is a defect in the issue, flagged
+     by number, ISSUE TITLE NAMES A GRADE: #n, never a failure of the board (the title's own words are not printed: they are the issue's) */
   const hideT=document.createElement("style"); hideT.textContent="[data-issue-title]{display:none!important}"; document.head.appendChild(hideT); hideT.disabled=true;
   const QT=${JSON.stringify(QUOTED).replace(/</g, "\\u003c")};
   const textOf=el=>{ if(!el) return ""; hideT.disabled=false; let t=el.innerText; hideT.disabled=true; QT.forEach(q=>{ t=t.split(q).join('""'); }); return t; };
@@ -225,8 +225,8 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   if(kind==="system"&&gu&&gu.querySelector("[data-sys],.planned,.gap,.bars,.badge")&&!shown(document.getElementById("guarantees-key"))) console.log("CHECK layout: FEATURE MISSING: the Guarantees' legend shown wherever its guarantee cards draw an encoding (template since dashboards-skill/26): no #guarantees-key is shown");
   const want=${JSON.stringify(tab)}; const t=want?document.getElementById(want):tabs[0]; if(t) t.click();
   lvScan(textOf(document.body),"page"); titleScan();
-  console.log("CHECK issue titles: "+tSeen.size+" quoted verbatim"+(tHits.size?" · "+[...tHits].map(n=>"ISSUE TITLE NAMES A WORK LEVEL: "+n).join(" · ")+": a defect in the issue, retitled on GitHub":", none names a work level"));
-  console.log("CHECK work levels: "+(lvHits.size?"LEVEL REFERENCE shown ("+[...lvHits].slice(0,6).join("; ")+"): a dashboard never shows a work level":"none shown"));
+  console.log("CHECK issue titles: "+tSeen.size+" quoted verbatim"+(tHits.size?" · "+[...tHits].map(n=>"ISSUE TITLE NAMES A GRADE: "+n).join(" · ")+": a defect in the issue, retitled on GitHub":", none names a grade"));
+  console.log("CHECK grades: "+(lvHits.size?"GRADE REFERENCE shown ("+[...lvHits].slice(0,6).join("; ")+"): a dashboard never shows a grade":"none shown"));
   const sw=document.documentElement.scrollWidth, cw=document.documentElement.clientWidth;
   console.log("CHECK width: "+cw+"px"+(sw>cw+1?" · HORIZONTAL SCROLL ("+sw+"px of content)":" · no horizontal scroll"));
   if(want){ const bar=document.querySelector('[role="tablist"]'); if(bar) window.scrollTo(0, bar.getBoundingClientRect().top+window.scrollY-8); }
@@ -377,8 +377,8 @@ function featureChecks() {
 }
 // The issue titles a board quotes (GUIDANCE.md §4, §5; levelrefs.js issueTitleRefs(); admin-team/dashboards-skill/28), read without a
 // browser: a state board's Context titles (written <a data-board="N">title</a>) and its state block's lastAmended.title, a board's data
-// block's title fields. A title is quoted verbatim; one that names a work level is a defect in the issue, flagged as a warning, ISSUE
-// TITLE NAMES A WORK LEVEL: #n, never a problem of the board: the admin team brings it to the user to retitle on GitHub.
+// block's title fields. A title is quoted verbatim; one that names a grade is a defect in the issue, flagged as a warning, ISSUE
+// TITLE NAMES A GRADE: #n, never a problem of the board: the admin team brings it to the user to retitle on GitHub.
 function titleChecks() {
   if (!src || /<meta name="dashboard" content="doc-copy">/.test(src)) return null;
   const { levelRefs, issueTitleRefs, titleDefect } = require("./levelrefs.js"), L = require("./statelib.js"), notes = [];
@@ -453,7 +453,7 @@ const r = cp.spawnSync(browser, ["--headless=new", "--disable-gpu", "--no-first-
 // Chrome prints console lines as `[...] "message", source: <url> (<line>)`; keep just the message.
 const lines = (r.stderr || "").split(/\r?\n/).filter(l => /CONSOLE|Uncaught/.test(l)).map(l => l.replace(/^.*CONSOLE[^"]*"/, "").replace(/", source:[\s\S]*$/, "").trim());
 const keptAsLanded = closedPlanBoard();
-const errors = lines.filter(l => !(keptAsLanded && /FEATURE MISSING/.test(l) && !/CHECK ERROR|Uncaught|threw/.test(l))).filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM|FEATURE MISSING/.test(l));
+const errors = lines.filter(l => !(keptAsLanded && /FEATURE MISSING/.test(l) && !/CHECK ERROR|Uncaught|threw/.test(l))).filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|GRADE REFERENCE|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM|FEATURE MISSING/.test(l));
 lines.forEach(l => console.log(l));
 paletteLines().forEach(l => { console.log(l); if (/PALETTE IN STATUS HUE|DASHED NOT PLANNED/.test(l)) errors.push(l); });
 if (regCheck) { if (regCheck.note) console.log("CHECK " + regCheck.note); regCheck.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); }

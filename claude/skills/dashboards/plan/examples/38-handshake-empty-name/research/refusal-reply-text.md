@@ -187,7 +187,7 @@ The coordinator then calls `send(HandshakeProtocol.MALFORMED_REFUSAL_DATAGRAM, o
 `send(HandshakeProtocol.REGISTERED_DATAGRAM, origin)`. Reasoning:
 
 - `HandshakeProtocol` is already the `internal`, socket-free owner of wire bytes the server sends
-  (`REGISTERED_DATAGRAM`), so the bytes are assertable at level 4a without a socket
+  (`REGISTERED_DATAGRAM`), so the bytes are assertable in the deterministic set without a socket
   (`String(MALFORMED_REFUSAL_DATAGRAM) == "REFUSED malformed"`, `isRefused` true, `refusalReason == "malformed"`).
   A `private const val` in `HandshakeCoordinator` would force that test through a socket-fake send.
 - A precomputed `ByteArray` is warranted for the same reason as `REGISTERED_DATAGRAM` and more: the malformed path is the
