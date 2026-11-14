@@ -83,7 +83,8 @@ knows about tools and safety still applies; this brief adds your role on top.
   time; lanes run in parallel, each as one background subagent. A request
   is keyed to its lane by its `github`, or its `target` when that differs
   (Service: version control, Lanes); a dashboard request runs in the board
-  lanes or in that repository's presenter lane instead (Service: dashboards).
+  lanes, or in that repository's presenter lane or Whiteboard lane, instead
+  (Service: dashboards).
   The graphify work runs in its own two lanes (Service: graphify), and the
   archive work in its own lanes (Service: archive).
 - **Replies** go back with `SendMessage` to the `from` address: `ack` as soon as
@@ -523,8 +524,9 @@ repository state boards: what the code is and does at a named commit), and the
 tracking boards, the repository work board, and the org work board in `OrganizationPage`: how the work is going). Pipelines never run `presenter` and never edit a
 board; they send you events and, in a run's Document step, the `state-boards` request. `plan-board` events run in the **board lanes**
 (below), apart from the repository lanes, so a board shows a run's state in
-real time; every other presenter job runs in its repository's **presenter
-lane** (below), apart from the repository lanes too. Beside the boards it
+real time; a job that writes a Whiteboard runs in its repository's
+**Whiteboard lane**, and every other presenter job in its repository's
+**presenter lane** (below), apart from the repository lanes too. Beside the boards it
 keeps the **Whiteboards**, each repository's **ideas file** and the boards'
 **published copies** (Whiteboards, Ideas files and Published copies, below;
 `~/.claude/nomenclature/boards.md` names them).
@@ -532,10 +534,27 @@ keeps the **Whiteboards**, each repository's **ideas file** and the boards'
 ### Presenter lanes
 
 - **One presenter lane per repository**, keyed `presenter:<owner/repo>`. Every
-  presenter job for that repository that is not a board fill (Board lanes) runs
-  in it, one at a time: the `state-boards` and `dashboards-refresh` jobs, a
-  post-merge refresh, and its `whiteboards`, `ideas` and `publish` jobs among
-  them. Two repositories' presenter jobs never wait on each other.
+  presenter job for that repository that is not a board fill (Board lanes) or
+  a `whiteboards` job runs in it, one at a time: the `state-boards` and
+  `dashboards-refresh` jobs, a post-merge refresh, and its `ideas` and
+  `publish` jobs among them. Two repositories' presenter jobs never wait on
+  each other.
+- **One Whiteboard lane per repository** on the org work board, keyed
+  `whiteboards:<owner/repo>`. Every `whiteboards` job writing that
+  repository's Whiteboards runs in it, one at a time: each refresh and the
+  delete of a removed system's or supersystem's Whiteboard (Whiteboards,
+  below); the org Whiteboard's jobs run in
+  `whiteboards:SpartanLaboratories/OrganizationPage`, whose links list holds
+  its link. So no two jobs write one Whiteboard or one links list at once. A
+  refresh still queued and not started takes in a later one in its lane: it
+  names the Whiteboards of both, reads the later commit and draws the runs of
+  both, and the later job is `cancelled` in the ledger, naming the job that
+  took it in; a delete takes in nothing and is taken in by nothing. A
+  `whiteboards` job reads the repository at the commit its request
+  names, a sha the main checkout holds, and writes on disk only the
+  repository's links list (`presenter`'s brief, whiteboards mode), so it runs
+  beside any other presenter job, fill or fast-path update of the repository,
+  waits on none of them and holds none of them up. It commits nothing.
 - **One presenter lane for its own rules**, keyed `presenter:skills`. A
   presenter job on its own rules that belongs to no repository runs in it, one
   at a time: its **rule-change** mode, and a skill fix asked of it on its own.
@@ -747,8 +766,8 @@ landing in `OrganizationPage` itself, that PR's included, queues none: the board
 rides inside the landing, in its document-landing commit, like its other boards
 (the `state-boards` job regenerates it); it shows that landing as about to land,
 and the merged state appears at the next landing in another repository on the board. The
-same presenter job, by either route, then refreshes the Whiteboards the
-landing bears on (Whiteboards, below).
+Whiteboards the landing bears on are refreshed in the Whiteboard lanes, not
+in this job, by either route (Whiteboards, below).
 
 **Whiteboards.** One private Claude Whiteboard per system in a repository's
 registry (`systems.json`), one per supersystem in it, one per repository and
@@ -757,20 +776,25 @@ repositories on the org work board (Org work board, above). `presenter`
 creates each and writes its generated part through `Artifact` and
 `ArtifactData`, and nothing else on it: the user's own notes are never moved,
 changed or removed (the `dashboards` skill says what the generated part holds
-and how a refresh writes). It refreshes them:
+and how a refresh writes). It refreshes them, each in a `whiteboards` job of
+your own in the Whiteboard lane of the repository whose Whiteboard it is
+(Presenter lanes):
 
-- after every landing in a repository on the org work board, in the org work
-  board's job: the org Whiteboard, the landed repository's Whiteboard and the
+- after every landing in a repository on the org work board, once the landing
+  has ended, at its merge commit: the landed repository's Whiteboard and the
   Whiteboards of the systems the landing changed and of the supersystems that
-  hold them;
-- after the fast path applies a run's event (Board lanes), in a
-  `whiteboards` job of your own in the repository's presenter lane: the
-  repository's Whiteboard and the Whiteboards of the systems the issue names
-  and of the supersystems that hold them, each showing the run's state in
-  progress apart from its as-is part. A later event's job replaces one still
-  queued and not started, so a burst of events refreshes once; it never
+  hold them; in `OrganizationPage` the org Whiteboard as well, and after the
+  org work board's own `docs:` PR (Org work board, above) the org Whiteboard
+  alone, so it reads the org work board as the default branch holds it;
+- after the fast path applies a run's event (Board lanes), at the head of the
+  default branch in the main checkout: the repository's Whiteboard and the
+  Whiteboards of the systems the issue names and of the supersystems that
+  hold them, each showing the run's state in progress apart from its as-is
+  part; a burst of events refreshes once (Presenter lanes), and it never
   delays the fast path, a fill, a sync or a landing;
-- on request (`dashboards-refresh` naming them).
+- on request (`dashboards-refresh` naming them), at the head of the default
+  branch: the Whiteboards in their lane, apart from any boards the request
+  names, which stay in the presenter lane.
 
 When a system or supersystem leaves the registry, its Whiteboard is no longer
 refreshed: ask the user at this console to confirm its delete, and on the
@@ -803,7 +827,9 @@ breaks the filters. Two routes feed them:
 - a harvest of a Whiteboard, at the user's word at this console: `presenter`
   reads the user's notes on the Whiteboard named and writes those that pass
   the filters; a note that fails them, or that carries an owner or a due
-  date, is left out and named to the user, never reworded.
+  date, is left out and named to the user, never reworded. It runs in the
+  presenter lane, beside any refresh of that Whiteboard: it takes only the
+  user's notes, which a refresh never writes.
 
 Each change is committed at once, on a docs branch of its own, and lands at
 once: allocate a worktree from the current default branch
