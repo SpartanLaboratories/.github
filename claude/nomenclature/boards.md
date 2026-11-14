@@ -38,6 +38,24 @@ and `org-work-board` (its `<meta name="dashboard">` and its `board.json`'s `sche
 
 "Page" is retired: it never names a board (GitHub Pages is something else).
 
+## Companions of the boards
+
+Beside the boards stand their companions, which are not boards: none is held to a board's template or checks, and no committed board
+links one (their rules: [`GUIDANCE.md`](../skills/dashboards/GUIDANCE.md) §13, placed with their build).
+
+| Companion | What it is |
+|-----------|------------|
+| **system Whiteboard** | a private Claude Whiteboard beside a system board: the system's as-built structure, generated, with its open issues, follow-ups and ideas as notes, and room around it for the user's own thinking |
+| **supersystem Whiteboard** | the same beside a supersystem board: its systems as sections and how they interact |
+| **repository Whiteboard** | the same for a repository: its supersystems and systems as sections and how they interact |
+| **org Whiteboard** | one for the organization, drawn from the org work board, with a free area for the ideas that span repositories |
+| **ideas file** | a repository's committed ideas, `docs/plans/ideas.json`, and the organization's, `docs/plans/org-work-board/ideas.json`: each idea's kind, its text and the parts it concerns |
+| **published copy** | a committed board also published as a private claude.ai page: still that board, the page only where the copy is read |
+
+Together they are "the Whiteboards" ("Whiteboard" capitalised, the product's name), "the ideas files" and "the published copies". A
+Whiteboard's **generated part** is what the presenter writes on it, a run's section in progress included; everything else on it is the
+**user's part**. A Whiteboard is never called a board, and a board never a Whiteboard.
+
 ## Board UI
 
 Every visible element on a board takes its name from [`ui.md`](ui.md) and does what `ui.md`
