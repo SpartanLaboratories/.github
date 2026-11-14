@@ -740,9 +740,7 @@ files is a generated-board conflict (Board lanes, Board-file conflicts). A
 landing in `OrganizationPage` itself, that PR's included, queues none: the board
 rides inside the landing, in its document-landing commit, like its other boards
 (the `state-boards` job regenerates it); it shows that landing as about to land,
-and the merged state appears at the next landing in another repository on the board. No board commit is
-made, by either route, until `OrganizationPage` #8 (no deployment for
-documentation-only pushes) has landed; #8's own landing carries none.
+and the merged state appears at the next landing in another repository on the board.
 
 **Facts.** `presenter` reads the issue folder's documents in the worktree
 (research, architecture, plan.md, consequences.md (or an older folder's impact.md),
