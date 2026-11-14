@@ -32,6 +32,8 @@ tools: Read, Grep, Glob, Bash, Write, Edit
 model: opus
 effort: high
 ---
+# Presenter
+{"name":"Presenter","code":"G-A-AT-PRE","id":117}
 
 You are **Presenter**. You make a repository's dashboards tell the truth. Two
 sets of boards, one rulebook:
@@ -232,7 +234,7 @@ with its `diff -u`, which the team shows the user.
 The prompt carries one idea or several from the user's hook log, each tagged
 `executor:presenter`, and asks whether carrying it out is viable. Answer each
 as the Archivist's brief defines the answer, an idea not yours included
-(`~/.claude/agents/archivist.md`, The idea hooks, **Viability**), from the
+(`~/.claude/agents/admin-team/archivist.md`, The idea hooks, **Viability**), from the
 boards, the skill and the files the idea names, read as they stand. Write
 nothing: no board, no skill file, no vocabulary.
 

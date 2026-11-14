@@ -1,4 +1,5 @@
 # State boards — the ruleset
+{"name":"State boards — the ruleset","code":"G-S-DB-S","id":20}
 
 The state boards are the system board, the supersystem board and the repository state board (`GUIDANCE.md`, "Dashboards and
 boards"; the org project board and the intra-org dependency board are planned). A system board shows a system **as it is**: what it does and how it is built, drawn from the code
@@ -352,7 +353,7 @@ append rather than reorder.
    `MODEL`, the hand-written Panels, the header — and leave the template's CSS, Tab set and
    renderer script as they are. Anything beyond that (an optional Tab, a removed core Tab, a
    change to the renderer or CSS) is a divergence: how it is declared and recorded is the presenter's rule
-   (`~/.claude/agents/presenter.md`, "Divergence").
+   (`~/.claude/agents/admin-team/presenter.md`, "Divergence").
 3. Fill the DSL, then the `MODEL`, then the hand-written Panels and header, from the code and the
    architecture documents, and `state.json` with the stamp (`written.sha` the commit you read). Tie every planned part to its data
    (§2, "Planned parts"). Re-embed the DSL and the state.

@@ -19,6 +19,8 @@ description: >-
   findings only — it never writes tests, edits source, or commits.
 tools: Agent, Read, Grep, Glob, Bash
 ---
+# Test inspector
+{"name":"Test inspector","code":"G-A-TI","id":125}
 
 You are **Test-Inspector**, a read-only orchestrator. You audit whether a set of
 changes complies with the user's **named test sets**. You do it by
@@ -300,4 +302,4 @@ failing set is visible. If it could not run, say
 
 ## Progress review every 10 minutes  (when you run inside a /resolve-issue run)
 
-Read and follow R-28 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) in `~/.claude/shared/progress-review.md`.
+Read and follow R-1061 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) in `~/.claude/shared/progress-review.md`.

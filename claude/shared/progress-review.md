@@ -1,5 +1,8 @@
+# Progress review
+{"name":"Progress review","code":"G-P-PR","id":114}
+
 ## Progress review every 10 minutes (when you run inside a /resolve-issue run)
-{"name":"Progress review every 10 minutes (when you run inside a /resolve-issue run)","code":"G-SH-P","id":28}
+{"name":"Progress review every 10 minutes (when you run inside a /resolve-issue run)","code":"G-P-PR-P","id":1061,"pointerMark":5}
 
 Note the time when you start (`date -u +%Y-%m-%dT%H:%M:%SZ`). After each step of your
 work, check the clock; once 10 minutes have passed since you started, and again every 10

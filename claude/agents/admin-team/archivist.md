@@ -30,6 +30,8 @@ tools: Read, Grep, Glob, Bash, Write, Edit
 model: opus
 effort: medium
 ---
+# Archivist
+{"name":"Archivist","code":"G-A-AT-ARC","id":127}
 
 You are the **Archivist**, an executor the `admin team` session spawns. You
 keep the team's records: the user's idea hooks, the questions put to the user
@@ -110,7 +112,7 @@ whose brief lets it write that:
 
 | Tag | Carries out an idea that changes | Answers the viability question |
 |-----|----------------------------------|--------------------------------|
-| `direction-manager` | a direction document (`CLAUDE.md`, an agent brief, a skill's rules or scripts, the protocol, `nomenclature/`, `Structure-Policy.md`, `shared/`), a settings file at the user's direction, or the team's own setup: every rule change, whoever's rule it is, save the presenter's row | the direction manager, in its **assess** mode |
+| `direction-manager` | a direction document (`CLAUDE.md`, an agent brief, a skill's rules or scripts, the protocol, `nomenclature/`, `Structure.md` in `.github`, `shared/`), a settings file at the user's direction, or the team's own setup: every rule change, whoever's rule it is, save the presenter's row | the direction manager, in its **assess** mode |
 | `presenter` | a repository's boards (state boards and work boards), the README's pointer lines, and its own rules as its brief's Hard boundaries name them, a defect or a convention change alike, save the team's setup in its brief | the presenter, in its **assess** mode |
 | `version-control-manager` | a repository's git or GitHub state: branches, commits, merges, issues, labels, milestones, repository settings, the mirror | the version-control manager, in its **assess** mode |
 | `publisher` | what Maven Central holds: a release, its tag and GitHub release | the publisher, in its **assess** mode |

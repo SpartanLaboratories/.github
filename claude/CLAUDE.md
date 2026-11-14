@@ -1,4 +1,5 @@
 # Global guidelines (all projects)
+{"name":"Global guidelines (all projects)","code":"G","id":4}
 
 ## Never Guess Intent — Ask
 
@@ -95,7 +96,7 @@ work gets; `/resolve-issue` and its agents scale to it.
 ## Version control — the admin team session
 
 All version control on this machine runs through one long-lived session named **`admin team`**
-(brief: `~/.claude/agents/admin-team.md`; protocol: `~/.claude/admin-team/PROTOCOL.md`). It is
+(brief: `~/.claude/agents/admin-team/GUIDANCE.md`; protocol: `~/.claude/agents/admin-team/PROTOCOL.md`). It is
 the single writer for every repository and for the `.github` mirror: commits, branches, pushes,
 PRs, merges, labels, comments, issues, worktrees, the state boards a run asks for in its
 Document step, and mirror syncs. Any other session — a `/resolve-issue` run or anything else — sends it requests
@@ -110,7 +111,7 @@ comments or files itself, and never spawns `version-control-manager` directly.
 - **Its one gate** — removing a worktree with uncommitted changes — is confirmed by me at its
   console or in the Remote Control app, never by a relayed approval. Its executor holds every
   GitHub permission as my standing grant: deleting what the team did not create needs no gate.
-  What a request can reach is one rule (`~/.claude/agents/admin-team.md`, Request groups).
+  What a request can reach is one rule (`~/.claude/agents/admin-team/GUIDANCE.md`, Request groups).
   Filing sub-issues and upstream issues needs no gate either, and neither does deleting a stale
   branch (fully merged into the default branch) with its clean worktree, nor writing the team's
   own state files.
@@ -124,15 +125,15 @@ comments or files itself, and never spawns `version-control-manager` directly.
   version a later landing superseded collapses into the latest. Backlog older than the service
   is mine to publish by hand.
 - **Direction is its service too.** Through its `direction-manager` agent (brief:
-  `~/.claude/agents/direction-manager.md`) it keeps the direction of the work straight: the
+  `~/.claude/agents/admin-team/direction-manager.md`) it keeps the direction of the work straight: the
   workflow structure, the organization policies and the direction documents that state them
-  (this file, the agent briefs, the skills, the protocol, `Structure-Policy.md`, `shared/`). A
-  direction document changes only through the team, as an edit I direct at its console or as
-  the propagation of a decision I have already made into the documents that implement it; a new
-  rule is never set without my direction. The single-source principle and the format of a rule
-  file are in `~/.claude/Structure-Policy.md`.
+  (this file, the agent briefs, the skills, the protocol, `Structure.md` in `.github`,
+  `shared/`). A direction document changes only through the team, as an edit I direct at its
+  console or as the propagation of a decision I have already made into the documents that
+  implement it; a new rule is never set without my direction. The single-source principle and
+  the format of a rule file are in `Structure.md` in `.github`.
 - **Its records are its service too.** Through its `archivist` agent (brief:
-  `~/.claude/agents/archivist.md`) it keeps my idea hooks, each tagged with whoever would carry
+  `~/.claude/agents/admin-team/archivist.md`) it keeps my idea hooks, each tagged with whoever would carry
   the idea out, the questions put to me at its console, the issues it expects (its predicted
   issues, each with its count of encounters), and an archive of its own past sessions, whose
   files are deleted once archived. Any session may send it a `log-hook` request for an idea I
@@ -283,7 +284,7 @@ is the team's to fix.
 `SpartanLaboratories/.github` holds a public copy of `~/.claude/` under `claude/`; its
 `claude/README.md` maps each mirrored path to its source. Whenever your work changes anything
 that copy covers — `CLAUDE.md`, `settings.json`, `hooks/`, `agents/`, `skills/` (including
-ones a tool installs, e.g. `graphify`), `nomenclature/`, `shared/`, `Structure-Policy.md`, or
+ones a tool installs, e.g. `graphify`), `nomenclature/`, `shared/`, `rule-index.md`, or
 `admin-team/` (less the local state the README's "Not included" list leaves out) — have the
 copy updated as part of the same change so it matches `~/.claude/` again: send the
 `admin team` session a `mirror-sync` request naming the changed paths (the `admin-team`

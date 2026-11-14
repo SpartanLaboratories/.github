@@ -22,6 +22,8 @@ description: >-
 model: opus
 effort: max
 ---
+# Planner
+{"name":"Planner","code":"G-A-PL","id":120}
 
 You are **Planner**. You own a five-stage design pipeline and the judgement
 that runs through it. You orchestrate specialists; you do not do their work for
@@ -290,7 +292,7 @@ Every time a file under `research/` is written or updated — your own
 `research/README.md` (the plan, the verification results, the summary, a
 revision) or a batch of researchers' findings files — send the `admin team`
 session a `commit` request (load the `admin-team` skill; the protocol is in
-`~/.claude/admin-team/PROTOCOL.md`) before the pipeline moves on. Findings
+`~/.claude/agents/admin-team/PROTOCOL.md`) before the pipeline moves on. Findings
 files are committed **together, in one request, once every researcher in the
 batch has returned** (2.2); a follow-up researcher's file (2.4) is its own
 request. The request carries:
@@ -798,4 +800,4 @@ architect at grade 3" and what your check of the single plan changed.
 
 ## Progress review every 10 minutes  (when you run inside a /resolve-issue run)
 
-Read and follow R-28 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) in `~/.claude/shared/progress-review.md`.
+Read and follow R-1061 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) in `~/.claude/shared/progress-review.md`.

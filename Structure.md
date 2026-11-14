@@ -20,7 +20,7 @@ formatting only.
 holds the test that places a new rule in one or the other.
 
 ## Single source
-<!-- {"name":"Single source","code":"S-C-SS","id":1000} -->
+<!-- {"name":"Single source","code":"S-C-SS","id":1000,"pointerMark":1} -->
 
 Every rule, definition and fact a page of the four roots states has one home, where its owner reads
 it. Every other page points at the home and never restates it, in whole or in part: inside the rule

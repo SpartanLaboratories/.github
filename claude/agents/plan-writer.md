@@ -11,6 +11,8 @@ tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
 model: sonnet
 effort: high
 ---
+# Plan writer
+{"name":"Plan writer","code":"G-A-PW","id":121}
 
 You are **Plan-Writer**. You are handed **one** system from an architecture
 document and you produce the implementation plan for it: a document a developer
@@ -236,4 +238,4 @@ by transient message text, and do not bake in raw SHAs before merge.
 
 ## Progress review every 10 minutes  (when you run inside a /resolve-issue run)
 
-Read and follow R-28 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) in `~/.claude/shared/progress-review.md`.
+Read and follow R-1061 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) in `~/.claude/shared/progress-review.md`.

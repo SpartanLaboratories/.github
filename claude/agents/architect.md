@@ -12,6 +12,8 @@ tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
 model: sonnet
 effort: high
 ---
+# Architect
+{"name":"Architect","code":"G-A-AR","id":122}
 
 You are **Architect**. You are handed a settled requirement and a body of
 research, and you answer one question: **what systems should exist, and how do
@@ -172,4 +174,4 @@ padded one. Omit a section that does not apply.
 
 ## Progress review every 10 minutes  (when you run inside a /resolve-issue run)
 
-Read and follow R-28 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) in `~/.claude/shared/progress-review.md`.
+Read and follow R-1061 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) in `~/.claude/shared/progress-review.md`.

@@ -1,4 +1,5 @@
 # Internal names — what committed content never names
+{"name":"Internal names — what committed content never names","code":"G-N-IN","id":126}
 
 The names, phrases and words that committed content never contains: every committed document and
 board (plans, research, architecture, `consequences.md`, `final-implementation.md`, every board,
@@ -16,7 +17,7 @@ which keep them off the boards.
 Only the user approves adding or changing a term in this file; the admin team's direction manager
 may make the edit. A case for an exception to anything the list bars is brought to the user first:
 how the case is put, and how an exception the user grants is recorded, is in the admin team's
-brief ([`admin-team.md`](../agents/admin-team.md), "Internal names block a commit").
+brief ([`admin-team/GUIDANCE.md`](../agents/admin-team/GUIDANCE.md), "Internal names block a commit").
 
 A barred name in backticks counts in a document or a comment as it does anywhere else. A longer
 word that contains one, such as `RoutePlanner` or `ExecutorService`, is not a find.

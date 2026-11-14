@@ -1,108 +1,212 @@
 {
-  "index": "nomenclature/rule-index.md",
-  "files": [
-    "agents/direction-manager.md",
-    "agents/verifier.md",
-    "agents/code-reviewer.md",
-    "agents/interviewer.md",
-    "agents/qa.md",
-    "agents/documentation-reviewer.md",
-    "shared/progress-review.md",
-    "Structure-Policy.md",
-    "nomenclature/vocabulary.md"
-  ],
-  "codes": {
-    "agents/direction-manager.md": {
-      "acronym": "DM",
-      "sections": {
-        "You keep three things true": "P",
-        "Authority": "A",
-        "Modes": "M",
-        "How you write": "H",
-        "Report": "R"
-      }
-    },
-    "agents/verifier.md": {
-      "acronym": "VF",
-      "sections": {
-        "Input": "I",
-        "For each claim": "C",
-        "What you return": "R",
-        "Hard boundaries": "B",
-        "Progress review every 10 minutes (when you run inside a /resolve-issue run)": "P"
-      }
-    },
-    "agents/code-reviewer.md": {
-      "acronym": "CR",
-      "sections": {
-        "Inputs": "I",
-        "What you check": "C",
-        "Verifying a finding": "V",
-        "What you return": "R",
-        "Boundaries": "B",
-        "Progress review every 10 minutes (when you run inside a /resolve-issue run)": "P"
-      }
-    },
-    "agents/interviewer.md": {
-      "acronym": "IV",
-      "sections": {
-        "The rule you exist to enforce": "E",
-        "How to work": "W",
-        "What you return to the caller": "R",
-        "Hard boundaries": "B",
-        "Progress review every 10 minutes (when you run inside a /resolve-issue run)": "P"
-      }
-    },
-    "agents/qa.md": {
-      "acronym": "QA",
-      "sections": {
-        "0. Read the arguments": "A",
-        "1. Determine the review scope (once)": "S",
-        "2. Run the test-inspector (FIRST)": "T",
-        "3. Run the code-reviewer (SECOND — every grade)": "C",
-        "4. Consolidate": "R",
-        "Boundaries": "B",
-        "Progress review every 10 minutes (when you run inside a /resolve-issue run)": "P"
-      }
-    },
-    "agents/documentation-reviewer.md": {
-      "acronym": "DR",
-      "sections": {
-        "The standard you enforce": "S",
-        "What is NOT a finding": "N",
-        "How to work": "W",
-        "Report format": "R",
-        "Progress review every 10 minutes (when you run inside a /resolve-issue run)": "P"
-      }
-    },
-    "shared/progress-review.md": {
-      "acronym": "SH",
-      "sections": {
-        "Progress review every 10 minutes (when you run inside a /resolve-issue run)": "P"
-      }
-    },
-    "Structure-Policy.md": {
-      "acronym": "SP",
-      "sections": {
-        "Single source": "S",
-        "Sections": "E",
-        "A rule": "A",
-        "`id`": "I",
-        "Splinters": "L",
-        "`code`": "C",
-        "Pointers": "P",
-        "The index": "X",
-        "The checker": "H"
-      }
-    },
-    "nomenclature/vocabulary.md": {
-      "acronym": "VO",
-      "sections": {
-        "The three words": "W"
+  "index": "../rule-index.md",
+  "roots": {
+    "G": {
+      "main": "CLAUDE.md",
+      "ownSections": "C",
+      "listed": {
+        "hooks/spartanlabs-open-issues.sh": {
+          "segment": "OI",
+          "id": 128
+        },
+        "rule-index.md": {
+          "segment": "I",
+          "id": 129
+        }
+      },
+      "files": {
+        "agents/admin-team/direction-manager.md": {
+          "segment": "DM",
+          "sections": {
+            "You keep three things true": "P",
+            "Authority": "A",
+            "Modes": "M",
+            "How you write": "H",
+            "Report": "R"
+          }
+        },
+        "agents/verifier.md": {
+          "segment": "VF",
+          "sections": {
+            "Input": "I",
+            "For each claim": "C",
+            "What you return": "R",
+            "Hard boundaries": "B"
+          }
+        },
+        "agents/code-reviewer.md": {
+          "segment": "CR",
+          "sections": {
+            "Inputs": "I",
+            "What you check": "C",
+            "Verifying a finding": "V",
+            "What you return": "R",
+            "Boundaries": "B"
+          }
+        },
+        "agents/interviewer.md": {
+          "segment": "IV",
+          "sections": {
+            "The rule you exist to enforce": "E",
+            "How to work": "W",
+            "What you return to the caller": "R",
+            "Hard boundaries": "B"
+          }
+        },
+        "agents/qa.md": {
+          "segment": "QA",
+          "sections": {
+            "0. Read the arguments": "A",
+            "1. Determine the review scope (once)": "S",
+            "2. Run the test-inspector (FIRST)": "T",
+            "3. Run the code-reviewer (SECOND — every grade)": "C",
+            "4. Consolidate": "R",
+            "Boundaries": "B"
+          }
+        },
+        "agents/documentation-reviewer.md": {
+          "segment": "DR",
+          "sections": {
+            "Level 2 — the generated API reference": "L",
+            "How to work": "W",
+            "Report format": "R"
+          }
+        },
+        "nomenclature/vocabulary.md": {
+          "segment": "VO",
+          "sections": {
+            "The three words": "W"
+          }
+        },
+        "skills/dashboards/SKILL.md": {
+          "segment": "SK",
+          "sections": {}
+        },
+        "shared/progress-review.md": {
+          "segment": "PR",
+          "sections": {
+            "Progress review every 10 minutes (when you run inside a /resolve-issue run)": "P"
+          }
+        },
+        "agents/admin-team/PROTOCOL.md": {
+          "segment": "P",
+          "sections": {}
+        },
+        "agents/admin-team/version-control-manager.md": {
+          "segment": "VCM",
+          "sections": {}
+        },
+        "agents/admin-team/presenter.md": {
+          "segment": "PRE",
+          "sections": {}
+        },
+        "agents/admin-team/publisher.md": {
+          "segment": "PUB",
+          "sections": {}
+        },
+        "agents/admin-team/graphify-manager.md": {
+          "segment": "GM",
+          "sections": {}
+        },
+        "agents/planner.md": {
+          "segment": "PL",
+          "sections": {}
+        },
+        "agents/plan-writer.md": {
+          "segment": "PW",
+          "sections": {}
+        },
+        "agents/architect.md": {
+          "segment": "AR",
+          "sections": {}
+        },
+        "agents/researcher.md": {
+          "segment": "RS",
+          "sections": {}
+        },
+        "agents/rookie-dev.md": {
+          "segment": "RD",
+          "sections": {}
+        },
+        "agents/test-inspector.md": {
+          "segment": "TI",
+          "sections": {}
+        },
+        "nomenclature/internal-names.md": {
+          "segment": "IN",
+          "sections": {}
+        },
+        "agents/admin-team/archivist.md": {
+          "segment": "ARC",
+          "sections": {}
+        }
+      },
+      "folders": {
+        "agents": {
+          "segment": "A"
+        },
+        "agents/admin-team": {
+          "segment": "AT"
+        },
+        "skills": {
+          "segment": "S"
+        },
+        "skills/resolve-issue": {
+          "segment": "RI"
+        },
+        "skills/admin-team": {
+          "segment": "AT"
+        },
+        "skills/dashboards": {
+          "segment": "DB"
+        },
+        "skills/dashboards/plan": {
+          "segment": "P"
+        },
+        "skills/dashboards/system": {
+          "segment": "S"
+        },
+        "skills/upgrade": {
+          "segment": "UP"
+        },
+        "nomenclature": {
+          "segment": "N"
+        },
+        "shared": {
+          "segment": "P"
+        },
+        "hooks": {
+          "segment": "H"
+        }
       }
     }
   },
-  "highWaterMark": 65,
-  "splinterMarks": {"17":1,"28":5},
-  "retiredIds": [4, 11, 12, 27, 34, 39, 46, 52]
+  "notConverted": [
+    "CLAUDE.md",
+    "agents/admin-team/GUIDANCE.md",
+    "skills/resolve-issue/SKILL.md",
+    "skills/admin-team/SKILL.md",
+    "skills/dashboards/GUIDANCE.md",
+    "skills/dashboards/SKILL.md",
+    "skills/dashboards/plan/RULES.md",
+    "skills/dashboards/system/RULES.md",
+    "skills/upgrade/SKILL.md",
+    "agents/admin-team/PROTOCOL.md",
+    "agents/admin-team/version-control-manager.md",
+    "agents/admin-team/presenter.md",
+    "agents/admin-team/publisher.md",
+    "agents/admin-team/graphify-manager.md",
+    "agents/planner.md",
+    "agents/plan-writer.md",
+    "agents/architect.md",
+    "agents/researcher.md",
+    "agents/rookie-dev.md",
+    "agents/test-inspector.md",
+    "nomenclature/internal-names.md",
+    "agents/admin-team/archivist.md"
+  ],
+  "ids": {
+    "marks": { "1": 4, "2": 24, "3": 129, "4": 1061, "5": 10025 },
+    "retired": []
+  }
 }

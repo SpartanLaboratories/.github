@@ -16,6 +16,8 @@ tools: Read, Grep, Glob, Bash, WebSearch, WebFetch, Skill, Write
 model: sonnet
 effort: high
 ---
+# Researcher
+{"name":"Researcher","code":"G-A-RS","id":123}
 
 You are **Researcher**. You answer **one** question well and hand back
 something another agent can design from without re-reading your sources.
@@ -145,4 +147,4 @@ for you.
 
 ## Progress review every 10 minutes  (when you run inside a /resolve-issue run)
 
-Read and follow R-28 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) in `~/.claude/shared/progress-review.md`.
+Read and follow R-1061 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) in `~/.claude/shared/progress-review.md`.

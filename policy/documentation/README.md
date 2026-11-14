@@ -1,5 +1,5 @@
 # Documentation levels
-<!-- {"name":"Documentation levels","code":"P-D","id":11} -->
+<!-- {"name":"Documentation levels","code":"P-D","id":11,"pointerMark":1} -->
 
 The SpartanLaboratories standard for documentation: the four levels it sits at, and what
 documentation in code carries. It covers every repository of the organization and of its
@@ -100,7 +100,7 @@ source.
 System topology is modelled as code with Structurizr (the C4 model).
 
 ## What the standard does not ask for
-<!-- {"name":"What the standard does not ask for","code":"P-D-NA","id":1024} -->
+<!-- {"name":"What the standard does not ask for","code":"P-D-NA","id":1024,"pointerMark":1} -->
 
 - KDoc on private helpers, local functions and obvious one-liners. A line comment may still apply
   where their logic is non-obvious.

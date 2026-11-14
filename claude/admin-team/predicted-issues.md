@@ -2,7 +2,7 @@
 
 What the admin team expects may go wrong, each with its proposed resolution and
 a count of the times it has actually happened. The rule for keeping this list
-is in `agents/admin-team.md` (How the team works, **Predicted issues**). Dates
+is in `agents/admin-team/GUIDANCE.md` (How the team works, **Predicted issues**). Dates
 are UTC.
 
 ## A confirm-only setup-branch at step 3 finds the branch missing
@@ -73,7 +73,7 @@ The wording in `GUIDANCE` and `RULES` defines `asBuilt.approx`.
 {"id":"p6","count":0,"last":null}
 ```
 
-The route is "New dashboard rules reach old dashboards" in `admin-team.md`.
+The route is "New dashboard rules reach old dashboards" in `admin-team/GUIDANCE.md`.
 
 - **Proposed resolution:** that standing rule covers open boards only; say so
   with one word.
@@ -115,7 +115,7 @@ The permission system raises the denial.
   the raised attempt. Without the user's standing allow line, or on a refusal
   despite it, the direction manager stages the change with its diff under
   `admin-team/proposals/` and the user places it. The line is removed when the
-  section moves to history (`agents/admin-team.md`, Gates and standing grants,
+  section moves to history (`agents/admin-team/GUIDANCE.md`, Gates and standing grants,
   Temporary permissions, **Allow lines**).
 - **Proposed resolution (an action under no temporary grant):** retry once at
   the user's word; if denied again, a narrow temporary allow rule or the user
@@ -188,7 +188,7 @@ The permission system raises the denial.
 - **Resolution (decided by the user, 2026-11-13, and settled by the change of the
   team's brief that day):** the Archivist, the tracker's only writer, writes the
   count, and the change rides the next `mirror-sync`, so the public copy lags
-  slightly (`agents/admin-team.md`, Service: archive, Predicted issues).
+  slightly (`agents/admin-team/GUIDANCE.md`, Service: archive, Predicted issues).
 - **Predicted:** the admin team, 2026-11-09.
 - **Encounters:**
   - 2026-11-12: the entry for a procedure not run as one shell was added; it rides the next mirror-sync.
@@ -298,7 +298,7 @@ OrganizationPage's Kotlin/JS install step depends on the package registry, and `
 {"id":"p18","count":6,"last":"2026-11-12"}
 ```
 
-A run sends `facts.at` rounded or estimated (the user: this happens at every session start) instead of read from the clock, so the board records a wait or a visit at the wrong time, and a later event can fall inside it. A retime is raised by the team at the presenter's word (`~/.claude/agents/presenter.md`, "Timing corrections") and never reorders the record, so a later event inside the wrong stretch can block it.
+A run sends `facts.at` rounded or estimated (the user: this happens at every session start) instead of read from the clock, so the board records a wait or a visit at the wrong time, and a later event can fall inside it. A retime is raised by the team at the presenter's word (`~/.claude/agents/admin-team/presenter.md`, "Timing corrections") and never reorders the record, so a later event inside the wrong stretch can block it.
 
 - **Resolution (decided by the user, 2026-11-10):** a run reads every event's `facts.at` from the clock (`date -u +%FT%TZ`), never rounding or estimating it; when an event's `facts.at` is missing or more than 2 minutes from its arrival, the team stamps the arrival time (`apply-event.js --arrived`) and tells the run.
 - **Extended (the user, 2026-11-10):** the same 2-minute arrival check covers the `raised` and `resolved` times of the open points an event newly raises or resolves.
@@ -524,7 +524,7 @@ A `step-complete` becomes the board's last event. A later `resumed` that ends an
 
 The session's auto mode classifier refuses a tool call by which the team changes its own briefs, protocol, skill rules or settings, with the reason "[Self-Modification]". It judges each call: on the same day most of the direction manager's edits to the same files went in. The refused ones were bulk shell copies over the briefs and edits that loosen what the team itself may do (a permission line in its settings, the rule on what may be pushed straight to `main`, the direction manager's own scope, who may direct a retime). A subagent's conversation holds the team's brief to it, not the user's words at the console, and a sentence written into the team's brief did not change the outcome.
 
-- **Resolution (decided by the user, 2026-11-12, for the direction manager's edits to the team's settings file under a temporary grant):** a standing `autoMode.allow` line, placed by the user by hand once, covers placing and removing a temporary allow line and lifting and restoring a deny rule; without that line, or on a refusal despite it, the direction manager stages the change with its diff under `admin-team/proposals/` and the user places it (`agents/admin-team.md`, Gates and standing grants, Temporary permissions, **Allow lines**).
+- **Resolution (decided by the user, 2026-11-12, for the direction manager's edits to the team's settings file under a temporary grant):** a standing `autoMode.allow` line, placed by the user by hand once, covers placing and removing a temporary allow line and lifting and restoring a deny rule; without that line, or on a refusal despite it, the direction manager stages the change with its diff under `admin-team/proposals/` and the user places it (`agents/admin-team/GUIDANCE.md`, Gates and standing grants, Temporary permissions, **Allow lines**).
 - **Resolution (as practised on the encounters, 2026-11-12, for every other edit; a standing fix is not decided):** the agent stops at the refusal and tries no other route; it stages the edited file as a copy with its diff under `admin-team/proposals/`; the team tells the user and gives them the copy command; the user places the file, and the team then records the `config-edit` and mirror-syncs. A half-applied change is said file by file, and its mirror-sync is held until it is whole. A standing allow line for the direction manager's other directed edits was offered and not taken up.
 - **Predicted:** the admin team, on encountering it, 2026-11-12.
 - **Encounters:**
@@ -560,7 +560,7 @@ The internal-names scan reads documents, boards and the comments in source code;
 
 Since 2026-11-13 the internal-names list holds no exception for a library’s name that only coincides with a barred name (the user’s decision: any case for an exception is brought to the user first). A document, a board or a code comment that names a Reactive Streams `Publisher`, a `java.util.concurrent.Executor` or a domain `verifier` is now a find, in backticks too (a longer word that contains a barred name, such as OkHttp’s `RoutePlanner`, is not), and the scan reads every line of each file a commit carries, so a file that already holds such a name stops the next commit that touches it. The dashboards skill’s `namerefs.js` holds its own copy of the list and must follow it, or the boards and the commit scan disagree.
 
-- **Resolution (decided by the user, 2026-11-13):** a find goes back to the requester to reword (`needs-rework`); a requester with a reason to keep it resends asking for an exception, and only then does the team put the case to the user at the console, with the file, the line and the requester’s reasons, replying `needs-user` meanwhile. An exception the user grants the first time is a one-off, a pass for that commit and that file recorded in the ledger; when the same case comes up again the team asks the user whether it should become a rule, a row in the list’s Allowed section. Each repository is swept ahead of time, read only, and its files that hold a barred name are listed, so the rewording is planned (`agents/admin-team.md`, Service: version control, “Internal names block a commit”; `nomenclature/internal-names.md`).
+- **Resolution (decided by the user, 2026-11-13):** a find goes back to the requester to reword (`needs-rework`); a requester with a reason to keep it resends asking for an exception, and only then does the team put the case to the user at the console, with the file, the line and the requester’s reasons, replying `needs-user` meanwhile. An exception the user grants the first time is a one-off, a pass for that commit and that file recorded in the ledger; when the same case comes up again the team asks the user whether it should become a rule, a row in the list’s Allowed section. Each repository is swept ahead of time, read only, and its files that hold a barred name are listed, so the rewording is planned (`agents/admin-team/GUIDANCE.md`, Service: version control, “Internal names block a commit”; `nomenclature/internal-names.md`).
 - **Predicted:** the admin team, on recording the decision, 2026-11-13.
 - **Encounters:**
   - 2026-11-13: the organization repository, the commit that opens Policy: the documentation standard’s page names its outer ring’s readers as “system architects” (`policy/documentation/audience-reach.md:58` in the prepared package). Found before the commit was sent and put to the user at the console.
@@ -589,7 +589,7 @@ A member starts a long search or script in the background, finishes its job with
 
 The executor runs a plan's push under a temporary grant, as one shell holding the plan's procedure, and the session's auto mode classifier denies the call with the reason "[Git Destructive]" before any entry runs. The grant's section in the permissions file does not reach the classifier, and lifting a deny rule in the settings file does not either: the two are separate checks.
 
-- **Proposed resolution:** the rule for a refused action under a grant (`agents/admin-team.md`, Gates and standing grants, Temporary permissions, **Allow lines**): nothing else is tried; one `autoMode.allow` line for that action, naming the repository, the exact command, the request's `id` and the job, is placed by the direction manager or staged for the user to place; the team restarts and runs the same `id` again with `attempt + 1`. A job with more than one such push meets the refusal once per push unless the user places the lines together.
+- **Proposed resolution:** the rule for a refused action under a grant (`agents/admin-team/GUIDANCE.md`, Gates and standing grants, Temporary permissions, **Allow lines**): nothing else is tried; one `autoMode.allow` line for that action, naming the repository, the exact command, the request's `id` and the job, is placed by the direction manager or staged for the user to place; the team restarts and runs the same `id` again with `attempt + 1`. A job with more than one such push meets the refusal once per push unless the user places the lines together.
 - **Predicted:** the admin team, on meeting it, 2026-11-13.
 - **Encounters:**
   - 2026-11-13: KotlinBottools #26, the push of one branch to the first of its two repositories, with an explicit lease, after the deny rule on that form had been lifted in the settings file without a restart. Nothing was pushed. Put to the user at the console with the line staged.
@@ -630,7 +630,7 @@ The team checks, read only, whether a member's job left a process behind (the en
 
 An archive job's `delete-session.js` deletion, or a sweep's `--orphans` removal of empty orphan temp folders, is refused by the permission system.
 
-- **Proposed resolution:** as the team's brief places it (`agents/admin-team.md`, Service: archive, Sessions): after the first refusal, the direction manager places a `permissions.allow` rule for `delete-session.js` in the team's settings file, at the user's direction; after a second, an `autoMode.allow` line the same way; after a third, the user is given the command to run (one session, `--all-ready`, or `--orphans`), and sweep and archive jobs keep their deletion held.
+- **Proposed resolution:** as the team's brief places it (`agents/admin-team/GUIDANCE.md`, Service: archive, Sessions): after the first refusal, the direction manager places a `permissions.allow` rule for `delete-session.js` in the team's settings file, at the user's direction; after a second, an `autoMode.allow` line the same way; after a third, the user is given the command to run (one session, `--all-ready`, or `--orphans`), and sweep and archive jobs keep their deletion held.
 - **Open:** whether the hold after a third refusal also covers the sweep's removal of empty orphan folders. a) It does, as placed; b) sweeps keep trying to remove leftover folders. No recommendation.
 - **Predicted:** the admin team, 2026-11-13.
 - **Encounters:**

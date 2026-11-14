@@ -64,8 +64,8 @@ FullPulse at phone width), `.upnext-ring` (the up-next Ring) and `.fillpulse` (t
 FillPulse).
 
 A row exists only for a specific use of a `ui.md` term on the boards, such as a compound name built
-on it, or for a deviation from `ui.md`, and never restates `ui.md` (R-17 (Single source),
-[`Structure-Policy.md`](../Structure-Policy.md)). Each row says what its term is for on the boards.
+on it, or for a deviation from `ui.md`, and never restates `ui.md` (R-1000 (Single source),
+`Structure.md` in `.github`). Each row says what its term is for on the boards.
 The rows stand in three groups, each in `ui.md`'s family order: **deviated**, where the boards depart
 from `ui.md` (a row that also names subtypes of its term stands here and names them); **subtyped**,
 where the boards name subtypes of the term; and **as-is**, where the boards use the term as `ui.md`

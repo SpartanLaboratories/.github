@@ -12,6 +12,8 @@ argument-hint: "<library-name>"
 disable-model-invocation: true
 allowed-tools: Bash(gh issue list *), Bash(gh issue view *), Bash(gh pr list *), Bash(gh repo view *), Bash(gh api *), Bash(git status *), Bash(git log *), Bash(git branch *), Bash(git diff *), Bash(curl *), Bash(npm view *), Bash(npm info *), Bash(pip index *), Bash(cargo search *), Bash(go list *)
 ---
+# The upgrade skill
+{"name":"The upgrade skill","code":"G-S-UP","id":21}
 
 Bring **one** named dependency to its latest available version. An upgrade is
 ordinary backlog work: this skill gathers the facts, files an issue for the

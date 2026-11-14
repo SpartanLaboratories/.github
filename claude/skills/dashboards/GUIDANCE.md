@@ -1,4 +1,5 @@
 # Dashboard guidance — the rules both sets share
+{"name":"Dashboard guidance — the rules both sets share","code":"G-S-DB","id":18}
 
 These rules apply to every board the presenter makes: a system board, a supersystem or
 repository state board, an issue board, a tracking board, the repository work board, the org work board. A
@@ -308,7 +309,7 @@ or any text the presenter writes; until the rule rework's L12 the grade's old na
 level-3 change", "escalated to level 4"), is kept off the boards alike. Say what the work is instead: one system, a bug fix, docs
 only, a tracking issue. The grades stay in force everywhere else.
 No open work board holds a grade (`check.js` fails `GRADE ON THE BOARD`: the field `level`, its old key, or `grade`) and state boards
-hold none; a closed work board keeps any it holds (`~/.claude/agents/presenter.md`, "Closed work boards"), and no board renders them,
+hold none; a closed work board keeps any it holds (`~/.claude/agents/admin-team/presenter.md`, "Closed work boards"), and no board renders them,
 the Source Tab included (`plan/scripts/levels.js`). A pipeline fact that names one ("inside grade 3", "a grade-3 re-pass", "Label
 grade: 3", and in the old words "inside level 3") is reworded before it is written — the scope phrase becomes the unit's or the
 issue's scope, the grade is elided before its noun, the label dropped — and left out only where a grade would remain
@@ -509,7 +510,7 @@ that gets one (§8), fails a zoned ISO stamp left as plain text outside code and
 
 The global template is the general one; a repository may keep its own under
 `docs/dashboards/_template/` or `docs/plans/_template/`. When a board may diverge from a template,
-and how it declares and records the divergence, is the presenter's rule (`~/.claude/agents/presenter.md`,
+and how it declares and records the divergence, is the presenter's rule (`~/.claude/agents/admin-team/presenter.md`,
 "Divergence"); §8 holds how the checks treat a diverging board.
 
 **Type divergences** are the rules' own, declared here for a whole board type rather than on a board: on **system, supersystem and
@@ -609,7 +610,7 @@ other:
 | the live repository work board | at **every event** (`board.js --live --refresh-template`: it is the template plus its data, never committed) |
 | the org work board | at **every landing in a repository on the board**, when it is regenerated and committed (`plan/RULES.md` §10) |
 | an issue's board that is in flight, and its tracking board | at **its own events** (`apply-event.js` re-renders a board that is not the verified template plus its data) |
-| a closed work board: an issue board or a tracking board whose issue is closed | **never** (`~/.claude/agents/presenter.md`, "Closed work boards") |
+| a closed work board: an issue board or a tracking board whose issue is closed | **never** (`~/.claude/agents/admin-team/presenter.md`, "Closed work boards") |
 
 **Finished steps, clickable** (admin-team/dashboards-skill/24): applied to issue boards and tracking boards (a tracking board for its
 own steps and for each unit in progress through its mirror), where the progress strip is (`plan/RULES.md` §3, "Finished steps"). Not to
@@ -1034,7 +1035,7 @@ naming rules. How the boards use them (each term's board elements, the boards' c
 the CSS classes the templates give them) is in [`nomenclature/boards.md`](../../nomenclature/boards.md),
 "Board UI"; the look follows §1 and §2. A board element none of `ui.md`'s terms describes takes
 no name from that file until the term is added to it, and a term is added or changed in `ui.md`
-only with the user's permission (`~/.claude/agents/presenter.md`, Hard boundaries); it is never
+only with the user's permission (`~/.claude/agents/admin-team/presenter.md`, Hard boundaries); it is never
 named here. The presenter adds and changes the terms of `boards.md` at its own discretion (the
 same brief).
 
