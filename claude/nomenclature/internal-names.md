@@ -58,11 +58,19 @@ known aliases. The aliases are what the scan matches.
 
 ## 2. The approval flow
 
+Each row is headed by a phrase, and a row that names a form lists every word the form takes. The
+phrases and the forms are what the scan matches: in any case, with a straight or a curly apostrophe,
+and with "user" a whole word that any word or none may stand before ("the user", "a user", "the end
+user"); a word that only contains it, such as "superuser" or "username", is not a find. A product's
+own user is matched as well ("the guild or user choose units"): a sentence about one names it in the
+product's own terms ("the player", "the caller").
+
 | Term | What it is | Allowed when |
 |------|------------|--------------|
-| **"the user's call"** | A decision left to the user. | never |
-| **"the user chose"** | A decision the user made. | never |
+| **"the user's call"** | A decision left to the user, or one the user made, named as the user's: "user's" followed by "call", "answer", "answers", "approval", "decision", "choice", "sign-off", "signoff" or "go-ahead", directly or with one word of letters between ("the user's final call", "the user's two answers"). | never |
+| **"the user chose"** | A decision the user made or makes: "user" followed directly by "chose", "chooses", "choose", "decided", "decides", "approved", "approves", "confirmed", "confirms", "okayed", "answered", "answers" or "signed off". | never |
 | **"user answers"** | The user's answers to the pipeline's questions. | never |
+| **"signed off by the user"** | A decision stated in the passive: "signed off", "approved", "decided", "chosen" or "answered", followed by "by the user". | never |
 
 ## 3. Work grades
 
