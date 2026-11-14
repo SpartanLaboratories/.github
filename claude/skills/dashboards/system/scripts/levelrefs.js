@@ -14,7 +14,7 @@
 // verbatim and never reworded or elided either: one that names a grade is a defect in the issue, flagged ISSUE TITLE NAMES A GRADE: #n
 // (issueTitleRefs(), titleDefect(); admin-team/dashboards-skill/28), never a failure of the board. A slug made from the title (a plan folder's
 // name, where a path puts it) is left out of the scan as the title is, and flagged nowhere (maskSlugs(); the user's decision of 2026-11-14,
-// batch-8/q-54).
+// batch-8/q-54), and so is the slug inside a branch's name (the user's decision of 2026-11-14, batch-8/branch-slug).
 "use strict";
 /* The test sets' names, matched in any case (a table head may set them in capitals: "L1 GATING") while the "L" itself stays
    case-sensitive: each letter becomes a class of both its cases. */
@@ -75,15 +75,22 @@ const REGEXES = GRADE_PATTERNS.map(([s, f]) => new RegExp(s, f + "g"));
    board's slug, the plan folder, a board's path, a link to a board or into a folder, a report's copy, a path a text cites. It counts where
    a path puts it: a folder, ended by a "/" ("55-slug/62-slug/dashboard.html", "see 62-slug/plan.md"); the last folder of a path under
    docs/plans/ ("docs/plans/55-slug/62-slug"); a slug standing alone, the whole string or in quotation marks as a Source view prints one.
-   The same token in prose with no path around it, a file's name ("62-slug.md"), an anchor after a "#" and a branch ("fix/62-slug",
-   "feat/issue-62-slug": an identifier, read whole, plan/RULES.md §4) are no slug: a grade there is still found. The title itself stays
-   flagged (issueTitleRefs(), which reads the title whole, titleRefs()); a slug made from it is not. SLUG_PATTERNS are the forms
-   (check-board.js's browser pass takes them too); maskSlugs() blanks them before a scan. */
+   The slug inside a branch's name is left out too (the user's decision of 2026-11-14, batch-8/branch-slug (a)): the <number>-<slug> a
+   branch carries after its issue ("feat/issue-62-slug", the convention's <type>/issue-<n>-<slug>; "issue-62-slug", a repository's
+   pattern with no type) or after its type ("fix/62-slug"; the types fix, feat, refactor, test, docs, build, chore), wherever the branch
+   stands (a board's branch, a tracker's, a state board's as-is stamp, a fact that names it), the branch ending there (a space, a
+   punctuation mark, a sentence's full stop). The rest of the branch is read as any text is: its type, and a grade beside it. A branch
+   that carries no issue number ("docs/some-change") holds no slug made from a title, and a grade in it is still found. The same token in
+   prose with no path around it, a file's name ("62-slug.md") and an anchor after a "#" are no slug: a grade there is still found. The
+   title itself stays flagged (issueTitleRefs(), which reads the title whole, titleRefs()); a slug made from it is not. SLUG_PATTERNS are
+   the forms (check-board.js's browser pass takes them too); maskSlugs() blanks them before a scan. */
 const SLUG = "\\d+-[a-z0-9]+(?:-[a-z0-9]+)*";
+const BRANCH_TYPES = "fix|feat|refactor|test|docs|build|chore";
 const SLUG_PATTERNS = [
   `(?<![\\w.-])${SLUG}(?=/)`,                                  // a folder in a path, ended by its "/" ("55-slug/62-slug/", "see 62-slug/plan.md")
   `(?<=(?:^|[^\\w.-])docs/plans/(?:[^\\s/"'\`]+/)*)${SLUG}(?![\\w.-])`,   // the last folder of a path under docs/plans/ (a board's folder)
   `(?<=^|")${SLUG}(?=$|")`,                                    // a slug alone: the whole string, or in quotation marks (a Source view)
+  `(?<=(?:^|[^\\w.-])(?:(?:${BRANCH_TYPES})/|issue-))${SLUG}(?=$|[^\\w./-]|\\.(?!\\w))`,   // the slug inside a branch's name ("feat/issue-62-slug", "fix/62-slug")
 ];
 const SLUG_RES = SLUG_PATTERNS.map(s => new RegExp(s, "g"));
 const maskSlugs = text => typeof text === "string" ? SLUG_RES.reduce((s, re) => s.replace(re, "\u0001"), text) : text;

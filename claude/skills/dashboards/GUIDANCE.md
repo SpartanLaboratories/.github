@@ -393,8 +393,11 @@ made from the title** is left out the same way (the user's decision of 2026-11-1
 wherever a path puts it — the board's slug, the plan folder, a board's path and a link to a board or into a folder, a report's copy, a path
 a text cites — is no grade to any scan of one (`levelrefs.js` `maskSlugs()`: `check.js`, the feature probes, the browser pass, and the
 fast path's rewording, which writes a fact that cites such a path as it is), and is flagged nowhere: the title it was made from carries
-the flag. The same token in prose with no path around it, a file's name, an anchor and a branch (an identifier, read whole, `plan/RULES.md`
-§4) are no slug, and a grade there is found as anywhere else. The C4
+the flag. **The slug inside a branch's name** is left out too (the user's decision of 2026-11-14, batch-8/branch-slug): the `<number>-<slug>`
+a branch carries after its issue (`<type>/issue-<n>-<slug>`, or `issue-<n>-<slug>` in a repository whose pattern has no type) or after its
+type (`<type>/<n>-<slug>`), wherever the branch stands — a board's branch, a tracker's, a state board's as-is stamp, a fact that names it;
+the rest of the branch, and a branch that carries no issue number, are read as any text is. The same token in prose with no path around
+it, a file's name and an anchor are no slug, and a grade there is found as anywhere else. The C4
 model's levels and the documentation levels are no grade: the rule does not touch them ("Level 1 · System Context", "level-1
 KDoc"), nor the old test levels a landed document keeps and a board quotes ("Level 2 — component", "L1 gating"), which the fast
 path writes by their set's name wherever it writes a fact (above). `plan/scripts/check.js` fails a board whose text names a grade,

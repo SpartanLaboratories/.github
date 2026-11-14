@@ -1405,7 +1405,8 @@ remediation sub-step's name) goes through `system/scripts/levelrefs.js` `scrubLe
 team" → "accepted", "a planner re-pass" → "a plan re-pass", "rookie-dev's fixes" → "the fixes", "code-reviewer" → "code check", "documentation-reviewer" → "documentation check", "(the
 user's call)" dropped; a text that still names a barred name, whatever the words around it, is left out and named for the presenter;
 the remediation routes' older ids are read as their neutral ones) (an identifier, the
-branch or the version, is never reworded: one that names a grade is left out, the presenter told):
+branch or the version, is never reworded: one that names a grade is left out, the presenter told; the slug inside a branch's name names
+none, `GUIDANCE.md` §4):
 a scope phrase becomes the unit's scope on a sub-issue's board and the issue's elsewhere ("diff inside grade 3" → "diff inside the unit's
 scope"), the grade before a noun is elided ("a grade-3 change" → "a change", "grade-3 re-pass" → "re-pass", the article mended), the
 label is dropped with the punctuation it leaves ("Sized; Label grade: 3; research starts" → "Sized; research starts"), "escalated to
@@ -1955,7 +1956,8 @@ research has started — a research question recorded, or the research phase pas
 `title`; on the repository work board a Row's, group's, roadmap item's or unscheduled issue's) is a warning, `ISSUE TITLE NAMES A GRADE: #n`: a
 defect in the issue, quoted verbatim, which the grade failure above leaves out (`levelrefs.js` `issueTitleRefs()`); it leaves out as well a
 slug made from a title, wherever a path puts it (`slug`, `folder`, a unit's `folder` and `board`, `issueBoards`, a board link, a report's
-copy, a path a text cites; a `branch` is read whole), and flags none (`GUIDANCE.md` §4; the user's decision of 2026-11-14, batch-8/q-54; `levelrefs.js` `maskSlugs()`).
+copy, a path a text cites), and the slug inside a branch's name (`branch`, a Row's `tracker.branch`, a fact that names one: the
+`<number>-<slug>` after `issue-` or after its type; the user's decision of 2026-11-14, batch-8/branch-slug), and flags none (`GUIDANCE.md` §4; the user's decision of 2026-11-14, batch-8/q-54; `levelrefs.js` `maskSlugs()`).
 An older wording in any text of `plan.json` — a pass named "qa pass N" or "the 2nd qa pass", one with no number named a "qa pass" ("no new
 qa pass"), the qa step named "qa" ("qa next", "Halted at qa"), the remediation step named "Remediation for …" or a "remediation loop", a
 halt's fix step named with its pass or its article ("Halted at the Correction of Quality Review 2", "Held still at the Resolution"), the

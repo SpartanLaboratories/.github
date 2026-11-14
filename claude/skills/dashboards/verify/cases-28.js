@@ -2,7 +2,7 @@
 // sum of what its bar draws, since dashboards-skill/32 the visits of its run's steps: verify/cases-32.js); an issue's title quoted verbatim, one that names a grade flagged as a
 // defect in the issue (ISSUE TITLE NAMES A GRADE: #n) by check.js, check-board.js, apply-event.js and apply-state.js and never a failure
 // of the board, on every type; a slug or a folder name made from the title left out of the grade check as the title is (the user's decision of
-// 2026-11-14, batch-8/q-54); an issue board at research with no rows a defect (NO ROWS AT RESEARCH), research planning on a rowless board
+// 2026-11-14, batch-8/q-54), the slug inside a branch's name too (batch-8/branch-slug); an issue board at research with no rows a defect (NO ROWS AT RESEARCH), research planning on a rowless board
 // glowing nothing, a tracking board's research left alone; each unit row's label glowing on its own while it is filed as a sub-issue, after its plan's merge
 // (per-unit sub-issues-filed events, a final one closing the step); and the feature probes
 // of this run. Each group returns [title, cases], a case [name, ok, detail].
@@ -106,26 +106,29 @@ module.exports = function cases28(X) {
     const masked = ["70-grade-reader", "docs/plans/70-grade-reader", "docs/plans/55-http-client-stack/70-grade-reader/plan.md#3-design", "71-grade-check/", "../70-grade-reader/dashboard.html",
       "see 70-grade-reader/plan.md", "`docs/plans/70-grade-reader`", "\"slug\": \"70-grade-reader\"", "\"folder\": \"docs/plans/55-http-client-stack/70-grade-reader\"", "55-http-client-stack/70-grade-reader/2f43cfc3/tests/index.html"].filter(t => LR.levelRefs(t).length);
     c.push(["levelRefs() leaves a slug out where a path puts it: alone, the plan folder, a board's path and link, a report's copy, a path a text cites, a Source view's quoted slug and folder", !masked.length, JSON.stringify(masked.map(t => [t, LR.levelRefs(t)]))]);
+    /* the slug inside a branch's name (the user's decision of 2026-11-14, batch-8/branch-slug (a)) */
+    const branches = ["feat/issue-70-grade-reader", "fix/70-grade-reader", "issue-70-grade-reader", "\"branch\": \"feat/issue-70-grade-reader\"", "as-is at `feat/issue-70-grade-reader` @ 2f43cfc", "origin/feat/issue-70-grade-reader",
+      "the run's branch docs/issue-39-grade-tools.", "(chore/issue-24-grade-hygiene)"].filter(t => LR.levelRefs(t).length);
+    c.push(["levelRefs() leaves out the slug inside a branch's name: after its issue (<type>/issue-<n>-<slug>, issue-<n>-<slug>) or its type (<type>/<n>-<slug>), wherever the branch stands, ending a sentence included (batch-8/branch-slug)", !branches.length, JSON.stringify(branches.map(t => [t, LR.levelRefs(t)]))]);
     const kept = ["a grade-3 change", "docs/plans/70-x/plan.md#a-grade-3-change", "the 70-grade-reader board", "docs/70-grade-reader.md", "docs/plans/carrier-grade/plan.md", "docs/plans/70-grade-reader/ in grade 3",
-      "fix/70-grade-reader", "feat/issue-70-grade-reader"].filter(t => !LR.levelRefs(t).length);
-    c.push(["…and still finds a grade anywhere else: an anchor, the token in prose with no path around it, a file's name, a folder not named <number>-<slug>, a grade beside a slug, a branch (an identifier, read whole)", !kept.length, JSON.stringify(kept)]);
+      "feat/issue-70-grade-reader in grade 3", "grade/issue-70-tools", "docs/grade-wording", "fix/70-grade-reader.md", "feat/issue-70-grade-reader#a-grade-3-change"].filter(t => !LR.levelRefs(t).length);
+    c.push(["…and still finds a grade anywhere else: an anchor, the token in prose with no path around it, a file's name, a folder not named <number>-<slug>, a grade beside a slug or a branch, a branch's type, a branch with no issue number", !kept.length, JSON.stringify(kept)]);
     c.push(["a title is read whole: titleRefs() finds what levelRefs() leaves out of a slug (the flag fires on the title, never on its slug)", LR.titleRefs("docs/plans/70-grade-reader").length === 1 && !LR.levelRefs("docs/plans/70-grade-reader").length, JSON.stringify(LR.titleRefs("docs/plans/70-grade-reader"))]);
-    /* the data: an issue board whose slug, folder, unit folder and board links come from titles that name the word; its branch, read whole,
-       still names it (an identifier: plan/RULES.md §4) */
+    /* the data: an issue board whose slug, folder, unit folder, board links and branch come from titles that name the word */
     const sd = { schema: "plan-board/1", issue: 70, issueTitle: "Grade reader for the handshake", slug: "70-grade-reader", folder: "docs/plans/55-http-client-stack/70-grade-reader", branch: "feat/issue-70-grade-reader",
       parent: { issue: 55, board: "../dashboard.html" }, issueBoards: { 71: "../71-grade-check/dashboard.html" }, function: "Reads the handshake.", rows: [{ id: "a", name: "Row a", unit: { issue: 71, title: "Grade check", folder: "71-grade-check/", board: "71-grade-check/dashboard.html" } }] };
     const sh = LR.levelRefsIn(sd, "", [], LR.titleSkip(sd)), st = LR.issueTitleRefs(sd).map(x => [x.at, x.issue]);
-    c.push(["levelRefsIn() with titleSkip(): nothing in the slug, the folder, a unit's folder or a board link, the branch alone found; the titles flagged as before", sh.map(x => x.at).join() === "branch" && JSON.stringify(st) === JSON.stringify([["issueTitle", 70], ["rows[0].unit.title", 71]]), JSON.stringify({ hits: sh, titles: st })]);
+    c.push(["levelRefsIn() with titleSkip(): nothing in the slug, the folder, a unit's folder, a board link or the branch; the titles flagged as before", !sh.length && JSON.stringify(st) === JSON.stringify([["issueTitle", 70], ["rows[0].unit.title", 71]]), JSON.stringify({ hits: sh, titles: st })]);
     const sd2 = { ...sd, branch: null, function: "a grade-3 change" };
     c.push(["…a grade elsewhere in the same data still found", LR.levelRefsIn(sd2, "", [], LR.titleSkip(sd2)).map(x => x.at).join() === "function", JSON.stringify(LR.levelRefsIn(sd2, "", [], LR.titleSkip(sd2)))]);
     /* check.js on an issue board laid in such a folder: the verdict of the same board in its own folder, the title flagged, no grade failure */
-    const S0 = copy(LIVE), S1 = copy(LIVE); Object.assign(S1, { slug: "70-grade-reader", folder: "docs/plans/70-grade-reader", issueTitle: "Grade reader verification fixture" });
+    const S0 = copy(LIVE), S1 = copy(LIVE); Object.assign(S1, { slug: "70-grade-reader", folder: "docs/plans/70-grade-reader", branch: "feat/issue-70-grade-reader", issueTitle: "Grade reader verification fixture" });
     const q0 = tree("slug-base", [S0]), q1 = tree("slug-grade", [S1]), k0 = run(checkJs, [path.join(q0, ...S0.folder.split("/"))]), k1 = run(checkJs, [path.join(q1, ...S1.folder.split("/"))]);
-    c.push(["check.js: a board whose slug and folder name the word keeps its verdict, no grade failure, its title flagged as the issue's defect", k1.status === k0.status && !/shows a grade/.test(k1.stdout) && /^warn\s+ISSUE TITLE NAMES A GRADE: #70 \(issueTitle:/m.test(k1.stdout), JSON.stringify([k0.status, k1.status, fails(k1).slice(0, 3)])]);
+    c.push(["check.js: a board whose slug, folder and branch name the word keeps its verdict, no grade failure, its title flagged as the issue's defect", k1.status === k0.status && !/shows a grade/.test(k1.stdout) && /^warn\s+ISSUE TITLE NAMES A GRADE: #70 \(issueTitle:/m.test(k1.stdout), JSON.stringify([k0.status, k1.status, fails(k1).slice(0, 3)])]);
     /* the fast path: a fact citing a path in such a folder is written as it is, not left out */
     if (k1.status === 0) {
-      const a = apply(q1, req(path.join(sc, "slug-halt.json"), { github: S1.repo, issue: S1.issue, event: "halted", folder: S1.folder, facts: { waitingOn: "Which reply text the refusal takes (see docs/plans/70-grade-reader/plan.md)." } }), "2026-10-25T16:00:00Z"), p = planOf(q1, S1.folder);
-      c.push(["apply-event.js writes a fact that cites a path in that folder as it is, with no grade named for the presenter", a.status === 0 && /docs\/plans\/70-grade-reader\/plan\.md/.test(p.wip.waitingOn || "") && !(a.s.why || []).some(x => /grade/.test(x)), JSON.stringify([a.status, a.s.result, p.wip.waitingOn, a.s.enrich, a.s.why, a.s.error])]);
+      const a = apply(q1, req(path.join(sc, "slug-halt.json"), { github: S1.repo, issue: S1.issue, event: "halted", folder: S1.folder, facts: { waitingOn: "Which reply text the refusal takes (see docs/plans/70-grade-reader/plan.md on feat/issue-70-grade-reader)." } }), "2026-10-25T16:00:00Z"), p = planOf(q1, S1.folder);
+      c.push(["apply-event.js writes a fact that cites a path in that folder, and the branch, as it is, with no grade named for the presenter", a.status === 0 && /docs\/plans\/70-grade-reader\/plan\.md on feat\/issue-70-grade-reader\)/.test(p.wip.waitingOn || "") && !(a.s.why || []).some(x => /grade/.test(x)), JSON.stringify([a.status, a.s.result, p.wip.waitingOn, a.s.enrich, a.s.why, a.s.error])]);
     } else c.push(["the slug board passes check.js (to apply an event on it)", false, fails(k1).join(" | ").slice(0, 300)]);
     /* the board scripts without a browser: the level-phrases probe passes the page; the browser pass leaves the slug out (SLUG_PATTERNS) */
     const pg = planPage("slug-page", S1), nb = run(checker, [pg, "--auto", "--no-browser"]);
