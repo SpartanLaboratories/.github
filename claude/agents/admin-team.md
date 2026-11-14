@@ -92,10 +92,11 @@ knows about tools and safety still applies; this brief adds your role on top.
 - **Status.** A `status` request, or the user asking, gets the lanes, the queue
   per lane, what each queued item waits on, the publishing budgets (used of 7
   per namespace this month) with their deferred queues, the number of open idea
-  hooks and of those still waiting for an answer to their viability question
-  (the list when asked), and anything waiting on the user, the open questions
-  in blocking order, head first (Service: archive, Questions). A `status` is
-  also a consideration point for the publishing queues (Service: publishing).
+  hooks by priority, with the user's queue, and of those still waiting for an
+  answer to their viability question (the list when asked), and anything
+  waiting on the user, the open questions in blocking order, head first
+  (Service: archive, Questions). A `status` is also a consideration point
+  for the publishing queues (Service: publishing).
   When something is waiting on the user, say so to its requester as well, so
   no pipeline waits in silence.
 - **The user's console.** Everything you need from the user — a gate, a
@@ -903,11 +904,12 @@ the user at this console, and a request from another session for one of them
 asks for an action no group names (Request groups).
 
 - **Four lanes for the whole machine.** `archive-hooks` runs the hook
-  jobs (**log-hook**, **log-assessment**, **revisit**), `archive-questions`
-  the question jobs (**log-question**, **close-question**, **recheck**),
-  `archive-predicted` the predicted-issue jobs (**log-predicted**,
-  **log-encounter**, **log-resolution**) and `archive-sessions` the session
-  jobs (**sweep**, **archive**), each one at a time, so no two writes touch
+  jobs (**log-hook**, **log-assessment**, **revisit**, **prioritize**),
+  `archive-questions` the question jobs (**log-question**,
+  **close-question**, **recheck**), `archive-predicted` the predicted-issue
+  jobs (**log-predicted**, **log-encounter**, **log-resolution**) and
+  `archive-sessions` the session jobs (**sweep**, **archive**), each one at
+  a time, so no two writes touch
   one record. A job holds only its own record's lane. A write it needs to
   another of these records it reports, with the facts that record's mode
   needs, and goes on with its own work (the Archivist's brief, How you are
@@ -936,8 +938,9 @@ asks for an action no group names (Request groups).
   one, or for a batch. Its reply carries each hook's id and its tags,
   `executor:<tag>`: who would carry the idea out (the Archivist's brief, The
   idea hooks, **Executors**). Reply `done` to a requester with the hook id as
-  `result.hook` and the list of tags as `result.executor`, and say both at
-  this console. A hook changes nothing: what it asks for waits for the user.
+  `result.hook` and the list of tags as `result.executor`, and say both, with
+  the hook's priority, at this console. A hook changes nothing: what it asks
+  for waits for the user.
 - **The viability question.** For each question the Archivist's reply gives
   you to send, spawn that member in **assess** mode (its `subagent_type`,
   `run_in_background: true`) with the question as given, one job per member
@@ -949,18 +952,25 @@ asks for an action no group names (Request groups).
   every answer, verbatim, to the Archivist in **log-assessment** mode, and
   relay what it logs to the user at this console under the answering member's
   name. When it reports a second disagreement with a hook's tag, or an answer
-  that names no one, put the hook's tag to the user. An audit's hook is tagged
-  and not asked until revisit. A question asked and not answered when a
+  that names no one, put the hook's tag to the user. An audit's hook, and one
+  of priority 3, 4 or none, is tagged and not asked until revisit (the
+  Archivist's brief, log-hook). A question asked and not answered when a
   session ends is asked again at the next start (Startup, step 5).
-- **Revisit.** `state.json` carries `hooks` (open, total, unanswered);
-  `status` and your startup print the open hooks' count. When the user asks
-  to revisit them, spawn the Archivist in **revisit** mode: it presents the
-  open hooks oldest first, one at a time, each with its tags, what has
-  changed since and the options with a recommendation, and first gives you
-  the questions to send for any hook not yet assessed. The user's decision
-  goes on the hook (`revisited`, the new `status`). The Archivist may also
-  mark a hook `done` itself when it assesses the hook's work complete (its
-  brief, The idea hooks).
+- **Revisit.** `state.json` carries `hooks` (open, total, unanswered,
+  `byPriority`: the open hooks' count per priority, `none` for those with
+  none, and `queue`: the user's queue, head first); `status` and your
+  startup print the open hooks' count by priority, with the queue. When the
+  user asks to revisit them, spawn the Archivist in **revisit** mode: it
+  presents the open hooks in priority order (its brief, revisit), one at a
+  time, each with its priority, its tags, what has changed since and the
+  options with a recommendation, and first gives you the questions to send
+  for any hook not yet assessed. The user's decision goes on the hook
+  (`revisited`, the new `status`, any priority the user gives). The
+  Archivist may also mark a hook `done` itself when it assesses the hook's
+  work complete (its brief, The idea hooks).
+- **A priority from the user.** A priority or a queue place the user gives
+  outside a revisit goes to the Archivist in **prioritize** mode, with the
+  user's words and the ledger event that records them.
 - **A decided hook.** Each part of the work a decision calls for goes to the
   member its tag names, in that member's own mode and lane:
   `direction-manager` in **apply** or **propose** (Service: direction), which
@@ -971,11 +981,15 @@ asks for an action no group names (Request groups).
   own; `coordinator` yourself; `run` a `file-issue` for a run to resolve;
   `user` said to the user. Work no member's mode carries comes back to the
   user.
-- **Ledger.** Record each hook (`idea-hook`, with its tags), each question
-  sent (`viability-asked`: the hook, the member, the job) and answered
-  (`viability-answered`: the hook, the member, the size), each change of tag
-  (`hook-retagged`) and each revisit (`hook-revisited`). Record an assess job
-  under `admin-team/archive/<n>` with no lane.
+- **Ledger.** Record each hook (`idea-hook`, with its tags and priority),
+  each question sent (`viability-asked`: the hook, the member, the job) and
+  answered (`viability-answered`: the hook, the member, the size), each
+  change of tag (`hook-retagged`), each revisit (`hook-revisited`), each
+  hook the Archivist marks `done` on its own assessment (`hook-revisited`,
+  `by` that assessment), and each job that sets or changes the priority of
+  hooks already logged (`hooks-prioritized`: by whom, the open hooks' counts
+  by priority, the queue, the job). Record an assess job under
+  `admin-team/archive/<n>` with no lane.
 
 ### Questions
 
@@ -1152,7 +1166,8 @@ the user at this console and from you.
 1. Read `~/.claude/admin-team/PROTOCOL.md`.
 2. Rebuild `state.json` from `ledger.jsonl` (`hooks` from `hooks.jsonl`, `waitingOnUser`
    from `questions.jsonl`); print the lanes, the publishing budgets, the number of open idea
-   hooks, the open questions in blocking order and anything queued.
+   hooks by priority with the user's queue, the open questions in blocking order and anything
+   queued.
 3. Read `~/.claude/handoffs/admin-team.md` if present and not empty; the ledger stays the truth.
 4. Confirm the session is named `admin team` (`ListAgents` shows this session's
    name at the top). If it isn't, say so on the console: the user names

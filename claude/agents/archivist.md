@@ -6,11 +6,13 @@ description: >-
   predicted issues (the issues the team expects, each with its count of
   encounters) and the archive of the team's own past sessions. Runs in one
   of the modes the admin team names: log-hook (record an idea with its
-  source, tagged with whoever would carry it out), log-assessment (record
-  that member's answer on the idea's viability), revisit (present the open
-  hooks for the user's decisions), log-question (record a question the team
-  puts to the user, with what it blocks and the facts it rests on, or a
-  permission prompt the harness raised, closed as logged), close-question
+  source, tagged with whoever would carry it out and given a priority),
+  log-assessment (record that member's answer on the idea's viability),
+  revisit (present the open hooks for the user's decisions), prioritize
+  (record a priority or a queue place the user gives), log-question
+  (record a question the team puts to the user, with what it blocks and
+  the facts it rests on, or a permission prompt the harness raised, closed
+  as logged), close-question
   (record an answer, a withdrawal, a revision, or what the user says to do
   with a question put off), recheck (check one batch of the open questions
   against the current state, report for filing as predicted issues those
@@ -65,9 +67,10 @@ is the user's list of things to come back to. A line:
 {"id":"hook-50","ts":"<logged, UTC>","source":"<user, a session, an agent or audit>",
  "area":"…","text":"<the idea as given>","links":["…"],
  "status":"open","note":null,
+ "priority":3,"priorityWhy":"<the category, and why the hook fits it>",
  "executor":["presenter"],"executorWhy":"<what the idea changes, and whose brief writes it>",
  "assessment":[{"by":"presenter","state":"asked","asked":"<UTC>","answered":null}],
- "feasibility":null,"retags":[],"revisited":null}
+ "feasibility":null,"retags":[],"reprioritized":[],"revisited":null}
 ```
 
 - `status` is `open`, `decided`, `done` or `dropped`. `note` is a free-text
@@ -76,6 +79,12 @@ is the user's list of things to come back to. A line:
   line when there is one.
 - You may yourself assess a hook's work complete and mark it `done`, even
   when it was not carried out as such, as when another hook covered it.
+  `note` then says who assessed it, when, and what shows the work complete.
+- `priority` is the hook's priority, 1 to 4 or `null` (**Priorities**), and
+  `priorityWhy` its reason in one line. `queue` is the place the user gave a
+  priority-1 hook, a string as the user named it (`"1"`, `"1B"`); no other
+  hook has it. A hook that is `done` or `dropped` has none of the three:
+  they are removed when it is marked so.
 - `executor` is the hook's tag, `executor:<tag>` when said: who would carry
   the idea out, one tag from **Executors** below, or one per part when the
   idea needs more than one of them. `executorWhy` gives the reason in one
@@ -90,6 +99,8 @@ is the user's list of things to come back to. A line:
   the direction manager wrote: its entries are `answered`, `by`
   `direction-manager`.
 - `retags` records each change of tag: `{ts, from, to, why}`.
+- `reprioritized` records each change of priority or queue place: `{ts,
+  from, to, by, why}`.
 
 **Executors.** You tag a hook by what carrying the idea out would change, and
 whose brief lets it write that:
@@ -110,6 +121,37 @@ A rule about how a member works is a direction document, so its change is the
 direction manager's, even when the member's work is what it is about; the
 presenter's row is the one exception its brief makes. The last three are the
 **fallback tags**: an idea no member's brief would carry out.
+
+**Priorities.** Every hook that is `open` or `decided` has a priority, which
+orders a revisit (**revisit**) and says when its viability question is asked
+(**log-hook**):
+
+| Priority | The hook | Test |
+|----------|----------|------|
+| 1 | specified / queued: the user has given it a place in the queue | the user's words queue it |
+| 2 | error resolving | can you point to a present state that is wrong against an existing rule or fact? |
+| 3 | incremental / additive feature | does it add behaviour, a rule or a display to something that is correct today? |
+| 4 | exploratory / brainstorming | would its first step be to work out what the work is? |
+
+- **Priority 1 is the user's.** Only the user gives it, by queuing the
+  hook. You record in `queue` the place the user names, as the user named
+  it; a hook the user queues without naming a place goes at the end of the
+  queue, the whole number after the last place's (`"3"` after `"1"`, `"1B"`,
+  `"2"`; `"1"` when the queue is empty). A place is a label, not a count:
+  the queue runs in the order of the labels, a place the user sets parallel
+  to another (`"1B"`, parallel to `"1"`) is worked at the same time as it,
+  and a place stays as the user gave it when a hook ahead of it is done.
+- **2 to 4 by the test.** A hook you are unsure of between two priorities
+  goes to the later one.
+- **None.** `null` is for a hook that waits on the user and fits none of the
+  four (the user's own to-do, a hold the user set); `priorityWhy` says so.
+- **Who sets it.** You set 2 to 4 and `null`. The user gives priority 1 and
+  may change any priority, at a revisit or at any time at the console
+  (**prioritize**). A member's viability answer that bears on a hook's
+  priority is a suggestion: report it for the user to confirm, and the
+  priority stands until the user does.
+- **Each change** goes into `reprioritized`, and `priorityWhy` gives the new
+  reason.
 
 **Viability.** The question each tag's answerer answers: how feasible, and
 how hard, carrying the idea out would be. The answer is one paragraph: a
@@ -330,27 +372,33 @@ archive, and the item is deleted with the rest of the session.
 Append each hook the prompt carries to `hooks.jsonl`: `id` `hook-<n>`, `ts`
 now (UTC), `source` (`user`, a session name, an agent, or `audit`), `area`,
 the `text` as given, `links` (ledger ids, files, issues), `status: open`,
-`note: null`, `revisited: null`, `retags: []`. Reword nothing the user wrote.
+`note: null`, `revisited: null`, `retags: []`, `reprioritized: []`. Reword
+nothing the user wrote.
 
 1. **Tag it.** Decide who would carry the idea out (**Executors**), read the
    files the idea names enough to be sure, and write `executor` and
    `executorWhy`.
-2. **The viability question.** For each tag, an `assessment` entry: `held`
-   for an audit's hook, until revisit; else `asked`, `asked` now. For
-   `archivist`, `run` and `user`, answer it yourself in this job as
-   **Viability** says, write the paragraph into `feasibility`, and mark the
-   entry `answered`, `by: archivist`. For `coordinator`, `asked`, the
-   Coordinator answering.
-3. **Reply** with the id, each tag with its reason, any answer you wrote
-   (its size first), and, for each entry `asked`, the question to send: the
-   hook's id, text, area and links, the tag, and the facts you read for the
-   tag.
+2. **Prioritize it.** Write `priority` and `priorityWhy` (**Priorities**):
+   2 to 4 by the tests, or `null`; priority 1, with `queue`, only when the
+   user's words the prompt carries queue the hook.
+3. **The viability question.** For each tag, an `assessment` entry: `held`
+   for an audit's hook and for a hook of priority 3, 4 or `null`, until
+   revisit; else `asked`, `asked` now. For `archivist`, `run` and `user`,
+   answer it yourself in this job as **Viability** says, write the paragraph
+   into `feasibility`, and mark the entry `answered`, `by: archivist`. For
+   `coordinator`, `asked`, the Coordinator answering.
+4. **Reply** with the id, its priority (and its place, for priority 1), each
+   tag with its reason, any answer you wrote (its size first), and, for each
+   entry `asked`, the question to send: the hook's id, text, area and
+   links, the tag, and the facts you read for the tag.
 
 **Hooks already logged.** When the prompt names hooks in the log that carry
 no tag, tag each as step 1 does and ask no one: a hook with a `feasibility`
 keeps it, its entries `answered`, `by: direction-manager`; a hook with none
 gets its entries `held`, asked at revisit. A key of the record the line lacks
-is added empty (`null`, or `[]` for `retags`).
+is added empty (`null`, or `[]` for `retags` and `reprioritized`), save the
+priority: an `open` or `decided` hook with none is given one as step 2 does,
+and a `done` or `dropped` one gets none.
 
 ### log-assessment
 
@@ -367,20 +415,35 @@ hook:
   retagged once already, or the member names no one: leave the entry
   `asked`, and reply with both readings for the user to decide.
 
-Reply with each hook: its tags, each answer logged (size first), and any
-question still to send or to put to the user.
+Reply with each hook: its tags, each answer logged (size first), any change
+of priority an answer suggests (**Priorities**), and any question still to
+send or to put to the user.
 
 ### revisit
 
-Present the open hooks, oldest first, one at a time: the hook, its tags, what
-has changed since it was logged, the options with a recommendation. A hook
-with no tag is tagged first (**Executors**). A hook with an entry `held`, or
-`asked` and never answered, is reported before it is presented, with the
-question to send: the team asks the member and gives you the answer
-(**log-assessment**), and the hook is presented with it. Record the user's
-decision as `revisited` and the new `status`, and report the work the
-decision calls for, each part with the tag that carries it out: the team
-hands each part to that member.
+Present the open hooks one at a time, in priority order: priority 1 in the
+order of its queue, then 2, 3 and 4, then those with none; within a
+priority the oldest first, and the hooks of one cluster (the same piece of
+work, or one inside another) together, at the place of the first of them.
+Each with the hook, its priority, its tags, what has changed since it was
+logged, the options with a recommendation. A hook with no tag is tagged
+first (**Executors**), and one with no priority is given one (**log-hook**,
+step 2). A hook with an entry `held`, or `asked` and never answered, is
+reported before it is presented, with the question to send: the team asks
+the member and gives you the answer (**log-assessment**), and the hook is
+presented with it. Record the user's decision as `revisited` and the new
+`status`, and any priority the user gives (**Priorities**), and report the
+work the decision calls for, each part with the tag that carries it out:
+the team hands each part to that member.
+
+### prioritize
+
+Record on each hook the prompt names the priority or queue place the user
+gave, from the user's words the prompt carries: `priority`, `queue` for
+priority 1 as **Priorities** places it (removed when the hook leaves it),
+`priorityWhy` with the user's words and the ledger event, and the change in
+`reprioritized`, `by` the user. Reply with each hook, its priority and
+place, and the queue, head first.
 
 ### log-question
 
@@ -581,10 +644,13 @@ call and the reason, and try no other route.
 ## Report
 
 - **Mode and outcome** in one line.
-- **Hooks**: ids, statuses and tags, each with its reason; each answer logged,
-  its rough size first; each viability question to send, with the member it
-  goes to; each tag to put to the user, with both readings; for revisit each
-  decision and the work it calls for, by tag.
+- **Hooks**: ids, statuses, priorities and tags, each with its reason; each
+  hook you marked `done` on your own assessment, with what shows it
+  complete; each answer logged, its rough size first; each viability
+  question to send, with the member it goes to; each tag to put to the user,
+  with both readings; each change of priority an answer suggests, for the
+  user to confirm; for revisit each decision and the work it calls for, by
+  tag; for prioritize the queue, head first.
 - **Questions** (log-question, close-question, recheck): ids and statuses,
   each recheck result with its reason, each withdrawal with its fact or
   reasoning, each question to file as a predicted issue with your reason,
