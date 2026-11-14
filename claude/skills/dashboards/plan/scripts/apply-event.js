@@ -196,6 +196,11 @@ const routeId = r => (typeof r === "string" && ROUTE_OLD[r]) || r;
 /* a step named in the run's own words (admin-team/board/timeline-waits): "implement", the pipeline's name of its implementation step. Any
    event that reads facts.step may use it; an implementation-stage reads none (its facts.step has no effect, applyEvent()) */
 const STEP_ALIASES = { implement: "implementation", implementing: "implementation" };
+/* a step written as the run's own step list labels it (SpartanGraphics #3: "2. Plan (applying the verification's edits)"): the step's
+   number before its name ("2.", "2)", "6.1") and one aside in parentheses after it are the label's, not the step's; the name left is read
+   in any case ("Plan" is plan, "QA" is qa), through STEP_ALIASES and, on a tracking board, TRACKING_PLAN_WORDS, as any other. A name that
+   is still no step of the board is warned on (STEP UNKNOWN). */
+const stepLabel = s => s.replace(/^\d+(?:\.\d+)*[.)]?\s+(?=\S)/, "").replace(/\s*\([^()]*\)$/, "").trim();
 /* a tracking board has no plan step (plan/RULES.md §3): its run's plan step is its architecture, so a facts.step in these words, on any
    event, is read as the board's architecture step (trackingArchStep()) and never opens wip.plan (KotlinBottools #2,
    admin-team/dashboards/tracking-step-plan). On an issue board "planning" stays unread: there it may name research's planning phase. */
@@ -229,13 +234,15 @@ function applyEvent(orig, ev, facts, req, now) {
   }
   /* the step the facts name on any other event, in the run's own words where they differ from the board's (admin-team/board/timeline-waits:
      "implement" is the implementation step); a facts.step that names no step is warned on, never dropped silently, and the step is derived
-     from the event */
+     from the event: the field is dropped, so no event takes it for a step (a resumed returns to the board's wip.resume) */
   if (ev === "step-complete" && typeof facts.step === "string" && facts.step.trim()) { applied.push(`facts.step ${JSON.stringify(facts.step.trim())} ignored: a step-complete moves no step`); facts = factsWith(facts, null, ["step"]); }
   if (typeof facts.step === "string" && facts.step.trim()) {
-    const said = facts.step.trim(), low = said.toLowerCase(), tplan = plan.kind === "tracking" && TRACKING_PLAN_WORDS.has(low);
-    const step = tplan ? trackingArchStep(w) : STEP_ALIASES[low] || said;
-    if (step !== facts.step) { facts = factsWith(facts, { step }); applied.push(`facts.step ${JSON.stringify(said)} read as ${step}${tplan ? " (a tracking board has no plan step: its run's plan is its architecture)" : ""}`); }
-    if (!STEPS.includes(step)) WARNINGS.push(`STEP UNKNOWN: facts.step ${JSON.stringify(said)} is no step of the board (${STEPS.join(", ")}): the step is derived from the event`);
+    const said = facts.step.trim(), name = stepLabel(said), low = name.toLowerCase(), tplan = plan.kind === "tracking" && TRACKING_PLAN_WORDS.has(low);
+    const step = tplan ? trackingArchStep(w) : STEP_ALIASES[low] || (STEPS.includes(low) ? low : said);
+    if (!STEPS.includes(step)) {
+      facts = factsWith(facts, null, ["step"]);
+      WARNINGS.push(`STEP UNKNOWN: facts.step ${JSON.stringify(said)} is no step of the board (${STEPS.join(", ")}): the step is derived from the event`);
+    } else if (step !== facts.step) { facts = factsWith(facts, { step }); applied.push(`facts.step ${JSON.stringify(said)} read as ${step}${tplan ? " (a tracking board has no plan step: its run's plan is its architecture)" : ""}`); }
   }
   /* a steps line written before the landing's three steps (dashboards-skill/34) takes state-boards and merge after its landing, at any
      event of a board still in flight (a landed or cancelled board keeps its line) */
