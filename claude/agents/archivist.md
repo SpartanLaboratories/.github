@@ -307,7 +307,8 @@ its files. Nothing changed in the last 10 minutes is touched.
 
 **What a deletion removes.** The transcript, the session's folder,
 `~/.claude/file-history/<id>/`, `~/.claude/session-env/<id>/`, and its
-scratchpad and task outputs in the temp folder, once what an open record
+scratchpad, task outputs and pasted images in the temp folder, with a spent
+commit message (`msg.txt`) left loose beside them, once what an open record
 points at is copied into the archive. Its lines in `~/.claude/history.jsonl`
 stay.
 

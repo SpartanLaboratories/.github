@@ -18,9 +18,10 @@
 // walks its stores once more, and refuses it if it is no longer older or a
 // store changed in the last 10 minutes. Only the stores of the session named,
 // or with --all-ready of the sessions ready, are walked. Then it removes, in
-// this order, each store that exists: its temp folders (scratchpad and task
-// outputs), ~/.claude/file-history/<id>/, ~/.claude/session-env/<id>/, the
-// session's folder and, last, its transcript.
+// this order, each store that exists: its temp folders (scratchpad, task
+// outputs, pasted images and a spent commit message, msg.txt),
+// ~/.claude/file-history/<id>/, ~/.claude/session-env/<id>/, the session's
+// folder and, last, its transcript.
 // --all-ready runs the same checks for each session it takes, one at a time,
 // and goes on past a refusal.
 //
@@ -41,6 +42,12 @@ const L = require('./lib');
 const SC = require('./scratch-copy');
 
 function say(o) { console.log(JSON.stringify(o)); }
+
+// What a session's temp folder may hold: its scratchpad, its task outputs and
+// its pasted images; and, loose beside them, a file of a known kind: a spent
+// commit message (msg.txt).
+const TEMP_STORES = ['scratchpad', 'tasks', 'images'];
+const TEMP_LOOSE = ['msg.txt'];
 
 // The class checks: why the row may not be deleted, or null.
 function classRefusal(P, row, id) {
@@ -82,8 +89,9 @@ function planFor(P, c, id) {
     const parent = path.dirname(s.path);
     if (path.dirname(parent) !== P.temp) return { refused: `${s.path} is not <temp>/<folder>/<id>` };
     const bad = L.safeTarget(parent, id, '', s.path); if (bad) return { refused: `${s.path}: ${bad}` };
-    const inside = fs.readdirSync(s.path).filter(n => n !== 'scratchpad' && n !== 'tasks');
-    if (inside.length) return { refused: `${s.path} holds more than scratchpad/ and tasks/: ${inside.join(', ')}` };
+    const inside = fs.readdirSync(s.path).filter(n => !TEMP_STORES.includes(n)
+      && !(TEMP_LOOSE.includes(n) && fs.lstatSync(path.join(s.path, n)).isFile()));
+    if (inside.length) return { refused: `${s.path} holds more than scratchpad/, tasks/, images/ and a loose msg.txt: ${inside.join(', ')}` };
     plan.push(s);
   }
   for (const name of ['file-history', 'session-env', 'folder', 'transcript']) {

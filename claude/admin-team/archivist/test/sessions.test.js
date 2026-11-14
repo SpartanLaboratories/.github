@@ -84,6 +84,8 @@ put(path.join(HASH, S.s1, 'scratchpad', 'from-closed-hook.txt'), 'cited only by 
 put(path.join(HASH, S.s1, 'scratchpad', 'from-proposal.txt'), 'cited by a proposal');
 put(path.join(HASH, S.s1, 'scratchpad', 'uncited-big.bin'), Buffer.alloc(2048));
 put(path.join(HASH, S.s1, 'tasks', 'task1.output'), 'a task output, cited');
+put(path.join(HASH, S.s1, 'images', '1.png'), Buffer.alloc(512)); // a pasted attachment, cited by nothing
+put(path.join(HASH, S.s1, 'msg.txt'), 'docs: a spent commit message'); // a loose file of a known kind beside them
 put(path.join(OLD, S.s1, 'scratchpad', 'old.txt'), 'older layout');
 for (const id of [S.s2, S.s3, S.kept, S.run, S.held, S.fresh, S.m1]) put(path.join(HASH, id, 'scratchpad', 'x.txt'), 'x');
 put(path.join(HASH, S.s2, 'scratchpad', 'huge', 'h.bin'), Buffer.alloc(3 * 1048576));
@@ -245,8 +247,12 @@ fs.renameSync(path.join(ARCHIVE, 'scratch', S.s1, 'MANIFEST.json'), path.join(DI
 ok(refused(S.s1, null, /does not verify/), 'delete refuses: temp folders and no scratchpad copy');
 fs.renameSync(path.join(DIR, 'm.json'), path.join(ARCHIVE, 'scratch', S.s1, 'MANIFEST.json'));
 put(path.join(HASH, S.s1, 'stray'), 'x'); ageTree(path.join(HASH, S.s1), 3600e3);
-ok(refused(S.s1, null, /more than scratchpad/), 'delete refuses: a temp folder holding more than scratchpad/ and tasks/');
+ok(refused(S.s1, null, /more than scratchpad\/, tasks\/, images\/ and a loose msg\.txt: stray"/), 'delete refuses: a temp folder holding more than scratchpad/, tasks/, images/ and a loose msg.txt, naming only what is more');
 fs.rmSync(path.join(HASH, S.s1, 'stray'));
+const msg = path.join(HASH, S.s1, 'msg.txt');
+fs.renameSync(msg, path.join(DIR, 'msg.txt')); fs.mkdirSync(path.join(msg, 'inner'), { recursive: true }); ageTree(path.join(HASH, S.s1), 3600e3);
+ok(refused(S.s1, null, /and a loose msg\.txt: msg\.txt"/), 'delete refuses: a msg.txt that is a folder is no loose file');
+fs.rmSync(msg, { recursive: true }); fs.renameSync(path.join(DIR, 'msg.txt'), msg);
 ageTree(path.join(HASH, S.s1), 3600e3); ageTree(path.join(ARCHIVE), 3600e3);
 const deep = path.join(HASH, S.s1, 'scratchpad', 'k25', 'deep', 'b.txt');
 fs.utimesSync(deep, new Date(), new Date());
@@ -277,6 +283,7 @@ ok(/does not verify .*copy scratchpad.cited-rel\.json/.test(pf.refused || ''), '
 fs.writeFileSync(relCopy, '{"cited":"relatively, in span"}');
 pf = D.planFor(P, classifyS1(), S.s1);
 ok(pf.plan && pf.plan.length === 6, 'delete in process: plans the removal once the copy verifies');
+ok(exists(path.join(HASH, S.s1, 'images', '1.png')) && exists(msg) && pf.plan.some(s => s.store === 'temp' && s.path === path.join(HASH, S.s1)), 'delete in process: a temp folder holding images/ and a loose msg.txt beside scratchpad/ and tasks/ is planned whole');
 ok(spawned.length === 0, 'delete in process: verifies the copy without starting a child process');
 const outs = []; const log = console.log;
 const capture = f => { outs.length = 0; console.log = s => outs.push(String(s)); try { return f(); } finally { console.log = log; } };
@@ -303,6 +310,7 @@ ok(r.code === 0 && rec.removed.map(x => x.store).join() === 'temp,temp,file-hist
 ok(!exists(t1) && !exists(path.join(PROJECT, S.s1)) && !exists(path.join(ROOT, 'file-history', S.s1)) && !exists(path.join(ROOT, 'session-env', S.s1)) && !exists(path.join(HASH, S.s1)) && !exists(path.join(OLD, S.s1)), 'delete: the five stores are gone');
 ok(exists(path.join(HASH, S.orphan)) && exists(path.join(PROJECT, S.s2 + '.jsonl')) && exists(path.join(HASH, S.run)) && exists(path.join(ROOT, 'history.jsonl')) && exists(path.join(PROJECT, 'memory', 'MEMORY.md')), 'delete: nothing else is touched');
 ok(exists(path.join(ARCHIVE, 'scratch', S.s1, 'tasks', 'task1.output')), 'delete: the scratchpad copy stays in the archive');
+ok(!exists(path.join(HASH, S.s1, 'images')) && !exists(msg) && !exists(path.join(ARCHIVE, 'scratch', S.s1, 'images')) && !exists(path.join(ARCHIVE, 'scratch', S.s1, 'msg.txt')), 'delete: the pasted images and the loose msg.txt go with the temp folder and are not copied into the archive');
 put(path.join(DIR, 'del.json'), r.out);
 r = run('archive.js', ['record-deletion', path.join(DIR, 'del.json')]);
 ok(r.code === 0 && j(r).recorded[0].deleted.stores.length === 6, 'record-deletion: the index records what was removed');

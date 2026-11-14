@@ -139,7 +139,7 @@ The permission system raises the denial.
 ## An encountered issue is not in this tracker
 
 ```json
-{"id":"p9","count":3,"last":"2026-11-13"}
+{"id":"p9","count":5,"last":"2026-11-13"}
 ```
 
 - **Proposed resolution:** add it as a new entry with count 1, then prompt the
@@ -153,6 +153,12 @@ The permission system raises the denial.
   - 2026-11-13: a read-only query of the running processes' command lines was denied
     by the auto mode classifier with no reason given; added as "A read-only query of
     the running processes is denied".
+  - 2026-11-13: an archive job's deletion was refused for a loose file in a session's
+    temp folder, which the `images/` entry does not hold; added as "A session's temp
+    folder holds a loose file, and its deletion is refused".
+  - 2026-11-13: an archive job's `fold-base` refused the relative folder `archive.js plan`
+    had printed; added as "`archive.js fold-base` refuses the folder `archive.js plan`
+    prints".
 
 ## A count changes in this mirrored file
 
@@ -530,7 +536,7 @@ The internal-names scan reads documents, boards and the comments in source code;
 ## A library’s own name that matches a barred name stops a commit
 
 ```json
-{"id":"p36","count":1,"last":"2026-11-13"}
+{"id":"p36","count":2,"last":"2026-11-13"}
 ```
 
 Since 2026-11-13 the internal-names list holds no exception for a library’s name that only coincides with a barred name (the user’s decision: any case for an exception is brought to the user first). A document, a board or a code comment that names a Reactive Streams `Publisher`, a `java.util.concurrent.Executor` or a domain `verifier` is now a find, in backticks too (a longer word that contains a barred name, such as OkHttp’s `RoutePlanner`, is not), and the scan reads every line of each file a commit carries, so a file that already holds such a name stops the next commit that touches it. The dashboards skill’s `namerefs.js` holds its own copy of the list and must follow it, or the boards and the commit scan disagree.
@@ -539,6 +545,7 @@ Since 2026-11-13 the internal-names list holds no exception for a library’s na
 - **Predicted:** the admin team, on recording the decision, 2026-11-13.
 - **Encounters:**
   - 2026-11-13: the organization repository, the commit that opens Policy: the documentation standard’s page names its outer ring’s readers as “system architects” (`policy/documentation/audience-reach.md:58` in the prepared package). Found before the commit was sent and put to the user at the console.
+  - 2026-11-13: WebTools, the rule rework’s staged set: `README.md:604` names “the same per-connection dispatch executor”, a thread executor in the technical sense. Found before the commit was sent; the user granted a one-off pass for that commit and that file at the console, the first pass for this word.
 
 ## A member's attempt to stop its own background process is refused
 
@@ -644,7 +651,35 @@ For example a rendered code block with a variable named `executor`. Today the fa
 
 A console session where an image is pasted keeps the attachment in an `images/` folder of its temp folder, beside `scratchpad/` and `tasks/`. `delete-session.js` knows only those two as the session's temp stores, so an archive job's step 7 refuses the whole deletion ("holds more than scratchpad/ and tasks/: images"), and the session stays archived but not deleted.
 
-- **Proposed resolution:** put to the user: a) the scripts (`delete-session.js`, and `scratch-copy.js` if it should copy them) recognise a session's `images/` as one of its stores, then step 7 reruns (recommended: any console session where an image is pasted hits this); b) as a, and `scratch-copy.js` keeps `images/` in the archive; c) the user removes the file by hand, then step 7 reruns; d) leave the session archived but not deleted for now.
+- **Resolution (decided by the user at the console, option a, 2026-11-13, and settled by the change of the archive scripts that day):** `delete-session.js` accepts a session's `images/` folder as one of its temp stores, beside `scratchpad/` and `tasks/`, so step 7 deletes it with the rest of the session; the scripts' test suite passes 116 of 116 (113 before). `scratch-copy.js` needed no change: a session's images are not copied into the archive (option b, keeping them in the archive, was not chosen).
 - **Predicted:** the admin team, on meeting it, 2026-11-13.
 - **Encounters:**
   - 2026-11-13: an archive job's step 7 refused an archived session's temp folder, which held one pasted attachment (`images/1.png`, 22,670 bytes) beside its scratchpad and task outputs. Nothing was deleted; 5,452 MB stays on disk. Put to the user at the console.
+
+## A session's temp folder holds a loose file, and its deletion is refused
+
+```json
+{"id":"p45","count":2,"last":"2026-11-13"}
+```
+
+A member's job can leave a file loose in an ended session's temp folder, beside `scratchpad/` and `tasks/`: a mirror-sync executor writes its commit message there and commits with `git commit -F ../msg.txt`. `delete-session.js` knows only those two as the session's temp stores, so an archive job's step 7 refuses the whole deletion ("holds more than scratchpad/ and tasks/: msg.txt"), and the session stays archived but not deleted. The entry "A session's temp folder holds an `images/` folder, and its deletion is refused" is the same refusal for a pasted attachment.
+
+- **Proposed resolution:** put to the user: a) widen the check, with the `images/` change, to allow a loose file of a known kind (recommended); b) remove it by hand; c) leave it.
+- **Decided (the user, at the console, 2026-11-13):** option a ("a loose file of a known kind"). The change built it for the one kind met then: a spent commit message, `msg.txt`, as a regular file only. A second kind, `verify-full.log`, has since been met, and which further kinds count is going back to the user; no resolution is recorded until that is decided.
+- **Predicted:** the admin team, on meeting it, 2026-11-13.
+- **Encounters:**
+  - 2026-11-13: an archive job's step 7 refused an archived session's temp folder, which held a loose `msg.txt` (232 bytes, a spent commit message a mirror-sync executor wrote there after the session ended). Nothing was deleted. Put to the user at the console.
+  - 2026-11-13: an archive job's step 7 refused an archived session's temp folder, which held a loose `verify-full.log` (44,166 bytes, a verification run's log), after the check had already been widened for `images/` and a loose `msg.txt`: "holds more than scratchpad/, tasks/, images/ and a loose msg.txt: verify-full.log". Nothing was deleted. The user's decided option a ("a loose file of a known kind") was built for the kinds met then (a spent commit-message file), so which further kinds count is going back to the user.
+
+## `archive.js fold-base` refuses the folder `archive.js plan` prints
+
+```json
+{"id":"p46","count":1,"last":"2026-11-13"}
+```
+
+An archive job's step 8 runs `archive.js plan` and then each wrap due. `plan` prints a base folder due for `fold-base` as a relative path, and `fold-base` refuses that path ("not a base folder of this archive"). The same folder given as an absolute path is accepted.
+
+- **Proposed resolution:** put to the user: a) the direction manager fixes `archive.js` so `fold-base` accepts what `plan` prints (or `plan` prints what `fold-base` accepts), with a test (recommended); b) leave it, and archive jobs pass absolute paths.
+- **Predicted:** the admin team, on meeting it, 2026-11-13.
+- **Encounters:**
+  - 2026-11-13: an archive job's step 8: `fold-base` refused the relative folder `plan` had printed; given as an absolute path, the wrap was done. Put to the user at the console.
