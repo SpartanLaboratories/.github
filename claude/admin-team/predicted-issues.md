@@ -139,7 +139,7 @@ The permission system raises the denial.
 ## An encountered issue is not in this tracker
 
 ```json
-{"id":"p9","count":14,"last":"2026-11-14"}
+{"id":"p9","count":15,"last":"2026-11-14"}
 ```
 
 - **Proposed resolution:** add it as a new entry with count 1, then prompt the
@@ -185,6 +185,10 @@ The permission system raises the denial.
     Remote Control entry on claude.ai, which the user had expected it to; the Coordinator
     said at the console it would log it as an issue met, and it was logged later; added as
     "The session archive cannot remove a session's Remote Control entry".
+  - 2026-11-14: a run's implementation-stage event reached the fast path while the fill
+    behind its plan-accepted was still writing the rows' verdicts, and the board's check
+    failed; added as "A stage-end event arrives before the fill behind plan-accepted has
+    written the verdicts".
 
 ## A count changes in this mirrored file
 
@@ -858,3 +862,16 @@ Each relaunch of the team leaves an offline Remote Control entry named "admin te
 - **Predicted:** the admin team, on meeting it, 2026-11-14.
 - **Encounters:**
   - 2026-11-14: the user expected the session archive to clean up the offline "admin team" Remote Control entries when it deletes a session; the team's research found no CLI or API that removes one. The Coordinator said at the console it would log this as an issue met, and it was not logged until later.
+
+## A stage-end event arrives before the fill behind plan-accepted has written the verdicts
+
+```json
+{"id":"p58","count":1,"last":"2026-11-14"}
+```
+
+A run's `plan-accepted` is applied on the fast path at once, and the fill behind it (the Considered and Verdict columns, from the plan and the consequences) runs after it in a fill lane. When the run's first implementation stage ends while that fill is still running, the implementation-stage event would set the board's status to building, and the board's check then requires each row's verdict ("the verdict is required: its statements, each ending with the plan reference it rests on"), which the fill has not yet written. `apply-event.js` reports the event as not applied ("the presenter applies it") and leaves the board as it was. The team's brief has the fast path apply at once during a fill, and a failed event raised again after the Presenter fixes the cause; it does not say that a stage's end waits for the plan's fill. Step-complete events keep applying meanwhile.
+
+- **Proposed resolution:** a) the team holds an implementation-stage event while the fill behind `plan-accepted` runs and raises it after, in order, with its own time (what was done on the encounter), written into the team's brief; b) the board's check accepts a board whose verdicts a running fill has not written yet, a Presenter change; c) the fast path writes the verdict statements itself at `plan-accepted`. No recommendation recorded by the team.
+- **Predicted:** the admin team, on meeting it, 2026-11-14.
+- **Encounters:**
+  - 2026-11-14: a run's `plan-accepted` was applied on the fast path at 07:09Z and its fill started in a fill lane; the branch-cut applied at 07:10Z; the implementer's first stage ended at 07:13:03Z and its implementation-stage event arrived at 07:13:45Z, with the fill still running. The check failed on six rows lacking a verdict; the event was not applied and the board stayed at status planned with the first stage current. The Coordinator held that event, and the next stage's end which arrived a minute later, to raise them again in order, with their own times, once the fill has finished; step-complete events kept applying, one for a stage not yet current kept for it. The run was told its events wait and need no resend.
