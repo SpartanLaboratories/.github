@@ -7,9 +7,12 @@
 // else. conversation.md holds, in order: the user's words exactly, the team's
 // console text, the cross-session messages, the task notifications, each
 // question put with AskUserQuestion and its answer, the subagents' reports,
-// the compaction summaries, and one line per tool call; no tool output. For
-// remains, which have no transcript, it holds a listing of the folder and the
-// subagents' final reports. Refuses a running, held or foreign session.
+// the compaction summaries, and one line per tool call; no tool output. Input
+// that arrived while the session was busy is stored as an attachment record of
+// type queued_command, not as a user record, and is read with the rest, in
+// transcript order. For remains, which have no transcript, it holds a listing
+// of the folder and the subagents' final reports. Refuses a running, held or
+// foreign session.
 
 'use strict';
 const fs = require('fs');
@@ -50,6 +53,19 @@ function subagents(dir) {
   return out;
 }
 
+// One input's entry, by its text and origin: a cross-session message (a
+// subagent's hand-back among them), a task notification, or the user's words
+// when the origin is human or `typed` says so; null for anything else.
+function inputEntry(ts, t, origin, typed, counts) {
+  const kind = origin && origin.kind;
+  if (kind === 'peer' || t.includes('<cross-session-message')) {
+    counts.crossSession++; return `### ${ts} Cross-session message${origin && origin.name ? ' from ' + origin.name : ''}\n\n${t}\n`;
+  }
+  if (t.includes('<task-notification')) { counts.taskNotifications++; return `### ${ts} Task notification\n\n${t}\n`; }
+  if (kind === 'human' || typed) { counts.userTyped++; return `### ${ts} User\n\n${t}\n`; }
+  return null;
+}
+
 function extractSession(P, id, transcript) {
   const counts = { userTyped: 0, team: 0, crossSession: 0, taskNotifications: 0, questions: 0, answers: 0,
     subagentReports: 0, compactions: 0, toolCalls: 0 };
@@ -58,6 +74,16 @@ function extractSession(P, id, transcript) {
   const records = L.readJsonl(transcript);
   for (const r of records) {
     const ts = r.timestamp || '';
+    // A queued input is absorbed into the turn under way and never becomes a
+    // user record of its own, so it is read here and counted once.
+    if (r.type === 'attachment' && r.attachment && r.attachment.type === 'queued_command') {
+      const a = r.attachment;
+      const t = textOf(a.prompt);
+      if (!t) continue;
+      const e = inputEntry(ts, t, a.origin, !a.isMeta && typeof a.prompt === 'string', counts);
+      if (e) out.push(e);
+      continue;
+    }
     if (r.type === 'user' && r.message) {
       const c = r.message.content;
       if (r.isCompactSummary) { counts.compactions++; out.push(`### ${ts} Compaction summary\n\n${textOf(c)}\n`); continue; }
@@ -73,14 +99,8 @@ function extractSession(P, id, transcript) {
       }
       const t = textOf(c);
       if (!t) continue;
-      const origin = r.origin && r.origin.kind;
-      if (origin === 'peer' || t.includes('<cross-session-message')) {
-        counts.crossSession++; out.push(`### ${ts} Cross-session message${r.origin && r.origin.name ? ' from ' + r.origin.name : ''}\n\n${t}\n`);
-      } else if (t.includes('<task-notification')) {
-        counts.taskNotifications++; out.push(`### ${ts} Task notification\n\n${t}\n`);
-      } else if (origin === 'human' || (!r.isMeta && typeof c === 'string')) {
-        counts.userTyped++; out.push(`### ${ts} User\n\n${t}\n`);
-      }
+      const e = inputEntry(ts, t, r.origin, !r.isMeta && typeof c === 'string', counts);
+      if (e) out.push(e);
       continue;
     }
     if (r.type === 'assistant' && r.message && Array.isArray(r.message.content)) {

@@ -12,15 +12,16 @@
 // open and decided hooks; every file under admin-team/proposals/; the
 // predicted-issues tracker; every non-empty handoff. A pointer is a path with
 // the session's id followed by scratchpad/ or tasks/; the words "scratchpad
-// <first 8 of the id> <path>"; or a relative "scratchpad/<path>", which belongs
-// to this session when the ledger line carrying it falls within the session's
-// span, and is taken from every session that holds it when the record has no
-// time. Each pointer resolves to the longest leading part of its path that
-// exists. An item larger than the cap is not copied: the manifest lists its
-// files and sizes and names the file under descriptions/ where the Archivist
-// writes a description of the item and its contents, which stands in for it;
-// --verify fails until that file is written. Writes only under
-// <archive>/scratch/<id>/.
+// <first 8 of the id> <path>", or after a colon a comma list, "scratchpad
+// <first 8 of the id>: <path>, <path>, <path>"; or a relative
+// "scratchpad/<path>", which belongs to this session when the ledger line
+// carrying it falls within the session's span, and is taken from every session
+// that holds it when the record has no time. Each pointer resolves to the
+// longest leading part of its path that exists. An item larger than the cap is
+// not copied: the manifest lists its files and sizes and names the file under
+// descriptions/ where the Archivist writes a description of the item and its
+// contents, which stands in for it; --verify fails until that file is written.
+// Writes only under <archive>/scratch/<id>/.
 
 'use strict';
 const fs = require('fs');
@@ -69,7 +70,8 @@ function lines(src) {
   return out;
 }
 
-const PATH = '([A-Za-z0-9._\\-/]{1,200})';
+const ITEM = '[A-Za-z0-9._\\-/]{1,200}';
+const PATH = `(${ITEM})`;
 function clean(p) {
   return p.replace(/\/\.\.\.$/, '').replace(/\.\.\.$/, '').replace(/[./]+$/, '').replace(/^\/+/, '');
 }
@@ -78,6 +80,7 @@ function findPointers(P, id, span) {
   const id8 = id.slice(0, 8);
   const abs = new RegExp(`${id}/(scratchpad|tasks)/${PATH}`, 'g');
   const words = new RegExp(`scratchpad ${id8} ${PATH}`, 'g');
+  const list = new RegExp(`scratchpad ${id8}: (${ITEM}(?:, ?${ITEM})*)`, 'g');
   const rel = new RegExp(`(?:^|[^A-Za-z0-9_/-])scratchpad/${PATH}`, 'g');
   const found = [];
   for (const src of sources(P)) {
@@ -85,6 +88,7 @@ function findPointers(P, id, span) {
       let m;
       abs.lastIndex = 0; while ((m = abs.exec(ln.text))) found.push({ where: ln.where, form: 'absolute', area: m[1], rel: clean(m[2]) });
       words.lastIndex = 0; while ((m = words.exec(ln.text))) found.push({ where: ln.where, form: 'words', area: 'scratchpad', rel: clean(m[1]) });
+      list.lastIndex = 0; while ((m = list.exec(ln.text))) for (const p of m[1].split(/, ?/)) found.push({ where: ln.where, form: 'words, list', area: 'scratchpad', rel: clean(p) });
       if (ln.text.includes(id)) continue; // its scratchpad paths were read above
       rel.lastIndex = 0;
       while ((m = rel.exec(ln.text))) {

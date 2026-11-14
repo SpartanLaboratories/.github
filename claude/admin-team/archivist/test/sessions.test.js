@@ -78,6 +78,9 @@ put(path.join(ROOT, 'history.jsonl'), jl([{ sessionId: S.s1, display: 'x' }]));
 put(path.join(HASH, S.s1, 'scratchpad', 'cited-abs', 'a.txt'), 'cited by an absolute path');
 put(path.join(HASH, S.s1, 'scratchpad', 'cited-rel.json'), '{"cited":"relatively, in span"}');
 put(path.join(HASH, S.s1, 'scratchpad', 'k25', 'deep', 'b.txt'), 'cited in words with an ellipsis');
+put(path.join(HASH, S.s1, 'scratchpad', 'list-a.txt'), 'cited in words with a colon, first in a list');
+put(path.join(HASH, S.s1, 'scratchpad', 'list-b', 'c.txt'), 'cited in words with a colon, in a list');
+put(path.join(HASH, S.s1, 'scratchpad', 'list-d.json'), 'cited in words with a colon, last in a list');
 put(path.join(HASH, S.s1, 'scratchpad', 'from-question.txt'), 'cited by an open question');
 put(path.join(HASH, S.s1, 'scratchpad', 'from-hook.txt'), 'cited by an open hook');
 put(path.join(HASH, S.s1, 'scratchpad', 'from-closed-hook.txt'), 'cited only by a closed hook');
@@ -103,6 +106,7 @@ put(path.join(TEAM, 'ledger.jsonl'), jl([
   { ts: '2026-11-01T11:30:00Z', event: 'note', what: 'see scratchpad/cited-rel.json for the figures' },
   { ts: '2026-11-02T11:30:00Z', event: 'note', what: 'see scratchpad/x.txt (in S2 span, not S1)' },
   { ts: '2026-11-01T12:00:00Z', event: 'note', what: `browser check (scratchpad ${S.s1.slice(0, 8)} k25/... and more)` },
+  { ts: '2026-11-01T12:10:00Z', event: 'note', what: `sweep kept (scratchpad ${S.s1.slice(0, 8)}: list-a.txt, list-b/c.txt, list-gone.txt,list-d.json)` },
   { ts: '2026-11-01T12:30:00Z', event: 'note', what: `output at ${path.join(HASH, S.s1, 'tasks', 'task1.output').replace(/\\/g, '/')}` },
   { ts: '2026-11-01T12:40:00Z', event: 'note', what: `gone: ${path.join(HASH, S.s1, 'scratchpad', 'missing.txt').replace(/\\/g, '/')}` },
   { ts: '2026-11-02T12:00:00Z', event: 'note', what: `huge at ${path.join(HASH, S.s2, 'scratchpad', 'huge').replace(/\\/g, '/')}` },
@@ -195,6 +199,39 @@ const BM = base(`2026-10-01-${S.m1.slice(0, 8)}`);
 r = run('extract-session.js', [S.m1, BM]);
 ok(r.code === 0 && fs.readFileSync(path.join(BM, 'conversation.md'), 'utf8').includes('tool-results/x.txt'), 'extract: remains get a listing of their folder');
 
+// Input that arrived while the session was busy: queued_command attachments,
+// read in transcript order with the rest. A transcript outside the project
+// folder, read by the script's own function.
+const QT = path.join(DIR, 'queued', 'q.jsonl');
+const qa = (ts, a) => ({ type: 'attachment', timestamp: `2026-11-01T${ts}:00.000Z`, uuid: 'u-' + a.source_uuid, attachment: Object.assign({ type: 'queued_command', commandMode: 'prompt' }, a) });
+put(QT, jl([
+  { type: 'user', timestamp: '2026-11-01T10:00:00.000Z', origin: { kind: 'human' }, message: { role: 'user', content: 'first words' } },
+  { type: 'assistant', timestamp: '2026-11-01T10:01:00.000Z', message: { content: [{ type: 'text', text: 'Working.' }, { type: 'tool_use', id: 'qt1', name: 'Agent', input: { subagent_type: 'archivist', description: 'a job' } }] } },
+  qa('10:02', { prompt: 'a word while busy', origin: { kind: 'human' }, humanTurn: true, source_uuid: 'q1', delivery_id: 'd1' }),
+  qa('10:03', { prompt: '<cross-session-message from="run-b">a queued request</cross-session-message>', origin: { kind: 'peer', name: 'run-b' }, isMeta: true, source_uuid: 'q2', delivery_id: 'd2' }),
+  qa('10:04', { commandMode: 'task-notification', prompt: '<task-notification>queued done</task-notification>', origin: { kind: 'task-notification' }, source_uuid: 'q3', delivery_id: 'd3' }),
+  qa('10:05', { prompt: '<agent-message from="a1">\n[Subagent hand-back] The report follows:\n  queued report\n</agent-message>', origin: { kind: 'peer', from: 'a1', name: 'archivist' }, isMeta: true, source_uuid: 'q4', delivery_id: 'd4' }),
+  qa('10:06', { prompt: 'typed with no origin', source_uuid: 'q5', delivery_id: 'd5' }),
+  { type: 'attachment', timestamp: '2026-11-01T10:06:30.000Z', attachment: { type: 'edited_text_file', filename: 'x.md', snippet: 'NOT AN INPUT' } },
+  { type: 'user', timestamp: '2026-11-01T10:07:00.000Z', message: { content: [{ type: 'tool_result', tool_use_id: 'qt1', content: 'Mode a-job: done' }] } },
+  { type: 'user', timestamp: '2026-11-01T10:08:00.000Z', isMeta: true, origin: { kind: 'peer', name: 'planner' }, message: { content: 'Another Claude session sent a message:\n<agent-message from="a2">plain report</agent-message>' } },
+  { type: 'user', timestamp: '2026-11-01T10:09:00.000Z', origin: { kind: 'human' }, message: { role: 'user', content: 'last words' } },
+]));
+const QX = require(path.join(BIN, 'extract-session.js')).extractSession(P, 'q', QT);
+const qc = QX.counts; const qb = QX.body;
+ok(qc.userTyped === 4 && qb.includes('Z User\n\na word while busy\n'), 'extract, queued: the user\'s message sent while the team was busy is a user turn');
+ok(qb.includes('Z User\n\ntyped with no origin\n'), 'extract, queued: a queued input with no origin is classified as a user record would be');
+ok(qb.includes('Z Cross-session message from run-b\n\n<cross-session-message from="run-b">a queued request'), 'extract, queued: a cross-session message');
+ok(qb.includes('Z Task notification\n\n<task-notification>queued done'), 'extract, queued: a task notification');
+ok(qb.includes('Z Cross-session message from archivist\n\n<agent-message from="a1">') && qc.crossSession === 3, 'extract, queued: a hand-back is read as one that is not queued is, as a cross-session message');
+ok(qc.taskNotifications === 1 && qc.subagentReports === 1 && qc.team === 1 && qc.toolCalls === 1, 'extract, queued: the other counts are unchanged by queued input');
+const qOrder = ['first words', 'Working.', 'a word while busy', 'a queued request', 'queued done', 'queued report', 'typed with no origin', 'Mode a-job: done', 'plain report', 'last words'].map(s => qb.indexOf(s));
+ok(qOrder.every((n, i) => n >= 0 && (i === 0 || n > qOrder[i - 1])), 'extract, queued: in transcript order with the rest');
+ok(qb.split('a word while busy').length === 2 && !qb.includes('NOT AN INPUT'), 'extract, queued: each queued input is read once; other attachments are not read');
+const qHeads = k => (qb.match(new RegExp(`^### \\S+ ${k}`, 'gm')) || []).length;
+ok(qHeads('User') === qc.userTyped && qHeads('Cross-session message') === qc.crossSession && qHeads('Task notification') === qc.taskNotifications
+  && qHeads('Subagent report') === qc.subagentReports && qHeads('Team') === qc.team, 'extract, queued: each count is the number of its entries');
+
 // ---- archive.js verify and index ---------------------------------------------------
 r = run('archive.js', ['verify', B1]);
 ok(r.code === 1 && /no summary/.test(r.out), 'verify: fails with no summary');
@@ -211,6 +248,8 @@ const items = (j(r).items || []).map(x => x.item).sort();
 ok(items.includes('scratchpad/cited-abs') || items.includes('scratchpad/cited-abs/a.txt'), 'pointers: an absolute path in the ledger');
 ok(items.includes('scratchpad/cited-rel.json'), 'pointers: a relative path in a ledger line within the span');
 ok(items.includes('scratchpad/k25'), 'pointers: the words form, an ellipsis trimmed');
+ok(['scratchpad/list-a.txt', 'scratchpad/list-b/c.txt', 'scratchpad/list-d.json'].every(x => items.includes(x)), 'pointers: the words form with a colon and a comma list, every item');
+ok((j(r).dangling || []).some(d => d.rel === 'list-gone.txt' && d.form === 'words, list'), 'pointers: an item of a comma list that names nothing is reported dangling');
 ok(items.includes('tasks/task1.output'), 'pointers: a task output');
 ok(items.includes('scratchpad/from-question.txt') && items.includes('scratchpad/from-hook.txt') && items.includes('scratchpad/from-proposal.txt'), 'pointers: an open question, an open hook, a proposal');
 ok(!items.includes('scratchpad/from-closed-hook.txt') && !items.includes('scratchpad/uncited-big.bin'), 'pointers: a closed hook and an answered question are not open records');

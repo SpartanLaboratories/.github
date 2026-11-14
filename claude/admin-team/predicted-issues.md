@@ -139,7 +139,7 @@ The permission system raises the denial.
 ## An encountered issue is not in this tracker
 
 ```json
-{"id":"p9","count":5,"last":"2026-11-13"}
+{"id":"p9","count":9,"last":"2026-11-14"}
 ```
 
 - **Proposed resolution:** add it as a new entry with count 1, then prompt the
@@ -159,6 +159,18 @@ The permission system raises the denial.
   - 2026-11-13: an archive job's `fold-base` refused the relative folder `archive.js plan`
     had printed; added as "`archive.js fold-base` refuses the folder `archive.js plan`
     prints".
+  - 2026-11-14: an archive job found its session's inputs that arrived while the team
+    was busy missing from the extracted conversation; added as "`extract-session.js`
+    leaves out inputs that arrived while the team was busy".
+  - 2026-11-14: the same archive job found an item an open record names left uncopied
+    from the scratchpad; added as "`scratch-copy.js` does not resolve the
+    colon-and-list pointer form".
+  - 2026-11-14: an archive job's Write of a working file into the scratchpad was refused
+    by the Write tool, "Subagents should return findings as text"; added as "A subagent's
+    Write of a working file is refused".
+  - 2026-11-14: the team's session ended twice in a row without a handoff while jobs were
+    running, a case no entry held; added as "The team's session ends without a handoff while
+    jobs are running".
 
 ## A count changes in this mirrored file
 
@@ -693,5 +705,71 @@ An archive job's step 8 runs `archive.js plan` and then each wrap due. `plan` pr
 
 - **Proposed resolution:** a) the same two-reading fix as for `fold-base`, with a test; b) leave it, and archive jobs join the archive path onto the target. No recommendation recorded by the team; the direction manager recommends a.
 - **Predicted:** the direction manager, 2026-11-14.
+- **Encounters:**
+  - None yet.
+
+## `extract-session.js` leaves out inputs that arrived while the team was busy
+
+```json
+{"id":"p48","count":1,"last":"2026-11-14"}
+```
+
+`extract-session.js` reads only `type: user` records and skips `attachment` records of type `queued_command`, which is how input arriving mid-turn is stored. User turns, cross-session messages, task notifications and agent hand-backs that arrive while the team is busy are therefore missing from `conversation.md`. Every base archive made before the encounter was extracted without them, and those transcripts are deleted; the ledger holds the user's decisions. Confirmed read only: the script handles no such record, and the remaining transcripts hold them.
+
+- **Resolution (decided by the user at the console, 2026-11-14, "Fix p48 and leave the earlier archives alone", and settled by the change of `extract-session.js` that day):** the extractor reads `queued_command` attachment records through the same classifier as user records, with a 9-check test; all the archive scripts' tests pass. Earlier archives are left as they are. Archive jobs no longer write an interim `queued-inputs.md`.
+- **Predicted:** the admin team, on meeting it, 2026-11-14.
+- **Encounters:**
+  - 2026-11-14: an archive job: 22 user turns, 26 cross-session messages, 115 task notifications and 42 hand-backs were missing from the extracted conversation; they were saved verbatim into a `queued-inputs.md` beside it before the deletion.
+
+## `scratch-copy.js` does not resolve the colon-and-list pointer form
+
+```json
+{"id":"p49","count":1,"last":"2026-11-14"}
+```
+
+A record that says "scratchpad <id8>: a, b, c" names items the script's words pattern does not read, so an item an open record names goes uncopied into the archive.
+
+- **Resolution (decided by the user at the console, 2026-11-14, "Fix p49", and settled by the change of `scratch-copy.js` that day):** the words pointer form reads a comma list after a colon, "scratchpad <id8>: a, b, c": each item is resolved, and an item that resolves to nothing is reported dangling; two test checks, and all the archivist's tests pass. The list is read only after a colon. Other pointer forms the script does not read are outside this entry.
+- **Predicted:** the admin team, on meeting it, 2026-11-14.
+- **Encounters:**
+  - 2026-11-14: an archive job: one file an open record named this way was not copied; it was copied by hand and added to the manifest.
+
+## A subagent's Write of a working file is refused, "Subagents should return findings as text"
+
+```json
+{"id":"p50","count":1,"last":"2026-11-14"}
+```
+
+An archive job wrote its `summary.md` text to a file in the session scratchpad with the Write tool, to copy it into the archive folder after, as earlier archive jobs had been told to do. The Write tool refused the subagent's call with the message "Subagents should return findings as text". The harness keeps a subagent from writing report files with Write; a file that is the job's own output, such as an archive's `summary.md`, meets the same refusal when written as a working file this way. The Archivist's brief names no tool for writing `summary.md`.
+
+- **Proposed resolution:** a) archive jobs write `summary.md` straight into the archive folder with a bash heredoc, as the job that met it did, and the instruction to stage it in the scratchpad with Write is dropped from what archive jobs are told; b) the same, and the Archivist's brief says so at the archive mode's step 3, a change of a direction document for the direction manager. No recommendation recorded by the team.
+- **Predicted:** the admin team, on meeting it, 2026-11-14.
+- **Encounters:**
+  - 2026-11-14: an archive job: the Write tool refused the subagent's write of the summary text into the scratchpad ("Subagents should return findings as text"); the job wrote `summary.md` straight into the archive folder with bash heredocs and went on.
+
+## The team's session ends without a handoff while jobs are running
+
+```json
+{"id":"p51","count":2,"last":"2026-11-14"}
+```
+
+The admin team's session ends while background jobs it spawned are still running, and writes no handoff, so the handoff file stays the stale one from before. Neither the ledger nor the session's transcript records how it ended: the transcript holds no error record and no closing record. The first time, its last assistant turn ended normally and a task notification queued after it was never taken up; the second time, a model request had been sent on a subagent's hand-back with no reply recorded, and two more inputs queued after it were never taken up. The cause, as the user gave it, was a hardware issue on the machine.
+
+- **Resolution (cause given by the user at the console, 2026-11-14, "The sessions end was a hardware issue"):** both session ends were a hardware issue on the machine; there is nothing to look into. Both times the user started the team again with "resume", and the new session recovered from the ledger and the subagent transcripts: each job running at the end was marked `interrupted` and requested again with `attempt + 1`, told to check what the earlier attempt left; a job whose report had been delivered before the end was recorded `done` from its transcript.
+- **Predicted:** the admin team, on meeting it, 2026-11-14.
+- **Encounters:**
+  - 2026-11-14: the session ended after its last ledger line at 01:35:11Z (transcript last written 01:38:07Z) with three jobs running; the next session resumed all three as attempt 2.
+  - 2026-11-14: the next session ended after its last ledger line at 01:56:34Z (transcript last written 01:57:02Z) with seven jobs running, two of which had already delivered their reports; the next session recorded those two from their transcripts and resumed the others, three of them for the second time.
+
+## A prepare-landing sync is refused by an uncommitted implementation-stage stamp
+
+```json
+{"id":"p52","count":0,"last":null}
+```
+
+When the default branch has moved since the branch was cut, the uncommitted implementation-stage stamps in the run's worktree can make git refuse the `prepare-landing` merge with "local changes would be overwritten". It did not come up for WebTools #69, because the default branch had not moved.
+
+- **Proposed resolution:** a) drop the implementation-stage stamp output before the sync, since the state-boards task rebuilds it anyway (recommended); b) leave it as it is.
+- **Predicted:** the direction manager, 2026-11-07.
 - **Encounters:**
   - None yet.
