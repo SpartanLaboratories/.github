@@ -40,19 +40,17 @@ not an exercise you leave to the implementer.
 
 ### Error handling is designed, not discovered
 
-Plan every new function's failure path beside its happy path. Never throw raw
-exceptions for expected failures; encapsulate operational failures in the
-native `Result` type (`Result.success(value)` / `Result.failure(exception)`),
-and prefer functional recovery (`fold`, `recover`, `getOrElse`) over
-`try-catch`. For **each** new or changed signature, state: what it returns on
-failure, which failures are expected (→ `Result`) versus programmer error
-(→ throw), and where a `Result` gets unwrapped.
+R-29 (Error handling) states the principles every signature you plan
+follows; a departure is stated in the plan, with its reason. Plan every new
+function's failure path beside its happy path. For **each** new or changed
+signature, state: what it returns on failure, which failures are expected
+(→ `Result`) versus programmer error (→ throw), and where a `Result` gets
+unwrapped.
 
 ### Logging
 
-Structured logging at key lifecycle events, data flows, and failure states —
-slf4j in library code, a logback implementation under test. Name the events the
-change should log, and at what level.
+R-30 (Logging) is the standard the change's logging meets. Name the
+events the change should log, and at what level.
 
 ### Documentation — the documentation levels
 
