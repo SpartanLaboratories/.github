@@ -9,7 +9,7 @@ description: >-
   state board. The work boards under docs/plans/ show how the work is going:
   each issue board's gap, the options considered, the verdict and the as-built
   state, with the live work in progress of its /resolve-issue run, plus the
-  tracking boards, the repository work board and the org work board. Runs in one of six modes the
+  tracking boards, the repository work board and the org work board. Runs in one of nine modes the
   admin team names: plan-board (one event of one run), state-boards (on the
   team's request in a run's Document step, on the branch after the
   code-landing commit: the changed systems' state boards as built, the shared
@@ -18,7 +18,11 @@ description: >-
   the code-landing commit the request names; at grade 4 the planned systems
   drawn dashed), post-merge-refresh (after the merge: the landed state for
   viewing only, in the git-ignored live view), dashboards-refresh (on
-  request), rule-change (a change to its own rules the user has decided), or
+  request), whiteboards (the generated parts of the named Whiteboards
+  refreshed, any missing one created), ideas (one change to an ideas file: an
+  idea request or a Whiteboard harvest), publish (the named committed boards
+  published as private claude.ai pages), rule-change (a change to its own
+  rules the user has decided), or
   assess (whether an idea in the user's hook log tagged for it is
   viable, writing nothing). It writes only under docs/dashboards/, the work boards under
   docs/plans/, the README's dashboard pointer, and its own rules: the
@@ -64,7 +68,7 @@ job.
 ## How you are invoked
 
 Only the **`admin team` session** spawns you (or the user, directly, on
-request). Your prompt names one of six modes and carries the facts of the
+request). Your prompt names one of nine modes and carries the facts of the
 job: for a repository, the repo path (a worktree), the branch and commit, the
 issue and its grade, and for a plan-board job the `event` and its facts from
 the pipeline.

@@ -269,7 +269,8 @@ team scans documents, boards and source-code comments, every line of each file a
 carries (code itself is not scanned). A find blocks the `commit`, `prepare-landing` or `land` that carries it: the admin team commits nothing, names each
 `file:line`, and the requester rewords and resends, or resends asking for an exception, which the
 list says goes to me first; a find in a board the admin team generates
-is the team's to fix.
+is the team's to fix. What a board hands out of its repository unscanned, a board's published
+copy and a Whiteboard's generated part, keeps the same rule (the dashboards skill).
 
 ## Dashboards — state boards and work boards
 

@@ -98,6 +98,7 @@ A pipeline's steps map to actions like this:
 | A wrong time or wording in a run's own board record: one of its own events' times until its `land` is sent (and whenever a reply says the arrival check replaced its reading, with its own clock reading and the reason), one of its own recorded texts before its document-landing commit | `plan-board` with `retime` or `reword`, for the run's own events only (their facts and refusals: `PROTOCOL.md`, `plan-board` fields) |
 | A dashboard refresh on request | `dashboards-refresh` |
 | An idea the user should revisit later | `log-hook` with `text` (the idea, in your words), `area` and optional `links`; no `repo` or `github` (fire-and-forget). The `done` reply carries `result.hook`, the hook id, and `result.executor`, the list of who would carry the idea out; its assessment goes to the user, not to you |
+| An idea about a repository's code, for its committed ideas file | `idea` with `repo`, `github`, `text`, `kind` and optional `concerns` and `issue`; or `op: "drop"` with the idea's id and `reason` once it is filed as an issue (fire-and-forget). Never for a defect, design flaw or missing capability (`file-issue`) or for an idea about the workflow (`log-hook`). The `done` reply carries `result.idea` and `result.pr` |
 | Where is my request | `status` |
 
 ## 4. Send and wait
@@ -106,7 +107,7 @@ A pipeline's steps map to actions like this:
 #<issue>", message: <the request>)`. The reply comes back as a cross-session
 message from `admin team` and starts your next turn when you are idle, so end
 your turn after sending a request that you need the result of; do not poll. A
-`commit`, `plan-board` or `log-hook` request needs no wait.
+`commit`, `plan-board`, `idea` or `log-hook` request needs no wait.
 
 ## 5. Act on the reply
 

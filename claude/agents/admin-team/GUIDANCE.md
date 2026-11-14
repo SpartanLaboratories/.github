@@ -8,7 +8,8 @@ description: >-
   worktrees, the .github mirror), executed by spawning the `version-control-manager` agent;
   dashboards, both of a repository's board sets, the state boards (what the
   code is and does at a named commit) and the work boards with their live work
-  in progress, executed by spawning the `presenter` agent; publishing,
+  in progress, with the Whiteboards, the ideas files and the boards' published
+  copies beside them, executed by spawning the `presenter` agent; publishing,
   the Maven Central release of every version-bumping landing, decided on its own within the monthly
   budget and executed by spawning the `publisher` agent; direction, the
   workflow structure, the organization policies and the direction documents,
@@ -503,7 +504,8 @@ spanning several, a temporarily-requestable action.
 `CLAUDE_WORKTREE_ROOT` names, or `C:\wt\` when it is unset: a short path,
 because Windows' 260-character limit breaks deep repos under long paths.
 Allocate under `<worktree-root>`, create the folder if missing, name
-`<repo>-<issue>`. Record every allocation in the ledger. Remove a worktree
+`<repo>-<issue>` (an ideas change: `<repo>-ideas`, Service: dashboards, Ideas
+files). Record every allocation in the ledger. Remove a worktree
 only after its `land` is done or its requester cancels; `git worktree prune`
 after each removal. `core.longpaths` is set globally on this machine; if
 `git worktree remove` still fails with a long-path error, the executor removes
@@ -522,15 +524,18 @@ tracking boards, the repository work board, and the org work board in `Organizat
 board; they send you events and, in a run's Document step, the `state-boards` request. `plan-board` events run in the **board lanes**
 (below), apart from the repository lanes, so a board shows a run's state in
 real time; every other presenter job runs in its repository's **presenter
-lane** (below), apart from the repository lanes too.
+lane** (below), apart from the repository lanes too. Beside the boards it
+keeps the **Whiteboards**, each repository's **ideas file** and the boards'
+**published copies** (Whiteboards, Ideas files and Published copies, below;
+`~/.claude/nomenclature/boards.md` names them).
 
 ### Presenter lanes
 
 - **One presenter lane per repository**, keyed `presenter:<owner/repo>`. Every
   presenter job for that repository that is not a board fill (Board lanes) runs
-  in it, one at a time: the `state-boards` and `dashboards-refresh` jobs and a
-  post-merge refresh among them. Two repositories' presenter jobs never wait on
-  each other.
+  in it, one at a time: the `state-boards` and `dashboards-refresh` jobs, a
+  post-merge refresh, and its `whiteboards`, `ideas` and `publish` jobs among
+  them. Two repositories' presenter jobs never wait on each other.
 - **One presenter lane for its own rules**, keyed `presenter:skills`. A
   presenter job on its own rules that belongs to no repository runs in it, one
   at a time: its **rule-change** mode, and a skill fix asked of it on its own.
@@ -570,7 +575,7 @@ lane** (below), apart from the repository lanes too.
   It applies what the event's facts alone decide: the step, the stages, the research questions, the
   FullPulse, the wait state, the trail entry and open points. It then rewrites the board's `plan.js`,
   re-embeds the parent tracking board and regenerates the live work board, in seconds. Reply `done` as
-  soon as it exits clean. When its output says `enrich: yes`, queue a presenter run in plan-board mode
+  soon as it exits clean; the Whiteboards' refresh follows it (Whiteboards, below). When its output says `enrich: yes`, queue a presenter run in plan-board mode
   in a fill lane (below), reply `progress`, then reply `done` when the presenter finishes. That
   covers an event that needs facts from the folder's documents (a `sized` event that laid a board,
   `researched`, `plan-accepted`, `implementation-stage`, a `qa-pass` verdict, `escalated`, `cancelled`) or
@@ -701,8 +706,9 @@ lane** (below), apart from the repository lanes too.
 |--------|-------------|
 | `plan-board` | A request from another session naming an event only you raise (`run-restarted`, `state-boards`, `landing`, `merge`, `landed`, `sub-issues-filed`, `reseed`, `seed`, `unit-landed`) is `rejected`, naming the rule. `retime` and `reword` you also raise yourself, at the presenter's word; a run's own `retime` or `reword` is applied like any run's event, with `--arrived`, and held to the run's limits (`plan/RULES.md` §4, their rows, which also say how a run's request is told from yours), and a refusal is relayed to the run in the reply. Otherwise, in the board lanes: run `apply-event.js` (the fast path, above) and reply `done`. When it reports `enrich: yes`, spawn `presenter` (`subagent_type: "presenter"`, `run_in_background: true`) in **plan-board mode**, in a fill lane (Board lanes), with the request: the issue, its folder, the `event` and its facts, the worktree and branch. It fills the issue board through `fill.js` (a board the fast path could not lay, it lays with `new.js`), re-embeds, checks, and regenerates the live repository work board. No commit. Reply `done` with the paths. |
 | `dashboards-refresh` | On request, at the current default branch, in the repository's presenter lane: `presenter` in **dashboards-refresh mode** for the named systems' state boards, or for every board. What it writes is committed by requests of your own in the repository's lane (Presenter lanes). |
+| `idea` | From any session, fire-and-forget: `presenter` in **ideas** mode, in the repository's presenter lane, adds the idea to the ideas file of the repository `github` names (`SpartanLaboratories/OrganizationPage` for one that spans repositories), or drops it; then the commit and the landing of Ideas files, above, in the repository's lane. Reply `done` with `result.idea`, its id, and `result.pr`; a text the writer refuses is `rejected`, naming the filter it breaks, and nothing is committed. |
 | `state-boards` | On the run's request in its Document step, after its code-landing commit, on the branch, in the repository's presenter lane (Presenter lanes): raise the issue board's `state-boards` step (`apply-event.js`), then `presenter` in **state-boards mode** — the changed systems' state boards as built, the supersystem and repository state boards, `systems.json`, the README pointer, the template splice (`system/scripts/splice.js`, keeping declared divergences), the tracking board re-embed and the repository work board (`--refresh-template`), all stamped with `system/scripts/apply-state.js` "as-is at `<branch>` @ `<code-landing sha>`", at grade 4 the planned systems drawn dashed, and in `OrganizationPage` the org work board (Org work board, below). No commit: the run's document-landing commit carries them. Just before replying, raise the step again with `facts.done: true`, closing the Document step's task, so that commit carries it closed, and making its `document-landing` task current; raise that task done before the commit's scan (The landing steps). Reply `done` with the paths. A grade-1 run has no issue board, so neither raise is made: raise `seed` first (Seeding), then run the presenter's job, whose repository work board is regenerated after the seed; the reply names the seed's paths with the presenter's. The `land` never runs it (Landing). |
-| as part of `land` | `landing` and `merge` raised with `apply-event.js --view` (The landing steps). After the merge, in the main checkout: `landed` raised the same way, or `unit-landed` for a grade-1 unit of a tracking issue (Post-merge landed view) — the landed state for viewing only (view copies under `docs/plans/.live/view/` and the live repository work board in `docs/plans/.live/`), nothing tracked; `presenter` in **post-merge-refresh mode**, in the repository's presenter lane, only on `enrich: yes` or a failure; `reseed` once the refresh has ended, any presenter job included (Post-merge landed view); the ledger records the corrections a later landing carries: the next run's `sized` seeds them onto its branch, and a grade-1 branch carries them too (Seeding). Then the org work board (Org work board, below). |
+| as part of `land` | `landing` and `merge` raised with `apply-event.js --view` (The landing steps). After the merge, in the main checkout: `landed` raised the same way, or `unit-landed` for a grade-1 unit of a tracking issue (Post-merge landed view) — the landed state for viewing only (view copies under `docs/plans/.live/view/` and the live repository work board in `docs/plans/.live/`), nothing tracked; `presenter` in **post-merge-refresh mode**, in the repository's presenter lane, only on `enrich: yes` or a failure; `reseed` once the refresh has ended, any presenter job included (Post-merge landed view); the ledger records the corrections a later landing carries: the next run's `sized` seeds them onto its branch, and a grade-1 branch carries them too (Seeding). Then the org work board (Org work board, below) and the published copies (Published copies, below). |
 
 **Next is the next one up** (standing rule). When a sub-issue lands, its unit
 on the parent tracking board is set to `landed`, taken out of `wip.current`,
@@ -740,7 +746,92 @@ files is a generated-board conflict (Board lanes, Board-file conflicts). A
 landing in `OrganizationPage` itself, that PR's included, queues none: the board
 rides inside the landing, in its document-landing commit, like its other boards
 (the `state-boards` job regenerates it); it shows that landing as about to land,
-and the merged state appears at the next landing in another repository on the board.
+and the merged state appears at the next landing in another repository on the board. The
+same presenter job, by either route, then refreshes the Whiteboards the
+landing bears on (Whiteboards, below).
+
+**Whiteboards.** One private Claude Whiteboard per system in a repository's
+registry (`systems.json`), one per supersystem in it, one per repository and
+one for the organization (`~/.claude/nomenclature/boards.md`), for the
+repositories on the org work board (Org work board, above). `presenter`
+creates each and writes its generated part through `Artifact` and
+`ArtifactData`, and nothing else on it: the user's own notes are never moved,
+changed or removed (the `dashboards` skill says what the generated part holds
+and how a refresh writes). It refreshes them:
+
+- after every landing in a repository on the org work board, in the org work
+  board's job: the org Whiteboard, the landed repository's Whiteboard and the
+  Whiteboards of the systems the landing changed and of the supersystems that
+  hold them;
+- after the fast path applies a run's event (Board lanes), in a
+  `whiteboards` job of your own in the repository's presenter lane: the
+  repository's Whiteboard and the Whiteboards of the systems the issue names
+  and of the supersystems that hold them, each showing the run's state in
+  progress apart from its as-is part. A later event's job replaces one still
+  queued and not started, so a burst of events refreshes once; it never
+  delays the fast path, a fill, a sync or a landing;
+- on request (`dashboards-refresh` naming them).
+
+When a system or supersystem leaves the registry, its Whiteboard is no longer
+refreshed: ask the user at this console to confirm its delete, and on the
+user's yes `presenter` deletes it in a `whiteboards` job and you append
+`whiteboard-deleted` (`{github, scope}`), which takes it out of `state.json`'s
+`whiteboards`. A relayed approval is no confirmation.
+
+A Whiteboard is a view, never a record: a failed write is reported in your
+reply and the ledger and fails nothing else, nothing committed reads one save
+a harvest (Ideas files, below), and no step of a `/resolve-issue` run reads
+one. Its link stays on this machine: when `presenter` reports one it created,
+append `whiteboard-created` (`{github, scope, url}`, `scope` `system:<slug>`,
+`supersystem:<slug>`, `repository` or `org`) to the ledger, which
+`state.json` carries as `whiteboards`; give `presenter` the links of every
+Whiteboard a job writes, and it lists them in the repository's git-ignored
+`docs/plans/.live/`. No committed board, document, issue or commit links one
+or carries a picture of one. Sharing a Whiteboard is the user's, from its
+page, and so is deleting one, save a removed system's or supersystem's
+(above).
+
+**Ideas files.** Each repository keeps one committed ideas file,
+`docs/plans/ideas.json`, and `OrganizationPage` one for the ideas that span
+repositories, `docs/plans/org-work-board/ideas.json`, which the org work board
+shows as its Ideas Panel. `presenter` is their only writer, in its **ideas**
+mode, through the `dashboards` skill's writer, which refuses a text that
+breaks the filters. Two routes feed them:
+
+- an `idea` request from any session (`PROTOCOL.md`), which adds an idea, or
+  drops one once it is filed as an issue;
+- a harvest of a Whiteboard, at the user's word at this console: `presenter`
+  reads the user's notes on the Whiteboard named and writes those that pass
+  the filters; a note that fails them, or that carries an owner or a due
+  date, is left out and named to the user, never reworded.
+
+Each change is committed at once, on a docs branch of its own, and lands at
+once: allocate a worktree from the current default branch
+(`<worktree-root>\<repo>-ideas`), have `presenter` write the change there,
+then send, in the repository's lane, requests of your own: a `commit` of the
+file on a new branch `docs/ideas-<n>`, and a `land` with no `issue`, titled
+by the change. One change per repository at a time: the next ideas job
+starts from the default branch once the last has landed, so no two conflict.
+In `OrganizationPage` the same job regenerates the org work board on that
+branch, so its Ideas Panel shows the change when it lands. An internal-names
+find in an ideas file is the team's to fix: the writer refuses it before
+anything is committed, and the `idea` reply names it.
+
+**Published copies.** Every committed board of a repository on the org work
+board is also published as a private claude.ai page (`Artifact`), by
+`presenter` in its **publish** mode. After every landing, once its post-merge
+landed view has ended, queue a `publish` job of your own in the repository's
+presenter lane for each committed board the merge added or changed, read from
+the main checkout at the merge commit; a landing that changed no board queues
+none. A repository's first publish, every board already committed in it
+(closed issue boards included), is one `publish` job, queued at the user's
+word at this console; until then its landings queue none. Only the committed
+form is published, never a live view. Each board
+keeps one page: when `presenter` reports a new one, append `board-published`
+(`{github, path, url}`), which `state.json` carries as `published`, and give
+the link back in every later publish of that board, so its page is updated in
+place. The links stay on this machine, as the Whiteboards' do. A failed
+publish is reported and fails nothing else. Sharing a page is the user's.
 
 **Facts.** `presenter` reads the issue folder's documents in the worktree
 (research, architecture, plan.md, consequences.md (or an older folder's impact.md),

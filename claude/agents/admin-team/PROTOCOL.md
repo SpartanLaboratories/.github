@@ -51,7 +51,7 @@ one fenced ```json block:
 | `attempt` | yes | Starts at 1. A reply carries an `attempt` the requester did not send in one case only: the team's rerun of a request from its ledger when it starts again after the restart a temporary allow line needs (the `admin-team` agent brief, Gates and standing grants, Temporary permissions, **Allow lines**), with the same `id` and `attempt + 1`. |
 | `from` | yes | The sender's session name, as `ListAgents` shows it. The reply goes here. |
 | `repo` | yes (not `status`, `file-issue` or `log-hook`); optional on a GitHub-only action, one with no local checkout, such as `create-repo`, `transfer-issue` or `rename-repo` | Absolute path of the main checkout. Forward slashes. |
-| `github` | yes (not `status` or `log-hook`) | `owner/repo`; also the lane key, unless the request has a `target` that differs from it, when the `target` is the lane key, so each repository has one writer at a time. `SpartanLaboratories/.github` for `mirror-sync`; for `file-issue`, the repo the fix belongs in. |
+| `github` | yes (not `status` or `log-hook`) | `owner/repo`; also the lane key, unless the request has a `target` that differs from it, when the `target` is the lane key, so each repository has one writer at a time. `SpartanLaboratories/.github` for `mirror-sync`; for `file-issue`, the repo the fix belongs in; for `idea`, the repository whose ideas file takes it, `SpartanLaboratories/OrganizationPage` for an idea that spans repositories. |
 | `action` | yes | One of the actions below. |
 | `issue` | per action | The issue number. Omit it on a `land` of a branch that resolves no issue (a docs or config branch): then give `title` for the PR, and the landing has no closing keyword and no resolution comment. |
 | `grade` | `setup-branch`, `prepare-landing`, `state-boards`, `land`; optional on a `plan-board` `sized` | The grade, 1–4. On a `plan-board` `sized` it is read and never written. |
@@ -66,6 +66,7 @@ one fenced ```json block:
 | `publish` | `prepare-landing`, `land` | `true` only when the user explicitly asked for a publish this run. Not a gate: the team's publisher releases every version-bumping landing on its own within the Maven Central budget (7 release events per namespace per month); `true` lets this release use the 2 held in reserve, and never passes the cap. |
 | `subIssues` | `file-sub-issues` | The approved list: `[{title, grade, blockedBy: [unit numbers], body}]` in landing order. |
 | `body`, `labels` | `comment`, `label` | The comment body (a path to a file, or text); labels to add/remove `{add: [], remove: []}`. |
+| `op`, `text`, `kind`, `concerns`, `idea`, `reason` | `idea` | `op` is `add` (the default) or `drop`. To add: `text`, the idea in the sender's words; `kind`, one of the kinds the ideas file's schema lists (the `dashboards` skill); optional `concerns`, the parts it concerns (registry slugs or DSL element ids); and optional `issue`, the issue it names. To drop: `idea`, the idea's id, and `reason`, such as `filed as #n`. |
 | `title`, `body`, `surfacedIn` | `file-issue` | The new issue's title and body (a path to a file, or text): the problem and a proposed fix. `surfacedIn` is the `owner/repo` (with `#n` when an issue was in hand) where the defect was found; the filing direction is judged from it. Optional `labels` `{add: []}`. |
 | `procedure`, `inputs`, `checks` | `push-mirror`, `create-repo`, `repo-settings`, `rename-repo`, `archive-repo`, `repo-visibility`, `repo-security`, `transfer-issue`, `placeholder-issue`, `link-issues`, `edit-issue-body`, `realign-checkout`, `replace-clone`, `create-label`, `create-milestone`, `create-issue`, `close-issue`, `reopen-issue`, `fixture-pull-request` | The plan's procedure for the write (a path to a file, or text); its inputs (paths, ids, expected tallies); the checks it runs and the results they must give. The team runs the procedure as one shell, its entries unchanged and in order, in a single call, so a guard that stops ends the whole procedure before its write: a plan writes its guards as entries of the procedure (`version-control-manager.md`, Executor mode). |
 | `mirror` | `push-mirror` | Absolute path of the workspace mirror to push from. Forward slashes. |
@@ -94,9 +95,19 @@ Version control: `setup-branch` · `allocate-worktree` · `commit` · `sync-bran
 `realign-checkout` · `replace-clone` · `create-label` · `create-milestone` · `create-issue` ·
 `close-issue` · `reopen-issue` · `fixture-pull-request`
 
-Dashboards (the work boards and the state boards): `plan-board` · `state-boards` · `dashboards-refresh`
+Dashboards (the work boards and the state boards): `plan-board` · `state-boards` · `dashboards-refresh` ·
+`idea`
 
 Archive: `log-hook`
+
+**`idea`.** Any session may add an idea about a repository's code to that repository's committed
+ideas file (the `admin-team` agent brief, Service: dashboards, Ideas files), or drop one once it is
+filed as an issue. A defect, design flaw or missing capability is filed instead (`file-issue`), and
+an idea about the workflow, the pipeline, the boards or the team goes to `log-hook`, never into a
+repository. The idea carries no owner, no due date and no priority. The team commits each change
+at once on a docs branch of its own and lands it; `done` carries `result.idea`, the idea's id, and
+`result.pr`. A text that breaks the committed-content filters is `rejected`, naming the filter, and
+nothing is committed. It is fire-and-forget for the sender.
 
 **`log-hook`.** Any session may hand the team an idea for the user to revisit later: `text` (the idea,
 in the sender's words), `area` (one word or two: `dashboards`, `pipeline`, `CHANGELOG`, …), optional
@@ -172,8 +183,8 @@ every bump that moved a published module) and at its consideration points (start
 `status`, the month's rollover or its last 3 days). A `status` reply carries each namespace's budget
 (`used` of 7 this month) and its deferred queue.
 
-What each does is in the agent brief's service tables. `commit`, `plan-board` and `log-hook` may be
-fire-and-forget.
+What each does is in the agent brief's service tables. `commit`, `plan-board`, `idea` and `log-hook`
+may be fire-and-forget.
 
 ### `plan-board` fields
 
