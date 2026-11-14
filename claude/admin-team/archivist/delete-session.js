@@ -19,9 +19,9 @@
 // store changed in the last 10 minutes. Only the stores of the session named,
 // or with --all-ready of the sessions ready, are walked. Then it removes, in
 // this order, each store that exists: its temp folders (scratchpad, task
-// outputs, pasted images and a spent commit message, msg.txt),
-// ~/.claude/file-history/<id>/, ~/.claude/session-env/<id>/, the session's
-// folder and, last, its transcript.
+// outputs, pasted images, a spent commit message, msg.txt, and a verification
+// run's log, verify-full.log), ~/.claude/file-history/<id>/,
+// ~/.claude/session-env/<id>/, the session's folder and, last, its transcript.
 // --all-ready runs the same checks for each session it takes, one at a time,
 // and goes on past a refusal.
 //
@@ -45,9 +45,9 @@ function say(o) { console.log(JSON.stringify(o)); }
 
 // What a session's temp folder may hold: its scratchpad, its task outputs and
 // its pasted images; and, loose beside them, a file of a known kind: a spent
-// commit message (msg.txt).
+// commit message (msg.txt) or a verification run's log (verify-full.log).
 const TEMP_STORES = ['scratchpad', 'tasks', 'images'];
-const TEMP_LOOSE = ['msg.txt'];
+const TEMP_LOOSE = ['msg.txt', 'verify-full.log'];
 
 // The class checks: why the row may not be deleted, or null.
 function classRefusal(P, row, id) {
@@ -91,7 +91,7 @@ function planFor(P, c, id) {
     const bad = L.safeTarget(parent, id, '', s.path); if (bad) return { refused: `${s.path}: ${bad}` };
     const inside = fs.readdirSync(s.path).filter(n => !TEMP_STORES.includes(n)
       && !(TEMP_LOOSE.includes(n) && fs.lstatSync(path.join(s.path, n)).isFile()));
-    if (inside.length) return { refused: `${s.path} holds more than scratchpad/, tasks/, images/ and a loose msg.txt: ${inside.join(', ')}` };
+    if (inside.length) return { refused: `${s.path} holds more than scratchpad/, tasks/, images/ and a loose ${TEMP_LOOSE.join(' or ')}: ${inside.join(', ')}` };
     plan.push(s);
   }
   for (const name of ['file-history', 'session-env', 'folder', 'transcript']) {

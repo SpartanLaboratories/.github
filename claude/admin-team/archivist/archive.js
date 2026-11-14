@@ -149,8 +149,9 @@ function main() {
   }
   if (cmd === 'plan') { say(plan(P)); return 0; }
   if (cmd === 'fold-base') {
-    const folder = path.resolve(a1);
     const b = bases(P);
+    // The folder as plan prints it (relative to the archive), or a path from here.
+    const folder = [path.resolve(a1), path.resolve(P.archive, a1)].find(f => b.some(x => x.folder === f)) || path.resolve(a1);
     const me = b.find(x => x.folder === folder);
     if (!me) { say({ refused: 'not a base folder of this archive' }); return 1; }
     if (b.length <= KEEP) { say({ refused: `the base tier holds ${b.length}, not more than ${KEEP}` }); return 1; }

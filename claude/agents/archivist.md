@@ -308,9 +308,9 @@ its files. Nothing changed in the last 10 minutes is touched.
 **What a deletion removes.** The transcript, the session's folder,
 `~/.claude/file-history/<id>/`, `~/.claude/session-env/<id>/`, and its
 scratchpad, task outputs and pasted images in the temp folder, with a spent
-commit message (`msg.txt`) left loose beside them, once what an open record
-points at is copied into the archive. Its lines in `~/.claude/history.jsonl`
-stay.
+commit message (`msg.txt`) or a verification run's log (`verify-full.log`)
+left loose beside them, once what an open record points at is copied into the
+archive. Its lines in `~/.claude/history.jsonl` stay.
 
 **What an open record points at.** Whatever, in that session's scratchpad or
 task outputs, is named by a line of the ledger, `state.json`, an open

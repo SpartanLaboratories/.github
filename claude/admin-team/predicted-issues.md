@@ -664,8 +664,7 @@ A console session where an image is pasted keeps the attachment in an `images/` 
 
 A member's job can leave a file loose in an ended session's temp folder, beside `scratchpad/` and `tasks/`: a mirror-sync executor writes its commit message there and commits with `git commit -F ../msg.txt`. `delete-session.js` knows only those two as the session's temp stores, so an archive job's step 7 refuses the whole deletion ("holds more than scratchpad/ and tasks/: msg.txt"), and the session stays archived but not deleted. The entry "A session's temp folder holds an `images/` folder, and its deletion is refused" is the same refusal for a pasted attachment.
 
-- **Proposed resolution:** put to the user: a) widen the check, with the `images/` change, to allow a loose file of a known kind (recommended); b) remove it by hand; c) leave it.
-- **Decided (the user, at the console, 2026-11-13):** option a ("a loose file of a known kind"). The change built it for the one kind met then: a spent commit message, `msg.txt`, as a regular file only. A second kind, `verify-full.log`, has since been met, and which further kinds count is going back to the user; no resolution is recorded until that is decided.
+- **Resolution (decided by the user at the console, option a, 2026-11-13, then, 2026-11-14, that each loose kind is named as it is met and each new kind comes to the user; settled by the direction manager's change of `delete-session.js`):** beside `scratchpad/`, `tasks/` and `images/`, `delete-session.js` accepts a loose regular `msg.txt` (a spent commit message) or `verify-full.log` (a verification run's log), and builds its refusal message from that list; the scripts' test suite passes 119. Options b, removing it by hand, and c, leaving it, were not chosen.
 - **Predicted:** the admin team, on meeting it, 2026-11-13.
 - **Encounters:**
   - 2026-11-13: an archive job's step 7 refused an archived session's temp folder, which held a loose `msg.txt` (232 bytes, a spent commit message a mirror-sync executor wrote there after the session ended). Nothing was deleted. Put to the user at the console.
@@ -679,7 +678,20 @@ A member's job can leave a file loose in an ended session's temp folder, beside 
 
 An archive job's step 8 runs `archive.js plan` and then each wrap due. `plan` prints a base folder due for `fold-base` as a relative path, and `fold-base` refuses that path ("not a base folder of this archive"). The same folder given as an absolute path is accepted.
 
-- **Proposed resolution:** put to the user: a) the direction manager fixes `archive.js` so `fold-base` accepts what `plan` prints (or `plan` prints what `fold-base` accepts), with a test (recommended); b) leave it, and archive jobs pass absolute paths.
+- **Resolution (decided by the user at the console, option a, 2026-11-13, and settled by the direction manager's change of the archive scripts, 2026-11-14):** `archive.js fold-base` accepts its target relative to the archive, as `plan` prints it, and still a path from the current folder or an absolute path; the scripts' test suite passes 118, and a control run shows the new test fails on the old script. Option b, archive jobs passing absolute paths, was not chosen.
 - **Predicted:** the admin team, on meeting it, 2026-11-13.
 - **Encounters:**
   - 2026-11-13: an archive job's step 8: `fold-base` refused the relative folder `plan` had printed; given as an absolute path, the wrap was done. Put to the user at the console.
+
+## `archive.js fold-upper` refuses the target `archive.js plan` prints
+
+```json
+{"id":"p47","count":0,"last":null}
+```
+
+`plan` prints a tier document due for `fold-upper` relative to the archive, but `fold-upper` resolves its target against the current folder and compares it with the oldest document of the tier below, so the target as printed is refused ("not the oldest document of tier …"). Found by the change that settled the entry "`archive.js fold-base` refuses the folder `archive.js plan` prints".
+
+- **Proposed resolution:** a) the same two-reading fix as for `fold-base`, with a test; b) leave it, and archive jobs join the archive path onto the target. No recommendation recorded by the team; the direction manager recommends a.
+- **Predicted:** the direction manager, 2026-11-14.
+- **Encounters:**
+  - None yet.
