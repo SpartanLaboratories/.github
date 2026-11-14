@@ -8,21 +8,41 @@
 //    barred names (BARRED, AGENT_ONLY) hold the same names, a hyphen and a space read alike; each at the strength its row allows: "never"
 //    BARRED (a whole word wherever it stands, the user's decision of 2026-11-13: no word that only coincides is let through), "barred as an
 //    agent's name only" AGENT_ONLY (qa). A row that allows anything else has no strength in the script (an exception is brought to the user
-//    first) and is named. The §2 table (the approval flow) and APPROVAL_FLOW hold the same phrases.
+//    first) and is named. The §2 table (the approval flow) and APPROVAL_FLOW hold the same phrases, and each §2 row that names a form and
+//    APPROVAL_FORMS, under the row's phrase, the same words, word for word, both ways (the user's decision of 2026-11-14, hook-135): a row's
+//    form is read from its "What it is", the quoted words on one side of "followed by" (or "followed directly by") and, on the other, the
+//    quoted "user's", "user" or "by the user" they follow or precede; the examples in parentheses are not read.
 // 2. Each name and phrase found as its strength says, and §4's allowed words found nowhere: "the direction manager" with a space as well;
 //    a name in backticks found, a longer word that contains one not; a name in a hyphenated compound ("planners-guide") found, a hyphen being
 //    a word edge, and a fenced block counted as backticks are, in a text and rendered (<pre><code>) alike (the user's decision of 2026-11-13,
-//    dashboards/scan-forms, points 1 and 3; the compound's case the user's decision of 2026-11-14, batch-8/q-51).
+//    dashboards/scan-forms, points 1 and 3; the compound's case the user's decision of 2026-11-14, batch-8/q-51). Every word of every §2 form
+//    found in its form ("the user's call", with one word between where the row allows it; "the user chose"; "approved by the user"), in
+//    capitals, with a curly apostrophe and, where the words follow "user", after "the end user"; not after "superuser", nor past a word
+//    between where the row allows none.
 // 3. The parity fails where they differ: a row added to the list's table and an alias added to a row (each written into the list's text in
-//    its four-column shape and read back), a name dropped from the script, a "never" name made contextual, a phrase added to the list.
+//    its four-column shape and read back), a name dropped from the script, a "never" name made contextual, a phrase added to the list, a word
+//    added to a form in the list (written into its row and read back), a word dropped from the script's form and a word added to it.
 // 4. namerefs.js's header points at the list and no longer repeats it.
 // The list is read beside the skill (../../nomenclature/internal-names.md, as in ~/.claude and the .github mirror's claude/), else from
 // ~/.claude/nomenclature/. Each group returns [title, cases], a case [name, ok, detail].
 "use strict";
 const fs = require("fs"), path = require("path"), os = require("os");
 
+/* A §2 row's form, from its "What it is": { words, anchor, after, between } or null for a row that names none. The examples in parentheses
+   are dropped first; the quoted words on one side of "followed by" ("followed directly by") are the form's words, the one quote on the other
+   side that holds "user" a whole word is its anchor ("user's", "user", "by the user"), after true where the words come first; between, whether
+   the row allows one word between. */
+function formOf(what) {
+  const t = String(what || "").replace(/\([^()]*\)/g, " "), quoted = s => [...s.matchAll(/["“]([^"”]+)["”]/g)].map(m => m[1].trim());
+  const m = /^([\s\S]*?)\bfollowed\s+(?:directly\s+)?by\b([\s\S]*)$/i.exec(t); if (!m) return null;
+  const pre = quoted(m[1]), post = quoted(m[2]), isAnchor = side => side.length === 1 && /\buser\b/i.test(side[0]);
+  const after = isAnchor(post) && !isAnchor(pre), words = after ? pre : post, anchor = (after ? post : pre)[0];
+  if (!words.length || !anchor || !/\buser\b/i.test(anchor)) return null;
+  return { words, anchor, after, between: !after && /\bone word\b[^.]*\bbetween\b/i.test(t) };
+}
 /* The list's sections: §1's rows ({ name, names, what, allowed }: the heading Name, not scanned, and its Aliases, the barred forms), §2's
-   phrases, §4's rows (the text of each). A table's header row (Name in §1, Term in §2 to §4) is skipped. */
+   phrases and its forms ({ phrase, words, anchor, after, between }, one per row that names a form: formOf()), §4's rows (the text of each).
+   A table's header row (Name in §1, Term in §2 to §4) is skipped. */
 function parseList(md) {
   const text = String(md).replace(/\r\n/g, "\n");
   const section = n => { const m = new RegExp(`^## ${n}\\.[^\\n]*\\n([\\s\\S]*?)(?=^## |(?![\\s\\S]))`, "m").exec(text); return m ? m[1] : null; };
@@ -33,6 +53,7 @@ function parseList(md) {
     found: [1, 2, 4].filter(n => section(n) != null),
     roles: rows(section(1)).map(([name, aliases, what, allowed]) => ({ name: bold(name || "")[0], names: bold(aliases || ""), what: what || "", allowed: allowed || "" })),
     approval: rows(section(2)).flatMap(([term]) => bold(term)),
+    forms: rows(section(2)).map(([term, what]) => { const f = formOf(what); return f && bold(term || "")[0] ? Object.assign({ phrase: bold(term)[0] }, f) : null; }).filter(Boolean),
     allowed: rows(section(4)).map(cells => cells.join(" · "))
   };
 }
@@ -63,6 +84,19 @@ function parity(list, N) {
   const a = new Map(list.approval.map(p => [key(p), p])), b = new Map((N.APPROVAL_FLOW || []).map(p => [key(p), p]));
   a.forEach((p, k) => { if (!b.has(k)) diffs.push(`the list's §2 names "${p}", namerefs.js APPROVAL_FLOW does not`); });
   b.forEach((p, k) => { if (!a.has(k)) diffs.push(`namerefs.js APPROVAL_FLOW holds "${p}", the list's §2 does not`); });
+  /* the forms, word for word both ways: a word's key is its lower case with its spaces one, a hyphen kept ("sign-off" and "signoff" two words) */
+  const wk = w => String(w).toLowerCase().replace(/\s+/g, " ").replace(/’/g, "'").trim(), F = N.APPROVAL_FORMS || {};
+  const scriptForms = new Map(Object.keys(F).map(p => [key(p), { p, words: F[p] || [] }]));
+  const listForms = new Map((list.forms || []).map(f => [key(f.phrase), f]));
+  listForms.forEach((f, k) => {
+    const s = scriptForms.get(k);
+    if (!s) { diffs.push(`the list's §2 row "${f.phrase}" names a form, namerefs.js APPROVAL_FORMS holds none for it`); return; }
+    const lw = new Set(f.words.map(wk)), sw = new Set(s.words.map(wk));
+    if (sw.size !== s.words.length) diffs.push(`namerefs.js's form "${s.p}" holds a word twice (${JSON.stringify(s.words)})`);
+    f.words.forEach(w => { if (!sw.has(wk(w))) diffs.push(`the list's §2 form "${f.phrase}" takes "${w}", namerefs.js's does not`); });
+    s.words.forEach(w => { if (!lw.has(wk(w))) diffs.push(`namerefs.js's form "${s.p}" takes "${w}", the list's §2 does not`); });
+  });
+  scriptForms.forEach((s, k) => { if (!listForms.has(k)) diffs.push(`namerefs.js APPROVAL_FORMS holds a form for "${s.p}", the list's §2 row names none`); });
   return diffs;
 }
 /* Every name found as its strength says: [] when each is. */
@@ -82,6 +116,16 @@ function behaviour(list, N) {
     if (s.strength === "barred" && !N.nameRefs(`the ${name} confirmed it`).every(h => N.unambiguous(h))) bad.push(`"${name}" found, but not as a name no rewording lets through (unambiguous())`);
   }));
   list.approval.forEach(p => { const h = N.nameRefs(p); if (!h.length || !h.every(x => N.unambiguous(x))) bad.push(`the approval flow's "${p}" ${h.length ? "not unambiguous()" : "not found"} (${JSON.stringify(h)})`); });
+  /* every word of every §2 form in its form, found and left out by no rewording; in capitals, with a curly apostrophe and, where the words
+     follow "user", after "the end user"; with one word between where the row allows it; not after "superuser", nor past a word between where the row allows none */
+  (list.forms || []).forEach(f => f.words.forEach(w => {
+    const put = (anchor, mid) => f.after ? `it was ${w}${mid ? ` ${mid}` : ""} ${anchor}` : `the ${anchor}${mid ? ` ${mid}` : ""} ${w} it`;
+    const probes = [[put(f.anchor), true], [put(f.anchor).toUpperCase(), true], [put(f.anchor.replace(/'/g, "’")), true],
+      [put(f.anchor.replace(/\buser\b/i, "superuser")), false], [put(f.anchor, "final"), f.between]];
+    if (!f.after) probes.push([put(`end ${f.anchor}`), true]);
+    probes.forEach(([t, want]) => { const h = N.nameRefs(t); if ((h.length > 0) !== want) bad.push(`§2's form "${f.phrase}", word "${w}": "${t}" ${want ? "not found" : "found"} (${JSON.stringify(h)})`);
+      else if (want && !h.every(x => N.unambiguous(x))) bad.push(`§2's form "${f.phrase}", word "${w}": "${t}" found, not unambiguous() (${JSON.stringify(h)})`); });
+  }));
   list.allowed.forEach(t => { const h = N.nameRefs(t); if (h.length) bad.push(`§4's allowed "${t}" found: ${JSON.stringify(h)}`); });
   return bad;
 }
@@ -98,12 +142,14 @@ module.exports = function casesInternalNames(X) {
   guard("the internal-names list's one home: nomenclature/internal-names.md §1 and §2 and namerefs.js's barred names agree", c => {
     c.push(["the list is found and read: §1, §2 and §4, every §1 row with its Name and at least one alias", !!L && js(L.found) === "[1,2,4]" && L.roles.length > 0 && L.roles.every(r => r.name && r.names.length) && L.approval.length > 0, file ? js(L && { found: L.found, roles: L.roles.map(r => [r.name, r.names]), approval: L.approval }) : `not found: ${js(candidates)}`]);
     if (!L) return;
+    const badForm = L.forms.filter(f => !L.approval.includes(f.phrase) || !f.words.length || !/\buser\b/i.test(f.anchor) || f.words.some(w => /\buser\b|["“”()]/i.test(w)));
+    c.push(["§2's forms read: each row that names one with its words and its anchor (\"user's\", \"user\", \"by the user\"), the examples in parentheses not read", L.forms.length > 0 && !badForm.length, js({ forms: L.forms, bad: badForm })]);
     const camel = L.roles.filter(r => !/^[A-Z][A-Za-z]*$/.test(r.name) || r.names.some(n => n === r.name && /[A-Z]/.test(n)));
     c.push(["§1's Name is the row's CamelCase heading and never read as a barred name; the aliases are", !camel.length && !L.roles.some(r => /^name$/i.test(r.name)), js(camel)]);
     const vcm = L.roles.find(r => r.name === "VersionControlManager");
     c.push(["VersionControlManager's two aliases read: version-control-manager and executor", !!vcm && js(vcm.names) === js(["version-control-manager", "executor"]), js(vcm)]);
     const d = parity(L, N);
-    c.push(["§1's names are namerefs.js's barred names, each at the strength its row allows; §2's phrases its APPROVAL_FLOW", !d.length, js(d)]);
+    c.push(["§1's names are namerefs.js's barred names, each at the strength its row allows; §2's phrases its APPROVAL_FLOW and each §2 form's words its APPROVAL_FORMS, word for word", !d.length, js(d)]);
     const qa = scriptNames(N).find(s => s.key === "qa"), dm = scriptNames(N).find(s => s.key === "direction-manager");
     c.push(["qa barred as an agent's name only; direction-manager barred wherever it stands", !!qa && qa.strength === "agent-only" && !!dm && dm.strength === "barred", js([qa, dm])]);
     const six = ["planner", "architect", "verifier", "presenter", "publisher", "executor", "archivist"].map(n => scriptNames(N).find(s => s.key === n));
@@ -151,12 +197,22 @@ module.exports = function casesInternalNames(X) {
     const ctx = Object.assign({}, N, { BARRED: N.BARRED.filter(s => key(s) !== "rookie-dev"), CONTEXTUAL: [...(N.CONTEXTUAL || []), "rookie-devs?"] });
     const qa = Object.assign({}, N, { AGENT_ONLY: [], BARRED: [...N.BARRED, "qa"] });
     const phrase = copy(L); phrase.approval.push("the user signed off");
+    /* a word added to a form in the list: written into the verb form's row and read back; a word dropped from the script's form, one added */
+    const verbRow = lines.find(l => /^\|\s*\*\*["“]the user chose["”]\*\*/.test(l));
+    const wordAdded = verbRow ? parseList(md.replace(verbRow, verbRow.replace(/["“]okayed["”],/, "\"okayed\", \"overruled\","))) : null;
+    const F = N.APPROVAL_FORMS || {}, possessive = Object.keys(F).find(p => (F[p] || []).includes("go-ahead"));
+    const dropped = Object.assign({}, N, { APPROVAL_FORMS: Object.assign({}, F, possessive ? { [possessive]: F[possessive].filter(w => w !== "go-ahead") } : {}) });
+    const extra = Object.assign({}, N, { APPROVAL_FORMS: Object.assign({}, F, possessive ? { [possessive]: [...F[possessive], "nod"] } : {}) });
+    c.push(["the list's verb form row found to alter, its form read, and the script's form holding \"go-ahead\" found", !!wordAdded && wordAdded.forms.some(f => f.words.includes("overruled")) && !!possessive, js([verbRow, possessive])]);
     const addedD = parity(added, N);
     c.push(["a row added in the four-column shape is read by its alias, its Name not scanned", addedD.some(x => /"release-captain"/.test(x)) && !addedD.some(x => /ReleaseCaptain/.test(x)), js(addedD)]);
     const probes = [["a row added to the list", addedD, /release-captain/], ["an alias added to a row", parity(alias, N), /"vc-manager"/], ["direction-manager dropped from the script", parity(L, less), /direction-manager/],
-      ["a \"never\" name made contextual", parity(L, ctx), /rookie-dev.*contextual/], ["qa barred wherever it stands", parity(L, qa), /qa.*barred/], ["a phrase added to the list", parity(phrase, N), /signed off/]];
+      ["a \"never\" name made contextual", parity(L, ctx), /rookie-dev.*contextual/], ["qa barred wherever it stands", parity(L, qa), /qa.*barred/], ["a phrase added to the list", parity(phrase, N), /"the user signed off"/],
+      ["a word added to a form in the list", wordAdded ? parity(wordAdded, N) : [], /the list's §2 form "the user chose" takes "overruled"/],
+      ["a word dropped from the script's form", parity(L, dropped), /the list's §2 form .* takes "go-ahead", namerefs\.js's does not/],
+      ["a word added to the script's form", parity(L, extra), /namerefs\.js's form .* takes "nod", the list's §2 does not/]];
     const wrong = probes.filter(([, d, re]) => !d.some(x => re.test(x)));
-    c.push(["each difference named: a row added, an alias added, a name dropped, a strength changed, qa beyond an agent's name, a phrase added", !wrong.length, js(wrong.map(([w, d]) => [w, d]))]);
+    c.push(["each difference named: a row added, an alias added, a name dropped, a strength changed, qa beyond an agent's name, a phrase added, a word added to a form in the list, a word dropped from the script's form and one added to it", !wrong.length, js(wrong.map(([w, d]) => [w, d]))]);
   });
 
   /* the user's decision of 2026-11-13 (vocabulary/choice-2-grade-reach (a)): every form of "grade" is barred, as the list's §3 lists it; the

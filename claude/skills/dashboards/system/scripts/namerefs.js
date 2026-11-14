@@ -9,8 +9,11 @@
 // longer word that contains one is not a find (RoutePlanner, ExecutorService, a `DirectionManager`), as the list says. A fenced block counts
 // as backticks do, in a text and rendered on a board (<pre><code>) alike (the user's decision of 2026-11-13, dashboards/scan-forms). "qa" matches only as an
 // agent ("qa found", "qa has approved", "by qa", "qa's"), never as the step or its passes. The version-control-manager shortened matches as
-// "the manager's" or "the manager" with a pipeline verb, never "Selenium Manager". The approval flow matches with a word between ("the
-// user's two answers") and in the passive ("signed off by the user").
+// "the manager's" or "the manager" with a pipeline verb, never "Selenium Manager". The approval flow matches in the forms the list's §2
+// names, each with every word its row lists (APPROVAL_FORMS, the script's one copy of those words): "user's" before one of its words,
+// directly or with one word of letters between ("the user's two answers"), "user" directly before one ("the user chose"), and one before
+// "by the user" ("signed off by the user"); in any case, with a straight or a curly apostrophe, and with "user" a whole word that any word
+// or none may stand before, so a product's own user matches as well ("the guild or user choose units") and "superuser" and "username" do not.
 // A wait on the user, in a fact or a comment, reads "waiting on you" (§4's wording for a halt): waitRefs() finds "waiting on the user", "waits on
 // the user" and "wait on the user" in a board's data and comments and scrubWaits() rewords a fact; nameRefs() leaves it alone, as it is the
 // fixed text of the templates' status labels (plan/RULES.md §2, §3).
@@ -25,8 +28,17 @@
 const BARRED = ["admin[- ]teams?", "planners?", "plan-writers?", "architects?", "researchers?", "verifiers?", "interviewers?", "presenters?", "publishers?", "rookie-devs?",
   "version-control-managers?", "executors?", "direction[- ]managers?", "archivists?", "code-reviewers?", "documentation-reviewers?", "test-inspectors?"];
 const AGENT_ONLY = ["qa"];
-/* internal-names.md §2: the approval flow's phrases, each matched by the forms below (a word between, the passive) */
-const APPROVAL_FLOW = ["the user's call", "the user chose", "user answers"];
+/* internal-names.md §2: the approval flow. APPROVAL_FLOW holds its rows' phrases; APPROVAL_FORMS, by the phrase heading its row, every word
+   that row's form takes, the one copy NAME_PATTERNS builds the form's pattern from (a row with no form, "user answers", has no entry: its
+   phrase is a word of the verb form). verify/cases-internal-names.js holds both equal to the list, word for word. */
+const APPROVAL_FLOW = ["the user's call", "the user chose", "user answers", "signed off by the user"];
+const APPROVAL_FORMS = {
+  "the user's call": ["call", "answer", "answers", "approval", "decision", "choice", "sign-off", "signoff", "go-ahead"],             // "user's" + a word, directly or one word between
+  "the user chose": ["chose", "chooses", "choose", "decided", "decides", "approved", "approves", "confirmed", "confirms", "okayed", "answered", "answers", "signed off"], // "user" + a word
+  "signed off by the user": ["signed off", "approved", "decided", "chosen", "answered"]                                            // a word + "by the user"
+};
+/* a form's words as one alternation: each word literal, its spaces any run of white space */
+const formWords = phrase => APPROVAL_FORMS[phrase].map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+")).join("|");
 const PIPELINE_VERBS = "commits?|committed|pushe[sd]|push|merges?|merged|lands?|landed|files?|filed|releases?|released|publishe[sd]|defers?|deferred|tags?|tagged|confirms?|confirmed";
 const NAME_PATTERNS = [
   [`\\b(?:${BARRED.join("|")})\\b`, "i"],                                                                  // "the admin team", "rookie-dev's fixes", "the planner", "an `Executor`"
@@ -34,9 +46,9 @@ const NAME_PATTERNS = [
   ["\\bqa\\s+(?:agent|agents|found|finds|flagged|flags|raised|raises|reported|reports|said|says|asked|asks|approved|approves|rejected|rejects|returned|returns|requested|requests|reviewer|team|has\\s+approved|had\\s+approved|has\\s+found|had\\s+found)\\b", "i"], // "qa found", "qa has approved"
   ["\\b(?:by|from)\\s+qa\\b(?!\\s+pass)", "i"],                                                             // "raised by qa", never "from qa pass 2"
   ["\\bqa['’]s\\b", "i"],                                                                                  // "qa's test-inspector"
-  ["\\buser['’]s\\s+(?:[a-z]+\\s+)?(?:call|answers?|approval|decision|choice|sign-?off|go-ahead)\\b", "i"], // "the user's call", "the user's two answers"
-  ["\\buser\\s+(?:chose|chooses|choose|answered|answers|approved|approves|decided|decides|signed\\s+off|confirmed|confirms|okayed)\\b", "i"], // "the user chose", "user answers"
-  ["\\b(?:signed\\s+off|approved|decided|chosen|answered)\\s+by\\s+the\\s+user\\b", "i"],                  // "signed off by the user"
+  [`\\buser['’]s\\s+(?:[a-z]+\\s+)?(?:${formWords("the user's call")})\\b`, "i"],                          // "the user's call", "the user's two answers"
+  [`\\buser\\s+(?:${formWords("the user chose")})\\b`, "i"],                                                  // "the user chose", "user answers"
+  [`\\b(?:${formWords("signed off by the user")})\\s+by\\s+the\\s+user\\b`, "i"],                            // "signed off by the user"
 ];
 const REGEXES = NAME_PATTERNS.map(([s, f]) => new RegExp(s, f + "g"));
 /* a backtick span, an inline <code> element and a fenced block, in a text or rendered on a board (<pre><code>), are scanned as the rest
@@ -145,4 +157,4 @@ function cleanWorkBoard(board) {
 }
 /* the warning's line */
 const nameWarning = (where, hits) => `INTERNAL NAME: ${where} names ${[...new Set(hits)].slice(0, 6).map(h => JSON.stringify(h)).join(", ")}: a board never names the pipeline's agents, sessions or roles, nor the approval flow (GUIDANCE.md §4); correct the text where the board stores it, an issue or tracking board's through fill.js`;
-module.exports = { NAME_PATTERNS, BARRED, AGENT_ONLY, APPROVAL_FLOW, nameRefs, nameSpans, nameRefsIn, commentRefs, scrubNames, waitRefs, scrubWaits, unambiguous, nameWarning, cleanWritten, cleanWorkBoard };
+module.exports = { NAME_PATTERNS, BARRED, AGENT_ONLY, APPROVAL_FLOW, APPROVAL_FORMS, nameRefs, nameSpans, nameRefsIn, commentRefs, scrubNames, waitRefs, scrubWaits, unambiguous, nameWarning, cleanWritten, cleanWorkBoard };
