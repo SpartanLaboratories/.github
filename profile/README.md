@@ -2,3 +2,4 @@ Spartan Laboratories is an independent software organization that designs, build
 focused, dependable tools.
 
 - [Policy](../POLICY.md)
+- [Design Manifesto](../DESIGN.md)

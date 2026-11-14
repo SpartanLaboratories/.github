@@ -58,11 +58,35 @@
         "policy/testing": { "segment": "T" },
         "policy/version": { "segment": "V" }
       }
+    },
+    "D": {
+      "main": "DESIGN.md",
+      "ownSections": "C",
+      "files": {
+        "DESIGN.md": { "sections": {
+          "Principles": "PR"
+        } },
+        "design/architecture/api.md": { "segment": "API", "sections": {
+          "Scope": "SC", "Principle": "PR", "Mechanism — split by layer": "ME", "In practice": "IP"
+        } },
+        "design/patterns/README.md": { "sections": {
+          "Objects for the domain, functions for data": "OF", "Immutable and pure by default": "IP"
+        } },
+        "design/error-handling/README.md": { "sections": {
+          "Expected failures return a Result": "ER", "Functional recovery": "FR"
+        } }
+      },
+      "folders": {
+        "design/architecture": { "segment": "A" },
+        "design/patterns": { "segment": "P" },
+        "design/conventions": { "segment": "V" },
+        "design/error-handling": { "segment": "E" }
+      }
     }
   },
   "notConverted": [],
   "ids": {
-    "marks": { "1": 2, "2": 25, "3": 131, "4": 1074, "5": 10029 },
+    "marks": { "1": 3, "2": 29, "3": 132, "4": 1083, "5": 10038 },
     "retired": [
       { "id": 105, "by": 11 },
       { "id": 1022, "by": 1028 },
