@@ -139,7 +139,7 @@ The permission system raises the denial.
 ## An encountered issue is not in this tracker
 
 ```json
-{"id":"p9","count":13,"last":"2026-11-14"}
+{"id":"p9","count":14,"last":"2026-11-14"}
 ```
 
 - **Proposed resolution:** add it as a new entry with count 1, then prompt the
@@ -181,6 +181,10 @@ The permission system raises the denial.
   - 2026-11-14: a direction manager's read-only grep over the installed Claude Code
     binary was refused by the auto mode classifier as "[Undermining Oversight]"; added as
     "A read-only search of the Claude Code binary is refused as [Undermining Oversight]".
+  - 2026-11-14: the session archive was found unable to remove a deleted team session's
+    Remote Control entry on claude.ai, which the user had expected it to; the Coordinator
+    said at the console it would log it as an issue met, and it was logged later; added as
+    "The session archive cannot remove a session's Remote Control entry".
 
 ## A count changes in this mirrored file
 
@@ -748,16 +752,18 @@ A record that says "scratchpad <id8>: a, b, c" names items the script's words pa
 ## A subagent's Write of a working file is refused, "Subagents should return findings as text"
 
 ```json
-{"id":"p50","count":2,"last":"2026-11-14"}
+{"id":"p50","count":3,"last":"2026-11-14"}
 ```
 
 An archive job wrote its `summary.md` text to a file in the session scratchpad with the Write tool, to copy it into the archive folder after, as earlier archive jobs had been told to do. The Write tool refused the subagent's call with the message "Subagents should return findings as text". The harness keeps a subagent from writing report files with Write; a file that is the job's own output, such as an archive's `summary.md`, meets the same refusal when written as a working file this way. The Archivist's brief names no tool for writing `summary.md`.
 
 - **Proposed resolution:** a) archive jobs write `summary.md` straight into the archive folder with a bash heredoc, as the job that met it did, and the instruction to stage it in the scratchpad with Write is dropped from what archive jobs are told; b) the same, and the Archivist's brief says so at the archive mode's step 3, a change of a direction document for the direction manager. No recommendation recorded by the team.
+- **Attempts (not a resolution; the user has not decided):** on the third encounter, a bash heredoc carrying the whole summary failed twice, and the route that worked was the Write tool to a working text file in the archive's own `work/` folder, then a `mv` of that file into place as `summary.md`.
 - **Predicted:** the admin team, on meeting it, 2026-11-14.
 - **Encounters:**
   - 2026-11-14: an archive job: the Write tool refused the subagent's write of the summary text into the scratchpad ("Subagents should return findings as text"); the job wrote `summary.md` straight into the archive folder with bash heredocs and went on.
   - 2026-11-14: an archive job: the Write tool refused the subagent's write of `summary.md` into the archive folder itself, not only into the scratchpad, with the same message ("Subagents should return findings as text, not write report files"); the job wrote the file with bash heredocs. One heredoc of about 45 lines failed with a bash quote-matching error, and the same text split into three appends worked (cause not found). Resolution (a)'s direct write into the archive folder holds only for a bash heredoc, not for the Write tool.
+  - 2026-11-14: an archive job: the Write tool again refused the subagent's write of `summary.md` into the archive folder itself. A bash heredoc carrying the whole summary then failed twice with a bash quote-matching error ("unexpected EOF while looking for matching quote"), though a short heredoc worked. The job wrote the summary with the Write tool to a working text file in the archive's `work/` folder and moved it into place.
 
 ## The team's session ends without a handoff while jobs are running
 
@@ -838,3 +844,16 @@ A member whose job needs to know how Claude Code itself behaves (how a variable 
 - **Predicted:** the admin team, on meeting it, 2026-11-14.
 - **Encounters:**
   - 2026-11-14: a direction manager's assess job, on its second attempt, grepped the installed Claude Code binary to find how the `AI_AGENT` variable is built and read; the classifier refused the call as "[Undermining Oversight]", where an earlier grep over the same binary in the same job had been allowed. The job tried no other route and drew on its first attempt's transcript instead.
+
+## The session archive cannot remove a session's Remote Control entry
+
+```json
+{"id":"p57","count":1,"last":"2026-11-14"}
+```
+
+Each relaunch of the team leaves an offline Remote Control entry named "admin team" on claude.ai (twelve at the last count). The user had expected the Archivist to remove a session's entry when it deletes the session. It cannot: `delete-session.js` removes only local stores, and no CLI or API removes a Remote Control entry, which the team's research found on 2026-11-14. The ambiguity these entries cause for a message to the bare name is the entry "A message to the bare name "admin team" is refused as ambiguous", where the user settled sending to the live record's socket; this entry covers only the entries left standing.
+
+- **Proposed resolution:** a) the user removes the offline entries by hand in the app, as and when they wish; b) an archive job's report lists, for each session it deletes, that its Remote Control entry is left standing, so the user can remove it by hand; c) both. No recommendation recorded by the team. Not checked by the Archivist: the research's finding that no CLI or API removes an entry, and whether the app offers removal of an offline entry.
+- **Predicted:** the admin team, on meeting it, 2026-11-14.
+- **Encounters:**
+  - 2026-11-14: the user expected the session archive to clean up the offline "admin team" Remote Control entries when it deletes a session; the team's research found no CLI or API that removes one. The Coordinator said at the console it would log this as an issue met, and it was not logged until later.
