@@ -84,8 +84,10 @@ and takes a new id ([R-1006 (Pointer rules)](#pointer-rules)). The checker lists
 every pointer at an id; the review of a split's pointers is part of the split's edit, shown in its
 diff.
 
-A file's items become rules individually where the file already names them with clean bold leads
-that lift out without breaking a sentence; otherwise the file has one rule per section.
+A section's items may become rules individually, and only where the section names them with clean
+bold leads that lift out without breaking a sentence and leave none of its text in another rule's
+body; otherwise, and by default, the section is one rule, and a part of it that needs pointing at
+becomes a splinter ([R-1005 (Splinters)](#splinters)).
 
 ## A rule
 <!-- {"name":"A rule","code":"S-C-AR","id":1003} -->
