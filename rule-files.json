@@ -55,13 +55,23 @@
         "policy/logging/README.md": { "sections": {
           "Kotlin code logs through kotlin-logging": "KL", "A library ships no logging backend": "NB",
           "One kotlin-logging version": "OV", "What is logged": "WL"
+        } },
+        "policy/build/multiplatform.md": { "segment": "MP", "sections": {
+          "Targets": "TA", "Modules": "MO", "Module names": "MN", "Convention plugins": "CP",
+          "Gradle wrapper": "GW", "Version catalog": "VC", "Publishing": "PU", "Tests": "TE"
+        } },
+        "policy/build/jvm/java-floor.md": { "segment": "F", "sections": {
+          "A floor apart from the toolchain": "FT", "The organization floor is 11": "OF",
+          "The worked example": "WE"
         } }
       },
       "folders": {
         "policy/documentation": { "segment": "D" },
         "policy/testing": { "segment": "T" },
         "policy/version": { "segment": "V" },
-        "policy/logging": { "segment": "L" }
+        "policy/logging": { "segment": "L" },
+        "policy/build": { "segment": "B" },
+        "policy/build/jvm": { "segment": "J" }
       }
     },
     "D": {
@@ -91,7 +101,7 @@
   },
   "notConverted": [],
   "ids": {
-    "marks": { "1": 3, "2": 30, "3": 132, "4": 1087, "5": 10038 },
+    "marks": { "1": 3, "2": 32, "3": 134, "4": 1098, "5": 10038 },
     "retired": [
       { "id": 105, "by": 11 },
       { "id": 1022, "by": 1028 },

@@ -1,5 +1,5 @@
 # Logging
-<!-- {"name":"Logging","code":"P-L","id":30} -->
+<!-- {"name":"Logging","code":"P-L","id":30,"pointerMark":1} -->
 
 ## Kotlin code logs through kotlin-logging
 <!-- {"name":"Kotlin code logs through kotlin-logging","code":"P-L-KL","id":1084} -->
