@@ -21,9 +21,10 @@
 const fs = require("fs"), path = require("path"), os = require("os");
 const { titleSkip } = require("./levelrefs.js");
 
-/* The two files: the folder given, beside the skill (../../../nomenclature, as in ~/.claude and the .github mirror's claude/), else ~/.claude/nomenclature/. */
+/* The two files: the folder given, beside the skill (../../../../nomenclature from system/scripts, as in ~/.claude and the .github mirror's claude/), else
+   ~/.claude/nomenclature/. */
 function glossaryDir(given) {
-  return [given, path.resolve(__dirname, "..", "..", "..", "nomenclature"), path.join(os.homedir(), ".claude", "nomenclature")].filter(Boolean)
+  return [given, path.resolve(__dirname, "..", "..", "..", "..", "nomenclature"), path.join(os.homedir(), ".claude", "nomenclature")].filter(Boolean)
     .find(d => fs.existsSync(path.join(d, "ui.md")) && fs.existsSync(path.join(d, "boards.md"))) || null;
 }
 const cellsOf = line => line.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|").map(c => c.trim());

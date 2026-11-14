@@ -2659,9 +2659,10 @@ const otherOf=T=>{ const m=T&&T.other&&T.other.byModule&&typeof T.other.byModule
   Object.keys(m).forEach(md=>{ const row=m[md]&&typeof m[md]==="object"?m[md]:{}, r={}; Object.keys(row).filter(k=>TLV_SEG[k]).forEach(k=>{ r[TLV_SEG[k]]=row[k]; }); Object.keys(row).filter(k=>!TLV_SEG[k]&&r[k]===undefined).forEach(k=>{ r[k]=row[k]; }); o[md]=r; }); return o; };
 const cnt=v=>Number.isInteger(v)?{classes:v,tests:null}:v&&typeof v==="object"?{classes:Number.isInteger(v.classes)?v.classes:0,tests:Number.isInteger(v.tests)?v.tests:null}:{classes:0,tests:null};
 function otherTotal(T){ const m=otherOf(T); if(!m) return null; let c=0; Object.values(m).forEach(lv=>Object.values(lv&&typeof lv==="object"?lv:{}).forEach(v=>{ c+=cnt(v).classes; })); return c; }
-/* a class's simple name and its package, from a fully qualified name (a package starts lower case) */
-const simpleName=c=>{ const s=String(c||""), i=s.lastIndexOf("."); return i>0&&/^[a-z]/.test(s)?s.slice(i+1):s; };
-const pkgOf=c=>{ const s=String(c||""), i=s.lastIndexOf("."); return i>0&&/^[a-z]/.test(s)?s.slice(0,i):""; };
+/* a class's simple name and its package, from a fully qualified name (a package starts lower case; a name with a space in it is a run's,
+   "gselftest.sh gating", and unqualified: KotlinBottools #39) */
+const simpleName=c=>{ const s=String(c||""), i=s.lastIndexOf("."); return i>0&&/^[a-z]/.test(s)&&!/\s/.test(s)?s.slice(i+1):s; };
+const pkgOf=c=>{ const s=String(c||""), i=s.lastIndexOf("."); return i>0&&/^[a-z]/.test(s)&&!/\s/.test(s)?s.slice(0,i):""; };
 const unitTestsBoard=r=>unitHref(r);
 /* the board rows a class verifies: on an issue board each opens its row on the Timeline; on a tracking board, on the unit's own board */
 function testRows(x){ const ids=Array.isArray(x.e.rows)?x.e.rows.filter(v=>typeof v==="string"):[]; if(!ids.length) return "";

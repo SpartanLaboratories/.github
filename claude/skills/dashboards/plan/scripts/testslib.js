@@ -72,8 +72,9 @@ function taskClasses(T, e) {
   return { passed: on, skipped: off, bySkip: true };
 }
 /* A class's identity across the lists: its module and its class name. */
-/* A class's name without its package. */
-const simpleName = c => String(c || "").split(".").pop();
+/* A class's name without its package. A name with a space in it is a run's, not a qualified class's, and is its own simple name
+   (KotlinBottools #39: "gselftest.sh gating" read as "sh gating"); the plan-board template's simpleName() reads it so too. */
+const simpleName = c => { const s = String(c || ""); return /\s/.test(s) ? s : s.split(".").pop(); };
 const testKey = e => `${(e && e.module) || ""}::${e && e.class}`;
 /* A result's state: its own when it is one, else what its counts say (a failure fails it). */
 function resultState(r) {
@@ -172,7 +173,7 @@ function mergeTests(plan, ft, o) {
   /* a class matches by its module and name; failing that, uniquely, by its name with no module given, or by its simple name where one side
      names the class without its package (a stage's facts may give "FooTest" for a class recorded as "com.acme.testing.component.FooTest"),
      or as the same shell script's run in the same set with and without ".sh" (sameShRun()) */
-  const simple = c => String(c || "").split(".").pop();
+  const simple = simpleName;
   const sameModule = (x, e) => !e.module || !x.module || x.module === e.module;
   const loose = (x, e) => !!x && sameModule(x, e) && (x.class === e.class || bareName(x.class, x.module || e.module) === bareName(e.class, e.module || x.module) || ((!String(x.class).includes(".") || !String(e.class).includes(".")) && simple(x.class) === simple(e.class)) || sameShRun(bareName(x.class, x.module || e.module), bareName(e.class, e.module || x.module)));
   const find = e => { for (const k of TEST_LISTS) { let i = T[k].findIndex(x => x && testKey(x) === testKey(e)); if (i < 0) { const hits = T[k].map((x, j) => loose(x, e) ? j : -1).filter(j => j >= 0); if (hits.length === 1) i = hits[0]; } if (i >= 0) return { k, i }; } return null; };

@@ -9,7 +9,9 @@
 // 2026-11-14, q-149 (b); verify/fixtures/tests-testset.request.json); a testLevel sent in its place is no longer read (the transition's end,
 // L12); an open board that stores the old numbers is written by name at its next rewrite, a closed one keeps them. And KotlinBottools #39: a
 // shell script's run sent as "gselftest.sh gating" by a stage and "gselftest gating" by the qa pass made two entries; it is one class under the
-// ".sh" name, and no other name is read so (testslib.js sameShRun()). Each group returns [title, cases], a case [name, ok, detail].
+// ".sh" name, and no other name is read so (testslib.js sameShRun()); and the Tests tab showed that run as "sh gating" in the package
+// "gselftest": a name with a space in it is unqualified (the plan-board template's simpleName() and pkgOf(), testslib.js simpleName()).
+// Each group returns [title, cases], a case [name, ok, detail].
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 
@@ -228,6 +230,32 @@ module.exports = function casesTestsFacts(X) {
     const e1 = ev(B, d, "implementation-stage", { stage: "S2", stages: [{ id: "S1", name: "Baseline", state: "done" }, { id: "S2", name: "Local checks", state: "done" }, { id: "S3", name: "Scans", state: "current" }], tests: { ran: SETS5.map((s, i) => runOf("gselftest.sh " + s, s, N5[i])) } }, "2026-11-02T01:00:00Z");
     const e2 = ev(B, d, "qa-pass", { qa: { pass: 1, verdict: "CHANGES REQUESTED", test: 2, code: 0, route: "remediation" }, tests: { ran: SETS5.map((s, i) => runOf("gselftest " + s, s, N5[i])), other: { byModule: {} } } }, "2026-11-02T02:00:00Z");
     c.push(["apply-event.js: the stage's \".sh\" runs, then the qa pass's runs without: five Relevant entries under the \".sh\" names, each with pass 1", e1.a.status === 0 && e2.a.status === 0 && names(e2.p).join() === SETS5.map(s => "gselftest.sh " + s).join() && all(e2.p).every(x => x.result && x.result.pass === 1), js([e1.S.error, e2.S.error, e2.S.applied, all(e2.p).map(x => [x.class, x.result && x.result.pass])])]);
+  });
+
+  /* 8. a run's name is no qualified class name (KotlinBottools #39: the Tests tab showed the run "gselftest.sh gating" as "sh gating" in the
+     package "gselftest"): a name with a space in it is its own simple name and has no package, in the plan-board template's simpleName() and
+     pkgOf() and in testslib.js's simpleName() */
+  guard("the plan-board template and testslib.js: a name with a space in it is unqualified, its own simple name with no package (KotlinBottools #39)", c => {
+    const vm = require("vm"), h = rd(PB), def = nm => { const m = new RegExp("^const " + nm + "=.*$", "m").exec(h); return m ? m[0] : null; };
+    const ctx = vm.createContext({});
+    ["simpleName", "pkgOf"].forEach(nm => { const d = def(nm); if (!d) throw new Error(`no const ${nm}= in the template`); vm.runInContext(d.replace(/^const /, "var "), ctx); });
+    [["gselftest.sh gating", "gselftest.sh gating", ""], ["S3 python", "S3 python", ""], ["webtools-http componentTest", "webtools-http componentTest", ""], ["com.acme.FooTest run 2", "com.acme.FooTest run 2", ""],
+      ["com.acme.testing.component.FooTest", "FooTest", "com.acme.testing.component"], ["FooTest", "FooTest", ""], ["Foo.Bar", "Foo.Bar", ""]].forEach(([name, simple, pkg]) => {
+      const s = ctx.simpleName(name), p = ctx.pkgOf(name);
+      c.push([`the template: "${name}" shows as "${simple}"${pkg ? ` in the package "${pkg}"` : " with no package"}`, s === simple && p === pkg, js([s, p])]); });
+    const MD = "tools/g27", o = { now: "2026-11-14T09:00:00Z", pass: 1, ids: new Set(ids) };
+    const board = held => ({ rows: EX.rows, tests: { base: "master", updated: "2026-11-14T07:00:00Z", added: [], amended: [], relevant: held.map(x => ({ module: MD, tests: 3, ...x })) } });
+    /* a name matched by its simple name only where one side is unqualified: "x.sh gating" has no simple name "sh gating" to match */
+    const X1 = board([{ class: "x.sh gating" }]); TL.mergeTests(X1, { ran: [{ class: "sh gating", module: MD, passed: 3, failed: 0, skipped: 0 }] }, o);
+    c.push(["testslib.js: \"x.sh gating\" held, \"sh gating\" sent: two entries, the held one untouched", all(X1).length === 2 && !X1.tests.relevant[0].result, js(X1.tests.relevant)]);
+    const X2 = board([{ class: "com.acme.testing.gating.FooTest", testSet: "gating" }]); TL.mergeTests(X2, { ran: [{ class: "FooTest", module: MD, passed: 3, failed: 0, skipped: 0 }] }, o);
+    c.push(["…while \"com.acme.testing.gating.FooTest\" held, \"FooTest\" sent, is still one entry under the qualified name", all(X2).length === 1 && X2.tests.relevant[0].class === "com.acme.testing.gating.FooTest" && !!X2.tests.relevant[0].result, js(X2.tests.relevant)]);
+    /* the note naming the classes a skip is attributed to by count names a run whole */
+    const X3 = { rows: EX.rows, tests: { base: "master", updated: "2026-11-14T07:00:00Z", amended: [], relevant: [], added: [
+      { class: "gselftest.sh gating", module: MD, testSet: "gating", tests: 2, result: { state: "skipped", skipped: 2, at: "2026-11-14T07:00:00Z" } },
+      { class: "com.acme.testing.gating.FooTest", module: MD, testSet: "gating", tests: 3 }] } };
+    const r3 = TL.mergeTests(X3, { ran: [{ class: "gatingTest", module: MD, passed: 3, failed: 0, skipped: 2 }] }, o), note = r3.notes.find(x => /skip attributed by count/.test(x)) || "";
+    c.push(["testslib.js: a skip attributed by count to the run \"gselftest.sh gating\" names it whole", /attributed by count to gselftest\.sh gating;/.test(note), js(r3.notes)]);
   });
   return groups;
 };

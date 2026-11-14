@@ -7,6 +7,7 @@
 // 4. The classes: a subject without its type word, a class beside its type word, a retired word, a template's class list read from the markup and the selectors.
 // 5. A term line's "case": case-sensitive by default, "case":"any" in any case (lower case, plural), its "allow" still exempting, a bad value named.
 // 6. check.js and check-board.js warn and fail nothing for it; a quoted title, a signature and a key are left out.
+// 7. glossaryDir() reads the folder beside the skill, <root>/nomenclature for <root>/skills/dashboards, before ~/.claude/nomenclature; a folder under skills/ is not it.
 // Each group returns [title, cases], a case [name, ok, detail].
 "use strict";
 const fs = require("fs"), path = require("path"), os = require("os"), cp = require("child_process");
@@ -108,6 +109,19 @@ module.exports = function casesTermrefs(X) {
     const bare = wr(path.join(sc, "state2", "index.html"), rd(sk("system/template/system.html")));
     const b0 = run("system/scripts/check-board.js", [bare, "--auto", "--no-browser"]);
     c.push(["…and its verdict is the same with them", b.status === b0.status, `${b0.status} → ${b.status}`]);
+    fs.rmSync(sc, { recursive: true, force: true });
+  });
+
+  guard("glossaryDir(): the folder beside the skill, <root>/nomenclature for <root>/skills/dashboards, is read before ~/.claude/nomenclature", c => {
+    /* a copy of termrefs.js laid as in ~/.claude and the mirror's claude/: <root>/skills/dashboards/system/scripts, its glossary <root>/nomenclature */
+    const sc = fs.mkdtempSync(path.join(os.tmpdir(), "termrefs-dir-")), at = (...p) => path.join(sc, ...p);
+    const lay = root => { ["termrefs.js", "levelrefs.js"].forEach(f => wr(path.join(root, "skills", "dashboards", "system", "scripts", f), rd(sk("system/scripts/" + f)))); return require(path.join(root, "skills", "dashboards", "system", "scripts", "termrefs.js")); };
+    const glossary = dir => ["ui.md", "boards.md"].forEach(f => wr(path.join(dir, f), "| **Card** | x |\n"));
+    const A = lay(at("a")); glossary(at("a", "nomenclature"));
+    c.push(["the glossary beside the skill is found", A.glossaryDir() === at("a", "nomenclature"), js(A.glossaryDir())]);
+    c.push(["…and a folder given wins over it", A.glossaryDir(at("a", "nomenclature")) === at("a", "nomenclature") && (() => { glossary(at("given")); return A.glossaryDir(at("given")) === at("given"); })(), js(A.glossaryDir(at("given")))]);
+    const B = lay(at("b")); glossary(at("b", "skills", "nomenclature"));
+    c.push(["a glossary under skills/, beside the skill's own folder, is not read", B.glossaryDir() !== at("b", "skills", "nomenclature"), js(B.glossaryDir())]);
     fs.rmSync(sc, { recursive: true, force: true });
   });
   return groups;
