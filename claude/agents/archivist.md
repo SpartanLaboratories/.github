@@ -100,7 +100,10 @@ is the user's list of things to come back to. A line:
   `direction-manager`.
 - `retags` records each change of tag: `{ts, from, to, why}`.
 - `reprioritized` records each change of priority or queue place: `{ts,
-  from, to, by, why}`.
+  from, to, by, why}`. `from` and `to` each hold the priority and the queue
+  place together, `{priority, queue}`, with `queue` `null` when there is
+  none: a priority-3 hook placed at 1B reads from
+  `{"priority":3,"queue":null}` to `{"priority":1,"queue":"1B"}`.
 
 **Executors.** You tag a hook by what carrying the idea out would change, and
 whose brief lets it write that:
