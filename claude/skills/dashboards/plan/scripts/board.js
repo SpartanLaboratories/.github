@@ -17,8 +17,9 @@
 // is set only when that board's dashboard.html exists, and the board links that issue's #n to it, a tracking issue's as much as a sub-issue's (plan/RULES.md §1, §5).
 // A row with a board carries "reconciliation", its impact's reconciliation state as lib.js reconciliation() derives it (planned,
 // partial or as-built, with landed and total units on a tracking board), or null while the board records no impact (plan/RULES.md §2, §5).
-// A row with no board of its own and no tracking board's unit row to read (a boardless row: any issue the tracker sizes, whatever
-// its level) takes its state from the tracker (plan/RULES.md §5, "Boardless rows"): closed as not planned, "not-planned" ("closed ·
+// A row with no board of its own and no tracking board's unit row to read (a boardless row: any issue the team's local state sizes,
+// whatever its grade; no grade is read from GitHub, the user's decision of 2026-11-14, batch-8/q-56) takes its state from the tracker
+// (plan/RULES.md §5, "Boardless rows"): closed as not planned, "not-planned" ("closed ·
 // not planned", never landed); closed as a duplicate, "duplicate" ("closed · duplicate", never landed); closed otherwise, "landed";
 // open with a pull request
 // that refers to it merged, "merged" (awaiting close); open with an open pull request or a branch that refers to it, "in-progress"
@@ -42,7 +43,7 @@
 // blocked-by links and the tracking boards' unit.blockedBy (plan/RULES.md §5; admin-team/dashboards-skill/30).
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), url = require("url");
-const { atomicWrite, repoRoot, flag, opt, registry, findPlans, VIEW, viewSource, treeRoot, planStamp, notYetLanded, landedPending, unitLeft, UNIT_LANDED, subIssueBoard, shownBranch, unitBranch, reconciliation, leftForLater, boardlessState, unitInRun, qaShown, depBuild, depLocality, holdState, blockerOf } = require("./lib.js");
+const { atomicWrite, repoRoot, flag, opt, registry, findPlans, VIEW, viewSource, treeRoot, planStamp, notYetLanded, landedPending, unitLeft, UNIT_LANDED, subIssueBoard, shownBranch, unitBranch, reconciliation, leftForLater, boardlessState, unitInRun, qaShown, depBuild, depLocality, holdState, blockerOf, localLevel } = require("./lib.js");
 /* a pass's route written with its neutral id (GUIDANCE.md §4, "No internal names"): a board recorded before the rename keeps the older
    rookie-dev and planner-then-rookie-dev, read alike everywhere; board.json is generated, so it carries the neutral ones */
 const ROUTE_NEUTRAL = { "rookie-dev": "remediation", "planner-then-rookie-dev": "re-plan-then-remediation" };
@@ -196,7 +197,9 @@ if (FIXTURE && !flag(args, "no-gh")) {
 const trackerState = (n, i) => { const g = gq[n] || {};
   return boardlessState(n, i ? i.state : "OPEN", (g.closedByPullRequestsReferences || {}).nodes || [], ((g.linkedBranches || {}).nodes || []).map(x => x && x.ref && x.ref.name).filter(Boolean), prs, branches, i ? i.stateReason : null); };
 const issueOf = n => issues.find(i => i.number === n);
-const levelOf = i => { const l = i && i.labels.find(x => /^level: [1-4]$/.test(x.name)); return l ? parseInt(l.name.slice(7), 10) : null; };
+/* An issue's grade comes only from the team's local state (levels.js localLevel(); the user's decision of 2026-11-14, batch-8/q-56): no
+   label on GitHub is read for one, under any name, and none is ever written to board.json */
+const sizedLocally = i => !!i && localLevel(repo, i.number) != null;
 /* an issue the graph names; a duplicate carries the issue it duplicates (dupOf, from its MarkedAsDuplicateEvent), read where its
    dependency state is derived and not written to board.json (admin-team/dashboards-skill/35) */
 function canonicalNode(x) { const c = x && x.timelineItems && Array.isArray(x.timelineItems.nodes) && x.timelineItems.nodes.length ? (x.timelineItems.nodes[x.timelineItems.nodes.length - 1] || {}).canonical : null;
@@ -308,11 +311,13 @@ const holdsUp = (n, g, i) => { const tracked = ((g.blocking || {}).nodes || []).
   const own = unitsBlockedBy(n).filter(m => !tracked.some(t => t.issue === m && !t.repo)).map(asRef);
   return [...tracked, ...own].map(({ dupOf, ...x }) => ({ ...x, hold })); };
 
-/* Rows: every issue with a board or a level label (the label decides which issues are rows; no level is written to board.json,
-   since a dashboard never shows one: GUIDANCE.md §4) */
-/* ...and every unit of a tracking board, so the chain (and its next unit) shows even without a level label or the tracker. */
+/* Rows: every issue with a board, and every issue the tracker lists that the team's local state sizes (sizedLocally(), above: the
+   grade only decides which issues are rows; none is written to board.json, since a dashboard never shows one: GUIDANCE.md §4). An
+   issue the state has no grade for, with no board and no unit row, is no row: an open one no roadmap item claims stays an unscheduled
+   issue in the Context, as before. */
+/* ...and every unit of a tracking board, so the chain (and its next unit) shows even without a grade in the state or the tracker. */
 const unitNums = boards.filter(b => b.plan.kind === "tracking").flatMap(b => (b.plan.rows || []).filter(r => r.unit && Number.isInteger(r.unit.issue) && r.unit.issue > 0).map(r => r.unit.issue));
-const rowNums = new Set([...boards.map(b => b.plan.issue), ...issues.filter(i => levelOf(i)).map(i => i.number), ...unitNums]);
+const rowNums = new Set([...boards.map(b => b.plan.issue), ...issues.filter(sizedLocally).map(i => i.number), ...unitNums]);
 const ACTIVE_STEPS = new Set(["sizing", "interview", "research", "architecture", "plan", "branch", "implementation", "qa", "remediation", "document", "landing", "state-boards", "merge"]);
 const rows = [...rowNums].map(n => {
   const i = issueOf(n), g = gq[n] || {}, b = boardOf(n), u = unitRow(n), p = prevRow(n);
@@ -393,7 +398,7 @@ const roadmap = [...trackingNums].sort((a, b) => a - b).map(t => {
   claimed.add(t); return { issue: t, title: g.title, state: (issueOf(t) || {}).state || "OPEN", board: g.board, items };
 });
 const unscheduled = issues.filter(i => i.state === "OPEN" && !claimed.has(i.number)).sort((a, b) => b.number - a.number)
-  .map(i => ({ issue: i.number, title: i.title, labels: i.labels.map(l => l.name).filter(l => !/^level: /.test(l)), created: i.createdAt.slice(0, 10), system: prevUn(i.number).system || (rows.find(r => r.issue === i.number) || {}).system || null }))
+  .map(i => ({ issue: i.number, title: i.title, labels: i.labels.map(l => l.name), created: i.createdAt.slice(0, 10), system: prevUn(i.number).system || (rows.find(r => r.issue === i.number) || {}).system || null }))
   /* a deliberate "no system" (above): kept from the previous entry, or taken from the issue's own row */
   .map(u => u.system || !(prevUn(u.issue).unassigned === true || (rows.find(r => r.issue === u.issue) || {}).unassigned) ? u : { ...u, unassigned: true });
 

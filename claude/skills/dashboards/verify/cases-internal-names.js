@@ -10,8 +10,9 @@
 //    agent's name only" AGENT_ONLY (qa). A row that allows anything else has no strength in the script (an exception is brought to the user
 //    first) and is named. The §2 table (the approval flow) and APPROVAL_FLOW hold the same phrases.
 // 2. Each name and phrase found as its strength says, and §4's allowed words found nowhere: "the direction manager" with a space as well;
-//    a name in backticks found, a longer word that contains one not; a fenced block counted as backticks are, in a text and rendered
-//    (<pre><code>) alike (the user's decision of 2026-11-13, dashboards/scan-forms).
+//    a name in backticks found, a longer word that contains one not; a name in a hyphenated compound ("planners-guide") found, a hyphen being
+//    a word edge, and a fenced block counted as backticks are, in a text and rendered (<pre><code>) alike (the user's decision of 2026-11-13,
+//    dashboards/scan-forms, points 1 and 3; the compound's case the user's decision of 2026-11-14, batch-8/q-51).
 // 3. The parity fails where they differ: a row added to the list's table and an alias added to a row (each written into the list's text in
 //    its four-column shape and read back), a name dropped from the script, a "never" name made contextual, a phrase added to the list.
 // 4. namerefs.js's header points at the list and no longer repeats it.
@@ -120,6 +121,12 @@ module.exports = function casesInternalNames(X) {
       ["the `Planner` type", true], ["the archivist's hook", true], ["two archivists", true], ["the solution architect", true], ["Presenters", true],
       ["uses OkHttp's `RoutePlanner`", false], ["an `ExecutorService`", false], ["RoutePlanner picks a route", false], ["plannerConfig", false], ["planner_id", false]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);
     c.push(["every name a whole word wherever it stands, in backticks too; a longer word that contains one is not a find", !strict.length, js(strict.map(([t, w]) => [t, w, N.nameRefs(t)]))]);
+    /* the user's decision of 2026-11-13, dashboards/scan-forms (1), pinned by the user's decision of 2026-11-14, batch-8/q-51 (a): a hyphen is a
+       word edge, so a name in a hyphenated compound is a find, on either side of the hyphen, in backticks and in a path too; a longer word that
+       contains one stays no find beside a hyphen */
+    const compound = [["the planners-guide page", true], ["`planners-guide`", true], ["docs/planners-guide.md", true], ["a planner-guide", true], ["guide-planners", true],
+      ["the executor-pool drains it", true], ["rookie-dev-notes", true], ["see the RoutePlanner-guide", false], ["plannerConfig-guide", false]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);
+    c.push(["a name in a hyphenated compound (\"planners-guide\") is a find: a hyphen is a word edge; a longer word beside a hyphen is not", !compound.length, js(compound.map(([t, w]) => [t, w, N.nameRefs(t)]))]);
     /* the user's decision of 2026-11-13, dashboards/scan-forms: a fenced block counts as backticks do, in a text and rendered (<pre><code>) alike, so the board scripts and the commit scan agree */
     const fence = [["```kotlin\nval planner = RoutePlanner()\n```", true], ["<pre><code>the planner reruns it</code></pre>", true], ["<pre><code class=\"lang-kotlin\">val executor = pool()</code></pre>", true],
       ["<pre><code>val p = RoutePlanner()</code></pre>", false], ["<code>planner</code>", true]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);

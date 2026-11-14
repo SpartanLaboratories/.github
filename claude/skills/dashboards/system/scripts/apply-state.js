@@ -52,7 +52,7 @@ const boardOf = e => e && (typeof e.board === "string" && e.board.trim() ? e.boa
 const T0 = Date.now();
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const L = require("./statelib.js"), PAL = require("./palette.js");
-const { levelRefs, titleDefect } = require("./levelrefs.js");
+const { titleRefs: levelRefs, titleDefect } = require("./levelrefs.js");   // read only on an issue's title, read whole (a slug in it included)
 
 const USAGE = "usage: node apply-state.js --event <request.json> --worktree <path> [--repo <owner/repo>] [--at <ISO time>] [--json]";
 const args = process.argv.slice(2);

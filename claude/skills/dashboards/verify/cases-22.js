@@ -136,8 +136,10 @@ module.exports = function cases22(X) {
     /* the decisions live only on the main checkout's live board: #71 (a boardless row), #72 (unscheduled) and #73 (recorded as an
        unscheduled issue there, a row now) */
     wr(path.join(main, "docs", "plans", ".live", "board.json"), board([row(71, { unassigned: true })], [{ issue: 72, title: "Verification case #72", labels: [], created: "2026-10-02", system: null, unassigned: true }, { issue: 73, title: "Verification case #73", labels: [], created: "2026-10-03", system: null, unassigned: true }]));
-    const fx = wr(path.join(base, "tracker.json"), JSON.stringify({ issues: [71, 72, 73].map(n => ({ number: n, title: `Verification case #${n}`, state: "OPEN", stateReason: null, labels: n === 72 ? [] : [{ name: "level: 1" }], createdAt: `2026-10-0${n - 70}T00:00:00Z` })), prs: [], branches: [], graph: {} }));
-    const env = { DASHBOARDS_TRACKER_FIXTURE: fx };
+    /* #71 and #73 are rows by the grade the team's local state records for them, #72 has none (the user's decision of 2026-11-14, batch-8/q-56:
+       no label on GitHub is read for a grade) */
+    const fx = wr(path.join(base, "tracker.json"), JSON.stringify({ issues: [71, 72, 73].map(n => ({ number: n, title: `Verification case #${n}`, state: "OPEN", stateReason: null, labels: [], createdAt: `2026-10-0${n - 70}T00:00:00Z` })), prs: [], branches: [], graph: {} }));
+    const env = { DASHBOARDS_TRACKER_FIXTURE: fx, DASHBOARDS_ADMIN_STATE: wr(path.join(base, "state.json"), JSON.stringify({ grades: { "acme/widgets#71": 1, "acme/widgets#73": 1 } })) };
     const dec = (f, n, key) => { try { const b = JSON.parse(rd(f)); return ((b[key || "rows"] || []).find(r => r.issue === n) || {}).unassigned === true; } catch (e) { return false; } };
     const rA = run(BOARD, ["--live", "--root", wt], env), fA = path.join(wt, "docs", "plans", ".live", "board.json");
     c.push(["regenerated live from a worktree whose committed board lacks the decisions: #71, #72 and #73 keep \"unassigned\" (read from the main checkout's live board)", rA.status === 0 && dec(fA, 71) && dec(fA, 72, "unscheduled") && dec(fA, 73) && !/no system recorded/.test(rA.stdout), (rA.stdout + rA.stderr).trim().split(/\r?\n/).slice(-2).join(" | ")]);

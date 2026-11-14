@@ -12,7 +12,9 @@
 // dropped with its punctuation; apply-event.js and apply-state.js write the reworded text, never the grade.
 // A quotation (a plan excerpt, lib.js sectionOf()) keeps its "…" elision instead: a quote is never reworded. An issue's title is quoted
 // verbatim and never reworded or elided either: one that names a grade is a defect in the issue, flagged ISSUE TITLE NAMES A GRADE: #n
-// (issueTitleRefs(), titleDefect(); admin-team/dashboards-skill/28), never a failure of the board.
+// (issueTitleRefs(), titleDefect(); admin-team/dashboards-skill/28), never a failure of the board. A slug made from the title (a plan folder's
+// name, where a path puts it) is left out of the scan as the title is, and flagged nowhere (maskSlugs(); the user's decision of 2026-11-14,
+// batch-8/q-54).
 "use strict";
 /* The test sets' names, matched in any case (a table head may set them in capitals: "L1 GATING") while the "L" itself stays
    case-sensitive: each letter becomes a class of both its cases. */
@@ -68,13 +70,32 @@ function scrubGrades(s, scope) {
   return s;
 }
 const REGEXES = GRADE_PATTERNS.map(([s, f]) => new RegExp(s, f + "g"));
-/* Every grade reference in a text, as the matched strings. */
-function levelRefs(text) {
+/* Slugs (the user's decision of 2026-11-14, batch-8/q-54 (a)): a plan folder's name, <number>-<slug> (CLAUDE.md, "Planning documents"), is
+   made from its issue's title, so the grade check skips it as it skips the title (below), wherever it stands as a folder or a slug: the
+   board's slug, the plan folder, a board's path, a link to a board or into a folder, a report's copy, a path a text cites. It counts where
+   a path puts it: a folder, ended by a "/" ("55-slug/62-slug/dashboard.html", "see 62-slug/plan.md"); the last folder of a path under
+   docs/plans/ ("docs/plans/55-slug/62-slug"); a slug standing alone, the whole string or in quotation marks as a Source view prints one.
+   The same token in prose with no path around it, a file's name ("62-slug.md"), an anchor after a "#" and a branch ("fix/62-slug",
+   "feat/issue-62-slug": an identifier, read whole, plan/RULES.md §4) are no slug: a grade there is still found. The title itself stays
+   flagged (issueTitleRefs(), which reads the title whole, titleRefs()); a slug made from it is not. SLUG_PATTERNS are the forms
+   (check-board.js's browser pass takes them too); maskSlugs() blanks them before a scan. */
+const SLUG = "\\d+-[a-z0-9]+(?:-[a-z0-9]+)*";
+const SLUG_PATTERNS = [
+  `(?<![\\w.-])${SLUG}(?=/)`,                                  // a folder in a path, ended by its "/" ("55-slug/62-slug/", "see 62-slug/plan.md")
+  `(?<=(?:^|[^\\w.-])docs/plans/(?:[^\\s/"'\`]+/)*)${SLUG}(?![\\w.-])`,   // the last folder of a path under docs/plans/ (a board's folder)
+  `(?<=^|")${SLUG}(?=$|")`,                                    // a slug alone: the whole string, or in quotation marks (a Source view)
+];
+const SLUG_RES = SLUG_PATTERNS.map(s => new RegExp(s, "g"));
+const maskSlugs = text => typeof text === "string" ? SLUG_RES.reduce((s, re) => s.replace(re, "\u0001"), text) : text;
+/* Every grade reference in a text, as the matched strings, the text read whole (an issue's title: titleRefs()) */
+function titleRefs(text) {
   const out = [];
   if (typeof text !== "string" || !text) return out;
   REGEXES.forEach(re => { re.lastIndex = 0; let m; while ((m = re.exec(text))) out.push(m[0]); });
   return out;
 }
+/* Every grade reference in a text, as the matched strings, its slugs left out (above). */
+const levelRefs = text => titleRefs(maskSlugs(text));
 /* Every grade reference in the strings of a data file: [{ at, hit }]. Keys are not text and are skipped; so are numbers. skip(at),
    when given, leaves out the strings at the paths it accepts (the issue titles, below). */
 function levelRefsIn(v, at, found, skip) {
@@ -110,7 +131,7 @@ function issueTitleRefs(data, kind) {
   const k = kind || dataKind(data), out = [];
   if (!k) return out;
   const walk = (v, at, holder) => {
-    if (typeof v === "string") { if (isTitlePath(k, at)) { const hits = levelRefs(v); if (hits.length) out.push({ at, issue: holder && Number.isInteger(holder.issue) ? holder.issue : null, title: v, hits }); } }
+    if (typeof v === "string") { if (isTitlePath(k, at)) { const hits = titleRefs(v); if (hits.length) out.push({ at, issue: holder && Number.isInteger(holder.issue) ? holder.issue : null, title: v, hits }); } }
     else if (Array.isArray(v)) v.forEach((x, i) => walk(x, `${at}[${i}]`, holder));
     else if (v && typeof v === "object") Object.keys(v).forEach(key => { if (key !== "$comment") walk(v[key], at ? `${at}.${key}` : key, v); });
   };
@@ -175,4 +196,4 @@ function nameTestLevels(text) {
 }
 /* the test sets a text still writes by number ("L2 test", "L2 component"): check.js warns (TEST SET BY NUMBER), naming the set's name to write */
 const bareTestLevels = text => nameTestLevels(text).named;
-module.exports = { GRADE_PATTERNS, levelRefs, levelRefsIn, scrubLevels, nameTestLevels, bareTestLevels, TITLE_PATHS, dataKind, isTitlePath, titleSkip, issueTitleRefs, quotedTitles, titleDefect, TITLE_DEFECT, TEST_LEVEL_SHORT };
+module.exports = { GRADE_PATTERNS, SLUG_PATTERNS, maskSlugs, titleRefs, levelRefs, levelRefsIn, scrubLevels, nameTestLevels, bareTestLevels, TITLE_PATHS, dataKind, isTitlePath, titleSkip, issueTitleRefs, quotedTitles, titleDefect, TITLE_DEFECT, TEST_LEVEL_SHORT };

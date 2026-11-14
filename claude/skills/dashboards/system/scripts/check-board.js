@@ -122,7 +122,7 @@ const browsers = [
   "/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser",
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
 ];
-const { GRADE_PATTERNS, quotedTitles } = require("./levelrefs.js");
+const { GRADE_PATTERNS, SLUG_PATTERNS, quotedTitles } = require("./levelrefs.js");
 /* the issue titles the board's data quotes (dashboards-skill/28): a Source view prints them JSON-quoted, and the browser pass leaves them out
    of its grade scan there, as it leaves out the titles the board marks data-issue-title */
 const QUOTED = (() => { const L = require("./statelib.js"), all = []; ["plan", "board", "state"].forEach(id => { const t = L.blockText(src, id); if (t == null) return; try { all.push(...quotedTitles(JSON.parse(t))); } catch (e) { /* the data checks report it */ } });
@@ -142,7 +142,10 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   const tabs=[...document.querySelectorAll('[role="tab"]')]; console.log("CHECK tabs: "+tabs.length);
   /* grades are never shown (levelrefs.js): the text of every tab, then of the whole board, is scanned */
   const LV=${JSON.stringify(GRADE_PATTERNS)}.map(([s,f])=>new RegExp(s,f+"g")), lvHits=new Set();
-  const lvScan=(txt,where)=>LV.forEach(re=>{ re.lastIndex=0; let m; while((m=re.exec(txt||""))) lvHits.add(where+": “"+m[0]+"”"); });
+  /* a slug made from an issue's title (a plan folder's name, where a path puts it) is left out as the title is (levelrefs.js maskSlugs();
+     the user's decision of 2026-11-14, batch-8/q-54) */
+  const SL=${JSON.stringify(SLUG_PATTERNS)}.map(s=>new RegExp(s,"g")), unslug=t=>SL.reduce((x,re)=>x.replace(re,"\\u0001"),t||"");
+  const lvScan=(txt,where)=>{ txt=unslug(txt); LV.forEach(re=>{ re.lastIndex=0; let m; while((m=re.exec(txt))) lvHits.add(where+": “"+m[0]+"”"); }); };
   /* An issue's title is quoted verbatim and marked data-issue-title (GUIDANCE.md §5; dashboards-skill/28): its text is left out of the
      scan above (textOf() reads a part's rendered text with the titles hidden), and a grade in it is a defect in the issue, flagged
      by number, ISSUE TITLE NAMES A GRADE: #n, never a failure of the board (the title's own words are not printed: they are the issue's) */
@@ -381,7 +384,7 @@ function featureChecks() {
 // TITLE NAMES A GRADE: #n, never a problem of the board: the admin team brings it to the user to retitle on GitHub.
 function titleChecks() {
   if (!src || /<meta name="dashboard" content="doc-copy">/.test(src)) return null;
-  const { levelRefs, issueTitleRefs, titleDefect } = require("./levelrefs.js"), L = require("./statelib.js"), notes = [];
+  const { titleRefs: levelRefs, issueTitleRefs, titleDefect } = require("./levelrefs.js"), L = require("./statelib.js"), notes = [];   // a title read whole, a slug in it included
   const flag = x => notes.push("warning: " + titleDefect(x));
   ["plan", "board", "state"].forEach(id => { const t = L.blockText(src, id); if (t == null) return; try { issueTitleRefs(JSON.parse(t)).forEach(flag); } catch (e) { /* the data checks report it */ } });
   if (!/<meta name="dashboard" content="(plan-board|work-board|org-work-board)">/.test(src)) {

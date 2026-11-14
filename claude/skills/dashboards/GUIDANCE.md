@@ -388,7 +388,13 @@ a title that names one is a **defect in the issue**, not in the board: `plan/scr
 `system/scripts/check-board.js` (a state board's Context titles and `lastAmended.title`, and in its browser pass every title the board marks
 `data-issue-title`) flag it, `ISSUE TITLE NAMES A GRADE: #n`, as a warning and never fail the board for it, and `apply-event.js` and
 `apply-state.js` name it in their summary's `issue defects`; the admin team brings it to the user to retitle on GitHub. The rule above
-holds for everything else on the board, the quoted titles' text aside (`levelrefs.js` `issueTitleRefs()`, `titleSkip()`). The C4
+holds for everything else on the board, the quoted titles' text aside (`levelrefs.js` `issueTitleRefs()`, `titleSkip()`). **A slug
+made from the title** is left out the same way (the user's decision of 2026-11-14, batch-8/q-54): a plan folder's name, `<number>-<slug>`,
+wherever a path puts it — the board's slug, the plan folder, a board's path and a link to a board or into a folder, a report's copy, a path
+a text cites — is no grade to any scan of one (`levelrefs.js` `maskSlugs()`: `check.js`, the feature probes, the browser pass, and the
+fast path's rewording, which writes a fact that cites such a path as it is), and is flagged nowhere: the title it was made from carries
+the flag. The same token in prose with no path around it, a file's name, an anchor and a branch (an identifier, read whole, `plan/RULES.md`
+§4) are no slug, and a grade there is found as anywhere else. The C4
 model's levels and the documentation levels are no grade: the rule does not touch them ("Level 1 · System Context", "level-1
 KDoc"), nor the old test levels a landed document keeps and a board quotes ("Level 2 — component", "L1 gating"), which the fast
 path writes by their set's name wherever it writes a fact (above). `plan/scripts/check.js` fails a board whose text names a grade,

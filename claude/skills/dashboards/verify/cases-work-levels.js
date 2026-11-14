@@ -3,7 +3,9 @@
 // A grade is read from the request, else the team's local state, for the kind and the steps line of a laying, and never written. An open board drops what it still holds at
 // any rewrite, and check.js fails one that holds any; a closed work board, landed or cancelled, keeps them, whatever rewrites it, and check.js never fails it.
 // The grade's old name, the work level, is no longer read since L12 (the request's and its facts' level, the state's levels, new.js --level); a closed
-// board's level fields are read for good; the scrub (levelrefs.js) finds every form of the word grade, and no level. Each group returns [title, cases].
+// board's level fields are read for good; the scrub (levelrefs.js) finds every form of the word grade, and no level. The repository work board
+// reads no level and no grade from GitHub, its rows sized by the team's local state alone (the user's decision of 2026-11-14, batch-8/q-56).
+// Each group returns [title, cases].
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 
@@ -175,6 +177,29 @@ module.exports = function casesWorkLevels(X) {
     c.push(["new.js --level is no longer read: refused as an unknown option, nothing laid", nw2.status === 2 && /unknown option --level/.test((nw2.stderr || "") + (nw2.stdout || "")) && !fs.existsSync(path.join(r7, "docs", "plans", "87-b-case", "plan.json")), js([nw2.status, (nw2.stderr || "").split(/\r?\n/)[0]])]);
     const rE = root0(); ev(rE, "docs/plans/88-esc", "sized", { step: "research", baseline: "abc1234" }, T(1)); const Ee = ev(rE, "docs/plans/88-esc", "escalated", { proposedGrade: 4 }, T(2));
     c.push(["escalated: facts.proposedGrade is the team's, never on the board", Ee.a.status === 0 && Ee.p.wip.step === "escalated" && Ee.p.wip.proposedGrade === undefined && !/"proposedGrade"/.test(js(Ee.p)), js(Ee.p && Ee.p.wip.proposedGrade)]);
+  });
+
+  /* the user's decision of 2026-11-14, batch-8/q-56: issues carry neither the old levels nor the grades, so the repository work board reads
+     neither from GitHub; an issue's grade comes only from the team's local state (levels.js localLevel()), and decides only which issues are rows */
+  guard("the repository work board reads no level and no grade from GitHub, only the team's local state (batch-8/q-56)", c => {
+    const BOARD = sk("plan/scripts/board.js"), root = path.join(sc, "wb-grades"), plans = path.join(root, "docs", "plans");
+    fs.rmSync(root, { recursive: true, force: true }); fs.mkdirSync(plans, { recursive: true });
+    const git = (...a) => cp.spawnSync("git", ["-c", "user.name=verify", "-c", "user.email=verify@example.invalid", ...a], { cwd: root, encoding: "utf8" });
+    if (git("init", "-q", "-b", "master").status !== 0) { c.push(["git is available", false, "git init failed"]); return; }
+    git("remote", "add", "origin", "https://github.com/acme/widgets.git");
+    const issue = (n, labels) => ({ number: n, title: `Verification case #${n}`, state: "OPEN", stateReason: null, closedAt: null, labels: labels.map(name => ({ name })), createdAt: `2026-10-0${n - 80}T00:00:00Z` });
+    const fx = wr(path.join(sc, "wb-grades-tracker.json"), js({ issues: [issue(81, ["level: 3"]), issue(82, ["grade: 2"]), issue(83, ["bug"]), issue(84, [])], prs: [], branches: [], graph: {} }));
+    const stf = wr(path.join(sc, "wb-grades-state.json"), js({ grades: { "acme/widgets#83": 2 } }));
+    const r = run(BOARD, ["--root", root], { env: { ...process.env, DASHBOARDS_TRACKER_FIXTURE: fx, DASHBOARDS_ADMIN_STATE: stf } });
+    let wb = {}; try { wb = JSON.parse(rd(path.join(plans, "board.json"))); } catch (e) { wb = { error: String(e.message) }; }
+    c.push(["board.js runs on the tracker's issues and the team's state", r.status === 0 && !wb.error, (r.stdout + r.stderr).trim().split(/\r?\n/).slice(-2).join(" | ") || js(wb.error)]);
+    const nums = (wb.rows || []).map(x => x.issue).sort((a, b) => a - b);
+    c.push(["a row by the team's state alone (#83, graded there, labelled only \"bug\"); a level: or a grade: label makes none (#81, #82), nor an issue the state has no grade for (#84)", js(nums) === js([83]), js(nums)]);
+    const row83 = (wb.rows || []).find(x => x.issue === 83) || {};
+    c.push(["the row shows no grade: a boardless row, its state from the tracker, no level or grade field", row83.status === "not-started" && row83.board === null && !/"(?:level|grade)"\s*:/.test(js(wb.rows || [])), js({ status: row83.status, board: row83.board })]);
+    const un = n => ((wb.unscheduled || []).find(x => x.issue === n) || {}).labels;
+    c.push(["an unscheduled issue's labels are drawn as GitHub has them, none filtered out (#81's \"level: 3\" kept, #84 none)", js(un(81)) === js(["level: 3"]) && js(un(84)) === js([]), js({ 81: un(81), 84: un(84) })]);
+    c.push(["board.js reads no label for a grade: neither a level: nor a grade: pattern left in its code", !/level: \[1-4\]|\^level: |\^grade: |grade: \[1-4\]/.test(rd(BOARD)), "plan/scripts/board.js"]);
   });
 
   guard("a board that holds a grade is held as one that holds a level: an open one fails check.js and drops it at any rewrite, a closed one keeps it; a fill drops it", c => {

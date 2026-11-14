@@ -65,14 +65,16 @@ module.exports = function cases30(X) {
     wr(path.join(TF, "dashboard.html"), rd(PB)); wr(path.join(UF, "dashboard.html"), rd(PB));
     const units = trk.rows.filter(r => r.unit).map(r => r.unit.issue), closed = new Set([61, 62]);
     const node = (n, o) => ({ number: n, title: `Verification case #${n}`, state: closed.has(n) ? "CLOSED" : "OPEN", stateReason: closed.has(n) ? "COMPLETED" : null, closedAt: closed.has(n) ? "2026-10-22T00:00:00Z" : null, repository: { nameWithOwner: REPO }, ...(o || {}) });
-    const issues = [55, ...units, 90, 30, 31].map(n => ({ number: n, title: `Verification case #${n}`, state: closed.has(n) || n === 30 || n === 31 ? "CLOSED" : "OPEN", stateReason: closed.has(n) || n === 30 || n === 31 ? "COMPLETED" : null, closedAt: n === 30 ? "2026-10-01T00:00:00Z" : n === 31 ? "2026-12-01T00:00:00Z" : closed.has(n) ? "2026-10-22T00:00:00Z" : null, labels: n === 55 ? [{ name: "type: tracking" }] : n === 30 || n === 31 ? [] : [{ name: "level: 3" }], createdAt: "2026-10-10T00:00:00Z" }));
+    const issues = [55, ...units, 90, 30, 31].map(n => ({ number: n, title: `Verification case #${n}`, state: closed.has(n) || n === 30 || n === 31 ? "CLOSED" : "OPEN", stateReason: closed.has(n) || n === 30 || n === 31 ? "COMPLETED" : null, closedAt: n === 30 ? "2026-10-01T00:00:00Z" : n === 31 ? "2026-12-01T00:00:00Z" : closed.has(n) ? "2026-10-22T00:00:00Z" : null, labels: n === 55 ? [{ name: "type: tracking" }] : [], createdAt: "2026-10-10T00:00:00Z" }));
+    /* the units and #90 sized in the team's local state, #90 a row by it alone (the user's decision of 2026-11-14, batch-8/q-56: no label is read for a grade) */
+    const stateFile = wr(path.join(sc, "state.json"), JSON.stringify({ grades: Object.fromEntries([...units, 90].map(n => [`${REPO}#${n}`, 3])) }));
     const graph = { 55: { number: 55, subIssues: { nodes: units.map(n => node(n)) }, blockedBy: { nodes: [] }, blocking: { nodes: [] } },
       64: { number: 64, parent: { number: 55 }, blockedBy: { nodes: [node(62), node(30, { state: "CLOSED", stateReason: "COMPLETED", closedAt: "2026-10-01T00:00:00Z" })] }, blocking: { nodes: [] } },
       65: { number: 65, parent: { number: 55 }, blockedBy: { nodes: [node(31, { state: "CLOSED", stateReason: "COMPLETED", closedAt: "2026-12-01T00:00:00Z" })] }, blocking: { nodes: [] } },
       66: { number: 66, parent: { number: 55 }, blockedBy: { nodes: [node(3, { state: "OPEN", repository: { nameWithOwner: "SpartanLabsGaming/MyGameTools" } }), node(16, { state: "CLOSED", stateReason: "COMPLETED", closedAt: "2026-09-01T00:00:00Z", repository: { nameWithOwner: "SpartanLaboratories/KotlinBottools" } })] }, blocking: { nodes: [] } },
       90: { number: 90, parent: null, blockedBy: { nodes: [node(5, { state: "OPEN", repository: { nameWithOwner: "square/okhttp" } })] }, blocking: { nodes: [] } } };
     const fx = wr(path.join(sc, "tracker.json"), JSON.stringify({ issues, prs: [], branches: [], graph }));
-    const r = run(BOARD, ["--root", root], { DASHBOARDS_TRACKER_FIXTURE: fx });
+    const r = run(BOARD, ["--root", root], { DASHBOARDS_TRACKER_FIXTURE: fx, DASHBOARDS_ADMIN_STATE: stateFile });
     c.push(["board.js runs on the fixture tree", r.status === 0, (r.stdout + r.stderr).trim().split(/\r?\n/).slice(-3).join(" | ")]);
     wbJson = JSON.parse(rd(path.join(plans, "board.json"))); wbHtml = path.join(plans, "index.html");
     const row = n => wbJson.rows.find(x => x.issue === n) || {}, dep = (n, m, rp) => (row(n).waitsOn || []).find(x => x.issue === m && (x.repo || null) === (rp || null)) || {};

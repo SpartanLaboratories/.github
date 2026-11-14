@@ -143,12 +143,14 @@ module.exports = function cases35(X) {
     const t = copy(TRK); wr(path.join(tdir, "plan.json"), JSON.stringify(t, null, 2) + "\n"); wr(path.join(tdir, "dashboard.html"), rd(PB));
     const node = (n, o) => ({ number: n, title: `Verification case #${n}`, state: "OPEN", stateReason: null, closedAt: null, repository: { nameWithOwner: TRK.repo }, ...(o || {}) });
     const units = t.rows.filter(r => r.unit).map(r => r.unit.issue);
-    const issues = [55, ...units, 80, 81, 82, 83].map(n => ({ number: n, title: `Verification case #${n}`, state: [81, 82].includes(n) ? "CLOSED" : "OPEN", stateReason: n === 81 ? "NOT_PLANNED" : n === 82 ? "DUPLICATE" : null, closedAt: [81, 82].includes(n) ? "2026-10-22T00:00:00Z" : null, labels: n === 55 ? [{ name: "type: tracking" }] : [{ name: "level: 3" }], createdAt: "2026-10-10T00:00:00Z" }));
+    const issues = [55, ...units, 80, 81, 82, 83].map(n => ({ number: n, title: `Verification case #${n}`, state: [81, 82].includes(n) ? "CLOSED" : "OPEN", stateReason: n === 81 ? "NOT_PLANNED" : n === 82 ? "DUPLICATE" : null, closedAt: [81, 82].includes(n) ? "2026-10-22T00:00:00Z" : null, labels: n === 55 ? [{ name: "type: tracking" }] : [], createdAt: "2026-10-10T00:00:00Z" }));
     const graph = { 55: { number: 55, subIssues: { nodes: units.map(n => node(n)) }, blockedBy: { nodes: [] }, blocking: { nodes: [] } },
       90: { number: 90, parent: null, blockedBy: { nodes: [node(80), node(81, { state: "CLOSED", stateReason: "NOT_PLANNED", closedAt: "2026-10-22T00:00:00Z" }), node(82, { state: "CLOSED", stateReason: "DUPLICATE", closedAt: "2026-10-22T00:00:00Z", timelineItems: { nodes: [{ canonical: node(83) }] } }), node(83)] }, blocking: { nodes: [] } } };
-    issues.push({ number: 90, title: "Verification case #90", state: "OPEN", stateReason: null, closedAt: null, labels: [{ name: "level: 3" }], createdAt: "2026-10-10T00:00:00Z" });
+    issues.push({ number: 90, title: "Verification case #90", state: "OPEN", stateReason: null, closedAt: null, labels: [], createdAt: "2026-10-10T00:00:00Z" });
+    /* sized in the team's local state, #90 a row by it alone (the user's decision of 2026-11-14, batch-8/q-56: no label is read for a grade) */
+    const st = wr(path.join(sc, "deps-state.json"), JSON.stringify({ grades: Object.fromEntries([...units, 80, 81, 82, 83, 90].map(n => [`${TRK.repo}#${n}`, 3])) }));
     const fx = wr(path.join(sc, "deps-tracker.json"), JSON.stringify({ issues, prs: [{ number: 501, state: "MERGED", headRefName: "80-verification" }], branches: [], graph }));
-    const r = run(BOARD, ["--root", root], { env: { ...process.env, DASHBOARDS_TRACKER_FIXTURE: fx } });
+    const r = run(BOARD, ["--root", root], { env: { ...process.env, DASHBOARDS_TRACKER_FIXTURE: fx, DASHBOARDS_ADMIN_STATE: st } });
     c.push(["board.js runs on the fixture tree", r.status === 0, (r.stdout + r.stderr).trim().split(/\r?\n/).slice(-2).join(" | ")]);
     const wb = JSON.parse(rd(path.join(plans, "board.json"))), dep = m => ((wb.rows.find(x => x.issue === 90) || {}).waitsOn || []).find(x => x.issue === m) || {};
     c.push(["an open issue whose pull request merged: clear (the code was the blocker, not the issue)", dep(80).build === "clear", js(dep(80))]);
