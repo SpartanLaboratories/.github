@@ -139,7 +139,7 @@ The permission system raises the denial.
 ## An encountered issue is not in this tracker
 
 ```json
-{"id":"p9","count":12,"last":"2026-11-14"}
+{"id":"p9","count":13,"last":"2026-11-14"}
 ```
 
 - **Proposed resolution:** add it as a new entry with count 1, then prompt the
@@ -178,6 +178,9 @@ The permission system raises the denial.
     conversation; added as "`extract-session.js` drops a user turn that is an image alone".
   - 2026-11-14: the same archive job found the session's uploads folder standing after its
     deletion; added as "A session's uploads folder outlives its deletion".
+  - 2026-11-14: a direction manager's read-only grep over the installed Claude Code
+    binary was refused by the auto mode classifier as "[Undermining Oversight]"; added as
+    "A read-only search of the Claude Code binary is refused as [Undermining Oversight]".
 
 ## A count changes in this mirrored file
 
@@ -759,7 +762,7 @@ An archive job wrote its `summary.md` text to a file in the session scratchpad w
 ## The team's session ends without a handoff while jobs are running
 
 ```json
-{"id":"p51","count":2,"last":"2026-11-14"}
+{"id":"p51","count":3,"last":"2026-11-14"}
 ```
 
 The admin team's session ends while background jobs it spawned are still running, and writes no handoff, so the handoff file stays the stale one from before. Neither the ledger nor the session's transcript records how it ended: the transcript holds no error record and no closing record. The first time, its last assistant turn ended normally and a task notification queued after it was never taken up; the second time, a model request had been sent on a subagent's hand-back with no reply recorded, and two more inputs queued after it were never taken up. The cause, as the user gave it, was a hardware issue on the machine.
@@ -769,6 +772,7 @@ The admin team's session ends while background jobs it spawned are still running
 - **Encounters:**
   - 2026-11-14: the session ended after its last ledger line at 01:35:11Z (transcript last written 01:38:07Z) with three jobs running; the next session resumed all three as attempt 2.
   - 2026-11-14: the next session ended after its last ledger line at 01:56:34Z (transcript last written 01:57:02Z) with seven jobs running, two of which had already delivered their reports; the next session recorded those two from their transcripts and resumed the others, three of them for the second time.
+  - 2026-11-14: a later session ended after its last ledger line at 05:19:28Z with three jobs running: a presenter rule change that had staged its files and placed nothing, an artifact test, and a hook's viability question. Its handoff, written at 04:06Z with two additions to 04:10Z, was not updated in the hour after. The next session, started at 05:28Z on the user's "resume", recorded the three stopped and requested each again as attempt 2, told to check what attempt 1 left. Cause not known: the user has not said, and the resolution above, given for the first two ends, does not say it covers this one.
 
 ## A prepare-landing sync is refused by an uncommitted implementation-stage stamp
 
@@ -821,3 +825,16 @@ A file the user attaches in a session is kept in an `uploads/<session id>/` fold
 - **Predicted:** the admin team, on meeting it, 2026-11-14.
 - **Encounters:**
   - 2026-11-14: an archive job: after the session's deletion its uploads folder, holding the screenshot its conversation lacks, still stood.
+
+## A read-only search of the Claude Code binary is refused as [Undermining Oversight]
+
+```json
+{"id":"p56","count":1,"last":"2026-11-14"}
+```
+
+A member whose job needs to know how Claude Code itself behaves (how a variable it sets is built and read) searches the installed Claude Code binary read only, with a Bash grep, and the session's auto mode classifier refuses the call, giving the reason "[Undermining Oversight]". It judges each call: an earlier grep over the same binary in the same job was allowed. It is neither an edit of the team's own files (the entry "An edit of the team's own files is refused as [Self-Modification]") nor a query of the running processes (the entry "A read-only query of the running processes is denied"). Not checked: what in the second call drew the refusal and not the first, and whether any read of the binary is reliably allowed.
+
+- **Proposed resolution:** a) a job that needs to inspect Claude Code's own behaviour works from its changelog and documentation, not the binary, and the briefs or the Coordinator's job prompts say so, a change of direction documents for the direction manager (recommended: it keeps such jobs off a route the classifier treats as oversight-sensitive, and the sources it names are the ones meant to be read); b) as practised on the encounter, the one refused stops, tries no other route and reports, and the user is told at the console, with no standing route decided; c) the user states, at the console, that such reads are allowed, if the classifier takes that into account (unverified).
+- **Predicted:** the admin team, on meeting it, 2026-11-14.
+- **Encounters:**
+  - 2026-11-14: a direction manager's assess job, on its second attempt, grepped the installed Claude Code binary to find how the `AI_AGENT` variable is built and read; the classifier refused the call as "[Undermining Oversight]", where an earlier grep over the same binary in the same job had been allowed. The job tried no other route and drew on its first attempt's transcript instead.
