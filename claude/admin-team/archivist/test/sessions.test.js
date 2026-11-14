@@ -242,6 +242,24 @@ ok(/no .{0,2}## Open points.{0,2} heading/.test(run('archive.js', ['verify', B1]
 put(path.join(B1, 'summary.md'), '# 2026-11-01 to 2026-11-01\n\nThe user asked to archive.' + HEADS);
 ok(run('archive.js', ['verify', B1]).code === 0, 'verify: passes with a summary naming the span, with both headings');
 
+// ---- archive.js write-summary --------------------------------------------------------
+const WORK = path.join(ARCHIVE, 'work'); const SUMF = path.join(WORK, 'summary.txt');
+const sumRun = (text, folder) => { put(SUMF, text); return run('archive.js', ['write-summary', folder || B1, '--summary', SUMF]); };
+const sumBefore = fs.readFileSync(path.join(B1, 'summary.md'), 'utf8');
+r = run('archive.js', ['write-summary', B1]);
+ok(r.code === 1 && /no summary/.test(r.out) && ['', ' \n\n'].every(t => { const x = sumRun(t); return x.code === 1 && /no summary/.test(x.out); }), 'write-summary: refuses no file, an empty file and one of only whitespace');
+r = sumRun('Session of 2026-11-02 only.' + HEADS);
+ok(r.code === 1 && /first day 2026-11-01/.test(r.out), 'write-summary: refuses a summary that does not name the span');
+r = sumRun('# 2026-11-01 to 2026-11-01\n\nNo headings.\n');
+ok(r.code === 1 && /Open points/.test(r.out) && /Relevant to a current session/.test(r.out), 'write-summary: refuses a summary without both headings');
+ok(sumRun('2026-11-01' + HEADS, DIR).code === 1 && /no meta\.json/.test(sumRun('2026-11-01' + HEADS, base('not-extracted')).out), 'write-summary: refuses a folder that is no base folder of this archive, and one not extracted');
+ok(fs.readFileSync(path.join(B1, 'summary.md'), 'utf8') === sumBefore, 'write-summary: a refusal leaves summary.md as it was');
+const sumText = '# 2026-11-01 to 2026-11-01\r\n\r\nThe user asked to archive; written from a file, with "quotes" and \'apostrophes\'.' + HEADS.replace(/\n/g, '\r\n');
+r = sumRun(sumText + '\r\n\r\n');
+ok(r.code === 0 && j(r).replaced === true && j(r).written === `sessions/base/2026-11-01-${S.s1.slice(0, 8)}/summary.md` && fs.readFileSync(path.join(B1, 'summary.md'), 'utf8') === sumText.replace(/\s+$/, '') + '\n', 'write-summary: writes the file\'s text as summary.md, replacing the one there');
+ok(run('archive.js', ['verify', B1]).code === 0 && !exists(path.join(B1, 'summary.md.tmp')), 'write-summary: the summary written verifies, and no temporary file is left');
+fs.rmSync(WORK, { recursive: true });
+
 // ---- scratch-copy.js ----------------------------------------------------------------
 r = run('scratch-copy.js', [S.s1, '--list']);
 const items = (j(r).items || []).map(x => x.item).sort();

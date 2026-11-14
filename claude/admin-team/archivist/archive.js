@@ -2,6 +2,8 @@
 // The session archive's index and tiers. Run by the Archivist only.
 //
 //   node archive.js verify <base folder>                 meta, conversation, summary and transcript agree
+//   node archive.js write-summary <base folder> --summary <file>
+//                                                        the text of <file> as the folder's summary.md, checked as verify checks it
 //   node archive.js index <base folder>                  add or replace the session's line, verified
 //   node archive.js record-deletion <file>               write delete-session.js's output (one JSON line per session) into the index
 //   node archive.js plan                                 the tiers' counts and the wraps due, oldest first
@@ -16,7 +18,7 @@
 // large to copy, dropped at the session's first wrap); index.jsonl.
 // Each tier keeps 10; when it holds 11, its oldest is wrapped into the newest
 // session of the tier above, which holds up to 10. A summary.md holds the two
-// headings HEADINGS names, which verify checks.
+// headings HEADINGS names, which verify and write-summary check.
 
 'use strict';
 const fs = require('fs');
@@ -37,6 +39,16 @@ function writeIndex(P, lines) {
 function inside(parent, p) { const r = path.relative(parent, p); return r && !r.startsWith('..') && !path.isAbsolute(r); }
 function day(ts) { return String(ts || '').slice(0, 10); }
 
+// What is wrong with a summary's text for the session meta describes.
+function summaryBad(meta, s) {
+  if (!s.trim()) return ['no summary.md'];
+  const bad = [];
+  if (meta.from && !s.includes(day(meta.from))) bad.push(`summary.md does not name the first day ${day(meta.from)}`);
+  if (meta.to && !s.includes(day(meta.to))) bad.push(`summary.md does not name the last day ${day(meta.to)}`);
+  for (const h of HEADINGS) if (!s.split(/\r?\n/).includes(h)) bad.push(`summary.md has no "${h}" heading`);
+  return bad;
+}
+
 function verify(P, folder) {
   const bad = [];
   const meta = fs.existsSync(path.join(folder, 'meta.json')) ? JSON.parse(fs.readFileSync(path.join(folder, 'meta.json'), 'utf8')) : null;
@@ -44,13 +56,7 @@ function verify(P, folder) {
   const conv = path.join(folder, 'conversation.md');
   if (!fs.existsSync(conv) || L.sha256File(conv) !== meta.conversationSha256) bad.push('conversation.md differs from meta.json');
   const sum = path.join(folder, 'summary.md');
-  const s = fs.existsSync(sum) ? fs.readFileSync(sum, 'utf8') : '';
-  if (!s.trim()) bad.push('no summary.md');
-  else {
-    if (meta.from && !s.includes(day(meta.from))) bad.push(`summary.md does not name the first day ${day(meta.from)}`);
-    if (meta.to && !s.includes(day(meta.to))) bad.push(`summary.md does not name the last day ${day(meta.to)}`);
-    for (const h of HEADINGS) if (!s.split(/\r?\n/).includes(h)) bad.push(`summary.md has no "${h}" heading`);
-  }
+  bad.push(...summaryBad(meta, fs.existsSync(sum) ? fs.readFileSync(sum, 'utf8') : ''));
   const t = path.join(P.project, meta.id + '.jsonl');
   if (meta.transcriptSha256 && fs.existsSync(t) && L.sha256File(t) !== meta.transcriptSha256) bad.push('the transcript changed since it was extracted');
   return { ok: bad.length === 0, bad, meta };
@@ -122,6 +128,20 @@ function main() {
   const P = P0();
   const say = o => console.log(JSON.stringify(o));
   if (cmd === 'verify') { const v = verify(P, path.resolve(a1)); say({ ok: v.ok, bad: v.bad }); return v.ok ? 0 : 1; }
+  if (cmd === 'write-summary') {
+    const folder = path.resolve(a1); const sumFile = L.opt('--summary', null);
+    if (!inside(path.join(P.sessionsDir, 'base'), folder)) { say({ refused: 'not a base folder of this archive' }); return 1; }
+    const mf = path.join(folder, 'meta.json');
+    if (!fs.existsSync(mf)) { say({ refused: 'no meta.json: the session is extracted first' }); return 1; }
+    const text = sumFile && fs.existsSync(sumFile) && fs.statSync(sumFile).isFile() ? fs.readFileSync(sumFile, 'utf8').replace(/\s+$/, '') : '';
+    if (!text) { say({ refused: 'no summary: the file is missing or empty' }); return 1; }
+    const bad = summaryBad(JSON.parse(fs.readFileSync(mf, 'utf8')), text);
+    if (bad.length) { say({ refused: 'the summary would not verify', bad }); return 1; }
+    const sum = path.join(folder, 'summary.md'); const replaced = fs.existsSync(sum);
+    fs.writeFileSync(sum + '.tmp', text + '\n'); fs.renameSync(sum + '.tmp', sum);
+    if (fs.readFileSync(sum, 'utf8') !== text + '\n') { say({ refused: 'summary.md does not read back' }); return 1; }
+    say({ written: rel(P, sum), bytes: Buffer.byteLength(text + '\n'), replaced }); return 0;
+  }
   if (cmd === 'index') {
     const folder = path.resolve(a1);
     if (!inside(path.join(P.sessionsDir, 'base'), folder)) { say({ refused: 'not a base folder of this archive' }); return 1; }
@@ -210,7 +230,7 @@ function main() {
       scratchExists: hit.scratch ? fs.existsSync(path.join(P.archive, hit.scratch)) : false });
     return 0;
   }
-  console.error('usage: archive.js verify|index|record-deletion|plan|fold-base|fold-upper|resolve …');
+  console.error('usage: archive.js verify|write-summary|index|record-deletion|plan|fold-base|fold-upper|resolve …');
   return 2;
 }
 
