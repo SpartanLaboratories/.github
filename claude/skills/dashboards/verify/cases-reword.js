@@ -122,7 +122,6 @@ module.exports = function casesReword(X) {
     no("a passage held nowhere", W("implementation-stage", T1, "no such words anywhere", "x"), /held nowhere in the record/);
     no("the team's record (state-boards)", W("state-boards", T1, P, N), /state-boards is the team's record/);
     no("the team's record (landing)", W("landing", T1, P, N), /landing is the team's record/);
-    no("a new wording naming a grade's old name, a work level", W("implementation-stage", T1, P, "a level-3 change declined it"), /carries a grade/);
     no("a new wording naming a grade", W("implementation-stage", T1, P, "a grade-3 change declined it"), /carries a grade/);
     no("a new wording naming an internal name", W("implementation-stage", T1, P, "the admin team declined it"), /carries an internal name/);
     no("a new wording in an older step name", W("implementation-stage", T1, P, "qa pass 2 declined it"), /older wording of a step's name/);

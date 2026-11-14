@@ -1,23 +1,23 @@
-// The cases of "a board keeps no work level" (plan/scripts/levels.js; admin-team/dashboards-skill/option-d-and-decisions; plan/RULES.md §2), and of the labels and the two event-note
+// The cases of "a board keeps no grade" (plan/scripts/levels.js; admin-team/dashboards-skill/option-d-and-decisions; plan/RULES.md §2), and of the labels and the two event-note
 // defects that came with it, run by verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-work-levels.js [--out <dir>].
-// A level is read from the request, else the team's local state, for the kind and the steps line of a laying, and never written. An open board drops what it still holds at
+// A grade is read from the request, else the team's local state, for the kind and the steps line of a laying, and never written. An open board drops what it still holds at
 // any rewrite, and check.js fails one that holds any; a closed work board, landed or cancelled, keeps them, whatever rewrites it, and check.js never fails it.
-// A grade, the work level's new name (the user's decisions of 2026-11-13), is read beside it (the request's and its facts' grade, the state's grades,
-// new.js --grade; verify/fixtures/sized-grade.request.json) and held as it is; the scrub (levelrefs.js) finds every form of the word. Each group returns [title, cases].
+// The grade's old name, the work level, is no longer read since L12 (the request's and its facts' level, the state's levels, new.js --level); a closed
+// board's level fields are read for good; the scrub (levelrefs.js) finds every form of the word grade, and no level. Each group returns [title, cases].
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 
 module.exports = function casesWorkLevels(X) {
   const { sk, out, targets } = X;
   const PB = (targets.find(t => t.name === "plan/template/dashboard.html") || {}).path, WB = (targets.find(t => t.name === "plan/template/board.html") || {}).path;
-  if (!PB) return [["a board keeps no work level (the plan-board template under test)", [["the plan-board template is under test", false, "a repository template set without it skips these groups"]]]];
+  if (!PB) return [["a board keeps no grade (the plan-board template under test)", [["the plan-board template is under test", false, "a repository template set without it skips these groups"]]]];
   const rd = f => fs.readFileSync(f, "utf8"), wr = (f, t) => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, t); return f; };
   const J = n => JSON.parse(rd(sk(n))), copy = x => JSON.parse(JSON.stringify(x)), js = x => JSON.stringify(x);
   const run = (f, a, o) => cp.spawnSync(process.execPath, [f, ...a], { encoding: "utf8", ...(o || {}) });
   const APPLY = sk("plan/scripts/apply-event.js"), EMBED = sk("plan/scripts/embed.js"), CHECK = sk("plan/scripts/check.js"), NEW = sk("plan/scripts/new.js");
   const lib = require(sk("plan/scripts/lib.js")), TL = require(sk("plan/scripts/testslib.js"));
   const sc = path.join(out, "work-levels"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
-  const stateFile = wr(path.join(sc, "state.json"), js({ levels: { "acme/widgets#71": 2, "acme/widgets#72": 4 } })), env = { ...process.env, DASHBOARDS_ADMIN_STATE: path.join(sc, "no-state.json") }, envState = { ...process.env, DASHBOARDS_ADMIN_STATE: stateFile };
+  const stateFile = wr(path.join(sc, "state.json"), js({ grades: { "acme/widgets#71": 2, "acme/widgets#72": 4 } })), env = { ...process.env, DASHBOARDS_ADMIN_STATE: path.join(sc, "no-state.json") }, envState = { ...process.env, DASHBOARDS_ADMIN_STATE: stateFile };
   const EX = J("plan/examples/38-handshake-empty-name/plan.json"), TRK = J("verify/fixtures/tracking.plan.json"), LIVE = J("verify/fixtures/live-issue.plan.json");
   const groups = [];
   const guard = (title, fn) => { const c = []; try { fn(c); } catch (e) { c.push(["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]); } groups.push([title, c]); };
@@ -32,23 +32,23 @@ module.exports = function casesWorkLevels(X) {
   const oldLanded = () => { const p = copy(EX); p.level = 3; p.wip.proposedLevel = 3; return p; };
   const oldTrack = () => { const p = copy(TRK); p.level = 4; p.rows.filter(r => r.unit).forEach(r => { r.unit.level = 3; if (r.unit.live) r.unit.live.proposedLevel = 4; }); return p; };
 
-  guard("a new board carries no work level: the laying, the template, the kind and the steps from the request or the team's state", c => {
+  guard("a new board carries no grade: the laying, the template, the kind and the steps from the request or the team's state", c => {
     const tpl = J("plan/template/plan.json");
     c.push(["the template's skeleton has no level, no unit.level", tpl.level === undefined && !js(tpl.rows).includes('"level"'), "plan/template/plan.json"]);
     c.push(["its $comment no longer offers them as data", !/keep the work level as data only/.test(tpl.$comment), "$comment"]);
     c.push(["the fixtures and the example carry none", ![EX, TRK, LIVE].some(p => lib.workLevelFields(p).length), js([EX, TRK, LIVE].map(lib.workLevelFields))]);
-    const r2 = root0(), L2 = ev(r2, "docs/plans/70-a-fix", "sized", { step: "plan", baseline: "abc1234" }, T(1), { extra: { level: 2 } });
-    c.push(["a level in the request gives the steps line, a small fix's with no interview and no research; never written", L2.a.status === 0 && !L2.p.wip.steps.includes("interview") && !L2.p.wip.steps.includes("research") && !lib.workLevelFields(L2.p).length && L2.p.kind === "issue", js([L2.S.error, L2.p && L2.p.wip.steps, L2.p && L2.p.level])]);
+    const r2 = root0(), L2 = ev(r2, "docs/plans/70-a-fix", "sized", { step: "plan", baseline: "abc1234" }, T(1), { extra: { grade: 2 } });
+    c.push(["a grade in the request gives the steps line, a small fix's with no interview and no research; never written", L2.a.status === 0 && !L2.p.wip.steps.includes("interview") && !L2.p.wip.steps.includes("research") && !lib.workLevelFields(L2.p).length && L2.p.kind === "issue", js([L2.S.error, L2.p && L2.p.wip.steps, L2.p && L2.p.level])]);
     const r3 = root0(), L3 = ev(r3, "docs/plans/71-from-state", "sized", { step: "plan", baseline: "abc1234" }, T(1), { env: envState });
-    c.push(["none in the request: the team's local state, levels[\"owner/repo#n\"]", L3.a.status === 0 && !L3.p.wip.steps.includes("interview"), js(L3.p && L3.p.wip.steps)]);
+    c.push(["none in the request: the team's local state, grades[\"owner/repo#n\"]", L3.a.status === 0 && !L3.p.wip.steps.includes("interview"), js(L3.p && L3.p.wip.steps)]);
     const r4 = root0(), L4 = ev(r4, "docs/plans/72-an-initiative", "sized", { step: "research", baseline: "abc1234" }, T(1), { env: envState });
-    c.push(["level 4 in the state: a tracking board, its own steps line, no level", L4.a.status === 0 && L4.p.kind === "tracking" && js(L4.p.wip.steps) === js(lib.STEPS_BY_LEVEL[4]) && !lib.workLevelFields(L4.p).length, js([L4.p && L4.p.kind, L4.p && L4.p.wip.steps])]);
+    c.push(["grade 4 in the state: a tracking board, its own steps line, no grade", L4.a.status === 0 && L4.p.kind === "tracking" && js(L4.p.wip.steps) === js(lib.STEPS_BY_LEVEL[4]) && !lib.workLevelFields(L4.p).length, js([L4.p && L4.p.kind, L4.p && L4.p.wip.steps])]);
     const r5 = root0(), L5 = ev(r5, "docs/plans/73-none", "sized", { step: "research", baseline: "abc1234" }, T(1));
     c.push(["none anywhere: a small feature's line", L5.a.status === 0 && L5.p.wip.steps.includes("interview") && L5.p.kind === "issue", js(L5.p && L5.p.wip.steps)]);
-    const r6 = root0(), nw = run(NEW, ["74", "a-case", "--root", r6, "--level", "4", "--repo", "acme/widgets", "--title", "A", "--function", "F.", "--baseline", "abc1234", "--date", "2026-11-03"], { env }), np = JSON.parse(rd(path.join(r6, "docs", "plans", "74-a-case", "plan.json")));
-    c.push(["new.js --level is read, never written", nw.status === 0 && np.kind === "tracking" && !lib.workLevelFields(np).length, js([nw.status, np.kind, np.level])]);
-    const rE = root0(), E0 = ev(rE, "docs/plans/76-esc", "sized", { step: "research", baseline: "abc1234" }, T(1)), Ee = ev(rE, "docs/plans/76-esc", "escalated", { proposedLevel: 4 }, T(2));
-    c.push(["escalated: facts.proposedLevel is the team's, never on the board", Ee.a.status === 0 && Ee.p.wip.step === "escalated" && Ee.p.wip.proposedLevel === undefined, js(Ee.p && Ee.p.wip.proposedLevel)]);
+    const r6 = root0(), nw = run(NEW, ["74", "a-case", "--root", r6, "--grade", "4", "--repo", "acme/widgets", "--title", "A", "--function", "F.", "--baseline", "abc1234", "--date", "2026-11-03"], { env }), np = JSON.parse(rd(path.join(r6, "docs", "plans", "74-a-case", "plan.json")));
+    c.push(["new.js --grade 4 is read, never written", nw.status === 0 && np.kind === "tracking" && !lib.workLevelFields(np).length, js([nw.status, np.kind, np.level])]);
+    const rE = root0(), E0 = ev(rE, "docs/plans/76-esc", "sized", { step: "research", baseline: "abc1234" }, T(1)), Ee = ev(rE, "docs/plans/76-esc", "escalated", { proposedGrade: 4, proposedLevel: 4 }, T(2));
+    c.push(["escalated: facts.proposedGrade, and an older facts.proposedLevel, are never on the board", Ee.a.status === 0 && Ee.p.wip.step === "escalated" && Ee.p.wip.proposedLevel === undefined && Ee.p.wip.proposedGrade === undefined, js(Ee.p && [Ee.p.wip.proposedLevel, Ee.p.wip.proposedGrade])]);
     const lv = lib.unitRun({ status: "building", wip: { step: "escalated", proposedLevel: 4 } });
     c.push(["a unit's mirror carries none", lv.proposedLevel === undefined, js(lv.proposedLevel)]);
   });
@@ -122,25 +122,25 @@ module.exports = function casesWorkLevels(X) {
     const C = remB(), cc = ev(C.r, C.p.folder, "qa-pass", { qa: { pass: 1, verdict: "changes-requested", test: 1, route: "remediation" } }, T(5));
     c.push(["no facts.rows at all: the note it always was", (cc.S.why || []).some(w => /are not known from the facts/.test(w)), js(cc.S.why)]);
     /* an empty other */
-    const mk = () => ({ tests: { added: [], amended: [], relevant: [], other: { byModule: { core: { "2": 4 } } }, updated: T(0) } });
+    const mk = () => ({ tests: { added: [], amended: [], relevant: [], other: { byModule: { core: { component: 4 } } }, updated: T(0) } });
     const r1 = TL.mergeTests(mk(), { other: { byModule: {} } }, { now: T(1) });
     c.push(["facts.tests.other with an empty byModule: no note, nothing changed, the earlier counts left as they were", !r1.notes.length && !r1.changed, js(r1)]);
     const pl = mk(); TL.mergeTests(pl, { other: { byModule: {} } }, { now: T(1) });
-    c.push(["…T.other stands", js(pl.tests.other) === js({ byModule: { core: { "2": 4 } } }), js(pl.tests.other)]);
+    c.push(["…T.other stands", js(pl.tests.other) === js({ byModule: { core: { component: 4 } } }), js(pl.tests.other)]);
     const none = { tests: null }, r2 = TL.mergeTests(none, { other: { byModule: {} } }, { now: T(1) });
     c.push(["…on a board with none: no note, no tests block made", !r2.notes.length && !r2.changed && none.tests === null, js(r2)]);
     const r3 = TL.mergeTests(mk(), { other: { byModule: { core: {} } } }, { now: T(1) });
     c.push(["a module with no counts is empty too: no note", !r3.notes.length, js(r3.notes)]);
-    [["a string", "x"], ["no byModule", { modules: {} }], ["byModule a list", { byModule: [] }], ["a module not an object", { byModule: { core: 4 } }], ["a count of the wrong type", { byModule: { core: { "2": "four" } } }]].forEach(([w, v]) => { const r = TL.mergeTests(mk(), { other: v }, { now: T(1) }); c.push([`a wrong shape, ${w}: the note, not applied`, r.notes.some(x => /facts\.tests\.other is not/.test(x)) && !r.changed, js(r.notes)]); });
+    [["a string", "x"], ["no byModule", { modules: {} }], ["byModule a list", { byModule: [] }], ["a module not an object", { byModule: { core: 4 } }], ["a count of the wrong type", { byModule: { core: { component: "four" } } }]].forEach(([w, v]) => { const r = TL.mergeTests(mk(), { other: v }, { now: T(1) }); c.push([`a wrong shape, ${w}: the note, not applied`, r.notes.some(x => /facts\.tests\.other is not/.test(x)) && !r.changed, js(r.notes)]); });
     const r4 = mk(), r5 = TL.mergeTests(r4, { other: { byModule: { api: { "3": 2 } } } }, { now: T(1) });
-    c.push(["counts still replace", r5.changed && js(r4.tests.other.byModule) === js({ api: { "3": 2 } }), js(r4.tests.other)]);
+    c.push(["counts still replace, a count sent by a set's old number kept by its set's name", r5.changed && js(r4.tests.other.byModule) === js({ api: { integration: 2 } }), js(r4.tests.other)]);
     const D = { r: root0(), p: copy(LIVE) }; put(D.r, D.p); const ee = ev(D.r, D.p.folder, "resumed", { step: D.p.wip.step === "halted" ? D.p.wip.resume : D.p.wip.step, tests: { other: { byModule: {} } } }, T(6));
     c.push(["on the fast path it raises no enrichment", ee.a.status === 0 && !(ee.S.why || []).some(w => /facts\.tests\.other/.test(w)), js([ee.S.error, ee.S.check, ee.S.why])]);
   });
 
-  /* the user's decisions of 2026-11-13 (vocabulary/choice-1-live-keys (a)): a grade is read beside a level, wherever a request, its facts or
-     the team's state carry it, and new.js takes --grade beside --level; the level is read as before until the rule rework's L12 */
-  guard("a grade is read beside a level: the request's and its facts' grade, the team's state's grades, new.js --grade; never kept, as a level is not", c => {
+  /* the user's decisions of 2026-11-13 (vocabulary/choice-1-live-keys (a)) and the transition's end at L12 (vocabulary/choices-3-4-5 (3) (a)): a grade
+     is read wherever a request, its facts or the team's state carry it, and new.js takes --grade; the level, its old name, is no longer read */
+  guard("a grade is read: the request's and its facts' grade, the team's state's grades, new.js --grade; never kept; the level, the state's levels and --level no longer read (L12)", c => {
     const RQ = J("verify/fixtures/sized-grade.request.json");
     const lay = (rq, o) => { const root = root0(), f = wr(path.join(sc, `req-${++n}.json`), js(rq)), a = run(APPLY, ["--event", f, "--worktree", root, "--no-gh", "--no-live", "--at", rq.facts.at, "--json"], { env: (o && o.env) || env }), pf = path.join(root, ...rq.folder.split("/"), "plan.json");
       return { a, S: parse(a), p: fs.existsSync(pf) ? JSON.parse(rd(pf)) : null }; };
@@ -150,25 +150,29 @@ module.exports = function casesWorkLevels(X) {
     const old = copy(RQ); old.level = old.grade; delete old.grade; old.facts.level = old.facts.grade; delete old.facts.grade;
     old.facts.detail = "Recorded level confirmed: a level-2 fix inside level 2, re-levelled to level 2.";
     const O = lay(old);
-    c.push(["…its old twin (level, and the detail in the old words) lays the same board", O.a.status === 0 && js(O.p) === js(G.p), js([O.S.error, O.p && O.p.wip.steps, O.p && O.p.wip.detail])]);
+    c.push(["…its old twin (level, and the detail in the old words) is no longer read as a grade: a small feature's line, nothing kept, the detail as sent", O.a.status === 0 && O.p.wip.steps.includes("interview") && O.p.kind === "issue" && !lib.workLevelFields(O.p).length && O.p.wip.detail === old.facts.detail, js([O.S.error, O.p && O.p.wip.steps, O.p && O.p.wip.detail])]);
     const noReq = copy(RQ); delete noReq.grade; noReq.facts.grade = 4; noReq.folder = "docs/plans/81-an-initiative"; noReq.issue = 81;
     const F = lay(noReq);
     c.push(["facts.grade alone: grade 4 lays a tracking board, its own steps line, no grade", F.a.status === 0 && F.p.kind === "tracking" && js(F.p.wip.steps) === js(lib.STEPS_BY_LEVEL[4]) && !lib.workLevelFields(F.p).length, js([F.S.error, F.p && F.p.kind])]);
     const both = copy(RQ); both.level = 3; both.facts.level = 3; both.folder = "docs/plans/82-both"; both.issue = 82;
     const B2 = lay(both);
-    c.push(["a grade and a level both sent: the grade is read (2, a small fix's line, over the level's 3)", B2.a.status === 0 && !B2.p.wip.steps.includes("interview"), js(B2.p && B2.p.wip.steps)]);
-    const st = wr(path.join(sc, "state-grades.json"), js({ grades: { "acme/widgets#83": 4, "acme/widgets#84": 2 }, levels: { "acme/widgets#83": 2 } })), envG = { ...process.env, DASHBOARDS_ADMIN_STATE: st };
+    c.push(["a grade and a level both sent: the grade is read (2, a small fix's line), the level not", B2.a.status === 0 && !B2.p.wip.steps.includes("interview"), js(B2.p && B2.p.wip.steps)]);
+    const lvOnly = copy(RQ); delete lvOnly.grade; delete lvOnly.facts.grade; lvOnly.level = 4; lvOnly.facts.level = 4; lvOnly.folder = "docs/plans/80-level-only"; lvOnly.issue = 80;
+    const L0 = lay(lvOnly);
+    c.push(["a level alone (4) is not read: an issue board with a small feature's line, never a tracking board", L0.a.status === 0 && L0.p.kind === "issue" && L0.p.wip.steps.includes("interview"), js([L0.S.error, L0.p && L0.p.kind, L0.p && L0.p.wip.steps])]);
+    const st = wr(path.join(sc, "state-grades.json"), js({ grades: { "acme/widgets#83": 4, "acme/widgets#84": 2 }, levels: { "acme/widgets#83": 2, "acme/widgets#85": 4 } })), envG = { ...process.env, DASHBOARDS_ADMIN_STATE: st };
     const bare = (num, slug) => { const x = copy(RQ); delete x.grade; delete x.facts.grade; x.issue = num; x.folder = `docs/plans/${num}-${slug}`; return x; };
-    const S3 = lay(bare(83, "from-state"), { env: envG }), S4 = lay(bare(84, "state-only"), { env: envG });
-    c.push(["none in the request: the team's state, its grades before its levels (grade 4 over level 2: a tracking board)", S3.a.status === 0 && S3.p.kind === "tracking", js([S3.S.error, S3.p && S3.p.kind])]);
-    c.push(["…a grade the state's levels do not hold is read from its grades alone (grade 2: a small fix's line)", S4.a.status === 0 && S4.p.kind === "issue" && !S4.p.wip.steps.includes("interview"), js([S4.S.error, S4.p && S4.p.wip.steps])]);
+    const S3 = lay(bare(83, "from-state"), { env: envG }), S4 = lay(bare(84, "state-only"), { env: envG }), S5 = lay(bare(85, "levels-only"), { env: envG });
+    c.push(["none in the request: the team's state, its grades (grade 4: a tracking board, its levels' 2 not read)", S3.a.status === 0 && S3.p.kind === "tracking", js([S3.S.error, S3.p && S3.p.kind])]);
+    c.push(["…grade 2 there: a small fix's line", S4.a.status === 0 && S4.p.kind === "issue" && !S4.p.wip.steps.includes("interview"), js([S4.S.error, S4.p && S4.p.wip.steps])]);
+    c.push(["…an issue the state holds only in its levels (4) is not read: a small feature's line, never a tracking board", S5.a.status === 0 && S5.p.kind === "issue" && S5.p.wip.steps.includes("interview"), js([S5.S.error, S5.p && S5.p.kind, S5.p && S5.p.wip.steps])]);
     const LVJ = require(sk("plan/scripts/levels.js")), was = process.env.DASHBOARDS_ADMIN_STATE; let ll;
     process.env.DASHBOARDS_ADMIN_STATE = st; try { ll = [83, 84, 85].map(i => LVJ.localLevel("acme/widgets", i)); } finally { if (was === undefined) delete process.env.DASHBOARDS_ADMIN_STATE; else process.env.DASHBOARDS_ADMIN_STATE = was; }
-    c.push(["localLevel(): grades first, then levels, as the state holds them", js(ll) === js([4, 2, null]), js(ll)]);
+    c.push(["localLevel(): the state's grades alone, its levels no longer read", js(ll) === js([4, 2, null]), js(ll)]);
     const r6 = root0(), nw = run(NEW, ["86", "a-case", "--root", r6, "--grade", "4", "--repo", "acme/widgets", "--title", "A", "--function", "F.", "--baseline", "abc1234", "--date", "2026-11-13"], { env }), np = JSON.parse(rd(path.join(r6, "docs", "plans", "86-a-case", "plan.json")));
     c.push(["new.js --grade is read, never written", nw.status === 0 && np.kind === "tracking" && !lib.workLevelFields(np).length, js([nw.status, np.kind])]);
-    const r7 = root0(), nw2 = run(NEW, ["87", "b-case", "--root", r7, "--grade", "2", "--level", "4", "--repo", "acme/widgets", "--title", "B", "--function", "F.", "--baseline", "abc1234", "--date", "2026-11-13"], { env }), np2 = JSON.parse(rd(path.join(r7, "docs", "plans", "87-b-case", "plan.json")));
-    c.push(["new.js --grade before --level (2 over 4: an issue board)", nw2.status === 0 && np2.kind === "issue", js([nw2.status, np2.kind])]);
+    const r7 = root0(), nw2 = run(NEW, ["87", "b-case", "--root", r7, "--grade", "2", "--level", "4", "--repo", "acme/widgets", "--title", "B", "--function", "F.", "--baseline", "abc1234", "--date", "2026-11-13"], { env });
+    c.push(["new.js --level is no longer read: refused as an unknown option, nothing laid", nw2.status === 2 && /unknown option --level/.test((nw2.stderr || "") + (nw2.stdout || "")) && !fs.existsSync(path.join(r7, "docs", "plans", "87-b-case", "plan.json")), js([nw2.status, (nw2.stderr || "").split(/\r?\n/)[0]])]);
     const rE = root0(); ev(rE, "docs/plans/88-esc", "sized", { step: "research", baseline: "abc1234" }, T(1)); const Ee = ev(rE, "docs/plans/88-esc", "escalated", { proposedGrade: 4 }, T(2));
     c.push(["escalated: facts.proposedGrade is the team's, never on the board", Ee.a.status === 0 && Ee.p.wip.step === "escalated" && Ee.p.wip.proposedGrade === undefined && !/"proposedGrade"/.test(js(Ee.p)), js(Ee.p && Ee.p.wip.proposedGrade)]);
   });
@@ -191,9 +195,9 @@ module.exports = function casesWorkLevels(X) {
   });
 
   /* the scrub (levelrefs.js; the user's decision of 2026-11-13, vocabulary/choice-2-grade-reach (a)): every form of "grade" is found, numbered or
-     not, a hyphenated compound included, in any case; a longer word that only holds the letters is not; the work-level forms, and what they leave
-     alone, as before */
-  guard("the scrub finds every form of \"grade\" and rewords a fact's grade as it rewords a work level; the work-level forms and their exemptions as before", c => {
+     not, a hyphenated compound included, in any case; a longer word that only holds the letters is not; the work-level forms are no longer found
+     (the transition's end, L12), and the other levels are left alone as before */
+  guard("the scrub finds every form of \"grade\" and rewords a fact's grade; the work-level forms no longer found or reworded (L12); the other levels left alone", c => {
     const LR = require(sk("system/scripts/levelrefs.js"));
     const found = ["grade 3", "Grade 3", "GRADE", "grade: 2", "a grade-4 issue", "a grade-4 tracking issue", "graded", "grading", "grades", "re-grade", "Re-graded", "regrade", "regraded", "the recorded grade", "work grade", "carrier-grade NAT", "production-grade", "`grade`", "```\ngrade\n```", "<pre><code>grade 2</code></pre>"];
     const notFound = ["upgrade the dependency", "downgraded", "degrade", "centigrade", "retrograde", "Gradle build", "gradient", "gradual", "proposedGrade", "gradeOf()"];
@@ -201,25 +205,25 @@ module.exports = function casesWorkLevels(X) {
     c.push(["every form of the word found: numbered, unnumbered, inflected, re-, any case, a hyphenated compound, in backticks and a fenced block", !missed.length, js(missed)]);
     c.push(["a longer word that only holds the letters, and an identifier, not", !wrong.length, js(wrong.map(t => [t, LR.levelRefs(t)]))]);
     c.push(["a compound's hit is the whole compound, and a number after the word goes with it", js(LR.levelRefs("carrier-grade NAT")) === js(["carrier-grade"]) && js(LR.levelRefs("grade 3")) === js(["grade 3"]) && js(LR.levelRefs("a grade-4 issue")) === js(["grade-4"]), js([LR.levelRefs("carrier-grade NAT"), LR.levelRefs("grade 3"), LR.levelRefs("a grade-4 issue")])]);
-    const inPats = LR.LEVEL_PATTERNS.map(([s, f]) => new RegExp(JSON.parse(JSON.stringify(s)), f));
-    c.push(["LEVEL_PATTERNS, which the browser pass applies to the rendered text (as JSON), carries the grade's pattern", ["grade 3", "re-graded", "carrier-grade"].every(t => inPats.some(re => re.test(t))) && !inPats.some(re => re.test("Gradle upgrade")), String(LR.GRADE_PATTERNS && LR.GRADE_PATTERNS.length)]);
+    const inPats = LR.GRADE_PATTERNS.map(([s, f]) => new RegExp(JSON.parse(JSON.stringify(s)), f));
+    c.push(["GRADE_PATTERNS, which the browser pass applies to the rendered text (as JSON), carries the grade's pattern", ["grade 3", "re-graded", "carrier-grade"].every(t => inPats.some(re => re.test(t))) && !inPats.some(re => re.test("Gradle upgrade")), String(LR.GRADE_PATTERNS && LR.GRADE_PATTERNS.length)]);
     const sc0 = [["inside grade 3", "inside the issue's scope"], ["escalated to grade 4", "escalated"], ["planned at its own grade", "planned on its own"], ["Re-graded to grade 3", "Re-sized"], ["re-grading", "re-sizing"],
       ["graded", "sized"], ["the work grade", "the sizing"], ["Recorded grade: 3 confirmed", "Recorded sizing confirmed"], ["(#61, grade 3)", "(#61)"], ["The fix (grade 2) lands.", "The fix lands."], ["a grade-3 re-pass", "a re-pass"],
       ["a grade 3 issue", "an issue"], ["the grade re-check", "the sizing re-check"], ["The grade was confirmed", "The sizing was confirmed"], ["the issue's grade", "the issue's sizing"]];
     const bad = sc0.filter(([s, w]) => LR.scrubLevels(s, {}) !== w);
-    c.push(["scrubLevels() rewords a grade as it rewords a work level", !bad.length, js(bad.map(([s, w]) => [s, LR.scrubLevels(s, {}), w]))]);
+    c.push(["scrubLevels() rewords a grade", !bad.length, js(bad.map(([s, w]) => [s, LR.scrubLevels(s, {}), w]))]);
     c.push(["…on a sub-issue's board the scope is the unit's", LR.scrubLevels("inside grade 3", { scope: "unit" }) === "inside the unit's scope", js(LR.scrubLevels("inside grade 3", { scope: "unit" }))]);
     const left = ["carrier-grade NAT is refused", "at grade 3 the fix holds", "Grade 3: one system"].filter(s => LR.scrubLevels(s, {}) !== null);
     c.push(["a compound, and a numbered grade no rule takes, have no rewording: null, so the text is left out and the presenter told", !left.length, js(left.map(s => [s, LR.scrubLevels(s, {})]))]);
-    /* the work-level forms, and what they leave alone, unchanged */
-    const lvFound = ["a level-3 change", "inside level 3", "level: 2", "re-levelled", "the work level", "Recorded level confirmed", "(#61, level 3)", "escalated to level 4", "a later level-1 documentation change"];
+    /* the work level's forms, the grade's old name, no longer found or reworded (the transition's end, L12); the other levels left alone as ever */
+    const lvOld = ["a level-3 change", "inside level 3", "level: 2", "re-levelled", "the work level", "Recorded level confirmed", "(#61, level 3)", "escalated to level 4", "a later level-1 documentation change", "L3"];
     const lvLeft = ["L1 gating", "Level 2 component tests", "Level-2 KDoc", "level-1 KDoc contracts", "a level-1 KDoc change", "LEVEL 1 · SYSTEM CONTEXT", "the Level-4c suite", "log level kept", "top-level", ", Level 3: the reader against the real transport"];
-    c.push(["the work-level forms still found", lvFound.every(t => LR.levelRefs(t).length), js(lvFound.filter(t => !LR.levelRefs(t).length))]);
+    c.push(["the work-level forms no longer found (L12)", lvOld.every(t => !LR.levelRefs(t).length), js(lvOld.filter(t => LR.levelRefs(t).length).map(t => [t, LR.levelRefs(t)]))]);
     c.push(["…and the test, C4, KDoc and ordinary levels still left alone", !lvLeft.some(t => LR.levelRefs(t).length), js(lvLeft.filter(t => LR.levelRefs(t).length).map(t => [t, LR.levelRefs(t)]))]);
-    const lvScrub = [["a level-3 re-pass", "a re-pass"], ["inside level 3", "inside the issue's scope"], ["re-levelled", "re-sized"], ["Label level: 3", null]].filter(([s, w]) => LR.scrubLevels(s, {}) !== w);
-    c.push(["…and reworded as before", !lvScrub.length, js(lvScrub.map(([s, w]) => [s, LR.scrubLevels(s, {}), w]))]);
+    const lvScrub = [["a level-3 re-pass", "a level-3 re-pass"], ["inside level 3", "inside level 3"], ["re-levelled", "re-levelled"], ["Label level: 3", "Label level: 3"]].filter(([s, w]) => LR.scrubLevels(s, {}) !== w);
+    c.push(["…nor reworded: scrubLevels() returns them as they are", !lvScrub.length, js(lvScrub.map(([s, w]) => [s, LR.scrubLevels(s, {}), w]))]);
     const t0 = { schema: "plan-board/1", issueTitle: "Make the client carrier-grade", rows: [{ id: "a", name: "grade 3" }] }, hits = LR.levelRefsIn(t0, "", [], LR.titleSkip(t0)), tr = LR.issueTitleRefs(t0);
-    c.push(["a board's data: a grade found as a work level is, an issue's title quoted verbatim flagged as a defect in the issue, not failed", js(hits.map(h => h.at)) === js(["rows[0].name"]) && tr.length === 1 && /^ISSUE TITLE NAMES A GRADE: #\?/.test(LR.titleDefect(tr[0])) && LR.TITLE_DEFECT.test("warn  ISSUE TITLE NAMES A WORK LEVEL: #70") && LR.TITLE_DEFECT.test(LR.titleDefect(tr[0])), js([hits, tr])]);
+    c.push(["a board's data: a grade found, an issue's title quoted verbatim flagged as a defect in the issue, not failed; the flag's older message, from before the rename, no longer read", js(hits.map(h => h.at)) === js(["rows[0].name"]) && tr.length === 1 && /^ISSUE TITLE NAMES A GRADE: #\?/.test(LR.titleDefect(tr[0])) && !LR.TITLE_DEFECT.test("warn  ISSUE TITLE NAMES A WORK LEVEL: #70") && LR.TITLE_DEFECT.test(LR.titleDefect(tr[0])), js([hits, tr])]);
   });
   return groups;
 };

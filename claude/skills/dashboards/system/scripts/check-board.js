@@ -10,7 +10,7 @@
 // dashboards-skill/41, or .c4-legend on the C4 tab, .c4key before it), the
 // Context Panel is headed exactly "Context", the footer is "Corresponds to <source>." and its authority sentence (GUIDANCE.md
 // §3), no link is a dead href="#", the board has no horizontal scroll at the width
-// checked, no grade is shown (levelrefs.js: "grade 3", "graded" and, until the rule rework's L12, "level 3", "L3", "level: 2" and the like, in any
+// checked, no grade is shown (levelrefs.js: "grade 3", "graded", "a grade-3 change" and the like, in any
 // tab's text or the board's), no system colour falls in a status spectrum (palette.js: the --sys-N slots and a system board's
 // --server / --client / --wire, read from the board's CSS and, in the browser, as the theme of the pass computes them), and no
 // error fired. Then, by kind: a system board has a visible Guarantees Panel
@@ -122,7 +122,7 @@ const browsers = [
   "/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser",
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
 ];
-const { LEVEL_PATTERNS, quotedTitles } = require("./levelrefs.js");
+const { GRADE_PATTERNS, quotedTitles } = require("./levelrefs.js");
 /* the issue titles the board's data quotes (dashboards-skill/28): a Source view prints them JSON-quoted, and the browser pass leaves them out
    of its grade scan there, as it leaves out the titles the board marks data-issue-title */
 const QUOTED = (() => { const L = require("./statelib.js"), all = []; ["plan", "board", "state"].forEach(id => { const t = L.blockText(src, id); if (t == null) return; try { all.push(...quotedTitles(JSON.parse(t))); } catch (e) { /* the data checks report it */ } });
@@ -140,8 +140,8 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   console.log("CHECK kind: "+kind);
   const shown=e=>!!e&&e.offsetParent!==null;
   const tabs=[...document.querySelectorAll('[role="tab"]')]; console.log("CHECK tabs: "+tabs.length);
-  /* grades are never shown, nor their old name, a work level (levelrefs.js): the text of every tab, then of the whole board, is scanned */
-  const LV=${JSON.stringify(LEVEL_PATTERNS)}.map(([s,f])=>new RegExp(s,f+"g")), lvHits=new Set();
+  /* grades are never shown (levelrefs.js): the text of every tab, then of the whole board, is scanned */
+  const LV=${JSON.stringify(GRADE_PATTERNS)}.map(([s,f])=>new RegExp(s,f+"g")), lvHits=new Set();
   const lvScan=(txt,where)=>LV.forEach(re=>{ re.lastIndex=0; let m; while((m=re.exec(txt||""))) lvHits.add(where+": “"+m[0]+"”"); });
   /* An issue's title is quoted verbatim and marked data-issue-title (GUIDANCE.md §5; dashboards-skill/28): its text is left out of the
      scan above (textOf() reads a part's rendered text with the titles hidden), and a grade in it is a defect in the issue, flagged

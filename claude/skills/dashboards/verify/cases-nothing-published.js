@@ -10,7 +10,7 @@
 //    none, or release.unreleased beside it, warns; an artifact entry beside it draws nothing).
 // 3. The template: the Consequences Tab's version Badge reads "nothing published" where the mark is set, beside the bump, as it reads
 //    "new, unreleased" for the other mark (releaseWords(), run outside a browser); the unit Card and its inspector the same; the Legend
-//    says what it means; plan.json's impact comment names the mark and the unit entries; no work level in any of it.
+//    says what it means; plan.json's impact comment names the mark and the unit entries; no grade in any of it.
 // 4. The feature probe (nothing-published): found on the issue-board template, missed on one without it, for the issue and tracking boards
 //    only, and why the others do not fit.
 // 5. The fixture boards for a browser check, kept under <out>/nothing-published/fixtures/, and the Badge in a browser (--browser).
@@ -103,7 +103,7 @@ module.exports = function casesNothingPublished(X) {
     c.push(["the Tab's head, the unit Card and the inspector draw it through releaseWords()", /version · \$\{esc\(releaseWords\(rel\)\)\}/.test(imp) && /esc\(releaseWords\(e\.release,true\)\)/.test(unit) && /<dt>Version<\/dt><dd>\$\{esc\(releaseWords\(e\.release\)\)\}/.test(insp), "renderImpact · impUnitCard · inspectImpact"]);
     c.push(["the Legend says what the mark means where it drew it, on the version Badge or a unit Card's", imp.includes('relMark("nothingPublished")?"; nothing published: the change touches no published artifact, so no version moves":""') && imp.includes('const relMark=k=>(rel&&rel[k]===true)||units.some('), "renderImpact: the impact key"]);
     const words = [box.api.NOTHING_PUBLISHED, "nothing published: the change touches no published artifact, so no version moves"].join(" ");
-    c.push(["no work level in the Badge or the Legend", !LR.levelRefs(words).length, words]);
+    c.push(["no grade in the Badge or the Legend", !LR.levelRefs(words).length, words]);
     const PJ = rd(tp("plan/template/plan.json")), cm = JSON.parse(PJ).impact.$comment;
     c.push(["plan.json's impact comment names the mark, its source and the unit entries", /release\.nothingPublished: true \(optional\) marks a change that touches no published artifact, as consequences\.md's published-artifacts section records: no version moves \(bump none\), and the release warnings count none of its downstream effects/.test(cm) && cm.includes("A unit entry's release (units[], below) takes either mark") && !LR.levelRefs(cm).length, cm.slice(cm.indexOf("release.bump"), cm.indexOf("release.bump") + 600)]);
   });

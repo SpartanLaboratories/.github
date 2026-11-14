@@ -162,7 +162,7 @@ module.exports = function cases22(X) {
     if (chrome) { const dom = wide(path.join(rootB, ...F0.split("/"), "dashboard.html"));
       c.push(["the rowless board draws no glow: no washed column head, no glowing band; the step panel shows the planning", !/colhead phase colon/.test(dom) && !/<div class="band[^"]*fullpulse/.test(dom) && /Planning the research questions/.test(text(inner(dom, '<div class="sp[^"]*"[^>]*>', "div"))), "rendered"]); }
     const nroot = path.join(sc, "rp-new"); fs.mkdirSync(path.join(nroot, "docs", "plans"), { recursive: true });
-    const n = run(NEW, ["91", "verification-case", "--root", nroot, "--title", "Verification case", "--function", "Verification case.", "--baseline", "master@abcdef1", "--date", "2026-10-25", "--systems", "webtools-udp", "--level", "3", "--repo", "acme/widgets", "--step", "research"]);
+    const n = run(NEW, ["91", "verification-case", "--root", nroot, "--title", "Verification case", "--function", "Verification case.", "--baseline", "master@abcdef1", "--date", "2026-10-25", "--systems", "webtools-udp", "--grade", "3", "--repo", "acme/widgets", "--step", "research"]);
     let pn = null; try { pn = JSON.parse(rd(path.join(nroot, "docs", "plans", "91-verification-case", "plan.json"))); } catch (e) { /* reported */ }
     c.push(["new.js lays a board at research with nothing glowing (it has no rows yet)", !!pn && Array.isArray(pn.wip.current) && pn.wip.current.length === 0, (n.stdout + n.stderr).trim().split(/\r?\n/).slice(-1)[0]]);
   });
@@ -177,7 +177,7 @@ module.exports = function cases22(X) {
     const rq1 = req(path.join(sc, "tests-1.json"), { github: d.repo, issue: d.issue, event: "implementation-stage", folder: F0, facts: stage });
     const a = apply(root, rq1, "2026-10-25T06:00:00Z"), p = planOf(root, F0), t = p.tests || {};
     const add = (t.added || [])[0] || {}, am = (t.amended || [])[0] || {};
-    c.push(["an implementation stage's facts.tests: Added and Amended written, each class's test level from its package or path, its stage, its rows", a.status === 0 && t.base === "master" && t.updated === "2026-10-25T06:00:00Z" && add.testLevel === "2" && add.stage === "S1" && JSON.stringify(add.rows) === '["validity-rule"]' && am.testLevel === "2" && am.class === "HandshakeCoordinatorTest" && (t.added || []).length === 1, JSON.stringify(t).slice(0, 300)]);
+    c.push(["an implementation stage's facts.tests: Added and Amended written, each class's test set from its package or path, its stage, its rows", a.status === 0 && t.base === "master" && t.updated === "2026-10-25T06:00:00Z" && add.testSet === "component" && add.stage === "S1" && JSON.stringify(add.rows) === '["validity-rule"]' && am.testSet === "component" && am.class === "HandshakeCoordinatorTest" && (t.added || []).length === 1, JSON.stringify(t).slice(0, 300)]);
     c.push(["what could not be used (a row not on the board, a class with no name) is left out and named for the presenter: enrich", a.s.enrich === "yes" && a.s.why.some(w => /no-such-row/.test(w)) && a.s.why.some(w => /no class/.test(w)), JSON.stringify(a.s.why)]);
     const a2 = apply(root, rq1, "2026-10-25T06:10:00Z");
     c.push(["the same event twice changes nothing (duplicate)", a2.status === 0 && a2.s.result === "duplicate", a2.s.result]);
@@ -187,10 +187,10 @@ module.exports = function cases22(X) {
     const aC = apply(rootC, rqC, "2026-10-25T06:00:00Z"), pC = planOf(rootC, F0), addC = ((pC.tests || {}).added || [])[0] || {};
     const aC2 = apply(rootC, rqC, "2026-10-25T06:10:00Z");
     c.push(["facts.stage naming the current stage: the classes take the stage reported done (S1), the note's, and the same event twice is a duplicate", aC.status === 0 && addC.stage === "S1" && /S1 reported done/.test((pC.wip.event || {}).note || "") && aC2.status === 0 && aC2.s.result === "duplicate", JSON.stringify([addC.stage, (pC.wip.event || {}).note, aC2.s.result])]);
-    const qa = { qa: { pass: 1, verdict: "approved" }, tests: { ran: [{ class: "com.spartanlabs.testing.component.udp.HandshakeParseTest", module: "webtools-udp", passed: 5 }, { class: "HandshakeCoordinatorTest", module: "webtools-udp", passed: 40, failed: 1 }, { class: "MultiConnectionUDPServerTest", module: "webtools-udp", testLevel: "3", passed: 22 }], other: { byModule: { "webtools-udp": { "1": 9, "2": { classes: 31, tests: 212 } } } } } };
+    const qa = { qa: { pass: 1, verdict: "approved" }, tests: { ran: [{ class: "com.spartanlabs.testing.component.udp.HandshakeParseTest", module: "webtools-udp", passed: 5 }, { class: "HandshakeCoordinatorTest", module: "webtools-udp", passed: 40, failed: 1 }, { class: "MultiConnectionUDPServerTest", module: "webtools-udp", testSet: "integration", passed: 22 }], other: { byModule: { "webtools-udp": { gating: 9, component: { classes: 31, tests: 212 } } } } } };
     const aq = apply(root, req(path.join(sc, "tests-2.json"), { github: d.repo, issue: d.issue, event: "qa-pass", folder: F0, facts: qa }), "2026-10-25T07:00:00Z"), pq = planOf(root, F0), tq = pq.tests || {};
     const rel = (tq.relevant || [])[0] || {};
-    c.push(["a qa pass's facts.tests.ran: each class's latest result with its pass; a class in no list goes to Relevant; Other's counts", aq.status === 0 && tq.added[0].result.state === "passed" && tq.added[0].result.pass === 1 && tq.amended[0].result.state === "failed" && tq.amended[0].result.failed === 1 && rel.class === "MultiConnectionUDPServerTest" && rel.testLevel === "3" && rel.tests === 22 && rel.result.state === "passed" && tq.other.byModule["webtools-udp"]["2"].tests === 212, JSON.stringify(tq).slice(0, 400)]);
+    c.push(["a qa pass's facts.tests.ran: each class's latest result with its pass; a class in no list goes to Relevant; Other's counts", aq.status === 0 && tq.added[0].result.state === "passed" && tq.added[0].result.pass === 1 && tq.amended[0].result.state === "failed" && tq.amended[0].result.failed === 1 && rel.class === "MultiConnectionUDPServerTest" && rel.testSet === "integration" && rel.tests === 22 && rel.result.state === "passed" && tq.other.byModule["webtools-udp"].component.tests === 212, JSON.stringify(tq).slice(0, 400)]);
     const ck = node(checkJs, path.join(root, ...F0.split("/")));
     c.push(["check.js passes the board (no test failure, no test warning)", ck.status === 0 && !/tests\./.test((ck.stdout || "").split(/\r?\n/).filter(l => /^(FAIL|warn)/.test(l)).join(" ")), (ck.stdout || "").split(/\r?\n/).filter(l => /^(FAIL|warn)/.test(l)).join(" | ").slice(0, 300)]);
     const promote = apply(root, req(path.join(sc, "tests-3.json"), { github: d.repo, issue: d.issue, event: "implementation-stage", folder: F0, facts: { stage: "S2", stages: [{ id: "S1", name: "the parse outcome", state: "done" }, { id: "S2", name: "the routing", state: "done" }], tests: { amended: [{ class: "MultiConnectionUDPServerTest", module: "webtools-udp", rows: ["routing"] }] } } }), "2026-10-25T08:00:00Z"), pp = planOf(root, F0).tests;
@@ -204,20 +204,20 @@ module.exports = function cases22(X) {
     /* the checks */
     const P = (tests, extra) => TL.testsProblems({ rows: [{ id: "routing" }], ...(extra || {}), tests });
     const bad = [
-      ["a test level that is not one (\"L3\")", P({ added: [{ class: "A", testLevel: "L3" }] }), /testLevel must be one of/],
+      ["a test set that is not one (\"L3\")", P({ added: [{ class: "A", testSet: "L3" }] }), /testSet must be one of/],
       ["a class in two lists", P({ added: [{ class: "A" }], relevant: [{ class: "A" }] }), /is also in tests\.added\[0\]/],
       ["a row that is not on the board", P({ amended: [{ class: "A", rows: ["nope"] }] }), /names no row of the board/],
       ["a result state that is not one", P({ added: [{ class: "A", result: { state: "green" } }] }), /result\.state must be one of/],
-      ["Other with a key that is not a test level", P({ other: { byModule: { m: { "6": 1 } } } }), /not a test level/],
+      ["Other with a key that is not a test set", P({ other: { byModule: { m: { "6": 1 } } } }), /not a test set/],
       ["tests on a tracking board", P({ added: [] }, { kind: "tracking" }), /tests on a tracking board/]];
     bad.forEach(([w, r, re]) => c.push([`testslib.js fails ${w}`, r.fail.some(f => re.test(f)), r.fail.join(" | ")]));
-    const wv = P({ added: [{ class: "com.x.testing.integration.A", testLevel: "2" }] });
-    c.push(["it warns when a class's path or package names another test level than its testLevel", wv.warn.some(x => /names the test level 3/.test(x)), wv.warn.join(" | ")]);
+    const wv = P({ added: [{ class: "com.x.testing.integration.A", testSet: "component" }] });
+    c.push(["it warns when a class's path or package names another test set than the one it stores", wv.warn.some(x => /names the test set integration, its stored set is component/.test(x)), wv.warn.join(" | ")]);
     c.push(["the sub-issue fixture's tests pass the checks", !TL.testsProblems(SUB).fail.length && !TL.testsProblems(SUB).warn.length, JSON.stringify(TL.testsProblems(SUB))]);
     /* the tracking board's mirror of each unit's tests (embed.js, unit.tests with rowNames); cleared when the unit records none */
     const sub = building(), subF = trk.folder + "/47-java-floor"; Object.assign(sub, { issue: 47, slug: "47-java-floor", folder: subF, title: "Java 11 floor", parent: { issue: 55 } });
     sub.wip = { ...sub.wip, step: "implementation", current: ["routing.built"], questions: [], research: null, event: { name: "implementation-stage", at: "2026-10-25T05:00:00Z" } };
-    sub.tests = { base: "master", updated: "2026-10-25T05:00:00Z", added: [{ class: "HttpClientFloorTest", module: "webtools-http", testLevel: "2", tests: 7, rows: ["routing"] }], amended: [], relevant: [] };
+    sub.tests = { base: "master", updated: "2026-10-25T05:00:00Z", added: [{ class: "HttpClientFloorTest", module: "webtools-http", testSet: "component", tests: 7, rows: ["routing"] }], amended: [], relevant: [] };
     const rootM = tree("tests-mirror", [trk, sub]), pm = planOf(rootM, trk.folder), um = pm.rows.find(r => r.id === "java-floor").unit;
     c.push(["embed.js mirrors a unit's tests into its tracking board's row (unit.tests), with the names of the rows its classes verify", !!um.tests && um.tests.added[0].class === "HttpClientFloorTest" && um.tests.rowNames && um.tests.rowNames.routing === sub.rows.find(r => r.id === "routing").name, JSON.stringify(um.tests || null).slice(0, 200)]);
     const sd = path.join(rootM, ...subF.split("/")), sp = JSON.parse(rd(path.join(sd, "plan.json"))); sp.tests.added[0].tests = 8; fs.writeFileSync(path.join(sd, "plan.json"), JSON.stringify(sp, null, 2) + "\n");

@@ -1,7 +1,7 @@
 // The case groups of admin-team/dashboards-skill/35, run by verify-templates.js (it passes its helpers in): a dependency's build state from its
 // code (blocking until merged, clear once merged, an open issue with a merged pull request clear, pre-built, dropped when closed as not
 // planned, a duplicate taking its canonical issue's state); remediation sub-steps in parallel; the open points (a build output's copy for the
-// live view, none committed open); a bare "Ln" (named beside a test word, elided with a warning elsewhere); consequences.md (impact.md read
+// live view, none committed open); a bare "Ln" (named beside a test word, left as it is elsewhere since L12); consequences.md (impact.md read
 // alike, the Consequences tab); a fix to an earlier plan's work (fixOf, new.js --fix-of, the "fix to" chip and row); the Document step (the
 // document event and its tasks, state-boards as its task, the land in two steps, the older line kept where its landing began); the state
 // boards stamped in the Document step (apply-state.js facts.document); seeding at sized from the live view; the test report's neutral path;
@@ -87,17 +87,17 @@ module.exports = function cases35(X) {
   });
 
   /* 3. a bare "Ln" */
-  guard("levelrefs.js: a test set written by number, written by its set's name; a bare Ln with no test word elided with a warning (dashboards-skill/35)", c => {
-    c.push(["\"L2 test\", \"tests (L3)\", \"regression test (L2)\" name no work level", ["L2 test", "tests (L3)", "regression test (L2)", "L1 regression tests"].every(t => !LR.levelRefs(t).length) && LR.levelRefs("L3 alone").length === 1, js(["L2 test", "tests (L3)", "L3 alone"].map(t => LR.levelRefs(t)))]);
+  guard("levelrefs.js: a test set written by number, written by its set's name; a bare Ln with no test word left as it is (dashboards-skill/35; L12)", c => {
+    c.push(["\"L2 test\", \"tests (L3)\", \"regression test (L2)\" name no grade, nor any longer does a bare \"L3\" (L12)", ["L2 test", "tests (L3)", "regression test (L2)", "L1 regression tests", "L3 alone"].every(t => !LR.levelRefs(t).length), js(["L2 test", "tests (L3)", "L3 alone"].map(t => LR.levelRefs(t)))]);
     const n = t => LR.nameTestLevels(t).text;
     c.push(["nameTestLevels(): component test, tests (integration), regression test (component), gating tests, uat test, project-wide tests", n("L2 test") === "component test" && n("tests (L3)") === "tests (integration)" && n("regression test (L2)") === "regression test (component)" && n("L1 tests") === "gating tests" && n("L5 test") === "uat test" && n("the L4 tests") === "the project-wide tests" && n("L4b tests") === "e2e tests", js([n("L2 test"), n("tests (L3)"), n("regression test (L2)"), n("L5 test"), n("the L4 tests")])]);
     c.push(["…a number beside its set's name is dropped: component test, integration, deterministic suite, per-type gating, UAT", n("L2 component test") === "component test" && n("L3 · integration") === "integration" && n("L4a deterministic suite") === "deterministic suite" && n("L1 per-type gating") === "per-type gating" && n("L5 UAT") === "UAT" && js(LR.nameTestLevels("L3 · integration").named) === js(["L3"]) && js(LR.nameTestLevels("L3 · integration").as) === js(["integration"]), js([n("L2 component test"), n("L3 · integration"), n("L5 UAT"), LR.nameTestLevels("L3 · integration")])]);
-    c.push(["…and a bare Ln with no test word, a work level, is left to the scrub; no level of a document or of C4 is touched", n("Run the L3 checks") === "Run the L3 checks" && n("level-1 KDoc contracts") === "level-1 KDoc contracts" && n("Level 1 · System Context") === "Level 1 · System Context", js([n("Run the L3 checks")])]);
-    const el = []; const s = LR.scrubLevels("Run the L3 checks", { elided: el });
-    c.push(["scrubLevels(): a bare Ln elsewhere is elided, and reported", s === "Run the checks" && js(el) === js(["L3"]), js([s, el])]);
+    c.push(["…and a bare Ln with no test word is left as it is; no level of a document or of C4 is touched", n("Run the L3 checks") === "Run the L3 checks" && n("level-1 KDoc contracts") === "level-1 KDoc contracts" && n("Level 1 · System Context") === "Level 1 · System Context", js([n("Run the L3 checks")])]);
+    const s = LR.scrubLevels("Run the L3 checks", {});
+    c.push(["scrubLevels(): a bare Ln elsewhere is no longer elided (the transition's end, L12)", s === "Run the L3 checks", js(s)]);
     /* a board in implementation: the example keeps its landed step, and a late report keeps the WIP line (KotlinBottools #24) */
     const T = tree("levels", (() => { const b = building(); b.wip = { ...b.wip, step: "implementation" }; return b; })()), e = evIn(T)("implementation-stage", "2026-10-26T09:00:00Z", { detail: "Run the L3 checks; the L2 test added" });
-    c.push(["the fast path writes the set's name and warns on the elision (warnings: GRADE ELIDED)", e.a.status === 0 && e.p.wip.detail === "Run the checks; the component test added" && (e.S.warnings || []).some(w => /^GRADE ELIDED: facts\.detail: "L3"/.test(w)) && /fast-path warning/.test(e.S.check || ""), js([e.a.status, e.p.wip.detail, e.S.warnings, e.S.check])]);
+    c.push(["the fast path writes the set's name and the bare Ln as sent, with no warning on it (GRADE ELIDED went with the elision, L12)", e.a.status === 0 && e.p.wip.detail === "Run the L3 checks; the component test added" && !(e.S.warnings || []).some(w => /GRADE ELIDED/.test(w)), js([e.a.status, e.p.wip.detail, e.S.warnings, e.S.check])]);
     const b = building(); b.function = b.function + " Its L2 test covers it.";
     const B2 = tree("levels-bare", b), k = run(CHECK, [B2.dir]);
     c.push(["check.js warns on a test set a board writes by number (TEST SET BY NUMBER), naming the set's name, never failing it", k.status === 0 && /TEST SET BY NUMBER: plan\.json writes a test set by its number: [^\n]*function \("L2" → "component"\)/.test(k.stdout), (k.stdout.split(/\r?\n/).find(l => /TEST SET BY NUMBER/.test(l)) || k.stdout.slice(-200))]);
@@ -119,7 +119,7 @@ module.exports = function cases35(X) {
   guard("a fix to an earlier plan's work: new.js --fix-of inside the landed issue's folder, fixOf.board, the chip and the work board's row (dashboards-skill/35)", c => {
     const root = path.join(sc, "fix"), host = copy(EX); const hdir = path.join(root, ...host.folder.split("/"));
     wr(path.join(hdir, "plan.json"), JSON.stringify(host, null, 2) + "\n"); wr(path.join(hdir, "dashboard.html"), rd(PB)); run(EMBED, [hdir]);
-    const n = run(NEW, ["91", "refusal-wording-fix", "--root", root, "--fix-of", String(host.issue), "--title", "Refusal wording fix", "--issue-title", "Verification case #91", "--function", "Verification case: a fix to #38's work.", "--baseline", "abcdef1", "--date", "2026-10-26", "--repo", host.repo, "--systems", (host.systems[0] || {}).slug || "x", "--level", "2"]);
+    const n = run(NEW, ["91", "refusal-wording-fix", "--root", root, "--fix-of", String(host.issue), "--title", "Refusal wording fix", "--issue-title", "Verification case #91", "--function", "Verification case: a fix to #38's work.", "--baseline", "abcdef1", "--date", "2026-10-26", "--repo", host.repo, "--systems", (host.systems[0] || {}).slug || "x", "--grade", "2"]);
     const fdir = path.join(hdir, "91-refusal-wording-fix");
     c.push(["new.js --fix-of lays the fix's folder inside the landed issue's folder, fixOf set, no parent", n.status === 0 && fs.existsSync(path.join(fdir, "plan.json")) && (() => { const p = JSON.parse(rd(path.join(fdir, "plan.json"))); return p.fixOf && p.fixOf.issue === host.issue && p.fixOf.board === "../dashboard.html" && !p.parent; })(), (n.stdout + n.stderr).trim().split(/\r?\n/).slice(0, 2).join(" | ")]);
     const k = run(CHECK, [fdir]);

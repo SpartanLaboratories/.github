@@ -42,7 +42,7 @@ module.exports = function casesFoundation(X) {
 
   guard("apply-event.js at a sized with no board: the foundation laid, the event applied, the board open in seconds, with --no-gh", c => {
     const root = tree(), folder = "docs/plans/93-response-cache";
-    const L = lay(root, folder, { step: "research", level: 3, baseline: "abc1234", systems: ["cache"] });
+    const L = lay(root, folder, { step: "research", grade: 3, baseline: "abc1234", systems: ["cache"] });
     c.push(["exit 0, result ok, laid named", L.a.status === 0 && L.S.result === "ok" && L.S.laid === folder, js([L.a.status, L.S.result, L.S.laid, L.S.error, L.S.check])]);
     c.push(["enrich yes, for the fill behind it", L.S.enrich === "yes" && (L.S.why || []).some(w => /foundation is laid and the event applied/.test(w)), js(L.S.why)]);
     c.push(["every board file written: plan.json, dashboard.html, plan.js", ["plan.json", "dashboard.html", "plan.js"].every(f => fs.existsSync(path.join(root, ...folder.split("/"), f))), "files"]);
@@ -60,16 +60,16 @@ module.exports = function casesFoundation(X) {
     c.push(["the live repository work board regenerated, in the same run", fs.existsSync(path.join(root, "docs", "plans", ".live", "index.html")) && /regenerated/.test(L.S.live || ""), js(L.S.live)]);
     const live = JSON.parse(rd(path.join(root, "docs", "plans", ".live", "board.json")));
     c.push(["…showing the run", (live.rows || []).some(r => r.issue === 93), js((live.rows || []).map(r => r.issue))]);
-    const was = rd(L.f), again = lay(root, folder, { step: "research", level: 3, baseline: "abc1234", systems: ["cache"] });
+    const was = rd(L.f), again = lay(root, folder, { step: "research", grade: 3, baseline: "abc1234", systems: ["cache"] });
     c.push(["raised again: a duplicate, nothing written", again.a.status === 0 && again.S.result === "duplicate" && rd(L.f) === was, js([again.S.result, again.S.error])]);
     const inTree = tree(), B = lay(inTree, "docs/plans/94-a-case", { step: "plan" });
     const head = (git(inTree, "rev-parse", "--short", "HEAD").stdout || "").trim();
     c.push(["with no baseline in the event, the tree's HEAD and its commit's date", B.a.status === 0 && B.p.baseline.sha === head && /^\d{4}-\d{2}-\d{2}$/.test(B.p.baseline.date), js([B.a.status, B.p && B.p.baseline, B.S.error])]);
     c.push(["step plan glows considered and verdict by the map, and the plan's pass starts", js(B.p.wip.current) === js(["considered", "verdict"]) && B.p.wip.plan.state === "writing", js([B.p.wip.current, B.p.wip.plan])]);
     c.push(["with no systems named, none laid, and the sentence still honest", js(B.p.systems) === "[]" && /^Issue #94, a case\. What this run does/.test(B.p.function), js(B.p.function)]);
-    const fix = lay(tree(), "docs/plans/95-widget-thing", { step: "research", baseline: "abc1234", function: "The caller's own sentence on what this run does.", title: "a level-3 change to the widget" });
+    const fix = lay(tree(), "docs/plans/95-widget-thing", { step: "research", baseline: "abc1234", function: "The caller's own sentence on what this run does.", title: "a grade-3 change to the widget" });
     c.push(["a function the event gives is taken, with no stand-in recorded", fix.p.function === "The caller's own sentence on what this run does." && fix.p.foundation.function === undefined, js([fix.p.function, fix.p.foundation])]);
-    c.push(["…and a work level in facts.title is reworded, never written", fix.a.status === 0 && fix.p.title === "a change to the widget", js([fix.a.status, fix.p.title, fix.S.error, fix.S.check])]);
+    c.push(["…and a grade in facts.title is reworded, never written", fix.a.status === 0 && fix.p.title === "a change to the widget", js([fix.a.status, fix.p.title, fix.S.error, fix.S.check])]);
   });
 
   guard("the foundation's facts from the tracker, the parent's unit row and the registry, each from the first that tells it", c => {
@@ -80,7 +80,7 @@ module.exports = function casesFoundation(X) {
     const L = lay(T.root, folder, { step: "plan", baseline: "abc1234" }, { env: { DASHBOARDS_GH: ghStub, DASHBOARDS_GH_REPLY: js(G) } }, []);
     c.push(["a sub-issue with --no-gh: exit 0, the parent named from the folder it sits in", L.a.status === 0 && L.p.parent.issue === T.t.issue && L.p.parent.board === "../dashboard.html", js([L.a.status, L.S.error, L.S.check, L.p && L.p.parent])]);
     c.push(["…its title the unit row's name", L.p.title === u.name, js([L.p.title, u.name])]);
-    c.push(["…its systems the unit row's, no work level kept", L.p.level === undefined && L.p.systems.length === 1 && L.p.systems[0].slug === u.system, js([L.p.level, L.p.systems])]);
+    c.push(["…its systems the unit row's, no grade kept", L.p.level === undefined && L.p.systems.length === 1 && L.p.systems[0].slug === u.system, js([L.p.level, L.p.systems])]);
     c.push(["…the Considered column recorded as coming at sized, its parent being signed off", L.p.foundation.considered === true && js(lib.foundationFilling(L.p).columns) === js(["gap", "considered"]), js(L.p.foundation)]);
     const tb = JSON.parse(rd(path.join(T.tdir, "plan.json")));
     c.push(["the tracking board: the unit moved into wip.current and its board linked, in the same run", (tb.wip.current || []).includes(u.id + ".built") && tb.rows.find(r => r.id === u.id).unit.board === `${path.basename(folder)}/dashboard.html`, js([tb.wip.current, tb.rows.find(r => r.id === u.id).unit.board])]);
@@ -101,7 +101,7 @@ module.exports = function casesFoundation(X) {
     c.push(["inside another issue's board: no parent taken, and the presenter told", K.a.status === 0 && K.p.parent === null && (K.S.why || []).some(w => /sits inside #40's folder/.test(w)), js([K.a.status, K.p && K.p.parent, K.S.error, K.S.check])]);
     const K2 = lay(H, "docs/plans/40-host/42-a-fix", { step: "plan", baseline: "abc1234", fixOf: 40 }, {}, ["--no-live"]);
     c.push(["…facts.fixOf is taken", K2.a.status === 0 && K2.p.fixOf && K2.p.fixOf.issue === 40 && K2.p.parent === null, js([K2.a.status, K2.p && K2.p.fixOf, K2.S.error])]);
-    const trk = lay(tree(), "docs/plans/97-an-initiative", { step: "architecture", baseline: "abc1234", level: 4 });
+    const trk = lay(tree(), "docs/plans/97-an-initiative", { step: "architecture", baseline: "abc1234", grade: 4 });
     c.push(["a tracking issue: kind and steps from the level; no column to write at sized, only the function", trk.a.status === 0 && trk.p.kind === "tracking" && trk.p.wip.steps.includes("sub-issues") && js(lib.foundationFilling(trk.p)) === js({ function: true, columns: [] }), js([trk.a.status, trk.p && trk.p.kind, trk.p && lib.foundationFilling(trk.p), trk.S.error])]);
   });
 
@@ -148,13 +148,13 @@ module.exports = function casesFoundation(X) {
     const Q = tree(); const q0 = snap(Q), QL = lay(Q, "docs/plans/90-a-case", { step: "plan", baseline: "abc1234" }, { github: "not-a-slug" }), q1 = snap(Q);
     c.push(["a board the check refuses: exit 1, the laid board, its folder, the live board and its markers all taken back", QL.a.status === 1 && same(q0, q1), js([QL.a.status, QL.S.error, QL.S.check, Object.keys(q1).filter(k => !(k in q0)).map(k => path.relative(Q, k))])]);
     /* the fallback still works: new.js, then the event raised again */
-    const N = tree(), nr = run(NEW, ["90", "a-case", "--root", N, "--at", "2026-11-03T02:17:16Z", "--repo", "acme/widgets", "--title", "A case", "--issue-title", "A case on the tracker", "--function", "A function.", "--baseline", "abc1234", "--date", "2026-11-03", "--step", "plan", "--level", "3"]);
+    const N = tree(), nr = run(NEW, ["90", "a-case", "--root", N, "--at", "2026-11-03T02:17:16Z", "--repo", "acme/widgets", "--title", "A case", "--issue-title", "A case on the tracker", "--function", "A function.", "--baseline", "abc1234", "--date", "2026-11-03", "--step", "plan", "--grade", "3"]);
     const after2 = lay(N, "docs/plans/90-a-case", { step: "plan", baseline: "abc1234" });
     c.push(["new.js lays the foundation with no marker, and the event raised again applies to it", nr.status === 0 && after2.a.status === 0 && after2.p.foundation === undefined && after2.S.laid === null, js([nr.status, (nr.stderr || "").slice(0, 200), after2.a.status, after2.S.result, after2.S.error])]);
   });
 
   guard("the fill behind the event: read from the data, cleared at its embed; a board past its plan's acceptance with its Gap unwritten is refused", c => {
-    const root = tree(), folder = "docs/plans/93-a-case", L = lay(root, folder, { step: "plan", baseline: "abc1234", systems: ["cache"], level: 3 }), dir = path.dirname(L.f);
+    const root = tree(), folder = "docs/plans/93-a-case", L = lay(root, folder, { step: "plan", baseline: "abc1234", systems: ["cache"], grade: 3 }), dir = path.dirname(L.f);
     const ev = (event, facts, at) => { const rq = wr(path.join(sc, `f-${n}-${event}.json`), js({ v: 1, action: "plan-board", github: "acme/widgets", issue: 93, event, folder, facts }));
       const a = run(APPLY, ["--event", rq, "--worktree", root, "--no-gh", "--no-live", "--at", at, "--json"]); return { a, S: parse(a), p: JSON.parse(rd(L.f)) }; };
     /* the plan's acceptance on a board still being filled */
@@ -174,7 +174,7 @@ module.exports = function casesFoundation(X) {
     const r2 = ev("plan-accepted", {}, "2026-11-03T03:10:00Z");
     c.push(["plan-accepted on the filled board applies", r2.a.status === 0 && r2.p.wip.step === "branch", js([r2.a.status, r2.p.wip.step, r2.S.error, r2.S.check])]);
     /* a board that was never a foundation is held to the same Gap */
-    const B = tree(), np = run(NEW, ["80", "bare", "--root", B, "--title", "Bare", "--issue-title", "Bare", "--function", "A function.", "--repo", "acme/widgets", "--baseline", "abc1234", "--date", "2026-11-03", "--step", "plan", "--level", "3"]);
+    const B = tree(), np = run(NEW, ["80", "bare", "--root", B, "--title", "Bare", "--issue-title", "Bare", "--function", "A function.", "--repo", "acme/widgets", "--baseline", "abc1234", "--date", "2026-11-03", "--step", "plan", "--grade", "3"]);
     const bf = path.join(B, "docs", "plans", "80-bare", "plan.json"), bp = JSON.parse(rd(bf)); bp.wip.step = "branch"; bp.wip.current = []; wr(bf, JSON.stringify(bp, null, 2) + "\n"); run(EMBED, [path.dirname(bf)]);
     const bk = run(CHECK, [path.dirname(bf)]);
     c.push(["check.js: any issue board at branch with no rows fails, GAP UNWRITTEN", np.status === 0 && bk.status === 1 && /GAP UNWRITTEN: the run is at branch/.test(bk.stdout), (bk.stdout || "").split(/\r?\n/).filter(l => /FAIL/.test(l)).join(" | ").slice(0, 240)]);

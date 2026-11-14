@@ -1,7 +1,7 @@
 // Grades and the boards (admin-team/dashboards-skill/option-d-and-decisions): a grade is never kept in plan.json. Not a command.
 // A board's kind and its wip.steps answer what a script asks (tracking or not; a line with an interview or not); where a script needs the grade at
-// the moment of an event it comes from the request (its grade, facts.grade, and until the rule rework's L12 its level, facts.level), else from the
-// team's local state (~/.claude/admin-team/state.json, grades["owner/repo#n"], levels[] read until L12), never from the board. A board written before this may still carry the fields:
+// the moment of an event it comes from the request (its grade, facts.grade), else from the team's local state (~/.claude/admin-team/state.json,
+// grades["owner/repo#n"]), never from the board. A board written before this may still carry the fields, under a grade's old keys:
 // plan.level, rows[].unit.level, wip.proposedLevel and a unit's mirror's proposedLevel. They are read without failing. A closed work board (landed
 // or cancelled) keeps them as data, never shown, whatever rewrites it, and nothing re-adds them; an open board drops them at any rewrite, and check.js fails one that holds them. A
 // tracking board with units in flight is open.
@@ -40,8 +40,7 @@ function dropWorkLevels(plan) {
 /* The team's local record of an issue's grade, or null: no file, no entry, or a machine without the team. DASHBOARDS_ADMIN_STATE points elsewhere (the verify cases). */
 function localLevel(repo, issue) {
   const file = process.env.DASHBOARDS_ADMIN_STATE || path.join(os.homedir(), ".claude", "admin-team", "state.json");
-  /* the state's grades first, then its levels (the user's decision of 2026-11-13, vocabulary/choice-1-live-keys (a); the levels read until the rule rework's L12) */
-  try { const st = JSON.parse(fs.readFileSync(file, "utf8")), k = `${repo}#${issue}`, v = [(st.grades || {})[k], (st.levels || {})[k]].find(x => [1, 2, 3, 4].includes(x)); return v != null ? v : null; } catch (e) { return null; }
+  try { const st = JSON.parse(fs.readFileSync(file, "utf8")), v = (st.grades || {})[`${repo}#${issue}`]; return [1, 2, 3, 4].includes(v) ? v : null; } catch (e) { return null; }
 }
 /* a board's run, as its steps line tells it: a small feature's line has an interview, a small fix's has none; a tracking issue is its kind */
 const featureRun = plan => !!plan && plan.kind !== "tracking" && Array.isArray((plan.wip || {}).steps) && plan.wip.steps.includes("interview");

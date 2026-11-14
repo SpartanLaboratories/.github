@@ -149,7 +149,7 @@ const FEATURES = [
   { id: "ref-number", name: "a reference's section number before its excerpt: from its file's headings (refNumber), else its anchor's number marked \"?\"", since: 23, types: ["plan-board"],
     notFor: { system: "no statements with plan references", supersystem: "no statements with plan references", "work-board": "no statements: one row per run" },
     test: h => { const s = scripts(h); return need(/const refNumShown=/.test(s) && /refMarked\(/.test(s) && /\.(?:key|legend) b\.(?:srefk|section-chip)\{/.test(css(h)), "a reference with no excerpt still reads its whole anchor (\"§ 42-the-fix\"), with no section number from refNumber"); } },
-  { id: "level-phrases", name: "no grade in the board's data, nor its old name, its scope and re-pass phrases included (\"inside grade 3\", \"a level-3 re-pass\", \"Label grade: 3\")", since: 23, types: ALL,
+  { id: "level-phrases", name: "no grade in the board's data, its scope and re-pass phrases included (\"inside grade 3\", \"a grade-3 re-pass\", \"Label grade: 3\")", since: 23, types: ALL,
     /* an issue's title is quoted verbatim and left out of the scan (dashboards-skill/28): one that names a grade is a defect in the
        issue, flagged by check.js and check-board.js (ISSUE TITLE NAMES A GRADE: #n), never a missing feature of the board */
     test: h => { const { levelRefs, levelRefsIn, titleSkip } = require("./levelrefs.js"), hits = [];

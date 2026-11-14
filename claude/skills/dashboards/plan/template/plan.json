@@ -477,14 +477,14 @@
     "link": "<consequences.md#section-anchor>"
   },
   "tests": {
-    "$comment": "The Tests tab (plan/RULES.md §2, \"The Tests tab\"); absent or null until a class is recorded, and never on a tracking board (embed.js mirrors each unit's into its row as unit.tests). base: the ref the branch's diff is taken against; updated: the last change. added: the test classes new on the branch; amended: the existing classes the branch changed (both from the diff, growing with each implementation stage); relevant: unchanged existing classes that exercise the new code anyway (what the qa pass's test inspection ran, less added and amended; with each qa pass). A class is in one list only, added before amended before relevant. Each class: class (its name, fully qualified where it has a package), module, testLevel (1 | 2 | 3 | 4a | 4b | 4c | 5: its test set, each held by its old number in the sets' order, gating to uat, and shown by its name; absent when its package or path names its set's folder, testing.<segment>), path, tests (its test count), rows (the ids of the board rows it verifies), stage (the implementation stage that last added or changed it), result {state: passed | failed | skipped | not-run, passed, failed, skipped, pass (the qa pass), at}. other: {byModule: {<module>: {<test set, or none>: <classes> | {classes, tests}}}}, counts only: never run for this change. apply-event.js writes it from an event's facts.tests (testslib.js mergeTests()); otherwise the presenter fills it from the diff and the qa report.",
+    "$comment": "The Tests tab (plan/RULES.md §2, \"The Tests tab\"); absent or null until a class is recorded, and never on a tracking board (embed.js mirrors each unit's into its row as unit.tests). base: the ref the branch's diff is taken against; updated: the last change. added: the test classes new on the branch; amended: the existing classes the branch changed (both from the diff, growing with each implementation stage); relevant: unchanged existing classes that exercise the new code anyway (what the qa pass's test inspection ran, less added and amended; with each qa pass). A class is in one list only, added before amended before relevant. Each class: class (its name, fully qualified where it has a package), module, testSet (gating | component | integration | deterministic | e2e | nonfunctional | uat: its test set by its name; absent when its package or path names its set's folder, testing.<segment>; a board written before 2026-11-14 holds testLevel, the set by its old number, 1 | 2 | 3 | 4a | 4b | 4c | 5, which a closed board keeps and an open one has written by name at its next rewrite), path, tests (its test count), rows (the ids of the board rows it verifies), stage (the implementation stage that last added or changed it), result {state: passed | failed | skipped | not-run, passed, failed, skipped, pass (the qa pass), at}. other: {byModule: {<module>: {<test set, or none>: <classes> | {classes, tests}}}}, counts only: never run for this change. apply-event.js writes it from an event's facts.tests (testslib.js mergeTests()); otherwise the presenter fills it from the diff and the qa report.",
     "base": "<the ref of the diff, e.g. master>",
     "updated": "<ISO date-time>",
     "added": [
       {
         "class": "<com.example.testing.component.module.ClassNameTest>",
         "module": "<module>",
-        "testLevel": "2",
+        "testSet": "component",
         "path": "<module/src/test/kotlin/com/example/testing/component/module/ClassNameTest.kt>",
         "tests": 0,
         "rows": [
@@ -506,8 +506,8 @@
     "other": {
       "byModule": {
         "<module>": {
-          "1": 0,
-          "2": {
+          "gating": 0,
+          "component": {
             "classes": 0,
             "tests": 0
           }

@@ -61,8 +61,7 @@
 // on its tracking board's view copy by the standing rule (unitLanded()); and at any unit's landing that is its tracking issue's last, the tracking
 // board's own landing once its impact is reconciled (lastUnitLanding()), else named for the presenter;
 // an open point's report outside the tree copied when the point is raised, for the live view (runOpenJobs()), and every open point
-// resolved at the land (check.js fails one left open); a test set written by its old number written by its set's name, and a bare
-// "Ln" elsewhere elided as a work level, a grade's old name, with a warning (summary: warnings).
+// resolved at the land (check.js fails one left open); a test set written by its old number written by its set's name.
 // The fast path owns the Timeline (plan/RULES.md §4, "The fast path owns the Timeline"): the merge's time at landed from facts.mergedAt, git in
 // the worktree, then the main checkout, then the pull request's merge time from the tracker (mergeTimes(), lib.js ghMergeTime(); not with
 // --no-gh), a warning where none tells it, never an enrichment; the seeding at sized records it from git where the landing could not; a
@@ -117,7 +116,7 @@ if (ARRIVED != null && (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]
 
 /* the summary, printed at the end whatever happens */
 const S = { result: null, event: null, arrival: null, unread: [], issue: null, board: null, laid: null, applied: [], enrich: [], rerendered: [], wrote: [], view: [], seeded: [], parent: null, live: null, check: null, warnings: [], defects: [], error: null, restored: 0, unfinished: null };
-/* the fast path's own warnings (a bare "Ln" elided as a work level, a grade's old name, dashboards-skill/35): printed under "warnings" and counted on the check line */
+/* the fast path's own warnings: printed under "warnings" and counted on the check line */
 const WARNINGS = S.warnings;
 const say = () => {
   S.ms = Date.now() - T0;
@@ -245,7 +244,7 @@ function applyEvent(orig, ev, facts, req, now) {
      dashboards-skill/34 (lib.js documentSteps()); a landed or cancelled board keeps its line */
   if (ev !== "step-complete" && Array.isArray(w.steps) && !["built", "abandoned"].includes(plan.status) && !["landed", "cancelled"].includes(w.step)) { const ls = lib.documentSteps(w.steps, lib.shownStep(w)); if (ls !== w.steps) { w.steps = ls; applied.push(`wip.steps: ${ls.includes("document") ? "the Document step before the landing, merge after it" : "state-boards and merge after the landing"}`); } }
   const rows = Array.isArray(plan.rows) ? plan.rows : [], ids = new Set(rows.map(r => r && r.id)), tracking = plan.kind === "tracking";
-  /* a text from the facts, as one line; a grade in it, or its old name, a work level (GUIDANCE.md §4), is never written: the phrase is
+  /* a text from the facts, as one line; a grade in it (GUIDANCE.md §4) is never written: the phrase is
      reworded or elided (levelrefs.js scrubLevels(): "inside grade 3" → "inside the unit's scope" on a sub-issue's board, "the issue's"
      elsewhere; "a grade-3 re-pass" → "a re-pass"; "Label grade: 3" dropped), and the text is left out only when a grade would remain; the
      presenter is told either way (admin-team/dashboards-skill/23) */
@@ -267,9 +266,7 @@ function applyEvent(orig, ev, facts, req, now) {
        the facts alone decide, so neither a run nor a fill brings the older wording back */
     if (!IDENT.has(field)) { const qr = lib.renamePassText(s); if (qr !== s) { applied.push(`facts.${field}: ${lib.passRefs(s).map(h => JSON.stringify(h)).join(", ")} written as "${lib.PASS_NAME} N"`); s = qr; } }
     if (levelRefs(s).length) {
-      const el = [], r = IDENT.has(field) ? null : scrubLevels(s, { scope, elided: el });
-      /* a bare "Ln" elided as a work level, a grade's old name, is warned on, so the elision is visible (dashboards-skill/35) */
-      if (r && el.length) WARNINGS.push(`GRADE ELIDED: facts.${field}: ${el.map(h => JSON.stringify(h)).join(", ")} elided as a grade (written ${shortJ(r)}); a test set is written by its name ("component")`);
+      const r = IDENT.has(field) ? null : scrubLevels(s, { scope });
       if (!r) { enrich.push(`facts.${field} names a grade, which a board never shows: not written`); return null; }
       enrich.push(`facts.${field} named a grade, which a board never shows: written reworded (${shortJ(r)})`);
       s = r;
@@ -761,7 +758,7 @@ function applyEvent(orig, ev, facts, req, now) {
       if (!resume || stopped(resume)) refuse("escalated: the board records no step it escalated from");
       if (w.resume !== resume) { w.resume = resume; applied.push(`wip.resume ${resume}`); }
       setStep("escalated");
-      /* facts.proposedLevel is the team's, in its local state: never written to a board (levels.js) */
+      /* facts.proposedGrade is the team's, in its local state: never read here, never written to a board (levels.js) */
       w.waitingOn = txt(facts.waitingOn, "waitingOn") || "A re-sizing of the issue.";
       enrich.push("escalated: the board follows the issue's new sizing");
       detail = detail || "Escalated: waiting on a re-sizing.";
@@ -1022,7 +1019,7 @@ function applyEvent(orig, ev, facts, req, now) {
       /* an event that reports several stages done at once names no one stage for its classes (testStages, above) */
       const fixes = remPass ? `${lib.passName(remPass)} fixes` : null;
       const r = TL.mergeTests(plan, facts.tests, { now, pass: qp, stage: ev === "implementation-stage" && !testStages ? reportedStage || stageIdOf(facts.stage) || fixes || (typeof facts.stage === "string" && facts.stage.trim() ? lib.renamePassText(facts.stage.trim()) : null) : null, stages: ev === "implementation-stage" && testStages ? { ...testStages, fallback: fixes } : null, ids, txt: v => txt(v, "tests.note") });
-      /* what it read otherwise than sent, or changed (a testLevel by its set's name, a recorded set replaced), is said under warnings */
+      /* what it changed (a recorded set replaced) is said under warnings */
       applied.push(...r.applied); enrich.push(...r.notes.map(n => "tests: " + n)); (r.warnings || []).forEach(x => WARNINGS.push(x)); }
   } else if (!tracking && testsDue)
     enrich.push(`the Tests tab: the event carries no facts.tests; ${ev === "qa-pass" ? "Relevant, Other and the results come from the qa report" : "Added and Amended come from the branch's diff against its base"}`);
@@ -1847,7 +1844,7 @@ async function seed(now, req, facts) {
   }
   const warns = cks.reduce((n, c) => n + (c.stdout.match(/^warn/gm) || []).length, 0);
   S.check = `pass (${plural(written.length, "board")}: ${plural(warns, "warning")})`;
-  S.defects = [...new Set(cks.flatMap(c => c.stdout.split(/\r?\n/).map(l => (l.match(/^warn\s+(ISSUE TITLE NAMES A (?:GRADE|WORK LEVEL): #[\d?]+)/) || [])[1]).filter(Boolean)))];
+  S.defects = [...new Set(cks.flatMap(c => c.stdout.split(/\r?\n/).map(l => (l.match(/^warn\s+(ISSUE TITLE NAMES A GRADE: #[\d?]+)/) || [])[1]).filter(Boolean)))];
   S.result = "ok";
 }
 /* The event unit-landed (plan/RULES.md §4, "The live view of a landing"; admin-team/dashboards-skill/level-1-landed), team-raised after the merge of a
@@ -1896,7 +1893,7 @@ async function unitLanded(now, req, facts) {
   const ck = await run(path.join(__dirname, "check.js"), [lib.viewDirOf(dir, MAIN), "--root", ROOT], ROOT);
   if (ck.status !== 0) { S.check = `FAIL: ${ck.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l)).slice(0, 6).join(" | ") || (ck.stderr || "").trim().split(/\r?\n/)[0]}`; throw new Error("check.js failed on the tracking board's view copy"); }
   S.check = `pass (tracking board: ${plural((ck.stdout.match(/^warn/gm) || []).length, "warning")})`;
-  S.defects = [...new Set(ck.stdout.split(/\r?\n/).map(l => (l.match(/^warn\s+(ISSUE TITLE NAMES A (?:GRADE|WORK LEVEL): #[\d?]+)/) || [])[1]).filter(Boolean))];
+  S.defects = [...new Set(ck.stdout.split(/\r?\n/).map(l => (l.match(/^warn\s+(ISSUE TITLE NAMES A GRADE: #[\d?]+)/) || [])[1]).filter(Boolean))];
   if (flag("no-live")) S.live = "skipped (--no-live)";
   else {
     const liveDir = path.join(MAIN, "docs", "plans", ".live");
@@ -1933,7 +1930,7 @@ const gitAt = (...a) => { const r = cp.spawnSync("git", ["-C", ROOT, ...a], { en
 function cleanText(v) {
   if (typeof v !== "string" || !v.trim()) return null;
   let s = nameTestLevels(v.replace(/\s+/g, " ").trim()).text;
-  if (levelRefs(s).length) { s = scrubLevels(s, { scope: "issue", elided: [] }); if (!s || levelRefs(s).length) return null; }
+  if (levelRefs(s).length) { s = scrubLevels(s, { scope: "issue" }); if (!s || levelRefs(s).length) return null; }
   s = scrubWaits(s);
   if (nameRefs(s).length) { const n = scrubNames(s); if (n.left.some(unambiguous)) return null; s = n.text; }
   /* a template placeholder is never laid; one inside a code span is quoted text, as check.js placeholders() reads it */
@@ -1967,9 +1964,9 @@ function layFoundation(req, facts, folder, now) {
   const parentN = said || (inPlans && upNum && !within && !fix ? upNum : null);
   if (within && !said && !fix) enrich.push(`#${issue} sits inside #${within}'s folder, and #${within} is no tracking issue: its parent and any fixOf are the presenter's to record`);
   const row = upPlan && parentN && upPlan.issue === parentN ? (upPlan.rows || []).find(r => r && r.unit && r.unit.issue === issue) || null : null, unit = row ? row.unit : null;
-  /* the level, read for the kind and the steps line and never kept on the board (levels.js): the request's, an older unit row's, else the team's local state */
-  /* the request's grade first, then its level (the user's decision of 2026-11-13, vocabulary/choice-1-live-keys (a); level read until the rule rework's L12) */
-  const lv = [req.grade, facts.grade, req.level, facts.level, unit && unit.level, lib.localLevel(repo, issue)].find(v => [1, 2, 3, 4].includes(v)), level = lv != null ? lv : null;
+  /* the grade, read for the kind and the steps line and never kept on the board (levels.js): the request's grade, facts.grade, an older unit
+     row's level, else the team's local state */
+  const lv = [req.grade, facts.grade, unit && unit.level, lib.localLevel(repo, issue)].find(v => [1, 2, 3, 4].includes(v)), level = lv != null ? lv : null;
   const kind = facts.kind === "tracking" || facts.kind === "issue" ? facts.kind : level === 4 || facts.step === "architecture" ? "tracking" : "issue";
   /* the systems: the event's slugs, else the unit row's. A slug the registry does not know yields to the parent's unit row's system where the
      registry knows that one (WebTools #66: the run sent webtools-http-response-cache, the registry and the unit row say webtools-http-cache),
@@ -2245,7 +2242,7 @@ async function main() {
     S.check = `pass (board: ${plural(warns[0], "warning")}${up ? `; parent: ${plural(warns[1], "warning")}` : ""})`;
     /* an issue title that names a grade is a defect in the issue (levelrefs.js issueTitleRefs(); dashboards-skill/28): quoted verbatim,
        never failing the board; named here so the team brings it to the user to retitle on GitHub */
-    S.defects = [...new Set(cks.flatMap(c => c.stdout.split(/\r?\n/).map(l => (l.match(/^warn\s+(ISSUE TITLE NAMES A (?:GRADE|WORK LEVEL): #[\d?]+)/) || [])[1]).filter(Boolean)))];
+    S.defects = [...new Set(cks.flatMap(c => c.stdout.split(/\r?\n/).map(l => (l.match(/^warn\s+(ISSUE TITLE NAMES A GRADE: #[\d?]+)/) || [])[1]).filter(Boolean)))];
     if (lv) {
       if (lv.status !== 0) throw new Error(`board.js --live failed: ${(lv.stderr || lv.stdout).trim().split(/\r?\n/).slice(-1)[0]}`);
       S.live = `regenerated ${path.relative(main, liveDir).split(path.sep).join("/")}/`;

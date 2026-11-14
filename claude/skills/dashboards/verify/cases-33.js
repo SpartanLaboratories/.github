@@ -4,7 +4,7 @@
 // systems[].board, links.repoBoard and links.boards read beside their older names), no internal names on a board (namerefs.js: the forms,
 // scrubNames(), apply-event.js's scrub, the neutral remediation route ids, the progress notes by the work they report, the INTERNAL NAME
 // warnings of check.js and check-board.js, the splice's migration of a state board's bubble classes and presenter: marks), an unnumbered
-// work-level mention (levelrefs.js), the open points on every event (the fast path's standing rule), the pre-merge stamp of the state
+// mention of a grade (levelrefs.js), the open points on every event (the fast path's standing rule), the pre-merge stamp of the state
 // boards (apply-state.js facts.premerge) and the state-boards action, and the feature probes that read the older wording alike. Each
 // group returns [title, cases], a case [name, ok, detail].
 "use strict";
@@ -87,11 +87,11 @@ module.exports = function cases33(X) {
     const cmHits = N.commentRefs(cmHtml);
     c.push(["commentRefs(): the block comments of styles and scripts and the HTML comments; a script's code, its // lines and its data blocks are left alone", js(cmHits) === js(["researcher", "admin-team", "waits on the user", "plan-writer"]), js(cmHits)]);
     c.push(["unambiguous(): every barred name, the approval flow and qa as an agent are; the manager shortened is not", N.unambiguous("rookie-dev") && N.unambiguous("user's call") && N.unambiguous("qa found") && N.unambiguous("planner") && N.unambiguous("executor") && !N.unambiguous("the manager's"), "unambiguous"]);
-    const lv = [["Recorded level confirmed.", "Recorded sizing confirmed."], ["the level was confirmed", "the sizing was confirmed"], ["the level re-check passed", "the sizing re-check passed"], ["the issue's level", "the issue's sizing"], ["proposed level 3 confirmed", "proposed sizing confirmed"]];
+    const lv = [["Recorded grade confirmed.", "Recorded sizing confirmed."], ["the grade was confirmed", "the sizing was confirmed"], ["the grade re-check passed", "the sizing re-check passed"], ["the issue's grade", "the issue's sizing"], ["proposed grade 3 confirmed", "proposed sizing confirmed"]];
     const lvBad = lv.filter(([s, w]) => !LR.levelRefs(s).length || LR.scrubLevels(s, {}) !== w);
-    c.push(["levelrefs.js: an unnumbered work-level mention is found and reworded (\"Recorded level confirmed\" → \"Recorded sizing confirmed\")", !lvBad.length, js(lvBad.map(([s, w]) => [s, LR.levelRefs(s), LR.scrubLevels(s, {}), w]))]);
-    const notLv = ["the test level is recorded", "log level confirmed", "Level 1 · System Context", "tests at levels 1 to 4c", "the L2 component level check", "test: every level\ncheck: verifyJavaFloor", "every level check: verifyJavaFloor"];
-    c.push(["…never a test level's, a log level's or a C4 level's words", notLv.every(s => !LR.levelRefs(s).length), js(notLv.filter(s => LR.levelRefs(s).length).map(s => [s, LR.levelRefs(s)]))]);
+    c.push(["levelrefs.js: an unnumbered mention of a grade is found and reworded (\"Recorded grade confirmed\" → \"Recorded sizing confirmed\")", !lvBad.length, js(lvBad.map(([s, w]) => [s, LR.levelRefs(s), LR.scrubLevels(s, {}), w]))]);
+    const notLv = ["Recorded level confirmed.", "the issue's level", "the level re-check passed", "the test level is recorded", "log level confirmed", "Level 1 · System Context", "tests at levels 1 to 4c", "the L2 component level check", "test: every level\ncheck: verifyJavaFloor", "every level check: verifyJavaFloor"];
+    c.push(["…never a test level's, a log level's or a C4 level's words, nor any longer the work level's old words (L12)", notLv.every(s => !LR.levelRefs(s).length), js(notLv.filter(s => LR.levelRefs(s).length).map(s => [s, LR.levelRefs(s)]))]);
   });
 
   /* 3. apply-event.js: the scrub, the routes, the open points on every event */

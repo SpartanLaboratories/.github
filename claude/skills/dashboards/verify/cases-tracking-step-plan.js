@@ -105,9 +105,9 @@ module.exports = function casesTrackingStepPlan(X) {
     const two = byTitle + "\n### Phase 0 — History rewrite\n\n- A second section of the same name.\n";
     const C = nestTree(two);
     c.push(["two headings that fit and no link to decide: nothing named, nothing invented", lib.roadmapDocItem(P(C), C.dir) === null && lib.roadmapFor(P(C), C.dir) === null, js(lib.roadmapDocItem(P(C), C.dir))]);
-    const lv = ROADMAP.replace("### Phase 0 — History rewrite", "### Phase 0 — a level-3 rewrite");
+    const lv = ROADMAP.replace("### Phase 0 — History rewrite", "### Phase 0 — a grade-3 rewrite");
     const Lv = nestTree(lv);
-    c.push(["a heading that names a work level: the section's link alone, its heading never shown", (() => { const d = lib.roadmapDocItem(P(Lv), Lv.dir); return d && /^\.\.\/roadmap\.md#phase-0--a-level-3-rewrite$/.test(d.ref) && !("section" in d); })(), js(lib.roadmapDocItem(P(Lv), Lv.dir))]);
+    c.push(["a heading that names a grade: the section's link alone, its heading never shown", (() => { const d = lib.roadmapDocItem(P(Lv), Lv.dir); return d && /^\.\.\/roadmap\.md#phase-0--a-grade-3-rewrite$/.test(d.ref) && !("section" in d); })(), js(lib.roadmapDocItem(P(Lv), Lv.dir))]);
     const N = nestTree(null), en = run(EMBED, [N.dir]);
     c.push(["no roadmap.md, no work board's data, no parent board: the roadmap stays unset", en.status === 0 && P(N).roadmap === null, js([en.status, P(N).roadmap])]);
     const Cl = nestTree(ROADMAP, { status: "built" });

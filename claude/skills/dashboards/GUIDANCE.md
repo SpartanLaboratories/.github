@@ -305,25 +305,22 @@ difference.
 **No grades.** The rule covers only the **grades** of the `/resolve-issue` pipeline (grade 1 to 4, the size of an issue's work:
 [`nomenclature/vocabulary.md`](../../nomenclature/vocabulary.md), "grade"), in every form, and nothing else. A dashboard never shows an
 issue's grade: no "grade 3", "a grade-3 change", "graded" or "re-graded", in a Chip, a Badge, a column, a chain node, a Legend, a lede
-or any text the presenter writes; until the rule rework's L12 the grade's old name, the work level ("level 3", "L3", "level: 2", "a
-level-3 change", "escalated to level 4"), is kept off the boards alike. Say what the work is instead: one system, a bug fix, docs
-only, a tracking issue. The grades stay in force everywhere else.
+or any text the presenter writes. Say what the work is instead: one system, a bug fix, docs only, a tracking issue. The grades stay in
+force everywhere else.
 No open work board holds a grade (`check.js` fails `GRADE ON THE BOARD`: the field `level`, its old key, or `grade`) and state boards
 hold none; a closed work board keeps any it holds (`~/.claude/agents/admin-team/presenter.md`, "Closed work boards"), and no board renders them,
 the Source Tab included (`plan/scripts/levels.js`). A pipeline fact that names one ("inside grade 3", "a grade-3 re-pass", "Label
-grade: 3", and in the old words "inside level 3") is reworded before it is written — the scope phrase becomes the unit's or the
+grade: 3") is reworded before it is written — the scope phrase becomes the unit's or the
 issue's scope, the grade is elided before its noun, the label dropped — and left out only where a grade would remain
 (`system/scripts/levelrefs.js` `scrubLevels()`, which `apply-event.js` and `apply-state.js` run); a quotation (a plan excerpt) elides
-it with "…" instead, as a quote is never reworded. An unnumbered mention is one too: "the recorded grade", "graded", and in the old
-words "Recorded level confirmed", "the proposed level", "the level re-check", "the issue's level" read "the recorded sizing", "sized",
-"Recorded sizing confirmed" and the like (dashboards-skill/33); a log level's, a C4 level's and a documentation level's words are not
-touched, nor the old test levels a landed document keeps. **A test set is called by its name, never by a number**
-([`nomenclature/vocabulary.md`](../../nomenclature/vocabulary.md), "set"; admin-team/dashboards-skill/35): a set written by its old
-number ("L2 test", "tests (L3)", "regression test (L2)", "L2 component test", "L4a deterministic") is never a work level, and the
-fast path writes it by its set's name ("component test", "tests (integration)", "deterministic"; "L4", the three project-wide sets
-together, "project-wide"; `levelrefs.js` `nameTestLevels()`), and `check.js` warns on one a board still carries (`TEST SET BY
-NUMBER`); anywhere else a bare "Ln" is a work level, elided by the rewording, and the fast path warns (`GRADE ELIDED`, its summary's
-`warnings`) so the elision is visible.
+it with "…" instead, as a quote is never reworded. An unnumbered mention is one too: "the recorded grade", "graded" and "the grade
+re-check" read "the recorded sizing", "sized" and "the sizing re-check" (dashboards-skill/33); no other kind of level is a grade, so a
+log level's, a C4 level's and a documentation level's words are not touched, nor the old test levels a landed document keeps. **A test
+set is called by its name, never by a number** ([`nomenclature/vocabulary.md`](../../nomenclature/vocabulary.md), "set";
+admin-team/dashboards-skill/35): a set written by its old number ("L2 test", "tests (L3)", "regression test (L2)", "L2 component test",
+"L4a deterministic") is written by its set's name by the fast path ("component test", "tests (integration)", "deterministic"; "L4",
+the three project-wide sets together, "project-wide"; `levelrefs.js` `nameTestLevels()`), and `check.js` warns on one a board still
+carries (`TEST SET BY NUMBER`).
 
 **No internal names** (dashboards-skill/33). Nothing a board shows or its data carries — its text, its Labels, its data blocks, its
 comments, the fixed text of its template — names the pipeline's agents, sessions or roles, refers to the approval flow or states a
@@ -387,18 +384,17 @@ issue's title, quoted verbatim, code and the data's keys and ids (the `qa-pass` 
 **An issue's title is quoted verbatim** (admin-team/dashboards-skill/28). Wherever a board shows an issue's title — an issue board's issue
 line, a roadmap item, a follow-up, a work-board Row, group, roadmap item or unscheduled issue, a state board's Context and its "last amended
 by" note — it is the issue's own, never reworded and never elided; on the org work board a private repository's name in it is elided (`plan/RULES.md` §10). Grades are internal to the pipeline and never part of an issue, so
-a title that names one, or its old name, a work level, is a **defect in the issue**, not in the board: `plan/scripts/check.js` (on `plan.json` and `board.json`) and
+a title that names one is a **defect in the issue**, not in the board: `plan/scripts/check.js` (on `plan.json` and `board.json`) and
 `system/scripts/check-board.js` (a state board's Context titles and `lastAmended.title`, and in its browser pass every title the board marks
-`data-issue-title`) flag it, `ISSUE TITLE NAMES A GRADE: #n` (until the rule rework's L12 the older `ISSUE TITLE NAMES A WORK LEVEL: #n`
-is read beside it), as a warning and never fail the board for it, and `apply-event.js` and
+`data-issue-title`) flag it, `ISSUE TITLE NAMES A GRADE: #n`, as a warning and never fail the board for it, and `apply-event.js` and
 `apply-state.js` name it in their summary's `issue defects`; the admin team brings it to the user to retitle on GitHub. The rule above
 holds for everything else on the board, the quoted titles' text aside (`levelrefs.js` `issueTitleRefs()`, `titleSkip()`). The C4
 model's levels and the documentation levels are no grade: the rule does not touch them ("Level 1 · System Context", "level-1
 KDoc"), nor the old test levels a landed document keeps and a board quotes ("Level 2 — component", "L1 gating"), which the fast
-path writes by their set's name wherever it writes a fact (above). `plan/scripts/check.js` fails a board whose text names a grade or
-its old name, and the browser pass, on a board that gets one (a divergence, §8), fails a board that shows one (`GRADE REFERENCE`;
-`system/scripts/levelrefs.js` holds the forms; it matches the grade's and the old work-level forms only, never an old test level's,
-a documentation level's or a C4 level's label, and never "Level 3" alone). On a board that gets no browser pass, `check.js`'s scan of
+path writes by their set's name wherever it writes a fact (above). `plan/scripts/check.js` fails a board whose text names a grade,
+and the browser pass, on a board that gets one (a divergence, §8), fails a board that shows one (`GRADE REFERENCE`;
+`system/scripts/levelrefs.js` holds the forms; it matches the grade's forms only, never an old test level's, a documentation level's
+or a C4 level's label). On a board that gets no browser pass, `check.js`'s scan of
 the data holds an issue board and the repository work board; a grade in a state board's text is found by the admin team's scan of
 the commit that carries it, which blocks that commit.
 
@@ -754,7 +750,7 @@ refresh on its branch: the committed repository work board, and the repository s
   at most one current. Not to the repository work board or the state boards: no step Panel.
 - **Open points: a build output linked live, none committed open** (`plan/RULES.md` §3, `wip.open`): issue and tracking boards (a unit's
   mirror carries its points). The repository work board shows no open point; the state boards no run.
-- **A test set by its name, never a number; a bare "Ln"** (§4): every type, as the grade rule is (the fast path's facts on issue and tracking boards; the checks on every board; the Tests Tab's and the state boards' Test sets Card's labels).
+- **A test set by its name, never a number** (§4): every type, as the grade rule is (the fast path's facts on issue and tracking boards; the checks on every board; the Tests Tab's and the state boards' Test sets Card's labels).
 - **Consequences** (§1; `plan/RULES.md` §2): the issue and tracking boards' Tab and the documents they read; the repository work board's
   reconciliation Chip keeps its words (it names the impact, the data the Tab draws). Not to the state boards: no such Tab.
 - **A fix to an earlier plan's work** (`plan/RULES.md` §1): issue boards ("fix to #n") and the repository work board (its Row's "fix to #n");

@@ -2629,18 +2629,19 @@ function renderBuilt(){
 
 /* ---------- Tests (plan/RULES.md §2, "The Tests tab") ----------
    plan.json "tests": {base, updated, added[], amended[], relevant[], other: {byModule: {<module>: {<set>: n | {classes, tests}}}}}, each
-   class {class, module, testLevel, path, tests, rows[], stage, result: {state, passed, failed, skipped, pass, at}}. Added and Amended come
+   class {class, module, testSet, path, tests, rows[], stage, result: {state, passed, failed, skipped, pass, at}}. Added and Amended come
    from the branch's diff against its base and grow with each implementation stage; Relevant is what the review's test check ran on the change
    beyond them, arriving with each qa pass, as the results do; Other counts every other test class per module and test set, never run
    for this change. A tracking board records none of its own: it sums its units' (unit.tests, which embed.js mirrors from each unit's
    board), each unit a click away. Each class is grouped and coloured by its test set (gating to uat, in the sets' order, a neutral
-   ramp: GUIDANCE.md §1; the stored testLevel holds each by its old number, and the board shows its name, never the number), with its test count, its latest result and the board rows it verifies. lib.js TEST_LEVELS, testLevelOf() and
+   ramp: GUIDANCE.md §1; testSet stores each by its name, an older closed board's testLevel by its old number, read alike, and the board shows
+   its name, never the number), with its test count, its latest result and the board rows it verifies. testslib.js TEST_SETS, testSetOf() and
    mergeTests() are the same rules for the scripts. */
 const TEST_SUBS=[{k:"added",label:"Added"},{k:"amended",label:"Amended"},{k:"relevant",label:"Relevant"},{k:"other",label:"Other"}];
 const TLV_ORDER=["1","2","3","4a","4b","4c","5","none"];
 const TLV={"1":"gating","2":"component","3":"integration","4a":"deterministic","4b":"e2e","4c":"nonfunctional","5":"uat","none":"no test set"};
 const TLV_SEG={gating:"1",component:"2",integration:"3",deterministic:"4a",e2e:"4b",nonfunctional:"4c",uat:"5"};
-const tlOf=e=>{ const v=e&&e.testLevel!=null?String(e.testLevel):""; if(TLV[v]&&v!=="none") return v; const m=/(?:^|[./\\])testing[./\\](gating|component|integration|deterministic|e2e|nonfunctional|uat)(?:[./\\]|$)/.exec(String((e&&(e.path||e.class))||"")); return m?TLV_SEG[m[1]]:"none"; };
+const tlOf=e=>{ const s=e&&typeof e.testSet==="string"?TLV_SEG[e.testSet]:null; if(s) return s; const v=e&&e.testLevel!=null?String(e.testLevel):""; if(TLV[v]&&v!=="none") return v; const m=/(?:^|[./\\])testing[./\\](gating|component|integration|deterministic|e2e|nonfunctional|uat)(?:[./\\]|$)/.exec(String((e&&(e.path||e.class))||"")); return m?TLV_SEG[m[1]]:"none"; };
 const TRES={passed:{g:"✓",label:"passed",cls:"good"},failed:{g:"✕",label:"failed",cls:"critical"},skipped:{g:"↷",label:"skipped",cls:"neutral"},"not-run":{g:"…",label:"not run yet",cls:"neutral",dash:true},untouched:{g:"⊘",label:"not run: untouched by this change",cls:"neutral"}};
 const TRES_DESC={passed:"its latest run passed",failed:"its latest run failed",skipped:"its latest run skipped it","not-run":"no result recorded yet (pending)",untouched:"counted only: never run for this change"};
 const resOf=e=>{ const r=e&&e.result&&typeof e.result==="object"?e.result:null; if(!r) return "not-run"; if(TRES[r.state]&&r.state!=="untouched") return r.state; return (+r.failed>0)?"failed":(+r.passed>0)?"passed":(+r.skipped>0)?"skipped":"not-run"; };
@@ -2653,7 +2654,9 @@ const testsOf=()=>PLAN.tests&&typeof PLAN.tests==="object"&&!Array.isArray(PLAN.
 const testKey=x=>`${x.u?x.u.id+"/":""}${x.sub}:${x.e.module||""}::${x.e.class}`;
 function testItems(sub){ const own=(T,u)=>(T&&Array.isArray(T[sub])?T[sub]:[]).filter(e=>e&&typeof e==="object"&&typeof e.class==="string"&&e.class).map(e=>({e,sub,u}));
   return TRACKING?ROWS.filter(r=>r.unit&&r.unit.tests&&typeof r.unit.tests==="object").flatMap(r=>own(r.unit.tests,r)):own(testsOf(),null); }
-const otherOf=T=>T&&T.other&&T.other.byModule&&typeof T.other.byModule==="object"&&Object.keys(T.other.byModule).length?T.other.byModule:null;
+/* the other tests' counts, each module's keyed as tlOf() keys a class: a set's name (an older closed board's old number read alike) */
+const otherOf=T=>{ const m=T&&T.other&&T.other.byModule&&typeof T.other.byModule==="object"&&Object.keys(T.other.byModule).length?T.other.byModule:null; if(!m) return null; const o={};
+  Object.keys(m).forEach(md=>{ const row=m[md]&&typeof m[md]==="object"?m[md]:{}, r={}; Object.keys(row).filter(k=>TLV_SEG[k]).forEach(k=>{ r[TLV_SEG[k]]=row[k]; }); Object.keys(row).filter(k=>!TLV_SEG[k]&&r[k]===undefined).forEach(k=>{ r[k]=row[k]; }); o[md]=r; }); return o; };
 const cnt=v=>Number.isInteger(v)?{classes:v,tests:null}:v&&typeof v==="object"?{classes:Number.isInteger(v.classes)?v.classes:0,tests:Number.isInteger(v.tests)?v.tests:null}:{classes:0,tests:null};
 function otherTotal(T){ const m=otherOf(T); if(!m) return null; let c=0; Object.values(m).forEach(lv=>Object.values(lv&&typeof lv==="object"?lv:{}).forEach(v=>{ c+=cnt(v).classes; })); return c; }
 /* a class's simple name and its package, from a fully qualified name (a package starts lower case) */

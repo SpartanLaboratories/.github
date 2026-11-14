@@ -40,7 +40,7 @@ module.exports = function casesResearchedNothing(X) {
     wr(path.join(dir, "plan.json"), t); wr(path.join(dir, "plan.js"), lib.sidecarText("plan", t)); wr(path.join(dir, "dashboard.html"), lib.writeBlock(rd(PB), "plan", t)); return dir; };
   const enrichOf = S => js([S.enrich, S.why]);
   /* a small feature laid at research, its Rows written, as the fill leaves it after sized */
-  const feature = (root, folder, extra) => { const L = ev(root, folder, "sized", { step: "research", baseline: "abc1234" }, T(1), { level: 3, ...(extra || {}) });
+  const feature = (root, folder, extra) => { const L = ev(root, folder, "sized", { step: "research", baseline: "abc1234" }, T(1), { grade: 3, ...(extra || {}) });
     const p = L.p; p.function = "Verification case: the run adds an option."; delete p.foundation;
     p.rows = [{ id: "opt", name: "The option", system: (p.systems[0] || {}).slug || "x", where: "src/Main.kt", gap: { summary: "No option for it.", evidence: "`src/Main.kt:12`" }, options: [], verdict: null, asBuilt: { state: "pending" } }];
     put(root, p); return L; };
@@ -152,9 +152,9 @@ module.exports = function casesResearchedNothing(X) {
 
   guard("B5. a small fix's steps line has no research step", c => {
     c.push(["STEPS_BY_LEVEL[2]: no research, no interview; a small feature's has both", !lib.STEPS_BY_LEVEL[2].includes("research") && !lib.STEPS_BY_LEVEL[2].includes("interview") && ["interview", "research"].every(s => lib.STEPS_BY_LEVEL[3].includes(s)), js(lib.STEPS_BY_LEVEL[2])]);
-    const r = root0(), F = "docs/plans/97-a-fix", L = ev(r, F, "sized", { step: "plan", baseline: "abc1234" }, T(1), { level: 2 });
+    const r = root0(), F = "docs/plans/97-a-fix", L = ev(r, F, "sized", { step: "plan", baseline: "abc1234" }, T(1), { grade: 2 });
     c.push(["a small fix sized at plan: laid with its line, at plan", L.a.status === 0 && L.p.wip.step === "plan" && js(L.p.wip.steps) === js(lib.STEPS_BY_LEVEL[2]), js([L.S.error, L.p && L.p.wip.step, L.p && L.p.wip.steps])]);
-    const r2 = root0(), F2 = "docs/plans/98-a-fix-at-research", L2 = ev(r2, F2, "sized", { step: "research", baseline: "abc1234" }, T(1), { level: 2 });
+    const r2 = root0(), F2 = "docs/plans/98-a-fix-at-research", L2 = ev(r2, F2, "sized", { step: "research", baseline: "abc1234" }, T(1), { grade: 2 });
     c.push(["a small fix's sized naming research is refused, and nothing is laid", L2.a.status === 1 && /no research step/.test(L2.S.error || L2.a.stdout || "") && !fs.existsSync(at(r2, F2)), js([L2.a.status, L2.S.error])]);
     ["research-planning", "research-started", "research-returned", "verification-started", "researched"].forEach(e => {
       const facts = e === "research-started" ? { researching: [{ question: "q", rows: [] }] } : e === "research-returned" ? { returned: { question: "q", findings: "research/q.md" } } : e === "researched" ? { step: "plan" } : {};
@@ -171,17 +171,17 @@ module.exports = function casesResearchedNothing(X) {
     const tpl = rd(PB);
     c.push(["the template counts the gap milestone under the plan on such a line, as lib.js does", /const lineStep=\(P,s\)=>s==="research"&&P&&P\.wip&&Array\.isArray\(P\.wip\.steps\)&&P\.wip\.steps\.length&&!P\.wip\.steps\.includes\("research"\)\?"plan":s;/.test(tpl), "lineStep"]);
     /* new.js */
-    const r4 = root0(), nw = run(NEW, ["99", "a-fix", "--root", r4, "--level", "2", "--repo", "acme/widgets", "--title", "A", "--function", "F.", "--baseline", "abc1234", "--date", "2026-11-13"], { env });
+    const r4 = root0(), nw = run(NEW, ["99", "a-fix", "--root", r4, "--grade", "2", "--repo", "acme/widgets", "--title", "A", "--function", "F.", "--baseline", "abc1234", "--date", "2026-11-13"], { env });
     const np = fs.existsSync(path.join(r4, "docs", "plans", "99-a-fix", "plan.json")) ? JSON.parse(rd(path.join(r4, "docs", "plans", "99-a-fix", "plan.json"))) : null;
     c.push(["new.js lays a small fix at plan by default", nw.status === 0 && np && np.wip.step === "plan" && !np.wip.steps.includes("research"), js([nw.status, nw.stderr, np && np.wip.step])]);
-    const r5 = root0(), nw2 = run(NEW, ["99", "a-fix", "--root", r5, "--level", "2", "--step", "research", "--repo", "acme/widgets", "--title", "A", "--function", "F.", "--baseline", "abc1234", "--date", "2026-11-13"], { env });
+    const r5 = root0(), nw2 = run(NEW, ["99", "a-fix", "--root", r5, "--grade", "2", "--step", "research", "--repo", "acme/widgets", "--title", "A", "--function", "F.", "--baseline", "abc1234", "--date", "2026-11-13"], { env });
     c.push(["…and refuses --step research on it", nw2.status === 2 && /no research step/.test(nw2.stderr || "") && !fs.existsSync(path.join(r5, "docs", "plans", "99-a-fix", "plan.json")), js([nw2.status, nw2.stderr])]);
-    const r6 = root0(), nw3 = run(NEW, ["99", "a-feature", "--root", r6, "--level", "3", "--repo", "acme/widgets", "--title", "A", "--function", "F.", "--baseline", "abc1234", "--date", "2026-11-13"], { env });
+    const r6 = root0(), nw3 = run(NEW, ["99", "a-feature", "--root", r6, "--grade", "3", "--repo", "acme/widgets", "--title", "A", "--function", "F.", "--baseline", "abc1234", "--date", "2026-11-13"], { env });
     const np3 = fs.existsSync(path.join(r6, "docs", "plans", "99-a-feature", "plan.json")) ? JSON.parse(rd(path.join(r6, "docs", "plans", "99-a-feature", "plan.json"))) : null;
     c.push(["a small feature is still laid at research by default", nw3.status === 0 && np3 && np3.wip.step === "research", js([nw3.status, np3 && np3.wip.step])]);
   });
   guard("fill.js: a row brought onto a planned board with no asBuilt is pending (KotlinBottools #39's first fill)", c => {
-    const r = root0(), F = "docs/plans/89-fill", L = ev(r, F, "sized", { step: "plan", baseline: "abc1234" }, T(1), { level: 3 });
+    const r = root0(), F = "docs/plans/89-fill", L = ev(r, F, "sized", { step: "plan", baseline: "abc1234" }, T(1), { grade: 3 });
     const sys = ((L.p || {}).systems || [])[0], fields = wr(path.join(sc, "fill-89.json"), js({ function: "Verification case: the run adds an option.",
       rows: [{ id: "opt", name: "The option", system: (sys || {}).slug || "x", where: "src/Main.kt", gap: { summary: "No option for it.", evidence: "`src/Main.kt:12`" } }] }));
     const f = run(sk("plan/scripts/fill.js"), [path.join(r, ...F.split("/")), "--fields", fields, "--json"], { env }), p = JSON.parse(rd(at(r, F)));

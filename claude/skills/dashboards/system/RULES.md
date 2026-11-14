@@ -436,7 +436,7 @@ full pass for a divergence), which it leaves to the presenter's next look.
 
 **Issue titles, quoted verbatim** (`GUIDANCE.md` §4, §5; admin-team/dashboards-skill/28). A title the board quotes — the Context's
 `<a data-board="N">title</a>` and the state's `lastAmended.title` — is the issue's own and is never reworded or elided. Grades are never
-part of an issue, so one that names a grade, or its old name, a work level, is a defect in the issue, not in the board: on every pass,
+part of an issue, so one that names a grade is a defect in the issue, not in the board: on every pass,
 without a browser and in it, `check-board.js` flags it, `ISSUE TITLE NAMES A GRADE: #n`, as a warning (the browser pass reads a title by
 its `data-issue-title` mark, which `linkIssues()` keeps on the resolved link or plain text, and leaves its text out of the grade scan), and never fails the
 board for it; the admin team brings it to the user to retitle on GitHub.

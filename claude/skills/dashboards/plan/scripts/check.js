@@ -108,8 +108,8 @@ function checkLink(dir, ref, at) {
   if (m[2] && /\.md$/.test(m[1]) && !headingSlugs(fs.readFileSync(file, "utf8")).has(m[2].slice(1))) warn(`${at}: ${m[1]} has no heading ${m[2]}`);
 }
 
-/* No grades on a dashboard (GUIDANCE.md §4): every string the board renders is free of a grade reference, and until the rule rework's
-   L12 of its old name, a work level (system/scripts/levelrefs.js). The numeric fields an older closed board may keep (level, unit.level, proposedLevel; levels.js) are not text. An issue's
+/* No grades on a dashboard (GUIDANCE.md §4): every string the board renders is free of a grade reference (system/scripts/levelrefs.js).
+   The numeric fields an older closed board may keep (level, unit.level, proposedLevel; levels.js) are not text. An issue's
    title is quoted verbatim (admin-team/dashboards-skill/28): one that names a grade is a defect in the issue, flagged ISSUE TITLE
    NAMES A GRADE: #n as a warning, never a failure of the board (levelrefs.js issueTitleRefs()). */
 function levelFail(data, file) {
@@ -120,9 +120,7 @@ function levelFail(data, file) {
   const tSkip = titleSkip(data), names = nameRefsIn(data, "", [], at => tSkip(at) || /^rows\[\d+\]\.options\[\d+\]\.signature$/.test(at));   // a signature is code, never prose
   if (names.length) warn(nameWarning(`${file} (${[...new Set(names.map(h => h.at))].slice(0, 4).join(", ")}${names.length > 4 ? ", …" : ""})`, names.map(h => h.hit)));
   const hits = levelRefsIn(data, "", [], titleSkip(data));
-  // a decision's defence written as its grade's old name ("Level 3: one system, additive"), the older architectures' usual form
-  (data.rows || []).forEach((r, i) => { const d = (r && r.verdict || {}).defense; if (typeof d === "string" && /^\s*level [1-4]\b(?![a-c])\s*[:.]/i.test(d)) hits.push({ at: `rows[${i}].verdict.defense`, hit: d.slice(0, 9) }); });
-  /* a test set written by its old number ("L2 test", "L2 component", admin-team/dashboards-skill/35) is no work level, but a board calls
+  /* a test set written by its old number ("L2 test", "L2 component", admin-team/dashboards-skill/35) is no grade, but a board calls
      a set by its name, never by a number: warned, naming the set's name to write (levelrefs.js nameTestLevels()) */
   const bare = []; const walkB = (v, at) => { if (typeof v === "string") { const n = nameTestLevels(v); if (n.named.length) bare.push(`${at} ("${n.named.join(", ")}" → "${n.as.join(", ")}")`); }
     else if (Array.isArray(v)) v.forEach((x, i) => walkB(x, `${at}[${i}]`)); else if (v && typeof v === "object") Object.keys(v).forEach(k => { if (k !== "$comment") walkB(v[k], at ? `${at}.${k}` : k); }); };

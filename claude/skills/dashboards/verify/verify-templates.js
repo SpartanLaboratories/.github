@@ -57,7 +57,7 @@
 // progress notes, built or planned from the code. And the decisions of dashboards-skill/22 (verify/cases-22.js): the KPI tiles' legends
 // inside each tile, the larger charging arrow, the landing event, the header, "unassigned" kept from every checkout, the research-planning
 // glow, the Tests tab and this run's feature probes. And the decisions of dashboards-skill/23 (verify/cases-23.js): the Timeline tile's
-// phases, the run's start and the qa passes' times, a reference's section number before its excerpt, a work level in the facts reworded
+// phases, the run's start and the qa passes' times, a reference's section number before its excerpt, a grade in the facts reworded
 // and this run's feature probes. And the decisions of dashboards-skill/24 (verify/cases-24.js): the finished steps on an issue board's progress
 // strip clickable, each step's snapshot frozen into wip.history by the fast path (each remediation loop and each qa pass apart), check.js on
 // it, a step with no snapshot reconstructed, a tracking board's unit through its mirror and its own steps, and this run's feature probe. And
@@ -65,7 +65,7 @@
 // it rebuilt on demand from the mirror's git history (system/scripts/history.js; the case groups read the old versions through it too, from a
 // local clone with --history-repo, else through gh api), and the splice's warning and two-way fallback when nothing matches. And the decisions
 // of dashboards-skill/28 (verify/cases-28.js): the Timeline tile's figure the sum of its phases, an issue's title quoted verbatim and one naming
-// a grade, or its old name, flagged (ISSUE TITLE NAMES A GRADE: #n) on every type, NO ROWS AT RESEARCH, each unit row's label glowing on its own while
+// a grade flagged (ISSUE TITLE NAMES A GRADE: #n) on every type, NO ROWS AT RESEARCH, each unit row's label glowing on its own while
 // it is filed and its board created, and this run's feature probes. And the defects of dashboards-skill/29 (verify/cases-29.js): splice.js
 // onto the recorded verified version (--verified) and a cached version as --template keeping its template's history, apply-state.js keeping
 // a verbatim lastAmended.title, and a planned supersystem's card linking its built parts' board. And the repository work board's columns of
@@ -363,12 +363,12 @@ targets.filter(t => t.block === "plan").forEach(t => {
     sc.push(["embed.js clears it, and the chip keeps the GitHub link", sData().parent.board === null && c.status === 0, `parent.board ${JSON.stringify(sData().parent.board)}, check exit ${c.status}`]); }
   report(`issue links on ${t.name} (sub-issue board)`, sc);
 
-  /* The Impact tab (plan/RULES.md §2, "Impact") and the work-level guard (GUIDANCE.md §4), on the rendered pages and in check.js:
+  /* The Impact tab (plan/RULES.md §2, "Impact") and the grade guard (GUIDANCE.md §4), on the rendered pages and in check.js:
      the example's four sections, with no planning information (no standing pill, no dashed card, no changes list); the tracking
      fixture's initiative impact, planned in the data but drawn as solid cards like any other, and one entry per unit whose title
      opens the unit's board; a board with no impact recorded says so with its source; a board with no version bump
      and nothing downstream says so explicitly; check.js warns when impact.md exists but the tab is empty, and fails a board whose
-     text names a work level; check-board.js reports a work level the board shows. */
+     text names a grade; check-board.js reports a grade the board shows. */
   const ic = [], iScratch = path.join(out, "impact"), ex = JSON.parse(fs.readFileSync(sk("plan/examples/38-handshake-empty-name/plan.json"), "utf8"));
   const page = (name, data) => { const dir = path.join(iScratch, "docs", "plans", name); fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
     const d = { ...data, slug: name, folder: `docs/plans/${name}` }; fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(d, null, 2) + "\n"); fs.writeFileSync(path.join(dir, "dashboard.html"), tpl); node(embedJs, dir); return dir; };
@@ -392,12 +392,12 @@ targets.filter(t => t.block === "plan").forEach(t => {
     const dom = dumpDom(path.join(dir, "dashboard.html"), "impact");
     if (dom != null) { const p = panel(dom);
       ic.push(["a tracking board shows the initiative's planned impact as solid cards with no standing pill, and a unit entry whose title opens the unit's board", !/planned impact/.test(p) && !/icard[^"]*planned/.test(p) && /class="bcard icard"/.test(p) && /<h3>Units/.test(p) && p.includes(`/issues/${bu.unit.issue}"`) && p.includes(`href="${bu.unit.board}"`), p.slice(0, 300)]); } }
-  { const d = JSON.parse(JSON.stringify(ex)); d.notes = { ...d.notes, sizing: "Verification case: a level-3 change (#61, level 3), shown as L3." };
+  { const d = JSON.parse(JSON.stringify(ex)); d.notes = { ...d.notes, sizing: "Verification case: a grade-3 change (#61, grade 3), graded." };
     const dir = page("38-levels", d), c = node(checkJs, dir, "--root", iScratch);
-    ic.push(["check.js fails a board whose text names a grade's old name, a work level", c.status === 1 && /shows a grade/.test(c.stdout), lines(c, /^FAIL/) || "no failure"]);
+    ic.push(["check.js fails a board whose text names a grade", c.status === 1 && /shows a grade/.test(c.stdout), lines(c, /^FAIL/) || "no failure"]);
     const r = cp.spawnSync(process.execPath, [checker, path.join(dir, "dashboard.html"), "--out", iScratch], { encoding: "utf8" });
-    ic.push(["check-board.js reports a work level the board shows", r.status === 1 && /GRADE REFERENCE/.test(r.stdout || ""), notRun(r) ? NEEDS_BROWSER : (r.stdout || "").split(/\r?\n/).filter(l => /grades|FAIL/.test(l)).join(" | ")]); }
-  report(`the Impact tab and the work-level guard on ${t.name}`, ic);
+    ic.push(["check-board.js reports a grade the board shows", r.status === 1 && /GRADE REFERENCE/.test(r.stdout || ""), notRun(r) ? NEEDS_BROWSER : (r.stdout || "").split(/\r?\n/).filter(l => /grades|FAIL/.test(l)).join(" | ")]); }
+  report(`the Impact tab and the grade guard on ${t.name}`, ic);
 
   /* The chain's progress (plan/RULES.md §3): a tracking board's status chip reads the chain, not "building". Rendered from the
      tracking fixture as it stands (unit 1 landed, unit 2 in progress with its run halted, unit 3 up next and blocked by #47), then
@@ -426,8 +426,8 @@ targets.filter(t => t.block === "plan").forEach(t => {
 });
 
 /* The conventions of 2026-10-23, on the plan-board template, rendered through headless Chrome where a board is involved:
-   - test levels are not work levels (GUIDANCE.md §4): levelrefs.js passes "L1 gating" … "L5 UAT", "Level 2 — component" and the C4
-     levels, and still finds the work-level forms;
+   - test levels are not grades (GUIDANCE.md §4): levelrefs.js passes "L1 gating" … "L5 UAT", "Level 2 — component" and the C4
+     levels, and no longer finds the grade's old forms, the work level's (the transition's end, L12);
    - Impact colours are compatibility first (GUIDANCE.md §1; plan/RULES.md §2): breaking entries red, deprecations and other
      non-breaking changes worth noting yellow, the rest in their system's colour, the badges alike; the tab shows no planning
      information: every card solid whatever the basis, no standing pill, no changes-from-the-plan list, and check-board.js fails a
@@ -461,7 +461,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
   const testLabels = ["L1 gating", "L2 component", "L3 integration", "L4a deterministic", "L4b e2e", "L4c non-functional", "L5 UAT", "L3 · integration", "L1 GATING", "L4C NON-FUNCTIONAL", "Level 2 — component", "Level 1 · System Context", "the Level-4c suite", "tests at levels 1 to 4c"];
   const workForms = ["L3", "a level-3 change", "level: 2", "(#61, level 3)", "escalated to level 4", "the work level"];
   nc.push(["levelrefs.js passes every test level's and C4 level's label", testLabels.every(s => !levelRefs(s).length), testLabels.filter(s => levelRefs(s).length).join(", ")]);
-  nc.push(["levelrefs.js still finds every work-level form", workForms.every(s => levelRefs(s).length), workForms.filter(s => !levelRefs(s).length).join(", ")]);
+  nc.push(["levelrefs.js finds none of the grade's old forms, the work level's, any longer (the transition's end, L12)", workForms.every(s => !levelRefs(s).length), workForms.filter(s => levelRefs(s).length).join(", ")]);
 
   /* check.js on compat: a "compat" that lowers an entry fails; one that raises it passes */
   { const dir = path.join(sc, "docs", "plans", ex.slug); fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
@@ -669,7 +669,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
   const c2 = write(born([], []));
   zc.push(["check.js warns on a sub-issue board of a signed-off plan born with empty columns", /sub-issue of #\d+, whose tracking plan is signed off: its Gap and Considered columns/.test(c2.stdout) && /no rows/.test(c2.stdout), lines(c2, /signed off/) || "no warning"]);
   fs.rmSync(sdir, { recursive: true, force: true });
-  const n = cp.spawnSync(process.execPath, [path.join(SKILL, "plan", "scripts", "new.js"), String(u.unit.issue), "verification-unit", "--root", scratch, "--parent", trk.folder.split("/").slice(2).join("/"), "--level", "3", "--repo", trk.repo], { encoding: "utf8", cwd: scratch });
+  const n = cp.spawnSync(process.execPath, [path.join(SKILL, "plan", "scripts", "new.js"), String(u.unit.issue), "verification-unit", "--root", scratch, "--parent", trk.folder.split("/").slice(2).join("/"), "--grade", "3", "--repo", trk.repo], { encoding: "utf8", cwd: scratch });
   zc.push(["new.js --parent under a signed-off tracking plan says to fill Gap and Considered from the parent's documents", n.status === 0 && /is a signed-off tracking plan: fill the Gap and Considered columns now/.test(n.stdout), (n.stdout || n.stderr || "").split(/\r?\n/).slice(0, 3).join(" | ")]);
   report(`a sub-issue born at sized under a signed-off tracking plan, on ${t.name}`, zc);
 });
@@ -758,7 +758,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
   const nroot = path.join(scratch, "new"); fs.mkdirSync(path.join(nroot, "docs", "plans"), { recursive: true });
   /* research: nothing, since a new board has no rows (dashboards-skill/22: research planning on a rowless board glows nothing) */
   const born = [["research", []], ["plan", ["considered", "verdict"]], ["interview", []]].map(([step, want], i) => {
-    const r = cp.spawnSync(process.execPath, [path.join(SKILL, "plan", "scripts", "new.js"), String(900 + i), `glow-${step}`, "--root", nroot, "--step", step, "--level", "3", "--repo", "owner/name"], { encoding: "utf8", cwd: nroot });
+    const r = cp.spawnSync(process.execPath, [path.join(SKILL, "plan", "scripts", "new.js"), String(900 + i), `glow-${step}`, "--root", nroot, "--step", step, "--grade", "3", "--repo", "owner/name"], { encoding: "utf8", cwd: nroot });
     let got = null; try { const pw = JSON.parse(fs.readFileSync(path.join(nroot, "docs", "plans", `${900 + i}-glow-${step}`, "plan.json"), "utf8")).wip; got = Array.isArray(pw.questions) && !pw.questions.length ? pw.current : "no empty wip.questions"; } catch (e) { /* reported below */ }
     return [step, want, got, r.status];
   });
@@ -1328,7 +1328,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     lc.push(["check.js takes the new events (research-planning, verification-started) and a verification with its questions verifying", c5.status === 0 && lib.EVENTS.includes("research-planning") && lib.EVENTS.includes("verification-started") && !/wip\.(event|research)/.test(lines(c5, /^(FAIL|warn)/)), lines(c5, /^(FAIL|warn).*wip/) || "clean"]);
     /* new.js lays the new fields */
     const nroot = path.join(sc, "new"); fs.mkdirSync(path.join(nroot, "docs", "plans"), { recursive: true });
-    const nr = cp.spawnSync(process.execPath, [path.join(SKILL, "plan", "scripts", "new.js"), "901", "panel", "--root", nroot, "--level", "3", "--repo", "owner/name"], { encoding: "utf8", cwd: nroot });
+    const nr = cp.spawnSync(process.execPath, [path.join(SKILL, "plan", "scripts", "new.js"), "901", "panel", "--root", nroot, "--grade", "3", "--repo", "owner/name"], { encoding: "utf8", cwd: nroot });
     let nw = null; try { nw = JSON.parse(fs.readFileSync(path.join(nroot, "docs", "plans", "901-panel", "plan.json"), "utf8")).wip; } catch (e) { /* below */ }
     lc.push(["new.js lays the step panel's fields (research, interview, plan, stages, remediation, the sized event) and writes plan.js", nr.status === 0 && !!nw && nw.research === null && Array.isArray(nw.interview) && Array.isArray(nw.stages) && nw.event && nw.event.name === "sized" && fs.existsSync(path.join(nroot, "docs", "plans", "901-panel", "plan.js")), (nr.stdout || nr.stderr || "").split(/\r?\n/)[0]]);
   }
@@ -1583,12 +1583,12 @@ targets.filter(t => t.block === "plan").forEach(t => {
     step("interview", ISSUE, "halted", { waitingOn: "Verification case: two interview questions.", questions: [{ text: "Verification case: refuse or trim?", options: ["Refuse", "Trim"] }] }, false,
       d => d.wip.resume === "interview" && d.wip.interview.some(q => q.text === "Verification case: refuse or trim?" && q.options.length === 2 && q.answer === null));
     fresh();
-    step("escalation", ISSUE, "escalated", { proposedLevel: 4 }, true, d => d.wip.step === "escalated" && d.wip.resume === "research" && d.wip.proposedLevel === undefined && !/level/i.test(d.wip.detail + d.wip.waitingOn));
+    step("escalation", ISSUE, "escalated", { proposedGrade: 4 }, true, d => d.wip.step === "escalated" && d.wip.resume === "research" && d.wip.proposedGrade === undefined && d.wip.proposedLevel === undefined && !/level/i.test(d.wip.detail + d.wip.waitingOn));
     fresh();
     step("cancellation", ISSUE, "cancelled", { reason: "Verification case: superseded." }, true, d => d.status === "abandoned" && d.wip.step === "cancelled" && !d.wip.current.length && d.notes.cancelled);
     fresh();
-    { const r = ev(ISSUE, "halted", { waitingOn: "Verification case: this is level 3 work, a level-3 change." }), d = read(ISSUE);
-      ac.push(["a work level in the facts is never written: the halt applies without that text, enrich yes", r.status === 0 && !/level/i.test(JSON.stringify(d.wip)) && r.s.enrich === "yes", `${r.s.result} · ${r.s.error || ""} · ${(r.s.why || []).join("; ").slice(0, 200)}`]); }
+    { const r = ev(ISSUE, "halted", { waitingOn: "Verification case: this is grade 3 work, a grade-3 change." }), d = read(ISSUE);
+      ac.push(["a grade in the facts is never written: the halt applies without that text, enrich yes", r.status === 0 && !/grade/i.test(JSON.stringify(d.wip)) && r.s.enrich === "yes", `${r.s.result} · ${r.s.error || ""} · ${(r.s.why || []).join("; ").slice(0, 200)}`]); }
     /* a tracking board at its architecture */
     edit(TRACK, d => { d.wip.step = "architecture"; d.wip.current = ["considered"]; });
     /* a tracking plan lands, then files (verify/cases-option-d.js): its plan's document step next, its whole As built column glowing, sub-issues after its merge */
@@ -1637,7 +1637,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
 
 /* The decisions of dashboards-skill/19 (plan/RULES.md §2 "Statements" and "The KPI tiles", §3, §5; GUIDANCE.md §1, §2), and the fast
    path's defect it fixed:
-   A. statements: lib.js's rules (written, the derived outcome, the recorded state), sectionOf() and its elided work level, embed.js
+   A. statements: lib.js's rules (written, the derived outcome, the recorded state), sectionOf() and its elided grade, embed.js
       copying each excerpt once and --refresh-excerpts, check.js's failures and warnings (the section changed since the copy, a board
       still in one paragraph), the rendered list (bullets, numbered, the as-built marks), the reference opening its excerpt in the
       inspector, a board in the older form still drawn, and apply-event.js landing a board whose outcomes are its statements;
@@ -1677,8 +1677,8 @@ targets.filter(t => t.block === "plan").forEach(t => {
     kc.push(["A: lib.js recordedState() takes the statements' outcome over a stored pending, never over dropped or deferred; verdictWritten() takes statements or a summary",
       lib.recordedState(ab("amended")) === "amended" && lib.recordedState({ asBuilt: { state: "dropped", statements: [{ text: "x", state: "amended" }] } }) === "dropped"
         && lib.verdictWritten({ statements: [{ text: "x", ref: "plan.md#a" }] }) && lib.verdictWritten({ summary: "x" }) && !lib.verdictWritten({ statements: [] }), "rule"]);
-    const sec = lib.sectionOf(fs.readFileSync(path.join(EXD, "plan.md"), "utf8"), "5-design"), lv = lib.sectionOf("## 2. Fix\n\nThis is a level-3 change, one system.\n", "2-fix");
-    kc.push(["A: lib.js sectionOf() reads a section's heading, first paragraph and hash, and elides a work level in the paragraph",
+    const sec = lib.sectionOf(fs.readFileSync(path.join(EXD, "plan.md"), "utf8"), "5-design"), lv = lib.sectionOf("## 2. Fix\n\nThis is a grade-3 change, one system.\n", "2-fix");
+    kc.push(["A: lib.js sectionOf() reads a section's heading, first paragraph and hash, and elides a grade in the paragraph",
       sec && sec.heading === "5. Design" && /^Two internal systems change shape/.test(sec.paragraph) && /^[0-9a-f]{12}$/.test(sec.hash) && lv && !levelRefs(lv.paragraph).length && /…/.test(lv.paragraph) && lib.refLabel({ excerpt: sec }) === "§5",
       JSON.stringify(sec).slice(0, 160) + " · " + JSON.stringify(lv)]);
     /* A. embed.js and the excerpts */
@@ -1787,7 +1787,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
     /* G. the template plan.json's comment on the implementation glow */
     { const t = J("plan/template/plan.json"); kc.push(["G: the template plan.json says an implementation stage with no rows glows the As built column, drawn as one glow on the column", /an implementation stage that touches no rows/.test(t.wip.$comment) && /drawn as one glow on the column itself/.test(t.wip.$comment) && Array.isArray(t.rows[0].verdict.statements) && Array.isArray(t.rows[0].asBuilt.statements), "template"]); }
     /* the real qa-pass event the fast path refused (WebTools #62, pass 1) */
-    { kc.push(["levelrefs.js: a test level qualified by a word or two (\"L1 per-type gating\") is not a work level; \"L3\" alone still is", !levelRefs("L1 per-type gating").length && !levelRefs("L2 value-type component").length && levelRefs("an L3 change").length === 1, "rule"]);
+    { kc.push(["levelrefs.js: a test level qualified by a word or two (\"L1 per-type gating\") is not a grade, nor any longer is \"L3\" alone (the transition's end, L12)", !levelRefs("L1 per-type gating").length && !levelRefs("L2 value-type component").length && !levelRefs("an L3 change").length, "rule"]);
       const req = J("verify/fixtures/qa-pass-62.request.json"), qdir = path.join(sc, "qtree"), folder = "docs/plans/70-live-verification", bdir = path.join(qdir, ...folder.split("/"));
       fs.mkdirSync(bdir, { recursive: true }); const L = copy(LIVE); L.status = "building"; Object.assign(L.wip, { step: "qa", current: ["built"], questions: [], research: null, qa: [], event: { name: "implementation-stage", at: "2026-10-25T11:00:00Z" } });
       L.rows.forEach(r => { r.verdict = { kind: "build", summary: "Verification case: written.", steps: [{ id: "A", what: "x" }] }; });
@@ -2094,12 +2094,12 @@ targets.filter(t => t.block === "plan").forEach(t => {
     vc.push(["--no-browser fails a part reference that names nothing", r.status === 1 && /PART UNKNOWN: repo\.sys\.gone/.test(r.stdout), (r.stdout || "").split(/\r?\n/).filter(l => /PART|FAIL/.test(l)).join(" | ")]);
     r = cp.spawnSync(process.execPath, [checker, path.join(A, "index.html"), "--no-browser"], { encoding: "utf8" });
     vc.push(["--no-browser needs --auto (exit 2)", r.status === 2, (r.stderr || "").trim().split(/\r?\n/).pop()]);
-    /* the title is the issue's, quoted verbatim (dashboards-skill/28, in place of dashboards-skill/23's rewording): one that names a work
-       level is a defect in the issue, written as it stands and flagged in the summary, and the boards still pass */
-    build(); const sT = apply(stage("3333333abcdef0", { systems: ["system-alpha"], title: "Next part, inside level 3 (level 3)" })), stT = J("system-alpha/state.json");
-    vc.push(["a title that names a work level is quoted verbatim as the last amendment, flagged as a defect in the issue (dashboards-skill/28)", sT.status === 0 && stT.lastAmended.title === "Next part, inside level 3 (level 3)" && (sT.notes || []).some(x => /^ISSUE TITLE NAMES A GRADE: #\d+ \(facts\.title: /.test(x)) && (sT.defects || []).length === 1 && /pass/.test(String(sT.check)), JSON.stringify([sT.result, stT.lastAmended, sT.notes, sT.defects, sT.check, sT.error])]);
-    build(); const sU = apply(stage("4444444abcdef0", { systems: ["system-alpha"], title: "Label level: 3" })), stU = J("system-alpha/state.json");
-    vc.push(["a title that is nothing but a work level is quoted as it stands too, never replaced by the folder's slug (dashboards-skill/28)", sU.status === 0 && stU.lastAmended.title === "Label level: 3" && (sU.defects || []).length === 1, JSON.stringify([sU.result, stU.lastAmended, sU.error])]);
+    /* the title is the issue's, quoted verbatim (dashboards-skill/28, in place of dashboards-skill/23's rewording): one that names a
+       grade is a defect in the issue, written as it stands and flagged in the summary, and the boards still pass */
+    build(); const sT = apply(stage("3333333abcdef0", { systems: ["system-alpha"], title: "Next part, inside grade 3 (grade 3)" })), stT = J("system-alpha/state.json");
+    vc.push(["a title that names a grade is quoted verbatim as the last amendment, flagged as a defect in the issue (dashboards-skill/28)", sT.status === 0 && stT.lastAmended.title === "Next part, inside grade 3 (grade 3)" && (sT.notes || []).some(x => /^ISSUE TITLE NAMES A GRADE: #\d+ \(facts\.title: /.test(x)) && (sT.defects || []).length === 1 && /pass/.test(String(sT.check)), JSON.stringify([sT.result, stT.lastAmended, sT.notes, sT.defects, sT.check, sT.error])]);
+    build(); const sU = apply(stage("4444444abcdef0", { systems: ["system-alpha"], title: "Label grade: 3" })), stU = J("system-alpha/state.json");
+    vc.push(["a title that is nothing but a grade is quoted as it stands too, never replaced by the folder's slug (dashboards-skill/28)", sU.status === 0 && stU.lastAmended.title === "Label grade: 3" && (sU.defects || []).length === 1, JSON.stringify([sU.result, stU.lastAmended, sU.error])]);
   } catch (e) { vc.push(["the cases run to the end", false, String(e.stack).split(String.fromCharCode(10)).slice(0, 3).join(" ")]); }
   report("state boards on a branch, data only: apply-state.js, the state block, planned from the data, check-board.js --no-browser", vc);
 }
@@ -2119,7 +2119,7 @@ catch (e) { report("the dashboards-skill/22 cases", [["the cases run to the end"
 
 /* The decisions of admin-team/dashboards-skill/23 (verify/cases-23.js): the Timeline tile's bar on a landed board (the time per phase in
    neutral ink shades, a phase with no bound named; a tracking board's own phases), the run's start and the qa passes' times stamped, a
-   reference's section number before its excerpt, a work level in the pipeline's facts reworded, and this run's feature probes. */
+   reference's section number before its excerpt, a grade in the pipeline's facts reworded, and this run's feature probes. */
 try { require("./cases-23.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/23 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
@@ -2137,7 +2137,7 @@ try { require("./cases-27.js")({ sk, out, targets, dumpDom, inner, chrome, check
 catch (e) { report("the dashboards-skill/27 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The decisions of admin-team/dashboards-skill/28 (verify/cases-28.js): the Timeline tile's figure the sum of the phases its bar draws; an
-   issue's title quoted verbatim, one that names a work level flagged as the issue's defect on every type, never a failure; an issue board at
+   issue's title quoted verbatim, one that names a grade flagged as the issue's defect on every type, never a failure; an issue board at
    research with no rows a defect (NO ROWS AT RESEARCH); each unit row's label glowing on its own while it is filed, then while its board is
    created (per-unit events, a final one closing each step); and this run's feature probes. */
 try { require("./cases-28.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
@@ -2174,7 +2174,7 @@ catch (e) { report("the dashboards-skill/32 cases", [["the cases run to the end"
 /* The decisions of dashboards-skill/33 (verify/cases-33.js; the global conventions: boards never pages, no internal names in committed content, the pre-merge landing flow): the
    element vocabulary of GUIDANCE.md §12 ("bubble" retired), boards never pages (check-board.js, the labels, the data keys read beside their
    older names), no internal names on a board (namerefs.js, apply-event.js's scrub, the neutral route ids, the progress notes, the
-   INTERNAL NAME warnings, the splice's migration), an unnumbered work-level mention, the open points on every event, the pre-merge stamp
+   INTERNAL NAME warnings, the splice's migration), an unnumbered mention of a grade, the open points on every event, the pre-merge stamp
    and the state-boards action, and the probes reading the older wording alike. */
 try { require("./cases-33.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/33 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
@@ -2254,10 +2254,10 @@ catch (e) { report("the stage table after a plan revision; a late report at Qual
 try { require("./cases-atomic-write.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("a board file's atomic write while a reader holds it cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
-/* An event's facts.tests read as sent, and a remediation halted and resumed (verify/cases-tests-facts.js; KotlinBottools #24): a testLevel given
-   as a level folder's name read as its level and said, one not read named; an event reporting several stages done at once stamping no class
-   with the last one; a recorded test level another event changes said with the level held and sent; check.js counting a visit ended by a
-   halt with the visit that resumes it. It needs no browser, and runs on its own too (node verify/cases-tests-facts.js). */
+/* An event's facts.tests read as sent, and a remediation halted and resumed (verify/cases-tests-facts.js; KotlinBottools #24): a testSet
+   stored by its name, one not read named, a testLevel sent in its place no longer read; an event reporting several stages done at once
+   stamping no class with the last one; a recorded test set another event changes said with the set held and sent; check.js counting a
+   visit ended by a halt with the visit that resumes it; an open board's old numbers written by name at its next rewrite, a closed one's kept. It needs no browser, and runs on its own too (node verify/cases-tests-facts.js). */
 try { require("./cases-tests-facts.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("an event's facts.tests read as sent cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
@@ -2342,7 +2342,7 @@ try { require("./cases-foundation.js")({ sk, out, targets, dumpDom, inner, chrom
 catch (e) { report("a foundation on the fast path cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The decisions of admin-team/dashboards-skill/option-d-and-decisions: a tracking plan lands, then files (verify/cases-option-d.js); a fill merges onto the latest board, event and
-   fill at once losing neither (verify/cases-fill.js); a board keeps no work level, the "waiting on you" labels and the event notes (verify/cases-work-levels.js); an archived system
+   fill at once losing neither (verify/cases-fill.js); a board keeps no grade, the "waiting on you" labels and the event notes (verify/cases-work-levels.js); an archived system
    holds no colour (verify/cases-archived-colours.js); a qa pass is named "Quality Review N" by the scripts and the template, never by free text
    (verify/cases-quality-review.js); every name a board shows from passnames.js and the templates' names block, the older wording reworded
    and failed in flight (BOARD WORDING), the classes that carry their element's type, the worked example's state-only record

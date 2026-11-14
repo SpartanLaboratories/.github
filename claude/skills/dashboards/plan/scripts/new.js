@@ -2,7 +2,7 @@
 // Lay an issue board's foundation (the "sized" event, plan/RULES.md §4, "The foundation"): docs/plans/[<parent>/]<issue>-<slug>/{plan.json,dashboard.html}.
 // apply-event.js lays it itself at a sized with no board, through the same lib.js foundationPlan(); this is the presenter's fallback when
 // that run failed (its summary names the event's time for --at), after which the event is raised again.
-//   node new.js <issue> <slug> [--root <repo>] [--parent <folder under docs/plans>] [--fix-of <landed issue>] [--kind issue|tracking] [--level 2|3|4]
+//   node new.js <issue> <slug> [--root <repo>] [--parent <folder under docs/plans>] [--fix-of <landed issue>] [--kind issue|tracking] [--grade 2|3|4]
 //               [--title "Short name"] [--issue-title "The issue's title"] [--function "One paragraph"]
 //               [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems slug,slug] [--step <step>] [--repo owner/name]
 //               [--at <ISO time>]   the sized event's time, the run's start (plan.sized, wip.since); default now
@@ -11,7 +11,7 @@
 // With --parent, the new board links its parent's board (parent.board, set by embed.js only when the parent folder holds one), and
 // embed.js re-embeds the tracking board in the parent folder, which links its unit to the new board (plan/RULES.md §1) and, once
 // the unit is in its wip.current, mirrors the unit's run from the new board (§3). Every later embed.js of this folder does the same.
-// --grade, else --level, is read for the kind and the steps line only, as the request or the team's local state tells it, and never written to the board (levels.js).
+// --grade is read for the kind and the steps line only, as the request or the team's local state tells it, and never written to the board (levels.js).
 // A unit's board is laid at its own sized, never ahead of its run: there is no batch mode.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
@@ -19,11 +19,11 @@ const { repoRoot, opt, registry, signedOffParent, boardFolders, systemEntry, fou
 const { embed } = require("./embed.js");
 
 const args = process.argv.slice(2);
-require("../../system/scripts/cliargs.js").strict(args, { usage: "usage: node new.js <issue> <slug> [--root <repo>] [--parent <folder>] [--fix-of <issue>] [--kind issue|tracking] [--grade n] [--level n] [--title ...] [--issue-title ...] [--function ...] [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems a,b] [--step <step>] [--repo owner/name] [--at <ISO time>]",
-  valued: ["root", "parent", "fix-of", "kind", "grade", "level", "title", "issue-title", "function", "baseline", "date", "branch", "systems", "step", "repo", "at"], min: 2, max: 2 });
+require("../../system/scripts/cliargs.js").strict(args, { usage: "usage: node new.js <issue> <slug> [--root <repo>] [--parent <folder>] [--fix-of <issue>] [--kind issue|tracking] [--grade n] [--title ...] [--issue-title ...] [--function ...] [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems a,b] [--step <step>] [--repo owner/name] [--at <ISO time>]",
+  valued: ["root", "parent", "fix-of", "kind", "grade", "title", "issue-title", "function", "baseline", "date", "branch", "systems", "step", "repo", "at"], min: 2, max: 2 });
 const issue = parseInt(args[0], 10), slug = args[1];
 if (!issue || !slug || !/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
-  console.error("usage: node new.js <issue> <slug> [--root <repo>] [--parent <folder>] [--fix-of <issue>] [--kind issue|tracking] [--grade n] [--level n] [--title ...] [--issue-title ...] [--function ...] [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems a,b] [--step <step>] [--repo owner/name]");
+  console.error("usage: node new.js <issue> <slug> [--root <repo>] [--parent <folder>] [--fix-of <issue>] [--kind issue|tracking] [--grade n] [--title ...] [--issue-title ...] [--function ...] [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems a,b] [--step <step>] [--repo owner/name]");
   process.exit(2);
 }
 let root; try { root = repoRoot(args); } catch (e) { console.error(e.message); process.exit(2); }
@@ -46,8 +46,7 @@ let repo = opt(args, "repo", reg && reg.reg.repo);
 if (!repo) { try { const u = cp.execSync("git remote get-url origin", { cwd: root, encoding: "utf8" }).trim(); const m = u.match(/[:/]([^/:]+\/[^/]+?)(\.git)?$/); if (m) repo = m[1]; } catch (e) { /* stays a placeholder */ } }
 
 const skeleton = JSON.parse(fs.readFileSync(path.join(tpl, "plan.json"), "utf8"));
-/* --grade first, else --level (the user's decision of 2026-11-13, vocabulary/choice-1-live-keys (a); --level read until the rule rework's L12) */
-const level = opt(args, "grade", null) || opt(args, "level", null), kind = opt(args, "kind", level === "4" ? "tracking" : "issue");
+const level = opt(args, "grade", null), kind = opt(args, "kind", level === "4" ? "tracking" : "issue");
 /* the run's start, the sized event's time (--at; apply-event.js names it in its summary when its own laying failed), so the Timeline's
    first bound is the event's, not the time the foundation was laid (plan/RULES.md §4, "The fast path owns the Timeline") */
 const AT = opt(args, "at", null);

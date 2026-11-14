@@ -73,7 +73,7 @@ module.exports = function casesFill(X) {
     const was = rd(path.join(B.dir, "plan.json"));
     ["wip", "trail", "status", "sized", "branch", "asBuilt", "issue", "foundation"].forEach(k => { const r = fill(B, { [k]: k === "wip" ? { step: "qa" } : "x" }); c.push([`${k}: refused, exit 2, nothing written`, r.a.status === 2 && r.S.fill === "refused" && rd(path.join(B.dir, "plan.json")) === was, js([r.a.status, r.S.error])]); });
     const lv = fill(B, { level: 3, proposedLevel: 4, function: "F2.", rows: [{ id: "a", level: 3 }] });
-    c.push(["a work level in a fill is dropped and named, never written", lv.a.status === 0 && (lv.S.dropped || []).length === 3 && P(B).level === undefined && P(B).function === "F2." && P(B).rows.every(r => r.level === undefined), js([lv.a.status, lv.S.dropped, lv.S.check, lv.S.error])]);
+    c.push(["a grade's old keys in a fill (level, proposedLevel) are dropped and named, never written", lv.a.status === 0 && (lv.S.dropped || []).length === 3 && P(B).level === undefined && P(B).function === "F2." && P(B).rows.every(r => r.level === undefined), js([lv.a.status, lv.S.dropped, lv.S.check, lv.S.error])]);
     const tr = fill(B, { trailAdd: [{ date: "2026-11-03", column: "gap", label: "Rows named from the issue" }] }), trn = P(B).trail.length, tr2 = fill(B, { trailAdd: [{ date: "2026-11-03", column: "gap", label: "Rows named from the issue" }] });
     c.push(["trailAdd appends an entry, once", tr.a.status === 0 && tr2.a.status === 0 && P(B).trail.length === trn && P(B).trail.some(t => t.label === "Rows named from the issue"), js(P(B).trail.length)]);
 

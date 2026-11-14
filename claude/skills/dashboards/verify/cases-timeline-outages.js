@@ -114,10 +114,10 @@ module.exports = function casesTimelineOutages(X) {
   });
 
   /* 3. the fast path's texts */
-  guard("run-restarted's reason goes through the fast path's scrubbing: no internal name and no work level reaches a board", c => {
-    const plan = running(), B = lay("names", plan), r = apply(B, plan, "run-restarted", { since: "2026-11-02T04:16:35Z", ended: "2026-11-03T00:00:03Z", reason: "the admin team session was restarted at level 3" }, "2026-11-03T00:19:00Z");
+  guard("run-restarted's reason goes through the fast path's scrubbing: no internal name and no grade reaches a board", c => {
+    const plan = running(), B = lay("names", plan), r = apply(B, plan, "run-restarted", { since: "2026-11-02T04:16:35Z", ended: "2026-11-03T00:00:03Z", reason: "the admin team session was restarted at grade 3" }, "2026-11-03T00:19:00Z");
     const w = js(r.p.wip.outages) + js(r.p.trail.slice(-1)) + js(r.p.wip.event);
-    c.push(["neither the name nor the level is written", r.a.status === 0 && !/admin team|level 3/i.test(w), w.slice(0, 400)]);
+    c.push(["neither the name nor the grade is written", r.a.status === 0 && !/admin team|grade 3/i.test(w), w.slice(0, 400)]);
   });
 
   /* 4. open points put before a stretch, answered by a resumed after it: the resumed reads the run's own last event (run-restarted leaves

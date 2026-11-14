@@ -58,7 +58,7 @@ const stageNope = s => levelRefs(s).length ? "a grade" : nameRefs(s).some(unambi
 
 const OWNED = ["wip", "trail", "status", "sized", "branch", "asBuilt", "kind", "schema", "repo", "issue", "slug", "folder", "foundation", "links"];
 const IDENTITY = ["id", "slug", "issue", "class", "question", "pass", "n"];
-const LEVELS = new Set(["level", "proposedLevel", "grade", "proposedGrade"]);   // level is a grade's old key, read until the rule rework's L12 (vocabulary/choice-1-live-keys (a))
+const LEVELS = new Set(["level", "proposedLevel", "grade", "proposedGrade"]);   // level and proposedLevel, a grade's old keys, are never written either (levels.js)
 const WIP_KEYS = ["stages", "questions", "interview", "asked", "qa", "current", "waitingOn", "detail", "open", "document"];
 const TASK_KEYS = ["id", "started", "finished", "reason"];
 const UNIT_KEPT = ["issue", "board", "folder", "live"];

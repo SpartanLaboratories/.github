@@ -462,8 +462,9 @@ function excerptDrift(plan, dir) {
 }
 /* Everything embed.js resolves from the folders on disk before it embeds an issue board: the issue links and the units' runs
    (linkIssueBoards()) and the statements' excerpts (copyExcerpts()); last, every qa pass the board names is named "Quality Review N"
-   (passnames.js renamePasses()), whatever wrote it. Returns one line per change. */
-function resolveBoard(plan, dir, opts) { return [...LV.dropWorkLevels(plan), ...clearFoundation(plan), ...fillRoadmap(plan, dir), ...linkIssueBoards(plan, dir), ...refreshSystems(plan, dir), ...linkShared(plan, dir), ...copyExcerpts(plan, dir, opts), ...PN.renamePasses(plan)]; }
+   (passnames.js renamePasses()), whatever wrote it. First, an open board drops any grade it holds (levels.js dropWorkLevels()) and stores
+   its test sets by name (testslib.js storeSets()). Returns one line per change. */
+function resolveBoard(plan, dir, opts) { return [...LV.dropWorkLevels(plan), ...require("./testslib.js").storeSets(plan), ...clearFoundation(plan), ...fillRoadmap(plan, dir), ...linkIssueBoards(plan, dir), ...refreshSystems(plan, dir), ...linkShared(plan, dir), ...copyExcerpts(plan, dir, opts), ...PN.renamePasses(plan)]; }
 /* ---------- The foundation (plan/RULES.md §4, "The foundation") ----------
    A board's first state, laid at sized: by apply-event.js on the fast path, by new.js on the presenter's fallback. foundationPlan() is the
    one laying: step null lays it not started, for the sized event to start in place (the fast path); a step lays it started (new.js).
@@ -1340,8 +1341,10 @@ function unitTests(plan, dir) {
   if (!plan || plan.kind !== "tracking") return [];
   const TL = require("./testslib.js");
   /* the mirror as the tracking board keeps it: its qa passes named "Quality Review N" (resolveBoard() renames them after the mirroring), so a
-     landed unit's board that still says "qa pass N" neither re-mirrors at every embed nor warns as differing */
-  const mirrored = sub => { const m = JSON.parse(JSON.stringify(TL.testsMirror(sub))); PN.renamePassesIn(m); return m; };
+     landed unit's board that still says "qa pass N" neither re-mirrors at every embed nor warns as differing; on an open tracking board its
+     test sets stored by name (testslib.js setsIn()), so a landed unit's board that stores the old numbers does not either */
+  const open = !LV.boardClosed(plan);
+  const mirrored = sub => { const m = JSON.parse(JSON.stringify(TL.testsMirror(sub))); PN.renamePassesIn(m); if (open) TL.setsIn(m); return m; };
   return (plan.rows || []).filter(r => r && r.unit && Number.isInteger(r.unit.issue)).map(r => { const sub = subIssuePlan(dir, r.unit); return { row: r, unit: r.unit, want: sub ? mirrored(sub) : null, have: r.unit.tests || null }; });
 }
 function mirrorUnitTests(plan, dir) {
@@ -1541,7 +1544,7 @@ const ISSUE_UNLINKED = new Set(["$comment", "schema", "repo", "slug", "folder", 
   "branch", "step", "steps", "since", "updated", "state", "verdict", "column", "date", "sha", "merge", "version", "pr", "files", "n", "level", "current", "next",
   "resume", "qa", "qaMax", "pass", "findings", "question", "questions", "landing", "chosen", "settles", "when", "issueBoards",
   "event", "research", "phase", "drafted", "stages", "severity", "started", "returned", "asked", "answered", "verdicts", "deviations", "hash", "list", "links", "pages",
-  "class", "module", "path", "testLevel", "byModule", "rowNames", "base", "stage", "signature"]);
+  "class", "module", "path", "testSet", "testLevel", "byModule", "rowNames", "base", "stage", "signature"]);
 const reEsc = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const UNIT_LANDED = ["landed", "as-planned", "amended", "deviated"];
 /* Left for later (plan/RULES.md §2, the As built tile; §3, the chain's progress): a row whose written verdict leaves it as is (kind

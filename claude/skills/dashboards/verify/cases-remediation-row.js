@@ -37,7 +37,7 @@ module.exports = function casesRemediationRow(X) {
       remediation: { pass: 1, route: "remediation", steps: [{ name: "The fixes", state: "current" }, { name: "qa pass 2", state: "todo" }] },
       stages: [{ id: "S1", name: "The build", state: "done", rows: ids.slice() }, { id: "R1", name: "First fixes", state: "done", rows: [R0, R1] }, { id: "R2", name: "Second fixes", state: "todo", rows: [R0] }],
       steps: STEPS.slice(), event: { name: "qa-pass", at: "2026-11-02T00:08:52Z" } };
-    x.tests = { base: "master", updated: "2026-11-02T00:08:52Z", added: [{ class: "KeptTest", module: "webtools-udp", testLevel: "2", tests: 3 }], amended: [], relevant: [] }; return x; };
+    x.tests = { base: "master", updated: "2026-11-02T00:08:52Z", added: [{ class: "KeptTest", module: "webtools-udp", testSet: "component", tests: 3 }], amended: [], relevant: [] }; return x; };
   let n = 0;
   const lay = plan => { const root = path.join(sc, `b-${++n}`), dir = path.join(root, ...plan.folder.split("/")); docsInto(dir);
     wr(path.join(dir, "plan.json"), JSON.stringify(plan, null, 2) + "\n"); wr(path.join(dir, "dashboard.html"), rd(PB)); run(EMBED, [dir]); return { root, dir }; };
@@ -48,8 +48,8 @@ module.exports = function casesRemediationRow(X) {
 
   guard("testslib.js and apply-event.js: facts.tests.drop of a class on no list is named, a run named with its module is one entry, a run's count is its own", c => {
     const now = "2026-11-02T01:22:28Z", o = { now, ids: new Set(ids) };
-    const P = { rows: EX.rows, tests: { base: "master", updated: "2026-11-01T00:00:00Z", added: [{ class: "KeptTest", module: "m", testLevel: "2", tests: 3 }], amended: [], relevant: [] } };
-    const r = TL.mergeTests(P, { drop: [{ class: "GoneComponentTest", module: "m", testLevel: "2", path: "m/src/test/kotlin/x/testing/component/GoneComponentTest.kt" }] }, o);
+    const P = { rows: EX.rows, tests: { base: "master", updated: "2026-11-01T00:00:00Z", added: [{ class: "KeptTest", module: "m", testSet: "component", tests: 3 }], amended: [], relevant: [] } };
+    const r = TL.mergeTests(P, { drop: [{ class: "GoneComponentTest", module: "m", testSet: "component", path: "m/src/test/kotlin/x/testing/component/GoneComponentTest.kt" }] }, o);
     c.push(["a drop of a class on no list: nothing changes, and the summary names it", !r.changed && r.applied.some(x => /tests\.drop GoneComponentTest: on no list of the board/.test(x)) && P.tests.added.length === 1, js(r)]);
     const r2 = TL.mergeTests(P, { drop: ["KeptTest"] }, o);
     c.push(["a drop of a class on a list still removes it", r2.changed && !P.tests.added.length && r2.applied.includes("tests.added − KeptTest"), js(r2)]);
@@ -65,7 +65,7 @@ module.exports = function casesRemediationRow(X) {
     /* the fast path end to end: the stage's summary carries the drop, and it raises no enrichment of its own */
     const B = atRem(), L = lay(B);
     const e = ev(L, B, { step: "remediation", stage: "R1", stages: B.wip.stages.map(s => ({ id: s.id, name: s.name, state: s.state })), rows: [R0, R1],
-      tests: { added: [{ class: "NewDeterministicTest", module: "webtools-udp", testLevel: "4a", tests: 5, rows: [R0] }], drop: [{ class: "GoneComponentTest", module: "webtools-udp", testLevel: "2" }] } }, "2026-11-02T01:22:28Z");
+      tests: { added: [{ class: "NewDeterministicTest", module: "webtools-udp", testSet: "deterministic", tests: 5, rows: [R0] }], drop: [{ class: "GoneComponentTest", module: "webtools-udp", testSet: "component" }] } }, "2026-11-02T01:22:28Z");
     c.push(["apply-event.js: the stage applies (exit 0), Added takes the new class", e.a.status === 0 && (e.p.tests.added || []).some(x => x.class === "NewDeterministicTest"), js([e.a.status, e.S.error, (e.p.tests || {}).added])]);
     c.push(["…and its summary names the drop of the class on no list, never passing over it", /tests\.drop GoneComponentTest: on no list of the board/.test(js(e.S.applied || [])), js(e.S.applied)]);
     c.push(["…as applied, not as an enrichment for the presenter", !/GoneComponentTest/.test(js(e.S.why || []) + js(e.S.enrich || [])), words(e.S)]);
@@ -75,7 +75,7 @@ module.exports = function casesRemediationRow(X) {
      done, a new deviation D7 and the rows it touches, and the fast path said enrich: no, so the board stayed behind it) */
   guard("apply-event.js: a report that finishes no stage asks for the documents when it finishes a remediation sub-step or names a deviation", c => {
     const allDone = P => { P.wip.stages.forEach(s => { s.state = "done"; }); return P.wip.stages.map(s => ({ id: s.id, name: s.name, state: s.state })); };
-    const why = S => (S.why || []).join(" | "), tests = { base: "master", amended: [{ class: "KeptTest", module: "webtools-udp", testLevel: "2", tests: 4, rows: [R0] }] };
+    const why = S => (S.why || []).join(" | "), tests = { base: "master", amended: [{ class: "KeptTest", module: "webtools-udp", testSet: "component", tests: 4, rows: [R0] }] };
     const fixed = { pass: 1, route: "remediation", steps: [{ name: "The fixes", state: "done" }, { name: "qa pass 2", state: "current" }] };
     const held = { pass: 1, route: "remediation", steps: [{ name: "The fixes", state: "current" }, { name: "qa pass 2", state: "todo" }] };
     const P1 = atRem(), st1 = allDone(P1), B1 = lay(P1);
@@ -136,8 +136,8 @@ module.exports = function casesRemediationRow(X) {
   guard("testslib.js: a test task that passed whole over the board's own classes is their results", c => {
     const at = "2026-11-06T23:12:54Z", o = { now: at, ids: new Set(ids), stage: "S1" };
     const mk = () => ({ rows: EX.rows, tests: { updated: "2026-11-06T00:00:00Z", amended: [], relevant: [], added: [
-      { class: "AComponentTest", module: "f", testLevel: "2", tests: 3 }, { class: "BComponentTest", module: "f", testLevel: "2", tests: 5 },
-      { class: "CDeterministicTest", module: "f", testLevel: "4a", tests: 2 }, { class: "OtherComponentTest", module: "g", testLevel: "2", tests: 4 }] } });
+      { class: "AComponentTest", module: "f", testSet: "component", tests: 3 }, { class: "BComponentTest", module: "f", testSet: "component", tests: 5 },
+      { class: "CDeterministicTest", module: "f", testSet: "deterministic", tests: 2 }, { class: "OtherComponentTest", module: "g", testSet: "component", tests: 4 }] } });
     c.push(["bareName reads \"<name> (<module>)\" as <name>", TL.bareName("gatingTest (webtools-feeds)", "webtools-feeds") === "gatingTest" && TL.bareName("gatingTest (x)", "webtools-feeds") === "gatingTest (x)", js(TL.bareName("gatingTest (webtools-feeds)", "webtools-feeds"))]);
     const P = mk(); TL.mergeTests(P, { ran: [{ class: "componentTest (f)", module: "f", passed: 8, failed: 0, skipped: 0 }, { class: "deterministicTest (f)", module: "f", passed: 2, failed: 0, skipped: 0 }] }, o);
     const A = P.tests.added, res = n => (A.find(x => x.class === n) || {}).result || {};
@@ -159,10 +159,10 @@ module.exports = function casesRemediationRow(X) {
      tell which class skipped, so the summary says enrich: yes */
   guard("testslib.js and apply-event.js: a test task with a class skipped whole is attributed by count, for the report to confirm", c => {
     const at = "2026-11-06T23:40:00Z", o = { now: at, ids: new Set(ids), pass: 2 }, jdk = "Skipped: needs JDK 11 on the test JVM.";
-    const mk = () => ({ rows: EX.rows, tests: { updated: "2026-11-06T00:00:00Z", relevant: [], amended: [{ class: "x.testing.nonfunctional.LoadTest", module: "f", testLevel: "4c", tests: 22 }], added: [
-      { class: "x.testing.nonfunctional.SoakTest", module: "f", testLevel: "4c", tests: 30 },
-      { class: "x.testing.nonfunctional.Jdk11Test", module: "f", testLevel: "4c", tests: 1, result: { state: "skipped", passed: 0, failed: 0, skipped: 1, pass: 1, at: "2026-11-06T12:00:00Z", note: jdk } },
-      { class: "x.testing.component.AComponentTest", module: "f", testLevel: "2", tests: 3 }] } });
+    const mk = () => ({ rows: EX.rows, tests: { updated: "2026-11-06T00:00:00Z", relevant: [], amended: [{ class: "x.testing.nonfunctional.LoadTest", module: "f", testSet: "nonfunctional", tests: 22 }], added: [
+      { class: "x.testing.nonfunctional.SoakTest", module: "f", testSet: "nonfunctional", tests: 30 },
+      { class: "x.testing.nonfunctional.Jdk11Test", module: "f", testSet: "nonfunctional", tests: 1, result: { state: "skipped", passed: 0, failed: 0, skipped: 1, pass: 1, at: "2026-11-06T12:00:00Z", note: jdk } },
+      { class: "x.testing.component.AComponentTest", module: "f", testSet: "component", tests: 3 }] } });
     const cls = (P, n) => [...P.tests.added, ...P.tests.amended].find(x => x.class.endsWith("." + n)) || {}, res = (P, n) => cls(P, n).result || {};
     const RUN = (p, k, extra) => ({ ran: [{ class: "nonfunctionalTest (f)", module: "f", passed: p, failed: 0, skipped: k, ...(extra || {}) }] });
     const P = mk(), r = TL.mergeTests(P, RUN(52, 1), o);
