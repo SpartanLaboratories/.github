@@ -491,7 +491,9 @@ function fakeBase(n) {
   const f = base(`${d.slice(0, 10)}-${id.slice(0, 8)}`);
   put(path.join(f, 'conversation.md'), `conversation ${n}`);
   put(path.join(f, 'summary.md'), `Summary of session ${n}, ${d.slice(0, 10)}.` + HEADS);
-  put(path.join(f, 'meta.json'), JSON.stringify({ id, kind: 'session', title: 'admin team', from: d, to: d, transcriptBytes: 10, transcriptSha256: 'x', counts: {} }));
+  // Session 1 has two Remote Control links, 2 none, 3 is remains; the rest predate the field.
+  const links = n === 1 ? { remoteControlLinks: [RC1, RC2] } : n === 2 ? { remoteControlLinks: [] } : n === 3 ? { remoteControlLinks: null } : {};
+  put(path.join(f, 'meta.json'), JSON.stringify(Object.assign({ id, kind: 'session', title: 'admin team', from: d, to: d, transcriptBytes: 10, transcriptSha256: 'x', counts: {} }, links)));
   idx.push({ id, kind: 'session', from: d, to: d, tier: 0, container: `sessions/base/${path.basename(f)}`, verified: true, scratch: n === 0 ? `scratch/${id}` : null, deleted: null });
   if (n === 0) {
     put(path.join(ARCHIVE, 'scratch', id, 'scratchpad', 'kept.txt'), 'pointed at');
@@ -516,6 +518,10 @@ r = run('archive.js', ['resolve', '--ts', '2026-10-01T00:00:00.000Z']);
 ok(j(r).container === 'sessions/wrapped-1/0001.md' && j(r).scratch === null && !exists(path.join(ARCHIVE, 'scratch', first)), 'tiers: a pointer by time still finds the session; its scratchpad copy is dropped at the first wrap');
 ok(w1.includes('dropped at this wrap; it held:') && w1.includes('scratchpad/kept.txt, 10 bytes, 1 file(s), copied; pointed at by 1 record line(s)'), 'tiers: the wrapped entry lists what the dropped copy held');
 ok(w1.includes('## Open points') && w1.includes('## Relevant to a current session'), 'tiers: the wrapped entry keeps the open points and what is relevant to a current session');
+const entryOf = n => w1.split(/\n(?=## [0-9a-f]{8}-)/).find(s => s.startsWith(`## ${uid(1000 + n)}`)) || '';
+ok(entryOf(1).includes(`\n- Remote Control links: ${RC1}, ${RC2}\n`), 'tiers: the wrapped entry keeps the session\'s Remote Control links, in meta.json\'s order');
+ok(entryOf(2).includes('\n- Remote Control links: none\n') && entryOf(3).includes('\n- Remote Control links: none (remains)\n') && entryOf(0).includes('\n- Remote Control links: not recorded\n'), 'tiers: an entry with no link says none, for remains none (remains), and with no field not recorded');
+ok(!fs.readFileSync(path.join(ARCHIVE, 'index.jsonl'), 'utf8').includes('fixtureLink'), 'tiers: the links go into the wrapped entry, not into the index');
 ok(run('archive.js', ['fold-base', path.join(ARCHIVE, 'sessions', 'base', fs.readdirSync(path.join(ARCHIVE, 'sessions', 'base'))[0])]).code === 1, 'tiers: no wrap while the base tier holds 10');
 
 // Enough bases to fill ten wrapped sessions and start an eleventh: then one double-wrap is due.

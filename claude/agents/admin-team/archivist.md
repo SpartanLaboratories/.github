@@ -324,10 +324,11 @@ oldest first.
 - **A base session into tier 1** (`archive.js fold-base`): its summary, its
   facts, its open points and anything that might be relevant to a current
   session: its `summary.md` verbatim, under its id, title and span, with its
-  counts, its transcript's sha256, its deletion and what its scratchpad copy
-  held. Its `conversation.md` and `meta.json` are dropped, and its
-  scratchpad copy with them: the folder and `scratch/<id>/` are removed once
-  the wrapped session reads back.
+  counts, its transcript's sha256, its deletion, its Remote Control links as
+  `meta.json` holds them and what its scratchpad copy held. Its
+  `conversation.md` and `meta.json` are dropped, and its scratchpad copy
+  with them: the folder and `scratch/<id>/` are removed once the wrapped
+  session reads back.
 - **A tier-`k-1` session into tier `k`**, `k` from 2 (`archive.js
   fold-upper`): the ids and spans of every session it holds, and your
   summary of it, no longer than one base session's summary. The lower document is removed once the tier-`k` session
@@ -360,7 +361,8 @@ commit message (`msg.txt`) or a verification run's log (`verify-full.log`)
 left loose beside them, once what an open record points at is copied into the
 archive. Its lines in `~/.claude/history.jsonl` stay, and so does its Remote
 Control entry on claude.ai, which the user removes in the app; the entry's
-link stays in the session's `meta.json` (`remoteControlLinks`).
+link stays in the session's `meta.json` (`remoteControlLinks`), and the
+session's first wrap carries it into the wrapped session (**Tiers**).
 
 **What an open record points at.** Whatever, in that session's scratchpad or
 task outputs, is named by a line of the ledger, `state.json`, an open

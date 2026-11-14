@@ -107,6 +107,15 @@ function scratchLines(P, ix) {
   return 'dropped at this wrap; it held:\n' + m.items.map(i => `  - ${i.item}, ${i.bytes} bytes, ${i.files.length} file(s), `
     + (i.over ? 'too large to copy, described' : 'copied') + `; pointed at by ${i.pointers.length} record line(s)`).join('\n');
 }
+// The session's Remote Control links, for its tier-1 entry: meta.json, which
+// holds them, is dropped at that wrap. null is remains; no field, a session
+// extracted before meta.json recorded them.
+function linkLine(m) {
+  const l = m.remoteControlLinks;
+  if (l === undefined) return 'not recorded';
+  if (l === null) return 'none (remains)';
+  return l.length ? l.join(', ') : 'none';
+}
 function rel(P, p) { return path.relative(P.archive, p).replace(/\\/g, '/'); }
 
 function plan(P) {
@@ -186,10 +195,11 @@ function main() {
       + `- Transcript: ${m.transcriptBytes === null ? 'none (remains)' : m.transcriptBytes + ' bytes, sha256 ' + m.transcriptSha256}\n`
       + `- Counts: ${JSON.stringify(m.counts)}\n`
       + `- Files deleted: ${ix.deleted ? ix.deleted.at + ', ' + ix.deleted.bytes + ' bytes (' + ix.deleted.stores.join(', ') + ')' : 'not yet'}\n`
+      + `- Remote Control links: ${linkLine(m)}\n`
       + `- Scratchpad copy: ${scratchLines(P, ix)}\n\n`
       + `### Summary\n\n${summary}\n`;
     const after = append(t, section);
-    if (!after.includes(summary) || !after.includes(JSON.stringify(entry))) { say({ refused: 'the wrapped session does not read back' }); return 1; }
+    if (!after.includes(summary) || !after.includes(JSON.stringify(entry)) || !after.includes(`- Remote Control links: ${linkLine(m)}\n`)) { say({ refused: 'the wrapped session does not read back' }); return 1; }
     fs.rmSync(folder, { recursive: true, force: false });
     const sc = ix.scratch ? path.join(P.archive, ix.scratch) : null;
     if (sc && inside(path.join(P.archive, 'scratch'), sc)) fs.rmSync(sc, { recursive: true, force: true });
