@@ -19,7 +19,9 @@ or `gh` command that writes, and you never spawn `version-control-manager` yours
 
 ## 1. Find the team
 
-Call `ListAgents`. The team is the peer row named **`admin team`**. If it is
+Call `ListAgents`. The team is the peer row named **`admin team`**; which row
+it is when more than one carries the name, the address you send to then, and
+when it counts as not listed are `PROTOCOL.md`, "Finding the team". If it is
 listed, go to step 3.
 
 ## 2. Launch it if it is not listed
@@ -98,11 +100,11 @@ A pipeline's steps map to actions like this:
 
 ## 4. Send and wait
 
-`SendMessage(to: "admin team", summary: "<action> #<issue>", message: <the
-request>)`. The reply comes back as a cross-session message from `admin team`
-and starts your next turn when you are idle, so end your turn after sending a
-request that you need the result of; do not poll. A `commit`, `plan-board` or
-`log-hook` request needs no wait.
+`SendMessage(to: <the team's address from step 1>, summary: "<action>
+#<issue>", message: <the request>)`. The reply comes back as a cross-session
+message from `admin team` and starts your next turn when you are idle, so end
+your turn after sending a request that you need the result of; do not poll. A
+`commit`, `plan-board` or `log-hook` request needs no wait.
 
 ## 5. Act on the reply
 

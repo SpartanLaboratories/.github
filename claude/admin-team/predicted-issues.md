@@ -139,7 +139,7 @@ The permission system raises the denial.
 ## An encountered issue is not in this tracker
 
 ```json
-{"id":"p9","count":9,"last":"2026-11-14"}
+{"id":"p9","count":12,"last":"2026-11-14"}
 ```
 
 - **Proposed resolution:** add it as a new entry with count 1, then prompt the
@@ -171,6 +171,13 @@ The permission system raises the denial.
   - 2026-11-14: the team's session ended twice in a row without a handoff while jobs were
     running, a case no entry held; added as "The team's session ends without a handoff while
     jobs are running".
+  - 2026-11-14: a trial member's message to the bare name `admin team` was refused as
+    ambiguous, offline Remote Control entries of earlier team sessions carrying the name;
+    added as "A message to the bare name "admin team" is refused as ambiguous".
+  - 2026-11-14: an archive job found an image-only user turn missing from the extracted
+    conversation; added as "`extract-session.js` drops a user turn that is an image alone".
+  - 2026-11-14: the same archive job found the session's uploads folder standing after its
+    deletion; added as "A session's uploads folder outlives its deletion".
 
 ## A count changes in this mirrored file
 
@@ -773,3 +780,42 @@ When the default branch has moved since the branch was cut, the uncommitted impl
 - **Predicted:** the direction manager, 2026-11-07.
 - **Encounters:**
   - None yet.
+
+## A message to the bare name "admin team" is refused as ambiguous
+
+```json
+{"id":"p53","count":1,"last":"2026-11-14"}
+```
+
+`ListAgents` lists every session named `admin team`: the running team session, and an offline Remote Control entry left by each earlier team session (each relaunch adds one). With more than one listed, a `SendMessage` to the bare name `admin team` is refused as ambiguous, and the sender has to address the team by the name with its listing ref added, `admin team [<ref>]`. The protocol ("Finding the team": "Send with `SendMessage(to: "admin team")`") and the `admin-team` skill (step 1, "the peer row named **`admin team`**", and step 4's `SendMessage(to: "admin team", …)`) assume the bare name reaches the team, so any run's request may meet this. Not checked: what the `SendMessage` tool's own description says about bare names and offline sessions (the tool is not in the Archivist's set), and whether the user can remove the offline entries, or by what route.
+
+- **Proposed resolution:** a) the protocol and the `admin-team` skill say how to find the live row when `ListAgents` lists more than one `admin team`, and to send to it by its ref, a change of direction documents for the direction manager; b) the user removes the offline Remote Control entries of earlier team sessions, if the harness offers a way (unverified); c) both. No recommendation recorded by the team.
+- **Predicted:** the admin team, on meeting it, 2026-11-14.
+- **Encounters:**
+  - 2026-11-14: a trial member's message to the bare name `admin team` was refused as ambiguous, 13 sessions carrying the name (the running team and 12 offline Remote Control entries); it sent to the name with the live session's ref added, and the request arrived.
+
+## `extract-session.js` drops a user turn that is an image alone
+
+```json
+{"id":"p54","count":1,"last":"2026-11-14"}
+```
+
+`extract-session.js` takes a user record's text through `textOf`, which keeps only the `text` parts of a content array, and skips a record whose text comes out empty. A turn in which the user sends an image and no words is therefore missing from `conversation.md` altogether, with no line marking that an image was sent; the image parts of a turn that also has words are dropped the same way. The image itself sits in the session's uploads folder, which nothing in the archive copies (the entry "A session's uploads folder outlives its deletion"). Confirmed read only: the script has no case for an image part. Not checked: what record shape a pasted or attached image takes in every case.
+
+- **Proposed resolution:** a) fix the extractor, as was done for "`extract-session.js` leaves out inputs that arrived while the team was busy": a user turn's image parts are written as a line naming the image (its file name and size where the record gives them), so an image-only turn appears in `conversation.md`, with a test; earlier archives left as they are; b) leave it, and an archive job's summary records each gap it finds, as the job that met it did. No recommendation recorded by the team.
+- **Predicted:** the admin team, on meeting it, 2026-11-14.
+- **Encounters:**
+  - 2026-11-14: an archive job: the session's one image-only user turn, a screenshot of a Help Center page that led to a user decision, was missing from the extracted conversation; the summary records the gap. The image was in the session's uploads folder; no open record pointed at it, so it was not copied.
+
+## A session's uploads folder outlives its deletion
+
+```json
+{"id":"p55","count":1,"last":"2026-11-14"}
+```
+
+A file the user attaches in a session is kept in an `uploads/<session id>/` folder of the Claude config folder. `delete-session.js` removes five stores (the temp folder, the session's folder, its transcript, `file-history/` and `session-env/`) and not this one, so it stands after the session is deleted; the archive step neither copies from it nor describes it. The entry "A session's temp folder holds an `images/` folder, and its deletion is refused" settled pasted images in the temp folder, deleted with it and not copied into the archive; an upload is a separate store that decision did not reach. Of the two uploads folders found, one belongs to a deleted team session (one image, 763,778 bytes); the other, from 21 October, holds one Markdown file and belongs to a session of another project whose transcript still exists, so it is not left over from a deletion.
+
+- **Proposed resolution:** a) the direction manager extends `delete-session.js` to remove a deleted session's uploads folder with its other stores, and the archive step to consider it: an upload an open record points at is copied into the archive, as the scratchpad's items are; b) leave uploads in place. No recommendation recorded by the team. Under a, how far it reaches past the earlier decision not to keep a session's images in the archive is for the user.
+- **Predicted:** the admin team, on meeting it, 2026-11-14.
+- **Encounters:**
+  - 2026-11-14: an archive job: after the session's deletion its uploads folder, holding the screenshot its conversation lacks, still stood.

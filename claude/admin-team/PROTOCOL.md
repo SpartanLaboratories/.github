@@ -7,8 +7,11 @@ answers. Both sides read this file. The `admin-team` skill wraps the sending sid
 ## Finding the team
 
 - `ListAgents` lists the session as `admin team`. Send with `SendMessage(to: "admin team")`.
-- If it is not listed, run `~/.claude/admin-team/launch.cmd` (the `admin-team` skill does this
-  under a launch lock) and wait until it is listed. Never do version control yourself instead.
+- When it lists more than one row named `admin team`, the team is the one that is not
+  `offline`: send with `SendMessage(to: "admin team [<ref>]")`, the ref read from that listing.
+- If no row named `admin team` is listed, or every one is `offline`, run
+  `~/.claude/admin-team/launch.cmd` (the `admin-team` skill does this under a launch lock) and
+  wait until one that is not `offline` is listed. Never do version control yourself instead.
 
 ## A request
 
