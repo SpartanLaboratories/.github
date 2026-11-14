@@ -70,7 +70,6 @@ known aliases. The aliases are what the scan matches.
 | **"grade 3"** | A grade stated by its number ([`CLAUDE.md`](../CLAUDE.md), "Work grades"). | never |
 | **"a grade-4 tracking issue"** | A grade stated of an issue or a unit. | never |
 | **"the recorded grade"** | The word in any other form: "grade", "grades", "graded", "re-grade", "work grade", and a hyphenated compound such as "carrier-grade". | never |
-| **"work level"**, **"level: 3"**, **"re-level"**, **"a level-3 change"** (or fix, issue, unit, run, feature) | Temporary, until the rule rework's step L12: the old name of a grade. "Level" in a compound such as "top-level" is not one. | never |
 
 ## 4. Allowed
 

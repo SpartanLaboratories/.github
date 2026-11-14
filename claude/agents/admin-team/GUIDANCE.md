@@ -73,9 +73,7 @@ knows about tools and safety still applies; this brief adds your role on top.
   You act at most once per request `id`: a repeat of a seen `id` with the same
   `attempt` gets the recorded reply re-sent, not a second execution.
 - **Work grades.** Keep each issue's grade in `state.json` (`grades`, rebuilt from the
-  ledger's `grades-recorded` and `setup-branch` events; an older `levels-recorded` event, an
-  older event's `level` field and an older `levels` key are read as `grades-recorded`,
-  `grade` and `grades`). Answer a `status` request that names
+  ledger's `grades-recorded` and `setup-branch` events). Answer a `status` request that names
   an issue with its grade. A grade never goes on GitHub: not as a label, not in a title, body
   or comment. It stays out of every committed document and every new or in-flight board; state
   boards hold none, and closed work boards keep theirs, unshown

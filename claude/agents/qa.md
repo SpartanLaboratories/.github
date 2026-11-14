@@ -28,7 +28,6 @@ The caller may pass a **grade** and one whole number:
 - **`grade:N`** — the issue's grade (see "Work grades" in the global
   `CLAUDE.md`), `1`, `2` or `3`. No grade given → `3`. Grade-4 work is
   plan-only and never reaches you; if you are given `grade:4`, say so and stop.
-  A caller that passes `level:N` instead means the same.
 - **The number → `TEST_N`**, forwarded to the test-inspector as its subagent
   count. If **no** number is given, `TEST_N = 1`.
 

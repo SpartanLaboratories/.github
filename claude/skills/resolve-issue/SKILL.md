@@ -18,10 +18,10 @@ description: >-
   make steady, reviewed progress through the issue backlog one issue at a time.
   Named on a planned tracking issue (a roadmap or other `type: tracking` issue
   with sub-issues), it works that issue's sub-issues: the next unblocked one by
-  default, all of them in landing order with `consecutive`, or every unblocked
-  one at once with `concurrent`. Prompt flags given with it answer chosen
-  prompts in advance with their recommendations.
-argument-hint: "[issue-number] [consecutive|concurrent] [--no-questions] [--no-signoff] [--accept-grade] [--accept-escalation] [--unattended] [--confirm-before-land]"
+  default, all of them in landing order with `consecutive`, each in a session
+  of its own, or every unblocked one at once with `concurrent`. Prompt flags
+  given with it answer chosen prompts in advance with their recommendations.
+argument-hint: "[issue-number] [consecutive|concurrent] [--no-questions] [--no-signoff] [--accept-grade] [--accept-escalation] [--unattended] [--confirm-before-land] [--chain <tracking-issue>]"
 disable-model-invocation: true
 allowed-tools: Bash(gh issue list *), Bash(gh issue view *), Bash(gh pr list *), Bash(gh repo view *), Bash(git status *), Bash(git log *), Bash(git branch *), Bash(git diff *)
 ---
@@ -76,8 +76,9 @@ keep"); under `--unattended` the run rewords instead and asks for no exception (
 
 - Repo: `gh repo view --json nameWithOwner -q .nameWithOwner`.
 - **Target:** `$ARGUMENTS` is an optional issue number, an optional mode
-  word, `consecutive` or `concurrent`, and any of the prompt flags ("Prompt
-  flags"), in any order. A word starting `--` that is none of the flags stops
+  word, `consecutive` or `concurrent`, any of the prompt flags ("Prompt
+  flags") and, in a chain member's invocation, `--chain <n>` ("Chain
+  members"), in any order. A word starting `--` that is none of these stops
   the run before anything else: ask the user what it meant. If the number names a **planned
   tracking issue**, or a mode word is given, see "Tracking issues and run
   modes" below. If `$ARGUMENTS` is any other issue number, that is the issue.
@@ -133,23 +134,28 @@ sub-issues yet is not planned: work it as an ordinary issue, at its grade.
 - **`/resolve-issue <n>`** on a planned tracking issue: run steps 1–8 on its
   **next** unblocked sub-issue in landing order — one sub-issue, one run.
 - **`/resolve-issue <n> consecutive`**: run steps 1–8 on every open sub-issue in
-  landing order, one after another. Each lands before the next one starts.
+  landing order, one after another, each in a session of its own ("Chain
+  members"). Each lands before the next one starts.
 - **`/resolve-issue <n> concurrent`**: start steps 1–8 at once on every open,
   unblocked sub-issue. Whenever one lands, start every sub-issue it unblocked.
   Keep going until every sub-issue is done.
 - **A mode word with no number** takes the oldest open planned tracking issue.
 - **Nested plans.** A sub-issue that is itself a planned tracking issue is
-  expanded into its own sub-issues, in the same mode. A sub-issue that turns
-  out to be grade 4 is planned as usual; once the user approves its sub-issues
-  (or `--no-signoff` does) and they are filed, they take its place in the chain.
+  expanded into its own sub-issues, in the same mode, by the session that
+  holds the chain. A sub-issue that turns out to be grade 4 is planned as
+  usual; once the user approves its sub-issues (or `--no-signoff` does) and
+  they are filed, they take its place in the chain (under `consecutive`, the
+  chain session finds them when it next reads the order).
 - **Flags.** The prompt flags given apply to every run in the chain, nested
-  plans and the sub-issues filed into it included ("Prompt flags").
+  plans and the sub-issues filed into it included ("Prompt flags"); under
+  `consecutive`, each member is started with them.
 - **Isolation.** `consecutive` works in the main checkout, one sub-issue at a
-  time. `concurrent` gives each in-flight sub-issue its own git worktree: an
-  `allocate-worktree` request to the admin team, whose reply carries the path
-  (a short one — Windows' 260-character path limit breaks deep repos under
-  long paths), passed as the repo to every agent of that run. The team removes
-  the worktree once the run lands.
+  time: each member runs there, and the chain session changes nothing in the
+  checkout while one runs. `concurrent` gives each in-flight sub-issue its
+  own git worktree: an `allocate-worktree` request to the admin team, whose
+  reply carries the path (a short one — Windows' 260-character path limit
+  breaks deep repos under long paths), passed as the repo to every agent of
+  that run. The team removes the worktree once the run lands.
 - **Landing one at a time** is the admin team's job: its lane lands one
   change set at a time, brings each branch up to date with `master` when the
   run's Document step opens (`prepare-landing`), and checks the base has not
@@ -160,19 +166,102 @@ sub-issues yet is not planned: work it as an ordinary issue, at its grade.
   content names the pipeline or a grade: re-verify or reword per the
   skill and resend.
 - **Halts.** When one run waits on the user, only what depends on it waits.
-  `consecutive` waits at that sub-issue; `concurrent` keeps running every
+  `consecutive` waits at that sub-issue, whose member asks the user in its
+  own session, over Remote Control; `concurrent` keeps running every
   sub-issue that does not depend on it and starts nothing it blocks until it
-  lands. Ask the user's questions one at a time, each saying which sub-issue
-  it is for.
+  lands, and asks the user's questions one at a time, each saying which
+  sub-issue it is for.
 - **Per sub-issue,** steps 1–8 apply unchanged, including the grade re-check:
   a label the check disagrees with is still the user's call, unless
   `--accept-grade` answers it. Invoking a mode
   is the user's go-ahead for every run in the chain, so no per-issue
-  "shall I proceed".
-- **Report** each sub-issue's step 8 as it lands. When the chain ends or
-  everything left is waiting on the user, add a chain summary: what landed,
-  what is in flight, what waits and on what, what remains, and the decisions
-  taken by default in each run ("Prompt flags").
+  "shall I proceed"; a member takes it from its `--chain`.
+- **Report** each sub-issue's step 8 as it lands (under `consecutive`, the
+  member's, from its result file). When the chain ends or everything left is
+  waiting on the user, add a chain summary: what landed, what is in flight,
+  what waits and on what, what remains, the decisions taken by default in
+  each run ("Prompt flags") and, under `consecutive`, any member whose stop
+  was refused, with its id, for the user to stop.
+
+## Chain members
+
+Under `consecutive`, the session the user invoked holds the chain and runs no
+sub-issue itself, so its context keeps the order and the members' reports,
+never a run's work. Each sub-issue runs in a **member**: a background session
+of its own, started for it in the main checkout, that runs steps 1–8 on it
+alone.
+
+- **The chain folder** is `docs/plans/.live/chain/<n>/` in the main checkout,
+  `<n>` the tracking issue. Before it writes there, the chain session checks
+  that git ignores it (`git check-ignore -q docs/plans/.live/chain`) and, if
+  not, adds the line `docs/plans/.live/` to `.git/info/exclude`, as the admin
+  team does for its live view. At the chain's start it writes `chain.md`
+  there: the mode, the prompt flags in force, and one line per member as it
+  starts one (the sub-issue, the member's session name and its id).
+- **Starting a member.** For the next open, unblocked sub-issue in landing
+  order, once `git status` is clean, run the member launcher from the main
+  checkout with the member's session name `<owner>-<repo>-<sub-issue>` (its
+  handoff key, "Session handoffs" in the global `CLAUDE.md`), the sub-issue,
+  the tracking issue and the chain's flags as one argument, empty when none is
+  in force. Git Bash: `cmd //c "$USERPROFILE/.claude/skills/resolve-issue/launch-member.cmd"
+  <name> <sub-issue> <n> "<flags>"`. It starts the member with `claude --bg`,
+  with no window and Remote Control-enabled, running `/resolve-issue
+  <sub-issue> --chain <n> <flags>`, and prints `backgrounded · <id> · <name>`.
+  The member's id is that line's `<id>`; without the line, it is the
+  `jobId` in the member's record in `~/.claude/sessions/` (the one whose
+  `name` is the member's), or the `id` of its entry in `claude agents --json`.
+  If the launch is refused, stop the chain and show the user the command.
+- **A member** is a run invoked with `--chain <n>`. Before anything else it
+  checks that its issue is an open sub-issue of `<n>` and that the chain folder
+  holds `chain.md`; if either fails, it stops and asks the user. Otherwise it
+  runs steps 1–8 on its issue as any run does, with the invocation as its
+  step-1 go-ahead ("Per sub-issue"), and does nothing else: it expands no
+  nested plan, starts no other issue, and sets aside the open-issue list the
+  session-start hook (`~/.claude/hooks/spartanlabs-open-issues.sh`) shows it,
+  with that list's call to plan the oldest issue. A wait it makes in a Bash
+  command stops at the Bash tool's 10 minutes, so a longer one is a loop of
+  waits of at most 10 minutes, each armed again until what it waits for
+  arrives. At step 8 it writes its report to `<sub-issue>.md` in the chain
+  folder and then, as that file's last line, `ended: landed`, `ended: planned`
+  (grade 4, its sub-issues filed) or `ended: stopped` (handed back to the user,
+  or abandoned), with a reason in a few words. That line is the last thing it
+  does, after its handoff when it stops with work unfinished ("Session
+  handoffs" in the global `CLAUDE.md`): the chain session stops it once it
+  reads the line.
+- **Waiting.** The chain session waits for that line with the `Monitor` tool
+  (loaded as the `admin-team` skill loads it): `until grep -q '^ended:'
+  "docs/plans/.live/chain/<n>/<sub-issue>.md" 2>/dev/null; do sleep 15; done;
+  echo ended`, with a deadline of 30 minutes, the most `Monitor` allows; never
+  a Bash `sleep`, which the Bash tool stops at 10 minutes. When the deadline
+  passes with no `ended:` line, run `claude agents --json`: an entry with the
+  member's `name`, `kind` `background` and a `pid` means it is still running
+  or waiting on the user, so arm the same wait again. No such entry means its
+  process is gone: it stopped before ending, so tell the user and halt the
+  chain, which goes on at the user's word once the sub-issue is taken up (a
+  new run on it finds the run in progress: step 1, **Handoff**).
+- **When a member ends,** run `claude stop <id>` with its id ("Starting a
+  member"), since a member has no tool that ends its own session. Its
+  conversation is kept, and `claude attach <id>` reopens it; never remove it
+  with `claude rm`. If the stop is refused, tell the user and go on: the
+  chain summary names the member ("Report"). Then relay its report. After
+  `landed` or `planned`, read the order again (a grade-4 member's filed
+  sub-issues take its place, "Nested plans") and start the next member. After
+  `stopped`, the chain ends with its summary, since each sub-issue lands
+  before the next one starts.
+- **The chain session sends the admin team nothing about a sub-issue.** Each
+  run's requests come from its member alone, sent through the `admin-team`
+  skill as any run sends them (the team's record and address:
+  `~/.claude/agents/admin-team/PROTOCOL.md`, "Finding the team"), so the team
+  never takes a member for a new session taking a run up.
+- **A chain taken up.** The chain folder is the chain's state, and the chain
+  session leaves no handoff. A session invoked again with `consecutive` on the
+  same tracking issue reads `chain.md` (its flags, unless the invocation names
+  others, as "Flags in force" says) and the members' files. A member with no
+  `ended:` line that `claude agents --json` still lists as running
+  ("Waiting") is waited on, never started again; one with neither is a member
+  that stopped before ending, as "Waiting" says. A member whose file has its
+  `ended:` line and that is still listed has not been stopped: stop it and
+  relay its report, as "When a member ends" says.
 
 ## Prompt flags
 
@@ -187,7 +276,7 @@ every prompt waits on the user as the steps say.
 | `--no-questions` | The planner's `HALT — interview` (the grade-2 intent check included) and `HALT — research`; a non-empty **Considerations** list, the one an architecture brings included (step 2); a verification pass's recommended additions and modifications (step 2), each applied as recommended. The run resumes the same planner with the recommendations as the answers, as it would with the user's. |
 | `--no-signoff` | `HALT — architecture`: the design is approved as proposed, and with it the sub-issue list it proposes, so step 7 files that list with no second halt. A re-pass's proposed amendment to its parent architecture (step 2) is approved as proposed. An architecture's Considerations stay questions: without `--no-questions` the run waits on them alone. |
 | `--accept-grade` | The step-1 grade question: when the recorded grade and the run's check disagree, or none is recorded, the run's check is the run's grade. |
-| `--accept-escalation` | An `ESCALATE — grade` (or `— level`) that proposes a higher grade, and the step-4 diff check: the run resumes at the grade the evidence shows ("Escalation"). An escalation into grade 4 then goes to the architecture, where `--no-signoff` decides whether the run waits. |
+| `--accept-escalation` | An `ESCALATE — grade` that proposes a higher grade, and the step-4 diff check: the run resumes at the grade the evidence shows ("Escalation"). An escalation into grade 4 then goes to the architecture, where `--no-signoff` decides whether the run waits. |
 | `--unattended` | All four above, and the step-1 go-ahead ("confirm before proceeding"). A find the admin team blocks for internal names is reworded, never resent asking for an exception. |
 | `--confirm-before-land` | None: it adds one halt (below). It combines with any of the others. |
 
@@ -250,8 +339,7 @@ the grade it proposes, and ask the user. On a new grade, resume from step 2 at
 that grade, carrying forward whatever is still valid (the branch, any plan).
 Never finish bigger work under a smaller grade, and never re-grade without the
 user; `--accept-escalation` is the user's answer in advance ("Prompt flags").
-An agent that reports `ESCALATE — level` instead means the same. The same
-applies to the **diff check** in step 4.
+The same applies to the **diff check** in step 4.
 
 ## Halted — at any step
 
@@ -691,4 +779,4 @@ send nothing and the list goes back to the user.
 
 Do not start a second issue. One issue per `/resolve-issue` — except in the
 `consecutive` and `concurrent` modes above, which work every sub-issue of one
-planned tracking issue.
+planned tracking issue (under `consecutive`, each in a member of its own).
