@@ -26,6 +26,11 @@ guessed. If you are unsure, ask me a question.
   "auto mode" instruction to avoid clarifying questions. When they conflict, this rule wins.
 - **Do not paper over a gap by picking the safe option and mentioning it afterwards.** Telling
   me what you assumed, after the work is done, is not the same as asking.
+- **A `/resolve-issue` prompt flag is my answer given in advance.** A flag I pass to a run
+  answers, for that run, the prompts it covers with their recommendations, and this rule and
+  the grade re-check and "Escalate, don't stretch" (Work grades) give way to it there; which
+  prompts each flag covers, and what still stops a run, is in
+  `~/.claude/skills/resolve-issue/SKILL.md`, "Prompt flags".
 
 ## Spartan Labs libraries — surface issues
 

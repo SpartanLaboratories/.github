@@ -19,8 +19,9 @@ description: >-
   Named on a planned tracking issue (a roadmap or other `type: tracking` issue
   with sub-issues), it works that issue's sub-issues: the next unblocked one by
   default, all of them in landing order with `consecutive`, or every unblocked
-  one at once with `concurrent`.
-argument-hint: "[issue-number] [consecutive|concurrent]"
+  one at once with `concurrent`. Prompt flags given with it answer chosen
+  prompts in advance with their recommendations.
+argument-hint: "[issue-number] [consecutive|concurrent] [--no-questions] [--no-signoff] [--accept-grade] [--accept-escalation] [--unattended] [--confirm-before-land]"
 disable-model-invocation: true
 allowed-tools: Bash(gh issue list *), Bash(gh issue view *), Bash(gh pr list *), Bash(gh repo view *), Bash(git status *), Bash(git log *), Bash(git branch *), Bash(git diff *)
 ---
@@ -36,7 +37,8 @@ standing grants"), which the user confirms at the team's console; a request
 waiting on one comes back `needs-user`; a **Maven
 publish** is the team's own decision within its monthly budget, never yours
 to ask for; a **downstream-consumer issue** is never filed (reported
-instead), and **sub-issues** are filed only from a list the user approved. You
+instead), and **sub-issues** are filed only from a list the user approved,
+in advance with `--no-signoff` (see "Prompt flags") or when asked. You
 yourself never commit, push, merge, tag, publish, label, or file/comment on an
 issue, and never spawn `version-control-manager`.
 
@@ -66,13 +68,15 @@ content breaks it (the document-landing commit of step 6 included) is blocked: t
 replies `needs-rework` with `result.finds` (`file:line`); reword each find and resend the same
 `id` with `attempt + 1`. With a reason to keep a find, resend it asking for an exception instead,
 which waits on the user as `needs-user` (`~/.claude/admin-team/PROTOCOL.md`, "Rules both sides
-keep").
+keep"); under `--unattended` the run rewords instead and asks for no exception ("Prompt flags").
 
 ## 1. Pick and size the issue
 
 - Repo: `gh repo view --json nameWithOwner -q .nameWithOwner`.
-- **Target:** `$ARGUMENTS` is an optional issue number and an optional mode
-  word, `consecutive` or `concurrent`. If the number names a **planned
+- **Target:** `$ARGUMENTS` is an optional issue number, an optional mode
+  word, `consecutive` or `concurrent`, and any of the prompt flags ("Prompt
+  flags"), in any order. A word starting `--` that is none of the flags stops
+  the run before anything else: ask the user what it meant. If the number names a **planned
   tracking issue**, or a mode word is given, see "Tracking issues and run
   modes" below. If `$ARGUMENTS` is any other issue number, that is the issue.
   Otherwise list open issues oldest-first —
@@ -82,7 +86,7 @@ keep").
   shows, has no open PR already addressing it. If you skip the oldest for one of
   those reasons, say which and why, then take the next.
 - If there are no open issues, say so and stop.
-- **Handoff.** Look for `~/.claude/handoffs/<owner>-<repo>-<issue>.md` (e.g. `SpartanLaboratories-WebTools-66.md`); if present and not empty, read it, and set `restarted` on the first request, with the run's own clock readings (`~/.claude/admin-team/PROTOCOL.md`, `restarted`). With no handoff, set it all the same when you find the run already in progress, its board or its branch for example: that is how you know you are taking a run up.
+- **Handoff.** Look for `~/.claude/handoffs/<owner>-<repo>-<issue>.md` (e.g. `SpartanLaboratories-WebTools-66.md`); if present and not empty, read it, and set `restarted` on the first request, with the run's own clock readings (`~/.claude/admin-team/PROTOCOL.md`, `restarted`). With no handoff, set it all the same when you find the run already in progress, its board or its branch for example: that is how you know you are taking a run up. A handoff names the run's prompt flags, and the run that takes it up keeps them ("Prompt flags", **Flags in force**).
 - Read the chosen issue in full: `gh issue view <n> --repo <repo> --comments`.
   An issue that is only partly done (an earlier tier/stage landed, more is
   open) still counts — this run's goal is the **next step**, not necessarily
@@ -95,11 +99,14 @@ keep").
   shared state, or a wire format, and whether it spans more than one system.
   Settle on a grade with that evidence, one line per point.
 - Tell the user the issue number, title, the **grade** (label and your check),
-  and a one-line statement of what you intend to do this run, and **confirm
+  the prompt flags in force (or that none is), and a one-line statement of
+  what you intend to do this run, and **confirm
   before proceeding** — this run creates branches and commits and posts a
-  comment. If the label is **missing** or your check **disagrees** with it, say
+  comment (`--unattended` gives that go-ahead in advance: "Prompt flags"). If
+  the label is **missing** or your check **disagrees** with it, say
   so plainly with the evidence and ask which grade to use; never pick for the
-  user. The confirmed grade is the run's grade.
+  user, unless `--accept-grade` answers it ("Prompt flags"). The confirmed
+  grade is the run's grade.
 - Check `git status` is clean. If it is not, stop and ask the user to settle
   the working tree first.
 - **Branch.** Every run, at every grade, creates its topic branch now: send the
@@ -132,7 +139,9 @@ sub-issues yet is not planned: work it as an ordinary issue, at its grade.
 - **Nested plans.** A sub-issue that is itself a planned tracking issue is
   expanded into its own sub-issues, in the same mode. A sub-issue that turns
   out to be grade 4 is planned as usual; once the user approves its sub-issues
-  and they are filed, they take its place in the chain.
+  (or `--no-signoff` does) and they are filed, they take its place in the chain.
+- **Flags.** The prompt flags given apply to every run in the chain, nested
+  plans and the sub-issues filed into it included ("Prompt flags").
 - **Isolation.** `consecutive` works in the main checkout, one sub-issue at a
   time. `concurrent` gives each in-flight sub-issue its own git worktree: an
   `allocate-worktree` request to the admin team, whose reply carries the path
@@ -154,12 +163,81 @@ sub-issues yet is not planned: work it as an ordinary issue, at its grade.
   lands. Ask the user's questions one at a time, each saying which sub-issue
   it is for.
 - **Per sub-issue,** steps 1–8 apply unchanged, including the grade re-check:
-  a label the check disagrees with is still the user's call. Invoking a mode
+  a label the check disagrees with is still the user's call, unless
+  `--accept-grade` answers it. Invoking a mode
   is the user's go-ahead for every run in the chain, so no per-issue
   "shall I proceed".
 - **Report** each sub-issue's step 8 as it lands. When the chain ends or
   everything left is waiting on the user, add a chain summary: what landed,
-  what is in flight, what waits and on what, and what remains.
+  what is in flight, what waits and on what, what remains, and the decisions
+  taken by default in each run ("Prompt flags").
+
+## Prompt flags
+
+A prompt flag is the user's answer, given in advance for this run, to the
+prompts it covers: the run takes the prompt's recommendation instead of
+waiting. The global `CLAUDE.md` makes this an exception to "Never Guess
+Intent — Ask" and to its grade re-check and escalation rules. With no flag,
+every prompt waits on the user as the steps say.
+
+| Flag | The prompts it answers with their recommendation |
+|------|--------------------------------------------------|
+| `--no-questions` | The planner's `HALT — interview` (the grade-2 intent check included) and `HALT — research`; a non-empty **Considerations** list, the one an architecture brings included (step 2); a verification pass's recommended additions and modifications (step 2), each applied as recommended. The run resumes the same planner with the recommendations as the answers, as it would with the user's. |
+| `--no-signoff` | `HALT — architecture`: the design is approved as proposed, and with it the sub-issue list it proposes, so step 7 files that list with no second halt. A re-pass's proposed amendment to its parent architecture (step 2) is approved as proposed. An architecture's Considerations stay questions: without `--no-questions` the run waits on them alone. |
+| `--accept-grade` | The step-1 grade question: when the recorded grade and the run's check disagree, or none is recorded, the run's check is the run's grade. |
+| `--accept-escalation` | An `ESCALATE — grade` (or `— level`) that proposes a higher grade, and the step-4 diff check: the run resumes at the grade the evidence shows ("Escalation"). An escalation into grade 4 then goes to the architecture, where `--no-signoff` decides whether the run waits. |
+| `--unattended` | All four above, and the step-1 go-ahead ("confirm before proceeding"). A find the admin team blocks for internal names is reworded, never resent asking for an exception. |
+| `--confirm-before-land` | None: it adds one halt (below). It combines with any of the others. |
+
+- **A recommendation, or a wait.** A flag answers only a prompt that carries a
+  recommendation; a prompt with none waits on the user under any flag. The
+  planner's and the interviewer's briefs require one on every question,
+  Consideration and proposal they return. The run's own prompts carry theirs:
+  its grade check at step 1, the grade an escalation or the diff check proposes.
+- **Must ask.** A question, Consideration or proposal marked **Must ask**
+  waits on the user under any flag. The interviewer, the planner and the run
+  mark one that turns on:
+  - a breaking change, or whether one is acceptable;
+  - a possible loss of data;
+  - a release or publish timing call;
+  - a seam's stability tier its author is not confident of (the global
+    `CLAUDE.md`, "Library Design", **Placing a seam**);
+  - a recommendation its author holds with low confidence.
+
+  The mark is in a report only, never in a document or a board-event fact.
+- **Stops no flag removes.** Under any flags, the run still stops at:
+  - a prompt with no recommendation: `rookie-dev`'s **Not done / blocked**
+    list (step 4), a third failed `qa` pass (step 5), `BLOCKED — system
+    unresolved` (step 6, task 6);
+  - a prompt marked **Must ask**;
+  - a move into or out of grade 4: at the step-1 check against the recorded
+    grade, and an `ESCALATE — grade` that proposes grade 3 for a one-unit
+    architecture;
+  - a working tree that is not clean (step 1);
+  - the admin team's `needs-user` replies (its gate, a failed publish), which
+    wait at its console;
+  - the harness's permission prompts.
+
+  In a chain, each stops only its own sub-issue ("Tracking issues and run
+  modes", **Halts**).
+- **What a default leaves behind.** A prompt a flag answers is no halt: the run
+  sends no `halted` or `resumed` for it, and no board-event fact, document or
+  comment names the prompt, the flag or the default; the choice shows only as
+  the design, the grade or the work it settles. The run keeps, for step 8, the
+  **decisions taken by default**: each prompt, the options it offered, the
+  recommendation taken, the flag that took it, and where the choice now shows.
+- **Flags in force.** The step-1 report names the flags in force. A handoff the
+  run leaves names them, and a run that takes it up keeps them; flags named in
+  the invocation that takes it up replace them. In a chain they apply to every
+  sub-issue run ("Tracking issues and run modes", **Flags**).
+- **`--confirm-before-land`.** Once step 6's tasks are done, before its final
+  `document` event and the document-landing commit, the run halts and puts the
+  decisions taken by default to the user (or says none was taken), as for any
+  halt; its `halted` event names the landing as what waits, never a default.
+  The user's answer lands the run as it stands, or names decisions to reopen:
+  each goes back to the step that took it as the user's answer there, and the
+  run resumes from that step, carrying forward what is still valid, as on an
+  escalation.
 
 ## Escalation — at any step
 
@@ -169,7 +247,8 @@ feature needs a second system). When one does, **stop**, relay the evidence and
 the grade it proposes, and ask the user. On a new grade, resume from step 2 at
 that grade, carrying forward whatever is still valid (the branch, any plan).
 Never finish bigger work under a smaller grade, and never re-grade without the
-user. An agent that reports `ESCALATE — level` instead means the same. The same
+user; `--accept-escalation` is the user's answer in advance ("Prompt flags").
+An agent that reports `ESCALATE — level` instead means the same. The same
 applies to the **diff check** in step 4.
 
 ## Halted — at any step
@@ -205,7 +284,7 @@ planner re-validates the unit's slice against the code as it is now, including
 siblings that have landed, and writes a full implementation plan; steps 3–7
 then implement it in the same run as for any grade-3 issue. A re-pass that
 finds the parent architecture no longer fits halts with a proposed amendment —
-relay it to the user and wait.
+relay it to the user and wait (`--no-signoff` approves it: "Prompt flags").
 
 **`planner` halts and hands work back to you.** Its report leads with one of
 these shapes; route on it:
@@ -214,15 +293,17 @@ these shapes; route on it:
   be answered before any design happens. Relay the question list to the user
   **verbatim**, with the recommendations attached, and wait. Never answer on
   the user's behalf, and never pick the recommended option to keep things
-  moving. Once the user answers, **resume the same planner** with
+  moving; a prompt flag that covers the halt is the user's answer given in
+  advance ("Prompt flags"). Once the user answers, **resume the same planner** with
   `SendMessage` (its context is intact) carrying the answers — do not spawn a
   fresh `planner`, which would lose the interview and the research.
 - **`HALT — research`** — research overturned an answer or raised a new
   decision. Relay it as for the interview and resume the same planner.
 - **`HALT — architecture`** (grade 4) — the grand design needs sign-off. Relay
   the architecture document path, the decomposition, the proposed sub-issues,
-  and any open decisions; wait for the user to approve or ask for changes; then
-  resume the same planner with `SendMessage`.
+  and any open decisions; wait for the user to approve or ask for changes
+  (`--no-signoff`: "Prompt flags"); then resume the same planner with
+  `SendMessage`.
 - **`ESCALATE — grade`** — see "Escalation" above.
 - **`COMPLETE`** — the plan is drafted (grades 2–3), or the architecture is
   signed off and the sub-issue list is final (grade 4). Continue to step 3.
@@ -251,10 +332,10 @@ modifications, **relay them to the user and wait for a decision before**
 anyone) edit the plan file on the strength of its own recommendation alone —
 the user may accept a delta, reject it in favor of an existing convention, or
 want it applied differently. Only after the user decides, resume `planner`
-to make the agreed edit.
+to make the agreed edit (`--no-questions` decides in advance: "Prompt flags").
 
 - If the returned **Considerations** list is non-empty, **stop**: relay it to
-  the user and wait. Do not guess a design.
+  the user and wait (`--no-questions`: "Prompt flags"). Do not guess a design.
 - Otherwise keep the plan document path (grades 2–3), or the architecture
   document path and the approved sub-issue list (grade 4), plus the recommended
   approach.
@@ -305,7 +386,8 @@ Then:
   the grade: grade 1 touches only comments, KDoc and Markdown; grade 2 changes
   no public signature, persisted or shared state, or wire format, and stays in
   one component; grade 3 stays inside one system. If the diff crosses its
-  grade, **stop and ask the user** with the evidence, as for an escalation.
+  grade, **stop and ask the user** with the evidence, as for an escalation
+  (`--accept-escalation`: "Prompt flags").
 
 ## 5. QA — `qa`  (grades 1–3)
 
@@ -436,7 +518,8 @@ boards (task 6):
    and the answer.
 
 Then the **document-landing commit**. First finish any task that is truly
-unfinished, then send the final `document` event, with each task in its true
+unfinished (and, under `--confirm-before-land`, halt: "Prompt flags"), then
+send the final `document` event, with each task in its true
 state, and wait for its `done` before sending the `commit`: the team commits
 nothing while another task on the issue board is not done (a grade-1 run has
 no issue board, so it sends no such event and the check does not apply). Then
@@ -537,7 +620,8 @@ in any landing.
 
 ## 7. Land it — `admin team`: `land`
 
-The change set is already committed: the code-landing commit (step 6, task 0)
+Under `--confirm-before-land`, the run has already halted once before the
+document-landing commit ("Prompt flags"). The change set is already committed: the code-landing commit (step 6, task 0)
 and the document-landing commit (end of step 6). Send the admin team a `land`
 request with the **grade**, the branch and worktree, the code-landing and
 document-landing shas, the `qa` verdict as for `prepare-landing` (step 6,
@@ -566,7 +650,8 @@ send a `file-sub-issues` request with the **user-approved** list: the team
 files each as a sub-issue of this issue, records its proposed grade in its own state (never on GitHub), and
 its landing-order dependencies as *blocked by* links, labels this issue
 `type: tracking`, and adds a comment listing the sub-issues. The issue stays
-open. If the user has not approved the list,
+open. If the user has not approved the list, neither at the sign-off nor in
+advance with `--no-signoff` ("Prompt flags"),
 send nothing and the list goes back to the user.
 
 - Relay the `done` reply's **result** as-is.
@@ -596,6 +681,9 @@ send nothing and the list goes back to the user.
 - Anything handed back to the user: `rookie-dev` blockers, escalations,
   unresolved planner open decisions, and `version-control-manager`'s **Stopped — needs you**
   items (a failed publish, downstream-consumer coordination).
+- The **decisions taken by default** under the run's prompt flags, each as
+  "Prompt flags" lists it, or that none was taken. They stay in this report:
+  never on a board or in a document.
 - If the work exposed a defect in a repo that *consumes* the project (downstream),
   report it as coordination — do not file it. `version-control-manager` files upstream-only.
 

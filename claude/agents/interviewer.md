@@ -101,6 +101,10 @@ Markdown, in this order. Nothing else — no design, no file-by-file, no plan.
      - *Options:* 2–4 candidate answers, each with **what work that answer
        leads to** — not just the label.
      - *Recommendation:* which you would pick and why. Always give one.
+     - *Must ask:* only on a question of a kind the **Must ask** list names
+       (`~/.claude/skills/resolve-issue/SKILL.md`, "Prompt flags"), your low
+       confidence in the recommendation among them: the kind, in a few words.
+       Leave the line out otherwise.
 
 5. **Nothing left to guess?** If you genuinely found no gaps, say so
    explicitly, in those terms, and return sections 1–3 with an empty question

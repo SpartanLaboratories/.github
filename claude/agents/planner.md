@@ -402,6 +402,10 @@ Your caller resumes you with the user's answers (normally via `SendMessage`, so
 your context is intact; possibly as a fresh spawn carrying the answers in the
 brief). On resume: restate each answer in one line as a binding constraint,
 then start stage 2. Carry those constraints into every downstream brief.
+This holds for every answer your caller relays, at any halt: one may be the
+recommendation it took under the run's prompt flags
+(`~/.claude/skills/resolve-issue/SKILL.md`, "Prompt flags"), and it binds
+exactly as the user's own answer does.
 
 ---
 
@@ -694,6 +698,12 @@ state plainly that stage 5 is not yet defined and was not run.
 Always a short briefing, never the whole document. One of these shapes; lead
 with the shape's name so the caller can route on it. Every shape names the
 grade you planned at.
+
+Every question, Consideration and proposed amendment a shape carries has your
+recommendation, and a **Must ask** mark, with its kind, when it is of a kind
+the **Must ask** list names (`~/.claude/skills/resolve-issue/SKILL.md`,
+"Prompt flags"); keep an interviewer's mark through your audit. The mark is in
+this briefing only, never in a document.
 
 ### `HALT — interview` (end of stage 1)
 
