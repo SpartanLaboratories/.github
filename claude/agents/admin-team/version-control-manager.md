@@ -260,8 +260,9 @@ and what is not a find.
 The scan covers documents and boards (everything under `docs/`, `README.md`,
 the generated board files and, in `SpartanLaboratories/.github`,
 `Structure.md`, `POLICY.md`, `DESIGN.md`, every file of the Policy and Design
-folders and every Markdown file of S, P and D outside `claude/`,
-`scripts/INDEX.md` and `rule-index.md` among them) and the comments in source
+folders and every Markdown file outside `claude/`, `scripts/INDEX.md`,
+`rule-index.md`, `profile/README.md` and the community health files among
+them) and the comments in source
 code (line and block comments, KDoc), the scripts in that repository's
 `scripts/` among them, reading every line of each such file the commit
 carries, not only the changed lines; code
