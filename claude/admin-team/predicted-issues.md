@@ -139,7 +139,7 @@ The permission system raises the denial.
 ## An encountered issue is not in this tracker
 
 ```json
-{"id":"p9","count":16,"last":"2026-11-14"}
+{"id":"p9","count":17,"last":"2026-11-14"}
 ```
 
 - **Proposed resolution:** add it as a new entry with count 1, then prompt the
@@ -191,8 +191,12 @@ The permission system raises the denial.
     written the verdicts".
   - 2026-11-14: a direction manager's read-only PowerShell read of a user-level environment
     variable was refused by the auto mode classifier as "[Undermining Oversight]", a case none
-    of the entries for refused reads holds; added as "A read-only PowerShell read of the
-    machine's configuration is refused as [Undermining Oversight]".
+    of the entries for refused reads holds; added as "A read-only PowerShell read of the machine's
+    configuration is refused as [Undermining Oversight]".
+  - 2026-11-14: a mirror-sync's executor wrote in the standing checkout of the organization
+    repository, and its cleanup there was refused by the auto mode classifier as "Destructive
+    or Unwanted Actions"; added as "A mirror-sync's executor writes in the standing checkout,
+    and its cleanup there is refused as destructive".
 
 ## A count changes in this mirrored file
 
@@ -584,7 +588,7 @@ Since 2026-11-13 the internal-names list holds no exception for a library’s na
 ## A member's attempt to stop its own background process is refused
 
 ```json
-{"id":"p37","count":3,"last":"2026-11-13"}
+{"id":"p37","count":4,"last":"2026-11-14"}
 ```
 
 A member starts a long search or script in the background, finishes its job without it, and tries to stop it. The permission system refuses the stop, and the process keeps running after the member has reported. The team cannot stop it for the member: doing what a member was refused is the member's refusal carried around the permission system.
@@ -595,6 +599,7 @@ A member starts a long search or script in the background, finishes its job with
   - 2026-11-13: the Archivist's first backlog run left a search over the ledger running (a pattern with two wide repeats on very long lines); its stop was refused as interfering with workloads. Put to the user at the console.
   - 2026-11-13: the executor of a mirror-sync started an empty script in the background by mistake; its stop was refused, and the process was still running when it reported. Checked read only and told to the user at the console with its process ids.
   - 2026-11-13: the graphify manager’s code-only refresh of a second repository left a check command running in the background (it called python with no path, which hung); the member has no tool to stop it, so no stop was tried or refused. Checked read only and told to the user at the console with its process ids.
+  - 2026-11-14: an Archivist job's first edit command was built wrongly and started python reading a script from empty input, which hung in the background and outlived the job. The member tried no stop, could not tell which of two running python processes was its own, made the command's fallback edit harmless, did its edits by hand and reported it. The Coordinator did not query the process list, whose reads are refused, and stopped nothing; told to the user at the console, asked whether to stop it.
 
 ## A push a grant covers is denied with [Git Destructive]
 
@@ -911,3 +916,19 @@ Section 2 of the internal-names list, the approval flow, was widened on 2026-11-
 - **Predicted:** the admin team, on widening the list, 2026-11-14.
 - **Encounters:**
   - None yet.
+
+## A mirror-sync's executor writes in the standing checkout, and its cleanup there is refused as destructive
+
+```json
+{"id":"p61","count":1,"last":"2026-11-14"}
+```
+
+A mirror-sync carrying working-copy files of S, P or D is to place them, and run `rule-check.js --write`, in the copy being committed, never in the standing checkout, which is only pulled after the push (`agents/admin-team/version-control-manager.md`, Branching; `agents/admin-team/GUIDANCE.md`, the `mirror-sync` row). The executor placed and staged the files in the standing checkout instead and ran the checker's `--write` there, which the checker refuses, so the generated rule index was not regenerated and the diff no longer matched the one approved. It then tried to discard its own staged files with `git reset --hard HEAD` and `git clean` on the new folder, and the session's auto mode classifier refused the call as "Destructive or Unwanted Actions". The executor stopped there, as it should; nothing was committed, and the standing checkout was left dirty with the staged files, which holds back the pull every later mirror-sync ends with until it is cleared. Not checked: what led the executor to the standing checkout rather than the clone.
+
+- **Proposed resolution:** options, for the user to decide:
+  - a) Keep the existing rule and make it hard to miss: the executor never places a file or runs `--write` in the standing checkout, only in a fresh clone of `main`; the team's prompt for a mirror-sync names the clone's path, and the executor checks, before placing anything, that the standing checkout is clean and that its working directory is not it. On a refusal of a cleanup it stops, as here, and the user is asked at the console.
+  - b) Clear such a checkout without discarding anything: redo the sync in a clone; once the commit lands with the same bytes, the standing checkout's staged copies match `origin/main`, and a pull (fast-forward) absorbs them, after a check that each staged file's bytes equal the landed ones; any file that differs is put to the user.
+  - c) Both: a) to prevent it, b) as the way to clear a standing checkout found dirty this way. Recommended.
+- **Predicted:** the admin team, on meeting it, 2026-11-14.
+- **Encounters:**
+  - 2026-11-14: the rule rework's seventh commit, seven organization-repository files: the executor placed them and ran `rule-check.js --write` in the standing checkout, which the checker refused; its cleanup there (`git reset --hard HEAD && git clean -fdq` on the new folder) was refused by the classifier as "Destructive or Unwanted Actions" and not worked around. Nothing committed; the standing checkout left with the seven files staged; the sync held for the user's word on clearing it.
