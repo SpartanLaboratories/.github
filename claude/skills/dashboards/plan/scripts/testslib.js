@@ -38,6 +38,15 @@ function bareName(cls, module) {
   const s = " (" + m + ")"; if (c.endsWith(s) && c.length > s.length) return c.slice(0, -s.length).trim();
   return c;
 }
+/* A shell script's run in a set, named with or without the script's ".sh" (KotlinBottools #39: an implementation stage sent "gselftest.sh
+   gating", the qa pass "gselftest gating", and the Tests tab listed each run twice): "<script>.sh <set>" and "<script> <set>", <set> one of
+   the seven sets' names after one space, <script> one word, are one class. Nothing else is: another suffix (".py", ".bash"), ".SH", a name
+   with no set's name after it ("gselftest.sh" and "gselftest"), or another script or set. Returns { key, sh } (key the name without ".sh",
+   sh whether it has one), or null for a name of another form. */
+const SH_RUN = new RegExp("^(\\S+?)(\\.sh)? (" + TEST_SETS.join("|") + ")$");
+function shRun(c) { const m = SH_RUN.exec(String(c || "").trim()); return m ? { key: m[1] + " " + m[3], sh: !!m[2] } : null; }
+/* The same shell script's run in the same set, one name with ".sh" and one without. */
+function sameShRun(a, b) { const x = shRun(a), y = shRun(b); return !!x && !!y && x.key === y.key && x.sh !== y.sh; }
 /* A module's test task, by the test sets' folders (gatingTest … uatTest), and the set it runs. */
 const TASK_SET = Object.fromEntries(TEST_SETS.map(s => [s + "Test", s]));
 /* A run of a module's test task with no failure that counted exactly the tests of the board's own Added and Amended classes of that module
@@ -161,12 +170,14 @@ function mergeTests(plan, ft, o) {
   if (str(ft.base) && T.base !== ft.base.trim()) T.base = ft.base.trim();
   const rank = { added: 3, amended: 2, relevant: 1 };
   /* a class matches by its module and name; failing that, uniquely, by its name with no module given, or by its simple name where one side
-     names the class without its package (a stage's facts may give "FooTest" for a class recorded as "com.acme.testing.component.FooTest") */
+     names the class without its package (a stage's facts may give "FooTest" for a class recorded as "com.acme.testing.component.FooTest"),
+     or as the same shell script's run in the same set with and without ".sh" (sameShRun()) */
   const simple = c => String(c || "").split(".").pop();
   const sameModule = (x, e) => !e.module || !x.module || x.module === e.module;
-  const loose = (x, e) => !!x && sameModule(x, e) && (x.class === e.class || bareName(x.class, x.module || e.module) === bareName(e.class, e.module || x.module) || ((!String(x.class).includes(".") || !String(e.class).includes(".")) && simple(x.class) === simple(e.class)));
+  const loose = (x, e) => !!x && sameModule(x, e) && (x.class === e.class || bareName(x.class, x.module || e.module) === bareName(e.class, e.module || x.module) || ((!String(x.class).includes(".") || !String(e.class).includes(".")) && simple(x.class) === simple(e.class)) || sameShRun(bareName(x.class, x.module || e.module), bareName(e.class, e.module || x.module)));
   const find = e => { for (const k of TEST_LISTS) { let i = T[k].findIndex(x => x && testKey(x) === testKey(e)); if (i < 0) { const hits = T[k].map((x, j) => loose(x, e) ? j : -1).filter(j => j >= 0); if (hits.length === 1) i = hits[0]; } if (i >= 0) return { k, i }; } return null; };
-  /* the merged class keeps its qualified name, whichever side gave it */
+  /* the merged class keeps its qualified name, whichever side gave it; a shell script's run keeps the name with ".sh" so (sameShRun(): the
+     "." rule below keeps it), and a run's result alone (resultOnly, below) takes it too */
   const merge = (old, e) => { const m = { ...old, ...e }; if (old.rows || e.rows) m.rows = [...new Set([...(old.rows || []), ...(e.rows || [])])]; if (old.module && !e.module) m.module = old.module; if (String(old.class).includes(".") && !String(e.class).includes(".")) m.class = old.class; return m; };
   /* the stage of a class the event names none for, when it reports several at once (above) */
   const MS = o && !o.stage && o.stages && Array.isArray(o.stages.list) && o.stages.list.length ? o.stages : null, stageless = [];
@@ -185,7 +196,7 @@ function mergeTests(plan, ft, o) {
   const put = (k, e, resultOnly) => { const w = find(e);
     if (!w) { if (!resultOnly) stageOf(e, null); T[k].push(e); applied.push(`tests.${k} + ${e.class}`); return; }
     const old = T[w.k][w.i]; relevel(old, e); if (!resultOnly) stageOf(e, old);
-    const merged = resultOnly ? { ...old, ...(e.result ? { result: e.result } : {}), ...(e.testSet ? { testSet: e.testSet } : {}), ...(e.tests == null || old.tests === e.tests ? {} : { tests: e.tests }), ...(old.path || !e.path ? {} : { path: e.path }) } : merge(old, e);
+    const merged = resultOnly ? { ...old, ...(shRun(e.class) && shRun(e.class).sh && sameShRun(old.class, e.class) ? { class: e.class } : {}), ...(e.result ? { result: e.result } : {}), ...(e.testSet ? { testSet: e.testSet } : {}), ...(e.tests == null || old.tests === e.tests ? {} : { tests: e.tests }), ...(old.path || !e.path ? {} : { path: e.path }) } : merge(old, e);
     if (rank[k] > rank[w.k]) { T[w.k].splice(w.i, 1); T[k].push(merged); applied.push(`tests: ${e.class} ${w.k} → ${k}`); }
     else if (JSON.stringify(merged) !== JSON.stringify(old)) { T[w.k][w.i] = merged; applied.push(`tests.${w.k} ${e.class}${resultOnly && e.result ? " " + e.result.state : ""}`); } };
   /* a testSet not read, said once per event (readSet()) */

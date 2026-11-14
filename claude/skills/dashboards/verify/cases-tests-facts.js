@@ -7,8 +7,9 @@
 // "two visits answer the same qa pass" where the first visit had ended at a halt and the second resumed the same remediation. A testSet (the
 // user's decisions of 2026-11-13: tests are in named sets) is stored by its name, and the other tests' counts keyed by it (the decision of
 // 2026-11-14, q-149 (b); verify/fixtures/tests-testset.request.json); a testLevel sent in its place is no longer read (the transition's end,
-// L12); an open board that stores the old numbers is written by name at its next rewrite, a closed one keeps them. Each group returns [title,
-// cases], a case [name, ok, detail].
+// L12); an open board that stores the old numbers is written by name at its next rewrite, a closed one keeps them. And KotlinBottools #39: a
+// shell script's run sent as "gselftest.sh gating" by a stage and "gselftest gating" by the qa pass made two entries; it is one class under the
+// ".sh" name, and no other name is read so (testslib.js sameShRun()). Each group returns [title, cases], a case [name, ok, detail].
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 
@@ -187,6 +188,46 @@ module.exports = function casesTestsFacts(X) {
     /* the plan-board template reads both forms */
     const tpl = rd(PB);
     c.push(["the plan-board template's tlOf() reads testSet first, then an older board's testLevel, and otherOf() keys a count by name or old number alike", /const tlOf=e=>\{ const s=e&&typeof e\.testSet==="string"\?TLV_SEG\[e\.testSet\]:null;/.test(tpl) && /const otherOf=T=>\{[^\n]*\n[^\n]*TLV_SEG\[k\]/.test(tpl), "tlOf() or otherOf() as before"]);
+  });
+
+  /* 7. a shell script's run named with and without ".sh" (KotlinBottools #39: an implementation stage sent "gselftest.sh gating", the qa
+     pass "gselftest gating", and the Tests tab listed each of the five runs twice) */
+  guard("testslib.js and apply-event.js: a shell script's run in a set, named with and without \".sh\", is one class under the \".sh\" name; no other name is (KotlinBottools #39)", c => {
+    const MD = "tools/g27", SETS5 = ["gating", "deterministic", "component", "integration", "nonfunctional"], N5 = [49, 63, 80, 420, 23];
+    const runOf = (name, set, n, extra) => ({ class: name, module: MD, testSet: set, passed: n, failed: 0, skipped: 0, ...(extra || {}) });
+    const o = (pass, at) => ({ now: at || "2026-11-14T08:21:15Z", ...(pass ? { pass } : {}), ids: new Set(ids) });
+    const names = P => all(P).map(e => e.class);
+    /* (a) the board holds the ".sh" run, the qa pass sends it without */
+    const P = { rows: EX.rows, tests: null };
+    TL.mergeTests(P, { ran: SETS5.map((s, i) => runOf("gselftest.sh " + s, s, N5[i])) }, { ...o(0, "2026-11-14T07:34:38Z"), stage: "S2" });
+    const r = TL.mergeTests(P, { ran: SETS5.map((s, i) => runOf("gselftest " + s, s, N5[i])) }, o(1));
+    c.push(["the five runs sent with \".sh\", then by the qa pass without: five entries, each named with \".sh\"", names(P).join() === SETS5.map(s => "gselftest.sh " + s).join(), js(names(P))]);
+    c.push(["…each with the qa pass's result (pass 1) and its count", all(P).every((e, i) => e.result && e.result.pass === 1 && e.result.passed === N5[i] && e.tests === N5[i]) && r.changed, js(all(P).map(e => [e.class, e.tests, e.result]))]);
+    c.push(["…and the same facts again change nothing", !TL.mergeTests(P, { ran: SETS5.map((s, i) => runOf("gselftest " + s, s, N5[i])) }, o(1)).changed, js(names(P))]);
+    /* (b) the other way round: the board holds the name without ".sh"; the run named with it is the same class and its name is kept */
+    const Q = { rows: EX.rows, tests: { base: "master", updated: "2026-11-14T07:00:00Z", added: [], amended: [], relevant: [{ class: "gselftest gating", module: MD, testSet: "gating", tests: 49 }] } };
+    TL.mergeTests(Q, { ran: [runOf("gselftest.sh gating", "gating", 49)] }, o(1));
+    c.push(["the board's \"gselftest gating\", then a run of \"gselftest.sh gating\": one entry, renamed to the \".sh\" name", names(Q).join() === "gselftest.sh gating" && Q.tests.relevant[0].result.pass === 1, js(Q.tests)]);
+    const A = { rows: EX.rows, tests: { base: "master", updated: "2026-11-14T07:00:00Z", added: [], amended: [], relevant: [{ class: "gselftest gating", module: MD, testSet: "gating", tests: 49 }] } };
+    TL.mergeTests(A, { added: [{ class: "gselftest.sh gating", module: MD, testSet: "gating", tests: 50 }] }, { ...o(0), stage: "S3" });
+    c.push(["…an added \"gselftest.sh gating\" over a Relevant \"gselftest gating\": one entry, moved to Added, under the \".sh\" name", names(A).join() === "gselftest.sh gating" && A.tests.added.length === 1 && !A.tests.relevant.length && A.tests.added[0].tests === 50, js(A.tests)]);
+    const D = { rows: EX.rows, tests: { base: "master", updated: "2026-11-14T07:00:00Z", added: [], amended: [], relevant: [{ class: "gselftest.sh gating", module: MD, testSet: "gating", tests: 49 }] } };
+    TL.mergeTests(D, { drop: [{ class: "gselftest gating", module: MD }] }, o(0));
+    c.push(["…and a drop names it either way", !all(D).length, js(D.tests)]);
+    /* (c) not the same class: another suffix, ".SH", no set's name after it, another set, another script, another module */
+    [["gselftest.py gating", "gselftest gating"], ["gselftest.bash gating", "gselftest gating"], ["gselftest.SH gating", "gselftest gating"], ["gselftest.sh", "gselftest"], ["gselftest.sh gating", "gselftest component"], ["other.sh gating", "gselftest gating"], ["gselftest.sh fast", "gselftest fast"], ["gselftest.sh gating", "gselftest.sh  gating"]].forEach(([held, sent]) => {
+      const X = { rows: EX.rows, tests: { base: "master", updated: "2026-11-14T07:00:00Z", added: [], amended: [], relevant: [{ class: held, module: MD, tests: 3 }] } };
+      TL.mergeTests(X, { ran: [{ class: sent, module: MD, passed: 3, failed: 0, skipped: 0 }] }, o(1));
+      c.push([`"${held}" held, "${sent}" sent: two entries, the held one untouched`, all(X).length === 2 && !X.tests.relevant[0].result && X.tests.relevant[0].class === held, js(X.tests.relevant)]);
+    });
+    const M = { rows: EX.rows, tests: { base: "master", updated: "2026-11-14T07:00:00Z", added: [], amended: [], relevant: [{ class: "gselftest.sh gating", module: MD, tests: 3 }] } };
+    TL.mergeTests(M, { ran: [{ class: "gselftest gating", module: "tools/other", passed: 3, failed: 0, skipped: 0 }] }, o(1));
+    c.push(["the same names in another module: two entries", all(M).length === 2 && !M.tests.relevant[0].result, js(M.tests.relevant)]);
+    /* (d) through apply-event.js: the implementation stage's facts, then the qa pass's, as KotlinBottools #39 sent them */
+    const d = building("implementation", ["done", "current", "todo"], { base: "master", updated: "2026-11-02T00:00:00Z", added: [], amended: [], relevant: [] }), B = lay(d);
+    const e1 = ev(B, d, "implementation-stage", { stage: "S2", stages: [{ id: "S1", name: "Baseline", state: "done" }, { id: "S2", name: "Local checks", state: "done" }, { id: "S3", name: "Scans", state: "current" }], tests: { ran: SETS5.map((s, i) => runOf("gselftest.sh " + s, s, N5[i])) } }, "2026-11-02T01:00:00Z");
+    const e2 = ev(B, d, "qa-pass", { qa: { pass: 1, verdict: "CHANGES REQUESTED", test: 2, code: 0, route: "remediation" }, tests: { ran: SETS5.map((s, i) => runOf("gselftest " + s, s, N5[i])), other: { byModule: {} } } }, "2026-11-02T02:00:00Z");
+    c.push(["apply-event.js: the stage's \".sh\" runs, then the qa pass's runs without: five Relevant entries under the \".sh\" names, each with pass 1", e1.a.status === 0 && e2.a.status === 0 && names(e2.p).join() === SETS5.map(s => "gselftest.sh " + s).join() && all(e2.p).every(x => x.result && x.result.pass === 1), js([e1.S.error, e2.S.error, e2.S.applied, all(e2.p).map(x => [x.class, x.result && x.result.pass])])]);
   });
   return groups;
 };
