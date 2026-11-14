@@ -51,12 +51,17 @@
         } },
         "policy/version/stability-tiers.md": { "segment": "ST", "sections": {
           "Three tiers": "TT", "Retroactive changes to already-closed surfaces": "RC"
+        } },
+        "policy/logging/README.md": { "sections": {
+          "Kotlin code logs through kotlin-logging": "KL", "A library ships no logging backend": "NB",
+          "One kotlin-logging version": "OV", "What is logged": "WL"
         } }
       },
       "folders": {
         "policy/documentation": { "segment": "D" },
         "policy/testing": { "segment": "T" },
-        "policy/version": { "segment": "V" }
+        "policy/version": { "segment": "V" },
+        "policy/logging": { "segment": "L" }
       }
     },
     "D": {
@@ -86,7 +91,7 @@
   },
   "notConverted": [],
   "ids": {
-    "marks": { "1": 3, "2": 29, "3": 132, "4": 1083, "5": 10038 },
+    "marks": { "1": 3, "2": 30, "3": 132, "4": 1087, "5": 10038 },
     "retired": [
       { "id": 105, "by": 11 },
       { "id": 1022, "by": 1028 },

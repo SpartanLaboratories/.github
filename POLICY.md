@@ -20,6 +20,7 @@ organization aims for, and may depart from with a stated reason, is Design:
 | Documentation | [R-11 (Documentation levels)](policy/documentation/README.md) |
 | Testing | [R-12 (Testing — Named Test Sets)](policy/testing/README.md) |
 | Error handling | Design: [R-29 (Error handling)](design/error-handling/README.md) |
+| Logging | [R-30 (Logging)](policy/logging/README.md) |
 | Versions and stability | [R-25 (Versioning)](policy/version/README.md), [R-131 (Stability tiers)](policy/version/stability-tiers.md) |
 
 ## Conduct and security
