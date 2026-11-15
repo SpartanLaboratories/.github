@@ -1,11 +1,11 @@
-// The cases of admin-team/presenter/researched-no-research (2026-11-13), run by verify-templates.js (it passes its helpers in), or on its own with no
+// The cases of the researched-no-research change (2026-11-13), run by verify-templates.js (it passes its helpers in), or on its own with no
 // browser: node verify/cases-researched-nothing.js [--out <dir>].
-// A. A researched that names no documents, on a board with no research question, says there was nothing to research (the user's decision of
+// A. A researched that names no documents, on a board with no research question, says there was nothing to research (the decision of
 //    2026-11-13, batch-4/q-2 (a)): the board moves to the plan at the event's time, records wip.research.nothing, words its detail and trail
 //    "Nothing to research", asks for no enrichment from research documents, and the step Panel and the visit's gist say so (plan/RULES.md §4).
 // B1. A re-pass standing at the plan step is kept by a researched, never overwritten by "writing".
 // B2. The placeholder check reads neither a statement's excerpt nor a code span: a quoted path pattern, docs/plans/<issue>-<slug>/, is no leftover.
-// B3. sub-issues-filed leaves a true summary on each filed unit whose run has not started; a summary the presenter wrote is kept.
+// B3. sub-issues-filed leaves a true summary on each filed unit whose run has not started; a summary written otherwise is kept.
 // B4. No template class names an element's kind without its type word (TERM CLASS): .wip-panel, .unit-card, .dep-item.
 // B5. A small fix's steps line has no research step: STEPS_BY_LEVEL, its sized at plan (one naming research refused), every research event refused,
 //     its gap milestone counted under the plan, its Timeline naming no research, new.js laying it at plan.
@@ -124,7 +124,7 @@ module.exports = function casesResearchedNothing(X) {
     const b1 = (u1[1] || { unit: {} }).unit.blockedBy || [], w1 = (u1[1] || {}).asBuilt || {};
     c.push(["the second unit names its blockers as they stand", E.a.status === 0 && w1.summary === lib.filedSummary(E.p, u1[1]) && /^Filed as #101; its run has not started\. (?:It starts once .+ ha(?:s|ve) landed|It starts first|No other unit blocks it)\.$/.test(w1.summary || ""), js([b1, w1.summary])]);
     c.push(["a unit not filed yet keeps its summary", E.a.status === 0 && /^Not filed yet/.test((u1[2] || {}).asBuilt.summary || ""), js(u1[2] && u1[2].asBuilt)]);
-    /* the presenter's summary, naming a blocker in words, is kept; the event's own is brought up as the blockers are filed */
+    /* a summary written otherwise, naming a blocker in words, is kept; the event's own is brought up as the blockers are filed */
     const p1 = JSON.parse(rd(at(r, p0.folder))); units(p1)[0].asBuilt.summary = "Filed as #100; its run has not started. It starts first, before the tools."; put(r, p1);
     const E2 = ev(r, p0.folder, "sub-issues-filed", { units: all.slice(2), final: true }, T(6)), u2 = E2.p ? units(E2.p) : [];
     c.push(["a summary written otherwise is kept", E2.a.status === 0 && u2[0].asBuilt.summary === "Filed as #100; its run has not started. It starts first, before the tools.", js(u2[0] && u2[0].asBuilt)]);
@@ -141,7 +141,7 @@ module.exports = function casesResearchedNothing(X) {
 
   guard("B4. no template class names an element's kind without its type word", c => {
     const G = TR.loadGlossary();
-    if (!G) { c.push(["the glossary is found", false, "nomenclature/ui.md and boards.md not found"]); return; }
+    if (!G) { c.push(["the glossary is found, ui.md and boards.md each at its home", false, TR.notFound(TR.glossaryFiles()).join(" | ")]); return; }
     ["plan/template/dashboard.html", "plan/template/board.html", "plan/template/org-board.html", "system/template/system.html", "system/template/supersystem.html"].forEach(t => {
       const hits = TR.classRefs(rd(sk(t)), G); c.push([`${t}: no TERM CLASS`, !hits.length, js(hits)]); });
     const pb = rd(sk("plan/template/dashboard.html")), wb = rd(sk("plan/template/board.html"));

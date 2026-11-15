@@ -1,5 +1,5 @@
-// The element names of a board (GUIDANCE.md §12, "The names, checked"; the user's decision of 2026-11-09, reading A): the glossary is the only home of the names,
-// ~/.claude/nomenclature/ui.md and boards.md, and this file holds none of them. It parses them where they stand and scans a board with what it parsed:
+// The element names of a board (GUIDANCE.md §12, "The names, checked"; the decision of 2026-11-09, reading A): the glossary is the only home of the names,
+// ui.md and boards.md (each found as glossaryFiles() says), and this file holds none of them. It parses them where they stand and scans a board with what it parsed:
 //   - the terms: the first Cell of every "| **Term** | … |" row of either file. It keys on the row, never on what follows a heading, so the rule lines
 //     ({"name":…}) those headings will carry change nothing.
 //   - what a table does not say: the lines of the JSON-lines blocks after the tables, {"term":"Card","not":["Bubble"],"allow":["…"]}, a line for a term with something to say:
@@ -18,14 +18,50 @@
 // never prose, and a string that is all identifier is left alone. Text a script draws in the browser is not read: the data it draws from is.
 // Used by plan/scripts/check.js, by check-board.js and by verify/cases-termrefs.js.
 "use strict";
-const fs = require("fs"), path = require("path"), os = require("os");
+const fs = require("fs"), path = require("path"), os = require("os"), cp = require("child_process");
 const { titleSkip } = require("./levelrefs.js");
 
-/* The two files: the folder given, beside the skill (../../../../nomenclature from system/scripts, as in ~/.claude and the .github mirror's claude/), else
-   ~/.claude/nomenclature/. */
-function glossaryDir(given) {
-  return [given, path.resolve(__dirname, "..", "..", "..", "..", "nomenclature"), path.join(os.homedir(), ".claude", "nomenclature")].filter(Boolean)
-    .find(d => fs.existsSync(path.join(d, "ui.md")) && fs.existsSync(path.join(d, "boards.md"))) || null;
+/* The two files, each found on its own (the decision of 2026-11-14, O-25 (a)), the first place that holds it as a glossary:
+     boards.md: <the organization repository's checkout>/policy/nomenclature/boards.md, the checkout SPARTAN_ORG_POLICIES names;
+     ui.md:     <SpartanUI's checkout>/docs/nomenclature/ui.md, the checkout SPARTAN_CHECKOUT_SPARTANUI names, else the folder SpartanUI beside the organization
+                repository's checkout;
+     then, for each apart, its old homes: beside the skill (../../../../nomenclature from system/scripts, as in ~/.claude and the .github mirror's claude/), else
+     ~/.claude/nomenclature/. A folder given is looked in first, for both.
+   A variable is read as the organization repository's scripts/rule-lib.js reads it (readVariable, overrideVariable, siblingCheckout): the process environment
+   first, then the stored user value (HKCU\Environment on Windows; elsewhere none). The lookup is carried here rather than required from that checkout: the
+   skill runs where no checkout is (its public copy, another machine), and the checkout could only be found by reading the variable first. A file with no
+   "| **Term** |" row, such as a pointer left at an old home, is no glossary and is not taken. deps, for the cases: { env, readStored, home }. */
+const POLICIES_VARIABLE = "SPARTAN_ORG_POLICIES", SPARTANUI_FOLDER = "SpartanUI";
+const overrideVariable = folder => `SPARTAN_CHECKOUT_${folder.toUpperCase().replace(/[^A-Z0-9]+/g, "_")}`;
+const stored = new Map();
+function readStoredUserValue(name) {
+  if (stored.has(name)) return stored.get(name);
+  let v = null;
+  if (process.platform === "win32") try {
+    const out = cp.execFileSync("reg", ["query", "HKCU\\Environment", "/v", name], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], windowsHide: true });
+    const m = new RegExp(`^\\s*${name}\\s+(REG_SZ|REG_EXPAND_SZ)\\s+(.*)$`, "mi").exec(out);
+    if (m) v = m[1] === "REG_EXPAND_SZ" ? m[2].trim().replace(/%([^%]+)%/g, (all, k) => process.env[k] || all) : m[2].trim();
+  } catch (e) { v = null; }
+  stored.set(name, v || null); return v || null;
+}
+const readVariable = (name, deps) => (deps.env || process.env)[name] || (deps.readStored || readStoredUserValue)(name) || null;
+/* Every place each file is looked for, in order: { ui: [path], boards: [path] } */
+function glossaryPlaces(given, deps) {
+  deps = deps || {};
+  const policies = readVariable(POLICIES_VARIABLE, deps), override = readVariable(overrideVariable(SPARTANUI_FOLDER), deps);
+  const spartanUI = override || (policies ? path.join(path.dirname(path.resolve(policies)), SPARTANUI_FOLDER) : null);
+  const old = [path.resolve(__dirname, "..", "..", "..", "..", "nomenclature"), path.join(deps.home || os.homedir(), ".claude", "nomenclature")];
+  const at = (dir, ...p) => dir ? path.join(dir, ...p) : null;
+  return {
+    ui: [at(given, "ui.md"), at(spartanUI, "docs", "nomenclature", "ui.md"), ...old.map(d => at(d, "ui.md"))].filter(Boolean),
+    boards: [at(given, "boards.md"), at(policies, "policy", "nomenclature", "boards.md"), ...old.map(d => at(d, "boards.md"))].filter(Boolean),
+  };
+}
+const isGlossary = f => { try { return fs.statSync(f).isFile() && /^\s*\|\s*\*\*[^*\n]+\*\*/m.test(fs.readFileSync(f, "utf8")); } catch (e) { return false; } };
+/* The two files found: { ui: path|null, boards: path|null } */
+function glossaryFiles(given, deps) {
+  const P = glossaryPlaces(given, deps);
+  return { ui: P.ui.find(isGlossary) || null, boards: P.boards.find(isGlossary) || null };
 }
 const cellsOf = line => line.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|").map(c => c.trim());
 /* A file's rows and term lines, wherever they stand: { rows: [{ term, cells, line }], lines: [{ term, not, allow, case, line }], problems: [] } */
@@ -101,9 +137,16 @@ function parseGlossary(uiText, boardsText) {
   ui.lines.forEach(l => l.not.forEach(w => retired.set(w.toLowerCase(), l.term)));
   return { terms, uiTerms: new Set(uiTerms), typeWords, names, compounds, classes, subjects, retired, problems };
 }
-function loadGlossary(dir) {
-  const d = glossaryDir(dir); if (!d) return null;
-  return Object.assign(parseGlossary(fs.readFileSync(path.join(d, "ui.md"), "utf8"), fs.readFileSync(path.join(d, "boards.md"), "utf8")), { dir: d });
+/* The glossary parsed, with the two files it was read from ({ files: { ui, boards } }); null when either is not found */
+function loadGlossary(dir, deps) {
+  const f = glossaryFiles(dir, deps); if (!f.ui || !f.boards) return null;
+  return Object.assign(parseGlossary(fs.readFileSync(f.ui, "utf8"), fs.readFileSync(f.boards, "utf8")), { files: f });
+}
+/* The warning when a file is not found, naming where it was looked for */
+function notFound(f) {
+  return [!f.ui && "nomenclature/ui.md is not found in SpartanUI's checkout (docs/nomenclature/), beside the skill or in ~/.claude/nomenclature/",
+    !f.boards && "nomenclature/boards.md is not found in the organization repository's checkout (policy/nomenclature/), beside the skill or in ~/.claude/nomenclature/"]
+    .filter(Boolean).map(s => `TERM GLOSSARY: ${s}: the element names are not checked`);
 }
 
 /* code and quoted machine text are never prose */
@@ -191,7 +234,7 @@ let cached;
    repository's own; a glossary that cannot be read or parsed is said, and fails nothing. */
 function boardWarnings(where, data, html, G) {
   const g = G || (cached === undefined ? (cached = loadGlossary()) : cached);
-  if (!g) return ["TERM GLOSSARY: nomenclature/ui.md and boards.md are not found beside the skill or in ~/.claude: the element names are not checked"];
+  if (!g) return notFound(glossaryFiles());
   const skipOf = d => { const t = titleSkip(d); return at => t(at) || /^rows\[\d+\]\.options\[\d+\]\.signature$/.test(at); };
   const problems = g.problems.map(p => `TERM GLOSSARY: ${p}`);
   if (data && data.schema === "org-work-board/1") {
@@ -202,4 +245,4 @@ function boardWarnings(where, data, html, G) {
   }
   return [...problems, ...termWarnings(where, boardTerms(data, html, skipOf(data || {}), g))];
 }
-module.exports = { glossaryDir, parseGlossary, loadGlossary, termRefs, termRefsIn, shownText, classesOf, classRefs, boardTerms, termWarnings, boardWarnings, readFile };
+module.exports = { glossaryPlaces, glossaryFiles, parseGlossary, loadGlossary, notFound, termRefs, termRefsIn, shownText, classesOf, classRefs, boardTerms, termWarnings, boardWarnings, readFile };

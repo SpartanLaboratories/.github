@@ -1,5 +1,5 @@
-// The cases of the element names checked (GUIDANCE.md §12, "The names, checked"; the user's decision of 2026-11-09, reading A; system/scripts/termrefs.js): the glossary,
-// ~/.claude/nomenclature/ui.md and boards.md, is the only home of the names, and the scan parses them from it. Run by verify-templates.js (it passes its helpers in), or on its own
+// The cases of the element names checked (GUIDANCE.md §12, "The names, checked"; the decision of 2026-11-09, reading A; system/scripts/termrefs.js): the glossary,
+// ui.md and boards.md (each found as termrefs.js's glossaryFiles() says), is the only home of the names, and the scan parses them from it. Run by verify-templates.js (it passes its helpers in), or on its own
 // with no browser: node verify/cases-termrefs.js.
 // 1. The real glossary parses: its terms, the compound names, the class list, and every ruled-out word quoted as retired in the file that rules it out.
 // 2. The parser keys on the rows: a rule line ({"name":…}) under a heading, a table row inside a fence, a bad line (named), a missing paragraph (named).
@@ -7,7 +7,9 @@
 // 4. The classes: a subject without its type word, a class beside its type word, a retired word, a template's class list read from the markup and the selectors.
 // 5. A term line's "case": case-sensitive by default, "case":"any" in any case (lower case, plural), its "allow" still exempting, a bad value named.
 // 6. check.js and check-board.js warn and fail nothing for it; a quoted title, a signature and a key are left out.
-// 7. glossaryDir() reads the folder beside the skill, <root>/nomenclature for <root>/skills/dashboards, before ~/.claude/nomenclature; a folder under skills/ is not it.
+// 7. glossaryFiles() finds each file on its own: boards.md in the organization repository's checkout (policy/nomenclature/), ui.md in SpartanUI's (docs/nomenclature/,
+//    the override variable or the sibling folder), each variable from the environment, then the stored value; then, each apart, the old homes, the folder beside
+//    the skill (<root>/nomenclature for <root>/skills/dashboards) before ~/.claude/nomenclature; a folder under skills/ is not it, and a file with no term row is not taken.
 // Each group returns [title, cases], a case [name, ok, detail].
 "use strict";
 const fs = require("fs"), path = require("path"), os = require("os"), cp = require("child_process");
@@ -25,7 +27,7 @@ module.exports = function casesTermrefs(X) {
     const miss = want.filter(t => !G.terms.has(t));
     c.push(["every row's bold first Cell is a term", !miss.length, js(miss)]);
     c.push(["Disclosure is in ui.md's section 2, so it is a type word; Box, of section 1, is not", G.typeWords.includes("Disclosure") && !G.typeWords.includes("Box") && G.terms.get("Disclosure").files.includes("ui.md"), js(G.typeWords)]);
-    const dir = G.dir, ui = rd(path.join(dir, "ui.md")), boards = rd(path.join(dir, "boards.md")), lines = [["ui.md", T.readFile(ui, "ui.md")], ["boards.md", T.readFile(boards, "boards.md")]];
+    const ui = rd(G.files.ui), boards = rd(G.files.boards), lines = [["ui.md", T.readFile(ui, "ui.md")], ["boards.md", T.readFile(boards, "boards.md")]];
     const orphans = lines.flatMap(([n, f]) => f.lines.filter(l => !f.rows.some(r => r.term === l.term) && !new RegExp(`\\*\\*${l.term}\\*\\*`).test(n === "ui.md" ? ui : boards)).map(l => `${n}: ${l.term}`));
     c.push(["every term line names a row of its file, or a term the file bolds", !orphans.length, js(orphans)]);
     const seeds = lines.flatMap(([n, f]) => f.lines.flatMap(l => l.not.map(w => ({ n, w, text: n === "ui.md" ? ui : boards }))));
@@ -112,16 +114,49 @@ module.exports = function casesTermrefs(X) {
     fs.rmSync(sc, { recursive: true, force: true });
   });
 
-  guard("glossaryDir(): the folder beside the skill, <root>/nomenclature for <root>/skills/dashboards, is read before ~/.claude/nomenclature", c => {
-    /* a copy of termrefs.js laid as in ~/.claude and the mirror's claude/: <root>/skills/dashboards/system/scripts, its glossary <root>/nomenclature */
+  guard("glossaryFiles(): each file found on its own, its new home first, the old homes after it", c => {
+    /* a copy of termrefs.js laid as in ~/.claude and the mirror's claude/: <root>/skills/dashboards/system/scripts, its old home <root>/nomenclature. The variables,
+       the stored value and the home folder are given, so the machine's own never count. */
     const sc = fs.mkdtempSync(path.join(os.tmpdir(), "termrefs-dir-")), at = (...p) => path.join(sc, ...p);
     const lay = root => { ["termrefs.js", "levelrefs.js"].forEach(f => wr(path.join(root, "skills", "dashboards", "system", "scripts", f), rd(sk("system/scripts/" + f)))); return require(path.join(root, "skills", "dashboards", "system", "scripts", "termrefs.js")); };
-    const glossary = dir => ["ui.md", "boards.md"].forEach(f => wr(path.join(dir, f), "| **Card** | x |\n"));
-    const A = lay(at("a")); glossary(at("a", "nomenclature"));
-    c.push(["the glossary beside the skill is found", A.glossaryDir() === at("a", "nomenclature"), js(A.glossaryDir())]);
-    c.push(["…and a folder given wins over it", A.glossaryDir(at("a", "nomenclature")) === at("a", "nomenclature") && (() => { glossary(at("given")); return A.glossaryDir(at("given")) === at("given"); })(), js(A.glossaryDir(at("given")))]);
-    const B = lay(at("b")); glossary(at("b", "skills", "nomenclature"));
-    c.push(["a glossary under skills/, beside the skill's own folder, is not read", B.glossaryDir() !== at("b", "skills", "nomenclature"), js(B.glossaryDir())]);
+    const put = (dir, ...files) => files.forEach(f => wr(path.join(dir, f), "| **Card** | x |\n")), pair = (ui, boards) => js({ ui, boards });
+    const none = { env: {}, readStored: () => null, home: at("home") };
+    const A = lay(at("a")), besideA = at("a", "nomenclature"); put(besideA, "ui.md", "boards.md");
+    c.push(["the old home beside the skill is found, for both files", js(A.glossaryFiles(undefined, none)) === pair(path.join(besideA, "ui.md"), path.join(besideA, "boards.md")), js(A.glossaryFiles(undefined, none))]);
+    put(at("given"), "ui.md", "boards.md");
+    c.push(["…and a folder given wins over it", js(A.glossaryFiles(at("given"), none)) === pair(at("given", "ui.md"), at("given", "boards.md")), js(A.glossaryFiles(at("given"), none))]);
+    const B = lay(at("b")), homeOld = at("home", ".claude", "nomenclature"); put(at("b", "skills", "nomenclature"), "ui.md", "boards.md"); put(homeOld, "ui.md", "boards.md");
+    c.push(["a glossary under skills/, beside the skill's own folder, is not read; ~/.claude/nomenclature is", js(B.glossaryFiles(undefined, none)) === pair(path.join(homeOld, "ui.md"), path.join(homeOld, "boards.md")), js(B.glossaryFiles(undefined, none))]);
+    /* the new homes: <the organization repository's checkout>/policy/nomenclature/boards.md, <SpartanUI's checkout>/docs/nomenclature/ui.md */
+    const org = at("co", ".github"), orgB = path.join(org, "policy", "nomenclature", "boards.md"), sib = path.join(at("co", "SpartanUI"), "docs", "nomenclature"), sibU = path.join(sib, "ui.md");
+    const env = { SPARTAN_ORG_POLICIES: org }, f = (e, rs) => A.glossaryFiles(undefined, { env: e, readStored: rs || (() => null), home: at("home") });
+    c.push(["neither new home holds its file: each falls back on the old home", js(f(env)) === pair(path.join(besideA, "ui.md"), path.join(besideA, "boards.md")), js(f(env))]);
+    put(path.dirname(orgB), "boards.md");
+    c.push(["boards.md is found at its new home, ui.md, with none at its own, at the old home", js(f(env)) === pair(path.join(besideA, "ui.md"), orgB), js(f(env))]);
+    put(sib, "ui.md");
+    c.push(["ui.md is found at its new home, SpartanUI's checkout as the folder beside the organization repository's", js(f(env)) === pair(sibU, orgB), js(f(env))]);
+    fs.rmSync(orgB);
+    c.push(["ui.md at its new home, boards.md, with none at its own, at the old home", js(f(env)) === pair(sibU, path.join(besideA, "boards.md")), js(f(env))]);
+    put(path.dirname(orgB), "boards.md");
+    const ov = at("elsewhere", "sui"), ovU = path.join(ov, "docs", "nomenclature", "ui.md"); put(path.dirname(ovU), "ui.md");
+    c.push(["SPARTAN_CHECKOUT_SPARTANUI names SpartanUI's checkout over the sibling folder", js(f({ ...env, SPARTAN_CHECKOUT_SPARTANUI: ov })) === pair(ovU, orgB), js(f({ ...env, SPARTAN_CHECKOUT_SPARTANUI: ov }))]);
+    c.push(["…and serves without SPARTAN_ORG_POLICIES, boards.md then at the old home", js(f({ SPARTAN_CHECKOUT_SPARTANUI: ov })) === pair(ovU, path.join(besideA, "boards.md")), js(f({ SPARTAN_CHECKOUT_SPARTANUI: ov }))]);
+    const asked = [], storedOrg = n => { asked.push(n); return n === "SPARTAN_ORG_POLICIES" ? org : null; };
+    c.push(["a variable the environment lacks is read from the stored user value", js(f({}, storedOrg)) === pair(sibU, orgB) && asked.includes("SPARTAN_ORG_POLICIES") && asked.includes("SPARTAN_CHECKOUT_SPARTANUI"), js([f({}, storedOrg), asked])]);
+    c.push(["…and the environment wins over the stored value", js(f(env, n => n === "SPARTAN_ORG_POLICIES" ? at("nowhere") : null)) === pair(sibU, orgB), js(f(env, n => n === "SPARTAN_ORG_POLICIES" ? at("nowhere") : null))]);
+    const g = A.loadGlossary(undefined, { env, readStored: () => null, home: at("home") });
+    c.push(["loadGlossary reads the two files found and returns their paths", !!g && js(g.files) === pair(sibU, orgB) && g.terms.has("Card"), js(g && g.files)]);
+    /* a pointer, no term row, is no glossary */
+    wr(sibU, "# UI elements\n\nThis file moved: see docs/nomenclature/ui.md in SpartanUI.\n");
+    c.push(["a file with no term row (a pointer) is not taken: ui.md falls back on the old home", f(env).ui === path.join(besideA, "ui.md"), js(f(env))]);
+    wr(path.join(besideA, "ui.md"), "This file moved to SpartanUI.\n");
+    c.push(["…past a pointer at the old home beside the skill too, to ~/.claude/nomenclature", f(env).ui === path.join(homeOld, "ui.md") && f(env).boards === orgB, js(f(env))]);
+    /* neither found */
+    const C = lay(at("c")), lost = { env: {}, readStored: () => null, home: at("home2") }, fc = C.glossaryFiles(undefined, lost), w = C.notFound(fc);
+    c.push(["neither file found: loadGlossary gives null, and the warning names each file and where it was looked for", fc.ui === null && fc.boards === null && C.loadGlossary(undefined, lost) === null && w.length === 2 && /ui\.md is not found in SpartanUI's checkout \(docs\/nomenclature\/\), beside the skill or in ~\/\.claude\/nomenclature\//.test(w[0]) && /boards\.md is not found in the organization repository's checkout \(policy\/nomenclature\/\)/.test(w[1]) && w.every(l => /^TERM GLOSSARY: .*: the element names are not checked$/.test(l)), js(w)]);
+    put(path.join(at("home2"), ".claude", "nomenclature"), "boards.md");
+    const w1 = C.notFound(C.glossaryFiles(undefined, lost));
+    c.push(["…one found: the warning names the other alone", w1.length === 1 && /ui\.md is not found/.test(w1[0]) && C.loadGlossary(undefined, lost) === null, js(w1)]);
     fs.rmSync(sc, { recursive: true, force: true });
   });
   return groups;
