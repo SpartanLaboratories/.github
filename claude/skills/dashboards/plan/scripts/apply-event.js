@@ -99,6 +99,10 @@
 // architecture step runs as four architecture stages (plan/RULES.md §3, "A multi-system run's architecture step"; wip.architecture): seeded at
 // researched, moved by the same two events read at that step, report closed and write consequences opened by architecture-signed-off, the board
 // staying at its architecture step until plan-accepted closes them, clears them and moves it on.
+// The verdicts at plan acceptance (plan/RULES.md §4, "The verdicts at plan acceptance"; writeVerdicts(), lib.js verdictEntry()): plan-accepted's
+// facts.verdicts, one entry per row, writes each row's verdict (its kind and statements) and its options where it holds none, a row's entry whole
+// or not at all; the verdict and considered milestones once every row holds them; the summary's "verdicts" line names what it left to the fill.
+// Where the board's check fails with them, the event is applied again without them, every file put back first: they never fail the event.
 "use strict";
 const T0 = Date.now();
 const fs = require("fs"), path = require("path"), cp = require("child_process");
@@ -123,9 +127,19 @@ const RUN_SENT = ARRIVED != null;
 if (ARRIVED != null && (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/.test(ARRIVED) || isNaN(Date.parse(ARRIVED)))) { console.error(`${USAGE}\n(--arrived takes the request's arrival time as an ISO time with its zone, e.g. 2026-11-09T14:03:27Z; got ${JSON.stringify(ARRIVED)})`); process.exit(2); }
 
 /* the summary, printed at the end whatever happens */
-const S = { result: null, event: null, arrival: null, unread: [], issue: null, board: null, laid: null, applied: [], enrich: [], rerendered: [], wrote: [], view: [], seeded: [], parent: null, live: null, check: null, warnings: [], defects: [], error: null, restored: 0, unfinished: null };
+const S = { result: null, event: null, arrival: null, unread: [], verdicts: null, issue: null, board: null, laid: null, applied: [], enrich: [], rerendered: [], wrote: [], view: [], seeded: [], parent: null, live: null, check: null, warnings: [], defects: [], error: null, restored: 0, unfinished: null };
 /* the fast path's own warnings: printed under "warnings" and counted on the check line */
 const WARNINGS = S.warnings;
+/* the summary's verdicts line at plan-accepted (plan/RULES.md §4, "The verdicts at plan acceptance"): what facts.verdicts wrote and what it
+   left to the fill, each row left with its reason; in --json the verdicts field */
+const verdictsLine = V => {
+  const n = V.written.length + V.kept.length + V.left.length, rowsW = k => `${k} row${k === 1 ? "" : "s"}`;
+  const left = V.left.length ? `left to the fill: ${V.left.map(x => `${x.row} (${x.why})`).join(", ")}` : "none left to the fill";
+  if (V.dropped) return `not written: ${V.dropped}; ${left}`;
+  if (!V.sent) return `none sent; ${left}`;
+  return [`${V.written.length} of ${rowsW(n)} written from the facts${V.options.length ? ` (options on ${V.options.length})` : ""}`, V.kept.length ? `${V.kept.length} kept as written` : null, left,
+    V.extra.length ? `not written: ${V.extra.map(x => `${x.row || "an entry"} (${x.why})`).join(", ")}` : null].filter(Boolean).join("; ");
+};
 const say = () => {
   S.ms = Date.now() - T0;
   /* the open points' times stamped or replaced at the arrival (holdOpenTime()) join the event's own on the one arrival line */
@@ -137,7 +151,7 @@ const say = () => {
   const enrich = S.enrich.length ? "yes" : "no", noWork = S.unfinished ? "no enrichment: the run reports those tasks' true states and the event is raised again" : S.result === "failed" && NO_FILL ? NO_FILL : "the event's facts decide everything it writes";
   if (flag("json")) { console.log(JSON.stringify({ ...S, enrich, why: S.enrich.length ? S.enrich : [noWork] })); return; }
   const L = [["apply-event", S.result], ["event", S.event], ["arrival", S.arrival], ["issue", S.issue != null ? "#" + S.issue : null], ["board", S.board], ["laid", S.laid],
-    ["applied", S.applied.join("; ") || "nothing"], ["unread", S.unread.length ? `${S.unread.map(k => "facts." + k).join(", ")} (carried by the event and not read by it: nothing on the board came from ${S.unread.length === 1 ? "it" : "them"})` : null], ["enrich", enrich], ["why", S.enrich.length ? S.enrich.join("; ") : noWork],
+    ["applied", S.applied.join("; ") || "nothing"], ["verdicts", S.verdicts ? verdictsLine(S.verdicts) : null], ["unread", S.unread.length ? `${S.unread.map(k => "facts." + k).join(", ")} (carried by the event and not read by it: nothing on the board came from ${S.unread.length === 1 ? "it" : "them"})` : null], ["enrich", enrich], ["why", S.enrich.length ? S.enrich.join("; ") : noWork],
     ["rerendered", S.rerendered.join(", ") || "none"], ["wrote", S.wrote.join(", ") || "nothing"], ["view", VIEWING ? S.view.join(", ") || "nothing" : null], ["seeded", S.seeded.length ? S.seeded.join(", ") : null], ["parent", S.parent || "none"], ["live", S.live || "untouched"],
     ["check", S.check || "not run"], ["warnings", S.warnings.length ? S.warnings.map(w => "warn " + w).join(" | ") : null], ["issue defects", S.defects.length ? S.defects.join(" | ") : null], ["error", S.error], ["unfinished", S.unfinished ? S.unfinished.join(", ") : null], ["restored", S.error ? `${S.restored} file${S.restored === 1 ? "" : "s"}, as they were` : null], ["time", `${S.ms} ms`]];
   L.filter(([, v]) => v != null).forEach(([k, v]) => console.log(`${k}: ${v}`));
@@ -362,6 +376,8 @@ function applyEvent(orig, ev, facts, req, now) {
   let planClosed = null;
   /* a tracking board's architecture stages closed by plan-accepted, for the architecture visit it freezes (archClosed) */
   let archClosed = null;
+  /* the verdicts plan-accepted wrote from facts.verdicts and the rows it left to the fill (writeVerdicts(), below), for the summary */
+  let verdicts = null;
   /* the Tests tab is due an update when a stage is reported done or a qa pass returns its verdict (plan/RULES.md §2, "The Tests tab") */
   let testsDue = false;
   const research = () => (w.research = w.research && typeof w.research === "object" ? w.research : { phase: null, drafted: 0, since: {} });
@@ -371,6 +387,55 @@ function applyEvent(orig, ev, facts, req, now) {
   const researchDetail = () => { const q = qs(), ret = q.filter(x => x.findings != null).length;
     return q.length ? `Research: ${ret} of ${plural(q.length, "question")} returned${openList().length ? "; open: " + openList().join(", ") : ""}.` : "Research: the questions are being drafted."; };
   const docRef = f => fs.existsSync(path.join(DIR, f)) ? f : null;
+  /* The verdicts at plan acceptance (plan/RULES.md §4, "The verdicts at plan acceptance"): each row's verdict, its kind and its statements, from
+     facts.verdicts, and its options where it holds none; a row's entry written whole or not at all (lib.js verdictEntry()), every text through
+     txt(); a row whose verdict is written already keeps it; an entry for no row is never matched by its name. The verdict milestone, and the
+     considered one where options were written, once every row holds its options and its verdict. What it leaves is named, for the fill. Read at
+     plan-accepted alone. */
+  const writeVerdicts = () => {
+    const given = facts.verdicts, sent = Array.isArray(given);
+    const V = { sent: sent || !!VERDICTS_DROPPED, written: [], kept: [], options: [], left: [], extra: [], notes: [] };
+    if (VERDICTS_DROPPED) V.dropped = VERDICTS_DROPPED;
+    if (given != null && !sent) V.extra.push({ row: null, why: "facts.verdicts is not a list: nothing read from it" });
+    const byRow = new Map(), rowOf = id => rows.find(r => r && r.id === id);
+    (sent ? given : []).forEach((e, i) => {
+      const id = e && typeof e === "object" && !Array.isArray(e) && typeof e.row === "string" ? e.row.trim() : null;
+      if (!id) { V.extra.push({ row: null, why: `facts.verdicts[${i}] names no row` }); return; }
+      if (!rowOf(id)) { V.extra.push({ row: id, why: "no row of the board has this id" }); return; }
+      if (byRow.has(id)) { V.extra.push({ row: id, why: `named twice: facts.verdicts[${i}] not read` }); return; }
+      byRow.set(id, e); });
+    const plain = t => String(t).replace(/\s+/g, " ").trim(), pairs = ss => JSON.stringify((ss || []).map(s => [plain(s.text), String(s.ref || "").trim()]));
+    rows.forEach(r => {
+      if (!r || !r.id) return;
+      const e = byRow.get(r.id), holds = Array.isArray(r.options) && r.options.length > 0;
+      if (lib.verdictWritten(r.verdict)) { V.kept.push(r.id);
+        if (e) { const K = lib.verdictEntry(e, DIR, plain); if (!K.verdict || pairs(K.verdict.statements) !== pairs(lib.stmtList(r.verdict))) V.extra.push({ row: r.id, why: "its verdict is written already and the entry differs: not written (a factual error is corrected in place, a change of mind goes in column 4)" }); }
+        return; }
+      if (!e) { V.left.push({ row: r.id, why: sent ? "no entry" : VERDICTS_DROPPED ? "the facts' verdicts were not written" : "no facts.verdicts" }); return; }
+      const E = lib.verdictEntry(e, DIR, (t, f) => txt(t, `verdicts.${r.id}.${f}`), s => levelRefs(s).length ? "names a grade, which a board never shows" : null);
+      if (E.why) { V.left.push({ row: r.id, why: E.why }); return; }
+      if (!holds && !E.options) { V.left.push({ row: r.id, why: "it holds no option and the entry gives none" }); return; }
+      r.verdict = Object.assign({}, r.verdict && typeof r.verdict === "object" && !Array.isArray(r.verdict) ? r.verdict : {}, E.verdict);
+      if (!holds) { r.options = E.options; V.options.push(r.id); }
+      else if (E.options) { const have = new Set(r.options.map(o => o && o.id)), add = E.options.filter(o => !have.has(o.id)).map(o => o.id);
+        V.extra.push({ row: r.id, why: `its options are written already: the entry's options not written${add.length ? `; ${add.join(", ")} for the fill, the plan's addition` : ""}` }); }
+      V.written.push(r.id);
+      E.notes.forEach(n => V.notes.push(`${r.id}: ${n}`));
+    });
+    const all = rows.length > 0 && rows.every(r => r && lib.verdictWritten(r.verdict) && Array.isArray(r.options) && r.options.length > 0);
+    if (all && sent) {
+      const ms = plan.milestones = Array.isArray(plan.milestones) ? plan.milestones : [];
+      const asked = typeof facts.plan === "string" && /\.md$/.test(facts.plan.trim()) ? facts.plan.trim().replace(/\\/g, "/") : null;
+      const fromFacts = asked ? [path.relative(DIR, path.join(ROOT, asked)).split(path.sep).join("/"), asked].find(f => !f.startsWith("..") && docRef(f)) : null;
+      const ref = tracking ? docRef("architecture.md") : fromFacts || docRef("plan.md");
+      if (V.options.length && !ms.some(m => m && m.column === "considered")) { ms.push({ column: "considered", label: "Options weighed", date: today, ...(ref ? { ref } : {}) }); applied.push("milestone considered"); }
+      if (!ms.some(m => m && m.column === "verdict")) { ms.push({ column: "verdict", label: tracking ? "Architecture final" : "Plan accepted", date: today, ...(ref ? { ref } : {}) }); applied.push("milestone verdict"); }
+    }
+    if (V.written.length) applied.push(`verdicts written from the facts: ${V.written.join(", ")}${V.options.length ? ` (options on ${V.options.join(", ")})` : ""}`);
+    V.notes.forEach(n => enrich.push(`verdicts: ${n}`));
+    V.extra.forEach(x => enrich.push(`verdicts: ${x.row ? x.row + ": " : ""}${x.why}`));
+    return V;
+  };
   /* the note, detail and trail entry of a remediation report: facts.stage (what the report says it reached) first, else the
      sub-steps done and the current ones (several may run in parallel); from the facts alone, so the same event twice writes the same board */
   const remediationWording = () => {
@@ -620,6 +685,9 @@ function applyEvent(orig, ev, facts, req, now) {
       if (tracking && w.architecture != null) { w.architecture = null; applied.push("wip.architecture cleared"); }
       if ((w.questions || []).length || w.research || w.plan) applied.push("wip.questions, wip.research and wip.plan cleared");
       w.questions = []; w.research = null; w.plan = null;
+      /* the verdicts the run sent (plan/RULES.md §4, "The verdicts at plan acceptance"), on an issue board and a tracking board alike */
+      verdicts = writeVerdicts();
+      const leftIds = verdicts.left.map(x => x.row), leftWords = leftIds.length ? `; the rows left to the fill, whole: ${leftIds.join(", ")}` : "";
       /* A tracking board has no plan, branch or build step before its units are filed (plan/RULES.md §3, §4): its run's plan-accepted
          (the architecture final with its units) keeps it in its own line, never at branch, where a unit not yet filed fails the check
          (KotlinBottools #2, dashboards/tracking-plan-events). */
@@ -627,13 +695,17 @@ function applyEvent(orig, ev, facts, req, now) {
         withUnitSteps(w, applied);
         const next = trackingPlanStep(w); setStep(next); setGlow(next);
         if (rows.some(r => r.unit) && w.next == null) { const nx = lib.nextUnit(plan); if (nx) { w.next = nx.id; applied.push(`wip.next ${nx.id}`); } }
-        enrich.push("plan-accepted on a tracking board: the unit rows' Considered and Verdict columns, the verdict milestone and the consequences come from architecture.md and consequences.md");
+        enrich.push(verdicts.written.length || verdicts.kept.length
+          ? `plan-accepted on a tracking board: the rest of the unit rows' Considered and Verdict columns (the verdicts' defence and risks, the options' detail), the milestones' notes and the consequences come from architecture.md and consequences.md${leftWords}`
+          : "plan-accepted on a tracking board: the unit rows' Considered and Verdict columns, the verdict milestone and the consequences come from architecture.md and consequences.md");
         detail = detail || (next === "document" ? "Architecture final with its units; the plan's documents and its land are next, and its units are filed after the merge." : w.detail || null);
         trail = { column: "verdict", label: "Architecture final, with its units", ref: docRef("architecture.md") };
         break;
       }
       setStep("branch"); setGlow("branch");
-      enrich.push("plan-accepted: the Considered and Verdict columns, the verdict milestone and the consequences come from plan.md and consequences.md (impact.md in an older folder)");
+      enrich.push(verdicts.written.length || verdicts.kept.length
+        ? `plan-accepted: the rest of the Considered and Verdict columns (the verdicts' defence, steps, tests and risks, the options' detail, a sub-issue's added options), the milestones' notes and the consequences come from plan.md and consequences.md (impact.md in an older folder)${leftWords}`
+        : "plan-accepted: the Considered and Verdict columns, the verdict milestone and the consequences come from plan.md and consequences.md (impact.md in an older folder)");
       detail = detail || "Plan accepted; the branch is confirmed next.";
       trail = { column: "verdict", label: "Plan accepted", ref: docRef("plan.md") };
       break;
@@ -1185,7 +1257,7 @@ function applyEvent(orig, ev, facts, req, now) {
   if (stopped((orig.wip || {}).step) && !stopped(w.step) && (w.resume != null || w.waitingOn != null)) { w.resume = null; w.waitingOn = null; applied.push("wip.resume and wip.waitingOn cleared"); }
   /* a halt's questions on the visit the halt ended, and every answer on the snapshots (lib.js syncAsked()) */
   applied.push(...lib.syncAsked(w));
-  return { plan, applied, enrich, parentOp };
+  return { plan, applied, enrich, parentOp, verdicts };
 }
 
 /* wip.stages from facts.stages ([{id, name, state}]), each keeping the rows the board records for it (plan.md's stages, written by the
@@ -2035,6 +2107,9 @@ const run = (file, a, cwd) => new Promise(res => { const c = cp.spawn(process.ex
   c.stdout.on("data", d => { o += d; }); c.stderr.on("data", d => { e += d; }); c.on("close", s => res({ status: s, stdout: o, stderr: e })); c.on("error", x => res({ status: 1, stdout: o, stderr: String(x) })); });
 
 let DIR = null, ROOT = null, MAIN = null, LAY_HINT = null, EV = null, NO_FILL = null;
+/* why a plan-accepted's facts.verdicts were not written, when the board's check failed with them and the event was applied without them
+   (plan/RULES.md §4, "The verdicts at plan acceptance": never a failed event) */
+let VERDICTS_DROPPED = null;
 const VIEWING = flag("view");
 /* the board's data where --view reads it: its view copy when one is fresher than the tracked board, else the tracked plan.json */
 const HELD = new Set();
@@ -2280,7 +2355,10 @@ async function main() {
   if (R.nothing) { S.result = "nothing"; S.live = "untouched"; S.check = "nothing to check"; S.applied.push(...(ev === "plan-stage" ? R.applied : []), "nothing written"); return; }
   if (R.unchanged) { S.result = "duplicate"; S.applied.push(R.said || `${facts.stepId} is recorded done already: its first time kept, nothing written`); return; }
   if (laid) { S.laid = folder; S.applied.push(...laid.applied); S.enrich.push(...laid.enrich); }
+  /* the summary as it stood before this event's own lines: a plan-accepted applied again without its verdicts starts from it (below) */
+  const mark = { applied: S.applied.length, enrich: S.enrich.length, wrote: S.wrote.length, warnings: S.warnings.length };
   S.applied.push(...renamed, ...R.applied); S.enrich.push(...R.enrich);
+  if (R.verdicts) S.verdicts = R.verdicts;
   /* a sub-issue's retime: its tracking board's record of the same time moves with it (the unit's start, its review, its landing, which the
      standing rule stamped there), under the same refusals; the one correction entry, on the sub-issue's board, says so */
   let retimedParent = null;
@@ -2314,7 +2392,8 @@ async function main() {
   /* a view copy lives only while fresher than the board it stands for (board.js --live removes it otherwise): said, never lost in silence */
   if (VIEWING) { let tp = null; try { tp = JSON.parse(fs.readFileSync(planFile, "utf8")); } catch (e) { /* reported above */ } if (tp && !(String(lib.planStamp(R.plan)) > String(lib.planStamp(tp)))) WARNINGS.push(`VIEW COPY NOT FRESHER: the event's time ${now} is not after the board's own stamp ${lib.planStamp(tp)}, so the live view drops the copy: raise it with its real time`); }
 
-  {
+  /* the board, its parent, the seeded boards and the live repository work board written and checked, for one application of the event */
+  const writeAll = async R => {
     if (laid) { const made = []; for (let d = DIR; !fs.existsSync(d); d = path.dirname(d)) made.unshift(d); made.forEach(d => { fs.mkdirSync(d); madeDirs.push(d); }); }
     if (laid && !flag("no-live")) { const lv = path.join(ROOT, "docs", "plans", ".live"); if (!fs.existsSync(lv)) { fs.mkdirSync(lv, { recursive: true }); madeDirs.push(lv); } }
     writeBoard(DIR, R.plan, eol, S.enrich, "board");
@@ -2387,6 +2466,21 @@ async function main() {
     /* the progress notes' index and its watcher (progress-index.js): a note needs no event, and a board cannot list a folder. A cache of this machine, outside the atomic set */
     if (!VIEWING && !["landed", "cancelled"].includes(((R.plan || {}).wip || {}).step)) { try { require("./progress-index.js").ensureWatcher(ROOT); } catch (e) { S.enrich.push("the progress notes' index failed: " + e.message); } }
     S.result = "ok";
+  };
+  try { await writeAll(R); }
+  catch (e) {
+    /* the verdicts never make a plan-accepted fail (plan/RULES.md §4, "The verdicts at plan acceptance"): where the board's check fails with what
+       facts.verdicts wrote, every file is put back and the event is applied again without them, every row left to the fill */
+    if (!(ev === "plan-accepted" && R.verdicts && R.verdicts.written.length && /^check\.js failed on the board it would write/.test(e.message))) throw e;
+    const failedWith = String(S.check || "").replace(/^FAIL: /, "");
+    rollback(); madeDirs.length = 0;
+    ["applied", "enrich", "wrote", "warnings"].forEach(k => S[k].splice(mark[k]));
+    S.parent = null; S.live = null; S.check = null;
+    VERDICTS_DROPPED = `the board's check failed with them (${failedWith.slice(0, 300)})`;
+    const R2 = applyEvent(orig, ev, factsWith(facts, null, ["verdicts"]), req, now);
+    S.applied.push(...renamed, ...R2.applied); S.enrich.push(...R2.enrich); S.verdicts = R2.verdicts;
+    WARNINGS.push(`VERDICTS NOT WRITTEN: ${VERDICTS_DROPPED}: the event is applied without them, every row left to the fill`);
+    await writeAll(R2);
   }
 }
 

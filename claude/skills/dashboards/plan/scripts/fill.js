@@ -16,6 +16,8 @@
 //   Left alone, whatever the fill says, on a row: asBuilt.state unless the fill's is an outcome (the events derive pending, in-progress and partially-built; a
 //   complete or landed unit stays so), and unit.issue, unit.board, unit.folder and unit.live once set (the filing and embed.js write them). One exception, plan/RULES.md §2,
 //   "Before the outcome": partially-built with a summary is stored where the stages do not say otherwise (no stage decides the row, or they make it partially built too).
+//   A row's verdict statements are written once: a fill that replaces statements the row already holds (those plan-accepted wrote from its facts among them) is named in
+//   notes, a factual correction noted under notes.corrections being the one reason to (plan/RULES.md §4, "The verdicts at plan acceptance").
 //   Refused, exit 2 and nothing written: wip, trail, status, sized, branch, asBuilt, kind and the board's identity (schema, repo, issue, slug, folder), foundation
 //   and links (embed.js clears and writes them): the events own them. A sizing (level, unit.level, proposedLevel, the size word's own key, proposedGrade) is dropped and named, never written (levels.js).
 //   A qa pass the fields name "qa pass N" is written "Quality Review N" (passnames.js), and so is one the board already holds, before the merge; named in notes.
@@ -129,6 +131,11 @@ function mergeRow(cur, next, notes, plan) {
     const partStored = next.asBuilt.state === "partially-built" && !cur.unit && !["dropped", "deferred"].includes(cur.asBuilt.state) && typeof out.asBuilt.summary === "string" && !!out.asBuilt.summary.trim() && [null, "partially-built"].includes(lib.stagedState(plan, cur));
     if ((ROW_DERIVED.includes(next.asBuilt.state) && !partStored) || (cur.unit && ["complete", ...lib.UNIT_LANDED].includes(cur.asBuilt.state))) { out.asBuilt.state = cur.asBuilt.state; notes.push(`${id}: asBuilt.state stays ${cur.asBuilt.state}, the events'`); }
   }
+  /* a verdict's statements are written once (plan/RULES.md §2; §4, "The verdicts at plan acceptance"): a fill that replaces statements the row
+     already holds is named, as a factual correction noted under notes.corrections is the one reason to */
+  { const pairs = v => JSON.stringify(lib.stmtList(v).map(s => [String(s.text || "").replace(/\s+/g, " ").trim(), String(s.ref || "").trim()]));
+    if (lib.stmtList(cur.verdict).length && isObj(next.verdict) && next.verdict.statements !== undefined && pairs(cur.verdict) !== pairs(out.verdict))
+      notes.push(`${id}: verdict.statements replaced, though the row held its statements: a verdict is written once, so a fill rewrites one only as a factual correction, noted under notes.corrections`); }
   if (isObj(cur.unit) && isObj(next.unit)) UNIT_KEPT.forEach(k => { if (cur.unit[k] != null && next.unit[k] !== cur.unit[k]) { out.unit[k] = cur.unit[k]; if (next.unit[k] !== undefined) notes.push(`${id}: unit.${k} stays ${JSON.stringify(cur.unit[k])}, the filing's or embed.js's`); } });
   return out;
 }

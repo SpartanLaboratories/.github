@@ -132,7 +132,12 @@ One event of one run (`plan/RULES.md` §4).
    detail, what waits, the Cells in a FullPulse, qa passes, blockers). Write what
    it leaves through `fill.js`, as the ruleset's event table says: columns 1–3
    written once from the documents, column 4 kept up from
-   `final-implementation.md`'s deviations.
+   `final-implementation.md`'s deviations. At `plan-accepted`, read the
+   summary's `verdicts` line first: the Rows it wrote hold their statements,
+   and their options where they had none, from the run's facts; enrich them
+   and never rewrite them, but as a factual correction in place, and write
+   whole only the Rows it left to you (`plan/RULES.md` §4, "The verdicts at
+   plan acceptance").
 4. Keep it general: summaries, decisions, reasons, states, links to the
    Markdown section that holds the detail. No listings; `check.js` refuses a
    code block over five lines.

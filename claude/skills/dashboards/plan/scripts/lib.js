@@ -320,6 +320,77 @@ function mdHeadings(md) {
    below); the hash is of the section as written. */
 const STMT_REF = /^((?:\.\.\/|\.\/)?(?:[\w.-]+\/)*[\w.-]+\.md)#([\w\p{L}\p{N}-]+)$/u;
 const parseRef = ref => { const m = typeof ref === "string" ? STMT_REF.exec(ref.trim()) : null; return m ? { file: m[1], anchor: m[2] } : null; };
+/* The verdicts at plan acceptance (plan/RULES.md §4, "The verdicts at plan acceptance"): one entry of plan-accepted's facts.verdicts, held to
+   what the check asks of what the fast path writes from it, and shaped as the board stores it. Written whole or not at all, so the entry is
+   read here and nothing is written: the caller writes what it returns. clean(text, field) is the caller's rewording of a text from the
+   facts, null where the text cannot be written; code(signature, field), optional, why an option's signature, which is code and never reworded,
+   cannot be written, else null; dir is the board's folder, from which a reference's file is read. Returns
+   { verdict, options, notes } (options null when the entry gives none), or { why } when the entry cannot be written. */
+const VERDICT_KINDS = ["build", "leave"], VERDICT_LISTS = ["bullets", "numbered"], OPTION_VERDICTS = ["accepted", "declined", "partial", "deferred"];
+const VERDICT_FIELDS = ["row", "kind", "list", "statements", "options"], STATEMENT_FIELDS = ["text", "ref", "label"];
+const OPTION_FIELDS = ["id", "name", "verdict", "why", "chosen", "summary", "wins", "signature", "link"];
+const OPTION_ID = /^[a-z0-9][a-z0-9-]*$/;
+const optionIdOf = name => (String(name).toLowerCase().replace(/`[^`]*`/g, m => m.slice(1, -1)).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40).replace(/-+$/, "")) || "option";
+function verdictEntry(e, dir, clean, code) {
+  if (!e || typeof e !== "object" || Array.isArray(e)) return { why: "the entry is not an object" };
+  const notes = [], odd = Object.keys(e).filter(k => !VERDICT_FIELDS.includes(k));
+  if (odd.length) notes.push(`fields not read: ${odd.join(", ")}`);
+  if (!VERDICT_KINDS.includes(e.kind)) return { why: `kind is build or leave (got ${JSON.stringify(e.kind == null ? null : e.kind)})` };
+  if (e.list != null && !VERDICT_LISTS.includes(e.list)) return { why: `list is numbered, or left out (got ${JSON.stringify(e.list)})` };
+  if (!Array.isArray(e.statements) || !e.statements.length) return { why: "no statement: a verdict is one statement or more" };
+  const statements = [];
+  for (let j = 0; j < e.statements.length; j++) {
+    const s = e.statements[j], at = `statements[${j}]`;
+    if (!s || typeof s !== "object" || Array.isArray(s)) return { why: `${at} is not { text, ref }` };
+    const so = Object.keys(s).filter(k => !STATEMENT_FIELDS.includes(k)); if (so.length) notes.push(`${at}: fields not read: ${so.join(", ")}`);
+    if (typeof s.text !== "string" || !s.text.trim()) return { why: `${at} has no text` };
+    const text = clean(s.text, `${at}.text`); if (text == null) return { why: `${at}.text cannot be written as it stands (see the summary's enrich line)` };
+    const R = parseRef(s.ref);
+    if (!R) return { why: `${at}.ref ${JSON.stringify(s.ref == null ? null : s.ref)} is not a relative link to a Markdown section (<file>.md#<heading-anchor>)` };
+    const file = path.resolve(dir, R.file);
+    if (!fs.existsSync(file)) return { why: `${at}.ref names ${R.file}, which is not there from the board's folder` };
+    if (!headingSlugs(fs.readFileSync(file, "utf8")).has(R.anchor)) notes.push(`${at}.ref ${s.ref.trim()}: ${R.file} has no heading #${R.anchor} (written; its section Chip is marked until the reference is corrected)`);
+    const st = { text, ref: s.ref.trim() };
+    if (s.label != null) { if (typeof s.label !== "string" || !s.label.trim()) return { why: `${at}.label is the reference's label ("§4.2"), or left out` }; st.label = s.label.trim(); }
+    statements.push(st);
+  }
+  const verdict = { kind: e.kind, ...(e.list != null ? { list: e.list } : {}), statements };
+  if (e.options == null) return { verdict, options: null, notes };
+  if (!Array.isArray(e.options) || !e.options.length) return { why: "options is a list of the options weighed, or left out" };
+  const options = [], seen = new Set(); let chosen = 0;
+  for (let j = 0; j < e.options.length; j++) {
+    const o = e.options[j], at = `options[${j}]`;
+    if (!o || typeof o !== "object" || Array.isArray(o)) return { why: `${at} is not an option` };
+    const oo = Object.keys(o).filter(k => !OPTION_FIELDS.includes(k)); if (oo.length) notes.push(`${at}: fields not read: ${oo.join(", ")}`);
+    if (typeof o.name !== "string" || !o.name.trim()) return { why: `${at} has no name` };
+    if (!OPTION_VERDICTS.includes(o.verdict)) return { why: `${at}.verdict is one of ${OPTION_VERDICTS.join(", ")} (got ${JSON.stringify(o.verdict == null ? null : o.verdict)})` };
+    if (o.verdict !== "accepted" && (typeof o.why !== "string" || !o.why.trim())) return { why: `${at} is ${o.verdict}: it needs why` };
+    if (o.chosen != null && typeof o.chosen !== "boolean") return { why: `${at}.chosen is true or false` };
+    if (o.signature != null && (typeof o.signature !== "string" || !o.signature.trim())) return { why: `${at}.signature is the code as written, or left out` };
+    const sigNo = o.signature != null && code ? code(o.signature, `${at}.signature`) : null; if (sigNo) return { why: `${at}.signature ${sigNo}` };
+    if (o.link != null && (typeof o.link !== "string" || !o.link.trim())) return { why: `${at}.link is a relative link, or left out` };
+    const id = o.id != null ? o.id : optionIdOf(o.name);
+    if (typeof id !== "string" || !OPTION_ID.test(id)) return { why: `${at}.id ${JSON.stringify(id)} is not kebab-case` };
+    if (seen.has(id)) return { why: `${at}.id ${id} is given twice${o.id == null ? " (derived from its name: give each option its id)" : ""}` };
+    seen.add(id);
+    const opt = { id };
+    for (const k of ["name", "summary", "why", "wins"]) {
+      if (o[k] == null) continue;
+      if (typeof o[k] !== "string") return { why: `${at}.${k} is a text` };
+      if (!o[k].trim()) continue;
+      const t = clean(o[k], `${at}.${k}`); if (t == null) return { why: `${at}.${k} cannot be written as it stands (see the summary's enrich line)` };
+      opt[k] = t;
+    }
+    opt.verdict = o.verdict;
+    if (o.chosen === true) opt.chosen = true;
+    if (o.signature != null) opt.signature = o.signature.trim();
+    if (o.link != null) opt.link = o.link.trim();
+    if (o.verdict === "accepted" || (o.verdict === "partial" && o.chosen === true)) chosen++;
+    options.push(opt);
+  }
+  if (chosen !== 1) return { why: `exactly one option is accepted, or partial with chosen (found ${chosen})` };
+  return { verdict, options, notes };
+}
 function sectionOf(md, anchor) {
   const hs = mdHeadings(md), i = hs.findIndex(h => h.slug === anchor); if (i < 0) return null;
   const h = hs[i], lines = String(md).replace(/\r\n/g, "\n").split("\n"), end = (hs.slice(i + 1).find(x => x.level <= h.level) || { line: lines.length }).line;
@@ -2516,5 +2587,5 @@ function ghMergeTime(repo, pr, merge) {
   } catch (e) { return out; }
 }
 
-module.exports = { ...LV, ...PN, PLAN_STAGES, PLAN_STAGE_NAMES, PLAN_STAGE_BRIEFS, STAGE_ROUND, CHECK_RESULTS, planPassIds, planStagesLine, planStagesOf, seedPlanStages, planStageId, planStageName, stageRan, checkResult, planWayBack, planStageMove, planStageLine, planStageLate, planStagesClose, PLAN_STAGE_LINE, planStagesFromTrail, ARCH_STAGES, ARCH_STAGE_BRIEFS, archStagesOf, ARCH_STAGE_LINE, archStagesFromTrail, renameInto, RENAME_BUDGET_MS, stageTable, stepsBelow, stepKids, walkSteps, stepShape, settleSteps, carrySteps, stepNameOf, completeStep, planStageTable, stageKey, stageRow, stageTableFields, catchUpStageTable, stampItem, backfillStages, STAGE_KINDS, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, isUnitRef, blockerOf, mapUnitBlockers, filedSummary, filedSummaries, HISTORY_FIELDS, HISTORY_STEPS, qAnswered, askedOf, answerQuestions, syncAsked, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, retimePlan, RETIME_NOT, retimeWords, retimeWhat, TEAM_RECORDS, rewordPlan, rewordDigest, rewordWhat, docCommitDone, landSent, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, roadmapDocItem, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+module.exports = { ...LV, ...PN, PLAN_STAGES, PLAN_STAGE_NAMES, PLAN_STAGE_BRIEFS, STAGE_ROUND, CHECK_RESULTS, planPassIds, planStagesLine, planStagesOf, seedPlanStages, planStageId, planStageName, stageRan, checkResult, planWayBack, planStageMove, planStageLine, planStageLate, planStagesClose, PLAN_STAGE_LINE, planStagesFromTrail, ARCH_STAGES, ARCH_STAGE_BRIEFS, archStagesOf, ARCH_STAGE_LINE, archStagesFromTrail, renameInto, RENAME_BUDGET_MS, stageTable, stepsBelow, stepKids, walkSteps, stepShape, settleSteps, carrySteps, stepNameOf, completeStep, planStageTable, stageKey, stageRow, stageTableFields, catchUpStageTable, stampItem, backfillStages, STAGE_KINDS, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, isUnitRef, blockerOf, mapUnitBlockers, filedSummary, filedSummaries, HISTORY_FIELDS, HISTORY_STEPS, qAnswered, askedOf, answerQuestions, syncAsked, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, retimePlan, RETIME_NOT, retimeWords, retimeWhat, TEAM_RECORDS, rewordPlan, rewordDigest, rewordWhat, docCommitDone, landSent, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, roadmapDocItem, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, verdictEntry, VERDICT_KINDS, OPTION_VERDICTS, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, unitLandingOf, unitLandings, mirrorUnitLandings, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewBaseFolder, viewBaseHref, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, notYetLanded, landedPending, unitLeft, setViewLinks, viewedFolder, viewLink, landVisit, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

@@ -1032,6 +1032,16 @@ for every type:
   (a tracking board's own run sends them for its own events; a unit's run corrects its own board, never its tracking board, whose mirror follows). Not to
   the repository work board, the org work board or the state boards, for the reasons above.
 
+**The decision p58** (p58/resolution, p58/q-222-source), weighed for every type:
+
+- **The verdicts at plan acceptance, on the fast path** (`plan/RULES.md` §4, "The verdicts at plan acceptance"): the run sends each Row's
+  Verdict statements, with their references into the plan, and the options of a Row whose Considered Cell is empty, in `plan-accepted`'s
+  `facts.verdicts`; `apply-event.js` writes them, a Row's entry whole or not at all, and the fill behind the event only enriches. Applied to
+  issue boards, where it ends a stage's wait on that fill, and to tracking boards, whose unit Rows take their statements the same way, their
+  references into the architecture, though nothing there waits on them. Not to the repository work board or the org work board, which hold
+  no Verdict column (one Row per run, copied from the boards at each regeneration), nor to the state boards, which are as-is and cite no
+  plan.
+
 ## 12. Elements — one name per function
 
 Every visible element on a board takes its name from the UI vocabulary,
