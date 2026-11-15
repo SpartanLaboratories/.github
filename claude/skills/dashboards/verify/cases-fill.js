@@ -193,6 +193,20 @@ const reader = async () => { while (!stop) { for (const f of ["plan.json"]) { tr
     const f4 = fill(B, { wip: { stages: [{ id: "S1", rows: ["a"] }] } });
     c.push(["past implementation the glow stays the event's", f4.a.status === 0 && js(P(B).wip.current) === js(["built"]), js(P(B).wip.current)]);
   });
+
+  guard("wip.qa: a Quality Review's note reaches the snapshots that hold the same pass (KotlinBottools #40: the board had moved on to the Document step before the fill)", c => {
+    const B = laid(); fill(B, { function: "F.", rows: [ROW("a", "Gap a.")] });
+    const pass = { pass: 1, verdict: "changes-requested", date: "2026-11-03", at: T(5), findings: { test: 1 }, severity: { minor: 1 }, route: "on-the-spot" };
+    const running = { pass: 1, verdict: "running", date: "2026-11-03", at: T(4) }, other = { ...pass, pass: 2, at: T(7) };
+    const p0 = P(B); p0.wip.qa = [copy(pass)];
+    p0.wip.history = { ...(p0.wip.history || {}), qa: [{ since: T(4), ended: T(5), endedBy: "qa-pass", to: "remediation", qa: [copy(pass)] }],
+      remediation: [{ since: T(5), ended: T(6), endedBy: "document", to: "document", qa: [copy(pass)] }], implementation: [{ since: T(3), ended: T(4), endedBy: "qa-pass", to: "qa", qa: [copy(running), copy(other)] }] };
+    wr(path.join(B.dir, "plan.json"), JSON.stringify(p0, null, 2) + "\n");
+    const f = fill(B, { wip: { qa: [{ pass: 1, note: "What the review found." }] } }), p1 = P(B), H = p1.wip.history;
+    c.push(["the note on wip.qa", f.a.status === 0 && p1.wip.qa[0].note === "What the review found.", js([f.a.status, f.S.error, p1.wip.qa])]);
+    c.push(["…and on the Quality Review's and the Correction's snapshots of that pass", H.qa[0].qa[0].note === "What the review found." && H.remediation[0].qa[0].note === "What the review found.", js([H.qa[0].qa, H.remediation[0].qa])]);
+    c.push(["…never on the pass running before its verdict, nor on another pass", H.implementation[0].qa.every(q => q.note === undefined), js(H.implementation[0].qa)]);
+  });
   return groups;
 };
 

@@ -284,6 +284,29 @@ module.exports = function casesArrival(X) {
     c.push(["check.js passes a board whose point carries it, and one from before the field without it", gk.status === 0 && run(CHECK, [boardWith(HELD).dir]).status === 0, (gk.stdout || "").split(/\r?\n/).filter(l => /^FAIL/.test(l)).join(" | ")]);
   });
 
+  /* A late update is the one exception (plan/RULES.md §4, "The event's time"; §3, "The late update"): raised with --arrived as every event of the run's,
+     its missing facts.at is not stamped and no arrival line is written; the arrival moves wip.updated alone, never back; a facts.at or an --at refuses it */
+  guard("apply-event.js --arrived: a late update carries no time, takes none, and moves wip.updated alone, never back", c => {
+    const atPlan = () => { const B = lay(), p0 = JSON.parse(rd(path.join(B.dir, "plan.json")));
+      Object.assign(p0.wip, { step: "plan", since: T0, updated: T0, current: ["considered", "verdict"], stages: [], event: { name: "plan-stage", at: T0 }, detail: "Checked.",
+        plan: { state: "writing", since: T0, stages: [{ id: "write", state: "done", started: T0, finished: T0, report: "Drafted." }, { id: "check", state: "done", started: T0, report: "Checked." }, { id: "consequences", state: "todo" }, { id: "report", state: "current", started: T0 }] } });
+      p0.status = "planned"; wr(path.join(B.dir, "plan.json"), JSON.stringify(p0, null, 2) + "\n"); const e = run(EMBED, [B.dir]); if (e.status !== 0) throw new Error("embed: " + (e.stdout + e.stderr).slice(-300)); return B; };
+    const late = (B, facts, flags) => { const rq = wr(path.join(sc, `req-${++n}.json`), js({ v: 1, action: "plan-board", github: B.plan.repo, issue: B.plan.issue, event: "late-update", folder: B.plan.folder, facts }));
+      const a = run(APPLY, ["--event", rq, "--worktree", B.root, "--no-gh", "--no-live", "--json", ...(flags || [])]); let p = null; try { p = JSON.parse(rd(path.join(B.dir, "plan.json"))); } catch (e) { /* none */ } return { a, S: parse(a), p }; };
+    const B = atPlan(), r = late(B, { event: "plan-stage", stage: "consequences", detail: "consequences.md written." }, ["--arrived", A]);
+    const st = r.p && r.p.wip.plan.stages.find(x => x.id === "consequences");
+    c.push(["applied with no time: the stage done, late, no started or finished", r.a.status === 0 && st && st.state === "done" && st.late === true && !("started" in st) && !("finished" in st), js([r.S.error, st])]);
+    c.push(["its missing facts.at is not stamped: no arrival line", r.S.arrival == null, js(r.S.arrival)]);
+    c.push(["the arrival moves wip.updated alone: wip.event, the detail and the trail as they were", r.p.wip.updated === A && js(r.p.wip.event) === js({ name: "plan-stage", at: T0 }) && r.p.wip.detail === "Checked." && js(r.p.trail) === js(B.plan.trail), js([r.p.wip.updated, r.p.wip.event])]);
+    const back = late(B, { event: "plan-stage", stage: "consequences", detail: "consequences.md written, its follow-ups named." }, ["--arrived", sec(-3600)]);
+    c.push(["an earlier arrival never moves wip.updated back", back.a.status === 0 && back.p.wip.updated === A && back.p.wip.plan.stages.find(x => x.id === "consequences").report === "consequences.md written, its follow-ups named.", js([back.S.error, back.p.wip.updated])]);
+    const pre = rd(path.join(B.dir, "plan.json"));
+    const withAt = late(B, { event: "plan-stage", stage: "consequences", detail: "x", at: A }, ["--arrived", A]), withOpt = late(B, { event: "plan-stage", stage: "consequences", detail: "x" }, ["--at", A]);
+    c.push(["a facts.at refuses it, and so does --at; nothing written", withAt.a.status === 1 && /carries no facts\.at/.test(withAt.S.error || "") && withOpt.a.status === 1 && /raised with --at/.test(withOpt.S.error || "") && rd(path.join(B.dir, "plan.json")) === pre, js([withAt.S.error, withOpt.S.error])]);
+    c.push(["a plan-stage at the same board still has its facts.at held to the arrival", (() => { const rq = wr(path.join(sc, `req-${++n}.json`), js({ v: 1, action: "plan-board", github: B.plan.repo, issue: B.plan.issue, event: "plan-stage", folder: B.plan.folder, facts: { stage: "report", detail: "x" } }));
+      const a = run(APPLY, ["--event", rq, "--worktree", B.root, "--no-gh", "--no-live", "--json", "--arrived", sec(60)]), S = parse(a); return a.status === 0 && S.result === "nothing" && /facts\.at missing: stamped at arrival/.test(S.arrival || ""); })(), "the stage open: nothing written, the arrival line still said"]);
+  });
+
   return groups;
 };
 

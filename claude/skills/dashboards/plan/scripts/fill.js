@@ -40,7 +40,8 @@
 //   written, a key other than id, started, finished and reason, an entry naming no time or no reason, a task id the board does not hold or named twice, a time
 //   that is no UTC ISO time or is after wip.updated, a start on a task still to come or a finish on a task not done (that would change its state), a finish
 //   before the task's start, and a time outside the Document step's own bounds (its first visit's start; while the step runs wip.updated, else its last
-//   visit's end). The same correction again writes nothing. An answer's gist (the interview's, a halt's) is written on the snapshots that hold its question too (lib.js syncAsked()).
+//   visit's end). The same correction again writes nothing. An answer's gist (the interview's, a halt's) is written on the snapshots that hold its question too (lib.js syncAsked()),
+//   and a Quality Review's note (wip.qa) on the snapshots that hold the same pass, its pass, time and verdict, so a finished Quality Review's or Correction's step Panel shows it.
 //   wip.waitingOn is the text the fast path left out or wrote in its stead (plan/RULES.md §4, its rewording of a sizing in the facts): while the board
 //   is halted or escalated it is written, and the stop's own trail entry and a detail that quoted the old text follow it, so the record reads alike;
 //   once an event has taken the board out of the stop, the last stop's trail entry alone takes it, and a waitingOn and resume left standing are cleared.
@@ -249,7 +250,10 @@ function mergeFill(board, fields, planDir) {
       if (!hit.length) { notes.push(`wip.asked has no ${JSON.stringify((x || {}).text)}: skipped`); return; }
       hit.forEach(h => { if (x.answer !== undefined) h.answer = x.answer; }); merged.push(`wip.asked ${String(x.text).slice(0, 40)}`); });
     if (F.wip.interview || F.wip.asked) lib.syncAsked(w);
-    by("qa", "pass", F.wip.qa, (h, x) => { if (x.note !== undefined) h.note = x.note; });
+    /* a Quality Review's note, on wip.qa and on every visit's snapshot that holds the same pass (its pass and its time): the step Panel of a finished
+       Quality Review or Correction draws the snapshot, so a note written after the visit froze reaches it too, as an answer's gist does (syncAsked()) */
+    by("qa", "pass", F.wip.qa, (h, x) => { if (x.note === undefined) return; h.note = x.note;
+      Object.values(isObj(w.history) ? w.history : {}).forEach(vs => (Array.isArray(vs) ? vs : []).forEach(v => (isObj(v) && Array.isArray(v.qa) ? v.qa : []).forEach(q => { if (isObj(q) && q.pass === h.pass && q.at === h.at && q.verdict === h.verdict) q.note = x.note; }))); });
     /* an open point's recorded resolution time corrected (a factual error, RULES §2): by its text, on wip.open and on every snapshot holding the same record */
     (Array.isArray(F.wip.open) ? F.wip.open : []).forEach(x => {
       if (!isObj(x) || typeof x.text !== "string" || !lib.isTime(x.resolved)) throw new Refused("wip.open: every entry names an open point by its text and the UTC ISO time it was resolved at ({ text, resolved })");

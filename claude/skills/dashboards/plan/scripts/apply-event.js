@@ -91,6 +91,11 @@
 // A halt in the Document step applies the facts.tasks it carries as a document event does, stamped at the halt's time, the halt otherwise
 // unchanged (dashboards-skill/halt-tasks, KotlinBottools #24); the summary's "unread" line names every fact the event carried and no
 // path of it read, so none is dropped in silence (dashboards-skill/unread-facts; trackFacts()).
+// The plan stages (plan/RULES.md §3, "The plan stages"; lib.js planStageMove()): a sub-issue's re-pass from its parent, and a writing pass, are seeded
+// with their stages by the event that opens the pass (sized, researched, resumed); plan-stage (facts.stage, facts.detail) opens a stage and closes
+// the one before it, one trail line, the stage already open writing nothing (read before any refusal); late-update (facts.event plan-stage,
+// facts.stage, facts.detail, no facts.at and no --at) records a stage passed over with no time, moving only wip.updated; plan-accepted closes
+// them. A refused plan-stage or late-update writes nothing, and no fill writes it either: the summary says enrich: no.
 "use strict";
 const T0 = Date.now();
 const fs = require("fs"), path = require("path"), cp = require("child_process");
@@ -126,7 +131,7 @@ const say = () => {
   /* the facts the event carried and did not read (unreadFacts()): only once it applied, when every path it takes has read what it reads */
   S.unread = S.result === "ok" ? unreadFacts() : [];
   if (S.warnings.length && S.check && !/fast-path warning/.test(S.check)) S.check += ` · ${S.warnings.length} fast-path warning${S.warnings.length === 1 ? "" : "s"} (below)`;
-  const enrich = S.enrich.length ? "yes" : "no", noWork = S.unfinished ? "no enrichment: the run reports those tasks' true states and the event is raised again" : "the event's facts decide everything it writes";
+  const enrich = S.enrich.length ? "yes" : "no", noWork = S.unfinished ? "no enrichment: the run reports those tasks' true states and the event is raised again" : S.result === "failed" && NO_FILL ? NO_FILL : "the event's facts decide everything it writes";
   if (flag("json")) { console.log(JSON.stringify({ ...S, enrich, why: S.enrich.length ? S.enrich : [noWork] })); return; }
   const L = [["apply-event", S.result], ["event", S.event], ["arrival", S.arrival], ["issue", S.issue != null ? "#" + S.issue : null], ["board", S.board], ["laid", S.laid],
     ["applied", S.applied.join("; ") || "nothing"], ["unread", S.unread.length ? `${S.unread.map(k => "facts." + k).join(", ")} (carried by the event and not read by it: nothing on the board came from ${S.unread.length === 1 ? "it" : "them"})` : null], ["enrich", enrich], ["why", S.enrich.length ? S.enrich.join("; ") : noWork],
@@ -236,6 +241,8 @@ function applyEvent(orig, ev, facts, req, now) {
      "implement" is the implementation step); a facts.step that names no step is warned on, never dropped silently, and the step is derived
      from the event: the field is dropped, so no event takes it for a step (a resumed returns to the board's wip.resume) */
   if (ev === "step-complete" && typeof facts.step === "string" && facts.step.trim()) { applied.push(`facts.step ${JSON.stringify(facts.step.trim())} ignored: a step-complete moves no step`); facts = factsWith(facts, null, ["step"]); }
+  /* a plan stage moves no step either (plan/RULES.md §3, "What the event writes"): its facts.step has no effect */
+  if (["plan-stage", "late-update"].includes(ev) && typeof facts.step === "string" && facts.step.trim()) { applied.push(`facts.step ${JSON.stringify(facts.step.trim())} ignored: a ${ev} moves no step`); facts = factsWith(facts, null, ["step"]); }
   if (typeof facts.step === "string" && facts.step.trim()) {
     const said = facts.step.trim(), name = stepLabel(said), low = name.toLowerCase(), tplan = plan.kind === "tracking" && TRACKING_PLAN_WORDS.has(low);
     const step = tplan ? trackingArchStep(w) : STEP_ALIASES[low] || (STEPS.includes(low) ? low : said);
@@ -249,7 +256,7 @@ function applyEvent(orig, ev, facts, req, now) {
   /* a steps line written before the Document step (dashboards-skill/35) takes it before its landing, and merge after it, at any event of a
      board in flight whose run has not reached its landing; a run at its landing or past it keeps the three landing steps of
      dashboards-skill/34 (lib.js documentSteps()); a landed or cancelled board keeps its line */
-  if (ev !== "step-complete" && Array.isArray(w.steps) && !["built", "abandoned"].includes(plan.status) && !["landed", "cancelled"].includes(w.step)) { const ls = lib.documentSteps(w.steps, lib.shownStep(w)); if (ls !== w.steps) { w.steps = ls; applied.push(`wip.steps: ${ls.includes("document") ? "the Document step before the landing, merge after it" : "state-boards and merge after the landing"}`); } }
+  if (ev !== "step-complete" && ev !== "late-update" && Array.isArray(w.steps) && !["built", "abandoned"].includes(plan.status) && !["landed", "cancelled"].includes(w.step)) { const ls = lib.documentSteps(w.steps, lib.shownStep(w)); if (ls !== w.steps) { w.steps = ls; applied.push(`wip.steps: ${ls.includes("document") ? "the Document step before the landing, merge after it" : "state-boards and merge after the landing"}`); } }
   const rows = Array.isArray(plan.rows) ? plan.rows : [], ids = new Set(rows.map(r => r && r.id)), tracking = plan.kind === "tracking";
   /* a text from the facts, as one line; a sizing in it (GUIDANCE.md §4) is never written: the phrase is
      reworded or elided as levelrefs.js scrubLevels() says (its scope phrase becomes the unit's scope on a sub-issue's board, the issue's
@@ -291,6 +298,15 @@ function applyEvent(orig, ev, facts, req, now) {
   const tPlan = s => tracking && s === "plan" ? trackingArchStep(w) : s;
   const setStep = s => { if (w.step !== s) { w.step = s; w.since = now; applied.push(`wip.step ${s}`); } };
   const stopped = s => s === "halted" || s === "escalated";
+  /* the plan step's pass opened where none stands (plan/RULES.md §3, "The plan stages"): a sub-issue's re-pass from its parent, any other issue's
+     writing pass; with its plan stages, the first current at the event's time, on a line that has them (a research step on its steps line) where
+     `staged` (a sized opens them on a sub-issue alone: another issue sized at its plan verifies a plan already written, which has none) */
+  const openPass = staged => {
+    w.plan = plan.parent ? { state: "re-pass", from: "parent", since: now } : { state: "writing", since: now };
+    const sids = staged && lib.planStagesLine(plan) ? lib.planPassIds(w.plan) : null;
+    if (sids) w.plan.stages = lib.seedPlanStages(sids, now);
+    applied.push(`wip.plan ${w.plan.state}${sids ? `, with its ${sids.length} plan stages, ${sids[0]} current` : ""}`);
+  };
   const curStage = () => (w.stages || []).find(x => x && x.state === "current") || null;
   /* a facts.stage that is a stage's id ("S5"), else null: a sentence such as "S5 done; S6 current" is not an id */
   const stageIdOf = v => { const t = typeof v === "string" ? v.trim() : ""; return t && (w.stages || []).some(x => x && x.id === t) ? t : null; };
@@ -329,6 +345,8 @@ function applyEvent(orig, ev, facts, req, now) {
   let haltTasks = false;
   /* a late report keeps the WIP line the step wrote (keepLine, the implementation-stage case below) */
   let keepLine = false;
+  /* the plan's pass with its stages closed by plan-accepted, for the visit it freezes (planClosed, the plan-accepted case below) */
+  let planClosed = null;
   /* the Tests tab is due an update when a stage is reported done or a qa pass returns its verdict (plan/RULES.md §2, "The Tests tab") */
   let testsDue = false;
   const research = () => (w.research = w.research && typeof w.research === "object" ? w.research : { phase: null, drafted: 0, since: {} });
@@ -367,7 +385,7 @@ function applyEvent(orig, ev, facts, req, now) {
       /* the run's start, kept once: the plan phase's first bound on the Timeline tile (plan/RULES.md §2, "The KPI tiles") */
       if (!lib.okStamp(plan.sized)) { plan.sized = now; applied.push(`sized ${now}`); }
       setStep(step); setGlow(step);
-      if (step === "plan" && !tracking && !w.plan) { w.plan = plan.parent ? { state: "re-pass", from: "parent", since: now } : { state: "writing", since: now }; applied.push(`wip.plan ${w.plan.state}`); }
+      if (step === "plan" && !tracking && !w.plan) openPass(!!plan.parent);
       enrich.push(lib.foundationFilling(plan).function || lib.foundationFilling(plan).columns.length ? "sized: the foundation is laid and the event applied; what reads as being written comes from the issue and the documents: the function, the rows with their Gap and, for a sub-issue of a signed-off tracking plan, the Considered column, written in place on this board, as at any enrichment (embed.js clears plan.foundation)" : "sized: the function and, for a sub-issue of a signed-off tracking plan, the Gap and Considered columns come from the documents");
       detail = detail || `Sized; ${STEP_WORDS[step]} starts.`;
       /* a corrected sizing (a second sized with no event between, a request re-sent with corrected facts) adds no second entry where
@@ -429,6 +447,8 @@ function applyEvent(orig, ev, facts, req, now) {
       if (!step || !STEPS.includes(step) || stopped(step)) refuse(`resumed names no step to return to (facts.step, or the board's wip.resume; got ${JSON.stringify(step || null)})`);
       w.resume = null; w.waitingOn = null; applied.push("wip.resume and wip.waitingOn cleared");
       setStep(step); setGlow(step);
+      /* the first event that puts the board at its plan step with no pass standing opens it, with its stages (plan/RULES.md §3, "The plan stages") */
+      if (step === "plan" && !tracking && !w.plan) openPass(true);
       if (step === "interview" && (w.interview || []).some(q => q && q.answer == null)) enrich.push("resumed: the interview's answers are recorded from the user's reply");
       detail = detail || `Resumed at ${stepWords(step, lib.ctxOf(w))}.`;
       trail = { column: STEP_COLUMN[step] || "built", label: `Resumed at ${stepWords(step, lib.ctxOf(w))}` };
@@ -503,9 +523,10 @@ function applyEvent(orig, ev, facts, req, now) {
       const step = facts.step || (tracking ? "architecture" : "plan");
       if (!["architecture", "plan"].includes(step)) refuse(`researched: the next step is architecture or plan (got ${JSON.stringify(step)})`);
       setStep(step);
-      /* the plan step's pass opens as writing where none stands; a re-pass already standing (from the parent's plan at a sub-issue's sized, after a
-         Quality Review, or verifying an existing plan) is kept, never overwritten by the research's end */
-      if (step === "plan" && !tracking && !(w.plan && ["writing", "re-pass"].includes(w.plan.state))) { w.plan = { state: "writing", since: now }; applied.push("wip.plan writing"); }
+      /* the plan step's pass opens where none stands, with its stages (openPass(): a sub-issue's re-pass from its parent, else writing); a pass already
+         standing (from the parent's plan at a sub-issue's sized, after a Quality Review, or verifying an existing plan) is kept with its stages as they
+         stand, never overwritten by the research's end */
+      if (step === "plan" && !tracking && !(w.plan && ["writing", "re-pass"].includes(w.plan.state))) openPass(true);
       setGlow(step);
       if (!nothing) enrich.push("researched: the Gap column and its milestone come from research/README.md and the findings");
       detail = detail || (nothing ? `Nothing to research; ${STEP_WORDS[step]} next.` : `Research verified; ${STEP_WORDS[step]} next.`);
@@ -563,6 +584,10 @@ function applyEvent(orig, ev, facts, req, now) {
       break;
     }
     case "plan-accepted": {
+      /* the plan stages (plan/RULES.md §3, "The plan stages"): the one open closes at the event's time, its report the event's detail (a stage before
+         report closes with no time, the stages after it "not recorded"); the visit this event ends freezes them as they then stood (below) */
+      if (!tracking && lib.planStagesOf(w.plan).length) { const P2 = JSON.parse(JSON.stringify(w.plan)), c = lib.planStagesClose(P2, now, detail);
+        if (c) { planClosed = P2; applied.push(`wip.plan.stages: ${c.closed} done${c.passed.length ? `, ${c.passed.join(", ")} not recorded` : ""}`); } }
       if ((w.questions || []).length || w.research || w.plan) applied.push("wip.questions, wip.research and wip.plan cleared");
       w.questions = []; w.research = null; w.plan = null;
       /* A tracking board has no plan, branch or build step before its units are filed (plan/RULES.md §3, §4): its run's plan-accepted
@@ -581,6 +606,44 @@ function applyEvent(orig, ev, facts, req, now) {
       enrich.push("plan-accepted: the Considered and Verdict columns, the verdict milestone and the consequences come from plan.md and consequences.md (impact.md in an older folder)");
       detail = detail || "Plan accepted; the branch is confirmed next.";
       trail = { column: "verdict", label: "Plan accepted", ref: docRef("plan.md") };
+      break;
+    }
+    /* A plan stage opens (plan/RULES.md §3, "The plan stages"; §4, the plan-stage row): facts.stage, the stage it opens, facts.detail, one plain sentence
+       giving the result of the stage it closes. The stage already open writes nothing, read before any refusal (a sub-issue's re-pass stays current
+       across the run's research step). On the fast path alone (lib.js planStageMove()): the stage current at the event's time, the one before it done
+       with the detail as its report, a stage opened again its next round with every stage after it that ran back to come, a check round's result read
+       from the stage that opens next, a stage passed over left "not recorded"; wip.event, wip.detail and one trail line; no step, no glow, no Row.
+       Refused, nothing written, where §3 says. A tracking board takes it at its architecture step alone, as an architecture stage, on a board with
+       architecture stages ("A multi-system run's architecture step"). */
+    case "plan-stage": case "late-update": {
+      const late = ev === "late-update", said = typeof facts.stage === "string" ? facts.stage.trim() : "";
+      if (late && (typeof facts.event !== "string" || facts.event.trim() !== "plan-stage")) refuse(`late-update: facts.event names the event the update records late, plan-stage (got ${JSON.stringify(facts.event == null ? null : facts.event)})`);
+      if (!said) refuse(`${ev} carries no facts.stage, the plan stage it ${late ? "records" : "opens"} (re-pass, write, check, consequences or report)`);
+      const id = lib.planStageId(said), P = w.plan, S0 = lib.planStagesOf(P), open = S0.find(x => x.state === "current"), nm = id ? lib.PLAN_STAGE_NAMES[id] : said;
+      /* the stage already open: nothing written, whatever step the board stands at (read before any refusal) */
+      if (!late && !tracking && id && open && open.id === id) return { plan: orig, applied: [`the plan stage ${nm} is open already: nothing written`], enrich, parentOp: null, nothing: true };
+      if (["built", "abandoned"].includes(plan.status) || ["landed", "cancelled"].includes(w.step)) refuse(`${ev}: the board has ${plan.status === "abandoned" || w.step === "cancelled" ? "been cancelled" : "landed"}, and a closed board is kept as it closed`);
+      if (tracking) refuse(`${ev}: a tracking board takes it at its architecture step alone, as an architecture stage, and only where the board has architecture stages; this board has none (a board from before them): nothing written`);
+      const shown = stopped(w.step) ? w.resume : w.step;
+      if (shown !== "plan") refuse(`${ev}: the board stands at ${shown || "no step"}${stopped(w.step) ? ` (${w.step}, to resume there)` : ""}, not at its plan step${late && ["branch", "implementation", "qa", "remediation", "document"].includes(shown) ? ": the plan was accepted, and a late update is taken only until then" : ": a plan stage moves only there"}`);
+      if (!S0.length) refuse(`${ev}: this plan step runs with no plan stages (${!P ? "no plan pass stands" : P.state === "re-pass" && P.from === "qa" ? "a re-pass after a Quality Review" : P.state === "re-pass" && P.from === "existing" ? "an existing plan's verification" : !lib.planStagesLine(plan) && Array.isArray(w.steps) && w.steps.length ? "a small fix's plan" : "a board from before the plan stages"}): nothing written`);
+      if (!id) refuse(`${ev}: ${JSON.stringify(said)} is no plan stage (this pass's: ${S0.map(x => x.id).join(", ")})`);
+      if (!S0.some(x => x.id === id)) refuse(`${ev}: ${id} is no stage of this pass (${P.state === "writing" ? "a writing pass runs from write: re-pass is a sub-issue's" : "its stages: " + S0.map(x => x.id).join(", ")})`);
+      /* late-update (plan/RULES.md §3, "The late update"): the stage passed over, done with no time, its report the detail; no trail line, no wip.event,
+         no wip.detail, no step; wip.updated alone moves, never back (below) */
+      if (late) {
+        const r = lib.planStageLate(P, id, detail);
+        if (r.refused) refuse(`late-update: ${r.refused}`);
+        if (!r.changed) return { plan: orig, applied, enrich, parentOp: null, unchanged: true, said: `the plan stage ${nm} is recorded late already with that report: nothing written` };
+        applied.push(`wip.plan.stages: ${id} done, recorded late with no time${r.again ? " (its report replaced)" : ""}`);
+        detail = w.detail || null; note = null;
+        break;
+      }
+      const m = lib.planStageMove(P, id, now, detail);
+      if (!m.wayBack) WARNINGS.push(`PLAN STAGE ORDER: ${nm} opened again after ${lib.PLAN_STAGE_NAMES[m.closed]}, a way back the plan step does not give (write after check/accept${S0[0].id === "re-pass" ? ", re-pass after check/accept" : ""}, ${lib.PLAN_STAGE_NAMES[S0[0].id]} after report): recorded as sent`);
+      applied.push(`wip.plan.stages: ${id} current${m.round > 1 ? ` (round ${m.round})` : ""}${m.closed ? `; ${m.closed} ${m.closedWord}${m.passed.length ? ` with no time (${m.passed.join(", ")} passed over, not recorded)` : ""}` : ""}${m.back ? "; every stage after it that ran back to come, each keeping its rounds" : ""}`);
+      trail = { column: "verdict", label: lib.planStageLine(m, id, detail) };
+      detail = detail || `Plan stage: ${nm}${m.round > 1 ? `, round ${m.round}` : ""}.`;
       break;
     }
     case "branch-cut": {
@@ -964,6 +1027,7 @@ function applyEvent(orig, ev, facts, req, now) {
       if (!E) refuse("reword carries no facts.event, the event whose recorded text it rewords");
       if (!lib.EVENTS.includes(E)) refuse(`reword: ${JSON.stringify(E)} is no plan-board event`);
       if (lib.TEAM_RECORDS.includes(E)) refuse(`reword: ${E} is the team's record, composed from the team's facts: a reword corrects a run's own text (one of ${lib.EVENTS.filter(x => !lib.TEAM_RECORDS.includes(x) && !lib.RETIRED_EVENTS.includes(x)).join(", ")})`);
+      if (E === "late-update") refuse("reword: a late update records a stage with no time, so no recorded time finds its report; a second late update for the same stage replaces it (plan/RULES.md §3, \"The late update\")");
       if (!lib.isTime(facts.recordedAt)) refuse(`reword carries no facts.recordedAt, the UTC ISO time the record holds for ${E} (got ${JSON.stringify(facts.recordedAt || null)})`);
       if (typeof facts.from !== "string" || !facts.from.trim()) refuse("reword carries no facts.from, the passage as the record holds it");
       if (typeof facts.to !== "string") refuse("reword carries no facts.to, what the passage should read (an empty string takes it out)");
@@ -1017,7 +1081,8 @@ function applyEvent(orig, ev, facts, req, now) {
   }
   /* The Tests tab (plan/RULES.md §2, "The Tests tab"): an event that carries facts.tests has it applied (testslib.js mergeTests()); an
      implementation stage or a qa verdict without one leaves the tab to a fill, from the branch's diff and the qa report */
-  if (facts.tests != null && ev !== "retime" && ev !== "reword") {
+  /* a late update reads no facts.tests (it carries no time to stamp a result at): left unread, named on the unread line */
+  if (ev !== "late-update" && facts.tests != null && ev !== "retime" && ev !== "reword") {
     if (tracking) enrich.push("facts.tests on a tracking board: its units' boards record the tests (the presenter writes them there)");
     else { const qp = ev === "qa-pass" && facts.qa && Number.isInteger(facts.qa.pass) ? facts.qa.pass : null;
       /* A remediation's report names no stage of plan.md: its classes take "Quality Review n fixes", the pass the remediation answers, never the
@@ -1032,7 +1097,8 @@ function applyEvent(orig, ev, facts, req, now) {
     enrich.push(`the Tests tab: the event carries no facts.tests; ${ev === "qa-pass" ? "Relevant, Other and the results come from the qa report" : "Added and Amended come from the branch's diff against its base"}`);
   /* the fast path takes open points at every event (plan/RULES.md §4, "The fast path"; moved onto it in dashboards-skill/33): an
      implementation stage and a qa pass raise theirs above, any other event here, raised by the event's name */
-  if (Array.isArray(facts.open) && facts.open.length && !["implementation-stage", "qa-pass", "retime", "reword"].includes(ev)) mergeOpen(w, facts, applied, txt, ev, resolved, plan.folder, DIR, enrich, now, ev);
+  /* a late update takes none: it carries no time to raise or resolve one at (its facts.open is named unread) */
+  if (ev !== "late-update" && Array.isArray(facts.open) && facts.open.length && !["implementation-stage", "qa-pass", "retime", "reword"].includes(ev)) mergeOpen(w, facts, applied, txt, ev, resolved, plan.folder, DIR, enrich, now, ev);
   if (keepLine) { if (detail != null && detail !== w.detail) applied.push("wip.detail kept: a late report, its detail recorded on the stages it closes"); }
   else if (detail !== w.detail) { w.detail = detail; applied.push("wip.detail"); }
   const evRec = { name: ev, at: now, ...(note ? { note } : {}) };
@@ -1041,8 +1107,9 @@ function applyEvent(orig, ev, facts, req, now) {
   /* retime leaves it too: it is a correction of the record, said in its notes.corrections entry; and its wip.updated never goes back (a
      correction raised with an older time than the board's last write still changed the board after it) */
   /* reword likewise: a correction of the record's wording, said in its one entry */
-  if (!["run-restarted", "retime", "reword"].includes(ev)) w.event = evRec;
-  w.updated = ["retime", "reword"].includes(ev) && lib.isTime(w.updated) && Date.parse(w.updated) > Date.parse(now) ? w.updated : now;
+  /* late-update likewise: it records a stage with no time, and is no event the board shows as its last (plan/RULES.md §3, "The late update") */
+  if (!["run-restarted", "retime", "reword", "late-update"].includes(ev)) w.event = evRec;
+  w.updated = ["retime", "reword", "late-update"].includes(ev) && lib.isTime(w.updated) && Date.parse(w.updated) > Date.parse(now) ? w.updated : now;
   if (trail) {
     const t = { date: today, column: trail.column, label: trail.label, ...(trail.ref ? { ref: trail.ref } : {}) };
     plan.trail = Array.isArray(plan.trail) ? plan.trail : [];
@@ -1058,6 +1125,10 @@ function applyEvent(orig, ev, facts, req, now) {
      stop but cancelled (dashboards/halt-questions, dated 45) */
   { const was = stopped((orig.wip || {}).step); if (ev === "resumed" || (was && !stopped(w.step) && ev !== "cancelled")) applied.push(...lib.answerQuestions(w, now)); }
   applied.push(...lib.freezeSteps(orig, plan, ev, now, facts));
+  /* the plan visit plan-accepted ended holds its stages as plan-accepted closed them (planClosed): the freeze took the pass as it stood before the
+     event cleared it */
+  if (planClosed) { const HP = w.history && typeof w.history === "object" && Array.isArray(w.history.plan) ? w.history.plan : [], V = HP.find(v => v && v.ended === now && v.endedBy === "plan-accepted");
+    if (V && JSON.stringify(V.plan || null) !== JSON.stringify(planClosed)) { V.plan = planClosed; applied.push("wip.history.plan: the visit holds the plan stages as plan-accepted closed them"); } }
   /* a halt's Document tasks on the visit that halt ended (haltTasks): the freeze takes them where it freezes the visit now; a halt raised
      again, its visit frozen before it carried them, brings that visit's snapshot to them */
   if (haltTasks && w.document) { const HD = w.history && typeof w.history === "object" && Array.isArray(w.history.document) ? w.history.document : [], V = HD.find(v => v && v.held && v.ended === now && v.endedBy === "halted");
@@ -1916,7 +1987,7 @@ async function unitLanded(now, req, facts) {
 const run = (file, a, cwd) => new Promise(res => { const c = cp.spawn(process.execPath, [file, ...a], { cwd, windowsHide: true }); let o = "", e = "";
   c.stdout.on("data", d => { o += d; }); c.stderr.on("data", d => { e += d; }); c.on("close", s => res({ status: s, stdout: o, stderr: e })); c.on("error", x => res({ status: 1, stdout: o, stderr: String(x) })); });
 
-let DIR = null, ROOT = null, MAIN = null, LAY_HINT = null, EV = null;
+let DIR = null, ROOT = null, MAIN = null, LAY_HINT = null, EV = null, NO_FILL = null;
 const VIEWING = flag("view");
 /* the board's data where --view reads it: its view copy when one is fresher than the tracked board, else the tracked plan.json */
 const HELD = new Set();
@@ -2044,7 +2115,9 @@ async function main() {
   const req = readRequest(evFile), raw = req.facts && typeof req.facts === "object" && !Array.isArray(req.facts) ? req.facts : {};
   FACTS_KEYS = Object.keys(raw);
   const facts = trackFacts(raw);
-  holdToArrival(facts);
+  /* a late update carries no time and is given none (plan/RULES.md §4, "The event's time", "A late update is the one exception"): its missing facts.at
+     is not stamped at the arrival, and no arrival line is written for it; one sent, or an --at, refuses it (below) */
+  if (req.event !== "late-update") holdToArrival(facts);
   if (req.action && req.action !== "plan-board") refuse(`the request's action is ${JSON.stringify(req.action)}, not plan-board`);
   /* a retime's facts.event is the event it retimes, never the request's: a request that names none, with a retime's facts, is not read as that event */
   if (!req.event && (facts.from != null || facts.to != null)) refuse(`the request names no event: a retime is "event": "retime" (a reword "event": "reword"), and its facts.event (${JSON.stringify(facts.event || null)}) the event it corrects`);
@@ -2052,6 +2125,10 @@ async function main() {
   /* retired: no unit's board is laid ahead of its run (plan/RULES.md §4); an older board's record of it is still read */
   if (lib.RETIRED_EVENTS.includes(ev)) refuse(`${ev} is retired: a unit's board is laid at its own sized, never ahead of its run`);
   if (!lib.EVENTS.includes(ev)) refuse(`the request names no plan-board event (got ${JSON.stringify(ev || null)}; one of ${lib.EVENTS.join(", ")})`);
+  /* a refused plan-stage or late-update leaves the board as it was, and no fill writes the stages either (plan/RULES.md §3: apply-event.js alone) */
+  if (["plan-stage", "late-update"].includes(ev)) NO_FILL = `a ${ev} the fast path refuses writes nothing, and no fill writes the plan stages: the refusal is the run's to read`;
+  if (ev === "late-update" && opt("at")) refuse(`late-update carries no time and is given none: raised with --at ${opt("at")}, it is refused (raise it with --arrived alone, as every event of the run's)`);
+  if (ev === "late-update" && raw.at != null) refuse(`late-update carries no facts.at (got ${JSON.stringify(raw.at)}): a stage passed over is recorded with no time; a stage the run can time is sent as a plan-stage`);
   if (ev === "reseed") {
     if (VIEWING) refuse("reseed writes the tracked boards a sized seeded, never the view copies: raise it without --view");
     if (REPO_SLUG && req.github && REPO_SLUG !== req.github) refuse(`--repo ${REPO_SLUG} is not the request's github ${req.github}`);
@@ -2087,7 +2164,8 @@ async function main() {
   if (VIEWING && !fs.existsSync(path.join(MAIN, "docs", "plans"))) refuse(`--view: the main checkout ${MAIN} has no docs/plans/`);
   if (VIEWING && !require("./mdcopy.js").liveWritable(MAIN)) refuse(`--view: docs/plans/.live/ is not git-ignored in ${MAIN} (add it to the main checkout's .git/info/exclude): no view copy written`);
   if (!fs.existsSync(path.join(ROOT, "docs"))) refuse(`the worktree ${ROOT} has no docs/ folder`);
-  const at = opt("at") || facts.at || req.at || null;
+  /* a late update's time is its arrival (--arrived), else the time it is applied: it moves wip.updated alone, never back */
+  const at = ev === "late-update" ? ARRIVED : opt("at") || facts.at || req.at || null;
   if (at && isNaN(Date.parse(at))) refuse(`the event's time ${JSON.stringify(at)} is not an ISO time`);
   const now = (at ? new Date(at) : new Date()).toISOString().replace(/\.\d+Z$/, "Z");
   const planFile = path.join(DIR, "plan.json");
@@ -2151,8 +2229,9 @@ async function main() {
   const seeded = laid ? seededFirst : ev === "sized" && !VIEWING ? seedFromView(now) : [];
   const R = applyEvent(orig, ev, facts, req, now);
   /* a step-complete that names what the board does not hold writes nothing (a warning, not a refusal); one already recorded keeps its first time */
-  if (R.nothing) { S.result = "nothing"; S.live = "untouched"; S.check = "nothing to check"; S.applied.push("nothing written"); return; }
-  if (R.unchanged) { S.result = "duplicate"; S.applied.push(`${facts.stepId} is recorded done already: its first time kept, nothing written`); return; }
+  /* a plan-stage naming the stage already open writes nothing either, and says so (plan/RULES.md §3, "The stage already open") */
+  if (R.nothing) { S.result = "nothing"; S.live = "untouched"; S.check = "nothing to check"; S.applied.push(...(ev === "plan-stage" ? R.applied : []), "nothing written"); return; }
+  if (R.unchanged) { S.result = "duplicate"; S.applied.push(R.said || `${facts.stepId} is recorded done already: its first time kept, nothing written`); return; }
   if (laid) { S.laid = folder; S.applied.push(...laid.applied); S.enrich.push(...laid.enrich); }
   S.applied.push(...renamed, ...R.applied); S.enrich.push(...R.enrich);
   /* a sub-issue's retime: its tracking board's record of the same time moves with it (the unit's start, its review, its landing, which the
@@ -2268,7 +2347,10 @@ main().then(() => { say(); process.exit(0); }, e => {
   S.result = "failed"; S.error = e.message;
   try { S.restored = rollback(); } catch (x) { S.error += `; the rollback failed too: ${x.message}`; }
   /* an unfinished Document step is the run's to report, not a defect for a fill (mergeTasks()) */
-  if (!S.unfinished && !S.enrich.includes("the event was not applied: the presenter applies it")) S.enrich.unshift("the event was not applied: the presenter applies it");
+  /* a refused plan-stage or late-update leaves nothing for a fill to write (NO_FILL): enrich is emptied and the refusal is the whole message; any other
+     failure asks for the event to be applied by hand */
+  if (NO_FILL && e instanceof Refusal) S.enrich.splice(0, S.enrich.length);
+  else if (!S.unfinished && !S.enrich.includes("the event was not applied: the presenter applies it")) S.enrich.unshift("the event was not applied: the presenter applies it");
   if (LAY_HINT) { S.laid = null; [S.applied, S.enrich].forEach(l => l.splice(0, l.length, ...l.filter(x => !/^foundation laid|^sized: the foundation is laid/.test(x)))); S.enrich.push(LAY_HINT); }
   say(); process.exit(1);
 });

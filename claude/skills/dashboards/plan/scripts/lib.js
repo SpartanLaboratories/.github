@@ -877,12 +877,12 @@ function outageSteps(pre, post, O, ev) {
    it to that sub-issue's tracking board: there the event is the unit's, so the board need not name it, and it changes nothing where the
    board holds no such time. Returns { refused } or { lines, moved, words }: the paths moved and what they are, in words, for the
    correction's entry. The board's unit rows (their mirrors, rebuilt at every embed) and its asBuilt (git's facts) are never moved. */
-const RETIME_NOT = ["run-restarted", "reseed", "seed", "unit-landed", "retime", "reword"];
+const RETIME_NOT = ["run-restarted", "reseed", "seed", "unit-landed", "retime", "reword", "late-update"];
 /* the trail entry an event writes (apply-event.js), by its label; on a tracking board, a unit's entry by its number */
 const RETIME_TRAIL = { sized: /^(?:sized|run started|re-?sized)\b/i, halted: /^halted\b/i, resumed: /^resumed\b/i, escalated: /^escalated\b/i,
   "research-planning": /^research planning\b/i, "research-started": /^research started\b/i, "research-returned": /^research returned\b/i,
   "verification-started": /^verification started\b/i, researched: /^(?:research verified|nothing to research)\b/i, "architecture-signed-off": /^architecture signed off\b/i,
-  "sub-issues-filed": /^\d+ of \d+ units? filed\b/i, "boards-created": /^\d+ of \d+ unit boards? created\b/i, "plan-accepted": /^(?:plan accepted|architecture final)\b/i,
+  "sub-issues-filed": /^\d+ of \d+ units? filed\b/i, "boards-created": /^\d+ of \d+ unit boards? created\b/i, "plan-stage": /^(?:plan|architecture) stage:/i, "plan-accepted": /^(?:plan accepted|architecture final)\b/i,
   "branch-cut": /^(?:planning )?branch\b/i, "implementation-stage": /^(?:[\w.-]+ done; |[\w.-]+ current: |implementation\b|correction\b|resolution\b)/i,
   "qa-pass": /^(?:quality review \d+|qa pass \d+)/i, document: /^document\b/i, "state-boards": /^(?:document|state boards)\b/i, landing: /^landing\b/i,
   merge: /^merg(?:e|ing)\b/i, landed: /^(?:landed|the plan landed)\b/i, cancelled: /^cancelled\b/i };
@@ -974,7 +974,7 @@ function retimePlan(plan, o) {
 /* the event a retime corrects, as the correction's entry names it (no internal name, no sizing) */
 const RETIME_WORDS = { sized: "The sizing", halted: "The halt", resumed: "The return from the halt", escalated: "The escalation", "research-planning": "The start of the research questions",
   "research-started": "The research's start", "research-returned": "A research question's return", "verification-started": "The verification's start", researched: "The research's verification",
-  "architecture-signed-off": "The architecture's sign-off", "sub-issues-filed": "The filing of the units as sub-issues", "boards-created": "The creation of the units' boards", "plan-accepted": "The plan's acceptance",
+  "architecture-signed-off": "The architecture's sign-off", "plan-stage": "A plan stage's opening", "sub-issues-filed": "The filing of the units as sub-issues", "boards-created": "The creation of the units' boards", "plan-accepted": "The plan's acceptance",
   "branch-cut": "The branch cut", "implementation-stage": "An implementation stage's report", "step-complete": "A step's completion", "qa-pass": `A ${PN.PASS_NAME}`, document: "A Document step report", landing: "The land's acceptance",
   "state-boards": "The state boards' task", merge: "The merge", landed: "The landing", cancelled: "The cancellation" };
 const retimeWords = (ev, tracking) => tracking && ev === "plan-accepted" ? "The architecture's final" : RETIME_WORDS[ev] || `The ${ev} event`;
@@ -1268,6 +1268,8 @@ function reconstructStep(plan, step) {
         if (back && t.ref) have.findings = t.ref; }); });
     if (qs.length) R.questions = qs; }
   if (step === "branch" && typeof plan.branch === "string" && plan.branch.trim()) R.branch = plan.branch;
+  /* the plan stages, from the trail lines that name them (plan/RULES.md §3, "Where it shows"), with no time */
+  if (step === "plan" && plan.kind !== "tracking") { const ps = planStagesFromTrail(R.trail.map(t => t.label), !!plan.parent); if (ps) R.planStages = ps; }
   if (step === "implementation" && nonEmpty(w.stages)) R.stages = clone(w.stages);
   if (step === "document" && isObj(w.document) && nonEmpty(w.document.tasks)) R.document = clone(w.document);
   if (step === "qa" || step === "remediation") { const qa = (Array.isArray(w.qa) ? w.qa : []).filter(p => p && (step === "qa" || p.verdict === "changes-requested"));
@@ -2044,11 +2046,116 @@ function researchGlow(plan) {
   }
   return { current: rows.map(r => r.id + ".considered").filter(a => cells.has(a)), phase, fallback: null };
 }
+/* ---------- The plan stages (plan/RULES.md §3, "The plan stages", "The late update") ----------
+   A sub-issue's plan step, its re-pass from the parent, runs as five plan stages; a writing pass (the plan step of an issue that is no
+   sub-issue, on a line with a research step) runs the last four. A small fix's plan, an existing plan's verification, a re-pass after a
+   Quality Review and a board from before the stages have none. wip.plan.stages holds them in order, each { id, state, started, finished,
+   report, result, late, rounds }: at most one current; result on check alone, "accepted" or "sent back", read from the stage that opens
+   next, never sent; late true on a stage a late update recorded, with no time; rounds the stage's earlier rounds, oldest first, each
+   { started, finished, report, result, late }. A stage's own fields are its latest round. Written by apply-event.js alone: seeded with the
+   pass (sized, researched, resumed), moved by plan-stage (planStageMove()), a stage passed over recorded by late-update (planStageLate()),
+   closed by plan-accepted (planStagesClose()). The names and briefs are the user's words; the template's PSTAGE is the same table. */
+const PLAN_STAGES = ["re-pass", "write", "check", "consequences", "report"];
+const PLAN_STAGE_NAMES = { "re-pass": "re-pass", write: "write", check: "check/accept", consequences: "write consequences", report: "report" };
+const PLAN_STAGE_BRIEFS = { "re-pass": "The parent's design re-validated against the code as it is now", write: "The plan drafted in full",
+  check: "The plan checked, then accepted or sent back", consequences: "What the change does to its surroundings, written down",
+  report: "The plan reported and put to you; it ends when the plan is accepted" };
+const STAGE_ROUND = ["started", "finished", "report", "result", "late"];
+const CHECK_RESULTS = ["accepted", "sent back"];
+/* the ids a pass runs: a re-pass from the parent all five, a writing pass from write; any other pass none (null) */
+const planPassIds = P => !isObj(P) ? null : P.state === "re-pass" && P.from === "parent" ? PLAN_STAGES.slice() : P.state === "writing" ? PLAN_STAGES.slice(1) : null;
+/* an issue board whose plan step runs with stages: its steps line has a research step (a small fix's has none; a board with no steps line is from before them) */
+const planStagesLine = plan => !!plan && plan.kind !== "tracking" && isObj(plan.wip) && Array.isArray(plan.wip.steps) && plan.wip.steps.includes("research");
+const planStagesOf = P => isObj(P) && Array.isArray(P.stages) ? P.stages.filter(isObj) : [];
+/* a pass opened with its stages, its first current from now (no time with none) */
+const seedPlanStages = (ids, now) => ids.map((id, i) => i ? { id, state: "todo" } : { id, state: "current", ...(now ? { started: now } : {}) });
+/* a stage as sent: its id, case and backticks aside, or its name ("check/accept", "write consequences"); null for none of them */
+const planStageId = v => { const k = typeof v === "string" ? v.replace(/`/g, "").trim().toLowerCase() : ""; return PLAN_STAGES.includes(k) ? k : PLAN_STAGES.find(id => PLAN_STAGE_NAMES[id] === k) || null; };
+/* a stage's name, with its round where it runs again ("write, round 2") */
+const planStageName = x => `${PLAN_STAGE_NAMES[x.id] || x.id}${Array.isArray(x.rounds) && x.rounds.length && x.state !== "todo" ? `, round ${x.rounds.length + 1}` : ""}`;
+/* whether a stage's latest round ran: a state other than to come, or anything recorded of it */
+const stageRan = x => x.state !== "todo" || STAGE_ROUND.some(k => x[k] != null);
+/* the latest round put into the stage's rounds, the stage back to come */
+function nextRound(x) {
+  if (stageRan(x)) { const r = {}; STAGE_ROUND.forEach(k => { if (x[k] != null) r[k] = x[k]; }); x.rounds = [...(Array.isArray(x.rounds) ? x.rounds : []), r]; }
+  STAGE_ROUND.forEach(k => delete x[k]); x.state = "todo";
+}
+/* a check round's result, read from the stage that opens next */
+const checkResult = next => ["consequences", "report"].includes(next) ? "accepted" : ["write", "re-pass"].includes(next) ? "sent back" : null;
+/* the ways back the plan step gives (first, the pass's first stage): write after check, re-pass after check on a sub-issue, the first stage after report */
+const planWayBack = (from, to, first) => (from === "check" && (to === "write" || (to === "re-pass" && first === "re-pass"))) || (from === "report" && to === first);
+/* plan-stage: the stage `id` opens, current from `now` (its next round where it ran before); the current one closes, done, finished at `now` with
+   `report` (the event's detail) as its report, or with no finished where stages between were passed over (its end lies before the event); a check
+   round takes its result from `id`. Going back, every stage after `id` that ran goes back to come, keeping its rounds. `now` null writes no time
+   (planStagesFromTrail()). Changes P in place. Returns { unknown } or { open } (the stage already open: nothing changed), else
+   { closed, closedWord, passed, back, round, wayBack }. */
+function planStageMove(P, id, now, report) {
+  const S = planStagesOf(P), i = S.findIndex(x => x.id === id), ci = S.findIndex(x => x.state === "current");
+  if (i < 0) return { unknown: true };
+  if (i === ci) return { open: true };
+  const C = ci >= 0 ? S[ci] : null, out = { closed: null, closedWord: null, passed: [], back: !!C && i < ci, round: 1, wayBack: true };
+  if (C) {
+    out.passed = i > ci + 1 ? S.slice(ci + 1, i).map(x => x.id) : [];
+    C.state = "done"; delete C.late;
+    if (now && !out.passed.length) C.finished = now; else delete C.finished;
+    if (report) C.report = report; else delete C.report;
+    if (C.id === "check") { const r = checkResult(id); if (r) C.result = r; else delete C.result; }
+    out.closed = C.id; out.closedWord = C.id === "check" && C.result ? C.result : "done";
+    if (out.back) out.wayBack = planWayBack(C.id, id, S[0].id);
+  }
+  if (out.back) S.slice(i + 1).forEach(x => { if (stageRan(x)) nextRound(x); });
+  const X = S[i]; if (stageRan(X)) nextRound(X);
+  X.state = "current"; if (now) X.started = now;
+  out.round = (Array.isArray(X.rounds) ? X.rounds.length : 0) + 1;
+  return out;
+}
+/* the trail line of a stage move (plan/RULES.md §3, "Its trail line"): the stage opened, its round past the first, and the stage it closed with
+   its result and the detail; word "Plan stage" (a tracking board's architecture stages take their own) */
+const planStageLine = (m, id, report, word) => `${word || "Plan stage"}: ${PLAN_STAGE_NAMES[id] || id}${m.round > 1 ? `, round ${m.round}` : ""}${m.closed ? ` · ${PLAN_STAGE_NAMES[m.closed] || m.closed}: ${m.closedWord}${report ? ` — ${report}` : ""}` : ""}`;
+/* late-update: a stage passed over, recorded done with no time, its report the detail, a check's result read from the stage that ran after it;
+   a second one for a stage recorded late replaces its report. Changes P in place. Returns { refused } or { changed }. */
+function planStageLate(P, id, report) {
+  const S = planStagesOf(P), i = S.findIndex(x => x.id === id), ci = S.findIndex(x => x.state === "current"), nm = PLAN_STAGE_NAMES[id] || id;
+  if (i < 0) return { refused: `this pass has no stage ${nm} (its stages: ${S.map(x => x.id).join(", ")})` };
+  if (ci < 0) return { refused: "no plan stage is open, and a late update is taken only for a stage behind the one open" };
+  if (i === ci) return { refused: `${nm} is the stage open now: a late update records only a stage passed over, behind the one open` };
+  if (i > ci) return { refused: `${nm} comes after the stage open now (${PLAN_STAGE_NAMES[S[ci].id]}): an ordinary plan-stage opens it` };
+  const X = S[i];
+  if (X.started != null || X.finished != null) return { refused: `${nm}'s latest round has a time (${X.started ? "started " + X.started : "finished " + X.finished}): a late update records only a stage passed over` };
+  if (X.state === "done" && X.late !== true) return { refused: `${nm} is recorded done already` };
+  const was = JSON.stringify(X), nxt = S.slice(i + 1).find(stageRan);
+  X.state = "done"; X.late = true;
+  if (report) X.report = report; else delete X.report;
+  if (X.id === "check") { const r = nxt ? checkResult(nxt.id) : null; if (r) X.result = r; else delete X.result; }
+  return { changed: JSON.stringify(X) !== was, again: /"late":true/.test(was) };
+}
+/* plan-accepted: the stage open closes, done; at its time where it is the pass's last (report), with no time where it is a stage before it, the
+   stages after it left to come, "not recorded"; a check closed so is accepted. Changes P in place. Returns { closed, passed } or null. */
+function planStagesClose(P, now, report) {
+  const S = planStagesOf(P), ci = S.findIndex(x => x.state === "current"); if (ci < 0) return null;
+  const C = S[ci], last = ci === S.length - 1;
+  C.state = "done"; delete C.late;
+  if (now && last) C.finished = now; else delete C.finished;
+  if (report) C.report = report; else delete C.report;
+  if (C.id === "check") C.result = "accepted";
+  return { closed: C.id, passed: S.slice(ci + 1).map(x => x.id) };
+}
+/* The plan stages read back from the trail lines that name them ("Plan stage: write, round 2 · check/accept: sent back — …"), for a plan step
+   reconstructed with no snapshot (reconstructStep()): each line moves them as its plan-stage did, with no time; "Plan accepted" closes them.
+   sub: the board is a sub-issue's (its pass from re-pass). The template's reconPlanStages() is the same rule. */
+const PLAN_STAGE_LINE = /^plan stage: (re-pass|write consequences|write|check\/accept|report)(?:, round \d+)?(?: · (?:re-pass|write consequences|write|check\/accept|report): (?:done|accepted|sent back)(?: — (.*))?)?$/i;
+function planStagesFromTrail(labels, sub) {
+  const L = (Array.isArray(labels) ? labels : []).map(l => String(l == null ? "" : l).replace(/`/g, "").replace(/\s+/g, " ").trim());
+  if (!L.some(l => PLAN_STAGE_LINE.test(l))) return null;
+  const P = { stages: seedPlanStages(sub || L.some(l => /^plan stage: re-pass\b/i.test(l)) ? PLAN_STAGES : PLAN_STAGES.slice(1), null) };
+  L.forEach(l => { const m = PLAN_STAGE_LINE.exec(l); if (m) planStageMove(P, planStageId(m[1]), null, m[2] || null); else if (/^plan accepted\b/i.test(l)) planStagesClose(P, null, null); });
+  return P.stages;
+}
 /* The plan-board events (plan/RULES.md §4), as wip.event.name records the last one a board took; an older board's record may name a retired one
    (RETIRED_EVENTS), read and drawn, which apply-event.js refuses: no unit's board is laid ahead of its run. */
 const RETIRED_EVENTS = ["boards-created"];
 const EVENTS = ["sized", "halted", "resumed", "research-planning", "research-started", "research-returned", "verification-started", "researched",
-  "architecture-signed-off", "sub-issues-filed", "boards-created", "plan-accepted", "branch-cut", "implementation-stage", "step-complete", "qa-pass", "document", "escalated", "landing", "state-boards", "merge", "landed", "cancelled", "run-restarted", "reseed", "seed", "unit-landed", "retime", "reword"];
+  "architecture-signed-off", "sub-issues-filed", "boards-created", "plan-stage", "late-update", "plan-accepted", "branch-cut", "implementation-stage", "step-complete", "qa-pass", "document", "escalated", "landing", "state-boards", "merge", "landed", "cancelled", "run-restarted", "reseed", "seed", "unit-landed", "retime", "reword"];
 /* A row's as-built state before its outcome (plan/RULES.md §2, "Before the outcome"): derived from the implementation stages while the
    run is live. On an issue board, for a row wip.stages touches: "in-progress" when a current stage touches it, "partially-built" when a
    done stage touched it and a later stage still to come touches it, "pending" when only stages to come touch it; null otherwise (no
@@ -2383,5 +2490,5 @@ function ghMergeTime(repo, pr, merge) {
   } catch (e) { return out; }
 }
 
-module.exports = { ...LV, ...PN, renameInto, RENAME_BUDGET_MS, stageTable, stepsBelow, stepKids, walkSteps, stepShape, settleSteps, carrySteps, stepNameOf, completeStep, planStageTable, stageKey, stageRow, stageTableFields, catchUpStageTable, stampItem, backfillStages, STAGE_KINDS, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, isUnitRef, blockerOf, mapUnitBlockers, filedSummary, filedSummaries, HISTORY_FIELDS, HISTORY_STEPS, qAnswered, askedOf, answerQuestions, syncAsked, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, retimePlan, RETIME_NOT, retimeWords, retimeWhat, TEAM_RECORDS, rewordPlan, rewordDigest, rewordWhat, docCommitDone, landSent, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, roadmapDocItem, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+module.exports = { ...LV, ...PN, PLAN_STAGES, PLAN_STAGE_NAMES, PLAN_STAGE_BRIEFS, STAGE_ROUND, CHECK_RESULTS, planPassIds, planStagesLine, planStagesOf, seedPlanStages, planStageId, planStageName, stageRan, checkResult, planWayBack, planStageMove, planStageLine, planStageLate, planStagesClose, PLAN_STAGE_LINE, planStagesFromTrail, renameInto, RENAME_BUDGET_MS, stageTable, stepsBelow, stepKids, walkSteps, stepShape, settleSteps, carrySteps, stepNameOf, completeStep, planStageTable, stageKey, stageRow, stageTableFields, catchUpStageTable, stampItem, backfillStages, STAGE_KINDS, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, isUnitRef, blockerOf, mapUnitBlockers, filedSummary, filedSummaries, HISTORY_FIELDS, HISTORY_STEPS, qAnswered, askedOf, answerQuestions, syncAsked, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, retimePlan, RETIME_NOT, retimeWords, retimeWhat, TEAM_RECORDS, rewordPlan, rewordDigest, rewordWhat, docCommitDone, landSent, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, roadmapDocItem, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, unitLandingOf, unitLandings, mirrorUnitLandings, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewBaseFolder, viewBaseHref, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, notYetLanded, landedPending, unitLeft, setViewLinks, viewedFolder, viewLink, landVisit, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };
