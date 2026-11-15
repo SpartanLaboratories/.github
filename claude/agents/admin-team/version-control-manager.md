@@ -264,7 +264,8 @@ folders and every Markdown file outside `claude/`, `scripts/INDEX.md`,
 `rule-index.md`, `profile/README.md` and the community health files among
 them) and the comments in source
 code (line and block comments, KDoc), the scripts in that repository's
-`scripts/` among them, reading every line of each such file the commit
+`scripts/` and the code files of the mirror under its `claude/` among them,
+reading every line of each such file the commit
 carries, not only the changed lines; code
 itself (identifiers, strings) is not scanned. It applies to a `mirror-sync`
 that carries those files as to a `commit`. A find the team passes, by its
