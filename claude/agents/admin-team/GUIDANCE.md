@@ -594,7 +594,8 @@ keeps the **Whiteboards**, each repository's **ideas file** and the boards'
   outside those bounds, or a missing one, is replaced by the arrival time. Your reply names each
   time replaced. A point carried forward with the times the board already holds is not checked.
   It applies what the event's facts alone decide: the step, the stages, the research questions, the
-  FullPulse, the wait state, the trail entry and open points. It then rewrites the board's `plan.js`,
+  FullPulse, the wait state, the trail entry and open points, and at `plan-accepted` the verdicts
+  the run sends (`plan/RULES.md` §4, "The verdicts at plan acceptance"). It then rewrites the board's `plan.js`,
   re-embeds the parent tracking board and regenerates the live work board, in seconds. Reply `done` as
   soon as it exits clean; the Whiteboards' refresh follows it (Whiteboards, below). When its output says `enrich: yes`, queue a presenter run in plan-board mode
   in a fill lane (below), reply `progress`, then reply `done` when the presenter finishes. That

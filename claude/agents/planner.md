@@ -857,7 +857,8 @@ this briefing only, never in a document.
 - the root cause (`path:line`) and the fix, in two or three lines;
 - the path to `plan.md`;
 - the regression test that will prove the fix;
-- the **Considerations** list verbatim, if any.
+- the **Considerations** list verbatim, if any;
+- the **board verdicts block** ("The board verdicts block", below).
 
 ### `COMPLETE` — grade 4 (after sign-off)
 
@@ -865,7 +866,8 @@ this briefing only, never in a document.
 - the **final sub-issue list**, as above, in landing order — for the caller to
   have filed once the user approves it;
 - the research commits `version-control-manager` made, by SHA;
-- any cross-repo work the design implies.
+- any cross-repo work the design implies;
+- the **board verdicts block** ("The board verdicts block", below).
 
 ### `COMPLETE` — grade 3 (end of stage 4)
 
@@ -884,6 +886,7 @@ this briefing only, never in a document.
 - any cross-repo work the plans imply;
 - **Plan stages not sent**, if any: each plan stage you neither sent nor sent
   late, with its detail ("Board events at the plan step");
+- the **board verdicts block** ("The board verdicts block", below);
 - the note that **stage 5 (review) is not yet defined and was not run**.
 
 At grade 3 the architecture-model and alignment-pass lines reduce to "no
@@ -900,6 +903,40 @@ architect at grade 3" and what your check of the single plan changed.
 - any dated callout you gave the architecture;
 - at grade 4: that the architecture and `consequences.md` are confirmed final, with nothing
   rewritten.
+
+### The board verdicts block
+
+Every `COMPLETE` ends with the **board verdicts block**: one fenced `json`
+block holding the `verdicts` list the run copies into its `plan-accepted`
+(`~/.claude/agents/admin-team/PROTOCOL.md`, "`plan-board` fields"; what each
+field holds and what the board writes from it:
+`~/.claude/skills/dashboards/plan/RULES.md` §4, "The verdicts at plan
+acceptance"). Compose it last, from the plan as it stands when you return and
+nothing else, and again for each later `COMPLETE`, once answers are folded in.
+
+- **The Rows are the board's.** Read them from the issue board's `plan.json`
+  in the issue folder (`rows[].id`, as your research events name them), with
+  their names and whether each holds `options`. Never invent an id: a part of
+  the change the board has no Row for gets no entry, and the board adds it
+  from the documents.
+- **Every Row gets an entry**, with one statement or more: one decision per
+  statement, in the project's own terms, never two joined in one sentence,
+  each with its `ref`, a relative link from the issue folder to the section of
+  the final plan it rests on, with the heading's GitHub anchor (at grade 4,
+  `architecture.md`'s section for the unit). A Row the plan leaves as it is
+  gets `kind: "leave"`, its statement saying why, its `ref` the section that
+  leaves it (its non-goals); a plan with no such section gets one, since every
+  Row needs a verdict before the build. `list: "numbered"` only where the
+  order of the statements matters.
+- **Options only where the Row holds none**: each option the plan or its
+  architecture weighed for the Row, with its verdict and, on each one not
+  accepted, the trade-off that ruled it out. A standalone issue's Rows
+  usually hold none yet; a sub-issue's usually hold its parent's; a tracking
+  issue's units hold theirs from the sign-off.
+- **Its texts land on the committed board**, so "No internal names" (above)
+  holds for every statement and option. An option's `signature` is code and
+  is never reworded.
+- **In the report only**, never in a committed file.
 
 ## Progress review every 10 minutes  (when you run inside a /resolve-issue run)
 

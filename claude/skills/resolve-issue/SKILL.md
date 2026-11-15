@@ -398,7 +398,12 @@ then send each other stage it lists as a `late-update`; and only then
 leads to. `architecture-signed-off` and `plan-accepted` each carry a
 `detail`: one plain sentence giving the result of the stage each closes. It
 lands on the committed board, so "No internal names in committed content"
-(above) holds for it.
+(above) holds for it. `plan-accepted` also carries the board verdicts block
+of the planner's report that leads to it (`verdicts`, "Plan-board events"):
+the block of its last report, the one returned once the answers to whatever
+it put to the user are folded in, so it rests on the plan as accepted. Copy
+it as it stands, never editing it, and send no `verdicts` when that report
+carries no block.
 
 **`planner` halts and hands work back to you.** Its report leads with one of
 these shapes; route on it:
@@ -687,7 +692,7 @@ sends none.
 | Grade-4 sign-off: the user approves the architecture, as proposed or with changes (step 2); it closes the architecture stage report and opens write consequences, the board staying at its architecture step until `plan-accepted` | `architecture-signed-off` | the architecture path, the approved unit list; `detail`: one plain sentence giving the result of the stage it closes |
 | A plan stage opens, on a grade-3 plan a `plan-writer` drafts, or an architecture stage at grade 4 (sent by the planner itself, when `planner.md`, "Board events at the plan step", says; `report` by the run where step 2 says) | `plan-stage` | `stage`: the stage it opens (`write`, `check`, `consequences` or `report`, or the pass's first stage to go back to it, `re-pass` on a sub-issue; at grade 4 `write`, `check` or `report`); `detail`: one plain sentence giving the result of the stage it closes |
 | A plan or architecture stage passed over, recorded late with no time (sent by the planner itself for one it finds it passed over, and by the run for those step 2 says, never `report`) | `late-update` | `event`: `plan-stage`; `stage`: the stage; `detail`: one plain sentence giving its result; no `at` |
-| The plan accepted: planner COMPLETE, once whatever its report put to the user is answered (step 2); at grade 4 it closes write consequences | `plan-accepted` | the plan path, consequences path; `detail`: one plain sentence giving the result of the stage it closes |
+| The plan accepted: planner COMPLETE, once whatever its report put to the user is answered (step 2); at grade 4 it closes write consequences | `plan-accepted` | the plan path, consequences path; `verdicts`: the board verdicts block of the planner's report that leads to the event, copied as it stands (step 2; `planner.md`, "The board verdicts block"), left out when the report carries none; `detail`: one plain sentence giving the result of the stage it closes |
 | Step 3 done | `branch-cut` | branch, worktree, `stages`: every stage of the plan, its id and name |
 | A stage of the plan's stage table ends; each rookie-dev report on a plan without one, and each remediation report | `implementation-stage` | the stage, `stages`: every stage's id and name with its state (`done`, `current`, `todo`), `final-implementation.md` path, deviations; a closing check stage's entry in `stages` also carries `result` (`passed` or `failed`), and the stage's report goes in `detail`, as its end report, written by whoever carries the stage out; during a remediation loop also `remediation`: the qa pass it answers, the route (`on-the-spot` / `remediation` / `re-plan-then-remediation`) and its sub-steps with their state; `tests`: the test classes the stage added or amended (`added`/`amended`: class, module, testSet, path, tests, rows). It names no `step`. A stage's end is sent by `rookie-dev` for the stages it builds (`rookie-dev.md`, "Board events"), and by the run for a stage it carries out itself, when the stage ends and before its next request. When `rookie-dev` returns, the run sends no `implementation-stage` for a stage it reported: only the events its report lists under **Events not sent**, and its own (a remediation's report, a halt, an escalation) |
 | The plan's stage table revised while a stage runs (steps added, or a step given steps of its own) | `implementation-stage` | `stages` as they stand, none closed, so the board reads the revised table and its nested steps; `detail`, the run's latest report. It names no `step` |
