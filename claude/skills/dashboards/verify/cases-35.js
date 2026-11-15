@@ -1,4 +1,4 @@
-// The case groups of admin-team/dashboards-skill/35, run by verify-templates.js (it passes its helpers in): a dependency's build state from its
+// The case groups of dashboards-skill/35, run by verify-templates.js (it passes its helpers in): a dependency's build state from its
 // code (blocking until merged, clear once merged, an open issue with a merged pull request clear, pre-built, dropped when closed as not
 // planned, a duplicate taking its canonical issue's state); remediation sub-steps in parallel; the open points (a build output's copy for the
 // live view, none committed open); a bare "Ln" (named beside a test word, left as it is elsewhere since L12); consequences.md (impact.md read
@@ -147,7 +147,7 @@ module.exports = function cases35(X) {
     const graph = { 55: { number: 55, subIssues: { nodes: units.map(n => node(n)) }, blockedBy: { nodes: [] }, blocking: { nodes: [] } },
       90: { number: 90, parent: null, blockedBy: { nodes: [node(80), node(81, { state: "CLOSED", stateReason: "NOT_PLANNED", closedAt: "2026-10-22T00:00:00Z" }), node(82, { state: "CLOSED", stateReason: "DUPLICATE", closedAt: "2026-10-22T00:00:00Z", timelineItems: { nodes: [{ canonical: node(83) }] } }), node(83)] }, blocking: { nodes: [] } } };
     issues.push({ number: 90, title: "Verification case #90", state: "OPEN", stateReason: null, closedAt: null, labels: [], createdAt: "2026-10-10T00:00:00Z" });
-    /* sized in the team's local state, #90 a row by it alone (the user's decision of 2026-11-14, batch-8/q-56: no label is read for a grade) */
+    /* sized in the team's local state, #90 a row by it alone (the decision of 2026-11-14, batch-8/q-56: no label is read for a sizing) */
     const st = wr(path.join(sc, "deps-state.json"), JSON.stringify({ grades: Object.fromEntries([...units, 80, 81, 82, 83, 90].map(n => [`${TRK.repo}#${n}`, 3])) }));
     const fx = wr(path.join(sc, "deps-tracker.json"), JSON.stringify({ issues, prs: [{ number: 501, state: "MERGED", headRefName: "80-verification" }], branches: [], graph }));
     const r = run(BOARD, ["--root", root], { env: { ...process.env, DASHBOARDS_TRACKER_FIXTURE: fx, DASHBOARDS_ADMIN_STATE: st } });

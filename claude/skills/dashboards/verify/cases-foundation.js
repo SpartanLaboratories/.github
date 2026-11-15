@@ -1,6 +1,6 @@
-// The cases of a foundation laid on the fast path (admin-team/board/foundation-fast-path; plan/RULES.md §4, "The foundation"), run by
+// The cases of a foundation laid on the fast path (board/foundation-fast-path; plan/RULES.md §4, "The foundation"), run by
 // verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-foundation.js [--out <dir>].
-// The defect (WebTools #66): apply-event.js answered no-board at a sized with no board, and a presenter run laid the foundation and wrote Gap and
+// The defect (WebTools #66): apply-event.js answered no-board at a sized with no board, and an enrichment run laid the foundation and wrote Gap and
 // Considered before anything showed: ten minutes of a run working with no board to open. A sized now lays the foundation itself, applies the
 // event, re-embeds the parent tracking board and regenerates the live repository work board, and says enrich: yes for the fill behind it;
 // what reads as being written is read from the data; a failure leaves nothing. Each group returns [title, cases], a case [name, ok, detail].

@@ -3,8 +3,8 @@
 // strip's cards, the inspector's cards, the dependency pill), boards never pages (check-board.js, the visible labels, the data keys
 // systems[].board, links.repoBoard and links.boards read beside their older names), no internal names on a board (namerefs.js: the forms,
 // scrubNames(), apply-event.js's scrub, the neutral remediation route ids, the progress notes by the work they report, the INTERNAL NAME
-// warnings of check.js and check-board.js, the splice's migration of a state board's bubble classes and presenter: marks), an unnumbered
-// mention of a grade (levelrefs.js), the open points on every event (the fast path's standing rule), the pre-merge stamp of the state
+// warnings of check.js and check-board.js, the splice's migration of a state board's bubble classes and role-named placeholder marks), an unnumbered
+// mention of a sizing (levelrefs.js), the open points on every event (the fast path's standing rule), the pre-merge stamp of the state
 // boards (apply-state.js facts.premerge) and the state-boards action, and the feature probes that read the older wording alike. Each
 // group returns [title, cases], a case [name, ok, detail].
 "use strict";
@@ -60,7 +60,7 @@ module.exports = function cases33(X) {
   guard("namerefs.js: the internal names found, a longer word that contains one left alone, scrubNames()'s safe rewrites; levelrefs.js's unnumbered mention (dashboards-skill/33)", c => {
     const found = ["accepted by the admin team", "the planner reconciled it", "rookie-dev's fixes", "qa found two issues", "the presenter's call", "the user's call", "the user chose B", "planner: rule on the gaps", "planner reconciles", "a code-reviewer pass", "the test-inspector report", "two researchers still out", "a planner re-pass",
       "the executor confirms it (P1)", "the manager's final call", "the user's two answers at the interview", "it is signed off by the user",
-      /* every name a whole word wherever it stands, in backticks too (the user's decision of 2026-11-13) */
+      /* every name a whole word wherever it stands, in backticks too (the decision of 2026-11-13) */
       "runs on an `Executor`", "a single-thread executor drains the queue", "the event publisher emits", "the bytecode verifier rejects it", "the archivist kept the hook"];
     const fine = ["uses OkHttp's `RoutePlanner`", "RoutePlanner picks a route", "an `ExecutorService` drains the queue", "qa pass 2 approved", "the QA tile", "from qa pass 1", "the implementer added a test", "waiting on the user", "the research step", "the architecture", "Level 2 — component",
       "Selenium Manager resolves the driver", "Selenium Manager's cache", "the step ends at its sign-off"];
@@ -128,7 +128,7 @@ module.exports = function cases33(X) {
     c.push(["check.js on a plan.json naming the presenter and the admin team: a warning, the board passing", k.status === 0 && /warn\s+INTERNAL NAME: plan\.json \(wip\.detail\) names /.test(k.stdout || "") && /"presenter"/.test(k.stdout || "") && /"admin team"/.test(k.stdout || ""), (k.stdout || "").split(/\r?\n/).filter(l => /INTERNAL/.test(l)).join(" | ") || String(k.status)]);
     const P2 = copy(LIVE); P2.folder = "docs/plans/75-clean"; P2.issue = 75; P2.slug = "75-clean"; const r2 = tree("clean", [P2]), k2 = run(CHECK, [path.join(r2, ...P2.folder.split("/"))]);
     c.push(["…and none on the clean fixture rendered from the current template (its comments and data)", k2.status === 0 && !/INTERNAL NAME/.test(k2.stdout || ""), (k2.stdout || "").split(/\r?\n/).filter(l => /INTERNAL/.test(l)).join(" | ") || "none"]);
-    /* a state board written before: a presenter: mark and a name in its hand-written text */
+    /* a state board written before: a role-named placeholder mark and a name in its hand-written text */
     const h = rd(SYS).replace("<!-- fill: ", "<!-- presenter: ").replace("<h1>", "<h1 title=\"x\">").replace("</footer>", "</footer><p hidden>Reworded by the planner at the landing.</p>");
     const f = wr(path.join(sc, "state", "docs", "dashboards", "alpha", "index.html"), h);
     const b = run(checker, [f, "--auto", "--no-browser"]);

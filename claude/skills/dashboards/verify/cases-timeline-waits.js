@@ -1,4 +1,4 @@
-// The cases of the waits on the user (admin-team/board/timeline-waits; plan/RULES.md §2, "The Timeline tile's legend", §4, "The fast path owns
+// The cases of the waits on the user (board/timeline-waits; plan/RULES.md §2, "The Timeline tile's legend", §4, "The fast path owns
 // the Timeline"), run by verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-timeline-waits.js
 // [--out <dir>]. The time from a blocking question to the user until its answer is waiting, not active time: no visit's duration and no
 // Timeline figure counts it, and the step is split into visits around it, as a step the run comes back to is. The signals, on the fast

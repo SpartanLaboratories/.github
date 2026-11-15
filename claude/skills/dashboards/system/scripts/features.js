@@ -89,7 +89,7 @@ const FEATURES = [
     notFor: { system: "no qa passes: a state board shows the code at a commit, not a run", supersystem: "no qa passes: a state board shows the code at a commit, not a run",
       "work-board": "held to the board-wording feature instead: its Quality Reviews column names each pass by its number from its names block, and its rows' text comes from board.json, which board.js words so" },
     test: h => { const s = scripts(h); return need(/const PASS_NAME="Quality Review"/.test(s) && !/qa pass \$\{/i.test(s) && !/[`>]Pass \$\{/.test(s), "the template names a qa pass \"qa pass N\" (or \"Pass N\") rather than from PASS_NAME, \"Quality Review N\""); } },
-  /* admin-team/dashboards-skill/board-wording (the user's decisions of 2026-11-06), dated 41: the names a board shows, from the template's
+  /* dashboards-skill/board-wording (the user's decisions of 2026-11-06), dated 41: the names a board shows, from the template's
      names block (plan/scripts/passnames.js, the same names), and the classes renamed to carry their element's type. A board drawn before them
      keeps its older names and classes until its next rebuild (the splice, its next event, board.js --refresh-template); a landed issue board
      is kept as it landed (GUIDANCE.md §11). */
@@ -117,7 +117,7 @@ const FEATURES = [
   { id: "core-subsystems", name: "a supersystem's subsystems marked core or optional", since: 26, types: ["supersystem"],
     notFor: { system: "it draws no subsystems' roles", "plan-board": "no Systems tab", "work-board": "no Systems tab" },
     test: h => need(/core subsystem/.test(scripts(h)), "the Systems tab does not mark core and optional subsystems") },
-  /* admin-team/dashboards-skill/22 */
+  /* dashboards-skill/22 */
   { id: "kpi-tile-legends", name: "each KPI tile's legend inside the tile, no shared legend row under the tiles", since: 22, types: BOARDS,
     notFor: { system: "its tiles are hand-written counted facts with no bar, so no legend", supersystem: "no KPI tiles" },
     test: (h, k) => k === "plan-board" ? need(/function kpiKeys\(/.test(scripts(h)) && !/kpikey|kpi-key/.test(h), /kpikey|kpi-key/.test(h) ? "the tiles still share one legend row (kpi-key)" : "no tile carries its own legend (kpiKeys())")
@@ -141,7 +141,7 @@ const FEATURES = [
   { id: "tests-tab", name: "the Tests tab (Added, Amended, Relevant, Other; by test set, with results and the rows verified)", since: 22, types: ["plan-board"],
     notFor: { system: "a state board shows the code at a commit, not one change's tests (its Guarantees count the test sets)", supersystem: "a state board shows the code at a commit, not one change's tests (its Guarantees count the test sets)", "work-board": "one row per run: each run's tests are on its own board" },
     test: h => { const b = body(h), s = scripts(h); return need(/id="t-tests"/.test(b) && ["added", "amended", "relevant", "other"].every(k => new RegExp(`id="t-tests-${k}"`).test(b)) && /function renderTests\(/.test(s), "no Tests tab with its four sub-tabs (Added, Amended, Relevant, Other)"); } },
-  /* admin-team/dashboards-skill/23 */
+  /* dashboards-skill/23 */
   { id: "timeline-phases", name: "the Timeline tile's bar on a landed board: the time per phase in neutral ink shades, each phase in its legend, a phase with no bound named", since: 23, types: ["plan-board"],
     notFor: { system: "its tiles are hand-written counted facts: a state board shows no run's phases", supersystem: "no KPI tiles", "work-board": "one row per run and no Timeline tile: each run's phases are on its own board" },
     /* the phases of dashboards-skill/23, or the legend of step visits that replaced them (dashboards-skill/32, timeline-steps) */
@@ -150,12 +150,12 @@ const FEATURES = [
     notFor: { system: "no statements with plan references", supersystem: "no statements with plan references", "work-board": "no statements: one row per run" },
     test: h => { const s = scripts(h); return need(/const refNumShown=/.test(s) && /refMarked\(/.test(s) && /\.(?:key|legend) b\.(?:srefk|section-chip)\{/.test(css(h)), "a reference with no excerpt still reads its whole anchor (\"§ 42-the-fix\"), with no section number from refNumber"); } },
   { id: "level-phrases", name: "no grade in the board's data, its scope and re-pass phrases included (\"inside grade 3\", \"a grade-3 re-pass\", \"Label grade: 3\")", since: 23, types: ALL,
-    /* an issue's title is quoted verbatim and left out of the scan (dashboards-skill/28): one that names a grade is a defect in the
-       issue, flagged by check.js and check-board.js (ISSUE TITLE NAMES A GRADE: #n), never a missing feature of the board */
+    /* an issue's title is quoted verbatim and left out of the scan (dashboards-skill/28): one that names a sizing is a defect in the
+       issue, flagged by check.js and check-board.js (the issue-title flag, levelrefs.js titleDefect()), never a missing feature of the board */
     test: h => { const { levelRefs, levelRefsIn, titleSkip } = require("./levelrefs.js"), hits = [];
       [...h.matchAll(/<script type="(application\/json|text\/plain)"[^>]*>([\s\S]*?)<\/script>/g)].forEach(m => { if (m[1] === "text/plain") levelRefs(m[2]).forEach(x => hits.push(x)); else { try { const d = JSON.parse(m[2]); levelRefsIn(d, "", [], titleSkip(d)).forEach(x => hits.push(x.hit)); } catch (e) { /* the embed checks report a block that does not parse */ } } });
       return need(!hits.length, `its data names a grade ${hits.slice(0, 3).map(x => JSON.stringify(x)).join(", ")}: reword it (levelrefs.js scrubLevels()), never write it`); } },
-  /* admin-team/dashboards-skill/28 */
+  /* dashboards-skill/28 */
   { id: "unit-filing-glow", name: "each unit row's label glowing on its own while its sub-issue, then its board, is made (<unit-id>.units)", since: 28, types: ["plan-board"],
     notFor: { system: "no units and no run", supersystem: "no units and no run", "work-board": "it marks runs: filing is the tracking issue's own step, on its own row, and a unit's row glows only once its run is under way" },
     test: h => { const s = scripts(h); return need(/class="rowlab\$\{r\.unit&&CURRENT\.includes\(r\.id\+"\.units"\)/.test(s) && /const rowActive=r=>CURRENT\.some\(a=>\{ const p=String\(a\)\.split\("\."\); return p\[0\]===r\.id&&p\[1\]!=="units"; \}\)/.test(s), "the unit rows' labels glow as one column (\"units\"), not each unit on its own, or a unit being filed reads as in progress"); } },
@@ -168,11 +168,11 @@ const FEATURES = [
       if (k === "plan-board") return need(/data-issue-title=/.test(s) && /\$\("#issueline"\)\.innerHTML=PLAN\.issueTitle\?`<span data-issue-title=/.test(s), "the renderer quotes no issue title marked data-issue-title (the issue line, the roadmap, the follow-ups)");
       if (k === "work-board") return need(/data-issue-title=/.test(s), "the renderer quotes no issue title marked data-issue-title (the rows, the groups, the roadmap, the unscheduled issues)");
       return need(/a\[data-board\]/.test(s) && /issueTitle=/.test(s) && /data-issue-title/.test(s), "linkIssues() drops the title's mark: a title written <a data-board=\"N\"> keeps data-issue-title once resolved"); } },
-  /* admin-team/dashboards-skill/29 */
+  /* dashboards-skill/29 */
   { id: "planned-parts-page", name: "a planned supersystem's card linking the board of its built parts (\"its built parts' board\"), never \"no board yet\"", since: 29, types: ["supersystem"],
     notFor: { system: "no Systems tab: it is the board of one system", "plan-board": "its systems tag links a system's board from the files on disk (embed.js), whatever its status", "work-board": "no system cards: it links the repository state board and the boards" },
     test: h => need(/its built parts' (?:board|page)/.test(scripts(h)), "the Systems tab says \"no board yet\" on a planned supersystem whose built parts have a board") },
-  /* admin-team/dashboards-skill/30 */
+  /* dashboards-skill/30 */
   { id: "qa-passes-shown", name: "every Quality Review a board records and the one running (qaShown()), each by its number (\"Quality Review 2\"; an ordinal before dashboards-skill/41)", since: 30, types: BOARDS,
     notFor: { system: "no qa passes: a state board shows the code at a commit, not a run", supersystem: "no qa passes: a state board shows the code at a commit, not a run" },
     test: h => { const s = scripts(h); return need(/function qaShown\(/.test(s) && (/\$\{passName\(p\.pass\)\}/.test(s) || (/const ordinal=/.test(s) && /\$\{ordinal\(p\.pass\)\}/.test(s))), "the Quality Reviews leave out the one running, or are not named by their number (qaShown(), passName())"); } },
@@ -181,18 +181,18 @@ const FEATURES = [
     test: (h, k) => { const s = scripts(h), base = /const dep(?:Pill|Bubble)=/.test(s) && /const LOC=\{/.test(s) && /const HOLD=\{/.test(s) && /\.loc\.l4\{/.test(css(h));
       if (k === "work-board") return need(base && /<th>Depends on<\/th><th>Blocks · enables<\/th>/.test(s) && !/<th>Branch<\/th>|<th>Board<\/th>/.test(s) && /branch <code>/.test(s), "the repository work board keeps its \"Waits on · blocks\", Branch or Board column, or draws no dependency pills (depPill(), HOLD)");
       return need(base && /depends on <span class="deplist">/.test(s), "the WIP strip and a unit's inspector list \"waits on\" or \"blocked by\" with no dependency pills (depPill(), unitDeps())"); } },
-  /* admin-team/dashboards-skill/31 */
+  /* dashboards-skill/31 */
   { id: "qa-in-place", name: "the decision not to run another qa pass: a small neutral mark beside the pass whose findings were fixed in place (the on-the-spot route, qaShown())", since: 31, types: BOARDS,
     notFor: { system: "no qa passes: a state board shows the code at a commit, not a run", supersystem: "no qa passes: a state board shows the code at a commit, not a run" },
     test: h => { const s = scripts(h); return need(s.includes("const inPlaceMark=") && s.includes("inPlace:") && css(h).includes(".qamark{"), "a pass fixed in place with no further pass reads as unfinished: no mark beside it (qaShown() and inPlaceMark(), .qamark)"); } },
   { id: "runs-larger", name: "the Runs tab's content larger but Now, each run a labelled card under 880 px", since: 31, types: ["work-board"],
     notFor: { system: "no runs table: its tabs show the code at a commit", supersystem: "no runs table: its tabs show the code at a commit", "plan-board": "no runs table: one run, its rows a timeline grid sized by its own rules (plan/RULES.md §2)" },
     test: h => { const c = css(h); return need(c.includes(".tbl{font-size:14.5px") && c.includes(".tbl td:nth-child(3){font-size:12.5px}") && c.includes("@media (max-width:879.98px)"), "the Runs tab keeps the small table (12.5 px everywhere) or scrolls it sideways at phone width"); } },
-  /* admin-team/dashboards-skill/32 */
+  /* dashboards-skill/32 */
   { id: "timeline-steps", name: "the Timeline tile of a landed board: one line per visit of a run step, its start → end and duration from the record only (— where none), in hours and minutes, the bar one segment per timed visit", since: 32, types: ["plan-board"],
     notFor: { system: "its tiles are hand-written counted facts: a state board shows no run's steps", supersystem: "no KPI tiles", "work-board": "one row per run and no Timeline tile: its Landed tile counts runs and shows no time; each run's steps are on its own board" },
     test: h => { const s = scripts(h), c = css(h); return need(/function timelineSteps\(/.test(s) && /const tlSpan=/.test(s) && /function timelineTile\(/.test(s) && /class="(?:key|legend) tl-steps"/.test(s) && (c.includes(".kpis:has(>.kpi>.key.tl-steps){") || c.includes(".tl-tile>.kpi{") || c.includes(".tl-tile>.kpi-tile{")) /* across the KPI row (dashboards-skill/32), or across the Timeline tab (dashboards-skill/34) */, "the Timeline tile shows phases in calendar days (\"same day\"), not one line per run step with its times (timelineSteps(), tlSpan(), timelineTile())"); } },
-  /* admin-team/dashboards-skill/34 */
+  /* dashboards-skill/34 */
   { id: "timeline-families", name: "the Timeline tile coloured by kind of work (planning, build, checking, landing), a shade per step, a mark before each step line and a legend of the families", since: 34, types: ["plan-board"],
     notFor: { system: "its tiles are hand-written counted facts: a state board shows no run's steps", supersystem: "no KPI tiles", "work-board": "one row per run and no Timeline tile: each run's steps are on its own board" },
     test: h => { const s = scripts(h), c = css(h); return need(/const TL_FAMILIES=/.test(s) && /class="(?:key|legend) tl-fams"/.test(s) && /--wk-planning-a:/.test(c) && /--wk-landing-b:/.test(c) && (c.includes(".key i.segk.tl-out{") || c.includes(".legend i.segk.tl-out{")), "the Timeline tile draws its steps in a neutral ink ramp, with no kinds of work (TL_FAMILIES, the --wk tokens, the families legend)"); } },
@@ -212,11 +212,11 @@ const FEATURES = [
   { id: "timeline-tab", name: "the Timeline tab after Design: the Timeline tile, the KPI tiles below it with their tracers, on every issue board (a board in flight its steps so far)", since: 34, types: ["plan-board"],
     notFor: { system: "its tiles are hand-written counted facts: a state board shows no run's steps", supersystem: "no KPI tiles and no run", "work-board": "one row per run: its tiles count runs and say no step's time; each run's steps are on its own board" },
     test: h => { const s = scripts(h); return need(/id="t-steps"[^>]*>Timeline</.test(h) && /<div class="tl-tile" id="tl-tile">/.test(h) && /function drawTracers\(/.test(s) && /function timelineTracers\(/.test(s) && !/<\/section>\s*<div class="kpis" id="kpis"><\/div>\s*<!--/.test(h), "the KPI tiles stand in the board's head, with no Timeline tab and no tracers (drawTracers(), timelineTracers())"); } },
-  /* admin-team/dashboards-skill/doc-landing-and-view-follow */
+  /* dashboards-skill/doc-landing-and-view-follow */
   { id: "view-copy-follow", name: "a tracked issue or tracking board opened on this machine follows its fresher view copy at each poll, read-only, labelled the live view", since: 38, types: ["plan-board"],
     notFor: { system: "a state board has no run steps and no view copy", supersystem: "a state board has no run steps and no view copy", "work-board": "its live view is a board of its own (docs/plans/.live/index.html), which the committed one links" },
     test: h => { const s2 = scripts(h); return need(/const planStampOf=/.test(s2) && /function followSettle\(/.test(s2) && /dataset\.viewCopy/.test(s2) && /id="liveview"/.test(h), "the tracked board does not follow its view copy (planStampOf(), followSettle(), the script's data-view-copy, #liveview)"); } },
-  /* admin-team/dashboards-skill/35 */
+  /* dashboards-skill/35 */
   { id: "document-step", name: "the Document step between qa and the land (its tasks in the step panel, the state boards among them), then the land in two steps, landing and merge", since: 35, types: ["plan-board"],
     notFor: { system: "no run steps", supersystem: "no run steps", "work-board": "it shows each run's step as text (its state column), from the board's own data" },
     test: h => { const s2 = scripts(h); return need(/const STEP_ORDER=\[[^\]]*"remediation","document","landing","merge","landed"\]/.test(s2) && /\bdocument:\(R,o(?:,keys)?\)=>/.test(s2) && /\bdocument:\(V,o,keys\)=>/.test(s2), "the steps line has no Document step, or its step panel cannot show its tasks (STEP_ORDER, PANEL.document, PAST.document)"); } },
@@ -229,7 +229,7 @@ const FEATURES = [
   { id: "build-output-copies", name: "a build output (an open point's report, a qa pass's test report) named as plain text, and linked to its copy in the live view (docs/plans/.live/open/)", since: 35, types: ["plan-board"],
     notFor: { system: "it names its test report as plain text, with no live view to link it (system/RULES.md §5)", supersystem: "as a system board", "work-board": "it shows no open point or test report: each run's are on its own board" },
     test: h => need(/const liveCopyLink=/.test(scripts(h)) && /docs\/plans\/\.live\/open\/index\.js/.test(scripts(h)), "an open point's or a test report's build output is never linked to its copy in the live view (liveCopyLink())") },
-  /* admin-team/board/timeline-outages (dashboards-skill/36) and admin-team/board/timeline-waits, as the decision of 2026-11-05 left them: time
+  /* board/timeline-outages (dashboards-skill/36) and board/timeline-waits, as the decision of 2026-11-05 left them: time
      that is not counted is not mentioned. Its stretches and waits still bound the visits; the "run not running" and "waiting on you" lines,
      their marks and the sub-line's "not counted" note are gone. A board drawn on the template of dashboards-skill/36-37 still draws them and
      is re-rendered by its next event; a landed one is kept as it landed. */
@@ -245,7 +245,7 @@ const FEATURES = [
   { id: "structure-height", name: "the structure map 1000 wide, its height recorded on the board (MODEL.structure.h, at most 812)", since: 35, types: ["system"],
     notFor: { supersystem: "its Structure tab draws the systems in a layout of its own", "plan-board": "no structure map", "work-board": "no structure map" },
     test: h => need(/Number\(MODEL\.structure\.h\)/.test(scripts(h)), "the structure map is fixed at 1000×612 (MODEL.structure.h not read)") },
-  /* admin-team/dashboards-skill/theme-switch and /inspector-switch (the user's decisions of 2026-11-05), dated 39: the header's switches
+  /* dashboards-skill/theme-switch and /inspector-switch (the user's decisions of 2026-11-05), dated 39: the header's switches
      (GUIDANCE.md §12, "Switch"). A board drawn before them keeps its theme button and has no inspector switch until its next rebuild (the
      splice, its next event, board.js --refresh-template); a landed issue board is kept as it landed (§11). */
   { id: "switch-look", name: "the theme switch drawn as a switch: a track with a knob that slides to the palette shown (role=switch, aria-checked), the knob still under reduced motion", since: 39, types: ALL,
@@ -255,7 +255,7 @@ const FEATURES = [
     notFor: { "work-board": "no inspector: one row per run, each run's detail on its own board" },
     test: h => { const s = scripts(h), c = css(h); return need(/"dashboards-inspector"/.test(s) && /localStorage\.getItem\("dashboards-inspector"\)/.test(head(h)) && /function inspectorSwitch\(/.test(s) && /:root\[data-inspector="hidden"\] \.inspector\{display:none\}/.test(c) && /:root\[data-inspector="hidden"\] \.stage\{grid-template-columns:minmax\(0,1fr\)\}/.test(c),
       "no inspector switch (inspectorSwitch(), localStorage \"dashboards-inspector\" read in the head, :root[data-inspector=\"hidden\"])"); } },
-  /* admin-team/dashboards/inspector-hide-button (the user's decision of 2026-11-07), dated 46: the inspector's Hide button (GUIDANCE.md §6,
+  /* dashboards/inspector-hide-button (the decision of 2026-11-07), dated 46: the inspector's Hide button (GUIDANCE.md §6,
      "The inspector switch"), an eye struck through and the word "Hide" right of the inspector's heading, driving the inspector switch's
      state and moving the focus to the switch. A board drawn before it gets the button from its renderer once its script is the template's
      (the splice, its next event); a landed issue board is kept as it landed (§11). */
@@ -263,7 +263,7 @@ const FEATURES = [
     notFor: { "work-board": "no inspector: one row per run, each run's detail on its own board" },
     test: h => { const s = scripts(h), c = css(h); return need(/let hb=document\.getElementById\("inspector-hide"\);/.test(s) && /hb\.setAttribute\("aria-label","Hide the inspector"\)/.test(s) && /hb\.addEventListener\("click",\(\)=>\{ set\(false\); try\{ sw\.focus\(\); \}catch\(e\)\{\} \}\);/.test(s) && /g\.closest\('\[role="tab"\],\[role="switch"\],\.hide-button'\)/.test(s) && /\.inspector \.insp-head\{display:flex;/.test(c) && /(?:^|\n)\.hide-button\{[^}]*color:var\(--ink-2\)/.test(c),
       "the inspector has no Hide button (hb in inspectorSwitch(): #inspector-hide, its aria-label, set(false) and the switch focused; .insp-head, .hide-button)"); } },
-  /* admin-team/dashboards/code-label-and-sigblock (the user's decisions of 2026-11-06 and 2026-11-07), dated 42: the code label on every type
+  /* dashboards/code-label-and-sigblock (the user's decisions of 2026-11-06 and 2026-11-07), dated 42: the code label on every type
      (GUIDANCE.md §12, "Code"), and an option's signature drawn beneath its name on an issue or tracking board (plan/RULES.md §2). A board drawn
      before them draws its code as bare mono text until its next rebuild (the splice, its next event, board.js --refresh-template); a landed
      issue board is kept as it landed (§11). */
@@ -274,21 +274,21 @@ const FEATURES = [
     notFor: { system: "no options: a state board shows the code at a commit, not the options a run weighed", supersystem: "no options: a state board shows the code at a commit, not the options a run weighed", "work-board": "no options: one row per run, each run's options on its own board" },
     test: h => { const s = scripts(h), c = css(h); return need(/const sigCode=o=>/.test(s) && /\$\{codeOnly\(o\.name\)\}\$\{sigCode\(o\)\}/.test(s) && /<div class="sigblock">\$\{sigCode\(o\)\}<\/div>/.test(s) && /<\/b>\$\{sigCode\(opt\)\}/.test(s) && /code\.codeblock\{display:block;/.test(c),
       "an option's signature field is not drawn (sigCode() beneath the name in the Considered cell, the inspector's .sigblock, the Decisions table; code.codeblock)"); } },
-  /* admin-team/dashboards/step-file-tree (the user's decision of 2026-11-07, mockup pick 2), dated 43: a step's files, and the As built
+  /* dashboards/step-file-tree (the decision of 2026-11-07, mockup pick 2), dated 43: a step's files, and the As built
      inspector's Files, nested by their folders on an issue or tracking board (plan/RULES.md §2, "A step's files"). A board drawn before it
      lists one full path per line until its next rebuild (its next event, the splice); a landed issue board is kept as it landed (§11). */
   { id: "file-tree", name: "a step's files (and the As built inspector's Files) nested by their folders: the module, its source set, the folder path as one line, each file a code label; every folder line a toggle, open at load, a closed one counting its files", since: 43, types: ["plan-board"],
     notFor: { system: "its inspector lists a component's few source files by name, each a link under the system's one source root: no modules or source sets to nest", supersystem: "no file lists: a system's code paths are its registry's folders, one line", "work-board": "no file lists: one row per run, each run's files on its own board" },
     test: h => { const s = scripts(h), c = css(h); return need(/const ftTree=files=>/.test(s) && /const fileTree=files=>/.test(s) && /<details class="ftd ft-\$\{k\.k\}" open>/.test(s) && /\$\{fileTree\(s\.files\)\}/.test(s) && /<dt>Files<\/dt><dd>\$\{fileTree\(b\.files\)\}<\/dd>/.test(s) && /\.ftree details:not\(\[open\]\)>summary>\.ft-n\{display:inline\}/.test(c),
       "a step's files are listed one full path per line (no fileTree() in the Verdict inspector's steps and the As built inspector's Files, or no .ftree toggles)"); } },
-  /* admin-team/dashboards/gap-marks (the user's decision of 2026-11-07, mockup pick 3, variant B), dated 44: the Gap cell's marks on an issue
+  /* dashboards/gap-marks (the decision of 2026-11-07, mockup pick 3, variant B), dated 44: the Gap cell's marks on an issue
      or tracking board (plan/RULES.md §2, "The Gap cell"). A board drawn before them keeps the evidence count in the cell's foot and its
      summary unbolded until its next rebuild (its next event, the splice); a landed issue board is kept as it landed (§11). */
   { id: "gap-marks", name: "the Gap cell's marks: the evidence count label in its head (muted at zero), the bold lead (the summary's first sentence), the where chip and the baseline chip in its foot", since: 44, types: ["plan-board"],
     notFor: { system: "no Gap column: a state board shows the code at a commit, not the gaps a run found", supersystem: "no Gap column: a state board shows the code at a commit, not the gaps a run found", "work-board": "no Gap column: one row per run, each run's gaps on its own board" },
     test: h => { const s = scripts(h), c = css(h); return need(/const evidenceLabel=n=>/.test(s) && /const whereChip=r=>/.test(s) && /const baselineChip=b=>/.test(s) && /const leadSplit=s=>/.test(s) && /\$\{evidenceLabel\(\(g\.evidence\|\|\[\]\)\.length\)\}<\/div><div class="sum">\$\{gapSum\(g\)\}<\/div><div class="meta">\$\{whereChip\(r\)\}\$\{baselineChip\(PLAN\.baseline\)\}/.test(s) && /\.cell \.kick \.count-label\.zero b\{/.test(c) && /\.cell \.meta :is\(\.where-chip,\.baseline-chip\)\{/.test(c),
       "the Gap cell keeps its evidence count in its foot, with no bold lead, where chip or baseline chip (evidenceLabel(), gapSum(), whereChip(), baselineChip() in cellGap(); .count-label, .where-chip, .baseline-chip)"); } },
-  /* admin-team/dashboards/halt-questions (the user's decision of 2026-11-07), dated 45: the questions a halt in any step puts to the user, with
+  /* dashboards/halt-questions (the decision of 2026-11-07), dated 45: the questions a halt in any step puts to the user, with
      their options, in the panel the interview's use (plan/RULES.md §3, wip.asked): the live panel of the step it halted in, the snapshot of the
      visit the halt ended, a tracking board's unit panel and its "waiting on you" card. A board drawn before it shows the halt's wait line alone
      until its next rebuild (its next event, the splice); a landed issue board is kept as it landed (§11). */
@@ -296,7 +296,7 @@ const FEATURES = [
     notFor: { system: "no run: a state board shows the code at a commit, not a run's halts", supersystem: "no run: a state board shows the code at a commit, not a run's halts", "work-board": "one row per run, its wait one line; the questions and their options are on the run's own board" },
     test: h => { const s = scripts(h); return need(/function questionsHtml\(list,keys,kind,lead\)\{/.test(s) && /const askedShown=\(R,S\)=>/.test(s) && /if\(S!=="interview"\) h\+=askedBlock\(askedShown\(R,S\)(?:\.filter\(q=>!qAnsweredOf\(q\)\))?,keys\);/.test(s) && /if\(Array\.isArray\(V\.asked\)\) h\+=askedBlock\(/.test(s) && /const waitingQs=R=>/.test(s) && /qs=waitingQs\(L\)/.test(s),
       "a halt outside the interview shows only what it waits on: no questions with their options (questionsHtml(), askedShown() in stepPanel(), a visit's asked, waitingQs() on the waiting card)"); } },
-  /* admin-team/dashboards/call-3 (the user's decision of 2026-11-06, "Call 3 (b)"), dated 50: a halt during a fix step names it by its route
+  /* dashboards/call-3 (the decision of 2026-11-06, "Call 3 (b)"), dated 50: a halt during a fix step names it by its route
      alone, "Correction" or "Resolution", never the pass it answers (the names block's haltLabel()): the step panel's wait line, a unit's run
      line and the waiting card's "resumes at". The trail entry is the data's: apply-event.js writes "Halted at Correction" (passnames.js
      haltWords()) and every rewrite rewords the wording before it. A board drawn before it names the pass until its next rebuild (its next
@@ -317,11 +317,11 @@ const FEATURES = [
       const base = /\.fullpulse\{animation:fullpulse /.test(c) && /(?:^|\n)\.upnext-ring\{/.test(c) && /\.livechip\.on\.fillpulse \.ld\{/.test(c) && /" fillpulse"/.test(s) && /" fullpulse"/.test(s) && /" upnext-ring"/.test(s);
       return need(!old.length && (k === "plan-board" ? base && /(?:^|\n)\.col-fullpulse\{animation:col-fullpulse /.test(c) && /\.board \.cell\.colcell-fullpulse\{/.test(c) : base),
         `the board's marks keep the older classes (${[...new Set(old)].join(", ") || "no .fullpulse, .upnext-ring or .fillpulse"}): re-render it from the template`); } },
-  /* admin-team/dashboards-skill/24 */
+  /* dashboards-skill/24 */
   { id: "finished-steps", name: "finished steps on the progress strip clickable: each shows its snapshot (wip.history) in the step panel, or what survives, reconstructed", since: 24, types: ["plan-board"],
     notFor: { system: "no progress strip: a state board shows the code at a commit, not a run's steps", supersystem: "no progress strip: a state board shows the code at a commit, not a run's steps", "work-board": "no progress strip: one row per run, each run's step as text; its steps are on its own board" },
     test: h => { const s = scripts(h), c = css(h); return need(/function pastPanel\(/.test(s) && /class="stepbtn"/.test(s) && /function reconStep\(/.test(s) && /reconstructed from the history/.test(s) && (/\.stepbar>li\.sel\{/.test(c) || /\.steps li\.sel \.dot\{/.test(c)), "the strip's finished steps are not buttons, or the step panel cannot show a finished step's snapshot (pastPanel(), reconStep())"); } },
-  /* admin-team/dashboards/unit-blockers-before-filing, dated 49: a unit's blocker named by unit number ({ unit: k }) before the filing (plan/RULES.md §3,
+  /* dashboards/unit-blockers-before-filing, dated 49: a unit's blocker named by unit number ({ unit: k }) before the filing (plan/RULES.md §3,
      unit.blockedBy), drawn as a dependency between units: the Landing Order's arrows, the inspector's "depends on" and "blocks · enables", the
      up-next "blocked by" tag, a unit not filed yet named "unit k · its slug" and linked like any #n once filed; on the repository work board, the
      up-next tag naming such a blocker by its slug. A board drawn before it draws no arrow for such a blocker until its next rebuild (its next
@@ -332,7 +332,7 @@ const FEATURES = [
       if (k === "work-board") return need(/const blockerRef=x=>x\.issue!=null\?ilink\(x\.issue,x\.repo\):/.test(s) && /blocked by \$\{r\.blockedBy\.map\(blockerRef\)/.test(s), "the up-next \"blocked by\" tag reads a blocker as an issue number only (blockerRef())");
       return need(/const blockerOf=x=>\{ if\(x&&typeof x==="object"&&Number\.isInteger\(x\.unit\)\)/.test(s) && /const bref=x=>/.test(s) && /units\.forEach\(r=>deps\(r\)\.forEach\(/.test(s) && /function openBlockers\(r\)\{[^\n]*blockersOf\(r\)/.test(s),
         "a unit's blockers are read as issue numbers only: no arrow, \"depends on\" or \"blocked by\" for a unit not filed yet (blockerOf(), blockersOf(), bref(), the Landing Order's deps())"); } },
-  /* admin-team/dashboards/call-5 (the user's decision of 2026-11-06, "Call 5"), dated 51: a Quality Review's findings line orders the count,
+  /* dashboards/call-5 (the decision of 2026-11-06, "Call 5"), dated 51: a Quality Review's findings line orders the count,
      then the severities, then the kinds, "18 findings (2 minor, 16 other; 3 documentation, 15 code)", each zero left out (the names block's
      findingsWords(), which is passnames.js findingsWords()): the step panel's Quality Review cards (a unit's through its mirror) and the WIP
      panel's Quality Review Pills. The trail and the details are the data's: apply-event.js writes the line so and every rewrite rewords the
@@ -342,7 +342,7 @@ const FEATURES = [
     notFor: { system: "no run: a state board shows the code at a commit, not a run's Quality Reviews", supersystem: "no run: a state board shows the code at a commit, not a run's Quality Reviews", "work-board": "one row per run: its Quality Reviews are Pills with no findings line; the text a row carries comes from board.json, which board.js rewords into the order" },
     test: h => { const s = scripts(h); return need(/const FINDING_KINDS=\["documentation","test","code"\], FINDING_SEVERITIES=\["minor","other"\];/.test(s) && /const findingsWords=\(f,sev,zero\)=>/.test(s) && /function qaBlock\(p,keys\)\{ const d=QA\[p\.verdict\]\|\|QA\.running, fl=findingsWords\(p\.findings,p\.severity,true\);/.test(s) && /const d=QA\[p\.verdict\]\|\|QA\.running, fl=findingsWords\(p\.findings,p\.severity,true\); return `\$\{pill\(d,"",/.test(s) && !/finding\$\{nf===1\?"":"s"\} by kind:/.test(s),
       "a Quality Review's findings drawn in two lines, the kinds first (\"18 findings by kind: 3 doc · 15 code\", \"by severity: 2 minor · 16 other\"): no findingsWords() in the names block, the step panel's Quality Review card or the WIP panel's Pills"); } },
-  /* admin-team/dashboards/call-5, two defects, dated 51: a run's step by its name, never its id, where a line still showed the id: the
+  /* dashboards/call-5, two defects, dated 51: a run's step by its name, never its id, where a line still showed the id: the
      "waiting on you" card's "resumes at" ("its run resumes at Implementation", a fix step by its route alone as before) and a tracking
      board's chain summary ("#47 in progress (Correction of Quality Review 2)", as the unit's run Pill names it); on the repository work
      board, the chain summary's fix step by the route board.js records for the unit ("in progress (Resolution)"). A board drawn before it
@@ -353,7 +353,7 @@ const FEATURES = [
       if (k === "work-board") return need(/const unitRunWord=u=>[^\n]*stepLabel\(u\.step,\{route:u\.route\|\|null\}\)/.test(s), "the chain summary names a unit's fix step \"Correction\" whatever its route (no route in unitRunWord())");
       return need(/const resumeAt=\(s,c\)=>haltLabel\(s,c\);/.test(s) && /const runWord=r=>\{[^\n]*`in progress\$\{L\.step\?` \(\$\{esc\(stepLabel\(L\.step,runCtx\(L\)\)\)\}\)`:""\}`/.test(s),
         "a run's step shown by its id (\"resumes at implementation\", \"in progress (remediation)\"): resumeAt() or the chain summary's runWord() without stepLabel()"); } },
-  /* dashboards-skill/52 (the user's decision of 2026-11-06): a Quality Review's checks are labelled by the check, "documentation check",
+  /* dashboards-skill/52 (the decision of 2026-11-06): a Quality Review's checks are labelled by the check, "documentation check",
      "code check", "test check": the progress notes the step panel shows (the names block's NOTE_WORK, which is passnames.js NOTE_WORK; a
      tracking board's notes of each unit's run alike). The trail and the details are the data's: apply-event.js writes the label
      (namerefs.js scrubNames()) and every rewrite rewords the older "documentation review". A board drawn before it labels a live note
@@ -432,7 +432,7 @@ const FEATURES = [
   { id: "nested-steps", name: "a stage's steps in the step Panel by their number (2-3-19) and name, nested to any depth, a step with steps a Disclosure with its count Label (\"19 steps\", \"11 of 19 done · at 2-3-12\"), done from their record, the step at work from a progress note else the first not done; a stage to come unmarked", since: 61, types: ["plan-board"],
     notFor: { system: "no run: a state board shows the code at a commit", supersystem: "no run: a state board shows the code at a commit", "work-board": "one row per run: its stages and steps are on the run's own board" },
     test: h => { const s = scripts(h), c = css(h); return need(/function stepMarks\(x,said,mode\)\{/.test(s) && /function stepLi\(s,ctx,num\)\{/.test(s) && /<details class="stg-d stp-d" data-key=/.test(s) && /stageStepsHtml\(x,o,keys,o\.no\|\|1,mode\)/.test(s) && /\.stg-steps \.stg-steps\{/.test(c), "a stage's steps are flat, unnumbered or drawn only for the current stage (stepMarks(), stepLi(), stageStepsHtml() with the stage's number and its mode)"); } },
-  /* the user's decision of 2026-11-11 (p21 reading 2), dated 60: the parts of a split qa or remediation visit headed in a finished step's Panel as the
+  /* the decision of 2026-11-11 (p21 reading 2), dated 60: the parts of a split qa or remediation visit headed in a finished step's Panel as the
      Timeline Tile's Legend names them */
   { id: "panel-split-pass", name: "the parts of a qa or remediation visit a wait or a break split, headed in a finished step's Panel and its brief by their pass and their part (\"Quality Review 1 · visit 2\"), as the Timeline Tile's Legend names them", since: 60, types: ["plan-board"],
     notFor: { system: "no step Panel: a state board shows the code at a commit", supersystem: "no step Panel: a state board shows the code at a commit", "work-board": "no step Panel: one row per run, each run's visits on its own board" },

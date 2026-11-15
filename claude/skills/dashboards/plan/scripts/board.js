@@ -4,8 +4,8 @@
 // embedded verbatim.
 //   node board.js [--root <repo>] [--ref <branch>] [--refresh-template] [--no-gh] [--live]
 // The root is --root, else the current directory. A row's "system" for an issue with no board, and an unscheduled issue's
-// "system", are the presenter's: board.js keeps them from the previous board.json (the one it writes, then the other of the
-// committed and the live board, so a decision recorded on either carries over). An entry the user decided belongs to no system
+// "system", are the boards' decisions: board.js keeps them from the previous board.json (the one it writes, then the other of the
+// committed and the live board, so a decision recorded on either carries over). An entry decided to belong to no system
 // (a docs-only issue that changes only a planning record, say) records "unassigned": true with "system" null: board.js keeps it,
 // shows "no system" on the row and stops reporting it as missing a system. --refresh-template copies the template over
 // an existing index.html. --no-gh builds from the boards alone (no tracker rows, roadmap or unscheduled issues).
@@ -18,7 +18,7 @@
 // A row with a board carries "reconciliation", its impact's reconciliation state as lib.js reconciliation() derives it (planned,
 // partial or as-built, with landed and total units on a tracking board), or null while the board records no impact (plan/RULES.md §2, §5).
 // A row with no board of its own and no tracking board's unit row to read (a boardless row: any issue the team's local state sizes,
-// whatever its grade; no grade is read from GitHub, the user's decision of 2026-11-14, batch-8/q-56) takes its state from the tracker
+// whatever its sizing; no sizing is read from GitHub, the decision of 2026-11-14, batch-8/q-56) takes its state from the tracker
 // (plan/RULES.md §5, "Boardless rows"): closed as not planned, "not-planned" ("closed ·
 // not planned", never landed); closed as a duplicate, "duplicate" ("closed · duplicate", never landed); closed otherwise, "landed";
 // open with a pull request
@@ -27,7 +27,7 @@
 // links it as closing the issue (closedByPullRequestsReferences) or its head branch names the issue; a branch refers to it when
 // GitHub links it to the issue (linkedBranches) or its name names the issue (branchNames(): "issue-62", "62-slug" or "fix/62" as a
 // path segment, never a number inside a word). The row records what it read as "tracker": { branch, pr: { number, state } }.
-// --live builds the live repository work board (presenter brief, plan-board mode): run it on the repository's main checkout. It reads the
+// --live builds the live repository work board (the boards' brief, plan-board mode): run it on the repository's main checkout. It reads the
 // boards of every worktree of the repository (git worktree list; the root first), keeps for each issue the freshest board (the
 // latest wip.updated, else wip.since, else asBuilt.date, or a later unit.live.updated it mirrors; the root's on a tie), and writes docs/plans/.live/board.json and
 // index.html, never the committed docs/plans/board.json and index.html. Its links reach each board where it lives: relative
@@ -40,12 +40,12 @@
 // sub-step); its waitsOn ("Depends on") each dependency with its build state (blocking while its code is not merged, clear once it is, pre-built,
 // dropped when it was closed as not planned; a duplicate takes its canonical issue's, dashboards-skill/35) and its locality, and its blocks
 // ("Blocks · enables") each issue it holds up with "hold" (blocks while this issue is open, enables once it is done), from the tracker's
-// blocked-by links and the tracking boards' unit.blockedBy (plan/RULES.md §5; admin-team/dashboards-skill/30).
+// blocked-by links and the tracking boards' unit.blockedBy (plan/RULES.md §5; dashboards-skill/30).
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), url = require("url");
 const { atomicWrite, repoRoot, flag, opt, registry, findPlans, VIEW, viewSource, treeRoot, planStamp, notYetLanded, landedPending, unitLeft, UNIT_LANDED, subIssueBoard, shownBranch, unitBranch, reconciliation, leftForLater, boardlessState, unitInRun, qaShown, depBuild, depLocality, holdState, blockerOf, localLevel } = require("./lib.js");
 /* a pass's route written with its neutral id (GUIDANCE.md §4, "No internal names"): a board recorded before the rename keeps the older
-   rookie-dev and planner-then-rookie-dev, read alike everywhere; board.json is generated, so it carries the neutral ones */
+   ids, each named for a role, read alike everywhere; board.json is generated, so it carries the neutral ones */
 const ROUTE_NEUTRAL = { "rookie-dev": "remediation", "planner-then-rookie-dev": "re-plan-then-remediation" };
 const neutralQa = qa => qa.map(p => (p && ROUTE_NEUTRAL[p.route] ? { ...p, route: ROUTE_NEUTRAL[p.route] } : p));
 /* A closed issue's reason, kept on every row, roadmap item and waits-on/blocks entry that the tracker read: "NOT_PLANNED" reads
@@ -64,7 +64,7 @@ const sh = (cmd, a) => cp.execFileSync(cmd, a, { cwd: root, encoding: "utf8", ma
 /* Every checkout of the repository (git worktree list: the main checkout and its worktrees, from whichever of them this runs in), or none
    outside a git tree. */
 const checkouts = (() => { try { return sh("git", ["worktree", "list", "--porcelain"]).split(/\r?\n/).filter(l => l.startsWith("worktree ")).map(l => path.resolve(l.slice(9))); } catch (e) { return []; } })();
-/* The presenter's decisions (a row's or an unscheduled issue's system, or "unassigned": true, plan/RULES.md §5): read from every board this
+/* The decisions recorded on the boards (a row's or an unscheduled issue's system, or "unassigned": true, plan/RULES.md §5): read from every board this
    run knows and never dropped: the board it writes, then this checkout's committed and live boards, then every other checkout's live and
    committed boards, so a decision recorded on any of them carries over whichever checkout regenerates the board (a worktree's committed
    board.json may predate it). An entry is looked up among the rows and the unscheduled issues alike; the first decision found wins. */
@@ -114,7 +114,7 @@ if (live) {
     const src = viewSource(vd), vp = read(path.join(vd, "plan.json")), tp = read(path.join(src, "plan.json")), rel = p => path.relative(root, p).split(path.sep).join("/");
     const inside = vp && copies.filter(d => d !== vd && !removed.has(d) && d.startsWith(vd + path.sep)).map(d => read(path.join(d, "plan.json"))).filter(Boolean), outer = vp && read(path.join(path.dirname(vd), "plan.json"));
     const unfinished = (trk, sub) => { const r = trk && trk.kind === "tracking" && sub ? (trk.rows || []).find(x => x && x.unit && x.unit.issue === sub.issue) : null; return !!r && UNIT_LANDED.includes((r.asBuilt || {}).state) && unitLeft(trk, r).length > 0; };
-    /* a landed unit with no board of its own (a grade-1 unit, landed by unit-landed) whose record the tracking board's copy has not finished: no copy of the
+    /* a landed unit with no board of its own (a docs-only unit, landed by unit-landed) whose record the tracking board's copy has not finished: no copy of the
        unit's stands for it, so the tracking board's copy is kept for its enrichment, as for a sub-issue's */
     const boardlessLeft = trk => (trk.rows || []).some(r => r && r.unit && !r.unit.board && UNIT_LANDED.includes((r.asBuilt || {}).state) && !inside.some(s => s.issue === r.unit.issue) && unitLeft(trk, r).length > 0);
     /* a finished copy whose tracked board a sized seeded unfinished: the refresh's reseed brings it there, so it stays until then, with its tracking board's copy */
@@ -163,7 +163,7 @@ const graphJobs = nums => { const jobs = [];
   }
   return jobs; };
 const takeGraph = rs => rs.forEach(r => Object.values(JSON.parse(must(r, "gh api graphql")).data.repository).forEach(x => { if (x) gq[x.number] = x; }));
-/* dupGraph: the issue each closed duplicate a unit depends on duplicates, read in a round of its own for those the graph above did not cover (admin-team/dashboards-skill/35) */
+/* dupGraph: the issue each closed duplicate a unit depends on duplicates, read in a round of its own for those the graph above did not cover (dashboards-skill/35) */
 let issues = [], gq = {}, dupGraph = {};
 /* Pull requests and branches, for the boardless rows (plan/RULES.md §5): every pull request with its head branch, and every branch
    on the remote and in the local repository (the root's refs; with --live, every worktree shares them). */
@@ -197,11 +197,11 @@ if (FIXTURE && !flag(args, "no-gh")) {
 const trackerState = (n, i) => { const g = gq[n] || {};
   return boardlessState(n, i ? i.state : "OPEN", (g.closedByPullRequestsReferences || {}).nodes || [], ((g.linkedBranches || {}).nodes || []).map(x => x && x.ref && x.ref.name).filter(Boolean), prs, branches, i ? i.stateReason : null); };
 const issueOf = n => issues.find(i => i.number === n);
-/* An issue's grade comes only from the team's local state (levels.js localLevel(); the user's decision of 2026-11-14, batch-8/q-56): no
+/* An issue's sizing comes only from the team's local state (levels.js localLevel(); the decision of 2026-11-14, batch-8/q-56): no
    label on GitHub is read for one, under any name, and none is ever written to board.json */
 const sizedLocally = i => !!i && localLevel(repo, i.number) != null;
 /* an issue the graph names; a duplicate carries the issue it duplicates (dupOf, from its MarkedAsDuplicateEvent), read where its
-   dependency state is derived and not written to board.json (admin-team/dashboards-skill/35) */
+   dependency state is derived and not written to board.json (dashboards-skill/35) */
 function canonicalNode(x) { const c = x && x.timelineItems && Array.isArray(x.timelineItems.nodes) && x.timelineItems.nodes.length ? (x.timelineItems.nodes[x.timelineItems.nodes.length - 1] || {}).canonical : null;
   return c && Number.isInteger(c.number) ? c : null; }
 const canonicalOf = x => { const c = canonicalNode(x); return c ? ref(c) : null; };
@@ -235,7 +235,7 @@ const landedIssue = (n, other) => {
 /* A tracking issue's chain, for its row's state cell (plan/RULES.md §3, "The chain's progress"): units landed of all units (dropped,
    deferred and left-for-later units counted apart, lib.js leftForLater()), each unit in progress with its own run's step (from the unit's freshest board, else the
    tracking board's mirror, unit.live), and the unit up next with the blockers that have not landed. */
-/* a unit's blockers as the work board shows them (lib.js blockerOf(); admin-team/dashboards/unit-blockers-before-filing): { issue } for an issue,
+/* a unit's blockers as the work board shows them (lib.js blockerOf(); dashboards/unit-blockers-before-filing): { issue } for an issue,
    { unit, slug } for a unit of its tracking board not filed yet, which board.html names by its slug, as it has no issue to link */
 const unitBlockers = (p, r) => (r.unit.blockedBy || []).map(x => blockerOf(p, x)).filter(x => x.issue != null || x.row)
   .map(x => x.issue != null ? { issue: x.issue } : { unit: x.n, slug: x.row.unit.slug || x.row.id });
@@ -245,7 +245,7 @@ const chainOf = b => {
   const dropped = units.filter(r => st(r) === "dropped").length, deferred = units.filter(r => st(r) === "deferred").length, left = units.filter(leftForLater).length;
   const counted = units.filter(r => !["dropped", "deferred"].includes(st(r)) && !leftForLater(r)), landed = counted.filter(r => LANDED_STATES.has(st(r))).length;
   const cur = live ? units.filter(r => unitInRun(w.current, r.id)) : []; // a unit's label glowing while it is filed (<id>.units) is no run
-  /* a unit at its fix step carries the route that names it, "Correction" or "Resolution" (board.html stepLabel(); admin-team/dashboards/call-5) */
+  /* a unit at its fix step carries the route that names it, "Correction" or "Resolution" (board.html stepLabel(); dashboards/call-5) */
   const current = cur.map(r => { const own = r.unit.issue ? boardOf(r.unit.issue) : null, ow = own ? own.plan.wip || {} : null, L = r.unit.live || {}, run = ow && ow.step ? ow : L, step = run.step || null;
     const route = step === "remediation" ? require("./passnames.js").ctxOf(run).route : null;
     return { issue: r.unit.issue || null, slug: r.unit.slug || r.id, step, ...(route ? { route } : {}) }; });
@@ -259,7 +259,7 @@ const chainOf = b => {
   return { total: counted.length, landed, dropped, deferred, left, planned: !started && p.status !== "built", done: p.status === "built" || (counted.length > 0 && landed === counted.length), current, next, units: bar };
 };
 
-/* Depends on, and Blocks · enables (plan/RULES.md §5; admin-team/dashboards-skill/30). A row's dependencies are the tracker's blocked-by
+/* Depends on, and Blocks · enables (plan/RULES.md §5; dashboards-skill/30). A row's dependencies are the tracker's blocked-by
    links and, for a unit of a tracking board, its unit.blockedBy. Each carries two states, derived here and never by hand: "build"
    (lib.js depBuild(): blocking or clear when it is part of the row's tracking issue, a unit or a sub-issue, open or closed/landed;
    pre-built when it is not part of it and was closed before the tracking plan started) and "locality" (lib.js depLocality():
@@ -292,7 +292,7 @@ const dependsOn = (n, g) => { const u = unitRow(n), tracked = ((g.blockedBy || {
     const why = [B.why, Lc.why].filter(Boolean); if (why.length) unclassified.push(`#${n} depends on ${x.repo ? x.repo : ""}#${x.issue}: ${why.join("; ")}`);
     const { dupOf, ...rest } = x;
     return { ...rest, build: B.build, locality: Lc.locality, ...(B.via ? { via: B.via } : {}), ...(why.length ? { why: why.join("; ") } : {}) }; }); };
-/* What depBuild() reads of a dependency (plan/RULES.md §5, "Depends on"; admin-team/dashboards-skill/35): merged, its code merged — its board
+/* What depBuild() reads of a dependency (plan/RULES.md §5, "Depends on"; dashboards-skill/35): merged, its code merged — its board
    landed or its unit landed, its issue closed (as completed: a reason NOT_PLANNED or DUPLICATE is read apart), or still open with a pull
    request that refers to it merged (the tracker's "merged"); mergedAt, when (its closing, where recorded); reason, the tracker's
    stateReason of a closed issue, NOT_PLANNED also for a unit its tracking board dropped; duplicateOf, the issue a duplicate duplicates (the
@@ -312,10 +312,10 @@ const holdsUp = (n, g, i) => { const tracked = ((g.blocking || {}).nodes || []).
   return [...tracked, ...own].map(({ dupOf, ...x }) => ({ ...x, hold })); };
 
 /* Rows: every issue with a board, and every issue the tracker lists that the team's local state sizes (sizedLocally(), above: the
-   grade only decides which issues are rows; none is written to board.json, since a dashboard never shows one: GUIDANCE.md §4). An
-   issue the state has no grade for, with no board and no unit row, is no row: an open one no roadmap item claims stays an unscheduled
+   sizing only decides which issues are rows; none is written to board.json, since a dashboard never shows one: GUIDANCE.md §4). An
+   issue the state has no sizing for, with no board and no unit row, is no row: an open one no roadmap item claims stays an unscheduled
    issue in the Context, as before. */
-/* ...and every unit of a tracking board, so the chain (and its next unit) shows even without a grade in the state or the tracker. */
+/* ...and every unit of a tracking board, so the chain (and its next unit) shows even without a sizing in the state or the tracker. */
 const unitNums = boards.filter(b => b.plan.kind === "tracking").flatMap(b => (b.plan.rows || []).filter(r => r.unit && Number.isInteger(r.unit.issue) && r.unit.issue > 0).map(r => r.unit.issue));
 const rowNums = new Set([...boards.map(b => b.plan.issue), ...issues.filter(sizedLocally).map(i => i.number), ...unitNums]);
 const ACTIVE_STEPS = new Set(["sizing", "interview", "research", "architecture", "plan", "branch", "implementation", "qa", "remediation", "document", "landing", "state-boards", "merge"]);
@@ -330,7 +330,7 @@ const rows = [...rowNums].map(n => {
       step: w.step || null, detail: w.step === "halted" ? `Waiting on you: ${w.waitingOn || w.detail || ""}` : (w.detail || ""), since: w.since || null, updated: w.updated || null, qa: neutralQa(qaShown(w)) /* every pass recorded, and the one running (lib.js qaShown()) */, qaMax: w.qaMax || null,
       /* a board laid before its run starts (a tracking issue's unit, plan/RULES.md §4) has no step: not started */
       status: s === "built" || unitState(u) === "landed" ? "landed" : s === "abandoned" || w.step === "cancelled" ? "abandoned" : w.step === "halted" ? "halted" : w.step === "escalated" ? "escalated" : u && unitState(u) === "complete" ? "complete" : s === "building" ? "building" : !w.step && s === "planned" ? "not-started" : "planning",
-      /* a fix to an earlier plan's work (plan/RULES.md §1, §5; admin-team/dashboards-skill/35): the landed issue it fixes, shown "fix to #n" */
+      /* a fix to an earlier plan's work (plan/RULES.md §1, §5; dashboards-skill/35): the landed issue it fixes, shown "fix to #n" */
       fixOf: b.plan.fixOf && Number.isInteger(b.plan.fixOf.issue) ? b.plan.fixOf.issue : null,
       landed: s === "built" ? { pr: (b.plan.asBuilt || {}).pr || null, merge: (b.plan.asBuilt || {}).merge || null, version: (b.plan.asBuilt || {}).version || null, date: (b.plan.asBuilt || {}).date || null } : null });
     /* the impact's reconciliation state, derived from the board (lib.js reconciliation(); plan/RULES.md §2, Impact, §5): null while it

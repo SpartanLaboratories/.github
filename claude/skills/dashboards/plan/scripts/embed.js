@@ -4,7 +4,7 @@
 //                                     or docs/plans itself (board.json → index.html, block "board")
 //   node embed.js <folder> --check    exit 1 if the embedded copy differs from the data file
 //   node embed.js <folder> --refresh-excerpts   re-copy every statement's excerpt from the plan section it names (plan/RULES.md §2,
-//                                     "Statements"), once the presenter has judged that the statement still rests on the changed section
+//                                     "Statements"), once a fill has judged that the statement still rests on the changed section
 // Every file goes through a temporary file and a rename (lib.js atomicWrite()), so no reader sees half of one.
 // On an issue board it first links every issue the board names to that issue's board where its dashboard.html exists in this tree,
 // and clears a link to one that does not (plan/RULES.md §1): a tracking board's units (unit.board), the parent tracking issue

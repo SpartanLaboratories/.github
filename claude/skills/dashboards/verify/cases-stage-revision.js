@@ -1,4 +1,4 @@
-// The cases of two defects KotlinBottools #24's run exposed in apply-event.js's implementation-stage (admin-team/dashboards/stage-revision;
+// The cases of two defects KotlinBottools #24's run exposed in apply-event.js's implementation-stage (dashboards/stage-revision;
 // plan/RULES.md §3, "The stage table", and §4, the implementation-stage row), run by verify-templates.js (it passes its helpers in), or on its
 // own with no browser: node verify/cases-stage-revision.js [--out <dir>].
 // 1. The stage table after a plan revision: the plan was re-passed during the Correction of Quality Review 1 and its stage table changed (S2 "The

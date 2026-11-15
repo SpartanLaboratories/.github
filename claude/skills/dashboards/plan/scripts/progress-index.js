@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// The progress notes' index (plan/RULES.md §3, "Progress notes"; admin-team/board/progress-index). Every agent of a run writes
-// docs/plans/.live/progress/<issue>/<name>.js and picks <name> itself: its agent name, a researcher's question, or the slug of its share of the
-// work ("planner-reconcile"), so the names are open-ended. A board opened from disk cannot list a folder and a note needs no event, so the
+// The progress notes' index (plan/RULES.md §3, "Progress notes"; board/progress-index). Every agent of a run writes
+// docs/plans/.live/progress/<issue>/<name>.js and picks <name> itself: the name of the work it does, a research question, or the slug of its share of the
+// work ("plan-reconcile"), so the names are open-ended. A board opened from disk cannot list a folder and a note needs no event, so the
 // names must stand somewhere the board can load and be kept true between events: this script writes, in each issue's folder,
-//   docs/plans/.live/progress/<issue>/index.js    (window.PROGRESS_NAMES=window.PROGRESS_NAMES||{})["<issue>"]=["planner-reconcile"];
+//   docs/plans/.live/progress/<issue>/index.js    (window.PROGRESS_NAMES=window.PROGRESS_NAMES||{})["<issue>"]=["plan-reconcile"];
 // It holds no note's text and is git-ignored like the notes.
 //   node progress-index.js --once <checkout>      write the index of every issue's folder now
 //   node progress-index.js --ensure <checkout>    start the watcher for that checkout unless one is alive (apply-event.js, at every event)

@@ -107,7 +107,7 @@ function stageTable(md) {
   }
   return null;
 }
-/* Steps nest (plan/RULES.md §3, "The stage table"; ~/.claude/agents/plan-writer.md step 5): after the table and before the next heading, a line
+/* Steps nest (plan/RULES.md §3, "The stage table"; the plan writing brief's step 5): after the table and before the next heading, a line
    "**Steps of <stage-id>**" and a Markdown list under it, each item "`<step-id>`" or "`<step-id>`: <its name>", an item indented under another one of
    its steps, to any depth. The depth is the indent beyond the list's first item, two spaces a level (a tab four spaces); an item deeper than one level
    under the one before it is read one level under it, and named. Returns a Map of stage key -> { key, said, line, steps: [{ id, name, steps? }] }; an
@@ -220,7 +220,7 @@ function planStageTable(dir) {
 const stageKey = id => String(id == null ? "" : id).replace(/`/g, "").trim().toLowerCase();
 const stageRow = (table, id) => (Array.isArray(table) ? table : []).find(y => y && stageKey(y.id) === stageKey(id)) || null;
 /* What a row of the table writes onto its stage: the kind, the steps, the plan section, and the brief verbatim or not at all. nope(text) names why a brief cannot be
-   shown (a grade, an internal name, an older wording of a review), or null; the brief is then left off and said through enrich. */
+   shown (a sizing, an internal name, an older wording of a review), or null; the brief is then left off and said through enrich. */
 function stageTableFields(T, nope, enrich) {
   const f = { ...(T.kind ? { kind: T.kind } : {}), ...(T.steps && T.steps.length ? { steps: T.steps } : {}), ...(T.ref ? { ref: T.ref } : {}) };
   if (T.brief) { const bad = nope ? nope(T.brief) : null; if (bad) { if (enrich) enrich.push("the plan's stage table: " + T.id + "'s brief names " + bad + ", which a board never shows: left off the board; the plan is reworded"); } else f.brief = T.brief; }
@@ -316,7 +316,7 @@ function mdHeadings(md) {
    sectionOf() reads that section: its heading, its first paragraph (the first block of prose under the heading, fenced code and tables
    skipped, Markdown links and emphasis reduced to their text, one line, at most 600 characters) and a hash of the whole section, from
    its heading to the next heading of the same or a higher level, line endings and trailing spaces normalised. The paragraph is what the
-   board shows, so a grade in it (GUIDANCE.md §4) is elided ("…"), and so is a clause naming an internal name (elideNamed(),
+   board shows, so a sizing in it (GUIDANCE.md §4) is elided ("…"), and so is a clause naming an internal name (elideNamed(),
    below); the hash is of the section as written. */
 const STMT_REF = /^((?:\.\.\/|\.\/)?(?:[\w.-]+\/)*[\w.-]+\.md)#([\w\p{L}\p{N}-]+)$/u;
 const parseRef = ref => { const m = typeof ref === "string" ? STMT_REF.exec(ref.trim()) : null; return m ? { file: m[1], anchor: m[2] } : null; };
@@ -347,7 +347,7 @@ function sectionOf(md, anchor) {
 /* An excerpt's clauses that name the pipeline's agents or the approval flow (GUIDANCE.md §4; namerefs.js), each cut to "…": the clause
    runs from the last sentence, clause or list boundary before the name (". ", "; ", "· ", "! ", "? ") to the next one after it; a ";"
    or " ·" that ends it stays, a "." goes with it. A quote is never reworded, so the clause goes rather than the name alone, and the
-   rest still reads as written: "It exists and holds the research commits; the executor confirms it (P1) rather than cutting it again."
+   rest still reads as written: "It exists and holds the research commits; <a clause that names an agent>."
    becomes "It exists and holds the research commits; …". Every copy elides the same way, embed.js --refresh-excerpts included. */
 function elideNamed(p) {
   const { nameSpans } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
@@ -377,7 +377,7 @@ function refLabel(s) {
   const n = refNumberShown(s); if (n) return n.label + (n.from === "anchor" ? "?" : "");
   const r = parseRef(s && s.ref); return r ? "§ " + r.anchor : "§";
 }
-/* The section number a reference's anchor names, before its excerpt is copied (admin-team/dashboards-skill/23). GitHub's anchor drops the
+/* The section number a reference's anchor names, before its excerpt is copied (dashboards-skill/23). GitHub's anchor drops the
    dots of a numbered heading ("4.2 The fix" → "42-the-fix"), so "42-…" may be §4.2 or §42. When the referenced Markdown is reachable
    from the board's folder, its headings decide: the numbered heading whose number, its dots dropped, leads the anchor ("4.2" for
    "42-…"; "A-3" for "a-3-…"), the one sharing most of the anchor where several do; heading numbers win. Only when the file is not there
@@ -426,7 +426,7 @@ function readRef(dir, ref) {
 /* Copy each statement's excerpt (embed.js runs it before embedding, and apply-event.js with it): a statement whose reference resolves and
    that has no excerpt, or one copied from another reference (excerpt.ref differs), gets the section's heading, first paragraph and hash.
    An excerpt already copied for the same reference is kept, so a verdict is written once: when the plan section changes later, check.js
-   warns (excerptDrift()) and the presenter decides; opts.refresh re-copies every excerpt (embed.js --refresh-excerpts). Returns one line
+   warns (excerptDrift()) and a fill decides; opts.refresh re-copies every excerpt (embed.js --refresh-excerpts). Returns one line
    per change. */
 function copyExcerpts(plan, dir, opts) {
   const changes = [], refresh = !!(opts && opts.refresh);
@@ -462,15 +462,15 @@ function excerptDrift(plan, dir) {
 }
 /* Everything embed.js resolves from the folders on disk before it embeds an issue board: the issue links and the units' runs
    (linkIssueBoards()) and the statements' excerpts (copyExcerpts()); last, every qa pass the board names is named "Quality Review N"
-   (passnames.js renamePasses()), whatever wrote it. First, an open board drops any grade it holds (levels.js dropWorkLevels()) and stores
+   (passnames.js renamePasses()), whatever wrote it. First, an open board drops any sizing it holds (levels.js dropWorkLevels()) and stores
    its test sets by name (testslib.js storeSets()). Returns one line per change. */
 function resolveBoard(plan, dir, opts) { return [...LV.dropWorkLevels(plan), ...require("./testslib.js").storeSets(plan), ...clearFoundation(plan), ...fillRoadmap(plan, dir), ...linkIssueBoards(plan, dir), ...refreshSystems(plan, dir), ...linkShared(plan, dir), ...copyExcerpts(plan, dir, opts), ...PN.renamePasses(plan)]; }
 /* ---------- The foundation (plan/RULES.md §4, "The foundation") ----------
-   A board's first state, laid at sized: by apply-event.js on the fast path, by new.js on the presenter's fallback. foundationPlan() is the
+   A board's first state, laid at sized: by apply-event.js on the fast path, by new.js on the fallback when the fast path failed. foundationPlan() is the
    one laying: step null lays it not started, for the sized event to start in place (the fast path); a step lays it started (new.js).
    STEPS_BY_LEVEL, read at the laying from the level the request (or the team's local state) tells and never kept on the board (levels.js): a
    tracking issue runs its own steps up to its architecture, the Document step before its plan's land, the land's two steps, landing and merge
-   (admin-team/dashboards-skill/35), then "sub-issues", its units filed after the merge; then "implementation" spans its units' runs, each on its
+   (dashboards-skill/35), then "sub-issues", its units filed after the merge; then "implementation" spans its units' runs, each on its
    own board laid at its own sized, from the first unit's start until the last unit lands, and "landed" follows (§3). A small fix runs no research
    (nothing is sent for it), so its line has no research step and its sized names plan; a small feature's line has the interview and the research. */
 const STEPS_BY_LEVEL = {
@@ -562,7 +562,7 @@ function refreshSystems(plan, dir) {
     if (i.plain && s.top !== i.top) { out.push(`systems ${s.slug}: top ${s.top || null} → ${i.top}`); s.top = i.top; } });
   return out;
 }
-/* An issue board's roadmap (plan/RULES.md §5, "An issue board's Context"; admin-team/dashboards-skill/34, the defect: every unit board
+/* An issue board's roadmap (plan/RULES.md §5, "An issue board's Context"; dashboards-skill/34, the defect: every unit board
    under a tracking issue kept roadmap null, and its Context said "no tracking parent"): a sub-issue's board whose plan.roadmap is unset
    takes the repository roadmap item that claims it, through its parent tracking issue. The first source that names it: the repository
    work board's data (docs/plans/.live/board.json of this tree, then of the main checkout, then the committed docs/plans/board.json),
@@ -572,7 +572,7 @@ function refreshSystems(plan, dir) {
    board carries its section of the parent's roadmap.md (ref, section) wherever that document names it. Filled once, while unset (embed.js,
    so new.js and every event). A tracking board takes one only when it is nested under another tracking issue (it has a parent), and
    not once it is closed: its own roadmap is its units, this one names the parent's roadmap item it is (KotlinBottools #2,
-   admin-team/dashboards/tracking-step-plan). Returns { roadmap, from } or null. */
+   dashboards/tracking-step-plan). Returns { roadmap, from } or null. */
 function roadmapFor(plan, dir) {
   if (!plan || !isObj(plan.parent) || !Number.isInteger(plan.parent.issue)) return null;
   if (plan.kind === "tracking" && ["built", "abandoned"].includes(plan.status)) return null;
@@ -601,7 +601,7 @@ function roadmapFor(plan, dir) {
    tracked folder, named <parent>-<slug>), and in it the one heading whose own text (to the next heading) links into the board's folder
    ("](<folder>/…)"), else the one heading that is the issue's title, or its title before the first ": ". Several headings that fit, or
    none, name nothing: nothing is guessed. Returns { ref, section }: the section, relative to the board's folder, with GitHub's anchor
-   ("../roadmap.md#phase-0--history-rewrite"), and its heading, its code spans' backticks dropped; a heading that names a grade or an
+   ("../roadmap.md#phase-0--history-rewrite"), and its heading, its code spans' backticks dropped; a heading that names a sizing or an
    internal name gives the ref alone (GUIDANCE.md §4). */
 function roadmapDocItem(plan, dir) {
   if (!plan || !isObj(plan.parent) || !Number.isInteger(plan.parent.issue)) return null;
@@ -727,7 +727,7 @@ function unitRun(sub) {
   const recon = reconstructSteps(sub); if (Object.keys(recon).length) run.recon = recon;
   return run;
 }
-/* ---------- Finished steps (plan/RULES.md §3, "Finished steps"; admin-team/dashboards-skill/24) ----------
+/* ---------- Finished steps (plan/RULES.md §3, "Finished steps"; dashboards-skill/24) ----------
    When a step ends, apply-event.js freezes the step panel's facts into wip.history.<step>, an array of the step's visits, oldest first:
    { since, ended, endedBy, to, held, event, detail, open, …the step's own facts }. A visit ends when the step the panel shows (a halt's or an
    escalation's resume step, else wip.step) changes, or, at remediation, when the qa pass it answers changes (each remediation loop is a
@@ -739,13 +739,13 @@ function unitRun(sub) {
 const HISTORY_FIELDS = { sizing: [], interview: ["interview"], research: ["research", "questions"], architecture: [], plan: ["plan"], branch: ["branch"],
   implementation: ["stages"], qa: ["qa"], remediation: ["remediation", "qa"], "sub-issues": ["units"], boards: ["units"], document: ["document"], landing: [], "state-boards": [], merge: [] };
 const HISTORY_STEPS = Object.keys(HISTORY_FIELDS);
-/* The run's steps (admin-team/dashboards-skill/35): the Document step between qa (or remediation) and the land, then the land in two steps,
+/* The run's steps (dashboards-skill/35): the Document step between qa (or remediation) and the land, then the land in two steps,
    landing and merge, then landed. "state-boards" is no step of a new run: the state boards are the Document step's state-boards task; a
    board that met the three landing steps of dashboards-skill/34 (landing, state-boards, merge) keeps them where its run reached its
    landing before the change (documentSteps()). */
 const STEP_ORDER = ["sizing", "interview", "research", "architecture", "plan", "branch", "implementation", "qa", "remediation", "document", "landing", "merge", "landed"];
-/* The Document step's tasks (admin-team/dashboards-skill/35; plan/RULES.md §3, §4, "document"): the ids the pipeline sends in facts.tasks,
-   each with the name a board shows when the event gives none, in the order a board lists them. The admin team raises the state-boards task
+/* The Document step's tasks (dashboards-skill/35; plan/RULES.md §3, §4, "document"): the ids the pipeline sends in facts.tasks,
+   each with the name a board shows when the event gives none, in the order a board lists them. The team raises the state-boards task
    itself when it accepts the run's state-boards request, inside the Document step, and the document-landing task, the step's last, itself
    (TEAM_TASKS): current once the state boards finish, done just before the commit, so the committed board does not read that commit as in
    progress. A run's list need not name it (apply-event.js mergeTasks()). Another id is kept with the name the event gives. */
@@ -753,7 +753,7 @@ const DOC_TASKS = [["documentation-review", "Documentation review"], ["reconcile
   ["reconcile-plan", "Reconcile the plan and its consequences"], ["readme-changelog", "README and CHANGELOG"], ["state-boards", PN.TASK_NAME["state-boards"]], ["document-landing", PN.TASK_NAME["document-landing"]]];
 const DOC_TASK_NAMES = Object.fromEntries(DOC_TASKS);
 const DOC_LANDING_TASK = "document-landing", TEAM_TASKS = ["state-boards", DOC_LANDING_TASK];
-/* The land (admin-team/dashboards-skill/34, then 35): landing (the land accepted), merge (the pull request merged), then landed; before
+/* The land (dashboards-skill/34, then 35): landing (the land accepted), merge (the pull request merged), then landed; before
    dashboards-skill/35 a third step, state-boards (the pre-merge refresh), stood between them. LANDING_STEPS keeps the three of the older
    line, as a board that landed in it (or reached its landing in it) keeps them. */
 const LANDING_STEPS = ["landing", "state-boards", "merge"];
@@ -793,7 +793,7 @@ const unitCount = (plan, step) => { const units = (Array.isArray(plan.rows) ? pl
   return { done: units.filter(r => step === "sub-issues" ? Number.isInteger(r.unit.issue) && r.unit.issue > 0 : typeof r.unit.board === "string" && !!r.unit.board.trim()).length, total: units.length }; };
 const lastEnded = H => Object.values(H).flatMap(vs => Array.isArray(vs) ? vs : []).map(v => v && v.ended).filter(x => typeof x === "string" && !isNaN(Date.parse(x))).sort((x, y) => Date.parse(x) - Date.parse(y)).pop() || null;
 const openOf = w => (Array.isArray(w.open) ? w.open : []).filter(x => x && typeof x.text === "string" && x.text.trim() && !x.resolved);
-/* ---------- The waits on the user (admin-team/board/timeline-waits) ----------
+/* ---------- The waits on the user (board/timeline-waits) ----------
    The time from a blocking question to the user until its answer is waiting, not active time: no visit's duration and no Timeline figure
    counts it. wip.waits records each wait, oldest first: { step, since, ended, by } — the step the run waited in, when the question was put,
    when the answer came (null while it waits) and the signal that marked it: "halted" or "escalated" (the documented one: the stop's
@@ -809,7 +809,7 @@ const WAIT_BY = ["halted", "escalated", "open-points"];
 const isStopped = s => s === "halted" || s === "escalated";
 const waitsOf = w => (Array.isArray(w && w.waits) ? w.waits : []).filter(x => isObj(x) && isTime(x.since));
 const openWait = w => { const ws = waitsOf(w), l = ws[ws.length - 1]; return l && !isTime(l.ended) ? l : null; };
-/* ---------- A stretch when the run was not running (admin-team/board/timeline-outages) ----------
+/* ---------- A stretch when the run was not running (board/timeline-outages) ----------
    A stretch when a run's session was down is neither active time nor a wait on the user: wip.outages records each, oldest first: { step,
    since, ended, reason } — the step the run was in, when it stopped, when it came back and why, in plain words. Recorded only when a restart
    is known (a request that reports one, or a run's request from a different session), raised by the team with the run-restarted event, its bounds from the facts alone; never
@@ -824,7 +824,7 @@ const hasOutage = (w, since, ended) => isTime(since) && isTime(ended) && outages
    a wait on the user (the wait is cut in two around it; no visit runs then), the visit still running (frozen at its start, wip.since its
    end), a visit already closed (cut in two: the first part ends at its start and keeps only what names its pass, the plan's pass, the
    remediation it answers and, a qa visit's included, the qa pass it ran, as it stood at the cut: running, its verdict, findings and route
-   being the second part's (plan/RULES.md §4, the run-restarted row; p21 choice 8, the user's decision of 2026-11-11); the second keeps the
+   being the second part's (plan/RULES.md §4, the run-restarted row; p21 choice 8, the decision of 2026-11-11); the second keeps the
    visit's snapshot and its end), or a gap between visits (the record alone). A recorded time strictly inside it says the run was active: refused, as
    the facts and the record disagree. Returns { lines, step } or { refused }. */
 /* a qa visit's passes as they stood when a stretch cut it: each pass by its number, running (its verdict came at the visit's end) */
@@ -865,7 +865,7 @@ function outageSteps(pre, post, O, ev) {
   lines.push(`wip.outages + ${step || "the run"}: run not running ${O.since} → ${O.ended}, not counted`);
   return { lines, step };
 }
-/* ---------- One event's recorded time corrected (the team-raised retime; admin-team/dashboards/retime; plan/RULES.md §4, the retime row) ----------
+/* ---------- One event's recorded time corrected (the team-raised retime; dashboards/retime; plan/RULES.md §4, the retime row) ----------
    A run that sent a wrong time for an event (KotlinBottools #2's sizing, sent as midnight) leaves it in every place the event stamped it: the
    run's start (plan.sized), the visits it ended and started (wip.history, wip.since), the snapshots' event stamps, the waits it bounds, the
    questions it stamped, the Tests Tab's results, the foundation. retimePlan() moves every one of those that holds the old time to the new one,
@@ -971,7 +971,7 @@ function retimePlan(plan, o) {
   if (trailAt >= 0) words.push("its trail entry");
   return { lines, moved: P, words };
 }
-/* the event a retime corrects, as the correction's entry names it (no internal name, no grade) */
+/* the event a retime corrects, as the correction's entry names it (no internal name, no sizing) */
 const RETIME_WORDS = { sized: "The sizing", halted: "The halt", resumed: "The return from the halt", escalated: "The escalation", "research-planning": "The start of the research questions",
   "research-started": "The research's start", "research-returned": "A research question's return", "verification-started": "The verification's start", researched: "The research's verification",
   "architecture-signed-off": "The architecture's sign-off", "sub-issues-filed": "The filing of the units as sub-issues", "boards-created": "The creation of the units' boards", "plan-accepted": "The plan's acceptance",
@@ -982,14 +982,14 @@ const retimeWords = (ev, tracking) => tracking && ev === "plan-accepted" ? "The 
 const retimeWhat = (head, words) => { const w = (words || []).filter(Boolean), list = w.length < 3 ? w.join(" and ") : `${w.slice(0, -1).join(", ")} and ${w[w.length - 1]}`;
   const many = w.length > 1 || /^the visits\b|\b(?:times|results)$/.test(w[0] || "");
   return `${head}${list ? `; ${list} move${many ? "" : "s"} with it` : ""}.`; };
-/* ---------- The events whose record is the team's (admin-team/dashboards-skill/reword-event; plan/RULES.md §4, the retime and reword rows) ----------
+/* ---------- The events whose record is the team's (dashboards-skill/reword-event; plan/RULES.md §4, the retime and reword rows) ----------
    A run's own events are every event but these: the team raises them itself (a stretch when the run was not running, the corrections, the Document
    step's two team tasks, the land's steps, the filing of a tracking plan's units, the seedings). A run never retimes or rewords one of them; the
-   team, at the presenter's word, may retime one (not run-restarted, reseed, seed, unit-landed: RETIME_NOT), and rewords none (their text is
+   team, when a board correction asks for it, may retime one (not run-restarted, reseed, seed, unit-landed: RETIME_NOT), and rewords none (their text is
    composed by the scripts from the team's facts, never a run's report). The open choice of 2026-11-13, built to its recommendation: the
    event's name marks it the team's, as this list does, since the board stores no sender per event. */
 const TEAM_RECORDS = ["run-restarted", "retime", "reword", "state-boards", "landing", "merge", "landed", "sub-issues-filed", "reseed", "seed", "unit-landed"];
-/* ---------- One event's recorded text reworded (reword; admin-team/dashboards-skill/reword-event, the user's decisions of 2026-11-13; plan/RULES.md §4, the reword row) ----------
+/* ---------- One event's recorded text reworded (reword; dashboards-skill/reword-event, the user's decisions of 2026-11-13; plan/RULES.md §4, the reword row) ----------
    A run's report, a halt's question or what it waits on, as the event wrote it, is held in several places at once: the report closing several
    stages is each of those stages' report, the remediation's steps repeat the report that closed them, the step's detail is the report, and each
    finished visit's snapshot keeps its own copy. rewordPlan() finds the event's own places by the stamps the event wrote (o.event its name, o.at
@@ -1000,7 +1000,7 @@ const TEAM_RECORDS = ["run-restarted", "retime", "reword", "state-boards", "land
      - a Quality Review's note, for qa-pass: wip.qa (or a snapshot's) whose `at` is that time;
    and the copies of what one of those places held, whole (the same string anywhere in wip or the trail), and the event's own trail entry and
    event note where they hold the passage. Every place that holds o.from takes o.to (every occurrence; an empty o.to takes the passage out with
-   one adjacent run of spaces). Nothing else: no time, no step, no state; the rows (columns 1 to 3, written once, and the presenter's column 4),
+   one adjacent run of spaces). Nothing else: no time, no step, no state; the rows (columns 1 to 3, written once, and the fills' column 4),
    the title, the function, the notes, the impact, the tests and the open points (wip.open, corrected through fill.js) are never searched.
    Refused, changing nothing: when the record holds no such event's places; when none of them holds o.from (the refusal says where o.from is
    held instead); when another event is named at the same time and a place found by its time alone holds it (whose text it is cannot be told);
@@ -1116,7 +1116,7 @@ function waitSteps(pre, post, ev, now, facts) {
 function freezeVisit(pre, post, step, ev, now) {
   const a = (pre && pre.wip) || {}, b = (post && post.wip) || {}, H = historyOf(b);
   /* the visit began when the visit before it ended (visits follow each other: a halt inside a step is no visit of its own), or at the
-     answer that ended a wait since (admin-team/board/timeline-waits); with no visit frozen before it (a board older than the snapshots),
+     answer that ended a wait since (board/timeline-waits); with no visit frozen before it (a board older than the snapshots),
      when the panel's "since" says */
   const V = { since: visitStart(H, [...waitsOf(b), ...outagesOf(b)], now, a.since), ended: now, endedBy: ev, to: shownStep(b) || b.step || null };
   if (["halted", "escalated"].includes(a.step)) V.held = true;
@@ -1142,7 +1142,7 @@ function freezeSteps(pre, post, ev, now, facts) {
   const push = (step, V) => { if (!HISTORY_STEPS.includes(step)) return; b.history = historyOf(b); (b.history[step] = Array.isArray(b.history[step]) ? b.history[step] : []).push(V);
     out.push(`wip.history.${step} + visit ${b.history[step].length}${step === "qa" && V.qa && V.qa.length ? ` (qa pass ${V.qa.map(p => p.pass).join(", ")})` : step === "remediation" && V.remediation ? ` (qa pass ${V.remediation.pass})` : ""}`); };
   const ka = visitKey(a), kb = visitKey(b), sa = shownStep(a);
-  /* the waits on the user (admin-team/board/timeline-waits): the event that puts a blocking question ends the visit running, held; the one
+  /* the waits on the user (board/timeline-waits): the event that puts a blocking question ends the visit running, held; the one
      that brings the answer starts the next visit, the wait between them counted by neither */
   const WT = waitSteps(pre, post, ev, now, facts); out.push(...WT.lines);
   /* the run's start: a board laid before its run (or at sizing) records sizing once, ended by the sized event */
@@ -1170,7 +1170,7 @@ function freezeSteps(pre, post, ev, now, facts) {
   }
   return out;
 }
-/* ---------- The questions put to you at a halt (admin-team/dashboards/halt-questions, dated dashboards-skill/45; plan/RULES.md §3, wip.asked) ----------
+/* ---------- The questions put to you at a halt (dashboards/halt-questions, dated dashboards-skill/45; plan/RULES.md §3, wip.asked) ----------
    A halt in any step may put questions to the user, each with the options it offers (the halted event's facts.questions). An interview's go
    into wip.interview, the interview's own field; a halt in any other step records its into wip.asked, oldest first, each { step, text,
    options, answer, asked, answered }: the step it halted in, the question, the options it offers (left out when it offers none), the answer's
@@ -1260,7 +1260,7 @@ function reconstructStep(plan, step) {
     R.milestones.push({ date: m.date || null, label: m.label, ...(typeof m.ref === "string" && m.ref.trim() ? { ref: m.ref } : {}), ...(typeof m.note === "string" && m.note.trim() ? { note: m.note } : {}) }); later(m.date); });
   if (step === "sizing" && okDay(plan.sized)) { R.sized = plan.sized; later(plan.sized); }
   if (step === "interview" && nonEmpty(w.interview)) R.interview = clone(w.interview);
-  /* the questions a halt in the step put to the user (wip.asked, admin-team/dashboards/halt-questions) */
+  /* the questions a halt in the step put to the user (wip.asked, dashboards/halt-questions) */
   { const a = askedOf(w).filter(q => q.step === step).map(({ step: s0, ...q }) => clone(q)); if (a.length) R.asked = a; }
   if (step === "research") { const qs = [];
     R.trail.forEach(t => { const s = t.label.replace(/\s+/g, " "), sent = /^research started:/i.test(s), back = /^research returned:/i.test(s); if (!sent && !back) return;
@@ -1507,7 +1507,7 @@ function boardFolders(root) {
 }
 const boardLink = (from, toDir) => viewLink(from, path.relative(path.resolve(from), path.join(toDir, "dashboard.html")).split(path.sep).join("/"));
 
-/* The board of the landed issue a fix corrects (plan.fixOf; plan/RULES.md §1, "A fix to an earlier plan's work"; admin-team/dashboards-skill/35),
+/* The board of the landed issue a fix corrects (plan.fixOf; plan/RULES.md §1, "A fix to an earlier plan's work"; dashboards-skill/35),
    seen from the fix's board in `dir`: "../dashboard.html" when the fix's folder sits inside that issue's folder (a folded-in fix), else that
    issue's board wherever it is in the tree (a fix under its own GitHub parent), else null. A link only to a file that exists. */
 function fixOfBoard(dir, fixOf) {
@@ -1677,7 +1677,7 @@ function linkIssueBoards(plan, dir) {
       plan.parent.board = want;
     }
   }
-  /* a fix to an earlier plan's work (plan/RULES.md §1, "A fix to an earlier plan's work"; admin-team/dashboards-skill/35): fixOf.board, the
+  /* a fix to an earlier plan's work (plan/RULES.md §1, "A fix to an earlier plan's work"; dashboards-skill/35): fixOf.board, the
      landed issue's board it fixes, from the folders on disk: the enclosing folder when it is that issue's (a folded-in fix), else that
      issue's board anywhere in the tree (a fix under its own GitHub parent), else null */
   if (isObj(plan.fixOf) && Number.isInteger(plan.fixOf.issue)) {
@@ -1782,7 +1782,7 @@ function boardlessState(n, issueState, closing, linked, prs, branches, stateReas
   if (named.length) return { status: "in-progress", tracker: { branch: named[0], pr: null } };
   return { status: "not-started", tracker: { branch: null, pr: null } };
 }
-/* ---------- QA passes shown, dependencies and what an issue holds up (admin-team/dashboards-skill/30) ----------
+/* ---------- QA passes shown, dependencies and what an issue holds up (dashboards-skill/30) ----------
    qaShown(w): the qa passes a run shows (plan/RULES.md §2, "The KPI tiles"; §5): every pass wip.qa records, oldest first, and the pass
    that is running. wip.qa records a running pass from its qa-pass with verdict "running" until its verdict replaces it (apply-event.js);
    with none recorded, one is derived here and added: { pass, verdict: "running" }. A pass is running while the run
@@ -1804,7 +1804,7 @@ function qaShown(w) {
   if (n && (!max || n <= max) && !qa.some(p => p.pass === n) && (!last || !Number.isInteger(last.pass) || n > last.pass)) { qa.push({ pass: n, verdict: "running" }); return qa; }
   return qaInPlace(w, qa);
 }
-/* The decision not to run another qa pass (admin-team/dashboards-skill/31): the last pass shown requested changes and the route it sent
+/* The decision not to run another qa pass (dashboards-skill/31): the last pass shown requested changes and the route it sent
    the run on is on-the-spot (every fix minor, made on the spot, no new qa pass; plan/RULES.md §2, wip.remediation). The route is read
    where a board records it, and nowhere else: the pass's own route (wip.qa[].route, apply-event.js at qa-pass), else the remediation loop
    that answers that pass (wip.remediation.route), else a frozen remediation visit that answered it (wip.history.remediation[].remediation).
@@ -1829,7 +1829,7 @@ function qaInPlace(w, qa) {
 const inPlaceWords = PN.inPlaceWords;
 /* A qa pass's number as an ordinal: 1st, 2nd, 3rd, 4th, … 11th, 12th, 13th, 21st (the repository work board's QA cell, an issue board's qa pills). */
 const ordinal = n => { const k = Math.abs(parseInt(n, 10)); if (!Number.isFinite(k)) return String(n); const t = k % 100, u = k % 10; return `${n}${t >= 11 && t <= 13 ? "th" : u === 1 ? "st" : u === 2 ? "nd" : u === 3 ? "rd" : "th"}`; };
-/* A dependency's two states (the repository work board's "Depends on"; an issue board's "depends on"; a tracking board's units; admin-team/
+/* A dependency's two states (the repository work board's "Depends on"; an issue board's "depends on"; a tracking board's units;
    dashboards-skill/30, its build state redefined by dashboards-skill/35), each derived from the data, never written by hand:
    - its build state, depBuild(): the code is what blocks, not the GitHub issue. "blocking" while the dependency's code is not merged; "clear"
      once it is merged (its board landed, its unit landed, its issue closed as completed, or an issue still open whose pull request has
@@ -1907,28 +1907,28 @@ const RECON_WORDS = { planned: "planned", partial: "partly reconciled", "as-buil
                                                               rows, no stage is current, or the rows the findings touch are not known;
                                                               on a tracking board the units in progress, or none)
      filing   the label cell of each unit row not yet done    sub-issues (a unit with no issue yet), boards (a unit with no board yet):
-              in the step, <unit-id>.units                    filingGlow() below (admin-team/dashboards-skill/28)
+              in the step, <unit-id>.units                    filingGlow() below (dashboards-skill/28)
    halted and escalated keep the glow of the step they stopped in (wip.resume), drawn as a still ring. */
 const GLOW_MAP = {
   sizing: { kind: "none" }, interview: { kind: "cells" }, research: { kind: "research" },
   architecture: { kind: "columns", cols: ["considered"] }, plan: { kind: "columns", cols: ["considered", "verdict"] }, branch: { kind: "none" },
   implementation: { kind: "built" }, qa: { kind: "columns", cols: ["built"] }, remediation: { kind: "built" },
-  /* the Document step (admin-team/dashboards-skill/35): its tasks reconcile the as-built record and the consequences that column 4 reads,
+  /* the Document step (dashboards-skill/35): its tasks reconcile the as-built record and the consequences that column 4 reads,
      so the whole As built column glows, as at qa */
   document: { kind: "columns", cols: ["built"] },
   landing: { kind: "none" }, "state-boards": { kind: "none" }, merge: { kind: "none" }, landed: { kind: "none" }, cancelled: { kind: "none" },
   /* a tracking board after its plan's merge (plan/RULES.md §3): filing the units as sub-issues (an older board also creating their boards); each
-     unit row's label glows on its own while its issue is made, and stops when that one is done (admin-team/dashboards-skill/28; it replaces the
+     unit row's label glows on its own while its issue is made, and stops when that one is done (dashboards-skill/28; it replaces the
      one glow on the label column of dashboards-skill/26) */
   "sub-issues": { kind: "filing" }, boards: { kind: "filing" }
 };
 const COLUMN_NAMES = { gap: "Gap", considered: "Considered", verdict: "Verdict", built: "As built", units: "the unit rows' label" };
-/* The filing glow (plan/RULES.md §3; admin-team/dashboards-skill/28): at a tracking board's "sub-issues" step, after its plan's merge, the
+/* The filing glow (plan/RULES.md §3; dashboards-skill/28): at a tracking board's "sub-issues" step, after its plan's merge, the
    label cell of each unit row with no issue yet; at "boards", an older board's step, of each unit row with no board yet (unit.board, which
    embed.js sets from the folders on disk); in row order, however many. A unit stops glowing once its issue is recorded; the team raises
    sub-issues-filed per unit, one or more at a time, and a final one that closes the step. */
 const unitFiled = r => Number.isInteger(r.unit.issue) && r.unit.issue > 0, unitBoarded = r => typeof r.unit.board === "string" && !!r.unit.board.trim();
-/* A unit's blocker (plan/RULES.md §3, unit.blockedBy; admin-team/dashboards/unit-blockers-before-filing): an issue number, or { unit: k }, a unit of the
+/* A unit's blocker (plan/RULES.md §3, unit.blockedBy; dashboards/unit-blockers-before-filing): an issue number, or { unit: k }, a unit of the
    same tracking board by its number (unit.n) while that unit has no issue yet, so a plan's dependencies between its units are on the board
    before they are filed. sub-issues-filed, and a fill, map each { unit: k } whose unit is filed to its issue number (mapUnitBlockers()). The
    template's blockersOf() and board.js read them by the same rule. */
@@ -1961,7 +1961,7 @@ function mapUnitBlockers(plan) {
    rows still said "Not filed yet…" after their filing): "Filed as #n; its run has not started." and when it starts: "It starts first." for the
    unit up next with no blocker, "It starts once #39 has landed." by its blockers (a blocker not filed yet by its unit number), else "No other unit
    blocks it.". filedSummaries() writes it on every filed unit row that is pending, has no board and no run, and whose summary is empty, is the
-   one written before the filing (it opens "Not filed yet"), or is one of these written before; any other summary is the presenter's (it may
+   one written before the filing (it opens "Not filed yet"), or is one of these written before; any other summary is a fill's (it may
    name the blockers in words, "#39, the workspace tools") and is kept. Returns one line per summary written. */
 const FILED_SUMMARY = /^Filed as #\d+; its run has not started\. (?:It starts first|It starts once (?:#\d+|unit \d+)(?:, (?:#\d+|unit \d+))*(?: and (?:#\d+|unit \d+))? ha(?:s|ve) landed|No other unit blocks it)\.$/;
 function filedSummary(plan, r) {
@@ -2016,7 +2016,7 @@ function researchRows(plan) {
 /* Research glows the rows being researched or verified (plan/RULES.md §3, "Research: the rows being researched"): the union of the
    Considered cells of the rows the questions "researching" or "verifying" name, however many. A returned question's rows stop glowing
    (they wait for the verification), unless another active question names them. Between the last research-returned and
-   verification-started (no question researching or verifying, some returned) the returned questions' rows glow: the planner is on
+   verification-started (no question researching or verifying, some returned) the returned questions' rows glow: the plan's work is on
    them next. The whole Considered column glows instead (the fallback) only while the rows are unknown: no question is recorded yet
    (research-planning: the questions are being drafted), none is researching, verifying or returned, a glowing question names no row
    (rows [], or only ids that are not rows of the board: a board with no rows once questions are recorded is a defect on an issue board,
@@ -2070,7 +2070,7 @@ function stagedState(plan, row) {
 }
 const builtState = (plan, row) => stagedState(plan, row) || recordedState(row);
 /* A unit whose run is under way (plan/RULES.md §3): an address of its row in wip.current, its label cell (<unit-id>.units) aside, which
-   glows while the unit is filed as a sub-issue or its board created, before any run of its own (admin-team/dashboards-skill/28). */
+   glows while the unit is filed as a sub-issue or its board created, before any run of its own (dashboards-skill/28). */
 const unitInRun = (cur, id) => (Array.isArray(cur) ? cur : []).some(a => { const p = String(a).split("."); return p[0] === id && p[1] !== "units"; });
 /* The next unit in landing order (plan/RULES.md §3, "Next is the next one up"): the first unit row, in row order, that is pending, not
    in wip.current and not left for later (a unit whose written verdict leaves it as is, leftForLater()), or null when none is left.
@@ -2150,7 +2150,7 @@ function glowMismatch(plan) {
   return bad.length ? { step, via, want, bad } : null;
 }
 
-/* ---------- The Timeline tile (plan/RULES.md §2, "The KPI tiles"; admin-team/dashboards-skill/32, in place of dashboards-skill/23's
+/* ---------- The Timeline tile (plan/RULES.md §2, "The KPI tiles"; dashboards-skill/32, in place of dashboards-skill/23's
    four phases) ----------
    A landed board's last tile carries one line per visit of a run step, in the step panel's vocabulary (sizing, interview, research,
    plan, branch, implementation, qa, remediation, landing; a tracking board's own steps), in the order the run visited them, each with
@@ -2158,7 +2158,7 @@ function glowMismatch(plan) {
    pass ("Quality Review 1"), a remediation visit by its route and the pass it answers ("Correction", "Correction of Quality Review 2";
    passnames.js), any other step by its name, visited twice by its visit ("Plan · visit 2"); the parts of one pass's visit a wait or a break
    split by the pass and the part ("Quality Review 1 · visit 2"). The bar draws the visits whose both bounds carry a time, one segment each in the order
-   of the lines, sized by its time, coloured by the kind of work its step is (admin-team/dashboards-skill/34, in place of
+   of the lines, sized by its time, coloured by the kind of work its step is (dashboards-skill/34, in place of
    dashboards-skill/32's neutral ink ramp): planning, build, checking and landing, each its own hue family (TL_FAMILIES), one shade of
    it per step with a line, lighter to darker in the steps line's order (lighter to darker on a light surface, darker to lighter on a
    dark one), a step's repeats sharing its shade; each timed line is that segment's legend entry, and every line carries its step's
@@ -2179,7 +2179,7 @@ function glowMismatch(plan) {
    timelineSteps(), tlSpan() and timelineTotal() are the same rule. */
 const okStamp = v => typeof v === "string" && /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?Z)?$/.test(v) && !isNaN(Date.parse(v));
 const isTime = v => okStamp(v) && v.length > 10;
-/* The kinds of work (GUIDANCE.md §1, "Steps"; admin-team/dashboards-skill/34): every step of the steps line belongs to one family,
+/* The kinds of work (GUIDANCE.md §1, "Steps"; dashboards-skill/34): every step of the steps line belongs to one family,
    each its own hue, clear of the status colours and the accent (the template's --wk-<family>-a / -b tokens, light and dark). A tracking
    board's own steps take the family of their work: filing its units and laying their boards are the last of its planning, before its
    plan lands; its units' runs are its build. A step outside these (none today) keeps the neutral ink, as "other". */
@@ -2187,7 +2187,7 @@ const TL_FAMILIES = [
   { id: "planning", steps: ["sizing", "interview", "research", "architecture", "plan", "sub-issues", "boards"] },
   { id: "build", steps: ["branch", "implementation"] },
   { id: "checking", steps: ["qa", "remediation"] },
-  /* the Document step (admin-team/dashboards-skill/35) is the land's preparation, the documents and the state boards on the branch: it takes
+  /* the Document step (dashboards-skill/35) is the land's preparation, the documents and the state boards on the branch: it takes
      the landing family, with the land's steps; state-boards stays in it for a board on the older line */
   { id: "landing", steps: ["document", "landing", "state-boards", "merge"] },
 ];
@@ -2219,7 +2219,7 @@ function approxBounds(seq, A, adj) {
     if (after && t > Date.parse(after.t)) v[side] = { t: after.t, how: "exact", clamped: b.t };
     else if (before && t < Date.parse(before.t)) v[side] = { t: before.t, how: "exact", clamped: b.t }; }));
 }
-/* A board still in flight (admin-team/dashboards-skill/34: the Timeline tab on every issue board): its steps so far, each finished
+/* A board still in flight (dashboards-skill/34: the Timeline tab on every issue board): its steps so far, each finished
    visit as on a landed board, the steps after the current one left out, and the running step one visit open-ended, from wip.since (when
    wip.step is that step) to now ({ t: now, how: "now" }); the figure is the time so far. opts.now is the time to read "now" as (the
    board: the time it is drawn; a check passes its own, so the result is deterministic). */
@@ -2244,12 +2244,12 @@ function timelineSteps(plan, opts) {
   const loop = x => x.step === "qa" || x.step === "remediation";
   recon.sort((a, b) => loop(a) && loop(b) ? ((a.pass || 0) - (b.pass || 0) || idx(a.step) - idx(b.step)) : idx(a.step) - idx(b.step));
   recon.forEach(r => { r.recon = true; let k = seq.findIndex(v => !v.recon && idx(v.step) > idx(r.step)); if (k < 0) k = seq.length; seq.splice(k, 0, r); });
-  /* the waits on the user (admin-team/board/timeline-waits): never a visit, never summed; a stop from before the waits were recorded began
+  /* the waits on the user (board/timeline-waits): never a visit, never summed; a stop from before the waits were recorded began
      at the stop's since */
   const WT = waitsOf(w).map(x => ({ step: typeof x.step === "string" ? x.step : null, by: WAIT_BY.includes(x.by) ? x.by : null, since: x.since, ended: isTime(x.ended) ? x.ended : null }));
   if (live && isStopped(w.step) && !WT.some(x => !x.ended) && isTime(w.since)) WT.push({ step: cur, by: w.step, since: w.since, ended: null });
   const waiting = live && WT.some(x => !x.ended);
-  /* the stretches when the run was not running (admin-team/board/timeline-outages): never a visit, never a wait, never summed */
+  /* the stretches when the run was not running (board/timeline-outages): never a visit, never a wait, never summed */
   const OG = outagesOf(w).map(x => ({ step: typeof x.step === "string" ? x.step : null, since: x.since, ended: x.ended, reason: typeof x.reason === "string" ? x.reason : null })), sameT = (x, y) => Date.parse(x) === Date.parse(y);
   /* the running step, open-ended: from its since to now; while the run waits on the user, no visit runs: the one the question
      interrupted ends at the question (frozen there; on a board stopped before the waits were recorded, drawn so) */
@@ -2265,14 +2265,14 @@ function timelineSteps(plan, opts) {
      may hold an unrecorded visit */
   const adj = (a, b) => idx(b.step) - idx(a.step) <= 1;
   /* across a wait on the user a bound passes as the wait's other end: the visit before it ended at the question, the one after it began
-     at the answer (admin-team/board/timeline-waits); across a stretch when the run was not running, as that stretch's other end */
+     at the answer (board/timeline-waits); across a stretch when the run was not running, as that stretch's other end */
   const WC = [...WT.filter(x => x.ended), ...OG];
   const back = t => { const x = WC.find(y => sameT(y.ended, t)); return x ? x.since : t; }, fwd = t => { const x = WC.find(y => sameT(y.since, t)); return x ? x.ended : t; };
   for (let ch = true, g = 0; ch && g < 4; g++) { ch = false;
     for (let k = 0; k + 1 < seq.length; k++) { const a = seq[k], b = seq[k + 1]; if (!adj(a, b)) continue;
       if (!a.to && b.from && b.from.how === "exact") { a.to = { t: back(b.from.t), how: "exact" }; ch = true; }
       if (!b.from && a.to && a.to.how === "exact") { b.from = { t: fwd(a.to.t), how: "exact" }; ch = true; } } }
-  /* 5. an approximate bound (asBuilt.approx, a board backfilled at the user's request; admin-team/dashboards-skill/34): where a bound is
+  /* 5. an approximate bound (asBuilt.approx, a board backfilled at the user's request; dashboards-skill/34): where a bound is
      still unknown, the time the step's update reached the team, marked "≈" and never read as recorded; it passes to a neighbour as
      rule 3 does, and never crosses a recorded bound of its chain: one that would lies at the recorded bound instead (clamped) */
   approxBounds(seq, A, adj);
@@ -2284,7 +2284,7 @@ function timelineSteps(plan, opts) {
   /* the lines: label, duration, family, shade */
   /* a qa or remediation visit with its pass: the parts of one pass a wait or a break split are counted apart (passKey), each named by the
      pass and its part, "Quality Review 1 · visit 1", "Quality Review 1 · visit 2" (plan/RULES.md §2, the Timeline Tile's Legend; p21 choice
-     7, the user's decision of 2026-11-11) */
+     7, the decision of 2026-11-11) */
   const passKey = v => (v.step === "qa" || v.step === "remediation") && v.pass ? `${v.step}#${v.pass}` : null;
   const cnt = {}, nth = {}, part = {}, TL_CTX = PN.ctxOf(w); seq.forEach(v => { cnt[v.step] = (cnt[v.step] || 0) + 1; const pk = passKey(v); if (pk) cnt[pk] = (cnt[pk] || 0) + 1; });
   seq.forEach(v => { v.n = nth[v.step] = (nth[v.step] || 0) + 1;
@@ -2304,7 +2304,7 @@ function timelineSteps(plan, opts) {
      mentions neither: no line of their own, no mark, no note (decided 2026-11-05: time that is not counted is not mentioned) */
   return { kind, visits: seq, left, untimed: seq.filter(v => v.ms == null).map(v => v.label), families: timelineFamilies(seq) };
 }
-/* The tracers (GUIDANCE.md §12; plan/RULES.md §2, "The Timeline tab"; admin-team/dashboards-skill/34): from each KPI tile up to the part of
+/* The tracers (GUIDANCE.md §12; plan/RULES.md §2, "The Timeline tab"; dashboards-skill/34): from each KPI tile up to the part of
    the Timeline tile it belongs to, labelled with how long that part took. An issue board: Rows (the gap) sizing and research, Options
    (considered) research, Verdicts the plan, As built the branch and implementation, QA passes every qa pass and remediation loop. A
    tracking board, its own steps: Units sizing and research, Options research and the architecture, Verdicts the architecture (it has no

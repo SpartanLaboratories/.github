@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // The data-only path for state boards (system/RULES.md §10): restamps the system, supersystem and repository state boards a branch touches,
 // marks system parts built or planned, updates docs/dashboards/systems.json, re-embeds and checks without a browser pass —
-// deterministically and with no reasoning, so the admin team runs it itself inside a landing, at the
-// Document step's state-boards task (facts.document, dashboards-skill/35: on the issue's branch, at the code-landing sha the request gives; facts.premerge, the older pre-merge refresh, read alike). What needs the code read and the prose written is left to the presenter: the summary's "enrich" line says
+// deterministically and with no reasoning, so the team runs it itself inside a landing, at the
+// Document step's state-boards task (facts.document, dashboards-skill/35: on the issue's branch, at the code-landing sha the request gives; facts.premerge, the older pre-merge refresh, read alike). What needs the code read and the prose written is left to the enrichment: the summary's "enrich" line says
 // whether, and why.
 //   node apply-state.js --event <request.json> --worktree <path> [--repo <owner/repo>] [--at <ISO time>] [--json]
 // --event      the request: a state-boards request, or the protocol's plan-board request of a landed event (the older flow)
@@ -21,16 +21,16 @@
 //                          keeps the verbatim title its state.json already holds for the same issue (else one another board in scope holds
 //                          for it, else the issue board's own plan.json issueTitle, in the request's folder), and only with none of these
 //                          takes the folder's name less its number, noted as not the issue's own; one
-//                          that names a grade is a defect in the issue, written as it stands and flagged ISSUE TITLE NAMES A
-//                          GRADE: #n in the notes
-//                document  true for the Document step's state-boards task (admin-team/dashboards-skill/35): every board the branch stamped,
+//                          that names a sizing is a defect in the issue, written as it stands and flagged by the issue-title flag
+//                          (levelrefs.js titleDefect()) in the notes
+//                document  true for the Document step's state-boards task (dashboards-skill/35): every board the branch stamped,
 //                          and every board in scope, stamped "<ref> @ <sha>": ref the branch (facts.ref, else the
 //                          request's branch), sha the code-landing sha the request gives (facts.sha, required: the branch's last code
 //                          commit, after the sync and the bump); only documents change after it, so the boards land with the merge as stamped
 //                premerge  the older name (dashboards-skill/33's pre-merge refresh), read alike; there facts.sha defaults to the worktree's HEAD
 //                landed    true for a state-boards request that restamps at a landing, after the merge (as the landed event does): the
 //                          older flow, kept for a landing that refreshes no state board before its merge
-//                enrich    reasons the team already knows the presenter is needed for (passed through)
+//                enrich    reasons the team already knows enrichment is needed for (passed through)
 // --worktree   the worktree the branch is checked out in; the boards are <worktree>/docs/dashboards/
 // --repo       the GitHub slug, owner/repo; held to the request's github and the registry's repo
 // --at         the time to stamp when the commit's own time cannot be read (default: facts.at, else now)
@@ -136,7 +136,7 @@ async function main() {
 
   /* the stamp: the branch and its commit; at the Document step's state boards the branch and the head the team names; at a
      restamp after the merge the default branch and the merge commit */
-  /* the Document step's state-boards task (facts.document, admin-team/dashboards-skill/35; facts.premerge, its older name, read alike): the
+  /* the Document step's state-boards task (facts.document, dashboards-skill/35; facts.premerge, its older name, read alike): the
      boards stamped "<branch> @ <sha>", at the code-landing sha the request gives (the branch's last code commit,
      after the sync and the bump); only documents change after it, so nothing is restamped at the land */
   const document = facts.document === true, premerge = facts.premerge === true || document, landed = ev === "landed" || facts.landed === true || premerge;
@@ -156,9 +156,9 @@ async function main() {
   S.stamp = `${ref} @ ${sha} · ${date}`;
   const folder = typeof req.folder === "string" ? req.folder.replace(/\\/g, "/").replace(/\/+$/, "") : null;
   if (folder && (folder.split("/").includes("..") || !/^docs\/plans\//.test(folder))) refuse(`the request's folder ${JSON.stringify(folder)} is not under docs/plans/`);
-  /* the title is the issue's, quoted verbatim: never reworded, never elided (GUIDANCE.md §4, §5; admin-team/dashboards-skill/28). Grades
-     are never part of an issue, so a title that names one is a defect in the issue: written as it stands and flagged, ISSUE TITLE
-     NAMES A GRADE: #n, in the summary's notes, for the team to bring to the user to retitle on GitHub */
+  /* the title is the issue's, quoted verbatim: never reworded, never elided (GUIDANCE.md §4, §5; dashboards-skill/28). A sizing
+     is never part of an issue, so a title that names one is a defect in the issue: written as it stands and flagged by the issue-title
+     flag (levelrefs.js titleDefect()), in the summary's notes, for the team to bring to the user to retitle on GitHub */
   /* which title a board's last amendment takes (dashboards-skill/29): facts.title when the event carries it; else the verbatim title the
      board's state.json already holds for the same issue (never overwritten by a folder name); else one another board in scope holds for it;
      else the issue board's own issueTitle (the request's folder's plan.json, for the same issue: quoted from GitHub when the board was laid);
@@ -348,7 +348,7 @@ async function main() {
         if (put(dslFile, inEol(t, d0.eol))) S.wrote.push(path.relative(ROOT, dslFile).split(path.sep).join("/"));
         if (L.blockText(html, "dsl") != null && L.blockText(html, "dsl") !== L.norm(t).trim()) { html = L.embedInto(html, "dsl", t); wrote = true; }
       } else if (myElems.length) refuse(`${e.dsl} is not on disk`);
-      /* panels written at the stamp now applied (the presenter wrote them at the head the team names) are current, not stale */
+      /* panels written at the stamp now applied (the enrichment wrote them at the head the team names) are current, not stale */
       if (landed && s.written && s.written.sha !== old.sha && !String(shaFull).startsWith(String(s.written.sha)) && String(s.written.sha) !== sha) S.enrich.push(`${rel}: its panels were written at ${s.written.sha}, before the branch's last stamp ${old.sha}: the presenter reads them again at this stamp (the Document step's state boards)`);
     }
     if (hasSystems && L.blockText(html, "systems") !== regText) { html = L.embedInto(html, "systems", regText); wrote = true; }
@@ -362,7 +362,7 @@ async function main() {
   /* check-board.js without a browser on every board in scope, at once */
   const checker = path.join(__dirname, "check-board.js");
   const cks = await Promise.all(pages.map(p => run(checker, [p, "--auto", "--no-browser", "--features-as-notes"], ROOT)));
-  /* a board that lags its template is no reason to refuse the stamp: its missing features are the presenter's, who splices it onto the
+  /* a board that lags its template is no reason to refuse the stamp: its missing features are the enrichment's, which splices it onto the
      template at the Document step's state boards (system/scripts/splice.js) */
   cks.forEach((c, i) => { const miss = (c.stdout.match(/^CHECK note: FEATURE MISSING: .*$/gm) || []).length; if (miss) S.enrich.push(`${path.relative(ROOT, pages[i]).split(path.sep).join("/")} lags its template (${miss} feature${miss === 1 ? "" : "s"} missing): the presenter splices it onto the template (system/scripts/splice.js) at the Document step's state boards`); });
   const bad = cks.map((c, i) => [c, pages[i]]).filter(([c]) => c.status !== 0);

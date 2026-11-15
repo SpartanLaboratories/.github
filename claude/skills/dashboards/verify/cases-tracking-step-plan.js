@@ -1,4 +1,4 @@
-// The cases of a tracking board's "plan" step and a nested tracking board's roadmap item (admin-team/dashboards/tracking-step-plan;
+// The cases of a tracking board's "plan" step and a nested tracking board's roadmap item (dashboards/tracking-step-plan;
 // plan/RULES.md §2, "The Context's roadmap", and §4, the fast path's facts.step), run by verify-templates.js (it passes its helpers in), or on
 // its own: node verify/cases-tracking-step-plan.js [--out <dir>]. The rendered Card needs a browser (verify-templates.js --browser).
 // The trigger: KotlinBottools #2, a tracking issue nested under #1's roadmap. Its run sent sized with facts.step "plan" (its pipeline's

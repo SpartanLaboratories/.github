@@ -1,4 +1,4 @@
-// The case group of admin-team/dashboards-skill/27, run by verify-templates.js (it passes its helpers in): verify/history/ is a local cache,
+// The case group of dashboards-skill/27, run by verify-templates.js (it passes its helpers in): verify/history/ is a local cache,
 // kept out of the .github mirror, and a recorded version missing from it is rebuilt on demand (system/scripts/history.js, splice.js). The
 // cases run offline, on a copy of the skill's scripts in a scratch folder (its own verify/verified.json and verify/history/) and a
 // fixture git repository laid out as the mirror is (claude/skills/dashboards/<template path>): a missing version rebuilt from the clone

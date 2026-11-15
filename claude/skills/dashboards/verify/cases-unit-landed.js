@@ -1,4 +1,4 @@
-// The cases of admin-team/dashboards-skill/level-1-landed, run by verify-templates.js (it passes its helpers in), or on its own with no browser:
+// The cases of dashboards-skill/level-1-landed, run by verify-templates.js (it passes its helpers in), or on its own with no browser:
 // node verify/cases-unit-landed.js [--out <dir>]. The team-raised unit-landed (plan/RULES.md §4, "The live view of a landing"): after the merge of a
 // tracking issue's unit that has no board (a level-1 unit, marked complete at its seed), raised with --view from the main checkout, naming no board,
 // it makes the standing rule's landed move on the tracking board's view copy alone (the unit landed with the plain fact of its landing, out of
@@ -123,7 +123,7 @@ module.exports = function casesUnitLanded(X) {
     const r = ev(B, B.main, "unit-landed", LANDED(B), "2026-10-26T10:05:00Z", ["--view"]), v = P(B.vT);
     c.push(["every unit landed, wip.next none, the board still at implementation (its impact not reconciled)", r.S.result === "ok" && v.rows.filter(x => x.unit).every(x => x.asBuilt.state === "landed") && v.wip.next === null && v.wip.step === "implementation" && v.status === "building" && !(v.wip.current || []).length, js([r.S.result, r.S.error, v.wip.next, v.wip.step, v.status])]);
     c.push(["…enrich names the reconciliation and the event raised again", (r.S.why || []).some(w => /#55: every unit has landed: the initiative's impact is reconciled whole .* unit-landed raised again for #70/.test(w)), js(r.S.why)]);
-    /* the presenter's enrichment, through fill.js on the copy: #70's record and the initiative's impact reconciled */
+    /* the enrichment, through fill.js on the copy: #70's record and the initiative's impact reconciled */
     const fields = { rows: [{ id: "http-docs", asBuilt: { state: "landed", summary: "Landed through PR #97: the architecture and usage documents for the HTTP stack." } }],
       impact: { basis: "as-built", units: [...v.impact.units, { unit: "http-docs", basis: "as-built", summary: "Documentation only.", release: { bump: "none", version: null }, changes: [] }], changes: [...v.impact.changes, { unit: "http-docs", when: "#70 landing", none: true }] } };
     const ff = wr(path.join(sc, "ul-last-fields.json"), js(fields)), f = run(FILL, [B.vT, "--fields", ff, "--root", B.main, "--json"], { env });
@@ -166,7 +166,7 @@ module.exports = function casesUnitLanded(X) {
     const lv = run(BOARD, ["--live", "--root", B.main, "--no-gh"], { env });
     c.push(["board.js --live keeps the tied copy while the board-less unit's record is unfinished", lv.status === 0 && fs.existsSync(path.join(B.vT, "plan.json")), (lv.stdout || lv.stderr).split(/\r?\n/).filter(l => /view copy/.test(l)).join(" | ")]);
     git(B.main, "checkout", "--", ".");
-    /* the presenter finishes the record on the copy */
+    /* the enrichment finishes the record on the copy */
     const v = P(B.vT), fields = { rows: [{ id: "test-support", asBuilt: { state: "landed", summary: "Landed through PR #97: the test fixtures' documents." } }], impact: { units: [...(v.impact.units || []), { unit: "test-support", basis: "as-built", summary: "Documentation only.", release: { bump: "none", version: null }, changes: [] }], changes: [...(v.impact.changes || []), { unit: "test-support", when: "#63 landing", none: true }] } };
     const ff = wr(path.join(sc, "ul-race-fields.json"), js(fields)), f = run(FILL, [B.vT, "--fields", ff, "--root", B.main, "--json"], { env });
     c.push(["the enrichment on the copy", f.status === 0, (f.stdout || f.stderr).slice(0, 300)]);

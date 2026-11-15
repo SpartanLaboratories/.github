@@ -9,7 +9,7 @@
 //     additional review", "the next review", "the review approved"); what a pass returns, its "findings" ("Quality Review 1: 18 findings");
 //   - the remediation step is named by its route: "Correction" (on-the-spot, remediation), "Resolution" (re-plan-then-remediation); the
 //     first bare, a later one "Correction of Quality Review N" (the pass it answers, from 2 on); no "loop"; a halt during it names it by
-//     its route alone, "Halted at Correction", "Halted at Resolution", never the pass (admin-team/dashboards/call-3; haltWords(), haltName());
+//     its route alone, "Halted at Correction", "Halted at Resolution", never the pass (dashboards/call-3; haltWords(), haltName());
 //   - every other step by its reader name (STEP_NAME: "Implementation", "Document", "State boards"); the Document step's commit task,
 //     "Document commit"; an open point's "raised" by the step that raised it ("raised during Implementation, stage 3", "raised at Document");
 //   - a Quality Review's checks by the check, "documentation check", "code check", "test check" (dashboards-skill/52): the progress notes'
@@ -22,7 +22,7 @@
 // name by its route; a halt's with no article, "Halted at Correction"); "Halted at the Correction of Quality Review 2", "Held still at the
 // Resolution" (→ "Halted at Correction", "Held still at Resolution": a halt names its fix step by its route alone); "Document-landing commit" (→ "Document commit");
 // a findings line with its kinds before its severities, "18 findings (3 documentation, 15 code; 2 minor, 16 other)" (→ "18 findings (2 minor,
-// 16 other; 3 documentation, 15 code)", admin-team/dashboards/call-5); the documentation check's older label as the scripts wrote it,
+// 16 other; 3 documentation, 15 code)", dashboards/call-5); the documentation check's older label as the scripts wrote it,
 // lowercase, "the documentation review pass" (→ "the documentation check pass", dashboards-skill/52). What is not: an issue's title (quoted
 // verbatim, levelrefs.js titleSkip()), the Document step's task "Documentation review" (its name, capitalised; lib.js DOC_TASKS), code in backticks, the data keys and identifiers (qa, pass, facts.qa, the qa-pass event, the remediation route's id).
 "use strict";
@@ -51,7 +51,7 @@ const STEP_WORDS = { "sub-issues": "filing the units as sub-issues", boards: "cr
   architecture: "the architecture", plan: "the plan", branch: "the branch", implementation: "implementation", qa: PASS_NAME, document: "the Document step",
   landing: "the landing", "state-boards": "the state boards", merge: "the merge", landed: "landed" };
 const stepWords = (step, ctx) => step === "remediation" ? `the ${stepName(step, ctx)}` : STEP_WORDS[step] || String(step || "");
-/* the step a halt names (admin-team/dashboards/call-3, the user's decision of 2026-11-06): a fix step by its route alone, with no pass and
+/* the step a halt names (dashboards/call-3, the decision of 2026-11-06): a fix step by its route alone, with no pass and
    no article, "Halted at Correction", "Halted at Resolution"; every other step as stepWords() (in a sentence) and stepName() (as a label)
    name it, "Halted at Quality Review", "Halted at the plan". A resume and an escalation are no halt: "Resumed at the Correction of Quality
    Review 2". The templates' haltLabel() is haltName() (verify/cases-halt-fix-step.js holds them equal). */
@@ -66,7 +66,7 @@ const ROUTE_WORDS = { "on-the-spot": "minor fixes on the spot, then the Document
 const REMEDIATION_NOTE = "Correction or Resolution after a Quality Review; each step is recorded as it runs";
 /* the mark of a pass whose findings were fixed in place, with no pass after it */
 const inPlaceWords = p => p && p.inPlace ? `${p.inPlace === "fixing" ? "fixing" : "fixed"} in place · no additional ${REVIEW}` : "";
-/* a pass's findings line (admin-team/dashboards/call-5, the user's decision of 2026-11-06): the count, then the severities, then the kinds,
+/* a pass's findings line (dashboards/call-5, the decision of 2026-11-06): the count, then the severities, then the kinds,
    "18 findings (2 minor, 16 other; 3 documentation, 15 code)". Severities minor, then other (a qa report's own words after them, as it
    wrote them); kinds documentation, test, code; a zero count left out of both. The count is the kinds' sum, else the severities' where no
    kind is counted. Nothing counted: "" (zero true: "0 findings" where a count is recorded, the step panel's line of a pass with none).
@@ -131,13 +131,13 @@ const OLDER = [
   [/\bRemediation\s+for\s+Quality\s+Review\s+(\d+)\b/gi, (m, n, ctx) => remediationName(ctx.routeOf(+n), +n)],
   [/^Remediation:\s*([\s\S]*)$/i, (m, rest, ctx) => { const n = (PASS_RE.exec(rest) || [])[1]; return `${n ? remediationName(ctx.routeOf(+n), +n) : remediationName(ctx.route, ctx.pass)}: ${rest}`; }],
   [/\b(halted|resumed|escalated|held still)\s+(at|from|during|in)\s+remediation\b(?![-\w])/gi, (m, a, b, ctx) => `${a} ${b} ${/^(?:halted|held still)$/i.test(a) ? "" : "the "}${routeName(ctx.route)}`],
-  /* a halt names its fix step by its route alone (admin-team/dashboards/call-3): "Halted at the Correction of Quality Review 2" → "Halted at
+  /* a halt names its fix step by its route alone (dashboards/call-3): "Halted at the Correction of Quality Review 2" → "Halted at
      Correction", "Held still at the Resolution" → "Held still at Resolution"; the step's names as the scripts write them (capitalised), so a
      text's own "halted at the resolution of the conflict" is not one; a resume and an escalation keep the visit's name */
   [/\b([Hh]alted|[Hh]eld\s+still)\s+(at|from|during|in)\s+the\s+(Correction|Resolution)(?:\s+of\s+Quality\s+Review\s+#?\d+)?(?![-\w])(?!\s+of\b)/g, (m, a, b, r) => `${a} ${b} ${r}`],
   [/\b(?:(the|a|an|each|every|this)\s+)?(?:remediation\s+(?:loop|pass)|loop\s+of\s+remediation)(s?)\b/gi, (m, art, pl, ctx) => `${art ? art.replace(/^an$/i, "a") + " " : ""}${routeName(ctx.route)}${pl}`],
   [/\bdocument-landing\s+commit\b/gi, m => cap("Document commit", m).replace(/^document/, "Document")],
-  /* a findings line with its kinds before its severities (admin-team/dashboards/call-5): the severities first */
+  /* a findings line with its kinds before its severities (dashboards/call-5): the severities first */
   [FINDINGS_OLD, (m, n, noun, kinds, sevs) => findingsReordered(n, noun, kinds, sevs)],
   /* the documentation check by its label (dashboards-skill/52): "the documentation review pass" → "the documentation check pass" */
   [CHECK_LABEL_OLD, (m, pl) => `documentation check${pl}`],

@@ -10,7 +10,7 @@
 // dashboards-skill/41, or .c4-legend on the C4 tab, .c4key before it), the
 // Context Panel is headed exactly "Context", the footer is "Corresponds to <source>." and its authority sentence (GUIDANCE.md
 // §3), no link is a dead href="#", the board has no horizontal scroll at the width
-// checked, no grade is shown (levelrefs.js: "grade 3", "graded", "a grade-3 change" and the like, in any
+// checked, no sizing is shown (levelrefs.js: the word in any of its forms, numbered or not, in any
 // tab's text or the board's), no system colour falls in a status spectrum (palette.js: the --sys-N slots and a system board's
 // --server / --client / --wire, read from the board's CSS and, in the browser, as the theme of the pass computes them), and no
 // error fired. Then, by kind: a system board has a visible Guarantees Panel
@@ -81,7 +81,7 @@ if (args.includes("--auto")) {
   staticLines().forEach(l => console.log(l));
   if (args.includes("--no-browser")) {
     /* the data-only path (apply-state.js): every check that needs no browser; the browser pass the board needs is named and left to
-       the presenter's next look (the pre-merge refresh) */
+       the enrichment's next look (the pre-merge refresh) */
     const bad = palette.problems.length + dslDashes.length + staticProblems.length;
     console.log(`CHECK template: ${d.kind} board · ${d.verdict} · browser pass deferred (${d.passes === "none" ? "none needed" : "the full pass"})`);
     d.notes.forEach(n => console.log("CHECK template: " + n));
@@ -124,7 +124,7 @@ const browsers = [
 ];
 const { GRADE_PATTERNS, SLUG_PATTERNS, quotedTitles } = require("./levelrefs.js");
 /* the issue titles the board's data quotes (dashboards-skill/28): a Source view prints them JSON-quoted, and the browser pass leaves them out
-   of its grade scan there, as it leaves out the titles the board marks data-issue-title */
+   of its sizing scan there, as it leaves out the titles the board marks data-issue-title */
 const QUOTED = (() => { const L = require("./statelib.js"), all = []; ["plan", "board", "state"].forEach(id => { const t = L.blockText(src, id); if (t == null) return; try { all.push(...quotedTitles(JSON.parse(t))); } catch (e) { /* the data checks report it */ } });
   return [...new Set(all)].filter(t => t).map(t => JSON.stringify(t)); })();
 const browser = process.env.CHROME && fs.existsSync(process.env.CHROME) ? process.env.CHROME : browsers.find(b => fs.existsSync(b));
@@ -140,15 +140,15 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   console.log("CHECK kind: "+kind);
   const shown=e=>!!e&&e.offsetParent!==null;
   const tabs=[...document.querySelectorAll('[role="tab"]')]; console.log("CHECK tabs: "+tabs.length);
-  /* grades are never shown (levelrefs.js): the text of every tab, then of the whole board, is scanned */
+  /* no sizing is ever shown (levelrefs.js): the text of every tab, then of the whole board, is scanned */
   const LV=${JSON.stringify(GRADE_PATTERNS)}.map(([s,f])=>new RegExp(s,f+"g")), lvHits=new Set();
   /* a slug made from an issue's title (a plan folder's name, where a path puts it) is left out as the title is (levelrefs.js maskSlugs();
-     the user's decision of 2026-11-14, batch-8/q-54) */
+     the decision of 2026-11-14, batch-8/q-54) */
   const SL=${JSON.stringify(SLUG_PATTERNS)}.map(s=>new RegExp(s,"g")), unslug=t=>SL.reduce((x,re)=>x.replace(re,"\\u0001"),t||"");
   const lvScan=(txt,where)=>{ txt=unslug(txt); LV.forEach(re=>{ re.lastIndex=0; let m; while((m=re.exec(txt))) lvHits.add(where+": “"+m[0]+"”"); }); };
   /* An issue's title is quoted verbatim and marked data-issue-title (GUIDANCE.md §5; dashboards-skill/28): its text is left out of the
-     scan above (textOf() reads a part's rendered text with the titles hidden), and a grade in it is a defect in the issue, flagged
-     by number, ISSUE TITLE NAMES A GRADE: #n, never a failure of the board (the title's own words are not printed: they are the issue's) */
+     scan above (textOf() reads a part's rendered text with the titles hidden), and a sizing in it is a defect in the issue, flagged
+     by number by the issue-title flag, never a failure of the board (the title's own words are not printed: they are the issue's) */
   const hideT=document.createElement("style"); hideT.textContent="[data-issue-title]{display:none!important}"; document.head.appendChild(hideT); hideT.disabled=true;
   const QT=${JSON.stringify(QUOTED).replace(/</g, "\\u003c")};
   const textOf=el=>{ if(!el) return ""; hideT.disabled=false; let t=el.innerText; hideT.disabled=true; QT.forEach(q=>{ t=t.split(q).join('""'); }); return t; };
@@ -269,7 +269,7 @@ function registryIgnored() {
 }
 
 // The board links of a system, supersystem or repository state board (GUIDANCE.md §5; system/RULES.md §6): its BOARDS map, issue number →
-// issue board relative to the board, filled by the presenter on its one line. A link never points at a file that is not there, so an
+// issue board relative to the board, filled by the enrichment on its one line. A link never points at a file that is not there, so an
 // entry whose file is missing fails (DEAD BOARD LINK), and so does a map that is not plain JSON (keys and paths in double quotes).
 function boardLinks() {
   if (/<meta name="dashboard" content="(plan-board|work-board|org-work-board)">/.test(src)) return null;
@@ -296,7 +296,7 @@ function stateChecks() {
   const L = require("./statelib.js"), { kindOf, templateFor } = require("./deviation.js"), kind = kindOf(src);
   const notes = [], problems = [], dir = path.dirname(path.resolve(page)), reg = L.findRegistry(page);
   let R = null; if (reg) { try { R = JSON.parse(fs.readFileSync(reg, "utf8")); } catch (e) { /* the registry check reports it */ } }
-  /* the structure map's canvas (system/RULES.md §2; admin-team/dashboards-skill/35): 1000 wide, its height recorded on the board
+  /* the structure map's canvas (system/RULES.md §2; dashboards-skill/35): 1000 wide, its height recorded on the board
      (MODEL.structure.h, 612 by default) and at most 812; a system that needs more is split into subsystems under a supersystem board */
   if (kind === "system") {
     const hm = /structure\s*:\s*\{[\s\S]{0,4000}?\bh\s*:\s*(\d+)/.exec(src), vb = /id="svg-structure"\s+viewBox="0 0 (\d+) (\d+)"/.exec(src);
@@ -324,7 +324,7 @@ function stateChecks() {
   if (R && reg && st != null) { let s0 = null; try { s0 = JSON.parse(st); } catch (e) { /* reported above */ }
     const sha = s0 && s0.asIs ? s0.asIs.sha : null, code = L.codeStatus(R, L.registryRoot(reg), sha), all = R.systems || [], me = s0 && all.find(x => x.slug === s0.slug);
     const drawn = kind === "system" ? (me ? [me] : []) : me && me.kind === "supersystem" ? all.filter(x => x.slug === me.slug || L.isAncestor(all, me.slug, x.slug)) : all;
-    /* the registry's status and visibility (system/RULES.md §7; admin-team/dashboards-skill/35): status built, planned or archived; every
+    /* the registry's status and visibility (system/RULES.md §7; dashboards-skill/35): status built, planned or archived; every
        system (not the repository's own entry) records its visibility, public, internal-org or internal-repo, or inherits its parent
        system's; one with none is warned on (the Systems tab draws it in an "unset" group), an archived one excepted */
     if (kind === "supersystem") { const VIS = ["public", "internal-org", "internal-repo"], byS = x => all.find(y => y.slug === x);
@@ -371,17 +371,17 @@ function featureChecks() {
   const F = require("./features.js"), { kindOf } = require("./deviation.js"), kind = kindOf(src);
   if (/<meta name="dashboard" content="doc-copy">/.test(src)) return null;
   const miss = F.probe(src, kind);
-  /* --features-as-notes (with --auto --no-browser, apply-state.js): a board that lags its template is the presenter's to splice at the landing
+  /* --features-as-notes (with --auto --no-browser, apply-state.js): a board that lags its template is the enrichment's to splice at the landing
      refresh, not a reason to refuse a stamp: its missing features are notes, and do not fail the run */
   /* a landed or cancelled issue board is kept as it landed and never re-rendered (GUIDANCE.md §11, "Re-rendering"): its newer features are notes */
   const closed = closedPlanBoard();
   const asNotes = closed || (args.includes("--features-as-notes") && args.includes("--no-browser"));
   return { note: `features: ${F.applicable(kind).length - miss.length} of ${F.applicable(kind).length} a ${kind} board takes`, notes: asNotes ? miss.map(m => "note: " + F.line(m)) : [], problems: asNotes ? [] : miss.map(F.line) };
 }
-// The issue titles a board quotes (GUIDANCE.md §4, §5; levelrefs.js issueTitleRefs(); admin-team/dashboards-skill/28), read without a
+// The issue titles a board quotes (GUIDANCE.md §4, §5; levelrefs.js issueTitleRefs(); dashboards-skill/28), read without a
 // browser: a state board's Context titles (written <a data-board="N">title</a>) and its state block's lastAmended.title, a board's data
-// block's title fields. A title is quoted verbatim; one that names a grade is a defect in the issue, flagged as a warning, ISSUE
-// TITLE NAMES A GRADE: #n, never a problem of the board: the admin team brings it to the user to retitle on GitHub.
+// block's title fields. A title is quoted verbatim; one that names a sizing is a defect in the issue, flagged as a warning by the
+// issue-title flag (titleDefect()), never a problem of the board: the team brings it to the user to retitle on GitHub.
 function titleChecks() {
   if (!src || /<meta name="dashboard" content="doc-copy">/.test(src)) return null;
   const { titleRefs: levelRefs, issueTitleRefs, titleDefect } = require("./levelrefs.js"), L = require("./statelib.js"), notes = [];   // a title read whole, a slug in it included
@@ -395,9 +395,9 @@ function titleChecks() {
   return { notes: notes.length ? notes : [], problems: [] };
 }
 // Internal names (GUIDANCE.md §4, "No internal names"; namerefs.js; dashboards-skill/33), read without a browser: the strings of a board's
-// data blocks (plan, board, state; an issue's title, quoted verbatim, left out), its HTML comments (the old "presenter:" placeholder marks
+// data blocks (plan, board, state; an issue's title, quoted verbatim, left out), its HTML comments (the old placeholder marks, named for a role,
 // included) and the text of its hand-written HTML (a state board's header, panels, Guarantees and Context; an inline <code> counts as a name in backticks does, and so does a <pre> block, a rendered fenced block,
-// the user's decision of 2026-11-13, dashboards/scan-forms, so this scan and the commit scan agree). Each is a
+// the decision of 2026-11-13, dashboards/scan-forms, so this scan and the commit scan agree). Each is a
 // warning, INTERNAL NAME, never a problem of the board: text a board stores is corrected where it is stored, an issue or tracking board's through fill.js (GUIDANCE.md §4).
 function nameChecks() {
   if (!src || /<meta name="dashboard" content="doc-copy">/.test(src)) return null;

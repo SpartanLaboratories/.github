@@ -1,4 +1,4 @@
-// The cases of admin-team/dashboards-skill/level-1-seed, run by verify-templates.js (it passes its helpers in), or on its own with no browser:
+// The cases of dashboards-skill/level-1-seed, run by verify-templates.js (it passes its helpers in), or on its own with no browser:
 // node verify/cases-seed.js [--out <dir>]. The team-raised seed (plan/RULES.md §4, "Seeding at sized"): the seeding of a sized alone, board-less as reseed is, so a
 // level-1 branch, which has no board and sends no sized, carries the repository's pending corrections (the previous landing's issue board landed at its merge, its
 // tracking board, the repository work board) in its document-landing commit; the run's own unit on its tracking board marked complete where the facts name it, its

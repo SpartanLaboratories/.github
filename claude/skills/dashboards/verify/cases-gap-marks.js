@@ -1,4 +1,4 @@
-// The cases of the Gap cell's marks (admin-team/dashboards/gap-marks, dated 44), run by verify-templates.js (it passes its helpers in), or on
+// The cases of the Gap cell's marks (dashboards/gap-marks, dated 44), run by verify-templates.js (it passes its helpers in), or on
 // its own with no browser: node verify/cases-gap-marks.js [--out <dir>].
 // 1. The marks (plan/RULES.md §2, "The Gap cell"), the template's own helpers run outside a browser, every one derived from the row's data:
 //    the evidence count label ("· 2 evidence", the figure muted at zero), the where chip (the row's where, its code spans plain inside the

@@ -1,4 +1,4 @@
-// The case groups of admin-team/dashboards-skill/31, run by verify-templates.js (it passes its helpers in): the decision not to run another
+// The case groups of dashboards-skill/31, run by verify-templates.js (it passes its helpers in): the decision not to run another
 // qa pass shown (a pass whose findings were fixed in place, its on-the-spot route read from the pass, the remediation loop answering it, or
 // a frozen remediation visit; never from prose), derived by lib.js qaShown() / qaInPlace() and drawn as a small neutral mark beside the
 // pass on the repository work board's QA column, an issue board's QA tile and WIP strip and a tracking unit's run line; apply-event.js recording a

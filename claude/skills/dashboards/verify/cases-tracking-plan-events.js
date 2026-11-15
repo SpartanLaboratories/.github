@@ -1,4 +1,4 @@
-// The cases of a tracking issue's run sending plan-accepted and branch-cut (admin-team/dashboards/tracking-plan-events; plan/RULES.md §4, the
+// The cases of a tracking issue's run sending plan-accepted and branch-cut (dashboards/tracking-plan-events; plan/RULES.md §4, the
 // plan-accepted and branch-cut rows), run by verify-templates.js (it passes its helpers in), or on its own with no browser:
 // node verify/cases-tracking-plan-events.js [--out <dir>].
 // The trigger: KotlinBottools #2, a tracking plan whose eight units are planned and not yet filed. Its run sent plan-accepted (the architecture
@@ -29,7 +29,7 @@ module.exports = function casesTrackingPlanEvents(X) {
   let n = 0;
   const T = m => `2026-11-07T07:${String(m).padStart(2, "0")}:00Z`;
   /* a tracking board at the step given, its units written and none filed, their dependencies by unit number (plan/RULES.md §3, unit.blockedBy;
-     admin-team/dashboards/unit-blockers-before-filing) */
+     dashboards/unit-blockers-before-filing) */
   const nOf = Object.fromEntries(TRK.rows.filter(r => r.unit).map(r => [r.unit.issue, r.unit.n]));
   const unfiled = (step, over) => { const p = copy(TRK); p.rows.forEach(r => { if (r.unit) { r.unit.board = null; r.unit.folder = null; r.unit.issue = null; r.unit.blockedBy = (r.unit.blockedBy || []).map(i => ({ unit: nOf[i] })); delete r.unit.live; r.asBuilt = { state: "pending", summary: "Not filed yet." }; } });
     Object.assign(p, { status: "planned", asBuilt: null, sized: T(0), branch: null }); p.milestones = (p.milestones || []).filter(m => m.column !== "built"); if (p.impact) { p.impact.basis = "plan"; delete p.impact.changes; }

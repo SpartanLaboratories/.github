@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Lay an issue board's foundation (the "sized" event, plan/RULES.md §4, "The foundation"): docs/plans/[<parent>/]<issue>-<slug>/{plan.json,dashboard.html}.
-// apply-event.js lays it itself at a sized with no board, through the same lib.js foundationPlan(); this is the presenter's fallback when
+// apply-event.js lays it itself at a sized with no board, through the same lib.js foundationPlan(); this is the fallback when
 // that run failed (its summary names the event's time for --at), after which the event is raised again.
 //   node new.js <issue> <slug> [--root <repo>] [--parent <folder under docs/plans>] [--fix-of <landed issue>] [--kind issue|tracking] [--grade 2|3|4]
 //               [--title "Short name"] [--issue-title "The issue's title"] [--function "One paragraph"]
@@ -30,7 +30,7 @@ let root; try { root = repoRoot(args); } catch (e) { console.error(e.message); p
 const tpl = path.resolve(__dirname, "..", "template");
 const name = slug.startsWith(issue + "-") ? slug : `${issue}-${slug}`;
 const parent = opt(args, "parent", "");
-/* --fix-of <n>: a fix to the work of an earlier, landed issue (plan/RULES.md §1, "A fix to an earlier plan's work"; admin-team/dashboards-skill/35):
+/* --fix-of <n>: a fix to the work of an earlier, landed issue (plan/RULES.md §1, "A fix to an earlier plan's work"; dashboards-skill/35):
    with --parent it sits under its own GitHub parent, else inside the landed issue's folder (a folded-in fix); plan.fixOf names that issue,
    and embed.js links its board */
 const fixOf = opt(args, "fix-of", null), fixN = fixOf ? parseInt(String(fixOf).replace(/^#/, ""), 10) : null;

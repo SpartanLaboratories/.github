@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The Timeline tile of a landed board (plan/RULES.md §2, "The KPI tiles"; admin-team/dashboards-skill/32), from the command line.
+// The Timeline tile of a landed board (plan/RULES.md §2, "The KPI tiles"; dashboards-skill/32), from the command line.
 //   node timeline.js <folder>                         print the tile's step lines (UTC), its figure and what it leaves out
 //   node timeline.js <folder> --from-git [--repo-dir <path>]
 //                                                     record, from git, the merge's time (asBuilt.at) and the branch's step commits

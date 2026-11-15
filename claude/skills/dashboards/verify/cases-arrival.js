@@ -1,4 +1,4 @@
-// The cases of the event's time held to its arrival (plan/RULES.md §4, "The event's time"; the admin team's brief, Board lanes), run by
+// The cases of the event's time held to its arrival (plan/RULES.md §4, "The event's time"; the team's brief, Board lanes), run by
 // verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-arrival.js [--out <dir>].
 // The trigger: runs sent facts.at guessed or rounded, at every session start. The team passes each run's event with its arrival time,
 // apply-event.js --arrived <UTC ISO>: a facts.at that is missing, or more than ARRIVAL_TOLERANCE_S (2 minutes) from the arrival, is
@@ -7,7 +7,7 @@
 // KotlinBottools #23: a run reads them from the clock at the moment and reports them in its next event, many minutes later, and the
 // closeness replaced a true reading): a missing one is stamped at the arrival; one is kept when it is not after the arrival plus the
 // tolerance and, for a resolved time, not before the last event that still showed the point open (the point's shownOpen, the time of the
-// last event of the run's that raised it or listed it again unresolved, the user's approval of 2026-11-11; on a point raised before the
+// last event of the run's that raised it or listed it again unresolved, the decision of 2026-11-11; on a point raised before the
 // field, the board's last event, wip.event, where it is a report of the run's); only one outside those bounds is replaced by the arrival time, the arrival line naming the bound it
 // crossed. A newly raised point has no earlier event showing it open, so only the upper bound binds it; a point carried forward with the
 // board's times is not read. Without --arrived (team-raised events, backfills) nothing changes; --at still wins; an --arrived that is no
@@ -146,7 +146,7 @@ module.exports = function casesArrival(X) {
     const g = resolveOn(raisedOn(R), sec(-30), [{ text: P1, resolved: "2026-11-03T01:00:00Z" }], ["--arrived", A]);
     c.push(["a rounded guess, hours before the point was raised: replaced the same way",
       g.a.status === 0 && g.pt(P1) && g.pt(P1).resolved === A && g.S.arrival === `${who(P1)} resolved 2026-11-03T01:00:00Z replaced by arrival ${A} (before the point was last shown open, ${R})`, js([g.pt(P1), g.S.arrival, g.S.error])]);
-    /* the bound is the last event that still showed the point open, the point's shownOpen (the user's approval of 2026-11-11): a later report
+    /* the bound is the last event that still showed the point open, the point's shownOpen (the decision of 2026-11-11): a later report
        that lists the point again unresolved moves it; one that does not list it moves nothing (before the field, the board's last event did) */
     const B2 = raisedOn(R), R2 = sec(-900), mid = send(B2, { stage: "S1", stages: STG("current", "todo"), at: R2, detail: "Stage one, a second report." }, []);
     const l = resolveOn(B2, sec(-30), [{ text: P1, resolved: sec(-1200) }], ["--arrived", A]);
@@ -249,7 +249,7 @@ module.exports = function casesArrival(X) {
       a.a.status === 0 && a.pt(P1) && a.pt(P1).resolved === sec(-3600) && a.pt(P2) && a.pt(P2).resolved === sec(600) && /^not held: --at 2026-11-03T04:40:00Z given \(arrival 2026-11-03T05:00:00Z\)$/.test(a.S.arrival || ""), js([a.a.status, a.pt(P1), a.pt(P2), a.S.arrival, a.S.error])]);
   });
 
-  /* an open point's shownOpen (the user's approval of 2026-11-11 of the proposal to store a time on each open point): the time of the last
+  /* an open point's shownOpen (the decision of 2026-11-11 on the proposal to store a time on each open point): the time of the last
      event of the run's that showed the point open, written by the event that raises it and moved by each later one that lists it again
      unresolved, never back, never by a team-raised event; the lower bound of its resolved time. A point from before the field has none until
      an event lists it again, and is bounded by the board's last event meanwhile (the group above, "where the board holds no time") */

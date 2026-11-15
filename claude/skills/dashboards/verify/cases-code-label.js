@@ -1,4 +1,4 @@
-// The cases of the code label and an option's signature (admin-team/dashboards/code-label-and-sigblock, dated 42), run by verify-templates.js
+// The cases of the code label and an option's signature (dashboards/code-label-and-sigblock, dated 42), run by verify-templates.js
 // (it passes its helpers in), or on its own with no browser: node verify/cases-code-label.js [--out <dir>].
 // 1. The code label on every template (GUIDANCE.md §12, "Code"): every inline code a label of its own, the surface-2 fill, a hairline border,
 //    1 × 4 px padding and a 3 px radius, in both themes (the two tokens defined in each palette), at normal weight inside bold text (b, strong,

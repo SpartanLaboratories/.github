@@ -1,4 +1,4 @@
-// The cases of admin-team/dashboards-skill/doc-landing-and-view-follow, run by verify-templates.js (it passes its helpers in), or on its own with no browser:
+// The cases of dashboards-skill/doc-landing-and-view-follow, run by verify-templates.js (it passes its helpers in), or on its own with no browser:
 // node verify/cases-doc-landing.js [--out <dir>]. The Document step's last task, document-landing, the team's (plan/RULES.md §4, "document"): to come from the list's
 // start, current once the state boards finish, done just before the commit, never undone by a run's list, closed by the land, and a board without it left alone. A view
 // copy not yet landed seeded as it stands, kept by board.js --live, and the event reseed bringing the finished state at the refresh's end, the run's wip untouched (plan/RULES.md §4, "Seeding at sized"). A fill's

@@ -1,4 +1,4 @@
-// The cases of the inspector's Hide button (admin-team/dashboards/inspector-hide-button, the user's decision of 2026-11-07, dated 46;
+// The cases of the inspector's Hide button (dashboards/inspector-hide-button, the decision of 2026-11-07, dated 46;
 // GUIDANCE.md §6, "The inspector switch"), run by verify-templates.js (it passes its helpers in), or on its own with no browser:
 // node verify/cases-inspector-hide.js [--out <dir>].
 // The Hide button sits in the inspector's head, right of its heading: an eye struck through and the word "Hide", a button (ui.md, Button) in

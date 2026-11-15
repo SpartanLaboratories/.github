@@ -1,4 +1,4 @@
-// The cases of a step's files nested by their folders (admin-team/dashboards/step-file-tree, dated 43), run by verify-templates.js (it passes
+// The cases of a step's files nested by their folders (dashboards/step-file-tree, dated 43), run by verify-templates.js (it passes
 // its helpers in), or on its own with no browser: node verify/cases-file-tree.js [--out <dir>].
 // 1. The nesting (plan/RULES.md §2, "A step's files"), the template's own helpers run outside a browser: the module a heading (the folders
 //    before src/<set>/, else the top folder), its source set a level under it with src/ left out, the rest of the folder path one line

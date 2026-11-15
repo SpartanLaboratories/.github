@@ -1,7 +1,7 @@
-// The case groups of admin-team/dashboards-skill/28, run by verify-templates.js (it passes its helpers in): (the Timeline tile's figure the
-// sum of what its bar draws, since dashboards-skill/32 the visits of its run's steps: verify/cases-32.js); an issue's title quoted verbatim, one that names a grade flagged as a
-// defect in the issue (ISSUE TITLE NAMES A GRADE: #n) by check.js, check-board.js, apply-event.js and apply-state.js and never a failure
-// of the board, on every type; a slug or a folder name made from the title left out of the grade check as the title is (the user's decision of
+// The case groups of dashboards-skill/28, run by verify-templates.js (it passes its helpers in): (the Timeline tile's figure the
+// sum of what its bar draws, since dashboards-skill/32 the visits of its run's steps: verify/cases-32.js); an issue's title quoted verbatim, one that names a sizing flagged as a
+// defect in the issue (the issue-title flag, levelrefs.js titleDefect()) by check.js, check-board.js, apply-event.js and apply-state.js and never a failure
+// of the board, on every type; a slug or a folder name made from the title left out of the sizing check as the title is (the decision of
 // 2026-11-14, batch-8/q-54), the slug inside a branch's name too (batch-8/branch-slug); an issue board at research with no rows a defect (NO ROWS AT RESEARCH), research planning on a rowless board
 // glowing nothing, a tracking board's research left alone; each unit row's label glowing on its own while it is filed as a sub-issue, after its plan's merge
 // (per-unit sub-issues-filed events, a final one closing the step); and the feature probes
@@ -42,7 +42,7 @@ module.exports = function cases28(X) {
 
   /* 1. the Timeline tile's figure, the sum of what its bar draws: since dashboards-skill/32 the visits of its run's steps (verify/cases-32.js) */
 
-  /* 2. an issue's title quoted verbatim; one that names a grade flagged as the issue's defect, never the board's failure */
+  /* 2. an issue's title quoted verbatim; one that names a sizing flagged as the issue's defect, never the board's failure */
   guard("an issue's title quoted verbatim; one naming a grade flagged ISSUE TITLE NAMES A GRADE: #n, never a failure, on every type (dashboards-skill/28)", c => {
     /* levelrefs.js */
     const pd = { schema: "plan-board/1", issue: 70, issueTitle: LV, function: "Checks the handshake.", followUps: [{ issue: 81, title: LV2, note: "Left for later." }], roadmap: { issue: 55, title: "HTTP client stack", items: [{ issue: 62, title: "inside grade 3" }] }, rows: [{ id: "a", name: "Row a", unit: { issue: 63, title: "Label grade: 3" } }] };
@@ -71,7 +71,7 @@ module.exports = function cases28(X) {
       const t = run(APPLY, ["--event", req(path.join(sc, "title-halt2.json"), { github: L1.repo, issue: L1.issue, event: "resumed", folder: F0, facts: {} }), "--worktree", r1, "--no-live", "--at", "2026-10-25T16:05:00Z"]);
       c.push(["…its plain summary carries an \"issue defects\" line", t.status === 0 && /^issue defects: ISSUE TITLE NAMES A GRADE: #70 \| ISSUE TITLE NAMES A GRADE: #81$/m.test(t.stdout), (t.stdout || "").split(/\r?\n/).filter(l => /defects|^error/.test(l)).join(" | ")]);
     } else c.push(["the live fixture's board passes check.js (to apply an event on it)", false, fails(k0).join(" | ").slice(0, 300)]);
-    /* the boards: each quoted title marked; the browser pass flags it and passes, a grade elsewhere still fails */
+    /* the boards: each quoted title marked; the browser pass flags it and passes, a sizing elsewhere still fails */
     const L3 = copy(L1); const pg = planPage("title-page", L3), d = dumpDom(pg, "", "1400,1000");
     c.push(d == null ? ["the issue board marks its issue line and a follow-up's title data-issue-title, by issue", false, NEEDS_BROWSER] : ["the issue board marks its issue line and a follow-up's title data-issue-title, by issue", d == null || (/<p class="issueline" id="issueline"><span data-issue-title="70">/.test(d) && /data-issue-title="81">A grade-3 change to the transport</.test(d)), (d || "").match(/<p class="issueline"[^>]*>/) + " · " + ((d || "").match(/data-issue-title="81"[^<]*/) || ["no follow-up mark"])[0]]);
     const dt = dumpDom(planPage("title-trk", TRK), "", "1400,1000");
@@ -88,7 +88,7 @@ module.exports = function cases28(X) {
     c.push(dw == null ? ["the repository work board marks every title it quotes (rows, groups, roadmap, unscheduled issues)", false, NEEDS_BROWSER] : ["the repository work board marks every title it quotes (rows, groups, roadmap, unscheduled issues)", dw == null || ((dw.match(/data-issue-title="\d+"/g) || []).length >= W2.rows.length && new RegExp(`data-issue-title="${W2.rows[0].issue}">${LV.replace(/[()]/g, "\\$&")}<`).test(dw)), `${((dw || "").match(/data-issue-title="\d+"/g) || []).length} marks`]);
     const cw = run(checker, [path.join(wdir, "index.html"), "--out", path.join(sc, "wb-level-check")]);
     c.push(["check-board.js passes the repository work board and flags the row's title", cw.status === 0 && new RegExp(`ISSUE TITLE NAMES A GRADE: #${W2.rows[0].issue}\\b`).test(cw.stdout), notRun(cw) ? NEEDS_BROWSER : (cw.stdout || "").split(/\r?\n/).filter(l => /issue titles|^FAIL/.test(l)).join(" | ").slice(0, 300)]);
-    /* a state board: a Context title written <a data-board="N"> naming a grade */
+    /* a state board: a Context title written <a data-board="N"> naming a sizing */
     [["system", T.system], ["supersystem", T.supersystem]].forEach(([k, h]) => {
       const html = h.replace('<a data-board="N">Roadmap item title</a>', `<a data-board="7">Roadmap item title ${LV}</a>`), page = wr(path.join(sc, "state-" + k, "index.html"), html);
       const nb = run(checker, [page, "--auto", "--no-browser"]);
@@ -100,13 +100,13 @@ module.exports = function cases28(X) {
     });
   });
 
-  /* 2b. a slug or a folder name made from an issue's title: left out of the grade check as the title is, the title itself still flagged (the user's
+  /* 2b. a slug or a folder name made from an issue's title: left out of the sizing check as the title is, the title itself still flagged (the
      decision of 2026-11-14, batch-8/q-54 (a); levelrefs.js maskSlugs()) */
   guard("a slug or a folder name made from an issue's title left out of the grade check as the title is; the title itself still flagged (batch-8/q-54)", c => {
     const masked = ["70-grade-reader", "docs/plans/70-grade-reader", "docs/plans/55-http-client-stack/70-grade-reader/plan.md#3-design", "71-grade-check/", "../70-grade-reader/dashboard.html",
       "see 70-grade-reader/plan.md", "`docs/plans/70-grade-reader`", "\"slug\": \"70-grade-reader\"", "\"folder\": \"docs/plans/55-http-client-stack/70-grade-reader\"", "55-http-client-stack/70-grade-reader/2f43cfc3/tests/index.html"].filter(t => LR.levelRefs(t).length);
     c.push(["levelRefs() leaves a slug out where a path puts it: alone, the plan folder, a board's path and link, a report's copy, a path a text cites, a Source view's quoted slug and folder", !masked.length, JSON.stringify(masked.map(t => [t, LR.levelRefs(t)]))]);
-    /* the slug inside a branch's name (the user's decision of 2026-11-14, batch-8/branch-slug (a)) */
+    /* the slug inside a branch's name (the decision of 2026-11-14, batch-8/branch-slug (a)) */
     const branches = ["feat/issue-70-grade-reader", "fix/70-grade-reader", "issue-70-grade-reader", "\"branch\": \"feat/issue-70-grade-reader\"", "as-is at `feat/issue-70-grade-reader` @ 2f43cfc", "origin/feat/issue-70-grade-reader",
       "the run's branch docs/issue-39-grade-tools.", "(chore/issue-24-grade-hygiene)"].filter(t => LR.levelRefs(t).length);
     c.push(["levelRefs() leaves out the slug inside a branch's name: after its issue (<type>/issue-<n>-<slug>, issue-<n>-<slug>) or its type (<type>/<n>-<slug>), wherever the branch stands, ending a sentence included (batch-8/branch-slug)", !branches.length, JSON.stringify(branches.map(t => [t, LR.levelRefs(t)]))]);
@@ -121,7 +121,7 @@ module.exports = function cases28(X) {
     c.push(["levelRefsIn() with titleSkip(): nothing in the slug, the folder, a unit's folder, a board link or the branch; the titles flagged as before", !sh.length && JSON.stringify(st) === JSON.stringify([["issueTitle", 70], ["rows[0].unit.title", 71]]), JSON.stringify({ hits: sh, titles: st })]);
     const sd2 = { ...sd, branch: null, function: "a grade-3 change" };
     c.push(["…a grade elsewhere in the same data still found", LR.levelRefsIn(sd2, "", [], LR.titleSkip(sd2)).map(x => x.at).join() === "function", JSON.stringify(LR.levelRefsIn(sd2, "", [], LR.titleSkip(sd2)))]);
-    /* check.js on an issue board laid in such a folder: the verdict of the same board in its own folder, the title flagged, no grade failure */
+    /* check.js on an issue board laid in such a folder: the verdict of the same board in its own folder, the title flagged, no sizing failure */
     const S0 = copy(LIVE), S1 = copy(LIVE); Object.assign(S1, { slug: "70-grade-reader", folder: "docs/plans/70-grade-reader", branch: "feat/issue-70-grade-reader", issueTitle: "Grade reader verification fixture" });
     const q0 = tree("slug-base", [S0]), q1 = tree("slug-grade", [S1]), k0 = run(checkJs, [path.join(q0, ...S0.folder.split("/"))]), k1 = run(checkJs, [path.join(q1, ...S1.folder.split("/"))]);
     c.push(["check.js: a board whose slug, folder and branch name the word keeps its verdict, no grade failure, its title flagged as the issue's defect", k1.status === k0.status && !/shows a grade/.test(k1.stdout) && /^warn\s+ISSUE TITLE NAMES A GRADE: #70 \(issueTitle:/m.test(k1.stdout), JSON.stringify([k0.status, k1.status, fails(k1).slice(0, 3)])]);

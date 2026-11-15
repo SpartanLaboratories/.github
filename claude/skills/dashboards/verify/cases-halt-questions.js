@@ -1,4 +1,4 @@
-// The cases of the questions a halt puts to the user in any step (admin-team/dashboards/halt-questions, the user's decision of 2026-11-07,
+// The cases of the questions a halt puts to the user in any step (dashboards/halt-questions, the decision of 2026-11-07,
 // dated 45; plan/RULES.md §3, wip.asked, §4, the halted / resumed row), run by verify-templates.js (it passes its helpers in), or on its own with
 // no browser: node verify/cases-halt-questions.js [--out <dir>]. The trigger: WebTools #69 halted in research with three questions and their
 // options, and its board showed what it waited on and three open points, not the questions.
@@ -7,7 +7,7 @@
 //    waits adds its own to the same visit; a resumed (here at plan, as #69's) marks every one answered at its time, on the snapshot too; a
 //    question put in another step's halt rides on that step's visit.
 // 2. The interview keeps its own field: a halt there writes wip.interview as before, and its resumed now marks them answered too (the
-//    snapshot with them); the answers' gist stays the presenter's (enrich).
+//    snapshot with them); the answers' gist stays a fill's (enrich).
 // 3. Any other event that takes the board out of the stop answers them; cancelled does not.
 // 4. The template's helpers outside a browser: the shared question list (the interview's and a halt's alike: the options under each text,
 //    answered or waiting, the count, the legend), the live panel's choice (waiting, or answered at the answer that began the visit), the

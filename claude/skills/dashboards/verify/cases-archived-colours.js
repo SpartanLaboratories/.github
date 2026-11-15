@@ -1,4 +1,4 @@
-// The cases of "an archived system holds no colour" (system/scripts/palette.js colourSlots(); GUIDANCE.md §1; admin-team/dashboards-skill/option-d-and-decisions), run by
+// The cases of "an archived system holds no colour" (system/scripts/palette.js colourSlots(); GUIDANCE.md §1; dashboards-skill/option-d-and-decisions), run by
 // verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-archived-colours.js [--out <dir>].
 // One rule in every runtime: an archived system holds no slot and is drawn neutral, solid and faded, with its tag; a live top-level system keeps the slot of its place, so archiving
 // one moves no other system's colour; what its place freed goes to the next system with none. Each group returns [title, cases].
@@ -22,7 +22,7 @@ module.exports = function casesArchivedColours(X) {
   guard("colourSlots(): an archived system holds none; archiving moves no one; a freed slot goes to the next with none", c => {
     c.push(["a registry with no archived system: as it always was, a top's slot its place, a child its top's", js(slots([S("a", null), S("b", null), S("b1", "b")], ["a", "b", "b1"])) === js([1, 2, 2]), "slots"]);
     c.push(["a thirteenth top-level system with none free folds into the neutral", js(slots("abcdefghijklm".split("").map(x => S(x, null)), ["l", "m"])) === js([12, 0]), "slots"]);
-    /* a repository entry is no system: the systems listed under it are top-level, each its own colour (the user's decision of 2026-11-08; KotlinBottools' ten planned systems) */
+    /* a repository entry is no system: the systems listed under it are top-level, each its own colour (the decision of 2026-11-08; KotlinBottools' ten planned systems) */
     const repoTen = [{ slug: "kotlinbottools", name: "KotlinBottools", kind: "repo", parent: null, status: "built" }, ...["toolchain", "backups-and-manifests", "legacy-data-copy", "rewrite-pipeline", "privacy-gate", "residual-exposure", "cleanup", "repository-swap", "clone-realignment", "repository-hygiene"].map(x => S(x, "kotlinbottools", "planned"))];
     c.push(["ten systems under a repository entry: ten colours, none folded to the neutral", js(slots(repoTen, repoTen.slice(1).map(s => s.slug))) === js([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]), js(slots(repoTen, repoTen.slice(1).map(s => s.slug)))]);
     const now = slots(WT, ["webtools-udp", "webtools-scraping", "webtools-browser", "gradle-build", "js-commoncheck", "webtools-http", "webtools-http-core", "webtools-feeds"]);

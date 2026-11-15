@@ -1,4 +1,4 @@
-// The case groups of admin-team/dashboards-skill/24, run by verify-templates.js (it passes its helpers in): the finished steps on a plan
+// The case groups of dashboards-skill/24, run by verify-templates.js (it passes its helpers in): the finished steps on a plan
 // board's progress strip are clickable. apply-event.js freezes each step's panel facts into wip.history.<step> as the step ends (each
 // remediation loop and each qa pass a visit of its own; deterministic, idempotent, the fast path), new.js lays the sizing visit, the
 // standing rule freezes a tracking board's own step; check.js holds wip.history to its form; the template shows a finished step's snapshot
@@ -35,8 +35,8 @@ module.exports = function cases24(X) {
   const planOf = (root, folder) => JSON.parse(rd(path.join(root, ...folder.split("/"), "plan.json")));
 
   /* A full run through the fast path, on a copy of the live fixture: research ends, a halt inside the plan step (a wait on the user, which
-     splits the plan into two visits around it, admin-team/board/timeline-waits), the plan accepted, the
-     branch cut, the stages done, qa pass 1 (changes requested, from qa), a remediation loop, qa pass 2 (changes requested, reached from
+     splits the plan into two visits around it, board/timeline-waits), the plan accepted, the
+     branch cut, the stages done, qa pass 1 (changes requested, reached from the qa step), a remediation loop, qa pass 2 (changes requested, reached from
      remediation), a second loop, the landing and the merge. */
   const base = () => { const d = copy(LIVE); d.rows.forEach(r => { r.verdict = { kind: "build", summary: "Verification case: written.", steps: [{ id: "A", what: "x" }] }; }); return d; };
   const STAGES = st => [{ id: "S1", name: "the rule", state: st[0] }, { id: "S2", name: "the tests", state: st[1] }];
@@ -65,7 +65,7 @@ module.exports = function cases24(X) {
     const R = (H.research || [])[0] || {};
     c.push(["research: ended by researched, to the plan, its questions complete and its phase complete, as they stood", R.endedBy === "researched" && R.to === "plan" && (R.questions || []).length === (LIVE.wip.questions || []).length && R.questions.every(q => q.state === "complete") && R.research && R.research.phase === "complete", JSON.stringify({ endedBy: R.endedBy, to: R.to, q: (R.questions || []).map(q => q.state), phase: R.research && R.research.phase })]);
     const P = (H.plan || [])[0] || {}, P2 = (H.plan || [])[1] || {}, WT = A.plan.wip.waits || [];
-    /* admin-team/board/timeline-waits: the halt is no visit of its own, it is a wait between two: the plan's visit 1 began when research
+    /* board/timeline-waits: the halt is no visit of its own, it is a wait between two: the plan's visit 1 began when research
        ended and ended at the halt, held; its visit 2 began at the resume and kept its pass though plan-accepted cleared it */
     c.push(["a halt inside the plan step is no visit but a wait between two: visit 1 from research's end to the halt (held), visit 2 from the resume, keeping its pass though plan-accepted cleared it",
       P.since === R.ended && P.endedBy === "halted" && P.held === true && WT.length === 1 && WT[0].since === P.ended && P2.since === WT[0].ended && P2.endedBy === "plan-accepted" && P2.plan && P2.plan.state === "writing" && !(A.plan.wip.history.halted),

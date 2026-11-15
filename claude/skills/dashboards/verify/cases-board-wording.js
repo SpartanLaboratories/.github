@@ -1,4 +1,4 @@
-// The cases of the board's names (admin-team/dashboards-skill/board-wording, the user's decisions of 2026-11-06; dated dashboards-skill/41 in
+// The cases of the board's names (dashboards-skill/board-wording, the user's decisions of 2026-11-06; dated dashboards-skill/41 in
 // the feature probes), run by verify-templates.js (it passes its helpers in), or on its own: node verify/cases-board-wording.js [--out <dir>].
 // Every name a board shows has one home: plan/scripts/passnames.js for the scripts, and the templates' names block (names:begin), held equal
 // here. The qa step reads "Quality Review", a pass "Quality Review N" (never an ordinal), one not numbered "review", what it returns its
@@ -116,7 +116,7 @@ module.exports = function casesBoardWording(X) {
     const r6 = ev("implementation-stage", "2026-10-26T16:00:00Z", { remediation: { pass: 2, route: "re-plan-then-remediation", steps: [{ name: "The plan re-pass", state: "current" }] } });
     c.push(["a later one names the pass it answers, by its route: \"Resolution of Quality Review 2\"", r6.a.status === 0 && r6.p.wip.detail === "Resolution of Quality Review 2: The plan re-pass." && /^Resolution of Quality Review 2: /.test(last(r6.p).label || ""), js([r6.S.error, r6.p.wip.detail, last(r6.p).label])]);
     const r7 = ev("halted", "2026-10-26T16:30:00Z", { waitingOn: "an answer" });
-    /* a halt names its fix step by its route alone, never the pass (admin-team/dashboards/call-3; verify/cases-halt-fix-step.js) */
+    /* a halt names its fix step by its route alone, never the pass (dashboards/call-3; verify/cases-halt-fix-step.js) */
     c.push(["a halt there names the fix step by its route alone: \"Halted at Resolution\", never \"of Quality Review 2\"", last(r7.p).label === "Halted at Resolution: waiting on you (an answer)", last(r7.p).label]);
     c.push(["the board in flight holds no older wording, and checks clean on it", !old(r7.p).length && !/BOARD WORDING/.test(run(CHECK, [T.dir]).stdout), js(old(r7.p))]);
     const r8 = ev("document", "2026-10-27T09:00:00Z", { tasks: [{ id: "documentation-review", state: "current" }] });

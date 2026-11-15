@@ -1,4 +1,4 @@
-// The cases of a stretch when the run was not running (admin-team/board/timeline-outages; plan/RULES.md §2, "A run not running is not active
+// The cases of a stretch when the run was not running (board/timeline-outages; plan/RULES.md §2, "A run not running is not active
 // time", §4, the run-restarted row), run by verify-templates.js (it passes its helpers in), or on its own with no browser: node
 // verify/cases-timeline-outages.js [--out <dir>]. A stretch when a run's session was down is not counted and not mentioned (decided
 // 2026-11-05): no line, mark, note or trail entry on any board, never a bar segment, never summed, the step split into visits around it. Recorded only when a

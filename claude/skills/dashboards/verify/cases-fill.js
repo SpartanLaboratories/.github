@@ -1,4 +1,4 @@
-// The cases of a fill merging onto the latest plan.json (plan/scripts/fill.js; admin-team/dashboards-skill/option-d-and-decisions; plan/RULES.md §4), run by verify-templates.js
+// The cases of a fill merging onto the latest plan.json (plan/scripts/fill.js; dashboards-skill/option-d-and-decisions; plan/RULES.md §4), run by verify-templates.js
 // (it passes its helpers in), or on its own with no browser: node verify/cases-fill.js [--out <dir>].
 // A sized fill takes minutes and events keep applying meanwhile. A fill's fields go on top of the board as it stands when fill.js runs: wip, the trail and every other
 // event-owned field stay as the events left them, and event and fill never lose each other's write, run one after the other or at once. Each group returns [title, cases].

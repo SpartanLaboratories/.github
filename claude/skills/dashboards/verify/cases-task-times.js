@@ -1,4 +1,4 @@
-// The cases of admin-team/dashboards-skill/task-times, run by verify-templates.js (it passes its helpers in), or on its own with no browser:
+// The cases of dashboards-skill/task-times, run by verify-templates.js (it passes its helpers in), or on its own with no browser:
 // node verify/cases-task-times.js [--out <dir>]. The trigger: KotlinBottools #24's run halted in its Document step at 01:59:34Z and reported its tasks
 // with the halt (the documentation review done, the reconciliation current), which the board did not yet read; the next event, at the resume, stamped
 // them 11 minutes late, and no correction fitted (a halt raised again reopens it, a retime moves every stamp of its event, a fill refused wip.document).

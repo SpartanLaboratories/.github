@@ -1,4 +1,4 @@
-// The case groups of admin-team/dashboards-skill/32, run by verify-templates.js (it passes its helpers in): the Timeline tile of a landed
+// The case groups of dashboards-skill/32, run by verify-templates.js (it passes its helpers in): the Timeline tile of a landed
 // board as one legend entry per visit of a run step (the step panel's vocabulary, repeats as "Quality Review 1", "Correction", "Correction of Quality Review 2"),
 // each with its start → end and its duration, in place of dashboards-skill/23's four phases in calendar days ("same day"); the bounds from
 // the record only (the snapshots' since and ended, plan.sized, a qa pass's at, the merge's time and the branch's step commits from git, a

@@ -76,7 +76,7 @@ function firstDiff(a, b) { const x = a.split("\n"), y = b.split("\n"); for (let 
    lines, and the renderer (the main script after MODEL's closing "};", without the DEFAULT_INSPECT line, whose text is the
    board's own).
    The board-filled lines are the constants a board sets to its own facts: REPO and SRC, and any other const whose line in the
-   template carries a "// fill:" comment (the template's mark for a line filled per board; "// presenter:" on a template older than
+   template carries a "// fill:" comment (the template's mark for a line filled per board; the older role-named mark on a template older than
    dashboards-skill/33). They are named from the
    template and dropped by name from both sides, so a board's own value there, and its own comment on that line, is no difference. */
 const FILLED = ["REPO", "SRC"];

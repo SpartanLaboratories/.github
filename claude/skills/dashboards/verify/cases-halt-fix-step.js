@@ -1,4 +1,4 @@
-// The cases of a halt during a fix step (admin-team/dashboards/call-3, the user's decision of 2026-11-06, "Call 3 (b)"; dated 50), run by
+// The cases of a halt during a fix step (dashboards/call-3, the decision of 2026-11-06, "Call 3 (b)"; dated 50), run by
 // verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-halt-fix-step.js [--out <dir>].
 // A halt during a fix step (the remediation step: a Correction or a Resolution, by its route) names the step by its route alone: "Halted at
 // Correction", "Halted at Resolution", never the pass it answers ("Halted at the Resolution of Quality Review 2"). Every other halt reads as

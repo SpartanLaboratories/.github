@@ -1,5 +1,5 @@
-// The cases of the progress notes' index (admin-team/board/progress-index; plan/RULES.md §3, "Progress notes"), run by verify-templates.js (it
-// passes its helpers in). The defect (WebTools #66, Document step): a note named planner-reconcile.js was on disk for over 20 minutes and no board
+// The cases of the progress notes' index (board/progress-index; plan/RULES.md §3, "Progress notes"), run by verify-templates.js (it
+// passes its helpers in). The defect (WebTools #66, Document step): a note named for its share of the work (a role, then -reconcile.js) was on disk for over 20 minutes and no board
 // drew it, as the template probed fixed names only and a board from disk cannot list a folder, while the agents' briefs let a name carry a slug
 // of its writer's own. The folder's names now stand in an index a watcher keeps with no event. No case opens a browser.
 // Each group returns [title, cases], a case [name, ok, detail].

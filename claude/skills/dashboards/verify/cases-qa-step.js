@@ -1,4 +1,4 @@
-// The cases of a qa verdict's step on the fast path (admin-team/board/qa-step; plan/RULES.md §4, the qa-pass row and "The fast path"),
+// The cases of a qa verdict's step on the fast path (board/qa-step; plan/RULES.md §4, the qa-pass row and "The fast path"),
 // run by verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-qa-step.js [--out <dir>].
 // The defect (WebTools #65, qa pass 1): the pipeline sends a returned verdict with facts.step "qa", the step the pass ran in, and the fast
 // path took it as the step after the pass, so the board stayed at qa with the whole As built column glowing, its rows the findings touch
@@ -74,7 +74,7 @@ module.exports = function casesQaStep(X) {
   });
   /* a remediation report's stages (WebTools #65, qa pass 1): the one stage a remediation adds takes the rows the qa findings touch
      (facts.rows) itself; facts.stages[].rows, when given, are written as given; two new stages with no rows of their own stay for the
-     presenter (facts.rows is the union of every finding then), as a plan stage's rows do */
+     fill (facts.rows is the union of every finding then), as a plan stage's rows do */
   guard("apply-event.js: a remediation stage's rows on the fast path (facts.rows for its one new stage, facts.stages[].rows as given)", c => {
     const atRem = () => { const x = atQa(), ids = x.rows.map(r => r.id); x.wip.step = "remediation"; x.wip.current = [ids[0] + ".built"];
       x.wip.stages = [{ id: "S1", name: "The one plan stage", state: "done", rows: ids.slice() }];

@@ -1,4 +1,4 @@
-// The cases of reword, one event's recorded text reworded (admin-team/dashboards-skill/reword-event; the user's decisions of 2026-11-13,
+// The cases of reword, one event's recorded text reworded (dashboards-skill/reword-event; the user's decisions of 2026-11-13,
 // dashboards/reword-event and dashboards/run-sent-corrections; plan/RULES.md §4, the reword row), and of a run's own retime and reword (the same
 // decisions; the retime row). Run by verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-reword.js [--out <dir>].
 // The trigger: KotlinBottools #25's run asked, before its Document commit, for four of its recorded texts to be reworded (two stage reports each
@@ -205,7 +205,7 @@ module.exports = function casesReword(X) {
     const p5 = running(); p5.wip.history.document.push({ since: T4, ended: "2026-11-02T13:30:00Z", endedBy: "state-boards", to: "document", event: { name: "state-boards", at: "2026-11-02T13:30:00Z" } });
     const B5 = lay("run-retime-team", p5), g5 = files(B5), n5 = runSent(B5, p5, "retime", R("state-boards", "2026-11-02T13:30:00Z", "2026-11-02T13:29:00Z"), NOW);
     c.push(["a run's retime of the team's record: refused", n5.a.status === 1 && /state-boards is the team's record/.test(n5.S.error || "") && files(B5) === g5, js([n5.S.error])]);
-    /* the team's retime at the presenter's word keeps its own reach: a later time, past the run's bound */
+    /* the team's retime, asked for by a board correction, keeps its own reach: a later time, past the run's bound */
     const t1 = apply(B2, n3.p, "retime", R("implementation-stage", T1, "2026-11-02T10:13:00Z"), NOW);
     c.push(["the team's retime (no --arrived) keeps its reach: a time later than the run's bound applies", t1.a.status === 0 && t1.S.result === "ok", js([t1.S.error])]);
   });

@@ -1,4 +1,4 @@
-// The cases of admin-team/dashboards-skill/halt-tasks and /unread-facts, run by verify-templates.js (it passes its helpers in), or on its own with no
+// The cases of dashboards-skill/halt-tasks and /unread-facts, run by verify-templates.js (it passes its helpers in), or on its own with no
 // browser: node verify/cases-halt-tasks.js [--out <dir>]. The trigger: KotlinBottools #24's run halted in its Document step with two questions and sent
 // facts.tasks with the halt (the documentation review done, the reconciliation current); apply-event.js applied the halt, its wait and its questions,
 // did not read the tasks and said nothing of them, so the board showed the review current through the wait.

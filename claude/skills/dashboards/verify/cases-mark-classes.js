@@ -7,7 +7,7 @@
 //    .col-fullpulse and .colcell-fullpulse), in their CSS and in the class strings their renderers write, and none of the older classes.
 // 2. The feature probe (mark-classes) passes both templates and fails a board drawn before (the older classes), naming them.
 // 3. check-board.js's browser pass counts the FullPulse marks, a board drawn before included (.fullpulse, .glow).
-// 4. The visible wording (admin-team/dashboards/visible-glow-wording): no "glow" a reader sees on any template or the worked example,
+// 4. The visible wording (dashboards/visible-glow-wording): no "glow" a reader sees on any template or the worked example,
 //    only the identifiers IDS lists; the Legend entries name the FullPulse and the Ring, the repository work board's Active now Tile says
 //    "in a FullPulse below", the research StepBar's aria-label names a StepBar, the supersystem sample note the Context Panel.
 // 5. The mark-class browser fixture, verify/fixtures/mark-classes/ (index.html: the issue and tracking boards' marks; work-board.html: the

@@ -1,4 +1,4 @@
-// The case groups of admin-team/dashboards-skill/34, run by verify-templates.js (it passes its helpers in): the Timeline tile coloured by
+// The case groups of dashboards-skill/34, run by verify-templates.js (it passes its helpers in): the Timeline tile coloured by
 // kind of work (planning, build, checking, landing; a shade per step, a mark before each step line, a legend of the families, the colours
 // clear of the status hues and the accent and at least 3:1 in both themes); approximate bounds (asBuilt.approx: "≈", never read as
 // recorded, clamped onto a recorded bound, summed, check.js's form); the landing in three steps (landing, state-boards, merge: lib.js,

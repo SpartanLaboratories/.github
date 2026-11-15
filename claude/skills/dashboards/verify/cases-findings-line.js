@@ -1,4 +1,4 @@
-// The cases of admin-team/dashboards/call-5 (the user's decision of 2026-11-06, "Call 5"; dated 51 in the feature probes), run by
+// The cases of dashboards/call-5 (the decision of 2026-11-06, "Call 5"; dated 51 in the feature probes), run by
 // verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-findings-line.js [--out <dir>].
 // A Quality Review's findings line orders the count, then the severities, then the kinds: "18 findings (2 minor, 16 other; 3 documentation,
 // 15 code)". Severities minor, then other (a qa report's own words after them); kinds documentation, test, code; a zero count left out. And

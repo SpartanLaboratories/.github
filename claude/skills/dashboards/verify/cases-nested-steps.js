@@ -210,7 +210,7 @@ module.exports = function casesNestedSteps(X) {
     c.push(["a fill keeps the steps' records", fr.status === 0 && js(fp.wip.stages[0].steps) === js(x.wip.stages[0].steps) && js(fp.wip.stages[0].rows) === js([x.rows[0].id]), js([fr.status, (fr.stdout || fr.stderr).slice(-300), fp.wip.stages[0]])]);
   });
 
-  /* ---------- 7. the implementer's own events (rookie-dev.md, "Board events"; the user's decision of 2026-11-12): a stage's closing the moment it ends,
+  /* ---------- 7. the implementer's own events (the implementer's brief, "Board events"; the decision of 2026-11-12): a stage's closing the moment it ends,
      the next stage's steps after it, the tests per stage, a repeated closing, late events stamped at their arrival ---------- */
   guard("the implementer's events: a closing between step events, the closings mid-run, the tests per stage, a repeated closing, late events in a row", c => {
     const { B, P } = cut("implementer");

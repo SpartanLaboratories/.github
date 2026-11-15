@@ -1,7 +1,7 @@
-// The case groups of admin-team/dashboards-skill/23, run by verify-templates.js (it passes its helpers in): (the Timeline tile's phases on
+// The case groups of dashboards-skill/23, run by verify-templates.js (it passes its helpers in): (the Timeline tile's phases on
 // a landed board, replaced by its step visits in dashboards-skill/32, verify/cases-32.js), the run's start stamped (plan.sized) and each qa pass's time (wip.qa[].at); a reference's section
-// number before its excerpt (refNumber: the file's headings win, the anchor's number marked "?" where the file is not there); a grade
-// in the pipeline's facts reworded, never written ("inside grade 3", "a grade-3 re-pass", "Label grade: 3"), test-level phrases and
+// number before its excerpt (refNumber: the file's headings win, the anchor's number marked "?" where the file is not there); a sizing
+// in the pipeline's facts reworded, never written (its scope phrase, a numbered sizing before a noun, a sizing label), test-level phrases and
 // the work level's old forms left alone (L12); and the feature probes of this run. Each group returns [title, cases], a case [name, ok, detail].
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
@@ -98,7 +98,7 @@ module.exports = function cases23(X) {
     c.push(["check.js fails a refNumber not in its form", kb.status === 1 && /refNumber must be \{ ref, label: "§n", from: headings \| anchor \}/.test(kb.stdout), (kb.stdout || "").split(/\r?\n/).filter(l => /refNumber/.test(l)).join(" | ").slice(0, 300)]);
   });
 
-  /* 4. a grade in the pipeline's facts, reworded (dashboards-skill/23, first for the grade's old name, the work level, whose forms went at L12) */
+  /* 4. a sizing in the pipeline's facts, reworded (dashboards-skill/23, first for the sizing's old name, the work level, whose forms went at L12) */
   guard("a grade in the pipeline's facts reworded, never written; test-level phrases, and the work level's old forms, left alone (levelrefs.js, apply-event.js; dashboards-skill/23)", c => {
     const grade = ["inside grade 3", "diff inside grade 3, hygiene clean", "a grade-3 change", "Label grade: 3", "grade-3 re-pass", "within the grade-2 bounds", "outside grade 3", "a grade-2 fix", "Sized; label grade: 2"];
     const tests = ["L1 per-type gating", "Level 4a tests", "the Level 3 pass", "Level 2 unit tests", "inside level 3 integration tests", "L1 gating", "L4a deterministic", "Level 2 — component", "tests at levels 1 to 4c", "inside level 4a", "level-1 line comments", "Level-2 KDoc"];
@@ -136,7 +136,7 @@ module.exports = function cases23(X) {
     const brn = copy(LIVE); Object.assign(brn.wip, { step: "branch", current: [], questions: [], research: null }); const rb = tree("lv-branch", [brn]), was = brn.branch;
     const bc = apply(rb, req(path.join(sc, "lv-branch.json"), { github: brn.repo, issue: brn.issue, event: "branch-cut", folder: brn.folder, facts: { branch: "feat/grade-3-fix" } }), "2026-10-25T12:20:00Z"), pb = planOf(rb, brn.folder);
     c.push(["an identifier is never reworded: a branch that names a grade outside the slug its name carries is left out, the presenter told", bc.status === 0 && pb.branch === was && (bc.s.why || []).some(x => /facts\.branch names a grade, which a board never shows: not written/.test(x)), JSON.stringify([bc.s.result, pb.branch, bc.s.error])]);
-    /* the slug inside a branch's name is no grade (the user's decision of 2026-11-14, batch-8/branch-slug; levelrefs.js maskSlugs()) */
+    /* the slug inside a branch's name is no sizing (the decision of 2026-11-14, batch-8/branch-slug; levelrefs.js maskSlugs()) */
     const rb2 = tree("lv-branch-slug", [brn]), bs = apply(rb2, req(path.join(sc, "lv-branch-slug.json"), { github: brn.repo, issue: brn.issue, event: "branch-cut", folder: brn.folder, facts: { branch: "feat/issue-70-grade-3-fix" } }), "2026-10-25T12:20:00Z"), pbs = planOf(rb2, brn.folder);
     c.push(["…and one whose grade stands only in that slug (<type>/issue-<n>-<slug>) is written as it is, nothing told about a grade (batch-8/branch-slug)", bs.status === 0 && pbs.branch === "feat/issue-70-grade-3-fix" && !(bs.s.why || []).some(x => /grade/.test(x)), JSON.stringify([bs.s.result, pbs.branch, bs.s.why, bs.s.error])]);
     const q62 = J("verify/fixtures/qa-pass-62.request.json"), iss = copy(LIVE); iss.status = "building"; Object.assign(iss.wip, { step: "qa", current: ["built"], questions: [], research: null, qa: [] });
@@ -161,7 +161,7 @@ module.exports = function cases23(X) {
     c.push(["a board whose data names \"inside grade 3\" misses no grade in its data, with the hit named", !!m && /"grade 3"/.test(m.why), m ? F.line(m) : "not reported"]);
     const sys = tp("system/template/system.html");
     if (sys) { const h = rd(sys).replace(/(<script type="application\/json" id="state">)([\s\S]*?)(<\/script>)/, (x, a, b, z) => { let s; try { s = JSON.parse(b); } catch (e) { return x; } s.lastAmended = { ...(s.lastAmended || {}), issue: 9, title: "a grade-3 re-pass" }; return a + "\n" + JSON.stringify(s) + "\n" + z; });
-      /* dashboards-skill/28: lastAmended.title quotes the issue's title, which the probe leaves out (a grade there is the issue's
+      /* dashboards-skill/28: lastAmended.title quotes the issue's title, which the probe leaves out (a sizing there is the issue's
          defect, flagged by check-board.js); the same words in any other field of the state still miss the feature */
       const h2 = h.replace(/(<script type="application\/json" id="state">)([\s\S]*?)(<\/script>)/, (x, a, b, z) => { let s; try { s = JSON.parse(b); } catch (e) { return x; } s.version = "a grade-3 re-pass"; return a + "\n" + JSON.stringify(s) + "\n" + z; });
       c.push(["a system board whose state names \"a grade-3 re-pass\" misses it too (the data-only path's probe), its quoted title aside", F.probe(h2, "system").some(x => x.id === "level-phrases") && !F.probe(h, "system").some(x => x.id === "level-phrases"), F.probe(h2, "system").map(x => x.id).join(", ")]); }

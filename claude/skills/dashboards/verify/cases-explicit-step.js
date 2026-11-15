@@ -1,4 +1,4 @@
-// The cases of "only an explicit signal from the run moves the board's step" (admin-team/dashboards-skill/explicit-step; plan/RULES.md §4, the
+// The cases of "only an explicit signal from the run moves the board's step" (dashboards-skill/explicit-step; plan/RULES.md §4, the
 // implementation-stage and qa-pass rows), run by verify-templates.js (it passes its helpers in), or on its own with no browser:
 // node verify/cases-explicit-step.js [--out <dir>].
 // The defect (WebTools #66): every stage done moved the board to qa at the stage report, or the verdict closed the implementation visit with a

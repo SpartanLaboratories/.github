@@ -1,4 +1,4 @@
-// The cases of admin-team/dashboards/built-milestone-fast-path, run by verify-templates.js (it passes its helpers in), or on its own with no browser:
+// The cases of dashboards/built-milestone-fast-path, run by verify-templates.js (it passes its helpers in), or on its own with no browser:
 // node verify/cases-built-milestone.js [--out <dir>]. The built milestone moved onto the fast path (plan/RULES.md §4, the landed row and "More onto
 // the fast path"): apply-event.js writes it at landed from the landing's record alone, "Merged", its pull request as the ref, "merged as <sha>",
 // dated by the merge's time (UTC), else by asBuilt.date; once, so the same event raised again changes nothing and a built milestone already on the

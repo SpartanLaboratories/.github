@@ -1,4 +1,4 @@
-// The cases of the header's switches (admin-team/dashboards-skill/theme-switch and /inspector-switch, the user's decisions of 2026-11-05; the
+// The cases of the header's switches (dashboards-skill/theme-switch and /inspector-switch, the user's decisions of 2026-11-05; the
 // features dated 39), run by verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-switches.js [--out <dir>].
 // GUIDANCE.md §12, "Switch": a track with a knob that slides to the side of the state shown, a real toggle (role="switch", aria-checked),
 // in the neutrals, the knob jumping under reduced motion. The theme switch on every dashboard type and on the rendered Markdown copies

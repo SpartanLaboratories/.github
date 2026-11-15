@@ -1,4 +1,4 @@
-// The cases of a tracking board's unit dependencies before its units are filed (admin-team/dashboards/unit-blockers-before-filing, dated 49;
+// The cases of a tracking board's unit dependencies before its units are filed (dashboards/unit-blockers-before-filing, dated 49;
 // plan/RULES.md §3, unit.blockedBy; §4, the sub-issues-filed row; §8), run by verify-templates.js (it passes its helpers in), or on its own with
 // no browser: node verify/cases-unit-blockers.js [--out <dir>].
 // The trigger: KotlinBottools #2, whose eight units were planned with their dependencies in the architecture and filed after the plan's merge;

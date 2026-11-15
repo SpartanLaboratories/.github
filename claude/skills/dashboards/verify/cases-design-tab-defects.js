@@ -1,4 +1,4 @@
-// The cases of the defects found in the Design-tab review (admin-team/dashboards-skill/design-tab-defects), run by verify-templates.js (it
+// The cases of the defects found in the Design-tab review (dashboards-skill/design-tab-defects), run by verify-templates.js (it
 // passes its helpers in), or on its own with no browser: node verify/cases-design-tab-defects.js [--out <dir>].
 // 1. A row's name (and an option's) is drawn through codeOnly() at every site of the issue-board template — the row's title, the inspector,
 //    the Decisions table's Row column, the As built card, the Tests tab's "verifies" links, the roadmap, the step panel's row lists — and
@@ -7,7 +7,7 @@
 // 2. A heading's leading section number may be a letter before a number ("R2", "R2.1"): the reference reads "(§R2)" (lib.js HEAD_NUM and
 //    the template's stmtLabel(), the one form), and embed.js reads it from the file's headings for an anchor "r2-…".
 // 3. A count and its noun agree: "1 step", "1 change", "1 commit", on every template that writes a count (plural()).
-// 4. A step's file list: each file its own <code>, never run on with a separator; since admin-team/dashboards/step-file-tree (dated 43) the
+// 4. A step's file list: each file its own <code>, never run on with a separator; since dashboards/step-file-tree (dated 43) the
 //    list is nested by its folders (verify/cases-file-tree.js), which replaced the one-path-per-line list that scrolled in itself.
 // 5. The scripts' messages in the current vocabulary: check-board.js asks for a .legend; features.js says the work board is held to the
 //    board-wording feature; namerefs.js scrubNames() writes "code check", "test check", "documentation check" (since dashboards-skill/52),

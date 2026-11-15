@@ -8,21 +8,21 @@
 //     recorded, verify/history/) is replaced by the current template's part;
 //   - a part the board changed — a declared divergence (<meta name="template-divergence">), or one nobody declared — is merged three ways:
 //     the recorded version nearest the board's part is the base, the board's own changes and the template's since then are both kept where
-//     they do not touch; where they do, the board's part is left as it is and the conflict is reported for the presenter; with no recorded
+//     they do not touch; where they do, the board's part is left as it is and the conflict is reported for the enrichment; with no recorded
 //     base, an undeclared difference takes the template's part (it is undone, and reported) and a declared one is left and reported;
 //   - the board-filled lines of the script before MODEL (REPO, SRC, BOARDS, WORK_BOARD and any const the template marks "// fill:", or
-//     "// presenter:" on a version older than dashboards-skill/33)
-//     keep the board's values; a new one takes the template's default and is reported for the presenter to fill; the renderer's
+//     the older role-named mark on a version older than dashboards-skill/33)
+//     keep the board's values; a new one takes the template's default and is reported for the enrichment to fill; the renderer's
 //     DEFAULT_INSPECT line stays the board's;
 //   - the header: a chip without its label is relabelled where its content says what it is (version, as-is, the C4 model, systems), the
 //     old "last amended by" chip is removed (the renderer says it in the Context Panel), labelled or not, and any other unlabelled chip
 //     is reported; on a board whose header lacks the template's chips drawn from state.json (id="chip-asis", "chip-written", "chip-version"),
 //     a hand-written "as-is at" chip is replaced by them, and a hand-written "version" chip whose value is the version alone by its
-//     placeholder (one that holds more is reported, for the presenter to split);
+//     placeholder (one that holds more is reported, for the enrichment to split);
 //   - the head's script before the first paint (the theme switch's choice, and the inspector switch's) is the template's;
 //   - a board with no state block gets one, from its registry entry (state.json written beside it when there is none);
 //   - the names of dashboards-skill/33 on what the board owns, outside its data blocks: the Guarantees' classes (bubbles, bubble →
-//     guarantee-cards, guarantee-card, in its HTML and its own CSS, and the word in its comments) and the placeholder marks ("<!-- presenter:", "// presenter:" →
+//     guarantee-cards, guarantee-card, in its HTML and its own CSS, and the word in its comments) and the placeholder marks (the older role-named ones, in an HTML comment and on a script line, →
 //     "fill:"), so a board brought onto the template keeps its Guarantees' look and carries no internal name in its comments; and the
 //     classes of dashboards-skill/41 (kpi → kpi-tile, vp → verdict-pill, key → legend, in its HTML and its own CSS), so its own tiles and
 //     legends keep their look on the template that renamed them.

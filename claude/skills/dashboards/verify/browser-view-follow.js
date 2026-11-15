@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The tracked board's follow of its view copy, in headless Chrome over file:// (plan/RULES.md §1, "The tracked board follows its view copy"; admin-team/dashboards-skill/doc-landing-and-view-follow).
+// The tracked board's follow of its view copy, in headless Chrome over file:// (plan/RULES.md §1, "The tracked board follows its view copy"; dashboards-skill/doc-landing-and-view-follow).
 // Run only when a person asks for it (GUIDANCE.md §8): node verify/browser-view-follow.js [--out <dir>] [--keep]. It opens no board of any repository: it builds its own scratch tree,
 // a git repository with a tracking board, a sub-issue at document and a worktree, raises the real events through apply-event.js --view, and watches the open pages live:
 //   1. a tracked sub-issue board at document, opened from the main checkout: landing, then merge, then landed, each in place, labelled; the tracked files byte for byte unchanged;

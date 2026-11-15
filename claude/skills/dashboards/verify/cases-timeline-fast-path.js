@@ -1,6 +1,6 @@
 // The cases of the fast path owning the Timeline (plan/RULES.md §4, "The fast path owns the Timeline"), run by verify-templates.js (it
 // passes its helpers in), or on its own with no browser: node verify/cases-timeline-fast-path.js [--out <dir>]. Every Timeline input of an
-// issue or tracking board written by apply-event.js at its event, none left to the presenter: the merge's time at landed from the facts,
+// issue or tracking board written by apply-event.js at its event, none left to a fill: the merge's time at landed from the facts,
 // git in the worktree, git in the main checkout or the pull request's merge time from the tracker (lib.js ghMergeTime(), held to the
 // board's merge commit), a warning and no enrichment where none can tell; the seeding at the next run's sized recording it from git; the
 // run's start at a foundation laid after its event (new.js --at); a board in flight's Timeline redrawn from the plan.js sidecar an event

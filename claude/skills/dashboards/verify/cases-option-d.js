@@ -1,4 +1,4 @@
-// The cases of "a tracking plan lands, then files" (admin-team/dashboards-skill/option-d-and-decisions; plan/RULES.md §3, §4), run by verify-templates.js (it passes its
+// The cases of "a tracking plan lands, then files" (dashboards-skill/option-d-and-decisions; plan/RULES.md §3, §4), run by verify-templates.js (it passes its
 // helpers in), or on its own with no browser: node verify/cases-option-d.js [--out <dir>].
 // A tracking board's steps are its architecture, its plan's document step and land, then sub-issues after the merge, then its units' runs. No unit's board is laid ahead
 // of its run: boards-created is refused and new.js has no batch mode. An older board that recorded the boards step is still read and drawn. Each group returns [title, cases].

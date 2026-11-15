@@ -288,7 +288,7 @@ function codeStatus(reg, root, sha) {
   const pres = codePresence(root, sha, all), has = p => pres.get(cleanPath(p)) === true;
   const out = { systems: new Map(), parts: [], supers: new Map() };
   systems.forEach(e => {
-    /* an archived system (status "archived", no longer developed; admin-team/dashboards-skill/35) keeps its status: the code decides only
+    /* an archived system (status "archived", no longer developed; dashboards-skill/35) keeps its status: the code decides only
        between built and planned */
     if (e.kind === "system" && e.status !== "archived" && pathList(e.paths).length) { const ps = pathList(e.paths); out.systems.set(e.slug, { status: ps.some(has) ? "built" : "planned", present: ps.filter(has), missing: ps.filter(p => !has(p)) }); }
     Object.entries(e.partPaths && typeof e.partPaths === "object" ? e.partPaths : {}).forEach(([id, v]) => { const ps = pathList(v); if (ps.length) out.parts.push({ slug: e.slug, dsl: typeof e.dsl === "string" ? e.dsl.replace(/^\.?\//, "") : null, id, planned: !ps.some(has), paths: ps }); });

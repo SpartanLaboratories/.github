@@ -1,4 +1,4 @@
-// The case groups of admin-team/dashboards-skill/22, run by verify-templates.js (it passes its helpers in): the KPI tiles' legends inside
+// The case groups of dashboards-skill/22, run by verify-templates.js (it passes its helpers in): the KPI tiles' legends inside
 // each tile, the larger charging arrow, the team-raised "landing" event, the header (no "board" tag, the title's #n the GitHub link, the
 // issue line the GitHub title alone, "since" said once beside a step panel), board.js keeping "unassigned": true from every checkout, the
 // research-planning glow on a board with and without rows, the Tests tab (data, fast path, checks, the tracking mirror, the board), and the
@@ -70,7 +70,7 @@ module.exports = function cases22(X) {
     c.push(["its legend swatch is the larger arrow too (30 x 18 px)", r.kw === "30px" && r.kh === "18px", JSON.stringify(r)]);
   });
 
-  /* 3. the team-raised "landing" event: the admin team accepts the land and moves the board to the landing before it merges */
+  /* 3. the team-raised "landing" event: the team accepts the land and moves the board to the landing before it merges */
   guard("the team-raised landing event (apply-event.js; plan/RULES.md §4)", c => {
     const ex = copy(EX); Object.assign(ex, { status: "building", asBuilt: { ref: "master", sha: ex.baseline.sha, date: ex.baseline.date } });
     ex.wip = { ...ex.wip, step: "landing", current: [], event: { name: "qa-pass", at: "2026-10-25T09:00:00Z" } }; ex.rows.forEach(r => { r.asBuilt.state = "pending"; }); ex.milestones = ex.milestones.filter(m => m.column !== "built");
@@ -136,8 +136,8 @@ module.exports = function cases22(X) {
     /* the decisions live only on the main checkout's live board: #71 (a boardless row), #72 (unscheduled) and #73 (recorded as an
        unscheduled issue there, a row now) */
     wr(path.join(main, "docs", "plans", ".live", "board.json"), board([row(71, { unassigned: true })], [{ issue: 72, title: "Verification case #72", labels: [], created: "2026-10-02", system: null, unassigned: true }, { issue: 73, title: "Verification case #73", labels: [], created: "2026-10-03", system: null, unassigned: true }]));
-    /* #71 and #73 are rows by the grade the team's local state records for them, #72 has none (the user's decision of 2026-11-14, batch-8/q-56:
-       no label on GitHub is read for a grade) */
+    /* #71 and #73 are rows by the sizing the team's local state records for them, #72 has none (the decision of 2026-11-14, batch-8/q-56:
+       no label on GitHub is read for a sizing) */
     const fx = wr(path.join(base, "tracker.json"), JSON.stringify({ issues: [71, 72, 73].map(n => ({ number: n, title: `Verification case #${n}`, state: "OPEN", stateReason: null, labels: [], createdAt: `2026-10-0${n - 70}T00:00:00Z` })), prs: [], branches: [], graph: {} }));
     const env = { DASHBOARDS_TRACKER_FIXTURE: fx, DASHBOARDS_ADMIN_STATE: wr(path.join(base, "state.json"), JSON.stringify({ grades: { "acme/widgets#71": 1, "acme/widgets#73": 1 } })) };
     const dec = (f, n, key) => { try { const b = JSON.parse(rd(f)); return ((b[key || "rows"] || []).find(r => r.issue === n) || {}).unassigned === true; } catch (e) { return false; } };

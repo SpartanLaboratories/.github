@@ -1,4 +1,4 @@
-// The cases of dashboards-skill/52 (the user's decision of 2026-11-06), run by verify-templates.js (it passes its helpers in), or on its
+// The cases of dashboards-skill/52 (the decision of 2026-11-06), run by verify-templates.js (it passes its helpers in), or on its
 // own with no browser: node verify/cases-check-labels.js [--out <dir>].
 // A Quality Review's checks are labelled by the check: "documentation check", "code check", "test check" (the documentation check read
 // "documentation review" before; the other two already read so). None of the labels was an agent's name: the note files are named by

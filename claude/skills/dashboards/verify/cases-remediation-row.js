@@ -1,4 +1,4 @@
-// The cases of a row a remediation stage reopens and of the Tests tab's facts on that stage (admin-team/board/remediation-row; plan/RULES.md
+// The cases of a row a remediation stage reopens and of the Tests tab's facts on that stage (board/remediation-row; plan/RULES.md
 // §2 "Before the outcome", §4 "The fast path"), run by verify-templates.js (it passes its helpers in), or on its own with no browser:
 // node verify/cases-remediation-row.js [--out <dir>].
 // The defects (WebTools #65, remediation stage R1): facts.tests.drop named a class on no list of the board (added and deleted on the branch

@@ -1,4 +1,4 @@
-// The cases of the C4 DSL reader's keyword identifiers (admin-team/dashboards/dsl-keyword-id, a defect, dated 47; GUIDANCE.md §8, §9),
+// The cases of the C4 DSL reader's keyword identifiers (dashboards/dsl-keyword-id, a defect, dated 47; GUIDANCE.md §8, §9),
 // run by verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-dsl-keyword-id.js [--out <dir>].
 // The defect: an element whose identifier is a keyword that opens a block of the DSL ("model = component …", "views = component …") was
 // read as that block. The element was dropped (and, with a brace, the stack swallowed what followed), and the C4 tab crashed on the first

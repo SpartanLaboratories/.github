@@ -1,7 +1,7 @@
 // The Tests tab's data rules (plan/RULES.md §2, "The Tests tab"), shared by apply-event.js, embed.js (through lib.js) and check.js. Not a
 // command. A board's plan.json "tests" holds the test classes the change touches, by how: "added" (new on the branch, from the git diff
 // against its base), "amended" (existing classes the branch changed), "relevant" (unchanged existing classes that exercise the new code
-// anyway: what qa's test-inspector ran on the change, less Added and Amended), and "other" (every other test, counts only per module and
+// anyway: what the review's test check ran on the change, less Added and Amended), and "other" (every other test, counts only per module and
 // test set: never run for this change). Each class { class, module, testSet, path, tests, rows, stage, result } (result { state, passed, failed, skipped, pass, at, note }); a class is in one
 // list only, Added before Amended before Relevant. A tracking board records none of its own: embed.js mirrors each unit's into the unit
 // row (unit.tests, with rowNames), and the board sums them. The plan-board template's tlOf(), resOf() and testKey() are the same rules.
@@ -147,10 +147,10 @@ function normOther(x) {
 }
 /* Apply an event's facts.tests to a board (plan/RULES.md §4): each class of "added", "amended" and "relevant" upserted, a class kept in the
    highest list it has reached (Added, then Amended, then Relevant: a class added on the branch and changed later stays Added); "ran", the
-   classes qa's test-inspector ran with their results, sets each one's latest result and its count (the tests the run counted) and puts a class in no list into Relevant, a module's test task with no failure
+   classes the review's test check ran with their results, sets each one's latest result and its count (the tests the run counted) and puts a class in no list into Relevant, a module's test task with no failure
    over the board's own classes being those classes' results (taskClasses(); a skip attributed by count is a note, so enrich: yes); "other"
    replaces the counts (an empty one reports nothing new, so any earlier counts stay); "drop" removes classes from every list (a change reverted; one on no list is named in the summary, never passed over); "base" names the ref the diff is against. The same
-   facts twice change nothing. Returns { changed, applied, notes, warnings }: notes what a presenter must look at (enrich: yes), warnings what
+   facts twice change nothing. Returns { changed, applied, notes, warnings }: notes what a fill must look at (enrich: yes), warnings what
    the fast path changed, said in its summary (a recorded set another event changes, with the set held and the set sent, TEST SET CHANGED).
    An open board's block is written by the sets' names first (setsIn()), so a class merged onto it stores its set as testSet alone.
    o: { now, pass, stage, stages, ids }.
@@ -159,8 +159,8 @@ function normOther(x) {
    S5, "S3 python" included, and the stages already on the board overwritten) gives o.stage null and o.stages { label, list: [{ id, steps }],
    fallback }: a class keeps the stage the board records unless its own entry names one (facts.tests.<list>[].stage); a class with none takes
    the one reported stage whose steps name it ("S3 python": stage S3, step python; a bare step id where only one of them has it), else
-   o.stages.fallback (a remediation's "Quality Review n fixes", the stage a remediation report naming no stage gives), else none, said for the
-   presenter. */
+   o.stages.fallback (a remediation's "Quality Review n fixes", the stage a remediation report naming no stage gives), else none, said for a
+   fill. */
 function mergeTests(plan, ft, o) {
   const applied = [], notes = [], warnings = [];
   if (!ft || typeof ft !== "object" || Array.isArray(ft)) return { changed: false, applied, notes: ["facts.tests is not an object: not applied"], warnings };

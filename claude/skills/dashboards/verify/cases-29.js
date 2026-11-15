@@ -1,4 +1,4 @@
-// The case groups of admin-team/dashboards-skill/29, run by verify-templates.js (it passes its helpers in), for three tool and template
+// The case groups of dashboards-skill/29, run by verify-templates.js (it passes its helpers in), for three tool and template
 // defects: splice.js onto the recorded verified version of a board's template (--verified), and a --template that is a cached version (a
 // file in verify/history/) spliced with its template's history as the merge bases, not with none; apply-state.js keeping a verbatim
 // lastAmended.title already on record for the same issue, taking facts.title when the event carries it, and the folder's name only when

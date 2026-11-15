@@ -1,4 +1,4 @@
-// The case groups of admin-team/dashboards-skill/26, run by verify-templates.js (it passes its helpers in): the per-board feature probes,
+// The case groups of dashboards-skill/26, run by verify-templates.js (it passes its helpers in): the per-board feature probes,
 // the splice, the Guarantees' and Context's legends, links only to files that exist (live first), the work-board link on the state boards,
 // the tablists' keys, the clean-ups, the theme remembered across boards, the as-is part naming no issue, the rendered Markdown copies, the
 // tracking issue's unit boards and its two steps after the architecture, the agents' progress notes, and built or planned from the code

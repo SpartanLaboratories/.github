@@ -1,4 +1,4 @@
-// The cases of the team-raised retime (admin-team/dashboards/retime; plan/RULES.md §4, the retime row), run by verify-templates.js (it passes its
+// The cases of the team-raised retime (dashboards/retime; plan/RULES.md §4, the retime row), run by verify-templates.js (it passes its
 // helpers in), or on its own with no browser: node verify/cases-retime.js [--out <dir>].
 // The trigger: KotlinBottools #2's run sent its sizing time as midnight, so its board's run start, its sizing's end and its plan's first visit
 // all read 00:00. A retime corrects one event's recorded time: every place the record holds the old time moves to the new one (plan.sized, the
