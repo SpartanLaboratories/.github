@@ -139,7 +139,7 @@ The permission system raises the denial.
 ## An encountered issue is not in this tracker
 
 ```json
-{"id":"p9","count":19,"last":"2026-11-15"}
+{"id":"p9","count":20,"last":"2026-11-15"}
 ```
 
 - **Proposed resolution:** add it as a new entry with count 1, then prompt the
@@ -207,6 +207,11 @@ The permission system raises the denial.
     "[Destructive or Unwanted Actions]", a case neither the entry for a mirror-sync's executor
     writing in the standing checkout nor the entry for [Self-Modification] holds; added as "The
     direction manager's after-edit write pass of the rule checker is refused as destructive".
+  - 2026-11-15: a deny rule lifted for a temporary grant in the launcher's settings file was
+    found still listed in the team folder's project-local settings file, a case neither the entry
+    for a push a grant covers being denied nor the entry for placing the team's settings file
+    holds; added as "A deny rule lifted in the launcher's settings file stays in force through the
+    team folder's project-local settings file".
 
 ## A count changes in this mirrored file
 
@@ -999,6 +1004,23 @@ A mirror-sync runs its rule check in a fresh scratch clone of the organization r
   - a) The team's brief for a mirror-sync's executor names the override variable and the other repositories' checkout folders, so a scratch clone's check reads everything, and a result with any "not checked" line is reported as a count that moved.
   - b) The checker treats "not checked" as a failure when run with `--write` for a commit.
   - c) The scratch clone is made beside the other repositories' checkouts instead of under the worktree root.
+- **Later fact (2026-11-15, no encounter):** the mirror-sync after the encounter read everything from its scratch clone with no override variable (`OK: 62 file(s), 239 id(s)`), run with `--policies` and `--claude` only; the sync of the encounter had also set `SPARTAN_ORG_POLICIES` to the scratch clone, which is how the checker finds the organization repository's checkout and, beside it, the other repositories' checkouts (`rule-check.js` line 30). So the likely cause is that variable pointed at the scratch clone, not the scratch clone as such: the Coordinator's inference from the two runs' command lines, not tested.
 - **Predicted:** the admin team, on meeting it, 2026-11-15.
 - **Encounters:**
   - 2026-11-15: the mirror-sync of a one-line change to this tracker, in a scratch clone under the worktree root: the executor's rule check printed `OK: 61 file(s), 235 id(s), 10 not checked`, exit 0, where the two mirror-syncs before it that day had printed `OK: 62 file(s), 239 id(s)`; the ten notes named the SpartanUI checkout missing beside the scratch clone (its `docs/nomenclature/ui.md`, the UI vocabulary's home since that day) and the ids that hang on it. The executor reported the counts moved, and committed and pushed, the check having passed and the change being no rule file. The Coordinator then ran the checker read only on the standing checkout at the pushed commit: `OK: 62 file(s), 239 id(s)`, exit 0, nothing unchecked, so nothing wrong was pushed.
+
+## A deny rule lifted in the launcher's settings file stays in force through the team folder's project-local settings file
+
+```json
+{"id":"p66","count":1,"last":"2026-11-15"}
+```
+
+The team's brief has a temporary permission's lift of a deny rule made in the launcher's settings file only (its Gates and standing grants, Temporary permissions, **Deny rules**: "a deny rule in the launcher's settings file"). Since 2026-11-14 the team folder also holds a project-local settings file, drafted and approved by the user when the team's session was moved into the desktop app, which does not start it through the launcher (the entry "Placing a user-approved settings file of the team's is refused as [Undermining Oversight]"), and that file carries its own copy of the deny list. A deny rule listed in any settings file a session loads applies, so a lift made in one file leaves the rule in force through the other. It is not the entry "A push a grant covers is denied with [Git Destructive]", where the auto mode classifier, a check separate from the deny rules, refused a push after a lift. Not checked: which of the two files the running session loads now (it runs in the desktop app; the launcher's settings file may not be loaded at all, in which case its standing auto-mode lines are not in force either), and whether the rule's pattern would match the push's command line as the procedure words it.
+
+- **Proposed resolution:** none decided. Options, the Coordinator's first reading, for the user to decide:
+  - a) One source for the deny list: the team folder's project-local settings file drops its copy.
+  - b) A lift and its restore cover every settings file the team's session loads, and the grant's record names each file changed, with the brief's **Deny rules** and **Allow lines** bullets and the standing line that authorizes such edits widened to match.
+  - c) The project-local settings file is removed and the team is started through its launcher again.
+- **Predicted:** the admin team, on meeting it, 2026-11-15.
+- **Encounters:**
+  - 2026-11-15: KotlinBottools #40. The user granted the job's section with the lift of the deny rule on `git push --force-with-lease`, and the direction manager lifted it in the launcher's settings file, which then listed three deny rules. The run, checking its plan before its first push, found the rule still listed in the team folder's project-local settings file and asked the team to file an issue in the organization repository. The Coordinator read both files: the project-local one lists four deny rules, the lease-push rule among them, and has no auto-mode section. No push had been requested yet, so nothing was refused. The Coordinator put to the user whether the rule is lifted in the project-local file too for the job.
