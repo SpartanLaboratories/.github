@@ -23,6 +23,7 @@ organization aims for, and may depart from with a stated reason, is Design:
 | Logging | [R-30 (Logging)](policy/logging/README.md) |
 | Build | [R-31 (Build)](policy/build/INDEX.md) |
 | Versions and stability | [R-25 (Versioning)](policy/version/README.md), [R-131 (Stability tiers)](policy/version/stability-tiers.md) |
+| Names | [R-33 (Nomenclature)](policy/nomenclature/INDEX.md) |
 
 ## Conduct and security
 <!-- {"name":"Conduct and security","code":"P-C-CS","id":1015} -->

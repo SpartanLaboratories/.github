@@ -75,6 +75,9 @@
         } },
         "policy/documentation/planning-documents.md": { "segment": "PD", "sections": {
           "Hierarchy": "HI", "Folded-in issues": "FI", "A fix to an earlier plan's work": "FE", "What an issue folder holds": "IF", "A tracking issue's folder": "TF", "Comment- and doc-only changes": "CD", "Plans need an issue": "NI", "Committed": "CO"
+        } },
+        "policy/nomenclature/boards.md": { "segment": "B", "sections": {
+          "Dashboards and boards": "DB", "Companions of the boards": "CB", "Board UI": "BU"
         } }
       },
       "folders": {
@@ -83,7 +86,8 @@
         "policy/version": { "segment": "V" },
         "policy/logging": { "segment": "L" },
         "policy/build": { "segment": "B" },
-        "policy/build/jvm": { "segment": "J" }
+        "policy/build/jvm": { "segment": "J" },
+        "policy/nomenclature": { "segment": "N" }
       }
     },
     "D": {
@@ -111,9 +115,16 @@
       }
     }
   },
+  "repositories": {
+    "SpartanUI": { "url": "https://github.com/SpartanLaboratories/SpartanUI/blob/main/", "folder": "SpartanUI", "files": {
+      "docs/nomenclature/ui.md": { "root": "P", "under": "policy/nomenclature", "segment": "UI", "sections": {
+        "Naming": "NA", "1. Basic elements": "BE", "2. Specific elements": "SE"
+      } }
+    } }
+  },
   "notConverted": [],
   "ids": {
-    "marks": { "1": 3, "2": 32, "3": 138, "4": 1113, "5": 10038 },
+    "marks": { "1": 3, "2": 33, "3": 140, "4": 1119, "5": 10041 },
     "retired": [
       { "id": 105, "by": 11 },
       { "id": 1022, "by": 1028 },
