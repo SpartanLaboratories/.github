@@ -619,15 +619,16 @@ A member starts a long search or script in the background, finishes its job with
 ## A push a grant covers is denied with [Git Destructive]
 
 ```json
-{"id":"p38","count":1,"last":"2026-11-13"}
+{"id":"p38","count":2,"last":"2026-11-15"}
 ```
 
-The executor runs a plan's push under a temporary grant, as one shell holding the plan's procedure, and the session's auto mode classifier denies the call with the reason "[Git Destructive]" before any entry runs. The grant's section in the permissions file does not reach the classifier, and lifting a deny rule in the settings file does not either: the two are separate checks.
+The executor runs a plan's push under a temporary grant, as one shell holding the plan's procedure, and the session's auto mode classifier denies the call with the reason "[Git Destructive]" before any entry runs. The grant's section in the permissions file does not reach the classifier, and lifting a deny rule in the settings file does not either: the two are separate checks. The reason's wording varies: on 2026-11-15 the same refusal read "[Destructive or Unwanted Actions]".
 
 - **Proposed resolution:** the rule for a refused action under a grant (`agents/admin-team/GUIDANCE.md`, Gates and standing grants, Temporary permissions, **Allow lines**): nothing else is tried; one `autoMode.allow` line for that action, naming the repository, the exact command, the request's `id` and the job, is placed by the direction manager or staged for the user to place; the team restarts and runs the same `id` again with `attempt + 1`. A job with more than one such push meets the refusal once per push unless the user places the lines together.
 - **Predicted:** the admin team, on meeting it, 2026-11-13.
 - **Encounters:**
   - 2026-11-13: KotlinBottools #26, the push of one branch to the first of its two repositories, with an explicit lease, after the deny rule on that form had been lifted in the settings file without a restart. Nothing was pushed. Put to the user at the console with the line staged.
+  - 2026-11-15: KotlinBottools #40, the first of the job's three pushes (the branches of BotTools, an explicit lease on each, after a dry run), under the section the user granted that day with the lift of the deny rule on that form of push. The executor matched the section and the request file's hash and made its one call, a shell run of the script built from the file's six procedure entries; the classifier refused it before it ran, with the reason "[Destructive or Unwanted Actions]". Nothing ran, no ref changed, nothing else was tried. The refusal's text names the classifier; the lift left standing in the team folder's project-local settings file is the entry "A deny rule lifted in the launcher's settings file stays in force through the team folder's project-local settings file", not this one. The direction manager stages the allow line, and the user is asked whether one line or the section's three are placed; the section's other two pushes meet the same check unless their lines are placed with the first.
 
 ## The presenter's edit of its own brief is refused as [Self-Modification]
 
