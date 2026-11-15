@@ -87,7 +87,11 @@ keep"); under `--unattended` the run rewords instead and asks for no exception (
   — and take the earliest one that is **not** labelled `blocked`, `wontfix`,
   `duplicate`, `question`, or `type: tracking` and, as far as the issue timeline
   shows, has no open PR already addressing it. If you skip the oldest for one of
-  those reasons, say which and why, then take the next.
+  those reasons, say which and why, then take the next. Every run sets aside
+  the open-issue list the session-start hook
+  (`~/.claude/hooks/spartanlabs-open-issues.sh`) shows it, with that list's
+  call to plan the oldest issue: its issue comes from the arguments or, with
+  none, from this step's own listing.
 - If there are no open issues, say so and stop.
 - **Handoff.** Look for `~/.claude/handoffs/<owner>-<repo>-<issue>.md` (e.g. `SpartanLaboratories-WebTools-66.md`); if present and not empty, read it, and set `restarted` on the first request, with the run's own clock readings (`~/.claude/agents/admin-team/PROTOCOL.md`, `restarted`). With no handoff, set it all the same when you find the run already in progress, its board or its branch for example: that is how you know you are taking a run up. A handoff names the run's prompt flags, and the run that takes it up keeps them ("Prompt flags", **Flags in force**).
 - Read the chosen issue in full: `gh issue view <n> --repo <repo> --comments`.
@@ -101,12 +105,14 @@ keep"); under `--unattended` the run rewords instead and asks for no exception (
   touches, whether it changes executable code at all, public API, persisted or
   shared state, or a wire format, and whether it spans more than one system.
   Settle on a grade with that evidence, one line per point.
-- Tell the user the issue number, title, the **grade** (label and your check),
-  the prompt flags in force (or that none is), and a one-line statement of
-  what you intend to do this run, and **confirm
+- Tell the user the invocation as you parsed it (its issue number, mode word
+  and flags, each as given or as absent), the issue number, title, the
+  **grade** (the recorded grade and your check), the prompt flags in force
+  (or that none is), and a one-line statement of what you intend to do this
+  run, and **confirm
   before proceeding** — this run creates branches and commits and posts a
   comment (`--unattended` gives that go-ahead in advance: "Prompt flags"). If
-  the label is **missing** or your check **disagrees** with it, say
+  no grade is recorded or your check **disagrees** with it, say
   so plainly with the evidence and ask which grade to use; never pick for the
   user, unless `--accept-grade` answers it ("Prompt flags"). The confirmed
   grade is the run's grade.
@@ -216,10 +222,9 @@ alone.
   holds `chain.md`; if either fails, it stops and asks the user. Otherwise it
   runs steps 1–8 on its issue as any run does, with the invocation as its
   step-1 go-ahead ("Per sub-issue"), and does nothing else: it expands no
-  nested plan, starts no other issue, and sets aside the open-issue list the
-  session-start hook (`~/.claude/hooks/spartanlabs-open-issues.sh`) shows it,
-  with that list's call to plan the oldest issue. A wait it makes in a Bash
-  command stops at the Bash tool's 10 minutes, so a longer one is a loop of
+  nested plan, starts no other issue, and sets aside the session-start
+  hook's open-issue list as every run does (step 1, **Target**). A wait it
+  makes in a Bash command stops at the Bash tool's 10 minutes, so a longer one is a loop of
   waits of at most 10 minutes, each armed again until what it waits for
   arrives. At step 8 it writes its report to `<sub-issue>.md` in the chain
   folder and then, as that file's last line, `ended: landed`, `ended: planned`
