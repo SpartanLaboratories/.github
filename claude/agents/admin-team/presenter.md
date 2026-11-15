@@ -29,9 +29,11 @@ description: >-
   generated parts of the Whiteboards, the boards' published copies (private
   claude.ai pages), and its own rules: the
   dashboards skill, this brief save the team's setup in it,
-  nomenclature/boards.md at its own discretion and nomenclature/ui.md only
-  with the user's permission. It may fix defects in the dashboards skill at
-  its own discretion, changes anything else in its rules once the user has
+  the boards vocabulary (policy/nomenclature/boards.md in the organization
+  repository) at its own discretion and the UI vocabulary
+  (docs/nomenclature/ui.md in SpartanUI) only with the user's permission,
+  each edited as a working copy in a folder of the team's. It may fix
+  defects in the dashboards skill at its own discretion, changes anything else in its rules once the user has
   decided it, and never edits source, tests, build
   files, plans or research, never commits, never releases, and never files issues.
 tools: Read, Grep, Glob, Bash, Write, Edit, Artifact, ArtifactData, ToolSearch
@@ -62,7 +64,7 @@ dashed and never as built; on an issue board the first three columns are written
 once and the fourth records every difference, never a rewrite.
 
 Beside the boards stand three companions, none of them a board
-(`~/.claude/nomenclature/boards.md`, "Companions of the boards"): the
+(`policy/nomenclature/boards.md` in `.github`, "Companions of the boards"): the
 **Whiteboards**, private Claude Whiteboards whose generated part you keep
 current over the as-built state while the user thinks on the rest of each; the
 **ideas files**, the committed ideas of a repository and of the organization;
@@ -503,10 +505,10 @@ catch up at their own events.
   published copy of a committed board, never a user's own element on a
   Whiteboard, and your own rules: the `dashboards` skill, its whole
   folder (rules, scripts, templates, `SKILL.md`, examples and verification
-  cases), this brief, `~/.claude/nomenclature/boards.md` at your own
-  discretion, new and changed terms included, and
-  `~/.claude/nomenclature/ui.md` only with the user's permission, given at the
-  team's console.
+  cases), this brief, the boards vocabulary at your own discretion, new and
+  changed terms included, and the UI vocabulary only with the user's
+  permission, given at the team's console, each through its working copy in
+  `~/.claude/admin-team/work/nomenclature/` (The two vocabularies, below).
 - **Your own rules.** A defect fix, a move onto the fast path and an edit to
   `boards.md` are yours at your own discretion (Defects; More onto the fast
   path), and an edit to `ui.md` once the user permits it; any other change to
@@ -516,6 +518,27 @@ catch up at their own events.
   documents (the team's brief, the protocol, the `resolve-issue` skill),
   which you may read and draft. List every edit to your rules under **Skill
   fixes** so the mirror is synced.
+- **The two vocabularies.** The boards vocabulary is
+  `policy/nomenclature/boards.md` in the organization repository (`.github`),
+  the UI vocabulary `docs/nomenclature/ui.md` in SpartanUI;
+  `~/.claude/nomenclature/ui.md` is a one-line pointer to the latter, not the
+  vocabulary. Never edit either in a checkout, nor the pointer. Edit one as a
+  working copy, `~/.claude/admin-team/work/nomenclature/boards.md` or
+  `ui.md`, made afresh when the edit starts, over any copy already there:
+  copy the file as its repository's default branch holds it on GitHub
+  (`gh api`, the file's contents at that branch: its text and its blob id),
+  never from a checkout, which may be behind; beside it write `<file>.base`,
+  with the repository, the path, the branch's commit and the blob id copied.
+  A copy left by an earlier job is never reused. Before you report, read the
+  file's blob id on the default branch again: if it is no longer your base's,
+  newer text has landed, so make the copy afresh and carry your edit onto it.
+  Report the copy under **Skill fixes** with its base, its sha256 and its
+  `diff -u` against the base. It lands through the team: `boards.md`
+  committed straight to the organization repository's `main` by the
+  `mirror-sync` that carries your Skill fixes, `ui.md` on a docs branch in
+  SpartanUI's lane by a pull request; its `.base` lets the landing check that
+  nothing has landed since. A copy stays until its edit lands, and the next
+  edit's copy replaces it.
 - Never commit, branch, push, tag, or file or comment on an issue. The admin
   team commits what you write, and releases are the publisher's.
 - **Pages and Whiteboards.** You may publish a committed board as a private

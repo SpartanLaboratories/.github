@@ -305,8 +305,9 @@ const FEATURES = [
     notFor: { system: "no run: a state board shows the code at a commit, not a run's halts", supersystem: "no run: a state board shows the code at a commit, not a run's halts", "work-board": "one row per run: a halted row shows the step \"Waiting on you\" and one line of what it waits on, never the step it halted in; the text it carries comes from board.json, which board.js words so" },
     test: h => { const s = scripts(h); return need(/const haltLabel=\(s,c\)=>s==="remediation"\?routeName\(c&&c\.route\):stepLabel\(s,c\);/.test(s) && /Held still at \$\{esc\(S\?haltLabel\(S,runCtx\(R\)\):"its step"\)\}/.test(s) && /k==="halted"\?\(L\.resume\?`<span>at \$\{esc\(haltLabel\(L\.resume,runCtx\(L\)\)\)\}/.test(s) && /const resumeAt=\(s,c\)=>(?:s==="remediation"\?haltLabel\(s,c\):s|haltLabel\(s,c\));/.test(s) && /its run resumes at \$\{esc\(resumeAt\(L\.resume,runCtx\(L\)\)\)\}/.test(s),
       "a halt during a fix step is named with the pass it answers (\"Held still at Correction of Quality Review 2\"): no haltLabel() in the names block, the step panel's wait line, a unit's run line or the waiting card's resumes-at"); } },
-  /* the user's nomenclature decisions of 2026-11-07 (nomenclature/ui.md: "glow" retired; the Pulse marks and the Ring), dated 48: the marks'
-     classes carry their type word on an issue or tracking board and the repository work board (nomenclature/boards.md, "Board UI"): the
+  /* the user's nomenclature decisions of 2026-11-07 (docs/nomenclature/ui.md in SpartanUI: "glow" retired; the Pulse marks and the Ring), dated 48:
+     the marks' classes carry their type word on an issue or tracking board and the repository work board (policy/nomenclature/boards.md in .github,
+     "Board UI"): the
      in-progress FullPulse .fullpulse (a whole column's .col-fullpulse, each cell of that column at phone width .colcell-fullpulse), the up-next
      Ring .upnext-ring, the live indicator's FillPulse .fillpulse. Class names only, drawn as before: a board drawn before them draws the same
      marks under .glow, .glow-soft, .colglow, .upnext and .pulse, its own CSS in it, until its next rebuild (its next event, board.js
@@ -379,7 +380,7 @@ const FEATURES = [
     notFor: { system: "no units: a state board shows the code at a commit, not a run's landings", supersystem: "no units: a state board shows the code at a commit, not a run's landings", "work-board": "one row per run: a run's pull request and merge are on its own board" },
     test: h => { const s = scripts(h), c = css(h); return need(/const landingOf=r=>/.test(s) && /const landingChips=r=>/.test(s) && /\$\{landingChips\(r\)\}<div class="sum">\$\{builtBody\(r,st\)\}<\/div>/.test(s) && /(?:\.cell )?\.landing-chips :is\(\.pr-chip,\.merge-chip\)\{/.test(c),
       "a unit's As built cell names its landing in prose alone: no PR chip or merge chip (landingChips() in cellBuilt(), .landing-chips)"); } },
-  /* dashboards-skill/54 (the user's decisions of 2026-11-06 and 2026-11-07; nomenclature/ui.md, StepBar): the StepBar, the steps of a sequence
+  /* dashboards-skill/54 (the user's decisions of 2026-11-06 and 2026-11-07; docs/nomenclature/ui.md in SpartanUI, StepBar): the StepBar, the steps of a sequence
      in order, each a chevron with its name inside, done, current or to come; an ordered list, the current step aria-current="step", each state
      said in words to a screen reader, wrapping inside itself at phone width. An issue or tracking board's progress strip and WIP strip (the
      step names; the current step's FullPulse, the Ring alone while held); a tracking issue's chain on the state boards' roadmap and on the

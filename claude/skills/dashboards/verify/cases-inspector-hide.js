@@ -1,9 +1,9 @@
 // The cases of the inspector's Hide button (dashboards/inspector-hide-button, the decision of 2026-11-07, dated 46;
 // GUIDANCE.md §6, "The inspector switch"), run by verify-templates.js (it passes its helpers in), or on its own with no browser:
 // node verify/cases-inspector-hide.js [--out <dir>].
-// The Hide button sits in the inspector's head, right of its heading: an eye struck through and the word "Hide", a button (ui.md, Button) in
-// the boards' neutrals, its accessible name "Hide the inspector". It drives the inspector switch's one state (localStorage
-// "dashboards-inspector"): a click hides the inspector, remembers "hidden", flips the switch and moves the focus to it; the switch, or an item
+// The Hide button sits in the inspector's head, right of its heading: an eye struck through and the word "Hide", a button
+// (docs/nomenclature/ui.md in SpartanUI, Button) in the boards' neutrals, its accessible name "Hide the inspector". It drives the inspector
+// switch's one state (localStorage "dashboards-inspector"): a click hides the inspector, remembers "hidden", flips the switch and moves the focus to it; the switch, or an item
 // clicked while the inspector is hidden, shows it again. On every board with an inspector (system, supersystem and repository state boards,
 // issue and tracking boards); not on the repository work board, which has none.
 // 1. Each template's inspector carries the button in its markup, the same icon its renderer adds, and its CSS only the neutrals.

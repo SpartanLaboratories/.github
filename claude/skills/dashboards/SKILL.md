@@ -3,7 +3,8 @@ name: dashboards
 description: >-
   The presenter's rules, templates, scripts and checks for a repository's
   dashboards: the state boards under docs/dashboards/ and the work boards under
-  docs/plans/, named in nomenclature/boards.md. GUIDANCE.md holds the rules both
+  docs/plans/, named in policy/nomenclature/boards.md of the organization
+  repository. GUIDANCE.md holds the rules both
   sets share (colour coding first); system/RULES.md and plan/RULES.md hold each
   set's own. Load it whenever you create, update, review or check any board, its
   data file or its registry. The presenter agent uses it as a service of the
@@ -14,11 +15,12 @@ description: >-
 {"name":"Dashboards","code":"G-S-DB-SK","id":113}
 
 Two sets of boards, one presenter, one shared rulebook. The board terms (the umbrella "dashboard", the state boards and
-the work boards, each board's name, "board" and never "page") are in `../../nomenclature/boards.md`; the state boards follow
-`system/RULES.md`, the work boards `plan/RULES.md`.
+the work boards, each board's name, "board" and never "page") are in `policy/nomenclature/boards.md` in `.github`; the
+state boards follow `system/RULES.md`, the work boards `plan/RULES.md`.
 
 Nothing a board shows or its data carries names the pipeline's agents, sessions or roles, the approval flow or a grade
-(`GUIDANCE.md` §4); its elements take their names from the UI vocabulary, `../../nomenclature/ui.md` (`GUIDANCE.md` §12).
+(`GUIDANCE.md` §4); its elements take their names from the UI vocabulary, `docs/nomenclature/ui.md` in SpartanUI
+(`GUIDANCE.md` §12).
 
 ## Files
 

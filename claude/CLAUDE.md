@@ -277,8 +277,8 @@ copy and a Whiteboard's generated part, keeps the same rule (the dashboards skil
 "Dashboard" is the umbrella for two groups of **boards** that every repository keeps: the
 **state boards** (`docs/dashboards/`), what the code is and does at a named commit, and the
 **work boards** (`docs/plans/`), how the work is going. Each board is defined in
-`~/.claude/nomenclature/boards.md`. An issue board is a general representation with little code;
-`plan.md` and `final-implementation.md` keep the details beside it.
+`policy/nomenclature/boards.md` in `.github`. An issue board is a general representation with
+little code; `plan.md` and `final-implementation.md` keep the details beside it.
 
 ## Global Claude config — keep the `.github` mirror in sync
 
@@ -387,6 +387,8 @@ sub-organizations follows the standard in `policy/documentation/README.md` of
 [`SpartanLaboratories/.github`](https://github.com/SpartanLaboratories/.github/blob/main/policy/documentation/README.md):
 the four levels, what sits at each and the order they are written and reviewed in, and what
 documentation in code carries. Apply it to all code generation, refactoring, and review.
+
+The decision making process does not belong in code comments.
 
 ## Testing — Named Test Sets
 

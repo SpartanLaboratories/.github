@@ -261,7 +261,7 @@ board (`dashboards` skill, `plan/RULES.md` §10).
 | `file-sub-issues` | After the tracking plan's `land`, file the list as sub-issues of `issue` recording each one's grade in the team's state, with *blocked by* links, label the parent `type: tracking`, and add a comment on `issue` listing the sub-issues (the land's resolution comment precedes them). The requester states the user approved the list at the architecture sign-off; that relayed approval is enough for this action and no other. |
 | `file-issue` | File one issue in GitHub from `title` and `body`, without a gate, under `version-control-manager.md`'s filing rules: never against a downstream consumer of `surfacedIn`, about the change being landed, or for comment resolution, a code comment or KDoc that needs rewording (rejected with the rule); a request that mixes a defect with such wording gets the defect filed alone, its `done` naming the wording dropped; a speculative defect is rejected as a suspicion; reword anything Claude-internal; if an open issue already covers it, file nothing and reply `done` naming that issue (`result.filed: false`). Reply with `result.issue {number, url}`. |
 | `comment` / `label` | Post the comment, or add/remove the labels, on `issue`. |
-| `mirror-sync` | In the `mirror` lane: copy the listed `~/.claude` paths into the mirror clone, and place there any listed working-copy file of S, P or D at its path; run `rule-check.js --write` in the clone, which also writes the counts in S, P and D that the edit's own `--write --defer-policies` run reported as pending, then the secret scan, the internal-names scan and the rule check (`version-control-manager.md`, Executor mode, which says how the checker reads G); show the diff at this console; commit straight to `main`, push, and pull the standing checkout. On a find or a failed rule check it commits nothing: reply `needs-rework` with `result.finds`, and the requester fixes the source in `~/.claude` and resends the same `id` with `attempt + 1`. When you queued the mirror-sync yourself, route the fix to the agent that made the edit (`direction-manager` for a direction document, `presenter` for a dashboards-skill file) and handle any other case yourself, case by case. Refuse any path the mirror README's "Not included" list excludes, the admin team's local state (`ledger.jsonl`, `state.json`, `hooks.jsonl`, `questions.jsonl`, `archive/`, `temp-permissions/`, `launch.lock`, `up`) included. |
+| `mirror-sync` | In the `mirror` lane: copy the listed `~/.claude` paths into the mirror clone, and place there any listed working-copy file of S, P or D at its path; run `rule-check.js --write` in the clone, which also writes the counts in S, P and D that the edit's own `--write --defer-policies` run reported as pending, then the secret scan, the internal-names scan and the rule check (`version-control-manager.md`, Executor mode, which says how the checker reads G); show the diff at this console; commit straight to `main`, push, and pull the standing checkout. On a find or a failed rule check it commits nothing: reply `needs-rework` with `result.finds`, and the requester fixes the source in `~/.claude` and resends the same `id` with `attempt + 1`. When you queued the mirror-sync yourself, route the fix to the agent that made the edit (`direction-manager` for a direction document, `presenter` for a dashboards-skill file) and handle any other case yourself, case by case. Refuse any path the mirror README's "Not included" list excludes, the admin team's local state (`ledger.jsonl`, `state.json`, `hooks.jsonl`, `questions.jsonl`, `archive/`, `temp-permissions/`, `work/`, `launch.lock`, `up`) included. |
 | `push-mirror` | Per `procedure`: a mirror push or force-push from the workspace mirror at `mirror` to `target`. |
 | `create-repo` | Per `procedure`: create the repository `target`. |
 | `repo-settings` | Per `procedure`: apply `settings` to `target`. |
@@ -529,7 +529,7 @@ real time; a job that writes a Whiteboard runs in its repository's
 **presenter lane** (below), apart from the repository lanes too. Beside the boards it
 keeps the **Whiteboards**, each repository's **ideas file** and the boards'
 **published copies** (Whiteboards, Ideas files and Published copies, below;
-`~/.claude/nomenclature/boards.md` names them).
+`policy/nomenclature/boards.md` in `.github` names them).
 
 ### Presenter lanes
 
@@ -771,7 +771,7 @@ in this job, by either route (Whiteboards, below).
 
 **Whiteboards.** One private Claude Whiteboard per system in a repository's
 registry (`systems.json`), one per supersystem in it, one per repository and
-one for the organization (`~/.claude/nomenclature/boards.md`), for the
+one for the organization (`policy/nomenclature/boards.md` in `.github`), for the
 repositories on the org work board (Org work board, above). `presenter`
 creates each and writes its generated part through `Artifact` and
 `ArtifactData`, and nothing else on it: the user's own notes are never moved,
@@ -888,9 +888,15 @@ A default branch still changes only at a landing.
 
 **Skill fixes.** When `presenter` reports **Skill fixes** (edits to its own
 rules: the `dashboards` skill under `~/.claude/skills/dashboards/`, its brief,
-`~/.claude/nomenclature/boards.md` or, with the user's permission, `ui.md`), queue a
-`mirror-sync` for exactly those paths in the `mirror` lane, from yourself, so
-the public copy matches `~/.claude/` again.
+`policy/nomenclature/boards.md` in `.github` or, with the user's permission,
+`docs/nomenclature/ui.md` in SpartanUI), queue from yourself a `mirror-sync` in
+the `mirror` lane for exactly the skill's, the brief's and `boards.md`'s paths,
+so the public copy matches `~/.claude/` again and `boards.md` lands, and land
+`ui.md`'s on a docs branch in SpartanUI's lane, by a pull request. `presenter`
+edits the two vocabularies as working copies in
+`~/.claude/admin-team/work/nomenclature/`; the `mirror-sync` names
+`boards.md`'s with its path in the organization repository (`PROTOCOL.md`,
+`paths`).
 
 ## Service: publishing
 

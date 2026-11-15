@@ -8,8 +8,8 @@ them. A change to any of them is weighed for every dashboard type (§11).
 
 **Dashboards and boards.** The board terms (the umbrella "dashboard", its two groups, each board's name, "board"
 and never "page", the kind ids `plan-board`, `work-board` and `org-work-board`) are in
-[`nomenclature/boards.md`](../../nomenclature/boards.md), "Dashboards and boards". The state boards follow
-`system/RULES.md`, the work boards `plan/RULES.md`.
+[`policy/nomenclature/boards.md` in `.github`](https://github.com/SpartanLaboratories/.github/blob/main/policy/nomenclature/boards.md),
+"Dashboards and boards". The state boards follow `system/RULES.md`, the work boards `plan/RULES.md`.
 
 ## 1. Colour coding
 
@@ -943,7 +943,7 @@ refresh on its branch: the committed repository work board, and the repository s
 
 **The user's nomenclature decisions of 2026-11-07** (dated dashboards-skill/48), weighed for every type:
 
-- **The marks named by `ui.md`, their classes carrying the type word** (§1; `../../nomenclature/boards.md`, "Board UI"): "glow" retired;
+- **The marks named by `ui.md`, their classes carrying the type word** (§1; `policy/nomenclature/boards.md` in `.github`, "Board UI"): "glow" retired;
   the in-progress mark a FullPulse (`.fullpulse`; a whole column's `.col-fullpulse`, each of its Cells at phone width `.colcell-fullpulse`;
   the Ring alone, `.held`, while its run waits), the up-next mark a still outer Ring (`.upnext-ring`), the live indicator's dot a FillPulse
   (`.fillpulse`). Class names only, drawn as before. Applied to issue boards, tracking boards and the repository work board, committed and
@@ -999,7 +999,7 @@ next check.
 labelled chevrons in order, each done, current or to come; the WIP strip's container a Panel and the strip itself the StepBar), weighed
 for every type:
 
-- **The StepBar** (`../../nomenclature/ui.md`, StepBar; `../../nomenclature/boards.md`, "Board UI"; `plan/RULES.md` §3, "The strip is a
+- **The StepBar** (`docs/nomenclature/ui.md` in SpartanUI, StepBar; `policy/nomenclature/boards.md` in `.github`, "Board UI"; `plan/RULES.md` §3, "The strip is a
   StepBar"): the steps of a sequence in order, each a chevron with its name inside, on a line of its own; done solid in the strong
   neutral, current solid, ink and bold, to come dashed and muted; an ordered list, the current step `aria-current="step"`, each state
   said in words to a screen reader; tokens only, so light and dark follow the board's palette; wrapping inside itself at 390 px, a long
@@ -1035,9 +1035,10 @@ for every type:
 ## 12. Elements — one name per function
 
 Every visible element on a board takes its name from the UI vocabulary,
-[`nomenclature/ui.md`](../../nomenclature/ui.md): its basic elements, its specific elements and its
-naming rules. How the boards use them (each term's board elements, the boards' compound names and
-the CSS classes the templates give them) is in [`nomenclature/boards.md`](../../nomenclature/boards.md),
+[`docs/nomenclature/ui.md` in SpartanUI](https://github.com/SpartanLaboratories/SpartanUI/blob/main/docs/nomenclature/ui.md):
+its basic elements, its specific elements and its naming rules. How the boards use them (each term's
+board elements, the boards' compound names and the CSS classes the templates give them) is in
+[`policy/nomenclature/boards.md` in `.github`](https://github.com/SpartanLaboratories/.github/blob/main/policy/nomenclature/boards.md),
 "Board UI"; the look follows §1 and §2. A board element none of `ui.md`'s terms describes takes
 no name from that file until the term is added to it, and a term is added or changed in `ui.md`
 only with the user's permission (`~/.claude/agents/admin-team/presenter.md`, Hard boundaries); it is never

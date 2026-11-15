@@ -16,7 +16,7 @@ section of `CLAUDE.md`).
 | `shared/`       | `shared/`                      | Rules several agents share                                      |
 | `skills/`       | `skills/`                      | Custom skills (`resolve-issue`, `admin-team`, `dashboards`, `upgrade`) and installed third-party skills (`firecrawl*`, `vercel-connect`, `graphify`) |
 | `admin-team/`   | `admin-team/`                  | The admin team session's settings file, launchers, predicted-issues tracker, the register of the rules in this copy (`rule-files.json`), the graphify folder (`graphify/`): the git-hook installer (`graphify-hooks.py`) and the usage totals script (`graphify-totals.js`), and the Archivist's scripts (`archivist/`): the question log's reader (`questions.js`), the session scripts (`sessions.js`, `extract-session.js`, `scratch-copy.js`, `delete-session.js`, `archive.js`, `lib.js`) and their tests (`test/`) |
-| `nomenclature/` | `nomenclature/` | Shared vocabularies: `ui.md`, the names of interface elements (the boards, SpartanUI); `boards.md`, the names of the dashboards' boards and how they use those elements; `vocabulary.md`, the words for the size of work, the documentation levels and the test sets; `internal-names.md`, the internal names that committed content must not carry |
+| `nomenclature/` | `nomenclature/` | Shared vocabularies: `vocabulary.md`, the words for the size of work, the documentation levels and the test sets; `internal-names.md`, the internal names that committed content must not carry; `ui.md`, a one-line stub pointing at the names of interface elements, now `docs/nomenclature/ui.md` in SpartanUI. The names of the dashboards' boards are in this repository at `policy/nomenclature/boards.md` |
 
 ## Not included
 
@@ -34,6 +34,9 @@ section of `CLAUDE.md`).
   (`admin-team/handoff-*.md`), which are local working files.
 - The admin team's temporary permission grants (`admin-team/temp-permissions/`), which are
   local to the machine.
+- The admin team's working folder (`admin-team/work/`), local working copies: among them
+  those of the two vocabularies, which land in their own repositories
+  (`policy/nomenclature/boards.md` here, `docs/nomenclature/ui.md` in SpartanUI).
 - `skills/dashboards/verify/history/`, the dashboards skill's cache of old template versions:
   a local cache that `history.js` rebuilds on demand from this repository's own git history.
 

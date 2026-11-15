@@ -1,5 +1,5 @@
-// The cases of the marks' classes (the user's nomenclature decisions of 2026-11-07, dated 48; GUIDANCE.md §1, §12; nomenclature/ui.md,
-// nomenclature/boards.md "Board UI"), run by verify-templates.js (it passes its helpers in), or on its own with no browser:
+// The cases of the marks' classes (the user's nomenclature decisions of 2026-11-07, dated 48; GUIDANCE.md §1, §12; docs/nomenclature/ui.md
+// in SpartanUI, policy/nomenclature/boards.md in .github, "Board UI"), run by verify-templates.js (it passes its helpers in), or on its own with no browser:
 // node verify/cases-mark-classes.js [--out <dir>]; with --fixture it first rewrites the browser fixture (5) from the templates.
 // "Glow" is retired: the in-progress mark is a FullPulse, the column at work its column's FullPulse, the up-next mark a still outer Ring,
 // the live indicator's dot a FillPulse. Class names only, drawn as before:

@@ -1,5 +1,5 @@
-// The cases of the StepBar (dashboards-skill/54: the user's decisions of 2026-11-06 and 2026-11-07; nomenclature/ui.md, StepBar;
-// nomenclature/boards.md, "Board UI"), run by verify-templates.js (it passes its helpers in), or on its own with no browser:
+// The cases of the StepBar (dashboards-skill/54: the user's decisions of 2026-11-06 and 2026-11-07; docs/nomenclature/ui.md in
+// SpartanUI, StepBar; policy/nomenclature/boards.md in .github, "Board UI"), run by verify-templates.js (it passes its helpers in), or on its own with no browser:
 // node verify/cases-stepbar.js [--out <dir>].
 // A StepBar is the steps of a sequence in order, each a chevron with its name inside, done, current or to come. It draws:
 //   - the progress strip of an issue board and the WIP strip of a tracking board (its own steps and each unit's run), the step names inside,

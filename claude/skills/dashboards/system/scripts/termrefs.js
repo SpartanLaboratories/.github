@@ -224,9 +224,9 @@ const words = (hits, f) => { const w = [...new Set(hits.map(f))]; return `${quot
 /* The warning lines of a board, one per kind */
 function termWarnings(where, T) {
   const out = [];
-  if (T.banned.length) out.push(`TERM BANNED WORD: ${where} (${sites(T.banned)}) uses ${words(T.banned, h => `${h.hit} (${h.term})`)}: the glossary rules the word out for that term (nomenclature/ui.md, boards.md)`);
-  if (T.unknown.length) out.push(`TERM UNKNOWN NAME: ${where} (${sites(T.unknown)}) names ${words(T.unknown, h => h.hit)}: a capitalised element name in neither glossary list (nomenclature/ui.md, boards.md); use a term of the lists, or have the term added first`);
-  if (T.classes.length) out.push(`TERM CLASS: ${where} has the class${T.classes.length === 1 ? "" : "es"} ${words(T.classes, h => `.${h.cls} (${h.type})`)}: a class that names an element's kind carries its type word (nomenclature/boards.md, "Board UI")`);
+  if (T.banned.length) out.push(`TERM BANNED WORD: ${where} (${sites(T.banned)}) uses ${words(T.banned, h => `${h.hit} (${h.term})`)}: the glossary rules the word out for that term (docs/nomenclature/ui.md in SpartanUI, policy/nomenclature/boards.md in .github)`);
+  if (T.unknown.length) out.push(`TERM UNKNOWN NAME: ${where} (${sites(T.unknown)}) names ${words(T.unknown, h => h.hit)}: a capitalised element name in neither glossary list (docs/nomenclature/ui.md in SpartanUI, policy/nomenclature/boards.md in .github); use a term of the lists, or have the term added first`);
+  if (T.classes.length) out.push(`TERM CLASS: ${where} has the class${T.classes.length === 1 ? "" : "es"} ${words(T.classes, h => `.${h.cls} (${h.type})`)}: a class that names an element's kind carries its type word (policy/nomenclature/boards.md in .github, "Board UI")`);
   return out;
 }
 let cached;
