@@ -1535,6 +1535,9 @@ const OPEN_PT={g:"!",label:"open",cls:"warning"};
 const KEY_OPEN=`<span>${pill(OPEN_PT)} an open point raised during the run, not resolved yet</span>`;
 const IV={answered:{g:"✓",label:"answered",cls:"neutral"},waiting:{g:"?",label:"waiting on you",cls:"warning"}};
 const OWN_PANEL_STEPS=["document","landing","state-boards","merge","sub-issues","boards"];
+/* a tracking board with units draws its own step Panel at these steps, and at its architecture step while its architecture stages stand (after the
+   sign-off, write consequences: plan/RULES.md §3, "A multi-system run's architecture step") */
+const ownPanelAt=s=>OWN_PANEL_STEPS.includes(s)||(s==="architecture"&&pstagesOf(WIP&&WIP.architecture).length>0);
 const NEXT_STEP={qa:`${STEP_NAME.document}, or a Correction or Resolution if the ${REVIEW} requests changes`,remediation:`${PASS_NAME}: the next ${REVIEW}`,document:STEP_NAME.landing,landing:STEP_NAME.merge,"state-boards":STEP_NAME.merge,"merge":STEP_NAME.landed,"boards":`${STEP_NAME.landing}: the tracking plan's own`};
 /* A tracking board's own step after its plan's merge (plan/RULES.md §3): "sub-issues", each unit being filed as a sub-issue; on an older board also
    "boards", the units' boards laid ahead of their runs, read and drawn only. Their progress is counted from the unit rows (a unit's issue, its board),
@@ -1606,7 +1609,12 @@ const PANEL={
       h+=spList(qs.map(q=>{ const x=qState(q); keys.add(KEY_RSP(x)); const rows=(Array.isArray(q.rows)?q.rows:[]).map(id=>codeOnly(o.rowName(id)));
         return spItem("",rsPill(x),`<code>${esc(q.question)}</code>`,[rows.length?`bears on ${rows.join(", ")}`:"bears on no row: the whole Considered column",q.returned?`returned ${when(q.returned)}`:q.started?`sent ${when(q.started)}`:"",q.findings?refAt(q.findings,"findings",o.base):""].filter(Boolean).join(" · ")); })); }
     return h; },
-  architecture:(R,o)=>`<p>The architecture weighs the options and decomposes the work into its units; the step ends at its sign-off.</p>${o.options!=null?`<p class="sp-sum">${o.options} option${o.options===1?"":"s"} weighed so far</p>`:""}`,
+  architecture:(R,o,keys)=>{ const A=R.architecture, ow=o.options!=null?`<p class="sp-sum">${o.options} option${o.options===1?"":"s"} weighed so far</p>`:"";
+    /* a tracking board with architecture stages (plan/RULES.md §3, "A multi-system run's architecture step"): each a Disclosure, the current one open;
+       the step lasts to the architecture's final form, its consequences written after your sign-off */
+    if(pstagesOf(A).length){ const sg=pstagesOf(A), cur=sg.find(x=>x.state==="current"), done=sg.filter(x=>x.state==="done").length;
+      return `<p class="sp-sum">${cur?`Architecture stage ${sg.indexOf(cur)+1} of ${sg.length}: ${esc(pstageName(cur))} · ${done} done`:`${done} of ${plural(sg.length,"architecture stage")} done`}</p><p>The architecture is drafted with its units, checked and accepted, and put to you; once you sign it off, its consequences are written.</p>`+pstageItems(A,o,keys||new Set(),"arch")+ow; }
+    return `<p>The architecture weighs the options and decomposes the work into its units; the step ends at its sign-off.</p>${ow}`; },
   plan:(R,o,keys)=>{ const P=R.plan||{}, V=R.verdicts, re=P.state==="re-pass";
     /* a pass with plan stages (plan/RULES.md §3, "The plan stages"): each a Disclosure, the current one open, in place of the two-chevron StepBar */
     if(pstagesOf(P).length){ const sg=pstagesOf(P), cur=sg.find(x=>x.state==="current"), done=sg.filter(x=>x.state==="done").length;
@@ -1763,7 +1771,7 @@ function subItems(list,o,keys,what,noun){ if(list.length) keys.add(KEY_DISC);
   return discList(list.map((x,i)=>{ const kx=o.past&&x.state!=="done"; if(kx) keys.add(KEY_PAST_TODO);
     return discItem({key:discKey(o,what,x.id||stepName(x)||i),cls:o.past?(x.state==="done"?"done":"todo"):stgCls(x),name:rich(stepName(x)||x.id||""),pill:kx?pill(STG_PILL.todo,"",pastPill(x.state)):stgPill(x,keys,noun),cur:!o.past&&x.state==="current",body:itemBody(x)}); })); }
 const pastPill=st=>st==="current"?"in progress when the step ended":"not started";
-/* [plan-stages] ---------- The plan stages (plan/RULES.md §3, "The plan stages", "Where it shows") ----------
+/* [plan-stages] ---------- The plan stages and the architecture stages (plan/RULES.md §3, "The plan stages", "Where it shows", "A multi-system run's architecture step") ----------
    At the plan step of a pass with stages (a sub-issue's re-pass from its parent, a writing pass), a halt or an escalation there included, the WIP
    Panel lists each plan stage: its number (its place in the pass, derived), its name (with its round where it runs again), its status Pill and its
    brief, the fixed line below, never its report; a tracking board's unit Card lists them compact (number, name, status). A click opens the stage
@@ -1771,63 +1779,83 @@ const pastPill=st=>st==="current"?"in progress when the step ended":"not started
    time), its report, and each earlier round with its times, its report and, on the check, its result. The Pills: to come dashed, at work in
    progress, done the strong neutral, the check by its latest round's result, accepted green, sent back yellow (a plan sent back is revised, not
    failed); a stage that ran before carries its latest earlier round beside its Pill; one recorded late reads "✓ done · time not recorded"; one passed
-   over, dashed, "not recorded". lib.js PLAN_STAGE_NAMES, PLAN_STAGE_BRIEFS and planStagesFromTrail() are the same table and rule. */
+   over, dashed, "not recorded". lib.js PLAN_STAGE_NAMES, PLAN_STAGE_BRIEFS and planStagesFromTrail() are the same table and rule.
+   A tracking board's architecture stages (wip.architecture: write, check/accept, report, write consequences) are drawn the same way at its
+   architecture step, with their own briefs: in the WIP strip, or in the tracking issue's own phase Card once it has units, and in its own step
+   Panel; the kind "arch" below (SKIND). lib.js ARCH_STAGE_BRIEFS and archStagesFromTrail() are the same table and rule. */
 const PSTAGE_NAME={"re-pass":"re-pass",write:"write",check:"check/accept",consequences:"write consequences",report:"report"};
 const PSTAGE_BRIEF={"re-pass":"The parent's design re-validated against the code as it is now",write:"The plan drafted in full",
   check:"The plan checked, then accepted or sent back",consequences:"What the change does to its surroundings, written down",
   report:"The plan reported and put to you; it ends when the plan is accepted"};
+const ASTAGE_BRIEF={write:"The architecture drafted, with its units",check:"The architecture checked, then accepted or sent back",
+  report:"The architecture and its units put to you; it ends at your sign-off",consequences:"What the change does to its surroundings, written down"};
+/* the two kinds of stages: the field of the run that holds them, the step they run at, their briefs, their noun, the prefix of their keys and what
+   a check/accept round accepts or sends back */
+const SKIND={plan:{field:"plan",step:"plan",brief:PSTAGE_BRIEF,noun:"plan stage",a:"a plan stage",title:"Plan stage",pre:"plan-",what:"the plan"},
+  arch:{field:"architecture",step:"architecture",brief:ASTAGE_BRIEF,noun:"architecture stage",a:"an architecture stage",title:"Architecture stage",pre:"arch-",what:"the architecture"}};
+const skind=k=>SKIND[k]||SKIND.plan;
 const PSTG_PILL={accepted:{g:"✓",label:"accepted",cls:"good"},"sent back":{g:"↺",label:"sent back",cls:"warning"}};
-const PSTG_WORD={done:"a plan stage finished",accepted:"green: a check/accept round that accepted the plan","sent back":"yellow: a check/accept round that sent the plan back to be revised, not failed",current:"a plan stage at work now",todo:"dashed: a plan stage to come"};
-const KEY_PSTG_LATE=`<span>${pill(STG_PILL.done,"","done · time not recorded")} a plan stage recorded late, with no time</span>`;
-const KEY_PSTG_SKIP=`<span>${pill(STG_PILL.todo,"","not recorded")} dashed: a plan stage passed over, its report not recorded</span>`;
+const pstgWord=(s,K)=>({done:`${K.a} finished`,accepted:`green: a check/accept round that accepted ${K.what}`,"sent back":`yellow: a check/accept round that sent ${K.what} back to be revised, not failed`,current:`${K.a} at work now`,todo:`dashed: ${K.a} to come`})[s];
+const keyPstgLate=K=>`<span>${pill(STG_PILL.done,"","done · time not recorded")} ${K.a} recorded late, with no time</span>`;
+const keyPstgSkip=K=>`<span>${pill(STG_PILL.todo,"","not recorded")} dashed: ${K.a} passed over, its report not recorded</span>`;
 const pstagesOf=P=>P&&Array.isArray(P.stages)?P.stages.filter(x=>x&&typeof x==="object"&&PSTAGE_NAME[x.id]):[];
 const pstageName=x=>`${PSTAGE_NAME[x.id]||x.id}${Array.isArray(x.rounds)&&x.rounds.length&&x.state!=="todo"?`, round ${x.rounds.length+1}`:""}`;
 /* a stage's status: its latest round's state, a done check by its result */
 const pstageState=x=>x.state==="done"?(x.id==="check"&&PSTG_PILL[x.result]?x.result:"done"):x.state==="current"?"current":"todo";
 /* a stage to come that a later stage ran past: passed over, "not recorded" */
 const pstageSkipped=(sg,i)=>sg[i].state==="todo"&&sg.slice(i+1).some(y=>y.state!=="todo");
-function pstagePill(sg,i,keys){ const x=sg[i], s=pstageState(x), def=PSTG_PILL[s]||STG_PILL[s];
-  if(pstageSkipped(sg,i)){ keys.add(KEY_PSTG_SKIP); return pill(STG_PILL.todo,"","not recorded"); }
-  if(x.state==="done"&&x.late===true){ keys.add(KEY_PSTG_LATE); return pill(def,"",def.label+" · time not recorded"); }
-  keys.add(`<span>${pill(def)} ${PSTG_WORD[s]}</span>`); return pill(def); }
+function pstagePill(sg,i,keys,K){ K=K||SKIND.plan; const x=sg[i], s=pstageState(x), def=PSTG_PILL[s]||STG_PILL[s];
+  if(pstageSkipped(sg,i)){ keys.add(keyPstgSkip(K)); return pill(STG_PILL.todo,"","not recorded"); }
+  if(x.state==="done"&&x.late===true){ keys.add(keyPstgLate(K)); return pill(def,"",def.label+" · time not recorded"); }
+  keys.add(`<span>${pill(def)} ${pstgWord(s,K)}</span>`); return pill(def); }
 /* the latest earlier round, beside the Pill ("round 1 · ↺ sent back") */
-const pstageEarlier=(x,keys)=>{ const r=Array.isArray(x.rounds)?x.rounds.filter(y=>y&&typeof y==="object"):[], l=r[r.length-1]; if(!l) return ""; const res=x.id==="check"&&PSTG_PILL[l.result];
-  if(keys) keys.add(`<span><span class="mono">round n${res?` · ${res.g} ${esc(res.label)}`:""}</span> beside a stage: its latest earlier round${res?`, ${esc(PSTG_WORD[l.result])}`:""}</span>`);
+const pstageEarlier=(x,keys,K)=>{ K=K||SKIND.plan; const r=Array.isArray(x.rounds)?x.rounds.filter(y=>y&&typeof y==="object"):[], l=r[r.length-1]; if(!l) return ""; const res=x.id==="check"&&PSTG_PILL[l.result];
+  if(keys) keys.add(`<span><span class="mono">round n${res?` · ${res.g} ${esc(res.label)}`:""}</span> beside a stage: its latest earlier round${res?`, ${esc(pstgWord(l.result,K))}`:""}</span>`);
   return `round ${r.length}${res?` · ${res.g} ${res.label}`:""}`; };
-/* the plan stages at a glance, in the WIP Panel (o.run: "own" or a unit's issue; o.compact on a tracking board's unit Card) */
-function pstageStrip(R,step,keys,held,o){ const sg=pstagesOf(R&&R.plan); if(step!=="plan"||!sg.length) return "";
+/* the stages at a glance, in the WIP Panel (o.run: "own" or a unit's issue; o.compact on a tracking board's unit Card); kind "arch": a tracking
+   board's architecture stages at its architecture step */
+function pstageStrip(R,step,keys,held,o,kind){ const K=skind(kind), sg=pstagesOf(R&&R[K.field]); if(step!==K.step||!sg.length) return "";
   const cur=sg.find(x=>x.state==="current"), done=sg.filter(x=>x.state==="done").length;
   if(cur) keys.add(held?KEY_STG_HELD:KEY_STG_RUN); keys.add(KEY_STG_OPEN);
-  return `<div class="stg-strip" role="group" aria-label="The plan stages at a glance"><div class="wip-sub">Plan stages · ${done} of ${sg.length} done${cur?` · ${esc(pstageName(cur))} ${held?"paused":"in progress"}`:""}</div><ol class="stg-rows">${sg.map((x,i)=>{ const c=x.state==="done"?"done":x.state==="current"?"cur":"todo", nm=pstageName(x), er=pstageEarlier(x,keys);
-    return `<li class="stg-row ${c}${x.state==="current"?(held?" held":" fullpulse"):""}" data-run="${esc(o.run)}" data-stage="plan-${esc(x.id)}"><b class="id">${i+1}</b><button type="button" class="stg-open" aria-label="${i+1} ${esc(nm)}: open it in the step Panel">${esc(nm)}</button><span class="pst">${pstagePill(sg,i,keys)}${er?`<span class="ern">${esc(er)}</span>`:""}</span>${!o.compact&&PSTAGE_BRIEF[x.id]?`<span class="br">${esc(PSTAGE_BRIEF[x.id])}</span>`:""}</li>`; }).join("")}</ol></div>`; }
+  return `<div class="stg-strip" role="group" aria-label="The ${K.noun}s at a glance"><div class="wip-sub">${K.title}s · ${done} of ${sg.length} done${cur?` · ${esc(pstageName(cur))} ${held?"paused":"in progress"}`:""}</div><ol class="stg-rows">${sg.map((x,i)=>{ const c=x.state==="done"?"done":x.state==="current"?"cur":"todo", nm=pstageName(x), er=pstageEarlier(x,keys,K);
+    return `<li class="stg-row ${c}${x.state==="current"?(held?" held":" fullpulse"):""}" data-run="${esc(o.run)}" data-stage="${K.pre}${esc(x.id)}"><b class="id">${i+1}</b><button type="button" class="stg-open" aria-label="${i+1} ${esc(nm)}: open it in the step Panel">${esc(nm)}</button><span class="pst">${pstagePill(sg,i,keys,K)}${er?`<span class="ern">${esc(er)}</span>`:""}</span>${!o.compact&&K.brief[x.id]?`<span class="br">${esc(K.brief[x.id])}</span>`:""}</li>`; }).join("")}</ol></div>`; }
 /* a stage's detail, opened in the step Panel: its report, when it started and ended, and each earlier round */
-function pstageBody(x,keys){ const nr=`<span class="nw">not recorded</span>`, t=v=>okStamp(v)?`<span class="nw">${when(v)}</span>`:nr;
+function pstageBody(x,keys,K){ K=K||SKIND.plan; const nr=`<span class="nw">not recorded</span>`, t=v=>okStamp(v)?`<span class="nw">${when(v)}</span>`:nr;
   let h=x.state==="done"&&typeof x.report==="string"&&x.report.trim()?`<div class="stg-h">At its end</div><p>${rich(x.report)}</p>`:"";
   const fx=[x.state!=="todo"?stgChip("started",x.late?nr:t(x.started)):"",x.state==="done"?stgChip("ended",x.late?nr:t(x.finished)):""].filter(Boolean);
   if(fx.length) h+=`<div class="wip-facts">${fx.join("")}</div>`;
-  (Array.isArray(x.rounds)?x.rounds.filter(r=>r&&typeof r==="object"):[]).forEach((r,j)=>{ const res=x.id==="check"&&PSTG_PILL[r.result]; if(res) keys.add(`<span>${pill(res)} ${PSTG_WORD[r.result]}</span>`);
+  (Array.isArray(x.rounds)?x.rounds.filter(r=>r&&typeof r==="object"):[]).forEach((r,j)=>{ const res=x.id==="check"&&PSTG_PILL[r.result]; if(res) keys.add(`<span>${pill(res)} ${pstgWord(r.result,K)}</span>`);
     h+=`<div class="stg-h">Round ${j+1}${res?` ${pill(res)}`:""}</div>${typeof r.report==="string"&&r.report.trim()?`<p>${rich(r.report)}</p>`:""}<div class="wip-facts">${stgChip("started",r.late?nr:t(r.started))}${stgChip("ended",r.late?nr:t(r.finished))}</div>`; });
   return h; }
-/* the plan stages in the step Panel, collapsing: the live Panel (the current one open) and a finished visit (o.past: none open, a stage not done dashed) */
-function pstageItems(P,o,keys){ const sg=pstagesOf(P); if(!sg.length) return ""; keys.add(KEY_DISC);
+/* the stages in the step Panel, collapsing: the live Panel (the current one open) and a finished visit (o.past: none open, a stage not done dashed) */
+function pstageItems(P,o,keys,kind){ const K=skind(kind), sg=pstagesOf(P); if(!sg.length) return ""; keys.add(KEY_DISC);
   return discList(sg.map((x,i)=>{ const kx=o.past&&x.state!=="done"; if(kx) keys.add(KEY_PAST_TODO);
-    return discItem({key:discKey(o,"stage","plan-"+x.id),cls:o.past?(x.state==="done"?"done":"todo"):(x.state==="done"?"done":x.state==="current"?"cur":"todo"),id:String(i+1),stage:"plan-"+x.id,name:esc(pstageName(x)),meta:esc(pstageEarlier(x,keys)),pill:kx?pill(STG_PILL.todo,"",x.state==="current"?"in progress when the step ended":"not recorded"):pstagePill(sg,i,keys),cur:!o.past&&x.state==="current",body:pstageBody(x,keys)}); })); }
-/* a visit's short account ("4 of 5 plan stages done") */
-const pstageGist=P=>{ const sg=pstagesOf(P); return sg.length?`${sg.filter(x=>x.state==="done").length} of ${plural(sg.length,"plan stage")} done`:""; };
-/* the plan stages read back from the trail lines that name them, with no time; "Plan accepted" closes them (lib.js planStagesFromTrail(), the same rule) */
+    return discItem({key:discKey(o,"stage",K.pre+x.id),cls:o.past?(x.state==="done"?"done":"todo"):(x.state==="done"?"done":x.state==="current"?"cur":"todo"),id:String(i+1),stage:K.pre+x.id,name:esc(pstageName(x)),meta:esc(pstageEarlier(x,keys,K)),pill:kx?pill(STG_PILL.todo,"",x.state==="current"?"in progress when the step ended":"not recorded"):pstagePill(sg,i,keys,K),cur:!o.past&&x.state==="current",body:pstageBody(x,keys,K)}); })); }
+/* a visit's short account ("4 of 5 plan stages done", "3 of 4 architecture stages done") */
+const pstageGist=(P,kind)=>{ const sg=pstagesOf(P); return sg.length?`${sg.filter(x=>x.state==="done").length} of ${plural(sg.length,skind(kind).noun)} done`:""; };
+/* the stages read back from the trail lines that name them, with no time (lib.js planStagesFromTrail() and archStagesFromTrail(), the same rule):
+   each line moves them as its event did; on a tracking board the sign-off's line closes report and opens write consequences; the step's last line
+   ("Plan accepted", "Architecture final") closes them */
 const PSTAGE_LINE=/^plan stage: (re-pass|write consequences|write|check\/accept|report)(?:, round \d+)?(?: · (?:re-pass|write consequences|write|check\/accept|report): (?:done|accepted|sent back)(?: — (.*))?)?$/i;
-function reconPlanStages(labels,sub){ const L=(Array.isArray(labels)?labels:[]).map(l=>String(l==null?"":l).replace(/`/g,"").replace(/\s+/g," ").trim()); if(!L.some(l=>PSTAGE_LINE.test(l))) return null;
+const ASTAGE_LINE=/^architecture stage: (write consequences|write|check\/accept|report)(?:, round \d+)?(?: · (?:write consequences|write|check\/accept|report): (?:done|accepted|sent back)(?: — (.*))?)?$/i;
+const stageLabels=labels=>(Array.isArray(labels)?labels:[]).map(l=>String(l==null?"":l).replace(/`/g,"").replace(/\s+/g," ").trim());
+function reconStages(L,LINE,ids,closeRe,signRe){ if(!L.some(l=>LINE.test(l))) return null;
   const ROUND=["started","finished","report","result","late"], ran=x=>x.state!=="todo"||ROUND.some(k=>x[k]!=null);
   const next=x=>{ if(ran(x)){ const r={}; ROUND.forEach(k=>{ if(x[k]!=null) r[k]=x[k]; }); x.rounds=[...(Array.isArray(x.rounds)?x.rounds:[]),r]; } ROUND.forEach(k=>delete x[k]); x.state="todo"; };
-  const ids=Object.keys(PSTAGE_NAME), S=(sub||L.some(l=>/^plan stage: re-pass\b/i.test(l))?ids:ids.slice(1)).map((id,i)=>i?{id,state:"todo"}:{id,state:"current"});
-  const idOf=n=>ids.find(id=>PSTAGE_NAME[id]===n.toLowerCase())||n.toLowerCase(), result=n=>["consequences","report"].includes(n)?"accepted":["write","re-pass"].includes(n)?"sent back":null;
-  L.forEach(l=>{ const m=PSTAGE_LINE.exec(l), ci=S.findIndex(x=>x.state==="current");
-    if(m){ const id=idOf(m[1]), i=S.findIndex(x=>x.id===id), rep=m[2]||null; if(i<0||i===ci) return; const C=ci>=0?S[ci]:null;
-      if(C){ C.state="done"; delete C.late; delete C.finished; if(rep) C.report=rep; else delete C.report; if(C.id==="check"){ const r=result(id); if(r) C.result=r; else delete C.result; } }
-      if(C&&i<ci) S.slice(i+1).forEach(x=>{ if(ran(x)) next(x); });
-      const X=S[i]; if(ran(X)) next(X); X.state="current"; }
-    else if(/^plan accepted\b/i.test(l)&&ci>=0){ const C=S[ci]; C.state="done"; delete C.late; delete C.finished; delete C.report; if(C.id==="check") C.result="accepted"; } });
+  const S=ids.map((id,i)=>i?{id,state:"todo"}:{id,state:"current"}), names=Object.keys(PSTAGE_NAME);
+  const idOf=n=>names.find(id=>PSTAGE_NAME[id]===n.toLowerCase())||n.toLowerCase(), result=n=>["consequences","report"].includes(n)?"accepted":["write","re-pass"].includes(n)?"sent back":null;
+  const move=(id,rep)=>{ const ci=S.findIndex(x=>x.state==="current"), i=S.findIndex(x=>x.id===id); if(i<0||i===ci) return; const C=ci>=0?S[ci]:null;
+    if(C){ C.state="done"; delete C.late; delete C.finished; if(rep) C.report=rep; else delete C.report; if(C.id==="check"){ const r=result(id); if(r) C.result=r; else delete C.result; } }
+    if(C&&i<ci) S.slice(i+1).forEach(x=>{ if(ran(x)) next(x); });
+    const X=S[i]; if(ran(X)) next(X); X.state="current"; };
+  L.forEach(l=>{ const m=LINE.exec(l), ci=S.findIndex(x=>x.state==="current");
+    if(m) move(idOf(m[1]),m[2]||null);
+    else if(signRe&&signRe.test(l)) move("consequences",null);
+    else if(closeRe.test(l)&&ci>=0){ const C=S[ci]; C.state="done"; delete C.late; delete C.finished; delete C.report; if(C.id==="check") C.result="accepted"; } });
   return S; }
+function reconPlanStages(labels,sub){ const L=stageLabels(labels), ids=Object.keys(PSTAGE_NAME);
+  return reconStages(L,PSTAGE_LINE,sub||L.some(l=>/^plan stage: re-pass\b/i.test(l))?ids:ids.slice(1),/^plan accepted\b/i,null); }
+function reconArchStages(labels){ return reconStages(stageLabels(labels),ASTAGE_LINE,Object.keys(ASTAGE_BRIEF),/^architecture final\b/i,/^architecture signed off\b/i); }
 /* [/plan-stages] */
 /* a click on a stage of the WIP Panel opens it in the step Panel, back from a finished step where one was shown */
 function openStage(run,stage){ const issue=run==="own"?PLAN.issue:run, key=`live:${issue}:stage:${stage}`; if(SEL&&SEL.run===run) SEL=null; DISC_OPEN.set(key,true); renderWip();
@@ -1927,6 +1955,8 @@ function reconStep(P,s){ const w=(P&&P.wip)||{}, R={reconstructed:true,ended:nul
   if(s==="branch"&&typeof P.branch==="string"&&P.branch.trim()) R.branch=P.branch;
   /* the plan stages, from the trail lines that name them, with no time (lib.js reconstructStep()) */
   if(s==="plan"&&P.kind!=="tracking"){ const ps=reconPlanStages(R.trail.map(t=>t.label),!!P.parent); if(ps) R.planStages=ps; }
+  /* a tracking board's architecture stages, the same way (lib.js reconstructStep()) */
+  if(s==="architecture"&&P.kind==="tracking"){ const as=reconArchStages(R.trail.map(t=>t.label)); if(as) R.archStages=as; }
   if(s==="implementation"&&ne(w.stages)) R.stages=cp(w.stages);
   if(s==="document"&&w.document&&ne(w.document.tasks)) R.document=cp(w.document);
   if(s==="qa"||s==="remediation"){ const qa=(Array.isArray(w.qa)?w.qa:[]).filter(p=>p&&(s==="qa"||p.verdict==="changes-requested")); if(qa.length) R.qa=cp(qa); qa.forEach(p=>later(p.at||p.date)); }
@@ -1944,7 +1974,10 @@ const PAST={
   sizing:V=>`<p>Sized${V.to?`: the run starts at ${esc(V.to)}`:""}.</p>`,
   interview:(V,o,keys)=>PANEL.interview(V,o,keys),
   research:(V,o,keys)=>PANEL.research(V,{...o,past:true},keys),
-  architecture:V=>`<p>The architecture weighed the options and decomposed the work into its units.</p>`,
+  architecture:(V,o,keys)=>{ const A=V.architecture;
+    /* the architecture stages as the visit froze them, none open, a stage still to come dashed, "not recorded" */
+    if(pstagesOf(A).length) return `<p class="sp-sum">${esc(pstageGist(A,"arch"))}${V.endedBy==="plan-accepted"?" · architecture final":" · not made final in this visit"}</p>`+pstageItems(A,{...o,past:true},keys,"arch");
+    return `<p>The architecture weighed the options and decomposed the work into its units.</p>`; },
   plan:(V,o,keys)=>{ const P=V.plan||{}, re=P.state==="re-pass", acc=V.endedBy==="plan-accepted";
     /* the plan stages as the visit froze them, none open, a stage still to come dashed, "not recorded" (plan/RULES.md §3, "What the event writes") */
     if(pstagesOf(P).length) return `<p class="sp-sum">${esc(pstageGist(P))}${acc?" · plan accepted":" · not accepted in this visit"}</p>`+pstageItems(V.plan,{...o,past:true},keys);
@@ -2006,6 +2039,9 @@ function visitGist(S,V){ const of=a=>Array.isArray(a)?a.filter(x=>x&&typeof x===
   if(S==="plan"&&pstagesOf(V.plan).length) return pstageGist(V.plan);
   if(S==="plan"&&Array.isArray(V.planStages)&&V.planStages.length) return pstageGist({stages:V.planStages});
   if(S==="plan") return V.endedBy==="plan-accepted"?"plan accepted":V.endedBy?"not accepted in this visit":"";
+  /* a tracking board's architecture visit with stages counts them ("3 of 4 architecture stages done"), a reconstruction those the trail tells */
+  if(S==="architecture"&&pstagesOf(V.architecture).length) return pstageGist(V.architecture,"arch");
+  if(S==="architecture"&&Array.isArray(V.archStages)&&V.archStages.length) return pstageGist({stages:V.archStages},"arch");
   if(S==="branch") return V.branch?`branch ${V.branch}`:"";
   if(V.units) return `${V.units.done} of ${plural(V.units.total,"unit")}`;
   return ""; }
@@ -2031,6 +2067,7 @@ function reconHtml(S,rc,o,keys){ let h=""; const at=x=>x.date?when(x.date):"";
     h+=spList(rc.questions.map(q=>{ if(!q.findings) keys.add(KEY_PAST_TODO); return spItem(q.findings?"done":"todo",dotMark,`<code>${esc(q.question)}</code>`,q.findings?refAt(q.findings,"findings",o.base):"no findings in the trail"); })); }
   if(S==="branch"&&rc.branch) h+=`<p>The branch: <code>${esc(rc.branch)}</code>.</p>`;
   if(S==="plan"&&Array.isArray(rc.planStages)&&rc.planStages.length) h+=`<p class="sp-sum">The plan stages as the trail tells them, with no time</p>`+pstageItems({stages:rc.planStages},{...o,past:true},keys);
+  if(S==="architecture"&&Array.isArray(rc.archStages)&&rc.archStages.length) h+=`<p class="sp-sum">The architecture stages as the trail tells them, with no time</p>`+pstageItems({stages:rc.archStages},{...o,past:true},keys,"arch");
   if(S==="implementation"&&Array.isArray(rc.stages)&&rc.stages.length) h+=`<p class="sp-sum">The stages as the board holds them now</p>`+stageItems(null,rc.stages,{...o,past:true},keys);
   if(S==="qa"&&Array.isArray(rc.qa)&&rc.qa.length) h+=rc.qa.map(p=>qaBlock(p,keys)).join("");
   if(S==="remediation"&&Array.isArray(rc.qa)&&rc.qa.length) h+=rc.qa.map(p=>`<p class="sp-sum">Answering ${esc(passName(p.pass))}${ROUTE[p.route]?` · ${esc(ROUTE[p.route].label)}`:""}</p>`+qaBlock(p,keys)).join("");
@@ -2184,7 +2221,7 @@ function renderWip(){
   const head=special?`<span class="state"><i aria-hidden="true">${special.g}</i>${esc(special.label)}</span>`:NOT_STARTED?`<span class="state"><i aria-hidden="true">…</i>Not started</span>`:`<span class="state"><i aria-hidden="true">●</i>Work in progress</span>`;
   /* the head line's "since" is left out while the board's own step panel is drawn beside it: the panel says it (plan/RULES.md §3) */
   const units0=TRACKING?ROWS.filter(r=>r.unit):[];
-  const ownPanelShown=!LANDED&&!STOPPED&&(units0.length?OWN_PANEL_STEPS.includes(ownStep):!NOT_STARTED);
+  const ownPanelShown=!LANDED&&!STOPPED&&(units0.length?ownPanelAt(ownStep):!NOT_STARTED);
   /* the latest report is said once, by the live step Panel beside it (its Now Chip, plan/RULES.md §3); a strip with no live Panel beside it keeps it */
   const detailHere=WIP.detail&&(!HALTED||WIP.waitingOn)&&!(ownPanelShown&&!selFor("own"));
   const since=WIP.since&&(!ownPanelShown||selFor("own"))?` · since <span class="nw">${when(WIP.since)}</span>`:"";
@@ -2220,6 +2257,8 @@ function renderWip(){
     let ph=`<div class="wipcard phase${special?" "+special.cls:""}"><div class="wipcard-t"><span class="k">#${esc(PLAN.issue)} · the tracking issue's own phase</span></div>${headLine}`;
     if(st==="escalated") ph+=`<p class="wip-wait">Escalated: the run waits while the issue's scope is re-decided.</p>`;
     ph+=own+(detailHere?`<p class="wip-detail">${rich(WIP.detail)}</p>`:"");
+    /* at its architecture step, its architecture stages (plan/RULES.md §3, "A multi-system run's architecture step": the phase's own Card lists them) */
+    ph+=pstageStrip(WIP,shownStep,pkeys,HALTED||st==="escalated",{run:"own"},"arch");
     ph+=`<div class="wip-sub">The chain · ${C.landed} of ${plural(C.M,"unit")} landed${C.complete?` · ${C.complete} complete, not merged`:""}${C.extra.length?` · ${esc(C.extra.join(" · "))}`:""}</div>`;
     ph+=chainSteps(C.counted,{marks:true});
     const phase=ph+factsHtml+(selFor("own")?pastBrief(WIP,selFor("own"),{key:"own",own:true,keys:pkeys}):"")+`</div>`; let rowN=0;
@@ -2227,7 +2266,7 @@ function renderWip(){
     /* the tracking issue's own finished step, picked on its phase's steps line (plan/RULES.md §3, "Finished steps"): a row of its own
        beside the phase, first, in the unit's and the panel's shares; at its own sub-issues or boards step it takes the own panel's place */
     const ovRow=selFor("own");
-    if(ovRow&&!(!LANDED&&!STOPPED&&OWN_PANEL_STEPS.includes(ownStep))){ rowN++; h+=pastPanel(WIP,ovRow,{key:"own",own:true,cls:"own",keys:pkeys,row:rowN,rowName:id=>(ROWS.find(x=>x.id===id)||{}).name||id,label:`#${PLAN.issue}: the finished step shown`}); }
+    if(ovRow&&!(!LANDED&&!STOPPED&&ownPanelAt(ownStep))){ rowN++; h+=pastPanel(WIP,ovRow,{key:"own",own:true,cls:"own",keys:pkeys,row:rowN,rowName:id=>(ROWS.find(x=>x.id===id)||{}).name||id,label:`#${PLAN.issue}: the finished step shown`}); }
     /* one card per unit in progress, with its own run as its board last showed it */
     act.forEach(r=>{ const L=runOf(r), k=L?runKind(L):null, held=k==="halted"; rowN++;
       let b=`<div class="wipcard unit${held?" halted":k==="escalated"?" escalated":""}" data-row="${esc(r.id)}" style="--r:${rowN}"><div class="wipcard-t"><span class="k">In progress · unit ${esc(r.unit.n)}</span><span>${uref(r)}</span></div>`;
@@ -2257,7 +2296,7 @@ function renderWip(){
     const panels=act.filter(runOf);
     /* up next takes the panel's share beside a unit whose run is not mirrored, else the unit's and the panel's */
     /* a tracking board at its plan's document step or its land, or filing its units (on an older board, creating their boards): its own step panel, beside its phase (plan/RULES.md §3) */
-    const ownPanel=!LANDED&&!STOPPED&&OWN_PANEL_STEPS.includes(ownStep);
+    const ownPanel=!LANDED&&!STOPPED&&ownPanelAt(ownStep);
     const ov=selFor("own");
     if(ownPanel){ rowN++; h+=ov?pastPanel(WIP,ov,{key:"own",own:true,cls:"own",keys:pkeys,row:rowN,rowName:id=>(ROWS.find(r=>r.id===id)||{}).name||id,label:`#${PLAN.issue}: the finished step shown`}):stepPanel(ownRun(),{issue:PLAN.issue,keys:pkeys,row:rowN,own:true,label:`#${PLAN.issue}: its own step`}); }
     if(NEXT_ROW&&!panels.length&&!ownPanel){ const beside=act.length>0; if(!beside) rowN++; h+=`<div class="wipcard next upnext-ring${beside?" beside":""}" data-sys="${esc(NEXT_ROW.system||"")}" style="--r:${beside?1:rowN}"><div class="wipcard-t"><span class="k">Up next · unit ${esc(NEXT_ROW.unit.n)}</span><span>${uref(NEXT_ROW)}</span> ${TAG_NEXT} ${blockedPill(NEXT_ROW)}</div><p class="note">Not started${openBlockers(NEXT_ROW).length?": it starts once its blockers have landed":""}.</p></div>`; }
@@ -2275,7 +2314,7 @@ function renderWip(){
     if(HALTED) h+=`<p class="wip-wait">Waiting on you: ${rich(WIP.waitingOn||WIP.detail||"(not stated)")}</p>`;
     if(st==="escalated") h+=`<p class="wip-wait">Escalated: the run waits while the issue's scope is re-decided.</p>`;
     /* while halted the wait line shows waitingOn, falling back to the detail: the detail is drawn too unless it is that fallback */
-    h+=own+(detailHere?`<p class="wip-detail">${rich(WIP.detail)}</p>`:"")+factsHtml+stageStrip(WIP,shownStep,pkeys,HALTED||st==="escalated",{run:"own"})+pstageStrip(WIP,shownStep,pkeys,HALTED||st==="escalated",{run:"own"})+(selFor("own")?pastBrief(WIP,selFor("own"),{key:"own",own:true,keys:pkeys}):"");
+    h+=own+(detailHere?`<p class="wip-detail">${rich(WIP.detail)}</p>`:"")+factsHtml+stageStrip(WIP,shownStep,pkeys,HALTED||st==="escalated",{run:"own"})+pstageStrip(WIP,shownStep,pkeys,HALTED||st==="escalated",{run:"own"})+pstageStrip(WIP,shownStep,pkeys,HALTED||st==="escalated",{run:"own"},"arch")+(selFor("own")?pastBrief(WIP,selFor("own"),{key:"own",own:true,keys:pkeys}):"");
     if(HALTED) legend.push(`<span><i class="wait"></i>yellow strip: waiting on you</span>`);
     /* the strip on the left half, the step panel on the right (plan/RULES.md §3); a landed or cancelled board has no current step */
     if(NOT_STARTED) h+=`<p class="wip-detail">Its board was laid from ${PLAN.parent&&PLAN.parent.issue?`${ilink(PLAN.parent.issue)}'s`:"its tracking issue's"} documents; its run starts when it is sized.</p>`;
@@ -2394,10 +2433,10 @@ function timelineSteps(P,now){ const w=(P&&P.wip)||{}, H=histOf(w), steps=(Array
     const a=v.from&&(v.from.how==="exact"||v.from.how==="approx")?Date.parse(v.from.t):null, b=v.to?Date.parse(v.to.t):null; v.ms=a!=null&&b!=null?b-a:null; if(v.ms!=null&&v.ms<0){ v.ms=null; v.order=true; } });
   const lined=[...new Set(seq.map(v=>v.step))].sort((x,y)=>idx(x)-idx(y));
   seq.forEach(v=>{ const fs=lined.filter(s=>tlFamily(s)===tlFamily(v.step)); v.family=tlFamily(v.step); v.shade=tlShade(fs.indexOf(v.step),fs.length); });
-  /* the waits on you and the stretches when the run was not running bound the visits (above), counted by none and mentioned nowhere (decided 2026-11-05) */
+  /* the waits on you and the stretches when the run was not running bound the visits (above), counted by none and mentioned nowhere */
   return {visits:seq,left,untimed:seq.filter(v=>v.ms==null).map(v=>v.label),families:timelineFamilies(seq)}; }
 /* The tile's lines in order: the visits alone (lib.js timelineRows()). A wait on you or a stretch when the run was not running has no line,
-   no mark and no note: it only bounds the visits around it (decided 2026-11-05: time that is not counted is not mentioned). */
+   no mark and no note: it only bounds the visits around it, as time that is not counted is not mentioned. */
 function timelineRows(T){ return ((T&&T.visits)||[]).map(v=>({visit:v})); }
 /* a span: "40 min", "2 h 35 min", "3 days 4 h", "under 1 min" */
 const tlSpan=ms=>{ if(ms==null||!isFinite(ms)) return "—"; const m=Math.round(ms/6e4); if(m<1) return "under 1 min"; if(m<60) return `${m} min`;
@@ -3043,7 +3082,7 @@ function renderContext(){
   else cards.push(`<div class="card"><h3>Roadmap</h3><p class="lede">No roadmap item claims #${esc(PLAN.issue)}: it has no tracking parent. The ${wbLink("repository work board")} and the ${linkOr(sharedLink("repoBoard"),"repository state board")} show the roadmap.</p></div>`);
   const fu=PLAN.followUps||[];
   cards.push(`<div class="card"><h3>Follow-ups and related issues <small>${fu.length}</small></h3>${fu.length?`<ul class="issues">${fu.map(f=>(f.issue?`<li><span class="nm">${f.title?`${pair(f.issue,f.title,f.repo,1)}${f.note?` — ${rich(f.note)}`:""}`:`${ilink(f.issue,f.repo)}${boardOf(f.issue,f.repo)?` ${ghlink(f.issue,f.repo)}`:""}${f.note?` — ${rich(f.note)}`:""}`}</span></li>`:`<li><span class="nm"><code>${esc(f.name||"")}</code> <small>not filed</small> — ${rich(f.note||"")}</span></li>`)).join("")}</ul>`:`<p class="lede">None recorded.</p>`}</div>`);
-  /* a stretch when the run was not running is mentioned nowhere (decided 2026-11-05): the trail entry an older run-restarted wrote ("Run not
+  /* a stretch when the run was not running is mentioned nowhere: the trail entry an older run-restarted wrote ("Run not
      running for …, not counted") stays in the data and is not drawn */
   const events=[...(PLAN.milestones||[]).map(m=>({date:m.date,phase:m.column,text:`<b>${esc(m.label)}</b>${m.note?` — ${rich(m.note)}`:""}${m.ref?` · ${refHtml(m.ref)}`:""}`})),...(PLAN.trail||[]).filter(t=>!(t&&/^Run not running for /.test(String(t.label||"")))).map(t=>({date:t.date,phase:t.column||"",text:`${rich(t.label||"")}${t.ref?` · ${refHtml(t.ref)}`:""}`}))].map((e,i)=>({...e,i})).sort((a,b)=>String(a.date||"").localeCompare(String(b.date||""))||a.i-b.i);
   const phaseName={gap:"GAP",considered:"CONSIDERED",verdict:"VERDICT",built:"BUILT"};

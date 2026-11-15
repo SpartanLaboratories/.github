@@ -732,11 +732,12 @@ function unitRun(sub) {
    { since, ended, endedBy, to, held, event, detail, open, …the step's own facts }. A visit ends when the step the panel shows (a halt's or an
    escalation's resume step, else wip.step) changes, or, at remediation, when the qa pass it answers changes (each remediation loop is a
    visit of its own); every qa verdict is a visit of qa, the pass it returned, even when the run reached it from remediation. The step's
-   own facts, per step (HISTORY_FIELDS): the interview's questions, the research phase and questions, the plan's pass, the branch, the
+   own facts, per step (HISTORY_FIELDS): the interview's questions, the research phase and questions, a tracking board's architecture
+   stages, the plan's pass, the branch, the
    stage list, the qa passes of the visit, the remediation loop (with the pass it answers), a tracking board's units filed or with a
    board. Each is taken as it stood when the step ended: after the ending event, unless that event cleared it or replaced it with the
    next visit's (a new remediation loop), then before. Deterministic and idempotent: the same event twice freezes nothing more. */
-const HISTORY_FIELDS = { sizing: [], interview: ["interview"], research: ["research", "questions"], architecture: [], plan: ["plan"], branch: ["branch"],
+const HISTORY_FIELDS = { sizing: [], interview: ["interview"], research: ["research", "questions"], architecture: ["architecture"], plan: ["plan"], branch: ["branch"],
   implementation: ["stages"], qa: ["qa"], remediation: ["remediation", "qa"], "sub-issues": ["units"], boards: ["units"], document: ["document"], landing: [], "state-boards": [], merge: [] };
 const HISTORY_STEPS = Object.keys(HISTORY_FIELDS);
 /* The run's steps (dashboards-skill/35): the Document step between qa (or remediation) and the land, then the land in two steps,
@@ -1270,6 +1271,8 @@ function reconstructStep(plan, step) {
   if (step === "branch" && typeof plan.branch === "string" && plan.branch.trim()) R.branch = plan.branch;
   /* the plan stages, from the trail lines that name them (plan/RULES.md §3, "Where it shows"), with no time */
   if (step === "plan" && plan.kind !== "tracking") { const ps = planStagesFromTrail(R.trail.map(t => t.label), !!plan.parent); if (ps) R.planStages = ps; }
+  /* a tracking board's architecture stages, the same way (plan/RULES.md §3, "A multi-system run's architecture step") */
+  if (step === "architecture" && plan.kind === "tracking") { const as = archStagesFromTrail(R.trail.map(t => t.label)); if (as) R.archStages = as; }
   if (step === "implementation" && nonEmpty(w.stages)) R.stages = clone(w.stages);
   if (step === "document" && isObj(w.document) && nonEmpty(w.document.tasks)) R.document = clone(w.document);
   if (step === "qa" || step === "remediation") { const qa = (Array.isArray(w.qa) ? w.qa : []).filter(p => p && (step === "qa" || p.verdict === "changes-requested"));
@@ -2060,6 +2063,15 @@ const PLAN_STAGE_NAMES = { "re-pass": "re-pass", write: "write", check: "check/a
 const PLAN_STAGE_BRIEFS = { "re-pass": "The parent's design re-validated against the code as it is now", write: "The plan drafted in full",
   check: "The plan checked, then accepted or sent back", consequences: "What the change does to its surroundings, written down",
   report: "The plan reported and put to you; it ends when the plan is accepted" };
+/* A tracking board's architecture step runs as four architecture stages (plan/RULES.md §3, "A multi-system run's architecture step"), in this
+   order: write, check/accept, report, write consequences. wip.architecture.stages holds them in the plan stages' form, moved by the same
+   functions: seeded at researched (or the first event that puts the board at its architecture step with none standing), moved by plan-stage
+   and late-update, report closed and write consequences opened by architecture-signed-off (planStageMove() to consequences), closed by
+   plan-accepted (planStagesClose()). The names are the plan stages'; the briefs are their own; the template's ASTAGE_BRIEF is the same table. */
+const ARCH_STAGES = ["write", "check", "report", "consequences"];
+const ARCH_STAGE_BRIEFS = { write: "The architecture drafted, with its units", check: "The architecture checked, then accepted or sent back",
+  report: "The architecture and its units put to you; it ends at your sign-off", consequences: "What the change does to its surroundings, written down" };
+const archStagesOf = w => isObj(w) ? planStagesOf(w.architecture) : [];
 const STAGE_ROUND = ["started", "finished", "report", "result", "late"];
 const CHECK_RESULTS = ["accepted", "sent back"];
 /* the ids a pass runs: a re-pass from the parent all five, a writing pass from write; any other pass none (null) */
@@ -2113,11 +2125,12 @@ function planStageMove(P, id, now, report) {
    its result and the detail; word "Plan stage" (a tracking board's architecture stages take their own) */
 const planStageLine = (m, id, report, word) => `${word || "Plan stage"}: ${PLAN_STAGE_NAMES[id] || id}${m.round > 1 ? `, round ${m.round}` : ""}${m.closed ? ` · ${PLAN_STAGE_NAMES[m.closed] || m.closed}: ${m.closedWord}${report ? ` — ${report}` : ""}` : ""}`;
 /* late-update: a stage passed over, recorded done with no time, its report the detail, a check's result read from the stage that ran after it;
-   a second one for a stage recorded late replaces its report. Changes P in place. Returns { refused } or { changed }. */
-function planStageLate(P, id, report) {
+   a second one for a stage recorded late replaces its report. noun names the stages in a refusal ("plan stage", "architecture stage"). Changes P
+   in place. Returns { refused } or { changed }. */
+function planStageLate(P, id, report, noun) {
   const S = planStagesOf(P), i = S.findIndex(x => x.id === id), ci = S.findIndex(x => x.state === "current"), nm = PLAN_STAGE_NAMES[id] || id;
   if (i < 0) return { refused: `this pass has no stage ${nm} (its stages: ${S.map(x => x.id).join(", ")})` };
-  if (ci < 0) return { refused: "no plan stage is open, and a late update is taken only for a stage behind the one open" };
+  if (ci < 0) return { refused: `no ${noun || "plan stage"} is open, and a late update is taken only for a stage behind the one open` };
   if (i === ci) return { refused: `${nm} is the stage open now: a late update records only a stage passed over, behind the one open` };
   if (i > ci) return { refused: `${nm} comes after the stage open now (${PLAN_STAGE_NAMES[S[ci].id]}): an ordinary plan-stage opens it` };
   const X = S[i];
@@ -2149,6 +2162,19 @@ function planStagesFromTrail(labels, sub) {
   if (!L.some(l => PLAN_STAGE_LINE.test(l))) return null;
   const P = { stages: seedPlanStages(sub || L.some(l => /^plan stage: re-pass\b/i.test(l)) ? PLAN_STAGES : PLAN_STAGES.slice(1), null) };
   L.forEach(l => { const m = PLAN_STAGE_LINE.exec(l); if (m) planStageMove(P, planStageId(m[1]), null, m[2] || null); else if (/^plan accepted\b/i.test(l)) planStagesClose(P, null, null); });
+  return P.stages;
+}
+/* A tracking board's architecture stages read back from its trail the same way ("Architecture stage: check/accept · write: done — …"): the
+   sign-off's line ("Architecture signed off") closes report and opens write consequences, the final line ("Architecture final") closes them.
+   A trail with no architecture stage line reads none (a board from before them). The template's reconArchStages() is the same rule. */
+const ARCH_STAGE_LINE = /^architecture stage: (write consequences|write|check\/accept|report)(?:, round \d+)?(?: · (?:write consequences|write|check\/accept|report): (?:done|accepted|sent back)(?: — (.*))?)?$/i;
+function archStagesFromTrail(labels) {
+  const L = (Array.isArray(labels) ? labels : []).map(l => String(l == null ? "" : l).replace(/`/g, "").replace(/\s+/g, " ").trim());
+  if (!L.some(l => ARCH_STAGE_LINE.test(l))) return null;
+  const P = { stages: seedPlanStages(ARCH_STAGES, null) };
+  L.forEach(l => { const m = ARCH_STAGE_LINE.exec(l); if (m) planStageMove(P, planStageId(m[1]), null, m[2] || null);
+    else if (/^architecture signed off\b/i.test(l)) planStageMove(P, "consequences", null, null);
+    else if (/^architecture final\b/i.test(l)) planStagesClose(P, null, null); });
   return P.stages;
 }
 /* The plan-board events (plan/RULES.md §4), as wip.event.name records the last one a board took; an older board's record may name a retired one
@@ -2490,5 +2516,5 @@ function ghMergeTime(repo, pr, merge) {
   } catch (e) { return out; }
 }
 
-module.exports = { ...LV, ...PN, PLAN_STAGES, PLAN_STAGE_NAMES, PLAN_STAGE_BRIEFS, STAGE_ROUND, CHECK_RESULTS, planPassIds, planStagesLine, planStagesOf, seedPlanStages, planStageId, planStageName, stageRan, checkResult, planWayBack, planStageMove, planStageLine, planStageLate, planStagesClose, PLAN_STAGE_LINE, planStagesFromTrail, renameInto, RENAME_BUDGET_MS, stageTable, stepsBelow, stepKids, walkSteps, stepShape, settleSteps, carrySteps, stepNameOf, completeStep, planStageTable, stageKey, stageRow, stageTableFields, catchUpStageTable, stampItem, backfillStages, STAGE_KINDS, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, isUnitRef, blockerOf, mapUnitBlockers, filedSummary, filedSummaries, HISTORY_FIELDS, HISTORY_STEPS, qAnswered, askedOf, answerQuestions, syncAsked, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, retimePlan, RETIME_NOT, retimeWords, retimeWhat, TEAM_RECORDS, rewordPlan, rewordDigest, rewordWhat, docCommitDone, landSent, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, roadmapDocItem, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+module.exports = { ...LV, ...PN, PLAN_STAGES, PLAN_STAGE_NAMES, PLAN_STAGE_BRIEFS, STAGE_ROUND, CHECK_RESULTS, planPassIds, planStagesLine, planStagesOf, seedPlanStages, planStageId, planStageName, stageRan, checkResult, planWayBack, planStageMove, planStageLine, planStageLate, planStagesClose, PLAN_STAGE_LINE, planStagesFromTrail, ARCH_STAGES, ARCH_STAGE_BRIEFS, archStagesOf, ARCH_STAGE_LINE, archStagesFromTrail, renameInto, RENAME_BUDGET_MS, stageTable, stepsBelow, stepKids, walkSteps, stepShape, settleSteps, carrySteps, stepNameOf, completeStep, planStageTable, stageKey, stageRow, stageTableFields, catchUpStageTable, stampItem, backfillStages, STAGE_KINDS, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, isUnitRef, blockerOf, mapUnitBlockers, filedSummary, filedSummaries, HISTORY_FIELDS, HISTORY_STEPS, qAnswered, askedOf, answerQuestions, syncAsked, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, retimePlan, RETIME_NOT, retimeWords, retimeWhat, TEAM_RECORDS, rewordPlan, rewordDigest, rewordWhat, docCommitDone, landSent, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, roadmapDocItem, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, unitLandingOf, unitLandings, mirrorUnitLandings, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewBaseFolder, viewBaseHref, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, notYetLanded, landedPending, unitLeft, setViewLinks, viewedFolder, viewLink, landVisit, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

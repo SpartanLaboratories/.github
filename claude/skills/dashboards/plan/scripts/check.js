@@ -24,7 +24,7 @@ const { paletteCheck, PALETTE } = require(path.resolve(__dirname, "..", "..", "s
 const SLOTS = PALETTE.light.length;
 const { boardLanded, boardClosed, workLevelFields, featureRun } = require("./levels.js");
 const { passRefsIn, PASS_NAME } = require("./passnames.js");
-const { unitTests, unitLandings, DEP_STATES, HOLD_STATES, isUnitRef, unitFiled, planPassIds, STAGE_ROUND, CHECK_RESULTS } = require("./lib.js");
+const { unitTests, unitLandings, DEP_STATES, HOLD_STATES, isUnitRef, unitFiled, planPassIds, STAGE_ROUND, CHECK_RESULTS, ARCH_STAGES } = require("./lib.js");
 const { foundationFilling, WAIT_BY, HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, isTime, APPROX_SOURCES, timelineApproxNote, timelineSteps, tlSpan, timelineLines, timelineLeftOut, timelineTotal, unitInRun, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, fixOfBoard, foldedIn, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, viewSource, viewParts, viewBaseHref, viewedFolder, setViewLinks, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
@@ -705,10 +705,14 @@ const ROUTES = ["on-the-spot", "remediation", "re-plan-then-remediation", "rooki
    on check alone, late only true and never beside a time; a pass that has none (a re-pass after qa, an existing plan's verification) holds none. A
    stage run again with no earlier stage going back with it, which no way back the step gives does, is warned on (PLAN STAGE ORDER; the fast path
    warns on the move itself). */
-function checkPlanStages(P, at) {
-  if (P.stages == null) return;
-  const S = P.stages, ids = planPassIds(P), keys = ["id", "state", "rounds", ...STAGE_ROUND];
-  if (!Array.isArray(S)) { fail(`${at}.stages must be the plan stages, each { id, state, started, finished, report, result, late, rounds }`); return; }
+/* arch: a tracking board's architecture stages (wip.architecture, or a frozen architecture visit's; plan/RULES.md §3, "A multi-system run's
+   architecture step"): the four ids write, check, report, consequences in that order, re-pass never, held to the same form; their ways back are write
+   after check/accept and write after report */
+function checkPlanStages(P, at, arch) {
+  if (P.stages == null) { if (arch) fail(`${at} is { stages }, the four architecture stages`); return; }
+  const S = P.stages, ids = arch ? ARCH_STAGES : planPassIds(P), keys = ["id", "state", "rounds", ...STAGE_ROUND];
+  if (!Array.isArray(S)) { fail(`${at}.stages must be the ${arch ? "architecture" : "plan"} stages, each { id, state, started, finished, report, result, late, rounds }`); return; }
+  if (arch) { const ex = Object.keys(P).filter(k => k !== "stages"); if (ex.length) fail(`${at} holds ${ex.map(k => `"${k}"`).join(", ")}: it keeps its stages alone`); }
   if (!ids) { fail(`${at}.stages: a ${P.state === "re-pass" ? `re-pass from ${P.from || "nowhere"}` : P.state} has no plan stages (a small fix's plan, an existing plan's verification and a re-pass after a Quality Review keep the plan step without them; plan/RULES.md §3)`); return; }
   const got = S.map(x => x && typeof x === "object" ? x.id : x);
   if (P.state === "writing" && got.includes("re-pass")) fail(`${at}.stages: re-pass on a writing pass, which runs from write (re-pass is a sub-issue's)`);
@@ -738,7 +742,7 @@ function checkPlanStages(P, at) {
   });
   if (cur > 1) fail(`${at}.stages has more than one current stage (the plan stages run one after another)`);
   const again = S.findIndex(x => x && typeof x === "object" && Array.isArray(x.rounds) && x.rounds.length);
-  if (again >= 0 && !["write", S[0] && S[0].id].includes(S[again].id)) warn(`PLAN STAGE ORDER: ${at}.stages: ${S[again].id} ran again with no earlier stage going back with it, a way back the plan step does not give (write after check/accept, the pass's first stage after check/accept or report)`);
+  if (again >= 0 && !["write", S[0] && S[0].id].includes(S[again].id)) warn(`PLAN STAGE ORDER: ${at}.stages: ${S[again].id} ran again with no earlier stage going back with it, a way back the ${arch ? "architecture step does not give (write after check/accept or report)" : "plan step does not give (write after check/accept, the pass's first stage after check/accept or report)"}`);
 }
 function checkPanel(plan, w, ids, tracking, dir) {
   const stampOk = (v, at) => { if (v != null && !STAMP.test(String(v))) fail(`${at} "${v}" is not a date or an ISO date-time`); };
@@ -789,6 +793,13 @@ function checkPanel(plan, w, ids, tracking, dir) {
       if (P.against != null && (!str(P.against) || P.from !== "existing")) fail(`wip.plan.against names the ref an existing plan is verified against (a re-pass from "existing"), e.g. "main" (got ${JSON.stringify(P.against)} on a ${P.state}${P.from ? " from " + P.from : ""})`);
       if (P.from === "qa" && !posInt(P.pass)) fail("a re-pass after qa names the qa pass it answers: wip.plan.pass"); stampOk(P.since, "wip.plan.since");
       checkPlanStages(P, "wip.plan"); }
+  }
+  /* a tracking board's architecture stages (plan/RULES.md §3, "A multi-system run's architecture step"; §8): in the plan stages' form, its four ids in
+     their order; never on an issue board */
+  if (w.architecture != null) {
+    if (!tracking) fail("wip.architecture holds a tracking board's architecture stages: an issue board keeps none (its plan stages are wip.plan.stages)");
+    else if (typeof w.architecture !== "object" || Array.isArray(w.architecture)) fail(`wip.architecture must be { stages }, the four architecture stages (got ${JSON.stringify(w.architecture)})`);
+    else checkPlanStages(w.architecture, "wip.architecture", true);
   }
   if (w.stages != null) {
     if (!Array.isArray(w.stages)) fail("wip.stages must be an array of the implementation stages, each { id, name, state, rows }");
@@ -903,6 +914,8 @@ function checkHistory(plan, w, stampOk) {
         if (V.questions != null && (!Array.isArray(V.questions) || V.questions.some(q => !q || !str(q.question)))) fail(`${a}.questions is the research questions as they stood, each { question, rows, findings, state }`);
         if (V.plan != null && (typeof V.plan !== "object" || !PLAN_PASSES.includes(V.plan.state))) fail(`${a}.plan is the plan's pass as it stood, { state, from, pass }`);
         else if (V.plan != null) checkPlanStages(V.plan, `${a}.plan`);
+        if (V.architecture != null && (typeof V.architecture !== "object" || Array.isArray(V.architecture))) fail(`${a}.architecture is the architecture stages as they stood, { stages }`);
+        else if (V.architecture != null) checkPlanStages(V.architecture, `${a}.architecture`, true);
         if (V.branch != null && !str(V.branch)) fail(`${a}.branch is the branch the step cut`);
         if (V.stages != null && (!Array.isArray(V.stages) || V.stages.some(x => !x || !(str(x.id) || str(x.name)) || !STAGE_STATES.includes(x.state)))) fail(`${a}.stages is the stage list as it stood, each { id, name, state, rows }`);
         if (V.qa != null && (!Array.isArray(V.qa) || V.qa.some(p => !p || !posI(p.pass)))) fail(`${a}.qa is the qa passes of the visit, each { pass, verdict, findings, … }`);

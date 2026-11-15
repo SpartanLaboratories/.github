@@ -95,7 +95,10 @@
 // with their stages by the event that opens the pass (sized, researched, resumed); plan-stage (facts.stage, facts.detail) opens a stage and closes
 // the one before it, one trail line, the stage already open writing nothing (read before any refusal); late-update (facts.event plan-stage,
 // facts.stage, facts.detail, no facts.at and no --at) records a stage passed over with no time, moving only wip.updated; plan-accepted closes
-// them. A refused plan-stage or late-update writes nothing, and no fill writes it either: the summary says enrich: no.
+// them. A refused plan-stage or late-update writes nothing, and no fill writes it either: the summary says enrich: no. A tracking board's
+// architecture step runs as four architecture stages (plan/RULES.md §3, "A multi-system run's architecture step"; wip.architecture): seeded at
+// researched, moved by the same two events read at that step, report closed and write consequences opened by architecture-signed-off, the board
+// staying at its architecture step until plan-accepted closes them, clears them and moves it on.
 "use strict";
 const T0 = Date.now();
 const fs = require("fs"), path = require("path"), cp = require("child_process");
@@ -307,6 +310,16 @@ function applyEvent(orig, ev, facts, req, now) {
     if (sids) w.plan.stages = lib.seedPlanStages(sids, now);
     applied.push(`wip.plan ${w.plan.state}${sids ? `, with its ${sids.length} plan stages, ${sids[0]} current` : ""}`);
   };
+  /* a tracking board's architecture stages seeded (plan/RULES.md §3, "A multi-system run's architecture step"): by the event that puts the board at
+     its architecture step from another step (researched, a sized or a resumed naming it), where none stand, write current at the event's time. A
+     board that already stood at its architecture step with none (a halt there included, or an older board left at "plan", which reads as it) is
+     from before them, and keeps the step without them. */
+  const shown0 = lib.shownStep(orig.wip || {});
+  const openArch = () => {
+    if (!tracking || lib.archStagesOf(w).length || ["architecture", "plan"].includes(shown0) || lib.shownStep(w) !== "architecture") return;
+    w.architecture = { stages: lib.seedPlanStages(lib.ARCH_STAGES, now) };
+    applied.push(`wip.architecture, with its ${lib.ARCH_STAGES.length} architecture stages, write current`);
+  };
   const curStage = () => (w.stages || []).find(x => x && x.state === "current") || null;
   /* a facts.stage that is a stage's id ("S5"), else null: a sentence such as "S5 done; S6 current" is not an id */
   const stageIdOf = v => { const t = typeof v === "string" ? v.trim() : ""; return t && (w.stages || []).some(x => x && x.id === t) ? t : null; };
@@ -347,6 +360,8 @@ function applyEvent(orig, ev, facts, req, now) {
   let keepLine = false;
   /* the plan's pass with its stages closed by plan-accepted, for the visit it freezes (planClosed, the plan-accepted case below) */
   let planClosed = null;
+  /* a tracking board's architecture stages closed by plan-accepted, for the architecture visit it freezes (archClosed) */
+  let archClosed = null;
   /* the Tests tab is due an update when a stage is reported done or a qa pass returns its verdict (plan/RULES.md §2, "The Tests tab") */
   let testsDue = false;
   const research = () => (w.research = w.research && typeof w.research === "object" ? w.research : { phase: null, drafted: 0, since: {} });
@@ -386,6 +401,7 @@ function applyEvent(orig, ev, facts, req, now) {
       if (!lib.okStamp(plan.sized)) { plan.sized = now; applied.push(`sized ${now}`); }
       setStep(step); setGlow(step);
       if (step === "plan" && !tracking && !w.plan) openPass(!!plan.parent);
+      if (step === "architecture") openArch();
       enrich.push(lib.foundationFilling(plan).function || lib.foundationFilling(plan).columns.length ? "sized: the foundation is laid and the event applied; what reads as being written comes from the issue and the documents: the function, the rows with their Gap and, for a sub-issue of a signed-off tracking plan, the Considered column, written in place on this board, as at any enrichment (embed.js clears plan.foundation)" : "sized: the function and, for a sub-issue of a signed-off tracking plan, the Gap and Considered columns come from the documents");
       detail = detail || `Sized; ${STEP_WORDS[step]} starts.`;
       /* a corrected sizing (a second sized with no event between, a request re-sent with corrected facts) adds no second entry where
@@ -449,6 +465,7 @@ function applyEvent(orig, ev, facts, req, now) {
       setStep(step); setGlow(step);
       /* the first event that puts the board at its plan step with no pass standing opens it, with its stages (plan/RULES.md §3, "The plan stages") */
       if (step === "plan" && !tracking && !w.plan) openPass(true);
+      if (step === "architecture") openArch();
       if (step === "interview" && (w.interview || []).some(q => q && q.answer == null)) enrich.push("resumed: the interview's answers are recorded from the user's reply");
       detail = detail || `Resumed at ${stepWords(step, lib.ctxOf(w))}.`;
       trail = { column: STEP_COLUMN[step] || "built", label: `Resumed at ${stepWords(step, lib.ctxOf(w))}` };
@@ -527,6 +544,8 @@ function applyEvent(orig, ev, facts, req, now) {
          standing (from the parent's plan at a sub-issue's sized, after a Quality Review, or verifying an existing plan) is kept with its stages as they
          stand, never overwritten by the research's end */
       if (step === "plan" && !tracking && !(w.plan && ["writing", "re-pass"].includes(w.plan.state))) openPass(true);
+      /* a tracking board's architecture step opens with its four architecture stages, where none stand */
+      if (step === "architecture") openArch();
       setGlow(step);
       if (!nothing) enrich.push("researched: the Gap column and its milestone come from research/README.md and the findings");
       detail = detail || (nothing ? `Nothing to research; ${STEP_WORDS[step]} next.` : `Research verified; ${STEP_WORDS[step]} next.`);
@@ -538,13 +557,19 @@ function applyEvent(orig, ev, facts, req, now) {
       w.questions = []; w.research = null;
       /* a tracking board has no plan step: a plan pass a sized at "plan" left standing is cleared here (KotlinBottools #2, dashboards/tracking-plan-events) */
       if (tracking && w.plan) { w.plan = null; applied.push("wip.plan cleared (a tracking board has no plan step)"); }
-      /* a tracking board's own steps after its architecture: its plan's documents and its land; its units are filed after the merge */
-      const next = tracking ? "document" : "landing";
+      /* a tracking board's own steps after its architecture: its plan's documents and its land; its units are filed after the merge. With
+         architecture stages (plan/RULES.md §3, "A multi-system run's architecture step") the step lasts to plan-accepted: report done at the
+         event's time with its detail, write consequences current from it (a stage before report open then: closed with no time, report not
+         recorded), the board staying at its architecture step */
+      const staged = tracking && lib.archStagesOf(w).length > 0;
+      const next = staged ? "architecture" : tracking ? "document" : "landing";
+      if (staged) { const m = lib.planStageMove(w.architecture, "consequences", now, detail);
+        applied.push(m.open ? "wip.architecture.stages: write consequences open already" : `wip.architecture.stages: consequences current${m.closed ? `; ${m.closed} ${m.closedWord}${m.passed.length ? ` with no time (${m.passed.join(", ")} passed over, not recorded)` : ""}` : ""}${m.back ? "; every stage after it that ran back to come, each keeping its rounds" : ""}`); }
       if (tracking) withUnitSteps(w, applied);
       setStep(next); setGlow(next);
       if (tracking && rows.some(r => r.unit)) { const nx = lib.nextUnit(plan), id = nx ? nx.id : null; if (w.next !== id) { w.next = id; applied.push(`wip.next ${id}`); } }
       enrich.push("architecture-signed-off: the Considered column and, on a tracking board, the unit rows come from architecture.md");
-      detail = detail || (tracking ? "Architecture signed off; the plan's documents and its land are next, and its units are filed after the merge." : "Architecture signed off; the plan lands next.");
+      detail = detail || (staged ? "Architecture signed off; its consequences are written next." : tracking ? "Architecture signed off; the plan's documents and its land are next, and its units are filed after the merge." : "Architecture signed off; the plan lands next.");
       trail = { column: "considered", label: "Architecture signed off", ref: docRef("architecture.md") };
       break;
     }
@@ -588,6 +613,11 @@ function applyEvent(orig, ev, facts, req, now) {
          report closes with no time, the stages after it "not recorded"); the visit this event ends freezes them as they then stood (below) */
       if (!tracking && lib.planStagesOf(w.plan).length) { const P2 = JSON.parse(JSON.stringify(w.plan)), c = lib.planStagesClose(P2, now, detail);
         if (c) { planClosed = P2; applied.push(`wip.plan.stages: ${c.closed} done${c.passed.length ? `, ${c.passed.join(", ")} not recorded` : ""}`); } }
+      /* a tracking board's architecture stages (§3, "A multi-system run's architecture step") close the same way, write consequences at the event's
+         time, and wip.architecture is cleared; the visit this event ends freezes them as they then stood (below) */
+      if (tracking && lib.archStagesOf(w).length) { const A2 = JSON.parse(JSON.stringify(w.architecture)), c = lib.planStagesClose(A2, now, detail);
+        if (c) { archClosed = A2; applied.push(`wip.architecture.stages: ${c.closed} done${c.passed.length ? `, ${c.passed.join(", ")} not recorded` : ""}`); } }
+      if (tracking && w.architecture != null) { w.architecture = null; applied.push("wip.architecture cleared"); }
       if ((w.questions || []).length || w.research || w.plan) applied.push("wip.questions, wip.research and wip.plan cleared");
       w.questions = []; w.research = null; w.plan = null;
       /* A tracking board has no plan, branch or build step before its units are filed (plan/RULES.md §3, §4): its run's plan-accepted
@@ -619,31 +649,45 @@ function applyEvent(orig, ev, facts, req, now) {
       const late = ev === "late-update", said = typeof facts.stage === "string" ? facts.stage.trim() : "";
       if (late && (typeof facts.event !== "string" || facts.event.trim() !== "plan-stage")) refuse(`late-update: facts.event names the event the update records late, plan-stage (got ${JSON.stringify(facts.event == null ? null : facts.event)})`);
       if (!said) refuse(`${ev} carries no facts.stage, the plan stage it ${late ? "records" : "opens"} (re-pass, write, check, consequences or report)`);
-      const id = lib.planStageId(said), P = w.plan, S0 = lib.planStagesOf(P), open = S0.find(x => x.state === "current"), nm = id ? lib.PLAN_STAGE_NAMES[id] : said;
+      /* on a tracking board the stages are its architecture stages (wip.architecture), read by the step the board stands at */
+      const noun = tracking ? "architecture stage" : "plan stage", where = tracking ? "wip.architecture.stages" : "wip.plan.stages";
+      const id = lib.planStageId(said), P = tracking ? w.architecture : w.plan, S0 = lib.planStagesOf(P), open = S0.find(x => x.state === "current"), nm = id ? lib.PLAN_STAGE_NAMES[id] : said;
       /* the stage already open: nothing written, whatever step the board stands at (read before any refusal) */
-      if (!late && !tracking && id && open && open.id === id) return { plan: orig, applied: [`the plan stage ${nm} is open already: nothing written`], enrich, parentOp: null, nothing: true };
+      if (!late && id && open && open.id === id) return { plan: orig, applied: [`the ${noun} ${nm} is open already: nothing written`], enrich, parentOp: null, nothing: true };
       if (["built", "abandoned"].includes(plan.status) || ["landed", "cancelled"].includes(w.step)) refuse(`${ev}: the board has ${plan.status === "abandoned" || w.step === "cancelled" ? "been cancelled" : "landed"}, and a closed board is kept as it closed`);
-      if (tracking) refuse(`${ev}: a tracking board takes it at its architecture step alone, as an architecture stage, and only where the board has architecture stages; this board has none (a board from before them): nothing written`);
       const shown = stopped(w.step) ? w.resume : w.step;
-      if (shown !== "plan") refuse(`${ev}: the board stands at ${shown || "no step"}${stopped(w.step) ? ` (${w.step}, to resume there)` : ""}, not at its plan step${late && ["branch", "implementation", "qa", "remediation", "document"].includes(shown) ? ": the plan was accepted, and a late update is taken only until then" : ": a plan stage moves only there"}`);
-      if (!S0.length) refuse(`${ev}: this plan step runs with no plan stages (${!P ? "no plan pass stands" : P.state === "re-pass" && P.from === "qa" ? "a re-pass after a Quality Review" : P.state === "re-pass" && P.from === "existing" ? "an existing plan's verification" : !lib.planStagesLine(plan) && Array.isArray(w.steps) && w.steps.length ? "a small fix's plan" : "a board from before the plan stages"}): nothing written`);
-      if (!id) refuse(`${ev}: ${JSON.stringify(said)} is no plan stage (this pass's: ${S0.map(x => x.id).join(", ")})`);
-      if (!S0.some(x => x.id === id)) refuse(`${ev}: ${id} is no stage of this pass (${P.state === "writing" ? "a writing pass runs from write: re-pass is a sub-issue's" : "its stages: " + S0.map(x => x.id).join(", ")})`);
+      /* a tracking board (§3, "A multi-system run's architecture step"): at its architecture step alone, on a board with architecture stages; write,
+         check or report (write consequences is opened by the sign-off alone); a report is never recorded late */
+      if (tracking) {
+        const line = Array.isArray(w.steps) ? w.steps : [], past = line.indexOf("architecture") >= 0 && line.indexOf(shown) > line.indexOf("architecture");
+        if (shown !== "architecture") refuse(`${ev}: the board stands at ${shown || "no step"}${stopped(w.step) ? ` (${w.step}, to resume there)` : ""}, not at its architecture step${late && past ? ": the architecture was made final, its stages closed, and a late update is taken only until then" : ": an architecture stage moves only there"}`);
+        if (!S0.length) refuse(`${ev}: a tracking board takes it at its architecture step alone, as an architecture stage, and only where the board has architecture stages; this board has none (a board from before them): nothing written`);
+        if (!id || !S0.some(x => x.id === id)) refuse(`${ev}: ${JSON.stringify(said)} is no architecture stage (${id === "re-pass" ? "re-pass is a sub-issue's plan stage; " : ""}the architecture's: write, check, report, and write consequences, which the sign-off opens)`);
+        if (!late && id === "consequences") refuse(`${ev}: write consequences is opened by the architecture's sign-off (architecture-signed-off), never by a plan-stage${S0.find(x => x.id === "consequences").state === "todo" ? ": the architecture is not signed off yet" : ""}`);
+        if (late && id === "report") refuse("late-update: report is never recorded late: the run sends it as a plan-stage report at its relay of the report, before the halt that report causes, and a report neither sent stays not recorded");
+      } else {
+        if (shown !== "plan") refuse(`${ev}: the board stands at ${shown || "no step"}${stopped(w.step) ? ` (${w.step}, to resume there)` : ""}, not at its plan step${late && ["branch", "implementation", "qa", "remediation", "document"].includes(shown) ? ": the plan was accepted, and a late update is taken only until then" : ": a plan stage moves only there"}`);
+        if (!S0.length) refuse(`${ev}: this plan step runs with no plan stages (${!P ? "no plan pass stands" : P.state === "re-pass" && P.from === "qa" ? "a re-pass after a Quality Review" : P.state === "re-pass" && P.from === "existing" ? "an existing plan's verification" : !lib.planStagesLine(plan) && Array.isArray(w.steps) && w.steps.length ? "a small fix's plan" : "a board from before the plan stages"}): nothing written`);
+        if (!id) refuse(`${ev}: ${JSON.stringify(said)} is no plan stage (this pass's: ${S0.map(x => x.id).join(", ")})`);
+        if (!S0.some(x => x.id === id)) refuse(`${ev}: ${id} is no stage of this pass (${P.state === "writing" ? "a writing pass runs from write: re-pass is a sub-issue's" : "its stages: " + S0.map(x => x.id).join(", ")})`);
+      }
       /* late-update (plan/RULES.md §3, "The late update"): the stage passed over, done with no time, its report the detail; no trail line, no wip.event,
          no wip.detail, no step; wip.updated alone moves, never back (below) */
       if (late) {
-        const r = lib.planStageLate(P, id, detail);
+        const r = lib.planStageLate(P, id, detail, noun);
         if (r.refused) refuse(`late-update: ${r.refused}`);
-        if (!r.changed) return { plan: orig, applied, enrich, parentOp: null, unchanged: true, said: `the plan stage ${nm} is recorded late already with that report: nothing written` };
-        applied.push(`wip.plan.stages: ${id} done, recorded late with no time${r.again ? " (its report replaced)" : ""}`);
+        if (!r.changed) return { plan: orig, applied, enrich, parentOp: null, unchanged: true, said: `the ${noun} ${nm} is recorded late already with that report: nothing written` };
+        applied.push(`${where}: ${id} done, recorded late with no time${r.again ? " (its report replaced)" : ""}`);
         detail = w.detail || null; note = null;
         break;
       }
       const m = lib.planStageMove(P, id, now, detail);
-      if (!m.wayBack) WARNINGS.push(`PLAN STAGE ORDER: ${nm} opened again after ${lib.PLAN_STAGE_NAMES[m.closed]}, a way back the plan step does not give (write after check/accept${S0[0].id === "re-pass" ? ", re-pass after check/accept" : ""}, ${lib.PLAN_STAGE_NAMES[S0[0].id]} after report): recorded as sent`);
-      applied.push(`wip.plan.stages: ${id} current${m.round > 1 ? ` (round ${m.round})` : ""}${m.closed ? `; ${m.closed} ${m.closedWord}${m.passed.length ? ` with no time (${m.passed.join(", ")} passed over, not recorded)` : ""}` : ""}${m.back ? "; every stage after it that ran back to come, each keeping its rounds" : ""}`);
-      trail = { column: "verdict", label: lib.planStageLine(m, id, detail) };
-      detail = detail || `Plan stage: ${nm}${m.round > 1 ? `, round ${m.round}` : ""}.`;
+      if (!m.wayBack) WARNINGS.push(tracking ? `PLAN STAGE ORDER: ${nm} opened again after ${lib.PLAN_STAGE_NAMES[m.closed]}, a way back the architecture step does not give (write after check/accept, write after report): recorded as sent`
+        : `PLAN STAGE ORDER: ${nm} opened again after ${lib.PLAN_STAGE_NAMES[m.closed]}, a way back the plan step does not give (write after check/accept${S0[0].id === "re-pass" ? ", re-pass after check/accept" : ""}, ${lib.PLAN_STAGE_NAMES[S0[0].id]} after report): recorded as sent`);
+      applied.push(`${where}: ${id} current${m.round > 1 ? ` (round ${m.round})` : ""}${m.closed ? `; ${m.closed} ${m.closedWord}${m.passed.length ? ` with no time (${m.passed.join(", ")} passed over, not recorded)` : ""}` : ""}${m.back ? "; every stage after it that ran back to come, each keeping its rounds" : ""}`);
+      /* its trail line: an architecture stage's in the architecture step's column, worded "Architecture stage: …" */
+      trail = { column: tracking ? STEP_COLUMN.architecture : "verdict", label: lib.planStageLine(m, id, detail, tracking ? "Architecture stage" : null) };
+      detail = detail || `${tracking ? "Architecture stage" : "Plan stage"}: ${nm}${m.round > 1 ? `, round ${m.round}` : ""}.`;
       break;
     }
     case "branch-cut": {
@@ -1129,6 +1173,9 @@ function applyEvent(orig, ev, facts, req, now) {
      event cleared it */
   if (planClosed) { const HP = w.history && typeof w.history === "object" && Array.isArray(w.history.plan) ? w.history.plan : [], V = HP.find(v => v && v.ended === now && v.endedBy === "plan-accepted");
     if (V && JSON.stringify(V.plan || null) !== JSON.stringify(planClosed)) { V.plan = planClosed; applied.push("wip.history.plan: the visit holds the plan stages as plan-accepted closed them"); } }
+  /* the architecture visit plan-accepted ended holds its stages as plan-accepted closed them (archClosed), the same way */
+  if (archClosed) { const HA = w.history && typeof w.history === "object" && Array.isArray(w.history.architecture) ? w.history.architecture : [], V = HA.find(v => v && v.ended === now && v.endedBy === "plan-accepted");
+    if (V && JSON.stringify(V.architecture || null) !== JSON.stringify(archClosed)) { V.architecture = archClosed; applied.push("wip.history.architecture: the visit holds the architecture stages as plan-accepted closed them"); } }
   /* a halt's Document tasks on the visit that halt ended (haltTasks): the freeze takes them where it freezes the visit now; a halt raised
      again, its visit frozen before it carried them, brings that visit's snapshot to them */
   if (haltTasks && w.document) { const HD = w.history && typeof w.history === "object" && Array.isArray(w.history.document) ? w.history.document : [], V = HD.find(v => v && v.held && v.ended === now && v.endedBy === "halted");
