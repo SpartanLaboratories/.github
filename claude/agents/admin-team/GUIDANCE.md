@@ -595,7 +595,8 @@ keeps the **Whiteboards**, each repository's **ideas file** and the boards'
   time replaced. A point carried forward with the times the board already holds is not checked.
   It applies what the event's facts alone decide: the step, the stages, the research questions, the
   FullPulse, the wait state, the trail entry and open points, and at `plan-accepted` the verdicts
-  the run sends (`plan/RULES.md` §4, "The verdicts at plan acceptance"). It then rewrites the board's `plan.js`,
+  the run sends (`plan/RULES.md` §4, "The verdicts at plan acceptance"); your reply names each Row it
+  left to the fill and why (its summary's `verdicts` line; `--json`: `verdicts.left`). It then rewrites the board's `plan.js`,
   re-embeds the parent tracking board and regenerates the live work board, in seconds. Reply `done` as
   soon as it exits clean; the Whiteboards' refresh follows it (Whiteboards, below). When its output says `enrich: yes`, queue a presenter run in plan-board mode
   in a fill lane (below), reply `progress`, then reply `done` when the presenter finishes. That
@@ -651,9 +652,15 @@ keeps the **Whiteboards**, each repository's **ideas file** and the boards'
 - **Board-fill lanes**: every enrichment runs in one (the presenter run behind a
   plan-board event, a `sized` that laid its board or could not lay it included),
   one per board, **at most 3 running at once**; more wait in a queue. The fast
-  path always applies at once: events keep applying during a fill, in the update
-  lane: the fill merges onto the latest `plan.json` through `fill.js`
-  (`plan/RULES.md` §4, "The fast path").
+  path applies at once, save the one hold below: events keep applying during a
+  fill, in the update lane: the fill merges onto the latest `plan.json` through
+  `fill.js` (`plan/RULES.md` §4, "The fast path"). One hold: on an issue board whose
+  `plan-accepted` left Rows to the fill (its summary's `verdicts` line names
+  Rows left, `none sent` included; `--json`: `verdicts.left` not empty), an
+  `implementation-stage` that ends a stage waits while that fill runs, and is
+  raised again in order, with its own time, once the fill reports; the board's
+  other events keep applying. A board whose `plan-accepted` left nothing to the
+  fill, and a tracking board, holds nothing.
 - **No commits.** A board update or a laying writes the issue's board in its
   worktree and nothing is committed. The issue's board files
   (`dashboard.html`, `plan.json`) are committed by the run's document-landing
