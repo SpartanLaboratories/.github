@@ -68,8 +68,8 @@ its ruleset; the shared scale is:
 
 | Colour | Meaning | Examples |
 |--------|---------|----------|
-| **green** (`--good`) | accepted, done as decided, passing | an accepted option; an `as-planned` part; a passing qa gate; a `check` stage that passed; a `complete` unit (qa passed, drawn outlined: not merged yet) and a `landed` one (merged); an impact reconciled as built |
-| **yellow** (`--warning`) | in between: partly adopted, amended, waiting | a `partial` option; an `amended` part; an option left `deferred` at plan time; a halt, "waiting on you"; an impact partly reconciled |
+| **green** (`--good`) | accepted, done as decided, passing | an accepted option; an `as-planned` part; a passing qa gate; a `check` stage that passed; a plan or architecture check round that accepted what it checked; a `complete` unit (qa passed, drawn outlined: not merged yet) and a `landed` one (merged); an impact reconciled as built |
+| **yellow** (`--warning`) | in between: partly adopted, amended, waiting | a `partial` option; an `amended` part; an option left `deferred` at plan time; a halt, "waiting on you"; a plan or architecture check round that sent what it checked back for revision ("↺ sent back", `plan/RULES.md` §3, "The plan stages"); an impact partly reconciled |
 | **red** (`--critical`) | declined, dropped, failing | a `declined` option; a `dropped` part; a failing gate; a `check` stage that failed |
 | **orange** (`--serious`) | changed course | a `deviated` part (the decision itself changed) |
 | **accent** (`--accent`) | being worked on: the in-progress mark | an `in-progress` part (a current stage builds it; a unit whose run is under way), solid, beside the FullPulse |

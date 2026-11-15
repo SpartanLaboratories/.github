@@ -586,7 +586,9 @@ keeps the **Whiteboards**, each repository's **ideas file** and the boards'
   dashboards skill's `plan/scripts/apply-event.js`
   (`node ~/.claude/skills/dashboards/plan/scripts/apply-event.js --event <request.json> --worktree <path>`),
   with `--arrived <the request's arrival time>` for a run's event: a `facts.at` that is missing or
-  more than 2 minutes from it is replaced by the arrival time. A `raised` or `resolved` time of an
+  more than 2 minutes from it is replaced by the arrival time, save on a `late-update`, raised with
+  `--arrived` like any event of the run's and never with `--at`, whose missing `facts.at` is not
+  replaced and whose time your reply says nothing of. A `raised` or `resolved` time of an
   open point the event newly raises or resolves is kept when it is not after the arrival (plus the
   2-minute tolerance) and not before the last event that still showed the point open; only a time
   outside those bounds, or a missing one, is replaced by the arrival time. Your reply names each

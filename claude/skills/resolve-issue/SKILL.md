@@ -381,6 +381,25 @@ then implement it in the same run as for any grade-3 issue. A re-pass that
 finds the parent architecture no longer fits halts with a proposed amendment —
 relay it to the user and wait (`--no-signoff` approves it: "Prompt flags").
 
+At grade 3 the planner opens the plan step's stages on the board itself
+(`plan-stage`, "Plan-board events"): write, check/accept, write consequences
+and report, after a sub-issue's re-pass, which the board opens with the
+pass. At grade 4 it opens the architecture step's: write, which the board
+opens at `researched`, again for a design sent back or reconsidered, then
+check/accept and report; your sign-off opens the last, write consequences.
+A halt keeps the stage it falls in. The report is the planner's `COMPLETE` (grade 3)
+or `HALT — architecture` (grade 4), your relay of it and any halt it causes;
+your `plan-accepted` closes it at grade 3, your `architecture-signed-off` at
+grade 4, and `plan-accepted` closes write consequences. At your relay, read
+the report's **Plan stages not sent** first: when it lists `report`, send
+`plan-stage` `report` yourself, with the detail it gives and the relay's `at`;
+then send each other stage it lists as a `late-update`; and only then
+`halted`, `architecture-signed-off` or `plan-accepted`, whichever the report
+leads to. `architecture-signed-off` and `plan-accepted` each carry a
+`detail`: one plain sentence giving the result of the stage each closes. It
+lands on the committed board, so "No internal names in committed content"
+(above) holds for it.
+
 **`planner` halts and hands work back to you.** Its report leads with one of
 these shapes; route on it:
 
@@ -396,9 +415,13 @@ these shapes; route on it:
   decision. Relay it as for the interview and resume the same planner.
 - **`HALT — architecture`** (grade 4) — the grand design needs sign-off. Relay
   the architecture document path, the decomposition, the proposed sub-issues,
-  and any open decisions; wait for the user to approve or ask for changes
-  (`--no-signoff`: "Prompt flags"); then resume the same planner with
-  `SendMessage`.
+  and any open decisions, sending first what its **Plan stages not sent**
+  calls for (above); wait for the user to approve it, as proposed or with
+  changes, or to have it reconsidered (`--no-signoff`: "Prompt flags"); then
+  resume the same planner with `SendMessage`. An approval is the sign-off:
+  send `architecture-signed-off` at it, before you resume the planner. A
+  design to be reconsidered is no sign-off: send none, and the planner
+  redrafts it and returns a new `HALT — architecture`.
 - **`ESCALATE — grade`** — see "Escalation" above.
 - **`COMPLETE`** — the plan is drafted (grades 2–3), or the architecture is
   signed off and the sub-issue list is final (grade 4). Continue to step 3.
@@ -431,6 +454,9 @@ to make the agreed edit (`--no-questions` decides in advance: "Prompt flags").
 
 - If the returned **Considerations** list is non-empty, **stop**: relay it to
   the user and wait (`--no-questions`: "Prompt flags"). Do not guess a design.
+  Once the user answers, resume the same planner with `SendMessage` carrying
+  the answers, to fold them into the plan, and send `plan-accepted` when it
+  returns `COMPLETE` with no Considerations left.
 - Otherwise keep the plan document path (grades 2–3), or the architecture
   document path and the approved sub-issue list (grade 4), plus the recommended
   approach.
@@ -658,8 +684,10 @@ sends none.
 | A researcher returned (sent by the planner itself) | `research-returned` | `returned`: the question slug and its findings path |
 | Verification of the findings starts (sent by the planner itself) | `verification-started` | — |
 | Research verified, or nothing to research (sent by the planner itself, when `planner.md`, "Board events during research", says) | `researched` | the research README path; none when nothing was researched |
-| Grade-4 sign-off | `architecture-signed-off` | the architecture path, the approved unit list |
-| Planner COMPLETE | `plan-accepted` | the plan path, consequences path |
+| Grade-4 sign-off: the user approves the architecture, as proposed or with changes (step 2); it closes the architecture stage report and opens write consequences, the board staying at its architecture step until `plan-accepted` | `architecture-signed-off` | the architecture path, the approved unit list; `detail`: one plain sentence giving the result of the stage it closes |
+| A plan stage opens, on a grade-3 plan a `plan-writer` drafts, or an architecture stage at grade 4 (sent by the planner itself, when `planner.md`, "Board events at the plan step", says; `report` by the run where step 2 says) | `plan-stage` | `stage`: the stage it opens (`write`, `check`, `consequences` or `report`, or the pass's first stage to go back to it, `re-pass` on a sub-issue; at grade 4 `write`, `check` or `report`); `detail`: one plain sentence giving the result of the stage it closes |
+| A plan or architecture stage passed over, recorded late with no time (sent by the planner itself for one it finds it passed over, and by the run for those step 2 says, never `report`) | `late-update` | `event`: `plan-stage`; `stage`: the stage; `detail`: one plain sentence giving its result; no `at` |
+| The plan accepted: planner COMPLETE, once whatever its report put to the user is answered (step 2); at grade 4 it closes write consequences | `plan-accepted` | the plan path, consequences path; `detail`: one plain sentence giving the result of the stage it closes |
 | Step 3 done | `branch-cut` | branch, worktree, `stages`: every stage of the plan, its id and name |
 | A stage of the plan's stage table ends; each rookie-dev report on a plan without one, and each remediation report | `implementation-stage` | the stage, `stages`: every stage's id and name with its state (`done`, `current`, `todo`), `final-implementation.md` path, deviations; a closing check stage's entry in `stages` also carries `result` (`passed` or `failed`), and the stage's report goes in `detail`, as its end report, written by whoever carries the stage out; during a remediation loop also `remediation`: the qa pass it answers, the route (`on-the-spot` / `remediation` / `re-plan-then-remediation`) and its sub-steps with their state; `tests`: the test classes the stage added or amended (`added`/`amended`: class, module, testSet, path, tests, rows). It names no `step`. A stage's end is sent by `rookie-dev` for the stages it builds (`rookie-dev.md`, "Board events"), and by the run for a stage it carries out itself, when the stage ends and before its next request. When `rookie-dev` returns, the run sends no `implementation-stage` for a stage it reported: only the events its report lists under **Events not sent**, and its own (a remediation's report, a halt, an escalation) |
 | The plan's stage table revised while a stage runs (steps added, or a step given steps of its own) | `implementation-stage` | `stages` as they stand, none closed, so the board reads the revised table and its nested steps; `detail`, the run's latest report. It names no `step` |
@@ -676,10 +704,11 @@ it runs (its agent file, "Progress review every 10 minutes"):
 agent finishes. The board's step Panel shows the notes live; they need no event. When you
 brief a subagent, give it the issue number so it can name the file.
 
-On **every** event also send `at` (the ISO time the moment happened, so a queued
-event keeps its true time; read it from the clock with `date -u +%FT%TZ` at that
-moment, never rounded or estimated), and `open` whenever an open point is raised
-or resolved: `[{text, raised, ref?, resolved?}]` — e.g. a plan inconsistency the
+On **every** event but `late-update` also send `at` (the ISO time the moment
+happened, so a queued event keeps its true time; read it from the clock with
+`date -u +%FT%TZ` at that moment, never rounded or estimated), and `open`
+whenever an open point is raised or resolved:
+`[{text, raised, ref?, resolved?}]` — e.g. a plan inconsistency the
 implementer raises for the planner, or an item left to the maintainer; read
 `raised` and `resolved` from the clock the same way, at the moment the point is
 raised or resolved. During a remediation loop, `implementation-stage` also

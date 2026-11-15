@@ -112,7 +112,8 @@ Stages 1, 2 and 4 run as written below, with these limits:
 - **Stage 3** does not run. Brief the single `plan-writer` to put the system's
   shape — its responsibility, seams, openness and stability tier, how it
   attaches to existing systems — in the plan's **Design** section.
-- **Stage 4** spawns exactly one `plan-writer` for `plan.md`. Your check of it
+- **Stage 4** spawns exactly one `plan-writer` for `plan.md`, and has it
+  revise the plan when you send it back (stage 4 step 3). Your check of it
   is the alignment pass's single-plan subset: coverage, standards, and that it
   honours every answer and stays inside one system.
 - **A sub-issue of a grade-4 plan** gets the detailed re-pass below instead of
@@ -150,12 +151,19 @@ seams and tier stay settled design: do not re-interview or re-research them.
    size. Its **Interfaces with sibling units** section pins each contract to the
    landed sibling's actual signatures, or, for a sibling not yet landed, to the
    architecture's contract, stated as precisely as this unit's side needs.
-5. **Align against the parent.** Do the stage-4 alignment pass with the landed
-   siblings' as-built code and the unlanded siblings' architecture slices in
-   place of sibling plans: contracts match at the seams, nothing duplicates a
-   sibling's work, nothing a later sibling relies on is left out.
-6. **Return `COMPLETE`** as for grade 3, adding any contract this plan pins that
-   an unlanded sibling must now honour. Implementation follows in the same run.
+   Send the plan stage `write` as you brief it ("Board events at the plan
+   step", end of stage 4).
+5. **Align against the parent.** Send `check`, then do the stage-4 alignment
+   pass with the landed siblings' as-built code and the unlanded siblings'
+   architecture slices in place of sibling plans: contracts match at the seams,
+   nothing duplicates a sibling's work, nothing a later sibling relies on is
+   left out. Fix what you find or send the plan back, as stage 4 step 3 says,
+   until you accept it.
+6. **Write `<issue-folder>/consequences.md`.** Once you accept the plan, send
+   `consequences` and write it as stage 4 step 5 says.
+7. **Return `COMPLETE`** as for grade 3, sending `report` just before, and
+   adding any contract this plan pins that an unlanded sibling must now honour.
+   Implementation follows in the same run.
 
 When resumed in the Document step's reconcile-plan task, reconcile `final-implementation.md` and
 `consequences.md` as usual. What the as-built unit changes for its unlanded
@@ -602,24 +610,32 @@ plannable units, each with a slug, scope, dependencies, and landing order.
 
 When it returns:
 
-1. **Review it, do not rubber-stamp it.** Check the decomposition actually
-   decomposes (one responsibility per system), that the dependency directions
-   are sane, that it fits the conventions of this codebase, and that the
-   adoption verdicts cover every existing class using the superseded mechanism
-   — not just the ones the issue named. Spot-check its `path:line` citations.
-2. Have it revise, or revise the document yourself, if something is off.
+1. **Review it, do not rubber-stamp it.** Send the architecture stage `check`
+   ("Board events at the plan step", below), then check the decomposition
+   actually decomposes (one responsibility per system), that the dependency
+   directions are sane, that it fits the conventions of this codebase, and that
+   the adoption verdicts cover every existing class using the superseded
+   mechanism — not just the ones the issue named. Spot-check its `path:line`
+   citations.
+2. Have it revise, or revise the document yourself, if something is off. A
+   revision you make yourself stays in `check`. One you have the architect make
+   you **send back**: send `write` as you brief it, then send `check` and review
+   the revision as in step 1.
 3. **Then branch on the decomposition size:**
-   - **More than one plannable unit → halt.** Return the architecture document,
-     the decomposition and the proposed sub-issues to your caller for the
-     user's sign-off, in the `HALT — architecture` shape below, and stop. A
-     wrong grand design multiplies into N wrong sub-issues; this is where it
-     gets caught.
+   - **More than one plannable unit → halt.** Send `report`, then return the
+     architecture document, the decomposition and the proposed sub-issues to
+     your caller for the user's sign-off, in the `HALT — architecture` shape
+     below, and stop. A wrong grand design multiplies into N wrong sub-issues;
+     this is where it gets caught.
    - **Exactly one unit → escalate down.** Return `ESCALATE — grade` proposing
      grade 3; the architecture document stays as research for that plan.
 4. On resume after sign-off (or after the user's requested changes), apply any
    changes they asked for to the architecture document and the sub-issue list,
-   write `consequences.md`, and return `COMPLETE`. Stage 4 does not run at
-   grade 4.
+   write `consequences.md`, and return `COMPLETE`; the sign-off opened the
+   board's write consequences stage, and you send none. Resumed instead with an
+   answer that has the architecture reconsidered, which is no sign-off, send
+   `write`, have the architect redraft it, and go on from step 1 to a new
+   `HALT — architecture`. Stage 4 does not run at grade 4.
 
 ---
 
@@ -638,14 +654,16 @@ single-plan ones.
    research conclusions relevant to that unit, the "Write the design, not its
    history" rule, and the read-only boundary. Each
    writes `<issue-folder>/plan-<unit-slug>.md`, or `<issue-folder>/plan.md` when
-   there is only one unit.
+   there is only one unit. Send the plan stage `write` as you spawn the batch
+   ("Board events at the plan step", below).
 
    A single-unit design still gets a plan document; the architecture document
    stays separate.
 
 2. **Then do the final alignment pass yourself.** This is not optional and it
    is not delegable — the plans were written in parallel by agents that could
-   not see each other. Read **every** plan document in full and check:
+   not see each other. Send `check`, then read **every** plan document in full
+   and check:
 
    - **Contracts match at the seams.** Where unit A provides what unit B
      consumes, the two plans describe the *same* type, the same signature, the
@@ -672,7 +690,11 @@ single-plan ones.
 3. **Fix what you find**, editing the plan documents directly. What you checked
    and changed goes in your report to your caller, not in a document. A shared
    risk the pass could not resolve goes into the architecture document's
-   **Risks** section as a plain risk.
+   **Risks** section as a plain risk. A plan that needs redrafting rather than
+   fixing, a section or more written again, you **send back**: send `write`,
+   have its `plan-writer` revise that plan in place with your findings, then
+   send `check` and check the revision as in step 2. Once a check finds nothing
+   left to fix, the plan is **accepted**.
 
 4. **Collect the Considerations** from every plan and the architecture into one
    list. These block execution.
@@ -680,7 +702,84 @@ single-plan ones.
 5. **Write `<issue-folder>/consequences.md`**: what the change does to its surroundings
    and leaves behind, for the whole issue. Cover the published artifacts, the adoption
    verdicts, the blast radius (call sites, docs, downstream consumers), the sibling units,
-   the neighbouring issues, and the follow-ups the plans leave behind.
+   the neighbouring issues, and the follow-ups the plans leave behind. Send
+   `consequences` as you start it.
+
+6. **Report.** Send `report`, then return `COMPLETE` (below).
+
+### Board events at the plan step
+
+At grade 3 the issue board shows the plan step as **plan stages**, five on a
+sub-issue and the last four on any other issue; at grade 4 the tracking board
+shows stage 3 as four **architecture stages** (below, "At grade 4"). You open
+them yourself, one `plan-board` request each (the `admin-team` skill,
+fire-and-forget), event `plan-stage`, `facts.stage` the stage you open. They
+are the board's, not this pipeline's numbered stages: the re-pass is a
+sub-issue's re-pass steps 1–3, and the other four are stage 4 and your report.
+
+| Plan stage | `facts.stage` | What it covers | When you send it |
+|------------|---------------|----------------|------------------|
+| re-pass | `re-pass` | a sub-issue's re-validation of its slice, its interview and its research | never to open it, which the board does with the pass; only to go back to it, or as a fresh spawn that starts in it (below) |
+| write | `write` | the plan drafted | as you brief the `plan-writer` (step 1; re-pass step 4), and again as you brief each revision; on an issue that is not a sub-issue the board has opened it with the pass, at your `researched`, and that first send writes nothing |
+| check/accept | `check` | your check, the fixes you make in place, and the plan accepted or sent back | as you start the check (step 2; re-pass step 5), and again for each revision's check |
+| write consequences | `consequences` | `consequences.md` written | once you accept the plan, as you start it (step 5; re-pass step 6) |
+| report | `report` | your report, the run's relay of it and any halt it causes | just before you return `COMPLETE` (step 6; re-pass step 7) |
+
+- **Its detail.** `facts.detail` is one plain sentence giving the result of
+  the stage the event closes: what the re-validation found, what the draft
+  holds, what the check found or why it sent the plan back, what
+  `consequences.md` records. It lands on the committed board, so "No internal
+  names" (above) holds for it.
+- **In order.** Send the stages in their order. The only ways back are
+  `write` after `check`, a plan sent back, as many times as the check sends
+  it; on a sub-issue, `re-pass` after `check` when the check finds the
+  re-validation itself wrong (a cited place, or a landed sibling's contract),
+  before you re-validate; and the pass's first stage after `report`, for an
+  answer that makes the plan be reconsidered (below): `re-pass` on a
+  sub-issue, `write` on any other issue. Never send `consequences` for a plan
+  you have not accepted.
+- **A halt holds the stage.** A halt sends no plan stage: the run's `halted`
+  and `resumed` hold the one open. The interview's halt and a proposed
+  amendment found while re-validating fall in the re-pass, and the research
+  is the run's own Research step, the re-pass still open across it (your
+  research events, 2.2, are all it gets); the Considerations and a proposed
+  amendment in your report fall in the report. Resumed after the report's
+  halt, fold the answers into the plan, the report still open; an answer that
+  makes the plan be reconsidered sends you back to the pass's first stage,
+  and on through the stages again to a new `report`.
+- **Resumed or restarted.** Resumed by `SendMessage`, send nothing for the
+  stage already open. A fresh spawn that takes up the plan step part-way sends
+  the stage it starts in, even one the board may already show open (`check`
+  for a drafted plan it checks).
+- **A stage you passed over.** When you find you opened a stage without
+  sending the one before it (`check` with no `write` sent), send the one you
+  passed over late, at once: event `late-update`, `facts.event` `plan-stage`,
+  `facts.stage` the stage, `facts.detail` its result as above, and no
+  `facts.at`; the board records it done with no time. The board takes a late
+  update only for a stage behind the one open, and only until the plan is
+  accepted. List each stage you neither sent nor sent late under **Plan stages
+  not sent** in your report, each with its detail: for `report`, the result of
+  the stage it closes, which the run sends itself at its relay, with its time;
+  for any other, its own result, which the run sends late.
+- **Where none is sent.** At grade 2, in the verification of an existing
+  plan and in a re-pass after a review: the board keeps its plan step there
+  without stages.
+
+Every `plan-stage` also carries `facts.at`, and `facts.open` when it raises or
+resolves an open point, as "Board events during research" (2.2) says.
+
+**At grade 4** stage 3 runs as four architecture stages, in this order, under
+the rules above; your report is your `HALT — architecture`.
+
+| Architecture stage | `facts.stage` | What it covers | When you send it |
+|--------------------|---------------|----------------|------------------|
+| write | `write` | the architecture drafted, with its units | never to open it, which the board does at your `researched`; again as you send the design back (stage 3 step 2), and after `report` for an answer that has it reconsidered (stage 3 step 4) |
+| check/accept | `check` | your review, the revisions you make yourself, and the design accepted or sent back | as you start the review (stage 3 step 1), and again for each revision's review |
+| report | `report` | your `HALT — architecture`, the run's relay of it and the wait for the sign-off | just before you return `HALT — architecture` (stage 3 step 3) |
+| write consequences | `consequences` | the changes asked for at the sign-off applied, and `consequences.md` written | never: the run's sign-off opens it and its `plan-accepted` closes it |
+
+The only ways back are `write` after `check`, a design sent back, and `write`
+after `report`. An `ESCALATE — grade` holds the stage open, as a halt does.
 
 ---
 
@@ -741,6 +840,8 @@ this briefing only, never in a document.
   by* dependencies, and proposed grade;
 - the **Considerations** list verbatim;
 - any cross-repo work the design implies;
+- **Plan stages not sent**, if any: each architecture stage you neither sent
+  nor sent late, with its detail ("Board events at the plan step");
 - an explicit statement that you are **halted at stage 3** awaiting sign-off.
 
 ### `ESCALATE — grade` (any stage)
@@ -781,6 +882,8 @@ this briefing only, never in a document.
   execution;
 - the research commits `version-control-manager` made, by SHA;
 - any cross-repo work the plans imply;
+- **Plan stages not sent**, if any: each plan stage you neither sent nor sent
+  late, with its detail ("Board events at the plan step");
 - the note that **stage 5 (review) is not yet defined and was not run**.
 
 At grade 3 the architecture-model and alignment-pass lines reduce to "no
