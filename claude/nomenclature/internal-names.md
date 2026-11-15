@@ -21,7 +21,8 @@ how the case is put, and how an exception the user grants is recorded, is in the
 brief ([`admin-team/GUIDANCE.md`](../agents/admin-team/GUIDANCE.md), "Internal names block a commit").
 
 A barred name in backticks counts in a document or a comment as it does anywhere else. A longer
-word that contains one, such as `RoutePlanner` or `ExecutorService`, is not a find.
+word that contains one, such as `RoutePlanner` or `ExecutorService`, is not a find; a hyphen is a
+word edge, so a hyphenated compound such as "planners-guide" is.
 
 The list has four sections:
 
@@ -34,7 +35,8 @@ The list has four sections:
 ## 1. The pipeline's agents, sessions and roles
 
 Each row is headed by its name, a proper noun written as one CamelCase word, and lists the name's
-known aliases. The aliases are what the scan matches.
+known aliases. The aliases are what the scan matches: in any case, singular or plural, and in the
+possessive ("Planners", "the rookie-dev's fix").
 
 | Name | Aliases | What it is | Allowed when |
 |------|---------|------------|--------------|

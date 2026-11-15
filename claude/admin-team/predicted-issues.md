@@ -139,7 +139,7 @@ The permission system raises the denial.
 ## An encountered issue is not in this tracker
 
 ```json
-{"id":"p9","count":17,"last":"2026-11-14"}
+{"id":"p9","count":19,"last":"2026-11-15"}
 ```
 
 - **Proposed resolution:** add it as a new entry with count 1, then prompt the
@@ -197,6 +197,16 @@ The permission system raises the denial.
     repository, and its cleanup there was refused by the auto mode classifier as "Destructive
     or Unwanted Actions"; added as "A mirror-sync's executor writes in the standing checkout,
     and its cleanup there is refused as destructive".
+  - 2026-11-14: the direction manager's placement of a settings file the user had approved
+    for the team's folder was refused by the auto mode classifier as "[Undermining Oversight]",
+    a case neither the entry for [Self-Modification] nor the entries for refused reads holds;
+    counted late; added as "Placing a user-approved settings file of the team's is refused as
+    [Undermining Oversight]".
+  - 2026-11-15: the direction manager's after-edit write pass of the rule checker, run from the
+    standing checkout of the organization repository, was refused by the auto mode classifier as
+    "[Destructive or Unwanted Actions]", a case neither the entry for a mirror-sync's executor
+    writing in the standing checkout nor the entry for [Self-Modification] holds; added as "The
+    direction manager's after-edit write pass of the rule checker is refused as destructive".
 
 ## A count changes in this mirrored file
 
@@ -796,15 +806,15 @@ The admin team's session ends while background jobs it spawned are still running
 ## A prepare-landing sync is refused by an uncommitted implementation-stage stamp
 
 ```json
-{"id":"p52","count":0,"last":null}
+{"id":"p52","count":1,"last":"2026-11-15"}
 ```
 
-When the default branch has moved since the branch was cut, the uncommitted implementation-stage stamps in the run's worktree can make git refuse the `prepare-landing` merge with "local changes would be overwritten". It did not come up for WebTools #69, because the default branch had not moved.
+When the default branch has moved since the branch was cut, the uncommitted implementation-stage stamps in the run's worktree can make git refuse the `prepare-landing` merge with "local changes would be overwritten". It did not come up for WebTools #69, because the default branch had not moved. The first encounter met the same refusal over other uncommitted generated board output the fast path writes during a run (tracking boards' re-embeds and the repository work board), not over a stamp; it is counted here, since the refusal and the proposed resolution are the same.
 
 - **Proposed resolution:** a) drop the implementation-stage stamp output before the sync, since the state-boards task rebuilds it anyway (recommended); b) leave it as it is.
 - **Predicted:** the direction manager, 2026-11-07.
 - **Encounters:**
-  - None yet.
+  - 2026-11-15: KotlinBottools #39's `prepare-landing`: main had moved since the branch was cut (to `8b06da7`, with `ca392e0` re-rendering the boards), and `git merge origin/main` was refused, "local changes would be overwritten", over five uncommitted generated board files in the run's working tree that main had also changed: the `dashboard.html` of the #27 and #2 tracking boards, and `docs/plans/board.js`, `board.json` and `index.html`. Nothing was changed by the refused merge. The executor saved copies of the five, restored only those to HEAD, fast-forwarded the branch to `8b06da7` and pushed; the Presenter then rebuilt the five on the current template from the merged state, uncommitted, for the run's document-landing commit, and all checks passed. In substance option a), which the user has not decided. Logged late.
 
 ## A message to the bare name "admin team" is refused as ambiguous
 
@@ -932,3 +942,29 @@ A mirror-sync carrying working-copy files of S, P or D is to place them, and run
 - **Predicted:** the admin team, on meeting it, 2026-11-14.
 - **Encounters:**
   - 2026-11-14: the rule rework's seventh commit, seven organization-repository files: the executor placed them and ran `rule-check.js --write` in the standing checkout, which the checker refused; its cleanup there (`git reset --hard HEAD && git clean -fdq` on the new folder) was refused by the classifier as "Destructive or Unwanted Actions" and not worked around. Nothing committed; the standing checkout left with the seven files staged; the sync held for the user's word on clearing it.
+
+## The direction manager's after-edit write pass of the rule checker is refused as destructive
+
+```json
+{"id":"p62","count":1,"last":"2026-11-15"}
+```
+
+The direction manager's brief has it run the rule checker's write pass, `rule-check.js --write --defer-policies`, after every edit to a rule file; the pass writes only in `~/.claude` and defers the policies' counts to the mirror-sync that carries the edit. Run with the organization repository's standing checkout as its working directory, the call was refused by the session's auto mode classifier as "[Destructive or Unwanted Actions]". It is not the entry "A mirror-sync's executor writes in the standing checkout, and its cleanup there is refused as destructive", where an executor wrote in the standing checkout and its cleanup there was refused, nor the entry "An edit of the team's own files is refused as [Self-Modification]", which draws another reason; here the direction manager's own write pass, writing nothing in the checkout, was refused while running from it. The read-only pass of the same checker ran. Not checked: what in the call drew the refusal (the working directory, the write flag, or neither), and whether the same pass run from another working directory is allowed.
+
+- **Proposed resolution:** none decided. As practised on the encounter: the direction manager stops at the refusal, tries no other route, runs the read-only check, and reports the call and the reason; the user is told at the console. When an edited file is one the checker does not convert, as on the encounter, nothing is pending and nothing is lost; when a converted file is edited, the pending counts are left for the mirror-sync or for the user's word.
+- **Predicted:** the admin team, on meeting it, 2026-11-15.
+- **Encounters:**
+  - 2026-11-15: the rule rework's edit of `CLAUDE.md` and the team's brief: after placing it, the direction manager ran the checker's write pass from the standing checkout, and the classifier refused it as "[Destructive or Unwanted Actions]". It did not retry by another route. Its read-only run printed "OK: 62 file(s), 239 id(s)". Both edited files are in the rule files' `notConverted` list, so the write pass had nothing pending and nothing was lost.
+
+## Placing a user-approved settings file of the team's is refused as [Undermining Oversight]
+
+```json
+{"id":"p63","count":1,"last":"2026-11-14"}
+```
+
+The direction manager places a settings file for the team that the user has approved at the console, whole and as staged, and the session's auto mode classifier refuses the write, giving the reason "[Undermining Oversight]". It is the nearest to the entry "An edit of the team's own files is refused as [Self-Modification]", which holds changes to the team's settings and whose fallback (staged, the user places it) was followed, but that entry's refusals drew another reason, and its decided resolution covers temporary-grant edits of the existing settings file, not a new one; nor is it a read, as in the entries "A read-only PowerShell read of the machine's configuration is refused as [Undermining Oversight]" and "A read-only search of the Claude Code binary is refused as [Undermining Oversight]", which draw the same reason. Not checked: what in the call drew the refusal (creating the settings folder, writing a settings file at all, or the deny and allow rules it carries), and whether a standing `autoMode.allow` line would cover such a placement.
+
+- **Proposed resolution:** as practised on the encounter: the direction manager stops at the refusal, tries no other route and leaves nothing half-placed; the team tells the user at the console with the commands to place the staged file by hand; the user places it and says done; the team checks the placed file's sha256 against the approved one and that its rules are in effect, then records the `config-edit`. Whether this joins the [Self-Modification] entry's resolution or gets a standing route is the user's to decide.
+- **Predicted:** the admin team, on meeting it, 2026-11-14; counted late, 2026-11-15.
+- **Encounters:**
+  - 2026-11-14: after the team's session was moved into the desktop app, which dropped the launcher's settings, the user approved the drafted `admin-team/.claude/settings.local.json` (the launcher's settings and the agent, without the auto-mode lines); the direction manager's one Bash call creating the folder and copying the approved file there was refused by the classifier as "[Undermining Oversight]". No other route was tried and no folder was left. The team gave the user the commands at the console; the user placed the file by hand, its sha256 equal to the approved one, and said done; a `git reset --hard HEAD` in the team's folder was then refused by the permission system, so the deny rules were in effect without a restart.
