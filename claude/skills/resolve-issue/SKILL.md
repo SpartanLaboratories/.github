@@ -456,6 +456,8 @@ anyone) edit the plan file on the strength of its own recommendation alone —
 the user may accept a delta, reject it in favor of an existing convention, or
 want it applied differently. Only after the user decides, resume `planner`
 to make the agreed edit (`--no-questions` decides in advance: "Prompt flags").
+The `plan-accepted` that follows carries the board verdicts block of the
+planner's last report, as for any plan (above).
 
 - If the returned **Considerations** list is non-empty, **stop**: relay it to
   the user and wait (`--no-questions`: "Prompt flags"). Do not guess a design.

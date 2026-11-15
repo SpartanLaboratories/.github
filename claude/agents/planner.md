@@ -806,6 +806,11 @@ the **Must ask** list names (`~/.claude/skills/resolve-issue/SKILL.md`,
 "Prompt flags"); keep an interviewer's mark through your audit. The mark is in
 this briefing only, never in a document.
 
+Your report on verifying an existing plan
+(`~/.claude/skills/resolve-issue/SKILL.md`, step 2) ends with the **board
+verdicts block** too ("The board verdicts block", below), and so does each one
+you return once the edits the user agreed are made.
+
 ### `HALT — interview` (end of stage 1)
 
 - one line on what you are planning;
