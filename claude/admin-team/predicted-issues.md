@@ -968,3 +968,20 @@ The direction manager places a settings file for the team that the user has appr
 - **Predicted:** the admin team, on meeting it, 2026-11-14; counted late, 2026-11-15.
 - **Encounters:**
   - 2026-11-14: after the team's session was moved into the desktop app, which dropped the launcher's settings, the user approved the drafted `admin-team/.claude/settings.local.json` (the launcher's settings and the agent, without the auto-mode lines); the direction manager's one Bash call creating the folder and copying the approved file there was refused by the classifier as "[Undermining Oversight]". No other route was tried and no folder was left. The team gave the user the commands at the console; the user placed the file by hand, its sha256 equal to the approved one, and said done; a `git reset --hard HEAD` in the team's folder was then refused by the permission system, so the deny rules were in effect without a restart.
+
+## A run taken up by a second session repeats the first session's request ids
+
+```json
+{"id":"p64","count":1,"last":"2026-11-15"}
+```
+
+A `/resolve-issue` run that a second session takes up under the same session name numbers its request ids from 1 again, so its requests repeat ids the run's first session already used, with the same attempt. The team's rule (its brief, How the team works, "The ledger is the truth") is that a repeat of a seen `id` with the same `attempt` gets the recorded reply re-sent, not a second execution, and the protocol has a request acted on at most once per `id` + `attempt`. Applied to the letter, each of the second session's requests would get the first session's recorded reply and nothing would run. It is not the entry "A restart's not-running stretch, taken from the ledger, misses what the run did between requests", which is about the bounds of `run-restarted`, nor "A stale repeat of a stage's closing event reopens a later stage", where the run itself sent an event again. Not checked: whether a run's handoff or the `resolve-issue` skill tells a session that takes a run up which ids the run has used.
+
+- **Proposed resolution:** none decided. Options:
+  - a) The `resolve-issue` skill has a session that takes a run up read the run's last request id, from its handoff or from a status reply, and number on from it.
+  - b) The team's rule keys the at-most-once check on the sending session as well as the `id` and `attempt`, so a repeat from another session is a new request.
+  - c) The team rejects a request whose `id` and `attempt` are already recorded from another session, naming the next free id, and the run resends under it.
+  - As practised on the encounter: the team answered each repeated id as a new request where the sending session and the content differed, recorded it under a ledger key marking the second session, did not re-send the stale recorded reply, and told the run in its reply which ids are taken and to number on from one the team has not seen.
+- **Predicted:** the admin team, on meeting it, 2026-11-15.
+- **Encounters:**
+  - 2026-11-15: KotlinBottools #40. The run's first session sent ids 1 (status, 12:08:32Z), 2 (setup-branch, 12:09:03Z), 3, plan-1 and 4 (halted, 12:50:06Z), then stopped; a second session under the same name sent 1 (a status with `restarted`, arrived 18:25:56Z) and 2 (a `resumed` board event, arrived 18:26:23Z), each with attempt 1. The team answered both as new requests (a status executes nothing; the `resumed` is another action than the setup-branch that used the id), recorded each under a key marking the second session, and told the run that 1 to 4 and plan-1 are taken. By the letter, the status would have been answered with the 12:08Z reply, which says no grant section exists (one had existed since 18:06Z), and the `resumed` with the setup-branch's reply and never applied, leaving the board halted. The team's helper for board events refuses a request whose id and attempt are already in the ledger, so the `resumed` was applied with the board's apply script directly.
