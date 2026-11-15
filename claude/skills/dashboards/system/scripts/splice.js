@@ -110,7 +110,7 @@ const MIGRATE = [
   /* the template's own comment above the embedded DSL, as boards made before dashboards-skill/33 carry it */
   [/A verbatim copy of workspace\.dsl: the presenter re-embeds the file here on every run,/g, "A verbatim copy of workspace.dsl, re-embedded here on every run,", "the DSL block's comment reworded"],
   [/\/\/(\s*)presenter:/g, "//$1fill:", "line mark // presenter: → // fill:"],
-  /* the classes renamed to carry their element's type (dashboards-skill/41, decided 2026-11-06): .kpi → .kpi-tile, .vp → .verdict-pill,
+  /* the classes renamed to carry their element's type (dashboards-skill/41): .kpi → .kpi-tile, .vp → .verdict-pill,
      .key → .legend, in the board's own HTML and CSS (its hand-written tiles and legends, a declared divergence's rules); a property access
      (x.key) is no selector and is left alone */
   [/(\bclass(?:Name)?="(?:[^"]*\s)?)kpi(?=[\s"])/g, "$1kpi-tile", "class kpi → kpi-tile"],
@@ -119,7 +119,7 @@ const MIGRATE = [
   [/(?<![\w$\])])\.kpi(?![-\w$])/g, ".kpi-tile", "selector .kpi → .kpi-tile"],
   [/(?<![\w$\])])\.vp(?![-\w$])/g, ".verdict-pill", "selector .vp → .verdict-pill"],
   [/(?<![\w$\])])\.key(?![-\w$])/g, ".legend", "selector .key → .legend"],
-  /* and the C4 tab's legend, .c4key → .c4-legend (decided 2026-11-06, with the three above) */
+  /* and the C4 tab's legend, .c4key → .c4-legend (with the three above) */
   [/(\bclass(?:Name)?="(?:[^"]*\s)?)c4key(?=[\s"])/g, "$1c4-legend", "class c4key → c4-legend"],
   [/(?<![\w$\])])\.c4key(?![-\w$])/g, ".c4-legend", "selector .c4key → .c4-legend"],
 ];

@@ -147,7 +147,7 @@ module.exports = function cases35(X) {
     const graph = { 55: { number: 55, subIssues: { nodes: units.map(n => node(n)) }, blockedBy: { nodes: [] }, blocking: { nodes: [] } },
       90: { number: 90, parent: null, blockedBy: { nodes: [node(80), node(81, { state: "CLOSED", stateReason: "NOT_PLANNED", closedAt: "2026-10-22T00:00:00Z" }), node(82, { state: "CLOSED", stateReason: "DUPLICATE", closedAt: "2026-10-22T00:00:00Z", timelineItems: { nodes: [{ canonical: node(83) }] } }), node(83)] }, blocking: { nodes: [] } } };
     issues.push({ number: 90, title: "Verification case #90", state: "OPEN", stateReason: null, closedAt: null, labels: [], createdAt: "2026-10-10T00:00:00Z" });
-    /* sized in the team's local state, #90 a row by it alone (the decision of 2026-11-14, batch-8/q-56: no label is read for a sizing) */
+    /* sized in the team's local state, #90 a row by it alone (no label is read for a sizing) */
     const st = wr(path.join(sc, "deps-state.json"), JSON.stringify({ grades: Object.fromEntries([...units, 80, 81, 82, 83, 90].map(n => [`${TRK.repo}#${n}`, 3])) }));
     const fx = wr(path.join(sc, "deps-tracker.json"), JSON.stringify({ issues, prs: [{ number: 501, state: "MERGED", headRefName: "80-verification" }], branches: [], graph }));
     const r = run(BOARD, ["--root", root], { env: { ...process.env, DASHBOARDS_TRACKER_FIXTURE: fx, DASHBOARDS_ADMIN_STATE: st } });
@@ -220,7 +220,7 @@ module.exports = function cases35(X) {
     c.push(["a copy whose merge the branch does not hold is not seeded", a2.status === 0 && !(S2.seeded || []).length && JSON.parse(rd(path.join(wt2, "docs", "plans", "55-http-client-stack", "47-java-23-bytecode", "plan.json"))).wip.step === "merge", js([a2.status, S2.seeded, S2.error])]);
   });
 
-  /* 8b. seeding at a sized with no board yet, in a worktree and in the main checkout (hook-9) */
+  /* 8b. seeding at a sized with no board yet, in a worktree and in the main checkout */
   guard("apply-event.js at sized on a folder with no board: the seed does not wait for the foundation, in a worktree and in a run's main checkout", c => {
     const main = path.join(sc, "seedn-main"), wt = path.join(sc, "seedn-wt"); fs.rmSync(wt, { recursive: true, force: true });
     const tdir = path.join(main, "docs", "plans", "55-http-client-stack"), sdir = path.join(tdir, "47-java-23-bytecode"), folder = "docs/plans/55-http-client-stack/62-http-core";

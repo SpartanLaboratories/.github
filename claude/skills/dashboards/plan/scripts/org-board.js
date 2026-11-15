@@ -85,7 +85,7 @@ function buildRepo(owner, name, privates, branchTrees) {
   /* a private repository named by a dependency is dropped with it */
   const privateDep = x => x && x.repo && privates.has(x.repo);
   (raw.rows || []).forEach(x => { x.waitsOn = (x.waitsOn || []).filter(d => !privateDep(d)); x.blocks = (x.blocks || []).filter(d => !privateDep(d)); });
-  /* a private repository's name in a public repository's text is elided (decision 5): a quoted title gives way to it on this board */
+  /* a private repository's name in a public repository's text is elided: a quoted title gives way to it on this board */
   { const seen = { n: 0 }; elideAll(raw, privates, seen); if (seen.n) process.stderr.write(`private repositories: ${seen.n} name${seen.n === 1 ? "" : "s"} elided in ${name}\n`); }
   r.source = { file: src.file, view: src.view, generated: raw.generated || null, asOf: raw.asOf || null };
   r.board = raw;

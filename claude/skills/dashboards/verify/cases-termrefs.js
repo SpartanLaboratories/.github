@@ -1,4 +1,4 @@
-// The cases of the element names checked (GUIDANCE.md §12, "The names, checked"; the decision of 2026-11-09, reading A; system/scripts/termrefs.js): the glossary,
+// The cases of the element names checked (GUIDANCE.md §12, "The names, checked"; system/scripts/termrefs.js): the glossary,
 // ui.md and boards.md (each found as termrefs.js's glossaryFiles() says), is the only home of the names, and the scan parses them from it. Run by verify-templates.js (it passes its helpers in), or on its own
 // with no browser: node verify/cases-termrefs.js.
 // 1. The real glossary parses: its terms, the compound names, the class list, and every ruled-out word quoted as retired in the file that rules it out.

@@ -1,4 +1,4 @@
-// The cases of release.nothingPublished (the user's decisions of 2026-11-11, the release-warning proposal's choices 1 to 6; plan/RULES.md §2,
+// The cases of release.nothingPublished (plan/RULES.md §2,
 // the release field and the Consequences Tab, §8, its fails and warnings; dated 59 in the feature probes), run by verify-templates.js (it
 // passes its helpers in), or on its own with no browser: node verify/cases-nothing-published.js [--out <dir>].
 // A change that touches no published artifact (no module it changes is a published module, as consequences.md's published-artifacts section

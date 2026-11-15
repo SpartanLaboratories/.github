@@ -1,4 +1,4 @@
-// The cases of the questions a halt puts to the user in any step (dashboards/halt-questions, the decision of 2026-11-07,
+// The cases of the questions a halt puts to the user in any step (dashboards/halt-questions,
 // dated 45; plan/RULES.md §3, wip.asked, §4, the halted / resumed row), run by verify-templates.js (it passes its helpers in), or on its own with
 // no browser: node verify/cases-halt-questions.js [--out <dir>]. The trigger: WebTools #69 halted in research with three questions and their
 // options, and its board showed what it waited on and three open points, not the questions.

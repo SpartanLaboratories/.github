@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // The fast path for a plan-board event (plan/RULES.md §4, "The fast path"): applies what the event's facts alone decide to the board,
-// deterministically and with no reasoning, so the admin team can run it itself in well under five seconds; what needs the folder's
-// documents is left to the presenter, who enriches the board afterwards (the summary's "enrich" line says whether, and why).
+// deterministically and with no reasoning, so the team can run it itself in well under five seconds; what needs the folder's
+// documents is left to a fill, which enriches the board afterwards (the summary's "enrich" line says whether, and why).
 //   node apply-event.js --event <request.json> --worktree <path> [--repo <owner/repo>] [--main <checkout>] [--at <ISO time>]
 //                       [--arrived <UTC ISO time>] [--view] [--no-live] [--no-gh] [--json]
-// --event      the admin-team protocol's plan-board request (action, event, folder, facts; the message's fenced json block, or the
+// --event      the team protocol's plan-board request (action, event, folder, facts; the message's fenced json block, or the
 //              JSON alone)
 // --worktree   the worktree the issue's board lives in; the board is <worktree>/<folder>
 // --repo       the GitHub slug, owner/repo; held to the request's github and the board's repo. A path to the main checkout is
@@ -44,53 +44,53 @@
 // A sized on a folder with no board lays the foundation itself and then applies the event to it (plan/RULES.md §4, "The foundation"; layFoundation(),
 // lib.js foundationPlan()), so the board can be opened within seconds of the run's start: the title, the issue's title and the function from
 // the event, the issue on the tracker (not with --no-gh), the parent's unit row or the registry, each from the first that tells it; what none
-// tells reads as being written, never invented, and the summary says enrich: yes, for the presenter to fill it behind the event. Should
+// tells reads as being written, never invented, and the summary says enrich: yes, for a fill to write it behind the event. Should
 // anything fail, it is as any failed event: nothing written, the summary names new.js --at with the event's time.
 // Only an explicit signal from the run moves the board's step (plan/RULES.md §4, the implementation-stage and qa-pass rows;
-// admin-team/dashboards-skill/explicit-step): an implementation-stage's facts.step has no effect and every stage done implies nothing, so the
+// dashboards-skill/explicit-step): an implementation-stage's facts.step has no effect and every stage done implies nothing, so the
 // step stays at implementation until the run's qa-pass with verdict "running", which opens the qa visit at the event's time; a returned verdict
 // with no running before it for that pass still applies, and says so (summary: warnings; wip.qa[].startUnrecorded, which check.js warns on).
-// Since admin-team/dashboards-skill/35: the Document step's event (document, facts.tasks, applied whole; a team-raised state-boards on a
+// Since dashboards-skill/35: the Document step's event (document, facts.tasks, applied whole; a team-raised state-boards on a
 // board in that flow is its state-boards task), the land in two steps (landing, merge), an approving qa pass leading to the Document step;
 // seeding at sized (a run's tree, a worktree or the main checkout, branched after a landing starts the boards the main checkout's live view
 // shows landed, seedFromView());
-// the team-raised seed (admin-team/dashboards-skill/level-1-seed), the seeding alone, board-less as reseed is: a grade-1 branch, which sends no sized and has no
+// the team-raised seed (dashboards-skill/level-1-seed), the seeding alone, board-less as reseed is: a docs-only branch, which sends no sized and has no
 // board, carries the repository's pending corrections through it, with its own unit on its tracking board marked complete where facts.tracking and facts.unit
 // name it (seed());
-// the team-raised unit-landed (admin-team/dashboards-skill/level-1-landed), with --view after the merge, board-less as seed is: that grade-1 unit landed
+// the team-raised unit-landed (dashboards-skill/level-1-landed), with --view after the merge, board-less as seed is: that docs-only unit landed
 // on its tracking board's view copy by the standing rule (unitLanded()); and at any unit's landing that is its tracking issue's last, the tracking
-// board's own landing once its impact is reconciled (lastUnitLanding()), else named for the presenter;
+// board's own landing once its impact is reconciled (lastUnitLanding()), else named for a fill;
 // an open point's report outside the tree copied when the point is raised, for the live view (runOpenJobs()), and every open point
 // resolved at the land (check.js fails one left open); a test set written by its old number written by its set's name.
 // The fast path owns the Timeline (plan/RULES.md §4, "The fast path owns the Timeline"): the merge's time at landed from facts.mergedAt, git in
 // the worktree, then the main checkout, then the pull request's merge time from the tracker (mergeTimes(), lib.js ghMergeTime(); not with
 // --no-gh), a warning where none tells it, never an enrichment; the seeding at sized records it from git where the landing could not; a
 // foundation it lays starts at the event's time.
-// Tracking plans land, then file (admin-team/dashboards-skill/option-d-and-decisions): architecture-signed-off moves a tracking board to its plan's document step; its
+// Tracking plans land, then file (dashboards-skill/option-d-and-decisions): architecture-signed-off moves a tracking board to its plan's document step; its
 // land follows; sub-issues-filed, raised after the merge with --view, moves it to "sub-issues", and a final one closes the filing with nothing
 // glowing; the first unit's sized seeds that copy, lays the unit's own board and moves the tracking board to implementation. No board is laid ahead
 // of its run: boards-created is refused, and an older board's record of it is read and drawn.
-// A grade is never written (levels.js): the laying reads it from the request, else the team's local state, for the kind and the steps line only; a board
+// The sizing is never written (levels.js): the laying reads it from the request, else the team's local state, for the kind and the steps line only; a board
 // not landed loses any it still holds at this rewrite (lib.js resolveBoard()); a landed one keeps them.
 // Events and fills share the boards' short lock (lib.js lockTree()), held for this whole run: a fill (fill.js) merges onto the latest plan.json behind it and
 // waits at most this run's second or two, so neither overwrites the other, and every file is written through a rename (lib.js atomicWrite()).
-// A stretch when the run was not running (run-restarted, facts { since, ended, reason }; team-raised; admin-team/board/timeline-outages): its
+// A stretch when the run was not running (run-restarted, facts { since, ended, reason }; team-raised; board/timeline-outages): its
 // bounds from the facts alone, recorded once, whichever visit it falls in (lib.js outageSteps()); it bounds the visits and no board mentions
-// it (decided 2026-11-05: time that is not counted is not mentioned), so it writes no wip.event, no event note and no trail entry (wip.updated still moves).
-// One event's recorded time corrected (retime, facts { event, from, to, reason }; team-raised; admin-team/dashboards/retime): every place the record holds
+// it (time that is not counted is not mentioned), so it writes no wip.event, no event note and no trail entry (wip.updated still moves).
+// One event's recorded time corrected (retime, facts { event, from, to, reason }; team-raised; dashboards/retime): every place the record holds
 // the old time moves to the new one (lib.js retimePlan(): plan.sized, the visits and their snapshots, the waits, the questions, the Tests tab's results, on a
 // day change its trail entry's date; on a sub-issue its tracking board's record of it too), with one notes.corrections entry; refused, nothing written,
 // where the record does not hold the old time, another event is named at it, it bounds a stretch when the run was not running, or the new time crosses
 // any other recorded time. No wip.event, no note, no trail entry; a landed or cancelled board takes it, kept as it closed (not re-rendered). Raised again, a duplicate.
-// One event's recorded text reworded (reword, facts { event, recordedAt, from, to, reason }; admin-team/dashboards-skill/reword-event): every place the
+// One event's recorded text reworded (reword, facts { event, recordedAt, from, to, reason }; dashboards-skill/reword-event): every place the
 // event's record holds the passage (lib.js rewordPlan(): its reports by their finished time, its detail, its questions by their asked time, a review's
 // note, every whole copy, its trail entry; on a sub-issue the tracking board's mirror at the re-embed), one notes.corrections entry keeping the passages as
 // digests; refused before nothing is written where the record does not hold it, the event is the team's, the new wording breaks the writers' rule, or the
-// board is past its Document commit. Both corrections may be the run's own (raised with --arrived, RUN_SENT; the user's decision of 2026-11-13): its own
+// board is past its Document commit. Both corrections may be the run's own (raised with --arrived, RUN_SENT): its own
 // events only, a retime until its land is sent, a clock reading to the second, never later than the event's arrival can have been.
 // A halt in the Document step applies the facts.tasks it carries as a document event does, stamped at the halt's time, the halt otherwise
-// unchanged (admin-team/dashboards-skill/halt-tasks, KotlinBottools #24); the summary's "unread" line names every fact the event carried and no
-// path of it read, so none is dropped in silence (admin-team/dashboards-skill/unread-facts; trackFacts()).
+// unchanged (dashboards-skill/halt-tasks, KotlinBottools #24); the summary's "unread" line names every fact the event carried and no
+// path of it read, so none is dropped in silence (dashboards-skill/unread-facts; trackFacts()).
 "use strict";
 const T0 = Date.now();
 const fs = require("fs"), path = require("path"), cp = require("child_process");
@@ -109,8 +109,8 @@ const opt = n => lib.opt(args, n, null), flag = n => lib.flag(args, n);
 const ARRIVAL_TOLERANCE_S = 120;
 const ARRIVED = opt("arrived");
 /* a run's own request: every run's event is raised with --arrived, a team-raised one without it (plan/RULES.md §4, "The event's time"), so a
-   retime or reword raised with it is the run's own correction, held to the limits of the user's decision of 2026-11-13 (the open choice of that
-   day, built to its recommendation: the board stores no sender, and --arrived is the one mark the team gives every run's event) */
+   retime or reword raised with it is the run's own correction, held to a run's limits (the board stores no sender, and --arrived is the one
+   mark the team gives every run's event) */
 const RUN_SENT = ARRIVED != null;
 if (ARRIVED != null && (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/.test(ARRIVED) || isNaN(Date.parse(ARRIVED)))) { console.error(`${USAGE}\n(--arrived takes the request's arrival time as an ISO time with its zone, e.g. 2026-11-09T14:03:27Z; got ${JSON.stringify(ARRIVED)})`); process.exit(2); }
 
@@ -136,7 +136,7 @@ const say = () => {
 };
 class Refusal extends Error {}
 const refuse = m => { throw new Refusal(m); };
-/* The facts the event carries and does not read (admin-team/dashboards-skill/unread-facts): never dropped in silence. Every top-level key of the
+/* The facts the event carries and does not read (dashboards-skill/unread-facts): never dropped in silence. Every top-level key of the
    request's facts is recorded as any path of this run reads it (trackFacts(), a Proxy over the facts); once the event has applied, the summary's
    "unread" line (in --json, the unread field) names each key the event carried that no path read, so the team's reply can pass it on to the run
    (a fact sent at the wrong event, a misspelt key, a field the board has no place for). A copy of the facts with a key set or dropped
@@ -189,11 +189,11 @@ function readRequest(file) {
 
 const ID = /^[a-z0-9][a-z0-9-]*$/, STEPS = ["sizing", "interview", "research", "architecture", "sub-issues", "boards", "plan", "branch", "implementation", "qa", "remediation", "document", "landing", "state-boards", "merge", "landed", "halted", "escalated", "cancelled"];
 /* the remediation routes (plan/RULES.md §5, "QA"): their ids name no role (dashboards-skill/33); a request (or a board) that carries the
-   older ids, rookie-dev and planner-then-rookie-dev, is read through routeId() and written with the new ones */
+   older ids, each named for a role, is read through routeId() and written with the new ones */
 const ROUTES = ["on-the-spot", "remediation", "re-plan-then-remediation"], SSTATES = ["done", "current", "todo"];
 const ROUTE_OLD = { "rookie-dev": "remediation", "planner-then-rookie-dev": "re-plan-then-remediation" };
 const routeId = r => (typeof r === "string" && ROUTE_OLD[r]) || r;
-/* a step named in the run's own words (admin-team/board/timeline-waits): "implement", the pipeline's name of its implementation step. Any
+/* a step named in the run's own words (board/timeline-waits): "implement", the pipeline's name of its implementation step. Any
    event that reads facts.step may use it; an implementation-stage reads none (its facts.step has no effect, applyEvent()) */
 const STEP_ALIASES = { implement: "implementation", implementing: "implementation" };
 /* a step written as the run's own step list labels it (SpartanGraphics #3: "2. Plan (applying the verification's edits)"): the step's
@@ -203,7 +203,7 @@ const STEP_ALIASES = { implement: "implementation", implementing: "implementatio
 const stepLabel = s => s.replace(/^\d+(?:\.\d+)*[.)]?\s+(?=\S)/, "").replace(/\s*\([^()]*\)$/, "").trim();
 /* a tracking board has no plan step (plan/RULES.md §3): its run's plan step is its architecture, so a facts.step in these words, on any
    event, is read as the board's architecture step (trackingArchStep()) and never opens wip.plan (KotlinBottools #2,
-   admin-team/dashboards/tracking-step-plan). On an issue board "planning" stays unread: there it may name research's planning phase. */
+   dashboards/tracking-step-plan). On an issue board "planning" stays unread: there it may name research's planning phase. */
 const TRACKING_PLAN_WORDS = new Set(["plan", "planning"]);
 /* The column a step's trail entry sits in. */
 const STEP_COLUMN = { "sub-issues": "considered", boards: "considered", sizing: "gap", interview: "gap", research: "gap", architecture: "considered", plan: "verdict", branch: "built", implementation: "built", qa: "built", remediation: "built", document: "built", landing: "built", "state-boards": "built", merge: "built", landed: "built", cancelled: "built" };
@@ -220,7 +220,7 @@ const retimeStamp = s => new Date(s).toISOString().replace(/\.\d+Z$/, "Z");
 function applyEvent(orig, ev, facts, req, now) {
   const plan = JSON.parse(JSON.stringify(orig)), applied = [], enrich = [], resolved = [], today = now.slice(0, 10);
   const w = plan.wip = plan.wip && typeof plan.wip === "object" ? plan.wip : {};
-  /* Only an explicit signal from the run moves the board's step (admin-team/dashboards-skill/explicit-step): an implementation-stage's
+  /* Only an explicit signal from the run moves the board's step (dashboards-skill/explicit-step): an implementation-stage's
      facts.step has no effect, whatever it names, "remediation" included, and every stage done does not imply qa: the step stays at
      implementation until the run's qa-pass with verdict "running". Remediation is recognised from the report alone: facts.remediation, or a
      report while the board stands at remediation, which is that remediation's, so a "qa" sent after one is ignored too and the board waits
@@ -232,7 +232,7 @@ function applyEvent(orig, ev, facts, req, now) {
     facts = rest;
     if (said) applied.push(`facts.step ${JSON.stringify(said)} ignored: an implementation-stage moves no step of its own`);
   }
-  /* the step the facts name on any other event, in the run's own words where they differ from the board's (admin-team/board/timeline-waits:
+  /* the step the facts name on any other event, in the run's own words where they differ from the board's (board/timeline-waits:
      "implement" is the implementation step); a facts.step that names no step is warned on, never dropped silently, and the step is derived
      from the event: the field is dropped, so no event takes it for a step (a resumed returns to the board's wip.resume) */
   if (ev === "step-complete" && typeof facts.step === "string" && facts.step.trim()) { applied.push(`facts.step ${JSON.stringify(facts.step.trim())} ignored: a step-complete moves no step`); facts = factsWith(facts, null, ["step"]); }
@@ -251,23 +251,23 @@ function applyEvent(orig, ev, facts, req, now) {
      dashboards-skill/34 (lib.js documentSteps()); a landed or cancelled board keeps its line */
   if (ev !== "step-complete" && Array.isArray(w.steps) && !["built", "abandoned"].includes(plan.status) && !["landed", "cancelled"].includes(w.step)) { const ls = lib.documentSteps(w.steps, lib.shownStep(w)); if (ls !== w.steps) { w.steps = ls; applied.push(`wip.steps: ${ls.includes("document") ? "the Document step before the landing, merge after it" : "state-boards and merge after the landing"}`); } }
   const rows = Array.isArray(plan.rows) ? plan.rows : [], ids = new Set(rows.map(r => r && r.id)), tracking = plan.kind === "tracking";
-  /* a text from the facts, as one line; a grade in it (GUIDANCE.md §4) is never written: the phrase is
-     reworded or elided (levelrefs.js scrubLevels(): "inside grade 3" → "inside the unit's scope" on a sub-issue's board, "the issue's"
-     elsewhere; "a grade-3 re-pass" → "a re-pass"; "Label grade: 3" dropped), and the text is left out only when a grade would remain; the
-     presenter is told either way (admin-team/dashboards-skill/23) */
+  /* a text from the facts, as one line; a sizing in it (GUIDANCE.md §4) is never written: the phrase is
+     reworded or elided as levelrefs.js scrubLevels() says (its scope phrase becomes the unit's scope on a sub-issue's board, the issue's
+     elsewhere; a numbered sizing before a noun elided; a sizing label dropped), and the text is left out only when a sizing would remain; a
+     fill is asked for either way (dashboards-skill/23) */
   const scope = plan.parent ? "unit" : "issue";
-  /* an identifier (the branch, the version) is never reworded: one that names a grade is left out, as before */
+  /* an identifier (the branch, the version) is never reworded: one that names a sizing is left out, as before */
   const IDENT = new Set(["branch", "version"]);
   /* then an internal name (GUIDANCE.md §4, "No internal names"; namerefs.js scrubNames(), dashboards-skill/33): the pipeline's agents,
-     sessions and roles and the approval flow are never written either: "accepted by the admin team" → "accepted", "a planner re-pass"
-     → "a plan re-pass", "rookie-dev's fixes" → "the fixes", "(the user's call)" dropped; a text that still names a barred name, whatever
-     the words around it, is left out and named for the presenter */
+     sessions and roles and the approval flow are never written either: namerefs.js scrubNames() drops an agent phrase, writes a possessive as the article
+     and a role before its work as the work, and drops an aside on the approval flow; a text that still names a barred name, whatever
+     the words around it, is left out and named for a fill */
   const shortJ = r => JSON.stringify(r.length > 80 ? r.slice(0, 79) + "…" : r);
   const txt = (v, field) => {
     if (typeof v !== "string" || !v.trim()) return null;
     let s = v.replace(/\s+/g, " ").trim();
     /* a test set written by its old number is written by its set's name ("L2 test" → "component test", "L2 component" → "component";
-       levelrefs.js nameTestLevels(), admin-team/dashboards-skill/35): a rewording the facts alone decide */
+       levelrefs.js nameTestLevels(), dashboards-skill/35): a rewording the facts alone decide */
     if (!IDENT.has(field)) { const nt = nameTestLevels(s); if (nt.named.length) { s = nt.text; applied.push(`facts.${field}: ${nt.named.join(", ")} written by ${nt.named.length === 1 ? "its set's name" : "their sets' names"} (${nt.as.join(", ")})`); } }
     /* a qa pass is named "Quality Review N" (passnames.js renamePassText(); "qa pass 1's fixes" → "Quality Review 1's fixes"): a rewording
        the facts alone decide, so neither a run nor a fill brings the older wording back */
@@ -379,14 +379,14 @@ function applyEvent(orig, ev, facts, req, now) {
     }
     case "halted": {
       if (!["waitingOn", "detail"].some(k => typeof facts[k] === "string" && facts[k].trim())) refuse("halted carries no facts.waitingOn (what waits on the user)");
-      /* a text the board cannot show (a grade) gives way to a plain one; the presenter is told (txt) */
+      /* a text the board cannot show (a sizing) gives way to a plain one; a fill is asked for (txt) */
       const waiting = txt(facts.waitingOn, "waitingOn") || txt(facts.detail, "detail") || "An answer.";
       const resume = stopped(w.step) ? w.resume : w.step;
       if (!resume || stopped(resume)) refuse("halted: the board records no step to resume at");
       if (w.resume !== resume) { w.resume = resume; applied.push(`wip.resume ${resume}`); }
       setStep("halted");
       if (w.waitingOn !== waiting) { w.waitingOn = waiting; applied.push("wip.waitingOn"); }
-      /* the questions the halt puts to the user, with the options each offers (admin-team/dashboards/halt-questions, dated 45): at a halt
+      /* the questions the halt puts to the user, with the options each offers (dashboards/halt-questions, dated 45): at a halt
          in any step, the interview's into wip.interview, any other step's into wip.asked with the step it halted in; the same question
          put again while it waits is no second one (the same event twice writes nothing more) */
       if (Array.isArray(facts.questions)) {
@@ -399,7 +399,7 @@ function applyEvent(orig, ev, facts, req, now) {
           list.push({ ...(iv ? {} : { step: resume }), text, ...(options.length ? { options } : {}), answer: null, asked: now }); applied.push(`wip.${key} + "${text.slice(0, 40)}"`);
         });
       }
-      /* the Document step's tasks a halt in it carries (admin-team/dashboards-skill/halt-tasks): the protocol gives facts.tasks at document, and
+      /* the Document step's tasks a halt in it carries (dashboards-skill/halt-tasks): the protocol gives facts.tasks at document, and
          a run that halts in the Document step may send them with the halt, as it reports where it stopped. They are applied as a document event
          applies them (mergeTasks(), forward: the team's tasks never moved back), each task that changes state stamped at the halt's time and a
          task done taking the halt's own detail as its report, so the panel the wait shows says what the run reported. The halt stays a halt:
@@ -419,7 +419,7 @@ function applyEvent(orig, ev, facts, req, now) {
         }
       }
       detail = detail || `Waiting on you: ${waiting}`;
-      /* a fix step by its route alone, "Halted at Correction", never its pass (passnames.js haltWords(); admin-team/dashboards/call-3) */
+      /* a fix step by its route alone, "Halted at Correction", never its pass (passnames.js haltWords(); dashboards/call-3) */
       trail = { column: STEP_COLUMN[resume] || "built", label: `Halted at ${lib.haltWords(resume, lib.ctxOf(w))}: waiting on you (${waiting})` };
       break;
     }
@@ -488,7 +488,7 @@ function applyEvent(orig, ev, facts, req, now) {
     }
     case "researched": {
       const q = qs(), none = q.filter(x => x.findings == null);
-      /* nothing to research (the user's decision of 2026-11-13, batch-4/q-2 (a); plan/RULES.md §4, the researched row): a researched that names no
+      /* nothing to research (plan/RULES.md §4, the researched row): a researched that names no
          documents, on a board that records no research question, says the run decided there was nothing to research. The board moves on at the
          event's time and records that, never a research that left no record: wip.research.nothing, its own detail and trail entry, and no
          enrichment from research documents that do not exist (the Gap was written at sized, from the issue and the code). */
@@ -515,7 +515,7 @@ function applyEvent(orig, ev, facts, req, now) {
     case "architecture-signed-off": {
       if ((w.questions || []).length || w.research) applied.push("wip.questions and wip.research cleared");
       w.questions = []; w.research = null;
-      /* a tracking board has no plan step: a plan pass a sized at "plan" left standing is cleared here (KotlinBottools #2, admin-team/dashboards/tracking-plan-events) */
+      /* a tracking board has no plan step: a plan pass a sized at "plan" left standing is cleared here (KotlinBottools #2, dashboards/tracking-plan-events) */
       if (tracking && w.plan) { w.plan = null; applied.push("wip.plan cleared (a tracking board has no plan step)"); }
       /* a tracking board's own steps after its architecture: its plan's documents and its land; its units are filed after the merge */
       const next = tracking ? "document" : "landing";
@@ -527,7 +527,7 @@ function applyEvent(orig, ev, facts, req, now) {
       trail = { column: "considered", label: "Architecture signed off", ref: docRef("architecture.md") };
       break;
     }
-    /* team-raised after the plan's merge, with --view (plan/RULES.md §4; admin-team/dashboards-skill/28): the units filed as sub-issues, each event
+    /* team-raised after the plan's merge, with --view (plan/RULES.md §4; dashboards-skill/28): the units filed as sub-issues, each event
        per unit (facts.units [{unit: <row id>, issue: n}], one or more at a time) and a final one closing the step (facts.final: true). The
        first event ends the plan's merge. The glow is the units with no issue yet (lib.js filingGlow()), so each unit stops glowing as its issue is
        recorded; the counts are read from the rows. The final event, once every unit is filed, leaves the step at sub-issues with nothing glowing, until
@@ -540,11 +540,11 @@ function applyEvent(orig, ev, facts, req, now) {
         if (!Number.isInteger(n) || n <= 0) { enrich.push(`sub-issues-filed gives ${id} no issue number`); return; }
         if (r.unit.issue !== n) { r.unit.issue = n; applied.push(`${id}: unit.issue #${n}`); } });
       /* a unit's dependencies named by unit number before the filing ({ unit: k }) become the blocker's issue number as each blocker is filed
-         (lib.js mapUnitBlockers(); admin-team/dashboards/unit-blockers-before-filing), so every unit links its blockers once they are filed */
+         (lib.js mapUnitBlockers(); dashboards/unit-blockers-before-filing), so every unit links its blockers once they are filed */
       lib.mapUnitBlockers(plan).forEach(m => applied.push(m));
       /* each filed unit whose run has not started reads as filed: its pending summary, still the one written before the filing ("Not filed yet…"),
          or one this event wrote before (lib.js filedSummary()), becomes "Filed as #n; its run has not started." and when it starts, by its
-         blockers; a summary written otherwise (the presenter's, naming its blockers in words) is kept (KotlinBottools #27's four unit rows) */
+         blockers; a summary written otherwise (a fill's, naming its blockers in words) is kept (KotlinBottools #27's four unit rows) */
       lib.filedSummaries(plan).forEach(m => applied.push(m));
       const units = rows.filter(r => r && r.unit), filed = units.filter(lib.unitFiled).length, final = facts.final === true, all = units.length > 0 && filed === units.length;
       const stray = units.filter(r => (r.unit.blockedBy || []).some(lib.isUnitRef)).map(r => r.id);
@@ -567,7 +567,7 @@ function applyEvent(orig, ev, facts, req, now) {
       w.questions = []; w.research = null; w.plan = null;
       /* A tracking board has no plan, branch or build step before its units are filed (plan/RULES.md §3, §4): its run's plan-accepted
          (the architecture final with its units) keeps it in its own line, never at branch, where a unit not yet filed fails the check
-         (KotlinBottools #2, admin-team/dashboards/tracking-plan-events). */
+         (KotlinBottools #2, dashboards/tracking-plan-events). */
       if (tracking) {
         withUnitSteps(w, applied);
         const next = trackingPlanStep(w); setStep(next); setGlow(next);
@@ -589,7 +589,7 @@ function applyEvent(orig, ev, facts, req, now) {
       if (!b && !plan.branch) enrich.push("branch-cut names no branch");
       /* A tracking board's build is its units' runs, after their filing (plan/RULES.md §3): its run's branch-cut records the planning branch,
          its facts.stages are the units its rows already hold, so no wip.stages are written and the board stays in its own line
-         (KotlinBottools #2, admin-team/dashboards/tracking-plan-events). */
+         (KotlinBottools #2, dashboards/tracking-plan-events). */
       if (tracking) {
         withUnitSteps(w, applied);
         const units = rows.filter(r => r && r.unit), said = Array.isArray(facts.stages) ? facts.stages.length : 0;
@@ -721,7 +721,7 @@ function applyEvent(orig, ev, facts, req, now) {
       const entry = { pass: Q.pass, verdict, date: today, at: now, findings, ...(Object.keys(severity).length ? { severity } : {}), ...(verdict === "changes-requested" && route ? { route } : {}) };
       const qn = txt(Q.note, "qa.note"); if (qn) entry.note = qn;
       w.qa = Array.isArray(w.qa) ? w.qa : []; const k = w.qa.findIndex(x => x && x.pass === Q.pass);
-      /* the pass's test report (facts.qa.report, build/reports/tests/index.html; admin-team/dashboards-skill/35): a build output, never
+      /* the pass's test report (facts.qa.report, build/reports/tests/index.html; dashboards-skill/35): a build output, never
          committed, so recorded as plain text (its path from the repository root), and copied once, when the pass returns, under the
          git-ignored docs/plans/.live/open/ for the live view to link (reportCopy); a pass recorded before keeps its copy */
       const had = k >= 0 ? w.qa[k] : null;
@@ -738,7 +738,7 @@ function applyEvent(orig, ev, facts, req, now) {
       if (Array.isArray(facts.open)) mergeOpen(w, facts, applied, txt, lib.passName(Q.pass), resolved, plan.folder, DIR, enrich, now, ev);
       if (w.qaMax !== 3 && !Number.isInteger(w.qaMax)) w.qaMax = 3;
       /* what the pass returned, its findings line: the count, the severities, the kinds (passnames.js findingsWords(): "18 findings (2 minor,
-         16 other; 3 documentation, 15 code)"; admin-team/dashboards/call-5) */
+         16 other; 3 documentation, 15 code)"; dashboards/call-5) */
       const counts = lib.findingsWords(findings, severity);
       const anyFinding = Object.values(findings).some(n => n > 0);
       if (verdict === "approved") {
@@ -784,17 +784,17 @@ function applyEvent(orig, ev, facts, req, now) {
       break;
     }
     /* landing and merge reach the view copies with --view (the land has committed the board; plan/RULES.md §4, "The live view of a landing").
-       team-raised (plan/RULES.md §4), the landing in three steps (admin-team/dashboards-skill/34): "landing", the land accepted, the branch
+       team-raised (plan/RULES.md §4), the landing in three steps (dashboards-skill/34): "landing", the land accepted, the branch
        brought up to date and the code, the version bump and the reconciled documents committed on it; "state-boards", the pre-merge refresh
        of the state boards on the branch, stamped at its head, and its board commit; "merge", the pull request merged. "landed" is applied
        after the merge (the post-merge refresh shows it in the live view; the next landing commits it). Each records its visit's time: the
        step's since, and the step before frozen with its end (wip.history). */
-    /* The Document step (admin-team/dashboards-skill/35), between qa (or remediation) and the land: facts.tasks [{id, name, state}], ids
+    /* The Document step (dashboards-skill/35), between qa (or remediation) and the land: facts.tasks [{id, name, state}], ids
        documentation-review, reconcile-documentation, dokka-check, reconcile-plan, readme-changelog, state-boards and document-landing, states
        done | current | todo, merged by id into wip.document.tasks (a task the event leaves out keeps its state; several may be current: the
-       tasks may run in parallel). The admin team raises the state-boards task itself when it accepts the run's state-boards request: a
+       tasks may run in parallel). The team raises the state-boards task itself when it accepts the run's state-boards request: a
        "state-boards" event on a board in this flow is that task, current (below). The document-landing task is the team's too: state-boards
-       with facts.done moves it to current, and the team raises this event naming it done, just before the executor commits, so the committed
+       with facts.done moves it to current, and the team raises this event naming it done, just before the commit is made, so the committed
        board carries it closed; naming it done is refused while another task on the list is not done (mergeTasks()). This event never moves either of the two back (mergeTasks()), so a run's list, which may lack them or carry
        an older state, cannot undo them. Applied whole on the fast path: the step, the tasks, the glow, the detail and the trail entry; nothing
        needs the documents. */
@@ -854,7 +854,7 @@ function applyEvent(orig, ev, facts, req, now) {
       /* the merge's time and the branch's step commits, for the Timeline tile (plan/RULES.md §2, "The KPI tiles"; dashboards-skill/32):
          the fast path owns them (plan/RULES.md §4, "The fast path owns the Timeline"): facts.mergedAt when given, else git (the worktree,
          then the main checkout), else the pull request's merge time from the tracker; what none can tell is left unrecorded, never
-         guessed, and recorded from git when the next run's sized seeds this board (seedFromView()); never the presenter's */
+         guessed, and recorded from git when the next run's sized seeds this board (seedFromView()); never a fill's */
       const mt = mergeTimes(plan, facts, req, next.merge || sha || null, next.pr || null);
       if (mt.at) next.at = mt.at; if (Array.isArray(mt.commits) && mt.commits.length) next.commits = mt.commits;
       if (mt.applied) applied.push(mt.applied);
@@ -879,11 +879,11 @@ function applyEvent(orig, ev, facts, req, now) {
       if (plan.parent) parentOp = { kind: "landed" };
       break;
     }
-    /* team-raised (plan/RULES.md §4; admin-team/board/timeline-outages): a request reported a restart, or a run's request came from a
+    /* team-raised (plan/RULES.md §4; board/timeline-outages): a request reported a restart, or a run's request came from a
        different session than its last one, so the run was not running from facts.since to facts.ended. Its bounds come from the facts alone
        and it is never inferred from a gap between events (a gap in one session's requests is never a break); nothing else in the facts is read. The step does not change: the visit it falls in
        is cut around it (lib.js outageSteps()). The same bounds again are a duplicate (main()). No wip.event, no event note and no trail entry: the stretch
-       drops out of the times and no board mentions it (decided 2026-11-05); wip.outages and the cut visit's outage field keep it as data. */
+       drops out of the times and no board mentions it; wip.outages and the cut visit's outage field keep it as data. */
     case "run-restarted": {
       if (["built", "abandoned"].includes(plan.status) || ["landed", "cancelled"].includes(w.step)) refuse(`run-restarted: the board has ${plan.status === "abandoned" || w.step === "cancelled" ? "been cancelled" : "landed"} already, and a finished run's board is kept as it ended`);
       if (!lib.isTime(facts.since) || !lib.isTime(facts.ended)) refuse(`run-restarted carries no facts.since and facts.ended, the UTC ISO times the run stopped and came back (got ${JSON.stringify([facts.since || null, facts.ended || null])})`);
@@ -900,7 +900,7 @@ function applyEvent(orig, ev, facts, req, now) {
       note = null; /* no event note, not even one the facts carry, and no wip.event (below): the stretch is mentioned nowhere */
       break;
     }
-    /* One event's recorded time corrected (team-raised; admin-team/dashboards/retime; plan/RULES.md §4, the retime row): facts.event, the event
+    /* One event's recorded time corrected (team-raised; dashboards/retime; plan/RULES.md §4, the retime row): facts.event, the event
        retimed, facts.from, the time the record holds for it, facts.to, the time it should hold, facts.reason, in plain words. Every place the
        record holds the old time moves to the new one (lib.js retimePlan()), and one notes.corrections entry says so (plan/RULES.md §2: a
        factual error is corrected in place under notes.corrections). It is refused, nothing written, where the record does not hold the old
@@ -918,9 +918,9 @@ function applyEvent(orig, ev, facts, req, now) {
       if (from === to) refuse(`retime: facts.from and facts.to are the same time, ${to}: nothing to correct`);
       if (Date.parse(to) > Date.parse(now)) refuse(`retime: facts.to ${to} is after the retime's own time ${now}: a time is never recorded ahead of the record`);
       if (typeof facts.reason !== "string" || !facts.reason.trim()) refuse("retime carries no facts.reason (why the recorded time is wrong, in plain words)");
-      /* a run's own retime (raised, as every run's event, with --arrived; the user's decision of 2026-11-13, dashboards/run-sent-corrections): only
-         for its own events (never the team's records, lib.js TEAM_RECORDS), only until its land is sent, and, the bounds the user did not state,
-         built to their recommendation (open choices of 2026-11-13): its facts.to a clock reading to the second, as `date -u +%FT%TZ` writes it,
+      /* a run's own retime (raised, as every run's event, with --arrived): only
+         for its own events (never the team's records, lib.js TEAM_RECORDS), only until its land is sent, and within two bounds:
+         its facts.to a clock reading to the second, as `date -u +%FT%TZ` writes it,
          and never later than the event's arrival can have been, its recorded time plus the arrival tolerance (an event happens before it is sent,
          and its recorded time is its arrival, or within the tolerance of it). Earlier, a time is bounded as every retime's is: never past a
          neighbouring recorded time. */
@@ -948,14 +948,14 @@ function applyEvent(orig, ev, facts, req, now) {
       note = null; /* no event note and no wip.event (below): the correction is said once, in its notes.corrections entry */
       break;
     }
-    /* One event's recorded text reworded (admin-team/dashboards-skill/reword-event; the user's decisions of 2026-11-13, dashboards/reword-event
-       and dashboards/run-sent-corrections; plan/RULES.md §4, the reword row): facts.event, the run's event whose text it is, facts.recordedAt,
+    /* One event's recorded text reworded (dashboards-skill/reword-event;
+       plan/RULES.md §4, the reword row): facts.event, the run's event whose text it is, facts.recordedAt,
        the time the record holds for it, facts.from, the passage as the record holds it, facts.to, what it should read (empty to take it out),
-       facts.reason, in plain words. Sent by the run for its own events, or raised by the team at the presenter's word; either way only before
+       facts.reason, in plain words. Sent by the run for its own events, or raised by the team when a board correction asks for it; either way only before
        the board's Document commit, never on a board that has landed or was cancelled, never for the team's records (lib.js TEAM_RECORDS). Every
        place the record holds the passage takes the new wording (lib.js rewordPlan()), and one notes.corrections entry says so, keeping the
        passages as digests (the withdrawn wording never returns to the board through its note). facts.to is held to the writers' one rule and
-       refused, never reworded, where it would carry a grade, an internal name, an older wording of a step's name or a test set by number: a
+       refused, never reworded, where it would carry a sizing, an internal name, an older wording of a step's name or a test set by number: a
        reword writes the wording it was asked to write, or none. No wip.event, no event note, no trail entry of its own; the step, the times, the
        FullPulse and the states do not change; wip.updated moves, never back. On a sub-issue the tracking board's mirror of the run follows
        at its re-embed (main()). Raised again (its entry on record), a duplicate (main()). Nothing else in the facts is read. */
@@ -1016,7 +1016,7 @@ function applyEvent(orig, ev, facts, req, now) {
     default: refuse(`unknown event ${JSON.stringify(ev)}`);
   }
   /* The Tests tab (plan/RULES.md §2, "The Tests tab"): an event that carries facts.tests has it applied (testslib.js mergeTests()); an
-     implementation stage or a qa verdict without one leaves the tab to the presenter, from the branch's diff and the qa report */
+     implementation stage or a qa verdict without one leaves the tab to a fill, from the branch's diff and the qa report */
   if (facts.tests != null && ev !== "retime" && ev !== "reword") {
     if (tracking) enrich.push("facts.tests on a tracking board: its units' boards record the tests (the presenter writes them there)");
     else { const qp = ev === "qa-pass" && facts.qa && Number.isInteger(facts.qa.pass) ? facts.qa.pass : null;
@@ -1036,7 +1036,7 @@ function applyEvent(orig, ev, facts, req, now) {
   if (keepLine) { if (detail != null && detail !== w.detail) applied.push("wip.detail kept: a late report, its detail recorded on the stages it closes"); }
   else if (detail !== w.detail) { w.detail = detail; applied.push("wip.detail"); }
   const evRec = { name: ev, at: now, ...(note ? { note } : {}) };
-  /* run-restarted leaves wip.event as it was (plan/RULES.md §4; decided 2026-11-05): it is no event of the run's, and a later resumed reads the
+  /* run-restarted leaves wip.event as it was (plan/RULES.md §4): it is no event of the run's, and a later resumed reads the
      run's own last event, never the break; wip.updated still moves */
   /* retime leaves it too: it is a correction of the record, said in its notes.corrections entry; and its wip.updated never goes back (a
      correction raised with an older time than the board's last write still changed the board after it) */
@@ -1052,10 +1052,10 @@ function applyEvent(orig, ev, facts, req, now) {
   resolved.forEach(o => { const t = { date: today, column: "built", label: `Open point resolved: ${o.text}`, ...(o.ref ? { ref: o.ref } : {}) };
     plan.trail = Array.isArray(plan.trail) ? plan.trail : [];
     if (!plan.trail.some(x => x && x.label === t.label)) { plan.trail.push(t); applied.push("trail +1 (open point resolved)"); } });
-  /* the finished step's snapshot (plan/RULES.md §3, "Finished steps"; admin-team/dashboards-skill/24): when the event ends the step the
+  /* the finished step's snapshot (plan/RULES.md §3, "Finished steps"; dashboards-skill/24): when the event ends the step the
      panel showed (or a remediation loop, or returns a qa verdict), its panel's facts are frozen into wip.history.<step>, as they stood */
   /* the questions put at a halt are answered once the run is out of it: at a resumed, or at any other event that takes the board out of the
-     stop but cancelled (admin-team/dashboards/halt-questions, dated 45) */
+     stop but cancelled (dashboards/halt-questions, dated 45) */
   { const was = stopped((orig.wip || {}).step); if (ev === "resumed" || (was && !stopped(w.step) && ev !== "cancelled")) applied.push(...lib.answerQuestions(w, now)); }
   applied.push(...lib.freezeSteps(orig, plan, ev, now, facts));
   /* a halt's Document tasks on the visit that halt ended (haltTasks): the freeze takes them where it freezes the visit now; a halt raised
@@ -1071,7 +1071,7 @@ function applyEvent(orig, ev, facts, req, now) {
 }
 
 /* wip.stages from facts.stages ([{id, name, state}]), each keeping the rows the board records for it (plan.md's stages, written by the
-   presenter); at branch-cut a list with no states starts with the first current and the rest to do. */
+   a fill); at branch-cut a list with no states starts with the first current and the rest to do. */
 /* A tracking board's steps line with its filing step after its plan's merge (plan/RULES.md §3): inserted where a board written before it lacks it; an older line that has sub-issues (and boards) keeps them where they stand. */
 function withUnitSteps(w, applied) {
   const st = Array.isArray(w.steps) ? w.steps.slice() : [];
@@ -1079,7 +1079,7 @@ function withUnitSteps(w, applied) {
   const at = st.indexOf("merge"); if (at < 0) return;
   st.splice(at + 1, 0, "sub-issues"); w.steps = st; applied.push("wip.steps: sub-issues after the merge");
 }
-/* The step a tracking board stands at once its architecture is final (its run's plan-accepted and branch-cut, admin-team/dashboards/tracking-plan-events):
+/* The step a tracking board stands at once its architecture is final (its run's plan-accepted and branch-cut, dashboards/tracking-plan-events):
    the step it already stands at when that is past its architecture in its own line (the Document step, its land, the filing, its units' runs),
    else its plan's documents (document), as architecture-signed-off moves it; a stop is ended there, as any event ends it. */
 function trackingPlanStep(w) {
@@ -1089,7 +1089,7 @@ function trackingPlanStep(w) {
 }
 /* The step a tracking board's "plan" names (TRACKING_PLAN_WORDS): its architecture, the step its run's plan is; once the board stands past
    its architecture in its own line (signed off: the Document step, its land, the filing, its units' runs), the step it stands at, so a
-   "plan" sent then (a resumed after a halt in the run's plan step) never moves a signed-off board back (admin-team/dashboards/tracking-step-plan). */
+   "plan" sent then (a resumed after a halt in the run's plan step) never moves a signed-off board back (dashboards/tracking-step-plan). */
 function trackingArchStep(w) {
   const at = lib.shownStep(w), line = Array.isArray(w.steps) ? w.steps : [], arch = line.indexOf("architecture");
   if (at && at !== "landed" && line.includes(at) && arch >= 0 && line.indexOf(at) > arch) return at;
@@ -1106,19 +1106,19 @@ function recordPlanMerge(plan, w, facts, applied, txt) {
    board's row ids only; another is named in the summary and left out), else the rows the board records for it, else, for the one stage a
    remediation report adds (facts.remediation, or any report while the board stands at remediation), the rows the qa findings touch (facts.rows, the board's ids):
    the remediation's own stage then carries every finding, so its rows are exact. Two or more new stages in one report share facts.rows
-   between them in a way only the documents tell, so they stay for the presenter, as a plan stage's rows do (WebTools #65, R1 and R2). */
+   between them in a way only the documents tell, so they stay for a fill, as a plan stage's rows do (WebTools #65, R1 and R2). */
 /* A stage's result (a stage of kind check): facts.stages[i].result, or facts.result when this event finishes that one stage: what its closing event reports, "passed" or "failed" (green or red, plan/RULES.md §3); nothing else is read. */
 const RESULT_OF = v => { const t = String(v == null ? "" : v).trim().toLowerCase(); return /^(pass|passed|ok|green|good|success|succeeded)$/.test(t) ? "passed" : /^(fail|failed|red|bad|failure)$/.test(t) ? "failed" : null; };
 /* Stage fields a merge keeps: copied at branch-cut from the plan's stage table (brief, kind, steps, ref), recorded from the events (started, finished, report, result). */
 const STAGE_KEEP = ["brief", "kind", "steps", "ref", "started", "finished", "report", "result"];
-/* The brief goes on the board as the plan writes it, or not at all: a plan's text that names a grade, an internal name or an older pass wording is the plan's to reword, never reworded here (GUIDANCE.md §4). */
+/* The brief goes on the board as the plan writes it, or not at all: a plan's text that names a sizing, an internal name or an older pass wording is the plan's to reword, never reworded here (GUIDANCE.md §4). */
 const stageNope = s => levelRefs(s).length ? "a grade" : nameRefs(s).some(unambiguous) ? "an internal name" : lib.passRefs(s).length ? "an older wording of a review" : null;
 const tableFields = (T, enrich) => lib.stageTableFields(T, stageNope, enrich);
 /* After branch-cut the plan's stage table may say something else than the stages hold: a plan revised during a Correction (KotlinBottools #24,
    its plan re-passed after Quality Review 1, "S2 — The six files" become "S2 — The seven files") kept the first plan's link, briefs and steps.
    So every later stage event brings each stage the table names to its row, where the table says something else: its steps and link, and its
    brief verbatim, or none where the plan has none to show (stageNope()). Its kind stays as branch-cut copied it: a check stage's recorded result
-   rests on it, and a revision that turns a stage into another kind is the presenter's to read. A stage the table does not name, or a plan with no table, takes the
+   rests on it, and a revision that turns a stage into another kind is a fill's to read. A stage the table does not name, or a plan with no table, takes the
    steps the event gives (facts.stages[i].steps: ids, or {id, name}), a step's name kept from the board where it has one. A finished visit's record
    (wip.history) is a copy of its own and keeps what it ran to. The same event twice changes nothing more. */
 const STEP_ID = /^[A-Za-z0-9][\w.-]*$/;
@@ -1133,7 +1133,7 @@ function refreshStageTable(list, table, facts, enrich, applied) {
       /* the steps by the table, each keeping its record by its id at any depth (lib.js carrySteps(); plan/RULES.md §3, "The record of a step") */
       if (f.steps != null) f.steps = lib.carrySteps(f.steps, x.steps);
       ["steps", "ref"].forEach(k => { if (f[k] != null) x[k] = f[k]; });
-      /* the kind stays (above), but a revised table that gives another is never dropped silently: the presenter reads it */
+      /* the kind stays (above), but a revised table that gives another is never dropped silently: a fill reads it */
       if (f.kind && x.kind && f.kind !== x.kind) enrich.push(`the plan's stage table now makes ${x.id} a ${f.kind} stage; the board keeps it a ${x.kind} stage, as branch-cut copied it and its recorded result rests on it: read the revised plan and correct it on the board where the change is meant`);
       if (f.brief != null) x.brief = f.brief; else delete x.brief;
     } else {
@@ -1203,7 +1203,7 @@ function mergeStages(w, facts, applied, enrich, first, ids, remed = !!facts.reme
     : `the rows stage${norows.length > 1 ? "s" : ""} ${norows.join(", ")} touch come from plan.md`);
   if (JSON.stringify(out) !== JSON.stringify(have)) { w.stages = out; applied.push(`wip.stages ${out.map(x => x.id + " " + x.state).join(", ")}`); }
 }
-/* wip.document from the facts (admin-team/dashboards-skill/35): {tasks: [{id, name, state}]}, merged by id: a task the event names takes
+/* wip.document from the facts (dashboards-skill/35): {tasks: [{id, name, state}]}, merged by id: a task the event names takes
    its state (and its name, when given; else the name it has, else lib.js DOC_TASK_NAMES), a task it leaves out keeps its own, a new one is
    added in the order lib.js DOC_TASKS gives (another id after them, as given, the document-landing task last of all). Several may be current:
    the tasks may run in parallel. A task with no id, or whose state is not done, current or todo, is refused, as a stage's is.
@@ -1247,7 +1247,7 @@ function mergeTasks(w, list, applied, enrich, txt, how = {}) {
   const next = { tasks: out };
   if (JSON.stringify(next) !== JSON.stringify(w.document || null)) { w.document = next; applied.push(`wip.document ${out.map(x => x.id + " " + x.state).join(", ") || "(no tasks)"}`); }
 }
-/* The built milestone (plan/RULES.md §4, the landed row; admin-team/dashboards/built-milestone-fast-path): the merge, from the landing's record
+/* The built milestone (plan/RULES.md §4, the landed row; dashboards/built-milestone-fast-path): the merge, from the landing's record
    alone, on the fast path: "Merged", its pull request as the ref and "merged as <sha>" as the note, dated by the merge's time (UTC) where it is
    recorded, else by asBuilt.date. Written once: a built milestone already on the board (a release's, one written before) is left as it is, so the
    same event twice changes nothing. No merge sha or no date, nothing written: the merge is the landing's (its facts, or the merge already
@@ -1285,14 +1285,14 @@ function setRemediation(w, R, applied, enrich, txt, how = {}) {
   R = { ...R, ...(R.route != null ? { route: routeId(R.route) } : {}) };
   if (R.route != null && !ROUTES.includes(R.route)) refuse(`facts.remediation.route ${JSON.stringify(R.route)} is not one of ${ROUTES.join(", ")}`);
   const old0 = w.remediation && w.remediation.pass === R.pass ? w.remediation : {}, old = old0.route ? { ...old0, route: routeId(old0.route) } : old0;
-  /* a sub-step's name: a grade in it (GUIDANCE.md §4) is elided ("…") rather than the step dropped, and the presenter is told */
+  /* a sub-step's name: a sizing in it (GUIDANCE.md §4) is elided ("…") rather than the step dropped, and a fill is asked for */
   const stepName = (raw, i) => { const t = txt(raw, `remediation.steps[${i}].name`); if (t || typeof raw !== "string" || !raw.trim()) return t;
     let s = lib.renamePassText(raw.replace(/\s+/g, " ").trim()); levelRefs(s).forEach(h => { s = s.split(h).join("…"); }); s = scrubNames(s).text; nameRefs(s).forEach(h => { s = s.split(h).join("…"); }); return s; };
   const steps = Array.isArray(R.steps) ? R.steps.map((s, i) => { const raw = s && (s.name || s.what), name = stepName(raw, i);
     if (!name) refuse(`facts.remediation.steps[${i}] has no name (got ${JSON.stringify(raw === undefined ? null : raw)})`);
     if (!SSTATES.includes(s.state)) refuse(`facts.remediation.steps[${i}].state ${JSON.stringify(s.state)} is not done, current or todo`);
     return lib.stampItem({ name, state: s.state }, (Array.isArray(old.steps) ? old.steps : []).find(y => y && (y.name || y.what) === name), how.now, how.report); }) : old.steps;
-  /* several sub-steps may be current at once: a remediation's legs can run in parallel (rookie-dev's minor fixes beside the planner's
+  /* several sub-steps may be current at once: a remediation's legs can run in parallel (the minor fixes beside the plan's
      ruling, WebTools #63 qa pass 1); each glows in the step panel. A sub-step has one state, so one done or to do is never current.
      The implementation stages keep at most one current (mergeStages). */
   const next = { pass: R.pass, ...(R.route || old.route ? { route: R.route || old.route } : {}), ...(steps ? { steps } : {}) };
@@ -1314,7 +1314,7 @@ function openRef(ref, folder) {
 }
 /* A link never points at a file that is not there (plan/RULES.md §1): a ref naming a file (or folder) that is not in the tree from the
    board's folder — a build output such as a qa report under build/, which is never committed — is kept as text naming it, not as a
-   link, and the presenter is told. Anything else (a URL, a sha, PR #n, #n, a sentence) is kept as it is. */
+   link, and a fill is asked for. Anything else (a URL, a sha, PR #n, #n, a sentence) is kept as it is. */
 const FILE_REF = /^([\w./-]+\.(?:md|html|json|kt|kts|dsl|txt|xml|log)|[\w./-]+\/)(#[\w-]+)?$/;
 function openRefText(ref, dir, enrich) {
   const m = FILE_REF.exec(ref); if (!m || !dir || fs.existsSync(path.resolve(dir, m[1]))) return ref;
@@ -1327,7 +1327,7 @@ function openRefLocal(ref) {
   const r = String(ref).trim(); if (!/^(?:[a-z]:[\\/]|[\\/])/i.test(r) || !ROOT) return r;
   const rel = path.relative(ROOT, path.resolve(r)); return !rel.startsWith("..") && !path.isAbsolute(rel) ? rel.split(path.sep).join("/") : "`" + path.basename(r) + "` (outside the repository, not linked)";
 }
-/* The copy of an open point's report, taken when the point is raised (plan/RULES.md §3, wip.open; admin-team/dashboards-skill/35): a ref that
+/* The copy of an open point's report, taken when the point is raised (plan/RULES.md §3, wip.open; dashboards-skill/35): a ref that
    names a file outside the tree (a build output such as a test report, never committed) stays plain text on the committed board, and the
    file as it stood is copied under the git-ignored docs/plans/.live/open/<the board's folder under docs/plans>/<key>/ of the worktree and of
    the main checkout (an HTML report's index.html with its folder, a small one), so the live view links each point to the report it was
@@ -1345,8 +1345,8 @@ function openCopyFor(raw, text, folder) {
   OPEN_JOBS.push({ src, whole, rel });
   return rel;
 }
-/* An open point's times held to bounds (plan/RULES.md §4, "The event's time"; decided 2026-11-11, in place of the 2-minute closeness of the
-   day before, which replaced a time a run had read at the moment and reported in a later event: KotlinBottools #23). With --arrived and no
+/* An open point's times held to bounds (plan/RULES.md §4, "The event's time", not to the 2-minute closeness, since a run reads such a time
+   at the moment and reports it in a later event: KotlinBottools #23). With --arrived and no
    --at, the `raised` time of a point this event newly raises (one not on wip.open) and the `resolved` time of one it newly resolves (on the
    board unresolved, or resolved with another value, so the same event raised again finds the time it left) is: stamped at the arrival time
    when missing (`true`, for resolved); kept when it is not after the arrival plus ARRIVAL_TOLERANCE_S and not before `lower`, the last event
@@ -1373,8 +1373,8 @@ function holdOpenTime(v, field, text, lower, own) {
   return arrived;
 }
 /* The last event that still showed an open point open (plan/RULES.md §4, "The event's time"), the lower bound of the time it is resolved
-   at: the point's own shownOpen (mergeOpen(), below), the time of the last event of the run's that raised it or listed it again unresolved
-   (the user's approval of 2026-11-11). A point raised before the field existed stores none: its bound is the board's last event, wip.event,
+   at: the point's own shownOpen (mergeOpen(), below), the time of the last event of the run's that raised it or listed it again
+   unresolved. A point raised before the field existed stores none: its bound is the board's last event, wip.event,
    read before this event writes its own, the bound before the field (stricter: an event of the run's that did not list the point still
    bounds it). A point the board holds resolved with another value is bounded by the same time, named for what it is. No bound (null) where
    the board holds no such time: no last event, one with no time, or one the team raised (TEAM_RAISED), which is no report of the run's, so the
@@ -1382,13 +1382,13 @@ function holdOpenTime(v, field, text, lower, own) {
    keeps as well. */
 const TEAM_RAISED = ["run-restarted", "retime", "reword", "state-boards", "landing", "merge", "landed", "sub-issues-filed", "reseed", "seed", "unit-landed"];
 function lastShown(w, have) {
-  /* the time the point stores (shownOpen, below): the last event of the run's that showed it open, the bound as decided */
+  /* the time the point stores (shownOpen, below): the last event of the run's that showed it open, the bound above */
   if (have && lib.isTime(have.shownOpen)) return { at: have.shownOpen, what: "the point was last shown open" };
   const e = w && w.event;
   if (!e || !lib.isTime(e.at) || TEAM_RAISED.includes(e.name)) return null;
   return { at: e.at, what: have.resolved ? "the board's last event" : "the point was last shown open" };
 }
-/* An open point's shownOpen (the user's approval of 2026-11-11, of the proposal of the same day; plan/RULES.md §4, "The event's time"): the
+/* An open point's shownOpen (plan/RULES.md §4, "The event's time"): the
    time of the last event of the run's that showed the point open, the lower bound of the time it is resolved at. The event that raises it
    writes it (the event's own time, after its arrival is held), and every later event of the run's whose facts.open lists the point again
    unresolved moves it to that event's time, never back. A team-raised event (TEAM_RAISED) is no report of the run's and moves nothing. A
@@ -1486,14 +1486,14 @@ function applyParent(orig, sub, op, now) {
   } else if (op.kind === "complete") {
     if (!["complete", ...lib.UNIT_LANDED].includes(state)) {
       const had = row.asBuilt && typeof row.asBuilt.summary === "string" && row.asBuilt.summary.trim();
-      /* a complete unit says what exists (check.js): with no summary yet, the plain fact; one written before is the presenter's to update */
+      /* a complete unit says what exists (check.js): with no summary yet, the plain fact; one written before is a fill's to update */
       row.asBuilt = { ...(row.asBuilt || {}), state: "complete", ...(had ? {} : { summary: `#${sub.issue}'s run: the ${lib.REVIEW} approved; it is not merged yet.` }) };
       applied.push(`#${plan.issue}: ${row.id} complete`);
       if (had) enrich.push(`#${plan.issue}: ${row.id}'s summary, now complete, comes from #${sub.issue}'s board`);
     }
   } else if (op.kind === "landed") {
     /* a landed unit says what exists (check.js): with no summary yet, or only the plain fact its qa pass wrote, the plain fact of its
-       landing from the sub-issue's asBuilt; a summary written from the documents is the presenter's to update */
+       landing from the sub-issue's asBuilt; a summary written from the documents is a fill's to update */
     const A = (sub && sub.asBuilt) || {}, m = A.merge || A.sha, s0 = row.asBuilt && typeof row.asBuilt.summary === "string" ? row.asBuilt.summary.trim() : "";
     const had = s0 && ![`#${sub.issue}'s run passed qa; it is not merged yet.`, `#${sub.issue}'s run: the ${lib.REVIEW} approved; it is not merged yet.`].includes(s0);
     if (state !== "landed" || !had) { row.asBuilt = { ...(row.asBuilt || {}), state: "landed", ...(had ? {} : { summary: `#${sub.issue} landed${A.pr ? ` through PR #${A.pr}` : ""}${m ? ` as ${String(m).slice(0, 7)}` : ""}.` }) }; applied.push(`#${plan.issue}: ${row.id} landed${had ? "" : ", with the plain fact of its landing as its summary"}`); }
@@ -1508,7 +1508,7 @@ function applyParent(orig, sub, op, now) {
   /* the tracking issue's last unit (plan/RULES.md §3, "The units' own runs"; §2, Consequences): implementation spans its units' runs until the last
      unit lands, then landed. The board lands at that unit's merge, as an issue board lands at its own (the landed event): status built, asBuilt the
      last unit's merge (sha, merge, PR, date, the merge's time at), wip.step landed, nothing glowing; only once every part is resolved and the
-     initiative's impact is reconciled whole (basis as-built), which is the presenter's from the tracking folder's documents. Until then it stays at
+     initiative's impact is reconciled whole (basis as-built), which is a fill's from the tracking folder's documents. Until then it stays at
      implementation, every unit landed, and the summary names what is left; unit-landed raised again for that unit lands it then. */
   const landing = op.kind === "landed" ? lastUnitLanding(plan, sub, now) : null;
   if (landing && landing.enrich) enrich.push(landing.enrich);
@@ -1573,7 +1573,7 @@ function chainDetail(plan) {
 
 /* The board a board is embedded into: the board itself, or the current template when the board is not the verified template plus its
    data (plan/RULES.md §4: every event re-renders the board onto the current template). A board that declares a divergence, or a
-   template not verified since it changed, is left as it is, and the presenter is told. */
+   template not verified since it changed, is left as it is, and a fill is asked for. */
 const emptyBlock = (html, id) => dev.norm(html).replace(/<base [^>]*data-live-view[^>]*>\n/, "").replace(new RegExp(`(<script type="application/json" id="${id}">)[\\s\\S]*?(</script>)`), "$1\n{}\n$2");
 function pageBase(pagePath, enrich, rel, tplOf, keep) {
   const html = fs.existsSync(pagePath) ? fs.readFileSync(pagePath, "utf8") : null, tplPath = dev.templateFor(tplOf || pagePath, "plan-board"), tpl = fs.readFileSync(tplPath, "utf8");
@@ -1596,7 +1596,7 @@ function writeBoard(dir, data, eol, enrich, label) {
   const json = (JSON.stringify(data, null, 2) + "\n").replace(/\n/g, eol);
   const closed = ["built", "abandoned"].includes(data.status) || ["landed", "cancelled"].includes((data.wip || {}).step);
   /* a board that closed before this event (written by a seeding, a reseed or a retime; never by the landed, cancelled or unit-landed that
-     closes it) is kept as it closed (GUIDANCE.md §8, §11; the presenter's "Closed work boards"): never re-rendered onto a later template. A
+     closes it) is kept as it closed (GUIDANCE.md §8, §11; the boards' "Closed work boards" rule): never re-rendered onto a later template. A
      seeding writes it from its view copy, so the page it keeps is the view copy's, as it landed (its live view's <base> line left out); with
      no view copy, the page on disk */
   const closedBefore = closed && !["landed", "cancelled", "unit-landed"].includes(EV);
@@ -1613,7 +1613,7 @@ function writeBoard(dir, data, eol, enrich, label) {
   if (wrote.length) S.wrote.push(`${label}: ${wrote.join(", ")}`);
   return wrote.length > 0;
 }
-/* Seeding at sized (plan/RULES.md §4, "Seeding at sized"; admin-team/dashboards-skill/35). The post-merge refresh shows a landing in view
+/* Seeding at sized (plan/RULES.md §4, "Seeding at sized"; dashboards-skill/35). The post-merge refresh shows a landing in view
    copies under the main checkout's git-ignored docs/plans/.live/view/ (the issue board landed at its merge, its parent tracking board's
    unit landed and the next one up). When a run is sized in a worktree branched after that landing, the boards it shows start from those
    copies, so the new branch carries the landed state from its first commit: every view copy fresher than the worktree's tracked board
@@ -1786,8 +1786,8 @@ async function reseed(now, req) {
   S.result = written.size ? "ok" : "nothing";
   if (!written.size) S.applied.push("no board holds a landing a sized seeded unfinished: nothing to re-seed");
 }
-/* The event seed (plan/RULES.md §4, "Seeding at sized"; admin-team/dashboards-skill/level-1-seed), team-raised at a grade-1 run's state-boards request, never with --view,
-   naming no board: a grade-1 run has no board and sends no sized, so its branch carries the repository's pending corrections through this event alone. It is the
+/* The event seed (plan/RULES.md §4, "Seeding at sized"; dashboards-skill/level-1-seed), team-raised at a docs-only run's state-boards request, never with --view,
+   naming no board: a docs-only run has no board and sends no sized, so its branch carries the repository's pending corrections through this event alone. It is the
    seeding half of sized and nothing else: seedFromView() into --worktree from --main's view copies (the previous landing's issue board landed at its merge, its
    tracking board's filed units, its unit landed and the next one up), then, where the facts name one, the run's own unit on its tracking board marked complete,
    the state a unit gets at its approving review, its cell in wip.current as a unit's run holds it until it lands (facts { tracking: "docs/plans/<…>/<n>-<slug>",
@@ -1854,8 +1854,8 @@ async function seed(now, req, facts) {
   S.defects = [...new Set(cks.flatMap(c => c.stdout.split(/\r?\n/).map(l => (l.match(/^warn\s+(ISSUE TITLE NAMES A GRADE: #[\d?]+)/) || [])[1]).filter(Boolean)))];
   S.result = "ok";
 }
-/* The event unit-landed (plan/RULES.md §4, "The live view of a landing"; admin-team/dashboards-skill/level-1-landed), team-raised after the merge of a
-   tracking issue's unit that has no board (a grade-1 unit, marked complete at its seed), with --view, from the main checkout, naming no board: the
+/* The event unit-landed (plan/RULES.md §4, "The live view of a landing"; dashboards-skill/level-1-landed), team-raised after the merge of a
+   tracking issue's unit that has no board (a docs-only unit, marked complete at its seed), with --view, from the main checkout, naming no board: the
    standing rule's landed move on the tracking board's view copy, as a sub-issue's landed makes it (applyParent()): the unit landed with the plain fact of
    its landing as its summary, out of wip.current, wip.next the next unit in landing order or none, the chain's detail and one trail entry; and, at the
    tracking issue's last unit, the tracking board's own landing where the rules let it land (lastUnitLanding()). Facts { tracking: "docs/plans/<…>/<n>-<slug>",
@@ -1930,7 +1930,7 @@ if (REPO_PATH && opt("main") && path.resolve(opt("main")) !== path.resolve(REPO_
 /* The foundation of a sized on a folder with no board (plan/RULES.md §4, "The foundation"): built in memory, not started, for the event to
    start in place, as a board laid before its run is. Each text from the first source that tells it: the event, the issue on the tracker, the
    parent's unit row, the registry, the folder's own name; every text but the issue's title (quoted verbatim, §4) as any fact's, its
-   grade and its internal names reworded, or left out for the next source. What only the documents can tell reads as being written, in
+   sizing and its internal names reworded, or left out for the next source. What only the documents can tell reads as being written, in
    the function's closing sentence and, from plan.foundation, on the board's columns. A fact the check requires and nothing tells (the repository, the baseline) refuses: the event falls
    back whole. Returns { plan, applied, enrich }. */
 const gitAt = (...a) => { const r = cp.spawnSync("git", ["-C", ROOT, ...a], { encoding: "utf8", windowsHide: true }); return r.status === 0 ? r.stdout.trim() : null; };
@@ -1962,7 +1962,7 @@ function layFoundation(req, facts, folder, now) {
   const originHead = inGit ? gitAt("symbolic-ref", "--short", "refs/remotes/origin/HEAD") : null;
   const ref = typeof gb.ref === "string" && gb.ref.trim() ? gb.ref.trim() : originHead ? originHead.replace(/^origin\//, "") : inGit && gitAt("rev-parse", "--verify", "--quiet", "refs/heads/main") ? "main" : "master";
   /* the parent, from the event, else the folder the issue sits in: a tracking board's (or a folder with no board yet), its parent; another
-     issue's board holds a fix of its work or a folded-in issue, which the event or the presenter names */
+     issue's board holds a fix of its work or a folded-in issue, which the event or a fill names */
   const up = path.dirname(DIR), upNum = parseInt(path.basename(up), 10) || null, inPlans = path.relative(path.join(ROOT, "docs", "plans"), up) !== "" && !path.relative(path.join(ROOT, "docs", "plans"), up).startsWith("..");
   let upPlan = null; try { upPlan = JSON.parse(fs.readFileSync(path.join(up, "plan.json"), "utf8")); } catch (e) { /* no board there, or none readable */ }
   const num = v => { const n = typeof v === "string" ? parseInt(v.replace(/^#/, ""), 10) : v; return Number.isInteger(n) && n > 0 ? n : null; };
@@ -1971,14 +1971,14 @@ function layFoundation(req, facts, folder, now) {
   const parentN = said || (inPlans && upNum && !within && !fix ? upNum : null);
   if (within && !said && !fix) enrich.push(`#${issue} sits inside #${within}'s folder, and #${within} is no tracking issue: its parent and any fixOf are the presenter's to record`);
   const row = upPlan && parentN && upPlan.issue === parentN ? (upPlan.rows || []).find(r => r && r.unit && r.unit.issue === issue) || null : null, unit = row ? row.unit : null;
-  /* the grade, read for the kind and the steps line and never kept on the board (levels.js): the request's grade, facts.grade, an older unit
+  /* the sizing, read for the kind and the steps line and never kept on the board (levels.js): the request's own size field, the same field in its facts, an older unit
      row's level, else the team's local state */
   const lv = [req.grade, facts.grade, unit && unit.level, lib.localLevel(repo, issue)].find(v => [1, 2, 3, 4].includes(v)), level = lv != null ? lv : null;
   const kind = facts.kind === "tracking" || facts.kind === "issue" ? facts.kind : level === 4 || facts.step === "architecture" ? "tracking" : "issue";
   /* the systems: the event's slugs, else the unit row's. A slug the registry does not know yields to the parent's unit row's system where the
      registry knows that one (WebTools #66: the run sent webtools-http-response-cache, the registry and the unit row say webtools-http-cache),
      with a warning; else it falls back to itself, in the neutral colour (lib.js systemEntry()): the check warns on it, and it is named here,
-     for the presenter to map it */
+     for a fill to map it */
   const saidSlugs = (Array.isArray(facts.systems) ? facts.systems : typeof facts.systems === "string" ? [facts.systems] : row && row.system ? [row.system] : []).filter(s => typeof s === "string" && s.trim()).map(s => s.trim());
   const knownSlug = s => !!(reg && reg.info(s)), rowSlug = row && typeof row.system === "string" && knownSlug(row.system) ? row.system : null, yielded = rowSlug ? [...new Set(saidSlugs.filter(s => !knownSlug(s)))] : [];
   if (yielded.length) { WARNINGS.push(`SYSTEM UNKNOWN: ${yielded.map(s => JSON.stringify(s)).join(", ")} ${yielded.length === 1 ? "is" : "are"} not in docs/dashboards/systems.json: the parent's unit row's ${JSON.stringify(rowSlug)} laid instead`); applied.push(`systems: ${yielded.join(", ")} yielded to the unit row's ${rowSlug}`); }
@@ -1990,7 +1990,7 @@ function layFoundation(req, facts, folder, now) {
   const G = wantIssue && !flag("no-gh") ? lib.ghIssue(repo, issue) : {};
   const shortName = name.slice(String(issue).length + 1).replace(/-/g, " "), fromSlug = shortName.charAt(0).toUpperCase() + shortName.slice(1);
   const title = cleanText(facts.title) || cleanText(row && row.name) || fromSlug;
-  /* the issue's title is quoted verbatim, whatever it says (a grade in it is a defect in the issue, which check.js flags) */
+  /* the issue's title is quoted verbatim, whatever it says (a sizing in it is a defect in the issue, which check.js flags) */
   const issueTitle = [facts.issueTitle, G.title, unit && unit.title].find(v => typeof v === "string" && v.trim()) || null;
   const given = cleanText(facts.function);
   const unitWords = unit ? `${title}, unit ${unit.n != null ? unit.n + " " : ""}of #${parentN}.` : null;
@@ -2094,7 +2094,7 @@ async function main() {
   /* the boards' short lock, held for this run (lib.js lockTree()): a fill behind this event merges onto what it writes, and waits at most this run's second or two; with --view the view copies' tree too */
   try { lib.lockTree(ROOT, `apply-event.js ${ev}`); if (VIEWING && path.resolve(MAIN) !== path.resolve(ROOT)) lib.lockTree(MAIN, `apply-event.js ${ev} --view`); } catch (e) { refuse(e.message); }
   /* a sized on a folder with no board lays the foundation first (plan/RULES.md §4, "The foundation"), after the seed, so it reads its parent's
-     unit row as the previous landing left it, and the event then starts it in place; a failure on the way leaves it to the presenter */
+     unit row as the previous landing left it, and the event then starts it in place; a failure on the way leaves it to a fill */
   let laid = null, seededFirst = [];
   if (!fs.existsSync(planFile)) {
     if (ev !== "sized") refuse(`${folder} holds no plan.json: there is no board to apply ${ev} to`);
@@ -2146,7 +2146,7 @@ async function main() {
     /* a step-complete that writes nothing (a stage or step the board does not hold) is said as such below, never as a duplicate */
     if (!again.nothing && JSON.stringify(a) === JSON.stringify(b)) { S.result = "duplicate"; S.applied.push(`already applied at ${last.at}: nothing written`); return; }
   }
-  /* seeding at sized (plan/RULES.md §4, "Seeding at sized"; admin-team/dashboards-skill/35): a run sized in a worktree branched after a
+  /* seeding at sized (plan/RULES.md §4, "Seeding at sized"; dashboards-skill/35): a run sized in a worktree branched after a
      landing starts from the landed state the main checkout's live view shows, so the branch carries it from its first commit */
   const seeded = laid ? seededFirst : ev === "sized" && !VIEWING ? seedFromView(now) : [];
   const R = applyEvent(orig, ev, facts, req, now);
@@ -2247,7 +2247,7 @@ async function main() {
     if (wb && wb.status !== 0) throw new Error(`board.js (the committed repository work board, after seeding) failed: ${(wb.stderr || wb.stdout).trim().split(/\r?\n/).slice(-1)[0]}`);
     if (wb) S.wrote.push("the repository work board: docs/plans/board.json, index.html, board.js (regenerated after seeding)");
     S.check = `pass (board: ${plural(warns[0], "warning")}${up ? `; parent: ${plural(warns[1], "warning")}` : ""})`;
-    /* an issue title that names a grade is a defect in the issue (levelrefs.js issueTitleRefs(); dashboards-skill/28): quoted verbatim,
+    /* an issue title that names a sizing is a defect in the issue (levelrefs.js issueTitleRefs(); dashboards-skill/28): quoted verbatim,
        never failing the board; named here so the team brings it to the user to retitle on GitHub */
     S.defects = [...new Set(cks.flatMap(c => c.stdout.split(/\r?\n/).map(l => (l.match(/^warn\s+(ISSUE TITLE NAMES A GRADE: #[\d?]+)/) || [])[1]).filter(Boolean)))];
     if (lv) {
@@ -2267,7 +2267,7 @@ async function main() {
 main().then(() => { say(); process.exit(0); }, e => {
   S.result = "failed"; S.error = e.message;
   try { S.restored = rollback(); } catch (x) { S.error += `; the rollback failed too: ${x.message}`; }
-  /* an unfinished Document step is the run's to report, not a defect for the presenter (mergeTasks()) */
+  /* an unfinished Document step is the run's to report, not a defect for a fill (mergeTasks()) */
   if (!S.unfinished && !S.enrich.includes("the event was not applied: the presenter applies it")) S.enrich.unshift("the event was not applied: the presenter applies it");
   if (LAY_HINT) { S.laid = null; [S.applied, S.enrich].forEach(l => l.splice(0, l.length, ...l.filter(x => !/^foundation laid|^sized: the foundation is laid/.test(x)))); S.enrich.push(LAY_HINT); }
   say(); process.exit(1);

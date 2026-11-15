@@ -129,7 +129,7 @@ function levelFail(data, file) {
   if (hits.length) fail(`${file} shows a grade, which a dashboard never does: ${hits.slice(0, 6).map(h => `${h.at} ("${h.hit}")`).join(", ")}${hits.length > 6 ? ` and ${hits.length - 6} more` : ""}; say what the work is instead (one system, a bug fix, docs only)`);
 }
 
-/* A board's names come from passnames.js (2026-11-05, 2026-11-06): a pass "Quality Review N", one not numbered "review", the qa step
+/* A board's names come from passnames.js: a pass "Quality Review N", one not numbered "review", the qa step
    "Quality Review", the remediation step "Correction" or "Resolution" by its route, the Document step's commit "Document commit". A board
    not landed, or the repository work board (board.js generates it), that still holds an older wording ("qa pass N", "no new qa pass",
    "qa next", "Halted at qa", "Remediation for …", "the remediation loop", "Halted at the Correction of Quality Review 2" (a halt names its
@@ -785,7 +785,7 @@ function checkPanel(plan, w, ids, tracking, dir) {
       if (!str(x.raised)) fail(`${at}.raised names the event or stage that raised it (e.g. "implementation-stage S2")`);
       if (x.ref != null) { if (!str(x.ref)) fail(`${at}.ref is a link to where the point is recorded, or left out`); else checkLink(dir, x.ref, `${at}.ref`); }
       if (x.resolved != null && x.resolved !== true && !str(x.resolved)) fail(`${at}.resolved is how it was resolved (a sentence, or true), or left out while it is open`);
-      /* shownOpen (the decision of 2026-11-11): the time of the last event of the run's that showed the point open, the lower bound of its
+      /* shownOpen: the time of the last event of the run's that showed the point open, the lower bound of its
          resolved time at the arrival check (apply-event.js mergeOpen()); a UTC ISO time (an event's, so not held to the board's other times,
          which a run's events may give out of order); left out on a point raised before the field */
       if (x.shownOpen != null && !(isTime(x.shownOpen) && /Z$/.test(x.shownOpen))) fail(`${at}.shownOpen is the UTC ISO time of the last event that showed the point open (apply-event.js writes it), or left out (got ${JSON.stringify(x.shownOpen)})`);

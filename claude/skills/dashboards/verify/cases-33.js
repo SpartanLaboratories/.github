@@ -60,7 +60,7 @@ module.exports = function cases33(X) {
   guard("namerefs.js: the internal names found, a longer word that contains one left alone, scrubNames()'s safe rewrites; levelrefs.js's unnumbered mention (dashboards-skill/33)", c => {
     const found = ["accepted by the admin team", "the planner reconciled it", "rookie-dev's fixes", "qa found two issues", "the presenter's call", "the user's call", "the user chose B", "planner: rule on the gaps", "planner reconciles", "a code-reviewer pass", "the test-inspector report", "two researchers still out", "a planner re-pass",
       "the executor confirms it (P1)", "the manager's final call", "the user's two answers at the interview", "it is signed off by the user",
-      /* every name a whole word wherever it stands, in backticks too (the decision of 2026-11-13) */
+      /* every name a whole word wherever it stands, in backticks too */
       "runs on an `Executor`", "a single-thread executor drains the queue", "the event publisher emits", "the bytecode verifier rejects it", "the archivist kept the hook"];
     const fine = ["uses OkHttp's `RoutePlanner`", "RoutePlanner picks a route", "an `ExecutorService` drains the queue", "qa pass 2 approved", "the QA tile", "from qa pass 1", "the implementer added a test", "waiting on the user", "the research step", "the architecture", "Level 2 — component",
       "Selenium Manager resolves the driver", "Selenium Manager's cache", "the step ends at its sign-off"];

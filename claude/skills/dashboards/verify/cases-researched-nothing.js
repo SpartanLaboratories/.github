@@ -1,7 +1,7 @@
-// The cases of the researched-no-research change (2026-11-13), run by verify-templates.js (it passes its helpers in), or on its own with no
+// The cases of the researched-no-research change, run by verify-templates.js (it passes its helpers in), or on its own with no
 // browser: node verify/cases-researched-nothing.js [--out <dir>].
-// A. A researched that names no documents, on a board with no research question, says there was nothing to research (the decision of
-//    2026-11-13, batch-4/q-2 (a)): the board moves to the plan at the event's time, records wip.research.nothing, words its detail and trail
+// A. A researched that names no documents, on a board with no research question, says there was nothing to research:
+//    the board moves to the plan at the event's time, records wip.research.nothing, words its detail and trail
 //    "Nothing to research", asks for no enrichment from research documents, and the step Panel and the visit's gist say so (plan/RULES.md §4).
 // B1. A re-pass standing at the plan step is kept by a researched, never overwritten by "writing".
 // B2. The placeholder check reads neither a statement's excerpt nor a code span: a quoted path pattern, docs/plans/<issue>-<slug>/, is no leftover.

@@ -4,9 +4,9 @@
 // The defects: a test set given as a set folder's name was dropped without a word, and fourteen classes were stored with no set; an event that
 // reported S1 to S5 done at once stamped every class with S5, "S3 python" included, over the stage the board recorded; a qa pass's run naming
 // another test set than the one recorded (S4 log-filter: integration held, deterministic run) was passed over in silence; and check.js warned
-// "two visits answer the same qa pass" where the first visit had ended at a halt and the second resumed the same remediation. A testSet (the
-// user's decisions of 2026-11-13: tests are in named sets) is stored by its name, and the other tests' counts keyed by it (the decision of
-// 2026-11-14, q-149 (b); verify/fixtures/tests-testset.request.json); a testLevel sent in its place is no longer read (the transition's end,
+// "two visits answer the same qa pass" where the first visit had ended at a halt and the second resumed the same remediation. A testSet (tests
+// are in named sets) is stored by its name, and the other tests' counts keyed by it
+// (verify/fixtures/tests-testset.request.json); a testLevel sent in its place is no longer read (the transition's end,
 // L12); an open board that stores the old numbers is written by name at its next rewrite, a closed one keeps them. And KotlinBottools #39: a
 // shell script's run sent as "gselftest.sh gating" by a stage and "gselftest gating" by the qa pass made two entries; it is one class under the
 // ".sh" name, and no other name is read so (testslib.js sameShRun()); and the Tests tab showed that run as "sh gating" in the package
@@ -137,8 +137,8 @@ module.exports = function casesTestsFacts(X) {
     c.push(["a halted visit of pass 1 not resumed next (pass 2 between) is still its own loop: warned", /two visits answer the same qa pass/.test(apart), apart || "no warning"]);
   });
 
-  /* 5. the sets stored by name (the user's decisions of 2026-11-13: vocabulary/decided-set (3), choice-1-live-keys (a); the decision of
-     2026-11-14, q-149 (b): the board stores each set by its name, testSet, and keys the other tests' counts by it) */
+  /* 5. the sets stored by name:
+     the board stores each set by its name, testSet, and keys the other tests' counts by it */
   guard("testslib.js: a testSet is stored by its name, and the other tests' counts keyed by the set's name, a count keyed by an old number read as its set's", c => {
     const o = { now: "2026-11-13T01:00:00Z", ids: new Set(ids) }, m = (cl0, extra) => ({ class: cl0, module: "m", tests: 1, ...extra });
     const P = { rows: EX.rows, tests: null }, r = TL.mergeTests(P, { added: [m("A", { testSet: "gating" }), m("B", { testSet: "Integration" }), m("C", { testSet: "testing.e2e" }), m("D", { testSet: "nonfunctional" }), m("E", { testSet: "uat" }), m("F", { testSet: "deterministic" }), m("G", { testSet: "component" })] }, o);

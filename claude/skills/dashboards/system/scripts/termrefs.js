@@ -1,4 +1,4 @@
-// The element names of a board (GUIDANCE.md §12, "The names, checked"; the decision of 2026-11-09, reading A): the glossary is the only home of the names,
+// The element names of a board (GUIDANCE.md §12, "The names, checked"): the glossary is the only home of the names,
 // ui.md and boards.md (each found as glossaryFiles() says), and this file holds none of them. It parses them where they stand and scans a board with what it parsed:
 //   - the terms: the first Cell of every "| **Term** | … |" row of either file. It keys on the row, never on what follows a heading, so the rule lines
 //     ({"name":…}) those headings will carry change nothing.
@@ -21,7 +21,7 @@
 const fs = require("fs"), path = require("path"), os = require("os"), cp = require("child_process");
 const { titleSkip } = require("./levelrefs.js");
 
-/* The two files, each found on its own (the decision of 2026-11-14, O-25 (a)), the first place that holds it as a glossary:
+/* The two files, each found on its own, the first place that holds it as a glossary:
      boards.md: <the organization repository's checkout>/policy/nomenclature/boards.md, the checkout SPARTAN_ORG_POLICIES names;
      ui.md:     <SpartanUI's checkout>/docs/nomenclature/ui.md, the checkout SPARTAN_CHECKOUT_SPARTANUI names, else the folder SpartanUI beside the organization
                 repository's checkout;

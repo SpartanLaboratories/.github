@@ -18,7 +18,7 @@
 // A row with a board carries "reconciliation", its impact's reconciliation state as lib.js reconciliation() derives it (planned,
 // partial or as-built, with landed and total units on a tracking board), or null while the board records no impact (plan/RULES.md §2, §5).
 // A row with no board of its own and no tracking board's unit row to read (a boardless row: any issue the team's local state sizes,
-// whatever its sizing; no sizing is read from GitHub, the decision of 2026-11-14, batch-8/q-56) takes its state from the tracker
+// whatever its sizing; no sizing is read from GitHub) takes its state from the tracker
 // (plan/RULES.md §5, "Boardless rows"): closed as not planned, "not-planned" ("closed ·
 // not planned", never landed); closed as a duplicate, "duplicate" ("closed · duplicate", never landed); closed otherwise, "landed";
 // open with a pull request
@@ -197,7 +197,7 @@ if (FIXTURE && !flag(args, "no-gh")) {
 const trackerState = (n, i) => { const g = gq[n] || {};
   return boardlessState(n, i ? i.state : "OPEN", (g.closedByPullRequestsReferences || {}).nodes || [], ((g.linkedBranches || {}).nodes || []).map(x => x && x.ref && x.ref.name).filter(Boolean), prs, branches, i ? i.stateReason : null); };
 const issueOf = n => issues.find(i => i.number === n);
-/* An issue's sizing comes only from the team's local state (levels.js localLevel(); the decision of 2026-11-14, batch-8/q-56): no
+/* An issue's sizing comes only from the team's local state (levels.js localLevel()): no
    label on GitHub is read for one, under any name, and none is ever written to board.json */
 const sizedLocally = i => !!i && localLevel(repo, i.number) != null;
 /* an issue the graph names; a duplicate carries the issue it duplicates (dupOf, from its MarkedAsDuplicateEvent), read where its

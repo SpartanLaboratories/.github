@@ -1,25 +1,25 @@
 // Internal names (GUIDANCE.md §4, "No internal names"; dashboards-skill/33): a board never names the pipeline's agents, sessions or roles,
-// never refers to the approval flow, and never states a grade (levelrefs.js). The terms and what is fine beside them have one home,
+// never refers to the approval flow, and never states a sizing (levelrefs.js). The terms and what is fine beside them have one home,
 // ~/.claude/nomenclature/internal-names.md (§1 the agents, sessions and roles; §2 the approval flow; §4 what is allowed); the lists below
 // are its copy for the scan, held equal to its §1 and §2 tables by verify/cases-internal-names.js. Fine as well are the steps' own names
 // (research, architecture, plan) and the qa step's passes by their names (passnames.js).
-// Every name the list's §1 bars "never" (BARRED) matches as a whole word wherever it stands (the user's decision of 2026-11-13): no
-// surrounding word lets one through, "the dispatcher and the executor" is a find as "the planner" is, and "admin team" and "direction
-// manager" match with a space as well as a hyphen. A name in backticks or an inline <code> element counts as it does anywhere else; a
+// Every name the list's §1 bars "never" (BARRED) matches as a whole word wherever it stands: no
+// surrounding word lets one through, "the dispatcher and the <role>" is a find as "the <role>" is, and a two-word name of the list ("<word> team", "<word>
+// manager") matches with a space as well as a hyphen. A name in backticks or an inline <code> element counts as it does anywhere else; a
 // longer word that contains one is not a find (RoutePlanner, ExecutorService, a `DirectionManager`), as the list says. A fenced block counts
-// as backticks do, in a text and rendered on a board (<pre><code>) alike (the user's decision of 2026-11-13, dashboards/scan-forms). "qa" matches only as an
-// agent ("qa found", "qa has approved", "by qa", "qa's"), never as the step or its passes. The version-control-manager shortened matches as
-// "the manager's" or "the manager" with a pipeline verb, never "Selenium Manager". The approval flow matches in the forms the list's §2
+// as backticks do, in a text and rendered on a board (<pre><code>) alike. "qa" matches only as an
+// agent ("qa <verb>", "qa has <verb>", "qa" after "by" or "from", "qa" with a possessive), never as the step or its passes. The version-control role's name, shortened, matches as
+// a possessive of the shortened name or "the manager" with a pipeline verb, never "Selenium Manager". The approval flow matches in the forms the list's §2
 // names, each with every word its row lists (APPROVAL_FORMS, the script's one copy of those words): "user's" before one of its words,
-// directly or with one word of letters between ("the user's two answers"), "user" directly before one ("the user chose"), and one before
-// "by the user" ("signed off by the user"); in any case, with a straight or a curly apostrophe, and with "user" a whole word that any word
-// or none may stand before, so a product's own user matches as well ("the guild or user choose units") and "superuser" and "username" do not.
+// directly or with one word of letters between ("the user's <word> <word>"), "user" directly before one ("the user <word>"), and one before
+// "by the user" ("<word> by the user"); in any case, with a straight or a curly apostrophe, and with "user" a whole word that any word
+// or none may stand before, so a product's own user matches as well ("the guild or user <word> units") and "superuser" and "username" do not.
 // A wait on the user, in a fact or a comment, reads "waiting on you" (§4's wording for a halt): waitRefs() finds "waiting on the user", "waits on
 // the user" and "wait on the user" in a board's data and comments and scrubWaits() rewords a fact; nameRefs() leaves it alone, as it is the
 // fixed text of the templates' status labels (plan/RULES.md §2, §3).
 // Used by plan/scripts/check.js (every string of plan.json and board.json, warned), by check-board.js (a board's data blocks, its comments
 // and its rendered text, warned) and by plan/scripts/apply-event.js, which rewords a fact text through scrubNames() before it is written,
-// and leaves it out, telling the presenter (enrich), where a name would remain.
+// and leaves it out, asking for enrichment (enrich), where a name would remain.
 // Every other writer goes through the same rule: fill.js (cleanWritten(), a name no rewording removes refused) and board.js and org-board.js
 // (cleanWorkBoard(), the text a work board copies from a board's data).
 "use strict";
@@ -29,7 +29,7 @@ const BARRED = ["admin[- ]teams?", "planners?", "plan-writers?", "architects?", 
   "version-control-managers?", "executors?", "direction[- ]managers?", "archivists?", "code-reviewers?", "documentation-reviewers?", "test-inspectors?"];
 const AGENT_ONLY = ["qa"];
 /* internal-names.md §2: the approval flow. APPROVAL_FLOW holds its rows' phrases; APPROVAL_FORMS, by the phrase heading its row, every word
-   that row's form takes, the one copy NAME_PATTERNS builds the form's pattern from (a row with no form, "user answers", has no entry: its
+   that row's form takes, the one copy NAME_PATTERNS builds the form's pattern from (a row with no form, the user-answers row, has no entry: its
    phrase is a word of the verb form). verify/cases-internal-names.js holds both equal to the list, word for word. */
 const APPROVAL_FLOW = ["the user's call", "the user chose", "user answers", "signed off by the user"];
 const APPROVAL_FORMS = {
@@ -41,18 +41,18 @@ const APPROVAL_FORMS = {
 const formWords = phrase => APPROVAL_FORMS[phrase].map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+")).join("|");
 const PIPELINE_VERBS = "commits?|committed|pushe[sd]|push|merges?|merged|lands?|landed|files?|filed|releases?|released|publishe[sd]|defers?|deferred|tags?|tagged|confirms?|confirmed";
 const NAME_PATTERNS = [
-  [`\\b(?:${BARRED.join("|")})\\b`, "i"],                                                                  // "the admin team", "rookie-dev's fixes", "the planner", "an `Executor`"
-  [`\\bthe\\s+manager(?:['’]s\\b|\\s+(?:${PIPELINE_VERBS})\\b)`, "i"],                                                // "the manager's final call": the version-control-manager, shortened
-  ["\\bqa\\s+(?:agent|agents|found|finds|flagged|flags|raised|raises|reported|reports|said|says|asked|asks|approved|approves|rejected|rejects|returned|returns|requested|requests|reviewer|team|has\\s+approved|had\\s+approved|has\\s+found|had\\s+found)\\b", "i"], // "qa found", "qa has approved"
-  ["\\b(?:by|from)\\s+qa\\b(?!\\s+pass)", "i"],                                                             // "raised by qa", never "from qa pass 2"
-  ["\\bqa['’]s\\b", "i"],                                                                                  // "qa's test-inspector"
-  [`\\buser['’]s\\s+(?:[a-z]+\\s+)?(?:${formWords("the user's call")})\\b`, "i"],                          // "the user's call", "the user's two answers"
-  [`\\buser\\s+(?:${formWords("the user chose")})\\b`, "i"],                                                  // "the user chose", "user answers"
-  [`\\b(?:${formWords("signed off by the user")})\\s+by\\s+the\\s+user\\b`, "i"],                            // "signed off by the user"
+  [`\\b(?:${BARRED.join("|")})\\b`, "i"],                                                                  // "the <role>", "<role>'s fixes", "an `<Role>`"
+  [`\\bthe\\s+manager(?:['’]s\\b|\\s+(?:${PIPELINE_VERBS})\\b)`, "i"],                                                // the shortened name with a possessive ("the <noun>'s final call") or a pipeline verb: the version-control role, shortened
+  ["\\bqa\\s+(?:agent|agents|found|finds|flagged|flags|raised|raises|reported|reports|said|says|asked|asks|approved|approves|rejected|rejects|returned|returns|requested|requests|reviewer|team|has\\s+approved|had\\s+approved|has\\s+found|had\\s+found)\\b", "i"], // "qa <verb>", "qa has <verb>"
+  ["\\b(?:by|from)\\s+qa\\b(?!\\s+pass)", "i"],                                                             // "qa" after "by" or "from", never "from qa pass 2"
+  ["\\bqa['’]s\\b", "i"],                                                                                  // "qa" with a possessive
+  [`\\buser['’]s\\s+(?:[a-z]+\\s+)?(?:${formWords("the user's call")})\\b`, "i"],                          // "the user's <word>", "the user's <word> <word>"
+  [`\\buser\\s+(?:${formWords("the user chose")})\\b`, "i"],                                                  // "the user <word>"
+  [`\\b(?:${formWords("signed off by the user")})\\s+by\\s+the\\s+user\\b`, "i"],                            // "<word> by the user"
 ];
 const REGEXES = NAME_PATTERNS.map(([s, f]) => new RegExp(s, f + "g"));
 /* a backtick span, an inline <code> element and a fenced block, in a text or rendered on a board (<pre><code>), are scanned as the rest
-   (internal-names.md; the user's decision of 2026-11-13, dashboards/scan-forms), so the board scripts and the commit scan, which reads
+   (internal-names.md), so the board scripts and the commit scan, which reads
    every line of a board file, agree. A wait on the user (waitRefs(), below) is no name of the list and keeps its reading: a rendered
    fenced block is left out of it. */
 const FENCED = /(<pre\b[^>]*>\s*)<code\b[^>]*>[\s\S]*?<\/code>/gi;
@@ -65,7 +65,7 @@ function nameRefs(text) {
   return out;
 }
 /* Every internal name in a text as its span, { index, end }, in the text as given, the same finds as nameRefs(): lib.js sectionOf() elides
-   the clause around each from a plan excerpt, as it elides a grade. */
+   the clause around each from a plan excerpt, as it elides a sizing. */
 function nameSpans(text) {
   const out = [];
   if (typeof text !== "string" || !text) return out;
@@ -86,7 +86,7 @@ function nameRefsIn(v, at, found, skip) {
   return found;
 }
 /* The comments of a board's HTML: <!-- … -->, and the /* … *\/ blocks of its styles and scripts, which are committed with the board as well
-   (a script's code, its // lines and its data blocks are left alone): the template's placeholders once carried a "presenter:" mark, and a
+   (a script's code, its // lines and its data blocks are left alone): the template's placeholders once carried a role-named mark, and a
    hand-written comment is committed with the board. */
 function commentRefs(html) {
   const out = [], one = c => { nameRefs(c).forEach(h => out.push(h)); waitRefs(c).forEach(h => out.push(h)); };
@@ -94,17 +94,17 @@ function commentRefs(html) {
     if (!/^script$/i.test(tag) || !/\btype\s*=\s*["'](?!text\/javascript|module)/i.test(attrs)) (body.match(/\/\*[\s\S]*?\*\//g) || []).forEach(one);
     return " ";
   }).replace(/<!--([\s\S]*?)-->/g, (m, c) => { if (/^\s*presenter:/i.test(c)) { out.push("presenter:"); one(c.replace(/^\s*presenter:/i, " ")); } else one(c); return ""; });
-  /* the placeholder mark on a board-filled line of the script before MODEL ("// presenter:"), committed with every state board */
+  /* the placeholder mark on a board-filled line of the script before MODEL (the role-named mark after "//"), committed with every state board */
   (String(html || "").match(/\/\/\s*presenter:/g) || []).forEach(() => out.push("// presenter:"));
   return out;
 }
 /* A fact text reworded so that it names no internal name, where a safe rewrite exists (plan/RULES.md §4, "The fast path"): the agent
-   phrase is dropped ("accepted by the admin team" → "accepted"), a possessive becomes the article ("the planner's re-pass" → "the
-   re-pass"), a role before its work becomes the work ("a planner re-pass" → "a plan re-pass", "rookie-dev's fixes" → "the fixes",
-   "code-reviewer" → "code check", "documentation-reviewer" → "documentation check", "qa's test-inspector" → "the review's test check":
+   phrase is dropped ("accepted by the <role>" → "accepted"), a possessive becomes the article ("the <role>'s re-pass" → "the
+   re-pass"), a role before its work becomes the work ("a <role> re-pass" → "a plan re-pass", "<role>'s fixes" → "the fixes",
+   the code role → "code check", the documentation role → "documentation check", the test role after "qa" with a possessive → "the review's test check":
    a Quality Review's checks by their progress notes' labels, plan/scripts/passnames.js NOTE_WORK, dashboards-skill/52), and an aside on the approval flow is dropped
-   ("(the user's call)", "at the user's call"). Returns { text, left }: the reworded text, and the names still in it (none when it names none). The caller writes text when left is empty,
-   leaves it out where a barred name remains, and asks the presenter to look (enrich) either way. */
+   ("(the user's <word>)", "at the user's <word>"). Returns { text, left }: the reworded text, and the names still in it (none when it names none). The caller writes text when left is empty,
+   leaves it out where a barred name remains, and asks for enrichment (enrich) either way. */
 function scrubNames(text) {
   if (typeof text === "string") text = scrubWaits(text);
   if (typeof text !== "string" || !nameRefs(text).length) return { text, left: [] };
@@ -114,7 +114,7 @@ function scrubNames(text) {
   /* an aside on the approval flow */
   s = s.replace(/\s*\(\s*(?:the\s+)?user['’]s\s+(?:call|choice|decision|approval|sign-?off|go-ahead)\s*\)/gi, "");
   s = s.replace(/\s*[,;]?\s*\b(?:at|on|per|by|after)\s+the\s+user['’]s\s+(?:call|choice|decision|approval|sign-?off|go-ahead)\b/gi, "");
-  /* the role as a label ("rookie-dev: the fixes" → "the fixes") */
+  /* the role as a label ("<role>: the fixes" → "the fixes") */
   s = s.replace(new RegExp(`(^|[;,(]\\s*)${ROLE}\\s*:\\s*`, "gi"), "$1");
   /* the agent phrase */
   s = s.replace(new RegExp(`\\s+by\\s+(?:the\\s+)?${ROLE}\\b(?!['’]s)`, "gi"), "");
@@ -123,7 +123,7 @@ function scrubNames(text) {
     .replace(/\bqa['’]s\s+test-inspector\b/gi, "the review's test check").replace(/\btest-inspector\b/gi, "test check")
     .replace(/\bcode-reviewer\b/gi, "code check").replace(/\bdocumentation-reviewer\b/gi, "documentation check")
     .replace(/\bqa\s+(has|had)\s+approved\b/gi, "the review $1 approved").replace(/\bqa\s+approved\b/gi, "the review approved");
-  /* a possessive: "the planner's re-pass" → "the re-pass", "rookie-dev's fixes" → "the fixes" */
+  /* a possessive: "the <role>'s re-pass" → "the re-pass", "<role>'s fixes" → "the fixes" */
   s = s.replace(new RegExp(`\\b(?:the\\s+)?${ROLE}['’]s\\s+`, "gi"), "the ");
   s = s.replace(/\s{2,}/g, " ").replace(/\s+([,;:.)])/g, "$1").replace(/\(\s*\)/g, "").trim();
   if (cap && /^[a-z]/.test(s)) s = s[0].toUpperCase() + s.slice(1);

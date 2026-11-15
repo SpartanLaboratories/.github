@@ -20,8 +20,8 @@ function repoRoot(args) {
    either. Once the budget is spent the temporary file is removed and the error thrown, nothing written, as before. The old budget, 3 s, let an
    event applied while a fill read the same board fail now and then (KotlinBottools #24, p25; verify/cases-atomic-write.js). The longer one makes
    that rarer, never impossible: a reader that reopens the file every few milliseconds can hold off a replace for longer than any budget, and
-   moving the old file aside first, which would carry the write through, lets a reader without the boards' lock find no file for a moment, a
-   choice left to the user (p25). Returns the retries it took. */
+   moving the old file aside first, which would carry the write through, lets a reader without the boards' lock find no file for a moment, so
+   renameInto() does not do it (p25). Returns the retries it took. */
 const RENAME_CODES = ["EPERM", "EBUSY", "EACCES"], RENAME_BUDGET_MS = 15000;
 const renameBudget = () => { const v = Number(process.env.DASHBOARDS_RENAME_BUDGET_MS); return Number.isFinite(v) && v > 0 ? v : RENAME_BUDGET_MS; };
 function renameInto(tmp, file) {
@@ -803,8 +803,8 @@ const openOf = w => (Array.isArray(w.open) ? w.open : []).filter(x => x && typeo
    question is put ends there (held: "ended, waiting on you"), and the step's next visit starts at the answer, so a step a wait
    interrupts has two visits, "plan · visit 1" and "plan · visit 2", as a step the run comes back to has. A wait is a fact of the
    record, never guessed: a resumed with neither a stop before it nor an open point records none. waitSteps() writes them, freezeSteps()
-   splits the visits around them, timelineSteps() leaves them out of the bar and the figure, and the Timeline mentions them nowhere (decided
-   2026-11-05: time that is not counted is not mentioned; the halt stays, as the outcome of the visit it ends); the template's copy is the same rule. */
+   splits the visits around them, timelineSteps() leaves them out of the bar and the figure, and the Timeline mentions them nowhere, since
+   time that is not counted is not mentioned (the halt stays, as the outcome of the visit it ends); the template's copy is the same rule. */
 const WAIT_BY = ["halted", "escalated", "open-points"];
 const isStopped = s => s === "halted" || s === "escalated";
 const waitsOf = w => (Array.isArray(w && w.waits) ? w.waits : []).filter(x => isObj(x) && isTime(x.since));
@@ -816,7 +816,7 @@ const openWait = w => { const ws = waitsOf(w), l = ws[ws.length - 1]; return l &
    inferred from a gap between events, with no threshold. Its bounds as a wait's: the visit running at its start ends there (outage: its reason, or true), and
    the step's next visit starts at its end, numbered as a step the run comes back to; never a bar segment, never summed, and its time is
    never folded into the waits'. outageSteps() writes it, freezeVisit() starts the next visit after it, timelineSteps() leaves it out of the
-   bar and the figure, and no board mentions it (decided 2026-11-05: no line, no mark, no note, the visit it ended read as plainly ended); the
+   bar and the figure, and no board mentions it (no line, no mark, no note, the visit it ended read as plainly ended); the
    template's copy is the same rule. */
 const outagesOf = w => (Array.isArray(w && w.outages) ? w.outages : []).filter(x => isObj(x) && isTime(x.since) && isTime(x.ended));
 const hasOutage = (w, since, ended) => isTime(since) && isTime(ended) && outagesOf(w).some(x => Date.parse(x.since) === Date.parse(since) && Date.parse(x.ended) === Date.parse(ended));
@@ -824,7 +824,7 @@ const hasOutage = (w, since, ended) => isTime(since) && isTime(ended) && outages
    a wait on the user (the wait is cut in two around it; no visit runs then), the visit still running (frozen at its start, wip.since its
    end), a visit already closed (cut in two: the first part ends at its start and keeps only what names its pass, the plan's pass, the
    remediation it answers and, a qa visit's included, the qa pass it ran, as it stood at the cut: running, its verdict, findings and route
-   being the second part's (plan/RULES.md §4, the run-restarted row; p21 choice 8, the decision of 2026-11-11); the second keeps the
+   being the second part's (plan/RULES.md §4, the run-restarted row); the second keeps the
    visit's snapshot and its end), or a gap between visits (the record alone). A recorded time strictly inside it says the run was active: refused, as
    the facts and the record disagree. Returns { lines, step } or { refused }. */
 /* a qa visit's passes as they stood when a stretch cut it: each pass by its number, running (its verdict came at the visit's end) */
@@ -986,10 +986,10 @@ const retimeWhat = (head, words) => { const w = (words || []).filter(Boolean), l
    A run's own events are every event but these: the team raises them itself (a stretch when the run was not running, the corrections, the Document
    step's two team tasks, the land's steps, the filing of a tracking plan's units, the seedings). A run never retimes or rewords one of them; the
    team, when a board correction asks for it, may retime one (not run-restarted, reseed, seed, unit-landed: RETIME_NOT), and rewords none (their text is
-   composed by the scripts from the team's facts, never a run's report). The open choice of 2026-11-13, built to its recommendation: the
+   composed by the scripts from the team's facts, never a run's report). The
    event's name marks it the team's, as this list does, since the board stores no sender per event. */
 const TEAM_RECORDS = ["run-restarted", "retime", "reword", "state-boards", "landing", "merge", "landed", "sub-issues-filed", "reseed", "seed", "unit-landed"];
-/* ---------- One event's recorded text reworded (reword; dashboards-skill/reword-event, the user's decisions of 2026-11-13; plan/RULES.md §4, the reword row) ----------
+/* ---------- One event's recorded text reworded (reword; dashboards-skill/reword-event; plan/RULES.md §4, the reword row) ----------
    A run's report, a halt's question or what it waits on, as the event wrote it, is held in several places at once: the report closing several
    stages is each of those stages' report, the remediation's steps repeat the report that closed them, the step's detail is the report, and each
    finished visit's snapshot keeps its own copy. rewordPlan() finds the event's own places by the stamps the event wrote (o.event its name, o.at
@@ -1062,9 +1062,9 @@ const rewordDigest = s => "sha256:" + require("crypto").createHash("sha256").upd
 const rewordWhat = (ev, tracking, at, places, reason, to) => {
   const clock = `${at.slice(0, 10)} ${at.slice(11, 19)} UTC`;
   return `${retimeWords(ev, tracking)} of ${clock} is reworded${places.length ? ` in ${listWords(places)}` : ""}${reason ? `: ${reason.replace(/[\s.;:,]+$/, "")}` : ""}. ${to ? `The passage now reads "${to.trim()}"${/[.!?]$/.test(to.trim()) ? "" : "."}` : "The passage is taken out."}`; };
-/* a board's Document commit recorded: its document-landing task done (a reword comes before it: the user's rule of 2026-11-13) */
+/* a board's Document commit recorded: its document-landing task done (a reword comes before it) */
 const docCommitDone = w => !!(isObj(w) && isObj(w.document) && Array.isArray(w.document.tasks) && w.document.tasks.some(t => isObj(t) && t.id === DOC_LANDING_TASK && t.state === "done"));
-/* a board's land sent: the land's first step recorded, or the board closed (a run's retime comes before it: the user's rule of 2026-11-13) */
+/* a board's land sent: the land's first step recorded, or the board closed (a run's retime comes before it) */
 const landSent = (plan, w) => ["built", "abandoned"].includes(plan && plan.status) || ["landing", "merge", "landed", "cancelled"].includes(w && w.step) || (isObj(w) && ["landing", "merge"].includes(w.resume))
   || ["landing", "merge"].some(s => (historyOf(w)[s] || []).length);
 /* a visit's start: the end of the visit before it (visits follow each other), or the answer that ended a wait since, or the end of a
@@ -1844,7 +1844,7 @@ const ordinal = n => { const k = Math.abs(parseInt(n, 10)); if (!Number.isFinite
      organizations, named by its owner). A case that fits none (a parent organization's repository depending on a child's) has none:
      { locality: null, why }, reported, never given one. */
 const DEP_STATES = ["blocking", "clear", "pre-built", "dropped"];
-/* The two organizations and their relation (the user's: SpartanLaboratories is the parent of SpartanLabsGaming). */
+/* The two organizations and their relation (SpartanLaboratories is the parent of SpartanLabsGaming). */
 const ORG_PARENT = { SpartanLabsGaming: "SpartanLaboratories" };
 const LOCALITIES = ["local-repository", "local-organization", "local-parent-org", "external"];
 const ownerOf = repo => String(repo || "").split("/")[0];
@@ -2283,8 +2283,8 @@ function timelineSteps(plan, opts) {
     if (vs.length === 1 && c && (!vs[0].from || (vs[0].from.how === "approx" && Date.parse(c.at) < Date.parse(vs[0].from.t))) && (!vs[0].to || Date.parse(c.at) <= Date.parse(vs[0].to.t))) vs[0].from = { t: c.at, how: "by", sha: c.sha || null }; });
   /* the lines: label, duration, family, shade */
   /* a qa or remediation visit with its pass: the parts of one pass a wait or a break split are counted apart (passKey), each named by the
-     pass and its part, "Quality Review 1 · visit 1", "Quality Review 1 · visit 2" (plan/RULES.md §2, the Timeline Tile's Legend; p21 choice
-     7, the decision of 2026-11-11) */
+     pass and its part, "Quality Review 1 · visit 1", "Quality Review 1 · visit 2" (plan/RULES.md §2,
+     the Timeline Tile's Legend) */
   const passKey = v => (v.step === "qa" || v.step === "remediation") && v.pass ? `${v.step}#${v.pass}` : null;
   const cnt = {}, nth = {}, part = {}, TL_CTX = PN.ctxOf(w); seq.forEach(v => { cnt[v.step] = (cnt[v.step] || 0) + 1; const pk = passKey(v); if (pk) cnt[pk] = (cnt[pk] || 0) + 1; });
   seq.forEach(v => { v.n = nth[v.step] = (nth[v.step] || 0) + 1;
@@ -2301,7 +2301,7 @@ function timelineSteps(plan, opts) {
   const lined = [...new Set(seq.map(v => v.step))].sort((x, y) => idx(x) - idx(y));
   seq.forEach(v => { const fs = lined.filter(s => tlFamily(s) === tlFamily(v.step)); v.family = tlFamily(v.step); v.shade = tlShade(fs.indexOf(v.step), fs.length); });
   /* the waits on the user and the stretches when the run was not running bound the visits (above) and are counted by none; the tile
-     mentions neither: no line of their own, no mark, no note (decided 2026-11-05: time that is not counted is not mentioned) */
+     mentions neither: no line of their own, no mark, no note (time that is not counted is not mentioned) */
   return { kind, visits: seq, left, untimed: seq.filter(v => v.ms == null).map(v => v.label), families: timelineFamilies(seq) };
 }
 /* The tracers (GUIDANCE.md §12; plan/RULES.md §2, "The Timeline tab"; dashboards-skill/34): from each KPI tile up to the part of
@@ -2339,7 +2339,7 @@ function timelineApproxNote(T) { const vs = (T && T.visits || []), ap = vs.filte
 /* one visit's line in UTC, as check.js and timeline.js report it: "implementation (build): 2026-10-25 14:21Z → 2026-10-25 19:00Z · 4 h 39 min" */
 const tlBoundText = b => b && b.how === "now" ? "now" : b ? `${b.how === "by" ? "by " : b.how === "approx" ? "≈ " : ""}${b.t.slice(0, 10)} ${b.t.slice(11, 16)}Z${b.merge ? " (the merge)" : ""}` : "—";
 /* The tile's lines in order: the visits alone, [{ visit }]. A wait on the user or a stretch when the run was not running has no line: it
-   only bounds the visits around it (decided 2026-11-05: time that is not counted is not mentioned); the template's timelineRows() is the same rule. */
+   only bounds the visits around it (time that is not counted is not mentioned); the template's timelineRows() is the same rule. */
 function timelineRows(T) { return ((T && T.visits) || []).map(v => ({ visit: v })); }
 const timelineLines = T => timelineRows(T).map(({ visit: v }) => `${v.label}${v.family && v.family !== v.step ? ` (${v.family})` : ""}: ${tlBoundText(v.from)} → ${tlBoundText(v.to)} · ${v.ms != null ? `${v.approx ? "≈ " : ""}${tlSpan(v.ms)}` : "—"}`);
 /* The merge's time and the branch's step commits, from git, for the Timeline tile (asBuilt.at, asBuilt.commits): the merge commit's

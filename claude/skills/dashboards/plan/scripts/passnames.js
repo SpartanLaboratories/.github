@@ -1,4 +1,4 @@
-// The names a board shows for the run's steps, its Quality Reviews and what follows them (2026-11-05, 2026-11-06). Not a command.
+// The names a board shows for the run's steps, its Quality Reviews and what follows them. Not a command.
 // Each name has one home: here for the scripts, and the templates' copy of it (plan/template/dashboard.html and board.html: PASS_NAME,
 // STEP_NAME, ROUTE_NAME, …), which verify/cases-board-wording.js holds equal to this one. Never free text: the fast path (apply-event.js)
 // writes every name it composes from here and rewords every fact text it writes (renamePassText()); every rewrite of a board (lib.js
@@ -51,7 +51,7 @@ const STEP_WORDS = { "sub-issues": "filing the units as sub-issues", boards: "cr
   architecture: "the architecture", plan: "the plan", branch: "the branch", implementation: "implementation", qa: PASS_NAME, document: "the Document step",
   landing: "the landing", "state-boards": "the state boards", merge: "the merge", landed: "landed" };
 const stepWords = (step, ctx) => step === "remediation" ? `the ${stepName(step, ctx)}` : STEP_WORDS[step] || String(step || "");
-/* the step a halt names (dashboards/call-3, the decision of 2026-11-06): a fix step by its route alone, with no pass and
+/* the step a halt names (dashboards/call-3): a fix step by its route alone, with no pass and
    no article, "Halted at Correction", "Halted at Resolution"; every other step as stepWords() (in a sentence) and stepName() (as a label)
    name it, "Halted at Quality Review", "Halted at the plan". A resume and an escalation are no halt: "Resumed at the Correction of Quality
    Review 2". The templates' haltLabel() is haltName() (verify/cases-halt-fix-step.js holds them equal). */
@@ -66,7 +66,7 @@ const ROUTE_WORDS = { "on-the-spot": "minor fixes on the spot, then the Document
 const REMEDIATION_NOTE = "Correction or Resolution after a Quality Review; each step is recorded as it runs";
 /* the mark of a pass whose findings were fixed in place, with no pass after it */
 const inPlaceWords = p => p && p.inPlace ? `${p.inPlace === "fixing" ? "fixing" : "fixed"} in place · no additional ${REVIEW}` : "";
-/* a pass's findings line (dashboards/call-5, the decision of 2026-11-06): the count, then the severities, then the kinds,
+/* a pass's findings line (dashboards/call-5): the count, then the severities, then the kinds,
    "18 findings (2 minor, 16 other; 3 documentation, 15 code)". Severities minor, then other (a qa report's own words after them, as it
    wrote them); kinds documentation, test, code; a zero count left out of both. The count is the kinds' sum, else the severities' where no
    kind is counted. Nothing counted: "" (zero true: "0 findings" where a count is recorded, the step panel's line of a pass with none).

@@ -1,6 +1,6 @@
-// The cases of reword, one event's recorded text reworded (dashboards-skill/reword-event; the user's decisions of 2026-11-13,
-// dashboards/reword-event and dashboards/run-sent-corrections; plan/RULES.md §4, the reword row), and of a run's own retime and reword (the same
-// decisions; the retime row). Run by verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-reword.js [--out <dir>].
+// The cases of reword, one event's recorded text reworded (dashboards-skill/reword-event;
+// plan/RULES.md §4, the reword row), and of a run's own retime and reword (plan/RULES.md
+// §4, the retime row). Run by verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-reword.js [--out <dir>].
 // The trigger: KotlinBottools #25's run asked, before its Document commit, for four of its recorded texts to be reworded (two stage reports each
 // carried by several stages, one closing report's sentence, and a halt's question); the rules had no route. A reword finds the event's own places
 // by the stamps it wrote (a report by its `finished`, a detail by its visit's `event`, a question by its `asked`, a review's note by its `at`),

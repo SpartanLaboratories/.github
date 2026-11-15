@@ -1,12 +1,12 @@
 // The cases of a stretch when the run was not running (board/timeline-outages; plan/RULES.md §2, "A run not running is not active
 // time", §4, the run-restarted row), run by verify-templates.js (it passes its helpers in), or on its own with no browser: node
-// verify/cases-timeline-outages.js [--out <dir>]. A stretch when a run's session was down is not counted and not mentioned (decided
-// 2026-11-05): no line, mark, note or trail entry on any board, never a bar segment, never summed, the step split into visits around it. Recorded only when a
+// verify/cases-timeline-outages.js [--out <dir>]. A stretch when a run's session was down is not counted and not mentioned:
+// no line, mark, note or trail entry on any board, never a bar segment, never summed, the step split into visits around it. Recorded only when a
 // restart is known (a reported one, or a run's request from a different session), by the team-raised run-restarted event, its bounds from
 // the facts alone, on the fast path, idempotent; it falls in the
 // running visit, a closed one, a wait, or a gap. lib.js timelineSteps() and the template's copy agree. The first part of a closed visit a
 // stretch cuts keeps what names its pass, a qa visit's included, and the parts of a split qa or remediation visit read "Quality Review 1 ·
-// visit 1", "Quality Review 1 · visit 2" in the Timeline Tile's Legend (group 6; the user's decisions of 2026-11-11, p21 choices 7 and 8). No case here opens a browser. Each
+// visit 1", "Quality Review 1 · visit 2" in the Timeline Tile's Legend (group 6). No case here opens a browser. Each
 // group returns [title, cases], a case [name, ok, detail].
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os"), vm = require("vm");
@@ -166,7 +166,7 @@ module.exports = function casesTimelineOutages(X) {
     c.push(["the feature detector holds issue and tracking boards to it, fails a board that still draws the line, and says why the others do not fit", f && f.test(t.replace(/\r\n/g, "\n"), "plan-board") === true && f.test(old, "plan-board") !== true && !F.FEATURES.some(x => x.id === "timeline-outages") && js(f.types) === js(["plan-board"]) && ["system", "supersystem", "work-board"].every(k => f.notFor[k]), js(f && f.types)]);
   });
 
-  /* 6. a qa or remediation visit split in parts (the user's decisions of 2026-11-11, p21 choices 7 and 8): the first part of a closed visit a
+  /* 6. a qa or remediation visit split in parts: the first part of a closed visit a
      stretch cuts keeps what names its pass, a qa visit's included (its pass, as it stood at the cut: running); the parts of a split qa or
      remediation visit read "Quality Review 1 · visit 1", "Quality Review 1 · visit 2" in the Timeline Tile's Legend, the pattern other steps
      use, whether a stretch or a wait split it; lib.js and the template alike; a pass no stretch or wait split keeps its bare name */
@@ -220,7 +220,7 @@ module.exports = function casesTimelineOutages(X) {
     const F = require(sk("system/scripts/features.js")), f = F.FEATURES.find(x => x.id === "timeline-split-pass"), tn = t.replace(/\r\n/g, "\n");
     const before = tn.replace("+(pk&&cnt[pk]>1?` · visit ${part[pk]=(part[pk]||0)+1}`:\"\")", "");
     c.push(["the feature probe finds the parts' names on the template, misses them on one without, and says why the other types do not fit", !!f && before !== tn && f.test(tn, "plan-board") === true && f.test(before, "plan-board") !== true && js(f.types) === js(["plan-board"]) && ["system", "supersystem", "work-board"].every(k => typeof (f.notFor || {})[k] === "string"), js(f && f.types)]);
-    /* 7. the same names in a finished step's Panel headings and its brief (the user's confirmation of 2026-11-11, p21 reading 2; plan/RULES.md
+    /* 7. the same names in a finished step's Panel headings and its brief (plan/RULES.md
        §3, "The Panel of a finished step"): visitName() heads each visit of a finished step as the Legend names it */
     const box2 = {}; vm.createContext(box2);
     vm.runInContext(["PASS_NAME", "ROUTE_NAME", "routeKey", "routeName", "remediationName", "visitPassKey", "visitName"].map(def).join("\n") + "\nthis.api={visitName};", box2);

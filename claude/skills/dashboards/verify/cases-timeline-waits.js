@@ -5,7 +5,7 @@
 // path (apply-event.js, lib.js waitSteps()): a stop (halted, escalated) until the event that takes the board out of it; and a resumed on a
 // board that was not stopped, after an event whose open points it answers. The step a run names in its own words ("implement") read as
 // the board's. While the run waits no visit runs to now (the template's tick has nothing to follow). The wait is mentioned nowhere on the
-// Timeline (decided 2026-11-05: time that is not counted is not mentioned): no line, mark or note; the halt stays, as the outcome of the
+// Timeline (time that is not counted is not mentioned): no line, mark or note; the halt stays, as the outcome of the
 // visit it ends. lib.js timelineSteps() and the
 // template's copy agree. No case here opens a browser. Each group returns [title, cases], a case [name, ok, detail].
 "use strict";

@@ -1,4 +1,4 @@
-// The cases of the board's names (dashboards-skill/board-wording, the user's decisions of 2026-11-06; dated dashboards-skill/41 in
+// The cases of the board's names (dashboards-skill/board-wording; dated dashboards-skill/41 in
 // the feature probes), run by verify-templates.js (it passes its helpers in), or on its own: node verify/cases-board-wording.js [--out <dir>].
 // Every name a board shows has one home: plan/scripts/passnames.js for the scripts, and the templates' names block (names:begin), held equal
 // here. The qa step reads "Quality Review", a pass "Quality Review N" (never an ordinal), one not numbered "review", what it returns its

@@ -1,7 +1,7 @@
-// The cases of dashboards-skill/53, the approved proposals of the Design tab's review (the decision of 2026-11-06: proposals 4, 6 and
-// 7), run by verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-design-tab-proposals.js [--out <dir>].
+// The cases of dashboards-skill/53, the Design tab's changes,
+// run by verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-design-tab-proposals.js [--out <dir>].
 // 1. The Verdict's section chip (plan/RULES.md §2, "Statements"): a Verdict statement's reference drawn as a neutral chip, "§R2" (never the
-//    link blue, no parentheses), a marked one "§42?" named in the legend; an As built statement ends with the same chip (the decision of 2026-11-08); a click on either opens the
+//    link blue, no parentheses), a marked one "§42?" named in the legend; an As built statement ends with the same chip; a click on either opens the
 //    section's excerpt (bindRefs()).
 // 2. The Verdict cell's count labels (plan/RULES.md §2, "The Verdict Cell's count Labels"): its steps, tests and risks each a count label, the
 //    figure in ink and muted at zero, the noun agreeing with it.

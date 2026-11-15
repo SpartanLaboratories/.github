@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// A fill: the presenter's fields written on top of the latest plan.json (plan/RULES.md §4, "The fast path"; admin-team/dashboards-skill/option-d-and-decisions).
+// A fill: the enrichment's fields written on top of the latest plan.json (plan/RULES.md §4, "The fast path"; dashboards-skill/option-d-and-decisions).
 // Composing a fill takes minutes and events keep applying meanwhile, so a fill never writes the file it read: it hands this script the fields it
 // wrote, and the script merges them onto the board as it stands now, under the boards' short lock (lib.js lockTree()), through a rename (lib.js
 // atomicWrite()), then embeds, checks, and on a new failure puts every file back.
@@ -17,15 +17,15 @@
 //   complete or landed unit stays so), and unit.issue, unit.board, unit.folder and unit.live once set (the filing and embed.js write them). One exception, plan/RULES.md §2,
 //   "Before the outcome": partially-built with a summary is stored where the stages do not say otherwise (no stage decides the row, or they make it partially built too).
 //   Refused, exit 2 and nothing written: wip, trail, status, sized, branch, asBuilt, kind and the board's identity (schema, repo, issue, slug, folder), foundation
-//   and links (embed.js clears and writes them): the events own them. A grade (level, unit.level, proposedLevel, grade, proposedGrade) is dropped and named, never written (levels.js).
+//   and links (embed.js clears and writes them): the events own them. A sizing (level, unit.level, proposedLevel, the size word's own key, proposedGrade) is dropped and named, never written (levels.js).
 //   A qa pass the fields name "qa pass N" is written "Quality Review N" (passnames.js), and so is one the board already holds, before the merge; named in notes.
 //   An internal name (GUIDANCE.md §4; namerefs.js cleanWritten()) in the fields' text is reworded where a safe rewording exists, and named in notes; a text that
-//   would still name a barred one is refused, exit 2 and nothing written, the field and the name said: the presenter rewords it. A wait on the user reads
+//   would still name a barred one is refused, exit 2 and nothing written, the field and the name said: it is reworded and sent again. A wait on the user reads
 //   "waiting on you". An issue's title, quoted verbatim, an option's signature, which is code, and a $comment are left alone.
 //   Two narrow ways into what the events own, each by what it names, so neither undoes an event:
 //   "trailAdd": [{ date, column, label, ref? }] appends trail entries, one already there skipped;
 //   "trailFix": [{ "label": "<the entry as it reads>", "to": "<as it should read>" }] rewords trail entries already there, each found by its label; a label not there is
-//   named and skipped (for a text that should never have been written: an internal name, a grade);
+//   named and skipped (for a text that should never have been written: an internal name, a sizing);
 //   "wip": { "stages": [{ id, rows }], "questions": [{ question, rows }], "interview": [{ text, answer }], "asked": [{ text, step?, answer }], "qa": [{ pass, note }],
 //            "current": { "step": "<the step this glow is for>", "cells": ["<row-id>.<column>"] }, "waitingOn": "<what waits on the user>", "detail": "<the WIP line, reworded>",
 //            "open": [{ text, resolved }], "document": [{ id, started?, finished?, reason }] }
@@ -41,7 +41,7 @@
 //   that is no UTC ISO time or is after wip.updated, a start on a task still to come or a finish on a task not done (that would change its state), a finish
 //   before the task's start, and a time outside the Document step's own bounds (its first visit's start; while the step runs wip.updated, else its last
 //   visit's end). The same correction again writes nothing. An answer's gist (the interview's, a halt's) is written on the snapshots that hold its question too (lib.js syncAsked()).
-//   wip.waitingOn is the text the fast path left out or wrote in its stead (plan/RULES.md §4, "A grade in the facts is reworded"): while the board
+//   wip.waitingOn is the text the fast path left out or wrote in its stead (plan/RULES.md §4, its rewording of a sizing in the facts): while the board
 //   is halted or escalated it is written, and the stop's own trail entry and a detail that quoted the old text follow it, so the record reads alike;
 //   once an event has taken the board out of the stop, the last stop's trail entry alone takes it, and a waitingOn and resume left standing are cleared.
 // It catches up the plan's stage table on a board whose stages carry none of it (lib.js catchUpStageTable()), and keeps up what follows from new rows: a tracking board's wip.next once its unit rows first appear, the glow at research and at sub-issues (and at implementation, from the rows a fill names for the current stage, when it sets no glow itself), and a unit's
@@ -58,7 +58,7 @@ const stageNope = s => levelRefs(s).length ? "a grade" : nameRefs(s).some(unambi
 
 const OWNED = ["wip", "trail", "status", "sized", "branch", "asBuilt", "kind", "schema", "repo", "issue", "slug", "folder", "foundation", "links"];
 const IDENTITY = ["id", "slug", "issue", "class", "question", "pass", "n"];
-const LEVELS = new Set(["level", "proposedLevel", "grade", "proposedGrade"]);   // level and proposedLevel, a grade's old keys, are never written either (levels.js)
+const LEVELS = new Set(["level", "proposedLevel", "grade", "proposedGrade"]);   // level and proposedLevel, a sizing's old keys, are never written either (levels.js)
 const WIP_KEYS = ["stages", "questions", "interview", "asked", "qa", "current", "waitingOn", "detail", "open", "document"];
 const TASK_KEYS = ["id", "started", "finished", "reason"];
 const UNIT_KEPT = ["issue", "board", "folder", "live"];
@@ -67,13 +67,13 @@ const isObj = v => v != null && typeof v === "object" && !Array.isArray(v);
 class Refused extends Error {}
 
 const identityOf = list => IDENTITY.find(k => list.every(x => isObj(x) && x[k] != null));
-/* the fields with their keys read: a grade found anywhere is dropped and named */
+/* the fields with their keys read: a sizing found anywhere is dropped and named */
 function withoutLevels(v, at, dropped) {
   if (Array.isArray(v)) return v.map((x, i) => withoutLevels(x, `${at}[${i}]`, dropped));
   if (!isObj(v)) return v;
   const out = {};
   Object.keys(v).forEach(k => { const here = at ? `${at}.${k}` : k;
-    /* a test class's own set, an older tests.*.level, is no grade */
+    /* a test class's own set, an older tests.*.level, is no sizing */
     if (LEVELS.has(k) && !/^tests\b/.test(at)) { dropped.push(here); return; }
     out[k] = withoutLevels(v[k], here, dropped); });
   return out;
@@ -273,7 +273,7 @@ function mergeFill(board, fields, planDir) {
       const own = cs ? ownRows(cs.rows).map(id => id + ".built") : [], g = own.length ? own : ["built"];
       if (cs && JSON.stringify(g) !== JSON.stringify(w.current || [])) { w.current = g; merged.push(`wip.current, the rows stage ${cs.id} touches`); } }
     if (F.wip.detail !== undefined) { if (typeof F.wip.detail !== "string" || !F.wip.detail.trim()) throw new Refused("wip.detail is a text: the WIP line"); if (w.detail !== F.wip.detail) { w.detail = F.wip.detail; merged.push("wip.detail"); } }
-    /* what waits on the user, written by the presenter where the fast path could not write the run's own text (an internal name or a grade in
+    /* what waits on the user, written by a fill where the fast path could not write the run's own text (an internal name or a sizing in
        it). While the board waits: wip.waitingOn, and the stop's trail entry ("… waiting on you (<text>)") and a detail made of it ("Waiting on you:
        <text>") follow it, so the record says one thing. Once an event has taken the board out of the stop: the last stop's trail entry alone, its
        record, and a wip.waitingOn and wip.resume the event left standing cleared */

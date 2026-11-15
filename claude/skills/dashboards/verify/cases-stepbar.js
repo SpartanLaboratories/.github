@@ -1,4 +1,4 @@
-// The cases of the StepBar (dashboards-skill/54: the user's decisions of 2026-11-06 and 2026-11-07; docs/nomenclature/ui.md in
+// The cases of the StepBar (dashboards-skill/54; docs/nomenclature/ui.md in
 // SpartanUI, StepBar; policy/nomenclature/boards.md in .github, "Board UI"), run by verify-templates.js (it passes its helpers in), or on its own with no browser:
 // node verify/cases-stepbar.js [--out <dir>].
 // A StepBar is the steps of a sequence in order, each a chevron with its name inside, done, current or to come. It draws:
@@ -8,7 +8,7 @@
 //     board's rows, one chevron per unit with the unit's name inside, on a line of its own; no mark (the state boards draw no work in
 //     progress; on the repository work board the unit at work carries its FullPulse on its own row);
 //   - the step panel's research indicator and a tracking board's own chain, on its phase's card (each chevron the unit's name with its marks) and in
-//     its header chain chip, in place of the thin bar, unmarked (the user's decisions of 2026-11-08; plan/RULES.md §3, "The chain is a StepBar").
+//     its header chain chip, in place of the thin bar, unmarked (plan/RULES.md §3, "The chain is a StepBar").
 // Every StepBar is an ordered list, the current step aria-current="step", each state said in words to a screen reader; it works in light
 // and dark (tokens only), and wraps inside itself at 390 px, never widening the board.
 // 1. The StepBar's look: one CSS block, the same in the four templates; the issue board's marks and finished-step buttons.
@@ -95,7 +95,7 @@ module.exports = function casesStepBar(X) {
     c.push(["its panel gives it room (.sp .stepbar)", /\.sp \.stepbar\{margin:6px 0 4px\}/.test(css(lg)), ".sp .stepbar"]);
   });
 
-  /* ---------- 2a. a tracking board's own chain as a StepBar (the user's decisions of 2026-11-08) ---------- */
+  /* ---------- 2a. a tracking board's own chain as a StepBar ---------- */
   guard("a tracking board's chain: a StepBar on its phase's card, with its marks, and in its header chain chip, unmarked", c => {
     const W = T["plan-board"], src = between(W, "const chainUnitState=", "join(\"\")}</ol>`; }");
     c.push(["the template holds chainUnitState() and chainSteps()", !!src, src ? "found" : "not found"]);

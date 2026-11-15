@@ -1,4 +1,4 @@
-// The cases of "a qa pass is named Quality Review N" (plan/scripts/passnames.js; 2026-11-05, dated dashboards-skill/40 in the feature probes), run by
+// The cases of "a qa pass is named Quality Review N" (plan/scripts/passnames.js; dated dashboards-skill/40 in the feature probes), run by
 // verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-quality-review.js [--out <dir>].
 // The name comes from the scripts and the template, never from free text: the fast path names every pass it composes "Quality Review N" and rewords
 // every fact text it writes; every rewrite of a board (embed.js, apply-event.js, fill.js) rewords what the board already holds; board.js rewords

@@ -1,10 +1,10 @@
-// The cases of "a board keeps no grade" (plan/scripts/levels.js; admin-team/dashboards-skill/option-d-and-decisions; plan/RULES.md §2), and of the labels and the two event-note
+// The cases of the board that keeps no sizing (plan/scripts/levels.js; dashboards-skill/option-d-and-decisions; plan/RULES.md §2), and of the labels and the two event-note
 // defects that came with it, run by verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-work-levels.js [--out <dir>].
-// A grade is read from the request, else the team's local state, for the kind and the steps line of a laying, and never written. An open board drops what it still holds at
+// A sizing is read from the request, else the team's local state, for the kind and the steps line of a laying, and never written. An open board drops what it still holds at
 // any rewrite, and check.js fails one that holds any; a closed work board, landed or cancelled, keeps them, whatever rewrites it, and check.js never fails it.
-// The grade's old name, the work level, is no longer read since L12 (the request's and its facts' level, the state's levels, new.js --level); a closed
-// board's level fields are read for good; the scrub (levelrefs.js) finds every form of the word grade, and no level. The repository work board
-// reads no level and no grade from GitHub, its rows sized by the team's local state alone (the user's decision of 2026-11-14, batch-8/q-56).
+// The sizing's old name, the work level, is no longer read since L12 (the request's and its facts' level, the state's levels, new.js --level); a closed
+// board's level fields are read for good; the scrub (levelrefs.js) finds every form of the sizing word, and no level. The repository work board
+// reads no level and no sizing from GitHub, its rows sized by the team's local state alone.
 // Each group returns [title, cases].
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
@@ -140,7 +140,7 @@ module.exports = function casesWorkLevels(X) {
     c.push(["on the fast path it raises no enrichment", ee.a.status === 0 && !(ee.S.why || []).some(w => /facts\.tests\.other/.test(w)), js([ee.S.error, ee.S.check, ee.S.why])]);
   });
 
-  /* the user's decisions of 2026-11-13 (vocabulary/choice-1-live-keys (a)) and the transition's end at L12 (vocabulary/choices-3-4-5 (3) (a)): a grade
+  /* the transition's end at L12: a sizing
      is read wherever a request, its facts or the team's state carry it, and new.js takes --grade; the level, its old name, is no longer read */
   guard("a grade is read: the request's and its facts' grade, the team's state's grades, new.js --grade; never kept; the level, the state's levels and --level no longer read (L12)", c => {
     const RQ = J("verify/fixtures/sized-grade.request.json");
@@ -179,8 +179,8 @@ module.exports = function casesWorkLevels(X) {
     c.push(["escalated: facts.proposedGrade is the team's, never on the board", Ee.a.status === 0 && Ee.p.wip.step === "escalated" && Ee.p.wip.proposedGrade === undefined && !/"proposedGrade"/.test(js(Ee.p)), js(Ee.p && Ee.p.wip.proposedGrade)]);
   });
 
-  /* the user's decision of 2026-11-14, batch-8/q-56: issues carry neither the old levels nor the grades, so the repository work board reads
-     neither from GitHub; an issue's grade comes only from the team's local state (levels.js localLevel()), and decides only which issues are rows */
+  /* issues carry neither the old levels nor the sizings, so the repository work board reads
+     neither from GitHub; an issue's sizing comes only from the team's local state (levels.js localLevel()), and decides only which issues are rows */
   guard("the repository work board reads no level and no grade from GitHub, only the team's local state (batch-8/q-56)", c => {
     const BOARD = sk("plan/scripts/board.js"), root = path.join(sc, "wb-grades"), plans = path.join(root, "docs", "plans");
     fs.rmSync(root, { recursive: true, force: true }); fs.mkdirSync(plans, { recursive: true });
@@ -219,7 +219,7 @@ module.exports = function casesWorkLevels(X) {
     c.push(["a grade in a fill is dropped and named, never written", fa.status === 0 && js(fS.dropped || []) === js(["grade", "proposedGrade"]) && fp.grade === undefined && fp.proposedGrade === undefined && fp.function === "F2.", js([fa.status, fS.dropped, fS.error])]);
   });
 
-  /* the scrub (levelrefs.js; the user's decision of 2026-11-13, vocabulary/choice-2-grade-reach (a)): every form of "grade" is found, numbered or
+  /* the scrub (levelrefs.js): every form of the sizing word (internal-names.md §3) is found, numbered or
      not, a hyphenated compound included, in any case; a longer word that only holds the letters is not; the work-level forms are no longer found
      (the transition's end, L12), and the other levels are left alone as before */
   guard("the scrub finds every form of \"grade\" and rewords a fact's grade; the work-level forms no longer found or reworded (L12); the other levels left alone", c => {
@@ -240,7 +240,7 @@ module.exports = function casesWorkLevels(X) {
     c.push(["…on a sub-issue's board the scope is the unit's", LR.scrubLevels("inside grade 3", { scope: "unit" }) === "inside the unit's scope", js(LR.scrubLevels("inside grade 3", { scope: "unit" }))]);
     const left = ["carrier-grade NAT is refused", "at grade 3 the fix holds", "Grade 3: one system"].filter(s => LR.scrubLevels(s, {}) !== null);
     c.push(["a compound, and a numbered grade no rule takes, have no rewording: null, so the text is left out and the presenter told", !left.length, js(left.map(s => [s, LR.scrubLevels(s, {})]))]);
-    /* the work level's forms, the grade's old name, no longer found or reworded (the transition's end, L12); the other levels left alone as ever */
+    /* the work level's forms, the sizing's old name, no longer found or reworded (the transition's end, L12); the other levels left alone as ever */
     const lvOld = ["a level-3 change", "inside level 3", "level: 2", "re-levelled", "the work level", "Recorded level confirmed", "(#61, level 3)", "escalated to level 4", "a later level-1 documentation change", "L3"];
     const lvLeft = ["L1 gating", "Level 2 component tests", "Level-2 KDoc", "level-1 KDoc contracts", "a level-1 KDoc change", "LEVEL 1 · SYSTEM CONTEXT", "the Level-4c suite", "log level kept", "top-level", ", Level 3: the reader against the real transport"];
     c.push(["the work-level forms no longer found (L12)", lvOld.every(t => !LR.levelRefs(t).length), js(lvOld.filter(t => LR.levelRefs(t).length).map(t => [t, LR.levelRefs(t)]))]);

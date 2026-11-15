@@ -1,22 +1,22 @@
-// The cases of the internal-names list's one home (the user's decision of 2026-11-07): ~/.claude/nomenclature/internal-names.md holds the
+// The cases of the internal-names list's one home: ~/.claude/nomenclature/internal-names.md holds the
 // names, phrases and words committed content never contains; system/scripts/namerefs.js keeps its copy for the scan. Run by
 // verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-internal-names.js [--list <file>].
-// The list's §1 table (the agents, sessions and roles, reshaped by the user's decision of 2026-11-07) has four columns, Name, Aliases, What it
+// The list's §1 table (the agents, sessions and roles) has four columns, Name, Aliases, What it
 // is, Allowed when: the Name is the row's heading, a CamelCase proper noun (AdminTeam, PlanWriter, QA) that is not scanned, and the Aliases
-// are the forms the scan bars (version-control-manager and executor for VersionControlManager), each in bold. §2 to §4 keep their Term column.
+// are the forms the scan bars (a row may list two), each in bold. §2 to §4 keep their Term column.
 // 1. Parity, in the style of cases-board-wording.js's passnames parity: the aliases of the list's §1 table and namerefs.js's
 //    barred names (BARRED, AGENT_ONLY) hold the same names, a hyphen and a space read alike; each at the strength its row allows: "never"
-//    BARRED (a whole word wherever it stands, the user's decision of 2026-11-13: no word that only coincides is let through), "barred as an
+//    BARRED (a whole word wherever it stands: no word that only coincides is let through), "barred as an
 //    agent's name only" AGENT_ONLY (qa). A row that allows anything else has no strength in the script (an exception is brought to the user
 //    first) and is named. The §2 table (the approval flow) and APPROVAL_FLOW hold the same phrases, and each §2 row that names a form and
-//    APPROVAL_FORMS, under the row's phrase, the same words, word for word, both ways (the user's decision of 2026-11-14, hook-135): a row's
+//    APPROVAL_FORMS, under the row's phrase, the same words, word for word, both ways: a row's
 //    form is read from its "What it is", the quoted words on one side of "followed by" (or "followed directly by") and, on the other, the
 //    quoted "user's", "user" or "by the user" they follow or precede; the examples in parentheses are not read.
-// 2. Each name and phrase found as its strength says, and §4's allowed words found nowhere: "the direction manager" with a space as well;
-//    a name in backticks found, a longer word that contains one not; a name in a hyphenated compound ("planners-guide") found, a hyphen being
-//    a word edge, and a fenced block counted as backticks are, in a text and rendered (<pre><code>) alike (the user's decision of 2026-11-13,
-//    dashboards/scan-forms, points 1 and 3; the compound's case the user's decision of 2026-11-14, batch-8/q-51). Every word of every §2 form
-//    found in its form ("the user's call", with one word between where the row allows it; "the user chose"; "approved by the user"), in
+// 2. Each name and phrase found as its strength says, and §4's allowed words found nowhere: a two-word name with a space as well as a hyphen;
+//    a name in backticks found, a longer word that contains one not; a name in a hyphenated compound (the name, then "-guide") found, a hyphen being
+//    a word edge, and a fenced block counted as backticks are, in a text and rendered (<pre><code>) alike.
+//    Every word of every §2 form
+//    found in its form (each §2 phrase, with one word between where the row allows it, and each word its row lists), in
 //    capitals, with a curly apostrophe and, where the words follow "user", after "the end user"; not after "superuser", nor past a word
 //    between where the row allows none.
 // 3. The parity fails where they differ: a row added to the list's table and an alias added to a row (each written into the list's text in
@@ -162,18 +162,18 @@ module.exports = function casesInternalNames(X) {
     c.push(["every §1 name and §2 phrase found as its strength says; every §4 row names nothing", !b.length, js(b)]);
     const dm = [["the direction manager confirmed it", true], ["the direction-manager reported", true], ["direction managers", true], ["the `DirectionManager` turns", false], ["a DirectionManager", false], ["the `direction-manager` turns", true]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);
     c.push(["\"the direction manager\" with a space found as well as the hyphen, in backticks too; `DirectionManager` as one word left alone", !dm.length, js(dm)]);
-    /* the user's decision of 2026-11-13: a name in backticks counts, a longer word that contains one does not; no surrounding word lets one through */
+    /* a name in backticks counts, a longer word that contains one does not; no surrounding word lets one through */
     const strict = [["the planner reconciled it", true], ["a single-thread executor drains the queue", true], ["the event publisher emits", true], ["the bytecode verifier rejects it", true], ["runs on an `Executor`", true],
       ["the `Planner` type", true], ["the archivist's hook", true], ["two archivists", true], ["the solution architect", true], ["Presenters", true],
       ["uses OkHttp's `RoutePlanner`", false], ["an `ExecutorService`", false], ["RoutePlanner picks a route", false], ["plannerConfig", false], ["planner_id", false]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);
     c.push(["every name a whole word wherever it stands, in backticks too; a longer word that contains one is not a find", !strict.length, js(strict.map(([t, w]) => [t, w, N.nameRefs(t)]))]);
-    /* the user's decision of 2026-11-13, dashboards/scan-forms (1), pinned by the user's decision of 2026-11-14, batch-8/q-51 (a): a hyphen is a
+    /* a hyphen is a
        word edge, so a name in a hyphenated compound is a find, on either side of the hyphen, in backticks and in a path too; a longer word that
        contains one stays no find beside a hyphen */
     const compound = [["the planners-guide page", true], ["`planners-guide`", true], ["docs/planners-guide.md", true], ["a planner-guide", true], ["guide-planners", true],
       ["the executor-pool drains it", true], ["rookie-dev-notes", true], ["see the RoutePlanner-guide", false], ["plannerConfig-guide", false]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);
     c.push(["a name in a hyphenated compound (\"planners-guide\") is a find: a hyphen is a word edge; a longer word beside a hyphen is not", !compound.length, js(compound.map(([t, w]) => [t, w, N.nameRefs(t)]))]);
-    /* the user's decision of 2026-11-13, dashboards/scan-forms: a fenced block counts as backticks do, in a text and rendered (<pre><code>) alike, so the board scripts and the commit scan agree */
+    /* a fenced block counts as backticks do, in a text and rendered (<pre><code>) alike, so the board scripts and the commit scan agree */
     const fence = [["```kotlin\nval planner = RoutePlanner()\n```", true], ["<pre><code>the planner reruns it</code></pre>", true], ["<pre><code class=\"lang-kotlin\">val executor = pool()</code></pre>", true],
       ["<pre><code>val p = RoutePlanner()</code></pre>", false], ["<code>planner</code>", true]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);
     c.push(["a fenced block counts as backticks do: its lines in a text and a rendered <pre><code> scanned, a longer word in it no find; an inline <code> counts as well", !fence.length, js(fence.map(([t, w]) => [t, w, N.nameRefs(t)]))]);
@@ -215,7 +215,7 @@ module.exports = function casesInternalNames(X) {
     c.push(["each difference named: a row added, an alias added, a name dropped, a strength changed, qa beyond an agent's name, a phrase added, a word added to a form in the list, a word dropped from the script's form and one added to it", !wrong.length, js(wrong.map(([w, d]) => [w, d]))]);
   });
 
-  /* the user's decision of 2026-11-13 (vocabulary/choice-2-grade-reach (a)): every form of "grade" is barred, as the list's §3 lists it; the
+  /* every form of the size word is barred, as the list's §3 lists it; the
      boards' scrub (levelrefs.js) finds each form the list names, its terms and the forms quoted beside them. A list before that edit names none. */
   guard("§3's grades: every form of a grade the list names is found by the boards' scrub (levelrefs.js)", c => {
     if (!file) { c.push(["the list is read", false, `not found: ${js(candidates)}`]); return; }

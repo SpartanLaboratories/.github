@@ -397,7 +397,7 @@ function titleChecks() {
 // Internal names (GUIDANCE.md §4, "No internal names"; namerefs.js; dashboards-skill/33), read without a browser: the strings of a board's
 // data blocks (plan, board, state; an issue's title, quoted verbatim, left out), its HTML comments (the old placeholder marks, named for a role,
 // included) and the text of its hand-written HTML (a state board's header, panels, Guarantees and Context; an inline <code> counts as a name in backticks does, and so does a <pre> block, a rendered fenced block,
-// the decision of 2026-11-13, dashboards/scan-forms, so this scan and the commit scan agree). Each is a
+// so that this scan and the commit scan agree). Each is a
 // warning, INTERNAL NAME, never a problem of the board: text a board stores is corrected where it is stored, an issue or tracking board's through fill.js (GUIDANCE.md §4).
 function nameChecks() {
   if (!src || /<meta name="dashboard" content="doc-copy">/.test(src)) return null;

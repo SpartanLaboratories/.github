@@ -1,4 +1,4 @@
-// The cases of the marks' classes (the user's nomenclature decisions of 2026-11-07, dated 48; GUIDANCE.md §1, §12; docs/nomenclature/ui.md
+// The cases of the marks' classes (dated 48; GUIDANCE.md §1, §12; docs/nomenclature/ui.md
 // in SpartanUI, policy/nomenclature/boards.md in .github, "Board UI"), run by verify-templates.js (it passes its helpers in), or on its own with no browser:
 // node verify/cases-mark-classes.js [--out <dir>]; with --fixture it first rewrites the browser fixture (5) from the templates.
 // "Glow" is retired: the in-progress mark is a FullPulse, the column at work its column's FullPulse, the up-next mark a still outer Ring,
@@ -13,7 +13,7 @@
 // 5. The mark-class browser fixture, verify/fixtures/mark-classes/ (index.html: the issue and tracking boards' marks; work-board.html: the
 //    repository work board's): static and offline, each template's own <style> copied verbatim so it draws what a board draws, every mark
 //    class on an element beside the Legend entries as the template words them, the progress strip's StepBar with its current step's marks
-//    and a tracking issue's chain unmarked among them (dashboards-skill/54), the research StepBar and a tracking board's own chain among them (the user's decisions of 2026-11-08). A case fails it once it no longer matches the templates.
+//    and a tracking issue's chain unmarked among them (dashboards-skill/54), the research StepBar and a tracking board's own chain among them. A case fails it once it no longer matches the templates.
 // Each group returns [title, cases], a case [name, ok, detail].
 "use strict";
 const fs = require("fs"), path = require("path"), os = require("os");

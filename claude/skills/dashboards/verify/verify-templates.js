@@ -35,35 +35,35 @@
 // which count and label only written verdicts (a board with rows and none, a board with mixed, a tracking board), and the footer on
 // every dashboard type (GUIDANCE.md §3), with check-board.js failing the old form. And that dashed means only planned or pending on
 // every type (the verdict's kind chip, the model chip, the Source legend, the link button: solid), the As built tile's count of built
-// rows (dropped and deferred out of both figures), and a work-board entry's recorded "no system" (plan/RULES.md §2, §5). And the decisions
-// of 2026-10-25: no dash but planned or pending (lifelines, returns and C4 frames solid; check-board.js's DASHED NOT PLANNED, every C4
-// view included), rows left for later out of the As built count, and boardless work-board rows taking their state from the tracker. And the decisions of
+// rows (dropped and deferred out of both figures), and a work-board entry's recorded "no system" (plan/RULES.md §2, §5). And
+// no dash but planned or pending (lifelines, returns and C4 frames solid; check-board.js's DASHED NOT PLANNED, every C4
+// view included), rows left for later out of the As built count, and boardless work-board rows taking their state from the tracker. And the changes of
 // dashboards-skill/17: the step panel beside the WIP strip, research-state rings, the charging arrow, the strip's open research questions, the
-// work board's still ring, live updates through the plan.js and board.js sidecars, and the theme switch on every type. And the decisions of
+// work board's still ring, live updates through the plan.js and board.js sidecars, and the theme switch on every type. And the changes of
 // dashboards-skill/18: no glow cap (the exact cells; the returned questions' rows before the verification), "closed · not planned" on the work
 // board, wip.next skipping units left for later, release.unreleased, the plan verification re-pass, the richer event facts (interview options,
 // qa severity and route, the remediation's route), the as-built states before the outcome (in progress, partially built) and open points
 // (wip.open). And the fast path of dashboards-skill/20 (plan/scripts/apply-event.js): each event kind applied to a fixture, the same
 // event twice changing nothing, the enrich flag, atomic failure, the re-render of an older-template board by an ordinary event, a stage
-// that touches no rows glowing the whole As built column, and its time. And the decisions of dashboards-skill/19: statements in the
+// that touches no rows glowing the whole As built column, and its time. And the changes of dashboards-skill/19: statements in the
 // Verdict and As built cells with their plan excerpts, "closed · duplicate", the column glow, the KPI bars, and the real #62 events the
-// fast path misapplied (a remediation step naming a test level; a remediation report carrying the stages). And the decisions of
+// fast path misapplied (a remediation step naming a test level; a remediation report carrying the stages). And the changes of
 // dashboards-skill/21: the header's two halves and its labelled tags on every type, a tracking board's WIP row in fixed shares (35 / 25 / 40),
 // and the step panel's title alone with its facts as info cards, each a small card. And the state boards on a branch, data only
-// (dashboards-skill/25): system/scripts/apply-state.js, the state block, planned from the data, check-board.js --no-browser. And the decisions
+// (dashboards-skill/25): system/scripts/apply-state.js, the state block, planned from the data, check-board.js --no-browser. And the changes
 // of dashboards-skill/26 (verify/cases-26.js): the feature probes, the splice and the template history it reads (verified.json "history",
 // verify/history/), the legends of Guarantees and Context, links only to files that exist and the live views first, the tablists' keys, the
 // theme remembered across boards, no issue above Context, the Markdown copies, the unit boards and a tracking board's two steps, the
-// progress notes, built or planned from the code. And the decisions of dashboards-skill/22 (verify/cases-22.js): the KPI tiles' legends
+// progress notes, built or planned from the code. And the changes of dashboards-skill/22 (verify/cases-22.js): the KPI tiles' legends
 // inside each tile, the larger charging arrow, the landing event, the header, "unassigned" kept from every checkout, the research-planning
-// glow, the Tests tab and this run's feature probes. And the decisions of dashboards-skill/23 (verify/cases-23.js): the Timeline tile's
+// glow, the Tests tab and this run's feature probes. And the changes of dashboards-skill/23 (verify/cases-23.js): the Timeline tile's
 // phases, the run's start and the qa passes' times, a reference's section number before its excerpt, a sizing in the facts reworded
-// and this run's feature probes. And the decisions of dashboards-skill/24 (verify/cases-24.js): the finished steps on an issue board's progress
+// and this run's feature probes. And the changes of dashboards-skill/24 (verify/cases-24.js): the finished steps on an issue board's progress
 // strip clickable, each step's snapshot frozen into wip.history by the fast path (each remediation loop and each qa pass apart), check.js on
 // it, a step with no snapshot reconstructed, a tracking board's unit through its mirror and its own steps, and this run's feature probe. And
 // verify/history/ as a local cache, kept out of the .github mirror (dashboards-skill/27, verify/cases-27.js): a recorded version missing from
 // it rebuilt on demand from the mirror's git history (system/scripts/history.js; the case groups read the old versions through it too, from a
-// local clone with --history-repo, else through gh api), and the splice's warning and two-way fallback when nothing matches. And the decisions
+// local clone with --history-repo, else through gh api), and the splice's warning and two-way fallback when nothing matches. And the changes
 // of dashboards-skill/28 (verify/cases-28.js): the Timeline tile's figure the sum of its phases, an issue's title quoted verbatim and one naming
 // a sizing flagged (the issue-title flag, levelrefs.js titleDefect()) on every type, NO ROWS AT RESEARCH, each unit row's label glowing on its own while
 // it is filed and its board created, and this run's feature probes. And the defects of dashboards-skill/29 (verify/cases-29.js): splice.js
@@ -72,8 +72,8 @@
 // dashboards-skill/30 (verify/cases-30.js): every qa pass and the one running as ordinals, no branch or board column, "Depends on" with
 // each dependency's build state and locality, "Blocks · enables", and their spread to the issue and tracking boards. And the
 // Timeline tile of dashboards-skill/32 (verify/cases-32.js): one legend entry per visit of a run step, its times from the record only. The
-// decisions of dashboards-skill/33 (verify/cases-33.js): the element vocabulary, boards never pages, no internal names, the landing flow's
-// pre-merge stamp, the open points on every event. The decisions of dashboards-skill/34 (verify/cases-34.js): the Timeline tile coloured
+// changes of dashboards-skill/33 (verify/cases-33.js): the element vocabulary, boards never pages, no internal names, the landing flow's
+// pre-merge stamp, the open points on every event. The changes of dashboards-skill/34 (verify/cases-34.js): the Timeline tile coloured
 // by kind of work, approximate bounds, the landing in three steps, a sub-issue's roadmap, the Design tab. The live view of a landing
 // (verify/cases-live-view.js): apply-event.js --view (landed, and the land's landing and merge, before the merge and after it), the view copies and their <base> line, board.js --live opening them. The waits on
 // the user (verify/cases-timeline-waits.js): not active time and not mentioned, the step split into visits around each wait, the signals on the fast path. A
@@ -425,7 +425,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
   report(`the chain's progress on ${t.name}`, cc);
 });
 
-/* The conventions of 2026-10-23, on the plan-board template, rendered through headless Chrome where a board is involved:
+/* Conventions on the plan-board template, rendered through headless Chrome where a board is involved:
    - test levels are no sizing (GUIDANCE.md §4): levelrefs.js passes "L1 gating" … "L5 UAT", "Level 2 — component" and the C4
      levels, and no longer finds the sizing's old forms, the work level's (the transition's end, L12);
    - Impact colours are compatibility first (GUIDANCE.md §1; plan/RULES.md §2): breaking entries red, deprecations and other
@@ -906,7 +906,7 @@ targets.filter(t => t.block === "board" && t.file === "board.html").forEach(t =>
   report(`issue links on ${t.name}`, cases);
 });
 
-/* The plan-board improvements of 2026-10-22/23 carried to the other dashboard types (GUIDANCE.md §11), rendered through headless
+/* The plan-board improvements carried to the other dashboard types (GUIDANCE.md §11), rendered through headless
    Chrome:
    - every tab's lede is at most one short line (GUIDANCE.md §2), on both system templates and on the repository work board, committed and live;
    - the wide desktop layout (GUIDANCE.md §6): on a 1920 x 1080 window a system and a supersystem board use most of the window, the
@@ -1108,7 +1108,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
   report("dashed means planned, the As built count and \"no system\" on every dashboard type", dc);
 }
 
-/* The decisions of 2026-10-25 (dashboards-skill/16), on every dashboard type they fit (GUIDANCE.md §11):
+/* The changes of dashboards-skill/16, on every dashboard type they fit (GUIDANCE.md §11):
    - dashed means only planned or pending, no exception (GUIDANCE.md §1; system/RULES.md §4, §9): the system and supersystem
      templates draw their lifelines, returns and C4 frames solid, so check-board.js's dash scan (every tab, every C4 view) passes them;
      the same template with a dashed lifeline, a dashed boundary frame or a DSL style dashing a tag other than Planned fails
@@ -1199,7 +1199,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
   report("dashed means only planned (solid furniture), rows left for later, boardless rows from the tracker", xc);
 }
 
-/* The decisions of 2026-10-25 (dashboards-skill/17), on every dashboard type they fit (GUIDANCE.md §11), rendered from the
+/* The changes of dashboards-skill/17, on every dashboard type they fit (GUIDANCE.md §11), rendered from the
    live issue fixture (verify/fixtures/live-issue.plan.json, a run mid-research) and its variants at each step:
    A. the step panel beside the half-width WIP strip: interview (answered, waiting), research (the planning → research → verification
       timeline, each question's state, the returned count), plan (writing, re-pass, verdicts written), implementation (stages done,
@@ -1359,7 +1359,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
   report("the step panel, research rings, the charging arrow, live updates and the theme switch (dashboards-skill/17)", lc);
 }
 
-/* The decisions of dashboards-skill/18 (2026-10-25), on every dashboard type they fit (GUIDANCE.md §11):
+/* The changes of dashboards-skill/18, on every dashboard type they fit (GUIDANCE.md §11):
    1. no glow cap: the exact cells being worked on glow however many (check.js and check-board.js set no count limit); between the last
       research-returned and verification-started the returned questions' rows glow (the glow-map cases above);
    2. a boardless work-board row closed as not planned reads "closed · not planned", never landed (lib.js boardlessState(), check.js,
@@ -1635,7 +1635,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
   report("the fast path, apply-event.js: each event kind, idempotence, the enrich flag, atomic failure, the re-render onto the current template, timing (dashboards-skill/20)", ac);
 }
 
-/* The decisions of dashboards-skill/19 (plan/RULES.md §2 "Statements" and "The KPI tiles", §3, §5; GUIDANCE.md §1, §2), and the fast
+/* The changes of dashboards-skill/19 (plan/RULES.md §2 "Statements" and "The KPI tiles", §3, §5; GUIDANCE.md §1, §2), and the fast
    path's defect it fixed:
    A. statements: lib.js's rules (written, the derived outcome, the recorded state), sectionOf() and its elided sizing, embed.js
       copying each excerpt once and --refresh-excerpts, check.js's failures and warnings (the section changed since the copy, a board
@@ -1842,7 +1842,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
   report("statements with their plan excerpts, closed as a duplicate, the column glow, the KPI bars, the implementation glow's comment, the #62 qa-pass event, the #63 qa-pass event with its parallel remediation sub-steps (dashboards-skill/19)", kc);
 }
 
-/* The decisions of dashboards-skill/21 (GUIDANCE.md §6, "The header"; plan/RULES.md §3, "The step panel" and the tracking strip), on
+/* The changes of dashboards-skill/21 (GUIDANCE.md §6, "The header"; plan/RULES.md §3, "The step panel" and the tracking strip), on
    every dashboard type they fit (GUIDANCE.md §11), measured in headless Chrome at 1920 x 1080 and at 520 px:
    A. the header's two halves: the intro (title, issue line, function) in the left half and the tags in the right half beside it, on
       an issue board, a tracking board, the repository work board, the system and supersystem templates and the system example; stacked under
@@ -2104,39 +2104,39 @@ targets.filter(t => t.block === "plan").forEach(t => {
   report("state boards on a branch, data only: apply-state.js, the state block, planned from the data, check-board.js --no-browser", vc);
 }
 
-/* The decisions of dashboards-skill/26 (verify/cases-26.js): the feature probes, the splice, the legends of Guarantees and Context,
+/* The changes of dashboards-skill/26 (verify/cases-26.js): the feature probes, the splice, the legends of Guarantees and Context,
    links only to files that exist and the live view first, the work-board link on the state boards, the tablists' keys, the clean-ups, the
    theme remembered across boards, no issue above Context, the rendered Markdown copies, the tracking issue's unit boards and its two steps,
    the agents' progress notes, built or planned from the code. */
 try { require("./cases-26.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/26 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
-/* The decisions of dashboards-skill/22 (verify/cases-22.js): the KPI tiles' legends inside each tile, the larger charging arrow, the
+/* The changes of dashboards-skill/22 (verify/cases-22.js): the KPI tiles' legends inside each tile, the larger charging arrow, the
    team-raised landing event, the header (no "board" tag, the title's #n, the issue line, "since" said once), board.js keeping "unassigned"
    from every checkout, the research-planning glow with and without rows, the Tests tab, and this run's feature probes. */
 try { require("./cases-22.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/22 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
-/* The decisions of dashboards-skill/23 (verify/cases-23.js): the Timeline tile's bar on a landed board (the time per phase in
+/* The changes of dashboards-skill/23 (verify/cases-23.js): the Timeline tile's bar on a landed board (the time per phase in
    neutral ink shades, a phase with no bound named; a tracking board's own phases), the run's start and the qa passes' times stamped, a
    reference's section number before its excerpt, a sizing in the pipeline's facts reworded, and this run's feature probes. */
 try { require("./cases-23.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/23 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
-/* The decisions of dashboards-skill/24 (verify/cases-24.js): the finished steps on an issue board's progress strip clickable: the
+/* The changes of dashboards-skill/24 (verify/cases-24.js): the finished steps on an issue board's progress strip clickable: the
    snapshots apply-event.js freezes into wip.history (each remediation loop and each qa pass apart; deterministic, idempotent), new.js's sizing,
    the standing rule's on a tracking board, check.js on wip.history, the reconstruction of a step with no snapshot, the template's buttons,
    panel, viewing line and selection across the live redraw, a tracking board's unit and own steps, and this run's feature probe. */
 try { require("./cases-24.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/24 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
-/* The decisions of dashboards-skill/27 (verify/cases-27.js): verify/history/ is a local cache, kept out of the .github mirror; a
+/* The changes of dashboards-skill/27 (verify/cases-27.js): verify/history/ is a local cache, kept out of the .github mirror; a
    recorded version missing from it is rebuilt on demand from the mirror's git history (history.js; a fixture clone, and gh api through a
    stand-in), a damaged copy rebuilt over, and a version nothing matches warned on, the splice two-way when none is left. */
 try { require("./cases-27.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/27 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
-/* The decisions of dashboards-skill/28 (verify/cases-28.js): the Timeline tile's figure the sum of the phases its bar draws; an
+/* The changes of dashboards-skill/28 (verify/cases-28.js): the Timeline tile's figure the sum of the phases its bar draws; an
    issue's title quoted verbatim, one that names a sizing flagged as the issue's defect on every type, never a failure; an issue board at
    research with no rows a defect (NO ROWS AT RESEARCH); each unit row's label glowing on its own while it is filed, then while its board is
    created (per-unit events, a final one closing each step); and this run's feature probes. */
@@ -2156,14 +2156,14 @@ catch (e) { report("the dashboards-skill/29 cases", [["the cases run to the end"
 try { require("./cases-30.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/30 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
-/* The decisions of dashboards-skill/31 (verify/cases-31.js): the decision not to run another qa pass shown, a neutral mark beside
+/* The changes of dashboards-skill/31 (verify/cases-31.js): the decision not to run another qa pass shown, a neutral mark beside
    the pass fixed in place (lib.js qaShown(), qaInPlace(), from the recorded route only), on the repository work board, an issue board's WIP strip and QA
    tile and a tracking unit's run; apply-event.js recording the route on the pass; check.js refusing a stored inPlace; the repository work board's Runs
    tab larger but Now, a labelled card per run under 880 px; and this run's feature probes. */
 try { require("./cases-31.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/31 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
-/* The decisions of dashboards-skill/32 (verify/cases-32.js): the Timeline tile of a landed board as one legend entry per visit
+/* The changes of dashboards-skill/32 (verify/cases-32.js): the Timeline tile of a landed board as one legend entry per visit
    of a run step (start → end, duration), in place of the four phases in calendar days; its bounds from the record only (the snapshots,
    plan.sized, the qa passes, the merge's time and the step commits from git, a neighbour's bound), "—" where none; spans in minutes, hours
    and minutes, or days and hours; the bar and its neutral ramp; a landed board's Timeline across the KPI row; gitTimes(), timeline.js
@@ -2171,7 +2171,7 @@ catch (e) { report("the dashboards-skill/31 cases", [["the cases run to the end"
 try { require("./cases-32.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/32 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
-/* The decisions of dashboards-skill/33 (verify/cases-33.js; the global conventions: boards never pages, no internal names in committed content, the pre-merge landing flow): the
+/* The changes of dashboards-skill/33 (verify/cases-33.js; the global conventions: boards never pages, no internal names in committed content, the pre-merge landing flow): the
    element vocabulary of GUIDANCE.md §12 ("bubble" retired), boards never pages (check-board.js, the labels, the data keys read beside their
    older names), no internal names on a board (namerefs.js, apply-event.js's scrub, the neutral route ids, the progress notes, the
    INTERNAL NAME warnings, the splice's migration), an unnumbered mention of a sizing, the open points on every event, the pre-merge stamp
@@ -2179,13 +2179,13 @@ catch (e) { report("the dashboards-skill/32 cases", [["the cases run to the end"
 try { require("./cases-33.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/33 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
-/* The decisions of dashboards-skill/34 (verify/cases-34.js): the Timeline tile coloured by kind of work (planning, build, checking,
+/* The changes of dashboards-skill/34 (verify/cases-34.js): the Timeline tile coloured by kind of work (planning, build, checking,
    landing), approximate bounds (asBuilt.approx, "≈"), the landing in three steps (landing, state-boards, merge), a sub-issue's roadmap filled
    from the repository roadmap and its card naming the parent while unset, the four columns' tab named Design, and this run's feature probes. */
 try { require("./cases-34.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/34 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
-/* The decisions of dashboards-skill/35 (verify/cases-35.js): a dependency's build state from its code (dropped, a duplicate's
+/* The changes of dashboards-skill/35 (verify/cases-35.js): a dependency's build state from its code (dropped, a duplicate's
    canonical state), remediation sub-steps in parallel, an open point's report copied for the live view and none committed open, a bare "Ln",
    consequences.md, a fix to an earlier plan's work, the Document step, the state boards stamped in it, seeding at sized, the test report's
    neutral path, the structure map's recorded height, and this run's feature probes. */
@@ -2207,7 +2207,7 @@ try { require("./cases-timeline-fast-path.js")({ sk, out, targets, dumpDom, inne
 catch (e) { report("the Timeline's fast path cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The waits on the user (verify/cases-timeline-waits.js; board/timeline-waits): the time from a blocking question to its answer
-   counted by no visit and no figure and mentioned nowhere on the Timeline (decided 2026-11-05), the step split into visits around it; the signals on the fast path (a stop until the event that ends
+   counted by no visit and no figure and mentioned nowhere on the Timeline, the step split into visits around it; the signals on the fast path (a stop until the event that ends
    it, a resumed answering the open points of the event before it), "implement" read as the implementation step, check.js on wip.waits,
    and the template's copy of the rule. It needs no browser, and runs on its own too (node verify/cases-timeline-waits.js). */
 try { require("./cases-timeline-waits.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
@@ -2225,12 +2225,12 @@ catch (e) { report("a qa verdict's step cases", [["the cases run to the end", fa
 try { require("./cases-remediation-row.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("a row a remediation stage reopens cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
-/* A stretch when the run was not running (verify/cases-timeline-outages.js; board/timeline-outages): mentioned nowhere (no line, mark, note or trail entry; decided 2026-11-05), never a bar
+/* A stretch when the run was not running (verify/cases-timeline-outages.js; board/timeline-outages): mentioned nowhere (no line, mark, note or trail entry), never a bar
    segment, never summed, never a wait on the user; the team-raised run-restarted event, its bounds from the facts alone, idempotent, in the
    running visit, a closed one, a wait or a gap; check.js on wip.outages, the template's copy of the rule, and a step's bar segment floor (a quarter
    of the old: 0.75 % of the figure, 1 px); the first part of a closed visit a stretch cuts keeping what names its pass, a qa visit's
-   included, and the parts of a split qa or remediation visit named "Quality Review 1 · visit 1", "· visit 2" (the user's decisions of
-   2026-11-11, p21 choices 7 and 8, dated 59). It needs no browser, and runs on its own too (node verify/cases-timeline-outages.js). */
+   included, and the parts of a split qa or remediation visit named "Quality Review 1 · visit 1", "· visit 2" (dated 59).
+   It needs no browser, and runs on its own too (node verify/cases-timeline-outages.js). */
 try { require("./cases-timeline-outages.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("a stretch when the run was not running cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
@@ -2288,15 +2288,15 @@ catch (e) { report("a tracking board's plan step and its parent's roadmap item c
    on its own too (node verify/cases-retime.js). */
 try { require("./cases-retime.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the retime cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
-/* reword, one event's recorded text reworded, and a run's own retime and reword (verify/cases-reword.js; dashboards-skill/reword-event, the
-   user's decisions of 2026-11-13, KotlinBottools #25's four texts): every place the event's record holds the passage reworded, one notes.corrections
+/* reword, one event's recorded text reworded, and a run's own retime and reword (verify/cases-reword.js; dashboards-skill/reword-event,
+   KotlinBottools #25's four texts): every place the event's record holds the passage reworded, one notes.corrections
    entry, the refusals, the duplicate, the tracking board's mirror, --view, and the run's limits. Runs on its own too (node verify/cases-reword.js). */
 try { require("./cases-reword.js")({ sk, out, targets }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the reword cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The event's time held to its arrival (verify/cases-arrival.js; plan/RULES.md §4, "The event's time"; runs sent facts.at guessed or rounded): with
    apply-event.js --arrived, a facts.at that is missing or more than 2 minutes from the arrival time is replaced by it and the summary's arrival line
-   says so, one within it kept. A newly raised or resolved open point's time is held to bounds instead (decided 2026-11-11): kept when it is not after the arrival plus
+   says so, one within it kept. A newly raised or resolved open point's time is held to bounds instead: kept when it is not after the arrival plus
    the tolerance and, for a resolved time, not before the last event that still showed the point open (the board's last event, where it is a report of the run's),
    replaced by the arrival time only outside them, the line naming the bound it crossed, and stamped when missing (a carried point not read; a newly raised one bound
    from above alone). Without --arrived nothing changes; --at still wins; a bad --arrived a usage error. It needs no browser, and runs on
@@ -2341,7 +2341,7 @@ catch (e) { report("the built-milestone cases", [["the cases run to the end", fa
 try { require("./cases-foundation.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("a foundation on the fast path cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
-/* The decisions of dashboards-skill/option-d-and-decisions: a tracking plan lands, then files (verify/cases-option-d.js); a fill merges onto the latest board, event and
+/* The changes of dashboards-skill/option-d-and-decisions: a tracking plan lands, then files (verify/cases-option-d.js); a fill merges onto the latest board, event and
    fill at once losing neither (verify/cases-fill.js); a board keeps no sizing, the "waiting on you" labels and the event notes (verify/cases-work-levels.js); an archived system
    holds no colour (verify/cases-archived-colours.js); a qa pass is named "Quality Review N" by the scripts and the template, never by free text
    (verify/cases-quality-review.js); every name a board shows from passnames.js and the templates' names block, the older wording reworded
@@ -2357,24 +2357,24 @@ catch (e) { report("a foundation on the fast path cases", [["the cases run to th
    ended and answered when it ends (verify/cases-halt-questions.js, dashboards/halt-questions, dated 45). A halt during a fix step
    named by its route alone, "Halted at Correction", "Halted at Resolution", never its pass (verify/cases-halt-fix-step.js,
    dashboards/call-3, dated 50). The internal-names list's one home: nomenclature/internal-names.md §1 and §2 held equal
-   to namerefs.js's barred names, each at its strength, and its approval-flow phrases (verify/cases-internal-names.js, the decision of
-   2026-11-07). A Quality Review's findings line, the count, then the severities, then the kinds ("18 findings (2 minor, 16 other; 3
+   to namerefs.js's barred names, each at its strength, and its approval-flow phrases (verify/cases-internal-names.js).
+   A Quality Review's findings line, the count, then the severities, then the kinds ("18 findings (2 minor, 16 other; 3
    documentation, 15 code)"), and a run's step by its name in the waiting card's "resumes at" and the chain summaries
    (verify/cases-findings-line.js, dashboards/call-5, dated 51). A Quality Review's checks labelled "documentation check", "code
    check", "test check", the older "documentation review" reworded and failed in flight (verify/cases-check-labels.js, dashboards-skill/52).
-   The Design tab's approved proposals: a Verdict statement's section chip, the Verdict cell's count labels, a unit's PR and merge chips copied
+   The Design tab's changes: a Verdict statement's section chip, the Verdict cell's count labels, a unit's PR and merge chips copied
    from its own board (unit.landing), and check.js's UNQUOTED PATH warning (verify/cases-design-tab-proposals.js, dashboards-skill/53).
    A change that touches no published artifact, release.nothingPublished: check.js's fails and warnings on an issue board and on a
    tracking board's unit entries, the Consequences Tab's version Badge reading "nothing published", its probe and the fixture boards for a
-   browser check (verify/cases-nothing-published.js, the user's decisions of 2026-11-11, dated 59). A halt in the Document step applying the
+   browser check (verify/cases-nothing-published.js, dated 59). A halt in the Document step applying the
    tasks it carries, as a document event does, a halt raised again with them bringing its visit's snapshot to them, and the facts an event
    carries and does not read named in the fast path's summary (verify/cases-halt-tasks.js, dashboards-skill/halt-tasks and
    /unread-facts, KotlinBottools #24). A Document task's recorded start or finish corrected by a fill (fill.js wip.document), on the board and the
    saved visit copies holding it, with one notes.corrections entry, and refused, nothing written, where it would move a state, cross a bound or
    name what it may not (verify/cases-task-times.js, dashboards-skill/task-times, KotlinBottools #24).
-   A stage's steps nested to any depth (verify/cases-nested-steps.js; the user's decisions of 2026-11-12, dashboards/nested-stages, dated 61): the plan's
+   A stage's steps nested to any depth (verify/cases-nested-steps.js; dated 61): the plan's
    "below" list, the step-complete event on the fast path, the records through a revised table, the numbers, marks and count Labels.
-   A researched that names no documents read as nothing to research (the decision of 2026-11-13, batch-4/q-2 (a)), a small fix's line with
+   A researched that names no documents read as nothing to research, a small fix's line with
    no research step, and the defects that came with them: a re-pass kept by researched, the placeholder check and quoted text, the filed units'
    summaries, the template classes' type words, a fill's new rows pending (verify/cases-researched-nothing.js, the researched-no-research change).
    Each runs on its own too. */
@@ -2400,14 +2400,14 @@ catch (e) { report("the inspector's Hide button cases", [["the cases run to the 
 try { require("./cases-dsl-keyword-id.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the C4 DSL reader's keyword identifiers cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
-/* The marks' classes (verify/cases-mark-classes.js; the user's nomenclature decisions of 2026-11-07, dated 48): the in-progress FullPulse,
+/* The marks' classes (verify/cases-mark-classes.js; dated 48): the in-progress FullPulse,
    the column's, the up-next Ring and the live dot's FillPulse each a class carrying its type word, on the issue board and repository work
    board templates, the mark-classes probe failing a board drawn before, and check-board.js counting the marks; the visible wording (no
    "glow" a reader sees) and the mark-class browser fixture current with the templates. It runs on its own too. */
 try { require("./cases-mark-classes.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the marks' classes cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
-/* The StepBar (verify/cases-stepbar.js; dashboards-skill/54, the user's decisions of 2026-11-06 and 2026-11-07): the issue board's progress
+/* The StepBar (verify/cases-stepbar.js; dashboards-skill/54): the issue board's progress
    strip and the tracking board's WIP strip, a tracking issue's chain on the state boards' roadmap and on the repository work board's rows,
    each a StepBar of labelled chevrons, done, current or to come, the current step's marks where it carried them; one CSS block in the four
    templates, board.js writing chain.units, the stepbar probe, and the fixture boards for a browser check. It runs on its own too. */

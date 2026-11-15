@@ -10,7 +10,7 @@ const LV = require("./levels.js");
 
 const TEST_LISTS = ["added", "amended", "relevant"];
 /* The named test sets (CLAUDE.md, "Testing — Named Test Sets"; vocabulary.md, "set"), in their order, gating to uat: a board stores each
-   class's set by its name, testSet, and keys the other tests' counts by it (the decision of 2026-11-14, q-149 (b)). */
+   class's set by its name, testSet, and keys the other tests' counts by it. */
 const TEST_SETS = ["gating", "component", "integration", "deterministic", "e2e", "nonfunctional", "uat"];
 /* A board written before then stores a set by its old number under testLevel, and keys the counts by that number: a closed board keeps
    them as it closed, read for good (SET_OF_LEVEL), and an open board's are written by the sets' names at its next rewrite (storeSets()). */
@@ -85,7 +85,7 @@ function resultState(r) {
 const testsBlock = plan => plan && plan.tests && typeof plan.tests === "object" && !Array.isArray(plan.tests) ? plan.tests : null;
 const hasTests = t => !!t && (TEST_LISTS.some(k => Array.isArray(t[k]) && t[k].length) || !!(t.other && t.other.byModule && typeof t.other.byModule === "object" && Object.keys(t.other.byModule).length));
 
-/* A testSet as the facts give it (the user's decisions of 2026-11-13: vocabulary/decided-set (3), choice-1-live-keys (a)): tests are in
+/* A testSet as the facts give it: tests are in
    named sets, sent as testSet, one of the seven names (testing.<name> read alike, in any case), read with nothing said, as "set". A set's
    old number (one of TEST_LEVELS) is read as its set with nothing said, as "number"; a value that is neither is "unread" (no set, and the
    summary names it). Returns { set, as }, as null where none was given. */
@@ -240,7 +240,7 @@ function testsMirror(sub) {
   if (names.length) out.rowNames = Object.fromEntries(names);
   return out;
 }
-/* A tests block written by the sets' names, in place (the decision of 2026-11-14, q-149 (b)): each class's testLevel, an older board's set by
+/* A tests block written by the sets' names, in place: each class's testLevel, an older board's set by
    its old number, becomes its testSet where it stood (a testSet the class already holds wins), and a count of the other tests keyed by an
    old number is keyed by its set's name (a count the name already keys wins), in the sets' order. A testLevel that is no old number is left
    for check.js to fail. Returns { classes, modules }: how many classes and modules' counts it rewrote. */

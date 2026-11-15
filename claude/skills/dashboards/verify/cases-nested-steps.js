@@ -1,4 +1,4 @@
-// The cases of a stage's nested steps (the user's decisions of 2026-11-12, dashboards/nested-stages, -choices, -followups; plan/RULES.md §3, "The stage table",
+// The cases of a stage's nested steps (plan/RULES.md §3, "The stage table",
 // "The record of a step", "The stage list", "Collapsing"; the step-complete row of §4), run by verify-templates.js (it passes its helpers in), or on its own
 // with no browser: node verify/cases-nested-steps.js [--out <dir>].
 // 1. lib.js stageTable(): the "below" list to any depth, the flat cell as before (a dotted id included), every STAGE TABLE warning.
@@ -210,7 +210,7 @@ module.exports = function casesNestedSteps(X) {
     c.push(["a fill keeps the steps' records", fr.status === 0 && js(fp.wip.stages[0].steps) === js(x.wip.stages[0].steps) && js(fp.wip.stages[0].rows) === js([x.rows[0].id]), js([fr.status, (fr.stdout || fr.stderr).slice(-300), fp.wip.stages[0]])]);
   });
 
-  /* ---------- 7. the implementer's own events (the implementer's brief, "Board events"; the decision of 2026-11-12): a stage's closing the moment it ends,
+  /* ---------- 7. the implementer's own events (the implementer's brief, "Board events"): a stage's closing the moment it ends,
      the next stage's steps after it, the tests per stage, a repeated closing, late events stamped at their arrival ---------- */
   guard("the implementer's events: a closing between step events, the closings mid-run, the tests per stage, a repeated closing, late events in a row", c => {
     const { B, P } = cut("implementer");

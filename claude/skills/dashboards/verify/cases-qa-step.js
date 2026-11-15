@@ -65,7 +65,7 @@ module.exports = function casesQaStep(X) {
     c.push(["…a count in facts.qa.doc stays the documentation findings, with no report", e.a.status === 0 && (q6.findings || {}).documentation === 3 && !q6.report, js([e.a.status, q6, e.S.error])]);
   });
   /* the Timeline tab's lede while the run waits on the user (plan/RULES.md §2, "Waits on the user are not active time"): no visit runs to now
-     then, so the lede never says a step's time runs to now; and it says nothing of the wait either (decided 2026-11-05: time that is not
+     then, so the lede never says a step's time runs to now; and it says nothing of the wait either (time that is not
      counted is not mentioned), so it reads as on a board with no step running (a static case: the render needs a browser) */
   guard("the template: the Timeline tab's lede says nothing of a wait, and never that a step runs to now while none is open", c => {
     const t = rd(PB), line = (t.split(/\r?\n/).find(l => /#timeline-lede"\)\.textContent=/.test(l)) || "");
