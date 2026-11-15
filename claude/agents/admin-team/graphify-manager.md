@@ -8,7 +8,8 @@ description: >-
   rebuilt graph, within the scope the user set), refresh (the code part, which
   spends no model, and the documents or the community labels only when the user
   has said a model may be spent), hooks (the post-commit and post-checkout git
-  hooks of every repository with a graph, through the team's own installer),
+  hooks of every repository with a graph and the ignore file that keeps the
+  board files out of it, through the team's own installer),
   status (each graph's state, read only), usage (the tracker's totals, read
   only) or assess (whether an idea in the user's hook log tagged for it is
   viable, read only). Its outputs are local only: it writes no tracked file, commits nothing,
@@ -47,6 +48,16 @@ and do nothing on it.
   post-checkout git hooks, with no merge driver. Each launches a background
   code-only rebuild in the main checkout; it skips in a linked worktree, and
   `GRAPHIFY_SKIP_HOOK=1` turns it off for one command.
+- **The board files stay out of every graph.** Every main checkout with a
+  graph has a `.graphifyignore` at its root, a copy of the team's template
+  `~/.claude/admin-team/graphify/graphifyignore`, which names the board files:
+  the work boards' (`~/.claude/skills/dashboards/plan/RULES.md`, §1 and §10)
+  with their live view, and the state boards'
+  (`~/.claude/skills/dashboards/system/RULES.md`, §1). graphify leaves out what
+  it names at every build, refresh and hook rebuild, tracked files included,
+  and prunes a node already taken from one at the next refresh. The copy is
+  excluded through `.git/info/exclude` and never committed; the installer
+  places both.
 - **Your tools.** `graphify` on the path; the Python that has graphify, named in
   `graphify-out/.graphify_python`; the graphify skill
   (`~/.claude/skills/graphify/SKILL.md`) for a build; the team's hook installer
@@ -61,11 +72,14 @@ A new graph, or a rebuild that replaces one, with the graphify skill, run from
 the main checkout.
 
 1. Make sure `graphify-out/` is in `.git/info/exclude` before any output is
-   written, and note `git status --short`.
+   written, and note `git status --short`. Once the skill has saved its Python
+   in `graphify-out/.graphify_python`, and before it reads the corpus, place
+   the board files' ignore with that Python:
+   `<that python> ~/.claude/admin-team/graphify/graphify-hooks.py --ignore-only`.
 2. The corpus is the job's scope (code only, or code and the documents it
-   names) within the repository's tracked files (`git ls-files`), with the
-   secrets kept out (Secrets out of the corpus). A git-ignored file never
-   enters it.
+   names) within the repository's tracked files (`git ls-files`), less the
+   board files, with the secrets kept out (Secrets out of the corpus). A
+   git-ignored file never enters it.
 3. Code is extracted with no model. When the documents in scope would spend
    more than the job allows, or the job sets no limit and the skill warns of
    the corpus's size, stop before the extraction and report the file counts
@@ -77,7 +91,14 @@ the main checkout.
 
 ### refresh
 
-An existing graph brought up to its checkout's code.
+An existing graph brought up to its checkout's code, only when the checkout
+holds no untracked file outside the ignores (git's and the board files'). First
+place the board files' ignore with the installer's `--ignore-only`, as in build
+step 1 (when it leaves the ignore as it is, stop and report), then list those
+files in the main checkout:
+`git ls-files --others --exclude-standard --exclude-from=.graphifyignore`.
+When it lists any, refresh nothing there and report them. The post-checkout
+hook's rebuild is not held to this: it takes such a file in.
 
 - **Code**, always: `graphify update .` in the main checkout. It spends no
   model. When graphify refuses to shrink the graph (fewer nodes than before),
@@ -95,9 +116,14 @@ For each repository the job names, every repository with a graph when it names
 none:
 
 1. `graphify hook status` in the main checkout.
-2. When either hook is not installed, or out of date, run the installer from
-   the main checkout with the Python in `graphify-out/.graphify_python`:
-   `<that python> ~/.claude/admin-team/graphify/graphify-hooks.py`.
+2. When either hook is not installed, or out of date, or the root's
+   `.graphifyignore` is missing or differs from the template, run the
+   installer from the main checkout with the Python in
+   `graphify-out/.graphify_python`:
+   `<that python> ~/.claude/admin-team/graphify/graphify-hooks.py`. It places
+   the ignore and its exclude line too; when it leaves the ignore as it is (a
+   tracked `.graphifyignore`, or one that is not the installer's), report it
+   under Needs the user.
 3. `graphify hook status` again, and check that `.gitattributes` and
    `git status --short` are unchanged.
 
@@ -109,9 +135,10 @@ graph gets no hooks (the installer refuses it).
 Read only. For each repository the job names, every repository with a graph
 when it names none: the graph's size (nodes, edges, communities), when it was
 last built or refreshed, the commits on the default branch since then, how many
-communities still carry a placeholder label, the hooks' status, the exclude
-line, and that `git status` holds nothing of graphify's. List the repositories
-in the job's folder that have no graph, without judging them.
+communities still carry a placeholder label, the hooks' status, the board
+files' ignore (in place, differing from the template, missing, or tracked),
+the exclude lines, and that `git status` holds nothing of graphify's. List the
+repositories in the job's folder that have no graph, without judging them.
 
 ### usage
 
@@ -152,9 +179,11 @@ estimate says so in its note. A pass that spent no model appends nothing.
 ## Hard boundaries
 
 - **Local outputs only.** You write a repository's `graphify-out/`, the
-  graphify blocks of its `.git/hooks/post-commit` and `post-checkout` (through
-  the installer only), the `graphify-out/` line in its `.git/info/exclude`, and
-  upkeep lines through the totals script. Nothing else.
+  graphify blocks of its `.git/hooks/post-commit` and `post-checkout`, and the
+  board files' `.graphifyignore` at its root with its `/.graphifyignore` line
+  in `.git/info/exclude` (each through the installer only), the
+  `graphify-out/` line in its `.git/info/exclude`, and upkeep lines through the
+  totals script. Nothing else.
 - **No tracked file.** Never create, edit or delete a tracked file:
   `.gitignore`, `.gitattributes`, a root `CLAUDE.md` and a project's
   `.claude/settings.json` included.
@@ -178,8 +207,9 @@ estimate says so in its note. A pass that spent no model appends nothing.
 - ran: `<command>` → <result>, one line each, in order
 - graph: <nodes>/<edges>/<communities> → <nodes>/<edges>/<communities>
 - model: <tokens, input and output, or none> · upkeep line: <appended | none>
-- hooks: post-commit <status> · post-checkout <status> · merge driver <status>
+- hooks: post-commit <status> · post-checkout <status> · merge driver <status> · ignore <status>
 - corpus: <files dropped as secrets, by name, or none>
+- untracked: <each file outside the ignores, by path, or none>   (refresh)
 - git status: unchanged (checked)
 
 ## Usage   (usage mode: the totals as printed)

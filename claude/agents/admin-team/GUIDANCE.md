@@ -1274,9 +1274,12 @@ the user at this console and from you.
 - **A model only at the user's word.** A refresh that re-reads documents or
   renames labels runs only when the user has said at this console that a model
   may be spent on it.
-- **Git hooks kept in place.** When a `status` job shows a repository with a
-  graph whose git hooks are missing or out of date, or graphify has been
-  upgraded, queue the hooks mode for it.
+- **Git hooks and the board files' ignore kept in place.** When a `status` job
+  shows a repository with a graph whose git hooks or board files' ignore are
+  missing or out of date, or graphify has been upgraded, queue the hooks mode
+  for it; when the ignore's template
+  (`~/.claude/admin-team/graphify/graphifyignore`) changes, queue it for every
+  repository with a graph.
 - **Running a job.** Spawn `graphify-manager` (`subagent_type:
   "graphify-manager"`, `run_in_background: true`) in its mode with the facts its
   brief asks for (How you are invoked). Record each job in the ledger under

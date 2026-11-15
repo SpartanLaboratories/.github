@@ -1,0 +1,22 @@
+# The generated boards, kept out of a code knowledge graph built with graphify.
+# What a board is:
+# https://github.com/SpartanLaboratories/.github/blob/main/policy/nomenclature/boards.md
+# The hand-written documents under docs/plans/ stay in. Every pattern is
+# relative to the checkout's root. This copy is local to the checkout,
+# excluded through .git/info/exclude, and never committed.
+
+# The work boards (docs/plans/): an issue or tracking board with its data and
+# its script, the repository work board, the org work board, and the live
+# view.
+/docs/plans/**/dashboard.html
+/docs/plans/**/plan.json
+/docs/plans/**/plan.js
+/docs/plans/index.html
+/docs/plans/board.json
+/docs/plans/board.js
+/docs/plans/org-work-board/index.html
+/docs/plans/org-work-board/board.json
+/docs/plans/.live/
+
+# The state boards (docs/dashboards/).
+/docs/dashboards/
