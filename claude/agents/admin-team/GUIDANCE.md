@@ -1277,7 +1277,9 @@ the user at this console and from you.
 - **A refresh after every landing.** When a landing in a repository with a
   graph has ended, its post-merge landed view raised in the main checkout at
   the merge commit, queue a code-only refresh of that repository in
-  `graphify-refresh`.
+  `graphify-refresh`. One that stopped on an untracked file is recorded
+  `stopped`, and nothing is queued for it before that repository's next
+  landing.
 - **A model only at the user's word.** A refresh that re-reads documents or
   renames labels runs only when the user has said at this console that a model
   may be spent on it.

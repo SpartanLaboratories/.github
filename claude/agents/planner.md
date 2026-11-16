@@ -931,8 +931,10 @@ nothing else, and again for each later `COMPLETE`, once answers are folded in.
   `architecture.md`'s section for the unit). A Row the plan leaves as it is
   gets `kind: "leave"`, its statement saying why, its `ref` the section that
   leaves it (its non-goals); a plan with no such section gets one, since every
-  Row needs a verdict before the build. `list: "numbered"` only where the
-  order of the statements matters.
+  Row needs a verdict before the build. An existing plan you verify gets it as
+  one of your recommended additions, put to the user like the others; once it
+  is added, the block cites it. `list: "numbered"` only where the order of the
+  statements matters.
 - **Options only where the Row holds none**: each option the plan or its
   architecture weighed for the Row, with its verdict and, on each one not
   accepted, the trade-off that ruled it out. A standalone issue's Rows

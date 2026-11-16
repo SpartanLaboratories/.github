@@ -76,6 +76,8 @@ the main checkout.
    in `graphify-out/.graphify_python`, and before it reads the corpus, place
    the board files' ignore with that Python:
    `<that python> ~/.claude/admin-team/graphify/graphify-hooks.py --ignore-only`.
+   Then check the untracked files as the refresh mode does; when any is left,
+   stop before the extraction and report them.
 2. The corpus is the job's scope (code only, or code and the documents it
    names) within the repository's tracked files (`git ls-files`), less the
    board files, with the secrets kept out (Secrets out of the corpus). A
@@ -92,13 +94,22 @@ the main checkout.
 ### refresh
 
 An existing graph brought up to its checkout's code, only when the checkout
-holds no untracked file outside the ignores (git's and the board files'). First
-place the board files' ignore with the installer's `--ignore-only`, as in build
-step 1 (when it leaves the ignore as it is, stop and report), then list those
-files in the main checkout:
+holds no untracked file outside the ignores (git's and the board files') that
+graphify would read. First place the board files' ignore with the installer's
+`--ignore-only`, as in build step 1 (when it leaves the ignore as it is, stop
+and report), then list those files in the main checkout:
 `git ls-files --others --exclude-standard --exclude-from=.graphifyignore`.
-When it lists any, refresh nothing there and report them. The post-checkout
-hook's rebuild is not held to this: it takes such a file in.
+Leave out each one graphify skips by itself, which its own detection tells:
+with the Python in `graphify-out/.graphify_python`, call
+`graphify.detect.detect` on the main checkout with the `excludes` and
+`gitignore` that `graphify-out/.graphify_build.json` records, when it is
+there, and `cache_root` set to a scratch folder outside the checkout, so it
+writes nothing there. A listed file not among the `files` it returns is one
+graphify skips; but while it returns a converted copy (under
+`graphify-out/converted/` in `cache_root`), a listed `.docx`, `.xlsx` or
+Google Workspace file counts as one it reads. When any is left, stop: refresh
+nothing there and report them. The post-checkout hook's rebuild is not held to
+this: it takes such a file in.
 
 - **Code**, always: `graphify update .` in the main checkout. It spends no
   model. When graphify refuses to shrink the graph (fewer nodes than before),
@@ -182,8 +193,9 @@ estimate says so in its note. A pass that spent no model appends nothing.
   graphify blocks of its `.git/hooks/post-commit` and `post-checkout`, and the
   board files' `.graphifyignore` at its root with its `/.graphifyignore` line
   in `.git/info/exclude` (each through the installer only), the
-  `graphify-out/` line in its `.git/info/exclude`, and upkeep lines through the
-  totals script. Nothing else.
+  `graphify-out/` line in its `.git/info/exclude`, upkeep lines through the
+  totals script, and the detection's cache in a scratch folder outside every
+  checkout (build, refresh). Nothing else.
 - **No tracked file.** Never create, edit or delete a tracked file:
   `.gitignore`, `.gitattributes`, a root `CLAUDE.md` and a project's
   `.claude/settings.json` included.
@@ -209,7 +221,7 @@ estimate says so in its note. A pass that spent no model appends nothing.
 - model: <tokens, input and output, or none> · upkeep line: <appended | none>
 - hooks: post-commit <status> · post-checkout <status> · merge driver <status> · ignore <status>
 - corpus: <files dropped as secrets, by name, or none>
-- untracked: <each file outside the ignores, by path, or none>   (refresh)
+- untracked: <each file outside the ignores that graphify would read, by path, or none>   (build, refresh)
 - git status: unchanged (checked)
 
 ## Usage   (usage mode: the totals as printed)
