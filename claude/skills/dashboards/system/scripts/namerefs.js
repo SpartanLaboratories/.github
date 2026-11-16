@@ -8,8 +8,9 @@
 // manager") matches with a space as well as a hyphen. A name in backticks or an inline <code> element counts as it does anywhere else; a
 // longer word that contains one is not a find (RoutePlanner, ExecutorService, a `DirectionManager`), as the list says. A fenced block counts
 // as backticks do, in a text and rendered on a board (<pre><code>) alike. "qa" matches only as an
-// agent ("qa <verb>", "qa has <verb>", "qa" after "by" or "from", "qa" with a possessive), never as the step or its passes. The version-control role's name, shortened, matches as
-// a possessive of the shortened name or "the manager" with a pipeline verb, never "Selenium Manager". The approval flow matches in the forms the list's §2
+// agent ("qa <verb>", "qa has <verb>", "qa" after "by" or "from", "qa" with a possessive), never as the step or its passes. The version-control role's name and the vocabularies' role's,
+// shortened, match as a possessive of the shortened name or "the manager" or "the officer" with a pipeline verb, never "Selenium Manager",
+// and are warned of, never left out (unambiguous()). The approval flow matches in the forms the list's §2
 // names, each with every word its row lists (APPROVAL_FORMS, the script's one copy of those words): "user's" before one of its words,
 // directly or with one word of letters between ("the user's <word> <word>"), "user" directly before one ("the user <word>"), and one before
 // "by the user" ("<word> by the user"); in any case, with a straight or a curly apostrophe, and with "user" a whole word that any word
@@ -26,7 +27,8 @@
 /* internal-names.md §1: a name its "Allowed when" reads "never" for is BARRED, a whole word wherever it stands (singular and plural, any
    case, a possessive by its name); qa is barred as an agent's name only (AGENT_ONLY) */
 const BARRED = ["admin[- ]teams?", "planners?", "plan-writers?", "architects?", "researchers?", "verifiers?", "interviewers?", "presenters?", "publishers?", "rookie-devs?",
-  "version-control-managers?", "executors?", "direction[- ]managers?", "archivists?", "code-reviewers?", "documentation-reviewers?", "test-inspectors?"];
+  "version-control-managers?", "executors?", "direction[- ]managers?",
+  "communication[- ]clarity[- ]officers?", "clarity[- ]officers?", "ccos?", "archivists?", "code-reviewers?", "documentation-reviewers?", "test-inspectors?"];
 const AGENT_ONLY = ["qa"];
 /* internal-names.md §2: the approval flow. APPROVAL_FLOW holds its rows' phrases; APPROVAL_FORMS, by the phrase heading its row, every word
    that row's form takes, the one copy NAME_PATTERNS builds the form's pattern from (a row with no form, the user-answers row, has no entry: its
@@ -42,7 +44,7 @@ const formWords = phrase => APPROVAL_FORMS[phrase].map(w => w.replace(/[.*+?^${}
 const PIPELINE_VERBS = "commits?|committed|pushe[sd]|push|merges?|merged|lands?|landed|files?|filed|releases?|released|publishe[sd]|defers?|deferred|tags?|tagged|confirms?|confirmed";
 const NAME_PATTERNS = [
   [`\\b(?:${BARRED.join("|")})\\b`, "i"],                                                                  // "the <role>", "<role>'s fixes", "an `<Role>`"
-  [`\\bthe\\s+manager(?:['’]s\\b|\\s+(?:${PIPELINE_VERBS})\\b)`, "i"],                                                // the shortened name with a possessive ("the <noun>'s final call") or a pipeline verb: the version-control role, shortened
+  [`\\bthe\\s+(?:manager|officer)(?:['’]s\\b|\\s+(?:${PIPELINE_VERBS})\\b)`, "i"],                                    // the shortened name with a possessive ("the <noun>'s final call") or a pipeline verb: the version-control role and the vocabularies' role, shortened, warned and never blocking (unambiguous())
   ["\\bqa\\s+(?:agent|agents|found|finds|flagged|flags|raised|raises|reported|reports|said|says|asked|asks|approved|approves|rejected|rejects|returned|returns|requested|requests|reviewer|team|has\\s+approved|had\\s+approved|has\\s+found|had\\s+found)\\b", "i"], // "qa <verb>", "qa has <verb>"
   ["\\b(?:by|from)\\s+qa\\b(?!\\s+pass)", "i"],                                                             // "qa" after "by" or "from", never "from qa pass 2"
   ["\\bqa['’]s\\b", "i"],                                                                                  // "qa" with a possessive

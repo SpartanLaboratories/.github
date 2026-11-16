@@ -249,12 +249,10 @@ Same shape: one line, then a ```json block.
   architecture, `consequences.md`, `final-implementation.md`, every board, and the `plan-board` fact
   texts that land on one) names the pipeline's agents, sessions or roles, refers to the approval
   flow or states a grade, as `~/.claude/nomenclature/internal-names.md` lists them with
-  what is fine. The team scans before any `commit`, `prepare-landing` or `land`
-  commits anything (documents, boards and source-code comments, every line of each file the
-  commit carries; code itself is not scanned); a find blocks it with `needs-rework`. The same
-  scan runs before a `mirror-sync` commits anything, the comments of the code files it carries
-  under `claude/` included (`version-control-manager.md`, Executor mode, **Internal-names
-  scan**). A resend
+  what is fine. The team scans what R-1122 (What the commit scan reads) lists before any
+  `commit`, `prepare-landing` or `land` commits anything; a find blocks it with
+  `needs-rework`. The same scan runs before a `mirror-sync` commits anything
+  (`version-control-manager.md`, Executor mode, **Internal-names scan**). A resend
   that asks for an exception says so in `notes`, naming each `file:line` it asks for and the
   reason to keep it; it comes back `needs-user` while the team puts the case to the user (the
   `admin-team` agent brief, Service: version control, "Internal names block a commit").

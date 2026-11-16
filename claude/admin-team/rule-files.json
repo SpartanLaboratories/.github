@@ -139,6 +139,18 @@
         "agents/admin-team/archivist.md": {
           "segment": "ARC",
           "sections": {}
+        },
+        "agents/admin-team/communication-clarity-officer.md": {
+          "segment": "CCO",
+          "sections": {}
+        },
+        "nomenclature/finding.md": {
+          "segment": "FI",
+          "sections": {
+            "What the commit scan reads": "R",
+            "Matching a term": "M",
+            "On a board": "B"
+          }
         }
       },
       "folders": {
@@ -203,10 +215,11 @@
     "agents/rookie-dev.md",
     "agents/test-inspector.md",
     "nomenclature/internal-names.md",
-    "agents/admin-team/archivist.md"
+    "agents/admin-team/archivist.md",
+    "agents/admin-team/communication-clarity-officer.md"
   ],
   "ids": {
-    "marks": { "1": 4, "2": 24, "3": 129, "4": 1061, "5": 10025 },
+    "marks": { "1": 4, "2": 24, "3": 142, "4": 1122, "5": 10052 },
     "retired": []
   }
 }

@@ -5,24 +5,22 @@ The names, phrases and words that committed content never contains: every commit
 board (plans, research, architecture, `consequences.md`, `final-implementation.md`, every board,
 and the board-event fact texts that land on one) and the comments in source code, and what a board
 hands out of its repository (a board's published copy, a Whiteboard's generated part). The rule that
-applies the list, what is scanned and what a find blocks, is in [`CLAUDE.md`](../CLAUDE.md), "No
-internal names in committed content". Committed content describes the work in the project's own
-terms; the process lives in the briefs and in the reports.
+applies the list and what a find blocks is in [`CLAUDE.md`](../CLAUDE.md), "No internal names in
+committed content". Committed content describes the work in the project's own terms; the process
+lives in the briefs and in the reports.
 
 The list is read by the admin team's internal-names scan, which blocks a commit that carries a
 find, and by the dashboards skill's
 [`namerefs.js`](../skills/dashboards/system/scripts/namerefs.js) (the names and the approval
 flow) and [`levelrefs.js`](../skills/dashboards/system/scripts/levelrefs.js) (the grades),
-which keep them off the boards.
+which keep them off the boards. What the commit scan reads, how each scan finds a term, and what
+only resembles one, is in [`finding.md`](finding.md).
 
-Only the user approves adding or changing a term in this file; the admin team's direction manager
-may make the edit. A case for an exception to anything the list bars is brought to the user first:
+Only the user decides adding, changing or removing a term in this file; the admin team's
+Communication Clarity Officer makes the edit, and brings to the user the terms it proposes. A case
+for an exception to anything the list bars is brought to the user first:
 how the case is put, and how an exception the user grants is recorded, is in the admin team's
 brief ([`admin-team/GUIDANCE.md`](../agents/admin-team/GUIDANCE.md), "Internal names block a commit").
-
-A barred name in backticks counts in a document or a comment as it does anywhere else. A longer
-word that contains one, such as `RoutePlanner` or `ExecutorService`, is not a find; a hyphen is a
-word edge, so a hyphenated compound such as "planners-guide" is.
 
 The list has four sections:
 
@@ -35,8 +33,7 @@ The list has four sections:
 ## 1. The pipeline's agents, sessions and roles
 
 Each row is headed by its name, a proper noun written as one CamelCase word, and lists the name's
-known aliases. The aliases are what the scan matches: in any case, singular or plural, and in the
-possessive ("Planners", "the rookie-dev's fix").
+known aliases. The aliases are what the scan matches, as [`finding.md`](finding.md) says.
 
 | Name | Aliases | What it is | Allowed when |
 |------|---------|------------|--------------|
@@ -52,6 +49,7 @@ possessive ("Planners", "the rookie-dev's fix").
 | **RookieDev** | **rookie-dev** | The agent that implements code from a plan. | never |
 | **VersionControlManager** | **version-control-manager**, **executor** | The admin team's agent that executes each version-control request. | never |
 | **DirectionManager** | **direction-manager** | The admin team's agent that keeps the direction documents. | never |
+| **CommunicationClarityOfficer** | **communication clarity officer**, **communication-clarity-officer**, **clarity officer**, **CCO** | The admin team's agent that keeps the vocabularies and how a scan finds their words. | never |
 | **Archivist** | **archivist** | The admin team's agent that keeps the team's records, the idea hooks among them. | never |
 | **QA** | **qa** | The agent that runs the quality gate. Barred as an agent's name only. | the qa step, its passes and its data keys (section 4) |
 | **CodeReviewer** | **code-reviewer** | The agent that reviews a change set for correctness. | never |
@@ -61,11 +59,9 @@ possessive ("Planners", "the rookie-dev's fix").
 ## 2. The approval flow
 
 Each row is headed by a phrase, and a row that names a form lists every word the form takes. The
-phrases and the forms are what the scan matches: in any case, with a straight or a curly apostrophe,
-and with "user" a whole word that any word or none may stand before ("the user", "a user", "the end
-user"); a word that only contains it, such as "superuser" or "username", is not a find. A product's
-own user is matched as well ("the guild or user choose units"): a sentence about one names it in the
-product's own terms ("the player", "the caller").
+phrases and the forms are what the scan matches, as [`finding.md`](finding.md) says. A product's
+own user is matched as well, so a sentence about one names it in the product's own terms ("the
+player", "the caller").
 
 | Term | What it is | Allowed when |
 |------|------------|--------------|

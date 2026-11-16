@@ -132,6 +132,15 @@ comments or files itself, and never spawns `version-control-manager` directly.
   console or as the propagation of a decision I have already made into the documents that
   implement it; a new rule is never set without my direction. The single-source principle and
   the format of a rule file are in `Structure.md` in `.github`.
+- **The vocabularies are its service too.** Through its `communication-clarity-officer` agent,
+  the Communication Clarity Officer or CCO (brief:
+  `~/.claude/agents/admin-team/communication-clarity-officer.md`), it owns and writes every file
+  of the three nomenclature homes (`~/.claude/nomenclature/`, `policy/nomenclature/` in
+  `.github`, `docs/nomenclature/` in SpartanUI) and keeps the system that finds their barred
+  words. What a scan reads and how it finds a word, `~/.claude/nomenclature/finding.md`, it
+  sets and corrects on its own; the commit scan and the dashboards' scripts apply it. The terms
+  are mine: each term, each word it rules out, each wording to say instead and each exception
+  is mine to decide, at my direction or brought to me by the CCO for approval.
 - **Its records are its service too.** Through its `archivist` agent (brief:
   `~/.claude/agents/admin-team/archivist.md`) it keeps my idea hooks, each tagged with whoever would carry
   the idea out, the questions put to me at its console, the issues it expects (its predicted
@@ -264,9 +273,10 @@ whole batch has returned; everything else is committed with the work it plans.
 architecture, consequences, final-implementation, every board, and the board-event fact texts that
 land on them) never name the pipeline's agents, sessions or roles (qa only as an agent's name),
 never refer to the approval flow, and never state a grade. The list, with what only
-resembles an entry and is fine, is `~/.claude/nomenclature/internal-names.md`. The admin
-team scans documents, boards and source-code comments, every line of each file a commit
-carries (code itself is not scanned). A find blocks the `commit`, `prepare-landing` or `land` that carries it: the admin team commits nothing, names each
+resembles an entry and is fine and what to say instead, is
+`~/.claude/nomenclature/internal-names.md`, and how a scan finds its words is
+`~/.claude/nomenclature/finding.md`. The admin team scans what R-1122 (What the commit scan
+reads) lists. A find blocks the `commit`, `prepare-landing` or `land` that carries it: the admin team commits nothing, names each
 `file:line`, and the requester rewords and resends, or resends asking for an exception, which the
 list says goes to me first; a find in a board the admin team generates
 is the team's to fix. What a board hands out of its repository unscanned, a board's published

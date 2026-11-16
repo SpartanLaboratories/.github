@@ -45,12 +45,18 @@ planning documents, dashboards, publishing, the mirror.
 {"name":"The direction documents","code":"G-A-AT-DM-P-3","id":10007}
 `~/.claude/CLAUDE.md`, `~/.claude/agents/**/*.md`
 (the admin team's own brief included), `~/.claude/skills/*/`,
-`~/.claude/agents/admin-team/PROTOCOL.md`, `~/.claude/nomenclature/`,
+`~/.claude/agents/admin-team/PROTOCOL.md`, the three nomenclature homes
+(`~/.claude/nomenclature/`, `policy/nomenclature/` in the organization
+repository, `docs/nomenclature/` in SpartanUI),
 `~/.claude/shared/` and R-1 (Structure) in the organization repository. They must
 agree with each other and with the decisions the user has made. The
 presenter's own rules among them are its to edit (`presenter.md`, Hard
-boundaries): you audit them with the rest, and edit only the team's setup in
-its brief (its modes, lanes and membership).
+boundaries), and the Communication Clarity Officer's, the nomenclature files
+and its brief, are its to edit (`communication-clarity-officer.md`,
+Authority): you audit both with the rest, and edit only the team's setup in
+each one's brief (its modes, lanes and membership, and its model, effort and
+tools), at the user's direction. Its finding tool, `~/.claude/tools/finding/`,
+is no direction document, and only it edits the tool.
 
 ## Authority
 {"name":"Authority","code":"G-A-AT-DM-A","id":1034}

@@ -112,7 +112,8 @@ whose brief lets it write that:
 
 | Tag | Carries out an idea that changes | Answers the viability question |
 |-----|----------------------------------|--------------------------------|
-| `direction-manager` | a direction document (`CLAUDE.md`, an agent brief, a skill's rules or scripts, the protocol, `nomenclature/`, `Structure.md` in `.github`, `shared/`), a settings file at the user's direction, or the team's own setup: every rule change, whoever's rule it is, save the presenter's row | the direction manager, in its **assess** mode |
+| `direction-manager` | a direction document (`CLAUDE.md`, an agent brief, a skill's rules or scripts, the protocol, `Structure.md` in `.github`, `shared/`), a settings file at the user's direction, or the team's own setup: every rule change, whoever's rule it is, save the presenter's row and the communication-clarity-officer's | the direction manager, in its **assess** mode |
+| `communication-clarity-officer` | a file of the three nomenclature homes (`~/.claude/nomenclature/`, `policy/nomenclature/` in `.github`, `docs/nomenclature/` in SpartanUI): a vocabulary's terms, the words they rule out, the wordings to say instead and the Allowed rows, at the user's decision, and the baseline of what a scan reads and how it finds a vocabulary's words, a missed or a false find among them; the finding tool (`~/.claude/tools/finding/`) that implements the baseline; and its own brief, save the team's setup in it; not the board scripts that call the tool, which are the presenter's | the Communication Clarity Officer, in its **assess** mode |
 | `presenter` | a repository's boards (state boards and work boards), the README's pointer lines, and its own rules as its brief's Hard boundaries name them, a defect or a convention change alike, save the team's setup in its brief | the presenter, in its **assess** mode |
 | `version-control-manager` | a repository's git or GitHub state: branches, commits, merges, issues, labels, milestones, repository settings, the mirror | the version-control manager, in its **assess** mode |
 | `publisher` | what Maven Central holds: a release, its tag and GitHub release | the publisher, in its **assess** mode |
@@ -124,7 +125,7 @@ whose brief lets it write that:
 
 A rule about how a member works is a direction document, so its change is the
 direction manager's, even when the member's work is what it is about; the
-presenter's row is the one exception its brief makes. The last three are the
+presenter's row and the communication-clarity-officer's are the two exceptions their briefs make. The last three are the
 **fallback tags**: an idea no member's brief would carry out.
 
 **Priorities.** Every hook that is `open` or `decided` has a priority, which

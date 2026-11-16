@@ -326,11 +326,9 @@ carries (`TEST SET BY NUMBER`).
 comments, the fixed text of its template — names the pipeline's agents, sessions or roles, refers to the approval flow or states a
 grade (above), as [`nomenclature/internal-names.md`](../../nomenclature/internal-names.md) lists them with what is fine. Say what
 happened instead: "accepted", "a plan re-pass", "the fixes", "the land is accepted and being merged". Fine on a board as well are the
-steps' own names (research, architecture, plan) and a halt's "waiting on you". Every name the list bars counts as a whole word wherever
-it stands, in backticks too, whatever the words around it ("the dispatcher and the executor" as much as "the executor commits"); a longer
-word that contains one (`RoutePlanner`, `ExecutorService`) does not. A fenced code block counts as backticks do, a rendered one on a board
-(`<pre><code>`) included, so the board scripts and the commit scan, which reads every line of a board file, agree (the user's decision of
-2026-11-13, dashboards/scan-forms). The data follows: the remediation routes' ids are `on-the-spot`,
+steps' own names (research, architecture, plan) and a halt's "waiting on you". How a name the list bars is found, and what only
+resembles one, is the baseline's, [`nomenclature/finding.md`](../../nomenclature/finding.md) ("Matching a term"), which the board
+scripts apply as the commit scan does. The data follows: the remediation routes' ids are `on-the-spot`,
 `remediation` and `re-plan-then-remediation` (the older `rookie-dev` and `planner-then-rookie-dev` are read alike), the template's
 placeholder mark is `fill:` (a `presenter:` mark is migrated by the splice), a progress note is labelled by the work it reports ("research
 · <slug>", "code check"; a Quality Review's three checks "documentation check", "code check", "test check", dashboards-skill/52).
@@ -1049,13 +1047,12 @@ Every visible element on a board takes its name from the UI vocabulary,
 its basic elements, its specific elements and its naming rules. How the boards use them (each term's
 board elements, the boards' compound names and the CSS classes the templates give them) is in
 [`policy/nomenclature/boards.md` in `.github`](https://github.com/SpartanLaboratories/.github/blob/main/policy/nomenclature/boards.md),
-"Board UI"; the look follows §1 and §2. A board element none of `ui.md`'s terms describes takes
-no name from that file until the term is added to it, and a term is added or changed in `ui.md`
-only with the user's permission (`~/.claude/agents/admin-team/presenter.md`, Hard boundaries); it is never
-named here. The presenter adds and changes the terms of `boards.md` at its own discretion (the
-same brief).
+"Board UI"; the look follows §1 and §2. Both vocabularies are rule files the presenter reads and never
+edits. A board element none of their terms describes takes no name from either until the user decides
+its term; the presenter reports the need, and the element is never named here
+(`~/.claude/agents/admin-team/presenter.md`, Hard boundaries, "A term you need").
 
-**The names, checked** (the user's decision of 2026-11-09). The glossary is the only home of the names, and `system/scripts/termrefs.js` holds none of them: it parses the first Cell of every `| **Term** | … |` row of `ui.md` and `boards.md`, keying on the row and never on what follows a heading; the lines of the JSON-lines blocks after the tables (`{"term":"Card","not":["Bubble"]}`, a line for a term with something the table does not say, chiefly the words it rules out; `"allow"` a longer name that holds one and is something else; `"case":"any"` its words ruled out in any case, its `"allow"` read the same way); `boards.md`'s compound-names paragraph; and its CSS class list. A ruled-out word comes only from what those files already rule out. `check.js` and `check-board.js` warn, and never fail, on three things: `TERM BANNED WORD`, a ruled-out word used, as written and capitalised, since a term is a proper noun and the everyday word stays lower case (`ui.md`, Naming), or in any case for a term whose line says `"case":"any"`; `TERM UNKNOWN NAME`, a capitalised element name in neither list, a CamelCase word or a Capitalised compound ending in a type word of `ui.md`'s section 2; `TERM CLASS`, a class naming an element's kind without its type word (a listed compound's or class's subject, or a retired word of a `ui.md` term), unless it always stands beside a class that carries a type word. The scan reads the text a board shows and its generated data, and leaves out a quoted issue title, an option's signature, code and data keys, as the wording checks do; text a script draws in the browser is read through the data it draws from. `verify/cases-termrefs.js` holds it.
+**The names, checked** (the user's decision of 2026-11-09). The glossary is the only home of the names, and `system/scripts/termrefs.js` holds none of them: it parses the first Cell of every `| **Term** | … |` row of `ui.md` and `boards.md`, keying on the row and never on what follows a heading; the lines of the JSON-lines blocks after the tables (`{"term":"Card","not":["Bubble"]}`, a line for a term with something the table does not say, chiefly the words it rules out, with its `"allow"` and its `"case"`); `boards.md`'s compound-names paragraph; and its CSS class list. A ruled-out word comes only from what those files already rule out, and is found as the baseline says ([`nomenclature/finding.md`](../../nomenclature/finding.md), "A board term's ruled-out words"). `check.js` and `check-board.js` warn, and never fail, on three things: `TERM BANNED WORD`, a ruled-out word used; `TERM UNKNOWN NAME`, a capitalised element name in neither list, a CamelCase word or a Capitalised compound ending in a type word of `ui.md`'s section 2; `TERM CLASS`, a class naming an element's kind without its type word (a listed compound's or class's subject, or a retired word of a `ui.md` term), unless it always stands beside a class that carries a type word. The scan reads the text a board shows and its generated data, and leaves out a quoted issue title, an option's signature, code and data keys, as the wording checks do; text a script draws in the browser is read through the data it draws from. `verify/cases-termrefs.js` holds it.
 
 **Code** (admin-team/dashboards/code-label-and-sigblock, dated dashboards-skill/42). Every inline code on every board — a
 `` `code` `` span in the data, a path, a sha, a branch, a class — is a **CodeLabel**, a kind of Label in `ui.md`: the surface-2 fill

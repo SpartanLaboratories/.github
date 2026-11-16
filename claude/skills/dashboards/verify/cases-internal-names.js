@@ -105,13 +105,17 @@ function behaviour(list, N) {
   const hit = t => N.nameRefs(t).length > 0;
   list.roles.forEach(row => row.names.forEach(name => {
     const s = S.get(key(name)); if (!s) return;
-    const spaced = name.replace(/-/g, " "), Cap = name[0].toUpperCase() + name.slice(1).replace(/-(\w)/g, (m, x) => x.toUpperCase());
+    /* Cap: the name as one word, a hyphen or a space joining its words (AdminTeam, RookieDev), so Route<Cap> and <Cap>Service are
+       longer words that contain it */
+    const spaced = name.replace(/-/g, " "), Cap = name[0].toUpperCase() + name.slice(1).replace(/[- ](\w)/g, (m, x) => x.toUpperCase());
     /* barred: a whole word wherever it stands, with or without an article or a verb, plural, possessive, any case, in backticks; never
        inside a longer word (RoutePlanner, ExecutorService) */
     const probes = s.strength === "barred" ? [[`the ${name} confirmed it`, true], [name, true], [`by the ${name}`, true], [`the dispatcher and the ${name}`, true], [`two ${name}s`, true],
-        [`the ${name}'s note`, true], [name.toUpperCase(), true], [`a \`${name}\``, true], [`a \`${Cap}\``, !/-/.test(name)], [`Route${Cap}`, false], [`${Cap}Service`, false]]
+        [`the ${name}'s note`, true], [name.toUpperCase(), true], [`a \`${name}\``, true], [`a \`${Cap}\``, !/[- ]/.test(name)], [`Route${Cap}`, false], [`${Cap}Service`, false]]
       : [[`${name} found two gaps`, true], [`raised by ${name}`, true], [`the ${name} step`, false], ["Quality Review 2 · approved", false], [`from ${name} pass 2`, false]];
-    if (s.strength === "barred" && spaced !== name) probes.push([`the ${spaced} confirmed it`, /^(admin|direction)-/.test(name)]);
+    /* a hyphenated name written with spaces: found where the row lists that form as an alias too, or for the two-word names that match
+       with a space as well */
+    if (s.strength === "barred" && spaced !== name) probes.push([`the ${spaced} confirmed it`, /^(admin|direction)-/.test(name) || row.names.includes(spaced)]);
     probes.forEach(([t, want]) => { if (hit(t) !== want) bad.push(`${s.strength} "${name}": "${t}" ${want ? "not found" : "found"} (${JSON.stringify(N.nameRefs(t))})`); });
     if (s.strength === "barred" && !N.nameRefs(`the ${name} confirmed it`).every(h => N.unambiguous(h))) bad.push(`"${name}" found, but not as a name no rewording lets through (unambiguous())`);
   }));
@@ -162,6 +166,12 @@ module.exports = function casesInternalNames(X) {
     c.push(["every §1 name and §2 phrase found as its strength says; every §4 row names nothing", !b.length, js(b)]);
     const dm = [["the direction manager confirmed it", true], ["the direction-manager reported", true], ["direction managers", true], ["the `DirectionManager` turns", false], ["a DirectionManager", false], ["the `direction-manager` turns", true]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);
     c.push(["\"the direction manager\" with a space found as well as the hyphen, in backticks too; `DirectionManager` as one word left alone", !dm.length, js(dm)]);
+    /* a shortened role name, "the manager" or "the officer" with a possessive or a pipeline verb, is warned of and blocks nothing: no writer
+       leaves the text out for it */
+    const short = [["the officer's final call", true], ["the officer commits it", true], ["the manager's final call", true], ["an officer of the guild", false], ["the officer", false],
+      ["the officer rank", false]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);
+    const leftOut = ["the officer's final call", "the officer commits it"].filter(t => N.cleanWritten(t).out || N.nameRefs(t).some(h => N.unambiguous(h)));
+    c.push(["\"the officer\" shortened, with a possessive or a pipeline verb, found as \"the manager\" is; warned of, never left out by a writer", !short.length && !leftOut.length, js({ short, leftOut })]);
     /* a name in backticks counts, a longer word that contains one does not; no surrounding word lets one through */
     const strict = [["the planner reconciled it", true], ["a single-thread executor drains the queue", true], ["the event publisher emits", true], ["the bytecode verifier rejects it", true], ["runs on an `Executor`", true],
       ["the `Planner` type", true], ["the archivist's hook", true], ["two archivists", true], ["the solution architect", true], ["Presenters", true],
