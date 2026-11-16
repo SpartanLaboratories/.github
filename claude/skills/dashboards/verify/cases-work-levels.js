@@ -141,7 +141,8 @@ module.exports = function casesWorkLevels(X) {
   });
 
   /* the transition's end at L12: a sizing
-     is read wherever a request, its facts or the team's state carry it, and new.js takes --grade; the level, its old name, is no longer read */
+     is read wherever a request, its facts or the team's state carry it, and new.js takes it as a command-line option; the level, its old
+     name, is no longer read */
   guard("a grade is read: the request's and its facts' grade, the team's state's grades, new.js --grade; never kept; the level, the state's levels and --level no longer read (L12)", c => {
     const RQ = J("verify/fixtures/sized-grade.request.json");
     const lay = (rq, o) => { const root = root0(), f = wr(path.join(sc, `req-${++n}.json`), js(rq)), a = run(APPLY, ["--event", f, "--worktree", root, "--no-gh", "--no-live", "--at", rq.facts.at, "--json"], { env: (o && o.env) || env }), pf = path.join(root, ...rq.folder.split("/"), "plan.json");
@@ -230,7 +231,7 @@ module.exports = function casesWorkLevels(X) {
     c.push(["every form of the word found: numbered, unnumbered, inflected, re-, any case, a hyphenated compound, in backticks and a fenced block", !missed.length, js(missed)]);
     c.push(["a longer word that only holds the letters, and an identifier, not", !wrong.length, js(wrong.map(t => [t, LR.levelRefs(t)]))]);
     c.push(["a compound's hit is the whole compound, and a number after the word goes with it", js(LR.levelRefs("carrier-grade NAT")) === js(["carrier-grade"]) && js(LR.levelRefs("grade 3")) === js(["grade 3"]) && js(LR.levelRefs("a grade-4 issue")) === js(["grade-4"]), js([LR.levelRefs("carrier-grade NAT"), LR.levelRefs("grade 3"), LR.levelRefs("a grade-4 issue")])]);
-    const inPats = LR.GRADE_PATTERNS.map(([s, f]) => new RegExp(JSON.parse(JSON.stringify(s)), f));
+    const inPats = LR.GRADE_PATTERNS.map(([s, f]) => new RegExp(JSON.parse(JSON.stringify(s)), f.replace("g", "")));
     c.push(["GRADE_PATTERNS, which the browser pass applies to the rendered text (as JSON), carries the grade's pattern", ["grade 3", "re-graded", "carrier-grade"].every(t => inPats.some(re => re.test(t))) && !inPats.some(re => re.test("Gradle upgrade")), String(LR.GRADE_PATTERNS && LR.GRADE_PATTERNS.length)]);
     const sc0 = [["inside grade 3", "inside the issue's scope"], ["escalated to grade 4", "escalated"], ["planned at its own grade", "planned on its own"], ["Re-graded to grade 3", "Re-sized"], ["re-grading", "re-sizing"],
       ["graded", "sized"], ["the work grade", "the sizing"], ["Recorded grade: 3 confirmed", "Recorded sizing confirmed"], ["(#61, grade 3)", "(#61)"], ["The fix (grade 2) lands.", "The fix lands."], ["a grade-3 re-pass", "a re-pass"],

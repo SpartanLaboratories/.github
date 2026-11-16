@@ -140,8 +140,9 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   console.log("CHECK kind: "+kind);
   const shown=e=>!!e&&e.offsetParent!==null;
   const tabs=[...document.querySelectorAll('[role="tab"]')]; console.log("CHECK tabs: "+tabs.length);
-  /* no sizing is ever shown (levelrefs.js): the text of every tab, then of the whole board, is scanned */
-  const LV=${JSON.stringify(GRADE_PATTERNS)}.map(([s,f])=>new RegExp(s,f+"g")), lvHits=new Set();
+  /* no sizing is ever shown (levelrefs.js, from the finding tool's patterns): the text of every tab, then of the whole board, is
+     scanned, each pattern with its own flags (global added where they lack it, as the scan below runs exec() to the end) */
+  const LV=${JSON.stringify(GRADE_PATTERNS)}.map(([s,f])=>new RegExp(s,f.includes("g")?f:f+"g")), lvHits=new Set();
   /* a slug made from an issue's title (a plan folder's name, where a path puts it) is left out as the title is (levelrefs.js maskSlugs();
      the decision of 2026-11-14, batch-8/q-54) */
   const SL=${JSON.stringify(SLUG_PATTERNS)}.map(s=>new RegExp(s,"g")), unslug=t=>SL.reduce((x,re)=>x.replace(re,"\\u0001"),t||"");

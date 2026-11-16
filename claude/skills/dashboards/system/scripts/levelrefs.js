@@ -1,11 +1,22 @@
-// Sizing references (GUIDANCE.md §4, its rule against them): the dashboards never show an issue's sizing (the size of its work, 1 to 4:
-// ~/.claude/nomenclature/vocabulary.md and CLAUDE.md define it), in any form: GRADE_PATTERNS below. A board keeps no sizing as data: an
-// older closed board's plan.json "level", unit.level and wip.proposedLevel are numbers, not text, and nothing renders them
-// (plan/scripts/levels.js).
-// The forms are those of the sizing word alone (internal-names.md §3), so no other kind of level is taken for one: an old test level a landed plan document
-// keeps and a board quotes ("Level 2 — the class and the claim", "L1 gating"), a documentation level ("level-1 KDoc") and a C4 level
-// ("Level 1 · System Context") are left as they are. Tests are called by their set, never by a number (vocabulary.md, "set"):
-// nameTestLevels() below writes a test set written by its old number by its set's name (dashboards-skill/35).
+// Sizing references on a board (GUIDANCE.md §4, its rule against them): the dashboards never show an issue's sizing (the size of its
+// work, 1 to 4: ~/.claude/nomenclature/vocabulary.md and CLAUDE.md define it), in any form. What this file keeps is the board's part
+// only. The finding is the finding tool's, ../../../../tools/finding/match.js (the same path in ~/.claude and in the .github mirror's
+// claude/): it reads the forms from the list, ~/.claude/nomenclature/internal-names.md §3, where it stands, and finds them as the
+// baseline, ~/.claude/nomenclature/finding.md, says. This file holds no form of the word and no rule of how one is found.
+// A board keeps no sizing as data: an older closed board's plan.json "level", unit.level and wip.proposedLevel are numbers, not text,
+// and nothing renders them (plan/scripts/levels.js).
+// What it keeps for boards, each on the tool's finds:
+//   titleRefs(), levelRefs()  the finds, each as the extent a board quotes and elides: the find with the hyphenated compound it stands
+//                             in and a number after it ("carrier-<word>", "<word>-3", "<word>: 2"); titleRefs() reads a text whole (an
+//                             issue's title), levelRefs() leaves its slugs out (below)
+//   GRADE_PATTERNS            the tool's patterns of the section as one regular expression with that extent, for check-board.js's
+//                             browser pass, which runs where the tool cannot be loaded
+//   the slugs (SLUG_PATTERNS, maskSlugs()), the issue titles (TITLE_PATHS, issueTitleRefs(), titleDefect()), the rewording of a
+//   pipeline fact (scrubLevels()) and the test sets written by their old numbers (nameTestLevels())
+// The forms are those of the sizing word alone (internal-names.md §3), so no other kind of level is taken for one: an old test level a
+// landed plan document keeps and a board quotes ("Level 2 — the class and the claim", "L1 gating"), a documentation level ("level-1
+// KDoc") and a C4 level ("Level 1 · System Context") are left as they are. Tests are called by their set, never by a number
+// (vocabulary.md, "set"): nameTestLevels() below writes a test set written by its old number by its set's name (dashboards-skill/35).
 // Used by plan/scripts/check.js (every string of plan.json and board.json) and by check-board.js (the rendered text of every tab).
 // scrubLevels() rewords a pipeline fact that names a sizing so that it names none (dashboards-skill/23): the scope phrase becomes
 // the unit's or the issue's scope, a numbered sizing before a noun is elided, a sizing label is
@@ -15,7 +26,12 @@
 // (issueTitleRefs(), titleDefect(); dashboards-skill/28), never a failure of the board. A slug made from the title (a plan folder's
 // name, where a path puts it) is left out of the scan as the title is, and flagged nowhere (maskSlugs()), and so is the slug inside a
 // branch's name.
+// The wordings scrubLevels() writes are this file's own until the list carries a wording to say instead for each form; from then on a
+// find that carries one is written as that wording first (withWordings()), and this file's rewordings mend the text around it.
 "use strict";
+const path = require("path");
+const F = require(path.resolve(__dirname, "..", "..", "..", "..", "tools", "finding", "match.js"));
+const GRADES = ["internal-names §3"];
 /* The test sets' names, matched in any case (a table head may set them in capitals: "L1 GATING") while the "L" itself stays
    case-sensitive: each letter becomes a class of both its cases. */
 const anyCase = w => w.replace(/[a-z]/gi, c => `[${c.toLowerCase()}${c.toUpperCase()}]`);
@@ -30,16 +46,6 @@ const BEFORE_TEST = `\\b(?:${TEST_WORD})\\s*[(:·—–-]?\\s*`;
 /* each old short form's set (vocabulary.md, "set"; CLAUDE.md, "Testing — Named Test Sets"): L4 alone is the three project-wide sets */
 const TEST_LEVEL_SHORT = { 1: "gating", 2: "component", 3: "integration", 4: "project-wide", "4a": "deterministic", "4b": "e2e", "4c": "nonfunctional", 5: "uat" };
 const SCOPE_WORDS = "inside|within|outside|beyond";
-/* The size word: the size of an issue's work is its
-   sizing, and the word for it, in every form, is barred from what a board shows, numbered or not, in any case, a hyphenated compound included:
-   "<word> 3", "<word>: 2", "a <word>-4 issue", its past and -ing forms, the word after "re" with a hyphen or none, "the recorded <word>", "work <word>",
-   "carrier-<word>". No other sense of the word is let through, so no heuristic stands beside it. A match is the word with the hyphenated
-   compound it stands in and the number after it; a longer word that only holds the letters ("upgrade", "degrade", "centigrade", "Gradle",
-   "gradient") and an identifier ("proposedGrade") are not the word. */
-const GRADE_WORD = "(?:re-?)?grad(?:e|es|ed|ing)";
-const GRADE_PATTERNS = [
-  [`(?<![\\w-])(?:[a-z0-9]+-)*${GRADE_WORD}(?:-[a-z0-9]+)*(?![\\w-])(?:[ \\t]*:?[ \\t]*[1-4]\\b)?`, "i"],   // "<word> 3", "a <word>-4 issue", "re-<word>d", "carrier-<word>"
-];
 /* A pipeline fact's sizing reworded: the scope phrase ("inside <word> 3") becomes the unit's or the issue's scope, "escalated to <word> 4" reads "escalated", "at its own <word>" "on its own", "re-<word>d" "re-sized", "<word>d" "sized",
    its -ing form "sizing", "the work <word>" "the sizing", "the recorded <word>: 3" "the recorded sizing", the label ("<word>: 3", "(<word> 3)",
    "(#61, <word> 3)") is dropped with its punctuation, a numbered sizing before a noun is elided ("a <word>-3 re-pass" → "a re-pass", "a <word> 3
@@ -69,7 +75,6 @@ function scrubGrades(s, scope) {
   s = s.replace(new RegExp(`${NB}(grades?)${NA}(?![ \\t]*:?[ \\t]*[1-4]\\b)`, "gi"), (m, g) => caseOf(m, /s$/i.test(g) ? "sizings" : "sizing"));
   return s;
 }
-const REGEXES = GRADE_PATTERNS.map(([s, f]) => new RegExp(s, f + "g"));
 /* Slugs: a plan folder's name, <number>-<slug> (CLAUDE.md, "Planning documents"), is
    made from its issue's title, so the sizing check skips it as it skips the title (below), wherever it stands as a folder or a slug: the
    board's slug, the plan folder, a board's path, a link to a board or into a folder, a report's copy, a path a text cites. It counts where
@@ -94,15 +99,46 @@ const SLUG_PATTERNS = [
 ];
 const SLUG_RES = SLUG_PATTERNS.map(s => new RegExp(s, "g"));
 const maskSlugs = text => typeof text === "string" ? SLUG_RES.reduce((s, re) => s.replace(re, "\u0001"), text) : text;
-/* Every sizing reference in a text, as the matched strings, the text read whole (an issue's title: titleRefs()) */
-function titleRefs(text) {
+/* A slug's text blanked with as many marks as it has characters, so an index into the masked text is one into the text as given */
+const keepSlugs = text => SLUG_RES.reduce((s, re) => s.replace(re, m => "\u0001".repeat(m.length)), text);
+/* The tool's finds of the list's third section, each as the extent a board quotes and elides: the hyphenated compound the find stands
+   in and a number after it, so "a <word>-4 issue" elides "<word>-4" and leaves no "-4" behind. Extents that meet are one.
+   Returns [{ index, end, hit, sayInstead }]. loaded: the lists (the tool's load() when left out). */
+const BEFORE = /(?:[a-z0-9]+-)+$/i, AFTER = /^(?:-[a-z0-9]+)*(?:[ \t]*:?[ \t]*[1-4]\b)?/i;
+function gradeFinds(text, loaded) {
+  if (typeof text !== "string" || !text) return [];
   const out = [];
-  if (typeof text !== "string" || !text) return out;
-  REGEXES.forEach(re => { re.lastIndex = 0; let m; while ((m = re.exec(text))) out.push(m[0]); });
-  return out;
+  F.finds(text, { lists: GRADES, loaded }).forEach(f => {
+    const b = BEFORE.exec(text.slice(0, f.index)), a = AFTER.exec(text.slice(f.end));
+    const x = { index: f.index - (b ? b[0].length : 0), end: f.end + (a ? a[0].length : 0), sayInstead: f.sayInstead };
+    const last = out[out.length - 1];
+    if (last && x.index <= last.end) { last.end = Math.max(last.end, x.end); last.sayInstead = last.sayInstead || x.sayInstead; } else out.push(x);
+  });
+  return out.map(x => Object.assign(x, { hit: text.slice(x.index, x.end) }));
 }
+/* Every sizing reference in a text, as the matched strings, the text read whole (an issue's title) */
+const titleRefs = text => gradeFinds(text).map(f => f.hit);
 /* Every sizing reference in a text, as the matched strings, its slugs left out (above). */
-const levelRefs = text => titleRefs(maskSlugs(text));
+const levelRefs = text => typeof text === "string" && text ? gradeFinds(keepSlugs(text)).map(f => text.slice(f.index, f.end)) : [];
+/* The tool's patterns of the third section as one regular expression with the board's extent, [[source, flags]], for the browser pass
+   (check-board.js), which applies it to a board's rendered text with its own flags. The longest first, so a phrase of the list wins over
+   the word it holds. Read from the lists when first asked for. */
+let gradePatterns = null;
+function GRADE_PATTERNS() {
+  if (gradePatterns) return gradePatterns;
+  const P = F.patterns({ lists: GRADES }), srcs = P.map(p => p.source).sort((a, b) => b.length - a.length);
+  return (gradePatterns = [[`(?:[a-z0-9]+-)*(?:${srcs.join("|")})(?:-[a-z0-9]+)*(?:[ \\t]*:?[ \\t]*[1-4]\\b)?`, (P[0] && P[0].flags) || "giu"]]);
+}
+/* A text with each find that carries the list's wording to say instead written as that wording (internal-names.md's Say instead
+   column, which the tool returns with each find as sayInstead), its first letter in the case of the find's; a find with none is left
+   as it is. finds: [{ index, end, hit, sayInstead }], none overlapping. scrubLevels() and namerefs.js scrubNames() run it first. */
+function withWordings(text, finds) {
+  let s = text;
+  (finds || []).filter(f => f.sayInstead && !f.warn).sort((a, b) => b.index - a.index).forEach(f => {
+    const w = /^[A-Z]/.test(f.hit || "") && /^[a-z]/.test(f.sayInstead) ? f.sayInstead[0].toUpperCase() + f.sayInstead.slice(1) : f.sayInstead;
+    s = s.slice(0, f.index) + w + s.slice(f.end); });
+  return s;
+}
 /* Every sizing reference in the strings of a data file: [{ at, hit }]. Keys are not text and are skipped; so are numbers. skip(at),
    when given, leaves out the strings at the paths it accepts (the issue titles, below). */
 function levelRefsIn(v, at, found, skip) {
@@ -167,12 +203,14 @@ const TITLE_DEFECT = /ISSUE TITLE NAMES A GRADE: #([\d?]+)/;
    scope phrase ("inside <word> 3") becomes "inside the unit's scope" (opts.scope: "unit" on a sub-issue's board, else "issue"), the sizing
    before a noun is elided ("a <word>-3 re-pass" → "a re-pass", the article mended: "a <word>-3 issue" → "an issue"), the label ("Label
    <word>: 3", "(<word>: 2)") is dropped with the punctuation it leaves, "escalated to <word> 4" reads "escalated", "re-<word>d" "re-sized",
-   "the work <word>" "the sizing", "at its own <word>" "on its own", "(#61, <word> 3)" "(#61)". Returns the reworded text, or null when a
-   sizing is still named after the rewording (the caller drops the text and asks for enrichment), or the text itself when it names none. */
+   "the work <word>" "the sizing", "at its own <word>" "on its own", "(#61, <word> 3)" "(#61)". A find that carries the list's wording to
+   say instead is written as that wording first (withWordings(); a slug is never touched), and the rewordings here mend the rest.
+   Returns the reworded text, or null when a sizing is still named after the rewording (the caller drops the text and asks for
+   enrichment), or the text itself when it names none. opts.loaded: the lists the wordings are read from (the tool's load() when left out). */
 function scrubLevels(text, opts) {
   if (typeof text !== "string" || !levelRefs(text).length) return text;
   const scope = `the ${opts && opts.scope === "unit" ? "unit" : opts && typeof opts.scope === "string" && opts.scope.trim() ? opts.scope.trim() : "issue"}'s scope`;
-  let s = text;
+  let s = withWordings(text, gradeFinds(keepSlugs(text), opts && opts.loaded));
   const cap = /^[A-Z]/.test(s.trim());
   s = scrubGrades(s, scope);
   /* the article markers, then the punctuation and spaces an elision leaves */
@@ -203,4 +241,6 @@ function nameTestLevels(text) {
 }
 /* the test sets a text still writes by number ("L2 test", "L2 component"): check.js warns (TEST SET BY NUMBER), naming the set's name to write */
 const bareTestLevels = text => nameTestLevels(text).named;
-module.exports = { GRADE_PATTERNS, SLUG_PATTERNS, maskSlugs, titleRefs, levelRefs, levelRefsIn, scrubLevels, nameTestLevels, bareTestLevels, TITLE_PATHS, dataKind, isTitlePath, titleSkip, issueTitleRefs, quotedTitles, titleDefect, TITLE_DEFECT, TEST_LEVEL_SHORT };
+module.exports = { SLUG_PATTERNS, maskSlugs, titleRefs, levelRefs, gradeFinds, withWordings, levelRefsIn, scrubLevels, nameTestLevels, bareTestLevels, TITLE_PATHS, dataKind, isTitlePath, titleSkip, issueTitleRefs, quotedTitles, titleDefect, TITLE_DEFECT, TEST_LEVEL_SHORT };
+/* read from the lists when first asked for, so a script that never runs the browser pass never needs them */
+Object.defineProperty(module.exports, "GRADE_PATTERNS", { enumerable: true, get: GRADE_PATTERNS });

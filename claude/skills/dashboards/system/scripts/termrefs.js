@@ -1,89 +1,28 @@
-// The element names of a board (GUIDANCE.md §12, "The names, checked"): the glossary is the only home of the names,
-// ui.md and boards.md (each found as glossaryFiles() says), and this file holds none of them. It parses them where they stand and scans a board with what it parsed:
-//   - the terms: the first Cell of every "| **Term** | … |" row of either file. It keys on the row, never on what follows a heading, so the rule lines
-//     ({"name":…}) those headings will carry change nothing.
-//   - what a table does not say: the lines of the JSON-lines blocks after the tables, {"term":"Card","not":["Bubble"],"allow":["…"]}, a line for a term with something to say:
-//     "not" the words that term rules out, "allow" a longer name that holds a ruled-out word and is something else, "case":"any" (the one value) its words ruled out in
-//     any case, its "allow" read the same way. A fenced line that is no term line is left alone.
+// The element names of a board (GUIDANCE.md §12, "The names, checked"): the glossary is the only home of the names, ui.md and boards.md,
+// and this file holds none of them. What it keeps is the board's part only. Finding the glossary and reading its term lines, and finding a
+// word a term rules out, are the finding tool's, ../../../../tools/finding/ (lists.js and match.js; the same path in ~/.claude and in the
+// .github mirror's claude/), as the baseline, ~/.claude/nomenclature/finding.md, says ("A board term's ruled-out words"): each file found as
+// glossaryFiles() says, re-exported here, and a ruled-out word found by the tool's termRefs() over the two glossaries alone, never
+// vocabulary.md. What it keeps for boards, on what the tool reads:
+//   - the terms: the first Cell of every "| **Term** | … |" row of either file, and the term lines of the JSON-lines blocks after the tables
+//     ({"term":"Card","not":["Bubble"],"allow":["…"]}, with "case":"any"), read by the tool's readFile() and merged by term here.
 //   - the compound names: boards.md's compound-names paragraph ("A board's compound names …"), with the capitalised compounds of the rows' Cells.
 //   - the classes: boards.md's CSS class list ("Where a template's CSS class …").
 // The scan, warnings only (it never fails a board; check.js and check-board.js print its lines):
-//   TERM BANNED WORD   a word a term rules out, used. As written, capitalised (a plural too): a term is a proper noun, and the everyday word stays lower case (ui.md, Naming);
-//                      a term whose line says "case":"any" rules its words out in any case.
+//   TERM BANNED WORD   a word a term rules out, used: the tool's finds, as { banned } here.
 //   TERM UNKNOWN NAME  a capitalised element name in neither list: a CamelCase word or a Capitalised compound ending in a type word of ui.md's section 2.
 //   TERM CLASS         a CSS class that names an element's kind without its type word: a listed compound's subject, a listed class's subject, or a retired word of a
 //                      ui.md term, unless it always stands beside a class that carries a type word (class="chip now", class="cell verdict").
 // What it scans is the text a board shows and its generated data: every string value of the data (keys, $comment, a quoted issue title and an option's signature left out)
-// and the static text of its HTML (scripts, styles, comments, <code>, <pre> and a quoted title left out). Backtick spans, Markdown link targets, URLs and paths are code,
-// never prose, and a string that is all identifier is left alone. Text a script draws in the browser is not read: the data it draws from is.
+// and the static text of its HTML (scripts, styles, comments, <code>, <pre> and a quoted title left out); code in a text is masked as the tool masks it, and a string that
+// is all identifier is left alone. Text a script draws in the browser is not read: the data it draws from is.
 // Used by plan/scripts/check.js, by check-board.js and by verify/cases-termrefs.js.
 "use strict";
-const fs = require("fs"), path = require("path"), os = require("os"), cp = require("child_process");
+const fs = require("fs"), path = require("path");
+const TOOL = path.resolve(__dirname, "..", "..", "..", "..", "tools", "finding");
+const { glossaryPlaces, glossaryFiles, readFile } = require(path.join(TOOL, "lists.js")), F = require(path.join(TOOL, "match.js"));
 const { titleSkip } = require("./levelrefs.js");
 
-/* The two files, each found on its own, the first place that holds it as a glossary:
-     boards.md: <the organization repository's checkout>/policy/nomenclature/boards.md, the checkout SPARTAN_ORG_POLICIES names;
-     ui.md:     <SpartanUI's checkout>/docs/nomenclature/ui.md, the checkout SPARTAN_CHECKOUT_SPARTANUI names, else the folder SpartanUI beside the organization
-                repository's checkout;
-     then, for each apart, its old homes: beside the skill (../../../../nomenclature from system/scripts, as in ~/.claude and the .github mirror's claude/), else
-     ~/.claude/nomenclature/. A folder given is looked in first, for both.
-   A variable is read as the organization repository's scripts/rule-lib.js reads it (readVariable, overrideVariable, siblingCheckout): the process environment
-   first, then the stored user value (HKCU\Environment on Windows; elsewhere none). The lookup is carried here rather than required from that checkout: the
-   skill runs where no checkout is (its public copy, another machine), and the checkout could only be found by reading the variable first. A file with no
-   "| **Term** |" row, such as a pointer left at an old home, is no glossary and is not taken. deps, for the cases: { env, readStored, home }. */
-const POLICIES_VARIABLE = "SPARTAN_ORG_POLICIES", SPARTANUI_FOLDER = "SpartanUI";
-const overrideVariable = folder => `SPARTAN_CHECKOUT_${folder.toUpperCase().replace(/[^A-Z0-9]+/g, "_")}`;
-const stored = new Map();
-function readStoredUserValue(name) {
-  if (stored.has(name)) return stored.get(name);
-  let v = null;
-  if (process.platform === "win32") try {
-    const out = cp.execFileSync("reg", ["query", "HKCU\\Environment", "/v", name], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], windowsHide: true });
-    const m = new RegExp(`^\\s*${name}\\s+(REG_SZ|REG_EXPAND_SZ)\\s+(.*)$`, "mi").exec(out);
-    if (m) v = m[1] === "REG_EXPAND_SZ" ? m[2].trim().replace(/%([^%]+)%/g, (all, k) => process.env[k] || all) : m[2].trim();
-  } catch (e) { v = null; }
-  stored.set(name, v || null); return v || null;
-}
-const readVariable = (name, deps) => (deps.env || process.env)[name] || (deps.readStored || readStoredUserValue)(name) || null;
-/* Every place each file is looked for, in order: { ui: [path], boards: [path] } */
-function glossaryPlaces(given, deps) {
-  deps = deps || {};
-  const policies = readVariable(POLICIES_VARIABLE, deps), override = readVariable(overrideVariable(SPARTANUI_FOLDER), deps);
-  const spartanUI = override || (policies ? path.join(path.dirname(path.resolve(policies)), SPARTANUI_FOLDER) : null);
-  const old = [path.resolve(__dirname, "..", "..", "..", "..", "nomenclature"), path.join(deps.home || os.homedir(), ".claude", "nomenclature")];
-  const at = (dir, ...p) => dir ? path.join(dir, ...p) : null;
-  return {
-    ui: [at(given, "ui.md"), at(spartanUI, "docs", "nomenclature", "ui.md"), ...old.map(d => at(d, "ui.md"))].filter(Boolean),
-    boards: [at(given, "boards.md"), at(policies, "policy", "nomenclature", "boards.md"), ...old.map(d => at(d, "boards.md"))].filter(Boolean),
-  };
-}
-const isGlossary = f => { try { return fs.statSync(f).isFile() && /^\s*\|\s*\*\*[^*\n]+\*\*/m.test(fs.readFileSync(f, "utf8")); } catch (e) { return false; } };
-/* The two files found: { ui: path|null, boards: path|null } */
-function glossaryFiles(given, deps) {
-  const P = glossaryPlaces(given, deps);
-  return { ui: P.ui.find(isGlossary) || null, boards: P.boards.find(isGlossary) || null };
-}
-const cellsOf = line => line.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|").map(c => c.trim());
-/* A file's rows and term lines, wherever they stand: { rows: [{ term, cells, line }], lines: [{ term, not, allow, case, line }], problems: [] } */
-function readFile(text, name) {
-  const rows = [], lines = [], problems = []; let fence = false;
-  String(text).replace(/\r\n/g, "\n").split("\n").forEach((line, i) => {
-    if (/^\s*```/.test(line)) { fence = !fence; return; }
-    if (fence) {
-      const t = line.trim(); if (!t.startsWith("{")) return;
-      let o; try { o = JSON.parse(t); } catch (e) { problems.push(`${name}:${i + 1}: a fenced line is not JSON: ${t.slice(0, 80)}`); return; }
-      if (!o || typeof o.term !== "string") return;   // a rule line, {"name":…}, stands beside the term lines
-      const list = k => { if (o[k] === undefined) return []; if (Array.isArray(o[k]) && o[k].every(x => typeof x === "string" && x.trim())) return o[k]; problems.push(`${name}:${i + 1}: "${k}" of ${o.term} is not a list of words`); return []; };
-      let cs = null; if (o.case === "any") cs = "any"; else if (o.case !== undefined) problems.push(`${name}:${i + 1}: "case" of ${o.term} is not "any": ${JSON.stringify(o.case)}`);
-      lines.push({ term: o.term, not: list("not"), allow: list("allow"), case: cs, line: i + 1 }); return;
-    }
-    if (!/^\s*\|/.test(line)) return;
-    const cells = cellsOf(line), m = /^\*\*([^*]+?)\*\*/.exec(cells[0]);
-    if (m) rows.push({ term: m[1].trim(), cells, line: i + 1 });
-  });
-  if (fence) problems.push(`${name}: a code fence is left open`);
-  return { rows, lines, problems };
-}
 /* a paragraph of a file, by how it starts */
 function paragraph(text, starts) {
   return String(text).replace(/\r\n/g, "\n").split(/\n\s*\n/).find(p => p.trimStart().startsWith(starts)) || null;
@@ -95,7 +34,7 @@ function basicTerms(uiText) {
   const m = /^## 1\.[^\n]*\n([\s\S]*?)(?=^## |(?![\s\S]))/m.exec(String(uiText).replace(/\r\n/g, "\n"));
   return new Set(m ? readFile(m[1], "ui.md").rows.map(r => r.term) : []);
 }
-/* The glossary, parsed from the two files' texts: every name it holds comes from them. */
+/* The glossary, parsed from the two files' texts: every name it holds comes from them; lines, each file's term lines as read, for the tool's scan. */
 function parseGlossary(uiText, boardsText) {
   const ui = readFile(uiText, "ui.md"), boards = readFile(boardsText, "boards.md"), problems = [...ui.problems, ...boards.problems];
   const terms = new Map(), get = t => { if (!terms.has(t)) terms.set(t, { term: t, files: [], not: [], allow: [], case: null }); return terms.get(t); };
@@ -135,7 +74,7 @@ function parseGlossary(uiText, boardsText) {
   /* a retired word of a ui.md term names its element in a class as well (.glow, .bubble); boards.md's "Page" names no element */
   const retired = new Map();
   ui.lines.forEach(l => l.not.forEach(w => retired.set(w.toLowerCase(), l.term)));
-  return { terms, uiTerms: new Set(uiTerms), typeWords, names, compounds, classes, subjects, retired, problems };
+  return { terms, uiTerms: new Set(uiTerms), typeWords, names, compounds, classes, subjects, retired, problems, lines: { ui: ui.lines, boards: boards.lines } };
 }
 /* The glossary parsed, with the two files it was read from ({ files: { ui, boards } }); null when either is not found */
 function loadGlossary(dir, deps) {
@@ -149,28 +88,25 @@ function notFound(f) {
     .filter(Boolean).map(s => `TERM GLOSSARY: ${s}: the element names are not checked`);
 }
 
-/* code and quoted machine text are never prose */
-const maskCode = t => String(t).replace(/```[\s\S]*?```/g, " ").replace(/`[^`\n]*`/g, " ").replace(/<(code|pre)\b[^>]*>[\s\S]*?<\/\1>/gi, " ").replace(/\]\([^)]*\)/g, "] ").replace(/\b[a-z][a-z0-9+.-]*:\/\/\S+/gi, " ").replace(/(?:[\w.-]+\/)+[\w.-]*/g, " ");
-const isIdentifier = t => /^[\w.:/#@-]+$/.test(t) && !/^[A-Z][a-z]/.test(t);
 /* a capitalised English word that opens a sentence is no subject of a name */
 const FUNCTION_WORDS = new Set("The A An This That These Those Each Every Its No One Our In On At For From To By With When While If And Or But As".split(" "));
 
+/* the glossary as the tool's lists: the two files' term lines, so the tool finds a ruled-out word over them and over nothing else */
+const listsOf = G => G.__lists || (G.__lists = { terms: { ui: { lines: (G.lines && G.lines.ui) || [] }, boards: { lines: (G.lines && G.lines.boards) || [] } } });
 function matchers(G) {
   if (G.__m) return G.__m;
-  const typeRe = G.typeWords.map(escRe).join("|"), banned = [];
-  /* case-sensitive, save a term whose line says "case":"any": its words and its allowed names then match in any case */
-  G.terms.forEach(t => { const fl = t.case === "any" ? "gi" : "g"; t.not.forEach(w => banned.push({ word: w, term: t.term, re: new RegExp(`\\b${escRe(w)}s?\\b`, fl), allow: t.allow.map(a => new RegExp(escRe(a), fl)) })); });
+  const typeRe = G.typeWords.map(escRe).join("|");
   const known = new Set([...G.names].map(n => n.toLowerCase())); G.terms.forEach(t => known.add(t.term.toLowerCase()));
-  return (G.__m = { banned, known,
+  return (G.__m = { known,
     compound: new RegExp(`\\b([A-Z][\\w-]*(?: [A-Z][\\w-]*)*) (${typeRe})s?\\b`, "g"),
     camel: new RegExp(`\\b[A-Z][a-z0-9]+(?:[A-Z][a-z0-9]+)*(?:${typeRe})s?\\b`, "g") });
 }
-/* Every term hit of a text: { banned: [{ word, term, hit }], unknown: [name] } */
+/* Every term hit of a text: { banned: [{ word, term, hit }], unknown: [name] }; banned the tool's finds, in the order they stand */
 function termRefs(text, G) {
   const out = { banned: [], unknown: [] };
-  if (typeof text !== "string" || !text.trim() || isIdentifier(text.trim())) return out;
-  const t = maskCode(text), M = matchers(G), seen = new Set();
-  M.banned.forEach(b => { let s = t; b.allow.forEach(a => { s = s.replace(a, " "); }); b.re.lastIndex = 0; let m; while ((m = b.re.exec(s))) out.banned.push({ word: b.word, term: b.term, hit: m[0] }); });
+  if (typeof text !== "string" || !text.trim() || F.isIdentifier(text.trim())) return out;
+  F.termRefs(text, { loaded: listsOf(G), lists: ["boards", "ui"] }).forEach(f => out.banned.push({ word: f.word, term: f.entry, hit: f.hit }));
+  const t = F.maskCode(text), M = matchers(G), seen = new Set();
   const one = name => { const n = name.replace(/\s+/g, " ").trim(), k = n.toLowerCase().replace(/s$/, ""); if (seen.has(k) || M.known.has(k) || M.known.has(n.toLowerCase())) return; seen.add(k); out.unknown.push(n); };
   M.compound.lastIndex = 0; let m;
   while ((m = M.compound.exec(t))) { const subj = m[1].split(" "); while (subj.length && FUNCTION_WORDS.has(subj[0])) subj.shift(); if (subj.length) one(`${subj.join(" ")} ${m[2]}`); }

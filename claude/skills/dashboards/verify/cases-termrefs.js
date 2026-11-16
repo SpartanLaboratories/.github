@@ -3,13 +3,15 @@
 // with no browser: node verify/cases-termrefs.js.
 // 1. The real glossary parses: its terms, the compound names, the class list, and every ruled-out word quoted as retired in the file that rules it out.
 // 2. The parser keys on the rows: a rule line ({"name":…}) under a heading, a table row inside a fence, a bad line (named), a missing paragraph (named).
-// 3. The scan: a banned word, the everyday lower-case word left alone, the allowed longer name, code, a capitalised name in neither list, a listed one, a sentence's first word.
+// 3. The scan: a banned word (the finding tool's find, ../../../tools/finding/match.js, in the order the words stand), the everyday lower-case word left alone, the
+//    allowed longer name, code, a capitalised name in neither list, a listed one, a sentence's first word.
 // 4. The classes: a subject without its type word, a class beside its type word, a retired word, a template's class list read from the markup and the selectors.
 // 5. A term line's "case": case-sensitive by default, "case":"any" in any case (lower case, plural), its "allow" still exempting, a bad value named.
 // 6. check.js and check-board.js warn and fail nothing for it; a quoted title, a signature and a key are left out.
 // 7. glossaryFiles() finds each file on its own: boards.md in the organization repository's checkout (policy/nomenclature/), ui.md in SpartanUI's (docs/nomenclature/,
 //    the override variable or the sibling folder), each variable from the environment, then the stored value; then, each apart, the old homes, the folder beside
 //    the skill (<root>/nomenclature for <root>/skills/dashboards) before ~/.claude/nomenclature; a folder under skills/ is not it, and a file with no term row is not taken.
+//    The lookup is the tool's (lists.js), so the copy of termrefs.js laid out for these cases has the tool laid beside it, at <root>/tools/finding/.
 // Each group returns [title, cases], a case [name, ok, detail].
 "use strict";
 const fs = require("fs"), path = require("path"), os = require("os"), cp = require("child_process");
@@ -57,7 +59,7 @@ module.exports = function casesTermrefs(X) {
     if (!G) { c.push(["the glossary is read", false, ""]); return; }
     const r = t => T.termRefs(t, G);
     const banned = t => r(t).banned.map(b => b.hit), unknown = t => r(t).unknown;
-    const cases = [["the Bubble on the Card", ["Bubble"], []], ["two Bubbles", ["Bubbles"], []], ["the Page and the Glow", ["Glow", "Page"], []], ["a web page, a cream glow, Dokka pages", [], []], ["GitHub Pages site", [], []], ["`Bubble` and `Page`", [], []], ["<code>Bubble</code>", [], []], ["[x](docs/Page.md)", [], []], ["https://x.y/Page", [], []],
+    const cases = [["the Bubble on the Card", ["Bubble"], []], ["two Bubbles", ["Bubbles"], []], ["the Page and the Glow", ["Page", "Glow"], []], ["a web page, a cream glow, Dokka pages", [], []], ["GitHub Pages site", [], []], ["`Bubble` and `Page`", [], []], ["<code>Bubble</code>", [], []], ["[x](docs/Page.md)", [], []], ["https://x.y/Page", [], []],
       ["the Status Pill and a ProgressBar", [], ["Status Pill", "ProgressBar"]], ["the Guarantees Panel, the Verdict Cell, a FullPulse and a Timeline Tile", [], []], ["The Row was fixed. A Card too.", [], []], ["the Quality Reviews Tile", [], []], ["two Foo Tiles", [], ["Foo Tile"]], ["a status Pill, an issue Chip", [], []], ["Docker Image, Command Line", [], []], ["some-identifier/Bubble", [], []], ["ALL_CAPS", [], []]];
     const wrong = cases.filter(([t, b, u]) => js(banned(t)) !== js(b) || js(unknown(t)) !== js(u)).map(([t, b, u]) => [t, banned(t), unknown(t), b, u]);
     c.push(["each text reads as it should: a banned word, a name in neither list, the everyday word, the allowed name, code and a function word left alone", !wrong.length, js(wrong)]);
@@ -118,7 +120,9 @@ module.exports = function casesTermrefs(X) {
     /* a copy of termrefs.js laid as in ~/.claude and the mirror's claude/: <root>/skills/dashboards/system/scripts, its old home <root>/nomenclature. The variables,
        the stored value and the home folder are given, so the machine's own never count. */
     const sc = fs.mkdtempSync(path.join(os.tmpdir(), "termrefs-dir-")), at = (...p) => path.join(sc, ...p);
-    const lay = root => { ["termrefs.js", "levelrefs.js"].forEach(f => wr(path.join(root, "skills", "dashboards", "system", "scripts", f), rd(sk("system/scripts/" + f)))); return require(path.join(root, "skills", "dashboards", "system", "scripts", "termrefs.js")); };
+    const tool = path.resolve(sk("system/scripts"), "..", "..", "..", "..", "tools", "finding");
+    const lay = root => { ["termrefs.js", "levelrefs.js"].forEach(f => wr(path.join(root, "skills", "dashboards", "system", "scripts", f), rd(sk("system/scripts/" + f))));
+      ["lists.js", "match.js"].forEach(f => wr(path.join(root, "tools", "finding", f), rd(path.join(tool, f)))); return require(path.join(root, "skills", "dashboards", "system", "scripts", "termrefs.js")); };
     const put = (dir, ...files) => files.forEach(f => wr(path.join(dir, f), "| **Card** | x |\n")), pair = (ui, boards) => js({ ui, boards });
     const none = { env: {}, readStored: () => null, home: at("home") };
     const A = lay(at("a")), besideA = at("a", "nomenclature"); put(besideA, "ui.md", "boards.md");
