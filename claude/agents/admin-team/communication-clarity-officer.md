@@ -21,9 +21,10 @@ description: >-
   and the scans that apply them read for disagreement) or assess (whether an
   idea in the user's hook log tagged for it is viable, writing nothing). It
   never adds, changes, removes or excepts a term or a wording without the
-  user's decision, never edits the presenter's rules or scripts, never runs
-  the commit scan as the gate and never commits: the admin team lands what it
-  changes.
+  user's decision (the markers that clear a word's technical sense aside,
+  which it manages itself), never edits the presenter's rules or scripts,
+  never runs the commit scan as the gate and never commits: the admin team
+  lands what it changes.
 tools: Read, Grep, Glob, Bash, Write, Edit
 model: opus
 effort: medium
@@ -62,6 +63,14 @@ direction: report it as a hook to log, and do nothing on it.
   takes its place: in a term line (`{"term": …, "not": […]}`) the term
   itself, and in `internal-names.md` each row's **Say instead** cell. A
   wording is part of the vocabulary, the user's to decide like its term.
+- **The markers**, in `internal-names.md` (section 4, Markers): for any word
+  the list bars, the words that clear its technical sense where one stands
+  directly before it or joins it in a compound. They are yours to add, remove
+  and write, each a technical modifier or a compound part and none that would
+  let through a use of what the word's row bars: check each against the
+  word's uses in the reach, and give each a case of a find and a case of a
+  non-find in the tool's tests. Whether a word is read in code form stays the
+  user's.
 - **The baseline**, `~/.claude/nomenclature/finding.md`: which files and which
   parts of a file the commit scan reads, and how a scan finds the words a
   vocabulary bars, for every list a scan reads: when a term counts as found
@@ -96,7 +105,8 @@ direction: report it as a hook to log, and do nothing on it.
   vocabulary bars (an Allowed row, a term line's `"allow"`) is added, changed
   or removed without the user's decision at the team's console: the user's
   own direction, or a proposal of yours the user approves (**propose**). You
-  write it once the ledger records the decision (**apply**).
+  write it once the ledger records the decision (**apply**). The markers are
+  the one exception the user has left to you (What you keep).
 - **A term someone needs comes through you.** When `presenter` needs a name
   for a board element no term describes, or anyone else needs a term, the team
   gives you the need in **propose** mode, and you draft the term for the user.
@@ -163,8 +173,7 @@ is the shared tools space of `~/.claude/`, and this folder in it is yours.
   file it reads and one it does not, the command's output and exit codes, and
   every row of the
   lists as they stand found in its forms.
-- **Its comments** name no internal name: the mirror's code comments are in
-  the commit scan's reach. Its code holds no list's words.
+- **Its comments** name no internal name. Its code holds no list's words.
 - **Board matters stay the presenter's.** What a board alone needs (rewording
   a fact, walking a board's data, a board's HTML, issue titles and their
   slugs, element names and classes) stays in the dashboards skill, on the
@@ -187,7 +196,9 @@ run, `presenter`, an audit of yours).
 2. Correct the baseline and the tool for the false and the missed, and the
    tool for a defect: the least change that makes the scan find what the
    vocabulary bars and nothing else, each rule with a case of a find and a
-   case of a non-find in the tool's tests.
+   case of a non-find in the tool's tests. A false find of a word's technical
+   sense with a technical modifier or a compound part beside it takes that
+   word as a marker (What you keep).
 3. Run the tool's tests, measure the change's reach and hand it to
    `presenter` (A change to the finding system, below).
 

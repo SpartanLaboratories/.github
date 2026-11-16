@@ -60,9 +60,12 @@ module.exports = function cases33(X) {
   guard("namerefs.js: the internal names found, a longer word that contains one left alone, scrubNames()'s safe rewrites; levelrefs.js's unnumbered mention (dashboards-skill/33)", c => {
     const found = ["accepted by the admin team", "the planner reconciled it", "rookie-dev's fixes", "qa found two issues", "the presenter's call", "the user's call", "the user chose B", "planner: rule on the gaps", "planner reconciles", "a code-reviewer pass", "the test-inspector report", "two researchers still out", "a planner re-pass",
       "the executor confirms it (P1)", "the manager's final call", "the user's two answers at the interview", "it is signed off by the user",
-      /* every name a whole word wherever it stands, in backticks too */
-      "runs on an `Executor`", "a single-thread executor drains the queue", "the event publisher emits", "the bytecode verifier rejects it", "the archivist kept the hook"];
-    const fine = ["uses OkHttp's `RoutePlanner`", "RoutePlanner picks a route", "an `ExecutorService` drains the queue", "qa pass 2 approved", "the QA tile", "from qa pass 1", "the implementer added a test", "waiting on the user", "the research step", "the architecture", "Level 2 — component",
+      /* every name a whole word wherever it stands, in backticks too, save a word in its technical sense (finding.md, "A technical sense
+         by its marker"; below) */
+      "the `planner` reruns it", "the executor drains the queue", "the event publisher emits", "publisher key", "the bytecode verifier rejects it", "the archivist kept the hook"];
+    const fine = ["uses OkHttp's `RoutePlanner`", "RoutePlanner picks a route", "an `ExecutorService` drains the queue", "qa pass 2 approved",
+      /* a marker of the list's directly before the word, or the word in code where the list reads it so */
+      "runs on an `Executor`", "a single-thread executor drains the queue", "the dispatcher's executor", "the API publisher", "the QA tile", "from qa pass 1", "the implementer added a test", "waiting on the user", "the research step", "the architecture", "Level 2 — component",
       "Selenium Manager resolves the driver", "Selenium Manager's cache", "the step ends at its sign-off"];
     const miss = found.filter(t => !N.nameRefs(t).length), wrong = fine.filter(t => N.nameRefs(t).length);
     c.push(["each internal form is found", !miss.length, js(miss)]);
@@ -73,6 +76,9 @@ module.exports = function cases33(X) {
     c.push(["scrubNames(): the agent phrase dropped, a possessive the article, a role's work the work, a role label and an aside on the approval flow dropped", !bad.length, js(bad.map(([s, w]) => [s, N.scrubNames(s), w]))]);
     const left = N.scrubNames("The planner reconciled the impact.");
     c.push(["…and where no safe rewrite exists, the name is left and reported (the caller decides)", left.left.length === 1 && left.text === "The planner reconciled the impact.", js(left)]);
+    /* a rewording touches a name only where the tool finds one: the word in its technical sense, a marker before it, is left as written */
+    const tech = N.scrubNames("Accepted by the executor; the shutdown executor's queue drained.");
+    c.push(["…and a word in its technical sense beside a name is left as written: \"the shutdown executor's queue\" keeps its possessive", tech.text === "Accepted; the shutdown executor's queue drained." && !tech.left.length, js(tech)]);
     /* a plan excerpt (lib.js sectionOf()): the clause naming an agent cut to "…", the rest as written, so a refresh never copies it back */
     const md = "# Plan\n\n## 11. Version control\n\n- **Branch:** `feat/x`. It exists and holds the research commits; the executor confirms it\n  (P1) rather than cutting it again.\n- **Commits.** Each leaves the build green. The type and the split are the manager's final call;\n  subject lines carry `(Issue #9)`.\n";
     const ex = lib.sectionOf(md, "11-version-control"), wantEx = "Branch: `feat/x`. It exists and holds the research commits; … · Commits. Each leaves the build green. …; subject lines carry `(Issue #9)`.";
@@ -135,6 +141,12 @@ module.exports = function cases33(X) {
     c.push(["check-board.js --auto --no-browser on a state board with a presenter: comment and \"planner\" in its text: warnings, the board not failed for them", /CHECK warning: INTERNAL NAME: its comments names "presenter:"/.test(b.stdout || "") && /CHECK warning: INTERNAL NAME: its text names "planner"/.test(b.stdout || "") && !/^CHECK INTERNAL NAME/m.test(b.stdout || ""), (b.stdout || "").split(/\r?\n/).filter(l => /INTERNAL|^FAIL|^PASS/.test(l)).join(" | ")]);
     const ok = run(checker, [wr(path.join(sc, "state2", "docs", "dashboards", "alpha", "index.html"), rd(SYS)), "--auto", "--no-browser"]);
     c.push(["…and none on the current system template", !/INTERNAL NAME/.test(ok.stdout || ""), (ok.stdout || "").split(/\r?\n/).filter(l => /INTERNAL/.test(l)).join(" | ") || "none"]);
+    /* its hand-written text read as the commit scan reads it (finding.md, "A technical sense by its marker"): an inline <code> as a backtick
+       span, a <pre> as a fenced block, so a word the list reads in code form is no find in either, nor after its marker in a <code>; a name
+       in a <code>, and the word in prose, are */
+    const h3 = rd(SYS).replace("</footer>", "</footer><p hidden>Runs on an <code>Executor</code>; the <code>single-thread</code> executor drains it.</p><pre hidden><code>val executor = pool()</code></pre><p hidden>The <code>planner</code> type; the executor stops.</p>");
+    const b3 = run(checker, [wr(path.join(sc, "state3", "docs", "dashboards", "alpha", "index.html"), h3), "--auto", "--no-browser"]), l3 = (b3.stdout || "").split(/\r?\n/).filter(l => /INTERNAL NAME: its text/.test(l)).join(" | ");
+    c.push(["…its text: a word read in code form no find in a <code> or a <pre>, nor after its marker; a name in a <code> and the word in prose found", /its text names "planner", "executor":/.test(l3), l3 || "none"]);
     /* a board rendered before keeps its footer's "beside this page" until it is re-rendered (a landed board never is): the check takes it */
     const ex = sk("plan/examples/38-handshake-empty-name/dashboard.html"), fp = run(checker, [ex, "--out", path.join(sc, "footer")]);
     c.push(["check-board.js takes the footer a board rendered before carries (\"beside this page\")", !/beside this page/.test(rd(ex)) || /CHECK footer: trimmed:/.test(fp.stdout || ""), notRun(fp) ? NEEDS_BROWSER : (fp.stdout || "").split(/\r?\n/).filter(l => /footer/.test(l)).join(" | ")]);

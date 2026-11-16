@@ -7,9 +7,11 @@
 // and nothing renders them (plan/scripts/levels.js).
 // What it keeps for boards, each on the tool's finds:
 //   titleRefs(), levelRefs()  the finds, each as the extent a board quotes and elides: the find with the hyphenated compound it stands
-//                             in and a number after it ("carrier-<word>", "<word>-3", "<word>: 2"); titleRefs() reads a text whole (an
-//                             issue's title), levelRefs() leaves its slugs out (below)
-//   GRADE_PATTERNS            the tool's patterns of the section as one regular expression with that extent, for check-board.js's
+//                             in and a number after it ("production-<word>", "<word>-3", "<word>: 2"); titleRefs() reads a text whole (an
+//                             issue's title), levelRefs() leaves its slugs out (below). A word in its technical sense, a marker of the
+//                             list's before it or joined to it ("carrier-<word>"), is no find of the tool's, and so none here
+//   levelSpans(), elideSpans() the same finds as spans, and a quote's elision of each where it stands (lib.js sectionOf(), apply-event.js)
+//   GRADE_PATTERNS            the tool's patterns of the section as regular expressions with that extent, for check-board.js's
 //                             browser pass, which runs where the tool cannot be loaded
 //   the slugs (SLUG_PATTERNS, maskSlugs()), the issue titles (TITLE_PATHS, issueTitleRefs(), titleDefect()), the rewording of a
 //   pipeline fact (scrubLevels()) and the test sets written by their old numbers (nameTestLevels())
@@ -50,8 +52,9 @@ const SCOPE_WORDS = "inside|within|outside|beyond";
    its -ing form "sizing", "the work <word>" "the sizing", "the recorded <word>: 3" "the recorded sizing", the label ("<word>: 3", "(<word> 3)",
    "(#61, <word> 3)") is dropped with its punctuation, a numbered sizing before a noun is elided ("a <word>-3 re-pass" → "a re-pass", "a <word> 3
    issue" → "an issue"), and the word left unnumbered reads "sizing" ("the <word> re-check" → "the sizing re-check"). A hyphenated compound
-   ("carrier-<word>") and a numbered sizing no rule above takes have no rewording: they stay, scrubLevels() returns null, and the caller
-   leaves the text out and asks for enrichment. Its elision marks the article to mend, and scrubLevels() mends it. */
+   ("production-<word>") and a numbered sizing no rule above takes have no rewording: they stay, scrubLevels() returns null, and the caller
+   leaves the text out and asks for enrichment. A compound with one of the list's markers ("carrier-<word>") is no find, and scrubLevels()
+   returns its text as it is. Its elision marks the article to mend, and scrubLevels() mends it. */
 function scrubGrades(s, scope) {
   const NB = "(?<![\\w-])", NA = "(?![\\w-])";
   const elide = re => { s = s.replace(re, (m, ...a) => { const off = a[a.length - 2], src = a[a.length - 1], before = src.slice(0, off), after = src.slice(off + m.length);
@@ -120,14 +123,30 @@ function gradeFinds(text, loaded) {
 const titleRefs = text => gradeFinds(text).map(f => f.hit);
 /* Every sizing reference in a text, as the matched strings, its slugs left out (above). */
 const levelRefs = text => typeof text === "string" && text ? gradeFinds(keepSlugs(text)).map(f => text.slice(f.index, f.end)) : [];
-/* The tool's patterns of the third section as one regular expression with the board's extent, [[source, flags]], for the browser pass
-   (check-board.js), which applies it to a board's rendered text with its own flags. The longest first, so a phrase of the list wins over
-   the word it holds. Read from the lists when first asked for. */
+/* The same finds as their spans, { index, end }, in the text as given: a quote elides each where it stands (elideSpans()), never the same
+   letters elsewhere, which may be no find (a slug, a word in its technical sense: finding.md, "A technical sense by its marker") */
+const levelSpans = text => typeof text === "string" && text ? gradeFinds(keepSlugs(text)).map(f => ({ index: f.index, end: f.end })) : [];
+/* A text with each span cut to "…", from the last; a span that runs into the one after it stops where that one starts.
+   spans: [{ index, end }] (levelSpans(), namerefs.js nameSpans()). */
+function elideSpans(text, spans) {
+  if (typeof text !== "string") return text;
+  let s = text, floor = Infinity;
+  [...(spans || [])].sort((a, b) => b.index - a.index).forEach(x => { const end = Math.min(x.end, floor); if (end <= x.index) return; s = s.slice(0, x.index) + "…" + s.slice(end); floor = x.index; });
+  return s;
+}
+/* The tool's patterns of the third section as regular expressions with the board's extent, [[source, flags, codeForm]], for the browser
+   pass (check-board.js), which applies each to a board's rendered text with its own flags: one for the patterns a find in code still
+   counts for, and one, codeForm true, for those of a word the list reads in code form (finding.md, "A technical sense by its marker"),
+   whose match the pass drops where it stands in code (a <code> or a <pre>, a backtick span or a fenced block of the text). A word's
+   markers ride in its pattern's source, as the tool writes them. The longest first, so a phrase of the list wins over the word it holds.
+   Read from the lists when first asked for. */
 let gradePatterns = null;
 function GRADE_PATTERNS() {
   if (gradePatterns) return gradePatterns;
-  const P = F.patterns({ lists: GRADES }), srcs = P.map(p => p.source).sort((a, b) => b.length - a.length);
-  return (gradePatterns = [[`(?:[a-z0-9]+-)*(?:${srcs.join("|")})(?:-[a-z0-9]+)*(?:[ \\t]*:?[ \\t]*[1-4]\\b)?`, (P[0] && P[0].flags) || "giu"]]);
+  const P = F.patterns({ lists: GRADES }), flags = (P[0] && P[0].flags) || "giu";
+  const one = (ps, codeForm) => { const srcs = ps.map(p => p.source).sort((a, b) => b.length - a.length);
+    return [`(?:[a-z0-9]+-)*(?:${srcs.join("|")})(?:-[a-z0-9]+)*(?:[ \\t]*:?[ \\t]*[1-4]\\b)?`, flags, codeForm]; };
+  return (gradePatterns = [false, true].map(cf => P.filter(p => !!p.codeForm === cf)).map((ps, i) => ps.length ? one(ps, i === 1) : null).filter(Boolean));
 }
 /* A text with each find that carries the list's wording to say instead written as that wording (internal-names.md's Say instead
    column, which the tool returns with each find as sayInstead), its first letter in the case of the find's; a find with none is left
@@ -241,6 +260,8 @@ function nameTestLevels(text) {
 }
 /* the test sets a text still writes by number ("L2 test", "L2 component"): check.js warns (TEST SET BY NUMBER), naming the set's name to write */
 const bareTestLevels = text => nameTestLevels(text).named;
-module.exports = { SLUG_PATTERNS, maskSlugs, titleRefs, levelRefs, gradeFinds, withWordings, levelRefsIn, scrubLevels, nameTestLevels, bareTestLevels, TITLE_PATHS, dataKind, isTitlePath, titleSkip, issueTitleRefs, quotedTitles, titleDefect, TITLE_DEFECT, TEST_LEVEL_SHORT };
+module.exports = { SLUG_PATTERNS, maskSlugs, titleRefs, levelRefs, levelSpans, elideSpans, gradeFinds, withWordings, levelRefsIn, scrubLevels, nameTestLevels, bareTestLevels, TITLE_PATHS, dataKind, isTitlePath, titleSkip, issueTitleRefs, quotedTitles, titleDefect, TITLE_DEFECT, TEST_LEVEL_SHORT };
+/* the tool's codeRanges(), whose source the browser pass carries, to drop a code-form match that stands in code (GRADE_PATTERNS) */
+module.exports.codeRanges = F.codeRanges;
 /* read from the lists when first asked for, so a script that never runs the browser pass never needs them */
 Object.defineProperty(module.exports, "GRADE_PATTERNS", { enumerable: true, get: GRADE_PATTERNS });

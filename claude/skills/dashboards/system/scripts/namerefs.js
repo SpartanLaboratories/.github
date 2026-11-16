@@ -81,22 +81,28 @@ function commentRefs(html) {
 function scrubNames(text, opts) {
   if (typeof text === "string") text = scrubWaits(text);
   if (typeof text !== "string" || !nameRefs(text).length) return { text, left: [] };
-  const cap = /^[A-Z]/.test(text.trim()), R = ROLE(), H = "[- ]";
-  let s = withWordings(text, F.finds(text, { lists: NAMES, loaded: opts && opts.loaded }));
+  const cap = /^[A-Z]/.test(text.trim()), R = ROLE(), H = "[- ]", loaded = opts && opts.loaded;
+  /* a rewording of a name, made only where the match holds one of the tool's finds: a word in its technical sense (a marker directly
+     before it or joined to it, or in code where the list reads it so; finding.md, "A technical sense by its marker") is no find and is
+     left as written. Each rewording's pattern has no lookbehind, so the match alone takes its replacement. */
+  const onFinds = (t, re, to) => { const fs = F.finds(t, { lists: NAMES, loaded });
+    return t.replace(re, (...a) => { const m = a[0], off = a[a.length - 2];
+      return fs.some(f => f.index < off + m.length && f.end > off) ? m.replace(new RegExp(re.source, re.flags.replace("g", "")), to) : m; }); };
+  let s = withWordings(text, F.finds(text, { lists: NAMES, loaded }));
   /* an aside on the approval flow */
   s = s.replace(/\s*\(\s*(?:the\s+)?user['’]s[- ](?:call|choice|decision|approval|sign-?off|go-ahead)\s*\)/gi, "");
   s = s.replace(/\s*[,;]?\s*\b(?:at|on|per|by|after)\s+the\s+user['’]s[- ](?:call|choice|decision|approval|sign-?off|go-ahead)\b/gi, "");
   /* the role as a label ("<role>: the fixes" → "the fixes") */
-  s = s.replace(new RegExp(`(^|[;,(]\\s*)${R}\\s*:\\s*`, "gi"), "$1");
+  s = onFinds(s, new RegExp(`(^|[;,(]\\s*)${R}\\s*:\\s*`, "gi"), "$1");
   /* the agent phrase */
-  s = s.replace(new RegExp(`\\s+by\\s+(?:the\\s+)?${R}\\b(?!['’]s)`, "gi"), "");
+  s = onFinds(s, new RegExp(`\\s+by\\s+(?:the\\s+)?${R}\\b(?!['’]s)`, "gi"), "");
   /* a role's work */
-  s = s.replace(new RegExp(`\\bplanner\\s+(re-?pass(?:es)?|leg)\\b`, "gi"), "plan $1").replace(new RegExp(`\\brookie${H}dev\\s+(fix(?:es)?|pass(?:es)?|stage|stages)\\b`, "gi"), "$1")
-    .replace(new RegExp(`\\bqa['’]s\\s+test${H}inspector\\b`, "gi"), "the review's test check").replace(new RegExp(`\\btest${H}inspector\\b`, "gi"), "test check")
-    .replace(new RegExp(`\\bcode${H}reviewer\\b`, "gi"), "code check").replace(new RegExp(`\\bdocumentation${H}reviewer\\b`, "gi"), "documentation check")
-    .replace(/\bqa\s+(has|had)\s+approved\b/gi, "the review $1 approved").replace(/\bqa\s+approved\b/gi, "the review approved");
+  [[new RegExp(`\\bplanner\\s+(re-?pass(?:es)?|leg)\\b`, "gi"), "plan $1"], [new RegExp(`\\brookie${H}dev\\s+(fix(?:es)?|pass(?:es)?|stage|stages)\\b`, "gi"), "$1"],
+    [new RegExp(`\\bqa['’]s\\s+test${H}inspector\\b`, "gi"), "the review's test check"], [new RegExp(`\\btest${H}inspector\\b`, "gi"), "test check"],
+    [new RegExp(`\\bcode${H}reviewer\\b`, "gi"), "code check"], [new RegExp(`\\bdocumentation${H}reviewer\\b`, "gi"), "documentation check"],
+    [/\bqa\s+(has|had)\s+approved\b/gi, "the review $1 approved"], [/\bqa\s+approved\b/gi, "the review approved"]].forEach(([re, to]) => { s = onFinds(s, re, to); });
   /* a possessive: "the <role>'s re-pass" → "the re-pass", "<role>'s fixes" → "the fixes" */
-  s = s.replace(new RegExp(`\\b(?:the\\s+)?${R}['’]s\\s+`, "gi"), "the ");
+  s = onFinds(s, new RegExp(`\\b(?:the\\s+)?${R}['’]s\\s+`, "gi"), "the ");
   s = s.replace(/\s{2,}/g, " ").replace(/\s+([,;:.)])/g, "$1").replace(/\(\s*\)/g, "").trim();
   if (cap && /^[a-z]/.test(s)) s = s[0].toUpperCase() + s.slice(1);
   return { text: s, left: nameRefs(s) };

@@ -6,7 +6,9 @@
 // state, with no merge, on a unit that has a board of its own and has not landed by it. At the tracking issue's last unit (by unit-landed or by a
 // sub-issue's landed) the tracking board lands with it once its impact is reconciled whole (status built, asBuilt at that merge, wip.step landed),
 // and until then stays at implementation, the summary naming the reconciliation; the next sized seeds the copy, board.js --live keeps a tied copy
-// whose board-less unit's record is unfinished, and reseed brings the finished record to a board a sized seeded unfinished.
+// whose board-less unit's record is unfinished, and reseed brings the finished record to a board a sized seeded unfinished. A tracking issue
+// that is itself a sub-issue lands with its board: its unit lands on the tracking board above it, by a sub-issue's landed or by unit-landed, in
+// the live view, the seeding and reseed (hook-204); a landed unit whose summary still reads as at its filing is still to write.
 // Each group returns [title, cases], a case [name, ok, detail].
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
@@ -173,6 +175,96 @@ module.exports = function casesUnitLanded(X) {
     const rs = ev(B, B.main, "reseed", {}, "2026-10-26T10:20:00Z", ["--no-live"]), wrow = P(wT).rows.find(x => x.id === "test-support");
     c.push(["reseed brings the finished record to the board the seed wrote", rs.a.status === 0 && rs.S.result === "ok" && wrow.asBuilt.summary === "Landed through PR #97: the test fixtures' documents." && (P(wT).impact.units || []).some(u => u.unit === "test-support") && (P(wT).impact.changes || []).some(x => x.unit === "test-support"), js([rs.S.result, rs.S.error, rs.S.applied, wrow.asBuilt])]);
     c.push(["…and leaves the main checkout's tracked board alone", rd(path.join(B.tdir, "plan.json")) === (git(B.main, "show", "HEAD:" + TF + "/plan.json").stdout || "").replace(/\r\n/g, "\n") || !(git(B.main, "status", "--porcelain", "--", TF).stdout || "").trim(), js(git(B.main, "status", "--porcelain").stdout)]);
+  });
+
+  /* A tracking issue that lands inside another (plan/RULES.md §3, "A sub-issue lands"; KotlinBottools #27 inside #2, hook-204): #55's board in the folder of
+     #50, a tracking board whose unit #55 is in progress, its row's summary as the filing wrote it; every unit of #55 landed and its impact reconciled but the
+     last, complete: #69 with a board of its own (its landed lands #55), or #70 with none (its unit-landed lands #55). #55's landing lands its unit on #50 too. */
+  const GF = "docs/plans/50-roadmap", TF2 = `${GF}/55-http-client-stack`, VIEWD = (m, f) => path.join(m, "docs", "plans", ".live", "view", ...f.replace(/^docs\/plans\//, "").split("/"));
+  const nested = (name, boardless) => {
+    const main = path.join(sc, name), gdir = path.join(main, ...GF.split("/")), tdir = path.join(main, ...TF2.split("/"));
+    if (git(sc, "init", "-q", "-b", "master", main).status !== 0) throw new Error("git init failed");
+    wr(path.join(main, ".git", "info", "exclude"), "docs/plans/.live/\n");
+    const g = copy(TRK); Object.assign(g, { issue: 50, slug: "50-roadmap", folder: GF, title: "Roadmap", issueTitle: "Roadmap" }); g.wip.updated = "2026-10-26T09:00:00Z";
+    g.rows.filter(r => r.unit).forEach(r => { r.unit.board = null; if (r.unit.folder) r.unit.folder = null; });
+    const gu = g.rows.find(r => r.id === "http-core"); gu.unit.issue = 55; gu.asBuilt = { ...(gu.asBuilt || {}), state: "pending", summary: "Filed as #55; its run has not started. It starts once #47 has landed." };
+    g.wip.current = [...(g.wip.current || []), "http-core.built"]; g.wip.next = "test-support";
+    wr(path.join(gdir, "plan.json"), JSON.stringify(g, null, 2) + "\n"); wr(path.join(gdir, "dashboard.html"), rd(PB));
+    const t = copy(TRK); Object.assign(t, { folder: TF2, parent: { issue: 50 } }); t.wip.updated = "2026-10-26T09:00:00Z";
+    t.rows.filter(r => r.unit).forEach(r => { r.unit.board = null; if (r.unit.folder) r.unit.folder = null; });
+    const last = boardless ? "http-docs" : "feeds", lastN = boardless ? 70 : 69;
+    t.rows.filter(r => r.unit && r.id !== last).forEach(r => { r.asBuilt = { state: "landed", summary: `Landed through PR #${r.unit.issue + 20}: ${r.name} as planned.` }; });
+    t.rows.find(r => r.id === last).asBuilt = { state: "complete", summary: `#${lastN}'s run: the Quality Review approved; it is not merged yet.` };
+    t.impact.units = t.rows.filter(r => r.unit).map(r => ({ unit: r.id, basis: "as-built", summary: `${r.name}: as planned.`, release: { bump: "none", version: null }, changes: [] }));
+    t.impact.changes = t.rows.filter(r => r.unit).map(r => ({ unit: r.id, when: `#${r.unit.issue} landing`, none: true })); t.impact.basis = "as-built";
+    t.wip.current = [`${last}.built`]; t.wip.next = null; t.wip.detail = "10 of 11 units landed.";
+    wr(path.join(tdir, "plan.json"), JSON.stringify(t, null, 2) + "\n"); wr(path.join(tdir, "dashboard.html"), rd(PB));
+    let sdir = null;
+    if (!boardless) {
+      sdir = path.join(tdir, "69-feeds");
+      const s = copy(EX); Object.assign(s, { issue: 69, slug: "69-feeds", folder: `${TF2}/69-feeds`, parent: { issue: 55 }, status: "building", asBuilt: { ref: "master", sha: s.baseline.sha, date: s.baseline.date } });
+      delete s.issueBoards; s.milestones = s.milestones.filter(m => m.column !== "built"); s.impact = { ...(s.impact || {}), basis: "as-built" };
+      s.wip = { ...s.wip, step: "document", since: "2026-10-26T09:20:00Z", updated: "2026-10-26T09:20:00Z", current: ["built"], questions: [], research: null, open: [], event: { name: "document", at: "2026-10-26T09:20:00Z" }, steps: STEPS };
+      wr(path.join(sdir, "plan.json"), JSON.stringify(s, null, 2) + "\n"); wr(path.join(sdir, "dashboard.html"), rd(PB));
+      run(EMBED, [sdir], { env });
+    }
+    run(EMBED, [tdir], { env }); run(EMBED, [gdir], { env });
+    git(main, "add", "-A"); git(main, "commit", "-q", "-m", "the base"); git(main, "commit", "-q", "--allow-empty", "-m", `the merge of #${lastN}`);
+    return { main, gdir, tdir, sdir, repo: g.repo, M: (git(main, "rev-parse", "HEAD").stdout || "").trim(), vG: VIEWD(main, GF), vT: VIEWD(main, TF2), vS: sdir ? VIEWD(main, `${TF2}/69-feeds`) : null };
+  };
+  const failsAt = (d, root) => (run(CHECK, [d, "--root", root], { env }).stdout || "").split(/\r?\n/).filter(l => /^FAIL/.test(l));
+  const gRow = d => { const p = P(d); return { p, row: p.rows.find(r => r.id === "http-core") }; };
+
+  guard("a tracking issue that lands inside another: its unit landed on the tracking board above it, in the live view, the seeding and reseed (hook-204)", c => {
+    const B = nested("ul-nested", false), clean = () => !(git(B.main, "status", "--porcelain").stdout || "").trim();
+    const q = wr(path.join(sc, `rq-${++n}.json`), js({ v: 1, action: "plan-board", github: B.repo, issue: 69, event: "landed", folder: `${TF2}/69-feeds`, facts: { pr: 99, sha: B.M, merge: B.M, date: "2026-10-26", mergedAt: "2026-10-26T11:00:00Z" } }));
+    const l = parse(run(APPLY, ["--event", q, "--worktree", B.main, "--main", B.main, "--no-gh", "--at", "2026-10-26T11:05:00Z", "--json", "--view"], { env }));
+    const t = fs.existsSync(path.join(B.vT, "plan.json")) ? P(B.vT) : {}, G = fs.existsSync(path.join(B.vG, "plan.json")) ? gRow(B.vG) : { p: {}, row: {} };
+    c.push(["#69's landed (--view) lands #55's copy at #69's merge", l.result === "ok" && t.status === "built" && (t.asBuilt || {}).merge === B.M && (t.wip || {}).step === "landed", js([l.result, l.error, l.check, t.status, t.asBuilt])]);
+    c.push(["…and #55's unit lands on #50's copy: landed, the plain fact of #55's landing in place of the filing's summary", (G.row.asBuilt || {}).state === "landed" && G.row.asBuilt.summary === `#55 landed through PR #99 as ${B.M.slice(0, 7)}.`, js(G.row.asBuilt)]);
+    c.push(["…out of wip.current, wip.next the next unit, one trail entry, #50 still building", !((G.p.wip || {}).current || []).includes("http-core.built") && G.p.wip.next === "test-support" && (G.p.trail || []).filter(x => x.label === "#55 landed").length === 1 && G.p.status === "building", js([(G.p.wip || {}).current, (G.p.wip || {}).next, (G.p.trail || []).slice(-1)])]);
+    c.push(["…checked: the summary's check names the board above the parent, and #50's copy passes", /above the parent: \d+ warnings?/.test(l.check || "") && failsAt(B.vG, B.main).length === 0, js([l.check, failsAt(B.vG, B.main).slice(0, 3)])]);
+    c.push(["…enrich names #55's record on #50 (its summary and impact entry come from #55's board and documents)", l.enrich === "yes" && (l.why || []).some(w => /^#50: the landed unit's summary/.test(w)), js(l.why)]);
+    c.push(["…no tracked file written", clean(), js(git(B.main, "status", "--porcelain").stdout)]);
+    /* the next run's sized, branched after the merge: #50 is seeded from its copy with #55's unit landed */
+    const wt = path.join(sc, "ul-nested-tree"); fs.rmSync(wt, { recursive: true, force: true });
+    if (git(B.main, "worktree", "add", "-q", "-b", "docs/issue-80", wt).status !== 0) { c.push(["git worktree add", false, "failed"]); return; }
+    const s = ev(B, wt, "seed", {}, "2026-10-26T11:20:00Z", ["--no-live"]), W = gRow(path.join(wt, ...GF.split("/")));
+    c.push(["a later branch's seed carries #50 with #55's unit landed", s.a.status === 0 && s.S.result === "ok" && (s.S.seeded || []).includes(GF) && (W.row.asBuilt || {}).state === "landed", js([s.S.result, s.S.error, s.S.seeded, W.row.asBuilt])]);
+    /* the repository work board there: #55, a tracking board now landed, names its systems and is not reported as missing one (board.js) */
+    const wb = run(BOARD, ["--root", wt, "--no-gh"], { env, cwd: wt }), noSysLine = (wb.stdout || "").split(/\r?\n/).find(x => /^no system recorded for/.test(x)) || "";
+    c.push(["board.js: a landed tracking board's row is not reported as missing a system", wb.status === 0 && !/#55\b/.test(noSysLine), js([wb.status, noSysLine, (wb.stderr || "").slice(0, 200)])]);
+    /* reseed: a tree a sized seeded while #69's landing was unfinished (its board merged with parts to resolve, #55 and #50 as committed) */
+    const wt2 = path.join(sc, "ul-nested-tree-2"); fs.rmSync(wt2, { recursive: true, force: true });
+    if (git(B.main, "worktree", "add", "-q", "-b", "docs/issue-81", wt2).status !== 0) { c.push(["git worktree add", false, "failed"]); return; }
+    const pend = P(B.vS); pend.status = "building"; pend.wip = { ...pend.wip, step: "landed", event: { name: "landed", at: "2026-10-26T11:05:00Z" } };
+    wr(path.join(wt2, ...TF2.split("/"), "69-feeds", "plan.json"), JSON.stringify(pend, null, 2) + "\n");
+    const rs = ev(B, B.main, "reseed", {}, "2026-10-26T11:30:00Z", ["--no-live"]), R2 = gRow(path.join(wt2, ...GF.split("/"))), T2 = P(path.join(wt2, ...TF2.split("/")));
+    c.push(["reseed lands #55 in that tree and #55's unit on its #50", rs.a.status === 0 && rs.S.result === "ok" && T2.status === "built" && (R2.row.asBuilt || {}).state === "landed" && !((R2.p.wip || {}).current || []).includes("http-core.built") && (rs.S.applied || []).some(x => /^re-seeded #50: #55's unit landed/.test(x)), js([rs.S.result, rs.S.error, rs.S.applied, T2.status, R2.row.asBuilt])]);
+    c.push(["…#50 there passes its check, and the main checkout's tracked boards are left alone", failsAt(path.join(wt2, ...GF.split("/")), wt2).length === 0 && clean(), js([failsAt(path.join(wt2, ...GF.split("/")), wt2).slice(0, 3), git(B.main, "status", "--porcelain").stdout])]);
+  });
+
+  guard("a tracking issue whose last unit has no board lands inside another: unit-landed lands its unit on the tracking board above it (hook-204)", c => {
+    const B = nested("ul-nested-boardless", true);
+    const r = ev(B, B.main, "unit-landed", { tracking: TF2, unit: 70, merge: B.M, pr: 97, mergedAt: "2026-10-26T10:00:00Z" }, "2026-10-26T10:05:00Z", ["--view"]);
+    const t = fs.existsSync(path.join(B.vT, "plan.json")) ? P(B.vT) : {}, G = fs.existsSync(path.join(B.vG, "plan.json")) ? gRow(B.vG) : { p: {}, row: {} };
+    c.push(["unit-landed for #70 lands #55's copy at its merge", r.a.status === 0 && r.S.result === "ok" && t.status === "built" && (t.asBuilt || {}).merge === B.M, js([r.S.result, r.S.error, r.S.check, t.status])]);
+    c.push(["…and #55's unit lands on #50's copy, the plain fact of its landing as its summary, out of wip.current", (G.row.asBuilt || {}).state === "landed" && G.row.asBuilt.summary === `#55 landed through PR #97 as ${B.M.slice(0, 7)}.` && !((G.p.wip || {}).current || []).includes("http-core.built"), js([G.row.asBuilt, (G.p.wip || {}).current])]);
+    c.push(["…checked: the summary's check names the board above, #50's copy passes, no tracked file written", /above it: \d+ warnings?/.test(r.S.check || "") && failsAt(B.vG, B.main).length === 0 && !(git(B.main, "status", "--porcelain").stdout || "").trim(), js([r.S.check, failsAt(B.vG, B.main).slice(0, 3)])]);
+    const r2 = ev(B, B.main, "unit-landed", { tracking: TF2, unit: 70, merge: B.M, pr: 97, mergedAt: "2026-10-26T10:00:00Z" }, "2026-10-26T10:10:00Z", ["--view"]);
+    c.push(["raised again: nothing (#55 has landed)", r2.a.status === 0 && r2.S.result === "nothing", js([r2.S.result, r2.S.applied])]);
+  });
+
+  guard("a complete or landed unit whose summary still reads as at its filing (hook-204)", c => {
+    const L = require(sk("plan/scripts/lib.js")), row = { id: "u", unit: { issue: 27 }, asBuilt: { state: "landed", summary: "Filed as #27; none has started; #39 starts first." } };
+    c.push(["lib.js unitLeft(): the summary is still to write", L.unitLeft({ impact: null }, row).includes("summary"), js(L.unitLeft({ impact: null }, row))]);
+    c.push(["…and a summary written from the documents is not", !L.unitLeft({ impact: null }, { ...row, asBuilt: { state: "landed", summary: "Landed through PR #48: the rewrite." } }).includes("summary"), "written"]);
+    const d = path.join(sc, "filing-summary", "docs", "plans", "55-http-client-stack"), tr = copy(TRK);
+    tr.rows.filter(r => r.unit).forEach(r => { r.unit.board = null; if (r.unit.folder) r.unit.folder = null; });
+    tr.rows.find(r => r.id === "build-logic").asBuilt = { state: "landed", summary: "Filed as #61; its run has not started. It starts first." };
+    wr(path.join(d, "plan.json"), JSON.stringify(tr, null, 2) + "\n"); wr(path.join(d, "dashboard.html"), rd(PB)); run(EMBED, [d], { env });
+    const k = run(CHECK, [d, "--root", path.join(sc, "filing-summary")], { env });
+    c.push(["check.js warns UNIT SUMMARY STALE on it, and fails nothing for it", /^warn\s+UNIT SUMMARY STALE: rows\[\d+\] \(build-logic\) is landed, but its summary still reads as at its filing/m.test(k.stdout || "") && !/^FAIL.*build-logic.*summary/m.test(k.stdout || ""), (k.stdout || "").split(/\r?\n/).filter(l => /STALE|^FAIL/.test(l)).join(" | ").slice(0, 400)]);
   });
   return groups;
 };

@@ -12,7 +12,11 @@
 //    capitals, with a curly apostrophe and, where the words follow "user", after "the end user"; not after "superuser", nor past a word
 //    between where the row allows none. The wider spans a plan excerpt now loses to "…" (a name with a space, over a line break, a
 //    form with a hyphen), and a find that carries a wording to say instead written as that wording by the board's rewording.
+//    A word the list's markers table names is no find in its technical sense (a marker directly before it or joined to it, or in code where
+//    the table reads it so; finding.md, "A technical sense by its marker"), and a find beside it.
 // 3. Every form of the size word §3 names found by the boards' scrub (levelrefs.js).
+// 3a. §4's markers, row by row of the live table: no find before or joined, a find elsewhere, the code-form cell held; the boards' scripts
+//    as the tool.
 // 4. namerefs.js's header points at the list, the baseline and the tool.
 // Each group returns [title, cases], a case [name, ok, detail].
 "use strict";
@@ -28,10 +32,12 @@ function behaviour(L, N) {
     /* Cap: the name as one word, a hyphen or a space joining its words (AdminTeam, RookieDev), so Route<Cap> and <Cap>Service are
        longer words that contain it */
     const spaced = name.replace(/-/g, " "), hyphened = name.replace(/ /g, "-"), Cap = name[0].toUpperCase() + name.slice(1).replace(/[- ](\w)/g, (m, x) => x.toUpperCase());
-    /* barred: a whole word wherever it stands, with or without an article or a verb, plural, possessive, any case, in backticks; never
-       inside a longer word (RoutePlanner, ExecutorService) */
+    /* barred: a whole word wherever it stands, with or without an article or a verb, plural, possessive, any case, in backticks save a
+       word the list's markers table reads in code form (finding.md, "A technical sense by its marker"); never inside a longer word
+       (RoutePlanner, ExecutorService) */
+    const codeForm = !!(L.markers || []).find(m => m.word.toLowerCase() === name.toLowerCase() && m.codeForm);
     const probes = row.strength === "never" ? [[`the ${name} confirmed it`, true], [name, true], [`by the ${name}`, true], [`the dispatcher and the ${name}`, true], [`two ${name}s`, true],
-        [`the ${name}'s note`, true], [name.toUpperCase(), true], [`a \`${name}\``, true], [`a \`${Cap}\``, !/[- ]/.test(name)], [`Route${Cap}`, false], [`${Cap}Service`, false]]
+        [`the ${name}'s note`, true], [name.toUpperCase(), true], [`a \`${name}\``, !codeForm], [`a \`${Cap}\``, !/[- ]/.test(name) && !codeForm], [`Route${Cap}`, false], [`${Cap}Service`, false]]
       : [[`${name} found two gaps`, true], [`raised by ${name}`, true], [`the ${name} step`, false], ["Quality Review 2 · approved", false], [`from ${name} pass 2`, false]];
     /* a name of more than one word: a space and a hyphen between its words read alike */
     if (row.strength === "never" && spaced !== name) probes.push([`the ${spaced} confirmed it`, true]);
@@ -111,20 +117,26 @@ module.exports = function casesInternalNames(X) {
       ["the officer rank", false]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);
     const leftOut = ["the officer's final call", "the officer commits it"].filter(t => N.cleanWritten(t).out || N.nameRefs(t).some(h => N.unambiguous(h)));
     c.push(["\"the officer\" shortened, with a possessive or a pipeline verb, found as \"the manager\" is; warned of, never left out by a writer", !short.length && !leftOut.length, js({ short, leftOut })]);
-    /* a name in backticks counts, a longer word that contains one does not; no surrounding word lets one through */
-    const strict = [["the planner reconciled it", true], ["a single-thread executor drains the queue", true], ["the event publisher emits", true], ["the bytecode verifier rejects it", true], ["runs on an `Executor`", true],
+    /* a name in backticks counts, a longer word that contains one does not; no surrounding word lets one through but a marker of the
+       list's directly before it or joined to it, and a word the list reads in code form is no find in code (finding.md, "A technical
+       sense by its marker"): "a single-thread executor", "runs on an `Executor`" are none, "the executor stops" is one */
+    const strict = [["the planner reconciled it", true], ["a single-thread executor drains the queue", false], ["the event publisher emits", true], ["the bytecode verifier rejects it", true], ["runs on an `Executor`", false],
+      ["the executor stops", true], ["the executor drains the queue", true], ["runs on the executor beside `pool()`", true], ["publisher key", true], ["the dispatch loop's executor", true],
       ["the `Planner` type", true], ["the archivist's hook", true], ["two archivists", true], ["the solution architect", true], ["Presenters", true],
       ["uses OkHttp's `RoutePlanner`", false], ["an `ExecutorService`", false], ["RoutePlanner picks a route", false], ["plannerConfig", false], ["planner_id", false]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);
-    c.push(["every name a whole word wherever it stands, in backticks too; a longer word that contains one is not a find", !strict.length, js(strict.map(([t, w]) => [t, w, N.nameRefs(t)]))]);
+    c.push(["every name a whole word wherever it stands, in backticks too, save a word in its technical sense (a marker before it, or in code where the list reads it so); a longer word that contains one is not a find", !strict.length, js(strict.map(([t, w]) => [t, w, N.nameRefs(t)]))]);
     /* a hyphen is a word edge, so a name in a hyphenated compound is a find, on either side of the hyphen, in backticks and in a path
        too; a longer word that contains one stays no find beside a hyphen */
     const compound = [["the planners-guide page", true], ["`planners-guide`", true], ["docs/planners-guide.md", true], ["a planner-guide", true], ["guide-planners", true],
       ["the executor-pool drains it", true], ["rookie-dev-notes", true], ["see the RoutePlanner-guide", false], ["plannerConfig-guide", false]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);
     c.push(["a name in a hyphenated compound (\"planners-guide\") is a find: a hyphen is a word edge; a longer word beside a hyphen is not", !compound.length, js(compound.map(([t, w]) => [t, w, N.nameRefs(t)]))]);
     /* a fenced block counts as backticks do, in a text and rendered (<pre><code>) alike, so the board scripts and the commit scan agree */
-    const fence = [["```kotlin\nval planner = RoutePlanner()\n```", true], ["<pre><code>the planner reruns it</code></pre>", true], ["<pre><code class=\"lang-kotlin\">val executor = pool()</code></pre>", true],
-      ["<pre><code>val p = RoutePlanner()</code></pre>", false], ["<code>planner</code>", true]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);
-    c.push(["a fenced block counts as backticks do: its lines in a text and a rendered <pre><code> scanned, a longer word in it no find; an inline <code> counts as well", !fence.length, js(fence.map(([t, w]) => [t, w, N.nameRefs(t)]))]);
+    const fence = [["```kotlin\nval planner = RoutePlanner()\n```", true], ["<pre><code>the planner reruns it</code></pre>", true], ["<pre><code class=\"lang-kotlin\">val planner = pool()</code></pre>", true],
+      ["<pre><code>val p = RoutePlanner()</code></pre>", false], ["<code>planner</code>", true],
+      /* a word the list reads in code form: no find in a fenced block, a rendered <pre> or an inline <code>; a find in prose beside it */
+      ["<pre><code class=\"lang-kotlin\">val executor = pool()</code></pre>", false], ["```kotlin\nval executor = pool()\n```", false], ["<code>executor</code>", false],
+      ["the executor runs <code>pool()</code>", true], ["```\npool()\n```\nthe executor runs it", true]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);
+    c.push(["a fenced block counts as backticks do: its lines in a text and a rendered <pre><code> scanned, a longer word in it no find; an inline <code> counts as well; a word read in code form is no find in any of them, and a find in prose beside them", !fence.length, js(fence.map(([t, w]) => [t, w, N.nameRefs(t)]))]);
     const span = "<pre><code>the planner reruns it</code></pre>", sp = N.nameSpans(span);
     c.push(["nameSpans() finds what nameRefs() finds, a rendered fenced block included", sp.length === N.nameRefs(span).length && sp.length === 1 && span.slice(sp[0].index, sp[0].end) === "planner", js(sp)]);
     /* the wider spans: a name's words with a space, over one line break, and a form's words with a hyphen are finds now, and a plan
@@ -161,6 +173,30 @@ module.exports = function casesInternalNames(X) {
     const forms = [...new Set(L.grades.filter(r => r.strength === "never").flatMap(r => r.words))];
     const LR = require(sk("system/scripts/levelrefs.js")), missed = forms.filter(f => !LR.levelRefs(f).length);
     c.push([forms.length ? `every form of a grade §3 names is found (${forms.length}: ${forms.join(", ")})` : "§3 names no grade yet: nothing to hold", !missed.length, js(missed)]);
+  });
+
+  /* §4's markers (finding.md, "A technical sense by its marker"): a word the table names is no find with one of its markers directly before
+     it (a space or a hyphen between, any case, its possessive, a code mark at the join) or joined to it after by a hyphen, and is one with
+     the marker elsewhere (after it with a space, or a clause away); a word the table reads in code form is no find in code, and one in prose
+     beside code. The boards' scripts (namerefs.js, levelrefs.js) find as the tool finds, row by row of the live table. */
+  guard("§4's markers: a word in its technical sense no find, the same word elsewhere a find; the boards' scripts as the tool", c => {
+    if (!L) { c.push(["the list is read", false, readError]); return; }
+    const ms = L.markers || [], LR = require(sk("system/scripts/levelrefs.js")), F = require(path.join(T, "match.js"));
+    c.push(["the markers' table is read: each row a word with its markers and its code-form cell", ms.length > 0 && ms.every(m => m.word && m.markers.length && typeof m.codeForm === "boolean"), js(ms.map(m => [m.word, m.markers, m.codeForm]))]);
+    const isGrade = w => L.grades.some(r => r.words.some(x => x.toLowerCase() === w.toLowerCase())), bad = [];
+    ms.forEach(m => {
+      const w = m.word, g = isGrade(w), board = t => (g ? LR.levelRefs(t) : N.nameRefs(t)).length > 0, tool = t => (g ? F.gradeRefs(t) : F.nameRefs(t)).length > 0;
+      const probes = [[`runs on a \`${w}\``, !m.codeForm], ["```\nval " + w + " = x()\n```", !m.codeForm], [`the ${w} beside \`x()\``, true], [`the ${w} stops`, true]];
+      m.markers.forEach(k => probes.push([`the ${k} ${w}`, false], [`the ${k}-${w}`, false], [`the ${k.toUpperCase()} ${w}`, false], [`the ${k}'s ${w}`, false], [`the \`${k}\` ${w}`, false],
+        [`the ${w}-${k}`, false], [`the ${k}, then the ${w}`, true], [`the ${w} ${k}`, true]));
+      probes.forEach(([t, want]) => { const b = board(t), o = tool(t); if (b !== want || o !== want) bad.push(`"${t}": want ${want ? "a find" : "none"}, board ${b}, tool ${o}`); });
+    });
+    c.push([`every marker of every row (${ms.reduce((n, m) => n + m.markers.length, 0)}): no find before or joined, a find elsewhere; the code-form cell held in a backtick span and a fenced block; the boards' scripts and the tool agree`, !bad.length, js(bad.slice(0, 8))]);
+    /* a quote elides a find where it stands (levelrefs.js levelSpans(), elideSpans(); namerefs.js nameSpans()), never the same letters
+       elsewhere in their technical sense */
+    const nt = "the executor stops; the dispatch executor drains it", gt = "grade 3 work over the carrier-grade link";
+    const ne = LR.elideSpans(nt, N.nameSpans(nt)), ge = LR.elideSpans(gt, LR.levelSpans(gt));
+    c.push(["a quote's elision cuts each find where it stands, and leaves the same word in its technical sense", ne === "the … stops; the dispatch executor drains it" && ge === "… work over the carrier-grade link", js([ne, ge])]);
   });
 
   guard("namerefs.js's header points at the list, the baseline and the finding tool", c => {

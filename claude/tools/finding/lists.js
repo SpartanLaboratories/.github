@@ -1,5 +1,5 @@
 // The lists a scan reads, found and parsed where they stand each time they are loaded: the internal
-// names (its four tables, each read by its header), the term lines
+// names (its four tables and the markers of its fourth section, each read by its header), the term lines
 // of the three vocabularies, and the baseline's tables. Nothing here holds a copy of any list.
 //   load(opts)  every list, cached for the process; opts.fresh reads again; opts.dirs, opts.env,
 //               opts.home and opts.readStored replace where each file is looked for (the tests).
@@ -120,24 +120,46 @@ function formOf(what) {
   if (!words.length || !anchor || !/\buser\b/i.test(anchor)) return null;
   return { words, anchor, after, between: !after && /\bone word\b[^.]*\bbetween\b/i.test(t) };
 }
-/* A row's strength, from its "Allowed when" and "What it is": never (barred wherever it stands), agent
-   (barred as an agent's name only), other (anything else, which bars nothing here: an exception is not
-   the tool's to read) */
+/* A row's strength, from its "Allowed when" and "What it is": never (barred wherever it stands, save
+   where the markers of section 4 clear it), agent (barred as an agent's name only), other (anything
+   else, which bars nothing here: an exception is not the tool's to read) */
 function strengthOf(what, allowed) {
   if (/agent's name only/i.test(`${what} ${allowed}`)) return "agent";
-  if (/^never\.?$/i.test(String(allowed || "").trim())) return "never";
+  if (/^(?:never|as section 4's markers say)\.?$/i.test(String(allowed || "").trim())) return "never";
   return "other";
 }
-/* The list's four sections, each by its "## <n>." heading and its first table, read by header names. */
+/* The markers of section 4, from its table headed "Word", "Markers" and "In code form", or none when the
+   section has no such table: [{ word, markers: [marker], codeForm, line }], codeForm true where the
+   row reads the word in code form as no find. A word that is no word of the first three sections is an
+   error, and so is a row with no marker or an "In code form" cell other than "no find" or "a find". */
+function markersOf(tables, file, barred) {
+  const t = tables.find(x => { const h = x.header.map(c => c.toLowerCase()); return h.includes("word") && h.includes("markers"); });
+  if (!t) return [];
+  const c = columns(t, file, { word: "Word", markers: "Markers", code: "In code form" });
+  const known = new Set(barred.map(w => w.toLowerCase())), seen = new Set();
+  return t.rows.map(r => {
+    const word = bold(r.cells[c.word])[0], markers = ticks(r.cells[c.markers]), code = String(r.cells[c.code] || "").trim().toLowerCase().replace(/\.$/, "");
+    if (!word) throw new ListError(file, r.line, "a row of the markers has no bold word");
+    if (!known.has(word.toLowerCase())) throw new ListError(file, r.line, `"${word}" is no name, phrase or word of sections 1 to 3`);
+    if (seen.has(word.toLowerCase())) throw new ListError(file, r.line, `"${word}" has a second row of markers`);
+    seen.add(word.toLowerCase());
+    if (!markers.length) throw new ListError(file, r.line, `"${word}" has no marker in backticks`);
+    if (code !== "no find" && code !== "a find") throw new ListError(file, r.line, `"${r.cells[c.code]}" is neither "no find" nor "a find"`);
+    return { word, markers, codeForm: code === "no find", line: r.line };
+  });
+}
+/* The list's four sections, each by its "## <n>." heading and its first table, read by header names;
+   section 4's markers by their own table. */
 function parseInternalNames(text, file) {
   const lines = text.split("\n"), heads = [];
   lines.forEach((l, i) => { const m = /^## (\d+)\./.exec(l); if (m) heads.push({ n: Number(m[1]), line: i }); });
-  const section = n => {
+  const sectionTables = n => {
     const h = heads.find(x => x.n === n); if (!h) throw new ListError(file, null, `section ${n} ("## ${n}.") is missing`);
     const next = heads.find(x => x.line > h.line), body = lines.slice(h.line + 1, next ? next.line : lines.length).join("\n");
-    const t = tablesIn(body, h.line + 2)[0]; if (!t) throw new ListError(file, h.line + 1, `section ${n} has no table`);
-    return t;
+    const ts = tablesIn(body, h.line + 2); if (!ts.length) throw new ListError(file, h.line + 1, `section ${n} has no table`);
+    return ts;
   };
+  const section = n => sectionTables(n)[0];
   const say = { sayInstead: "Say instead" };
   const t1 = section(1), c1 = columns(t1, file, { name: "Name", aliases: "Aliases", what: "What it is", allowed: "Allowed when" }, say);
   const roles = t1.rows.map(r => {
@@ -158,9 +180,10 @@ function parseInternalNames(text, file) {
     const words = [term, ...quoted(what)];
     return { term, words: [...new Set(words)], strength: strengthOf(r.cells[c3.what], r.cells[c3.allowed]), sayInstead: cellOrNull(r.cells, c3.sayInstead), line: r.line };
   });
-  const t4 = section(4); columns(t4, file, { term: "Term", what: "What it is" });
+  const s4 = sectionTables(4), t4 = s4[0]; columns(t4, file, { term: "Term", what: "What it is" });
   const allowed = t4.rows.map(r => r.cells.join(" · "));
-  return { file, roles, approval, grades, allowed };
+  const markers = markersOf(s4.slice(1), file, [...roles.flatMap(r => r.aliases), ...approval.map(r => r.phrase), ...grades.flatMap(r => r.words)]);
+  return { file, roles, approval, grades, allowed, markers };
 }
 
 /* ---- the term lines of a vocabulary ----------------------------------------------------------- */
@@ -276,4 +299,4 @@ function termList(loaded, key) {
   return t;
 }
 
-module.exports = { load, termList, ListError, glossaryPlaces, glossaryFiles, isGlossary, readFile, cellsOf, tablesIn, formOf, strengthOf, parseInternalNames, parseTerms, parseFinding, globRe, FORMS };
+module.exports = { load, termList, ListError, glossaryPlaces, glossaryFiles, isGlossary, readFile, cellsOf, tablesIn, formOf, strengthOf, markersOf, parseInternalNames, parseTerms, parseFinding, globRe, FORMS };

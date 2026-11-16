@@ -26,7 +26,7 @@ report to the caller; do not quietly redesign it.
 
 ## Read the rules in force
 
-Before writing, check the target repo for `CLAUDE.md`, `.aiassistant/rules/`,
+Before writing, check the target repo for `CLAUDE.md`,
 `AGENTS.md`, and any `README` / `CONTRIBUTING`, and conform to what you find.
 The standards below are the user's global ones and always apply.
 

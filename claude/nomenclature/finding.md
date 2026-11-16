@@ -26,7 +26,7 @@ characters within one name and `**` for any number of folders.
 
 | Repository | Path | Read |
 |------------|------|------|
-| `SpartanLaboratories/.github` | `claude/**/*.md` | not read |
+| `SpartanLaboratories/.github` | `claude/**` | not read |
 | `SpartanLaboratories/.github` | `policy/**` | whole |
 | `SpartanLaboratories/.github` | `design/**` | whole |
 | any | `docs/**` | whole |
@@ -35,19 +35,20 @@ characters within one name and `**` for any number of folders.
 
 Everything under `docs/` is read, the generated board files among it; every Markdown file, a
 `README.md` at any depth, a `CHANGELOG.md` and the community health files among them; and the
-issue templates. In `SpartanLaboratories/.github` every file of the Policy and Design folders is
-read, and every Markdown file outside `claude/`: `Structure.md`, `POLICY.md`, `DESIGN.md`,
+issue templates. In `SpartanLaboratories/.github` no file under `claude/` is read, whatever its
+kind: neither a document nor a code file's comments. Every file of its Policy and Design folders
+is read, and every Markdown file outside `claude/`: `Structure.md`, `POLICY.md`, `DESIGN.md`,
 `scripts/INDEX.md`, `rule-index.md` and `profile/README.md` among them.
 
 ### The comments in source code
 {"name":"The comments in source code","code":"G-N-FI-R-2","id":10050}
-It reads the comments in source code, the scripts in a repository's `scripts/` and the code files
-of the mirror under its `claude/` among them. A file is read by the first row of this table that
-holds its name: a name in the Files column is a file's whole name or, when it starts with a dot,
-the end of it. Code itself, identifiers and strings, is not read: a quoted string, a character, a
-template and a regular expression are code, and a comment's marker inside one opens no comment.
-Comments on lines one after another are read as one text, and so are the lines of one block
-comment; a KDoc or Javadoc line's leading `*` is no text.
+It reads the comments in source code, the scripts in a repository's `scripts/` among them, in each
+file that no row of R-10049 (Documents and boards) [10049-T1] holds. A file is read by the first
+row of this table that holds its name: a name in the Files column is a file's whole name or, when
+it starts with a dot, the end of it. Code itself, identifiers and strings, is not read: a quoted
+string, a character, a template and a regular expression are code, and a comment's marker inside
+one opens no comment. Comments on lines one after another are read as one text, and so are the
+lines of one block comment; a KDoc or Javadoc line's leading `*` is no text.
 
 | Form | Files | Comments read |
 |------|-------|---------------|
@@ -98,12 +99,14 @@ A term is matched as a whole word. A longer word that contains one, such as `Rou
 ### A hyphen is a word edge
 {"name":"A hyphen is a word edge","code":"G-N-FI-M-3","id":10044}
 A hyphen is a word edge, so a hyphenated compound that holds a term is a find: "planners-guide",
-"carrier-grade".
+"grade-level". A marker joined to a word clears it, as
+R-10059 (A technical sense by its marker) [10059-T1] says.
 
 ### Code counts as text
 {"name":"Code counts as text","code":"G-N-FI-M-4","id":10045}
 A term in backticks counts in a document or a comment as it does anywhere else, and so does a term
-in a fenced code block, rendered on a board (`<pre><code>`) included.
+in a fenced code block, rendered on a board (`<pre><code>`) included, save a word the marker list
+reads in code form, as R-10059 (A technical sense by its marker) [10059-T2] says.
 
 ### The approval flow's forms
 {"name":"The approval flow's forms","code":"G-N-FI-M-5","id":10046}
@@ -139,6 +142,19 @@ A name the list bars as an agent's name only is found where it stands as an agen
 word of what an agent does ("found", "flags", "approved", "has found") or by "agent", "agents",
 "reviewer" or "team"; after "by" or "from", except before "pass"; and in the possessive. The step
 of that name and its passes are not finds ("the qa step", "from qa pass 2").
+
+### A technical sense by its marker
+{"name":"A technical sense by its marker","code":"G-N-FI-M-10","id":10059}
+A word the marker list of R-126 (Internal names — what committed content never names) [126-T3]
+names is no find, in any form it is matched in, where one of its markers stands directly before
+it, with only a space, a line break or a hyphen between, or is joined to it after by a hyphen:
+"dispatch executor", "the dispatcher's executor", "carrier-grade", "executor-backed". A marker is
+matched in any case and in its possessive, and a mark of emphasis or code (`*`, `_`, a backtick) at
+the join does not part the two ("`mcups-liveness` executor", "**dispatch executor**"). A marker
+anywhere else clears nothing: after the word with a space ("publisher key"), with another word
+between ("the dispatch loop's executor"), or elsewhere on the line. A word that list reads in code
+form is no find where it stands in code: in a backtick span or a fenced code block, rendered on a
+board (`<code>`, `<pre>`) included. The same word in prose beside code is a find.
 
 ## On a board
 {"name":"On a board","code":"G-N-FI-B","id":1121}

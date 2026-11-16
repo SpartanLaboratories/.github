@@ -128,7 +128,7 @@ grade.
    which one.
 2. **Read all of it before touching anything** — the design, the file-by-file
    section, the test plan, what is explicitly out of scope, the open decisions,
-   the staging order. Then read the repo's `CLAUDE.md` / `.aiassistant/rules/`
+   the staging order. Then read the repo's `CLAUDE.md`
    and skim each file the plan says it will change so you match its style.
 3. **Check the starting point.** Confirm the branch, baseline, and file layout
    are what the plan assumes. If the plan says "branch off master first" and you

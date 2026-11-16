@@ -71,10 +71,16 @@ module.exports = function casesDesignTabProposals(X) {
   });
 
   guard("a unit's landing: unit.landing copied from its own board, the PR chip and the merge chip on its As built cell (the tracking board)", c => {
-    /* lib.js unitLandingOf(): a landed board's wip.landing, else its asBuilt; none before it lands */
+    /* lib.js unitLandingOf(): a landed board's pull request and merge as one pair, from its asBuilt when that records either, else from its wip.landing; none before it lands */
     const U = lib.unitLandingOf;
     c.push(["a landed board's pull request and merge commit", js(U({ status: "built", asBuilt: { sha: "abc1234", merge: "8122af7", pr: 89 } })) === js({ pr: 89, merge: "8122af7" }), js(U({ status: "built", asBuilt: { merge: "8122af7", pr: 89 } }))]);
-    c.push(["its wip.landing first, as its own landed fact reads it", js(U({ status: "built", wip: { step: "landed", landing: { pr: 90, merge: "fedcba9" } }, asBuilt: { merge: "8122af7", pr: 89 } })) === js({ pr: 90, merge: "fedcba9" }), "wip.landing"]);
+    /* a landed tracking board: wip.landing its plan's merge, asBuilt its last unit's (KotlinBottools #27: plan PR #38 at 9f22646, landed with #42's PR #48 at 0532880) */
+    const LT = { kind: "tracking", status: "built", wip: { step: "landed", landing: { pr: 38, merge: "9f22646" } }, asBuilt: { sha: "0532880", merge: "0532880", pr: 48 } };
+    c.push(["a landed tracking board: its asBuilt wins over its plan's wip.landing, as its own landed fact reads it", js(U(LT)) === js({ pr: 48, merge: "0532880" }), js(U(LT))]);
+    c.push(["…taken as one pair: an asBuilt with a merge and no pull request never borrows the plan's pull request", js(U({ ...LT, asBuilt: { merge: "0532880" } })) === js({ merge: "0532880" }), js(U({ ...LT, asBuilt: { merge: "0532880" } }))]);
+    c.push(["a landed tracking board that records only wip.landing: that pair", js(U({ kind: "tracking", status: "built", wip: { step: "landed", landing: { pr: 38, merge: "9f22646" } }, asBuilt: { date: "2026-11-16" } })) === js({ pr: 38, merge: "9f22646" }), "wip.landing"]);
+    /* the header's landed fact reads the same one record (the template) */
+    c.push(["the header's landed fact: asBuilt when it records a pull request or a merge, else wip.landing, never one from each", /Lsrc=\(a0\.pr\|\|a0\.merge\)\?a0:Ld0;/.test(PB) && /Lsrc\.pr\?prlink\(Lsrc\.pr\):"",Lsrc\.merge\?`merge \$\{clink\(Lsrc\.merge\)\}`/.test(PB) && !/Ld\.pr\|\|a\.pr/.test(PB), "renderWip()"]);
     c.push(["none from a board not landed, one that records neither, or a sha that is no sha", U({ status: "building", wip: { step: "merge", landing: { pr: 89 } } }) === null && U({ status: "built", asBuilt: { sha: "abc1234" } }) === null && js(U({ status: "built", asBuilt: { merge: "not-a-sha", pr: 89 } })) === js({ pr: 89 }), "null"]);
     /* a tree: the tracking fixture, its unit #61 (build-logic) with a landed board of its own */
     const TRK = JSON.parse(rd(sk("verify/fixtures/tracking.plan.json"))), EX = JSON.parse(rd(sk("plan/examples/38-handshake-empty-name/plan.json")));

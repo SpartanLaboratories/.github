@@ -2235,8 +2235,10 @@ function renderWip(){
   const bl=WIP.blockers||{}, iref=x=>x.repo&&x.repo!==PLAN.repo?ilink(x.issue,x.repo):ilink(x.issue), holdK=PLAN.status==="built"?"enables":"blocks";
   if((bl.waitsOn||[]).length) facts.push(`<span><span class="l">depends on</span><span class="deplist">${bl.waitsOn.map(x=>`<span>${iref(x)} ${depPill(x)}</span>`).join("")}</span></span>`);
   if((bl.blocks||[]).length) facts.push(`<span><span class="l">blocks · enables</span><span class="deplist">${bl.blocks.map(x=>`<span>${iref(x)} ${pill(HOLD[holdK])}</span>`).join("")}</span></span>`);
-  const a=PLAN.asBuilt||{}, Ld=WIP.landing||{};
-  if(LANDED) facts.push(`<span><span class="l">landed</span>${[Ld.pr||a.pr?prlink(Ld.pr||a.pr):"",Ld.merge||a.merge?`merge ${clink(Ld.merge||a.merge)}`:"",Ld.version||a.version?esc(Ld.version||a.version):"",Ld.date||a.date?when(Ld.date||a.date):""].filter(Boolean).join(" · ")}</span>`);
+  /* the landing, from one record (plan/RULES.md §3, "The units' landings"): asBuilt when it records a pull request or a merge (a landed tracking board's is its last
+     unit's), else wip.landing (a tracking plan's own merge); never the pull request of one beside the merge of the other */
+  const a0=PLAN.asBuilt||{}, Ld0=WIP.landing||{}, Lsrc=(a0.pr||a0.merge)?a0:Ld0;
+  if(LANDED) facts.push(`<span><span class="l">landed</span>${[Lsrc.pr?prlink(Lsrc.pr):"",Lsrc.merge?`merge ${clink(Lsrc.merge)}`:"",Lsrc.version?esc(Lsrc.version):"",Lsrc.date?when(Lsrc.date):""].filter(Boolean).join(" · ")}</span>`);
   /* the open research questions, and how many have returned (plan/RULES.md §3) */
   const rf=LANDED||STOPPED?"":researchFact(WIP); if(rf) facts.unshift(rf);
   const factsHtml=facts.length?`<div class="wip-facts">${facts.join("")}</div>`:"";

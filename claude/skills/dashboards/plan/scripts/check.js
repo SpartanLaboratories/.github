@@ -333,6 +333,8 @@ function checkPlan(plan, dir, root) {
       else if (!posInt(u.issue)) fail(`${at}.unit.issue must be the sub-issue's number${u.issue == null ? " (a unit is filed as a sub-issue before the tracking board leaves its \"sub-issues\" step)" : ""}`);
       /* a filed unit's summary says it is filed (RULES §4, the sub-issues-filed row; lib.js filedSummaries()): one still reading "Not filed yet" is stale */
       if (posInt(u.issue) && !["built", "abandoned"].includes(plan.status) && /^\s*not filed yet\b/i.test(String((r.asBuilt || {}).summary || ""))) warn(`UNIT SUMMARY STALE: ${at} is filed as #${u.issue}, but its summary still says it is not filed: sub-issues-filed writes "Filed as #${u.issue}; its run has not started." (raise it again), or write the summary`);
+      /* a unit complete or landed whose summary still reads as at its filing says nothing of its run (lib.js FILING_TIME, unitLeft()): the summary is a fill's to write */
+      else if (!["built", "abandoned"].includes(plan.status) && ["complete", ...require("./lib.js").UNIT_LANDED].includes(((r.asBuilt || {}).state) || "pending") && require("./lib.js").FILING_TIME.test(String((r.asBuilt || {}).summary || "").trim())) warn(`UNIT SUMMARY STALE: ${at} is ${r.asBuilt.state}, but its summary still reads as at its filing: write what ${posInt(u.issue) ? `#${u.issue}'s` : "the unit's"} run built`);
       /* a blocker is an issue number, or { unit: k }, a unit of this board by its number while that unit has no issue yet (RULES §3, unit.blockedBy;
          dashboards/unit-blockers-before-filing): the dependencies between a plan's units are on the board before they are filed, and
          sub-issues-filed writes each as its issue number once that unit is filed */

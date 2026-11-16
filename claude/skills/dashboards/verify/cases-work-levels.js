@@ -225,22 +225,30 @@ module.exports = function casesWorkLevels(X) {
      (the transition's end, L12), and the other levels are left alone as before */
   guard("the scrub finds every form of \"grade\" and rewords a fact's grade; the work-level forms no longer found or reworded (L12); the other levels left alone", c => {
     const LR = require(sk("system/scripts/levelrefs.js"));
-    const found = ["grade 3", "Grade 3", "GRADE", "grade: 2", "a grade-4 issue", "a grade-4 tracking issue", "graded", "grading", "grades", "re-grade", "Re-graded", "regrade", "regraded", "the recorded grade", "work grade", "carrier-grade NAT", "production-grade", "`grade`", "```\ngrade\n```", "<pre><code>grade 2</code></pre>"];
-    const notFound = ["upgrade the dependency", "downgraded", "degrade", "centigrade", "retrograde", "Gradle build", "gradient", "gradual", "proposedGrade", "gradeOf()"];
+    const found = ["grade 3", "Grade 3", "GRADE", "grade: 2", "a grade-4 issue", "a grade-4 tracking issue", "graded", "grading", "grades", "re-grade", "Re-graded", "regrade", "regraded", "the recorded grade", "work grade", "production-grade", "`grade`", "```\ngrade\n```", "<pre><code>grade 2</code></pre>",
+      /* a marker of the list's elsewhere than directly before the word, or after it with a space, clears nothing (finding.md, "A technical sense by its marker") */
+      "the carrier, then the grade", "the grade carrier", "the carrier link's grade"];
+    const notFound = ["upgrade the dependency", "downgraded", "degrade", "centigrade", "retrograde", "Gradle build", "gradient", "gradual", "proposedGrade", "gradeOf()",
+      /* the word in its technical sense: a marker directly before it or joined to it after by a hyphen */
+      "carrier-grade NAT", "a carrier grade link", "Carrier-Grade", "grade-carrier"];
     const missed = found.filter(t => !LR.levelRefs(t).length), wrong = notFound.filter(t => LR.levelRefs(t).length);
-    c.push(["every form of the word found: numbered, unnumbered, inflected, re-, any case, a hyphenated compound, in backticks and a fenced block", !missed.length, js(missed)]);
-    c.push(["a longer word that only holds the letters, and an identifier, not", !wrong.length, js(wrong.map(t => [t, LR.levelRefs(t)]))]);
-    c.push(["a compound's hit is the whole compound, and a number after the word goes with it", js(LR.levelRefs("carrier-grade NAT")) === js(["carrier-grade"]) && js(LR.levelRefs("grade 3")) === js(["grade 3"]) && js(LR.levelRefs("a grade-4 issue")) === js(["grade-4"]), js([LR.levelRefs("carrier-grade NAT"), LR.levelRefs("grade 3"), LR.levelRefs("a grade-4 issue")])]);
+    c.push(["every form of the word found: numbered, unnumbered, inflected, re-, any case, a hyphenated compound, in backticks and a fenced block, a marker elsewhere", !missed.length, js(missed)]);
+    c.push(["a longer word that only holds the letters, an identifier, and the word after its marker or joined to it, not", !wrong.length, js(wrong.map(t => [t, LR.levelRefs(t)]))]);
+    c.push(["a compound's hit is the whole compound, and a number after the word goes with it; a compound with a marker is none", js(LR.levelRefs("production-grade NAT")) === js(["production-grade"]) && js(LR.levelRefs("carrier-grade NAT")) === js([]) && js(LR.levelRefs("grade 3")) === js(["grade 3"]) && js(LR.levelRefs("a grade-4 issue")) === js(["grade-4"]), js([LR.levelRefs("production-grade NAT"), LR.levelRefs("carrier-grade NAT"), LR.levelRefs("grade 3"), LR.levelRefs("a grade-4 issue")])]);
     const inPats = LR.GRADE_PATTERNS.map(([s, f]) => new RegExp(JSON.parse(JSON.stringify(s)), f.replace("g", "")));
-    c.push(["GRADE_PATTERNS, which the browser pass applies to the rendered text (as JSON), carries the grade's pattern", ["grade 3", "re-graded", "carrier-grade"].every(t => inPats.some(re => re.test(t))) && !inPats.some(re => re.test("Gradle upgrade")), String(LR.GRADE_PATTERNS && LR.GRADE_PATTERNS.length)]);
+    c.push(["GRADE_PATTERNS, which the browser pass applies to the rendered text (as JSON), carries the grade's pattern, its markers with it", ["grade 3", "re-graded", "production-grade", "the grade carrier"].every(t => inPats.some(re => re.test(t))) && !inPats.some(re => re.test("Gradle upgrade") || re.test("carrier-grade NAT") || re.test("grade-carrier")), String(LR.GRADE_PATTERNS && LR.GRADE_PATTERNS.length)]);
+    /* each entry carries whether a match in code is dropped: the list's code-form cell of its word, as the tool's patterns carry it */
+    const P3 = require(path.resolve(sk("system/scripts"), "..", "..", "..", "..", "tools", "finding", "match.js")).patterns({ lists: ["internal-names §3"] });
+    c.push(["…each entry [source, flags, codeForm], one per code-form reading the section's patterns hold", LR.GRADE_PATTERNS.every(e => e.length === 3 && typeof e[2] === "boolean") && js(LR.GRADE_PATTERNS.map(e => e[2]).sort()) === js([...new Set(P3.map(p => !!p.codeForm))].sort()), js(LR.GRADE_PATTERNS.map(e => e[2]))]);
     const sc0 = [["inside grade 3", "inside the issue's scope"], ["escalated to grade 4", "escalated"], ["planned at its own grade", "planned on its own"], ["Re-graded to grade 3", "Re-sized"], ["re-grading", "re-sizing"],
       ["graded", "sized"], ["the work grade", "the sizing"], ["Recorded grade: 3 confirmed", "Recorded sizing confirmed"], ["(#61, grade 3)", "(#61)"], ["The fix (grade 2) lands.", "The fix lands."], ["a grade-3 re-pass", "a re-pass"],
       ["a grade 3 issue", "an issue"], ["the grade re-check", "the sizing re-check"], ["The grade was confirmed", "The sizing was confirmed"], ["the issue's grade", "the issue's sizing"]];
     const bad = sc0.filter(([s, w]) => LR.scrubLevels(s, {}) !== w);
     c.push(["scrubLevels() rewords a grade", !bad.length, js(bad.map(([s, w]) => [s, LR.scrubLevels(s, {}), w]))]);
     c.push(["…on a sub-issue's board the scope is the unit's", LR.scrubLevels("inside grade 3", { scope: "unit" }) === "inside the unit's scope", js(LR.scrubLevels("inside grade 3", { scope: "unit" }))]);
-    const left = ["carrier-grade NAT is refused", "at grade 3 the fix holds", "Grade 3: one system"].filter(s => LR.scrubLevels(s, {}) !== null);
+    const left = ["production-grade NAT is refused", "at grade 3 the fix holds", "Grade 3: one system"].filter(s => LR.scrubLevels(s, {}) !== null);
     c.push(["a compound, and a numbered grade no rule takes, have no rewording: null, so the text is left out and the presenter told", !left.length, js(left.map(s => [s, LR.scrubLevels(s, {})]))]);
+    c.push(["…and a compound with a marker of the list's is no find: scrubLevels() returns its text as it is", LR.scrubLevels("carrier-grade NAT is refused", {}) === "carrier-grade NAT is refused", js(LR.scrubLevels("carrier-grade NAT is refused", {}))]);
     /* the work level's forms, the sizing's old name, no longer found or reworded (the transition's end, L12); the other levels left alone as ever */
     const lvOld = ["a level-3 change", "inside level 3", "level: 2", "re-levelled", "the work level", "Recorded level confirmed", "(#61, level 3)", "escalated to level 4", "a later level-1 documentation change", "L3"];
     const lvLeft = ["L1 gating", "Level 2 component tests", "Level-2 KDoc", "level-1 KDoc contracts", "a level-1 KDoc change", "LEVEL 1 · SYSTEM CONTEXT", "the Level-4c suite", "log level kept", "top-level", ", Level 3: the reader against the real transport"];
@@ -248,7 +256,7 @@ module.exports = function casesWorkLevels(X) {
     c.push(["…and the test, C4, KDoc and ordinary levels still left alone", !lvLeft.some(t => LR.levelRefs(t).length), js(lvLeft.filter(t => LR.levelRefs(t).length).map(t => [t, LR.levelRefs(t)]))]);
     const lvScrub = [["a level-3 re-pass", "a level-3 re-pass"], ["inside level 3", "inside level 3"], ["re-levelled", "re-levelled"], ["Label level: 3", "Label level: 3"]].filter(([s, w]) => LR.scrubLevels(s, {}) !== w);
     c.push(["…nor reworded: scrubLevels() returns them as they are", !lvScrub.length, js(lvScrub.map(([s, w]) => [s, LR.scrubLevels(s, {}), w]))]);
-    const t0 = { schema: "plan-board/1", issueTitle: "Make the client carrier-grade", rows: [{ id: "a", name: "grade 3" }] }, hits = LR.levelRefsIn(t0, "", [], LR.titleSkip(t0)), tr = LR.issueTitleRefs(t0);
+    const t0 = { schema: "plan-board/1", issueTitle: "Make the client production-grade", rows: [{ id: "a", name: "grade 3" }] }, hits = LR.levelRefsIn(t0, "", [], LR.titleSkip(t0)), tr = LR.issueTitleRefs(t0);
     c.push(["a board's data: a grade found, an issue's title quoted verbatim flagged as a defect in the issue, not failed; the flag's older message, from before the rename, no longer read", js(hits.map(h => h.at)) === js(["rows[0].name"]) && tr.length === 1 && /^ISSUE TITLE NAMES A GRADE: #\?/.test(LR.titleDefect(tr[0])) && !LR.TITLE_DEFECT.test("warn  ISSUE TITLE NAMES A WORK LEVEL: #70") && LR.TITLE_DEFECT.test(LR.titleDefect(tr[0])), js([hits, tr])]);
   });
   return groups;

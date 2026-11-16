@@ -40,11 +40,68 @@ no(`Route${cap(single)}`, "a longer word that contains a term");
 no(`${cap(single)}Service`, "a longer word that contains a term");
 no(`${single}_id`, "an identifier that contains a term");
 yes(`${single}s-guide`, "a hyphen is a word edge");
-yes(`carrier-${gradeWord}`, "a hyphen is a word edge");
+const markerRow = w => (N.markers || []).find(m => m.word.toLowerCase() === String(w).toLowerCase()) || null;
+const unmarked = w => ["plain", "first", "outer"].find(c => !(markerRow(w) || { markers: [] }).markers.some(m => m.toLowerCase() === c));
+yes(`${unmarked(gradeWord)}-${gradeWord}`, "a hyphen is a word edge");
 yes(`a \`${single}\` here`, "code counts as text: backticks");
 yes("```\nsome code\n" + `${single}\n` + "```", "code counts as text: a fenced block");
 yes(`<pre><code>${single}</code></pre>`, "code counts as text: a rendered block");
 yes(`${single} at the start\nand the end`, "a find at a text's start");
+
+/* ---- a technical sense by its marker, on a fixture list whose markers are known ------------------- */
+{
+  const d = path.join(dir, "markers"); fs.mkdirSync(d, { recursive: true });
+  const base = fs.readFileSync(path.join(live, "internal-names.md"), "utf8").replace(/\r\n/g, "\n");
+  const cut = base.indexOf("\n### Markers");
+  const text = (cut < 0 ? base : base.slice(0, cut)).replace(/\s*$/, "\n") + ["", "### Markers", "",
+    "| Word | Markers | In code form |", "|---|---|---|",
+    `| **${single}** | \`route\`, \`multi-step\` | no find |`,
+    `| **${gradeWord}** | \`shoe\` | a find |`, ""].join("\n");
+  fs.writeFileSync(path.join(d, "internal-names.md"), text);
+  fs.writeFileSync(path.join(d, "finding.md"), fs.readFileSync(path.join(live, "finding.md"), "utf8"));
+  const F = load({ dirs: { nomenclature: d, glossary: d }, env: {}, readStored: () => null, home: path.join(dir, "nohome") });
+  const fh = t => M.finds(t, { loaded: F }).map(f => f.hit);
+  const fy = (t, name) => ok(fh(t).length > 0, `marker rule, ${name}: ${JSON.stringify(t)} found`, JSON.stringify(fh(t)));
+  const fn = (t, name) => ok(fh(t).length === 0, `marker rule, ${name}: ${JSON.stringify(t)} not found`, JSON.stringify(fh(t)));
+  fn(`the route ${single}`, "a marker directly before");
+  fy(`the ${single}`, "no marker");
+  fn(`the route-${single}`, "a marker joined before by a hyphen");
+  fn(`the ${single}-route`, "a marker joined after by a hyphen");
+  fy(`the ${single} route`, "a marker after with a space");
+  fn(`the route\n${single}`, "a line break between");
+  fy(`the route\n\n${single}`, "a blank line between");
+  fn(`the multi step ${single}`, "a marker of two words, a space for its hyphen");
+  fn(`ROUTE ${single.toUpperCase()}S`, "any case, the plural");
+  fn(`the route's ${single}`, "a marker in its possessive");
+  fn(`the route’s ${single}`, "a marker in its possessive, a curly apostrophe");
+  fn(`the **route ${single}**`, "a mark of emphasis around both");
+  fn(`the route **${single}**`, "a mark of emphasis at the join");
+  fn(`the \`x-route\` ${single}`, "a mark of code at the join");
+  fy(`the route loop's ${single}`, "another word between");
+  fy(`the route, then the ${single}`, "a marker elsewhere on the line");
+  fy(`the reroute ${single}`, "a word that only contains a marker");
+  fy(`the ${single}-router`, "a compound part that only contains a marker");
+  fn(`a shoe-${gradeWord} link`, "a marker of a third-section word");
+  fn(`shoe ${gradeWord}s`, "a marker before a third-section word's form");
+  fy(`a ${gradeWord}-4 issue`, "a third-section word with no marker");
+  /* the word itself in code form */
+  fn(`a \`${single}\` here`, "code form: a backtick span");
+  fn(`a \`\`x ${single}\`\` here`, "code form: a span of two backticks");
+  fn("```\nsome code\n" + `${single}\n` + "```", "code form: a fenced block");
+  fn("  ~~~\n" + `${single}\n` + "  ~~~", "code form: an indented fence of tildes");
+  fn("```\n" + `${single} with no closing fence`, "code form: a fence never closed runs to the end");
+  fn(`<pre><code>${single}</code></pre>`, "code form: a rendered block");
+  fn(`a <code>${single}</code> here`, "code form: a code element");
+  fy(`a \`x\` ${single} here`, "code form: the word in prose beside code");
+  fy("```\ncode\n```\n" + `the ${single} after`, "code form: prose after a closed fence");
+  fy(`a \`x\n\n${single}\` here`, "code form: no span across a blank line");
+  fy(`a \`\`x ${single}\` here`, "code form: no span between runs of unlike length");
+  ok(M.finds(`a \`${gradeWord}\` here`, { loaded: F }).length === 1, "code form: a word whose row says \"a find\" is found in code");
+  ok(M.codeRanges("a `b` c").length === 1 && M.codeRanges("a `b` c")[0].index === 2 && M.codeRanges("a `b` c")[0].end === 5, "codeRanges: a span's index and end");
+  const pf = M.patterns({ loaded: F }), mine = pf.filter(p => new RegExp(p.source, p.flags).test(single));
+  ok(mine.length > 0 && mine.every(p => p.codeForm === true) && pf.filter(p => p.list === "internal-names §3").every(p => p.codeForm === false), "patterns: codeForm as the row says");
+  ok(mine.every(p => !new RegExp(p.source, p.flags).test(`route ${single}`)), "patterns: a source carries its markers");
+}
 
 /* the approval flow: every word of every form, in its form, built from the list */
 N.approval.forEach(r => {
@@ -123,14 +180,24 @@ ok(!M.finds("Selenium Manager", { loaded: LIVE, board: true }).length, "on a boa
 
 /* ---- every live row in each form ----------------------------------------------------------------- */
 never.forEach(r => r.aliases.forEach(a => {
-  [a, cap(a), a.toUpperCase(), `${a}s`, `the ${a}'s`, `\`${a}\``, `(${a})`].forEach(t => {
+  const coded = (markerRow(a) || {}).codeForm === true;
+  [a, cap(a), a.toUpperCase(), `${a}s`, `the ${a}'s`, ...(coded ? [] : [`\`${a}\``]), `(${a})`].forEach(t => {
     const f = M.finds(t, { loaded: LIVE });
     ok(f.length === 1 && f[0].entry === r.name && f[0].list === "internal-names §1", `live row ${r.name}: ${JSON.stringify(t)} found once, as its row`, JSON.stringify(f));
   });
+  if (coded) ok(M.finds(`a \`${a}\` here`, { loaded: LIVE }).length === 0, `live row ${r.name}: "\`${a}\`" in code form not found, as its markers' row says`);
 }));
 N.grades.forEach(r => r.words.forEach(w => {
   const f = M.finds(`it reads ${w} here`, { loaded: LIVE });
   ok(f.length >= 1 && f.every(x => x.list === "internal-names §3"), `live row ${r.term}: ${JSON.stringify(w)} found`, JSON.stringify(f));
+}));
+/* every live marker: a find of its word beside it and none where the marker stands apart */
+(N.markers || []).forEach(m => m.markers.forEach(k => {
+  const w = m.word, at = t => M.finds(t, { loaded: LIVE }).filter(f => f.hit.toLowerCase().replace(/['’]s$/, "").replace(/s$/, "") === w.toLowerCase());
+  ok(at(`the ${k} ${w} runs`).length === 0, `live marker ${JSON.stringify(k)} of ${JSON.stringify(w)}: "the ${k} ${w}" not found`, JSON.stringify(at(`the ${k} ${w} runs`)));
+  ok(at(`the ${w}-${k} runs`).length === 0, `live marker ${JSON.stringify(k)} of ${JSON.stringify(w)}: "${w}-${k}" not found`);
+  ok(at(`the ${k}, then the ${w} runs`).length === 1, `live marker ${JSON.stringify(k)} of ${JSON.stringify(w)}: "the ${k}, then the ${w}" found`, JSON.stringify(at(`the ${k}, then the ${w} runs`)));
+  ok(at(`the ${w} ${k} runs`).length === 1, `live marker ${JSON.stringify(k)} of ${JSON.stringify(w)}: "the ${w} ${k}" found`);
 }));
 
 /* ---- the shapes the board scripts read ----------------------------------------------------------- */

@@ -409,8 +409,8 @@ function sectionOf(md, anchor) {
     para.push(l.trim().replace(/^(?:[-*+]|\d+[.)])\s+/, () => para.length ? "· " : ""));
   }
   let p = para.join(" ").replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\*\*([^*]+)\*\*/g, "$1").replace(/__([^_]+)__/g, "$1").replace(/\s+/g, " ").trim();
-  const { levelRefs } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
-  levelRefs(p).forEach(hit => { p = p.split(hit).join("…"); });
+  const { levelSpans, elideSpans } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
+  p = elideSpans(p, levelSpans(p));
   p = elideNamed(p);
   if (p.length > 600) p = p.slice(0, 600).replace(/\s+\S*$/, "") + " …";
   return { heading: h.text.replace(/\s+/g, " ").trim(), paragraph: p, hash };
@@ -1433,16 +1433,16 @@ function mirrorUnitTests(plan, dir) {
   return changes;
 }
 /* The units' landings (plan/RULES.md §3, "The units' landings"; dashboards-skill/53): on a tracking board each unit row whose own board has
-   landed carries unit.landing { pr?, merge? }, that board's pull request and merge commit (its wip.landing, else its asBuilt, as its own
-   landed fact reads them), which the As built cell draws as the PR chip and the merge chip. Nobody writes it by hand: embed.js copies it from
+   landed carries unit.landing { pr?, merge? }, that board's pull request and merge commit, as its own landed fact reads them: the pair from
+   its asBuilt when asBuilt records either (a landed tracking board's asBuilt is its last unit's merge), else from its wip.landing (a tracking
+   plan's own merge), never one from each, which the As built cell draws as the PR chip and the merge chip. Nobody writes it by hand: embed.js copies it from
    the unit's plan.json in the same tree (its view copy where fresher) at every embed of the tracking board, and clears it where the unit's
    board is not in the tree, has not landed or records neither. A unit with no board of its own keeps its landing on its row (asBuilt.merge,
    asBuilt.pr, written by unit-landed) and carries no mirror. Returns [{ row, unit, want, have }]. */
+const landingPair = s => { const pr = s && Number.isInteger(s.pr) && s.pr > 0 ? s.pr : null, merge = s && typeof s.merge === "string" && /^[0-9a-f]{7,40}$/i.test(s.merge) ? s.merge : null; return pr || merge ? { ...(pr ? { pr } : {}), ...(merge ? { merge } : {}) } : null; };
 function unitLandingOf(sub) {
   if (!sub || !LV.boardLanded(sub)) return null;
-  const L = (sub.wip && sub.wip.landing) || {}, A = sub.asBuilt || {};
-  const pr = [L.pr, A.pr].find(n => Number.isInteger(n) && n > 0) || null, merge = [L.merge, A.merge].find(s => typeof s === "string" && /^[0-9a-f]{7,40}$/i.test(s)) || null;
-  return pr || merge ? { ...(pr ? { pr } : {}), ...(merge ? { merge } : {}) } : null;
+  return landingPair(sub.asBuilt) || landingPair(sub.wip && sub.wip.landing);
 }
 function unitLandings(plan, dir) {
   if (!plan || plan.kind !== "tracking") return [];
@@ -1558,10 +1558,13 @@ const notYetLanded = plan => !!plan && plan.kind !== "tracking" && !["built", "a
 /* merged, its parts still to resolve: the copy an enrichment is writing, kept however fresh its tracked board reads until it has landed */
 const landedPending = plan => notYetLanded(plan) && ((plan.wip || {}).event || {}).name === "landed";
 /* what is still to write of a landed unit on its tracking board, from the sub-issue's board and documents: only the plain fact as its summary, no reconciled impact entry, no
-   effect recorded on the initiative's impact. Nothing left, no enrichment (apply-event.js), and no reason to keep its copies (board.js --live). */
+   effect recorded on the initiative's impact. Nothing left, no enrichment (apply-event.js), and no reason to keep its copies (board.js --live).
+   A summary that still reads as at the unit's filing ("Filed as #n…", "Not filed yet…") is one still to write too: applyParent() keeps a
+   summary it did not write itself, so a landing would otherwise leave it as it stood before the unit's run (KotlinBottools #2's row for #27). */
+const FILING_TIME = /^(?:Filed as #\d+\b|not filed yet\b)/i;
 function unitLeft(plan, row) {
   const I = plan && plan.impact && typeof plan.impact === "object" ? plan.impact : null, sum = String(((row || {}).asBuilt || {}).summary || "").trim(), id = (row || {}).id;
-  return [...(/^#\d+ landed( through PR #\d+)?( as [0-9a-f]{7,40})?\.$/.test(sum) || !sum ? ["summary"] : []),
+  return [...(/^#\d+ landed( through PR #\d+)?( as [0-9a-f]{7,40})?\.$/.test(sum) || !sum || FILING_TIME.test(sum) ? ["summary"] : []),
     ...(I && !(Array.isArray(I.units) && I.units.some(e => e && e.unit === id && e.basis === "as-built")) ? ["impact entry"] : []),
     ...(I && !(Array.isArray(I.changes) && I.changes.some(c => c && c.unit === id)) ? ["effect on the initiative's impact"] : [])];
 }
@@ -2588,4 +2591,4 @@ function ghMergeTime(repo, pr, merge) {
 }
 
 module.exports = { ...LV, ...PN, PLAN_STAGES, PLAN_STAGE_NAMES, PLAN_STAGE_BRIEFS, STAGE_ROUND, CHECK_RESULTS, planPassIds, planStagesLine, planStagesOf, seedPlanStages, planStageId, planStageName, stageRan, checkResult, planWayBack, planStageMove, planStageLine, planStageLate, planStagesClose, PLAN_STAGE_LINE, planStagesFromTrail, ARCH_STAGES, ARCH_STAGE_BRIEFS, archStagesOf, ARCH_STAGE_LINE, archStagesFromTrail, renameInto, RENAME_BUDGET_MS, stageTable, stepsBelow, stepKids, walkSteps, stepShape, settleSteps, carrySteps, stepNameOf, completeStep, planStageTable, stageKey, stageRow, stageTableFields, catchUpStageTable, stampItem, backfillStages, STAGE_KINDS, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, isUnitRef, blockerOf, mapUnitBlockers, filedSummary, filedSummaries, HISTORY_FIELDS, HISTORY_STEPS, qAnswered, askedOf, answerQuestions, syncAsked, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, retimePlan, RETIME_NOT, retimeWords, retimeWhat, TEAM_RECORDS, rewordPlan, rewordDigest, rewordWhat, docCommitDone, landSent, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, roadmapDocItem, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, verdictEntry, VERDICT_KINDS, OPTION_VERDICTS, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
-  trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, unitLandingOf, unitLandings, mirrorUnitLandings, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewBaseFolder, viewBaseHref, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, notYetLanded, landedPending, unitLeft, setViewLinks, viewedFolder, viewLink, landVisit, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };
+  trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, unitLandingOf, unitLandings, mirrorUnitLandings, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewBaseFolder, viewBaseHref, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, notYetLanded, landedPending, unitLeft, FILING_TIME, setViewLinks, viewedFolder, viewLink, landVisit, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

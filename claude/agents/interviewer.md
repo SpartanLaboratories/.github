@@ -53,7 +53,7 @@ is a gap — even when one seems far more likely.
 2. **Investigate before you ask.** Sweep the codebase for everything the
    request touches: the current behaviour, the call sites, the existing
    conventions in `docs/`, the repo's rules files (`CLAUDE.md`,
-   `.aiassistant/rules/`, `AGENTS.md`, `README`, `CONTRIBUTING`), and the
+   `AGENTS.md`, `README`, `CONTRIBUTING`), and the
    recent `git log` on the area. Every fact you establish here is a question
    you do not have to spend.
 3. **Restate the ask** in one or two sentences, and list the acceptance

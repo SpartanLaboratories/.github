@@ -104,10 +104,17 @@ two(["--root", path.join(dir, "nofolder"), "--repo", "a/b", "x.md"], "a root tha
   fs.mkdirSync(path.join(g, "claude"), { recursive: true });
   fs.writeFileSync(path.join(g, "claude", "x.md"), `the ${name}\n`);
   fs.writeFileSync(path.join(g, "README.md"), `the ${name}\n`);
+  fs.mkdirSync(path.join(g, "claude", "skills"), { recursive: true }); fs.mkdirSync(path.join(g, "scripts"), { recursive: true });
+  fs.writeFileSync(path.join(g, "claude", "skills", "a.js"), `// the ${name}\nconst a = 1;\n`);
+  fs.writeFileSync(path.join(g, "scripts", "b.js"), `// the ${name}\nconst b = 1;\n`);
   cp.execFileSync("git", ["init", "-q", g], { stdio: "ignore" });
   cp.execFileSync("git", ["-C", g, "config", "remote.origin.url", "https://github.com/SpartanLaboratories/.github.git"], { stdio: "ignore" });
   const r = run(["--root", g, "claude/x.md", "README.md"]);
   ok(r.code === 1 && /skipped claude\/x\.md: not read/.test(r.err) && /^README\.md:1:/.test(r.out), "the repository read from origin: the organization repository's rows applied", JSON.stringify(r));
+  const c = run(["--root", g, "claude/skills/a.js", "scripts/b.js"]);
+  ok(c.code === 1 && /skipped claude\/skills\/a\.js: not read/.test(c.err) && /read 1 file,/.test(c.err) && /^scripts\/b\.js:1:/.test(c.out) && !/claude/.test(c.out), "the organization repository: a code file under claude/ not read, one outside it read for its comments", JSON.stringify(c));
+  const o = run(["--root", g, "--repo", "SomeOwner/some-repo", "claude/skills/a.js"]);
+  ok(o.code === 1 && /^claude\/skills\/a\.js:1:/.test(o.out), "another repository: a code file under its claude/ read for its comments", JSON.stringify(o));
 }
 
 /* ---- the lists: unreadable, and a wording from the list's column ------------------------------------ */

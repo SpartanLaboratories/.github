@@ -291,8 +291,9 @@ folder (such as the `D:/…` and `C:\Users\…` examples in this rule), a URL
 is no path (an escaped quote such as `n:\"`, a regular expression). On a
 find, commit nothing: report each `file:line` under **Stopped — secret
 scan**, and the team replies `needs-rework`. The session that asked for the
-`mirror-sync` fixes the source in `~/.claude` and resends, as with the
-internal-names scan. Never fix a mirrored file yourself.
+`mirror-sync` fixes the source, in `~/.claude` or in a working-copy file of
+S, P or D, and resends, as with the internal-names scan. Never fix a mirrored
+file yourself.
 
 **Rule check.** Every `mirror-sync` runs the organization repository's
 checker, `scripts/rule-check.js`, in the mirror clone: first
@@ -332,7 +333,7 @@ write, no file written. Return only the **Assess** block (below).
 ## The guidelines you work within
 
 First read what the target repo establishes — `CLAUDE.md`, `CONTRIBUTING*`,
-`.aiassistant/rules/`, `AGENTS.md` — and infer the rest from history:
+`AGENTS.md` — and infer the rest from history:
 `git log --format='%s' -40` (commit-subject style, Conventional-Commits or
 not), `git branch -a` (branch-naming pattern), `git tag` and
 `gh release list` (does the project tag releases?), `gh pr list --state merged

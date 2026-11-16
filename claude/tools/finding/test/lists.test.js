@@ -64,12 +64,15 @@ function list({ s1Header, s1Rows, s2Rows, s2Header, s3Rows, s4 } = {}) {
   ok(X.internalNames.grades.length === rowsOf(3).length && rowsOf(3).length > 0, `live: every row of section 3 read (${rowsOf(3).length})`);
   rowsOf(1).forEach(raw => {
     const cells = L.cellsOf(raw), name = /\*\*(.+?)\*\*/.exec(cells[0])[1], r = X.internalNames.roles.find(x => x.name === name);
-    const want = /agent's name only/i.test(raw) ? "agent" : /\|\s*never\s*\|?\s*$/.test(raw) ? "never" : "other";
+    const want = /agent's name only/i.test(raw) ? "agent" : /\|\s*(?:never|as section 4's markers say)\s*\|?\s*$/.test(raw) ? "never" : "other";
     ok(r && r.strength === want && r.aliases.length === (cells[1].match(/\*\*/g) || []).length / 2, `live: section 1 row ${name} read with its aliases, strength ${want}`, JSON.stringify(r));
   });
   X.internalNames.approval.forEach(r => ok(r.strength === "never", `live: section 2 row ${r.phrase} read, strength never${r.form ? `, a form after "${r.form.anchor}"` : ", no form"}`));
   X.internalNames.grades.forEach(r => ok(r.strength === "never" && r.words.length >= 1, `live: section 3 row ${r.term} read, strength never, ${r.words.length} words`));
   ok(X.internalNames.allowed.length > 0, "live: section 4 read as text");
+  const markerRows = (/^### Markers[\s\S]*$/m.exec(rowsOf(4).length ? text : "") || [""])[0].split("\n").filter(l => /^\|\s*\*\*/.test(l));
+  ok(X.internalNames.markers.length === markerRows.length, `live: every row of the markers read (${markerRows.length})`, JSON.stringify(X.internalNames.markers));
+  X.internalNames.markers.forEach(m => ok(m.markers.length > 0 && typeof m.codeForm === "boolean", `live: the markers of ${JSON.stringify(m.word)} read (${m.markers.length}), in code form ${m.codeForm ? "no find" : "a find"}`));
   ok(X.finding.places.length > 0 && X.finding.kinds.length > 0, `live: the baseline's two tables read (${X.finding.places.length} places, ${X.finding.kinds.length} kinds)`);
   ok(X.finding.shortened.length === 2, `live: the baseline's shortened names read (${X.finding.shortened.length})`);
   ok(!X.terms.vocabulary.error && X.terms.vocabulary.lines.length > 0, "live: the vocabulary's term lines read");
@@ -109,6 +112,26 @@ function list({ s1Header, s1Rows, s2Rows, s2Header, s3Rows, s4 } = {}) {
   ok(X.internalNames.approval[0].sayInstead === "the replies", "the wording column in section 2");
   ok(X.internalNames.grades.every(r => r.sayInstead === null), "a section without the column: null");
 }
+
+/* ---- the markers of section 4 ------------------------------------------------------------------- */
+const allowedTable = ["| Term | What it is |", "|---|---|", "| **\"fine\"** | A fine word. |"];
+const withMarkers = rows => list({ s1Rows: ["| **Widgeteer** | **widgeteer**, **widget maker** | A role. | as section 4's markers say |",
+  "| **Qx** | **qx** | A role. Barred as an agent's name only. | its step |"],
+  s4: [...allowedTable, "", "### Markers", "", "| Word | Markers | In code form |", "|---|---|---|", ...rows] });
+{
+  const X = L.load(opts(fixture(withMarkers(["| **widgeteer** | `gear`, `two-part` | no find |", "| **size** | `shoe` | a find |"]))));
+  const m = X.internalNames.markers;
+  ok(m.length === 2 && m[0].word === "widgeteer" && m[0].markers.join() === "gear,two-part" && m[0].codeForm === true, "markers: a row's word, its markers in backticks, no find in code form", JSON.stringify(m[0]));
+  ok(m[1].word === "size" && m[1].codeForm === false, "markers: a third-section word, a find in code form", JSON.stringify(m[1]));
+  ok(X.internalNames.roles[0].strength === "never", "a row that points at the markers is barred (strength never)");
+  ok(X.internalNames.allowed.length === 1, "section 4's first table is still the allowed words");
+}
+ok(L.load(opts(fixture(list()))).internalNames.markers.length === 0, "markers: a section 4 with no markers' table has none");
+throwsList(() => L.load(opts(fixture(withMarkers(["| **gadget** | `gear` | no find |"])))), "markers: a word the list does not bar is an error with its line", /internal-names\.md:\d+: "gadget" is no name, phrase or word of sections 1 to 3/);
+throwsList(() => L.load(opts(fixture(withMarkers(["| **widgeteer** | gear | no find |"])))), "markers: a row with no marker in backticks is an error", /"widgeteer" has no marker in backticks/);
+throwsList(() => L.load(opts(fixture(withMarkers(["| **widgeteer** | `gear` | sometimes |"])))), "markers: an \"In code form\" cell of another kind is an error", /"sometimes" is neither "no find" nor "a find"/);
+throwsList(() => L.load(opts(fixture(withMarkers(["| **widgeteer** | `gear` | no find |", "| **Widgeteer** | `cog` | a find |"])))), "markers: a word with two rows is an error", /"Widgeteer" has a second row of markers/);
+throwsList(() => L.load(opts(fixture(withMarkers(["| widgeteer | `gear` | no find |"])))), "markers: a row with no bold word is an error", /a row of the markers has no bold word/);
 
 /* ---- the term lines ------------------------------------------------------------------------------ */
 {

@@ -161,10 +161,11 @@ knows about tools and safety still applies; this brief adds your role on top.
   propagation into them of a decision the user has made, a term or a wording
   it brought to the user and the user approved among them, goes to it in its
   **apply** mode in place of the `direction-manager`; a correction to the
-  baseline, `finding.md`, it makes at its own discretion in its **correct**
-  mode, and a defect fix in its brief at its own discretion too; either way
-  with the diff shown, the `config-edit` appended and the files landed as
-  Service: nomenclature says.
+  baseline, `finding.md`, or to the markers that clear a listed word's
+  technical sense (R-10059 (A technical sense by its marker) [10059-T4]), it makes at its
+  own discretion in its **correct** mode, and a defect fix in its brief at
+  its own discretion too; either way with the diff shown, the `config-edit`
+  appended and the files landed as Service: nomenclature says.
   The `direction-manager` may make any change to this brief itself, to the
   team, or to any of its contents, except the ledger, `state.json`, the
   Archivist's records (Service: archive), the finding tool
@@ -256,8 +257,9 @@ request in its lane, send `progress` naming the failure, give the message to the
 correction is placed; the scan is never read by hand in the command's place. A requester with a reason to keep a find resends instead asking for an
 exception (`PROTOCOL.md`, "Rules both sides keep"): first have the `communication-clarity-officer` judge
 each find in its **correct** mode (Service: nomenclature). A find it judges false, no use of
-what the list bars, it corrects in the baseline, and the request runs again once the
-correction is placed; put the true finds to the user at this console,
+what the list bars, it corrects in the baseline, or with a marker where the find is a listed
+word's technical sense (R-10059 (A technical sense by its marker) [10059-T5]), and the request runs
+again once the correction is placed; put the true finds to the user at this console,
 with each find's `file:line`, its text and the requester's reasons, and reply
 `needs-user` while you wait. A find the user does not except goes back
 `needs-rework`, to be reworded. An exception the user grants the first time is a
@@ -286,7 +288,7 @@ board (`dashboards` skill, `plan/RULES.md` §10).
 | `file-sub-issues` | After the tracking plan's `land`, file the list as sub-issues of `issue` recording each one's grade in the team's state, with *blocked by* links, label the parent `type: tracking`, and add a comment on `issue` listing the sub-issues (the land's resolution comment precedes them). The requester states the user approved the list at the architecture sign-off; that relayed approval is enough for this action and no other. |
 | `file-issue` | File one issue in GitHub from `title` and `body`, without a gate, under `version-control-manager.md`'s filing rules: never against a downstream consumer of `surfacedIn`, about the change being landed, or for comment resolution, a code comment or KDoc that needs rewording (rejected with the rule); a request that mixes a defect with such wording gets the defect filed alone, its `done` naming the wording dropped; a speculative defect is rejected as a suspicion; reword anything Claude-internal; if an open issue already covers it, file nothing and reply `done` naming that issue (`result.filed: false`). Reply with `result.issue {number, url}`. |
 | `comment` / `label` | Post the comment, or add/remove the labels, on `issue`. |
-| `mirror-sync` | In the `mirror` lane: copy the listed `~/.claude` paths into the mirror clone, and place there any listed working-copy file of S, P or D at its path; run `rule-check.js --write` in the clone, which also writes the counts in S, P and D that the edit's own `--write --defer-policies` run reported as pending, then the secret scan, the internal-names scan and the rule check (`version-control-manager.md`, Executor mode, which says how the checker reads G); show the diff at this console; commit straight to `main`, push, and pull the standing checkout. On a find or a failed rule check it commits nothing: reply `needs-rework` with `result.finds`, and the requester fixes the source in `~/.claude` and resends the same `id` with `attempt + 1`. When you queued the mirror-sync yourself, route the fix to the agent that made the edit (`direction-manager` for a direction document, `communication-clarity-officer` for a nomenclature file, the finding tool or its brief, `presenter` for a dashboards-skill file) and handle any other case yourself, case by case. Refuse any path the mirror README's "Not included" list excludes, the admin team's local state (`ledger.jsonl`, `state.json`, `hooks.jsonl`, `questions.jsonl`, `archive/`, `temp-permissions/`, `work/`, `launch.lock`, `up`) included. |
+| `mirror-sync` | In the `mirror` lane: copy the listed `~/.claude` paths into the mirror clone, and place there any listed working-copy file of S, P or D at its path; run `rule-check.js --write` in the clone, which also writes the counts in S, P and D that the edit's own `--write --defer-policies` run reported as pending, then the secret scan, the internal-names scan and the rule check (`version-control-manager.md`, Executor mode, which says how the checker reads G); show the diff at this console; commit straight to `main`, push, and pull the standing checkout. On a find or a failed rule check it commits nothing: reply `needs-rework` with `result.finds`, and the requester fixes the source, in `~/.claude` or in a working-copy file of S, P or D, and resends the same `id` with `attempt + 1`. When you queued the mirror-sync yourself, route the fix to the agent that made the edit (`direction-manager` for a direction document, `communication-clarity-officer` for a nomenclature file, the finding tool or its brief, `presenter` for a dashboards-skill file) and handle any other case yourself, case by case. Refuse any path the mirror README's "Not included" list excludes, the admin team's local state (`ledger.jsonl`, `state.json`, `hooks.jsonl`, `questions.jsonl`, `archive/`, `temp-permissions/`, `work/`, `launch.lock`, `up`) included. |
 | `push-mirror` | Per `procedure`: a mirror push or force-push from the workspace mirror at `mirror` to `target`. |
 | `create-repo` | Per `procedure`: create the repository `target`. |
 | `repo-settings` | Per `procedure`: apply `settings` to `target`. |
@@ -1068,24 +1070,27 @@ the service's jobs come from the user at this console and from you.
   `presenter`'s rules (Presenter lanes).
 - **Terms are the user's.** No term, word a term rules out, wording to say
   instead or exception is added, changed or removed without the user's
-  decision. One the user directs goes to it in **apply** mode. One someone
-  needs (a name `presenter` reports it needs for a board element, a term a run
-  or another session asks for, an Allowed row for a case that came up again,
-  a wording its audit finds missing) goes to it in **propose** mode: put its
-  draft to the user at this console, record the answer as a `user-decision`,
-  and give an approved draft back to it in **apply**. Until the term is
-  decided, the element takes no name from a vocabulary (`dashboards` skill,
+  decision, the markers that clear a listed word's technical sense aside
+  (**Corrections on its own**). One the user directs goes to it in **apply**
+  mode. One someone needs (a name `presenter` reports it needs for a board
+  element, a term a run or another session asks for, an Allowed row for a case
+  that came up again, a wording its audit finds missing) goes to it in
+  **propose** mode: put its draft to the user at this console, record the
+  answer as a `user-decision`, and give an approved draft back to it in
+  **apply**. Until the term is decided, the element takes no name from a vocabulary (`dashboards` skill,
   `GUIDANCE.md` §12).
 - **Corrections on its own.** A false find or a missed one goes to it in
   **correct** mode: a find a requester disputes (Service: version control,
   **Internal names block a commit**), one `presenter` reports, or one its
-  **audit** finds, and a defect in the tool. It changes the baseline and the
-  tool at its own discretion; what a vocabulary bars, and every exception to
-  it, stays the user's.
+  **audit** finds, and a defect in the tool. It changes the baseline, the tool
+  and the markers that clear a listed word's technical sense at its own
+  discretion, adding and writing a marker itself (R-10059 (A technical sense
+  by its marker) [10059-T6]); what a vocabulary bars, and every other exception to it,
+  stays the user's.
 - **A change the scripts read lands with `presenter`'s.** When its report
   carries a **Hand-off to the presenter** (a change to the baseline or the
   tool, or a vocabulary edit the dashboards scripts copy or parse: a barred
-  alias, a wording to say instead, a vocabulary's layout), queue a
+  alias, a marker, a wording to say instead, a vocabulary's layout), queue a
   `presenter` job in `presenter:skills` with it; once that job's full
   verification passes, with the scripts brought to the change or none needing
   it, land both members' edits together, as below. No change to the tool lands

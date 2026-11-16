@@ -108,8 +108,8 @@ const T0 = Date.now();
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const lib = require("./lib.js"), TL = require("./testslib.js");
 const dev = require(path.resolve(__dirname, "..", "..", "system", "scripts", "deviation.js"));
-const { levelRefs, scrubLevels, nameTestLevels } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
-const { nameRefs, scrubNames, scrubWaits, unambiguous, cleanWritten: cleanWrittenOf } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
+const { levelRefs, levelSpans, elideSpans, scrubLevels, nameTestLevels } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
+const { nameRefs, nameSpans, scrubNames, scrubWaits, unambiguous, cleanWritten: cleanWrittenOf } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "namerefs.js"));
 
 const USAGE = "usage: node apply-event.js --event <request.json> --worktree <path> [--repo <owner/repo>] [--main <checkout>] [--at <ISO time>] [--arrived <UTC ISO time>] [--view] [--no-live] [--no-gh] [--json]";
 const args = process.argv.slice(2);
@@ -1477,7 +1477,7 @@ function setRemediation(w, R, applied, enrich, txt, how = {}) {
   const old0 = w.remediation && w.remediation.pass === R.pass ? w.remediation : {}, old = old0.route ? { ...old0, route: routeId(old0.route) } : old0;
   /* a sub-step's name: a sizing in it (GUIDANCE.md §4) is elided ("…") rather than the step dropped, and a fill is asked for */
   const stepName = (raw, i) => { const t = txt(raw, `remediation.steps[${i}].name`); if (t || typeof raw !== "string" || !raw.trim()) return t;
-    let s = lib.renamePassText(raw.replace(/\s+/g, " ").trim()); levelRefs(s).forEach(h => { s = s.split(h).join("…"); }); s = scrubNames(s).text; nameRefs(s).forEach(h => { s = s.split(h).join("…"); }); return s; };
+    let s = lib.renamePassText(raw.replace(/\s+/g, " ").trim()); s = elideSpans(s, levelSpans(s)); s = scrubNames(s).text; return elideSpans(s, nameSpans(s)); };
   const steps = Array.isArray(R.steps) ? R.steps.map((s, i) => { const raw = s && (s.name || s.what), name = stepName(raw, i);
     if (!name) refuse(`facts.remediation.steps[${i}] has no name (got ${JSON.stringify(raw === undefined ? null : raw)})`);
     if (!SSTATES.includes(s.state)) refuse(`facts.remediation.steps[${i}].state ${JSON.stringify(s.state)} is not done, current or todo`);
@@ -1675,7 +1675,8 @@ function applyParent(orig, sub, op, now) {
     if (["planned"].includes(plan.status)) { plan.status = "building"; applied.push(`#${plan.issue}: status building`); }
   } else if (op.kind === "complete") {
     if (!["complete", ...lib.UNIT_LANDED].includes(state)) {
-      const had = row.asBuilt && typeof row.asBuilt.summary === "string" && row.asBuilt.summary.trim();
+      /* a summary that still reads as at the unit's filing (lib.js FILING_TIME) says nothing of the run: the plain fact replaces it */
+      const had = row.asBuilt && typeof row.asBuilt.summary === "string" && row.asBuilt.summary.trim() && !lib.FILING_TIME.test(row.asBuilt.summary.trim());
       /* a complete unit says what exists (check.js): with no summary yet, the plain fact; one written before is a fill's to update */
       row.asBuilt = { ...(row.asBuilt || {}), state: "complete", ...(had ? {} : { summary: `#${sub.issue}'s run: the ${lib.REVIEW} approved; it is not merged yet.` }) };
       applied.push(`#${plan.issue}: ${row.id} complete`);
@@ -1685,7 +1686,7 @@ function applyParent(orig, sub, op, now) {
     /* a landed unit says what exists (check.js): with no summary yet, or only the plain fact its qa pass wrote, the plain fact of its
        landing from the sub-issue's asBuilt; a summary written from the documents is a fill's to update */
     const A = (sub && sub.asBuilt) || {}, m = A.merge || A.sha, s0 = row.asBuilt && typeof row.asBuilt.summary === "string" ? row.asBuilt.summary.trim() : "";
-    const had = s0 && ![`#${sub.issue}'s run passed qa; it is not merged yet.`, `#${sub.issue}'s run: the ${lib.REVIEW} approved; it is not merged yet.`].includes(s0);
+    const had = s0 && ![`#${sub.issue}'s run passed qa; it is not merged yet.`, `#${sub.issue}'s run: the ${lib.REVIEW} approved; it is not merged yet.`].includes(s0) && !lib.FILING_TIME.test(s0);
     if (state !== "landed" || !had) { row.asBuilt = { ...(row.asBuilt || {}), state: "landed", ...(had ? {} : { summary: `#${sub.issue} landed${A.pr ? ` through PR #${A.pr}` : ""}${m ? ` as ${String(m).slice(0, 7)}` : ""}.` }) }; applied.push(`#${plan.issue}: ${row.id} landed${had ? "" : ", with the plain fact of its landing as its summary"}`); }
     /* a unit with no board of its own records its landing on its row (merge, pr): no board of its holds it, and the next sized seeds the tracking board's copy only into a branch that holds that merge (seedFromView()) */
     if (op.boardless && m && (row.asBuilt.merge !== m || (A.pr && row.asBuilt.pr !== A.pr))) { row.asBuilt = { ...row.asBuilt, merge: m, ...(A.pr ? { pr: A.pr } : {}) }; applied.push(`#${plan.issue}: ${row.id}'s merge ${String(m).slice(0, 7)} on its row`); }
@@ -1730,6 +1731,30 @@ function applyParent(orig, sub, op, now) {
     }
   }
   return { plan, applied, enrich };
+}
+/* A tracking issue that is itself a sub-issue lands with its board (plan/RULES.md §3, "A sub-issue lands"): when applyParent() has just landed the tracking
+   board in `dir` (its last unit's landing), the standing rule's landed move is made again on the tracking board of the folder it sits in, and so on up while
+   each lands in turn (KotlinBottools #27 inside #2). Each board is read as the event reads its parent (viewRead(): with --view, its view copy where that is
+   fresher) and written as its parent is (writeBoard(): with --view, into its view copy alone). Returns the folders written, for the caller's checks. */
+function landUpward(dir, landed, now) {
+  const wrote = [];
+  for (let d = dir, p = landed; p && p.kind === "tracking" && p.status === "built" && p.parent && Number.isInteger(p.parent.issue);) {
+    const up = lib.parentFolder(d, p); if (!up || !fs.existsSync(path.join(up, "dashboard.html"))) { S.enrich.push(`#${p.issue} has landed, and its parent tracking board #${p.parent.issue} is not in the enclosing folder: its unit's landing there is the presenter's`); break; }
+    const text = fs.readFileSync(viewRead(up), "utf8"), eol = /\r\n/.test(text) ? "\r\n" : "\n";
+    let pp; try { pp = JSON.parse(text); } catch (e) { throw new Error(`the tracking board above #${p.issue} does not parse: ${e.message}`); }
+    if (pp.kind !== "tracking" || pp.issue !== p.parent.issue) { S.enrich.push(`#${p.issue} has landed, and the board in the folder above it is not its parent tracking board #${p.parent.issue}: its unit's landing there is the presenter's`); break; }
+    const was = pp.status, P = applyParent(pp, p, { kind: "landed" }, now);
+    S.applied.push(...P.applied); S.enrich.push(...P.enrich);
+    if (!P.applied.length) break;
+    if (VIEWING) { let tp = null; try { tp = JSON.parse(fs.readFileSync(path.join(up, "plan.json"), "utf8")); } catch (e) { /* none tracked */ }
+      if (tp && !(String(lib.planStamp(P.plan)) > String(lib.planStamp(tp)))) WARNINGS.push(`VIEW COPY NOT FRESHER: the event's time ${now} is not after #${pp.issue}'s own stamp ${lib.planStamp(tp)}, so the live view drops its copy: raise it with its real time`); }
+    writeBoard(up, P.plan, eol, S.enrich, `#${p.issue}'s unit on #${pp.issue}`); wrote.push(up);
+    /* with --view, the landed board's copy once more, now that the copy above it exists for its parent link to open (lib.js viewLink()) */
+    if (VIEWING) writeBoard(d, p, /\r\n/.test(fs.readFileSync(viewRead(d), "utf8")) ? "\r\n" : "\n", [], `#${p.issue}`);
+    if (P.plan.status !== "built" || was === "built") break;
+    d = up; p = P.plan;
+  }
+  return wrote;
 }
 /* Whether a unit's landing is its tracking issue's last (plan/RULES.md §3), and whether the tracking board lands with it: { land, total, at, mergedAt }
    when every counted unit has landed, no part is open and the initiative's impact is reconciled (or the board records none); { enrich } naming what is
@@ -1956,6 +1981,26 @@ async function reseed(now, req) {
       if (changed) { tp.wip = tp.wip || {}; tp.wip.updated = now; writeBoard(tracked, tp, eol, S.enrich, `re-seeded ${x.rel}`); note(tracked);
         S.applied.push(`re-seeded #${tp.issue}: ${boardless.map(p => "#" + p.crow.unit.issue).join(", ")}'s row, impact entries and trail; its wip left to the run's events`); }
     }
+    /* a landed tracking board's copy that is itself a sub-issue (plan/RULES.md §3, "A sub-issue lands"): once its tracked board here has landed (seeded so, or
+       landed above), its parent tracking board takes what the landing owns, as an issue board's parent does: the unit landed by the standing rule, then its row
+       as built, its impact entries and its trail from the parent's copy (takeOwned()); a parent that already holds that unit landed, with nothing to take, is
+       left alone, so a landing nothing raced changes nothing */
+    for (const x of copies.filter(y => y.vp.kind === "tracking" && y.vp.status === "built" && y.vp.parent && Number.isInteger(y.vp.parent.issue))) {
+      const tracked = path.join(tree, "docs", "plans", ...x.rel.split("/")), tp = read(path.join(tracked, "plan.json")); if (!tp || tp.issue !== x.vp.issue || tp.status !== "built") continue;
+      const up = path.dirname(tracked), ptext = (() => { try { return fs.readFileSync(path.join(up, "plan.json"), "utf8"); } catch (e) { return null; } })(); if (!ptext) continue;
+      lib.lockTree(tree, "apply-event.js reseed");
+      let pp; try { pp = JSON.parse(fs.readFileSync(path.join(up, "plan.json"), "utf8")); } catch (e) { continue; } if (pp.kind !== "tracking" || pp.issue !== x.vp.parent.issue) continue;
+      if (["built", "abandoned"].includes(pp.status) || ["landed", "cancelled"].includes((pp.wip || {}).step)) continue;
+      const row0 = (pp.rows || []).find(r => r && r.unit && r.unit.issue === x.vp.issue), had = !!row0 && lib.UNIT_LANDED.includes((row0.asBuilt || {}).state);
+      const P = applyParent(pp, x.vp, { kind: "landed" }, now), merged = P.plan, row = (merged.rows || []).find(r => r && r.unit && r.unit.issue === x.vp.issue);
+      const cpy = copies.find(y => y.rel === path.posix.dirname(x.rel)), cp0 = cpy && cpy.vp, crow = cp0 && row && (cp0.rows || []).find(r => r && r.id === row.id);
+      const changed = crow && row ? takeOwned(merged, cp0, row, crow) : false;
+      if (!changed && (had || !P.applied.length)) continue;
+      merged.wip = merged.wip || {}; merged.wip.updated = now;
+      const note = d => { if (!written.has(tree)) written.set(tree, []); written.get(tree).push(d); S.seeded.push(path.relative(tree, d).split(path.sep).join("/")); };
+      writeBoard(up, merged, /\r\n/.test(ptext) ? "\r\n" : "\n", S.enrich, `re-seeded ${path.relative(path.join(tree, "docs", "plans"), up).split(path.sep).join("/")}`); note(up);
+      S.applied.push(`re-seeded #${merged.issue}: #${x.vp.issue}'s unit landed${changed ? ", its row, its impact entries and its trail" : ""}; its wip left to the run's events`);
+    }
   }
   /* the checks, the committed repository work board of each tree written, and the live one; nothing written, nothing regenerated, unless a copy is left to clear */
   const stale = copies.some(x => { const t = read(path.join(MAIN, "docs", "plans", ...x.rel.split("/"), "plan.json")); return t && !(String(lib.planStamp(x.vp)) > String(lib.planStamp(t))); });
@@ -2087,10 +2132,13 @@ async function unitLanded(now, req, facts) {
   { let tp = null; try { tp = JSON.parse(fs.readFileSync(path.join(dir, "plan.json"), "utf8")); } catch (e) { /* reported above */ }
     if (tp && !(String(lib.planStamp(P.plan)) > String(lib.planStamp(tp)))) WARNINGS.push(`VIEW COPY NOT FRESHER: the event's time ${now} is not after the board's own stamp ${lib.planStamp(tp)}, so the live view drops the copy: raise it with its real time`); }
   writeBoard(dir, P.plan, eol, S.enrich, `#${facts.unit}'s unit on #${pp.issue}`);
-  const ck = await run(path.join(__dirname, "check.js"), [lib.viewDirOf(dir, MAIN), "--root", ROOT], ROOT);
+  /* the tracking board landed with this unit, and sits inside another: its unit landed there too (plan/RULES.md §3, "A sub-issue lands") */
+  const above = P.plan.status === "built" && pp.status !== "built" ? landUpward(dir, P.plan, now) : [];
+  const [ck, ...aks] = await Promise.all([dir, ...above].map(d => run(path.join(__dirname, "check.js"), [lib.viewDirOf(d, MAIN), "--root", ROOT], ROOT)));
   if (ck.status !== 0) { S.check = `FAIL: ${ck.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l)).slice(0, 6).join(" | ") || (ck.stderr || "").trim().split(/\r?\n/)[0]}`; throw new Error("check.js failed on the tracking board's view copy"); }
-  S.check = `pass (tracking board: ${plural((ck.stdout.match(/^warn/gm) || []).length, "warning")})`;
-  S.defects = [...new Set(ck.stdout.split(/\r?\n/).map(l => (l.match(/^warn\s+(ISSUE TITLE NAMES A GRADE: #[\d?]+)/) || [])[1]).filter(Boolean))];
+  if (aks.some(c => c.status !== 0)) { S.check = `FAIL (above the tracking board): ${aks.flatMap(c => c.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l))).slice(0, 6).join(" | ") || (aks.find(c => c.status !== 0).stderr || "").trim().split(/\r?\n/)[0]}`; throw new Error("check.js failed on the view copy of the tracking board above it"); }
+  S.check = `pass (tracking board: ${plural((ck.stdout.match(/^warn/gm) || []).length, "warning")}${above.length ? `; above it: ${plural(aks.reduce((n, c) => n + (c.stdout.match(/^warn/gm) || []).length, 0), "warning")}` : ""})`;
+  S.defects = [...new Set([ck, ...aks].flatMap(c => c.stdout.split(/\r?\n/).map(l => (l.match(/^warn\s+(ISSUE TITLE NAMES A GRADE: #[\d?]+)/) || [])[1]).filter(Boolean)))];
   if (flag("no-live")) S.live = "skipped (--no-live)";
   else {
     const liveDir = path.join(MAIN, "docs", "plans", ".live");
@@ -2397,16 +2445,20 @@ async function main() {
     if (laid) { const made = []; for (let d = DIR; !fs.existsSync(d); d = path.dirname(d)) made.unshift(d); made.forEach(d => { fs.mkdirSync(d); madeDirs.push(d); }); }
     if (laid && !flag("no-live")) { const lv = path.join(ROOT, "docs", "plans", ".live"); if (!fs.existsSync(lv)) { fs.mkdirSync(lv, { recursive: true }); madeDirs.push(lv); } }
     writeBoard(DIR, R.plan, eol, S.enrich, "board");
-    /* the parent tracking board: the standing rule's move, then a re-embed that mirrors this unit's run (lib.js mirrorUnitRuns) */
-    const up = lib.parentFolder(DIR, R.plan);
+    /* the parent tracking board: the standing rule's move, then a re-embed that mirrors this unit's run (lib.js mirrorUnitRuns); the boards above it
+       that its own landing moves (landUpward()) */
+    const up = lib.parentFolder(DIR, R.plan), above = [];
     if (up && fs.existsSync(path.join(up, "dashboard.html"))) {
       const ptext = fs.readFileSync(viewRead(up), "utf8"), peol = /\r\n/.test(ptext) ? "\r\n" : "\n";
       let pplan; try { pplan = JSON.parse(ptext); } catch (e) { throw new Error(`the parent tracking board's plan.json does not parse: ${e.message}`); }
+      const pwas = pplan.status;
       if (retimedParent) pplan = retimedParent;
       else if (rewordMirror) pplan = rewordMirror.pp;
       else if (R.parentOp) { const P = applyParent(pplan, R.plan, R.parentOp, now); pplan = P.plan; S.applied.push(...P.applied); S.enrich.push(...P.enrich); }
       const prel = path.relative(ROOT, up).split(path.sep).join("/");
       const wroteParent = writeBoard(up, pplan, peol, S.enrich, "parent");
+      /* the tracking board landed with this unit, and sits inside another: its unit landed there too (plan/RULES.md §3, "A sub-issue lands") */
+      if (R.parentOp && R.parentOp.kind === "landed" && !retimedParent && !rewordMirror && pplan.status === "built" && pwas !== "built") above.push(...landUpward(up, pplan, now));
       if (rewordMirror && (pplan.rows || []).some(r => r && r.unit && r.unit.issue === R.plan.issue && mirrorHolds(r.unit.live, rewordMirror.was)))
         throw new Error(`reword: the tracking board #${pplan.issue}'s mirror of the run still holds a reworded text as it read before, after its re-embed`);
       S.parent = `${prel} (${wroteParent ? "re-embedded" : "unchanged"})`;
@@ -2418,9 +2470,10 @@ async function main() {
     const at = d => VIEWING ? [lib.viewDirOf(d, MAIN), "--root", ROOT] : [d];
     const checks = [run(path.join(__dirname, "check.js"), at(DIR), ROOT)];
     if (up) checks.push(run(path.join(__dirname, "check.js"), at(up), ROOT));
+    above.forEach(d => checks.push(run(path.join(__dirname, "check.js"), at(d), ROOT)));
     /* the boards seeded from the live view, and the worktree's committed repository work board regenerated from them (board.js
        --refresh-template), so the branch carries the previous landing's state from its first commit */
-    const seededChecks = seeded.filter(d => d !== DIR && d !== up).map(d => run(path.join(__dirname, "check.js"), [d], ROOT));
+    const seededChecks = seeded.filter(d => d !== DIR && d !== up && !above.includes(d)).map(d => run(path.join(__dirname, "check.js"), [d], ROOT));
     let wbRun = null;
     if (seeded.length) { ["board.json", "index.html", "board.js"].forEach(f => stage(path.join(ROOT, "docs", "plans", f)));
       wbRun = run(path.join(__dirname, "board.js"), ["--refresh-template", "--root", ROOT, ...(flag("no-gh") ? ["--no-gh"] : [])], ROOT); }
@@ -2451,7 +2504,7 @@ async function main() {
     if (sks.some(c => c.status !== 0)) { S.check = `FAIL (a seeded board): ${sks.flatMap(c => c.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l))).slice(0, 4).join(" | ")}`; throw new Error("check.js failed on a board seeded from the live view"); }
     if (wb && wb.status !== 0) throw new Error(`board.js (the committed repository work board, after seeding) failed: ${(wb.stderr || wb.stdout).trim().split(/\r?\n/).slice(-1)[0]}`);
     if (wb) S.wrote.push("the repository work board: docs/plans/board.json, index.html, board.js (regenerated after seeding)");
-    S.check = `pass (board: ${plural(warns[0], "warning")}${up ? `; parent: ${plural(warns[1], "warning")}` : ""})`;
+    S.check = `pass (board: ${plural(warns[0], "warning")}${up ? `; parent: ${plural(warns[1], "warning")}` : ""}${above.length ? `; above the parent: ${plural(warns.slice(2).reduce((a, b) => a + b, 0), "warning")}` : ""})`;
     /* an issue title that names a sizing is a defect in the issue (levelrefs.js issueTitleRefs(); dashboards-skill/28): quoted verbatim,
        never failing the board; named here so the team brings it to the user to retitle on GitHub */
     S.defects = [...new Set(cks.flatMap(c => c.stdout.split(/\r?\n/).map(l => (l.match(/^warn\s+(ISSUE TITLE NAMES A GRADE: #[\d?]+)/) || [])[1]).filter(Boolean)))];

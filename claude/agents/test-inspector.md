@@ -63,7 +63,7 @@ means all seven. The full-suite run (§5) happens either way.
 
 ## 2. Load the rules
 
-Read the target repo's `CLAUDE.md`, `.aiassistant/rules/`, and `AGENTS.md` if
+Read the target repo's `CLAUDE.md` and `AGENTS.md` if
 present, and the **Testing** section of `~/.claude/CLAUDE.md`. The set →
 package → folder mapping is:
 

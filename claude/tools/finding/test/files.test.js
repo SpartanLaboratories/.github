@@ -31,8 +31,14 @@ ok(isText("README.md") && isText("server/README.md") && isText("CHANGELOG.md") &
 ok(isText(".github/ISSUE_TEMPLATE/bug_report.yml") && isText(".github/pull_request_template.md"), "the issue templates and the community health files read whole");
 ok(form(".github/workflows/ci.yml") === "hash", "a workflow is no issue template: its comments only");
 ok(skipped("src/main/resources/data.json") && skipped("notes.txt"), "a data file outside docs/ not read");
-ok(skipped("claude/agents/x.md", ORG) && isText("claude/agents/x.md", PLAIN), "the mirror's Markdown under claude/ not read in the organization repository only");
-ok(form("claude/skills/a/b.js", ORG) === "c" && form("claude/admin-team/launch.cmd", ORG) === "batch" && form("claude/x/run.sh", ORG) === "hash", "the mirror's code files under claude/: their comments");
+ok(skipped("claude/agents/x.md", ORG) && isText("claude/agents/x.md", PLAIN), "Markdown under claude/ not read in the organization repository only");
+["claude/skills/a/b.js", "claude/admin-team/launch.cmd", "claude/x/run.sh", "claude/hooks/h.py", "claude/skills/d/plan/examples/1-x/dashboard.html", "claude/a.css",
+  "claude/settings.json", "claude/x/notes.txt", "claude/x/odd.qqq", "claude/docs/a.txt", "claude/x/.github/ISSUE_TEMPLATE/b.yml", "CLAUDE/X/Y.JS"]
+  .forEach(p => ok(/^not read \(claude\/\*\*\)$/.test((kind(p, ORG) || {}).skip || ""), `the organization repository: ${p} not read, whatever its kind`, JSON.stringify(kind(p, ORG))));
+ok(form("claude/skills/a/b.js") === "c" && form("claude/admin-team/launch.cmd") === "batch" && form("claude/x/run.sh") === "hash" && isText("claude/x/README.md") && isText("x/claude/y.md", ORG),
+  "a claude/ folder of another repository, or one below the organization repository's root: read by its kind");
+ok(form("scripts/rule-check.js", ORG) === "c" && form("x/claude/y.js", ORG) === "c" && form(".github/workflows/ci.yml", ORG) === "hash" && skipped("claudex/y.js", ORG) === false,
+  "the organization repository outside claude/: code files' comments read as before");
 ok(isText("policy/build/rules.json", ORG) && isText("design/x/y.txt", ORG), "every file of the Policy and Design folders read whole in the organization repository");
 ok(skipped("policy/build/rules.json", PLAIN) && skipped("design/x/y.txt", PLAIN), "a policy or design folder of another repository: by its kind");
 ok(isText("Structure.md", ORG) && isText("scripts/INDEX.md", ORG) && isText("profile/README.md", ORG) && isText("rule-index.md", ORG), "the organization repository's Markdown outside claude/ read whole");

@@ -18,7 +18,8 @@ only resembles one, is in [`finding.md`](finding.md).
 
 Only the user decides adding, changing or removing a term in this file; the admin team's
 Communication Clarity Officer makes the edit, and brings to the user the terms it proposes. A case
-for an exception to anything the list bars is brought to the user first:
+for an exception to anything the list bars is brought to the user first, save a marker of section
+4, which the Communication Clarity Officer adds and writes itself:
 how the case is put, and how an exception the user grants is recorded, is in the admin team's
 brief ([`admin-team/GUIDANCE.md`](../agents/admin-team/GUIDANCE.md), "Internal names block a commit").
 
@@ -27,8 +28,8 @@ The list has four sections:
 1. **The pipeline's agents, sessions and roles.**
 2. **The approval flow.**
 3. **Work grades.**
-4. **Allowed**, the words that only resemble an entry above, and the exceptions the user has made
-   a rule.
+4. **Allowed**, the words that only resemble an entry above, the exceptions the user has made a
+   rule, and the markers that clear a word's technical sense.
 
 ## 1. The pipeline's agents, sessions and roles
 
@@ -45,9 +46,9 @@ known aliases. The aliases are what the scan matches, as [`finding.md`](finding.
 | **Verifier** | **verifier** | The agent that fact-checks the researchers' load-bearing claims. | never |
 | **Interviewer** | **interviewer** | The agent that returns the questions about intent that remain. | never |
 | **Presenter** | **presenter** | The admin team's agent that builds and keeps the boards. | never |
-| **Publisher** | **publisher** | The admin team's agent that releases to Maven Central. | never |
+| **Publisher** | **publisher** | The admin team's agent that releases to Maven Central. | as section 4's markers say |
 | **RookieDev** | **rookie-dev** | The agent that implements code from a plan. | never |
-| **VersionControlManager** | **version-control-manager**, **executor** | The admin team's agent that executes each version-control request. | never |
+| **VersionControlManager** | **version-control-manager**, **executor** | The admin team's agent that executes each version-control request. | as section 4's markers say |
 | **DirectionManager** | **direction-manager** | The admin team's agent that keeps the direction documents. | never |
 | **CommunicationClarityOfficer** | **communication clarity officer**, **communication-clarity-officer**, **clarity officer**, **CCO** | The admin team's agent that keeps the vocabularies and how a scan finds their words. | never |
 | **Archivist** | **archivist** | The admin team's agent that keeps the team's records, the idea hooks among them. | never |
@@ -76,7 +77,7 @@ player", "the caller").
 |------|------------|--------------|
 | **"grade 3"** | A grade stated by its number ([`CLAUDE.md`](../CLAUDE.md), "Work grades"). | never |
 | **"a grade-4 tracking issue"** | A grade stated of an issue or a unit. | never |
-| **"the recorded grade"** | The word in any other form: "grade", "grades", "graded", "re-grade", "work grade", and a hyphenated compound such as "carrier-grade". | never |
+| **"the recorded grade"** | The word in any other form: "grade", "grades", "graded", "re-grade", "work grade", and a hyphenated compound that holds it. | as section 4's markers say |
 
 ## 4. Allowed
 
@@ -84,3 +85,20 @@ player", "the caller").
 |------|------------|
 | **"the implementer"** | Whoever builds the change. |
 | **The qa step, its passes and its data keys** | "Quality Review 2", the Quality Reviews tile. |
+
+### Markers
+
+A word below is no find where one of its markers stands directly before it or joins it in a
+compound ("dispatch executor", "carrier-grade"), and, where its row says "no find", where the word
+itself stands in code. How a scan reads both is in [`finding.md`](finding.md).
+
+The markers are the Communication Clarity Officer's to manage, for any word the list bars: it adds
+and removes them, writes them here and points the word's row at them, each a technical modifier or
+a compound part, and none that would let through a use of what the word's row bars. Whether a word
+is read in code form stays the user's, as does every term, wording and other exception.
+
+| Word | Markers | In code form |
+|------|---------|--------------|
+| **executor** | `backed`, `Caffeine`, `common-pool`, `daemon`, `dispatch`, `dispatcher`, `keepalive`, `library-created`, `liveness`, `maintenance`, `probe`, `retransmit`, `same-thread`, `shut-down`, `shutdown`, `single-thread`, `single-threaded`, `sweep`, `tick` | no find |
+| **publisher** | `API`, `key` | no find |
+| **grade** | `carrier` | a find |

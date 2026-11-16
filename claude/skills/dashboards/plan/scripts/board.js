@@ -457,7 +457,8 @@ if (live) {
   notes.forEach(n => console.log("live: " + n));
 }
 console.log(`${live ? `live board, ${trees.length} worktree${trees.length === 1 ? "" : "s"}: ` : ""}board.json: ${rows.length} runs in ${board.groups.length} groups, ${roadmap.length} roadmap items, ${unscheduled.length} unscheduled issues; index.html embedded`);
-const noSys = [...new Set([...rows.filter(r => !r.system && !r.unassigned && !trackingNums.has(r.issue)).map(r => "#" + r.issue), ...unscheduled.filter(u => !u.system && !u.unassigned).map(u => "#" + u.issue)])];
+/* a tracking issue's row names its systems and takes none of its own, landed or not (isTracking(): a landed tracking board is no longer in trackingNums) */
+const noSys = [...new Set([...rows.filter(r => !r.system && !r.unassigned && !isTracking(r.issue)).map(r => "#" + r.issue), ...unscheduled.filter(u => !u.system && !u.unassigned).map(u => "#" + u.issue)])];
 cleaned.forEach(x => console.log(`internal names: ${x.at} ${x.now ? "reworded" : "left out"}: ${JSON.stringify(x.was)}${x.now ? ` → ${JSON.stringify(x.now)}` : ""}`));
 if (unclassified.length) console.log(`dependencies no state rule fits (left with no build state or locality, never given one): ${unclassified.join(" · ")}`);
 if (noSys.length) console.log(`no system recorded for ${noSys.join(", ")}: set "system" (or "unassigned": true, for no system) on those entries in board.json once, and board.js keeps it`);

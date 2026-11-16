@@ -122,7 +122,7 @@ const browsers = [
   "/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser",
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
 ];
-const { GRADE_PATTERNS, SLUG_PATTERNS, quotedTitles } = require("./levelrefs.js");
+const { GRADE_PATTERNS, SLUG_PATTERNS, quotedTitles, codeRanges } = require("./levelrefs.js");
 /* the issue titles the board's data quotes (dashboards-skill/28): a Source view prints them JSON-quoted, and the browser pass leaves them out
    of its sizing scan there, as it leaves out the titles the board marks data-issue-title */
 const QUOTED = (() => { const L = require("./statelib.js"), all = []; ["plan", "board", "state"].forEach(id => { const t = L.blockText(src, id); if (t == null) return; try { all.push(...quotedTitles(JSON.parse(t))); } catch (e) { /* the data checks report it */ } });
@@ -142,18 +142,26 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   const tabs=[...document.querySelectorAll('[role="tab"]')]; console.log("CHECK tabs: "+tabs.length);
   /* no sizing is ever shown (levelrefs.js, from the finding tool's patterns): the text of every tab, then of the whole board, is
      scanned, each pattern with its own flags (global added where they lack it, as the scan below runs exec() to the end) */
-  const LV=${JSON.stringify(GRADE_PATTERNS)}.map(([s,f])=>new RegExp(s,f.includes("g")?f:f+"g")), lvHits=new Set();
+  const LV=${JSON.stringify(GRADE_PATTERNS)}.map(([s,f,cf])=>({re:new RegExp(s,f.includes("g")?f:f+"g"),cf:!!cf})), lvHits=new Set();
+  /* a pattern of a word the list reads in code form (cf) drops a match that stands in code (finding.md, "A technical sense by its marker"):
+     its text is read with each <code> wrapped in backticks and each <pre> fenced, for the moment of the reading, and a match inside a
+     backtick span or a fenced block of it (the finding tool's codeRanges()) is dropped */
+  const CR=${codeRanges.toString()}, BT=String.fromCharCode(96), NL=String.fromCharCode(10), FENCE=NL+BT+BT+BT+NL;
+  const ticked=(el,read)=>{ const added=[], put=(e,a,b)=>{ const x=document.createTextNode(a), y=document.createTextNode(b); e.insertBefore(x,e.firstChild); e.appendChild(y); added.push(x,y); };
+    el.querySelectorAll("pre").forEach(p=>put(p,FENCE,FENCE)); el.querySelectorAll("code").forEach(c=>{ if(!c.closest("pre")) put(c,BT,BT); });
+    try{ return read(el); }finally{ added.forEach(n=>n.remove()); } };
+  const lvMatches=(x,t)=>{ const out=[], rs=x.cf?CR(t):null; x.re.lastIndex=0; let m; while((m=x.re.exec(t))) if(!rs||!rs.some(r=>r.index<=m.index&&m.index+m[0].length<=r.end)) out.push(m[0]); return out; };
   /* a slug made from an issue's title (a plan folder's name, where a path puts it) is left out as the title is (levelrefs.js maskSlugs();
      the decision of 2026-11-14, batch-8/q-54) */
   const SL=${JSON.stringify(SLUG_PATTERNS)}.map(s=>new RegExp(s,"g")), unslug=t=>SL.reduce((x,re)=>x.replace(re,"\\u0001"),t||"");
-  const lvScan=(txt,where)=>{ txt=unslug(txt); LV.forEach(re=>{ re.lastIndex=0; let m; while((m=re.exec(txt))) lvHits.add(where+": “"+m[0]+"”"); }); };
+  const lvScan=(el,where)=>{ const txt=unslug(textOf(el)), tc=LV.some(x=>x.cf)?unslug(ticked(el,textOf)):""; LV.forEach(x=>lvMatches(x,x.cf?tc:txt).forEach(h=>lvHits.add(where+": “"+h+"”"))); };
   /* An issue's title is quoted verbatim and marked data-issue-title (GUIDANCE.md §5; dashboards-skill/28): its text is left out of the
      scan above (textOf() reads a part's rendered text with the titles hidden), and a sizing in it is a defect in the issue, flagged
      by number by the issue-title flag, never a failure of the board (the title's own words are not printed: they are the issue's) */
   const hideT=document.createElement("style"); hideT.textContent="[data-issue-title]{display:none!important}"; document.head.appendChild(hideT); hideT.disabled=true;
   const QT=${JSON.stringify(QUOTED).replace(/</g, "\\u003c")};
   const textOf=el=>{ if(!el) return ""; hideT.disabled=false; let t=el.innerText; hideT.disabled=true; QT.forEach(q=>{ t=t.split(q).join('""'); }); return t; };
-  const tHits=new Set(), tSeen=new Set(); const titleScan=()=>document.querySelectorAll("[data-issue-title]").forEach(e=>{ tSeen.add(e.dataset.issueTitle); if(LV.some(re=>{ re.lastIndex=0; return re.test(e.textContent||""); })) tHits.add("#"+e.dataset.issueTitle); });
+  const tHits=new Set(), tSeen=new Set(); const titleScan=()=>document.querySelectorAll("[data-issue-title]").forEach(e=>{ tSeen.add(e.dataset.issueTitle); if(LV.some(x=>lvMatches(x,x.cf?ticked(e,y=>y.textContent||""):e.textContent||"").length)) tHits.add("#"+e.dataset.issueTitle); });
   /* Dashed means only planned or pending (GUIDANCE.md §1), on every tab of every kind: a dashed border or outline, or a dashed SVG
      stroke (a dash of 3 px or more; shorter is dotted: standalone or conditional), on an element that is not, and is not inside, one
      marked planned or pending by the kind's own classes. Diagram furniture (lifelines, returns, boundary frames) is solid. */
@@ -166,7 +174,7 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
     if(e instanceof SVGElement){ if(SHAPES.has(e.tagName.toLowerCase())&&s.stroke!=="none"&&s.strokeDasharray&&s.strokeDasharray!=="none") dashed=parseFloat(s.strokeDasharray)>=3; }
     else dashed=SIDES.some(d=>s["border"+d+"Style"]==="dashed"&&parseFloat(s["border"+d+"Width"])>0)||(s.outlineStyle==="dashed"&&parseFloat(s.outlineWidth)>0);
     if(dashed&&!e.closest(PLANNED_SEL)){ const k=nameOf(e); if(!dashHits.has(k)) dashHits.set(k,where); } }); };
-  tabs.forEach(t=>{ try{ t.click(); dashScan("tab "+t.id); if(kind==="system"&&t.id==="t-c4"){ const rungs=[...document.querySelectorAll(".rung")]; rungs.forEach((r,i)=>{ r.click(); dashScan("tab t-c4, view "+(i+1)); }); if(rungs[0]) rungs[0].click(); } const p=document.getElementById(t.getAttribute("aria-controls")); if(p){ lvScan(textOf(p),"tab "+t.id); titleScan(); } const vis=p&&!p.hidden&&getComputedStyle(p).display!=="none"; const drawn=p?p.querySelectorAll("svg *, table, .card, .thread, .syscard, .cell, .bcard, .run").length:0; const keys=p?[...p.querySelectorAll(".legend, .key, .c4-legend, .c4key")].filter(k=>shown(k)&&k.children.length).length:0; console.log("CHECK tab "+t.id+": "+(vis?"visible":"NOT VISIBLE")+" · "+drawn+" drawn nodes · "+(keys?"legend":"NO LEGEND (every tab needs a visible .legend)")); }catch(err){ console.log("CHECK tab "+t.id+" threw: "+err.message); } });
+  tabs.forEach(t=>{ try{ t.click(); dashScan("tab "+t.id); if(kind==="system"&&t.id==="t-c4"){ const rungs=[...document.querySelectorAll(".rung")]; rungs.forEach((r,i)=>{ r.click(); dashScan("tab t-c4, view "+(i+1)); }); if(rungs[0]) rungs[0].click(); } const p=document.getElementById(t.getAttribute("aria-controls")); if(p){ lvScan(p,"tab "+t.id); titleScan(); } const vis=p&&!p.hidden&&getComputedStyle(p).display!=="none"; const drawn=p?p.querySelectorAll("svg *, table, .card, .thread, .syscard, .cell, .bcard, .run").length:0; const keys=p?[...p.querySelectorAll(".legend, .key, .c4-legend, .c4key")].filter(k=>shown(k)&&k.children.length).length:0; console.log("CHECK tab "+t.id+": "+(vis?"visible":"NOT VISIBLE")+" · "+drawn+" drawn nodes · "+(keys?"legend":"NO LEGEND (every tab needs a visible .legend)")); }catch(err){ console.log("CHECK tab "+t.id+" threw: "+err.message); } });
   if(kind==="system"){
     const g=document.querySelector(".guarantees"), b=g?[...g.querySelectorAll(".guarantee-card,.bubble")].filter(shown).map(x=>(x.querySelector("h3")||{}).firstChild):[];
     console.log("CHECK guarantees: "+(shown(g)&&b.length?b.length+" guarantee cards · "+b.map(n=>n?n.textContent.trim():"?").join(" · "):"MISSING (no visible .guarantees Panel with a .guarantee-card)"));
@@ -228,7 +236,7 @@ window.addEventListener("load",()=>{ setTimeout(()=>{
   if(cx&&cx.querySelector(".badge,.sw,.verdict-pill,.vp")&&!shown(document.getElementById("context-key"))) console.log("CHECK layout: FEATURE MISSING: the Context's legend shown wherever its cards draw an encoding (template since dashboards-skill/26): its cards draw badges or swatches and no #context-key is shown");
   if(kind==="system"&&gu&&gu.querySelector("[data-sys],.planned,.gap,.bars,.badge")&&!shown(document.getElementById("guarantees-key"))) console.log("CHECK layout: FEATURE MISSING: the Guarantees' legend shown wherever its guarantee cards draw an encoding (template since dashboards-skill/26): no #guarantees-key is shown");
   const want=${JSON.stringify(tab)}; const t=want?document.getElementById(want):tabs[0]; if(t) t.click();
-  lvScan(textOf(document.body),"page"); titleScan();
+  lvScan(document.body,"page"); titleScan();
   console.log("CHECK issue titles: "+tSeen.size+" quoted verbatim"+(tHits.size?" · "+[...tHits].map(n=>"ISSUE TITLE NAMES A GRADE: "+n).join(" · ")+": a defect in the issue, retitled on GitHub":", none names a grade"));
   console.log("CHECK grades: "+(lvHits.size?"GRADE REFERENCE shown ("+[...lvHits].slice(0,6).join("; ")+"): a dashboard never shows a grade":"none shown"));
   const sw=document.documentElement.scrollWidth, cw=document.documentElement.clientWidth;
@@ -397,8 +405,9 @@ function titleChecks() {
 }
 // Internal names (GUIDANCE.md §4, "No internal names"; namerefs.js; dashboards-skill/33), read without a browser: the strings of a board's
 // data blocks (plan, board, state; an issue's title, quoted verbatim, left out), its HTML comments (the old placeholder marks, named for a role,
-// included) and the text of its hand-written HTML (a state board's header, panels, Guarantees and Context; an inline <code> counts as a name in backticks does, and so does a <pre> block, a rendered fenced block,
-// so that this scan and the commit scan agree). Each is a
+// included) and the text of its hand-written HTML (a state board's header, panels, Guarantees and Context; an inline <code> read as a backtick span and a <pre> block as
+// a rendered fenced block, so that a name in either counts as a name in backticks does, and a word the list reads in code form is no find there, as the commit scan
+// reads them; finding.md, "A technical sense by its marker"). Each is a
 // warning, INTERNAL NAME, never a problem of the board: text a board stores is corrected where it is stored, an issue or tracking board's through fill.js (GUIDANCE.md §4).
 function nameChecks() {
   if (!src || /<meta name="dashboard" content="doc-copy">/.test(src)) return null;
@@ -407,7 +416,10 @@ function nameChecks() {
   const c = N.commentRefs(src); if (c.length) notes.push("warning: " + N.nameWarning("its comments", c));
   if (!/<meta name="dashboard" content="(plan-board|work-board|org-work-board)">/.test(src)) {
     const text = src.replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<style[\s\S]*?<\/style>/g, " ").replace(/<!--[\s\S]*?-->/g, " ")
-      .replace(/<a\b[^>]*\bdata-board="\d+"[^>]*>[\s\S]*?<\/a>/g, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&rsquo;/g, "'").replace(/\s+/g, " ");
+      .replace(/<a\b[^>]*\bdata-board="\d+"[^>]*>[\s\S]*?<\/a>/g, " ")
+      .replace(/<pre\b[^>]*>([\s\S]*?)<\/pre\s*>/gi, (m, b) => ` <pre>${b.replace(/<[^>]+>/g, " ").replace(/[<>]/g, " ")}</pre> `)
+      .replace(/<code\b[^>]*>([\s\S]*?)<\/code\s*>/gi, (m, b) => "`" + b.replace(/<[^>]+>/g, " ").replace(/`/g, " ") + "`")
+      .replace(/<(?!\/?pre>)[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&rsquo;/g, "'").replace(/\s+/g, " ");
     const h = N.nameRefs(text); if (h.length) notes.push("warning: " + N.nameWarning("its text", h));
   }
   return { note: `internal names: ${notes.length ? notes.length + " warning" + (notes.length === 1 ? "" : "s") : "none"}`, notes, problems: [] };

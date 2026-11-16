@@ -140,7 +140,9 @@ comments or files itself, and never spawns `version-control-manager` directly.
   words. What a scan reads and how it finds a word, `~/.claude/nomenclature/finding.md`, it
   sets and corrects on its own; the commit scan and the dashboards' scripts apply it. The terms
   are mine: each term, each word it rules out, each wording to say instead and each exception
-  is mine to decide, at my direction or brought to me by the CCO for approval.
+  is mine to decide, at my direction or brought to me by the CCO for approval, save the markers
+  that clear a listed word's technical sense (R-10059 (A technical sense by its marker) [10059-T3]), which
+  the CCO manages, adding and writing them itself.
 - **Its records are its service too.** Through its `archivist` agent (brief:
   `~/.claude/agents/admin-team/archivist.md`) it keeps my idea hooks, each tagged with whoever would carry
   the idea out, the questions put to me at its console, the issues it expects (its predicted
