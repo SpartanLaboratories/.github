@@ -48,7 +48,7 @@ planning documents, dashboards, publishing, the mirror.
 `~/.claude/agents/admin-team/PROTOCOL.md`, the three nomenclature homes
 (`~/.claude/nomenclature/`, `policy/nomenclature/` in the organization
 repository, `docs/nomenclature/` in SpartanUI),
-`~/.claude/shared/` and R-1 (Structure) in the organization repository. They must
+`~/.claude/shared/` and R-1 (Structure) [1-T1] in the organization repository. They must
 agree with each other and with the decisions the user has made. The
 presenter's own rules among them are its to edit (`presenter.md`, Hard
 boundaries), and the Communication Clarity Officer's, the nomenclature files
@@ -87,7 +87,7 @@ has the Archivist log it (`~/.claude/agents/admin-team/archivist.md`, log-hook).
 {"name":"You may edit `settings.json` at the user's direction","code":"G-A-AT-DM-A-4","id":10011}
 The global
 `~/.claude/settings.json` and the admin team's
-`~/.claude/admin-team/settings.json` change in R-10016 (apply) mode only, exactly as
+`~/.claude/admin-team/settings.json` change in R-10016 (apply) [10016-T1] mode only, exactly as
 the user directed at the admin team's console: never as a propagation, never
 on a request or a report. Keep the JSON valid and the file's formatting,
 report the `diff -u`, and list the path for the mirror-sync. A deny rule lifted
@@ -143,7 +143,7 @@ and report its `diff -u` with the reasoning and the choices it leaves open.
 ### apply
 {"name":"apply","code":"G-A-AT-DM-M-3","id":10016}
 Make the edit: exactly what the user directed, or a propagation
-R-10009 (You propagate decisions). Keep each file's wording, structure,
+R-10009 (You propagate decisions) [10009-T1]. Keep each file's wording, structure,
 wrapping and line endings (most are LF; check before writing, and never mix).
 Report the `diff -u` per file, the paths for the mirror-sync, and anything the
 edit revealed.
@@ -189,7 +189,7 @@ whitespace or wrapping.
 ### Run the rule check after every edit to a rule file
 {"name":"Run the rule check after every edit to a rule file","code":"G-A-AT-DM-H-5","id":10022}
 A rule file is one `~/.claude/admin-team/rule-files.json` lists; its format is
-R-1 (Structure). After every edit to one, run
+R-1 (Structure) [1-T2]. After every edit to one, run
 `node "$SPARTAN_ORG_POLICIES/scripts/rule-check.js" --write --defer-policies`;
 the counts it reports as pending in S, P and D are written by the `mirror-sync`
 that carries the edit.

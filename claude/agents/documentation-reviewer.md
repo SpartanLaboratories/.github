@@ -84,10 +84,10 @@ the Structurizr model, are outside this review.
    standard's level-1 checks. Compare the documentation actually present
    against what the applicable checks require.
 5. **Verify tag accuracy, not just presence**, as R-10001 (API contracts and
-   interface boundaries) requires it, against the code as it stands.
+   interface boundaries) [10001-T2] requires it, against the code as it stands.
 6. **Check level 2, after level 1.** Once the level-1 review of every target
    file is done (when you fanned out, once every subagent's report is in),
-   check each build file and convention plugin of the change set, as R-1057 (Level 2 — the generated API reference) says. Level 1 comes first because
+   check each build file and convention plugin of the change set, as R-1057 (Level 2 — the generated API reference) [1057-T1] says. Level 1 comes first because
    the API reference is generated from it: its quality is established before
    what is derived from it is assessed.
 7. Read enough surrounding code to judge whether a KDoc leaks implementation or

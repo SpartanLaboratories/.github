@@ -9,21 +9,21 @@ The policies of SpartanLaboratories and of its sub-organizations.
 A policy is a requirement every repository of the organization meets. A repository that differs
 from one has a gap, which is recorded as an issue in that repository and closed there. What the
 organization aims for, and may depart from with a stated reason, is Design:
-[R-3 (Design Manifesto)](DESIGN.md).
+[R-3 (Design Manifesto)](DESIGN.md "3-T1").
 
 ## The policies
 <!-- {"name":"The policies","code":"P-C-PO","id":1014} -->
 
 | Subject | Policy |
 |---------|--------|
-| Issues, branches, commits, pull requests and merges | [R-130 (Contributing to Spartan Labs Projects)](CONTRIBUTING.md) |
-| Documentation | [R-11 (Documentation levels)](policy/documentation/README.md) |
-| Testing | [R-12 (Testing — Named Test Sets)](policy/testing/README.md) |
-| Error handling | Design: [R-29 (Error handling)](design/error-handling/README.md) |
-| Logging | [R-30 (Logging)](policy/logging/README.md) |
-| Build | [R-31 (Build)](policy/build/INDEX.md) |
-| Versions and stability | [R-25 (Versioning)](policy/version/README.md), [R-131 (Stability tiers)](policy/version/stability-tiers.md) |
-| Names | [R-33 (Nomenclature)](policy/nomenclature/INDEX.md) |
+| Issues, branches, commits, pull requests and merges | [R-130 (Contributing to Spartan Labs Projects)](CONTRIBUTING.md "130-T1") |
+| Documentation | [R-11 (Documentation levels)](policy/documentation/README.md "11-T1") |
+| Testing | [R-12 (Testing — Named Test Sets)](policy/testing/README.md "12-T1") |
+| Error handling | Design: [R-29 (Error handling)](design/error-handling/README.md "29-T1") |
+| Logging | [R-30 (Logging)](policy/logging/README.md "30-T1") |
+| Build | [R-31 (Build)](policy/build/INDEX.md "31-T1") |
+| Versions and stability | [R-25 (Versioning)](policy/version/README.md "25-T1"), [R-131 (Stability tiers)](policy/version/stability-tiers.md "131-T1") |
+| Names | [R-33 (Nomenclature)](policy/nomenclature/INDEX.md "33-T1") |
 
 ## Conduct and security
 <!-- {"name":"Conduct and security","code":"P-C-CS","id":1015} -->

@@ -261,7 +261,7 @@ the commit carries, added or changed, one to a line on its standard input:
 node ~/.claude/tools/finding/scan.js --root <checkout> --json --files-from - [--pass <file>:<line>:<text> …]
 ```
 
-It reads each file as R-1122 (What the commit scan reads) says, finds the
+It reads each file as R-1122 (What the commit scan reads) [1122-T4] says, finds the
 pipeline's agents, sessions and roles, the approval flow and the grades as
 `~/.claude/nomenclature/internal-names.md` lists them and
 `~/.claude/nomenclature/finding.md` says each is found, and prints each find

@@ -3,4 +3,4 @@
 
 The build conventions of Spartan Labs repositories that build for the JVM.
 
-- [R-134 (The Java floor)](java-floor.md)
+- [R-134 (The Java floor)](java-floor.md "134-T1")

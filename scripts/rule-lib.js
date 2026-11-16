@@ -4,9 +4,10 @@
 // and their core files in R-1001 (Files and folders), the kinds of section in R-1002 (Sections),
 // the JSON line and its two forms in R-1003 (A rule), the tiers and the id record in R-1004 (`id`),
 // splinters and pointer rules in R-1005 (Splinters) and R-1006 (Pointer rules), the codes in
-// R-1007 (`code`), the pointers and by-file references in R-1008 (Pointers), the registers, the
-// variable and the other repositories' checkouts in R-1010 (The checker), and what the fetch script
-// prints, with the search, in R-1011 (The fetch script).
+// R-1007 (`code`), the pointers, their own ids and lists, and the by-file references in R-1008
+// (Pointers), the registers, the variable, the other repositories' checkouts and the copies of
+// them about to be committed in R-1010 (The checker), and what the fetch script prints, with the
+// search, in R-1011 (The fetch script).
 //
 // Left out: groups of files with no folder of their own (the health files, the repositories, the
 // sub-organizations), whose shape is not settled. Machine-local paths: none is written here; the
@@ -441,16 +442,55 @@ function checkPartMarks(lines, retiredIds, opts = {}) {
 const ID_TEXT = '\\d+(?:-P?\\d+)*';
 
 /**
+ * A pointer's own id, R-1008 (Pointers): `<target>-T<n>`, a part of its target's id counted on the
+ * target's list apart from the target's splinters and pointer rules. It names the pointer on its
+ * list and nowhere else, so parseId reads none.
+ * @returns {{target:string, part:number}|null} null when the text is no such id
+ */
+function parseOwnId(text) {
+  const m = new RegExp(`^(${ID_TEXT})-T([1-9]\\d*)$`).exec(String(text));
+  if (!m || !parseId(m[1])) return null;
+  return { target: m[1], part: Number(m[2]) };
+}
+
+/** A pointer's own id in G, written in square brackets right after it: R-1008 (Pointers). */
+const OWN_TAG = new RegExp(`^ \\[(${ID_TEXT}-T\\d+)\\]`);
+/** Any id in square brackets right after a pointer in G, an own id or an id of the record. */
+const ID_TAG = new RegExp(`^ \\[(${ID_TEXT}(?:-T\\d+)?)\\]`);
+
+/**
+ * The id written at a pointer, where its own id would stand, R-1008 (Pointers): on a page of S, P or
+ * D its link's title, in G the square brackets right after it, when what stands there is an own id
+ * or an id of the record. At a pointer rule's pointer nothing is written, so one found there was
+ * written by hand.
+ * @param {{masked:string[]}} read the pointer's file as readFile returns it
+ * @param {object} ptr the pointer as findPointers returns it
+ * @param {boolean} publicPage
+ * @returns {string|null} the id written, null when none is
+ */
+function idWrittenAt(read, ptr, publicPage) {
+  const isId = (s) => !!(parseOwnId(s) || parseId(s));
+  if (publicPage) return ptr.title !== null && isId(ptr.title) ? ptr.title : null;
+  if (ptr.tag !== null) return ptr.tag;
+  const t = ID_TAG.exec(read.masked.join('\n').slice(ptr.end, ptr.end + 80));
+  return t && isId(t[1]) ? t[1] : null;
+}
+
+/**
  * Finds the pointers in a file: `R-<id> (Name)` outside code spans, fences, front matter and JSON
  * lines; on a public page (S, P, D) the pointer is the text of a Markdown link,
- * `[R-<id> (Name)](href)`. A name may run over a line break. The name is read from the
- * raw text, so a heading in code formatting keeps its backticks.
+ * `[R-<id> (Name)](href)`, its own id the link's title, `(href "<own id>")`. In G a pointer's own
+ * id stands in square brackets right after it, ` [<own id>]`. A name may run over a line break.
+ * The name is read from the raw text, so a heading in code formatting keeps its backticks.
  * @param {{lines:string[], masked:string[]}} read as readFile returns it
  * @param {boolean} publicPage
- * @returns {Array<{id:string, name:(string|null), href:(string|null), line:number, bare:boolean,
- *   start:number, end:number}>} `line` 1-based; `bare` marks a pointer on a public page that is
- *   not the text of a link; `name` null when the pointer carries none; start and end are offsets
- *   into the joined text
+ * @returns {Array<{id:string, name:(string|null), href:(string|null), title:(string|null),
+ *   tag:(string|null), line:number, bare:boolean, start:number, end:number, spans:object}>} `line`
+ *   1-based; `bare` marks a pointer on a public page that is not the text of a link; `name` null
+ *   when the pointer carries none; `title` the link's title, `tag` the bracketed id after a pointer
+ *   in G, each null when absent; start and end are offsets into the joined text, and `spans` holds
+ *   the offsets of the id, the name, the link, the title and the tag, as [start, end) pairs, and
+ *   `close`, the offset of the link's closing parenthesis
  */
 function findPointers(read, publicPage) {
   const raw = read.lines.join('\n');
@@ -460,12 +500,20 @@ function findPointers(read, publicPage) {
   const lineOf = (off) => { let lo = 0, hi = starts.length - 1; while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (starts[mid] <= off) lo = mid; else hi = mid - 1; } return lo + 1; };
   const out = [];
   const covered = [];
-  const linkRe = new RegExp(`\\[R-(${ID_TEXT})\\s+\\(((?:[^()\\]]|\\([^()]*\\))*)\\)\\]\\(([^)\\s]*)\\)`, 'gd');
+  const tagAt = (ptr) => {
+    if (publicPage) return ptr;
+    const t = OWN_TAG.exec(text.slice(ptr.end, ptr.end + 80));
+    if (t) { ptr.tag = t[1]; ptr.spans.tag = [ptr.end, ptr.end + t[0].length]; }
+    return ptr;
+  };
+  const linkRe = new RegExp(`\\[R-(${ID_TEXT})\\s+\\(((?:[^()\\]]|\\([^()]*\\))*)\\)\\]\\(([^)\\s]*)(?:\\s+"([^"]*)")?\\)`, 'gd');
   let m;
   while ((m = linkRe.exec(text))) {
     const [ns, ne] = m.indices[2];
-    out.push({ id: m[1], name: norm(raw.slice(ns, ne)), href: m[3], line: lineOf(m.index), bare: false, start: m.index, end: m.index + m[0].length });
-    covered.push([m.index, m.index + m[0].length]);
+    const end = m.index + m[0].length;
+    const spans = { id: m.indices[1], name: m.indices[2], href: m.indices[3], title: m.indices[4] || null, tag: null, close: end - 1 };
+    out.push(tagAt({ id: m[1], name: norm(raw.slice(ns, ne)), href: m[3], title: m[4] === undefined ? null : m[4], tag: null, line: lineOf(m.index), bare: false, start: m.index, end, spans }));
+    covered.push([m.index, end]);
   }
   const bareRe = new RegExp(`(?<![\\w-])R-(${ID_TEXT})\\b`, 'g');
   while ((m = bareRe.exec(text))) {
@@ -481,13 +529,118 @@ function findPointers(read, publicPage) {
       }
       if (end > at) name = norm(raw.slice(at + open[0].length, end - 1));
     }
-    out.push({ id: m[1], name, href: null, line: lineOf(m.index), bare: publicPage, start: m.index, end });
+    const spans = { id: [m.index + 2, at], name: name === null ? null : [at + open[0].length, end - 1], href: null, title: null, tag: null, close: null };
+    out.push(tagAt({ id: m[1], name, href: null, title: null, tag: null, line: lineOf(m.index), bare: publicPage, start: m.index, end, spans }));
   }
   out.sort((a, b) => a.start - b.start);
   return out;
 }
 
 function norm(s) { return s.replace(/\s+/g, ' ').trim(); }
+
+/**
+ * The item that holds a pointer, R-1008 (Pointers): the innermost item in use whose text holds the
+ * pointer's line; a file's title holds every line of the file that no deeper item holds.
+ * @param {{read:object}} e a read file entry
+ * @param {Map<string,object>} items the system's items by id
+ * @param {number} line the pointer's 1-based line
+ * @returns {object|null} the system's item, null when no item with an id holds the line
+ */
+function holderOf(e, items, line) {
+  let best = null;
+  for (const it of e.read.items) {
+    if (!it.json || it.json.id === undefined) continue;
+    const held = items.get(idKey(it.json.id));
+    if (!held || held.item !== it) continue;
+    const top = it.level === 1 ? 0 : it.bodyStart;
+    if (line - 1 >= top && line - 1 < it.bodyEnd && (!best || it.level >= best.item.level)) best = held;
+  }
+  return best;
+}
+
+/** Ids in the record's order: by their first number, then part by part. */
+function idOrder(a, b) {
+  const na = Number(String(a).split('-')[0]), nb = Number(String(b).split('-')[0]);
+  if (Number.isNaN(na) || Number.isNaN(nb)) return String(a) < String(b) ? -1 : String(a) > String(b) ? 1 : 0;
+  if (na !== nb) return na - nb;
+  return String(a).localeCompare(String(b), 'en', { numeric: true });
+}
+
+/**
+ * Checks the shape of a register's pointer lists, R-1008 (Pointers): `"pointers"`, an object of
+ * target id to its list, `{ "<own id>": <holder> }`; an own id is `<target>-T<n>` held by the id
+ * of the item that holds the pointer, or a pointer rule at the target, held by its own id.
+ * @param {object} reg the parsed register
+ * @param {string} where its path, for the findings
+ * @returns {string[]} findings
+ */
+function checkPointerLists(reg, where) {
+  const f = [];
+  if (reg.pointers === undefined) return f;
+  const obj = (v) => v && typeof v === 'object' && !Array.isArray(v);
+  if (!obj(reg.pointers)) return [`${where}: "pointers" needs an object of target id to its list (Structure.md, Pointers)`];
+  for (const [t, list] of Object.entries(reg.pointers)) {
+    if (!parseId(t)) { f.push(`${where}: pointers: "${t}" is not an id`); continue; }
+    if (!obj(list)) { f.push(`${where}: pointers.${t} needs an object of own id to the id of its holder (Structure.md, Pointers)`); continue; }
+    for (const [own, h] of Object.entries(list)) {
+      const o = parseOwnId(own);
+      const p = parseId(own);
+      const rule = !!p && p.kind === 'pointer' && p.parent === t;
+      if (!rule && !(o && o.target === t)) f.push(`${where}: pointers.${t}: "${own}" is neither ${t}-T<n> nor a pointer rule at ${t} (Structure.md, Pointers)`);
+      else if (rule ? h !== own : !parseId(h) || (typeof h === 'string' && /^\d+$/.test(h))) f.push(`${where}: pointers.${t}.${own} needs ${rule ? 'its own id' : 'the id of the item that holds it'}, found ${JSON.stringify(h)}`);
+    }
+  }
+  return f;
+}
+
+/**
+ * The register's `"pointers"` block as the checker writes it, R-1008 (Pointers): one line per
+ * target in the record's order, its entries in the same order, wrapped before 100 characters.
+ * @param {Object<string,Object<string,(number|string)>>} lists target id to { own id: holder }
+ */
+function renderPointerLists(lists) {
+  const keys = Object.keys(lists).filter(k => Object.keys(lists[k]).length).sort(idOrder);
+  if (!keys.length) return '  "pointers": {}';
+  const out = ['  "pointers": {'];
+  keys.forEach((k, i) => {
+    const owns = Object.keys(lists[k]).sort(idOrder);
+    const end = i === keys.length - 1 ? '' : ',';
+    let line = `    "${k}": {`;
+    owns.forEach((o, j) => {
+      const h = lists[k][o];
+      const piece = `${JSON.stringify(o)}: ${JSON.stringify(/^\d+$/.test(String(h)) ? Number(h) : String(h))}${j === owns.length - 1 ? ` }${end}` : ','}`;
+      if (line.length + 1 + piece.length > 100) { out.push(line); line = `      ${piece}`; }
+      else line += ` ${piece}`;
+    });
+    out.push(line);
+  });
+  out.push('  }');
+  return out.join('\n');
+}
+
+/**
+ * A register's text with its `"pointers"` block replaced, or added as its last key, the rest of
+ * the file and its line endings kept: R-1008 (Pointers).
+ */
+function withPointerLists(text, lists) {
+  const eol = text.includes('\r\n') ? '\r\n' : '\n';
+  let t = text.replace(/\r\n/g, '\n');
+  const block = renderPointerLists(lists);
+  const lines = t.split('\n');
+  const at = lines.findIndex(l => l.startsWith('  "pointers": {'));
+  if (at !== -1) {
+    let end = at;
+    if (!/\{\},?$/.test(lines[at])) while (end < lines.length && !/^ {2}\},?$/.test(lines[end])) end++;
+    const comma = lines[end].endsWith(',') ? ',' : '';
+    lines.splice(at, end - at + 1, ...(block + comma).split('\n'));
+    t = lines.join('\n');
+  } else {
+    const close = t.lastIndexOf('\n}');
+    t = `${t.slice(0, close)},\n${block}${t.slice(close)}`;
+  }
+  JSON.parse(t);
+  return t.split('\n').join(eol);
+}
 
 /**
  * Finds the Markdown links of a file that are not the link around a pointer, outside code spans
@@ -887,7 +1040,9 @@ function toPosix(p) { return p.split(path.sep).join('/'); }
  * their generated codes, every read file and every item with an id. It reports what it meets
  * while building (missing files, register shape, segments) and leaves the rest of the checking
  * to the checker; the fetch script uses the same build to find an id.
- * @param {{policies:string, claude:string, standing:(string|null), files:Files, env?:object}} o
+ * @param {{policies:string, claude:string, standing:(string|null), files:Files, env?:object,
+ *   copies?:Object<string,string>}} o `copies` names, by the folder name a register gives, the
+ *   copy of another repository about to be committed, read in place of its checkout
  * @returns {object} the system: places, roots, fileEntries, folders, listed, items (Map id ->
  *   item), lines (for the part marks), findings, notChecked, notes
  */
@@ -918,6 +1073,8 @@ function buildSystem(o) {
   const addresses = [];
   const byAbs = new Map();
   const where = (e) => `${e.repo ? `${e.repo}:` : ''}${e.rel}`;
+  const copies = o.copies || {};
+  const usedCopies = new Set();
 
   for (const place of places) {
     const reg = place.register;
@@ -987,11 +1144,20 @@ function buildSystem(o) {
     }
     // the repositories' addresses, for a full GitHub address in a link: R-1008 (Pointers)
     if (reg.url) addresses.push({ ...parseGithubAddress(reg.url), base: place.base });
-    // files in other repositories, R-1010 (The checker): a sibling folder of the policies checkout
+    // files in other repositories, R-1010 (The checker): a sibling folder of the policies checkout,
+    // or the copy of that repository about to be committed when one is named; never its standing
+    // checkout named as that copy
     for (const [name, repo] of Object.entries(reg.repositories || {})) {
-      const overrideName = overrideVariable(repo.folder || name);
+      const folderName = repo.folder || name;
+      const overrideName = overrideVariable(folderName);
       const override = readVariable(overrideName, { env, readStored: o.readStored }).value;
-      const co = siblingCheckout(o.standing || o.policies, repo.folder || name, override);
+      const standingCo = siblingCheckout(o.standing || o.policies, folderName, override);
+      const given = copies[folderName];
+      usedCopies.add(folderName);
+      if (given && path.resolve(given).toLowerCase() === path.resolve(standingCo.path).toLowerCase()) {
+        findings.push(`--copy ${folderName}=${given} names the standing checkout of ${name}; name the copy of it about to be committed (Structure.md, The checker)`);
+      }
+      const co = given ? { path: path.resolve(given), exists: fs.existsSync(given) } : standingCo;
       if (repo.url) addresses.push({ ...parseGithubAddress(repo.url), base: co.path });
       for (const [fp, fe] of Object.entries(repo.files || {})) {
         const root = roots[fe.root];
@@ -999,9 +1165,9 @@ function buildSystem(o) {
         const under = fe.under ? root.folders.find(x => x.rel === fe.under) : null;
         if (fe.under && !under) { findings.push(`${place.registerPath}: ${name}:${fp} sits under ${fe.under}, which is not a registered folder of ${fe.root}`); continue; }
         const parent = under || root;
-        const entry = { kind: 'file', role: 'file', root, place, repo: name, repoUrl: repo.url || null, rel: fp, abs: path.join(co.path, fp), segment: fe.segment, parent, code: `${parent.code}-${fe.segment}`, level: parent.level + 1, sections: fe.sections || {}, converted: !notConverted.has(`${name}:${fp}`), registerKey: `${name}:${fp}` };
+        const entry = { kind: 'file', role: 'file', root, place, repo: name, repoFolder: folderName, copy: !!given, repoUrl: repo.url || null, rel: fp, abs: path.join(co.path, fp), segment: fe.segment, parent, code: `${parent.code}-${fe.segment}`, level: parent.level + 1, sections: fe.sections || {}, converted: !notConverted.has(`${name}:${fp}`), registerKey: `${name}:${fp}` };
         parent.children.push(entry);
-        if (!co.exists) { entry.notChecked = true; notChecked.push({ entry, repo: name, checkout: co.path, variable: overrideName }); }
+        if (!co.exists) { entry.notChecked = true; notChecked.push({ entry, repo: name, folder: folderName, checkout: co.path, variable: overrideName }); }
         fileEntries.push(entry);
       }
     }
@@ -1012,6 +1178,7 @@ function buildSystem(o) {
       if (!fileEntries.some(e => e.place === place && e.registerKey === nc)) findings.push(`${place.registerPath}: notConverted names ${nc}, which is not a registered file`);
     }
   }
+  for (const k of Object.keys(copies)) if (!usedCopies.has(k)) findings.push(`--copy ${k}=${copies[k]}: no register gives a repository the folder name ${k} (Structure.md, The checker)`);
   // G's public copy, under `claude/` in the organization repository: a full address into it, or a
   // relative link that resolves into it, is read as a link into G, R-1008 (Pointers)
   const spdPlace = places.find(p => p.key === 'SPD');
@@ -1242,6 +1409,7 @@ module.exports = {
   MAIN_FILES, ROOT_MAIN, CORE_SEGMENT, pointerRuleCode, ownSectionSegment, sectionCode, checkCoreReserved,
   checkSiblingSegments,
   checkRecord, checkPartMarks, findPointers, findLinks, findQuoted, expectedName, linkMatches,
+  parseOwnId, idWrittenAt, holderOf, idOrder, checkPointerLists, renderPointerLists, withPointerLists,
   readVariable, readStoredUserValue, POLICIES_VARIABLE, overrideVariable, siblingCheckout, claudeRoot,
   INDEX_NAMES, indexFileOf, countsForLastStep, coreFileOf, parseGithubAddress, githubTarget, G_COPY, gCopyTarget,
   Files, checkRegisterShape, buildSystem, describe, toPosix,

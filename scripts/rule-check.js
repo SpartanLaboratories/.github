@@ -8,16 +8,25 @@
 //
 //   node rule-check.js                      check; exit 1 on any finding
 //   node rule-check.js --write              check, then correct the codes, raise the tier marks in
-//                                           the lists and the per-parent marks on the lines, and
-//                                           rewrite the indexes; any finding leaves every file as
-//                                           it is. G is written in place; S, P and D only in the
-//                                           copy being committed, named with --policies
+//                                           the lists and the per-parent marks on the lines,
+//                                           rewrite the indexes, the pointer lists and the ids at
+//                                           the pointers, and bring up to date what each pointer
+//                                           took from its target; any finding leaves every file
+//                                           as it is. G is written in place; S, P and D only in
+//                                           the copy being committed, named with --policies, and
+//                                           a file of another repository only in the copy of it
+//                                           named with --copy
 //   node rule-check.js --policies <path>    read S, P and D from that copy, not the standing
 //                                           checkout the variable names
+//   node rule-check.js --copy <folder>=<path>
+//                                           read another repository's files from that copy, about
+//                                           to be committed, not from its checkout; <folder> is
+//                                           the folder name the register gives it; repeatable
 //   node rule-check.js --claude <path>      read G from there (by default the Claude
 //                                           Code configuration in the home folder, else the
 //                                           checkout's claude/ copy)
-//   node rule-check.js --pointers-at <id>   list every pointer at an id, and check nothing
+//   node rule-check.js --pointers-at <id>   list every pointer at an id with its own id, and check
+//                                           nothing
 //   node rule-check.js --renumber <plan>    the one-time renumbering: give G's items
 //                                           their tiered ids, rewrite the pointers at old ids and
 //                                           write the old-to-new table into G's index; with
@@ -29,21 +38,28 @@
 //
 // The organization repository's checkout is found through SPARTAN_ORG_POLICIES, the process
 // environment first and the stored user value second; unset, it is a finding. A file in another
-// repository is read from a sibling folder of that checkout; a missing checkout makes the file
-// "not checked", which is no failure. What it checks, and these switches, are stated in
-// Structure.md, R-1010 (The checker).
+// repository is read from a sibling folder of that checkout, or from the copy named with --copy;
+// a missing checkout makes the file "not checked", which is no failure, except in a --write in the
+// copy being committed, where it is a finding. What it checks, and these switches, are stated in
+// Structure.md, R-1010 (The checker); the pointers' own ids and lists in R-1008 (Pointers).
 
 const fs = require('fs');
 const path = require('path');
 const L = require('./rule-lib');
 
 function parseArgs(argv) {
-  const a = { write: false, policies: null, claude: null, pointersAt: null, renumber: null, deferPolicies: false, help: false, bad: [] };
+  const a = { write: false, policies: null, claude: null, copies: {}, pointersAt: null, renumber: null, deferPolicies: false, help: false, bad: [] };
   for (let i = 0; i < argv.length; i++) {
     const v = argv[i];
     if (v === '--write') a.write = true;
     else if (v === '--defer-policies') a.deferPolicies = true;
     else if (v === '--policies') a.policies = argv[++i];
+    else if (v === '--copy') {
+      const c = argv[++i];
+      const eq = c === undefined ? -1 : c.indexOf('=');
+      if (eq < 1 || eq === c.length - 1) a.bad.push('--copy needs <folder>=<path>');
+      else a.copies[c.slice(0, eq)] = path.resolve(c.slice(eq + 1));
+    }
     else if (v === '--claude') a.claude = argv[++i];
     else if (v === '--pointers-at') a.pointersAt = argv[++i];
     else if (v === '--renumber') a.renumber = argv[++i];
@@ -55,6 +71,34 @@ function parseArgs(argv) {
 }
 
 const same = (a, b) => !!a && !!b && path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase();
+const ABSOLUTE = /^[a-z][a-z0-9+.-]*:/i;
+/** The kinds of target a link reaches by an anchor: R-1008 (Pointers). */
+const ANCHORED = ['section', 'rule', 'splinter', 'pointer'];
+
+/**
+ * The edits --write makes at one pointer, R-1008 (Pointers), as [start, end) offsets into the
+ * file's joined text: a repointed pointer takes its new target's id; a name or a link that is not
+ * as its target is now is written from the target, the link in the pointer's own form; the own id
+ * is written as the link's title on a page and in square brackets after the pointer in G. The rest
+ * of the pointer, its line breaks included, is kept.
+ * @param {object} rec the pointer as the check read it
+ * @param {string} tid its target's id
+ * @param {string|null} own its own id, null for a pointer rule, at whose pointer nothing is written
+ * @param {Function} linkNow the link to a target as it is now
+ * @returns {Array<{start:number, end:number, text:string}>}
+ */
+function pointerSpans(rec, tid, own, linkNow) {
+  const { ptr, target } = rec;
+  const out = [];
+  if (rec.repointedFrom) out.push({ start: ptr.spans.id[0], end: ptr.spans.id[1], text: tid });
+  if (ptr.name !== target.heading) out.push({ start: ptr.spans.name[0], end: ptr.spans.name[1], text: target.heading });
+  if (ptr.href !== null && (rec.repointedFrom || rec.linkBad)) out.push({ start: ptr.spans.href[0], end: ptr.spans.href[1], text: linkNow(rec.e, ptr, target) });
+  if (own !== null && (rec.pub ? ptr.title : ptr.tag) !== own) {
+    if (rec.pub) out.push(ptr.spans.title ? { start: ptr.spans.title[0], end: ptr.spans.title[1], text: own } : { start: ptr.spans.close, end: ptr.spans.close, text: ` "${own}"` });
+    else out.push(ptr.spans.tag ? { start: ptr.spans.tag[0], end: ptr.spans.tag[1], text: ` [${own}]` } : { start: ptr.end, end: ptr.end, text: ` [${own}]` });
+  }
+  return out;
+}
 
 // ------------------------------------------------------------------------------- the check
 
@@ -68,10 +112,15 @@ function check(ctx) {
   const { files } = ctx;
   const findings = [...(ctx.preFindings || [])];
   const notes = [];
-  const sys = L.buildSystem({ policies: ctx.policies, claude: ctx.claude, standing: ctx.standing, files, env: ctx.env, readStored: ctx.readStored });
+  const sys = L.buildSystem({ policies: ctx.policies, claude: ctx.claude, standing: ctx.standing, files, env: ctx.env, readStored: ctx.readStored, copies: ctx.copies });
   findings.push(...sys.findings);
   for (const nc of sys.notChecked) notes.push(`not checked: ${nc.repo}:${nc.entry.rel}; no checkout at ${nc.checkout} (set ${nc.variable} to override the folder)`);
   const anyUnchecked = sys.notChecked.length > 0;
+  // a --write in the copy being committed reads every file it may have to write: R-1010 (The checker)
+  const policiesWritable = ctx.write && ctx.policiesGiven && !same(ctx.policies, ctx.standing);
+  if (policiesWritable) {
+    for (const nc of sys.notChecked) findings.push(`${nc.repo}:${nc.entry.rel}: no checkout at ${nc.checkout}; with --write in the copy being committed a missing checkout is a finding (set ${nc.variable}, or name the copy with --copy ${nc.folder}=<path>) (Structure.md, The checker)`);
+  }
   const changes = []; // {abs, place, kind, apply(lines)}, applied after the checks
   const lists = sys.places.map(p => p.register.ids);
   const retired = new Map();
@@ -146,6 +195,50 @@ function check(ctx) {
 
   // ---- pointers: R-1008 (Pointers)
   const allPointers = [];
+  const listable = []; // the pointers that stand on lists, in reading order
+  const spdPlace = sys.places.find(p => p.key === 'SPD');
+  // a retired id to the id in use that replaced it, through any chain; null when none did
+  const follow = (id) => {
+    let k = L.idKey(id);
+    const seen = new Set();
+    while (retired.has(k) && !seen.has(k)) {
+      seen.add(k);
+      if (retired.get(k) === null) return null;
+      k = L.idKey(retired.get(k));
+    }
+    return sys.items.has(k) ? k : null;
+  };
+  const entryOf = (t) => (t.kind === 'listed' ? t.listed : t.entry);
+  // the link to a target as it is now, in the pointer's own form: relative within one repository,
+  // by the full address the registers give when the pointer is written so or crosses repositories
+  const linkNow = (e, ptr, target) => {
+    const entry = entryOf(target);
+    const anchor = ANCHORED.includes(target.kind) ? target.item.anchor : null;
+    const toFolder = target.kind === 'folder' && /\/(#|$)/.test(ptr.href || '');
+    const abs = toFolder ? target.folder.abs : entry.abs;
+    let href;
+    if (ABSOLUTE.test(ptr.href || '') || (entry.repo || null) !== (e.repo || null)) {
+      href = `${entry.repo ? entry.repoUrl : spdPlace.register.url}${toFolder ? `${target.folder.rel}/` : entry.rel}`;
+    } else {
+      href = `${L.toPosix(path.relative(path.dirname(e.abs), abs))}${toFolder ? '/' : ''}` || path.basename(abs);
+      if (anchor && path.resolve(path.dirname(e.abs), href) === path.resolve(e.abs)) href = '';
+    }
+    return `${href}${anchor ? `#${anchor}` : ''}`;
+  };
+  // what is wrong with a pointer's link, or null; a full address is checked against the address
+  // the registers give, here and from another repository into here
+  const linkProblem = (e, ptr, target, at) => {
+    if (ptr.href === null) return null;
+    const entry = entryOf(target);
+    if (ABSOLUTE.test(ptr.href) || (entry.repo || null) !== (e.repo || null)) {
+      if (entry.repo && !entry.repoUrl) { notes.push(`not checked: ${at}: the link to ${entry.repo}, whose register entry gives no url`); return null; }
+      const now = linkNow(e, ptr, target);
+      return ptr.href === now ? null : `the link to R-${ptr.id} goes to ${ptr.href}, the target is at ${now}`;
+    }
+    const want = { file: entry.abs, anchor: ANCHORED.includes(target.kind) ? target.item.anchor : null, folder: target.kind === 'folder' ? target.folder.abs : null };
+    const ok = L.linkMatches(e.abs, ptr.href, want);
+    return ok === true || ok === null ? null : `the link around R-${ptr.id}: ${ok}`;
+  };
   for (const e of sys.fileEntries) {
     if (!e.read) continue;
     const pub = e.root.letter !== 'G';
@@ -153,34 +246,177 @@ function check(ctx) {
     e.pointers = ptrs;
     for (const ptr of ptrs) {
       const at = `${sys.where(e)}:${ptr.line}`;
-      allPointers.push({ e, ptr, at });
-      const target = sys.items.get(ptr.id);
+      const rec = { e, ptr, at, pub, order: allPointers.length, holder: L.holderOf(e, sys.items, ptr.line) };
+      allPointers.push(rec);
+      rec.isRule = !!rec.holder && rec.holder.kind === 'pointer';
+      if (rec.isRule) {
+        // a pointer rule's own id is its id, and nothing is written at its pointer: one written there
+        // was written by hand
+        const written = L.idWrittenAt(e.read, ptr, pub);
+        if (written !== null) findings.push(`${at}: pointer rule ${rec.holder.id}'s pointer R-${ptr.id} carries ${written}, written by hand; a pointer rule's own id is its id, and nothing is written at its pointer (Structure.md, Pointers)`);
+      }
+      let target = sys.items.get(ptr.id);
       if (!target) {
-        if (retired.has(ptr.id)) findings.push(`${at}: pointer R-${ptr.id} is at a retired id${retired.get(ptr.id) !== null ? `; R-${retired.get(ptr.id)} replaced it` : ''}`);
-        else if (anyUnchecked) notes.push(`not checked: ${at}: R-${ptr.id} is not in what was read`);
-        else findings.push(`${at}: pointer to unknown id R-${ptr.id}`);
-        continue;
+        // a pointer at an id retired with a replacement is repointed to it; a pointer rule is
+        // repointed only under a new id of its own, R-1006 (Pointer rules)
+        const by = retired.has(ptr.id) ? follow(ptr.id) : null;
+        if (retired.has(ptr.id) && (by === null || rec.isRule)) findings.push(`${at}: pointer R-${ptr.id} is at a retired id${retired.get(ptr.id) !== null ? `; R-${retired.get(ptr.id)} replaced it` : ''}`);
+        else if (!retired.has(ptr.id) && anyUnchecked) notes.push(`not checked: ${at}: R-${ptr.id} is not in what was read`);
+        else if (!retired.has(ptr.id)) findings.push(`${at}: pointer to unknown id R-${ptr.id}`);
+        if (by === null || rec.isRule) continue;
+        rec.repointedFrom = ptr.id;
+        target = sys.items.get(by);
       }
       ptr.target = target;
       const name = target.heading;
-      if (ptr.name === null) findings.push(`${at}: pointer R-${ptr.id} has no name, expected "R-${ptr.id} (${name})"`);
-      else if (ptr.name !== name) findings.push(`${at}: pointer R-${ptr.id} names "${ptr.name}", the target is "${name}"`);
-      if (pub && target.entry.root.letter === 'G') findings.push(`${at}: an id pointer from ${e.root.letter} into G; nothing in S, P or D points into G (Structure.md, Pointers)`);
-      if (ptr.bare) findings.push(`${at}: on a public page a pointer is the text of a Markdown link to its target (Structure.md, Pointers)`);
-      if (ptr.href !== null) {
-        const tFile = target.kind === 'listed' ? target.listed.abs : target.entry.abs;
-        const anchored = ['section', 'rule', 'splinter', 'pointer'].includes(target.kind);
-        const want = { file: tFile, anchor: anchored ? target.item.anchor : null, folder: target.kind === 'folder' ? target.folder.abs : null };
-        if (target.entry.repo && target.entry.repo !== e.repo) {
-          const url = target.entry.repoUrl;
-          if (!url) notes.push(`not checked: ${at}: the link to ${target.entry.repo}, whose register entry gives no url`);
-          else if (ptr.href !== `${url}${target.entry.rel}${want.anchor ? `#${want.anchor}` : ''}`) findings.push(`${at}: the link to R-${ptr.id} goes to ${ptr.href}, the target is at ${url}${target.entry.rel}${want.anchor ? `#${want.anchor}` : ''}`);
-        } else {
-          const ok = L.linkMatches(e.abs, ptr.href, want);
-          if (ok === null) notes.push(`not checked: ${at}: R-${ptr.id} is linked by an absolute URL`);
-          else if (ok !== true) findings.push(`${at}: the link around R-${ptr.id}: ${ok}`);
-        }
+      const bad = [];
+      if (ptr.name === null) bad.push(`${at}: pointer R-${ptr.id} has no name, expected "R-${ptr.id} (${name})"`);
+      if (pub && entryOf(target).root.letter === 'G') bad.push(`${at}: an id pointer from ${e.root.letter} into G; nothing in S, P or D points into G (Structure.md, Pointers)`);
+      if (ptr.bare) bad.push(`${at}: on a public page a pointer is the text of a Markdown link to its target (Structure.md, Pointers)`);
+      if (!bad.length && !rec.holder) bad.push(`${at}: pointer R-${ptr.id} stands in no item with an id, so it can stand on no list (Structure.md, Pointers)`);
+      if (bad.length) { findings.push(...bad); continue; }
+      rec.target = target;
+      const carried = pub ? ptr.title : ptr.tag;
+      rec.own = !rec.isRule && carried !== null && L.parseOwnId(carried) ? carried : null;
+      rec.problems = [];
+      if (!rec.repointedFrom) {
+        if (ptr.name !== name) rec.problems.push(`pointer R-${ptr.id} names "${ptr.name}", the target is "${name}"`);
+        const lp = linkProblem(e, ptr, target, at);
+        if (lp) { rec.problems.push(lp); rec.linkBad = true; }
       }
+      listable.push(rec);
+    }
+  }
+
+  // ---- the pointer ids and lists: R-1008 (Pointers). A pointer is correct when its own id is on
+  // its target's list; one that carries no id, or an id not on the list of the target its text
+  // names, is new, and is recorded only when it holds its target's name and link as they are now.
+  // Of two carriers of one id, the one in the item the list names keeps it. A pointer that is gone
+  // leaves its list, its id not retired; the next part is the one above the highest on the list.
+  const oldLists = new Map(); // target -> Map(own id -> holder id)
+  const listedIn = new Map(); // target -> the place whose register held its list
+  for (const place of sys.places) {
+    const shape = L.checkPointerLists(place.register, place.registerPath);
+    findings.push(...shape);
+    if (shape.length) continue;
+    for (const [t, list] of Object.entries(place.register.pointers || {})) {
+      if (!oldLists.has(t)) oldLists.set(t, new Map());
+      listedIn.set(t, place);
+      for (const [own, h] of Object.entries(list)) oldLists.get(t).set(own, L.idKey(h));
+    }
+  }
+  const holderNow = (h) => follow(h) || h;
+  const newLists = new Map();
+  const put = (t, own, h) => { if (!newLists.has(t)) newLists.set(t, new Map()); newLists.get(t).set(own, h); };
+  const listNotes = new Map();
+  const say = (t, s) => { if (!listNotes.has(t)) listNotes.set(t, []); listNotes.get(t).push(s); };
+  const pointerEdits = [];
+  const pc = { kept: 0, followed: 0, moved: 0, recorded: 0, repointed: 0, gone: 0 };
+  const byTarget = new Map();
+  for (const rec of listable) {
+    const t = L.idKey(rec.target.id);
+    if (!byTarget.has(t)) byTarget.set(t, []);
+    byTarget.get(t).push(rec);
+  }
+  const unread = (t, h) => anyUnchecked && (!sys.items.has(t) || !sys.items.has(holderNow(h)));
+  for (const [tid, recs] of byTarget) {
+    const list = oldLists.get(tid) || new Map();
+    const kept = new Set();
+    let next = 1 + Math.max(0, ...[...list.keys()].map(L.parseOwnId).filter(o => o && o.target === tid).map(o => o.part));
+    const fresh = [];
+    const carriers = new Map();
+    for (const rec of recs) {
+      const h = L.idKey(rec.holder.id);
+      if (rec.isRule) {
+        // a pointer rule's own id is its id, and nothing is written at its pointer; one repointed
+        // without a new id is reported with the pointer rules
+        if (L.parseId(h).parent !== tid) continue;
+        if (list.has(h)) { kept.add(h); put(tid, h, h); pc.kept += 1; if (rec.problems.length) { pointerEdits.push({ rec, tid, own: null, what: rec.problems.join('; ') }); pc.followed += 1; } }
+        else if (!rec.problems.length) { put(tid, h, h); say(tid, `${h} recorded`); pc.recorded += 1; }
+        else findings.push(`${rec.at}: pointer rule ${h} is new on R-${tid}'s list, and ${rec.problems.join('; ')}; a new pointer is recorded only as its target is (Structure.md, Pointers)`);
+        continue;
+      }
+      const o = rec.own ? L.parseOwnId(rec.own) : null;
+      if (o && !rec.repointedFrom && o.target === tid && list.has(rec.own)) {
+        if (!carriers.has(rec.own)) carriers.set(rec.own, []);
+        carriers.get(rec.own).push(rec);
+      } else fresh.push(rec);
+    }
+    for (const [own, rs] of carriers) {
+      let keeper = rs[0];
+      if (rs.length > 1) {
+        const listedH = holderNow(list.get(own));
+        const inH = rs.filter(r => L.idKey(r.holder.id) === listedH);
+        if (inH.length !== 1) {
+          for (const r of rs) findings.push(`${r.at}: ${own} is carried by ${rs.length} pointers, ${inH.length} of them in R-${listedH}, the item its list names, which does not tell them apart (Structure.md, Pointers)`);
+          kept.add(own);
+          put(tid, own, list.get(own));
+          continue;
+        }
+        keeper = inH[0];
+        for (const r of rs) if (r !== keeper) { r.copyOf = own; fresh.push(r); }
+      }
+      const h = L.idKey(keeper.holder.id);
+      kept.add(own);
+      put(tid, own, h);
+      pc.kept += 1;
+      if (holderNow(list.get(own)) !== h) { say(tid, `${own} moved from R-${list.get(own)} to R-${h}`); pc.moved += 1; }
+      if (keeper.problems.length) { pointerEdits.push({ rec: keeper, tid, own, what: keeper.problems.join('; ') }); pc.followed += 1; }
+    }
+    fresh.sort((x, y) => x.order - y.order);
+    for (const rec of fresh) {
+      const name = rec.target.heading;
+      if (!rec.repointedFrom && rec.problems.length) {
+        const other = rec.own ? L.parseOwnId(rec.own).target : null;
+        if (rec.copyOf) findings.push(`${rec.at}: a copy of ${rec.copyOf}, new here, and ${rec.problems.join('; ')}; a new pointer is recorded only as its target is (Structure.md, Pointers)`);
+        else if (other && other !== tid && (oldLists.get(other) || new Map()).has(rec.own)) findings.push(`${rec.at}: R-${tid} carries ${rec.own}, R-${other}'s, and ${rec.problems.join('; ')}: a mistyped id, not a repointing (Structure.md, Pointers)`);
+        else findings.push(`${rec.at}: R-${tid} is new on its list, and ${rec.problems.join('; ')}; a new pointer is recorded only as its target is (Structure.md, Pointers)`);
+        continue;
+      }
+      const own = `${tid}-T${next}`;
+      next += 1;
+      const h = L.idKey(rec.holder.id);
+      put(tid, own, h);
+      say(tid, `${own} recorded in R-${h}`);
+      let what;
+      if (rec.repointedFrom) { what = `pointer R-${rec.repointedFrom} is at a retired id; R-${tid} replaced it: repointed as ${own}`; pc.repointed += 1; }
+      else {
+        what = rec.copyOf ? `a copy of ${rec.copyOf}: recorded as ${own}` : rec.own ? `R-${tid} (${name}) carries ${rec.own}, not on R-${tid}'s list: recorded as ${own}` : `R-${tid} (${name}) is new: recorded as ${own}`;
+        pc.recorded += 1;
+      }
+      pointerEdits.push({ rec, tid, own, what });
+    }
+    for (const [own, h] of list) {
+      if (kept.has(own) || (newLists.get(tid) && newLists.get(tid).has(own))) continue;
+      if (unread(tid, h)) { put(tid, own, h); continue; }
+      say(tid, `${own} (in R-${h}) gone: taken off, not retired`);
+      pc.gone += 1;
+    }
+  }
+  for (const [t, list] of oldLists) {
+    if (byTarget.has(t)) continue;
+    for (const [own, h] of list) {
+      if (unread(t, h)) { put(t, own, h); continue; }
+      say(t, `${own} (in R-${h}) gone: taken off, not retired`);
+      pc.gone += 1;
+    }
+  }
+  for (const { rec, tid, own, what } of pointerEdits) {
+    changes.push({ entry: rec.e, kind: 'pointer', what: `${rec.at}: ${what}`, spans: pointerSpans(rec, tid, own, linkNow) });
+  }
+  // the lists, each in the register that records its target's id
+  const listPlace = (t) => { const it = sys.items.get(t); return it ? entryOf(it).place : listedIn.get(t); };
+  for (const place of sys.places) {
+    if (L.checkPointerLists(place.register, place.registerPath).length) continue;
+    const want = {};
+    for (const [t, m] of newLists) if (listPlace(t) === place) want[t] = Object.fromEntries(m);
+    const had = {};
+    for (const [t, list] of Object.entries(place.register.pointers || {})) had[t] = Object.fromEntries(Object.entries(list).map(([k, v]) => [k, L.idKey(v)]));
+    const flat = (l) => JSON.stringify(Object.keys(l || {}).sort(L.idOrder).map(k => [k, l[k]]));
+    const differ = [...new Set([...Object.keys(want), ...Object.keys(had)])].filter(t => flat(want[t]) !== flat(had[t])).sort(L.idOrder);
+    for (const t of differ) changes.push({ registerOf: place, kind: 'pointer list', what: `${place.registerPath}: the list of R-${t}: ${(listNotes.get(t) || ['rewritten']).join('; ')}`, lists: want });
+    if (!differ.length && place.register.pointers !== undefined && L.withPointerLists(place.registerText, want) !== place.registerText) {
+      changes.push({ registerOf: place, kind: 'pointer list', what: `${place.registerPath}: the pointer lists are not in the layout the checker writes`, lists: want });
     }
   }
 
@@ -273,13 +509,17 @@ function check(ctx) {
 
   // ---- what --write would change, and where it may write: R-1010 (The checker)
   const pending = [];
-  const policiesWritable = ctx.write && ctx.policiesGiven && !same(ctx.policies, ctx.standing);
   const placeOf = (c) => c.registerOf || c.place || c.entry.place;
   for (const c of changes) {
     const place = placeOf(c);
     const repo = c.entry && c.entry.repo;
-    if (!ctx.write) { findings.push(`${c.what}; run with --write${place.key === 'SPD' ? ' in the copy being committed (--policies <path>)' : ''}`); continue; }
-    if (repo) { findings.push(`${c.what}; a file in ${repo} changes on that repository's own route, which is not settled yet`); continue; }
+    if (!ctx.write) { findings.push(`${c.what}; run with --write${repo ? ` with the copy of ${repo} being committed (--copy ${c.entry.repoFolder}=<path>)` : place.key === 'SPD' ? ' in the copy being committed (--policies <path>)' : ''}`); continue; }
+    if (repo) {
+      // a file of another repository is written only in the copy of it about to be committed
+      if (c.entry.copy) c.go = true;
+      else findings.push(`${c.what}; a file in ${repo} is written only in the copy of it being committed, named with --copy ${c.entry.repoFolder}=<path>, never in its standing checkout (Structure.md, The checker)`);
+      continue;
+    }
     if (place.key === 'SPD' && !policiesWritable) {
       if (ctx.deferPolicies) pending.push(c.what);
       else findings.push(`${c.what}; S, P and D are written only in the copy being committed, named with --policies <path>, never in the standing checkout (Structure.md, The checker)`);
@@ -289,17 +529,22 @@ function check(ctx) {
   }
   if (ctx.write) applyChanges(files, changes.filter(c => c.go));
   const counts = { files: sys.fileEntries.filter(e => e.read).length, items: sys.items.size, changes: changes.filter(c => c.go).length };
-  return { findings, notes, pending, stop: false, sys, counts, allPointers };
+  const pointerChanges = changes.filter(c => c.go && (c.kind === 'pointer' || c.kind === 'pointer list')).map(c => c.what);
+  return { findings, notes, pending, stop: false, sys, counts, allPointers, pointerCounts: pc, pointerChanges, oldLists };
 }
 
-/** Puts the corrections into the overlay: lines rewritten, marks raised, indexes regenerated. */
+/**
+ * Puts the corrections into the overlay: lines rewritten, pointers rewritten, marks raised, the
+ * pointer lists and the indexes regenerated.
+ */
 function applyChanges(files, changes) {
   const byFile = new Map();
   for (const c of changes) {
-    if (c.kind === 'code' || c.kind === 'part mark') {
+    if (c.kind === 'code' || c.kind === 'part mark' || c.kind === 'pointer') {
       const k = path.resolve(c.entry.abs);
-      if (!byFile.has(k)) byFile.set(k, { entry: c.entry, sets: new Map() });
+      if (!byFile.has(k)) byFile.set(k, { entry: c.entry, sets: new Map(), spans: [] });
       const f = byFile.get(k);
+      if (c.kind === 'pointer') { f.spans.push(...c.spans); continue; }
       const idx = c.it.item.jsonLine - 1;
       f.sets.set(idx, { ...(f.sets.get(idx) || { it: c.it }), ...c.set, it: c.it });
     }
@@ -312,7 +557,17 @@ function applyChanges(files, changes) {
       for (const k of ['code', 'splinterMark', 'pointerMark']) if (s[k] !== undefined) j[k] = s[k];
       lines[idx] = L.formatJsonLine(j, s.it.item.jsonForm || f.entry.root.form);
     }
-    files.write(abs, lines.join(read.eol));
+    // a pointer never stands on a JSON line, so its offsets, taken as line and column, still hold
+    // once the JSON lines are rewritten
+    const at = (ls) => { const s = [0]; for (const l of ls) s.push(s[s.length - 1] + l.length + 1); return s; };
+    const before = at(read.lines);
+    const lineOf = (off) => { let i = 0; while (i + 1 < before.length && before[i + 1] <= off) i += 1; return { line: i, col: off - before[i] }; };
+    const after = at(lines);
+    let text = lines.join('\n');
+    const spans = f.spans.map(s => ({ a: lineOf(s.start), b: lineOf(s.end), text: s.text }))
+      .sort((x, y) => (y.a.line - x.a.line) || (y.a.col - x.a.col));
+    for (const s of spans) text = `${text.slice(0, after[s.a.line] + s.a.col)}${s.text}${text.slice(after[s.b.line] + s.b.col)}`;
+    files.write(abs, text.split('\n').join(read.eol));
   }
   const regs = new Map();
   for (const c of changes.filter(x => x.kind === 'tier mark')) {
@@ -333,6 +588,10 @@ function applyChanges(files, changes) {
     const p = c.registerOf.registerPath;
     files.write(p, setListedMark(files.read(p), c.rel, c.field, c.to));
   }
+  // the pointer lists, the block written whole once per register: R-1008 (Pointers)
+  const listsOf = new Map();
+  for (const c of changes.filter(x => x.kind === 'pointer list')) listsOf.set(c.registerOf.registerPath, c.lists);
+  for (const [p, lists] of listsOf) files.write(p, L.withPointerLists(files.read(p), lists));
   for (const c of changes.filter(x => x.kind === 'index')) files.write(c.abs, c.text);
 }
 
@@ -420,13 +679,25 @@ function listPointersAt(ctx, id) {
   const key = L.idKey(id);
   const rows = [];
   for (const it of r.sys.items.values()) {
-    if (it.kind === 'pointer' && L.parseId(it.id).parent === key) rows.push(`${it.where}: pointer rule ${it.id} (${it.heading})`);
+    if (it.kind === 'pointer' && L.parseId(it.id).parent === key) rows.push(`${it.where}: pointer rule ${it.id} (${it.heading}), own id ${it.id}`);
   }
-  for (const { ptr, at } of r.allPointers || []) if (ptr.id === key) rows.push(`${at}: R-${ptr.id} (${ptr.name})`);
+  // each pointer in the text with the own id it carries, and whether its target's list holds it:
+  // R-1008 (Pointers)
+  const list = (r.oldLists && r.oldLists.get(key)) || new Map();
+  const seen = new Set();
+  for (const { ptr, at, pub, isRule, holder } of r.allPointers || []) {
+    if (ptr.id !== key) continue;
+    if (isRule) { rows.push(`${at}: R-${ptr.id} (${ptr.name}), the pointer of pointer rule ${holder.id}`); continue; }
+    const own = pub ? ptr.title : ptr.tag;
+    const carried = own !== null && L.parseOwnId(own) ? own : null;
+    if (carried) seen.add(carried);
+    rows.push(`${at}: R-${ptr.id} (${ptr.name}), own id ${carried ? `${carried}${list.has(carried) ? '' : ', not on its list'}` : 'none'}`);
+  }
+  for (const [own, h] of list) if (!seen.has(own) && !L.parseId(own)) rows.push(`${own}: on the list, in R-${h}, and no pointer carries it`);
   const target = r.sys.items.get(key);
   console.log(target ? `R-${key} (${target.heading}): ${L.describe(target)}` : `R-${key}: not in use`);
   for (const row of rows) console.log(`  ${row}`);
-  console.log(`${rows.length} pointer(s) at R-${key}`);
+  console.log(`${rows.filter(x => !/: on the list, in R-/.test(x)).length} pointer(s) at R-${key}`);
   for (const n of r.notes) console.log(n);
   return target ? 0 : 1;
 }
@@ -662,7 +933,7 @@ function main(argv, deps = {}) {
   const args = parseArgs(argv);
   if (args.help || args.bad.length) {
     if (args.bad.length) console.log(`unknown or incomplete argument(s): ${args.bad.join(' ')}`);
-    console.log('usage: node rule-check.js [--write] [--policies <path>] [--claude <path>] [--defer-policies] [--pointers-at <id>] [--renumber <plan.json>]');
+    console.log('usage: node rule-check.js [--write] [--policies <path>] [--copy <folder>=<path>]... [--claude <path>] [--defer-policies] [--pointers-at <id>] [--renumber <plan.json>]');
     return args.help ? 0 : 1;
   }
   const preFindings = [];
@@ -677,7 +948,7 @@ function main(argv, deps = {}) {
     return 1;
   }
   const claude = L.claudeRoot(args.claude, policies);
-  const ctx = { files: new L.Files(), policies, claude, standing, policiesGiven: !!args.policies, write: args.write, deferPolicies: args.deferPolicies, env: deps.env, readStored: deps.readStored, preFindings };
+  const ctx = { files: new L.Files(), policies, claude, standing, policiesGiven: !!args.policies, copies: args.copies, write: args.write, deferPolicies: args.deferPolicies, env: deps.env, readStored: deps.readStored, preFindings };
   if (args.pointersAt) return listPointersAt(ctx, args.pointersAt);
   if (args.renumber) return renumber(ctx, path.resolve(args.renumber));
   const r = check(ctx);
@@ -691,6 +962,11 @@ function main(argv, deps = {}) {
   if (args.write) {
     const changed = ctx.files.changed();
     ctx.files.flush();
+    // what --write did to the pointers and their lists: each change, or their count when many
+    const pc = r.pointerCounts;
+    if (r.pointerChanges.length <= 12) for (const w of r.pointerChanges) console.log(`pointer: ${w}`);
+    else console.log(`pointer: ${r.pointerChanges.length} change(s)`);
+    if (r.pointerChanges.length) console.log(`pointers: ${pc.kept} kept (${pc.followed} brought up to date, ${pc.moved} moved), ${pc.recorded} recorded, ${pc.repointed} repointed, ${pc.gone} taken off`);
     for (const p of changed) console.log(`wrote ${p}`);
   }
   console.log(`OK: ${r.counts.files} file(s), ${r.counts.items} id(s)${r.notes.length ? `, ${r.notes.length} not checked` : ''}`);

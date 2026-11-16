@@ -4,7 +4,7 @@
 Every plan lives under `docs/plans/`, in a folder hierarchy that mirrors the repository's GitHub
 issue hierarchy. Documents that are not plans (roadmaps, protocol specs, decision records, asset
 folders such as `docs/brand/`) stay where they are. The issue hierarchy is
-[R-1063 (Planning large work)](../../CONTRIBUTING.md#planning-large-work).
+[R-1063 (Planning large work)](../../CONTRIBUTING.md#planning-large-work "1063-T3").
 
 ## Hierarchy
 <!-- {"name":"Hierarchy","code":"P-D-PD-HI","id":1106} -->

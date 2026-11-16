@@ -154,7 +154,7 @@ is the shared tools space of `~/.claude/`, and this folder in it is yours.
   tables where they stand, each time it runs, and holds no copy of a list:
   functions that find the barred words in a text, for the dashboards skill's
   scripts to call, and a command that reads the files a commit carries as
-  R-1122 (What the commit scan reads) says and prints each find with the
+  R-1122 (What the commit scan reads) [1122-T5] says and prints each find with the
   wording to say instead, or that the list has none, for the executor to run.
   Its usage is the command's `--help`.
 - **Its tests**, under `test/`, run with `node <file> --dir <an empty scratch
@@ -260,7 +260,7 @@ rule. So that no run's commit or board event stops on it:
 
 - **Say what is true at the moment of reading.** A rule, not its history: no
   "previously", no dated callouts. The ledger keeps the history.
-- **Keep the single source.** R-1000 (Single source): a matching rule lives
+- **Keep the single source.** R-1000 (Single source) [1000-T3]: a matching rule lives
   in the baseline only, a term and its wording in its vocabulary only; the
   tool implements them and copies neither.
 - **Verify the facts before writing them.** What a script matches, which file
@@ -272,7 +272,7 @@ rule. So that no run's commit or board event stops on it:
 - **Formatting is yours.** Match the file's layout; ask no one about
   whitespace or wrapping.
 - **Run the rule check after every edit to a rule file.** A rule file is one
-  `~/.claude/admin-team/rule-files.json` lists; its format is R-1 (Structure).
+  `~/.claude/admin-team/rule-files.json` lists; its format is R-1 (Structure) [1-T3].
   After every edit to one, run
   `node "$SPARTAN_ORG_POLICIES/scripts/rule-check.js" --write --defer-policies`;
   the counts it reports as pending in S, P and D are written by the

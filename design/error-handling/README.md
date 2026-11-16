@@ -2,7 +2,7 @@
 <!-- {"name":"Error handling","code":"D-E","id":29} -->
 
 How Spartan Labs code handles failure. These are Design principles:
-[R-3 (Design Manifesto)](../../DESIGN.md) says what force they have.
+[R-3 (Design Manifesto)](../../DESIGN.md "3-T4") says what force they have.
 
 ## Expected failures return a Result
 <!-- {"name":"Expected failures return a Result","code":"D-E-ER","id":1082} -->

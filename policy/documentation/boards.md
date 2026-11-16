@@ -3,7 +3,7 @@
 
 Every repository keeps two groups of boards: the state boards and the work boards.
 Each board is defined in
-[R-140 (Boards — the names of the dashboards and their parts)](../nomenclature/boards.md).
+[R-140 (Boards — the names of the dashboards and their parts)](../nomenclature/boards.md "140-T2").
 
 ## The state boards
 <!-- {"name":"The state boards","code":"P-D-B-SB","id":1101} -->

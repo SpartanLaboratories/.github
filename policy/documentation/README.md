@@ -36,7 +36,7 @@ Issue and pull-request text is the tracker's record and sits at no level.
 <!-- {"name":"In-editor navigation and maintenance","code":"P-D-IN-1","id":10000} -->
 
 - Long files are grouped with `//region` / `//endregion`.
-- Imports are grouped as [R-137 (Commenting)](commenting.md) sets out.
+- Imports are grouped as [R-137 (Commenting)](commenting.md "137-T1") sets out.
 - A `// TODO:` or `// FIXME:` says what is to be done, and ideally references the issue tracker.
 - Hand-aligned blocks sit between `@formatter:off` and `@formatter:on`.
 - A string literal in an embedded language (SQL, GLSL, JSON, a regular expression, a shader)
@@ -86,21 +86,21 @@ lines directly above them.
 <!-- {"name":"Level 2: the API reference","code":"P-D-AP","id":1030} -->
 
 Dokka generates the API reference from the KDoc of level 1. The reference follows
-[R-104 (Dokka and project sites)](dokka.md).
+[R-104 (Dokka and project sites)](dokka.md "104-T1").
 
 ## Level 3: the landing page
 <!-- {"name":"Level 3: the landing page","code":"P-D-LP","id":1031} -->
 
-The project site's hand-written landing page follows [R-104 (Dokka and project sites)](dokka.md).
-READMEs and CHANGELOGs follow [R-135 (READMEs and CHANGELOGs)](readme-changelog.md). Plan documents
-follow [R-138 (Planning documents)](planning-documents.md). A landing page, a README or a plan's
+The project site's hand-written landing page follows [R-104 (Dokka and project sites)](dokka.md "104-T2").
+READMEs and CHANGELOGs follow [R-135 (READMEs and CHANGELOGs)](readme-changelog.md "135-T1"). Plan documents
+follow [R-138 (Planning documents)](planning-documents.md "138-T1"). A landing page, a README or a plan's
 `consequences.md` can present the KDoc's prose rather than the source.
 
 ## Level 4: boards
 <!-- {"name":"Level 4: boards","code":"P-D-BO","id":1032} -->
 
 System topology is modelled as code with Structurizr (the C4 model). The role of the boards as
-documentation is [R-136 (Boards as documentation)](boards.md).
+documentation is [R-136 (Boards as documentation)](boards.md "136-T1").
 
 ## What the standard does not ask for
 <!-- {"name":"What the standard does not ask for","code":"P-D-NA","id":1024,"pointerMark":1} -->

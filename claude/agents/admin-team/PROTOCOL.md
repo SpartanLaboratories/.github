@@ -249,7 +249,7 @@ Same shape: one line, then a ```json block.
   architecture, `consequences.md`, `final-implementation.md`, every board, and the `plan-board` fact
   texts that land on one) names the pipeline's agents, sessions or roles, refers to the approval
   flow or states a grade, as `~/.claude/nomenclature/internal-names.md` lists them with
-  what is fine. The team scans what R-1122 (What the commit scan reads) lists before any
+  what is fine. The team scans what R-1122 (What the commit scan reads) [1122-T3] lists before any
   `commit`, `prepare-landing` or `land` commits anything; a find blocks it with
   `needs-rework`, each find carrying the list's wording to say instead or `null`. The same
   scan runs before a `mirror-sync` commits anything (`version-control-manager.md`, Executor

@@ -244,7 +244,7 @@ a grade, as `~/.claude/nomenclature/internal-names.md` lists them with
 what is fine and what to say instead, and `~/.claude/nomenclature/finding.md` says how each is found. Before a `commit`, a `prepare-landing` or a `land` commits
 anything, and before a `mirror-sync` that carries the files the scan reads, the executor
 runs the finding tool's command over what it is about to commit, which reads it as R-1122
-(What the commit scan reads) says (`version-control-manager.md`, Executor mode,
+(What the commit scan reads) [1122-T2] says (`version-control-manager.md`, Executor mode,
 **Internal-names scan**); on a find it commits nothing and reports each `file:line` with
 its text and the list's wording to say instead, or that the list has none. A
 find in a file the requester wrote is theirs: reply `needs-rework` with

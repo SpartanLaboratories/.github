@@ -174,4 +174,4 @@ padded one. Omit a section that does not apply.
 
 ## Progress review every 10 minutes  (when you run inside a /resolve-issue run)
 
-Read and follow R-1061 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) in `~/.claude/shared/progress-review.md`.
+Read and follow R-1061 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) [1061-T3] in `~/.claude/shared/progress-review.md`.

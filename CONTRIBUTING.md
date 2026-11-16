@@ -11,16 +11,16 @@ A repository may add its own `CONTRIBUTING.md` for technology-specific rules: co
 module layout, build and test commands, where its version lives, and how it publishes. That file
 **supplements** this baseline and links back to it; it does not restate or override it.
 
-- [R-1062 (Before you start)](#before-you-start)
-- [R-1063 (Planning large work)](#planning-large-work)
-- [R-1064 (Branching model)](#branching-model)
-- [R-1065 (Commit messages)](#commit-messages)
-- [R-1066 (Pull requests)](#pull-requests)
-- [R-1067 (Merge strategy)](#merge-strategy)
-- [R-1068 (Code, tests, and documentation)](#code-tests-and-documentation)
-- [R-25-P1 (Versioning)](#versioning)
-- [R-1069 (Deployment environments)](#deployment-environments)
-- [R-1070 (Security)](#security)
+- [R-1062 (Before you start)](#before-you-start "1062-T1")
+- [R-1063 (Planning large work)](#planning-large-work "1063-T1")
+- [R-1064 (Branching model)](#branching-model "1064-T1")
+- [R-1065 (Commit messages)](#commit-messages "1065-T1")
+- [R-1066 (Pull requests)](#pull-requests "1066-T1")
+- [R-1067 (Merge strategy)](#merge-strategy "1067-T1")
+- [R-1068 (Code, tests, and documentation)](#code-tests-and-documentation "1068-T1")
+- [R-25-P1 (Versioning)](#versioning "25-P1-T1")
+- [R-1069 (Deployment environments)](#deployment-environments "1069-T1")
+- [R-1070 (Security)](#security "1070-T1")
 
 ## Before you start
 <!-- {"name":"Before you start","code":"P-H-BS","id":1062} -->
@@ -110,7 +110,7 @@ There is no `develop` branch and there are no per-environment branches.
 - **Breaking changes:** `feat(x)!:` in the subject **and** a `BREAKING CHANGE:` footer
 - Reference issues in the body (`Refs #2`); the PR that implements an issue closes it
   (`Closes #2`). Planning and doc PRs only reference it — see
-  [R-1063 (Planning large work)](#planning-large-work)
+  [R-1063 (Planning large work)](#planning-large-work "1063-T2")
 
 Commits on your own branch may be rough — tidy them with an interactive rebase before the PR
 is ready for review.
@@ -154,11 +154,11 @@ approving review becomes required once a second person is on the repository.
 <!-- {"name":"Code, tests, and documentation","code":"P-H-CT","id":1068} -->
 
 Follow the conventions established by the target repository. Add or update tests in the
-appropriate sets ([R-12 (Testing — Named Test Sets)](policy/testing/README.md)).
+appropriate sets ([R-12 (Testing — Named Test Sets)](policy/testing/README.md "12-T2")).
 Preserve compatibility unless a breaking change is intentional and documented. Update user-facing
-documentation ([R-11 (Documentation levels)](policy/documentation/README.md)) whenever the public
+documentation ([R-11 (Documentation levels)](policy/documentation/README.md "11-T2")) whenever the public
 behavior, API, build, or operational workflow changes. The `README.md` follows
-[R-135 (READMEs and CHANGELOGs)](policy/documentation/readme-changelog.md).
+[R-135 (READMEs and CHANGELOGs)](policy/documentation/readme-changelog.md "135-T2").
 
 ## Versioning
 <!-- {"name":"Versioning","code":"P-H-25-P1","id":"25-P1"} -->

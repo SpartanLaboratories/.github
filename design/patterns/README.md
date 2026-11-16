@@ -2,7 +2,7 @@
 <!-- {"name":"Patterns","code":"D-P","id":27} -->
 
 How Spartan Labs code is shaped. These are Design principles:
-[R-3 (Design Manifesto)](../../DESIGN.md) says what force they have.
+[R-3 (Design Manifesto)](../../DESIGN.md "3-T2") says what force they have.
 
 ## Objects for the domain, functions for data
 <!-- {"name":"Objects for the domain, functions for data","code":"D-P-OF","id":1080} -->

@@ -3,7 +3,7 @@
 
 The names of the dashboards every Spartan Labs repository keeps: the boards, their groups, and how
 the boards use the interface elements named in
-[R-139 (UI elements — one name per element)](https://github.com/SpartanLaboratories/SpartanUI/blob/main/docs/nomenclature/ui.md).
+[R-139 (UI elements — one name per element)](https://github.com/SpartanLaboratories/SpartanUI/blob/main/docs/nomenclature/ui.md "139-T2").
 
 ## Dashboards and boards
 <!-- {"name":"Dashboards and boards","code":"P-N-B-DB","id":1117} -->
@@ -61,11 +61,11 @@ Whiteboard's **generated part** is what is written on it from its sources, a run
 <!-- {"name":"Board UI","code":"P-N-B-BU","id":1119} -->
 
 Every visible element on a board takes its name from
-[R-139 (UI elements — one name per element)](https://github.com/SpartanLaboratories/SpartanUI/blob/main/docs/nomenclature/ui.md);
+[R-139 (UI elements — one name per element)](https://github.com/SpartanLaboratories/SpartanUI/blob/main/docs/nomenclature/ui.md "139-T3");
 the look follows the boards' colour coding and Legends.
 
 A board's compound names follow
-[R-1114 (Naming)](https://github.com/SpartanLaboratories/SpartanUI/blob/main/docs/nomenclature/ui.md#naming):
+[R-1114 (Naming)](https://github.com/SpartanLaboratories/SpartanUI/blob/main/docs/nomenclature/ui.md#naming "1114-T1"):
 the reference that ends a Verdict statement ("§4.2", opening the section's excerpt) is its
 **section Chip**, a landed unit's pull request and merge commit on its As built Cell ("PR #89",
 "merge 8122af7", each opening what it names) are its **PR Chip** and **merge Chip**, a figure and
@@ -85,7 +85,7 @@ FillPulse).
 
 A row exists only for a specific use of a `ui.md` term on the boards, such as a compound name built
 on it, or for a deviation from `ui.md`, and never restates `ui.md`
-([R-1000 (Single source)](../../Structure.md#single-source)). Each row says what its term is for on
+([R-1000 (Single source)](../../Structure.md#single-source "1000-T1")). Each row says what its term is for on
 the boards.
 The rows stand in three groups, each in `ui.md`'s family order: **deviated**, where the boards depart
 from `ui.md` (a row that also names subtypes of its term stands here and names them); **subtyped**,

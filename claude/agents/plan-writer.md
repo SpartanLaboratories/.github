@@ -40,7 +40,7 @@ not an exercise you leave to the implementer.
 
 ### Error handling is designed, not discovered
 
-R-29 (Error handling) states the principles every signature you plan
+R-29 (Error handling) [29-T3] states the principles every signature you plan
 follows; a departure is stated in the plan, with its reason. Plan every new
 function's failure path beside its happy path. For **each** new or changed
 signature, state: what it returns on failure, which failures are expected
@@ -49,7 +49,7 @@ unwrapped.
 
 ### Logging
 
-R-30 (Logging) is the standard the change's logging meets. Name the
+R-30 (Logging) [30-T2] is the standard the change's logging meets. Name the
 events the change should log, and at what level.
 
 ### Documentation — the documentation levels
@@ -236,4 +236,4 @@ by transient message text, and do not bake in raw SHAs before merge.
 
 ## Progress review every 10 minutes  (when you run inside a /resolve-issue run)
 
-Read and follow R-1061 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) in `~/.claude/shared/progress-review.md`.
+Read and follow R-1061 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) [1061-T2] in `~/.claude/shared/progress-review.md`.

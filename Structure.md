@@ -24,7 +24,7 @@ holds the test that places a new rule in one or the other.
 
 Every rule, definition and fact a page of the four roots states has one home, where its owner reads
 it. Every other page points at the home and never restates it, in whole or in part: inside the rule
-system by an id pointer, as [R-1008 (Pointers)](#pointers) says; a document outside the system by
+system by an id pointer, as [R-1008 (Pointers)](#pointers "1008-T1") says; a document outside the system by
 its file and section. A page built on another's terms states only what it adds to them, its specific
 uses and its deviations. A copy a script generates from the home, or a check holds equal to it, is
 no second home, and neither is a JSON term line, the machine-readable form of the prose fact it
@@ -61,7 +61,7 @@ its name is fixed, as a skill's `SKILL.md` is, a `GUIDANCE.md` or `README.md` is
 first file becomes a file of the folder. Then only what changes tier takes a new id: the first file
 takes a 3-digit file id, having had none as the core file; its sections and rules keep their ids,
 their codes gaining the file's own segment; the folder's 2-digit id passes to the new core file.
-Each pointer at the folder is checked as at a split ([R-1002 (Sections)](#sections)): it still fits
+Each pointer at the folder is checked as at a split ([R-1002 (Sections)](#sections "1002-T1")): it still fits
 the folder, or it is repointed at the first file and takes a new id.
 
 ## Sections
@@ -75,19 +75,19 @@ Every `##` section that is not itself a pointer rule carries a 4-digit id.
   section.
 - A section with `###` rules is a section of rules; each rule carries a 5-digit id.
 - A section that is wholly a pointer rule carries the pointer id alone ([R-1006 (Pointer
-  rules)](#pointer-rules)) and no 4-digit id.
+  rules)](#pointer-rules "1006-T1")) and no 4-digit id.
 
 A one-rule section that becomes several rules is split: it keeps its 4-digit id, still the
 section, and nothing is retired; the new rules take 5-digit ids. When a section splits, each
 pointer at it is checked: it still fits the section, or it is repointed at one of the new rules
-and takes a new id ([R-1006 (Pointer rules)](#pointer-rules)). The checker lists, on request,
+and takes a new id ([R-1006 (Pointer rules)](#pointer-rules "1006-T2")). The checker lists, on request,
 every pointer at an id; the review of a split's pointers is part of the split's edit, shown in its
 diff.
 
 A section's items may become rules individually, and only where the section names them with clean
 bold leads that lift out without breaking a sentence and leave none of its text in another rule's
 body; otherwise, and by default, the section is one rule, and a part of it that needs pointing at
-becomes a splinter ([R-1005 (Splinters)](#splinters)).
+becomes a splinter ([R-1005 (Splinters)](#splinters "1005-T1")).
 
 ## A rule
 <!-- {"name":"A rule","code":"S-C-AR","id":1003} -->
@@ -199,6 +199,32 @@ derives the anchor from the heading as GitHub does and verifies the link against
 repository's `README.md` and `profile/README.md` are outside the system and link by file. Nothing
 on these pages points into G.
 
+What a pointer takes from its target follows the target: when the target moves or changes, the
+checker's `--write` brings what was taken from it up to date in every file the checker reads, in
+another repository as in this one, and nothing taken from a target is updated by hand.
+
+Every pointer has an id of its own and stands on a list its target keeps, under that id and the id
+of the item that holds it. A pointer rule's own id is its id
+([R-1006 (Pointer rules)](#pointer-rules "1006-T3")), and nothing is written at its pointer. A pointer in the
+text of a rule, a section or a file takes a part of its target's id, `<target>-T<n>`, counted apart
+from the target's splinters and pointer rules, and written at the pointer: on the pages of S, P and
+D as its link's title, which GitHub shows only when the link is hovered, e.g.
+`[R-1041 (Testing)](policy/testing/README.md "1041-T1")`, and in G in square brackets after it, e.g.
+`R-1041 (Testing) [1041-T1]`. That id names the pointer on its list and nowhere else: no pointer
+points at it, and neither id list holds it ([R-1004 (`id`)](#id "1004-T1")).
+
+The lists stand in the register that records the target's id, and only the checker's `--write`
+writes them and the ids at the pointers. A pointer is correct when its own id is on its target's
+list; it keeps that id wherever it moves, and `--write` writes its item on the list and its name and
+link from its target. A pointer that carries no id, or an id not on the list of the target its text
+names, is new: `--write` records it, writing the next part at it and listing it, when it holds its
+target's name, and its link where it has one, as they are now, and otherwise it is a finding. Of two
+pointers that carry one id, the one in the item the list names keeps it and the other is new; where
+that does not tell them apart, both are findings. `--write` takes a pointer that is gone off its
+list; its id is not retired, and the next part given at its target is the one above the highest on
+the list as `--write` found it. It repoints a pointer at an id retired with a replacement to the
+replacement, under a part of that id.
+
 In a converted rule file the checker reports a Markdown link to a file inside the system, whether
 relative or written as the full address the register gives for that file's repository, and a quoted
 section reference: a heading of a converted file, quoted on a line that names that file. A link to
@@ -220,26 +246,30 @@ repository's root.
 ## The checker
 <!-- {"name":"The checker","code":"S-C-CH","id":1010} -->
 
-The checker, [R-100 (rule-check.js)](scripts/rule-check.js) (S-S-C), checks the four roots: the JSON
+The checker, [R-100 (rule-check.js)](scripts/rule-check.js "100-T1") (S-S-C), checks the four roots: the JSON
 lines in each place's form, the tiers, the two id lists as one record, the splinters and pointer
-rules with their marks, the sections, the codes, the pointers and their links, and the indexes. It
-finds this repository's checkout through the variable `SPARTAN_ORG_POLICIES` and reports a finding
-when it is unset, reading the variable from its process environment first and from the stored user
-value second, with no path written in it. A file in another repository is read from that
-repository's checkout, a sibling folder of this one under the folder name the register gives, a
-variable overriding it; a missing checkout makes the file "not checked", and S-I, which lists that
-file's items, is then neither checked nor rewritten.
+rules with their marks, the sections, the codes, the pointers with their links, ids and lists, and
+the indexes. It finds this repository's checkout through the variable `SPARTAN_ORG_POLICIES` and
+reports a finding when it is unset, reading the variable from its process environment first and
+from the stored user value second, with no path written in it. A file in another repository is
+read from that repository's checkout, a sibling folder of this one under the folder name the
+register gives, a variable overriding it, or from the copy of that repository about to be committed
+when one is named. A missing checkout makes the file "not checked", and S-I, which lists that
+file's items, is then neither checked nor rewritten; with `--write` in a copy of this repository
+about to be committed, a missing checkout is a finding.
 
 - It exits 1 on any finding.
 - On request it lists every pointer at a given id.
-- With `--write` it also corrects the codes, raises the marks and rewrites the indexes. Any finding
-  leaves every file as it is. In `~/.claude` it writes in place; for S, P and D it writes in the
-  copy about to be committed, never in a standing checkout, which is brought up to date after the
-  commit.
+- With `--write` it also corrects the codes, raises the marks, rewrites the indexes, the pointer
+  lists and the ids at the pointers, and brings up to date what pointers took from their targets
+  ([R-1008 (Pointers)](#pointers "1008-T2")). Any finding leaves every file as it is. In `~/.claude` it
+  writes in place; for S, P and D, and for a file in another repository, it writes in the copy of
+  the file's repository about to be committed, never in a standing checkout, which is brought up
+  to date after the commit.
 - With `--write` and `--defer-policies`, run in `~/.claude` with no copy of this repository being
-  committed, it writes G and reports as pending what S, P and D need, such as a pointer count on a
-  target here. The commit that brings G's edit into its copy under `claude/` writes those pending
-  counts in this repository and carries them.
+  committed, it writes G and reports as pending what S, P and D need, such as a pointer count or a
+  pointer list of a target here. The commit that brings G's edit into its copy under `claude/`
+  writes those pending changes in this repository and carries them.
 
 It reads two registers: G's, in `~/.claude`, and `rule-files.json` at this repository's root for
 S, P and D.
@@ -255,10 +285,10 @@ so a reader sees only what it was pointed at.
 It is also the search across the id record: for an id in use it says where it is; for a retired
 id, that it is retired and what replaced it; a listing switch prints the whole record from both
 places.
-It is [R-101 (rule-fetch.js)](scripts/rule-fetch.js) (S-S-F), beside the checker in this
+It is [R-101 (rule-fetch.js)](scripts/rule-fetch.js "101-T1") (S-S-F), beside the checker in this
 repository's scripts folder (S-S), and runs from a checkout of this repository; no copy is kept
 elsewhere. Both scripts read the rule files through one core,
-[R-103 (rule-lib.js)](scripts/rule-lib.js) (S-S-L), so the two cannot read a file differently.
+[R-103 (rule-lib.js)](scripts/rule-lib.js "103-T1") (S-S-L), so the two cannot read a file differently.
 It finds the checkout as the checker does. When the variable is absent or a checkout it needs is
 missing, it prints nothing it was asked for, exits 2, and says which checkout is missing.
 

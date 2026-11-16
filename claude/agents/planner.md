@@ -947,4 +947,4 @@ nothing else, and again for each later `COMPLETE`, once answers are folded in.
 
 ## Progress review every 10 minutes  (when you run inside a /resolve-issue run)
 
-Read and follow R-1061 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) in `~/.claude/shared/progress-review.md`.
+Read and follow R-1061 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) [1061-T1] in `~/.claude/shared/progress-review.md`.

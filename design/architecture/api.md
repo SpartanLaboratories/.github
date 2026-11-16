@@ -22,7 +22,7 @@ and a seam to do the uncommon thing without forking, patching, or copying intern
 <!-- {"name":"Mechanism — split by layer","code":"D-A-API-ME","id":1078} -->
 
 Which code is shaped as objects and which as functions is
-[R-27 (Patterns)](../patterns/README.md); this section says how each kind of type is opened.
+[R-27 (Patterns)](../patterns/README.md "27-T3"); this section says how each kind of type is opened.
 
 Kotlin is final-by-default, so "open to expansion" has to be chosen deliberately. Which tool
 depends on what kind of type it is:
@@ -53,6 +53,6 @@ depends on what kind of type it is:
   behaving exactly as before. Extension is something a consumer opts into.
 - **Keep extension points supported.** Anything reachable by a consumer is public API: it gets
   level-1 KDoc contracts
-  ([R-10001 (API contracts and interface boundaries)](../../policy/documentation/README.md#api-contracts-and-interface-boundaries))
+  ([R-10001 (API contracts and interface boundaries)](../../policy/documentation/README.md#api-contracts-and-interface-boundaries "10001-T1"))
   and is governed by the repo's versioning rules
-  ([R-25 (Versioning)](../../policy/version/README.md)).
+  ([R-25 (Versioning)](../../policy/version/README.md "25-T2")).

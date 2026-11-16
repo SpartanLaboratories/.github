@@ -4,7 +4,7 @@
 The words for three scales: how much work an issue is, where a piece of documentation sits, and
 which group a test belongs to. Each word names one thing and means what this file says wherever it
 is used. The rules that use a word are at the home its entry names; this file says what the word
-means and holds none of those rules (R-1000 (Single source)).
+means and holds none of those rules (R-1000 (Single source) [1000-T2]).
 
 ## The three words
 {"name":"The three words","code":"G-N-VO-W","id":1060}
@@ -25,7 +25,7 @@ are in [`CLAUDE.md`](../CLAUDE.md), "Work grades"; the forms committed content n
 {"name":"level","code":"G-N-VO-W-2","id":10024}
 "Level" is the word used for documentation: where a piece of documentation sits, one of the four
 documentation levels. The levels and their definition are on the organization's documentation
-page, R-1028 (The four levels). Neither the size of work nor a group of tests is called a level;
+page, R-1028 (The four levels) [1028-T1]. Neither the size of work nor a group of tests is called a level;
 "level" in its everyday senses ("top-level", a log level) names none of these scales.
 
 ```jsonl
@@ -35,8 +35,8 @@ page, R-1028 (The four levels). Neither the size of work nor a group of tests is
 ### set
 {"name":"set","code":"G-N-VO-W-3","id":10025}
 A named group of tests of one kind. A set is called by its name, never by a number. The sets and
-their folders are on the organization's testing page, R-1026 (The seven sets) and R-1027 (Separate
-each set by folder / package), and in [`CLAUDE.md`](../CLAUDE.md), "Testing — Named Test Sets".
+their folders are on the organization's testing page, R-1026 (The seven sets) [1026-T1] and R-1027 (Separate
+each set by folder / package) [1027-T1], and in [`CLAUDE.md`](../CLAUDE.md), "Testing — Named Test Sets".
 "Set" in its everyday sense (a set of files) names no group of tests.
 
 ```jsonl

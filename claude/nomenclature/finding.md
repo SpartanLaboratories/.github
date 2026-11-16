@@ -4,14 +4,14 @@
 What the commit scan reads, and how a scan reads a text for the words a vocabulary bars: when a
 term counts as found, and what only resembles one. What each vocabulary bars, and what to say
 instead, is at its own home: the internal names in R-126 (Internal names — what committed content
-never names), and the words a term rules out in R-112 (Vocabulary — grades, levels and sets),
-R-140 (Boards — the names of the dashboards and their parts) and R-139 (UI elements — one name per
-element). When the commit scan runs and what a find blocks is in R-116 (Version-control manager).
+never names) [126-T2], and the words a term rules out in R-112 (Vocabulary — grades, levels and sets) [112-T2],
+R-140 (Boards — the names of the dashboards and their parts) [140-T3] and R-139 (UI elements — one name per
+element) [139-T4]. When the commit scan runs and what a find blocks is in R-116 (Version-control manager) [116-T1].
 
 These rules are the admin team's Communication Clarity Officer's, set and corrected as R-141
-(Communication Clarity Officer) says, which also says how the finding tool that implements them is
+(Communication Clarity Officer) [141-T1] says, which also says how the finding tool that implements them is
 kept. Every scan that finds a vocabulary's words applies them. The finding tool reads this file's
-tables, and the phrases R-10047 (A shortened role name warns) quotes, where they stand.
+tables, and the phrases R-10047 (A shortened role name warns) [10047-T1] quotes, where they stand.
 
 ## What the commit scan reads
 {"name":"What the commit scan reads","code":"G-N-FI-R","id":1122}
@@ -21,7 +21,7 @@ tables, and the phrases R-10047 (A shortened role name warns) quotes, where they
 The commit scan reads the documents and boards a commit carries as text, every line of each. The
 first row of this table that holds a file, by its repository and its path, says whether it is read
 whole or not read; a file no row holds is read by its kind, as R-10050 (The comments in source
-code) says. A path is relative to the repository's root, in any case; `*` stands for any
+code) [10050-T1] says. A path is relative to the repository's root, in any case; `*` stands for any
 characters within one name and `**` for any number of folders.
 
 | Repository | Path | Read |
