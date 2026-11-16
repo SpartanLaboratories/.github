@@ -10,8 +10,10 @@
 //   node rule-check.js --write              check, then correct the codes, raise the tier marks in
 //                                           the lists and the per-parent marks on the lines,
 //                                           rewrite the indexes, the pointer lists and the ids at
-//                                           the pointers, and bring up to date what each pointer
-//                                           took from its target; any finding leaves every file
+//                                           the pointers, keep each register's list of the rule
+//                                           files that hold a quote pointer, and bring up to date
+//                                           what each pointer took from its target, a quote
+//                                           included; any finding leaves every file
 //                                           as it is. G is written in place; S, P and D only in
 //                                           the copy being committed, named with --policies, and
 //                                           a file of another repository only in the copy of it
@@ -41,7 +43,8 @@
 // repository is read from a sibling folder of that checkout, or from the copy named with --copy;
 // a missing checkout makes the file "not checked", which is no failure, except in a --write in the
 // copy being committed, where it is a finding. What it checks, and these switches, are stated in
-// Structure.md, R-1010 (The checker); the pointers' own ids and lists in R-1008 (Pointers).
+// Structure.md, R-1010 (The checker); the pointers' own ids and lists in R-1008 (Pointers); the
+// quote pointers in R-1123 (Quote pointers).
 
 const fs = require('fs');
 const path = require('path');
@@ -118,8 +121,11 @@ function check(ctx) {
   const anyUnchecked = sys.notChecked.length > 0;
   // a --write in the copy being committed reads every file it may have to write: R-1010 (The checker)
   const policiesWritable = ctx.write && ctx.policiesGiven && !same(ctx.policies, ctx.standing);
+  // a quote pointer file in a missing checkout is not checked; it holds no item, so S-I stays
+  // checked: R-1010 (The checker)
+  for (const nc of sys.quoteNotChecked) notes.push(`not checked: ${nc.repo}:${nc.entry.rel}, a quote pointer file; no checkout at ${nc.checkout} (set ${nc.variable} to override the folder)`);
   if (policiesWritable) {
-    for (const nc of sys.notChecked) findings.push(`${nc.repo}:${nc.entry.rel}: no checkout at ${nc.checkout}; with --write in the copy being committed a missing checkout is a finding (set ${nc.variable}, or name the copy with --copy ${nc.folder}=<path>) (Structure.md, The checker)`);
+    for (const nc of [...sys.notChecked, ...sys.quoteNotChecked]) findings.push(`${nc.repo}:${nc.entry.rel}: no checkout at ${nc.checkout}; with --write in the copy being committed a missing checkout is a finding (set ${nc.variable}, or name the copy with --copy ${nc.folder}=<path>) (Structure.md, The checker)`);
   }
   const changes = []; // {abs, place, kind, apply(lines)}, applied after the checks
   const lists = sys.places.map(p => p.register.ids);
@@ -133,12 +139,12 @@ function check(ctx) {
     const keys = Object.keys(j);
     const order = L.LINE_KEYS.filter(k => keys.includes(k));
     if (keys.join() !== order.join() || keys.some(k => !L.LINE_KEYS.includes(k)) || !['name', 'code', 'id'].every(k => keys.includes(k))) {
-      findings.push(`${it.entry.rel}:${it.item.jsonLine}: the JSON line reads {"name","code","id"} in that order, then "splinterMark" and "pointerMark" where they are above zero; it has ${JSON.stringify(keys)}`);
+      findings.push(`${it.entry.rel}:${it.item.jsonLine}: the JSON line reads {"name","code","id"} in that order, then "splinterMark", "pointerMark" and "quoteMark" where they are above zero; it has ${JSON.stringify(keys)}`);
     }
     if (typeof j.name !== 'string' || j.name !== it.item.heading) findings.push(`${it.where}: JSON name ${JSON.stringify(j.name)} differs from its heading "${it.item.heading}"`);
     if (typeof j.code !== 'string') findings.push(`${it.where}: the JSON line's code needs a string`);
     if (it.item.jsonForm === L.FORM.comment && typeof j.name === 'string' && j.name.includes('-->')) findings.push(`${it.where}: a name holding "-->" cannot stand in the comment form`);
-    for (const m of ['splinterMark', 'pointerMark']) if (j[m] !== undefined && !(Number.isInteger(j[m]) && j[m] >= 0)) findings.push(`${it.where}: ${m} needs a whole number`);
+    for (const m of L.MARKS) if (j[m] !== undefined && !(Number.isInteger(j[m]) && j[m] >= 0)) findings.push(`${it.where}: ${m} needs a whole number`);
     const p = L.parseId(j.id);
     if (it.kind === 'main') {
       const want = L.MAIN_FILES[path.basename(it.entry.rel)];
@@ -239,16 +245,41 @@ function check(ctx) {
     const ok = L.linkMatches(e.abs, ptr.href, want);
     return ok === true || ok === null ? null : `the link around R-${ptr.id}: ${ok}`;
   };
-  for (const e of sys.fileEntries) {
+  // the parts of a -Q pointer rule's body, its quote and its reference, R-1006 (Pointer rules); and
+  // of a quote pointer file, after its # title, R-1123 (Quote pointers)
+  const quoteRules = new Map();
+  for (const it of sys.items.values()) {
+    if (it.kind === 'pointer' && L.parseId(it.id).quote) quoteRules.set(it, L.quoteParts(it.entry.read, it.item.bodyStart, it.item.bodyEnd));
+  }
+  for (const q of sys.quoteFiles) {
+    if (!q.read) continue;
+    let at = q.read.frontMatterEnd || 0;
+    while (at < q.read.lines.length && !q.read.lines[at].trim()) at++;
+    if (!/^# /.test(q.read.lines[at] || '')) findings.push(`${sys.where(q)}:${at + 1}: a quote pointer file opens with its own # title (Structure.md, Quote pointers)`);
+    q.parts = L.quoteParts(q.read, at + 1, q.read.lines.length);
+    for (const f of q.parts.findings) findings.push(`${sys.where(q)}:${f.replace(/^line /, '')}`);
+    if (!q.parts.quote) findings.push(`${sys.where(q)}: a quote pointer file holds no quote between ${L.QUOTE_OPEN} and ${L.QUOTE_CLOSE} (Structure.md, Quote pointers)`);
+  }
+  const inLines = (r, line) => !!r && line - 1 >= r.start && line - 1 < r.end;
+  for (const e of [...sys.fileEntries, ...sys.quoteFiles]) {
     if (!e.read) continue;
-    const pub = e.root.letter !== 'G';
+    const pub = !!e.quoteFile || e.root.letter !== 'G';
     const ptrs = L.findPointers(e.read, pub);
     e.pointers = ptrs;
     for (const ptr of ptrs) {
       const at = `${sys.where(e)}:${ptr.line}`;
-      const rec = { e, ptr, at, pub, order: allPointers.length, holder: L.holderOf(e, sys.items, ptr.line) };
+      let holder;
+      if (e.quoteFile) {
+        // a quote pointer file's id pointer is its reference, held by the file
+        if (!e.parts.quote || !inLines(e.parts.ref, ptr.line)) { findings.push(`${at}: an id pointer in a quote pointer file outside its reference; a quote pointer file's id pointer is its reference (Structure.md, Quote pointers)`); continue; }
+        holder = { id: e.holder, kind: 'quote file', where: sys.where(e) };
+      } else holder = L.holderOf(e, sys.items, ptr.line);
+      const rec = { e, ptr, at, pub, order: allPointers.length, holder, ref: !!e.quoteFile };
       allPointers.push(rec);
-      rec.isRule = !!rec.holder && rec.holder.kind === 'pointer';
+      // a -Q pointer rule's pointer is the one in its reference; one in what it adds is a pointer
+      // in its text
+      const qr = holder && holder.kind === 'pointer' ? quoteRules.get(holder) : null;
+      rec.isRule = !!holder && holder.kind === 'pointer' && (!qr || !qr.quote || inLines(qr.ref, ptr.line));
       if (rec.isRule) {
         // a pointer rule's own id is its id, and nothing is written at its pointer: one written there
         // was written by hand
@@ -271,13 +302,14 @@ function check(ctx) {
       const name = target.heading;
       const bad = [];
       if (ptr.name === null) bad.push(`${at}: pointer R-${ptr.id} has no name, expected "R-${ptr.id} (${name})"`);
-      if (pub && entryOf(target).root.letter === 'G') bad.push(`${at}: an id pointer from ${e.root.letter} into G; nothing in S, P or D points into G (Structure.md, Pointers)`);
+      if ((e.quoteFile ? e.place.key !== 'G' : pub) && entryOf(target).root.letter === 'G') bad.push(`${at}: an id pointer from ${e.quoteFile ? 'a quote pointer file of S, P and D\'s register' : e.root.letter} into G; nothing in S, P or D points into G (Structure.md, Pointers)`);
       if (ptr.bare) bad.push(`${at}: on a public page a pointer is the text of a Markdown link to its target (Structure.md, Pointers)`);
       if (!bad.length && !rec.holder) bad.push(`${at}: pointer R-${ptr.id} stands in no item with an id, so it can stand on no list (Structure.md, Pointers)`);
       if (bad.length) { findings.push(...bad); continue; }
       rec.target = target;
+      // a pointer in text carries `<target>-T<n>`; a quote pointer file's reference `<target>-Q<n>`
       const carried = pub ? ptr.title : ptr.tag;
-      rec.own = !rec.isRule && carried !== null && L.parseOwnId(carried) ? carried : null;
+      rec.own = !rec.isRule && carried !== null && (rec.ref ? L.parseQuotePart(carried) : L.parseOwnId(carried)) ? carried : null;
       rec.problems = [];
       if (!rec.repointedFrom) {
         if (ptr.name !== name) rec.problems.push(`pointer R-${ptr.id} names "${ptr.name}", the target is "${name}"`);
@@ -306,6 +338,8 @@ function check(ctx) {
     }
   }
   const holderNow = (h) => follow(h) || h;
+  // a holder as a message names it: an item's id, or a quote pointer file's repository and path
+  const named = (h) => (L.isFileHolder(h) ? h : `R-${h}`);
   const newLists = new Map();
   const put = (t, own, h) => { if (!newLists.has(t)) newLists.set(t, new Map()); newLists.get(t).set(own, h); };
   const listNotes = new Map();
@@ -318,11 +352,25 @@ function check(ctx) {
     if (!byTarget.has(t)) byTarget.set(t, []);
     byTarget.get(t).push(rec);
   }
-  const unread = (t, h) => anyUnchecked && (!sys.items.has(t) || !sys.items.has(holderNow(h)));
+  // a list held by a quote pointer file stays while the file is not checked: R-1123 (Quote pointers)
+  const quoteFileOf = (h) => sys.quoteFiles.find(q => q.holder === h);
+  const unread = (t, h) => {
+    if (L.isFileHolder(h)) { const q = quoteFileOf(h); return (anyUnchecked && !sys.items.has(t)) || (!!q && !!q.notChecked); }
+    return anyUnchecked && (!sys.items.has(t) || !sys.items.has(holderNow(h)));
+  };
+  // a target's quote count, R-1006 (Pointer rules): a part is given above its quoteMark, the -Q
+  // pointer rules' parts in use or retired, and the highest quote part on its list
+  const quoteMarkOf = (t) => {
+    const it = sys.items.get(t);
+    const v = !it ? 0 : it.kind === 'listed' ? it.listed.quoteMark : it.item && it.item.json ? it.item.json.quoteMark : 0;
+    return v || 0;
+  };
+  const quoteRuleParts = (t) => [...sys.items.keys(), ...retired.keys()].map(L.parseQuotePart).filter(q => q && q.target === t).map(q => q.part);
   for (const [tid, recs] of byTarget) {
     const list = oldLists.get(tid) || new Map();
     const kept = new Set();
     let next = 1 + Math.max(0, ...[...list.keys()].map(L.parseOwnId).filter(o => o && o.target === tid).map(o => o.part));
+    let nextQ = 1 + Math.max(0, quoteMarkOf(tid), ...quoteRuleParts(tid), ...[...list.keys()].map(L.parseQuotePart).filter(q => q && q.target === tid).map(q => q.part));
     const fresh = [];
     const carriers = new Map();
     for (const rec of recs) {
@@ -331,13 +379,16 @@ function check(ctx) {
         // a pointer rule's own id is its id, and nothing is written at its pointer; one repointed
         // without a new id is reported with the pointer rules
         if (L.parseId(h).parent !== tid) continue;
+        // a quote part held both by a -Q pointer rule and by a file's reference
+        if (list.has(h) && L.isFileHolder(list.get(h))) { findings.push(`${rec.at}: pointer rule ${h} takes a quote part that the reference in ${list.get(h)} holds on R-${tid}'s list; a quote part is given above the target's quoteMark and the highest quote part on its list (Structure.md, Pointer rules)`); continue; }
         if (list.has(h)) { kept.add(h); put(tid, h, h); pc.kept += 1; if (rec.problems.length) { pointerEdits.push({ rec, tid, own: null, what: rec.problems.join('; ') }); pc.followed += 1; } }
         else if (!rec.problems.length) { put(tid, h, h); say(tid, `${h} recorded`); pc.recorded += 1; }
         else findings.push(`${rec.at}: pointer rule ${h} is new on R-${tid}'s list, and ${rec.problems.join('; ')}; a new pointer is recorded only as its target is (Structure.md, Pointers)`);
         continue;
       }
-      const o = rec.own ? L.parseOwnId(rec.own) : null;
-      if (o && !rec.repointedFrom && o.target === tid && list.has(rec.own)) {
+      // a reference keeps a quote part its file holds on the list; a pointer in text a T part
+      const o = rec.own ? (rec.ref ? L.parseQuotePart(rec.own) : L.parseOwnId(rec.own)) : null;
+      if (o && !rec.repointedFrom && o.target === tid && list.has(rec.own) && (!rec.ref || L.isFileHolder(list.get(rec.own)))) {
         if (!carriers.has(rec.own)) carriers.set(rec.own, []);
         carriers.get(rec.own).push(rec);
       } else fresh.push(rec);
@@ -348,7 +399,7 @@ function check(ctx) {
         const listedH = holderNow(list.get(own));
         const inH = rs.filter(r => L.idKey(r.holder.id) === listedH);
         if (inH.length !== 1) {
-          for (const r of rs) findings.push(`${r.at}: ${own} is carried by ${rs.length} pointers, ${inH.length} of them in R-${listedH}, the item its list names, which does not tell them apart (Structure.md, Pointers)`);
+          for (const r of rs) findings.push(`${r.at}: ${own} is carried by ${rs.length} pointers, ${inH.length} of them in ${named(listedH)}, the item its list names, which does not tell them apart (Structure.md, Pointers)`);
           kept.add(own);
           put(tid, own, list.get(own));
           continue;
@@ -360,24 +411,24 @@ function check(ctx) {
       kept.add(own);
       put(tid, own, h);
       pc.kept += 1;
-      if (holderNow(list.get(own)) !== h) { say(tid, `${own} moved from R-${list.get(own)} to R-${h}`); pc.moved += 1; }
+      if (holderNow(list.get(own)) !== h) { say(tid, `${own} moved from ${named(list.get(own))} to ${named(h)}`); pc.moved += 1; }
       if (keeper.problems.length) { pointerEdits.push({ rec: keeper, tid, own, what: keeper.problems.join('; ') }); pc.followed += 1; }
     }
     fresh.sort((x, y) => x.order - y.order);
     for (const rec of fresh) {
       const name = rec.target.heading;
       if (!rec.repointedFrom && rec.problems.length) {
-        const other = rec.own ? L.parseOwnId(rec.own).target : null;
+        const other = rec.own ? (rec.ref ? L.parseQuotePart(rec.own) : L.parseOwnId(rec.own)).target : null;
         if (rec.copyOf) findings.push(`${rec.at}: a copy of ${rec.copyOf}, new here, and ${rec.problems.join('; ')}; a new pointer is recorded only as its target is (Structure.md, Pointers)`);
         else if (other && other !== tid && (oldLists.get(other) || new Map()).has(rec.own)) findings.push(`${rec.at}: R-${tid} carries ${rec.own}, R-${other}'s, and ${rec.problems.join('; ')}: a mistyped id, not a repointing (Structure.md, Pointers)`);
         else findings.push(`${rec.at}: R-${tid} is new on its list, and ${rec.problems.join('; ')}; a new pointer is recorded only as its target is (Structure.md, Pointers)`);
         continue;
       }
-      const own = `${tid}-T${next}`;
-      next += 1;
+      const own = rec.ref ? `${tid}-Q${nextQ}` : `${tid}-T${next}`;
+      if (rec.ref) nextQ += 1; else next += 1;
       const h = L.idKey(rec.holder.id);
       put(tid, own, h);
-      say(tid, `${own} recorded in R-${h}`);
+      say(tid, `${own} recorded in ${named(h)}`);
       let what;
       if (rec.repointedFrom) { what = `pointer R-${rec.repointedFrom} is at a retired id; R-${tid} replaced it: repointed as ${own}`; pc.repointed += 1; }
       else {
@@ -389,7 +440,7 @@ function check(ctx) {
     for (const [own, h] of list) {
       if (kept.has(own) || (newLists.get(tid) && newLists.get(tid).has(own))) continue;
       if (unread(tid, h)) { put(tid, own, h); continue; }
-      say(tid, `${own} (in R-${h}) gone: taken off, not retired`);
+      say(tid, `${own} (in ${named(h)}) gone: taken off, not retired`);
       pc.gone += 1;
     }
   }
@@ -397,7 +448,7 @@ function check(ctx) {
     if (byTarget.has(t)) continue;
     for (const [own, h] of list) {
       if (unread(t, h)) { put(t, own, h); continue; }
-      say(t, `${own} (in R-${h}) gone: taken off, not retired`);
+      say(t, `${own} (in ${named(h)}) gone: taken off, not retired`);
       pc.gone += 1;
     }
   }
@@ -420,19 +471,62 @@ function check(ctx) {
     }
   }
 
-  // ---- pointer rules: the body rule, and a repointed rule takes a new id: R-1006 (Pointer rules)
+  // ---- quotes, each held equal to what its target generates now, line endings aside; one that
+  // differs is out of date, and --write generates it again: R-1123 (Quote pointers)
+  const homeOf = (entry) => {
+    if (entry.repo) return entry.repoUrl ? { base: entry.repoUrl, rel: entry.rel } : { error: `${entry.repo}, its target's repository, has no "url" in its register entry` };
+    if (!spdPlace) return { error: 'the organization repository\'s register was not read' };
+    return entry.root.letter === 'G' ? { base: spdPlace.register.url, rel: `${L.G_COPY}${entry.rel}` } : { base: spdPlace.register.url, rel: entry.rel };
+  };
+  const quoteFrom = (target) => {
+    const src = L.quoteSource(target);
+    if (src.error) return src;
+    const home = homeOf(entryOf(target));
+    return home.error ? home : L.quoteOf(src.read, src.from, src.to, src.skip, home.base, home.rel);
+  };
+  const holdQuote = (e, q, block, what) => {
+    const have = e.read.lines.slice(q.open, q.close + 1);
+    if (have.join('\n') === block.join('\n')) return;
+    const first = block.findIndex((l, i) => l !== have[i]);
+    let start = 0;
+    for (let i = 0; i < q.open; i++) start += e.read.lines[i].length + 1;
+    const end = start + have.join('\n').length;
+    changes.push({ entry: e, kind: 'quote', what: `${sys.where(e)}:${q.open + 1}: the quote of ${what} is out of date (first difference at line ${q.open + 1 + (first === -1 ? have.length : first)})`, spans: [{ start, end, text: block.join('\n') }] });
+  };
+
+  // ---- pointer rules: the body rule by the id's letter, and a repointed rule takes a new id:
+  // R-1006 (Pointer rules)
   for (const it of sys.items.values()) {
     if (it.kind !== 'pointer') continue;
-    const target = L.parseId(it.id).parent;
+    const p = L.parseId(it.id);
+    const target = p.parent;
     const e = it.entry;
+    const t = sys.items.get(target);
+    const quoted = (e.read.quotes || []).some(q => q.open >= it.item.bodyStart && q.open < it.item.bodyEnd);
+    const qr = quoteRules.get(it);
     const body = e.read.masked.slice(it.item.bodyStart, it.item.bodyEnd);
     const filled = body.map((l, i) => (l.trim() ? i : -1)).filter(i => i !== -1);
-    const inBody = (e.pointers || []).filter(p => p.line - 1 >= it.item.bodyStart && p.line - 1 < it.item.bodyEnd);
-    if (!filled.length) findings.push(`${it.where}: pointer rule ${it.id} has an empty body; its body points at R-${target}`);
-    else if (filled[filled.length - 1] - filled[0] + 1 !== filled.length) findings.push(`${it.where}: pointer rule ${it.id} has a body of more than one paragraph; its whole body points at R-${target}`);
-    if (inBody.length === 1 && inBody[0].id !== target) findings.push(`${it.where}: pointer rule ${it.id} points at R-${inBody[0].id}, its id names R-${target}: repointed without a new id; a repointed pointer rule takes a new id, the old one retired (Structure.md, Pointer rules)`);
-    else if (inBody.length !== 1) findings.push(`${it.where}: pointer rule ${it.id} holds ${inBody.length} pointers; its only pointer is at R-${target}`);
-    const t = sys.items.get(target);
+    const inBody = (e.pointers || []).filter(x => x.line - 1 >= it.item.bodyStart && x.line - 1 < it.item.bodyEnd);
+    if (!p.quote && quoted) findings.push(`${it.where}: pointer rule ${it.id}'s body is a quote pointer; a pointer rule whose body is a quote pointer takes ${target}-Q<n> in place of ${target}-P<n>: give it a new id and retire the old one (Structure.md, Pointer rules)`);
+    else if (p.quote && !quoted) findings.push(`${it.where}: pointer rule ${it.id}'s body is a paragraph; a pointer rule whose body is a paragraph takes ${target}-P<n>, and ${target}-Q<n> only when its body is a quote pointer: give it a new id and retire the old one (Structure.md, Pointer rules)`);
+    else if (p.quote) {
+      for (const f of qr.findings) findings.push(`${sys.where(e)}:${f.replace(/^line /, '')}`);
+      if (qr.ref) {
+        const inRef = inBody.filter(x => inLines(qr.ref, x.line));
+        if (inRef.length === 1 && inRef[0].id !== target) findings.push(`${it.where}: pointer rule ${it.id} points at R-${inRef[0].id}, its id names R-${target}: repointed without a new id; a repointed pointer rule takes a new id, the old one retired (Structure.md, Pointer rules)`);
+        else if (inRef.length !== 1) findings.push(`${it.where}: pointer rule ${it.id}'s reference holds ${inRef.length} pointers; its only pointer is at R-${target}`);
+      }
+      if (t) {
+        const gen = quoteFrom(t);
+        if (gen.error) findings.push(`${it.where}: pointer rule ${it.id} quotes R-${target}, and ${gen.error} (Structure.md, Quote pointers)`);
+        else holdQuote(e, qr.quote, gen.block, `R-${target}`);
+      }
+    } else {
+      if (!filled.length) findings.push(`${it.where}: pointer rule ${it.id} has an empty body; its body points at R-${target}`);
+      else if (filled[filled.length - 1] - filled[0] + 1 !== filled.length) findings.push(`${it.where}: pointer rule ${it.id} has a body of more than one paragraph; its whole body points at R-${target}`);
+      if (inBody.length === 1 && inBody[0].id !== target) findings.push(`${it.where}: pointer rule ${it.id} points at R-${inBody[0].id}, its id names R-${target}: repointed without a new id; a repointed pointer rule takes a new id, the old one retired (Structure.md, Pointer rules)`);
+      else if (inBody.length !== 1) findings.push(`${it.where}: pointer rule ${it.id} holds ${inBody.length} pointers; its only pointer is at R-${target}`);
+    }
     if (!t) {
       if (anyUnchecked) notes.push(`not checked: ${it.where}: the target R-${target} is not in what was read`);
       else findings.push(`${it.where}: pointer rule ${it.id} is at R-${target}, which ${retired.has(target) ? 'is retired' : 'does not exist'}`);
@@ -495,6 +589,59 @@ function check(ctx) {
     }
   }
 
+  // ---- where a quote stands: in a rule file only as the body of a pointer rule; R-1123 (Quote
+  // pointers)
+  for (const e of convertedReads) {
+    for (const q of e.read.quotes) {
+      const h = L.holderOf(e, sys.items, q.open + 1);
+      if (!h || h.kind !== 'pointer') findings.push(`${sys.where(e)}:${q.open + 1}: a quote in a rule file stands only as the body of a pointer rule (Structure.md, Quote pointers)`);
+    }
+  }
+  // ---- each quote pointer file: its reference, one id pointer or one link to a document outside
+  // the system by the full address of its home, and its quote of that target: R-1123 (Quote pointers)
+  for (const q of sys.quoteFiles) {
+    if (!q.read || !q.parts || !q.parts.quote || !q.parts.ref) continue;
+    const at = `${sys.where(q)}:${q.parts.ref.start + 1}`;
+    const ptrs = (q.pointers || []).filter(x => inLines(q.parts.ref, x.line));
+    const links = L.findLinks(q.read).filter(x => inLines(q.parts.ref, x.line));
+    if (ptrs.length + links.length !== 1) { findings.push(`${at}: the reference holds ${ptrs.length + links.length} pointers and links; its only pointer or link is to its target (Structure.md, Quote pointers)`); continue; }
+    if (ptrs.length) {
+      const target = ptrs[0].target;
+      if (!target) continue; // the pointer's own finding names it
+      const gen = quoteFrom(target);
+      if (gen.error) findings.push(`${at}: the reference is R-${L.idKey(target.id)}, and ${gen.error} (Structure.md, Quote pointers)`);
+      else holdQuote(q, q.parts.quote, gen.block, `R-${L.idKey(target.id)}`);
+      continue;
+    }
+    const href = links[0].href;
+    const m = /^(https:\/\/github\.com\/[^/]+\/[^/]+\/(?:blob|tree)\/[^/]+\/)([^#?]+)/i.exec(href);
+    const abs = m && L.githubTarget(href, sys.addresses);
+    if (!abs) { findings.push(`${at}: the reference links ${href}; a document outside the system is linked by the full address of its home, in a repository a register gives an address for (Structure.md, Quote pointers)`); continue; }
+    const inside = systemFile(abs);
+    if (inside) { findings.push(`${at}: the reference links ${inside.what}, which is inside the rule system; point at it by id (Structure.md, Quote pointers)`); continue; }
+    if (!files.isFile(abs)) { findings.push(`${at}: the reference leads nowhere: ${href}; it is linked again by hand (Structure.md, Quote pointers)`); continue; }
+    let rel;
+    try { rel = decodeURI(m[2]); } catch (err) { rel = m[2]; }
+    const src = L.quoteSourceOutside(L.readFile(files.read(abs), L.FORM.comment), rel);
+    const gen = src.error ? src : L.quoteOf(src.read, src.from, src.to, src.skip, m[1], rel);
+    if (gen.error) findings.push(`${at}: the reference links ${rel}, and ${gen.error} (Structure.md, Quote pointers)`);
+    else holdQuote(q, q.parts.quote, gen.block, rel);
+  }
+  // ---- each register's list of the rule files of its roots that hold a quote pointer, under the
+  // repository of a file in another one: R-1123 (Quote pointers)
+  for (const place of sys.places) {
+    const reg = place.register;
+    const scopes = [null, ...Object.keys(reg.repositories || {})];
+    for (const k of scopes) {
+      const have = k === null ? reg.ruleFilesWithQuotes : reg.repositories[k].ruleFilesWithQuotes;
+      const mine = sys.fileEntries.filter(e => e.place === place && (e.repo || null) === k);
+      // a file not read keeps its place on the list
+      const want = [...new Set([...mine.filter(e => e.read && e.read.quotes.length).map(e => e.rel), ...(have || []).filter(r => mine.some(e => e.rel === r && e.notChecked))])].sort();
+      if ((have === undefined && !want.length) || JSON.stringify(have) === JSON.stringify(want)) continue;
+      changes.push({ registerOf: place, kind: 'quote list', repo: k, list: want, what: `${place.registerPath}: ${k === null ? '' : `repositories.${k}.`}ruleFilesWithQuotes lists ${JSON.stringify(have || [])}; the rule files that hold a quote pointer are ${JSON.stringify(want)}` });
+    }
+  }
+
   // ---- the indexes, R-1009 (The indexes): S-I beside the register of S, P and D; G-I beside G's
   for (const place of sys.places) {
     const indexAbs = path.resolve(path.dirname(place.registerPath), place.register.index);
@@ -540,11 +687,12 @@ function check(ctx) {
 function applyChanges(files, changes) {
   const byFile = new Map();
   for (const c of changes) {
-    if (c.kind === 'code' || c.kind === 'part mark' || c.kind === 'pointer') {
+    if (c.kind === 'code' || c.kind === 'part mark' || c.kind === 'pointer' || c.kind === 'quote') {
       const k = path.resolve(c.entry.abs);
       if (!byFile.has(k)) byFile.set(k, { entry: c.entry, sets: new Map(), spans: [] });
       const f = byFile.get(k);
-      if (c.kind === 'pointer') { f.spans.push(...c.spans); continue; }
+      // a quote is written whole, from its first marker line to its last; nothing else stands in it
+      if (c.kind === 'pointer' || c.kind === 'quote') { f.spans.push(...c.spans); continue; }
       const idx = c.it.item.jsonLine - 1;
       f.sets.set(idx, { ...(f.sets.get(idx) || { it: c.it }), ...c.set, it: c.it });
     }
@@ -554,7 +702,7 @@ function applyChanges(files, changes) {
     const lines = read.lines.slice();
     for (const [idx, s] of f.sets) {
       const j = { ...s.it.item.json };
-      for (const k of ['code', 'splinterMark', 'pointerMark']) if (s[k] !== undefined) j[k] = s[k];
+      for (const k of ['code', ...L.MARKS]) if (s[k] !== undefined) j[k] = s[k];
       lines[idx] = L.formatJsonLine(j, s.it.item.jsonForm || f.entry.root.form);
     }
     // a pointer never stands on a JSON line, so its offsets, taken as line and column, still hold
@@ -588,6 +736,11 @@ function applyChanges(files, changes) {
     const p = c.registerOf.registerPath;
     files.write(p, setListedMark(files.read(p), c.rel, c.field, c.to));
   }
+  // the lists of the rule files that hold a quote pointer: R-1123 (Quote pointers)
+  for (const c of changes.filter(x => x.kind === 'quote list')) {
+    const p = c.registerOf.registerPath;
+    files.write(p, setQuoteList(files.read(p), c.repo, c.list));
+  }
   // the pointer lists, the block written whole once per register: R-1008 (Pointers)
   const listsOf = new Map();
   for (const c of changes.filter(x => x.kind === 'pointer list')) listsOf.set(c.registerOf.registerPath, c.lists);
@@ -608,6 +761,39 @@ function setListedMark(text, rel, field, value) {
     const trail = /\s*$/.exec(inner)[0];
     return `${open}${inner.slice(0, inner.length - trail.length)}, "${field}": ${value}${trail}${close}`;
   });
+}
+
+/**
+ * Sets a register's list of the rule files that hold a quote pointer, keeping the file's layout,
+ * R-1123 (Quote pointers): `"ruleFilesWithQuotes"` at the top level, after `"notConverted"`, for
+ * the register's own roots, or in a repository's entry for that repository's files; its value
+ * replaced where it stands, else the key added.
+ * @param {string|null} repo the repository's name in `"repositories"`, null for the top level
+ */
+function setQuoteList(text, repo, list) {
+  const eol = text.includes('\r\n') ? '\r\n' : '\n';
+  const t = text.replace(/\r\n/g, '\n');
+  const value = `[${list.map(p => JSON.stringify(p)).join(', ')}]`;
+  let next;
+  if (repo === null) {
+    const has = /^ {2}"ruleFilesWithQuotes"\s*:\s*\[[^\]]*\]/m;
+    const after = /^( {2}"notConverted"\s*:\s*\[[^\]]*\])(,?)$/m;
+    if (has.test(t)) next = t.replace(has, `  "ruleFilesWithQuotes": ${value}`);
+    else if (after.test(t)) next = t.replace(after, (all, line, comma) => `${line},\n  "ruleFilesWithQuotes": ${value}${comma}`);
+    else { const close = t.lastIndexOf('\n}'); next = `${t.slice(0, close)},\n  "ruleFilesWithQuotes": ${value}${t.slice(close)}`; }
+  } else {
+    const key = t.indexOf(`${JSON.stringify(repo)}:`, t.indexOf('"repositories"'));
+    const from = t.indexOf('{', key);
+    let depth = 0, to = from;
+    for (; to < t.length; to++) { if (t[to] === '{') depth++; else if (t[to] === '}' && --depth === 0) break; }
+    const scope = t.slice(from, to);
+    const has = /"ruleFilesWithQuotes"\s*:\s*\[[^\]]*\]/;
+    const trail = /\s*$/.exec(scope)[0];
+    const inner = has.test(scope) ? scope.replace(has, `"ruleFilesWithQuotes": ${value}`) : `${scope.slice(0, scope.length - trail.length)}, "ruleFilesWithQuotes": ${value}${trail}`;
+    next = `${t.slice(0, from)}${inner}${t.slice(to)}`;
+  }
+  JSON.parse(next);
+  return next.split('\n').join(eol);
 }
 
 // ---------------------------------------------------------------------------- the indexes
@@ -685,19 +871,20 @@ function listPointersAt(ctx, id) {
   // R-1008 (Pointers)
   const list = (r.oldLists && r.oldLists.get(key)) || new Map();
   const seen = new Set();
-  for (const { ptr, at, pub, isRule, holder } of r.allPointers || []) {
+  for (const { ptr, at, pub, isRule, holder, ref } of r.allPointers || []) {
     if (ptr.id !== key) continue;
     if (isRule) { rows.push(`${at}: R-${ptr.id} (${ptr.name}), the pointer of pointer rule ${holder.id}`); continue; }
+    // a quote pointer file's reference carries a part of the quote count: R-1123 (Quote pointers)
     const own = pub ? ptr.title : ptr.tag;
-    const carried = own !== null && L.parseOwnId(own) ? own : null;
+    const carried = own !== null && (ref ? L.parseQuotePart(own) : L.parseOwnId(own)) ? own : null;
     if (carried) seen.add(carried);
-    rows.push(`${at}: R-${ptr.id} (${ptr.name}), own id ${carried ? `${carried}${list.has(carried) ? '' : ', not on its list'}` : 'none'}`);
+    rows.push(`${at}: R-${ptr.id} (${ptr.name}), ${ref ? 'the reference of a quote pointer file, ' : ''}own id ${carried ? `${carried}${list.has(carried) ? '' : ', not on its list'}` : 'none'}`);
   }
-  for (const [own, h] of list) if (!seen.has(own) && !L.parseId(own)) rows.push(`${own}: on the list, in R-${h}, and no pointer carries it`);
+  for (const [own, h] of list) if (!seen.has(own) && h !== own) rows.push(`${own}: on the list, in ${L.isFileHolder(h) ? h : `R-${h}`}, and no pointer carries it`);
   const target = r.sys.items.get(key);
   console.log(target ? `R-${key} (${target.heading}): ${L.describe(target)}` : `R-${key}: not in use`);
   for (const row of rows) console.log(`  ${row}`);
-  console.log(`${rows.filter(x => !/: on the list, in R-/.test(x)).length} pointer(s) at R-${key}`);
+  console.log(`${rows.filter(x => !/: on the list, in .*, and no pointer carries it$/.test(x)).length} pointer(s) at R-${key}`);
   for (const n of r.notes) console.log(n);
   return target ? 0 : 1;
 }

@@ -5,7 +5,8 @@
 // the JSON line and its two forms in R-1003 (A rule), the tiers and the id record in R-1004 (`id`),
 // splinters and pointer rules in R-1005 (Splinters) and R-1006 (Pointer rules), the codes in
 // R-1007 (`code`), the pointers, their own ids and lists, and the by-file references in R-1008
-// (Pointers), the registers, the variable, the other repositories' checkouts and the copies of
+// (Pointers), the quote pointers, their quotes and the files that hold them in R-1123 (Quote
+// pointers), the registers, the variable, the other repositories' checkouts and the copies of
 // them about to be committed in R-1010 (The checker), and what the fetch script prints, with the
 // search, in R-1011 (The fetch script).
 //
@@ -28,14 +29,15 @@ const TIER_OF = { main: 1, folder: 2, file: 3, section: 4, rule: 5 };
 const TIER_WORD = { 1: 'a main file', 2: 'a folder', 3: 'a file', 4: 'a section', 5: 'a rule' };
 
 /**
- * Parses an id. A plain number is a tiered id; a string is `<base>(-<n>|-P<n>)+`, its last
+ * Parses an id. A plain number is a tiered id; a string is `<base>(-<n>|-P<n>|-Q<n>)+`, its last
  * segment deciding its kind: `-<n>` a splinter of the rest, `-P<n>` a pointer rule at the rest
- * (R-1005 (Splinters), R-1006 (Pointer rules); a pointer may target anything, e.g. `10026-1-P1`).
- * A string of digits alone is read as
+ * whose body is a paragraph, `-Q<n>` one whose body is a quote pointer, a part of the rest's quote
+ * count (R-1005 (Splinters), R-1006 (Pointer rules); a pointer may target anything, e.g.
+ * `10026-1-P1`). A string of digits alone is read as
  * the number it spells, so an id given on a command line parses too.
  * @param {number|string} id
- * @returns {{kind:'tiered',n:number,tier:number}|{kind:'splinter'|'pointer',parent:string,part:number}|null}
- *   null when the id is malformed.
+ * @returns {{kind:'tiered',n:number,tier:number}|{kind:'splinter'|'pointer',parent:string,part:number,
+ *   quote?:true}|null} null when the id is malformed; `quote` marks a `-Q` pointer rule
  */
 function parseId(id) {
   if (typeof id === 'string' && /^[1-9]\d*$/.test(id)) id = Number(id);
@@ -45,11 +47,13 @@ function parseId(id) {
     return tier <= 5 ? { kind: 'tiered', n: id, tier } : null;
   }
   if (typeof id !== 'string') return null;
-  const m = /^(\d+(?:-P?\d+)*)-(P?)(\d+)$/.exec(id);
+  const m = /^(\d+(?:-[PQ]?\d+)*)-([PQ]?)(\d+)$/.exec(id);
   if (!m || /^0/.test(m[3])) return null;
   const parentText = m[1];
   if (!parseId(parentText)) return null;
-  return { kind: m[2] ? 'pointer' : 'splinter', parent: String(parentText), part: Number(m[3]) };
+  const out = { kind: m[2] ? 'pointer' : 'splinter', parent: String(parentText), part: Number(m[3]) };
+  if (m[2] === 'Q') out.quote = true;
+  return out;
 }
 
 /** The key an id is looked up by: its decimal text for a number, the string itself otherwise. */
@@ -73,8 +77,13 @@ const FENCE = /^ {0,3}(`{3,}|~{3,})/;
 // out of order is reported as such rather than missed.
 const VISIBLE_LINE = /^\{.*"name"\s*:.*\}$/;
 const COMMENT_LINE = /^<!--\s*\{.*"name"\s*:.*\}\s*-->$/;
-/** The keys of a JSON line, in their order; the last two absent when the count is zero: R-1003 (A rule). */
-const LINE_KEYS = ['name', 'code', 'id', 'splinterMark', 'pointerMark'];
+/** The keys of a JSON line, in their order; the last three absent when the count is zero: R-1003 (A rule). */
+const LINE_KEYS = ['name', 'code', 'id', 'splinterMark', 'pointerMark', 'quoteMark'];
+/** The per-parent marks of a JSON line: R-1005 (Splinters), R-1006 (Pointer rules). */
+const MARKS = ['splinterMark', 'pointerMark', 'quoteMark'];
+/** The marker lines a quote stands between: R-1123 (Quote pointers). */
+const QUOTE_OPEN = '<!-- quote -->';
+const QUOTE_CLOSE = '<!-- end quote -->';
 
 /**
  * Reads a line as a JSON line in either form. A line of neither shape is not a JSON line.
@@ -97,7 +106,7 @@ function formatJsonLine(value, form) {
   const out = {};
   for (const k of LINE_KEYS) {
     if (value[k] === undefined || value[k] === null) continue;
-    if ((k === 'splinterMark' || k === 'pointerMark') && !value[k]) continue;
+    if (MARKS.includes(k) && !value[k]) continue;
     out[k] = value[k];
   }
   const json = JSON.stringify(out);
@@ -152,8 +161,25 @@ function readFile(text, form) {
     }
   }
   let fence = null;
+  // a quote, between its marker lines, is not read: it holds no item, pointer, link or JSON line
+  // and ends no body; its headings count for the anchors only, as GitHub renders them: R-1123
+  // (Quote pointers)
+  const quotes = [];
+  let quote = null;
+  let quoteFence = null;
   for (; i < lines.length; i++) {
     const l = lines[i];
+    if (quote) {
+      masked[i] = blank(l);
+      if (l.trim() === QUOTE_CLOSE) { quote.close = i; quotes.push(quote); quote = null; continue; }
+      const qf = FENCE.exec(l);
+      if (qf) { if (!quoteFence) quoteFence = qf[1]; else if (qf[1][0] === quoteFence[0] && qf[1].length >= quoteFence.length && /^ {0,3}[`~]+\s*$/.test(l)) quoteFence = null; continue; }
+      const qh = !quoteFence && HEADING.exec(l);
+      if (qh) anchors.set(i + 1, slugger(qh[2]));
+      continue;
+    }
+    if (!fence && l.trim() === QUOTE_OPEN) { quote = { open: i, close: null }; quoteFence = null; masked[i] = blank(l); continue; }
+    if (!fence && l.trim() === QUOTE_CLOSE) { findings.push(`line ${i + 1}: ${QUOTE_CLOSE} with no ${QUOTE_OPEN} before it (Structure.md, Quote pointers)`); masked[i] = blank(l); continue; }
     const f = FENCE.exec(l);
     if (f) {
       const marker = f[1];
@@ -194,6 +220,7 @@ function readFile(text, form) {
     }
     maskSpans(lines, masked, i);
   }
+  if (quote) findings.push(`line ${quote.open + 1}: ${QUOTE_OPEN} with no ${QUOTE_CLOSE} after it (Structure.md, Quote pointers)`);
   for (let k = 0; k < items.length; k++) {
     const it = items[k];
     it.bodyStart = (it.jsonLine || it.line); // 0-based index of the first body line
@@ -203,7 +230,7 @@ function readFile(text, form) {
     }
     it.bodyEnd = end;
   }
-  return { items, findings, lines, masked, eol, frontMatterEnd, anchors };
+  return { items, findings, lines, masked, eol, frontMatterEnd, anchors, quotes };
 }
 
 function blank(line) { return ' '.repeat(line.length); }
@@ -402,10 +429,14 @@ function checkPartMarks(lines, retiredIds, opts = {}) {
   const raise = [];
   const missing = [];
   const parts = new Map();
+  // the three counts of a parent: its splinters, its -P pointer rules, and the -Q pointer rules'
+  // parts of its quote count, which the quote pointer files' references share
+  const KIND = { splinter: { field: 'splinterMark', letter: '' }, pointer: { field: 'pointerMark', letter: 'P' }, quote: { field: 'quoteMark', letter: 'Q' } };
+  const kindOf = (p) => (p.kind === 'splinter' ? 'splinter' : p.quote ? 'quote' : 'pointer');
   const note = (id) => {
     const p = parseId(id);
     if (!p || p.kind === 'tiered') return;
-    const key = `${p.parent}|${p.kind}`;
+    const key = `${p.parent}|${kindOf(p)}`;
     if (!parts.has(key)) parts.set(key, new Set());
     parts.get(key).add(p.part);
   };
@@ -415,7 +446,7 @@ function checkPartMarks(lines, retiredIds, opts = {}) {
   for (const [key, set] of parts) {
     const [parent, kind] = key.split('|');
     const owner = byId.get(parent);
-    const field = kind === 'splinter' ? 'splinterMark' : 'pointerMark';
+    const { field, letter } = KIND[kind];
     if (!owner) { missing.push(parent); if (!opts.detail) findings.push(`${kind} parts of ${parent}, whose line does not exist`); continue; }
     const mark = owner[field] || 0;
     const highest = Math.max(...set);
@@ -423,14 +454,17 @@ function checkPartMarks(lines, retiredIds, opts = {}) {
       raise.push({ id: parent, field, to: highest, from: mark, where: owner.where });
       if (!opts.detail) findings.push(`${owner.where}: ${field} ${mark || 'absent'} is below part ${highest} in use or retired`);
     }
-    for (let n = 1; n <= mark; n++) if (!set.has(n)) findings.push(`${owner.where}: ${parent}-${kind === 'pointer' ? 'P' : ''}${n} is neither in use nor retired (gap)`);
+    // a quote part below the mark need not be in use or retired; the mark's own part must be
+    if (kind === 'quote') { if (mark > highest) findings.push(`${owner.where}: ${parent}-Q${mark}, the part quoteMark holds, is neither in use nor retired`); continue; }
+    for (let n = 1; n <= mark; n++) if (!set.has(n)) findings.push(`${owner.where}: ${parent}-${letter}${n} is neither in use nor retired (gap)`);
   }
   for (const l of lines) {
-    for (const field of ['splinterMark', 'pointerMark']) {
+    for (const kind of Object.keys(KIND)) {
+      const { field, letter } = KIND[kind];
       if (l[field] === 0) findings.push(`${l.where}: ${field} 0 is written; the field is absent when the count is zero`);
-      const kind = field === 'splinterMark' ? 'splinter' : 'pointer';
       if (l[field] > 0 && !parts.has(`${idKey(l.id)}|${kind}`)) {
-        for (let n = 1; n <= l[field]; n++) findings.push(`${l.where}: ${idKey(l.id)}-${kind === 'pointer' ? 'P' : ''}${n} is neither in use nor retired (gap)`);
+        if (kind === 'quote') { findings.push(`${l.where}: ${idKey(l.id)}-Q${l[field]}, the part quoteMark holds, is neither in use nor retired`); continue; }
+        for (let n = 1; n <= l[field]; n++) findings.push(`${l.where}: ${idKey(l.id)}-${letter}${n} is neither in use nor retired (gap)`);
       }
     }
   }
@@ -439,7 +473,7 @@ function checkPartMarks(lines, retiredIds, opts = {}) {
 
 // --------------------------------------------------------------------- pointers: R-1008 (Pointers)
 
-const ID_TEXT = '\\d+(?:-P?\\d+)*';
+const ID_TEXT = '\\d+(?:-[PQ]?\\d+)*';
 
 /**
  * A pointer's own id, R-1008 (Pointers): `<target>-T<n>`, a part of its target's id counted on the
@@ -453,6 +487,25 @@ function parseOwnId(text) {
   return { target: m[1], part: Number(m[2]) };
 }
 
+/**
+ * A part of a target's quote count, `<target>-Q<n>`, R-1006 (Pointer rules) and R-1123 (Quote
+ * pointers): the id of a `-Q` pointer rule, or the own id of a quote pointer file's reference, which
+ * of the two told only by what holds it on the target's list.
+ * @returns {{target:string, part:number}|null} null when the text is no such part
+ */
+function parseQuotePart(text) {
+  const p = parseId(String(text));
+  return p && p.kind === 'pointer' && p.quote ? { target: p.parent, part: p.part } : null;
+}
+
+/**
+ * Whether a list's holder is a quote pointer file, `<repository>:<path>`, rather than an item's
+ * id: R-1123 (Quote pointers).
+ */
+function isFileHolder(h) {
+  return typeof h === 'string' && /^[^:\s]+:\S/.test(h) && !parseId(h);
+}
+
 /** A pointer's own id in G, written in square brackets right after it: R-1008 (Pointers). */
 const OWN_TAG = new RegExp(`^ \\[(${ID_TEXT}-T\\d+)\\]`);
 /** Any id in square brackets right after a pointer in G, an own id or an id of the record. */
@@ -461,7 +514,8 @@ const ID_TAG = new RegExp(`^ \\[(${ID_TEXT}(?:-T\\d+)?)\\]`);
 /**
  * The id written at a pointer, where its own id would stand, R-1008 (Pointers): on a page of S, P or
  * D its link's title, in G the square brackets right after it, when what stands there is an own id
- * or an id of the record. At a pointer rule's pointer nothing is written, so one found there was
+ * or an id of the record, a part of a quote count (`<target>-Q<n>`) included. At a pointer rule's
+ * pointer nothing is written, a `-Q` pointer rule's reference included, so one found there was
  * written by hand.
  * @param {{masked:string[]}} read the pointer's file as readFile returns it
  * @param {object} ptr the pointer as findPointers returns it
@@ -586,8 +640,11 @@ function checkPointerLists(reg, where) {
       const o = parseOwnId(own);
       const p = parseId(own);
       const rule = !!p && p.kind === 'pointer' && p.parent === t;
+      // a quote part is a -Q pointer rule's id, held by itself, or a quote pointer file's
+      // reference, held by its repository and path: R-1123 (Quote pointers)
+      if (rule && p.quote && isFileHolder(h)) continue;
       if (!rule && !(o && o.target === t)) f.push(`${where}: pointers.${t}: "${own}" is neither ${t}-T<n> nor a pointer rule at ${t} (Structure.md, Pointers)`);
-      else if (rule ? h !== own : !parseId(h) || (typeof h === 'string' && /^\d+$/.test(h))) f.push(`${where}: pointers.${t}.${own} needs ${rule ? 'its own id' : 'the id of the item that holds it'}, found ${JSON.stringify(h)}`);
+      else if (rule ? h !== own : !parseId(h) || (typeof h === 'string' && /^\d+$/.test(h))) f.push(`${where}: pointers.${t}.${own} needs ${rule ? (p.quote ? 'its own id, or the repository and path of the quote pointer file that holds it' : 'its own id') : 'the id of the item that holds it'}, found ${JSON.stringify(h)}`);
     }
   }
   return f;
@@ -1015,13 +1072,17 @@ function checkRegisterShape(reg, where, letters) {
     for (const [p, e] of Object.entries(part.listed || {})) {
       if (!obj(e)) { f.push(`${where}: listed ${p} needs an object`); continue; }
       if (e.id !== null && parseId(e.id)?.tier !== TIER_OF.file) f.push(`${where}: listed ${p} takes a 3-digit id (Structure.md, \`code\`), has ${JSON.stringify(e.id)}`);
-      if (e.pointerMark !== undefined && !(Number.isInteger(e.pointerMark) && e.pointerMark >= 0)) f.push(`${where}: listed ${p}'s pointerMark needs a whole number (Structure.md, Pointer rules)`);
+      for (const m of ['pointerMark', 'quoteMark']) if (e[m] !== undefined && !(Number.isInteger(e[m]) && e[m] >= 0)) f.push(`${where}: listed ${p}'s ${m} needs a whole number (Structure.md, Pointer rules)`);
     }
   }
   // the organization repository's register gives the repository's own address, R-1008 (Pointers)
   if (letters.includes('S') && !parseGithubAddress(reg.url)) f.push(`${where}: "url" needs the organization repository's address, https://github.com/<owner>/<repo>/blob/<branch>/ (Structure.md, Pointers)`);
+  // the quote pointer files, and the rule files that hold a quote pointer: R-1123 (Quote pointers)
+  const paths = (v) => Array.isArray(v) && v.every(x => typeof x === 'string' && x.length > 0);
+  if (reg.ruleFilesWithQuotes !== undefined && !paths(reg.ruleFilesWithQuotes)) f.push(`${where}: "ruleFilesWithQuotes" needs a list of paths (Structure.md, Quote pointers)`);
   for (const [name, repo] of Object.entries((reg.repositories && typeof reg.repositories === 'object') ? reg.repositories : {})) {
     if (repo && repo.url !== undefined && !parseGithubAddress(repo.url)) f.push(`${where}: repositories.${name}.url needs a GitHub repository address`);
+    for (const k of ['quotePointers', 'ruleFilesWithQuotes']) if (repo && repo[k] !== undefined && !paths(repo[k])) f.push(`${where}: repositories.${name}.${k} needs a list of paths (Structure.md, Quote pointers)`);
   }
   if (reg.notConverted !== undefined && !Array.isArray(reg.notConverted)) f.push(`${where}: "notConverted" needs a list of paths`);
   if (reg.repositories !== undefined && !obj(reg.repositories)) f.push(`${where}: "repositories" needs an object`);
@@ -1075,6 +1136,8 @@ function buildSystem(o) {
   const where = (e) => `${e.repo ? `${e.repo}:` : ''}${e.rel}`;
   const copies = o.copies || {};
   const usedCopies = new Set();
+  const quoteFiles = [];
+  const quoteNotChecked = [];
 
   for (const place of places) {
     const reg = place.register;
@@ -1135,7 +1198,7 @@ function buildSystem(o) {
       for (const [lp, le] of Object.entries(part.listed || {})) {
         const parent = nearest(myFolders, lp) || root;
         // a listed item has no line: its pointerMark stands on its register entry, R-1006 (Pointer rules)
-        const entry = { kind: 'listed', root, place, rel: lp, abs: path.join(place.base, lp), segment: le.segment, parent, code: `${parent.code}-${le.segment}`, level: parent.level + 1, id: le.id, pointerMark: le.pointerMark, fileName: path.basename(lp) };
+        const entry = { kind: 'listed', root, place, rel: lp, abs: path.join(place.base, lp), segment: le.segment, parent, code: `${parent.code}-${le.segment}`, level: parent.level + 1, id: le.id, pointerMark: le.pointerMark, quoteMark: le.quoteMark, fileName: path.basename(lp) };
         parent.children.push(entry);
         listed.push(entry);
         const isIndex = path.resolve(entry.abs) === path.resolve(path.dirname(place.registerPath), reg.index);
@@ -1169,6 +1232,17 @@ function buildSystem(o) {
         parent.children.push(entry);
         if (!co.exists) { entry.notChecked = true; notChecked.push({ entry, repo: name, folder: folderName, checkout: co.path, variable: overrideName }); }
         fileEntries.push(entry);
+      }
+      // the quote pointer files the register lists under their repository, outside the rule
+      // system: no item, no line, no id; each held on its target's list by its repository and
+      // path, R-1123 (Quote pointers)
+      for (const qp of repo.quotePointers || []) {
+        const entry = { kind: 'quote file', quoteFile: true, root: null, place, repo: name, repoFolder: folderName, copy: !!given, repoUrl: repo.url || null, rel: qp, abs: path.join(co.path, qp), holder: `${name}:${qp}` };
+        quoteFiles.push(entry);
+        if (!co.exists) { entry.notChecked = true; quoteNotChecked.push({ entry, repo: name, folder: folderName, checkout: co.path, variable: overrideName }); continue; }
+        if (!files.exists(entry.abs)) { findings.push(`${name}:${qp}: the quote pointer file does not exist (Structure.md, Quote pointers)`); entry.missing = true; continue; }
+        entry.read = readFile(files.read(entry.abs), FORM.comment);
+        for (const f of entry.read.findings) findings.push(`${name}:${qp}:${f.replace(/^line /, '')}`);
       }
     }
     // after every root of the place and its other repositories, so a file of any of them is known
@@ -1293,11 +1367,11 @@ function buildSystem(o) {
   }
   for (const it of all) {
     const j = it.item && it.item.json;
-    const pointerMark = it.kind === 'listed' ? it.listed.pointerMark : j ? j.pointerMark : undefined;
-    lineRecords.push({ id: it.id, splinterMark: j ? j.splinterMark : undefined, pointerMark, where: it.where, it });
+    const mark = (m) => (it.kind === 'listed' ? it.listed[m] : j ? j[m] : undefined);
+    lineRecords.push({ id: it.id, splinterMark: j ? j.splinterMark : undefined, pointerMark: mark('pointerMark'), quoteMark: mark('quoteMark'), where: it.where, it });
   }
   findings.push(...dupStrings);
-  return { places, roots, fileEntries, folders, listed, items, all, lineRecords, findings, notes, notChecked, byAbs, files, where, addresses, gCopy };
+  return { places, roots, fileEntries, folders, listed, items, all, lineRecords, findings, notes, notChecked, byAbs, files, where, addresses, gCopy, quoteFiles, quoteNotChecked };
 }
 
 function nearest(folders, rel) {
@@ -1350,6 +1424,110 @@ function trimBlankEnds(a) {
   while (s < e && !a[s].trim()) s++;
   while (e > s && !a[e - 1].trim()) e--;
   return a.slice(s, e);
+}
+
+// ------------------------------------------------------------- quotes: R-1123 (Quote pointers)
+
+/**
+ * The full address a relative link resolves to in its file's repository: `base` the repository's
+ * address as a register gives it (`https://github.com/<owner>/<repo>/blob/<branch>/`), `rel` the
+ * file's path in it, `href` the link as written, its anchor kept.
+ */
+function fullAddress(base, rel, href) {
+  const hash = href.indexOf('#');
+  const filePart = hash === -1 ? href : href.slice(0, hash);
+  const anchor = hash === -1 ? '' : href.slice(hash);
+  const to = !filePart ? rel : filePart.startsWith('/') ? filePart.slice(1) : path.posix.normalize(path.posix.join(path.posix.dirname(rel), filePart));
+  return `${base}${to}${anchor}`;
+}
+
+/** A quote between its marks, as the lines of a file hold it: R-1123 (Quote pointers). */
+function quoteBlock(lines) {
+  return [QUOTE_OPEN, '"', '', ...lines, '', '"', QUOTE_CLOSE];
+}
+
+/**
+ * What a target generates as a quote, R-1123 (Quote pointers): the lines `from` to `to` of a read
+ * file (0-based, end exclusive), the target's text below the line that titles it, the lines in
+ * `skip` (its JSON lines) left out, each relative link written as the full address it resolves to
+ * in the target's repository, its title kept; then between the marks. A target that holds a marker
+ * line is pointed at, not quoted.
+ * @param {object} read the target's file as readFile returns it
+ * @param {string} base the target's repository's address
+ * @param {string} rel the target's file's path in that repository
+ * @returns {{block:string[]}|{error:string}}
+ */
+function quoteOf(read, from, to, skip, base, rel) {
+  const out = [];
+  for (let i = from; i < to; i++) {
+    const raw = read.lines[i];
+    if (raw.trim() === QUOTE_OPEN || raw.trim() === QUOTE_CLOSE) return { error: `it holds a marker line of a quote (line ${i + 1}): pointed at, not quoted` };
+    if (skip.has(i)) continue;
+    const re = /\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+    let m, line = '', at = 0;
+    while ((m = re.exec(read.masked[i]))) {
+      const s = m.index + 2;
+      const href = raw.slice(s, s + m[1].length);
+      if (/^[a-z][a-z0-9+.-]*:/i.test(href)) continue;
+      line += `${raw.slice(at, s)}${fullAddress(base, rel, href)}`;
+      at = s + href.length;
+    }
+    out.push(line + raw.slice(at));
+  }
+  return { block: quoteBlock(trimBlankEnds(out)) };
+}
+
+/**
+ * The lines of a target inside the system that its quote is generated from, R-1123 (Quote
+ * pointers): below its heading for a rule, a section, a splinter or a pointer rule, below its `#`
+ * title for a file, a main file or a folder (its core file), its JSON lines left out, as the fetch
+ * script prints it. A listed item, a script or a generated index, has no line that titles it.
+ * @param {object} target the system's item
+ * @returns {{read:object, from:number, to:number, skip:Set<number>}|{error:string}}
+ */
+function quoteSource(target) {
+  if (target.kind === 'listed') return { error: `R-${idKey(target.id)} (${target.heading}) has no line that titles it: pointed at, not quoted` };
+  const read = target.read;
+  const it = target.item;
+  const skip = jsonLineIndexes(read);
+  return it.level === 1 ? { read, from: it.line, to: read.lines.length, skip } : { read, from: it.bodyStart, to: it.bodyEnd, skip };
+}
+
+/**
+ * The lines of a document outside the system that its quote is generated from, R-1123 (Quote
+ * pointers): below its first line, which titles it, as its file holds it; front matter before it.
+ * @returns {{read:object, from:number, to:number, skip:Set<number>}|{error:string}}
+ */
+function quoteSourceOutside(read, rel) {
+  let at = read.frontMatterEnd || 0;
+  while (at < read.lines.length && !read.lines[at].trim()) at++;
+  if (!HEADING.exec(read.lines[at] || '')) return { error: `${rel} has no line that titles it: pointed at, not quoted` };
+  return { read, from: at + 1, to: read.lines.length, skip: new Set() };
+}
+
+/**
+ * The parts of a quote pointer from line `from` to `to` of a read file (0-based, end exclusive),
+ * R-1123 (Quote pointers): its quote, which comes first, and its reference, the paragraph after the
+ * quote; what follows the reference is its additions.
+ * @returns {{quote:({open:number, close:number}|null), ref:({start:number, end:number}|null),
+ *   findings:string[]}} `quote` null when the lines hold none; findings carry `line N: ...`
+ */
+function quoteParts(read, from, to) {
+  const lines = read.lines;
+  const findings = [];
+  const inside = (read.quotes || []).filter(q => q.open >= from && q.open < to);
+  if (!inside.length) return { quote: null, ref: null, findings };
+  const q = inside[0];
+  for (const extra of inside.slice(1)) findings.push(`line ${extra.open + 1}: a second quote; a quote pointer holds one (Structure.md, Quote pointers)`);
+  let s = from;
+  while (s < to && !lines[s].trim()) s++;
+  if (s !== q.open) findings.push(`line ${s + 1}: text before the quote; a quote pointer's quote comes first after its title (Structure.md, Quote pointers)`);
+  let a = q.close + 1;
+  while (a < to && !lines[a].trim()) a++;
+  let b = a;
+  while (b < to && lines[b].trim()) b++;
+  if (a >= to) { findings.push(`line ${q.close + 1}: no reference after the quote; a quote pointer's reference follows its quote (Structure.md, Quote pointers)`); return { quote: q, ref: null, findings }; }
+  return { quote: q, ref: { start: a, end: b }, findings };
 }
 
 /**
@@ -1410,6 +1588,8 @@ module.exports = {
   checkSiblingSegments,
   checkRecord, checkPartMarks, findPointers, findLinks, findQuoted, expectedName, linkMatches,
   parseOwnId, idWrittenAt, holderOf, idOrder, checkPointerLists, renderPointerLists, withPointerLists,
+  MARKS, QUOTE_OPEN, QUOTE_CLOSE, parseQuotePart, isFileHolder, fullAddress, quoteBlock, quoteOf, quoteSource,
+  quoteSourceOutside, quoteParts,
   readVariable, readStoredUserValue, POLICIES_VARIABLE, overrideVariable, siblingCheckout, claudeRoot,
   INDEX_NAMES, indexFileOf, countsForLastStep, coreFileOf, parseGithubAddress, githubTarget, G_COPY, gCopyTarget,
   Files, checkRegisterShape, buildSystem, describe, toPosix,

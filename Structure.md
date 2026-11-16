@@ -94,8 +94,8 @@ becomes a splinter ([R-1005 (Splinters)](#splinters "1005-T1")).
 
 - **Heading.** The rule's proper name.
 - **JSON line.** The line after the heading, `{"name","code","id"}` in that order, with `name` the
-  heading's text exactly, followed by `splinterMark` and `pointerMark` where the rule has
-  splinters or is pointed at by pointer rules.
+  heading's text exactly, followed by `splinterMark`, `pointerMark` and `quoteMark` where the
+  rule has splinters or is pointed at by pointer rules.
 - **Body.** The lines after the JSON line, running to the next heading.
 
 The JSON line has two forms. On the pages of S, P and D it is an HTML comment, `<!-- {...} -->`,
@@ -152,15 +152,23 @@ is retired with a pointer to the new.
 ## Pointer rules
 <!-- {"name":"Pointer rules","code":"S-C-PR","id":1006} -->
 
-A pointer rule is a rule whose whole body points at one target: a rule, a splinter, a section, a
-file, a folder, or a listed item (a script or a generated index). Its id is the target's and a
-part, `<target>-P<n>`, e.g. `"id":"1041-P1"`, counted apart from the target's splinters. Its body
-is one paragraph whose only pointer is to its target.
+A pointer rule is a rule whose body points at one target: a rule, a splinter, a section, a file, a
+folder, or a listed item (a script or a generated index). Its id is the target's and a part,
+`<target>-P<n>`, e.g. `"id":"1041-P1"`, counted apart from the target's splinters. Its body is one
+paragraph whose only pointer is to its target, or a quote pointer whose reference is that paragraph
+and which may add to its target after it ([R-1123 (Quote pointers)](#quote-pointers "1123-T1")). A pointer
+rule whose body is a quote pointer takes `<target>-Q<n>` in place of `<target>-P<n>`, e.g.
+`"id":"130-Q2"`, a part of the target's quote count, which the quote pointer files' references
+share.
 
-The target's highest pointer part is its `pointerMark`, written on the target's own JSON line, or,
-for a listed item, which has no line, on its entry in the register; it is absent when the target has
-none. A pointer rule that is repointed takes a new id, and the old one is retired with a pointer to
-the new.
+The target's highest pointer part is its `pointerMark`, and the highest quote part a pointer rule
+has taken its `quoteMark`, each written on the target's own JSON line, or, for a listed item, which
+has no line, on its entry in the register; each is absent when the target has none. A quote part is
+given above the target's `quoteMark` and above the highest quote part on its list
+([R-1008 (Pointers)](#pointers "1008-T3")), so a pointer rule's part is never given again; a quote part below
+the mark need not be in use or retired. A pointer rule that is repointed, or whose body turns from
+a paragraph into a quote pointer or back, takes a new id, and the old one is retired with a pointer
+to the new.
 
 ## `code`
 <!-- {"name":"`code`","code":"S-C-CO","id":1007} -->
@@ -234,6 +242,44 @@ in code formatting, the link that wraps a pointer on these pages, or a reference
 converted, except on these pages, where every link into G is reported: the link goes, or the file
 is named in code formatting.
 
+## Quote pointers
+<!-- {"name":"Quote pointers","code":"S-C-QP","id":1123} -->
+
+A quote pointer references its target and quotes it, for a reader who must have the target's text
+where the pointer stands, such as a community health file in another organization's `.github`
+repository, which GitHub reads from that repository alone. It is a file outside the rule system or
+the body of a pointer rule ([R-1006 (Pointer rules)](#pointer-rules "1006-T4")), and holds, in this order:
+
+1. its own title for the topic: a file's `#` title, or a pointer rule's heading with its JSON line;
+2. the quote, between a line `<!-- quote -->` and a line `<!-- end quote -->`, which GitHub does
+   not show; inside them, a line `"` before the quote and another after it, which show the reader
+   where the quote begins and ends;
+3. the reference, one paragraph whose only pointer or link is to its target: in a pointer rule its
+   pointer ([R-1008 (Pointers)](#pointers "1008-T4")); in a file an id pointer for a target inside the system,
+   or the file for a document outside it, linked by the full address of its home;
+4. what it adds to its target, a deviation included, each addition with its reason, when it adds
+   anything; in a pointer rule an addition is read as any rule's body is.
+
+The quote is generated from the target: the target's text below the line that titles it, its
+heading or `#` title, for a target inside the system as the fetch script prints it
+([R-1011 (The fetch script)](#the-fetch-script "1011-T2")), for a document outside it as its file holds it,
+and in either each relative link written as the full address it resolves to in the target's
+repository. A target with no such line, such as a script, and a target that holds a line
+`<!-- quote -->` or `<!-- end quote -->`, as one that holds a quote pointer does, are pointed at,
+not quoted. The checker reads the target from the reference and holds the quote, with its marks,
+equal to what the target generates now, line endings aside; a quote that differs is out of date,
+whatever the difference, and never wrong ([R-1008 (Pointers)](#pointers "1008-T5")), and it is no second
+home ([R-1000 (Single source)](#single-source "1000-T4")). A document outside the system has no id that a
+move keeps: when it moves, a reference to it leads nowhere and is a finding until it is linked
+again by hand. Nothing inside the quote is read: in a rule file it holds no item, pointer, link or
+JSON line, and ends no body, and `--write` writes no id in it; the ids at its target's pointers are
+quoted with the rest. `rule-files.json` lists each quote pointer file under its repository. A
+file's id pointer takes its own id as a pointer in the text of a file does, with Q in place of T,
+`<target>-Q<n>`, a part of the target's quote count ([R-1006 (Pointer rules)](#pointer-rules "1006-T5")),
+apart from its T parts, written as its link's title, e.g. `130-Q1`, and stands on its target's
+list under that id and that repository and the file's path. Each register lists, in a list of
+their own, the rule files of its roots that hold a quote pointer.
+
 ## The indexes
 <!-- {"name":"The indexes","code":"S-C-IX","id":1009} -->
 
@@ -248,20 +294,21 @@ repository's root.
 
 The checker, [R-100 (rule-check.js)](scripts/rule-check.js "100-T1") (S-S-C), checks the four roots: the JSON
 lines in each place's form, the tiers, the two id lists as one record, the splinters and pointer
-rules with their marks, the sections, the codes, the pointers with their links, ids and lists, and
-the indexes. It finds this repository's checkout through the variable `SPARTAN_ORG_POLICIES` and
-reports a finding when it is unset, reading the variable from its process environment first and
-from the stored user value second, with no path written in it. A file in another repository is
-read from that repository's checkout, a sibling folder of this one under the folder name the
-register gives, a variable overriding it, or from the copy of that repository about to be committed
-when one is named. A missing checkout makes the file "not checked", and S-I, which lists that
-file's items, is then neither checked nor rewritten; with `--write` in a copy of this repository
-about to be committed, a missing checkout is a finding.
+rules with their marks, the sections, the codes, the pointers with their links, ids and lists, the
+quote pointers, and the indexes. It finds this repository's checkout through the variable
+`SPARTAN_ORG_POLICIES` and reports a finding when it is unset, reading the variable from its
+process environment first and from the stored user value second, with no path written in it. A
+file in another repository is read from that repository's checkout, a sibling folder of this one
+under the folder name the register gives, a variable overriding it, or from the copy of that
+repository about to be committed when one is named. A missing checkout makes the file "not
+checked", and S-I, when it lists that file's items, is then neither checked nor rewritten; with
+`--write` in a copy of this repository about to be committed, a missing checkout is a finding.
 
 - It exits 1 on any finding.
 - On request it lists every pointer at a given id.
 - With `--write` it also corrects the codes, raises the marks, rewrites the indexes, the pointer
-  lists and the ids at the pointers, and brings up to date what pointers took from their targets
+  lists and the ids at the pointers, brings each register's list of the rule files that hold a
+  quote pointer up to date, and brings up to date what pointers took from their targets
   ([R-1008 (Pointers)](#pointers "1008-T2")). Any finding leaves every file as it is. In `~/.claude` it
   writes in place; for S, P and D, and for a file in another repository, it writes in the copy of
   the file's repository about to be committed, never in a standing checkout, which is brought up

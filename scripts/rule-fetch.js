@@ -47,9 +47,9 @@ function parseArgs(argv) {
   return a;
 }
 
-/** Reads a pointer as given: `R-1041`, `1041`, `R-1041 (Name)`, `13-P1`, `10026-1`. */
+/** Reads a pointer as given: `R-1041`, `1041`, `R-1041 (Name)`, `13-P1`, `130-Q2`, `10026-1`. */
 function pointerId(text) {
-  const m = /^\s*(?:R-)?(\d+(?:-P?\d+)*)\b/.exec(String(text));
+  const m = /^\s*(?:R-)?(\d+(?:-[PQ]?\d+)*)\b/.exec(String(text));
   return m && L.parseId(m[1]) ? m[1] : null;
 }
 
