@@ -276,8 +276,9 @@ never refer to the approval flow, and never state a grade. The list, with what o
 resembles an entry and is fine and what to say instead, is
 `~/.claude/nomenclature/internal-names.md`, and how a scan finds its words is
 `~/.claude/nomenclature/finding.md`. The admin team scans what R-1122 (What the commit scan
-reads) lists. A find blocks the `commit`, `prepare-landing` or `land` that carries it: the admin team commits nothing, names each
-`file:line`, and the requester rewords and resends, or resends asking for an exception, which the
+reads) lists, with the CCO's finding tool. A find blocks the `commit`, `prepare-landing` or `land` that carries it: the admin team commits nothing, names each
+`file:line` with the list's wording to say instead, or that it has none, and the requester rewords
+(by hand where there is no wording) and resends, or resends asking for an exception, which the
 list says goes to me first; a find in a board the admin team generates
 is the team's to fix. What a board hands out of its repository unscanned, a board's published
 copy and a Whiteboard's generated part, keeps the same rule (the dashboards skill).
@@ -295,7 +296,7 @@ little code; `plan.md` and `final-implementation.md` keep the details beside it.
 `SpartanLaboratories/.github` holds a public copy of `~/.claude/` under `claude/`; its
 `claude/README.md` maps each mirrored path to its source. Whenever your work changes anything
 that copy covers — `CLAUDE.md`, `settings.json`, `hooks/`, `agents/`, `skills/` (including
-ones a tool installs, e.g. `graphify`), `nomenclature/`, `shared/`, `rule-index.md`, or
+ones a tool installs, e.g. `graphify`), `nomenclature/`, `shared/`, `tools/`, `rule-index.md`, or
 `admin-team/` (less the local state the README's "Not included" list leaves out) — have the
 copy updated as part of the same change so it matches `~/.claude/` again: send the
 `admin team` session a `mirror-sync` request naming the changed paths (the `admin-team`

@@ -65,10 +65,14 @@ lands on the committed issue board. In
 every text a `plan-board` fact carries (detail, notes, `waitingOn`, questions and options, open
 points, a qa pass's note, remediation step names, tests), name a test by its set ("the
 integration tests", "component tests"), never by a number.
-Carry the rule in every brief to an agent that writes a document. A `commit`, `prepare-landing` or `land` whose
+Carry the rule in every brief to an agent that writes a document. Before it sends a `commit`,
+`prepare-landing` or `land`, a run may run the finding tool's command over the files it carries
+(`node ~/.claude/tools/finding/scan.js --root <checkout> <file> …`) and reword what it finds
+first; the team's scan of the request stays the gate. A `commit`, `prepare-landing` or `land` whose
 content breaks it (the document-landing commit of step 6 included) is blocked: the team commits nothing and
-replies `needs-rework` with `result.finds` (`file:line`); reword each find and resend the same
-`id` with `attempt + 1`. With a reason to keep a find, resend it asking for an exception instead,
+replies `needs-rework` with `result.finds` (`file:line`, the text, and `sayInstead`, the list's
+wording or `null`); reword each find, with its wording where it fits and by hand where there is
+none, and resend the same `id` with `attempt + 1`. With a reason to keep a find, resend it asking for an exception instead,
 which waits on the user as `needs-user` (`~/.claude/agents/admin-team/PROTOCOL.md`, "Rules both sides
 keep"); under `--unattended` the run rewords instead and asks for no exception ("Prompt flags").
 
@@ -666,8 +670,9 @@ done, naming each, and nothing was committed: finish any that is truly
 unfinished, send a `document` event with their true states, wait for its
 `done`, then resend the same `id` with `attempt + 1`. A
 `needs-rework` with `result.finds` means a file names the pipeline or a work
-grade: reword each `file:line` (or have the agent that wrote it reword it) and
-resend the same `id` with `attempt + 1`. Then step 7.
+grade: reword each `file:line`, with its `sayInstead` where it fits and by hand
+where it is `null` (or have the agent that wrote it reword it), and resend the
+same `id` with `attempt + 1`. Then step 7.
 
 The presenter is not a pipeline step: it runs as a service of the `admin team`
 session, building the state boards on the run's `state-boards` request (task 6)

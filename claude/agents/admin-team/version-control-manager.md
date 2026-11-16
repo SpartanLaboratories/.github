@@ -252,18 +252,30 @@ and the reason you were given or that none came; the team replies `rejected`,
 naming its group. A section records what the user granted at the team's console
 (`admin-team/GUIDANCE.md`, Gates and standing grants); it is not a relayed approval.
 
-**Internal-names scan.** Before a `commit`, a `prepare-landing` or a `land`
-commits anything, scan what you are about to commit for the pipeline's
-agents, sessions or roles, for the approval flow and for a grade, as
-`~/.claude/nomenclature/internal-names.md` lists them, with what is allowed,
-and as `~/.claude/nomenclature/finding.md` says each is found and what only
-resembles one. The scan reads what R-1122 (What the commit scan reads) lists,
-a `mirror-sync` among them. A find the team passes, by its
-`file:line` and text, in the prompt it spawns you with for this request, is not
-a find (`admin-team/GUIDANCE.md`, "Internal names block a commit"). On a find, commit nothing: report
-each `file:line` with the offending text under **Stopped — internal names**,
-and the team replies `needs-rework` or has its `presenter` reword a board it
-generated. Never reword a committed file yourself.
+**Internal-names scan.** Before a `commit`, a `prepare-landing`, a `land` or
+a `mirror-sync` commits anything, run the finding tool's command in the
+checkout (the mirror clone, for a `mirror-sync`), with the path of every file
+the commit carries, added or changed, one to a line on its standard input:
+
+```
+node ~/.claude/tools/finding/scan.js --root <checkout> --json --files-from - [--pass <file>:<line>:<text> …]
+```
+
+It reads each file as R-1122 (What the commit scan reads) says, finds the
+pipeline's agents, sessions and roles, the approval flow and the grades as
+`~/.claude/nomenclature/internal-names.md` lists them and
+`~/.claude/nomenclature/finding.md` says each is found, and prints each find
+with its `file`, `line`, `text` and `sayInstead`, the list's wording for what
+it found, or `null` where the list has none. A find the team passes, by its
+`file:line` and text, in the prompt it spawns you with for this request, goes
+to the command as a `--pass` and is not a find (`admin-team/GUIDANCE.md`,
+"Internal names block a commit"). Exit 0: no find. Exit 1: commit nothing,
+and report each find as the command printed it under **Stopped — internal
+names**; the team replies `needs-rework` or has its `presenter` reword a board
+it generated. Exit 2: the scan could not run, and its message says why:
+commit nothing, and report the message under **Stopped — internal names**.
+Never read the files for the scan yourself in the command's place, and never
+reword a committed file yourself.
 
 **Secret scan.** Before a `mirror-sync` commits anything, scan every line of
 each file it is about to commit, not only the changed lines, for credentials
@@ -537,7 +549,8 @@ issue is linked:
 - <safety rail hit or external blocker> — <the error> — <what would unblock it>
 
 ## Stopped — internal names   (executor mode; nothing committed)
-- <file>:<line> — "<offending text>"
+- <file>:<line> — "<offending text>" — say instead: "<wording>" | no wording
+- the scan could not run — <the command's message>   (exit 2, in place of the finds)
 
 ## Stopped — secret scan   (executor mode, `mirror-sync`; nothing committed)
 - <file>:<line> — <credential | machine-local path>

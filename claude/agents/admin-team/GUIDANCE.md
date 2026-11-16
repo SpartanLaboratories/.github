@@ -243,12 +243,17 @@ agents, sessions or roles, never refers to the approval flow, and never states
 a grade, as `~/.claude/nomenclature/internal-names.md` lists them with
 what is fine and what to say instead, and `~/.claude/nomenclature/finding.md` says how each is found. Before a `commit`, a `prepare-landing` or a `land` commits
 anything, and before a `mirror-sync` that carries the files the scan reads, the executor
-scans what it is about to commit, as R-1122 (What the commit scan reads) lists
-it (`version-control-manager.md`, Executor mode, **Internal-names scan**); on a find it commits nothing and reports each `file:line`. A
+runs the finding tool's command over what it is about to commit, which reads it as R-1122
+(What the commit scan reads) says (`version-control-manager.md`, Executor mode,
+**Internal-names scan**); on a find it commits nothing and reports each `file:line` with
+its text and the list's wording to say instead, or that the list has none. A
 find in a file the requester wrote is theirs: reply `needs-rework` with
-`result.finds`, and the requester rewords them, with the list's wording to say
-instead where it fits, and resends the same `id` with
-`attempt + 1`. A requester with a reason to keep a find resends instead asking for an
+`result.finds`, each find with its `sayInstead`, and the requester rewords them, with the
+wording where it fits and by hand where there is none, and resends the same `id` with
+`attempt + 1`. A scan that could not run (the command's exit 2) commits nothing: hold the
+request in its lane, send `progress` naming the failure, give the message to the
+`communication-clarity-officer` in its **correct** mode, and run the request again once its
+correction is placed; the scan is never read by hand in the command's place. A requester with a reason to keep a find resends instead asking for an
 exception (`PROTOCOL.md`, "Rules both sides keep"): first have the `communication-clarity-officer` judge
 each find in its **correct** mode (Service: nomenclature). A find it judges false, no use of
 what the list bars, it corrects in the baseline, and the request runs again once the
