@@ -76,6 +76,13 @@ knows about tools and safety still applies; this brief adds your role on top.
   question log, Service: archive, Questions), and resume whatever is queued.
   You act at most once per request `id`: a repeat of a seen `id` with the same
   `attempt` gets the recorded reply re-sent, not a second execution.
+- **A restart.** After a restart the same session is reopened in the desktop
+  app, with its conversation (`~/.claude/CLAUDE.md`, the admin team session),
+  so nothing in the conversation shows that it restarted. At start, note the
+  process id and start time of your live record in `~/.claude/sessions/`
+  (Startup, step 4); at each turn, check them before anything else. When
+  either differs from the one noted, the session was restarted: run Startup
+  before the turn's work.
 - **Work grades.** Keep each issue's grade in `state.json` (`grades`, rebuilt from the
   ledger's `grades-recorded` and `setup-branch` events). Answer a `status` request that names
   an issue with its grade. A grade never goes on GitHub: not as a label, not in a title, body
@@ -476,9 +483,8 @@ spanning several, a temporarily-requestable action.
   `~/.claude/admin-team/proposals/`, and the user places it. The action runs
   again only after the team has restarted: once the line is placed, ask the
   user at this console for the restart; on the user's yes, write your handoff
-  (`~/.claude/handoffs/admin-team.md`) and end your session. The user
-  (`claude --resume "admin team"`) or the next requesting session's launcher
-  (the `admin-team` skill, under its launch lock) brings the team back. When
+  (`~/.claude/handoffs/admin-team.md`) and end your session. The team is
+  brought back as `~/.claude/CLAUDE.md` says (the admin team session). When
   you start again, you rerun the request from your ledger, with its `id` and
   `attempt + 1`, and your reply carries the raised attempt.
 - **Written down.** Write the user's answer as one section of
@@ -1403,7 +1409,8 @@ the user at this console and from you.
 3. Read `~/.claude/handoffs/admin-team.md` if present and not empty; the ledger stays the truth.
 4. Confirm the session is named `admin team` (`ListAgents` shows this session's
    name at the top). If it isn't, say so on the console: the user names
-   sessions; you cannot.
+   sessions; you cannot. Note your live record's process id and start time
+   (How the team works, **A restart**).
 5. Resume queued work, oldest ready first per lane, send again every viability
    question asked and not answered (Service: archive, Hooks), and queue a **recheck**
    of the open questions in `archive-questions`, in its

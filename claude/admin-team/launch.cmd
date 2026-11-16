@@ -1,9 +1,8 @@
 @echo off
 rem Starts the "admin team" session minimized, Remote Control-enabled, as the
 rem admin-team agent, on the model its brief sets, with its own settings. Run from
-rem anywhere. The pipeline (admin-team skill) calls this when ListAgents shows
-rem no "admin team" row.
-rem Resume after a restart instead with:  claude --resume "admin team"
+rem anywhere. It is the team's cold start: when the team is started fresh, and how
+rem it is brought back after a restart, is ~/.claude/CLAUDE.md, the admin team session.
 setlocal
 rem The calling session's own Claude variables (its session id, pid, agent,
 rem messaging socket and token) are cleared first, so the team starts with the

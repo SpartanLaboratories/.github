@@ -149,9 +149,12 @@ comments or files itself, and never spawns `version-control-manager` directly.
   issues, each with its count of encounters), and an archive of its own past sessions, whose
   files are deleted once archived. Any session may send it a `log-hook` request for an idea I
   should revisit; a hook changes nothing until I decide it.
-- If it is not running, the requesting session launches it with `~/.claude/admin-team/launch.cmd`
-  under the launch lock (the skill does this): a minimized, Remote Control-enabled session started
-  with `--agent admin-team`. Resume after a restart with `claude --resume "admin team"`.
+- It lives in the Claude desktop app. If it is not running, the requesting session launches it
+  with `~/.claude/admin-team/launch.cmd` under the launch lock (the skill does this): a minimized,
+  Remote Control-enabled session started with `--agent admin-team`, which I may move into the app
+  with `/desktop`. After a restart, the same session is reopened in the app; it is started fresh
+  (`launch.cmd`, or a new app session in `~/.claude/admin-team/` that I name `admin team`) only
+  when it cannot be reopened or a clean context is wanted.
 - Its ledger, state, hooks log, questions log and session archive
   (`~/.claude/admin-team/ledger.jsonl`, `state.json`, `hooks.jsonl`, `questions.jsonl`,
   `archive/`) are local only and never mirrored.
