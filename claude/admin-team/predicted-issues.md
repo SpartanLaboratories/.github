@@ -442,7 +442,7 @@ A run learns that research has ended only when its planning agent returns, which
 ## A board write fails on Windows while another process reads the file
 
 ```json
-{"id":"p25","count":2,"last":"2026-11-15"}
+{"id":"p25","count":3,"last":"2026-11-16"}
 ```
 
 The board scripts write a board file by writing a temporary file and renaming it over the old one. On Windows the rename is refused (`EPERM`, `EBUSY` or `EACCES`) while another process has the old file open. The scripts retry a refused rename: for 3 seconds until 2026-11-12 (0.5 seconds in `apply-state.js`), for 15 seconds with growing, uneven pauses since (`renameInto()` in the dashboards skill's `plan/scripts/lib.js`). When the retries run out the write fails with the old file intact, nothing half written, and the event is not applied.
@@ -453,10 +453,11 @@ What was measured (the presenter, 2026-11-11 and 2026-11-12): a reader that reop
   - **(a) Retry only.** Installed on 2026-11-12 as a plain defect fix. The file is always there, old or new. It does not cure the verification's case.
   - **(b) Move the old file aside.** After about 1.5 seconds of refusals, move the old file aside, move the new one in and delete the old one. The verification's case then passed 20 of 20 runs, the fallback used 6 times. The content is still never half written, but a reader that does not hold the boards' lock can find no file at all for a moment (once in 963 reads). The rules' sentence that every file is written through a temporary file and a rename (`plan/RULES.md` and `system/RULES.md` of the dashboards skill) would need a clause saying so. It changes what a reader can rely on, so it is the user's decision; it is kept as an experiment outside the skill.
   - **(c) Pace the verification case's reader** as a live reader is paced (about every 20 ms). It keeps what the case proves: hundreds of reads still fall between the writes, so a half-written read would show, and "no write lost" does not depend on the reader. Stable as measured, not proven.
-- **Predicted:** the presenter, from the skill's verification, 2026-11-11. Not yet met in live work: both encounters are the verification's, in a job whose pass it blocked; no live fill or event failed on it.
+- **Predicted:** the presenter, from the skill's verification, 2026-11-11. The two encounters of 2026-11-15 are the verification's, in a job whose pass it blocked; the first in live work is that of 2026-11-16.
 - **Encounters:**
   - 2026-11-15: a skill-fix job's full template verification on its staged copy: the case "event and fill at the same time" failed, 6 of 8 cases, two of six rounds' fills refused on the rename of the temporary file onto `plan.json` ("operation not permitted"), every file put back. The pass could not be recorded, and the job's template change stayed staged.
   - 2026-11-15: the same job's second full run: the same case failed, 7 of 8 cases, on the same rename. Run alone on the files from before the change, the case failed 4 of 15 times, so the failure does not rest on the change (a measurement, not counted as encounters). The job's account of the live risk: a live fill or event fails this way only if the file is held for the whole 15 seconds of retries, and then exits failed with every file put back, and running it again works.
+  - 2026-11-16: the first in live work, and on a different file: KotlinBottools #42, a step event (S0.pins) applied to the issue board, then the regeneration of the live repository work board (`board.js --live`) failed with Windows code 5 (access denied) while a fill of the same board, just started, held a file under its `.live/` folder; not `plan.json`. The error names no operation, so that it was the rename is not established. The event raised again 31 seconds later applied clean.
 
 ## A run sends a test level by name and the fast path drops it
 
