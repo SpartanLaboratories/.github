@@ -1090,3 +1090,18 @@ The internal-names scan applies to a `mirror-sync` and reads every line of each 
 - **Predicted:** the admin team, on meeting it, 2026-11-15.
 - **Encounters:**
   - 2026-11-15: four mirror-syncs of one change, run in a row: the first reported no find, with added lines naming a grade judged as rule text by design; the second, 0 finds, its method unstated; the third, 0 finds, "read against the list's Allowed section, no matcher run over every line"; the fourth ran the matcher over every added line. None reported reading every line of each carried file.
+
+## A `landed` on a built board is refused because its impact is not yet as built
+
+```json
+{"id":"p70","count":3,"last":"2026-11-16"}
+```
+
+At a landing the team raises `landed` on the issue board with the dashboards skill's `apply-event.js` in its view mode. On a board whose stages are built, the `landed` row of `plan/RULES.md` hands the reconciled impact to the presenter ("enrich: yes"), but `check.js` fails any built board whose impact is not yet as built, so the event is refused and every file is put back. The presenter then fills the view copy first and raises the event again. Beside it, the unit's Row on the tracking board keeps its filing text ("its run has not started") at `landed` until the presenter rewrites it. The presenter's report on the third landing calls it "a defect, not the designed hand-over": "The rule and the checker contradict each other."
+
+- **Proposed resolution:** none decided. The presenter's, as the hooks log holds it: "a landed that leaves only the impact to reconcile should apply and say enrich yes instead of failing". For the unit Row beside it, the presenter's: "a unit Row's filing summary should be replaced at sized and at landed", which waits on an open question shared with a neighbouring hook (a unit that is itself a tracking issue).
+- **Predicted:** the admin team, on meeting it, 2026-11-16.
+- **Encounters:**
+  - 2026-11-15: the landing of KotlinBottools #39: `landed` refused by the check on the board it would write; the presenter filled the view copy (impact as built) and raised it again (exit 0). Counted late.
+  - 2026-11-15: the landing of KotlinBottools #40 (merge 9170254): the presenter filled the view copy first, then raised `landed` unchanged (ok, enrich yes for the parent's unit impact only). Counted late.
+  - 2026-11-16: the landing of KotlinBottools #41: "apply-event: failed … check: FAIL: FAIL  a built board's impact is the as-built one: the landing reconciles it from final-implementation.md and sets impact.basis "as-built" … restored: 6 files, as they were"; the presenter filled the view copy and raised it again, the third landing in a row to need it.
